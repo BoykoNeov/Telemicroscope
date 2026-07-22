@@ -167,6 +167,7 @@ export function resolveStopRadius(system: OpticalSystem, wavelengthNm: number): 
 
 /** World z of the image plane: the last vertex plus the image-surface offset. */
 export function imagePlaneZ(c: CompiledSystem, system: OpticalSystem): number {
+  assertUnfolded(c, "imagePlaneZ()");
   const last = c.surfaces[c.surfaces.length - 1]!;
   const offset = system.imageSurface?.offsetFromLastVertex ?? last.thickness;
   return last.vertexZ + offset;

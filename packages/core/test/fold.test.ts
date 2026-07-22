@@ -1,12 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { vec3, dot, normalize } from "../src/math/vec3";
+import { vec3, normalize } from "../src/math/vec3";
 import { reflectionAbout, applyToDirection, mat3Apply } from "../src/math/transform";
 import { compile, vertexPoint } from "../src/trace/compile";
-import { Prescription } from "../src/trace/prescription";
+import { Prescription, unfoldedTwin } from "../src/trace/prescription";
 import { traceRay } from "../src/trace/sequential";
+import { reflectDir } from "../src/trace/interaction";
 import { makeRay } from "../src/trace/ray";
 import { systemProperties } from "../src/trace/paraxial";
-import { pupils } from "../src/pupil/pupils";
+import { OpticalSystem } from "../src/trace/system";
+import { pupils, imagePlaneZ } from "../src/pupil/pupils";
+import { paraxialImageOffset, bestFocus } from "../src/analysis/focus";
 import { LINE_D } from "../src/materials/dispersion";
 
 /**
@@ -44,21 +47,19 @@ describe("the reflection primitive", () => {
     expect(det).toBeCloseTo(-1, 12);
   });
 
-  it("agrees with the ray reflection law it has to stay consistent with", () => {
-    // The frame rule and the ray rule are written independently (a Householder
-    // matrix here, d − 2(d·n)n in `interact`). If they ever disagreed, the
-    // chain would point somewhere the light does not go.
+  it("agrees with the engine's own ray reflection, which is written separately", () => {
+    // The chain's rule is a Householder matrix; the ray's is `reflectDir` in
+    // `interact`, written independently and validated long before folds
+    // existed. If they ever disagreed the chain would point somewhere the
+    // light does not go — so this pins the new code against the old, not
+    // against a restatement of itself.
     const n = normalize(vec3(0, -1, 1));
-    const d = vec3(0.1, 0.2, 0.97);
+    const d = normalize(vec3(0.1, 0.2, 0.97));
     const byMatrix = mat3Apply(reflectionAbout(n), d);
-    const byLaw = vec3(
-      d.x - 2 * dot(d, n) * n.x,
-      d.y - 2 * dot(d, n) * n.y,
-      d.z - 2 * dot(d, n) * n.z,
-    );
-    expect(byMatrix.x).toBeCloseTo(byLaw.x, 14);
-    expect(byMatrix.y).toBeCloseTo(byLaw.y, 14);
-    expect(byMatrix.z).toBeCloseTo(byLaw.z, 14);
+    const byEngine = reflectDir(d, n);
+    expect(byMatrix.x).toBeCloseTo(byEngine.x, 14);
+    expect(byMatrix.y).toBeCloseTo(byEngine.y, 14);
+    expect(byMatrix.z).toBeCloseTo(byEngine.z, 14);
   });
 });
 
@@ -245,20 +246,54 @@ describe("Newtonian fold", () => {
   });
 });
 
+/**
+ * Rung: the unfolded-only guard has no way around it.
+ *
+ * A guard on one entry point is a tripwire with a hole if another door reaches
+ * the same coordinate. Nothing in the suite exercises a folded system through
+ * the wave layer yet, so these paths would pass green either way — which is
+ * exactly why they are asserted now, rather than discovered by the Newtonian
+ * preset getting a plausible wrong number instead of the loud error promised.
+ */
 describe("the unfolded-only guard", () => {
-  it("pupils() refuses a folded system instead of answering in a dead coordinate", () => {
-    const folded: Prescription = {
-      mirrorFrames: "folded",
-      surfaces: [
-        { kind: "reflect", curvature: 1 / -2000, conic: -1, semiAperture: 100, thickness: 800, isStop: true },
-        { ...FLAT, tiltXDeg: 45, semiAperture: 40, thickness: 200 },
-      ],
-    };
-    expect(() =>
-      pupils(
-        { prescription: folded, aperture: { kind: "stopRadius", value: 100 }, field: { kind: "angle", values: [0] }, wavelengths: [{ nm: LINE_D, weight: 1 }], conjugate: { kind: "infinite" } },
-        LINE_D,
-      ),
-    ).toThrow(/unfolded-only/);
+  const folded: Prescription = {
+    mirrorFrames: "folded",
+    surfaces: [
+      { kind: "reflect", curvature: 1 / -2000, conic: -1, semiAperture: 100, thickness: 800, isStop: true },
+      { ...FLAT, tiltXDeg: 45, semiAperture: 40, thickness: 200 },
+    ],
+  };
+  const system: OpticalSystem = {
+    prescription: folded,
+    aperture: { kind: "stopRadius", value: 100 },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  };
+
+  it("pupils() refuses instead of answering in a dead coordinate", () => {
+    expect(() => pupils(system, LINE_D)).toThrow(/unfolded-only/);
+  });
+
+  it("paraxialImageOffset() refuses — it walks the axis without ever calling pupils()", () => {
+    expect(() => paraxialImageOffset(system, LINE_D)).toThrow(/unfolded-only/);
+  });
+
+  it("bestFocus() refuses, so the whole focus/PSF path is closed", () => {
+    expect(() => bestFocus(system, "paraxial")).toThrow(/unfolded-only/);
+  });
+
+  it("imagePlaneZ() refuses, so OPD cannot reach a plane the light never crosses", () => {
+    expect(() => imagePlaneZ(compile(folded), system)).toThrow(/unfolded-only/);
+  });
+
+  it("but the unfolded twin of that same system answers all of them", () => {
+    // The guard must be about the convention, not about mirrors or tilts —
+    // straighten the chain and every door opens again.
+    const straight = { ...system, prescription: unfoldedTwin(folded) };
+    expect(() => pupils(straight, LINE_D)).not.toThrow();
+    // Measured from the LAST vertex — the flat, 800 mm along from the
+    // paraboloid whose focus is at 1000.
+    expect(paraxialImageOffset(straight, LINE_D)).toBeCloseTo(200, 6);
   });
 });

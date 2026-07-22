@@ -776,7 +776,7 @@ regression-not-validation status as the hero goldens.
 | Rung | Pinned to | Status |
 |---|---|---|
 | Householder reflection is improper (det = −1) | definition | ✅ |
-| The frame's reflection matrix agrees with the ray's reflection law | cross-implementation | ✅ |
+| The frame's reflection matrix agrees with the engine's own `reflectDir` | cross-implementation | ✅ |
 | 45° flat steers the downstream chain by exactly 90° | closed form | ✅ |
 | The next surface lands 100 mm up the *folded* axis, not the old one | closed form | ✅ |
 | The traced ray goes where the chain went, and hits the surface it placed | beam/frame agreement | ✅ |
@@ -790,6 +790,9 @@ regression-not-validation status as the hero goldens.
 | Newtonian: axial bundle focuses at (f − d) out the side of the tube | closed form | ✅ |
 | Folding adds no power: the paraboloid's EFL survives the fold | closed form | ✅ |
 | `pupils()` throws on a folded system rather than answer in a dead coordinate | guard | ✅ |
+| `paraxialImageOffset()` throws — it walks the axis without calling `pupils()` | guard | ✅ |
+| `bestFocus()` and `imagePlaneZ()` throw, closing the focus/OPD/PSF path | guard | ✅ |
+| The unfolded twin of that same system answers all of them | guard is about the convention | ✅ |
 
 The **cross-convention** rungs carry the most weight here. They pin the new
 convention against the already-validated one rather than against a fresh closed
@@ -803,6 +806,16 @@ implementation. Reflecting the mirror's own (already tilted) frame instead of
 the frame the light arrived in turns the chain by the tilt twice, and lands the
 downstream axis at (0, 0.707, −0.707) — a 45° deviation wearing the right
 shape. Every other rung in this table passes under that bug.
+
+The **guard** rungs pin something no other test can: nothing in the suite
+drives a folded system through the wave layer yet, so every one of those paths
+would stay green whether the guard existed or not. `pupils()` alone was not
+enough — `paraxialImageOffset` walks the compiled thicknesses along the axis
+without ever calling it, so a folded system could have reached `bestFocus` and
+received a plausible wrong number instead of the loud error this document
+promises. The last rung keeps the guard honest in the other direction: it must
+reject the *convention*, not mirrors or tilts, so the same system straightened
+must answer normally.
 
 ### Not yet pinned
 - **Folded PSF, OPD, pupils, focus.** All of them live in the unfolded axial z

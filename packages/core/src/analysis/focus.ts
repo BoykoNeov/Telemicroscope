@@ -1,7 +1,7 @@
 import { asCompiled } from "../trace/compile";
 import { PlaneRay, paraxialRefract, paraxialTransfer } from "../trace/paraxial";
 import { OpticalSystem, primaryWavelength } from "../trace/system";
-import { pupils, imagePlaneZ } from "../pupil/pupils";
+import { pupils, imagePlaneZ, assertUnfolded } from "../pupil/pupils";
 import { AimOptions, PupilPoint, pupilGrid } from "../pupil/aiming";
 import { opdMap } from "../pupil/opd";
 import { exitBundle, bestSpotZ, spotAt } from "./spot";
@@ -99,6 +99,10 @@ export function withFocus(system: OpticalSystem, offsetFromLastVertex: number): 
  */
 export function paraxialImageOffset(system: OpticalSystem, wavelengthNm: number): number {
   const c = asCompiled(system.prescription);
+  // Walks compiled thicknesses along the axis, so it is the one door into
+  // unfolded-z that does NOT go through pupils(). Guarded in its own right, or
+  // a folded system would reach `bestFocus` and get a plausible wrong number.
+  assertUnfolded(c, "paraxialImageOffset()");
   const n0 = c.indices(wavelengthNm)[0]!;
 
   let st: PlaneRay =
