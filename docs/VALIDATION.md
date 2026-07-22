@@ -51,20 +51,20 @@ pinned before folds and multi-mirror presets arrive.
 | Off-axis OPD vanishes identically on axis | symmetry | ✅ |
 | **Off-axis MIRROR: coma cubic in ρ, linear in field, bounded by ~a wave** | 3rd-order theory | ✅ |
 
-The **off-axis mirror** rungs pin a defect they were written to close. The
-reference sphere is centred on the image point and passes through the chief ray
-at the exit-pupil *plane*; the flat plane and the curved sphere straddle each
-other, and off axis the sphere's centre also shifts transversely, pushing an
-entire side of the pupil **inside** it. For a point inside a sphere the only
-forward intersection is the far one, beyond the focus — so half the pupil was
-picking up a full sphere diameter of spurious path: 200 mm, or 3.4·10⁵ waves,
-on an f/5 system. `intersectSphere` now returns the *signed nearest* crossing
-rather than the first positive one.
+The **off-axis mirror** rungs were added after the wave layer's centroid rung
+exposed a defect they then pinned. The reference sphere is centred on the image
+point and passes through the chief ray at the exit-pupil *plane*; the flat plane
+and the curved sphere straddle each other, and off axis the sphere's centre also
+shifts transversely, pushing an entire side of the pupil **inside** it. For a
+point inside a sphere the only forward intersection is the far one, beyond the
+focus — so half the pupil was picking up a full sphere diameter of spurious
+path: 200 mm, or 3.4·10⁵ waves, on an f/5 system. `intersectSphere` now returns
+the *signed nearest* crossing rather than the first positive one.
 
 On axis every point lands outside the sphere and both readings agree, which is
-precisely why every symmetric rung was blind to it — and the off-axis rungs
+precisely why every symmetric rung was blind to it — and why the off-axis rungs
 existed only for a refracting singlet, whose geometry happened to keep its
-points outside. The lesson generalizes and is worth keeping: a rung on one
+points outside. The lesson is recorded because it generalizes: a rung on one
 surface kind is not a rung on the other.
 
 The defocus rung's 1% tolerance is set by the first neglected term of the NA
@@ -276,12 +276,45 @@ criterion is phase change *per sample*, so a denser pupil grid genuinely extends
 the FFT's validity. A criterion phrased in total waves would deny that and would
 fall back to the geometric branch on systems the FFT handles perfectly well.
 
-### Not yet pinned
+## Step 2d — geometric branch + blend band (current)
 
-- The **geometric PSF branch, blend band and matched normalization.** The
-  Parseval rung fixes the energy convention on the FFT branch *before* there is
-  a second branch to disagree with, and the criterion above is now measured and
-  pinned — but the switch itself is unbuilt.
+The second PSF branch is not an approximation of the first. Where the wavefront
+aliases on the pupil grid the FFT stops being a diffraction calculation, and
+what is actually true there is the ray answer; where rays under-describe, the
+FFT is. Each covers the other's blind spot, so the geometric branch gets its own
+external pin rather than being checked against the FFT.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Defocused geometric spot: encircled energy = (r/R_blur)²** | uniform disc | ✅ |
+| That blur radius = δ·tan u | closed form | ✅ |
+| **Both branches integrate to the same energy (to 1e-12)** | matched normalization | ✅ |
+| Every blend of them carries that energy too | convexity | ✅ |
+| An obstruction removes (1 − ε²) from both branches alike | annulus area | ✅ |
+| **The branches agree on blur radius where both are valid** | continuity | ✅ |
+| **PSF centroid = geometric spot centroid, off axis** | mean wavefront gradient | ✅ |
+| Blend weight is 0 / 1 at the band edges, ½ at the criterion | definition | ✅ |
+| Blend weight has zero slope at both edges (C¹, no kink) | smoothstep | ✅ |
+| `adaptivePsf` conserves energy on whichever branch it lands | matched normalization | ✅ |
+
+The **uniform-disc** rung is the strong half of the geometric pin: (r/R_blur)²
+is a pure shape statement with no scale in it, so it holds whatever the exact
+marginal-ray angle turns out to be, and the radius is then pinned separately.
+
+The **centroid** rung is the only one in the whole wave layer that can catch a
+transverse sign or orientation mismatch between the two branches — every
+rotationally symmetric test is blind to one, and it would otherwise surface much
+later as coma flaring the wrong way, after the blend had been trusted. It is
+also what exposed the reference-sphere defect recorded under step 1.5.
+
+The band is a **cross-fade, not a threshold**, because a hard switch pops
+visibly when a user drags a defocus or seeing slider across it. Smoothstep is
+used rather than a linear ramp because it is C¹ at both edges: the image and its
+rate of change are both continuous through the transition. Since both branches
+carry identical energy, every convex combination does too — the switch cannot
+alter brightness anywhere in the band, not merely at its ends.
+
+### Not yet pinned
 - **Polychromatic stacking.** Pixel scale is λ-dependent (`pixelScaleMm` ∝ λ),
   so per-λ PSFs cannot be summed bin-for-bin; each must be resampled onto a
   common *physical* image grid first. Recorded here because it is the classic

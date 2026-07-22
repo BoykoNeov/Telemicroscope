@@ -179,6 +179,28 @@ export function pupilFunctionFromOpd(
 }
 
 /**
+ * Transmitted pupil energy Σ A² on the FFT grid.
+ *
+ * Factored out because it is THE normalization both PSF branches must share.
+ * The geometric branch has no pupil array of its own — it has rays — so it
+ * scales its histogram to this number rather than inventing a second
+ * definition of "how bright". One definition, computed one way, used twice.
+ */
+export function transmittedEnergy(pupil: PupilFunction, pupilSamples: number, size: number): number {
+  const half = size / 2;
+  const step = 2 / pupilSamples;
+  let energy = 0;
+  for (let iy = 0; iy < size; iy++) {
+    const py = (iy - half) * step;
+    for (let ix = 0; ix < size; ix++) {
+      const a = pupil.amplitude((ix - half) * step, py);
+      if (a > 0) energy += a * a;
+    }
+  }
+  return energy;
+}
+
+/**
  * Transform a pupil function into a PSF.
  *
  * The pupil is embedded in the centre of an `n`×`n` array with `pupilSamples`

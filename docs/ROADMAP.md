@@ -38,9 +38,16 @@
      MTF, pinned to the Airy encircled-energy fractions, Maréchal and the
      closed-form circular-pupil MTF. Energy is normalized to the transmitted
      pupil energy *now*, before a second PSF branch exists to disagree.
-   - **Remaining:** geometric PSF + blend band, and polychromatic stacking.
-     The latter must resample each wavelength onto a common physical image
-     grid — `pixelScaleMm` is ∝ λ, so bin-for-bin summing is wrong.
+   - `core/wave/fidelity` ✅ — the criterion, measured on the RAW traced
+     samples. Not on the fitted wavefront: a Zernike fit is band-limited by
+     construction, so it reports "smooth, FFT valid" whatever it was fitted
+     to, and would be blindest when the fallback is most needed.
+   - `core/wave/geometric` ✅ — the ray-histogram branch, matched to the
+     diffraction branch's energy exactly, and cross-faded over a smoothstep
+     band rather than switched at a threshold.
+   - **Remaining:** polychromatic stacking. It must resample each wavelength
+     onto a common physical image grid — `pixelScaleMm` is ∝ λ, so summing
+     per-λ PSFs bin-for-bin is wrong.
 4. **First hero image (end-to-end thread)**
    Refractor + star scene → rendered image. Ugly UI, correct physics.
    *Milestone:* purple fringing appears for a singlet and shrinks for an
