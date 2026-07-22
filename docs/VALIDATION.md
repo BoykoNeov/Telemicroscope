@@ -110,7 +110,64 @@ than the other's when scored by the other's measure.
 | Evaluating a traced bundle at a plane = re-tracing to that plane | round trip |
 | Vignetted rays counted, not dropped | bookkeeping |
 
-## Step 2 — wave layer (planned)
+## Step 2a — FFT + Zernike basis (current)
+
+The transform and the basis the PSF is built on. The FFT is pinned to the
+*definition* of the DFT — analytic transform pairs — rather than to a second
+hand-rolled DFT in the test file: two implementations of one misunderstanding
+agree with each other, a delta and a cosine do not.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| δ[n] → flat spectrum of ones | DFT definition | ✅ |
+| constant → single spike of height N at DC | DFT definition | ✅ |
+| cos(2πk₀n/N) → N/2 at bins k₀ and N−k₀ | DFT definition | ✅ |
+| linear phase ramp → one spike at bin k₀ (shift theorem) | DFT definition | ✅ |
+| Σ\|x\|² = (1/N)·Σ\|X\|² | Parseval, this convention | ✅ |
+| 2-D transform of a separable image = outer product of its 1-D transforms | separability | ✅ |
+| 2-D linear phase ramp → one spike | shift theorem | ✅ |
+| Noll j = 1…11 → the published (n, m) table | Noll 1976 Table 1 | ✅ |
+| Z₄ = √3(2ρ²−1), Z₈ = √8(3ρ³−2ρ)cos θ, Z₁₁ = √5(6ρ⁴−6ρ²+1) | Noll 1976 | ✅ |
+| (1/π)∫∫ Z_j² dA = 1 through radial order 4, and Z_i ⟂ Z_j | Noll normalization | ✅ |
+| **Defocus δ → c₄ = δ·NA²/(4√3)** | closed form + ρ²→Z₄ expansion | ✅ |
+| **Spherical aberration → c₄/c₁₁ = 3√(5/3)** | ρ⁴ Zernike expansion | ✅ |
+| Spherical aberration → c₁₁ = W₀₄₀/(6√5) vs the rim OPD | ρ⁴ Zernike expansion | ✅ |
+| Pure defocus excites no other term; an in-focus paraboloid excites none | symmetry | ✅ |
+
+The orthonormality rung asserts at 10⁻¹² because its quadrature is *exact*, not
+merely convergent — 8-point Gauss–Legendre radially (exact to degree 15) and a
+midpoint rule azimuthally (exact for the frequencies present). A midpoint rule
+in ρ leaves ~6·10⁻⁵, which would have forced a loose tolerance that then hides
+a real normalization slip.
+
+The two spherical-aberration rungs are the strong ones. **c₄/c₁₁ = 3√(5/3)** is
+a pure number: W₀₄₀ cancels, so no aperture, focal length or wavelength
+survives in it — the same character as the 4/3 focus-criterion ratio. Its 1%
+tolerance is bounded by the fifth-order (ρ⁶) term, which is why the comparison
+is made at NA 0.1. Note that the non-zero c₄ there is *not* image-plane
+defocus; it is the balancing defocus ρ⁴ contains, which is precisely why best
+focus is not the paraxial focus.
+
+### Consistency checks (NOT validation)
+
+| Check | Kind |
+|---|---|
+| Fit recovers injected coefficients; residual ~0 | round trip |
+| fitRms = √(Σ_{j≥2}c_j²) for known coefficients | round trip |
+| Sampler evaluates the fit off the traced grid | round trip |
+| Inverse FFT undoes forward | round trip |
+
+**√(Σc²) is grid-independent where the raw sample RMS is not** — a measured
+fact worth recording, because it decides which number the UI reports.
+`fitRms` is an *area* average over the disc delivered by orthonormality;
+`OpdMap.rmsWaves` is a *point* average over whichever samples of a square grid
+land inside the disc, and which corner points fall inside changes
+discontinuously with grid size. Across grids of 21…81 the point average wanders
+over ~0.6% while the fitted value moves in the 7th decimal. They agree to that
+jitter, which is enough to catch a normalization error (that would show as a
+factor like √3 or 2, not a fraction of a percent).
+
+## Step 2b — PSF + MTF (planned)
 
 | Rung | Pinned to |
 |---|---|
@@ -119,8 +176,6 @@ than the other's when scored by the other's measure.
 | MTF of perfect circular pupil matches analytic autocorrelation | closed form |
 | Obstructed-pupil MTF: contrast loss vs obstruction ratio | published curves |
 | Abbe limit λ/2NA appears in microscope-branch resolution | Abbe theory |
-| Zernike defocus term ↔ known longitudinal defocus | closed form |
-
 | PSF energy = transmitted pupil energy, in BOTH PSF branches | Parseval |
 | FFT and geometric PSF agree across the fidelity blend band | continuity |
 
