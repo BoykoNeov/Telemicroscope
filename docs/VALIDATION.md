@@ -612,6 +612,10 @@ inside it, which the wave layer already pins.
 | Every refinement level is a complete image carrying all the light | definition | ✅ |
 | Cost is exactly patches × wavelengths | cost model | ✅ |
 | **SED-weighted samples in a scene render shift colour past a JND** | negative control | ✅ |
+| **Kernel rotation sense: a +y feature turns to +x for an azimuth-0 patch** | trace convention | ✅ |
+| Rotation conserves the kernel's energy exactly | matched normalization | ✅ |
+| Azimuth 90° returns the kernel by reference, unresampled | definition | ✅ |
+| A real off-axis PSF is genuinely changed by being turned | negative control | ✅ |
 
 The window is applied to the **scene, not to the output**. Both look like they
 would work and only one does: windowing the output blends two images that were
@@ -647,7 +651,39 @@ a renderer built on it could never show distortion no matter how much the
 prescription had. There is a rung asserting the mapping is only approximately
 `f·tan θ`, because the gap is the physics.
 
+**The kernel had to be rotated, and was not.** Found by reading the code, not
+by a rung — the rungs were structurally incapable of seeing it. A PSF is always
+traced for a field point on ONE axis (`fieldDirection` puts it along +y), and
+convolution is shift-invariant, so whatever orientation that kernel has is
+stamped onto every star in the patch. Placement was already rotated —
+`imagePointOf` carries the azimuth — so the stars landed in the right places
+wearing the wrong shape: every coma tail in the frame pointing the same way,
+which reads as a decentred or tilted system, a fault this engine will later
+simulate deliberately. Same category as the aperture spokes: the render
+inventing an optical component.
+
+`rotateKernel` now turns each patch's kernel by `azimuth − 90°`, and the sense
+is pinned directly on a synthetic kernel with an unmistakable direction. Getting
+that sign backwards puts every flare on the wrong side of every star while the
+image stays sharp and entirely plausible.
+
 ### Not yet pinned
+- **End-to-end off-axis orientation.** The natural rung — two stars at the same
+  field radius must render as mirror images, since an axially symmetric system
+  is symmetric under reflection in any plane containing the axis — was built and
+  then **withdrawn for having no teeth**, which is worth recording because the
+  measurement is the lesson. On this f/10 achromat at 0.06° (the largest field
+  angle whose PSF still fits the grid) the metric reads 0.0486 with the kernel
+  rotation and 0.0505 without: a 4% difference, because the PSF is very nearly
+  rotationally symmetric there. A rung that cannot distinguish the defect from
+  the fix is not a rung, whatever number it asserts. Pinning this needs a system
+  with strong coma inside the grid — a fast Newtonian, which arrives at step 5 —
+  and it should come with a golden image, since `renderField` has none and its
+  off-axis output has never been looked at.
+- The residual 0.049 in that withdrawn metric is itself unexplained and is NOT
+  interpolation (it is present with rotation disabled, where no resampling
+  happens). It is a real open question about the patch decomposition off axis,
+  and step 5 should start there.
 - **Lateral colour is not rendered.** Each wavelength's PSF is centred on its
   own chief-ray image point, which removes exactly the transverse colour
   separation lateral chromatic aberration consists of. On axis there is none to

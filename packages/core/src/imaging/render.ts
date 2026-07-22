@@ -114,6 +114,67 @@ export function patchWeight(u: number, index: number, count: number): number {
 }
 
 /**
+ * Rotate a centred kernel about its middle by `angle`, bilinearly.
+ *
+ * **This is not cosmetic, and leaving it out is a silent physical error.** The
+ * engine's field spec is a single scalar because the systems are axially
+ * symmetric, so a PSF is always traced for a field point on ONE axis
+ * (`fieldDirection` puts it along +y). Convolution is shift-invariant, so
+ * whatever orientation that kernel has is stamped onto every star in the patch.
+ *
+ * Placement was already rotated — `imagePointOf` carries the azimuth — so
+ * without this the stars land in the right places wearing the wrong shape:
+ * every coma tail in the frame points the same way instead of radially
+ * outward. That reads as a decentred or tilted system, which is a real defect
+ * this engine will later simulate deliberately, so it is the same category of
+ * mistake as the aperture spokes: the render inventing an optical fault.
+ *
+ * Sampled by inverse mapping (destination → source) so every output pixel gets
+ * a value, and energy is renormalized afterwards because bilinear resampling of
+ * a peaked kernel does not conserve its sum exactly — and the sum IS the
+ * transmitted energy that the whole matched-normalization discipline rests on.
+ */
+export function rotateKernel(kernel: Float64Array, n: number, angle: number): Float64Array {
+  if (angle === 0) return kernel;
+  const out = new Float64Array(n * n);
+  const c = n / 2;
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+
+  let before = 0;
+  for (let i = 0; i < kernel.length; i++) before += kernel[i]!;
+
+  let after = 0;
+  for (let y = 0; y < n; y++) {
+    const dy = y - c;
+    for (let x = 0; x < n; x++) {
+      const dx = x - c;
+      // Inverse rotation: where in the source does this destination come from?
+      const sx = c + dx * cos + dy * sin;
+      const sy = c - dx * sin + dy * cos;
+      const x0 = Math.floor(sx);
+      const y0 = Math.floor(sy);
+      if (x0 < 0 || y0 < 0 || x0 + 1 >= n || y0 + 1 >= n) continue;
+      const fx = sx - x0;
+      const fy = sy - y0;
+      const v =
+        kernel[y0 * n + x0]! * (1 - fx) * (1 - fy) +
+        kernel[y0 * n + x0 + 1]! * fx * (1 - fy) +
+        kernel[(y0 + 1) * n + x0]! * (1 - fx) * fy +
+        kernel[(y0 + 1) * n + x0 + 1]! * fx * fy;
+      out[y * n + x] = v;
+      after += v;
+    }
+  }
+
+  if (after > 0 && before > 0) {
+    const k = before / after;
+    for (let i = 0; i < out.length; i++) out[i] = out[i]! * k;
+  }
+  return out;
+}
+
+/**
  * Circular convolution of two same-size real grids, via the FFT.
  *
  * The kernel arrives centred (the PSF grid is fftshifted so the axis sits at
@@ -196,7 +257,11 @@ export function renderField(
         // plane. Radial, because the system is axially symmetric.
         const cx = ((px + 0.5) / patches - 0.5) * 2 * scene.halfExtentMm;
         const cy = ((py + 0.5) / patches - 0.5) * 2 * scene.halfExtentMm;
-        const fieldValue = fieldAngleFor(system, Math.hypot(cx, cy), scene);
+        const radiusMm = Math.hypot(cx, cy);
+        const fieldValue = fieldAngleFor(system, radiusMm, scene);
+        // The traced PSF belongs to a field point on the +y axis, so it has to
+        // be turned to face this patch's own azimuth. See `rotateKernel`.
+        const azimuth = radiusMm > 0 ? Math.atan2(cy, cx) - Math.PI / 2 : 0;
 
         const stack: SpectralStack = spectralStack(system, fieldValue, {
           ...options,
@@ -221,7 +286,11 @@ export function renderField(
             }
           }
 
-          const convolved = convolveCentred(windowed, stack.planes[w]!.intensity, n);
+          const convolved = convolveCentred(
+            windowed,
+            rotateKernel(stack.planes[w]!.intensity, n, azimuth),
+            n,
+          );
           const bx = basis!.x[w]!;
           const by = basis!.y[w]!;
           const bz = basis!.z[w]!;

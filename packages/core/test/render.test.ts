@@ -4,7 +4,7 @@ import { chromaticity } from "../src/photometry/cmf";
 import { quadratureSamples, spectralSamples } from "../src/photometry/spectrum";
 import { colorImageFromStack, integratedXyz, pixelXyz } from "../src/imaging/image";
 import { PointSource, rasterizePointSources, imagePointOf } from "../src/imaging/scene";
-import { patchWeight, renderField } from "../src/imaging/render";
+import { patchWeight, renderField, rotateKernel } from "../src/imaging/render";
 import { spectralStack } from "../src/wave/polychromatic";
 import { heroPair, heroSystem, PSF_OPTIONS } from "./support/heroScene";
 import { bestFocus, withFocus } from "../src/analysis/focus";
@@ -209,5 +209,104 @@ describe("progressive refinement", () => {
     // Cost is patches × wavelengths, and it is dominated by the finest level:
     // (1 + 4 + 16) × 5 wavelengths.
     expect(result.psfEvaluations).toBe(21 * SAMPLES.length);
+  });
+});
+
+describe("the kernel is turned to face its own azimuth", () => {
+  /**
+   * A PSF is always traced for a field point on ONE axis — `fieldDirection`
+   * puts it along +y — and convolution is shift-invariant, so whatever
+   * orientation that kernel has gets stamped onto every star in the patch.
+   * Placement was already rotated (`imagePointOf` carries the azimuth), so
+   * without rotating the kernel too the stars land in the right places wearing
+   * the wrong shape: every coma tail in the frame pointing the same way, which
+   * reads as a decentred or tilted system — a fault this engine will later
+   * simulate on purpose.
+   *
+   * These rungs pin `rotateKernel` directly, on a synthetic kernel whose
+   * asymmetry is unmistakable. See VALIDATION § 3c for why the end-to-end
+   * version of this claim is NOT yet pinned.
+   */
+  const N = 32;
+  const C = N / 2;
+  const OFFSET = 8;
+
+  /** A kernel with one bright pixel along +y — an unmistakable direction. */
+  const arrow = (): Float64Array => {
+    const k = new Float64Array(N * N);
+    k[(C + OFFSET) * N + C] = 1; // row C+OFFSET, column C  →  +y
+    return k;
+  };
+
+  const brightest = (k: Float64Array): { x: number; y: number } => {
+    let best = -Infinity;
+    let at = 0;
+    for (let i = 0; i < k.length; i++) {
+      if (k[i]! > best) {
+        best = k[i]!;
+        at = i;
+      }
+    }
+    return { x: at % N, y: Math.floor(at / N) };
+  };
+
+  it("a +y feature rotates to +x for a patch on the +x axis", () => {
+    // The renderer uses θ = azimuth − 90°, because the traced kernel already
+    // points along +y (azimuth 90°). A patch at azimuth 0 therefore asks for
+    // θ = −90°, and the feature must land on +x. Getting this sign backwards
+    // puts every flare on the wrong side of every star — the image stays
+    // sharp, symmetric under nothing, and completely plausible.
+    const turned = rotateKernel(arrow(), N, 0 - Math.PI / 2);
+    const p = brightest(turned);
+    expect(p.x).toBe(C + OFFSET);
+    expect(p.y).toBe(C);
+  });
+
+  it("and to −y for a patch on the −y axis", () => {
+    const turned = rotateKernel(arrow(), N, -Math.PI / 2 - Math.PI / 2);
+    const p = brightest(turned);
+    expect(p.x).toBe(C);
+    expect(p.y).toBe(C - OFFSET);
+  });
+
+  it("a patch on the +y axis needs no rotation at all", () => {
+    // Azimuth 90° is where the trace already is, so θ = 0 and the kernel is
+    // passed through untouched — no interpolation, no loss.
+    const source = arrow();
+    // Returned by reference, not resampled: no interpolation loss on the one
+    // azimuth where the trace already points the right way.
+    expect(rotateKernel(source, N, 0)).toBe(source);
+    const p = brightest(rotateKernel(source, N, 0));
+    expect(p.x).toBe(C);
+    expect(p.y).toBe(C + OFFSET);
+  });
+
+  it("rotation conserves energy exactly", () => {
+    // The kernel's sum IS the transmitted energy the matched-normalization
+    // discipline rests on, and bilinear resampling does not preserve it by
+    // itself — `rotateKernel` renormalizes, and this is what says so.
+    const sum = (k: Float64Array) => k.reduce((a, b) => a + b, 0);
+    for (const angle of [0.3, -1.1, Math.PI / 3, 2.5]) {
+      expect(sum(rotateKernel(arrow(), N, angle))).toBeCloseTo(sum(arrow()), 12);
+    }
+  });
+
+  it("a real off-axis PSF is genuinely changed by being turned", () => {
+    // Guards against the rungs above passing on a kernel that is rotationally
+    // symmetric anyway, in which case rotating it would be a no-op and the
+    // renderer's orientation could never be tested by any of this.
+    const stack = spectralStack(focused, 0.06, PSF_OPTIONS);
+    const kernel = stack.planes[Math.floor(stack.planes.length / 2)]!.intensity;
+    const turned = rotateKernel(kernel, stack.size, Math.PI / 2);
+    let difference = 0;
+    let total = 0;
+    for (let i = 0; i < kernel.length; i++) {
+      difference += Math.abs(kernel[i]! - turned[i]!);
+      total += kernel[i]!;
+    }
+    // Only 4.9% on this f/10 achromat at 0.06 deg — the largest field angle
+    // that still fits the PSF grid. That smallness is exactly why the
+    // end-to-end symmetry test does not work here; see VALIDATION § 3c.
+    expect(difference / total).toBeGreaterThan(0.04);
   });
 });
