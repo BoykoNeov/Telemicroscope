@@ -74,6 +74,42 @@ magnification cancels. They catch inverted conversions, nothing deeper.
 | Image-space NA → exit-pupil arm | round trip |
 | Stop with power on both sides → distinct, finite pupils | smoke |
 
+## Step 1.6 — focus solve + spot diagrams (current)
+
+Writing the on-axis wavefront of a spherically-aberrated system as
+W(ρ) = a·ρ⁴ + b·ρ², where b is the defocus the image plane contributes:
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Paraxial image plane of a mirror = R/2 | closed form | ✅ |
+| Paraxial image plane, finite conjugate = n₂/s′ − n₁/s = (n₂−n₁)/R | closed form | ✅ |
+| Criterion ordering: paraxial → wavefront → spot → marginal, same side | 3rd-order theory | ✅ |
+| **δz(min-RMS-spot) / δz(min-RMS-wavefront) = 4/3** | 3rd-order theory | ✅ |
+| δz(marginal) / δz(min-RMS-wavefront) = 2 | 3rd-order theory | ✅ |
+| That 4/3 error falls ≥4× when NA halves | 5th-order scaling | ✅ |
+| RMS wavefront at best focus = W₀₄₀/(6√5) | Var = 4a²/45 + ab/6 + b²/12 | ✅ |
+| Balancing defocus improves RMS wavefront exactly 4× | ratio √(4/45 · 180) | ✅ |
+| RMS spot at best focus = (2/3)·W₀₄₀/NA | ⟨(W′)²⟩ = 4a² + 16ab/3 + 2b² | ✅ |
+| A paraboloid: all three criteria land on the same plane | zero aberration | ✅ |
+
+The 4/3 and 2 ratios are the strongest rungs here: b is linear in the
+image-plane shift, so the conversion cancels and the ratios are pure numbers
+with no NA, focal length, or wavelength left in them. Their 1% tolerances are
+bounded by the neglected fifth-order term — which is why the NA-halving rung
+exists, and why the answer to a drifting ratio is a lower NA, never a wider
+band.
+
+The criteria are also shown to disagree *usefully*: each one's plane is worse
+than the other's when scored by the other's measure.
+
+### Consistency checks (NOT validation)
+
+| Check | Kind |
+|---|---|
+| Closed-form best-spot plane beats a scan of neighbouring planes | self-consistency |
+| Evaluating a traced bundle at a plane = re-tracing to that plane | round trip |
+| Vignetted rays counted, not dropped | bookkeeping |
+
 ## Step 2 — wave layer (planned)
 
 | Rung | Pinned to |

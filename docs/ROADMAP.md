@@ -5,7 +5,7 @@
 1. **Core skeleton + validation harness** ✅
    math, geometry, materials, paraxial + exact sequential trace — tested to
    textbook values (see VALIDATION.md).
-2. **System spec + pupils + compiler** ← current
+2. **System spec + pupils + compiler** ✅
    The prerequisites the wave layer cannot be built without:
    - `OpticalSystem` — aperture, field, wavelengths, conjugate, image
      surface. A bare prescription only determines EFL/BFD; everything
@@ -20,8 +20,12 @@
    - **Focus solve** — best focus by paraxial / minimum-RMS-spot /
      maximum-Strehl criteria (they genuinely disagree). "Is it in focus?" is
      the most common user action in both branches and everything downstream
-     assumes an answer exists.
-3. **Wave layer**
+     assumes an answer exists. Landed in `core/analysis` alongside spot
+     diagrams, which share its machinery: exit rays are straight lines, so the
+     geometric criterion is a closed form rather than a search. Max-Strehl is
+     implemented as min-RMS-wavefront — monotone in Strehl by extended
+     Maréchal, and it needs no PSF, which does not exist until step 3.
+3. **Wave layer** ← current
    OPD → PSF → MTF, geometric-PSF fidelity switch with blend band and matched
    energy normalization, polychromatic stacking, Zernike decomposition
    (also the resampling basis — see the pupil-sampling note in ARCHITECTURE).

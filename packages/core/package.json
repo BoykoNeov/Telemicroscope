@@ -9,6 +9,8 @@
     "./math": "./src/math/index.ts",
     "./geometry": "./src/geometry/index.ts",
     "./materials": "./src/materials/index.ts",
-    "./trace": "./src/trace/index.ts"
+    "./trace": "./src/trace/index.ts",
+    "./pupil": "./src/pupil/index.ts",
+    "./analysis": "./src/analysis/index.ts"
   }
 }
