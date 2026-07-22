@@ -588,6 +588,82 @@ quantile of lit pixels — the obvious choice, and the first one tried — pushe
 past that and fills the frame with discretization artifact, committing it to a
 reference image as though it were optics.
 
+## Step 3c — the spatially-variant full-field render (current)
+
+Built at step 4 rather than step 7 because it is the heaviest compute in the
+app and its cost has to be known early. A PSF is only a convolution kernel
+where it is *constant*, and it is not: convolving a whole frame with the
+on-axis PSF renders a perfectly sharp corner on a lens that has none. So the
+kernel is made piecewise constant and blended,
+`image = Σ_p PSF_p ⊛ (w_p·scene)` with `Σ_p w_p ≡ 1`.
+
+These rungs are about the **decomposition** — that splitting a frame into
+patches neither creates, destroys nor moves light — rather than about the PSF
+inside it, which the wave layer already pins.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Patch weights are a partition of unity at every count (1e-12)** | definition | ✅ |
+| Refining the patch grid does not change total light | linearity | ✅ |
+| **A one-patch render of one star IS the wave layer's PSF (1e-6)** | degenerate case | ✅ |
+| The star lands at the centre, not half a frame away | kernel centring | ✅ |
+| Off-axis stars land off axis, in the placed direction | axial symmetry | ✅ |
+| Image height ≈ f·tan θ, and only *approximately* | distortion exists | ✅ |
+| Every refinement level is a complete image carrying all the light | definition | ✅ |
+| Cost is exactly patches × wavelengths | cost model | ✅ |
+| **SED-weighted samples in a scene render shift colour past a JND** | negative control | ✅ |
+
+The window is applied to the **scene, not to the output**. Both look like they
+would work and only one does: windowing the output blends two images that were
+each formed with the wrong kernel over most of their support, leaving a seam
+wherever the PSFs differ. Windowing the input splits the *light*, so every
+photon is convolved with the kernel nearest where it came from.
+
+Three defects were found by these rungs rather than by inspection, and all
+three would have produced entirely plausible pictures.
+
+**The edge patches summed to ½.** Interior patches are covered by two
+overlapping ramps; the outermost half-patch is covered by one. The frame border
+therefore rendered at half brightness — indistinguishable from vignetting, and
+on a system that has some, indistinguishable from *correct* vignetting.
+
+**The colour basis was built from the scene's raw weights** while
+`spectralStack` normalizes its own to sum to 1, scaling the entire render by
+the width of the sampling band. Every ratio in the image is right and the
+absolute brightness is off by 300×; nothing but a direct comparison against the
+single-source path catches it, which is what the degenerate-case rung is.
+
+**The spectrum was applied twice.** `WavelengthSample.weight` carries the
+source SED for a single-source calculation, because there is nowhere else to
+put it — but a scene has many sources and they have different colours, so
+there the weights must be pure quadrature (`quadratureSamples`) and the SED
+belongs to each source. Using the single-source samples squares the spectrum: a
+5800 K star renders visibly bluer, well past a MacAdam just-noticeable
+difference, and looks like a perfectly ordinary star.
+
+The field mapping goes through the **chief ray**, not `EFL·tan θ`. That matters
+beyond accuracy: `EFL·tan θ` is the *definition* of a distortion-free system, so
+a renderer built on it could never show distortion no matter how much the
+prescription had. There is a rung asserting the mapping is only approximately
+`f·tan θ`, because the gap is the physics.
+
+### Not yet pinned
+- **Lateral colour is not rendered.** Each wavelength's PSF is centred on its
+  own chief-ray image point, which removes exactly the transverse colour
+  separation lateral chromatic aberration consists of. On axis there is none to
+  remove, so the hero image is unaffected; off axis this render is missing a
+  real effect. The fix is local — carry each plane's image point on
+  `SpectralPlane` and offset it when resampling onto the common grid — but it
+  changes what the polychromatic Strehl means off axis, so it belongs with
+  step 5's field-dependent work and its own rungs.
+- **No extended scenes yet.** The convolution machinery is general and is
+  exercised by point sources, whose degenerate case is what makes the
+  equivalence rung exact. A planet or lunar scene is scene authoring, not new
+  render physics.
+- **Circular convolution wraps at the frame edge.** Harmless while the PSF is
+  small against the frame and every source is well inside it; a scene with
+  light at the border needs padding.
+
 ## Later rungs
 
 - Fold mirrors: a 45° flat deviates the beam by exactly 90°, and the folded

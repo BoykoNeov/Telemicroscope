@@ -82,6 +82,28 @@ export function spectralSamples(
 }
 
 /**
+ * Sampling wavelengths carrying **quadrature weight only** — Δλ and nothing
+ * else.
+ *
+ * Which spectrum a wavelength weight carries is not a detail, and getting it
+ * wrong double-counts silently. There are two situations and they disagree:
+ *
+ *  - **One source, no scene** (a PSF, an MTF, the hero star). The source's SED
+ *    has nowhere else to live, so it goes in the weights — `spectralSamples`.
+ *  - **A scene** (`imaging/scene`). Different objects in one frame have
+ *    different colours; a red star and a blue star cannot share a single set of
+ *    weights. So the SED belongs to each *source*, and the system's weights
+ *    must be pure quadrature — this function.
+ *
+ * Using `spectralSamples` for a scene render applies the spectrum twice: once
+ * in the scene's radiance and again in the colour basis. The result is a
+ * plausible image of the wrong colour, with the source's spectrum squared.
+ */
+export function quadratureSamples(options: SpectralSamplingOptions = {}): WavelengthSample[] {
+  return spectralSamples(() => 1, options);
+}
+
+/**
  * Bin edges implied by a set of samples: midway between neighbours, with the
  * outer edges reflected out by half of the adjacent spacing.
  *

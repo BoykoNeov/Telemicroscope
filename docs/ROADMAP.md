@@ -53,9 +53,21 @@
 4. **First hero image (end-to-end thread)** ← current
    Refractor + star scene → rendered image. Ugly UI, correct physics.
    *Milestone:* purple fringing appears for a singlet and shrinks for an
-   achromat because the glass data says so. Build the spatially-variant
-   full-field render (per-patch convolution, progressive refinement) here —
-   it is the heaviest compute in the app; learn its real cost early, not last.
+   achromat because the glass data says so. ✅ — reached headless and pinned
+   (VALIDATION step 3b); the golden-image harness landed with it.
+   - `core/photometry` ✅ — CIE 1931 observer, Planck sources, sRGB. The
+     layer that makes the milestone *visible*: fringing is the chromatic
+     focal shift step 1 pinned, seen through the response of an eye.
+   - `core/imaging` colour ✅ — colour is integrated **per wavelength**, off
+     `SpectralStack`, which stops one move short of summing precisely so the
+     grayscale and colour paths can share one grid and one resampler.
+   - `core/imaging` full-field render ✅ — per-patch convolution with a
+     partition-of-unity blend and progressive refinement. Cost is
+     patches × wavelengths × (one PSF + one convolution), and the PSF
+     dominates; that is the number refinement exists to hide.
+   - **Remaining: the app.** Ugly UI over the above, on port 5187 via the
+     port guard. The render is a pure function today, so moving it into a
+     worker later is a change of caller, not of code.
 5. **Telescope branch + bench editor + mech layer**
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
