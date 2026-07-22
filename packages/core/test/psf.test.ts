@@ -150,7 +150,7 @@ describe("Airy pattern of a perfect circular pupil", () => {
 
   it("a geometrically perfect system has Strehl 1 and a flat pupil phase", () => {
     expect(perfect.strehl).toBeGreaterThan(0.9999);
-    expect(perfect.maxPhaseStepWaves).toBeLessThan(1e-3);
+    expect(perfect.maxGridPhaseStepWaves).toBeLessThan(1e-3);
   });
 
   /**
@@ -258,10 +258,13 @@ describe("MTF", () => {
   });
 
   /**
-   * Rung: a central obstruction redistributes contrast — it does NOT move the
-   * cutoff. Textbook behaviour for obstructed apertures (and the reason a
+   * A central obstruction redistributes contrast — it does NOT move the
+   * cutoff. Textbook behaviour for obstructed apertures, and the reason a
    * Newtonian looks "softer" on planets than its aperture suggests while still
-   * resolving fine detail): mid frequencies lose, high frequencies gain.
+   * resolving fine detail: mid frequencies lose, high frequencies gain.
+   *
+   * Directional, so it is a behaviour check rather than a pinned number; the
+   * number that pins the obstruction lives in the annular-aperture rung below.
    */
   it("a central obstruction cuts mid-frequency contrast and raises high", () => {
     const obstructed = mtf(psf(mirror(-1), 0, LINE_D, { ...GRID, obstruction: 0.35 }));
@@ -274,5 +277,84 @@ describe("MTF", () => {
     const aberrated = mtf(psf(mirror(-1, R / 2 - 0.03), 0, LINE_D, GRID));
     expect(mtfAt(aberrated, 0.4, cutoffBins)).toBeLessThan(mtfAt(m, 0.4, cutoffBins));
     expect(mtfAt(aberrated, 1.1, cutoffBins)).toBeLessThan(1e-6);
+  });
+});
+
+/**
+ * Rung: the ANNULAR aperture, pinned to its closed form.
+ *
+ * A central obstruction of relative radius ε makes the pupil an annulus, whose
+ * diffraction amplitude is the difference of two Airy terms. Its first dark
+ * ring therefore sits at the first root of
+ *
+ *     J₁(v) = ε·J₁(ε·v),        r = v·λ·R/(π·D)
+ *
+ * which reduces to the familiar J₁(v) = 0, v = 3.8317, r = 1.22·λ/(2·NA) when
+ * ε = 0 — and the test asserts that reduction first, so the Bessel series and
+ * the root finder below are themselves validated before anything leans on
+ * them.
+ *
+ * The comparison is made as a RATIO r(ε)/r(0). Locating a dark ring by
+ * azimuthal averaging carries a systematic outward bias (see the convergence
+ * rung above), and measuring both radii the same way at the same sampling
+ * cancels it — which is what lets this assert to 1% rather than 3%.
+ *
+ * This is the rung that makes `obstruction` a validated capability rather than
+ * a parameter that merely behaves plausibly.
+ */
+describe("annular aperture: the obstructed Airy core shrinks by the amount theory says", () => {
+  /** J₁ by its defining power series; ample convergence for v < 4. */
+  function besselJ1(x: number): number {
+    let sum = 0;
+    for (let k = 0; k < 40; k++) {
+      let term = 1;
+      for (let i = 1; i <= k; i++) term /= i;
+      for (let i = 1; i <= k + 1; i++) term /= i;
+      sum += (k % 2 === 0 ? 1 : -1) * term * Math.pow(x / 2, 2 * k + 1);
+    }
+    return sum;
+  }
+
+  /** First root of J₁(v) − ε·J₁(εv), by bisection on a bracket known to hold it. */
+  function firstAnnularRoot(eps: number): number {
+    const f = (v: number) => besselJ1(v) - eps * besselJ1(eps * v);
+    let lo = 1;
+    let hi = 3.9;
+    for (let i = 0; i < 200; i++) {
+      const mid = (lo + hi) / 2;
+      if (Math.sign(f(mid)) === Math.sign(f(lo))) lo = mid;
+      else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+
+  it("reduces to the unobstructed first zero of J₁ at ε = 0", () => {
+    // 3.8317059… — the first non-trivial zero of J₁, and the origin of "1.22".
+    expect(firstAnnularRoot(0)).toBeCloseTo(3.8317, 4);
+    expect(firstAnnularRoot(0) / Math.PI).toBeCloseTo(1.2197, 4);
+  });
+
+  const unobstructed = firstMinimumPixels(psf(mirror(-1), 0, LINE_D, { pupilSamples: 64, padFactor: 16 }));
+  const v0 = firstAnnularRoot(0);
+
+  for (const eps of [0.25, 0.35, 0.5]) {
+    it(`ε = ${eps}: the first dark ring contracts by v(ε)/v(0)`, () => {
+      const p = psf(mirror(-1), 0, LINE_D, { pupilSamples: 64, padFactor: 16, obstruction: eps });
+      const measured = firstMinimumPixels(p) / unobstructed;
+      const predicted = firstAnnularRoot(eps) / v0;
+      expect(measured / predicted).toBeGreaterThan(0.99);
+      expect(measured / predicted).toBeLessThan(1.01);
+      // The contraction is real, not noise: ε = 0.5 pulls the ring in ~18%.
+      expect(predicted).toBeLessThan(1);
+    });
+  }
+
+  it("an obstruction removes exactly the energy its area accounts for", () => {
+    const open = psf(mirror(-1), 0, LINE_D, GRID);
+    const eps = 0.4;
+    const blocked = psf(mirror(-1), 0, LINE_D, { ...GRID, obstruction: eps });
+    // Transmitted pupil energy scales as the annulus area, (1 − ε²).
+    expect(blocked.energy / open.energy).toBeGreaterThan((1 - eps * eps) * 0.99);
+    expect(blocked.energy / open.energy).toBeLessThan((1 - eps * eps) * 1.01);
   });
 });

@@ -189,6 +189,9 @@ paraxial identification.
 | Central obstruction: mid-frequency loss, high-frequency gain, cutoff fixed | published behaviour | ✅ |
 | Aberration lowers contrast below the cutoff without extending it | pupil autocorrelation | ✅ |
 | Airy scale independent of pad factor | sampling vs physics | ✅ |
+| **Annular aperture: first dark ring at the root of J₁(v) = ε·J₁(εv)** | closed form | ✅ |
+| That reduces to J₁(v) = 0, v = 3.8317 at ε = 0 (validates the solver) | Bessel zero | ✅ |
+| Obstructed pupil transmits (1 − ε²) of the energy | annulus area | ✅ |
 
 The three **encircled-energy** rungs are the primary Airy pins and are stronger
 than locating a minimum: their radii come from the closed form and are
@@ -210,12 +213,58 @@ transform's peak against a published formula fed by an independently measured
 number. Its tolerance widens with σ because Maréchal itself does, and the
 companion rung asserts the error shrinks as the aberration does.
 
+The **annular** rungs are what make `obstruction` a validated capability rather
+than a parameter that merely behaves plausibly. The comparison is made as a
+ratio r(ε)/r(0), because locating a dark ring by azimuthal averaging carries a
+systematic outward bias that measuring both radii identically cancels — which
+is what lets it assert to 1% instead of 3%. The ε = 0 case is asserted first,
+so the Bessel series and root finder are themselves validated before the
+obstructed cases lean on them.
+
+## Step 2c — the fidelity criterion (current)
+
+The quantity that decides, per field point, whether the FFT PSF or the
+geometric PSF is honest. Pinned carefully because a switch that fails does so
+in the direction of *looking fine*: it hands back a confidently-wrong
+diffraction pattern instead of falling back.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Defocus: measured \|∇W\| = 2a·(1 − spacing/2), a = ½δNA²/λ** | closed form + midpoint offset | ✅ |
+| That finite-difference bias vanishes monotonically as the grid refines | estimator order | ✅ |
+| **The same wavefront aliases at 64 pupil samples and resolves at 256** | ARCHITECTURE criterion | ✅ |
+| Phase step scales exactly as 1/pupilSamples | definition | ✅ |
+| Gradient and fit residual are independent signals | measurement | ✅ |
+
+Two decisions are recorded here because measurement, not intuition, settled
+them.
+
+**The gradient is measured on the RAW traced samples, never on the fitted
+wavefront.** A Zernike fit is band-limited by construction, so evaluated on a
+fine grid it reports "gentle, FFT valid" whatever it was fitted to — it would
+be blindest exactly when the fallback is most needed. `Psf.maxGridPhaseStepWaves`
+measures FFT-grid adequacy for the *supplied* pupil function and is explicitly
+documented as **not** the fidelity criterion.
+
+**Neither the gradient nor the fit residual subsumes the other**, which is why
+both are reported. Opening a spherical mirror from NA 0.05 to NA 0.3 raises the
+gradient by three orders of magnitude while the fit residual stays below 10⁻⁴
+of the wavefront — because spherical aberration is *exactly* representable by
+low-order rotationally-symmetric Zernikes. A switch keyed on the residual alone
+(the intuitive choice, since the residual is what "the fit failed" sounds like)
+would sail straight through a badly aliasing wavefront.
+
+The sampling-density rung is the one that pins ARCHITECTURE's actual claim: the
+criterion is phase change *per sample*, so a denser pupil grid genuinely extends
+the FFT's validity. A criterion phrased in total waves would deny that and would
+fall back to the geometric branch on systems the FFT handles perfectly well.
+
 ### Not yet pinned
 
 - The **geometric PSF branch, blend band and matched normalization.** The
-  Parseval rung above fixes the energy convention on the FFT branch *before*
-  there is a second branch to disagree with, which is the point of landing it
-  first — but the switch itself is unbuilt and unvalidated.
+  Parseval rung fixes the energy convention on the FFT branch *before* there is
+  a second branch to disagree with, and the criterion above is now measured and
+  pinned — but the switch itself is unbuilt.
 - **Polychromatic stacking.** Pixel scale is λ-dependent (`pixelScaleMm` ∝ λ),
   so per-λ PSFs cannot be summed bin-for-bin; each must be resampled onto a
   common *physical* image grid first. Recorded here because it is the classic

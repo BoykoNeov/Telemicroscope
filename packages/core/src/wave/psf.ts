@@ -3,6 +3,7 @@ import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
 import { OpdMap, opdMap } from "../pupil/opd";
 import { ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
+import { OpdSampling, opdSampling } from "./fidelity";
 
 /**
  * Point spread function — where the diffraction lives.
@@ -104,13 +105,25 @@ export interface Psf {
   /** peak / diffractionLimitedPeak. 1 for a perfect system. */
   readonly strehl: number;
   /**
-   * Largest wavefront step between adjacent in-pupil FFT samples (waves).
-   * The fidelity criterion is phase change PER SAMPLE, not total wave error
-   * (ARCHITECTURE § fidelity switch): the FFT is valid while this stays below
-   * ½. Exposed now so the geometric branch's switch has something measured to
-   * key on rather than a guess about total aberration.
+   * Largest wavefront step between adjacent in-pupil samples OF THE FFT GRID
+   * (waves) — i.e. whether this grid resolves the pupil function it was
+   * handed.
+   *
+   * This is NOT the fidelity criterion, and must not be used as one. When the
+   * pupil function came from a Zernike fit it is band-limited by construction,
+   * so this number stays comfortably small even for a wavefront the fit could
+   * not represent — it would report "valid" exactly when the geometric
+   * fallback is needed. The criterion measured on the raw traced samples lives
+   * in `wave/fidelity`, and `sampling` below carries it.
    */
-  readonly maxPhaseStepWaves: number;
+  readonly maxGridPhaseStepWaves: number;
+  /**
+   * Sampling quality of the trace this PSF came from — the real fidelity
+   * signal. Present only on the `psf()` path, which is the only one that has
+   * the traced samples; `psfFromPupilFunction` is handed a pupil function and
+   * cannot know what produced it.
+   */
+  readonly sampling?: OpdSampling;
   readonly wavelengthNm: number;
   readonly fieldValue: number;
 }
@@ -278,7 +291,7 @@ export function psfFromPupilFunction(
     peak,
     diffractionLimitedPeak: flatPeak,
     strehl: flatPeak > 0 ? peak / flatPeak : 0,
-    maxPhaseStepWaves: maxStep,
+    maxGridPhaseStepWaves: maxStep,
     wavelengthNm: scale.wavelengthNm,
     fieldValue,
   };
@@ -310,7 +323,7 @@ export function psf(
   const pupil = pupilFunctionFromOpd(map, fit, {
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
   });
-  return psfFromPupilFunction(
+  const transformed = psfFromPupilFunction(
     pupil,
     {
       referenceRadius: map.referenceRadius,
@@ -321,6 +334,9 @@ export function psf(
     fieldValue,
     options,
   );
+  // Measured on the RAW traced samples, which is the only place the criterion
+  // means anything — see wave/fidelity.
+  return { ...transformed, sampling: opdSampling(map, fit) };
 }
 
 /**
