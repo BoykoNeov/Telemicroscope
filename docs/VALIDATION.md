@@ -167,17 +167,67 @@ over ~0.6% while the fitted value moves in the 7th decimal. They agree to that
 jitter, which is enough to catch a normalization error (that would show as a
 factor like √3 or 2, not a fraction of a percent).
 
-## Step 2b — PSF + MTF (planned)
+## Step 2b — PSF + MTF (current)
 
-| Rung | Pinned to |
-|---|---|
-| Airy first minimum at 1.22 λ/D (unobstructed circular pupil) | closed form |
-| PSF Strehl ≈ exp(−(2πσ/λ)²) for small RMS wavefront error | Maréchal |
-| MTF of perfect circular pupil matches analytic autocorrelation | closed form |
-| Obstructed-pupil MTF: contrast loss vs obstruction ratio | published curves |
-| Abbe limit λ/2NA appears in microscope-branch resolution | Abbe theory |
-| PSF energy = transmitted pupil energy, in BOTH PSF branches | Parseval |
-| FFT and geometric PSF agree across the fidelity blend band | continuity |
+The system under test is a paraboloid at its focus — geometrically perfect, so
+everything the PSF shows beyond a point is diffraction and nothing else. Run at
+NA 0.1, deliberately: the pupil→image scale identifies NA with r/R, which is a
+paraxial identification.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Encircled energy 83.8% inside the 1st dark ring (1.220 λ/2NA)** | Airy pattern | ✅ |
+| **Encircled energy 91.0% inside the 2nd dark ring (2.233 λ/2NA)** | Airy pattern | ✅ |
+| **Encircled energy 93.8% inside the 3rd dark ring (3.238 λ/2NA)** | Airy pattern | ✅ |
+| First dark ring → 1.22 λ/(2·NA) as image sampling refines | closed form | ✅ |
+| PSF integrates to the transmitted pupil energy | Parseval | ✅ |
+| **Strehl ≈ exp(−(2πσ)²), σ from the OPD map** | Maréchal | ✅ |
+| That Maréchal error shrinks as the aberration does | approximation order | ✅ |
+| **MTF = (2/π)[arccos ν − ν√(1−ν²)] to <0.01 across the band** | Goodman, closed form | ✅ |
+| MTF = 1 at DC, 0 at the cutoff, and nothing beyond it | pupil autocorrelation | ✅ |
+| MTF cutoff = 2·NA/λ cycles/mm | Abbe form | ✅ |
+| Central obstruction: mid-frequency loss, high-frequency gain, cutoff fixed | published behaviour | ✅ |
+| Aberration lowers contrast below the cutoff without extending it | pupil autocorrelation | ✅ |
+| Airy scale independent of pad factor | sampling vs physics | ✅ |
+
+The three **encircled-energy** rungs are the primary Airy pins and are stronger
+than locating a minimum: their radii come from the closed form and are
+converted to pixels through `pixelScaleMm`, so a wrong pupil→image scale moves
+all three; and they are integrals, so they test the pattern's shape out to
+three rings rather than one position. Measured 0.8378 / 0.9099 / 0.9376 against
+the textbook 0.838 / 0.910 / 0.938, identically at every pad factor.
+
+The **first-dark-ring position** is stated as a limit rather than a fixed
+tolerance because measuring it *is* sampling-limited — a one-pixel azimuthal
+annulus averages across a near-zero and biases the ring outward. The error runs
+13.3% → 2.2% → 1.1% → 0.4% at pad factors 4 → 8 → 16 → 32. That convergence is
+what distinguishes a discretization artifact from a wrong scale, which would
+leave a constant offset instead.
+
+The **Strehl** rung takes σ from `OpdMap.rmsWaves` — a direct mean-square over
+traced rays, with no FFT and no Zernike fit in its history — so it compares the
+transform's peak against a published formula fed by an independently measured
+number. Its tolerance widens with σ because Maréchal itself does, and the
+companion rung asserts the error shrinks as the aberration does.
+
+### Not yet pinned
+
+- The **geometric PSF branch, blend band and matched normalization.** The
+  Parseval rung above fixes the energy convention on the FFT branch *before*
+  there is a second branch to disagree with, which is the point of landing it
+  first — but the switch itself is unbuilt and unvalidated.
+- **Polychromatic stacking.** Pixel scale is λ-dependent (`pixelScaleMm` ∝ λ),
+  so per-λ PSFs cannot be summed bin-for-bin; each must be resampled onto a
+  common *physical* image grid first. Recorded here because it is the classic
+  polychromatic-PSF bug and the API above deliberately does not assume a fixed
+  grid.
+- **Vignetting is not carved out of the pupil support.** `OpdMap.lost` reports
+  it; the pupil is still modelled as the full disc minus an optional central
+  obstruction. Partial vignetting and spider diffraction arrive as a different
+  `PupilFunction` at step 5.
+- **Immersion.** `pixelScaleMm` carries an image-space index factor that is
+  identity for every system validated here; the microscope branch's Abbe rung
+  is what will pin it.
 
 ## Later rungs
 

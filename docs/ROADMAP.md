@@ -29,6 +29,18 @@
    OPD → PSF → MTF, geometric-PSF fidelity switch with blend band and matched
    energy normalization, polychromatic stacking, Zernike decomposition
    (also the resampling basis — see the pupil-sampling note in ARCHITECTURE).
+   - `core/math/fft` + `core/wave/zernike` ✅ — the transform and the basis,
+     landed ahead of the PSF so each got its own rungs instead of being
+     validated implicitly through a diffraction pattern. The Zernike fit is
+     the resampling step ARCHITECTURE requires: trace coarse, fit, evaluate
+     the fit on the fine FFT grid.
+   - `core/wave/psf` + `core/wave/mtf` ✅ — pupil function → FFT → PSF →
+     MTF, pinned to the Airy encircled-energy fractions, Maréchal and the
+     closed-form circular-pupil MTF. Energy is normalized to the transmitted
+     pupil energy *now*, before a second PSF branch exists to disagree.
+   - **Remaining:** geometric PSF + blend band, and polychromatic stacking.
+     The latter must resample each wavelength onto a common physical image
+     grid — `pixelScaleMm` is ∝ λ, so bin-for-bin summing is wrong.
 4. **First hero image (end-to-end thread)**
    Refractor + star scene → rendered image. Ugly UI, correct physics.
    *Milestone:* purple fringing appears for a singlet and shrinks for an
