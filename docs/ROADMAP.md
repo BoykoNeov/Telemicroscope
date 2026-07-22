@@ -50,7 +50,7 @@
      a bin-for-bin sum silently rescales each component instead of stacking
      it, flattening the very chromatic differences the calculation is for.
    The wave layer is complete; step 4's hero image is next.
-4. **First hero image (end-to-end thread)** ← current
+4. **First hero image (end-to-end thread)** ✅
    Refractor + star scene → rendered image. Ugly UI, correct physics.
    *Milestone:* purple fringing appears for a singlet and shrinks for an
    achromat because the glass data says so. ✅ — reached headless and pinned
@@ -70,14 +70,13 @@
      things the headless suite did not: the geometric branch's ray count does
      not scale with the blur, and off-grid light *wraps* rather than
      vanishing. Both are now surfaced in the UI rather than hidden.
-   - **Remaining, and deliberately not claimed as done:** the app renders
-     single on-axis stars through the *point* path. `renderField` — the
-     spatially-variant renderer — has never produced a picture outside unit
-     tests, so its cost model is asserted rather than observed and its
-     off-axis output has never been looked at. A multi-star field panel plus
-     a golden image for it is the natural close, and it pairs with the
-     unpinned off-axis orientation rung in VALIDATION § 3c.
-5. **Telescope branch + bench editor + mech layer**
+   - **Carried into step 5:** the app renders single on-axis stars through
+     the *point* path; `renderField` has never produced a picture outside
+     unit tests. Its off-axis *orientation* is now pinned (step 5 opened by
+     resolving the 0.049 residual — a real 90° kernel-orientation bug, see
+     VALIDATION § 3c), but a multi-star field panel plus a golden image for
+     `renderField` remains open.
+5. **Telescope branch + bench editor + mech layer** ← current
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
    scenes, visual mode (eye model, exit-pupil matching) and camera mode

@@ -215,26 +215,28 @@ describe("progressive refinement", () => {
 describe("the kernel is turned to face its own azimuth", () => {
   /**
    * A PSF is always traced for a field point on ONE axis — `fieldDirection`
-   * puts it along +y — and convolution is shift-invariant, so whatever
-   * orientation that kernel has gets stamped onto every star in the patch.
-   * Placement was already rotated (`imagePointOf` carries the azimuth), so
-   * without rotating the kernel too the stars land in the right places wearing
-   * the wrong shape: every coma tail in the frame pointing the same way, which
-   * reads as a decentred or tilted system — a fault this engine will later
-   * simulate on purpose.
+   * tilts the incoming bundle in the x–z plane, so the traced kernel faces
+   * **+x** — and convolution is shift-invariant, so whatever orientation that
+   * kernel has gets stamped onto every star in the patch. Placement was
+   * already rotated (`imagePointOf` carries the azimuth), so without rotating
+   * the kernel too the stars land in the right places wearing the wrong
+   * shape: every coma tail in the frame pointing the same way, which reads as
+   * a decentred or tilted system — a fault this engine will later simulate on
+   * purpose.
    *
-   * These rungs pin `rotateKernel` directly, on a synthetic kernel whose
-   * asymmetry is unmistakable. See VALIDATION § 3c for why the end-to-end
-   * version of this claim is NOT yet pinned.
+   * The renderer therefore turns each patch's kernel by exactly the patch's
+   * azimuth. That the trace faces +x, not the +y this code originally
+   * believed, was established by the symmetry rungs in the next block — see
+   * VALIDATION § 3c for the 0.049 story.
    */
   const N = 32;
   const C = N / 2;
   const OFFSET = 8;
 
-  /** A kernel with one bright pixel along +y — an unmistakable direction. */
+  /** A kernel with one bright pixel along +x — the axis the trace uses. */
   const arrow = (): Float64Array => {
     const k = new Float64Array(N * N);
-    k[(C + OFFSET) * N + C] = 1; // row C+OFFSET, column C  →  +y
+    k[C * N + (C + OFFSET)] = 1; // row C, column C+OFFSET  →  +x
     return k;
   };
 
@@ -250,35 +252,35 @@ describe("the kernel is turned to face its own azimuth", () => {
     return { x: at % N, y: Math.floor(at / N) };
   };
 
-  it("a +y feature rotates to +x for a patch on the +x axis", () => {
-    // The renderer uses θ = azimuth − 90°, because the traced kernel already
-    // points along +y (azimuth 90°). A patch at azimuth 0 therefore asks for
-    // θ = −90°, and the feature must land on +x. Getting this sign backwards
-    // puts every flare on the wrong side of every star — the image stays
-    // sharp, symmetric under nothing, and completely plausible.
-    const turned = rotateKernel(arrow(), N, 0 - Math.PI / 2);
+  it("a +x feature rotates to +y for a patch on the +y axis", () => {
+    // The renderer uses θ = azimuth, because the traced kernel already faces
+    // azimuth 0. A patch at azimuth 90° therefore asks for θ = +90°, and the
+    // feature must land on +y. Getting this sign backwards puts every flare
+    // on the wrong side of every star — the image stays sharp, symmetric
+    // under nothing, and completely plausible.
+    const turned = rotateKernel(arrow(), N, Math.PI / 2);
     const p = brightest(turned);
-    expect(p.x).toBe(C + OFFSET);
+    expect(p.x).toBe(C);
+    expect(p.y).toBe(C + OFFSET);
+  });
+
+  it("and to −x for a patch on the −x axis", () => {
+    const turned = rotateKernel(arrow(), N, Math.PI);
+    const p = brightest(turned);
+    expect(p.x).toBe(C - OFFSET);
     expect(p.y).toBe(C);
   });
 
-  it("and to −y for a patch on the −y axis", () => {
-    const turned = rotateKernel(arrow(), N, -Math.PI / 2 - Math.PI / 2);
-    const p = brightest(turned);
-    expect(p.x).toBe(C);
-    expect(p.y).toBe(C - OFFSET);
-  });
-
-  it("a patch on the +y axis needs no rotation at all", () => {
-    // Azimuth 90° is where the trace already is, so θ = 0 and the kernel is
+  it("a patch on the +x axis needs no rotation at all", () => {
+    // Azimuth 0 is where the trace already is, so θ = 0 and the kernel is
     // passed through untouched — no interpolation, no loss.
     const source = arrow();
     // Returned by reference, not resampled: no interpolation loss on the one
     // azimuth where the trace already points the right way.
     expect(rotateKernel(source, N, 0)).toBe(source);
     const p = brightest(rotateKernel(source, N, 0));
-    expect(p.x).toBe(C);
-    expect(p.y).toBe(C + OFFSET);
+    expect(p.x).toBe(C + OFFSET);
+    expect(p.y).toBe(C);
   });
 
   it("rotation conserves energy exactly", () => {
@@ -304,9 +306,117 @@ describe("the kernel is turned to face its own azimuth", () => {
       difference += Math.abs(kernel[i]! - turned[i]!);
       total += kernel[i]!;
     }
-    // Only 4.9% on this f/10 achromat at 0.06 deg — the largest field angle
-    // that still fits the PSF grid. That smallness is exactly why the
-    // end-to-end symmetry test does not work here; see VALIDATION § 3c.
+    // Only 4.9% on this f/10 achromat at 0.06 deg. Small — but the symmetry
+    // rungs below discriminate at 3500× despite it, because a wrongly-turned
+    // kernel injects its full field-axis asymmetry into a metric whose correct
+    // reading is interpolation-level. See VALIDATION § 3c.
     expect(difference / total).toBeGreaterThan(0.04);
+  });
+});
+
+describe("the rendered field is symmetric the way the optics is", () => {
+  /**
+   * An axially symmetric system is symmetric under reflection in any plane
+   * containing its axis, and so must every rendered frame be once the scene
+   * is. These rungs are the end-to-end orientation pins whose predecessor was
+   * withdrawn at step 4 for having no teeth — the 0.049 residual recorded in
+   * VALIDATION § 3c, which turned out to be a real 90° orientation bug: the
+   * renderer turned every kernel by azimuth − 90°, believing the traced
+   * kernel faced +y when `fieldDirection` in fact tilts the field in the x–z
+   * plane. Under that defect both variants of the old metric read ~0.05 (the
+   * kernel's own field-axis asymmetry passing straight through), so toggling
+   * the rotation moved it by only 4% and the rung condemned itself instead of
+   * the code.
+   *
+   * Two different reflections are needed, because they catch different
+   * defects. A mirror PAIR (two stars at ±x) is structurally blind to a
+   * rotation-sense flip: flipping the sense conjugates the whole render by a
+   * reflection, which maps the mirrored pair to itself — measured, the metric
+   * does not move at all. The TRANSPOSE rung — one star on the +45° diagonal,
+   * frame compared against its own transpose, i.e. reflected in the plane
+   * containing the axis and the star — catches axis error, sense flip and
+   * missing rotation alike: each stamps a kernel turned 90° from radial onto
+   * the star, and reads ~0.05 against a correct ~1e-5.
+   */
+  const FIELD = 0.04; // deg — lands ~102 px off centre, safely on the frame
+
+  /** Σ|I − I∘reflect| / ΣI on the Y channel. */
+  const asymmetry = (
+    xyz: Float64Array,
+    n: number,
+    reflect: (x: number, y: number) => number,
+  ): number => {
+    let diff = 0;
+    let total = 0;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        const a = xyz[(y * n + x) * 3 + 1]!;
+        diff += Math.abs(a - xyz[reflect(x, y) * 3 + 1]!);
+        total += a;
+      }
+    }
+    return diff / total;
+  };
+
+  it("the off-axis kernel is asymmetric along the field axis and ONLY there", () => {
+    // The premise of the rotation convention, pinned to pure symmetry: a
+    // field displacement along x̂ can only break the x-symmetry. Any
+    // asymmetry across the x–z plane (mirrorY) is numerical artifact, and
+    // measures at the same ~1.6e-5 as the on-axis plaid floor — while the
+    // field-axis asymmetry is real physics three orders of magnitude above
+    // it. This is what told us which way the traced kernel faces, and it is
+    // what a transposed FFT grid or a swapped OPD axis would break.
+    const stack = spectralStack(focused, FIELD, { ...PSF_OPTIONS, pixelScaleMm: PIXEL_SCALE });
+    const k = stack.planes[Math.floor(stack.planes.length / 2)]!.intensity;
+    const n = stack.size;
+    let alongField = 0;
+    let acrossField = 0;
+    let total = 0;
+    for (let y = 0; y < n; y++) {
+      const ym = (n - y) % n;
+      for (let x = 0; x < n; x++) {
+        const xm = (n - x) % n;
+        const v = k[y * n + x]!;
+        alongField += Math.abs(v - k[y * n + xm]!);
+        acrossField += Math.abs(v - k[ym * n + x]!);
+        total += v;
+      }
+    }
+    expect(acrossField / total).toBeLessThan(1e-4);
+    expect(alongField / total).toBeGreaterThan(0.02);
+  });
+
+  it("two stars at ±x render as mirror images", () => {
+    // Reflection about the y–z plane, which on this grid is x → (n−x) mod n
+    // about the optical axis at column n/2. Correct reading 2.2e-4 (window
+    // half-pixel offsets and interpolation); the orientation defect read
+    // 0.046. The bound sits 9× under the defect and 20× over the measurement.
+    const scene = rasterizePointSources(
+      focused,
+      [
+        { ...star(FIELD, 0), spectrum: () => 1 },
+        { ...star(-FIELD, 0), spectrum: () => 1 },
+      ],
+      SAMPLES,
+      { size: 256, pixelScaleMm: PIXEL_SCALE },
+    );
+    const out = renderField(focused, scene, { ...PSF_OPTIONS, patches: 2 });
+    const metric = asymmetry(out.image.xyz, 256, (x, y) => y * 256 + ((256 - x) % 256));
+    expect(metric).toBeLessThan(0.005);
+  });
+
+  it("one star on the diagonal renders symmetric under transpose", () => {
+    // The sense-catcher. Reflection in the plane containing the axis and the
+    // star is the transpose of the frame, and it is exact on the grid — the
+    // diagonal passes through the axis pixel. Correct reading 1.0e-5; axis
+    // bug, sense flip and missing rotation each read 0.035–0.052.
+    const d = FIELD / Math.SQRT2;
+    const scene = rasterizePointSources(focused, [{ ...star(d, d), spectrum: () => 1 }], SAMPLES, {
+      size: 256,
+      pixelScaleMm: PIXEL_SCALE,
+    });
+    const out = renderField(focused, scene, { ...PSF_OPTIONS, patches: 2 });
+    const metric = asymmetry(out.image.xyz, 256, (x, y) => x * 256 + y);
+    expect(metric).toBeLessThan(0.002);
   });
 });

@@ -93,8 +93,9 @@ export function imagePointOf(
   const r = traced.ray;
   const planeZ = imagePlaneZ(c, system);
   const hit: Vec3 = add(r.origin, scale(r.dir, (planeZ - r.origin.z) / r.dir.z));
-  // The traced field runs along +y by convention (`fieldDirection`), so the
-  // radial distance is what carries over; the azimuth rotates it into place.
+  // The traced field runs along +x by convention (`fieldDirection` tilts the
+  // bundle in the x–z plane), so the radial distance is what carries over; the
+  // azimuth rotates it into place.
   const radius = Math.hypot(hit.x, hit.y);
   return { x: radius * Math.cos(azimuthRad), y: radius * Math.sin(azimuthRad) };
 }

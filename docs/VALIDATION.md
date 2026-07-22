@@ -612,10 +612,13 @@ inside it, which the wave layer already pins.
 | Every refinement level is a complete image carrying all the light | definition | ✅ |
 | Cost is exactly patches × wavelengths | cost model | ✅ |
 | **SED-weighted samples in a scene render shift colour past a JND** | negative control | ✅ |
-| **Kernel rotation sense: a +y feature turns to +x for an azimuth-0 patch** | trace convention | ✅ |
+| **Kernel rotation sense: a +x feature turns to +y for an azimuth-90° patch** | trace convention | ✅ |
 | Rotation conserves the kernel's energy exactly | matched normalization | ✅ |
-| Azimuth 90° returns the kernel by reference, unresampled | definition | ✅ |
+| Azimuth 0 returns the kernel by reference, unresampled | definition | ✅ |
 | A real off-axis PSF is genuinely changed by being turned | negative control | ✅ |
+| **Off-axis kernel asymmetric along the field axis and ONLY there** | reflection symmetry | ✅ |
+| **Two stars at ±x render as mirror images, end to end** | reflection symmetry | ✅ |
+| **One diagonal star renders transpose-symmetric (the sense-catcher)** | reflection symmetry | ✅ |
 
 The window is applied to the **scene, not to the output**. Both look like they
 would work and only one does: windowing the output blends two images that were
@@ -653,37 +656,65 @@ prescription had. There is a rung asserting the mapping is only approximately
 
 **The kernel had to be rotated, and was not.** Found by reading the code, not
 by a rung — the rungs were structurally incapable of seeing it. A PSF is always
-traced for a field point on ONE axis (`fieldDirection` puts it along +y), and
-convolution is shift-invariant, so whatever orientation that kernel has is
-stamped onto every star in the patch. Placement was already rotated —
-`imagePointOf` carries the azimuth — so the stars landed in the right places
-wearing the wrong shape: every coma tail in the frame pointing the same way,
-which reads as a decentred or tilted system, a fault this engine will later
-simulate deliberately. Same category as the aperture spokes: the render
-inventing an optical component.
+traced for a field point on ONE axis, and convolution is shift-invariant, so
+whatever orientation that kernel has is stamped onto every star in the patch.
+Placement was already rotated — `imagePointOf` carries the azimuth — so the
+stars landed in the right places wearing the wrong shape: every coma tail in
+the frame pointing the same way, which reads as a decentred or tilted system, a
+fault this engine will later simulate deliberately. Same category as the
+aperture spokes: the render inventing an optical component.
 
-`rotateKernel` now turns each patch's kernel by `azimuth − 90°`, and the sense
-is pinned directly on a synthetic kernel with an unmistakable direction. Getting
-that sign backwards puts every flare on the wrong side of every star while the
-image stays sharp and entirely plausible.
+**And then the rotation was wrong by 90°, which is where step 5 began.** The
+step-4 fix turned each kernel by `azimuth − 90°`, on the stated belief that the
+traced kernel faces +y. It faces **+x**: `fieldDirection` tilts the incoming
+bundle in the x–z plane, which the geometric branch's tests had said in plain
+words all along ("fields lie in the x–z plane, so neither branch may drift in
+y"). The belief was only ever written in comments, and the rotation-sense rung
+pinned `rotateKernel` the *operator* on a synthetic kernel — the convention
+connecting the operator to the trace was never pinned to anything. Every patch
+kernel in every frame was 90° from radial: coma tangential instead of radial,
+which also reads as a misaligned instrument.
+
+The unexplained **0.049 residual** in the withdrawn mirror rung was this bug
+seen end to end: the wrongly-turned kernel injects its own field-axis
+asymmetry (0.046 on this achromat at 0.04°) straight into the mirror metric.
+That is why toggling the rotation moved the metric by only 4% — both variants
+were wrong, one by 90° and one by whatever the azimuth was — and why the rung
+was withdrawn as toothless when it was in fact reporting a real defect it
+could not localize. The conclusion recorded at step 4, that pinning this needs
+a strong-coma Newtonian, was wrong too: with the convention corrected the same
+achromat discriminates at 200×–3500×, because the correct reading is
+interpolation-level (1e-5–2e-4) while any orientation defect reads the
+kernel's full asymmetry (~0.05). *The rung was not weak because the asymmetry
+was small; it was weak because it compared two defective renders to each
+other.*
+
+Three rungs now pin orientation end to end, each carrying a distinct part:
+
+- **The kernel-axis rung** asserts the off-axis kernel is asymmetric along the
+  field axis and mirror-symmetric across it to < 1e-4 — measured 1.6e-5, the
+  same as the on-axis plaid floor, against 0.046 along the field. Pure
+  reflection symmetry: a field displacement along x̂ cannot break y-parity.
+  This is the rung that identifies which axis the trace uses, and it is what a
+  transposed FFT grid or swapped OPD axes would break.
+- **The mirror-pair rung** (stars at ±x, frame vs its own reflection) pins the
+  whole pipeline's symmetry about the axis — placement, windows, convolution.
+  Correct reading 2.2e-4; asserted < 0.005.
+- **The transpose rung** (one star on the +45° diagonal, frame vs its own
+  transpose — reflection in the plane containing the axis and the star) is the
+  **sense-catcher**, asserted < 0.002 against a measured 1.0e-5. It exists
+  because the mirror-pair metric is *structurally blind to a rotation-sense
+  flip*: flipping the sense conjugates the render by a reflection, which maps
+  a mirrored pair to itself — measured, the pair metric does not move at all
+  (0.000221 both ways) while the transpose metric reads 0.052. Axis error,
+  sense flip and missing rotation each read 0.035–0.052 on it.
 
 ### Not yet pinned
-- **End-to-end off-axis orientation.** The natural rung — two stars at the same
-  field radius must render as mirror images, since an axially symmetric system
-  is symmetric under reflection in any plane containing the axis — was built and
-  then **withdrawn for having no teeth**, which is worth recording because the
-  measurement is the lesson. On this f/10 achromat at 0.06° (the largest field
-  angle whose PSF still fits the grid) the metric reads 0.0486 with the kernel
-  rotation and 0.0505 without: a 4% difference, because the PSF is very nearly
-  rotationally symmetric there. A rung that cannot distinguish the defect from
-  the fix is not a rung, whatever number it asserts. Pinning this needs a system
-  with strong coma inside the grid — a fast Newtonian, which arrives at step 5 —
-  and it should come with a golden image, since `renderField` has none and its
-  off-axis output has never been looked at.
-- The residual 0.049 in that withdrawn metric is itself unexplained and is NOT
-  interpolation (it is present with rotation disabled, where no resampling
-  happens). It is a real open question about the patch decomposition off axis,
-  and step 5 should start there.
+- **`renderField` still has no golden image.** The orientation is now pinned by
+  symmetry, but nothing pins the off-axis *picture* against drift, and the
+  step-4 note stands: its off-axis output has never been looked at by a human.
+  A multi-star field panel in the app plus a committed golden belongs with the
+  step-5 app work.
 - **Lateral colour is not rendered.** Each wavelength's PSF is centred on its
   own chief-ray image point, which removes exactly the transverse colour
   separation lateral chromatic aberration consists of. On axis there is none to

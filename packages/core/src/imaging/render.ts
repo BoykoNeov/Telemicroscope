@@ -119,8 +119,10 @@ export function patchWeight(u: number, index: number, count: number): number {
  * **This is not cosmetic, and leaving it out is a silent physical error.** The
  * engine's field spec is a single scalar because the systems are axially
  * symmetric, so a PSF is always traced for a field point on ONE axis
- * (`fieldDirection` puts it along +y). Convolution is shift-invariant, so
- * whatever orientation that kernel has is stamped onto every star in the patch.
+ * (`fieldDirection` puts it along +x — the tilt lives in the x–z plane, and the
+ * off-axis centroid rung pins the traced kernel to that axis). Convolution is
+ * shift-invariant, so whatever orientation that kernel has is stamped onto
+ * every star in the patch.
  *
  * Placement was already rotated — `imagePointOf` carries the azimuth — so
  * without this the stars land in the right places wearing the wrong shape:
@@ -259,9 +261,10 @@ export function renderField(
         const cy = ((py + 0.5) / patches - 0.5) * 2 * scene.halfExtentMm;
         const radiusMm = Math.hypot(cx, cy);
         const fieldValue = fieldAngleFor(system, radiusMm, scene);
-        // The traced PSF belongs to a field point on the +y axis, so it has to
-        // be turned to face this patch's own azimuth. See `rotateKernel`.
-        const azimuth = radiusMm > 0 ? Math.atan2(cy, cx) - Math.PI / 2 : 0;
+        // The traced PSF belongs to a field point on the +x axis
+        // (`fieldDirection` tilts the bundle in the x–z plane), so it has to be
+        // turned by this patch's own azimuth. See `rotateKernel`.
+        const azimuth = radiusMm > 0 ? Math.atan2(cy, cx) : 0;
 
         const stack: SpectralStack = spectralStack(system, fieldValue, {
           ...options,
