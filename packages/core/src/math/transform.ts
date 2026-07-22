@@ -35,6 +35,22 @@ export const rotationY = (rad: number): Mat3 => {
 };
 
 /**
+ * Householder reflection in the plane through the origin with unit normal `n`:
+ * L = I − 2·n·nᵀ. Improper (det = −1) by construction — reflecting a frame in a
+ * mirror's tangent plane flips its handedness, which is what a mirror does to
+ * an image. `mat3Transpose` remains the inverse, since L is still orthogonal.
+ */
+export function reflectionAbout(n: Vec3): Mat3 {
+  const len = Math.hypot(n.x, n.y, n.z);
+  const x = n.x / len, y = n.y / len, z = n.z / len;
+  return [
+    1 - 2 * x * x, -2 * x * y, -2 * x * z,
+    -2 * y * x, 1 - 2 * y * y, -2 * y * z,
+    -2 * z * x, -2 * z * y, 1 - 2 * z * z,
+  ];
+}
+
+/**
  * Rigid transform: p_world = R · p_local + t.
  * Elements are placed in the world by one of these; the sequential engine
  * moves rays into each surface's local frame (vertex at origin, axis +z).

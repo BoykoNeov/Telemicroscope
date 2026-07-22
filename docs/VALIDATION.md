@@ -771,11 +771,49 @@ regression-not-validation status as the hero goldens.
 - ~~The geometric branch's ray count does not scale with the blur.~~ Closed at
   step 5: the default is now blur-scaled with its own rungs — see § 2d.
 
-## Later rungs
+## Step 4a — folded chains: the frame follows the beam (current)
 
-- Fold mirrors: a 45° flat deviates the beam by exactly 90°, and the folded
-  path length equals the unfolded one. (Blocked on the mirror-frame
-  convention — see ARCHITECTURE § Tilt / decenter semantics.)
+| Rung | Pinned to | Status |
+|---|---|---|
+| Householder reflection is improper (det = −1) | definition | ✅ |
+| The frame's reflection matrix agrees with the ray's reflection law | cross-implementation | ✅ |
+| 45° flat steers the downstream chain by exactly 90° | closed form | ✅ |
+| The next surface lands 100 mm up the *folded* axis, not the old one | closed form | ✅ |
+| The traced ray goes where the chain went, and hits the surface it placed | beam/frame agreement | ✅ |
+| Folded path length equals the unfolded one (reflection is an isometry) | closed form | ✅ |
+| An off-axis ray folds about the same plane, keeping its x untouched | symmetry | ✅ |
+| Folded and unfolded authorings of one two-mirror system place every vertex identically | cross-convention | ✅ |
+| …and trace identically: hit points, exit direction, path length | cross-convention | ✅ |
+| …and report the same EFL/BFD through the unfolded twin | cross-convention | ✅ |
+| Two mirrors return the chain to a proper (right-handed) frame | parity | ✅ |
+| Newtonian: diagonal vertex sits *d* back down the returning beam | closed form | ✅ |
+| Newtonian: axial bundle focuses at (f − d) out the side of the tube | closed form | ✅ |
+| Folding adds no power: the paraboloid's EFL survives the fold | closed form | ✅ |
+| `pupils()` throws on a folded system rather than answer in a dead coordinate | guard | ✅ |
+
+The **cross-convention** rungs carry the most weight here. They pin the new
+convention against the already-validated one rather than against a fresh closed
+form, and they are the reason the two authorings' *differences* are meaningful:
+post-mirror thicknesses flip sign, and so does every curvature read after an odd
+number of mirrors — exactly what the two conventions say must differ, and
+nothing else.
+
+The 90°-deviation rung earns its place by catching the tempting wrong
+implementation. Reflecting the mirror's own (already tilted) frame instead of
+the frame the light arrived in turns the chain by the tilt twice, and lands the
+downstream axis at (0, 0.707, −0.707) — a 45° deviation wearing the right
+shape. Every other rung in this table passes under that bug.
+
+### Not yet pinned
+- **Folded PSF, OPD, pupils, focus.** All of them live in the unfolded axial z
+  that stops following the light at the first mirror. They are guarded, not
+  approximated. Lifting the guard needs the unfolded-z → world-frame map, and
+  lands with the Newtonian preset.
+- **Fold + misalignment together.** A tilted mirror in a folded chain is now
+  expressible, but tolerancing rungs (perturb, watch the image degrade) need
+  the image, so they wait on the same map.
+
+## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
 - Newtonian coma ∝ θ/(f/#)² formula.

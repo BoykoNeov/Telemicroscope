@@ -9,11 +9,13 @@ import {
   rotationY,
   mat3Mul,
   translation,
+  applyToDirection,
+  reflectionAbout,
 } from "../math/transform";
 import { SurfaceGeometry } from "../geometry/surfaces";
 import { Medium } from "../materials/dispersion";
 import { getMedium } from "../materials/catalog";
-import { Prescription, SurfaceSpec, surfaceGeometry } from "./prescription";
+import { Prescription, SurfaceSpec, surfaceGeometry, isFolded } from "./prescription";
 
 /**
  * A `Prescription` is authoring data; the tracer never consumes it directly.
@@ -53,6 +55,8 @@ export interface CompiledSystem {
   readonly surfaces: readonly CompiledSurface[];
   readonly objectMedium: Medium;
   readonly prescription: Prescription;
+  /** True when the chain reflects at mirrors — see `MirrorFrames`. */
+  readonly folded: boolean;
   /**
    * Refractive indices at a wavelength: `[n_object, n_after_0, n_after_1, …]`.
    * Cached per λ — a Sellmeier `sqrt` per ray per surface is pure waste when
@@ -67,6 +71,36 @@ function tiltRotation(spec: SurfaceSpec) {
   const ty = spec.tiltYDeg ?? 0;
   if (tx === 0 && ty === 0) return MAT3_IDENTITY;
   return mat3Mul(rotationY((ty * Math.PI) / 180), rotationX((tx * Math.PI) / 180));
+}
+
+/**
+ * The frame the chain continues in after this surface.
+ *
+ * Under `"unfolded"` it is the surface's own frame: the chain keeps pointing
+ * where it was, and the author writes a negative thickness to walk back along
+ * it. Under `"folded"` a mirror reflects the chain in its tangent plane, so
+ * the chain's +z follows the beam and thicknesses stay positive.
+ *
+ * The reflection is applied to the frame the light ARRIVED in, not to the
+ * surface's tilted frame — reflecting the tilted frame would rotate the chain
+ * by the tilt a second time. For a 45° flat that is the difference between the
+ * exact 90° deviation the beam takes and a spurious 45°.
+ */
+function outgoingFrame(
+  incoming: Transform,
+  surfaceFrame: Transform,
+  spec: SurfaceSpec,
+  folded: boolean,
+): Transform {
+  if (!folded || spec.kind !== "reflect") return surfaceFrame;
+  // Mirror normal at the vertex = the surface frame's own +z, in world.
+  const normal = applyToDirection(surfaceFrame, vec3(0, 0, 1));
+  return {
+    rotation: mat3Mul(reflectionAbout(normal), incoming.rotation),
+    // The chain pivots about the vertex where the light actually struck,
+    // decenter included.
+    translation: surfaceFrame.translation,
+  };
 }
 
 function isPureAxial(tf: Transform): boolean {
@@ -86,8 +120,11 @@ export function compile(p: Prescription): CompiledSystem {
   // see the tilt-semantics decision in docs/ARCHITECTURE.md.
   let frame: Transform = IDENTITY;
 
+  const folded = isFolded(p);
+
   for (let i = 0; i < p.surfaces.length; i++) {
     const spec = p.surfaces[i]!;
+    const incoming = frame;
     const local: Transform = {
       rotation: tiltRotation(spec),
       translation: vec3(spec.decenterX ?? 0, spec.decenterY ?? 0, 0),
@@ -112,8 +149,8 @@ export function compile(p: Prescription): CompiledSystem {
       reflectance: spec.reflectance ?? null,
     });
 
-    // Advance to the next vertex along this surface's local +z.
-    frame = compose(surfaceFrame, translation(vec3(0, 0, spec.thickness)));
+    // Advance to the next vertex along the outgoing chain's local +z.
+    frame = compose(outgoingFrame(incoming, surfaceFrame, spec, folded), translation(vec3(0, 0, spec.thickness)));
   }
 
   const cache = new Map<number, readonly number[]>();
@@ -123,6 +160,7 @@ export function compile(p: Prescription): CompiledSystem {
     surfaces,
     objectMedium,
     prescription: p,
+    folded,
     indices(wavelengthNm: number): readonly number[] {
       let table = cache.get(wavelengthNm);
       if (!table) {

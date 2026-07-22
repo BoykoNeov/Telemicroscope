@@ -172,8 +172,25 @@ export function imagePlaneZ(c: CompiledSystem, system: OpticalSystem): number {
   return last.vertexZ + offset;
 }
 
+/**
+ * Everything in this module — and therefore ray aiming, OPD, PSF and focus —
+ * works in the unfolded axial z of the paraxial engine. On a folded chain that
+ * z stops following the light after the first mirror, so a pupil plane
+ * computed here would be a number in a coordinate no ray ever visits: wrong,
+ * and silently so. Folded systems are refused until the unfolded↔world map
+ * lands with the Newtonian preset (docs/ARCHITECTURE.md § Tilt / decenter).
+ */
+export function assertUnfolded(c: CompiledSystem, what: string): void {
+  if (c.folded) {
+    throw new Error(
+      `${what} is unfolded-only: a folded prescription's axial z does not follow the beam past a mirror`,
+    );
+  }
+}
+
 export function pupils(system: OpticalSystem, wavelengthNm: number): PupilGeometry {
   const c = asCompiled(system.prescription);
+  assertUnfolded(c, "pupils()");
   const k = stopIndex(system.prescription);
   const stopRadius = resolveStopRadius(system, wavelengthNm);
   return {

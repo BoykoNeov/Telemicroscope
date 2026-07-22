@@ -47,10 +47,61 @@ export interface SurfaceSpec {
   readonly reflectance?: number;
 }
 
+/**
+ * How the coordinate chain crosses a mirror. The two are each self-consistent
+ * and cannot be mixed inside one prescription, so the choice is made here,
+ * once, and never inferred from the data (a misalignment tilt on a mirror must
+ * not silently change what every downstream thickness means).
+ *
+ *  - `"unfolded"` (default) — the chain keeps its direction through a mirror,
+ *    so rays travel −z afterwards and thicknesses go negative, alternating with
+ *    each mirror. Curvature signs stay in the launch frame. This is the
+ *    convention every existing rung is validated under, and it is what the
+ *    paraxial engine's n′ = −n trace expects.
+ *  - `"folded"` — the chain *reflects* in the mirror's tangent plane, so its
+ *    local +z follows the beam. Thicknesses are then always distances along the
+ *    light, and a curvature's sign is read against the propagation direction.
+ *    A 45° flat deviates the whole downstream chain by 90°, which is the only
+ *    way a Newtonian's diagonal can place an eyepiece where it physically sits.
+ *
+ * Folded prescriptions trace exactly; the paraxial layer unfolds them (see
+ * `unfoldedTwin`). Pupils, OPD and everything built on them are still
+ * unfolded-only and reject a folded system loudly rather than compute in a
+ * z-space that no longer follows the light (docs/ARCHITECTURE.md).
+ */
+export type MirrorFrames = "unfolded" | "folded";
+
 export interface Prescription {
   /** Medium before the first surface. Default "AIR". */
   readonly objectMedium?: string;
   readonly surfaces: readonly SurfaceSpec[];
+  /** Default "unfolded". */
+  readonly mirrorFrames?: MirrorFrames;
+}
+
+export const isFolded = (p: Prescription): boolean => p.mirrorFrames === "folded";
+
+/**
+ * The unfolded equivalent of a folded prescription: the same optics laid out
+ * along one straight axis, which is the only form the paraxial engine and its
+ * n′ = −n mirror convention can read.
+ *
+ * Each mirror flips the sense of the axis, so with `parity` = (−1)^(mirrors so
+ * far), a surface's curvature — read against the beam in folded authoring —
+ * unfolds as `c · parity` *before* its own reflection is counted, and its
+ * thickness as `t · parity` *after*. Tilt and decenter are dropped: the
+ * paraxial trace is first-order about the axis and already ignores them.
+ */
+export function unfoldedTwin(p: Prescription): Prescription {
+  if (!isFolded(p)) return p;
+  let parity = 1;
+  const surfaces = p.surfaces.map((s): SurfaceSpec => {
+    const { tiltXDeg, tiltYDeg, decenterX, decenterY, ...axial } = s;
+    const curvature = s.curvature * parity;
+    if (s.kind === "reflect") parity = -parity;
+    return { ...axial, curvature, thickness: s.thickness * parity };
+  });
+  return { ...p, surfaces, mirrorFrames: "unfolded" };
 }
 
 export function surfaceGeometry(spec: SurfaceSpec): SurfaceGeometry {
@@ -60,8 +111,14 @@ export function surfaceGeometry(spec: SurfaceSpec): SurfaceGeometry {
     : makeConic(spec.curvature, k);
 }
 
-/** Vertex z position of every surface (surface 0 at z = 0). */
+/**
+ * Vertex z position of every surface (surface 0 at z = 0). Straight thickness
+ * accumulation, so it is axial-only: for a tilted or folded chain the vertices
+ * are not on one z-axis at all, and `vertexPoint` on the compiled system is
+ * the answer.
+ */
 export function vertexPositions(p: Prescription): number[] {
+  if (isFolded(p)) throw new Error("vertexPositions is axial-only; use vertexPoint on the compiled system");
   const zs: number[] = [];
   let z = 0;
   for (const s of p.surfaces) {

@@ -1,5 +1,5 @@
 import { getMedium } from "../materials/catalog";
-import { Prescription } from "./prescription";
+import { Prescription, unfoldedTwin } from "./prescription";
 import { CompiledSystem, asCompiled } from "./compile";
 
 /**
@@ -67,10 +67,14 @@ export const paraxialTransfer = (st: PlaneRay, t: number): PlaneRay => ({
 });
 
 export function paraxialTrace(
-  prescription: Prescription,
+  prescriptionIn: Prescription,
   wavelengthNm: number,
   start: ParaxialRayState,
 ): ParaxialRayState {
+  // A folded chain has no single axis to run a y–u trace along; its unfolded
+  // twin is the same optics straightened out, which is what this convention
+  // was built for.
+  const prescription = unfoldedTwin(prescriptionIn);
   let n = getMedium(prescription.objectMedium ?? "AIR").n(wavelengthNm);
   let { y, u } = start;
 
@@ -102,7 +106,8 @@ export interface SystemProperties {
  * Note: paraxialTrace propagates past the last surface by its `thickness`,
  * so we rewind that here to measure from the last vertex.
  */
-export function systemProperties(prescription: Prescription, wavelengthNm: number): SystemProperties {
+export function systemProperties(prescriptionIn: Prescription, wavelengthNm: number): SystemProperties {
+  const prescription = unfoldedTwin(prescriptionIn);
   const y0 = 1;
   const out = paraxialTrace(prescription, wavelengthNm, { y: y0, u: 0 });
   if (Math.abs(out.u) < 1e-15) throw new Error("afocal system: no finite focus");

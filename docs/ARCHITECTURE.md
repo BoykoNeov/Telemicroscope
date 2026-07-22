@@ -219,19 +219,48 @@ Consequence: the surface chain is a list of frames, not a list of z-positions.
 Axial systems are the special case where every rotation is the identity — the
 tracer detects and fast-paths that, so the general form costs nothing.
 
-**Open, and deliberately not yet implemented: fold mirrors.** Making the chain
+**Fold mirrors: resolved, as a per-prescription choice.** Making the chain
 follow a folded axis requires the frame to *reflect* in the mirror plane
 (a 45° tilt then deviates the chain by 90°, as the beam does). That rule is
 incompatible with the existing "thicknesses are negative after a mirror"
 convention, which is validated and load-bearing — under a reflecting frame,
 post-mirror thicknesses become positive instead. Both conventions are
-self-consistent; they cannot be mixed.
+self-consistent; they cannot be mixed *within one prescription*.
 
-So today: tilt/decenter is supported and validated for **refracting** surfaces
-(the misalignment case), and the frame chain does not auto-reflect at mirrors.
-Resolving this is a prerequisite for step 5's Newtonian and SCT presets, and
-should be its own change with its own rungs — a 45° fold deviating a beam by
-exactly 90° is the closed form to pin it to.
+So `Prescription.mirrorFrames` picks one, defaulting to `"unfolded"`:
+
+| | `"unfolded"` (default) | `"folded"` |
+|---|---|---|
+| chain at a mirror | keeps direction | reflects in the tangent plane |
+| thickness after a mirror | negative, alternating | positive — always along the light |
+| curvature sign read against | the launch frame | the local propagation direction |
+| frame handedness | always proper | flips per mirror (det = −1) |
+
+The choice is **never inferred from the data**: a mirror carrying a small
+misalignment tilt must not silently redefine what every downstream thickness
+means. Every existing rung stays on the default, so none of them moved.
+
+The reflection is applied to the frame the light **arrived** in, not to the
+mirror's own tilted frame — reflecting the tilted frame turns the chain by the
+tilt a second time, which for a 45° flat gives 45° of deviation instead of the
+90° the beam actually takes. The improper (det = −1) Householder reflection is
+used rather than a 180° rotation: it is what "reflect in the mirror plane"
+means, and the handedness flip is physically honest, since a mirror does invert
+image parity. Nothing downstream objects — `invert` is a transpose and stays
+valid for any orthogonal matrix, normals go through the same rotation, and the
+clear aperture is a radius.
+
+**Still unfolded-only: everything built on paraxial z.** Pupils, ray aiming,
+OPD, PSF and focus all work in the unfolded axial coordinate, which stops
+following the light at the first mirror of a folded chain. `pupils()` therefore
+*throws* on a folded system rather than return a number in a coordinate no ray
+visits. The paraxial engine itself is fine: it straightens a folded
+prescription first (`unfoldedTwin`), so EFL/BFD work either way.
+
+Lifting that restriction needs a map from unfolded axial z to a world frame —
+walk the frame chain, find the segment the coordinate falls in, place the plane
+there. That lands with the Newtonian preset, which is the first thing that
+needs a folded PSF.
 
 ### Wavefront reference (required before OPD means anything)
 

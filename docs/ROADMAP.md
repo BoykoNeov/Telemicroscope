@@ -82,9 +82,16 @@
    scenes, visual mode (eye model, exit-pupil matching) and camera mode
    (pixel scale, exposure, shot noise). Mechanical compatibility checking
    with feedback into optical spacings (extension tubes change the image).
-   *Prerequisite:* tilt/decenter must be implemented before this step —
-   Newtonian and SCT presets are folded systems and cannot be expressed
-   without it (see the tilt-semantics decision in ARCHITECTURE).
+   *Prerequisite — tilt/decenter:* ✅ closed. Refracting tilt/decenter already
+   existed; what the presets actually needed was the **folded mirror frame**,
+   now landed as a per-prescription convention with its own rungs (VALIDATION
+   § 4a). An SCT is on-axis and was always expressible; it is the Newtonian's
+   45° diagonal — a tilted mirror with surfaces downstream of it — that could
+   not be written down before. The same change makes mirror *misalignment*
+   place downstream surfaces correctly, which is what tolerancing rests on.
+   *Carried:* pupils/OPD/PSF are still unfolded-only and throw on a folded
+   system. The unfolded-z → world-frame map that lifts that lands with the
+   Newtonian preset, which is the first thing to need a folded PSF.
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation
