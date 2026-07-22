@@ -1,19 +1,19 @@
 import { describe, it, expect } from "vitest";
-import { refractorPair } from "../src/designs/refractor";
-import { OpticalSystem } from "../src/trace/system";
-import { systemProperties } from "../src/trace/paraxial";
-import { blackbodySpectrum } from "../src/photometry/blackbody";
-import { spectralSamples } from "../src/photometry/spectrum";
 import { chromaticity } from "../src/photometry/cmf";
 import { xyzToLinearRgb } from "../src/photometry/srgb";
-import { bestFocus, withFocus } from "../src/analysis/focus";
-import { SpectralStack, spectralStack } from "../src/wave/polychromatic";
 import {
   annulusXyz,
   colorImageFromStack,
   integratedXyz,
   radialColorProfile,
 } from "../src/imaging/image";
+import {
+  HeroRender,
+  defocusMm,
+  heroPair,
+  meanRadiusMm,
+  renderHero,
+} from "./support/heroScene";
 
 /**
  * Step 4's milestone: purple fringing appears for a singlet and shrinks for an
@@ -31,69 +31,8 @@ import {
  * difference, not the chromatism.
  */
 
-const FOCAL = 100;
-const SEMI_APERTURE = 15;
-const EPD = 10; // f/10
-const FOCUS_NM = 550;
-const SOURCE_K = 5800; // a sun-like star
-
-const PSF_OPTIONS = { pupilSamples: 64, padFactor: 4, traceSamples: 21 } as const;
-
-function star(prescription: OpticalSystem["prescription"]): OpticalSystem {
-  return {
-    prescription,
-    aperture: { kind: "EPD", value: EPD },
-    field: { kind: "angle", values: [0] },
-    wavelengths: spectralSamples(blackbodySpectrum(SOURCE_K), { count: 9 }),
-    conjugate: { kind: "infinite" },
-  };
-}
-
-interface Rendered {
-  readonly system: OpticalSystem;
-  readonly focusOffset: number;
-  readonly stack: SpectralStack;
-  readonly naImage: number;
-  readonly airyRadiusMm: number;
-}
-
-function render(prescription: OpticalSystem["prescription"]): Rendered {
-  const system = star(prescription);
-  const focus = bestFocus(system, "minRmsWavefront", { wavelengthNm: FOCUS_NM });
-  const focused = withFocus(system, focus.offsetFromLastVertex);
-  const naImage = EPD / (2 * systemProperties(prescription, FOCUS_NM).efl);
-  return {
-    system: focused,
-    focusOffset: focus.offsetFromLastVertex,
-    stack: spectralStack(focused, 0, PSF_OPTIONS),
-    naImage,
-    airyRadiusMm: (1.22 * FOCUS_NM * 1e-6) / (2 * naImage),
-  };
-}
-
-/** Energy-weighted mean radius of one wavelength's image, in mm. */
-function meanRadiusMm(intensity: Float64Array, size: number, pixelScaleMm: number): number {
-  const c = size / 2;
-  let acc = 0;
-  let total = 0;
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const v = intensity[y * size + x]!;
-      if (v === 0) continue;
-      acc += v * Math.hypot(x - c, y - c);
-      total += v;
-    }
-  }
-  return total > 0 ? (acc / total) * pixelScaleMm : 0;
-}
-
-/** Paraxial defocus of a wavelength relative to where the image plane sits. */
-function defocusMm(r: Rendered, nm: number): number {
-  return systemProperties(r.system.prescription, nm).bfd - r.focusOffset;
-}
-
-const singlet = render(refractorPair(FOCAL, SEMI_APERTURE, FOCAL).singlet);
-const achromat = render(refractorPair(FOCAL, SEMI_APERTURE, FOCAL).achromat);
+const singlet = renderHero(heroPair().singlet);
+const achromat = renderHero(heroPair().achromat);
 
 describe("the rendered blur reproduces the chromatic focal shift", () => {
   it("each wavelength's blur radius = (2/3)·|δz|·NA where defocus dominates", () => {
@@ -147,7 +86,7 @@ describe("the rendered blur reproduces the chromatic focal shift", () => {
 });
 
 describe("the milestone: a singlet fringes and an achromat does not", () => {
-  const spread = (r: Rendered): number => {
+  const spread = (r: HeroRender): number => {
     const radii = r.stack.planes.map((p) =>
       meanRadiusMm(p.intensity, r.stack.size, r.stack.pixelScaleMm),
     );
@@ -173,7 +112,7 @@ describe("the milestone: a singlet fringes and an achromat does not", () => {
     // "Purple fringing", stated as a number. Beyond the radius where the
     // achromat's light has run out, the singlet still has the short wavelengths
     // — they are the most defocused — so that annulus is blue-dominant.
-    const outer = (r: Rendered) => {
+    const outer = (r: HeroRender) => {
       const image = colorImageFromStack(r.stack);
       const inner = 8 * r.airyRadiusMm / r.stack.pixelScaleMm;
       const rgb = xyzToLinearRgb(annulusXyz(image, inner, r.stack.size / 2));
@@ -187,7 +126,7 @@ describe("the milestone: a singlet fringes and an achromat does not", () => {
     // The strongest form of the claim, because it is about STRUCTURE rather
     // than an average: a single colour over the whole image cannot distinguish
     // "blue halo" from "blue star".
-    const hueDrift = (r: Rendered): number => {
+    const hueDrift = (r: HeroRender): number => {
       const profile = radialColorProfile(colorImageFromStack(r.stack), 32);
       const at = (bin: number) =>
         chromaticity({
@@ -205,7 +144,7 @@ describe("the milestone: a singlet fringes and an achromat does not", () => {
     // A guard against fixing the fringe by breaking the colour: whatever the
     // aberrations do to WHERE the light lands, the total is the source's
     // spectrum through the same glass, so both must agree on it closely.
-    const c = (r: Rendered) => chromaticity(integratedXyz(colorImageFromStack(r.stack)));
+    const c = (r: HeroRender) => chromaticity(integratedXyz(colorImageFromStack(r.stack)));
     const a = c(singlet);
     const b = c(achromat);
     expect(Math.abs(a.x - b.x)).toBeLessThan(0.01);

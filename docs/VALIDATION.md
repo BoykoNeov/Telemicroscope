@@ -193,9 +193,13 @@ paraxial identification.
 
 | Rung | Pinned to | Status |
 |---|---|---|
-| **Encircled energy 83.8% inside the 1st dark ring (1.220 λ/2NA)** | Airy pattern | ✅ |
-| **Encircled energy 91.0% inside the 2nd dark ring (2.233 λ/2NA)** | Airy pattern | ✅ |
-| **Encircled energy 93.8% inside the 3rd dark ring (3.238 λ/2NA)** | Airy pattern | ✅ |
+| **Encircled energy → 83.8% inside the 1st dark ring (1.220 λ/2NA)** | Airy pattern | ✅ |
+| **Encircled energy → 91.0% inside the 2nd dark ring (2.233 λ/2NA)** | Airy pattern | ✅ |
+| **Encircled energy → 93.8% inside the 3rd dark ring (3.238 λ/2NA)** | Airy pattern | ✅ |
+| ...each converging first-order, Richardson-extrapolating onto the value | discretization order | ✅ |
+| **A circular pupil's PSF is rotationally symmetric to <6e-6 of peak** | transform of a disc | ✅ |
+| Point-sampling the aperture instead is ≥4× worse (negative control) | measurement | ✅ |
+| ...and the residue halves as the pupil grid doubles | discretization order | ✅ |
 | First dark ring → 1.22 λ/(2·NA) as image sampling refines | closed form | ✅ |
 | PSF integrates to the transmitted pupil energy | Parseval | ✅ |
 | **Strehl ≈ exp(−(2πσ)²), σ from the OPD map** | Maréchal | ✅ |
@@ -214,8 +218,58 @@ The three **encircled-energy** rungs are the primary Airy pins and are stronger
 than locating a minimum: their radii come from the closed form and are
 converted to pixels through `pixelScaleMm`, so a wrong pupil→image scale moves
 all three; and they are integrals, so they test the pattern's shape out to
-three rings rather than one position. Measured 0.8378 / 0.9099 / 0.9376 against
-the textbook 0.838 / 0.910 / 0.938, identically at every pad factor.
+three rings rather than one position.
+
+They are stated as **limits in pupil sampling**, and the reason is the sharpest
+lesson in this section. They were previously fixed tolerances (±0.003 at 64
+pupil samples) and they passed — at 0.83804, 0.83806, 0.83806 for N = 64, 128,
+256. *Dead flat.* An answer that does not move as the grid refines has not been
+resolved; it has been arrived at by cancellation, and here two errors were
+cancelling: the staircase edge of a point-sampled round aperture aliased energy
+outward while the same staircase left the energy denominator short by the same
+amount. Resolving the aperture edge breaks the cancellation, and the sequence
+starts behaving like a discretization should — 0.84698, 0.84235, 0.84021,
+halving each time the grid doubles, Richardson-extrapolating to **0.8378**, the
+analytic value.
+
+So the convergence form is the *stricter* standard, not a relaxed one: the old
+implementation passes the old tolerance and fails the new rung. This is the
+same treatment the first-dark-ring rung already had, for the same reason.
+
+### Aperture edge resolution
+
+`amplitudeGrid` subdivides only those cells whose corners disagree about being
+inside the aperture — about π·pupilSamples of them, 256 out of 65536 on a
+typical grid — and area-averages the amplitude there. It keys on the pupil
+function's own zeros rather than on a circle, so obstructions and (later)
+spiders and vignetted pupils get it for free.
+
+**What it fixes is not the number, it is the artifact.** A round aperture
+point-sampled on a square grid transforms into *radial spokes* at ~6·10⁻⁵ of
+the peak, where the true azimuthal variation of a disc's transform is exactly
+zero. That is small and it is dangerous rather than harmless, because of what
+it looks like: diffraction spikes — a real effect this engine will produce for
+real reasons once spiders arrive, so leaving it in means a refractor renders as
+though it had a spider in it. The rotational-symmetry rung and its negative
+control exist to keep it gone.
+
+Two things it does **not** do, both recorded because the measurements were
+made. It does not reach zero, and cannot: a piecewise-constant aperture on a
+square grid carries an O(Δ²) boundary error however exactly each cell's mean is
+computed, leaving a faint plaid at ~4·10⁻⁶ of peak — the same level a pupil
+grid of twice the density reaches without it, so the honest summary is that it
+buys a factor of two in pupil resolution, not exactness. And it does not
+improve when the aperture is stopped down, because defocus blur falls as NA
+while the Airy radius grows as 1/NA.
+
+Cell averaging forces one distinction that did not exist before: **⟨A⟩ for the
+field, ⟨A²⟩ for the energy.** A half-covered cell of a hard aperture has
+⟨A⟩ = ½ but ⟨A²⟩ = ½, not ¼. The transform must use the average *field*, while
+the transmitted energy must be the average *power*, so the PSF is normalized to
+Σ⟨A²⟩ rather than to the Σ⟨A⟩² that Parseval hands back. Getting this wrong
+shrinks the transmitted energy by ~1% on a 64-sample pupil, and that number is
+what the geometric branch matches itself to — so it would have broken matched
+normalization rather than merely mis-stating a brightness.
 
 The **first-dark-ring position** is stated as a limit rather than a fixed
 tolerance because measuring it *is* sampling-limited — a one-pixel azimuthal
@@ -507,6 +561,32 @@ Two disciplines carried over from the wave layer: colour is integrated on the
 both lenses are focused by the **same criterion at the same wavelength**, since
 a fringing metric on two differently-focused systems measures the focus
 difference rather than the chromatism.
+
+### Golden images — regression, NOT validation
+
+Committed reference renders of both stars, plus a diff, landing at step 4 as
+the roadmap requires rather than at step 7. The ladder pins physics; **nothing
+pins images**. A flipped axis, a swapped channel, an off-by-one centring, a
+changed resampler or a different exposure passes all 223 rungs and still ruins
+the picture.
+
+The distinction is kept sharp: a golden image proves the render has not
+changed, never that it was right. What makes these two trustworthy is that the
+rungs above already pinned the physics inside them; the file only stops it
+drifting afterwards. Three statistics are compared, not one — a re-scaled
+exposure moves the mean everywhere, a flipped axis moves a large fraction by a
+lot, and a one-pixel centring slip moves almost nothing except the max — and
+the harness carries its own negative control, asserting the two goldens are not
+the same image, which is exactly what a copy-paste slip in the fixture would
+otherwise produce silently.
+
+Exposure is peak-referenced and pushed 25×, so the core clips as an
+overexposed star does and the halo at ~10⁻³ of peak is visible. The ceiling is
+the render's own noise floor: at 25× the darkest level sRGB can encode is ~10⁻⁵
+of peak, comfortably above the 4·10⁻⁶ plaid. An auto-exposure to a high
+quantile of lit pixels — the obvious choice, and the first one tried — pushes
+past that and fills the frame with discretization artifact, committing it to a
+reference image as though it were optics.
 
 ## Later rungs
 

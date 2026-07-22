@@ -90,6 +90,12 @@ export interface PsfOptions {
    * per-wavelength peaks live on λ-dependent grids and cannot be summed.
    */
   readonly keepDiffractionLimited?: boolean;
+  /**
+   * Sub-samples per axis in cells that straddle an aperture edge. Default 4;
+   * 1 disables edge resolution and restores plain point sampling. See
+   * `amplitudeGrid` for what this buys and what it cannot.
+   */
+  readonly edgeSamples?: number;
 }
 
 export interface Psf {
@@ -193,6 +199,161 @@ export function pupilFunctionFromOpd(
   };
 }
 
+/** Default sub-samples per axis in cells that straddle an aperture edge. */
+export const DEFAULT_EDGE_SAMPLES = 4;
+
+/**
+ * Sample the pupil amplitude onto the FFT grid, resolving the aperture edge.
+ *
+ * ## Why the edge cannot just be point-sampled
+ *
+ * A circular aperture on a square grid is a staircase, and the staircase is not
+ * rotationally symmetric — so its transform is not either. An unaberrated
+ * circular pupil, whose PSF must be a perfectly circular Airy pattern, instead
+ * comes back with **radial spokes**: at 64 samples across the pupil the
+ * azimuthal variation at a fixed radius reaches 1.6·10⁻⁵ of the peak, where the
+ * true answer is exactly zero.
+ *
+ * That number is small and the artifact is not. It looks like diffraction
+ * spikes, which is a real optical effect this engine will later produce for
+ * real reasons (spiders, step 5) — so leaving it in means a refractor renders
+ * as though it had a spider in it. Physics is never faked, and neither is it
+ * accidentally invented.
+ *
+ * ## What is done, and what remains
+ *
+ * Cells whose corners disagree about being inside the aperture are subdivided
+ * and their amplitude is area-averaged; every other cell keeps its centre
+ * value, so interior sampling is unchanged. The edge set is dilated by one cell
+ * so a boundary that cuts a corner off without crossing any lattice point is
+ * still caught. Only ~π·pupilSamples cells qualify — 256 of 65536 on a typical
+ * grid — so the cost is negligible and it is generic: obstructions, and later
+ * spiders and vignetted pupils, get it for free because it keys on the pupil
+ * function's own zeros rather than on a circle.
+ *
+ * This removes the spokes and drops the spurious floor about 4×. It does not
+ * reach zero, and cannot: representing an aperture as piecewise-constant on a
+ * square grid carries an O(Δ²) boundary error however exactly each cell's mean
+ * is computed. The residue is a faint plaid at ~4·10⁻⁶ of the peak, which is
+ * the same level a pupil grid of twice the density reaches without this — so
+ * the honest summary is that edge sampling buys a factor of two in pupil
+ * resolution, not exactness.
+ */
+export interface PupilSampling {
+  /**
+   * Cell-averaged amplitude ⟨A⟩ — what the transform must use, because the
+   * field a cell contributes is its average field.
+   */
+  readonly amplitude: Float64Array;
+  /**
+   * Cell-averaged POWER ⟨A²⟩ — what the energy must use, because the light a
+   * cell passes is its average power.
+   *
+   * These are the same number everywhere except in a cell the aperture edge
+   * cuts, and there they differ by exactly the discretization: a half-covered
+   * cell of a hard aperture has ⟨A⟩ = ½ but ⟨A²⟩ = ½, not ¼. Normalizing the
+   * PSF to Σ⟨A⟩² instead would shrink the transmitted energy by ~1% on a
+   * 64-sample pupil — which is not a subtle bug, because that number is the
+   * denominator of every encircled-energy figure and the value the geometric
+   * branch matches itself to.
+   */
+  readonly power: Float64Array;
+}
+
+export function pupilSampling(
+  pupil: PupilFunction,
+  pupilSamples: number,
+  size: number,
+  edgeSamples: number = DEFAULT_EDGE_SAMPLES,
+): PupilSampling {
+  const half = size / 2;
+  const step = 2 / pupilSamples;
+  const out = new Float64Array(size * size);
+  const power = new Float64Array(size * size);
+
+  if (edgeSamples <= 1) {
+    for (let iy = 0; iy < size; iy++) {
+      const py = (iy - half) * step;
+      for (let ix = 0; ix < size; ix++) {
+        const a = pupil.amplitude((ix - half) * step, py);
+        out[iy * size + ix] = a;
+        power[iy * size + ix] = a * a;
+      }
+    }
+    return { amplitude: out, power };
+  }
+
+  // Corner lattice: whether each cell corner transmits at all.
+  const stride = size + 1;
+  const inside = new Uint8Array(stride * stride);
+  for (let iy = 0; iy <= size; iy++) {
+    const py = (iy - half - 0.5) * step;
+    for (let ix = 0; ix <= size; ix++) {
+      inside[iy * stride + ix] = pupil.amplitude((ix - half - 0.5) * step, py) > 0 ? 1 : 0;
+    }
+  }
+
+  const straddles = new Uint8Array(size * size);
+  for (let iy = 0; iy < size; iy++) {
+    for (let ix = 0; ix < size; ix++) {
+      const a = inside[iy * stride + ix]!;
+      if (
+        a !== inside[iy * stride + ix + 1]! ||
+        a !== inside[(iy + 1) * stride + ix]! ||
+        a !== inside[(iy + 1) * stride + ix + 1]!
+      ) {
+        straddles[iy * size + ix] = 1;
+      }
+    }
+  }
+  // Dilate by one: a boundary can clip a cell without crossing a corner.
+  const refine = new Uint8Array(size * size);
+  for (let iy = 0; iy < size; iy++) {
+    for (let ix = 0; ix < size; ix++) {
+      if (straddles[iy * size + ix] === 0) continue;
+      for (let dy = -1; dy <= 1; dy++) {
+        const y = iy + dy;
+        if (y < 0 || y >= size) continue;
+        for (let dx = -1; dx <= 1; dx++) {
+          const x = ix + dx;
+          if (x < 0 || x >= size) continue;
+          refine[y * size + x] = 1;
+        }
+      }
+    }
+  }
+
+  const sub = edgeSamples * edgeSamples;
+  for (let iy = 0; iy < size; iy++) {
+    const py = (iy - half) * step;
+    for (let ix = 0; ix < size; ix++) {
+      const px = (ix - half) * step;
+      const idx = iy * size + ix;
+      if (refine[idx] === 0) {
+        // Interior or fully outside: the corner lattice already agrees, so the
+        // centre value is the whole story and ⟨A²⟩ = ⟨A⟩².
+        const a = inside[iy * stride + ix] === 1 ? pupil.amplitude(px, py) : 0;
+        out[idx] = a;
+        power[idx] = a * a;
+        continue;
+      }
+      let acc = 0;
+      let accSquared = 0;
+      for (let sy = 0; sy < edgeSamples; sy++) {
+        const qy = py + ((sy + 0.5) / edgeSamples - 0.5) * step;
+        for (let sx = 0; sx < edgeSamples; sx++) {
+          const a = pupil.amplitude(px + ((sx + 0.5) / edgeSamples - 0.5) * step, qy);
+          acc += a;
+          accSquared += a * a;
+        }
+      }
+      out[idx] = acc / sub;
+      power[idx] = accSquared / sub;
+    }
+  }
+  return { amplitude: out, power };
+}
+
 /**
  * Transmitted pupil energy Σ A² on the FFT grid.
  *
@@ -200,18 +361,19 @@ export function pupilFunctionFromOpd(
  * The geometric branch has no pupil array of its own — it has rays — so it
  * scales its histogram to this number rather than inventing a second
  * definition of "how bright". One definition, computed one way, used twice.
+ *
+ * It reads the same edge-resolved grid the transform does, so the two branches
+ * cannot end up disagreeing about how much of the aperture is open.
  */
-export function transmittedEnergy(pupil: PupilFunction, pupilSamples: number, size: number): number {
-  const half = size / 2;
-  const step = 2 / pupilSamples;
+export function transmittedEnergy(
+  pupil: PupilFunction,
+  pupilSamples: number,
+  size: number,
+  edgeSamples: number = DEFAULT_EDGE_SAMPLES,
+): number {
+  const { power } = pupilSampling(pupil, pupilSamples, size, edgeSamples);
   let energy = 0;
-  for (let iy = 0; iy < size; iy++) {
-    const py = (iy - half) * step;
-    for (let ix = 0; ix < size; ix++) {
-      const a = pupil.amplitude((ix - half) * step, py);
-      if (a > 0) energy += a * a;
-    }
-  }
+  for (let i = 0; i < power.length; i++) energy += power[i]!;
   return energy;
 }
 
@@ -258,15 +420,21 @@ export function psfFromPupilFunction(
   const step = 2 / pupilSamples; // normalized pupil units per grid sample
   const phaseGrid = new Float64Array(n * n);
   const inside = new Uint8Array(n * n);
+  // Amplitude comes from the edge-resolving sampler, so a circular aperture on
+  // a square grid stops radiating spokes it does not have.
+  const sampled = pupilSampling(pupil, pupilSamples, n, options.edgeSamples);
+  const amplitude = sampled.amplitude;
 
-  let energy = 0;
+  let energy = 0; // Σ⟨A²⟩ — the light that physically gets through
+  let fieldPower = 0; // Σ⟨A⟩² — what Parseval will hand back
   for (let iy = 0; iy < n; iy++) {
     const py = (iy - half) * step;
     for (let ix = 0; ix < n; ix++) {
       const px = (ix - half) * step;
-      const a = pupil.amplitude(px, py);
-      if (a <= 0) continue;
       const idx = iy * n + ix;
+      energy += sampled.power[idx]!;
+      const a = amplitude[idx]!;
+      if (a <= 0) continue;
       const w = pupil.phaseWaves(px, py);
       const ang = 2 * Math.PI * w;
       re[idx] = a * Math.cos(ang);
@@ -274,7 +442,7 @@ export function psfFromPupilFunction(
       flatRe[idx] = a;
       phaseGrid[idx] = w;
       inside[idx] = 1;
-      energy += a * a;
+      fieldPower += a * a;
     }
   }
   if (energy === 0) throw new Error("pupil is empty: no transmitting samples on the FFT grid");
@@ -300,8 +468,12 @@ export function psfFromPupilFunction(
   fft2d(flatRe, flatIm, n);
 
   // Parseval in this convention is Σ|X|² = n²·Σ|x|², so dividing by n² makes
-  // the intensity integrate to Σ A² — the transmitted pupil energy, exactly.
-  const norm = 1 / (n * n);
+  // the intensity integrate to Σ⟨A⟩². The second factor carries it the rest of
+  // the way to Σ⟨A²⟩ — the light that actually got through the aperture, which
+  // is what the PSF has to integrate to and what the geometric branch matches.
+  // The two agree exactly wherever no cell straddles the edge, so this is the
+  // identity for a point-sampled pupil and a boundary correction otherwise.
+  const norm = energy / (fieldPower * n * n);
   const intensity = new Float64Array(n * n);
   const keepFlat = options.keepDiffractionLimited === true;
   const flatIntensity = keepFlat ? new Float64Array(n * n) : null;

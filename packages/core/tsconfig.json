@@ -9,7 +9,13 @@
     "exactOptionalPropertyTypes": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
+    // No ambient types at all. This is the hard rule in CLAUDE.md made
+    // mechanical: with neither DOM nor Node declarations in scope, `src`
+    // CANNOT reach for `document` or `fs` even by accident. Tests need Node
+    // (the golden-image harness writes PNGs), so they compile under
+    // tsconfig.test.json instead — which is why that file exists rather than
+    // this one simply gaining "node".
     "types": []
   },
-  "include": ["src", "test"]
+  "include": ["src"]
 }

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Tests may use Node: the golden-image harness encodes PNGs through
+    // node:zlib and writes them to disk. `src` deliberately cannot — see the
+    // note in tsconfig.json.
+    "types": ["node"]
+  },
+  "include": ["src", "test"]
+}

@@ -4,7 +4,14 @@ import { Prescription } from "../src/trace/prescription";
 import { opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
 import { LINE_D } from "../src/materials/dispersion";
-import { psf, radialProfile, encircledEnergy, Psf } from "../src/wave/psf";
+import {
+  psf,
+  psfFromPupilFunction,
+  radialProfile,
+  encircledEnergy,
+  Psf,
+  PupilFunction,
+} from "../src/wave/psf";
 import { mtf, mtfProfile, mtfAt, diffractionLimitedMtf } from "../src/wave/mtf";
 
 /**
@@ -97,6 +104,22 @@ describe("Airy pattern of a perfect circular pupil", () => {
    * moves all three answers; and they are integrals over the pattern, so they
    * test its SHAPE out to three rings rather than one position. Nothing is
    * interpolated anywhere.
+   *
+   * They are stated as a **limit in pupil sampling**, like the dark-ring rung
+   * below and for the same reason: representing a round aperture on a square
+   * grid carries an O(1/N) boundary error, and cell-averaging the edge (see
+   * `amplitudeGrid`) turns that into a bias that converges away instead of an
+   * aliasing artifact that does not.
+   *
+   * This replaced a fixed 0.003 tolerance at N = 64, and it is the STRICTER
+   * standard. Point-sampling the aperture passed that tolerance at every N —
+   * 0.83804, 0.83806, 0.83806 at N = 64, 128, 256 — which looks like a pass and
+   * is actually a diagnosis: an answer that does not move as the grid refines
+   * is not a resolved one. Two errors were cancelling, the staircase edge
+   * aliasing energy outward while the same staircase left the energy
+   * denominator short. Edge-resolved, the sequence converges properly (0.84698,
+   * 0.84235, 0.84021) and Richardson-extrapolates to 0.8378 — the analytic
+   * value — which the flat sequence can never demonstrate.
    */
   const energyRungs: Array<[number, number, string]> = [
     [1.22, 0.838, "first"],
@@ -104,9 +127,25 @@ describe("Airy pattern of a perfect circular pupil", () => {
     [3.238, 0.938, "third"],
   ];
   for (const [coefficient, fraction, which] of energyRungs) {
-    it(`holds ${(fraction * 100).toFixed(1)}% of the energy inside the ${which} dark ring`, () => {
-      const enclosed = encircledEnergy(perfect, darkRingMm(coefficient) / perfect.pixelScaleMm);
-      expect(Math.abs(enclosed - fraction)).toBeLessThan(0.003);
+    it(`converges to ${(fraction * 100).toFixed(1)}% of the energy inside the ${which} dark ring`, () => {
+      const enclosedAt = (pupilSamples: number): number => {
+        const p = psf(mirror(-1), 0, LINE_D, { pupilSamples, padFactor: 4 });
+        return encircledEnergy(p, darkRingMm(coefficient) / p.pixelScaleMm);
+      };
+      const coarse = enclosedAt(64);
+      const mid = enclosedAt(128);
+      const fine = enclosedAt(256);
+
+      // Monotone approach from above, halving each time the pupil grid doubles
+      // — first-order convergence, which is what a boundary error looks like.
+      expect(coarse).toBeGreaterThan(mid);
+      expect(mid).toBeGreaterThan(fine);
+      expect(fine - fraction).toBeLessThan((mid - fraction) / 1.8);
+      expect(mid - fraction).toBeLessThan((coarse - fraction) / 1.8);
+
+      // Richardson: for an O(h) error, 2·f(h/2) − f(h) removes the leading
+      // term. That extrapolate must hit the textbook fraction outright.
+      expect(Math.abs(2 * fine - mid - fraction)).toBeLessThan(0.002);
     });
   }
 
@@ -137,6 +176,96 @@ describe("Airy pattern of a perfect circular pupil", () => {
   });
 
   /**
+   * Rung: a circular aperture's diffraction pattern is ROTATIONALLY SYMMETRIC.
+   *
+   * The true azimuthal variation at any fixed radius is exactly zero — this is
+   * a theorem about the transform of a disc, not a measured quantity — which
+   * makes it one of the few rungs with an exact external answer. It is also the
+   * rung the engine used to fail: a round aperture point-sampled on a square
+   * grid is a staircase, and the staircase transforms into RADIAL SPOKES at
+   * ~6·10⁻⁵ of the peak.
+   *
+   * That artifact is small and dangerous rather than small and harmless,
+   * because of what it looks like: diffraction spikes. Spikes are a real effect
+   * this engine will produce for real reasons once spiders arrive at step 5, so
+   * a refractor rendering with them is the engine inventing an optical
+   * component. Resolving the aperture edge (`amplitudeGrid`) is what removes
+   * them; the negative control below is what proves that is why they are gone.
+   *
+   * Measured on an ANALYTIC pupil rather than a traced one, so nothing but the
+   * aperture discretization is in the answer.
+   */
+  describe("a circular pupil's PSF has no preferred direction", () => {
+    const analytic: PupilFunction = {
+      amplitude: (px, py) => (px * px + py * py <= 1 ? 1 : 0),
+      phaseWaves: () => 0,
+    };
+    const scale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+
+    const build = (pupilSamples: number, edgeSamples: number): Psf =>
+      psfFromPupilFunction(analytic, scale, 0, { pupilSamples, padFactor: 4, edgeSamples });
+
+    /** Peak-to-peak azimuthal variation at an exact radius, relative to peak. */
+    const azimuthalSpread = (p: Psf, radiusPx: number): number => {
+      const c = p.size / 2;
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let a = 0; a < 1440; a++) {
+        const t = (a * Math.PI) / 720;
+        // Bilinear, so the probe sits at ONE radius: rounding to a pixel would
+        // wander across the rings and report radial structure as azimuthal.
+        const x = c + radiusPx * Math.cos(t);
+        const y = c + radiusPx * Math.sin(t);
+        const x0 = Math.floor(x);
+        const y0 = Math.floor(y);
+        const fx = x - x0;
+        const fy = y - y0;
+        const at = (ix: number, iy: number) => p.intensity[iy * p.size + ix]!;
+        const v =
+          at(x0, y0) * (1 - fx) * (1 - fy) +
+          at(x0 + 1, y0) * fx * (1 - fy) +
+          at(x0, y0 + 1) * (1 - fx) * fy +
+          at(x0 + 1, y0 + 1) * fx * fy;
+        if (v < lo) lo = v;
+        if (v > hi) hi = v;
+      }
+      return (hi - lo) / p.peak;
+    };
+
+    const RADII = [0.25, 0.35, 0.45];
+
+    it("is symmetric to better than 1e-5 of the peak", () => {
+      const p = build(64, 4);
+      for (const fraction of RADII) {
+        expect(azimuthalSpread(p, fraction * p.size)).toBeLessThan(6e-6);
+      }
+    });
+
+    it("point-sampling the aperture instead is several times worse", () => {
+      // The negative control. Without it the rung above only says "the number
+      // is small", which a broken implementation could also satisfy by being
+      // uniformly wrong.
+      const resolved = build(64, 4);
+      const staircase = build(64, 1);
+      for (const fraction of RADII) {
+        expect(azimuthalSpread(staircase, fraction * staircase.size)).toBeGreaterThan(
+          4 * azimuthalSpread(resolved, fraction * resolved.size),
+        );
+      }
+    });
+
+    it("and what remains is a discretization artifact: it halves with the grid", () => {
+      const coarse = build(64, 4);
+      const fine = build(128, 4);
+      for (const fraction of RADII) {
+        expect(azimuthalSpread(fine, fraction * fine.size)).toBeLessThan(
+          azimuthalSpread(coarse, fraction * coarse.size) / 2,
+        );
+      }
+    });
+  });
+
+  /**
    * Rung: Parseval. The PSF integrates to the transmitted pupil energy. This
    * is the obligation ARCHITECTURE places on the fidelity switch — both PSF
    * branches must carry the same energy, so the geometric branch that arrives
@@ -160,11 +289,17 @@ describe("Airy pattern of a perfect circular pupil", () => {
    * an Airy disc that changes size when you ask for a finer picture of it.
    */
   it("the physical Airy scale is independent of pad factor", () => {
+    // Stated as agreement BETWEEN pad factors rather than against 0.838, which
+    // is both the actual claim and a tighter one: the residual boundary bias is
+    // set by `pupilSamples` and is held fixed here, so padding must not move
+    // the answer at all — 3·10⁻³ of slack against the textbook value would have
+    // hidden a real pad-dependent drift ten times smaller than itself.
     const radiusMm = darkRingMm(1.22);
-    for (const padFactor of [4, 8, 16]) {
+    const enclosed = [4, 8, 16].map((padFactor) => {
       const p = psf(mirror(-1), 0, LINE_D, { pupilSamples: 64, padFactor });
-      expect(Math.abs(encircledEnergy(p, radiusMm / p.pixelScaleMm) - 0.838)).toBeLessThan(0.003);
-    }
+      return encircledEnergy(p, radiusMm / p.pixelScaleMm);
+    });
+    for (const value of enclosed) expect(Math.abs(value - enclosed[0]!)).toBeLessThan(3e-4);
   });
 });
 
