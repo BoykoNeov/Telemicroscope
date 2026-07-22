@@ -171,12 +171,19 @@ export function blendPsf(diffraction: Psf, geometric: Psf, weight: number): Psf 
     intensity[i] = v;
     if (v > peak) peak = v;
   }
+  // Strehl is dropped once any geometric share is mixed in, rather than scaled
+  // by (1−w). A blended peak has no single aberration-free reference: the
+  // geometric branch has none at all (rays through a perfect system pile into
+  // one bin), so any ratio built from it would be a sampling artifact wearing
+  // a physical name. Same discipline as `geometricPsf` itself.
+  const { diffractionLimitedIntensity: _unused, ...rest } = diffraction;
   return {
-    ...diffraction,
+    ...rest,
     intensity,
     peak,
     energy: (1 - w) * diffraction.energy + w * geometric.energy,
-    strehl: (1 - w) * diffraction.strehl,
+    diffractionLimitedPeak: 0,
+    strehl: 0,
   };
 }
 

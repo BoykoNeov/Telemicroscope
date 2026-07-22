@@ -324,6 +324,10 @@ alter brightness anywhere in the band, not merely at its ends.
 | **Rings wash out 5× where a bin-for-bin sum would leave them sharp** | negative control | ✅ |
 | A one-wavelength spectrum reproduces the monochromatic PSF exactly | degenerate case | ✅ |
 | Weights normalize; mean λ is their weighted mean; energy conserved to <1% | bookkeeping | ✅ |
+| **Polychromatic Strehl = peak / peak of an aberration-free stack built the same way** | coherence | ✅ |
+| ...and is NOT the weighted mean of component Strehls (28% apart here) | negative control | ✅ |
+| That Strehl is converged in pupil sampling (128 vs 256 within 1%) | convergence | ✅ |
+| Reports 0, not a fabricated ratio, when a component falls to the geometric branch | honesty | ✅ |
 
 The failure being guarded against is invisible rather than loud. Pixel scale is
 ∝ λ, so summing per-wavelength arrays bin-for-bin silently *rescales* each one
@@ -331,6 +335,19 @@ instead of stacking them — producing a perfectly plausible-looking PSF that ha
 flattened exactly the chromatic differences the calculation exists to show. So
 each wavelength is resampled onto a common physical grid first, carrying the
 Jacobian (Δ_out/Δ_src)² because `intensity` is energy per pixel, not a density.
+
+A **Strehl ratio for a spectrum** needed the same care and initially did not
+get it: it was reported as a weighted mean of the components' Strehls, with
+`diffractionLimitedPeak` summed from per-λ peaks that live on *different*
+λ-dependent grids. Both shortcuts look reasonable; both are wrong. Averaging
+Strehls assumes every wavelength puts its peak on the same pixel — false
+exactly when there is chromatic defocus, which is the case the achromat story
+exists to show — and on a singlet with real axial colour it read 0.0440 against
+the true 0.0344, a 28% error. The stack is now compared against an
+aberration-free stack assembled through the identical resample-and-sum path.
+Where any wavelength falls to the geometric branch there is no honest
+denominator at all, and 0 is reported rather than a plausible number built from
+a ray histogram's sampling artifact.
 
 The encircled-energy rung states the identity that "stacking on a common grid"
 *means*, and the wash-out rung is its negative control: at the d-line the first

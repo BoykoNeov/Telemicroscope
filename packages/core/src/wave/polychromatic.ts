@@ -132,7 +132,7 @@ export function polychromaticPsf(
   const each = samples.map((w) => ({
     sample: w,
     weight: w.weight / totalWeight,
-    psf: adaptivePsf(system, fieldValue, w.nm, options),
+    psf: adaptivePsf(system, fieldValue, w.nm, { ...options, keepDiffractionLimited: true }),
   }));
 
   const first = each[0]!;
@@ -143,6 +143,17 @@ export function polychromaticPsf(
     options.pixelScaleMm ?? first.psf.pixelScaleMm * (meanWavelengthNm / first.sample.nm);
 
   const intensity = new Float64Array(size * size);
+  // A Strehl ratio for a spectrum compares the stacked peak against the peak
+  // of an aberration-free stack BUILT THE SAME WAY. Averaging the components'
+  // Strehls instead would assume every wavelength puts its peak on the same
+  // pixel — false exactly when there is chromatic defocus or lateral colour,
+  // which is the case the achromat story exists to show. And the components'
+  // aberration-free peaks cannot simply be summed either: each lives on its
+  // own λ-dependent grid, so they are energies-per-pixel in different units.
+  const reference = each.every((e) => e.psf.diffractionLimitedIntensity !== undefined)
+    ? new Float64Array(size * size)
+    : null;
+
   let energy = 0;
   let placed = 0;
 
@@ -153,11 +164,30 @@ export function polychromaticPsf(
       intensity[i] = intensity[i]! + v;
       placed += v;
     }
+    if (reference !== null) {
+      const flat = resamplePsf(
+        { ...e.psf, intensity: e.psf.diffractionLimitedIntensity! },
+        pixelScaleMm,
+        size,
+      );
+      for (let i = 0; i < reference.length; i++) {
+        reference[i] = reference[i]! + flat[i]! * e.weight;
+      }
+    }
     energy += e.weight * e.psf.energy;
   }
 
   let peak = 0;
   for (let i = 0; i < intensity.length; i++) if (intensity[i]! > peak) peak = intensity[i]!;
+
+  // Zero when any component fell to the geometric branch: a ray histogram has
+  // no aberration-free counterpart, so there is no honest denominator.
+  let referencePeak = 0;
+  if (reference !== null) {
+    for (let i = 0; i < reference.length; i++) {
+      if (reference[i]! > referencePeak) referencePeak = reference[i]!;
+    }
+  }
 
   return {
     size,
@@ -166,11 +196,9 @@ export function polychromaticPsf(
     pixelScaleMm,
     energy,
     peak,
-    diffractionLimitedPeak: each.reduce(
-      (acc, e) => acc + e.weight * e.psf.diffractionLimitedPeak,
-      0,
-    ),
-    strehl: each.reduce((acc, e) => acc + e.weight * e.psf.strehl, 0),
+    diffractionLimitedPeak: referencePeak,
+    strehl: referencePeak > 0 ? peak / referencePeak : 0,
+    ...(reference === null ? {} : { diffractionLimitedIntensity: reference }),
     maxGridPhaseStepWaves: Math.max(...each.map((e) => e.psf.maxGridPhaseStepWaves)),
     wavelengthNm: meanWavelengthNm,
     fieldValue,

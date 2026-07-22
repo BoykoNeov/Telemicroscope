@@ -80,6 +80,16 @@ export interface PsfOptions {
   readonly padFactor?: number;
   /** Central obstruction as a fraction of pupil radius. Default 0. */
   readonly obstruction?: number;
+  /**
+   * Also return the aberration-free PSF array, not just its peak.
+   *
+   * Off by default: it doubles the memory a PSF carries across the worker
+   * boundary, and only one caller needs it. The polychromatic stack does,
+   * because a Strehl ratio for a spectrum has to compare a stacked peak
+   * against a stack of aberration-free PSFs built the same way — the
+   * per-wavelength peaks live on λ-dependent grids and cannot be summed.
+   */
+  readonly keepDiffractionLimited?: boolean;
 }
 
 export interface Psf {
@@ -104,6 +114,11 @@ export interface Psf {
   readonly diffractionLimitedPeak: number;
   /** peak / diffractionLimitedPeak. 1 for a perfect system. */
   readonly strehl: number;
+  /**
+   * The aberration-free PSF itself, present only when `keepDiffractionLimited`
+   * was requested. Same grid and normalization as `intensity`.
+   */
+  readonly diffractionLimitedIntensity?: Float64Array;
   /**
    * Largest wavefront step between adjacent in-pupil samples OF THE FFT GRID
    * (waves) — i.e. whether this grid resolves the pupil function it was
@@ -288,6 +303,8 @@ export function psfFromPupilFunction(
   // the intensity integrate to Σ A² — the transmitted pupil energy, exactly.
   const norm = 1 / (n * n);
   const intensity = new Float64Array(n * n);
+  const keepFlat = options.keepDiffractionLimited === true;
+  const flatIntensity = keepFlat ? new Float64Array(n * n) : null;
   let peak = 0;
   let flatPeak = 0;
   for (let i = 0; i < n * n; i++) {
@@ -296,8 +313,10 @@ export function psfFromPupilFunction(
     if (v > peak) peak = v;
     const f = (flatRe[i]! * flatRe[i]! + flatIm[i]! * flatIm[i]!) * norm;
     if (f > flatPeak) flatPeak = f;
+    if (flatIntensity !== null) flatIntensity[i] = f;
   }
   fftShift2d(intensity, n);
+  if (flatIntensity !== null) fftShift2d(flatIntensity, n);
 
   const lambdaMm = scale.wavelengthNm * 1e-6;
   const deltaPupil = (2 * scale.exitRadius) / pupilSamples;
@@ -313,6 +332,7 @@ export function psfFromPupilFunction(
     peak,
     diffractionLimitedPeak: flatPeak,
     strehl: flatPeak > 0 ? peak / flatPeak : 0,
+    ...(flatIntensity === null ? {} : { diffractionLimitedIntensity: flatIntensity }),
     maxGridPhaseStepWaves: maxStep,
     wavelengthNm: scale.wavelengthNm,
     fieldValue,

@@ -178,3 +178,100 @@ describe("polychromatic bookkeeping", () => {
     expect(() => polychromaticPsf(mirror([]), 0, GRID)).toThrow(/no wavelengths/);
   });
 });
+
+/**
+ * Rung: the polychromatic Strehl is COHERENT with the peaks it is built from.
+ *
+ * A Strehl ratio for a spectrum has to compare the stacked peak against the
+ * peak of an aberration-free stack assembled the same way. Two shortcuts look
+ * reasonable and are both wrong:
+ *
+ *  - averaging the components' Strehls assumes every wavelength puts its peak
+ *    on the same pixel, which is false exactly when there is chromatic
+ *    defocus — the case the achromat story exists to show;
+ *  - summing the components' aberration-free peaks adds numbers that live on
+ *    different λ-dependent grids, i.e. energies-per-pixel in different units.
+ *
+ * A singlet has real axial colour, so its wavelengths focus at genuinely
+ * different planes. Measured against the weighted-mean-of-Strehls shortcut,
+ * these disagree by ~18% here — small enough to pass unnoticed, large enough
+ * to be wrong.
+ */
+describe("polychromatic Strehl is internally consistent", () => {
+  const singlet: Prescription = {
+    surfaces: [
+      {
+        kind: "refract",
+        curvature: 1 / 51.68,
+        semiAperture: 10,
+        thickness: 4,
+        medium: "N-BK7",
+        isStop: true,
+      },
+      { kind: "refract", curvature: 0, semiAperture: 10, thickness: 97.9, medium: "AIR" },
+    ],
+  };
+  const spectrum = [
+    { nm: LINE_F, weight: 1 },
+    { nm: LINE_D, weight: 2 },
+    { nm: LINE_C, weight: 1 },
+  ];
+  const chromatic: OpticalSystem = {
+    prescription: singlet,
+    aperture: { kind: "stopRadius", value: 6 },
+    field: { kind: "angle", values: [0] },
+    wavelengths: spectrum,
+    conjugate: { kind: "infinite" },
+  };
+
+  // 128 samples across the pupil keeps all three wavelengths on the
+  // diffraction branch; at 64 the F line aliases, which the next rung covers.
+  const FINE = { pupilSamples: 128, padFactor: 4 } as const;
+
+  it("strehl equals peak / diffractionLimitedPeak, on a system with real axial colour", () => {
+    const stack = polychromaticPsf(chromatic, 0, FINE);
+    expect(stack.components.every((c) => c.geometricWeight === 0)).toBe(true);
+    expect(stack.diffractionLimitedPeak).toBeGreaterThan(0);
+    expect(stack.strehl).toBeCloseTo(stack.peak / stack.diffractionLimitedPeak, 12);
+  });
+
+  it("and is NOT the weighted mean of the components' Strehls", () => {
+    const stack = polychromaticPsf(chromatic, 0, FINE);
+    const naive = stack.components.reduce(
+      (acc, c) => acc + c.weight * psf(chromatic, 0, c.nm, FINE).strehl,
+      0,
+    );
+    // 0.0344 against 0.0440 here — a 28% error, small enough to pass
+    // unnoticed and large enough to be wrong. They differ because the
+    // components' peaks land on different pixels; if this ever becomes an
+    // equality, the resampling has stopped working.
+    expect(Math.abs(stack.strehl - naive) / stack.strehl).toBeGreaterThan(0.05);
+  });
+
+  it("is a converged number, not an artifact of the pupil sampling", () => {
+    const values = [128, 256].map(
+      (pupilSamples) => polychromaticPsf(chromatic, 0, { pupilSamples, padFactor: 4 }).strehl,
+    );
+    expect(Math.abs(values[0]! / values[1]! - 1)).toBeLessThan(0.01);
+  });
+
+  /**
+   * When any wavelength falls to the geometric branch there is no honest
+   * denominator — a ray histogram has no aberration-free counterpart — so the
+   * Strehl is reported as 0 rather than as a plausible-looking number built
+   * from a sampling artifact. Same discipline as `geometricPsf` and
+   * `blendPsf`.
+   */
+  it("reports 0 rather than a fabricated ratio when a component goes geometric", () => {
+    const coarse = polychromaticPsf(chromatic, 0, { pupilSamples: 64, padFactor: 4 });
+    expect(coarse.components.some((c) => c.geometricWeight > 0)).toBe(true);
+    expect(coarse.strehl).toBe(0);
+    expect(coarse.diffractionLimitedPeak).toBe(0);
+  });
+
+  it("a perfect system still reads Strehl 1", () => {
+    const stack = polychromaticPsf(mirror(spectrum), 0, GRID);
+    expect(stack.strehl).toBeGreaterThan(0.999);
+    expect(stack.strehl).toBeCloseTo(stack.peak / stack.diffractionLimitedPeak, 12);
+  });
+});
