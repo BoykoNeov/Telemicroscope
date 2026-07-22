@@ -70,12 +70,12 @@
      things the headless suite did not: the geometric branch's ray count does
      not scale with the blur, and off-grid light *wraps* rather than
      vanishing. Both are now surfaced in the UI rather than hidden.
-   - **Carried into step 5:** the app renders single on-axis stars through
-     the *point* path; `renderField` has never produced a picture outside
-     unit tests. Its off-axis *orientation* is now pinned (step 5 opened by
-     resolving the 0.049 residual — a real 90° kernel-orientation bug, see
-     VALIDATION § 3c), but a multi-star field panel plus a golden image for
-     `renderField` remains open.
+   - **Carried into step 5, now closed at the engine:** step 5 opened by
+     resolving the 0.049 residual — a real 90° kernel-orientation bug (see
+     VALIDATION § 3c) — after which `renderField`'s orientation was pinned by
+     symmetry rungs and its first real picture was rendered, looked at, and
+     committed as a golden. Still open: a multi-star field panel in the app,
+     which belongs with the step-5 app work.
 5. **Telescope branch + bench editor + mech layer** ← current
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar

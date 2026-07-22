@@ -737,12 +737,22 @@ Three rungs now pin orientation end to end, each carrying a distinct part:
   (0.000221 both ways) while the transpose metric reads 0.052. Axis error,
   sense flip and missing rotation each read 0.035–0.052 on it.
 
+### Golden image
+
+`renderField` now has a committed golden — the first picture it ever produced
+outside a unit test, inspected the day it was committed, closing the step-4
+note that its off-axis output had only ever been asserted about. The scene is
+built for drift detection rather than beauty: a sun-like star on axis, four at
+one field radius on the axes and diagonals (the mirror and transpose partners
+the symmetry rungs pin), and a 9000 K / 3200 K pair whose colours exercise the
+per-source SED path in the picture itself. A kernel-orientation slip breaks
+the ring's symmetry; an SED slip drags the pair's colours together. Same
+regression-not-validation status as the hero goldens.
+
 ### Not yet pinned
-- **`renderField` still has no golden image.** The orientation is now pinned by
-  symmetry, but nothing pins the off-axis *picture* against drift, and the
-  step-4 note stands: its off-axis output has never been looked at by a human.
-  A multi-star field panel in the app plus a committed golden belongs with the
-  step-5 app work.
+- **A multi-star field panel in the app.** The engine-side picture exists and
+  is pinned; the app still renders only the on-axis point path. Belongs with
+  the step-5 app work (presets, eyepieces, seeing).
 - **Lateral colour is not rendered.** Each wavelength's PSF is centred on its
   own chief-ray image point, which removes exactly the transverse colour
   separation lateral chromatic aberration consists of. On axis there is none to

@@ -4,7 +4,13 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { colorImageFromStack, integratedXyz, toSrgbBytes } from "../src/imaging/image";
 import { decodePng, diffRgba, encodePng } from "./support/png";
-import { heroPair, renderHero } from "./support/heroScene";
+import { heroPair, heroSystem, PSF_OPTIONS, renderHero } from "./support/heroScene";
+import { blackbodySpectrum } from "../src/photometry/blackbody";
+import { quadratureSamples } from "../src/photometry/spectrum";
+import { PointSource, rasterizePointSources } from "../src/imaging/scene";
+import { renderField } from "../src/imaging/render";
+import { spectralStack } from "../src/wave/polychromatic";
+import { bestFocus, withFocus } from "../src/analysis/focus";
 
 /**
  * Golden-image regression guard — roadmap step 4, not step 7.
@@ -130,6 +136,46 @@ describe("golden images (regression, NOT validation)", () => {
     const b = renderBytes(heroPair().achromat);
     const diff = diffRgba(a.rgba, b.rgba);
     expect(diff.changedFraction).toBeGreaterThan(0.05);
+  });
+
+  it("the star field has not changed", () => {
+    // The first picture `renderField` has ever produced outside a unit test,
+    // committed the day it was first looked at — closing the step-4 note that
+    // its off-axis output had only ever been asserted about, never seen.
+    //
+    // The scene is chosen to make orientation and colour drift visible, not
+    // pretty: a sun-like star on axis, a ring of four at the same field
+    // radius on both diagonals and both axes (mirror and transpose partners,
+    // the symmetries § 3c pins), and a hot/cold pair whose colour difference
+    // exercises the per-source SED path in the picture itself. Any kernel
+    // orientation slip shows as the ring losing its symmetry; any SED slip
+    // shows as the pair's colours converging.
+    const samples = quadratureSamples({ count: 5 });
+    const base = { ...heroSystem(heroPair().achromat), wavelengths: samples };
+    const focus = bestFocus(base, "minRmsWavefront", { wavelengthNm: 550 });
+    const focused = withFocus(base, focus.offsetFromLastVertex);
+    const pixelScaleMm = spectralStack(focused, 0, PSF_OPTIONS).pixelScaleMm;
+
+    const sun = blackbodySpectrum(5800);
+    const r = 0.04; // deg — inside the frame with the PSF fully on grid
+    const d = r / Math.SQRT2;
+    const stars: PointSource[] = [
+      { fieldXDeg: 0, fieldYDeg: 0, flux: 1, spectrum: sun },
+      { fieldXDeg: r, fieldYDeg: 0, flux: 1, spectrum: sun },
+      { fieldXDeg: 0, fieldYDeg: r, flux: 1, spectrum: sun },
+      { fieldXDeg: -d, fieldYDeg: -d, flux: 1, spectrum: sun },
+      { fieldXDeg: d, fieldYDeg: -d, flux: 1, spectrum: blackbodySpectrum(9000) },
+      { fieldXDeg: -d, fieldYDeg: d, flux: 1, spectrum: blackbodySpectrum(3200) },
+    ];
+    const scene = rasterizePointSources(focused, stars, samples, { size: 256, pixelScaleMm });
+    const { image } = renderField(focused, scene, { ...PSF_OPTIONS, patches: 4 });
+    const totalY = integratedXyz(image).y;
+    // Same exposure discipline as the single stars: white is a pixel holding
+    // a fixed fraction of the frame's total light — but the frame now carries
+    // six stars, so the fraction is scaled by the count to keep each star's
+    // halo in the same part of the response curve as the hero pair's.
+    const exposure = 1 / (totalY * (WHITE_FRACTION_OF_TOTAL / stars.length));
+    checkGolden("star-field", toSrgbBytes(image, { exposure }), image.width);
   });
 
   it("both frames carry the same total light, which is what lets them share an exposure", () => {
