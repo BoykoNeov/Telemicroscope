@@ -663,6 +663,16 @@ prescription had. There is a rung asserting the mapping is only approximately
 - **Circular convolution wraps at the frame edge.** Harmless while the PSF is
   small against the frame and every source is well inside it; a scene with
   light at the border needs padding.
+- **The geometric branch's ray count does not scale with the blur.** Found by
+  driving the app, not by a rung: `geometricPsf` bins rays into the same grid
+  the FFT branch uses, so the histogram needs more rays than the blur covers
+  pixels. A singlet opened to f/5 falls entirely to the geometric branch (the
+  fidelity switch reporting 100%, correctly) and spreads its light over ~10⁵
+  pixels, which the default 151² = 23k rays cannot fill — the image comes back
+  as visible shot-noise speckle. It is honest noise rather than a wrong answer,
+  and the app raises `rayGrid` with aperture as a stopgap, but the default
+  belongs in `wave/geometric` scaled to the blur area, with a rung on histogram
+  convergence. Step 5, alongside the vignetting work already queued there.
 
 ## Later rungs
 

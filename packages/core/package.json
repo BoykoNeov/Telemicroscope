@@ -11,6 +11,10 @@
     "./materials": "./src/materials/index.ts",
     "./trace": "./src/trace/index.ts",
     "./pupil": "./src/pupil/index.ts",
-    "./analysis": "./src/analysis/index.ts"
+    "./analysis": "./src/analysis/index.ts",
+    "./wave": "./src/wave/index.ts",
+    "./photometry": "./src/photometry/index.ts",
+    "./imaging": "./src/imaging/index.ts",
+    "./designs": "./src/designs/index.ts"
   }
 }
