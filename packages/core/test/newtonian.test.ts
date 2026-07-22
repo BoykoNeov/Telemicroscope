@@ -13,6 +13,7 @@ import { fitZernike, coefficient } from "../src/wave/zernike";
 import { psf } from "../src/wave/psf";
 import { bestFocus, withFocus } from "../src/analysis/focus";
 import { exitBundle, spotAt } from "../src/analysis/spot";
+import { imagePointOf } from "../src/imaging/scene";
 import { newtonian } from "../src/designs/newtonian";
 
 /**
@@ -145,6 +146,27 @@ describe("Newtonian on axis", () => {
   it("is diffraction-limited: Strehl 1", () => {
     const p = psf(s, 0, LAM, { traceSamples: 13, pupilSamples: 32, padFactor: 2 });
     expect(p.strehl).toBeCloseTo(1, 6);
+  });
+
+  /**
+   * Rung: the imaging layer lands a star where a mirror of focal length f does.
+   *
+   * `imagePointOf` walks its own path to the image plane, so it needs the map
+   * as much as OPD does and is covered by none of the rungs above. The external
+   * number is the plate scale of a single mirror: r = f·tan θ, exactly, since a
+   * Newtonian has no distortion-inducing element to spoil it. The azimuth check
+   * is what would catch the image arriving rotated by the fold.
+   */
+  it("puts a star at f·tan(θ), at the azimuth it came from", () => {
+    const focused = withFocus(s, bestFocus(s, "paraxial").offsetFromLastVertex);
+    const f = scope.focalLengthMm;
+    for (const deg of [0.1, 0.5]) {
+      const p = imagePointOf(focused, deg, 0, LAM);
+      expect(Math.hypot(p.x, p.y)).toBeCloseTo(f * Math.tan((deg * Math.PI) / 180), 6);
+    }
+    const up = imagePointOf(focused, 0.2, Math.PI / 2, LAM);
+    expect(up.x).toBeCloseTo(0, 9);
+    expect(up.y).toBeCloseTo(f * Math.tan((0.2 * Math.PI) / 180), 6);
   });
 
   it("keeps the obstruction out of the geometry and in the pupil function", () => {

@@ -862,6 +862,7 @@ form or a traced consequence of one.
 | Zero wavefront error on axis (a paraboloid is perfect there) | closed form | ✅ |
 | Diffraction-limited on axis: Strehl 1 | closed form | ✅ |
 | An obstructed pupil passes 1 − ε² of the light | closed form | ✅ |
+| A star lands at f·tan θ, at the azimuth it came from | closed form | ✅ |
 | Coma matches the third-order coefficient θ·D/(32F²√72) waves RMS | third-order theory | ✅ |
 | Coma ∝ field angle | scaling | ✅ |
 | Coma ∝ 1/F² | scaling | ✅ |

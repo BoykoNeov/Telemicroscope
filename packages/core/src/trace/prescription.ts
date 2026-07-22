@@ -64,10 +64,10 @@ export interface SurfaceSpec {
  *    A 45° flat deviates the whole downstream chain by 90°, which is the only
  *    way a Newtonian's diagonal can place an eyepiece where it physically sits.
  *
- * Folded prescriptions trace exactly; the paraxial layer unfolds them (see
- * `unfoldedTwin`). Pupils, OPD and everything built on them are still
- * unfolded-only and reject a folded system loudly rather than compute in a
- * z-space that no longer follows the light (docs/ARCHITECTURE.md).
+ * Folded prescriptions trace exactly; everything first-order — the paraxial
+ * layer, pupils, OPD, focus and the PSF — runs on the straightened
+ * `unfoldedTwin` and is carried back into the world by `trace/axis`, which is
+ * what lets a folded system image at all (docs/ARCHITECTURE.md).
  */
 export type MirrorFrames = "unfolded" | "folded";
 
