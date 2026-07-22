@@ -372,6 +372,78 @@ the same pixel and leave the ring as deep as a monochromatic one.
   identity for every system validated here; the microscope branch's Abbe rung
   is what will pin it.
 
+## Step 3a — the standard observer and thermal sources (current)
+
+The layer that makes the hero image *visible*. Purple fringing is not new
+physics — it is the chromatic focal shift step 1 already pinned, seen through
+the response of an eye. Without a λ → colour map the milestone is a table of
+numbers that differ; with one it is an image that is violet at the edges.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Equal-energy illuminant E → chromaticity (1/3, 1/3) to <1e-3** | definition of E | ✅ |
+| ȳ peaks at 555 nm, with value 1 | photopic V(λ) | ✅ |
+| Planck peak: λ_max·T = 2.8977720e-3 m·K | Wien, CODATA | ✅ |
+| **Total exitance ∝ T⁴ (ratios 16 and 81)** | Stefan–Boltzmann | ✅ |
+| **A 6500 K Planckian radiator → (0.3135, 0.3237)** | published locus | ✅ |
+| **Blackbody → observer → McCamy cubic → T, within 1.5% over 3000–6500 K** | McCamy 1992 | ✅ |
+| Hotter is bluer: chromaticity x falls monotonically in T | Planckian locus | ✅ |
+| D65 white point → linear sRGB (1, 1, 1) | IEC 61966-2-1 | ✅ |
+| White has unit relative luminance (0.2126/0.7152/0.0722) | BT.709 | ✅ |
+| Transfer curve fixes 0 and 1; 0.5 encodes to 0.7354 | IEC 61966-2-1 | ✅ |
+| **Equal-energy spectrum is neutral at any sample count 5…15** | quadrature | ✅ |
+| A 9-sample blackbody reproduces its own CCT to 5% | quadrature | ✅ |
+| Weights carry the source spectrum only, no observer response | contract | ✅ |
+| Intensity differences across λ become colour differences | mechanism | ✅ |
+
+Three decisions are recorded because they each had a plausible wrong answer.
+
+**The observer is the published analytic fit, not the tabulated data.** Wyman,
+Sloan & Shirley (JCGT 2(2), 2013) fit the CIE 1931 2° CMFs with piecewise
+Gaussians to ~1% of peak. This is a deliberate trade: the whole observer is 20
+numbers that can be read and checked rather than 243 that can only be trusted,
+and the error it costs is *measured* by the rungs above rather than assumed —
+illuminant E lands 6·10⁻⁴ from (1/3, 1/3), the ȳ peak 0.8 nm from 555. Both are
+orders of magnitude below any chromatic difference this engine exists to show.
+Swapping in the tabulated observer later is a change to `photometry/cmf.ts`
+alone. The two strongest rungs are the ones that leave the engine entirely: the
+**6500 K locus point** and the **McCamy round trip**, which runs
+blackbody → observer → chromaticity → published cubic → temperature and gets
+the temperature back.
+
+**The observer is integrated over each sample's bin, never point-sampled at its
+centre.** Nine wavelengths across the visible put 33 nm between them, and x̄
+alone has three lobes on that scale. Point-sampled, an equal-energy spectrum —
+white by definition — comes back at (0.3382, 0.3405) instead of (0.3335,
+0.3341), and the answer *wanders with sample count* in a way that looks like
+physics: N = 5, 7, 9, 11, 15 give 0.3349, 0.3320, 0.3382, 0.3344, 0.3329. Bin
+integration removes it entirely — every count from 5 up agrees with the
+continuous integral to 10⁻⁵ — because the approximation then made is that the
+*image* varies slowly across a bin, which it does, rather than that the
+*observer* does, which it does not. The bins cost nothing per pixel; they fold
+into the XYZ basis once.
+
+**`weight` must carry the source spectrum and no detector response.** The
+`WavelengthSample.weight` docstring says "source spectrum × detector response",
+which is right for a monochrome detector and wrong for colour: the colour
+observer is three responses, applied per channel. Folding ȳ(λ) in as well would
+apply luminance twice and erase the distinction between channels — the image
+would come back grey. There is a rung asserting the weights of a flat spectrum
+are flat, because this contract is invisible until it is violated.
+
+Out of gamut is **reported, not hidden**: the violet skirt of a chromatic fringe
+is a real spectral colour outside the sRGB triangle, and clipping it silently is
+how a renderer starts telling comfortable lies. `toSrgb` returns the flag. Its
+tolerance is 10⁻³ — set by the standard's own four-decimal matrices, which are
+not exact inverses and put white itself 5·10⁻⁵ above 1.
+
+### Not yet pinned
+- **Star magnitude → photon flux.** Deliberately absent rather than
+  approximated: zero points, band passes and aperture area are a separate
+  calculation, and an unpinned plausible number in front of the user is worse
+  than none. `blackbodySpectrum` is normalized to peak at 1 and is *relative*
+  shape only.
+
 ## Later rungs
 
 - Fold mirrors: a 45° flat deviates the beam by exactly 90°, and the folded
