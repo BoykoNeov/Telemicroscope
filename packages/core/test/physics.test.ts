@@ -3,8 +3,9 @@ import { vec3, distance } from "../src/math/vec3";
 import { traceRay, parallelRay } from "../src/trace/sequential";
 import { systemProperties } from "../src/trace/paraxial";
 import { Prescription } from "../src/trace/prescription";
-import { indexD, abbeNumber, LINE_D, LINE_F, LINE_C } from "../src/materials/dispersion";
-import { N_BK7, F2 } from "../src/materials/catalog";
+import { abbeNumber, LINE_D, LINE_F, LINE_C } from "../src/materials/dispersion";
+import { N_BK7 } from "../src/materials/catalog";
+import { refractorPair } from "../src/designs/refractor";
 
 describe("Fermat's principle (validates OPL tracking to nm)", () => {
   it("parabola: OPL from the incoming wavefront to the focus is equal for all rays", () => {
@@ -41,37 +42,15 @@ describe("Fermat's principle (validates OPL tracking to nm)", () => {
 });
 
 describe("achromatic doublet (BK7 crown + F2 flint)", () => {
-  // Thin-lens achromat design computed from the catalog itself:
-  // φ1 = φ·V1/(V1−V2), φ2 = −φ·V2/(V1−V2); equiconvex crown, cemented.
-  function achromat(focal: number): { doublet: Prescription; singlet: Prescription } {
-    const phi = 1 / focal;
-    const V1 = abbeNumber(N_BK7);
-    const V2 = abbeNumber(F2);
-    const n1 = indexD(N_BK7);
-    const n2 = indexD(F2);
-    const phi1 = (phi * V1) / (V1 - V2);
-    const phi2 = (-phi * V2) / (V1 - V2);
-    const R1 = (2 * (n1 - 1)) / phi1; // equiconvex crown: R2 = −R1
-    const R2 = -R1;
-    const R3 = 1 / (1 / R2 - phi2 / (n2 - 1));
-    const doublet: Prescription = {
-      surfaces: [
-        // Thin elements: the thin-lens design is only achromatic in the
-        // thin-lens limit; thickness adds a real chromatic residual.
-        { kind: "refract", curvature: 1 / R1, semiAperture: 15, thickness: 3, medium: "N-BK7" },
-        { kind: "refract", curvature: 1 / R2, semiAperture: 15, thickness: 1.5, medium: "F2" },
-        { kind: "refract", curvature: 1 / R3, semiAperture: 15, thickness: 90, medium: "AIR" },
-      ],
-    };
-    const Rs = (2 * (n1 - 1)) / phi; // equiconvex singlet of the same power
-    const singlet: Prescription = {
-      surfaces: [
-        { kind: "refract", curvature: 1 / Rs, semiAperture: 15, thickness: 5, medium: "N-BK7" },
-        { kind: "refract", curvature: -1 / Rs, semiAperture: 15, thickness: 90, medium: "AIR" },
-      ],
-    };
+  // The pair lives in src/designs, not here: it is the step-4 hero, and these
+  // rungs are what make it validated optics rather than a plausible drawing.
+  // Computed from the catalog itself — φ1 = φ·V1/(V1−V2), φ2 = −φ·V2/(V1−V2) —
+  // so the doublet is achromatic because the Abbe numbers say so. The elements
+  // are given real thickness, so a genuine chromatic residual survives.
+  const achromat = (focal: number): { doublet: Prescription; singlet: Prescription } => {
+    const { achromat: doublet, singlet } = refractorPair(focal, 15, 90);
     return { doublet, singlet };
-  }
+  };
 
   it("F−C chromatic focal shift is far smaller than the singlet's", () => {
     const { doublet, singlet } = achromat(100);

@@ -1,4 +1,4 @@
-import { OpticalSystem } from "../trace/system";
+import { OpticalSystem, WavelengthSample } from "../trace/system";
 import { Psf, SystemPsfOptions } from "./psf";
 import { GeometricPsfOptions, adaptivePsf } from "./geometric";
 
@@ -22,19 +22,29 @@ import { GeometricPsfOptions, adaptivePsf } from "./geometric";
  * calculation exists to show, and does it in a way that looks entirely
  * plausible.
  *
- * So each wavelength is **resampled onto a common physical grid** before the
- * weighted sum. The resampling carries the Jacobian (Δ_out/Δ_src)², because
- * `intensity` is energy per pixel rather than a density: change the pixel size
- * and the energy each one holds changes with its area.
+ * So each wavelength is **resampled onto a common physical grid** before
+ * anything else happens to it. The resampling carries the Jacobian
+ * (Δ_out/Δ_src)², because `intensity` is energy per pixel rather than a
+ * density: change the pixel size and the energy each one holds changes with
+ * its area.
  *
- * ## Weights and energy
+ * ## Why the stack is a type, and not just a step inside the sum
  *
- * `WavelengthSample.weight` is source spectrum × detector response and need
- * not be normalized, so the weights are normalized here to sum to 1 — the
- * result is a weighted *average* over the spectrum. Each wavelength's own
- * energy is kept separate from its weight, because they mean different things:
- * the weight is how much of the spectrum this sample stands for, the energy is
- * how much of it the glass actually transmits at that λ. Both are reported.
+ * `spectralStack` stops one move short of summing: it hands back the
+ * per-wavelength images, already on the common grid, with their weights beside
+ * them rather than multiplied in. Two consumers need exactly that and disagree
+ * about the last step.
+ *
+ * - `polychromaticPsf` collapses it with a **scalar** weight per wavelength,
+ *   giving the monochrome PSF.
+ * - Colour collapses it with **three** weights per wavelength — the observer's
+ *   x̄, ȳ, z̄ — giving an image with chromatic structure in it.
+ *
+ * Colour cannot be recovered from the monochrome result: the wavelengths have
+ * already been summed away, and tinting that by the mean λ produces a
+ * uniformly coloured image with no fringing anywhere in it. Sharing the stack
+ * rather than the sum is what keeps both honest about the common grid, instead
+ * of the colour path growing a second resampler that could drift from this one.
  */
 
 export interface PolychromaticOptions extends SystemPsfOptions, GeometricPsfOptions {
@@ -57,16 +67,44 @@ export interface PolychromaticComponent {
   readonly geometricWeight: number;
 }
 
-export interface PolychromaticPsf extends Psf {
-  readonly components: readonly PolychromaticComponent[];
+/**
+ * One wavelength's image, already on the stack's common physical grid.
+ *
+ * `intensity` is NOT pre-multiplied by `weight`. That is the whole reason this
+ * type exists — a caller applying a three-channel observer needs the image and
+ * the weight separately.
+ */
+export interface SpectralPlane extends PolychromaticComponent {
+  readonly intensity: Float64Array;
+  /** The aberration-free counterpart, when it was requested and exists. */
+  readonly diffractionLimited?: Float64Array;
+}
+
+export interface SpectralStack {
+  readonly size: number;
+  readonly pixelScaleMm: number;
+  readonly pupilSamples: number;
   /** Weighted-mean wavelength (nm) — what `pixelScaleMm` refers to. */
   readonly meanWavelengthNm: number;
+  readonly planes: readonly SpectralPlane[];
+  readonly maxGridPhaseStepWaves: number;
+  readonly fieldValue: number;
+  /** Σ weight·energy — what the stack would integrate to with no truncation. */
+  readonly energy: number;
   /**
    * Fraction of the summed energy that fell outside the common grid. Nonzero
    * when a long wavelength's PSF is physically wider than the grid chosen for
    * the mean — reported rather than hidden, because silently renormalizing it
    * away would turn truncation into a brightness error nobody could see.
    */
+  readonly truncatedFraction: number;
+  /** The normalized samples, for building an observer basis against. */
+  readonly samples: readonly WavelengthSample[];
+}
+
+export interface PolychromaticPsf extends Psf {
+  readonly components: readonly PolychromaticComponent[];
+  readonly meanWavelengthNm: number;
   readonly truncatedFraction: number;
 }
 
@@ -78,11 +116,21 @@ export interface PolychromaticPsf extends Psf {
  * pixel holds k² times the energy.
  */
 export function resamplePsf(p: Psf, targetPixelScaleMm: number, size = p.size): Float64Array {
+  return resampleGrid(p.intensity, p.size, p.pixelScaleMm, targetPixelScaleMm, size);
+}
+
+function resampleGrid(
+  src: Float64Array,
+  srcSize: number,
+  srcPixelScaleMm: number,
+  targetPixelScaleMm: number,
+  size: number,
+): Float64Array {
   const out = new Float64Array(size * size);
-  const k = targetPixelScaleMm / p.pixelScaleMm;
-  const cs = p.size / 2;
+  const k = targetPixelScaleMm / srcPixelScaleMm;
+  const cs = srcSize / 2;
   const co = size / 2;
-  const n = p.size;
+  const n = srcSize;
 
   for (let y = 0; y < size; y++) {
     const sy = cs + (y - co) * k;
@@ -93,10 +141,10 @@ export function resamplePsf(p: Psf, targetPixelScaleMm: number, size = p.size): 
       const x0 = Math.floor(sx);
       const fx = sx - x0;
       if (x0 < 0 || y0 < 0 || x0 + 1 >= n || y0 + 1 >= n) continue;
-      const i00 = p.intensity[y0 * n + x0]!;
-      const i10 = p.intensity[y0 * n + x0 + 1]!;
-      const i01 = p.intensity[(y0 + 1) * n + x0]!;
-      const i11 = p.intensity[(y0 + 1) * n + x0 + 1]!;
+      const i00 = src[y0 * n + x0]!;
+      const i10 = src[y0 * n + x0 + 1]!;
+      const i01 = src[(y0 + 1) * n + x0]!;
+      const i11 = src[(y0 + 1) * n + x0 + 1]!;
       const top = i00 * (1 - fx) + i10 * fx;
       const bottom = i01 * (1 - fx) + i11 * fx;
       out[y * size + x] = (top * (1 - fy) + bottom * fy) * k * k;
@@ -106,17 +154,17 @@ export function resamplePsf(p: Psf, targetPixelScaleMm: number, size = p.size): 
 }
 
 /**
- * The PSF of a system over its whole spectrum, at one field point.
+ * Trace every wavelength and put them all on one physical grid.
  *
- * Each wavelength runs through the full pipeline independently — including the
- * fidelity switch, because a system can be diffraction-limited in red and
- * aliasing in blue — and the results are combined on a common physical grid.
+ * Each runs through the full pipeline independently — including the fidelity
+ * switch, because a system can be diffraction-limited in red and aliasing in
+ * blue.
  */
-export function polychromaticPsf(
+export function spectralStack(
   system: OpticalSystem,
   fieldValue: number,
   options: PolychromaticOptions = {},
-): PolychromaticPsf {
+): SpectralStack {
   const samples = system.wavelengths;
   if (samples.length === 0) throw new Error("system has no wavelengths");
   let totalWeight = 0;
@@ -126,13 +174,12 @@ export function polychromaticPsf(
   }
   if (totalWeight <= 0) throw new Error("wavelength weights sum to zero");
 
-  const meanWavelengthNm =
-    samples.reduce((acc, w) => acc + w.nm * w.weight, 0) / totalWeight;
+  const meanWavelengthNm = samples.reduce((acc, w) => acc + w.nm * w.weight, 0) / totalWeight;
 
   const each = samples.map((w) => ({
     sample: w,
     weight: w.weight / totalWeight,
-    psf: adaptivePsf(system, fieldValue, w.nm, { ...options, keepDiffractionLimited: true }),
+    psf: adaptivePsf(system, fieldValue, w.nm, options),
   }));
 
   const first = each[0]!;
@@ -142,6 +189,63 @@ export function polychromaticPsf(
   const pixelScaleMm =
     options.pixelScaleMm ?? first.psf.pixelScaleMm * (meanWavelengthNm / first.sample.nm);
 
+  let energy = 0;
+  let placed = 0;
+  const planes: SpectralPlane[] = each.map((e) => {
+    const intensity = resamplePsf(e.psf, pixelScaleMm, size);
+    let kept = 0;
+    for (let i = 0; i < intensity.length; i++) kept += intensity[i]!;
+    placed += e.weight * kept;
+    energy += e.weight * e.psf.energy;
+    const flat = e.psf.diffractionLimitedIntensity;
+    return {
+      nm: e.sample.nm,
+      weight: e.weight,
+      energy: e.psf.energy,
+      geometricWeight: e.psf.geometricWeight,
+      intensity,
+      ...(flat === undefined
+        ? {}
+        : {
+            diffractionLimited: resampleGrid(
+              flat,
+              e.psf.size,
+              e.psf.pixelScaleMm,
+              pixelScaleMm,
+              size,
+            ),
+          }),
+    };
+  });
+
+  return {
+    size,
+    pixelScaleMm,
+    pupilSamples: first.psf.pupilSamples,
+    meanWavelengthNm,
+    planes,
+    maxGridPhaseStepWaves: Math.max(...each.map((e) => e.psf.maxGridPhaseStepWaves)),
+    fieldValue,
+    energy,
+    truncatedFraction: energy > 0 ? Math.max(0, 1 - placed / energy) : 0,
+    samples: planes.map((p) => ({ nm: p.nm, weight: p.weight })),
+  };
+}
+
+/**
+ * The PSF of a system over its whole spectrum, at one field point.
+ *
+ * The scalar collapse of `spectralStack`: one weight per wavelength, summed
+ * into a single monochrome image.
+ */
+export function polychromaticPsf(
+  system: OpticalSystem,
+  fieldValue: number,
+  options: PolychromaticOptions = {},
+): PolychromaticPsf {
+  const stack = spectralStack(system, fieldValue, { ...options, keepDiffractionLimited: true });
+  const size = stack.size;
+
   const intensity = new Float64Array(size * size);
   // A Strehl ratio for a spectrum compares the stacked peak against the peak
   // of an aberration-free stack BUILT THE SAME WAY. Averaging the components'
@@ -150,31 +254,20 @@ export function polychromaticPsf(
   // which is the case the achromat story exists to show. And the components'
   // aberration-free peaks cannot simply be summed either: each lives on its
   // own λ-dependent grid, so they are energies-per-pixel in different units.
-  const reference = each.every((e) => e.psf.diffractionLimitedIntensity !== undefined)
+  const reference = stack.planes.every((p) => p.diffractionLimited !== undefined)
     ? new Float64Array(size * size)
     : null;
 
-  let energy = 0;
-  let placed = 0;
-
-  for (const e of each) {
-    const resampled = resamplePsf(e.psf, pixelScaleMm, size);
+  for (const p of stack.planes) {
     for (let i = 0; i < intensity.length; i++) {
-      const v = resampled[i]! * e.weight;
-      intensity[i] = intensity[i]! + v;
-      placed += v;
+      intensity[i] = intensity[i]! + p.intensity[i]! * p.weight;
     }
     if (reference !== null) {
-      const flat = resamplePsf(
-        { ...e.psf, intensity: e.psf.diffractionLimitedIntensity! },
-        pixelScaleMm,
-        size,
-      );
+      const flat = p.diffractionLimited!;
       for (let i = 0; i < reference.length; i++) {
-        reference[i] = reference[i]! + flat[i]! * e.weight;
+        reference[i] = reference[i]! + flat[i]! * p.weight;
       }
     }
-    energy += e.weight * e.psf.energy;
   }
 
   let peak = 0;
@@ -191,24 +284,24 @@ export function polychromaticPsf(
 
   return {
     size,
-    pupilSamples: first.psf.pupilSamples,
+    pupilSamples: stack.pupilSamples,
     intensity,
-    pixelScaleMm,
-    energy,
+    pixelScaleMm: stack.pixelScaleMm,
+    energy: stack.energy,
     peak,
     diffractionLimitedPeak: referencePeak,
     strehl: referencePeak > 0 ? peak / referencePeak : 0,
     ...(reference === null ? {} : { diffractionLimitedIntensity: reference }),
-    maxGridPhaseStepWaves: Math.max(...each.map((e) => e.psf.maxGridPhaseStepWaves)),
-    wavelengthNm: meanWavelengthNm,
+    maxGridPhaseStepWaves: stack.maxGridPhaseStepWaves,
+    wavelengthNm: stack.meanWavelengthNm,
     fieldValue,
-    components: each.map((e) => ({
-      nm: e.sample.nm,
-      weight: e.weight,
-      energy: e.psf.energy,
-      geometricWeight: e.psf.geometricWeight,
+    components: stack.planes.map((p) => ({
+      nm: p.nm,
+      weight: p.weight,
+      energy: p.energy,
+      geometricWeight: p.geometricWeight,
     })),
-    meanWavelengthNm,
-    truncatedFraction: energy > 0 ? Math.max(0, 1 - placed / energy) : 0,
+    meanWavelengthNm: stack.meanWavelengthNm,
+    truncatedFraction: stack.truncatedFraction,
   };
 }

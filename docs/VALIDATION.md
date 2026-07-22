@@ -444,6 +444,70 @@ not exact inverses and put white itself 5·10⁻⁵ above 1.
   than none. `blackbodySpectrum` is normalized to peak at 1 and is *relative*
   shape only.
 
+## Step 3b — the hero image: colour out of chromatic aberration (current)
+
+Roadmap step 4's milestone, asserted rather than admired: **purple fringing
+appears for a singlet and shrinks for an achromat because the glass data says
+so.** The two lenses live in `src/designs/refractor`, computed from the
+catalog's own Abbe numbers, and are already pinned by the step-1 rungs — which
+now import that same code, so the hero and the ladder cannot drift apart.
+These rungs ask a different question: does the *rendered image* carry the
+consequence?
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Blur radius per λ = (2/3)·\|δz\|·NA where defocus dominates** | steps 1 + 2d, joined | ✅ |
+| **That residual flips sign with the sign of δz** | spherical aberration | ✅ |
+| **Singlet chromatic blur spread > 5× the achromat's** | F−C shift ratio | ✅ |
+| Singlet spreads colour over >8 Airy radii, achromat over <2 | scale | ✅ |
+| **Beyond the achromat's light, the singlet's halo is blue (b/r > 3)** | the milestone | ✅ |
+| **Singlet hue drifts blueward with radius; the achromat's does not** | the milestone | ✅ |
+| Both lenses still render the star's own white | negative control | ✅ |
+| **Tinting the monochrome stack by mean λ gives ZERO radial colour** | negative control | ✅ |
+
+The first rung joins two closed forms already on the ladder rather than adding
+a third: the paraxial chromatic focal shift says *where* each colour focuses,
+and the uniform-disc geometric spot says how big the blur is when it does not
+focus here — mean radius (2/3)R for R = |δz|·NA. It is asserted only where the
+defocus blur clears the diffraction floor by 4×; nearer focus the Airy pattern
+sets the size and a geometric prediction is the wrong physics there, which is
+the fidelity switch's entire premise.
+
+Its 30% tolerance is bounded by the singlet's own **spherical aberration**, and
+the companion rung is what identifies it as such. A wrong pupil→image scale, NA
+or pixel size would bias every wavelength in the same direction; undercorrected
+spherical aberration cannot — it adds to the blur on one side of focus and
+partly cancels it on the other. So the ratio must sit above 1 for δz < 0 and
+below 1 for δz > 0, and it does (1.15, 1.24 against 0.81, 0.83). Stopping the
+lens down does *not* tighten the tolerance, and the attempt is recorded because
+the reason is instructive: defocus blur ∝ NA while the Airy radius ∝ 1/NA, so
+closing the aperture shrinks the defocus-dominated window faster than it shrinks
+the aberration, and by f/20 no wavelength qualifies at all.
+
+The blur-spread ratio is asserted at **5×, not the 28×** the F−C focal shifts
+differ by, and the gap is physics rather than slack: the achromat's worst
+wavelength is already close enough to focus that diffraction sets its size, a
+floor the singlet never reaches. Claiming 28× would mean the achromat's residual
+colour error were resolvable, and it is not.
+
+The **negative control is the load-bearing rung of this section**. The
+architecturally tempting implementation renders the monochrome polychromatic
+PSF and tints it — and it produces a perfectly plausible coloured star with no
+fringing anywhere in it, because `polychromaticPsf` collapses the wavelengths
+with a *scalar* weight one step earlier and the information the tint would need
+is already gone. The rung makes that explicit: a tinted grayscale image has
+identical chromaticity at every pixel by construction, so the hue drift that IS
+the milestone reads zero to 10⁻¹² on the very system that fringes most, while
+the per-wavelength integration of the same rays moves by >0.1 in x. This is why
+`SpectralStack` stops one move short of summing and why both the grayscale and
+colour paths collapse the same stack.
+
+Two disciplines carried over from the wave layer: colour is integrated on the
+**common physical grid** the stack already established (pixel scale is ∝ λ), and
+both lenses are focused by the **same criterion at the same wavelength**, since
+a fringing metric on two differently-focused systems measures the focus
+difference rather than the chromatism.
+
 ## Later rungs
 
 - Fold mirrors: a 45° flat deviates the beam by exactly 90°, and the folded
