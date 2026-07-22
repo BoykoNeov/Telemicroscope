@@ -360,6 +360,14 @@ the same pixel and leave the ring as deep as a monochromatic one.
   it; the pupil is still modelled as the full disc minus an optional central
   obstruction. Partial vignetting and spider diffraction arrive as a different
   `PupilFunction` at step 5.
+
+  That work must revisit `blendPsf`. The two branches currently disagree about
+  the aperture and it does not matter: the geometric branch drops vignetted
+  rays while the FFT branch models the full disc, and their energies are then
+  forced equal by construction. For an unvignetted system that is exact. The
+  moment partial vignetting is real the forced equality would paper over a
+  genuine disagreement about how much light gets through — so the matched-
+  normalization rungs need re-deriving there, not just re-running.
 - **Immersion.** `pixelScaleMm` carries an image-space index factor that is
   identity for every system validated here; the microscope branch's Abbe rung
   is what will pin it.
