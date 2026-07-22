@@ -145,6 +145,13 @@ export interface Psf {
    * cannot know what produced it.
    */
   readonly sampling?: OpdSampling;
+  /**
+   * Rays across the pupil diameter actually traced — present only on the
+   * geometric branch. Reported so a caller can see what the blur-scaled
+   * default chose, and in particular when its runtime cap has bound and the
+   * histogram is running below its density target.
+   */
+  readonly rayGrid?: number;
   readonly wavelengthNm: number;
   readonly fieldValue: number;
 }

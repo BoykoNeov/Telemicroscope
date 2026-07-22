@@ -81,16 +81,14 @@ export function buildSystem(request: RenderRequest): OpticalSystem {
 export function renderStar(request: RenderRequest): RenderResult {
   const started = performance.now();
   const system = buildSystem(request);
+  // No rayGrid override: the geometric branch now sizes its own bundle to the
+  // blur area (wave/geometric defaultRayGrid), which replaced this app's
+  // aperture-keyed stopgap. Wide open costs more rays because it genuinely
+  // needs them; the elapsed-ms readout is where that cost stays visible.
   const stack = spectralStack(system, 0, {
     pupilSamples: request.pupilSamples,
     padFactor: 4,
     traceSamples: 21,
-    // The geometric branch bins rays into the SAME grid the FFT branch uses, so
-    // its histogram needs more rays than the blur covers pixels or the image is
-    // shot-noise speckle rather than a spot. A wide-open singlet spreads light
-    // over ~10^5 pixels, which the default 151x151 = 23k rays cannot fill.
-    // Scaled with the aperture, since that is what sets the blur.
-    rayGrid: request.apertureMm > 12 ? 301 : 151,
   });
   const image = colorImageFromStack(stack);
   const elapsedMs = performance.now() - started;

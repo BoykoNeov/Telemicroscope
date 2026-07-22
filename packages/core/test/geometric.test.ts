@@ -8,7 +8,9 @@ import {
   blendPsf,
   geometricWeight,
   adaptivePsf,
+  defaultRayGrid,
   BLEND_HALF_WIDTH,
+  TARGET_RAYS_PER_BLUR_PIXEL,
 } from "../src/wave/geometric";
 import { PHASE_STEP_LIMIT } from "../src/wave/fidelity";
 
@@ -252,6 +254,95 @@ describe("both branches place the centroid in the same place", () => {
     // Fields lie in the x–z plane, so neither branch may drift in y.
     expect(Math.abs(cd.y)).toBeLessThan(0.5);
     expect(Math.abs(cg.y)).toBeLessThan(0.5);
+  });
+});
+
+/**
+ * Rungs: the ray grid is sized by the blur, not by a constant.
+ *
+ * Found by driving the app, not by a rung: a wide-open singlet falls entirely
+ * to the geometric branch (correctly) and spreads its light over ~10⁵ pixels,
+ * which a fixed 151² grid's 23k rays cannot fill — the image came back as
+ * speckle that is honest shot noise, but a picture the user cannot use. The
+ * default now derives the blur radius from the same traced gradient the
+ * fidelity switch runs on (r_blur = 2·padFactor·g pixels — the identity that
+ * puts rays at the grid edge exactly at the Nyquist phase step) and sizes the
+ * bundle to hold per-pixel fluctuation at ~1/√TARGET_RAYS_PER_BLUR_PIXEL.
+ *
+ * The fluctuation is measured as the coefficient of variation over the
+ * interior of the blur disc (r < 0.8·r_blur), where a defocused perfect
+ * mirror's histogram should be UNIFORM — the same uniform-disc fact the
+ * encircled-energy rung pins, read pointwise instead of integrally.
+ */
+describe("the ray grid scales with the blur", () => {
+  const defocused = (delta: number) => mirror(-1, R / 2 - delta);
+
+  /** CV of the histogram inside 0.8 of the blur radius. */
+  function interiorCv(p: Psf): number {
+    const g = p.sampling!.maxGradientWavesPerRadius;
+    const rMax = 0.8 * 2 * 4 * g; // 0.8 · (2·padFactor·g) px
+    const n = p.size;
+    const c = n / 2;
+    let sum = 0;
+    let sum2 = 0;
+    let count = 0;
+    for (let y = 0; y < n; y++) {
+      for (let x = 0; x < n; x++) {
+        if (Math.hypot(x - c, y - c) > rMax) continue;
+        const v = p.intensity[y * n + x]!;
+        sum += v;
+        sum2 += v * v;
+        count++;
+      }
+    }
+    const mean = sum / count;
+    return Math.sqrt(Math.max(0, sum2 / count - mean * mean)) / mean;
+  }
+
+  const mid = geometricPsf(defocused(0.25), 0, LINE_D, GRID); // blur ≈ 32 px
+  const large = geometricPsf(defocused(0.5), 0, LINE_D, GRID); // blur ≈ 64 px
+
+  it("the default tracks the blur and reports what it chose", () => {
+    // Small blur stays on the floor — the old fixed default, kept cheap.
+    const small = geometricPsf(defocused(0.05), 0, LINE_D, GRID);
+    expect(small.rayGrid).toBe(151);
+    // Defocus gradient is linear in δ, so doubling the defocus must double
+    // the grid: the default is proportional to the blur, not keyed to bands.
+    expect(large.rayGrid! / mid.rayGrid!).toBeGreaterThan(1.9);
+    expect(large.rayGrid! / mid.rayGrid!).toBeLessThan(2.1);
+    // And the reported grid IS the formula's answer, so callers can trust it.
+    expect(mid.rayGrid).toBe(
+      defaultRayGrid(mid.sampling!.maxGradientWavesPerRadius, 4, mid.size),
+    );
+  });
+
+  it("per-pixel fluctuation is bounded and FLAT as the blur grows", () => {
+    // The designed bound: TARGET rays per pixel put Poisson-like fluctuation
+    // at 1/√TARGET. The stratified pupil grid beats it (measured ~0.19
+    // against the 0.33 bound), so the assertion has real slack yet still
+    // fails a default that stops tracking the blur.
+    const cvMid = interiorCv(mid);
+    const cvLarge = interiorCv(large);
+    expect(cvMid).toBeLessThan(1 / Math.sqrt(TARGET_RAYS_PER_BLUR_PIXEL));
+    expect(cvLarge).toBeLessThan(1 / Math.sqrt(TARGET_RAYS_PER_BLUR_PIXEL));
+    // Flatness is the actual claim — 4× the blur area, same noise. A fixed
+    // count degrades as the blur grows; the scaled default must not.
+    expect(Math.abs(cvLarge / cvMid - 1)).toBeLessThan(0.25);
+    // Negative control: the old fixed 151 on the same system reads 2× worse
+    // than the scaled default, and keeps degrading with aperture.
+    const fixed = geometricPsf(defocused(0.5), 0, LINE_D, { ...GRID, rayGrid: 151 });
+    expect(interiorCv(fixed)).toBeGreaterThan(1.5 * cvLarge);
+  });
+
+  it("the fluctuation halves as the ray grid doubles", () => {
+    // The convergence statement, same shape as the encircled-energy rungs:
+    // quadrupling the ray density must halve the noise, or the "noise" is
+    // structure being mistaken for noise. Measured 0.189 → 0.117 → 0.059.
+    const doubled = geometricPsf(defocused(0.5), 0, LINE_D, {
+      ...GRID,
+      rayGrid: 2 * large.rayGrid! + 1,
+    });
+    expect(interiorCv(doubled) / interiorCv(large)).toBeLessThan(0.8);
   });
 });
 

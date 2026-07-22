@@ -44,12 +44,56 @@ import { opdSampling, phaseStepPerSample, PHASE_STEP_LIMIT } from "./fidelity";
  */
 
 export interface GeometricPsfOptions extends PsfOptions {
-  /** Rays across the pupil diameter. Default 151 — the histogram wants many. */
+  /**
+   * Rays across the pupil diameter. Defaults to a count scaled to the blur
+   * area — see `defaultRayGrid` — because a fixed count is wrong at every
+   * aperture but one: the histogram needs more rays than the blur covers
+   * pixels, or the image is shot-noise speckle wearing the shape of a spot.
+   */
   readonly rayGrid?: number;
   /** Pupil grid resolution for the OPD map that fixes the scale. Default 21. */
   readonly traceSamples?: number;
   readonly zernikeTerms?: number;
   readonly aim?: AimOptions;
+}
+
+/** Mean rays per blur-disc pixel the default ray grid aims for (≈1/CV²). */
+export const TARGET_RAYS_PER_BLUR_PIXEL = 9;
+/** The old fixed default, kept as the floor so small blurs stay cheap. */
+const RAY_GRID_MIN = 151;
+/** Runtime ceiling; beyond it density degrades rather than cost exploding. */
+const RAY_GRID_MAX = 1023;
+
+/**
+ * Rays across the pupil diameter needed to fill this wavefront's blur.
+ *
+ * The blur radius in PIXELS has a closed form in quantities the fidelity
+ * criterion already measures: a wavefront slope of s waves per pupil sample
+ * displaces a ray by s·size pixels (at the Nyquist step s = ½ the ray lands at
+ * the grid edge — the same identity that makes the FFT alias there), so the
+ * largest traced gradient g waves-per-pupil-radius puts the outermost ray at
+ *
+ *     r_blur = 2 · padFactor · g   pixels.
+ *
+ * The grid is then sized so the ~(π/4)·rayGrid² rays inside the pupil land
+ * `TARGET_RAYS_PER_BLUR_PIXEL` deep over the blur disc's π·r_blur² pixels,
+ * which gives per-pixel fluctuations of ~1/√target. Two honest limits, both
+ * deliberate: the blur radius is capped at the half-grid (light past the edge
+ * is off the histogram no matter how many rays chase it — `truncatedFraction`
+ * is what reports that), and the grid is capped at `RAY_GRID_MAX`, past which
+ * the density target quietly degrades as (size/2r)² instead of the trace cost
+ * growing without bound. The chosen grid is reported on the returned Psf as
+ * `rayGrid`, so a caller can see when a cap has bound.
+ */
+export function defaultRayGrid(
+  maxGradientWavesPerRadius: number,
+  padFactor: number,
+  size: number,
+): number {
+  const blurRadiusPx = Math.min(2 * padFactor * maxGradientWavesPerRadius, size / 2);
+  const grid = Math.ceil(2 * blurRadiusPx * Math.sqrt(TARGET_RAYS_PER_BLUR_PIXEL));
+  // Odd, so the pupil grid keeps its centre ray.
+  return Math.min(RAY_GRID_MAX, Math.max(RAY_GRID_MIN, grid)) | 1;
 }
 
 /**
@@ -91,13 +135,13 @@ export function geometricPsf(
     (lambdaMm * map.referenceRadius) / (Math.abs(map.pupil.exit.n) * size * deltaPupil),
   );
 
-  const bundle = exitBundle(
-    system,
-    fieldValue,
-    wavelengthNm,
-    pupilGrid(options.rayGrid ?? 151),
-    options.aim ?? {},
-  );
+  // Measured before the bundle is traced, because the blur it reports is what
+  // sizes the bundle. This is the same number the fidelity switch runs on.
+  const sampling = opdSampling(map, fit);
+  const rayGrid =
+    options.rayGrid ?? defaultRayGrid(sampling.maxGradientWavesPerRadius, padFactor, size);
+
+  const bundle = exitBundle(system, fieldValue, wavelengthNm, pupilGrid(rayGrid), options.aim ?? {});
   const planeZ = imagePlaneZ(asCompiled(system.prescription), system);
 
   const obstruction = options.obstruction ?? 0;
@@ -144,7 +188,8 @@ export function geometricPsf(
     diffractionLimitedPeak: 0,
     strehl: 0,
     maxGridPhaseStepWaves: 0,
-    sampling: opdSampling(map, fit),
+    sampling,
+    rayGrid,
     wavelengthNm,
     fieldValue,
   };

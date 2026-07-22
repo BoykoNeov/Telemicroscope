@@ -350,6 +350,10 @@ external pin rather than being checked against the FFT.
 | Blend weight is 0 / 1 at the band edges, ½ at the criterion | definition | ✅ |
 | Blend weight has zero slope at both edges (C¹, no kink) | smoothstep | ✅ |
 | `adaptivePsf` conserves energy on whichever branch it lands | matched normalization | ✅ |
+| **Default ray grid ∝ blur radius, floor 151, reported on the Psf** | blur-scaling law | ✅ |
+| **Interior fluctuation < 1/√target, and FLAT as blur quadruples in area** | uniform disc, pointwise | ✅ |
+| Fixed 151 rays on the same system read ≥1.5× worse (negative control) | measurement | ✅ |
+| **Histogram fluctuation halves as the ray grid doubles** | discretization order | ✅ |
 
 The **uniform-disc** rung is the strong half of the geometric pin: (r/R_blur)²
 is a pure shape statement with no scale in it, so it holds whatever the exact
@@ -367,6 +371,30 @@ used rather than a linear ramp because it is C¹ at both edges: the image and it
 rate of change are both continuous through the transition. Since both branches
 carry identical energy, every convex combination does too — the switch cannot
 alter brightness anywhere in the band, not merely at its ends.
+
+The **ray-grid rungs** close a debt recorded at step 4, found by driving the
+app rather than by the ladder: a wide-open singlet falls entirely to the
+geometric branch (the switch reporting 100%, correctly) and spreads its light
+over ~10⁵ pixels, which the old fixed 151² = 23k rays could not fill — honest
+shot noise, but a picture of speckle. The default now derives the blur radius
+from the same traced gradient the fidelity switch runs on, via an identity
+worth recording: a slope of s waves per pupil sample displaces a ray by
+s·size pixels, so the Nyquist step s = ½ puts rays at the grid edge exactly
+where the FFT starts to alias — the two branches fail toward each other. The
+bundle is sized to hold ~`TARGET_RAYS_PER_BLUR_PIXEL` over the blur disc; the
+stratified pupil grid actually beats the Poisson 1/√target bound (measured
+0.19 against 0.33), and the *flatness* rung is the real claim: quadruple the
+blur area, same per-pixel noise. Two caps are deliberate and visible rather
+than silent — blur radius at the half-grid (off-grid light is
+`truncatedFraction`'s job, not more rays'), grid at 1023 (past it, density
+degrades instead of runtime exploding) — and the chosen grid is reported on
+the returned `Psf` so a caller can see when a cap has bound. The app's
+aperture-keyed stopgap is gone.
+
+Re-baking the singlet golden came with this change and is worth a line: the
+singlet's violet wavelengths carry a geometric share, so the denser bundle
+moved the image by max 2/255 on 0.5% of pixels — inspected side by side and
+visually identical, which is what a convergence improvement should look like.
 
 ## Step 2e — polychromatic stacking (current)
 
@@ -730,16 +758,8 @@ Three rungs now pin orientation end to end, each carrying a distinct part:
 - **Circular convolution wraps at the frame edge.** Harmless while the PSF is
   small against the frame and every source is well inside it; a scene with
   light at the border needs padding.
-- **The geometric branch's ray count does not scale with the blur.** Found by
-  driving the app, not by a rung: `geometricPsf` bins rays into the same grid
-  the FFT branch uses, so the histogram needs more rays than the blur covers
-  pixels. A singlet opened to f/5 falls entirely to the geometric branch (the
-  fidelity switch reporting 100%, correctly) and spreads its light over ~10⁵
-  pixels, which the default 151² = 23k rays cannot fill — the image comes back
-  as visible shot-noise speckle. It is honest noise rather than a wrong answer,
-  and the app raises `rayGrid` with aperture as a stopgap, but the default
-  belongs in `wave/geometric` scaled to the blur area, with a rung on histogram
-  convergence. Step 5, alongside the vignetting work already queued there.
+- ~~The geometric branch's ray count does not scale with the blur.~~ Closed at
+  step 5: the default is now blur-scaled with its own rungs — see § 2d.
 
 ## Later rungs
 
