@@ -65,9 +65,18 @@
      partition-of-unity blend and progressive refinement. Cost is
      patches × wavelengths × (one PSF + one convolution), and the PSF
      dominates; that is the number refinement exists to hide.
-   - **Remaining: the app.** Ugly UI over the above, on port 5187 via the
-     port guard. The render is a pure function today, so moving it into a
-     worker later is a change of caller, not of code.
+   - App ✅ — ugly UI on port 5187 via the port guard, rendering both lenses
+     live with the engine's own numbers on screen. Driving it found two
+     things the headless suite did not: the geometric branch's ray count does
+     not scale with the blur, and off-grid light *wraps* rather than
+     vanishing. Both are now surfaced in the UI rather than hidden.
+   - **Remaining, and deliberately not claimed as done:** the app renders
+     single on-axis stars through the *point* path. `renderField` — the
+     spatially-variant renderer — has never produced a picture outside unit
+     tests, so its cost model is asserted rather than observed and its
+     off-axis output has never been looked at. A multi-star field panel plus
+     a golden image for it is the natural close, and it pairs with the
+     unpinned off-axis orientation rung in VALIDATION § 3c.
 5. **Telescope branch + bench editor + mech layer**
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
