@@ -2,6 +2,7 @@ import { Vec3, vec3, sub, dot, length } from "../math/vec3";
 import { Ray } from "../trace/ray";
 import { traceRay } from "../trace/sequential";
 import { asCompiled } from "../trace/compile";
+import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { PupilGeometry, pupils, imagePlaneZ } from "./pupils";
 import { PupilPoint, AimOptions, aimRay, chiefRay } from "./aiming";
@@ -19,6 +20,13 @@ import { PupilPoint, AimOptions, aimRay, chiefRay } from "./aiming";
  *
  * Sign: positive OPD means the ray's path is LONGER than the chief ray's —
  * that part of the wavefront lags.
+ *
+ * COORDINATE. Rays are traced through the real prescription, folds included,
+ * and their exit segments are then re-expressed in unfolded IMAGE-SPACE
+ * coordinates (`toImageSpace`). Path length is invariant under that rigid map,
+ * so the OPD is untouched by it; what the map buys is that the image plane and
+ * the reference sphere can go on being described by one axial number. For an
+ * axial system it is the identity and nothing here changes.
  */
 
 export interface OpdSample extends PupilPoint {
@@ -35,6 +43,7 @@ export interface OpdMap {
   readonly samples: readonly OpdSample[];
   /** How many requested samples were lost to vignetting — this IS vignetting. */
   readonly lost: number;
+  /** Chief-ray image point, in unfolded image-space coordinates. */
   readonly imagePoint: Vec3;
   readonly referenceRadius: number;
   readonly pupil: PupilGeometry;
@@ -89,9 +98,11 @@ function pathToSphere(
   radius: number,
   nImage: number,
 ): { opl: number; throughput: number } | null {
+  const c = asCompiled(system.prescription);
   const res = traceRay(system.prescription, ray);
   if (res.status !== "ok" || !res.ray) return null;
-  const t = intersectSphere(res.ray.origin, res.ray.dir, centre, radius);
+  const exit = toImageSpace(c, res.ray);
+  const t = intersectSphere(exit.origin, exit.dir, centre, radius);
   if (t === null) return null;
   return { opl: res.opl + Math.abs(nImage) * t, throughput: res.throughput };
 }
@@ -113,12 +124,13 @@ export function opdMap(
   if (chiefTrace.status !== "ok" || !chiefTrace.ray) {
     throw new Error(`chief ray failed (${chiefTrace.status}) at field ${fieldValue}`);
   }
-  const imagePoint = atPlaneZ(chiefTrace.ray, imagePlaneZ(c, system));
+  const chiefExit = toImageSpace(c, chiefTrace.ray);
+  const imagePoint = atPlaneZ(chiefExit, imagePlaneZ(c, system));
 
   // Reference sphere: centred on the image point, passing through the chief
   // ray where it crosses the exit-pupil plane.
   const qz = Number.isFinite(pupil.exit.z) ? pupil.exit.z : imagePoint.z - 1;
-  const q = atPlaneZ(chiefTrace.ray, qz);
+  const q = atPlaneZ(chiefExit, qz);
   const referenceRadius = length(sub(imagePoint, q));
 
   const chiefPath = pathToSphere(system, chief, imagePoint, referenceRadius, nImage);

@@ -5,3 +5,4 @@ export * from "./sequential";
 export * from "./paraxial";
 export * from "./system";
 export * from "./compile";
+export * from "./axis";

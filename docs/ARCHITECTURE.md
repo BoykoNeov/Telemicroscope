@@ -250,17 +250,47 @@ image parity. Nothing downstream objects — `invert` is a transpose and stays
 valid for any orthogonal matrix, normals go through the same rotation, and the
 clear aperture is a radius.
 
-**Still unfolded-only: everything built on paraxial z.** Pupils, ray aiming,
-OPD, PSF and focus all work in the unfolded axial coordinate, which stops
-following the light at the first mirror of a folded chain. `pupils()` therefore
-*throws* on a folded system rather than return a number in a coordinate no ray
-visits. The paraxial engine itself is fine: it straightens a folded
-prescription first (`unfoldedTwin`), so EFL/BFD work either way.
+**The unfolded axis, and the map back to the world** (`core/trace/axis`).
+Pupils, ray aiming, OPD, PSF and focus are all positions on *one straight
+axis*, and that axis is the unfolded convention's — it stops following the
+light at the first mirror of a folded chain. Rather than teach the first-order
+layer about folds, the engine uses the fact that **a folded prescription and
+its `unfoldedTwin` are the same optics related by a rigid motion**, one
+reflection per mirror. A rigid motion preserves every path length and every
+transverse distance, so:
 
-Lifting that restriction needs a map from unfolded axial z to a world frame —
-walk the frame chain, find the segment the coordinate falls in, place the plane
-there. That lands with the Newtonian preset, which is the first thing that
-needs a folded PSF.
+- first-order geometry is computed on the twin, where the validated code runs
+  unchanged;
+- exact rays are traced through the real folded chain, because that is where
+  the tilted diagonal and its clear aperture actually are;
+- the two meet through `spaceToWorld(c, k)`, which carries unfolded axial
+  coordinates in space *k* into the world:
+  `outgoingFrame[k−1] ∘ zFlip(parity) ∘ translate(0, 0, −Z[k−1])`.
+
+Two properties make this nearly free. **Object space is always the world +z
+axis** (the chain starts at the identity), so ray aiming, the entrance pupil
+and the launch plane need no map — only the exit side does. And **the map is
+the identity whenever no mirror is tilted**, which is exactly the case where
+the two conventions describe the same layout, so no axial system can move.
+
+The map is always *proper* (det = +1): `outgoingFrame` picks up a det = −1 per
+mirror and the axial flip picks up another, and they cancel. The image
+inversion an odd mirror count produces is carried by the twin already, and must
+not be applied a second time.
+
+Consequence for the analysis API: every image-plane quantity — `PupilPlane.z`,
+`imagePlaneZ`, `FocusResult.z`, `OpdMap.imagePoint`, the rays in an
+`ExitBundle` — is in **unfolded image-space coordinates**, not world. That is
+also what keeps `(z − o.z)/d.z` meaningful: a folded exit beam can run along
++y in the world, where the axial form does not lose accuracy but divides by
+zero.
+
+*Scope:* `unfoldedTwin` drops tilt and decenter, so the twin is a faithful
+straightening only when the tilts belong to flat fold mirrors. Tilt a curved
+surface — a misalignment — and the twin becomes the *nominal* system: rays are
+still traced exactly, but the pupils and image plane they are measured against
+are nominal ones. That is what tolerancing wants, and it is the same
+first-order treatment tilted systems already receive.
 
 ### Wavefront reference (required before OPD means anything)
 

@@ -1,6 +1,7 @@
 import { Ray } from "../trace/ray";
 import { traceRay } from "../trace/sequential";
 import { asCompiled } from "../trace/compile";
+import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { PupilGeometry, pupils, imagePlaneZ } from "../pupil/pupils";
 import { PupilPoint, AimOptions, aimRay } from "../pupil/aiming";
@@ -17,7 +18,15 @@ import { PupilPoint, AimOptions, aimRay } from "../pupil/aiming";
  * `bestSpotZ`.
  */
 
-/** A ray that survived the system, tagged with the pupil point it came from. */
+/**
+ * A ray that survived the system, tagged with the pupil point it came from.
+ *
+ * The ray is in unfolded IMAGE-SPACE coordinates, not world: the whole module
+ * evaluates transverse position as a function of an axial z, and on a folded
+ * chain the world exit beam can run along +y, where that form divides by zero.
+ * The map is rigid, so spot sizes are unaffected by it, and it is the identity
+ * for an axial system (`trace/axis`).
+ */
 export interface ExitRay extends PupilPoint {
   readonly ray: Ray;
   readonly throughput: number;
@@ -40,6 +49,7 @@ export function exitBundle(
   points: readonly PupilPoint[],
   options: AimOptions = {},
 ): ExitBundle {
+  const c = asCompiled(system.prescription);
   const pupil = pupils(system, wavelengthNm);
   const rays: ExitRay[] = [];
   let lost = 0;
@@ -51,7 +61,7 @@ export function exitBundle(
       lost++;
       continue;
     }
-    rays.push({ px: p.px, py: p.py, ray: res.ray, throughput: res.throughput });
+    rays.push({ px: p.px, py: p.py, ray: toImageSpace(c, res.ray), throughput: res.throughput });
   }
 
   return { rays, lost, pupil, wavelengthNm, fieldValue };

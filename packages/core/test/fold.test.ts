@@ -1,15 +1,19 @@
 import { describe, it, expect } from "vitest";
 import { vec3, normalize } from "../src/math/vec3";
-import { reflectionAbout, applyToDirection, mat3Apply } from "../src/math/transform";
+import { reflectionAbout, applyToDirection, applyToPoint, mat3Apply } from "../src/math/transform";
 import { compile, vertexPoint } from "../src/trace/compile";
+import { spaceToWorld, toImageSpace } from "../src/trace/axis";
 import { Prescription, unfoldedTwin } from "../src/trace/prescription";
 import { traceRay } from "../src/trace/sequential";
 import { reflectDir } from "../src/trace/interaction";
 import { makeRay } from "../src/trace/ray";
 import { systemProperties } from "../src/trace/paraxial";
 import { OpticalSystem } from "../src/trace/system";
-import { pupils, imagePlaneZ } from "../src/pupil/pupils";
-import { paraxialImageOffset, bestFocus } from "../src/analysis/focus";
+import { imagePlaneZ } from "../src/pupil/pupils";
+import { pupilGrid } from "../src/pupil/aiming";
+import { opdMap } from "../src/pupil/opd";
+import { psf } from "../src/wave/psf";
+import { bestFocus } from "../src/analysis/focus";
 import { LINE_D } from "../src/materials/dispersion";
 
 /**
@@ -22,9 +26,10 @@ import { LINE_D } from "../src/materials/dispersion";
  * the light actually went. Folded mode reflects the chain in the mirror's
  * tangent plane so its +z follows the beam.
  *
- * These rungs are deliberately GEOMETRIC — ray directions, hit points, path
- * lengths — because pupils and OPD still live in unfolded axial z and refuse a
- * folded system by design. The last rung pins that refusal.
+ * The rungs come in two halves. The first is GEOMETRIC — ray directions, hit
+ * points, path lengths — pinning that the chain and the beam agree. The second
+ * pins the map that carries the unfolded axis back into the world, which is
+ * what lets pupils, OPD, focus and the PSF work on a folded system at all.
  */
 
 const FLAT = { kind: "reflect", curvature: 0, semiAperture: 50 } as const;
@@ -247,53 +252,183 @@ describe("Newtonian fold", () => {
 });
 
 /**
- * Rung: the unfolded-only guard has no way around it.
+ * Rungs for the unfolded-z → world map, which is what replaced the guard.
  *
- * A guard on one entry point is a tripwire with a hole if another door reaches
- * the same coordinate. Nothing in the suite exercises a folded system through
- * the wave layer yet, so these paths would pass green either way — which is
- * exactly why they are asserted now, rather than discovered by the Newtonian
- * preset getting a plausible wrong number instead of the loud error promised.
+ * The claim under test is that a folded prescription and its `unfoldedTwin` are
+ * the same optics related by a RIGID MOTION — one reflection per mirror — so
+ * first-order geometry can be computed on the twin's straight axis while rays
+ * are traced through the real folded chain, and the two meet through
+ * `spaceToWorld`. Everything below tries to break one half of that sentence.
  */
-describe("the unfolded-only guard", () => {
-  const folded: Prescription = {
+describe("the unfolded axis and its map to the world", () => {
+  const R = -2000;
+  const f = 1000;
+  const d = 800;
+
+  const newtonian: Prescription = {
     mirrorFrames: "folded",
     surfaces: [
-      { kind: "reflect", curvature: 1 / -2000, conic: -1, semiAperture: 100, thickness: 800, isStop: true },
-      { ...FLAT, tiltXDeg: 45, semiAperture: 40, thickness: 200 },
+      { kind: "reflect", curvature: 1 / R, conic: -1, semiAperture: 60, thickness: d, isStop: true },
+      // Generously oversized on purpose: the twin drops the diagonal's tilt, so
+      // its clear aperture cuts a circle where the folded one cuts an ellipse.
+      // Any rung comparing the two must not let that difference in.
+      { ...FLAT, tiltXDeg: 45, semiAperture: 120, thickness: f - d },
     ],
   };
+  const straight = unfoldedTwin(newtonian);
+
   const system: OpticalSystem = {
-    prescription: folded,
-    aperture: { kind: "stopRadius", value: 100 },
+    prescription: newtonian,
+    aperture: { kind: "stopRadius", value: 40 },
     field: { kind: "angle", values: [0] },
     wavelengths: [{ nm: LINE_D, weight: 1 }],
     conjugate: { kind: "infinite" },
   };
+  const twinSystem: OpticalSystem = { ...system, prescription: straight };
 
-  it("pupils() refuses instead of answering in a dead coordinate", () => {
-    expect(() => pupils(system, LINE_D)).toThrow(/unfolded-only/);
+  it("is proper: the twin is a congruent copy, not a mirrored one", () => {
+    // Each mirror gives `outgoingFrame` a det = −1 and the axial flip another;
+    // they cancel. If they did not, an odd number of mirrors would hand the
+    // analysis layer a left-handed image and every azimuth would run backwards.
+    const m = spaceToWorld(compile(newtonian), 2).rotation;
+    const det =
+      m[0]! * (m[4]! * m[8]! - m[5]! * m[7]!) -
+      m[1]! * (m[3]! * m[8]! - m[5]! * m[6]!) +
+      m[2]! * (m[3]! * m[7]! - m[4]! * m[6]!);
+    expect(det).toBeCloseTo(1, 12);
   });
 
-  it("paraxialImageOffset() refuses — it walks the axis without ever calling pupils()", () => {
-    expect(() => paraxialImageOffset(system, LINE_D)).toThrow(/unfolded-only/);
+  it("carries every unfolded vertex back onto the world vertex it came from", () => {
+    const c = compile(newtonian);
+    const t = compile(straight);
+    for (let i = 0; i < 2; i++) {
+      const placed = applyToPoint(spaceToWorld(c, i), vec3(0, 0, t.surfaces[i]!.vertexZ));
+      const actual = vertexPoint(c, i);
+      expect(placed.x).toBeCloseTo(actual.x, 9);
+      expect(placed.y).toBeCloseTo(actual.y, 9);
+      expect(placed.z).toBeCloseTo(actual.z, 9);
+    }
   });
 
-  it("bestFocus() refuses, so the whole focus/PSF path is closed", () => {
-    expect(() => bestFocus(system, "paraxial")).toThrow(/unfolded-only/);
+  it("places the image plane out the side of the tube, where the beam goes", () => {
+    // The closed form the geometric rungs already pinned by tracing: focus sits
+    // (f − d) from the diagonal, perpendicular to the tube. Here it is reached
+    // the other way — through the paraxial axis and the map — so agreement is
+    // between two independent routes rather than a restatement.
+    const c = compile(newtonian);
+    const z = imagePlaneZ(c, system);
+    const world = applyToPoint(spaceToWorld(c, 2), vec3(0, 0, z));
+    expect(world.x).toBeCloseTo(0, 9);
+    expect(world.y).toBeCloseTo(f - d, 9);
+    expect(world.z).toBeCloseTo(-d, 9);
   });
 
-  it("imagePlaneZ() refuses, so OPD cannot reach a plane the light never crosses", () => {
-    expect(() => imagePlaneZ(compile(folded), system)).toThrow(/unfolded-only/);
+  /**
+   * The rung the others cannot see.
+   *
+   * Strehl, RMS and an on-axis image point are all blind to orientation: a map
+   * that flipped the wrong axis would keep det = +1, keep the focus on the
+   * tube's side, and pass everything above. So compare the two tracers directly
+   * — one through the tilted diagonal, one through its straightened twin — and
+   * demand that the map is the *entire* difference between their exit rays, in
+   * all three components, for rays carrying both x and y structure.
+   *
+   * It is not a restatement of the map's algebra: the folded ray and the twin
+   * ray reflect off DIFFERENT planes and so leave from different points. The
+   * lines must still coincide once mapped, which is the isometry claim itself.
+   */
+  it("maps the folded exit ray onto the twin's, line for line", () => {
+    const c = compile(newtonian);
+    const theta = (0.3 * Math.PI) / 180;
+    const dir = vec3(Math.sin(theta), 0, Math.cos(theta));
+    const zImage = imagePlaneZ(c, system);
+    let sawDisplacedOrigin = false;
+
+    for (const [x, y] of [[0, 0], [30, 0], [0, 30], [-18, 25], [22, -33]] as const) {
+      const input = makeRay(vec3(x, y, -50), dir, LINE_D);
+      const bent = traceRay(newtonian, input);
+      const flat = traceRay(straight, input);
+      expect(bent.status).toBe("ok");
+      expect(flat.status).toBe("ok");
+
+      const mapped = toImageSpace(c, bent.ray!);
+      expect(mapped.dir.x).toBeCloseTo(flat.ray!.dir.x, 12);
+      expect(mapped.dir.y).toBeCloseTo(flat.ray!.dir.y, 12);
+      expect(mapped.dir.z).toBeCloseTo(flat.ray!.dir.z, 12);
+
+      // Same line: compare where each crosses the image plane, since the two
+      // rays start from different points along it.
+      const hit = (r: typeof mapped): { x: number; y: number } => {
+        const t = (zImage - r.origin.z) / r.dir.z;
+        return { x: r.origin.x + r.dir.x * t, y: r.origin.y + r.dir.y * t };
+      };
+      const a = hit(mapped);
+      const b = hit(flat.ray!);
+      expect(a.x).toBeCloseTo(b.x, 9);
+      expect(a.y).toBeCloseTo(b.y, 9);
+
+      if (Math.abs(mapped.origin.z - flat.ray!.origin.z) > 1) sawDisplacedOrigin = true;
+    }
+    // ...and the origins really do differ, so the agreement above is the map
+    // doing work rather than the two tracers having done the same thing.
+    expect(sawDisplacedOrigin).toBe(true);
   });
 
-  it("but the unfolded twin of that same system answers all of them", () => {
-    // The guard must be about the convention, not about mirrors or tilts —
-    // straighten the chain and every door opens again.
-    const straight = { ...system, prescription: unfoldedTwin(folded) };
-    expect(() => pupils(straight, LINE_D)).not.toThrow();
-    // Measured from the LAST vertex — the flat, 800 mm along from the
-    // paraboloid whose focus is at 1000.
-    expect(paraxialImageOffset(straight, LINE_D)).toBeCloseTo(200, 6);
+  /**
+   * Rung: the wave layer gets the same answer folded as straightened.
+   *
+   * This is the one that would have caught the guard being lifted carelessly.
+   * OPD is a path difference and the map is an isometry, so equality here is
+   * exact rather than approximate — any leak of world z into an axial formula
+   * shows up as a gross disagreement, not a small one.
+   */
+  it("gives the same OPD, focus and PSF as the straightened twin", () => {
+    const points = pupilGrid(9);
+    const bent = opdMap(system, 0.2, LINE_D, points);
+    const flat = opdMap(twinSystem, 0.2, LINE_D, points);
+
+    expect(bent.samples.length).toBe(flat.samples.length);
+    expect(bent.lost).toBe(flat.lost);
+
+    // Bounded in waves rather than matched to N decimals, because the floor
+    // here is f64 itself: the folded route carries the same path through one
+    // extra rigid transform, and one ulp at an 1800 mm path length is 4.5e-13
+    // mm — 8e-10 waves. The measured spread sits at that floor, so a
+    // decimal-places match would be asserting below the representation. The
+    // bound is still five orders under the engine's ~1e-3-wave target.
+    let worst = 0;
+    for (let i = 0; i < bent.samples.length; i++) {
+      worst = Math.max(worst, Math.abs(bent.samples[i]!.waves - flat.samples[i]!.waves));
+    }
+    expect(worst).toBeLessThan(1e-8);
+    expect(bent.rmsWaves).toBeCloseTo(flat.rmsWaves, 9);
+
+    for (const criterion of ["paraxial", "minRmsSpot", "minRmsWavefront"] as const) {
+      const a = bestFocus(system, criterion, { pupilSamples: 9 });
+      const b = bestFocus(twinSystem, criterion, { pupilSamples: 9 });
+      expect(a.offsetFromLastVertex).toBeCloseTo(b.offsetFromLastVertex, 7);
+      expect(a.merit).toBeCloseTo(b.merit, 9);
+    }
+
+    const p = psf(system, 0, LINE_D, { traceSamples: 13, pupilSamples: 32, padFactor: 2 });
+    const q = psf(twinSystem, 0, LINE_D, { traceSamples: 13, pupilSamples: 32, padFactor: 2 });
+    expect(p.strehl).toBeCloseTo(q.strehl, 9);
+    expect(p.pixelScaleMm).toBeCloseTo(q.pixelScaleMm, 12);
+  });
+
+  /**
+   * Rung: on axis a paraboloid is perfect, and folding does not spoil it.
+   *
+   * The external number is that a paraboloid has zero spherical aberration for
+   * an object at infinity — so the folded system must come out diffraction
+   * limited, Strehl 1. This is the first folded system in the suite to reach
+   * the wave layer at all; before the map it could only throw.
+   */
+  it("is diffraction-limited on axis, through the fold", () => {
+    const map = opdMap(system, 0, LINE_D, pupilGrid(13));
+    expect(map.lost).toBe(0);
+    expect(map.rmsWaves).toBeLessThan(1e-6);
+    const p = psf(system, 0, LINE_D, { traceSamples: 13, pupilSamples: 32, padFactor: 2 });
+    expect(p.strehl).toBeCloseTo(1, 6);
   });
 });

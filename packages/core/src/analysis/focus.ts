@@ -1,7 +1,8 @@
 import { asCompiled } from "../trace/compile";
+import { axialTwin } from "../trace/axis";
 import { PlaneRay, paraxialRefract, paraxialTransfer } from "../trace/paraxial";
 import { OpticalSystem, primaryWavelength } from "../trace/system";
-import { pupils, imagePlaneZ, assertUnfolded } from "../pupil/pupils";
+import { pupils, imagePlaneZ } from "../pupil/pupils";
 import { AimOptions, PupilPoint, pupilGrid } from "../pupil/aiming";
 import { opdMap } from "../pupil/opd";
 import { exitBundle, bestSpotZ, spotAt } from "./spot";
@@ -68,7 +69,7 @@ export interface FocusResult {
   readonly criterion: FocusCriterion;
   /** What to put in `ImageSurfaceSpec.offsetFromLastVertex` (mm, signed). */
   readonly offsetFromLastVertex: number;
-  /** World z of the focused image plane (mm). */
+  /** Unfolded axial z of the focused image plane (mm). */
   readonly z: number;
   /** Displacement from the paraxial image plane (mm, signed). */
   readonly shiftFromParaxial: number;
@@ -98,11 +99,10 @@ export function withFocus(system: OpticalSystem, offsetFromLastVertex: number): 
  * any non-zero slope picks out that point's conjugate.
  */
 export function paraxialImageOffset(system: OpticalSystem, wavelengthNm: number): number {
-  const c = asCompiled(system.prescription);
-  // Walks compiled thicknesses along the axis, so it is the one door into
-  // unfolded-z that does NOT go through pupils(). Guarded in its own right, or
-  // a folded system would reach `bestFocus` and get a plausible wrong number.
-  assertUnfolded(c, "paraxialImageOffset()");
+  // Walks thicknesses along the axis, so — like everything first-order — it
+  // walks the TWIN's axis. On a folded chain the prescription's own thicknesses
+  // are distances along a beam that turns, and summing them is meaningless.
+  const c = axialTwin(asCompiled(system.prescription));
   const n0 = c.indices(wavelengthNm)[0]!;
 
   let st: PlaneRay =
@@ -196,7 +196,7 @@ export function bestFocus(
   const points: readonly PupilPoint[] = pupilGrid(options.pupilSamples ?? 17);
 
   const frozen = freezeAperture(system, wavelengthNm);
-  const c = asCompiled(frozen.prescription);
+  const c = axialTwin(asCompiled(frozen.prescription));
   const lastVertexZ = c.surfaces[c.surfaces.length - 1]!.vertexZ;
   const paraxialOffset = paraxialImageOffset(frozen, wavelengthNm);
 

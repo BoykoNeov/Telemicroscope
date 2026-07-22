@@ -1,4 +1,5 @@
 import { asCompiled } from "../trace/compile";
+import { toImageSpace } from "../trace/axis";
 import { OpticalSystem, WavelengthSample } from "../trace/system";
 import { traceRay } from "../trace/sequential";
 import { AimOptions, chiefRay } from "../pupil/aiming";
@@ -90,7 +91,7 @@ export function imagePointOf(
   if (traced.status !== "ok" || !traced.ray) {
     throw new Error(`chief ray failed (${traced.status}) at field ${fieldRadiusDeg}`);
   }
-  const r = traced.ray;
+  const r = toImageSpace(c, traced.ray);
   const planeZ = imagePlaneZ(c, system);
   const hit: Vec3 = add(r.origin, scale(r.dir, (planeZ - r.origin.z) / r.dir.z));
   // The traced field runs along +x by convention (`fieldDirection` tilts the

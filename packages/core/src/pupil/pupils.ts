@@ -1,4 +1,5 @@
 import { CompiledSystem, asCompiled } from "../trace/compile";
+import { axialTwin } from "../trace/axis";
 import {
   PlaneRay,
   paraxialRefract,
@@ -27,10 +28,18 @@ import { OpticalSystem, ApertureSpec, stopIndex } from "../trace/system";
  * whose axis crossing IS the pupil plane, and one at unit height (y = 1,
  * u = 0) whose height at that plane IS the magnification — because a plane
  * conjugate to the stop images stop height h to h·m regardless of slope.
+ *
+ * COORDINATE. Every `z` here is a position on the **unfolded axis**, and this
+ * module normalizes to `axialTwin` so that a folded prescription is measured
+ * along the same straight axis its optics unfold onto (see `trace/axis`). For
+ * an axial system that is the world z, unchanged. For a folded one, object
+ * space still coincides with the world — so ray aiming needs no map — while
+ * image-space positions (the exit pupil, the image plane) are carried into the
+ * world by `imageSpace`.
  */
 
 export interface PupilPlane {
-  /** Axial position in world coordinates (mm). */
+  /** Position on the unfolded axis (mm) — the world z of an axial system. */
   readonly z: number;
   /** Semi-diameter (mm). */
   readonly radius: number;
@@ -132,7 +141,7 @@ export function resolveStopRadius(system: OpticalSystem, wavelengthNm: number): 
   const spec: ApertureSpec = system.aperture;
   if (spec.kind === "stopRadius") return spec.value;
 
-  const c = asCompiled(system.prescription);
+  const c = axialTwin(asCompiled(system.prescription));
   const k = stopIndex(system.prescription);
   const probeEntrance = imageStopBackward(c, k, wavelengthNm, 1);
   const mEP = Math.abs(probeEntrance.magnification);
@@ -165,33 +174,21 @@ export function resolveStopRadius(system: OpticalSystem, wavelengthNm: number): 
   }
 }
 
-/** World z of the image plane: the last vertex plus the image-surface offset. */
-export function imagePlaneZ(c: CompiledSystem, system: OpticalSystem): number {
-  assertUnfolded(c, "imagePlaneZ()");
+/**
+ * Unfolded axial z of the image plane: the last vertex plus the image-surface
+ * offset, both measured on the twin's axis. `imageSpace(c).toWorld` carries it
+ * into the world when a folded system needs the plane placed rather than
+ * measured along.
+ */
+export function imagePlaneZ(cIn: CompiledSystem, system: OpticalSystem): number {
+  const c = axialTwin(cIn);
   const last = c.surfaces[c.surfaces.length - 1]!;
   const offset = system.imageSurface?.offsetFromLastVertex ?? last.thickness;
   return last.vertexZ + offset;
 }
 
-/**
- * Everything in this module — and therefore ray aiming, OPD, PSF and focus —
- * works in the unfolded axial z of the paraxial engine. On a folded chain that
- * z stops following the light after the first mirror, so a pupil plane
- * computed here would be a number in a coordinate no ray ever visits: wrong,
- * and silently so. Folded systems are refused until the unfolded↔world map
- * lands with the Newtonian preset (docs/ARCHITECTURE.md § Tilt / decenter).
- */
-export function assertUnfolded(c: CompiledSystem, what: string): void {
-  if (c.folded) {
-    throw new Error(
-      `${what} is unfolded-only: a folded prescription's axial z does not follow the beam past a mirror`,
-    );
-  }
-}
-
 export function pupils(system: OpticalSystem, wavelengthNm: number): PupilGeometry {
-  const c = asCompiled(system.prescription);
-  assertUnfolded(c, "pupils()");
+  const c = axialTwin(asCompiled(system.prescription));
   const k = stopIndex(system.prescription);
   const stopRadius = resolveStopRadius(system, wavelengthNm);
   return {

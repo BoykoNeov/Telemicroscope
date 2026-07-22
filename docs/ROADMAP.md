@@ -89,9 +89,12 @@
    45° diagonal — a tilted mirror with surfaces downstream of it — that could
    not be written down before. The same change makes mirror *misalignment*
    place downstream surfaces correctly, which is what tolerancing rests on.
-   *Carried:* pupils/OPD/PSF are still unfolded-only and throw on a folded
-   system. The unfolded-z → world-frame map that lifts that lands with the
-   Newtonian preset, which is the first thing to need a folded PSF.
+   *Prerequisite — folded pupils/OPD/PSF:* ✅ closed. The unfolded-z →
+   world-frame map landed (`core/trace/axis`, VALIDATION § 4a): first-order
+   geometry is computed on the `unfoldedTwin`, rays are traced through the real
+   folded chain, and one rigid map joins them — so a folded system now images
+   instead of throwing. A folded Newtonian is diffraction-limited on axis and
+   agrees with its straightened twin on OPD, focus and Strehl.
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation

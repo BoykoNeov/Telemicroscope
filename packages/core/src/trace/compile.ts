@@ -36,6 +36,13 @@ export interface CompiledSurface {
   readonly frame: Transform;
   /** Precomputed inverse — the tracer needs world→local every ray. */
   readonly inverseFrame: Transform;
+  /**
+   * The frame the chain continues in after this surface: the surface's own
+   * frame under `"unfolded"`, its reflection in the tangent plane under
+   * `"folded"`. Kept because the unfolded-z → world map is a walk along
+   * exactly these (see `trace/axis`).
+   */
+  readonly outgoingFrame: Transform;
   /** True when the frame is a pure z-translation: enables the scalar fast path. */
   readonly isAxial: boolean;
   /** Vertex z (world). Only meaningful when `isAxial`. */
@@ -130,6 +137,7 @@ export function compile(p: Prescription): CompiledSystem {
       translation: vec3(spec.decenterX ?? 0, spec.decenterY ?? 0, 0),
     };
     const surfaceFrame = compose(frame, local);
+    const outgoing = outgoingFrame(incoming, surfaceFrame, spec, folded);
 
     if (spec.kind === "refract" && !spec.medium) {
       throw new Error(`surface ${i}: refract surface needs a medium`);
@@ -140,6 +148,7 @@ export function compile(p: Prescription): CompiledSystem {
       geometry: surfaceGeometry(spec),
       frame: surfaceFrame,
       inverseFrame: invert(surfaceFrame),
+      outgoingFrame: outgoing,
       isAxial: isPureAxial(surfaceFrame),
       vertexZ: surfaceFrame.translation.z,
       thickness: spec.thickness,
@@ -150,7 +159,7 @@ export function compile(p: Prescription): CompiledSystem {
     });
 
     // Advance to the next vertex along the outgoing chain's local +z.
-    frame = compose(outgoingFrame(incoming, surfaceFrame, spec, folded), translation(vec3(0, 0, spec.thickness)));
+    frame = compose(outgoing, translation(vec3(0, 0, spec.thickness)));
   }
 
   const cache = new Map<number, readonly number[]>();
