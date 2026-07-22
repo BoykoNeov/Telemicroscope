@@ -81,6 +81,11 @@
    engine. *Prerequisite:* dispersive immersion media and a coverslip glass
    in the catalog — at NA 1.4 non-dispersive `constantIndex` oil makes the
    branch's chromatic behaviour dishonest.
+   *Prerequisite:* **module composition** — a microscope must be buildable from
+   whole parts (objective, tube lens, eyepiece) as well as from bare surfaces.
+   The design is recorded in ARCHITECTURE § Data model: modules are authoring
+   data that flatten into one surface chain, not a second tracer. Step 5's
+   eyepiece library is the first consumer, so it may land there instead.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

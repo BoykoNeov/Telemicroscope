@@ -141,6 +141,30 @@ One schema serves both branches:
   conic constant, asphere coefficients, semi-aperture, thickness to next
   vertex (signed), medium after the surface, stop flag. A Newtonian and a
   100x oil objective are just different prescription files.
+
+  **Composition (decided, not yet built).** An instrument is authored from
+  *elements* — a single lens, or a **module** that is itself several surfaces
+  (a cemented doublet, an objective, an eyepiece, a tube lens). Both branches
+  need this, but the microscope forces it: a 100x objective is bought and
+  reasoned about as one part, not as the eleven surfaces it happens to
+  contain, and swapping it must not mean editing a surface list by hand.
+
+  The resolution is **flattening, not a second tracer**: a module is a named
+  sub-assembly of `SurfaceSpec`s carrying its own local frame, and composing a
+  system splices modules into one flat surface chain before `compile()` ever
+  runs. Commitment #3 already makes this cheap — the chain is a list of
+  frames, so a module's internal frames simply compose with the frame it is
+  placed at, and nothing in the tracer learns a new concept. `Prescription`
+  stays the flat form the engine consumes; the module layer sits *above* it as
+  authoring data, exactly as `OpticalSystem` sits above `Prescription`.
+
+  Two consequences worth fixing now so the later change is additive:
+  mechanical data (barrel, thread, parfocal distance — the `mech/` layer)
+  attaches to the *module*, not to a surface, because that is the thing that
+  physically exists; and analyses must be able to name what a surface came
+  from, or a per-surface readout in a 30-surface microscope is unreadable.
+  Lands with step 6; the eyepiece/objective libraries of step 5 are its first
+  real consumer.
 - **OpticalSystem** — a prescription *plus what makes it well-posed*. A
   surface list alone determines EFL and BFD and nothing else; every
   field-, aperture-, or conjugate-dependent analysis (spot, PSF, MTF,
