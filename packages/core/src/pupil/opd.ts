@@ -43,9 +43,23 @@ export interface OpdMap {
 }
 
 /**
- * First forward intersection of a ray with a sphere, in the direction of
- * travel. Converging beams cross twice; we want the near side, which is where
- * the reference sphere sits relative to the focus.
+ * Signed distance along a ray to the NEAREST crossing of the reference sphere.
+ *
+ * "Nearest", not "first forward" — and the difference is not cosmetic. The
+ * sphere is centred on the image point and passes through the chief ray where
+ * it crosses the exit-pupil plane. That plane is flat and the sphere is curved,
+ * so the traced rays end up straddling it: some land just outside, some just
+ * inside, by of order the sagitta. Off axis the sphere's centre also shifts
+ * transversely, which pushes a whole side of the pupil inside it.
+ *
+ * For a point INSIDE the sphere the only forward crossing is the far one,
+ * beyond the focus — a full sphere diameter away. Taking it adds ~2R of
+ * spurious path (200 mm, or 3·10⁵ waves, on an f/5 system) to half the pupil.
+ * The physically meaningful quantity is the signed path from the ray's endpoint
+ * to the sphere, which is negative when the endpoint has already passed it.
+ *
+ * On axis every point lands outside and both readings agree, which is why the
+ * symmetric rungs never saw this.
  */
 function intersectSphere(o: Vec3, d: Vec3, centre: Vec3, radius: number): number | null {
   const oc = sub(o, centre);
@@ -58,10 +72,7 @@ function intersectSphere(o: Vec3, d: Vec3, centre: Vec3, radius: number): number
   const t2 = (-b + sq) / 2;
   // A ray may start exactly ON the sphere — the chief ray does, whenever the
   // exit pupil coincides with the last surface. t = 0 is then the answer.
-  const EPS = -1e-9;
-  if (t1 > EPS) return t1;
-  if (t2 > EPS) return t2;
-  return null;
+  return Math.abs(t1) <= Math.abs(t2) ? t1 : t2;
 }
 
 /** Where a ray meets the (flat) image plane. */

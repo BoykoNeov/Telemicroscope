@@ -197,3 +197,56 @@ describe("OPD bookkeeping", () => {
     for (const s of map.samples) expect(s.throughput).toBeCloseTo(1, 12);
   });
 });
+
+/**
+ * Rung: OFF-AXIS OPD FOR A MIRROR.
+ *
+ * Every off-axis rung above uses a refracting singlet. That left a gap this
+ * test closes, and the gap was hiding a real defect: the reference sphere is
+ * centred on the image point and passes through the chief ray at the
+ * exit-pupil PLANE, so the flat plane and the curved sphere straddle each
+ * other — and off axis the sphere's centre shifts transversely, pushing an
+ * entire side of the pupil INSIDE it.
+ *
+ * For a point inside a sphere the only forward intersection is the far one,
+ * beyond the focus. Taking it added a full sphere diameter of spurious path —
+ * 200 mm, or 3.4·10⁵ waves — to half the pupil. On axis every point lands
+ * outside and the two readings agree, which is exactly why the symmetric rungs
+ * could not see it.
+ *
+ * A paraboloid is perfect on axis, so at a field angle its wavefront is pure
+ * third-order coma: W ∝ θ·ρ³·cos φ. Referencing to the chief ray removes
+ * piston and tilt, so the ODD part of a meridional fan isolates the coma —
+ * the same construction as the singlet rung above, now on the surface kind
+ * that was untested.
+ */
+describe("off-axis OPD for a mirror follows third-order coma", () => {
+  const oddPart = (field: number, rho: number): number => {
+    const map = opdMap(mirror(-1), field, LINE_D, pupilFan(41));
+    const at = (target: number) =>
+      map.samples.reduce((a, b) =>
+        Math.abs(b.px - target) < Math.abs(a.px - target) ? b : a,
+      ).waves;
+    return (at(rho) - at(-rho)) / 2;
+  };
+
+  it("is bounded by a wave or so — not by the sphere's diameter", () => {
+    const map = opdMap(mirror(-1), 1.5, LINE_D, pupilGrid(21));
+    // Before the near-crossing fix this was 3.4e5 waves.
+    expect(map.rmsWaves).toBeLessThan(2);
+    for (const s of map.samples) expect(Math.abs(s.waves)).toBeLessThan(5);
+  });
+
+  it("coma is cubic in the pupil coordinate", () => {
+    expect(oddPart(1.5, 0.75) / oddPart(1.5, 0.5)).toBeCloseTo((0.75 / 0.5) ** 3, 1);
+    expect(oddPart(1.5, 0.5) / oddPart(1.5, 0.25)).toBeCloseTo((0.5 / 0.25) ** 3, 1);
+  });
+
+  it("coma is linear in field angle", () => {
+    expect(oddPart(1.5, 0.75) / oddPart(0.5, 0.75)).toBeCloseTo(3, 1);
+  });
+
+  it("vanishes identically on axis", () => {
+    expect(Math.abs(oddPart(0, 0.75))).toBeLessThan(1e-6);
+  });
+});

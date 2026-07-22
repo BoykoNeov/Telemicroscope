@@ -49,6 +49,23 @@ pinned before folds and multi-mirror presets arrive.
 | Off-axis OPD: coma is linear in field angle | 3rd-order theory | ✅ |
 | Off-axis OPD: coma is cubic in pupil radius (ratio 8) | 3rd-order theory | ✅ |
 | Off-axis OPD vanishes identically on axis | symmetry | ✅ |
+| **Off-axis MIRROR: coma cubic in ρ, linear in field, bounded by ~a wave** | 3rd-order theory | ✅ |
+
+The **off-axis mirror** rungs pin a defect they were written to close. The
+reference sphere is centred on the image point and passes through the chief ray
+at the exit-pupil *plane*; the flat plane and the curved sphere straddle each
+other, and off axis the sphere's centre also shifts transversely, pushing an
+entire side of the pupil **inside** it. For a point inside a sphere the only
+forward intersection is the far one, beyond the focus — so half the pupil was
+picking up a full sphere diameter of spurious path: 200 mm, or 3.4·10⁵ waves,
+on an f/5 system. `intersectSphere` now returns the *signed nearest* crossing
+rather than the first positive one.
+
+On axis every point lands outside the sphere and both readings agree, which is
+precisely why every symmetric rung was blind to it — and the off-axis rungs
+existed only for a refracting singlet, whose geometry happened to keep its
+points outside. The lesson generalizes and is worth keeping: a rung on one
+surface kind is not a rung on the other.
 
 The defocus rung's 1% tolerance is set by the first neglected term of the NA
 expansion, not by convenience — the comparison is deliberately made at low NA
