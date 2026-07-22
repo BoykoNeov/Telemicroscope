@@ -25,7 +25,7 @@
      geometric criterion is a closed form rather than a search. Max-Strehl is
      implemented as min-RMS-wavefront — monotone in Strehl by extended
      Maréchal, and it needs no PSF, which does not exist until step 3.
-3. **Wave layer** ← current
+3. **Wave layer** ✅
    OPD → PSF → MTF, geometric-PSF fidelity switch with blend band and matched
    energy normalization, polychromatic stacking, Zernike decomposition
    (also the resampling basis — see the pupil-sampling note in ARCHITECTURE).
@@ -45,10 +45,12 @@
    - `core/wave/geometric` ✅ — the ray-histogram branch, matched to the
      diffraction branch's energy exactly, and cross-faded over a smoothstep
      band rather than switched at a threshold.
-   - **Remaining:** polychromatic stacking. It must resample each wavelength
-     onto a common physical image grid — `pixelScaleMm` is ∝ λ, so summing
-     per-λ PSFs bin-for-bin is wrong.
-4. **First hero image (end-to-end thread)**
+   - `core/wave/polychromatic` ✅ — each wavelength resampled onto a common
+     *physical* image grid before the weighted sum. `pixelScaleMm` is ∝ λ, so
+     a bin-for-bin sum silently rescales each component instead of stacking
+     it, flattening the very chromatic differences the calculation is for.
+   The wave layer is complete; step 4's hero image is next.
+4. **First hero image (end-to-end thread)** ← current
    Refractor + star scene → rendered image. Ugly UI, correct physics.
    *Milestone:* purple fringing appears for a singlet and shrinks for an
    achromat because the glass data says so. Build the spatially-variant

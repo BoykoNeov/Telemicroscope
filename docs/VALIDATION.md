@@ -314,12 +314,31 @@ rate of change are both continuous through the transition. Since both branches
 carry identical energy, every convex combination does too — the switch cannot
 alter brightness anywhere in the band, not merely at its ends.
 
+## Step 2e — polychromatic stacking (current)
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Pixel scale ∝ λ | pupil→image scale | ✅ |
+| Physical Airy radius ∝ λ though the pixel radius is not | 1.22 λ/2NA | ✅ |
+| **Stack's encircled energy = weighted sum of components', at a common physical radius** | definition of stacking | ✅ |
+| **Rings wash out 5× where a bin-for-bin sum would leave them sharp** | negative control | ✅ |
+| A one-wavelength spectrum reproduces the monochromatic PSF exactly | degenerate case | ✅ |
+| Weights normalize; mean λ is their weighted mean; energy conserved to <1% | bookkeeping | ✅ |
+
+The failure being guarded against is invisible rather than loud. Pixel scale is
+∝ λ, so summing per-wavelength arrays bin-for-bin silently *rescales* each one
+instead of stacking them — producing a perfectly plausible-looking PSF that has
+flattened exactly the chromatic differences the calculation exists to show. So
+each wavelength is resampled onto a common physical grid first, carrying the
+Jacobian (Δ_out/Δ_src)² because `intensity` is energy per pixel, not a density.
+
+The encircled-energy rung states the identity that "stacking on a common grid"
+*means*, and the wash-out rung is its negative control: at the d-line the first
+dark ring is a deep minimum, but in the stack it fills in 5× because F's ring
+falls inside it and C's outside. A bin-for-bin sum would put all three minima on
+the same pixel and leave the ring as deep as a monochromatic one.
+
 ### Not yet pinned
-- **Polychromatic stacking.** Pixel scale is λ-dependent (`pixelScaleMm` ∝ λ),
-  so per-λ PSFs cannot be summed bin-for-bin; each must be resampled onto a
-  common *physical* image grid first. Recorded here because it is the classic
-  polychromatic-PSF bug and the API above deliberately does not assume a fixed
-  grid.
 - **Vignetting is not carved out of the pupil support.** `OpdMap.lost` reports
   it; the pupil is still modelled as the full disc minus an optional central
   obstruction. Partial vignetting and spider diffraction arrive as a different
