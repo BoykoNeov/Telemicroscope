@@ -844,10 +844,80 @@ still five orders under the engine's ~10⁻³-wave target.
   scope limit above: with a *curved* surface tilted, the twin is the nominal
   system, so pupils and image plane are nominal while the rays are exact.
 
+## Step 4b — the Newtonian preset (current)
+
+The first instrument that could not be written down before the fold, and the
+first consumer of the unfolded→world map. A Newtonian is one paraboloid and one
+flat, so there is no design table to hide behind: every number below is a closed
+form or a traced consequence of one.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| EFL equals D·F | definition | ✅ |
+| Focus lands (f − d) out the side of the tube | closed form, via the map | ✅ |
+| Diagonal minor axis is the beam that reaches it | traced marginal ray | ✅ |
+| …and the classic paraxial formula sits 0.25% under it, for a known reason | paraxial limit | ✅ |
+| The whole on-axis beam gets through; the naive √2 ellipse clips it | closed form | ✅ |
+| Obstruction is the projected minor axis over the aperture | definition | ✅ |
+| Zero wavefront error on axis (a paraboloid is perfect there) | closed form | ✅ |
+| Diffraction-limited on axis: Strehl 1 | closed form | ✅ |
+| An obstructed pupil passes 1 − ε² of the light | closed form | ✅ |
+| Coma matches the third-order coefficient θ·D/(32F²√72) waves RMS | third-order theory | ✅ |
+| Coma ∝ field angle | scaling | ✅ |
+| Coma ∝ 1/F² | scaling | ✅ |
+| Coma ∝ aperture at fixed focal ratio | scaling | ✅ |
+| The comatic flare is 3:2, length to width | closed form | ✅ |
+| …and its length is the textbook tangential coma 3θ/(16F²) | closed form | ✅ |
+
+The **coma coefficient** rung is the one worth reading twice. The traced Zernike
+coma (Noll j = 8, whose coefficients *are* RMS contributions) agrees with
+third-order theory to within half a percent — and the residual shrinks as the
+system slows: 0.47% at f/4, 0.30% at f/5, 0.075% at f/10. That is the signature
+of the higher-order coma third-order theory omits, so the disagreement is the
+theory's rather than the tracer's, and it vanishes in the limit where the theory
+is exact. The tolerance admits exactly that band and no more; the ∝1/F² rung
+asserts the *sign* of the deviation too, because a tolerance loose enough to
+call 3.991 "4" would also admit a real scaling error.
+
+Two findings came out of writing these rungs, both engine-side:
+
+- **A tilted flat in a converging beam has an asymmetric footprint.** The plane
+  cuts through the beam, so the far edge is met nearer the primary where the
+  beam is still wider. A diagonal cut to the projected ellipse's m·√2/2 clips
+  its own beam by 11% at f/5. The preset now sizes the clear aperture to the
+  footprint's real far edge, in closed form. This is the same asymmetry real
+  Newtonians answer by offsetting the diagonal.
+- **The primary's sag matters at the 0.25% level.** The marginal ray leaves the
+  rim at the sag plane, not the vertex plane, so it starts (f + z_sag) from
+  focus. Both the minor-axis and footprint formulas carry the term; dropping it
+  leaves the diagonal narrow enough to vignette the pupil's own edge, which is
+  how it was found.
+
+A third came out of the tracer: rays landing **exactly** on a clear aperture are
+the designed case, not a corner case — a stop whose radius is the element's
+clear aperture puts every marginal ray there. The rim test is inclusive and now
+carries a tolerance so f64 round-off cannot decide it ray by ray, with its own
+rung in `sequential.test.ts`.
+
+### Not yet pinned
+- **The diagonal is circular, not elliptical.** `semiAperture` is a radius, so
+  the ellipse a real diagonal is cannot be expressed; the modelled flat is
+  slightly larger than the ideal offset ellipse. No traced ray moves — nothing
+  clips either way — but a diagonal *offset* is not modelled, and the obstruction
+  reported is the ideal ellipse's.
+- **The obstruction is not traced as a blocker.** It is reported by the preset
+  and applied in the pupil function, which is where a central obstruction
+  belongs; the spider is not modelled at all yet. Obstruction/spider
+  diffraction is its own step-5 item.
+- **Off-axis vignetting by the diagonal.** The sizing rungs are on axis. A field
+  ray walks across the diagonal, and with `fullyIlluminatedFieldMm` = 0 it will
+  start to clip — which is the correct physics but is pinned by nothing.
+- **Astigmatism and field curvature** are present in the trace and unpinned;
+  coma dominates a Newtonian but it is not the only off-axis term.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
-- Newtonian coma ∝ θ/(f/#)² formula.
 - Seeing: long-exposure FWHM ≈ 0.98 λ/r0 for Kolmogorov screens.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.

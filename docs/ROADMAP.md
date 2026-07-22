@@ -95,6 +95,14 @@
    folded chain, and one rigid map joins them — so a folded system now images
    instead of throwing. A folded Newtonian is diffraction-limited on axis and
    agrees with its straightened twin on OPD, focus and Strehl.
+   *First preset — Newtonian:* ✅ `designs/newtonian` (VALIDATION § 4b). Derived
+   from aperture and focal ratio, not transcribed: the diagonal is sized in
+   closed form and the off-axis behaviour is pinned to third-order coma, both
+   the coefficient and its ∝θ/F² scaling. Writing it turned up two engine
+   findings — a tilted flat's footprint in a converging beam is asymmetric, and
+   the primary's sag moves the beam diameter 0.25% — plus an inclusive-rim fix
+   in the tracer. Still to come here: obstruction/spider diffraction, the
+   eyepiece library, seeing, and the SCT/refractor presets.
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation

@@ -68,8 +68,18 @@ export function traceRay(system: Prescription | CompiledSystem, input: Ray): Tra
 
     // Aperture is tested in the surface's own frame — a tilted surface's
     // clear aperture is a disc on the surface, not its projection.
+    //
+    // The rim is inclusive, and the tolerance is what makes that survive f64.
+    // A ray landing exactly ON the rim is the DESIGNED case here, not a corner
+    // case: the ordinary way to author a system is a stop whose radius is the
+    // element's clear aperture, which puts every marginal ray exactly on it,
+    // and an element sized to just catch its beam (a minimum Newtonian
+    // diagonal) is tangent to that beam by construction. Without the tolerance
+    // the last ulp of the intersection solve decides, and the pupil edge
+    // vignettes in a scatter of points that looks like physics and is not.
     const r2 = hit.point.x * hit.point.x + hit.point.y * hit.point.y;
-    if (Number.isFinite(s.semiAperture) && r2 > s.semiAperture * s.semiAperture) {
+    const rim = s.semiAperture * s.semiAperture;
+    if (Number.isFinite(s.semiAperture) && r2 > rim * (1 + 1e-12)) {
       return { status: "vignetted", opl, path, throughput, failedAt: i };
     }
 

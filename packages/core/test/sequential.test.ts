@@ -67,6 +67,28 @@ describe("failure modes", () => {
     expect(clipped.failedAt).toBe(0);
   });
 
+  /**
+   * Rung: the rim is inclusive, and stays inclusive under f64.
+   *
+   * A ray landing exactly on the clear aperture is the ordinary authoring case,
+   * not an edge case: a stop whose radius IS the element's clear aperture puts
+   * every marginal ray precisely there. Without a tolerance the last ulp of the
+   * intersection solve decides each one, and a pupil edge vignettes in a
+   * scatter of points that reads as physics. Pinned on a paraboloid, whose
+   * axial rays keep their radius exactly, so "on the rim" is unambiguous.
+   */
+  it("passes rays landing exactly on the clear aperture", () => {
+    const RIM = -1000;
+    const parabola: Prescription = {
+      surfaces: [
+        { kind: "reflect", curvature: 1 / RIM, conic: -1, semiAperture: 40, thickness: RIM / 2 },
+      ],
+    };
+    expect(traceRay(parabola, parallelRay(40, LINE_D, -50)).status).toBe("ok");
+    // ...and the tolerance is tight enough that real overshoot still clips.
+    expect(traceRay(parabola, parallelRay(40.0001, LINE_D, -50)).status).toBe("vignetted");
+  });
+
   it("TIR inside glass beyond the critical angle", () => {
     // Ray already inside BK7 hitting a flat exit face at 45° (> critical ≈ 41.2°).
     const flatExit: Prescription = {
