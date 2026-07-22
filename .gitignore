@@ -1,0 +1,17 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Dev-server ownership marker — machine-local, never shared (see scripts/port-guard.mjs)
+.dev-server.json
+*.log
+logs/
+
+# Local secrets / environment
+.env
+.env.*
+!.env.example
+
+# Claude Code: shared settings are committed, per-machine overrides are not
+.claude/settings.local.json

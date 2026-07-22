@@ -1,0 +1,22 @@
+{
+  "name": "telemicroscope",
+  "version": "0.0.0",
+  "description": "Physics-based telescope and microscope simulator on a shared, validated optical engine",
+  "author": "Boyko Neov",
+  "license": "SEE LICENSE IN LICENSE",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ports": "node scripts/port-guard.test.mjs",
+    "typecheck": "tsc --noEmit -p packages/core"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "vitest": "^3.0.0"
+  }
+}

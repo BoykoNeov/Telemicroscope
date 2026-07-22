@@ -1,0 +1,14 @@
+{
+  "name": "@telemicroscope/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./math": "./src/math/index.ts",
+    "./geometry": "./src/geometry/index.ts",
+    "./materials": "./src/materials/index.ts",
+    "./trace": "./src/trace/index.ts"
+  }
+}
