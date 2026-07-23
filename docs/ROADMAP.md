@@ -160,9 +160,26 @@
    equal-f/D paraboloid's, from the stop at the centre of curvature), and a
    spherochromatism rung pinned to the dispersion × corrector figure in closed
    form. This is the textbook corrector the **SCT** reuses, so the SCT is now
-   unblocked. Still to come here: the eyepiece library, the refractor preset, the
-   **SCT** preset (reuses this corrector on a Cassegrain-form pair), and off-axis
-   diagonal vignetting (the partial-vignetting `blendPsf` case § 5c leaves open).
+   unblocked.
+   *Schmidt-Cassegrain:* ✅ `designs/schmidt-cassegrain` (VALIDATION § 5h). The
+   fifth reflecting preset, and the first that exists to *compose* two prior units
+   rather than add physics: the Schmidt corrector (§ 5g) on the primary of a
+   Cassegrain-form pair (§ 5e). It is a *Schmidt-corrected Cassegrain* — spherical
+   primary + Schmidt corrector at its centre of curvature + confocal-hyperboloid
+   secondary — **not** the commercial all-spherical SCT, whose optimised corrector
+   has no external number (the tension `cassegrain.ts` records); every number here
+   stays a closed form, the corrector A₄ referenced to the primary radius and the
+   secondary conic reused verbatim from the shared `twoMirrorLayout`. The anti-drift
+   rung pins its mirror geometry equal to the classical Cassegrain's while the
+   primary conic (sphere vs paraboloid) and stop position differ; the two
+   genuinely-new pins are the two prices the cheap spherical primary buys — an
+   on-axis fifth-order residual (diffraction-limited, ~5 orders above the confocal
+   Cassegrain, falling ~32× as the primary slows f/4 → f/8) and spherochromatism
+   (the one behaviour no all-mirror preset has), pinned to the same closed form the
+   Schmidt camera carries. Still to come here: the eyepiece library, the refractor
+   preset, the **all-spherical commercial SCT** (a later unit transcribing the
+   published two-mirror Seidel corrector formula), and off-axis diagonal vignetting
+   (the partial-vignetting `blendPsf` case § 5c leaves open).
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation

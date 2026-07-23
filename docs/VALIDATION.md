@@ -1466,6 +1466,109 @@ holds it to `lost === 0`.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian, Cassegrain and RC.
 
+## Step 5h — the Schmidt-Cassegrain preset (current)
+
+The fifth reflecting preset, and the first that exists to **compose** two units
+rather than introduce new physics: it is a Schmidt corrector (§ 5g) on the
+primary of a Cassegrain-form pair (§ 5e). The variant built is a *Schmidt-
+corrected Cassegrain* — spherical primary + Schmidt corrector at its centre of
+curvature + convex confocal-hyperboloid secondary — **not** the commercial all-
+spherical "compact SCT", whose corrector is an optimised proprietary surface
+with no external number (the tension recorded in `cassegrain.ts`). Every number
+here stays a closed form: the corrector figure is the Schmidt A₄ referenced to
+the *primary* radius R₁ = 2f₁, and the secondary conic is the classical
+Cassegrain's confocal hyperboloid — both reused verbatim, not re-derived.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| f = D·F, primary f₁ = D·F₁, R₁ = 2f₁, paraxial EFL = m·f₁ | definition | ✅ |
+| Corrector A₄ = −1/(4(n−1)R₁³), from scalars n and R₁; corrector sits at R₁ | consistency + the trace pins it (below) | ✅ |
+| **Shares the classical Cassegrain's MIRROR layout exactly — separation, secondary radius, confocal conic, obstruction all equal; only the primary (sphere vs paraboloid), stop and corrector differ** | shared `twoMirrorLayout` (anti-drift) | ✅ |
+| Obstruction ε = s₁/f₁ the secondary projects onto the pupil | closed form | ✅ |
+| Focus lands b behind the primary vertex, at z = R₁ + b | closed form | ✅ |
+| Refuses a system faster than its primary, an oversize back focus, an over-thick plate, an unknown glass | validity | ✅ |
+| Whole beam through; nothing vignettes on axis | footprint | ✅ |
+| **On axis: the corrector nulls 3rd-order spherical — ~120× better than the corrector-removed sphere, diffraction-limited (Strehl > 0.95)** | 3rd-order correction | ✅ |
+| **The corrector's SIGN is load-bearing: flip A₄ and the error ≈ doubles the bare sphere's** | sign negative control | ✅ |
+| **Diffraction-limited but NOT exactly stigmatic: ~5 orders above the confocal Cassegrain on the same spec** | 3rd-order-only correction (the headline distinction) | ✅ |
+| **Carries a FIFTH-order residual: it falls ~32× when the primary slows f/4 → f/8** | 1/F⁵ scaling (the 2⁵ signature) | ✅ |
+| At a primary f/10 the design-λ residual < 1e-3 waves | 3rd-order null exact; f/4 residual was pure 5th-order | ✅ |
+| **Spherochromatism: Δc₁₁(λ) = (n(λ)−n(550))·A₄·(D/2)⁴/(6√5)/λ, matched to a few %** | dispersion × corrector figure | ✅ |
+| …the shift is monotonic across the visible band | dispersion sign | ✅ |
+| Obstruction stays in the pupil function, not the geometry (blocked/clear energy = 1 − ε²) | annulus area | ✅ |
+
+**The anti-drift rung is the load-bearing structural one.** An SCT and a
+classical Cassegrain built from the same spec must be the same *mirror pair* —
+identical separation, secondary radius, confocal conic (both −4 at m = 3) and
+obstruction — because both flow through `twoMirrorLayout`. What the SCT changes
+is exactly and only: the primary becomes a **sphere** (conic 0, corrector-nulled)
+where the Cassegrain's is a paraboloid, and the **stop moves to the corrector**.
+Pinning the shared numbers equal while the primary conic differs is the same
+both-sides pin the RC carries against the Cassegrain (§ 5f), and it is what stops
+a future edit to the layout from silently desynchronising the two-mirror presets.
+
+**The stop is on the corrector, and that is why the field aberrations are NOT
+cross-checked against the Cassegrain.** Placing the stop at the primary's centre
+of curvature is what lets the r⁴ figure transfer exactly (the input beam is
+collimated, so ray height is preserved plate → primary), but it also gives the
+system a different coma and astigmatism budget than the stop-at-primary
+Cassegrain. So — unlike the RC, whose whole point is a coma cross-validation
+against the Cassegrain — the SCT's off-axis terms are left in the trace and
+unpinned. The two genuinely-new pins are on axis instead, and they are exactly
+the two prices the cheap spherical primary buys.
+
+**On axis it parts company with the confocal Cassegrain, and the rung says so —
+for a different reason than the RC's.** The classical Cassegrain is stigmatic to
+all orders (§ 5e); the SCT, like the Schmidt camera (§ 5g), nulls only *third-
+order* spherical and keeps a fifth-order residual. At f/4 the on-axis wavefront
+is 0.007 waves (Strehl 0.986) against a corrector-removed 0.84 (~120×), and it
+sits ~5 orders above the confocal Cassegrain's ~1e-8 on the identical spec. That
+the residual is genuinely fifth-order is its own rung: slowing the primary f/4 →
+f/8 drops it ~32× — the 2⁵ signature of a fifth-order term, the same the RC shows
+(§ 5f). At a primary f/10 it has all but vanished (7·10⁻⁵ waves), the on-axis
+proof that A₄ nulls the third order *exactly*. The sign control (flip A₄ →
+≈ 2× the bare error) pins the corrector's sign, exactly as for the Schmidt camera.
+
+**Spherochromatism is the one behaviour no all-mirror preset has, and it is why
+the SCT earns its own place rather than being a corrected Cassegrain footnote.**
+The refractive corrector is figured for one wavelength; away from it the residual
+is the corrector's own r⁴ figure scaled by the index change — a pure primary-
+spherical term, refocus-invariant, whose j = 11 projection is the closed form
+above. Pinned on a slow (primary f/10) camera on purpose, so the fifth-order
+monochromatic residual (also on j = 11, ∝ 1/F⁵) has shrunk to a few percent and
+the traced chromatic shift sits at 0.96–0.98 of the closed form — the same "just
+below the third-order line because the trace carries the higher order the formula
+omits" signature the Cassegrain coma and Schmidt spherochromatism rungs carry.
+
+**The corrector, primary and secondary each overfill their clear aperture by 2%.**
+The pupil is D/2, set by the system's stop radius. The corrector and primary run
+a hair wider so the pupil's rim ring is not shaved at the aspheric stop, as for
+the Schmidt camera. The secondary needs its *own* extra margin beyond
+`twoMirrorLayout`'s sag-exact cone: the corrector refracts the marginal ray
+outward (the very bend that corrects the SA), so it reaches the secondary ~0.5%
+wider than the bare-Cassegrain footprint, which assumes the ray leaves the
+primary rim at D/2. The same 2% clears it on every geometry the rungs exercise,
+the reported obstruction stays the clean paraxial ε, and "whole beam through"
+holds it to `lost === 0`.
+
+### Not yet pinned
+- **The all-spherical commercial SCT.** This preset makes the secondary a
+  hyperboloid (half the confocal pairing); the Celestron/Meade design keeps both
+  mirrors spherical and lets the corrector null the *combined* two-mirror
+  spherical aberration. That corrector figure is a published two-mirror Seidel
+  closed form (Schroeder Ch. 6; Rutten & van Venrooij) — a later unit that
+  transcribes it rather than deriving it, so it does not become an engine-vs-own-
+  algebra check.
+- **Off-axis field aberrations.** Coma, astigmatism and field curvature are in
+  the trace but unpinned (the stop-at-corrector budget is neither the
+  Cassegrain's nor a clean closed form). The SCT is a compromise between the
+  Schmidt's wide field and the Cassegrain's compactness, not an anastigmat.
+- **The prime-focus / secondary obstruction and the primary hole.** Obstruction
+  bookkeeping in the pupil function, not traced blockers, as for the Cassegrain
+  and Schmidt.
+- **App wiring.** The engine preset exists and is pinned; the app still renders
+  only the refractor path, as it does for the other four reflecting presets.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
