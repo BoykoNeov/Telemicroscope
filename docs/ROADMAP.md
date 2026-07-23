@@ -74,8 +74,15 @@
      resolving the 0.049 residual — a real 90° kernel-orientation bug (see
      VALIDATION § 3c) — after which `renderField`'s orientation was pinned by
      symmetry rungs and its first real picture was rendered, looked at, and
-     committed as a golden. Still open: a multi-star field panel in the app,
-     which belongs with the step-5 app work.
+     committed as a golden.
+   - **Multi-star field panel ✅** — the last step-4 leftover, now in the app:
+     `renderField` exposed as a 5×5 star field through the achromat, each patch
+     tracing its own PSF so coma flares radially outward and grows toward the
+     corners. App wiring only — the capability was already pinned (render.test
+     symmetry rungs) — but it surfaced the framing lesson that at the native PSF
+     pixel scale the frame spans ~0.06° and the field is effectively
+     shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
+     it. Rendered coarse-to-fine in its own worker.
 5. **Telescope branch + bench editor + mech layer** ← current
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
