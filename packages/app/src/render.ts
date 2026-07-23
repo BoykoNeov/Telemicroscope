@@ -2,7 +2,7 @@ import { refractorPair } from "@telemicroscope/core/designs";
 import { bestFocus, withFocus } from "@telemicroscope/core/analysis";
 import type { OpticalSystem } from "@telemicroscope/core/trace";
 import { blackbodySpectrum, quadratureSamples, spectralSamples } from "@telemicroscope/core/photometry";
-import { spectralStack } from "@telemicroscope/core/wave";
+import { kolmogorovScreen, spectralStack } from "@telemicroscope/core/wave";
 import {
   colorImageFromStack,
   integratedXyz,
@@ -35,6 +35,14 @@ export interface RenderRequest {
   readonly pupilSamples: number;
   /** Display gain: white is a pixel holding 1/`whiteFraction` of the frame. */
   readonly whiteFraction: number;
+  /**
+   * Atmospheric seeing strength as D/r₀ — the one number the physics is pinned
+   * on. 0 is off (no screen). It is D/r₀ rather than r₀ in mm because the app's
+   * apertures (4–20 mm) are far below any real r₀, so seeing would be invisible;
+   * dialling D/r₀ builds an r₀ scaled to the current aperture, which keeps the
+   * effect on screen at every aperture and stays honest about what is shown.
+   */
+  readonly seeingDOverR0: number;
 }
 
 export interface RenderResult {
@@ -61,6 +69,14 @@ export interface RenderResult {
    */
   readonly truncatedFraction: number;
   readonly geometricWeight: number;
+  /**
+   * Largest wavefront step the seeing screen puts between adjacent FFT-grid
+   * samples, in waves — the bluest wavelength's, since the stack takes the max.
+   * 0 when seeing is off. Past ½ the screen is under-resolved on this grid and
+   * the image stops being trustworthy: the fidelity switch is blind to the
+   * screen (it runs on the trace), so this is the only guard that catches it.
+   */
+  readonly seeingPhaseStepWaves: number;
 }
 
 /** A render asked of the worker; `seq` lets the caller discard stale replies. */
@@ -101,10 +117,27 @@ export function renderStar(request: RenderRequest): RenderResult {
   // blur area (wave/geometric defaultRayGrid), which replaced this app's
   // aperture-keyed stopgap. Wide open costs more rays because it genuinely
   // needs them; the elapsed-ms readout is where that cost stays visible.
+  // One atmosphere for the whole spectrum: a single OPD screen, scaled to this
+  // aperture, reused across every wavelength (bluer sees more waves of it — the
+  // stack carries that for free). Fixed seed, so it is a single short-exposure
+  // realization — a speckle pattern, not the ensemble-averaged seeing disc —
+  // that morphs continuously as the dial moves rather than re-drawing.
+  const screen =
+    request.seeingDOverR0 > 0
+      ? kolmogorovScreen({
+          friedParamMm: request.apertureMm / request.seeingDOverR0,
+          apertureDiameterMm: request.apertureMm,
+          screenSamples: 256,
+          oversize: 4,
+          subharmonics: 6,
+          seed: 1,
+        })
+      : null;
   const stack = spectralStack(system, 0, {
     pupilSamples: request.pupilSamples,
     padFactor: 4,
     traceSamples: 21,
+    ...(screen === null ? {} : { seeing: screen }),
   });
   const image = colorImageFromStack(stack);
   const elapsedMs = performance.now() - started;
@@ -141,6 +174,7 @@ export function renderStar(request: RenderRequest): RenderResult {
     fNumber: request.focalLengthMm / request.apertureMm,
     truncatedFraction: stack.truncatedFraction,
     geometricWeight: Math.max(...stack.planes.map((p) => p.geometricWeight)),
+    seeingPhaseStepWaves: screen === null ? 0 : stack.maxGridPhaseStepWaves,
   };
 }
 

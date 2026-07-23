@@ -176,6 +176,7 @@ const DEFAULTS: Omit<RenderRequest, "lens"> = {
   wavelengths: 9,
   pupilSamples: 64,
   whiteFraction: 1 / 8000,
+  seeingDOverR0: 0,
 };
 
 function StarCanvas({ request }: { request: RenderRequest }) {
@@ -223,6 +224,24 @@ function StarCanvas({ request }: { request: RenderRequest }) {
             {halo < core ? "(halo bluer)" : "(no drift)"}
             <br />
             {result.elapsedMs.toFixed(0)} ms
+            {request.seeingDOverR0 > 0 && (
+              <>
+                <br />
+                <span style={{ color: "#06a" }}>
+                  atmosphere D/r₀ {request.seeingDOverR0.toFixed(1)} — one short-exposure
+                  realization (a speckle, not the long-exposure disc)
+                </span>
+                <br />
+                {/* The guard, shown as a live number rather than a warning that never
+                    fires: the fixed 256²/oversize-4 screen keeps the step well under
+                    ½ at every dial value, so the honest thing is to display where it
+                    actually sits (engine number, red only if it ever crosses). */}
+                <span style={{ color: result.seeingPhaseStepWaves >= 0.5 ? "#c00" : "#3a7" }}>
+                  screen {result.seeingPhaseStepWaves >= 0.5 ? "UNDER-RESOLVED" : "resolved"} on the
+                  FFT grid: {result.seeingPhaseStepWaves.toFixed(2)} waves/sample (limit ½)
+                </span>
+              </>
+            )}
             {result.geometricWeight > 0 && (
               <>
                 <br />
@@ -316,6 +335,7 @@ export default function App() {
   const [temperature, setTemperature] = useState(DEFAULTS.sourceTemperatureK);
   const [wavelengths, setWavelengths] = useState(DEFAULTS.wavelengths);
   const [exposure, setExposure] = useState(8000);
+  const [seeing, setSeeing] = useState(DEFAULTS.seeingDOverR0);
 
   // Each panel traces in its own worker (`useRenderedStar`), so the sliders
   // never touch the optical pipeline: the thumb tracks the finger and the panel
@@ -329,15 +349,16 @@ export default function App() {
     sourceTemperatureK: temperature,
     wavelengths,
     whiteFraction: 1 / exposure,
+    seeingDOverR0: seeing,
   });
 
   const singlet = useMemo(
     () => requestFor("singlet"),
-    [aperture, temperature, wavelengths, exposure],
+    [aperture, temperature, wavelengths, exposure, seeing],
   );
   const achromat = useMemo(
     () => requestFor("achromat"),
-    [aperture, temperature, wavelengths, exposure],
+    [aperture, temperature, wavelengths, exposure, seeing],
   );
 
   // The field panel shares the same sliders but renders the achromat across the
@@ -401,6 +422,14 @@ export default function App() {
           value={exposure}
           onChange={setExposure}
         />
+        <Slider
+          label={seeing === 0 ? "seeing off" : `seeing D/r₀ ${seeing.toFixed(1)}`}
+          min={0}
+          max={4}
+          step={0.5}
+          value={seeing}
+          onChange={setSeeing}
+        />
       </div>
 
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
@@ -413,6 +442,13 @@ export default function App() {
         fringe reddens because the spectrum moved, not because anything was recoloured. Each panel
         traces in its own worker — the elapsed time is real, and it is why the panel dims while it
         catches up.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 640 }}>
+        The <strong>seeing</strong> dial stamps an atmospheric phase screen — one Kolmogorov draw,
+        scaled to the aperture — onto both star panels. It is a single short exposure, so what you
+        see is a speckle, not the fuzzy long-exposure disc (that is an ensemble average, the next
+        step). One screen serves the whole spectrum, and the blue speckles smear more because the
+        same air is more wavelengths deep to them. The field panel below is left seeing-free for now.
       </p>
 
       <h1 style={{ fontSize: 20, marginTop: 40 }}>The same star, across the field</h1>
