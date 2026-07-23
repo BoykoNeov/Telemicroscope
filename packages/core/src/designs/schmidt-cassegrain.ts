@@ -94,7 +94,16 @@ import { twoMirrorLayout, TwoMirrorSpec } from "./two-mirror";
  * best focus, so field-curvature defocus does not contaminate them); off-axis
  * coma/astigmatism are present in the trace but unpinned, since with the stop at
  * the corrector they are neither the classical Cassegrain's nor a clean closed
- * form. All are recorded in docs/VALIDATION.md § 5h.
+ * form.
+ *
+ * The mirrors are sized for the ON-AXIS beam only (like the Cassegrain/RC
+ * secondary), so off-axis beams VIGNETTE at both mirrors as an artifact of
+ * sizing, not physics — and more than the Cassegrain/RC do, because the forward
+ * stop also walks the beam off the D/2 primary (the siblings' stop is the
+ * primary, so only their secondary clips). Every rung here runs on axis, so none
+ * is affected. Field-sizing all three two-mirror presets uniformly is a shared,
+ * app-field-render-driven deferral — do it when the app needs off-axis beams to
+ * pass, not as an SCT one-off. All recorded in docs/VALIDATION.md § 5h.
  */
 export interface SchmidtCassegrainSpec extends TwoMirrorSpec {
   /**

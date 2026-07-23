@@ -1563,6 +1563,20 @@ holds it to `lost === 0`.
   the trace but unpinned (the stop-at-corrector budget is neither the
   Cassegrain's nor a clean closed form). The SCT is a compromise between the
   Schmidt's wide field and the Cassegrain's compactness, not an anastigmat.
+- **Off-axis vignetting is a sizing artifact here, not physics.** The mirrors are
+  sized for the on-axis beam only, exactly as the Cassegrain/RC secondary is, so
+  an off-axis pupil clips — measured ~9% at 0.3° — and it clips at *both* mirrors,
+  worse than the Cassegrain/RC, because the forward stop (at the corrector) walks
+  the beam off the D/2 primary as well as the secondary, where the siblings' stop
+  *is* the primary and only their secondary clips. This does not touch any rung
+  (all run on axis, `lost === 0`), but a copied off-axis rung would fit over a
+  clipped pupil. **Sizing is rung-driven in this project** — the Schmidt
+  field-sizes because its anastigmat rung asserts `lost === 0` off axis; the
+  two-mirror presets do not, because their off-axis rungs measure wavefront shape
+  over the survivors. Field-sizing all three two-mirror presets uniformly (propagate
+  the R·tanθ chief-ray walk to primary and secondary) is a shared, app-field-render-
+  driven deferral, to be done together when the app needs off-axis beams to pass —
+  not an SCT one-off on fresh sizing math.
 - **The prime-focus / secondary obstruction and the primary hole.** Obstruction
   bookkeeping in the pupil function, not traced blockers, as for the Cassegrain
   and Schmidt.
