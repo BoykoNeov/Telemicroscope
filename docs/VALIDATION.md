@@ -1124,12 +1124,22 @@ colour-honesty rung. The guard rides up for free: `SpectralStack.maxGridPhaseSte
 Waves` is the max across wavelengths, so it keys on the bluest, worst-resolved
 plane. The app surfaces exactly that number on its **seeing dial**
 (`seeingPhaseStepWaves`) as a live readout — green while resolved, red past ½.
-It is a *readout, not a warning*, on purpose: the fixed 256²/oversize-4 screen
-keeps the step ≈ 0.2–0.3 waves/sample at every dial value, so a threshold alert
-would be dead code; showing where the guard actually sits keeps it observable and
-honours "every number on screen comes from the engine." (The gate can only trip
-under a screen deliberately under-sampled — which the ensemble rung is what
-exercises.) The app draws a **single fixed-seed screen** (a short-exposure
+A *readout, not a binary warning*, and the reason is empirical: at D/r₀ = 4 the
+singlet's readout reads **0.53 waves/sample and turns red** — the gate genuinely
+trips inside the app's own range, not only under a deliberately under-sampled
+screen. It trips because the guard measures the *final* pupil (native aberration
++ screen): the singlet's uncorrected chromatic wavefront — worst in the bluest
+plane, which the stack maxes over — adds to the shared screen, while the
+well-corrected achromat sits at 0.34 and stays green on the byte-identical
+screen. So the number carries more than a threshold could: it shows *where* the
+wavefront sits on the grid at every dial value and turns red exactly when the
+total gradient crosses ½ — and honours "every number on screen comes from the
+engine." (An earlier note here claimed this fixed 256²/oversize-4 screen "keeps
+the step ≈ 0.2–0.3 waves/sample at every dial value," so a warning would be dead
+code; the running app disproves it — 0.53 at D/r₀ = 4. That reasoning was
+measured on the deferral rung's aperture-20 screen and does not carry to the
+app's 4–20 mm apertures with their bluer polychromatic planes.) The app draws a
+**single fixed-seed screen** (a short-exposure
 speckle that morphs continuously as the dial moves, not the ensemble-averaged
 disc), and dials **D/r₀** rather than r₀ so the effect stays visible at the toy
 4–20 mm apertures; the long-exposure ensemble and the field-panel wiring are
