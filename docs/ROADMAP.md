@@ -122,9 +122,25 @@
    with r₀_eff flat across frequency, the λ/r₀ scaling, and FWHM ≈ 0.98 λ/r₀.
    Being pure phase it lives only in the FFT branch; the geometric ∇φ ray-tilt
    is the named deferral.
-   Still to come here: the eyepiece library, the SCT/refractor presets, and
-   off-axis diagonal vignetting (the partial-vignetting `blendPsf` case § 5c
-   leaves open).
+   *Classical Cassegrain:* ✅ `designs/cassegrain` (VALIDATION § 5e). The second
+   reflecting preset and the first with two powered mirrors — a paraboloidal
+   primary and a convex hyperboloidal secondary, authored `unfolded` (a
+   Cassegrain has no lateral fold: the beam goes back and forward on one axis
+   through a hole in the primary, exactly the two-mirror case already pinned
+   against the mirror equation, so no new trace machinery). Its headline rung is
+   the confocal-conic property: on axis it is stigmatic *exactly* → Strehl 1 to
+   numerical precision, with a spherical-secondary negative control, and its coma
+   is pinned by cross-validation to equal an equivalent-EFL paraboloid's. This is
+   the *pinnable* member of the family; the **SCT** the list names corrects
+   spherical mirrors with an optimized proprietary corrector that has no external
+   number, so it would need a design table to hide behind. The aspheric corrector
+   lands in its own later unit whose clean pin is a **Schmidt camera** (single
+   spherical mirror + textbook corrector figure — the first `asphereCoeffs`
+   preset); the **Ritchey-Chrétien** (both mirrors hyperboloidal, coma nulled) is
+   a closed-form sibling that can land alongside.
+   Still to come here: the eyepiece library, the refractor preset, the
+   RC/SCT/Schmidt presets above, and off-axis diagonal vignetting (the
+   partial-vignetting `blendPsf` case § 5c leaves open).
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation

@@ -1145,6 +1145,122 @@ disc), and dials **D/r₀** rather than r₀ so the effect stays visible at the 
 4–20 mm apertures; the long-exposure ensemble and the field-panel wiring are
 named next.
 
+## Step 5e — the classical Cassegrain preset (current)
+
+The second reflecting preset, and the first two-powered-mirror instrument. Like
+the Newtonian it has no design table to hide behind: a paraboloidal primary and
+a convex hyperboloidal secondary, every number a closed form or a traced
+consequence of one. It is the *pinnable* member of the Cassegrain family — the
+Schmidt-Cassegrain the roadmap names corrects two spherical mirrors with an
+OPTIMIZED, proprietary corrector plate that has no external number to pin
+against, so it would violate the hard rule; the classical design has its number
+for free because it is defined by geometry rather than optimization. The
+aspheric corrector belongs to a later unit whose clean pin is a Schmidt camera
+(single spherical mirror + corrector, textbook figure).
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| System EFL = m·f₁ = D·F, reported and traced paraxially | definition | ✅ |
+| Secondary radius, conic and separation are the confocal closed forms | closed form | ✅ |
+| Obstruction = s₁/f₁, the projected secondary | closed form | ✅ |
+| Focus lands b behind the primary vertex (the accessible-focus payoff) | closed form | ✅ |
+| Refuses a system faster than its primary, and an oversize back focus | validity | ✅ |
+| **On axis the two confocal conics are stigmatic: RMS < 1e-6 waves** | conic focal property | ✅ |
+| **Diffraction-limited on axis: Strehl 1** | conic focal property | ✅ |
+| **The confocal formula is stigmatic across m = 2, 3, 4, not just one m** | conic focal property | ✅ |
+| A spherical secondary is NOT stigmatic (⅓ wave, Strehl < 0.1) | negative control | ✅ |
+| The whole beam gets through; a secondary cut to the paraxial cone clips it | sag footprint | ✅ |
+| An obstructed pupil passes 1 − ε² of the light | annulus area | ✅ |
+| A star lands at ≈ f·tan θ — with a real distortion residual — at its azimuth | plate scale + distortion | ✅ |
+| Coma matches the third-order θ·D/(32F²√72) at the system focal ratio | third-order theory | ✅ |
+| **Coma equals a paraboloid of the same SYSTEM focal length, to four figures** | cross-check (see below) | ✅ |
+| Coma ∝ field angle, tight in the small-angle regime | scaling | ✅ |
+| Coma ∝ 1/F² at fixed primary | scaling | ✅ |
+| Coma ∝ aperture at fixed focal ratios | scaling | ✅ |
+
+**It is authored `unfolded`, not folded — the counter-intuitive part.** The
+Newtonian needed the fold because its diagonal steers the beam out the side of
+the tube. A Cassegrain does not: the primary reflects the beam straight back
+(−z), the secondary reflects it forward again (+z) through a hole in the primary
+to a focus behind it, every vertex on one z-axis with thicknesses alternating
+sign per mirror. That is *exactly* the two-curved-mirror case already pinned
+against the mirror equation in `compile.test.ts` — so the preset needed no new
+trace machinery, only the design math and these rungs. The primary's central
+hole is obstruction bookkeeping, not an annular aperture: the sequential trace
+meets the primary once, on the way in, where the beam is wide and the hole a
+small near-axis region the marginal rays miss; the returning beam is
+post-secondary and is never re-tested against it.
+
+**The on-axis rung is the strongest here and needs no table, exactly as the
+Newtonian's does.** A paraboloid images an axial point at infinity with zero
+error; a hyperboloid images one of its geometric foci onto the other with zero
+error. Place the hyperboloid's near focus on the paraboloid's focus and the pair
+is stigmatic *exactly* — not to third order, to numerical precision. The traced
+RMS sits at 1.5e-10 waves and every ray height crosses the axis at the same
+point to six figures. Writing the design turned up the one place a sign or a
+factor can hide and still pass a paraxial check: the secondary radius is
+2·m·s₁/(m−1), and the tempting (m+1) denominator under-powers it by exactly a
+factor of two — the beam then *diverges* out of the secondary to a virtual focus
+with the right cone angle but the wrong sign, so a paraxial-only test that
+matched cone angles would sail through. The stigmatism pin catches it at once
+(RMS jumps from 1e-10 to hundreds of waves), which is why the exact
+conic-focal-property rung is worth more than a paraxial layout check. The
+spherical-secondary negative control (⅓ wave even at best focus, against the
+hyperboloid's 1e-10) proves the conic, not the layout, is what nulls it.
+
+**The formula is pinned across magnifications, not just at one.** A single
+stigmatic design would only prove k₂ = −((m+1)/(m−1))² *at that m* — and a wrong
+conic at another magnification injects rotationally symmetric SPHERICAL
+aberration, which the j = 8 coma rungs are structurally blind to and the
+cross-check below could not see either (that compares coma). So a dedicated rung
+runs the on-axis wavefront at m = 2, 3 and 4 (two routes to m = 4, from different
+primaries): all sit at ~2·10⁻¹⁰ waves with nothing lost. That is what pins the
+*formula* rather than one instance of it.
+
+**The external coma pin is the third-order θ·D/(32F²) at the SYSTEM focal
+ratio**, the same closed form the Newtonian uses, and it sits just under 1 for
+the same reason: the trace carries the higher-order coma the theory omits,
+shrinking as the system slows (0.12% at F/8, 0.06% at F/16). The **cross-check**
+beside it — that the traced Cassegrain coma equals the traced coma of a
+prime-focus paraboloid of the system focal length, to four figures across three
+designs — is engine-vs-engine and so is a *consistency* check by this ladder's
+own rule (it earns its place because the equivalent-paraboloid coma is itself
+externally pinned, by § 4b's single-mirror rungs, and because it ties the new
+two-mirror preset to that already-validated machinery — but the external number
+is the third-order one, not this).
+
+**Two tolerances are set by real physics, not convenience, and are recorded so
+the numbers are on the record rather than looking like slack.** The plate scale
+is f·tan θ only *approximately*, because a Cassegrain has distortion (the single
+paraboloid Newtonian does not, which is why its rung held to six decimals): the
+image height departs by a cubic term, 4e-5 relative at 0.3°, and the rung pins
+it as ≈, the way § 3c does, because the gap is the physics. The coma-linearity
+rung then follows this ladder's standing discipline — *tighten the regime, don't
+widen the band*: it is asserted at 0.05° → 0.1° (ratio 1.9999) where the linear
+coma dominates, rather than over a 4× lever where the Cassegrain's fast (F/4)
+primary folds in a genuine higher-order field term. That term is real and
+measured, not a tolerance excuse: from 0.1° to 0.4° the coma grows 3.994× (not
+4×) and the equivalent-paraboloid cross-check drifts from 0.99991 to 0.99857 in
+lockstep — so the sublinearity is kept *out* of the linearity rung, where a slow
+paraboloid would have hidden it, rather than absorbed into a loose band.
+
+### Not yet pinned
+- **The secondary is circular and on-axis.** A Cassegrain secondary offset or
+  tilt (the misalignment tolerancing case) is expressible but unpinned, and the
+  circular clear aperture is sized to the on-axis beam, so off-axis vignetting by
+  the secondary is exercised by nothing yet — the same status the Newtonian's
+  diagonal has.
+- **Astigmatism and field curvature** are present in the trace and unpinned;
+  coma dominates a classical Cassegrain off axis but it is not the only term, and
+  the field curvature of a Cassegrain is strong.
+- **App wiring.** The engine preset exists and is pinned; the app still renders
+  only the refractor path, as it does for the Newtonian. Belongs with the step-5
+  app work.
+- **The Ritchey-Chrétien and Schmidt-Cassegrain** are the family's other
+  members: the RC departs from the classical conics to null coma too (both
+  mirrors hyperboloidal, a closed-form conic pair — pinnable), and the SCT needs
+  the aspheric corrector, best pinned first through a Schmidt camera.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
