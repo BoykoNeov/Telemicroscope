@@ -114,8 +114,16 @@
    geometric branches — so a reflector's diffraction spikes fall out of the same
    transform the Airy rings do: perpendicular to each vane, 4→cross / 3→six-arm
    star, pinned to the rectangle-transform sinc and the strip-area energy.
-   Still to come here: the eyepiece library, seeing, the SCT/refractor presets,
-   and off-axis diagonal vignetting (the partial-vignetting `blendPsf` case § 5c
+   *Atmospheric seeing:* ✅ (VALIDATION § 5d). Turbulence is the one random draw
+   in the image, and it arrives the same way — a `PupilFunction` *phase*,
+   `withPhaseScreen`, added onto the optics. A subharmonic-augmented Kolmogorov
+   screen (seeded, in OPD so it is colour-honest) is pinned by its statistics:
+   the structure function's 5/3 law, Fried's long-exposure OTF exp(−3.44(ρ/r₀)^⁵ᐟ³)
+   with r₀_eff flat across frequency, the λ/r₀ scaling, and FWHM ≈ 0.98 λ/r₀.
+   Being pure phase it lives only in the FFT branch; the geometric ∇φ ray-tilt
+   is the named deferral.
+   Still to come here: the eyepiece library, the SCT/refractor presets, and
+   off-axis diagonal vignetting (the partial-vignetting `blendPsf` case § 5c
    leaves open).
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —

@@ -4,3 +4,4 @@ export * from "./mtf";
 export * from "./fidelity";
 export * from "./geometric";
 export * from "./polychromatic";
+export * from "./seeing";

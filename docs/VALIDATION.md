@@ -1028,10 +1028,92 @@ on both branches, but its two visible signatures live one to a branch, and the
 orientation/spike rungs run on the paraboloid at focus where the diffraction
 branch is fully active (Strehl 1, no aliasing).
 
+## Step 5d — atmospheric seeing: the one random draw in the image (current)
+
+The turbulence a ground telescope looks through stamps a random optical-path
+error across the pupil, and it arrives exactly as ARCHITECTURE promised the
+successor to the obstruction and the spider would: **a `PupilFunction` phase,
+added onto whatever the optics already did, with the transform in `wave/psf`
+never changing.** `withPhaseScreen` is that addition. Unlike the spider it is
+*pure phase* — no amplitude mask — so it lives only in the FFT branch (see the
+geometric deferral below), and unlike everything before it there is no closed
+form for a single realisation: a speckle pattern is a speckle pattern. What is
+pinned is the **statistics**, and they follow from one law, the phase structure
+function D_φ(r) = 6.88·(r/r₀)^(5/3), through the two observables the ensemble
+average must reproduce.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **D_φ(r) follows the 5/3 power law over the resolved mid-band** | Kolmogorov spectrum, the shape | ✅ |
+| …and D_φ(r₀) matches the constant 6.88 within the finite-screen band | Kolmogorov, the magnitude | ✅ |
+| **The long-exposure OTF is exp(−3.44·(ρ/r₀)^(5/3)): r₀_eff ≈ r₀** | Fried, the seeing transfer function | ✅ |
+| …and r₀_eff is **flat across frequency** — an r₀ shift, not a shape error | the effective-r₀ discriminator | ✅ |
+| **Seeing is set by r₀ not aperture: r₀_eff ≈ r₀ at two different D/r₀** | D-independence / the λ/r₀ scaling | ✅ |
+| The long-exposure FWHM ≈ 0.98·λ/r₀ where it is well resolved | Fried, the headline number | ✅ |
+| The FFT grid resolves the screen: maxGridPhaseStepWaves < ½ wave | the under-resolution guard | ✅ |
+| A screen is stored as OPD, so halving λ doubles its waves | r₀ ∝ λ^(6/5), colour-free path | ✅ |
+
+The ladder is **ε = 0-first**, the isolated-slit playbook again: the structure
+function is pinned on the bare screen *before any transform* — the generator in
+isolation — and only then do the OTF and FWHM lean on it. The generator is an
+FFT screen (white noise coloured by √Φ) with **subharmonics** (Lane/Johansson)
+added below the grid fundamental; without them a bare FFT screen undershoots
+D_φ at large r by ~35% because the largest turbulent scales fall through the
+grid, and the subharmonics are the seeing counterpart of the edge-resolving
+trick in `pupilSampling` — a known discretisation error, corrected where it
+bites. Randomness runs through a **seeded** `mulberry32` (`math/random`), never
+`Math.random`: an ensemble rung that averages 120 screens has to replay
+identically or its tolerance means nothing.
+
+The **one honest tolerance is a single number seen three ways.** A finite screen
+truncates the largest scales the infinite Kolmogorov spectrum keeps forever, so
+the generator carries a small *effective-r₀ inflation* — the seeing comes out a
+touch milder than r₀ says. It shows up once and consistently: a ~5–15% deficit
+in D_φ at large r, a ~2–5% high bias in r₀_eff, a ~5–15% narrow bias in the
+pixel FWHM. That it is a single **r₀ shift and not a shape distortion** is what
+the OTF rung proves and what earns the documented band — the same way the
+spider's (w/D)² rectangle-approximation tolerance is earned. The proof is
+`r0_eff` recovered from the OTF at each frequency: it comes back **flat across
+the whole meaningful band** (1.00–1.05 of r₀ from u = 0.05 to 0.16), which a
+shape error could not do. So the tight, converged pin is the OTF's r₀_eff; the
+pixel FWHM is deliberately the *loose* rung, band-pinned where it is well
+resolved (D/r₀ = 4) — it is one geometric measurement on a still-lumpy mean and
+the slowest-converging feature, and its finite-screen narrow-bias itself grows
+with D/r₀, so a raw FWHM *ratio* across apertures is contaminated where the
+OTF's r₀_eff is not. That is why the **λ/r₀ scaling and D-independence are stated
+on the OTF** (r₀_eff ≈ r₀ at both D/r₀ = 4 and 8) rather than on a FWHM ratio: a
+bigger telescope returns the *same* r₀, so it does not resolve past the seeing,
+and FWHM ∝ 1/r₀ follows analytically from the OTF being Fried's form.
+
+**Ensembles are sized for convergence, and that is the cost.** The long-exposure
+quantities are averages over many screens and the low-order wander converges as
+1/√N, so these rungs run ~120 screens each and are the heaviest in the suite
+(~35 s). Fewer screens passed on one seed set and drifted on the next — the FWHM
+of the mean moved 16% between 30 and 60 screens at D/r₀ = 10 — so the ensemble
+size is set by measured convergence, not guessed, and the tolerances were fixed
+only after checking N = 80 against N = 160.
+
+**The geometric branch is deferred, and honestly.** A phase screen has no
+amplitude mask, so — unlike the spider, whose shadow carried into the ray
+histogram — seeing has no geometric counterpart here: the ray-drop's analog
+would be deflecting each ray by ∇φ, a separate capability. This matters only
+when the *system's own* aberration is bad enough to trip the fidelity fallback;
+a well-corrected telescope on axis, which is where seeing is actually watched,
+stays on the FFT branch and images correctly. The trap the deferral must not
+spring is a screen the FFT grid cannot resolve — and the fidelity criterion is
+measured on the raw traced samples, so it is *blind to the screen*. That is why
+a rung asserts `maxGridPhaseStepWaves < ½` on the final pupil directly: it is
+the only thing that catches an under-resolved screen, and it holds even under
+strong seeing (0.19–0.23 waves at D/r₀ = 4–8). The pairing to state is the
+spider's, one branch further: **the spider's spike is an FFT phenomenon and its
+shadow a geometric one; seeing is an FFT phenomenon whose geometric analog is
+not yet built** — named, not overlooked.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
-- Seeing: long-exposure FWHM ≈ 0.98 λ/r0 for Kolmogorov screens.
+- Seeing's geometric-branch analog: rays deflected by ∇φ, so a seeing blur
+  survives the fidelity fallback (the § 5d deferral).
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
 
