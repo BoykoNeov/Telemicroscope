@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   hueProfile,
+  type FieldFrame,
+  type FieldJob,
+  type FieldRequest,
+  type FieldResult,
   type LensKind,
   type RenderDone,
   type RenderJob,
@@ -77,6 +81,78 @@ function useRenderedStar(request: RenderRequest): {
   }, [request, post]);
 
   return { result, pending };
+}
+
+/**
+ * Runs a star field through the field worker, painting each refinement level.
+ *
+ * The field render answers one job with several frames (coarse patch grids
+ * first, then the finest), so this differs from `useRenderedStar` in one place
+ * that matters: it advances its backpressure queue only when a frame arrives
+ * with `done`. Advancing on the first (coarse) frame — as the single-reply hook
+ * does — would fire the next queued job mid-refinement and the finest grid would
+ * never paint. The stale-`seq` guard still drops frames from a superseded job.
+ */
+function useRenderedField(request: FieldRequest): {
+  result: FieldResult | null;
+  refining: boolean;
+} {
+  const workerRef = useRef<Worker | null>(null);
+  const seqRef = useRef(0);
+  const busyRef = useRef(false);
+  const queuedRef = useRef<FieldRequest | null>(null);
+  const [result, setResult] = useState<FieldResult | null>(null);
+  const [refining, setRefining] = useState(true);
+
+  const post = useCallback((req: FieldRequest) => {
+    const worker = workerRef.current;
+    if (!worker) return;
+    seqRef.current += 1;
+    busyRef.current = true;
+    setRefining(true);
+    worker.postMessage({ seq: seqRef.current, request: req } satisfies FieldJob);
+  }, []);
+
+  useEffect(() => {
+    const worker = new Worker(new URL("./render.field.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    worker.onmessage = (event: MessageEvent<FieldFrame>) => {
+      // A superseded job keeps posting its remaining levels; drop them whole.
+      if (event.data.seq !== seqRef.current) return;
+      setResult(event.data.result);
+      // Every frame paints, but only the finest releases the queue: the worker
+      // runs a job to completion before reading the next message, so the queued
+      // request waits here until `done` rather than interrupting refinement.
+      if (!event.data.done) return;
+      const next = queuedRef.current;
+      queuedRef.current = null;
+      if (next) {
+        post(next);
+      } else {
+        busyRef.current = false;
+        setRefining(false);
+      }
+    };
+    workerRef.current = worker;
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+      busyRef.current = false;
+      queuedRef.current = null;
+    };
+  }, [post]);
+
+  useEffect(() => {
+    if (!workerRef.current) return;
+    if (busyRef.current) {
+      queuedRef.current = request;
+    } else {
+      post(request);
+    }
+  }, [request, post]);
+
+  return { result, refining };
 }
 
 /**
@@ -176,6 +252,65 @@ function StarCanvas({ request }: { request: RenderRequest }) {
   );
 }
 
+/**
+ * A field of identical stars, imaged through a PSF that changes across the
+ * frame — so the on-axis star is a tight disk and the corner stars wear coma
+ * tails that point radially outward, because that is what the achromat does off
+ * axis. Nothing is drawn: the tails are where the light actually lands.
+ *
+ * The frame refines coarsest-first (`useRenderedField`), so a blocky preview
+ * appears fast and sharpens in place rather than the panel sitting blank.
+ */
+function FieldCanvas({ request }: { request: FieldRequest }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const { result, refining } = useRenderedField(request);
+
+  useEffect(() => {
+    if (!result) return;
+    const element = canvas.current;
+    if (!element) return;
+    element.width = result.size;
+    element.height = result.size;
+    const context = element.getContext("2d");
+    if (!context) return;
+    const pixels = new Uint8ClampedArray(result.rgba);
+    context.putImageData(new ImageData(pixels, result.size, result.size), 0, 0);
+  }, [result]);
+
+  return (
+    <figure style={{ margin: 0 }}>
+      <canvas
+        ref={canvas}
+        style={{ width: 420, height: 420, imageRendering: "pixelated", background: "#000" }}
+      />
+      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+        {result ? (
+          <>
+            <strong>{request.lens}</strong> field · f/{result.fNumber.toFixed(1)} ·{" "}
+            {result.starCount} stars
+            <br />
+            {refining ? (
+              <span style={{ color: "#a60" }}>
+                refining {result.patches}×{result.patches} → {result.finestPatches}×
+                {result.finestPatches}…
+              </span>
+            ) : (
+              <>
+                {result.finestPatches}×{result.finestPatches} field patches ·{" "}
+                {result.psfEvaluations} PSFs · {result.elapsedMs.toFixed(0)} ms
+              </>
+            )}
+          </>
+        ) : (
+          <span>
+            <strong>{request.lens}</strong> field · tracing…
+          </span>
+        )}
+      </figcaption>
+    </figure>
+  );
+}
+
 export default function App() {
   const [aperture, setAperture] = useState(DEFAULTS.apertureMm);
   const [temperature, setTemperature] = useState(DEFAULTS.sourceTemperatureK);
@@ -202,6 +337,24 @@ export default function App() {
   );
   const achromat = useMemo(
     () => requestFor("achromat"),
+    [aperture, temperature, wavelengths, exposure],
+  );
+
+  // The field panel shares the same sliders but renders the achromat across the
+  // whole frame. `wavelengths` here are quadrature nodes, not SED weights — the
+  // field renderer puts the source spectrum on each star (see `renderFieldScene`).
+  const field = useMemo<FieldRequest>(
+    () => ({
+      lens: "achromat",
+      focalLengthMm: DEFAULTS.focalLengthMm,
+      apertureMm: aperture,
+      sourceTemperatureK: temperature,
+      wavelengths,
+      pupilSamples: DEFAULTS.pupilSamples,
+      patches: 4,
+      starGrid: 5,
+      whiteFraction: 1 / exposure,
+    }),
     [aperture, temperature, wavelengths, exposure],
   );
 
@@ -260,6 +413,25 @@ export default function App() {
         fringe reddens because the spectrum moved, not because anything was recoloured. Each panel
         traces in its own worker — the elapsed time is real, and it is why the panel dims while it
         catches up.
+      </p>
+
+      <h1 style={{ fontSize: 20, marginTop: 40 }}>The same star, across the field</h1>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        Twenty-five <em>identical</em> stars imaged through the achromat at once. The only thing
+        that changes star to star is where it sits in the field, so every difference in the picture
+        is the optics: a tight disk on axis, a coma tail toward each corner that points radially
+        outward and lengthens with field angle. The frame is convolved against a PSF that is
+        re-traced for each patch of the field — a single shift-invariant blur could not show this.
+      </p>
+
+      <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+        <FieldCanvas request={field} />
+      </div>
+
+      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+        The blocky first frame is a coarse patch grid; it sharpens in place as finer grids finish,
+        so the cost of a field-varying PSF stays visible without leaving the panel blank. Widen the
+        aperture to grow the coma, or move to the corners of the frame to watch it lengthen.
       </p>
     </main>
   );
