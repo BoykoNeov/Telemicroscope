@@ -15,9 +15,10 @@ import {
  * The whole optical pipeline, as one pure function.
  *
  * Deliberately free of DOM and of React: it takes numbers and returns pixels,
- * so moving it into a web worker later is a change of *caller* rather than of
- * code. That is the only architectural commitment this ugly first UI makes,
- * and it is the one worth making now — everything else here is disposable.
+ * so running it in a web worker (`render.worker.ts`) was a change of *caller*
+ * rather than of code. That is the only architectural commitment this ugly
+ * first UI makes, and it is the one worth making — everything else here is
+ * disposable.
  */
 
 export type LensKind = "singlet" | "achromat";
@@ -57,6 +58,18 @@ export interface RenderResult {
    */
   readonly truncatedFraction: number;
   readonly geometricWeight: number;
+}
+
+/** A render asked of the worker; `seq` lets the caller discard stale replies. */
+export interface RenderJob {
+  readonly seq: number;
+  readonly request: RenderRequest;
+}
+
+/** The worker's reply, tagged with the `seq` of the job it answers. */
+export interface RenderDone {
+  readonly seq: number;
+  readonly result: RenderResult;
 }
 
 const FOCUS_NM = 550;

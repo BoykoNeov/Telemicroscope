@@ -1,5 +1,83 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { hueProfile, renderStar, type LensKind, type RenderRequest } from "./render";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  hueProfile,
+  type LensKind,
+  type RenderDone,
+  type RenderJob,
+  type RenderRequest,
+  type RenderResult,
+} from "./render";
+
+/**
+ * Runs one star through the worker, keeping the last good image on screen.
+ *
+ * Backpressure, not a queue: at most one render is in flight and at most one
+ * request waits behind it — a newer request overwrites the waiting one, so the
+ * intermediate values a slider emits mid-drag are dropped rather than traced in
+ * turn. `seq` guards against a stale reply landing after a newer one. The main
+ * thread never blocks, so the slider thumb stays glued to the finger; the panel
+ * dims (`pending`) while it catches up.
+ */
+function useRenderedStar(request: RenderRequest): {
+  result: RenderResult | null;
+  pending: boolean;
+} {
+  const workerRef = useRef<Worker | null>(null);
+  const seqRef = useRef(0);
+  const busyRef = useRef(false);
+  const queuedRef = useRef<RenderRequest | null>(null);
+  const [result, setResult] = useState<RenderResult | null>(null);
+  const [pending, setPending] = useState(true);
+
+  const post = useCallback((req: RenderRequest) => {
+    const worker = workerRef.current;
+    if (!worker) return;
+    seqRef.current += 1;
+    busyRef.current = true;
+    setPending(true);
+    worker.postMessage({ seq: seqRef.current, request: req } satisfies RenderJob);
+  }, []);
+
+  useEffect(() => {
+    const worker = new Worker(new URL("./render.worker.ts", import.meta.url), {
+      type: "module",
+    });
+    worker.onmessage = (event: MessageEvent<RenderDone>) => {
+      if (event.data.seq === seqRef.current) setResult(event.data.result);
+      // A newer request may have arrived while the worker was busy. Send the
+      // most recent one and drop everything before it.
+      const next = queuedRef.current;
+      queuedRef.current = null;
+      if (next) {
+        post(next);
+      } else {
+        busyRef.current = false;
+        setPending(false);
+      }
+    };
+    workerRef.current = worker;
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+      // Reset the flags so a StrictMode remount starts clean: a leftover
+      // busyRef would queue forever and the panel would never paint.
+      busyRef.current = false;
+      queuedRef.current = null;
+    };
+  }, [post]);
+
+  useEffect(() => {
+    if (!workerRef.current) return;
+    if (busyRef.current) {
+      queuedRef.current = request;
+      setPending(true);
+    } else {
+      post(request);
+    }
+  }, [request, post]);
+
+  return { result, pending };
+}
 
 /**
  * Ugly UI, correct physics — roadmap step 4, stated in those words.
@@ -8,10 +86,11 @@ import { hueProfile, renderStar, type LensKind, type RenderRequest } from "./ren
  * post-processes anything: the two canvases are the same pipeline the
  * validation ladder pins, run twice with one glass changed.
  *
- * It renders synchronously on the main thread, which is honest about the cost
- * rather than hiding it — the elapsed time is displayed. A worker and
- * progressive refinement are the obvious next step and `renderStar` is already
- * a pure function, so that is a change of caller, not of code.
+ * Each panel traces in its own web worker (`useRenderedStar`), which keeps the
+ * cost off the main thread without hiding it — the elapsed time is still
+ * displayed and the panel dims while its worker catches up. That was only a
+ * change of *caller*: `renderStar` was already a pure function. Progressive
+ * refinement within a frame is the obvious next step from here.
  */
 
 const DEFAULTS: Omit<RenderRequest, "lens"> = {
@@ -25,9 +104,10 @@ const DEFAULTS: Omit<RenderRequest, "lens"> = {
 
 function StarCanvas({ request }: { request: RenderRequest }) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const result = useMemo(() => renderStar(request), [request]);
+  const { result, pending } = useRenderedStar(request);
 
   useEffect(() => {
+    if (!result) return;
     const element = canvas.current;
     if (!element) return;
     element.width = result.size;
@@ -36,50 +116,60 @@ function StarCanvas({ request }: { request: RenderRequest }) {
     if (!context) return;
     // Copied into a fresh array: `ImageData` requires a plain ArrayBuffer
     // backing, and the engine's typed arrays are declared over ArrayBufferLike
-    // so that they can cross a worker boundary later.
+    // so that they can cross the worker boundary this result just came through.
     const pixels = new Uint8ClampedArray(result.rgba);
     context.putImageData(new ImageData(pixels, result.size, result.size), 0, 0);
   }, [result]);
 
-  const hue = hueProfile(result.image);
+  const hue = result ? hueProfile(result.image) : [];
   const core = hue[0]?.x ?? 0;
   const halo = hue[Math.min(hue.length - 1, 12)]?.x ?? 0;
 
   return (
-    <figure style={{ margin: 0 }}>
+    <figure
+      style={{ margin: 0, opacity: pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}
+    >
       <canvas
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
-        <strong>{request.lens}</strong> · f/{result.fNumber.toFixed(1)}
-        <br />
-        Airy radius {(result.airyRadiusMm * 1000).toFixed(2)} µm ·{" "}
-        {(result.pixelScaleMm * 1000).toFixed(3)} µm/px
-        <br />
-        chromatic spread <strong>{result.fringeAiryRadii.toFixed(1)}</strong> Airy radii
-        <br />
-        hue x: core {core.toFixed(3)} → halo {halo.toFixed(3)}{" "}
-        {halo < core ? "(halo bluer)" : "(no drift)"}
-        <br />
-        {result.elapsedMs.toFixed(0)} ms
-        {result.geometricWeight > 0 && (
+        {result ? (
           <>
+            <strong>{request.lens}</strong> · f/{result.fNumber.toFixed(1)}
             <br />
-            <span style={{ color: "#a60" }}>
-              geometric branch {(result.geometricWeight * 100).toFixed(0)}% — the wavefront
-              aliases on this pupil grid
-            </span>
-          </>
-        )}
-        {result.truncatedFraction > 0.01 && (
-          <>
+            Airy radius {(result.airyRadiusMm * 1000).toFixed(2)} µm ·{" "}
+            {(result.pixelScaleMm * 1000).toFixed(3)} µm/px
             <br />
-            <strong style={{ color: "#c00" }}>
-              {(result.truncatedFraction * 100).toFixed(0)}% of the light fell off the grid —
-              this image is not trustworthy. Raise pupil samples or stop down.
-            </strong>
+            chromatic spread <strong>{result.fringeAiryRadii.toFixed(1)}</strong> Airy radii
+            <br />
+            hue x: core {core.toFixed(3)} → halo {halo.toFixed(3)}{" "}
+            {halo < core ? "(halo bluer)" : "(no drift)"}
+            <br />
+            {result.elapsedMs.toFixed(0)} ms
+            {result.geometricWeight > 0 && (
+              <>
+                <br />
+                <span style={{ color: "#a60" }}>
+                  geometric branch {(result.geometricWeight * 100).toFixed(0)}% — the wavefront
+                  aliases on this pupil grid
+                </span>
+              </>
+            )}
+            {result.truncatedFraction > 0.01 && (
+              <>
+                <br />
+                <strong style={{ color: "#c00" }}>
+                  {(result.truncatedFraction * 100).toFixed(0)}% of the light fell off the grid —
+                  this image is not trustworthy. Raise pupil samples or stop down.
+                </strong>
+              </>
+            )}
           </>
+        ) : (
+          <span>
+            <strong>{request.lens}</strong> · tracing…
+          </span>
         )}
       </figcaption>
     </figure>
@@ -92,6 +182,11 @@ export default function App() {
   const [wavelengths, setWavelengths] = useState(DEFAULTS.wavelengths);
   const [exposure, setExposure] = useState(8000);
 
+  // Each panel traces in its own worker (`useRenderedStar`), so the sliders
+  // never touch the optical pipeline: the thumb tracks the finger and the panel
+  // dims while its worker catches up. The request objects are memoised only so
+  // their identity is stable between unrelated re-renders — the worker hook
+  // keys its post on that identity.
   const requestFor = (lens: LensKind): RenderRequest => ({
     ...DEFAULTS,
     lens,
@@ -162,8 +257,9 @@ export default function App() {
 
       <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
         Open the aperture and the singlet&rsquo;s halo grows as f·NA²; cool the source and the
-        fringe reddens because the spectrum moved, not because anything was recoloured. Both
-        panels render on the main thread — the elapsed time is real.
+        fringe reddens because the spectrum moved, not because anything was recoloured. Each panel
+        traces in its own worker — the elapsed time is real, and it is why the panel dims while it
+        catches up.
       </p>
     </main>
   );
