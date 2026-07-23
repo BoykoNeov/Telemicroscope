@@ -215,7 +215,31 @@
    the trace's own `lost` count, after the first draft's transmitted-fraction
    form turned out to divide the on-axis bundle by itself and be true by
    construction.
-   Still to come here: the eyepiece library and the refractor preset.
+   *Achromatic doublet — the refractor preset:* ✅ `designs/achromat` (VALIDATION
+   § 5j). The first preset that is a LENS, and the first that had to be *solved*
+   rather than written down from geometry. A cemented doublet has three curvatures
+   and two conditions (total power, and achromatism φ₁/V₁ + φ₂/V₂ = 0 giving the
+   classical split from the catalog's Abbe numbers), leaving one freedom — the
+   bending — which changes nothing first-order or chromatic and everything about
+   spherical aberration. Choosing it needed third-order theory, so `analysis/seidel`
+   landed with it: the published Seidel sums S_I/S_II, pinned BEFORE use against the
+   spherical mirror's h⁴/(4R³) (§ 5g's own figure) and the thin-lens Coddington
+   closed form to 1e-8 across the shape range — including its famous corollaries,
+   best form at q = 2(n²−1)/(n+2) and the 27/7 penalty for a back-to-front
+   plano-convex. Solving S_I = 0 gives the classical TWO roots; the preset takes the
+   lower-|S_II| one and the trace then confirms all of it independently:
+   diffraction-limited on axis (0.0054 waves, 60× an equal-power singlet), a
+   fifth-order residual falling 32× per doubling of focal ratio, and S_II predicting
+   the traced coma of both branches to 2%. Its chromatic rungs are predictions, not
+   constructions — the thin-lens split is left un-fitted, so "F and C land together"
+   (100× a singlet) and the secondary spectrum −(P₁−P₂)/(V₁−V₂) ≈ −1/2000 are things
+   the trace could refuse. Two findings worth carrying forward: the two SA-null
+   bendings *straddle* the coma-free one, so neither is aplanatic (fixing that is a
+   glass-pair or broken-contact question, not a bending one); and for N-BK7/F2 the
+   naive equiconvex crown happens to sit within 5% of the solved root.
+   Still to come here: the eyepiece library, and the **ED** half of the
+   "achromat/ED refractor" pair — an anomalous-partial-dispersion glass is the only
+   thing that beats the secondary spectrum, which no bending can touch.
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation

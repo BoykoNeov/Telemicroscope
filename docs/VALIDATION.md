@@ -1774,6 +1774,107 @@ off-axis pupils vignette as a sizing artifact (both mirrors sized for the on-axi
 beam), the shared two-mirror deferral recorded at § 5h. Every rung here runs on
 axis, `lost === 0`.
 
+## Step 5j — third-order sums, and the achromatic doublet preset (current)
+
+The refractor preset, and the first preset that is a **lens**. It arrives in two
+halves, in that order and in one change: a third-order (Seidel) sum module pinned
+against external closed forms, and the cemented achromatic doublet that is
+*solved* with it.
+
+### 5j.1 — `analysis/seidel`: the closed form, pinned before anything uses it
+
+Every reflecting preset could be written down from geometry alone. A doublet
+cannot: which of the infinitely many bendings of the same two elements makes the
+spherical aberration vanish is not a geometric question, and the engine's own
+traced residual must not be the thing that answers it — solving on the trace would
+fit the design to the tracer and leave the trace nothing independent to confirm.
+So the answer comes from the published third-order theory (Welford, *Aberrations of
+Optical Systems*, ch. 8), with the marginal and chief rays' refraction invariants
+A = n(y·c + u), Ā = n(ȳ·c + ū):
+
+    S_I = −A²·y·Δ(u/n)        S_II = −A·Ā·y·Δ(u/n)        W₀₄₀ = S_I/8
+
+and it is pinned FIRST, on two external numbers that between them fix the scale
+and the entire shape dependence:
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A spherical mirror's S_I/8 = h⁴/(4R³), to 15 digits** | § 5g's sag-difference figure, derived independently and pinned through the Schmidt corrector — fixes the 1/8, the sign convention and the n′ = −n handling | ✅ |
+| …and scales as h⁴ and 1/R³ exactly | closed form | ✅ |
+| **A thin lens in air matches the published Coddington-factor closed form to 1e-8, over q ∈ [−2, 2] at two indices** — W₀₄₀ = h⁴/(32f³n(n−1))·[(n+2)/(n−1)·q² + 4(n+1)pq + (3n+2)(n−1)p² + n³/(n−1)], p = −1 | Jenkins & White; Hecht § 6.3 — the whole polynomial AND its absolute scale, not one evaluation | ✅ |
+| …with the residual falling linearly in centre thickness (1.5e-6 at 1 µm, 1.5e-9 at 1 nm) | it is the honest thick-lens correction, not an error | ✅ |
+| **Best-form minimum at q = 2(n²−1)/(n+2)** ≈ 0.71 at n = 1.5 — the steep face toward the beam | corollary of the bracket at p = −1 | ✅ |
+| **A plano-convex singlet turned back-to-front carries 27/7 ≈ 3.86× the spherical aberration** | the classic orientation result, and a sign-sensitive check | ✅ |
+| A singlet's S_I never reaches zero at any shape | why a doublet is needed at all | ✅ |
+| **Traced j = 11 Zernike of a slow real singlet = S_I/8 predicted, to 5%** | the exact trace confirming the closed form, the other direction | ✅ |
+| Refuses conics/aspheres (a different, uncomputed term), refuses S_II unless the stop is the first surface, refuses a non-positive marginal height | scope, stated not silently approximated | ✅ |
+
+**The q sign is fixed by physics, not by recall.** The best-form shape factor is
+quoted in the literature with both signs, because p carries both conventions. The
+engine's minimum lands at q = **+**0.714 for n = 1.5, which is the biconvex-with-
+the-steep-face-to-the-sky lens every plano-convex singlet is oriented as — and the
+same convention that makes the back-to-front penalty 27/7 rather than 7/27. The
+full-bracket rung is what settles it: it matches at every q, so the polynomial and
+its sign convention are pinned together.
+
+### 5j.2 — the achromatic doublet objective
+
+Aperture and focal ratio in; three radii and a power split out, from the catalog.
+A cemented doublet has three curvatures and two conditions — total power φ = 1/f
+and achromatism φ₁/V₁ + φ₂/V₂ = 0, giving the classical split φ₁ = φ·V₁/(V₁−V₂) —
+so exactly one freedom is left: the **bending**, which slides all three curvatures
+together, changes no first-order and no chromatic property, and is what the design
+spends on spherical aberration. It is solved from S_I = 0 above, on the real thick
+prescription.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Power split φ₁ = φ·V₁/(V₁−V₂), φ₂ = −φ·V₂/(V₁−V₂), from the catalog's Abbe numbers | closed form | ✅ |
+| Element powers land in the curvature differences: φᵢ = (nᵢ−1)Δc | maker's equation | ✅ |
+| Traced EFL misses D·F by < 1e-3, one-sided, and is reported separately | Gullstrand thickness term, left in honestly | ✅ |
+| **Exactly TWO spherical-aberration-null bendings exist, both with \|S_I\| < 1e-12** | the classical pair of roots | ✅ |
+| **F and C land together — 1.5·10⁻⁴ f, against an equal-power singlet's 1/V ≈ 1/64: 100× better** | the achromatic condition, as a prediction of the trace | ✅ |
+| …and the residual shrinks monotonically as t/f does (f/6 → f/50), below 5·10⁻⁵ | thin-lens design applied to a thick lens: O(t/f) | ✅ |
+| **Secondary spectrum Δf/f = −(P₁−P₂)/(V₁−V₂) = −4.99·10⁻⁴ ≈ −1/2000 for N-BK7/F2**, from the catalog's partial dispersions alone | the classic crown-flint number; independent of aperture and focal ratio | ✅ |
+| …and the trace measures it, converging on the closed form from above as the lens slows (1.08× at f/10, 1.02× at f/50) | dispersion × power split | ✅ |
+| …and it dwarfs the F−C residual, so it is the real colour limit of the glass pair | closed form vs residual | ✅ |
+| **On axis: diffraction-limited (0.0054 waves, Strehl > 0.99) where an equal-power N-BK7 singlet is at 0.32 waves — 60×** | the third-order null, confirmed by the exact trace | ✅ |
+| **A plausible WRONG bending costs an order**: the midpoint of the two roots (max \|S_I\|, near-zero coma) lands at 0.089 waves, 16× worse | the bending is load-bearing | ✅ |
+| …and the naive equiconvex crown, which happens to sit within 5% of the solved root for this glass pair, is still 4.6× worse with \|S_I\| ≫ 0 | near-coincidence recorded, not hidden | ✅ |
+| …while all three bendings unite F and C alike: bending buys spherical aberration, not colour | the condition is on the powers | ✅ |
+| **A FIFTH-order residual survives, falling 32× per doubling of focal ratio** (f/5→10, 6→12, 8→16 all in 28–36×) | 1/F⁵ at fixed aperture — the 2⁵ signature §§ 5f–5i also carry | ✅ |
+| **S_II predicts the traced Zernike coma of BOTH branches to ~2%**, at two field angles | (S_II/2)ρ³cos θ → j = 8 with factor 1/(3√8) | ✅ |
+| …coma is linear in field angle | third-order coma | ✅ |
+| Refuses a reversed glass pair, one glass twice, an unknown glass, an edge-thickness-negative doublet, non-positive geometry | validity | ✅ |
+| Whole beam through on axis, and `lost === 0` off axis out to 0.5° | footprint | ✅ |
+
+**Neither SA-null bending is aplanatic, and the reason is worth stating.** S_II runs
+monotonically through the bending and crosses zero **between** the two roots, so the
+pair straddles the coma-free shape: their comas come out similar in magnitude and
+opposite in sign (+0.111 vs −0.129 mm/rad at 100 mm f/10). The preset picks the
+smaller (`branch: "lowComa"`, the near-equiconvex crown with the almost-flat rear
+face a Fraunhofer objective is recognised by: 468.3 / −429.0 / −4520.6 mm), and the
+rungs measure what that is worth rather than overselling it — about 12%, not orders.
+Making the two conditions coincide is not a matter of bending at all: it is a
+constraint on the **glass pair**, or it needs the third freedom a broken-contact air
+gap provides. Both are open.
+
+**The design is a prediction, not a construction — deliberately.** The power split
+is the thin-lens closed form, imposed on elements 10 and 6 mm thick and left there.
+It would have been easy to solve the split numerically until the thick lens united
+F and C exactly; that would have made the headline chromatic rung true *by
+construction* and worth nothing, the same defect the § 2f vignetting rung was
+rewritten to remove. Instead the residual stays in, is reported, and is pinned
+twice: two orders below a singlet's, and shrinking with t/f. The same discipline
+puts the traced EFL a few parts in 10⁴ below D·F rather than fitting it away.
+
+**What is not corrected.** Coma is minimised by the branch choice, not nulled;
+astigmatism and field curvature are traced and unpinned. Spherochromatism (the
+bending is solved at one wavelength) is present in the trace and unpinned here. The
+secondary spectrum is a property of the glass pair that no bending can touch —
+beating it needs an anomalous-partial-dispersion (ED) glass, which is the next unit
+and the one the roadmap's "achromat/ED refractor" still owes.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
