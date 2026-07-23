@@ -56,7 +56,13 @@ function sh(file, args) {
 /** PID listening on `port`, or null. */
 export function listenerPid(port) {
   if (isWindows) {
-    for (const line of sh("netstat", ["-ano", "-p", "TCP"]).split(/\r?\n/)) {
+    // No `-p TCP`: on Windows that filter is IPv4-only (IPv6 is the separate
+    // protocol name `TCPv6`), so an IPv6-only listener — e.g. vite binding
+    // `localhost` to `[::1]:PORT` and nothing on 127.0.0.1 — would be invisible,
+    // and the guard would hand out an occupied port. Plain `netstat -ano` lists
+    // both families, each row proto-labelled `TCP`, which the regex below matches;
+    // UDP rows have no LISTENING state and are skipped.
+    for (const line of sh("netstat", ["-ano"]).split(/\r?\n/)) {
       const m = line.match(/^\s*TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)\s*$/);
       if (m && Number(m[1]) === port) return Number(m[2]);
     }
