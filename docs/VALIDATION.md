@@ -478,7 +478,8 @@ branch's normalization target, so both branches see one aperture.
 | The open pupil is genuinely off-centre, not a stopped-down disc | geometry | ✅ |
 | Both branches normalize to the vignetted energy, not the full disc | matched normalization | ✅ |
 | ...the pre-fix normalization was **2.61× too bright** (negative control) | measurement | ✅ |
-| **Newtonian: on-axis throughput is exactly 1** | § 4b diagonal sizing | ✅ |
+| **`adaptivePsf` — the blend § 2e named — carries the vignetted energy** | § 2e, at the named site | ✅ |
+| **Newtonian: on axis the diagonal loses ZERO of 17661/31413 rays** | § 4b diagonal sizing | ✅ |
 | Newtonian: throughput falls monotonically with field (0.9958 → 0.9530) | vignetting | ✅ |
 | **Newtonian: FFT mask and ray-survivor fraction agree to 1.2e-4** | cross-branch | ✅ |
 
@@ -506,6 +507,15 @@ honestly carry: that throughput falls with field, and that the two branches
 agree about how much. Its on-axis rung is a free cross-check of § 4b — the
 closed-form diagonal is derived to be exactly tangent to the on-axis cone, and
 it loses *exactly* zero rays, not 0.999.
+
+That rung is asserted on `ExitBundle.lost` **directly**, and the first draft's
+form is worth recording because it looked stronger and was empty. Phrased as a
+*transmitted fraction* it read `onAxis / onAxis` — the same bundle divided by
+itself, which is 1 by construction however badly the diagonal were sized. It is
+the identical by-construction triviality this section already calls out for the
+two branches' shared `energy`, caught there and shipped here, which is the
+argument for asking of every green rung not "is this true?" but "what would have
+to break for this to go red?". `lost === 0` can go red; a self-ratio cannot.
 
 ### What the equality of the two energies does and does not prove
 

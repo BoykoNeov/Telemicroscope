@@ -211,7 +211,10 @@
    makes the open pupil an exact two-disc vesica) rather than on the Newtonian,
    which stacks a fold, an off-axis trace and an only-O(θ²) footprint; the
    Newtonian then carries the real mechanism, including a free cross-check that
-   the § 4b closed-form diagonal loses *exactly* zero rays on axis.
+   the § 4b closed-form diagonal loses *exactly* zero rays on axis — asserted on
+   the trace's own `lost` count, after the first draft's transmitted-fraction
+   form turned out to divide the on-axis bundle by itself and be true by
+   construction.
    Still to come here: the eyepiece library and the refractor preset.
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —

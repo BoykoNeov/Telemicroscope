@@ -3,7 +3,7 @@ import { OpticalSystem } from "../src/trace/system";
 import { Prescription } from "../src/trace/prescription";
 import { LINE_D } from "../src/materials/dispersion";
 import { psf } from "../src/wave/psf";
-import { geometricPsf } from "../src/wave/geometric";
+import { geometricPsf, adaptivePsf } from "../src/wave/geometric";
 import { exitBundle } from "../src/analysis/spot";
 import { pupilGrid } from "../src/pupil/aiming";
 import { newtonian } from "../src/designs/newtonian";
@@ -155,6 +155,19 @@ describe("trace-level (partial) vignetting", () => {
     expect(full.energy / diff.energy).toBeCloseTo(1 / EXACT, 2);
   });
 
+  it("adaptivePsf — the blend § 2e named — carries the vignetted energy", () => {
+    // § 2e's concern was phrased about `blendPsf` specifically, so it is pinned
+    // where it was raised rather than only argued from the two branches now
+    // being equal. Whatever branch (or convex mix) the fidelity switch lands
+    // on, the image integrates to the vignetted energy — not the full disc.
+    const clip = clippedMirror(CLIP_A);
+    const opts = { pupilSamples: 128 } as const;
+    const a = adaptivePsf(clip, 0, LINE_D, opts);
+    let sum = 0;
+    for (let i = 0; i < a.intensity.length; i++) sum += a.intensity[i]!;
+    expect(sum / psf(clippedMirror(Infinity), 0, LINE_D, opts).energy).toBeCloseTo(EXACT, 3);
+  });
+
   it("the mask is off-centre: the surviving pupil centroid is displaced", () => {
     // A concentric stop-down would leave the centroid at the origin. This mask
     // keeps only the +x lens of the vesica, so the survivors' mean px is > 0 —
@@ -191,17 +204,29 @@ describe("off-axis Newtonian: the diagonal vignettes the field edge", () => {
     return off.rays.length / on.rays.length;
   }
 
+  it("on axis the minimum diagonal loses no rays at all", () => {
+    // Asserted on `lost` DIRECTLY, not as a transmitted-fraction of 1: that
+    // ratio divides the on-axis bundle by itself and is 1 by construction
+    // whatever the diagonal does. This is the form that can actually fail —
+    // undersize the diagonal and it counts the clipped rays — so it is a real
+    // cross-check of § 4b's closed-form sizing, which is derived to be exactly
+    // tangent to the on-axis cone.
+    for (const grid of [151, 201]) {
+      const b = exitBundle(newtSystem(0), 0, LINE_D, pupilGrid(grid));
+      expect(b.lost).toBe(0);
+      expect(b.rays.length).toBe(pupilGrid(grid).length);
+    }
+  });
+
   it("throughput falls monotonically as the field angle grows", () => {
-    const f0 = transmittedFraction(0, 151);
+    // Denominator is the on-axis bundle, which the rung above proves is the
+    // whole pupil — so these are true transmitted fractions, not ratios of two
+    // equally-clipped counts.
     const f1 = transmittedFraction(0.3, 151);
     const f2 = transmittedFraction(0.6, 151);
-    // On axis the minimum diagonal catches the WHOLE beam and loses nothing —
-    // an independent check of the closed-form diagonal sizing (§ 4b), which is
-    // derived to be exactly tangent to the on-axis cone.
-    expect(f0).toBe(1);
     // Measured 0.9958 at 0.3° and 0.9530 at 0.6°: the field edge is clipped,
     // and progressively.
-    expect(f1).toBeLessThan(f0);
+    expect(f1).toBeLessThan(1);
     expect(f2).toBeLessThan(f1);
     expect(f2).toBeLessThan(0.98);
   });
