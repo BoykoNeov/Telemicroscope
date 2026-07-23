@@ -11,6 +11,7 @@ import {
   encircledEnergy,
   Psf,
   PupilFunction,
+  SpiderSpec,
 } from "../src/wave/psf";
 import { mtf, mtfProfile, mtfAt, diffractionLimitedMtf } from "../src/wave/mtf";
 
@@ -491,5 +492,205 @@ describe("annular aperture: the obstructed Airy core shrinks by the amount theor
     // Transmitted pupil energy scales as the annulus area, (1 − ε²).
     expect(blocked.energy / open.energy).toBeGreaterThan((1 - eps * eps) * 0.99);
     expect(blocked.energy / open.energy).toBeLessThan((1 - eps * eps) * 1.01);
+  });
+});
+
+/**
+ * Rung: the SPIDER, and the diffraction spikes a reflector's vanes stamp on the
+ * PSF. A vane is a long thin opaque bar, and the transform of a bar is a bright
+ * streak *perpendicular* to it — so the whole capability rests on two external
+ * facts, pinned here before anything leans on them:
+ *
+ *   1. The streak is a **sinc**, first zero at the reciprocal of the vane width
+ *      (the transform of a rectangle). Validated on an isolated transmitting
+ *      strip FIRST, where the sinc is the whole pattern and its zeros are exact
+ *      — the same ε = 0-first discipline the annular rung uses.
+ *   2. The streak is **perpendicular** to the vane. This is a Fourier theorem,
+ *      and it is the sense-catcher: it is exactly the axis convention the
+ *      kernel-rotation bug (docs/VALIDATION § 3c) got wrong for a year, so it
+ *      is pinned against the already-validated x–z convention, not a fresh
+ *      claim, and with an asymmetric vane so ⊥ and a transposed axis land on
+ *      visibly different lines.
+ *
+ * Everything runs on the paraboloid at focus: the FFT branch is fully active
+ * there (Strehl 1, no aliasing), and spikes are an FFT phenomenon — the
+ * geometric branch has no phase and so no spikes, correctly, because they wash
+ * out far from focus where that branch rules.
+ *
+ * ## Grid, and why the validation vanes are fat
+ *
+ * A vane of width w = widthFraction·D puts the streak's first zero at
+ * `padFactor / widthFraction` pixels from the core, against a grid half-width
+ * of `pupilSamples·padFactor/2`. A thin realistic vane (w ~ D/250) throws that
+ * zero far off any modest grid — physically correct, the spike runs off frame —
+ * so the validation vanes are deliberately fat (w = D/16, D/8) to keep the
+ * streak on-grid. That fatness is bounded physics, not convenience: the
+ * rectangle approximation the sinc rests on carries an error ~(w/D)² ≈ 0.4%, so
+ * a ~1% tolerance is set by the neglected term exactly as the annular rung's is.
+ */
+describe("spider vanes stamp diffraction spikes perpendicular to themselves", () => {
+  // padFactor 16 as in the annular rung: the streak needs image-plane room.
+  const SPIKE_GRID = { pupilSamples: 64, padFactor: 16 } as const;
+
+  /** A bare transmitting rectangle, |px| < halfX and |py| < halfY, phase 0. */
+  function rectPupil(halfX: number, halfY: number): PupilFunction {
+    return {
+      amplitude: (px, py) => (Math.abs(px) < halfX && Math.abs(py) < halfY ? 1 : 0),
+      phaseWaves: () => 0,
+    };
+  }
+
+  const dummyScale = { referenceRadius: 100, exitRadius: 10, wavelengthNm: LINE_D, nImage: 1 };
+
+  /**
+   * Streak brightness along the image line at `angleDeg`: intensity summed in a
+   * intensity walked outward from the core, ONE pixel per radius on each arm.
+   * Sampling parametrically rather than masking a strip is deliberate: a
+   * strip-mask captures more pixels along a diagonal line than an axis-aligned
+   * one (√2 more per unit length), which biases the background high exactly
+   * where the spikes are not — enough to make an isotropic Airy floor read as
+   * a diagonal feature. One-pixel-per-radius removes that bias, which a
+   * spider-free control (flat across all angles) confirms.
+   */
+  function streakEnergy(p: Psf, angleDeg: number, coreR: number): number {
+    const n = p.size;
+    const c = n / 2;
+    const a = (angleDeg * Math.PI) / 180;
+    const ux = Math.cos(a);
+    const uy = Math.sin(a);
+    let sum = 0;
+    for (let r = coreR; r < c; r++) {
+      for (const s of [1, -1]) {
+        const x = Math.round(c + s * r * ux);
+        const y = Math.round(c + s * r * uy);
+        if (x < 0 || x >= n || y < 0 || y >= n) continue;
+        sum += p.intensity[y * n + x]!;
+      }
+    }
+    return sum;
+  }
+
+  /**
+   * First deep minimum of the streak along the image line at `angleDeg`,
+   * measured outward from the core: the sinc's first zero. Guarded like the
+   * Airy first-ring finder — a dip must fall below 2% of the streak's own peak
+   * to count, so the search does not latch onto ripple.
+   */
+  function streakFirstZero(p: Psf, angleDeg: number): number {
+    const n = p.size;
+    const c = n / 2;
+    const a = (angleDeg * Math.PI) / 180;
+    const ux = Math.cos(a);
+    const uy = Math.sin(a);
+    const prof: number[] = [];
+    for (let r = 0; r < c; r++) {
+      const x = Math.round(c + r * ux);
+      const y = Math.round(c + r * uy);
+      prof.push(p.intensity[y * n + x]!);
+    }
+    let peak = 0;
+    for (const v of prof) if (v > peak) peak = v;
+    for (let i = 2; i < prof.length - 1; i++) {
+      if (prof[i]! < peak * 0.02 && prof[i]! <= prof[i - 1]! && prof[i]! <= prof[i + 1]!) return i;
+    }
+    throw new Error("no streak zero found");
+  }
+
+  /**
+   * The clean pin: an isolated transmitting slit diffracts into a sinc streak
+   * across the narrow dimension, first zero at exactly `padFactor / widthFrac`
+   * pixels — the transform of a rectangle, no aperture and no Airy tail to
+   * contaminate the null. Halving the slit width doubles that radius (zero
+   * ∝ 1/w, Fourier scaling), which is asserted too because the ratio is what
+   * the in-aperture spike below inherits.
+   */
+  it("an isolated slit's streak is a sinc, first zero at padFactor/width", () => {
+    // Slit narrow in y (half-width h), full in x → streak runs along y.
+    for (const h of [1 / 16, 1 / 8]) {
+      const p = psfFromPupilFunction(rectPupil(1, h), dummyScale, 0, SPIKE_GRID);
+      const predicted = SPIKE_GRID.padFactor / h; // padFactor·(1/widthFraction)
+      const measured = streakFirstZero(p, 90);
+      expect(measured / predicted).toBeGreaterThan(0.97);
+      expect(measured / predicted).toBeLessThan(1.03);
+      // Perpendicular: a slit narrow in y throws its light along y, not x.
+      expect(streakEnergy(p, 90, 40)).toBeGreaterThan(20 * streakEnergy(p, 0, 40));
+    }
+    const wide = psfFromPupilFunction(rectPupil(1, 1 / 8), dummyScale, 0, SPIKE_GRID);
+    const thin = psfFromPupilFunction(rectPupil(1, 1 / 16), dummyScale, 0, SPIKE_GRID);
+    expect(streakFirstZero(thin, 90) / streakFirstZero(wide, 90)).toBeCloseTo(2, 1);
+  });
+
+  /**
+   * The symmetric orientation rung: a single vane along x̂ (a 0°/180° pair =
+   * one full-diameter bar) throws its spike along ŷ. Perpendicularity is the
+   * whole content — a transposed pupil→image axis would send the light along x̂
+   * instead, and the streak-energy ratio would invert. Measured 17:1.
+   */
+  it("a vane along x throws its spike along y", () => {
+    const spider: SpiderSpec = { vanes: 2, widthFraction: 1 / 8, angleDeg: 0 };
+    const p = psf(mirror(-1), 0, LINE_D, { ...SPIKE_GRID, spider });
+    expect(streakEnergy(p, 90, 40)).toBeGreaterThan(8 * streakEnergy(p, 0, 40));
+  });
+
+  /**
+   * The sense-catcher. A 30° vane's spike must land at 120° (⊥), and the reason
+   * the angle is 30° and not 45° is that a transposed axis convention would put
+   * it at 90° − 30° = 60° — a visibly different line from 120°, where a 45° vane
+   * would leave the two indistinguishable. So this rung, unlike the symmetric
+   * one, tells ⊥ apart from a transpose. Same discipline as the § 3c transpose
+   * rung, which exists because the mirror-pair metric could not see a sense flip.
+   */
+  it("a 30° vane throws its spike at 120°, not the transpose's 60°", () => {
+    const spider: SpiderSpec = { vanes: 2, widthFraction: 1 / 8, angleDeg: 30 };
+    const p = psf(mirror(-1), 0, LINE_D, { ...SPIKE_GRID, spider });
+    expect(streakEnergy(p, 120, 40)).toBeGreaterThan(5 * streakEnergy(p, 60, 40));
+    // ...and not along the vane itself (a bar is narrow in the far field along
+    // its own length).
+    expect(streakEnergy(p, 120, 40)).toBeGreaterThan(5 * streakEnergy(p, 30, 40));
+  });
+
+  /**
+   * Spike count, even N: four vanes pair into two collinear diameters (0°/180°
+   * and 90°/270°), so their two spikes fall on the x and y lines — the classic
+   * four-arm cross. The diagonals carry only the spikes' sinc side-lobes and
+   * are ~3× dimmer, which is what the rung pins.
+   */
+  it("4 vanes make a 4-arm cross on the axes, not the diagonals", () => {
+    const four = psf(mirror(-1), 0, LINE_D, {
+      ...SPIKE_GRID,
+      spider: { vanes: 4, widthFraction: 1 / 8 },
+    });
+    const axes = Math.min(streakEnergy(four, 0, 40), streakEnergy(four, 90, 40));
+    const diag = Math.max(streakEnergy(four, 45, 40), streakEnergy(four, 135, 40));
+    expect(axes).toBeGreaterThan(2.5 * diag);
+  });
+
+  /**
+   * Spike count, odd N: three vanes at 0°/120°/240° do NOT pair, so each throws
+   * its own perpendicular line and the star has 2N = six arms, on the lines
+   * 30°/90°/150°. The contrast is lower than the even case on purpose — the
+   * light is split into six arms, each from a radial *half*-bar rather than a
+   * full diameter — but it is exact and six-fold symmetric, so a wrong count or
+   * a 30°-rotated pattern (spikes on the vane directions) inverts the two sets.
+   * A thinner vane is used here than for the even case: fattening it past ~D/10
+   * grows the central overlap of the three bars faster than the spikes, which
+   * *lowers* the contrast.
+   */
+  it("3 vanes make a 6-arm star, bright ⊥ each vane and dark along them", () => {
+    const three = psf(mirror(-1), 0, LINE_D, {
+      ...SPIKE_GRID,
+      spider: { vanes: 3, widthFraction: 1 / 16 },
+    });
+    const bright = Math.min(
+      streakEnergy(three, 30, 40),
+      streakEnergy(three, 90, 40),
+      streakEnergy(three, 150, 40),
+    );
+    const dark = Math.max(
+      streakEnergy(three, 0, 40),
+      streakEnergy(three, 60, 40),
+      streakEnergy(three, 120, 40),
+    );
+    expect(bright).toBeGreaterThan(1.4 * dark);
   });
 });

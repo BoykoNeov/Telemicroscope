@@ -42,11 +42,17 @@ import { OpdSampling, opdSampling } from "./fidelity";
  *
  * ## Scope
  *
- * Vignetting is reported (`OpdMap.lost`) but not yet carved out of the pupil
- * support: the aperture is modelled as the full disc, minus an optional
- * central obstruction. Partially-vignetted pupils and spider diffraction are
- * step 5, and they arrive as a different `PupilFunction`, not as a change
- * here — which is why the pupil is an interface rather than an array.
+ * The aperture is the full disc, minus an optional central obstruction and any
+ * spider vanes (both carved out of the amplitude — see `SpiderSpec` and
+ * `pupilFunctionFromOpd`). What is still NOT modelled is *trace-level*
+ * vignetting: rays clipped at a surface are reported (`OpdMap.lost`) but the
+ * pupil support does not yet shrink to match, so a partially-vignetted system
+ * (an off-axis Newtonian past its diagonal) is a separate, harder item — it is
+ * the one that forces `blendPsf`'s matched-normalization to be re-derived
+ * rather than re-forced. A spider does not: it is an identical mask on both
+ * branches, so their energies agree honestly rather than by construction.
+ * That the pupil is an interface, not an array, is what let the spider arrive
+ * as one predicate without the transform below changing at all.
  */
 
 /**
@@ -60,6 +66,66 @@ export interface PupilFunction {
   readonly amplitude: (px: number, py: number) => number;
   /** Wavefront error in waves. Only meaningful where amplitude > 0. */
   readonly phaseWaves: (px: number, py: number) => number;
+}
+
+/**
+ * A spider: the vanes that hold a secondary mirror, and the source of a
+ * reflector's diffraction spikes.
+ *
+ * Each vane is a straight radial bar of constant width running from the centre
+ * out to the rim. The optics are entirely in the amplitude: a bar blocks light,
+ * and the transform of a long thin bar is a bright streak *perpendicular* to
+ * it, so N vanes stamp 2N spikes onto the PSF (N when opposite vanes are
+ * collinear and their streaks fall on one line). Nothing here computes a
+ * "spike" — it falls out of the FFT for the same reason the Airy rings do.
+ *
+ * `widthFraction` is the vane's full width as a fraction of the pupil
+ * *diameter*, which is also its half-width in normalized-radius units (radius
+ * 1 ↔ diameter 2). A vane of width w = widthFraction·D puts the streak's first
+ * dark point at `padFactor / widthFraction` pixels from the core — so a thin
+ * realistic vane throws a spike far enough to run off a modest FFT grid, and
+ * the validation vanes are deliberately fat to keep the streak on-grid.
+ */
+export interface SpiderSpec {
+  /** Number of radial vanes, evenly spaced. */
+  readonly vanes: number;
+  /** Vane full width as a fraction of the pupil DIAMETER. */
+  readonly widthFraction: number;
+  /** Azimuth of the first vane from +x, degrees. Default 0. */
+  readonly angleDeg?: number;
+}
+
+/**
+ * The one predicate both PSF branches share: is this normalized pupil point
+ * under a vane? The FFT branch calls it to zero the amplitude; the geometric
+ * branch calls the SAME function to drop the ray. Writing the vane geometry
+ * once is what keeps the two branches from ever disagreeing about the aperture
+ * — the lesson of the kernel-rotation convention drift (docs/VALIDATION § 3c).
+ */
+export function spiderObscures(spec: SpiderSpec): (px: number, py: number) => boolean {
+  if (!Number.isInteger(spec.vanes) || spec.vanes < 1) {
+    throw new Error(`spider vanes must be a positive integer, got ${spec.vanes}`);
+  }
+  if (!(spec.widthFraction > 0) || spec.widthFraction >= 1) {
+    throw new Error(`spider widthFraction must be in (0, 1), got ${spec.widthFraction}`);
+  }
+  const half = spec.widthFraction; // full width / D = half-width in radius units
+  const a0 = ((spec.angleDeg ?? 0) * Math.PI) / 180;
+  const dirs: { ux: number; uy: number }[] = [];
+  for (let k = 0; k < spec.vanes; k++) {
+    const a = a0 + (2 * Math.PI * k) / spec.vanes;
+    dirs.push({ ux: Math.cos(a), uy: Math.sin(a) });
+  }
+  return (px, py) => {
+    for (const { ux, uy } of dirs) {
+      // Only the outward half-line: a vane runs from the centre to the rim, so
+      // the vane at φ and the vane at φ+180° are two bars, not one — which is
+      // why an odd vane count is not degenerate.
+      if (px * ux + py * uy <= 0) continue;
+      if (Math.abs(-px * uy + py * ux) <= half) return true;
+    }
+    return false;
+  };
 }
 
 /** What the pupil→image scale needs to know, independent of the pupil's shape. */
@@ -80,6 +146,8 @@ export interface PsfOptions {
   readonly padFactor?: number;
   /** Central obstruction as a fraction of pupil radius. Default 0. */
   readonly obstruction?: number;
+  /** Spider vanes, if any. Their spikes emerge from the FFT branch. */
+  readonly spider?: SpiderSpec;
   /**
    * Also return the aberration-free PSF array, not just its peak.
    *
@@ -167,12 +235,13 @@ export interface Psf {
 export function pupilFunctionFromOpd(
   map: OpdMap,
   fit: ZernikeFit,
-  options: { obstruction?: number; amplitudeTerms?: number } = {},
+  options: { obstruction?: number; spider?: SpiderSpec; amplitudeTerms?: number } = {},
 ): PupilFunction {
   const obstruction = options.obstruction ?? 0;
   if (obstruction < 0 || obstruction >= 1) {
     throw new Error(`obstruction must be in [0, 1), got ${obstruction}`);
   }
+  const spiderTest = options.spider ? spiderObscures(options.spider) : null;
   const phase = wavefrontSampler(fit);
 
   let lo = Infinity;
@@ -197,6 +266,7 @@ export function pupilFunctionFromOpd(
     amplitude: (px, py) => {
       const r2 = px * px + py * py;
       if (r2 > 1 || r2 < ob2) return 0;
+      if (spiderTest !== null && spiderTest(px, py)) return 0;
       if (amplitudeSampler === null) return constantAmplitude;
       // A fit can dip below zero in a corner it was never constrained in;
       // amplitude cannot.
@@ -543,6 +613,7 @@ export function psf(
   const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
   const pupil = pupilFunctionFromOpd(map, fit, {
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
+    ...(options.spider === undefined ? {} : { spider: options.spider }),
   });
   const transformed = psfFromPupilFunction(
     pupil,

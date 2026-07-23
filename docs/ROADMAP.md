@@ -108,8 +108,15 @@
    the coefficient and its ∝θ/F² scaling. Writing it turned up two engine
    findings — a tilted flat's footprint in a converging beam is asymmetric, and
    the primary's sag moves the beam diameter 0.25% — plus an inclusive-rim fix
-   in the tracer. Still to come here: obstruction/spider diffraction, the
-   eyepiece library, seeing, and the SCT/refractor presets.
+   in the tracer.
+   *Spider diffraction:* ✅ (VALIDATION § 5c). The vanes arrive as a new
+   `PupilFunction` — one `spiderObscures` predicate shared by the FFT and
+   geometric branches — so a reflector's diffraction spikes fall out of the same
+   transform the Airy rings do: perpendicular to each vane, 4→cross / 3→six-arm
+   star, pinned to the rectangle-transform sinc and the strip-area energy.
+   Still to come here: the eyepiece library, seeing, the SCT/refractor presets,
+   and off-axis diagonal vignetting (the partial-vignetting `blendPsf` case § 5c
+   leaves open).
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation

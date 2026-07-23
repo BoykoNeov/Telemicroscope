@@ -438,18 +438,22 @@ falls inside it and C's outside. A bin-for-bin sum would put all three minima on
 the same pixel and leave the ring as deep as a monochromatic one.
 
 ### Not yet pinned
-- **Vignetting is not carved out of the pupil support.** `OpdMap.lost` reports
-  it; the pupil is still modelled as the full disc minus an optional central
-  obstruction. Partial vignetting and spider diffraction arrive as a different
-  `PupilFunction` at step 5.
+- **Trace-level vignetting is not carved out of the pupil support.**
+  `OpdMap.lost` reports it; the pupil is still modelled as the full disc minus
+  an optional central obstruction and any spider vanes. The **spider landed at
+  § 5c** — as promised, a different `PupilFunction`, applied identically to both
+  branches, so it does *not* trip the hazard below. What remains is *partial
+  vignetting*: rays clipped at a surface (the off-axis Newtonian past its
+  diagonal), where the aperture the two branches see genuinely differs.
 
   That work must revisit `blendPsf`. The two branches currently disagree about
   the aperture and it does not matter: the geometric branch drops vignetted
   rays while the FFT branch models the full disc, and their energies are then
-  forced equal by construction. For an unvignetted system that is exact. The
-  moment partial vignetting is real the forced equality would paper over a
-  genuine disagreement about how much light gets through — so the matched-
-  normalization rungs need re-deriving there, not just re-running.
+  forced equal by construction. For an unvignetted system that is exact — and a
+  spider keeps it exact, because the same mask reaches both. The moment
+  *partial vignetting* is real the forced equality would paper over a genuine
+  disagreement about how much light gets through — so the matched-normalization
+  rungs need re-deriving there, not just re-running.
 - **Immersion.** `pixelScaleMm` carries an image-space index factor that is
   identity for every system validated here; the microscope branch's Abbe rung
   is what will pin it.
@@ -908,13 +912,121 @@ rung in `sequential.test.ts`.
   reported is the ideal ellipse's.
 - **The obstruction is not traced as a blocker.** It is reported by the preset
   and applied in the pupil function, which is where a central obstruction
-  belongs; the spider is not modelled at all yet. Obstruction/spider
-  diffraction is its own step-5 item.
+  belongs. The spider now exists too (§ 5c) — both are amplitude masks, not
+  ray-level blockers — but neither the obstruction nor the vanes are baked into
+  the preset's output: a vane width is a mechanical number with no closed form,
+  so it is a caller-supplied option, not an invented default in front of the
+  user (the same discipline as the deferred star-magnitude zero point).
 - **Off-axis vignetting by the diagonal.** The sizing rungs are on axis. A field
   ray walks across the diagonal, and with `fullyIlluminatedFieldMm` = 0 it will
   start to clip — which is the correct physics but is pinned by nothing.
 - **Astigmatism and field curvature** are present in the trace and unpinned;
   coma dominates a Newtonian but it is not the only off-axis term.
+
+## Step 5c — the spider: diffraction spikes from the vanes (current)
+
+The vanes that hold a secondary mirror are long thin opaque bars, and the
+transform of a bar is a bright streak *perpendicular* to it — so a reflector's
+diffraction spikes are not drawn on, they fall out of the same
+`|FFT{A·exp(2πiW)}|²` the Airy rings do. The spider arrives exactly as
+ARCHITECTURE promised the central obstruction's successor would: **a new
+`PupilFunction`, not a change to the transform.** One predicate,
+`spiderObscures`, zeroes the amplitude under each radial bar; the edge-resolving
+sampler, `transmittedEnergy`, and the geometric ray-drop all key on the pupil's
+own zeros, so they carry the vanes for free. Both branches call that *same*
+predicate — the lesson of the kernel-rotation drift (§ 3c) written into the
+code, not just a comment.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Isolated slit's streak is a sinc, first zero at padFactor/width** | transform of a rectangle | ✅ |
+| …and halving the slit width doubles that radius (zero ∝ 1/w) | Fourier scaling | ✅ |
+| **A vane along x̂ throws its spike along ŷ (17:1)** | perpendicularity, a Fourier theorem | ✅ |
+| **A 30° vane's spike lands at 120°, not the transpose's 60°** | ⊥ vs transpose (the sense-catcher) | ✅ |
+| 4 vanes → a 4-arm cross on the axes, not the diagonals | even N: N/2 collinear pairs → N arms | ✅ |
+| 3 vanes → a 6-arm star, bright ⊥ each vane, dark along them | odd N: no pairing → 2N arms | ✅ |
+| **A spider removes the vane area (FFT branch)** | strip area 2(h√(1−h²)+arcsin h), closed form | ✅ |
+| **The geometric branch carves that vane's shadow into the defocused spot** | pupil→spot map + the ray-drop | ✅ |
+
+The **isolated-slit** rung is the ε = 0-first move, straight from the annular
+rung's playbook: the sinc law is validated on a bare transmitting rectangle,
+where the streak IS the whole pattern and its zeros are exact, before anything
+leans on it in an aperture where the Airy tail contaminates the null. That
+contamination is not a nuisance to tolerate but the reason the in-aperture
+absolute first-zero is *not* pinned: measured on the mirror, the streak's
+apparent minima sit at the Airy-ring radii (16, 43, 77 px), independent of vane
+width — the same azimuthal-averaging bias the annular rung already documents,
+carried to the point where the absolute number is meaningless and only the
+clean-slit pin survives. The width is deliberately fat (w = D/8, D/16): a thin
+realistic vane throws its first zero to `padFactor/widthFraction` pixels, off
+any modest grid — correct physics, the spike runs off frame — so the validation
+vanes are sized to keep the streak on-grid, and the rectangle-approximation
+error that fatness costs is `(w/D)² ≈ 0.4–1.6%`, which bounds the tolerance the
+way low NA bounds the annular one.
+
+The **perpendicularity** rung and its **30° sense-catcher** are the spider's
+kernel-rotation guards, and the scar is explicit in their design. The symmetric
+0°/90° rung is *structurally blind to a transpose* — swapping the pupil→image
+axes maps a vane-along-x/spike-along-y system onto vane-along-y/spike-along-x,
+which reads the same both ways — exactly as the § 3c mirror-pair metric could
+not see a rotation-sense flip. So the 30° vane is the real sense-catcher: ⊥
+puts its spike at 120°, a transposed axis at 90° − 30° = 60°, and those are
+different lines, where a 45° vane (the tempting symmetric choice) would leave
+them on top of each other. The spike energy is measured **parametrically**, one
+pixel per radius, not by masking a strip — a strip-mask captures √2 more pixels
+along a diagonal than an axis, biasing an isotropic Airy floor into a false
+diagonal feature, and a spider-free control (flat across all angles) is what
+proved the parametric measure unbiased.
+
+The **count** rungs pin the even/odd law and cost the odd case its contrast
+honestly. Four vanes pair into two collinear diameters, so their spikes fall on
+the x and y lines with the diagonals ~3× dimmer; three vanes do not pair, so the
+light splits into six arms each from a radial *half*-bar, and the bright/dark
+contrast is a genuine ~1.75×, not the even case's 3×. It is asserted at that
+value rather than inflated: fattening the odd vane past ~D/10 grows the central
+overlap of the three bars faster than the spikes and *lowers* the contrast, so
+the thinner vane is the stronger rung — measured, not guessed. The pattern is
+still exact and six-fold symmetric, so a wrong count or a 30°-rotated star
+(spikes on the vane directions instead of ⊥ them) inverts the two sets.
+
+The **energy** rung earns the spider its place beside the annular capability,
+and it is where the step-2e matched-normalization note is answered — carefully,
+because the two branches do not measure energy the same way. The **FFT branch
+carries the external pin**: a full-diameter bar of half-width h blocks a strip
+of the unit disc of area 2(h√(1−h²) + arcsin h), a closed form, and Σ⟨A²⟩ on the
+edge-resolved grid matches it to 1%. The **geometric branch does not have an
+independent energy to check** — it is handed `transmittedEnergy(pupil)` and
+returns it verbatim, so `sg.energy ≈ sd.energy` is a *consistency* check that
+the same mask reached both, precisely the status the obstruction rung has, and
+nothing stronger. Claiming the geometric branch pins the area independently
+would be false: it is the same computation on the same pupil.
+
+That distinction matters because it is exactly the step-2e hazard *not* firing.
+The harder case the note warns of is *trace-level* vignetting — where the FFT
+branch models the full disc, the ray count genuinely disagrees, and `blendPsf`'s
+forced equality would paper over it — and it stays deferred (off-axis diagonal,
+§ 4a/4b). A spider is the *same* mask on both branches, so there is no
+disagreement to paper over; the forced equality is honest here.
+
+But energy being shared means **energy is blind to the geometric ray-drop** —
+the branch is scaled to `transmittedEnergy` whether or not it actually drops the
+vane rays. So the ray-drop, real new code, is pinned by its effect on the spot's
+*shape*, not its energy. Defocused, the geometric spot is a scaled picture of
+the pupil (the uniform-disc rung of § 2d), so a full-diameter vane along x̂ casts
+a horizontal dark stripe across it: the spot's horizontal centreline lies wholly
+in shadow, the vertical one crosses it only at the core, and without the drop the
+two are equal by the disc's symmetry — so the asymmetry *is* the ray-drop. It is
+the geometric counterpart of the FFT branch's spike, which runs ⊥ to the very
+same vane.
+
+That pairing is the physics worth stating: **the spike is an FFT-branch
+phenomenon, the shadow a geometric one.** The histogram has no phase, so a vane
+casts a shadow but no streak — correct, because diffraction spikes wash out far
+from focus, precisely where the geometric branch rules; and the FFT branch,
+in-focus, shows the spike but no defocused shadow. A vane's *energy* effect is
+on both branches, but its two visible signatures live one to a branch, and the
+orientation/spike rungs run on the paraboloid at focus where the diffraction
+branch is fully active (Strehl 1, no aliasing).
 
 ## Later rungs
 

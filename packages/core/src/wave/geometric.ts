@@ -11,6 +11,7 @@ import {
   SystemPsfOptions,
   psf,
   pupilFunctionFromOpd,
+  spiderObscures,
   transmittedEnergy,
 } from "./psf";
 import { opdSampling, phaseStepPerSample, PHASE_STEP_LIMIT } from "./fidelity";
@@ -126,6 +127,7 @@ export function geometricPsf(
   const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
   const pupil = pupilFunctionFromOpd(map, fit, {
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
+    ...(options.spider === undefined ? {} : { spider: options.spider }),
   });
   const energy = transmittedEnergy(pupil, pupilSamples, size);
 
@@ -146,6 +148,9 @@ export function geometricPsf(
 
   const obstruction = options.obstruction ?? 0;
   const ob2 = obstruction * obstruction;
+  // The SAME predicate the FFT branch masks with, so the two branches cannot
+  // disagree about how much of the aperture the vanes block.
+  const spiderTest = options.spider ? spiderObscures(options.spider) : null;
   const intensity = new Float64Array(size * size);
   const half = size / 2;
   let binned = 0;
@@ -154,6 +159,11 @@ export function geometricPsf(
     // The obstruction is a property of the aperture, so it blocks rays here
     // exactly as it zeroes amplitude in the pupil function.
     if (r.px * r.px + r.py * r.py < ob2) continue;
+    // Vanes block rays for the same reason — but produce no spikes here: a ray
+    // histogram has no phase, so a spider only removes energy from the
+    // geometric branch. The streaks are an FFT phenomenon, and correctly so —
+    // they wash out far from focus, which is exactly where this branch rules.
+    if (spiderTest !== null && spiderTest(r.px, r.py)) continue;
     const { origin: o, dir: d } = r.ray;
     const t = (planeZ - o.z) / d.z;
     const x = o.x + d.x * t - map.imagePoint.x;

@@ -155,6 +155,58 @@ describe("both branches carry exactly the same energy", () => {
     expect(od.energy / d.energy).toBeGreaterThan((1 - eps * eps) * 0.99);
     expect(od.energy / d.energy).toBeLessThan((1 - eps * eps) * 1.01);
   });
+
+  /**
+   * A spider removes the vane area, pinned to a closed form on the FFT branch.
+   * A full-diameter bar of half-width h (a 0°/180° vane pair) blocks a strip of
+   * the unit disc whose area is 2·(h·√(1−h²) + arcsin h), so the transmitted
+   * fraction is 1 minus that over π.
+   *
+   * The FFT ratio is the *external* pin — Σ⟨A²⟩ on the edge-resolved grid
+   * against the strip area. The geometric branch shares the SAME mask: it does
+   * not measure its own energy, it is handed `transmittedEnergy(pupil)`, so
+   * `sg.energy ≈ sd.energy` is a consistency check that the same pupil reached
+   * both, exactly the status the obstruction rung above has. What the geometric
+   * ray-drop actually *does* — carve a shadow into the spot — is pinned
+   * separately below, because energy alone is blind to it.
+   */
+  it("a spider removes the vane area (FFT pinned, geometric shares the mask)", () => {
+    const h = 1 / 8; // vane full width / D = half-width in radius units
+    const spider = { vanes: 2 as const, widthFraction: h, angleDeg: 0 };
+    const sd = psf(system, 0, LINE_D, { ...GRID, spider });
+    const sg = geometricPsf(system, 0, LINE_D, { ...GRID, spider });
+    const blocked = 2 * (h * Math.sqrt(1 - h * h) + Math.asin(h)); // strip area
+    const transmitted = 1 - blocked / Math.PI;
+    expect(sd.energy / d.energy).toBeGreaterThan(transmitted * 0.99);
+    expect(sd.energy / d.energy).toBeLessThan(transmitted * 1.01);
+    expect(sg.energy / sd.energy).toBeCloseTo(1, 12); // same mask reached both
+  });
+
+  /**
+   * What the ray-drop is FOR. Energy is blind to it — the geometric branch is
+   * scaled to `transmittedEnergy` whether or not it drops the vane rays — so
+   * the ray-drop is pinned by its effect on the spot's *shape*. Defocused, the
+   * geometric spot is a scaled picture of the pupil, so a full-diameter vane
+   * along x̂ blocks the pupil strip |py| < h and casts a horizontal dark stripe
+   * across the disc: the horizontal centreline lies entirely in shadow, while
+   * the vertical one crosses it only at the core. Without the ray-drop the two
+   * centrelines are equal by the disc's symmetry, so the asymmetry IS the
+   * ray-drop. It is the geometric mirror of the FFT branch's spike, which runs
+   * ⊥ to the same vane (§ 5c, psf.test).
+   */
+  it("the geometric branch carves a vane shadow into the defocused spot", () => {
+    const spider = { vanes: 2 as const, widthFraction: 1 / 8, angleDeg: 0 };
+    const sg = geometricPsf(system, 0, LINE_D, { ...GRID, spider });
+    const n = sg.size;
+    const c = n / 2;
+    let along = 0; // the shadowed centreline (y = c), along the vane
+    let across = 0; // the clear centreline (x = c), ⊥ the vane
+    for (let k = 1; k < c; k++) {
+      along += sg.intensity[c * n + (c + k)]! + sg.intensity[c * n + (c - k)]!;
+      across += sg.intensity[(c + k) * n + c]! + sg.intensity[(c - k) * n + c]!;
+    }
+    expect(along).toBeLessThan(0.2 * across);
+  });
 });
 
 describe("the blend band is smooth, not a threshold", () => {
