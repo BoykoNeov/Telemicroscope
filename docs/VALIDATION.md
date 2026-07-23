@@ -438,25 +438,111 @@ falls inside it and C's outside. A bin-for-bin sum would put all three minima on
 the same pixel and leave the ring as deep as a monochromatic one.
 
 ### Not yet pinned
-- **Trace-level vignetting is not carved out of the pupil support.**
-  `OpdMap.lost` reports it; the pupil is still modelled as the full disc minus
-  an optional central obstruction and any spider vanes. The **spider landed at
-  § 5c** — as promised, a different `PupilFunction`, applied identically to both
-  branches, so it does *not* trip the hazard below. What remains is *partial
-  vignetting*: rays clipped at a surface (the off-axis Newtonian past its
-  diagonal), where the aperture the two branches see genuinely differs.
-
-  That work must revisit `blendPsf`. The two branches currently disagree about
-  the aperture and it does not matter: the geometric branch drops vignetted
-  rays while the FFT branch models the full disc, and their energies are then
-  forced equal by construction. For an unvignetted system that is exact — and a
-  spider keeps it exact, because the same mask reaches both. The moment
-  *partial vignetting* is real the forced equality would paper over a genuine
-  disagreement about how much light gets through — so the matched-normalization
-  rungs need re-deriving there, not just re-running.
+- ~~**Trace-level vignetting is not carved out of the pupil support.**~~ Closed
+  at **§ 2f**. The prediction recorded here — that partial vignetting would
+  force `blendPsf`'s matched normalization to be re-derived rather than
+  re-forced — turned out to be half right, and the half that was wrong is the
+  interesting half. The disagreement was real and worth 2.61× in brightness,
+  but the fix was not in `blendPsf` at all: carving the vignetting into the
+  pupil support (the first sentence of this bullet) makes both branches see one
+  aperture, at which point the forced equality is *honestly* true by the
+  spider's own argument and `blendPsf`'s arithmetic never changes. What had to
+  be re-derived was the *evidence*, not the code — see § 2f.
 - **Immersion.** `pixelScaleMm` carries an image-space index factor that is
   identity for every system validated here; the microscope branch's Abbe rung
   is what will pin it.
+
+## Step 2f — trace-level (partial) vignetting (current)
+
+The open item § 2e recorded, and roadmap step 5's "off-axis diagonal
+vignetting". *Partial* vignetting is a ray clipped at a downstream surface
+rather than by the aperture stop — the off-axis Newtonian past its diagonal.
+It is the one case where the two PSF branches genuinely disagreed about how
+much light gets through: the geometric branch dropped vignetted rays
+(`exitBundle`), the FFT branch modelled the full disc, and the geometric
+histogram was then rescaled to the FFT's full-disc energy — **over-brightening
+a vignetted field point by 1/fraction, measured 2.61× on the test geometry.**
+
+The fix is the one the spider already established: vignetting arrives as a
+`PupilFunction` mask. `vignetteMask` is a predicate over pupil coordinates
+whose criterion is *the trace itself* (`status !== "ok"`) — the same test
+`opdMap` drops samples on and `exitBundle` drops rays on. It zeroes the FFT
+amplitude and, through the shared `transmittedEnergy`, sets the geometric
+branch's normalization target, so both branches see one aperture.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Vignetted FFT pupil area = two-disc intersection (vesica), 0.383301** | closed form | ✅ |
+| ...and converges as the pupil grid refines (7.1e-5 → 1.6e-5, 128 → 256) | discretization order | ✅ |
+| **Geometric ray-survivor fraction = the SAME closed form (< 1e-3)** | closed form | ✅ |
+| The open pupil is genuinely off-centre, not a stopped-down disc | geometry | ✅ |
+| Both branches normalize to the vignetted energy, not the full disc | matched normalization | ✅ |
+| ...the pre-fix normalization was **2.61× too bright** (negative control) | measurement | ✅ |
+| **Newtonian: on-axis throughput is exactly 1** | § 4b diagonal sizing | ✅ |
+| Newtonian: throughput falls monotonically with field (0.9958 → 0.9530) | vignetting | ✅ |
+| **Newtonian: FFT mask and ray-survivor fraction agree to 1.2e-4** | cross-branch | ✅ |
+
+### The pinnable geometry is on-axis, not the cat's eye
+
+The obvious system to validate against is the off-axis Newtonian, and it is the
+wrong one to validate *with*: it stacks a fold, an off-axis trace and vignetting,
+and its clipped footprint is not an exact anything — a collimated oblique bundle
+meets a plane perpendicular to the axis in an ellipse, so the "shifted circle" is
+only correct to O(θ²).
+
+So the closed-form rung is built on a **decentered circular aperture in the
+collimated space** between the stop and a paraboloidal mirror, on axis. Before
+any power the beam is parallel to the axis, so the clip maps to the pupil as the
+identity, and the open pupil is *exactly* the intersection of two discs — a
+textbook area. That isolates the genuinely new capability, which is a **mask that
+is not centred on the pupil**: every aperture the engine could previously
+represent (the disc, the central obstruction, the spider) is symmetric about the
+axis, and a concentric stop-down would have passed a rung that only checked "less
+light gets through". The off-centre control (the survivors' mean pupil x is
+displaced) is what distinguishes the two.
+
+The Newtonian then layers the real mechanism back on, pinned to what it can
+honestly carry: that throughput falls with field, and that the two branches
+agree about how much. Its on-axis rung is a free cross-check of § 4b — the
+closed-form diagonal is derived to be exactly tangent to the on-axis cone, and
+it loses *exactly* zero rays, not 0.999.
+
+### What the equality of the two energies does and does not prove
+
+`psf().energy` and `geometricPsf().energy` come from one `transmittedEnergy`
+call, so their agreement is **by construction and proves nothing on its own** —
+recorded explicitly because it is exactly the kind of number that reads as
+validation. The evidence is that the *same fraction* is measured by two
+independent routes: an area integral over the masked pupil (FFT, area-averaged
+at the edge) and a count of rays that physically cleared the clip (geometric,
+no FFT and no mask in its history). Both land on the closed form, which is why
+the shared number is trustworthy. Their error bands differ honestly — 1.6e-5
+for the area against ~5e-4 for the lattice count — because a ray count of a
+curved region converges more raggedly than a subdivided edge, and setting both
+to one round tolerance would have hidden that.
+
+### Cost, and the trigger that bounds it
+
+The predicate re-aims and re-traces **one ray per queried pupil point**, and
+`pupilSampling` queries the whole in-disc lattice plus every subdivided edge
+cell. That is affordable but not free, so it is built **only when the trace
+already reports loss** (`OpdMap.lost > 0`). An unvignetted system never
+constructs the mask and is bit-identical to before — the entire 377-rung suite,
+goldens included, is unchanged by this work, which is the evidence that the
+gate holds.
+
+Two limits follow from the gate and are recorded rather than hidden. A sliver of
+vignetting too thin to lose any of the 21² OPD samples will not raise the mask —
+the same sliver the Zernike fit already ignored, so nothing is made worse, but it
+is not detected either. And a vignetted field point in a full-field render costs
+meaningfully more than a clear one, per patch and per wavelength; the render pays
+it only on the patches that actually clip.
+
+The mask is **binary**, which is what a hard stop is: a ray either clears the
+aperture or it does not. Partial-cell coverage at the vignetting boundary is
+handled by the same edge-averaging every other aperture edge gets, and carries
+the same O(Δ²) floor (§ 2b). Any loss counts — a stop, a TIR, a miss — because
+all three mean "no light here", which is what a pupil amplitude of zero says.
 
 ## Step 3a — the standard observer and thermal sources (current)
 

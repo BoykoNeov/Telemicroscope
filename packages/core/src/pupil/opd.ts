@@ -173,3 +173,38 @@ export function opdMap(
     rmsWaves,
   };
 }
+
+/**
+ * Is the ray through this normalized pupil point clipped before the image?
+ *
+ * This is *trace-level* (partial) vignetting — a ray stopped at a downstream
+ * surface's clear aperture, not the aperture stop. `OpdMap.lost` already
+ * *counts* it; this reports *where* it happens, at any pupil coordinate the FFT
+ * grid asks about, so the diffraction branch's amplitude support can shrink to
+ * the light that actually gets through (docs/VALIDATION § 2f).
+ *
+ * The criterion is the trace itself — `status !== "ok"` — which is the SAME
+ * test `opdMap` drops samples on and `exitBundle` drops rays on. Writing it
+ * once is what keeps the two PSF branches from disagreeing about the aperture,
+ * the discipline the spider mask already follows: with an identical mask on
+ * both, their energies agree honestly rather than being forced equal by
+ * `blendPsf` (docs/VALIDATION § 2e).
+ *
+ * SCOPE. Any clip counts — a hard stop, a TIR loss, a miss — because all three
+ * mean "no light here", which is what a pupil amplitude of zero says. The
+ * predicate re-aims and re-traces one ray per query, so a caller applies it
+ * only when the trace already shows loss (`OpdMap.lost > 0`); on the common
+ * unvignetted system it is never built and costs nothing.
+ */
+export function vignetteMask(
+  system: OpticalSystem,
+  pupil: PupilGeometry,
+  fieldValue: number,
+  wavelengthNm: number,
+  options: AimOptions = {},
+): (px: number, py: number) => boolean {
+  return (px, py) => {
+    const ray = aimRay(system, pupil, fieldValue, { px, py }, wavelengthNm, options);
+    return traceRay(system.prescription, ray).status !== "ok";
+  };
+}

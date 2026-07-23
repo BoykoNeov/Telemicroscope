@@ -1,7 +1,7 @@
 import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
-import { OpdMap, opdMap } from "../pupil/opd";
+import { OpdMap, opdMap, vignetteMask } from "../pupil/opd";
 import { ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
 import { OpdSampling, opdSampling } from "./fidelity";
 import { withPhaseScreen, type PhaseScreen } from "./seeing";
@@ -43,16 +43,15 @@ import { withPhaseScreen, type PhaseScreen } from "./seeing";
  *
  * ## Scope
  *
- * The aperture is the full disc, minus an optional central obstruction and any
- * spider vanes (both carved out of the amplitude — see `SpiderSpec` and
- * `pupilFunctionFromOpd`). What is still NOT modelled is *trace-level*
- * vignetting: rays clipped at a surface are reported (`OpdMap.lost`) but the
- * pupil support does not yet shrink to match, so a partially-vignetted system
- * (an off-axis Newtonian past its diagonal) is a separate, harder item — it is
- * the one that forces `blendPsf`'s matched-normalization to be re-derived
- * rather than re-forced. A spider does not: it is an identical mask on both
- * branches, so their energies agree honestly rather than by construction.
- * That the pupil is an interface, not an array, is what let the spider arrive
+ * The aperture is the full disc, minus an optional central obstruction, any
+ * spider vanes, and any *trace-level* (partial) vignetting — all carved out of
+ * the amplitude (see `SpiderSpec`, `vignetteMask` and `pupilFunctionFromOpd`).
+ * Partial vignetting is a ray clipped at a downstream surface rather than by
+ * the stop (an off-axis Newtonian past its diagonal): the same mask reaches the
+ * FFT amplitude here and the geometric branch's `transmittedEnergy`, so the two
+ * branches see one aperture and their energies agree honestly rather than being
+ * forced equal by `blendPsf` (docs/VALIDATION § 2e, § 2f). That the pupil is an
+ * interface, not an array, is what let the spider — and now vignetting — arrive
  * as one predicate without the transform below changing at all.
  */
 
@@ -236,13 +235,25 @@ export interface Psf {
 export function pupilFunctionFromOpd(
   map: OpdMap,
   fit: ZernikeFit,
-  options: { obstruction?: number; spider?: SpiderSpec; amplitudeTerms?: number } = {},
+  options: {
+    obstruction?: number;
+    spider?: SpiderSpec;
+    amplitudeTerms?: number;
+    /**
+     * Trace-level (partial) vignetting: a predicate that is true at pupil
+     * points whose ray is clipped before the image. Applied identically to the
+     * amplitude here and — through `transmittedEnergy` — to the geometric
+     * branch, so both branches see one aperture (`vignetteMask`, § 2f).
+     */
+    vignette?: (px: number, py: number) => boolean;
+  } = {},
 ): PupilFunction {
   const obstruction = options.obstruction ?? 0;
   if (obstruction < 0 || obstruction >= 1) {
     throw new Error(`obstruction must be in [0, 1), got ${obstruction}`);
   }
   const spiderTest = options.spider ? spiderObscures(options.spider) : null;
+  const vignetteTest = options.vignette ?? null;
   const phase = wavefrontSampler(fit);
 
   let lo = Infinity;
@@ -268,6 +279,9 @@ export function pupilFunctionFromOpd(
       const r2 = px * px + py * py;
       if (r2 > 1 || r2 < ob2) return 0;
       if (spiderTest !== null && spiderTest(px, py)) return 0;
+      // Last, and only inside the disc: the vignette test re-traces a ray, so
+      // the cheap analytic rejections above run first.
+      if (vignetteTest !== null && vignetteTest(px, py)) return 0;
       if (amplitudeSampler === null) return constantAmplitude;
       // A fit can dip below zero in a corner it was never constrained in;
       // amplitude cannot.
@@ -626,9 +640,16 @@ export function psf(
     options.aim ?? {},
   );
   const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
+  // Only build the mask when the trace already shows loss: an unvignetted
+  // system never pays for the per-point re-trace (§ 2f).
+  const vignette =
+    map.lost > 0
+      ? vignetteMask(system, map.pupil, fieldValue, wavelengthNm, options.aim ?? {})
+      : undefined;
   const pupil = pupilFunctionFromOpd(map, fit, {
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
     ...(options.spider === undefined ? {} : { spider: options.spider }),
+    ...(vignette === undefined ? {} : { vignette }),
   });
   // Atmospheric seeing arrives here, as the last wrapper on the pupil before the
   // transform — pure phase at this wavelength, amplitude untouched. It is the

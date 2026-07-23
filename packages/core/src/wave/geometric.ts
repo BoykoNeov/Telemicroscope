@@ -1,7 +1,7 @@
 import { asCompiled } from "../trace/compile";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
-import { opdMap } from "../pupil/opd";
+import { opdMap, vignetteMask } from "../pupil/opd";
 import { imagePlaneZ } from "../pupil/pupils";
 import { exitBundle } from "../analysis/spot";
 import { fitZernike } from "./zernike";
@@ -125,9 +125,18 @@ export function geometricPsf(
     options.aim ?? {},
   );
   const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
+  // The same mask the FFT branch uses, so `energy` below counts only the light
+  // that clears the downstream apertures. The ray loop already drops those rays
+  // (`exitBundle`), so this is what keeps the histogram's normalization target
+  // honest instead of rescaling the survivors up to the full-disc energy (§ 2f).
+  const vignette =
+    map.lost > 0
+      ? vignetteMask(system, map.pupil, fieldValue, wavelengthNm, options.aim ?? {})
+      : undefined;
   const pupil = pupilFunctionFromOpd(map, fit, {
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
     ...(options.spider === undefined ? {} : { spider: options.spider }),
+    ...(vignette === undefined ? {} : { vignette }),
   });
   const energy = transmittedEnergy(pupil, pupilSamples, size);
 

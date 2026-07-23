@@ -198,9 +198,21 @@
    the pinnable idealization; a real commercial tube shifts the corrector forward
    and optimizes beyond third order (the proprietary figure `cassegrain.ts` flags),
    trading the clean number for a shorter tube.
-   Still to come here: the eyepiece library, the refractor
-   preset, and off-axis diagonal vignetting
-   (the partial-vignetting `blendPsf` case § 5c leaves open).
+   *Off-axis diagonal vignetting:* ✅ (VALIDATION § 2f). The partial-vignetting
+   case § 2e left open — a ray clipped at a downstream surface rather than by the
+   stop, the one place the two PSF branches genuinely disagreed about throughput
+   (the geometric branch dropped the rays, the FFT modelled the full disc, and the
+   histogram was rescaled to the full-disc energy: **2.61× too bright**). It
+   arrives the way the spider did, as one `PupilFunction` mask whose criterion is
+   the trace itself, so both branches see one aperture and `blendPsf`'s arithmetic
+   never changes — the § 2e prediction that its normalization would need
+   *re-deriving* was right about the disagreement and wrong about the location.
+   Pinned on-axis against a closed form (a decentered clip in collimated space
+   makes the open pupil an exact two-disc vesica) rather than on the Newtonian,
+   which stacks a fold, an off-axis trace and an only-O(θ²) footprint; the
+   Newtonian then carries the real mechanism, including a free cross-check that
+   the § 4b closed-form diagonal loses *exactly* zero rays on axis.
+   Still to come here: the eyepiece library and the refractor preset.
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation
