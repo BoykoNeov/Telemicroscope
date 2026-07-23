@@ -176,9 +176,30 @@
    on-axis fifth-order residual (diffraction-limited, ~5 orders above the confocal
    Cassegrain, falling ~32× as the primary slows f/4 → f/8) and spherochromatism
    (the one behaviour no all-mirror preset has), pinned to the same closed form the
-   Schmidt camera carries. Still to come here: the eyepiece library, the refractor
-   preset, the **all-spherical commercial SCT** (a later unit transcribing the
-   published two-mirror Seidel corrector formula), and off-axis diagonal vignetting
+   Schmidt camera carries.
+   *All-spherical commercial SCT:* ✅ `designs/sct` (VALIDATION § 5i). The sixth
+   reflecting preset and the last of the Schmidt family — the all-spherical
+   Celestron/Meade-class SCT: **two spherical mirrors** and one corrector figured to
+   null their *combined* spherical aberration. Structurally the Schmidt-Cassegrain
+   with the secondary conic set to 0 and a combined corrector, its external number
+   is the published two-mirror Seidel corrector (Schroeder Ch. 6; Rutten & van
+   Venrooij): (n−1)A₄ = −1/(4R₁³) − k₂ε⁴/(4R₂³), the Schmidt primary term *minus*
+   the secondary sphere's own SA. The secondary term subtracts — a convex sphere is
+   over-corrected, so the two spheres partially cancel and the corrector is *weaker*
+   than the primary-only figure (0.61×). The one load-bearing sign (subtractive) is
+   fixed externally by the **Dall-Kirkham** ellipsoid before any trace, never by which
+   sign nulls — the anti-circularity discipline the hard rule demands. Its headline is
+   a three-way ladder no single-mirror preset can reach: combined corrector nulls to
+   diffraction-limited, primary-only Schmidt figure leaves the secondary's |W_s| = 0.32
+   waves, wrong-sign secondary term lands at ≈ 2|W_s| — the ΔA₄ lever made into a test.
+   Same fifth-order residual and spherochromatism as the family; NOT an anastigmat
+   (corrector at the primary's CoC only, off-axis coma/astigmatism remain, unpinned).
+   This transcribes the *third-order closed form* with the corrector at the CoC —
+   the pinnable idealization; a real commercial tube shifts the corrector forward
+   and optimizes beyond third order (the proprietary figure `cassegrain.ts` flags),
+   trading the clean number for a shorter tube.
+   Still to come here: the eyepiece library, the refractor
+   preset, and off-axis diagonal vignetting
    (the partial-vignetting `blendPsf` case § 5c leaves open).
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —

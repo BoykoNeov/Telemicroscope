@@ -1552,13 +1552,10 @@ the reported obstruction stays the clean paraxial ε, and "whole beam through"
 holds it to `lost === 0`.
 
 ### Not yet pinned
-- **The all-spherical commercial SCT.** This preset makes the secondary a
-  hyperboloid (half the confocal pairing); the Celestron/Meade design keeps both
-  mirrors spherical and lets the corrector null the *combined* two-mirror
-  spherical aberration. That corrector figure is a published two-mirror Seidel
-  closed form (Schroeder Ch. 6; Rutten & van Venrooij) — a later unit that
-  transcribes it rather than deriving it, so it does not become an engine-vs-own-
-  algebra check.
+- ~~The all-spherical commercial SCT.~~ **Landed at § 5i.** The Celestron/Meade
+  design keeps both mirrors spherical and lets the corrector null the *combined*
+  two-mirror spherical aberration, via the published two-mirror Seidel closed form
+  (Schroeder Ch. 6; Rutten & van Venrooij).
 - **Off-axis field aberrations.** Coma, astigmatism and field curvature are in
   the trace but unpinned (the stop-at-corrector budget is neither the
   Cassegrain's nor a clean closed form). The SCT is a compromise between the
@@ -1582,6 +1579,104 @@ holds it to `lost === 0`.
   and Schmidt.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the other four reflecting presets.
+
+## Step 5i — the all-spherical commercial SCT preset (current)
+
+The sixth reflecting preset, and the last of the Schmidt family: the "compact
+SCT" sold as a Celestron/Meade tube — **two spherical mirrors** (the cheapest
+optics there are) and one aspheric corrector plate at the primary's centre of
+curvature, figured to null the **combined** spherical aberration of both spheres.
+It is structurally the Schmidt-Cassegrain (§ 5h) with the secondary conic set to
+0 and a stronger-story corrector, and it is the preset the roadmap held back until
+a closed form for the two-mirror corrector was in hand.
+
+The external number is the two-mirror Seidel corrector (Schroeder, *Astronomical
+Optics* Ch. 6; Rutten & van Venrooij, *Telescope Optics*). Third-order spherical
+aberration is exactly linear in each mirror's conic, so the corrector nets two
+entrance-pupil r⁴ terms:
+
+    (n−1)·A₄ = −1/(4R₁³)  −  k₂·ε⁴/(4R₂³)          k₂ = −((m+1)/(m−1))²
+             = −1/(4R₁³)  +  ((m+1)/(m−1))²·ε⁴/(4R₂³)
+
+— the Schmidt primary term (§ 5g), **minus** the secondary sphere's own SA, the
+one the classical Cassegrain's confocal hyperboloid used to cancel. ε = s₁/f₁ is
+the obstruction (the fractional beam height at the secondary), R₁ = 2f₁, R₂ the
+secondary radius. The secondary term **subtracts**: a convex sphere is *over*-
+corrected, opposite in sense to the concave primary, so the two spheres partially
+cancel and the corrector is *weaker* than the primary-only Schmidt figure — 0.61×
+on this f/12, primary-f/4 tube.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| f = D·F, primary f₁ = D·F₁, R₁ = 2f₁, paraxial EFL = m·f₁ | definition | ✅ |
+| **BOTH mirrors are spheres (conic 0) — the defining feature of the commercial SCT** | design definition | ✅ |
+| **Corrector A₄ = −1/(4(n−1)R₁³) − k₂ε⁴/(4(n−1)R₂³), from scalars, and WEAKER than the primary-only Schmidt figure (0.61×)** | two-mirror Seidel closed form + the trace pins it (below) | ✅ |
+| **Shares the classical Cassegrain's MIRROR layout exactly — separation, secondary radius, obstruction all equal; but the secondary is a SPHERE here, not the confocal hyperboloid** | shared `twoMirrorLayout` (anti-drift) | ✅ |
+| Obstruction ε = s₁/f₁ the secondary projects onto the pupil | closed form | ✅ |
+| Focus lands b behind the primary vertex, at z = R₁ + b | closed form | ✅ |
+| Refuses a system faster than its primary, an oversize back focus, an over-thick plate, an unknown glass | validity | ✅ |
+| Whole beam through; nothing vignettes on axis | footprint | ✅ |
+| **On axis: the corrector nulls the COMBINED 3rd-order spherical — diffraction-limited (Strehl > 0.95), ~160× better than the corrector-removed pair** | 3rd-order correction | ✅ |
+| **The SECONDARY term earns its keep: combined ≪ primary-only-corrector ≪ wrong-sign, and wrong-sign ≈ 2× primary-only** | the ΔA₄ ladder (the sign/magnitude discriminator) | ✅ |
+| **Diffraction-limited but NOT exactly stigmatic: ~5 orders above the confocal Cassegrain on the same spec** | 3rd-order-only correction | ✅ |
+| **Carries a FIFTH-order residual: it falls ~31× when the primary slows f/4 → f/8** | 1/F⁵ scaling (the 2⁵ signature) | ✅ |
+| At a primary f/10 the design-λ residual < 1e-3 waves | 3rd-order null exact | ✅ |
+| **Spherochromatism: Δc₁₁(λ) = (n(λ)−n(550))·A₄·(D/2)⁴/(6√5)/λ, matched to a few %** | dispersion × combined corrector figure | ✅ |
+| …the shift is monotonic across the visible band | dispersion sign | ✅ |
+| Obstruction stays in the pupil function, not the geometry (blocked/clear energy = 1 − ε²) | annulus area | ✅ |
+
+**The secondary-term sign is sourced externally, and the trace only confirms it.**
+The one load-bearing sign here — whether the secondary term adds to or subtracts
+from the primary's — is fixed by an external datum, *before* any trace: the
+**Dall-Kirkham** telescope (spherical secondary, aspheric primary, no corrector)
+has a *prolate ellipsoid* primary, conic ≈ −0.7, LESS aspheric than a paraboloid.
+With the Schmidt-validated calibration that a primary conic K contributes
++K/(4R₁³), a Dall-Kirkham nulls only if the spherical secondary's SA W_s < 0 (so
+that 1 + K₁ > 0). That fixes the convex secondary as *over*-corrected, hence the
+subtraction and the weaker corrector. Committing to the sign first is the point:
+the trace's job is to confirm the closed form, never to pick between two signs by
+seeing which one nulls — that would be fitting the corrector to the engine, the
+exact circularity the hard rule forbids.
+
+**The three-way ladder is the rung that earns this preset over the Schmidt-
+Cassegrain.** A single-mirror Schmidt can only test its overall corrector sign (a
+flip roughly doubles the error). It cannot test the SECONDARY term, because it has
+no secondary. Here the ladder does, on the all-spherical system: the **combined**
+corrector lands the on-axis wavefront at 3·10⁻³ waves; the **primary-only** Schmidt
+figure (right for the primary, blind to the secondary) leaves |W_s| = 0.32 waves;
+the **wrong-sign** secondary term (primary-only minus the secondary term instead of
+plus) *adds* |W_s| and lands at 0.65 — twice the primary-only, to 0.5%. That the
+middle rung is large (0.32 ≫ the 3·10⁻³ fifth-order floor) is what makes the ladder
+discriminate; it is set on a primary-f/4 tube for exactly that separation. This is
+the ΔA₄ lever made into a test — combined = primary-only + secondary-term, and the
+ladder measures all three.
+
+**On axis it parts company with the confocal Cassegrain the same way the rest of
+the family does.** The classical Cassegrain is stigmatic to all orders (§ 5e); the
+SCT, like the Schmidt camera (§ 5g) and Schmidt-Cassegrain (§ 5h), nulls only
+*third-order* spherical and keeps a fifth-order residual — 3·10⁻³ waves at f/12
+(primary f/4), ~5 orders above the confocal Cassegrain's ~1·10⁻⁸ on the identical
+spec, and dropping ~31× (the 2⁵ signature) when the primary slows f/4 → f/8. At a
+primary f/10 it has all but vanished (3·10⁻⁵ waves), the proof the combined A₄
+nulls the third order exactly.
+
+**Spherochromatism carries the same closed form as the rest of the family, now
+with the combined A₄.** The refractive corrector is figured for one wavelength;
+away from it the residual is the corrector's own r⁴ figure scaled by the index
+change, a refocus-invariant primary-spherical term whose j = 11 projection matches
+(n(λ)−n(550))·A₄·(D/2)⁴/(6√5)/λ to 0.98, on a slow (primary f/10) tube where the
+fifth-order monochromatic residual has shrunk away — the same "just below the
+third-order line" signature § 5g/5h show.
+
+**Not an anastigmat, and the scope says so.** Unlike the single-mirror Schmidt
+*camera* (§ 5g), whose stop at the mirror's centre of curvature makes coma and
+astigmatism vanish, the two-mirror SCT's corrector is at the *primary's* centre of
+curvature only; the secondary sees the field asymmetrically, so third-order coma
+and astigmatism remain — the off-axis softness commercial SCTs are known for.
+Those terms are traced but unpinned, exactly as for the Schmidt-Cassegrain, and
+off-axis pupils vignette as a sizing artifact (both mirrors sized for the on-axis
+beam), the shared two-mirror deferral recorded at § 5h. Every rung here runs on
+axis, `lost === 0`.
 
 ## Later rungs
 

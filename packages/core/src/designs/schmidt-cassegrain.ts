@@ -29,7 +29,8 @@ import { twoMirrorLayout, TwoMirrorSpec } from "./two-mirror";
  *    sphere behave (to third order) like the paraboloid the confocal pairing
  *    expects, the same secondary relays it stigmatically.
  *
- * The all-spherical commercial SCT belongs to a later unit that transcribes the
+ * The all-spherical SCT — both mirrors spheres, the corrector nulling their
+ * combined SA — is a separate preset (`sct.ts`, § 5i) that transcribes the
  * published two-mirror Seidel corrector formula (Schroeder Ch. 6; Rutten & van
  * Venrooij) rather than deriving it here.
  *

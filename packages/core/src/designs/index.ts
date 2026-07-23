@@ -5,3 +5,4 @@ export * from "./cassegrain";
 export * from "./ritchey";
 export * from "./schmidt";
 export * from "./schmidt-cassegrain";
+export * from "./sct";

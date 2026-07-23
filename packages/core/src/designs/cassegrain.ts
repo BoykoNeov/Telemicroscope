@@ -10,13 +10,15 @@ import { twoMirrorLayout, TwoMirrorSpec } from "./two-mirror";
  * ## Why classical Cassegrain, and not the SCT the roadmap names
  *
  * A commercial Schmidt-Cassegrain corrects two spherical mirrors with an
- * aspheric corrector plate whose figure is an OPTIMIZED, proprietary surface:
- * there is no external number to pin it to, so it would violate the project's
- * hard rule (new capability pinned to textbook/closed-form/published values).
- * The classical Cassegrain has that number for free, because it is defined by a
- * geometric property rather than an optimization — see below. The aspheric
- * corrector belongs to a later unit whose clean external pin is a *Schmidt
- * camera* (single spherical mirror + corrector, textbook corrector figure).
+ * aspheric corrector plate whose *production* figure is an OPTIMIZED, proprietary
+ * surface: there is no external number to pin that exact surface to, so it would
+ * violate the project's hard rule (new capability pinned to textbook/closed-form/
+ * published values). The classical Cassegrain has its number for free, because it
+ * is defined by a geometric property rather than an optimization — see below. The
+ * aspheric corrector's clean external pin is the *Schmidt camera* (single spherical
+ * mirror + corrector, textbook figure); the two-mirror all-spherical case then
+ * lands in `sct.ts` (§ 5i) at its *third-order closed form* — the pinnable
+ * idealization the optimized commercial figure departs from.
  *
  * ## It is `unfolded`, not folded
  *
