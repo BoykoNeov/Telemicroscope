@@ -138,8 +138,20 @@
    spherical mirror + textbook corrector figure — the first `asphereCoeffs`
    preset); the **Ritchey-Chrétien** (both mirrors hyperboloidal, coma nulled) is
    a closed-form sibling that can land alongside.
+   *Ritchey-Chrétien:* ✅ `designs/ritchey` (VALIDATION § 5f). The closed-form
+   sibling the Cassegrain note promised, and the third reflecting preset. Same
+   Cassegrain-form layout — now shared through one `twoMirrorLayout` so the two
+   cannot drift — with both mirrors hyperboloidal (K₁, K₂ the published aplanatic
+   closed form) to null third-order coma as well as spherical aberration. Its
+   headline rung is the coma null pinned against the classical Cassegrain on the
+   identical geometry (RC coma < 1% of it), with an astigmatism-remains negative
+   control proving the correction is coma-specific, and an on-axis rung that
+   parts company with the Cassegrain honestly: the RC is diffraction-limited but
+   *not* exactly stigmatic (a fifth-order spherical residual, shown to fall ~34×
+   as the primary slows), where the confocal Cassegrain is perfect to ~1e-10.
    Still to come here: the eyepiece library, the refractor preset, the
-   RC/SCT/Schmidt presets above, and off-axis diagonal vignetting (the
+   SCT/Schmidt presets (both need the aspheric corrector, best pinned first
+   through a Schmidt camera), and off-axis diagonal vignetting (the
    partial-vignetting `blendPsf` case § 5c leaves open).
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —

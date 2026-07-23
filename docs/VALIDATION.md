@@ -1256,10 +1256,106 @@ paraboloid would have hidden it, rather than absorbed into a loose band.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian. Belongs with the step-5
   app work.
-- **The Ritchey-Chrétien and Schmidt-Cassegrain** are the family's other
-  members: the RC departs from the classical conics to null coma too (both
-  mirrors hyperboloidal, a closed-form conic pair — pinnable), and the SCT needs
-  the aspheric corrector, best pinned first through a Schmidt camera.
+- **The Schmidt-Cassegrain** is the family's remaining member: it needs the
+  aspheric corrector, best pinned first through a Schmidt camera. (The
+  **Ritchey-Chrétien** named here has now landed — § 5f below.)
+
+## Step 5f — the Ritchey-Chrétien preset (current)
+
+The third reflecting preset, and the coma-nulled sibling of the classical
+Cassegrain. An RC is a Cassegrain-form telescope in which *both* mirrors are
+hyperboloids, the conics chosen to make it **aplanatic** — free of third-order
+coma *and* spherical aberration. It shares the Cassegrain's entire layout —
+aperture, focal length, magnification, separations, radii, obstruction — through
+one `twoMirrorLayout`, and differs *only* in the two conic constants. That
+sharing is the textbook fact the preset rests on, and the reason the layout
+cannot drift between the two designs; the load-bearing anti-drift move is a code
+extraction, not a comment.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| System EFL = m·f₁ = D·F, reported and traced paraxially | definition | ✅ |
+| **Same layout as the classical Cassegrain, conics apart** | shared closed form (see below) | ✅ |
+| K₁ = −1 − (2/m³)(s₂/d), K₂ = −1 − (2/(m−1)³)[m(2m−1) + s₂/d] | consistency + the s₂-vs-b trap (see below) | ✅ |
+| Both conics < −1 (both mirrors hyperboloidal); the secondary stronger than the Cassegrain's | aplanatic theory | ✅ |
+| Focus lands b behind the primary vertex | closed form | ✅ |
+| Refuses a system faster than its primary, and an oversize back focus | validity | ✅ |
+| **On axis: diffraction-limited but NOT exactly stigmatic — 3rd-order spherical only** | RC corrects 3rd order | ✅ |
+| …the residual is fifth-order: it falls > 20× when the primary slows 2× | 5th-order scaling | ✅ |
+| The whole beam gets through; a secondary cut to the paraxial cone clips it | sag footprint | ✅ |
+| A star lands at ≈ f·tan θ — with a distortion residual — at its azimuth | plate scale + distortion | ✅ |
+| **Coma nulled: RC coma < 1% of the classical Cassegrain's at the same D, F** | aplanatism (the headline) | ✅ |
+| …and < 1.5% of the third-order θ·D/(32F²√72) at the system focal ratio | third-order theory | ✅ |
+| **Astigmatism NOT nulled: ≈ the Cassegrain's, and ≫ the RC's own coma** | targeted-correction negative control | ✅ |
+
+**The conic formula is the one place a factor hides and still typechecks, so it
+carries two guards, and the honest labelling matters.** The conic-value row is a
+**consistency check, not an external pin** — the test recomputes the same
+algebra the preset uses and compares, so a *structural* transcription error (a
+wrong power, a misplaced bracket) would be copied into both sides and pass. What
+that row *does* catch independently is the **s₂-vs-b trap**: Wikipedia's
+variables map onto the Cassegrain code as M = m (the secondary magnification),
+D = d (the mirror separation) and — the trap — **B = s₂ = d + b, the
+secondary→focus distance, not the primary back focus b.** The identity
+(F − B)/D = m *forces* B = s₂, so the mapping is derived rather than guessed; the
+test computes s₂ = d + b from that correct definition and hardcoded numbers
+(d = 537.5, s₂ = 787.5), so a preset that reached for b instead would mismatch
+and fail. For D = 200, F₁ = 4, F = 12, b = 250 the closed form gives K₁ = −1.10853
+(a mild hyperboloid, just past the Cassegrain's parabolic primary) and
+K₂ = −5.11628 (stronger than the Cassegrain's −4) — the extra figuring on both
+mirrors is exactly what buys the coma correction.
+
+**The external pin on the conics is the trace, not the formula row.** That these
+particular conics are the *aplanatic* solution — rather than any other
+two-hyperboloid pair — is validated by the coma-null and on-axis-spherical rungs
+below, which run the ray trace and fail on a wrong formula whatever its
+structure: a mistyped exponent gives conics that do not null coma, and the
+coma-null rung reads it at once.
+
+**The on-axis rung is where the RC parts company with the Cassegrain, and the
+difference is pinned rather than glossed.** The confocal Cassegrain is stigmatic
+to *all* orders (~1e-10 waves, § 5e); the RC nulls only *third-order* spherical,
+so on axis it carries a fifth-order residual — measured 4.5·10⁻⁵ waves at best
+focus, still deep inside the Maréchal limit (Strehl 0.99999) but three orders
+above the Cassegrain's floor. Copying the Cassegrain's `rmsWaves < 1e-6` /
+`Strehl ≈ 1` rung here would have been wrong physics; the honest rung asserts
+diffraction-limited-but-nonzero and contrasts it against the confocal design
+built from the same spec. That the residual is genuinely *fifth*-order and not a
+constant offset is its own rung: slowing the primary from f/4 to f/8 at fixed
+magnification drops it ~34× (a third-order defect, being nulled, would not
+move) — the same "tighten the regime and watch a higher-order term vanish"
+signature the Newtonian's and Cassegrain's coma rungs carry.
+
+**The coma null is the headline, and it is pinned against the classical
+Cassegrain on the identical geometry.** Because the two presets share a layout,
+they carry the same third-order coma budget — except the RC's conics zero it.
+So the traced RC coma (Noll j = 8) comes back at 0.13–0.67% of the classical
+Cassegrain's coma at the same D and F, and below 1.5% of the third-order
+θ·D/(32F²√72) the Newtonian and Cassegrain are pinned to. The magnitude null is
+what is asserted, **not a field-power law**: the RC's fifth-order coma residual
+still contains a field-linear term (W151), and near the Zernike-fit floor its
+apparent scaling is noisy (1.79× rather than 2× from 0.1° to 0.2°), so a scaling
+rung would be pinning fit noise. Claiming coma went superlinear would be the same
+over-reach the ladder avoids elsewhere.
+
+**The astigmatism negative control is what proves the correction is coma-specific
+rather than global** — the strongest guard against "I built something that merely
+looks like an RC." Wikipedia states the RC keeps "severe large-angle
+astigmatism," and it does: at 0.3° the RC's astigmatism (j = 5, 6) is 1.1–1.2×
+the classical Cassegrain's — essentially untouched — and 50–2000× its own
+residual coma. The RC traded a fifth-order spherical residual on axis for a
+third-order coma null off it, and left astigmatism and field curvature exactly
+where the Cassegrain had them.
+
+### Not yet pinned
+- **The secondary is circular and on-axis**, as the Cassegrain's is: an offset or
+  tilt (misalignment tolerancing) is expressible but unpinned, and off-axis
+  vignetting by the secondary is exercised by nothing yet.
+- **Astigmatism and field curvature** are present in the trace and, beyond the
+  "not nulled" negative control above, unpinned to an external number — the RC's
+  field curvature is strong and dominates its usable field once coma is gone.
+- **App wiring.** The engine preset exists and is pinned; the app still renders
+  only the refractor path, as it does for the Newtonian and Cassegrain.
 
 ## Later rungs
 

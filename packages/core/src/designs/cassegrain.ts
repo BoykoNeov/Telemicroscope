@@ -1,4 +1,5 @@
 import { Prescription } from "../trace/prescription";
+import { twoMirrorLayout, TwoMirrorSpec } from "./two-mirror";
 
 /**
  * The classical Cassegrain: a paraboloidal primary and a convex hyperboloidal
@@ -96,22 +97,8 @@ import { Prescription } from "../trace/prescription";
  * docs/VALIDATION.md § 5e.
  */
 
-export interface CassegrainSpec {
-  /** Clear aperture of the primary (mm). */
-  readonly apertureMm: number;
-  /** System focal ratio f/D — the number on the box. Must exceed the primary's. */
-  readonly focalRatio: number;
-  /** Primary focal ratio f₁/D. Faster than the system: the secondary magnifies. */
-  readonly primaryFocalRatio: number;
-  /**
-   * Back focal distance (mm): primary vertex → Cassegrain focus, behind the
-   * primary. A mechanical number — it slides the secondary along the tube and
-   * changes its curvature, but not the system focal length or magnification.
-   * Defaults to 0.2·D, a plausible amount to clear the primary cell and reach a
-   * focuser, standing in until the mech layer owns tube dimensions.
-   */
-  readonly backFocusMm?: number;
-}
+/** The classical Cassegrain shares the Cassegrain-form layout (see two-mirror.ts). */
+export type CassegrainSpec = TwoMirrorSpec;
 
 export interface Cassegrain {
   readonly prescription: Prescription;
@@ -137,41 +124,12 @@ export interface Cassegrain {
 }
 
 export function cassegrain(spec: CassegrainSpec): Cassegrain {
-  const D = spec.apertureMm;
-  const F = spec.focalRatio;
-  const F1 = spec.primaryFocalRatio;
-  if (!(D > 0) || !(F > 0) || !(F1 > 0)) {
-    throw new Error("cassegrain: aperture and focal ratios must be positive");
-  }
-  if (!(F > F1)) {
-    throw new Error(
-      `cassegrain: system focal ratio ${F} must exceed the primary's ${F1} (the secondary magnifies)`,
-    );
-  }
+  const L = twoMirrorLayout(spec, "cassegrain");
+  const { secondaryMagnification: m, primarySeparationMm: d, backFocusMm: b } = L;
 
-  const f1 = D * F1;
-  const f = D * F;
-  const m = f / f1; // = F / F1 > 1
-  const b = spec.backFocusMm ?? 0.2 * D;
-
-  const d = (m * f1 - b) / (m + 1);
-  if (!(d > 0)) {
-    throw new Error(
-      `cassegrain: back focus ${b} mm is too large for this geometry (secondary would sit at or behind the primary)`,
-    );
-  }
-
-  const s1 = f1 - d; // secondary → prime focus
-  const R2 = (2 * m * s1) / (m - 1); // magnitude; the convex secondary re-images s1 to s2 = m·s1
+  // The confocal condition fixes the secondary conic — the defining number of
+  // the classical design: a hyperboloid whose near focus sits on the primary's.
   const k2 = -(((m + 1) / (m - 1)) ** 2);
-
-  // Beam radius where it reaches the secondary. The reported obstruction is the
-  // clean paraxial figure; the mirror is sized to the sag-exact footprint (the
-  // marginal ray leaves the paraboloid rim at z_sag, not the vertex) so it
-  // clips nothing — the same care the Newtonian's diagonal gets.
-  const zSag = -(D * D) / (16 * f1);
-  const secondaryRadius = ((D / 2) * (f1 - d)) / (f1 + zSag);
-  const obstruction = s1 / f1;
 
   return {
     prescription: {
@@ -180,9 +138,9 @@ export function cassegrain(spec: CassegrainSpec): Cassegrain {
           // Concave paraboloid: centre of curvature at −z, so R₁ = −2f₁, and the
           // conic −1 is what makes it aberration-free on axis.
           kind: "reflect",
-          curvature: -1 / (2 * f1),
+          curvature: L.primaryCurvature,
           conic: -1,
-          semiAperture: D / 2,
+          semiAperture: L.apertureMm / 2,
           thickness: -d, // secondary sits d back down the returning beam (−z)
           isStop: true,
         },
@@ -190,20 +148,20 @@ export function cassegrain(spec: CassegrainSpec): Cassegrain {
           // Convex hyperboloid facing the incoming (−z-travelling) beam: centre
           // of curvature also at −z, so R₂ is negative in this frame.
           kind: "reflect",
-          curvature: -1 / R2,
+          curvature: -1 / L.secondaryRadiusMm,
           conic: k2,
-          semiAperture: secondaryRadius,
+          semiAperture: L.secondaryClearRadiusMm,
           thickness: d + b, // forward (+z) to the Cassegrain focus, b behind primary
         },
       ],
     },
-    focalLengthMm: f,
-    primaryFocalLengthMm: f1,
+    focalLengthMm: L.focalLengthMm,
+    primaryFocalLengthMm: L.primaryFocalLengthMm,
     secondaryMagnification: m,
     primarySeparationMm: d,
     backFocusMm: b,
-    secondaryRadiusMm: R2,
+    secondaryRadiusMm: L.secondaryRadiusMm,
     secondaryConic: k2,
-    obstruction,
+    obstruction: L.obstruction,
   };
 }
