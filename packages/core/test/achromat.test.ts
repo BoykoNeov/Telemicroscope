@@ -122,7 +122,7 @@ describe("achromatic doublet — the design comes from the catalog", () => {
     expect(Math.abs(a.seidelS1)).toBeLessThan(1e-12);
   });
 
-  it("finds exactly two SA-null bendings, and builds the lower-coma one by default", () => {
+  it("finds exactly two SA-null bendings, and builds the least-violently-cancelling one", () => {
     expect(a.branches).toHaveLength(2);
     for (const b of a.branches) {
       const p: Prescription = {
@@ -132,11 +132,18 @@ describe("achromatic doublet — the design comes from the catalog", () => {
       expect(Math.abs(seidelSums(p, LAM, { marginalHeightMm: D / 2 }).s1)).toBeLessThan(1e-12);
     }
     expect(a.branches[0].curvatures[0]).not.toBeCloseTo(a.branches[1].curvatures[0], 6);
-    expect(Math.abs(a.comaPerRadian)).toBe(
-      Math.min(...a.branches.map((b) => Math.abs(b.comaPerRadian))),
+
+    // Selection is on Σ|S_I,ᵢ|, and the built lens is the branch that minimises it.
+    const chosen = a.branches.find((b) => b.curvatures[0] === a.curvatures[0])!;
+    expect(chosen.cancellation).toBe(Math.min(...a.branches.map((b) => b.cancellation)));
+    // …which is also the shallower-surfaced one, the shape the option is named for.
+    expect(chosen.maxSurfaceSlope).toBe(Math.min(...a.branches.map((b) => b.maxSurfaceSlope)));
+
+    const steep = achromaticObjective({ apertureMm: D, focalRatio: 10, branch: "steep" });
+    expect(steep.curvatures[0]).not.toBeCloseTo(a.curvatures[0], 6);
+    expect(steep.branches.map((b) => b.cancellation).sort()).toEqual(
+      a.branches.map((b) => b.cancellation).sort(),
     );
-    const other = achromaticObjective({ apertureMm: D, focalRatio: 10, branch: "highComa" });
-    expect(Math.abs(other.comaPerRadian)).toBeGreaterThan(Math.abs(a.comaPerRadian));
   });
 
   it("refuses what it cannot build", () => {
@@ -376,14 +383,16 @@ describe("achromatic doublet — spherical aberration on axis", () => {
  * S_II is the same third-order machinery as S_I, so the trace pins it the same
  * way: W = (S_II/2)·ρ³cos θ projects onto the Noll j = 8 Zernike with a factor
  * 1/(3√8), and the measured coefficient must match — for BOTH branches, whose
- * S_II differ in sign. That is what makes the branch choice a physical statement
- * rather than a coin toss. It also shows its limit honestly: for a crown/flint
- * pair the coma-free bending lies BETWEEN the two roots, so neither is aplanatic
- * and the chosen one is better by ~12%, not by orders.
+ * S_II differ in sign. That sign difference is the finding: the coma-free bending
+ * lies BETWEEN the two roots, so neither is aplanatic, and coma is *not* what the
+ * branch choice is made on (§ 5j; for the fluorite pair the lower-|S_II| root is
+ * the one that is eight times worse on axis). What the choice is made on —
+ * cancellation violence — is pinned in the spherical-aberration block above and,
+ * across three glass pairs, in ed-refractor.test.ts.
  */
 describe("achromatic doublet — coma and the branch choice", () => {
   const lo = achromaticObjective({ apertureMm: D, focalRatio: 10 });
-  const hi = achromaticObjective({ apertureMm: D, focalRatio: 10, branch: "highComa" });
+  const hi = achromaticObjective({ apertureMm: D, focalRatio: 10, branch: "steep" });
   const predictC8 = (s2: number, deg: number): number =>
     ((s2 * ((deg * Math.PI) / 180)) / 2) / (3 * Math.sqrt(8)) / (LAM * 1e-6);
 
@@ -406,6 +415,8 @@ describe("achromatic doublet — coma and the branch choice", () => {
     // crosses zero between the roots, where S_I is at its worst. An aplanatic
     // cemented doublet is a constraint on the GLASS PAIR, not on the bending.
     expect(lo.comaPerRadian * hi.comaPerRadian).toBeLessThan(0);
+    // Similar magnitudes, too: a few percent apart, which is exactly why coma is
+    // too weak a signal to choose on — and for CaF₂/N-BK7 it chooses wrongly.
     expect(Math.abs(hi.comaPerRadian / lo.comaPerRadian)).toBeGreaterThan(1);
     expect(Math.abs(hi.comaPerRadian / lo.comaPerRadian)).toBeLessThan(2);
     // Both really are spherical-aberration-free; the field is the only difference.

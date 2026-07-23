@@ -1833,6 +1833,7 @@ prescription.
 | Element powers land in the curvature differences: φᵢ = (nᵢ−1)Δc | maker's equation | ✅ |
 | Traced EFL misses D·F by < 1e-3, one-sided, and is reported separately | Gullstrand thickness term, left in honestly | ✅ |
 | **Exactly TWO spherical-aberration-null bendings exist, both with \|S_I\| < 1e-12** | the classical pair of roots | ✅ |
+| **The branch is chosen on Σᵢ\|S_I,ᵢ\| — how violently the surfaces cancel — and that is the shallower-surfaced root, and the one the exact trace prefers** | third-order theory nulls the SUM; the un-modelled higher orders scale with the terms that had to cancel. Cross-glass evidence in § 5k | ✅ |
 | **F and C land together — 1.5·10⁻⁴ f, against an equal-power singlet's 1/V ≈ 1/64: 100× better** | the achromatic condition, as a prediction of the trace | ✅ |
 | …and the residual shrinks monotonically as t/f does (f/6 → f/50), below 5·10⁻⁵ | thin-lens design applied to a thick lens: O(t/f) | ✅ |
 | **Secondary spectrum Δf/f = −(P₁−P₂)/(V₁−V₂) = −4.99·10⁻⁴ ≈ −1/2000 for N-BK7/F2**, from the catalog's partial dispersions alone | the classic crown-flint number; independent of aperture and focal ratio | ✅ |
@@ -1848,16 +1849,28 @@ prescription.
 | Refuses a reversed glass pair, one glass twice, an unknown glass, an edge-thickness-negative doublet, non-positive geometry | validity | ✅ |
 | Whole beam through on axis, and `lost === 0` off axis out to 0.5° | footprint | ✅ |
 
-**Neither SA-null bending is aplanatic, and the reason is worth stating.** S_II runs
-monotonically through the bending and crosses zero **between** the two roots, so the
-pair straddles the coma-free shape: their comas come out similar in magnitude and
-opposite in sign (+0.111 vs −0.129 mm/rad at 100 mm f/10). The preset picks the
-smaller (`branch: "lowComa"`, the near-equiconvex crown with the almost-flat rear
-face a Fraunhofer objective is recognised by: 468.3 / −429.0 / −4520.6 mm), and the
-rungs measure what that is worth rather than overselling it — about 12%, not orders.
-Making the two conditions coincide is not a matter of bending at all: it is a
+**Choosing between the two roots is decided by cancellation, not by coma — and the
+first answer here was wrong.** Both roots null the same third order, so the choice
+has to be made on what third-order theory does *not* model. The criterion is
+Σᵢ|S_I,ᵢ|: a solution whose surfaces each contribute little is robust, while one
+that reaches zero by subtracting two large numbers drags large fifth-and-higher
+order terms along (and tighter tolerances with them). It selects the visibly
+shallower root, and the trace agrees in every catalog pair — 2.4× better on axis
+for N-BK7/F2, 3.2× for silica/F2, 8× for CaF₂/N-BK7 (§ 5k).
+
+The obvious first guess, "take the lower coma", survived N-BK7/F2 by luck and is
+now a *negative* result recorded in the ladder: S_II runs monotonically through the
+bending and crosses zero **between** the two roots, so the pair straddles the
+coma-free shape and their comas come out similar in magnitude and opposite in sign
+(+0.111 vs −0.129 mm/rad at 100 mm f/10). Neither root is aplanatic, the margin is a
+few percent — and for the fluorite pair the lower-|S_II| root is the one that is
+eight times worse on axis. Coma is reported per branch and does not decide.
+Making S_I and S_II vanish together is not a matter of bending at all: it is a
 constraint on the **glass pair**, or it needs the third freedom a broken-contact air
 gap provides. Both are open.
+
+For N-BK7/F2 the chosen root is the near-equiconvex crown with the almost-flat rear
+face a Fraunhofer objective is recognised by: 468.3 / −429.0 / −4520.6 mm.
 
 **The design is a prediction, not a construction — deliberately.** The power split
 is the thin-lens closed form, imposed on elements 10 and 6 mm thick and left there.
@@ -1868,12 +1881,55 @@ rewritten to remove. Instead the residual stays in, is reported, and is pinned
 twice: two orders below a singlet's, and shrinking with t/f. The same discipline
 puts the traced EFL a few parts in 10⁴ below D·F rather than fitting it away.
 
-**What is not corrected.** Coma is minimised by the branch choice, not nulled;
-astigmatism and field curvature are traced and unpinned. Spherochromatism (the
-bending is solved at one wavelength) is present in the trace and unpinned here. The
-secondary spectrum is a property of the glass pair that no bending can touch —
-beating it needs an anomalous-partial-dispersion (ED) glass, which is the next unit
-and the one the roadmap's "achromat/ED refractor" still owes.
+**What is not corrected.** Coma is not nulled (and is not what the branch choice
+optimises); astigmatism and field curvature are traced and unpinned.
+Spherochromatism (the bending is solved at one wavelength) is present in the trace
+and unpinned here. The secondary spectrum is a property of the glass pair that no
+bending can touch — beating it needs an anomalous-partial-dispersion glass, which
+is § 5k.
+
+## Step 5k — the ED (fluorite) refractor (current)
+
+The second half of the roadmap's "achromat/ED refractor", and it needs **no new
+design code**: it is § 5j's `achromaticObjective` driven with CaF₂ (Malitson 1963,
+new in the catalog) as the crown and N-BK7 as the mate. Everything that makes it
+better comes from the glass data, which is precisely the claim to pin.
+
+The lever is *not* the famous Vd = 95. Secondary spectrum is (P₁−P₂)/(V₁−V₂), and
+what CaF₂ has that no ordinary glass does is an **anomalous relative partial
+dispersion**: its P sits ≈ 0.018 BELOW the line the catalog's ordinary glasses fall
+on, so paired with N-BK7 the two P's nearly match while ΔV stays large.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| CaF₂: nd ≈ 1.4338, Vd ≈ 95.0 | Malitson 1963 via refractiveindex.info (materials.test) | ✅ |
+| …and it disperses normally: n(F) > n(d) > n(C) — "anomalous" is about the SHAPE of n(λ) | dispersion sign | ✅ |
+| **CaF₂'s P lies ≈ 0.018 below the normal line defined by the catalog's own ordinary glasses, while fused silica sits within a quarter of that** | the textbook normal-line construction, run on the catalog | ✅ |
+| **ΔV is NOT the lever: CaF₂/F2 has 1.9× the Abbe difference of CaF₂/N-BK7 and ≈ 1.9× the secondary spectrum** — the pair with the smaller ΔV wins | (P₁−P₂)/(V₁−V₂), the anomaly doing the work | ✅ |
+| **Secondary spectrum ≈ f/10259 against the achromat's f/2003 — 5× smaller, and of the OPPOSITE sign** (d now focuses long, not short) | closed form from the catalog | ✅ |
+| **Focus spread across 450–650 nm is 3.7× tighter, below 5·10⁻⁴ f** — the reason a fluorite doublet costs what it does | the trace | ✅ |
+| …while both designs still unite F and C to < 2.5·10⁻⁴ f: the ED gain is in the *secondary* spectrum | § 5j's achromatic condition, unchanged | ✅ |
+| Diffraction-limited on axis at f/15, `lost === 0` | the same S_I solve | ✅ |
+| **The cost: steeper surfaces (CaF₂'s low index + a harder-working crown), so at f/10 the fluorite doublet is NOT diffraction-limited where the crown-flint achromat is** | honest higher-order residual | ✅ |
+| **The harder cost: CaF₂ against a heavy flint (F2) has NO spherically-corrected cemented solution — S_I is strictly positive at every bending — and the preset throws** | a fact about the glasses, not a solver failure | ✅ |
+| **Branch criterion across three glass pairs: Σ\|S_I,ᵢ\| picks the root the exact trace prefers, 6/6** | the § 5j selector, cross-validated | ✅ |
+| **…and coma would pick WRONGLY for the fluorite pair: 8× worse on axis for a 2% coma gain** | the negative result that set the criterion | ✅ |
+
+**The fluorite pair is what corrected the branch criterion.** With only N-BK7/F2 in
+hand, "choose the lower-coma root" and "choose the gentler-cancelling root" agree,
+and the first was shipped. CaF₂/N-BK7 separates them: the two roots' comas differ by
+2% while their on-axis wavefronts differ by 8×, and coma points at the bad one. The
+criterion was changed to Σ|S_I,ᵢ| and re-checked on all three pairs. Recorded here
+because the wrong version was in the ladder first, and because a criterion that
+survives one glass pair is not a criterion.
+
+**A cemented fluorite doublet is deliberately a modest design.** Real premium
+fluorite refractors are AIR-SPACED, which buys the third freedom this form does not
+have, and cementing large CaF₂ is a thermal-expansion problem besides. What is
+pinned here is what this form can honestly claim: the colour is much better, the
+monochromatic correction is worse at the same speed, and the fast end is where it
+shows. The air-spaced doublet — and with it the possibility of nulling S_I and S_II
+together — is the open follow-on.
 
 ## Later rungs
 

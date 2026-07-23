@@ -53,19 +53,41 @@ import { seidelSums } from "../analysis/seidel";
  * project's hard rule forbids — and would leave the trace with nothing independent
  * left to confirm.
  *
- * S_I(c₁) has **two** roots, the classical pair of SA-null bendings for a
- * crown-first cemented doublet, and the preset picks between them on the coma sum
- * S_II (default `branch: "lowComa"`; `branch: "highComa"` builds the other, so the
- * rungs can measure the difference). For a crown/flint pair the choice is real but
- * modest, and the reason is worth stating rather than overselling: S_II runs
- * monotonically through the bending and crosses **zero between the two roots**, so
- * the SA-null pair straddles the coma-free bending and their comas come out
- * similar in size and OPPOSITE in sign (+0.111 vs −0.129 mm/rad at 100 mm f/10).
- * Neither is aplanatic. Making them coincide is not a matter of bending at all —
- * it is a constraint on the *glass pair*, or it needs the third degree of freedom
- * a broken-contact air gap provides. The chosen root is the near-equiconvex crown
- * with an almost flat rear face, the shape a Fraunhofer objective is recognised
- * by (468.3 / −429.0 / −4520.6 mm at 100 mm f/10).
+ * S_I(c₁) has **two** roots — the classical pair of SA-null bendings for a
+ * crown-first cemented doublet — and something has to choose. Both null the same
+ * third order, so the choice must be made on what third-order theory does NOT
+ * model: the fifth and higher orders it leaves behind. The criterion is how
+ * violently the surfaces cancel, Σᵢ|S_I,ᵢ| over the individual surface
+ * contributions. A solution whose surfaces each contribute little is the robust
+ * one; a solution that reaches zero by subtracting two large numbers carries large
+ * un-modelled higher-order terms with it (and, for the same reason, tighter
+ * manufacturing tolerances). In every catalog pair tried this picks the visibly
+ * shallower-surfaced root, which is why the option is spelled `branch: "shallow"`
+ * (default) / `"steep"` — the name is the shape you can see, the criterion is the
+ * physics. The trace confirms it: the shallow root is 2.4× better on axis for
+ * N-BK7/F2, 3.2× for fused silica/F2, and **8×** for the fluorite pair.
+ *
+ * **Not** the coma sum, though that was the obvious first guess. S_II runs
+ * monotonically through the bending and crosses zero *between* the two roots, so
+ * the pair straddles the coma-free bending: their comas come out similar in
+ * magnitude and opposite in sign (+0.111 vs −0.129 mm/rad for N-BK7/F2 at 100 mm
+ * f/10). Neither root is aplanatic, the margin between them is a few percent, and
+ * for CaF₂/N-BK7 the smaller |S_II| belongs to the root that is EIGHT TIMES worse
+ * on axis. Coma is reported per branch, and it is not what decides. Making S_I and
+ * S_II vanish together is not a matter of bending at all: it is a constraint on the
+ * *glass pair*, or it needs the third freedom a broken-contact air gap provides.
+ *
+ * For N-BK7/F2 the chosen root is the near-equiconvex crown with an almost flat
+ * rear face, the shape a Fraunhofer objective is recognised by (468.3 / −429.0 /
+ * −4520.6 mm at 100 mm f/10).
+ *
+ * ## Some glass pairs have no solution at all, and that is an answer
+ *
+ * The two roots are not guaranteed. For CaF₂/F2 — fluorite against a heavy flint —
+ * S_I stays strictly positive at every bending, so no cemented doublet of that pair
+ * is spherically correctable at all. The preset throws rather than returning the
+ * least-bad bending: "no real solution" is a fact about the glasses, and hiding it
+ * behind a nearly-nulled design would be the more expensive kind of wrong.
  *
  * ## What is corrected, and what honestly is not
  *
@@ -114,11 +136,12 @@ export interface AchromaticObjectiveSpec {
   /** Flint centre thickness (mm). Mechanical. Default 0.06·D. */
   readonly flintThicknessMm?: number;
   /**
-   * Which root of S_I(c₁) = 0 to build. Both null the spherical aberration;
-   * `"lowComa"` (default) is the one real achromats use. `"highComa"` exists for
-   * the rung that shows what the choice is worth.
+   * Which root of S_I(c₁) = 0 to build. Both null the third-order spherical
+   * aberration; `"shallow"` (default) is the one whose surfaces cancel least
+   * violently — see the header. `"steep"` builds the other, which exists so the
+   * rungs can measure what the choice is worth.
    */
-  readonly branch?: "lowComa" | "highComa";
+  readonly branch?: "shallow" | "steep";
   /**
    * Distance from the last vertex to the image plane (mm). Defaults to the
    * paraxial back focal distance at the design wavelength, so the prescription
@@ -127,10 +150,18 @@ export interface AchromaticObjectiveSpec {
   readonly backFocusMm?: number;
 }
 
-/** One SA-null bending: the three curvatures and the coma that decides between them. */
+/** One SA-null bending, with the numbers that distinguish it from the other. */
 export interface AchromatBranch {
   readonly curvatures: readonly [number, number, number];
-  /** Σ S_II per radian of field (mm/rad) — the coma that picks the branch. */
+  /**
+   * Σᵢ|S_I,ᵢ| — the sum of the surfaces' individual third-order contributions,
+   * which the design nulls by cancellation. THIS is what picks the branch: the
+   * smaller it is, the less un-modelled fifth-and-higher order comes with it.
+   */
+  readonly cancellation: number;
+  /** max|c|·(D/2) over the three surfaces — the steepness the criterion tracks. */
+  readonly maxSurfaceSlope: number;
+  /** Σ S_II per radian of field (mm/rad) — reported, but NOT the selector. */
   readonly comaPerRadian: number;
 }
 
@@ -173,7 +204,7 @@ export interface AchromaticObjective {
   /** Both SA-null roots, chosen and rejected, in the order the solver found them. */
   readonly branches: readonly [AchromatBranch, AchromatBranch];
   /** Which root was built. */
-  readonly branch: "lowComa" | "highComa";
+  readonly branch: "shallow" | "steep";
   /** Paraxial back focal distance at the design wavelength (mm), echoed since it defaults. */
   readonly backFocusMm: number;
   readonly crownThicknessMm: number;
@@ -313,26 +344,28 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
         `achromaticObjective: expected two spherical-aberration-null bendings, found ${roots.length} — this glass pair does not admit the classical doublet solution`,
       );
     }
-    // The coma sum picks between them. S_II is linear in field angle, so one
-    // radian is just a normalisation.
     return roots.map((c1): AchromatBranch => {
       const cs = curvaturesFrom(c1);
+      // S_II is linear in field angle, so one radian is just a normalisation.
+      const s = seidelSums(build(cs, f), designWavelengthNm, {
+        marginalHeightMm: D / 2,
+        fieldAngleRad: 1,
+      });
       return {
         curvatures: cs,
-        comaPerRadian: seidelSums(build(cs, f), designWavelengthNm, {
-          marginalHeightMm: D / 2,
-          fieldAngleRad: 1,
-        }).s2,
+        cancellation: s.surfaces.reduce((total, x) => total + Math.abs(x.s1), 0),
+        maxSurfaceSlope: Math.max(...cs.map((c) => Math.abs(c) * (D / 2))),
+        comaPerRadian: s.s2,
       };
     }) as [AchromatBranch, AchromatBranch];
   };
 
-  const branch = spec.branch ?? "lowComa";
+  const branch = spec.branch ?? "shallow";
   const pick = (bs: readonly [AchromatBranch, AchromatBranch]): AchromatBranch => {
-    const lowComaFirst = Math.abs(bs[0].comaPerRadian) <= Math.abs(bs[1].comaPerRadian);
-    return branch === "lowComa"
-      ? (lowComaFirst ? bs[0] : bs[1])
-      : (lowComaFirst ? bs[1] : bs[0]);
+    const shallowFirst = bs[0].cancellation <= bs[1].cancellation;
+    return branch === "shallow"
+      ? (shallowFirst ? bs[0] : bs[1])
+      : (shallowFirst ? bs[1] : bs[0]);
   };
 
   // First pass: solve at the provisional thicknesses, then finalise any thickness

@@ -23,6 +23,24 @@ export const F2: Medium = sellmeier(
   [0.00997743871, 0.0470450767, 111.886764],
 );
 
+/**
+ * Calcium fluoride — "fluorite", the ED material premium apochromatic refractors
+ * are built around. Malitson 1963, as published on refractiveindex.info (valid
+ * 0.23–9.7 µm, so the whole visible band and then some).
+ *
+ * It is in the catalog for one property no ordinary glass has: its relative
+ * partial dispersion is ANOMALOUSLY LOW for its Abbe number — it sits well off the
+ * line the normal glasses fall on. Secondary spectrum is (P₁−P₂)/(V₁−V₂), so that
+ * deviation is exactly what an achromat's residual colour is bought down with; the
+ * huge Vd = 95 is the smaller part of the story. Pinned in test/materials.test.ts
+ * against the datasheet nd/Vd, and used in test/ed-refractor.test.ts.
+ */
+export const CAF2: Medium = sellmeier(
+  "CAF2",
+  [0.5675888, 0.4710914, 3.8484723],
+  [0.050263605 ** 2, 0.1003909 ** 2, 34.64904 ** 2],
+);
+
 export const FUSED_SILICA: Medium = sellmeier(
   "FUSED-SILICA",
   [0.6961663, 0.4079426, 0.8974794],
@@ -34,7 +52,7 @@ export const WATER: Medium = constantIndex("WATER", 1.333);
 export const IMMERSION_OIL: Medium = constantIndex("IMMERSION-OIL", 1.515);
 
 const REGISTRY = new Map<string, Medium>(
-  [AIR, N_BK7, F2, FUSED_SILICA, WATER, IMMERSION_OIL].map((m) => [m.name, m]),
+  [AIR, N_BK7, F2, CAF2, FUSED_SILICA, WATER, IMMERSION_OIL].map((m) => [m.name, m]),
 );
 
 export function getMedium(name: string): Medium {

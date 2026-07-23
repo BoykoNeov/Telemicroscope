@@ -237,9 +237,24 @@
    bendings *straddle* the coma-free one, so neither is aplanatic (fixing that is a
    glass-pair or broken-contact question, not a bending one); and for N-BK7/F2 the
    naive equiconvex crown happens to sit within 5% of the solved root.
-   Still to come here: the eyepiece library, and the **ED** half of the
-   "achromat/ED refractor" pair — an anomalous-partial-dispersion glass is the only
-   thing that beats the secondary spectrum, which no bending can touch.
+   *ED (fluorite) refractor:* ✅ (VALIDATION § 5k). The other half of
+   "achromat/ED refractor", and it needed **no new design code** — the same
+   `achromaticObjective` driven with CaF₂ (Malitson 1963, new in the catalog) as the
+   crown. The whole gain comes from the glass data, and not from the famous Vd = 95:
+   secondary spectrum is (P₁−P₂)/(V₁−V₂), and what fluorite has is an *anomalous
+   partial dispersion* ≈ 0.018 below the line the catalog's ordinary glasses define.
+   The clean proof that ΔV is not the lever: CaF₂/F2 has 1.9× the Abbe difference of
+   CaF₂/N-BK7 and 1.9× the secondary spectrum. Pinned: 5× less secondary spectrum (of
+   the opposite sign), a 3.7× tighter focus spread across the band — and both honest
+   costs, that its steeper surfaces leave it short of diffraction-limited at f/10
+   where the crown-flint achromat is fine, and that CaF₂ against a heavy flint has no
+   spherically-corrected cemented solution at all, which the preset refuses rather
+   than fudges. The fluorite pair also *corrected* § 5j's branch criterion: choosing
+   the SA-null root by lowest coma agrees with choosing it by gentlest cancellation
+   for N-BK7/F2, but picks the 8×-worse root for CaF₂/N-BK7. Real premium fluorite
+   doublets are air-spaced, which is the open follow-on — the third freedom that
+   could null S_I and S_II together.
+   Still to come here: the eyepiece library.
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation
