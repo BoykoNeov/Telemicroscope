@@ -1923,6 +1923,14 @@ criterion was changed to Σ|S_I,ᵢ| and re-checked on all three pairs. Recorded
 because the wrong version was in the ladder first, and because a criterion that
 survives one glass pair is not a criterion.
 
+**The selector is a third-order proxy, and is scoped as one.** Σ|S_I,ᵢ| is checked
+against the exact trace for the catalog's three pairs, not proven for arbitrary
+glass, and `achromaticObjective` applies it without tracing (a `designs/` function
+reaching into the wave layer would invert the layering). For some untried pair it
+could return the worse root silently. Both roots are valid SA-nulled designs and
+`branch: "steep"` builds the other, so the escape hatch is there; the limit is
+recorded in the module header rather than papered over.
+
 **A cemented fluorite doublet is deliberately a modest design.** Real premium
 fluorite refractors are AIR-SPACED, which buys the third freedom this form does not
 have, and cementing large CaF₂ is a thermal-expansion problem besides. What is

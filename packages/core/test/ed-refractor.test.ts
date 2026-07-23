@@ -80,13 +80,15 @@ describe("CaF₂ is in the catalog for its ANOMALOUS partial dispersion", () => 
     const onLineAtCaF2 = partial(N_BK7) + slope * (abbeNumber(CAF2) - abbeNumber(N_BK7));
     const deviation = partial(CAF2) - onLineAtCaF2;
 
-    expect(deviation).toBeLessThan(-0.015); // ≈ −0.018: far off the line, and BELOW it
+    // Deterministic from the Sellmeier coefficients, so pinned to the value.
+    expect(deviation).toBeCloseTo(-0.018399, 5); // far off the line, and BELOW it
     // For scale: the two ordinary glasses are on their own line by construction,
-    // and fused silica — a normal material — sits within a few thousandths of it.
+    // and fused silica — a normal material — misses it by 24× less.
     const silica = getMedium("FUSED-SILICA");
     const silicaDeviation =
       partial(silica) - (partial(N_BK7) + slope * (abbeNumber(silica) - abbeNumber(N_BK7)));
-    expect(Math.abs(silicaDeviation)).toBeLessThan(Math.abs(deviation) / 4);
+    expect(silicaDeviation).toBeCloseTo(0.000762, 5);
+    expect(Math.abs(deviation) / Math.abs(silicaDeviation)).toBeCloseTo(24.15, 1);
   });
 
   it("has the huge Abbe number too, but that is the smaller half of the story", () => {
@@ -96,10 +98,14 @@ describe("CaF₂ is in the catalog for its ANOMALOUS partial dispersion", () => 
     // with about twice the secondary spectrum, because ΔP grows faster than ΔV.
     // The pair with the smaller ΔV wins — so what is bought is the anomaly, not
     // the Abbe number.
+    // Pinned to the actual numbers, two-sided: these are deterministic functions
+    // of the Sellmeier coefficients, so there is no tolerance to spend.
     const secondary = (c: Medium, f: Medium) =>
       Math.abs(-(partial(c) - partial(f)) / (abbeNumber(c) - abbeNumber(f)));
-    expect(abbeNumber(CAF2) - abbeNumber(F2)).toBeGreaterThan(abbeNumber(CAF2) - abbeNumber(N_BK7));
-    expect(secondary(CAF2, F2) / secondary(CAF2, N_BK7)).toBeGreaterThan(1.5); // ≈ 1.90
+    expect(
+      (abbeNumber(CAF2) - abbeNumber(F2)) / (abbeNumber(CAF2) - abbeNumber(N_BK7)),
+    ).toBeCloseTo(1.9018, 3);
+    expect(secondary(CAF2, F2) / secondary(CAF2, N_BK7)).toBeCloseTo(1.9032, 3);
   });
 });
 
@@ -120,9 +126,12 @@ describe("the fluorite ED objective — what the glass buys", () => {
     expect(a.crownPower * a.focalLengthMm).toBeGreaterThan(b.crownPower * b.focalLengthMm);
   });
 
-  it("cuts the secondary spectrum ~10×, from the catalog alone", () => {
-    expect(Math.abs(a.secondarySpectrum)).toBeLessThan(Math.abs(b.secondarySpectrum) / 4);
-    expect(1 / Math.abs(a.secondarySpectrum)).toBeGreaterThan(9000); // ≈ f/10259
+  it("cuts the secondary spectrum 5.1×, from the catalog alone", () => {
+    // Catalog arithmetic, so pinned to the number rather than bounded: f/10259
+    // against the crown-flint achromat's f/2003.
+    expect(Math.abs(b.secondarySpectrum) / Math.abs(a.secondarySpectrum)).toBeCloseTo(5.1226, 3);
+    expect(1 / Math.abs(a.secondarySpectrum)).toBeCloseTo(10258.8, 0);
+    expect(1 / Math.abs(b.secondarySpectrum)).toBeCloseTo(2002.7, 0);
     // And it changes SIGN: CaF₂'s partial dispersion is below its partner's, so
     // the middle of the band now focuses LONG of the united F–C focus, where the
     // crown-flint achromat's focuses short.

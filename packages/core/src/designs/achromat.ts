@@ -67,6 +67,14 @@ import { seidelSums } from "../analysis/seidel";
  * physics. The trace confirms it: the shallow root is 2.4× better on axis for
  * N-BK7/F2, 3.2× for fused silica/F2, and **8×** for the fluorite pair.
  *
+ * It is a third-order PROXY, though, and worth knowing as one: Σ|S_I,ᵢ| is checked
+ * against the exact trace for the catalog's glass pairs (§ 5k), not proven for
+ * arbitrary glass, and the selection is made here without tracing — a `designs/`
+ * function reaching into the wave layer would invert the layering. So for some
+ * untried pair the proxy could hand back the worse root without saying so. Both
+ * roots are genuinely SA-nulled designs, and `branch: "steep"` builds the other, so
+ * a caller who suspects a mispick can measure the two and choose.
+ *
  * **Not** the coma sum, though that was the obvious first guess. S_II runs
  * monotonically through the bending and crosses zero *between* the two roots, so
  * the pair straddles the coma-free bending: their comas come out similar in
