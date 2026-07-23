@@ -1257,8 +1257,9 @@ paraboloid would have hidden it, rather than absorbed into a loose band.
   only the refractor path, as it does for the Newtonian. Belongs with the step-5
   app work.
 - **The Schmidt-Cassegrain** is the family's remaining member: it needs the
-  aspheric corrector, best pinned first through a Schmidt camera. (The
-  **Ritchey-Chrétien** named here has now landed — § 5f below.)
+  aspheric corrector, best pinned first through a Schmidt camera — which has now
+  landed (§ 5g), so the corrector figure the SCT reuses is pinned to a closed
+  form. (The **Ritchey-Chrétien** named here has also landed — § 5f below.)
 
 ## Step 5f — the Ritchey-Chrétien preset (current)
 
@@ -1356,6 +1357,114 @@ where the Cassegrain had them.
   field curvature is strong and dominates its usable field once coma is gone.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian and Cassegrain.
+
+## Step 5g — the Schmidt camera preset (current)
+
+The fourth reflecting preset, and the first that uses the engine's even-asphere
+path for **physics** rather than a round-trip geometry check. A Schmidt camera is
+a *spherical* primary mirror with an aspheric corrector plate at its centre of
+curvature; the plate nulls the sphere's spherical aberration, and the stop at the
+centre of curvature makes the whole thing an anastigmat. It is the preset the
+roadmap named as the clean external pin for aspheric correction — the figure a
+Schmidt-Cassegrain reuses — because unlike an SCT's optimised corrector, the
+Schmidt corrector has its fourth-order figure in closed form.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| f = R/2 = D·F, mirror radius = 2f, paraxial EFL magnitude = f | definition | ✅ |
+| Corrector A₄ = −1/(4(n−1)R³), from the scalars n and R | consistency + the trace pins it (see below) | ✅ |
+| Image forms at the prime focus, R/2 in front of the mirror | closed form | ✅ |
+| Refuses non-positive geometry, an over-thick plate, an unknown glass | validity | ✅ |
+| Whole beam through; nothing vignettes on axis | footprint | ✅ |
+| **On axis: the corrector nulls 3rd-order spherical — ~100× better than the bare sphere, diffraction-limited (Strehl > 0.95)** | 3rd-order correction (the headline) | ✅ |
+| **The corrector's SIGN is load-bearing: flip A₄ and the error ≈ doubles the bare sphere's** | sign negative control | ✅ |
+| **Anastigmat: coma AND astigmatism < 1% of an equal-f/D paraboloid's (3–4 orders down)** | stop at centre of curvature (the wide-field headline) | ✅ |
+| At f/10 the design-λ residual < 1e-3 waves | 3rd-order null exact; f/4 residual was pure 5th-order | ✅ |
+| **Spherochromatism: Δc₁₁(λ) = (n(λ)−n(550))·A₄·(D/2)⁴/(6√5)/λ, matched to a few %** | dispersion × corrector figure | ✅ |
+| …the shift is monotonic across the visible band | dispersion sign | ✅ |
+
+**The corrector figure has a closed form, but — as with the RC's conics (§ 5f) —
+the formula-equality row is a consistency check, and the external pin is the
+trace.** A sphere and the paraboloid of the same vertex radius R differ in sag by
+r⁴/(8R³); reflection doubles that into r⁴/(4R³) of wavefront error; a glass plate
+retards by (n−1) per unit thickness, so the plate that cancels it has
+A₄ = −1/(4(n−1)R³) (Rutten & van Venrooij; Schroeder). The test evaluates that
+from n = `getMedium("FUSED-SILICA").n(550)` and R and checks the preset's reported
+`correctorA4` to 18 digits — but the preset hardcodes the same formula, so this
+row catches a *unilateral* transcription drift, not a *conceptual* error copied
+into both sides (a believed 2· for the 4· would pass). What pins A₄ to physics is
+the on-axis pair below: the null pins the **magnitude** — scale A₄ by 1.5 and the
+net becomes −½·r⁴/(4R³), ~0.42 waves, and the `corrected < 0.02` rung fails — and
+the sign-flip pins the **sign**. Those fail on a conceptually-wrong figure
+whatever its self-consistency, exactly as the RC's coma-null rung pins its conics
+rather than the formula row.
+
+**On axis the Schmidt parts company with the confocal Cassegrain, and the rung
+says so.** The Cassegrain's two conics are stigmatic to all orders (§ 5e); the
+Schmidt corrector nulls only *third-order* spherical, leaving a fifth-order
+residual (∝ 1/F⁵). So the headline is not "Strehl = 1" but "diffraction-limited
+and a large factor better than the bare sphere": at f/4 the on-axis wavefront
+collapses from 0.84 waves (a flat plate — the bare sphere) to 0.008 waves
+(Strehl 0.986), ~100×. That the residual is genuinely fifth-order is its own
+rung — at f/10 it has all but vanished (7.7·10⁻⁵ waves), which is the on-axis
+proof that A₄ nulls the third-order term *exactly*.
+
+**The sign control is the sharpest proof the figure is doing physics, not
+cosmetics.** Flip A₄ and the corrector adds its r⁴/(4R³) *on top of* the mirror's
+instead of subtracting it, so the error comes back at ≈ 2× the bare sphere's
+(measured 1.98×) — a distinctive signature a mere magnitude error could not fake.
+Removing the corrector entirely (a flat plate) is the companion control that
+restores the full sphere aberration.
+
+**The anastigmatism is the Schmidt's reason to exist, and it is pinned against a
+paraboloid of the same focal ratio.** With the stop at the centre of curvature
+every field angle sees the sphere down a radius, so third-order coma *and*
+astigmatism vanish by symmetry. The cross-check is a prime-focus paraboloid of
+the same system f/D with its stop at the mirror: it carries the full coma and
+astigmatism of a fast reflector, and the Schmidt's Zernike coma (j = 8) and
+astigmatism (j = 5, 6) come back three to four orders of magnitude smaller
+(< 1% at 0.3° and 0.5°). Measured by coefficient at best focus, so the Schmidt's
+own curved focal surface — a defocus term (j = 4) — does not contaminate the read.
+
+**Spherochromatism falls out of the same trace, and it too gets a closed-form
+pin.** The corrector is figured for one wavelength; away from it (n−1) drifts, so
+the cancellation is imperfect by exactly the corrector's own r⁴ figure scaled by
+the index change: (n(λ)−n(550))·A₄·r⁴ — a *pure* primary-spherical term, hence
+refocus-invariant, whose Zernike j = 11 projection is Δc₁₁(λ) =
+(n(λ)−n(550))·A₄·(D/2)⁴/(6√5)/λ (from ρ⁴ = Z₁₁/(6√5) + defocus + piston). This is
+pinned on a *slow* f/10 camera on purpose: the fifth-order monochromatic residual
+also lands on j = 11 but scales as 1/F⁵, so at f/10 it has shrunk to a few
+percent and the traced chromatic shift sits just under the pure-3rd-order line
+(magnitude 0.96–0.98 of the closed form) — the same "just below the third-order
+coefficient, because the trace carries the higher order the formula omits"
+signature the Cassegrain coma rung carries. The shift is monotonic across the
+band because the dispersion is.
+
+**The corrector glass overfills its clear aperture by 2%.** The aperture stop —
+the pupil — is D/2, set by the system's stop radius; the traced corrector faces
+run a hair wider so the pupil's own rim ring is not numerically shaved at this
+aspheric surface (a flat plate does not need it; an even-asphere stop does). It
+is the Schmidt analogue of sizing the Cassegrain secondary to its sag-exact
+footprint rather than the paraxial cone: it moves no ray inside the pupil and
+does not change the stop, and the "whole beam through, nothing vignettes" rung
+holds it to `lost === 0`.
+
+### Not yet pinned
+- **The neutral-zone r² term.** A real Schmidt corrector adds a balancing r²
+  (paraxial-power) term that shifts the design wavelength and rebalances the
+  chromatic/defocus budget across the band. This preset is pure r⁴, so its
+  design-λ residual is a plain fifth-order term; the neutral-zone refinement is
+  a later, chromatic story, not the monochromatic third-order null pinned here.
+- **The curved (Petzval) focal surface.** The Schmidt images onto a sphere of
+  radius ≈ f, not a plane. The aberration rungs read Zernike coefficients at best
+  focus, so the field-curvature defocus is removed rather than pinned; a flat-field
+  Schmidt (a field flattener at the focal surface) is unbuilt.
+- **The prime-focus obstruction.** The detector sits *in* the beam, between
+  corrector and mirror. As with the Newtonian's diagonal and the Cassegrain's
+  secondary, it is obstruction bookkeeping applied in the pupil function, not a
+  traced blocker, and it is not yet wired for this preset.
+- **App wiring.** The engine preset exists and is pinned; the app still renders
+  only the refractor path, as it does for the Newtonian, Cassegrain and RC.
 
 ## Later rungs
 

@@ -149,10 +149,20 @@
    parts company with the Cassegrain honestly: the RC is diffraction-limited but
    *not* exactly stigmatic (a fifth-order spherical residual, shown to fall ~34×
    as the primary slows), where the confocal Cassegrain is perfect to ~1e-10.
-   Still to come here: the eyepiece library, the refractor preset, the
-   SCT/Schmidt presets (both need the aspheric corrector, best pinned first
-   through a Schmidt camera), and off-axis diagonal vignetting (the
-   partial-vignetting `blendPsf` case § 5c leaves open).
+   *Schmidt camera:* ✅ `designs/schmidt` (VALIDATION § 5g). The fourth reflecting
+   preset and the first to drive the even-asphere path with physics rather than a
+   round-trip geometry check — a spherical mirror with an aspheric corrector plate
+   at its centre of curvature. Its pin is the corrector's closed-form fourth-order
+   figure A₄ = −1/(4(n−1)R³) (computed from scalars n and R, checked to 18 digits),
+   with an on-axis rung that nulls the sphere's spherical aberration ~100× to
+   diffraction-limited (a sign-flip negative control that ≈ doubles the bare-sphere
+   error), an anastigmat headline (coma *and* astigmatism 3–4 orders below an
+   equal-f/D paraboloid's, from the stop at the centre of curvature), and a
+   spherochromatism rung pinned to the dispersion × corrector figure in closed
+   form. This is the textbook corrector the **SCT** reuses, so the SCT is now
+   unblocked. Still to come here: the eyepiece library, the refractor preset, the
+   **SCT** preset (reuses this corrector on a Cassegrain-form pair), and off-axis
+   diagonal vignetting (the partial-vignetting `blendPsf` case § 5c leaves open).
    *Sourcing:* commercial eyepiece and objective prescriptions are trade
    secrets, but **patents are public and contain full prescription tables** —
    that is the supply route for the eyepiece library, and the validation
