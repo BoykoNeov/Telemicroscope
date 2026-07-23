@@ -45,6 +45,15 @@ import { GeometricPsfOptions, adaptivePsf } from "./geometric";
  * uniformly coloured image with no fringing anywhere in it. Sharing the stack
  * rather than the sum is what keeps both honest about the common grid, instead
  * of the colour path growing a second resampler that could drift from this one.
+ *
+ * ## Seeing rides through untouched, and that is the point
+ *
+ * A `seeing` phase screen on the options threads to every wavelength's
+ * `adaptivePsf` as the same object — so the stack applies ONE atmosphere to the
+ * whole spectrum, and because the screen is stored as OPD the bluer colours pick
+ * up proportionally more waves of it (r₀ ∝ λ^(6/5)) with no special case here.
+ * The under-resolution guard follows for free: `maxGridPhaseStepWaves` below is
+ * the max across wavelengths, so it keys on the bluest, worst-resolved plane.
  */
 
 export interface PolychromaticOptions extends SystemPsfOptions, GeometricPsfOptions {

@@ -4,6 +4,7 @@ import { AimOptions, pupilGrid } from "../pupil/aiming";
 import { OpdMap, opdMap } from "../pupil/opd";
 import { ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
 import { OpdSampling, opdSampling } from "./fidelity";
+import { withPhaseScreen, type PhaseScreen } from "./seeing";
 
 /**
  * Point spread function — where the diffraction lives.
@@ -594,6 +595,20 @@ export interface SystemPsfOptions extends PsfOptions {
   /** Zernike terms fitted to the traced OPD. Default 28 (radial order 6). */
   readonly zernikeTerms?: number;
   readonly aim?: AimOptions;
+  /**
+   * An atmospheric phase screen to add onto the pupil (see `wave/seeing`).
+   *
+   * Composed as pure phase, and in this FFT branch ONLY: the geometric fallback
+   * has no wavefront to add it to, so a system aberrated enough to trip the
+   * fidelity switch correctly shows no seeing (docs/VALIDATION § 5d). One screen
+   * is reused across every wavelength a polychromatic stack asks for — it is
+   * stored as OPD, so a bluer colour sees proportionally more waves of the same
+   * bumps, which is the r₀ ∝ λ^(6/5) scaling for free. Because the screen adds
+   * to the raw pupil, the returned PSF's `maxGridPhaseStepWaves` now reflects it
+   * — the only guard that catches a screen the FFT grid cannot resolve, since
+   * the fidelity criterion runs on the screen-blind traced samples.
+   */
+  readonly seeing?: PhaseScreen;
 }
 
 /** Trace, fit, transform — the whole pipeline for one field and wavelength. */
@@ -615,8 +630,13 @@ export function psf(
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
     ...(options.spider === undefined ? {} : { spider: options.spider }),
   });
+  // Atmospheric seeing arrives here, as the last wrapper on the pupil before the
+  // transform — pure phase at this wavelength, amplitude untouched. It is the
+  // successor ARCHITECTURE named after the spider: a new optical effect that is
+  // a `PupilFunction`, so nothing below learns its name.
+  const seenPupil = options.seeing ? withPhaseScreen(pupil, options.seeing, wavelengthNm) : pupil;
   const transformed = psfFromPupilFunction(
-    pupil,
+    seenPupil,
     {
       referenceRadius: map.referenceRadius,
       exitRadius: map.pupil.exit.radius,

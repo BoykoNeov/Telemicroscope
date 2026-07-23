@@ -1,6 +1,8 @@
 import { fft2d, isPowerOfTwo } from "../math/fft";
 import { mulberry32, Rng } from "../math/random";
-import { PupilFunction } from "./psf";
+// Type-only: psf.ts imports withPhaseScreen from here (a value), so this
+// back-edge must erase to keep the seeing↔psf module cycle runtime-free.
+import type { PupilFunction } from "./psf";
 
 /**
  * Atmospheric seeing — the one part of the image that is a random draw.

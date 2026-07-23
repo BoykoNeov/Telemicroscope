@@ -284,6 +284,10 @@ export function adaptivePsf(
   options: SystemPsfOptions & GeometricPsfOptions = {},
 ): AdaptivePsf {
   const pupilSamples = options.pupilSamples ?? 64;
+  // `psf` reads `options.seeing` and adds the screen; `geometricPsf` below is
+  // handed the same options and ignores it — a ray histogram has no phase to add
+  // it to. So seeing rides the diffraction branch alone and fades out with it as
+  // the system's own aberration takes over (docs/VALIDATION § 5d).
   const diffraction = psf(system, fieldValue, wavelengthNm, options);
   const sampling = diffraction.sampling;
   const step = sampling ? phaseStepPerSample(sampling, pupilSamples) : 0;

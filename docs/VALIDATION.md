@@ -1052,6 +1052,8 @@ average must reproduce.
 | The long-exposure FWHM ≈ 0.98·λ/r₀ where it is well resolved | Fried, the headline number | ✅ |
 | The FFT grid resolves the screen: maxGridPhaseStepWaves < ½ wave | the under-resolution guard | ✅ |
 | A screen is stored as OPD, so halving λ doubles its waves | r₀ ∝ λ^(6/5), colour-free path | ✅ |
+| **`psf({seeing})` is bit-identical to the manual `withPhaseScreen` compose** | the wiring adds nothing | ✅ |
+| The stack applies ONE screen to every colour: the bluer λ carries 2× the grid phase step and is the more degraded plane, and no plane loses energy | colour-honest / pure-phase plumbing | ✅ |
 
 The ladder is **ε = 0-first**, the isolated-slit playbook again: the structure
 function is pinned on the bare screen *before any transform* — the generator in
@@ -1108,6 +1110,30 @@ strong seeing (0.19–0.23 waves at D/r₀ = 4–8). The pairing to state is the
 spider's, one branch further: **the spider's spike is an FFT phenomenon and its
 shadow a geometric one; seeing is an FFT phenomenon whose geometric analog is
 not yet built** — named, not overlooked.
+
+**The screen is now wired into the pipeline, at plumbing scope.** A `seeing`
+screen on `SystemPsfOptions` is composed in `psf()` as the last wrapper on the
+pupil — `psf({seeing})` is *bit-identical* to
+`psfFromPupilFunction(withPhaseScreen(…))`, the equivalence rung above, so the
+physics stays pinned on the generator and its ensemble rather than re-derived
+through the wired path. It threads through the polychromatic stack with no code
+change (`PolychromaticOptions extends SystemPsfOptions`, and one screen object
+reaches every `adaptivePsf`), so the whole spectrum sees one atmosphere and the
+bluer plane carries proportionally more waves of the shared OPD — the
+colour-honesty rung. The guard rides up for free: `SpectralStack.maxGridPhaseStep
+Waves` is the max across wavelengths, so it keys on the bluest, worst-resolved
+plane. The app surfaces exactly that number on its **seeing dial**
+(`seeingPhaseStepWaves`) as a live readout — green while resolved, red past ½.
+It is a *readout, not a warning*, on purpose: the fixed 256²/oversize-4 screen
+keeps the step ≈ 0.2–0.3 waves/sample at every dial value, so a threshold alert
+would be dead code; showing where the guard actually sits keeps it observable and
+honours "every number on screen comes from the engine." (The gate can only trip
+under a screen deliberately under-sampled — which the ensemble rung is what
+exercises.) The app draws a **single fixed-seed screen** (a short-exposure
+speckle that morphs continuously as the dial moves, not the ensemble-averaged
+disc), and dials **D/r₀** rather than r₀ so the effect stays visible at the toy
+4–20 mm apertures; the long-exposure ensemble and the field-panel wiring are
+named next.
 
 ## Later rungs
 

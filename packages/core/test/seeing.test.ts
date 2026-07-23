@@ -7,7 +7,21 @@ import {
   phaseStructureFunction,
   SeeingSpec,
 } from "../src/wave/seeing";
-import { psfFromPupilFunction, PupilFunction, PupilScale, Psf } from "../src/wave/psf";
+import {
+  psf,
+  psfFromPupilFunction,
+  pupilFunctionFromOpd,
+  PupilFunction,
+  PupilScale,
+  Psf,
+} from "../src/wave/psf";
+import { spectralStack } from "../src/wave/polychromatic";
+import { opdMap } from "../src/pupil/opd";
+import { pupilGrid } from "../src/pupil/aiming";
+import { fitZernike } from "../src/wave/zernike";
+import { OpticalSystem } from "../src/trace/system";
+import { Prescription } from "../src/trace/prescription";
+import { LINE_D } from "../src/materials/dispersion";
 import { mtf } from "../src/wave/mtf";
 
 /**
@@ -207,6 +221,113 @@ describe("a screen composes onto a pupil as pure phase", () => {
     expect(() => kolmogorovScreen({ ...base, oversize: 0.5 })).toThrow(/oversize/);
     expect(() => kolmogorovScreen({ ...base, friedParamMm: 0 })).toThrow(/friedParamMm/);
     expect(() => kolmogorovScreen({ ...base, apertureDiameterMm: 0 })).toThrow(/apertureDiameterMm/);
+  });
+});
+
+// ---- Wiring rungs: the screen through psf() and the polychromatic stack ---
+//
+// The physics is pinned upstream on the bare screen and its ensemble; these are
+// *plumbing* — that `psf({seeing})` is exactly the composed `withPhaseScreen`
+// path, and that the polychromatic stack applies ONE screen to every colour
+// honestly (stored as OPD, so the bluer plane carries proportionally more
+// waves). Cheap by construction: single screens, no ensemble.
+
+/** A geometrically perfect paraboloid at NA 0.1 — anything past a point is the screen. */
+function paraboloid(wavelengths = [{ nm: LINE_D, weight: 1 }]): OpticalSystem {
+  const R = -200; // concave; focus at R/2
+  const semiAperture = 10; // NA = 10/100 = 0.1, full aperture 20 mm
+  const prescription: Prescription = {
+    surfaces: [
+      { kind: "reflect", curvature: 1 / R, conic: -1, semiAperture, thickness: R / 2, isStop: true },
+    ],
+  };
+  return {
+    prescription,
+    aperture: { kind: "stopRadius", value: semiAperture },
+    field: { kind: "angle", values: [0] },
+    wavelengths,
+    conjugate: { kind: "infinite" },
+  };
+}
+
+/** The screen the wiring rungs share: D/r₀ = 4 on the 20 mm paraboloid. */
+const wiringScreen = () =>
+  kolmogorovScreen({
+    friedParamMm: 5,
+    apertureDiameterMm: 20,
+    screenSamples: 256,
+    oversize: 4,
+    subharmonics: 6,
+    seed: 3,
+  });
+
+const WIRE_GRID = { pupilSamples: 64, padFactor: 4, traceSamples: 21, zernikeTerms: 28 } as const;
+
+describe("psf() composes the seeing screen, in the FFT branch, colour-honestly", () => {
+  it("psf({seeing}) is bit-identical to the manual withPhaseScreen compose", () => {
+    const sys = paraboloid();
+    const screen = wiringScreen();
+    const wired = psf(sys, 0, LINE_D, { ...WIRE_GRID, seeing: screen });
+
+    // Reproduce psf()'s own pipeline and wrap the pupil by hand: the wiring must
+    // add nothing the composition would not, so the two intensity arrays match
+    // exactly, not merely closely.
+    const map = opdMap(sys, 0, LINE_D, pupilGrid(21), {});
+    const fit = fitZernike(map.samples, 28);
+    const pupil = pupilFunctionFromOpd(map, fit);
+    const scale: PupilScale = {
+      referenceRadius: map.referenceRadius,
+      exitRadius: map.pupil.exit.radius,
+      wavelengthNm: LINE_D,
+      nImage: map.pupil.exit.n,
+    };
+    const manual = psfFromPupilFunction(withPhaseScreen(pupil, screen, LINE_D), scale, 0, WIRE_GRID);
+
+    expect(wired.intensity).toEqual(manual.intensity);
+    expect(wired.maxGridPhaseStepWaves).toBe(manual.maxGridPhaseStepWaves);
+  });
+
+  it("the screen degrades the PSF and the guard rises but stays resolved", () => {
+    const sys = paraboloid();
+    const clean = psf(sys, 0, LINE_D, WIRE_GRID);
+    const seen = psf(sys, 0, LINE_D, { ...WIRE_GRID, seeing: wiringScreen() });
+
+    // The perfect paraboloid is Strehl ≈ 1; the atmosphere pulls it down.
+    expect(seen.strehl).toBeLessThan(clean.strehl);
+    // The guard is blind to nothing now: the screen shows up on the FFT grid…
+    expect(seen.maxGridPhaseStepWaves).toBeGreaterThan(clean.maxGridPhaseStepWaves);
+    // …and at D/r₀ = 4 the 256²/oversize-4 screen is still resolved (< ½ wave).
+    expect(seen.maxGridPhaseStepWaves).toBeLessThan(0.5);
+  });
+
+  it("one OPD screen across the spectrum: the bluer colour carries more waves", () => {
+    const sys = paraboloid([
+      { nm: 400, weight: 1 },
+      { nm: 800, weight: 1 },
+    ]);
+    const screen = wiringScreen();
+    const grid = { pupilSamples: 64, padFactor: 4, traceSamples: 21 } as const;
+
+    const blue = psf(sys, 0, 400, { ...grid, seeing: screen });
+    const red = psf(sys, 0, 800, { ...grid, seeing: screen });
+
+    // Stored as OPD → phase in waves ∝ 1/λ, so halving the wavelength doubles the
+    // grid phase step through the wired path (the paraboloid's own OPD ≈ 0).
+    expect(blue.maxGridPhaseStepWaves / red.maxGridPhaseStepWaves).toBeGreaterThan(1.85);
+    expect(blue.maxGridPhaseStepWaves / red.maxGridPhaseStepWaves).toBeLessThan(2.15);
+    // More waves of the same bumps → the blue image is the more degraded one.
+    expect(blue.strehl).toBeLessThan(red.strehl);
+
+    // Through the stack: one screen object reaches every wavelength, the guard
+    // keys on the bluest (worst) plane, and — pure phase — no plane loses energy.
+    const seenStack = spectralStack(sys, 0, { ...grid, seeing: screen });
+    const cleanStack = spectralStack(sys, 0, grid);
+    expect(seenStack.maxGridPhaseStepWaves).toBeCloseTo(blue.maxGridPhaseStepWaves, 12);
+    for (const nm of [400, 800]) {
+      const seenPlane = seenStack.planes.find((p) => p.nm === nm)!;
+      const cleanPlane = cleanStack.planes.find((p) => p.nm === nm)!;
+      expect(seenPlane.energy).toBeCloseTo(cleanPlane.energy, 10);
+    }
   });
 });
 
