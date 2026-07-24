@@ -157,13 +157,20 @@ export function samplingRegime(
 /**
  * One destination pixel's overlap with the source pixels it covers.
  *
- * Both grids are axis-centred: index `n/2` sits at coordinate 0, matching
- * `rasterizePointSources`. A source pixel of width `srcStep` carries its energy
- * uniformly across that width, so the fraction reaching a destination pixel is
- * the overlap length divided by `srcStep` — never by the destination width. A
- * destination pixel that covers four source pixels collects *four times* the
- * energy, which is what a bigger sensor pixel physically does; it does not
- * average.
+ * Both grids are **sample-at-centre**: index `n/2` is *centred* on coordinate 0,
+ * so pixel `i` spans `[(i − n/2 − ½), (i − n/2 + ½)]·step`. This matches
+ * `rasterizePointSources` (an on-axis star lands at index `size/2`) and
+ * `radialColorProfile` (centre = `width/2`). Getting the half-pixel wrong is
+ * invisible to every energy or frequency rung and shows up only as a centred
+ * feature drifting off centre — the golden-image failure mode § 3b flags — which
+ * on a module whose headline is sub-pixel plate scale is a real defect, so it
+ * has its own centroid rung.
+ *
+ * A source pixel of width `srcStep` carries its energy uniformly across that
+ * width, so the fraction reaching a destination pixel is the overlap length
+ * divided by `srcStep` — never by the destination width. A destination pixel
+ * covering four source pixels collects *four times* the energy, which is what a
+ * bigger photosite does; it does not average.
  */
 interface Overlap {
   readonly first: number;
@@ -180,8 +187,9 @@ function overlapWeights(
   const dstOrigin = dstN / 2;
   const out: Overlap[] = [];
   for (let j = 0; j < dstN; j++) {
-    const dLo = (j - dstOrigin) * dstStep;
-    const dHi = (j + 1 - dstOrigin) * dstStep;
+    // Sample-at-centre: pixel j is centred on (j − dstOrigin)·dstStep.
+    const dLo = (j - dstOrigin - 0.5) * dstStep;
+    const dHi = (j - dstOrigin + 0.5) * dstStep;
     // Source pixels whose spans can intersect [dLo, dHi].
     const iLo = Math.max(0, Math.floor(dLo / srcStep + srcOrigin));
     const iHi = Math.min(srcN - 1, Math.ceil(dHi / srcStep + srcOrigin));
@@ -189,8 +197,8 @@ function overlapWeights(
     let first = iLo;
     let started = false;
     for (let i = iLo; i <= iHi; i++) {
-      const sLo = (i - srcOrigin) * srcStep;
-      const sHi = (i + 1 - srcOrigin) * srcStep;
+      const sLo = (i - srcOrigin - 0.5) * srcStep;
+      const sHi = (i - srcOrigin + 0.5) * srcStep;
       const overlap = Math.min(dHi, sHi) - Math.max(dLo, sLo);
       if (overlap <= 0) {
         if (!started) first = i + 1;

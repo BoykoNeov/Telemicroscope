@@ -49,16 +49,15 @@ describe("the image-space cone comes from the traced marginal ray", () => {
 
 describe("relative exposure follows the f-ratio and aperture laws", () => {
   it("extended-source illuminance ∝ 1/F² — the exposure law, from the trace", () => {
-    // A stop faster by 2× (f/10 → f/5) lights each pixel 4× as hard. Pinned to
-    // the traced sin u′, and cross-checked against the focal ratios computed by
-    // the independent EFL/EPD route.
+    // A stop faster by 2× (f/10 → f/5) lights each pixel 4× as hard. The ratio
+    // is built from the *traced* sin u′, so it lands at the paraxial 1/F²
+    // prediction of 4 but not exactly on it: the faster stop's larger
+    // sine-condition departure pushes it slightly ABOVE 4. A stub returning the
+    // paraxial formula would read exactly 4 and fail the directional check.
     const eF10 = extendedSourceIlluminance(f10, FOCUS_NM);
     const eF5 = extendedSourceIlluminance(f5, FOCUS_NM);
-    const efl = systemProperties(f10.prescription, FOCUS_NM).efl;
-    const fRatio10 = efl / EPD_MM;
-    const fRatio5 = efl / (2 * EPD_MM);
-    expect(eF5 / eF10).toBeCloseTo((fRatio10 / fRatio5) ** 2, 1); // = 4
-    expect(eF5 / eF10).toBeCloseTo(4, 1);
+    expect(eF5 / eF10).toBeCloseTo(4, 1); // 1/F² law
+    expect(eF5 / eF10).toBeGreaterThan(4); // ...carrying the sine-condition excess
   });
 
   it("point-source light grasp ∝ D² (light-grasp bookkeeping)", () => {

@@ -2295,6 +2295,7 @@ alone, pinned on synthetic targets with no system in the way).
 | **Field of view is the exact inverse of the traced chief-ray map** | `imagePointOf` round trip | ✅ |
 | ...and is near the paraxial 2·atan(½·w/EFL) where distortion is small | sanity | ✅ |
 | **Rebinning SUMS footprint energy — a 4×4-footprint pixel reads 16×** | energy per pixel, not density | ✅ |
+| **A feature symmetric about N/2 rebins to sensor centroid 0** | sample-at-centre registration | ✅ |
 | **Detector-footprint MTF = sinc(π·f·pitch) below Nyquist** | box-filter transform | ✅ |
 | **A target above Nyquist aliases to bin \|f_s − f\|** | sampling theorem | ✅ |
 | **λ/(4·NA) matches the traced MTF cutoff (pitch·2·cutoff = 1)** | Abbe cutoff, independent route | ✅ |
@@ -2327,6 +2328,19 @@ it is exactly this pre-filter that makes the aliased amplitude ≠ the input's.
 footprint sinc has already attenuated the amplitude near the cutoff, but the
 folded frequency |f_s − f| is fixed by the sampling rate alone.
 
+The **centroid** rung is the one the others are all blind to, and it caught a
+real defect. Energy is a total, the sinc and alias rungs measure frequencies
+(shift-invariant), and the sums-not-averages rung uses a symmetric field — none
+can see a half-pixel *shift*. The first `overlapWeights` placed coordinate 0 at
+the *left edge* of pixel N/2, while `rasterizePointSources` and
+`radialColorProfile` are **sample-at-centre** (an on-axis star sits at index
+N/2). Because source and sensor carry different pixel widths, that half-pixel
+offset did not cancel between them: a perfectly symmetric star rebinned to a
+sensor centroid of −½·(pitch − srcStep), ≈ −0.375 px on the test geometry — the
+exact drift § 3b warns a golden image would catch and a physics rung would not,
+on the one module whose headline is *sub-pixel* plate scale. Centring the cells
+on the samples fixes it; the rung now holds it there.
+
 The **critical-pitch** rung is the non-tautological one: λ/(4·NA) is a scalar
 closed form, while the MTF cutoff is built from the pupil autocorrelation on the
 FFT grid — a different computation entirely — so pitch·2·cutoff = 1 is physics,
@@ -2357,7 +2371,7 @@ ray, and the 1/F² law is checked against it as a consequence.
 | **sin u′ from the traced marginal ray ≈ 1/(2F)** | paraxial, first order | ✅ |
 | **...departing by the sine condition, and MORE at the faster stop** | Abbe sine condition | ✅ |
 | **Extended-source illuminance ∝ 1/F² (f/10 → f/5 is 4×)** | image irradiance π·L·sin²u′ | ✅ |
-| ...cross-checked against F = EFL/EPD by the independent route | consistency | ✅ |
+| ...landing just ABOVE 4, by the faster stop's sine-condition excess | Abbe sine condition | ✅ |
 | Point-source light grasp ∝ D² | entrance-pupil area — *consistency check* | ✅ |
 | Exposure scale = illuminance × time × gain | definition | ✅ |
 
@@ -2367,8 +2381,10 @@ paraxial 0.050151 and 0.100302 — a departure of 0.17% and 0.64%, growing with
 aperture. That growth is the pin: a stub that returned the paraxial 1/(2F)
 formula would read *zero* departure for both and fail it, which is precisely the
 tautology the whole "emerge from the trace" discipline guards against. The
-**1/F² illuminance** law then rides on that traced sine, and is additionally
-cross-checked against the focal ratios computed the independent EFL/EPD way.
+**1/F² illuminance** law then rides on that traced sine: the f/10 → f/5 ratio
+lands at 4.04, not exactly the paraxial 4 — the faster stop's larger
+sine-condition departure pushing it *above*, which the rung asserts
+directionally so a paraxial stub returning exactly 4 fails it.
 
 The **point-source D²** rung is labelled a consistency check, not a pin, and the
 label is the honest part: with a front stop the entrance-pupil radius is the

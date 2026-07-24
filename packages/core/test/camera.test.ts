@@ -39,16 +39,30 @@ const focused = (() => {
   return withFocus(base, focus.offsetFromLastVertex);
 })();
 
-/** A native cosine target 1 + m·cos(2π k x / L), constant along y. */
-function cosineGrid(cols: number, rows: number, k: number, m: number): Float64Array {
-  const g = new Float64Array(cols * rows);
+/**
+ * A fine cosine target 1 + m·cos(2π·f·x), constant along y, on a grid that
+ * extends `marginPix` sensor-pixels past the sensor on every side so every
+ * sensor pixel is fully covered — no edge leakage to contaminate the spectrum.
+ * `f` is a physical frequency (cycles/mm); pick f = k/(cols·pitch) to land the
+ * FFT peak on integer bin k.
+ */
+function cosineSource(
+  sensor: Sensor,
+  freqPerMm: number,
+  m: number,
+  os: number,
+  marginPix: number,
+): { grid: Float64Array; cols: number; rows: number; pitch: number } {
+  const cols = (sensor.cols + 2 * marginPix) * os;
+  const rows = (sensor.rows + 2 * marginPix) * os;
+  const pitch = sensor.pixelPitchMm / os;
   const origin = cols / 2;
+  const grid = new Float64Array(cols * rows);
   for (let x = 0; x < cols; x++) {
-    const phase = (2 * Math.PI * k * (x - origin)) / cols;
-    const v = 1 + m * Math.cos(phase);
-    for (let y = 0; y < rows; y++) g[y * cols + x] = v;
+    const v = 1 + m * Math.cos(2 * Math.PI * freqPerMm * (x - origin) * pitch);
+    for (let y = 0; y < rows; y++) grid[y * cols + x] = v;
   }
-  return g;
+  return { grid, cols, rows, pitch };
 }
 
 /** Modulation depth and dominant frequency bin of one sensor row, via FFT. */
@@ -145,6 +159,32 @@ describe("the sensor pixel is a box integrator, not a point sampler", () => {
     expect(outSum).toBeCloseTo(srcSum, 9);
   });
 
+  it("keeps a centred feature centred — no half-pixel registration drift", () => {
+    // The one rung the energy / frequency / symmetric-field rungs are all blind
+    // to: a shift. Both grids are sample-at-centre (a star at index N/2 sits at
+    // x=0, as scene.ts places it), so a source symmetric about N/2 must rebin to
+    // a sensor image whose centroid is 0. A half-pixel cell/sample confusion —
+    // invisible to every other rung here — lands it ~½ a pixel off, which is the
+    // golden-image drift § 3b warns of, on a module whose headline is sub-pixel
+    // plate scale.
+    const srcN = 256;
+    const srcPitch = 0.001;
+    const src = new Float64Array(srcN);
+    for (let i = 0; i < srcN; i++) {
+      const k = i - srcN / 2;
+      src[i] = Math.exp(-(k * k) / (2 * 20 * 20)); // centred Gaussian
+    }
+    const sensor: Sensor = { pixelPitchMm: 0.004, cols: 64, rows: 1 };
+    const out = resampleGridToSensor(src, srcN, 1, srcPitch, sensor);
+    let num = 0;
+    let den = 0;
+    for (let j = 0; j < sensor.cols; j++) {
+      num += out[j]! * (j - sensor.cols / 2); // sample-at-centre index
+      den += out[j]!;
+    }
+    expect(num / den).toBeCloseTo(0, 6);
+  });
+
   it("applies the detector-footprint MTF sinc(π·f·pitch) below Nyquist", () => {
     // Box-integrating over a pixel of width `pitch` convolves the image with a
     // box, whose transfer is sinc(π·f·pitch) — the textbook detector MTF. Two
@@ -152,24 +192,19 @@ describe("the sensor pixel is a box integrator, not a point sampler", () => {
     // at 1. The native grid is 16× finer than the sensor so its own sinc is
     // negligible (< 0.1%).
     const cols = 128;
-    const oversample = 16;
-    const srcCols = cols * oversample;
-    const sensorRows = 4;
-    const srcRows = sensorRows * oversample; // match vertical extent to the sensor
     const pitch = 0.01;
-    const srcPitch = pitch / oversample;
-    const sensor: Sensor = { pixelPitchMm: pitch, cols, rows: sensorRows };
+    const sensor: Sensor = { pixelPitchMm: pitch, cols, rows: 8 };
     const L = cols * pitch; // sensor field width (mm)
     const m = 0.5;
 
     for (const k of [20, 40]) {
-      const src = cosineGrid(srcCols, srcRows, k, m);
-      const out = resampleGridToSensor(src, srcCols, srcRows, srcPitch, sensor);
-      const row = out.slice(0, cols);
-      const { dc, peakBin, peakMag } = spectrum(row);
+      const freqPerMm = k / L; // integer bin k, below Nyquist (64)
+      const { grid, cols: sc, rows: sr, pitch: sp } = cosineSource(sensor, freqPerMm, m, 16, 4);
+      const out = resampleGridToSensor(grid, sc, sr, sp, sensor);
+      const midRow = Math.floor(sensor.rows / 2) * sensor.cols;
+      const { dc, peakBin, peakMag } = spectrum(out.slice(midRow, midRow + cols));
       expect(peakBin).toBe(k); // transferred, not aliased
       const measuredModulation = (2 * peakMag) / dc; // = m · transfer
-      const freqPerMm = k / L;
       const sinc = (a: number) => (a === 0 ? 1 : Math.sin(a) / a);
       const expected = m * sinc(Math.PI * freqPerMm * pitch);
       expect(measuredModulation).toBeCloseTo(expected, 2);
@@ -182,18 +217,15 @@ describe("the sensor pixel is a box integrator, not a point sampler", () => {
     // fixed by the sampling rate alone. A target at k above the sensor Nyquist
     // (cols/2) folds to bin cols − k.
     const cols = 128;
-    const oversample = 16;
-    const srcCols = cols * oversample;
-    const sensorRows = 4;
-    const srcRows = sensorRows * oversample; // match vertical extent to the sensor
     const pitch = 0.01;
-    const srcPitch = pitch / oversample;
-    const sensor: Sensor = { pixelPitchMm: pitch, cols, rows: sensorRows };
+    const sensor: Sensor = { pixelPitchMm: pitch, cols, rows: 8 };
+    const L = cols * pitch;
 
     const kIn = 88; // above Nyquist bin 64
-    const src = cosineGrid(srcCols, srcRows, kIn, 0.5);
-    const out = resampleGridToSensor(src, srcCols, srcRows, srcPitch, sensor);
-    const { peakBin } = spectrum(out.slice(0, cols));
+    const { grid, cols: sc, rows: sr, pitch: sp } = cosineSource(sensor, kIn / L, 0.5, 16, 4);
+    const out = resampleGridToSensor(grid, sc, sr, sp, sensor);
+    const midRow = Math.floor(sensor.rows / 2) * sensor.cols;
+    const { peakBin } = spectrum(out.slice(midRow, midRow + cols));
     expect(peakBin).toBe(cols - kIn); // 40 = |f_s − f| in cycles/field
   });
 });
@@ -222,10 +254,13 @@ describe("resampleToSensor rebins a colour image", () => {
   it("carries the sensor pitch and conserves each channel's energy", () => {
     const src = emptyColorImage(64, 64, 0.001);
     for (let i = 0; i < src.xyz.length; i++) src.xyz[i] = (i % 7) / 7;
-    const sensor: Sensor = { pixelPitchMm: 0.004, cols: 16, rows: 16 };
+    // Sensor extent (0.088 mm) exceeds the source's (0.064 mm), so all the
+    // source energy lands on it — energy conservation is only meaningful when
+    // nothing falls off the edge.
+    const sensor: Sensor = { pixelPitchMm: 0.004, cols: 22, rows: 22 };
     const out = resampleToSensor(src, sensor);
     expect(out.pixelScaleMm).toBe(0.004);
-    expect(out.width).toBe(16);
+    expect(out.width).toBe(22);
     for (let c = 0; c < 3; c++) {
       let a = 0;
       let b = 0;
