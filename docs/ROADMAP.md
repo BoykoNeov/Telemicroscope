@@ -387,7 +387,12 @@
    so the cone is s·tan u and conflating them ships an objective 2.1% fast; and
    the emergent-ray sine condition is satisfied to 0.43% but *deliberately not to
    zero*, because § 5j's SA-null bendings straddle the coma-free one — a doublet
-   is corrected, never aplanatic. The three named blockers for immersion are
+   is corrected, never aplanatic. **Only one of the two architectures this step
+   names is landed** — the classic 160 mm finite-conjugate form is still open,
+   and needs no new machinery (finite conjugates and `bestFocus` both exist), so
+   it is mostly a question of which orientation § 6a.1's argument picks for an
+   objective used at a third conjugate pair. The three named blockers for
+   immersion are
    recorded rather than papered over: `objectNA`'s aperture seed is a tangent and
    is 2.6× out at NA 1.4; telecentricity needs object-space ray aiming that does
    not exist; and F = 1/(2·NA) means high NA is a different glass form (Lister,

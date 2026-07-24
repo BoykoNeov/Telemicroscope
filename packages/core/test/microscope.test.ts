@@ -84,6 +84,25 @@ describe("§ 6a.1 — the objective is a telescope doublet TURNED AROUND", () =>
     expect(backward).toBeCloseTo(forward, 10);
   });
 
+  it("declares exactly one aperture stop, on surface 0", () => {
+    const obj = build4x();
+    const scope = infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens() });
+
+    // Both doublets declare their own surface 0 as a stop, and the objective's
+    // travelled to its last surface when it was mirrored. Un-cleared, the
+    // composed chain carries three flagged stops: `stopIndex` takes the first
+    // and looks fine, while `seidelSums` throws unless the flag is on surface 0.
+    const flags = scope.prescription.surfaces.map((s) => s.isStop === true);
+    expect(flags.filter(Boolean)).toHaveLength(1);
+    expect(flags[0]).toBe(true);
+
+    // …and the objective standing alone is self-consistent too, not merely
+    // patched up at composition time.
+    const alone = obj.prescription.surfaces.map((s) => s.isStop === true);
+    expect(alone.filter(Boolean)).toHaveLength(1);
+    expect(alone[0]).toBe(true);
+  });
+
   it("builds the objective mirrored: the specimen faces the flint", () => {
     const obj = build4x();
     const [c1, c2, c3] = obj.doublet.curvatures;

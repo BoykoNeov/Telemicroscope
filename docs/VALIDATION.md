@@ -2615,8 +2615,23 @@ stated rather than assumed, and the rung is checked for more than one of them �
 same 50 mm objective is 4× on a 200 mm tube and 3.3× on a 165 mm one. That is a
 real property of real microscopes, not a modelling artifact.
 
+The digits themselves are **not datasheet-verified here** — they are the widely
+quoted values, and Zeiss ICS is quoted as both 165 and 164.5. Nothing rests on
+them: `tubeLens` takes an explicit focal length and the magnification rungs are
+ratios, so sourcing a corrected value would move labels and no physics. Flagged
+explicitly because § 1's D263 commit had to fix exactly this class of thing
+(νₑ = 55, not 56).
+
 ### Not yet pinned
 
+- **The classic 160 mm architecture.** The roadmap's step 6 names *two*
+  architectures; this step lands the infinity-corrected one only. The DIN/JIS
+  finite-conjugate form (M = 160/f_obj, no tube lens, the objective forming a
+  real image directly at the tube's far end) needs no new machinery — finite
+  conjugates and `bestFocus` both exist, and the objective is used at yet a third
+  conjugate pair, so it is mostly a question of which orientation the § 6a.1
+  argument picks for it. Listed here because it is the item most likely to be
+  silently dropped.
 - **`pixelScaleMm`'s image-space index.** The ROADMAP § 1 note lists this as the
   immersion wiring left over. It is **not** what this step pins and no rung here
   pretends to: an infinity-corrected microscope forms its final image in **air**,

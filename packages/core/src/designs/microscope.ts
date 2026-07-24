@@ -30,8 +30,10 @@ import { AchromaticObjective, achromaticObjective } from "./achromat";
  *     M = f_tube / f_objective
  *
  * f_tube is 200 mm for Nikon (CFI60) and Leica, 180 mm for Olympus (UIS2), and
- * 165 mm for Zeiss (ICS) — published conventions, spelled out in
- * `TUBE_FOCAL_LENGTH_MM` so the number is stated rather than assumed. The
+ * 165 mm for Zeiss (ICS) — widely-quoted manufacturer conventions, NOT
+ * datasheet-verified here (Zeiss ICS in particular is quoted as both 165 and
+ * 164.5), spelled out in `TUBE_FOCAL_LENGTH_MM` so the number is stated rather
+ * than assumed and so a caller can override it with a sourced one. The
  * physics rung is *relative* to whichever is chosen: the traced magnification
  * must equal f_tube/f_obj for the stated pair, and a 4× objective on the wrong
  * maker's tube lens is genuinely not 4×. That is a real property of real
@@ -107,9 +109,12 @@ import { AchromaticObjective, achromaticObjective } from "./achromat";
  */
 
 /**
- * Tube lens focal lengths (mm) by manufacturer convention. Stated, not derived:
- * these are catalogue conventions, and every magnification in this module is a
- * ratio against whichever is chosen.
+ * Tube lens focal lengths (mm) by manufacturer convention. Stated, not derived,
+ * and **not verified against datasheets in this repo** — they are the widely
+ * quoted values, and every magnification in this module is a ratio against
+ * whichever is chosen. No rung depends on the digits: `tubeLens` takes an
+ * explicit focal length, and the M = f_tube/f_obj rungs are checked at more than
+ * one of these, so a corrected value changes labels and nothing else.
  */
 export const TUBE_FOCAL_LENGTH_MM = {
   nikon: 200,
@@ -205,7 +210,17 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
 
   // Turned around: flint toward the specimen. See the header — the un-mirrored
   // orientation is 9 waves of spherical aberration with an identical EFL.
-  const prescription = reversePrescription(doublet.prescription, 0);
+  //
+  // The stop flag travels with its surface under reversal (it is a property of
+  // that piece of glass), so the doublet's front-surface stop lands on the
+  // mirrored chain's LAST surface. Re-declared on surface 0 here so the
+  // objective's own aperture is its specimen-side rim, and so the prescription
+  // is self-consistent standing alone rather than only once composed.
+  const mirrored = reversePrescription(doublet.prescription, 0);
+  const prescription: Prescription = {
+    ...mirrored,
+    surfaces: mirrored.surfaces.map((s, i) => ({ ...s, isStop: i === 0 })),
+  };
   const objectDistanceMm = collimatingObjectDistance(prescription, designWavelengthNm);
   // The stop is on the front vertex, s from the specimen — so what fills it is
   // s·tan u, not the sine-condition height f·sin u. See the header.
@@ -322,9 +337,13 @@ export function infinityCorrectedMicroscope(
     );
     // The objective's own rim is the aperture — see the header's telecentricity
     // note for why the stop is not at the back focal plane yet.
-    const surfaces: SurfaceSpec[] = chain.surfaces.map((s, i) =>
-      i === 0 ? { ...s, isStop: true } : s,
-    );
+    //
+    // `isStop: i === 0`, not just setting it on 0: both doublets declare their
+    // OWN surface 0 as a stop, and the objective's travelled to its last surface
+    // when it was mirrored, so a composed chain would otherwise carry three
+    // flagged stops. `stopIndex` takes the first and would look fine; `seidelSums`
+    // throws unless the flagged stop is surface 0. One aperture, one flag.
+    const surfaces: SurfaceSpec[] = chain.surfaces.map((s, i) => ({ ...s, isStop: i === 0 }));
     return { ...chain, surfaces };
   };
 

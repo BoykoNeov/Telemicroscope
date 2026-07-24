@@ -116,7 +116,16 @@ export function unfoldedTwin(p: Prescription): Prescription {
  *
  * Mirroring a surface negates its curvature and its even-asphere coefficients
  * (sag(r) → −sag(r) term by term) but NOT its conic constant, which is a shape
- * parameter and survives the flip unchanged.
+ * parameter and survives the flip unchanged. The asphere branch is correct but
+ * currently **unexercised**: this refuses mirrors, and every asphere preset in
+ * the catalog is a mirror system.
+ *
+ * `isStop` travels *with its surface*, because a stop is a property of that
+ * piece of glass and not of a position in the list — so a reversed chain's
+ * flagged stop moves to the other end. Callers that compose reversed modules
+ * must re-declare the aperture they mean: see `designs/microscope`, where two
+ * doublets each declaring their own surface 0 would otherwise leave three
+ * flagged stops in one chain.
  *
  * Two callers, and they are why this is here rather than inside one of them:
  *
