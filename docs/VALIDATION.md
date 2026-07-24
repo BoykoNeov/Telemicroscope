@@ -2339,6 +2339,47 @@ the magnitude → photon-flux zero point § 3a records as deliberately absent.
 Relative exposure — the aperture and f-ratio laws, whose pins are ratios — is
 the § 5s follow-on.
 
+## Step 5s — camera mode: relative exposure (current)
+
+How bright the recorded frame is, up to the one scalar that is § 3a's named
+deferral: the source's absolute radiance in photons, which the shot noise would
+also need. So every rung here is a **ratio** — how illuminance changes with
+focal ratio and aperture — the part a photographer reasons about in stops and
+the part pinnable without the zero point.
+
+The discipline that makes these validation and not arithmetic: the illuminance
+must **emerge from the trace**. A hand-written πD²/4 that the test then recovers
+as D² pins nothing. So the image-space cone is read from the *traced* marginal
+ray, and the 1/F² law is checked against it as a consequence.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **sin u′ from the traced marginal ray ≈ 1/(2F)** | paraxial, first order | ✅ |
+| **...departing by the sine condition, and MORE at the faster stop** | Abbe sine condition | ✅ |
+| **Extended-source illuminance ∝ 1/F² (f/10 → f/5 is 4×)** | image irradiance π·L·sin²u′ | ✅ |
+| ...cross-checked against F = EFL/EPD by the independent route | consistency | ✅ |
+| Point-source light grasp ∝ D² | entrance-pupil area — *consistency check* | ✅ |
+| Exposure scale = illuminance × time × gain | definition | ✅ |
+
+The load-bearing rung is the **sine-condition departure**. sin u′ read from the
+traced marginal ray is 0.050237 at f/10 and 0.100941 at f/5, against the
+paraxial 0.050151 and 0.100302 — a departure of 0.17% and 0.64%, growing with
+aperture. That growth is the pin: a stub that returned the paraxial 1/(2F)
+formula would read *zero* departure for both and fail it, which is precisely the
+tautology the whole "emerge from the trace" discipline guards against. The
+**1/F² illuminance** law then rides on that traced sine, and is additionally
+cross-checked against the focal ratios computed the independent EFL/EPD way.
+
+The **point-source D²** rung is labelled a consistency check, not a pin, and the
+label is the honest part: with a front stop the entrance-pupil radius is the
+declared aperture, so π·r² recovers D² by construction. Making it independent
+would need a stop imaged through preceding power (the entrance pupil ≠ the
+declared aperture) — worth doing when such a preset exists, not manufactured
+here. The validated, trace-emergent exposure law is the extended-source 1/F².
+
+Shot noise remains the named deferral: it is a draw from an absolute photon
+count, and there is no honest count until the § 3a zero point lands.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

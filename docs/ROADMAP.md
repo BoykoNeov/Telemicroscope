@@ -304,10 +304,17 @@
    against the grid-based MTF cutoff by an independent route. Two findings worth
    carrying: the rebin must *sum* footprint energy, not average (intensity is
    energy-per-pixel, § 2e), and aliasing pins the *frequency*, not the amplitude
-   (the footprint sinc has already attenuated it). **Exposure and shot noise are
-   NOT here** — absolute electrons need the magnitude→photon-flux zero point § 3a
-   flags as deliberately absent; *relative* exposure (aperture D² / f-ratio 1/F²
-   laws, pinned as trace-emergent ratios) is the immediate follow-on, § 5s.
+   (the footprint sinc has already attenuated it).
+   *Camera mode — relative exposure:* ✅ (VALIDATION § 5s). `imaging/exposure`:
+   the f-ratio and aperture laws, pinned as ratios because the absolute photon
+   zero point is § 3a's deferral. Trace-emergent by discipline — the image-space
+   cone sin u′ is read from the *traced* marginal ray (departing from paraxial
+   1/(2F) by the sine condition, and more at the faster stop), so the headline
+   **extended-source illuminance ∝ 1/F²** rides on a traced angle rather than the
+   formula it is derived from. Point-source light grasp ∝ D² is carried as a
+   labelled consistency check (a front stop's entrance radius is the declared
+   one). **Shot noise stays deferred** — it is a draw from an absolute photon
+   count, which needs the § 3a zero point.
    *Still to come here — the transcribed patent members.* Commercial eyepiece and
    objective prescriptions are trade secrets, but **patents are public and contain
    full prescription tables** — the supply route for the wide-field members
