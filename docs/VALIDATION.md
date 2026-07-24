@@ -2035,14 +2035,18 @@ wide-fields are the deferred follow-on, blocked on external data, not code.
 | Rung | Pinned to | Status |
 |---|---|---|
 | The focal-length solve hits the requested EFL | secant on the doublet power | ✅ |
-| **EFL = the thick two-group Gaussian combination 1/f_e = 2/f_d − d/f_d², d = gap + 2(f_d − BFD_d)** | Gaussian reduction, from the doublet's own cardinal points | ✅ |
+| EFL = the thick two-group Gaussian combination 1/f_e = 2/f_d − d/f_d², d = gap + 2(f_d − BFD_d) | Gaussian reduction, from the doublet's own cardinal points — *consistency check* | ✅ |
 | **Symmetric by construction: curvature i = −(curvature 5−i)** | the mirror layout | ✅ |
 | **Inherited achromatism: F–C focal spread ≈ 4·10⁻⁴ f, secondary-spectrum level** | the doublets unite F and C | ✅ |
 | ...≥ 10× below an equal-power singlet's ≈ 1/V_d spread (negative control) | thin-lens chromatic theory | ✅ |
 | **Composes into a telescope: M = −f_o/f_e, exit pupil = EPD/\|M\|, eye relief > 0** | § 5l machinery, on a real 6-surface eyepiece | ✅ |
 
-The **EFL rung** is the strong one, and it is not the naive Gullstrand check it
-first looks like. Combining the two doublets with the air-gap as the lens
+The **EFL rung** is a *consistency check*, not external validation — it compares
+the 6-surface trace's EFL against the Gaussian reduction fed by the doublet's own
+paraxial f_d and BFD, so both sides come from one paraxial engine. It earns its
+place by catching an assembly bug (a mismatched thickness, a swapped medium, a
+broken splice all move it), and it is not the naive Gullstrand check it first
+looks like. Combining the two doublets with the air-gap as the lens
 separation is wrong by 5% here, because the doublets are *thick* and the
 separation that enters the power formula is between their principal planes, not
 their inner vertices. Carrying the principal-plane offset — d = gap + 2(f_d −
@@ -2147,7 +2151,7 @@ hit the requested focal length without perturbing the theorem.
 | Rung | Pinned to | Status |
 |---|---|---|
 | The scale solve hits the requested EFL, one glass throughout, four surfaces | construction | ✅ |
-| **EFL = 2·f₁·f₂/(f₁+f₂)** to the thick-lens residual | thin-lens combination | ✅ |
+| EFL = 2·f₁·f₂/(f₁+f₂) to the thick-lens residual | thin-lens combination — *consistency check* | ✅ |
 | **Achromatic at d = (f₁+f₂)/2: F–C spread ≥ 10× below an equal-power singlet** | same-glass spacing theorem | ✅ |
 | **The achromatism is a ZERO CROSSING in the spacing — under below, over above** | dΦ/dλ = 0 at (f₁+f₂)/2 | ✅ |
 | Composes into a telescope with the § 5l magnification / exit pupil / eye relief | § 5l machinery | ✅ |
@@ -2164,8 +2168,10 @@ That sign flip is the theorem made falsifiable — a wrong spacing does not mere
 correct less, it corrects the *other way* — which a "smaller is better" tolerance
 would miss.
 
-The **EFL rung** carries a ~1.5% thick-lens residual against the thin-lens
-2f₁f₂/(f₁+f₂), and it is bounded rather than tightened: unlike the Plössl, whose
+The **EFL rung** is a *consistency check* (trace EFL against the thin-lens
+combination of the design's own focal lengths, one engine on both sides) and
+carries a ~1.5% thick-lens residual against 2f₁f₂/(f₁+f₂), bounded rather than
+tightened: unlike the Plössl, whose
 EFL is pinned to the *thick* two-group combination at machine precision, the
 Huygens rung is stated against the thin form on purpose, because the point of the
 design is the spacing condition (also a thin-lens statement), and holding both to

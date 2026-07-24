@@ -131,7 +131,16 @@ describe("Huygens eyepiece — achromatism by spacing (§ 5o)", () => {
     const f1 = ep.fieldLensFocalMm;
     const f2 = ep.eyeLensFocalMm;
     expect(ep.separationMm).toBeCloseTo((f1 + f2) / 2, 10);
-    const singletSpread = Math.abs(fc(huygensAt(25, 25, 0.75))); // one plano-convex singlet, f = 25
+    // A genuine single plano-convex lens of the same power (f = 25), carrying the
+    // primary ~1/V colour the spacing corrects — the honest equal-power control.
+    const singlet: Prescription = {
+      surfaces: [
+        { kind: "refract", curvature: 1 / ((n - 1) * 25), semiAperture: 12, thickness: 0.75, medium: ep.glass },
+        { kind: "refract", curvature: 0, semiAperture: 12, thickness: 0, medium: "AIR" },
+      ],
+    };
+    const singletSpread = Math.abs(fc(singlet));
+    expect(singletSpread).toBeGreaterThan(0.01); // ≈ 1/V_d, sanity on the control
     expect(Math.abs(fc(ep.prescription))).toBeLessThan(singletSpread / 10);
   });
 
