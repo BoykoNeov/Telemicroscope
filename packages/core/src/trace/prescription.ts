@@ -104,6 +104,56 @@ export function unfoldedTwin(p: Prescription): Prescription {
   return { ...p, surfaces, mirrorFrames: "unfolded" };
 }
 
+/**
+ * The same optics traced backwards: surface order reversed, every surface
+ * mirrored, and the media re-associated.
+ *
+ * A `SurfaceSpec` names the medium and the gap that follow it, so reversing the
+ * list has to shift both back by one — reversed surface i is followed by what
+ * *preceded* original surface i. The first surface's predecessor is the object
+ * medium, and the chain's new trailing thickness has to be supplied by the
+ * caller because the original had no gap in front of it to reuse.
+ *
+ * Mirroring a surface negates its curvature and its even-asphere coefficients
+ * (sag(r) → −sag(r) term by term) but NOT its conic constant, which is a shape
+ * parameter and survives the flip unchanged.
+ *
+ * Two callers, and they are why this is here rather than inside one of them:
+ *
+ *  - **Front focal distance.** A system's FFD is its reversal's BFD, so
+ *    `systemProperties(reversePrescription(p, …)).bfd` measures by an
+ *    independent route what `collimatingObjectDistance` solves for directly
+ *    (docs/VALIDATION.md § 6a).
+ *  - **Orientation.** A lens solved for one conjugate pair is correct for the
+ *    reverse pair only when it is turned around. That is the whole reason a
+ *    microscope objective is a telescope doublet *mirrored* — see
+ *    `designs/microscope`, where the un-mirrored orientation is 9 waves worse.
+ *
+ * Refracting chains only: a mirror's reversal has to decide what the folded/
+ * unfolded frame means under the flip, and no caller needs it yet.
+ */
+export function reversePrescription(p: Prescription, trailingThicknessMm: number): Prescription {
+  if (isFolded(p)) throw new Error("reversePrescription: refracting, unfolded chains only");
+  const src = p.surfaces;
+  if (src.some((s) => s.kind === "reflect")) {
+    throw new Error("reversePrescription: refracting chains only (a mirror's frame under reversal is undefined here)");
+  }
+  const surfaces: SurfaceSpec[] = [];
+  for (let i = src.length - 1; i >= 0; i--) {
+    const s = src[i]!;
+    const prev = i === 0 ? undefined : src[i - 1]!;
+    const coeffs = s.asphereCoeffs;
+    surfaces.push({
+      ...s,
+      curvature: -s.curvature,
+      ...(coeffs && coeffs.length > 0 ? { asphereCoeffs: coeffs.map((a) => -a) } : {}),
+      thickness: prev ? prev.thickness : trailingThicknessMm,
+      medium: prev ? prev.medium! : (p.objectMedium ?? "AIR"),
+    });
+  }
+  return { ...p, objectMedium: src[src.length - 1]!.medium ?? "AIR", surfaces };
+}
+
 export function surfaceGeometry(spec: SurfaceSpec): SurfaceGeometry {
   const k = spec.conic ?? 0;
   return spec.asphereCoeffs && spec.asphereCoeffs.length > 0

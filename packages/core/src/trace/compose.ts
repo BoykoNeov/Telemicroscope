@@ -52,6 +52,37 @@ export function spliceModules(
   return { objectMedium, surfaces };
 }
 
+/**
+ * The object distance that makes the chain's axial output collimated — the
+ * **front focal distance**, measured from surface 0's vertex.
+ *
+ * This is the microscope's counterpart to `afocalTelescope`'s gap solve, and it
+ * is a capability the engine did not have: `bestFocus` moves the image plane,
+ * and `systemProperties` reports only EFL and BFD, both of which are read from a
+ * ray coming *in* collimated. An infinity-corrected objective is the other way
+ * round — the specimen sits at the front focus and the light leaves collimated —
+ * so where the specimen goes had to be solved rather than looked up.
+ *
+ * Same affine argument the gap solve rests on, and for the same reason it is
+ * exact rather than iterative. A ray from the axial object point at distance s
+ * with unit slope reaches surface 0 at height y = s, and the paraxial system's
+ * output slope is linear in its input state, so u′(s) = A·s + B: two evaluations
+ * pin the line and its zero is the answer. Two, not one, because B ≠ 0 in
+ * general and the ratio is what is wanted.
+ *
+ * Sign: positive means the object is in front of the first vertex, at z = −s,
+ * which is the sign `ConjugateSpec.distance` uses.
+ */
+export function collimatingObjectDistance(p: Prescription, wavelengthNm: number): number {
+  const uOut = (s: number): number => paraxialTrace(p, wavelengthNm, { y: s, u: 1 }).u;
+  const b = uOut(0);
+  const a = uOut(1) - b;
+  if (!(Math.abs(a) > 0)) {
+    throw new Error("collimatingObjectDistance: the chain has no power — every object distance is afocal");
+  }
+  return -b / a;
+}
+
 export interface AfocalTelescopeSpec {
   /** The objective (refracting), authored standalone; it carries the aperture stop. */
   readonly objective: Prescription;

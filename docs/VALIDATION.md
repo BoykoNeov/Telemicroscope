@@ -2540,6 +2540,112 @@ Tolerancing lands here, at step 5, rather than in v2: once tilt/decenter exists
 two traces, and it is the most educational thing the simulator can show — a slider
 per tolerance, the image degrading as the RSS budget predicts.
 
+## Step 6a — the infinity-corrected microscope: architecture and the first objective (current)
+
+The unit that opens the microscope branch. Everything step 6 promises — immersion,
+coverslip mismatch, brightfield, fluorescence — is a variation on one chain:
+specimen at an objective's front focus, a collimated space, a tube lens, an image.
+The engine could express neither end of it. Finite conjugates existed but nothing
+*placed* the object; `systemProperties` reads EFL and BFD from a ray coming in
+collimated, and `bestFocus` moves the image plane. The one genuinely new
+first-order capability here is `collimatingObjectDistance` — where the specimen
+goes so the objective's output is collimated. The objective itself needs no new
+lens-design code: a low-power achromatic objective *is* a cemented doublet, so
+`achromaticObjective` builds it, as § 5k's ED refractor also reused it.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The doublet nulls S_I only MIRRORED — the wrong way round is 9.2 waves** | § 5j solve + reversibility | ✅ |
+| Both orientations have identical EFL — nothing first-order can tell them apart | negative control | ✅ |
+| **The object-distance solve = the front focal distance** = reversed chain's BFD | independent route | ✅ |
+| FFD ≠ BFD for this asymmetric doublet (the two routes are not one number) | negative control | ✅ |
+| A real marginal ray at full NA leaves the objective collimated (tilt < 5e-4) | exact trace vs the paraxial solve | ✅ |
+| **M = f_tube/f_obj on the traced chief ray** (−4.00103 vs −4) | the tube-length convention | ✅ |
+| M is unchanged by the infinity-space length (20 / 100 / 250 mm) | why the infinity space exists | ✅ |
+| The same objective is 3.3× on a 165 mm Zeiss tube | convention-relativity | ✅ |
+| **Traced object NA = 0.100000** from the marginal ray's launch angle | design spec | ✅ |
+| Sizing the stop f·NA instead of s·tan u ships NA 0.1021 | negative control | ✅ |
+| **Abbe sine condition on the emergent ray: height = f·sin u to 0.43%** | Abbe | ✅ |
+| …and NOT to zero — a doublet is corrected but never aplanatic | § 5j, negative control | ✅ |
+| **λ/(2·NA) magnified = the FFT grid's MTF cutoff, to 0.5%** | Abbe vs § 3 grid | ✅ |
+| Rayleigh/Abbe = 1.22 exactly — different criteria, both reported | Airy factor | ✅ |
+| Distortion moves M by 2e-5 over a 40× field spread | § 5n real-chief-ray route | ✅ |
+| Diffraction-limited on axis at the paraxial image plane (σ = λ/23) | Maréchal | ✅ |
+
+### The orientation rung, and why it is third-order
+
+A doublet solved for one conjugate pair is correct for the reverse pair only when
+it is **turned around**. § 5j solved the bending for S_I = 0 with light arriving
+collimated on the crown; a microscope objective runs the other pair, specimen in
+and collimated out. By reversibility the orientation reproducing the solve is the
+doublet mirrored — flint toward the specimen — which is the same turn-around
+`designs/eyepiece` makes for the Plössl's second group.
+
+This was *measured before the module existed*, not assumed, and it is not a close
+call: 1.7e-18 mm of ΣS_I mirrored against 4.33e-2 mm un-mirrored, i.e. **9.2 waves**
+of third-order spherical aberration. The rung is worth having precisely because the
+two orientations have the same EFL to 10 digits — no first-order readout, and no
+"does it look about right" glance at the prescription, can separate them.
+
+### The stop radius is not the sine-condition height
+
+Recorded as a finding because the module made the mistake once and the tests now
+pin it. f·NA is the height an aplanat maps sin u to on the **equivalent refracting
+sphere**, a sphere of radius f about the front principal point. The physical stop
+sits on the front vertex, a distance s = FFD from the specimen, so what fills it is
+a tangent relation, r = s·tan u = s·NA/√(1−NA²). For the 4×/0.10 that is 4.8951 mm
+against f·NA = 5.0000 mm: sizing the stop by the sine-condition height and reading
+the NA back would have shipped an objective 2.1% faster than its label.
+
+Getting this right is what frees the sine condition to be an **external check
+rather than a construction**, and it is applied where it belongs — on the emergent
+ray. The marginal ray launched at sin u = NA leaves the objective at height 4.9757
+against f·sin u = 4.9969, a residual of −0.43%. Small, and *deliberately pinned as
+non-zero*: an offence against the sine condition is exactly coma, and § 5j already
+found that the two SA-null bendings **straddle** the coma-free one, so a cemented
+doublet is spherically corrected but never aplanatic. A residual of zero here would
+mean the rung was measuring its own construction.
+
+### What is a convention, and what is physics
+
+M = f_tube/f_obj is external only *relative to a stated tube length*: 200 mm for
+Nikon (CFI60) and Leica, 180 mm for Olympus (UIS2), 165 mm for Zeiss (ICS). These
+are catalogue conventions, spelled out in `TUBE_FOCAL_LENGTH_MM` so the number is
+stated rather than assumed, and the rung is checked for more than one of them — the
+same 50 mm objective is 4× on a 200 mm tube and 3.3× on a 165 mm one. That is a
+real property of real microscopes, not a modelling artifact.
+
+### Not yet pinned
+
+- **`pixelScaleMm`'s image-space index.** The ROADMAP § 1 note lists this as the
+  immersion wiring left over. It is **not** what this step pins and no rung here
+  pretends to: an infinity-corrected microscope forms its final image in **air**,
+  so n_image = 1. The oil enters through Snell at the first surface, through OPD
+  (path = n × length), and chromatically through its dispersion — i.e. through
+  **NA**, not through the image grid. The wiring rung stays open for a
+  configuration whose image is itself immersed.
+- **`objectNA`'s aperture seed is wrong at high NA.** `resolveStopRadius`'s
+  `objectNA` branch computes `epRadius = (NA/n)·armLength`, treating NA/n as a
+  *tangent* over the arm. At NA 0.10 in air that is a 0.5% error and harmless;
+  at NA 1.4 in oil, sin u = 0.924 gives u = 67.5° and tan u = 2.42 — the seed is
+  **2.6× out**, and ray aiming will either fail to converge or land on a nonsense
+  stop radius. This step sidesteps it entirely by specifying `stopRadius`
+  directly, but the immersion unit must fix the seed to the true sine relation.
+- **Telecentricity.** Real objectives put the stop at the **back focal plane**,
+  making them object-space telecentric — chief rays parallel to the axis, so
+  magnification does not drift with defocus. That puts the entrance pupil at
+  infinity and `aimRay` refuses it by design ("telecentric: aim in object space
+  instead"). Object-space aiming is a real engine gap; until it lands the stop
+  sits on the objective's own rim, which changes no axial property and no
+  magnification, only the chief-ray angle.
+- **High NA needs a different glass form.** F = 1/(2·NA) is a function of NA
+  alone, so NA 0.25 is an f/2 doublet — where the third-order solve's neglected
+  higher orders dominate and the design stops being a design. The computed member
+  is honestly the low-power, low-NA objective. The Lister two-doublet and the
+  **aplanatic immersion front** (hemisphere + Weierstrass meniscus, stigmatic by
+  the aplanatic-points closed form, and where the § 1 oil and D263 start doing
+  work) are the named follow-ons.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

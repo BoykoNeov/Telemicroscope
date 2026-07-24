@@ -83,7 +83,8 @@
      pixel scale the frame spans ~0.06° and the field is effectively
      shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
      it. Rendered coarse-to-fine in its own worker.
-5. **Telescope branch + bench editor + mech layer** ← current
+5. **Telescope branch + bench editor + mech layer** ← optics landed; still open:
+   the mechanical layer, scenes (star/planet/lunar), and the bench editor
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
    scenes, visual mode (eye model, exit-pupil matching) and camera mode
@@ -344,7 +345,7 @@
    RMS-native, not Rayleigh's λ/4 P-V). It is the most educational thing the
    simulator can show — a slider per tolerance, the image degrading as the budget
    predicts.
-6. **Microscope branch**
+6. **Microscope branch** ← current
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion; brightfield (incoherent + condenser-NA factor) and
    fluorescence; coverslip mismatch; scenes: diatoms, stained tissue,
@@ -362,7 +363,35 @@
    whole parts (objective, tube lens, eyepiece) as well as from bare surfaces.
    The design is recorded in ARCHITECTURE § Data model: modules are authoring
    data that flatten into one surface chain, not a second tracer. Step 5's
-   eyepiece library is the first consumer, so it may land there instead.
+   eyepiece library is the first consumer, so it may land there instead. ✅ —
+   it did (§ 5l), and this step consumes it unchanged.
+   *Architecture + the first objective:* ✅ `designs/microscope` (VALIDATION
+   § 6a). The chain the whole branch is a variation on — specimen at the
+   objective's front focus, collimated space, tube lens, image — and the one
+   first-order capability the engine lacked to express it:
+   `collimatingObjectDistance`, which *places the object* where `bestFocus`
+   places the image, solved off the affine output slope and pinned against the
+   front focal distance measured by a wholly different path (the reversed
+   chain's BFD, via a new `reversePrescription`). The objective needed no new
+   design code — a low-power achromat objective IS a cemented doublet, so § 5j's
+   `achromaticObjective` builds it — but it needed the right *orientation*, and
+   that was measured before the module existed: mirrored (flint toward the
+   specimen) nulls S_I, un-mirrored carries **9.2 waves**, and the two have
+   identical EFL so nothing first-order separates them. Headline numbers:
+   M = f_tube/f_obj on the traced chief ray, invariant to the infinity-space
+   length and honestly relative to a *stated* tube convention (200 Nikon/Leica,
+   180 Olympus, 165 Zeiss); and Abbe's λ/(2·NA) magnified onto the image
+   agreeing to 0.5% with the FFT grid's own MTF cutoff, which shares nothing with
+   it. Two findings carried forward: **f·NA is not a stop radius** — it is a
+   height on the equivalent refracting sphere, while the stop sits on the vertex,
+   so the cone is s·tan u and conflating them ships an objective 2.1% fast; and
+   the emergent-ray sine condition is satisfied to 0.43% but *deliberately not to
+   zero*, because § 5j's SA-null bendings straddle the coma-free one — a doublet
+   is corrected, never aplanatic. The three named blockers for immersion are
+   recorded rather than papered over: `objectNA`'s aperture seed is a tangent and
+   is 2.6× out at NA 1.4; telecentricity needs object-space ray aiming that does
+   not exist; and F = 1/(2·NA) means high NA is a different glass form (Lister,
+   then the aplanatic hyperhemisphere) rather than a faster doublet.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

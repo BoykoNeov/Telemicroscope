@@ -9,3 +9,4 @@ export * from "./schmidt";
 export * from "./schmidt-cassegrain";
 export * from "./sct";
 export * from "./eye";
+export * from "./microscope";

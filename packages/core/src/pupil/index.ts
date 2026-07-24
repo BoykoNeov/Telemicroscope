@@ -4,3 +4,4 @@ export * from "./opd";
 export * from "./afocal";
 export * from "./aperture-stop";
 export * from "./visual";
+export * from "./microscope";
