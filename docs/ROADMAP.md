@@ -254,11 +254,32 @@
    for N-BK7/F2, but picks the 8×-worse root for CaF₂/N-BK7. Real premium fluorite
    doublets are air-spaced, which is the open follow-on — the third freedom that
    could null S_I and S_II together.
-   Still to come here: the eyepiece library.
-   *Sourcing:* commercial eyepiece and objective prescriptions are trade
-   secrets, but **patents are public and contain full prescription tables** —
-   that is the supply route for the eyepiece library, and the validation
-   ladder pins against them.
+   *Eyepiece library — composition, afocal evaluation, and the computed lead:*
+   ✅ (VALIDATION §§ 5l–5n). The library's prerequisite and its first member
+   landed together. **Module composition** (`trace/compose`) flattens whole parts
+   — objective, eyepiece — into one prescription, as ARCHITECTURE committed:
+   flattening, not a second tracer. On it, the **afocal system** the engine could
+   not previously express (`systemProperties` throws on a collimated-out chain):
+   `afocalTelescope` solves the afocal spacing off the trace (thick-correct, not
+   the thin-lens formula), `afocalProperties` reads magnification / exit pupil /
+   eye relief (§ 5l), and `apparentFieldAngleRad` traces the real chief ray for
+   **apparent field of view and distortion** — the genuinely-new capability, since
+   distortion is exactly the term a paraxial trace drops (§ 5n). The lead member
+   is the **computed Plössl** (`designs/eyepiece`, § 5m): two of § 5j's achromatic
+   doublets mirrored, so it is achromatic and pinnable by theorem rather than
+   transcribed — its lateral-colour dividend over a singlet eyepiece is pinned on
+   the real-ray trace, and honestly, that its symmetry does NOT buy low distortion
+   in a telescope (wrong conjugates for the symmetry principle).
+   *Still to come here — the transcribed patent members.* Commercial eyepiece and
+   objective prescriptions are trade secrets, but **patents are public and contain
+   full prescription tables** — the supply route for the wide-field members
+   (Erfle/Nagler-class), pinned to their catalogued EFL + AFOV. This is blocked on
+   real external data, not code: a verified published prescription AND the crown/
+   flint glasses it uses added to the catalog with real dispersion data (the
+   current catalog has only N-BK7, F2, CaF₂, fused silica). Transcribing from
+   memory is forbidden by the hard rule; the members land when the data is sourced.
+   The eye model (exit-pupil-to-eye matching, visual vs camera mode) is the other
+   open follow-on.
    *Tolerancing lands here, not in v2:* once tilt/decenter exists, perturbing
    every parameter by its manufacturing tolerance and watching the image
    degrade is nearly free, and it is the most educational thing the project
