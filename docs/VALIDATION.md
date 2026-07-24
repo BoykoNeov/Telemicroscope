@@ -19,8 +19,8 @@ form) — engine-vs-itself tests are consistency checks, not validation.
 | Immersion oil (Cargille B) nd≈1.5150, nₑ≈1.5180 | Cargille datasheet | ✅ |
 | Immersion oil Cauchy reproduces the datasheet line table (nF,nC,nF′,nC′) | Cargille datasheet | ✅ |
 | Immersion oil Abbe νd≈42.9 and νₑ≈42.8 (both conventions) | Cargille datasheet | ✅ |
-| Coverslip D263 T eco nd≈1.5233, Vd≈54.52 | Schott/Zemax catalog | ✅ |
-| Coverslip D263 nₑ≈1.5255 meets the ISO 8255 objective design coverslip | ISO 8255-1 | ✅ |
+| Coverslip D263 nd≈1.5233, Vd≈54.52 | SCHOTT Zemax catalog | ✅ |
+| Coverslip D263 nₑ≈1.5255±0.0015, νₑ≈55 | D 263® M datasheet, ISO 8255-1 | ✅ |
 | Paraxial EFL = thick lensmaker's equation | closed form | ✅ |
 | Exact trace → paraxial in the small-height limit | limit consistency | ✅ |
 | Positive singlet: marginal focus shorter than paraxial (undercorrected SA) | textbook sign | ✅ |
@@ -52,9 +52,14 @@ pinned and shown to agree with the datasheet's own νd = 42.9 *and* νₑ = 42.8
 a rung fed only νd would read a spurious few-percent gap that is pure convention.
 The reduced eye's vitreous was split into its own non-dispersive `VITREOUS`
 constant at the same value, so `WATER` could become real without any eye rung
-moving (all 478 rungs byte-identical). D263's νₑ landing *below* the ISO nominal
-56 while its nₑ meets the design 1.5255 is carried as data, not forced to agree:
-that residual is the coverslip mismatch step 6 will show.
+moving (all rungs byte-identical). D263 carries *two independent* external
+anchors: the SCHOTT Zemax catalog it is transcribed from (nd = 1.5233,
+Vd = 54.52, tight) and the separate D 263® M product datasheet (nₑ = 1.5255 ±
+0.0015, νₑ ≈ 55) — the No. 1.5 coverslip an objective is designed for. The
+Sellmeier reproduces the datasheet's headline nₑ inside its own ±0.0015
+tolerance while its νₑ (≈ 54.3) lands just under the rounded guide 55; that
+residual is carried as data, not forced to agree, and is the seed of the
+coverslip mismatch step 6 will show.
 
 ## Step 1.5 — system spec + pupils (current)
 

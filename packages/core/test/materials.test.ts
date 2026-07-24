@@ -61,8 +61,11 @@ describe("glass catalog vs datasheets", () => {
  * behaviour dishonest. Never widen these tolerances.
  */
 describe("immersion / coverslip media vs datasheets", () => {
-  it("water (Daimon & Masumura 2007, 20 °C): nd ≈ 1.3334, Vd ≈ 55.7", () => {
-    expect(indexD(WATER)).toBeCloseTo(1.3334, 3);
+  it("water (Daimon & Masumura 2007, 20 °C): nd ≈ 1.333, Vd ≈ 55.7", () => {
+    // nd pinned to the accepted textbook water index (transcription check, not
+    // an echo of the formula's own output); Vd to water's independently-known
+    // Abbe (~55.6) — that leg is the genuine external anchor on the dispersion.
+    expect(indexD(WATER)).toBeCloseTo(1.333, 3);
     expect(abbeNumber(WATER)).toBeCloseTo(55.7, 0);
   });
 
@@ -89,18 +92,24 @@ describe("immersion / coverslip media vs datasheets", () => {
     expect(abbeNumberE(IMMERSION_OIL)).toBeCloseTo(42.8, 0);
   });
 
-  it("coverslip D263 T eco (Schott, ISO 8255-1): nd ≈ 1.5233, Vd ≈ 54.52", () => {
+  it("coverslip D263: nd ≈ 1.5233, Vd ≈ 54.52 (SCHOTT Zemax catalog)", () => {
+    // Against the coefficient source itself — the Sellmeier reproduces the
+    // catalog's own nd/Vd tightly.
     expect(indexD(D263)).toBeCloseTo(1.5233, 4);
     expect(abbeNumber(D263)).toBeCloseTo(54.52, 1);
   });
 
-  it("coverslip D263: nₑ ≈ 1.5255 meets the objective's design coverslip", () => {
-    // The value an objective's spherical-aberration correction assumes for a
-    // No. 1.5 coverslip (ISO 8255). D263's nₑ lands on it; its νₑ (≈ 54.3) sits
-    // BELOW the nominal 56 — the residual is exactly the "coverslip mismatch"
-    // the branch will later show, carried as real data rather than forced to
-    // agree. (Negative control: it must NOT equal the immersion oil's index.)
-    expect(indexE(D263)).toBeCloseTo(1.5255, 3);
+  it("coverslip D263: nₑ ≈ 1.5255±0.0015, νₑ ≈ 55 (D263 product datasheet, ISO 8255-1)", () => {
+    // A SECOND, independent external anchor: the D 263® M cover-glass product
+    // datasheet publishes nₑ = 1.5255 ± 0.0015 and νₑ ≈ 55 (guide value) — the
+    // No. 1.5 coverslip an objective's correction is computed for. The Sellmeier
+    // reproduces the headline nₑ inside the datasheet's own ±0.0015 tolerance,
+    // and its νₑ (≈ 54.3) lands just under the rounded guide 55. The rung has
+    // teeth: a wrong coefficient moves nₑ out of tolerance, and νₑ out of ±1.
+    expect(indexE(D263)).toBeCloseTo(1.5255, 3); // ±0.0005 ⊂ datasheet ±0.0015
+    expect(Math.abs(abbeNumberE(D263) - 55)).toBeLessThan(1);
+    // Negative control: the coverslip is NOT the immersion oil — the small
+    // oil→glass index step is real and is what the branch's chromatism rides on.
     expect(indexE(D263)).toBeGreaterThan(indexE(IMMERSION_OIL));
   });
 });

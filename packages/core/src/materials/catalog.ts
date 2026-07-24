@@ -7,6 +7,12 @@ import { Medium, sellmeier, cauchy, constantIndex } from "./dispersion";
  *
  * AIR is exactly 1.0 for now — all designs are "in air" relative; switch to
  * the Ciddor/Edlén model when photometry or high-precision work needs it.
+ *
+ * NOTE on the immersion media below: each carries its source's own reference
+ * temperature (water 20 °C, oil 23 °C). They physically coexist at one bench
+ * temperature; the resulting index mismatch is ~1e-3 (below every rung's
+ * tolerance) and is unavoidable from the published data — do NOT treat the three
+ * as co-referenced to a single temperature.
  */
 
 export const AIR: Medium = constantIndex("AIR", 1.0);
@@ -84,11 +90,14 @@ export const IMMERSION_OIL: Medium = cauchy(
  * Microscope coverslip glass — Schott D 263® T eco, the borosilicate that meets
  * ISO 8255-1 for cover glass (the No. 1.5 / 0.17 mm coverslip an objective's
  * correction assumes). Sellmeier from the SCHOTT Zemax catalog (2017-01-20b) via
- * refractiveindex.info, valid 0.334–2.325 µm. nd = 1.523303, Vd = 54.52. The
- * coverslip is the surface an objective's spherical-aberration correction is
- * computed for; a mismatch between the real slip and this nominal is exactly the
- * "coverslip mismatch" the microscope branch will later show, so it is carried as
- * real data, not folded into the oil. Pinned in test/materials.test.ts.
+ * refractiveindex.info, valid 0.334–2.325 µm. nd = 1.523303, Vd = 54.52; the
+ * D 263® M product datasheet separately publishes nₑ = 1.5255 ± 0.0015, νₑ ≈ 55
+ * — the No. 1.5 coverslip an objective's spherical-aberration correction is
+ * computed for, which this Sellmeier reproduces inside that tolerance. A mismatch
+ * between a real slip (thickness/index) and this nominal is exactly the "coverslip
+ * mismatch" the microscope branch will later show, so it is carried as real data,
+ * not folded into the oil. Pinned in test/materials.test.ts against both the
+ * Zemax catalog nd/Vd and the datasheet nₑ/νₑ.
  */
 export const D263: Medium = sellmeier(
   "D263",
