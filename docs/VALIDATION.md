@@ -2225,6 +2225,55 @@ actually consumes the selected index, so the exit pupil and OPD reference the re
 limiting aperture, which is exactly what would be tempting to fake with an
 `exit_pupil/eye_pupil` ratio and is refused here.
 
+## Step 5q — the reduced eye and visual mode (current)
+
+The first consumer of § 5p, and the step that closes the visual chain. The
+eyepiece library (§§ 5l–5o) computed the exit pupil and eye relief; visual mode
+puts the observer's eye there and lets the collimated exit beam form a REAL
+retinal image, so what a visual observer actually gets — how much aperture
+reaches the retina, and how sharp the result is — becomes a readout of one trace
+through (objective + eyepiece + eye).
+
+The **eye** is Emsley's reduced model: a single refracting surface of power 60 D
+in front of a vitreous of index n = 4/3 (`WATER`), retina at the surface's own
+paraxial focus. All its geometry is derived from those two scalars — corneal
+radius (n−1)/F, axial length n/F, posterior nodal distance 1/F — so nothing is
+transcribed. It is kept IDEAL: the corneal surface carries the Cartesian conic
+K = −1/n² that images a collimated axial beam stigmatically, nulling the single
+surface's own spherical aberration, so a (telescope + eye) rung measures what the
+TELESCOPE delivers to the retina rather than the eye's SA (which is the deferral).
+
+The physics is the § 5p two-stop competition. The telescope compresses the
+objective's beam to an exit pupil D/|M|; if the eye pupil is wider, the objective
+still fills the retina, and if it is narrower the iris BECOMES the aperture stop
+and the effective aperture collapses to d_eye·|M|. The composed system is traced
+with `apertureStop: "limiting"`, so the collapse EMERGES.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Eye geometry (R, L, PND) follows from power and index; PND = 1/F, retina = n/F | reduced-eye construction, not transcription | ✅ |
+| **Effective aperture = min(D, d_eye·\|M\|): full above the exit pupil, d_eye·\|M\| below it** | the two-stop collapse — *headline*, a closed form the trace can refuse | ✅ |
+| The iris takes over exactly when the eye pupil drops below the exit pupil | the crossover IS M_min = D/d_eye | ✅ |
+| **The retinal Airy disc grows by D/(d_eye·\|M\|)** — the same collapse seen in the image | diffraction scale ∝ 1/effective aperture | ✅ |
+| **Stop-selection and exact-trace masking give the SAME iris-limited PSF** | two independent routes (§ 5p pupil sizing vs § 2f `vignetteMask`) | ✅ |
+| A field angle images to \|M\|·PND·tan θ on the retina | retinal angular magnification, a third route — *sanity anchor* | ✅ |
+
+The **effective-aperture** rung is the headline and the falsifiable one: the
+collapse to d_eye·|M| is a closed form, with the knee exactly at the exit pupil
+(⟺ |M| = D/d_eye, the minimum useful magnification falling out of the same
+boundary rather than being asserted as folklore). The **two-routes** rung is what
+keeps this a mechanism: the iris-limited retinal PSF computed by sizing the pupil
+to the iris (`limiting`) agrees with keeping the objective as stop and letting the
+exact tracer BLOCK rays at the iris rim (`declared` + the § 2f mask) — different
+code paths, one physical aperture, one diffraction disc. The **retinal
+magnification** rung is nearly true by construction (the advisor's caution) and is
+carried as a sanity anchor, not a headline; its sub-percent departure from the
+paraxial form is the eyepiece's distortion (§ 5n), kept small by a small field.
+
+The eye's own aberrations, the empty-magnification / eye-acuity resolution ceiling
+(which needs a stated acuity rather than the folklore 2×D), and the photopic vs
+scotopic pupil are the named follow-ons; the mechanism they would sit on is landed.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

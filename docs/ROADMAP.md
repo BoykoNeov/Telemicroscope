@@ -272,6 +272,24 @@
    telescope (wrong conjugates for the symmetry principle); and the **Huygens**
    (§ 5o), two same-glass singlets achromatized by the spacing d = (f₁+f₂)/2, whose
    falsifiable pin is the sign-flip zero-crossing of lateral colour across it.
+   *Eye model + visual mode:* ✅ (VALIDATION §§ 5p–5q). The eyepiece library
+   computed the exit pupil; visual mode puts the observer's eye there so the
+   collimated exit beam forms a real retinal image. Its prerequisite was a genuine
+   engine capability, not a readout: **limiting-aperture stop selection**
+   (`pupil/aperture-stop`, § 5p) — `pupils()` had always keyed off the *declared*
+   `isStop`, but the true stop is the surface the axial cone fills first, and when
+   the eye's iris is narrower than the exit pupil it *becomes* the stop. Opt-in via
+   `OpticalSystem.apertureStop`, so every prior rung is byte-identical; pinned by a
+   closed-form crossover, a non-regression proof that all 10 presets' limiting
+   aperture equals their declared stop, and a wiring proof that the exit pupil/OPD
+   reference actually move. On it, the **reduced eye** (`designs/eye`, Emsley 60 D /
+   n = 4/3, geometry from two scalars, idealized SA-free by the Cartesian conic
+   K = −1/n²) composes into a focal retinal system whose headline is the two-stop
+   collapse: effective aperture = min(D, d_eye·|M|), the knee at the exit pupil
+   being M_min = D/d_eye, and the retinal Airy broadening by D/(d_eye·|M|) — the
+   iris-limited PSF cross-checked two ways (stop-selection vs the § 2f exact-trace
+   mask). The empty-magnification/acuity ceiling, real ocular SA, and the
+   photopic/scotopic pupil are the named follow-ons.
    *Still to come here — the transcribed patent members.* Commercial eyepiece and
    objective prescriptions are trade secrets, but **patents are public and contain
    full prescription tables** — the supply route for the wide-field members
