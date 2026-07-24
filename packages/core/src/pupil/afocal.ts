@@ -1,5 +1,6 @@
-import { AfocalTelescope, paraxialTrace, vertexPositions, OpticalSystem } from "../trace";
+import { AfocalTelescope, paraxialTrace, traceRay, vertexPositions, OpticalSystem } from "../trace";
 import { pupils } from "./pupils";
+import { chiefRay } from "./aiming";
 
 /**
  * First-order properties of an afocal telescope that only make sense in the
@@ -68,4 +69,50 @@ export function afocalProperties(
     exitPupilRadiusMm: pg.exit.radius,
     eyeReliefMm: pg.exit.z - lastVertexZ,
   };
+}
+
+/**
+ * The apparent field angle a visual observer sees for a given object-space field
+ * angle: the direction of the REAL chief ray after the last surface, in the
+ * collimated exit space (radians, in the x–z meridional plane).
+ *
+ * This is the capability that needs a real trace, not paraxial. Near the axis it
+ * is M·θ (the § 5l magnification), so
+ *
+ *     θ_out(θ) = M·θ + O(θ³)
+ *
+ * and the O(θ³) departure IS the eyepiece's distortion — pincushion for a simple
+ * positive eyepiece (the local angular magnification grows toward the edge). The
+ * paraxial `afocalProperties` cannot see it: distortion is exactly the nonlinear
+ * term a first-order trace drops. Pinned in VALIDATION § 5n.
+ *
+ * Throws if the chief ray does not clear the optics (a field beyond the eyepiece
+ * field stop vignettes), so a caller that widens the field past the aperture
+ * fails loudly rather than reading a silently-clipped angle.
+ *
+ * @param apertureRadiusMm the objective's clear semi-aperture (entrance pupil).
+ */
+export function apparentFieldAngleRad(
+  telescope: AfocalTelescope,
+  fieldAngleDeg: number,
+  wavelengthNm: number,
+  apertureRadiusMm: number,
+): number {
+  const p = telescope.prescription;
+  const system: OpticalSystem = {
+    prescription: p,
+    aperture: { kind: "stopRadius", value: apertureRadiusMm },
+    field: { kind: "angle", values: [fieldAngleDeg] },
+    wavelengths: [{ nm: wavelengthNm, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  };
+  const pg = pupils(system, wavelengthNm);
+  const res = traceRay(p, chiefRay(system, pg, fieldAngleDeg, wavelengthNm));
+  if (res.status !== "ok" || !res.ray) {
+    throw new Error(
+      `apparentFieldAngleRad: chief ray ${res.status} at ${fieldAngleDeg}° — field beyond the eyepiece aperture?`,
+    );
+  }
+  const d = res.ray.dir;
+  return Math.atan2(d.x, d.z);
 }

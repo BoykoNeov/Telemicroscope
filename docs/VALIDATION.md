@@ -2029,7 +2029,7 @@ suppresses the odd aberrations between its halves. So the eyepiece is pinned to
 what symmetry and the doublet solve predict — a closed form the trace can refuse —
 not to a catalogued part's numbers. It deliberately is NOT a commercial Plössl:
 bent for the eyepiece role its residuals clone no patent, and it claims none. The
-transcribed patent wide-fields are the library's other members (§ 5n).
+transcribed patent wide-fields are the library's other members (§ 5o).
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -2067,6 +2067,65 @@ and `analysis/seidel` is object-at-infinity / stop-at-first-surface only (§ 5j
 scope), so it cannot score the eyepiece at its working conjugates. That dividend is
 measured on the real-ray afocal trace instead (the apparent-field-of-view /
 distortion capability), and is pinned there against a singlet-eyepiece control.
+
+## Step 5n — real-ray afocal: apparent field of view and distortion (current)
+
+The genuinely-new engine capability under "eyepiece library" — the one the
+prescription is merely input to. `afocalProperties` (§ 5l) is first-order and so
+is blind to distortion by construction; distortion is exactly the nonlinear term
+a paraxial trace drops. `apparentFieldAngleRad` traces the REAL chief ray through
+the composed telescope and reads its direction in the collimated exit space:
+
+    θ_out(θ) = M·θ + O(θ³)
+
+the linear coefficient is the § 5l magnification, and the O(θ³) departure is the
+eyepiece's distortion.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The near-axis slope of θ_out equals the paraxial M** (real trace vs first-order) | § 5l magnification | ✅ |
+| **The distortion residual octuples when the field doubles — third-order** | θ³ distortion | ✅ |
+| ...and the ratio → 8 as the field halves (fifth-order-bounded) | approximation order | ✅ |
+| **Pincushion: local angular magnification grows with field** (convention-free) | third-order distortion sign | ✅ |
+| **Lateral colour: the Plössl's is ≥ 20× below an equal-power singlet eyepiece's** | the doublets unite F and C | ✅ |
+| Distortion is NOT the dividend — comparable to the singlet's | symmetry principle, scoped | ✅ |
+
+The **cubic rung** is the § 5n headline and is built to the same discipline as
+every other ratio pin in this ladder (the 4/3 focus ratio, the coma cubics): the
+residual θ_out − M·θ octuples per doubling of the field (8.02 at 0.1°→0.2°),
+asserted at a *small* angle where the tolerance is bounded by the next
+(fifth-order) term, with the companion **convergence** rung showing the measured
+ratio moves toward 8 as the field halves (8.02 at 0.1°→0.2° against 8.10 at
+0.2°→0.4°). A single fixed-angle assertion of "≈ 8" would read as slack; the
+convergence is what identifies the excess as fifth order rather than error.
+
+The **pincushion** rung is stated convention-independently, and that is
+deliberate. "θ_out − M·θ" presupposes the angle-condition reference; what survives
+any convention is that the *local* angular magnification |θ_out/θ_in| grows
+monotonically toward the edge (1.002 → 1.019 → 1.058 of M at 0.2°, 0.6°, 1.0°),
+which is pincushion in every convention. The residual measure is the angle
+condition's, noted as such.
+
+The **lateral-colour dividend** is what the Plössl's construction actually buys,
+and it corrects the intuition — recorded because the intuition was mine. A
+symmetric doublet pair *looks* like it should cancel distortion by the principle
+of symmetry, but that principle cancels the odd aberrations only for a system
+symmetric *about its stop* near *unit magnification*; a Plössl in a telescope has
+its stop at the objective and works infinite:finite conjugates, so the
+cancellation does not transfer, and the trace confirms it — the Plössl's
+distortion is within a few percent of a single-lens eyepiece's (the honest
+negative rung). What DOES transfer is achromatism: each doublet unites F and C, so
+the Plössl's lateral colour sits at the trace floor (a few arcsec, sign-varying
+with field — pinned as "at/below floor, dominated by the control", not as a
+precise number), while the equal-power singlet eyepiece carries primary ~1/V
+lateral colour ~60× larger. That is the eyepiece worth building, and it is a
+colour claim, not a distortion one.
+
+`apparentFieldAngleRad` throws when the chief ray does not clear the optics (a
+field past the eyepiece field stop vignettes), and the rungs assert well inside
+that limit, so a later aperture change surfaces as a loud failure rather than a
+silently-clipped angle. Off-axis PSF, real AFOV *edge* (where the field stop cuts
+the beam), and the eye-model exit-pupil match remain deferred.
 
 ## Later rungs
 

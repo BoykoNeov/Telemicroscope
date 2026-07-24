@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Prescription } from "../src/trace/prescription";
 import { systemProperties } from "../src/trace/paraxial";
 import { afocalTelescope } from "../src/trace/compose";
-import { afocalProperties } from "../src/pupil/afocal";
+import { afocalProperties, apparentFieldAngleRad } from "../src/pupil/afocal";
 import { plosslEyepiece } from "../src/designs/eyepiece";
 import { achromaticObjective } from "../src/designs/achromat";
 import { getMedium } from "../src/materials/catalog";
@@ -90,5 +90,85 @@ describe("Plössl eyepiece — composes into a telescope (§ 5l machinery on a r
   it("exit-pupil diameter = EPD/|M|, and eye relief sits behind the eye lens", () => {
     expect(props.exitPupilRadiusMm).toBeCloseTo(apRadius / Math.abs(props.magnification), 3);
     expect(props.eyeReliefMm).toBeGreaterThan(0);
+  });
+});
+
+describe("real-ray afocal — apparent field of view and distortion (§ 5n)", () => {
+  const RAD2DEG = 180 / Math.PI;
+  const apR = 20;
+  const objSpec = { apertureMm: 40, focalRatio: 7.5 }; // f_o ≈ 300 mm
+  const buildScope = (ep: Prescription) =>
+    afocalTelescope({ objective: achromaticObjective(objSpec).prescription, eyepiece: ep, wavelengthNm: LINE_D });
+  const outDeg = (scope: ReturnType<typeof buildScope>, deg: number, wl = LINE_D) =>
+    apparentFieldAngleRad(scope, deg, wl, apR) * RAD2DEG;
+
+  const scope = buildScope(plosslEyepiece({ focalLengthMm: 25 }).prescription);
+  const M = afocalProperties(scope, LINE_D, apR).magnification;
+  const resid = (deg: number) => outDeg(scope, deg) - M * deg;
+
+  it("θ_out = M·θ + O(θ³): the linear coefficient is the paraxial M (real trace vs paraxial)", () => {
+    // The near-axis slope of the REAL chief-ray angle equals the first-order
+    // angular magnification — a second, independent route to M.
+    expect(outDeg(scope, 0.05) / 0.05 / M).toBeCloseTo(1, 3);
+  });
+
+  it("the leading nonlinearity is cubic, and the ratio converges to 8 as the field halves", () => {
+    const ratio = (a: number, b: number) => resid(b) / resid(a);
+    // Doubling the field octuples the distortion residual — third-order distortion.
+    expect(ratio(0.1, 0.2)).toBeCloseTo(8, 0); // 8.02, within the fifth-order bound
+    // ...and it is fifth-order-bounded: halving the field moves the ratio toward 8.
+    expect(Math.abs(ratio(0.1, 0.2) - 8)).toBeLessThan(Math.abs(ratio(0.2, 0.4) - 8));
+  });
+
+  it("pincushion, convention-independent: local angular magnification grows with field", () => {
+    const localMag = (deg: number) => Math.abs(outDeg(scope, deg) / deg);
+    expect(localMag(0.2)).toBeGreaterThan(Math.abs(M)); // already above the paraxial value
+    expect(localMag(0.2)).toBeLessThan(localMag(0.6));
+    expect(localMag(0.6)).toBeLessThan(localMag(1.0));
+  });
+});
+
+describe("Plössl dividend — lateral colour, NOT distortion (§ 5n)", () => {
+  const RAD2DEG = 180 / Math.PI;
+  const apR = 20;
+  const objSpec = { apertureMm: 40, focalRatio: 7.5 };
+  const buildScope = (ep: Prescription) =>
+    afocalTelescope({ objective: achromaticObjective(objSpec).prescription, eyepiece: ep, wavelengthNm: LINE_D });
+  const outDeg = (scope: ReturnType<typeof buildScope>, deg: number, wl = LINE_D) =>
+    apparentFieldAngleRad(scope, deg, wl, apR) * RAD2DEG;
+
+  // Equal-power (f = 25) SINGLE-element eyepiece: carries primary lateral colour.
+  const n = getMedium("N-BK7").n(LINE_D);
+  const C = 1 / (2 * (n - 1) * 25);
+  const singlet: Prescription = {
+    surfaces: [
+      { kind: "refract", curvature: C, semiAperture: 12, thickness: 3, medium: "N-BK7" },
+      { kind: "refract", curvature: -C, semiAperture: 12, thickness: 25, medium: "AIR" },
+    ],
+  };
+  const plosslScope = buildScope(plosslEyepiece({ focalLengthMm: 25 }).prescription);
+  const singletScope = buildScope(singlet);
+  const Mp = afocalProperties(plosslScope, LINE_D, apR).magnification;
+  const Ms = afocalProperties(singletScope, LINE_D, apR).magnification;
+
+  const latColor = (s: ReturnType<typeof buildScope>, deg: number) =>
+    Math.abs(outDeg(s, deg, LINE_F) - outDeg(s, deg, LINE_C));
+  const distortion = (s: ReturnType<typeof buildScope>, M: number, deg: number) =>
+    Math.abs(outDeg(s, deg) - M * deg);
+
+  it("lateral colour: the Plössl's is ≥ 20× below an equal-power singlet eyepiece's", () => {
+    // The doublets unite F and C, so the Plössl's F–C chief-ray split is at the
+    // trace floor (~arcsec, sign-varying); the singlet carries primary ~1/V colour.
+    expect(latColor(singletScope, 0.6)).toBeGreaterThan(20 * latColor(plosslScope, 0.6));
+  });
+
+  it("distortion is NOT the dividend — comparable to the singlet's", () => {
+    // Symmetry cancels the odd aberrations only about the eyepiece's own centre at
+    // unit magnification; in a telescope the stop is the objective and the
+    // conjugates are infinite:finite, so the cancellation does not transfer.
+    const dp = distortion(plosslScope, Mp, 0.6);
+    const ds = distortion(singletScope, Ms, 0.6);
+    expect(dp).toBeGreaterThan(0.5 * ds);
+    expect(dp).toBeLessThan(1.5 * ds);
   });
 });
