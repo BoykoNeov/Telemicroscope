@@ -325,10 +325,25 @@
    memory is forbidden by the hard rule; the members land when the data is sourced.
    The eye model (exit-pupil-to-eye matching, visual vs camera mode) is the other
    open follow-on.
-   *Tolerancing lands here, not in v2:* once tilt/decenter exists, perturbing
-   every parameter by its manufacturing tolerance and watching the image
-   degrade is nearly free, and it is the most educational thing the project
-   can show.
+   *Tolerancing:* ✅ `analysis/tolerance` (VALIDATION § 5t). Once tilt/decenter
+   existed (the § 4a folded-mirror frame), perturbing a parameter by its
+   manufacturing tolerance and watching the image degrade was a difference of two
+   traces — no new physics, a readout composed of `opdMap` and `bestFocus`. The
+   whole difficulty was the *currency*: a central difference of total RMS is
+   stationary at a corrected nominal (a decenter that genuinely comas reads a
+   near-zero slope), so the metric is the σ of the *delta* wavefront with the
+   compensator modes — piston, tilt (= boresight), defocus — projected out
+   linearly, which keeps independent tolerances' variances additive so the RSS
+   budget is exact rather than approximate. Four external pins, all on perfect
+   nominals so none sits on the projection-vs-refocus subtlety: boresight = 2θ off
+   a tilted flat fold (reflection law); a conic error's residual = the balanced
+   spherical RMS |ΔK·c³h⁴/4|/(6√5) in closed form (with a curvature-is-pure-defocus
+   negative control); the RSS law checked against an actual combined trace
+   (orthogonal conic ⊥ tilt add in quadrature, two identical perturbations add
+   linearly); and σ = λ/14 landing the real PSF Strehl on ≈ 0.8 (Maréchal,
+   RMS-native, not Rayleigh's λ/4 P-V). It is the most educational thing the
+   simulator can show — a slider per tolerance, the image degrading as the budget
+   predicts.
 6. **Microscope branch**
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion; brightfield (incoherent + condenser-NA factor) and

@@ -2429,6 +2429,117 @@ here. The validated, trace-emergent exposure law is the extended-source 1/F².
 Shot noise remains the named deferral: it is a draw from an absolute photon
 count, and there is no honest count until the § 3a zero point lands.
 
+## Step 5t — tolerancing: sensitivity, compensators, and the RSS budget (current)
+
+Perturb a parameter by its manufacturing tolerance and watch the image degrade.
+The roadmap calls this the most educational thing the project can show, and it
+is *nearly free* — it adds no physics, only a readout composed of already-pinned
+readouts (`opdMap` → the wavefront, `bestFocus` → the focus compensator), driven
+by a one-field edit of the immutable `Prescription`. The whole difficulty is the
+**currency**, and the obvious choice is wrong, so the validation burden is on the
+orchestration — the sensitivity metric, the compensator, the aggregation — not on
+optics. Every EXTERNAL rung is pinned on a **perfect nominal** (a paraboloid at
+focus, or a flat fold), the one place the currency's design subtlety cannot bite.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Boresight = 2θ: tilting a flat fold by θ deviates the beam by 2θ** | reflection law | ✅ |
+| **Conic error → residual = balanced spherical RMS \|ΔK·c³h⁴/4\|/(6√5)** | conic sag ρ⁴ + § 1.6/2a | ✅ |
+| A curvature error on a mirror is pure defocus — fully removed by refocus | negative control | ✅ |
+| **Orthogonal tolerances add in quadrature: combined trace = √(Σσᵢ²)** | variance addition | ✅ |
+| **Correlated tolerances add LINEARLY (2σ), not RSS (√2·σ)** | negative control | ✅ |
+| **The perturbation costing σ = λ/14 lands the real PSF Strehl on ≈ 0.8** | Maréchal, § 2b | ✅ |
+
+### Why the currency is a delta-wavefront σ, not d(RMS)/dparameter
+
+The tempting sensitivity is a central difference of the total RMS wavefront. It
+fails *silently*, and the failure is recorded as a consistency rung because it is
+the reason the module is built the way it is. At a corrected nominal the total
+RMS is **stationary** in any perturbation whose aberration is orthogonal to the
+residual already there: `total_RMS(δ) = √(σ₀² + δ²s²)`, so `d(RMS)/dδ → 0` at
+δ = 0. A front-surface decenter of the achromat — pure coma, orthogonal to its
+spherical residual — leaves the total RMS flat to four digits while the image
+genuinely comas; the central difference reads a slope more than 8× *below* the
+true one. The change in the wavefront, `δW = W(perturbed) − W(nominal)`, is
+linear in the perturbation and has no such kink. Its RMS is the sensitivity.
+
+Two of `δW`'s modes are not blur but **compensators** — adjustments a builder or
+a focuser removes for free — so the blur currency is `δW` with them projected out
+by least squares:
+
+  - **piston + tilt** — an unobservable offset and a boresight shift (the image
+    moves; you re-point). The tilt IS the pointing error, reported separately as
+    `boresightRad` and pinned by the reflection law.
+  - **defocus (ρ²)** — you refocus.
+
+What is left is exactly the *balanced* wavefront RMS the extended Maréchal Strehl
+uses, which is why one number feeds both the RSS budget and the Strehl estimate.
+
+### Linear projection, not a physical refocus — and why they differ
+
+The compensator is a **linear projection** of ρ² out of `δW`, on one common
+reference (the nominal's best-focus plane and pupil grid), so the deltas of
+independent perturbations superpose and their variances add — which is what makes
+the RSS budget *exact* rather than approximate. It is NOT the same as physically
+re-running `bestFocus` on the perturbed system, and the gap is diagnostic: ρ² and
+ρ⁴ are not orthogonal over the disc, so a physical refocus of an *aberrated*
+nominal pulls its defocus with the nominal's own spherical, landing below the
+projection (measured < 0.8× on the achromat, carried as a consistency rung). On a
+*perfect* nominal that cross-term vanishes and the two coincide to ~0.3% — which
+is exactly why every external rung sits on a perfect nominal, where the choice
+cannot matter. The physically-refocused residual is offered as
+`physicalRefocusWaves` for the "what a real focuser leaves" question, validated
+only by tracking the projection on a perfect nominal.
+
+### The four external pins
+
+**Boresight = 2θ** is the cleanest external number in optics and the one rung
+that exercises the tilt-perturbation path end to end. A Newtonian's diagonal is a
+45° flat; tilt it by θ and the chief ray — the whole beam — swings by exactly 2θ,
+measured straight off the traced ray with no wavefront decomposition in the path.
+
+**The conic compensator** is the non-trivial half of the compensator story, and
+the negative control beside it is what makes it non-trivial. A *curvature* error
+on a single mirror induces **pure defocus**: refocus removes it completely and the
+residual collapses (the rung asserts the pre-compensator σ is ≥ 20× the post).
+That is the tautology to avoid — a compensator pin that a focus shift satisfies by
+construction. A *conic* error induces **spherical**, which a refocus only partly
+removes: it adds `W = W₀₄₀·ρ⁴` with `W₀₄₀ = ΔK·c³·h⁴/4` (the r⁴ conic-sag term,
+doubled by reflection), and the balanced-focus residual is `W₀₄₀/(6√5)` — the
+same closed form § 1.6 and § 2a already pin. So the tolerance currency reproduces
+an external number, to a few percent (bounded by the NA-identification and the
+fifth order), and on the perfect nominal the projection equals the physical
+refocus to within that band, closing the loop of the previous paragraph.
+
+**The RSS budget** is where the § 2f discipline bites hardest: `√(Σσᵢ²)` written
+as a formula pins *nothing* — it is the same self-divide the vignetting section
+calls out. The rung compares it against σ of an **actual combined trace**, both
+perturbations applied at once and traced through the engine. Spherical-from-conic
+(even) is orthogonal to coma-from-tilt (odd), so their delta wavefronts are
+uncorrelated and the combined variance equals the sum; the rung can go red if the
+engine fails to superpose the two aberrations. A tilt is used, not a decenter, and
+the reason is itself a checked feature: surface 0 is the aperture stop, so
+decentering it shifts the pupil with it and produces *no* relative aberration
+(σ ≈ 2·10⁻¹¹), where a tilt meets the fixed on-axis beam obliquely and comas. The
+negative control is **two identical perturbations**, perfectly correlated: their
+combined trace is the linear sum (2σ), not the RSS (√2·σ), and the rung asserts
+the combined exceeds the RSS by more than 1.3× — proving the quadrature is a
+measured consequence of orthogonality, not a hard-wired √.
+
+**The diffraction-limit threshold** pins the RMS-native form, not Rayleigh's. A
+conic error is bisected until the tolerance currency reads σ = λ/14, and the
+*real* PSF Strehl of that perturbed system at best focus (OPD → FFT, the § 2b
+pin) is asserted onto ≈ 0.8. Maréchal gives `exp(−(2π/14)²) ≈ 0.817`; the
+diffraction-limit convention rounds it to 0.8. This is deliberately σ = λ/14 RMS,
+not the λ/4 peak-to-valley Rayleigh quarter-wave — the two coincide only for
+balanced defocus, and the module's currency is an RMS, so the RMS threshold is the
+honest one to pin.
+
+Tolerancing lands here, at step 5, rather than in v2: once tilt/decenter exists
+(the § 4a folded-mirror frame closed it) the whole capability is a difference of
+two traces, and it is the most educational thing the simulator can show — a slider
+per tolerance, the image degrading as the RSS budget predicts.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
