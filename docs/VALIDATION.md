@@ -2185,6 +2185,46 @@ colour is corrected — spherical aberration and field curvature are not. What i
 pinned is the one thing it does by theorem, which is exactly the discipline the
 rest of this ladder holds to.
 
+## Step 5p — limiting-aperture stop selection (current)
+
+The visual branch's prerequisite, and a real engine capability rather than a
+readout. `pupils()` has always keyed off the DECLARED stop (`stopIndex`: the
+surface a prescription flags `isStop`, or surface 0). That is a *declaration*,
+not a *measurement* — nothing forces the flagged surface to be the one the axial
+cone fills first. The moment two apertures compete for the beam — a telescope's
+objective versus the observer's iris sitting at the exit pupil, or a downstream
+rim smaller than the nominal stop — the **limiting** one is the true aperture
+stop, and the exit pupil, chief ray and OPD reference must move to it. Visual
+mode (§ 5q) is built entirely on this: when the eye pupil is smaller than the
+exit pupil it *becomes* the stop, and the effective aperture drops to d_eye·M.
+
+`limitingStop` finds it the textbook way: send one pseudo-marginal ray from the
+axial object point through the chain and take `argmax |y_i|/semiAperture_i` — the
+surface the ray fills most relative to its clear rim. Scaling the ray scales
+every height equally, so that argmax is independent of the launch slope; the
+declared stop competes as one candidate at its ApertureSpec radius. Selection is
+**opt-in** (`OpticalSystem.apertureStop`: `declared` default, `limiting`,
+`surface`), so every prior rung is byte-identical and the flip is a conscious
+per-system choice.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Every existing preset's limiting aperture IS its declared stop** (all 10, incl. 9- and 7-surface composed telescopes) | honest declaration + a safe default-flip — *non-regression* | ✅ |
+| **The crossover is a closed form: two bare planes + a point source flip at a₂\* = a₁(L+t)/L** | subtended angle a_i/(L+z_i), pure geometry | ✅ |
+| ...and the flip is bracketed to 0.01 mm, exactly there and nowhere else | the same closed form | ✅ |
+| The selected stop is the one subtending the SMALLEST angle at the object | convention-free stop definition | ✅ |
+| **`pupils()` MOVES to it: a smaller downstream iris relocates the exit pupil and collapses the effective aperture** | the wiring is the feature, not a returned integer | ✅ |
+| The `surface` policy pins a chosen index | provenance / test control | ✅ |
+| A pinhole field stop AT the internal focus is NOT selected (marginal y ≈ 0 → fill ≈ 0) | negative control | ✅ |
+
+The **non-regression** rung is load-bearing: it could have failed (a preset whose
+rear element is fractionally smaller than its front stop would select the rear),
+and its passing is what licenses a future default-flip. The **wiring** rung is the
+one that keeps this a mechanism rather than a formula — it asserts `pupils()`
+actually consumes the selected index, so the exit pupil and OPD reference the real
+limiting aperture, which is exactly what would be tempting to fake with an
+`exit_pupil/eye_pupil` ratio and is refused here.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

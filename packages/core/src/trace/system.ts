@@ -52,6 +52,23 @@ export type ConjugateSpec =
   | { readonly kind: "infinite" }
   | { readonly kind: "finite"; readonly distance: number };
 
+/**
+ * How the aperture stop is chosen.
+ *
+ *  - `"declared"` (default, and what `undefined` means) — the surface flagged
+ *    `isStop`, or surface 0. Every existing rung is validated under this, so it
+ *    stays the default and nothing changes unless a system opts out.
+ *  - `"limiting"` — the surface the axial marginal cone actually fills first
+ *    (`pupil/aperture-stop`). This is what visual mode needs: when the eye's
+ *    iris is smaller than the exit pupil it *becomes* the stop, and the exit
+ *    pupil, chief ray and OPD reference move to it.
+ *  - `"surface"` — pin a specific surface index, for tests and provenance.
+ */
+export type ApertureStopPolicy =
+  | { readonly kind: "declared" }
+  | { readonly kind: "limiting" }
+  | { readonly kind: "surface"; readonly index: number };
+
 /** Where the image is formed. Position is what a focus solve moves. */
 export interface ImageSurfaceSpec {
   /**
@@ -71,6 +88,8 @@ export interface OpticalSystem {
   readonly wavelengths: readonly WavelengthSample[];
   readonly conjugate: ConjugateSpec;
   readonly imageSurface?: ImageSurfaceSpec;
+  /** How the aperture stop is chosen. Default `declared` (see `ApertureStopPolicy`). */
+  readonly apertureStop?: ApertureStopPolicy;
 }
 
 /**

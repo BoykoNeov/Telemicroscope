@@ -8,6 +8,7 @@ import {
   systemProperties,
 } from "../trace/paraxial";
 import { OpticalSystem, ApertureSpec, stopIndex } from "../trace/system";
+import { limitingStop } from "./aperture-stop";
 
 /**
  * Aperture stop → pupils. Until this module existed the `isStop` flag was
@@ -189,8 +190,25 @@ export function imagePlaneZ(cIn: CompiledSystem, system: OpticalSystem): number 
 
 export function pupils(system: OpticalSystem, wavelengthNm: number): PupilGeometry {
   const c = axialTwin(asCompiled(system.prescription));
-  const k = stopIndex(system.prescription);
-  const stopRadius = resolveStopRadius(system, wavelengthNm);
+
+  // Which surface is the stop, and how wide. Default `declared` keeps the flagged
+  // stop at its ApertureSpec radius (every existing rung); `limiting`/`surface`
+  // move it to the real limiting aperture at that surface's own clear rim.
+  const policy = system.apertureStop;
+  let k: number;
+  let stopRadius: number;
+  if (!policy || policy.kind === "declared") {
+    k = stopIndex(system.prescription);
+    stopRadius = resolveStopRadius(system, wavelengthNm);
+  } else if (policy.kind === "surface") {
+    k = policy.index;
+    stopRadius = c.surfaces[k]!.semiAperture;
+  } else {
+    const ls = limitingStop(system, wavelengthNm);
+    k = ls.index;
+    stopRadius = ls.radius;
+  }
+
   return {
     stopIndex: k,
     stopRadius,
