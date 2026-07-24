@@ -290,6 +290,24 @@
    iris-limited PSF cross-checked two ways (stop-selection vs the § 2f exact-trace
    mask). The empty-magnification/acuity ceiling, real ocular SA, and the
    photopic/scotopic pupil are the named follow-ons.
+   *Camera mode — pixel scale + sensor sampling:* ✅ (VALIDATION § 5r). The other
+   half of "visual vs camera mode": a `Sensor` (pitch, cols, rows) placed at the
+   focal plane, in `imaging/camera`. The rendered `ColorImage` is the *continuous*
+   optical image on the native diffraction grid; a real pixel integrates the light
+   over its area, so `resampleToSensor` rebins it by area onto the sensor grid —
+   which is a box filter, so it carries a detector-footprint MTF sinc(π·f·pitch)
+   and aliases anything above its Nyquist to |f_s−f|, both pinned on synthetic
+   targets. The geometry half is `plateScale` (206265″·pitch/EFL, EFL traced) and
+   `fieldOfView`, computed by *inverting the traced chief-ray map* so it carries
+   distortion rather than being the pinhole EFL·tanθ that is defined to have none.
+   `criticalPitchMm` (λ/4NA) ties the pitch to the Abbe cutoff and is cross-checked
+   against the grid-based MTF cutoff by an independent route. Two findings worth
+   carrying: the rebin must *sum* footprint energy, not average (intensity is
+   energy-per-pixel, § 2e), and aliasing pins the *frequency*, not the amplitude
+   (the footprint sinc has already attenuated it). **Exposure and shot noise are
+   NOT here** — absolute electrons need the magnitude→photon-flux zero point § 3a
+   flags as deliberately absent; *relative* exposure (aperture D² / f-ratio 1/F²
+   laws, pinned as trace-emergent ratios) is the immediate follow-on, § 5s.
    *Still to come here — the transcribed patent members.* Commercial eyepiece and
    objective prescriptions are trade secrets, but **patents are public and contain
    full prescription tables** — the supply route for the wide-field members

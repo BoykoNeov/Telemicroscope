@@ -2275,6 +2275,70 @@ The eye's own aberrations, the empty-magnification / eye-acuity resolution ceili
 (which needs a stated acuity rather than the folklore 2×D), and the photopic vs
 scotopic pupil are the named follow-ons; the mechanism they would sit on is landed.
 
+## Step 5r — camera mode: pixel scale and sensor sampling (current)
+
+The visual mode put an eye at the exit pupil; camera mode puts a **sensor** at
+the focal plane. A rendered `ColorImage` sits on the *native* grid the
+diffraction calculation needs (`pixelScaleMm` ∝ λ, fine enough to sample the
+PSF) — that is the continuous optical image, not what a camera records. A real
+pixel has a fixed pitch and **integrates the light over its area**, so the
+recorded image is the native one rebinned by area onto the sensor grid — which
+brings a detector-footprint MTF and aliasing of its own.
+
+Two capabilities, pinned apart: **pixel scale** (optical geometry through the
+traced EFL and chief ray) and **sensor sampling** (a property of the rebin
+alone, pinned on synthetic targets with no system in the way).
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Plate scale = 206265″ · pitch / EFL, EFL from the trace** | closed form + traced EFL | ✅ |
+| **Field of view is the exact inverse of the traced chief-ray map** | `imagePointOf` round trip | ✅ |
+| ...and is near the paraxial 2·atan(½·w/EFL) where distortion is small | sanity | ✅ |
+| **Rebinning SUMS footprint energy — a 4×4-footprint pixel reads 16×** | energy per pixel, not density | ✅ |
+| **Detector-footprint MTF = sinc(π·f·pitch) below Nyquist** | box-filter transform | ✅ |
+| **A target above Nyquist aliases to bin \|f_s − f\|** | sampling theorem | ✅ |
+| **λ/(4·NA) matches the traced MTF cutoff (pitch·2·cutoff = 1)** | Abbe cutoff, independent route | ✅ |
+| Sampling-regime classifier: ½·critical over-, 2×·critical under-samples | definition | ✅ |
+| `resampleToSensor` carries the sensor pitch, conserving each channel | linearity | ✅ |
+
+The **plate scale** rung's only non-trivial input is EFL, and it comes from the
+paraxial trace; pinned to the design's 100 mm and the external 206265″/rad, it
+reddens if the trace drifts, the ratio inverts, or the constant is wrong — none
+of which a self-consistent `pitch/EFL·206265/EFL·pitch` round trip could catch,
+which is why the constant and the traced EFL are each asserted separately first.
+
+The **field-of-view** rung is deliberately the *round trip*, not a formula
+match: FOV is found by inverting the traced chief-ray map (which angle lands at
+the sensor edge), so feeding the reported half-FOV back through `imagePointOf`
+must land exactly on the edge. That is what makes it carry the distortion
+`EFL·tan θ` is *defined* to have none of (forward map pinned § 3c) — a FOV built
+on the pinhole formula could never report barrel or pincushion.
+
+Three sensor-sampling rungs are the load-bearing ones, and each has a plausible
+wrong answer. **The rebin sums, it does not average** — `intensity` is energy
+per pixel (the § 2e Jacobian note), so a larger photosite collects *more*
+energy, not the same energy averaged; dividing by the footprint would dim every
+camera render by the pixel-area ratio and look like nothing worse than a darker
+exposure. **The pixel is a box integrator, not a point sampler**, so it applies
+the detector MTF sinc(π·f·pitch) *before* sampling — pinned at two sub-Nyquist
+frequencies so a flat response (which would pass both at unity) is excluded, and
+it is exactly this pre-filter that makes the aliased amplitude ≠ the input's.
+**Aliasing pins the frequency, not the amplitude** (the advisor's caution): the
+footprint sinc has already attenuated the amplitude near the cutoff, but the
+folded frequency |f_s − f| is fixed by the sampling rate alone.
+
+The **critical-pitch** rung is the non-tautological one: λ/(4·NA) is a scalar
+closed form, while the MTF cutoff is built from the pupil autocorrelation on the
+FFT grid — a different computation entirely — so pitch·2·cutoff = 1 is physics,
+not construction. Asserting "sensor Nyquist == optical cutoff *at* critical
+pitch" would have expanded to 2NA/λ == 2NA/λ and pinned nothing; the aliasing
+rung carries the real consequence.
+
+Absolute exposure in electrons and its shot noise are **not** here: they need
+the magnitude → photon-flux zero point § 3a records as deliberately absent.
+Relative exposure — the aperture and f-ratio laws, whose pins are ratios — is
+the § 5s follow-on.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
