@@ -1939,6 +1939,80 @@ monochromatic correction is worse at the same speed, and the fast end is where i
 shows. The air-spaced doublet — and with it the possibility of nulling S_I and S_II
 together — is the open follow-on.
 
+## Step 5l — module composition and afocal (telescope) evaluation (current)
+
+The prerequisite the eyepiece library is the first consumer of. Two capabilities
+that arrive together because neither is worth much alone: **composition** (build
+an instrument from whole parts — an objective, an eyepiece — not a hand-edited
+surface list) and **afocal evaluation** (read the numbers a visual observer
+sees, which live in the collimated exit space the engine could not express
+before).
+
+The distinction that governs the whole section: an eyepiece *prescription* is
+input data, and transcribing one pins nothing (that rung is "the tracer reads a
+table", listed under Later rungs). The **afocal composed system** is the
+pinnable capability — a collimated-in/collimated-out chain has no finite focus,
+so `systemProperties` throws on it, and every number below is a closed form the
+trace can refuse.
+
+Composition is **flattening, not a second tracer** (ARCHITECTURE § Data model):
+`spliceModules` concatenates modules into one ordinary `Prescription`, replacing
+only each module's trailing thickness (a standalone BFD, meaningless once a part
+follows) with the gap to what comes next. Commitment #3 is what makes it free —
+the chain is already a list of per-surface frames, so on-axis parts just
+concatenate. `afocalTelescope` then solves the objective↔eyepiece separation
+that makes the pair afocal, and `afocalProperties` reads magnification, exit
+pupil and eye relief off the result.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The splice keeps each module's internal thicknesses and overwrites only its trailing one with the join gap | bookkeeping | ✅ |
+| **Afocal spacing → f_o + f_e in the thin-lens limit** | combined power φ_o+φ_e−dφ_oφ_e = 0 | ✅ |
+| **A parallel ray in exits parallel out — afocal to ~10 orders below the objective's own bend** | the afocal condition | ✅ |
+| **Angular magnification = −f_o/f_e, measured from the beam compression** | afocal system matrix | ✅ |
+| ...and it inverts (M < 0 for a Keplerian pair) | textbook sign | ✅ |
+| **That M equals the ratio of the two separately-traced group EFLs** (route independence) | first-order theory | ✅ |
+| **Exit-pupil diameter = EPD/\|M\|, via the stop imaged through the eyepiece** | pupil imaging, a third route | ✅ |
+| **Eye relief = f_e·(f_o+f_e)/f_o** | stop conjugate through the eye lens | ✅ |
+| A wrong separation is NOT afocal — `systemProperties` finds a finite focus | negative control | ✅ |
+| **The solve is thick-correct: a real achromat objective still gives M = −f_o/f_e** | affine-in-gap solve, BFD_o+FFD_e | ✅ |
+
+The **afocal spacing** solve is the load-bearing piece, and it is deliberately
+not the thin-lens formula. A parallel input ray's paraxial output angle is
+*affine* in the objective↔eyepiece gap g — only the free transfer across g
+touches it — so two evaluations pin the line and its zero is the afocal spacing.
+In the thin-lens limit that zero is the textbook f_o + f_e (the first strong
+rung); for thick groups it is BFD_o + FFD_e, which the same solve delivers
+without either being named, and the achromat-objective rung is what shows it
+holds there. Solving on the trace rather than on a formula is what keeps a thick
+objective honest.
+
+The **three routes to the exit pupil** are the reason this section is more than
+a definition check. The magnification comes from the beam compression of one
+parallel ray through the composed chain; the ratio of the two group EFLs comes
+from two *separate* `systemProperties` calls; and the exit-pupil diameter comes
+from imaging the stop through the eyepiece with the pupil machinery (§ 1.5). All
+three agree — M = −f_o/f_e and D_xp = EPD/|M| — and none is the others by
+construction, which is what a definition-level rung would be.
+
+The **afocal condition** rung is asserted as a ratio (residual output angle
+against the objective's 1/f_o bend) rather than through `systemProperties`'
+throw, because that guard fires only below 1e-15 rad and a two-point numeric
+solve floors at ~1e-14. The residual is ~10 orders below the objective's own ray
+angle, which is afocal to the trace's floating-point limit; the hard 1e-15 guard
+is the wrong instrument, not a failure, and the note is recorded so the next
+reader does not tighten it into a flake. `systemProperties` still throws for the
+*right* reason on a mis-spaced pair (the negative control), which is the check
+that the guard works at all.
+
+Deferred here on purpose, so the first commit is the splice and its first-order
+numbers: real-ray afocal evaluation (apparent field of view and the eyepiece's
+pincushion, which need the *output chief-ray angle* off a real trace, not
+paraxial), the computed Plössl and the transcribed patent library, and the eye
+model / exit-pupil-to-eye matching. Mechanical metadata and per-surface
+provenance attach to the module and land with step 6; the splice carries only
+`objectiveSurfaceCount`, enough to name which part a surface came from.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

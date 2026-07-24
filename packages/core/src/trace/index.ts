@@ -6,3 +6,4 @@ export * from "./paraxial";
 export * from "./system";
 export * from "./compile";
 export * from "./axis";
+export * from "./compose";
