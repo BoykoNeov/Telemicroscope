@@ -1,4 +1,4 @@
-import { Medium, sellmeier, constantIndex } from "./dispersion";
+import { Medium, sellmeier, cauchy, constantIndex } from "./dispersion";
 
 /**
  * Starter catalog. Sellmeier coefficients from the Schott datasheets /
@@ -47,12 +47,71 @@ export const FUSED_SILICA: Medium = sellmeier(
   [0.0684043 ** 2, 0.1162414 ** 2, 9.896161 ** 2],
 );
 
-/** Simple constant-index stand-ins until dispersive models are needed. */
-export const WATER: Medium = constantIndex("WATER", 1.333);
-export const IMMERSION_OIL: Medium = constantIndex("IMMERSION-OIL", 1.515);
+/**
+ * Distilled water, dispersive — the medium of a water-immersion objective.
+ * Daimon & Masumura, "Measurement of the refractive index of distilled water
+ * from the near-infrared region to the ultraviolet region," Appl. Opt. 46,
+ * 3811–3820 (2007), 20 °C branch, as published on refractiveindex.info. A 4-term
+ * Sellmeier valid 0.18–1.13 µm, so the whole visible band. It REPLACES the old
+ * constantIndex 1.333 stand-in: at NA ≳ 1 the microscope branch's chromatic
+ * behaviour is set by the immersion medium's own dispersion, so a flat index
+ * there is dishonest (ROADMAP step 6 prerequisite). Pinned in
+ * test/materials.test.ts against nd and the water Abbe number.
+ */
+export const WATER: Medium = sellmeier(
+  "WATER",
+  [0.5684027565, 0.1726177391, 0.02086189578, 0.1130748688],
+  [0.005101829712, 0.01821153936, 0.02620722293, 10.69792721],
+);
+
+/**
+ * Microscope immersion oil, dispersive — Cargille Immersion Oil Type B, the ISO
+ * 8036 / "n = 1.515" standard fluid for oil-immersion light microscopy. Its own
+ * datasheet Cauchy equation at 23 °C (λ in nm), transcribed verbatim:
+ *   n(λ) = 1.498304 + 5.456721e3/λ² + 1.203987e8/λ⁴.
+ * nd = 1.5150, nₑ = 1.5180, νd = 42.9, νₑ = 42.8. It REPLACES the old
+ * constantIndex 1.515 stand-in — the oil is designed to index-match the front
+ * element and the coverslip, and its dispersion is what makes an achromatic
+ * high-NA objective's residual colour honest. Pinned in test/materials.test.ts
+ * against the datasheet's nd/nₑ and both Abbe numbers.
+ */
+export const IMMERSION_OIL: Medium = cauchy(
+  "IMMERSION-OIL",
+  [1.498304, 5.456721e3, 1.203987e8],
+);
+
+/**
+ * Microscope coverslip glass — Schott D 263® T eco, the borosilicate that meets
+ * ISO 8255-1 for cover glass (the No. 1.5 / 0.17 mm coverslip an objective's
+ * correction assumes). Sellmeier from the SCHOTT Zemax catalog (2017-01-20b) via
+ * refractiveindex.info, valid 0.334–2.325 µm. nd = 1.523303, Vd = 54.52. The
+ * coverslip is the surface an objective's spherical-aberration correction is
+ * computed for; a mismatch between the real slip and this nominal is exactly the
+ * "coverslip mismatch" the microscope branch will later show, so it is carried as
+ * real data, not folded into the oil. Pinned in test/materials.test.ts.
+ */
+export const D263: Medium = sellmeier(
+  "D263",
+  [1.23795755, 0.0466468888, 2.46700556],
+  [0.00863080926, 0.0469074501, 264.146296],
+);
+
+/**
+ * Vitreous humour of the reduced eye (designs/eye.ts) — kept as a NON-dispersive
+ * idealization, n = 1.333, so the schematic eye stays diffraction-limited by
+ * construction and a (telescope + eye) rung measures the telescope, not the eye's
+ * chromatism. Split out of the old `WATER` constant, which now carries real
+ * dispersion; this preserves the eye's exact prior value byte-for-byte. (That the
+ * value is 1.333 rather than the schematic's stated 4/3 is a pre-existing choice,
+ * left untouched here; correcting it is a separate change.)
+ */
+export const VITREOUS: Medium = constantIndex("VITREOUS", 1.333);
 
 const REGISTRY = new Map<string, Medium>(
-  [AIR, N_BK7, F2, CAF2, FUSED_SILICA, WATER, IMMERSION_OIL].map((m) => [m.name, m]),
+  [AIR, N_BK7, F2, CAF2, FUSED_SILICA, WATER, IMMERSION_OIL, D263, VITREOUS].map((m) => [
+    m.name,
+    m,
+  ]),
 );
 
 export function getMedium(name: string): Medium {

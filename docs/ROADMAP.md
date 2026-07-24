@@ -334,9 +334,15 @@
    oil immersion; brightfield (incoherent + condenser-NA factor) and
    fluorescence; coverslip mismatch; scenes: diatoms, stained tissue,
    fluorescent beads. Mostly configuration + domain models on the existing
-   engine. *Prerequisite:* dispersive immersion media and a coverslip glass
-   in the catalog — at NA 1.4 non-dispersive `constantIndex` oil makes the
-   branch's chromatic behaviour dishonest.
+   engine. *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
+   pinned (VALIDATION § 1). The `constantIndex` `WATER`/`IMMERSION-OIL` stand-ins
+   are replaced with real dispersion — Daimon-Masumura distilled water, the
+   Cargille Type B oil (its own Cauchy equation, so a `cauchy()` constructor
+   landed), and Schott D263 T eco coverslip (ISO 8255-1) — so at NA 1.4 the
+   branch's chromatic behaviour rides on measured data, not a flat index. The
+   reduced eye's vitreous was split into its own non-dispersive `VITREOUS` so no
+   eye rung moved. Remaining is the wiring (image-space index in `pixelScaleMm`),
+   pinned when an immersion objective lands here.
    *Prerequisite:* **module composition** — a microscope must be buildable from
    whole parts (objective, tube lens, eyepiece) as well as from bare surfaces.
    The design is recorded in ARCHITECTURE § Data model: modules are authoring

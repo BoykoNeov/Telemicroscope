@@ -15,6 +15,12 @@ form) — engine-vs-itself tests are consistency checks, not validation.
 | Glass catalog: N-BK7 nd≈1.5168, Vd≈64.2 | Schott datasheet | ✅ |
 | Glass catalog: F2 nd≈1.620, Vd≈36.4 | Schott datasheet | ✅ |
 | Glass catalog: fused silica nd≈1.4585 | Malitson 1965 | ✅ |
+| Immersion water nd≈1.3334, Vd≈55.7 | Daimon & Masumura 2007 | ✅ |
+| Immersion oil (Cargille B) nd≈1.5150, nₑ≈1.5180 | Cargille datasheet | ✅ |
+| Immersion oil Cauchy reproduces the datasheet line table (nF,nC,nF′,nC′) | Cargille datasheet | ✅ |
+| Immersion oil Abbe νd≈42.9 and νₑ≈42.8 (both conventions) | Cargille datasheet | ✅ |
+| Coverslip D263 T eco nd≈1.5233, Vd≈54.52 | Schott/Zemax catalog | ✅ |
+| Coverslip D263 nₑ≈1.5255 meets the ISO 8255 objective design coverslip | ISO 8255-1 | ✅ |
 | Paraxial EFL = thick lensmaker's equation | closed form | ✅ |
 | Exact trace → paraxial in the small-height limit | limit consistency | ✅ |
 | Positive singlet: marginal focus shorter than paraxial (undercorrected SA) | textbook sign | ✅ |
@@ -31,6 +37,24 @@ form) — engine-vs-itself tests are consistency checks, not validation.
 Mirror *composition* was previously untested — every mirror rung used a single
 surface. It is the highest-risk sign convention in the engine, so it is now
 pinned before folds and multi-mirror presets arrive.
+
+The **immersion / coverslip** media replace the old `constantIndex` stand-ins
+for `WATER` and `IMMERSION-OIL` with real dispersion — the ROADMAP step-6
+prerequisite, since at NA 1.4 a flat index makes the microscope branch's
+chromatic behaviour dishonest. Two subtleties are pinned deliberately because
+each masquerades as bad data. **Functional form:** the Cargille oil is published
+as a Cauchy series, not Sellmeier, so a `cauchy()` constructor carries the
+datasheet's own coefficients verbatim (λ in nm, its printed unit) rather than a
+refit — and the line-table rung checks that constructor against the datasheet's
+printed indices, not just its header. **Line convention:** immersion/coverslip
+Abbe numbers are quoted as νₑ (Hg e / Cd F′,C′), not the νd triad, so both are
+pinned and shown to agree with the datasheet's own νd = 42.9 *and* νₑ = 42.8 —
+a rung fed only νd would read a spurious few-percent gap that is pure convention.
+The reduced eye's vitreous was split into its own non-dispersive `VITREOUS`
+constant at the same value, so `WATER` could become real without any eye rung
+moving (all 478 rungs byte-identical). D263's νₑ landing *below* the ISO nominal
+56 while its nₑ meets the design 1.5255 is carried as data, not forced to agree:
+that residual is the coverslip mismatch step 6 will show.
 
 ## Step 1.5 — system spec + pupils (current)
 
@@ -448,9 +472,13 @@ the same pixel and leave the ring as deep as a monochromatic one.
   aperture, at which point the forced equality is *honestly* true by the
   spider's own argument and `blendPsf`'s arithmetic never changes. What had to
   be re-derived was the *evidence*, not the code — see § 2f.
-- **Immersion.** `pixelScaleMm` carries an image-space index factor that is
-  identity for every system validated here; the microscope branch's Abbe rung
-  is what will pin it.
+- **Immersion.** The dispersive media themselves are now **sourced and pinned**
+  (step 1 table: Daimon-Masumura water, Cargille Type B oil, Schott D263
+  coverslip), closing the ROADMAP step-6 *data* prerequisite. What remains is the
+  *wiring*: `pixelScaleMm` carries an image-space index factor that is identity
+  for every system validated here, and the microscope branch's Abbe rung is what
+  will pin it once an immersion objective places one of these media in image
+  space.
 
 ## Step 2f — trace-level (partial) vignetting (current)
 

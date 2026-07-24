@@ -29,8 +29,13 @@ import { getMedium } from "../materials/catalog";
  * surface), so the pupil is both the aperture and the entrance pupil.
  */
 
-/** Vitreous index — the eye's image space is not air. `WATER` (1.333) is it. */
-const VITREOUS = "WATER";
+/**
+ * Vitreous index — the eye's image space is not air. A dedicated NON-dispersive
+ * `VITREOUS` (1.333) medium, kept idealized so the schematic eye stays
+ * diffraction-limited by construction; it was split out of the catalog's `WATER`
+ * when that became real (dispersive) immersion water, preserving this value.
+ */
+const VITREOUS = "VITREOUS";
 /** Standard relaxed-eye power. */
 const DEFAULT_POWER_DIOPTERS = 60;
 

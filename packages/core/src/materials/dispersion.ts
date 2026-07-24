@@ -14,6 +14,16 @@ export const LINE_F = 486.1327; // H F
 export const LINE_C = 656.2725; // H C
 
 /**
+ * The e-line triad. Microscopy immersion media and coverslip glass are specified
+ * on the mercury e-line with the cadmium F′/C′ lines (νₑ), NOT the d/F/C triad
+ * above — so an oil quoted at νₑ ≈ 43 pinned against `abbeNumber` (νd) would show
+ * a spurious few-percent gap that is pure line convention, not error.
+ */
+export const LINE_E = 546.074; // Hg e
+export const LINE_F_PRIME = 479.9914; // Cd F′
+export const LINE_C_PRIME = 643.8469; // Cd C′
+
+/**
  * Sellmeier form: n²(λ) − 1 = Σ Bᵢ·λ² / (λ² − Cᵢ), λ in µm, Cᵢ in µm².
  */
 export function sellmeier(name: string, B: readonly number[], C: readonly number[]): Medium {
@@ -29,6 +39,32 @@ export function sellmeier(name: string, B: readonly number[], C: readonly number
   };
 }
 
+/**
+ * Cauchy form as an even-power series in 1/λ: n(λ) = c₀ + c₁/λ² + c₂/λ⁴ + …,
+ * with **λ in nanometers** — deliberately the source's own units, so the
+ * coefficients are transcribed verbatim from the datasheet rather than refitted
+ * or rescaled (a rescale is arithmetic-exact but no longer checkable against the
+ * printed equation). Immersion oils are published this way; the fluids' molecular
+ * dispersion has no absorption pole in the visible, so the two-term Cauchy the
+ * Sellmeier's near-UV pole reduces to is the honest form for them.
+ */
+export function cauchy(name: string, coeffs: readonly number[]): Medium {
+  if (coeffs.length === 0) throw new Error(`${name}: cauchy needs at least one coefficient`);
+  return {
+    name,
+    n(wavelengthNm: number): number {
+      const inv2 = 1 / (wavelengthNm * wavelengthNm);
+      let n = 0;
+      let p = 1;
+      for (let i = 0; i < coeffs.length; i++) {
+        n += coeffs[i]! * p;
+        p *= inv2;
+      }
+      return n;
+    },
+  };
+}
+
 export function constantIndex(name: string, n: number): Medium {
   return { name, n: () => n };
 }
@@ -36,7 +72,15 @@ export function constantIndex(name: string, n: number): Medium {
 /** nd — index at the helium d line. */
 export const indexD = (m: Medium): number => m.n(LINE_D);
 
+/** nₑ — index at the mercury e line (the microscopy reference). */
+export const indexE = (m: Medium): number => m.n(LINE_E);
+
 /** Abbe number Vd = (nd − 1)/(nF − nC). */
 export function abbeNumber(m: Medium): number {
   return (m.n(LINE_D) - 1) / (m.n(LINE_F) - m.n(LINE_C));
+}
+
+/** Abbe number Vₑ = (nₑ − 1)/(nF′ − nC′) — the microscopy convention. */
+export function abbeNumberE(m: Medium): number {
+  return (m.n(LINE_E) - 1) / (m.n(LINE_F_PRIME) - m.n(LINE_C_PRIME));
 }
