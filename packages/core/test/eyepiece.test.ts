@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { Prescription } from "../src/trace/prescription";
+import { Prescription, SurfaceSpec } from "../src/trace/prescription";
 import { systemProperties } from "../src/trace/paraxial";
 import { afocalTelescope } from "../src/trace/compose";
 import { afocalProperties, apparentFieldAngleRad } from "../src/pupil/afocal";
-import { plosslEyepiece } from "../src/designs/eyepiece";
+import { plosslEyepiece, huygensEyepiece } from "../src/designs/eyepiece";
 import { achromaticObjective } from "../src/designs/achromat";
 import { getMedium } from "../src/materials/catalog";
 import { LINE_D, LINE_F, LINE_C } from "../src/materials/dispersion";
@@ -89,6 +89,74 @@ describe("Plössl eyepiece — composes into a telescope (§ 5l machinery on a r
 
   it("exit-pupil diameter = EPD/|M|, and eye relief sits behind the eye lens", () => {
     expect(props.exitPupilRadiusMm).toBeCloseTo(apRadius / Math.abs(props.magnification), 3);
+    expect(props.eyeReliefMm).toBeGreaterThan(0);
+  });
+});
+
+describe("Huygens eyepiece — achromatism by spacing (§ 5o)", () => {
+  const ep = huygensEyepiece({ focalLengthMm: 25 });
+  const n = getMedium(ep.glass).n(LINE_D);
+
+  /** Fractional F–C focal spread of a prescription. */
+  const fc = (p: Prescription): number => {
+    const fF = systemProperties(p, LINE_F).efl;
+    const fC = systemProperties(p, LINE_C).efl;
+    return (fF - fC) / systemProperties(p, LINE_D).efl;
+  };
+  /** A Huygens built at an ARBITRARY separation d (the negative control). */
+  const huygensAt = (f1: number, f2: number, d: number): Prescription => {
+    const t = 0.75;
+    const pcx = (f: number, last: number): SurfaceSpec[] => [
+      { kind: "refract", curvature: 1 / ((n - 1) * f), semiAperture: 12, thickness: t, medium: ep.glass },
+      { kind: "refract", curvature: 0, semiAperture: 12, thickness: last, medium: "AIR" },
+    ];
+    return { surfaces: [...pcx(f1, d), ...pcx(f2, 0)] };
+  };
+
+  it("hits the requested focal length, and it is one glass throughout (no flint)", () => {
+    expect(ep.focalLengthMm).toBeCloseTo(25, 6);
+    expect(ep.prescription.surfaces).toHaveLength(4);
+    for (const s of ep.prescription.surfaces) {
+      expect(s.medium === ep.glass || s.medium === "AIR").toBe(true);
+    }
+  });
+
+  it("EFL = 2·f₁·f₂/(f₁+f₂) to the thick-lens residual", () => {
+    const closed = (2 * ep.fieldLensFocalMm * ep.eyeLensFocalMm) / (ep.fieldLensFocalMm + ep.eyeLensFocalMm);
+    expect(ep.focalLengthMm).toBeCloseTo(closed, 0); // ~1.5% thick residual on a 25 mm EFL
+    expect(Math.abs(ep.focalLengthMm - closed) / ep.focalLengthMm).toBeLessThan(0.03);
+  });
+
+  it("is achromatic at d = (f₁+f₂)/2, ≥ 10× below an equal-power singlet", () => {
+    const f1 = ep.fieldLensFocalMm;
+    const f2 = ep.eyeLensFocalMm;
+    expect(ep.separationMm).toBeCloseTo((f1 + f2) / 2, 10);
+    const singletSpread = Math.abs(fc(huygensAt(25, 25, 0.75))); // one plano-convex singlet, f = 25
+    expect(Math.abs(fc(ep.prescription))).toBeLessThan(singletSpread / 10);
+  });
+
+  it("the achromatism is a ZERO CROSSING in the spacing — under below, over above", () => {
+    // The theorem's falsifiable content: too close under-corrects lateral colour,
+    // too far over-corrects, and only at (f₁+f₂)/2 do F and C agree. So the F–C
+    // spread must change sign across the design spacing, with the design near zero.
+    const f1 = ep.fieldLensFocalMm;
+    const f2 = ep.eyeLensFocalMm;
+    const d = ep.separationMm;
+    const below = fc(huygensAt(f1, f2, 0.7 * d));
+    const above = fc(huygensAt(f1, f2, 1.3 * d));
+    const atDesign = fc(ep.prescription);
+    expect(Math.sign(below)).toBe(-Math.sign(above)); // opposite signs bracket the zero
+    expect(Math.abs(atDesign)).toBeLessThan(Math.abs(below));
+    expect(Math.abs(atDesign)).toBeLessThan(Math.abs(above));
+  });
+
+  it("composes into a telescope with the § 5l first-order numbers", () => {
+    const apR = 20;
+    const obj = achromaticObjective({ apertureMm: 40, focalRatio: 7.5 });
+    const scope = afocalTelescope({ objective: obj.prescription, eyepiece: ep.prescription, wavelengthNm: LINE_D });
+    const props = afocalProperties(scope, LINE_D, apR);
+    expect(props.magnification).toBeCloseTo(-scope.objectiveEflMm / scope.eyepieceEflMm, 9);
+    expect(props.exitPupilRadiusMm).toBeCloseTo(apR / Math.abs(props.magnification), 3);
     expect(props.eyeReliefMm).toBeGreaterThan(0);
   });
 });

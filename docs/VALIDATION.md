@@ -2029,7 +2029,8 @@ suppresses the odd aberrations between its halves. So the eyepiece is pinned to
 what symmetry and the doublet solve predict — a closed form the trace can refuse —
 not to a catalogued part's numbers. It deliberately is NOT a commercial Plössl:
 bent for the eyepiece role its residuals clone no patent, and it claims none. The
-transcribed patent wide-fields are the library's other members (§ 5o).
+Huygens (§ 5o) is the library's second computed member; the transcribed patent
+wide-fields are the deferred follow-on, blocked on external data, not code.
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -2126,6 +2127,57 @@ field past the eyepiece field stop vignettes), and the rungs assert well inside
 that limit, so a later aperture change surfaces as a loud failure rather than a
 silently-clipped angle. Off-axis PSF, real AFOV *edge* (where the field stop cuts
 the beam), and the eye-model exit-pupil match remain deferred.
+
+## Step 5o — the Huygens eyepiece: achromatism by spacing (current)
+
+The library's second COMPUTED member, chosen because it achromatizes by a
+*different theorem* than the Plössl and so pins different physics. It is two
+plano-convex singlets of one glass — no flint anywhere — and its colour
+correction comes from their separation:
+
+    d = (f₁ + f₂)/2
+
+At that spacing two thin lenses of a single glass have an achromatic combined
+power. The derivation is thin-lens algebra: Φ = φ₁ + φ₂ − d·φ₁φ₂, and with one
+glass each dφᵢ/dλ ∝ φᵢ (same V), so dΦ/dλ ∝ φ₁ + φ₂ − 2d·φ₁φ₂, which vanishes at
+d = (f₁+f₂)/2. The combined focal length there is f_e = 2f₁f₂/(f₁+f₂); scaling
+f₁, f₂ together preserves d = (f₁+f₂)/2, so the design solves one overall scale to
+hit the requested focal length without perturbing the theorem.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The scale solve hits the requested EFL, one glass throughout, four surfaces | construction | ✅ |
+| **EFL = 2·f₁·f₂/(f₁+f₂)** to the thick-lens residual | thin-lens combination | ✅ |
+| **Achromatic at d = (f₁+f₂)/2: F–C spread ≥ 10× below an equal-power singlet** | same-glass spacing theorem | ✅ |
+| **The achromatism is a ZERO CROSSING in the spacing — under below, over above** | dΦ/dλ = 0 at (f₁+f₂)/2 | ✅ |
+| Composes into a telescope with the § 5l magnification / exit pupil / eye relief | § 5l machinery | ✅ |
+
+The **zero-crossing** rung is the Huygens headline, and it is a negative control
+the Plössl's construction cannot offer. The Plössl is achromatic because each of
+its halves is a cemented achromat — remove the flint and the correction is simply
+gone, monotonically. The Huygens is achromatic because of a *spacing*, so its
+lateral colour changes SIGN across the design separation: too close
+under-corrects, too far over-corrects, and only at (f₁+f₂)/2 do the F and C focal
+lengths agree. The rung builds the eyepiece at 0.7 d and 1.3 d and asserts the F–C
+spread takes opposite signs there while the design sits between them near zero.
+That sign flip is the theorem made falsifiable — a wrong spacing does not merely
+correct less, it corrects the *other way* — which a "smaller is better" tolerance
+would miss.
+
+The **EFL rung** carries a ~1.5% thick-lens residual against the thin-lens
+2f₁f₂/(f₁+f₂), and it is bounded rather than tightened: unlike the Plössl, whose
+EFL is pinned to the *thick* two-group combination at machine precision, the
+Huygens rung is stated against the thin form on purpose, because the point of the
+design is the spacing condition (also a thin-lens statement), and holding both to
+the same thin-lens order keeps the section about the theorem rather than about
+principal-plane bookkeeping. The residual is recorded as the thick correction, not
+absorbed.
+
+The Huygens is deliberately a modest eyepiece and is scoped as one: the field stop
+is internal (a reticle there is not sharp), eye relief is short, and only lateral
+colour is corrected — spherical aberration and field curvature are not. What is
+pinned is the one thing it does by theorem, which is exactly the discipline the
+rest of this ladder holds to.
 
 ## Later rungs
 
