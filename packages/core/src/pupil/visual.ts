@@ -77,11 +77,16 @@ export function visualSystem(spec: VisualSystemSpec): VisualSystem {
   // retina as the composed chain's trailing distance. On axis the afocal beam is
   // collimated, so the exact eye-relief placement changes no on-axis rung; it is
   // set correctly so the off-axis field is honest too.
+  // The eye's cornea is flagged `isStop` for standalone use; drop that in the
+  // composition so the objective is the sole DECLARED stop and the iris only
+  // becomes the stop through `limiting` selection — never a second `isStop` for
+  // `stopIndex` to arbitrate.
+  const eyeSurfaces = eye.prescription.surfaces.map(({ isStop, ...s }) => s);
   const prescription = spliceModules(
     [
       { surfaces: objective.surfaces, gapAfterMm: afocal.gapMm },
       { surfaces: eyepiece.surfaces, gapAfterMm: props.eyeReliefMm },
-      { surfaces: eye.prescription.surfaces, gapAfterMm: eye.axialLengthMm },
+      { surfaces: eyeSurfaces, gapAfterMm: eye.axialLengthMm },
     ],
     objective.objectMedium ?? "AIR",
   );

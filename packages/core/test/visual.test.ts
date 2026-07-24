@@ -65,6 +65,35 @@ describe("reduced eye model", () => {
     // Retina at the paraxial focus of one surface: axial length = n/F.
     expect(e.axialLengthMm).toBeCloseTo(e.cornealRadiusMm + e.posteriorNodalDistanceMm, 9);
   });
+
+  // The eye's ideal-ness is a CLOSED FORM in its own right — the Cartesian
+  // ellipsoid K = −1/n² (eccentricity 1/n) images a collimated axial beam
+  // stigmatically. Pinned in isolation, telescope removed, with the sphere it
+  // corrects as the negative control. At a wide 6 mm pupil (≈ f/2.8) the single
+  // surface's spherical aberration is violent, so the two are unmistakable.
+  test("the corneal conic K = −1/n² nulls the eye's own spherical aberration", () => {
+    const grid = { traceSamples: 41, pupilSamples: 128, padFactor: 8 } as const;
+    const e = reducedEye({ pupilDiameterMm: 6 });
+    const n = e.axialLengthMm / e.posteriorNodalDistanceMm; // n = L/PND
+    const cornea = e.prescription.surfaces[0]!;
+
+    const bareEye = (conic: number): OpticalSystem => ({
+      prescription: { surfaces: [{ ...cornea, conic }] },
+      aperture: { kind: "stopRadius", value: e.pupilDiameterMm / 2 },
+      field: { kind: "angle", values: [0] },
+      wavelengths: [{ nm: LAM, weight: 1 }],
+      conjugate: { kind: "infinite" },
+    });
+
+    // The Cartesian conic is exactly the value the design carries.
+    expect(cornea.conic).toBeCloseTo(-1 / (n * n), 9);
+
+    const ideal = psf(bareEye(-1 / (n * n)), 0, LAM, grid).strehl;
+    const sphere = psf(bareEye(0), 0, LAM, grid).strehl; // negative control
+
+    expect(ideal).toBeGreaterThan(0.99); // diffraction-limited, alone
+    expect(sphere).toBeLessThan(0.3); // the sphere it corrects, wrecked by SA
+  });
 });
 
 describe("visual mode — the two-stop competition", () => {

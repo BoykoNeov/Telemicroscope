@@ -2252,6 +2252,7 @@ with `apertureStop: "limiting"`, so the collapse EMERGES.
 | Rung | Pinned to | Status |
 |---|---|---|
 | Eye geometry (R, L, PND) follows from power and index; PND = 1/F, retina = n/F | reduced-eye construction, not transcription | ✅ |
+| **The corneal conic K = −1/n² nulls the eye's own SA** (bare eye, 6 mm pupil: Strehl > 0.99) with the sphere K = 0 as the negative control (Strehl < 0.3) | the Cartesian ellipsoid e = 1/n, a closed form — *isolated from the telescope* | ✅ |
 | **Effective aperture = min(D, d_eye·\|M\|): full above the exit pupil, d_eye·\|M\| below it** | the two-stop collapse — *headline*, a closed form the trace can refuse | ✅ |
 | The iris takes over exactly when the eye pupil drops below the exit pupil | the crossover IS M_min = D/d_eye | ✅ |
 | **The retinal Airy disc grows by D/(d_eye·\|M\|)** — the same collapse seen in the image | diffraction scale ∝ 1/effective aperture | ✅ |
