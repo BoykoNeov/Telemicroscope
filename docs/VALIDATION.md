@@ -2013,6 +2013,61 @@ model / exit-pupil-to-eye matching. Mechanical metadata and per-surface
 provenance attach to the module and land with step 6; the splice carries only
 `objectiveSurfaceCount`, enough to name which part a surface came from.
 
+## Step 5m — the computed Plössl eyepiece (current)
+
+The eyepiece library's lead member, and the second preset that *composes* two
+prior units rather than adding physics (after the Schmidt-Cassegrain): the Plössl
+is two of § 5j's achromatic doublets mirrored across a central air gap, crowns
+out, flints in.
+
+It is COMPUTED, not transcribed, and the reason is the same one that makes the
+Cassegrain family computable while the commercial SCT is not: a symmetric pair of
+doublets has *behaviour that is a theorem*. Each half is the achromat § 5j solves
+from the glass catalog and third-order theory; stacking two mirror images gives a
+construction that is achromatic by inheritance and, by the principle of symmetry,
+suppresses the odd aberrations between its halves. So the eyepiece is pinned to
+what symmetry and the doublet solve predict — a closed form the trace can refuse —
+not to a catalogued part's numbers. It deliberately is NOT a commercial Plössl:
+bent for the eyepiece role its residuals clone no patent, and it claims none. The
+transcribed patent wide-fields are the library's other members (§ 5n).
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The focal-length solve hits the requested EFL | secant on the doublet power | ✅ |
+| **EFL = the thick two-group Gaussian combination 1/f_e = 2/f_d − d/f_d², d = gap + 2(f_d − BFD_d)** | Gaussian reduction, from the doublet's own cardinal points | ✅ |
+| **Symmetric by construction: curvature i = −(curvature 5−i)** | the mirror layout | ✅ |
+| **Inherited achromatism: F–C focal spread ≈ 4·10⁻⁴ f, secondary-spectrum level** | the doublets unite F and C | ✅ |
+| ...≥ 10× below an equal-power singlet's ≈ 1/V_d spread (negative control) | thin-lens chromatic theory | ✅ |
+| **Composes into a telescope: M = −f_o/f_e, exit pupil = EPD/\|M\|, eye relief > 0** | § 5l machinery, on a real 6-surface eyepiece | ✅ |
+
+The **EFL rung** is the strong one, and it is not the naive Gullstrand check it
+first looks like. Combining the two doublets with the air-gap as the lens
+separation is wrong by 5% here, because the doublets are *thick* and the
+separation that enters the power formula is between their principal planes, not
+their inner vertices. Carrying the principal-plane offset — d = gap + 2(f_d −
+BFD_d), from the doublet's paraxial EFL and back focal distance, both computed by
+`achromaticObjective` independently of the composed trace — makes the composed
+6-surface trace agree with the two-group reduction to machine precision (4·10⁻¹⁶).
+It is a real cross-check: a mismatched thickness, a swapped medium or a broken
+splice would move it. The naive-gap version is recorded because it is the obvious
+wrong pin, and the 5% it misses by is the thick-lens principal-plane geometry, not
+slack.
+
+The **achromatism rung** is what makes "two doublets" worth more than "one lens of
+the same power": the F and C foci that each doublet unites stay united in the
+pair, so the eyepiece's own chromatic focal spread is ~40× below a singlet
+eyepiece's. The singlet negative control is the same-power thin lens, whose spread
+is the textbook 1/V_d; the Plössl sits at the secondary-spectrum level its glasses
+allow.
+
+The **symmetry dividend is deferred, not skipped.** The reason a symmetric
+construction is used for eyepieces — coma, distortion and lateral colour cancel
+between mirror halves — is a third-order-theory claim about the *odd* Seidel sums,
+and `analysis/seidel` is object-at-infinity / stop-at-first-surface only (§ 5j
+scope), so it cannot score the eyepiece at its working conjugates. That dividend is
+measured on the real-ray afocal trace instead (the apparent-field-of-view /
+distortion capability), and is pinned there against a singlet-eyepiece control.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

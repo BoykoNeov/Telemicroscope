@@ -1,5 +1,6 @@
 export * from "./refractor";
 export * from "./achromat";
+export * from "./eyepiece";
 export * from "./newtonian";
 export * from "./two-mirror";
 export * from "./cassegrain";
