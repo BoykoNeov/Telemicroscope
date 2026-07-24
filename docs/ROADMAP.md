@@ -264,12 +264,14 @@
    the thin-lens formula), `afocalProperties` reads magnification / exit pupil /
    eye relief (§ 5l), and `apparentFieldAngleRad` traces the real chief ray for
    **apparent field of view and distortion** — the genuinely-new capability, since
-   distortion is exactly the term a paraxial trace drops (§ 5n). The lead member
-   is the **computed Plössl** (`designs/eyepiece`, § 5m): two of § 5j's achromatic
-   doublets mirrored, so it is achromatic and pinnable by theorem rather than
-   transcribed — its lateral-colour dividend over a singlet eyepiece is pinned on
-   the real-ray trace, and honestly, that its symmetry does NOT buy low distortion
-   in a telescope (wrong conjugates for the symmetry principle).
+   distortion is exactly the term a paraxial trace drops (§ 5n). The members so far
+   are **computed** (`designs/eyepiece`), pinned by theorem rather than
+   transcribed: the **Plössl** (§ 5m), two of § 5j's achromatic doublets mirrored
+   — its lateral-colour dividend over a singlet eyepiece pinned on the real-ray
+   trace, and honestly, that its symmetry does NOT buy low distortion in a
+   telescope (wrong conjugates for the symmetry principle); and the **Huygens**
+   (§ 5o), two same-glass singlets achromatized by the spacing d = (f₁+f₂)/2, whose
+   falsifiable pin is the sign-flip zero-crossing of lateral colour across it.
    *Still to come here — the transcribed patent members.* Commercial eyepiece and
    objective prescriptions are trade secrets, but **patents are public and contain
    full prescription tables** — the supply route for the wide-field members
