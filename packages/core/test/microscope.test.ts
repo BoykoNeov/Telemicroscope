@@ -582,6 +582,45 @@ describe("§ 6b.4 — the DIN architecture's numbers", () => {
     }
   });
 
+  it("…and the readout would SEE a mis-sized stop — 2% out reads 0.10198", () => {
+    // The control § 6a.4 has and this section needs, because otherwise a 1e-6
+    // agreement could be the tangent identity the stop was sized with, round
+    // tripping through a trace. Perturbing the stop moves the reported NA by
+    // exactly sin(atan(k·tan u)), which is both the proof that the readout is
+    // measuring and the proof that the marginal ray really aims at the stop rim.
+    const o = buildDin4x();
+    const base = finiteConjugateMicroscope({ objective: o }).system;
+    const withStop = (r: number): OpticalSystem => ({ ...base, aperture: { kind: "stopRadius", value: r } });
+    const tanU = 0.1 / Math.sqrt(1 - 0.01);
+    for (const k of [0.95, 1.02, 1.2]) {
+      const expected = Math.sin(Math.atan(k * tanU));
+      expect(objectNumericalAperture(withStop(o.stopRadiusMm * k), LAMBDA)).toBeCloseTo(expected, 6);
+      // Comfortably outside the 1e-6 the rung above asserts to: the smallest
+      // perturbation here (2%) already moves NA by 2e-3, a thousand-fold.
+      expect(Math.abs(expected - 0.1)).toBeGreaterThan(1e-3);
+    }
+  });
+
+  it("makes § 6a's f·NA mistake NINE times more expensive at a finite conjugate", () => {
+    // § 6a: a stop sized by the sine-condition height f·NA instead of a·tan u
+    // ships 2.1% fast. Here the specimen sits BEYOND the front focus, so a > f
+    // and the same mistake is 18% — and it shrinks back toward § 6a's figure as
+    // the magnification climbs and the DIN objective approaches an
+    // infinity-corrected one. The error is a property of the conjugate, not a
+    // constant, which is exactly why it cannot be carried over by rule of thumb.
+    const na = (M: number): number => {
+      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      const base = finiteConjugateMicroscope({ objective: o }).system;
+      return objectNumericalAperture(
+        { ...base, aperture: { kind: "stopRadius", value: o.paraxialFocalLengthMm * 0.1 } },
+        LAMBDA,
+      );
+    };
+    expect(na(4)).toBeCloseTo(0.0821, 4);
+    expect(na(20)).toBeCloseTo(0.0976, 4);
+    expect(Math.abs(na(4) - 0.1)).toBeGreaterThan(7 * Math.abs(na(20) - 0.1));
+  });
+
   it("runs FASTER than 1/(2·NA), approaching it as the magnification climbs", () => {
     // The finite-conjugate correction to § 6a.4's F = 1/(2·NA). The specimen sits
     // beyond the front focus by f/M, so the cone filling the stop is wider than

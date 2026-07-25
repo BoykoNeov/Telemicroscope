@@ -2743,6 +2743,8 @@ carry the whole correction itself.
 | …and crown-first is the *better* one on the sine condition | § 5j straddle, negative control | ✅ |
 | Both orientations trace with `lost` = 0 before their RMS is compared | fair-comparison guard | ✅ |
 | **Traced object NA = 0.100000** at 4×, 10×, 20× | design spec | ✅ |
+| …and the readout SEES a mis-sized stop: 2% out reads 0.10198 = sin(atan(k·tan u)) | negative control | ✅ |
+| § 6a's f·NA stop mistake costs **18%** here, not 2.1%, shrinking with M | conjugate-dependence | ✅ |
 | Working F is faster than 1/(2·NA) and climbs toward it: 4.08 / 4.65 / 4.88 | the finite-conjugate cone | ✅ |
 | **Diffraction-limited at best focus** (σ = λ/17 at 4×) — and NOT at the paraxial plane (λ/7) | Maréchal, honestly | ✅ |
 | Balancing is worth >2× — the signature of a fifth-order residual | § 5j/5f/5h | ✅ |
@@ -2782,6 +2784,19 @@ together. The remainder is larger here than § 5j's few-parts-in-10⁴ because t
 re-solved bending is shallower, and the achromatic split fixes curvature
 *differences*, so a different bending is a different pair of real shapes with a
 different separation term.
+
+**The NA rung needed its control.** `objectNumericalAperture` reads the marginal
+ray's launch angle, and the stop was *sized* from the tangent relation
+a·tan u — so agreement to 1e-6 could have been the identity round-tripping
+through a trace rather than a measurement. Perturbing the stop settles it: the
+readout tracks sin(atan(k·tan u)) exactly, so it is genuinely seeing the stop
+(and the marginal ray genuinely aims at its rim). The sharper control is § 6a's
+own mistake transposed — sizing the stop by the sine-condition height f·NA
+instead. § 6a costs 2.1% that way; here it costs **18%** at 4×, because the
+specimen sits beyond the front focus so a > f, and it shrinks back toward § 6a's
+figure (2.4% at 20×) as the DIN objective approaches an infinity-corrected one.
+The size of that error is a property of the conjugate, not a constant — which is
+exactly why the § 6a figure could not be carried over by rule of thumb.
 
 **Orientation, re-contested.** § 6a's 9.2-wave orientation rung compares a
 doublet used at the conjugates it was solved for against one that is not. Solve
