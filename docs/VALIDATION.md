@@ -2661,6 +2661,62 @@ explicitly because § 1's D263 commit had to fix exactly this class of thing
   the aplanatic-points closed form, and where the § 1 oil and D263 start doing
   work) are the named follow-ons.
 
+## Step 6b — the classic 160 mm (DIN) microscope (current)
+
+The second of the two architectures step 6 names, and the one § 6a listed under
+"Not yet pinned" as *the item most likely to be silently dropped*. That note
+predicted it would need **no new machinery** — finite conjugates and `bestFocus`
+both exist — and measuring it falsified that before any design code was written:
+§ 6a's infinity-solved objective, placed at DIN conjugates, carries **0.46 waves**
+RMS on axis. A DIN objective is not an infinity objective used differently. It is
+a differently-solved lens, and solving it needs a capability `analysis/seidel`
+explicitly refused.
+
+### 6b.0 — Seidel at finite conjugates: the position factor
+
+`seidelSums` was scoped "object at infinity only": the marginal ray entered with
+u = 0, hard-coded. That is the *only* thing an object conjugate changes — the
+recursion for A, Ā and Δ(u/n) was never told where the ray came from — so
+`objectDistanceMm` adds one term at the start of the loop and leaves every
+pre-§ 6b caller's numbers bit-for-bit unchanged.
+
+What it switches on is not cosmetic. The published thin-lens bracket already
+pinned in § 5j carries a **position factor** p beside the shape factor q,
+
+    W₀₄₀ = h⁴/(32·f³·n(n−1)) · [ (n+2)/(n−1)·q² + 4(n+1)·p·q
+                                 + (3n+2)(n−1)·p² + n³/(n−1) ]
+    p = 1 − 2f/s′        (−1 at infinity, 0 at s = s′ = 2f, → +1 as s → f)
+
+and the infinite-conjugate rungs exercised exactly one point of it, p = −1. The
+p² and p·q terms are the whole difference between a telescope doublet and a
+microscope objective.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **p = 0 lands at s = s′ = 2f**, across the shape range, to 1e-8 | symmetric conjugates — the sign check | ✅ |
+| **The bracket across p ∈ [−0.82, +0.33] × q ∈ [−2, 2], two indices, to 1e-8** | Jenkins & White; Hecht § 6.3 | ✅ |
+| **q_best(p) = −2(n²−1)·p/(n+2)** is the minimum at every p tested | d(bracket)/dq = 0 | ✅ |
+| …whose p = −1 case *is* the classical best form § 5j pins | cross-check of the two laws | ✅ |
+| The best form turns ROUND inside 2f (p > 0 ⇒ q_best < 0) | corollary, and a negative control | ✅ |
+| A singlet's parabola in q stays positive at every p — no conjugate rescues it | § 5j motivation, generalised | ✅ |
+| Omitting the option is **identical**, not approximately infinite | non-regression | ✅ |
+| …and s = 1e9·f converges onto it from the finite side (1e-7) | limit consistency | ✅ |
+| Rejects a non-positive or non-finite object distance | refuses what it cannot compute | ✅ |
+
+**Why p = 0 is the rung that matters.** The marginal ray's launch slope is
+u = h/s, and a sign error there is invisible to a scan: the bracket is even in
+neither p nor q, but a flipped p simply relabels which object distance goes with
+which prediction, and a scan that generates both from the same wrong convention
+agrees with itself. p = 0 is the one point whose geometry is known
+*independently* of the bracket — the symmetric pair s = s′ = 2f — so it is
+checked first and across five shapes, and everything downstream inherits it.
+
+**The corollary that anticipates § 6b.1.** q_best carries the opposite sign to p,
+so a lens working with the object inside 2f wants its steep face toward the
+**image** — the reverse of the collimated-beam rule every telescope objective
+follows. That is the thin-lens shadow of § 6a.1's orientation finding, and the
+reason a DIN objective cannot inherit the infinity-solved bending.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

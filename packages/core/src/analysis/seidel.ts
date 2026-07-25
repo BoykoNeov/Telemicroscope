@@ -57,9 +57,34 @@ import { Prescription, unfoldedTwin } from "../trace/prescription";
  *    curved face toward the collimated beam), and a plano-convex singlet turned
  *    back-to-front carrying 27/7 ≈ 3.86× the spherical aberration.
  *
+ * ## The object may be at a finite distance (the position factor)
+ *
+ * The marginal ray's launch is the *only* thing an object conjugate changes: it
+ * enters surface 0 at height h with slope u = h/s instead of u = 0. Everything
+ * after that — A, Ā, Δ(u/n), the sums — is untouched, because the recursion was
+ * never told where the ray came from. So `objectDistanceMm` is one extra term at
+ * the start of the loop, and omitting it leaves every existing caller's numbers
+ * bit-for-bit unchanged.
+ *
+ * It is not a cosmetic generalisation. The published thin-lens bracket above
+ * carries a **position factor** p alongside the shape factor q, and the p = −1
+ * the infinite-conjugate case pins is one point on it:
+ *
+ *     p = 1 − 2f/s′        (−1 at infinity, 0 at s = s′ = 2f, → 1 as s → f)
+ *
+ * The p² and p·q terms are what a finite conjugate switches on, and they are
+ * large: a doublet whose bending nulls S_I at p = −1 does not null it at
+ * p = +0.6, which is where a 4× microscope objective on a 150 mm optical tube
+ * actually works. That is the whole reason `designs/microscope`'s DIN objective
+ * cannot reuse the infinity-solved bending (§ 6b), and it is pinned here — the
+ * bracket across p, and its corollary that the best-form shape itself moves,
+ *
+ *     q_best(p) = −2(n²−1)·p/(n+2)
+ *
+ * whose p = −1 case is the classical best-form minimum already pinned above.
+ *
  * SCOPE, deliberately narrow — this module does one job for one caller:
  *
- *  - **Object at infinity only.** The marginal ray enters collimated (u = 0).
  *  - **Spherical surfaces only.** A conic or an even asphere adds its own
  *    third-order term, which is a *different* closed form; rather than carry an
  *    unpinned one, a non-zero conic or asphere throws. (The aspheric presets do
@@ -68,6 +93,9 @@ import { Prescription, unfoldedTwin } from "../trace/prescription";
  *  - **S_II needs the stop at the first surface.** The chief ray is then simply
  *    (ȳ = 0, ū = θ) there, with no pupil solve; anywhere else it would need the
  *    stop imaged into object space, and no caller wants that yet — it throws.
+ *    With a finite object ū is still the chief ray's slope *at the stop*, which
+ *    is an object height η = −ū·s rather than a field angle; the formula does not
+ *    care, but the caller's units do.
  *  - S_III…S_V (astigmatism, field curvature, distortion) are not computed. The
  *    doublet solve needs S_I; S_II picks between its two roots. Nothing else is
  *    needed, and an unpinned formula is worse than an absent one.
@@ -81,6 +109,14 @@ export interface SeidelOptions {
    * zero, which is the on-axis truth, not a missing value.
    */
   readonly fieldAngleRad?: number;
+  /**
+   * Axial object distance in front of surface 0 (mm, positive). Omitted — the
+   * default — the object is at infinity and the marginal ray enters collimated,
+   * which is what every pre-§ 6b caller means and what leaves their numbers
+   * untouched. Given, the marginal ray leaves the axial object point and reaches
+   * surface 0 at `marginalHeightMm` with slope u = h/s.
+   */
+  readonly objectDistanceMm?: number;
 }
 
 export interface SeidelSurfaceTerms {
@@ -105,9 +141,12 @@ export function seidelSums(
   opts: SeidelOptions,
 ): SeidelResult {
   const prescription = unfoldedTwin(prescriptionIn);
-  const { marginalHeightMm, fieldAngleRad = 0 } = opts;
+  const { marginalHeightMm, fieldAngleRad = 0, objectDistanceMm } = opts;
   if (!(marginalHeightMm > 0)) {
     throw new Error("seidelSums: marginal ray height must be positive");
+  }
+  if (objectDistanceMm !== undefined && !(objectDistanceMm > 0 && Number.isFinite(objectDistanceMm))) {
+    throw new Error("seidelSums: objectDistanceMm must be a positive finite distance (omit it for infinity)");
   }
   if (fieldAngleRad !== 0) {
     const stop = prescription.surfaces.findIndex((s) => s.isStop);
@@ -117,9 +156,11 @@ export function seidelSums(
   }
 
   let n = getMedium(prescription.objectMedium ?? "AIR").n(wavelengthNm);
-  // Marginal ray: collimated (object at infinity), entering at the pupil edge.
+  // Marginal ray, entering at the pupil edge. Collimated for an object at
+  // infinity; from the axial object point at distance s it arrives with the
+  // slope h/s that carried it there.
   let y = marginalHeightMm;
-  let u = 0;
+  let u = objectDistanceMm === undefined ? 0 : marginalHeightMm / objectDistanceMm;
   // Chief ray: through the centre of the stop, which is the first surface.
   let yb = 0;
   let ub = fieldAngleRad;

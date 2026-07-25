@@ -39,6 +39,11 @@ import { systemProperties } from "../src/trace/paraxial";
  *
  * A third rung closes the loop the other way: for a slow singlet the predicted
  * W₀₄₀ = S_I/8 matches the *traced* wavefront's spherical-aberration term.
+ *
+ * § 6b adds the **position factor** p to the same bracket — the object conjugate,
+ * which the module previously fixed at infinity (p = −1). The p² and p·q terms
+ * are what a finite conjugate switches on, and they are the reason a microscope
+ * objective cannot reuse an infinity-solved bending.
  */
 
 const N15 = constantIndex("SEIDEL-N15", 1.5);
@@ -145,6 +150,125 @@ describe("Seidel S_I — the thin-lens closed form (shape)", () => {
       expect(systemProperties(thinLens(1000, 1.5, q, 100, "SEIDEL-N15"), 550).efl).toBeCloseTo(1000, 4);
     }
     expect(getMedium("SEIDEL-N15").n(550)).toBe(1.5);
+  });
+});
+
+describe("Seidel S_I — the position factor (finite object conjugates, § 6b)", () => {
+  const f = 1000;
+  const D = 100;
+  const h = D / 2;
+  const w040 = (n: number, medium: string, q: number, objectDistanceMm?: number): number =>
+    seidelSums(thinLens(f, n, q, D, medium), 550, {
+      marginalHeightMm: h,
+      ...(objectDistanceMm === undefined ? {} : { objectDistanceMm }),
+    }).w040;
+  const predicted = (n: number, q: number, p: number): number =>
+    ((h ** 4 / (32 * f ** 3 * n * (n - 1))) * thinLensBracket(n, q, p));
+  /** The published position factor p = 1 − 2f/s′, from the object distance. */
+  const positionFactor = (s: number): number => 1 - 2 * f / (1 / (1 / f - 1 / s));
+
+  const LENSES = [[1.5, "SEIDEL-N15"], [1.6, "SEIDEL-N16"]] as const;
+
+  it("puts p = 0 at s = s′ = 2f — the case that fixes the sign", () => {
+    // THE discriminating check. p = 0 is the symmetric conjugate pair, whose
+    // geometry is known independently of the bracket: if the marginal ray's
+    // launch slope u = h/s had the wrong sign, p = 0 would land at some other
+    // object distance and every q below would disagree. It is checked across the
+    // shape range so it cannot pass by a coincidence at one q.
+    expect(positionFactor(2 * f)).toBeCloseTo(0, 12);
+    for (const [n, medium] of LENSES) {
+      for (const q of [-1, -0.5, 0, 0.5, 1]) {
+        expect(w040(n, medium, q, 2 * f) / predicted(n, q, 0)).toBeCloseTo(1, 8);
+      }
+    }
+  });
+
+  it("matches the published bracket across the whole p range, at two indices", () => {
+    // s/f from 1.5 (p = +1/3, the object close in) to 11 (p = −0.82, nearly
+    // collimated). The p = −1 end is already pinned above; this is the rest of
+    // the polynomial, including the p·q cross-term, which no infinite-conjugate
+    // evaluation can see.
+    for (const [n, medium] of LENSES) {
+      for (const sOverF of [1.5, 2, 3, 5, 11]) {
+        const s = sOverF * f;
+        const p = positionFactor(s);
+        for (const q of [-2, -1, -0.5, 0, 0.5, 1, 2]) {
+          expect(w040(n, medium, q, s) / predicted(n, q, p)).toBeCloseTo(1, 8);
+        }
+      }
+    }
+  });
+
+  it("moves the best-form shape with the conjugate: q_best(p) = −2(n²−1)p/(n+2)", () => {
+    // d(bracket)/dq = 0 generalised off p = −1. The classical best-form minimum
+    // pinned above is this law's p = −1 case, which is the evidence that the two
+    // agree about the sign of p rather than each being self-consistent.
+    for (const [n, medium] of LENSES) {
+      expect((-2 * (n * n - 1) * -1) / (n + 2)).toBeCloseTo((2 * (n * n - 1)) / (n + 2), 12);
+      for (const sOverF of [1.5, 2, 3, 5]) {
+        const s = sOverF * f;
+        const qBest = (-2 * (n * n - 1) * positionFactor(s)) / (n + 2);
+        const best = w040(n, medium, qBest, s);
+        for (const dq of [-0.4, -0.1, 0.1, 0.4]) {
+          expect(w040(n, medium, qBest + dq, s)).toBeGreaterThan(best);
+        }
+      }
+    }
+  });
+
+  it("turns the best form ROUND once the object comes inside 2f", () => {
+    // The corollary worth naming: q_best has the opposite sign to p, so a lens
+    // working at p > 0 (object nearer than 2f) wants its steep face toward the
+    // IMAGE — the reverse of the collimated-beam rule. This is the thin-lens
+    // shadow of § 6a.1's orientation finding, and the reason § 6b re-solves.
+    const n = 1.5;
+    const medium = "SEIDEL-N15";
+    const near = 1.5 * f; // p = +1/3
+    expect(positionFactor(near)).toBeGreaterThan(0);
+    const qNear = (-2 * (n * n - 1) * positionFactor(near)) / (n + 2);
+    expect(qNear).toBeLessThan(0);
+    // …and the classical collimated best form is genuinely the WORSE shape there.
+    const qCollimated = (2 * (n * n - 1)) / (n + 2);
+    expect(w040(n, medium, qCollimated, near)).toBeGreaterThan(w040(n, medium, qNear, near));
+  });
+
+  it("still cannot be nulled: a singlet's parabola in q stays positive at every p", () => {
+    // The § 5j motivation, checked off p = −1 too: no conjugate rescues a singlet.
+    for (const [n, medium] of LENSES) {
+      for (const sOverF of [1.5, 2, 3, 5]) {
+        for (const q of [-2, -1, 0, 0.5, 1, 2]) {
+          expect(w040(n, medium, q, sOverF * f)).toBeGreaterThan(0);
+        }
+      }
+    }
+  });
+
+  it("recovers the collimated case in the limit, and is identical when omitted", () => {
+    const n = 1.5;
+    const medium = "SEIDEL-N15";
+    for (const q of [-1, 0, 0.7, 2]) {
+      // Omitting the option is not "approximately infinity", it IS u = 0 — the
+      // non-regression guarantee every pre-§ 6b caller rests on.
+      expect(w040(n, medium, q)).toBe(predictedInfinity(n, medium, q));
+      // …and a very distant object converges onto it from the finite side.
+      expect(w040(n, medium, q, 1e9 * f) / w040(n, medium, q)).toBeCloseTo(1, 7);
+    }
+  });
+
+  /** The infinite-conjugate value, computed the way every existing caller does. */
+  function predictedInfinity(n: number, medium: string, q: number): number {
+    return seidelSums(thinLens(f, n, q, D, medium), 550, { marginalHeightMm: h }).w040;
+  }
+
+  it("rejects an object distance that is not a positive finite length", () => {
+    for (const bad of [0, -100, Infinity, NaN]) {
+      expect(() =>
+        seidelSums(thinLens(f, 1.5, 0, D, "SEIDEL-N15"), 550, {
+          marginalHeightMm: h,
+          objectDistanceMm: bad,
+        }),
+      ).toThrow(/positive finite distance/);
+    }
   });
 });
 
