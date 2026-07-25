@@ -12,19 +12,31 @@ image looks the way it does.
 
 ## Status
 
-Early — step 2 of the build order. Step 1 (geometry, materials, paraxial +
-exact sequential tracing) is complete and validated. Currently building the
-prerequisites the wave layer needs: the system specification, pupils and ray
-aiming, the compiled trace path, and OPD at the exit pupil. No UI yet.
+Step 6 of the build order — the **microscope branch**. Steps 1–5 are complete
+and validated: geometry and materials, exact + paraxial tracing, pupils and
+OPD, the wave layer (PSF/MTF, Zernike, polychromatic stacking), the rendered
+hero image, and the telescope branch — Newtonian, Cassegrain, Ritchey-Chrétien,
+Schmidt, Schmidt-Cassegrain, SCT, achromat and ED refractors, eyepieces, seeing,
+spider diffraction, visual and camera modes, and tolerancing.
+
+Both microscope architectures now trace: infinity-corrected (§ 6a) and the
+classic 160 mm DIN (§ 6b). Open in this step: the `160/0.17` coverslip,
+composing an eyepiece onto the intermediate image, and immersion wiring.
+Step 7 (the teaching layer that links each image artifact to the plot
+explaining it) has not started.
+
+There is a working UI in `packages/app` — deliberately ugly, correct physics.
 
 ## Layout
 
 ```
 docs/ARCHITECTURE.md   engine design, module map, conventions, key decisions
 docs/ROADMAP.md        build order, v1 feature cut, v2+
-docs/VALIDATION.md     the textbook-physics test ladder and its status
+docs/VALIDATION.md     the textbook-physics test ladder — index at the top
 packages/core          pure-TypeScript physics core (no DOM), unit-tested
+packages/app           the browser UI (React + render workers), port 5187
 scripts/               dev tooling (dev-server port ownership)
+start.cmd              launch the dev server via the port guard
 ```
 
 ## Commands

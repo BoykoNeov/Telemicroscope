@@ -4,7 +4,8 @@ Physics-based telescope/microscope simulator, web platform, TypeScript
 monorepo. Read `docs/ARCHITECTURE.md` before touching the engine — sign
 conventions, precision strategy, and the three non-sequential-future
 commitments live there and are load-bearing. `docs/ROADMAP.md` has the build
-order; `docs/VALIDATION.md` tracks the physics test ladder.
+order; `docs/VALIDATION.md` tracks the physics test ladder — it is long, so
+read its "ladder at a glance" index first and then only the step you need.
 
 ## Hard rules
 

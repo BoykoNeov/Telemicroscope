@@ -5,7 +5,54 @@ a vitest test in `packages/core/test/`. A rung is "done" only when the test
 asserts a number from outside the engine (textbook, published design, closed
 form) — engine-vs-itself tests are consistency checks, not validation.
 
-## Step 1 — geometry, materials, ray tracing (current)
+Every step below is landed and green. The prose under each step is the record
+of *why* — why a tolerance is the number it is, and what a rung caught. It is
+the point of this file, not padding; read the step you need rather than the
+whole ladder.
+
+## The ladder at a glance
+
+| Step | What it pins | Tests |
+|---|---|---|
+| [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
+| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil | `pupil` `opd` `compile` |
+| [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them | `focus` |
+| [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
+| [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
+| [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
+| [2d](#step-2d--geometric-branch--blend-band) | Ray-histogram PSF, energy matched to the diffraction branch, smooth blend | `geometric` |
+| [2e](#step-2e--polychromatic-stacking) | Stacking on a common *physical* grid, not bin-for-bin | `polychromatic` |
+| [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
+| [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
+| [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
+| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray | `render` `golden` |
+| [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
+| [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
+| [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
+| [5d](#step-5d--atmospheric-seeing-the-one-random-draw-in-the-image) | Kolmogorov D_φ(r), Fried's long-exposure OTF, r₀ not aperture | `seeing` |
+| [5e](#step-5e--the-classical-cassegrain-preset) | Classical Cassegrain geometry, on axis, coma | `cassegrain` |
+| [5f](#step-5f--the-ritchey-chrétien-preset) | Ritchey-Chrétien aplanatism — the coma null | `ritchey` |
+| [5g](#step-5g--the-schmidt-camera-preset) | Schmidt camera, corrector plate, off axis | `schmidt` |
+| [5h](#step-5h--the-schmidt-cassegrain-preset) | Schmidt-Cassegrain geometry and spherochromatism | `schmidt-cassegrain` |
+| [5i](#step-5i--the-all-spherical-commercial-sct-preset) | All-spherical commercial SCT and its spherochromatism | `sct` |
+| [5j](#step-5j--third-order-sums-and-the-achromatic-doublet-preset) | `analysis/seidel` closed forms; the achromatic doublet objective | `seidel` `achromat` |
+| [5k](#step-5k--the-ed-fluorite-refractor) | CaF₂ anomalous partial dispersion — what ED buys and costs | `ed-refractor` |
+| [5l](#step-5l--module-composition-and-afocal-telescope-evaluation) | The splice; thin-lens Keplerian closed forms | `afocal` |
+| [5m](#step-5m--the-computed-plössl-eyepiece) | Plössl computed from two achromatic doublets | `eyepiece` |
+| [5n](#step-5n--real-ray-afocal-apparent-field-of-view-and-distortion) | Real-ray AFOV and distortion | `afocal` |
+| [5o](#step-5o--the-huygens-eyepiece-achromatism-by-spacing) | Huygens achromatism by spacing | `eyepiece` |
+| [5p](#step-5p--limiting-aperture-stop-selection) | Which stop actually limits the chain | `aperture-stop` |
+| [5q](#step-5q--the-reduced-eye-and-visual-mode) | Reduced eye model; the two-stop competition | `visual` |
+| [5r](#step-5r--camera-mode-pixel-scale-and-sensor-sampling) | Plate scale, the pixel as box integrator, critical sampling | `camera` |
+| [5s](#step-5s--camera-mode-relative-exposure) | Image-space cone from the marginal ray; f-ratio and aperture laws | `exposure` |
+| [5t](#step-5t--tolerancing-sensitivity-compensators-and-the-rss-budget) | Sensitivity, compensators, RSS budget — four external pins | `tolerance` |
+| [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
+| [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
+
+Tests are in `packages/core/test/<name>.test.ts`. Steps 5a and 5b do not
+exist: tilt/decenter and folded pupils were prerequisites closed inside § 4a.
+
+## Step 1 — geometry, materials, ray tracing
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -61,7 +108,7 @@ tolerance while its νₑ (≈ 54.3) lands just under the rounded guide 55; that
 residual is carried as data, not forced to agree, and is the seed of the
 coverslip mismatch step 6 will show.
 
-## Step 1.5 — system spec + pupils (current)
+## Step 1.5 — system spec + pupils
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -120,7 +167,7 @@ magnification cancels. They catch inverted conversions, nothing deeper.
 | Image-space NA → exit-pupil arm | round trip |
 | Stop with power on both sides → distinct, finite pupils | smoke |
 
-## Step 1.6 — focus solve + spot diagrams (current)
+## Step 1.6 — focus solve + spot diagrams
 
 Writing the on-axis wavefront of a spherically-aberrated system as
 W(ρ) = a·ρ⁴ + b·ρ², where b is the defocus the image plane contributes:
@@ -156,7 +203,7 @@ than the other's when scored by the other's measure.
 | Evaluating a traced bundle at a plane = re-tracing to that plane | round trip |
 | Vignetted rays counted, not dropped | bookkeeping |
 
-## Step 2a — FFT + Zernike basis (current)
+## Step 2a — FFT + Zernike basis
 
 The transform and the basis the PSF is built on. The FFT is pinned to the
 *definition* of the DFT — analytic transform pairs — rather than to a second
@@ -213,7 +260,7 @@ over ~0.6% while the fitted value moves in the 7th decimal. They agree to that
 jitter, which is enough to catch a normalization error (that would show as a
 factor like √3 or 2, not a fraction of a percent).
 
-## Step 2b — PSF + MTF (current)
+## Step 2b — PSF + MTF
 
 The system under test is a paraboloid at its focus — geometrically perfect, so
 everything the PSF shows beyond a point is diffraction and nothing else. Run at
@@ -321,7 +368,7 @@ is what lets it assert to 1% instead of 3%. The ε = 0 case is asserted first,
 so the Bessel series and root finder are themselves validated before the
 obstructed cases lean on them.
 
-## Step 2c — the fidelity criterion (current)
+## Step 2c — the fidelity criterion
 
 The quantity that decides, per field point, whether the FFT PSF or the
 geometric PSF is honest. Pinned carefully because a switch that fails does so
@@ -359,7 +406,7 @@ criterion is phase change *per sample*, so a denser pupil grid genuinely extends
 the FFT's validity. A criterion phrased in total waves would deny that and would
 fall back to the geometric branch on systems the FFT handles perfectly well.
 
-## Step 2d — geometric branch + blend band (current)
+## Step 2d — geometric branch + blend band
 
 The second PSF branch is not an approximation of the first. Where the wavefront
 aliases on the pupil grid the FFT stops being a diffraction calculation, and
@@ -425,7 +472,7 @@ singlet's violet wavelengths carry a geometric share, so the denser bundle
 moved the image by max 2/255 on 0.5% of pixels — inspected side by side and
 visually identical, which is what a convergence improvement should look like.
 
-## Step 2e — polychromatic stacking (current)
+## Step 2e — polychromatic stacking
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -485,7 +532,7 @@ the same pixel and leave the ring as deep as a monochromatic one.
   will pin it once an immersion objective places one of these media in image
   space.
 
-## Step 2f — trace-level (partial) vignetting (current)
+## Step 2f — trace-level (partial) vignetting
 
 The open item § 2e recorded, and roadmap step 5's "off-axis diagonal
 vignetting". *Partial* vignetting is a ray clipped at a downstream surface
@@ -587,7 +634,7 @@ handled by the same edge-averaging every other aperture edge gets, and carries
 the same O(Δ²) floor (§ 2b). Any loss counts — a stop, a TIR, a miss — because
 all three mean "no light here", which is what a pupil amplitude of zero says.
 
-## Step 3a — the standard observer and thermal sources (current)
+## Step 3a — the standard observer and thermal sources
 
 The layer that makes the hero image *visible*. Purple fringing is not new
 physics — it is the chromatic focal shift step 1 already pinned, seen through
@@ -659,7 +706,7 @@ not exact inverses and put white itself 5·10⁻⁵ above 1.
   than none. `blackbodySpectrum` is normalized to peak at 1 and is *relative*
   shape only.
 
-## Step 3b — the hero image: colour out of chromatic aberration (current)
+## Step 3b — the hero image: colour out of chromatic aberration
 
 Roadmap step 4's milestone, asserted rather than admired: **purple fringing
 appears for a singlet and shrinks for an achromat because the glass data says
@@ -749,7 +796,7 @@ quantile of lit pixels — the obvious choice, and the first one tried — pushe
 past that and fills the frame with discretization artifact, committing it to a
 reference image as though it were optics.
 
-## Step 3c — the spatially-variant full-field render (current)
+## Step 3c — the spatially-variant full-field render
 
 Built at step 4 rather than step 7 because it is the heaviest compute in the
 app and its cost has to be known early. A PSF is only a convolution kernel
@@ -904,7 +951,7 @@ regression-not-validation status as the hero goldens.
 - ~~The geometric branch's ray count does not scale with the blur.~~ Closed at
   step 5: the default is now blur-scaled with its own rungs — see § 2d.
 
-## Step 4a — folded chains: the frame follows the beam, and maps back (current)
+## Step 4a — folded chains: the frame follows the beam, and maps back
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -977,7 +1024,7 @@ still five orders under the engine's ~10⁻³-wave target.
   scope limit above: with a *curved* surface tilted, the twin is the nominal
   system, so pupils and image plane are nominal while the rays are exact.
 
-## Step 4b — the Newtonian preset (current)
+## Step 4b — the Newtonian preset
 
 The first instrument that could not be written down before the fold, and the
 first consumer of the unfolded→world map. A Newtonian is one paraboloid and one
@@ -1052,7 +1099,7 @@ rung in `sequential.test.ts`.
 - **Astigmatism and field curvature** are present in the trace and unpinned;
   coma dominates a Newtonian but it is not the only off-axis term.
 
-## Step 5c — the spider: diffraction spikes from the vanes (current)
+## Step 5c — the spider: diffraction spikes from the vanes
 
 The vanes that hold a secondary mirror are long thin opaque bars, and the
 transform of a bar is a bright streak *perpendicular* to it — so a reflector's
@@ -1157,7 +1204,7 @@ on both branches, but its two visible signatures live one to a branch, and the
 orientation/spike rungs run on the paraboloid at focus where the diffraction
 branch is fully active (Strehl 1, no aliasing).
 
-## Step 5d — atmospheric seeing: the one random draw in the image (current)
+## Step 5d — atmospheric seeing: the one random draw in the image
 
 The turbulence a ground telescope looks through stamps a random optical-path
 error across the pupil, and it arrives exactly as ARCHITECTURE promised the
@@ -1274,7 +1321,7 @@ disc), and dials **D/r₀** rather than r₀ so the effect stays visible at the 
 4–20 mm apertures; the long-exposure ensemble and the field-panel wiring are
 named next.
 
-## Step 5e — the classical Cassegrain preset (current)
+## Step 5e — the classical Cassegrain preset
 
 The second reflecting preset, and the first two-powered-mirror instrument. Like
 the Newtonian it has no design table to hide behind: a paraboloidal primary and
@@ -1390,7 +1437,7 @@ paraboloid would have hidden it, rather than absorbed into a loose band.
   landed (§ 5g), so the corrector figure the SCT reuses is pinned to a closed
   form. (The **Ritchey-Chrétien** named here has also landed — § 5f below.)
 
-## Step 5f — the Ritchey-Chrétien preset (current)
+## Step 5f — the Ritchey-Chrétien preset
 
 The third reflecting preset, and the coma-nulled sibling of the classical
 Cassegrain. An RC is a Cassegrain-form telescope in which *both* mirrors are
@@ -1487,7 +1534,7 @@ where the Cassegrain had them.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian and Cassegrain.
 
-## Step 5g — the Schmidt camera preset (current)
+## Step 5g — the Schmidt camera preset
 
 The fourth reflecting preset, and the first that uses the engine's even-asphere
 path for **physics** rather than a round-trip geometry check. A Schmidt camera is
@@ -1595,7 +1642,7 @@ holds it to `lost === 0`.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian, Cassegrain and RC.
 
-## Step 5h — the Schmidt-Cassegrain preset (current)
+## Step 5h — the Schmidt-Cassegrain preset
 
 The fifth reflecting preset, and the first that exists to **compose** two units
 rather than introduce new physics: it is a Schmidt corrector (§ 5g) on the
@@ -1709,7 +1756,7 @@ holds it to `lost === 0`.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the other four reflecting presets.
 
-## Step 5i — the all-spherical commercial SCT preset (current)
+## Step 5i — the all-spherical commercial SCT preset
 
 The sixth reflecting preset, and the last of the Schmidt family: the "compact
 SCT" sold as a Celestron/Meade tube — **two spherical mirrors** (the cheapest
@@ -1807,7 +1854,7 @@ off-axis pupils vignette as a sizing artifact (both mirrors sized for the on-axi
 beam), the shared two-mirror deferral recorded at § 5h. Every rung here runs on
 axis, `lost === 0`.
 
-## Step 5j — third-order sums, and the achromatic doublet preset (current)
+## Step 5j — third-order sums, and the achromatic doublet preset
 
 The refractor preset, and the first preset that is a **lens**. It arrives in two
 halves, in that order and in one change: a third-order (Seidel) sum module pinned
@@ -1921,7 +1968,7 @@ and unpinned here. The secondary spectrum is a property of the glass pair that n
 bending can touch — beating it needs an anomalous-partial-dispersion glass, which
 is § 5k.
 
-## Step 5k — the ED (fluorite) refractor (current)
+## Step 5k — the ED (fluorite) refractor
 
 The second half of the roadmap's "achromat/ED refractor", and it needs **no new
 design code**: it is § 5j's `achromaticObjective` driven with CaF₂ (Malitson 1963,
@@ -1972,7 +2019,7 @@ monochromatic correction is worse at the same speed, and the fast end is where i
 shows. The air-spaced doublet — and with it the possibility of nulling S_I and S_II
 together — is the open follow-on.
 
-## Step 5l — module composition and afocal (telescope) evaluation (current)
+## Step 5l — module composition and afocal (telescope) evaluation
 
 The prerequisite the eyepiece library is the first consumer of. Two capabilities
 that arrive together because neither is worth much alone: **composition** (build
@@ -2046,7 +2093,7 @@ model / exit-pupil-to-eye matching. Mechanical metadata and per-surface
 provenance attach to the module and land with step 6; the splice carries only
 `objectiveSurfaceCount`, enough to name which part a surface came from.
 
-## Step 5m — the computed Plössl eyepiece (current)
+## Step 5m — the computed Plössl eyepiece
 
 The eyepiece library's lead member, and the second preset that *composes* two
 prior units rather than adding physics (after the Schmidt-Cassegrain): the Plössl
@@ -2106,7 +2153,7 @@ scope), so it cannot score the eyepiece at its working conjugates. That dividend
 measured on the real-ray afocal trace instead (the apparent-field-of-view /
 distortion capability), and is pinned there against a singlet-eyepiece control.
 
-## Step 5n — real-ray afocal: apparent field of view and distortion (current)
+## Step 5n — real-ray afocal: apparent field of view and distortion
 
 The genuinely-new engine capability under "eyepiece library" — the one the
 prescription is merely input to. `afocalProperties` (§ 5l) is first-order and so
@@ -2165,7 +2212,7 @@ that limit, so a later aperture change surfaces as a loud failure rather than a
 silently-clipped angle. Off-axis PSF, real AFOV *edge* (where the field stop cuts
 the beam), and the eye-model exit-pupil match remain deferred.
 
-## Step 5o — the Huygens eyepiece: achromatism by spacing (current)
+## Step 5o — the Huygens eyepiece: achromatism by spacing
 
 The library's second COMPUTED member, chosen because it achromatizes by a
 *different theorem* than the Plössl and so pins different physics. It is two
@@ -2218,7 +2265,7 @@ colour is corrected — spherical aberration and field curvature are not. What i
 pinned is the one thing it does by theorem, which is exactly the discipline the
 rest of this ladder holds to.
 
-## Step 5p — limiting-aperture stop selection (current)
+## Step 5p — limiting-aperture stop selection
 
 The visual branch's prerequisite, and a real engine capability rather than a
 readout. `pupils()` has always keyed off the DECLARED stop (`stopIndex`: the
@@ -2258,7 +2305,7 @@ actually consumes the selected index, so the exit pupil and OPD reference the re
 limiting aperture, which is exactly what would be tempting to fake with an
 `exit_pupil/eye_pupil` ratio and is refused here.
 
-## Step 5q — the reduced eye and visual mode (current)
+## Step 5q — the reduced eye and visual mode
 
 The first consumer of § 5p, and the step that closes the visual chain. The
 eyepiece library (§§ 5l–5o) computed the exit pupil and eye relief; visual mode
@@ -2308,7 +2355,7 @@ The eye's own aberrations, the empty-magnification / eye-acuity resolution ceili
 (which needs a stated acuity rather than the folklore 2×D), and the photopic vs
 scotopic pupil are the named follow-ons; the mechanism they would sit on is landed.
 
-## Step 5r — camera mode: pixel scale and sensor sampling (current)
+## Step 5r — camera mode: pixel scale and sensor sampling
 
 The visual mode put an eye at the exit pupil; camera mode puts a **sensor** at
 the focal plane. A rendered `ColorImage` sits on the *native* grid the
@@ -2386,7 +2433,7 @@ the magnitude → photon-flux zero point § 3a records as deliberately absent.
 Relative exposure — the aperture and f-ratio laws, whose pins are ratios — is
 the § 5s follow-on.
 
-## Step 5s — camera mode: relative exposure (current)
+## Step 5s — camera mode: relative exposure
 
 How bright the recorded frame is, up to the one scalar that is § 3a's named
 deferral: the source's absolute radiance in photons, which the shot noise would
@@ -2429,7 +2476,7 @@ here. The validated, trace-emergent exposure law is the extended-source 1/F².
 Shot noise remains the named deferral: it is a draw from an absolute photon
 count, and there is no honest count until the § 3a zero point lands.
 
-## Step 5t — tolerancing: sensitivity, compensators, and the RSS budget (current)
+## Step 5t — tolerancing: sensitivity, compensators, and the RSS budget
 
 Perturb a parameter by its manufacturing tolerance and watch the image degrade.
 The roadmap calls this the most educational thing the project can show, and it
@@ -2540,7 +2587,7 @@ Tolerancing lands here, at step 5, rather than in v2: once tilt/decenter exists
 two traces, and it is the most educational thing the simulator can show — a slider
 per tolerance, the image degrading as the RSS budget predicts.
 
-## Step 6a — the infinity-corrected microscope: architecture and the first objective (current)
+## Step 6a — the infinity-corrected microscope: architecture and the first objective
 
 The unit that opens the microscope branch. Everything step 6 promises — immersion,
 coverslip mismatch, brightfield, fluorescence — is a variation on one chain:
@@ -2661,7 +2708,7 @@ explicitly because § 1's D263 commit had to fix exactly this class of thing
   the aplanatic-points closed form, and where the § 1 oil and D263 start doing
   work) are the named follow-ons.
 
-## Step 6b — the classic 160 mm (DIN) microscope (current)
+## Step 6b — the classic 160 mm (DIN) microscope
 
 The second of the two architectures step 6 names, and the one § 6a listed under
 "Not yet pinned" as *the item most likely to be silently dropped*. That note
