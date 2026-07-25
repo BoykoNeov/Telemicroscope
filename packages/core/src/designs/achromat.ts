@@ -1,7 +1,7 @@
 import { Prescription, SurfaceSpec } from "../trace/prescription";
 import { getMedium } from "../materials/catalog";
 import { abbeNumber, LINE_D, LINE_F, LINE_C } from "../materials/dispersion";
-import { systemProperties } from "../trace/paraxial";
+import { paraxialTrace, systemProperties } from "../trace/paraxial";
 import { seidelSums } from "../analysis/seidel";
 
 /**
@@ -117,6 +117,25 @@ import { seidelSums } from "../analysis/seidel";
  *  - **Coma** is only minimised by the branch choice, not nulled (see above).
  *    Astigmatism and field curvature are traced and unpinned.
  *
+ * ## The bending is solved for a CONJUGATE PAIR, not for the glass
+ *
+ * `objectDistanceMm` moves the solve off the collimated input the telescope
+ * preset assumes. It is not a refinement — it is a different lens. The published
+ * bracket's position factor p (`analysis/seidel`, § 6b.0) enters S_I quadratically
+ * and cross-multiplies the bending, so the roots move: the same N-BK7/F2 pair at
+ * f = 37.5 mm solves at c₁ = 0.02636 for an object at infinity and c₁ = 0.02104
+ * for a microscope's conjugates — 25% apart, and using the wrong one costs 0.46
+ * waves RMS (§ 6b.1).
+ *
+ * A caller that needs the doublet **turned around** — a microscope objective, the
+ * flint facing the specimen — does not need a second solver, because third-order
+ * stigmatism is **reciprocal**: rays from A converging on B is the same statement
+ * as rays from B converging on A, so the bending that nulls S_I for the mirrored
+ * chain at object distance a is exactly the one that nulls it for the crown-first
+ * chain at the conjugate distance b. Solve here at b, reverse the prescription,
+ * and the result is corrected at a. `designs/microscope` does precisely that, and
+ * § 6b.1 pins the two routes' roots equal to 10 digits.
+ *
  * SCOPE. The stop is at the front vertex, where a refractor's cell puts it. The
  * glass carries a small margin over D/2 so that off-axis pencils are not shaved by
  * the surfaces' own sag, which means — as for §§ 5g–5i — the preset must be driven
@@ -153,9 +172,18 @@ export interface AchromaticObjectiveSpec {
   /**
    * Distance from the last vertex to the image plane (mm). Defaults to the
    * paraxial back focal distance at the design wavelength, so the prescription
-   * itself lands on focus; a focus solve normally replaces it.
+   * itself lands on focus; a focus solve normally replaces it. With
+   * `objectDistanceMm` given, the default is instead the paraxial image distance
+   * for *that* object — the back focal distance is the wrong plane there.
    */
   readonly backFocusMm?: number;
+  /**
+   * Axial object distance in front of surface 0 (mm). Omitted — the default —
+   * the bending is solved for a collimated input, which is the telescope
+   * objective's own conjugate pair. Given, S_I is nulled for that finite pair
+   * instead, which is a materially different lens; see the header.
+   */
+  readonly objectDistanceMm?: number;
 }
 
 /** One SA-null bending, with the numbers that distinguish it from the other. */
@@ -205,8 +233,14 @@ export interface AchromaticObjective {
    * the united F and C focus. A property of the glass pair alone.
    */
   readonly secondarySpectrum: number;
-  /** Residual Σ S_I at the solution (mm) — zero to solver precision, by construction. */
+  /**
+   * Residual Σ S_I at the solution (mm) — zero to solver precision, by
+   * construction, **at the conjugate it was solved for**. At any other conjugate
+   * it is not zero and is not meant to be (§ 6b).
+   */
   readonly seidelS1: number;
+  /** The finite object conjugate the bending was solved at (mm), if any. */
+  readonly objectDistanceMm?: number;
   /** Σ S_II per radian of field (mm/rad) for the branch built. */
   readonly comaPerRadian: number;
   /** Both SA-null roots, chosen and rejected, in the order the solver found them. */
@@ -303,8 +337,18 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
     ] satisfies SurfaceSpec[],
   });
 
+  const objectDistanceMm = spec.objectDistanceMm;
+  if (objectDistanceMm !== undefined && !(objectDistanceMm > 0 && Number.isFinite(objectDistanceMm))) {
+    throw new Error("achromaticObjective: objectDistanceMm must be a positive finite distance");
+  }
+  /** The conjugate the bending is solved for — collimated unless one is named. */
+  const conjugate = objectDistanceMm === undefined ? {} : { objectDistanceMm };
+
   const s1Of = (c1: number): number =>
-    seidelSums(build(curvaturesFrom(c1), f), designWavelengthNm, { marginalHeightMm: D / 2 }).s1;
+    seidelSums(build(curvaturesFrom(c1), f), designWavelengthNm, {
+      marginalHeightMm: D / 2,
+      ...conjugate,
+    }).s1;
 
   /**
    * Scan the bending for sign changes of S_I, then bisect each. The classical
@@ -358,6 +402,7 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
       const s = seidelSums(build(cs, f), designWavelengthNm, {
         marginalHeightMm: D / 2,
         fieldAngleRad: 1,
+        ...conjugate,
       });
       return {
         curvatures: cs,
@@ -412,8 +457,20 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
     }
   }
 
+  // Where the prescription's own image plane goes. For a collimated input that is
+  // the back focal distance; for a named object conjugate the BFD is the wrong
+  // plane, so the paraxial image of *that* object is used instead.
+  const imagePlaneFor = (s: number): number => {
+    const r = paraxialTrace(build(curvatures, 0), designWavelengthNm, { y: s, u: 1 });
+    if (!(Math.abs(r.u) > 0)) {
+      throw new Error("achromaticObjective: the object distance leaves the axial cone collimated");
+    }
+    return -r.y / r.u;
+  };
   const backFocusMm = spec.backFocusMm
-    ?? systemProperties(build(curvatures, 0), designWavelengthNm).bfd;
+    ?? (objectDistanceMm === undefined
+      ? systemProperties(build(curvatures, 0), designWavelengthNm).bfd
+      : imagePlaneFor(objectDistanceMm));
   const prescription = build(curvatures, backFocusMm);
 
   const partial = (m: typeof crown): number =>
@@ -436,7 +493,11 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
     crownPartialDispersion,
     flintPartialDispersion,
     secondarySpectrum: -(crownPartialDispersion - flintPartialDispersion) / (V1 - V2),
-    seidelS1: seidelSums(prescription, designWavelengthNm, { marginalHeightMm: D / 2 }).s1,
+    seidelS1: seidelSums(prescription, designWavelengthNm, {
+      marginalHeightMm: D / 2,
+      ...conjugate,
+    }).s1,
+    ...(objectDistanceMm === undefined ? {} : { objectDistanceMm }),
     comaPerRadian: chosen.comaPerRadian,
     branches,
     branch,

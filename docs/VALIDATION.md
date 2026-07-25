@@ -2717,6 +2717,108 @@ so a lens working with the object inside 2f wants its steep face toward the
 follows. That is the thin-lens shadow of § 6a.1's orientation finding, and the
 reason a DIN objective cannot inherit the infinity-solved bending.
 
+### 6b.1–6b.4 — the DIN objective and the tube-lens-less architecture
+
+`designs/microscope`'s `finiteConjugateObjective` / `finiteConjugateMicroscope`:
+a cemented doublet whose bending is solved **for the conjugate pair it works
+at**, with the specimen placed by Newton's equation. There is nothing after it —
+a DIN microscope has no tube lens, and that absence is why the objective has to
+carry the whole correction itself.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Reusing the infinity-solved bending costs 2.0 waves of W₀₄₀** at the DIN pair | § 6b.0 position factor | ✅ |
+| …where the re-solved bending nulls S_I to >1e12 below it | the solve | ✅ |
+| The two bendings differ by 14% of the curvature (0.04674 vs 0.05465 mm⁻¹) | the same lens, two conjugates | ✅ |
+| Re-solving moves the *traced* focal length +0.56% and flips the sign of the thick-lens remainder | Gullstrand, on real shapes | ✅ |
+| **Reciprocity: crown-first solved at b == mirrored solved at a, to 10 digits** | reversibility, vs a direct solve | ✅ |
+| **The fixed point is verified, not trusted**: solved-for conjugate == used-at conjugate | anti-circularity | ✅ |
+| …and the guard fires when the route is broken (mutation-checked) | negative control | ✅ |
+| **Newton x_o·x′ = f² across three independent computations** (FFD solve, BFD, ray) | Newton | ✅ |
+| Traced chief-ray M = −4 / −10 / −20 to 1e-4 | the stated tube length | ✅ |
+| x′_traced/x′_nominal ≡ f_traced/f_target — M and x′ cannot both be exact | identity, not tolerance | ✅ |
+| The microscope is **3 surfaces**: one doublet, one stop flag, no tube lens | the architecture | ✅ |
+| f = x′/M uses the OPTICAL tube length; 160/4 is 2.5 mm away and is not it | convention hygiene | ✅ |
+| **Orientation is worth only ~25%** once both are solved for their own conjugates | vs § 6a's 9.2 waves | ✅ |
+| …and crown-first is the *better* one on the sine condition | § 5j straddle, negative control | ✅ |
+| Both orientations trace with `lost` = 0 before their RMS is compared | fair-comparison guard | ✅ |
+| **Traced object NA = 0.100000** at 4×, 10×, 20× | design spec | ✅ |
+| Working F is faster than 1/(2·NA) and climbs toward it: 4.08 / 4.65 / 4.88 | the finite-conjugate cone | ✅ |
+| **Diffraction-limited at best focus** (σ = λ/17 at 4×) — and NOT at the paraxial plane (λ/7) | Maréchal, honestly | ✅ |
+| Balancing is worth >2× — the signature of a fifth-order residual | § 5j/5f/5h | ✅ |
+| The residual falls >10× from 4× to 20× as the working F slows | the same law | ✅ |
+
+**The falsified prediction.** § 6a listed this step as needing no new machinery.
+It needs one capability `analysis/seidel` explicitly refused (§ 6b.0) and a
+solver change, because the infinity-solved objective at DIN conjugates carries
+0.46 waves RMS — 6.5× past the diffraction limit. The note is corrected rather
+than quietly dropped: **a DIN objective and an infinity-corrected objective of
+the same magnification and NA are different lenses**, and the difference is the
+position factor, not the orientation.
+
+**Reciprocity is what avoids a second solver.** The specimen faces the flint, but
+`achromaticObjective` builds crown-first. Third-order stigmatism is reciprocal —
+rays from A converging on B is the same statement as rays from B converging on
+A — so the bending nulling S_I for the mirrored chain at object distance a is the
+one nulling it for the crown-first chain at the conjugate b. The rung does not
+take that on faith: it re-solves the mirrored chain directly, by bisection, and
+the two roots agree to 10 digits.
+
+**Why the fixed point is checked rather than assumed.** The bending and the
+specimen plane are mutually dependent — the plane is placed off the front focal
+distance, which moves with the bending — so they are settled by iteration. A
+fixed point that had not closed would ship a lens solved for one conjugate and
+used at another, and *every rung below would still pass*, because the trace
+confirms whatever the lens was solved for. So the constructor compares the two
+distances and throws. Mutating the design route to solve at the wrong conjugate
+fires it, which is what makes the check evidence rather than decoration.
+
+**M and x′ cannot both be exact.** A thick lens's traced EFL is not its thin-lens
+design target, so placing the specimen for an exact magnification leaves the
+optical tube length long by exactly that remainder — 0.52% at 4×, 0.26% at 10×,
+0.09% at 20×. Pinned as the *identity* x′_traced/x′_nominal = f_traced/f_target
+rather than as a tolerance: whichever way the remainder goes, the two must move
+together. The remainder is larger here than § 5j's few-parts-in-10⁴ because the
+re-solved bending is shallower, and the achromatic split fixes curvature
+*differences*, so a different bending is a different pair of real shapes with a
+different separation term.
+
+**Orientation, re-contested.** § 6a's 9.2-wave orientation rung compares a
+doublet used at the conjugates it was solved for against one that is not. Solve
+*both* orientations for the DIN pair and the contest collapses to about 25% in
+RMS wavefront (crown-first/flint-first = 1.21 at 4×, 1.25 at 10×, 1.26 at 20×).
+Flint-first still wins everywhere, so the § 6a choice stands — but it stands on a
+quarter, not on nine waves, and the honest version of the claim is that
+*orientation matters far less than conjugate*. Crown-first is meanwhile the
+**better** orientation on the sine condition (1.10e-2 against 2.26e-2), the § 5j
+straddle showing up once more: the SA-better build is not the coma-better one,
+and no bending makes a cemented doublet aplanatic.
+
+### Not yet pinned
+
+- **The coverslip.** A DIN objective is engraved `160/0.17` — the tube length
+  *and* the cover glass it is corrected for. § 1 sourced and pinned the D263
+  glass; putting a 0.17 mm slab in front of the specimen and re-solving is the
+  natural next unit, and coverslip *mismatch* is one of step 6's named
+  deliverables. Nothing here models one, so `objectDistanceMm` is a free working
+  distance in air.
+- **The eyepiece is not composed on.** The intermediate image is where this stops;
+  § 5l's `spliceModules` and the § 5m/5o eyepieces would carry it to a virtual
+  image at the eye, which is what a real DIN microscope delivers. Left out
+  deliberately — the architecture rung is about the objective standing alone.
+- **The 4× is at the edge of the glass form.** f/4.1 is fast for a cemented
+  doublet: it clears Maréchal only after the balancing defocus, and it is the
+  member the § 6a "high NA needs a different glass form" note anticipates. The
+  Lister two-doublet is the follow-on, and this is the second piece of evidence
+  for it (the first being F = 1/(2·NA) at high NA).
+- **The optical tube length digit.** 150 mm is widely quoted for the 160 mm
+  mechanical standard and is **not datasheet-verified here**; sources differ, and
+  some write M = 160/f outright, which conflates the two lengths. Every rung is a
+  ratio against the stated value, so sourcing a corrected one moves labels and no
+  physics — the same treatment § 6a gave Zeiss's 165-vs-164.5.
+- **Telecentricity, the `objectNA` seed, and immersion** remain exactly as § 6a
+  left them; this step changes none of them.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.

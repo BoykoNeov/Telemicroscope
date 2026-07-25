@@ -1,11 +1,17 @@
 import { describe, it, expect } from "vitest";
 import {
   DEFAULT_TUBE_FOCAL_LENGTH_MM,
+  MECHANICAL_TUBE_LENGTH_MM,
+  OPTICAL_TUBE_LENGTH_MM,
   TUBE_FOCAL_LENGTH_MM,
+  finiteConjugateMicroscope,
+  finiteConjugateObjective,
   infinityCorrectedMicroscope,
   microscopeObjective,
   tubeLens,
 } from "../src/designs/microscope";
+import { bestFocus, withFocus } from "../src/analysis/focus";
+import { Prescription } from "../src/trace/prescription";
 import { achromaticObjective } from "../src/designs/achromat";
 import { reversePrescription } from "../src/trace/prescription";
 import { paraxialTrace, systemProperties } from "../src/trace/paraxial";
@@ -328,5 +334,306 @@ describe("§ 6a.6 — the composed microscope images", () => {
     // Maréchal: σ ≤ λ/14 is Strehl ≥ 0.8. Both doublets run at the conjugates
     // they were solved for, so the whole chain clears it.
     expect(map.rmsWaves).toBeLessThan(1 / 14);
+  });
+});
+
+/**
+ * Rungs for the classic finite-conjugate (DIN/JIS) microscope — § 6b.
+ *
+ * § 6a listed this as "needs no new machinery"; the first measurement falsified
+ * that, and these rungs are built around the falsification. A DIN objective is
+ * not an infinity objective placed differently: the position factor moves the
+ * SA-null bending, so the lens is re-solved for the conjugates it works at.
+ */
+
+/** The pinned member: a 4×/0.10 DIN achromat on a 150 mm optical tube. */
+const buildDin4x = () => finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
+
+describe("§ 6b.1 — the DIN objective is a RE-SOLVED lens, not a placed one", () => {
+  it("costs 2.0 waves of S_I to reuse the infinity-solved bending", () => {
+    const din = buildDin4x();
+    // The same glasses, the same focal length, the same aperture — only the
+    // conjugate the bending was solved for differs, which is the § 6a recipe.
+    const D = 2 * din.stopRadiusMm * 1.12;
+    const infinitySolved = achromaticObjective({ apertureMm: D, focalRatio: din.focalLengthMm / D });
+    const mirrored = reversePrescription(infinitySolved.prescription, 0);
+    const s1 = seidelSums(mirrored, LAMBDA, {
+      marginalHeightMm: din.stopRadiusMm,
+      objectDistanceMm: din.objectDistanceMm,
+    }).s1;
+    // W₀₄₀ = S_I/8, in waves at the rim. Two waves is not a refinement.
+    expect(Math.abs(s1 / 8) / (LAMBDA * 1e-6)).toBeGreaterThan(1.9);
+    // …while the re-solved lens nulls it to the solver's own precision. The
+    // ratio, not the absolute, is the statement.
+    expect(Math.abs(din.seidelS1AtWorkingConjugates)).toBeLessThan(1e-12 * Math.abs(s1));
+  });
+
+  it("lands on a visibly different bending — 14% of the curvature", () => {
+    const din = buildDin4x();
+    const D = 2 * din.stopRadiusMm * 1.12;
+    const infinitySolved = achromaticObjective({ apertureMm: D, focalRatio: din.focalLengthMm / D });
+    const ratio = din.doublet.curvatures[0] / infinitySolved.curvatures[0];
+    expect(ratio).toBeLessThan(0.9);
+    expect(ratio).toBeGreaterThan(0.8);
+  });
+
+  it("moves the traced focal length too — the split fixes DIFFERENCES, not shapes", () => {
+    // Worth pinning because it is counter-intuitive: bending is supposed to leave
+    // every first-order property alone, and for a THIN lens it does. The
+    // achromatic split fixes c₁−c₂ and c₂−c₃, so a different bending is a
+    // different pair of real shapes with a different Gullstrand separation term.
+    const din = buildDin4x();
+    const D = 2 * din.stopRadiusMm * 1.12;
+    const infinitySolved = achromaticObjective({ apertureMm: D, focalRatio: din.focalLengthMm / D });
+    expect(infinitySolved.paraxialFocalLengthMm / infinitySolved.focalLengthMm - 1).toBeLessThan(0);
+    expect(din.paraxialFocalLengthMm / din.focalLengthMm - 1).toBeGreaterThan(0);
+    expect(din.paraxialFocalLengthMm / infinitySolved.paraxialFocalLengthMm).toBeCloseTo(1.0056, 4);
+  });
+
+  it("solves it by RECIPROCITY: crown-first at b is mirrored at a, to 10 digits", () => {
+    // The design route. `achromaticObjective` builds crown-first, but the
+    // specimen faces the flint, so the solve runs at the conjugate distance b and
+    // the result is reversed. That is only legitimate if third-order stigmatism
+    // is reciprocal, so the direct solve is run here and the roots compared.
+    const din = buildDin4x();
+    const d = din.doublet;
+    const dc1 = d.crownPower / (d.crownIndex - 1);
+    const dc2 = d.flintPower / (d.flintIndex - 1);
+    const semi = d.prescription.surfaces.map((s) => s.semiAperture);
+    /** The same doublet family, bent, mirrored, as the specimen sees it. */
+    const mirroredAt = (c1: number): Prescription => {
+      const c2 = c1 - dc1;
+      const crownFirst: Prescription = {
+        surfaces: [
+          { kind: "refract", curvature: c1, semiAperture: semi[2]!, thickness: d.crownThicknessMm, medium: d.crownMedium },
+          { kind: "refract", curvature: c2, semiAperture: semi[1]!, thickness: d.flintThicknessMm, medium: d.flintMedium },
+          { kind: "refract", curvature: c2 - dc2, semiAperture: semi[0]!, thickness: 0, medium: "AIR" },
+        ],
+      };
+      return reversePrescription(crownFirst, 0);
+    };
+    const s1Direct = (c1: number): number =>
+      seidelSums(mirroredAt(c1), LAMBDA, {
+        marginalHeightMm: din.stopRadiusMm,
+        objectDistanceMm: din.objectDistanceMm,
+      }).s1;
+
+    // Bisect the direct route's root around the one reciprocity produced.
+    const solved = d.curvatures[0];
+    let lo = solved * 0.9;
+    let hi = solved * 1.1;
+    let flo = s1Direct(lo);
+    expect(flo * s1Direct(hi)).toBeLessThan(0);
+    for (let k = 0; k < 200 && hi - lo > 1e-16; k++) {
+      const mid = 0.5 * (lo + hi);
+      const fm = s1Direct(mid);
+      if (flo * fm < 0) hi = mid;
+      else {
+        lo = mid;
+        flo = fm;
+      }
+    }
+    // Ten digits. Reciprocity is exact in the third-order sums, not approximate.
+    expect(0.5 * (lo + hi)).toBeCloseTo(solved, 10);
+  });
+
+  it("verifies its own fixed point: solved-for conjugate == used-at conjugate", () => {
+    // The anti-circularity check, as a readout. The bending and the specimen
+    // plane are mutually dependent, and a fixed point that had not closed would
+    // ship a lens solved for the wrong conjugate — with every rung below still
+    // passing, because the trace confirms whatever it was solved for.
+    for (const M of [4, 10, 20]) {
+      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      expect(o.doublet.objectDistanceMm).toBeCloseTo(o.imageDistanceMm, 6);
+      // …and the S_I it was solved for really is null where it is USED.
+      expect(Math.abs(o.seidelS1AtWorkingConjugates)).toBeLessThan(1e-12);
+    }
+  });
+});
+
+describe("§ 6b.2 — Newton's equation, on the traced cardinal points", () => {
+  it("satisfies x_o·x′ = f² between two independently measured focal points", () => {
+    for (const M of [4, 10, 20]) {
+      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      const props = systemProperties(o.prescription, LAMBDA);
+      // The front focal point from the collimating solve (§ 6a.2's route), the
+      // rear from `systemProperties`, the image plane from a paraxial ray. Three
+      // separate computations; Newton relates them.
+      const xObject = o.objectDistanceMm - collimatingObjectDistance(o.prescription, LAMBDA);
+      const xImage = o.imageDistanceMm - props.bfd;
+      expect(xObject * xImage).toBeCloseTo(props.efl ** 2, 6);
+      // …and the magnification Newton predicts from them is the one asked for.
+      expect(xImage / props.efl).toBeCloseTo(M, 4);
+    }
+  });
+
+  it("delivers the asked-for magnification on the traced chief ray", () => {
+    for (const M of [4, 10, 20]) {
+      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      const scope = finiteConjugateMicroscope({ objective: o });
+      const m = lateralMagnification(scope.system, 0.02, LAMBDA);
+      expect(m).toBeLessThan(0); // real, inverted
+      expect(Math.abs(m) / M - 1).toBeLessThan(1e-4);
+      expect(scope.nominalMagnification).toBeCloseTo(M, 12);
+    }
+  });
+
+  it("cannot make M and the tube length exact at once — and says which it kept", () => {
+    // A thick lens's traced EFL is not its thin-lens design target, so placing
+    // the specimen for an exact M leaves the optical tube length long by exactly
+    // that remainder. Pinned as the IDENTITY between the two, not as a tolerance:
+    // whatever the remainder is, the two must move together.
+    for (const M of [4, 10, 20]) {
+      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      expect(o.tracedOpticalTubeLengthMm / o.opticalTubeLengthMm).toBeCloseTo(
+        o.paraxialFocalLengthMm / o.focalLengthMm,
+        9,
+      );
+      // …and it is a small effect, under 0.6% even for the thickest (4×) member.
+      expect(Math.abs(o.tracedOpticalTubeLengthMm / o.opticalTubeLengthMm - 1)).toBeLessThan(6e-3);
+    }
+  });
+
+  it("has no tube lens at all — the objective IS the microscope", () => {
+    const scope = finiteConjugateMicroscope({ objective: buildDin4x() });
+    // Three surfaces: one cemented doublet. The architectural difference from
+    // § 6a in one assertion, and the reason the objective carries the whole
+    // correction itself.
+    expect(scope.prescription.surfaces).toHaveLength(3);
+    const flags = scope.prescription.surfaces.map((s) => s.isStop === true);
+    expect(flags.filter(Boolean)).toHaveLength(1);
+    expect(flags[0]).toBe(true);
+  });
+
+  it("keeps the mechanical 160 out of the optics", () => {
+    // 160 is the ENGRAVED, mechanical tube length; the magnification is a ratio
+    // against the optical one. Writing M = 160/f conflates them, and it is a 7%
+    // error in the label — asserted so the conflation cannot creep back in.
+    expect(MECHANICAL_TUBE_LENGTH_MM.din).toBe(160);
+    expect(OPTICAL_TUBE_LENGTH_MM.din).toBe(150);
+    const o = buildDin4x();
+    expect(o.focalLengthMm).toBeCloseTo(150 / 4, 12);
+    expect(Math.abs(o.focalLengthMm - 160 / 4)).toBeGreaterThan(2);
+    // Stated, not assumed: a different convention re-labels the same glass, the
+    // way § 6a's Zeiss tube does.
+    const alt = finiteConjugateObjective({
+      magnification: 4,
+      numericalAperture: 0.1,
+      opticalTubeLengthMm: 160,
+    });
+    expect(alt.focalLengthMm).toBeCloseTo(40, 12);
+    expect(Math.abs(lateralMagnification(finiteConjugateMicroscope({ objective: alt }).system, 0.02, LAMBDA)))
+      .toBeCloseTo(4, 2);
+  });
+});
+
+describe("§ 6b.3 — orientation, re-contested at the DIN conjugates", () => {
+  it("is worth only ~25% once each orientation is solved for its own conjugates", () => {
+    // § 6a's orientation rung is 9.2 waves, but that compares a doublet used at
+    // the conjugates it was solved for against one that was not. Solve BOTH ways
+    // round for the DIN pair and the contest is much closer: the flint-first
+    // build still wins at every magnification, by about a quarter.
+    for (const M of [4, 10, 20]) {
+      const flint = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      const crown = finiteConjugateObjective({
+        magnification: M,
+        numericalAperture: 0.1,
+        orientation: "crownFirst",
+      });
+      const rms = (o: typeof flint): number => {
+        const s = finiteConjugateMicroscope({ objective: o }).system;
+        const map = opdMap(s, 0, LAMBDA, pupilGrid(21));
+        // Both orientations must trace CLEAN before their wavefronts are
+        // compared: an RMS averaged over a clipped pupil is a different number.
+        expect(map.lost).toBe(0);
+        return map.rmsWaves;
+      };
+      const ratio = rms(crown) / rms(flint);
+      expect(ratio).toBeGreaterThan(1.15);
+      expect(ratio).toBeLessThan(1.35);
+    }
+  });
+
+  it("…and the SA-better orientation is NOT the coma-better one", () => {
+    // § 5j's straddle finding again, now across orientation rather than across
+    // the two roots: crown-first is worse on axis and better on the sine
+    // condition. Neither orientation is aplanatic, and no bending makes one so.
+    const M = 4;
+    const flint = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+    const crown = finiteConjugateObjective({
+      magnification: M,
+      numericalAperture: 0.1,
+      orientation: "crownFirst",
+    });
+    const res = (o: typeof flint): number =>
+      Math.abs(sineConditionResidual(finiteConjugateMicroscope({ objective: o }).system, 0.05, LAMBDA));
+    expect(res(crown)).toBeLessThan(res(flint));
+    expect(res(crown)).toBeGreaterThan(1e-3);
+  });
+});
+
+describe("§ 6b.4 — the DIN architecture's numbers", () => {
+  it("delivers the specified NA at the specimen, from the traced marginal ray", () => {
+    for (const M of [4, 10, 20]) {
+      const scope = finiteConjugateMicroscope({
+        objective: finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 }),
+      });
+      expect(objectNumericalAperture(scope.system, LAMBDA)).toBeCloseTo(0.1, 6);
+    }
+  });
+
+  it("runs FASTER than 1/(2·NA), approaching it as the magnification climbs", () => {
+    // The finite-conjugate correction to § 6a.4's F = 1/(2·NA). The specimen sits
+    // beyond the front focus by f/M, so the cone filling the stop is wider than
+    // the collimated-out case by about (1 + 1/M) — a 20% effect at 4×, 5% at 20×,
+    // and vanishing as the DIN objective approaches an infinity-corrected one.
+    const ratios = [4, 10, 20].map(
+      (M) => finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 }).workingFocalRatio,
+    );
+    for (const F of ratios) expect(F).toBeLessThan(5);
+    expect(ratios[0]!).toBeLessThan(ratios[1]!);
+    expect(ratios[1]!).toBeLessThan(ratios[2]!);
+    expect(ratios[2]!).toBeGreaterThan(4.8); // 20× is already within 4% of the limit
+    expect(ratios[0]!).toBeLessThan(4.2); // 4× is a genuinely fast doublet
+  });
+
+  it("is diffraction-limited AT BEST FOCUS, and honestly not at the paraxial plane", () => {
+    const o = buildDin4x();
+    const s = finiteConjugateMicroscope({ objective: o }).system;
+    const paraxial = opdMap(s, 0, LAMBDA, pupilGrid(21)).rmsWaves;
+    // The 4× is an f/4.1 cemented doublet — the speed § 5j's header warns the
+    // third-order solve degrades at. Its fifth-order residual needs the
+    // balancing defocus, and at the paraxial plane it does NOT clear Maréchal.
+    expect(paraxial).toBeGreaterThan(1 / 14);
+    const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
+    const balanced = opdMap(withFocus(s, focus.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21)).rmsWaves;
+    expect(balanced).toBeLessThan(1 / 14);
+    // Balancing is worth better than 2× — the signature of a pure fifth-order
+    // residual, not of a mis-solved third order.
+    expect(paraxial / balanced).toBeGreaterThan(2);
+  });
+
+  it("gets better as the objective slows, at fixed NA", () => {
+    // F = f/(2·a·tan u) rises with M at fixed NA, and a slower doublet has less
+    // fifth-order residual — the same law § 5j and §§ 5f/5h all report.
+    const rms = (M: number): number => {
+      const s = finiteConjugateMicroscope({
+        objective: finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 }),
+      }).system;
+      const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
+      return opdMap(withFocus(s, focus.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21)).rmsWaves;
+    };
+    const [r4, r10, r20] = [rms(4), rms(10), rms(20)];
+    expect(r10).toBeLessThan(r4);
+    expect(r20).toBeLessThan(r10);
+    expect(r4 / r20).toBeGreaterThan(10);
+  });
+
+  it("refuses a magnification or NA it cannot mean", () => {
+    expect(() => finiteConjugateObjective({ magnification: 0, numericalAperture: 0.1 })).toThrow(/magnification/);
+    expect(() => finiteConjugateObjective({ magnification: 4, numericalAperture: 1.2 })).toThrow(/NA/);
+    expect(() =>
+      finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, opticalTubeLengthMm: 0 }),
+    ).toThrow(/tube length/);
   });
 });

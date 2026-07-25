@@ -3,6 +3,7 @@ import { paraxialTrace, systemProperties } from "../trace/paraxial";
 import { collimatingObjectDistance, spliceModules } from "../trace/compose";
 import { OpticalSystem } from "../trace/system";
 import { LINE_D } from "../materials/dispersion";
+import { seidelSums } from "../analysis/seidel";
 import { AchromaticObjective, achromaticObjective } from "./achromat";
 
 /**
@@ -380,5 +381,323 @@ export function infinityCorrectedMicroscope(
     objectDistanceMm,
     infinitySpaceMm,
     objectiveSurfaceCount: objective.prescription.surfaces.length,
+  };
+}
+
+/**
+ * The classic finite-conjugate (DIN/JIS) microscope — the other architecture
+ * step 6 names, and a **differently solved lens**, not the § 6a objective used
+ * differently.
+ *
+ * ## What the 160 is, and what it is not
+ *
+ * "160 mm tube length", engraved on every DIN objective beside its coverslip
+ * thickness, is the **mechanical** tube length: nosepiece shoulder to the
+ * eyepiece tube's top. The magnification is quoted against a different distance —
+ * the **optical tube length**, Newton's x′, from the objective's rear focal plane
+ * to the intermediate image — and Newton's equation gives the whole architecture:
+ *
+ *     |M| = x′/f          x_o·x′ = f²          so the specimen sits f/M
+ *                                              in front of the front focal point
+ *
+ * The optical tube length is *not* 160. It is conventionally quoted around
+ * 150 mm, the difference being the mechanical stack — the objective's rear focal
+ * plane sits inside its barrel, and the intermediate image sits below the
+ * eyepiece shoulder. Like § 6a's 200/180/165 tube-lens conventions these digits
+ * are **widely quoted and not datasheet-verified here**; sources differ, and some
+ * write "M = 160/f" outright, which conflates the two lengths and is a ~7% error
+ * in the label. So the number is a parameter, spelled out in
+ * `OPTICAL_TUBE_LENGTH_MM`, and every rung is a **ratio against whichever value
+ * is stated** — exactly the split § 6a made. Nothing here rests on the digits.
+ *
+ * ## Why this cannot reuse § 6a's objective
+ *
+ * § 6a's note predicted this step would need no new machinery: finite conjugates
+ * and `bestFocus` both exist, so a DIN objective looked like a placement problem.
+ * Measuring it says otherwise. § 6a's doublet, whose bending was solved for a
+ * collimated input, placed at DIN conjugates carries **0.46 waves** RMS on axis
+ * — 6.5× past the diffraction limit. The reason is the position factor: S_I
+ * depends on the object conjugate through p, quadratically and cross-multiplying
+ * the bending (§ 6b.0), so the SA-null roots move. For the 4× they move 25%.
+ *
+ * So the bending is re-solved *at the conjugates the objective actually works
+ * at*, and the two unknowns — the bending and the specimen plane — are coupled
+ * (the plane depends on the lens's front focal distance, which depends on the
+ * bending). They are settled by a fixed-point iteration, and the fixed point is
+ * then **verified rather than trusted**: the conjugate the bending was solved for
+ * must equal the conjugate the built objective is used at, or the constructor
+ * throws. Without that check a lens solved for the wrong conjugate would still
+ * pass every rung downstream, because the trace confirms whatever it was solved
+ * for.
+ *
+ * ## Reciprocity does the turn-around
+ *
+ * The specimen faces the flint here as it does in § 6a, so the doublet is
+ * mirrored — but `achromaticObjective` solves crown-first. It needs no second
+ * solver, because third-order stigmatism is **reciprocal**: rays from A
+ * converging on B is the same statement as rays from B converging on A. So the
+ * bending that nulls S_I for the mirrored chain with the specimen at a is exactly
+ * the one that nulls it for the crown-first chain with an object at the conjugate
+ * distance b. The objective is solved at b and reversed, and § 6b.1 pins the two
+ * routes' roots equal to 10 digits.
+ */
+
+/**
+ * Mechanical tube length (mm) — the engraved number, shoulder to eyepiece seat.
+ * Carried so the distinction from the optical tube length is written down rather
+ * than implied; **nothing computes with it**, because the magnification does not.
+ */
+export const MECHANICAL_TUBE_LENGTH_MM = { din: 160, jis: 160 } as const;
+
+/**
+ * Optical tube length (mm) — Newton's x′, rear focal plane to intermediate
+ * image, and the length the magnification is actually a ratio against. Widely
+ * quoted near 150 for the 160 mm mechanical standard and **not datasheet-verified
+ * here**; every rung is a ratio against whichever value is passed in.
+ */
+export const OPTICAL_TUBE_LENGTH_MM = { din: 150 } as const;
+
+/** The default when none is named. */
+export const DEFAULT_OPTICAL_TUBE_LENGTH_MM = OPTICAL_TUBE_LENGTH_MM.din;
+
+export interface FiniteConjugateObjectiveSpec {
+  /** Nominal magnification against `opticalTubeLengthMm` (e.g. 4 for a 4×). */
+  readonly magnification: number;
+  /** Object-space numerical aperture n·sin u. */
+  readonly numericalAperture: number;
+  /** Newton's x′ the magnification is quoted against (mm). Default 150. */
+  readonly opticalTubeLengthMm?: number;
+  readonly crownMedium?: string;
+  readonly flintMedium?: string;
+  readonly designWavelengthNm?: number;
+  /**
+   * Which face meets the specimen. `"flintFirst"` (default) is the mirrored
+   * doublet § 6a.1 measured; `"crownFirst"` builds the turn-around so the rungs
+   * can measure what the choice is worth **with each orientation solved for its
+   * own conjugates**, which is a different and much closer contest than § 6a's.
+   */
+  readonly orientation?: "flintFirst" | "crownFirst";
+  /**
+   * Glass semi-aperture as a multiple of the stop radius. Unlike a telescope
+   * objective's, a finite-conjugate pencil is still diverging at surface 0 and
+   * keeps climbing across the elements, so the glass cannot be sized to the stop.
+   * Default 1.12, which clears both orientations at NA 0.10; the trace's `lost`
+   * count is what checks it.
+   */
+  readonly glassMarginFactor?: number;
+}
+
+export interface FiniteConjugateObjective {
+  /**
+   * The objective alone, authored **specimen-side first**, trailing thickness 0.
+   * Exactly one stop flag, on surface 0.
+   */
+  readonly prescription: Prescription;
+  /** x′/M (mm) — the focal length the nominal magnification implies. */
+  readonly focalLengthMm: number;
+  /** Traced paraxial EFL at the design wavelength (mm). */
+  readonly paraxialFocalLengthMm: number;
+  /** Solved specimen plane: surface 0's vertex to the object (mm, in front). */
+  readonly objectDistanceMm: number;
+  /** Last vertex to the intermediate image (mm), from the paraxial trace. */
+  readonly imageDistanceMm: number;
+  /** The optical tube length asked for (mm) — Newton's x′. */
+  readonly opticalTubeLengthMm: number;
+  /**
+   * The optical tube length the traced lens actually delivers (mm):
+   * `imageDistanceMm` − BFD. Parts in 10⁴ under the nominal, the same Gullstrand
+   * remainder § 5j leaves in the focal length.
+   */
+  readonly tracedOpticalTubeLengthMm: number;
+  /** Aperture stop semi-diameter (mm) = objectDistance·tan u — what sets the NA. */
+  readonly stopRadiusMm: number;
+  /** f/(2·stopRadius): the working focal ratio, faster than 1/(2·NA) by (1+1/M). */
+  readonly workingFocalRatio: number;
+  /**
+   * ΣS_I (mm) of the built objective, evaluated at the conjugates it is actually
+   * used at. Zero to solver precision — and it is a *readout*, not an assumption:
+   * the constructor computes it after the fixed point closes.
+   */
+  readonly seidelS1AtWorkingConjugates: number;
+  /** The crown-first doublet this was solved as. */
+  readonly doublet: AchromaticObjective;
+  readonly orientation: "flintFirst" | "crownFirst";
+  readonly numericalAperture: number;
+  readonly designWavelengthNm: number;
+}
+
+/** Paraxial image distance from the last vertex, for an object `s` in front. */
+function paraxialImageDistance(p: Prescription, s: number, wavelengthNm: number): number {
+  const r = paraxialTrace(p, wavelengthNm, { y: s, u: 1 });
+  if (!(Math.abs(r.u) > 0)) {
+    throw new Error("finiteConjugateObjective: the chain leaves the axial cone collimated");
+  }
+  return -r.y / r.u;
+}
+
+/** One stop flag, on surface 0, and no trailing thickness — see § 6a's note. */
+const asObjective = (p: Prescription, trailingMm: number): Prescription => ({
+  ...p,
+  surfaces: p.surfaces.map((s, i) => ({
+    ...s,
+    isStop: i === 0,
+    ...(i === p.surfaces.length - 1 ? { thickness: trailingMm } : {}),
+  })),
+});
+
+/**
+ * A DIN/JIS objective: an achromatic doublet whose bending is solved for the
+ * finite conjugate pair it works at, with the specimen plane placed by Newton's
+ * equation so the magnification is x′/f.
+ */
+export function finiteConjugateObjective(
+  spec: FiniteConjugateObjectiveSpec,
+): FiniteConjugateObjective {
+  const M = spec.magnification;
+  const NA = spec.numericalAperture;
+  if (!(M > 0)) throw new Error("finiteConjugateObjective: magnification must be positive");
+  if (!(NA > 0) || NA >= 1) {
+    throw new Error("finiteConjugateObjective: a dry objective's NA must lie in (0, 1)");
+  }
+  const opticalTubeLengthMm = spec.opticalTubeLengthMm ?? DEFAULT_OPTICAL_TUBE_LENGTH_MM;
+  if (!(opticalTubeLengthMm > 0)) {
+    throw new Error("finiteConjugateObjective: the optical tube length must be positive");
+  }
+  const designWavelengthNm = spec.designWavelengthNm ?? LINE_D;
+  const orientation = spec.orientation ?? "flintFirst";
+  const glassMarginFactor = spec.glassMarginFactor ?? 1.12;
+  const glasses = {
+    ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
+    ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
+  };
+
+  // Newton: |M| = x′/f fixes the focal length outright.
+  const f = opticalTubeLengthMm / M;
+  const tanU = NA / Math.sqrt(1 - NA * NA);
+
+  // Thin-lens first guess, measured from the principal planes: the object sits
+  // f(1 + 1/M) in front, the image f(1 + M) behind. The iteration moves both onto
+  // the thick lens's own vertices.
+  let a = f * (1 + 1 / M);
+  let b = f * (1 + M);
+  let doublet!: AchromaticObjective;
+  let bare!: Prescription;
+
+  for (let i = 0; i < 60; i++) {
+    // The glass is sized off the stop the specimen plane implies. S_I ∝ h⁴
+    // exactly, so the root of S_I(c₁) = 0 does not move with the aperture — the
+    // sizing cannot pull the design around, it only decides how much glass there
+    // is (and, through the defaulted thicknesses, a weak second-order coupling
+    // the iteration absorbs).
+    const stop = a * tanU;
+    const D = 2 * stop * glassMarginFactor;
+    doublet = achromaticObjective({
+      apertureMm: D,
+      focalRatio: f / D,
+      // Reciprocity: the mirrored chain at object a is the crown-first chain at
+      // the conjugate b. See the header.
+      objectDistanceMm: orientation === "flintFirst" ? b : a,
+      ...glasses,
+      designWavelengthNm,
+    });
+    bare = orientation === "flintFirst"
+      ? reversePrescription(doublet.prescription, 0)
+      : doublet.prescription;
+
+    const efl = systemProperties(bare, designWavelengthNm).efl;
+    const ffd = collimatingObjectDistance(bare, designWavelengthNm);
+    // Newton again: the specimen sits f/M beyond the front focal point.
+    const aNext = ffd + efl / M;
+    const bNext = paraxialImageDistance(asObjective(bare, 0), aNext, designWavelengthNm);
+    const moved = Math.max(Math.abs(aNext - a), Math.abs(bNext - b));
+    a = aNext;
+    b = bNext;
+    if (moved < 1e-13 * (Math.abs(a) + Math.abs(b))) break;
+  }
+
+  // Read the final geometry off the lens that was actually BUILT, not off the
+  // iteration's variables.
+  const paraxialFocalLengthMm = systemProperties(bare, designWavelengthNm).efl;
+  const ffd = collimatingObjectDistance(bare, designWavelengthNm);
+  const objectDistanceMm = ffd + paraxialFocalLengthMm / M;
+  const prescription = asObjective(bare, 0);
+  const imageDistanceMm = paraxialImageDistance(prescription, objectDistanceMm, designWavelengthNm);
+
+  // ANTI-CIRCULARITY. The bending was solved for one conjugate; the objective is
+  // used at another. If the fixed point has not closed, those differ — and every
+  // rung downstream would still pass, because the trace confirms whatever the
+  // lens was solved for. So the two are compared explicitly.
+  const solvedAt = doublet.objectDistanceMm;
+  const usedAt = orientation === "flintFirst" ? imageDistanceMm : objectDistanceMm;
+  if (solvedAt === undefined || !(Math.abs(solvedAt - usedAt) <= 1e-9 * Math.abs(usedAt))) {
+    throw new Error(
+      `finiteConjugateObjective: the conjugate solve did not converge — bending solved for ${solvedAt?.toFixed(6)} mm, objective used at ${usedAt.toFixed(6)} mm`,
+    );
+  }
+
+  const stopRadiusMm = objectDistanceMm * tanU;
+  return {
+    prescription,
+    focalLengthMm: f,
+    paraxialFocalLengthMm,
+    objectDistanceMm,
+    imageDistanceMm,
+    opticalTubeLengthMm,
+    tracedOpticalTubeLengthMm:
+      imageDistanceMm - systemProperties(prescription, designWavelengthNm).bfd,
+    stopRadiusMm,
+    workingFocalRatio: f / (2 * stopRadiusMm),
+    seidelS1AtWorkingConjugates: seidelSums(prescription, designWavelengthNm, {
+      marginalHeightMm: stopRadiusMm,
+      objectDistanceMm,
+    }).s1,
+    doublet,
+    orientation,
+    numericalAperture: NA,
+    designWavelengthNm,
+  };
+}
+
+export interface FiniteConjugateSpec {
+  readonly objective: FiniteConjugateObjective;
+  /** Object heights (mm from the axis) the system's field is spelled with. */
+  readonly objectHeightsMm?: readonly number[];
+  readonly wavelengths?: readonly { readonly nm: number; readonly weight: number }[];
+}
+
+export interface FiniteConjugateMicroscope {
+  readonly system: OpticalSystem;
+  /** The objective alone — a DIN microscope has no tube lens, by definition. */
+  readonly prescription: Prescription;
+  /** x′/f_obj — what the engraving claims, against the stated tube length. */
+  readonly nominalMagnification: number;
+  readonly objectDistanceMm: number;
+  readonly imageDistanceMm: number;
+  readonly opticalTubeLengthMm: number;
+}
+
+/**
+ * The DIN microscope: the objective, the specimen on its solved plane, and the
+ * intermediate image where Newton puts it. There is nothing between them — that
+ * absence *is* the architecture, and the reason the objective had to carry the
+ * whole correction itself.
+ */
+export function finiteConjugateMicroscope(spec: FiniteConjugateSpec): FiniteConjugateMicroscope {
+  const { objective } = spec;
+  const prescription = asObjective(objective.prescription, objective.imageDistanceMm);
+  const system: OpticalSystem = {
+    prescription,
+    aperture: { kind: "stopRadius", value: objective.stopRadiusMm },
+    field: { kind: "objectHeight", values: spec.objectHeightsMm ?? [0] },
+    wavelengths: spec.wavelengths ?? [{ nm: objective.designWavelengthNm, weight: 1 }],
+    conjugate: { kind: "finite", distance: objective.objectDistanceMm },
+  };
+  return {
+    system,
+    prescription,
+    nominalMagnification: objective.opticalTubeLengthMm / objective.focalLengthMm,
+    objectDistanceMm: objective.objectDistanceMm,
+    imageDistanceMm: objective.imageDistanceMm,
+    opticalTubeLengthMm: objective.opticalTubeLengthMm,
   };
 }

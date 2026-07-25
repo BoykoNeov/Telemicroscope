@@ -387,16 +387,42 @@
    so the cone is s·tan u and conflating them ships an objective 2.1% fast; and
    the emergent-ray sine condition is satisfied to 0.43% but *deliberately not to
    zero*, because § 5j's SA-null bendings straddle the coma-free one — a doublet
-   is corrected, never aplanatic. **Only one of the two architectures this step
-   names is landed** — the classic 160 mm finite-conjugate form is still open,
-   and needs no new machinery (finite conjugates and `bestFocus` both exist), so
-   it is mostly a question of which orientation § 6a.1's argument picks for an
-   objective used at a third conjugate pair. The three named blockers for
-   immersion are
+   is corrected, never aplanatic. The three named blockers for immersion are
    recorded rather than papered over: `objectNA`'s aperture seed is a tangent and
    is 2.6× out at NA 1.4; telecentricity needs object-space ray aiming that does
    not exist; and F = 1/(2·NA) means high NA is a different glass form (Lister,
    then the aplanatic hyperhemisphere) rather than a faster doublet.
+   *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
+   `finiteConjugateMicroscope` (VALIDATION § 6b). The second of the two
+   architectures this step names, and the one § 6a flagged as most likely to be
+   silently dropped. § 6a predicted it would need **no new machinery** — finite
+   conjugates and `bestFocus` both exist — and the first measurement falsified
+   that: § 6a's objective placed at DIN conjugates carries 0.46 waves RMS, 6.5×
+   past the diffraction limit. A DIN objective is not an infinity objective used
+   differently, it is a **re-solved lens**, and re-solving needed a capability
+   `analysis/seidel` explicitly refused — the **position factor**, i.e. a finite
+   object conjugate (§ 6b.0), pinned against the published thin-lens bracket's
+   whole p-dependence including the discriminating p = 0 ⇔ s = s′ = 2f case and
+   the generalised best form q_best(p) = −2(n²−1)p/(n+2), whose p = −1 case is the
+   classical minimum § 5j already pins. No second solver was needed for the
+   turn-around because third-order stigmatism is **reciprocal**: solving the
+   crown-first doublet at the conjugate b and reversing gives, to 10 digits, the
+   bending that solves the mirrored chain at a. Headlines: Newton's x_o·x′ = f²
+   verified across three independent computations (the FFD solve, the BFD, and a
+   paraxial ray); the 2.0-wave price of the infinity-solved bending against a
+   re-solve that nulls it; and the orientation question § 6a left open, answered
+   honestly — solve *both* ways round for the DIN pair and flint-first still wins
+   but by **~25%, not 9.2 waves**, so orientation matters far less than conjugate.
+   Two findings carried: the bending is not first-order-neutral for a *thick*
+   lens (the achromatic split fixes curvature differences, so a re-solve moves the
+   traced EFL 0.56% and flips the sign of the Gullstrand remainder), and M and the
+   tube length cannot both be exact — pinned as the identity x′_traced/x′_nominal
+   = f_traced/f_target. The mechanical 160 is kept out of the optics: the
+   magnification is a ratio against the **optical** tube length (~150, stated and
+   not datasheet-verified), and "M = 160/f" conflates the two. Open here: the
+   `160/0.17` coverslip, composing an eyepiece onto the intermediate image, and
+   the 4× sitting at f/4.1 — the edge of the cemented-doublet form, and the second
+   piece of evidence for the Lister follow-on.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
