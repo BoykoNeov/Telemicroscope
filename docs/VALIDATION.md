@@ -49,6 +49,10 @@ whole ladder.
 | [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
 
+Two sections close the file: [Later rungs](#later-rungs), the pins that are
+named but not yet made, and [Rules](#rules), the discipline every rung is held
+to. Individual steps also carry their own "Not yet pinned" notes.
+
 Tests are in `packages/core/test/<name>.test.ts`. Steps 5a and 5b do not
 exist: tilt/decenter and folded pupils were prerequisites closed inside § 4a.
 

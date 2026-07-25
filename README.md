@@ -12,12 +12,17 @@ image looks the way it does.
 
 ## Status
 
-Step 6 of the build order — the **microscope branch**. Steps 1–5 are complete
-and validated: geometry and materials, exact + paraxial tracing, pupils and
-OPD, the wave layer (PSF/MTF, Zernike, polychromatic stacking), the rendered
-hero image, and the telescope branch — Newtonian, Cassegrain, Ritchey-Chrétien,
-Schmidt, Schmidt-Cassegrain, SCT, achromat and ED refractors, eyepieces, seeing,
-spider diffraction, visual and camera modes, and tolerancing.
+Step 6 of the build order — the **microscope branch**.
+
+Steps 1–4 are complete and validated: geometry and materials, exact + paraxial
+tracing, pupils and OPD, the wave layer (PSF/MTF, Zernike, polychromatic
+stacking), and the rendered hero image.
+
+Step 5's **optics** have landed — Newtonian, Cassegrain, Ritchey-Chrétien,
+Schmidt, Schmidt-Cassegrain and SCT presets, achromat and ED refractors,
+computed eyepieces, spider diffraction, atmospheric seeing, visual and camera
+modes, and tolerancing. Its mechanical layer, its scenes (star/planet/lunar)
+and the bench editor are still open.
 
 Both microscope architectures now trace: infinity-corrected (§ 6a) and the
 classic 160 mm DIN (§ 6b). Open in this step: the `160/0.17` coverslip,
