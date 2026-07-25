@@ -84,238 +84,78 @@
      shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
      it. Rendered coarse-to-fine in its own worker.
 5. **Telescope branch + bench editor + mech layer** ← optics landed; still open:
-   the mechanical layer, scenes (star/planet/lunar), and the bench editor
+   the mechanical layer, scenes (star/planet/lunar), and the bench editor.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
    scenes, visual mode (eye model, exit-pupil matching) and camera mode
    (pixel scale, exposure, shot noise). Mechanical compatibility checking
    with feedback into optical spacings (extension tubes change the image).
-   *Prerequisite — tilt/decenter:* ✅ closed. Refracting tilt/decenter already
-   existed; what the presets actually needed was the **folded mirror frame**,
-   now landed as a per-prescription convention with its own rungs (VALIDATION
-   § 4a). An SCT is on-axis and was always expressible; it is the Newtonian's
-   45° diagonal — a tilted mirror with surfaces downstream of it — that could
-   not be written down before. The same change makes mirror *misalignment*
-   place downstream surfaces correctly, which is what tolerancing rests on.
+   *Prerequisite — tilt/decenter:* ✅ closed. The **folded mirror frame**, a
+   per-prescription convention (VALIDATION § 4a). It is what makes the
+   Newtonian's 45° diagonal expressible, and what tolerancing rests on.
    *Prerequisite — folded pupils/OPD/PSF:* ✅ closed. The unfolded-z →
-   world-frame map landed (`core/trace/axis`, VALIDATION § 4a): first-order
-   geometry is computed on the `unfoldedTwin`, rays are traced through the real
-   folded chain, and one rigid map joins them — so a folded system now images
-   instead of throwing. A folded Newtonian is diffraction-limited on axis and
-   agrees with its straightened twin on OPD, focus and Strehl.
-   *First preset — Newtonian:* ✅ `designs/newtonian` (VALIDATION § 4b). Derived
-   from aperture and focal ratio, not transcribed: the diagonal is sized in
-   closed form and the off-axis behaviour is pinned to third-order coma, both
-   the coefficient and its ∝θ/F² scaling. Writing it turned up two engine
-   findings — a tilted flat's footprint in a converging beam is asymmetric, and
-   the primary's sag moves the beam diameter 0.25% — plus an inclusive-rim fix
-   in the tracer.
-   *Spider diffraction:* ✅ (VALIDATION § 5c). The vanes arrive as a new
-   `PupilFunction` — one `spiderObscures` predicate shared by the FFT and
-   geometric branches — so a reflector's diffraction spikes fall out of the same
-   transform the Airy rings do: perpendicular to each vane, 4→cross / 3→six-arm
-   star, pinned to the rectangle-transform sinc and the strip-area energy.
-   *Atmospheric seeing:* ✅ (VALIDATION § 5d). Turbulence is the one random draw
-   in the image, and it arrives the same way — a `PupilFunction` *phase*,
-   `withPhaseScreen`, added onto the optics. A subharmonic-augmented Kolmogorov
-   screen (seeded, in OPD so it is colour-honest) is pinned by its statistics:
-   the structure function's 5/3 law, Fried's long-exposure OTF exp(−3.44(ρ/r₀)^⁵ᐟ³)
-   with r₀_eff flat across frequency, the λ/r₀ scaling, and FWHM ≈ 0.98 λ/r₀.
-   Being pure phase it lives only in the FFT branch; the geometric ∇φ ray-tilt
-   is the named deferral.
-   *Classical Cassegrain:* ✅ `designs/cassegrain` (VALIDATION § 5e). The second
-   reflecting preset and the first with two powered mirrors — a paraboloidal
-   primary and a convex hyperboloidal secondary, authored `unfolded` (a
-   Cassegrain has no lateral fold: the beam goes back and forward on one axis
-   through a hole in the primary, exactly the two-mirror case already pinned
-   against the mirror equation, so no new trace machinery). Its headline rung is
-   the confocal-conic property: on axis it is stigmatic *exactly* → Strehl 1 to
-   numerical precision, with a spherical-secondary negative control, and its coma
-   is pinned by cross-validation to equal an equivalent-EFL paraboloid's. This is
-   the *pinnable* member of the family; the **SCT** the list names corrects
-   spherical mirrors with an optimized proprietary corrector that has no external
-   number, so it would need a design table to hide behind. The aspheric corrector
-   lands in its own later unit whose clean pin is a **Schmidt camera** (single
-   spherical mirror + textbook corrector figure — the first `asphereCoeffs`
-   preset); the **Ritchey-Chrétien** (both mirrors hyperboloidal, coma nulled) is
-   a closed-form sibling that can land alongside.
-   *Ritchey-Chrétien:* ✅ `designs/ritchey` (VALIDATION § 5f). The closed-form
-   sibling the Cassegrain note promised, and the third reflecting preset. Same
-   Cassegrain-form layout — now shared through one `twoMirrorLayout` so the two
-   cannot drift — with both mirrors hyperboloidal (K₁, K₂ the published aplanatic
-   closed form) to null third-order coma as well as spherical aberration. Its
-   headline rung is the coma null pinned against the classical Cassegrain on the
-   identical geometry (RC coma < 1% of it), with an astigmatism-remains negative
-   control proving the correction is coma-specific, and an on-axis rung that
-   parts company with the Cassegrain honestly: the RC is diffraction-limited but
-   *not* exactly stigmatic (a fifth-order spherical residual, shown to fall ~34×
-   as the primary slows), where the confocal Cassegrain is perfect to ~1e-10.
-   *Schmidt camera:* ✅ `designs/schmidt` (VALIDATION § 5g). The fourth reflecting
-   preset and the first to drive the even-asphere path with physics rather than a
-   round-trip geometry check — a spherical mirror with an aspheric corrector plate
-   at its centre of curvature. Its pin is the corrector's closed-form fourth-order
-   figure A₄ = −1/(4(n−1)R³) (computed from scalars n and R, checked to 18 digits),
-   with an on-axis rung that nulls the sphere's spherical aberration ~100× to
-   diffraction-limited (a sign-flip negative control that ≈ doubles the bare-sphere
-   error), an anastigmat headline (coma *and* astigmatism 3–4 orders below an
-   equal-f/D paraboloid's, from the stop at the centre of curvature), and a
-   spherochromatism rung pinned to the dispersion × corrector figure in closed
-   form. This is the textbook corrector the **SCT** reuses, so the SCT is now
-   unblocked.
-   *Schmidt-Cassegrain:* ✅ `designs/schmidt-cassegrain` (VALIDATION § 5h). The
-   fifth reflecting preset, and the first that exists to *compose* two prior units
-   rather than add physics: the Schmidt corrector (§ 5g) on the primary of a
-   Cassegrain-form pair (§ 5e). It is a *Schmidt-corrected Cassegrain* — spherical
-   primary + Schmidt corrector at its centre of curvature + confocal-hyperboloid
-   secondary — **not** the commercial all-spherical SCT, whose optimised corrector
-   has no external number (the tension `cassegrain.ts` records); every number here
-   stays a closed form, the corrector A₄ referenced to the primary radius and the
-   secondary conic reused verbatim from the shared `twoMirrorLayout`. The anti-drift
-   rung pins its mirror geometry equal to the classical Cassegrain's while the
-   primary conic (sphere vs paraboloid) and stop position differ; the two
-   genuinely-new pins are the two prices the cheap spherical primary buys — an
-   on-axis fifth-order residual (diffraction-limited, ~5 orders above the confocal
-   Cassegrain, falling ~32× as the primary slows f/4 → f/8) and spherochromatism
-   (the one behaviour no all-mirror preset has), pinned to the same closed form the
-   Schmidt camera carries.
-   *All-spherical commercial SCT:* ✅ `designs/sct` (VALIDATION § 5i). The sixth
-   reflecting preset and the last of the Schmidt family — the all-spherical
-   Celestron/Meade-class SCT: **two spherical mirrors** and one corrector figured to
-   null their *combined* spherical aberration. Structurally the Schmidt-Cassegrain
-   with the secondary conic set to 0 and a combined corrector, its external number
-   is the published two-mirror Seidel corrector (Schroeder Ch. 6; Rutten & van
-   Venrooij): (n−1)A₄ = −1/(4R₁³) − k₂ε⁴/(4R₂³), the Schmidt primary term *minus*
-   the secondary sphere's own SA. The secondary term subtracts — a convex sphere is
-   over-corrected, so the two spheres partially cancel and the corrector is *weaker*
-   than the primary-only figure (0.61×). The one load-bearing sign (subtractive) is
-   fixed externally by the **Dall-Kirkham** ellipsoid before any trace, never by which
-   sign nulls — the anti-circularity discipline the hard rule demands. Its headline is
-   a three-way ladder no single-mirror preset can reach: combined corrector nulls to
-   diffraction-limited, primary-only Schmidt figure leaves the secondary's |W_s| = 0.32
-   waves, wrong-sign secondary term lands at ≈ 2|W_s| — the ΔA₄ lever made into a test.
-   Same fifth-order residual and spherochromatism as the family; NOT an anastigmat
-   (corrector at the primary's CoC only, off-axis coma/astigmatism remain, unpinned).
-   This transcribes the *third-order closed form* with the corrector at the CoC —
-   the pinnable idealization; a real commercial tube shifts the corrector forward
-   and optimizes beyond third order (the proprietary figure `cassegrain.ts` flags),
-   trading the clean number for a shorter tube.
-   *Off-axis diagonal vignetting:* ✅ (VALIDATION § 2f). The partial-vignetting
-   case § 2e left open — a ray clipped at a downstream surface rather than by the
-   stop, the one place the two PSF branches genuinely disagreed about throughput
-   (the geometric branch dropped the rays, the FFT modelled the full disc, and the
-   histogram was rescaled to the full-disc energy: **2.61× too bright**). It
-   arrives the way the spider did, as one `PupilFunction` mask whose criterion is
-   the trace itself, so both branches see one aperture and `blendPsf`'s arithmetic
-   never changes — the § 2e prediction that its normalization would need
-   *re-deriving* was right about the disagreement and wrong about the location.
-   Pinned on-axis against a closed form (a decentered clip in collimated space
-   makes the open pupil an exact two-disc vesica) rather than on the Newtonian,
-   which stacks a fold, an off-axis trace and an only-O(θ²) footprint; the
-   Newtonian then carries the real mechanism, including a free cross-check that
-   the § 4b closed-form diagonal loses *exactly* zero rays on axis — asserted on
-   the trace's own `lost` count, after the first draft's transmitted-fraction
-   form turned out to divide the on-axis bundle by itself and be true by
-   construction.
-   *Achromatic doublet — the refractor preset:* ✅ `designs/achromat` (VALIDATION
-   § 5j). The first preset that is a LENS, and the first that had to be *solved*
-   rather than written down from geometry. A cemented doublet has three curvatures
-   and two conditions (total power, and achromatism φ₁/V₁ + φ₂/V₂ = 0 giving the
-   classical split from the catalog's Abbe numbers), leaving one freedom — the
-   bending — which changes nothing first-order or chromatic and everything about
-   spherical aberration. Choosing it needed third-order theory, so `analysis/seidel`
-   landed with it: the published Seidel sums S_I/S_II, pinned BEFORE use against the
-   spherical mirror's h⁴/(4R³) (§ 5g's own figure) and the thin-lens Coddington
-   closed form to 1e-8 across the shape range — including its famous corollaries,
-   best form at q = 2(n²−1)/(n+2) and the 27/7 penalty for a back-to-front
-   plano-convex. Solving S_I = 0 gives the classical TWO roots; the preset takes the
-   lower-|S_II| one and the trace then confirms all of it independently:
-   diffraction-limited on axis (0.0054 waves, 60× an equal-power singlet), a
-   fifth-order residual falling 32× per doubling of focal ratio, and S_II predicting
-   the traced coma of both branches to 2%. Its chromatic rungs are predictions, not
-   constructions — the thin-lens split is left un-fitted, so "F and C land together"
-   (100× a singlet) and the secondary spectrum −(P₁−P₂)/(V₁−V₂) ≈ −1/2000 are things
-   the trace could refuse. Two findings worth carrying forward: the two SA-null
-   bendings *straddle* the coma-free one, so neither is aplanatic (fixing that is a
-   glass-pair or broken-contact question, not a bending one); and for N-BK7/F2 the
-   naive equiconvex crown happens to sit within 5% of the solved root.
-   *ED (fluorite) refractor:* ✅ (VALIDATION § 5k). The other half of
-   "achromat/ED refractor", and it needed **no new design code** — the same
-   `achromaticObjective` driven with CaF₂ (Malitson 1963, new in the catalog) as the
-   crown. The whole gain comes from the glass data, and not from the famous Vd = 95:
-   secondary spectrum is (P₁−P₂)/(V₁−V₂), and what fluorite has is an *anomalous
-   partial dispersion* ≈ 0.018 below the line the catalog's ordinary glasses define.
-   The clean proof that ΔV is not the lever: CaF₂/F2 has 1.9× the Abbe difference of
-   CaF₂/N-BK7 and 1.9× the secondary spectrum. Pinned: 5× less secondary spectrum (of
-   the opposite sign), a 3.7× tighter focus spread across the band — and both honest
-   costs, that its steeper surfaces leave it short of diffraction-limited at f/10
-   where the crown-flint achromat is fine, and that CaF₂ against a heavy flint has no
-   spherically-corrected cemented solution at all, which the preset refuses rather
-   than fudges. The fluorite pair also *corrected* § 5j's branch criterion: choosing
-   the SA-null root by lowest coma agrees with choosing it by gentlest cancellation
-   for N-BK7/F2, but picks the 8×-worse root for CaF₂/N-BK7. Real premium fluorite
-   doublets are air-spaced, which is the open follow-on — the third freedom that
-   could null S_I and S_II together.
+   world-frame map (`core/trace/axis`, § 4a), so a folded system images instead
+   of throwing.
+   *First preset — Newtonian:* ✅ `designs/newtonian` (§ 4b). Derived from
+   aperture and focal ratio, not transcribed; off-axis pinned to third-order
+   coma.
+   *Spider diffraction:* ✅ (§ 5c). The vanes as a `PupilFunction` shared by
+   both branches, so spikes fall out of the same transform as the Airy rings.
+   *Atmospheric seeing:* ✅ (§ 5d). A seeded subharmonic Kolmogorov screen as a
+   `PupilFunction` *phase*, pinned to Kolmogorov and Fried statistics. Being
+   pure phase it lives only in the FFT branch; **the geometric ∇φ ray-tilt is
+   the named deferral.**
+   *Classical Cassegrain:* ✅ `designs/cassegrain` (§ 5e). Two powered mirrors;
+   the confocal-conic property makes it exactly stigmatic on axis. The pinnable
+   member of the family — the commercial SCT's optimised corrector has no
+   external number, the tension `cassegrain.ts` records.
+   *Ritchey-Chrétien:* ✅ `designs/ritchey` (§ 5f). Both mirrors hyperboloidal;
+   the coma null pinned against the Cassegrain on identical geometry, sharing
+   one `twoMirrorLayout` so the two cannot drift.
+   *Schmidt camera:* ✅ `designs/schmidt` (§ 5g). The first `asphereCoeffs`
+   preset — spherical mirror + corrector at its centre of curvature, pinned to
+   the closed-form figure A₄ = −1/(4(n−1)R³). An anastigmat.
+   *Schmidt-Cassegrain:* ✅ `designs/schmidt-cassegrain` (§ 5h). Composes § 5g's
+   corrector onto § 5e's pair. A *Schmidt-corrected* Cassegrain, **not** the
+   commercial all-spherical SCT; every number stays a closed form.
+   *All-spherical commercial SCT:* ✅ `designs/sct` (§ 5i). Two spherical mirrors
+   and one corrector nulling their *combined* SA, pinned to the published
+   two-mirror Seidel corrector (Schroeder; Rutten & van Venrooij). NOT an
+   anastigmat — its off-axis coma/astigmatism remain **unpinned**.
+   *Off-axis diagonal vignetting:* ✅ (§ 2f). The partial-vignetting case § 2e
+   left open, arriving as one `PupilFunction` mask whose criterion is the trace
+   itself, so both branches see one aperture.
+   *Achromatic doublet — the refractor preset:* ✅ `designs/achromat` (§ 5j). The
+   first preset that is a LENS and the first that had to be *solved*. Choosing
+   the bending needed third-order theory, so `analysis/seidel` landed with it,
+   pinned BEFORE use. **Open:** the two SA-null bendings straddle the coma-free
+   one, so neither is aplanatic — fixing that is a glass-pair or broken-contact
+   question, not a bending one.
+   *ED (fluorite) refractor:* ✅ (§ 5k). The same `achromaticObjective` driven
+   with CaF₂; the gain comes from anomalous partial dispersion, not the famous
+   Vd = 95. **Open:** real premium fluorite doublets are air-spaced — the third
+   freedom that could null S_I and S_II together.
    *Eyepiece library — composition, afocal evaluation, and the computed lead:*
-   ✅ (VALIDATION §§ 5l–5n). The library's prerequisite and its first member
-   landed together. **Module composition** (`trace/compose`) flattens whole parts
-   — objective, eyepiece — into one prescription, as ARCHITECTURE committed:
-   flattening, not a second tracer. On it, the **afocal system** the engine could
-   not previously express (`systemProperties` throws on a collimated-out chain):
-   `afocalTelescope` solves the afocal spacing off the trace (thick-correct, not
-   the thin-lens formula), `afocalProperties` reads magnification / exit pupil /
-   eye relief (§ 5l), and `apparentFieldAngleRad` traces the real chief ray for
-   **apparent field of view and distortion** — the genuinely-new capability, since
-   distortion is exactly the term a paraxial trace drops (§ 5n). The members so far
-   are **computed** (`designs/eyepiece`), pinned by theorem rather than
-   transcribed: the **Plössl** (§ 5m), two of § 5j's achromatic doublets mirrored
-   — its lateral-colour dividend over a singlet eyepiece pinned on the real-ray
-   trace, and honestly, that its symmetry does NOT buy low distortion in a
-   telescope (wrong conjugates for the symmetry principle); and the **Huygens**
-   (§ 5o), two same-glass singlets achromatized by the spacing d = (f₁+f₂)/2, whose
-   falsifiable pin is the sign-flip zero-crossing of lateral colour across it.
-   *Eye model + visual mode:* ✅ (VALIDATION §§ 5p–5q). The eyepiece library
-   computed the exit pupil; visual mode puts the observer's eye there so the
-   collimated exit beam forms a real retinal image. Its prerequisite was a genuine
-   engine capability, not a readout: **limiting-aperture stop selection**
-   (`pupil/aperture-stop`, § 5p) — `pupils()` had always keyed off the *declared*
-   `isStop`, but the true stop is the surface the axial cone fills first, and when
-   the eye's iris is narrower than the exit pupil it *becomes* the stop. Opt-in via
-   `OpticalSystem.apertureStop`, so every prior rung is byte-identical; pinned by a
-   closed-form crossover, a non-regression proof that all 10 presets' limiting
-   aperture equals their declared stop, and a wiring proof that the exit pupil/OPD
-   reference actually move. On it, the **reduced eye** (`designs/eye`, Emsley 60 D /
-   n = 4/3, geometry from two scalars, idealized SA-free by the Cartesian conic
-   K = −1/n²) composes into a focal retinal system whose headline is the two-stop
-   collapse: effective aperture = min(D, d_eye·|M|), the knee at the exit pupil
-   being M_min = D/d_eye, and the retinal Airy broadening by D/(d_eye·|M|) — the
-   iris-limited PSF cross-checked two ways (stop-selection vs the § 2f exact-trace
-   mask). The empty-magnification/acuity ceiling, real ocular SA, and the
-   photopic/scotopic pupil are the named follow-ons.
-   *Camera mode — pixel scale + sensor sampling:* ✅ (VALIDATION § 5r). The other
-   half of "visual vs camera mode": a `Sensor` (pitch, cols, rows) placed at the
-   focal plane, in `imaging/camera`. The rendered `ColorImage` is the *continuous*
-   optical image on the native diffraction grid; a real pixel integrates the light
-   over its area, so `resampleToSensor` rebins it by area onto the sensor grid —
-   which is a box filter, so it carries a detector-footprint MTF sinc(π·f·pitch)
-   and aliases anything above its Nyquist to |f_s−f|, both pinned on synthetic
-   targets. The geometry half is `plateScale` (206265″·pitch/EFL, EFL traced) and
-   `fieldOfView`, computed by *inverting the traced chief-ray map* so it carries
-   distortion rather than being the pinhole EFL·tanθ that is defined to have none.
-   `criticalPitchMm` (λ/4NA) ties the pitch to the Abbe cutoff and is cross-checked
-   against the grid-based MTF cutoff by an independent route. Two findings worth
-   carrying: the rebin must *sum* footprint energy, not average (intensity is
-   energy-per-pixel, § 2e), and aliasing pins the *frequency*, not the amplitude
-   (the footprint sinc has already attenuated it).
-   *Camera mode — relative exposure:* ✅ (VALIDATION § 5s). `imaging/exposure`:
-   the f-ratio and aperture laws, pinned as ratios because the absolute photon
-   zero point is § 3a's deferral. Trace-emergent by discipline — the image-space
-   cone sin u′ is read from the *traced* marginal ray (departing from paraxial
-   1/(2F) by the sine condition, and more at the faster stop), so the headline
-   **extended-source illuminance ∝ 1/F²** rides on a traced angle rather than the
-   formula it is derived from. Point-source light grasp ∝ D² is carried as a
-   labelled consistency check (a front stop's entrance radius is the declared
-   one). **Shot noise stays deferred** — it is a draw from an absolute photon
-   count, which needs the § 3a zero point.
+   ✅ (§§ 5l–5n). **Module composition** (`trace/compose`) flattens whole parts
+   into one prescription, as ARCHITECTURE committed — flattening, not a second
+   tracer. On it, the **afocal system** the engine could not previously express,
+   plus real-ray apparent field of view and distortion (§ 5n). Members so far are
+   **computed**, not transcribed: the **Plössl** (§ 5m) and the **Huygens**
+   (§ 5o).
+   *Eye model + visual mode:* ✅ (§§ 5p–5q). Its prerequisite was a genuine engine
+   capability: **limiting-aperture stop selection** (`pupil/aperture-stop`, § 5p),
+   since a narrow iris *becomes* the stop. On it, the **reduced eye**
+   (`designs/eye`) and the two-stop collapse. **Open:** the
+   empty-magnification/acuity ceiling, real ocular aberrations, and the
+   photopic/scotopic pupil.
+   *Camera mode — pixel scale + sensor sampling:* ✅ (§ 5r). A `Sensor` at the
+   focal plane (`imaging/camera`); `resampleToSensor` rebins by area, so the
+   detector-footprint MTF and aliasing are carried, not assumed. `plateScale` and
+   `fieldOfView` invert the *traced* chief-ray map, so they carry distortion.
+   *Camera mode — relative exposure:* ✅ (§ 5s). `imaging/exposure`, pinned as
+   ratios because the absolute photon zero point is § 3a's deferral. **Shot noise
+   stays deferred** — it is a draw from an absolute photon count, which needs
+   that zero point.
    *Still to come here — the transcribed patent members.* Commercial eyepiece and
    objective prescriptions are trade secrets, but **patents are public and contain
    full prescription tables** — the supply route for the wide-field members
@@ -324,105 +164,41 @@
    flint glasses it uses added to the catalog with real dispersion data (the
    current catalog has only N-BK7, F2, CaF₂, fused silica). Transcribing from
    memory is forbidden by the hard rule; the members land when the data is sourced.
-   The eye model (exit-pupil-to-eye matching, visual vs camera mode) is the other
-   open follow-on.
-   *Tolerancing:* ✅ `analysis/tolerance` (VALIDATION § 5t). Once tilt/decenter
-   existed (the § 4a folded-mirror frame), perturbing a parameter by its
-   manufacturing tolerance and watching the image degrade was a difference of two
-   traces — no new physics, a readout composed of `opdMap` and `bestFocus`. The
-   whole difficulty was the *currency*: a central difference of total RMS is
-   stationary at a corrected nominal (a decenter that genuinely comas reads a
-   near-zero slope), so the metric is the σ of the *delta* wavefront with the
-   compensator modes — piston, tilt (= boresight), defocus — projected out
-   linearly, which keeps independent tolerances' variances additive so the RSS
-   budget is exact rather than approximate. Four external pins, all on perfect
-   nominals so none sits on the projection-vs-refocus subtlety: boresight = 2θ off
-   a tilted flat fold (reflection law); a conic error's residual = the balanced
-   spherical RMS |ΔK·c³h⁴/4|/(6√5) in closed form (with a curvature-is-pure-defocus
-   negative control); the RSS law checked against an actual combined trace
-   (orthogonal conic ⊥ tilt add in quadrature, two identical perturbations add
-   linearly); and σ = λ/14 landing the real PSF Strehl on ≈ 0.8 (Maréchal,
-   RMS-native, not Rayleigh's λ/4 P-V). It is the most educational thing the
-   simulator can show — a slider per tolerance, the image degrading as the budget
-   predicts.
+   *Tolerancing:* ✅ `analysis/tolerance` (§ 5t). A readout composed of `opdMap`
+   and `bestFocus`, no new physics; the whole difficulty was the *currency* — the
+   σ of the *delta* wavefront with compensator modes projected out, so
+   independent tolerances' variances stay additive and the RSS budget is exact.
+   Still to build on it: the UI this exists for — a slider per tolerance, the
+   image degrading as the budget predicts.
 6. **Microscope branch** ← current
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion; brightfield (incoherent + condenser-NA factor) and
    fluorescence; coverslip mismatch; scenes: diatoms, stained tissue,
    fluorescent beads. Mostly configuration + domain models on the existing
    engine. *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
-   pinned (VALIDATION § 1). The `constantIndex` `WATER`/`IMMERSION-OIL` stand-ins
-   are replaced with real dispersion — Daimon-Masumura distilled water, the
-   Cargille Type B oil (its own Cauchy equation, so a `cauchy()` constructor
-   landed), and Schott D263 T eco coverslip (ISO 8255-1) — so at NA 1.4 the
-   branch's chromatic behaviour rides on measured data, not a flat index. The
-   reduced eye's vitreous was split into its own non-dispersive `VITREOUS` so no
-   eye rung moved. Remaining is the wiring (image-space index in `pixelScaleMm`),
-   pinned when an immersion objective lands here.
-   *Prerequisite:* **module composition** — a microscope must be buildable from
-   whole parts (objective, tube lens, eyepiece) as well as from bare surfaces.
-   The design is recorded in ARCHITECTURE § Data model: modules are authoring
-   data that flatten into one surface chain, not a second tracer. Step 5's
-   eyepiece library is the first consumer, so it may land there instead. ✅ —
-   it did (§ 5l), and this step consumes it unchanged.
-   *Architecture + the first objective:* ✅ `designs/microscope` (VALIDATION
-   § 6a). The chain the whole branch is a variation on — specimen at the
-   objective's front focus, collimated space, tube lens, image — and the one
-   first-order capability the engine lacked to express it:
-   `collimatingObjectDistance`, which *places the object* where `bestFocus`
-   places the image, solved off the affine output slope and pinned against the
-   front focal distance measured by a wholly different path (the reversed
-   chain's BFD, via a new `reversePrescription`). The objective needed no new
-   design code — a low-power achromat objective IS a cemented doublet, so § 5j's
-   `achromaticObjective` builds it — but it needed the right *orientation*, and
-   that was measured before the module existed: mirrored (flint toward the
-   specimen) nulls S_I, un-mirrored carries **9.2 waves**, and the two have
-   identical EFL so nothing first-order separates them. Headline numbers:
-   M = f_tube/f_obj on the traced chief ray, invariant to the infinity-space
-   length and honestly relative to a *stated* tube convention (200 Nikon/Leica,
-   180 Olympus, 165 Zeiss); and Abbe's λ/(2·NA) magnified onto the image
-   agreeing to 0.5% with the FFT grid's own MTF cutoff, which shares nothing with
-   it. Two findings carried forward: **f·NA is not a stop radius** — it is a
-   height on the equivalent refracting sphere, while the stop sits on the vertex,
-   so the cone is s·tan u and conflating them ships an objective 2.1% fast; and
-   the emergent-ray sine condition is satisfied to 0.43% but *deliberately not to
-   zero*, because § 5j's SA-null bendings straddle the coma-free one — a doublet
-   is corrected, never aplanatic. The three named blockers for immersion are
-   recorded rather than papered over: `objectNA`'s aperture seed is a tangent and
-   is 2.6× out at NA 1.4; telecentricity needs object-space ray aiming that does
-   not exist; and F = 1/(2·NA) means high NA is a different glass form (Lister,
-   then the aplanatic hyperhemisphere) rather than a faster doublet.
+   pinned (§ 1) — Daimon-Masumura water, Cargille Type B oil, Schott D263 T eco
+   coverslip, so at NA 1.4 the branch rides on measured data. **Remaining is the
+   wiring** (image-space index in `pixelScaleMm`), pinned when an immersion
+   objective lands here.
+   *Prerequisite:* **module composition** ✅ — landed as § 5l with the eyepiece
+   library; this step consumes it unchanged. Design in ARCHITECTURE § Data model.
+   *Architecture + the first objective:* ✅ `designs/microscope` (§ 6a). The chain
+   the whole branch varies on — specimen at the objective's front focus,
+   collimated space, tube lens, image — plus the one first-order capability the
+   engine lacked, `collimatingObjectDistance`. **Three named blockers for
+   immersion**, recorded rather than papered over: `objectNA`'s aperture seed is a
+   tangent and is 2.6× out at NA 1.4; telecentricity needs object-space ray aiming
+   that does not exist; and F = 1/(2·NA) means high NA is a different glass form
+   (Lister, then the aplanatic hyperhemisphere), not a faster doublet.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
-   `finiteConjugateMicroscope` (VALIDATION § 6b). The second of the two
-   architectures this step names, and the one § 6a flagged as most likely to be
-   silently dropped. § 6a predicted it would need **no new machinery** — finite
-   conjugates and `bestFocus` both exist — and the first measurement falsified
-   that: § 6a's objective placed at DIN conjugates carries 0.46 waves RMS, 6.5×
-   past the diffraction limit. A DIN objective is not an infinity objective used
-   differently, it is a **re-solved lens**, and re-solving needed a capability
-   `analysis/seidel` explicitly refused — the **position factor**, i.e. a finite
-   object conjugate (§ 6b.0), pinned against the published thin-lens bracket's
-   whole p-dependence including the discriminating p = 0 ⇔ s = s′ = 2f case and
-   the generalised best form q_best(p) = −2(n²−1)p/(n+2), whose p = −1 case is the
-   classical minimum § 5j already pins. No second solver was needed for the
-   turn-around because third-order stigmatism is **reciprocal**: solving the
-   crown-first doublet at the conjugate b and reversing gives, to 10 digits, the
-   bending that solves the mirrored chain at a. Headlines: Newton's x_o·x′ = f²
-   verified across three independent computations (the FFD solve, the BFD, and a
-   paraxial ray); the 2.0-wave price of the infinity-solved bending against a
-   re-solve that nulls it; and the orientation question § 6a left open, answered
-   honestly — solve *both* ways round for the DIN pair and flint-first still wins
-   but by **~25%, not 9.2 waves**, so orientation matters far less than conjugate.
-   Two findings carried: the bending is not first-order-neutral for a *thick*
-   lens (the achromatic split fixes curvature differences, so a re-solve moves the
-   traced EFL 0.56% and flips the sign of the Gullstrand remainder), and M and the
-   tube length cannot both be exact — pinned as the identity x′_traced/x′_nominal
-   = f_traced/f_target. The mechanical 160 is kept out of the optics: the
-   magnification is a ratio against the **optical** tube length (~150, stated and
-   not datasheet-verified), and "M = 160/f" conflates the two. Open here: the
-   `160/0.17` coverslip, composing an eyepiece onto the intermediate image, and
-   the 4× sitting at f/4.1 — the edge of the cemented-doublet form, and the second
-   piece of evidence for the Lister follow-on.
+   `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
+   step names. A DIN objective is not an infinity objective used differently, it
+   is a **re-solved lens** — which needed the position factor, a finite object
+   conjugate, that § 5j's `analysis/seidel` had explicitly refused (§ 6b.0).
+   **Open here:** the `160/0.17` coverslip; composing an eyepiece onto the
+   intermediate image; and the 4× sitting at f/4.1 — the edge of the
+   cemented-doublet form, and the second piece of evidence for the Lister
+   follow-on.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
