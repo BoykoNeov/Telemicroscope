@@ -48,6 +48,7 @@ whole ladder.
 | [5t](#step-5t--tolerancing-sensitivity-compensators-and-the-rss-budget) | Sensitivity, compensators, RSS budget — four external pins | `tolerance` |
 | [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
+| [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -2884,6 +2885,169 @@ and no bending makes a cemented doublet aplanatic.
   physics — the same treatment § 6a gave Zeiss's 165-vs-164.5.
 - **Telecentricity, the `objectNA` seed, and immersion** remain exactly as § 6a
   left them; this step changes none of them.
+
+## Step 6c — the coverslip, and what mismatching it costs
+
+The `0.17` half of the `160/0.17` engraving § 6b left open, and the first of step
+6's named deliverables — coverslip mismatch — to land. `designs/coverslip`,
+`test/coverslip.test.ts`.
+
+A cover glass is a plane-parallel plate: no power, no first-order effect on focal
+length or magnification. It is nonetheless engraved on every objective beside the
+tube length, because a plate in a **non-collimated** beam carries spherical
+aberration, and the cone between a specimen and an objective is the steepest one
+in the instrument. The specimen is mounted *under* the slip, so the model is the
+plate's underside: `objectMedium` is the cover glass and the object sits a
+slip-thickness in front of surface 0.
+
+### Why this rung is stronger than anything else in the ladder
+
+A plate is one of the very few real elements whose aberration is solvable **to
+all orders** from Snell alone. Every other spherical-aberration pin here is a
+third-order closed form, honest only while the angles are small; this one is
+exact at NA 0.95. That is why § 6c.1 comes first and uses **no lens at all** —
+one plane surface, an object inside the glass, and rays.
+
+Three closed forms, all external, none of which any design code evaluates:
+
+    apparent depth   t/n
+    LSA(θ)           t·(1/n − tanθ′/tanθ),   sinθ = n·sinθ′
+    W(s)             t·[√(n²−s²) − n] − (t/n)·[√(1−s²) − 1],   s = sinθ
+    W₀₄₀             t·(n²−1)·s⁴ / (8n³)     — the leading term of W
+
+### 6c.1 — the plate alone
+
+- **The traced axial crossing matches LSA(θ) to ten digits at NA 0.1 … 0.95.**
+  The exact tracer against an exact answer, with no small-angle escape hatch.
+- **The paraxial limit is the apparent depth**, and what is left at finite angle
+  IS the closed form — the same trace pins the limit and the departure from it.
+- **The plate is OVERcorrected.** Its marginal crossing lands *beyond* the
+  paraxial one, where a positive singlet's falls short, and the two signs come
+  out opposite in `seidelSums` as well. This is why an objective corrected for a
+  slip is a deliberately aberrated lens, and why using one without its slip is
+  worse than not correcting at all.
+- **Exactly linear in thickness**, to all orders — every formula carries t as a
+  bare factor. This is what makes mismatch a *one-parameter* story: a wrong slip
+  aberrates exactly like a plate of the error alone.
+
+**The three conventions, and why the ladder names them.** `analysis/seidel` seeds
+its marginal ray with a paraxial *slope*, so the engine's third-order answer is
+the **tan⁴** version; the microscopy literature quotes **sin⁴ = NA⁴**; and the
+exact form is neither. Third order cannot distinguish tan from sin — the
+difference is fifth-order — and neither is wrong, but they part company fast, and
+the ratios are themselves closed forms worth pinning:
+
+| NA | engine (tan⁴) / literature (sin⁴) | exact / third-order |
+|---|---|---|
+| 0.05 | 1.0022 | 1.0018 |
+| 0.10 | 1.0087 | 1.0072 |
+| 0.33 | 1.101 | 1.084 |
+| 0.36 | 1.122 | **1.102** |
+| 0.65 | 1.495 | 1.434 |
+| 0.80 | **1.907** | — |
+
+The engine/literature gap is exactly (1 − (NA/n)²)⁻², reaching 10% at NA 0.33;
+third order itself fails by 10% at NA 0.36, and by NA 0.65 it *understates* the
+damage by 43%. Anything plotting a coverslip tolerance has to say which of the
+three it drew — and that third order stops predicting the damage above NA ~0.4 is
+precisely why a high-dry objective needs a correction **collar** rather than a
+nominal figure.
+
+**Cancellation.** Both exact forms are written in the header as differences of
+near-equal quantities, and at small angles that is all rounding: at NA 0.001 the
+subtractive W is 0.2% wrong in f64. Both are rationalised in the code — the
+identity √(n²−s²) − n√(1−s²) = s²(n²−1)/(√(n²−s²) + n√(1−s²)) clears it — after
+which the exact form tracks its own series to the last digit, with the next term
+(1 + 1/n²)/2 · s² pinned across two decades of aperture.
+
+### 6c.2 — the DIN objective re-solved through the slip
+
+`finiteConjugateObjective({coverslip: {}})`. Three things change together:
+
+- **Placement.** The air gap is solved by a **secant on the traced paraxial
+  chain**, never by evaluating t/n. That it lands on a − t/n to eleven digits is
+  therefore a measurement of the apparent-depth closed form, not a restatement of
+  it — the same discipline § 6a used for the front focal distance.
+- **The bending.** `achromaticObjective` gained `targetS1Mm`: ΣS_I is solved to a
+  stated value rather than to zero, and the value is **summed by `seidelSums` over
+  the plate's real surfaces**, not evaluated from the closed form above. A design
+  built from the formula the test then checks would be checking its own
+  arithmetic.
+- **The stop.** The slip's upper face takes the front of the surface list, so the
+  aperture moves to surface 1 — still exactly one flag, the § 6a one-aperture
+  rule, and `pupils` images the stop back through the plate to an entrance pupil
+  at n·(air gap). Sizing the stop against *that* is what keeps the delivered NA
+  exact: r = (t + n·w)·tan u with sin u = NA/n, one formula that collapses to the
+  bare `a·tan u` at n = 1 and will carry an immersion medium unchanged.
+
+**The anti-circularity check is the interesting one.** For the mirrored
+(flint-first) objective the bending is solved in the *reversed* frame, where the
+specimen side is the image side — so the plate's target is computed at conjugate
+b and the null is then measured at conjugate a, on the real chain, in the real
+frame. Nothing forces those to agree; that ΣS_I comes out 3e-16 is the § 6b.1
+reciprocity statement surviving an extra surface, and it holds for the
+crown-first build too.
+
+**And the headline is a NULL.** At NA 0.10 the correction the slip demands is
+W₀₄₀ = 1.1e-6 mm — 1.4e-4 waves once balanced — which is **400× under the
+objective's own fifth-order residual** of 5.9e-2 waves. The bending really does
+move (0.04% of the curvature, resolvable and pinned), and it really is optically
+irrelevant. A 4×/0.10 is coverslip-*insensitive*, which is why low-power
+objectives are not fussy about cover glass, and the ladder now says so with a
+number instead of leaving it implied. The wiring is what matters here; it becomes
+load-bearing when the Lister carries NA past 0.4.
+
+### 6c.3 — mismatch
+
+The controlled experiment: the specimen goes Δt deeper into glass and the
+objective moves in by Δt/n, so every paraxial conjugate — and the magnification
+with it — is untouched and the **only** change in the chain is that Δt of glass
+has replaced Δt/n of air. The wavefront difference, with piston and defocus
+projected out, is then the mismatch and nothing else.
+
+- **Exactly linear in Δt**, to parts in 10⁴ across a factor of 100 in Δt — the
+  traced confirmation of § 6c.1's algebraic linearity.
+- **Within 2.4% of the published closed form**, and *the deficit is the lens's,
+  not the plate's*: moving the objective by the **paraxial** apparent depth
+  leaves the real marginal ray a hair off its old height, so a sliver of the
+  objective's own large fifth-order residual rides along. Slowing the objective
+  at fixed NA — where § 6b.4 pins that residual falling 16× from 4× to 20× —
+  collapses the deficit to 0.7%, which is what identifies whose it is.
+- **1/NA⁴ tolerance**, reported under both criteria the literature quotes,
+  because they differ by 6√5·4/14 = 3.83× and a tolerance without its criterion
+  is unusable:
+
+| NA | Rayleigh λ/4 on W₀₄₀ | Maréchal λ/14 on the balanced RMS |
+|---|---|---|
+| 0.10 | 31 mm | 121 mm |
+| 0.25 | 805 µm | 3.1 mm |
+| 0.40 | 123 µm | 471 µm |
+| 0.65 | 17.6 µm | 67.6 µm |
+| 0.95 | 3.9 µm | 14.8 µm |
+
+The quarter-wave column is the classical one, and it recovers the familiar shop
+numbers: a few microns at NA 0.95, tens at 0.65 — and *thirty millimetres* at
+NA 0.10. Same glass, same formula, NA⁴ apart.
+
+### Not yet pinned
+
+- **Index mismatch.** A slip of the right thickness and the wrong glass aberrates
+  too, at ∂W₀₄₀/∂n = t·(3−n²)·s⁴/(8n⁴). Only the thickness axis is modelled; the
+  index axis is a one-line generalisation of the same plate and is deliberately
+  left until something needs it.
+- **The correction collar.** § 6c.1's exact-vs-third-order table is the argument
+  for one, and nothing here models the moving element that would provide it.
+- **Off axis.** A plate in a non-telecentric beam adds coma and astigmatism as
+  well; `seidelSums` computes S_II only with the stop at surface 0, which the
+  slip now occupies, so the off-axis plate terms are untraced by the third-order
+  path. The exact trace sees them and nothing pins them.
+- **The infinity-corrected member has no slip.** `microscopeObjective` is
+  unchanged; the wiring is the same `targetS1Mm` move and lands when § 6a's
+  branch needs it.
+- **The mounting medium.** The specimen is taken to be in contact with the glass.
+  A real slide has a mountant between them, which is another plate — and at
+  matched index, none at all.
+- **Tilt.** A non-parallel or tilted slip adds astigmatism; not modelled.
 
 ## Later rungs
 

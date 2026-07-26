@@ -5,6 +5,13 @@ import { OpticalSystem } from "../trace/system";
 import { LINE_D } from "../materials/dispersion";
 import { seidelSums } from "../analysis/seidel";
 import { AchromaticObjective, achromaticObjective } from "./achromat";
+import {
+  Coverslip,
+  CoverslipSpec,
+  coverslip,
+  coverslipIndex,
+  coverslipSurface,
+} from "./coverslip";
 
 /**
  * The infinity-corrected microscope — the architecture the whole microscope
@@ -167,7 +174,9 @@ export interface MicroscopeObjective {
   /**
    * Solved specimen plane: distance from surface 0's vertex to the object, in
    * front of it (mm). The *free working distance* is this less the front
-   * surface's sag, and less the coverslip once § 6c models one.
+   * surface's sag. NO COVERSLIP: § 6c models one for the DIN objective only —
+   * the infinity-corrected member's slip is a named deferral, and the wiring is
+   * the same target-S_I move `finiteConjugateObjective` makes.
    */
   readonly objectDistanceMm: number;
   /** The telescope-orientation doublet this is the mirror image of. */
@@ -485,20 +494,64 @@ export interface FiniteConjugateObjectiveSpec {
    * count is what checks it.
    */
   readonly glassMarginFactor?: number;
+  /**
+   * The cover glass this objective is **corrected for** — the `0.17` of the
+   * `160/0.17` engraving. Omitted, the objective is corrected for none and the
+   * specimen sits bare in air, which is what every rung before § 6c means.
+   *
+   * Given, three things change together and none of them is cosmetic: the
+   * specimen moves *inside* the glass (`objectMedium` becomes the slip), the
+   * lens is placed by an air gap rather than the whole object distance, and the
+   * bending is re-solved to ΣS_I = −(the plate's), so the pair is stigmatic and
+   * the lens alone deliberately is not.
+   */
+  readonly coverslip?: CoverslipSpec;
 }
 
 export interface FiniteConjugateObjective {
   /**
    * The objective alone, authored **specimen-side first**, trailing thickness 0.
-   * Exactly one stop flag, on surface 0.
+   * Exactly one stop flag, on `stopSurfaceIndex` — surface 0 bare, surface 1
+   * with a coverslip, whose upper face takes the front of the list and is not an
+   * aperture.
    */
   readonly prescription: Prescription;
   /** x′/M (mm) — the focal length the nominal magnification implies. */
   readonly focalLengthMm: number;
   /** Traced paraxial EFL at the design wavelength (mm). */
   readonly paraxialFocalLengthMm: number;
-  /** Solved specimen plane: surface 0's vertex to the object (mm, in front). */
+  /**
+   * Solved specimen plane: surface 0's vertex to the object (mm, in front) —
+   * i.e. the system's conjugate distance in both cases. **With a coverslip that
+   * is the slip thickness**, because surface 0 is then the slip's upper face and
+   * the specimen is against its underside; the air path is `airGapMm`.
+   */
   readonly objectDistanceMm: number;
+  /** The cover glass the bending was solved for, if any. */
+  readonly coverslip?: Coverslip;
+  /**
+   * Slip upper face → objective front vertex (mm). Equal to `objectDistanceMm`
+   * when there is no slip: it is the air the objective is placed across, which
+   * is the whole object distance for a bare specimen.
+   */
+  readonly airGapMm: number;
+  /**
+   * Objective front vertex → where the specimen *appears* to be (mm): the
+   * air-equivalent object distance the lens is actually solved and placed for.
+   * Larger than `airGapMm` by the slip's apparent depth, and equal to
+   * `objectDistanceMm` when there is none. **Solved from the traced paraxial
+   * chain, never from t/n** — which is what leaves the apparent-depth closed
+   * form free to be an external pin (§ 6c).
+   */
+  readonly airEquivalentObjectDistanceMm: number;
+  /**
+   * Front glass to the nearest thing in front of it (mm): the slip's upper face
+   * if there is one, the specimen if not, less the front surface's own sag. The
+   * number an objective is catalogued by, and what a slide has to fit inside.
+   */
+  readonly freeWorkingDistanceMm: number;
+  /** Which surface carries the aperture stop: 0 bare, 1 behind a coverslip. */
+  readonly stopSurfaceIndex: number;
   /** Last vertex to the intermediate image (mm), from the paraxial trace. */
   readonly imageDistanceMm: number;
   /** The optical tube length asked for (mm) — Newton's x′. */
@@ -509,16 +562,33 @@ export interface FiniteConjugateObjective {
    * remainder § 5j leaves in the focal length.
    */
   readonly tracedOpticalTubeLengthMm: number;
-  /** Aperture stop semi-diameter (mm) = objectDistance·tan u — what sets the NA. */
+  /**
+   * Aperture stop semi-diameter (mm) — the cone from the specimen that delivers
+   * the stated NA at the objective's front vertex. Bare, that is
+   * objectDistance·tan u. Behind a slip the marginal ray is aimed at the
+   * *entrance pupil*, which the plate pushes back to n·airGap, so what the
+   * launch angle sees is (t + n·w)·tan u_glass with sin u_glass = NA/n — one
+   * formula that collapses to the bare one at n = 1, and the one that will carry
+   * an immersion medium unchanged.
+   */
   readonly stopRadiusMm: number;
   /** f/(2·stopRadius): the working focal ratio, faster than 1/(2·NA) by (1+1/M). */
   readonly workingFocalRatio: number;
   /**
-   * ΣS_I (mm) of the built objective, evaluated at the conjugates it is actually
-   * used at. Zero to solver precision — and it is a *readout*, not an assumption:
-   * the constructor computes it after the fixed point closes.
+   * ΣS_I (mm) of the built objective **including the coverslip if it has one**,
+   * evaluated at the conjugates it is actually used at. Zero to solver precision
+   * — and it is a *readout*, not an assumption: the constructor computes it on
+   * the real chain, in the real frame, after the fixed point closes. With a slip
+   * that is a genuinely independent check, because the target was computed in
+   * the reversed frame the bending is solved in (§ 6c).
    */
   readonly seidelS1AtWorkingConjugates: number;
+  /**
+   * ΣS_I (mm) of the objective GLASS alone at those conjugates. Zero without a
+   * coverslip; with one it is plus the plate's, which is the whole content of
+   * "corrected for 0.17" — the lens is built aberrated on purpose.
+   */
+  readonly seidelS1OfGlassAlone: number;
   /** The crown-first doublet this was solved as. */
   readonly doublet: AchromaticObjective;
   readonly orientation: "flintFirst" | "crownFirst";
@@ -535,15 +605,27 @@ function paraxialImageDistance(p: Prescription, s: number, wavelengthNm: number)
   return -r.y / r.u;
 }
 
-/** One stop flag, on surface 0, and no trailing thickness — see § 6a's note. */
-const asObjective = (p: Prescription, trailingMm: number): Prescription => ({
+/**
+ * One stop flag — on surface 0 bare, on the objective's first glass surface
+ * behind a coverslip — and the stated trailing thickness. See § 6a's note on why
+ * the flag has to be re-declared rather than inherited.
+ */
+const asObjective = (p: Prescription, trailingMm: number, stopAt = 0): Prescription => ({
   ...p,
   surfaces: p.surfaces.map((s, i) => ({
     ...s,
-    isStop: i === 0,
+    isStop: i === stopAt,
     ...(i === p.surfaces.length - 1 ? { thickness: trailingMm } : {}),
   })),
 });
+
+/** Sag of a sphere of curvature c at radius r — for the working-distance clearance. */
+const sag = (c: number, r: number): number => {
+  if (!Number.isFinite(r)) return 0;
+  const d = 1 - c * c * r * r;
+  if (d <= 0) return c * r * r;
+  return (c * r * r) / (1 + Math.sqrt(d));
+};
 
 /**
  * A DIN/JIS objective: an achromatic doublet whose bending is solved for the
@@ -570,26 +652,145 @@ export function finiteConjugateObjective(
     ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
     ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
   };
+  const slip = spec.coverslip === undefined ? undefined : coverslip(spec.coverslip);
+  const nSlip = slip === undefined ? 1 : coverslipIndex(slip, designWavelengthNm);
+  const tSlip = slip === undefined ? 0 : slip.thicknessMm;
+  const stopIdx = slip === undefined ? 0 : 1;
 
   // Newton: |M| = x′/f fixes the focal length outright.
   const f = opticalTubeLengthMm / M;
-  const tanU = NA / Math.sqrt(1 - NA * NA);
+  // The cone the specimen radiates into, IN the medium it sits in: sin u = NA/n.
+  // Bare (n = 1) this is the old tan u exactly; behind a slip it is the smaller
+  // internal angle, and the entrance pupil the marginal ray is aimed at sits
+  // n·airGap away, so the stop the two together fill is (t + n·w)·tan u_glass.
+  const sinU = NA / nSlip;
+  if (!(sinU < 1)) {
+    throw new Error("finiteConjugateObjective: NA exceeds the object medium's index");
+  }
+  const tanU = sinU / Math.sqrt(1 - sinU * sinU);
+  const stopPerAirDistance = nSlip * tanU;
+
+  /** The real chain: slip's upper face, the air gap, then the glass. */
+  const withSlip = (bareP: Prescription, airGapMm: number): Prescription =>
+    slip === undefined
+      ? bareP
+      : {
+          ...bareP,
+          objectMedium: slip.medium,
+          surfaces: [coverslipSurface(slip, airGapMm), ...bareP.surfaces],
+        };
+
+  /**
+   * The air gap that puts the specimen — at the slip's underside, a thickness
+   * `tSlip` in front of surface 0 — onto the same image the bare lens forms of
+   * an object `aAir` away. Solved on the traced paraxial chain by secant, NOT by
+   * subtracting the apparent depth t/n: that closed form is the external pin
+   * (§ 6c) and using it here would leave nothing to check.
+   */
+  const solveAirGap = (bareP: Prescription, aAir: number, imageMm: number): number => {
+    // Trailing thickness zeroed: `paraxialImageDistance` measures from the last
+    // vertex and `paraxialTrace` has already advanced by whatever gap the chain
+    // carries. A crown-first doublet still carries its own back focus there, and
+    // leaving it in silently offsets every gap this solves.
+    const chain = asObjective(bareP, 0);
+    const err = (w: number): number =>
+      paraxialImageDistance(withSlip(chain, w), tSlip, designWavelengthNm) - imageMm;
+    let w0 = aAir;
+    let w1 = aAir - 0.5 * tSlip;
+    let f0 = err(w0);
+    let f1 = err(w1);
+    for (let i = 0; i < 80 && Math.abs(w1 - w0) > 1e-15 * Math.abs(w1); i++) {
+      const df = f1 - f0;
+      if (!(Math.abs(df) > 0)) break;
+      const w2 = w1 - (f1 * (w1 - w0)) / df;
+      w0 = w1;
+      f0 = f1;
+      w1 = w2;
+      f1 = err(w1);
+    }
+    if (!(w1 > 0) || !Number.isFinite(w1)) {
+      throw new Error("finiteConjugateObjective: the coverslip air-gap solve did not converge");
+    }
+    return w1;
+  };
+
+  /**
+   * MINUS the plate's own ΣS_I, in the frame `achromaticObjective` solves in —
+   * which for a mirrored objective is the REVERSED one, where the specimen side
+   * is the image side and the plate is therefore appended rather than prepended.
+   *
+   * Summed by `seidelSums` over real surfaces, not evaluated from the plate's
+   * closed form: the closed form is § 6c's external pin, and a design that built
+   * itself from it would be checking its own arithmetic.
+   */
+  const plateTargetS1 = (
+    d: AchromaticObjective,
+    apertureMm: number,
+    airGapMm: number,
+    aAir: number,
+    bConj: number,
+  ): number => {
+    if (slip === undefined) return 0;
+    const glass = d.prescription.surfaces;
+    const h = apertureMm / 2;
+    if (orientation === "flintFirst") {
+      // Solve frame: crown first, object at b, the slip in the image space —
+      // the air gap, then the plate, then the specimen on its far face.
+      const opts = { marginalHeightMm: h, objectDistanceMm: bConj };
+      const appended: Prescription = {
+        ...d.prescription,
+        surfaces: [
+          ...glass.slice(0, -1),
+          { ...glass[glass.length - 1]!, thickness: airGapMm },
+          // Air INTO the slip here — the reversed frame crosses the same face
+          // the other way, so this is not `coverslipSurface`'s glass-into-air.
+          {
+            kind: "refract" as const,
+            curvature: 0,
+            semiAperture: Infinity,
+            thickness: tSlip,
+            medium: slip.medium,
+          },
+        ],
+      };
+      return -(
+        seidelSums(appended, designWavelengthNm, opts).s1 -
+        seidelSums(d.prescription, designWavelengthNm, opts).s1
+      );
+    }
+    // Solve frame IS the real one: the plate leads. Its marginal ray is the same
+    // physical ray, so it is seeded at the height that reaches the crown at h.
+    const h0 = (tSlip * h) / (tSlip + nSlip * airGapMm);
+    return -(
+      seidelSums(withSlip(d.prescription, airGapMm), designWavelengthNm, {
+        marginalHeightMm: h0,
+        objectDistanceMm: tSlip,
+      }).s1 -
+      seidelSums(d.prescription, designWavelengthNm, {
+        marginalHeightMm: h,
+        objectDistanceMm: aAir,
+      }).s1
+    );
+  };
 
   // Thin-lens first guess, measured from the principal planes: the object sits
   // f(1 + 1/M) in front, the image f(1 + M) behind. The iteration moves both onto
-  // the thick lens's own vertices.
+  // the thick lens's own vertices — and, with a slip, moves the air gap and the
+  // plate's third-order target along with them.
   let a = f * (1 + 1 / M);
   let b = f * (1 + M);
+  let airGapMm = a;
+  let targetS1Mm = 0;
   let doublet!: AchromaticObjective;
   let bare!: Prescription;
 
   for (let i = 0; i < 60; i++) {
     // The glass is sized off the stop the specimen plane implies. S_I ∝ h⁴
-    // exactly, so the root of S_I(c₁) = 0 does not move with the aperture — the
-    // sizing cannot pull the design around, it only decides how much glass there
-    // is (and, through the defaulted thicknesses, a weak second-order coupling
-    // the iteration absorbs).
-    const stop = a * tanU;
+    // exactly, so the root of S_I(c₁) = target does not move with the aperture —
+    // the sizing cannot pull the design around, it only decides how much glass
+    // there is (and, through the defaulted thicknesses, a weak second-order
+    // coupling the iteration absorbs).
+    const stop = a * stopPerAirDistance;
     const D = 2 * stop * glassMarginFactor;
     doublet = achromaticObjective({
       apertureMm: D,
@@ -599,6 +800,7 @@ export function finiteConjugateObjective(
       objectDistanceMm: orientation === "flintFirst" ? b : a,
       ...glasses,
       designWavelengthNm,
+      targetS1Mm,
     });
     bare = orientation === "flintFirst"
       ? reversePrescription(doublet.prescription, 0)
@@ -606,21 +808,43 @@ export function finiteConjugateObjective(
 
     const efl = systemProperties(bare, designWavelengthNm).efl;
     const ffd = collimatingObjectDistance(bare, designWavelengthNm);
-    // Newton again: the specimen sits f/M beyond the front focal point.
+    // Newton again: the specimen sits f/M beyond the front focal point. That is
+    // the AIR-EQUIVALENT plane — the plate has no power, so it moves the lens,
+    // not the conjugates.
     const aNext = ffd + efl / M;
     const bNext = paraxialImageDistance(asObjective(bare, 0), aNext, designWavelengthNm);
+    const gapNext = slip === undefined ? aNext : solveAirGap(bare, aNext, bNext);
     const moved = Math.max(Math.abs(aNext - a), Math.abs(bNext - b));
     a = aNext;
     b = bNext;
-    if (moved < 1e-13 * (Math.abs(a) + Math.abs(b))) break;
+    airGapMm = gapNext;
+    const targetNext = plateTargetS1(
+      doublet,
+      2 * a * stopPerAirDistance * glassMarginFactor,
+      airGapMm,
+      a,
+      b,
+    );
+    // The target has to be converged too, not just the conjugates: the lens in
+    // hand was built with the PREVIOUS one, and a stale target is a lens solved
+    // for a plate that is not quite the one in front of it.
+    const targetMoved = Math.abs(targetNext - targetS1Mm);
+    targetS1Mm = targetNext;
+    if (
+      moved < 1e-13 * (Math.abs(a) + Math.abs(b)) &&
+      targetMoved <= 1e-13 * Math.abs(targetNext)
+    ) {
+      break;
+    }
   }
 
   // Read the final geometry off the lens that was actually BUILT, not off the
   // iteration's variables.
   const paraxialFocalLengthMm = systemProperties(bare, designWavelengthNm).efl;
   const ffd = collimatingObjectDistance(bare, designWavelengthNm);
-  const objectDistanceMm = ffd + paraxialFocalLengthMm / M;
-  const prescription = asObjective(bare, 0);
+  const airEquivalentObjectDistanceMm = ffd + paraxialFocalLengthMm / M;
+  const objectDistanceMm = slip === undefined ? airEquivalentObjectDistanceMm : tSlip;
+  const prescription = asObjective(withSlip(bare, airGapMm), 0, stopIdx);
   const imageDistanceMm = paraxialImageDistance(prescription, objectDistanceMm, designWavelengthNm);
 
   // ANTI-CIRCULARITY. The bending was solved for one conjugate; the objective is
@@ -628,14 +852,25 @@ export function finiteConjugateObjective(
   // rung downstream would still pass, because the trace confirms whatever the
   // lens was solved for. So the two are compared explicitly.
   const solvedAt = doublet.objectDistanceMm;
-  const usedAt = orientation === "flintFirst" ? imageDistanceMm : objectDistanceMm;
+  const usedAt =
+    orientation === "flintFirst" ? imageDistanceMm : airEquivalentObjectDistanceMm;
   if (solvedAt === undefined || !(Math.abs(solvedAt - usedAt) <= 1e-9 * Math.abs(usedAt))) {
     throw new Error(
       `finiteConjugateObjective: the conjugate solve did not converge — bending solved for ${solvedAt?.toFixed(6)} mm, objective used at ${usedAt.toFixed(6)} mm`,
     );
   }
 
-  const stopRadiusMm = objectDistanceMm * tanU;
+  const stopRadiusMm = airEquivalentObjectDistanceMm * stopPerAirDistance;
+  // The marginal ray's height where the chain STARTS: at the slip's face it has
+  // only crossed the glass, so it is short of the stop by the plate's transfer.
+  const seidelMarginalHeightMm =
+    slip === undefined
+      ? stopRadiusMm
+      : (tSlip * stopRadiusMm) / (tSlip + nSlip * airGapMm);
+  const front = bare.surfaces[0]!;
+  const freeWorkingDistanceMm =
+    (slip === undefined ? airEquivalentObjectDistanceMm : airGapMm) -
+    sag(front.curvature, front.semiAperture);
   return {
     prescription,
     focalLengthMm: f,
@@ -645,11 +880,20 @@ export function finiteConjugateObjective(
     opticalTubeLengthMm,
     tracedOpticalTubeLengthMm:
       imageDistanceMm - systemProperties(prescription, designWavelengthNm).bfd,
+    ...(slip === undefined ? {} : { coverslip: slip }),
+    airGapMm,
+    airEquivalentObjectDistanceMm,
+    freeWorkingDistanceMm,
+    stopSurfaceIndex: stopIdx,
     stopRadiusMm,
     workingFocalRatio: f / (2 * stopRadiusMm),
     seidelS1AtWorkingConjugates: seidelSums(prescription, designWavelengthNm, {
-      marginalHeightMm: stopRadiusMm,
+      marginalHeightMm: seidelMarginalHeightMm,
       objectDistanceMm,
+    }).s1,
+    seidelS1OfGlassAlone: seidelSums(asObjective(bare, 0), designWavelengthNm, {
+      marginalHeightMm: stopRadiusMm,
+      objectDistanceMm: airEquivalentObjectDistanceMm,
     }).s1,
     doublet,
     orientation,
@@ -684,7 +928,11 @@ export interface FiniteConjugateMicroscope {
  */
 export function finiteConjugateMicroscope(spec: FiniteConjugateSpec): FiniteConjugateMicroscope {
   const { objective } = spec;
-  const prescription = asObjective(objective.prescription, objective.imageDistanceMm);
+  const prescription = asObjective(
+    objective.prescription,
+    objective.imageDistanceMm,
+    objective.stopSurfaceIndex,
+  );
   const system: OpticalSystem = {
     prescription,
     aperture: { kind: "stopRadius", value: objective.stopRadiusMm },

@@ -173,13 +173,15 @@
 6. **Microscope branch** ← current
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion; brightfield (incoherent + condenser-NA factor) and
-   fluorescence; coverslip mismatch; scenes: diatoms, stained tissue,
+   fluorescence; coverslip mismatch ✅ (§ 6c); scenes: diatoms, stained tissue,
    fluorescent beads. Mostly configuration + domain models on the existing
    engine. *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
    pinned (§ 1) — Daimon-Masumura water, Cargille Type B oil, Schott D263 T eco
-   coverslip, so at NA 1.4 the branch rides on measured data. **Remaining is the
-   wiring** (image-space index in `pixelScaleMm`), pinned when an immersion
-   objective lands here.
+   coverslip, so at NA 1.4 the branch rides on measured data. The D263 half is
+   now consumed by § 6c. **Remaining is the wiring** (image-space index in
+   `pixelScaleMm`), pinned when an immersion objective lands here — though the
+   *object*-space index is already carried, since § 6c's specimen sits inside the
+   cover glass and the stop is sized against sin u = NA/n.
    *Prerequisite:* **module composition** ✅ — landed as § 5l with the eyepiece
    library; this step consumes it unchanged. Design in ARCHITECTURE § Data model.
    *Architecture + the first objective:* ✅ `designs/microscope` (§ 6a). The chain
@@ -195,10 +197,23 @@
    step names. A DIN objective is not an infinity objective used differently, it
    is a **re-solved lens** — which needed the position factor, a finite object
    conjugate, that § 5j's `analysis/seidel` had explicitly refused (§ 6b.0).
-   **Open here:** the `160/0.17` coverslip; composing an eyepiece onto the
-   intermediate image; and the 4× sitting at f/4.1 — the edge of the
-   cemented-doublet form, and the second piece of evidence for the Lister
-   follow-on.
+   **Open here:** composing an eyepiece onto the intermediate image; and the 4×
+   sitting at f/4.1 — the edge of the cemented-doublet form, and the second piece
+   of evidence for the Lister follow-on.
+   *The coverslip — `160/0.17`:* ✅ `designs/coverslip` (§ 6c), and with it the
+   first of this step's named deliverables, **coverslip mismatch**. The plate is
+   the strongest external pin in the ladder: its aberration is solvable **to all
+   orders** from Snell, so the exact tracer is checked against an exact answer at
+   NA 0.95 rather than against a small-angle form. The objective is genuinely
+   re-solved through it — `achromaticObjective` gained `targetS1Mm`, so ΣS_I is
+   solved to *minus the plate's* and the lens alone is deliberately aberrated —
+   and the target is summed over the plate's real surfaces so the closed form
+   stays a test, not a construction. **The headline is a null:** at NA 0.10 the
+   correction the slip demands is 400× under the objective's own residual, so a
+   4×/0.10 is coverslip-*insensitive*; the tolerance runs as 1/NA⁴, from 31 mm at
+   NA 0.10 to 3.9 µm at NA 0.95. This wiring becomes load-bearing when the Lister
+   carries NA past 0.4. **Open:** index mismatch, the correction collar, the
+   off-axis plate terms, and the infinity-corrected member's slip.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

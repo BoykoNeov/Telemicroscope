@@ -136,6 +136,18 @@ import { seidelSums } from "../analysis/seidel";
  * and the result is corrected at a. `designs/microscope` does precisely that, and
  * § 6b.1 pins the two routes' roots equal to 10 digits.
  *
+ * ## …and it need not be solved to ZERO
+ *
+ * `targetS1Mm` moves the right-hand side off zero. A doublet is rarely the only
+ * thing in its own beam: put a coverslip in front of a microscope objective and
+ * the plate contributes a fixed third-order spherical aberration of its own
+ * (§ 6c), so the lens that makes the *pair* stigmatic is the one whose S_I equals
+ * minus the plate's. Nothing about the solve changes — the same two roots of the
+ * same scan, displaced — which is the point: a target is a translation of the
+ * curve, not a second solver. It is also how a real objective is corrected for a
+ * slip, and why using one without its slip is worse than using no correction at
+ * all: the lens is deliberately built aberrated.
+ *
  * SCOPE. The stop is at the front vertex, where a refractor's cell puts it. The
  * glass carries a small margin over D/2 so that off-axis pencils are not shaved by
  * the surfaces' own sag, which means — as for §§ 5g–5i — the preset must be driven
@@ -184,6 +196,23 @@ export interface AchromaticObjectiveSpec {
    * instead, which is a materially different lens; see the header.
    */
   readonly objectDistanceMm?: number;
+  /**
+   * What ΣS_I is solved TO (mm). Zero — the default — is the aplanatic-on-axis
+   * doublet every caller before § 6c wanted. A caller that has something else in
+   * the chain contributing a known third-order spherical aberration asks for
+   * MINUS that, so the pair cancels: the coverslip does exactly this, which is
+   * why an objective corrected for a slip is not corrected without one.
+   *
+   * FOOTGUN, and the reason this is spelled out rather than inferred: S_I ∝ h⁴,
+   * so a target is only meaningful together with the marginal height it is
+   * evaluated at, and that height is this constructor's own **D/2** — the glass
+   * semi-diameter — which is NOT the stop radius when the caller has sized the
+   * glass with a margin. It is also evaluated at `objectDistanceMm`, this
+   * constructor's conjugate, which for a mirrored objective is the *reversed*
+   * one. Compute the target by summing the other element's Seidel terms on a
+   * chain built in exactly those two frames (`designs/microscope` does).
+   */
+  readonly targetS1Mm?: number;
 }
 
 /** One SA-null bending, with the numbers that distinguish it from the other. */
@@ -234,11 +263,13 @@ export interface AchromaticObjective {
    */
   readonly secondarySpectrum: number;
   /**
-   * Residual Σ S_I at the solution (mm) — zero to solver precision, by
-   * construction, **at the conjugate it was solved for**. At any other conjugate
-   * it is not zero and is not meant to be (§ 6b).
+   * Σ S_I at the solution (mm) — `targetS1Mm` to solver precision, by
+   * construction, **at the conjugate and marginal height it was solved for**. At
+   * any other conjugate it is neither, and is not meant to be (§ 6b).
    */
   readonly seidelS1: number;
+  /** What ΣS_I was solved to (mm). 0 unless something else in the chain aberrates. */
+  readonly targetS1Mm: number;
   /** The finite object conjugate the bending was solved at (mm), if any. */
   readonly objectDistanceMm?: number;
   /** Σ S_II per radian of field (mm/rad) for the branch built. */
@@ -344,11 +375,17 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
   /** The conjugate the bending is solved for — collimated unless one is named. */
   const conjugate = objectDistanceMm === undefined ? {} : { objectDistanceMm };
 
+  const targetS1Mm = spec.targetS1Mm ?? 0;
+  if (!Number.isFinite(targetS1Mm)) {
+    throw new Error("achromaticObjective: targetS1Mm must be finite");
+  }
+
+  /** ΣS_I less the target — the function whose roots are the solutions. */
   const s1Of = (c1: number): number =>
     seidelSums(build(curvaturesFrom(c1), f), designWavelengthNm, {
       marginalHeightMm: D / 2,
       ...conjugate,
-    }).s1;
+    }).s1 - targetS1Mm;
 
   /**
    * Scan the bending for sign changes of S_I, then bisect each. The classical
@@ -392,8 +429,12 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
       prevS = s;
     }
     if (roots.length !== 2) {
+      // Two different failures wear the same shape, and conflating them would
+      // blame the glass for the caller's arithmetic.
       throw new Error(
-        `achromaticObjective: expected two spherical-aberration-null bendings, found ${roots.length} — this glass pair does not admit the classical doublet solution`,
+        targetS1Mm === 0
+          ? `achromaticObjective: expected two spherical-aberration-null bendings, found ${roots.length} — this glass pair does not admit the classical doublet solution`
+          : `achromaticObjective: expected two bendings with ΣS_I = ${targetS1Mm.toExponential(3)} mm, found ${roots.length} — no bending of this pair absorbs that much external spherical aberration`,
       );
     }
     return roots.map((c1): AchromatBranch => {
@@ -497,6 +538,7 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
       marginalHeightMm: D / 2,
       ...conjugate,
     }).s1,
+    targetS1Mm,
     ...(objectDistanceMm === undefined ? {} : { objectDistanceMm }),
     comaPerRadian: chosen.comaPerRadian,
     branches,
