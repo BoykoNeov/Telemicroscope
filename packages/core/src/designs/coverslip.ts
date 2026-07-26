@@ -110,8 +110,13 @@ export function coverslip(spec: CoverslipSpec = {}): Coverslip {
  * starts inside the glass, so the prescription carrying this must declare the
  * slip as its `objectMedium` and put the object a slip-thickness in front.
  * Unbounded: a 22 mm square cover glass is never the aperture.
+ *
+ * Takes no `Coverslip`, deliberately: the slip's own glass is the *object*
+ * medium and everything about this face is a property of what comes AFTER it,
+ * which for a dry objective is air. An immersion front would put a medium there
+ * and want the argument back.
  */
-export function coverslipSurface(slip: Coverslip, airGapMm: number): SurfaceSpec {
+export function coverslipSurface(airGapMm: number): SurfaceSpec {
   return {
     kind: "refract",
     curvature: 0,

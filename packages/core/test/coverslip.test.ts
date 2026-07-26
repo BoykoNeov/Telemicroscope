@@ -82,9 +82,21 @@ const din4x = (withSlip: boolean) =>
  * {1, ρ²}, which is `analysis/tolerance`'s compensator move done by hand so the
  * comparison stays with the closed form rather than with another module.
  */
-function balancedRms(a: readonly { px: number; py: number; waves: number }[], b: readonly { waves: number }[]): number {
+function balancedRms(
+  a: readonly { px: number; py: number; waves: number }[],
+  b: readonly { px: number; py: number; waves: number }[],
+): number {
+  // Pairing is by index, which is only sound while BOTH maps keep every ray. A
+  // single lost sample would shift every later pairing and hand back a plausible
+  // wrong number instead of a failure, so the coordinates are checked rather
+  // than assumed (the callers assert `lost === 0` as well).
+  expect(a.length).toBe(b.length);
   let s00 = 0, s01 = 0, s11 = 0, r0 = 0, r1 = 0;
-  const rows = a.map((s, i) => ({ r2: s.px * s.px + s.py * s.py, w: s.waves - b[i]!.waves }));
+  const rows = a.map((s, i) => {
+    expect(s.px).toBe(b[i]!.px);
+    expect(s.py).toBe(b[i]!.py);
+    return { r2: s.px * s.px + s.py * s.py, w: s.waves - b[i]!.waves };
+  });
   for (const r of rows) {
     s00 += 1;
     s01 += r.r2;
@@ -343,6 +355,31 @@ describe("§ 6c.2 — the DIN objective re-solved through the slip", () => {
     expect(opdMap(m.system, 0, LAMBDA, pupilGrid(21)).lost).toBe(0);
   });
 
+  it("…and the NEGATIVE control: a stop sized as if the slip were not there", () => {
+    // The plate pushes the entrance pupil back to n·(air gap), so the cone that
+    // fills the stop is (t + n·w)·tan u_glass with sin u_glass = NA/n. Sizing it
+    // the bare way — a_air·tan u_air, the § 6b formula — over-fills the pupil and
+    // the readout SEES it: 0.10029 for a lens labelled 0.10. Small, and exactly
+    // the shape of § 6a.4's "2% fast" and § 6b.4's "nine times more expensive"
+    // rungs. Without this control the exact NA above only proves the readout and
+    // the sizing share an arithmetic, not that either is right.
+    const o = din4x(true);
+    const m = finiteConjugateMicroscope({ objective: o });
+    const naive =
+      (o.airEquivalentObjectDistanceMm * 0.1) / Math.sqrt(1 - 0.1 * 0.1);
+    // The two sizings differ by √((1−(NA/n)²)/(1−NA²)) exactly — 0.287% here.
+    const overSized = Math.sqrt((1 - (0.1 / N_SLIP) ** 2) / (1 - 0.01));
+    expect(naive / o.stopRadiusMm).toBeCloseTo(overSized, 12);
+    expect(overSized - 1).toBeCloseTo(0.00287, 5);
+    const misSized = { ...m.system, aperture: { kind: "stopRadius" as const, value: naive } };
+    const delivered = objectNumericalAperture(misSized, LAMBDA);
+    expect(delivered).toBeCloseTo(0.1002857, 6);
+    // The NA error tracks the stop error almost 1:1 — the launch angle is nearly
+    // linear in pupil height this slow — so the readout reports essentially the
+    // whole mis-sizing rather than absorbing it.
+    expect((delivered / 0.1 - 1) / (overSized - 1)).toBeCloseTo(1, 2);
+  });
+
   it("tells a caller when no bending can absorb the plate", () => {
     // A target the glass pair cannot reach is a different failure from a pair
     // that admits no solution at all, and § 6c's message says which.
@@ -371,8 +408,12 @@ describe("§ 6c.3 — coverslip MISMATCH: the wrong slip on the right objective"
   const system = finiteConjugateMicroscope({ objective }).system;
   const grid = pupilGrid(41);
   const reference = opdMap(system, 0, LAMBDA, grid);
-  const measured = (deltaMm: number): number =>
-    balancedRms(opdMap(withMismatch(system, deltaMm), 0, LAMBDA, grid).samples, reference.samples);
+  const measured = (deltaMm: number): number => {
+    const got = opdMap(withMismatch(system, deltaMm), 0, LAMBDA, grid);
+    expect(got.lost).toBe(0);
+    expect(reference.lost).toBe(0);
+    return balancedRms(got.samples, reference.samples);
+  };
   const predicted = (deltaMm: number): number =>
     plateW040Mm(deltaMm, N_SLIP, 0.1) / (6 * Math.sqrt(5)) / (LAMBDA * 1e-6);
 
@@ -397,8 +438,10 @@ describe("§ 6c.3 — coverslip MISMATCH: the wrong slip on the right objective"
       const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1, coverslip: {} });
       const s = finiteConjugateMicroscope({ objective: o }).system;
       const ref = opdMap(s, 0, LAMBDA, grid);
-      const got = balancedRms(opdMap(withMismatch(s, 0.05), 0, LAMBDA, grid).samples, ref.samples);
-      return 1 - got / predicted(0.05);
+      const mm = opdMap(withMismatch(s, 0.05), 0, LAMBDA, grid);
+      expect(ref.lost).toBe(0);
+      expect(mm.lost).toBe(0);
+      return 1 - balancedRms(mm.samples, ref.samples) / predicted(0.05);
     };
     const [d4, d20] = [deficitAt(4), deficitAt(20)];
     expect(d4).toBeGreaterThan(0.02);

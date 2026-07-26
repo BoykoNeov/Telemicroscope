@@ -2863,12 +2863,10 @@ and no bending makes a cemented doublet aplanatic.
 
 ### Not yet pinned
 
-- **The coverslip.** A DIN objective is engraved `160/0.17` — the tube length
-  *and* the cover glass it is corrected for. § 1 sourced and pinned the D263
-  glass; putting a 0.17 mm slab in front of the specimen and re-solving is the
-  natural next unit, and coverslip *mismatch* is one of step 6's named
-  deliverables. Nothing here models one, so `objectDistanceMm` is a free working
-  distance in air.
+- ~~**The coverslip.**~~ Closed by [§ 6c](#step-6c--the-coverslip-and-what-mismatching-it-costs):
+  the 0.17 mm slab, the objective re-solved through it, and mismatch. Read
+  `objectDistanceMm` in this step as the bare-specimen case § 6c generalises —
+  with a slip it becomes the slip thickness and the air path is `airGapMm`.
 - **The eyepiece is not composed on.** The intermediate image is where this stops;
   § 5l's `spliceModules` and the § 5m/5o eyepieces would carry it to a virtual
   image at the eye, which is what a real DIN microscope delivers. Left out
@@ -2978,7 +2976,11 @@ which the exact form tracks its own series to the last digit, with the next term
   rule, and `pupils` images the stop back through the plate to an entrance pupil
   at n·(air gap). Sizing the stop against *that* is what keeps the delivered NA
   exact: r = (t + n·w)·tan u with sin u = NA/n, one formula that collapses to the
-  bare `a·tan u` at n = 1 and will carry an immersion medium unchanged.
+  bare `a·tan u` at n = 1 and will carry an immersion medium unchanged. The
+  **negative control** is the rung that makes that a claim rather than a shared
+  arithmetic: size the stop the § 6b way, ignoring the plate, and the readout
+  reports 0.10029 for a lens labelled 0.10 — over-sized by exactly
+  √((1−(NA/n)²)/(1−NA²)), and the NA error tracks it nearly 1:1.
 
 **The anti-circularity check is the interesting one.** For the mirrored
 (flint-first) objective the bending is solved in the *reversed* frame, where the
@@ -2986,7 +2988,10 @@ specimen side is the image side — so the plate's target is computed at conjuga
 b and the null is then measured at conjugate a, on the real chain, in the real
 frame. Nothing forces those to agree; that ΣS_I comes out 3e-16 is the § 6b.1
 reciprocity statement surviving an extra surface, and it holds for the
-crown-first build too.
+crown-first build too. It is also **enforced**, not merely reported: the
+constructor throws if ΣS_I on the real chain exceeds 1e-9 of the surfaces' own
+cancellation scale, because a lens solved for a plate slightly unlike the one in
+front of it sits at the right conjugates and images perfectly happily.
 
 **And the headline is a NULL.** At NA 0.10 the correction the slip demands is
 W₀₄₀ = 1.1e-6 mm — 1.4e-4 waves once balanced — which is **400× under the
@@ -3007,12 +3012,16 @@ projected out, is then the mismatch and nothing else.
 
 - **Exactly linear in Δt**, to parts in 10⁴ across a factor of 100 in Δt — the
   traced confirmation of § 6c.1's algebraic linearity.
-- **Within 2.4% of the published closed form**, and *the deficit is the lens's,
-  not the plate's*: moving the objective by the **paraxial** apparent depth
-  leaves the real marginal ray a hair off its old height, so a sliver of the
-  objective's own large fifth-order residual rides along. Slowing the objective
-  at fixed NA — where § 6b.4 pins that residual falling 16× from 4× to 20× —
-  collapses the deficit to 0.7%, which is what identifies whose it is.
+- **Within 2.4% of the published closed form**, and the deficit is very likely
+  the lens's rather than the plate's: moving the objective by the **paraxial**
+  apparent depth leaves the real marginal ray a hair off its old height, so a
+  sliver of the objective's own large fifth-order residual rides along. Slowing
+  the objective at fixed NA — where § 6b.4 pins that residual falling 16× from
+  4× to 20× — takes the deficit 2.4% → 1.0% → 0.7%, and it is that **trend**
+  that is the evidence. The 0.7% endpoint is not, on its own: it is the same
+  size as the tan/sin/exact convention spread at this NA (0.7–0.9%), so the two
+  candidate explanations are indistinguishable there. What the monotone fall
+  with the objective's own residual rules out is the formula being wrong.
 - **1/NA⁴ tolerance**, reported under both criteria the literature quotes,
   because they differ by 6√5·4/14 = 3.83× and a tolerance without its criterion
   is unusable:

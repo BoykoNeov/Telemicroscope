@@ -677,7 +677,7 @@ export function finiteConjugateObjective(
       : {
           ...bareP,
           objectMedium: slip.medium,
-          surfaces: [coverslipSurface(slip, airGapMm), ...bareP.surfaces],
+          surfaces: [coverslipSurface(airGapMm), ...bareP.surfaces],
         };
 
   /**
@@ -867,6 +867,25 @@ export function finiteConjugateObjective(
     slip === undefined
       ? stopRadiusMm
       : (tSlip * stopRadiusMm) / (tSlip + nSlip * airGapMm);
+  // ANTI-CIRCULARITY, second half. The conjugate check above cannot see a stale
+  // coverslip target: a lens solved for a plate slightly unlike the one in front
+  // of it sits at the right conjugates and images perfectly happily. The residual
+  // is measured on the REAL chain in the REAL frame, and scaled against the sum
+  // of the surfaces' individual contributions — the same "cancellation" currency
+  // `achromaticObjective` picks its branch on, which is a meaningful magnitude
+  // whether or not there is a slip (with none, both sides are ~1e-16 and a
+  // relative test on the total alone would be noise against noise).
+  const workingSums = seidelSums(prescription, designWavelengthNm, {
+    marginalHeightMm: seidelMarginalHeightMm,
+    objectDistanceMm,
+  });
+  const cancellation = workingSums.surfaces.reduce((total, x) => total + Math.abs(x.s1), 0);
+  if (!(Math.abs(workingSums.s1) <= 1e-9 * cancellation)) {
+    throw new Error(
+      `finiteConjugateObjective: the spherical-aberration solve did not converge — ΣS_I = ${workingSums.s1.toExponential(3)} mm against a cancellation scale of ${cancellation.toExponential(3)} mm`,
+    );
+  }
+
   const front = bare.surfaces[0]!;
   const freeWorkingDistanceMm =
     (slip === undefined ? airEquivalentObjectDistanceMm : airGapMm) -
@@ -887,10 +906,7 @@ export function finiteConjugateObjective(
     stopSurfaceIndex: stopIdx,
     stopRadiusMm,
     workingFocalRatio: f / (2 * stopRadiusMm),
-    seidelS1AtWorkingConjugates: seidelSums(prescription, designWavelengthNm, {
-      marginalHeightMm: seidelMarginalHeightMm,
-      objectDistanceMm,
-    }).s1,
+    seidelS1AtWorkingConjugates: workingSums.s1,
     seidelS1OfGlassAlone: seidelSums(asObjective(bare, 0), designWavelengthNm, {
       marginalHeightMm: stopRadiusMm,
       objectDistanceMm: airEquivalentObjectDistanceMm,
