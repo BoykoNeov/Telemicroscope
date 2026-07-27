@@ -233,6 +233,20 @@
    **Open here:** the hyperhemisphere itself, the coverslip through a two-group
    target, astigmatism/field curvature (S_III–S_V remain uncomputed — an aplanat is
    not an anastigmat), and the finite-conjugate DIN Lister.
+   *Oil immersion — the plane stack:* ✅ (§ 6e.1). Before the aplanatic glass, the
+   thing it looks *through*: cover glass, fluid film and the front element's flat
+   underside, as the exact N-layer generalisation of § 6c's single plate — still
+   solvable to all orders from Snell, and reducing to § 6c term for term. It
+   carries the identity immersion rests on: **a matched stack aberrates a hard
+   zero**, at every aperture, which is why oil is formulated to the index of the
+   slip and the front element. The finding is that the real triad does *not*
+   match well enough to ignore — at NA 1.25 an N-BK7 front spends 91% of the
+   whole Maréchal budget on the stack alone, and 2.9× the budget at NA 1.4;
+   matching the front element to the cover glass instead is worth 6.5× and no
+   more, because it moves the element off the oil. **Open:** the aplanatic front
+   element itself, off-axis plate terms, correcting the objective *for* its stack
+   (§ 6c's `targetS1Mm` route, which the Lister has no target parameter for), and
+   the chromatic half of the mismatch.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

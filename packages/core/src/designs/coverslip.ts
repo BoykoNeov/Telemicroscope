@@ -72,6 +72,12 @@ import { getMedium } from "../materials/catalog";
  * specimen is taken to be in contact with the glass). Off axis the plate also
  * adds coma and astigmatism in a non-telecentric beam; only the on-axis S_I story
  * is pinned, which is the one a correction collar exists for.
+ *
+ * The one-plate scope above is the DRY case. An immersion objective looks through
+ * a *stack* — slip, fluid, the front element's flat underside — and the second
+ * half of this module generalises every formula here to N layers of N indices
+ * (§ 6e.1), exactly, still to all orders. That generalisation is where "the oil
+ * is index-matched" stops being a slogan and becomes an algebraic identity.
  */
 
 /** The No. 1.5 cover glass every DIN/JIS objective is engraved for (mm). */
@@ -104,7 +110,7 @@ export function coverslip(spec: CoverslipSpec = {}): Coverslip {
 
 /**
  * The plate's upper face as a prescription surface: plane, glass behind it,
- * `airGapMm` of air in front of the objective's first vertex.
+ * `gapMm` of `medium` in front of the objective's first vertex.
  *
  * Only one surface, because the specimen sits ON the lower face — the light
  * starts inside the glass, so the prescription carrying this must declare the
@@ -112,17 +118,18 @@ export function coverslip(spec: CoverslipSpec = {}): Coverslip {
  * Unbounded: a 22 mm square cover glass is never the aperture.
  *
  * Takes no `Coverslip`, deliberately: the slip's own glass is the *object*
- * medium and everything about this face is a property of what comes AFTER it,
- * which for a dry objective is air. An immersion front would put a medium there
- * and want the argument back.
+ * medium and everything about this face is a property of what comes AFTER it —
+ * air for a dry objective, and the immersion fluid for a wet one. § 6e took the
+ * `medium` argument this comment predicted it would want; it defaults to "AIR",
+ * so every § 6c caller is unchanged.
  */
-export function coverslipSurface(airGapMm: number): SurfaceSpec {
+export function coverslipSurface(gapMm: number, medium: string = "AIR"): SurfaceSpec {
   return {
     kind: "refract",
     curvature: 0,
     semiAperture: Infinity,
-    thickness: airGapMm,
-    medium: "AIR",
+    thickness: gapMm,
+    medium,
   };
 }
 
@@ -221,6 +228,180 @@ export function plateWavefrontErrorMm(
  */
 export function plateW040Mm(thicknessMm: number, n: number, sinTheta: number): number {
   return (thicknessMm * (n * n - 1) * sinTheta ** 4) / (8 * n * n * n);
+}
+
+/**
+ * ## The plane STACK — § 6c's plate, generalised to N layers of different glass
+ *
+ * An immersion objective does not look through *a* plate. It looks through a
+ * stack: the specimen sits under a cover glass, above the cover glass is a film
+ * of immersion fluid, and above that is the flat underside of the front element.
+ * Three layers of three different indices, all in the steepest cone in the
+ * instrument. Everything above generalises to that stack exactly, and the
+ * generalisation is what § 6e is pinned on — so it lives here, next to the
+ * single-plate forms it must reduce to, rather than in the design that uses it.
+ *
+ * Write q = n·sinθ for the ray invariant, which is conserved across every plane
+ * face and IS the numerical aperture. In layer i the ray runs at
+ * sinθᵢ = q/nᵢ, so cosθᵢ = √(nᵢ²−q²)/nᵢ, and with n_out the index the light
+ * finally emerges into:
+ *
+ *  - **Apparent distance** (paraxial): D = n_out · Σᵢ tᵢ/nᵢ. Each layer is seen
+ *    through its own reduced thickness — § 6c's apparent depth, per layer.
+ *  - **Longitudinal**, exactly:
+ *
+ *        LSA = Σᵢ tᵢ·[ n_out/nᵢ − √(n_out²−q²)/√(nᵢ²−q²) ]
+ *
+ *  - **Wavefront** referenced to the paraxial image point, exactly:
+ *
+ *        W(q) = Σᵢ tᵢ[√(nᵢ²−q²) − nᵢ] − n_out(√(n_out²−q²) − n_out)·Σᵢ tᵢ/nᵢ
+ *
+ * ## Two things about these are worth more than the formulas
+ *
+ * **They reduce to § 6c.** One layer of index n emerging into air is
+ * `plateLongitudinalAberrationMm` and `plateWavefrontErrorMm`, term for term —
+ * not approximately, identically, which is a rung rather than a remark.
+ *
+ * **They are identically zero when the stack is index-matched.** Set every
+ * nᵢ = n_out and each summand above vanishes *on its own*, for every q, to all
+ * orders. That is not a small residual to be measured; it is an algebraic
+ * identity, and it is the entire physical reason immersion oil is formulated to
+ * the index of the front element and the cover glass. A matched stack is
+ * optically invisible no matter how steep the cone crossing it — which is what
+ * lets an immersion objective work at NA 1.4 through 0.17 mm of glass that would
+ * destroy a dry NA 0.95.
+ *
+ * The rationalised forms below make both properties survive floating point: each
+ * is written per layer with (nᵢ²−n_out²) as an explicit factor, so a matched
+ * layer returns a hard zero instead of a difference of two numbers near 1. The
+ * cost is the honest one — a nearly-matched layer (Δn ~ 1e-3, which is what the
+ * real oil/D263/N-BK7 triad is) computes its small answer with about three fewer
+ * digits than a mismatched one, because that is what a difference of like
+ * quantities costs. Ten digits is far more than any rung here asks for.
+ */
+export interface PlaneLayer {
+  readonly thicknessMm: number;
+  /** Refractive index of this layer AT THE WAVELENGTH IN USE — already resolved. */
+  readonly n: number;
+}
+
+const checkStack = (layers: readonly PlaneLayer[], nOut: number, q: number): void => {
+  if (!(nOut > 0)) throw new Error("plane stack: the emergent index must be positive");
+  if (!(q >= 0)) throw new Error("plane stack: the ray invariant q = n·sinθ must be non-negative");
+  if (q >= nOut) {
+    throw new Error(
+      `plane stack: q = ${q} does not propagate into a medium of index ${nOut} — total internal reflection`,
+    );
+  }
+  for (const l of layers) {
+    if (!(l.n > 0)) throw new Error("plane stack: every layer index must be positive");
+    if (q >= l.n) {
+      throw new Error(
+        `plane stack: q = ${q} exceeds a layer index of ${l.n} — the ray never leaves that layer`,
+      );
+    }
+  }
+};
+
+/**
+ * Paraxial apparent distance of the object through the stack, measured in the
+ * emergent medium from the stack's last face: D = n_out·Σ tᵢ/nᵢ.
+ *
+ * The only first-order effect a stack of plane layers has. For a matched stack
+ * it is just the geometric total thickness, which is the paraxial half of the
+ * "the oil is invisible" statement.
+ */
+export function stackApparentDistanceMm(
+  layers: readonly PlaneLayer[],
+  nOut: number,
+): number {
+  checkStack(layers, nOut, 0);
+  return nOut * layers.reduce((a, l) => a + l.thicknessMm / l.n, 0);
+}
+
+/**
+ * Exact longitudinal spherical aberration of the stack for the ray of invariant
+ * `q`: the paraxial crossing less the real one, signed the same way § 6c signs
+ * `plateLongitudinalAberrationMm` (positive = the marginal crossing lands beyond
+ * the paraxial one, along +z).
+ *
+ * Rationalised per layer to
+ *
+ *     LSA = Σᵢ tᵢ q²(nᵢ²−n_out²) / [ nᵢ√(nᵢ²−q²)·(n_out√(nᵢ²−q²) + nᵢ√(n_out²−q²)) ]
+ *
+ * — no subtraction of like quantities anywhere, and (nᵢ²−n_out²) sitting in the
+ * numerator so a matched layer contributes an exact zero.
+ */
+export function stackLongitudinalAberrationMm(
+  layers: readonly PlaneLayer[],
+  nOut: number,
+  q: number,
+): number {
+  checkStack(layers, nOut, q);
+  const rootOut = Math.sqrt(nOut * nOut - q * q);
+  let sum = 0;
+  for (const l of layers) {
+    const root = Math.sqrt(l.n * l.n - q * q);
+    sum +=
+      (l.thicknessMm * q * q * (l.n * l.n - nOut * nOut)) /
+      (l.n * root * (nOut * root + l.n * rootOut));
+  }
+  return sum;
+}
+
+/**
+ * Exact wavefront error of the stack at invariant `q`, referenced to the
+ * paraxial image point (mm of optical path). Rationalised per layer to
+ *
+ *     W = Σᵢ tᵢ q⁴(nᵢ²−n_out²)
+ *         / [ (n_out√(nᵢ²−q²)+nᵢ√(n_out²−q²))·nᵢ(√(nᵢ²−q²)+nᵢ)(√(n_out²−q²)+n_out) ]
+ *
+ * The q⁴ is not fitted — it falls out of clearing the two differences of roots,
+ * and it is the reason a stack's leading term is third-order spherical and
+ * nothing lower. `stackW040Mm` is that leading term.
+ */
+export function stackWavefrontErrorMm(
+  layers: readonly PlaneLayer[],
+  nOut: number,
+  q: number,
+): number {
+  checkStack(layers, nOut, q);
+  const rootOut = Math.sqrt(nOut * nOut - q * q);
+  const q4 = q * q * q * q;
+  let sum = 0;
+  for (const l of layers) {
+    const root = Math.sqrt(l.n * l.n - q * q);
+    sum +=
+      (l.thicknessMm * q4 * (l.n * l.n - nOut * nOut)) /
+      ((nOut * root + l.n * rootOut) * l.n * (root + l.n) * (rootOut + nOut));
+  }
+  return sum;
+}
+
+/**
+ * The stack's third-order coefficient — the small-q limit of
+ * `stackWavefrontErrorMm`:
+ *
+ *     W₀₄₀ = q⁴ · Σᵢ tᵢ(nᵢ²−n_out²) / (8·nᵢ³·n_out²)
+ *
+ * For one layer in air this is `plateW040Mm` exactly. Its sign is the useful
+ * part: a layer DENSER than the emergent medium contributes positive spherical
+ * aberration and a rarer one contributes negative, so a stack can be balanced
+ * against itself — and an objective corrected for a stack is deliberately built
+ * aberrated by minus this, § 6c's `targetS1Mm` route.
+ */
+export function stackW040Mm(
+  layers: readonly PlaneLayer[],
+  nOut: number,
+  q: number,
+): number {
+  checkStack(layers, nOut, q);
+  const q4 = q * q * q * q;
+  return layers.reduce(
+    (a, l) =>
+      a + (l.thicknessMm * q4 * (l.n * l.n - nOut * nOut)) / (8 * l.n ** 3 * nOut * nOut),
+    0,
+  );
 }
 
 export interface CoverslipTolerance {

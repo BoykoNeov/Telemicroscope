@@ -50,6 +50,7 @@ whole ladder.
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
+| [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity | `immersion` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3262,6 +3263,108 @@ that element will be pinned against.
   would now be a pair of them, one per group — and is not wired here.
 - **The finite-conjugate (DIN) Lister**, which is the historical form. § 6b's
   machinery would carry it; nothing here needs it.
+
+## Step 6e — oil immersion: the plane stack, exactly
+
+§ 6d ended with a measured wall: two cemented doublets stop solving near NA 0.35
+for *two different glass pairs*, so the ceiling belongs to the form. The way past
+it is an element in front that reduces the aperture without adding aberration,
+which is only possible at a surface's aplanatic conjugates — the closed form
+§ 6d.1 pinned and no design used.
+
+Before any of that glass, though, there is something to look through. A dry
+objective has one plate in its cone (§ 6c); an immersion objective has a **stack**
+— cover glass, fluid film, the flat underside of the front element — three
+indices, in the steepest cone in the instrument. This rung is that stack, and it
+comes first because it needs no lens.
+
+### Why this rung is as strong as § 6c's
+
+For the same reason: it is solvable **to all orders** from Snell alone. With
+q = n·sinθ the ray invariant (conserved across every plane face, and equal to the
+numerical aperture), and n_out the index the light emerges into:
+
+    D    = n_out · Σᵢ tᵢ/nᵢ
+    LSA  = Σᵢ tᵢ·[ n_out/nᵢ − √(n_out²−q²)/√(nᵢ²−q²) ]
+    W(q) = Σᵢ tᵢ[√(nᵢ²−q²) − nᵢ] − n_out(√(n_out²−q²) − n_out)·Σᵢ tᵢ/nᵢ
+
+Rationalised per layer, each carries (nᵢ²−n_out²) as an explicit factor, and W
+carries an explicit q⁴ — so the third-order coefficient is not fitted but read
+off the algebra.
+
+### 6e.1 — the stack
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **One layer emerging into air REDUCES to § 6c**, term for term, at 4 ULP | `plateLongitudinalAberrationMm` / `plateWavefrontErrorMm` / `plateW040Mm` | ✅ |
+| **A MATCHED stack aberrates a HARD ZERO** — `toBe(0)`, at every q to 1.5 | algebraic identity, not a tolerance | ✅ |
+| The traced axial crossing IS the closed-form LSA to 1e-12, q ≤ 1.4 | exact tracer vs exact answer, all orders | ✅ |
+| **The traced WAVEFRONT is the closed-form W to 1e-12**, built from the tracer's own accumulated OPL | as above; nothing consults the formula until the comparison | ✅ |
+| POSITIVE CONTROL: matched media leave the traced crossing flat to 1e-13 at q = 1.4 | the identity, seen by the tracer rather than the algebra | ✅ |
+| NEGATIVE CONTROL: the same stack DRY carries 34 waves at q = 0.95, and refuses q > 1 | why the fluid is there at all | ✅ |
+| The sign follows the contrast — denser layers one way, rarer the other, so a stack balances against itself | § 6c's sign, per layer | ✅ |
+| W₀₄₀ is the q → 0 limit, and the exact form LEAVES it | both halves; only the second catches a wrong higher order | ✅ |
+
+**The identity is the point.** Set every nᵢ = n_out and each summand vanishes on
+its own, for every q, to all orders. That is not a small residual to be measured;
+it is why immersion fluid is formulated to the index of the front element and the
+cover glass, and it is what lets an objective work at NA 1.4 through 0.17 mm of
+glass that would wreck a dry NA 0.95.
+
+### What the REAL triad costs, and the finding that surprised
+
+Quoted as **balanced σ** — piston and defocus projected out — because that is the
+currency Maréchal is stated in. The peak W at NA 1.25 is 0.59 waves and comparing
+*that* to λ/14 would be comparing two different quantities, which is exactly the
+confusion § 6c was careful to head off.
+
+| NA | σ, N-BK7 front | σ, D 263 front | Maréchal λ/14 |
+|---|---|---|---|
+| 0.95 | 1.03e-2 | 1.59e-3 | 7.14e-2 |
+| 1.25 | 6.49e-2 | 1.00e-2 | 7.14e-2 |
+| 1.40 | 2.10e-1 | 3.25e-2 | 7.14e-2 |
+
+Cargille Type B (1.51512), D 263 T eco (1.52330) and N-BK7 (1.51680) are all
+"1.515 glass" and all different in the third decimal. With an N-BK7 front element
+the stack at NA 1.25 is **inside Maréchal and only just — it spends 91% of the
+whole diffraction-limited budget on itself**, leaving 9% for the objective that
+has to look through it. "Inside the limit" and "affordable" part company here. At
+NA 1.4 it is 2.9× outside, on the stack alone.
+
+**The dominant layer is the cover glass, not the oil** — the 0.17 mm slip against
+the 0.02 mm film — and the film's contribution is of the *opposite* sign (it is
+rarer than the front element), so it buys back a few percent rather than adding.
+
+**The lever is the front element's glass, and its gain is bounded at 6.5×.** Build
+the front from the cover glass's own borosilicate and the thick layer's
+(nᵢ²−n_out²) collapses entirely — but moving the front element onto the slip moves
+it *off* the oil (Δn 0.0017 → 0.0082), so the thin film's share grows by nearly
+five as the slip's vanishes. There is no single index that matches both. That
+three-way compromise is what specifying an immersion fluid to four decimals is
+fighting, and the ladder now has a number for it.
+
+**Higher orders dominate.** § 6c could quote W₀₄₀ and be nearly right because a
+dry objective's NA caps at 1. An immersion stack has no such excuse: the exact
+wavefront is 1.15× the third-order coefficient at q = 0.5, 2.9× at 1.25 and 5.3×
+at 1.4. Anything toleranced on W₀₄₀ alone would be wrong by a factor of five, in
+the reassuring direction.
+
+### Not yet pinned
+
+- **The aplanatic front element itself.** § 6d.1 has the closed form and 6e.1 has
+  the stack to look through; the hyperhemisphere and the aplanatic menisci that
+  divide NA down to what § 6d's Lister can carry are the next unit.
+- **Off-axis.** The stack is pinned on axis only. In a non-telecentric beam a
+  plate adds coma and astigmatism too — § 6c's scope note, unchanged and now
+  inherited.
+- **Correcting an objective FOR its stack.** § 6c's `targetS1Mm` route is the
+  move, and at these apertures the table above says it is not optional. The
+  Lister solves ΣS_I = ΣS_II = 0 with no target; giving it one is a real change.
+- **Dispersion of the mismatch.** Every number here is at the d line. The three
+  media have genuinely different Abbe numbers (oil 42.9, D 263 54.5, N-BK7 64.2),
+  so the residual is chromatic and that is not measured yet.
+- **Tilt, wedge, and a non-uniform film.** The stack is taken to be plane,
+  parallel and axial.
 
 ## Later rungs
 
