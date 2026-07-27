@@ -245,11 +245,18 @@ no best-focus solve, because that is the wavefront a render will see; the
 Maréchal comparison is therefore one-sided and the panel says so (green ⇒
 genuinely diffraction-limited, red ⇒ "not at this focus", not "not correctable").
 
-**Deliberately not shown:** span ÷ (λ/2·NA), the frame's width in resolution
-cells. It lands on `pupilSamples` to within a percent for the dry rows and 2.5×
-away for the immersion ones, and this doc already declines to re-derive the
-immersion span (constraint 1). An unexplained derived column reads as a bug;
-recovering it is a physics question with its own rung, not a UI one.
+**The `cells` column — span ÷ (λ/2·NA) — is § 6h's closed form checked on
+screen**, and it does not come out clean: it lands on `pupilSamples` to within a
+percent for every dry row and ~2.5× under it for the two immersion ones. It was
+briefly dropped for reading like a bug, and that was the wrong call in this
+repo's terms — removing it left the "spans `pupilSamples` resolution cells" claim
+standing with nothing to check it against, honest in this doc and overclaiming on
+the page. It is shown with the gap named instead: λ/(2·NA) is quoted at the
+**vacuum** wavelength and lets the medium in through NA alone, while the frame's
+extent carries the wavelength in the medium as well. Constraint 1 above already
+declines to re-derive the immersion span and quotes it as measured; the panel
+says the same thing where a reader can see it. Closing the gap is a physics
+question with its own rung, not a UI one.
 
 **Why first:** A2–A6 all consume `buildFrame`, and it is where "the frame is
 93 µm wide, not 5 mm" gets said once instead of five times.

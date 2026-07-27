@@ -244,6 +244,19 @@ export interface FrameReadout {
   readonly imagePixelUm: number;
   /** λ/(2·NA) at the traced NA (nm) — the limit the crop is measured in. */
   readonly abbeResolutionNm: number;
+  /**
+   * The crop's width in resolution cells: span ÷ λ/(2·NA), with λ the **vacuum**
+   * wavelength (`abbeResolutionMm`'s convention — the medium enters through NA).
+   *
+   * § 6h's closed form says this is `pupilSamples`, and for the dry objectives it
+   * is, to a percent. The immersion rows land ~2.5× under it, because the frame's
+   * own extent carries the wavelength in the medium as well and this app does not
+   * re-derive that — APP.md quotes the immersion span as a measurement for the
+   * same reason. Reported with that stated rather than hidden: a column that
+   * silently disagrees with the closed form reads as a bug, and one that is
+   * removed leaves the claim standing with nothing to check it against.
+   */
+  readonly resolutionCells: number;
   /** Worst relative drift of the per-field ruler from the on-axis one. */
   readonly scaleDriftPixel: number;
   /** Rays the corner field point lost to vignetting — A2's cost cliff, pre-warned. */
@@ -300,6 +313,7 @@ export function describeEntry(request: FrameRequest): FrameResult {
         objectPixelNm: frame.objectPixelScaleMm * 1e6,
         imagePixelUm: frame.pixelScaleMm * 1000,
         abbeResolutionNm: abbeResolutionMm(LAMBDA_NM, tracedNA) * 1e6,
+        resolutionCells: objectSpanMm / abbeResolutionMm(LAMBDA_NM, tracedNA),
         scaleDriftPixel: drift.pixelScale,
         cornerLost: corner.lost,
         axisRmsWaves: axis.rmsWaves,

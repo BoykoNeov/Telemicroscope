@@ -372,7 +372,7 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
     return () => clearTimeout(id);
   }, [pupilSamples, size]);
 
-  const cell: React.CSSProperties = { padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" };
+  const cell: React.CSSProperties = { padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap" };
   const head: React.CSSProperties = { ...cell, borderBottom: "1px solid #ccc", color: "#444" };
 
   return (
@@ -384,6 +384,7 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
             <th style={head}>traced NA</th>
             <th style={head}>traced M</th>
             <th style={head}>crop (µm)</th>
+            <th style={head}>cells</th>
             <th style={head}>specimen/px</th>
             <th style={head}>image/px</th>
             <th style={head}>λ/2NA</th>
@@ -406,13 +407,13 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
                   <span style={{ color: "#777", fontSize: 11 }}>{entry.note}</span>
                 </td>
                 {!row ? (
-                  <td style={{ ...cell, color: "#999" }} colSpan={10}>
+                  <td style={{ ...cell, color: "#999" }} colSpan={11}>
                     tracing…
                   </td>
                 ) : !row.ok ? (
                   // The engine's own message, in full. It carries the measured
                   // ceiling; a "not available" would carry nothing.
-                  <td style={{ ...cell, textAlign: "left", color: "#c00", whiteSpace: "normal" }} colSpan={10}>
+                  <td style={{ ...cell, textAlign: "left", color: "#c00", whiteSpace: "normal" }} colSpan={11}>
                     the engine refuses this design: {row.error}
                   </td>
                 ) : (
@@ -432,6 +433,7 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
                       </span>
                     </td>
                     <td style={{ ...cell, fontWeight: 600 }}>{row.readout.objectSpanUm.toFixed(2)}</td>
+                    <td style={cell}>{row.readout.resolutionCells.toFixed(1)}</td>
                     <td style={cell}>{row.readout.objectPixelNm.toFixed(1)} nm</td>
                     <td style={cell}>{row.readout.imagePixelUm.toFixed(3)} µm</td>
                     <td style={cell}>{row.readout.abbeResolutionNm.toFixed(0)} nm</td>
@@ -632,6 +634,15 @@ export default function App() {
         a rendered frame can hold. A brightfield frame spans <code>pupil samples</code> resolution
         cells and no more, because the illumination sum&rsquo;s grid <em>is</em> its frequency
         lattice — so unlike the star field above, it cannot be widened by choosing a coarser pixel.
+      </p>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        The <strong>cells</strong> column is that claim, checked: crop ÷ λ/(2·NA), which lands on the
+        pupil-sample count to within a percent for every dry objective here. The two immersion rows
+        come in ~2.5× under it, and the panel does not paper over the gap — the frame&rsquo;s extent
+        carries the wavelength <em>in the medium</em> as well, where λ/(2·NA) is quoted at the vacuum
+        wavelength and lets the medium in through NA alone. Their crop is a <em>measurement</em>{" "}
+        here, not a derivation; recovering the closed form is a physics question, and this panel adds
+        no physics.
       </p>
       <p style={{ maxWidth: 640, color: "#444" }}>
         Read the three <strong>NA 0.10</strong> rows together: 4×, 10× and 20× cover an{" "}
