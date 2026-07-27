@@ -128,7 +128,15 @@ export function resamplePsf(p: Psf, targetPixelScaleMm: number, size = p.size): 
   return resampleGrid(p.intensity, p.size, p.pixelScaleMm, targetPixelScaleMm, size);
 }
 
-function resampleGrid(
+/**
+ * Resample an energy-per-pixel grid onto a different pixel scale, bilinearly.
+ *
+ * Exported because `imaging/emission` stacks a band of incoherent PSFs and hits
+ * exactly the failure this module exists to prevent — pixelScaleMm is ∝ λ, so a
+ * bin-for-bin sum silently rescales each component instead of stacking it. One
+ * resampler, so the two paths cannot drift.
+ */
+export function resampleGrid(
   src: Float64Array,
   srcSize: number,
   srcPixelScaleMm: number,

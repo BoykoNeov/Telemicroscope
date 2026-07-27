@@ -55,6 +55,7 @@ whole ladder.
 | [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; the 0.61·λ/NA_cond coherence width measured; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
+| [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -4547,6 +4548,166 @@ tagged phase object has one.
 - **Colour.** `renderFluorescence` returns intensity on one grid where
   `renderField` returns XYZ. A two-colour merge is what a real fluorescence figure
   shows, and it wants the emission band first.
+
+## Step 6j — the Stokes shift, and the band the image is formed in
+
+§ 6i's operator is monochromatic and takes no excitation wavelength at all. That
+is the **architecture**, not an omission: a fluorophore absorbs at λ_ex and emits
+at λ_em > λ_ex, and the emission filter blocks the excitation, so it cannot reach
+the image. "Resolution is set by λ_em" is therefore the shape of the API rather
+than a measurement, and this step pins the two things that ARE measurable — what
+the shift between the bands costs in focus, and what a band of finite width does
+to the kernel.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A band's samples are normalized, so a wider filter does not brighten by arithmetic | Σw = 1, 1e-12 | ✅ |
+| The band multiplies quadrature **once** — it IS `spectralSamples`, renormalized | § 3a's double-application warning | ✅ |
+| A band with no light in the sampled range throws | no silent black image | ✅ |
+| **A one-line band reproduces the monochromatic kernel exactly** | identity, 1e-12 | ✅ |
+| The components' pixel scales really are ∝ λ — 650/450 to f64 | § 2e's premise, measured | ✅ |
+| The stacked kernel keeps unit sum, and reports what resampling lost | § 2e's `truncatedFraction` | ✅ |
+| **Hold the scale fixed and band width does nothing, exactly** | isolation, 1e-12 | ✅ |
+| The weighted-mean wavelength's scale IS the common grid | identity, 1e-12 | ✅ |
+| **Half a depth of focus IS a quarter wave on the TRACED wavefront** | § 1.5's defocus form, 2 places | ✅ |
+| DOF scales as n and as 1/NA², separately | closed form, 1e-12 | ✅ |
+| Object- and image-side depths differ by the longitudinal magnification M²·n′/n | sine condition, 1e-9 | ✅ |
+| **A 20 nm shift costs 0.32 depths of focus at 4×/0.10** | measurement | ✅ |
+| **…and 3.77 at 100×/1.40** — more than 10× worse | measurement | ✅ |
+| The difference is stable to 4% (and 0.5% at NA 1.40) over the trace's sampling | conditioning, measured | ✅ |
+| Swapping the endpoints negates the shift; a zero interval gives exactly 0 | negative control | ✅ |
+| A wide band is broader than a narrow one where the objective is chromatic | convergence, both sides resampled | ✅ |
+| The kernel's scale follows λ_em to within the exit pupil's own dispersion (1.4e-4) | measurement | ✅ |
+
+### 6j.1 — the band's weights are the source's, and they enter exactly once
+
+`imaging/scene` carries an explicit warning that a scene render must be handed
+*pure quadrature* samples with each source's spectrum kept on the source, because
+SED-weighted samples apply the spectrum twice and give "a plausible image of the
+wrong colour". An emission band IS an SED, so the hazard is live here. The guard
+is structural: `emissionSamples` is the engine's own one-source constructor,
+`spectralSamples`, with nothing added but a normalization — pinned term by term
+against it, so a second application would show up as the band squared.
+
+**No fluorophore is named.** Real excitation/emission curves are measured data,
+and transcribing a dye's from memory is what the hard rule forbids. What is
+offered is `boxcarBand`, named for what it models — an **interference filter**,
+whose transmission really is close to rectangular — and a caller-supplied
+`(nm) => number` for anything else, exactly as `PointSource.spectrum` works.
+
+**A one-line band must be the monochromatic kernel exactly**, or every broadband
+number is measured against a moving zero. It very nearly was not: `resampleGrid`
+drops destinations sourced from the last row and column, so passing an
+already-matching grid through it loses 2.6e-4 of the light and — after the
+stack's renormalization — moves the peak by the same amount. A component already
+on the common grid is therefore left alone, compared within f64 rounding rather
+than bit-exactly, since the target is a weighted mean and a component that IS the
+mean can miss it by an ulp depending on summation order.
+
+### 6j.2 — one physical grid, because the pixel scale is ∝ λ
+
+Each wavelength forms its own incoherent PSF and `imagePixelScaleMm` is ∝ λ, so
+the components live on **different physical grids** — measured, 650/450 to f64,
+rather than assumed. Summing them bin for bin would silently rescale each instead
+of stacking it: `wave/polychromatic`'s founding failure mode, recurring one layer
+up. Its resampler is reused rather than a second one grown.
+
+One bug this caught, and it is worth recording because no energy check would
+have: `incoherentPsf` returns DC-at-index-0 (so a convolution is a plain
+multiply) while `resampleGrid` scales about the grid's **centre**. Resampling the
+unshifted array rescaled a kernel wrapped into the four corners — it moved the
+peak by 60% and threw away 74% of the light, and the stack still summed to 1
+afterwards, because the sum is renormalized either way.
+
+**The stack is over kernels, not images**, and that is exact rather than an
+economy: a single-label specimen emits with one spectrum, so E(x)·w(λ) factors
+and Σ_λ w_λ(h_λ ⊛ E) = (Σ_λ w_λ h_λ) ⊛ E — one convolution with the whole band in
+the kernel. A two-label specimen does not factor that way, which is § 6i's colour
+deferral rather than a limit found here.
+
+**A band is not automatically a blur, and that is a finding.** With an
+aberration-free pupil the only thing λ changes is the scale, and a band symmetric
+in λ is two-sided about it: the blue components are physically narrower and
+genuinely concentrate more energy inside a fixed radius while the red ones
+spread. Neither candidate readout is monotone across 0 → 200 nm — the peak pixel
+runs 0.19458, 0.19222, 0.19007, 0.19029 and turns back up, and core energy
+disagrees with it depending on how the band is sampled — and both compete with
+the resampler's own bilinear smoothing, which grows with |k − 1|. So the rung
+pinned is the **isolation**: hold the scale fixed and band width does nothing at
+all, exactly, so λ enters an aberration-free kernel through the scale and through
+nothing else. The direction is left unpinned rather than settled by choosing the
+metric that flattered the claim.
+
+### 6j.3 — the depth of focus, derived rather than transcribed
+
+    DOF = n·λ / NA²
+
+§ 1.5 pins the engine's own defocus wavefront, W(ρ) = ½·δ·NA²·ρ². Setting the rim
+value to the quarter wave of the Rayleigh criterion gives δ = λ/(2·NA²) each side,
+so the full range is λ/NA² in air and n·λ/NA² in a medium. The rung does not stop
+at the algebra: it defocuses a **traced** system by half that range and reads
+0.25/(2√3) waves of RMS back off the wavefront, the system's own residual
+subtracted in quadrature. The formula is held to the tracer, not to a textbook.
+
+`refractiveIndex` is the medium the cone is *in* — the immersion fluid on the
+object side, air on the image side of every system in the ladder. Getting it wrong
+is a factor of 1.515 at NA 1.40, which is exactly the size of thing that reads as
+a finding. The ratio Δz/DOF is **invariant between the two spaces**, and that is
+pinned rather than asserted: NA′ = NA/|M| by the sine condition, so
+DOF′/DOF = M²·n′/n — the longitudinal magnification — and both the shift and the
+tolerance scale by it, so it cancels. That is what makes it legitimate to measure
+where `bestFocus` lives (image side) and quote where a microscopist works.
+
+### 6j.4 — what the Stokes shift costs, on the ladder's own two objectives
+
+A 20 nm shift (500 → 520 nm) costs **0.32 depths of focus on the DIN 4×/0.10** and
+**3.77 on the 100×/1.40 oil**. Free at low NA; a refocus between channels at high
+NA, which is the real instrument's behaviour and the reason multi-channel
+fluorescence images need registration in z.
+
+Part of the 12× is NA — DOF ∝ 1/NA² — and part is the objective's own colour
+correction. § 6e is explicit that the aplanatic front group is exact at ONE
+wavelength and that "the chromatic half" is its named open item, so the second
+number is partly the cost of that deferral arriving where it bites. **It is not a
+claim about what a real apochromatic 100×/1.40 does.**
+
+**The conditioning is pinned, because the ratio could easily have been noise.**
+The absolute best-focus offset moves by ~5e-2 mm with the trace's pupil sampling
+on the 4× — 5% of a depth of focus, which would sink the ratio. The *difference*
+between two wavelengths holds to 4% over pupilSamples 11 → 31, and to 0.5% at
+NA 1.40. `minRmsWavefront` is the criterion throughout because the tolerance it is
+compared against is itself a wavefront statement, and § 1.6 pins that the three
+focus criteria genuinely disagree (the geometric one gives −0.364 mm where this
+gives −0.298 mm on the same system).
+
+### 6j.5 — a traced objective through a real band
+
+Where § 6j.2 could not show broadening, an objective that focuses the colours in
+different planes does: a 160 nm band empties the core relative to a 10 nm one on
+the traced DIN 4×. **Both sides are resampled and both use the same sample
+count**, so the resampler's bilinear smoothing is present on each and cancels —
+comparing against an unresampled single line would have measured that smoothing
+and called it secondary spectrum.
+
+The kernel's scale follows the emission wavelength to 1.4e-4 of exact
+proportionality, and the residual is physics rather than slop: `pixelScaleMm` is
+λ·R/(n′·size·Δpupil), and R and the exit-pupil radius come from a trace that is
+itself chromatic. So the honest statement is that the scale follows λ_em to within
+the exit pupil's own dispersion.
+
+### Not yet pinned
+- **Which way an aberration-free band moves the core.** See § 6j.2 — two readouts
+  disagree and both are entangled with the resampler's smoothing. Settling it
+  wants a resampler-free comparison, e.g. an analytic band-integrated Airy.
+- **The excitation path.** The imaging side is complete without it, but the
+  *illumination* side is not modelled at all: epi-illumination through the
+  objective, the dichroic, and whether the excitation is uniform over the field.
+  Köhler uniformity is assumed by having no excitation path to be non-uniform.
+- **Photobleaching, saturation and quantum yield**, all blocked on § 3a's
+  absolute photon count, exactly as § 6i recorded.
+- **Two-colour merge.** The stack factors because one spectrum multiplies the
+  whole emitter field; two labels do not factor and want a render per channel,
+  which is § 6i's colour deferral and wants `imaging/image`'s XYZ path.
 
 ## Later rungs
 

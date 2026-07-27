@@ -442,10 +442,34 @@
    rasterizer is not needed — which is exactly what a stained-tissue field would
    need. **No verdict is minted** (§ 6f.9's asymmetry, stated: incoherent imaging
    *has* a geometric branch) and no fluorophore is named — real dye spectra are
-   measured data. **Open:** the Stokes shift and the emission band (the λ_ex→λ_em
-   focus offset against depth of focus, and secondary spectrum across the band),
-   out-of-focus haze from a 3-D specimen — the thing that makes deconvolution and
-   confocal mean something — colour, and the remaining scenes.
+   measured data. **Open:** out-of-focus haze from a 3-D specimen — the thing that
+   makes deconvolution and confocal mean something — colour, and the remaining
+   scenes.
+   *The Stokes shift, and the band the image is formed in:* ✅ `imaging/emission`
+   (§ 6j). § 6i never sees an excitation wavelength, and that is the architecture
+   rather than a gap: the emission filter blocks it, so "resolution is set by λ_em"
+   is the shape of the API. What is measurable is what the shift *costs*, and the
+   answer is a ratio against a **derived** depth of focus — § 1.5's own defocus
+   wavefront W = ½·δ·NA²·ρ² taken to a quarter wave, then checked by defocusing a
+   traced system by half that range and reading the quarter wave back off its
+   wavefront. A 20 nm shift costs **0.32 depths of focus on the DIN 4×/0.10 and
+   3.77 on the 100×/1.40 oil** — free at low NA, a refocus between channels at high
+   NA, which is why real multi-channel images need registration in z. Part of the
+   12× is NA and part is § 6e's deliberately deferred "chromatic half" arriving
+   where it bites; it is NOT a claim about a real apochromat. The ratio is
+   invariant between object and image space (pinned: the two depths differ by the
+   longitudinal magnification M²·n′/n), which is what makes it legitimate to
+   measure where `bestFocus` lives. The band itself stacks over **kernels rather
+   than images** — one spectrum multiplies the whole emitter field, so it factors
+   and costs one convolution — on § 2e's common physical grid, since
+   `pixelScaleMm` is ∝ λ. **The surprise:** a band is not automatically a blur.
+   With no aberration the blue components are narrower and genuinely concentrate,
+   so neither the peak nor the core energy moves monotonically with band width;
+   what is pinned instead is the isolation (hold the scale fixed and width does
+   nothing, exactly), and the blur is measured where an objective supplies it.
+   **Open:** the excitation/illumination path itself (epi, dichroic, Köhler
+   uniformity), the two-colour merge, and which way an aberration-free band moves
+   the core.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

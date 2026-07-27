@@ -1,5 +1,5 @@
 import { fitZernike, type ZernikeFit } from "../wave/zernike";
-import { opdSampling } from "../wave/fidelity";
+import { opdSampling, type OpdSampling } from "../wave/fidelity";
 import {
   imagePixelScaleMm,
   pupilFunctionFromOpd,
@@ -419,13 +419,76 @@ export function objectPointAt(
   };
 }
 
+/** One field point's traced pupil, before anything is done with it. */
+export interface TracedPupil extends PatchPupil {
+  /**
+   * Required here, where `PatchPupil` leaves it optional: this one came from a
+   * trace by construction, so the thing `illumination/fidelity` needs in order
+   * to rule anything but `unknown` is always present.
+   */
+  readonly sampling: OpdSampling;
+  /** The ruler THIS trace produced — its own reference sphere and exit pupil. */
+  readonly scale: PupilScale;
+  readonly referenceRadius: number;
+  readonly exitRadius: number;
+  readonly lost: number;
+  readonly rmsWaves: number;
+  readonly fit: ZernikeFit;
+}
+
+/**
+ * Trace one field point's pupil — `psf()`'s pipeline, stopped one step early.
+ *
+ * Trace the OPD, fit it, build the pupil function. What `psf()` does next is
+ * transform it; what `abbeImage` does next is sum it over the condenser; what
+ * `imaging/emission` does next is stack it over a band.
+ *
+ * **Conjugate-agnostic**, unlike everything else in this module: `fieldValue` is
+ * whatever the system's own field spec means — degrees at infinity, object
+ * millimetres at a finite conjugate — because `opdMap` already reads it that
+ * way. `fieldPupilAt` is the finite-conjugate wrapper that works out WHICH field
+ * value a frame position corresponds to; this is the part that does not care.
+ */
+export function tracedPupil(
+  system: OpticalSystem,
+  fieldValue: number,
+  wavelengthNm: number,
+  options: FieldPupilOptions = {},
+): TracedPupil {
+  const aim = options.aim ?? {};
+  const map = opdMap(system, fieldValue, wavelengthNm, pupilGrid(options.traceSamples ?? 21), aim);
+  const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
+  // Only when the trace already shows loss — see the header's cost cliff.
+  const vignette =
+    map.lost > 0 ? vignetteMask(system, map.pupil, fieldValue, wavelengthNm, aim) : undefined;
+  const pupil = pupilFunctionFromOpd(map, fit, {
+    ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
+    ...(options.spider === undefined ? {} : { spider: options.spider }),
+    ...(vignette === undefined ? {} : { vignette }),
+  });
+  return {
+    pupil,
+    sampling: opdSampling(map, fit),
+    scale: {
+      referenceRadius: map.referenceRadius,
+      exitRadius: map.pupil.exit.radius,
+      wavelengthNm,
+      nImage: map.pupil.exit.n,
+    },
+    referenceRadius: map.referenceRadius,
+    exitRadius: map.pupil.exit.radius,
+    lost: map.lost,
+    rmsWaves: map.rmsWaves,
+    fit,
+  };
+}
+
 /**
  * Trace the pupil a normalized frame position looks through.
  *
- * `psf()`'s pipeline, stopped one step early: trace the OPD at this field point,
- * fit it, build the pupil function — and then turn it to this position's own
- * azimuth. What `psf()` does next is transform it; what `abbeImage` does next is
- * sum it over the condenser.
+ * `tracedPupil` at the object height this frame position sees, turned to the
+ * position's own azimuth. The field mapping is the part that needs a finite
+ * conjugate; the tracing underneath does not.
  */
 export function fieldPupilAt(
   system: OpticalSystem,
@@ -444,36 +507,19 @@ export function fieldPupilAt(
     aim,
   });
 
-  const map = opdMap(
-    system,
-    objectHeightMm,
-    frame.wavelengthNm,
-    pupilGrid(options.traceSamples ?? 21),
-    aim,
-  );
-  const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
-  // Only when the trace already shows loss — see the header's cost cliff.
-  const vignette =
-    map.lost > 0
-      ? vignetteMask(system, map.pupil, objectHeightMm, frame.wavelengthNm, aim)
-      : undefined;
-  const traced = pupilFunctionFromOpd(map, fit, {
-    ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
-    ...(options.spider === undefined ? {} : { spider: options.spider }),
-    ...(vignette === undefined ? {} : { vignette }),
-  });
+  const traced = tracedPupil(system, objectHeightMm, frame.wavelengthNm, options);
 
   return {
-    pupil: rotatePupil(traced, azimuthRad),
-    sampling: opdSampling(map, fit),
+    pupil: rotatePupil(traced.pupil, azimuthRad),
+    sampling: traced.sampling,
     objectHeightMm,
     azimuthRad,
     imageRadiusMm,
-    referenceRadius: map.referenceRadius,
-    exitRadius: map.pupil.exit.radius,
-    lost: map.lost,
-    rmsWaves: map.rmsWaves,
-    fit,
+    referenceRadius: traced.referenceRadius,
+    exitRadius: traced.exitRadius,
+    lost: traced.lost,
+    rmsWaves: traced.rmsWaves,
+    fit: traced.fit,
   };
 }
 
