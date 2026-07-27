@@ -50,7 +50,7 @@ whole ladder.
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
-| [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity | `immersion` |
+| [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci) that divides NA by n²·nᵏ | `immersion` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3349,20 +3349,101 @@ wavefront is 1.15× the third-order coefficient at q = 0.5, 2.9× at 1.25 and 5.
 at 1.4. Anything toleranced on W₀₄₀ alone would be wrong by a factor of five, in
 the reassuring direction.
 
+### 6e.2 — the hyperhemisphere
+
+The first design in this repo to consume § 6d.1's closed form. One dome, worked
+at the Weierstrass pair with the specimen inside the dense medium: the aperture
+n·sinu is divided by n² and the image magnified by n², both exactly.
+
+The specimen is placed by matching **apparent** distance through § 6e.1's stack —
+n_glass·Σtᵢ/nᵢ = u = R(n+1)/n — and the element's thickness is the unknown that
+closes it. So the residual is honestly whatever the stack's index mismatch costs
+and nothing else, which is exactly what the control pair below measures.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **MATCHED: the traced axial crossing does not move from q = 1e-6 to 1.25** — spread < 1e-12 mm | Weierstrass, exact to all orders | ✅ |
+| …and lands at v = R(n+1) in front of the dome vertex, read off the trace | § 6d.1's closed form, on a built element | ✅ |
+| **sinu′/sinu is CONSTANT at 1/n across the aperture** — aplanatic, not merely stigmatic | Abbe | ✅ |
+| The aperture is divided by n² and the magnification is n², both from the trace | Lagrange | ✅ |
+| NEGATIVE CONTROL: the specimen 1% off the point takes the spread from 1e-13 to 1e-8 | the pair is a point, not a region | ✅ |
+| **CONTROL PAIR: matched media 1e-13, the real slip+oil bench 1e-4** — a 10⁹ ratio on identical geometry | § 6e.1's identity, seen by the tracer | ✅ |
+| The rim fraction is the closed form sin(θ + arcsin(sinθ/n)) and is SCALE-FREE — identical at R = 0.3, 0.5, 1.5, 4 | geometry | ✅ |
+| **The stop radius is EXACT at a plane face** — the marginal ray's own hit on surface 0, at NA 1.25 and 1.40 | § 6a's blocker, closed | ✅ |
+| The NA ceiling is the chain's RAREST medium (the fluid), not the glass | q conserved across plane faces | ✅ |
+
+**§ 6a's first named immersion blocker is closed, and the diagnosis was half
+wrong.** § 6a recorded that its aperture seed "is a tangent and is 2.6× out at
+NA 1.4". A tangent is not an approximation at a *plane* face — a ray leaving the
+specimen at θ and crossing t of medium lands at exactly t·tanθ, to all orders.
+What was 2.6× out was using the sine-condition height f·sinu as though it were a
+stop radius, which was never what it is (§ 6a's own 2% finding at NA 0.10, grown
+up). With the stop on the first plane face the radius is a closed form that is as
+exact at NA 1.4 as at NA 0.01, and no solve is needed anywhere.
+
+**The rim is a ridge, not a wall.** h/R = sin(θ + arcsin(sinθ/n)) has no R in it,
+so a bigger dome buys no margin. It reaches 1 near **NA 1.275** for D 263, where
+the marginal ray grazes the equator exactly and no hyperhemisphere of any radius
+has room to spare; either side of that it comes back down (0.971 at NA 1.40). A
+design has to know which side of the ridge its aperture sits on, and this is why
+a high-NA front element is a ball cut past its own equator rather than a gentler
+lens.
+
+### 6e.3 — the aplanatic meniscus, and the front group
+
+A sphere has three stigmatic conjugate pairs and the meniscus uses two of them,
+one per surface: the first surface **concentric** about the incoming virtual
+object point (perfect, and bends nothing at all), the second at the **Weierstrass**
+pair of that same point in glass. Their magnifications are 1/n and n², so a
+meniscus is m = n and divides the aperture *angle* by n — not by n², and
+conflating the two pairs would cost the whole design.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The concentric surface bends NOTHING** — emergent sine = incident sine to 13 digits | normal incidence, by construction | ✅ |
+| Its radius is not a free parameter: concentricity fixes it to the object distance | closed form | ✅ |
+| The rear radius is R₂ = (R₁+t)·n/(n+1) and the new image at u₂·n | Weierstrass | ✅ |
+| **MATCHED GROUP: still exactly stigmatic after a dome and two menisci** — spread < 1e-11 | exactness composes; a third-order design does not | ✅ |
+| The group's sine ratio is flat, and the aperture divided by exactly n²·nᵏ at k = 0, 1, 2, 3 | Lagrange, per element | ✅ |
+| The traced transverse magnification IS n²·nᵏ, signed (erect — the image is virtual) | Lagrange, measured independently of the aperture rung | ✅ |
+| NEGATIVE CONTROL: a rear radius 1% off Weierstrass moves the spread by 10⁶ | the closed form used, not gestured at | ✅ |
+| The solve holds across every stated gap ∈ {0.1, 0.2, 0.5} and thickness ∈ {0.3, 0.5, 0.9} | § 6d's discipline: a form, not a lucky pick | ✅ |
+
+### THE BUDGET — this step's number is the last step's measurement
+
+§ 6d measured that two cemented doublets stop solving at NA 0.343 (N-BK7/F2) and
+0.383 (fused silica/F2). The front group's job is to deliver an aperture under
+that, and **the count of menisci is set by that number rather than by taste**:
+
+| Object NA | dome only | + 1 meniscus | + 2 menisci | § 6d ceiling |
+|---|---|---|---|---|
+| 1.25 | 0.539 | 0.354 | **0.232** | 0.343 |
+| 1.40 | 0.603 | 0.396 | **0.260** | 0.343 |
+
+One meniscus is not enough at either aperture — both land above the ceiling. Two
+is enough at both, and NA 1.40's 0.260 is under § 6d's *default* reach of 0.273
+as well, so the rear group need not be pushed to its own edge. That is the whole
+argument of § 6e in one table.
+
 ### Not yet pinned
 
-- **The aplanatic front element itself.** § 6d.1 has the closed form and 6e.1 has
-  the stack to look through; the hyperhemisphere and the aplanatic menisci that
-  divide NA down to what § 6d's Lister can carry are the next unit.
-- **Off-axis.** The stack is pinned on axis only. In a non-telecentric beam a
-  plate adds coma and astigmatism too — § 6c's scope note, unchanged and now
-  inherited.
+- **The composed objective.** The front group is aplanatic and the Lister is
+  aplanatic; splicing them into an `InfinityCorrectedObjective` with a real
+  magnification, traced NA and Maréchal reach is the next unit.
+- **Off-axis, everywhere.** Both the stack and the aplanatic elements are pinned
+  on axis only. An aplanat is not an anastigmat (§ 6d's open item, inherited) and
+  a plate in a non-telecentric beam adds coma and astigmatism (§ 6c's, inherited).
+- **Chromatic.** Every number here is at the d line, and the aplanatic condition
+  is wavelength-dependent through n — a dome is aplanatic at ONE wavelength. The
+  three media also have genuinely different Abbe numbers (oil 42.9, D 263 54.5,
+  N-BK7 64.2), so the stack's mismatch is chromatic too. Neither is measured.
 - **Correcting an objective FOR its stack.** § 6c's `targetS1Mm` route is the
-  move, and at these apertures the table above says it is not optional. The
-  Lister solves ΣS_I = ΣS_II = 0 with no target; giving it one is a real change.
-- **Dispersion of the mismatch.** Every number here is at the d line. The three
-  media have genuinely different Abbe numbers (oil 42.9, D 263 54.5, N-BK7 64.2),
-  so the residual is chromatic and that is not measured yet.
+  move, and at these apertures 6e.1's table says it is not optional. The Lister
+  solves ΣS_I = ΣS_II = 0 with no target; giving it one is a real change.
+- **Water immersion and the dry ceiling.** The catalog has dispersive water
+  (§ 1) and nothing here uses it; NA 1.0-class water objectives are the same
+  construction with a rarer fluid, and the rarest-medium rung already says what
+  caps them.
 - **Tilt, wedge, and a non-uniform film.** The stack is taken to be plane,
   parallel and axial.
 

@@ -12,3 +12,4 @@ export * from "./eye";
 export * from "./coverslip";
 export * from "./microscope";
 export * from "./lister";
+export * from "./immersion";

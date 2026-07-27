@@ -247,6 +247,23 @@
    element itself, off-axis plate terms, correcting the objective *for* its stack
    (§ 6c's `targetS1Mm` route, which the Lister has no target parameter for), and
    the chromatic half of the mismatch.
+   *The aplanatic front — the hyperhemisphere and its menisci:* ✅
+   `designs/immersion` (§§ 6e.2–6e.3). The first design to CONSUME § 6d.1's closed
+   form instead of admiring it. A dome at its Weierstrass conjugates divides the
+   aperture by n² and magnifies by n²; an aplanatic meniscus — concentric first
+   surface that bends nothing, Weierstrass second — divides the angle by n. Every
+   element is exact to all orders, so the traced axial crossing does not move
+   across the whole aperture (spread < 1e-11 mm) and the sine ratio is flat: a
+   control pair against the real slip+oil bench separates the two by 10⁹ on
+   identical geometry, and the difference is § 6e.1's mismatch and nothing else.
+   **The budget is the previous step's measurement:** NA 1.25 → 0.232 and NA 1.40
+   → 0.260 through a dome and two menisci, both under § 6d's measured 0.343 —
+   and one meniscus is *not* enough at either, so the count is set by that number
+   rather than by taste. **§ 6a's first immersion blocker is closed**, and its
+   diagnosis was half wrong: a tangent is exact at a plane face, and what was
+   2.6× out at NA 1.4 was using the sine-condition height as a stop radius.
+   **Open:** the composed objective, off-axis everywhere, the chromatic half (a
+   dome is aplanatic at ONE wavelength), and water immersion.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

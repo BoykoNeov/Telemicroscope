@@ -11,8 +11,16 @@ import {
   stackW040Mm,
   stackWavefrontErrorMm,
 } from "../src/designs/coverslip";
+import {
+  FRONT_ELEMENT_MEDIUM,
+  IMMERSION_MEDIUM,
+  aplanaticFrontGroup,
+  aplanaticMeniscus,
+  hyperhemisphere,
+} from "../src/designs/immersion";
 import { LINE_D } from "../src/materials/dispersion";
 import { getMedium } from "../src/materials/catalog";
+import { paraxialTrace } from "../src/trace/paraxial";
 import { Prescription } from "../src/trace/prescription";
 import { traceRay } from "../src/trace/sequential";
 import { makeRay } from "../src/trace/ray";
@@ -352,5 +360,333 @@ describe("§ 6e.1 — the stack against the EXACT TRACER", () => {
     }
     // …and it is the geometric object plane, not an apparent one.
     expect(paraxial).toBeCloseTo(-T_SLIP, 12);
+  });
+});
+
+/**
+ * §§ 6e.2–6e.3 — the aplanatic front: a dome at its Weierstrass conjugates, then
+ * menisci that divide the aperture angle by n apiece.
+ *
+ * The discipline is a positive/negative control pair rather than a tolerance. An
+ * aplanatic surface is exact to ALL orders, so the right assertion is that the
+ * traced axial crossing does not move at all across the aperture — and the only
+ * thing that makes it move is § 6e.1's index mismatch, which is measured
+ * separately and switched off by matching the media. A design that was merely
+ * third-order-correct would fail these by six orders of magnitude.
+ */
+
+/** Trace at invariant q; where the emergent ray's line meets the axis, and how steep it is. */
+function emergentOf(p: Prescription, objectDistanceMm: number, q: number) {
+  const n0 = getMedium(p.objectMedium!).n(LAMBDA);
+  const sin = q / n0;
+  const res = traceRay(
+    p,
+    makeRay(vec3(0, 0, -objectDistanceMm), vec3(sin, 0, Math.sqrt(1 - sin * sin)), LAMBDA),
+  );
+  expect(res.status).toBe("ok");
+  const r = res.ray!;
+  return {
+    crossing: r.origin.z - (r.origin.x / r.dir.x) * r.dir.z,
+    sinOut: Math.hypot(r.dir.x, r.dir.y) / Math.hypot(r.dir.x, r.dir.y, r.dir.z),
+    sinIn: sin,
+    hits: res.path,
+  };
+}
+
+/** Last vertex's z, with surface 0's vertex at the origin. */
+const lastVertexZ = (p: Prescription): number =>
+  p.surfaces.slice(0, -1).reduce((a, s) => a + s.thickness, 0);
+
+describe("§ 6e.2 — the hyperhemisphere", () => {
+  const NA = 1.25;
+  const R = 0.5;
+  /** Every medium at the front element's own glass: § 6e.1's exact-zero stack. */
+  const matched = hyperhemisphere({
+    numericalAperture: NA,
+    radiusMm: R,
+    coverslipSpec: null,
+    immersionMedium: FRONT_ELEMENT_MEDIUM,
+  });
+  /** The real bench: a D 263 slip, a Type B film, a D 263 dome. */
+  const real = hyperhemisphere({ numericalAperture: NA, radiusMm: R });
+  const N_FRONT = matched.glassIndex;
+  const APERTURES = [1e-6, 0.3, 0.6, 0.9, 1.1, 1.25] as const;
+  const spreadOf = (p: Prescription, d: number): number => {
+    const cs = APERTURES.map((q) => emergentOf(p, d, q).crossing);
+    return Math.max(...cs) - Math.min(...cs);
+  };
+
+  it("MATCHED: the axial crossing does not move from q = 1e-6 to 1.25", () => {
+    // Exactly stigmatic, not stigmatic to third order. The spread below is f64's
+    // limit and nothing else — this surface has no aberration to measure.
+    expect(spreadOf(matched.prescription, matched.objectDistanceMm)).toBeLessThan(1e-12);
+    // …and it lands where the closed form puts it: v = R(n+1) in front of the
+    // dome's vertex, read off the trace rather than restated.
+    const crossing = emergentOf(matched.prescription, matched.objectDistanceMm, NA).crossing;
+    const domeVertexZ = lastVertexZ(matched.prescription);
+    expect(domeVertexZ - crossing).toBeCloseTo(R * (N_FRONT + 1), 10);
+    expect(matched.virtualImageDistanceMm).toBeCloseTo(R * (N_FRONT + 1), 12);
+    // Virtual: in front of the dome, on the specimen's side.
+    expect(crossing).toBeLessThan(domeVertexZ);
+  });
+
+  it("MATCHED: sinu′/sinu is CONSTANT at 1/n — Abbe, so coma-free too", () => {
+    // Stigmatic and aplanatic are different claims. The first is one point
+    // imaging to one point; the second is that EVERY zone delivers the same
+    // magnification, which is what kills coma. Only the ratio being flat says so.
+    const ratios = APERTURES.map((q) => {
+      const e = emergentOf(matched.prescription, matched.objectDistanceMm, q);
+      return e.sinOut / e.sinIn;
+    });
+    for (const r of ratios) expect(r).toBeCloseTo(1 / N_FRONT, 9);
+    expect(Math.max(...ratios) - Math.min(...ratios)).toBeLessThan(1e-12);
+    // The aperture is divided by n², the magnification multiplied by it. Read
+    // from the trace; the module's own numbers are compared to it, not used.
+    const e = emergentOf(matched.prescription, matched.objectDistanceMm, NA);
+    expect(e.sinOut).toBeCloseTo(NA / (N_FRONT * N_FRONT), 12);
+    expect(matched.emergentSine).toBeCloseTo(e.sinOut, 12);
+    expect(matched.magnification).toBeCloseTo(N_FRONT * N_FRONT, 12);
+  });
+
+  it("NEGATIVE CONTROL: moving the specimen off the point breaks it at once", () => {
+    // The aplanatic pair is a POINT, not a region — § 6d.1's finding, now on a
+    // built element with real thicknesses rather than a bare surface. Moving the
+    // SPECIMEN is the honest perturbation: it is the one thing a bench can get
+    // wrong, and a correction collar exists because of it.
+    const off = (frac: number) =>
+      spreadOf(matched.prescription, matched.objectDistanceMm * (1 + frac));
+    expect(off(0)).toBeLessThan(1e-12);
+    expect(off(0.01)).toBeGreaterThan(1e-8);
+    expect(off(0.1)).toBeGreaterThan(off(0.01));
+  });
+
+  it("the REAL stack's mismatch is the ONLY thing that moves the crossing", () => {
+    // Positive and negative control in one: identical geometry, identical
+    // aperture, and the sole difference is whether the media match. § 6e.1 said
+    // the residual is an exact zero when they do; here the tracer says it too,
+    // through a real dome rather than through bare layers.
+    expect(spreadOf(matched.prescription, matched.objectDistanceMm)).toBeLessThan(1e-12);
+    expect(spreadOf(real.prescription, real.objectDistanceMm)).toBeGreaterThan(1e-4);
+    // And the sine ratio stops being constant by the same mechanism: the stack
+    // is not aplanatic, so the element it feeds cannot be either.
+    const ratios = APERTURES.map((q) => {
+      const e = emergentOf(real.prescription, real.objectDistanceMm, q);
+      return e.sinOut / e.sinIn;
+    });
+    expect(Math.max(...ratios) - Math.min(...ratios)).toBeGreaterThan(1e-6);
+  });
+
+  it("the rim fraction is a CLOSED FORM and is scale-free", () => {
+    // h/R = sin(θ + arcsin(sinθ/n)) with sinθ = NA/n — no R in it. So a bigger
+    // dome buys no rim margin, which is why a high-NA front element is a ball
+    // cut past its own equator rather than a gentler one.
+    const predicted = (q: number, n: number) => {
+      const th = Math.asin(q / n);
+      return Math.sin(th + Math.asin(Math.sin(th) / n));
+    };
+    expect(matched.rimUtilisation).toBeCloseTo(predicted(NA, N_FRONT), 9);
+    for (const radius of [0.3, 1.5, 4]) {
+      const h = hyperhemisphere({
+        numericalAperture: NA,
+        radiusMm: radius,
+        coverslipSpec: null,
+        immersionMedium: FRONT_ELEMENT_MEDIUM,
+      });
+      expect(h.rimUtilisation).toBeCloseTo(matched.rimUtilisation, 9);
+    }
+    // It PEAKS at 1 near NA 1.275 for this glass, where the marginal ray grazes
+    // the equator exactly and no dome of any radius has room to spare. Either
+    // side of that it comes back down — the constraint is a ridge, not a wall,
+    // and a design has to know which side of it its aperture sits on.
+    const peak = predicted(1.275, N_FRONT);
+    expect(peak).toBeGreaterThan(0.9999);
+    expect(predicted(1.4, N_FRONT)).toBeLessThan(peak);
+    expect(predicted(1.0, N_FRONT)).toBeLessThan(peak);
+  });
+
+  it("the STOP RADIUS is exact at a plane face — § 6a's blocker, closed", () => {
+    // § 6a recorded that its aperture seed "is a tangent and is 2.6× out at
+    // NA 1.4". The tangent was never the problem: at a PLANE face a ray leaving
+    // the specimen at θ and crossing t of medium lands at exactly t·tanθ, to all
+    // orders. What was 2.6× out was using the sine-condition height f·sinu as if
+    // it were a stop radius, which it never was. Here the marginal ray's own hit
+    // on surface 0 IS the stop radius, at NA 1.25 and at NA 1.40, no solve.
+    for (const q of [0.5, 1.0, 1.25, 1.4]) {
+      const el = hyperhemisphere({ numericalAperture: q, radiusMm: 0.5 });
+      const hit = emergentOf(el.prescription, el.objectDistanceMm, q).hits[0]!;
+      expect(Math.hypot(hit.x, hit.y)).toBeCloseTo(el.stopRadiusMm, 12);
+    }
+    // The ratio § 6a was quoting, for the record: tangent over sine in the cover
+    // glass at NA 1.4 really is 2.5–2.6. It is a real number about a real cone;
+    // it was only ever the wrong number to size a stop with.
+    const sin = 1.4 / N_SLIP;
+    expect(1 / Math.sqrt(1 - sin * sin)).toBeGreaterThan(2.5);
+  });
+
+  it("the NA ceiling is the RAREST medium in the chain, and it is not the glass", () => {
+    // q is conserved across every plane face, so a ray with q ≥ nᵢ never leaves
+    // layer i. The fluid is the rarest of the three, so it — not the dome's glass
+    // and not the cover glass — is what caps an immersion objective's aperture.
+    const nFluid = getMedium(IMMERSION_MEDIUM).n(LAMBDA);
+    expect(nFluid).toBeLessThan(N_FRONT);
+    expect(nFluid).toBeLessThan(N_SLIP);
+    expect(() => hyperhemisphere({ numericalAperture: nFluid + 1e-6, radiusMm: 0.5 })).toThrow(
+      /rarest medium/,
+    );
+  });
+});
+
+describe("§ 6e.3 — the aplanatic meniscus, and the front group", () => {
+  const NA = 1.25;
+  const R = 0.5;
+  const matchedSpec = {
+    numericalAperture: NA,
+    radiusMm: R,
+    coverslipSpec: null,
+    immersionMedium: FRONT_ELEMENT_MEDIUM,
+  } as const;
+  const group = aplanaticFrontGroup(matchedSpec);
+  const N_FRONT = group.hyperhemisphere.glassIndex;
+  const APERTURES = [1e-6, 0.3, 0.6, 0.9, 1.1, 1.25] as const;
+
+  it("the CONCENTRIC surface bends nothing at all — that is its whole job", () => {
+    // The first surface of a meniscus is centred ON the incoming object point,
+    // so every ray meets it at normal incidence. Not "small deviation": the
+    // emergent direction is the incident one to f64. A design that used the
+    // Weierstrass form here instead would bend, and the group would stop being
+    // exact — which is why the two stigmatic pairs are never interchangeable.
+    const m = aplanaticMeniscus({ objectDistanceMm: 2, thicknessMm: 1 });
+    const front: Prescription = {
+      objectMedium: "AIR",
+      surfaces: [{ ...m.surfaces[0]!, semiAperture: Infinity, thickness: 0.5 }],
+    };
+    for (const sin of [0.1, 0.3, 0.5]) {
+      const res = traceRay(
+        front,
+        makeRay(vec3(0, 0, -2), vec3(sin, 0, Math.sqrt(1 - sin * sin)), LAMBDA),
+      );
+      expect(res.status).toBe("ok");
+      const d = res.ray!.dir;
+      expect(Math.hypot(d.x, d.y) / Math.hypot(d.x, d.y, d.z)).toBeCloseTo(sin, 13);
+    }
+    // Its radius is not a free parameter dressed as one: concentricity fixes it.
+    expect(m.frontRadiusMm).toBe(2);
+    // And the rear surface is Weierstrass for the same point, now in glass.
+    expect(m.rearRadiusMm).toBeCloseTo((3 * m.glassIndex) / (m.glassIndex + 1), 12);
+    expect(m.virtualImageDistanceMm).toBeCloseTo(3 * m.glassIndex, 12);
+    expect(m.magnification).toBeCloseTo(m.glassIndex, 12);
+  });
+
+  it("MATCHED group: still exactly stigmatic after a dome and two menisci", () => {
+    // Three aplanatic surfaces and one that bends nothing, composed. Because
+    // each is exact to all orders, so is the stack of them — the crossing does
+    // not move across the whole aperture, which no third-order design does.
+    const cs = APERTURES.map(
+      (q) => emergentOf(group.prescription, group.objectDistanceMm, q).crossing,
+    );
+    expect(Math.max(...cs) - Math.min(...cs)).toBeLessThan(1e-11);
+    expect(lastVertexZ(group.prescription) - cs[0]!).toBeCloseTo(
+      group.virtualImageDistanceMm,
+      9,
+    );
+  });
+
+  it("MATCHED group: the aperture is divided by exactly n²·nᵏ, and so is the angle", () => {
+    // The reduction is the bare product of the elements': n² at the dome, n at
+    // each meniscus. Read off the trace, and the sine ratio is flat — the group
+    // is aplanatic, not merely stigmatic.
+    const ratios = APERTURES.map((q) => {
+      const e = emergentOf(group.prescription, group.objectDistanceMm, q);
+      return e.sinOut / e.sinIn;
+    });
+    expect(Math.max(...ratios) - Math.min(...ratios)).toBeLessThan(1e-12);
+    for (const count of [0, 1, 2, 3]) {
+      const g = aplanaticFrontGroup({ ...matchedSpec, meniscusCount: count });
+      const e = emergentOf(g.prescription, g.objectDistanceMm, NA);
+      const expected = N_FRONT * N_FRONT * N_FRONT ** count;
+      expect(g.magnification).toBeCloseTo(expected, 10);
+      expect(e.sinOut).toBeCloseTo(NA / expected, 11);
+      expect(g.emergentSine).toBeCloseTo(e.sinOut, 11);
+    }
+  });
+
+  it("MATCHED group: the traced transverse magnification IS n²·nᵏ", () => {
+    // The aperture ratio and the magnification are different measurements, and
+    // the Lagrange invariant ties them: whatever divides the aperture must
+    // multiply the height by the same factor, or the group is not aplanatic. A
+    // paraxial chief ray through the front vertex measures it WITH ITS SIGN, so
+    // a virtual erect image cannot be mistaken for a real inverted one.
+    const p = group.prescription;
+    const d = group.objectDistanceMm;
+    const marginal = paraxialTrace(p, LAMBDA, { y: d, u: 1 });
+    const imageFromLastVertex = -marginal.y / marginal.u;
+    expect(imageFromLastVertex).toBeLessThan(0); // virtual
+    const h = 1e-5;
+    const chief = paraxialTrace(p, LAMBDA, { y: 0, u: -h / d });
+    const m = (chief.y + chief.u * imageFromLastVertex) / h;
+    expect(m).toBeCloseTo(group.magnification, 6);
+    expect(m).toBeGreaterThan(0); // erect, because the image is virtual
+  });
+
+  it("THE BUDGET: NA 1.25 and 1.40 land under § 6d's measured 0.343 ceiling", () => {
+    // This is what the whole step is for. § 6d measured that two cemented
+    // doublets stop solving at NA 0.343 (N-BK7/F2) and 0.383 (fused silica/F2) —
+    // a property of the FORM, since two glass pairs wall out together. The front
+    // group's job is to deliver an aperture under that number, and the count of
+    // menisci is set by it rather than by taste.
+    const LISTER_CEILING = 0.343;
+    const emergent = (na: number, count: number) =>
+      aplanaticFrontGroup({ ...matchedSpec, numericalAperture: na, meniscusCount: count })
+        .emergentSine;
+    // One meniscus is NOT enough at either aperture — 0.354 and 0.401, both over.
+    expect(emergent(1.25, 1)).toBeGreaterThan(LISTER_CEILING);
+    expect(emergent(1.4, 1)).toBeGreaterThan(LISTER_CEILING);
+    // Two is, at both — 0.232 and 0.260, and 0.260 is under § 6d's DEFAULT reach
+    // of 0.273 as well, so the rear group need not be pushed to its own edge.
+    expect(emergent(1.25, 2)).toBeLessThan(LISTER_CEILING);
+    expect(emergent(1.4, 2)).toBeLessThan(0.273);
+    expect(emergent(1.25, 2)).toBeCloseTo(0.2321, 4);
+    expect(emergent(1.4, 2)).toBeCloseTo(0.26, 4);
+  });
+
+  it("NEGATIVE CONTROL: a rear surface 1% off Weierstrass stops being exact", () => {
+    // The menisci are not "roughly aplanatic shells". Perturbing the rear radius
+    // by 1% — a curvature a bench could not distinguish by eye — takes the group
+    // from f64-flat to visibly aberrated, which is the difference between using
+    // the closed form and gesturing at it.
+    const bent = (frac: number): number => {
+      const surfaces = group.prescription.surfaces.map((s, i) =>
+        // Surface 3 is the first meniscus's rear (dome: flat + sphere, then the
+        // meniscus's concentric front).
+        i === 3 ? { ...s, curvature: s.curvature * (1 + frac) } : s,
+      );
+      const p: Prescription = { ...group.prescription, surfaces };
+      const cs = APERTURES.map((q) => emergentOf(p, group.objectDistanceMm, q).crossing);
+      return Math.max(...cs) - Math.min(...cs);
+    };
+    expect(bent(0)).toBeLessThan(1e-11);
+    expect(bent(0.01)).toBeGreaterThan(1e-4);
+    expect(bent(0.01) / bent(0)).toBeGreaterThan(1e6);
+  });
+
+  it("the solve holds across the stated split — a FORM, not a lucky pick", () => {
+    // § 6d's discipline: the gap and thickness factors are STATED, so the claim
+    // has to be that the design does not depend on them. Every combination below
+    // is exactly stigmatic and delivers the same aperture reduction, because the
+    // aplanatic condition is re-imposed at each element whatever the geometry.
+    for (const meniscusGapFactor of [0.1, 0.2, 0.5]) {
+      for (const meniscusThicknessFactor of [0.3, 0.5, 0.9]) {
+        const g = aplanaticFrontGroup({
+          ...matchedSpec,
+          meniscusGapFactor,
+          meniscusThicknessFactor,
+        });
+        const cs = APERTURES.map(
+          (q) => emergentOf(g.prescription, g.objectDistanceMm, q).crossing,
+        );
+        expect(Math.max(...cs) - Math.min(...cs)).toBeLessThan(1e-10);
+        expect(g.emergentSine).toBeCloseTo(group.emergentSine, 12);
+      }
+    }
   });
 });
