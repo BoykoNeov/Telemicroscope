@@ -16,11 +16,18 @@ import {
   phaseGratingObject,
   uniformObject,
   weakObjectTransfer,
+  spatialFrequencyCyclesPerMm,
   weakObjectTransferDisk,
   weakPhaseTransfer,
 } from "../src/illumination";
-import { diffractionLimitedMtf } from "../src/wave/mtf";
-import { pupilFunctionFromOpd, type PupilFunction } from "../src/wave/psf";
+import { diffractionLimitedMtf, mtf, mtfAt } from "../src/wave/mtf";
+import {
+  imagePixelScaleMm,
+  psfFromPupilFunction,
+  pupilFunctionFromOpd,
+  type PupilFunction,
+  type PupilScale,
+} from "../src/wave/psf";
 import { fitZernike } from "../src/wave/zernike";
 import { opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
@@ -342,6 +349,19 @@ describe("the FFT imager and the three-order sum are the same calculation (§ 6f
     expect(h.dc).toBeCloseTo(1, 6);
     expect(h.amplitude).toBeLessThan(1e-12);
   });
+
+  it("refuses a grid too small to hold the shifted pupil", () => {
+    // Clamping the box instead would truncate the pupil, and a truncated pupil
+    // is indistinguishable from a smaller aperture — a silent coverage cap that
+    // would read as physics. Needs size ≥ pupilSamples·(1 + S): 64 × 1.7 = 109.
+    expect(() =>
+      abbeImage(uniformObject(64), pupil, diskSource(0.7, 5), { pupilSamples: 64 }),
+    ).toThrow(/runs off a 64-bin frequency grid/);
+    // ...and the same call on a grid that fits does not throw.
+    expect(() =>
+      abbeImage(uniformObject(128), pupil, diskSource(0.7, 5), { pupilSamples: 64 }),
+    ).not.toThrow();
+  });
 });
 
 describe("partial coherence is nonlinear, and the image says so (§ 6f.7)", () => {
@@ -349,15 +369,21 @@ describe("partial coherence is nonlinear, and the image says so (§ 6f.7)", () =
   const source = diskSource(0.5, 33);
   const nu = 0.8;
 
-  it("contrast/(2m) → the weak-object transfer as m → 0, and leaves it as m grows", () => {
+  /** Modulation of |t|² for t = 1 + m·cos: the object's OWN intensity contrast. */
+  const objectIntensityContrast = (m: number) => (2 * m) / (1 + (m * m) / 2);
+
+  it("the transfer is a limit, not a description", () => {
     const T = weakObjectTransfer(pupil, source, nu);
-    expect(gratingImage(pupil, source, nu, 1e-4).contrast / 2e-4).toBeCloseTo(T, 4);
-    // At full modulation the ratio is 26% below it. There is no transfer
-    // function here to multiply the object by: that is what partial coherence
-    // costs, and why a "condenser factor" on the incoherent MTF would be a lie.
-    const strong = gratingImage(pupil, source, nu, 1).contrast / 2;
-    expect(strong).toBeLessThan(0.78 * T);
-    expect(strong).toBeGreaterThan(0.7 * T);
+    // Dividing by the object's own intensity contrast rather than by 2m, so
+    // what is left is optics and not arithmetic: 1 + m²/2 is computable
+    // without knowing anything about a pupil.
+    const ratio = (m: number) => gratingImage(pupil, source, nu, m).contrast / objectIntensityContrast(m);
+    expect(ratio(1e-4)).toBeCloseTo(T, 6);
+    // It then walks AWAY from T as the object strengthens — 11% above it at
+    // full modulation. There is no function to multiply the object by, which
+    // is exactly why a condenser factor on the incoherent MTF would be a lie.
+    expect(ratio(0.3) / T).toBeCloseTo(1.013, 3);
+    expect(ratio(1) / T).toBeCloseTo(1.112, 3);
   });
 
   it("a single-frequency object images with a second harmonic, growing as m²", () => {
@@ -366,6 +392,83 @@ describe("partial coherence is nonlinear, and the image says so (§ 6f.7)", () =
     expect(a).toBeGreaterThan(0);
     expect(b / a).toBeCloseTo(1e4, -2);
     expect(b / a / 1e4).toBeCloseTo(1, 9);
+  });
+
+  it("and that harmonic lands ABOVE the linear cutoff — spurious resolution", () => {
+    // S = 0.5, so nothing is linearly transferred past ν = 1.5. A grating at
+    // ν = 0.8125 nevertheless puts a component at 1.625 into the image, where
+    // the linear transfer is exactly zero. Detail above the cutoff, and not
+    // detail that was in the object at that frequency: the classic false
+    // resolution of a partially coherent microscope.
+    const nuHigh = 0.8125;
+    expect(intensityCutoff(0.5)).toBe(1.5);
+    expect(weakObjectTransfer(pupil, source, 2 * nuHigh)).toBe(0);
+    expect(gratingImage(pupil, source, nuHigh, 1).secondHarmonic).toBeGreaterThan(0.15);
+
+    // The full FFT imager puts it in a real image at the same strength — the
+    // two paths agree on the artifact, not just on the physics they were
+    // designed for.
+    const size = 128;
+    const pupilSamples = 32;
+    const cycles = 13; // ν = 26/32 = 0.8125
+    const image = abbeImage(
+      cosineGratingObject({ size, cycles, modulation: 1 }),
+      pupil,
+      diskSource(0.5, 11),
+      { pupilSamples },
+    );
+    const closed = gratingImage(pupil, diskSource(0.5, 11), (2 * cycles) / pupilSamples, 1);
+    expect(imageHarmonic(image.intensity, size, 2 * cycles).amplitude).toBeCloseTo(
+      closed.secondHarmonic,
+      12,
+    );
+
+    // It does NOT reach past 2, though: the harmonic needs both orders inside
+    // the pupil, which is the same autocorrelation ceiling everything else in
+    // this step runs into.
+    expect(gratingImage(pupil, source, 1.05, 1).secondHarmonic).toBe(0);
+  });
+});
+
+describe("the frequency axis is the engine's, not this module's (§ 6f.11)", () => {
+  // ν is defined here in units of NA/λ, and the whole step's meaning rests on
+  // that being the SAME axis wave/mtf measures cycles/mm on. Nothing above
+  // touches cycles/mm — both computation paths share the ν convention, so a
+  // factor-of-two error in it would leave every closed-form comparison
+  // passing. These two rungs are the bridge, and they exist because § 3c's
+  // kernel-orientation drift was exactly this shape.
+  const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+
+  it("bin pupilSamples on an Abbe grid IS 2·NA/λ, exactly", () => {
+    for (const pupilSamples of [32, 64]) {
+      for (const padFactor of [2, 4]) {
+        const size = pupilSamples * padFactor;
+        const perBin = 1 / (size * imagePixelScaleMm(scale, size, pupilSamples));
+        expect(pupilSamples * perBin).toBeCloseTo(spatialFrequencyCyclesPerMm(2, scale), 9);
+        // ...and that is the number wave/mtf reports as its own cutoff.
+        const p = psfFromPupilFunction(idealPupil(), scale, 0, { pupilSamples, padFactor });
+        expect(mtf(p).cutoffCyclesPerMm).toBeCloseTo(spatialFrequencyCyclesPerMm(2, scale), 9);
+      }
+    }
+  });
+
+  it("the same pupil, through the PSF and through the sum, gives one curve", () => {
+    // ONE PupilFunction object goes into wave/psf → wave/mtf and into the Abbe
+    // sum at S = 1. Independent implementations, independent grids; a mislabeled
+    // ν would show up here as a curve of the wrong shape, not a small offset.
+    const pupil = idealPupil();
+    const psfMtf = mtf(psfFromPupilFunction(pupil, scale, 0, { pupilSamples: 64, padFactor: 4 }));
+    const source = diskSource(1, 129);
+    let worst = 0;
+    for (const nuMtf of [0.1, 0.2, 0.4, 0.6, 0.8, 0.9]) {
+      const viaPsf = mtfAt(psfMtf, nuMtf, 64);
+      const viaAbbe = weakObjectTransfer(pupil, source, 2 * nuMtf);
+      worst = Math.max(worst, Math.abs(viaPsf - viaAbbe));
+      // Each also sits on the closed form from its own side, which is what
+      // says the residual is two discretizations and not a convention.
+      expect(viaAbbe).toBeCloseTo(diffractionLimitedMtf(nuMtf), 3);
+    }
+    expect(worst).toBeLessThan(1e-2);
   });
 });
 

@@ -231,10 +231,21 @@ export function abbeImage(
     // The shifted pupil is supported on |u + s| <= 1, so only that box needs
     // visiting — which also keeps a pupil function that re-traces rays from
     // being asked about frequencies it could never transmit.
-    const ixLo = Math.max(0, Math.ceil(half + (-1 - s.sx) / step));
-    const ixHi = Math.min(n - 1, Math.floor(half + (1 - s.sx) / step));
-    const iyLo = Math.max(0, Math.ceil(half + (-1 - s.sy) / step));
-    const iyHi = Math.min(n - 1, Math.floor(half + (1 - s.sy) / step));
+    const ixLo = Math.ceil(half + (-1 - s.sx) / step);
+    const ixHi = Math.floor(half + (1 - s.sx) / step);
+    const iyLo = Math.ceil(half + (-1 - s.sy) / step);
+    const iyHi = Math.floor(half + (1 - s.sy) / step);
+    // Clamping instead would truncate the pupil silently, and a truncated
+    // pupil looks exactly like a smaller aperture — a coverage cap that would
+    // read as physics. It throws.
+    if (ixLo < 0 || iyLo < 0 || ixHi > n - 1 || iyHi > n - 1) {
+      const reach = Math.max(Math.abs(s.sx), Math.abs(s.sy));
+      throw new Error(
+        `abbeImage: the pupil shifted to (${s.sx.toFixed(3)}, ${s.sy.toFixed(3)}) runs off a ` +
+          `${n}-bin frequency grid at pupilSamples ${pupilSamples} — raise size to at least ` +
+          `${Math.ceil(pupilSamples * (1 + reach)) + 2}, or lower pupilSamples`,
+      );
+    }
 
     let transmitting = 0;
     for (let iy = iyLo; iy <= iyHi; iy++) {

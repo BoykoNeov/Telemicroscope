@@ -1,5 +1,5 @@
 import { diffractionLimitedMtf } from "../wave/mtf";
-import type { PupilFunction } from "../wave/psf";
+import type { PupilFunction, PupilScale } from "../wave/psf";
 import type { CondenserSource } from "./source";
 
 /**
@@ -60,6 +60,32 @@ import type { CondenserSource } from "./source";
  * — defocus is enough — and it appears. Brightfield does not see phase; that is
  * a property of the sum, not a limitation of this model.
  */
+
+/**
+ * The numerical aperture a `PupilScale` describes: n′·(exit semi-diameter) over
+ * the reference-sphere radius.
+ *
+ * The tangent form, which is what `wave/mtf`'s cutoff identity 2·NA/λ is built
+ * on — so using it here is what makes the two modules' frequency axes the same
+ * axis rather than two that happen to look alike.
+ */
+export function pupilNumericalAperture(scale: PupilScale): number {
+  return Math.abs((scale.nImage * scale.exitRadius) / scale.referenceRadius);
+}
+
+/**
+ * The bridge out of this file's units and into the engine's: ν → cycles/mm.
+ *
+ *     f = ν · NA / λ
+ *
+ * A claim in a doc comment that "ν = 2 is the incoherent cutoff" is worth
+ * nothing if nothing computes it, so it is a function and § 6f pins it both
+ * ways: against `imagePixelScaleMm`'s own grid arithmetic, and against a PSF of
+ * the same pupil pushed through `wave/mtf`.
+ */
+export function spatialFrequencyCyclesPerMm(nu: number, scale: PupilScale): number {
+  return (nu * pupilNumericalAperture(scale)) / (scale.wavelengthNm * 1e-6);
+}
 
 /** Frequency in units of NA/λ at which the linear transfer reaches zero. */
 export function intensityCutoff(coherenceParameter: number): number {
@@ -255,8 +281,11 @@ export function weakObjectTransfer(
  *
  * The minus sign is the whole story. A phase object's two sidebands are in
  * quadrature with the direct beam and 180° apart from each other, so for a real
- * (aberration-free) pupil the two terms are equal and this is **identically
- * zero** — a hard null, at every frequency, every S, and every φ. Give the
+ * (aberration-free) pupil **and a source symmetric under s → −s** the two terms
+ * are equal and this is **identically zero** — a hard null, at every frequency,
+ * every S, and every φ. Both conditions are load-bearing: every source this
+ * module builds is centro-symmetric, and a deliberately lopsided one would
+ * break the null without any aberration at all. Give the
  * pupil an even aberration and the two terms pick up different phases and stop
  * cancelling: that is why a defocused brightfield image of an unstained cell
  * shows something and a focused one shows nothing, and it is the whole

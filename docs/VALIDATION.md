@@ -3693,16 +3693,34 @@ than one being trusted:
 | FFT image harmonics ≡ the three-order evaluation, dc and fundamental | 1e-12, over 6 frequencies | ✅ |
 | A clear field images as exactly 1 — not nearly | `toBeCloseTo(1, 12)` at every pixel | ✅ |
 | A grating past (1 + S) images as a blank field | < 1e-12 | ✅ |
+| A grid too small for the shifted pupil **throws** rather than truncating | no silent caps | ✅ |
+
+`abbeImage` needs `size ≥ pupilSamples·(1 + S)` for the shifted pupil to fit on
+the frequency grid. Clamping the box instead would truncate the pupil, and a
+truncated pupil is indistinguishable from a smaller aperture — a coverage cap
+that would read as physics. It throws, with the size it needs.
 
 ### 6f.4 — the nonlinearity, made visible
 
 The transfer function above is a **limit**, not a description, and the rungs say
-so. `gratingImage` evaluates the exact three-order sum at finite modulation:
-contrast/(2m) converges to the weak-object transfer as m → 0 (4 places at
-m = 1e-4) and is **26% below it at m = 1**. There is no function to multiply the
-object by. And a single-frequency object images with a component at **twice** its
-frequency, growing exactly as m² (a factor of 1e4 for a factor of 100 in m, to 9
-places) — a frequency no linear imager could have put there.
+so. `gratingImage` evaluates the exact three-order sum at finite modulation. The
+readout is image contrast ÷ the object's *own intensity* contrast, 2m/(1+m²/2) —
+dividing by 2m instead would fold in a factor computable without any optics. So
+normalized, it converges to the weak-object transfer as m → 0 (6 places at
+m = 1e-4) and then walks **away** from it: 1.3% above at m = 0.3 and **11.2%
+above at m = 1**. There is no function to multiply the object by.
+
+And a single-frequency object images with a component at **twice** its frequency,
+growing exactly as m² (a factor of 1e4 for a factor of 100 in m, to 9 places) — a
+frequency no linear imager could have put there. **It lands above the cutoff.**
+At S = 0.5 nothing is linearly transferred past ν = 1.5, yet a grating at
+ν = 0.8125 puts a component of amplitude 0.18 at ν = 1.625 into the image, where
+the linear transfer is exactly zero. That is spurious resolution — real detail in
+the image at a frequency the instrument cannot linearly carry, and detail the
+object did not have there. Both computation paths agree on it to 1e-12, so it is
+the physics and not one path's artifact. It does **not** reach past ν = 2: the
+harmonic needs both diffracted orders inside the pupil, which is the same
+autocorrelation ceiling everything else in this step runs into.
 
 ### 6f.5 — the null: brightfield cannot see phase
 
@@ -3718,6 +3736,7 @@ reason stains exist.
 | Rung | Pinned to | Status |
 |---|---|---|
 | Aberration-free pupil transfers **no** phase, over S × ν | < 1e-14 | ✅ |
+| (the null needs a **symmetric source** as well as a real pupil — every source here is centro-symmetric, and a lopsided one would break it with no aberration at all) | stated, not pinned | — |
 | A quarter wave of defocus makes it appear (T > 0.3) | the sum, not a switch | ✅ |
 | A tenth of the defocus leaves under a fifth of the signal; zero defocus, zero | continuity in the aberration | ✅ |
 | The full FFT image of a real (all-Bessel-orders) phase grating agrees | < 1e-12 focused, > 0.02 defocused | ✅ |
@@ -3748,6 +3767,31 @@ The closed forms above are for an ideal disc. The same readouts run on the
 | Contrast falls below the ideal pupil at every ν | aberration spends contrast below cutoff | ✅ |
 | And falls **in wavefront order**: the 0.070-wave lens is under the 0.031 | ordering, not a value | ✅ |
 | The condenser still buys resolution on a real lens: 1 → > 1.9 | § 6f.1 on traced glass | ✅ |
+
+### 6f.8 — the frequency axis is the engine's, not this step's
+
+Everything above is stated in ν, and both computation paths share that
+convention — so a factor-of-two or one-bin error in `px = 2k/pupilSamples` would
+leave *every* closed-form comparison passing, because the closed forms would be
+sampled at the same mislabeled ν. Pinning S ≥ 1 against `diffractionLimitedMtf`
+does not close that: it is evaluated at this step's own ν, which makes it an
+algebraic identity rather than a bridge between two rulers. This is § 3c's
+kernel-orientation drift in a new place — two modules, one shared convention,
+nothing forcing agreement — so the bridge is a function
+(`spatialFrequencyCyclesPerMm`, f = ν·NA/λ) and it is pinned both ways.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Bin `pupilSamples` on an Abbe grid **is** 2·NA/λ, over pupilSamples × padFactor | `imagePixelScaleMm`, exact | ✅ |
+| ...and that number is `wave/mtf`'s own `cutoffCyclesPerMm` | 1e-9 | ✅ |
+| **One `PupilFunction`, two implementations**: `psf` → `mtf` versus the Abbe sum at S = 1 | agree to < 1e-2 over ν | ✅ |
+| Each also sits on the closed form from its own side | 1e-3 | ✅ |
+
+The residual is two discretizations, not a convention: the Abbe sum's largest
+departure from the closed form is 3.3e-4 (its source sampling) and the PSF path's
+is 9.1e-3 (its pupil grid), which is the whole of the 9.2e-3 gap between them. A
+mislabeled axis would show as a curve of the wrong shape, not an offset that
+size.
 
 ### Not yet pinned
 
