@@ -259,6 +259,10 @@ export function emissionKernel(
     values,
     transmittingSamples,
     energy,
+    // What the stack summed to before its own normalization. Each component
+    // arrived already normalized, so this is `carried` — the light resampling
+    // kept — and not a transmitted power the way a monochromatic kernel's is.
+    formedSum: sum,
     maxGridPhaseStepWaves,
     pixelScaleMm: targetPixelScaleMm,
     samples: samples.map((s) => ({ nm: s.nm, weight: s.weight / total })),

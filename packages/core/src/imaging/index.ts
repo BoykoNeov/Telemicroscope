@@ -5,5 +5,6 @@ export * from "./brightfield";
 export * from "./object-field";
 export * from "./fluorescence";
 export * from "./emission";
+export * from "./volume";
 export * from "./camera";
 export * from "./exposure";

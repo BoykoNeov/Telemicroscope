@@ -105,11 +105,16 @@ import { patchWeight } from "./render";
  * forbids. The band is an input parameter, following § 5s's precedent with the
  * photometric zero point: pin the ratios, not an invented absolute.
  *
- * **No out-of-focus haze.** A real widefield fluorescence image is dominated by
- * light from emitters *outside* the focal plane — that is why deconvolution and
- * confocal exist. It needs a defocused pupil per z slice and a z stack of
- * emitter planes, which is its own unit and is named here rather than
- * approximated. This module images one plane.
+ * **No out-of-focus haze — this module images one plane, and `imaging/volume`
+ * images the stack.** A real widefield fluorescence image is dominated by light
+ * from emitters *outside* the focal plane, which is why deconvolution and
+ * confocal exist. § 6k built the unit named here: a defocused pupil per z slice
+ * over a stack of emitter planes, `renderVolume`. What it found is worth
+ * carrying back to this header, because it is a statement about the operator
+ * above rather than about the new one — defocus is a pure phase, so it leaves
+ * `formedSum` **exactly** unchanged and only redistributes the kernel. Every
+ * plane of a thick specimen therefore delivers its whole flux to the image no
+ * matter how far out of focus it is, and the haze cannot be focused away.
  *
  * Also absent, and each for the same reason (an absolute photon count, § 3a's
  * standing deferral): photobleaching, saturation, quantum yield, and shot
@@ -154,6 +159,17 @@ export interface IncoherentPsf {
   readonly transmittingSamples: number;
   /** Σ|P|² before normalization: the transmitted energy on this lattice. */
   readonly energy: number;
+  /**
+   * What the kernel summed to **before** it was normalized.
+   *
+   * Parseval's image of `energy` — `size²` times smaller, by this FFT's
+   * convention — and the only honest weight for a STACK of kernels. § 6i
+   * normalized it away because one plane has nothing to be weighed against;
+   * § 6k stacks planes and immediately needs it back, since a kernel scaled to
+   * sum 1 carries no record of how much light reached it. Reading the ratio of
+   * two `values` arrays would report 1 whatever the pupils did.
+   */
+  readonly formedSum: number;
   /** Largest |Δphase| in waves between adjacent transmitting lattice samples. */
   readonly maxGridPhaseStepWaves: number;
   readonly pixelScaleMm?: number;
@@ -266,6 +282,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
     values,
     transmittingSamples,
     energy,
+    formedSum: sum,
     maxGridPhaseStepWaves,
     ...(options.scale === undefined
       ? {}

@@ -56,6 +56,7 @@ whole ladder.
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
+| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -4708,6 +4709,207 @@ the exit pupil's own dispersion.
 - **Two-colour merge.** The stack factors because one spectrum multiplies the
   whole emitter field; two labels do not factor and want a render per channel,
   which is § 6i's colour deferral and wants `imaging/image`'s XYZ path.
+
+## Step 6k — out-of-focus haze, and the missing cone
+
+§ 6i images one plane. A real widefield fluorescence image is dominated by light
+from emitters that are **not** in the focal plane — the largest single difference
+between what § 6i forms and what a microscope shows, and the reason deconvolution
+and confocal exist at all. This step builds the volume operator and pins what it
+costs.
+
+The headline is one fact stated twice. A defocus is a **pure phase**, so it
+changes no pupil amplitude, so Σ|P|² does not move, so — by Parseval, through the
+engine's own FFT — the kernel's total does not move either. **Every plane of a
+thick specimen delivers its whole flux to the image however far out of focus it
+is.** Transform that constant along the depth axis and it is the **missing
+cone**: exactly zero axial transfer at zero lateral frequency.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The kernel's total is EXACTLY invariant over 0 → 8 waves of defocus** | pure phase, 1e-12 | ✅ |
+| Parseval is the identity that carries it: `formedSum`·size² = `energy` | identity, 1e-12 | ✅ |
+| `relativeThroughput` is exactly 1 across a pure-defocus stack | 1e-12 | ✅ |
+| **The axis follows sinc²(π·w₂₀)**, and the gap closes as the pupil refines | closed form, 3.5e-2 → 4.8e-3 | ✅ |
+| **A quarter wave of defocus is a Strehl of 8/π² = 0.8106** | closed form, 2 places | ✅ |
+| **At every integer wave the axis is a hard null** — and the total has not moved | null, 4.8e-4 → 6.3e-6 | ✅ |
+| The total is invariant but no FINITE aperture's share is — confocal's opening | monotone fall, 0.90 → 0.08 | ✅ |
+| Every plane delivers the same flux, however deep | 1e-12 | ✅ |
+| **A slab three times thicker is three times hazier, and refocusing cannot help** | 1/3, 1/9, 1/27 to 1e-12 | ✅ |
+| The image's total light does not depend on where the objective is focused | 1e-12 | ✅ |
+| The axial transfer at zero lateral frequency is a CONSTANT | 1e-12 | ✅ |
+| **Its transform is EXACTLY zero at every axial frequency but DC** | the missing cone, 2.2e-15 | ✅ |
+| **A depth-varying pupil AMPLITUDE fills the cone in** | negative control, >5% | ✅ |
+| A non-uniformly spaced stack throws rather than transforming the wrong thing | no plausible wrong spectrum | ✅ |
+| **The support boundary is μ_max = ν·(2 − ν)** | derived, measured exactly at ν = 0.5, 1, 1.5 | ✅ |
+| **The defocused OTF matches an independent quadrature**, and converges | closed form, <1% at 64 bins | ✅ |
+| **A z-uniform specimen collapses to ONE convolution** | identity, 1e-12 | ✅ |
+| **A z-varying one does not** — same total, different image | negative control, energy is not a witness | ✅ |
+| The haze kernel is a Riemann sum, so refining the stack does not brighten it | Σ = 1, 1e-12 | ✅ |
+| Half of § 6j's depth of focus is a quarter wave, for every NA and medium | identity, 1e-12 | ✅ |
+| Object- and image-side waves differ by the sine-condition residual, SQUARED | 1e-9, on a 2.4% residual | ✅ |
+
+### 6k.1 — defocus does not dim, it only spreads
+
+`withDefocus` passes `amplitude` through untouched and adds `waves·ρ²` to the
+phase — § 1.5's own W(ρ) = ½·δ·NA²·ρ² read at the rim. Because nothing is
+attenuated, Σ|P|² is identical at every depth, and Parseval carries that through
+the transform to the formed kernel: `formedSum` holds to 1e-12 over 0 → 8 waves
+and `formedSum`·size² = `energy` to the same. **The light from an out-of-focus
+plane is neither lost nor dimmed.**
+
+What defocus does instead is redistribute, and the on-axis intensity follows a
+closed form the engine reproduces:
+
+    h_w(0) / h_0(0)  =  sinc²(π·w₂₀)  =  [ sin(π·w₂₀) / (π·w₂₀) ]²
+
+3.5e-2 of it at 16 bins across the pupil and 4.8e-3 at 64. The convergence is
+**not** pinned as monotone: § 6i.2 showed this transfer is a lattice point
+*count*, so its departure wanders with the Gauss circle problem — 96 bins is
+worse than 64 — and what is asserted is the fall from 16 to 64, not a rate.
+
+Two things fall out of the closed form and neither is a coincidence. At a quarter
+wave it is **8/π² = 0.8106**, which is the Rayleigh quarter-wave criterion and
+§ 2b's Maréchal Strehl arriving from the axial side; § 6j's depth of focus is
+*defined* as half a wave across the full range, so "half a depth of focus", "a
+quarter wave" and "Strehl 0.81" are one statement measured three ways. And at
+**every integer wave the axis is exactly zero** — all of the light is in the
+rings, none on axis, and the total has not moved by 1e-12. The null sharpens with
+the lattice (4.8e-4 at 16 bins, 6.3e-6 at 64), so it is a zero rather than a
+floor.
+
+Together those two are what "haze" means: the light is put where it carries no
+detail rather than being removed. The rung that keeps the invariance from reading
+as vacuous is its own negative control — collect over the whole plane and defocus
+changes nothing, collect through **any finite aperture** and it changes
+everything (0.90 → 0.08 of the light inside 8 bins over 0 → 2 waves). A detection
+pinhole is exactly that aperture, which is why confocal sections and widefield
+cannot.
+
+### 6k.2 — the in-focus fraction belongs to the specimen, not the instrument
+
+Since every plane delivers the same flux, a slab sampled every depth of focus
+gives an in-focus fraction of exactly 1/N — 1/3, 1/9 and 1/27 to 1e-12 as the
+slab thickens. **Refocusing onto another plane changes which slice is counted and
+nothing else**, and the image's total light does not move at all (1e-12). Haze is
+therefore a property of how much specimen there is, and no setting of the
+microscope adjusts it.
+
+### 6k.3 — the missing cone, and why it is not the normalizer's doing
+
+At zero lateral frequency each plane's transfer is its own total, which § 6k.1
+just showed is constant; the transform of a constant sequence is zero everywhere
+but DC, and the engine reads **2.2e-15** of the DC value. The 3-D widefield OTF
+has no support on the axial axis, so the instrument transmits no axial
+information whatever about the specimen's total brightness — no inversion
+recovers it, and deconvolution is ill-posed for a structural reason rather than a
+numerical one.
+
+**This rung was very nearly worthless, in § 6j.2's exact way.** § 6i normalizes
+its kernels to sum 1, so a null built on *their* totals would read zero whatever
+the pupils did — the same shape as "the stack still summed to 1 afterwards", one
+layer up. `IncoherentPsf.formedSum` was added for this step: it is what the
+kernel summed to *before* normalization, the stack weighs with it, and the null
+therefore has a control. Give `depthKernels` pupils whose **amplitude** varies
+with depth and the cone fills in with better than 5% support where pure defocus
+held 1e-15. Nothing in the engine varies amplitude with depth yet — that is the
+depth-dependent-spherical deferral below — which is precisely why `DepthPupils`
+is a callback rather than a pupil.
+
+### 6k.4 — the cone's boundary, derived and then measured
+
+The quadratic wavefront puts 2·w₂₀·(u·ν) waves between two pupil points separated
+by ν — **linear in u** — so transforming over w₂₀ maps each axial frequency onto
+one line of the two discs' overlap and the 3-D OTF is that overlap's own chord
+profile:
+
+    OTF₃(ν, μ) = g( μ/(2ν) ) / (2ν),   g(t) = 2·√(1 − (|t| + ν/2)²)
+
+supported on **|μ| ≤ ν·(2 − ν)** cycles per wave of w₂₀, which in physical units
+is ν_z ≤ NA·ν_r − λ·ν_r²/2. Measured on a 64-slice stack over ±8 waves, the 2%
+support edge lands on 0.7500, 1.0000 and 0.7500 at ν = 0.5, 1.0 and 1.5 —
+**exactly** the law, against an axial bin of 0.0625. The support closes at ν = 0
+(the missing cone) and again at the ν = 2 lateral cutoff, so a widefield
+microscope sections best at mid frequencies and not at all at low ones.
+
+The 1/(2ν) in front is why deconvolution amplifies noise near the cone rather
+than merely failing inside it: the transfer does not fall to zero at the boundary
+and stop, it concentrates into an ever-narrower band of axial frequencies.
+
+### 6k.5 — the defocused OTF against an independent quadrature
+
+The same g, integrated in one dimension by trapezoid, sharing no code with the
+engine's 2-D FFT: agreement is better than 1% at 64 bins across the pupil over
+ν ∈ {0.25, 0.5} and w₂₀ ∈ {0.25, 0.5, 1}, and the gap closes from 16 bins to 64.
+That is what makes § 6k.4's boundary a derivation the engine confirms rather than
+a curve fitted to the engine's output.
+
+### 6k.6 — over z it does not factor, and the one case where it does
+
+§ 6j stacks over **kernels rather than images** and calls it exact rather than an
+economy: a single-label specimen emits with one spectrum, so E(x)·w(λ) factors
+and Σ_λ w_λ(h_λ ⊛ E) = (Σ_λ w_λ h_λ) ⊛ E — one convolution with the whole band
+inside the kernel. **The same machinery pointed at z does not factor**, because
+every plane has its own emitter field and there is no common E to pull out. A
+volume costs one convolution per slice, and that is the price of the third
+dimension rather than an implementation awaiting optimization.
+
+The exception is exact and is worth having, because it is what "haze" means: a
+specimen **uniform in z** puts the same E on every plane, factors again, and
+collapses to a single convolution with Σ_z T(z)·h_z. That is `hazeKernel`, and a
+slice-by-slice render of a z-uniform volume equals it to 1e-12.
+
+The negative control is the one that matters. Sum a z-*varying* volume's emitters
+and convolve once with the same haze kernel and the result carries **every photon
+the specimen emitted** — the totals agree to 1e-12 once the kernel's own
+normalization is divided out — and forms a different image. **Energy is not a
+witness** (§ 6g.2's phrase, recurring): the check this repo reaches for first
+passes for the operator that is wrong.
+
+### 6k.7 — depth in waves, and the conjugate it is measured in
+
+`defocusWaves` is δ·NA²/(2·n·λ), and half of § 6j's depth of focus lands on
+exactly ¼ for every NA, medium and wavelength (1e-12) — which is what ties this
+step's axial readouts to that step's tolerance.
+
+The number is **conjugate-invariant**: δ′ = δ·M²·n′/n by the longitudinal
+magnification § 6j pins and NA′ = NA/|M| by the sine condition, so the M² cancels
+against the NA² and the n against the n′. A caller may therefore author a
+specimen in object-space millimetres with the objective's object-side NA — which
+is how a specimen is actually described — while the engine defocuses the
+image-side pupil, with no conversion between them to get backwards. It is exact
+only as far as the objective is aplanatic, and what is left over is measured
+rather than waved away: the DIN 4×'s sine-condition residual is **2.4%**, and the
+two sides differ by 1/(1+r)² — a 4.7% gap, pinned to 1e-9 against the residual
+the engine reads independently. § 6h's "a doublet cannot be aplanatic" arriving
+in a third place.
+
+### Not yet pinned
+- **Depth-dependent spherical aberration.** Focusing *into* a specimen whose
+  index does not match the immersion adds spherical aberration that grows with
+  depth — the dominant real-world defect of deep widefield and confocal imaging,
+  and the reason correction collars exist. § 6c solves the plate to all orders
+  and § 6e the N-layer stack, so the physics is already in the engine; wiring the
+  focal depth into that stack is its own step. `DepthPupils` is a callback so
+  that it can be supplied, and § 6k.3's control is its first user.
+- **Deconvolution and confocal**, both named by the missing cone rather than
+  built. Confocal is not a post-process: it needs a detection pinhole and an
+  excitation PSF, which is the excitation path § 6j left open.
+- **An axial sampling verdict.** A stack whose slices step by more than the
+  kernel can resolve is undersampled in z exactly as a grid can be in x, but the
+  criterion is § 6f.9's shape of problem and wants its own rung. What is reported
+  meanwhile is § 6i's per-slice `maxGridPhaseStepWaves`.
+- **The exact Ewald cap, and how far the quadratic wavefront is from it.** The
+  boundary above is derived from W = ½·δ·NA²·ρ², a *paraboloid*. The exact cap of
+  the Ewald sphere gives a cone slope of tan α where the quadratic form gives
+  sin α — they agree paraxially and diverge by 1/cos α, which is 2.6× at
+  NA 1.40 in oil. The engine forms images in image space, where NA′ is 0.024 even
+  for a 100×/1.40 and the quadratic form is excellent, so the departure lives
+  entirely in the object-side z mapping. Measuring it wants a wavefront traced
+  through a defocused *object* plane rather than a shifted image plane.
+- **Signal-to-haze against specimen thickness**, and the bead-in-a-slab scene
+  that would show it. It is a consequence of § 6k.1 and § 6k.2 rather than an
+  independent pin, and it wants scenes the branch has not built.
 
 ## Later rungs
 

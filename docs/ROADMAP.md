@@ -172,9 +172,10 @@
    image degrading as the budget predicts.
 6. **Microscope branch** ← current
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
-   oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i);
-   coverslip mismatch ✅ (§ 6c); scenes: fluorescent beads ✅ (§ 6i.5), with
-   diatoms and stained tissue still open.
+   oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i),
+   the latter now over a 3-D specimen ✅ (§ 6k); coverslip mismatch ✅ (§ 6c);
+   scenes: fluorescent beads ✅ (§ 6i.5), with diatoms and stained tissue still
+   open.
    "Mostly configuration + domain models on the existing engine" held for the
    optics and did **not** hold for brightfield — see § 6f.
    *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
@@ -442,9 +443,9 @@
    rasterizer is not needed — which is exactly what a stained-tissue field would
    need. **No verdict is minted** (§ 6f.9's asymmetry, stated: incoherent imaging
    *has* a geometric branch) and no fluorophore is named — real dye spectra are
-   measured data. **Open:** out-of-focus haze from a 3-D specimen — the thing that
-   makes deconvolution and confocal mean something — colour, and the remaining
-   scenes.
+   measured data. **Open:** colour, and the remaining scenes. Out-of-focus haze
+   from a 3-D specimen — the thing that makes deconvolution and confocal mean
+   something — was this step's largest named gap and is § 6k.
    *The Stokes shift, and the band the image is formed in:* ✅ `imaging/emission`
    (§ 6j). § 6i never sees an excitation wavelength, and that is the architecture
    rather than a gap: the emission filter blocks it, so "resolution is set by λ_em"
@@ -470,6 +471,42 @@
    **Open:** the excitation/illumination path itself (epi, dichroic, Köhler
    uniformity), the two-colour merge, and which way an aberration-free band moves
    the core.
+   *Out-of-focus haze, and the missing cone:* ✅ `imaging/volume` (§ 6k). § 6i's
+   largest named gap, and the largest single difference between what it forms and
+   what a microscope shows. The step is one fact stated twice. A defocus is a
+   **pure phase**, so no pupil amplitude moves, so Σ|P|² does not — and Parseval
+   carries that through the engine's own FFT to the formed kernel, whose total is
+   invariant to 1e-12 over 0 → 8 waves. **Every plane of a thick specimen
+   delivers its whole flux to the image however far out of focus it is**, so a
+   slab three times thicker is exactly three times hazier (1/3, 1/9, 1/27 to
+   1e-12) and **refocusing cannot help** — haze is a property of how much
+   specimen there is, not of the microscope. Transform that constant along the
+   depth axis and it is the **missing cone**: zero axial transfer at zero lateral
+   frequency, read at 2.2e-15, which is why deconvolution is ill-posed
+   structurally rather than numerically. The rung was nearly worthless in § 6j.2's
+   exact way — § 6i's kernels are normalized to sum 1, so a null on *their* totals
+   would hold whatever the pupils did — so `formedSum` was added, the stack weighs
+   with it, and a depth-varying pupil **amplitude** fills the cone back in on
+   demand. What defocus does instead is redistribute, on a closed form: the axis
+   follows **sinc²(π·w₂₀)**, which is 8/π² = 0.8106 at the quarter wave (the
+   Rayleigh criterion and § 2b's Maréchal Strehl seen axially, and § 6j's depth of
+   focus is defined so half of it lands there) and **exactly zero at every integer
+   wave** — all the light in the rings, total unmoved. Away from the axis the
+   support boundary **μ = ν(2 − ν)** is derived from the quadratic wavefront and
+   then measured *exactly* at ν = 0.5, 1 and 1.5, with the defocused OTF pinned
+   against an independent quadrature. **The structural finding is the one § 6j
+   sets up:** its band stacks over kernels rather than images because one spectrum
+   multiplies the whole emitter field, and **over z that fails** — each plane has
+   its own field, so a volume costs one convolution per slice. The exception is a
+   specimen uniform in z, which factors again and IS the haze kernel; and the
+   shortcut that sums the planes first carries every photon and forms a different
+   image, so **energy is not a witness** here either. **Open:** depth-dependent
+   spherical aberration (the physics is in § 6c/§ 6e already; wiring focal depth
+   into that stack is its own step), deconvolution and confocal — both named by
+   the cone rather than built — an axial sampling verdict, and how far the
+   quadratic wavefront sits from the exact Ewald cap (sin α against tan α: 2.6×
+   at NA 1.40, but living entirely in the object-side z mapping, since the engine
+   defocuses an image space where NA′ is 0.024).
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
