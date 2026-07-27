@@ -349,6 +349,32 @@
    The capability stays deferred — its nearest analog is refraction through the
    specimen's ∇φ, which is transport-of-intensity rather than coherence — and
    the verdict has no caller until the `imaging/render` bridge lands.
+   *The coherence width, and what the field decomposition may window:* ✅
+   `illumination/coherence` (§ 6g.1–6g.2). Not the bridge — the thing that had
+   to be settled before building it, because `abbeImage` images ONE isoplanatic
+   patch and `imaging/render`'s partition of unity does **not** compose with it
+   the way it looks like it does. The finding is exact: splitting an object
+   amplitude between patches returns the self terms whole and multiplies the
+   interference between two object points by **C = Σ_p √(w_p(x₁)·w_p(x₂))**,
+   Cauchy–Schwarz, which is 1 only in a shared mixture and **0 across a seam** —
+   deleted, not attenuated. Pinned pointwise to 1e-12 of the cross term's peak,
+   and 89% of the interference is gone at 16 patches on the rung's own geometry.
+   So the error factorizes, (1 − C)·|cross term| with cross term ∝ μ, one purely
+   geometric factor and one purely physical: **C carries no S at all.** The
+   bridge must therefore window the OUTPUT, the opposite side from
+   `imaging/render`, and that is two operators disagreeing rather than one being
+   wrong. **Energy is not a witness** — the object-side split is exact by
+   construction, so the check this repo reaches for first passes for the scheme
+   that deletes the interference. The physical half arrives as van
+   Cittert–Zernike, computed from the condenser's own sampling and pinned three
+   ways: against 2J₁(v)/v, against `abbeImage`'s own cross term to 9 places, and
+   against the textbook **0.61·λ/NA_condenser** to 2e-4 — where the engine
+   carries no 0.61, only j₁,₁, the same constant as Rayleigh's criterion. Needed
+   its own primitive, `math/bessel`, a defining series pinned against Bessel's
+   integral rather than a transcribed coefficient table. **Open:** the bridge
+   itself (§ 6g.3, `renderBrightfield` — and the first caller
+   `brightfieldFidelity` will ever have), what output windowing costs where the
+   pupil DOES vary, off-axis coherence, and the polychromatic half.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

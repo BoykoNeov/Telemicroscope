@@ -52,6 +52,7 @@ whole ladder.
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
+| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; the 0.61·λ/NA_cond coherence width measured; μ shown to be what the Abbe image contains; and the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂) — so the brightfield bridge must window the output | `coherence` `math` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3924,10 +3925,204 @@ will belong to and the gratings never did.
 - **Aperture-edge sampling in `abbeImage`.** The pupil is point-sampled on the
   DFT lattice there (correct for a sampled spectrum, and stated in the header),
   so an extended object sees a staircased rim where `wave/psf` would see an
-  area-averaged one. Not measured.
+  area-averaged one. **Now measured, in § 6g.1:** which lattice points fall
+  inside the rim changes with the illumination direction, and that costs a few
+  1e-4 absolute in a two-point cross-term energy — invisible against an image,
+  and percent-level only when divided by a near-vanishing autocorrelation. It
+  does not shrink with `pupilSamples`.
 - **Phase contrast and DIC** need a phase plate in the pupil and Hopkins' TCC
   respectively; both are v2, and the annular source is already here waiting.
 - **Off-axis.** One field point, on axis, like the rest of § 6.
+
+## Step 6g — the coherence width, and what a field decomposition may window
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| J₁ series agrees with Bessel's integral, (1/π)∫₀^π cos(θ − x sin θ)dθ | second definition | ✅ |
+| J₁ vanishes at j₁,₁, j₁,₂, j₁,₃ and keeps one sign between them | tabulated zeros | ✅ |
+| jinc(0) = 1, and 1 − v²/8 + v⁴/192 either side of the cut | series limit | ✅ |
+| μ(0) = 1; a point source is coherent at every separation | closed form | ✅ |
+| A disc condenser's μ converges on 2J₁(v)/v | van Cittert–Zernike | ✅ |
+| Its first zero is 0.61·λ/NA_condenser | textbook coherence width | ✅ |
+| The Abbe image's own cross term equals Re μ | continuum identity | ✅ |
+| Past the first zero the interference returns inverted | jinc sign | ✅ |
+| C = Σ√(w₁w₂): 1 in a shared mixture, 0 across a seam, ≤ 1 always | Cauchy–Schwarz | ✅ |
+| 1 − C = δ²(1/α + 1/(1−α))/8 for a window difference δ | closed form | ✅ |
+| An input-side partition multiplies the cross term by exactly C, pointwise | exact algebra | ✅ |
+| …and C is the same number under every condenser | closed form | ✅ |
+| An output-side partition is the identity at a field-constant pupil | Σ w ≡ 1 | ✅ |
+
+`brightfieldFidelity` landed at § 6f.9 with no caller, because the bridge from
+`abbeImage` — which images **one isoplanatic patch** — into `imaging/render`'s
+field decomposition was unbuilt. This step is not that bridge. It is the thing
+that had to be settled first, because the two do not compose the way they look
+like they do, and building the bridge on the assumption that they do would have
+produced a picture that was wrong in a way no check in this repo catches.
+
+### The finding: the partition of unity may window the output, never the input
+
+`imaging/render` decomposes the field into patches and blends with a partition
+of unity, and it windows the **scene** rather than the output, with an argument
+stated in its own header: windowing the input splits the *light*, so every
+photon is convolved with the kernel nearest where it came from. That argument is
+airtight, and it is airtight because incoherent imaging is **linear in the
+object's intensity**. Abbe imaging is not — that is § 6f's headline — and the
+scheme fails here in a way that is not a matter of degree.
+
+Split an object amplitude between patches (necessarily as √w_p, since it is the
+*intensities* that must partition), image each patch, add the intensities. The
+self terms come back whole, because Σ_p w_p ≡ 1. The cross term between two
+object points comes back multiplied by
+
+    C = Σ_p √( w_p(x₁) · w_p(x₂) )   ≤ 1
+
+by Cauchy–Schwarz, with equality only where the two points sit in the *same
+mixture* of patches. Where a seam separates them the factor is not small, it is
+**zero**: the interference is deleted, and interference between neighbouring
+object points is the entire content of partial coherence. Expanding about equal
+mixtures gives 1 − C = δ²·(1/α + 1/(1−α))/8 for a window difference δ — second
+order in the difference, but with the coefficient blowing up at the *edges* of
+the window, which is precisely where a decomposition puts its seams. Measured on
+the rung's own geometry: two points 8 cells apart on a 128-cell grid lose under
+2% at two patches and **89%** at sixteen, where a patch is as wide as the
+separation.
+
+The rung that pins this is pointwise and exact — the windowed image minus the
+two self images equals C times the unwindowed cross term at every pixel, to
+1e-12 of the cross term's peak — and it holds through the **hard-rimmed** ideal
+pupil, because it is algebra about the windows and knows nothing about the
+aperture.
+
+The error therefore factorizes into one geometric term and one physical one:
+
+    error = (1 − C) · |cross term|,      cross term ∝ μ(Δ)
+
+and **C carries no S**: it is identical under a coherent source and a wide-open
+condenser, pinned across S ∈ {0, 0.5, 1.1}. The S-dependence lives entirely in
+μ, which is why the scheme looks harmless in the incoherent limit — there is no
+cross term left to damage — and is worst exactly where brightfield is
+interesting.
+
+Windowing the **output** costs nothing where the pupil is field-constant: Σ_p w_p
+≡ 1 and every patch forms the same image, so the blend is the identity to 1e-12
+at any patch count. That is engine-vs-itself and not a rung on its own, but it
+is the fact that makes the output side the available side. The § 6g.3 bridge
+will therefore flip the window to the output relative to `imaging/render`, and
+the two modules disagreeing about which side to window is not a contradiction —
+it is two different operators, and the brightfield module says so where a reader
+comparing them would otherwise conclude one is broken.
+
+### Energy conservation is not a witness, and that is worth saying out loud
+
+At the object the input-side split is exact by construction: Σ_p ∫w_p|t|² =
+∫|t|². The conservation check this repo reaches for first therefore **passes for
+the scheme that deletes the interference**. In the image the two schemes do
+differ, but by exactly (1 − C) times the cross-term energy — the same quantity
+the rung above already measures, wearing a different name — and opening the
+condenser collapses that deficit along with μ while the deletion is unchanged.
+Pinned as an identity, deficit = (1 − C)·(cross energy) to 10 places, so the
+absence of independent information is recorded rather than assumed.
+
+### μ, and the number it produces
+
+The complex degree of coherence is the source's own transform,
+
+    μ(Δ) = Σ_s w_s · exp(2πi·s·Δ)
+
+which is the van Cittert–Zernike theorem in the only form this engine needs:
+`illumination/coherence` computes it as the sum over the condenser's *sampled*
+directions, so it is what the Abbe image really contains rather than a parallel
+model of it. The rungs pin it three ways.
+
+**Against the closed form.** For the uniform disc `diskSource` builds, the
+continuum limit is 2J₁(v)/v with v = π·S·pupilSamples·Δ/size. The sampled sum
+converges on it — worst-case error over S ∈ [0.2, 1.4] and four zeros' worth of
+separation falls monotonically with the source count and reaches 3e-3 at 129
+samples across the diameter. That is § 6f.2's convergence knob seen from the
+object side instead of from the transfer function. The imaginary part is
+identically zero for every centro-symmetric source, which is the statement that
+the fringes sit where the geometry says.
+
+**Against the textbook width.** Bisecting the sampled μ for its first zero and
+converting through `imagePixelScaleMm` gives **0.61·λ/NA_condenser** — matched to
+2e-4 relative at 257 source samples, at S = 0.4, 0.75 and 1.2. Nothing in the
+chain that produced that number knew what a millimetre was until the last line.
+The engine carries no 0.61 anywhere: the constant is j₁,₁ = 3.8317059702, and
+0.61 = j₁,₁/2π is what comes back out — the *same* constant as Rayleigh's
+resolution criterion and the Airy first dark ring's 1.22, because all three are
+the first zero of a filled circle's transform. The discretization converges
+**non-monotonically** (7.7e-3 at 17 samples, 4.1e-5 at 257): the error is set by
+how a square lattice happens to cut the rim of a disc at each count, so it is a
+magnitude that falls rather than a sequence that descends, and the rung asserts
+it that way.
+
+**Against the imager.** The cross term of a two-point object, measured off
+`abbeImage` and divided by the same thing under coherent illumination, equals
+Re μ to 9 places at separations either side of the first zero and through it.
+This is the rung that makes μ the image's property rather than a second theory
+beside it — the illumination direction multiplies the object by a phase ramp, so
+the pair's cross term picks up exp(2πi·s·Δ), and the source sum of that *is* μ.
+
+Two details of that rung are load-bearing rather than incidental. Each point's
+own image has to be formed under the **same** source: a rasterized pupil
+transmits a slightly different set of lattice points from each direction, so a
+self term computed once and reused leaks that difference into the cross term.
+And the identity is a **continuum** one, so it is pinned on an apodized pupil.
+Through the hard-rimmed ideal pupil the same measurement holds only to a few
+1e-2 — this is § 6f's own deliberate point-sampling of the rim, worth a few 1e-4
+absolute in the cross energy, showing up worst where the disc's autocorrelation
+at that separation is near a zero and divides it up. It does not improve with
+`pupilSamples`. Recorded here so a later reader measuring 2% on a hard pupil
+finds it already named.
+
+**And the sign matters.** Past the first zero μ goes negative: two object points
+beyond the coherence width are *anti*-correlated before they are uncorrelated,
+which is why the width is named by the first zero and not by a half-height. An
+annulus of the same outer radius holds |μ| further out than the disc, because
+the transform of a ring decays more slowly — the darkfield source of § 6f seen
+from the object side.
+
+### J₁, and why it is a series rather than a table
+
+The closed form needed a Bessel function, and the engine had gone this far
+without one deliberately: every diffraction result so far came out of an FFT of
+an actual pupil, so the Airy pattern was *produced* rather than evaluated.
+`math/bessel` changes nothing about that — it is the closed form a rung compares
+against.
+
+It is the defining power series, evaluated by term recurrence, and not one of
+the published minimax approximations. A table of fitted coefficients would have
+to be transcribed, which this repo forbids for the same reason it forbids
+transcribing a lens prescription from memory: the numbers would be unpinnable
+and a typo in the sixth digit invisible. A series is a definition, so it can be
+pinned against a *second* definition — Bessel's integral, evaluated by a
+quadrature that converges geometrically because its integrand is smooth and
+periodic. The price is cancellation: the terms have total magnitude I₁(x) ≈
+e^x/√(2πx) and sum to something below 0.6, so f64 returns about ε·I₁(x) of
+absolute accuracy — 15 digits below x = 3, 13 by x = 10 where every caller in
+this engine lives, ~1e-7 by x = 25, past which it refuses rather than returning
+noise. The rung's tolerance is that bound, derived rather than tuned, and it
+holds with an order of headroom at every x because the roundoff is a random walk
+rather than an adversary.
+
+### Not yet pinned
+
+- **The bridge itself.** § 6g.3 is `renderBrightfield`: patches, a field-varying
+  pupil, an output-side blend, and the first caller `brightfieldFidelity` has
+  ever had. This step establishes what it is allowed to do; it does not do it.
+- **What the output-side scheme costs where the pupil DOES vary.** Output
+  windowing attributes a kernel by destination point rather than by source point,
+  which is the isoplanatic approximation running the other way. Its error is not
+  measured here and has no closed form; the candidate pins are a patch-count
+  convergence sweep and agreement with `renderField` on |t|² as S grows, which is
+  the one regime where both schemes are valid.
+- **Coherence off axis, and in two dimensions with a decentred source.** μ is
+  computed for an arbitrary (Δx, Δy) and an arbitrary source, and the complex
+  form is carried because an oblique condenser displaces the fringes — but every
+  rung here uses a centro-symmetric source and a separation along one axis.
+- **Polychromatic coherence.** μ is wavelength-dependent through the same grid
+  relation, and a real lamp has a coherence *length* as well as a width. Both are
+  monochromatic here, as all of § 6f is.
 
 ## Later rungs
 
