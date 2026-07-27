@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  describeCatalog,
+  LAMBDA_NM,
+  MARECHAL_WAVES,
+  MICROSCOPE_CATALOG,
+  type FrameResult,
+} from "./microscope";
+import {
   hueProfile,
   type FieldFrame,
   type FieldJob,
@@ -330,12 +337,156 @@ function FieldCanvas({ request }: { request: FieldRequest }) {
   );
 }
 
+/**
+ * The microscope substrate — APP.md's A1, and the branch's first app surface.
+ *
+ * Not a picture: the thing every picture will sit on. One row per objective in
+ * the ladder, every number read back off the trace, and the two columns that
+ * decide what A2 can show — the crop the frame actually covers on the specimen,
+ * and how many resolution cells wide it is.
+ *
+ * The whole catalogue is traced rather than one selected entry, because the
+ * finding worth showing is a *comparison*: three rows share NA 0.10 and cover an
+ * identical 93.5 µm while their image pixels scale exactly with magnification.
+ * A selector would hide that behind a click.
+ *
+ * The three rows that fail are not omitted. § 6b's cemented-doublet ceiling and
+ * § 6d's measured NA 0.343 wall are findings, and the engine states them in its
+ * own error text — which is the honest thing to put in the cell.
+ */
+function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: number }) {
+  const [rows, setRows] = useState<readonly FrameResult[] | null>(null);
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  useEffect(() => {
+    setRows(null);
+    // Deferred one turn so the "tracing…" state paints first: this is ~400 ms of
+    // real ray tracing on the main thread. `render.ts`'s panels earn a worker by
+    // being re-run on a slider; this runs on a sampling change and does not.
+    const id = setTimeout(() => {
+      const started = performance.now();
+      const next = describeCatalog(pupilSamples, size);
+      setElapsedMs(performance.now() - started);
+      setRows(next);
+    }, 0);
+    return () => clearTimeout(id);
+  }, [pupilSamples, size]);
+
+  const cell: React.CSSProperties = { padding: "3px 8px", textAlign: "right", whiteSpace: "nowrap" };
+  const head: React.CSSProperties = { ...cell, borderBottom: "1px solid #ccc", color: "#444" };
+
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            <th style={{ ...head, textAlign: "left" }}>objective</th>
+            <th style={head}>traced NA</th>
+            <th style={head}>traced M</th>
+            <th style={head}>crop (µm)</th>
+            <th style={head}>specimen/px</th>
+            <th style={head}>image/px</th>
+            <th style={head}>λ/2NA</th>
+            <th style={head}>σ axis</th>
+            <th style={head}>σ corner</th>
+            <th style={head}>drift</th>
+            <th style={head}>lost</th>
+          </tr>
+        </thead>
+        <tbody>
+          {MICROSCOPE_CATALOG.map((entry, i) => {
+            const row = rows?.[i];
+            const na = entry.nominalNA;
+            const m = entry.nominalMagnification;
+            return (
+              <tr key={entry.kind} style={{ borderBottom: "1px solid #eee" }}>
+                <td style={{ ...cell, textAlign: "left" }}>
+                  <strong>{entry.label}</strong>
+                  <br />
+                  <span style={{ color: "#777", fontSize: 11 }}>{entry.note}</span>
+                </td>
+                {!row ? (
+                  <td style={{ ...cell, color: "#999" }} colSpan={10}>
+                    tracing…
+                  </td>
+                ) : !row.ok ? (
+                  // The engine's own message, in full. It carries the measured
+                  // ceiling; a "not available" would carry nothing.
+                  <td style={{ ...cell, textAlign: "left", color: "#c00", whiteSpace: "normal" }} colSpan={10}>
+                    the engine refuses this design: {row.error}
+                  </td>
+                ) : (
+                  <>
+                    <td style={cell}>
+                      {row.readout.tracedNA.toFixed(4)}
+                      <br />
+                      <span style={{ color: "#777" }}>
+                        {relative(row.readout.tracedNA, na)}
+                      </span>
+                    </td>
+                    <td style={cell}>
+                      {row.readout.tracedMagnification.toFixed(2)}
+                      <br />
+                      <span style={{ color: "#777" }}>
+                        {relative(Math.abs(row.readout.tracedMagnification), m)}
+                      </span>
+                    </td>
+                    <td style={{ ...cell, fontWeight: 600 }}>{row.readout.objectSpanUm.toFixed(2)}</td>
+                    <td style={cell}>{row.readout.objectPixelNm.toFixed(1)} nm</td>
+                    <td style={cell}>{row.readout.imagePixelUm.toFixed(3)} µm</td>
+                    <td style={cell}>{row.readout.abbeResolutionNm.toFixed(0)} nm</td>
+                    <td style={{ ...cell, color: row.readout.axisRmsWaves > MARECHAL_WAVES ? "#c00" : "#3a7" }}>
+                      {row.readout.axisRmsWaves.toFixed(4)}
+                    </td>
+                    <td style={{ ...cell, color: row.readout.cornerRmsWaves > MARECHAL_WAVES ? "#c00" : "#3a7" }}>
+                      {row.readout.cornerRmsWaves.toFixed(4)}
+                    </td>
+                    <td style={cell}>{row.readout.scaleDriftPixel.toExponential(1)}</td>
+                    <td style={{ ...cell, color: row.readout.cornerLost > 0 ? "#a60" : "#777" }}>
+                      {row.readout.cornerLost}
+                    </td>
+                  </>
+                )}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777" }}>
+        {rows ? `${elapsedMs.toFixed(0)} ms for the whole catalogue` : "tracing the catalogue…"} ·
+        λ = {LAMBDA_NM} nm · drift is what one common ruler costs across the frame · lost is rays
+        vignetted at the corner
+      </p>
+      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", maxWidth: 720 }}>
+        σ is the RMS wavefront <em>as traced</em>, about its own mean at each system&rsquo;s own
+        image plane — no best-focus solve, because that is the wavefront a render will actually see.
+        The comparison against Maréchal&rsquo;s λ/14 = {MARECHAL_WAVES.toFixed(4)} waves is therefore
+        one-sided: a balanced σ can only be smaller, so <span style={{ color: "#3a7" }}>green</span>{" "}
+        means genuinely diffraction-limited and <span style={{ color: "#c00" }}>red</span> means
+        &ldquo;not at this focus&rdquo;, not &ldquo;not correctable&rdquo;.
+      </p>
+    </div>
+  );
+}
+
+/** "+0.02%" — a traced number against the number on the label. */
+function relative(traced: number, nominal: number): string {
+  const d = (traced / nominal - 1) * 100;
+  if (Math.abs(d) < 0.005) return "= label";
+  return `${d > 0 ? "+" : ""}${d.toFixed(2)}%`;
+}
+
 export default function App() {
   const [aperture, setAperture] = useState(DEFAULTS.apertureMm);
   const [temperature, setTemperature] = useState(DEFAULTS.sourceTemperatureK);
   const [wavelengths, setWavelengths] = useState(DEFAULTS.wavelengths);
   const [exposure, setExposure] = useState(8000);
   const [seeing, setSeeing] = useState(DEFAULTS.seeingDOverR0);
+  // The microscope substrate's two axes. `pupilSamples` IS the frame's width in
+  // resolution cells (§ 6h), so it is the only control that widens the crop;
+  // `size` buys sampling on that same crop and nothing else.
+  const [scopePupilSamples, setScopePupilSamples] = useState(32);
+  const [scopeSize, setScopeSize] = useState(64);
 
   // Each panel traces in its own worker (`useRenderedStar`), so the sliders
   // never touch the optical pipeline: the thumb tracks the finger and the panel
@@ -380,7 +531,10 @@ export default function App() {
   );
 
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 24, maxWidth: 900 }}>
+    // Wider than the 900 the two-panel layout needed: the microscope table has
+    // eleven columns and every one of them is a number the panel exists to show.
+    // The prose keeps its own 640 maxWidth, so only the table gets the room.
+    <main style={{ fontFamily: "system-ui, sans-serif", padding: 24, maxWidth: 1240 }}>
       <h1 style={{ fontSize: 20 }}>One star, two lenses</h1>
       <p style={{ maxWidth: 640, color: "#444" }}>
         Same star, same aperture, same focus criterion, <strong>same exposure</strong>. The only
@@ -469,7 +623,83 @@ export default function App() {
         so the cost of a field-varying PSF stays visible without leaving the panel blank. Widen the
         aperture to grow the coma, or move to the corners of the frame to watch it lengthen.
       </p>
+
+      <h1 style={{ fontSize: 20, marginTop: 40 }}>The microscope bench: what a frame actually covers</h1>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        The microscope branch&rsquo;s objectives, every one of them traced. This is not a picture and
+        not a view through an eyepiece — it is the <strong>substrate</strong> the pictures will sit
+        on, and the number it exists to say out loud is the <strong>crop</strong>: how much specimen
+        a rendered frame can hold. A brightfield frame spans <code>pupil samples</code> resolution
+        cells and no more, because the illumination sum&rsquo;s grid <em>is</em> its frequency
+        lattice — so unlike the star field above, it cannot be widened by choosing a coarser pixel.
+      </p>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        Read the three <strong>NA 0.10</strong> rows together: 4×, 10× and 20× cover an{" "}
+        <em>identical</em> 93.5 µm while their image pixels scale exactly with magnification.
+        Reaching for a stronger objective does not widen or narrow the crop — only NA moves it, and
+        it moves the wrong way, so the objective that resolves best shows least. The 100×/1.40 oil
+        holds 2.6 µm. A real 4× shows ~5 mm, so even at 128 samples this is a detail crop by a
+        factor of thirteen, and any panel that called it a field of view would be lying.
+      </p>
+
+      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
+        <Choice
+          label={`pupil samples ${scopePupilSamples} — the crop, in resolution cells`}
+          options={[32, 64, 128]}
+          value={scopePupilSamples}
+          onChange={setScopePupilSamples}
+        />
+        <Choice
+          label={`grid ${scopeSize}² — sampling on that same crop, not more of it`}
+          options={[64, 128, 256]}
+          value={scopeSize}
+          onChange={setScopeSize}
+        />
+      </div>
+
+      <MicroscopeTable pupilSamples={scopePupilSamples} size={scopeSize} />
+
+      <p style={{ marginTop: 16, fontSize: 13, color: "#666", maxWidth: 640 }}>
+        Move the grid and watch the crop <em>not</em> change: that is the constraint stated as an
+        experiment. Move the pupil samples and it scales exactly, which is the only lever there is.
+        Three rows carry an error instead of numbers — the cemented doublet has a focal-ratio
+        ceiling and the Lister form a measured aperture wall, and where the engine refuses to build
+        a design it says so in its own words rather than showing a blank.
+      </p>
     </main>
+  );
+}
+
+/** A small radio row — for axes that take a few discrete values, not a range. */
+function Choice(props: {
+  label: string;
+  options: readonly number[];
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <div style={{ fontFamily: "monospace", fontSize: 12 }}>
+      {props.label}
+      <br />
+      {props.options.map((option) => (
+        <button
+          key={option}
+          onClick={() => props.onChange(option)}
+          style={{
+            fontFamily: "monospace",
+            fontSize: 12,
+            marginRight: 4,
+            padding: "2px 8px",
+            border: option === props.value ? "1px solid #333" : "1px solid #ccc",
+            background: option === props.value ? "#333" : "#fff",
+            color: option === props.value ? "#fff" : "#333",
+            cursor: "pointer",
+          }}
+        >
+          {option}
+        </button>
+      ))}
+    </div>
   );
 }
 

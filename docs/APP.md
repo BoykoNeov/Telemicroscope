@@ -35,9 +35,10 @@ inherit them:
    it is free, and skipping it would be a regression in honesty, not just in
    polish.
 
-What the app builds optically is exactly one thing: `refractorPair` — an N-BK7
-singlet and an N-BK7/F2 achromat. Not one preset, eyepiece, eye, sensor,
-tolerance or microscope has ever been instantiated in the app.
+What the app built optically, when this doc was written, was exactly one thing:
+`refractorPair` — an N-BK7 singlet and an N-BK7/F2 achromat. **A1 has since added
+the microscope catalogue** (`microscope.ts`); no preset, eyepiece, eye, sensor or
+tolerance has been instantiated yet.
 
 ## The rule that decides what is scopeable at all
 
@@ -202,27 +203,56 @@ Each surface below is tagged **picture**, **plot**, or **pair**.
 
 ## Part A — the microscope branch
 
-Nothing here has any app surface. Ordered by value per unit of work.
+A1 has landed; A2–A6 have no app surface yet. Ordered by value per unit of work.
 
-### A1. Objective picker + the specimen frame — *app wiring only* — **the prerequisite**
+### A1. Objective picker + the specimen frame — ✅ **landed** — *app wiring only*
 
-Not a panel; the substrate every other microscope panel sits on. One selector
-over the ladder's objectives, building the system and its `objectFieldFrame`:
+Not a panel; the substrate every other microscope panel sits on. Shipped as
+`packages/app/src/microscope.ts` (pure adapter, `render.ts`'s pattern) plus a
+`MicroscopeTable` in `App.tsx`, building each entry's system and its
+`objectFieldFrame`:
 
 | entry | call | conjugate |
 |---|---|---|
-| DIN 4×/0.10 | `finiteConjugateMicroscope(finiteConjugateObjective(…))` | finite |
-| infinity 4×/0.10 | `infinityCorrectedMicroscope({objective: microscopeObjective(…), tubeLens: tubeLens()})` | finite overall |
-| Lister aplanat | `listerObjective(…)` into the same chain | finite overall |
+| DIN 4×/0.10, 4×/0.15, 4×/0.20 | `finiteConjugateMicroscope(finiteConjugateObjective(…))` | finite |
+| infinity 4×, 10×, 20× at NA 0.10 | `infinityCorrectedMicroscope({objective: microscopeObjective(…), tubeLens: tubeLens()})` | finite overall |
+| Lister 40×/0.20 and 40×/0.40 | `listerObjective(…)` into the same chain | finite overall |
 | 100×/1.25 and 100×/1.40 oil | `oilImmersionObjective(…)` + `tubeLens()` | finite overall |
 
 Readouts, all straight off the engine: traced NA against the label, actual
 magnification against the label, the frame's object span in µm (§ 6h's constraint
-made visible rather than hidden), pixel scale, and `scaleDrift`.
+made visible rather than hidden), object and image pixel scale, λ/(2·NA),
+`scaleDrift`, the corner's vignetted-ray count, and σ on axis and at the corner.
 
-**Cost:** frame build is 1–6 ms. Free.
-**Why first:** A2–A6 all consume it, and it is where "the frame is 93 µm wide,
-not 5 mm" gets said once instead of five times.
+**It is a table rather than a selector, and that was the one departure from this
+doc.** A selector shows one row at a time and the finding worth showing is a
+*comparison*: three rows at NA 0.10 covering an identical 93.5 µm while their
+image pixels scale exactly with M. That is constraint 1 as an experiment the
+reader runs — move the grid control and watch the crop *not* change — rather than
+as a paragraph. The whole catalogue is ~550 ms, which buys it.
+
+**Three entries exist to be refused**, and the engine's own error text is what
+the cell shows: § 6b's f/4.1 doublet ceiling (DIN 4×/0.20) and § 6d's measured
+NA 0.343 wall (Lister 40×/0.40, whose message carries both glass pairs' numbers).
+This doc predicted a picker "must handle it"; showing the message *is* the
+handling, and it puts two measured findings on screen for free.
+
+**Two corrections to what was scoped above.** Frame build is indeed 1–6 ms, but a
+row is ~50 ms — `scaleDrift` is six more field traces and dominates, so the panel
+reports its own elapsed time rather than inheriting the 1–6 ms estimate. And σ is
+reported **as traced**, about its own mean at the system's own image plane with
+no best-focus solve, because that is the wavefront a render will see; the
+Maréchal comparison is therefore one-sided and the panel says so (green ⇒
+genuinely diffraction-limited, red ⇒ "not at this focus", not "not correctable").
+
+**Deliberately not shown:** span ÷ (λ/2·NA), the frame's width in resolution
+cells. It lands on `pupilSamples` to within a percent for the dry rows and 2.5×
+away for the immersion ones, and this doc already declines to re-derive the
+immersion span (constraint 1). An unexplained derived column reads as a bug;
+recovering it is a physics question with its own rung, not a UI one.
+
+**Why first:** A2–A6 all consume `buildFrame`, and it is where "the frame is
+93 µm wide, not 5 mm" gets said once instead of five times.
 
 ### A2. Brightfield — condenser S, and the (NA_obj + NA_cond) law — *app wiring only* — **pair**
 
@@ -416,11 +446,13 @@ Note that `@telemicroscope/core/illumination` is already in the package's
 
 ## Suggested order
 
-**A1 → A2 → A3 → A4** lands the microscope branch's headline results with one
+**A1 ✅ → A2 → A3 → A4** lands the microscope branch's headline results with one
 substrate and two panel kinds, and A3 and A4 are cheap once A1 and A2 exist.
 **Part B** is self-contained and can go in parallel — it touches no microscope
 code. **A5 and A6** follow. **Part C** is a separate decision.
 
-The structural items are not a prerequisite: A1+A2 can land in the current
-`App.tsx` shape and force the registry honestly, the way the multi-star panel
-forced the field worker.
+The structural items are not a prerequisite, and A1 confirmed it: it landed in
+the current `App.tsx` shape with no registry, no worker and no plot primitive.
+What it did force is the honest version of item 1's problem — the page is now one
+scroll with three unrelated control groups, and A2's canvas is what will make
+that untenable rather than merely untidy.
