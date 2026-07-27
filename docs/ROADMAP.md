@@ -372,9 +372,27 @@
    carries no 0.61, only j₁,₁, the same constant as Rayleigh's criterion. Needed
    its own primitive, `math/bessel`, a defining series pinned against Bessel's
    integral rather than a transcribed coefficient table. **Open:** the bridge
-   itself (§ 6g.3, `renderBrightfield` — and the first caller
-   `brightfieldFidelity` will ever have), what output windowing costs where the
-   pupil DOES vary, off-axis coherence, and the polychromatic half.
+   itself, what output windowing costs where the pupil DOES vary, off-axis
+   coherence, and the polychromatic half.
+   *The bridge:* ✅ `imaging/brightfield` (§ 6g.3). `renderBrightfield` — each
+   patch forms a whole `abbeImage` through its own pupil and the finished
+   intensities blend, which is the same partition of unity as `imaging/render`
+   applied to the other side. **The edge patches are exact**, because
+   `patchWeight` runs flat to the frame edge, so the outer half-patch's local
+   contrast IS § 6f's three-order closed form for that patch's pupil — matched
+   to 9 places at both ends of a frame whose defocus runs 0.1 → 0.9 waves, and
+   a single patch lands strictly between them. The interior is a **sequence**,
+   not a closed form: the worst-pixel change per patch doubling falls
+   16.4% → 6.4% → 2.4% → 0.97% of peak at a stable ratio just under 0.4, and the
+   rung asserts the ratio because a wandering image satisfies “each step is
+   smaller” too. Output windowing is **forced, not free** — it pays exactly the
+   cost `render.ts` objects to — and that is recorded rather than dressed up.
+   **§ 6f.9's verdict finally has a caller:** the worst patch rules, since a
+   frame is not honest in the places where it happens to be. **Open:** the limit
+   the interior converges to (Hopkins' TCC would give one, and is v2), and the
+   wiring to a traced system — the pupil arrives by normalized frame position,
+   and mapping an `OpticalSystem` onto that is object-space field mapping for a
+   finite conjugate, which is the next unit.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

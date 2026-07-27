@@ -52,7 +52,7 @@ whole ladder.
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
-| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; the 0.61·λ/NA_cond coherence width measured; μ shown to be what the Abbe image contains; and the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂) — so the brightfield bridge must window the output | `coherence` `math` |
+| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; the 0.61·λ/NA_cond coherence width measured; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3903,15 +3903,16 @@ will belong to and the gratings never did.
   *specimen's* ∇φ — which is phase-object visibility in the geometric limit
   (transport-of-intensity), not partial coherence — and it is the same shape of
   deferral as the seeing ∇φ ray-tilt, recorded beside it under "Later rungs".
-- **The verdict has no caller yet.** Nothing in the engine currently routes a
-  traced system into a brightfield image, because the bridge from `abbeImage`
-  into `imaging/render` is the unbuilt item below. `brightfieldFidelity` is the
-  readout that bridge will have to consult, pinned now so it cannot be forgotten
-  when the bridge lands — not a guard already wired into a path that exists.
+- ~~**The verdict has no caller yet.**~~ **Closed at § 6g.3.** `renderBrightfield`
+  consults `brightfieldFidelity` once per patch and reports the WORST verdict,
+  so one corner that has left the coherent sum's regime is not averaged away by
+  good neighbours. What is still true is the sentence under it: a pupil function
+  carries no memory of what traced it, so absent sampling reads `unknown` and
+  the bridge passes that through rather than rounding it to `valid`.
 - **Scenes.** Diatoms, stained tissue and fluorescent beads are the step's named
-  deliverables and none exists; `abbeImage` is the imager they need, and the
-  bridge from it into `imaging/render`'s field decomposition is unbuilt. Nothing
-  here is spatially variant: one pupil, one isoplanatic patch.
+  deliverables and none exists; `abbeImage` is the imager they need. The bridge
+  from it into a field decomposition landed at § 6g.3 — but nothing in § 6f
+  itself is spatially variant: one pupil, one isoplanatic patch.
 - **Fluorescence**, which is the *easy* half — a fluorescent specimen is
   self-luminous, so it is the incoherent path the engine already has, plus
   Stokes-shifted emission and filter passbands. Not started.
@@ -4105,17 +4106,95 @@ noise. The rung's tolerance is that bound, derived rather than tuned, and it
 holds with an order of headroom at every x because the roundoff is a random walk
 rather than an adversary.
 
-### Not yet pinned
+### § 6g.3 — the bridge, and the verdict's first caller
 
-- **The bridge itself.** § 6g.3 is `renderBrightfield`: patches, a field-varying
-  pupil, an output-side blend, and the first caller `brightfieldFidelity` has
-  ever had. This step establishes what it is allowed to do; it does not do it.
-- **What the output-side scheme costs where the pupil DOES vary.** Output
-  windowing attributes a kernel by destination point rather than by source point,
-  which is the isoplanatic approximation running the other way. Its error is not
-  measured here and has no closed form; the candidate pins are a patch-count
-  convergence sweep and agreement with `renderField` on |t|² as S grows, which is
-  the one regime where both schemes are valid.
+`imaging/brightfield`'s `renderBrightfield` is the field decomposition applied
+to the side § 6g.2 leaves available: each patch forms a **whole** `abbeImage`
+through its own pupil, and the finished intensities are blended with the same
+`patchWeight` partition of unity `imaging/render` uses.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A field-constant pupil makes the decomposition the identity, at 1, 2, 4, 8 patches | Σ w ≡ 1 | ✅ |
+| The outer half-patch's local contrast is § 6f's three-order closed form for *that patch's* pupil | § 6f closed form | ✅ |
+| …and the two edges are different numbers; one patch lands between them | § 6f closed form | ✅ |
+| The interior converges geometrically in the patch count, ratio ≈ 0.4 per doubling | convergence | ✅ |
+| The worst patch's verdict rules; `unknown` does not mask `no-honest-image` | ordering | ✅ |
+| `requireHonest` refuses both `no-honest-image` and `unknown`, and only when asked | — | ✅ |
+| The grid guard comes through as a max over patches, the source count as a min | — | ✅ |
+| The pupil callback is keyed on normalized position, not patch index | — | ✅ |
+
+**The edge patches are exact, and that is where the external number enters.**
+`patchWeight` runs *flat* to the frame edge — the outermost half-patch is covered
+by one window at weight 1 and by no other, which is the same detail that stops
+`imaging/render` rendering every border at half brightness. So in that strip the
+blend is not an approximation: the output **is** `abbeImage` through that patch's
+pupil, bit for bit. Its local grating contrast is therefore § 6f's own
+three-order closed form for that pupil — matched to 9 places at both ends of a
+frame whose defocus runs from 0.1 to 0.9 waves, and the two ends are different
+numbers by more than 10%, so a render that had quietly used one pupil everywhere
+would fail. A single patch lands strictly between them, which is the whole point
+of the decomposition stated as an inequality. The interior is pinned by
+convergence and not by a closed form, and § 6g's deferral list says so.
+
+**Output windowing is forced, and it costs what `render.ts` says it costs.**
+Where the pupil genuinely varies, this blends images each formed with the wrong
+pupil over most of their support — the isoplanatic approximation running from the
+destination point instead of the source point, which is precisely the objection
+`imaging/render` raises against output windowing. It is paid here because the
+input side is *unavailable*, not because it is cheaper. What that costs has no
+closed form, so the rung measures the sequence: the worst-pixel change per patch
+doubling falls 16.4% → 6.4% → 2.4% → 0.97% of peak, a stable ratio just under 0.4
+— between first and second order. The rung asserts the *ratio*, not merely that
+each step is smaller than the last, because a wandering image satisfies the
+latter and a stalling one would show the ratio drifting to 1.
+
+**The verdict finally has a caller.** § 6f.9 landed `brightfieldFidelity` with
+nothing in the engine to consult it, pinned then so it could not be forgotten
+now. `renderBrightfield` calls it once per patch and reports the **worst**:
+a frame is not honest in the places where it happens to be, and averaging one
+corner whose wavefront has left the coherent sum's regime against its good
+neighbours would be exactly the silent substitution of incoherent imaging that
+`illumination/fidelity` exists to prevent. `no-honest-image` ≻ `unknown` ≻
+`valid`, pinned including the case that matters — an `unknown` patch beside a
+`no-honest-image` one still reports `no-honest-image`. The refusal is opt-in
+(`requireHonest`) rather than default, because absent traced sampling reads
+`unknown` and a default throw would make the function unusable for every caller
+that has a pupil but not the trace behind it; the verdict is always returned and
+is not a field a caller can round down. `maxGridPhaseStepWaves` and
+`contributingPoints` come through aggregated the way each one means something —
+a worst case and a coverage floor — rather than from whichever patch ran last.
+
+**The pupil arrives by normalized position, not by patch index**, and that is
+load-bearing rather than tidy: with index keying, "patch 2 of 4" and "patch 2 of
+8" are different field points, so raising the patch count would change the
+physics instead of refining the discretization and the convergence rung above
+would be measuring nothing.
+
+**Cost is patches² × source points × one N² transform.** There is no locality
+saving to be had — every patch images the whole object, because the object's
+spectrum is global. Progressive refinement, which `imaging/render` has, is not
+built: the shape is identical and the rungs would be the same rungs.
+
+**Not wired to a traced system.** Mapping an `OpticalSystem` and an object-plane
+position onto the pupil callback is object-space field mapping for a finite
+conjugate — its own capability, and the next unit. The callback is the seam it
+will attach to; the field-varying pupil the rungs use is a labelled fixture
+(defocus linear across the frame), not a claim about any real objective's field
+curvature.
+
+### Not yet pinned
+- **What the output-side scheme costs where the pupil DOES vary**, as a
+  *number* rather than as a rate. § 6g.3 measures the patch-count convergence and
+  pins its ratio; nothing pins the limit it converges to, because there is no
+  closed form for a non-isoplanatic partially coherent image and Hopkins' TCC —
+  which would give one — is a v2 item. The edge patches are exact and the
+  interior is a sequence.
+- **The bridge to a traced system.** `renderBrightfield` takes a pupil callback
+  keyed on normalized frame position; mapping an `OpticalSystem` and an
+  object-plane point onto it is object-space field mapping for a finite
+  conjugate, which does not exist yet. Every field-varying rung uses a labelled
+  fixture, so nothing here is a claim about a real objective's field curvature.
 - **Coherence off axis, and in two dimensions with a decentred source.** μ is
   computed for an arbitrary (Δx, Δy) and an arbitrary source, and the complex
   form is carried because an oblique condenser displaces the fringes — but every
