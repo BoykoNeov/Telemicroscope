@@ -6,6 +6,9 @@ conventions, precision strategy, and the three non-sequential-future
 commitments live there and are load-bearing. `docs/ROADMAP.md` has the build
 order; `docs/VALIDATION.md` tracks the physics test ladder — it is long, so
 read its "ladder at a glance" index first and then only the step you need.
+`docs/APP.md` scopes the app surfaces — which validated capabilities have no UI
+yet, what each panel would cost (measured), and which are blocked on an engine
+step rather than on wiring. Read it before adding anything to `packages/app`.
 
 ## Hard rules
 
