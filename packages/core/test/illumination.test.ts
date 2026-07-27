@@ -849,9 +849,66 @@ describe("and the sum's own lattice reports whether it carried the pupil (§ 6f.
     const whole = abbeImage(uniformObject(256), defocusedPupil(W), disk, { pupilSamples })
       .maxGridPhaseStepWaves;
     expect(whole).toBe(Math.max(...single));
-    expect(Math.max(...single) - Math.min(...single)).toBeLessThan(2 * W * h * h);
-    // Measured spread is 0.38 of that bound — comfortably inside, not against it.
-    expect(Math.max(...single) - Math.min(...single)).toBeCloseTo(0.00221354, 8);
+    const spread = Math.max(...single) - Math.min(...single);
+    expect(spread).toBeGreaterThan(0); // the registration genuinely does vary
+    expect(spread).toBeLessThan(2 * W * h * h);
+    // And sits at 0.378 of the bound — comfortably inside it, not against it.
+    // Pinned as a fraction of the derived bound rather than as raw digits.
+    expect(spread / (2 * W * h * h)).toBeCloseTo(0.378, 3);
+  });
+
+  it("...and for a pupil the on-axis sub-lattice is blind to, that choice is everything", () => {
+    // The rung above is the BOUNDED case, and it is bounded only because
+    // defocus is smooth and peaks at the rim, where the on-axis lattice already
+    // has a point. Nothing makes that general. A pure phase ripple of k cycles
+    // per unit pupil radius steps by
+    //
+    //     A·(sin(2πk(ρ+h)) − sin(2πk·ρ)) = 2A·sin(πkh)·cos(2πk(ρ + h/2))
+    //
+    // and at k = pupilSamples/4 the period is exactly 2h, so πkh = π/2 and the
+    // sampled midpoints ρ + h/2 = (m + ½)h land on cos = 0 for EVERY m. The
+    // on-axis sub-lattice reads the ripple as identically zero. Shifting the
+    // sub-lattice by s rotates those midpoints and the same ripple reads
+    // 2A·|sin(π·s/h)| — full strength at s = h/2.
+    //
+    // This is the classic aliasing wavefront `wave/fidelity` warns about (a
+    // shape the Zernike basis discards), and it is the case where taking the
+    // maximum over the source is the difference between a silent pass and a
+    // flag: 0 versus 0.6 waves, across the half-wave criterion.
+    const A = 0.3;
+    const pupilSamples = 64;
+    const h = 2 / pupilSamples;
+    const rippled: PupilFunction = {
+      amplitude: (px, py) => (px * px + py * py <= 1 ? 1 : 0),
+      phaseWaves: (px) => A * Math.sin(2 * Math.PI * (pupilSamples / 4) * px),
+    };
+    const at = (sx: number) =>
+      abbeImage(
+        uniformObject(256),
+        rippled,
+        { points: [{ sx, sy: 0, weight: 1 }], coherenceParameter: 0, samples: 1 },
+        { pupilSamples },
+      ).maxGridPhaseStepWaves;
+
+    expect(at(0)).toBeLessThan(1e-12); // invisible, to floating point
+    for (const frac of [1 / 2, 1 / 4, 1 / 8]) {
+      expect(at(frac * h)).toBeCloseTo(2 * A * Math.abs(Math.sin(Math.PI * frac)), 10);
+    }
+    expect(at(h / 2)).toBeCloseTo(2 * A, 10);
+    expect(at(h / 2)).toBeGreaterThan(PHASE_STEP_LIMIT);
+
+    // A real condenser finds it: an S = 1 disc recovers 99.89% of the full step
+    // where the on-axis point recovered none of it.
+    const disc = abbeImage(uniformObject(256), rippled, diskSource(1, 33), { pupilSamples })
+      .maxGridPhaseStepWaves;
+    expect(disc / (2 * A)).toBeCloseTo(0.9989, 4);
+    // But it is a maximum over the directions the condenser HAS, not over all
+    // offsets, so a source whose points happen to land near multiples of h
+    // under-reports — S = 0.7 at 15 samples recovers only 29%. Source sampling
+    // is § 6f.2's convergence knob and this rides on it rather than escaping it.
+    const unlucky = abbeImage(uniformObject(256), rippled, diskSource(0.7, 15), { pupilSamples })
+      .maxGridPhaseStepWaves;
+    expect(unlucky / (2 * A)).toBeCloseTo(0.289, 3);
   });
 
   it("the same pupil through two modules gives one number", () => {
@@ -890,7 +947,9 @@ describe("and the sum's own lattice reports whether it carried the pupil (§ 6f.
         pupilSamples,
       });
       const geometricRadiusPx = (4 * W * size) / pupilSamples;
-      expect(geometricRadiusPx).toBe(96); // same physical blur on all three grids
+      // size = 2·pupilSamples throughout, so this is 8W on every grid — the
+      // same physical blur, which is what makes the three comparable.
+      expect(geometricRadiusPx).toBe(8 * W);
       expect(img.maxGridPhaseStepWaves * size).toBeCloseTo(
         geometricRadiusPx * (1 - 1 / pupilSamples),
         12,

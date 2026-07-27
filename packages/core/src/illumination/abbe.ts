@@ -210,13 +210,23 @@ export interface AbbeImage {
    * measured on raw traced samples and lives in `wave/fidelity`; the
    * brightfield verdict built on it is `illumination/fidelity`.
    *
-   * Maximized over source points, not measured at s = 0, because illuminating
-   * from direction s slides the sampled pupil coordinates to (ix − n/2)·Δ + s
-   * — every source point reads the pupil on its own offset sub-lattice, and
-   * they register differently against the steep rim. The spread between them
-   * is bounded by a lattice step's worth of rim slope (§ 6f.9), so this is a
-   * bounded choice rather than a cosmetic one, but it is the honest end of the
-   * bound.
+   * Maximized over source points, not measured at s = 0, and that is
+   * load-bearing rather than tidy. Illuminating from direction s slides the
+   * sampled pupil coordinates to (ix − n/2)·Δ + s, so every direction reads the
+   * pupil on its own offset sub-lattice. For a smooth rim-peaked wavefront the
+   * sub-lattices barely differ — defocus spreads them by O(Δ²) and the on-axis
+   * one happens to be the largest. But nothing makes that general: a pupil
+   * carrying structure at the lattice period is **invisible** to the on-axis
+   * sub-lattice and full-strength to one offset by half a step. A ripple of
+   * amplitude A at exactly that period reads 0 at s = 0 and 2A·|sin(π·s/Δ)|
+   * elsewhere (§ 6f.9 pins both), which is the difference between a silent pass
+   * and a flag. Taking the maximum is what makes the number mean "some
+   * direction could not carry this pupil".
+   *
+   * It is still a maximum over the directions the condenser actually has, not
+   * over all offsets — a source whose points happen to land near multiples of
+   * Δ will under-report. Sampling the source is § 6f.2's convergence knob and
+   * this rides on it.
    *
    * Reported, never thrown on. The throw above is for a sampling failure a
    * caller fixes with a parameter; an aberrated pupil is physics a caller may

@@ -3848,8 +3848,26 @@ rung carries the same factor from the same cause.
 | Defocus lands on W·h·(2 − h) at four grids × three strengths | closed form, 1e-12 | ✅ |
 | ...approaching the naive 4W/pupilSamples from **below** by exactly (1 − 1/pupilSamples) | the midpoint factor, as an identity | ✅ |
 | It crosses ½ at W = pupilSamples²/(8·(pupilSamples − 1)) | closed form, 1e-12 | ✅ |
-| Spread across source directions ≤ 2W·h² (measured 0.38 of it), and the disc's number `toBe` the max over its points run singly | px_max ∈ (1 − 2h, 1 − h]; no *direction* is claimed — registration is not monotone in \|s\| | ✅ |
+| For defocus the sub-lattices barely differ: spread ≤ 2W·h², measured at 0.378 of it, and the disc's number `toBe` the max over its points run singly | px_max ∈ (1 − 2h, 1 − h]; no *direction* is claimed — registration is not monotone in \|s\| | ✅ |
 | The same pupil through `wave/psf` and through the sum gives one number | `toBeLessThanOrEqual` (exact: point-sampling makes this module's transmitting set a strict subset of the area-averaged one) then equal to 1e-12 | ✅ |
+
+**Why the maximum is over the source and not taken at s = 0.** Defocus makes
+that choice look cosmetic, and it is not — it only looks that way because
+defocus is smooth and peaks at the rim, where the on-axis sub-lattice already
+has a point. A pure phase **ripple** breaks it completely. A ripple of k cycles
+per unit pupil radius steps by 2A·sin(πkh)·cos(2πk(ρ + h/2)) between
+neighbours, and at k = pupilSamples/4 — period exactly 2h — the sampled
+midpoints (m + ½)h land on cos = 0 for *every* m. The on-axis sub-lattice reads
+the ripple as identically zero. Offsetting by s rotates those midpoints and the
+same ripple reads full strength. This is the aliasing wavefront `wave/fidelity`
+warns about, arriving where it can do the most damage: silently.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| At the lattice period, s = 0 reads the ripple as **zero** | < 1e-12 — invisible to floating point | ✅ |
+| An offset sub-lattice reads 2A·\|sin(π·s/h)\| — full strength 2A at s = h/2, and *across* the half-wave criterion where s = 0 was silent | closed form, 1e-10, at three offsets | ✅ |
+| A real condenser finds it: an S = 1 disc recovers 99.89% of the full step | the max over directions is not a formality | ✅ |
+| ...but it is a max over the directions the condenser **has**, not over all offsets: S = 0.7 at 15 samples recovers only 28.9% | source sampling is § 6f.2's convergence knob, and this rides on it rather than escaping it | ✅ |
 
 **What ½ physically is.** A slope of s waves per pupil sample displaces a ray by
 s·size pixels — the identity `defaultRayGrid` already rests on — so s = ½ puts
