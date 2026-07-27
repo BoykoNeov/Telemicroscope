@@ -80,9 +80,27 @@ no more, the grid `size` cancels out, and widening the view means raising
 | infinity 4×/0.10 + tube lens | 93.5 µm | 187.1 µm | 374.2 µm | 5.85 µm |
 | infinity 100×/1.40 oil | 2.6 µm | 5.3 µm | 10.6 µm | 4.13 µm |
 
-(object-space span across the whole frame; § 6h pins the half-extent as
-`pupilSamples`·λ/(4·NA), and pins the 2.7% departure from it as the DIN 4×'s own
-violation of the sine condition.)
+(object-space span across the whole frame. § 6h pins the half-extent as
+`pupilSamples`·λ/(4·NA) and pins its departure from that closed form as the
+DIN 4×'s own violation of the sine condition.)
+
+**The span is set by NA alone — magnification does not widen it.** Measured
+within one architecture, holding everything but one variable:
+
+- NA 0.10 → 0.15 at 4×: span 93.54 → 61.96 µm. Ratio 1.510 against an NA ratio
+  of 1.500 — 1/NA, with the ~0.7% residual being the sine-condition departure
+  above. (NA ≥ 0.20 throws: *"this glass pair does not admit the classical
+  doublet solution"* — § 6b's f/4.1 ceiling, arriving as an error message. A
+  picker must handle it.)
+- 4× → 10× → 20× at NA 0.10: span **identical** at 93.54 µm, while the image
+  pixel scales exactly with M (5.8462 → 14.6154 → 29.2308 µm).
+
+That second row is the one to act on. Reaching for a higher-magnification
+objective does **not** buy a wider or narrower crop; only NA moves it, and it
+moves the wrong way — the better the objective resolves, the less of the
+specimen the panel can hold. The oil objective's 2.6 µm is that plus the
+immersion medium, which enters through the wavelength in the medium; this doc
+does not re-derive it and quotes the measurement.
 
 A real 4× with a 20 mm field number shows ~5 mm and a 100×/1.40 shows ~0.2 mm.
 So even at `pupilSamples` = 128 the frame is **13× narrower than the real 4×
@@ -106,6 +124,12 @@ engine work**.
 `diskSource(S, samples)` counts points across the **diameter**, and the count is
 independent of S: `samples` = 5 → 21 points, 9 → 69, 15 → 177, 21 → 349. Each
 point is one FFT per patch.
+
+The timings below are **single runs under `vite-node`, no warmup** — good for
+the only decision they are used for (live against compute-once, an
+order-of-magnitude call) and not to be read as pinned numbers the way the frame
+spans above are. The 8–10× traced/ideal ratio is the exception: it holds across
+five source sizes, so it is a real ratio.
 
 Brightfield, `patches` = 1, source = 69 points:
 
@@ -137,9 +161,10 @@ Three findings that change the scoping:
   the four-surface DIN 4×. Cost is `patches²` × source points × grid, and the
   prescription barely enters. The branch's most elaborate design is as
   affordable as its simplest.
-- **The live/compute-once line falls at about 800 ms.** The existing backpressure
-  hook already drops mid-drag slider values, so ≤ ~800 ms is a usable live
-  surface. That means: brightfield is live at `patches` = 1 (either objective, up
+- **The live/compute-once line falls at about 800 ms** — and unlike everything
+  else in this section that is a **judgment call laid on the timings, not a
+  measurement**. It comes from how the existing backpressure hook behaves: it
+  already drops mid-drag slider values, so ≤ ~800 ms stays usable. That means: brightfield is live at `patches` = 1 (either objective, up
   to ps=64), and **compute-once at `patches` ≥ 2**. Progressive refinement over
   patches is the fix and `renderBrightfield` already has the hook —
   `onPatch(done, total)` — but note it reports *within* one patch grid, where
