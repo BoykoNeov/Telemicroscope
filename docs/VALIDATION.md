@@ -49,6 +49,7 @@ whole ladder.
 | [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
+| [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -2875,7 +2876,12 @@ and no bending makes a cemented doublet aplanatic.
   doublet: it clears Maréchal only after the balancing defocus, and it is the
   member the § 6a "high NA needs a different glass form" note anticipates. The
   Lister two-doublet is the follow-on, and this is the second piece of evidence
-  for it (the first being F = 1/(2·NA) at high NA).
+  for it (the first being F = 1/(2·NA) at high NA). **Closed by
+  [§ 6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets)**
+  — which also revises what it was expected to buy: the Lister is an *aplanat*
+  where this is not, but its own ceiling is NA 0.35, so it does not reach the
+  immersion apertures. The third piece of evidence, and it points past the Lister
+  to the aplanatic front element.
 - **The optical tube length digit.** 150 mm is widely quoted for the 160 mm
   mechanical standard and is **not datasheet-verified here**; sources differ, and
   some write M = 160/f outright, which conflates the two lengths. Every rung is a
@@ -3057,6 +3063,191 @@ NA 0.10. Same glass, same formula, NA⁴ apart.
   A real slide has a mountant between them, which is another plate — and at
   matched index, none at all.
 - **Tilt.** A non-parallel or tilted slip adds astigmatism; not modelled.
+
+## Step 6d — the Lister, the first aplanat, and the ceiling of two doublets
+
+The § 6a note that "high NA is a different glass form (Lister, then the aplanatic
+hyperhemisphere)" comes due. `designs/lister`, `test/lister.test.ts`.
+
+§ 5j found that a cemented doublet's two spherical-aberration-null bendings
+**straddle** the coma-free one, so neither is aplanatic, and § 6a measured the
+price on a real objective: the emergent marginal ray misses the sine-condition
+height by 0.43%. That is not a tolerance to be tightened. One free parameter
+satisfies one condition, and ΣS_I = 0 has already spent it.
+
+Two doublets have two bendings, and the two conditions
+
+    ΣS_I = 0     ΣS_II = 0
+
+are solved **together** on the composed six-surface chain, at the conjugates the
+objective actually works at. HONESTLY: the historical Lister is a finite-conjugate
+objective and predates infinity correction by a century. Lister fixed the lenses
+and moved the conjugates; here the architecture fixes the conjugates and the two
+bendings are the freedoms. Same two conditions, opposite unknowns — the
+*principle*, realised in § 6a's architecture so that it composes with the tube
+lens unchanged.
+
+**The stop, and why it cannot contaminate the answer.** This inherits § 6a's
+telecentricity deferral, so the stop sits on the front group's rim rather than at
+the back focal plane — and coma is stop-dependent. Under a stop shift the
+third-order sums transform as S_I\* = S_I, S_II\* = S_II + E·S_I (Welford ch. 8),
+so **at ΣS_I = 0, ΣS_II is invariant under stop position**. Solving the two
+together is what makes the coma answer well-posed; had S_I been left standing, the
+coma would have been a property of where the stop happened to sit. Third order
+only — the real-ray sine residual below does move with the stop.
+
+### What is stated, and why it is not an argmin
+
+`powerSplit` k = 0.6 (the front group's share), `separationFactor` 0.6, and
+flint-first at both groups are **defaults, not optima**. The joint solve holds
+across k ∈ [0.3, 0.8] and separations 0.3–0.9·f, so the aplanat is a property of
+the form; picking the split by grid search would have made every number below an
+artifact of the grid's own bounds. Which orientation pair wins is itself
+k-dependent.
+
+Two positive groups also cannot be combined to an arbitrarily short focal length:
+φ = P − d·k(1−k)·P² peaks at 1/(4·d·k(1−k)), so a total power of 1/f needs
+
+    d · k(1−k) < f/4
+
+— 1.042·f at k = 0.6. Checked in closed form up front, because past it the power
+fixed point has nothing to converge to and would report a focal-length failure for
+what is really an impossible request.
+
+### 6d.1 — the aplanatic sphere: what "aplanatic" means, externally
+
+Included so the word has an external definition before a design claims it. It pins
+the **hyperhemisphere** — the follow-on 6d.5's ceiling argues for — and **nothing
+about the Lister**, which is pinned by 6d.3 and 6d.4.
+
+A spherical surface between n₁ and n₂ has one conjugate pair, measured from the
+VERTEX,
+
+    u = R(n₁+n₂)/n₁     v = R(n₁+n₂)/n₂     m = n₁²/n₂²
+
+exactly stigmatic to all orders (Born & Wolf; Smith, *Modern Optical Engineering*
+— the Weierstrass points).
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The traced paraxial image distance and magnification ARE the closed forms | Weierstrass, read off the trace rather than restated | ✅ |
+| **The axial crossing does not move from sin u = 1e-6 to 0.9** — spread 1.6e-14 mm | exact, to all orders; f64 is the only limit | ✅ |
+| sin u′/sin u is CONSTANT at n₂/n₁ across the aperture — coma-free, not merely stigmatic | Abbe | ✅ |
+| **NEGATIVE CONTROL: 0.1% off the point costs 1.5e-2 mm**, 1% costs 1.8e-1 | twelve orders of magnitude; the pair is a point, not a region | ✅ |
+
+**The image is VIRTUAL**, and the sign is load-bearing: the useful case is a real
+object inside a dense medium, so the centre of curvature lies on the object's
+side. Getting it backwards produces a perfectly plausible non-aplanatic surface
+whose crossing wanders by millimetres and which total-internal-reflects past
+sin u ≈ 0.4 — which is exactly what this module did on the first attempt, caught
+by the constancy rung rather than by inspection.
+
+### 6d.2 — the joint solve
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **ΣS_I and ΣS_II both < 1e-9 of the cancellation scale**, re-measured on the BUILT chain | anti-circularity, § 6b/6c's currency | ✅ |
+| …against a cancellation scale of 1.1e-2 mm, not against zero | or the rung is noise against noise | ✅ |
+| **NEGATIVE CONTROL: § 6a's single doublet leaves S_II above 1e-3 of its own cancellation** | § 5j's straddle, on a real objective | ✅ |
+| The traced EFL is f_tube/M to a part in 10⁹ — solved, not asserted | the thin-lens split is only a seed | ✅ |
+| Traced object NA = the label to 6 digits at NA 0.10 / 0.15 / 0.20 | § 6a's s·tan u stop rule, unchanged | ✅ |
+| Both joint roots reported, least-cancelling built; the built bendings are NEAR but not equal to the seed's | the geometry moves under the solve | ✅ |
+
+### 6d.3 — the LAW: solve on Seidel, confirm on the traced wavefront
+
+The rung that actually pins this step. The design nulls ΣS_II from third-order
+theory alone; the residual coma is then read off the **traced wavefront** (Noll
+Z7/Z8 from `opdMap` at a fixed object height, at best focus), and what changes is
+its power law. A number can be fitted. An order cannot.
+
+| NA | single σ | Lister σ | σ ratio | single sine | Lister sine | single coma | Lister coma |
+|---|---|---|---|---|---|---|---|
+| 0.080 | 4.596e-4 | 2.856e-5 | 16.1× | 0.918% | 0.0385% | 2.299e-4 | 1.976e-6 |
+| 0.100 | 1.790e-3 | 1.073e-4 | 16.7× | 2.059% | 0.0929% | 4.402e-4 | 6.318e-6 |
+| 0.125 | 7.077e-3 | 4.024e-4 | 17.6× | 5.031% | 0.2245% | 8.411e-4 | 2.013e-5 |
+| 0.150 | 2.222e-2 | 1.153e-3 | 19.3× | 11.543% | 0.4516% | 1.439e-3 | 5.165e-5 |
+| 0.175 | 6.001e-2 | 2.777e-3 | 21.6× | 26.966% | 0.8096% | 2.325e-3 | 1.147e-4 |
+| 0.200 | 1.467e-1 | 5.881e-3 | 24.9× | 75.802% | 1.3354% | 3.730e-3 | 2.292e-4 |
+
+40× on a 200 mm tube, N-BK7/F2, d line, dry. σ is the RMS wavefront in waves at
+best focus; the field for the coma and the sine residual is 0.005 mm.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The single doublet's traced coma runs as NA^2.9–3.5** | third-order coma W₁₃₁ ∝ ρ³ — present | ✅ |
+| **The Lister's runs as NA^5.17–5.21, flat** | the NA³ term is GONE, not merely smaller | ✅ |
+| Both forms' σ runs as ~NA⁶ | fifth-order spherical, what a third-order solve leaves behind | ✅ |
+| …and the single doublet LEAVES that regime, drifting past 6.6 by NA 0.20 | why its σ ratio grows instead of staying a constant | ✅ |
+| Matched-NA: 16–25× on axis, 16–120× on coma, 22–57× on the sine residual | § 6a's 0.43% offence against Abbe, answered | ✅ |
+
+**Why the table stops at NA 0.20.** At NA 0.25 the single doublet carries σ = 0.80
+waves and its sine residual *changes sign*. At that error the traced chief and
+marginal rays are not measuring a lens, and a ratio through that point would be
+arithmetic on garbage. The row is excluded from every claim above and recorded
+here as the reason.
+
+### 6d.4 — reach: Maréchal, bisected
+
+σ runs as NA⁶, so linear interpolation between samples is not good enough; both
+crossings are bisected.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The single cemented doublet is diffraction-limited to NA 0.1797** | Maréchal σ ≤ λ/14, external | ✅ |
+| **The Lister to NA 0.2733** — 1.52× the NA, and so 1.52× Abbe's resolution | the same criterion | ✅ |
+| **…and its limit is the SOLVE, not aberration**: at its ceiling it is still λ/27 | the two ceilings coincide | ✅ |
+| NEGATIVE CONTROL: the single doublet's *constructor* ceiling is NA 0.2608 | a DIFFERENT fact — see below | ✅ |
+
+**Two walls that must not be conflated.** `achromaticObjective` refuses NA ≥ 0.261
+because the root count of S_I(c₁) stops being the classical two (three roots at
+0.30, one at 0.40). That is **constructor strictness about the structure**, not
+"no SA-null bending exists", and it sits 45% above the physics wall. The number to
+quote is the Maréchal 0.1797.
+
+The Lister's own result is the more interesting one: the default form stops
+*existing* before it stops being diffraction-limited. Its binding constraint is
+that no makeable joint root survives, not that the wavefront has degraded.
+
+### 6d.5 — the ceiling is a property of the FORM
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The joint solve holds at every k ∈ {0.3 … 0.8} and separation ∈ {0.3 … 0.9}·f | a form, not a lucky split | ✅ |
+| **N-BK7/F2 walls out at NA 0.345; fused silica/F2 at 0.386** | neither reaches 0.4 | ✅ |
+| d·k(1−k) < f/4 is enforced in closed form, with its own message | the combination limit | ✅ |
+| Crown-first at both groups does not solve at all at the default split | orientation is a choice, not an inference | ✅ |
+| …and flint/crown is BETTER on axis than the default flint/flint | recorded trade: it reaches 0.245 against 0.273 | ✅ |
+
+Two glass pairs walling out together is what makes this a statement about the
+**form**. It is the third piece of evidence for the aplanatic front element, after
+§ 6a's F = 1/(2·NA) and § 6b's 4× sitting at f/4.1 — and 6d.1 is the closed form
+that element will be pinned against.
+
+### 6d.6 — scale-free, and a module
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The same NA at 10×, 20× and 40× is ONE design**: c₁·f and a/f identical to 9 digits | S_I ∝ h⁴ makes the solve scale-free in f | ✅ |
+| …so σ in waves is exactly ∝ f: the 40× is 2.000× the 20× and 4× the 10× | § 6a's own magnification rung, reproduced | ✅ |
+| It satisfies `InfinityCorrectedObjective` and composes with § 6a's tube lens unchanged | ARCHITECTURE's "an objective is a module" | ✅ |
+| Exactly one stop flag in the composed chain, on surface 0 | § 6a's one-aperture rule — two spliced doublets would break it four ways | ✅ |
+| M is unchanged by the infinity space at 20 / 100 / 250 mm | why the infinity space exists | ✅ |
+
+### Not yet pinned
+
+- **The aplanatic hyperhemisphere itself.** 6d.1 pins the closed form; no design
+  uses it yet. That is the immersion unit, and this step's measured ceiling is the
+  argument for it.
+- **Chromatically the pair is only as good as its glasses.** Each group is
+  achromatic by construction, so the secondary spectrum is § 5j's and is not
+  re-pinned here; the joint solve is monochromatic, at the d line.
+- **Field beyond coma.** S_III–S_V are still uncomputed (`analysis/seidel`'s
+  stated scope), so astigmatism and field curvature are traced and unpinned. An
+  aplanat is not an anastigmat.
+- **The coverslip.** § 6c's `targetS1Mm` route applies unchanged — the target
+  would now be a pair of them, one per group — and is not wired here.
+- **The finite-conjugate (DIN) Lister**, which is the historical form. § 6b's
+  machinery would carry it; nothing here needs it.
 
 ## Later rungs
 

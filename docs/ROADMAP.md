@@ -211,9 +211,28 @@
    stays a test, not a construction. **The headline is a null:** at NA 0.10 the
    correction the slip demands is 400× under the objective's own residual, so a
    4×/0.10 is coverslip-*insensitive*; the tolerance runs as 1/NA⁴, from 31 mm at
-   NA 0.10 to 3.9 µm at NA 0.95. This wiring becomes load-bearing when the Lister
-   carries NA past 0.4. **Open:** index mismatch, the correction collar, the
-   off-axis plate terms, and the infinity-corrected member's slip.
+   NA 0.10 to 3.9 µm at NA 0.95. **Open:** index mismatch, the correction collar,
+   the off-axis plate terms, and the infinity-corrected member's slip.
+   *The Lister — the first aplanat:* ✅ `designs/lister` (§ 6d). Two cemented
+   doublets whose bendings are solved **together** for ΣS_I = ΣS_II = 0, which no
+   single doublet can be (§ 5j: its two SA-null bendings straddle the coma-free
+   one). Well-posed because at ΣS_I = 0 the coma sum is invariant under stop
+   position, so § 6a's front-vertex stop cannot contaminate it. The pin is a
+   **law, not a ratio**: solve on third-order Seidel, then watch the traced
+   wavefront's residual coma change ORDER, from NA³ to NA^5.2. Diffraction-limited
+   reach goes 0.180 → 0.273 (Maréchal, bisected), and the split/separation are
+   *stated* parameters — the solve holds across k ∈ [0.3, 0.8], so the aplanat is
+   a property of the form rather than of a lucky pick.
+   **The ceiling, measured, and it revises the prediction above:** two cemented
+   doublets wall out at NA 0.345 (N-BK7/F2) and 0.386 (fused silica/F2) — the same
+   for both pairs, so it is the FORM, not the glass. The Lister does *not* carry NA
+   past 0.4, and § 6c's slip wiring therefore waits on the aplanatic front element
+   instead. That element is the next unit, and § 6d.1 already pins the closed form
+   it rests on: the Weierstrass points of a single sphere, exactly stigmatic to all
+   orders, u = R(n₁+n₂)/n₁, v = R(n₁+n₂)/n₂, m = n₁²/n₂².
+   **Open here:** the hyperhemisphere itself, the coverslip through a two-group
+   target, astigmatism/field curvature (S_III–S_V remain uncomputed — an aplanat is
+   not an anastigmat), and the finite-conjugate DIN Lister.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

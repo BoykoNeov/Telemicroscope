@@ -147,7 +147,28 @@ export interface MicroscopeObjectiveSpec {
   readonly designWavelengthNm?: number;
 }
 
-export interface MicroscopeObjective {
+/**
+ * What `infinityCorrectedMicroscope` needs of an objective, and nothing more —
+ * the contract, not one preset's shape. The architecture's position is that an
+ * objective is a *module*: `designs/lister`'s two-doublet aplanat satisfies this
+ * and composes unchanged, which is the point of writing it down.
+ */
+export interface InfinityCorrectedObjective {
+  /**
+   * The objective alone, authored **specimen-side first**, trailing thickness 0:
+   * the gap into the infinity space belongs to whatever follows.
+   */
+  readonly prescription: Prescription;
+  /** f_tube / M (mm) — the focal length the nominal magnification implies. */
+  readonly focalLengthMm: number;
+  /** Specimen plane, in front of surface 0's vertex (mm) — the front focal distance. */
+  readonly objectDistanceMm: number;
+  /** Aperture stop semi-diameter (mm): the cone that delivers the stated NA. */
+  readonly stopRadiusMm: number;
+  readonly designWavelengthNm: number;
+}
+
+export interface MicroscopeObjective extends InfinityCorrectedObjective {
   /**
    * The objective alone, authored **specimen-side first** — so surface 0 is the
    * flint's outer face, the mirrored doublet's front. Trailing thickness 0: the
@@ -297,7 +318,7 @@ export function tubeLens(spec: TubeLensSpec = {}): TubeLens {
 }
 
 export interface InfinityCorrectedSpec {
-  readonly objective: MicroscopeObjective;
+  readonly objective: InfinityCorrectedObjective;
   readonly tubeLens: TubeLens;
   /**
    * Objective rear vertex → tube lens front vertex (mm). Default 100. The beam
