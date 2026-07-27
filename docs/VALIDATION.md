@@ -51,7 +51,7 @@ whole ladder.
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
-| [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null | `illumination` |
+| [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3793,13 +3793,102 @@ is 9.1e-3 (its pupil grid), which is the whole of the 9.2e-3 gap between them. A
 mislabeled axis would show as a curve of the wrong shape, not an offset that
 size.
 
+### 6f.9 — the geometric branch has no coherence, so brightfield rules instead of blending
+
+Every PSF the engine forms has two branches and a cross-fade between them: the
+FFT while the wavefront is resolved on the pupil grid, a ray histogram once it
+is not, and a smoothstep across the criterion (§ 2g). That works because both
+branches compute the *same* quantity by two methods, each correct where the
+other fails.
+
+**Brightfield has one branch and cannot have two.** Every term of the Abbe sum
+is a coherent field; a ray histogram has no phase, so it cannot interfere, so it
+cannot represent the one thing the sum exists to represent. Falling back to it
+would not degrade partial coherence gracefully — it would silently answer a
+different question. So the deferral stands, and what lands here is the detection
+whose absence the previous entry named ("nothing currently detects that"): a
+**verdict** rather than a fallback, which is the same shape of response § 5d
+made when it left the seeing ∇φ ray-tilt unbuilt and pinned the guard that
+catches the trap instead.
+
+Two independent questions, two readouts, and neither answers the other.
+
+**Is a coherent sum the right physics here at all?** `brightfieldFidelity`
+reads the *traced-sample* criterion — the real one, measured on raw samples for
+the reason `wave/fidelity` gives — and rules `valid`, `no-honest-image`, or
+`unknown`. The asymmetry with the PSF is the whole content: where `adaptivePsf`
+ramps, this is a **cliff**, because there is no partially coherent branch to
+mix toward. Any geometric share above zero is a refusal.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Absent sampling is `unknown`, never `valid` — and that is the *default* case, since `psfFromPupilFunction` (the shape `abbeImage` is called in) carries no `sampling` | the trap `adaptivePsf`'s `: 0` default would spring here | ✅ |
+| The 4×/0.10 of § 6f.7 is `valid` at 0.015 waves per sample — thirty times inside the criterion | every traced § 6f number is on the FFT branch by a wide margin | ✅ |
+| It is `adaptivePsf`'s own switch read twice, not a second switch: step and share `toBe` equal, exactly | one criterion, two callers | ✅ |
+| Inside the blend band the PSF mixes 27.8% ray histogram and stays honest; brightfield refuses at any share > 0 | `geometricWeight`, and the missing capability made visible | ✅ |
+| A denser pupil grid genuinely rescues the same wavefront: `no-honest-image` at 64 and 128, `valid` at 256, with the step falling exactly as 1/pupilSamples | phase per *sample*, not total waves | ✅ |
+
+**Did this grid carry the pupil it was handed?** `AbbeImage.maxGridPhaseStepWaves`
+is `wave/psf`'s number measured on the lattice the sum actually evaluates — and
+every source point reads that lattice at its own offset (ix − n/2)·h + s, so it
+is maximized over the source rather than taken at s = 0. Lattice step is
+h = 2/pupilSamples, and because 1/h is an integer the outermost transmitting
+pair on the centre row is exactly (1 − h, 1), which makes the defocus closed
+form an **identity rather than a bound**:
+
+    max step = W·h·(2 − h) = (4W/pupilSamples)·(1 − 1/pupilSamples)
+
+The (1 − 1/pupilSamples) is a difference quotient estimating a derivative at
+the midpoint of its pair, half a lattice step inside the rim — § 5d's gradient
+rung carries the same factor from the same cause.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| An unaberrated pupil steps nowhere | `toBe(0)` | ✅ |
+| Defocus lands on W·h·(2 − h) at four grids × three strengths | closed form, 1e-12 | ✅ |
+| ...approaching the naive 4W/pupilSamples from **below** by exactly (1 − 1/pupilSamples) | the midpoint factor, as an identity | ✅ |
+| It crosses ½ at W = pupilSamples²/(8·(pupilSamples − 1)) | closed form, 1e-12 | ✅ |
+| Spread across source directions ≤ 2W·h² (measured 0.38 of it), and the disc's number `toBe` the max over its points run singly | px_max ∈ (1 − 2h, 1 − h]; no *direction* is claimed — registration is not monotone in \|s\| | ✅ |
+| The same pupil through `wave/psf` and through the sum gives one number | `toBeLessThanOrEqual` (exact: point-sampling makes this module's transmitting set a strict subset of the area-averaged one) then equal to 1e-12 | ✅ |
+
+**What ½ physically is.** A slope of s waves per pupil sample displaces a ray by
+s·size pixels — the identity `defaultRayGrid` already rests on — so s = ½ puts
+it at size/2, the grid edge. The criterion is not a rule of thumb about
+aberration; it is the point where the spread stops fitting.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| `maxGridPhaseStepWaves`·size = 4W·size/pupilSamples · (1 − 1/pupilSamples) — the geometric blur radius, short by the midpoint factor | closed form, 1e-12, on three grids carrying the same 96-px physical blur | ✅ |
+| A pinhole is spectrally flat, so its image *is* the coherent spread; far from focus that is a uniform disc, which puts **¼** of its energy inside half its radius | a uniform disc — closed form owing nothing to the engine — to 2%, on both grids that fit it | ✅ |
+| The grid that does not fit it reads 0.330 instead: the wrap folds the outside back onto the middle | > 0.32, and the two resolved grids agree with each other 150× better | ✅ |
+| A clear bar under S = 0.5 and 12 waves: the two resolved grids agree to 5e-3 across the whole profile | convergence at fixed physical pixel scale, fixed source | ✅ |
+| The unresolved grid is 13% out in the skirt and **57% out in the tail** — error growing with distance from the object, which is what wrap does and lost resolution does not | > 0.12 and > 0.5 | ✅ |
+| **Control:** one wave of defocus on the *same* grids, including the 64-px one that failed at twelve — all four agree to 3e-3 | it is the guard deciding, not the grid being small | ✅ |
+
+**And what the guard does *not* mean, pinned so it is not overread.** A cosine
+grating's spectrum is three lattice lines, so the sum only ever evaluates the
+pupil at three points per direction and there is nothing between them to alias.
+At twelve waves of defocus, with the guard running 1.45 → 0.19 across four
+grids, the grating contrast is identical **to nine places**. So every other
+§ 6f rung — all of them gratings — is untouched by this, and the guard is a
+statement about *broadband* objects: the class the scenes (diatoms, tissue)
+will belong to and the gratings never did.
+
 ### Not yet pinned
 
-- **The geometric PSF branch has no notion of coherence.** Everything here lives
-  in the FFT branch, exactly as § 5d's seeing screen does. A system aberrated
-  enough to trip the fidelity switch would blend a partially coherent image with
-  an incoherent ray histogram, and nothing currently detects that. It is the same
-  shape of deferral as the seeing ∇φ ray-tilt and is recorded for the same reason.
+- **The geometric PSF branch still has no notion of coherence** — only the
+  detection landed (§ 6f.9), not the capability, and there is no capability to
+  land: a ray histogram has no phase to interfere with. Everything here lives in
+  the FFT branch, exactly as § 5d's seeing screen does. The nearest geometric
+  analog is a different physical effect, refraction of rays through the
+  *specimen's* ∇φ — which is phase-object visibility in the geometric limit
+  (transport-of-intensity), not partial coherence — and it is the same shape of
+  deferral as the seeing ∇φ ray-tilt, recorded beside it under "Later rungs".
+- **The verdict has no caller yet.** Nothing in the engine currently routes a
+  traced system into a brightfield image, because the bridge from `abbeImage`
+  into `imaging/render` is the unbuilt item below. `brightfieldFidelity` is the
+  readout that bridge will have to consult, pinned now so it cannot be forgotten
+  when the bridge lands — not a guard already wired into a path that exists.
 - **Scenes.** Diatoms, stained tissue and fluorescent beads are the step's named
   deliverables and none exists; `abbeImage` is the imager they need, and the
   bridge from it into `imaging/render`'s field decomposition is unbuilt. Nothing
@@ -3827,6 +3916,13 @@ size.
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
 - Seeing's geometric-branch analog: rays deflected by ∇φ, so a seeing blur
   survives the fidelity fallback (the § 5d deferral).
+- Brightfield's geometric-branch analog, which is the same ∇φ one surface
+  further in: rays refracted by the *specimen's* phase gradient, so a defocused
+  phase object shows contrast on the ray branch too. That is
+  transport-of-intensity, not partial coherence — the coherence itself has no
+  ray analog and never will — and it needs rays that start at a transmittance
+  rather than at a field point, which `exitBundle` does not do. § 6f.9 pins the
+  verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
 

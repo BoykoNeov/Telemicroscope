@@ -320,11 +320,24 @@ tracer and a nanometer-accurate tracer producing meaningless numbers.
 
 Telescope objects are self-luminous → incoherent imaging → PSF convolution is
 exact. Microscope brightfield is **partially coherent** (condenser NA
-matters). v1 ships the incoherent approximation with a condenser-NA
-resolution factor; rigorous partial coherence (Hopkins TCC) plus phase
-contrast and DIC are v2, behind the same PSF-provider interface.
-Fluorescence is genuinely incoherent, so it is exact in this framework
-already.
+matters), which makes the image nonlinear in the object's intensity: it has no
+single MTF, so the "incoherent MTF × a condenser-NA factor" this section once
+promised was withdrawn rather than built — it would have been a fiction, and
+the no-faked-physics rule forbids it. What ships is **Abbe source-point
+summation** (`core/illumination`): the condenser is a set of illumination
+directions, each images coherently as a translated `PupilFunction`, and their
+intensities add. Hopkins' TCC — needed for DIC, not for this — plus phase
+contrast are v2. Fluorescence is genuinely incoherent, so it is exact in this
+framework already.
+
+**This is the one place the fidelity switch has no second branch.** A PSF can
+cross-fade to a ray histogram because both branches compute the same intensity;
+a coherent sum cannot, because rays carry no phase and so cannot interfere. So
+brightfield does not fall back — it **rules**: `brightfieldFidelity` reads the
+same traced-sample criterion `adaptivePsf` switches on and refuses at any
+geometric share above zero, and reports `unknown` rather than `valid` when no
+traced sampling is available at all. Where the PSF ramps, this is a cliff, and
+that asymmetry is the deferral itself (docs/VALIDATION § 6f.9).
 
 ## Out of scope until explicitly scheduled
 

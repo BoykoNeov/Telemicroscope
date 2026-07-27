@@ -337,8 +337,18 @@
    (diatoms, stained tissue, beads) and the bridge into `imaging/render` —
    `abbeImage` is one isoplanatic patch; fluorescence, which is the *easy* half
    since a fluorescent specimen is self-luminous; polychromatic brightfield; a
-   non-uniform source; and the named deferral that the geometric PSF branch has
-   no notion of coherence at all, exactly as § 5d's seeing does not.
+   non-uniform source. The named deferral that the geometric PSF branch has no
+   notion of coherence at all, exactly as § 5d's seeing does not, **now detects
+   itself** (§ 6f.9): brightfield cannot cross-fade the way the PSF does — a ray
+   histogram has no phase to interfere with — so it *rules* instead of blending,
+   and where `adaptivePsf` ramps, `brightfieldFidelity` is a cliff. Absent
+   sampling reads `unknown`, never `valid`. Beside it the sum's own lattice
+   reports whether the grid carried the pupil, on a defocus closed form exact to
+   1e-12, and a pinhole's ¼-encircled-energy disc pins what the half-wave
+   criterion physically *is*: the point where the spread reaches the grid edge.
+   The capability stays deferred — its nearest analog is refraction through the
+   specimen's ∇φ, which is transport-of-intensity rather than coherence — and
+   the verdict has no caller until the `imaging/render` bridge lands.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

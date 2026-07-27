@@ -64,6 +64,23 @@ import type { CondenserSource } from "./source";
  * Averaging the rim would apodize the object's spectrum instead of the
  * aperture — a different approximation, and the wrong one exactly at the
  * cutoff, which is where every § 6f rung lives.
+ *
+ * It also makes this module's transmitting set a strict SUBSET of `wave/psf`'s:
+ * a lattice point inside the disc always lies in a cell the disc overlaps, but
+ * not conversely. `maxGridPhaseStepWaves` is a maximum over neighbour pairs, so
+ * the subset relation makes this one exactly ≤ the PSF's — the PSF's rim ring
+ * sits further out, where the wavefront is steeper. That is an exact
+ * inequality, not a tolerance, and § 6f.9 pins it as such.
+ *
+ * ## The two fidelity questions, and which one is answered here
+ *
+ * `maxGridPhaseStepWaves` below answers "did this grid carry the pupil it was
+ * handed?". It does NOT answer "is a coherent sum the right physics for this
+ * system at all?" — that one is measured on raw traced samples and ruled on by
+ * `illumination/fidelity`, because the geometric PSF branch the engine falls
+ * back to has no notion of coherence and so cannot stand in for this sum. A
+ * pupil function arriving here carries no memory of what traced it, which is
+ * exactly why the verdict lives one level up.
  */
 
 /**
@@ -185,6 +202,27 @@ export interface AbbeImage {
    * falls off the frequency grid does not, and that is a sampling failure
    * rather than physics, so it is reported. */
   readonly contributingPoints: number;
+  /**
+   * Largest |Δphase| in waves between adjacent transmitting samples OF THE DFT
+   * LATTICE this sum evaluated on — i.e. whether the grid carried the pupil it
+   * was handed. `wave/psf` reports the same number for the same reason, and
+   * the same caveat applies: it is NOT the fidelity criterion. That one is
+   * measured on raw traced samples and lives in `wave/fidelity`; the
+   * brightfield verdict built on it is `illumination/fidelity`.
+   *
+   * Maximized over source points, not measured at s = 0, because illuminating
+   * from direction s slides the sampled pupil coordinates to (ix − n/2)·Δ + s
+   * — every source point reads the pupil on its own offset sub-lattice, and
+   * they register differently against the steep rim. The spread between them
+   * is bounded by a lattice step's worth of rim slope (§ 6f.9), so this is a
+   * bounded choice rather than a cosmetic one, but it is the honest end of the
+   * bound.
+   *
+   * Reported, never thrown on. The throw above is for a sampling failure a
+   * caller fixes with a parameter; an aberrated pupil is physics a caller may
+   * legitimately want to look at.
+   */
+  readonly maxGridPhaseStepWaves: number;
   readonly pixelScaleMm?: number;
 }
 
@@ -224,6 +262,14 @@ export function abbeImage(
   const workRe = new Float64Array(n * n);
   const workIm = new Float64Array(n * n);
   let contributingPoints = 0;
+  // The lattice guard rides along inside the loop below rather than in a second
+  // pass: `pupil.phaseWaves` may re-trace rays, so asking it again per
+  // neighbour pair would be the expensive way to learn the same number. One
+  // row of previous-row phases plus the previous column is all the state a
+  // 4-neighbour difference needs.
+  const rowPhase = new Float64Array(n);
+  const rowIn = new Uint8Array(n);
+  let maxGridPhaseStepWaves = 0;
 
   for (const s of source.points) {
     workRe.fill(0);
@@ -248,13 +294,36 @@ export function abbeImage(
     }
 
     let transmitting = 0;
+    rowIn.fill(0, ixLo, ixHi + 1);
     for (let iy = iyLo; iy <= iyHi; iy++) {
       const py = (iy - half) * step + s.sy;
+      let prevIn = false;
+      let prevPhase = 0;
       for (let ix = ixLo; ix <= ixHi; ix++) {
         const px = (ix - half) * step + s.sx;
         const a = pupil.amplitude(px, py);
-        if (a <= 0) continue;
-        const ang = 2 * Math.PI * pupil.phaseWaves(px, py);
+        if (a <= 0) {
+          // A blocked sample breaks the chain in both directions: a step across
+          // the aperture rim is not a wavefront step, and counting it would make
+          // an obstruction look like an unresolved wavefront.
+          prevIn = false;
+          rowIn[ix] = 0;
+          continue;
+        }
+        const w = pupil.phaseWaves(px, py);
+        if (prevIn) {
+          const d = Math.abs(w - prevPhase);
+          if (d > maxGridPhaseStepWaves) maxGridPhaseStepWaves = d;
+        }
+        if (rowIn[ix] === 1) {
+          const d = Math.abs(w - rowPhase[ix]!);
+          if (d > maxGridPhaseStepWaves) maxGridPhaseStepWaves = d;
+        }
+        prevIn = true;
+        prevPhase = w;
+        rowIn[ix] = 1;
+        rowPhase[ix] = w;
+        const ang = 2 * Math.PI * w;
         const pr = a * Math.cos(ang);
         const pi = a * Math.sin(ang);
         const idx = iy * n + ix;
@@ -282,6 +351,7 @@ export function abbeImage(
     pupilSamples,
     intensity,
     contributingPoints,
+    maxGridPhaseStepWaves,
     ...(options.scale === undefined
       ? {}
       : { pixelScaleMm: imagePixelScaleMm(options.scale, n, pupilSamples) }),

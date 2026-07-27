@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   abbeImage,
   annularSource,
+  brightfieldFidelity,
   brightfieldResolutionMm,
   circleOverlapArea,
   coherentSource,
@@ -19,15 +20,20 @@ import {
   spatialFrequencyCyclesPerMm,
   weakObjectTransferDisk,
   weakPhaseTransfer,
+  type ObjectField,
 } from "../src/illumination";
 import { diffractionLimitedMtf, mtf, mtfAt } from "../src/wave/mtf";
 import {
   imagePixelScaleMm,
+  psf,
   psfFromPupilFunction,
   pupilFunctionFromOpd,
   type PupilFunction,
   type PupilScale,
 } from "../src/wave/psf";
+import { adaptivePsf, geometricWeight } from "../src/wave/geometric";
+import { PHASE_STEP_LIMIT } from "../src/wave/fidelity";
+import type { Prescription } from "../src/trace/prescription";
 import { fitZernike } from "../src/wave/zernike";
 import { opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
@@ -589,5 +595,426 @@ describe("a traced objective, through its own pupil (§ 6f.10)", () => {
       expect(measuredCutoff((nu) => weakObjectTransfer(p, closed, nu))).toBeCloseTo(1, 9);
       expect(measuredCutoff((nu) => weakObjectTransfer(p, open, nu))).toBeGreaterThan(1.9);
     }
+  });
+});
+
+/**
+ * A spherical mirror, opened until its own aberration outruns the pupil grid.
+ * The same shape `test/fidelity.ts` uses, and for the same reason: spherical
+ * aberration is the cheapest way to drive the phase step across the criterion
+ * without inventing a wavefront by hand.
+ */
+const MIRROR_R = -200;
+function sphericalMirror(semiAperture: number): OpticalSystem {
+  const prescription: Prescription = {
+    surfaces: [
+      {
+        kind: "reflect",
+        curvature: 1 / MIRROR_R,
+        conic: 0,
+        semiAperture,
+        thickness: MIRROR_R / 2,
+        isStop: true,
+      },
+    ],
+  };
+  return {
+    prescription,
+    aperture: { kind: "stopRadius", value: semiAperture },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  };
+}
+
+describe("the geometric branch has no coherence, so brightfield rules instead of blending (§ 6f.12)", () => {
+  /**
+   * Every PSF in the engine has two branches and a cross-fade between them.
+   * Brightfield has one branch and cannot have two: a ray histogram carries no
+   * phase, so it cannot represent the interference the Abbe sum exists to
+   * represent. Falling back to it would not degrade partial coherence, it would
+   * silently answer a different question.
+   *
+   * So the deferral stands — there is no partially coherent geometric branch —
+   * and what lands here is the detection that stops it being missed, exactly as
+   * § 5d left the seeing ∇φ ray-tilt unbuilt and pinned the guard that catches
+   * the trap it springs.
+   */
+
+  it("absent sampling is unknown, and never quietly valid", () => {
+    const bare = brightfieldFidelity(undefined, 64);
+    expect(bare.verdict).toBe("unknown");
+    expect(bare.verdict).not.toBe("valid");
+    expect(bare.phaseStepWaves).toBeNull();
+    expect(bare.geometricShare).toBeNull();
+
+    // This is not a hypothetical branch. `psfFromPupilFunction` is handed a
+    // pupil with no memory of what traced it, and that is precisely the shape
+    // `abbeImage` is called in — so the case the deferral is about is the
+    // DEFAULT case, not an edge one. `adaptivePsf` reads a missing sampling as
+    // a phase step of zero, which is right there (it is only ever reached from
+    // a fresh trace) and would be the whole bug here.
+    const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+    const fromPupil = psfFromPupilFunction(idealPupil(), scale, 0, { pupilSamples: 64 });
+    expect(fromPupil.sampling).toBeUndefined();
+    expect(brightfieldFidelity(fromPupil.sampling, 64).verdict).toBe("unknown");
+  });
+
+  it("a well-corrected objective passes, and § 6f.10's rungs keep standing", () => {
+    // The 4×/0.10 whose traced pupil the block above images through: 0.015
+    // waves per pupil sample, thirty times inside the criterion. Every § 6f
+    // number measured on a traced pupil is on the FFT branch by a wide margin,
+    // which is what makes this deferral a named gap rather than a live wound.
+    const sys = infinityCorrectedMicroscope({
+      objective: microscopeObjective({ magnification: 4, numericalAperture: 0.1 }),
+      tubeLens: tubeLens(),
+    }).system;
+    const focused = withFocus(sys, bestFocus(sys, "minRmsWavefront", { wavelengthNm: LINE_D }).offsetFromLastVertex);
+    const verdict = brightfieldFidelity(psf(focused, 0, LINE_D, { pupilSamples: 64 }).sampling, 64);
+    expect(verdict.verdict).toBe("valid");
+    expect(verdict.geometricShare).toBe(0);
+    expect(verdict.phaseStepWaves!).toBeLessThan(0.02);
+  });
+
+  it("it is adaptivePsf's own switch read a second time, not a second switch", () => {
+    // One criterion, two callers. If these ever disagreed, a brightfield image
+    // could be declared honest on a wavefront the PSF had already given to the
+    // ray branch — which is the exact failure the deferral names.
+    for (const semiAperture of [10, 20]) {
+      const system = sphericalMirror(semiAperture);
+      const verdict = brightfieldFidelity(psf(system, 0, LINE_D, { pupilSamples: 64 }).sampling, 64);
+      const adaptive = adaptivePsf(system, 0, LINE_D, { pupilSamples: 64 });
+      expect(verdict.phaseStepWaves).toBe(adaptive.phaseStepWaves);
+      expect(verdict.geometricShare).toBe(adaptive.geometricWeight);
+    }
+    // 10 mm of semi-aperture is 0.057 waves per sample and images; 20 mm is
+    // 0.908, which is past the far edge of the blend band, so the PSF is a pure
+    // ray histogram and brightfield has nothing at all to say.
+    const easy = brightfieldFidelity(psf(sphericalMirror(10), 0, LINE_D, { pupilSamples: 64 }).sampling, 64);
+    const hard = brightfieldFidelity(psf(sphericalMirror(20), 0, LINE_D, { pupilSamples: 64 }).sampling, 64);
+    expect(easy.verdict).toBe("valid");
+    expect(easy.phaseStepWaves!).toBeCloseTo(0.0570608, 6);
+    expect(hard.verdict).toBe("no-honest-image");
+    expect(hard.geometricShare).toBe(1);
+  });
+
+  it("inside the blend band the PSF degrades and brightfield falls off a cliff", () => {
+    // The band is the whole point of the asymmetry. At 0.454 waves per sample
+    // `adaptivePsf` mixes 27.8% ray histogram into a still-mostly-diffraction
+    // image and stays honest, because both its branches compute the same
+    // intensity. There is no 27.8%-coherent sum to mix, so ANY share above zero
+    // is a refusal here — the verdict is a cliff exactly where the PSF's is a
+    // ramp, and that difference IS the missing capability, made visible.
+    const sampling = psf(sphericalMirror(20), 0, LINE_D, { pupilSamples: 128 }).sampling;
+    const banded = brightfieldFidelity(sampling, 128);
+    expect(banded.phaseStepWaves!).toBeGreaterThan(PHASE_STEP_LIMIT - 0.15);
+    expect(banded.phaseStepWaves!).toBeLessThan(PHASE_STEP_LIMIT + 0.15);
+    expect(banded.geometricShare).toBe(geometricWeight(banded.phaseStepWaves!));
+    expect(banded.geometricShare!).toBeCloseTo(0.2778, 4);
+    expect(banded.geometricShare!).toBeGreaterThan(0);
+    expect(banded.verdict).toBe("no-honest-image");
+  });
+
+  it("and a denser pupil grid genuinely rescues the same system", () => {
+    // The criterion is phase per pupil SAMPLE, so it is a statement about the
+    // grid as much as the glass — `wave/fidelity` is insistent that a metric
+    // phrased in total waves would deny this. One traced wavefront, six grids:
+    // the step falls exactly as 1/pupilSamples and the verdict follows it.
+    const sampling = psf(sphericalMirror(20), 0, LINE_D, { pupilSamples: 64 }).sampling;
+    const at = (p: number) => brightfieldFidelity(sampling, p);
+    expect(at(64).verdict).toBe("no-honest-image");
+    expect(at(128).verdict).toBe("no-honest-image");
+    expect(at(256).verdict).toBe("valid");
+    expect(at(512).verdict).toBe("valid");
+    expect(at(128).phaseStepWaves! / at(64).phaseStepWaves!).toBeCloseTo(0.5, 12);
+    expect(at(512).phaseStepWaves! / at(64).phaseStepWaves!).toBeCloseTo(0.125, 12);
+  });
+});
+
+/** Opaque field with one clear pixel at the centre — a pinhole, spectrally flat. */
+function pinholeObject(size: number): ObjectField {
+  const re = new Float64Array(size * size);
+  re[(size / 2) * size + size / 2] = 1;
+  return { size, re, im: new Float64Array(size * size) };
+}
+
+/** Opaque field with a clear bar `width` px wide, centred. Broadband. */
+function clearBarObject(size: number, width: number): ObjectField {
+  const re = new Float64Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = size / 2 - width / 2; x < size / 2 + width / 2; x++) re[y * size + x] = 1;
+  }
+  return { size, re, im: new Float64Array(size * size) };
+}
+
+/** Fraction of the image's energy inside radius `r` of the grid centre. */
+function encircledFraction(intensity: Float64Array, size: number, r: number): number {
+  const c = size / 2;
+  let inside = 0;
+  let total = 0;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const v = intensity[y * size + x]!;
+      total += v;
+      if (Math.hypot(x - c, y - c) <= r) inside += v;
+    }
+  }
+  return inside / total;
+}
+
+describe("and the sum's own lattice reports whether it carried the pupil (§ 6f.13)", () => {
+  /**
+   * The companion question, and a different one: not "is a coherent sum the
+   * right physics here" (§ 6f.12) but "did this grid resolve the pupil it was
+   * handed". `wave/psf` reports the same number for its own grid; this is it
+   * measured on the lattice the Abbe sum actually evaluates, which every source
+   * point reads at its own offset.
+   *
+   * Lattice step in normalized pupil radii is h = 2/pupilSamples, so a defocus
+   * W·ρ² steps by W·((ρ+h)² − ρ²) = W·h·(2ρ + h) between neighbours. Both ends
+   * must transmit, and because 1/h is an integer the outermost transmitting
+   * pair on the row through ρ_y = 0 is exactly (1 − h, 1). So
+   *
+   *     max step = W·h·(2 − h) = (4W/pupilSamples)·(1 − 1/pupilSamples)
+   *
+   * exactly — not a bound. The (1 − 1/pupilSamples) is a difference quotient
+   * estimating a derivative at the MIDPOINT of its pair, half a lattice step
+   * inside the rim: the same finite-difference factor § 5d's gradient rung
+   * carries, arriving here from the same cause.
+   */
+
+  const guardClosedForm = (W: number, pupilSamples: number): number => {
+    const h = 2 / pupilSamples;
+    return W * h * (2 - h);
+  };
+
+  it("an unaberrated pupil steps nowhere", () => {
+    const img = abbeImage(uniformObject(256), idealPupil(), diskSource(0.7, 9), {
+      pupilSamples: 64,
+    });
+    expect(img.maxGridPhaseStepWaves).toBe(0);
+  });
+
+  it("defocus lands on the closed form exactly, at every grid and every strength", () => {
+    for (const pupilSamples of [16, 32, 64, 128]) {
+      for (const W of [0.5, 3, 12]) {
+        const img = abbeImage(uniformObject(256), defocusedPupil(W), coherentSource(), {
+          pupilSamples,
+        });
+        expect(img.maxGridPhaseStepWaves).toBeCloseTo(guardClosedForm(W, pupilSamples), 12);
+        // The naive derivative 4W/pupilSamples is approached from BELOW, and by
+        // exactly the midpoint factor — an identity, so it is pinned as one.
+        expect(img.maxGridPhaseStepWaves / ((4 * W) / pupilSamples)).toBeCloseTo(
+          1 - 1 / pupilSamples,
+          12,
+        );
+      }
+    }
+  });
+
+  it("and crosses the half-wave criterion where the closed form says", () => {
+    // W·h·(2 − h) = ½ solves to W = pupilSamples²/(8·(pupilSamples − 1)).
+    for (const pupilSamples of [32, 64, 128]) {
+      const critical = pupilSamples ** 2 / (8 * (pupilSamples - 1));
+      const at = (W: number) =>
+        abbeImage(uniformObject(512), defocusedPupil(W), coherentSource(), { pupilSamples })
+          .maxGridPhaseStepWaves;
+      expect(at(critical)).toBeCloseTo(PHASE_STEP_LIMIT, 12);
+      expect(at(critical * 0.99)).toBeLessThan(PHASE_STEP_LIMIT);
+      expect(at(critical * 1.01)).toBeGreaterThan(PHASE_STEP_LIMIT);
+    }
+  });
+
+  it("every source point reads the pupil on its own sub-lattice", () => {
+    // Illuminating from s samples the pupil at (ix − n/2)·h + s, so each
+    // direction registers differently against the rim where the max lives.
+    // Reporting the max over the source is therefore a choice, and this bounds
+    // what it costs: px_max ∈ (1 − 2h, 1 − h], so the spread across directions
+    // is at most W·h·(2h) = 2W·h². Nothing here claims a DIRECTION — the
+    // registration is not monotone in |s|, and for this pupil the on-axis point
+    // happens to be the maximum.
+    const pupilSamples = 64;
+    const W = 3;
+    const h = 2 / pupilSamples;
+    const disk = diskSource(0.8, 9);
+    const single = disk.points.map(
+      (p) =>
+        abbeImage(
+          uniformObject(256),
+          defocusedPupil(W),
+          { points: [{ sx: p.sx, sy: p.sy, weight: 1 }], coherenceParameter: 0, samples: 1 },
+          { pupilSamples },
+        ).maxGridPhaseStepWaves,
+    );
+    const whole = abbeImage(uniformObject(256), defocusedPupil(W), disk, { pupilSamples })
+      .maxGridPhaseStepWaves;
+    expect(whole).toBe(Math.max(...single));
+    expect(Math.max(...single) - Math.min(...single)).toBeLessThan(2 * W * h * h);
+    // Measured spread is 0.38 of that bound — comfortably inside, not against it.
+    expect(Math.max(...single) - Math.min(...single)).toBeCloseTo(0.00221354, 8);
+  });
+
+  it("the same pupil through two modules gives one number", () => {
+    // `wave/psf` area-averages the cells the rim cuts; this module point-samples
+    // them (its header says why). So this module's transmitting set is a strict
+    // SUBSET of the PSF's, and a maximum over a subset can only be smaller: the
+    // inequality is exact, not a tolerance. That the two coincide here is a
+    // measured fact and not the theorem — the PSF's extra rim ring has no pair
+    // of its own on the row through the centre, because 1/h being an integer
+    // already put a lattice point on ρ = 1.
+    const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+    for (const pupilSamples of [16, 32, 64, 128]) {
+      const pupil = defocusedPupil(3);
+      const viaAbbe = abbeImage(uniformObject(pupilSamples * 4), pupil, coherentSource(), {
+        pupilSamples,
+      }).maxGridPhaseStepWaves;
+      const viaPsf = psfFromPupilFunction(pupil, scale, 0, {
+        pupilSamples,
+        padFactor: 4,
+      }).maxGridPhaseStepWaves;
+      expect(viaAbbe).toBeLessThanOrEqual(viaPsf);
+      expect(viaAbbe).toBeCloseTo(viaPsf, 12);
+    }
+  });
+
+  it("half a wave per sample IS the point where the spread reaches the grid edge", () => {
+    // The criterion's physical content, pinned rather than asserted. A slope of
+    // s waves per pupil sample displaces a ray by s·size pixels (`defaultRayGrid`
+    // rests on the same identity), so s = ½ puts it at size/2 — the edge. The
+    // geometric radius of a defocused spot is R = 4W·size/pupilSamples pixels,
+    // and the guard predicts it short by the midpoint factor.
+    const W = 12;
+    for (const pupilSamples of [64, 128, 256]) {
+      const size = 2 * pupilSamples;
+      const img = abbeImage(pinholeObject(size), defocusedPupil(W), coherentSource(), {
+        pupilSamples,
+      });
+      const geometricRadiusPx = (4 * W * size) / pupilSamples;
+      expect(geometricRadiusPx).toBe(96); // same physical blur on all three grids
+      expect(img.maxGridPhaseStepWaves * size).toBeCloseTo(
+        geometricRadiusPx * (1 - 1 / pupilSamples),
+        12,
+      );
+    }
+  });
+
+  it("...and a broadband object is right on one side of it and wrong on the other", () => {
+    // A pinhole has a flat spectrum, so this is the coherent point-spread
+    // itself. Far from focus it is a uniform disc, and a uniform disc puts
+    // exactly ¼ of its energy inside half its radius — a closed form owing
+    // nothing to the engine. Where the disc fits the grid the sum finds it; where
+    // it does not, the wrap folds the outside back onto the middle and the same
+    // measurement reads 30% high.
+    const W = 12;
+    const halfRadius = 48; // half of the 96 px geometric radius, on every grid
+    const measured = [64, 128, 256].map((pupilSamples) => {
+      const size = 2 * pupilSamples;
+      const img = abbeImage(pinholeObject(size), defocusedPupil(W), coherentSource(), {
+        pupilSamples,
+      });
+      return { pupilSamples, size, img, e: encircledFraction(img.intensity, size, halfRadius) };
+    });
+
+    for (const m of measured) {
+      // The wrap threshold in the guard's own terms, carrying the same midpoint
+      // factor: R > size/2 ⟺ guard > ½·(1 − 1/pupilSamples).
+      const fits = m.img.maxGridPhaseStepWaves <= PHASE_STEP_LIMIT * (1 - 1 / m.pupilSamples);
+      expect(fits).toBe(96 <= m.size / 2);
+      if (fits) {
+        expect(m.e).toBeCloseTo(0.25, 2); // the geometric disc, to 2%
+      } else {
+        expect(m.e).toBeGreaterThan(0.32); // 0.330 — the folded-back energy
+      }
+    }
+    // And the two grids that resolve it agree with each other far better than
+    // either agrees with the one that does not.
+    const [bad, ok, better] = measured.map((m) => m.e) as [number, number, number];
+    expect(Math.abs(better - ok) / ok).toBeLessThan(2e-3);
+    expect(Math.abs(bad - better) / better).toBeGreaterThan(0.29);
+  });
+
+  it("a partially coherent image converges only once the guard is under a half", () => {
+    // The same statement with a condenser and a real specimen: a clear bar, S =
+    // 0.5, twelve waves of defocus. Physical pixel scale is held fixed (size =
+    // 2·pupilSamples throughout), ν is not in play because the object is
+    // broadband, and the source is identical at every grid — so the only thing
+    // moving is whether the lattice carries the pupil.
+    const W = 12;
+    const source = diskSource(0.5, 5);
+    const offsets = [0, 8, 16, 32, 48, 60];
+    const profile = (pupilSamples: number): { guard: number; values: number[] } => {
+      const size = 2 * pupilSamples;
+      const img = abbeImage(clearBarObject(size, 16), defocusedPupil(W), source, { pupilSamples });
+      const c = size / 2;
+      return {
+        guard: img.maxGridPhaseStepWaves,
+        values: offsets.map((d) => img.intensity[c * size + c + d]!),
+      };
+    };
+    const coarse = profile(64); // guard 0.738 — over
+    const fine = profile(128); // guard 0.372 — under
+    const finest = profile(256); // guard 0.187 — well under
+    expect(coarse.guard).toBeGreaterThan(PHASE_STEP_LIMIT);
+    expect(fine.guard).toBeLessThan(PHASE_STEP_LIMIT);
+
+    // Converged: the two resolved grids agree everywhere across the profile.
+    for (let i = 0; i < offsets.length; i++) {
+      expect(Math.abs(fine.values[i]! - finest.values[i]!) / finest.values[i]!).toBeLessThan(5e-3);
+    }
+    // Not converged: the unresolved grid is 13% out in the bar's skirt and 57%
+    // out in its tail — the error grows with distance from the object, which is
+    // what wrap-around does and what a mere loss of resolution does not.
+    expect(Math.abs(coarse.values[4]! - finest.values[4]!) / finest.values[4]!).toBeGreaterThan(0.12);
+    expect(Math.abs(coarse.values[5]! - finest.values[5]!) / finest.values[5]!).toBeGreaterThan(0.5);
+  });
+
+  it("and it is the guard deciding, not the grid being small", () => {
+    // The control the rung above needs. One wave of defocus on the SAME grids,
+    // including the 64-pixel one that failed catastrophically at twelve: every
+    // grid now agrees to 3·10⁻³, because every guard is far under the criterion.
+    // A rung that only ever showed coarse grids doing worse would be measuring
+    // sampling, not fidelity.
+    const source = diskSource(0.5, 5);
+    const at = (pupilSamples: number) => {
+      const size = 2 * pupilSamples;
+      const img = abbeImage(clearBarObject(size, 16), defocusedPupil(1), source, { pupilSamples });
+      const c = size / 2;
+      return { guard: img.maxGridPhaseStepWaves, centre: img.intensity[c * size + c]!, skirt: img.intensity[c * size + c + 8]! };
+    };
+    const all = [32, 64, 128, 256].map(at);
+    const reference = all[3]!;
+    for (const m of all) {
+      expect(m.guard).toBeLessThan(0.13);
+      expect(Math.abs(m.centre - reference.centre) / reference.centre).toBeLessThan(3e-3);
+      expect(Math.abs(m.skirt - reference.skirt) / reference.skirt).toBeLessThan(3e-3);
+    }
+  });
+
+  it("a three-line object never trips it, and that is not a hole in the guard", () => {
+    // Worth pinning because it says what the number does NOT mean, and because
+    // every other § 6f rung is a grating. A cosine grating's spectrum is three
+    // lattice lines, so the sum only ever evaluates the pupil at three points
+    // per source direction — there is nothing between them to alias. Twelve
+    // waves of defocus, a guard running 1.45 → 0.19, and the contrast is the
+    // same to nine places at every grid.
+    const W = 12;
+    const source = diskSource(0.5, 5);
+    const contrasts = [32, 64, 128, 256].map((pupilSamples) => {
+      const size = 2 * pupilSamples;
+      const cycles = pupilSamples / 4; // ν = 2·cycles/pupilSamples = 0.5, fixed
+      const img = abbeImage(
+        cosineGratingObject({ size, cycles, modulation: 0.5 }),
+        defocusedPupil(W),
+        source,
+        { pupilSamples },
+      );
+      return { guard: img.maxGridPhaseStepWaves, contrast: imageHarmonic(img.intensity, size, cycles).contrast };
+    });
+    expect(contrasts[0]!.guard).toBeGreaterThan(1.4);
+    expect(contrasts[3]!.guard).toBeLessThan(0.19);
+    for (const c of contrasts) expect(c.contrast).toBeCloseTo(contrasts[3]!.contrast, 9);
+    // So § 6f's grating ladder is untouched by any of this: the guard is a
+    // statement about broadband objects, which is exactly the class the scenes
+    // (diatoms, tissue) will belong to and the gratings never did.
   });
 });
