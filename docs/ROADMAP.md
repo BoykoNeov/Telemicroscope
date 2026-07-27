@@ -389,10 +389,31 @@
    cost `render.ts` objects to — and that is recorded rather than dressed up.
    **§ 6f.9's verdict finally has a caller:** the worst patch rules, since a
    frame is not honest in the places where it happens to be. **Open:** the limit
-   the interior converges to (Hopkins' TCC would give one, and is v2), and the
-   wiring to a traced system — the pupil arrives by normalized frame position,
-   and mapping an `OpticalSystem` onto that is object-space field mapping for a
-   finite conjugate, which is the next unit.
+   the interior converges to (Hopkins' TCC would give one, and is v2).
+   *Object-space field mapping for a finite conjugate:* ✅ `imaging/object-field`
+   (§ 6h). The wiring to a traced system, and the seam § 6g.3 named: the frame
+   position → image mm → **object height** → traced pupil, inverted numerically
+   off the chief ray so it carries distortion — pinned as an ORDER, ×8.00 per
+   doubling, third-order theory's cubic. Two findings revise what was predicted.
+   **The frame's extent is set by `pupilSamples` and not by the grid** — the size
+   cancels, so a brightfield frame spans `pupilSamples` resolution cells and no
+   more, which is step 4's framing lesson biting harder because the Abbe sum's
+   grid IS its frequency lattice and cannot be resampled. And **the frame is NOT
+   isoplanatic** at that scale after all: 47 µm of specimen on a 4×/0.10 already
+   carries 8.8e-3 waves of corner coma, the image moves 0.9% on the first patch
+   refinement, and the convergence ratio is ½ where § 6g.3's labelled fixture
+   gave just under 0.4 — the fixture was representative in shape, not in rate.
+   The pupil rotation is **exact** here where `renderField`'s is bilinear (a
+   `PupilFunction` is a callback, so the coordinates turn before it is ever
+   sampled), and the two are pinned against each other at 90°/180° with both
+   tolerances derived from the strip `rotateKernel` drops. **§ 6f.9's verdict
+   finally runs on a trace** and rules `valid` instead of `unknown`. The textbook
+   pupilSamples·λ/(4·NA) is 2.7% out, and the 2.7% is shown to BE the DIN 4×'s
+   own departure from the sine condition — § 5j's "a doublet cannot be aplanatic"
+   arriving as a measured number. **Open:** warping the grid itself (distortion
+   is carried in the pupil assignment only), telecentricity — § 6a's object-space
+   ray-aiming blocker, inherited — pupil aberration, and a field wide enough to
+   need many patches.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

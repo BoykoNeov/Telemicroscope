@@ -70,8 +70,18 @@ import { patchWeight } from "./render";
  * mean nothing.
  *
  * Mapping an `OpticalSystem` and an object-plane position onto that callback is
- * a separate capability (object-space field mapping for a finite conjugate), and
- * deliberately not in here. The callback is the seam it will attach to.
+ * a separate capability, and deliberately not in here — it is
+ * `imaging/object-field` (§ 6h), which inverts the traced chief ray to find the
+ * object point each frame position looks at, traces its pupil, and turns it to
+ * that position's own azimuth. This module never learns any of that: the
+ * callback is the whole seam.
+ *
+ * What that wiring bought, measured rather than assumed (§ 6h.5): a traced
+ * `PatchPupil` carries the sampling of the trace behind it, so the verdict below
+ * stops reading `unknown`; and on a real DIN 4×/0.10 the frame is **not**
+ * isoplanatic even at diffraction sampling, so the patch decomposition earns its
+ * keep — converging at ratio ½ per doubling where § 6g.3's labelled fixture gave
+ * just under 0.4.
  */
 
 /** What a field point's optics look like, as far as a brightfield image cares. */

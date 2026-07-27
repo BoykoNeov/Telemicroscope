@@ -53,6 +53,7 @@ whole ladder.
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
 | [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; the 0.61·λ/NA_cond coherence width measured; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
+| [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -4176,25 +4177,25 @@ saving to be had — every patch images the whole object, because the object's
 spectrum is global. Progressive refinement, which `imaging/render` has, is not
 built: the shape is identical and the rungs would be the same rungs.
 
-**Not wired to a traced system.** Mapping an `OpticalSystem` and an object-plane
-position onto the pupil callback is object-space field mapping for a finite
-conjugate — its own capability, and the next unit. The callback is the seam it
-will attach to; the field-varying pupil the rungs use is a labelled fixture
-(defocus linear across the frame), not a claim about any real objective's field
-curvature.
+**Not wired to a traced system.** ~~Mapping an `OpticalSystem` and an
+object-plane position onto the pupil callback is object-space field mapping for a
+finite conjugate — its own capability, and the next unit.~~ **Closed at § 6h.**
+The field-varying pupil these rungs use is still a labelled fixture (defocus
+linear across the frame) and not a claim about any real objective; § 6h repeats
+the convergence measurement on a traced one and finds a different rate.
 
 ### Not yet pinned
+
 - **What the output-side scheme costs where the pupil DOES vary**, as a
   *number* rather than as a rate. § 6g.3 measures the patch-count convergence and
   pins its ratio; nothing pins the limit it converges to, because there is no
   closed form for a non-isoplanatic partially coherent image and Hopkins' TCC —
   which would give one — is a v2 item. The edge patches are exact and the
   interior is a sequence.
-- **The bridge to a traced system.** `renderBrightfield` takes a pupil callback
-  keyed on normalized frame position; mapping an `OpticalSystem` and an
-  object-plane point onto it is object-space field mapping for a finite
-  conjugate, which does not exist yet. Every field-varying rung uses a labelled
-  fixture, so nothing here is a claim about a real objective's field curvature.
+- ~~**The bridge to a traced system.**~~ **Closed at § 6h.** Every § 6g.3
+  field-varying rung still uses a labelled fixture, so nothing *here* is a claim
+  about a real objective's field curvature — § 6h is where a traced one is
+  measured, and it converges at a different rate than the fixture does.
 - **Coherence off axis, and in two dimensions with a decentred source.** μ is
   computed for an arbitrary (Δx, Δy) and an arbitrary source, and the complex
   form is carried because an oblique condenser displaces the fringes — but every
@@ -4202,6 +4203,151 @@ curvature.
 - **Polychromatic coherence.** μ is wavelength-dependent through the same grid
   relation, and a real lamp has a coherence *length* as well as a width. Both are
   monochromatic here, as all of § 6f is.
+
+## Step 6h — object-space field mapping for a finite conjugate
+
+`imaging/object-field` is the seam § 6g.3 named: an `OpticalSystem` and a
+normalized frame position onto `renderBrightfield`'s pupil callback. The chain is
+
+    (u, v) ∈ [0,1]²  →  image-plane mm  →  OBJECT height (mm)  →  traced pupil
+
+— the finite-conjugate twin of `imaging/scene`'s `fieldAngleFor`, running the
+other way because `illumination/abbe` takes the object in reduced (image-plane)
+coordinates, so the grid the patches are blended on is the image and the mapping
+has to walk back along the chief ray to reach the specimen.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Forward ∘ inverse on the traced chief ray is the identity, to 1e-9 | identity | ✅ |
+| The departure from the linear map grows as h³ — ×8.00 per doubling, to 1% | third-order distortion is cubic | ✅ |
+| …and it is not the paraxial map: r/\|M\| differs from the traced answer | — | ✅ |
+| An unreachable radius throws, naming the radius and not the probe height | — | ✅ |
+| An infinite conjugate is refused rather than read as an angle | — | ✅ |
+| Half-extent is exactly pupilSamples·λ·R/(4·n′·r_exit), to f64 | closed form | ✅ |
+| …independent of the grid size, and linear in pupilSamples | DFT reciprocity | ✅ |
+| Its departure from pupilSamples·λ/(4·NA) IS sin u′/tan u′ − 1, to f64 | identity + the objective's aplanatism | ✅ |
+| Coma grows as h¹ and astigmatism as h² across the field | third-order field dependence | ✅ |
+| `rotatePupil` ↔ `rotateKernel` at 90° and 180°, to the dropped strip | § 3c convention, cross-module | ✅ |
+| …and the centroid carries the handedness, to 0.023 px of 3.6 | — | ✅ |
+| `rotatePupil` composes and is the identity at 0, to f64 at any angle | — | ✅ |
+| A traced patch carries `sampling`, so the verdict rules `valid` | § 6f.9's first traced caller | ✅ |
+| The edge patch IS `abbeImage` through the mapper's own pupil, to 1e-12 | § 6g.3 exactness | ✅ |
+| The frame is NOT isoplanatic; convergence ratio ½, not the fixture's 0.4 | convergence | ✅ |
+| A field-blind mapper makes the decomposition the identity, to 1e-12 | Σ w ≡ 1 | ✅ |
+| The one common ruler drifts by 1e-6 across the frame | measurement | ✅ |
+
+**The inverse is bisected on the traced chief ray, never divided by a
+magnification** — `fieldAngleFor`'s argument at a finite conjugate. The forward
+map carries distortion; an inverse that did not would hand every off-centre patch
+the pupil of the wrong object point, and on exactly the systems where it matters
+most. The departure between the two is pinned as an ORDER rather than a value,
+because the coefficient is this objective's own and nothing external fixes it:
+the heights double and the departure multiplies by 8.00, 8.01, 8.05 — cubic to
+1%, which is third-order distortion and nothing else. It is small (6.5e-6 mm at
+h = 0.4 mm) and it is three orders above the bisection's own 1e-9 closure, so it
+is aberration and not noise.
+
+**The frame's extent is set by `pupilSamples` and NOT by the grid.** The
+half-extent is λ·R·pupilSamples/(4·n′·r_exit), in which the size has cancelled —
+`imagePixelScaleMm` is ∝ 1/size and the extent is size × that. Doubling the grid
+resolves the image better and shows not one micron more of specimen. This is DFT
+reciprocity: pupilSamples frequency bins across the pupil ⟺ pupilSamples
+resolution cells across the image, and that is a **cost statement**. Covering a
+4×'s real 5 mm field at its 2.75 µm resolution wants pupilSamples ≈ 1800 and a
+grid to match. Step 4's framing lesson, arriving where it bites harder:
+`renderField` could resample a PSF onto a coarser scene grid, and this cannot,
+because the Abbe sum's grid IS its frequency lattice.
+
+**The textbook form pupilSamples·λ/(4·NA) is 2.7% out, and the 2.7% is the
+objective's own aplanatism.** The closed form is written in the numerical
+aperture; the frame is built from the PARAXIAL exit pupil, whose r/R is a
+*tangent*. The whole image-side departure is therefore sin u′/tan u′ − 1, pinned
+as an identity to f64. Referred to the specimen it needs the sine condition as
+well, and the DIN 4× is a single cemented doublet solved for ΣS_I with ΣS_II
+picking the root — which § 5j showed cannot be aplanatic — so its sine-condition
+residual is 2.3%. The object-side form comes out only 0.5% out because the two
+errors partly cancel, and that cancellation is written down as a coincidence of
+this objective rather than as accuracy.
+
+**The rotation is EXACT here, and that asymmetry is the finding.** Every traced
+pupil belongs to a field point on +x, so a frame position's pupil must be turned
+to its own azimuth or every patch's coma would point the same way —
+`imaging/render`'s `rotateKernel` argument, one layer earlier in the pipeline.
+One layer earlier is the whole difference: `rotateKernel` turns a sampled array,
+so it interpolates and renormalizes the energy it loses, while `rotatePupil`
+turns a **callback** and there is nothing to resample. Composition and the
+identity hold to f64 at any angle. The cross-check runs at 90° and 180°, where
+`rotateKernel` maps the lattice onto itself and is interpolation-free — but it is
+still not exact, because it skips destinations sourced from the last row and
+column and renormalizes. **Both tolerances are derived from that strip**, not
+picked: the pixel bound from its peak and energy fraction, and the centroid bound
+from f·n/2 (a fraction f of the energy deleted from at most n/2 pixels out).
+0.023 px against a 3.6 px coma displacement, and the pair 90°/180° is what pins
+the handedness — a transposed convention would send +x to −y and land here.
+
+**The frame is NOT isoplanatic, and that revises the prediction.** The frame
+spans only pupilSamples resolution cells — 47 µm of specimen on a 4×/0.10 — which
+looked far too small to leave a corrected objective's isoplanatic patch. It is
+not: the corner reads 8.8e-3 waves of coma against the axis's 7.5e-6 (the
+least-squares fit's own noise floor on a rotationally symmetric trace), and the
+image moves 0.9% of peak on the first patch refinement. So the decomposition
+earns its keep. § 6g.3 pinned this convergence as a *ratio* because a wandering
+image also satisfies "each step is smaller"; on a traced objective the ratio is
+**0.50**, where the labelled defocus-ramp fixture gave just under 0.4. The
+fixture was representative in SHAPE — geometric convergence — and not in RATE,
+which is exactly why § 6g.3 pinned a measured number and did not call it a law.
+The control matters as much as the measurement: a mapper that hands every
+position the axial pupil reproduces the identity to 1e-12, so the 0.9% is field
+variation and not plumbing.
+
+**§ 6f.9's verdict finally runs on a trace.** § 6g.3 gave it its first caller and
+every frame still ruled `unknown`, because a bare `PupilFunction` carries no
+memory of what produced it. A `PatchPupil` from here carries `opdSampling` from
+the trace behind it, so a traced frame rules `valid` and survives `requireHonest`
+— which nothing traced could do before.
+
+**One `PupilScale` for the whole frame, read on axis**, because the patches are
+blended pixel for pixel and a common ruler is what makes that legal. Each patch's
+own `opdMap` reports its own reference-sphere radius and exit-pupil radius; those
+build that patch's pupil and are then discarded. Threading them into the scale
+would blend images on different rulers — `wave/polychromatic`'s failure mode, and
+just as invisible to an energy check. What the common ruler costs is measured:
+1e-6 across the frame. The exit-pupil half of that drift is **identically zero**,
+and that is a limit of the instrument rather than a result — `pupils()` is a
+paraxial construction with no field argument, so it cannot move with the field
+whatever the optics do. What the number bounds is the reference sphere following
+the chief ray's image point.
+
+**The cost cliff is vignetting, and it is avoided rather than survived.**
+`pupilFunctionFromOpd`'s vignette predicate re-traces a ray on every amplitude
+query; `wave/psf` pays that once per FFT cell, but `illumination/abbe` pays it
+once per lattice point **per source point**, so a vignetting field point
+multiplies the trace count by the condenser's sampling. Following `psf()`, the
+mask is built only when the trace already shows loss, and the DIN 4× is pinned to
+clear its own glass at every frame corner (`lost === 0`).
+
+### Not yet pinned
+- **The grid itself is not warped.** Distortion is carried in the *pupil
+  assignment* — each patch gets the pupil of the object point its image position
+  really comes from — but each patch's `abbeImage` is still formed on the
+  undistorted grid, so a specimen authored by uniform scaling is placed by the
+  paraxial map. `objectPointAt` exposes the object-plane coordinate a
+  distortion-carrying rasterizer would need; that rasterizer is not built.
+- **Telecentricity is assumed.** Every patch is handed the same `CondenserSource`
+  with its points centred on the pupil, which says the illumination cone stays
+  centred at every field point. § 6a lists object-space ray aiming as an open
+  blocker and § 6h inherits it: a non-telecentric condenser would shift each
+  patch's source points along with its chief ray, and `shiftPupil` is already the
+  operator that would do it.
+- **Pupil aberration.** The scale-drift measurement bounds the reference sphere's
+  motion and says nothing about the exit pupil's, because `pupils()` is paraxial
+  and field-independent by construction. A system whose pupil genuinely walks
+  with the field would need a different instrument, and none in the ladder has
+  one.
+- **A field large enough to need many patches.** The rungs run at pupilSamples 32
+  — 47 µm of specimen — because the frame's extent is proportional to it and the
+  transform cost is quadratic. The convergence ratio is measured there and
+  nothing pins that it holds at a field ten times wider.
 
 ## Later rungs
 
