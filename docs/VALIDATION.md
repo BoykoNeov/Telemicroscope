@@ -50,7 +50,7 @@ whole ladder.
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
-| [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective | `immersion` |
+| [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3463,6 +3463,9 @@ the traced wavefront or off real rays.
 | The placement solve is exact: the virtual image lands at `frontImageFactor` of the rear object distance to 1e-10 | and the R-linearity it rests on is asserted directly | ✅ |
 | **`minimumDomeRadiusMm` is EXACT on a matched stack** (1e-7, the bisection's own floor) | it is a homogeneous-medium geometry statement | ✅ |
 | …and on the real bench it under-estimates by 1.2e-5 (NA 0.5) → 3.7e-3 (NA 1.4), monotone in NA | the stack mismatch, growing with its leverage — an explanation, not a discrepancy | ✅ |
+| **THE EXTREMA, not the endpoints: rim utilisation peaks at 0.999995 at NA 1.275** — the marginal ray at the dome's EQUATOR | scale-free h/R = sin(θ + arcsin(sinθ/n)); the aperture a coarse sweep steps over | ✅ |
+| …and at the equator it still builds, delivers its NA to 7 digits and stays diffraction-limited | grazing incidence is where § 6e.3's self-vignetting bug lived | ✅ |
+| **NA 1.410 builds and is inside Maréchal; NA 1.411 THROWS** | it fails loudly, not by handing back a ray outside a rim | ✅ |
 
 **The flagship, measured.** A 100×/1.25 oil objective on a 200 mm tube: dome
 radius 0.480 mm, element thickness 0.604 mm, working distance 0.19 mm, stop
@@ -3483,7 +3486,75 @@ they are of opposite sign, so the objective *with* its slip is better corrected
 than the same objective in a perfectly index-matched bath (σ 0.0179 against
 0.0300). This is why a real objective is corrected as a whole including the glass
 it looks through, and it is § 6c's "using it without a slip is worse than not
-correcting at all", arriving at the aperture where it bites.
+correcting at all", arriving at the aperture where it bites. It also means the
+correction depends on a plate the objective does not control — which is what
+§ 6e.5 goes on to measure rather than leave as a worry.
+
+### 6e.5 — the slip tolerance: what refocusing fixes, and what it cannot
+
+§ 6e.4 measured σ with the *nominal* 0.17 mm slip, and a design point is not a
+tolerance — especially here, where the cover slip was found to be carrying part of
+the correction. This step measures the dependence rather than assuming it in
+either direction, and it splits into three mechanisms that behave nothing alike.
+
+**The refocus model is worth more than any of the numbers.** A real immersion
+objective is focused by *moving it*, which changes the oil film — the gap **is**
+the focus control. Refocusing only on the image side with the film held fixed is
+not a conservative assumption, it is a different instrument, and it is wrong by an
+order of magnitude. So the sweeps refocus the way the closed form says to: hold
+the stack's paraxial apparent distance n_g·Σtᵢ/nᵢ — § 6c's own quantity,
+generalised in § 6e.1 — constant, which is one evaluation and not a search. The
+pin is that closed form, not a published slip tolerance.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A thickness error contributes an EXACT zero** to `stackWavefrontErrorMm` — `toBe`, at ±20 µm | slip and front element are both D263, so (n²−n_out²) = 0 identically | ✅ |
+| …so the oil is the only mismatched layer and carries the *whole* residual, bit-for-bit | § 6e.1's identity, used as a decomposition | ✅ |
+| **REFOCUSED, σ holds across 0.15–0.18 mm**: ≤0.10·λ/14 at NA 1.0, ≤0.35·λ/14 at NA 1.25 | Maréchal, external | ✅ |
+| …and at NA 1.0 σ is nearly INVARIANT — ±20 µm of slip moves it under 15% | to first order it is not an error, just a different place to stand | ✅ |
+| **NEGATIVE CONTROL: film held fixed, +5 µm is already 3× the budget at NA 1.40** — and 0.41× refocused | picking the wrong refocus model costs an order of magnitude | ✅ |
+| **The delivered NA is SLIP-DEPENDENT**: NA(t) = n_slip·h/√(t²+h²), traced to 2e-4 | § 6e.2's `planeLayerHeightMm`, read backwards | ✅ |
+| …signed the surprising way — a THINNER slip delivers a HIGHER aperture | the rim is fixed; the specimen moves closer to it | ✅ |
+| **PREDICTED then confirmed: the thin side ends at t = 0.1613 mm**, where the delivered NA reaches § 6e.4's 1.411 ceiling | closed form first, then the tracer starts losing rays across it | ✅ |
+| The thick side is bounded by the **oil film**, not by σ: 0.19 mm asks for a 0.11 µm film | `immersionGapMm` is the knob, not the form | ✅ |
+| **INDEX is what refocusing cannot fix**: ±0.003 is outside Maréchal at NA 1.40, symmetric to 5% | a displacement is signed; a broken index match is not | ✅ |
+| …and survivable at NA 1.25 (0.81·λ/14), so index tolerance is part of what aperture costs | the cost climbs with NA | ✅ |
+| **MEASURED, NOT ACTED ON**: the placement solve is ~0.8 µm off its own σ optimum, worth 9–16× at NA 1.0–1.25 | the later step gets a target instead of a guess | ✅ |
+
+**The three mechanisms.** *Thickness* costs nothing in aberration: the slip and the
+front element are the same glass — § 6e chose D263 for the front precisely because
+matching it to the *slip* beat matching it to the fluid — so a thickness error is
+a pure axial displacement of the specimen, and refocusing is exactly the operation
+that removes one. *Thickness does move the delivered aperture*, which is not
+obvious and is what actually ends the range. *Index* breaks the match that made
+thickness free, and no axial motion touches it.
+
+**The finding: a cover slip changes the objective's NA.** The rims are fixed glass
+sized from the nominal slip, and the specimen sits on the slip's underside — so a
+thinner slip puts it closer to those rims, and the same rim subtends a wider cone.
+Measured: 1.4126 at 0.160 mm and 1.3870 at 0.180 mm on an objective labelled 1.40.
+At NA 1.25 the effect is identical in form and reaches nothing (1.298 at the thin
+end of the band, far under any wall). At NA 1.40 it is what ends the thin side, and
+predictably: inverting the plane-layer height puts the delivered NA at § 6e.4's
+1.411 ceiling when the slip is 0.1613 mm — 8.7 µm thin — and the tracer begins
+losing rays across exactly that thickness. **A third mechanism, and the same wall.**
+The two previous times the form stopped existing before it stopped working; this
+time the aperture climbs into a wall that was already measured, from below.
+
+**So the § 6e.4 claim survives, with its condition stated.** The 100×/1.40 is
+diffraction-limited across the slip band it will actually meet — *provided the
+instrument is focused*, which is what focusing an immersion objective means. With
+the film pinned instead, σ crosses Maréchal within ±1.6 µm at NA 1.40 and ±3.8 µm
+at 1.25. The binding tolerance is not thickness at all: it is the slip's **index**,
+where a realistic ±0.003 is already 1.9× the budget at NA 1.40.
+
+**And the placement is not at its own optimum.** The specimen is placed at the
+dome's paraxial Weierstrass point, exact for the dome alone; the objective around
+it also carries the oil's mismatch and § 6d's fifth-order residual, and the σ
+minimum sits ~0.8 µm of apparent distance away — worth 9× at NA 1.0 and 16× at
+NA 1.25. Recorded and deliberately not acted on: moving it re-solves every number
+in §§ 6e.2–6e.4, and it is the same open item as correcting for the stack on
+purpose. What is pinned is that the gain exists and how big it is.
 
 ### Not yet pinned
 
@@ -3498,9 +3569,15 @@ correcting at all", arriving at the aperture where it bites.
   aberration cancelling the rear group's by luck of sign, not by design. § 6c's
   `targetS1Mm` route would make it intentional and would buy the rest; the Lister
   solves ΣS_I = ΣS_II = 0 with no target, and giving it one is a real change.
-- **Water immersion, and the correction collar.** The rarest-medium rung already
-  says what caps a water objective (NA < 1.333); nothing builds one yet, and the
-  collar that compensates a wrong slip is the § 6c open item this step inherits.
+  6e.5 gives that step a measured target: the placement alone is worth 9–16× at
+  NA 1.0–1.25, and index — not thickness — is the tolerance that binds.
+- **The correction collar itself.** 6e.5 says what one would have to correct, and
+  it is *not* the classical picture. Thickness is absorbed by focusing, so a
+  collar's job here is the slip's index and the delivered-NA drift that comes with
+  a thickness error — neither of which a refocus touches. Nothing builds one yet.
+- **A thicker oil film.** `immersionGapMm` defaults to 20 µm against the ~130 µm a
+  real 100×/1.40 carries, and 6e.5 measured that the film — not the wavefront —
+  is what ends the thick side of the slip band. Raising it is untried.
 - **The tube lens is unchanged from § 6a**, so the composed microscope's field
   performance is still its, not the objective's.
 - **Water immersion and the dry ceiling.** The catalog has dispersive water

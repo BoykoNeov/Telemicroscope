@@ -19,6 +19,7 @@ import {
   hyperhemisphere,
   minimumDomeRadiusMm,
   oilImmersionObjective,
+  planeLayerHeightMm,
 } from "../src/designs/immersion";
 import { listerObjective } from "../src/designs/lister";
 import { infinityCorrectedMicroscope, tubeLens } from "../src/designs/microscope";
@@ -32,8 +33,8 @@ import {
   objectNumericalAperture,
   sineConditionResidual,
 } from "../src/pupil/microscope";
-import { LINE_D } from "../src/materials/dispersion";
-import { getMedium } from "../src/materials/catalog";
+import { LINE_D, constantIndex } from "../src/materials/dispersion";
+import { getMedium, registerMedium } from "../src/materials/catalog";
 import { paraxialTrace } from "../src/trace/paraxial";
 import { Prescription } from "../src/trace/prescription";
 import { traceRay } from "../src/trace/sequential";
@@ -810,6 +811,37 @@ describe("§ 6e.4 — the oil-immersion objective", () => {
     expect(1 / sigma).toBeGreaterThan(45);
   });
 
+  it("the EXTREMA, not the endpoints: the dome's equator and the last micron", () => {
+    // Sweeping NA 1.0 → 1.4 in steps steps OVER the two points where this form is
+    // most likely to break, so they are tested by name instead of interpolated.
+    //
+    // (a) Rim utilisation h/R is scale-free and peaks near 1 — the marginal ray
+    // arriving at the dome's EQUATOR, which is grazing incidence and where the
+    // self-vignetting bug in § 6e.3 actually lived. For D263 the peak is at
+    // NA 1.275, INSIDE the working range and between two of the swept points.
+    let peak = { NA: 0, rim: 0 };
+    for (let NA = 1.0; NA <= 1.408; NA += 0.005) {
+      const rim = objective(NA).frontGroup.hyperhemisphere.rimUtilisation;
+      if (rim > peak.rim) peak = { NA, rim };
+    }
+    expect(peak.NA).toBeCloseTo(1.275, 2);
+    expect(peak.rim).toBeGreaterThan(0.9999);
+    expect(peak.rim).toBeLessThanOrEqual(1);
+    // At the equator it still builds, still delivers its aperture exactly, and is
+    // still diffraction-limited — the cap is a real rim, not a clipped one.
+    const atPeak = objective(peak.NA);
+    expect(objectNumericalAperture(scopeOf(atPeak), LAMBDA)).toBeCloseTo(peak.NA, 7);
+    expect(sigmaOf(scopeOf(atPeak))).toBeLessThan(0.35 * MARECHAL_W);
+    // And the peak is a maximum of h/R, so NA 1.4 sits PAST it on the way down.
+    expect(objective(1.4).frontGroup.hyperhemisphere.rimUtilisation).toBeLessThan(peak.rim);
+
+    // (b) The last micron before the wall: it must fail by THROWING, not by
+    // quietly handing back a build whose marginal ray is outside a rim.
+    expect(objective(1.41).frontGroup.hyperhemisphere.rimUtilisation).toBeLessThan(1);
+    expect(sigmaOf(scopeOf(objective(1.41)))).toBeLessThan(MARECHAL_W);
+    expect(() => objective(1.411)).toThrow(/does not survive this geometry|too shallow for the stack/);
+  });
+
   it("the COVER SLIP HELPS: its spherical partly cancels the rear group's", () => {
     // Counter-intuitive and classical. § 6e.1 says the slip adds spherical
     // aberration; § 6d says the Lister leaves a fifth-order residual. They are of
@@ -948,5 +980,281 @@ describe("§ 6e.4 — the oil-immersion objective", () => {
     expect(minimumDomeRadiusMm({ numericalAperture: 1.25 })).toBeGreaterThan(
       8 * minimumDomeRadiusMm({ numericalAperture: 1.25, coverslipSpec: null }),
     );
+  });
+});
+
+/**
+ * § 6e.5 — the slip TOLERANCE: what refocusing fixes, and what it cannot
+ *
+ * § 6e.4 measured σ with the *nominal* 0.17 mm cover slip. That is the design
+ * point, and a design point is not a tolerance: a real slip is never exactly
+ * nominal, and the § 6e.4 finding that the slip's spherical partly cancels the
+ * Lister's residual makes the flagship's correction depend on a plate it does
+ * not control. This step measures the dependence instead of assuming it either
+ * way, and the answer separates cleanly into three different mechanisms.
+ *
+ * **The model matters more than the number here.** A real immersion objective is
+ * focused by MOVING IT, which changes the thickness of the oil film — the gap is
+ * the focus control. Holding the gap fixed and refocusing only on the image side
+ * is not "a conservative assumption", it is a different instrument, and it gives
+ * answers an order of magnitude out (the negative control below). So the sweeps
+ * refocus the way the closed form says to: hold the stack's paraxial apparent
+ * distance n_g·Σtᵢ/nᵢ — § 6c's own quantity, generalised in § 6e.1 — constant.
+ *
+ * Three mechanisms, and they behave completely differently:
+ *
+ *  1. **Thickness** costs nothing in aberration. The slip and the front element
+ *     are the same glass (§ 6e chose D263 for the front for exactly this
+ *     reason), so (n_slip² − n_out²) = 0 and a thickness error contributes an
+ *     EXACT zero to `stackWavefrontErrorMm` — bit-identical, not merely small.
+ *     A thickness error is therefore a pure axial displacement of the specimen,
+ *     and refocusing is precisely the operation that removes one.
+ *  2. **Thickness does move the delivered APERTURE**, which is not obvious and is
+ *     what actually ends the range. The glass rims are fixed; a thinner slip puts
+ *     the specimen closer to them, so the same rim subtends a WIDER cone. The
+ *     relation is § 6e.2's `planeLayerHeightMm` read backwards, and at NA 1.40 it
+ *     walks the design into § 6e.4's own 1.411 ceiling from below.
+ *  3. **Index** is the tolerance refocusing cannot touch. It breaks the match
+ *     that makes (1) free, so it aberrates — symmetrically, and at NA 1.40 a
+ *     realistic ±0.003 is already outside Maréchal.
+ *
+ * Nothing here is pinned to a published slip tolerance: the pin is the closed
+ * form (refocus = constant apparent distance), which is stronger and is already
+ * in the engine. The nominal 0.17 mm and the No. 1.5 band are context, not pins.
+ */
+describe("§ 6e.5 — the slip tolerance", () => {
+  const TUBE_MM = 200;
+  const MARECHAL_W = 1 / 14;
+  const T0 = 0.17;
+  const N_SLIP = getMedium(FRONT_ELEMENT_MEDIUM).n(LAMBDA);
+  const N_OIL = getMedium(IMMERSION_MEDIUM).n(LAMBDA);
+
+  const objective = (NA: number) =>
+    oilImmersionObjective({
+      magnification: 100,
+      numericalAperture: NA,
+      tubeFocalLengthMm: TUBE_MM,
+    });
+
+  /**
+   * The same objective — same glass, same spacings — with a DIFFERENT slip in
+   * front of it and the oil film set to `gapMm`. Nothing is re-solved: this is a
+   * built instrument meeting a plate it was not designed for.
+   */
+  const withSlip = (
+    o: ReturnType<typeof objective>,
+    thicknessMm: number,
+    gapMm: number,
+    medium?: string,
+  ): OpticalSystem => {
+    const [s0, ...rest] = o.prescription.surfaces;
+    return infinityCorrectedMicroscope({
+      objective: {
+        ...o,
+        objectDistanceMm: thicknessMm,
+        prescription: {
+          ...o.prescription,
+          ...(medium ? { objectMedium: medium } : {}),
+          surfaces: [{ ...s0!, thickness: gapMm }, ...rest],
+        },
+      },
+      tubeLens: tubeLens({ focalLengthMm: TUBE_MM }),
+      objectHeightsMm: [0],
+    }).system;
+  };
+
+  /**
+   * The oil film that keeps the stack's paraxial apparent distance where the
+   * design put it — the closed form for "refocus", not a search. n_g cancels:
+   * Δt/n_slip + Δg/n_oil = 0.
+   */
+  const refocusedGapMm = (o: ReturnType<typeof objective>, t: number): number =>
+    o.frontGroup.hyperhemisphere.immersionGapMm - ((t - T0) * N_OIL) / N_SLIP;
+
+  const sigmaAt = (s: OpticalSystem): number => {
+    const f = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
+    const map = opdMap(withFocus(s, f.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21));
+    expect(map.lost).toBe(0);
+    return map.rmsWaves;
+  };
+
+  it("MECHANISM: a thickness error adds EXACTLY zero stack aberration", () => {
+    // Not "negligible" — the summand carries (nᵢ²−n_out²) as a factor and the
+    // slip IS the front element's glass, so the layer contributes a hard zero and
+    // its thickness cannot appear in the answer at all. Asserted with toBe.
+    const h = objective(1.4).frontGroup.hyperhemisphere;
+    expect(h.coverslip!.medium).toBe(FRONT_ELEMENT_MEDIUM);
+    const nominal = stackWavefrontErrorMm(h.stack, h.glassIndex, 1.4);
+    for (const dt of [-0.02, -0.005, 0.005, 0.02]) {
+      const perturbed = h.stack.map((l, i) =>
+        i === 0 ? { ...l, thicknessMm: l.thicknessMm + dt } : l,
+      );
+      expect(stackWavefrontErrorMm(perturbed, h.glassIndex, 1.4)).toBe(nominal);
+    }
+    // The oil is the only mismatched layer, so it carries the whole residual.
+    const oilOnly = h.stack.filter((l) => l.n !== h.glassIndex);
+    expect(oilOnly.length).toBe(1);
+    expect(stackWavefrontErrorMm(oilOnly, h.glassIndex, 1.4)).toBe(nominal);
+  });
+
+  it("REFOCUSED, the objective holds Maréchal across the whole No. 1.5 band", () => {
+    // Refocused by the closed form — one evaluation per point, no optimiser — σ
+    // never approaches the limit at NA 1.0 or 1.25 across 0.15–0.18 mm, and at
+    // NA 1.0 it is nearly INVARIANT: a ±20 µm slip error moves σ by under 15%,
+    // because to first order it is not an error at all, just a different place
+    // for the specimen to stand.
+    for (const [NA, worst] of [
+      [1.0, 0.10],
+      [1.25, 0.35],
+    ] as const) {
+      const o = objective(NA);
+      for (const t of [0.15, 0.16, 0.165, 0.17, 0.175, 0.18]) {
+        expect(sigmaAt(withSlip(o, t, refocusedGapMm(o, t)))).toBeLessThan(worst * MARECHAL_W);
+      }
+    }
+    const o1 = objective(1.0);
+    const flat = [0.15, 0.16, 0.17, 0.18].map((t) => sigmaAt(withSlip(o1, t, refocusedGapMm(o1, t))));
+    expect(Math.max(...flat) / Math.min(...flat)).toBeLessThan(1.15);
+  });
+
+  it("NEGATIVE CONTROL: refocus on the IMAGE side alone is a different instrument", () => {
+    // The same slip errors with the oil film held fixed — i.e. pretending the
+    // focus knob does not move the objective. σ blows through Maréchal within a
+    // couple of microns. This is the rung that makes the one above mean
+    // something: the tolerance measured is a property of the refocus model as
+    // much as of the glass, and picking the wrong model is worth an order of
+    // magnitude in the answer.
+    for (const NA of [1.25, 1.4]) {
+      const o = objective(NA);
+      const g0 = o.frontGroup.hyperhemisphere.immersionGapMm;
+      const fixed = sigmaAt(withSlip(o, T0 + 0.005, g0));
+      const moved = sigmaAt(withSlip(o, T0 + 0.005, refocusedGapMm(o, T0 + 0.005)));
+      expect(fixed).toBeGreaterThan(MARECHAL_W);
+      expect(fixed).toBeGreaterThan(4 * moved);
+    }
+    // At NA 1.40, +5 µm of slip with the film held fixed is already 3× the whole
+    // budget — and under half of it once the objective is allowed to move.
+    const o = objective(1.4);
+    expect(sigmaAt(withSlip(o, 0.175, o.frontGroup.hyperhemisphere.immersionGapMm))).toBeGreaterThan(
+      3 * MARECHAL_W,
+    );
+    expect(sigmaAt(withSlip(o, 0.175, refocusedGapMm(o, 0.175)))).toBeLessThan(0.5 * MARECHAL_W);
+  });
+
+  it("the delivered NA is SLIP-DEPENDENT, and that is what ends the range", () => {
+    // The finding of this step. The stop is a fixed rim at a fixed plane, sized
+    // from the nominal slip; the specimen sits on the slip's underside. Thin the
+    // slip and the specimen moves CLOSER to that rim, so the same rim subtends a
+    // wider cone — the objective delivers more NA than its label. The relation is
+    // § 6e.2's `planeLayerHeightMm` inverted, with no new physics in it:
+    //
+    //     h = t·tanθ,  NA = n_slip·sinθ   ⟹   NA(t) = n_slip·h / √(t² + h²)
+    //
+    const o = objective(1.4);
+    const h = o.stopRadiusMm;
+    expect(h).toBeCloseTo(planeLayerHeightMm([{ thicknessMm: T0, n: N_SLIP }], 1.4), 12);
+    const predictedNA = (t: number) => (N_SLIP * h) / Math.hypot(t, h);
+    for (const t of [0.1625, 0.165, 0.17, 0.18]) {
+      const traced = objectNumericalAperture(withSlip(o, t, refocusedGapMm(o, t)), LAMBDA);
+      expect(Math.abs(traced / predictedNA(t) - 1)).toBeLessThan(2e-4);
+    }
+    // Monotone, and signed the surprising way: THINNER slip, HIGHER aperture.
+    expect(predictedNA(0.16)).toBeGreaterThan(1.4);
+    expect(predictedNA(0.18)).toBeLessThan(1.4);
+
+    // And it is the mechanism that ends the thin side: § 6e.4 measured a ceiling
+    // at NA 1.411, and the slip thickness at which the delivered NA reaches it is
+    // a closed form — 0.1613 mm, i.e. only 8.7 µm thin. PREDICTED first, then the
+    // tracer is asked, and it starts losing rays across exactly that thickness.
+    const tCeiling = Math.sqrt(((N_SLIP * h) / 1.411) ** 2 - h * h);
+    expect(tCeiling).toBeCloseTo(0.1613, 4);
+    expect(T0 - tCeiling).toBeGreaterThan(0.008);
+    const lostAt = (t: number): number => {
+      const s = withSlip(o, t, refocusedGapMm(o, t));
+      const f = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
+      return opdMap(withFocus(s, f.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21)).lost;
+    };
+    expect(lostAt(tCeiling + 0.0012)).toBe(0);
+    expect(lostAt(tCeiling - 0.0013)).toBeGreaterThan(0);
+    // Below NA 1.25 the same effect exists but reaches nothing: the delivered
+    // aperture at the thin end of the band is still far under the ceiling.
+    const o125 = objective(1.25);
+    const h125 = o125.stopRadiusMm;
+    expect((N_SLIP * h125) / Math.hypot(0.15, h125)).toBeLessThan(1.3);
+  });
+
+  it("the THICK end is bounded by the oil film, not by aberration", () => {
+    // Refocusing a thicker slip means a thinner film, and the film runs out
+    // before the wavefront does: at 0.19 mm the closed form asks for 0.11 µm of
+    // oil, which is optical contact and not a film. So the thick-side limit is
+    // set by `immersionGapMm` — 20 µm here against the ~130 µm a real 100×/1.4
+    // carries — and it is a knob, not a property of the form. Asserting the bound
+    // rather than only writing it down, so a later reader cannot cite the σ at
+    // 0.19 mm as though a 110 nm film were a working instrument.
+    const o = objective(1.4);
+    const g0 = o.frontGroup.hyperhemisphere.immersionGapMm;
+    expect(g0).toBeCloseTo(0.02, 12);
+    expect(refocusedGapMm(o, 0.19)).toBeLessThan(0.0002);
+    // Held to a film of at least 5 µm, the usable thick side is +15 µm…
+    const usable = [0.175, 0.18, 0.185].filter((t) => refocusedGapMm(o, t) >= 0.005);
+    expect(usable).toEqual([0.175, 0.18, 0.185]);
+    for (const t of usable) {
+      expect(sigmaAt(withSlip(o, t, refocusedGapMm(o, t)))).toBeLessThan(MARECHAL_W);
+    }
+    // …and it is the FILM that stops it, not σ: the wavefront at the last
+    // physically sensible film is still comfortably inside the budget.
+    expect(sigmaAt(withSlip(o, 0.185, refocusedGapMm(o, 0.185)))).toBeLessThan(0.7 * MARECHAL_W);
+  });
+
+  it("INDEX is the tolerance refocusing cannot fix", () => {
+    // Mechanism (3). Changing n_slip breaks the match that made thickness free,
+    // so the slip becomes a mismatched layer and aberrates — symmetrically in the
+    // sign of Δn, unlike thickness, and not removable by any axial motion. At
+    // NA 1.40 a ±0.003 slip — inside real batch variation — is already outside
+    // Maréchal, which makes index the binding tolerance of this design.
+    const nd = getMedium(FRONT_ELEMENT_MEDIUM).n(LAMBDA);
+    for (const dn of [-0.003, 0.003]) {
+      registerMedium(constantIndex(`SLIP-6e5${dn}`, nd + dn));
+    }
+    const o = objective(1.4);
+    const g0 = o.frontGroup.hyperhemisphere.immersionGapMm;
+    const nominal = sigmaAt(withSlip(o, T0, g0));
+    const lo = sigmaAt(withSlip(o, T0, g0, "SLIP-6e5-0.003"));
+    const hi = sigmaAt(withSlip(o, T0, g0, "SLIP-6e50.003"));
+    expect(nominal).toBeLessThan(0.35 * MARECHAL_W);
+    expect(lo).toBeGreaterThan(MARECHAL_W);
+    expect(hi).toBeGreaterThan(MARECHAL_W);
+    // Symmetric to ~5%, which is what distinguishes it from a displacement: a
+    // displacement is signed, a broken index match is not.
+    expect(Math.abs(lo / hi - 1)).toBeLessThan(0.05);
+    // At NA 1.25 the same ±0.003 is survivable — the cost climbs with aperture,
+    // so index tolerance is part of what a higher-NA design spends to get there.
+    const o125 = objective(1.25);
+    const g125 = o125.frontGroup.hyperhemisphere.immersionGapMm;
+    expect(sigmaAt(withSlip(o125, T0, g125, "SLIP-6e50.003"))).toBeLessThan(MARECHAL_W);
+  });
+
+  it("MEASURED, NOT ACTED ON: the placement solve is off its own optimum", () => {
+    // The specimen is placed at the dome's paraxial Weierstrass point. That is
+    // exact for the dome alone, but the objective it sits in also carries the
+    // oil's mismatch and § 6d's fifth-order residual, and the σ optimum is
+    // displaced from the paraxial point by well under a micron of apparent
+    // distance — worth an order of magnitude at NA 1.0–1.25.
+    //
+    // Recorded rather than fixed: moving the placement would re-solve every
+    // number in §§ 6e.2–6e.4, and it is the same open item as correcting for the
+    // stack deliberately (§ 6c's `targetS1Mm`). What is pinned here is that the
+    // gain EXISTS and roughly how big it is, so the later step has a target.
+    for (const [NA, minGain] of [
+      [1.0, 5],
+      [1.25, 8],
+    ] as const) {
+      const o = objective(NA);
+      const g0 = o.frontGroup.hyperhemisphere.immersionGapMm;
+      const asBuilt = sigmaAt(withSlip(o, T0, g0));
+      // A shift of the specimen alone, in units of apparent distance: ~0.8 µm.
+      const better = sigmaAt(withSlip(o, T0, g0 + (0.0008 * N_OIL) / N_SLIP));
+      expect(asBuilt / better).toBeGreaterThan(minGain);
+    }
   });
 });

@@ -279,8 +279,28 @@
    spherical aberration is opposite in sign to the Lister's residual, so the
    objective with its slip is 1.7× better corrected than the same one in a matched
    bath — § 6c's "worse than not correcting at all", arriving where it bites.
-   **Open:** correcting for the stack deliberately rather than by luck of sign,
-   the correction collar, water immersion, off-axis, and the chromatic half.
+   *The slip tolerance:* ✅ (§ 6e.5) — because the rung above makes the correction
+   depend on a plate the objective does not control. It splits three ways. A
+   **thickness** error costs *exactly* zero aberration (slip and front element are
+   both D263, so the layer's (n²−n_out²) factor is identically zero) — it is a pure
+   axial displacement, and refocusing removes it: σ holds across 0.15–0.18 mm and
+   is nearly flat at NA 1.0. That claim is conditional on refocusing the way the
+   instrument does, by **moving the objective and changing the oil film**; with the
+   film pinned instead, σ crosses Maréchal within ±1.6 µm at NA 1.40. **A thickness
+   error does change the delivered NA**, though: the rims are fixed glass, so a
+   thinner slip puts the specimen closer to them and the same rim subtends a wider
+   cone — 1.4126 at 0.160 mm on an objective labelled 1.40. That is what ends the
+   thin side, and it is *predicted*: the delivered NA reaches § 6e.4's own 1.411
+   ceiling at a slip of 0.1613 mm, and the tracer starts losing rays across exactly
+   there — a third mechanism arriving at the same wall, this time from below. The
+   binding tolerance is **index**, which no refocus touches: ±0.003 is 1.9× the
+   budget at NA 1.40. Also measured and deliberately left alone: the paraxial
+   Weierstrass placement sits ~0.8 µm off its own σ optimum, worth 9–16×.
+   **Open:** correcting for the stack deliberately rather than by luck of sign
+   (§ 6e.5 hands that step a measured target), the correction collar — whose job
+   turns out to be index and NA drift, not thickness — a realistic oil film
+   (20 µm here against a real ~130 µm), water immersion, off-axis, and the
+   chromatic half.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
