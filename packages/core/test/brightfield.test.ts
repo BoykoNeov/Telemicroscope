@@ -34,8 +34,10 @@ const GRATING: ObjectField = cosineGratingObject({
  *
  * Not a physical field curvature — a stand-in with the one property the rungs
  * need, which is that the two edges of the frame have different, exactly known
- * pupils. Real field dependence arrives with the object-space field mapping the
- * module header defers.
+ * pupils. Real field dependence arrives through `imaging/object-field` (§ 6h),
+ * and § 6h.5 runs these same rungs on a traced DIN 4× — where the convergence
+ * ratio is 0.50 against this fixture's just-under-0.4, so what a labelled ramp
+ * fixes is the shape and not the rate.
  */
 const DEFOCUS_AT_LEFT = 0.1;
 const DEFOCUS_AT_RIGHT = 0.9;
