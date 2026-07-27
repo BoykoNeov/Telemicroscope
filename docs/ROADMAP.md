@@ -172,8 +172,9 @@
    image degrading as the budget predicts.
 6. **Microscope branch** ← current
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
-   oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence; coverslip
-   mismatch ✅ (§ 6c); scenes: diatoms, stained tissue, fluorescent beads.
+   oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i);
+   coverslip mismatch ✅ (§ 6c); scenes: fluorescent beads ✅ (§ 6i.5), with
+   diatoms and stained tissue still open.
    "Mostly configuration + domain models on the existing engine" held for the
    optics and did **not** hold for brightfield — see § 6f.
    *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
@@ -335,9 +336,10 @@
    *traced* pupils of § 6a's 4×/0.10 and § 6d's Lister, where the cutoff does not
    move and contrast falls in wavefront order. **Open:** the scenes themselves
    (diatoms, stained tissue, beads) and the bridge into `imaging/render` —
-   `abbeImage` is one isoplanatic patch; fluorescence, which is the *easy* half
-   since a fluorescent specimen is self-luminous; polychromatic brightfield; a
-   non-uniform source. The named deferral that the geometric PSF branch has no
+   `abbeImage` is one isoplanatic patch; fluorescence, called the *easy* half here
+   because a fluorescent specimen is self-luminous — which it was, and § 6i also
+   turned it into this step's own proof; polychromatic brightfield; a non-uniform
+   source. The named deferral that the geometric PSF branch has no
    notion of coherence at all, exactly as § 5d's seeing does not, **now detects
    itself** (§ 6f.9): brightfield cannot cross-fade the way the PSF does — a ray
    histogram has no phase to interfere with — so it *rules* instead of blending,
@@ -414,6 +416,36 @@
    is carried in the pupil assignment only), telecentricity — § 6a's object-space
    ray-aiming blocker, inherited — pupil aberration, and a field wide enough to
    need many patches.
+   *Fluorescence — the specimen that emits:* ✅ `imaging/fluorescence` (§ 6i), the
+   step's last named deliverable. A fluorophore has no phase memory of the field
+   that excited it and none of its neighbours, so the emitters are incoherent **by
+   nature**, the image is a plain convolution, and there is no condenser in the
+   expression at all. The step's content is that this is *proved against the
+   engine's own partial-coherence machinery* rather than asserted: when the
+   condenser's lattice steps by the pupil's own frequency step and reaches past
+   1 + B, the Abbe sum's order-pair bracket becomes a discrete autocorrelation and
+   the sum **collapses to a convolution** — matched to f64 noise, and **at m = 1
+   as well as m → 0**, so § 6f.4's 11.2% nonlinearity does not shrink here, it is
+   identically absent. Two smaller findings came out of the same lattice. The
+   transfer is a **point count**, exactly — which turns the departure from § 2b's
+   closed form into the Gauss circle problem (1.4e-4, 7.9e-4, 8.5e-5 as the
+   lattice refines: up, then down, so no rate is claimed) and explains the 1/797
+   the engine reads at ν = 2, where the tangency of the two discs happens to be a
+   lattice point. And fluorescence reaches `wave/mtf`'s ν = 2 cutoff **with no
+   condenser in the instrument**, where § 6f.1 needed a matched one and a closed
+   diaphragm stopped at ν = 1. The partition of unity goes back on the **input**
+   and is exact there (1e-12, any patch count) where § 6g.2's output-side one was
+   forced and cost 89% of the interference — two operators, opposite sides, and
+   the reason is the specimen rather than the optics. **Beads are the first
+   specimen for an engine reason:** a point emitter is placed through its own
+   traced chief ray, so distortion is carried and § 6h's unbuilt warped-grid
+   rasterizer is not needed — which is exactly what a stained-tissue field would
+   need. **No verdict is minted** (§ 6f.9's asymmetry, stated: incoherent imaging
+   *has* a geometric branch) and no fluorophore is named — real dye spectra are
+   measured data. **Open:** the Stokes shift and the emission band (the λ_ex→λ_em
+   focus offset against depth of focus, and secondary spectrum across the band),
+   out-of-focus haze from a 3-D specimen — the thing that makes deconvolution and
+   confocal mean something — colour, and the remaining scenes.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

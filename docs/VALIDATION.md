@@ -54,6 +54,7 @@ whole ladder.
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
 | [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; the 0.61·λ/NA_cond coherence width measured; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
+| [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -4348,6 +4349,204 @@ clear its own glass at every frame corner (`lost === 0`).
   — 47 µm of specimen — because the frame's extent is proportional to it and the
   transform cost is quadratic. The convergence ratio is measured there and
   nothing pins that it holds at a field ten times wider.
+
+## Step 6i — fluorescence: the specimen that emits
+
+§ 6f's brightfield specimen emits nothing — it modulates a beam, so whether two
+of its points interfere depends on where their light came from, and the image is
+nonlinear in the object's intensity. A fluorophore is the opposite in every one
+of those clauses. It absorbs a photon and emits a new one, spontaneously, with no
+phase memory of the exciting field and none of its neighbours, so the emitters
+are **mutually incoherent by nature**, their intensities add, and the image is a
+plain convolution:
+
+    I(x) = h(x) ⊛ E(x),     h = |F⁻¹{P}|²
+
+with E the emitter density. There is no condenser in that line, and no S. This
+step's whole content is that the claim is *provable against the engine's own
+partial-coherence machinery* rather than asserted, and that the proof is exact.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A lattice-matched source past 1 + B makes the Abbe sum exactly incoherent** | identity, < 1e-12, cross-module | ✅ |
+| …at m = 1 as well as m = 0.2 — § 6f.4's nonlinearity **vanishes** | linearity in emitter density, 1e-12 | ✅ |
+| A source that stops at S = 1 (or 0.5) is measurably NOT that limit | negative control, > 5% | ✅ |
+| An overfilled condenser images a clear field at transmitting/source points | counted, 1e-12 | ✅ |
+| `latticeMatchedSource` throws on a fractional count rather than rounding | no silent caps | ✅ |
+| A grid too small for the pupil throws rather than truncating it | § 6f.3's discipline | ✅ |
+| An unmatched lattice converges: 2.5e-2 → 2.0e-3 over N = 9 → 65 | § 6f.2's rim convergence | ✅ |
+| **The measured transfer IS the lattice point count**, at every ν | identity, 1e-12 | ✅ |
+| …and tracks `incoherentTransfer` — § 2b's closed form, nothing new minted | closed form, 2 places | ✅ |
+| The departure from it does NOT fall monotonically with the lattice | Gauss circle problem | ✅ |
+| Transfer reaches ν = 2 — `wave/mtf`'s cutoff — with no condenser at all | § 6f.1's own ceiling | ✅ |
+| At ν = 2 exactly the engine reads 1/797: the tangency IS a lattice point | counted, 1e-12 | ✅ |
+| A closed condenser transfers 0 at ν = 1.5 where fluorescence transfers 0.14 | § 6f's coherent cliff | ✅ |
+| **The input-side partition of unity is EXACT here** at any patch count | Σ w ≡ 1 + linearity, 1e-12 | ✅ |
+| Light is conserved: the image holds exactly the emitted power | Σh = 1, 1e-12 | ✅ |
+| With a varying pupil, refining the patches converges | convergence | ✅ |
+| A bead is placed by its own traced chief ray, splat weights to f64 | § 6h's forward map | ✅ |
+| The corner's traced pupil gives a lower-peaked kernel than the axis's | § 6h.5's corner coma | ✅ |
+| Brightfield's phase contrast is **second order** in φ — 1.9994, and 2.000 without the top point | § 6f.5's null, as an order | ✅ |
+| The same structure labelled images at the full incoherent transfer | closed form, 1e4× separation | ✅ |
+
+### 6i.1 — partial coherence becomes a convolution, and the convolution is fluorescence's
+
+Expanding the Abbe sum over object-spectrum pairs leaves each pair (u₁, u₂)
+weighted by Σ_s P(u₁+s)·P*(u₂+s). The image is a convolution exactly when that
+bracket depends only on u₁ − u₂, and two **geometric** conditions make it do so:
+
+1. **The source reaches past 1 + B**, B being the object spectrum's outer radius
+   in pupil-radius units. Every s contributing at all has |s| ≤ 1 + B, so a disc
+   of that radius already contains every pair's whole overlap region.
+2. **The source lattice steps by the pupil's own frequency step**, 2/pupilSamples.
+   Translating s by u₁ − u₂ — a whole number of frequency bins — then maps the
+   lattice onto itself, and the bracket becomes a genuine discrete
+   autocorrelation of the sampled pupil. By discrete Wiener–Khinchin that
+   autocorrelation is the DFT of |F⁻¹{P}|², which is h.
+
+`latticeMatchedSource` constructs the condenser that satisfies condition 2 —
+S·pupilSamples points across the diameter — and **throws rather than rounding**,
+because a rounded count still produces a perfectly plausible image whose
+disagreement with the incoherent limit would read as physics. Under both
+conditions the two modules return **the same array to f64 noise**, and the rung
+runs at m = 1 as well as m = 0.2: § 6f.4 measured brightfield's normalized
+transfer walking 11.2% *away* from the weak-object limit at m = 1, and here that
+walk does not shrink, it is identically absent. Nothing is left for m to enter.
+
+The negative control matters as much: at S = 1 — a matched condenser, the way a
+brightfield microscope is normally run — the same object images more than 5%
+differently, so the identity is not true by construction.
+
+**Why the comparison is made against each operator's own clear field.** Once the
+condenser overfills the objective the clear field images *below* 1: source points
+outside the pupil deliver light the objective never collects. The share is
+**counted** rather than integrated — transmitting lattice points over source
+points, 0.4029 here — and both numbers are ones the engine already reports. The
+fluorescence operator has no such loss, because its kernel is normalized to unit
+sum and a uniform emitter field images as itself at any aperture.
+
+**One implementation choice is load-bearing.** `incoherentPsf` samples the pupil
+the way `abbeImage` does — point-sampled on the DFT lattice — and NOT the way
+`wave/psf` does, which area-averages the cells the rim cuts (§ 6f's "one
+deliberate difference"). Convolving with a `wave/psf` kernel instead would have
+measured that rim mismatch, a residual near 1e-3 that looks exactly like a real
+disagreement about coherence and is nothing of the kind. The only difference
+between the two modules is the sum over source points, which is what makes this a
+1e-12 identity instead of an argument.
+
+### 6i.2 — what an unmatched source lattice costs
+
+A condenser that does not satisfy condition 2 is not wrong, it is discretized.
+The residual against the incoherent limit runs 2.47e-2 → 1.99e-2 → 6.03e-3 →
+1.97e-3 for N = 9, 17, 33, 65 — falling, and by 12× overall. The first doubling
+barely moves it, which is § 6f.2's own finding arriving here: the error is a rim
+effect and its ratios are not monotone doubling-by-doubling. The rung pins the
+total and the endpoint rather than claiming a halving it does not have.
+
+### 6i.3 — the transfer is a lattice point count, and the cutoff needs no condenser
+
+The autocorrelation of a point-sampled clear pupil is a **count**: lattice points
+that the pupil and its ν-shifted copy both transmit, over the points the pupil
+transmits. The test writes that count out independently and the engine matches it
+to 1e-12 at every frequency — so this step's discretization is not a tolerance
+nobody can account for, it is an integer ratio.
+
+That identity then *explains* the departure from the closed form instead of
+excusing it. Refining the lattice at fixed ν gives errors of 1.4e-4, 7.9e-4,
+8.5e-5 for pupilSamples 16, 32, 64 — **up, then down**. That is the Gauss circle
+problem: the number of lattice points in a disc oscillates about its area, so a
+rung asserting "smaller every time" would be pinning the fluctuation. What is
+pinnable is the bound (< 1e-3) plus the exactness of the count at each.
+
+**The cutoff is ν = 2 — `wave/mtf`'s own — and fluorescence is there with no
+condenser in the instrument.** § 6f.1 measured brightfield needing a matched
+condenser (S = 1) to reach it and a closed diaphragm stopping at ν = 1; the two
+limits are put side by side on one frequency, where a coherent source transfers
+< 1e-12 at ν = 1.5 and fluorescence transfers 0.142. No new λ/NA-family constant
+is minted anywhere in this step: `incoherentTransfer` is § 2b's closed-form
+circular MTF and the measurement lands on it.
+
+At ν = 2 exactly the engine reads **1/797** where the closed form reads 0. The
+two discs are tangent there, and the tangency point is *on the lattice* because
+the pupil radius is a whole number of steps — so one point survives the count.
+Pinned as 1/`transmittingSamples`, which is the discretization made visible
+rather than absorbed. Past tangency the image is flat to f64.
+
+### 6i.4 — the window goes back on the input, and here it is exact
+
+`imaging/render` windows the scene and says why; `imaging/brightfield` windows
+the output and says why it must. `renderFluorescence` windows the **input**, for
+`render.ts`'s reason: the imaging is linear in the emitter density, so splitting
+the emitters splits the light and every photon meets the kernel nearest to where
+it was emitted. The partition of unity then makes the decomposition **exact** —
+Σ_p h ⊛ (w_p·E) = h ⊛ E — pinned to 1e-12 at 2, 4 and 8 patches, where § 6g.2
+measured the same split *deleting* 89% of the interference in the brightfield
+case. So the two microscope renders window opposite sides, and the reason is a
+property of the specimen rather than of the optics.
+
+Light is conserved to f64: the kernel sums to 1 and the windows sum to 1, so
+neither the optics nor the decomposition may invent or lose a photon. Circular
+convolution is what makes that exact rather than edge-limited — light leaving one
+side of the frame returns on the other, the wrap step 4's app surfaces rather
+than hides. With a genuinely varying pupil the decomposition is no longer exact
+and the residual is measured as convergence, § 6g.3's discipline unchanged.
+
+### 6i.5 — a traced objective, and why beads are the first specimen
+
+`tracedFieldPupils` is consumed unchanged from § 6h: a `PatchPupil`'s `sampling`
+is simply unused here, because **no fidelity verdict is minted**. § 6f.9 had to
+rule instead of blending since a ray histogram has no phase to interfere with, so
+brightfield has no geometric branch to fall back to. Incoherent imaging does —
+`adaptivePsf`, cross-faded since § 2d — so fluorescence needs no new verdict, and
+that asymmetry is the point rather than an omission.
+
+**Beads are the first specimen for an engine reason, not a biological one.** A
+point emitter is placed individually through its own traced chief ray, so the
+objective's distortion is carried in the placement — and § 6h's unbuilt
+distortion-carrying rasterizer, the one a stained-tissue field would need, is not
+required. The splat weights are pinned to f64 against the traced position. On the
+same objective the corner's traced pupil gives a lower-peaked kernel than the
+axis's (the kernel has unit sum, so its peak is a Strehl-like readout), which is
+§ 6h.5's 8.8e-3 waves of corner coma showing up in an image — and the drop is
+under 1%, as it must be at 47 µm of specimen.
+
+### 6i.6 — the object brightfield structurally cannot see
+
+§ 6f.5's null is why stains exist. This is the other answer to it. A pure phase
+grating's brightfield contrast is **second order in φ** — the fitted order is
+1.99943 over φ = 0.01…0.1, and 2.000 to three places with the top point dropped,
+the residual being the genuine φ⁴ term that `phaseGratingObject` carries exactly
+(all Bessel orders, not the weak truncation). So what brightfield shows of a
+phase object is not a faint image of it, it is the object's *square*: 2.2e-5 of
+contrast at φ = 0.01 rad.
+
+Label the same structure and it images at the full incoherent transfer, linear in
+the label's modulation and on § 2b's closed form — more than 10⁴× the unlabelled
+phase object's contrast. What fluorescence images is the emitter density, and a
+tagged phase object has one.
+
+### Not yet pinned
+- **The Stokes shift, and the emission band.** Every rung here is
+  monochromatic. The excitation wavelength never enters the imaging path at all
+  (the emission filter blocks it), so resolution is set by λ_em — architecture
+  rather than physics — but two real effects are unpinned: the axial focus offset
+  between λ_ex and λ_em against the depth of focus, and the objective's secondary
+  spectrum across a finite emission band. Both are § 2e's stacking on a band and
+  neither is built.
+- **No fluorophore is named.** Real excitation/emission spectra are measured data
+  and transcribing a dye's curve from memory is what the hard rule forbids. The
+  band is an input parameter, following § 5s's precedent with the photometric zero
+  point: pin the ratios, not an invented absolute.
+- **Out-of-focus haze.** A real widefield fluorescence image is dominated by
+  light from emitters *outside* the focal plane — which is why deconvolution and
+  confocal exist. It needs a defocused pupil per z slice and a z stack of emitter
+  planes; this operator images one plane.
+- **Photobleaching, saturation, quantum yield and shot noise**, each blocked on
+  the same thing: an absolute photon count, § 3a's standing deferral. Emitter flux
+  here is relative, exactly as `PointSource.flux` is.
+- **Colour.** `renderFluorescence` returns intensity on one grid where
+  `renderField` returns XYZ. A two-colour merge is what a real fluorescence figure
+  shows, and it wants the emission band first.
 
 ## Later rungs
 
