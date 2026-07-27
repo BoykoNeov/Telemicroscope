@@ -2709,8 +2709,8 @@ explicitly because § 1's D263 commit had to fix exactly this class of thing
 - **High NA needs a different glass form.** F = 1/(2·NA) is a function of NA
   alone, so NA 0.25 is an f/2 doublet — where the third-order solve's neglected
   higher orders dominate and the design stops being a design. The computed member
-  is honestly the low-power, low-NA objective. The Lister two-doublet and the
-  **aplanatic immersion front** (hemisphere + Weierstrass meniscus, stigmatic by
+  is honestly the low-power, low-NA objective. The Lister two-doublet (§ 6d — an
+  aplanat, but it stops at NA 0.343) and the **aplanatic immersion front** (hemisphere + Weierstrass meniscus, stigmatic by
   the aplanatic-points closed form, and where the § 1 oil and D263 start doing
   work) are the named follow-ons.
 
@@ -3005,8 +3005,13 @@ objective's own fifth-order residual** of 5.9e-2 waves. The bending really does
 move (0.04% of the curvature, resolvable and pinned), and it really is optically
 irrelevant. A 4×/0.10 is coverslip-*insensitive*, which is why low-power
 objectives are not fussy about cover glass, and the ladder now says so with a
-number instead of leaving it implied. The wiring is what matters here; it becomes
-load-bearing when the Lister carries NA past 0.4.
+number instead of leaving it implied. The wiring is what matters here.
+
+**A prediction this paragraph originally carried, now falsified.** It said the
+wiring "becomes load-bearing when the Lister carries NA past 0.4". It does not:
+[§ 6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets)
+measured two cemented doublets walling out at NA 0.343, identically for a second
+glass pair. The wiring waits on the aplanatic front element instead.
 
 ### 6c.3 — mismatch
 
@@ -3213,10 +3218,19 @@ that no makeable joint root survives, not that the wavefront has degraded.
 | Rung | Pinned to | Status |
 |---|---|---|
 | The joint solve holds at every k ∈ {0.3 … 0.8} and separation ∈ {0.3 … 0.9}·f | a form, not a lucky split | ✅ |
-| **N-BK7/F2 walls out at NA 0.345; fused silica/F2 at 0.386** | neither reaches 0.4 | ✅ |
+| **N-BK7/F2 walls out at NA 0.343; fused silica/F2 at 0.383** | neither reaches 0.4 | ✅ |
 | d·k(1−k) < f/4 is enforced in closed form, with its own message | the combination limit | ✅ |
 | Crown-first at both groups does not solve at all at the default split | orientation is a choice, not an inference | ✅ |
 | …and flint/crown is BETTER on axis than the default flint/flint | recorded trade: it reaches 0.245 against 0.273 | ✅ |
+
+Measured by a direct scan of NA, not a bisection: solvability has one small gap
+and is not quite monotone, so a bisection's answer depends on its bracket. Both
+winning (k, separation) pairs at the ceiling are **interior** to the grid — (0.5,
+0.3) and (0.6, 0.7) — and extending the grid to k = 0.9 and separations of 2.2·f
+moves neither number, so the ceiling is not an artifact of the search. It IS
+conditioned on the glass thickness rules (`achromaticObjective`'s 0.10D/0.06D
+floors) and on `glassMarginFactor` 1.15: looser thicknesses reach slightly
+further, and the numbers travel with those conventions.
 
 Two glass pairs walling out together is what makes this a statement about the
 **form**. It is the third piece of evidence for the aplanatic front element, after

@@ -117,11 +117,18 @@ describe("§ 6d.1 — the aplanatic points of a single sphere (what aplanatic ME
     expect(ap.virtualImageDistanceMm).toBeCloseTo(R * (n1 + 1), 12);
     expect(ap.objectDistanceMm).toBeCloseTo((R * (n1 + 1)) / n1, 12);
 
+    // A ray through the VERTEX (y = 0 at surface 0) with slope −h/s is at height
+    // +h back in the object plane, so the image height it reaches divided by h is
+    // the magnification WITH ITS SIGN. Seeding +h/s instead would measure −m and
+    // hide a genuine sign error in `ap.magnification`, which the hyperhemisphere
+    // unit will consume.
     const h = 1e-4;
-    const chief = paraxialTrace(bare, LAMBDA, { y: 0, u: h / ap.objectDistanceMm });
+    const chief = paraxialTrace(bare, LAMBDA, { y: 0, u: -h / ap.objectDistanceMm });
     const m = (chief.y + chief.u * traced) / h;
-    expect(m).toBeCloseTo(-n1 * n1, 6);
-    expect(ap.magnification).toBeCloseTo(n1 * n1, 12);
+    // Erect and magnified by n₁²: a virtual image, the same way up as the object.
+    expect(m).toBeCloseTo(n1 * n1, 6);
+    expect(m).toBeGreaterThan(0);
+    expect(ap.magnification).toBeCloseTo(m, 6);
   });
 
   /** Where the emergent ray's LINE crosses the axis — negative, being virtual. */
@@ -403,8 +410,8 @@ describe("§ 6d.5 — the split is STATED, and the ceiling is a fact about the F
           }
         }),
       );
-    expect(ceilingFor("N-BK7")).toBeCloseTo(0.3453, 2);
-    expect(ceilingFor("FUSED-SILICA")).toBeCloseTo(0.3855, 2);
+    expect(ceilingFor("N-BK7")).toBeCloseTo(0.3433, 2);
+    expect(ceilingFor("FUSED-SILICA")).toBeCloseTo(0.3833, 2);
     expect(ceilingFor("N-BK7")).toBeLessThan(0.4);
     expect(ceilingFor("FUSED-SILICA")).toBeLessThan(0.4);
   });

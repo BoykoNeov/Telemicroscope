@@ -103,9 +103,11 @@ import {
  * NA 0.25 is an f/2 doublet, where the third-order solve's neglected higher
  * orders dominate and the design stops being a design. So the computed member is
  * the **low-power, low-NA** objective, which is the honest range for this glass
- * form; the Lister two-doublet and the aplanatic immersion front are the named
- * follow-ons, and the latter is where the dispersive oil and D263 already in the
- * catalog (§ 1) start doing work.
+ * form; the Lister two-doublet (`designs/lister`, § 6d) and the aplanatic
+ * immersion front are the named follow-ons. The Lister has since landed and is an
+ * aplanat where this is not — but it walls out at NA 0.343, so it is the immersion
+ * front that carries the high apertures, and that is where the dispersive oil and
+ * D263 already in the catalog (§ 1) start doing work.
  *
  * Also NOT modelled here, and deliberately: real objectives put the aperture stop
  * at the **back focal plane**, which makes them object-space telecentric — chief

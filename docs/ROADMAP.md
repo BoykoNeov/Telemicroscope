@@ -224,7 +224,7 @@
    *stated* parameters — the solve holds across k ∈ [0.3, 0.8], so the aplanat is
    a property of the form rather than of a lucky pick.
    **The ceiling, measured, and it revises the prediction above:** two cemented
-   doublets wall out at NA 0.345 (N-BK7/F2) and 0.386 (fused silica/F2) — the same
+   doublets wall out at NA 0.343 (N-BK7/F2) and 0.383 (fused silica/F2) — the same
    for both pairs, so it is the FORM, not the glass. The Lister does *not* carry NA
    past 0.4, and § 6c's slip wiring therefore waits on the aplanatic front element
    instead. That element is the next unit, and § 6d.1 already pins the closed form

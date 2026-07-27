@@ -1,5 +1,5 @@
 import { Prescription, SurfaceSpec, reversePrescription } from "../trace/prescription";
-import { paraxialTrace, systemProperties } from "../trace/paraxial";
+import { systemProperties } from "../trace/paraxial";
 import { collimatingObjectDistance, spliceModules } from "../trace/compose";
 import { getMedium } from "../materials/catalog";
 import { LINE_D } from "../materials/dispersion";
@@ -75,8 +75,8 @@ import { DEFAULT_TUBE_FOCAL_LENGTH_MM } from "./microscope";
  *
  * Solved: the two bendings, and with them the specimen plane, the glass
  * diameters and the power scale. The defaults are not an optimum — § 6d pins
- * that the joint solve holds across k ∈ [0.3, 0.8] and separations from 0.2 to
- * 1.6·f, **with a genuine hole at k = 0.7 where no sane root exists**, and which
+ * that the joint solve holds across k ∈ [0.3, 0.8] and separations from 0.3 to
+ * 0.9·f, and which
  * orientation pair wins on cancellation is itself k-dependent. So the aplanat is
  * a property of the form over a range of splits, not of a lucky pick; making the
  * split an argmin over a grid would have made the published numbers artifacts of
@@ -91,9 +91,16 @@ import { DEFAULT_TUBE_FOCAL_LENGTH_MM } from "./microscope";
  * both bendings, cells where **both** sums change sign, a damped 2D Newton in
  * each, then the sanity filter (no surface hemispherical or steeper, no cement
  * with a negative edge). Every surviving root is reported in `roots`; the one
- * built is the one whose surfaces cancel least violently, Σᵢ|S_I,ᵢ| over all six
- * — the 2D generalisation of § 5j's branch criterion, and a third-order proxy
- * for the fifth-and-higher orders the solve does not model.
+ * carried forward is the one whose surfaces cancel least violently, Σᵢ|S_I,ᵢ| over
+ * all six — the 2D generalisation of § 5j's branch criterion, and a third-order
+ * proxy for the fifth-and-higher orders the solve does not model.
+ *
+ * PRECISELY: that ranking is made **once, on the seed geometry**, before the
+ * apertures and the power scale have converged. The chosen root is then re-polished
+ * as the geometry moves, and nothing re-ranks it against the others afterwards — so
+ * the honest claim is "the least-cancelling root of the seed scan", not "the
+ * least-cancelling design". They have agreed everywhere measured, and the
+ * distinction is recorded rather than assumed away.
  *
  * A bare Newton from one guess would land somewhere and say nothing about what
  * it skipped.
@@ -101,8 +108,11 @@ import { DEFAULT_TUBE_FOCAL_LENGTH_MM } from "./microscope";
  * ## The ceiling, measured
  *
  * Two cemented doublets are not the end of the road either. § 6d finds no sane
- * joint root past NA ≈ 0.36 — identically for N-BK7/F2 and for fused
- * silica/F2, so it is a property of the FORM and not of one glass pair. That is
+ * joint root past NA 0.343 for N-BK7/F2 and 0.383 for fused silica/F2 — by a
+ * direct scan, not a bisection, because solvability has one small gap and is not
+ * quite monotone in NA. Both winning (k, separation) pairs are INTERIOR to the
+ * grid searched, and extending it (k to 0.9, separation to 2.2·f) does not move
+ * either number, so it is a property of the FORM and not of the search. That is
  * the third piece of evidence for the aplanatic front element, after § 6a's
  * F = 1/(2·NA) and § 6b's 4× sitting at f/4.1.
  */
@@ -515,7 +525,7 @@ export function listerObjective(spec: ListerObjectiveSpec): ListerObjective {
   const roots = scan();
   if (roots.length === 0) {
     throw new Error(
-      `listerObjective: no joint (ΣS_I, ΣS_II) = (0, 0) root of this form is makeable at NA ${NA} — two cemented doublets do not reach this aperture (§ 6d finds the ceiling near NA 0.36), or this split/separation/orientation admits none`,
+      `listerObjective: no joint (ΣS_I, ΣS_II) = (0, 0) root of this form is makeable at NA ${NA} — two cemented doublets do not reach this aperture (§ 6d measures the ceiling at NA 0.343 for N-BK7/F2, 0.383 for fused silica/F2), or this split/separation/orientation admits none`,
     );
   }
   let c1A = roots[0]!.frontBending;
@@ -726,17 +736,4 @@ export function aplanaticSphere(args: {
       ],
     },
   };
-}
-
-/** Paraxial image distance from the last vertex, for an object `s` in front. */
-export function listerImageDistance(
-  p: Prescription,
-  objectDistanceMm: number,
-  wavelengthNm: number,
-): number {
-  const r = paraxialTrace(p, wavelengthNm, { y: objectDistanceMm, u: 1 });
-  if (!(Math.abs(r.u) > 0)) {
-    throw new Error("listerImageDistance: the chain leaves the axial cone collimated");
-  }
-  return -r.y / r.u;
 }
