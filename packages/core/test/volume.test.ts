@@ -75,6 +75,25 @@ const coreFraction = (values: Float64Array, n: number, radiusBins: number): numb
   return inside;
 };
 
+/**
+ * Defocus, plus an amplitude that genuinely falls off with depth.
+ *
+ * The one thing in this file that makes `relativeThroughput` vary — nothing in
+ * the engine does yet, which is exactly why `DepthPupils` is a callback. Used
+ * twice, and for opposite purposes: to break § 6k.3's null on demand, and to
+ * give § 6k.6's factoring identity weights that actually have to be right.
+ */
+const tapered = (fadeWaves: number): DepthPupils => {
+  return (waves) => {
+    const t = Math.max(0, 1 - Math.abs(waves) / fadeWaves);
+    const base = withDefocus(idealPupil(), waves);
+    return {
+      amplitude: (px, py) => t * base.amplitude(px, py),
+      phaseWaves: (px, py) => base.phaseWaves(px, py),
+    } satisfies PupilFunction;
+  };
+};
+
 const din4x = () =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
@@ -273,15 +292,7 @@ describe("§ 6k.3 — the missing cone, and why it is not the normalizer's doing
     // fills the cone in. Nothing in the engine varies amplitude with depth yet —
     // that is the header's named deferral — which is precisely why `DepthPupils`
     // is a callback.
-    const taper: DepthPupils = (waves) => {
-      const t = Math.max(0, 1 - Math.abs(waves) / 12);
-      const base = withDefocus(idealPupil(), waves);
-      return {
-        amplitude: (px, py) => t * base.amplitude(px, py),
-        phaseWaves: (px, py) => base.phaseWaves(px, py),
-      } satisfies PupilFunction;
-    };
-    const kernels = depthKernels(taper, STACK, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
+    const kernels = depthKernels(tapered(12), STACK, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
     const spectrum = axialSpectrum(axialTransfer(kernels, 0));
     let worst = 0;
     for (let b = 1; b < spectrum.magnitude.length; b++) {
@@ -321,9 +332,12 @@ describe("§ 6k.4 — the cone's boundary, measured on the engine's own stack", 
       for (let b = 0; b < spectrum.magnitude.length; b++) {
         if (spectrum.magnitude[b]! > 0.02 * peak) edge = spectrum.cyclesPerWave[b]!;
       }
-      // Within one axial bin of the closed form — the threshold and the bin are
-      // the measurement's own resolution, and both are stated rather than tuned
-      // until the numbers agreed.
+      // Within one axial bin of the closed form. The 2% threshold is what the
+      // ±8-wave truncation costs: the stack is a finite window, so the sharp
+      // support edge is convolved with that window's own transform and leaks
+      // past it. At 1% the leak is still above the line and the edge reads one
+      // bin high at low ν. The threshold is stated because it is part of the
+      // measurement, not because it was free.
       expect(Math.abs(edge - missingConeEdge(nu))).toBeLessThanOrEqual(binWidth * 1.001);
     }
   });
@@ -399,8 +413,20 @@ describe("§ 6k.5 — the defocused OTF against an independent quadrature", () =
 
 describe("§ 6k.6 — over z it does not factor, and the one case where it does", () => {
   const STACK = [-4, -2, -1, 0, 1, 2, 4];
+  /**
+   * Deliberately the TAPERED pupils, not plain defocus.
+   *
+   * Under pure defocus every slice has the same throughput, and two operators
+   * that both normalize by their own total would then agree by linearity of
+   * convolution alone — the rung would pass even for a `renderVolume` that
+   * weighted its slices with a constant. Fading the amplitude with depth makes
+   * `relativeThroughput` run 0.44 → 1 across this stack, so the two sides agree
+   * only if both apply the SAME per-slice weight. Checked by breaking it: with
+   * `renderVolume` weighting uniformly, the worst pixel moves to 2.0e-2.
+   */
+  const pupils = tapered(12);
   const kernels = () =>
-    depthKernels(defocusing(idealPupil()), STACK, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
+    depthKernels(pupils, STACK, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
 
   /** A field with structure, so a difference between operators can show. */
   const speckle = (seed: number): EmitterField => {
@@ -421,7 +447,7 @@ describe("§ 6k.6 — over z it does not factor, and the one case where it does"
     const haze = hazeKernel(kernels());
     const sliced = renderVolume(
       { size: SIZE, slices: STACK.map((w) => ({ zMm: w, field })) },
-      defocusing(idealPupil()),
+      pupils,
       {
         pupilSamples: PUPIL_SAMPLES,
         // 1 mm of depth is exactly 1 wave at this NA, so the volume's slices
@@ -439,7 +465,7 @@ describe("§ 6k.6 — over z it does not factor, and the one case where it does"
     // Different structure on each plane, so there is no common E to pull out of
     // the sum and the volume genuinely costs one convolution per slice.
     const slices = STACK.map((w, i) => ({ zMm: w, field: speckle(11 + i) }));
-    const sliced = renderVolume({ size: SIZE, slices }, defocusing(idealPupil()), {
+    const sliced = renderVolume({ size: SIZE, slices }, pupils, {
       pupilSamples: PUPIL_SAMPLES,
       numericalAperture: DEPTH_NA,
       wavelengthNm: LAMBDA,
@@ -452,10 +478,16 @@ describe("§ 6k.6 — over z it does not factor, and the one case where it does"
       for (let i = 0; i < summed.length; i++) summed[i] = summed[i]! + s.field.values[i]!;
     }
     const shortcut = convolve(summed, hazeKernel(kernels()).values, SIZE);
-    // Both carry every photon the specimen emitted, and the only difference
-    // between their totals is that `hazeKernel` renormalizes to unit sum where
-    // `renderVolume` keeps the throughput the pupil actually delivered…
-    expect(total(sliced.intensity) / total(shortcut)).toBeCloseTo(kernelAt(0).formedSum, 12);
+    // Both account for every photon the specimen emitted, each in its own
+    // normalization: `hazeKernel` is unit-sum, so the shortcut carries the
+    // emitters' own total…
+    expect(total(shortcut) / total(summed)).toBeCloseTo(1, 12);
+    // …and `renderVolume` keeps the throughput each pupil actually delivered.
+    const expected = kernels().reduce(
+      (acc, k, i) => acc + k.formedSum * total(slices[i]!.field.values),
+      0,
+    );
+    expect(total(sliced.intensity) / expected).toBeCloseTo(1, 12);
     // …and they still form different images. Which is the point: a check on the
     // light would have passed the shortcut, and the shortcut is wrong.
     expect(worstRelative(shortcut, sliced.intensity)).toBeGreaterThan(1e-3);

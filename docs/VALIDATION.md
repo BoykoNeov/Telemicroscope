@@ -4739,11 +4739,11 @@ cone**: exactly zero axial transfer at zero lateral frequency.
 | The image's total light does not depend on where the objective is focused | 1e-12 | ✅ |
 | The axial transfer at zero lateral frequency is a CONSTANT | 1e-12 | ✅ |
 | **Its transform is EXACTLY zero at every axial frequency but DC** | the missing cone, 2.2e-15 | ✅ |
-| **A depth-varying pupil AMPLITUDE fills the cone in** | negative control, >5% | ✅ |
+| **A depth-varying pupil AMPLITUDE fills the cone in** | negative control, 1e-15 → >5% | ✅ |
 | A non-uniformly spaced stack throws rather than transforming the wrong thing | no plausible wrong spectrum | ✅ |
 | **The support boundary is μ_max = ν·(2 − ν)** | derived, measured exactly at ν = 0.5, 1, 1.5 | ✅ |
 | **The defocused OTF matches an independent quadrature**, and converges | closed form, <1% at 64 bins | ✅ |
-| **A z-uniform specimen collapses to ONE convolution** | identity, 1e-12 | ✅ |
+| **A z-uniform specimen collapses to ONE convolution** | identity, 1e-12, on weights that must be right | ✅ |
 | **A z-varying one does not** — same total, different image | negative control, energy is not a witness | ✅ |
 | The haze kernel is a Riemann sum, so refining the stack does not brighten it | Σ = 1, 1e-12 | ✅ |
 | Half of § 6j's depth of focus is a quarter wave, for every NA and medium | identity, 1e-12 | ✅ |
@@ -4811,7 +4811,7 @@ the pupils did — the same shape as "the stack still summed to 1 afterwards", o
 layer up. `IncoherentPsf.formedSum` was added for this step: it is what the
 kernel summed to *before* normalization, the stack weighs with it, and the null
 therefore has a control. Give `depthKernels` pupils whose **amplitude** varies
-with depth and the cone fills in with better than 5% support where pure defocus
+with depth and the cone fills in with more than 5% support where pure defocus
 held 1e-15. Nothing in the engine varies amplitude with depth yet — that is the
 depth-dependent-spherical deferral below — which is precisely why `DepthPupils`
 is a callback rather than a pupil.
@@ -4859,10 +4859,20 @@ specimen **uniform in z** puts the same E on every plane, factors again, and
 collapses to a single convolution with Σ_z T(z)·h_z. That is `hazeKernel`, and a
 slice-by-slice render of a z-uniform volume equals it to 1e-12.
 
+**That rung is run on depth-*tapered* pupils, not on plain defocus, and the
+reason is that plain defocus would have made it vacuous.** Under pure defocus
+every slice has the same throughput, so two operators that each normalize by
+their own total agree by linearity of convolution alone — the rung would pass
+even for a `renderVolume` that weighted its slices with a constant. Fading the
+pupil amplitude with depth makes `relativeThroughput` run 0.44 → 1 across the
+stack, so the two sides agree only if both apply the same per-slice weight.
+Checked by breaking it: with the weighting removed, the worst pixel moves from
+1e-16 to 2.0e-2.
+
 The negative control is the one that matters. Sum a z-*varying* volume's emitters
-and convolve once with the same haze kernel and the result carries **every photon
-the specimen emitted** — the totals agree to 1e-12 once the kernel's own
-normalization is divided out — and forms a different image. **Energy is not a
+and convolve once with the same haze kernel and the result accounts for **every
+photon the specimen emitted** — each operator conserving in its own
+normalization, both to 1e-12 — and forms a different image. **Energy is not a
 witness** (§ 6g.2's phrase, recurring): the check this repo reaches for first
 passes for the operator that is wrong.
 
