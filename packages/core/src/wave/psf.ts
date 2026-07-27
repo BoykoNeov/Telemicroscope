@@ -139,6 +139,23 @@ export interface PupilScale {
   readonly nImage: number;
 }
 
+/**
+ * Image-plane millimetres per pixel for a pupil embedded with `pupilSamples`
+ * across its diameter in an `size`×`size` array:
+ *
+ *     Δx = λ·R / (n_image · size · Δ),      Δ = D / pupilSamples
+ *
+ * Factored out because there is now a second transform that lands on this same
+ * grid — `illumination/abbe`'s partially coherent image — and the two must
+ * agree about scale bin for bin or a partially coherent MTF and a PSF MTF would
+ * be measured against different rulers.
+ */
+export function imagePixelScaleMm(scale: PupilScale, size: number, pupilSamples: number): number {
+  const lambdaMm = scale.wavelengthNm * 1e-6;
+  const deltaPupil = (2 * scale.exitRadius) / pupilSamples;
+  return Math.abs((lambdaMm * scale.referenceRadius) / (Math.abs(scale.nImage) * size * deltaPupil));
+}
+
 export interface PsfOptions {
   /** Samples across the pupil DIAMETER on the FFT grid. Default 64. */
   readonly pupilSamples?: number;
@@ -582,16 +599,13 @@ export function psfFromPupilFunction(
   fftShift2d(intensity, n);
   if (flatIntensity !== null) fftShift2d(flatIntensity, n);
 
-  const lambdaMm = scale.wavelengthNm * 1e-6;
-  const deltaPupil = (2 * scale.exitRadius) / pupilSamples;
-  const pixelScaleMm =
-    (lambdaMm * scale.referenceRadius) / (Math.abs(scale.nImage) * n * deltaPupil);
+  const pixelScaleMm = imagePixelScaleMm(scale, n, pupilSamples);
 
   return {
     size: n,
     pupilSamples,
     intensity,
-    pixelScaleMm: Math.abs(pixelScaleMm),
+    pixelScaleMm,
     energy,
     peak,
     diffractionLimitedPeak: flatPeak,

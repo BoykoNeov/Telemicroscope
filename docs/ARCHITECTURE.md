@@ -117,13 +117,17 @@ core/pupil       aperture stop → entrance/exit pupil, chief ray, ray aiming,
                  pupil grids, wavefront reference plane + reference sphere,
                  OPD                                              [step 1.5]
 core/wave        OPD → Zernike fit, PSF (FFT + geometric), MTF     [step 2]
+core/illumination condenser as a set of directions, Abbe source-point
+                 summation, partially coherent transfer            [step 6]
 core/photometry  spectra, sources (star magnitudes, lamps, fluorophores),
                  detector & eye models, noise                      [step 3+]
 core/imaging     scene model, field-patch convolution, resampling  [step 3+]
 domain/telescope seeing (Kolmogorov screens), sky background, scenes,
                  eyepiece↔eye coupling                             [step 4]
-domain/microscope condenser model, coverslip, immersion, fluorescence,
-                 specimen scenes                                   [step 5]
+domain/microscope coverslip, immersion, fluorescence, specimen scenes
+                 (the condenser was planned here and landed in
+                 core/illumination instead — partially coherent
+                 imaging is not microscope-specific)               [step 5]
 mech/            mechanical interfaces & constraints (barrels, threads,
                  parfocal/back-focus distances) — data + rules; mechanical
                  changes feed back into optical spacings           [step 4]

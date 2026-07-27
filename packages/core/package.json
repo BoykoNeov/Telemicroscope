@@ -13,6 +13,7 @@
     "./pupil": "./src/pupil/index.ts",
     "./analysis": "./src/analysis/index.ts",
     "./wave": "./src/wave/index.ts",
+    "./illumination": "./src/illumination/index.ts",
     "./photometry": "./src/photometry/index.ts",
     "./imaging": "./src/imaging/index.ts",
     "./designs": "./src/designs/index.ts"

@@ -51,6 +51,7 @@ whole ladder.
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
+| [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null | `illumination` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3586,6 +3587,196 @@ purpose. What is pinned is that the gain exists and how big it is.
   caps them.
 - **Tilt, wedge, and a non-uniform film.** The stack is taken to be plane,
   parallel and axial.
+
+## Step 6f — brightfield: the condenser, and partial coherence
+
+Every image the engine has formed until now came from an object that **emits** —
+a star, and a fluorescent bead when § 6 gets there. Intensities add, the image is
+a convolution with |PSF|², and one MTF describes it. A brightfield specimen emits
+nothing. It sits in a beam from a condenser and modulates it, so whether two
+neighbouring points of the specimen interfere depends on where their light came
+from. That is partial coherence, and it makes the image **nonlinear in the
+object's intensity**: brightfield has no MTF, and the "incoherent MTF × a
+condenser factor" the ROADMAP once promised for v1 would have been a fiction.
+
+What replaces it is Abbe's own construction, and it is a sum rather than a fudge:
+the condenser aperture is a set of illumination directions, each direction images
+**coherently**, and different directions come from mutually incoherent points of
+the lamp so their intensities add —
+
+    I(x) = Σ_s w_s · | F⁻¹{ T(u) · P(u + s) } |²
+
+with the modulus-squared *inside* the sum. Illuminating from direction s slides
+the object's spectrum by s; changing variables slides the pupil the other way
+instead and leaves a global phase the modulus discards. So an illumination
+direction is a **translated `PupilFunction`** — the same lever the spider (§ 5c)
+and the seeing screen (§ 5d) pulled, and the transform underneath never learns
+its name.
+
+### Why this step can be pinned as hard as § 6c and § 6e
+
+Because for the one object class that *is* linear — a **weak absorber** — the
+whole transfer curve has a closed form, and it is pure circle geometry:
+
+    T(ν) = area( disc(0, S) ∩ disc(ν, 1) ) / (π·S²),     S = NA_cond / NA_obj
+
+the illumination directions for which the undiffracted beam *and* the order at ν
+both get through, which are the only pairs that can interfere and so the only
+ones carrying contrast at ν. Frequency ν is in units of NA/λ throughout this
+step: **ν = 1** is the coherent cutoff and **ν = 2** is `wave/mtf`'s incoherent
+cutoff 2·NA/λ (so § 2b's ν is half of this one). Both ends of the curve are
+exact, and the middle is a law:
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Source weights are a partition; the lattice fills (π/4)·N² and converges | closed form | ✅ |
+| **S → 0: T ≡ 1 below ν = 1 and ≡ 0 above** — a flat plateau and a cliff | coherent imaging, `toBeCloseTo(1, 12)` / `toBe(0)` | ✅ |
+| Coherent cutoff is exactly ν = 1, i.e. NA/λ | bisected | ✅ |
+| **S ≥ 1: T is `diffractionLimitedMtf`** — the SAME closed form § 2b pins | Goodman, no second number minted | ✅ |
+| Opening past S = 1 changes nothing: S = 1.5 and S = 3 give the same curve | pupil autocorrelation | ✅ |
+| The measured sum matches the three-circle closed form at S = 0.25/0.5/0.75 | closed form, < 1e-3 | ✅ |
+| The plateau survives at finite S out to ν = 1 − S, and is **exact** there | algebraic, `toBeCloseTo(1, 12)` | ✅ |
+| `circleOverlapArea`/π ≡ `diffractionLimitedMtf` for two unit circles | closed form, 1e-12 | ✅ |
+
+### 6f.1 — the (NA_obj + NA_cond) law, measured
+
+The textbook line is d_min = λ/(NA_obj + NA_cond). Nothing here writes it down:
+the cutoff is *bisected* off the sum and comes back exact, with its own
+discretization visible rather than buried in a tolerance. An odd sample count
+puts a row of source points on the axis, so the outermost usable direction is at
+S·(1 − 1/N) and the measured cutoff is **1 + S·(1 − 1/N)** — matched to 9 places
+at N = 17, 33, 65 and S = 0.25 … 1, and extrapolating to exactly 1 + S.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Cutoff = 1 + S·(1 − 1/N), to 1e-9, over N × S | lattice geometry + closed form | ✅ |
+| Cutoff is **linear in S with unit slope** | law, not a ratio | ✅ |
+| `brightfieldResolutionMm(λ, NA, NA)` ≡ `abbeResolutionMm(λ, NA)` | § 6a's λ/(2·NA) | ✅ |
+| `brightfieldResolutionMm(λ, NA, 0)` = 2× that — λ/NA | coherent limit | ✅ |
+| Past a matched condenser it stops improving | capped at ν = 2 | ✅ |
+
+**And the law stops at S = 1** — which is not a modelling choice but the sum's
+own doing. A source point outside the pupil has no undiffracted beam to
+interfere with, so it contributes no linear transfer at all; the support is set
+by the pupil's autocorrelation and cannot exceed 2·NA/λ however far the
+diaphragm opens. Measured: the cutoff at S = 1.25, 1.5, 2, 3 never exceeds 2.
+
+**What the diaphragm actually trades.** Just under the coherent cutoff the closed
+condenser still delivers full contrast where a matched one has already spent 60%
+of it (0.397) — 2.5× the contrast, bought by giving up everything between ν = 1
+and ν = 2. That is the dial, and both ends of it are now pinned.
+
+### 6f.2 — the source is a sampling parameter, and it is treated as one
+
+N_source has the same failure mode as the pupil grid: too coarse, and it produces
+structure that reads as physics. At 5 directions across the diameter the transfer
+is 4% wrong — an error that would pass for aberration. So convergence is pinned,
+not assumed. Only cells the pupil's rim cuts can be wrong, so the error is a
+perimeter effect; the measured rate is about N^−1.3, faster than the O(1/N) a
+discontinuous integrand guarantees because midpoint errors of opposite sign
+partly cancel around the rim. It is **not** monotone doubling-by-doubling (ratios
+run 1.85–4.7), so the rung pins the rate over two doublings and the total (> 30×
+from N = 8 to 128) rather than claiming a halving it does not have.
+
+### 6f.3 — two paths to the same number
+
+`illumination/abbe` runs the sum with an inverse FFT per source point — the
+general imager, which is what the scenes will need. `illumination/transfer` runs
+the *same* sum with the transform done in closed form, because a sinusoidal
+grating's spectrum is three lines and the inverse transform is then three terms.
+Three pupil evaluations per direction instead of a transform is what makes
+sweeping ν × S × N affordable, and the two are pinned against each other rather
+than one being trusted:
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| FFT image harmonics ≡ the three-order evaluation, dc and fundamental | 1e-12, over 6 frequencies | ✅ |
+| A clear field images as exactly 1 — not nearly | `toBeCloseTo(1, 12)` at every pixel | ✅ |
+| A grating past (1 + S) images as a blank field | < 1e-12 | ✅ |
+
+### 6f.4 — the nonlinearity, made visible
+
+The transfer function above is a **limit**, not a description, and the rungs say
+so. `gratingImage` evaluates the exact three-order sum at finite modulation:
+contrast/(2m) converges to the weak-object transfer as m → 0 (4 places at
+m = 1e-4) and is **26% below it at m = 1**. There is no function to multiply the
+object by. And a single-frequency object images with a component at **twice** its
+frequency, growing exactly as m² (a factor of 1e4 for a factor of 100 in m, to 9
+places) — a frequency no linear imager could have put there.
+
+### 6f.5 — the null: brightfield cannot see phase
+
+A weak phase object's two sidebands enter the intensity with opposite signs:
+
+    T_phase(ν) = |Σ w·[ P(s+ν)P̄(s) − P(s)P̄(s−ν) ]| / (2·Σ w·|P(s)|²)
+
+so for a real pupil the two terms are equal and this is **identically zero** — at
+every frequency, every S, and every phase amplitude. That is the strongest kind
+of rung this ladder has: a hard zero from an algebraic identity, and it is the
+reason stains exist.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Aberration-free pupil transfers **no** phase, over S × ν | < 1e-14 | ✅ |
+| A quarter wave of defocus makes it appear (T > 0.3) | the sum, not a switch | ✅ |
+| A tenth of the defocus leaves under a fifth of the signal; zero defocus, zero | continuity in the aberration | ✅ |
+| The full FFT image of a real (all-Bessel-orders) phase grating agrees | < 1e-12 focused, > 0.02 defocused | ✅ |
+| In focus it leaves a residue at **2×** its frequency | the nonlinearity again | ✅ |
+
+So a focused brightfield image of an unstained cell shows almost nothing and a
+defocused one shows something — a fact every microscopist knows and no part of
+this file was told.
+
+### 6f.6 — darkfield, for free
+
+An annular condenser whose *inner* radius exceeds 1 puts every illuminating beam
+outside the objective's pupil. An object that diffracts nothing then delivers
+nothing: the clear field images **exactly 0**, `toBe(0)` at every pixel, with no
+special case anywhere in the sum. The phase object brightfield could not see is
+visible against it — faint (1% of the brightfield mean) but on a black
+background, which is the whole trick.
+
+### 6f.7 — a traced objective, through its own pupil
+
+The closed forms above are for an ideal disc. The same readouts run on the
+*traced* wavefront of § 6a's 4×/0.10 (0.031 waves rms) and § 6d's Lister 20×/0.25
+(0.070 waves rms), best-focused:
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The cutoff is unchanged — 1 + S·(1 − 1/N) to 1e-9 on both | § 2b's "the cutoff is geometric" | ✅ |
+| Contrast falls below the ideal pupil at every ν | aberration spends contrast below cutoff | ✅ |
+| And falls **in wavefront order**: the 0.070-wave lens is under the 0.031 | ordering, not a value | ✅ |
+| The condenser still buys resolution on a real lens: 1 → > 1.9 | § 6f.1 on traced glass | ✅ |
+
+### Not yet pinned
+
+- **The geometric PSF branch has no notion of coherence.** Everything here lives
+  in the FFT branch, exactly as § 5d's seeing screen does. A system aberrated
+  enough to trip the fidelity switch would blend a partially coherent image with
+  an incoherent ray histogram, and nothing currently detects that. It is the same
+  shape of deferral as the seeing ∇φ ray-tilt and is recorded for the same reason.
+- **Scenes.** Diatoms, stained tissue and fluorescent beads are the step's named
+  deliverables and none exists; `abbeImage` is the imager they need, and the
+  bridge from it into `imaging/render`'s field decomposition is unbuilt. Nothing
+  here is spatially variant: one pupil, one isoplanatic patch.
+- **Fluorescence**, which is the *easy* half — a fluorescent specimen is
+  self-luminous, so it is the incoherent path the engine already has, plus
+  Stokes-shifted emission and filter passbands. Not started.
+- **Polychromatic brightfield.** Every number here is monochromatic. The source
+  is a set of directions at one wavelength; a real lamp is a spectrum, and the
+  sum would run per wavelength on § 2e's common physical grid.
+- **A non-uniform source.** `diskSource` weights every direction equally, which
+  is Köhler with an evenly filled diaphragm. A real filament image is not even,
+  and *critical* illumination — the filament imaged onto the specimen — breaks
+  the direction-set model rather than reweighting it.
+- **Aperture-edge sampling in `abbeImage`.** The pupil is point-sampled on the
+  DFT lattice there (correct for a sampled spectrum, and stated in the header),
+  so an extended object sees a staircased rim where `wave/psf` would see an
+  area-averaged one. Not measured.
+- **Phase contrast and DIC** need a phase plate in the pupil and Hopkins' TCC
+  respectively; both are v2, and the annular source is already here waiting.
+- **Off-axis.** One field point, on axis, like the rest of § 6.
 
 ## Later rungs
 

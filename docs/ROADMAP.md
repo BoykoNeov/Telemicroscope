@@ -172,16 +172,21 @@
    image degrading as the budget predicts.
 6. **Microscope branch** ← current
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
-   oil immersion ✅ (§ 6e); brightfield (incoherent + condenser-NA factor) and
-   fluorescence; coverslip mismatch ✅ (§ 6c); scenes: diatoms, stained tissue,
-   fluorescent beads. Mostly configuration + domain models on the existing
-   engine. *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
+   oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence; coverslip
+   mismatch ✅ (§ 6c); scenes: diatoms, stained tissue, fluorescent beads.
+   "Mostly configuration + domain models on the existing engine" held for the
+   optics and did **not** hold for brightfield — see § 6f.
+   *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
    pinned (§ 1) — Daimon-Masumura water, Cargille Type B oil, Schott D263 T eco
    coverslip, so at NA 1.4 the branch rides on measured data. The D263 half is
-   now consumed by § 6c. **Remaining is the wiring** (image-space index in
-   `pixelScaleMm`), pinned when an immersion objective lands here — though the
-   *object*-space index is already carried, since § 6c's specimen sits inside the
-   cover glass and the stop is sized against sin u = NA/n.
+   now consumed by § 6c. *This line used to promise "remaining is the wiring —
+   the image-space index in `pixelScaleMm`, pinned when an immersion objective
+   lands here". That objective landed (§ 6e.4) and the promise was misaimed:*
+   the wiring exists (`psf.ts` divides by `nImage`, read from the exit pupil's
+   own index) and an oil-immersion microscope never exercises it, because the
+   **oil is in object space** — where it enters through NA, which is carried —
+   while the tube lens forms the image in air. A non-unit image-space index
+   stays unpinned only because no system in the ladder has one.
    *Prerequisite:* **module composition** ✅ — landed as § 5l with the eyepiece
    library; this step consumes it unchanged. Design in ARCHITECTURE § Data model.
    *Architecture + the first objective:* ✅ `designs/microscope` (§ 6a). The chain
@@ -301,6 +306,39 @@
    turns out to be index and NA drift, not thickness — a realistic oil film
    (20 µm here against a real ~130 µm), water immersion, off-axis, and the
    chromatic half.
+   *Brightfield — the condenser and partial coherence:* ✅ `core/illumination`
+   (§ 6f), and the step's second named deliverable. The first imaging in the
+   engine of an object that does **not** emit: a brightfield specimen modulates a
+   beam, so whether two of its points interfere depends on where their light came
+   from, and the image is **nonlinear in the object's intensity**. This step
+   therefore *overshoots* what the ROADMAP promised — the line above says
+   "incoherent + condenser-NA factor", and a factor multiplying the incoherent
+   MTF would have been a fiction, forbidden by the no-faked-physics rule. What
+   landed instead is **Abbe source-point summation**: the condenser is a set of
+   illumination directions, each images coherently, and their intensities add.
+   An illumination direction turns out to be a **translated `PupilFunction`**, so
+   it arrives the same way the spider and the seeing screen did and the transform
+   never learns its name. Hopkins' TCC stays a v2 item and is not needed for any
+   of this. **Both ends of the curve are exact, and the middle is a law:** S → 0
+   gives a flat plateau and a cliff at NA/λ; S ≥ 1 reproduces § 2b's own
+   `diffractionLimitedMtf` (no second number minted) and opening further changes
+   nothing; in between, the cutoff is **bisected off the sum** and comes back at
+   1 + S·(1 − 1/N) to 9 places — the textbook λ/(NA_obj + NA_cond), measured,
+   with its lattice discretization written down rather than absorbed. Two paths
+   compute the sum — an FFT imager for arbitrary objects and a three-order closed
+   evaluation for gratings — and they are pinned against each other to 1e-12
+   rather than one being trusted. **The headline null is why stains exist:** a
+   weak phase object's sidebands cancel identically, so brightfield transfers
+   *no* phase at any S or frequency, and a quarter wave of defocus makes it
+   appear. Darkfield falls out with no special case (an annulus outside the pupil
+   images a clear field as `toBe(0)`), and the readouts run unchanged on the
+   *traced* pupils of § 6a's 4×/0.10 and § 6d's Lister, where the cutoff does not
+   move and contrast falls in wavefront order. **Open:** the scenes themselves
+   (diatoms, stained tissue, beads) and the bridge into `imaging/render` —
+   `abbeImage` is one isoplanatic patch; fluorescence, which is the *easy* half
+   since a fluorescent specimen is self-luminous; polychromatic brightfield; a
+   non-uniform source; and the named deferral that the geometric PSF branch has
+   no notion of coherence at all, exactly as § 5d's seeing does not.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
@@ -345,5 +383,11 @@
 
 - No Python prototype — physics validated directly in TypeScript via the test
   ladder.
-- Partial coherence approximated in v1 (condenser-NA factor); exact for
-  fluorescence and telescopes by nature.
+- ~~Partial coherence approximated in v1 (condenser-NA factor)~~ — **withdrawn
+  at § 6f.** The approximation was never built: a factor on the incoherent MTF
+  asserts the (NA_obj + NA_cond) law instead of producing it, and the hard rule
+  forbids that. Abbe source-point summation gives the law and the nonlinearity
+  for the cost of one transform per illumination direction, which turned out to
+  be affordable. Hopkins' TCC stays a v2 item, but for *phase contrast and DIC*,
+  not for brightfield. Fluorescence and telescopes remain exactly incoherent by
+  nature.

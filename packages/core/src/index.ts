@@ -4,6 +4,7 @@ export * from "./materials";
 export * from "./trace";
 export * from "./pupil";
 export * from "./wave";
+export * from "./illumination";
 export * from "./analysis";
 export * from "./photometry";
 export * from "./imaging";
