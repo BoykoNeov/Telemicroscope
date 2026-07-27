@@ -294,14 +294,59 @@ const sag = (c: number, r: number): number => {
   return (c * r * r) / (1 + Math.sqrt(d));
 };
 
-export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticObjective {
+/**
+ * The cemented-doublet FORM: everything about the shape that is fixed before a
+ * bending is chosen — the achromatic power split, the two curvature differences
+ * it fixes, and how a bending becomes three surfaces.
+ *
+ * Split out because `designs/lister` solves TWO doublets' bendings together and
+ * must build them at trial bendings without going through a solver. Nothing here
+ * decides anything: the form is what both callers' solves range over.
+ */
+export interface CementedDoubletForm {
+  readonly focalLengthMm: number;
+  readonly apertureMm: number;
+  /** c₁ − c₂, fixed by the crown's share of the power. */
+  readonly dc1: number;
+  /** c₂ − c₃, fixed by the flint's. */
+  readonly dc2: number;
+  readonly crownPower: number;
+  readonly flintPower: number;
+  readonly crownIndex: number;
+  readonly flintIndex: number;
+  readonly crownAbbe: number;
+  readonly flintAbbe: number;
+  readonly crownMedium: string;
+  readonly flintMedium: string;
+  /** The three curvatures at a bending — the whole shape, from one number. */
+  readonly curvaturesAt: (c1: number) => [number, number, number];
+  /** The three-surface prescription at a bending, with stated thicknesses. */
+  readonly build: (
+    cs: readonly [number, number, number],
+    thicknesses: { crownMm: number; flintMm: number; lastMm: number },
+  ) => Prescription;
+}
+
+export interface CementedDoubletFormSpec {
+  readonly apertureMm: number;
+  readonly focalLengthMm: number;
+  readonly crownMedium?: string;
+  readonly flintMedium?: string;
+  readonly designWavelengthNm?: number;
+  /** Whose name goes in the "swap them" error — the two callers differ. */
+  readonly caller?: string;
+}
+
+/**
+ * The achromatic power split and the surface build, with the bending left free.
+ * Both conditions a doublet must satisfy (total power, achromatism) are consumed
+ * here; what is returned is the one-parameter family the bending slides along.
+ */
+export function cementedDoubletForm(spec: CementedDoubletFormSpec): CementedDoubletForm {
   const D = spec.apertureMm;
-  const F = spec.focalRatio;
-  if (!(D > 0) || !(F > 0)) {
-    throw new Error("achromaticObjective: aperture and focal ratio must be positive");
-  }
-  const f = D * F;
+  const f = spec.focalLengthMm;
   const phi = 1 / f;
+  const who = spec.caller ?? "cementedDoubletForm";
 
   const crownMedium = spec.crownMedium ?? "N-BK7";
   const flintMedium = spec.flintMedium ?? "F2";
@@ -313,13 +358,13 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
   const V2 = abbeNumber(flint);
   if (!(V1 > V2)) {
     throw new Error(
-      `achromaticObjective: the crown must be the less dispersive glass (V ${crownMedium}=${V1.toFixed(2)}, ${flintMedium}=${V2.toFixed(2)}) — swap them`,
+      `${who}: the crown must be the less dispersive glass (V ${crownMedium}=${V1.toFixed(2)}, ${flintMedium}=${V2.toFixed(2)}) — swap them`,
     );
   }
   const n1 = crown.n(designWavelengthNm);
   const n2 = flint.n(designWavelengthNm);
   if (!(n1 > 1) || !(n2 > 1)) {
-    throw new Error("achromaticObjective: both glasses must have index > 1");
+    throw new Error(`${who}: both glasses must have index > 1`);
   }
 
   // The achromatic power split, and with it the two curvature DIFFERENCES. The
@@ -328,23 +373,6 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
   const flintPower = (-phi * V2) / (V1 - V2);
   const dc1 = crownPower / (n1 - 1); // c₁ − c₂
   const dc2 = flintPower / (n2 - 1); // c₂ − c₃
-
-  if (spec.crownThicknessMm !== undefined && !(spec.crownThicknessMm > 0)) {
-    throw new Error("achromaticObjective: element thicknesses must be positive");
-  }
-  if (spec.flintThicknessMm !== undefined && !(spec.flintThicknessMm > 0)) {
-    throw new Error("achromaticObjective: element thicknesses must be positive");
-  }
-  // Provisional thicknesses for the first solve; the defaults are finalised from
-  // the resulting sags below, since a fast doublet's crown needs more glass than
-  // a slow one just to keep an edge.
-  let crownThicknessMm = spec.crownThicknessMm ?? 0.1 * D;
-  let flintThicknessMm = spec.flintThicknessMm ?? 0.06 * D;
-
-  const curvaturesFrom = (c1: number): [number, number, number] => {
-    const c2 = c1 - dc1;
-    return [c1, c2, c2 - dc2];
-  };
 
   // The front face is the stop and carries a 0.5% margin over D/2. Rays are aimed
   // at the entrance-pupil PLANE (z = 0), but the surface is curved: off axis a
@@ -360,13 +388,76 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
   // real refractor's cell.
   const frontClearRadius = (D / 2) * 1.005;
   const rearClearRadius = (D / 2) * 1.02;
-  const build = (cs: readonly [number, number, number], lastThickness: number): Prescription => ({
-    surfaces: [
-      { kind: "refract", curvature: cs[0], semiAperture: frontClearRadius, thickness: crownThicknessMm, medium: crownMedium, isStop: true },
-      { kind: "refract", curvature: cs[1], semiAperture: rearClearRadius, thickness: flintThicknessMm, medium: flintMedium },
-      { kind: "refract", curvature: cs[2], semiAperture: rearClearRadius, thickness: lastThickness, medium: "AIR" },
-    ] satisfies SurfaceSpec[],
+
+  return {
+    focalLengthMm: f,
+    apertureMm: D,
+    dc1,
+    dc2,
+    crownPower,
+    flintPower,
+    crownIndex: n1,
+    flintIndex: n2,
+    crownAbbe: V1,
+    flintAbbe: V2,
+    crownMedium,
+    flintMedium,
+    curvaturesAt: (c1: number): [number, number, number] => {
+      const c2 = c1 - dc1;
+      return [c1, c2, c2 - dc2];
+    },
+    build: (cs, t): Prescription => ({
+      surfaces: [
+        { kind: "refract", curvature: cs[0], semiAperture: frontClearRadius, thickness: t.crownMm, medium: crownMedium, isStop: true },
+        { kind: "refract", curvature: cs[1], semiAperture: rearClearRadius, thickness: t.flintMm, medium: flintMedium },
+        { kind: "refract", curvature: cs[2], semiAperture: rearClearRadius, thickness: t.lastMm, medium: "AIR" },
+      ] satisfies SurfaceSpec[],
+    }),
+  };
+}
+
+export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticObjective {
+  const D = spec.apertureMm;
+  const F = spec.focalRatio;
+  if (!(D > 0) || !(F > 0)) {
+    throw new Error("achromaticObjective: aperture and focal ratio must be positive");
+  }
+  const f = D * F;
+
+  const designWavelengthNm = spec.designWavelengthNm ?? LINE_D;
+  const form = cementedDoubletForm({
+    apertureMm: D,
+    focalLengthMm: f,
+    ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
+    ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
+    designWavelengthNm,
+    caller: "achromaticObjective",
   });
+  const { crownMedium, flintMedium, crownPower, flintPower } = form;
+  const n1 = form.crownIndex;
+  const n2 = form.flintIndex;
+  const V1 = form.crownAbbe;
+  const V2 = form.flintAbbe;
+  const crown = getMedium(crownMedium);
+  const flint = getMedium(flintMedium);
+
+  if (spec.crownThicknessMm !== undefined && !(spec.crownThicknessMm > 0)) {
+    throw new Error("achromaticObjective: element thicknesses must be positive");
+  }
+  if (spec.flintThicknessMm !== undefined && !(spec.flintThicknessMm > 0)) {
+    throw new Error("achromaticObjective: element thicknesses must be positive");
+  }
+  // Provisional thicknesses for the first solve; the defaults are finalised from
+  // the resulting sags below, since a fast doublet's crown needs more glass than
+  // a slow one just to keep an edge.
+  let crownThicknessMm = spec.crownThicknessMm ?? 0.1 * D;
+  let flintThicknessMm = spec.flintThicknessMm ?? 0.06 * D;
+
+  const curvaturesFrom = form.curvaturesAt;
+  const dc1 = form.dc1;
+  const dc2 = form.dc2;
+  const build = (cs: readonly [number, number, number], lastThickness: number): Prescription =>
+    form.build(cs, { crownMm: crownThicknessMm, flintMm: flintThicknessMm, lastMm: lastThickness });
 
   const objectDistanceMm = spec.objectDistanceMm;
   if (objectDistanceMm !== undefined && !(objectDistanceMm > 0 && Number.isFinite(objectDistanceMm))) {
