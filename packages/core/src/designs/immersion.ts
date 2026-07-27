@@ -1,10 +1,17 @@
 import { Prescription, SurfaceSpec } from "../trace/prescription";
+import { spliceModules } from "../trace/compose";
+import { systemProperties } from "../trace/paraxial";
 import { traceRay } from "../trace/sequential";
 import { makeRay } from "../trace/ray";
 import { vec3 } from "../math/vec3";
 import { getMedium } from "../materials/catalog";
 import { LINE_D } from "../materials/dispersion";
 import { Coverslip, CoverslipSpec, PlaneLayer, coverslip, coverslipSurface } from "./coverslip";
+import { GroupOrientation, ListerObjective, listerObjective } from "./lister";
+import {
+  DEFAULT_TUBE_FOCAL_LENGTH_MM,
+  InfinityCorrectedObjective,
+} from "./microscope";
 
 /**
  * The aplanatic front — how an objective gets past NA 0.35.
@@ -141,6 +148,43 @@ export interface HyperhemisphereSpec {
   readonly glassMarginFactor?: number;
 }
 
+/**
+ * The smallest dome radius the stack in front of it permits (mm).
+ *
+ * The marginal ray meets the dome a distance R(1−cosφ) below its vertex, where
+ * φ = θ + arcsin(sinθ/n) is the same angle the rim fraction uses. The element's
+ * flat face has to sit below that, and the thickness is whatever the stack's
+ * apparent depth leaves over, so
+ *
+ *     R · [ (n+1)/n − (1−cosφ) ]  >  n · Σᵢ tᵢ/nᵢ
+ *
+ * **This is why an immersion front group is COMPACT.** A cover slip's apparent
+ * depth is a fixed length that does not scale with the design, so it puts a floor
+ * under the dome; the rest of the group then has to be short enough that a dome
+ * that big still lands its virtual image where the rear group wants it. It is
+ * also the ceiling on the whole form — the bracket goes to zero as φ → 180°, so
+ * past some aperture no dome is deep enough at any radius.
+ *
+ * Exported because it is the constraint a caller has to design against, and
+ * because a rung should be able to check the closed form against the radius at
+ * which the constructor actually starts refusing.
+ */
+export function minimumDomeRadiusMm(spec: Omit<HyperhemisphereSpec, "radiusMm">): number {
+  const NA = spec.numericalAperture;
+  const wavelengthNm = spec.designWavelengthNm ?? LINE_D;
+  const nGlass = getMedium(spec.glassMedium ?? FRONT_ELEMENT_MEDIUM).n(wavelengthNm);
+  const nFluid = getMedium(spec.immersionMedium ?? IMMERSION_MEDIUM).n(wavelengthNm);
+  const gap = spec.immersionGapMm ?? 0.02;
+  const slip = spec.coverslipSpec === null ? null : coverslip(spec.coverslipSpec ?? {});
+  const reducedAhead =
+    (slip ? slip.thicknessMm / getMedium(slip.medium).n(wavelengthNm) : 0) + gap / nFluid;
+  const theta = Math.asin(NA / nGlass);
+  const phi = theta + Math.asin(Math.sin(theta) / nGlass);
+  const depthFactor = (nGlass + 1) / nGlass - (1 - Math.cos(phi));
+  if (!(depthFactor > 0)) return Infinity;
+  return (nGlass * reducedAhead) / depthFactor;
+}
+
 export interface Hyperhemisphere {
   /** Authored specimen-side first, trailing thickness 0. Stop on surface 0. */
   readonly prescription: Prescription;
@@ -170,6 +214,17 @@ export interface Hyperhemisphere {
    * high-NA front element is a ball cut past its own equator.
    */
   readonly rimUtilisation: number;
+  /**
+   * The smallest dome radius the stack in front of it permits (mm):
+   *
+   *     R_min = n·Σᵢtᵢ/nᵢ / [ (n+1)/n − (1−cosφ) ],    φ = θ + arcsin(sinθ/n)
+   *
+   * The marginal ray meets the dome R(1−cosφ) below its vertex, and the flat
+   * face must sit below *that*; the thickness is whatever the stack's apparent
+   * depth leaves over, so a fixed slip thickness becomes a floor on R. It is the
+   * reason an immersion front group has to be compact — see the module header.
+   */
+  readonly minimumRadiusMm: number;
   /** Transverse magnification n²/1 — and the factor the aperture is divided by. */
   readonly magnification: number;
   /** Emergent marginal sine in air: NA/n². */
@@ -254,6 +309,30 @@ export function hyperhemisphere(spec: HyperhemisphereSpec): Hyperhemisphere {
     );
   }
 
+  // The dome must be DEEP ENOUGH: the marginal ray meets it a distance
+  // R(1−cosφ) below the vertex, where φ = θ + arcsin(sinθ/n) is the same angle
+  // the rim fraction uses, and the flat face has to sit below that or the ray
+  // leaves the glass before it ever reaches the dome. Since the thickness is
+  // whatever the stack's apparent depth leaves over, that is a floor on R:
+  //
+  //     R · [ (n+1)/n − (1−cosφ) ]  >  n·Σᵢ tᵢ/nᵢ      (over the layers ahead)
+  //
+  // This is why an immersion front group is COMPACT. A cover slip's apparent
+  // depth is a fixed length that does not scale with the design, so it demands a
+  // minimum dome, and the rest of the group has to be short enough to let a dome
+  // that big still land its virtual image where the rear group wants it.
+  const minimumRadiusMm = minimumDomeRadiusMm(spec);
+  if (!Number.isFinite(minimumRadiusMm)) {
+    throw new Error(
+      `hyperhemisphere: at NA ${NA} the marginal ray meets the dome deeper than the Weierstrass point itself — no element of this glass carries it at any radius`,
+    );
+  }
+  if (!(R > minimumRadiusMm)) {
+    throw new Error(
+      `hyperhemisphere: a dome of radius ${R} is too shallow for the stack in front of it — the marginal ray would leave the glass before reaching the dome. The apparent depth of ${(nGlass * reducedAhead).toFixed(4)} mm needs R > ${minimumRadiusMm.toFixed(4)} mm at NA ${NA}.`,
+    );
+  }
+
   const stack: readonly PlaneLayer[] = [
     ...(slip ? [{ thicknessMm: slip.thicknessMm, n: nSlip! }] : []),
     { thicknessMm: immersionGapMm, n: nFluid },
@@ -333,6 +412,7 @@ export function hyperhemisphere(spec: HyperhemisphereSpec): Hyperhemisphere {
     workingDistanceMm: (slip ? slip.thicknessMm : 0) + immersionGapMm,
     domeRadiusMm: R,
     rimUtilisation: domeHeight / R,
+    minimumRadiusMm,
     magnification: nGlass * nGlass,
     emergentSine: NA / (nGlass * nGlass),
     stack,
@@ -440,12 +520,22 @@ export interface AplanaticFrontGroupSpec extends HyperhemisphereSpec {
   readonly meniscusCount?: number;
   /**
    * Gap from a virtual image to the next meniscus's front vertex, as a fraction
-   * of that image's distance. Default 0.2. Stated, not solved — the first
+   * of that image's distance. Default 0.1. Stated, not solved — the first
    * surface is concentric whatever the gap is, so this sets the element's scale
-   * rather than its correction.
+   * rather than its correction, and the rungs check the design does not depend
+   * on it.
+   *
+   * The defaults are deliberately COMPACT, and the reason is `minimumRadiusMm`.
+   * Each meniscus multiplies the group's virtual-image distance by
+   * (1+gap)(1+thickness)·n, so a loose group pushes that image far out — and
+   * since the image has to land on the rear group's front focus, a far image
+   * means a SMALL dome. A cover slip's apparent depth is a fixed length that
+   * does not scale with the design, so it puts a floor under the dome, and a
+   * loose front group cannot clear it. At the old (0.2, 0.5) a 100×/1.4 through
+   * a real slip has no solution at any placement; at (0.1, 0.3) it does.
    */
   readonly meniscusGapFactor?: number;
-  /** Meniscus thickness as a fraction of its front radius. Default 0.5. Stated. */
+  /** Meniscus thickness as a fraction of its front radius. Default 0.3. Stated. */
   readonly meniscusThicknessFactor?: number;
   /** Meniscus glass. Defaults to the front element's. */
   readonly meniscusMedium?: string;
@@ -484,8 +574,8 @@ export function aplanaticFrontGroup(spec: AplanaticFrontGroupSpec): AplanaticFro
   if (!Number.isInteger(count) || count < 0) {
     throw new Error("aplanaticFrontGroup: meniscusCount must be a non-negative integer");
   }
-  const gapFactor = spec.meniscusGapFactor ?? 0.2;
-  const thicknessFactor = spec.meniscusThicknessFactor ?? 0.5;
+  const gapFactor = spec.meniscusGapFactor ?? 0.1;
+  const thicknessFactor = spec.meniscusThicknessFactor ?? 0.3;
   if (!(gapFactor > 0)) throw new Error("aplanaticFrontGroup: the gap factor must be positive");
   if (!(thicknessFactor > 0)) {
     throw new Error("aplanaticFrontGroup: the thickness factor must be positive");
@@ -574,6 +664,177 @@ export function aplanaticFrontGroup(spec: AplanaticFrontGroupSpec): AplanaticFro
     emergentSine: spec.numericalAperture / magnification,
     gapsMm,
     numericalAperture: spec.numericalAperture,
+    designWavelengthNm,
+  };
+}
+
+export interface OilImmersionObjectiveSpec
+  extends Omit<AplanaticFrontGroupSpec, "numericalAperture" | "radiusMm"> {
+  /** Nominal magnification against `tubeFocalLengthMm` (e.g. 100 for a 100×). */
+  readonly magnification: number;
+  /** Object-space numerical aperture n·sinu, in the immersion fluid (e.g. 1.25). */
+  readonly numericalAperture: number;
+  /** The tube lens this magnification is quoted against (mm). Default 200. */
+  readonly tubeFocalLengthMm?: number;
+  /**
+   * Where the front group's virtual image sits, as a fraction of the rear
+   * group's own object distance. Default 0.9, so the remaining 10% is the air
+   * gap between the two. Stated, not solved — and it is the knob that SETS the
+   * dome radius rather than a separate one, since every length in the front
+   * group is exactly proportional to R.
+   */
+  readonly frontImageFactor?: number;
+  /** Rear group (§ 6d Lister) parameters. */
+  readonly powerSplit?: number;
+  readonly separationFactor?: number;
+  readonly frontOrientation?: GroupOrientation;
+  readonly rearOrientation?: GroupOrientation;
+  readonly crownMedium?: string;
+  readonly flintMedium?: string;
+}
+
+export interface OilImmersionObjective extends InfinityCorrectedObjective {
+  readonly frontGroup: AplanaticFrontGroup;
+  /** § 6d's two-doublet aplanat, doing the work the front group brought into range. */
+  readonly rearGroup: ListerObjective;
+  /** Front group's last vertex → the Lister's first vertex (mm). */
+  readonly groupGapMm: number;
+  /** The dome radius the placement solved to (mm). */
+  readonly domeRadiusMm: number;
+  /** The aperture handed to the rear group: NA / the front group's magnification. */
+  readonly rearNumericalAperture: number;
+  /** Traced paraxial EFL of the whole objective at the design wavelength (mm). */
+  readonly paraxialFocalLengthMm: number;
+  readonly magnification: number;
+  readonly numericalAperture: number;
+  readonly tubeFocalLengthMm: number;
+}
+
+/**
+ * The oil-immersion objective: § 6e's aplanatic front, then § 6d's Lister.
+ *
+ * ## Why this composes instead of needing a re-solve
+ *
+ * The front group is exact to all orders and leaves a VIRTUAL image; the Lister
+ * was solved for a real object at its own front focal distance. Put the virtual
+ * image exactly there and the rear group sees the conjugate pair and the cone it
+ * was solved for, unchanged — so its ΣS_I = ΣS_II = 0 still holds and nothing is
+ * re-derived. That is the entire benefit of an aplanatic front: it changes the
+ * aperture and the magnification without changing the aberration problem.
+ *
+ * ## What sets what
+ *
+ * The front group's magnification n²·nᵏ is fixed by the glass and the meniscus
+ * count alone — no length enters it — so the rear group's share is known before
+ * any geometry exists:
+ *
+ *     f_rear = (f_tube/M) · m_front       NA_rear = NA / m_front
+ *
+ * and the Lister is built at those. Only then does the dome radius get chosen,
+ * and it is not an independent parameter: every length in the front group is
+ * exactly proportional to R, so R is whatever puts the virtual image at
+ * `frontImageFactor` of the rear group's object distance. Solved by building the
+ * group once at R = 1 and scaling — no closed form restated, and the linearity
+ * is a rung.
+ *
+ * ## The one aperture
+ *
+ * Both groups declare their own surface 0 as a stop. The composed prescription
+ * keeps exactly one, on surface 0 — § 6a's rule, and `seidelSums` throws
+ * otherwise. The stop is the specimen-side face of the cover slip, and its
+ * radius is § 6e.2's exact plane-layer sum.
+ */
+export function oilImmersionObjective(
+  spec: OilImmersionObjectiveSpec,
+): OilImmersionObjective {
+  const M = spec.magnification;
+  const NA = spec.numericalAperture;
+  if (!(M > 0)) throw new Error("oilImmersionObjective: magnification must be positive");
+  if (!(NA > 0)) throw new Error("oilImmersionObjective: NA must be positive");
+  const tubeFocalLengthMm = spec.tubeFocalLengthMm ?? DEFAULT_TUBE_FOCAL_LENGTH_MM;
+  const designWavelengthNm = spec.designWavelengthNm ?? LINE_D;
+  const frontImageFactor = spec.frontImageFactor ?? 0.9;
+  if (!(frontImageFactor > 0) || frontImageFactor >= 1) {
+    throw new Error(
+      "oilImmersionObjective: frontImageFactor must lie strictly inside (0, 1) — at 1 the two groups touch",
+    );
+  }
+
+  // A probe front group, built at twice the smallest radius the stack allows so
+  // it exists for anything the form can carry at all. Its magnification is what
+  // the rear group's share is computed from, and its virtual image distance is
+  // the proportionality constant the radius is solved with — every length in the
+  // group is exactly proportional to R, so ANY valid probe radius gives the same
+  // constant. Building it costs one trace and saves restating the group's own
+  // arithmetic here.
+  const probeRadiusMm = 2 * minimumDomeRadiusMm({ ...spec, numericalAperture: NA });
+  if (!Number.isFinite(probeRadiusMm)) {
+    throw new Error(
+      `oilImmersionObjective: no hyperhemisphere of any radius carries NA ${NA} in this glass — the marginal ray meets the dome deeper than the Weierstrass point`,
+    );
+  }
+  const probeSpec = { ...spec, numericalAperture: NA, radiusMm: probeRadiusMm };
+  const probe = aplanaticFrontGroup(probeSpec);
+  const mFront = probe.magnification;
+  const rearNumericalAperture = NA / mFront;
+
+  const rearGroup = listerObjective({
+    // f_rear = (f_tube/M)·m_front, expressed the only way `listerObjective`
+    // takes a focal length: as a magnification against the same tube lens.
+    magnification: M / mFront,
+    numericalAperture: rearNumericalAperture,
+    tubeFocalLengthMm,
+    designWavelengthNm,
+    ...(spec.powerSplit === undefined ? {} : { powerSplit: spec.powerSplit }),
+    ...(spec.separationFactor === undefined ? {} : { separationFactor: spec.separationFactor }),
+    ...(spec.frontOrientation === undefined ? {} : { frontOrientation: spec.frontOrientation }),
+    ...(spec.rearOrientation === undefined ? {} : { rearOrientation: spec.rearOrientation }),
+    ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
+    ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
+    ...(spec.glassMarginFactor === undefined ? {} : { glassMarginFactor: spec.glassMarginFactor }),
+  });
+
+  // Every length in the front group is exactly proportional to R, so this is a
+  // division and not a search.
+  const domeRadiusMm =
+    (probeRadiusMm * frontImageFactor * rearGroup.objectDistanceMm) /
+    probe.virtualImageDistanceMm;
+  const frontGroup = aplanaticFrontGroup({ ...probeSpec, radiusMm: domeRadiusMm });
+  const groupGapMm = rearGroup.objectDistanceMm - frontGroup.virtualImageDistanceMm;
+  if (!(groupGapMm > 0)) {
+    throw new Error(
+      `oilImmersionObjective: the front group's virtual image lands behind the rear group's front vertex (gap ${groupGapMm.toFixed(4)} mm) — lower frontImageFactor`,
+    );
+  }
+
+  const spliced = spliceModules(
+    [
+      { surfaces: frontGroup.prescription.surfaces, gapAfterMm: groupGapMm },
+      { surfaces: rearGroup.prescription.surfaces, gapAfterMm: 0 },
+    ],
+    frontGroup.prescription.objectMedium ?? "AIR",
+  );
+  // One aperture, one flag — § 6a's rule. Both groups flagged their own surface
+  // 0, and `seidelSums` throws unless the flagged stop is surface 0.
+  const prescription: Prescription = {
+    ...spliced,
+    surfaces: spliced.surfaces.map((s, i) => ({ ...s, isStop: i === 0 })),
+  };
+
+  return {
+    prescription,
+    focalLengthMm: tubeFocalLengthMm / M,
+    paraxialFocalLengthMm: systemProperties(prescription, designWavelengthNm).efl,
+    objectDistanceMm: frontGroup.objectDistanceMm,
+    stopRadiusMm: frontGroup.stopRadiusMm,
+    frontGroup,
+    rearGroup,
+    groupGapMm,
+    domeRadiusMm,
+    rearNumericalAperture,
+    magnification: M,
+    numericalAperture: NA,
+    tubeFocalLengthMm,
     designWavelengthNm,
   };
 }

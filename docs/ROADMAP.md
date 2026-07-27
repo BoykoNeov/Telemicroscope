@@ -172,7 +172,7 @@
    image degrading as the budget predicts.
 6. **Microscope branch** ← current
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
-   oil immersion; brightfield (incoherent + condenser-NA factor) and
+   oil immersion ✅ (§ 6e); brightfield (incoherent + condenser-NA factor) and
    fluorescence; coverslip mismatch ✅ (§ 6c); scenes: diatoms, stained tissue,
    fluorescent beads. Mostly configuration + domain models on the existing
    engine. *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
@@ -262,8 +262,25 @@
    rather than by taste. **§ 6a's first immersion blocker is closed**, and its
    diagnosis was half wrong: a tangent is exact at a plane face, and what was
    2.6× out at NA 1.4 was using the sine-condition height as a stop radius.
-   **Open:** the composed objective, off-axis everywhere, the chromatic half (a
-   dome is aplanatic at ONE wavelength), and water immersion.
+   **Open:** off-axis everywhere, the chromatic half (a dome is aplanatic at ONE
+   wavelength), and water immersion.
+   *The oil-immersion objective:* ✅ `oilImmersionObjective` (§ 6e.4), and with it
+   the branch's headline deliverable: **a 100×/1.25 and a 100×/1.40 that are
+   diffraction-limited**, σ ≤ 0.35·λ/14 from NA 1.0 to 1.40, traced NA equal to the
+   label to 7 digits and 100× that really is 100×. It composes **without a
+   re-solve** — the front group's virtual image lands on the Lister's own front
+   focus, so the rear group sees the conjugates it was solved for — and the dome
+   radius is solved rather than picked, since every length in the front group is
+   proportional to R. **The ceiling is geometric, not aberration:** NA 1.411,
+   where the slip's apparent-depth floor on the dome meets the placement's
+   ceiling, and the wavefront there is still λ/50. That is § 6d.4's finding
+   repeating in a new mechanism — twice now the form has stopped *existing* well
+   before it stopped being diffraction-limited. **And the cover slip HELPS:** its
+   spherical aberration is opposite in sign to the Lister's residual, so the
+   objective with its slip is 1.7× better corrected than the same one in a matched
+   bath — § 6c's "worse than not correcting at all", arriving where it bites.
+   **Open:** correcting for the stack deliberately rather than by luck of sign,
+   the correction collar, water immersion, off-axis, and the chromatic half.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

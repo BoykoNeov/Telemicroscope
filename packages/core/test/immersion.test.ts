@@ -17,7 +17,21 @@ import {
   aplanaticFrontGroup,
   aplanaticMeniscus,
   hyperhemisphere,
+  minimumDomeRadiusMm,
+  oilImmersionObjective,
 } from "../src/designs/immersion";
+import { listerObjective } from "../src/designs/lister";
+import { infinityCorrectedMicroscope, tubeLens } from "../src/designs/microscope";
+import { OpticalSystem } from "../src/trace/system";
+import { opdMap } from "../src/pupil/opd";
+import { pupilGrid } from "../src/pupil/aiming";
+import { bestFocus, withFocus } from "../src/analysis/focus";
+import {
+  abbeResolutionMm,
+  lateralMagnification,
+  objectNumericalAperture,
+  sineConditionResidual,
+} from "../src/pupil/microscope";
 import { LINE_D } from "../src/materials/dispersion";
 import { getMedium } from "../src/materials/catalog";
 import { paraxialTrace } from "../src/trace/paraxial";
@@ -688,5 +702,251 @@ describe("§ 6e.3 — the aplanatic meniscus, and the front group", () => {
         expect(g.emergentSine).toBeCloseTo(group.emergentSine, 12);
       }
     }
+  });
+});
+
+/**
+ * § 6e.4 — the composed oil-immersion objective: § 6e's aplanatic front, then
+ * § 6d's Lister, spliced into an `InfinityCorrectedObjective`.
+ *
+ * **Third-order theory is deliberately absent here.** `analysis/seidel` seeds its
+ * marginal ray with the paraxial slope h/s — a TANGENT — and § 6c measured that
+ * the tan and sin conventions part company by a factor of three at NA 0.65. At
+ * NA 1.25 a Seidel sum is not a wrong number, it is not a number. Everything
+ * below is read off the traced wavefront or off real rays.
+ */
+describe("§ 6e.4 — the oil-immersion objective", () => {
+  const TUBE_MM = 200;
+  const FIELD_MM = 0.002;
+  const MARECHAL_W = 1 / 14;
+  const objective = (NA: number, over: Record<string, unknown> = {}) =>
+    oilImmersionObjective({
+      magnification: 100,
+      numericalAperture: NA,
+      tubeFocalLengthMm: TUBE_MM,
+      ...over,
+    });
+  const scopeOf = (o: ReturnType<typeof objective>): OpticalSystem =>
+    infinityCorrectedMicroscope({
+      objective: o,
+      tubeLens: tubeLens({ focalLengthMm: TUBE_MM }),
+      objectHeightsMm: [0, FIELD_MM],
+    }).system;
+  /** σ on axis at best focus, in waves. */
+  const sigmaOf = (s: OpticalSystem): number => {
+    const f = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
+    const map = opdMap(withFocus(s, f.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21));
+    expect(map.lost).toBe(0);
+    return map.rmsWaves;
+  };
+  const flagship = objective(1.25);
+
+  it("the traced object NA IS the label, at 1.25 and at 1.40", () => {
+    // NOT circular: the stop radius is § 6e.2's closed plane-layer sum, computed
+    // from the label and never solved against a traced NA. What this measures is
+    // that the exact tracer, through 13 surfaces and a real cover slip, delivers
+    // the cone that stop implies — at an aperture where the sine and the tangent
+    // differ by 2.6×, so nothing small-angle could be hiding.
+    for (const NA of [1.0, 1.25, 1.4]) {
+      expect(objectNumericalAperture(scopeOf(objective(NA)), LAMBDA)).toBeCloseTo(NA, 7);
+    }
+  });
+
+  it("100× really is 100×, and the EFL is f_tube/M", () => {
+    // The magnification is a real-ray measurement through the tube lens, so it
+    // carries distortion — it comes out 0.04% shy of nominal at a 2 µm field
+    // height, and that residual is the finding rather than an error.
+    const m = lateralMagnification(scopeOf(flagship), FIELD_MM, LAMBDA);
+    expect(m).toBeLessThan(0); // a microscope's real image is inverted
+    expect(Math.abs(m)).toBeCloseTo(100, 0);
+    expect(Math.abs(Math.abs(m) / 100 - 1)).toBeLessThan(2e-3);
+    // The paraxial EFL of the whole objective is f_tube/M to a part in 10⁹ — the
+    // two groups' powers were never added by hand, only placed.
+    expect(flagship.paraxialFocalLengthMm).toBeCloseTo(TUBE_MM / 100, 8);
+    expect(flagship.focalLengthMm).toBe(TUBE_MM / 100);
+  });
+
+  it("DIFFRACTION-LIMITED across the whole immersion range", () => {
+    // The point of the step. σ at best focus stays 3–7× inside Maréchal from
+    // NA 1.0 to NA 1.40 — a 100×/1.4 oil objective that is diffraction-limited
+    // because every element in front of the doublets is exact to all orders.
+    for (const NA of [1.0, 1.1, 1.25, 1.35, 1.4]) {
+      const sigma = sigmaOf(scopeOf(objective(NA)));
+      expect(sigma).toBeLessThan(MARECHAL_W);
+      expect(sigma).toBeLessThan(0.35 * MARECHAL_W);
+    }
+  });
+
+  it("the CEILING is geometric, not aberration — § 6d.4's shape again", () => {
+    // § 6d found the Lister stopped EXISTING before it stopped being
+    // diffraction-limited. The same is true here for a different reason: the
+    // cover slip's apparent depth puts a floor under the dome radius, the
+    // placement puts a ceiling on it, and they meet at NA 1.411 — where the
+    // wavefront is still λ/50.
+    const builds = (NA: number): boolean => {
+      try {
+        objective(NA);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    let lo = 1.0;
+    let hi = 1.6;
+    for (let i = 0; i < 28; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (builds(mid)) lo = mid;
+      else hi = mid;
+    }
+    expect(lo).toBeGreaterThan(1.40);
+    expect(lo).toBeLessThan(1.42);
+    // At the wall the two radii have met: the placement solve wants exactly what
+    // the stack's apparent depth allows and not a micron more.
+    const atWall = objective(lo);
+    expect(atWall.domeRadiusMm / minimumDomeRadiusMm({ numericalAperture: lo })).toBeCloseTo(1, 2);
+    // …and the wavefront there is nowhere near its own limit.
+    const sigma = sigmaOf(scopeOf(atWall));
+    expect(sigma).toBeLessThan(MARECHAL_W / 3);
+    expect(1 / sigma).toBeGreaterThan(45);
+  });
+
+  it("the COVER SLIP HELPS: its spherical partly cancels the rear group's", () => {
+    // Counter-intuitive and classical. § 6e.1 says the slip adds spherical
+    // aberration; § 6d says the Lister leaves a fifth-order residual. They are of
+    // opposite sign, so the objective WITH its slip is better corrected than the
+    // same objective in a perfectly index-matched bath — which is why a real
+    // objective is corrected as a whole *including* the glass it looks through,
+    // and why using one without its slip is worse than not correcting at all
+    // (§ 6c's sign, arriving at the aperture it matters most).
+    const matched = objective(1.25, {
+      coverslipSpec: null,
+      immersionMedium: FRONT_ELEMENT_MEDIUM,
+    });
+    const withSlip = sigmaOf(scopeOf(flagship));
+    const bare = sigmaOf(scopeOf(matched));
+    expect(withSlip).toBeLessThan(bare);
+    expect(bare / withSlip).toBeGreaterThan(1.5);
+    // Both are still inside the limit — the slip is a refinement here, not a
+    // rescue, and saying otherwise would overstate it.
+    expect(bare).toBeLessThan(MARECHAL_W);
+  });
+
+  it("the sine condition holds to ~1%, and it is the REAR group's residual", () => {
+    // The front group is aplanatic to f64 (§ 6e.3). What is left is the Lister's
+    // own offence against Abbe, which § 6d measured at 1.3% at NA 0.20 — and the
+    // rear group here runs at NA 0.232, so ~1% is exactly what should survive.
+    // Attributing it matters: it is not the immersion front misbehaving.
+    const residual = Math.abs(sineConditionResidual(scopeOf(flagship), FIELD_MM, LAMBDA));
+    expect(residual).toBeLessThan(0.02);
+    expect(residual).toBeGreaterThan(1e-3);
+  });
+
+  it("resolution: what NA 1.4 buys over the best dry objective", () => {
+    // The reason any of this exists. Abbe's d = λ/(2·NA), so the gain over a dry
+    // NA 0.95 is exactly the NA ratio — 1.47× finer detail, 210 nm against
+    // 309 nm at the d line. Not a modelling artifact: it is the immersion fluid's
+    // index appearing in n·sinu, which is where NA > 1 comes from at all.
+    const wet = abbeResolutionMm(LAMBDA, 1.4);
+    const dry = abbeResolutionMm(LAMBDA, 0.95);
+    expect(dry / wet).toBeCloseTo(1.4 / 0.95, 12);
+    expect(wet * 1e6).toBeCloseTo(210, 0);
+    // And NA > 1 is impossible dry, which is the whole point of the fluid.
+    expect(() => hyperhemisphere({ numericalAperture: 1.25, radiusMm: 0.5, immersionMedium: "AIR" })).toThrow();
+  });
+
+  it("NEGATIVE CONTROLS: the rear group cannot do this alone, and says so", () => {
+    // A Lister asked for NA 1.25 directly is not a hard design problem, it is an
+    // impossible one — sin u > 1 in air. The constructor refuses on those terms.
+    expect(() => listerObjective({ magnification: 100, numericalAperture: 1.25 })).toThrow(
+      /must lie in \(0, 1\)/,
+    );
+    // And with too few menisci the aperture handed back is over § 6d's measured
+    // ceiling, so the Lister refuses with ITS OWN reason — the failure quotes the
+    // previous step's number rather than a new one invented here.
+    for (const meniscusCount of [0, 1]) {
+      expect(() => objective(1.25, { meniscusCount })).toThrow(
+        /two cemented doublets do not reach/,
+      );
+    }
+  });
+
+  it("one aperture, one flag — and the placement solve is exact", () => {
+    // § 6a's rule: both groups declare their own surface 0 a stop, so a naive
+    // splice would carry two. `seidelSums` throws unless the flagged stop is
+    // surface 0, and `stopIndex` would silently take the first and look fine.
+    const flags = flagship.prescription.surfaces.filter((s) => s.isStop);
+    expect(flags.length).toBe(1);
+    expect(flagship.prescription.surfaces[0]!.isStop).toBe(true);
+
+    // The dome radius is solved, not chosen: the front group's virtual image
+    // lands at exactly `frontImageFactor` of the rear group's object distance,
+    // and the gap is the rest of it.
+    const factor = 0.75;
+    const o = objective(1.25, { frontImageFactor: factor });
+    expect(o.frontGroup.virtualImageDistanceMm / o.rearGroup.objectDistanceMm).toBeCloseTo(
+      factor,
+      10,
+    );
+    expect(o.groupGapMm).toBeCloseTo((1 - factor) * o.rearGroup.objectDistanceMm, 10);
+    // …which rests on every length in the front group being exactly proportional
+    // to R. Asserted directly, because the solve is a division that assumes it.
+    const a = aplanaticFrontGroup({ numericalAperture: 1.25, radiusMm: 0.5 });
+    const b = aplanaticFrontGroup({ numericalAperture: 1.25, radiusMm: 1.5 });
+    expect(b.virtualImageDistanceMm / a.virtualImageDistanceMm).toBeCloseTo(3, 10);
+    expect(b.magnification).toBeCloseTo(a.magnification, 12);
+  });
+
+  it("the minimum dome radius is a CLOSED FORM, exact on a matched stack", () => {
+    // § 6e.2's floor, checked against where the constructor ACTUALLY starts
+    // refusing rather than against itself: bisect the radius at fixed NA and
+    // compare. The formula is a homogeneous-medium statement — the marginal ray
+    // meets the dome R(1−cosφ) below its vertex — so it should be exact exactly
+    // when the stack is index-matched, and that is the shape the measurement has.
+    const thresholdOf = (NA: number, over: Record<string, unknown>): number => {
+      const spec = { numericalAperture: NA, ...over };
+      const predicted = minimumDomeRadiusMm(spec);
+      const builds = (R: number): boolean => {
+        try {
+          hyperhemisphere({ ...spec, radiusMm: R });
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      let lo = predicted * 0.5;
+      let hi = predicted * 3;
+      for (let i = 0; i < 50; i++) {
+        const mid = 0.5 * (lo + hi);
+        if (builds(mid)) hi = mid;
+        else lo = mid;
+      }
+      return hi;
+    };
+    const MATCHED = { coverslipSpec: null, immersionMedium: FRONT_ELEMENT_MEDIUM };
+    for (const NA of [0.5, 0.9, 1.25, 1.4]) {
+      const predicted = minimumDomeRadiusMm({ numericalAperture: NA, ...MATCHED });
+      // Exact to a part in 10⁷ — the residual is the bisection's own resolution.
+      expect(thresholdOf(NA, MATCHED) / predicted - 1).toBeLessThan(1e-7);
+    }
+    // On the real bench it is an UNDER-estimate, by exactly the amount the stack
+    // bends the ray away from the homogeneous geometry — 1.2e-5 at NA 0.5 rising
+    // to 3.7e-3 at NA 1.4. Conservative in the safe direction (the constructor
+    // refuses slightly more than the formula predicts), and it grows with the
+    // mismatch's leverage rather than randomly, which is what makes it an
+    // explanation rather than a discrepancy.
+    const relative = (NA: number) => thresholdOf(NA, {}) / minimumDomeRadiusMm({ numericalAperture: NA }) - 1;
+    expect(relative(0.5)).toBeGreaterThan(0);
+    expect(relative(0.5)).toBeLessThan(1e-4);
+    expect(relative(1.4)).toBeGreaterThan(2e-3);
+    expect(relative(1.4)).toBeGreaterThan(relative(1.25));
+    expect(relative(1.25)).toBeGreaterThan(relative(0.9));
+    expect(relative(0.9)).toBeGreaterThan(relative(0.5));
+
+    // A slip makes the floor an order of magnitude higher than a bare specimen
+    // in fluid — the fixed 0.17 mm of glass is what forces a big dome, and a big
+    // dome is what forces the front group to be compact.
+    expect(minimumDomeRadiusMm({ numericalAperture: 1.25 })).toBeGreaterThan(
+      8 * minimumDomeRadiusMm({ numericalAperture: 1.25, coverslipSpec: null }),
+    );
   });
 });

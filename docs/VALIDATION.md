@@ -50,7 +50,7 @@ whole ladder.
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
-| [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci) that divides NA by n²·nᵏ | `immersion` |
+| [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective | `immersion` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3425,11 +3425,68 @@ is enough at both, and NA 1.40's 0.260 is under § 6d's *default* reach of 0.273
 as well, so the rear group need not be pushed to its own edge. That is the whole
 argument of § 6e in one table.
 
+### 6e.4 — the composed oil-immersion objective
+
+§ 6e's aplanatic front, then § 6d's Lister, spliced into an
+`InfinityCorrectedObjective`. It composes **without a re-solve**: the front group
+leaves a virtual image, the Lister was solved for a real object at its own front
+focal distance, and putting one exactly at the other hands the rear group the
+conjugate pair and the cone it was solved for. That is the whole benefit of an
+aplanatic front — it changes the aperture and the magnification without changing
+the aberration problem.
+
+Nothing here is chosen twice. The front group's magnification n²·nᵏ is fixed by
+the glass and the meniscus count alone, so the rear group's share is known before
+any geometry exists (f_rear = (f_tube/M)·m_front, NA_rear = NA/m_front); the dome
+radius is then *solved*, not picked, because every length in the front group is
+exactly proportional to R.
+
+**Third-order theory is deliberately absent.** `analysis/seidel` seeds its
+marginal ray with the paraxial slope h/s — a tangent — and § 6c measured the tan
+and sin conventions parting company by a factor of three at NA 0.65. At NA 1.25 a
+Seidel sum is not a wrong number, it is not a number. Every rung below is read off
+the traced wavefront or off real rays.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The traced object NA IS the label** at 1.00 / 1.25 / 1.40, to 7 digits | § 6e.2's closed-form stop, never solved against the NA | ✅ |
+| 100× is 100× on a real chief ray, and the paraxial EFL is f_tube/M to 1e-9 | § 6a's convention, through 13 surfaces | ✅ |
+| **DIFFRACTION-LIMITED from NA 1.0 to 1.40** — σ ≤ 0.35·λ/14 throughout | Maréchal, external | ✅ |
+| **The ceiling is GEOMETRIC: NA 1.411, bisected**, where the placement-solved R meets `minimumDomeRadiusMm` | § 6d.4's shape — the design stops existing, not stops working | ✅ |
+| …and at that ceiling the wavefront is still **λ/50** | the two walls are 3.6× apart | ✅ |
+| **The COVER SLIP HELPS** — with it σ is 1.7× better than in a matched bath | § 6c's sign, at the aperture it matters | ✅ |
+| The sine residual is ~0.9%, and it is the REAR group's (§ 6d measured 1.3% at NA 0.20) | attributed, not just bounded | ✅ |
+| Abbe: NA 1.4 resolves 210 nm against a dry 0.95's 309 nm — the NA ratio exactly | Abbe, external | ✅ |
+| NEGATIVE CONTROL: a Lister asked for NA 1.25 refuses — sinu > 1 in air | not a hard problem, an impossible one | ✅ |
+| **NEGATIVE CONTROL: 0 or 1 meniscus and the Lister refuses in ITS OWN words** | the failure quotes § 6d's ceiling, not a new number | ✅ |
+| Exactly one stop flag, on surface 0, after splicing two groups that each declared one | § 6a's rule | ✅ |
+| The placement solve is exact: the virtual image lands at `frontImageFactor` of the rear object distance to 1e-10 | and the R-linearity it rests on is asserted directly | ✅ |
+| **`minimumDomeRadiusMm` is EXACT on a matched stack** (1e-7, the bisection's own floor) | it is a homogeneous-medium geometry statement | ✅ |
+| …and on the real bench it under-estimates by 1.2e-5 (NA 0.5) → 3.7e-3 (NA 1.4), monotone in NA | the stack mismatch, growing with its leverage — an explanation, not a discrepancy | ✅ |
+
+**The flagship, measured.** A 100×/1.25 oil objective on a 200 mm tube: dome
+radius 0.480 mm, element thickness 0.604 mm, working distance 0.19 mm, stop
+radius 0.244 mm on the slip's face, rim utilisation 0.999, rear group a Lister at
+NA 0.232 and f 10.77 mm with ΣS_I = 0 and ΣS_II = 3e-18. Traced NA 1.25000000,
+traced magnification −99.96, σ = 0.0179 waves.
+
+**Two walls, and which one binds.** Above NA 1.411 the dome floor and the
+placement ceiling cross and no front group exists; had that not bound first, the
+Lister's own § 6d ceiling of 0.343 would have bound at NA 1.470. The wavefront
+binds nowhere in that range. This is § 6d.4's finding repeating in a different
+mechanism, and it is worth saying plainly: **twice now the form has stopped
+existing well before it stopped being diffraction-limited.**
+
+**The cover slip helps, which is not the obvious direction.** § 6e.1 says the slip
+adds spherical aberration and § 6d says the Lister leaves a fifth-order residual;
+they are of opposite sign, so the objective *with* its slip is better corrected
+than the same objective in a perfectly index-matched bath (σ 0.0179 against
+0.0300). This is why a real objective is corrected as a whole including the glass
+it looks through, and it is § 6c's "using it without a slip is worse than not
+correcting at all", arriving at the aperture where it bites.
+
 ### Not yet pinned
 
-- **The composed objective.** The front group is aplanatic and the Lister is
-  aplanatic; splicing them into an `InfinityCorrectedObjective` with a real
-  magnification, traced NA and Maréchal reach is the next unit.
 - **Off-axis, everywhere.** Both the stack and the aplanatic elements are pinned
   on axis only. An aplanat is not an anastigmat (§ 6d's open item, inherited) and
   a plate in a non-telecentric beam adds coma and astigmatism (§ 6c's, inherited).
@@ -3437,9 +3494,15 @@ argument of § 6e in one table.
   is wavelength-dependent through n — a dome is aplanatic at ONE wavelength. The
   three media also have genuinely different Abbe numbers (oil 42.9, D 263 54.5,
   N-BK7 64.2), so the stack's mismatch is chromatic too. Neither is measured.
-- **Correcting an objective FOR its stack.** § 6c's `targetS1Mm` route is the
-  move, and at these apertures 6e.1's table says it is not optional. The Lister
-  solves ΣS_I = ΣS_II = 0 with no target; giving it one is a real change.
+- **Correcting an objective FOR its stack, deliberately.** 6e.4 found the slip's
+  aberration cancelling the rear group's by luck of sign, not by design. § 6c's
+  `targetS1Mm` route would make it intentional and would buy the rest; the Lister
+  solves ΣS_I = ΣS_II = 0 with no target, and giving it one is a real change.
+- **Water immersion, and the correction collar.** The rarest-medium rung already
+  says what caps a water objective (NA < 1.333); nothing builds one yet, and the
+  collar that compensates a wrong slip is the § 6c open item this step inherits.
+- **The tube lens is unchanged from § 6a**, so the composed microscope's field
+  performance is still its, not the objective's.
 - **Water immersion and the dry ceiling.** The catalog has dispersive water
   (§ 1) and nothing here uses it; NA 1.0-class water objectives are the same
   construction with a rarer fluid, and the rarest-medium rung already says what
