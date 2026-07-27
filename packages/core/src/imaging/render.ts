@@ -34,6 +34,15 @@ import { ImagePlaneScene, imagePointOf } from "./scene";
  * makes Σ w_p ≡ 1 identically — a partition of unity, so no light is created or
  * destroyed by the decomposition regardless of how many patches there are.
  *
+ * **`imaging/brightfield` windows the other side, deliberately.** The argument
+ * above rests on incoherent imaging being linear in the object's *intensity*.
+ * Abbe imaging is not, and there the input window does not merely leave a seam:
+ * it multiplies the interference between two object points by
+ * Σ_p √(w_p(x₁)·w_p(x₂)), which is zero across a seam, so the partial coherence
+ * the whole calculation exists for is deleted rather than approximated
+ * (`illumination/coherence`, VALIDATION § 6g.2). Two modules windowing opposite
+ * sides is two different operators, not one of them being wrong.
+ *
  * ## What it costs, which is the point of building it now
  *
  * Cost is **patches × wavelengths × (one PSF + one convolution)**, and the PSF

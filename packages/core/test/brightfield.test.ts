@@ -51,7 +51,7 @@ function sampling(maxGradientWavesPerRadius: number): OpdSampling {
 }
 
 /**
- * dc and fundamental of a periodic image over a window of whole periods.
+ * Modulation depth of a periodic image over a window of whole periods.
  *
  * The image of a grating whose period divides the grid is itself exactly
  * periodic, so one period is the whole measurement — which is what lets a
