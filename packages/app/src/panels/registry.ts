@@ -4,6 +4,7 @@ import { BrightfieldPanel } from "./brightfield";
 import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
 import { TelescopePanel } from "./telescope";
+import { VolumePanel } from "./volume";
 
 /**
  * The panels, in reading order, and the routing table is exactly this list.
@@ -62,6 +63,12 @@ export const PANELS: readonly Panel[] = [
     label: "fluorescence beads",
     blurb: "APP.md A4 — a specimen that emits, and the cutoff reached with no condenser",
     Component: FluorescencePanel,
+  },
+  {
+    id: "volume",
+    label: "haze & the focus stack",
+    blurb: "APP.md A5 — every plane delivers its whole flux, and the missing cone that follows",
+    Component: VolumePanel,
   },
 ];
 

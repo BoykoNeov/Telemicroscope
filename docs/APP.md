@@ -198,6 +198,11 @@ Fluorescence and volume are cheap by comparison and are live everywhere:
 |---|---|---|---|---|
 | `renderVolume` | 30 ms | 75 ms | 102 ms | 198 ms |
 
+(That volume row is `renderVolume` alone on pre-made fields. A5 measured the
+whole job — rasterizing a bead field per plane included — at 59–107 ms for
+9 planes and 129–262 ms for 27 under `vite-node`, of which **rasterizing is
+1–3 ms**. The browser ran ~2.3× the node figure, as A4 found.)
+
 ### 3. Several headline results are nulls, so pair every picture with a plot
 
 The branch's strongest findings are things that *do not* appear: brightfield
@@ -217,8 +222,7 @@ Each surface below is tagged **picture**, **plot**, or **pair**.
 
 ## Part A — the microscope branch
 
-A1 and A2 have landed; A3–A6 have no app surface yet. Ordered by value per unit
-of work.
+A1–A5 have landed; A6 has no app surface yet. Ordered by value per unit of work.
 
 ### A1. Objective picker + the specimen frame — ✅ **landed** — *app wiring only*
 
@@ -624,25 +628,138 @@ deliberate and § 6i.5 states it.
 **No engine capability was added, so no validation rung was.** Everything here
 is § 6i's, called from the app.
 
-### A5. Out-of-focus haze and the focus stack — *app wiring only* — **pair**
+### A5. Out-of-focus haze and the focus stack — ✅ **landed** — *app wiring only* — **pair**
 
-A z-slider through a `renderVolume` stack, with the finding stated as a number
-beside it: **every plane delivers its whole flux however far out of focus it is**,
-so a slab three times thicker is exactly three times hazier and refocusing cannot
-help.
+Landed as `volume.ts` / `volume.worker.ts` / `volume.axial.worker.ts` /
+`panels/volume.tsx`. The bead-in-a-slab scene this doc predicted would be app
+work was exactly that — A4's `rasterizeEmitters` called once per plane — and the
+adapter/worker/plot pattern transferred for the fifth time. Two things it did not
+predict are findings rather than adjustments, and one of them was only visible
+because a curve got drawn.
 
-- **Picture:** the stack, refocusing live (198 ms at 41 slices).
-- **Plot:** `axialTransfer` / `axialSpectrum` → the missing cone, zero axial
-  transfer at zero lateral frequency; and the axial sinc²(π·w₂₀), which is
-  0.8106 at the quarter wave and **exactly zero at every integer wave** — a
-  striking thing to scrub a slider through.
-- **Readouts:** `inFocusFraction` and `relativeThroughput` (1 for every slice —
-  that is the whole point, and it is only meaningful because it is computed from
-  `formedSum` rather than from the normalized kernels).
+**The scene is arithmetic, and that is what makes the claim exact.** The planes
+step by one depth of focus and the focus steps by the same, so **plane j sits at
+(j − focus)/2 waves** — § 6j defines the depth of focus so that half of it is a
+quarter wave — and exactly one plane lies inside the ±½ DOF window at every
+setting. Half-DOF focus steps would tie two planes on the window's `<=` boundary
+and the fraction would flicker between 1/N and 2/N for a reason about the window
+rather than the specimen. Equal bead counts per plane, so the slab is uniform in
+z before rasterizing.
 
-The bead-in-a-slab scene that would make signal-to-haze visible is named in
-§ 6k's *Not yet pinned* as wanting scenes the branch has not built — but as a
-*scene*, it is A4's `rasterizeEmitters` at several depths, which is app work.
+**The headline is an invariant you can drag, and it holds in every printed
+digit.** On the DIN 4× at 27 planes, scrubbing the focus from the middle of the
+stack to its far edge changes the picture completely and leaves
+`total light 9.31425579640` and `in focus 0.037735849` **unmoved** — not
+approximately, but in all twelve and nine digits shown. Beside them the identity
+that explains it: the image's in-focus share equals the *specimen's own emitted
+share* of the same plane to ~1e-16, measured for every objective in the
+catalogue. That is § 6k.2's "the in-focus fraction belongs to the specimen"
+arriving as something a reader does rather than reads.
+
+**This doc's `relativeThroughput` readout had to be replaced, and the reason is
+the trap the engine was built around.** `renderVolume` does not return it —
+`depthKernels` does — and reading it off the render's own kernels would have
+meant re-deriving from values normalized to sum 1, which report the identity by
+arithmetic. What the panel prints instead is each plane's **delivered flux ÷ its
+own emitters**, constant across the slab to ~1e-14 (measured 7.8e-15 to 2.2e-14
+over the catalogue). Same statement, read from the light rather than from the
+normalizer.
+
+**The new finding: the defocus axis has a lattice period, and it sets the
+stack's window.** The pupil is point-sampled, so the phase a defocus puts between
+two points separated by ν takes only the values 4·w·ν·k/`pupilSamples`, and the
+axial transfer at ν is therefore **exactly periodic in w₂₀ with period
+P(ν) = pupilSamples/(4·ν)** — verified to 1e-14 at six (pupilSamples, ν) pairs.
+§ 6k.4's own stack runs to ±8 waves at 32 bins, which is *two* periods at ν = 1
+and three at ν = 1.5, so the DFT of that sequence is a **comb**: nonzero only at
+every second or third bin. The rung is unaffected — it reads the edge off the
+envelope with a 2% threshold, and the envelope is right — but the first version
+of this plot drew the comb, a picket fence oscillating between 0 and 1 that is a
+drawing of the lattice rather than of the transfer. **Found by looking at the
+curve, not by the headless suite**, and the same shape of problem as A3's
+undersampled defocus lobes. The window is therefore *derived*: it must not exceed
+one period at the highest ν drawn. At 64 bins and ν = 1.5 that is 10.67 waves, so
+±4 clears it — and the bin it gives, 1/8, represents every edge the law predicts
+(0.75, 1.00, 0.75) **exactly**, so the check on screen is an equality rather than
+a rounding. The curve's second difference falls 1.375 → 0.086.
+
+**The second finding: on a traced pupil the axial peak is not at w₂₀ = 0, and
+where it sits is a reading of A1's σ.** A1 reports the wavefront as traced, about
+the system's *own* image plane with no best-focus solve, and its caption says a
+red number means "not at this focus" rather than "not correctable" — a claim that
+panel cannot check. The axial response measures it: a residual defocus moves the
+peak, and the defocus it takes to get there carries σ = |w|/(2√3) of its own.
+Measured, for the three rows whose traced σ exceeds λ/14, that is **90%, 92% and
+100%** of it — DIN 4×/0.10 peaks 0.438 waves away and is **1.79× brighter
+there**, oil 100×/1.25 0.156 waves and 1.10×, oil 100×/1.40 0.281 waves and
+1.27×. Their red is focus and almost nothing else. The well-corrected rows sit
+one sweep step (0.031 waves) from zero, which is a bound rather than a
+measurement, and the caption says so where it happens rather than quoting a share
+computed from a quantized offset.
+
+**The missing cone is measured on the traced pupil**, deliberately: the ν = 0
+null is a statement about `relativeThroughput` alone, so it holds for any pupil
+whose amplitude does not vary with depth. Measured **1.2e-15 to 2.3e-15** across
+the catalogue. Showing it only on `idealPupil` would have left open the one thing
+a reader would ask.
+
+**The frame has a depth as well as a width, and the depth runs out faster** —
+A1's constraint 1 with the axial direction added, and free off `depthOfFocusMm`.
+The lateral crop falls as 1/NA and the depth of focus as n/NA², so at 4×/0.10
+nine planes is **529 µm** of specimen (thicker than any real slide) while at
+100×/1.40 it is **4.1 µm**, about one cell. The immersion rows are where a
+z-stack means something, and their object medium is read off
+`system.prescription.objectMedium` rather than assumed: it is the **cover glass**
+(D263, n = 1.5233), not the oil, because § 6e puts the specimen under the slip.
+Passing `renderVolume` the default index of 1 would have put every immersion
+depth out by that factor.
+
+**Guards — two of them, and they answer different questions.** The picture's is
+`maxGridPhaseStepWaves` over its slices; the cone stack's is its own, and the two
+are shown separately for the reason A3 keeps its plot's ν sampling apart from its
+image's pupil sampling. The picture's is genuinely reachable and A3's
+walk-into-the-wall posture is kept rather than A2's clamp — nothing throws here,
+so a fence would hide the lesson. At 27 planes on the DIN 4× it reads **0.9486**
+red, and beside it the concrete symptom: the worst plane is 6.50 waves out and
+its kernel puts **26.7%** of its light outside the frame's inscribed circle. A
+lattice-sampled pupil has a *periodic* kernel, so those tails fold back in and the
+frame fills with a false uniform glow — which is exactly what the picture shows,
+so the guard names something visible rather than something abstract. **Raising the
+grid does not help** (measured identical at 128 and 256, because the kernel scales
+with it); only `pupilSamples` does. And **focusing at an end of the stack doubles
+the worst plane's defocus**, so the guard moves while the focus slider does even
+though the physics does not — 0.9486 → 1.4127 at 27 planes.
+
+**Cost, measured in the browser** (dev build, DIN 4×, 8 beads per plane): the
+picture is **59–107 ms at 9 planes** under `vite-node` and **270–332 ms at 27**
+in the browser — live everywhere, which is the first microscope surface that is.
+The axial job is **518–545 ms** in node and **~1.2 s** in the browser, A4's ~2.3×
+again, hence its own worker and A4's withdraw-while-stale rule. This doc's
+"198 ms at 41 slices" was a node figure with pre-made fields and no rasterizing;
+rasterizing the whole slab measures **1–3 ms** against 130–700 ms of rendering,
+so the memoization that looked worth having is not — it would save under 1% and
+have to be invalidated on six controls.
+
+**A departure worth naming: the two plots run at different samplings**, each
+derived from what it needs. The cone stack wants a lattice period longer than its
+window (64 bins). The response sweep wants w₂₀ resolution and is **indifferent to
+the grid** — it reads one number per kernel, the DC pixel, which is |Σ P|² over
+the pupil lattice divided by a normalization defocus cannot move, so the whole
+curve at grid 64 matches grid 128 to **1e-14**. It therefore runs on the smallest
+grid a 32-bin pupil fits and spends what it saves on 1/32-wave steps. The peak
+position is identical at 32 and 64 bins for every objective.
+
+**Deliberately absent, and stated on the page:** depth-dependent spherical
+aberration (§ 6l — `DepthPupils` is the hook and this panel passes phase only, so
+the stack is symmetric about focus in a way a real one is not); any field
+decomposition (`renderVolume` takes one pupil keyed on *depth*, so the frame is
+imaged through the on-axis pupil and A4's corner-versus-axis comparison has no
+analogue); and `hazeKernel`, which is exact only for a z-uniform specimen — a
+bead field is not one, and § 6k.6's whole content is that over z the sum does not
+factor.
+
+**No engine capability was added, so no validation rung was.** Everything here is
+§ 6k's, called from the app.
 
 ### A6. Coverslip mismatch and the slip tolerance — *app wiring only* — **plot**
 
@@ -800,7 +917,7 @@ Note that `@telemicroscope/core/illumination` is already in the package's
 
 ## Suggested order
 
-**A1 ✅ → A2 ✅ → A3 ✅ → A4 ✅** landed the microscope branch's headline results
+**A1 ✅ → A2 ✅ → A3 ✅ → A4 ✅ → A5 ✅** landed the microscope branch's headline results
 with one substrate and two panel kinds. A3 was predicted to be "A2's panel with
 `phaseGratingObject` in place of the cosine one", and the shape of that held —
 same adapter pattern, same worker hook, same plot primitive — but the *content*
@@ -816,8 +933,18 @@ plan. A sparse specimen and a per-frequency render are different in kind from a
 grating and a pupil sum. **The house style is the adapter boundary and the
 guards, not the display and scheduling choices layered on it** — those are per
 surface, and each one that changes has to say why on screen.
+**A5** landed the fifth reuse of that pattern and made the same point a third
+time, from a new direction: what changed was neither display nor scheduling but
+the **plot's own sampling**, and the reason was a property of the engine's
+lattice that no rung had needed to name — the axial transfer's period
+pupilSamples/(4ν). § 6k.4 reads its edges off an envelope and is right to; a
+curve drawn from the same stack is a comb. **A surface that draws a quantity a
+rung only summarizes will find the sampling the rung could afford to ignore**,
+which is A3's undersampled lobes and A4's frozen sweep arriving a third time in a
+third place.
+
 **Part B** is self-contained and can go in parallel — it touches no microscope
-code. **A5 and A6** follow. **Part C** is a separate decision.
+code. **A6** follows. **Part C** is a separate decision.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and
