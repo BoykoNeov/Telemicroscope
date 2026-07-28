@@ -542,12 +542,31 @@
    749 source points instead of 97 falls 7.1×, and the flat tail flattens only
    at the coarse sampling. The control is that a coherent source has one point
    and so cannot move under refinement. Its seam, on a traced 4×/0.10, falls 23×
-   from 1.8e-2 to 7.8e-4 and stops being a seam at all. Then the **commensurate
-   condenser and the cached pupil** (§ 6p), which is what makes a traced mosaic
-   cost minutes instead of hours, which § 6i's `latticeMatchedSource` is
-   already the exactness precondition for — and which § 6o showed also **lowers
-   the mosaic's error floor**, since the same 749 points are not converged at
-   S = 1 where `diskSource` spaces them four times wider; the **eyepiece on the intermediate
+   from 1.8e-2 to 7.8e-4 and stops being a seam at all. The **commensurate
+   condenser and the cached pupil** is ✅ **done** (§ 6p), and it is what makes a
+   traced mosaic cost minutes instead of hours: a condenser lattice stepping by a
+   whole multiple of the *pupil's* own frequency step means every direction reads
+   one grid, so a traced pupil is evaluated **once** over its support instead of
+   once per direction — **10.76× at 208 directions** on the DIN 4×/0.10, and
+   nothing at all on an ideal pupil, because there the transforms were always the
+   bill. The saving is pinned as an exact integer rather than a wall clock
+   (`pupilEvaluations` falls by exactly the contributing-point count), and the
+   cached sum is the uncached one **bit for bit** — which needed a precondition
+   nobody had stated: the identity is *arithmetic*, not just algebraic, so
+   `pupilSamples` must be a power of two and a non-dyadic one is refused rather
+   than tolerated. § 6i's `latticeMatchedSource` became the m = 1 case of it, and
+   the one place the new construct departs from `diskSource`'s is 5.6e-17 wide
+   and sits exactly where `gridCoordinate` divides by 24. **Two beliefs died
+   there.** § 6o's "it also lowers the mosaic's error floor" is **wrong** — a
+   commensurate source *is* `diskSource`'s lattice, pinned bitwise, so
+   commensurability is accuracy-neutral, and 812 commensurate points at S = 1
+   reproduce the plateau slightly *worse* than the 749; what un-flattens the
+   curve is 3 228 points, and what § 6p changed is that 3 228 *traced* directions
+   became affordable — the floor is the point count, and this step changes its
+   price. And APP.md's hope for a source "commensurate **and** coarse" at ~100
+   points does not survive § 6f.2: a step multiple of 4 is 52 directions and
+   already past that step's own wrong-enough-to-notice threshold, so the knob is
+   `pupilSamples` and not the multiple. Then the **eyepiece on the intermediate
    image** (§ 6q) — a genuinely different solve from `afocalTelescope`'s, which
    reads its spacing off a ray entering collimated; and **polychromatic
    brightfield** (§ 6r), which is what makes a stained section look stained.

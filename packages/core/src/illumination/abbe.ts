@@ -233,6 +233,18 @@ export interface AbbeImage {
    * legitimately want to look at.
    */
   readonly maxGridPhaseStepWaves: number;
+  /**
+   * How many times `pupil.amplitude` was called — the cost of this sum in the
+   * only currency that varies, since a traced `PupilFunction` re-traces rays on
+   * every call and the transforms underneath do not care what produced them.
+   *
+   * Without a commensurate source it is one pass over the shifted-pupil box per
+   * contributing direction. With one (§ 6p) it is a **single** pass, so the
+   * ratio between the two is exactly `contributingPoints` — which is the speed
+   * claim stated as an integer a test can assert rather than as a wall clock.
+   * It is also how a caller learns the cache was taken: nothing is silent.
+   */
+  readonly pupilEvaluations: number;
   readonly pixelScaleMm?: number;
 }
 
@@ -268,6 +280,8 @@ export function abbeImage(
 
   const half = n / 2;
   const step = 2 / pupilSamples;
+  const cache = buildPupilLatticeCache(pupil, pupilSamples, source);
+  let pupilEvaluations = cache === undefined ? 0 : cache.evaluations;
   const intensity = new Float64Array(n * n);
   const workRe = new Float64Array(n * n);
   const workIm = new Float64Array(n * n);
@@ -303,15 +317,50 @@ export function abbeImage(
       );
     }
 
+    // Where this direction's samples land on the shared lattice, when there is
+    // one. `baseX` turns a grid index straight into a cache column, so the loop
+    // below differs from the uncached one in exactly one expression: where the
+    // pupil's two numbers come from.
+    let baseX = 0;
+    let baseY = 0;
+    if (cache !== undefined) {
+      baseX = latticeOffset(s.sx, pupilSamples, cache.parity, "sx") - half - cache.lo;
+      baseY = latticeOffset(s.sy, pupilSamples, cache.parity, "sy") - half - cache.lo;
+      // The box above was derived by dividing and rounding in floating point;
+      // this one is integer arithmetic on the same lattice. They agree because
+      // 2/pupilSamples is a power of two and every `s` is a whole number of
+      // half-steps — which is precisely the precondition `commensurateSource`
+      // enforces, so a disagreement means the source lied about its lattice.
+      if (
+        ixLo + baseX !== 0 ||
+        ixHi + baseX !== cache.width - 1 ||
+        iyLo + baseY !== 0 ||
+        iyHi + baseY !== cache.width - 1
+      ) {
+        throw new Error(
+          `abbeImage: the source point (${s.sx}, ${s.sy}) claims a lattice commensurate with ` +
+            `pupilSamples ${pupilSamples}, but its shifted-pupil box does not land on that ` +
+            `lattice — the cached sum would not be the uncached one`,
+        );
+      }
+    }
+
     let transmitting = 0;
     rowIn.fill(0, ixLo, ixHi + 1);
     for (let iy = iyLo; iy <= iyHi; iy++) {
       const py = (iy - half) * step + s.sy;
+      const cacheRow = cache === undefined ? 0 : (iy + baseY) * cache.width + baseX;
       let prevIn = false;
       let prevPhase = 0;
       for (let ix = ixLo; ix <= ixHi; ix++) {
         const px = (ix - half) * step + s.sx;
-        const a = pupil.amplitude(px, py);
+        let a: number;
+        if (cache === undefined) {
+          a = pupil.amplitude(px, py);
+          pupilEvaluations++;
+        } else {
+          a = cache.amplitude[cacheRow + ix]!;
+        }
         if (a <= 0) {
           // A blocked sample breaks the chain in both directions: a step across
           // the aperture rim is not a wavefront step, and counting it would make
@@ -320,7 +369,7 @@ export function abbeImage(
           rowIn[ix] = 0;
           continue;
         }
-        const w = pupil.phaseWaves(px, py);
+        const w = cache === undefined ? pupil.phaseWaves(px, py) : cache.phaseWaves[cacheRow + ix]!;
         if (prevIn) {
           const d = Math.abs(w - prevPhase);
           if (d > maxGridPhaseStepWaves) maxGridPhaseStepWaves = d;
@@ -362,10 +411,88 @@ export function abbeImage(
     intensity,
     contributingPoints,
     maxGridPhaseStepWaves,
+    pupilEvaluations,
     ...(options.scale === undefined
       ? {}
       : { pixelScaleMm: imagePixelScaleMm(options.scale, n, pupilSamples) }),
   };
+}
+
+/**
+ * The pupil, evaluated once over its support, for a source that reads it on one
+ * lattice (§ 6p).
+ *
+ * Held per call and never module-level: `renderBrightfield` gives every patch
+ * its own `PupilFunction`, so a cache that outlived the call would be a
+ * correctness hazard rather than a saving.
+ */
+interface PupilLatticeCache {
+  readonly amplitude: Float64Array;
+  readonly phaseWaves: Float64Array;
+  /** Lowest lattice index on each axis; the arrays are `width`×`width`. */
+  readonly lo: number;
+  readonly width: number;
+  /** 1 when every source point sits half a step off the lattice, else 0. */
+  readonly parity: number;
+  readonly evaluations: number;
+}
+
+/**
+ * The lattice index a source coordinate shifts the pupil by.
+ *
+ * `commensurateSource` builds every coordinate as a whole number of half-steps,
+ * so multiplying by `pupilSamples` recovers that integer exactly rather than
+ * approximately — and if it does not, the source is not what it says it is and
+ * this throws instead of rounding.
+ */
+function latticeOffset(s: number, pupilSamples: number, parity: number, axis: string): number {
+  const halfSteps = s * pupilSamples;
+  if (!Number.isInteger(halfSteps) || (halfSteps - parity) % 2 !== 0) {
+    throw new Error(
+      `abbeImage: source ${axis} = ${s} is not ${parity === 1 ? "half a step off" : "on"} the ` +
+        `pupil lattice at pupilSamples ${pupilSamples} — a source may only declare ` +
+        `\`pupilLattice\` if every one of its points sits on it`,
+    );
+  }
+  return (halfSteps - parity) / 2;
+}
+
+function buildPupilLatticeCache(
+  pupil: PupilFunction,
+  pupilSamples: number,
+  source: CondenserSource,
+): PupilLatticeCache | undefined {
+  const lattice = source.pupilLattice;
+  if (lattice === undefined || lattice.pupilSamples !== pupilSamples) return undefined;
+  // s = (2i + 1 − samples)·m·(step/2), so every coordinate is a whole number of
+  // half-steps and they all share ONE parity: odd exactly when the source grid
+  // has no point on the axis and the multiple is odd. An odd parity is not a
+  // corner case — S = 0.5 at pupilSamples 64 with stepMultiple 2 has 16 points
+  // across and lands there.
+  const parity = source.samples % 2 === 0 && lattice.stepMultiple % 2 === 1 ? 1 : 0;
+  const step = 2 / pupilSamples;
+  // The shifted pupil is supported on |u| ≤ 1 whichever direction it came from,
+  // so the union over source points is one box — and it is the same box each
+  // point visits, which is why the saving is exactly the point count.
+  const lo = -pupilSamples / 2;
+  const hi = pupilSamples / 2 - parity;
+  const width = hi - lo + 1;
+  const amplitude = new Float64Array(width * width);
+  const phaseWaves = new Float64Array(width * width);
+  const halfParity = 0.5 * parity;
+  for (let jy = lo; jy <= hi; jy++) {
+    const py = (jy + halfParity) * step;
+    const row = (jy - lo) * width;
+    for (let jx = lo; jx <= hi; jx++) {
+      const px = (jx + halfParity) * step;
+      const a = pupil.amplitude(px, py);
+      amplitude[row + (jx - lo)] = a;
+      // Asked only where the pupil transmits, exactly as the sum asks it: a
+      // blocked sample's phase never enters the image or the lattice guard.
+      if (a > 0) phaseWaves[row + (jx - lo)] = pupil.phaseWaves(px, py);
+    }
+  }
+  return { amplitude, phaseWaves, lo, width, parity, evaluations: width * width };
 }
 
 export interface ImageHarmonic {

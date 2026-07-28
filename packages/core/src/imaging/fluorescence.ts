@@ -1,6 +1,6 @@
 import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
 import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
-import { diskSource, type CondenserSource } from "../illumination/source";
+import { commensurateSource, type CondenserSource } from "../illumination/source";
 import { imageRadiusForObjectHeight, type ObjectFieldFrame } from "./object-field";
 import type { PatchPupil } from "./brightfield";
 import type { OpticalSystem } from "../trace/system";
@@ -580,6 +580,13 @@ export function cosineGratingEmitters(options: {
  * control is a lattice-matched source at S = 0.5 and S = 1, which is exactly a
  * source satisfying one condition and not the other, and it must be
  * constructible for the identity to have a control at all.
+ *
+ * § 6p generalized it: `commensurateSource(S, pupilSamples, m)` steps by m times
+ * the pupil's frequency step, and this is the m = 1 case, which is the only one
+ * that makes the sum *incoherent*. It inherits that constructor's requirement
+ * that `pupilSamples` be a power of two — the exactness argument above is
+ * algebraic, but the cache § 6p builds on it is arithmetic, and 2/N is exactly
+ * representable only there.
  */
 export function latticeMatchedSource(
   coherenceParameter: number,
@@ -593,7 +600,7 @@ export function latticeMatchedSource(
         `= ${samples}`,
     );
   }
-  return diskSource(coherenceParameter, samples);
+  return commensurateSource(coherenceParameter, pupilSamples, 1);
 }
 
 function requireGrid(size: number): void {

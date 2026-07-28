@@ -1021,6 +1021,20 @@ spacing an **integer multiple** m of the pupil step, count S·ps/m — commensur
 and coarse at once. That, plus a cached pupil pass in `abbeImage`, is § 6p, and
 it is the difference between a traced full field in minutes and one in hours.
 
+> **Built, and this paragraph's premise is corrected** — § 6p in VALIDATION.md.
+> The construct and the cache both exist and the multiplier is gone: 10.76× on
+> the DIN 4×/0.10's traced pupils at 208 directions, with the saving pinned as an
+> exact integer (`pupilEvaluations` falls by exactly `contributingPoints`) rather
+> than a wall clock. But **"commensurate *and* coarse" does not survive § 6f.2.**
+> At S = 0.5 and ps = 64, multiples 1, 2, 4, 8 read 4.56e-3, 1.78e-2, 3.38e-2,
+> 1.34e-1 on that step's own metric, and multiple 4 — 52 points — is already past
+> where its "a coarse source is wrong by enough to notice" rung fires. The ~100
+> points this paragraph wanted are not a converged condenser, and m is not the
+> knob that gets you there. **`pupilSamples` is:** `commensurateSource(0.5, 128,
+> 2)` and `commensurateSource(0.5, 64, 1)` are the same 812 points, exactly, so
+> raising the scale moves the allowed ladder without coarsening it. What made the
+> count affordable was never the commensurability — it is the cache.
+
 **What the three together say.** A 4× objective's real field is ~5 mm, 19.6 mm²
 of specimen. At ps 128 tiles with an 8-cell guard the useful span is 329 µm, so
 the whole field is **~181 tiles**. At the 4 px per resolution cell the table
@@ -1179,10 +1193,16 @@ Three consequences this step owns:
   the two illuminations' exponents differ by exactly 1, and the coherence-width
   argument D0.2 rejected was right about the *direction* even though it was wrong
   about the magnitude over S = 1 → 0.25.
-- **§ 6p is not only a speed step — it lowers the mosaic's error floor.** The same
-  749 points that are converged at S = 0.25 are not at S = 1, where `diskSource`
-  spaces them four times wider, and the witness is that the guard curve goes flat
-  at 2.9e-3 instead of continuing down.
+- ~~**§ 6p is not only a speed step — it lowers the mosaic's error floor.**~~ The
+  same 749 points that are converged at S = 0.25 are not at S = 1, where
+  `diskSource` spaces them four times wider, and the witness is that the guard
+  curve goes flat at 2.9e-3 instead of continuing down. **That much stands; the
+  conclusion drawn from it does not.** § 6p measured it: a commensurate source
+  *is* `diskSource`'s lattice (pinned bitwise), so nothing about the image can
+  depend on the commensurability, and 812 commensurate points at S = 1 reproduce
+  the plateau slightly *worse* than the 749. What un-flattens the curve is
+  **3 228 points**, and § 6p's contribution is that 3 228 *traced* directions
+  became affordable. The floor is the point count; § 6p changes its price.
 - **The pitch question is closed as D1 licensed.** Uniform pitch is 1.3e-2 of a
   pixel from the abutment fixed point across 17 tiles (2.24 mm off axis), so the
   solve is skipped and `mosaicPitchDriftPx` is what says so. `"abutting"` is
@@ -1232,7 +1252,7 @@ What it must carry on screen, because every other panel established the rule:
 disqualified table already said so, and a control that quietly took 40 minutes
 would be worse than one that is absent.
 
-### D5. § 6p — the commensurate condenser and the cached pupil — *engine step*
+### D5. § 6p — the commensurate condenser and the cached pupil — ✅ **done**
 
 The construct and the cache from D0.3. What makes A7 fast rather than possible.
 
@@ -1244,6 +1264,30 @@ perfectly plausible image whose disagreement looks like physics; and the source
 sampling that results still clears § 6f.2's convergence, which is not automatic —
 commensurability constrains the count, and the counts it allows are not the
 counts § 6f.2 was measured at.
+
+**All three landed, and the third one bit.** `commensurateSource` and the
+call-local pupil cache are in `illumination/source` and `illumination/abbe`, with
+20 rungs in VALIDATION.md § 6p. The bitwise rung needed a precondition this
+section did not anticipate — it is *arithmetic*, not just algebraic, so
+`pupilSamples` must be a power of two and a non-dyadic one is refused rather than
+tolerated. The saving is pinned as an exact integer (`pupilEvaluations` falls by
+exactly `contributingPoints`), and the wall clock is reported beside it as a
+measurement: **10.76× at 208 traced directions, and no saving at all on an ideal
+pupil**, which is the honest scope of the step.
+
+**Two corrections came out of the third rung**, and they are the reason it was
+worth asking rather than ticking:
+
+- **D0.3's "commensurate *and* coarse" premise fails** — see the note there. The
+  usable knob is `pupilSamples`, not `stepMultiple`.
+- **This section's own "what makes A7 fast" is right, and § 6o's "it also lowers
+  the mosaic's error floor" is wrong.** Commensurability is accuracy-neutral: a
+  commensurate source is `diskSource`'s lattice, bitwise. The floor is the point
+  count, and § 6p changes what count a traced pupil can afford.
+
+**What A7 should ask for:** `commensurateSource(S, pupilSamples, 1)` at the
+`pupilSamples` the tile is already rendered at — i.e. `latticeMatchedSource`,
+which is now affordable rather than theoretical.
 
 ### D6. § 6q — the eyepiece on the intermediate image — *engine step*
 
@@ -1331,10 +1375,11 @@ rows into the whole design space.
 **Otherwise, the priority path is ~~D1~~ → ~~D2~~ → ~~D3~~ → D4**, which is the
 shortest line to a brightfield field of view you can pan: the off-axis frame, the
 rasterizer that registers it and the mosaic that bounds its error have all
-**landed**, and what is left on that line is the stage that draws it. **D5** then
-makes it fast — and § 6o found that D5 also lowers the mosaic's error floor, not
-just its cost — **D6** puts an eyepiece on it, **D7** puts it in colour. A6 and
-Part B are untouched by all of this and can go at any point.
+**landed**, and what is left on that line is the stage that draws it. **D5** has
+**landed** too and makes it fast — though *only* fast: § 6p measured down § 6o's
+belief that it would also lower the mosaic's error floor. **D6** puts an eyepiece
+on it, **D7** puts it in colour. A6 and Part B are untouched by all of this and
+can go at any point.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a

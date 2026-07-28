@@ -60,6 +60,7 @@ whole ladder.
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | The grid itself warped at last — § 6h's named deferral: a `Specimen` callback evaluated at the object point each pixel really looks at, so the warp happens in the ARGUMENT and nothing is resampled; the pixel convention pinned bitwise against § 6i's emitter rasterizer, whole flux in one pixel; a straight object line shown to BOW, and at ×2.00 per doubling rather than the cubic's ×8.00 — the sagitta is the map's CURVATURE, so § 6h.1's cubic, § 6m.4's slope and this complete one ladder of derivatives; the sign pinned as barrel; a negative control that cannot bow AT ALL; and a round trip through a whole picture whose residual is that same curvature, against a uniform map whose residual is the slope — so the gap between them doubles with field, 16.8× to 257×; and the whole thing composed on a traced 4×/0.10, where the two maps' rendered PICTURES differ by 2.8e-3 of peak at 6.4 mm against 1.5e-6 on axis | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image at last, each cropped to its useful span — and the guard band that crop needs measured against a CLOSED FORM: under a coherent source the error falls as guard^(−1/2), the tail integral ∫\|h\|² of the Airy amplitude, reached from above at −0.334, −0.435, −0.533; a filled condenser beating that limit by a factor that DOUBLES with the guard (22.9, 42.0, 84.8), so the guard does depend on the coherence and D0.2's "S-independent" reading is corrected; the finding that D0.2's ~4e-3 plateau is the CONDENSER'S OWN QUADRATURE and not h's tail — the same guard, specimen and lattice at 749 source points instead of 97 falls 7.1×, and the flat guard^(−0.3) tail flattens only at the coarse sampling; the same 749 points shown NOT converged at S = 1, where `diskSource` spaces them 4× wider; a guard refused rather than rounded when it is not whole pixels; the pitch shown to be a hundredth of a pixel from the abutment fixed point across 17 tiles, so the solve is skipped and said so; and the seam itself, on a traced 4×/0.10, falling 23× from 1.8e-2 to 7.8e-4 and stopping being a seam at all | `mosaic` |
+| [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so every direction reads one grid and a traced pupil is evaluated once instead of once per direction — cached ≡ uncached **bit for bit**, with the dyadic precondition that makes that provable refused rather than tolerated, and the saving pinned as an exact integer (`contributingPoints`) instead of a wall clock; the construct shown to BE `diskSource`'s lattice, bitwise, with the single 5.6e-17 gap located at the one division `gridCoordinate` cannot represent; a source declaring a lattice it is not on refused; and two corrections — **commensurability is accuracy-neutral**, so § 6o's and D5's "it also lowers the mosaic's error floor" is wrong (812 commensurate points reproduce the plateau; 3 228 un-flatten it), and D0.3's "commensurate *and* coarse" premise does not survive § 6f.2, so the knob is `pupilSamples` and not `stepMultiple` | `commensurate` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -4416,7 +4417,11 @@ bracket depends only on u₁ − u₂, and two **geometric** conditions make it 
 `latticeMatchedSource` constructs the condenser that satisfies condition 2 —
 S·pupilSamples points across the diameter — and **throws rather than rounding**,
 because a rounded count still produces a perfectly plausible image whose
-disagreement with the incoherent limit would read as physics. Under both
+disagreement with the incoherent limit would read as physics. (§ 6p generalized
+it to a lattice stepping by *m* pupil steps and this became the m = 1 case, which
+tightened one thing: `pupilSamples` must now be a power of two, because § 6p's
+cache is bit-for-bit only where 2/N is exactly representable. Every count here is
+16, 32 or 64, so no rung moved.) Under both
 conditions the two modules return **the same array to f64 noise**, and the rung
 runs at m = 1 as well as m = 0.2: § 6f.4 measured brightfield's normalized
 transfer walking 11.2% *away* from the weak-object limit at m = 1, and here that
@@ -5425,8 +5430,18 @@ exact, so its curve cannot move — and it does not.
 points by 2S/samples, so a count converged at S = 0.25 is four times too coarse
 at S = 1, and the witness is that the guard curve goes **flat**: 2.795e-3,
 2.910e-3, 2.923e-3 at guards 4, 8, 16. That is the residual and not the crop.
-[§ 6p](#later-rungs)'s commensurate condenser is what fixes it, which is why
-that step is not only about speed — **it lowers the mosaic's error floor.**
+
+> **Corrected by [§ 6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil).**
+> This paragraph originally continued: "§ 6p's commensurate condenser is what
+> fixes it, which is why that step is not only about speed — it lowers the
+> mosaic's error floor." **It does not.** A commensurate source *is*
+> `diskSource`'s lattice — § 6p.1 pins the two bitwise — so no property of the
+> image can depend on the commensurability, and 812 commensurate points at S = 1
+> reproduce this very plateau (3.68e-3 → 3.63e-3 over guards 4 → 16) slightly
+> *worse* than the 749 above. What un-flattens the curve is **3 228 points**
+> (8.2e-4 → 1.7e-4, slope −1.13). § 6p's contribution is that 3 228 *traced*
+> directions became affordable: the floor is the point count, and that step
+> changes its price rather than its value.
 
 ### One hypothesis raised against this table and measured down
 
@@ -5514,6 +5529,161 @@ quadrature rather than the crop.
   rather than hours.
 - **One objective**, still — every number here is the DIN 4×/0.10's.
 
+## Step 6p — the commensurate condenser and the cached pupil
+
+§ 6o's mosaic costs one `abbeImage` per tile and one inverse transform per
+illumination direction inside each — and on a *traced* objective the transform is
+not the expensive part. `pupilFunctionFromOpd`'s callback re-traces rays, and
+`abbeImage` calls it once per lattice point **per source point**, so the traced
+multiplier over an ideal pupil is a flat 8–10× (Part D, § 2). This step removes
+it, and removes nothing else.
+
+`commensurateSource(S, pupilSamples, stepMultiple)` spaces the condenser's
+directions by a whole multiple of the **pupil's own** frequency step 2/N instead
+of by the source-chosen 2S/samples. Then every direction reads the pupil at the
+same coordinates as every other, the union of all the shifted sub-lattices is one
+grid, and the pupil can be evaluated once over its support and read back by index
+for every direction after the first. `illumination/abbe` does that, call-locally,
+and reports what it cost as `pupilEvaluations`.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Cached ≡ uncached, BIT FOR BIT** — every pixel, 5 lattices, both parities | `toBe`, not a tolerance | ✅ |
+| …and `maxGridPhaseStepWaves`, a max over directions, is the same number | `toBe` | ✅ |
+| …and it survives the bridge: a traced tile through `renderBrightfield` | § 6g.3, composed | ✅ |
+| **The saving is EXACTLY `contributingPoints`** — one pass over the support, not one per direction | counted, integer | ✅ |
+| `pupilEvaluations` is the calls the pupil receives, not a prediction of them | instrumented callback | ✅ |
+| An ordinary source's boxes are not even equal: 100 033 over 97 is 1031.3 apiece | the fractional offset | ✅ |
+| The construct is `diskSource`'s lattice **bitwise** wherever `diskSource` is exact | `toBe`, 5 lattices | ✅ |
+| …and the one place they differ (5.6e-17) is the one place `gridCoordinate` rounds | `1/24` is not dyadic | ✅ |
+| `latticeMatchedSource` IS the `stepMultiple` = 1 case | § 6i, generalized not duplicated | ✅ |
+| A fractional count, a non-dyadic `pupilSamples`, a fractional multiple: **refused** | `latticeMatchedSource`'s argument | ✅ |
+| NEGATIVE CONTROL: a source that DECLARES a lattice it is not on **throws** | the declaration is the trigger | ✅ |
+| …and one declared for another `pupilSamples` is simply not used, and says so | no silent fallback | ✅ |
+| The allowed ladder is measured: 4.56e-3, 1.78e-2, 3.38e-2, 1.34e-1 at m = 1…8 | § 6f.2's `maxTransferError` | ✅ |
+| **`stepMultiple` 4 is already past § 6f.2's "wrong enough to notice"** — 3.4e-2 | that step's own 3e-2 | ✅ |
+| …and the way out is `pupilSamples`, not the multiple: (0.5, 128, 2) ≡ (0.5, 64, 1) | `toBe`, same 812 points | ✅ |
+| An allowed count must be MEASURED — 15/16/17 read 1.29e-2, 1.78e-2, 8.94e-3 | § 6f.2 is not monotone | ✅ |
+| **Commensurability is accuracy-NEUTRAL**: the same transfer as `diskSource`, exactly | `toBe`, 4 frequencies | ✅ |
+| **812 commensurate points at S = 1 are as flat as § 6o's 749, and worse** | § 6o.3's plateau, reproduced | ✅ |
+| …and what un-flattens it is 3 228 points: 8.2e-4 → 1.7e-4, slope −1.13 | the count, not the lattice | ✅ |
+
+### The exactness is arithmetic, not just algebraic
+
+"The same sum in a different order" is only bit-for-bit if the order does not
+round. Illuminating from s samples the pupil at (ix − n/2)·Δ + s; the cache
+indexes by (j + p/2)·Δ, where j is an integer and p ∈ {0, 1}. Those agree
+mathematically for any commensurate source and agree *in f64* only when Δ = 2/N
+is a power of two — then (ix − n/2)·Δ, s and their sum are all exact multiples of
+Δ/2 and no operation rounds. So `commensurateSource` **refuses a `pupilSamples`
+that is not a power of two** rather than tolerating a last-bit difference, and
+`latticeMatchedSource` inherits the requirement. Every brightfield lattice in the
+engine is 16, 32, 64 or 128, so this costs nothing.
+
+It is load-bearing rather than decorative, and § 6p.1 shows where: the
+constructor builds its coordinates as one integer product times one exact scale,
+and that is bitwise identical to `diskSource`'s at S = 0.5, 0.25 and 1 — but
+differs by **5.6e-17** at S = 0.75 with `stepMultiple` 2, where `gridCoordinate`
+divides by 24 and 1/24 is not representable. Physically nothing; exactly enough
+to make the cached image not the uncached one. The point *count* is unchanged, so
+nothing about the disc moved.
+
+**The parity is the second half of the index, and it is not a corner case.**
+s = (2i + 1 − samples)·m·Δ/2, so every coordinate is a whole number of
+half-steps, and they share one parity: odd exactly when the source grid has an
+even count *and* the multiple is odd. `latticeMatchedSource` at S = 0.5 and
+`pupilSamples` 64 is 32 across with m = 1, so it lands there — this is § 6i's own
+"an even count is the same lattice offset by half a step" arriving as an array
+index. Both parities are in § 6p.3.
+
+### The saving is the point count, exactly — and it is the *only* saving
+
+The shifted pupil is supported on |u| ≤ 1 whichever direction it came from, so
+every source point visits the same box. The cache fills that box once; the
+uncached path fills it per direction. So `pupilEvaluations` falls by exactly
+`contributingPoints` — an integer, asserted as one, rather than a wall clock.
+
+An ordinary `diskSource` does not even have a fixed box: its points sit at
+arbitrary fractions of Δ, so the box is 32 or 33 samples wide depending on where
+the fraction falls, and 97 directions cost 100 033 evaluations — 1031.3 apiece,
+which is no whole box at all. That is the same fact from the other side.
+
+**What it buys, measured, and what it does not.** On the DIN 4×/0.10's traced
+pupils through `renderBrightfield`, cached against uncached runs **7.21× at 52
+points, 10.76× at 208** (and 3.61× at 12, where the transforms are already most
+of the cost). On an *ideal* pupil the same shapes run 239 ms against 233 ms —
+**no saving at all**, because there the FFTs are the whole bill. Both halves are
+reported: the step removes the traced multiplier and touches nothing else, and a
+speed claim without its null half would be a claim about the wrong quantity.
+
+### The correction: § 6p is a speed step, and § 6o said otherwise
+
+§ 6o.3 wrote that "§ 6p's commensurate condenser is what fixes this, which is why
+that step is not only about speed", and APP.md's D5 said the same. **Both are
+wrong**, and this step's own rungs are what say so — the same shape of correction
+§ 6o made to D0.2's feasibility table, arriving one step later.
+
+- **Commensurability is accuracy-neutral.** `commensurateSource(S, ps, m)` is
+  `diskSource(S, S·ps/m)` — the same lattice, and § 6p.1 pins it bitwise. So no
+  property of the image can depend on the declaration, and § 6p.6 confirms the
+  transfer is identical to every digit.
+- **A commensurate source of comparable size reproduces the plateau.** Re-running
+  § 6o's own guard probe at S = 1: `diskSource(1, 31)`'s 749 points read 3.07e-3
+  → 2.98e-3 over guards 4 → 16, and `commensurateSource(1, 64, 2)`'s 812 read
+  3.68e-3 → 3.63e-3. Flat, and *slightly worse* — which is the count and not the
+  lattice.
+- **What un-flattens it is 3 228 points.** Hold the spacing at the pupil's own
+  step and the count follows S² to 3 228, and the curve falls again: 8.2e-4 →
+  1.7e-4, a slope of −1.13 against the 812-point curve's −0.01.
+
+So the honest statement is that the floor is set by the **point count**, and
+§ 6p changes which count a traced pupil can *afford* — 3 228 traced directions
+were ten times out of reach and are now merely expensive. It does not lower the
+floor at a given count. That distinction is the whole difference between a rung
+and a slogan.
+
+### And the same measurement corrects D0.3's premise for the API
+
+Part D asked for a source that was commensurate **and coarse** — around 100
+points, where `latticeMatchedSource` fixes 3 217 at S = 0.5 and `pupilSamples`
+128. `stepMultiple` was to be the knob. It is not a usable one: at S = 0.5 and
+`pupilSamples` 64, multiples 1, 2, 4, 8 read **4.56e-3, 1.78e-2, 3.38e-2,
+1.34e-1** on § 6f.2's own metric, and multiple 4 — 52 points — is already past
+where that step's "a coarse source is wrong by enough to notice" rung fires.
+Commensurability is not what makes a source affordable; the **cache** is.
+
+The way out is the scale rather than the multiple, and it is exact:
+`commensurateSource(0.5, 128, 2)` and `commensurateSource(0.5, 64, 1)` are the
+same 812 points, so raising `pupilSamples` moves the allowed ladder without
+coarsening it. The recommended configuration is therefore `stepMultiple` 1 at a
+`pupilSamples` whose S·ps is the count that converges — which is
+`latticeMatchedSource`, now affordable.
+
+**The ladder must be measured at each allowed count, not interpolated.**
+Commensurability restricts the count to divisors of S·pupilSamples, and § 6f.2's
+convergence is explicitly not monotone doubling-by-doubling: 15, 16 and 17
+directions across read 1.29e-2, 1.78e-2 and 8.94e-3 at S = 0.5, while 31, 32 and
+33 run the other way. No even/odd law is minted — the rung pins the
+non-monotonicity itself, and the mechanism is § 6f.2's, that the rim's midpoint
+errors cancel by different amounts at different counts.
+
+### Not yet pinned
+
+- **The cache under a field-varying pupil, amortized across patches.**
+  `renderBrightfield` gives every patch its own `PupilFunction`, so the cache is
+  strictly call-local and each patch pays its own single pass. That is correct
+  and it is also the ceiling: a mosaic of 181 tiles × P patches builds 181·P
+  caches. Sharing one across patches would be sharing across *different pupils*,
+  which is the correctness hazard the call-locality exists to prevent.
+- **A commensurate ANNULUS.** `annularSource` has the same lattice available and
+  does not declare it. Darkfield and phase contrast are where that would pay, and
+  phase contrast is a v2 item (§ 6f).
+- **The wall-clock figures are measurements, not rungs.** 7.21×/10.76×/3.61×
+  traced and the ideal-pupil null are reported above and are not asserted
+  anywhere: a timing assertion is flaky, and `pupilEvaluations` is the same claim
+  in a currency a test can hold.
+- **One objective**, still — the traced numbers are the DIN 4×/0.10's.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
@@ -5528,22 +5698,22 @@ quadrature rather than the crop.
   verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
-- **§ 6p–§ 6r — the rest of the microscope's field of view, and looking through
+- **§ 6q–§ 6r — the rest of the microscope's field of view, and looking through
   it.** Named in APP.md's Part D rather than here, because they arrived as the
   scoping of an app surface and their step numbers are not yet claimed —
   [§ 6m](#step-6m--the-off-axis-frame),
-  [§ 6n](#step-6n--the-warped-grid-rasterizer) and
-  [§ 6o](#step-6o--the-mosaic-and-its-guard-band) have since claimed theirs and
-  left this list. What remains: the commensurate condenser and cached pupil
-  (§ 6p, exact against the uncached sum bit for bit — and § 6o found it also
-  lowers the mosaic's error floor, not only its cost), the eyepiece on a *finite*
+  [§ 6n](#step-6n--the-warped-grid-rasterizer),
+  [§ 6o](#step-6o--the-mosaic-and-its-guard-band) and
+  [§ 6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) have since
+  claimed theirs and left this list. What remains: the eyepiece on a *finite*
   intermediate image (§ 6q — `afocalTelescope` solves from a collimated input and
   cannot serve it), and polychromatic brightfield (§ 6r). Part D carries the
   feasibility measurements each would pin, labelled as feasibility figures and
   **not** as pins, which is the distinction this file exists to keep — and § 6o
-  is the step that shows why it matters: it corrected two of the three
-  conclusions D0.2's feasibility table drew, because a rung pinned to a previous
-  measurement inherits whatever that measurement was really measuring.
+  and § 6p are the steps that show why it matters: § 6o corrected two of the
+  three conclusions D0.2's feasibility table drew, and § 6p corrected D0.3's
+  premise *and* one of § 6o's own conclusions, because a rung pinned to a
+  previous measurement inherits whatever that measurement was really measuring.
 
 ## Rules
 

@@ -39,6 +39,8 @@
  * they do to contrast lives in `abbe.ts` and `transfer.ts`.
  */
 
+import { isPowerOfTwo } from "../math/fft";
+
 /** One illumination direction, in normalized objective-pupil coordinates. */
 export interface SourcePoint {
   readonly sx: number;
@@ -58,6 +60,23 @@ export interface CondenserSource {
   readonly coherenceParameter: number;
   /** Grid points across the source DIAMETER that produced this sampling. */
   readonly samples: number;
+  /**
+   * Set **only** by `commensurateSource`: this source's lattice steps by
+   * `stepMultiple` times the frequency step of a pupil sampled at
+   * `pupilSamples` bins across its diameter.
+   *
+   * It is metadata rather than something a consumer may infer, and that is
+   * `illumination/abbe`'s licence to cache the pupil across source points
+   * (§ 6p). Measuring commensurability off the coordinates instead — round
+   * `sx/step` and accept it if it is close — is exactly the failure mode
+   * `latticeMatchedSource` refuses one module over: a *nearly* commensurate
+   * source would take the cached path and form a perfectly plausible image
+   * whose disagreement with the honest sum reads as physics.
+   */
+  readonly pupilLattice?: {
+    readonly pupilSamples: number;
+    readonly stepMultiple: number;
+  };
 }
 
 function gridCoordinate(i: number, samples: number, radius: number): number {
@@ -99,6 +118,103 @@ export function diskSource(coherenceParameter: number, samples = 15): CondenserS
     points: points.map((p) => ({ sx: p.sx, sy: p.sy, weight: w })),
     coherenceParameter: S,
     samples,
+  };
+}
+
+/**
+ * The condenser whose lattice steps by a whole multiple of the **pupil's own**
+ * frequency step — commensurate and coarse at once (§ 6p).
+ *
+ * `diskSource` spaces its points by 2S/samples, which is a spacing chosen for
+ * the *source*: nothing relates it to the grid the pupil is sampled on. Setting
+ * the two equal fixes the count at S·pupilSamples (`latticeMatchedSource`, § 6i)
+ * and buys exactness, but it fixes the count at a number a picture cannot
+ * afford — 3 217 points at S = 0.5 and `pupilSamples` 128, where a converged
+ * image needs ~100. This is the generalization that separates the two: spacing
+ * an integer multiple `stepMultiple` of the pupil step, count S·pupilSamples /
+ * stepMultiple.
+ *
+ * ## What the commensurability buys, and it is not accuracy
+ *
+ * Every source point still reads the pupil at its own offset, but *all the
+ * offsets land on one lattice*. Illuminating from s samples the pupil at
+ * (ix − n/2)·Δ + s, and with s a whole number of Δ apart the union over source
+ * points is a single grid of spacing Δ — so a traced `PupilFunction`, whose
+ * callback re-traces rays, can be evaluated **once** over its support and read
+ * back by index for every direction after the first. That is what
+ * `illumination/abbe` does with `pupilLattice`, and it is why a traced mosaic
+ * costs minutes rather than hours. The image it forms is not more accurate; it
+ * is the same arithmetic in a different order, and § 6p pins that as *bit for
+ * bit* rather than as a tolerance, because anything looser would be hiding a
+ * bug.
+ *
+ * A coarser lattice IS less accurate, and for the ordinary reason: fewer source
+ * points is a coarser quadrature of the condenser disc. § 6f.2's convergence is
+ * what governs it, and § 6p measures which `stepMultiple` still clears it
+ * rather than assuming commensurability comes free.
+ *
+ * ## Why `pupilSamples` must be a power of two
+ *
+ * The exactness above is *arithmetic*, not just algebraic. The step 2/N is
+ * exactly representable only when N is a power of two, and only then is
+ * (ix − n/2)·Δ + s bit-for-bit equal to the (ix − n/2 + k)·Δ the cache indexes
+ * by. At any other N the two agree to a rounding and the cached image would
+ * differ from the honest one in the last bits — a difference small enough to
+ * pass and large enough to mean the invariant is not what it says. Refused
+ * rather than tolerated. Every brightfield lattice in the engine is 16, 32, 64
+ * or 128, so this costs nothing.
+ *
+ * Throws rather than rounding a fractional count, for `latticeMatchedSource`'s
+ * own reason: a rounded lattice is not commensurate, and an image formed on one
+ * through the cache is wrong in a way nothing downstream can see.
+ */
+export function commensurateSource(
+  coherenceParameter: number,
+  pupilSamples: number,
+  stepMultiple = 1,
+): CondenserSource {
+  const S = coherenceParameter;
+  if (!(S > 0)) {
+    throw new Error(`commensurateSource: coherenceParameter must be > 0, got ${S}`);
+  }
+  if (!Number.isInteger(stepMultiple) || stepMultiple < 1) {
+    throw new Error(`commensurateSource: stepMultiple must be a positive integer, got ${stepMultiple}`);
+  }
+  if (!Number.isInteger(pupilSamples) || !isPowerOfTwo(pupilSamples) || pupilSamples < 2) {
+    throw new Error(
+      `commensurateSource: pupilSamples must be a power of two so that the pupil's frequency ` +
+        `step 2/${pupilSamples} is exactly representable and the cached sum is bit-for-bit the ` +
+        `uncached one — got ${pupilSamples}`,
+    );
+  }
+  const samples = (S * pupilSamples) / stepMultiple;
+  if (!Number.isInteger(samples) || samples < 1) {
+    throw new Error(
+      `commensurateSource: S·pupilSamples/stepMultiple must be a positive integer for the source ` +
+        `lattice to step by ${stepMultiple}× the pupil's own frequency step — got ${S} × ` +
+        `${pupilSamples} / ${stepMultiple} = ${samples}`,
+    );
+  }
+  // Half the pupil's frequency step, and exact because pupilSamples is a power
+  // of two. Every coordinate below is an integer multiple of it, computed as
+  // one integer product times one exact scale — so no source point carries a
+  // rounding the cache would have to reproduce.
+  const halfStep = 1 / pupilSamples;
+  const points: SourcePoint[] = [];
+  const r2 = S * S;
+  for (let j = 0; j < samples; j++) {
+    const sy = (2 * j + 1 - samples) * stepMultiple * halfStep;
+    for (let i = 0; i < samples; i++) {
+      const sx = (2 * i + 1 - samples) * stepMultiple * halfStep;
+      if (sx * sx + sy * sy <= r2) points.push({ sx, sy, weight: 0 });
+    }
+  }
+  const w = 1 / points.length;
+  return {
+    points: points.map((p) => ({ sx: p.sx, sy: p.sy, weight: w })),
+    coherenceParameter: S,
+    samples,
+    pupilLattice: { pupilSamples, stepMultiple },
   };
 }
 
