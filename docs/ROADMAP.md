@@ -657,6 +657,42 @@
    `achromaticObjective`'s split divides by V₁ − V₂), per-λ grating contrast as a
    readout, and a rung pinning a real lamp's white and a published stain's
    transmittance.
+   *The radial map, tabulated:* ✅ **done** (§ 6s) — the branch's named next
+   optimisation, spent. § 6n deferred a cache for the inverse chief-ray map and
+   attributed it to § 6p, which landed as the *pupil* cache instead; D4 then
+   measured that the map, not the sum, is what a traced tile costs (1 001 ms
+   against 180 at grid 128) and § 6r multiplied it by the wavelength count. What
+   makes a cache possible is **physical rather than architectural**: the systems
+   are axially symmetric, so "where does this pixel look" is a function of one
+   scalar, and a tile's 16 384 pixels are queries of a **single curve** that
+   belongs to the *system* — so one table of 65 chief-ray inversions serves a
+   whole 16-tile mosaic. The scheme is piecewise 4-point Lagrange, chosen over
+   Catmull-Rom because Keys' a = −1/2 kernel is third-order where this is fourth,
+   and its remainder is the closed form the rungs are pinned to: the error falls
+   ×5.06 per ×1.5 of node count and ×3.16 per ×4/3, measured at 4.83/4.87 and
+   3.07/3.04, until it meets the f64 floor by 32 nodes. **A speed step's rungs
+   are identity rungs**, so the exact bisection stays the default and the cache
+   is opt-in — § 6m's and § 6n's rungs still pin the *map* and not an interpolant
+   — and what is cached is only where the specimen is *sampled*, never the pupil
+   assignment. Three findings. The **axis is exact because the map is odd**: the
+   node below the first interval is the mirror of the one above it, which costs
+   no trace, is not an extrapolation, and makes `heightAt(0)` bitwise zero out of
+   the Lagrange weights rather than out of a clamp. The map's reported error is
+   an **estimate and not a bound**, under-reading the truth by 7–17% at every
+   node count where truncation decides, because a fourth difference reads f⁗
+   inside its stencil while the remainder wants the maximum over the interval —
+   named as such rather than dressed up. And tabulating the **residual instead of
+   the height buys nothing**, in either régime: a cubic already reproduces a
+   linear function exactly, so there is no truncation to remove, and the
+   reconstruction's final add rounds where the direct table does. Registration
+   costs **3.8e-13 px**, nine orders below § 6o.8's 3.4e-3 px of ruler drift, and
+   nine inversions already buy 6e-11 px. **The cost model is corrected a third
+   time, back the way it came:** with the raster cached (1 046 ms → 2 ms at grid
+   128) a whole traced tile goes 1 293 ms → 235 ms and the **Abbe sum is the bill
+   again**, exactly where D0.1 had it before D4 moved it. **Open:** a non-uniform
+   node distribution for a system whose distortion crowds the field edge, and the
+   map under a `DepthPupils` stack — which is § 6l, and there is nothing to
+   refuse a wrong-depth table with because there is nothing to build one from.
    § 6l — depth-dependent spherical aberration — is unchanged and independent of
    all of them, and is now a numbered gap in the ladder rather than a plan.
 7. **Teaching layer + polish**

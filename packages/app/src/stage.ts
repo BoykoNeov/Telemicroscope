@@ -47,11 +47,22 @@ import { entryOf, LAMBDA_NM, type MicroscopeKind } from "./microscope";
  * resolution cell for that reason — the same sampling § 6o's own probe used, and
  * the finest `abbeImage` admits at S = 1.
  *
- * That is Part D's own prediction arriving on schedule ("the feasibility number
- * will turn out to be measuring something else"), and it names the next
+ * That was Part D's own prediction arriving on schedule ("the feasibility number
+ * will turn out to be measuring something else"), and it named the next
  * optimisation: § 6n deferred a cache for the radial map and attributed it to
- * § 6p, which landed as the *pupil* cache instead. The map cache is still open,
- * and it is now the dominant cost of a traced tile.
+ * § 6p, which landed as the *pupil* cache instead.
+ *
+ * **That cache is now built (§ 6s) and this panel takes it**, at
+ * `RADIAL_MAP_NODES`. The inverse chief-ray map is one-dimensional, so a tile's
+ * pixels are queries of a single curve: 65 chief-ray inversions for the table
+ * against 16 384 for a 128² tile's pixels, and the raster falls from 1 046 ms to
+ * 2 ms. What that leaves is the third correction to this panel's cost model in
+ * as many steps — **the Abbe sum is the bill again**, exactly where D0.1 had it
+ * before D4 moved it: a whole traced tile at grid 128 / ps 32 goes 1 293 ms →
+ * 235 ms (5.50×, against the 5.6× ratio D4's two halves predicted), and what is
+ * left is the transform. The tile size the stage can afford is set by the
+ * imaging once more, and the 2 px per resolution cell below is now a sampling
+ * choice rather than a rasterizer budget.
  */
 
 /** The DIN field number a finished microscope delivers, in mm of intermediate
@@ -63,6 +74,18 @@ export const FIELD_NUMBER_MM = 18;
 
 /** Display convention: intensity 1 — a clear field — is mid-grey, white is 2. */
 export const WHITE_INTENSITY = 2;
+
+/**
+ * Intervals in the tabulated radial map each tile's raster runs on (§ 6s).
+ *
+ * 64 is generous by three orders and deliberately so: § 6s.2 measures the table
+ * at the f64 rounding floor from 32 nodes up, and even **8** nodes place a pixel
+ * to 6e-11 of a pixel — nine orders below § 6o.8's 3.4e-3 px of ruler drift.
+ * What the extra nodes cost is 65 chief-ray inversions against a tile's 16 384,
+ * so there is nothing here worth economising on and the number is chosen to be
+ * obviously past the floor rather than tuned to it.
+ */
+export const RADIAL_MAP_NODES = 64;
 
 export type SpecimenKind = "ruled" | "diatom" | "section";
 
@@ -338,7 +361,8 @@ function toGrey(intensity: Float64Array, size: number): Uint8ClampedArray {
  * Two traces for the tile (`mosaicTileAt`: the anchor's ruler and this tile's),
  * then § 6n's warped raster and § 6f's Abbe sum through this tile's own traced
  * pupils. Measured on the DIN 4×/0.10 at grid 64 / ps 32 with a 208-direction
- * commensurate condenser: **~350 ms**, of which the raster is ~290.
+ * commensurate condenser: **~350 ms**, of which the raster was ~290 — and since
+ * § 6s the raster is a table lookup, so what is left is the sum.
  */
 export function renderStageTile(request: StageTileRequest): StageTileResult {
   const started = performance.now();
@@ -351,7 +375,7 @@ export function renderStageTile(request: StageTileRequest): StageTileResult {
       system,
       specimenOf(request.specimen).specimen,
       source,
-      { ...options, patches: 1 },
+      { ...options, patches: 1, radialMapNodes: RADIAL_MAP_NODES },
       tile,
     );
     return {

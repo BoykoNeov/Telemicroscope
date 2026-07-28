@@ -10,6 +10,7 @@ import {
   type ObjectFieldFrame,
 } from "./object-field";
 import { rasterizeSpecimen, type Specimen } from "./specimen";
+import { radialMapCovering, type RadialMap } from "./radial-map";
 
 /**
  * The mosaic — § 6h.2's closed form taken to its conclusion.
@@ -377,6 +378,22 @@ export interface RenderMosaicOptions {
   /** Called once per tile finished, for progress against a cost in minutes. */
   readonly onTile?: (done: number, total: number) => void;
   readonly aim?: AimOptions;
+  /**
+   * A tabulated radial map (§ 6s) for the raster, built by the caller.
+   *
+   * The one a *worker* wants when it is handed a single tile and has nowhere to
+   * put a shared table; `mosaicRadialMap` builds the whole-mosaic one. Takes
+   * precedence over `radialMapNodes`.
+   */
+  readonly radialMap?: RadialMap;
+  /**
+   * Build the map instead, with this many intervals — over the whole layout in
+   * `renderMosaic`, and over the one tile in `renderMosaicTile`.
+   *
+   * Omitted, nothing is cached and every pixel bisects (§ 6n), which is what
+   * every rung pinning the map runs on.
+   */
+  readonly radialMapNodes?: number;
 }
 
 export interface MosaicTileImage {
@@ -420,7 +437,18 @@ export function renderMosaicTile(
         `— lay the tile out with the options it is rendered with`,
     );
   }
-  const rasterOptions = options.aim === undefined ? {} : { aim: options.aim };
+  const radialMap =
+    options.radialMap ??
+    (options.radialMapNodes === undefined
+      ? undefined
+      : radialMapCovering(system, [frame], {
+          nodes: options.radialMapNodes,
+          ...(options.aim === undefined ? {} : { aim: options.aim }),
+        }));
+  const rasterOptions = {
+    ...(options.aim === undefined ? {} : { aim: options.aim }),
+    ...(radialMap === undefined ? {} : { radialMap }),
+  };
   const object = rasterizeSpecimen(system, frame, specimen, rasterOptions);
   const formed = renderBrightfield(object, tracedFieldPupils(system, frame, options), source, {
     pupilSamples: options.pupilSamples,
@@ -485,6 +513,24 @@ export function renderMosaic(
 ): MosaicImage {
   const layout = mosaicLayout(system, options);
   const { usefulPixels, size } = layout;
+  // One table for the whole picture (§ 6s): the inverse chief-ray map belongs to
+  // the system and not to the tile, so a mosaic pays `nodes + 1` inversions in
+  // total rather than per tile — which is the half of the saving that grows with
+  // the field. Built here and passed down, so `renderMosaicTile` does not build
+  // one per tile behind the caller's back.
+  const shared =
+    options.radialMap ??
+    (options.radialMapNodes === undefined
+      ? undefined
+      : radialMapCovering(
+          system,
+          layout.tiles.map((t) => t.frame),
+          {
+            nodes: options.radialMapNodes,
+            ...(options.aim === undefined ? {} : { aim: options.aim }),
+          },
+        ));
+  const tileOptions = shared === undefined ? options : { ...options, radialMap: shared };
   const intensity = new Float64Array(size * size);
   let fidelity: BrightfieldFidelity | null = null;
   let maxGridPhaseStepWaves = 0;
@@ -500,7 +546,7 @@ export function renderMosaic(
   };
 
   for (const tile of layout.tiles) {
-    const formed = renderMosaicTile(system, specimen, source, options, tile);
+    const formed = renderMosaicTile(system, specimen, source, tileOptions, tile);
     if (fidelity === null || rank[formed.fidelity.verdict] > rank[fidelity.verdict]) {
       fidelity = formed.fidelity;
     }

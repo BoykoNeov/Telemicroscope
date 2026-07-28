@@ -64,6 +64,7 @@ whole ladder.
 
 | [6q](#step-6q--the-eyepiece-on-the-intermediate-image) | The eyepiece placed at last — `afocalTelescope`'s gap solved from a collimated input shown to leave **70.5 diopters** of vergence on a microscope, 280× a quarter diopter, which is why the finite-object solve is an engine step; the gap pinned against imageDistance + FFD_e as a check; the visual magnification taken off the REAL chief ray, with its SIGN caught by a magnifier's known +D/f and the near point kept a stated convention; the two object NAs shown to be exactly tan u and sin u, ratio sec u to f64 — so the Lagrange exit pupil D·NA/\|M\| holds with the tangent one and the textbook 500·NA/M **misses by 61% at NA 1.40**; empty magnification restated as an invariance, the detail ratio flat to 1e-6 above the two-stop crossover and exactly ∝ M below it, with λ cancelling and 500·NA/1000·NA falling out of two pupil conventions; and the field number spliced in as a REAL stop that vignettes at FN/(2·M_obj) | `visual-microscope` |
 | [6r](#step-6r--polychromatic-brightfield) | Colour at last, and the ruler that is the whole difficulty: the Abbe sum per wavelength, each on its own frame, stacked on one physical grid — with the Abbe image shown by MEASUREMENT to be an irradiance and not energy per pixel, so the resampler carries **no** Jacobian; the wrong one pinned as an exact 1/λ² tilt of the lamp, 0.02 off neutral where the honest path holds 1e-4, and **energy shown not to be the witness** — a colour cast is; the common grid taken as the BLUEST plane's and strictly interior, so truncation is zero by construction and the mean-scale alternative measured putting a coloured vignette on a clear field; the ruler plane copied **bit for bit**; a dye imaged magenta on § 3a's own white while tinting the monochrome image gives the stain and the field the same hue to 1e-12; the doublet's axial colour recovered as § 1's chromatic shift through § 1.5's defocus wavefront, to 8%, with the achromat's crossing and its SIGN FLIP both surviving; the finding that the blue plane is worst-resolved by **2.56×** where λ alone gives 1.22, so `pupilSamples` is set by the blue end; lateral colour arriving free from concentric frames, zero on axis and linear in field; and the two condenser conventions shown IDENTICAL on a dry front-stopped objective and 0.85% apart on oil | `brightfield-spectrum` |
+| [6s](#step-6s--the-radial-map-tabulated) | The bisection per pixel replaced by a table, and the whole step is identity rungs: the inverse chief-ray map is ONE-DIMENSIONAL — a tile's 16 384 pixels are queries of a single curve, and the curve belongs to the SYSTEM, so one table serves a 16-tile mosaic — tabulated by piecewise 4-point Lagrange whose remainder is the closed form, the error falling ×5.06 per ×1.5 of node count and ×3.16 per ×4/3 (measured 4.83/4.87 and 3.07/3.04, so the scheme is fourth-order and not Catmull-Rom's third) until it meets the f64 floor by 32 nodes; the map's own error ESTIMATE shown to under-read the truth by 7–17%, because a fourth difference reads f⁗ inside its stencil and the remainder wants the maximum over the interval — reported as an estimate rather than dressed as a bound; the axis exact by the map's own ODDNESS, the node below the first interval being the mirror of the one above it, so `heightAt(0)` is bitwise zero from the Lagrange weights and not from a clamp; registration measured at **3.8e-13 px**, nine orders below § 6o.8's 3.4e-3 px of ruler drift, and 6e-11 px from **nine** inversions; the saving pinned as an exact integer (`inversions` = nodes + 1 = 65 against a 128² tile's 16 384) with the wall clock in the prose; the wavelength and the aiming carried as the table's identity and a mismatch REFUSED, § 6r having one frame per λ; and the finding that tabulating the residual instead of the height buys **nothing** — a cubic already reproduces a linear function exactly | `radial-map` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -73,7 +74,7 @@ Tests are in `packages/core/test/<name>.test.ts`. Steps 5a and 5b do not
 exist: tilt/decenter and folded pupils were prerequisites closed inside § 4a.
 Step 6l does not exist *yet*, and unlike those it is a gap rather than a
 closure: it is depth-dependent spherical aberration, scoped in APP.md and
-independent of the § 6m–§ 6r line, which was taken first because it is what the
+independent of the § 6m–§ 6s line, which was taken first because it is what the
 field of view is blocked on.
 
 ## Step 1 — geometry, materials, ray tracing
@@ -6201,6 +6202,200 @@ this step turns on the choice — but the step says which one it made.
   and a rung pinned to them would be the strongest version of this step.
 - **Non-uniform and non-telecentric illumination**, unchanged from § 6f and
   § 6h — inherited, not made worse.
+
+## Step 6s — the radial map, tabulated
+
+The first step on this ladder whose subject is **cost**. § 6n's rasterizer asks
+`objectHeightForImageRadius` where each pixel looks, and that inverse bisects a
+traced chief ray to mantissa exhaustion — ~60 chief rays, 0.12 ms — once per
+pixel. D4 measured what that means for a traced tile and it was not what Part D
+had assumed: at grid 128 / `pupilSamples` 32 the raster is **1 001 ms** against
+the Abbe sum's 180, so the rasterizer and not the transform was the bill. § 6r
+then multiplied it by the number of wavelengths. § 6n deferred the cache and
+attributed it to § 6p, which spent itself on the pupil instead; this is it.
+
+**A speed step's rungs are identity rungs, and the anchor is the ladder's own
+exact map.** Nothing new is claimed about the physics. The external number is
+Lagrange's remainder — the interpolating cubic through four nodes has
+
+    |error| ≤ max|∏(r − rᵢ)| · max|f⁗| / 4!  =  (9/16) · h⁴ · max|f⁗| / 24
+
+— and everything else is measured against the bisection § 6m and § 6n pin, which
+stays the default everywhere so that no rung on this ladder runs through an
+interpolant. The cache is **opt-in**, and it touches only where the specimen is
+*sampled*: `fieldPupilAt` keeps inverting exactly, because it is patch-rate
+rather than pixel-rate and because the pupil is the physics.
+
+**Why a cache is possible at all is a physical statement, not a software one.**
+The systems are axially symmetric, so "where does this pixel look" is a function
+of one scalar — the absolute image radius — with the azimuth carried through
+untouched, which is how `objectPointAt` was already written. A tile's 16 384
+pixels are therefore 16 384 queries of a **single curve**, and the curve belongs
+to the *system* rather than to the tile, so one table serves a whole mosaic.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **`heightAt(0)` is exactly zero, from the Lagrange weights** | the map's own oddness, bitwise | ✅ |
+| The mirrored node below the axis is the map, not a boundary condition | the exact bisection, < 1e-15 mm | ✅ |
+| An axial tile's centre pixel lands on the axis **bitwise**, and its grid registers | exact map, < 1e-12 px | ✅ |
+| **×1.5 of node count costs ×1.5⁴ of error; ×4/3 costs ×(4/3)⁴** | Lagrange remainder, within 7% | ✅ |
+| The map's reported error **estimate under-reads the truth by 7–17%** | the exact map | ✅ |
+| The error stops falling at the rounding floor, ~4 ulp of the object height | f64 | ✅ |
+| **Registration is 3.8e-13 px — nine orders below § 6o.8's 3.4e-3** | § 6o.8's ruler drift | ✅ |
+| **Nine** inversions already place a pixel to 6e-11 px | exact map | ✅ |
+| A traced, illuminated, cropped tile is the same picture | exact map, < 1e-12 of peak | ✅ |
+| The saving is an exact integer: `inversions` = nodes + 1 = 65 vs 16 384 | § 6p's currency | ✅ |
+| One table covers a 4×4 mosaic — every corner of every tile inside its span | the map is the system's | ✅ |
+| **Tabulating the residual instead of the height buys nothing** | negative control, < 1% | ✅ |
+| A table from another wavelength is refused | § 6r's per-λ frames | ✅ |
+| A table traced with another `launchZ` is refused | the table's identity | ✅ |
+| A radius past the end is refused rather than extrapolated onto | `objectHeightForImageRadius`'s rule | ✅ |
+| Frames at two wavelengths covered by one table is refused | § 6r | ✅ |
+| § 6r's spectral planes are unchanged, one table per wavelength | exact stack, < 1e-12 | ✅ |
+| The `"uniform"` control ignores a table, because it inverts nothing | § 6n's negative control, bitwise | ✅ |
+
+### 6s.1 — the axis is exact because the map is odd
+
+The first interval's stencil wants a node at −h and there is no chief ray there.
+There does not need to be one: the object height reaching an image radius is
+**odd** through the axis — the same axial symmetry the map's one-dimensionality
+comes from — so the node below zero is minus the node above it, exactly. It
+costs no trace and it is not an extrapolation.
+
+What it buys is that `heightAt(0)` is **bitwise** zero rather than nearly zero:
+the Lagrange weights at t = 0 are (0, 1, 0, 0), the node at the origin is not
+traced because it is zero by symmetry, and the product is exactly `0`. So an
+axial tile's centre pixel lands on `centreObjectMm` with `Object.is`, and the
+alternative — clamping a small radius, or tracing the origin and accepting its
+residual — would have put the centre of every axial frame a rounding off the
+axis. § 6n.2's class of bug, and the reason it is asserted bitwise.
+
+The far end has no such trick, so one node is traced **beyond** the requested
+radius and every query is strictly interior to its stencil — § 6o's and § 6r's
+construction, third use. A radius past the built range is refused with both
+numbers in the message.
+
+### 6s.2 — the order is the closed form, and the estimate is not a bound
+
+The ladder is walked in two ratios rather than in doublings, because the claim is
+an *order* and a third-order scheme would give 3.38 and 2.37 where a fourth-order
+one gives 5.06 and 3.16. Measured, on a 2 mm off-axis tile of the DIN 4×/0.10,
+over the span a mosaic asks for:
+
+| nodes | error (mm) | in pixels | fall | predicted |
+|---|---|---|---|---|
+| 4 | 1.293e-12 | 8.8e-10 | | |
+| 6 | 2.676e-13 | 1.8e-10 | 4.83 | 5.06 (×1.5) |
+| 8 | 8.704e-14 | 6.0e-11 | 3.07 | 3.16 (×4/3) |
+| 12 | 1.787e-14 | 1.2e-11 | 4.87 | 5.06 |
+| 16 | 5.884e-15 | 4.0e-12 | 3.04 | 3.16 |
+| 32 | 8.882e-16 | 6.1e-13 | — | floor |
+| 64 | 5.551e-16 | 3.8e-13 | — | floor |
+
+So the scheme is fourth-order, which is why it is 4-point Lagrange and not
+Catmull-Rom: Keys' a = −1/2 kernel is the obvious choice, is C¹ where this is
+only C⁰ at the nodes, and is **third**-order. The C¹ kink is a derivative
+discontinuity in a quantity whose absolute error is 1e-15 mm, so it is bought
+cheaply.
+
+**The estimate the map reports is an estimate, and it leans one way.** A fourth
+difference is f⁗ at *some* point inside its stencil; the remainder formula wants
+the maximum over the interval. Measured, `errorEstimateMm` under-reads the true
+error by 7–17% at every node count where truncation decides — 1.166, 1.100,
+1.078, 1.069, 1.085 — consistently and in the same direction. It is reported
+anyway, and named an estimate rather than a bound, because it is what tells a
+caller whether more nodes would buy anything: past 32 nodes the estimate keeps
+falling ×h⁴ while the measured error flattens at ~4 ulp of the object height,
+and the **gap between them is how the floor announces itself**.
+
+### 6s.3 — nine orders below the smallest error the branch has cared about
+
+The currency is the one § 6m.4 and § 6o.8 established: pixels of registration.
+At 64 nodes the cached map places a pixel of a 2 mm off-axis tile **3.8e-13 px**
+from where the exact bisection places it. § 6o.8 measured the two registration
+errors this branch spends its design on — 3.4e-3 px of ruler drift on a tile
+centre, and 16.0 px of lattice offset a third of a tile off it — so the cache
+sits nine orders below the smaller of them.
+
+The practical form of § 6s.2's order is that **the table does not need to be
+large, it needs to exist**: 8 nodes is nine chief-ray inversions for a whole tile
+and already places a pixel to 6e-11 px. The default of 64 is chosen to be
+obviously past the floor rather than tuned to it, because 65 inversions against a
+128² tile's 16 384 is not a budget worth economising on.
+
+### 6s.4 — the saving, as an integer and as a clock
+
+`inversions` is `nodes + 1` exactly — § 6p's currency, an integer a rung can pin
+on any machine rather than a wall clock. A 128² tile asks **16 384** inversions of
+the exact path and **65** of this one, and a 4×4 mosaic asks 65 for the whole
+picture rather than 65 per tile, because the curve belongs to the system.
+
+The clock is recorded here rather than asserted. On this machine, DIN 4×/0.10:
+
+| what | exact | cached | |
+|---|---|---|---|
+| `rasterizeSpecimen`, grid 128 | 1 046 ms | 2 ms | 428× |
+| `rasterizeSpecimen`, grid 64 | 258 ms | 1 ms | 243× |
+| a whole traced tile, grid 128 / ps 32 | 1 293 ms | 235 ms | 5.50× |
+| a whole traced tile, grid 64 / ps 32 | 738 ms | 237 ms | 3.11× |
+| a 2×2 mosaic, grid 64 / ps 32 | 2 193 ms | 883 ms | 2.48× |
+| § 6r's 3-λ stack, grid 64 / ps 32 | 1 625 ms | 741 ms | 2.19× |
+
+**The last four lines are the step's real finding, and they are a correction to
+APP.md's cost model for the third time in as many steps.** With the raster
+cached, the Abbe sum is the bill again — exactly where D0.1 had it before D4
+moved it — and the 5.50× on a whole grid-128 tile is D4's own 1 001-against-180
+ratio delivered. What a tile costs is set by the transform once more, so the
+stage's 2 px per resolution cell is a sampling choice rather than a rasterizer
+budget, and the next thing worth optimising is not in this module.
+
+### 6s.5 — the residual tabulation buys nothing
+
+The obvious optimisation, and it is a null. The map is nearly linear — § 6m.4
+measures the departure at 49 ppm — so tabulating only the departure should
+collapse the table's dynamic range and buy digits. It buys none: the two agree to
+under 1% at every node count where truncation decides, and at the floor they
+differ by under one ulp of the object height, on both sides of zero across the
+ladder (the residual form is worse at 24 nodes and better at 64).
+
+The reason is worth stating because it is not obvious and it generalises: **a
+cubic already reproduces a linear function exactly**, so subtracting one changes
+no truncation error at all — and the reconstruction's final add, `slope·r + δ`,
+rounds at the same magnitude the direct table does, so it changes no rounding
+error either. There is no régime in which it wins. The control is kept as code
+(`tabulate: "residual"`) rather than as this paragraph, on the ladder's usual
+rule that a negative control which cannot be run is an assertion.
+
+### 6s.6 — a table is a function of three things, and two are invisible
+
+The table belongs to (system, wavelength, aiming). The system is the argument
+that built it; the other two are not visible at the call site, and § 6r is the
+step that makes that dangerous — it rasterizes the same specimen on one frame per
+wavelength, so a 550 nm table used on the 450 nm frame is a perfectly plausible
+picture of very slightly the wrong specimen with **no witness anywhere
+downstream**. § 6n.2's and § 6p's bug class exactly.
+
+So the map carries its wavelength and its launch plane, `specimenPointAt` refuses
+a frame that disagrees, and `radialMapCovering` refuses to build one table across
+frames at two wavelengths — which is precisely the set of frames a caller reading
+§ 6r's stack would be tempted to hand it.
+
+### Not yet pinned
+
+- **A non-uniform node distribution.** The nodes are uniform in radius and the
+  map's fourth derivative is not. On this objective it does not matter — the
+  floor arrives at 32 nodes — but a system with strong distortion at the field
+  edge would be served better by nodes clustered there, and nothing measures
+  that.
+- **The map under a `DepthPupils` stack (§ 6l).** The inverse is a function of
+  the object plane's depth as well, and § 6l does not exist. A table built at one
+  focal depth and used at another is the same bug class as the wavelength one,
+  and there is nothing to refuse it with yet because there is nothing to refuse.
+- **The seeded-bisection alternative**, which would be exact. Bisecting inside a
+  bracket 1e-9 wide returns the same float (§ 6m.2: the seed chooses the path and
+  not the answer) but still costs 23 of the 52 iterations, so it is ~2.5× against
+  this table's 428×. It is recorded as the reason this step is an interpolant and
+  not measured.
 
 ## Later rungs
 

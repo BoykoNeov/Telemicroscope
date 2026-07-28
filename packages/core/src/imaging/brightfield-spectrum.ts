@@ -15,6 +15,7 @@ import {
   type SpecimenMap,
   type SpectralSpecimen,
 } from "./specimen";
+import { radialMapCovering } from "./radial-map";
 
 /**
  * Polychromatic brightfield — § 6r, and the last of the Part D line.
@@ -313,6 +314,18 @@ export interface BrightfieldSpectrumOptions extends FieldPupilOptions {
   readonly probeHeightMm?: number;
   /** Which map the specimen is rasterized on, per `imaging/specimen`. */
   readonly map?: SpecimenMap;
+  /**
+   * Rasterize each wavelength's plane through a tabulated radial map (§ 6s) with
+   * this many intervals, instead of bisecting a chief ray per pixel.
+   *
+   * **One table per wavelength, never one for the stack.** Each plane has its
+   * own frame at its own λ and the inverse chief-ray map is λ-dependent, so the
+   * saving is per plane and the tables are not interchangeable —
+   * `radialMapCovering` refuses to build one across them for exactly that
+   * reason. Omitted, every pixel of every plane bisects, which is what § 6r's
+   * rungs run on.
+   */
+  readonly radialMapNodes?: number;
   readonly stack?: StackBrightfieldOptions;
   /** Called once per wavelength finished, for progress against a cost in minutes. */
   readonly onWavelength?: (done: number, total: number, nm: number) => void;
@@ -352,12 +365,17 @@ export function brightfieldSpectralStack(
       centreMm,
       wavelengthNm: sample.nm,
     });
-    const object = rasterizeSpecimen(
-      system,
-      frame,
-      atWavelength(specimen, sample.nm),
-      rasterOptions,
-    );
+    const object = rasterizeSpecimen(system, frame, atWavelength(specimen, sample.nm), {
+      ...rasterOptions,
+      ...(options.radialMapNodes === undefined
+        ? {}
+        : {
+            radialMap: radialMapCovering(system, [frame], {
+              nodes: options.radialMapNodes,
+              ...(options.aim === undefined ? {} : { aim: options.aim }),
+            }),
+          }),
+    });
     const formed = renderBrightfield(
       object,
       tracedFieldPupils(system, frame, options),

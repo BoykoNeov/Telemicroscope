@@ -1,7 +1,8 @@
 import type { AimOptions } from "../pupil/aiming";
 import type { OpticalSystem } from "../trace/system";
 import type { ObjectField } from "../illumination/abbe";
-import { objectPointAt, type ObjectFieldFrame } from "./object-field";
+import { imagePointAt, objectPointAt, type ObjectFieldFrame } from "./object-field";
+import { requireRadialMapMatches, type RadialMap } from "./radial-map";
 
 /**
  * The warped-grid rasterizer — § 6h's named deferral, closed.
@@ -64,10 +65,16 @@ import { objectPointAt, type ObjectFieldFrame } from "./object-field";
  * ~2 s at 128². That is the same order as the sum it feeds — a `patches` = 2,
  * five-point-source `renderBrightfield` on the same frame is 0.33 s — so the
  * warp is **not** free relative to the imaging, it is merely affordable. A
- * mosaic of tens of tiles is where that stops being true, and the radial cache
- * that fixes it is § 6p, kept out of here deliberately: § 6n's rungs pin the
- * **map**, and an interpolant underneath them would mean they pinned the
- * interpolant instead.
+ * mosaic of tens of tiles is where that stops being true.
+ *
+ * **That cache is now built, in `imaging/radial-map` (§ 6s), and it is opt-in
+ * here for the reason this note used to give for deferring it:** § 6n's rungs
+ * pin the *map*, and an interpolant underneath them would mean they pinned the
+ * interpolant instead. So the default is unchanged — every pixel bisects — and
+ * a caller who passes a `RadialMap` gets `nodes + 1` inversions for the whole
+ * table instead of one per pixel, with the interpolation error a measured
+ * number (§ 6s.2) rather than a hope. The prediction in the paragraph above was
+ * also wrong about which step would build it: § 6p spent itself on the pupil.
  */
 
 /** A complex amplitude transmittance value. */
@@ -131,6 +138,14 @@ export interface RasterizeSpecimenOptions {
   /** Default `"traced"`. */
   readonly map?: SpecimenMap;
   readonly aim?: AimOptions;
+  /**
+   * A tabulated inverse chief-ray map (§ 6s), in place of a bisection per pixel.
+   *
+   * Opt-in, and the exact path stays the default — see the header's cost note.
+   * Ignored by `"uniform"`, which does not invert anything. Refused if its
+   * wavelength or its launch plane is not the frame's.
+   */
+  readonly radialMap?: RadialMap;
   /** Called once per row, for progress against the cost above. */
   readonly onRow?: (done: number, total: number) => void;
 }
@@ -160,6 +175,19 @@ export function specimenPointAt(
       x: frame.centreObjectMm.x + (ix - size / 2) * frame.objectPixelScaleMm,
       y: frame.centreObjectMm.y + (iy - size / 2) * frame.objectPixelScaleMm,
     };
+  }
+  const { radialMap } = options;
+  if (radialMap !== undefined) {
+    // `objectPointAt`'s own tail, with the one line that costs 60 chief rays
+    // replaced by a table lookup and nothing else moved — the azimuth, the
+    // absolute image point and the polar reassembly are the same arithmetic, so
+    // the two paths differ by the interpolation and by nothing structural.
+    requireRadialMapMatches(radialMap, frame, options.aim, "specimenPointAt");
+    const { x, y } = imagePointAt(frame, ix / size, iy / size);
+    const imageRadius = Math.hypot(x, y);
+    const azimuthRad = imageRadius > 0 ? Math.atan2(y, x) : 0;
+    const radiusMm = radialMap.heightAt(imageRadius);
+    return { x: radiusMm * Math.cos(azimuthRad), y: radiusMm * Math.sin(azimuthRad) };
   }
   const p = objectPointAt(
     system,

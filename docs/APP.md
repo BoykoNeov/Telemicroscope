@@ -926,8 +926,17 @@ same scale and only the *span* changes):
 >
 > This is the fourth time the pattern below has repeated, and it is the same one:
 > the feasibility number turned out to be measuring something else. § 6n *named*
-> this cost and deferred the fix to § 6p, which then landed as the pupil cache;
-> the radial map cache is still open and is now the dominant term.
+> this cost and deferred the fix to § 6p, which then landed as the pupil cache.
+>
+> **✅ Re-corrected by § 6s, back toward this table.** The radial map is now
+> tabulated — the inverse chief-ray map is one-dimensional, so a table of 65
+> chief-ray inversions serves a whole mosaic — and the raster falls from 1 046 ms
+> to **2 ms** at grid 128. A whole traced tile goes 1 293 ms → 235 ms, which is
+> D4's own 1 001-against-180 ratio delivered, so **the Abbe sum is the bill again
+> and the figures in this table are once more the right order of magnitude for
+> what a traced tile costs.** The 2 px per resolution cell the stage renders at is
+> now a sampling choice, not a rasterizer budget. The warning above is kept
+> because the reason it was written is the reason the fix exists.
 
 The right-hand column is the one that decides the design: **cost per unit of
 specimen rises with tile size**, and the ps 64 → 128 step is 12.3× where N²·log N
@@ -1174,9 +1183,15 @@ objective for exactly that reason.
 **Cost, and why the cache is not here.** One bisected chief ray per pixel —
 0.12 ms, so 0.5 s at 64² and ~2 s at 128², the same order as the sum it feeds
 (a `patches` = 2, five-point-source `renderBrightfield` on the same frame is
-0.33 s). Affordable for a tile, not for a mosaic of tens, which is D5's job: the
-radial cache is kept out of § 6n deliberately, because these rungs pin the *map*
-and an interpolant underneath them would mean they pinned the interpolant.
+0.33 s). Affordable for a tile, not for a mosaic of tens. The radial cache is
+kept out of § 6n deliberately, because these rungs pin the *map* and an
+interpolant underneath them would mean they pinned the interpolant.
+
+**✅ It landed as § 6s, and on exactly that condition** — the cache is opt-in and
+the exact bisection stays the default, so every rung above still runs on the map
+itself. The step it was attributed to (D5/§ 6p) spent itself on the pupil
+instead; what § 6s adds is that the map is *one-dimensional*, so a table of 65
+chief-ray inversions serves a whole mosaic and registration costs 3.8e-13 px.
 
 **Deferred, and named:** an extended *fluorescent* specimen. An emitter density
 is not a point property — warping one needs det J, where an amplitude
@@ -1269,7 +1284,11 @@ recording them:
    the viewport costs 3.4e-3 px of ruler drift on a tile centre but **16.0 px** of
    lattice offset a third of a tile off it.
 2. **D0.1's cost model was measuring the wrong half** — see the correction there.
-   The rasterizer, not the Abbe sum, is what a traced tile costs.
+   The rasterizer, not the Abbe sum, was what a traced tile cost. **§ 6s has
+   since removed that half**, so the panel now runs its raster off a tabulated
+   radial map (`RADIAL_MAP_NODES`) and a whole traced tile at grid 128 / ps 32
+   is 235 ms rather than 1 293 — which puts the Abbe sum back in front and the
+   ~300 ms a tile above becomes almost entirely the sum.
 3. **A fixed white is forced.** Every other panel puts mid-grey at its own frame's
    mean; here that would give each tile its own brightness and paint a grid of
    seams the physics does not have. `abbeImage` normalizes the source weights to
@@ -1453,11 +1472,16 @@ worst-resolved by **2.56×** where λ alone gives 1.22, and at 32 bins it rules
 wavelength count has to raise the pupil lattice with it, or the engine will
 correctly refuse the bluest plane.
 
-**What it costs, corrected.** Everything multiplies by the wavelength count —
-one tile trace, one `rasterizeSpecimen` (§ 6n's 0.12 ms/px, still the dominant
-term) and one `renderBrightfield` per λ. Nine wavelengths at 64² is minutes. A
-colour panel is a compute-once surface, not a drag surface, and D0.1's rule
-applies unchanged.
+**What it costs, corrected — and then corrected again by § 6s.** Everything
+multiplies by the wavelength count: one tile trace, one `rasterizeSpecimen` and
+one `renderBrightfield` per λ. The raster was the dominant term (§ 6n's 0.12
+ms/px), which is exactly what made it worth caching, and since § 6s it is a table
+lookup — `radialMapNodes` on `brightfieldSpectralStack`, **one table per
+wavelength** because the inverse map is λ-dependent and the covering builder
+refuses to span two. Measured on a 3-λ stack at 64² / ps 32: 1 625 ms → 741 ms,
+so what a colour panel costs is now the Abbe sum times the wavelength count and
+nothing else. Nine wavelengths at 64² is still minutes. A colour panel is a
+compute-once surface, not a drag surface, and D0.1's rule applies unchanged.
 
 **What is still open**, and it is the third rung below: there is **no singlet
 finite-conjugate objective in the engine**, so the singlet-versus-achromat
@@ -1538,13 +1562,23 @@ cheapest breadth in the doc — and it is now the only thing in Part D that is a
 wiring rather than engine. A6 and Part B are untouched by all of this and can go
 at any point.
 
-**The one engine number that changed the queue:** D4 found the *rasterizer*, not
-the Abbe sum, is what a traced tile costs (see D0.1's correction), so § 6n's
-deferred radial-map cache is now the branch's dominant per-tile cost and its named
-next optimisation. It is not in Part D's list because Part D is about what the app
-cannot yet *show*; it belongs next to D7 in any queue about what the app can show
-*quickly* — and D7 has since multiplied it by the wavelength count, which is what
-makes that cache the branch's next optimisation rather than a nicety.
+**The one engine number that changed the queue — and has now been spent.** D4
+found the *rasterizer*, not the Abbe sum, is what a traced tile costs (see D0.1's
+correction), which made § 6n's deferred radial-map cache the branch's dominant
+per-tile cost and its named next optimisation; D7 then multiplied it by the
+wavelength count. **§ 6s built it.** The inverse chief-ray map is
+one-dimensional and belongs to the *system*, so a tile's 16 384 pixels are
+queries of a single tabulated curve and a whole mosaic pays 65 chief-ray
+inversions rather than 65 per tile: the raster falls 1 046 ms → 2 ms at grid 128,
+a whole traced tile 1 293 ms → 235 ms, and registration is 3.8e-13 px — nine
+orders below D4's own 3.4e-3 px of ruler drift.
+
+**So the cost model is corrected a third time, back the way it came: the Abbe sum
+is the bill again**, exactly where D0.1 had it before D4 moved it. The 5.50×
+measured on a whole grid-128 tile is D4's 1 001-against-180 ratio delivered, and
+what a tile costs is set by the transform once more. The stage's 2 px per
+resolution cell is now a sampling choice rather than a rasterizer budget, and the
+next optimisation in this branch is not the one this paragraph used to name.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a
