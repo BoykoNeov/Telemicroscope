@@ -190,9 +190,11 @@ export interface VolumeReadout {
    * The in-focus bead is the peak and the haze is what everything else spread
    * into, so this falls as the slab thickens and it is the panel's headline
    * reading. Measured on the DIN 4×: 33.0 at one plane, 7.9 at nine, 3.3 at
-   * twenty-seven.
+   * twenty-seven. **`null` for an empty frame**, where it is 0/0 — the same
+   * refusal as the two above, since a printed 0 would read as "no signal at all"
+   * for a frame that has no specimen in it either.
    */
-  readonly peakOverMean: number;
+  readonly peakOverMean: number | null;
 
   /** The lateral crop, across the whole frame, on the specimen (µm) — A1's number. */
   readonly objectSpanUm: number;
@@ -233,15 +235,25 @@ export interface VolumeReadout {
   readonly equalFluxIdeal: number;
 
   /**
-   * Worst drift of (slice flux ÷ slice emitted) from the first plane's.
+   * Worst drift of (slice flux ÷ slice emitted) across the planes that emitted.
    *
    * § 6k.1's invariance, measured on the render the panel is showing: the ratio
    * is each plane's own throughput, and under pure defocus it is the same number
    * for every plane. Reads ~1e-14. It is deliberately NOT read off the kernels'
    * own totals — those are normalized to 1 and would report the identity by
    * arithmetic, which is the trap `formedSum` exists to avoid.
+   *
+   * **`null` when fewer than two planes carry light**, which is A3's rule again
+   * and it bites harder here than it looks: a drift accumulated over nothing at
+   * all is 0 by initialization, and 0 is exactly the value that means "the
+   * invariance holds perfectly". Printing it green beside that sentence would be
+   * a false claim rather than a missing one. Reachable rather than
+   * precautionary — at one bead per plane on the oil 100×/1.40's 2.65 µm crop
+   * some 3% of beads fall off the grid, so an empty plane is a seed away — and
+   * `planes` = 1 reaches it by construction, with one plane and nothing to
+   * compare it to.
    */
-  readonly throughputDrift: number;
+  readonly throughputDrift: number | null;
   /** Total light in the image. Does not move when the focus slider does. */
   readonly totalLight: number;
 
@@ -395,14 +407,18 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
 
     // Each plane's own throughput, which pure defocus may not move. Read as
     // flux ÷ emitted rather than off the kernels, whose totals are normalized.
-    let throughputDrift = 0;
-    const reference = emitted[0]! > 0 ? image.sliceFlux[0]! / emitted[0]! : Number.NaN;
+    // The reference is the first plane that actually emitted, not plane 0: an
+    // empty plane there would poison every comparison with a NaN and leave the
+    // drift at its initialized 0, which is the value that means "exact".
+    const ratios: number[] = [];
     for (let i = 0; i < slices.length; i++) {
-      if (!(emitted[i]! > 0) || !Number.isFinite(reference) || reference === 0) continue;
-      throughputDrift = Math.max(
-        throughputDrift,
-        Math.abs(image.sliceFlux[i]! / emitted[i]! / reference - 1),
-      );
+      if (emitted[i]! > 0) ratios.push(image.sliceFlux[i]! / emitted[i]!);
+    }
+    let throughputDrift: number | null = null;
+    if (ratios.length >= 2) {
+      let worst = 0;
+      for (const r of ratios) worst = Math.max(worst, Math.abs(r / ratios[0]! - 1));
+      throughputDrift = worst;
     }
 
     // The specimen's own in-focus share, against which the image's is checked.
@@ -434,7 +450,8 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
         intensity: image.intensity,
         peak,
         meanIntensity: totalLight / (request.size * request.size),
-        peakOverMean: totalLight > 0 ? (peak * request.size * request.size) / totalLight : 0,
+        peakOverMean:
+          totalLight > 0 ? (peak * request.size * request.size) / totalLight : null,
         objectSpanUm,
         slabThicknessUm: request.planes * dofMm * 1000,
         depthOfFocusUm: dofMm * 1000,

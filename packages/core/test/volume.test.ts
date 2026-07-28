@@ -342,6 +342,64 @@ describe("§ 6k.4 — the cone's boundary, measured on the engine's own stack", 
     }
   });
 
+  it("the defocus axis has a lattice period, P(ν) = pupilSamples/(4·ν) — so this stack's window is NOT neutral", () => {
+    // The pupil is point-sampled, so the phase a defocus w puts between two
+    // points separated by ν takes only the values 4·w·ν·k/pupilSamples, and the
+    // axial transfer at ν is therefore EXACTLY periodic in w. It is the axial
+    // twin of § 6i.2's "the transfer is a point count": a property of the
+    // lattice rather than of the optics, and exact rather than approximate.
+    for (const pupilSamples of [32, 64]) {
+      for (const nu of [0.5, 1, 1.5]) {
+        const bin = Math.round((nu * pupilSamples) / 2);
+        const period = pupilSamples / (4 * nu);
+        const probes = [0, 0.25, 0.5];
+        const kernels = depthKernels(
+          defocusing(idealPupil()),
+          [...probes, ...probes.map((w) => w + period)],
+          { size: SIZE, pupilSamples },
+        );
+        const t = axialTransfer(kernels, bin);
+        for (let i = 0; i < probes.length; i++) {
+          expect(t.re[i + probes.length]! / t.re[i]!).toBeCloseTo(1, 12);
+        }
+      }
+    }
+    // Which makes the window above a choice rather than a neutral setting. This
+    // describe block's own ±8-wave stack is TWO periods at ν = 1 and three at
+    // ν = 1.5, so the spectrum there is a comb — nonzero only at every second or
+    // third bin. The edge measurement above survives it because it reads the
+    // envelope through a 2% threshold, and that is exactly what it costs: a
+    // curve drawn from those bins is a picket fence rather than the transfer,
+    // which is what `packages/app`'s A5 surface found when it tried to plot one.
+    const combed = axialSpectrum(
+      axialTransfer(
+        depthKernels(defocusing(idealPupil()), STACK, { size: SIZE, pupilSamples: PUPIL_SAMPLES }),
+        PUPIL_SAMPLES / 2,
+      ),
+    );
+    let peak = 0;
+    for (const m of combed.magnitude) peak = Math.max(peak, m);
+    // Two periods in the window ⇒ the odd bins are empty, and not merely small.
+    for (let b = 1; b < combed.magnitude.length; b += 2) {
+      expect(combed.magnitude[b]! / peak).toBeLessThan(1e-12);
+    }
+    // A window inside one period fills them in, at the same step and so the same
+    // Nyquist — the difference is the window and nothing else.
+    const inside = axialSpectrum(
+      axialTransfer(
+        depthKernels(
+          defocusing(idealPupil()),
+          Array.from({ length: 32 }, (_, i) => -4 + i * 0.25),
+          { size: SIZE, pupilSamples: PUPIL_SAMPLES },
+        ),
+        PUPIL_SAMPLES / 2,
+      ),
+    );
+    let insidePeak = 0;
+    for (const m of inside.magnitude) insidePeak = Math.max(insidePeak, m);
+    expect(inside.magnitude[1]! / insidePeak).toBeGreaterThan(0.5);
+  });
+
   it("the law closes at both ends — the missing cone, and the lateral cutoff", () => {
     expect(missingConeEdge(0)).toBe(0);
     expect(missingConeEdge(2)).toBe(0);

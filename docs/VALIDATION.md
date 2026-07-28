@@ -4836,6 +4836,24 @@ The 1/(2ν) in front is why deconvolution amplifies noise near the cone rather
 than merely failing inside it: the transfer does not fall to zero at the boundary
 and stop, it concentrates into an ever-narrower band of axial frequencies.
 
+**The defocus axis has a lattice period, and this rung's window is therefore not
+neutral.** The pupil is point-sampled, so the phase a defocus w₂₀ puts between two
+points separated by ν takes only the values 4·w₂₀·ν·k/`pupilSamples`, and the
+axial transfer at ν is **exactly periodic in w₂₀** with
+
+    P(ν) = pupilSamples / (4·ν)   waves
+
+pinned to 1e-12 at six (`pupilSamples`, ν) pairs. It is the axial twin of § 6i.2's
+"the transfer is a point count" — a property of the lattice rather than of the
+optics. The consequence is measured rather than described: the ±8-wave stack above
+is **two** periods at ν = 1, so its spectrum is a **comb** whose odd bins are
+empty to 1e-12, and a window inside one period fills bin 1 back to over half the
+peak at the same step and the same Nyquist. The edge measurement survives the comb
+because it reads the envelope through a 2% threshold, and that is precisely what
+the threshold buys. Anything that *draws* the spectrum must take its window from
+P(ν) instead — `packages/app`'s A5 surface found this by plotting the curve, and
+the rung exists so the property cannot drift silently underneath it.
+
 ### 6k.5 — the defocused OTF against an independent quadrature
 
 The same g, integrated in one dimension by trapezoid, sharing no code with the

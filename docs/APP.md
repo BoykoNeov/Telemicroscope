@@ -730,11 +730,25 @@ with it); only `pupilSamples` does. And **focusing at an end of the stack double
 the worst plane's defocus**, so the guard moves while the focus slider does even
 though the physics does not — 0.9486 → 1.4127 at 27 planes.
 
-**Cost, measured in the browser** (dev build, DIN 4×, 8 beads per plane): the
-picture is **59–107 ms at 9 planes** under `vite-node` and **270–332 ms at 27**
-in the browser — live everywhere, which is the first microscope surface that is.
-The axial job is **518–545 ms** in node and **~1.2 s** in the browser, A4's ~2.3×
-again, hence its own worker and A4's withdraw-while-stale rule. This doc's
+**Cost, and it is NOT live everywhere** — the first draft of this section said it
+was, which is a claim over the whole control space rather than over what was
+measured. Node figures (dev build, DIN 4×, 8 beads per plane), with the browser
+running ~2.5× them where both were taken:
+
+| picture | 5 planes | 9 | 17 | 27 |
+|---|---|---|---|---|
+| ps 32 / grid 128 | 27 ms | 46 ms | 86 ms | 129 ms |
+| ps 64 / grid 128 | 47 ms | 84 ms | 162 ms | 262 ms |
+| ps 64 / grid 256 | 117 ms | 191 ms | 447 ms | 713 ms |
+| ps 128 / grid 256 | 241 ms | 420 ms | 856 ms | 1357 ms |
+
+Against § 2's 800 ms line that is **live at ps 32 and at ps 64 / grid 128 at
+every plane count** — the defaults, and 27 planes there measured 332 ms in the
+browser — and **compute-once at grid 256 with many planes**, where ps 128 / 27
+planes projects past 3 s. Backpressure covers a drag there rather than making it
+pleasant, and the panel prints its own elapsed time. The axial job is
+**518–545 ms** in node and **~1.2 s** in the browser, A4's ratio again, hence its
+own worker and A4's withdraw-while-stale rule. This doc's
 "198 ms at 41 slices" was a node figure with pre-made fields and no rasterizing;
 rasterizing the whole slab measures **1–3 ms** against 130–700 ms of rendering,
 so the memoization that looked worth having is not — it would save under 1% and

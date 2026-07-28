@@ -175,7 +175,11 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           <br />
           that offset carries σ = |w|/(2√3) = {r.sweep.defocusSigmaWaves.toFixed(5)} waves on its
           own, against the traced σ of {r.axisRmsWaves.toFixed(5)} —{" "}
-          <strong>{(sigmaShare * 100).toFixed(0)}%</strong> of it
+          <strong>
+            {sigmaShare > 1 ? "≈" : ""}
+            {(Math.min(sigmaShare, 1) * 100).toFixed(0)}%
+          </strong>{" "}
+          of it
           {Math.abs(r.sweep.peakWaves) <= 2 / 32 && (
             <span style={{ color: GUARD_COLOR.warn }}>
               {" "}
@@ -431,10 +435,26 @@ export function VolumePanel() {
                 {pixelsPerCell.toFixed(2)} pixels per resolution cell
               </span>
               <br />
-              peak ÷ mean <strong>{readout.peakOverMean.toFixed(2)}</strong> — signal against haze
+              {readout.peakOverMean === null ? (
+                <span style={{ color: GUARD_COLOR.warn }}>
+                  peak ÷ mean is 0/0 on an empty frame
+                </span>
+              ) : (
+                <>
+                  peak ÷ mean <strong>{readout.peakOverMean.toFixed(2)}</strong> — signal against
+                  haze
+                </>
+              )}
               <br />
               total light {readout.totalLight.toPrecision(12)} · throughput drift{" "}
-              <span style={{ color: "#3a7" }}>{readout.throughputDrift.toExponential(2)}</span>
+              {readout.throughputDrift === null ? (
+                <span style={{ color: GUARD_COLOR.warn }}>
+                  undefined — fewer than two planes carry light, and a drift over nothing is 0 by
+                  initialization, which is the value that would mean it holds exactly
+                </span>
+              ) : (
+                <span style={{ color: "#3a7" }}>{readout.throughputDrift.toExponential(2)}</span>
+              )}
               <br />
               {readout.inFocusFraction === null || readout.emittedInFocusShare === null ? (
                 <span style={{ color: GUARD_COLOR.warn }}>
