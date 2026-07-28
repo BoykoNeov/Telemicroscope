@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
+import { BuilderPanel } from "./builder";
 import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
 import { StagePanel } from "./stage";
@@ -46,6 +47,12 @@ export const PANELS: readonly Panel[] = [
     label: "microscope bench",
     blurb: "APP.md A1 — every objective traced, and the crop a frame actually covers",
     Component: BenchPanel,
+  },
+  {
+    id: "builder",
+    label: "the builder",
+    blurb: "APP.md D8 — the parameters the catalogue defaulted, and a wall measured for what you built",
+    Component: BuilderPanel,
   },
   {
     id: "brightfield",

@@ -207,7 +207,14 @@
    conjugate, that § 5j's `analysis/seidel` had explicitly refused (§ 6b.0).
    **Open here:** the 4×
    sitting at f/4.1 — the edge of the cemented-doublet form, and the second piece
-   of evidence for the Lister follow-on. *Composing an eyepiece onto the
+   of evidence for the Lister follow-on. *Refined by APP.md's D8, which built the
+   form at other apertures instead of quoting this one:* f/4.076 is where the
+   4×/0.10 sits, but the form survives to **NA 0.1843 = f/2.27**, and across two
+   glass pairs, two orientations and M = 4→40 the NA wall spans 28% while the
+   ratio at it spans 8%. So the ratio is the near-invariant and **f/4.1 is a
+   landmark rather than the edge**. That is an app probe of the composed build and
+   deliberately **not** a rung — pinning "the ceiling is a focal ratio" belongs
+   here, in this open item, and has not been done. *Composing an eyepiece onto the
    intermediate image was the other open item and is now closed by § 6q, which
    runs on this architecture and the infinity-corrected one alike.*
    *The coverslip — `160/0.17`:* ✅ `designs/coverslip` (§ 6c), and with it the

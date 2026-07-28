@@ -1,12 +1,3 @@
-import {
-  finiteConjugateMicroscope,
-  finiteConjugateObjective,
-  infinityCorrectedMicroscope,
-  listerObjective,
-  microscopeObjective,
-  oilImmersionObjective,
-  tubeLens,
-} from "@telemicroscope/core/designs";
 import type { OpticalSystem } from "@telemicroscope/core/trace";
 import {
   fieldPupilAt,
@@ -18,6 +9,17 @@ import {
   abbeResolutionMm,
   objectNumericalAperture,
 } from "@telemicroscope/core/pupil";
+import {
+  buildMicroscope,
+  dinSpec,
+  infinitySpec,
+  listerSpec,
+  measureApertureWall,
+  oilSpec,
+  type ApertureWall,
+  type BuildSpec,
+  type ObjectiveNumbers,
+} from "./builder";
 
 /**
  * The microscope substrate, as pure functions — APP.md's A1.
@@ -86,35 +88,36 @@ export interface MicroscopeEntry {
   readonly nominalNA: number;
   /** Why this row is in the table. One line; it is the teaching. */
   readonly note: string;
+  /**
+   * The row, as a point in D8's design space rather than as a closure over two
+   * arguments. Every field the engine takes is stated here, so the builder
+   * cannot offer a space that fails to contain the catalogue, and a preset
+   * loaded into the form rebuilds *this* system rather than one that resembles
+   * it. The presets are written against the engine's own defaults
+   * (`ENGINE_DEFAULTS`), which is what keeps this a restatement and not a
+   * change: every row below builds byte-identically to the two-argument
+   * constructor calls it replaced.
+   */
+  readonly spec: BuildSpec;
   readonly build: () => OpticalSystem;
 }
 
-const din = (magnification: number, numericalAperture: number) => (): OpticalSystem =>
-  finiteConjugateMicroscope({
-    objective: finiteConjugateObjective({ magnification, numericalAperture }),
-  }).system;
-
-const infinity = (magnification: number, numericalAperture: number) => (): OpticalSystem =>
-  infinityCorrectedMicroscope({
-    objective: microscopeObjective({ magnification, numericalAperture }),
-    tubeLens: tubeLens(),
-  }).system;
-
-const lister = (magnification: number, numericalAperture: number) => (): OpticalSystem =>
-  infinityCorrectedMicroscope({
-    objective: listerObjective({ magnification, numericalAperture }),
-    tubeLens: tubeLens(),
-  }).system;
-
-const oil = (numericalAperture: number) => (): OpticalSystem =>
-  infinityCorrectedMicroscope({
-    objective: oilImmersionObjective({
-      magnification: 100,
-      numericalAperture,
-      tubeFocalLengthMm: 200,
-    }),
-    tubeLens: tubeLens({ focalLengthMm: 200 }),
-  }).system;
+const entry = (
+  kind: MicroscopeKind,
+  label: string,
+  architecture: Architecture,
+  note: string,
+  spec: BuildSpec,
+): MicroscopeEntry => ({
+  kind,
+  label,
+  architecture,
+  nominalMagnification: spec.magnification,
+  nominalNA: spec.numericalAperture,
+  note,
+  spec,
+  build: () => buildMicroscope(spec).system,
+});
 
 /**
  * The ladder's objectives, ordered so the two findings above read off the table.
@@ -123,96 +126,76 @@ const oil = (numericalAperture: number) => (): OpticalSystem =>
  * NA (it does, as 1/NA, until the form runs out).
  */
 export const MICROSCOPE_CATALOG: readonly MicroscopeEntry[] = [
-  {
-    kind: "din-4x-010",
-    label: "DIN 4×/0.10",
-    architecture: "DIN 160 mm",
-    nominalMagnification: 4,
-    nominalNA: 0.1,
-    note: "§ 6b's finite conjugate — a re-solved lens, not an infinity objective used differently.",
-    build: din(4, 0.1),
-  },
-  {
-    kind: "din-4x-015",
-    label: "DIN 4×/0.15",
-    architecture: "DIN 160 mm",
-    nominalMagnification: 4,
-    nominalNA: 0.15,
-    note: "Same M, 1.5× the NA: the span shrinks as 1/NA — 93.5 → 62.0 µm.",
-    build: din(4, 0.15),
-  },
-  {
-    kind: "din-4x-020",
-    label: "DIN 4×/0.20",
-    architecture: "DIN 160 mm",
-    nominalMagnification: 4,
-    nominalNA: 0.2,
-    note: "§ 6b's f/4.1 ceiling, as an error message: the cemented doublet stops existing here.",
-    build: din(4, 0.2),
-  },
-  {
-    kind: "inf-4x-010",
-    label: "infinity 4×/0.10",
-    architecture: "infinity + 200 mm tube",
-    nominalMagnification: 4,
-    nominalNA: 0.1,
-    note: "§ 6a's chain. Same NA as the DIN 4× and the same span, on a different architecture.",
-    build: infinity(4, 0.1),
-  },
-  {
-    kind: "inf-10x-010",
-    label: "infinity 10×/0.10",
-    architecture: "infinity + 200 mm tube",
-    nominalMagnification: 10,
-    nominalNA: 0.1,
-    note: "2.5× the magnification buys no field: identical span, image pixel 2.5× larger.",
-    build: infinity(10, 0.1),
-  },
-  {
-    kind: "inf-20x-010",
-    label: "infinity 20×/0.10",
-    architecture: "infinity + 200 mm tube",
-    nominalMagnification: 20,
-    nominalNA: 0.1,
-    note: "And again at 5×. Magnification moves the pixel, never the crop.",
-    build: infinity(20, 0.1),
-  },
-  {
-    kind: "lister-40x-020",
-    label: "Lister 40×/0.20",
-    architecture: "infinity + 200 mm tube",
-    nominalMagnification: 40,
-    nominalNA: 0.2,
-    note: "§ 6d's aplanat — two doublets bent together for ΣS_I = ΣS_II = 0.",
-    build: lister(40, 0.2),
-  },
-  {
-    kind: "lister-40x-040",
-    label: "Lister 40×/0.40",
-    architecture: "infinity + 200 mm tube",
-    nominalMagnification: 40,
-    nominalNA: 0.4,
-    note: "§ 6d's measured wall at NA 0.343 — the form, not the glass. Past it the joint root is gone.",
-    build: lister(40, 0.4),
-  },
-  {
-    kind: "oil-100x-125",
-    label: "oil 100×/1.25",
-    architecture: "infinity + 200 mm tube",
-    nominalMagnification: 100,
-    nominalNA: 1.25,
-    note: "§ 6e.4 — dome, two aplanatic menisci, Lister rear, through slip and oil.",
-    build: oil(1.25),
-  },
-  {
-    kind: "oil-100x-140",
-    label: "oil 100×/1.40",
-    architecture: "infinity + 200 mm tube",
-    nominalMagnification: 100,
-    nominalNA: 1.4,
-    note: "The branch's headline, and the narrowest crop in the table: 2.6 µm of specimen.",
-    build: oil(1.4),
-  },
+  entry(
+    "din-4x-010",
+    "DIN 4×/0.10",
+    "DIN 160 mm",
+    "§ 6b's finite conjugate — a re-solved lens, not an infinity objective used differently.",
+    dinSpec(4, 0.1),
+  ),
+  entry(
+    "din-4x-015",
+    "DIN 4×/0.15",
+    "DIN 160 mm",
+    "Same M, 1.5× the NA: the span shrinks as 1/NA — 93.5 → 62.0 µm.",
+    dinSpec(4, 0.15),
+  ),
+  entry(
+    "din-4x-020",
+    "DIN 4×/0.20",
+    "DIN 160 mm",
+    "§ 6b's f/4.1 ceiling, as an error message: the cemented doublet stops existing here.",
+    dinSpec(4, 0.2),
+  ),
+  entry(
+    "inf-4x-010",
+    "infinity 4×/0.10",
+    "infinity + 200 mm tube",
+    "§ 6a's chain. Same NA as the DIN 4× and the same span, on a different architecture.",
+    infinitySpec(4, 0.1),
+  ),
+  entry(
+    "inf-10x-010",
+    "infinity 10×/0.10",
+    "infinity + 200 mm tube",
+    "2.5× the magnification buys no field: identical span, image pixel 2.5× larger.",
+    infinitySpec(10, 0.1),
+  ),
+  entry(
+    "inf-20x-010",
+    "infinity 20×/0.10",
+    "infinity + 200 mm tube",
+    "And again at 5×. Magnification moves the pixel, never the crop.",
+    infinitySpec(20, 0.1),
+  ),
+  entry(
+    "lister-40x-020",
+    "Lister 40×/0.20",
+    "infinity + 200 mm tube",
+    "§ 6d's aplanat — two doublets bent together for ΣS_I = ΣS_II = 0.",
+    listerSpec(40, 0.2),
+  ),
+  entry(
+    "lister-40x-040",
+    "Lister 40×/0.40",
+    "infinity + 200 mm tube",
+    "§ 6d's measured wall at NA 0.343 — the form, not the glass. Past it the joint root is gone.",
+    listerSpec(40, 0.4),
+  ),
+  entry(
+    "oil-100x-125",
+    "oil 100×/1.25",
+    "infinity + 200 mm tube",
+    "§ 6e.4 — dome, two aplanatic menisci, Lister rear, through slip and oil.",
+    oilSpec(1.25),
+  ),
+  entry(
+    "oil-100x-140",
+    "oil 100×/1.40",
+    "infinity + 200 mm tube",
+    "The branch's headline, and the narrowest crop in the table: 2.6 µm of specimen.",
+    oilSpec(1.4),
+  ),
 ];
 
 export function entryOf(kind: MicroscopeKind): MicroscopeEntry {
@@ -231,7 +214,6 @@ export interface FrameRequest {
 
 /** What one objective delivers, all of it read back off the trace. */
 export interface FrameReadout {
-  readonly kind: MicroscopeKind;
   /** n·sin u at the specimen, from the marginal ray's own launch angle. */
   readonly tracedNA: number;
   /** Image height over object height, from the traced chief ray. Signed. */
@@ -274,22 +256,39 @@ export interface FrameReadout {
   readonly elapsedMs: number;
 }
 
+/**
+ * A readout, or the reason there is not one.
+ *
+ * `source` says **whose** refusal it is. `"engine"` is a design that does not
+ * exist and said so with its own measured number — § 6b's f/4.1, § 6d's NA
+ * 0.343 — and its message is quoted verbatim. `"app"` is D8's own: a
+ * combination of controls with no engine call behind it at all. The distinction
+ * is not cosmetic; this repo does not let an app sentence wear the engine's
+ * voice, so the panel colours and labels the two differently.
+ */
 export type FrameResult =
   | { readonly ok: true; readonly readout: FrameReadout }
-  | { readonly ok: false; readonly kind: MicroscopeKind; readonly error: string };
+  | { readonly ok: false; readonly error: string; readonly source: "engine" | "app" };
 
 /**
- * Build one entry's system and frame, and read everything off them.
+ * Build a system and frame from any builder, and read everything off them.
  *
  * The frame itself is one on-axis trace (1–6 ms); `scaleDrift` is six more field
  * traces and is the bulk of the ~40 ms, which is why `elapsedMs` is reported
  * rather than the frame's own cost being quoted as the panel's.
+ *
+ * A1's catalogue and D8's form share this function rather than each having their
+ * own: "A1's readouts, unchanged, against whatever was built" is only true if it
+ * is literally the same code, and a second copy would drift the first time a
+ * column was added.
  */
-export function describeEntry(request: FrameRequest): FrameResult {
-  const entry = entryOf(request.kind);
+export function describeSystem(
+  build: () => OpticalSystem,
+  request: { readonly pupilSamples: number; readonly size: number },
+): FrameResult {
   const started = performance.now();
   try {
-    const system = entry.build();
+    const system = build();
     const frame = objectFieldFrame(system, {
       size: request.size,
       pupilSamples: request.pupilSamples,
@@ -306,7 +305,6 @@ export function describeEntry(request: FrameRequest): FrameResult {
     return {
       ok: true,
       readout: {
-        kind: request.kind,
         tracedNA,
         tracedMagnification: frame.magnification,
         objectSpanUm: objectSpanMm * 1000,
@@ -322,10 +320,31 @@ export function describeEntry(request: FrameRequest): FrameResult {
       },
     };
   } catch (cause) {
-    // The engine's own words, not a paraphrase: § 6b's and § 6d's ceilings are
-    // findings, and their error messages carry the measured numbers.
-    return { ok: false, kind: request.kind, error: (cause as Error).message };
+    return refusalOf(cause);
   }
+}
+
+/**
+ * A thrown design, as a readout.
+ *
+ * The engine's own words, not a paraphrase: § 6b's and § 6d's ceilings are
+ * findings, and their error messages carry the measured numbers. D8's own
+ * refusals arrive through the same channel and are tagged apart from them by
+ * `AppRefusal`'s name, so the panel can decline to speak in the engine's voice.
+ */
+function refusalOf(cause: unknown): { ok: false; error: string; source: "engine" | "app" } {
+  const error = cause as Error;
+  return {
+    ok: false,
+    error: error.message,
+    source: error.name === "AppRefusal" ? "app" : "engine",
+  };
+}
+
+/** One catalogue entry, by kind. */
+export function describeEntry(request: FrameRequest): FrameResult {
+  const entry = entryOf(request.kind);
+  return describeSystem(entry.build, request);
 }
 
 /** The whole catalogue at one sampling — what the table shows. */
@@ -336,6 +355,65 @@ export function describeCatalog(
   return MICROSCOPE_CATALOG.map((entry) =>
     describeEntry({ kind: entry.kind, pupilSamples, size }),
   );
+}
+
+/**
+ * D8's readout: A1's frame numbers plus the objective's own solved ones.
+ *
+ * The second half is what a *builder* answers that a catalogue cannot. A1's
+ * table says what a frame covers; a form that changes the glass, the tube length
+ * or the group split has to show what those did to the lens — the solved
+ * specimen plane, the working focal ratio § 6b's ceiling is quoted in, the
+ * Lister's two bendings and its Seidel cancellation, the dome radius § 6e.4
+ * solves rather than picks.
+ */
+export type BuildDescription =
+  | {
+      readonly ok: true;
+      readonly readout: FrameReadout;
+      readonly objective: ObjectiveNumbers;
+      /** Composed-chain first-order numbers, from the paraxial trace. */
+      readonly nominalMagnification: number;
+      readonly objectDistanceMm: number;
+      readonly imageDistanceMm: number;
+      /**
+       * Where THIS design stops building, bisected on the aperture with every
+       * other control held. `null` when no refusal was found below the cap.
+       * See `measureApertureWall` for why it is measured and not quoted.
+       */
+      readonly wall: ApertureWall | null;
+    }
+  | { readonly ok: false; readonly error: string; readonly source: "engine" | "app" };
+
+export function describeBuild(
+  spec: BuildSpec,
+  request: { readonly pupilSamples: number; readonly size: number },
+): BuildDescription {
+  // Built once and held, so the objective's own numbers come from the very
+  // system the frame was read off rather than from a second, equal-looking build.
+  // The clock starts here rather than inside `describeSystem` because the solve
+  // is part of what a form-submit costs.
+  const started = performance.now();
+  let made: ReturnType<typeof buildMicroscope>;
+  try {
+    made = buildMicroscope(spec);
+  } catch (cause) {
+    return refusalOf(cause);
+  }
+  const frame = describeSystem(() => made.system, request);
+  if (!frame.ok) return frame;
+  return {
+    ok: true,
+    readout: { ...frame.readout, elapsedMs: performance.now() - started },
+    objective: made.objective,
+    nominalMagnification: made.chain.nominalMagnification,
+    objectDistanceMm: made.chain.objectDistanceMm,
+    imageDistanceMm: made.chain.imageDistanceMm,
+    // Deliberately outside the clock above: the wall is ~15 more solves and is
+    // the larger half of a submit, so the panel reports the two separately
+    // rather than letting one number hide the other.
+    wall: measureApertureWall(spec),
+  };
 }
 
 /** The frame itself, for the panels that will form an image on it (A2 onward). */

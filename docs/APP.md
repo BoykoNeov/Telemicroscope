@@ -894,10 +894,10 @@ Everything below the first section is ordered behind it.
 walked — A7 is a stage you can pan. The eyepiece is D6 and is walked too, so
 "look through" is an engine capability rather than a wish; what remains unbuilt
 is the *panel* for it. Colour is D7 and has now landed as well, so a stained
-section is an engine capability too. Only building an instrument (D8) is still
-open, and it was always app wiring — so the opening sentence above is no longer a
-description of the engine at all, only of the app's surfaces, which is what Part
-D is a queue for.
+section is an engine capability too. Building an instrument is D8 and has now
+landed as well — so the opening sentence above is no longer a description of the
+engine at all, only of the app's surfaces, which is what Part D is a queue for,
+and the only surface still queued in it is **D10**.
 
 ### D0. The three feasibility measurements this part rests on
 
@@ -1516,28 +1516,100 @@ objective's axial colour shows as the focal shift § 6b's own design implies;
 the microscope branch, which is the strongest available check that the colour is
 the optics and not the display.
 
-### D8. A8 — the microscope builder — *app wiring only*
+### D8. A8 — the microscope builder — *app wiring only* — ✅ **landed**
 
 Independent of everything above, cheap, and the direct answer to *"can we compose
-one and change its components?"* — today, no: `MICROSCOPE_CATALOG` is ten
-hardcoded rows calling `din(4, 0.1)`, and the constructors' other parameters are
-defaults nothing exposes.
+one and change its components?"* — which was *no*: `MICROSCOPE_CATALOG` was ten
+hardcoded rows calling `din(4, 0.1)`, and the constructors' other parameters were
+defaults nothing exposed.
 
-A form over what the engine already takes: architecture (DIN / infinity),
-magnification, NA, crown and flint, tube focal length or optical tube length,
-coverslip thickness and index, objective orientation, infinity-space length,
-Lister or immersion front. Then A1's readouts, unchanged, against whatever was
-built.
+Shipped as `packages/app/src/builder.ts` (pure adapter, `render.ts`'s pattern for
+the sixth time) plus a `BuilderPanel` route. The form is the list this doc
+scoped — architecture, form, magnification, NA, crown and flint, tube focal
+length or optical tube length, cover slip thickness and glass, objective
+orientation, infinity-space length, the Lister's split and separation, the
+dome's meniscus count and immersion fluid — and A1's readouts run against
+whatever it builds, **literally**: `describeSystem` was extracted so the
+catalogue and the form share one function rather than one copying the other.
 
-**Its best feature is already built:** the engine refuses impossible objectives
-with messages carrying measured numbers — § 6b's f/4.1 doublet ceiling, § 6d's
-NA 0.343 wall, § 6c's slip solve — and A1 established that showing the engine's
-own words *is* the handling. A builder is the surface where a reader walks into
-those walls on purpose, which is worth more than three catalogue rows that exist
-to fail.
+**The catalogue is now generated from the same specs**, so the design space
+provably contains it: each of the ten entries carries a `BuildSpec`, its preset
+button reloads it, and the systems it builds were checked identical — object for
+object, and message for message on the three rows that exist to be refused —
+against the two-argument calls they replaced.
 
-**Cost:** ~50 ms a build (A1 measured it), so it is a form-submit cost, not a
-drag cost. Sliders would need the same backpressure every other panel has.
+**The one trap, and it is why `CoverslipChoice` has no absent case.** The two
+engine specs read a missing slip in *opposite* directions:
+`FiniteConjugateObjectiveSpec.coverslip` omitted means bare in air, while
+`HyperhemisphereSpec.coverslipSpec` omitted means a real 0.17 mm D263 slip and
+`null` is what means bare. An optional field would have inherited both readings
+and given every DIN preset a cover slip it was never built with — silently moving
+A1's landed numbers, with nothing on screen to say so.
+
+**Three findings, and two of them correct numbers this doc and the ROADMAP quote
+as constants.**
+
+1. **The walls are not constants, and the panel therefore measures rather than
+   quotes.** `measureApertureWall` bisects the refusal boundary for the spec in
+   the form, every other control held — ~15 solves, 130–220 ms — and the guard
+   colours the traced NA against *that*. It reproduces § 6e.4's oil ceiling
+   exactly (**1.4110**) and then shows what moves it: **1.4717** with no slip,
+   **0.9661** with one meniscus instead of two (which is § 6e.3's "one is not
+   enough at either" as a number), **1.3161** in water.
+2. **§ 6d's NA 0.343 is the aplanat's wall at one choice of two *stated*
+   parameters.** At the engine's own defaults (split 0.6, separation 0.6) the
+   same form stops at **NA 0.273**; at (0.5, 0.3) it reaches **0.345**; at
+   (0.7, 0.8) only **0.165** — a factor of 2.1 across the very grid § 6d checks
+   its solve over. The engine's own refusal text already names the possibility
+   ("…*or this split/separation/orientation admits none*"); what a builder adds
+   is which of the two is binding at the defaults, and it is the split. The wall
+   is **flat in magnification to four figures** (M = 10, 20, 40, 100), which is
+   the form's scale-freedom arriving as a measurement.
+3. **The cemented doublet's limit is much more nearly a focal ratio than an
+   aperture — and it is not f/4.1.** § 6b records "the 4× sitting at f/4.1 — the
+   edge of the cemented-doublet form", and f/4.076 is indeed where the DIN 4×/0.10
+   sits — but the form survives to **NA 0.1843**, which is **f/2.27**. Checked the
+   way § 6d checks its own form claim, on two glass pairs rather than one:
+
+   | | NA wall, M = 4 → 40 | working f/# there |
+   |---|---|---|
+   | N-BK7/F2 | 0.1843 → 0.2218 | f/2.266 → f/2.357 |
+   | fused silica/F2 | 0.1915 → 0.2293 | f/2.212 → f/2.315 |
+   | N-BK7/F2, crown-first | 0.1792 → 0.2074 (M = 4, 20) | f/2.268 → f/2.386 |
+
+   Across two pairs, two orientations and four magnifications the NA wall spans
+   **0.179–0.229** (28%) while the ratio at it spans **f/2.21–f/2.39** (8%) — about
+   3.5× tighter, so the ROADMAP's instinct to quote a ratio is right and the
+   *number* is a landmark rather than the edge. The optical tube length does not
+   move it at all (0.1843 at x′ = 100, 150 and 250 mm), which is the same
+   scale-freedom the aplanat shows in M. **Flagged, not pinned:** these are probes
+   of the composed build, not ladder rungs, and "the doublet's ceiling is a focal
+   ratio ≈ f/2.3, and the ratio is the invariant" is left as an open question for
+   § 6b rather than quietly added to the ladder — D8 is app wiring and adds no
+   physics.
+
+**Two refusals in this panel are the app's, not the engine's, and they are styled
+apart.** DIN × Lister and DIN × oil have no engine call to refuse them (the
+finite-conjugate Lister is a named open item in ROADMAP § 6d), and neither
+`MicroscopeObjectiveSpec` nor `ListerObjectiveSpec` has anywhere to put a cover
+slip. `AppRefusal` tags those, `describeBuild` reports `source`, and the panel
+prints them in amber with "this sentence is the app's" — because an engine
+refusal is a measured finding and this repo does not let app text wear that voice.
+The slip control therefore means **three** things across the four forms —
+*corrected for* (§ 6c's `targetS1Mm`), *looked through* (§ 6e.1's plane stack),
+*not expressible* — and the panel says which rather than presenting one uniform
+knob whose meaning changes underneath it.
+
+**Cost, measured, and it splits in two.** A refused build is 3–8 ms. A whole
+submit is ~140 ms for the DIN doublet, 313 ms for the oil form and 344 ms for the
+Lister — of which the **wall bisection is 103–213 ms** and the build-and-frame is
+the rest: **38 ms** for the DIN, which is A1's ~50 ms estimate delivered, but
+**131–181 ms** for the two-group forms, where A1's number was never measured. So
+the estimate below held for the case it was made about and understates the
+aplanat by 3×, and the panel prints the two halves separately rather than letting
+one hide the other. It is a form-submit cost either way: nothing recomputes until
+the button is pressed, which is how this surface buys the honesty every other
+panel pays backpressure for.
 
 ### D10. A5's z-slider through a real mount — *app wiring only* — **pair**
 
@@ -1582,8 +1654,12 @@ bit-for-bit identity rung showing up as a UI invariant — the mount control at
 
 ### Order
 
-**D8 first if the goal is breadth** — it is independent, app-only, and turns ten
-rows into the whole design space.
+**~~D8 first if the goal is breadth~~ — walked.** It was independent, app-only,
+and it turned ten rows into the whole design space; the ten are now generated
+from the same specs the form edits, so the space provably contains them. What it
+found was not breadth but that **two of this part's quoted walls are not
+constants** — see D8 — which is a builder's characteristic result and not one any
+catalogue row could have produced.
 
 **Otherwise, the priority path was ~~D1~~ → ~~D2~~ → ~~D3~~ → ~~D4~~, and it is
 walked**: the off-axis frame, the rasterizer that registers it, the mosaic that
@@ -1597,11 +1673,11 @@ depth-dependent spherical aberration this doc had listed as *disqualified*, whic
 closes the microscope branch's last numbered gap and turns A5's stated omission
 into **D10**.
 
-What is left in the list is **D8** and **D10**, and both are app wiring rather
-than engine. D8 is still the cheapest breadth in the doc; D10 is the cheapest
-engine-backed surface, since A5 already has the stack, the worker and the plots
-and § 6l adds one term to a callback. A6 and Part B are untouched by all of this
-and can go at any point.
+**~~D8~~ has now landed too**, so what is left in the list is **D10** alone — app
+wiring rather than engine, and the cheapest engine-backed surface in the doc,
+since A5 already has the stack, the worker and the plots and § 6l adds one term
+to a callback. A6 and Part B are untouched by all of this and can go at any
+point.
 
 **The one engine number that changed the queue — and has now been spent.** D4
 found the *rasterizer*, not the Abbe sum, is what a traced tile costs (see D0.1's
@@ -1755,9 +1831,17 @@ code. **A6** follows. **Part C** is a separate decision.
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
 steps with their own rungs. Its own order is at the end of that part; the short
 version was **D8 first for breadth, D1 → D4 for the field of view** — and every
-engine step in the part has since landed (§ 6m–§ 6s), so what is left in Part D is
-**D8 and D10**, both app wiring. D10 exists because § 6l closed the branch's last
+engine step in the part has since landed (§ 6m–§ 6s), as has **D8**, so what is
+left in Part D is **D10** alone. D10 exists because § 6l closed the branch's last
 numbered gap, which this doc had scoped as disqualified rather than as work.
+**D8 also made the sixth reuse of the adapter pattern say something new**: the
+five before it wired capability and reported it, while a *form* over the same
+capability found that two of the branch's catalogued walls are functions of
+parameters the catalogue had defaulted — the aplanat's NA and the doublet's
+focal ratio. A surface that lets a reader move a stated parameter will find out
+what the stating cost, which is A5's lesson ("a surface that draws a quantity a
+rung only summarizes will find the sampling the rung could afford to ignore")
+arriving a fourth time, in the design space rather than in the sampling.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and
