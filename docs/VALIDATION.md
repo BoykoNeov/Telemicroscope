@@ -6340,6 +6340,12 @@ The clock is recorded here rather than asserted. On this machine, DIN 4×/0.10:
 | a whole traced tile, grid 64 / ps 32 | 738 ms | 237 ms | 3.11× |
 | a 2×2 mosaic, grid 64 / ps 32 | 2 193 ms | 883 ms | 2.48× |
 | § 6r's 3-λ stack, grid 64 / ps 32 | 1 625 ms | 741 ms | 2.19× |
+| **the app's stage tile, at its own defaults** | 293 ms | 45 ms | 6.46× |
+
+The first six rows run an ideal 21-point `diskSource`; the last runs the stage's
+actual request — DIN 4×/0.10, ps 32, grid 64, guard 4, S = 0.5, and § 6p's
+208-direction commensurate source — which is the one a reader should take as
+"what the panel costs", and its two pictures differ by 9.9e-15.
 
 **The last four lines are the step's real finding, and they are a correction to
 APP.md's cost model for the third time in as many steps.** With the raster

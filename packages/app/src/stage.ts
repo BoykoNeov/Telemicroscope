@@ -55,14 +55,17 @@ import { entryOf, LAMBDA_NM, type MicroscopeKind } from "./microscope";
  * **That cache is now built (§ 6s) and this panel takes it**, at
  * `RADIAL_MAP_NODES`. The inverse chief-ray map is one-dimensional, so a tile's
  * pixels are queries of a single curve: 65 chief-ray inversions for the table
- * against 16 384 for a 128² tile's pixels, and the raster falls from 1 046 ms to
- * 2 ms. What that leaves is the third correction to this panel's cost model in
- * as many steps — **the Abbe sum is the bill again**, exactly where D0.1 had it
- * before D4 moved it: a whole traced tile at grid 128 / ps 32 goes 1 293 ms →
- * 235 ms (5.50×, against the 5.6× ratio D4's two halves predicted), and what is
- * left is the transform. The tile size the stage can afford is set by the
- * imaging once more, and the 2 px per resolution cell below is now a sampling
- * choice rather than a rasterizer budget.
+ * against 4 096 for this tile's pixels.
+ *
+ * **Measured here, on this panel's own request** — DIN 4×/0.10, ps 32, grid 64,
+ * guard 4, S = 0.5, the 208-direction commensurate source — a tile goes
+ * **293 ms → 45 ms, 6.46×**, and the two pictures differ by 9.9e-15. Which is
+ * the third correction to this panel's cost model in as many steps, and it lands
+ * where D0.1 had it before D4 moved it: **the Abbe sum is the bill again**, and
+ * a stage tile is now ~45 ms of transform rather than ~290 ms of bisection. The
+ * tile size the stage can afford is set by the imaging once more, so the 2 px
+ * per resolution cell below is a sampling choice rather than a rasterizer
+ * budget.
  */
 
 /** The DIN field number a finished microscope delivers, in mm of intermediate
@@ -361,8 +364,9 @@ function toGrey(intensity: Float64Array, size: number): Uint8ClampedArray {
  * Two traces for the tile (`mosaicTileAt`: the anchor's ruler and this tile's),
  * then § 6n's warped raster and § 6f's Abbe sum through this tile's own traced
  * pupils. Measured on the DIN 4×/0.10 at grid 64 / ps 32 with a 208-direction
- * commensurate condenser: **~350 ms**, of which the raster was ~290 — and since
- * § 6s the raster is a table lookup, so what is left is the sum.
+ * commensurate condenser: **~350 ms**, of which the raster was ~290. **Since
+ * § 6s that half is a table lookup and the same tile measures ~45 ms** — the
+ * Abbe sum, and almost nothing else. See the header.
  */
 export function renderStageTile(request: StageTileRequest): StageTileResult {
   const started = performance.now();

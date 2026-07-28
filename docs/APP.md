@@ -1272,6 +1272,7 @@ the source count, the worst tile's verdict, tiles-and-elapsed, and a centre-firs
 queue. What it cost, measured on the DIN 4×/0.10 at ps 32 / grid 64 with a
 208-direction commensurate condenser: **~300 ms a tile, 36 tiles in 3.3 s** across
 three workers, and a pan that crosses no tile boundary renders **nothing**.
+(**Superseded by § 6s** — the same tile is ~45 ms; see finding 2 below.)
 
 **Three things this section did not anticipate**, in the doc's own tradition of
 recording them:
@@ -1285,10 +1286,12 @@ recording them:
    lattice offset a third of a tile off it.
 2. **D0.1's cost model was measuring the wrong half** — see the correction there.
    The rasterizer, not the Abbe sum, was what a traced tile cost. **§ 6s has
-   since removed that half**, so the panel now runs its raster off a tabulated
-   radial map (`RADIAL_MAP_NODES`) and a whole traced tile at grid 128 / ps 32
-   is 235 ms rather than 1 293 — which puts the Abbe sum back in front and the
-   ~300 ms a tile above becomes almost entirely the sum.
+   since removed that half**: the panel runs its raster off a tabulated radial
+   map (`RADIAL_MAP_NODES`), and measured on *this panel's own request* — ps 32,
+   grid 64, guard 4, S = 0.5, the 208-direction commensurate source — a tile goes
+   **293 ms → 45 ms (6.46×)**, the two pictures differing by 9.9e-15. So the
+   ~300 ms a tile above is **stale rather than re-attributed**: what is left is
+   the Abbe sum, and a stage tile is now ~45 ms.
 3. **A fixed white is forced.** Every other panel puts mid-grey at its own frame's
    mean; here that would give each tile its own brightness and paint a grid of
    seams the physics does not have. `abbeImage` normalizes the source weights to
@@ -1574,11 +1577,14 @@ a whole traced tile 1 293 ms → 235 ms, and registration is 3.8e-13 px — nine
 orders below D4's own 3.4e-3 px of ruler drift.
 
 **So the cost model is corrected a third time, back the way it came: the Abbe sum
-is the bill again**, exactly where D0.1 had it before D4 moved it. The 5.50×
-measured on a whole grid-128 tile is D4's 1 001-against-180 ratio delivered, and
-what a tile costs is set by the transform once more. The stage's 2 px per
-resolution cell is now a sampling choice rather than a rasterizer budget, and the
-next optimisation in this branch is not the one this paragraph used to name.
+is the bill again**, exactly where D0.1 had it before D4 moved it. On core's own
+probe (an ideal 21-point source, grid 128) a whole traced tile is 1 293 ms →
+235 ms, which is D4's 1 001-against-180 ratio delivered; on **the stage's actual
+request** — 208 commensurate directions, ps 32, grid 64 — it is 293 ms → 45 ms,
+6.46×. Either way what a tile costs is set by the transform once more. The
+stage's 2 px per resolution cell is now a sampling choice rather than a
+rasterizer budget, and the next optimisation in this branch is not the one this
+paragraph used to name.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a

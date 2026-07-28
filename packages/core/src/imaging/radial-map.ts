@@ -115,8 +115,8 @@ export interface RadialMapOptions {
    * tile's 16 384 is not a budget worth economising on.
    */
   readonly nodes?: number;
-  /** Defaults to the frame's — but a map is built before a frame exists, so it
-   * is required rather than guessed when `buildRadialMap` is called directly. */
+  /** Required: a table is built before any frame exists, and the wavelength is
+   * part of its identity rather than a default it could inherit. */
   readonly wavelengthNm: number;
   readonly aim?: AimOptions;
   /** Default `"height"`; see `RadialTabulation`. */
