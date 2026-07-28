@@ -144,6 +144,8 @@ function Frame({
             2ν · mean = {frame.besselCheck.measured.toFixed(9)}
             <br />
             2·J₁(φ)² &nbsp;&nbsp; = {frame.besselCheck.closed.toFixed(9)}
+            <br />
+            residual &nbsp;&nbsp;= <strong>{frame.besselCheck.residual.toExponential(2)}</strong>
           </span>
         )}
       </figcaption>
@@ -266,7 +268,9 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
         max in-focus phase transfer over {p.length} frequencies ={" "}
         <strong>{sweep.sweep.worstNull.toExponential(3)}</strong> · {sweep.sweep.elapsedMs.toFixed(0)}{" "}
         ms. The flat line on the axis is the whole panel; the dashed one is what the same instrument
-        does to an object that absorbs.
+        does to an object that absorbs. The sample count follows the defocus — at S = 0 the
+        defocused curve is exactly |sin(2π·w₂₀·ν²)|, whose lobes narrow to 1/(4·w₂₀) at ν = 1, so a
+        fixed count would draw the sampling instead of the transfer at the top of the slider.
       </p>
     </div>
   );
@@ -300,7 +304,16 @@ export function PhasePanel() {
   // grid, which is stricter than A2's cap because A3's second measurement IS the
   // 2ν bin and reporting it as "off grid" at the top of the slider would remove
   // half the panel exactly where φ makes it largest.
-  const maxS = Math.min(1.5, Math.floor(gridReach(size, pupilSamples) / 0.01) * 0.01);
+  // The binding disc-lattice sample sits at radius S·(1 − 1/N), so the ceiling
+  // is `gridReach` divided by that — A2's exact form, rather than `gridReach`
+  // alone, which is what this panel first used and is stricter than the wall
+  // actually is (0.97 against 1.07 at pupil samples 64 on a 128 grid).
+  // `sourceFits` is the exact check either way and stays wired to the annulus,
+  // whose reach no formula in S describes.
+  const maxS = Math.min(
+    1.5,
+    Math.floor(gridReach(size, pupilSamples) / (1 - 1 / sourceSamples) / 0.01) * 0.01,
+  );
   const maxCycles = Math.max(1, Math.min(pupilSamples, Math.floor(size / 4) - 1));
   const s = illuminationUsed === "darkfield" ? 0 : Math.min(sRaw, maxS);
   const cycles = Math.min(cyclesRaw, maxCycles);
@@ -516,10 +529,16 @@ export function PhasePanel() {
         <strong>The closed form under the canvases</strong> appears only where it applies: one on-axis
         plane wave (S = 0) and 0.5 &lt; ν &lt; 1, so exactly three orders reach the image. There the
         algebra gives <code>contrast(2ν) · mean = 2·J₁(φ)²</code> with no free parameter, and the
-        engine&rsquo;s own <code>besselJ1</code> supplies the right-hand side — measured agreement is{" "}
-        ~1e-14. It is written that way round, multiplying by the <em>measured</em> mean rather than
-        dividing by a computed one, because the engine has no J₀ and a form that needed one would
-        have to invent it here.{" "}
+        engine&rsquo;s own <code>besselJ1</code> supplies the right-hand side. It is written that way
+        round, multiplying by the <em>measured</em> mean rather than dividing by a computed one,
+        because the engine has no J₀ and a form that needed one would have to invent it here.{" "}
+        <strong>The residual is printed rather than claimed</strong>, and that is not politeness: it
+        runs 1e-16 to 1e-14 through most of the regime but reaches <strong>6.1e-10</strong> at
+        ν = 0.8125 with φ = 3, and it is not even monotone in ν — ν = 0.9375 at the same φ is back at
+        2.6e-15. Which lattice samples the ±1 orders land on is what moves it. A flat
+        &ldquo;agrees to 1e-14&rdquo; here would have been overclaiming by four orders at a setting
+        two slider drags from the default, so the number is on screen and never has to be taken on
+        trust.{" "}
         {inRegime
           ? "You are in that regime now."
           : "You are outside it now — the line under each canvas says which condition is unmet."}{" "}

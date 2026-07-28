@@ -383,11 +383,22 @@ the algebra gives `contrast(2ν) · mean = 2·J₁(φ)²` with no free parameter
 Written that way round — multiplying by the *measured* mean rather than dividing
 by a computed one — it needs only `besselJ1`, which § 6g.2 already pinned, and
 **not** J₀, which the engine does not have and which a panel must not invent.
-Measured agreement is **~1e-14** across φ ∈ [0.2, 3.0]. The regime boundaries are
-measured too and the panel refuses the comparison outside them rather than
-showing an approximate one: at ν ≤ 0.5 the ±2 orders get through (99% error), at
-S = 0.4 the source is no longer one plane wave (70%), and ν = 1 exactly is
-excluded because the ±1 orders land on the pupil rim.
+The regime boundaries are measured too and the panel refuses the comparison
+outside them rather than showing an approximate one: at ν ≤ 0.5 the ±2 orders get
+through (99% error), at S = 0.4 the source is no longer one plane wave (70%), and
+ν = 1 exactly is excluded because the ±1 orders land on the pupil rim.
+
+**The residual is printed, and the first version of this panel was wrong not to.**
+It read "agrees to ~1e-14" in prose and showed two nine-digit numbers for the
+reader to diff by eye. Swept over every (cycles, φ) the sliders can actually
+reach, the agreement is 1e-16..1e-14 through most of the regime but reaches
+**6.1e-10** at ν = 0.8125 with φ = 3 — and it is **not monotone in ν**, since
+ν = 0.9375 at the same φ is back at 2.6e-15. Which lattice samples the ±1 orders
+land on is what moves it. On screen at ν = 0.75, φ = 3 the two numbers both print
+`0.229921955` while the residual reads `1.18e-11`: visually identical, three
+orders apart. A panel that stated a precision its own controls can falsify is the
+failure mode this repo is otherwise careful about, and printing the number makes
+the claim self-checking at every setting instead.
 
 **The sharpest thing on the panel came out of that same form.** Drag the defocus
 slider and `2ν · mean` does not move — not approximately, but in every printed
@@ -428,6 +439,20 @@ darkfield. The honest-looking alternative — an absolute scale, darkfield rende
 genuinely dark — makes it a black rectangle indistinguishable from a broken
 render, which is the failure constraint 3 above says a null panel can least
 afford.
+
+**The plot's own sampling had to follow the defocus, and that is a second guard
+the first version lacked.** At S = 0 the defocused phase transfer is exactly
+|sin(2π·w₂₀·ν²)| for ν ≤ 1 (measured to 1e-14), so its lobes narrow to 1/(4·w₂₀)
+at ν = 1 — and a fixed 111 samples over [0, 2.2] is 50 per lobe at a quarter wave
+but **2.08 at six**, where the slider ends. The rightmost lobes were a drawing of
+the sampling rather than of the transfer. `plot.tsx`'s own posture is the
+argument: it refuses to interpolate or fit *because* a smoothed curve through
+measured points draws a claim rather than the claim, and joining an undersampled
+oscillation with straight lines is the same error facing the other way. The
+sample count now scales with w₂₀ for 8 per lobe; measured cost at 441 samples is
+0.2 ms at S = 0 and 20.7 ms at S = 1 with a 349-point condenser. Note the
+`maxGridPhaseStepWaves` guard does **not** cover this — that one is about the
+image's pupil sampling, a different quantity from the plot's ν sampling.
 
 **Guard:** `maxGridPhaseStepWaves` against the half-wave criterion, the same
 number `telescope.tsx` holds `seeingPhaseStepWaves` to. It is genuinely reachable

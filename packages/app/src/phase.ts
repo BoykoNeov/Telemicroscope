@@ -114,8 +114,22 @@ export interface PhaseFrame {
    * `contrast(2ν)·mean` against 2·J₁(φ)², in the coherent three-order regime —
    * `null` outside it, never a comparison that does not apply. See
    * `threeOrderCheck`.
+   *
+   * `residual` is carried rather than left for the reader to diff two 9-digit
+   * numbers by eye, and it is not decoration: the agreement is **not** the flat
+   * ~1e-14 the middle of the regime suggests. Measured over every (cycles, φ)
+   * the panel's own sliders can reach, it is 1e-16..1e-14 almost everywhere and
+   * reaches **6.1e-10** at ν = 0.8125 with φ = 3 — and it is not monotone in ν
+   * either, since ν = 0.9375 at the same φ reads 2.6e-15. Which lattice samples
+   * the ±1 orders land on is what moves it. A panel that printed "~1e-14" in
+   * prose and left the check to the eye would be overclaiming by four orders at
+   * a setting two slider drags away, so the number is on screen instead.
    */
-  readonly besselCheck: { readonly measured: number; readonly closed: number } | null;
+  readonly besselCheck: {
+    readonly measured: number;
+    readonly closed: number;
+    readonly residual: number;
+  } | null;
   readonly verdict: "valid" | "unknown" | "no-honest-image";
   readonly verdictReason: string;
   readonly contributingPoints: number;
@@ -300,13 +314,12 @@ function formFrame(
       : Number.NaN;
 
   const phaseTransfer = weakPhaseTransfer(pupil, source, nu);
-  const besselCheck =
-    threeOrderCheck(request, nu) && Number.isFinite(second)
-      ? {
-          measured: second * fundamental.dc,
-          closed: 2 * besselJ1(request.amplitudeRadians) ** 2,
-        }
-      : null;
+  const besselCheck = (() => {
+    if (!threeOrderCheck(request, nu) || !Number.isFinite(second)) return null;
+    const measured = second * fundamental.dc;
+    const closed = 2 * besselJ1(request.amplitudeRadians) ** 2;
+    return { measured, closed, residual: Math.abs(measured - closed) };
+  })();
 
   return {
     intensity: out.intensity,
@@ -445,6 +458,40 @@ export type TransferResult =
   | { readonly ok: true; readonly sweep: TransferSweep }
   | { readonly ok: false; readonly error: string };
 
+/** The frequency axis the sweep runs over: 0 to just past the incoherent cutoff. */
+const NU_MAX = 2.2;
+
+/** Samples per lobe of the defocused transfer's oscillation, at its finest. */
+const SAMPLES_PER_LOBE = 8;
+
+/**
+ * How many frequencies the sweep needs, given how hard the pupil is oscillating.
+ *
+ * At S = 0 the defocused phase transfer is exactly |sin(2π·w₂₀·ν²)| for ν ≤ 1
+ * (measured to 1e-14), so its lobes get *narrower* with both w₂₀ and ν, and the
+ * tightest are at ν = 1 with width 1/(4·w₂₀). A fixed 111 samples over
+ * [0, 2.2] is 50 per lobe at a quarter wave and **2.08 at six**, which is where
+ * the defocus slider ends — so the rightmost lobes would be drawn from two
+ * points each and the picture would be of the sampling rather than of the
+ * transfer.
+ *
+ * `plot.tsx` is the argument against shipping that: it refuses to interpolate
+ * or fit *because* a smoothed curve through measured points draws a claim
+ * rather than the claim. Joining an undersampled oscillation with straight
+ * lines is the same error facing the other way, and the grid-step guard does
+ * not cover it — that one is about the image's pupil sampling, a different
+ * quantity from the plot's ν sampling.
+ *
+ * So the sample count follows the defocus. Measured cost at 441 samples: 0.2 ms
+ * at S = 0 (where the fine sampling is actually needed, since one source point
+ * means one pupil evaluation) and 20.7 ms at S = 1 with a 349-point condenser.
+ * Both are far inside the deferral this runs behind.
+ */
+export function sweepSamples(defocusWaves: number): number {
+  const perLobe = NU_MAX * 4 * SAMPLES_PER_LOBE * defocusWaves;
+  return Math.max(111, Math.min(1201, Math.ceil(perLobe)));
+}
+
 /**
  * The transfer against ν — the plot half of the pair.
  *
@@ -462,7 +509,7 @@ export function transferSweep(
     | "coherenceParameter"
     | "defocusWaves"
   >,
-  points = 111,
+  points = sweepSamples(request.defocusWaves),
 ): TransferResult {
   const started = performance.now();
   try {
@@ -474,7 +521,7 @@ export function transferSweep(
     const out: TransferPoint[] = [];
     let worstNull = 0;
     for (let i = 0; i < points; i++) {
-      const nu = (i / (points - 1)) * 2.2;
+      const nu = (i / (points - 1)) * NU_MAX;
       const phaseFocused = weakPhaseTransfer(flat, source, nu);
       worstNull = Math.max(worstNull, phaseFocused);
       out.push({
