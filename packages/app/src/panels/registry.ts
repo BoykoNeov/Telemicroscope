@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
+import { PhasePanel } from "./phase";
 import { TelescopePanel } from "./telescope";
 
 /**
@@ -48,6 +49,12 @@ export const PANELS: readonly Panel[] = [
     label: "brightfield",
     blurb: "APP.md A2 — the condenser, the Abbe sum, and where the cutoff really lands",
     Component: BrightfieldPanel,
+  },
+  {
+    id: "phase",
+    label: "the phase null",
+    blurb: "APP.md A3 — a specimen that absorbs nothing, and the term that survives it",
+    Component: PhasePanel,
   },
 ];
 

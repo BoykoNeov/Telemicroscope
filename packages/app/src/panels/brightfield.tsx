@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLatestFromWorker } from "../hooks";
 import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
 import { Plot } from "../plot";
-import { Choice, Slider } from "../ui";
+import { Choice, Guard, GUARD_COLOR, Slider, VERDICT_LEVEL } from "../ui";
 import { createBrightfieldWorker } from "../workers";
 import {
   cutoffSweep,
@@ -36,15 +36,12 @@ const BRIGHTFIELD_MODULATION = 0.4;
  */
 const S_STEP = 0.01;
 
-/** The three verdict states, and `unknown` is not a shade of green. */
-const VERDICT_COLOR = {
-  valid: "#3a7",
-  unknown: "#a60",
-  "no-honest-image": "#c00",
-} as const;
-
 /**
  * Brightfield through a traced objective — APP.md's A2, the picture half.
+ *
+ * The three verdict colours this panel minted now live in `ui.tsx` as `Guard` —
+ * A3 needed them, and APP.md's structural item 4 says the second surface
+ * extracts rather than copies. `unknown` is still not a shade of green.
  *
  * A cosine absorption grating on the specimen, imaged by the Abbe sum over the
  * condenser's directions. Nothing here is drawn or post-processed: the contrast
@@ -130,16 +127,16 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
             {Number.isNaN(readout!.secondHarmonic)
               ? "off grid"
               : readout!.secondHarmonic.toFixed(5)}
-            <br />
-            <span style={{ color: VERDICT_COLOR[readout!.verdict] }}>
-              fidelity <strong>{readout!.verdict}</strong>
-              {readout!.phaseStepWaves !== null && (
-                <> · {readout!.phaseStepWaves.toFixed(3)} waves/pupil sample</>
-              )}
-            </span>
-            <br />
-            <span style={{ color: "#777" }}>{readout!.verdictReason}</span>
-            <br />
+            <Guard
+              label="fidelity"
+              value={
+                readout!.phaseStepWaves === null
+                  ? readout!.verdict
+                  : `${readout!.verdict} · ${readout!.phaseStepWaves.toFixed(3)} waves/pupil sample`
+              }
+              level={VERDICT_LEVEL[readout!.verdict]}
+              detail={readout!.verdictReason}
+            />
             {readout!.contributingPoints}/{readout!.sourcePoints} directions contributed · grid
             step {readout!.maxGridPhaseStepWaves.toFixed(3)} waves
             <br />
@@ -410,12 +407,12 @@ export function BrightfieldPanel() {
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 640 }}>
         The fidelity line has <em>three</em> states and the middle one is not a shade of green. A
         traced pupil carries the sampling of the trace behind it, so it can be ruled{" "}
-        <span style={{ color: VERDICT_COLOR.valid }}>valid</span> or{" "}
-        <span style={{ color: VERDICT_COLOR["no-honest-image"] }}>no-honest-image</span> — the
+        <span style={{ color: GUARD_COLOR.ok }}>valid</span> or{" "}
+        <span style={{ color: GUARD_COLOR.bad }}>no-honest-image</span> — the
         latter meaning the wavefront has left the regime a coherent sum describes, where a PSF would
         quietly cross-fade to a ray histogram and brightfield cannot, because rays carry no phase.
         Switch the pupil to <strong>ideal</strong> and the verdict reads{" "}
-        <span style={{ color: VERDICT_COLOR.unknown }}>unknown</span>: a bare pupil function has no
+        <span style={{ color: GUARD_COLOR.warn }}>unknown</span>: a bare pupil function has no
         memory of what produced it, and this engine will not call that a clean bill of health. The
         ideal pupil is also ~3× faster, and its contrast is the ceiling the traced ones fall below —
         in wavefront order.

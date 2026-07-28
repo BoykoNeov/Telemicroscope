@@ -16,12 +16,12 @@ physics, that is called out and the surface is disqualified rather than scoped.
 
 ## The baseline: what the app draws today, and its house style
 
-`packages/app` is roughly 2 800 lines. The adapters — `render.ts`,
-`microscope.ts`, `brightfield.ts` — are the whole optical pipeline as **pure
-functions**, numbers in, pixels out, no DOM, no React, so running one in a
-worker was a change of caller and not of code. Since structural item 1 below,
-`App.tsx` is a nav row and one panel: each surface lives under `src/panels/`,
-owns its own controls and state, and is routed to by hash.
+The adapters — `render.ts`, `microscope.ts`, `brightfield.ts`, `phase.ts` — are
+the whole optical pipeline as **pure functions**, numbers in, pixels out, no DOM,
+no React, so running one in a worker was a change of caller and not of code.
+Since structural item 1 below, `App.tsx` is a nav row and one panel: each surface
+lives under `src/panels/`, owns its own controls and state, and is routed to by
+hash.
 
 Two traits of that baseline are load-bearing and every new surface should
 inherit them:
@@ -34,7 +34,14 @@ inherit them:
    lying with more conviction than one that showed nothing."* Every microscope
    surface below already has its analogous verdict built in the engine. Wiring
    it is free, and skipping it would be a regression in honesty, not just in
-   polish.
+   polish. Since A3 they all render through one `Guard` (structural item 4).
+
+   A3 widened this trait in a way worth stating as its own rule: **a readout
+   whose value is undefined must be refused, not printed as zero.** Its
+   darkfield transfer curves are 0/0 — the quantity they normalize by is
+   identically zero — and three flat lines would have read as the panel's null
+   while saying something false. The engine returning a guarded 0 is not
+   permission to draw it.
 
 What the app built optically, when this doc was written, was exactly one thing:
 `refractorPair` — an N-BK7 singlet and an N-BK7/F2 achromat. **A1 has since added
@@ -337,21 +344,110 @@ size 128 / N 11): **~620 ms traced, ~228 ms ideal**, against the 173–736 ms
 scoped below. Live. `patches` is fixed at 1 and deliberately not exposed — ≥ 2
 is compute-once and progressive refinement over patches still does not exist.
 
-### A3. The phase null, and why stains exist — *app wiring only* — **pair**
+### A3. The phase null, and why stains exist — ✅ **landed** — *app wiring only* — **pair**
 
-The branch's best single teaching result and it is a *null*: a weak phase object
-imaged in brightfield produces **no contrast at any S and any frequency** — the
-sidebands cancel identically — and a quarter wave of defocus makes it appear.
+The branch's best single teaching result and it is a *null*. Shipped as
+`packages/app/src/phase.ts` (pure adapter), `phase.worker.ts`, and
+`panels/phase.tsx` — two canvases from `phaseGratingObject`, in focus and
+defocused through `defocusedPupil`, beside the transfer curve from
+`weakPhaseTransfer` sitting on zero and lifting off it. The ideal-pupil
+instruction was kept and is stated on the page with its reason: the null's
+precondition is an unaberrated pupil, so tracing would turn an exact zero into a
+small number, and a small number cannot be told from a bug. No objective means
+no honest µm scale, so the panel quotes ν and grid units and never a span.
 
-Two canvases side by side (`phaseGratingObject` in focus / defocused via
-`defocusedPupil` or `withDefocus`) plus the transfer curve from
-`weakPhaseTransfer` sitting on zero and then lifting off it. Darkfield rides
-along for free: swap `diskSource` for `annularSource` outside the pupil and the
-clear field reads `0`.
+**The scoped headline was wrong in a way worth keeping.** This doc said "no
+contrast at any S and any frequency", and the canvas is *not* blank.
+`phaseGratingObject` is exact — every Bessel order, not the weak-object
+truncation — so squaring t = Σ iⁿJₙ(φ)e^{inu} leaves the ν bin (the 0×±1 beat)
+cancelled and the **2ν bin (the +1×−1 beat) alive at order φ²**. What is null is
+the **linear** response, which is precisely what `weakPhaseTransfer` computes and
+what the plot draws. So the picture carries structure at twice the frequency of
+the object that made it while the transfer at the object's own frequency sits on
+the axis — a better panel than a blank rectangle, and the correction is the
+finding rather than a caveat on it.
 
-**Cost:** ideal-pupil path, `patches` = 1 — tens of ms. Live.
-**Note:** this one is *stronger* on ideal pupils than traced ones, because the
-null is exact there. Do not "improve" it by tracing.
+**And the null is much stronger than "weak".** Measured worst case over
+φ ∈ [0.1, 3.0], ν ∈ [0.25, 1.0], S ∈ [0, 1] *and* darkfield: **2.7e-15**. The φ
+slider is therefore an experiment that fails to break it rather than a brightness
+dial — at φ = 3 rad the object is nothing like weak and the 2ν contrast has run to
+0.77, and the ν bin has not moved off f64 noise. `weakPhaseTransfer` itself
+returns **bit-exact 0**, not a small number, over every S and ν sampled, which is
+why the plot's y-range is fixed rather than autoscaled and the magnitude is
+printed as `0.000e+0`: autoscaling to a null draws f64 noise as a signal with its
+own tick labels.
+
+**A closed form this doc did not scope, and it needs no new engine code.** Under
+one on-axis plane wave with 0.5 < ν < 1, exactly three orders reach the image, and
+the algebra gives `contrast(2ν) · mean = 2·J₁(φ)²` with no free parameter.
+Written that way round — multiplying by the *measured* mean rather than dividing
+by a computed one — it needs only `besselJ1`, which § 6g.2 already pinned, and
+**not** J₀, which the engine does not have and which a panel must not invent.
+Measured agreement is **~1e-14** across φ ∈ [0.2, 3.0]. The regime boundaries are
+measured too and the panel refuses the comparison outside them rather than
+showing an approximate one: at ν ≤ 0.5 the ±2 orders get through (99% error), at
+S = 0.4 the source is no longer one plane wave (70%), and ν = 1 exactly is
+excluded because the ±1 orders land on the pupil rim.
+
+**The sharpest thing on the panel came out of that same form.** Drag the defocus
+slider and `2ν · mean` does not move — not approximately, but in every printed
+digit, from 0 to 6 waves — while the contrast at ν runs 0 → 0.74 → back.
+Defocus is a pure phase and orders +1 and −1 sit at the *same* pupil radius, so
+the beat that makes 2ν picks up no phase difference at all, while the 0×±1 beat
+that makes ν picks up sin(2π·w₂₀·ν²). One slider, two terms in one image, and
+only one of them listening.
+
+**Darkfield does NOT ride along for free, and that is this surface's real
+correction to the plan.** The clear-field half is exactly as scoped —
+`annularSource` outside the pupil, φ = 0, and the mean reads `0.0000e+0` with both
+canvases hard black. But every transfer in `illumination/transfer` is a ratio to
+the undiffracted energy Σw·|P(s)|², and darkfield puts that at **exactly zero**,
+so the engine's guarded division returns 0 and *all three curves* — including the
+absorption one — lie flat on the axis. Drawing them beside a paragraph about a
+null would state something plainly false: darkfield transfers plenty of contrast,
+and the canvases measure it. So the panel **refuses to draw the plot** in
+darkfield and says which quantity is undefined. A2's `latticeReach` docstring
+called this case out in advance and named A3 as the panel that would ask for it;
+this is the same hole in the normalization rather than in the cutoff. It was
+found by driving the app, not by the headless suite.
+
+**Darkfield also has a grid ceiling A2's formula does not describe.** The annulus
+lies outside |s| = 1, so its outermost lattice point needs frequency-grid headroom
+that pupil samples 64 on a 128² grid does not have — measured, the N = 11 ring
+reaches |s| = 1.371 against a reach of 0.969, and `abbeImage` throws. The check
+runs over the source's own points rather than as a formula in S, because an
+annulus's reach is not something a formula in S describes; the option is disabled
+with the engine's numbers in the message, and the throw is still caught.
+
+**One display choice the plan did not budget for.** Both canvases share one grey
+scale, because a pair independently normalized would rescale against each other —
+but that fixes the pair against itself and not against the rest of the app, and a
+darkfield mean runs ~50× below a brightfield one. Rather than hide the stretch,
+the **display gain is printed as a factor**: ×1.0 in brightfield, ×51.5 in
+darkfield. The honest-looking alternative — an absolute scale, darkfield rendered
+genuinely dark — makes it a black rectangle indistinguishable from a broken
+render, which is the failure constraint 3 above says a null panel can least
+afford.
+
+**Guard:** `maxGridPhaseStepWaves` against the half-wave criterion, the same
+number `telescope.tsx` holds `seeingPhaseStepWaves` to. It is genuinely reachable
+here and the slider's range was set from where it is crossed rather than by
+arithmetic: at pupil samples 32 the step runs 0.0303 at a quarter wave and 0.7266
+at 6, crossing near w₂₀ = 4.1 — so the slider ends at 6. At pupil samples 64 it is
+exactly half that and 6 waves reaches only 0.369, which is the guard being a
+statement about the grid rather than about the physics. `fidelity` is shown too
+and reads `unknown` at every setting, correctly: an ideal pupil carries no memory
+of a trace, and A3 must not round that to green.
+
+**Cost, measured in the browser** (dev build, in the worker, pupil samples 32 /
+grid 128 / N 11): **~20–24 ms for the pair** at S = 0 and **~162 ms** in darkfield,
+where the annulus holds 36 directions against the coherent limit's one. Live
+everywhere. One job carries both images rather than two — the panel's claim is a
+comparison, and two jobs can transiently show an in-focus frame at one φ beside a
+defocused one at another.
+
+**Note kept:** this one is *stronger* on ideal pupils than traced ones, because
+the null is exact there. Do not "improve" it by tracing.
 
 ### A4. Fluorescence beads — *app wiring only* — **picture**
 
@@ -520,11 +616,19 @@ Structural work implied by the above, independent of which surfaces land:
    (`useRenderedField`, releases on `done`) stays separate: it differs in one
    line and that line is load-bearing. Done because A2 was the point at which a
    third hand-copied copy would have been two too many, not as separate work.
-4. **A shared guard-readout component.** Every surface has a verdict or a
-   threshold number; they should look the same and turn red the same way. A2
-   raised the stakes here: it has a *three*-state verdict, and `unknown` renders
-   in its own colour rather than as a shade of green. The next surface that
-   needs one should extract it rather than copy it.
+4. **A shared guard-readout component.** ✅ **landed with A3** — `Guard` in
+   `ui.tsx`, with `GuardLevel` (ok / warn / bad), `GUARD_COLOR`, `VERDICT_LEVEL`
+   for § 6f.9's three-state verdict, and `thresholdLevel` for a number against a
+   ceiling (warn at 80% of the way there, so a slider being walked into a wall
+   says so before it hits it). What is shared is deliberately narrow: **the way a
+   guard turns red**, not a panel's ordinary readouts, which stay its own because
+   each says a different engine number in its own words.
+
+   The rule attached to this item was that the next surface **extracts rather
+   than copies**, and that is what made this more than an addition: A2's local
+   `VERDICT_COLOR` moved out in the same change, and its fidelity line now
+   renders through `Guard`. A shared component sitting beside a private copy
+   would have made the problem worse rather than solved it.
 5. **A shared plot primitive.** ✅ **landed with A2** — `packages/app/src/plot.tsx`,
    ~150 lines: linear axes, nice ticks, polylines, and straight-line markers,
    no dependency. Points are drawn as given; nothing is interpolated or fitted,
@@ -536,10 +640,13 @@ Note that `@telemicroscope/core/illumination` is already in the package's
 
 ## Suggested order
 
-**A1 ✅ → A2 ✅ → A3 → A4** lands the microscope branch's headline results with
-one substrate and two panel kinds, and A3 and A4 are now cheap: A3 is A2's
-panel with `phaseGratingObject` in place of the cosine one and the ideal-pupil
-path it already has, and both consume the plot primitive A2 built.
+**A1 ✅ → A2 ✅ → A3 ✅ → A4** lands the microscope branch's headline results with
+one substrate and two panel kinds. A3 was predicted to be "A2's panel with
+`phaseGratingObject` in place of the cosine one", and the shape of that held —
+same adapter pattern, same worker hook, same plot primitive — but the *content*
+did not: it needed a second image rather than a second object, a closed form A2
+has no analogue of, and a refusal path A2 never reaches. Cheap to build is not
+the same as a variation on the one before it.
 **Part B** is self-contained and can go in parallel — it touches no microscope
 code. **A5 and A6** follow. **Part C** is a separate decision.
 
@@ -548,8 +655,13 @@ that: items 3 and 5 landed *inside* it, because a second worker-backed panel and
 the first curve on the page are exactly what makes a generic hook and a plot
 primitive cheaper to build than to avoid. Item 1 could not land that way — a
 routing table is not something one panel needs — so it went in **on its own,
-before A3**, and A3 now arrives as a fourth registry entry rather than a sixth
-control group on one scroll. **Item 4 is the only structural item still open**,
-and it keeps its rule: the next surface that needs a guard readout extracts it
-rather than copying one. A3 has a defocus threshold and a transfer curve sitting
-on zero, so that is plausibly A3's job.
+before A3**, and A3 arrived as a fourth registry entry rather than a sixth
+control group on one scroll. **Item 4 landed inside A3**, as predicted below and
+by the rule rather than by taste — A3 has both a numeric threshold the defocus
+slider walks into and § 6f.9's three-state verdict, so it needed the component
+A2 had only half of, and extracting A2's copy in the same change is what the
+rule actually asks for. **Every structural item is now closed.** The
+paragraph below is what predicted it, kept because it called the shot:
+
+> A3 has a defocus threshold and a transfer curve sitting on zero, so that is
+> plausibly A3's job.

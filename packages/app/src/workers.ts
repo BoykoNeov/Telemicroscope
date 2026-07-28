@@ -23,3 +23,6 @@ export const createFieldWorker = () =>
 
 export const createBrightfieldWorker = () =>
   new Worker(new URL("./brightfield.worker.ts", import.meta.url), { type: "module" });
+
+export const createPhaseWorker = () =>
+  new Worker(new URL("./phase.worker.ts", import.meta.url), { type: "module" });
