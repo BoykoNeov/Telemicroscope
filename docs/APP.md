@@ -1090,7 +1090,14 @@ says it should": a uniform per-tile scale is linear, so its sagitta is
 approximating it badly. Quantitatively it misses by the map's *slope* where the
 traced map misses by its *curvature*, so the gap doubles with field, 16.8× at
 0.4 mm to 257× at 6.4 mm — the seam error is unbounded in the field, not a
-constant a tolerance could have absorbed. § 6n in VALIDATION.md carries all 18.
+constant a tolerance could have absorbed. § 6n in VALIDATION.md carries all 18
+tests of `specimen.test.ts`, including the one this section did not ask for and
+should have: **the warped specimen actually rendered.** § 6n.5 puts a bar grating
+through `renderBrightfield` on a traced 4×/0.10 — it rules `valid`, survives
+`requireHonest`, and the two maps' pictures differ by 2.8e-3 of peak at 6.4 mm
+against 1.5e-6 on axis. Without it, "a visible seam misregistration" stayed an
+argument, and every sibling step (§ 6f, § 6g.3, § 6h.5) closes on a composed
+objective for exactly that reason.
 
 **Cost, and why the cache is not here.** One bisected chief ray per pixel —
 0.12 ms, so 0.5 s at 64² and ~2 s at 128², the same order as the sum it feeds

@@ -215,7 +215,15 @@ export interface ObjectFieldFrame {
    * which is what makes registration bitwise rather than merely close.
    */
   readonly magnification: number;
-  /** Object-plane mm per pixel — what a specimen is authored in. */
+  /**
+   * Object-plane mm per pixel, on the LINEAR reference — `pixelScaleMm / |M|`.
+   *
+   * Not what a specimen is authored in. Since § 6n a specimen is a callback in
+   * object millimetres and `rasterizeSpecimen` places it through the traced map,
+   * whose local scale is anisotropic (§ 6m.4) and which no single number can
+   * carry. This is that rasterizer's `"uniform"` control, and a useful ruler for
+   * sizing structure — not a map.
+   */
   readonly objectPixelScaleMm: number;
   /** Half the frame's extent on the specimen (mm). */
   readonly objectHalfExtentMm: number;

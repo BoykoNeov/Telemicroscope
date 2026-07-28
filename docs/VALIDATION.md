@@ -58,7 +58,7 @@ whole ladder.
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
-| [6n](#step-6n--the-warped-grid-rasterizer) | The grid itself warped at last — § 6h's named deferral: a `Specimen` callback evaluated at the object point each pixel really looks at, so the warp happens in the ARGUMENT and nothing is resampled; the pixel convention pinned bitwise against § 6i's emitter rasterizer, whole flux in one pixel; a straight object line shown to BOW, and at ×2.00 per doubling rather than the cubic's ×8.00 — the sagitta is the map's CURVATURE, so § 6h.1's cubic, § 6m.4's slope and this complete one ladder of derivatives; the sign pinned as barrel; a negative control that cannot bow AT ALL; and a round trip through a whole picture whose residual is that same curvature, against a uniform map whose residual is the slope — so the gap between them doubles with field, 16.8× to 257× | `specimen` |
+| [6n](#step-6n--the-warped-grid-rasterizer) | The grid itself warped at last — § 6h's named deferral: a `Specimen` callback evaluated at the object point each pixel really looks at, so the warp happens in the ARGUMENT and nothing is resampled; the pixel convention pinned bitwise against § 6i's emitter rasterizer, whole flux in one pixel; a straight object line shown to BOW, and at ×2.00 per doubling rather than the cubic's ×8.00 — the sagitta is the map's CURVATURE, so § 6h.1's cubic, § 6m.4's slope and this complete one ladder of derivatives; the sign pinned as barrel; a negative control that cannot bow AT ALL; and a round trip through a whole picture whose residual is that same curvature, against a uniform map whose residual is the slope — so the gap between them doubles with field, 16.8× to 257×; and the whole thing composed on a traced 4×/0.10, where the two maps' rendered PICTURES differ by 2.8e-3 of peak at 6.4 mm against 1.5e-6 on axis | `specimen` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -5143,22 +5143,26 @@ never the reverse — because a forward splat leaves holes where the map expands
 and doubles up where it contracts, and § 6m.4 measured that an off-axis tile does
 both at once.
 
-**On one on-axis frame none of this is visible**, which is why § 6h could defer
-it: over a 46.77 µm half-extent the cubic is parts per billion. § 6m is what
-forces it — a tile sits at millimetres, two tiles abut, and a straight specimen
-crossing the seam arrives on each side through a different *linear* approximation
-to a map that is not linear.
+**On one on-axis frame it is very nearly invisible**, which is why § 6h could
+defer it — and § 6n.5 measures how nearly rather than leaving it as a claim: a
+rendered picture through the warped grid and through a uniform one differ by
+**1.5e-6 of peak** on the axial frame. Not zero, and the earlier phrasing that
+the cubic is "parts per billion" over a 46.77 µm half-extent was measuring the
+wrong thing: it is parts per ten-million of the *object coordinate*, which is
+still ~1e-2 of a **pixel**. § 6m is what changes the verdict — a tile sits at
+millimetres, two tiles abut, and a straight specimen crossing the seam arrives on
+each side through a different *linear* approximation to a map that is not linear.
 
 | Rung | Pinned to | Status |
 |---|---|---|
 | A specimen point and a point emitter at it land in the SAME pixel, weight 1.000 | § 6i's `rasterizeEmitters`, bitwise | ✅ |
 | …on axis and in a tile, at three pixels each | the convention, not one lucky index | ✅ |
 | A pixel index round-trips through the forward map to 1e-12 | `imagePointAt`'s own convention | ✅ |
-| The uniform map IS `imagePointAt / |M|` on the axial frame, to f64 | the control, named | ✅ |
+| The uniform map IS `imagePointAt` over \|M\| on the axial frame, to f64 | the control, named | ✅ |
 | Both maps are exact at the frame centre, and differ everywhere else | the control is not a strawman | ✅ |
 | **A straight object line BOWS, ×2.00 per doubling of field** | d²/dr² of § 6h.1's cubic | ✅ |
 | …and as the SQUARE of the tile's extent — ×2.00 in pixels, since § 6h.2 ties the pixel scale to it | sagitta = curvature·L²/2 | ✅ |
-| The sign is BARREL: r − |M|·h < 0, so a chord's ends are pulled in and the sagitta is positive | § 6h.1's departure, signed | ✅ |
+| The sign is BARREL: r − \|M\|·h < 0, so a chord's ends are pulled in and the sagitta is positive | § 6h.1's departure, signed | ✅ |
 | NEGATIVE CONTROL: the uniform map's sagitta is **identically zero**, at every field | a linear map has no curvature | ✅ |
 | The bow is the map's own second difference, equal and opposite, to 0.3% | two readings of one number | ✅ |
 | A bump recovers its own pixel through a rasterized picture, < 1e-5 px | round trip through the image | ✅ |
@@ -5166,9 +5170,13 @@ to a map that is not linear.
 | CONTROL: the uniform map misses by the SLOPE — ×4.00 per doubling | § 6m.4's quadratic | ✅ |
 | …so the gap between them DOUBLES per doubling: 16.8× at 0.4 mm, 257× at 6.4 mm | quadratic over linear | ✅ |
 | CONTROL: and it is exact at the tile centre, 1e-12 — where a linear map cannot be wrong | why the rung samples pixel (20, 12) | ✅ |
-| A pure phase specimen stays |t| = 1 in every pixel | amplitude is a point property | ✅ |
-| Total |t|² is NOT conserved, grows as the field's square, and is 1e-5 | det J ≠ 1, and energy is no witness | ✅ |
+| A pure phase specimen stays \|t\| = 1 in every pixel | amplitude is a point property | ✅ |
+| Total \|t\|² is NOT conserved, grows as the field's square, and is 1e-5 | det J ≠ 1, and energy is no witness | ✅ |
 | The result is the `ObjectField` `abbeImage` consumes, unchanged | § 6n is the authoring path only | ✅ |
+| A warped specimen renders through `renderBrightfield` and rules `valid` | § 6f.9's verdict, on a warped grid | ✅ |
+| …and survives `requireHonest`, on a traced 4×/0.10 at 6.4 mm | § 6g.3's bridge, composed | ✅ |
+| **The two maps make different PICTURES: 2.8e-3 of peak at 6.4 mm** | the seam misregistration, seen | ✅ |
+| CONTROL: on axis it is 1.5e-6 — present, 1800× smaller, monotone between | why § 6h could defer it | ✅ |
 
 **The bow is the cubic's second derivative, and that corrects what Part D
 predicted.** APP.md's D2 scoped this rung as "a straight line bows by the amount
@@ -5247,6 +5255,30 @@ The rung that nearly said nothing is worth recording, in § 6k.3's way: the firs
 version authored the wedge about the **axis**, where a tile 1.6 mm off it sees
 only the saturated tail — and the two totals then agreed in the last bit, which
 reads exactly like conservation and is nothing of the kind.
+
+**And it is composed, because that is where the claim has to be true.** Every
+sibling step in this branch closes on a traced objective — § 6f's readouts on
+§ 6a's 4×/0.10, § 6g.3 and § 6h.5 on a composed one — and § 6n has the same
+obligation, because "nothing downstream learns the grid was warped" is a claim
+about the *consumer* and an assertion on an array's shape is not a witness for
+it. So a bar grating authored in object millimetres is rasterized through both
+maps in a tile at 6.4 mm and rendered by `renderBrightfield` on `tracedFieldPupils`:
+the warped render rules `valid` and survives `requireHonest`, and the two
+pictures differ by **2.8e-3 of peak** — the seam misregistration, at the level
+it was always about, and the first time in this step it is a picture rather than
+a coordinate.
+
+The control is the axial frame, and it is the honest kind rather than the
+convenient kind: the difference there is **1.5e-6 of peak, not zero**, because
+the traced map is cubic and disagrees with a linear one at every field including
+that one. What the axis buys is a factor of 1800, monotone in between. That
+number is § 6h's whole deferral, measured at last: on one axial frame the
+unwarped grid cost a millionth of the peak and deferring was right.
+
+Both were rendered at size 64, and the engine picked it: at 32 the S = 0.6 source
+shifts the pupil off a 32-bin frequency grid and `abbeImage` **refuses**, naming
+50 as the smallest grid that carries it. § 6f's lattice guard doing its job in a
+rung that was not written to test it.
 
 **The cost is measured, and the cache is deliberately elsewhere.** One bisected
 chief ray per pixel: 0.12 ms of it, so 0.5 s at 64² and ~2 s at 128². That is the

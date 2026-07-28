@@ -8,6 +8,9 @@ import {
 } from "../src/imaging/object-field";
 import { rasterizeSpecimen, specimenPointAt, type Specimen } from "../src/imaging/specimen";
 import { rasterizeEmitters } from "../src/imaging/fluorescence";
+import { renderBrightfield } from "../src/imaging/brightfield";
+import { tracedFieldPupils } from "../src/imaging/object-field";
+import { diskSource } from "../src/illumination/source";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
 
@@ -483,8 +486,9 @@ describe("§ 6n.4 — amplitude is a point property, and a density is not", () =
   });
 
   it("produces the ObjectField `abbeImage` already consumes, unchanged", () => {
-    // § 6n is the AUTHORING path. Nothing downstream learns the grid was warped,
-    // which is what keeps § 6f–§ 6g's rungs valid over a warped specimen.
+    // § 6n is the AUTHORING path: the warped array IS the geometric image on a
+    // uniform image-plane grid, which is `abbeImage`'s own input convention, and
+    // the frequency lattice is that grid's and does not move.
     const system = din4x();
     const frame: ObjectFieldFrame = frameOf(system);
     const field = rasterizeSpecimen(system, frame, () => ({ re: 1, im: 0 }), {});
@@ -495,5 +499,103 @@ describe("§ 6n.4 — amplitude is a point property, and a density is not", () =
       expect(field.re[i]).toBe(1);
       expect(field.im[i]).toBe(0);
     }
+  });
+});
+
+describe("§ 6n.5 — composed on a traced objective, which is where it has to be true", () => {
+  /**
+   * 64 rather than the 32 every rung above uses, and the engine chose it: at
+   * size 32 the S = 0.6 source shifts the pupil off a 32-bin frequency grid and
+   * `abbeImage` refuses, naming 50 as the smallest grid that carries it. § 6h.5
+   * renders at 64 for the same reason.
+   */
+  const RENDER_SIZE = 64;
+
+  /** A bar grating authored in object millimetres — structure, not a constant. */
+  const bars = (x0: number, periodMm: number): Specimen =>
+    (x) => ({ re: 0.5 + 0.5 * Math.cos((2 * Math.PI * (x - x0)) / periodMm), im: 0 });
+
+  /** The § 6g.3 bridge, on a warped specimen. */
+  const render = (system: OpticalSystem, tile: ObjectFieldFrame, map: "traced" | "uniform") =>
+    renderBrightfield(
+      rasterizeSpecimen(system, tile, bars(tile.centreObjectMm.x, 8 * tile.objectPixelScaleMm), {
+        map,
+      }),
+      tracedFieldPupils(system, tile),
+      diskSource(0.6, 5),
+      { scale: tile.scale, pupilSamples: PUPIL_SAMPLES, patches: 2 },
+    );
+
+  const frameAt = (system: OpticalSystem, xc: number): ObjectFieldFrame =>
+    xc === 0 ? frameOf(system, RENDER_SIZE) : tileAt(system, xc, 0, RENDER_SIZE);
+
+  /** Worst pixel between the two maps' pictures, as a fraction of peak. */
+  const PICTURES = new Map<number, number>();
+  const pictureGap = (system: OpticalSystem, xc: number): number => {
+    const hit = PICTURES.get(xc);
+    if (hit !== undefined) return hit;
+    const frame = frameAt(system, xc);
+    const traced = render(system, frame, "traced").intensity;
+    const uniform = render(system, frame, "uniform").intensity;
+    let peak = 0;
+    let worst = 0;
+    for (let i = 0; i < traced.length; i++) {
+      peak = Math.max(peak, traced[i]!);
+      worst = Math.max(worst, Math.abs(traced[i]! - uniform[i]!));
+    }
+    const gap = worst / peak;
+    PICTURES.set(xc, gap);
+    return gap;
+  };
+
+  it("renders through `renderBrightfield` and rules `valid`, surviving `requireHonest`", () => {
+    // The rung that makes § 6n's motivation true rather than argued. Every
+    // sibling step closes here — § 6f on the traced pupils of § 6a's 4×/0.10,
+    // § 6g.3 and § 6h.5 on a composed objective — because "nothing downstream
+    // learns the grid was warped" is a claim about the consumer and an assertion
+    // on the array's shape is not a witness for it.
+    const system = din4x();
+    const tile = tileAt(system, 6.4, 0, RENDER_SIZE);
+    const result = render(system, tile, "traced");
+    expect(result.fidelity.verdict).toBe("valid");
+    expect(result.size).toBe(tile.size);
+    // Real light, not an empty frame the verdict happened to like.
+    let total = 0;
+    for (const v of result.intensity) total += v;
+    expect(total).toBeGreaterThan(0);
+    expect(() =>
+      renderBrightfield(
+        rasterizeSpecimen(system, tile, bars(tile.centreObjectMm.x, 8 * tile.objectPixelScaleMm), {}),
+        tracedFieldPupils(system, tile),
+        diskSource(0.6, 5),
+        { scale: tile.scale, pupilSamples: PUPIL_SAMPLES, patches: 2, requireHonest: true },
+      ),
+    ).not.toThrow();
+  });
+
+  it("makes a DIFFERENT PICTURE off axis — the seam misregistration, seen", () => {
+    // § 6n.3's gap at the level it was always about. The same specimen, the same
+    // traced pupils, the same source: the images differ only because the object
+    // was placed by a different map, and that difference is precisely what a
+    // mosaic would have shown at a seam. 2.8e-3 of peak at 6.4 mm.
+    const system = din4x();
+    expect(pictureGap(system, 6.4)).toBeGreaterThan(1e-3);
+  });
+
+  it("CONTROL: and on axis it nearly vanishes — 1800× smaller, which is why § 6h could defer it", () => {
+    // The rung above would pass for any two maps that merely differ, so the
+    // control is the axial frame. It is NOT zero there — the traced map is
+    // cubic, not linear, so the two disagree at every field including this one,
+    // by ~1e-2 of a pixel over a 47 µm half-extent. What it is, is 1.5e-6 of
+    // peak against 2.8e-3, and the growth between them is monotone.
+    //
+    // That number is § 6h's whole deferral, measured: at one axial frame the
+    // unwarped grid costs a millionth of the peak, and it was right to defer.
+    // § 6m is what changed, by putting the frame at millimetres.
+    const system = din4x();
+    const gaps = [0, 1.6, 6.4].map((xc) => pictureGap(system, xc));
+    for (let i = 1; i < gaps.length; i++) expect(gaps[i]!).toBeGreaterThan(gaps[i - 1]!);
+    expect(gaps[0]!).toBeLessThan(1e-5);
+    expect(gaps[gaps.length - 1]! / gaps[0]!).toBeGreaterThan(1000);
   });
 });
