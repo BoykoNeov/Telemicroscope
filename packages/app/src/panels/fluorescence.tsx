@@ -77,11 +77,9 @@ const STRETCHES = [1, 4, 16] as const;
 function BeadCanvas({
   readout,
   stretch,
-  pending,
 }: {
   readout: FluorescenceReadout;
   stretch: number;
-  pending: boolean;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const white = readout.peak / stretch;
@@ -108,8 +106,6 @@ function BeadCanvas({
         height: 380,
         imageRendering: "pixelated",
         background: "#000",
-        opacity: pending ? 0.55 : 1,
-        transition: "opacity 120ms ease-out",
       }}
     />
   );
@@ -132,10 +128,21 @@ function BeadCanvas({
  * driving the panel, not by reading the timings.
  */
 function TransferPlot({ request }: { request: TransferRequest }) {
-  const { result: sweep } = useLatestFromWorker<TransferRequest, TransferResult>(
+  const { result, pending } = useLatestFromWorker<TransferRequest, TransferResult>(
     createFluorescenceSweepWorker,
     request,
   );
+
+  // The picture dims while it catches up; this one is **withdrawn**, and the
+  // difference is what the caption claims. `BeadCanvas` shows a stale bead field
+  // under a dimmed canvas and nothing on screen misdescribes it. The plot's
+  // legend says "measured, this objective" and its caption attributes the
+  // residual to the objective by name — so a stale curve held through the 1–2.5 s
+  // a sweep takes would spend that time telling the reader the DIN 4×'s 2.7e-1
+  // belongs to the oil they just selected. Dimming does not fix a wrong label,
+  // and this is the failure APP.md's guards trait polices: showing something
+  // false with conviction is worse than showing nothing.
+  const sweep = pending ? null : result;
 
   if (sweep === null) {
     return (
@@ -313,7 +320,11 @@ export function FluorescencePanel() {
           onChange={setPupilSamples}
         />
         <Choice
-          label={`grid ${size}² — buys PSF sampling, not field`}
+          label={
+            size > sizeRaw
+              ? `grid ${size}² — floored here: a ${pupilSamples}-bin pupil needs ${pupilSamples + 2}`
+              : `grid ${size}² — buys PSF sampling, not field`
+          }
           options={[128, 256]}
           value={size}
           onChange={setSize}
@@ -358,9 +369,23 @@ export function FluorescencePanel() {
       )}
 
       <div style={{ display: "flex", gap: 28, flexWrap: "wrap", alignItems: "flex-start" }}>
+        {/* The picture and every number read off it dim together, because they
+            are one reading — A2's figure does the same. The dimming is on the
+            figure and NOT on the row: the plot beside it answers a different
+            request (it ignores beads, seed, stretch and patches), so fading it
+            while a bead slider moves would report a current curve as stale.
+            Nor does the plot merely dim when it IS stale — it is withdrawn,
+            because its legend names the objective in words and a faint wrong
+            sentence is still a wrong sentence. */}
         {readout !== null && (
-          <figure style={{ margin: 0 }}>
-            <BeadCanvas readout={readout} stretch={stretch} pending={pending} />
+          <figure
+            style={{
+              margin: 0,
+              opacity: pending ? 0.55 : 1,
+              transition: "opacity 120ms ease-out",
+            }}
+          >
+            <BeadCanvas readout={readout} stretch={stretch} />
             <figcaption
               style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 380 }}
             >
@@ -400,9 +425,16 @@ export function FluorescencePanel() {
               peak {readout.peak.toExponential(3)} · mean {readout.meanIntensity.toExponential(3)} ·
               white = peak ÷ {stretch}
               <br />
-              <span style={{ color: "#3a7" }}>
-                light conserved to {readout.lightResidual.toExponential(2)}
-              </span>
+              {readout.lightResidual === null ? (
+                <span style={{ color: GUARD_COLOR.warn }}>
+                  no bead landed on the grid — conservation is a ratio to zero here, and printing
+                  it as 0 would report a perfect identity for an empty frame
+                </span>
+              ) : (
+                <span style={{ color: "#3a7" }}>
+                  light conserved to {readout.lightResidual.toExponential(2)}
+                </span>
+              )}
               <br />
               <Guard
                 label="grid step"
@@ -426,6 +458,8 @@ export function FluorescencePanel() {
             color: "#555",
             marginTop: 16,
             maxWidth: 660,
+            opacity: pending ? 0.55 : 1,
+            transition: "opacity 120ms ease-out",
           }}
         >
           kernel peak on axis <strong>{readout.axisKernelPeak.toFixed(6)}</strong> · at the frame

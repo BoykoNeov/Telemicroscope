@@ -552,6 +552,17 @@ reading the timings. Two workers rather than a second message type on one: the
 picture re-renders on every bead and stretch change while the sweep does not
 move at all, and separate workers let them run at once.
 
+Moving it there introduced a defect worth recording, because the fix is not the
+obvious one: with the sweep deferred by `setTimeout` the plot blanked itself
+before recomputing, and with it in a worker the previous objective's curve stayed
+mounted for the 1–2.5 s the next one took — under a legend reading *"measured,
+this objective"* and a caption attributing the residual to the objective by name.
+Every other surface **dims** on `pending`, and dimming would have been wrong
+here: it makes a false label faint rather than absent. The plot is withdrawn
+instead while the picture beside it still only dims, and the asymmetry is the
+rule — *a stale reading may be shown greyed only if nothing on screen
+misdescribes it.*
+
 **What the plot actually shows.** Three curves on ν: `incoherentTransfer`'s
 closed form, `weakObjectTransfer` under one on-axis plane wave (brightfield with
 the diaphragm shut — flat at 1 to ν = 1, then a cliff to 0), and the **measured**
@@ -578,9 +589,22 @@ same traced pupil the picture used. Two details are load-bearing:
 measured against the **rasterized** emitter field, not the flux asked for:
 `rasterizeEmitters` drops beads whose splat falls off the grid, and counting
 those as lost photons would print a conservation failure that is nothing of the
-kind. How many landed is printed beside it (78 of 80 at ps 32, 80 of 80 at 128 —
-the wider frame keeps more of them), along with the density in beads per 100 µm²,
-without which the oil objective's 2.65 µm crop looks like a broken bead slider.
+kind. When nothing lands at all it is a ratio to zero, and the panel **refuses
+it** rather than printing a guarded 0 beside a green tick — A3's rule, applied to
+a case no seed the slider offers actually reaches.
+
+How many landed is printed beside it, and what moves it is **the grid, not the
+frame width**. `rasterizeEmitters` drops a bead whose 2×2 splat footprint
+crosses the edge, so the lossy band is one pixel wide out of `size` and halving
+the pixel halves the loss: measured 78 of 80 at grid 128 and 80 of 80 at grid
+256 — *at both pupil samples 32 and 64, and identically for the DIN 4×'s 93.5 µm
+crop and the oil's 2.65 µm one.* A 35× difference in span and a completely
+different distortion move the count not at all, which is a sharper statement
+than the frame-width one it replaces and was only visible because the two
+configs first compared had varied `pupilSamples` and `size` together. Printed
+with it: the density in beads per 100 µm², without which the oil objective's
+2.65 µm crop looks like a broken bead slider (80 beads there is 1114 per
+100 µm², and the picture is the crowded mush that implies).
 
 **Cost, measured in the browser** (dev build, DIN 4×, 80 beads): **65 ms** at
 ps 32 / grid 128 / patches 1, **189 ms** at ps 64 / grid 256, **246 ms** at

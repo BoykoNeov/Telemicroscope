@@ -156,8 +156,17 @@ export interface FluorescenceReadout {
    * `rasterizeEmitters` drops beads whose splat falls off the grid, and summing
    * what was asked for would print those as a conservation failure that is
    * nothing of the kind.
+   *
+   * **`null` when no bead landed at all**, which is a ratio to zero and not a
+   * conservation of zero. APP.md's A3-derived rule — *a readout whose value is
+   * undefined must be refused, not printed as zero* — cuts exactly here: a
+   * guarded 0 beside a green tick would report a perfect identity for a frame
+   * with nothing in it. No seed the panel's slider offers reaches this at the
+   * smallest bead count (checked over all sixteen), so the refusal is
+   * precautionary rather than observed — but the alternative is a false claim
+   * rather than a missing one.
    */
-  readonly lightResidual: number;
+  readonly lightResidual: number | null;
 
   /**
    * Peak of the unit-sum incoherent PSF on axis and at the frame corner.
@@ -322,7 +331,7 @@ export function renderFluorescenceScene(
         placed,
         requested: request.beadCount,
         densityPer100Um2: (100 * placed) / (objectSpanUm * objectSpanUm),
-        lightResidual: emitted > 0 ? Math.abs(formed - emitted) / emitted : 0,
+        lightResidual: emitted > 0 ? Math.abs(formed - emitted) / emitted : null,
         axisKernelPeak: peakOf(axisKernel.values),
         cornerKernelPeak: peakOf(cornerKernel.values),
         transmittingSamples: axisKernel.transmittingSamples,
