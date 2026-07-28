@@ -169,9 +169,19 @@ export interface StackBrightfieldOptions {
    * Refused rather than clamped when it is large enough for a resample to reach
    * outside a source grid: the failure is a black border, and a black border is
    * a colour the caller would read as physics.
+   *
+   * Must leave an EVEN number of pixels to drop. An odd difference would put the
+   * common grid's centre half a pixel off the source's, so the ruler plane would
+   * be interpolated rather than copied and every plane would shift by half a
+   * pixel — § 6n's own class of bug, and invisible in the picture.
    */
   readonly size?: number;
-  /** Pixels dropped from each side. Default 1 — the bilinear stencil's reach. */
+  /**
+   * Pixels dropped from each side. Default 1 — the bilinear stencil's reach.
+   *
+   * A knob on the default `size` and nothing more, so passing both is refused
+   * unless they agree rather than one silently winning.
+   */
   readonly croppedPixels?: number;
 }
 
@@ -215,6 +225,27 @@ export function stackBrightfieldPlanes(
   const size = options.size ?? srcSize - 2 * croppedPixels;
   if (!Number.isInteger(size) || size < 1) {
     throw new Error(`stackBrightfieldPlanes: common grid size must be ≥ 1, got ${size}`);
+  }
+  if (options.size !== undefined && options.croppedPixels !== undefined) {
+    if (srcSize - 2 * options.croppedPixels !== options.size) {
+      throw new Error(
+        `stackBrightfieldPlanes: size ${options.size} and croppedPixels ${options.croppedPixels} ` +
+          `disagree on a ${srcSize} px source — croppedPixels is a knob on the default size, so ` +
+          `pass one or the other rather than letting one silently win`,
+      );
+    }
+  }
+  // An odd difference would centre the common grid half a pixel off the source's:
+  // `resample` maps destination x to srcSize/2 + (x − size/2)·k, so the ruler
+  // plane's k = 1 identity turns into a half-pixel interpolation and every plane
+  // shifts with it. Refused, for § 6n.2's reason — half a pixel of
+  // misregistration is exactly the class of error a picture cannot show.
+  if ((srcSize - size) % 2 !== 0) {
+    throw new Error(
+      `stackBrightfieldPlanes: a ${size} px common grid on a ${srcSize} px source drops an odd ` +
+        `${srcSize - size} pixels, so the two grids cannot share a centre — the ruler plane would ` +
+        `be interpolated instead of copied and every plane would shift by half a pixel`,
+    );
   }
 
   // The smallest scale, not the mean — see the header. Taken over the planes as

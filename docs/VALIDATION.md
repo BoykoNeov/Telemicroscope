@@ -5996,6 +5996,8 @@ onto one common physical grid before anything else touches them.
 | **Energy is not the witness — the wrong branch loses none of it** | negative control | ✅ |
 | The plane that sets the ruler is copied **bit for bit** | k = 1 identically | ✅ |
 | A common grid that would reach outside a source is refused | the stencil's reach | ✅ |
+| A crop that cannot be shared **centrally** is refused, at any size | § 6n.2's pixel convention | ✅ |
+| `size` and `croppedPixels` disagreeing is refused rather than one winning | one knob | ✅ |
 | **The MEAN scale puts a coloured vignette on a neutral field** | negative control | ✅ |
 | **A dye absorbing the middle of the band images magenta on neutral white** | the purple line's direction | ✅ |
 | **Tinting the monochrome image gives the stain and the field the SAME hue** | negative control, < 1e-12 | ✅ |
@@ -6066,6 +6068,15 @@ that *sets* the scale, k is exactly 1, every destination lands on a lattice poin
 and the bilinear weights collapse, so **that plane is copied bit for bit** rather
 than interpolated. Without it, "the ruler is the bluest plane's" would be a
 rounding rather than a statement about arithmetic.
+
+That identity is also what makes the crop's **parity** load-bearing, and it is
+refused rather than rounded. `resample` maps a destination to
+srcSize/2 + (x − size/2)·k, so an odd number of dropped pixels puts the two
+grids' centres half a pixel apart: k = 1 stops being an identity, the ruler plane
+gets interpolated and every plane shifts with it. That is § 6n.2's class of bug —
+half a pixel of misregistration, invisible in the picture — so it throws, and the
+rung checks it well inside the reach bound as well as at it, to show that what is
+being refused is the centring and not the stencil running off the edge.
 
 ### 6r.4 — a stain is the specimen, and not the display
 

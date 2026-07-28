@@ -255,8 +255,39 @@ describe("§ 6r.4 — the common grid is the bluest plane's, and strictly interi
   it("a common grid that would reach outside a source is refused, not filled with zeros", () => {
     const input = LAMP.map((s) => uniformPlane(s));
     expect(() => stackBrightfieldPlanes(input, { size: SIZE })).toThrow(/black frame/);
-    expect(() => stackBrightfieldPlanes(input, { size: SIZE - 1 })).toThrow(/black frame/);
     expect(() => stackBrightfieldPlanes(input, { size: SIZE - 2 })).not.toThrow();
+  });
+
+  it("a crop that cannot be shared centrally is refused too, at any size", () => {
+    // An odd difference puts the two grids' centres half a pixel apart, which
+    // turns the ruler plane's k = 1 identity into an interpolation and shifts
+    // every plane with it. Checked away from the reach bound as well, so it is
+    // the centring being refused and not the stencil running off the edge.
+    const input = LAMP.map((s) => uniformPlane(s));
+    expect(() => stackBrightfieldPlanes(input, { size: SIZE - 1 })).toThrow(/half a pixel/);
+    expect(() => stackBrightfieldPlanes(input, { size: SIZE - 7 })).toThrow(/half a pixel/);
+    // And an even one well inside the bound still crops centrally and copies the
+    // ruler plane, which is what says the refusal is about parity and not size.
+    const stack = stackBrightfieldPlanes(input, { size: SIZE - 8 });
+    expect(stack.croppedPixels).toBe(4);
+    const src = input[0]!;
+    for (let y = 0; y < stack.size; y++) {
+      for (let x = 0; x < stack.size; x++) {
+        expect(stack.planes[0]!.intensity[y * stack.size + x]).toBe(
+          src.intensity[(y + 4) * src.size + (x + 4)],
+        );
+      }
+    }
+  });
+
+  it("size and croppedPixels are one knob, so disagreeing about it is refused", () => {
+    const input = LAMP.map((s) => uniformPlane(s));
+    expect(() =>
+      stackBrightfieldPlanes(input, { size: SIZE - 2, croppedPixels: 3 }),
+    ).toThrow(/disagree/);
+    expect(() =>
+      stackBrightfieldPlanes(input, { size: SIZE - 6, croppedPixels: 3 }),
+    ).not.toThrow();
   });
 
   it("choosing the MEAN scale instead puts a coloured vignette on a neutral field", () => {
@@ -485,17 +516,22 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
 
   it("refocusing to a wavelength's own paraxial plane removes exactly its chromatic defocus", () => {
     // Six wavelengths across the band, including the achromat's own crossing.
-    // The tolerance is 8% and the excess is systematic: 6.6% at 450 nm falling
-    // monotonically to 2.9% at 700 nm. A wrong pupil→image scale, NA or pixel
-    // size would bias every wavelength the SAME way; a residual that shrinks
-    // with λ is chromatic, which is the objective's own spherochromatism and not
-    // a calibration error. § 3b makes the identical argument about its 30%.
+    // The tolerance is 8% either way, and the measured excess is systematic:
+    // 6.6% at 450 nm falling monotonically to 2.9% at 700 nm. A wrong pupil→image
+    // scale, NA or pixel size would bias every wavelength the SAME way; a
+    // residual that shrinks with λ is chromatic, which is the objective's own
+    // spherochromatism and not a calibration error. § 3b makes the identical
+    // argument about its 30%.
+    //
+    // Two-sided on purpose. The excess sits above 1 on THIS glass pair at THESE
+    // conjugates, and its sign is a property of the residual rather than of the
+    // measurement — a one-sided bound would fail a different objective for a
+    // reason that is not a regression.
     for (const nm of [450, 480, 500, 550, 650, 700]) {
       const shiftMm = paraxialImageOffset(DIN_4X, nm) - basePlane;
       const predicted = defocusWaves(shiftMm, imageNumericalAperture(DIN_4X, nm), nm, 1);
       const measured = w20At(DIN_4X, nm) - w20At(withFocus(DIN_4X, basePlane + shiftMm), nm);
-      expect(measured / predicted).toBeGreaterThan(1);
-      expect(measured / predicted).toBeLessThan(1.08);
+      expect(Math.abs(measured / predicted - 1)).toBeLessThan(0.08);
     }
   });
 

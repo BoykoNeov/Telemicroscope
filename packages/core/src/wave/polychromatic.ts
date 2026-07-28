@@ -28,6 +28,15 @@ import { GeometricPsfOptions, adaptivePsf } from "./geometric";
  * density: change the pixel size and the energy each one holds changes with
  * its area.
  *
+ * **The Jacobian is conditional on that, and this module is not the only
+ * caller.** The λ-dependent grid is a property of the pupil→image transform and
+ * not of the PSF, so `illumination/abbe`'s partially coherent image hits it too
+ * — and that one holds an *irradiance*, a value per unit area, which resamples
+ * with no Jacobian at all. Hence the two named siblings below,
+ * `resampleEnergyGrid` and `resampleIrradianceGrid`: everything else in this
+ * file is about a PSF, and those two are not. § 6r pins the difference, and its
+ * witness is a colour cast rather than a missing photon.
+ *
  * ## Why the stack is a type, and not just a step inside the sum
  *
  * `spectralStack` stops one move short of summing: it hands back the
