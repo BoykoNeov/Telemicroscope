@@ -802,7 +802,7 @@ small PSF inset:
 
 | surface | blocked on |
 |---|---|
-| Stained tissue / diatom fields | § 6h's warped-grid rasterizer, not built. A points-only scene (A4) sidesteps it; an extended specimen does not. **Scoped as § 6n in Part D.** |
+| ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. What remains is authoring a scene, which is content rather than a blocker. |
 | Depth-dependent spherical aberration in the z-slider | § 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step with its own rungs. `DepthPupils` is the hook. Unchanged, and independent of Part D. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
 | Polychromatic brightfield / fluorescence colour | § 6f and § 6i both name it open. § 6j's band is emission-only. **Scoped as § 6r in Part D.** |
@@ -1052,20 +1052,57 @@ tile's extent is read on its own ruler, so abutment is a fixed point — it
 converges in three iterations, and a uniform axial pitch is 1.2e-3 of a pixel out
 at 1.6 mm, so D3 may skip the solve and say so.
 
-### D2. § 6n — the warped-grid rasterizer — *engine step*
+### D2. § 6n — the warped-grid rasterizer — *engine step* — ✅ **landed**
 
-§ 6h's named deferral, and the mosaic is what finally forces it: distortion is
-currently carried in the pupil *assignment* while each patch's image is formed on
-the undistorted grid, which is invisible on one on-axis frame and becomes a
-**visible seam misregistration** the moment two tiles meet off axis. `objectPointAt`
-is the seam § 6h left for exactly this.
+§ 6h's named deferral, and the mosaic is what finally forced it: distortion was
+carried in the pupil *assignment* while each patch's image was formed on the
+undistorted grid, which is invisible on one on-axis frame and becomes a **visible
+seam misregistration** the moment two tiles meet off axis. `objectPointAt` was
+the seam § 6h left for exactly this, and `imaging/specimen` attaches to it: a
+`Specimen` is a callback in object millimetres, so the warp happens in the
+*argument* and nothing is resampled — `rotatePupil`'s own argument, one layer
+further out. It produces the `ObjectField` `abbeImage` already consumes, so this
+is the **authoring** path and nothing downstream learns the grid was warped.
+**Stained tissue and diatom fields are unblocked**, which the disqualified table
+above blocked on precisely this rasterizer.
 
-**Rungs:** a straight line across the mosaic bows by the amount § 6h.1 already
-pins (cubic, ×8.00 per doubling); a specimen rasterized through the warped map
-and read back through the inverse returns its own coordinates; and the negative
-control — the paraxial map — fails the first at the field where § 6h.1 says it
-should. This is also what unblocks **stained tissue and diatom fields**, which the
-disqualified table above blocks on precisely this rasterizer.
+**Two things this section got wrong**, recorded rather than quietly fixed:
+
+- **The bow is not the cubic.** D2 scoped the first rung as "bows by the amount
+  § 6h.1 already pins (cubic, ×8.00 per doubling)". A chord's sagitta is the
+  map's **curvature** across it, and d²/dr² of a cubic is linear — so the bow
+  grows **×2.00** per doubling of field (2.0003, 2.0002, 2.0004, 2.0014 over
+  0.4 → 6.4 mm). Asserting ×8.00 would have been quoting the right theory at the
+  wrong derivative. The three steps now form one ladder off a single coefficient:
+  § 6h.1 the cubic, § 6m.4 its slope, § 6n its curvature.
+- **The round trip as scoped pins nothing.** "Rasterized through the warped map
+  and read back through the inverse returns its own coordinates" is true by
+  construction — `objectHeightForImageRadius` already self-checks its residual to
+  1e-9. The rung that has content goes through **pixel indexing** instead: a bump
+  placed at the object point a pixel looks at, rasterized, and recovered by
+  centroid, which is what catches the half-pixel and |M|-vs-signed-M class of bug.
+  The convention is additionally pinned **bitwise** against § 6i's
+  `rasterizeEmitters` — whole flux, one pixel, 1.000 to 12 places.
+
+The negative control turned out stronger than "fails at the field where § 6h.1
+says it should": a uniform per-tile scale is linear, so its sagitta is
+`toBe(0)` at **every** field — it cannot express the law rather than
+approximating it badly. Quantitatively it misses by the map's *slope* where the
+traced map misses by its *curvature*, so the gap doubles with field, 16.8× at
+0.4 mm to 257× at 6.4 mm — the seam error is unbounded in the field, not a
+constant a tolerance could have absorbed. § 6n in VALIDATION.md carries all 18.
+
+**Cost, and why the cache is not here.** One bisected chief ray per pixel —
+0.12 ms, so 0.5 s at 64² and ~2 s at 128², the same order as the sum it feeds
+(a `patches` = 2, five-point-source `renderBrightfield` on the same frame is
+0.33 s). Affordable for a tile, not for a mosaic of tens, which is D5's job: the
+radial cache is kept out of § 6n deliberately, because these rungs pin the *map*
+and an interpolant underneath them would mean they pinned the interpolant.
+
+**Deferred, and named:** an extended *fluorescent* specimen. An emitter density
+is not a point property — warping one needs det J, where an amplitude
+transmittance needs nothing — and it is the one place in this branch where an
+energy check genuinely *is* the witness.
 
 ### D3. § 6o — the mosaic and its guard band — *engine step*
 
@@ -1327,8 +1364,9 @@ code. **A6** follows. **Part C** is a separate decision.
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
 steps with their own rungs. Its own order is at the end of that part; the short
-version is **D8 first for breadth, D1 → D4 for the field of view** — and D1 has
-landed as § 6m, so the field of view now waits on D2's rasterizer.
+version is **D8 first for breadth, D1 → D4 for the field of view** — and D1 and
+D2 have landed as § 6m and § 6n, so the field of view now waits on D3's mosaic
+and its guard band.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and

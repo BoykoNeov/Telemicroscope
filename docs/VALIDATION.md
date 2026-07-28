@@ -58,6 +58,7 @@ whole ladder.
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
+| [6n](#step-6n--the-warped-grid-rasterizer) | The grid itself warped at last — § 6h's named deferral: a `Specimen` callback evaluated at the object point each pixel really looks at, so the warp happens in the ARGUMENT and nothing is resampled; the pixel convention pinned bitwise against § 6i's emitter rasterizer, whole flux in one pixel; a straight object line shown to BOW, and at ×2.00 per doubling rather than the cubic's ×8.00 — the sagitta is the map's CURVATURE, so § 6h.1's cubic, § 6m.4's slope and this complete one ladder of derivatives; the sign pinned as barrel; a negative control that cannot bow AT ALL; and a round trip through a whole picture whose residual is that same curvature, against a uniform map whose residual is the slope — so the gap between them doubles with field, 16.8× to 257× | `specimen` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -5101,10 +5102,12 @@ single cemented doublet's own field showing up as a picture, which is what a
 mosaic is for.
 
 ### Not yet pinned
-- **The grid is still not warped.** § 6h's deferral is untouched and § 6m has
-  sharpened it rather than closed it: the anisotropy rung measures the thing a
-  per-tile uniform scale cannot carry. `objectPointAt` remains the seam; § 6n is
-  the rasterizer.
+- ~~**The grid is still not warped.**~~ **Closed at [§ 6n](#step-6n--the-warped-grid-rasterizer).**
+  § 6m sharpened § 6h's deferral rather than closing it — the anisotropy rung
+  measures the thing a per-tile uniform scale cannot carry — and
+  `rasterizeSpecimen` has since attached to the `objectPointAt` seam. § 6n also
+  turns the anisotropy into a picture: the bow it predicts is ×2.00 per doubling
+  of field, and the uniform scale's own miss is a whole order worse.
 - **No tiles have been composed.** Registration, the ruler's step and the pitch
   are pinned; a mosaic that crops each tile to a useful span and lays it beside
   its neighbour is § 6o, and its guard band is measured in APP.md's Part D as a
@@ -5121,6 +5124,163 @@ mosaic is for.
   third-order theory's and travel; the coefficients do not, and no rung claims
   they do.
 
+## Step 6n — the warped-grid rasterizer
+
+§ 6h carried distortion in the **pupil assignment** — each patch is handed the
+pupil of the object point its own image position really comes from — and left
+the grid itself unwarped, naming `objectPointAt` as the seam a rasterizer would
+attach to. This is that rasterizer. A `Specimen` is a callback in object
+millimetres, and `rasterizeSpecimen` evaluates it at the object point each pixel
+actually looks at, producing the `ObjectField` `abbeImage` already consumes.
+
+The callback is the whole reason it is exact, and the argument is `rotatePupil`'s
+one layer further out: the warp happens **in the argument**, so the value that
+comes back is the specimen's own value there — no resampling, no interpolation
+kernel, nothing to renormalize. Handed a sampled array instead, the same map
+would carry `rotateKernel`'s bilinear error on top of the optics it exists to
+represent. The direction is backwards on purpose — image pixel → object point,
+never the reverse — because a forward splat leaves holes where the map expands
+and doubles up where it contracts, and § 6m.4 measured that an off-axis tile does
+both at once.
+
+**On one on-axis frame none of this is visible**, which is why § 6h could defer
+it: over a 46.77 µm half-extent the cubic is parts per billion. § 6m is what
+forces it — a tile sits at millimetres, two tiles abut, and a straight specimen
+crossing the seam arrives on each side through a different *linear* approximation
+to a map that is not linear.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A specimen point and a point emitter at it land in the SAME pixel, weight 1.000 | § 6i's `rasterizeEmitters`, bitwise | ✅ |
+| …on axis and in a tile, at three pixels each | the convention, not one lucky index | ✅ |
+| A pixel index round-trips through the forward map to 1e-12 | `imagePointAt`'s own convention | ✅ |
+| The uniform map IS `imagePointAt / |M|` on the axial frame, to f64 | the control, named | ✅ |
+| Both maps are exact at the frame centre, and differ everywhere else | the control is not a strawman | ✅ |
+| **A straight object line BOWS, ×2.00 per doubling of field** | d²/dr² of § 6h.1's cubic | ✅ |
+| …and as the SQUARE of the tile's extent — ×2.00 in pixels, since § 6h.2 ties the pixel scale to it | sagitta = curvature·L²/2 | ✅ |
+| The sign is BARREL: r − |M|·h < 0, so a chord's ends are pulled in and the sagitta is positive | § 6h.1's departure, signed | ✅ |
+| NEGATIVE CONTROL: the uniform map's sagitta is **identically zero**, at every field | a linear map has no curvature | ✅ |
+| The bow is the map's own second difference, equal and opposite, to 0.3% | two readings of one number | ✅ |
+| A bump recovers its own pixel through a rasterized picture, < 1e-5 px | round trip through the image | ✅ |
+| …and misses by the CURVATURE: ×2.00 per doubling, converging from below | § 6n.2's law again | ✅ |
+| CONTROL: the uniform map misses by the SLOPE — ×4.00 per doubling | § 6m.4's quadratic | ✅ |
+| …so the gap between them DOUBLES per doubling: 16.8× at 0.4 mm, 257× at 6.4 mm | quadratic over linear | ✅ |
+| CONTROL: and it is exact at the tile centre, 1e-12 — where a linear map cannot be wrong | why the rung samples pixel (20, 12) | ✅ |
+| A pure phase specimen stays |t| = 1 in every pixel | amplitude is a point property | ✅ |
+| Total |t|² is NOT conserved, grows as the field's square, and is 1e-5 | det J ≠ 1, and energy is no witness | ✅ |
+| The result is the `ObjectField` `abbeImage` consumes, unchanged | § 6n is the authoring path only | ✅ |
+
+**The bow is the cubic's second derivative, and that corrects what Part D
+predicted.** APP.md's D2 scoped this rung as "a straight line bows by the amount
+§ 6h.1 already pins (cubic, ×8.00 per doubling)". It does not, and a rung
+asserting ×8.00 would have been quoting the right theory at the wrong
+derivative. The sagitta of a chord is the map's **curvature** across that chord,
+and d²/dr² of a cubic is linear — so the bow grows ×2.00 per doubling of field,
+measured at 2.0003, 2.0002, 2.0004, 2.0014 over 0.4 → 6.4 mm. Nothing is fitted:
+the same coefficient § 6h.1 measured produces all three numbers, and the step
+completes a ladder rather than adding to it —
+
+- § 6h.1 pinned the **cubic itself**, ×8.00 per doubling;
+- § 6m.4 pinned its **slope**, radial and tangential in the ratio 3;
+- § 6n pins its **curvature**, ×2.00, which is what a rasterizer consumes.
+
+Read the other way it is the same coefficient again: doubling the tile's extent
+at fixed field quadruples the sagitta in millimetres and doubles it in **pixels**,
+because § 6h.2 ties the extent to `pupilSamples` and the pixel scale rides along.
+The two ×2.00 rungs are one statement seen on its two axes.
+
+**The negative control cannot express the law, rather than approximating it
+badly.** The uniform map — `centreObjectMm` plus a pixel offset times
+`objectPixelScaleMm`, which is what a specimen authored by uniform scaling really
+is — is linear, so its sagitta is `toBe(0)` at every field however far off axis
+the tile is placed. That is the strongest form a control takes in this file, and
+it is worth naming what it is *not*: the uniform map is right where the frame is
+aimed. It has the tile's own traced centre as its fixed point, so at the centre
+pixel it reads 1e-12 and a control placed there would have reported that the two
+maps agree. What it cannot do is stay right.
+
+**The pixel convention is pinned bitwise against the rasterizer that already had
+one.** The bug this step exists to remove is a seam misregistration, and half a
+pixel is one — so the convention is not re-derived here, it is checked against
+§ 6i's `rasterizeEmitters`: a point emitter placed at `specimenPointAt(ix, iy)`
+lands on pixel (ix, iy) with its **whole** flux, 1.000 to 12 places, on axis and
+in a tile. Bilinear splatting puts all of it in one pixel only when the point
+lands exactly on it, so a half-pixel error would have read 0.5 rather than
+shifting a picture no one was looking at.
+
+**The round trip goes through a picture, and its residual is physics.** The
+obvious round trip — forward map then inverse — pins nothing here, because
+`objectHeightForImageRadius` already self-checks its residual to 1e-9 (§ 6h.1) and
+would pass whatever the pixel indexing did. So the rung places a smooth bump at
+the object point a pixel looks at, rasterizes it, and reads the centroid back:
+it returns that pixel to better than 1e-5 px. Not exactly, and the miss is not
+slop — the grid samples object space non-uniformly, so a bump symmetric on the
+specimen is slightly asymmetric on the grid, and the miss obeys § 6n.2's own law,
+×2.00 per doubling.
+
+That is what makes the control quantitative rather than a factor: the uniform
+map's miss carries the map's *first* derivative and grows ×4.00, so **the gap
+between them doubles with the field** — 16.8× at 0.4 mm to 257× at 6.4 mm. The
+seam misregistration § 6n removes is unbounded in the field, not a constant
+somebody could have absorbed into a tolerance.
+
+**Both sequences converge from below, and that is pinned as convergence.** The
+tile's own half-extent (46.77 µm) is not negligible against the smallest field
+sampled (0.4 mm), so the chord samples the map over a finite span and the leading
+term is diluted by a correction of order L/r: the ratios climb 1.888 → 1.943 →
+1.971 → 1.987 toward 2, and 3.694 → 3.842 → 3.920 → 3.961 toward 4. The rungs
+assert monotone approach to the limit and a final value within 1–1.5% of it,
+because a wandering ratio satisfies "each is within 5% of the limit" too — § 6g.3's
+argument about a sequence, reused where it applies again.
+
+**Energy is not a witness here either, and this time because it should differ.**
+§ 6g.2 and § 6k.4 both record that an energy check passes for schemes that are
+wrong. Here the sum has the opposite problem: an `ObjectField` is an amplitude
+**transmittance**, which is a property of a *point*, so the warp is pure
+coordinate substitution with no Jacobian — and total |t|² therefore *ought* to
+change, because a region the map magnifies really does present more specimen to
+more of the image. It does, by 1e-5 growing as the field's square, which is
+det J − 1 and is § 6m.4's anisotropy in another currency. Far too small to have
+caught a broken map; the witness is § 6n.3's pixel and never this sum.
+
+The rung that nearly said nothing is worth recording, in § 6k.3's way: the first
+version authored the wedge about the **axis**, where a tile 1.6 mm off it sees
+only the saturated tail — and the two totals then agreed in the last bit, which
+reads exactly like conservation and is nothing of the kind.
+
+**The cost is measured, and the cache is deliberately elsewhere.** One bisected
+chief ray per pixel: 0.12 ms of it, so 0.5 s at 64² and ~2 s at 128². That is the
+same order as the sum it feeds — a `patches` = 2, five-point-source
+`renderBrightfield` on the same frame is 0.33 s — so the warp is not free
+relative to the imaging, merely affordable, and a mosaic of tens of tiles is
+where that stops being true. The radial cache that fixes it is § 6p and is
+**kept out of here on purpose**: these rungs pin the *map*, and an interpolant
+underneath them would mean they pinned the interpolant instead. § 6p's own idiom
+already covers it — cached ≡ uncached, bit for bit.
+
+### Not yet pinned
+- **The extended fluorescent specimen — the Jacobian.** An emitter **density** is
+  not a point property: warping one without multiplying by det J moves flux
+  between pixels. § 6i's beads sidestep it by placing each point through its own
+  chief ray, which is why they were the branch's first specimen. Named here
+  rather than dropped, and it is the one place in this branch where energy
+  genuinely *is* the witness.
+- **No tiles are composed yet.** § 6n removes the misregistration a seam would
+  have shown; it does not lay one tile beside another. That is § 6o, with its
+  guard band, and the bow measured here is what a mosaic would have displayed.
+- **No stained-tissue or diatom scene is authored.** The rasterizer is what those
+  were blocked on and they are now unblocked, but a scene is content on top of
+  this, not a rung of it — and no rung here claims a specimen that resembles
+  anything biological.
+- **The grid is warped; the pupil sampling is not re-derived.** Each pixel still
+  reads the patch pupil § 6h assigns, so the two halves now agree; whether a
+  warped grid changes the *lattice* argument `illumination/fidelity` rules on is
+  not asked, because `abbeImage`'s frequency lattice is the image grid's and that
+  is unchanged.
+- **Telecentricity, still**, and **one objective** — both inherited from § 6m
+  unchanged, and every number above is the DIN 4×/0.10's. The orders are
+  third-order theory's and travel; the coefficients do not.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
@@ -5135,12 +5295,12 @@ mosaic is for.
   verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
-- **§ 6n–§ 6r — the rest of the microscope's field of view, and looking through
+- **§ 6o–§ 6r — the rest of the microscope's field of view, and looking through
   it.** Named in APP.md's Part D rather than here, because they arrived as the
   scoping of an app surface and their step numbers are not yet claimed —
-  [§ 6m](#step-6m--the-off-axis-frame) has since claimed its own and left this
-  list. What remains: the warped-grid rasterizer (§ 6n, § 6h's own deferral,
-  which § 6m.4's anisotropy rung has now measured a consequence of),
+  [§ 6m](#step-6m--the-off-axis-frame) and
+  [§ 6n](#step-6n--the-warped-grid-rasterizer) have since claimed theirs and left
+  this list. What remains:
   the mosaic guard band (§ 6o), the commensurate condenser and cached pupil
   (§ 6p, exact against the uncached sum bit for bit), the eyepiece on a *finite*
   intermediate image (§ 6q — `afocalTelescope` solves from a collimated input and

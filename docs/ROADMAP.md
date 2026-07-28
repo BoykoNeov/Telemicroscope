@@ -516,9 +516,20 @@
    carries the first millimetre-scale field measurements in the branch: field
    curvature at ×4.000 per doubling, and the finding that an off-axis tile is
    *anisotropic* in the ratio 3, which is the **warped-grid rasterizer**'s
-   (§ 6n, § 6h's named deferral) argument turned into a number — it is what has
-   to land next so a tile's specimen is placed through the traced chief ray
-   rather than by one uniform scale; then the **mosaic
+   (§ 6n, § 6h's named deferral) argument turned into a number. That rasterizer
+   is ✅ **done** (§ 6n): a `Specimen` is a callback in object millimetres,
+   evaluated at the point each pixel really looks at, so the warp happens in the
+   *argument* and nothing is resampled — `rotatePupil`'s reason, one layer out.
+   Its pixel convention is pinned **bitwise** against § 6i's bead rasterizer, and
+   its headline is that a straight object line **bows**: at ×2.00 per doubling of
+   field, which corrects Part D's own prediction of the cubic's ×8.00. The
+   sagitta is the map's *curvature*, so § 6h.1's cubic, § 6m.4's slope and this
+   complete one ladder of derivatives off a single coefficient. The negative
+   control — a uniform per-tile scale — **cannot bow at all**, and its miss
+   carries the slope rather than the curvature, so the gap the seam would have
+   shown doubles with field: 16.8× at 0.4 mm to 257× at 6.4 mm. **It unblocks
+   stained tissue and diatom fields**, which were blocked on precisely this.
+   Then the **mosaic
    and its guard band** (§ 6o), whose feasibility probe found the reach of a
    tile is the reach of the **impulse response and not the coherence width** —
    so the guard is S-independent and small, where the coherence argument

@@ -119,15 +119,17 @@ import type { PatchPupil } from "./brightfield";
  * already shows loss (`map.lost > 0`), and `FieldPupil.lost` is reported so a
  * caller can see the corner it is about to pay for.
  *
- * ## Two deferrals, named rather than papered over
+ * ## One deferral, and one that has since been closed
  *
- * **The grid itself is not warped.** Distortion is carried in the *pupil
- * assignment* — each patch gets the pupil of the object point its own image
- * position really comes from — but each patch's `abbeImage` is still formed on
- * the undistorted grid, so a specimen authored by uniform scaling is placed by
- * the paraxial map. `objectPointAt` exposes the object-plane coordinate of a
- * frame position so a distortion-carrying rasterizer has its seam; that
- * rasterizer is not built here.
+ * **The grid is warped, in `imaging/specimen`.** Distortion is carried here in
+ * the *pupil assignment* — each patch gets the pupil of the object point its own
+ * image position really comes from — and for a while each patch's `abbeImage`
+ * was still formed on the undistorted grid, so a specimen authored by uniform
+ * scaling was placed by the paraxial map. `objectPointAt` exposes the
+ * object-plane coordinate of a frame position, and § 6n's `rasterizeSpecimen`
+ * is the rasterizer that attaches to it. It stays in its own module because it
+ * is the **authoring** path: nothing here, and nothing downstream, learns that
+ * the grid was warped.
  *
  * **Telecentricity is assumed.** Every patch is handed the same `CondenserSource`
  * with its points centred on the pupil, which says the illumination cone stays
@@ -526,8 +528,9 @@ export function imagePointAt(
  * Object-plane coordinates (mm) of a normalized frame position, on the traced
  * map — so this one carries distortion where `imagePointAt / M` would not.
  *
- * The seam a distortion-carrying rasterizer would attach to. Nothing in the
- * imaging path warps the grid yet (see the header), so this is a readout.
+ * The seam the distortion-carrying rasterizer attaches to: § 6n's
+ * `rasterizeSpecimen` calls exactly this, once per pixel, and its
+ * `specimenPointAt` is the pixel-indexed wrapper.
  */
 export function objectPointAt(
   system: OpticalSystem,

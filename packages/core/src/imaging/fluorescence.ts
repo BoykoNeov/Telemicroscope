@@ -467,11 +467,17 @@ export interface PointEmitter {
  * Beads are the branch's first specimen for a reason that is about the engine
  * and not about biology: a point emitter is placed **individually, through the
  * traced chief ray**, so the distortion of the objective is carried in the
- * placement. § 6h left the grid itself unwarped — a specimen authored by
- * uniform scaling is still laid down on the paraxial map — and a scene made of
- * points does not need that missing rasterizer, because each point is mapped on
- * its own. A stained-tissue field would need it, which is why it is not this
- * one.
+ * placement. § 6h left the grid itself unwarped, and a scene made of points did
+ * not need the rasterizer that was missing, because each point is mapped on its
+ * own. A stained-tissue field would have needed it, which is why it was not
+ * this one.
+ *
+ * That rasterizer is now `imaging/specimen` (§ 6n), and the distinction it
+ * draws is the reason this one stays: it warps an amplitude **transmittance**,
+ * which is a property of a point and needs no Jacobian. Emitters are a
+ * **density**, so an extended emitter field would need det J — § 6n names it,
+ * and placing points through their own chief rays is how this function avoids
+ * ever having to. § 6n.1 pins the two rasterizers to one pixel convention.
  *
  * Bilinear splatting, `imaging/scene`'s convention and for its reason: a bead
  * between pixels must land between pixels, or moving one produces a brightness
