@@ -1,0 +1,25 @@
+/**
+ * Every worker factory, in one module at `src/` level, and the placement is a
+ * constraint rather than tidiness.
+ *
+ * Vite resolves `new Worker(new URL("./x.worker.ts", import.meta.url))` only
+ * when the URL is a *literal*, and it resolves it relative to the file the
+ * literal sits in. TypeScript cannot check that string — `new URL` accepts any
+ * — so a path that silently rots during a refactor fails at runtime as a 404
+ * and a panel that never paints. Keeping the literals here, beside the workers
+ * they name, means a panel under `src/panels/` imports a factory and never
+ * carries a path. **A file holding a worker URL literal lives in `src/`.**
+ *
+ * They are module-level constants for a second reason the hooks depend on:
+ * `useLatestFromWorker` keys its mount effect on the factory's identity, so an
+ * inline closure would tear the worker down and rebuild it on every render.
+ */
+
+export const createStarWorker = () =>
+  new Worker(new URL("./render.worker.ts", import.meta.url), { type: "module" });
+
+export const createFieldWorker = () =>
+  new Worker(new URL("./render.field.worker.ts", import.meta.url), { type: "module" });
+
+export const createBrightfieldWorker = () =>
+  new Worker(new URL("./brightfield.worker.ts", import.meta.url), { type: "module" });

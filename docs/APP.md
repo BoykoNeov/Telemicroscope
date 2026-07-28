@@ -16,11 +16,12 @@ physics, that is called out and the surface is disqualified rather than scoped.
 
 ## The baseline: what the app draws today, and its house style
 
-`packages/app` is roughly 950 lines. `render.ts` is the whole optical pipeline
-as **pure functions** — numbers in, pixels out, no DOM, no React — so running it
-in a worker was a change of caller and not of code. `App.tsx` is one page with a
-shared slider row and two panel kinds (`StarCanvas`, `FieldCanvas`), each with a
-worker hook that does backpressure rather than queueing.
+`packages/app` is roughly 2 600 lines. The adapters — `render.ts`,
+`microscope.ts`, `brightfield.ts` — are the whole optical pipeline as **pure
+functions**, numbers in, pixels out, no DOM, no React, so running one in a
+worker was a change of caller and not of code. Since structural item 1 below,
+`App.tsx` is a nav row and one panel: each surface lives under `src/panels/`,
+owns its own controls and state, and is routed to by hash.
 
 Two traits of that baseline are load-bearing and every new surface should
 inherit them:
@@ -484,10 +485,30 @@ for completeness, not proposed as the next work.
 
 Structural work implied by the above, independent of which surfaces land:
 
-1. **A panel registry and routing.** One 500-line `App.tsx` with a shared slider
-   row does not extend to a dozen surfaces with disjoint controls. Tabs or routes
-   per surface family (telescope / microscope / tolerancing), each owning its
-   controls.
+1. **A panel registry and routing.** ✅ **landed.** `App.tsx` went from 1 178
+   lines to ~80: a nav row and one panel. `src/panels/registry.ts` is the
+   routing table — `id` (the URL hash), nav label, one-line blurb, component —
+   and `telescope.tsx` / `bench.tsx` / `brightfield.tsx` each own their controls
+   and their state. A panel unmounts when you route away, which terminates its
+   workers; the cost is a re-trace on return (~630 ms for the bench catalogue)
+   and every panel already prints its own elapsed time.
+
+   **The split found one constraint worth writing down.** Vite resolves
+   `new Worker(new URL("./x.worker.ts", import.meta.url))` only for a *literal*,
+   and it resolves it relative to the file the literal sits in — while `tsc`
+   cannot check the string at all. So moving a worker factory into `panels/`
+   silently produces a 404 and a panel that never paints, with a green
+   typecheck. All three factories therefore live in one `src/`-level
+   `workers.ts` and panels import them: **a file holding a worker URL literal
+   lives in `src/`.** The same rule keeps `hooks.ts` there.
+
+   The two `pupil samples` / `grid` pairs that motivated this **stayed
+   separate**, and that is the fix rather than a shortfall: same engine
+   parameters, different affordable range — the bench offers 32/64/128 against
+   64/128/256 because it is one catalogue trace on a sampling change, where
+   traced brightfield costs 8–10× per source point and would land seconds past
+   its live line. Routing is what stops the two groups from being confusable.
+   Sharing the state would have made one of the two panels lie about its cost.
 2. **One adapter module per family, on `render.ts`'s pattern.** `microscope.ts`,
    `tolerance.ts` — pure functions, no DOM, so they drop into workers unchanged.
    This is the single commitment worth keeping from the current app; everything
@@ -525,8 +546,10 @@ code. **A5 and A6** follow. **Part C** is a separate decision.
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and
 the first curve on the page are exactly what makes a generic hook and a plot
-primitive cheaper to build than to avoid. Items 1 and 4 did not, and item 1 is
-now the real problem — the page is one scroll with five control groups, two of
-which are `pupil samples` / `grid` pairs that mean the same thing in different
-panels and do not share state. A3 will add a sixth. That is the next structural
-step, and it should come before A3 rather than after.
+primitive cheaper to build than to avoid. Item 1 could not land that way — a
+routing table is not something one panel needs — so it went in **on its own,
+before A3**, and A3 now arrives as a fourth registry entry rather than a sixth
+control group on one scroll. **Item 4 is the only structural item still open**,
+and it keeps its rule: the next surface that needs a guard readout extracts it
+rather than copying one. A3 has a defocus threshold and a transfer curve sitting
+on zero, so that is plausibly A3's job.

@@ -1,0 +1,60 @@
+import type { ComponentType } from "react";
+import { BenchPanel } from "./bench";
+import { BrightfieldPanel } from "./brightfield";
+import { TelescopePanel } from "./telescope";
+
+/**
+ * The panels, in reading order, and the routing table is exactly this list.
+ *
+ * One surface per route rather than one long scroll. That is APP.md's
+ * structural item 1, and the concrete thing it fixes is that two panels carried
+ * a `pupil samples` / `grid` pair each — the same engine parameters with
+ * different affordable ranges — sitting side by side with no way to tell which
+ * belonged to what. Routing separates them; sharing their state would not (see
+ * the note in `bench.tsx`).
+ *
+ * A panel owns its own controls and its own state, so switching routes
+ * unmounts it and terminates its workers. That costs a re-trace on return —
+ * ~550 ms for the bench catalogue — and it is the honest trade: nothing keeps
+ * computing behind a tab you are not looking at, and every panel already shows
+ * its own elapsed time while it catches up.
+ *
+ * `id` is the URL hash, so a route survives a reload and can be linked to.
+ */
+export type Panel = {
+  readonly id: string;
+  /** How the nav reads. Short — it sits in a row. */
+  readonly label: string;
+  /** One line under the nav, saying what the surface is for. */
+  readonly blurb: string;
+  readonly Component: ComponentType;
+};
+
+export const PANELS: readonly Panel[] = [
+  {
+    id: "telescope",
+    label: "star & field",
+    blurb: "roadmap step 4 — chromatic fringing, and a field-varying PSF across 25 stars",
+    Component: TelescopePanel,
+  },
+  {
+    id: "bench",
+    label: "microscope bench",
+    blurb: "APP.md A1 — every objective traced, and the crop a frame actually covers",
+    Component: BenchPanel,
+  },
+  {
+    id: "brightfield",
+    label: "brightfield",
+    blurb: "APP.md A2 — the condenser, the Abbe sum, and where the cutoff really lands",
+    Component: BrightfieldPanel,
+  },
+];
+
+/** The route a bare or unknown hash lands on. */
+export const DEFAULT_PANEL_ID = PANELS[0]!.id;
+
+export function panelFor(hash: string): Panel {
+  const id = hash.replace(/^#\/?/, "");
+  return PANELS.find((p) => p.id === id) ?? PANELS[0]!;
+}
