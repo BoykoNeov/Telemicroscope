@@ -78,6 +78,13 @@ import { getMedium } from "../materials/catalog";
  * half of this module generalises every formula here to N layers of N indices
  * (§ 6e.1), exactly, still to all orders. That generalisation is where "the oil
  * is index-matched" stops being a slogan and becomes an algebraic identity.
+ *
+ * The **third** section takes the same stack and buries the specimen inside one
+ * of its layers (§ 6l): a mount of index n_s and a focal depth d. That needs no
+ * new physics at all — a depth is one more layer — and what it adds is the
+ * reference the literature quotes it in, the focus-knob scaling that falls out of
+ * the same apparent distance, and the aperture ceiling that is not an aberration
+ * at all.
  */
 
 /** The No. 1.5 cover glass every DIN/JIS objective is engraved for (mm). */
@@ -404,6 +411,156 @@ export function stackW040Mm(
   );
 }
 
+/**
+ * ## The DEPTH — § 6e.1's stack with the specimen buried inside one of its layers
+ *
+ * Everything above puts the specimen *on* the cover glass. A real specimen is
+ * mounted in something — water, glycerol, a resin — and sits some depth below
+ * the slip, which is the dominant real-world defect of deep widefield and
+ * confocal imaging and the reason correction collars exist (§ 6l).
+ *
+ * The physics needs nothing new. Focusing at depth d into a mount of index n_s,
+ * through immersion n_i, is **one more layer** on the stack above: t = d,
+ * n = n_s. `stackWavefrontErrorMm` already solves that exactly, to all orders,
+ * and every property it has transfers unchanged — linear in d, identically zero
+ * when n_s = n_i, leading term q⁴.
+ *
+ * ## The literature quotes a different expression, and the difference is a refocus
+ *
+ * Gibson–Lanni and Hell et al. quote the depth aberration as
+ *
+ *     OPD(q) = d·[ √(n_s²−q²) − √(n_i²−q²) ]
+ *
+ * which is `depthOpdMm` below — derived independently here (a ray leaving the
+ * source at θ_s against a ray leaving the objective's nominal focus at θ_i, the
+ * two emerging parallel, with the lateral offset of the interface crossing
+ * projected onto the shared emergent direction). It is **not** the stack's
+ * expression, because the two are referenced to different points: the stack to
+ * the *paraxial image* of the buried source, the literature to the objective's
+ * *nominal* focus. They differ by an exact axial shift `depthFocusShiftMm` plus
+ * a piston, and § 6l.1 pins that to f64.
+ *
+ * **The trap worth stating, because it is the natural check to reach for and it
+ * reads backwards:** the two forms have *different q⁴ coefficients* — for a 10 µm
+ * water mount under oil, −1.1918e-4 against −1.6826e-4 per q⁴. That is evidence
+ * of correctness, not of error. An exact axial shift δ in a medium of index n is
+ * δ·[√(n²−q²) − n], which carries q⁴ and every higher even order; only its
+ * *paraxial* part is q². So two expressions genuinely related by a refocus **must**
+ * disagree in q⁴, and the disagreement here is the shift's own q⁴ to the last
+ * digit. Comparing third-order coefficients cannot tell a wrong wavefront from a
+ * differently-referenced one; the all-orders identity can.
+ *
+ * ## The wall is not aberration — the rays do not exist
+ *
+ * A ray inside the mount carries q = n_s·sinθ_s < n_s. So **no ray of invariant
+ * above n_s ever leaves the specimen**, whatever the objective's rim is engraved
+ * with: an oil objective labelled 1.40 delivers at most **1.3347** into a water
+ * mount, and the outer annulus of its pupil receives no light from the specimen
+ * at all. That is `deliveredNaIntoMount`, and it is a geometric ceiling of the
+ * kind this branch keeps meeting — after § 6b's f/4.1, § 6d's NA 0.343,
+ * § 6e.4's NA 1.411 and § 6q's 0.88·f_e, the fifth, and the cleanest, being one
+ * line of the ray invariant.
+ *
+ * It is a ceiling on the rays and **not** on the wavefront, which is worth
+ * stating because the two behave oppositely there. `stackLongitudinalAberrationMm`
+ * carries √(n_s²−q²) in its denominator and **diverges** at the wall — the
+ * grazing ray's axial crossing runs away. `stackWavefrontErrorMm` does not: its
+ * rationalised denominator keeps that root as a *factor* alongside terms that
+ * stay finite, so W at q = n_s is an ordinary number (−4.30e-3 mm for 10 µm of
+ * water under oil). So nothing blows up and nothing is clipped by an aberration
+ * budget; the rays simply stop existing, and § 6l.3 pins the boundary at exactly
+ * n_s — one ulp below it computes, at it refuses.
+ */
+
+/**
+ * The literature's depth OPD — Gibson–Lanni / Hell et al., referenced to the
+ * objective's **nominal** focus rather than to the buried source's paraxial
+ * image:
+ *
+ *     OPD(q) = d·[ √(n_s²−q²) − √(n_i²−q²) ]
+ *
+ * Written as the header derives it, deliberately NOT rationalised and NOT reusing
+ * the stack: it is the external pin `stackWavefrontErrorMm` is checked against,
+ * so it must be an independent expression or the check is a tautology. Carries
+ * piston and defocus; `stackWavefrontErrorMm` carries neither.
+ */
+export function depthOpdMm(
+  depthMm: number,
+  mountIndex: number,
+  immersionIndex: number,
+  q: number,
+): number {
+  if (!(q >= 0)) throw new Error("depthOpdMm: the ray invariant q must be non-negative");
+  if (!(q < mountIndex)) {
+    throw new Error(
+      `depthOpdMm: q = ${q} does not propagate in a mount of index ${mountIndex} — no ray of that invariant leaves the specimen`,
+    );
+  }
+  if (!(q < immersionIndex)) {
+    throw new Error(
+      `depthOpdMm: q = ${q} does not propagate in immersion of index ${immersionIndex}`,
+    );
+  }
+  return (
+    depthMm *
+    (Math.sqrt(mountIndex * mountIndex - q * q) - Math.sqrt(immersionIndex * immersionIndex - q * q))
+  );
+}
+
+/**
+ * The exact axial shift separating the two references above: how much farther
+ * than its geometric depth the buried source's paraxial image lies.
+ *
+ *     δ = d·(n_i − n_s)/n_s
+ *
+ * Computed as `stackApparentDistanceMm` less the real depth rather than from that
+ * formula, so the two cannot drift: it *is* § 6e.1's apparent distance, seen as a
+ * displacement.
+ *
+ * Its practical name is the **focus-knob scaling**, and the direction inverts
+ * easily, so both currencies: the objective travels δ + d = d·n_i/n_s per unit of
+ * real depth — **1.1365 for oil into water** — so a z-stack indexed by knob
+ * travel *overestimates* depth, and the correction multiplies nominal z by
+ * n_s/n_i = **0.8799**. Paraxial; § 6l.5 measures the marginal ray's own ratio,
+ * whose spread across the aperture IS the spherical aberration.
+ */
+export function depthFocusShiftMm(
+  depthMm: number,
+  mountIndex: number,
+  immersionIndex: number,
+): number {
+  return (
+    stackApparentDistanceMm([{ thicknessMm: depthMm, n: mountIndex }], immersionIndex) - depthMm
+  );
+}
+
+/**
+ * The paraxial depth scaling n_i/n_s — knob travel per unit of real depth.
+ *
+ * Multiply a nominal (knob-travel) z by its reciprocal to recover real depth.
+ */
+export const mountDepthScale = (mountIndex: number, immersionIndex: number): number =>
+  immersionIndex / mountIndex;
+
+/**
+ * The largest numerical aperture a mount of index `mountIndex` can deliver into
+ * an objective engraved for `objectiveNa`: min(NA, n_s), because q = n_s·sinθ_s.
+ *
+ * Not a tolerance and not an aberration — a ray of higher invariant does not
+ * exist inside the specimen, so the pupil beyond it is dark. See the header.
+ *
+ * When the mount is the binding one this returns n_s, which is a **supremum and
+ * not a maximum**: sinθ_s < 1 strictly, so the aperture is approached and never
+ * reached. That is why it is the right number for a pupil mask — the boundary
+ * point is one lattice point of measure zero — and the wrong one to hand to
+ * `mountDepthTolerance`, which refuses it.
+ */
+export function deliveredNaIntoMount(objectiveNa: number, mountIndex: number): number {
+  if (!(objectiveNa > 0)) throw new Error("deliveredNaIntoMount: NA must be positive");
+  if (!(mountIndex > 0)) throw new Error("deliveredNaIntoMount: the mount index must be positive");
+  return Math.min(objectiveNa, mountIndex);
+}
+
 export interface CoverslipTolerance {
   /**
    * Rayleigh's quarter wave: the peak third-order coefficient W₀₄₀ held to λ/4.
@@ -438,6 +595,69 @@ export function coverslipTolerance(
   // Δt = W₀₄₀ · 8n³ / ((n²−1)·NA⁴) — plateW040Mm inverted, exact since it is
   // linear in thickness.
   const perW040 = (8 * n * n * n) / ((n * n - 1) * numericalAperture ** 4);
+  return {
+    quarterWaveMm: (lambdaMm / 4) * perW040,
+    marechalMm: ((6 * Math.sqrt(5) * lambdaMm) / 14) * perW040,
+  };
+}
+
+/**
+ * How deep into a mismatched mount an objective may focus before the depth
+ * aberration alone spends the whole error budget — `coverslipTolerance`'s
+ * structure, with depth in place of slip thickness.
+ *
+ * Both criteria run on the third-order coefficient
+ * W₀₄₀ = d·NA⁴·(n_s²−n_i²)/(8·n_s³·n_i²) and therefore as 1/NA⁴, exactly as the
+ * slip's does — but with one difference that is the whole reason the two are
+ * different steps: a slip error is a fixed one-off, and **depth grows without
+ * bound**, so every mismatched mount has a depth past which no objective is
+ * diffraction-limited.
+ *
+ * `numericalAperture` must be one the mount can deliver (see
+ * `deliveredNaIntoMount`) — a budget quoted at an aperture whose rays do not
+ * exist is a number about nothing, so it is refused rather than extrapolated.
+ *
+ * **This is a THIRD-ORDER readout, and against a mount it stops being a bound
+ * much sooner than `coverslipTolerance` does.** Both are the W₀₄₀ coefficient's
+ * budget, but a stack's exact wavefront departs from its own leading term as the
+ * aperture approaches the *smallest* index in the stack — and for a mount that
+ * index is the mount's, which is the smallest number anywhere in an immersion
+ * system. Water under oil measures exact/third-order at 1.02 (NA 0.2), 1.94
+ * (NA 1.0), 3.29 (NA 1.2), 5.79 (NA 1.3); a D263 slip in the same oil is at 2.50
+ * only by NA 1.2, because 1.5254 is a long way from 1.2 and 1.3347 is not.
+ *
+ * What that costs is measured rather than estimated (§ 6l.4): against a Maréchal
+ * depth **bisected on the traced Strehl**, this function over-reports by 1.25× at
+ * NA 0.6, 1.91× at NA 0.9 and **4.51× at NA 1.2**, where it says 21.3 µm and the
+ * real answer is 4.74 µm. It is kept in the third-order currency anyway — that is
+ * the currency the literature's tolerances are quoted in and the one
+ * `coverslipTolerance` uses, and a function that silently switched conventions
+ * between the slip and the mount would be worse than one that names its own
+ * departure. Quote it below NA ~0.9 and bisect above it.
+ */
+export function mountDepthTolerance(
+  numericalAperture: number,
+  wavelengthNm: number,
+  mountIndex: number,
+  immersionIndex: number,
+): CoverslipTolerance {
+  if (!(numericalAperture > 0)) throw new Error("mountDepthTolerance: NA must be positive");
+  if (!(numericalAperture < mountIndex)) {
+    throw new Error(
+      `mountDepthTolerance: NA ${numericalAperture} is not delivered by a mount of index ${mountIndex} — no ray of that invariant leaves the specimen. The ceiling is ${mountIndex} and it is OPEN, since q = n_s·sinθ_s is strictly below n_s, so quote the budget at an aperture the mount actually carries rather than at the ceiling itself.`,
+    );
+  }
+  if (mountIndex === immersionIndex) {
+    throw new Error(
+      "mountDepthTolerance: a matched mount aberrates identically zero at every depth — there is no budget to report",
+    );
+  }
+  const lambdaMm = wavelengthNm * 1e-6;
+  // d = W₀₄₀ · 8·n_s³·n_i² / (|n_s²−n_i²|·NA⁴) — the depth coefficient inverted,
+  // exact because it is linear in depth.
+  const perW040 =
+    (8 * mountIndex ** 3 * immersionIndex * immersionIndex) /
+    (Math.abs(mountIndex * mountIndex - immersionIndex * immersionIndex) * numericalAperture ** 4);
   return {
     quarterWaveMm: (lambdaMm / 4) * perW040,
     marechalMm: ((6 * Math.sqrt(5) * lambdaMm) / 14) * perW040,

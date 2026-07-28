@@ -57,6 +57,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
+| [6l](#step-6l--depth-dependent-spherical-aberration) | § 6k's named deferral closed: a focal depth is ONE MORE LAYER on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — the literature's depth OPD shown to be the engine's stack plus an EXACT axial refocus and a piston, < 1e-17 at every q, with the trap that the two forms' q⁴ coefficients **disagree** (1.4115×) precisely *because* an exact axial shift is not a pure q² wavefront, so the natural third-order check reads backwards and only the all-orders identity decides; linear in depth to 1e-14 and a matched mount a `toBe(0)` at every depth and aperture; the headline **not an aberration at all** — no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly **1.3347** into water, the fifth geometric ceiling in this branch and the boundary exact to one ulp, with the WAVEFRONT finite there (4.3039e-3 mm) while the LONGITUDINAL aberration diverges, and the truncation a lattice POINT COUNT converging on (n_s/NA)² in § 6i.2's way; the budget 1/NA⁴ but shown to stop being a bound far sooner than the slip's, since the exact wavefront outruns its leading term as NA nears the SMALLEST index in the stack (1.02 → 5.79 from NA 0.2 to 1.3) — measured against a **bisected** Maréchal depth as a **4.51× over-report at NA 1.2**, 21.3 µm against 4.74 µm; the focus-knob scaling n_i/n_s = 1.13709 (correction 0.87944) with the marginal ray's own ratio departing at order q², so the depth scaling and the depth aberration are ONE measurement; § 6k.1's flux invariance and the empty cone both surviving, because the SA is a pure phase and the truncation is depth-independent; a fixed depth breaking § 6k's axial symmetry **19.24×** with best focus moved to +1.11 waves; a rarer mount opposing a denser slip at **33.28 µm of slip per µm of depth**, which kills it as a trade; and the mount/immersion index coupling — which has no readout to catch it — REFUSED by construction rather than documented | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | The grid itself warped at last — § 6h's named deferral: a `Specimen` callback evaluated at the object point each pixel really looks at, so the warp happens in the ARGUMENT and nothing is resampled; the pixel convention pinned bitwise against § 6i's emitter rasterizer, whole flux in one pixel; a straight object line shown to BOW, and at ×2.00 per doubling rather than the cubic's ×8.00 — the sagitta is the map's CURVATURE, so § 6h.1's cubic, § 6m.4's slope and this complete one ladder of derivatives; the sign pinned as barrel; a negative control that cannot bow AT ALL; and a round trip through a whole picture whose residual is that same curvature, against a uniform map whose residual is the slope — so the gap between them doubles with field, 16.8× to 257×; and the whole thing composed on a traced 4×/0.10, where the two maps' rendered PICTURES differ by 2.8e-3 of peak at 6.4 mm against 1.5e-6 on axis | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image at last, each cropped to its useful span — and the guard band that crop needs measured against a CLOSED FORM: under a coherent source the error falls as guard^(−1/2), the tail integral ∫\|h\|² of the Airy amplitude, reached from above at −0.334, −0.435, −0.533; a filled condenser beating that limit by a factor that DOUBLES with the guard (22.9, 42.0, 84.8), so the guard does depend on the coherence and D0.2's "S-independent" reading is corrected; the finding that D0.2's ~4e-3 plateau is the CONDENSER'S OWN QUADRATURE and not h's tail — the same guard, specimen and lattice at 749 source points instead of 97 falls 7.1×, and the flat guard^(−0.3) tail flattens only at the coarse sampling; the same 749 points shown NOT converged at S = 1, where `diskSource` spaces them 4× wider; a guard refused rather than rounded when it is not whole pixels; the pitch shown to be a hundredth of a pixel from the abutment fixed point across 17 tiles, so the solve is skipped and said so; the seam itself, on a traced 4×/0.10, falling 23× from 1.8e-2 to 7.8e-4 and stopping being a seam at all; and — for a mosaic that PANS — a tile rendered alone shown to be the tile the mosaic composes **bit for bit**, indexed from the anchor rather than from the viewport, with the alternative measured at 3.4e-3 px of ruler drift but **16.0 px** of lattice offset a third of a tile off centre | `mosaic` |
@@ -72,10 +73,10 @@ to. Individual steps also carry their own "Not yet pinned" notes.
 
 Tests are in `packages/core/test/<name>.test.ts`. Steps 5a and 5b do not
 exist: tilt/decenter and folded pupils were prerequisites closed inside § 4a.
-Step 6l does not exist *yet*, and unlike those it is a gap rather than a
-closure: it is depth-dependent spherical aberration, scoped in APP.md and
-independent of the § 6m–§ 6s line, which was taken first because it is what the
-field of view is blocked on.
+**Step 6l is now closed too** — it was the one gap rather than a closure, taken
+after the § 6m–§ 6s line because that line is what the field of view was blocked
+on and this one is independent of all of it. With it the microscope branch has
+no numbered gap left.
 
 ## Step 1 — geometry, materials, ray tracing
 
@@ -4932,13 +4933,14 @@ the engine reads independently. § 6h's "a doublet cannot be aplanatic" arriving
 in a third place.
 
 ### Not yet pinned
-- **Depth-dependent spherical aberration.** Focusing *into* a specimen whose
-  index does not match the immersion adds spherical aberration that grows with
-  depth — the dominant real-world defect of deep widefield and confocal imaging,
-  and the reason correction collars exist. § 6c solves the plate to all orders
-  and § 6e the N-layer stack, so the physics is already in the engine; wiring the
-  focal depth into that stack is its own step. `DepthPupils` is a callback so
-  that it can be supplied, and § 6k.3's control is its first user.
+- ~~**Depth-dependent spherical aberration.**~~ **Closed at
+  [§ 6l](#step-6l--depth-dependent-spherical-aberration).** It was exactly as
+  scoped — a focal depth is one more layer on § 6e.1's stack, so no physics was
+  added — and `DepthPupils` took its first real user beside § 6k.3's control.
+  Two of this step's own results survived it and one did not: § 6k.1's flux
+  invariance and § 6k.4's empty cone both hold (the SA is a pure phase, and the
+  mount's aperture truncation does not vary with depth), while § 6k.1's axial
+  *symmetry* breaks 19.24× for an emitter at a fixed depth.
 - **Deconvolution and confocal**, both named by the missing cone rather than
   built. Confocal is not a post-process: it needs a detection pinhole and an
   excitation PSF, which is the excitation path § 6j left open.
@@ -4957,6 +4959,274 @@ in a third place.
 - **Signal-to-haze against specimen thickness**, and the bead-in-a-slab scene
   that would show it. It is a consequence of § 6k.1 and § 6k.2 rather than an
   independent pin, and it wants scenes the branch has not built.
+
+## Step 6l — depth-dependent spherical aberration
+
+The last numbered gap in the microscope branch, and § 6k's own named deferral.
+§ 6k images a volume through a pupil that varies with depth **only by defocus**,
+and a real specimen is mounted in something — water, glycerol, a resin — whose
+index is not the immersion's. Focusing d below the coverslip drags the cone
+through d of the wrong medium and adds spherical aberration **that grows with
+d**: the dominant real defect of deep widefield and confocal imaging, and the
+reason correction collars exist.
+
+The step adds **no physics**. § 6c solves a plate to all orders and § 6e.1 the
+N-layer stack; a focal depth is one more layer, t = d and n = n_s, and every
+property of the stack transfers unchanged. What the rungs pin is that the reuse
+is legitimate, what it costs, and the two places the branch's own habits mislead.
+
+New: `depthOpdMm`, `depthFocusShiftMm`, `mountDepthScale`, `deliveredNaIntoMount`
+and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
+(`MountSpec`, `mountAperture`, `mountWavefrontWaves`, `withMountAberration`,
+`mountPupils`, `mountVolumeOptions`, `mountDefocusWaves`).
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Literature depth OPD = stack wavefront + exact axial shift + piston, < 1e-17 at every q | Gibson–Lanni / Hell et al., derived independently | ✅ |
+| The two forms' q⁴ coefficients disagree by 1.4115×, and the gap is the shift's own q⁴ to 1e-15 relative | closed form | ✅ |
+| The shift IS § 6e.1's apparent distance: δ + d = `stackApparentDistanceMm` | engine identity | ✅ |
+| Doubling the depth doubles the wavefront at every aperture, to 1e-14 | closed form (d is a bare factor) | ✅ |
+| A mount matched to the immersion returns `toBe(0)` at every depth and aperture | algebraic identity (§ 6e.1) | ✅ |
+| Delivered NA capped at exactly n_s; boundary refuses AT n_s, computes one ulp below | ray invariant q = n_s·sinθ_s | ✅ |
+| At the wall the WAVEFRONT is finite (4.3039e-3 mm) and the LONGITUDINAL aberration diverges | rationalised forms' denominators | ✅ |
+| Pupil truncation is a lattice POINT COUNT converging on (n_s/NA)², < 1e-3 by 256 bins | § 6i.2, closed form | ✅ |
+| The depth budget is exactly 1/NA⁴ under both criteria, 24√5/14 apart | closed form | ✅ |
+| Exact/third-order = 1.0203, 1.9417, 3.2870, 5.7947 at NA 0.2, 1.0, 1.2, 1.3 | exact stack vs its own leading term | ✅ |
+| The third-order budget over-reports the BISECTED Maréchal depth by 4.51× at NA 1.2 (21.3 µm against 4.74 µm) and 1.25× at NA 0.6 | Strehl 0.8, bisected | ✅ |
+| Paraxial focus-knob scaling = n_i/n_s = 1.13709, reciprocal 0.87944 | closed form | ✅ |
+| The marginal ray's own depth ratio departs from it at order q² — ×4.00 per halving | third-order spherical | ✅ |
+| Every plane's throughput constant with depth to 1e-12; the missing cone stays under 1e-12 | § 6k.1 / § 6k.4 | ✅ |
+| A fixed depth makes the axial response 19.24× asymmetric where an unaberrated one is symmetric to 1e-12 | § 6k's sinc² control | ✅ |
+| Best focus moves to +1.11 waves; Strehl at best focus 0.9606 / 0.7801 / 0.4386 at 2 / 5 / 10 µm | measured | ✅ |
+| A rarer mount's W₀₄₀ opposes a denser slip's, at 33.28 µm of slip per µm of depth, summing to zero at the crossing | `stackW040Mm`'s sign rule | ✅ |
+| `mountVolumeOptions` emits the four coupled numbers and refuses each override, while letting an explicit `undefined` through | engine identity | ✅ |
+| Quoting the budget AT the mount's ceiling is refused — the cap is a supremum, not a maximum | sinθ_s < 1 strictly | ✅ |
+| A matched mount reproduces § 6k's `defocusing` **bit for bit** | identity rung | ✅ |
+
+### 6l.1 — the literature quotes it in a different reference, and the natural check reads backwards
+
+Gibson–Lanni and Hell et al. quote the depth aberration as
+OPD(q) = d·[√(n_s²−q²) − √(n_i²−q²)], which is `depthOpdMm` — derived here
+independently of the stack (a ray leaving the buried source at θ_s against one
+leaving the objective's nominal focus at θ_i, the two emerging parallel, with the
+lateral offset of the interface crossing projected onto the shared emergent
+direction). That is deliberately **not** written in terms of
+`stackWavefrontErrorMm`, or the check below would be a rearrangement rather than
+a pin.
+
+The two are referenced to different points — the stack to the buried source's
+**paraxial image**, the literature to the objective's **nominal focus** — and the
+whole of the difference is the axial distance between them plus a piston, both in
+closed form:
+
+    OPD(q) = W_stack(q) + δ·[√(n_i²−q²) − n_i] + d·(n_s − n_i),   δ = d(n_i−n_s)/n_s
+
+Residual **< 1e-17 mm at every q from 0 to 1.33**, and flat across the aperture
+rather than growing, which is what separates an identity from a fit that happens
+to be good near the axis. δ is not a second formula: δ + d is
+`stackApparentDistanceMm` to 1e-18, so the shift IS § 6e.1's apparent distance
+seen as a displacement.
+
+**The trap, and it is worth the rung on its own.** The natural way to check two
+wavefront expressions against each other is to compare their third-order
+coefficients, and here that **fails**: −1.19130e-4 against −1.68153e-4 per q⁴ for
+10 µm of water under oil, a factor of 1.4115. It is evidence of correctness. An
+exact axial shift δ in a medium of index n is δ·[√(n²−q²) − n], whose expansion
+is −δq²/(2n) − δq⁴/(8n³) − …: it carries q⁴ and every higher even order, and only
+its *leading* part is defocus. Two expressions genuinely related by a refocus
+therefore **must** disagree in q⁴ — and the disagreement here is the shift's own
+q⁴ to 1e-15 relative. Comparing third-order coefficients cannot tell a wrong
+wavefront from a differently-referenced one; only the all-orders identity can.
+
+### 6l.2 — linear in depth exactly, and a matched mount is a hard zero
+
+d is a bare factor in every stack formula, so doubling the depth doubles the
+wavefront **at NA 1.3 as much as at NA 0.1** — 1e-14, not a small-aberration
+approximation holding. And the layer carries (n_s²−n_i²) as an explicit factor,
+so a mount matched to the immersion returns `toBe(0)` at every depth and every
+aperture: § 6e.1's identity arriving where a microscopist meets it, and the whole
+reason water and glycerol objectives exist.
+
+The one property that does **not** transfer from § 6c is the one that matters: a
+slip error is a fixed one-off, and depth is unbounded. Every mismatched mount has
+a depth past which no objective is diffraction-limited.
+
+### 6l.3 — the wall is the ray invariant, and it is not an aberration at all
+
+A ray inside the specimen carries q = n_s·sinθ_s < n_s. **No ray of higher
+invariant leaves the specimen**, whatever the objective's rim is engraved with, so
+an oil objective labelled 1.40 collects at most **1.3347** from a water mount and
+the outer annulus of its pupil is dark. The boundary is exact: q one ulp below n_s
+computes, q = n_s refuses.
+
+That is the fifth geometric ceiling in this branch — after § 6b's f/4.1, § 6d's
+NA 0.343, § 6e.4's NA 1.411 and § 6q's 0.88·f_e — and the only one that is a
+single line of algebra.
+
+**It is a ceiling on the rays and not on the wavefront, and the two behave
+oppositely there**, which is why the rung says which it pins.
+`stackLongitudinalAberrationMm` carries √(n_s²−q²) in its *denominator* and
+diverges — the grazing ray's axial crossing runs away, growing >20× over the last
+decade of approach. The rationalised wavefront keeps that root as a *factor*
+beside terms that stay finite, so W at the wall is an ordinary number,
+**4.3039e-3 mm** for 10 µm of water under oil. Nothing blows up and nothing is
+clipped by an aberration budget; the rays simply stop existing.
+
+The truncation is an **amplitude**, so it costs flux. What the engine reports is
+the fraction of pupil *lattice points* inside the ceiling — § 6i.2's finding
+again, a count and not an area — converging on (n_s/NA)² = 0.90887 from 0.9391 at
+16 bins through 0.9140 at 64 to within 1e-3 by 256, with no rate claimed for the
+same reason § 6i.2 claimed none. A pupil the mount can carry whole is returned
+**as the same object**, so a matched narrow system pays nothing for a wrapper that
+does nothing.
+
+### 6l.4 — the budget is 1/NA⁴, and it stops being a bound sooner than the slip's
+
+`mountDepthTolerance` mirrors `coverslipTolerance` exactly: the W₀₄₀ coefficient
+under Rayleigh's quarter wave and Maréchal's balanced residual, 24√5/14 apart, and
+exactly 1/NA⁴ (16.000 between NA 0.5 and 1.0). At NA 1.0 into water under oil it
+reads 11.542 µm and 44.244 µm. An aperture the mount cannot deliver is refused
+rather than extrapolated, and a matched mount is refused outright — there is no
+budget to report on a hard zero.
+
+**But the third-order form dies far sooner against a mount than against a slip,
+and the reason is structural.** A stack's exact wavefront outruns its own leading
+term as the aperture approaches the *smallest* index in the stack, and for a mount
+that index is the mount's — the smallest number anywhere in an immersion system.
+Water under oil measures exact/third-order at
+
+| NA | 0.2 | 1.0 | 1.2 | 1.3 |
+|---|---|---|---|---|
+| exact / W₀₄₀ | 1.0203 | 1.9417 | 3.2870 | 5.7947 |
+
+where a D263 slip in the same oil is only at 2.4953 by NA 1.2, because 1.5254 is a
+long way from 1.2 and 1.3347 is not.
+
+What that costs is **measured, not estimated**. Against a Maréchal depth bisected
+on the traced Strehl (§ 6d's discipline), the third-order budget over-reports by
+1.25× at NA 0.6, 1.91× at NA 0.9 and **4.51× at NA 1.2** — where it says 21.3 µm
+and the answer is **4.74 µm**. That last number is the classic "an oil lens on an
+aqueous specimen is good for a few microns", produced rather than transcribed.
+
+The function is kept in the third-order currency anyway, and says so: that is the
+currency the literature's tolerances are quoted in and the one `coverslipTolerance`
+uses, and a function that silently switched conventions between the slip and the
+mount would be worse than one that names its own departure. § 6s reported its
+map's error as an estimate and not a bound for the same reason.
+
+### 6l.5 — the focus-knob scaling, and its spread across the aperture IS the aberration
+
+Paraxially the buried source's image sits n_i/n_s farther than its geometric
+depth, so the objective travels **1.13709 per unit of real depth** for oil into
+water. A z-stack indexed by knob travel is therefore *stretched*, and the
+correction multiplies nominal z by n_s/n_i = **0.87944**. Both currencies are
+written down because this is the single most-inverted factor in the subject; the
+ratio is checked against `stackApparentDistanceMm` rather than restated.
+
+The real ratio is **aperture-dependent**, and that dependence is what spherical
+aberration *is*. Read off `stackLongitudinalAberrationMm`, the marginal ray's own
+depth ratio departs from the paraxial one at order q² — ×4.016 and ×4.004 per
+halving of q, the ×4.00 that says third-order spherical and nothing lower, which
+is the same statement as the stack's leading term being q⁴. At a working aperture
+it is not a small correction: the marginal ray scales depth by **1.5902** at
+q = 1.2 where the paraxial one says 1.1371. The depth scaling and the depth
+aberration are one measurement rather than two.
+
+### 6l.6 — the SA is a pure phase, so § 6k.1 survives and the cone stays empty
+
+A depth's aberration changes no pupil amplitude, and the mount's own truncation
+does not vary with depth either — so Σ|P|² is untouched and, by Parseval through
+the engine's own FFT, so is every kernel's total. Throughput is constant to 1e-12
+over 0 → 8 waves, and the missing cone read through `axialSpectrum` stays under
+**1e-12** where § 6k.5's depth-varying *amplitude* control filled it to 0.05.
+
+That is the precise sense in which this step changes what the image looks like
+without changing what deconvolution could recover.
+
+### 6l.7 — a fixed depth breaks the axial symmetry § 6k pinned
+
+The other of the two questions the API refuses to blur: one emitter at a known
+depth, the objective walked through it. Composed rather than given its own entry
+point — `defocusing(withMountAberration(...))` — so a caller has to say which
+question they are asking.
+
+§ 6k's sinc²(π·w₂₀) is even in the defocus and the engine reproduces that to
+1e-12. Add 20 µm of water under an NA 1.2 oil cone and the axial response is
+**19.24× brighter one wave past focus than one wave before it**, and best focus
+moves to **+1.11 waves**. The sign is the diagnosis and it is the one the physics
+predicts: water is *rarer* than oil, the depth aberration is negative, and the
+compensating defocus is positive.
+
+Refocusing buys back the paraxial half and no more. Strehl at best focus falls
+**0.9606 → 0.7801 → 0.4386** at 2, 5 and 10 µm — Maréchal crossed between 5 and
+10 µm, consistent with 6l.4's bisected 4.74 µm.
+
+### 6l.8 — a rarer mount opposes a too-thick slip, at a rate that kills the idea
+
+`stackW040Mm`'s sign rule says a layer denser than the emergent medium
+contributes positive spherical aberration and a rarer one negative. A D263 slip is
+denser than the oil and a water mount is much rarer, so focusing **deeper**
+partially cancels a slip that is too **thick** — § 6e.4's "the cover slip HELPS"
+with a number attached.
+
+The number kills it as a usable trade. The slip is nearly index-matched to the oil
+and the mount is not, so the exchange rate is **33.28 µm of slip error per µm of
+depth**: 10 µm of slip error is undone by 0.3005 µm of depth, and the two layers
+at that depth sum to zero to 1e-18. Depth is the dominant term by a factor of
+thirty, and a correction collar set for one cannot be trading against the other.
+
+### 6l.9 — the coupling with no readout to catch it is refused, not documented
+
+`renderVolume` turns a slice's millimetres into waves with W = ½·δ·NA²/n, and **n
+there is the medium the geometry is in** — the mount, not the immersion.
+`mountPupils` inverts that same map to recover each slice's absolute depth (affine,
+so exact to 1e-14). If the two disagree, every slice is aberrated for a depth 14%
+wrong, silently, with nothing in the resulting image to show it.
+
+So the four coupled numbers are not the caller's to supply. `mountVolumeOptions`
+emits NA, wavelength, refractive index and focus from the same `MountSpec` the
+pupils were built from, the type removes them from the options it accepts, and
+each is refused at runtime as well — a plain object reaching it through `any`
+would otherwise reintroduce exactly the error the type was there to stop. This is
+§ 6s's discipline with the radial map's identity, applied where there is no
+readout to notice the mismatch. An explicit `undefined` is **not** an override and
+is let through: three of the four are optional on `VolumeImageOptions`, so a
+respread options object carries the key unset, and the spec's values are written
+after the spread and would have won regardless.
+
+One asymmetry is deliberate and pinned. `deliveredNaIntoMount` returns n_s, which
+`withMountAberration` uses as a pupil mask and `mountDepthTolerance` **refuses** —
+because n_s is a *supremum and not a maximum*: sinθ_s < 1 strictly, so the
+aperture is approached and never reached. That is the right number for a mask,
+where the boundary is one lattice point of measure zero, and the wrong one for a
+budget, which would then be quoted for an aperture no ray has. The error message
+says which rather than only naming the ceiling.
+
+The identity rung closes it: a **matched** mount reproduces § 6k's own
+`defocusing` **bit for bit**, values and `formedSum` alike, so every § 6k result
+survives this step unaltered. And a whole volume renders through the new pupils
+with each slice aberrated for its own depth, its planes still delivering equal
+flux — § 6k.2 again, through machinery that could have broken it.
+
+### Not yet pinned
+- **Off axis.** § 6c's plate and § 6e.1's stack are on-axis S_I stories. A plate
+  in a non-telecentric beam also adds coma and astigmatism, and the object-space
+  ray aiming that would express it is § 6a's standing blocker, inherited here
+  unchanged.
+- **The chromatic half.** Every index is resolved at one wavelength, so a mount
+  dispersive relative to the immersion is one λ at a time — the same deferral
+  § 6e names. § 6r's per-wavelength machinery would carry it, at one stack per λ.
+- **Correcting the objective FOR a depth**, rather than measuring what a depth
+  costs. That is § 6c's `targetS1Mm` route with the mount's W₀₄₀ as the target,
+  and it is what a correction collar physically does — § 6e.5 having already
+  measured the collar's real job to be index and NA drift rather than thickness.
+- **A depth-dependent radial map.** § 6s's table is built at one conjugate, and a
+  mount moves the object plane. § 6s.6 names this as its own open item; the
+  aberration does not move the chief ray's *height* map, but the refocus in 6l.5
+  does move the plane it is tabulated at.
+- **TIRF and the evanescent side of the wall.** 6l.3 stops at "the rays do not
+  exist". What happens beyond n_s is a real imaging modality and it is not
+  geometric optics.
 
 ## Step 6m — the off-axis frame
 
@@ -6394,9 +6664,12 @@ frames at two wavelengths — which is precisely the set of frames a caller read
   edge would be served better by nodes clustered there, and nothing measures
   that.
 - **The map under a `DepthPupils` stack (§ 6l).** The inverse is a function of
-  the object plane's depth as well, and § 6l does not exist. A table built at one
-  focal depth and used at another is the same bug class as the wavelength one,
-  and there is nothing to refuse it with yet because there is nothing to refuse.
+  the object plane's depth as well. § 6l has since landed, so there IS something
+  to refuse with now — and it is still not refused: the table's identity carries
+  the wavelength and the aiming, not the conjugate. § 6l.5's focus-knob scaling is
+  what moves the plane a table was built at (n_i/n_s per unit of real depth), so a
+  table built at one focal depth and used at another is the same bug class as the
+  wavelength one, now with a measured size rather than an unspecified one.
 - **The seeded-bisection alternative**, which would be exact. Bisecting inside a
   bracket 1e-9 wide returns the same float (§ 6m.2: the seed chooses the path and
   not the answer) but still costs 23 of the 52 iterations, so it is ~2.5× against
@@ -6434,6 +6707,19 @@ frames at two wavelengths — which is precisely the set of frames a caller read
   step's difficulty, but the resampler it needs is **not** the one already on the
   ladder. A rung pinned to a previous measurement inherits whatever that
   measurement was really measuring.
+- ~~**§ 6l — depth-dependent spherical aberration.**~~ **Claimed**, and it is the
+  branch's last numbered gap. It is the one entry on this list that did **not**
+  arrive as the scoping of an app surface — it was scoped in APP.md as
+  *disqualified*, blocked on itself — and it is the one that behaved most exactly
+  as predicted: "the physics is in § 6c/§ 6e already; wiring focal depth into that
+  stack is its own step" was right, and no physics was added. What it did not
+  predict is where the difficulty sat. Not in the wavefront, which was one call to
+  an existing function, but in the **reference** it is quoted in (§ 6l.1) and in a
+  **coupling between two modules' conventions** that no readout could have caught
+  (§ 6l.9). Twice now the expensive part of a step has been a convention rather
+  than a formula — § 6r's resampler Jacobian and this — which is a different
+  failure from "the feasibility number measured something else" and wants its own
+  guard: an identity a caller can get wrong silently is refused, not documented.
 
 ## Rules
 

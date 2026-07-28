@@ -10,5 +10,6 @@ export * from "./mosaic";
 export * from "./fluorescence";
 export * from "./emission";
 export * from "./volume";
+export * from "./depth-aberration";
 export * from "./camera";
 export * from "./exposure";

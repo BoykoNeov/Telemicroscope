@@ -770,9 +770,13 @@ curve at grid 64 matches grid 128 to **1e-14**. It therefore runs on the smalles
 grid a 32-bin pupil fits and spends what it saves on 1/32-wave steps. The peak
 position is identical at 32 and 64 bins for every objective.
 
-**Deliberately absent, and stated on the page:** depth-dependent spherical
-aberration (§ 6l — `DepthPupils` is the hook and this panel passes phase only, so
-the stack is symmetric about focus in a way a real one is not); any field
+**Deliberately absent, and stated on the page:** ~~depth-dependent spherical
+aberration~~ — **§ 6l has since landed and this is now wiring rather than a
+blocker** (see D10). The panel still passes phase only, so its stack is symmetric
+about focus in a way a real one is not; § 6l.7 measures that a real one is
+**19.24×** asymmetric at 20 µm of water under an NA 1.2 oil cone, and § 6l.9's
+`mountVolumeOptions` is what a panel must route its options through so the
+mount's index reaches `renderVolume` and not the immersion's. Also absent: any field
 decomposition (`renderVolume` takes one pupil keyed on *depth*, so the frame is
 imaged through the on-axis pupil and A4's corner-versus-axis comparison has no
 analogue); and `hazeKernel`, which is exact only for a z-uniform specimen — a
@@ -803,7 +807,7 @@ small PSF inset:
 | surface | blocked on |
 |---|---|
 | ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. What remains is authoring a scene, which is content rather than a blocker. |
-| Depth-dependent spherical aberration in the z-slider | § 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step with its own rungs. `DepthPupils` is the hook. Unchanged, and independent of Part D. |
+| ~~Depth-dependent spherical aberration in the z-slider~~ | ~~§ 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step.~~ **Unblocked at § 6l** — `mountPupils` is the `DepthPupils` A5 needs, and `mountVolumeOptions` supplies the options that go with it. A5 gains a mount index and a focus depth, and the stack stops being symmetric about focus. See A5's own note, and D10. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
 | ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. Fluorescence colour is still open: § 6j's band is emission-only, and an extended emitter field needs the Jacobian § 6n deferred. |
 | A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, now measured and composed: § 6m–§ 6o, compute-once, never live at a full field. § 6o pins the crop error of a tile to a closed form and § 6o.7 composes them. |
@@ -1535,6 +1539,34 @@ to fail.
 **Cost:** ~50 ms a build (A1 measured it), so it is a form-submit cost, not a
 drag cost. Sliders would need the same backpressure every other panel has.
 
+### D10. A5's z-slider through a real mount — *app wiring only* — **pair**
+
+Unblocked by § 6l, independent of everything else in Part D, and the cheapest
+remaining engine-backed surface in the doc: A5 already has a focus stack, a worker
+and two plots. What it gains is a **mount index** and a **focus depth**, routed
+through `mountVolumeOptions` so `renderVolume` divides by the mount's index and not
+the immersion's — § 6l.9's refusal is what stops that from being a thing a panel
+can get wrong.
+
+What appears on screen is the branch's own asymmetry finding. Today A5's axial
+response is even in the defocus because the pupil carries phase only; drop 20 µm of
+water under an NA 1.2 oil cone and it is **19.24× brighter one wave past focus than
+one wave before it**, with best focus moved to +1.11 waves. The **pair** is
+mandatory here for constraint 3's reason and then some, because two of the step's
+three headline results are things a picture cannot show: the delivered NA is capped
+at the mount's own index (an oil 1.40 collects **1.3347** from water — a readout,
+not a blur), and the third-order budget over-reports the bisected truth by **4.51×**
+at NA 1.2. The plot is Strehl against depth with both the quoted budget and the
+bisected one marked, and the gap between them *is* the surface's content.
+
+**Cost:** A5's, unchanged — the mount adds one term to a pupil callback that is
+already being evaluated per slice. The bisected curve is not live: it is A5's
+axial job run once per NA, so it is a compute-once overlay, not a drag cost.
+
+**A matched mount must reproduce today's panel exactly**, which is § 6l.9's
+bit-for-bit identity rung showing up as a UI invariant — the mount control at
+"immersion" is not a special case in the panel, it is a hard zero in the engine.
+
 ### D9. What stays out, and why
 
 - **A live full-field frame.** D0.1. Compute-once or nothing.
@@ -1559,11 +1591,17 @@ bounds its error and the stage that draws it have all **landed**. **D5** landed
 alongside and makes it fast — though *only* fast: § 6p measured down § 6o's belief
 that it would also lower the mosaic's error floor. **~~D6~~** landed after it, so
 the instrument ends at an eye rather than at an image, and **~~D7~~ has now
-landed too** — the branch is in colour. **Every engine step in Part D is done.**
-What is left in the list is **D8**, which was always independent and is still the
-cheapest breadth in the doc — and it is now the only thing in Part D that is app
-wiring rather than engine. A6 and Part B are untouched by all of this and can go
-at any point.
+landed too** — the branch is in colour. **Every engine step in Part D is done**,
+and so is the one engine step that was never in Part D at all: **§ 6l**, the
+depth-dependent spherical aberration this doc had listed as *disqualified*, which
+closes the microscope branch's last numbered gap and turns A5's stated omission
+into **D10**.
+
+What is left in the list is **D8** and **D10**, and both are app wiring rather
+than engine. D8 is still the cheapest breadth in the doc; D10 is the cheapest
+engine-backed surface, since A5 already has the stack, the worker and the plots
+and § 6l adds one term to a callback. A6 and Part B are untouched by all of this
+and can go at any point.
 
 **The one engine number that changed the queue — and has now been spent.** D4
 found the *rasterizer*, not the Abbe sum, is what a traced tile costs (see D0.1's
@@ -1717,8 +1755,9 @@ code. **A6** follows. **Part C** is a separate decision.
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
 steps with their own rungs. Its own order is at the end of that part; the short
 version was **D8 first for breadth, D1 → D4 for the field of view** — and every
-engine step in the part has since landed (§ 6m–§ 6r), so what is left in Part D
-is **D8 alone**, which is app wiring.
+engine step in the part has since landed (§ 6m–§ 6s), so what is left in Part D is
+**D8 and D10**, both app wiring. D10 exists because § 6l closed the branch's last
+numbered gap, which this doc had scoped as disqualified rather than as work.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and

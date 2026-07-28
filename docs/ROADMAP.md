@@ -170,7 +170,8 @@
    independent tolerances' variances stay additive and the RSS budget is exact.
    Still to build on it: the UI this exists for — a slider per tolerance, the
    image degrading as the budget predicts.
-6. **Microscope branch** ← current
+6. **Microscope branch** ← current; **every numbered step in it is now closed**
+   (§ 6l was the last gap). What remains here is app wiring and scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i),
    the latter now over a 3-D specimen ✅ (§ 6k); coverslip mismatch ✅ (§ 6c);
@@ -502,9 +503,10 @@
    its own field, so a volume costs one convolution per slice. The exception is a
    specimen uniform in z, which factors again and IS the haze kernel; and the
    shortcut that sums the planes first carries every photon and forms a different
-   image, so **energy is not a witness** here either. **Open:** depth-dependent
-   spherical aberration (the physics is in § 6c/§ 6e already; wiring focal depth
-   into that stack is its own step), deconvolution and confocal — both named by
+   image, so **energy is not a witness** here either. **Open:** ~~depth-dependent
+   spherical aberration~~ — **closed at § 6l**, exactly as scoped and with two of
+   this step's results surviving it (flux invariance, the empty cone) and one not
+   (the axial symmetry) — deconvolution and confocal, both named by
    the cone rather than built — an axial sampling verdict, and how far the
    quadratic wavefront sits from the exact Ewald cap (sin α against tan α: 2.6×
    at NA 1.40, but living entirely in the object-side z mapping, since the engine
@@ -693,8 +695,49 @@
    node distribution for a system whose distortion crowds the field edge, and the
    map under a `DepthPupils` stack — which is § 6l, and there is nothing to
    refuse a wrong-depth table with because there is nothing to build one from.
-   § 6l — depth-dependent spherical aberration — is unchanged and independent of
-   all of them, and is now a numbered gap in the ladder rather than a plan.
+   *Depth-dependent spherical aberration:* ✅ `imaging/depth-aberration` (§ 6l) —
+   the branch's **last numbered gap**, and § 6k's own named deferral. A specimen is
+   mounted in something whose index is not the immersion's, so focusing d below the
+   slip drags the cone through d of the wrong medium: the dominant real defect of
+   deep imaging. The step adds **no physics** — a focal depth is one more layer on
+   § 6e.1's stack — so its content is what the reuse costs, and it costs two things
+   that were not in the plan. First, the **reference**: the literature quotes the
+   depth OPD about the objective's nominal focus and the stack is referenced to the
+   buried source's paraxial image, so the two differ by an exact axial refocus, and
+   the natural check reads *backwards* — their q⁴ coefficients disagree by 1.4115×
+   precisely **because** an exact axial shift is not a pure q² wavefront. Comparing
+   third-order coefficients cannot tell a wrong wavefront from a differently-
+   referenced one; the all-orders identity (< 1e-17 at every q) can. Second, a
+   **coupling no readout could catch**: `renderVolume` divides by the index the
+   geometry is in — the *mount*, not the immersion — so the four coupled numbers are
+   emitted from one spec and each override is refused rather than documented.
+   **The headline is not an aberration at all.** No ray of invariant above n_s
+   leaves the specimen, so an oil objective engraved 1.40 delivers exactly **1.3347**
+   into a water mount and the rest of its pupil is dark — the fifth geometric
+   ceiling in this branch after § 6b's f/4.1, § 6d's NA 0.343, § 6e.4's NA 1.411 and
+   § 6q's 0.88·f_e, and the only one that is a single line of the ray invariant. At
+   that wall the *wavefront* is an ordinary number while the *longitudinal*
+   aberration diverges, so nothing is clipped by a budget; the rays stop existing.
+   **The budget stops being a bound sooner than the slip's, and that is measured
+   rather than estimated:** the exact wavefront outruns its own leading term as NA
+   approaches the smallest index in the stack — which for a mount is the mount's —
+   at 1.02, 1.94, 3.29, 5.79 over NA 0.2 → 1.3, so against a **bisected** Maréchal
+   depth the third-order form over-reports **4.51× at NA 1.2**, saying 21.3 µm where
+   the answer is **4.74 µm**. That is the classic "an oil lens on an aqueous
+   specimen is good for a few microns", produced rather than transcribed. Also
+   pinned: exact linearity in depth and a **hard zero** for a matched mount at every
+   aperture (why water and glycerol objectives exist); the focus-knob scaling
+   n_i/n_s = 1.13709 that stretches every z-stack, with the marginal ray's own ratio
+   departing at order q² — so the depth scaling and the depth aberration are **one**
+   measurement; § 6k.1's flux invariance and § 6k.4's empty cone both surviving,
+   because the SA is a pure phase and the truncation is depth-independent; and
+   § 6k's axial *symmetry* breaking **19.24×** for an emitter at a fixed depth, best
+   focus moved to +1.11 waves. § 6e.4's "the cover slip HELPS" finally gets a rate,
+   and the rate kills it as a trade: **33.28 µm of slip error per µm of depth**.
+   **Open:** off axis, the chromatic half, correcting the objective *for* a depth
+   (§ 6c's `targetS1Mm` route, which is what a collar physically does), § 6s's table
+   under a moved conjugate, and TIRF — 6l.3 stops at "the rays do not exist", and
+   what happens past n_s is a real modality and not geometric optics.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
