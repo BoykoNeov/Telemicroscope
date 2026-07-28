@@ -60,7 +60,7 @@ import type { PatchPupil } from "./brightfield";
  * resample a PSF onto a coarser scene grid, and this cannot — the Abbe sum's
  * grid IS its frequency lattice.
  *
- * ## One `PupilScale` for the whole frame, read on axis
+ * ## One `PupilScale` for the whole frame, read at its centre
  *
  * `renderBrightfield` hands one `scale` to every patch, because the patches are
  * blended pixel for pixel and a common ruler is what makes that legal. Each
@@ -71,6 +71,23 @@ import type { PatchPupil } from "./brightfield";
  * invisible to an energy check. What the common ruler costs is the drift of
  * those two numbers across the field, which `fieldPupilAt` reports and § 6h.5
  * measures rather than assumes.
+ *
+ * The ruler's *reach* is the frame, and a mosaic is bigger than one. So
+ * `objectFieldTile` reads the same one scale at its own centre — one ruler per
+ * tile, because a tile is exactly the region that gets blended, and the price
+ * moves from a drift across a field to a step across a seam. § 6m.4 measures
+ * both halves of that trade.
+ *
+ * ## A frame is a tile at the origin
+ *
+ * Everything below `imagePointAt` is written against `frame.centreMm` and knows
+ * nothing else about tiling: the inverse map, the azimuth, the rotation and the
+ * drift all read the **absolute** image point. That is deliberate. A field
+ * position's azimuth is measured about the system's axis and not about its
+ * tile's, because every traced pupil belongs to a field point on +x of the
+ * system; a tile-relative azimuth is the one-line change that would give a
+ * mosaic every tile's coma pointing the wrong way and no symptom but the
+ * picture.
  *
  * ## The rotation is EXACT here, and that is an asymmetry worth naming
  *
@@ -143,26 +160,49 @@ export interface FieldPupil extends PatchPupil {
 /**
  * The common grid every patch of a brightfield frame is formed on.
  *
- * Built from ONE on-axis trace, which is what fixes the ruler; see the header
- * for why a per-patch ruler is not an option.
+ * Built from ONE trace at its own centre, which is what fixes the ruler; see the
+ * header for why a per-patch ruler is not an option. `objectFieldFrame` puts
+ * that centre on the axis; `objectFieldTile` puts it anywhere.
  */
 export interface ObjectFieldFrame {
   readonly size: number;
   readonly pupilSamples: number;
   readonly wavelengthNm: number;
-  /** The scale `renderBrightfield` must be handed, read on axis. */
+  /** The scale `renderBrightfield` must be handed, read on the frame's centre. */
   readonly scale: PupilScale;
+  /**
+   * Image-plane centre (mm) the normalized grid is laid about. `{0, 0}` for
+   * `objectFieldFrame`; a tile's own field position for `objectFieldTile`.
+   */
+  readonly centreMm: { readonly x: number; readonly y: number };
+  /**
+   * Object-plane point (mm) the centre looks at, on the **traced** map — so it
+   * carries distortion. `{0, 0}` on axis.
+   */
+  readonly centreObjectMm: { readonly x: number; readonly y: number };
   /** Image-plane mm per pixel. */
   readonly pixelScaleMm: number;
   /** Half the frame's image-plane extent (mm). */
   readonly halfExtentMm: number;
   /**
    * Lateral magnification (signed, negative for a real inverted image), traced
-   * at `probeHeightMm`.
+   * at `probeHeightMm` **on the axis** — the same number for every tile.
    *
    * Small enough that distortion has not yet bitten, so this is the **linear
    * reference** the inverse map's departure is measured against — not a claim
    * that the map is linear. The map itself never uses it except as a bracket.
+   *
+   * A tile reads it on the axis rather than at its own centre because it is a
+   * *reference*, and a reference that moved per tile would make
+   * `objectPixelScaleMm` mean something different in each one — a mosaic whose
+   * object scale is piecewise. The honest local scale is the traced map itself
+   * (`objectPointAt`), and § 6m.4 measures how far it departs: 49 ppm radially
+   * at 0.8 mm, and anisotropically, which no single per-tile number could carry.
+   *
+   * It is safe for it to be global because the inverse does not depend on it:
+   * `objectHeightForImageRadius` bisects to mantissa exhaustion, so the seed
+   * chooses the path and not the answer. § 6m.2 pins that across 10⁷ of seed,
+   * which is what makes registration bitwise rather than merely close.
    */
   readonly magnification: number;
   /** Object-plane mm per pixel — what a specimen is authored in. */
@@ -329,6 +369,77 @@ export function objectHeightForImageRadius(
   return h;
 }
 
+const ORIGIN = { x: 0, y: 0 } as const;
+
+function buildFrame(
+  system: OpticalSystem,
+  options: ObjectFieldOptions,
+  centreMm: { readonly x: number; readonly y: number },
+  who: string,
+): ObjectFieldFrame {
+  const distance = requireFinite(system, who);
+  const { size, pupilSamples } = options;
+  if (!isPowerOfTwo(size)) throw new Error(`frame size must be a power of two, got ${size}`);
+  if (!(pupilSamples > 0)) throw new Error(`pupilSamples must be positive, got ${pupilSamples}`);
+  if (!Number.isFinite(centreMm.x) || !Number.isFinite(centreMm.y)) {
+    throw new Error(`${who}: centreMm must be finite, got (${centreMm.x}, ${centreMm.y})`);
+  }
+  const wavelengthNm = options.wavelengthNm ?? primaryWavelength(system);
+  const aim = options.aim ?? {};
+
+  // The magnification comes first because the centre's own inverse needs it as a
+  // bracket — and it is read on the AXIS for every tile; see the field's note.
+  const probeHeightMm = options.probeHeightMm ?? distance * 1e-4;
+  const magnification = lateralMagnification(system, probeHeightMm, wavelengthNm);
+  const absM = Math.abs(magnification);
+  if (!(absM > 0)) {
+    throw new Error(`${who}: the traced magnification is zero — no object field exists`);
+  }
+
+  const centreRadiusMm = Math.hypot(centreMm.x, centreMm.y);
+  const centreAzimuthRad = centreRadiusMm > 0 ? Math.atan2(centreMm.y, centreMm.x) : 0;
+  const centreHeightMm = objectHeightForImageRadius(system, centreRadiusMm, wavelengthNm, {
+    magnification,
+    aim,
+  });
+
+  // The ruler, read at the centre this frame is actually about. On axis that is
+  // field 0 and the tile reduces to the frame exactly.
+  const map = opdMap(
+    system,
+    centreHeightMm,
+    wavelengthNm,
+    pupilGrid(options.traceSamples ?? 21),
+    aim,
+  );
+  const scale: PupilScale = {
+    referenceRadius: map.referenceRadius,
+    exitRadius: map.pupil.exit.radius,
+    wavelengthNm,
+    nImage: map.pupil.exit.n,
+  };
+  const pixelScaleMm = imagePixelScaleMm(scale, size, pupilSamples);
+  const halfExtentMm = (size / 2) * pixelScaleMm;
+
+  return {
+    size,
+    pupilSamples,
+    wavelengthNm,
+    scale,
+    centreMm: { x: centreMm.x, y: centreMm.y },
+    centreObjectMm: {
+      x: centreHeightMm * Math.cos(centreAzimuthRad),
+      y: centreHeightMm * Math.sin(centreAzimuthRad),
+    },
+    pixelScaleMm,
+    halfExtentMm,
+    magnification,
+    objectPixelScaleMm: pixelScaleMm / absM,
+    objectHalfExtentMm: halfExtentMm / absM,
+    probeHeightMm,
+  };
+}
+
 /**
  * Build the common grid a brightfield frame is formed on.
  *
@@ -340,53 +451,66 @@ export function objectFieldFrame(
   system: OpticalSystem,
   options: ObjectFieldOptions,
 ): ObjectFieldFrame {
-  const distance = requireFinite(system, "objectFieldFrame");
-  const { size, pupilSamples } = options;
-  if (!isPowerOfTwo(size)) throw new Error(`frame size must be a power of two, got ${size}`);
-  if (!(pupilSamples > 0)) throw new Error(`pupilSamples must be positive, got ${pupilSamples}`);
-  const wavelengthNm = options.wavelengthNm ?? primaryWavelength(system);
-  const aim = options.aim ?? {};
-
-  const map = opdMap(system, 0, wavelengthNm, pupilGrid(options.traceSamples ?? 21), aim);
-  const scale: PupilScale = {
-    referenceRadius: map.referenceRadius,
-    exitRadius: map.pupil.exit.radius,
-    wavelengthNm,
-    nImage: map.pupil.exit.n,
-  };
-  const pixelScaleMm = imagePixelScaleMm(scale, size, pupilSamples);
-  const halfExtentMm = (size / 2) * pixelScaleMm;
-
-  const probeHeightMm = options.probeHeightMm ?? distance * 1e-4;
-  const magnification = lateralMagnification(system, probeHeightMm, wavelengthNm);
-  const absM = Math.abs(magnification);
-  if (!(absM > 0)) {
-    throw new Error("objectFieldFrame: the traced magnification is zero — no object field exists");
-  }
-
-  return {
-    size,
-    pupilSamples,
-    wavelengthNm,
-    scale,
-    pixelScaleMm,
-    halfExtentMm,
-    magnification,
-    objectPixelScaleMm: pixelScaleMm / absM,
-    objectHalfExtentMm: halfExtentMm / absM,
-    probeHeightMm,
-  };
+  return buildFrame(system, options, ORIGIN, "objectFieldFrame");
 }
 
-/** Image-plane coordinates (mm) of a normalized frame position. */
+export interface ObjectTileOptions extends ObjectFieldOptions {
+  /** Image-plane centre of the tile (mm). `{0, 0}` reproduces the frame. */
+  readonly centreMm: { readonly x: number; readonly y: number };
+}
+
+/**
+ * The same construction about an arbitrary field position — one tile of a mosaic.
+ *
+ * `objectFieldFrame` is centred on the axis and a microscope's field is not one
+ * frame wide: § 6h.2's closed form ties the extent to `pupilSamples`, so a real
+ * field is reached by **tiling** and never by widening. This is the tile.
+ *
+ * Two things move with the tile and one deliberately does not.
+ *
+ * **The ruler moves.** `scale` is read by tracing at the tile's own centre,
+ * which is a departure from § 6h's one-ruler rule and is forced by the same
+ * argument that made the rule: a common ruler is legal exactly as far as the
+ * patches it blends, and a mosaic does not blend across tiles, it abuts them. So
+ * each tile is internally consistent on its own ruler, and what the mosaic pays
+ * is the ruler's step at a seam rather than its drift across a field. § 6m.4
+ * measures both, and the reference sphere's field dependence turns out to be the
+ * plainest geometry in the module — hypot(R_axis, r), § 6m.3.
+ *
+ * **The magnification does not.** It is the on-axis probe reading in every tile,
+ * because it is a linear *reference* and one that moved per tile would make
+ * `objectPixelScaleMm` mean something different in each. See
+ * `ObjectFieldFrame.magnification`.
+ *
+ * **The azimuth is the system's, not the tile's.** `fieldPupilAt` reads it from
+ * the absolute image point, because every traced pupil belongs to a field point
+ * on the system's own +x and the rotation is what puts it back. A tile-relative
+ * azimuth would produce a perfectly plausible mosaic with every tile's coma
+ * pointing the wrong way — which is why `imagePointAt` carries the offset and
+ * nothing downstream of it knows there was one.
+ */
+export function objectFieldTile(
+  system: OpticalSystem,
+  options: ObjectTileOptions,
+): ObjectFieldFrame {
+  return buildFrame(system, options, options.centreMm, "objectFieldTile");
+}
+
+/**
+ * Image-plane coordinates (mm) of a normalized frame position.
+ *
+ * Absolute, so an off-centre tile's positions land where they really are and
+ * every consumer — the inverse map, the azimuth, the rotation — reads the
+ * system's own field without knowing a tile exists.
+ */
 export function imagePointAt(
   frame: ObjectFieldFrame,
   u: number,
   v: number,
 ): { x: number; y: number } {
   return {
-    x: (u - 0.5) * 2 * frame.halfExtentMm,
-    y: (v - 0.5) * 2 * frame.halfExtentMm,
+    x: frame.centreMm.x + (u - 0.5) * 2 * frame.halfExtentMm,
+    y: frame.centreMm.y + (v - 0.5) * 2 * frame.halfExtentMm,
   };
 }
 
@@ -555,6 +679,10 @@ export interface ScaleDrift {
  * `renderBrightfield` blends every patch on one grid, so the exit pupil moving
  * with the field is an error the blend cannot see. Reported as a number rather
  * than assumed negligible — § 6h.5 pins it on the DIN 4×.
+ *
+ * Handed a tile, this measures the drift across **that tile**, against that
+ * tile's own centre ruler, which is the quantity § 6m.4 needs and is not the
+ * same question as the drift across a whole field.
  */
 export function scaleDrift(
   system: OpticalSystem,

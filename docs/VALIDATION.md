@@ -57,6 +57,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
+| [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -64,6 +65,10 @@ to. Individual steps also carry their own "Not yet pinned" notes.
 
 Tests are in `packages/core/test/<name>.test.ts`. Steps 5a and 5b do not
 exist: tilt/decenter and folded pupils were prerequisites closed inside § 4a.
+Step 6l does not exist *yet*, and unlike those it is a gap rather than a
+closure: it is depth-dependent spherical aberration, scoped in APP.md and
+independent of the § 6m–§ 6r line, which was taken first because it is what the
+field of view is blocked on.
 
 ## Step 1 — geometry, materials, ray tracing
 
@@ -4939,6 +4944,163 @@ in a third place.
   that would show it. It is a consequence of § 6k.1 and § 6k.2 rather than an
   independent pin, and it wants scenes the branch has not built.
 
+## Step 6m — the off-axis frame
+
+§ 6h.2 pinned that a frame's extent is set by `pupilSamples` and not by the grid,
+which turns it into a **cost**: covering a 4×'s real 5 mm field at its own 2.75 µm
+resolution wants pupilSamples ≈ 1800 and a grid to match, and the Abbe sum's grid
+IS its frequency lattice, so nothing can be resampled down. A microscope's field
+is therefore reached by **tiling and never by widening**. `objectFieldTile` is
+the tile: the same construction about an arbitrary field position, which in code
+is `imagePointAt` gaining an offset and every consumer below it reading an
+absolute image point without knowing a tile exists.
+
+It is also the first thing in this branch that reaches **millimetres of
+specimen**, and that is where the step earns its rungs rather than in the offset.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A tile at the origin reproduces `objectFieldFrame` field for field, bitwise | identity | ✅ |
+| …and the image it renders is bit-identical, not merely close | identity | ✅ |
+| Half-extent is pupilSamples·λ·R/(4·n′·r_exit) in the tile's OWN R, to f64 | § 6h.2's closed form, moved | ✅ |
+| A tile's centre pupil is the parent frame's pupil there — height, azimuth, amplitude and phase, bitwise | identity | ✅ |
+| Two tiles naming one image point return one object point, **in the last bit** | registration | ✅ |
+| …and it does not depend on the bracket: 6 seeds over 10⁷ agree bitwise | mantissa exhaustion | ✅ |
+| NEGATIVE CONTROL: a seed 4 000× too small breaks it, by 1.3e-15 | the mechanism, not luck | ✅ |
+| The general seam costs the ulp of the image point that named it, and no more | derived bound | ✅ |
+| The azimuth is the SYSTEM's: a north tile is the east tile turned 90°, to 1e-15 | § 6h.3's convention | ✅ |
+| The reference sphere is hypot(R_axis, r), to 2.4e-15 at 0.2 mm | plane geometry | ✅ |
+| …and its departure is QUARTIC in r — ×16.0 per doubling over four | the chief ray's cubic × the lever | ✅ |
+| The exit pupil does not move at all, at 6.4 mm as at 47 µm | § 6h.5's limit of the instrument | ✅ |
+| The tile's own ruler drifts h_e(r+h_e)/R², the axial one is r²/2R² wrong | closed form, to 1e-3 | ✅ |
+| …so they cross at r = (1+√3)·h_e and the gain past it is r²/2h_e(r+h_e) | closed form | ✅ |
+| Defocus across tile centres grows as h² — ×4.000 per doubling, to 0.1% | third-order field curvature | ✅ |
+| Coma h¹ and astigmatism h² held over a decade, at tile centres | third-order field dependence | ✅ |
+| **An off-axis tile is ANISOTROPIC: radial and tangential departures in the ratio 3** | d/dh of § 6h.1's cubic | ✅ |
+| …and exactly square on axis, to f64 | negative control | ✅ |
+| The pitch is not the span; it is a fixed point, converging in 3 iterations | — | ✅ |
+| …and a uniform pitch is 1.9e-5 of a tile out — 1.2e-3 of a pixel at 1.6 mm | bound | ✅ |
+| Off-axis tiles rule `valid` and survive `requireHonest`, with `lost` = 0 | § 6f.9, off axis | ✅ |
+
+**The tile at the origin is the frame, and the rung is bitwise on purpose.** A
+tile centred on the axis traces field 0, which is the frame's own trace, so
+nothing may differ — not to a tolerance, in the last bit, and not only in the
+sixteen numbers of the frame but in the 64² pixels of the image it renders
+(worst difference 0). That is the gate: had the offset arithmetic or a defaulted
+`traceSamples` drifted, a near-identity would have hidden it and every rung below
+would be standing on a second construction that merely resembles the first.
+
+**Registration is bitwise, and the reason is not the one that was expected.** The
+mosaic needs two tiles overlapping an image point to agree about which specimen
+point is there. They do, exactly — and the design guess was that this held only
+because every tile seeds `objectHeightForImageRadius`'s bracket with the same
+on-axis magnification. It is not: the bisection runs 60 halvings and stops when
+the interval closes on adjacent f64s, so **the seed chooses the path and not the
+answer.** Six seeds spanning 10⁷ return the same object height in the last bit,
+and so does no seed at all. The control is what makes that a mechanism rather
+than a coincidence: a seed 4 000× too small opens a bracket 60 halvings cannot
+exhaust, and it costs 1.3e-15 — the mantissa, and nothing physical. The
+consequence is a freedom, not a constraint: `magnification` may stay the on-axis
+reading in every tile, which it must, because it is a linear *reference* and one
+that moved per tile would make `objectPixelScaleMm` mean something different in
+each tile of a mosaic.
+
+The general seam is separated from that rung deliberately. When two abutting
+tiles reach their shared edge through *different* normalized coordinates, the f64
+route to the point no longer coincides and the object points differ — by the ulp
+of the image point that named them, which is the bound the rung is written
+against and is derived rather than picked. The map is exact; naming a point twice
+is not free.
+
+**The ruler's whole field story is a hypotenuse.** The reference sphere is centred
+on the image point and passes through the chief ray at the exit-pupil plane; that
+plane does not move, because `pupils()` is a paraxial construction with no field
+argument, and the image point moves laterally by r. So R = hypot(R_axis, r) and
+nothing else — 2.4e-15 at 0.2 mm. What is left over is attributed rather than
+tolerated: it grows as **r⁴**, ×16.0 per doubling over four of them, which is the
+chief ray's own cubic miss of the pupil centre multiplied by the lever arm r.
+
+That geometry is what decides § 6m's one departure from § 6h's rules. § 6h reads
+one `PupilScale` on axis for the whole frame because the patches are blended
+pixel for pixel; a mosaic does not blend across tiles, it abuts them, so each
+tile reads the scale at **its own** centre. Differentiating the hypotenuse gives
+both sides of that trade in closed form, with no fitted constant:
+
+    own ruler, across the tile    h_e(r + h_e)/R²      linear in the field
+    axial ruler, AT the tile      r²/2R²               quadratic
+
+and § 6h.5's on-axis 9.7e-7 is the first formula at r = 0 (h_e²/R², exactly). So
+the crossover is **r = (1+√3)·h_e**, and the finding is that a tile is *not*
+automatically better off on its own ruler: at 0.4 mm the gain is 0.73 — worse —
+and it only becomes 8.1× at 3.2 mm and 16.6× at 6.4 mm. Every tile in a real
+mosaic is past 2.73 half-extents; the tile that is not, is the frame.
+
+**Field curvature arrives, and it is the sharpest field-order rung in the
+branch.** Third-order theory puts the focal surface a quadratic distance from the
+flat image plane, so a mosaic laid on that plane must show defocus growing as h².
+§ 6h could not see it: inside one 47 µm frame the term is ~1e-6 waves, under the
+Zernike fit's own noise, which is why § 6h.4 pinned coma and astigmatism and
+stopped. At tile centres it is 5.3e-2 waves by 0.8 mm and it is **×4.000 per
+doubling, to 0.1%** — sharper than the distortion rung's 1% and the coma rung's
+fitted slope, because the term is large and clean rather than because the
+measurement improved.
+
+**The finding: an off-axis tile is anisotropic, and the ratio is 3 with no free
+coefficient.** A tile off axis is not a scaled copy of an axial one — it is a
+rectangle. Differentiating § 6h.1's own r = M·h + C·h³, the two local
+magnifications are
+
+    tangential   r/h     = M +   C·h²     (the chief ray's lever)
+    radial       dr/dh   = M + 3·C·h²     (its slope)
+
+so their departures from the linear reference stand in the ratio **3**, exactly,
+whatever C is — which is what makes it a pin rather than a measurement. Measured
+on a tile's own edges rather than on the closed form: 2.97 at 0.4 mm and 2.998 at
+1.6 mm, approaching 3 from below as the h³ term climbs clear of the inverse's own
+1e-9 closure, with the axial tile exactly square to f64 as the control. It is
+small on this objective — a tile 0.8 mm off axis is 33 ppm out of square, 1.5 nm
+of specimen — and the size is not the point: **no single per-tile scale can carry
+it**, which is § 6n's warped-grid rasterizer arriving with a number attached
+instead of an argument.
+
+**A mosaic's pitch is not its tile span**, and that follows from the ruler moving:
+a tile's extent is read on its own scale, so it depends on where the tile is, and
+abutment is a fixed point rather than an offset known in advance. It converges
+immediately — three iterations to f64, the first move already 6e-4 of a pixel —
+and the practical answer is that a mosaic may skip the solve entirely: laying
+tiles on the axial pitch mismatches the true span by 1.9e-5 of a tile, 1.2e-3 of
+a pixel at 1.6 mm off axis.
+
+**What the picture does.** Off-axis tiles render, rule `valid` and survive
+`requireHonest` — they are traced, so § 6f.9's verdict has the sampling it needs
+— and they get softer with field because the *objective* does: the DIN 4× carries
+0.140 waves rms on axis, 0.325 at 0.8 mm and 0.632 at 1.6 mm, and a grating's
+contrast follows it down from 0.687 to 0.343. Nothing vignettes anywhere in that
+range (`lost` = 0 out to 6.4 mm of image radius, 1.6 mm of specimen). That is a
+single cemented doublet's own field showing up as a picture, which is what a
+mosaic is for.
+
+### Not yet pinned
+- **The grid is still not warped.** § 6h's deferral is untouched and § 6m has
+  sharpened it rather than closed it: the anisotropy rung measures the thing a
+  per-tile uniform scale cannot carry. `objectPointAt` remains the seam; § 6n is
+  the rasterizer.
+- **No tiles have been composed.** Registration, the ruler's step and the pitch
+  are pinned; a mosaic that crops each tile to a useful span and lays it beside
+  its neighbour is § 6o, and its guard band is measured in APP.md's Part D as a
+  feasibility figure and not as a pin.
+- **Telecentricity, still.** Every tile is handed the same `CondenserSource`
+  centred on the pupil, and a real condenser's cone tilts off axis. § 6a's
+  object-space ray-aiming blocker, inherited unchanged, and it bites harder here
+  because a tile at 1.6 mm is exactly where the cone would have tilted.
+- **The field curvature is measured and not corrected.** A real microscope
+  refocuses, or uses a plan objective; this engine reports the defocus a flat
+  plane costs and offers no per-tile focus. That is a design question for the
+  stage, not a missing physics.
+- **One objective.** Every number above is the DIN 4×/0.10's. The orders are
+  third-order theory's and travel; the coefficients do not, and no rung claims
+  they do.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
@@ -4953,10 +5115,12 @@ in a third place.
   verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
-- **§ 6m–§ 6r — the microscope's field of view, and looking through it.** A
-  dozen rungs named in APP.md's Part D rather than here, because they arrived as
-  the scoping of an app surface and their step numbers are not yet claimed: the
-  off-axis frame (§ 6m), the warped-grid rasterizer (§ 6n, § 6h's own deferral),
+- **§ 6n–§ 6r — the rest of the microscope's field of view, and looking through
+  it.** Named in APP.md's Part D rather than here, because they arrived as the
+  scoping of an app surface and their step numbers are not yet claimed —
+  [§ 6m](#step-6m--the-off-axis-frame) has since claimed its own and left this
+  list. What remains: the warped-grid rasterizer (§ 6n, § 6h's own deferral,
+  which § 6m.4's anisotropy rung has now measured a consequence of),
   the mosaic guard band (§ 6o), the commensurate condenser and cached pupil
   (§ 6p, exact against the uncached sum bit for bit), the eyepiece on a *finite*
   intermediate image (§ 6q — `afocalTelescope` solves from a collimated input and

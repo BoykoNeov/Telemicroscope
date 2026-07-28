@@ -1012,20 +1012,45 @@ holds tens of tiles, not 181.** Panning is seconds even at the pessimistic
 figure. That is the whole argument for D4: **not a bigger frame, a tiled
 stage**, rendered where you are looking.
 
-### D1. § 6m — the off-axis frame — *engine step*
+### D1. § 6m — the off-axis frame — *engine step* — ✅ **landed**
 
-`objectFieldFrame` is centred on the axis and every consumer assumes it.
+`objectFieldFrame` was centred on the axis and every consumer assumed it.
 `objectFieldTile(system, {centreMm, …})` is the same construction about an
-arbitrary field position, and it is small: `imagePointAt` gains an offset and
-`fieldPupilAt` already traces whatever height it is handed.
+arbitrary field position, and it was as small as scoped: `centreMm` folded into
+`ObjectFieldFrame`, `imagePointAt` gained an offset, and the inverse map, the
+azimuth, the rotation and `scaleDrift` all work unchanged because they read the
+**absolute** image point.
 
-**Rungs:** a tile centred on axis reproduces `objectFieldFrame` to f64; a tile's
-own centre pupil equals `fieldPupilAt` at the corresponding frame position; two
-adjacent tiles map their shared edge to the same object points from both sides
-(the registration statement the mosaic will lean on). Note the tile's `scale` is
-read on **its own** axis, which is a departure from § 6h's one-ruler rule and
-needs the ruler drift across a tile, not across the whole field — `scaleDrift`
-already measures it, and A1 already shows it.
+The rungs landed as scoped — a tile at the origin reproduces `objectFieldFrame`
+bitwise (and so does the image it renders); a tile's centre pupil is the parent
+frame's pupil there, bitwise; two tiles naming one image point return one object
+point, in the last bit. § 6m in VALIDATION.md carries all 21.
+
+**Three things this section did not predict**, recorded because the closing
+paragraph of Part D predicted that D4 would need something D0 did not measure and
+D1 got there first:
+
+- **Registration is bitwise for a different reason than the design assumed.** The
+  guess was that it holds because every tile seeds the inverse's bracket with the
+  same on-axis magnification. It does not depend on the seed at all — the
+  bisection runs to mantissa exhaustion, so six seeds over 10⁷ agree in the last
+  bit. That is a freedom rather than a constraint, and it is why `magnification`
+  can stay the on-axis reference every tile needs it to be.
+- **The ruler's trade is a closed form, and the tile's own ruler is not always
+  better.** The reference sphere is hypot(R_axis, r), so the tile's own drift is
+  h_e(r+h_e)/R² against the axial ruler's r²/2R², crossing at (1+√3)·h_e. Below
+  three half-extents off axis the departure from § 6h's one-ruler rule *loses*
+  (0.73× at 0.4 mm); past it, it wins by r/2h_e — 16.6× at 6.4 mm.
+- **An off-axis tile is anisotropic**, its radial and tangential scales departing
+  from the linear reference in the ratio 3 — the derivative of § 6h.1's cubic,
+  with no free coefficient. 33 ppm out of square at 0.8 mm: too small to see and
+  impossible for one per-tile scale to carry, which is **D2's argument, now with
+  a number**.
+
+And one that D3 and D4 both want: **a mosaic's pitch is not its tile span.** Each
+tile's extent is read on its own ruler, so abutment is a fixed point — it
+converges in three iterations, and a uniform axial pitch is 1.2e-3 of a pixel out
+at 1.6 mm, so D3 may skip the solve and say so.
 
 ### D2. § 6n — the warped-grid rasterizer — *engine step*
 
@@ -1184,11 +1209,12 @@ drag cost. Sliders would need the same backpressure every other panel has.
 **D8 first if the goal is breadth** — it is independent, app-only, and turns ten
 rows into the whole design space.
 
-**Otherwise, the priority path is D1 → D2 → D3 → D4**, which is the shortest line
-to a brightfield field of view you can pan: the off-axis frame, the rasterizer
-that registers it, the mosaic that bounds its error, and the stage that draws it.
-**D5** then makes it fast, **D6** puts an eyepiece on it, **D7** puts it in
-colour. A6 and Part B are untouched by all of this and can go at any point.
+**Otherwise, the priority path is ~~D1~~ → D2 → D3 → D4**, which is the shortest
+line to a brightfield field of view you can pan: the off-axis frame (**landed**),
+the rasterizer that registers it, the mosaic that bounds its error, and the stage
+that draws it. **D5** then makes it fast, **D6** puts an eyepiece on it, **D7**
+puts it in colour. A6 and Part B are untouched by all of this and can go at any
+point.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a
@@ -1196,6 +1222,13 @@ plot sampling no rung had named, A4 needed a display convention two panels
 disagreed with, A5 needed a lattice period no rung had had to state. A tiled
 stage's version of that is most likely the seam — the place where the bound in
 D0.2 stops being a number and becomes something a reader can see.
+
+**The prediction was right and early.** D1 was scoped as an offset with four
+identity rungs and it produced three things this section did not have: the ruler
+crossover at (1+√3)·h_e, below which a tile is better off on the *axial* ruler;
+the anisotropy that is D2's argument with a number attached; and a pitch that is
+a fixed point rather than a span. None of them were the seam — that is still
+waiting for D3 — and all of them were in the part that looked like arithmetic.
 
 ---
 
@@ -1294,7 +1327,8 @@ code. **A6** follows. **Part C** is a separate decision.
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
 steps with their own rungs. Its own order is at the end of that part; the short
-version is **D8 first for breadth, D1 → D4 for the field of view.**
+version is **D8 first for breadth, D1 → D4 for the field of view** — and D1 has
+landed as § 6m, so the field of view now waits on D2's rasterizer.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and

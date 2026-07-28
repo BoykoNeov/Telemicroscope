@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   fieldPupilAt,
+  imagePointAt,
   imageRadiusForObjectHeight,
   objectFieldFrame,
+  objectFieldTile,
   objectHeightForImageRadius,
   objectPointAt,
   rotatePupil,
@@ -21,7 +23,7 @@ import {
 } from "../src/pupil/microscope";
 import { psfFromPupilFunction, type PupilFunction, type PupilScale } from "../src/wave/psf";
 import { coefficient } from "../src/wave/zernike";
-import { simpleSystem } from "../src/trace/system";
+import { simpleSystem, type OpticalSystem } from "../src/trace/system";
 import type { Prescription } from "../src/trace/prescription";
 
 /**
@@ -598,5 +600,477 @@ describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
     expect(Math.hypot(corner.x, corner.y)).toBeCloseTo(corner.radiusMm, 12);
     expect(corner.azimuthRad).toBeCloseTo(Math.PI / 4, 12);
     expect(corner.radiusMm).toBeCloseTo(frame.objectHalfExtentMm * Math.SQRT2, 3);
+  });
+});
+
+/**
+ * § 6m — the off-axis frame.
+ *
+ * § 6h.2 pinned that a frame's extent is set by `pupilSamples` and not by the
+ * grid, which makes it a **cost** statement: a real 5 mm field at a 4×'s own
+ * resolution wants pupilSamples ≈ 1800. So a microscope's field is reached by
+ * tiling and never by widening, and `objectFieldTile` is the tile.
+ *
+ * The step is small in code — `imagePointAt` gains an offset — and it is the
+ * first thing in this branch that reaches **millimetres of specimen**. Three
+ * external numbers only a millimetre can see carry it: third-order theory's
+ * field dependence for defocus (h², field curvature) where § 6h.4 could reach
+ * only coma and astigmatism; the factor 3 between the radial and tangential
+ * local magnifications, which is the derivative of § 6h.1's own cubic; and the
+ * reference sphere's plain geometry, hypot(R_axis, r).
+ */
+
+/** A § 6m tile of the same construction as `frameOf`, centred where asked. */
+const tileOf = (system: OpticalSystem, x: number, y = 0, pupilSamples = PUPIL_SAMPLES) =>
+  objectFieldTile(system, {
+    size: SIZE,
+    pupilSamples,
+    wavelengthNm: LAMBDA,
+    centreMm: { x, y },
+  });
+
+/** The image radius the chief ray from `h` reaches — where a tile is put. */
+const imageRadius = (system: OpticalSystem, h: number) =>
+  imageRadiusForObjectHeight(system, h, LAMBDA);
+
+describe("§ 6m.1 — the tile is the frame, moved", () => {
+  it("reproduces `objectFieldFrame` bitwise when it is centred on the axis", () => {
+    // The gate. A tile at the origin traces field 0, which is the frame's own
+    // trace, so nothing may differ — not to a tolerance, in the last bit. If the
+    // offset arithmetic or a defaulted option had drifted, this is where it
+    // shows, and every rung below stands on the tile being one construction.
+    const system = din4x();
+    const frame = frameOf(system);
+    const tile = tileOf(system, 0, 0);
+    expect(tile.scale).toEqual(frame.scale);
+    expect(tile.pixelScaleMm).toBe(frame.pixelScaleMm);
+    expect(tile.halfExtentMm).toBe(frame.halfExtentMm);
+    expect(tile.magnification).toBe(frame.magnification);
+    expect(tile.objectPixelScaleMm).toBe(frame.objectPixelScaleMm);
+    expect(tile.objectHalfExtentMm).toBe(frame.objectHalfExtentMm);
+    expect(tile.probeHeightMm).toBe(frame.probeHeightMm);
+    expect(tile.centreMm).toEqual({ x: 0, y: 0 });
+    expect(tile.centreObjectMm).toEqual({ x: 0, y: 0 });
+    // …and so is the image it forms, which is the statement that matters to a
+    // mosaic: the axial tile is not a near-copy of the frame, it IS the frame.
+    const axial = renderBrightfield(GRATING, tracedFieldPupils(system, frame), SOURCE, {
+      patches: 2,
+      pupilSamples: PUPIL_SAMPLES,
+      scale: frame.scale,
+    });
+    const viaTile = renderBrightfield(GRATING, tracedFieldPupils(system, tile), SOURCE, {
+      patches: 2,
+      pupilSamples: PUPIL_SAMPLES,
+      scale: tile.scale,
+    });
+    expect(worstDifference(axial.intensity, viaTile.intensity)).toBe(0);
+  });
+
+  it("is exactly pupilSamples·λ·R/(4·n′·r_exit) in its OWN reference radius", () => {
+    // § 6h.2's closed form, re-read on a moved ruler. The identity is what makes
+    // the tile's extent attributable: it is not the frame's extent plus an
+    // error, it is the same closed form evaluated at a different R.
+    const system = din4x();
+    for (const r of [0, 0.8, 3.2]) {
+      for (const pupilSamples of [16, 32, 64]) {
+        const tile = tileOf(system, r, 0, pupilSamples);
+        const closed =
+          (pupilSamples * LAMBDA * 1e-6 * tile.scale.referenceRadius) /
+          (4 * tile.scale.nImage * tile.scale.exitRadius);
+        expect(tile.halfExtentMm / closed - 1).toBeCloseTo(0, 12);
+      }
+    }
+  });
+
+  it("looks through the pupil the parent frame gives that field position", () => {
+    // A tile is a window onto one field, not a second field. Its centre pupil
+    // must be the pupil the un-tiled construction would hand that position —
+    // bitwise, because both reach it through the same inverse and the same trace.
+    const system = din4x();
+    const frame = frameOf(system);
+    const r = imageRadius(system, 0.02);
+    const u = 0.5 + r / (2 * frame.halfExtentMm);
+    const viaFrame = fieldPupilAt(system, frame, u, 0.5);
+    const viaTile = fieldPupilAt(system, tileOf(system, r), 0.5, 0.5);
+    expect(viaTile.objectHeightMm).toBe(viaFrame.objectHeightMm);
+    expect(viaTile.azimuthRad).toBe(viaFrame.azimuthRad);
+    expect(viaTile.referenceRadius).toBe(viaFrame.referenceRadius);
+    for (const [px, py] of [
+      [0.4, 0.2],
+      [-0.6, 0.5],
+    ] as const) {
+      expect(viaTile.pupil.phaseWaves(px, py)).toBe(viaFrame.pupil.phaseWaves(px, py));
+      expect(viaTile.pupil.amplitude(px, py)).toBe(viaFrame.pupil.amplitude(px, py));
+    }
+  });
+
+  it("refuses a centre it cannot mean, and an infinite conjugate", () => {
+    const system = din4x();
+    expect(() => tileOf(system, Number.NaN)).toThrow(/centreMm must be finite/);
+    expect(() => tileOf(system, Number.POSITIVE_INFINITY)).toThrow(/centreMm must be finite/);
+    // The mapping is a finite-conjugate construction and a tile inherits that.
+    const singlet: Prescription = {
+      surfaces: [
+        {
+          kind: "refract",
+          curvature: 1 / 51.68,
+          semiAperture: 10,
+          thickness: 4,
+          medium: "N-BK7",
+          isStop: true,
+        },
+        { kind: "refract", curvature: 0, semiAperture: 10, thickness: 97.9, medium: "AIR" },
+      ],
+    };
+    const infinite = simpleSystem(singlet, { kind: "stopRadius", value: 6 }, LAMBDA);
+    expect(() =>
+      objectFieldTile(infinite, {
+        size: SIZE,
+        pupilSamples: PUPIL_SAMPLES,
+        centreMm: { x: 1, y: 0 },
+      }),
+    ).toThrow(/finite conjugate/);
+  });
+});
+
+describe("§ 6m.2 — registration: one global map, restricted to a tile", () => {
+  it("sends the same image point to the same object point from two tiles, bitwise", () => {
+    // The statement the mosaic leans on. Two tiles overlapping an image point
+    // must agree about which specimen point is there — not to 1e-9, which would
+    // be a seam the guard band could not close, but in the last bit.
+    //
+    // Set up so that the shared point is named by the SAME f64 expression from
+    // both sides — a tile centred on another's edge reaches it at (0.5, 0.5),
+    // where the normalized arithmetic contributes nothing — because otherwise
+    // this rung would be measuring the coordinate algebra and not the map. The
+    // seam a mosaic really lays is the next rung down.
+    const system = din4x();
+    const a = tileOf(system, imageRadius(system, 0.2));
+    const east = tileOf(system, a.centreMm.x + a.halfExtentMm, a.centreMm.y);
+    const north = tileOf(system, a.centreMm.x, a.centreMm.y + a.halfExtentMm);
+    for (const [tile, u, v] of [
+      [east, 1, 0.5],
+      [north, 0.5, 1],
+    ] as const) {
+      const viaA = objectPointAt(system, a, u, v);
+      const viaOwn = objectPointAt(system, tile, 0.5, 0.5);
+      expect(viaOwn.radiusMm).toBe(viaA.radiusMm);
+      expect(viaOwn.azimuthRad).toBe(viaA.azimuthRad);
+      expect(viaOwn.x).toBe(viaA.x);
+      expect(viaOwn.y).toBe(viaA.y);
+      // …and the tile agrees with itself about where it is looking.
+      expect(tile.centreObjectMm).toEqual({ x: viaOwn.x, y: viaOwn.y });
+    }
+  });
+
+  it("costs a seam the ulp of the image point, and no more", () => {
+    // The general case, where two abutting tiles name their shared edge through
+    // different normalized coordinates and the arithmetic no longer coincides.
+    // What is left is not a property of the map — it is a pure function of the
+    // image radius, pinned bitwise below — but of the f64 route to the point, so
+    // the bound is DERIVED from the image points' own disagreement rather than
+    // picked: an object point may not be further out than the image point that
+    // named it, referred through the magnification.
+    const system = din4x();
+    const a = tileOf(system, imageRadius(system, 0.2));
+    const b = tileOf(system, a.centreMm.x + 2 * a.halfExtentMm);
+    const edgeX = a.centreMm.x + a.halfExtentMm;
+    const uB = 0.5 + (edgeX - b.centreMm.x) / (2 * b.halfExtentMm);
+    const m = Math.abs(a.magnification);
+    for (const v of [0.5, 0.25, 0.75]) {
+      const vB = 0.5 + ((v - 0.5) * a.halfExtentMm) / b.halfExtentMm;
+      const ia = imagePointAt(a, 1, v);
+      const ib = imagePointAt(b, uB, vB);
+      const named = Math.hypot(ib.x - ia.x, ib.y - ia.y);
+      expect(named).toBeLessThan(4 * Number.EPSILON * Math.hypot(ia.x, ia.y));
+      const pa = objectPointAt(system, a, 1, v);
+      const pb = objectPointAt(system, b, uB, vB);
+      expect(Math.hypot(pb.x - pa.x, pb.y - pa.y)).toBeLessThanOrEqual((2 * named) / m);
+    }
+  });
+
+  it("does not depend on the bracket the inverse was seeded with", () => {
+    // Why the above is bitwise rather than merely close, and the reason
+    // `magnification` may stay the on-axis reading in every tile: the bisection
+    // runs 60 halvings and stops when the interval reaches adjacent f64s, so the
+    // seed chooses the path and not the answer. Six seeds over 10⁷ agree in the
+    // last bit — and the control shows the mechanism rather than luck: a seed
+    // 4 000× too small opens a bracket 60 halvings cannot exhaust, and it costs
+    // 1.3e-15, which is the mantissa and nothing physical.
+    const system = din4x();
+    const r = imageRadius(system, 0.4);
+    const base = objectHeightForImageRadius(system, r, LAMBDA, { magnification: 4 });
+    for (const magnification of [0.1, 1, 4, 17, 1e3, 1e6]) {
+      expect(objectHeightForImageRadius(system, r, LAMBDA, { magnification })).toBe(base);
+    }
+    expect(objectHeightForImageRadius(system, r, LAMBDA)).toBe(base);
+    const starved = objectHeightForImageRadius(system, r, LAMBDA, { magnification: 1e-3 });
+    expect(starved).not.toBe(base);
+    expect(Math.abs(starved / base - 1)).toBeLessThan(1e-14);
+  });
+
+  it("measures the azimuth about the SYSTEM's axis, not the tile's", () => {
+    // The one-line bug this rung exists to catch: a tile-relative azimuth
+    // produces a perfectly plausible mosaic in which every tile's coma points
+    // the same way, and nothing but the picture would say so. A tile due north
+    // must see the due-east tile's wavefront turned by 90°, and it is the same
+    // trace underneath — the two tiles sit at the same image radius, so their
+    // object heights agree in the last bit and only the rotation stands between
+    // them. The wavefront itself agrees to 1e-16 and not bitwise, for § 6h.3's
+    // own reason: `Math.cos(π/2)` is 6.1e-17 rather than 0, so a quarter turn
+    // costs one rounding even though `rotatePupil` never resamples anything.
+    const system = din4x();
+    const r = imageRadius(system, 0.4);
+    const east = fieldPupilAt(system, tileOf(system, r, 0), 0.5, 0.5);
+    const north = fieldPupilAt(system, tileOf(system, 0, r), 0.5, 0.5);
+    expect(east.azimuthRad).toBe(0);
+    expect(north.azimuthRad).toBe(Math.PI / 2);
+    expect(north.objectHeightMm).toBe(east.objectHeightMm);
+    for (const [px, py] of [
+      [0.4, 0.2],
+      [-0.6, 0.5],
+    ] as const) {
+      expect(north.pupil.phaseWaves(px, py)).toBeCloseTo(east.pupil.phaseWaves(py, -px), 15);
+    }
+  });
+
+  it("finds the pitch is not the span, and bounds what a uniform one costs", () => {
+    // A tile's extent is read on its own ruler, so it depends on where the tile
+    // is — and abutment is therefore a FIXED POINT, not an offset known in
+    // advance. It converges immediately (three iterations to f64), and the
+    // question a mosaic actually has is whether it may skip the solve: laying
+    // tiles on the axial pitch mismatches the true span by 1.9e-5 of a tile,
+    // which is 1.2e-3 of a pixel at 1.6 mm off axis.
+    const system = din4x();
+    const a = tileOf(system, 1.6);
+    let cx = a.centreMm.x + 2 * a.halfExtentMm;
+    const moves: number[] = [];
+    for (let i = 0; i < 3; i++) {
+      const next = a.centreMm.x + a.halfExtentMm + tileOf(system, cx).halfExtentMm;
+      moves.push(Math.abs(next - cx));
+      cx = next;
+    }
+    expect(moves[0]! / a.pixelScaleMm).toBeLessThan(1e-3);
+    expect(moves[2]!).toBeLessThan(1e-15);
+    const uniform = tileOf(system, a.centreMm.x + 2 * a.halfExtentMm);
+    expect(Math.abs(uniform.halfExtentMm / a.halfExtentMm - 1)).toBeLessThan(2e-5);
+  });
+});
+
+describe("§ 6m.3 — the ruler, and why a tile reads it on its own axis", () => {
+  it("puts the reference sphere at hypot(R_axis, r) — the ruler's whole field story", () => {
+    // The reference sphere is centred on the image point and passes through the
+    // chief ray at the exit-pupil plane. That plane does not move (`pupils()` is
+    // paraxial) and the image point moves laterally by r, so R is a hypotenuse
+    // and nothing else. Pinned to 2.4e-15 at 0.2 mm — and its departure grows as
+    // r⁴, ×16.0 per doubling over four of them, which is the chief ray's own
+    // cubic miss of the pupil centre multiplied by the lever arm r. Naming the
+    // order is what makes it attributable rather than a residual.
+    const system = din4x();
+    const axis = frameOf(system).scale.referenceRadius;
+    const radii = [0.4, 0.8, 1.6, 3.2, 6.4];
+    const departures = radii.map((r) =>
+      Math.abs(tileOf(system, r).scale.referenceRadius / Math.hypot(axis, r) - 1),
+    );
+    expect(
+      Math.abs(tileOf(system, 0.2).scale.referenceRadius / Math.hypot(axis, 0.2) - 1),
+    ).toBeLessThan(1e-14);
+    expect(fittedOrder(radii, departures)).toBeCloseTo(4, 2);
+    for (let i = 1; i < departures.length; i++) {
+      expect(Math.abs(departures[i]! / departures[i - 1]! / 16 - 1)).toBeLessThan(2e-2);
+    }
+  });
+
+  it("cannot move the exit pupil at all — § 6h.5's limit of the instrument, at 6 mm", () => {
+    // The other half of the scale is identically the axial one at every tile,
+    // and that is a property of `pupils()` rather than of the optics: it is a
+    // paraxial construction with no field argument. § 6h.5 recorded this on a
+    // 47 µm frame where it could be mistaken for smallness; at 6.4 mm off axis
+    // it is still exactly zero, which is what a limit looks like.
+    const system = din4x();
+    const axis = frameOf(system).scale;
+    for (const r of [0.8, 6.4]) {
+      const tile = tileOf(system, r);
+      expect(tile.scale.exitRadius).toBe(axis.exitRadius);
+      expect(tile.scale.nImage).toBe(axis.nImage);
+      expect(scaleDrift(system, tile).exitRadius).toBe(0);
+    }
+  });
+
+  it("pays h_e(r+h_e)/R² on its own ruler where the axial one would cost r²/2R²", () => {
+    // The trade the departure from § 6h's one-ruler rule buys, and it falls out
+    // of the hypotenuse with no fitted constant at either end. `scaleDrift`'s
+    // worst sample is the far corner, at radius √((r+h_e)² + h_e²), so
+    //
+    //   own ruler, across the tile   (ρ² − r²)/2R² = h_e(r + h_e)/R²
+    //   axial ruler, AT the tile      r²/2R²
+    //
+    // — the first linear in the field, the second quadratic, and the on-axis
+    // drift § 6h.5 measured is the same formula at r = 0 (h_e²/R² = 9.7e-7, and
+    // it is). So the crossover is at r = (1+√3)·h_e = 2.73 half-extents, the
+    // gain past it is r²/2h_e(r+h_e) → r/2h_e, and the tile's own ruler is
+    // 0.73× at 0.4 mm — WORSE — 8.1× at 3.2 mm and 16.6× at 6.4 mm. A tile is
+    // not automatically better off on its own ruler; it is better off once it is
+    // three half-extents out, which every tile in a real mosaic is.
+    const system = din4x();
+    const frame = frameOf(system);
+    const R = frame.scale.referenceRadius;
+    const crossover = (1 + Math.sqrt(3)) * frame.halfExtentMm;
+    expect(scaleDrift(system, frame).pixelScale).toBeCloseTo(
+      (frame.halfExtentMm * frame.halfExtentMm) / (R * R),
+      12,
+    );
+    for (const r of [0.4, 0.8, 1.6, 3.2, 6.4]) {
+      const tile = tileOf(system, r);
+      const he = tile.halfExtentMm;
+      const own = scaleDrift(system, tile).pixelScale;
+      const axial = Math.abs(tile.scale.referenceRadius / R - 1);
+      // Both closed forms, to a part in 1000 at every field. Each is the
+      // leading term of a hypotenuse read on its OWN centre, so the tile's drift
+      // divides by R_tile and the axial error by R_axis; using one for the other
+      // costs 0.11% at 6.4 mm, which is the difference between them.
+      const Rtile = tile.scale.referenceRadius;
+      expect(own / ((he * (r + he)) / (Rtile * Rtile)) - 1).toBeCloseTo(0, 3);
+      expect(axial / ((r * r) / (2 * R * R)) - 1).toBeCloseTo(0, 3);
+      // The trade itself: which ruler is cheaper, and by how much.
+      // Relative, because the gain runs from 0.7 to 17 and an absolute bound
+      // would mean something different at each end. The 1e-3 is the (R_tile/R)²
+      // the two forms differ by, which is r²/R² and largest at 6.4 mm.
+      const gain = axial / own;
+      expect(Math.abs(gain / ((r * r) / (2 * he * (r + he))) - 1)).toBeLessThan(2e-3);
+      if (r < crossover) expect(gain).toBeLessThan(1);
+      else expect(gain).toBeGreaterThan(1);
+    }
+  });
+});
+
+describe("§ 6m.4 — a millimetre of field, which one frame could not see", () => {
+  it("grows defocus as h² across tile centres — the objective's field curvature", () => {
+    // The external number § 6h could not reach. Third-order theory makes the
+    // Petzval/astigmatic focal surface depart from the flat image plane as h²,
+    // so a MOSAIC on a flat plane must show defocus growing quadratically with
+    // field. § 6h.4 measured coma and astigmatism and not this, because inside
+    // one 47 µm frame the term is ~1e-6 waves and sits under the fit's own
+    // noise. Tiles reach 0.8 mm, where it is 5.3e-2 waves — and it is ×4.000 per
+    // doubling, to 0.1%, which is the sharpest field-order rung in the branch.
+    const system = din4x();
+    const onAxis = coefficient(fieldPupilAt(system, frameOf(system), 0.5, 0.5).fit, 4);
+    const heights = [0.1, 0.2, 0.4, 0.8];
+    const defocus = heights.map(
+      (h) =>
+        coefficient(
+          fieldPupilAt(system, tileOf(system, imageRadius(system, h)), 0.5, 0.5).fit,
+          4,
+        ) - onAxis,
+    );
+    for (const d of defocus) expect(Math.sign(d)).toBe(Math.sign(defocus[0]!));
+    expect(fittedOrder(heights, defocus)).toBeCloseTo(2, 3);
+    for (let i = 1; i < defocus.length; i++) {
+      expect(Math.abs(defocus[i]! / defocus[i - 1]! / 4 - 1)).toBeLessThan(1e-3);
+    }
+    // Real, and large: 5.3e-2 waves is 700× the axial fit's own noise floor.
+    expect(Math.abs(defocus[defocus.length - 1]!)).toBeGreaterThan(5e-2);
+  });
+
+  it("keeps coma h¹ and astigmatism h² over a decade, where § 6h.4 had a frame", () => {
+    // Composition rather than a new pin — § 6h.4 already measured these orders,
+    // reaching outside its own frame to do it. What is new is that they are read
+    // at tile CENTRES, in range, on tiles that render: the same third-order
+    // dependence surviving from 0.1 mm to 0.8 mm rather than across 47 µm.
+    const system = din4x();
+    const heights = [0.1, 0.2, 0.4, 0.8];
+    const coma: number[] = [];
+    const astig: number[] = [];
+    for (const h of heights) {
+      const p = fieldPupilAt(system, tileOf(system, imageRadius(system, h)), 0.5, 0.5);
+      expect(p.objectHeightMm).toBeCloseTo(h, 9);
+      coma.push(Math.hypot(coefficient(p.fit, 7), coefficient(p.fit, 8)));
+      astig.push(Math.hypot(coefficient(p.fit, 5), coefficient(p.fit, 6)));
+    }
+    expect(fittedOrder(heights, coma)).toBeCloseTo(1, 3);
+    expect(fittedOrder(heights, astig)).toBeCloseTo(2, 3);
+  });
+
+  it("finds an off-axis tile ANISOTROPIC, in the ratio 3 the cubic implies", () => {
+    // The finding, and the one that reaches D2 rather than D4. A tile off axis
+    // is not a scaled copy of an axial one: it is a rectangle. Differentiating
+    // § 6h.1's own r = M·h + C·h³, the two local magnifications are
+    //
+    //   tangential  r/h    = M +   C·h²   (the chief ray's own lever)
+    //   radial      dr/dh  = M + 3·C·h²   (its slope)
+    //
+    // so their departures from M stand in the ratio 3 — exactly, and with no
+    // free coefficient, which is why it is a pin and not a measurement. Measured
+    // on the tile's OWN edges rather than on the closed form: 2.97 at 0.4 mm and
+    // 2.998 at 1.6 mm, approaching 3 from below as the h³ term climbs clear of
+    // the inverse's 1e-9 closure. A tile 0.8 mm off axis is 33 ppm out of square
+    // — small on this objective, and a thing no single per-tile scale can carry.
+    const system = din4x();
+    const m = Math.abs(frameOf(system).magnification);
+    const ratios: number[] = [];
+    for (const h of [0.4, 0.8, 1.6]) {
+      const tile = tileOf(system, imageRadius(system, h));
+      const span = 2 * tile.halfExtentMm;
+      const radial =
+        span / (objectPointAt(system, tile, 1, 0.5).x - objectPointAt(system, tile, 0, 0.5).x);
+      const tangential =
+        span / (objectPointAt(system, tile, 0.5, 1).y - objectPointAt(system, tile, 0.5, 0).y);
+      // Both are barrel — below the linear reference — and the radial one more so.
+      expect(radial).toBeLessThan(m);
+      expect(tangential).toBeLessThan(m);
+      expect(Math.abs(radial - m)).toBeGreaterThan(Math.abs(tangential - m));
+      // The tangential edge measurement IS the closed form r/h, to 0.6%.
+      expect(tangential / (imageRadius(system, h) / h) - 1).toBeCloseTo(0, 4);
+      ratios.push((radial / m - 1) / (tangential / m - 1));
+    }
+    expect(ratios[ratios.length - 1]!).toBeCloseTo(3, 2);
+    for (const ratio of ratios) expect(Math.abs(ratio / 3 - 1)).toBeLessThan(3e-2);
+    // Exactly square on the axis, where C·h² vanishes — the negative control.
+    const axial = tileOf(system, 0);
+    const ax = objectPointAt(system, axial, 1, 0.5).x - objectPointAt(system, axial, 0, 0.5).x;
+    const ay = objectPointAt(system, axial, 0.5, 1).y - objectPointAt(system, axial, 0.5, 0).y;
+    expect(ax).toBe(ay);
+  });
+
+  it("renders a tile that is still honest, and softer, the further out it sits", () => {
+    // What the mosaic will actually show. The tiles rule `valid` — they are
+    // traced, so § 6f.9's verdict has the sampling it needs — and the picture
+    // degrades because the OBJECTIVE does: a single cemented doublet solved on
+    // axis carries 0.140 waves rms there and 0.632 at 1.6 mm, and the grating's
+    // contrast follows it down from 0.687 to 0.343. That is the DIN 4×'s own
+    // field and not the mapping's limit; nothing here vignettes.
+    const system = din4x();
+    const rowContrast = (intensity: Float64Array) => {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let x = 0; x < SIZE; x++) {
+        const value = intensity[(SIZE / 2) * SIZE + x]!;
+        lo = Math.min(lo, value);
+        hi = Math.max(hi, value);
+      }
+      return (hi - lo) / (hi + lo);
+    };
+    const seen: { rms: number; contrast: number }[] = [];
+    for (const h of [0, 0.8, 1.6]) {
+      const tile = tileOf(system, h === 0 ? 0 : imageRadius(system, h));
+      const centre = fieldPupilAt(system, tile, 0.5, 0.5);
+      expect(centre.lost).toBe(0);
+      const out = renderBrightfield(GRATING, tracedFieldPupils(system, tile), SOURCE, {
+        patches: 2,
+        pupilSamples: PUPIL_SAMPLES,
+        scale: tile.scale,
+        requireHonest: true,
+      });
+      expect(out.fidelity.verdict).toBe("valid");
+      seen.push({ rms: centre.rmsWaves, contrast: rowContrast(out.intensity) });
+    }
+    for (let i = 1; i < seen.length; i++) {
+      expect(seen[i]!.rms).toBeGreaterThan(seen[i - 1]!.rms);
+      expect(seen[i]!.contrast).toBeLessThan(seen[i - 1]!.contrast);
+    }
+    expect(seen[0]!.rms).toBeCloseTo(0.14, 2);
+    expect(seen[2]!.rms).toBeCloseTo(0.632, 2);
+    expect(seen[0]!.contrast).toBeCloseTo(0.687, 2);
+    expect(seen[2]!.contrast).toBeCloseTo(0.343, 2);
   });
 });

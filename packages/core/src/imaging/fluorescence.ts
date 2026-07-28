@@ -492,8 +492,12 @@ export function rasterizeEmitters(
     const heightMm = Math.hypot(emitter.xMm, emitter.yMm);
     const imageRadiusMm = imageRadiusForObjectHeight(system, heightMm, frame.wavelengthNm, aim);
     const azimuth = heightMm > 0 ? Math.atan2(emitter.yMm, emitter.xMm) : 0;
-    const px = centre + (imageRadiusMm * Math.cos(azimuth)) / frame.pixelScaleMm;
-    const py = centre + (imageRadiusMm * Math.sin(azimuth)) / frame.pixelScaleMm;
+    // Relative to the frame's own centre, so a § 6m tile places its beads where
+    // it is looking rather than where the axis is. Exact for the axial frame.
+    const px =
+      centre + (imageRadiusMm * Math.cos(azimuth) - frame.centreMm.x) / frame.pixelScaleMm;
+    const py =
+      centre + (imageRadiusMm * Math.sin(azimuth) - frame.centreMm.y) / frame.pixelScaleMm;
     const x0 = Math.floor(px);
     const y0 = Math.floor(py);
     if (x0 < 0 || y0 < 0 || x0 + 1 >= n || y0 + 1 >= n) continue;

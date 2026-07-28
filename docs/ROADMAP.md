@@ -511,9 +511,14 @@
    **93.5 µm wide at 4× and 2.6 µm at 100×/1.40**, on the axis, in grey, with no
    eyepiece — a detail crop, and § 6h's own closed form says raising the grid
    will never widen it. Closing that is § 6m–§ 6r, ordered and costed in
-   APP.md's Part D: the **off-axis frame** (§ 6m) and the **warped-grid
-   rasterizer** (§ 6n, § 6h's named deferral) so a tile can sit anywhere in the
-   field and its specimen be placed through the traced chief ray; the **mosaic
+   APP.md's Part D. The **off-axis frame** (§ 6m) is ✅ **done** — a tile sits
+   anywhere in the field, registers with its neighbours in the last bit, and
+   carries the first millimetre-scale field measurements in the branch: field
+   curvature at ×4.000 per doubling, and the finding that an off-axis tile is
+   *anisotropic* in the ratio 3, which is the **warped-grid rasterizer**'s
+   (§ 6n, § 6h's named deferral) argument turned into a number — it is what has
+   to land next so a tile's specimen is placed through the traced chief ray
+   rather than by one uniform scale; then the **mosaic
    and its guard band** (§ 6o), whose feasibility probe found the reach of a
    tile is the reach of the **impulse response and not the coherence width** —
    so the guard is S-independent and small, where the coherence argument
@@ -525,7 +530,7 @@
    reads its spacing off a ray entering collimated; and **polychromatic
    brightfield** (§ 6r), which is what makes a stained section look stained.
    § 6l — depth-dependent spherical aberration — is unchanged and independent of
-   all of them.
+   all of them, and is now a numbered gap in the ladder rather than a plan.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
