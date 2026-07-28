@@ -4953,6 +4953,16 @@ in a third place.
   verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
+- **§ 6m–§ 6r — the microscope's field of view, and looking through it.** A
+  dozen rungs named in APP.md's Part D rather than here, because they arrived as
+  the scoping of an app surface and their step numbers are not yet claimed: the
+  off-axis frame (§ 6m), the warped-grid rasterizer (§ 6n, § 6h's own deferral),
+  the mosaic guard band (§ 6o), the commensurate condenser and cached pupil
+  (§ 6p, exact against the uncached sum bit for bit), the eyepiece on a *finite*
+  intermediate image (§ 6q — `afocalTelescope` solves from a collimated input and
+  cannot serve it), and polychromatic brightfield (§ 6r). Part D carries the
+  feasibility measurements each would pin, labelled as feasibility figures and
+  **not** as pins, which is the distinction this file exists to keep.
 
 ## Rules
 

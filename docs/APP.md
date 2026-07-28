@@ -921,39 +921,64 @@ therefore **diverges as the diaphragm closes**. It is wrong, and the measurement
 is what says so.
 
 Lattice held fixed — one `pupilSamples`, one grid, one pupil sampling — with two
-specimens identical inside a window of width W and *independently random* outside
-it, compared over the central 128 px. The only thing that varies is how far out
-the specimen is the true one:
+specimens identical inside a window and differing outside it, compared over the
+central 128 px. The only thing that varies is how far out the specimen is the
+true one. The two surrounds are **permutations of one multiset**, so the objects
+carry identical total transmittance; without that, T(0) reaches every pixel
+through the pupil at every source point and lays a floor of the probe's own
+making across the whole table. Errors below are rms relative, and each was also
+computed after normalizing both images by their own mean — the two agree to four
+digits, which is what says the DC control worked:
 
 | guard (cells) | S = 0.25 | S = 0.5 | S = 1.0 |
 |---|---|---|---|
-| 0 | 9.9e-2 | 9.1e-2 | 6.9e-2 |
-| 8 | 5.9e-3 | 7.0e-3 | 8.0e-3 |
-| 16 | 5.5e-3 | 5.9e-3 | 6.2e-3 |
-| 24 | 5.0e-3 | 4.6e-3 | 5.0e-3 |
-| 32 | 4.1e-3 | 3.8e-3 | 3.9e-3 |
+| 0 | 1.06e-1 | 8.8e-2 | 6.1e-2 |
+| 8 | 6.4e-3 | 7.0e-3 | 7.7e-3 |
+| 16 | 6.1e-3 | 5.9e-3 | 6.1e-3 |
+| 24 | 5.0e-3 | 4.5e-3 | 5.0e-3 |
+| 32 | 4.2e-3 | 4.0e-3 | 3.8e-3 |
 
-(rms relative error; worst-pixel error runs 1.4× at guard 0 and 2–3% of the mean
-at guard 8 and beyond. In coherence widths those same guards span **1.6 to 26.2**
-across the three columns.)
+(Δ_coh is 4.88, 2.44 and 1.22 cells at the three S, so those same guards span
+**1.6 to 26.2 coherence widths** across the table.)
 
-**Read the columns, not the rows.** At a fixed guard *in cells* the three S agree
-to within 30%; at a fixed guard *in coherence widths* they disagree by an order
-of magnitude. So the reach of a tile is set by the **impulse response**, not by
-μ — which is the right physics once stated: a coherent image is the object
-amplitude convolved with h, so h's reach is the reach at every S. μ weights the
-cross terms; it does not extend them. Three consequences, and the first two are
-the good news:
+**The first row is the whole result: a guard of 8 cells removes 88–94% of the
+error at every S.** After that the curve goes slowly — roughly guard^−0.3 — and
+that flatness is exactly why the *variable* has to be read off the diagonals
+rather than off the near-constant tail:
 
-- **The guard does not diverge as S → 0.** The coherent limit is tileable, and a
-  closed diaphragm — brightfield's most interesting setting — is not a special
-  case.
-- **It is small.** The first 8 cells buy 13×; the next 24 buy under 2×. What is
-  left is h's algebraic tail, so there is no guard band that makes a tile exact
-  and the honest deliverable is a **bound**, not a limit.
+- along a **constant guard in cells**, the three S spread by 1.20× at guard 8 and
+  1.10× at guard 32, non-monotone;
+- along a **constant guard in coherence widths** (S = 0.25 at 32 cells, S = 0.5
+  at 16, S = 1.0 at 8 — all ≈ 6.56 Δ_coh), they spread by **1.83× and
+  monotonically in S**.
+
+So cells is the better variable and μ is not the one, but this is a 1.8-against-1.2
+discrimination and it is stated as that rather than as a collapse. It agrees with
+the physics stated directly, which is the stronger of the two arguments: a
+coherent image is the object amplitude convolved with h, and I = Σ_s w_s|∫t·h_s|²
+weights every object point's contribution by |h| whatever the source does. **μ
+weights the cross terms; it does not extend them.** Three consequences:
+
+- **The guard does not grow as the diaphragm closes**, over the range measured
+  (S = 1 → 0.25). The near-coherent setting — brightfield's most interesting one
+  — is not a special case, where the coherence-width argument said it would be
+  the worst one. S = 0 itself is not measured and is not claimed.
+- **It is small.** The first 8 cells buy 8–16×; the next 24 buy 1.5×. What is
+  left is h's algebraic tail, so **there is no guard band that makes a tile
+  exact** and the honest deliverable is a bound, not a limit.
 - The floor is ~4e-3 rms and ~2–3% worst pixel. That is fine for a picture and it
   is **not** fine for a rung pinned to a closed form, so § 6o's rungs are written
   against the bound and its convergence, never against an equality.
+
+**One hypothesis was raised against this table and measured down, which is worth
+recording because it would have invalidated the step.** The plateau looks like a
+probe artifact — two independently drawn surrounds differ in total transmittance
+by ~1/√N, and the DC term lands on every pixel — and the predicted magnitude
+(~6e-3) and W-scaling (1.46 against a measured 1.44) both matched. They matched a
+mechanism that is not there: with the multiset balanced and the means divided
+out, the floor did not move (4.20e-3 against 4.15e-3 at S = 0.25, guard 32). The
+first table in this section was drawn without that control and it should not have
+been; the numbers above are the controlled run.
 
 **3. The traced-pupil multiplier is the real cost, and the fix is named but not
 built.** § 2 pins traced/ideal at a flat 8–10×, linear in source points, because
@@ -969,11 +994,23 @@ it is the difference between a traced full field in minutes and one in hours.
 
 **What the three together say.** A 4× objective's real field is ~5 mm, 19.6 mm²
 of specimen. At ps 128 tiles with an 8-cell guard the useful span is 329 µm, so
-the field is ~181 tiles; at 2 px per resolution cell that is ~1.6 s a tile ideal
-and ~13–16 s traced, i.e. **40–48 min single-threaded and ~6 min across eight
-workers** — before § 6p, which is expected to take most of the traced multiplier
-out. A *viewport* holds tens of tiles, not 181, so panning is seconds. That is
-the whole argument for the design in D2: **not a bigger frame, a tiled stage.**
+the whole field is **~181 tiles**. At the 4 px per resolution cell the table
+above was measured at, that is 6.2 s a tile ideal and ~50–62 s traced:
+**2.5–3.1 hours single-threaded, ~20–25 min across eight workers.** Dropping to
+2 px/cell is 4× cheaper and would put it near 40 min single-threaded — but A4
+measured the bilinear splat outweighing the optics below ~3 px/cell (19.1% peak
+spread at 2.01), and § 6n's rasterizer splats too, so **that sampling is not
+available for free** and what it costs an *extended* specimen is a measurement
+§ 6n owes rather than an assumption this section may make. Quote the 4 px/cell
+figure until it exists.
+
+§ 6p is what moves this: the traced multiplier is 8–10× of a cost that is
+otherwise minutes.
+
+And the number that actually decides the design is none of those — **a viewport
+holds tens of tiles, not 181.** Panning is seconds even at the pessimistic
+figure. That is the whole argument for D4: **not a bigger frame, a tiled
+stage**, rendered where you are looking.
 
 ### D1. § 6m — the off-axis frame — *engine step*
 
@@ -1012,11 +1049,13 @@ useful span.
 
 **Rungs, written against a bound because D0.2 says an equality is not available:**
 the guard-band convergence at fixed lattice, pinned as ≤ a stated bound at a
-stated guard, with the guard-0 case as the negative control (it fails by 13×);
-the **S-independence** — the finding — pinned as the three columns agreeing
-within a stated factor where the coherence-width prediction would have them an
-order of magnitude apart; and seam continuity, the step across a seam held to the
-same bound as the interior error.
+stated guard, with the guard-0 case as the negative control (it fails by 8–16×);
+the **choice of variable** — the finding — pinned as the diagonal-against-row
+comparison above rather than as a collapse, since the measured discrimination is
+1.83 against 1.20 and a rung claiming more than that would be claiming more than
+was seen; and seam continuity, the step across a seam held to the same bound as
+the interior error. All three run with the total transmittance controlled, for
+the reason D0.2's last paragraph gives.
 
 **Deliberately not attempted:** a mosaic under a *non-telecentric* condenser.
 § 6h assumes the illumination cone stays centred at every field point, which is
