@@ -59,7 +59,7 @@ whole ladder.
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | The grid itself warped at last — § 6h's named deferral: a `Specimen` callback evaluated at the object point each pixel really looks at, so the warp happens in the ARGUMENT and nothing is resampled; the pixel convention pinned bitwise against § 6i's emitter rasterizer, whole flux in one pixel; a straight object line shown to BOW, and at ×2.00 per doubling rather than the cubic's ×8.00 — the sagitta is the map's CURVATURE, so § 6h.1's cubic, § 6m.4's slope and this complete one ladder of derivatives; the sign pinned as barrel; a negative control that cannot bow AT ALL; and a round trip through a whole picture whose residual is that same curvature, against a uniform map whose residual is the slope — so the gap between them doubles with field, 16.8× to 257×; and the whole thing composed on a traced 4×/0.10, where the two maps' rendered PICTURES differ by 2.8e-3 of peak at 6.4 mm against 1.5e-6 on axis | `specimen` |
-| [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image at last, each cropped to its useful span — and the guard band that crop needs measured against a CLOSED FORM: under a coherent source the error falls as guard^(−1/2), the tail integral ∫\|h\|² of the Airy amplitude, reached from above at −0.334, −0.435, −0.533; a filled condenser beating that limit by a factor that DOUBLES with the guard (22.9, 42.0, 84.8), so the guard does depend on the coherence and D0.2's "S-independent" reading is corrected; the finding that D0.2's ~4e-3 plateau is the CONDENSER'S OWN QUADRATURE and not h's tail — the same guard, specimen and lattice at 749 source points instead of 97 falls 7.1×, and the flat guard^(−0.3) tail flattens only at the coarse sampling; the same 749 points shown NOT converged at S = 1, where `diskSource` spaces them 4× wider; a guard refused rather than rounded when it is not whole pixels; the pitch shown to be a hundredth of a pixel from the abutment fixed point across 17 tiles, so the solve is skipped and said so; and the seam itself, on a traced 4×/0.10, falling 23× from 1.8e-2 to 7.8e-4 and stopping being a seam at all | `mosaic` |
+| [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image at last, each cropped to its useful span — and the guard band that crop needs measured against a CLOSED FORM: under a coherent source the error falls as guard^(−1/2), the tail integral ∫\|h\|² of the Airy amplitude, reached from above at −0.334, −0.435, −0.533; a filled condenser beating that limit by a factor that DOUBLES with the guard (22.9, 42.0, 84.8), so the guard does depend on the coherence and D0.2's "S-independent" reading is corrected; the finding that D0.2's ~4e-3 plateau is the CONDENSER'S OWN QUADRATURE and not h's tail — the same guard, specimen and lattice at 749 source points instead of 97 falls 7.1×, and the flat guard^(−0.3) tail flattens only at the coarse sampling; the same 749 points shown NOT converged at S = 1, where `diskSource` spaces them 4× wider; a guard refused rather than rounded when it is not whole pixels; the pitch shown to be a hundredth of a pixel from the abutment fixed point across 17 tiles, so the solve is skipped and said so; the seam itself, on a traced 4×/0.10, falling 23× from 1.8e-2 to 7.8e-4 and stopping being a seam at all; and — for a mosaic that PANS — a tile rendered alone shown to be the tile the mosaic composes **bit for bit**, indexed from the anchor rather than from the viewport, with the alternative measured at 3.4e-3 px of ruler drift but **16.0 px** of lattice offset a third of a tile off centre | `mosaic` |
 | [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so every direction reads one grid and a traced pupil is evaluated once instead of once per direction — cached ≡ uncached **bit for bit**, with the dyadic precondition that makes that provable refused rather than tolerated, and the saving pinned as an exact integer (`contributingPoints`) instead of a wall clock; the construct shown to BE `diskSource`'s lattice, bitwise, with the single 5.6e-17 gap located at the one division `gridCoordinate` cannot represent; a source declaring a lattice it is not on refused; and two corrections — **commensurability is accuracy-neutral**, so § 6o's and D5's "it also lowers the mosaic's error floor" is wrong (812 commensurate points reproduce the plateau; 3 228 un-flatten it), and D0.3's "commensurate *and* coarse" premise does not survive § 6f.2, so the knob is `pupilSamples` and not `stepMultiple` | `commensurate` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
@@ -5358,6 +5358,13 @@ the span that will be kept, and keep only the centre.
 | **The seam step falls monotonically with the guard: 1.8e-2 → 7.8e-4** | on a traced 4×/0.10 at 1.6 mm | ✅ |
 | With no guard the error is LOCALIZED at the seam — 90× its neighbour 3 px away | a seam, not a wrong tile | ✅ |
 | …and by 8 cells it is no longer the worst pixel in its own neighbourhood | the residual has stopped being a seam | ✅ |
+| **An anchored tile (i, j) is the layout's, bitwise — at 3×3 and at 5×5** | the pitch is read on the anchor and nowhere else | ✅ |
+| …and a 5×5's inner ring IS the 3×3, tile for tile | the viewport is not in the answer | ✅ |
+| A fractional index and an `"abutting"` pitch are **refused** | the fixed point is a finite mosaic's | ✅ |
+| **A tile rendered ALONE is the tile the mosaic composes, bit for bit** | nothing blends, nothing resamples | ✅ |
+| CONTROL: two tiles differ in > 90% of their pixels | registration, not a flat picture | ✅ |
+| NEGATIVE CONTROL: re-anchoring on the viewport costs 3.4e-3 px on a tile centre… | § 6m.4's ppm ruler drift, in pixels | ✅ |
+| …and **16.0 px** a third of a tile off it | a fraction of a pitch, not a drift | ✅ |
 
 ### The external number is a closed form, and it lives in the coherent limit
 
@@ -5509,6 +5516,57 @@ That is the shape a viewer reads as a grid line, and it is what the guard
 removes: by 8 cells the seam is no longer the worst pixel near it, and what
 remains is the tile's own floor, which § 6o.3 says is this 21-point source's
 quadrature rather than the crop.
+
+### § 6o.8 — the anchored tile, and what a pannable stage needs on top
+
+The rungs above ask `renderMosaic` for one finite picture at a time. A **stage**
+does none of that: it renders tiles singly, out of order, in several workers, and
+keeps them in a cache across pans. Each of those verbs is an assumption about the
+construction, and two of them needed pinning before APP.md's A7 could claim them.
+
+**A tile rendered alone is the tile the mosaic composes — bit for bit.** Nothing
+is blended across a seam and nothing is resampled (§ 6o.5), so an isolated tile is
+not an approximation of the composed one; it is the same arithmetic. `renderMosaic`
+is now literally a loop over `renderMosaicTile` plus a paste, and the rung compares
+two tiles of a 3×3 against the composed picture pixel for pixel with `toBe`. The
+control beside it is that those two tiles differ in more than 90% of their pixels,
+so the equality is a statement about registration rather than about a picture that
+is the same everywhere.
+
+**A tile's identity is its index from the anchor, not the viewport it was asked
+from.** `mosaicLayout` reads its pitch on the tile nearest *its own* centre, which
+is exactly right for a finite picture and wrong for an unbounded one — recentre the
+layout on wherever you have panned to and the same piece of specimen lands in two
+different places depending on how you got there. `mosaicTileAt(system, options, i,
+j)` puts tile `(i, j)` at `anchor + (i, j)·pitch` with the pitch read on the anchor
+and nowhere else, and the rung pins it bitwise against `mosaicLayout`'s own tiles at
+**two viewport sizes** — a 5×5's inner ring is the 3×3, tile for tile.
+
+**The negative control is the version a stage writes by accident, and it splits
+into two very different sizes of mistake.** Re-anchored on a tile *centre* the cost
+is **3.4e-3 px** eight tiles out: § 6m.4's parts-per-million ruler drift, arriving
+where it can be counted in pixels, and small enough that it would never be noticed.
+Re-anchored where a viewport actually is — a pan is not a whole number of tiles —
+the grid moves by that fraction of a pitch: **16.0 px** of a 48-pixel span a third
+of a tile off centre, nearly four orders larger, and the whole picture jumping on
+every pan. So what anchoring protects is the **lattice**, not the ruler, and a
+`(col, row)` cache key is legitimate for that reason rather than by convention.
+
+`"abutting"` is refused here rather than approximated: its fixed point is walked
+outward from the centre of a *finite* mosaic, so it is defined by the tile count,
+which is the dependence an anchored index exists to remove. § 6o.6's measurement is
+the licence — the uniform pitch it would converge to sits ~1e-3 of a pixel away.
+
+**Measured while wiring A7, and it corrects Part D's cost model.** D0.1 priced a
+tile by its Abbe sum (76 ms at ps 32 / grid 128, ideal pupil) and every arithmetic
+in Part D was built on that. On a **traced** tile with § 6p's cache the sum is no
+longer the bill: at grid 128 / ps 32 it is 180 ms against **1 001 ms** for
+`rasterizeSpecimen`, and at grid 64 / ps 32 it is 61 ms against 292 ms. § 6n's
+warped grid bisects a traced chief ray per pixel to mantissa exhaustion, so the
+raster is 4.8–5.6× the imaging and the affordable tile size is set by it. That is
+the deferral § 6n named and attributed to § 6p — which landed as the *pupil* cache
+instead — so the radial map cache is still open, and it is now the dominant cost of
+a traced tile.
 
 ### Not yet pinned
 

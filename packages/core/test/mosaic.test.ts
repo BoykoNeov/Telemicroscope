@@ -3,7 +3,13 @@ import { abbeImage, type ObjectField } from "../src/illumination/abbe";
 import { coherentSource, diskSource, type CondenserSource } from "../src/illumination/source";
 import { mulberry32 } from "../src/math/random";
 import type { PupilFunction } from "../src/wave/psf";
-import { mosaicLayout, mosaicPitchDriftPx, renderMosaic } from "../src/imaging/mosaic";
+import {
+  mosaicLayout,
+  mosaicPitchDriftPx,
+  mosaicTileAt,
+  renderMosaic,
+  renderMosaicTile,
+} from "../src/imaging/mosaic";
 import { objectFieldTile, tracedFieldPupils } from "../src/imaging/object-field";
 import { rasterizeSpecimen, type Specimen } from "../src/imaging/specimen";
 import { renderBrightfield } from "../src/imaging/brightfield";
@@ -613,5 +619,173 @@ describe("§ 6o.7 — composed on a traced objective, and the seam it makes", ()
     // The verdict is the WORST tile's, `renderBrightfield`'s rule one level up:
     // a mosaic is not honest in the tiles where it happens to be.
     for (const g of [0, 4, 8]) expect(seamAt(g).verdict).toBe("valid");
+  });
+});
+
+/* ── the stage: a tile that does not know which viewport asked for it ──────── */
+
+/**
+ * § 6o.8 — what a *pannable* mosaic needs on top of a composed one.
+ *
+ * A stage renders tiles one at a time, out of order, in workers, and keeps them
+ * in a cache across pans. Every one of those verbs is an assumption about the
+ * construction, and none of them was pinned by the rungs above, which only ever
+ * asked `renderMosaic` for a whole finite picture at once:
+ *
+ *  - **a tile is formed from its own grid and nothing else**, so one rendered
+ *    alone is not an approximation of the mosaic's — it is the same arithmetic,
+ *    and the rung asks for it bit for bit rather than close;
+ *  - **a tile's identity is its index**, not the viewport it was asked from, or
+ *    a cache would serve one pan's tile into another pan's picture. That is
+ *    `mosaicTileAt`, and the thing that makes it true is that the pitch is read
+ *    on the **anchor** and nowhere else.
+ *
+ * The negative control is the version a stage would write by accident: re-anchor
+ * the layout on wherever the viewport currently is. It is *nearly* right — the
+ * ruler drifts by parts per million (§ 6m.4) — and the rung measures what it
+ * actually costs rather than asserting that it is wrong.
+ */
+describe("§ 6o.8 — the anchored tile, and rendering one alone", () => {
+  const SOURCE = diskSource(0.6, 5);
+  const bars = (periodMm: number): Specimen => (x, y) => ({
+    re: 0.5 + 0.5 * Math.cos((2 * Math.PI * x) / periodMm) * Math.cos((2 * Math.PI * y) / periodMm),
+    im: 0,
+  });
+
+  const ANCHOR = { x: 1.6, y: 0.8 } as const;
+  const stageOptions = (tiles: number) =>
+    ({
+      tiles,
+      size: SIZE,
+      pupilSamples: TILE_PS,
+      guardCells: 4,
+      wavelengthNm: LAMBDA,
+      centreMm: ANCHOR,
+    }) as const;
+
+  it("indexes from the anchor, and the index does not depend on the viewport", () => {
+    // A 3×3 and a 5×5 about the same anchor must agree about where tile (i, j)
+    // is — to the last bit, not to a tolerance, because the two layouts read
+    // their pitch off the same anchor tile and the offsets are the same integer
+    // multiples of it. This is what makes (i, j) a legitimate cache key.
+    for (const tiles of [3, 5]) {
+      const l = mosaicLayout(SYSTEM, stageOptions(tiles));
+      const half = (tiles - 1) / 2;
+      for (const t of l.tiles) {
+        const anchored = mosaicTileAt(SYSTEM, stageOptions(tiles), t.col - half, t.row - half);
+        expect(anchored.frame.centreMm.x).toBe(t.frame.centreMm.x);
+        expect(anchored.frame.centreMm.y).toBe(t.frame.centreMm.y);
+        expect(anchored.frame.centreObjectMm.x).toBe(t.frame.centreObjectMm.x);
+        expect(anchored.frame.centreObjectMm.y).toBe(t.frame.centreObjectMm.y);
+        expect(anchored.frame.pixelScaleMm).toBe(t.frame.pixelScaleMm);
+      }
+    }
+    // …and the tile count itself is not in the answer: the 5×5's inner ring IS
+    // the 3×3, tile for tile. A layout that re-read its pitch per viewport would
+    // pass every assertion above and fail this one.
+    const three = mosaicLayout(SYSTEM, stageOptions(3)).tiles;
+    const five = mosaicLayout(SYSTEM, stageOptions(5)).tiles;
+    for (const t of three) {
+      const same = five.find((f) => f.col === t.col + 1 && f.row === t.row + 1)!;
+      expect(same.frame.centreMm.x).toBe(t.frame.centreMm.x);
+      expect(same.frame.centreMm.y).toBe(t.frame.centreMm.y);
+    }
+    expect(mosaicTileAt(SYSTEM, stageOptions(1), 0, 0).frame.centreMm.x).toBe(ANCHOR.x);
+  });
+
+  it("REFUSES a fractional index and an abutting pitch", () => {
+    // The abutting fixed point is walked outward from the centre of a *finite*
+    // mosaic, so it is defined by the tile count — exactly the dependence an
+    // anchored index exists to remove. Refused rather than silently uniform,
+    // `latticeMatchedSource`'s argument once more.
+    expect(() => mosaicTileAt(SYSTEM, stageOptions(1), 0.5, 0)).toThrow(/integers/);
+    expect(() =>
+      mosaicTileAt(SYSTEM, { ...stageOptions(1), pitch: "abutting" }, 1, 0),
+    ).toThrow(/finite mosaic/);
+  });
+
+  it("a tile rendered ALONE is the tile the mosaic composes, bit for bit", () => {
+    // The stage's whole licence. Nothing is blended across a seam and nothing is
+    // resampled (§ 6o's construction), so an independently rendered tile is not
+    // an approximation of the composed one — anything short of equality would
+    // mean the composition was doing something the crop does not say it does.
+    const options = { ...stageOptions(3), patches: 2 };
+    const l = mosaicLayout(SYSTEM, options);
+    const specimen = bars(8 * l.objectPixelScaleMm);
+    const mosaic = renderMosaic(SYSTEM, specimen, SOURCE, options);
+
+    for (const [col, row] of [
+      [0, 0],
+      [2, 1],
+    ] as const) {
+      const alone = renderMosaicTile(
+        SYSTEM,
+        specimen,
+        SOURCE,
+        options,
+        mosaicTileAt(SYSTEM, options, col - 1, row - 1),
+      );
+      expect(alone.size).toBe(l.usefulPixels);
+      const origin = l.tiles.find((t) => t.col === col && t.row === row)!.originPx;
+      for (let y = 0; y < l.usefulPixels; y++) {
+        for (let x = 0; x < l.usefulPixels; x++) {
+          expect(alone.intensity[y * l.usefulPixels + x]!).toBe(
+            mosaic.intensity[(origin.y + y) * l.size + origin.x + x]!,
+          );
+        }
+      }
+    }
+
+    // CONTROL: the two tiles above are different pictures, so the equality is a
+    // claim about registration and not about a mosaic that is flat everywhere.
+    const a = renderMosaicTile(SYSTEM, specimen, SOURCE, options, mosaicTileAt(SYSTEM, options, -1, -1));
+    const b = renderMosaicTile(SYSTEM, specimen, SOURCE, options, mosaicTileAt(SYSTEM, options, 1, 0));
+    let differs = 0;
+    for (let i = 0; i < a.intensity.length; i++) {
+      if (a.intensity[i] !== b.intensity[i]) differs++;
+    }
+    expect(differs).toBeGreaterThan(0.9 * a.intensity.length);
+
+    // And the mosaic's readouts are the fold over its tiles' own — the worst
+    // verdict, the max grid step, the min contributing points.
+    expect(a.fidelity.verdict).toBe(mosaic.fidelity.verdict);
+    expect(mosaic.maxGridPhaseStepWaves).toBeGreaterThanOrEqual(a.maxGridPhaseStepWaves);
+    expect(mosaic.contributingPoints).toBeLessThanOrEqual(a.contributingPoints);
+  });
+
+  it("NEGATIVE CONTROL: re-anchoring on the viewport moves the grid, measurably", () => {
+    // What a stage writes by accident: lay the mosaic out about wherever you
+    // have panned to, and index from there. It is *nearly* right, which is why
+    // it needs a number rather than an argument — the pitch is read on a tile
+    // that has moved, and § 6m.4's ruler drifts by parts per million with field.
+    //
+    // Measured two ways, and they are two different sizes of mistake.
+    const axis = { ...stageOptions(1), centreMm: { x: 0, y: 0 } } as const;
+    const anchored = mosaicTileAt(SYSTEM, axis, 8, 0);
+    const pxFrom = (centreMm: { x: number; y: number }, col: number): number =>
+      Math.abs(
+        mosaicTileAt(SYSTEM, { ...axis, centreMm }, col, 0).frame.centreMm.x -
+          anchored.frame.centreMm.x,
+      ) / anchored.frame.pixelScaleMm;
+
+    // Re-anchored on a tile CENTRE — the benign case, and the one that says the
+    // ruler drift is real rather than f64 noise: 3.4e-3 px eight tiles out, which
+    // is § 6m.4's parts per million arriving where it can be counted in pixels.
+    const onTile = pxFrom(mosaicTileAt(SYSTEM, axis, 4, 0).frame.centreMm, 4);
+    expect(onTile).toBeGreaterThan(1e-4);
+    expect(onTile).toBeLessThan(1e-2);
+
+    // Re-anchored where the viewport actually IS — a pan is not a whole number of
+    // tiles — and the grid moves by that fraction of a pitch: a third of the
+    // 48-pixel span is 16.0 px, nearly four orders past the drift, and a picture
+    // that would visibly jump on every pan.
+    // The lattice, not the ruler, is what anchoring protects.
+    const pitchMm = anchored.frame.centreMm.x / 8;
+    const drifted = pxFrom({ x: 4 * pitchMm + pitchMm / 3, y: 0 }, 4);
+    expect(drifted).toBeGreaterThan(10);
+    console.log(
+      `re-anchoring costs ${onTile.toExponential(2)} px on a tile centre and ` +
+        `${drifted.toFixed(1)} px a third of a tile off it`,
+    );
   });
 });
