@@ -1022,7 +1022,7 @@ been; the numbers above are the controlled run.
 >   consecutive slopes straddle −1/2 by 13% and 6.6%, since the probe's own
 >   window and finite surround pull the exponent either side of it.
 >
-> § 6o in VALIDATION.md carries all 20 rungs, and the revival hypothesis it
+> § 6o in VALIDATION.md carries all 28 rungs, and the revival hypothesis it
 > raised and measured down in turn.
 
 **3. The traced-pupil multiplier is the real cost, and the fix is named but not
@@ -1255,7 +1255,7 @@ recording them:
 1. **It is an engine step, slightly.** A stage renders tiles singly, out of order,
    and caches them across pans — none of which `renderMosaic` could do, since it
    only ever composed a whole finite picture. `renderMosaicTile` and
-   `mosaicTileAt` are the two additions, with ten rungs in § 6o.8. The load-bearing
+   `mosaicTileAt` are the two additions, with eight rungs in § 6o.8. The load-bearing
    one is that a tile's identity is its **index from the anchor**: re-anchoring on
    the viewport costs 3.4e-3 px of ruler drift on a tile centre but **16.0 px** of
    lattice offset a third of a tile off it.
@@ -1440,7 +1440,7 @@ a fixed point rather than a span. None of them were the seam, and all of them
 were in the part that looked like arithmetic.
 
 **And D4 was predicted wrong in the usual direction.** It was scoped as *app*, and
-it needed two engine functions and ten rungs (§ 6o.8) — a mosaic that pans is not
+it needed two engine functions and eight rungs (§ 6o.8) — a mosaic that pans is not
 a mosaic that is drawn. The seam this section predicted D4 would trip over never
 arrived, because D3 had already paid for it; what arrived instead was the *cost
 model*, D0.1, measuring the wrong half of a tile. Which is the pattern named two

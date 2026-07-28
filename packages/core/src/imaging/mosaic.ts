@@ -302,13 +302,13 @@ export function mosaicLayout(system: OpticalSystem, options: MosaicOptions): Mos
  * `anchor + (i, j)·pitch` with the pitch read on the anchor and nowhere else.
  * That makes `(i, j)` a legitimate cache key — the tile depends on the index and
  * the render parameters, and on nothing about the viewport that asked for it,
- * which § 6o.21 pins bitwise against `mosaicLayout`'s own tiles at two different
+ * which § 6o.8 pins bitwise against `mosaicLayout`'s own tiles at two different
  * viewport sizes.
  *
  * `"abutting"` pitch is **not** available here and is refused rather than
  * approximated. The fixed point is walked outward from the centre of a finite
  * mosaic (see `mosaicLayout`), so it is defined by the tile count — exactly the
- * dependence this function exists to remove. § 6o.4's measurement is the licence:
+ * dependence this function exists to remove. § 6o.6's measurement is the licence:
  * the uniform pitch it would have to converge to sits ~1e-3 of a pixel away.
  *
  * Costs two traces: the anchor's (for the pitch) and this tile's.
@@ -396,7 +396,7 @@ export interface MosaicTileImage {
  * A tile is formed from its own grid and nothing else (§ 6o's whole construction:
  * no blending across a seam, no resampling), so rendering one in isolation is not
  * an approximation of rendering the mosaic — it is the same arithmetic, and
- * § 6o.20 pins it **bit for bit** against the composed picture rather than close.
+ * § 6o.8 pins it **bit for bit** against the composed picture rather than close.
  * That is what licenses a stage to render tiles out of order, in workers, and to
  * keep them in a cache across pans.
  */
@@ -409,6 +409,17 @@ export function renderMosaicTile(
 ): MosaicTileImage {
   const { guardPixels, usefulPixels } = guardOf(options, "renderMosaicTile");
   const { frame } = tile;
+  // The crop comes from `options` and the pixels come from `tile`, so a tile laid
+  // out under a different lattice would be cropped by the wrong amount and the
+  // result would be a perfectly plausible picture of the wrong piece of specimen.
+  // Refused rather than tolerated, `guardOf`'s own move one line up.
+  if (frame.size !== options.size || frame.pupilSamples !== options.pupilSamples) {
+    throw new Error(
+      `renderMosaicTile: the tile was laid out at size ${frame.size} / pupilSamples ` +
+        `${frame.pupilSamples} and is being rendered at ${options.size} / ${options.pupilSamples} ` +
+        `— lay the tile out with the options it is rendered with`,
+    );
+  }
   const rasterOptions = options.aim === undefined ? {} : { aim: options.aim };
   const object = rasterizeSpecimen(system, frame, specimen, rasterOptions);
   const formed = renderBrightfield(object, tracedFieldPupils(system, frame, options), source, {

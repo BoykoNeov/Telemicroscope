@@ -5361,6 +5361,7 @@ the span that will be kept, and keep only the centre.
 | **An anchored tile (i, j) is the layout's, bitwise — at 3×3 and at 5×5** | the pitch is read on the anchor and nowhere else | ✅ |
 | …and a 5×5's inner ring IS the 3×3, tile for tile | the viewport is not in the answer | ✅ |
 | A fractional index and an `"abutting"` pitch are **refused** | the fixed point is a finite mosaic's | ✅ |
+| …and so is a tile laid out on one lattice and rendered on another | the crop would come from the wrong one | ✅ |
 | **A tile rendered ALONE is the tile the mosaic composes, bit for bit** | nothing blends, nothing resamples | ✅ |
 | CONTROL: two tiles differ in > 90% of their pixels | registration, not a flat picture | ✅ |
 | NEGATIVE CONTROL: re-anchoring on the viewport costs 3.4e-3 px on a tile centre… | § 6m.4's ppm ruler drift, in pixels | ✅ |
@@ -5555,7 +5556,10 @@ every pan. So what anchoring protects is the **lattice**, not the ruler, and a
 `"abutting"` is refused here rather than approximated: its fixed point is walked
 outward from the centre of a *finite* mosaic, so it is defined by the tile count,
 which is the dependence an anchored index exists to remove. § 6o.6's measurement is
-the licence — the uniform pitch it would converge to sits ~1e-3 of a pixel away.
+the licence — the uniform pitch it would converge to sits ~1e-3 of a pixel away. So
+is a **tile laid out on one lattice and rendered on another**: `renderMosaicTile`
+takes its crop from the options and its pixels from the tile, so a mismatch is a
+plausible picture of the wrong piece of specimen and nothing downstream could tell.
 
 **Measured while wiring A7, and it corrects Part D's cost model.** D0.1 priced a
 tile by its Abbe sum (76 ms at ps 32 / grid 128, ideal pupil) and every arithmetic

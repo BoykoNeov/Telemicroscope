@@ -58,9 +58,19 @@ import {
  * wall-clock division — three because a browser tab has other work to do. */
 const POOL = 3;
 
-/** Viewport, in composed-plane pixels. 224² is ~5×5 tiles at a 48-pixel pitch:
- * seconds to fill, not the minutes D0's 181-tile full field would cost. */
-const VIEW = 224;
+/**
+ * Viewport, in **tiles** rather than in pixels — D0's "a viewport holds tens of
+ * tiles, not 181", as code instead of as a comment.
+ *
+ * A fixed pixel viewport looks harmless and is not: the guard is paid at full
+ * price and thrown away, so `usefulPixels` is 48 at ps 32 / guard 4 but **8** at
+ * ps 16 / guard 6 — and a 224-pixel window over 8-pixel tiles is 841 renders,
+ * which is the live full-field drag this panel's own closing paragraph promises
+ * it will never offer. Sizing the window in tiles holds the cost fixed at ~25 of
+ * them whatever the guard and the sampling do; what changes is how much specimen
+ * that buys, which is the honest variable and is printed.
+ */
+const TILES_ACROSS = 5;
 
 const key = (col: number, row: number) => `${col},${row}`;
 
@@ -79,7 +89,10 @@ export function StagePanel() {
   // slider steps by 1/pupilSamples and cannot walk into the refusal.
   const [sTicks, setSTicks] = useState(16);
   const [zoom, setZoom] = useState(2);
-  const [pan, setPan] = useState({ x: -VIEW / 2, y: -VIEW / 2 });
+  // Where the viewport's CENTRE sits on the composed plane, in plane pixels —
+  // the centre and not the corner, so `(0, 0)` is the axis whatever the viewport
+  // size turns out to be, and changing the guard does not slide the picture.
+  const [pan, setPan] = useState({ x: 0, y: 0 });
 
   // Two pixels per resolution cell — the finest sampling `abbeImage` admits at
   // S = 1 and, since the warped rasterizer is per-pixel and dominates a traced
@@ -114,6 +127,9 @@ export function StagePanel() {
   const queue = useRef<Pending[]>([]);
   const epoch = useRef(0);
   const started = useRef(0);
+  /** The `pan` the queue effect last ran for — how it tells a drag from a
+   * configuration change, which arrive through the same effect. */
+  const panned = useRef({ x: 0, y: 0 });
   const [progress, setProgress] = useState({ done: 0, total: 0, elapsedMs: 0 });
   const [stats, setStats] = useState<{
     verdict: "valid" | "unknown" | "no-honest-image";
@@ -124,8 +140,11 @@ export function StagePanel() {
     centre: { x: number; y: number } | null;
   } | null>(null);
   const [refused, setRefused] = useState<string | null>(null);
+  /** Tiles the last pan had to ask for. `0` is the cache claim, as a readout. */
+  const [lastPanQueued, setLastPanQueued] = useState<number | null>(null);
 
   const useful = info?.ok === true ? info.info.usefulPixels : 0;
+  const view = useful * TILES_ACROSS;
 
   /** Repaint from the cache. Nothing is resampled: a tile's kept pixels are its
    * own (§ 6o), and the composed plane is exactly them, laid side by side. */
@@ -135,15 +154,17 @@ export function StagePanel() {
     const context = element.getContext("2d");
     if (!context) return;
     context.fillStyle = "#111";
-    context.fillRect(0, 0, VIEW, VIEW);
+    context.fillRect(0, 0, view, view);
+    const left = pan.x - view / 2;
+    const top = pan.y - view / 2;
     for (const tile of tiles.current.values()) {
       context.putImageData(
         new ImageData(new Uint8ClampedArray(tile.rgba), tile.size, tile.size),
-        tile.col * useful - pan.x,
-        tile.row * useful - pan.y,
+        tile.col * useful - left,
+        tile.row * useful - top,
       );
     }
-  }, [pan.x, pan.y, useful]);
+  }, [pan.x, pan.y, useful, view]);
 
   /** Hand every free worker the next tile — nearest the viewport centre first,
    * which is D4's "live centre tile" and falls straight out of the ordering. */
@@ -224,6 +245,7 @@ export function StagePanel() {
     setRefused(null);
     setStats(null);
     setProgress({ done: 0, total: 0, elapsedMs: 0 });
+    setLastPanQueued(null);
     queue.current = [];
     paintRef.current();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -233,12 +255,14 @@ export function StagePanel() {
   // that reveal nothing new queue nothing at all — that is the cache paying.
   useEffect(() => {
     if (useful === 0) return;
-    const c0 = Math.floor(pan.x / useful);
-    const r0 = Math.floor(pan.y / useful);
-    const c1 = Math.floor((pan.x + VIEW - 1) / useful);
-    const r1 = Math.floor((pan.y + VIEW - 1) / useful);
-    const cx = pan.x + VIEW / 2;
-    const cy = pan.y + VIEW / 2;
+    const left = pan.x - view / 2;
+    const top = pan.y - view / 2;
+    const c0 = Math.floor(left / useful);
+    const r0 = Math.floor(top / useful);
+    const c1 = Math.floor((left + view - 1) / useful);
+    const r1 = Math.floor((top + view - 1) / useful);
+    const cx = pan.x;
+    const cy = pan.y;
     const wanted: Pending[] = [];
     for (let row = r0; row <= r1; row++) {
       for (let col = c0; col <= c1; col++) {
@@ -247,6 +271,15 @@ export function StagePanel() {
         if (queue.current.some((q) => q.col === col && q.row === row)) continue;
         wanted.push({ col, row });
       }
+    }
+    // The cache claim, as a number rather than as prose: a pan that reveals
+    // nothing new asks for nothing, and the panel has to be able to SHOW that.
+    // Only a *pan* counts — this effect also runs when the configuration
+    // changes, and a fresh render reporting "the cache served this" would be
+    // the readout lying in the panel's own favour.
+    if (panned.current !== pan) {
+      panned.current = pan;
+      setLastPanQueued(wanted.length);
     }
     if (wanted.length === 0) return;
     const distance = (t: Pending) =>
@@ -263,7 +296,7 @@ export function StagePanel() {
     // `progress` is read to decide whether this is a fresh batch; depending on it
     // would re-run the effect on every completed tile.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pan, useful, request, pump]);
+  }, [pan, useful, view, request, pump]);
 
   useEffect(paint, [paint]);
 
@@ -278,11 +311,13 @@ export function StagePanel() {
     let maxGridPhaseStepWaves = 0;
     let slowestMs = 0;
     let centre: { x: number; y: number } | null = null;
-    const cc = Math.floor((pan.x + VIEW / 2) / useful);
-    const cr = Math.floor((pan.y + VIEW / 2) / useful);
+    const left = pan.x - view / 2;
+    const top = pan.y - view / 2;
+    const cc = Math.floor(pan.x / useful);
+    const cr = Math.floor(pan.y / useful);
     for (const tile of tiles.current.values()) {
-      if (tile.col * useful + tile.size <= pan.x || tile.col * useful >= pan.x + VIEW) continue;
-      if (tile.row * useful + tile.size <= pan.y || tile.row * useful >= pan.y + VIEW) continue;
+      if (tile.col * useful + tile.size <= left || tile.col * useful >= left + view) continue;
+      if (tile.row * useful + tile.size <= top || tile.row * useful >= top + view) continue;
       if (worst === null || rank[tile.verdict] > rank[worst.verdict]) worst = tile;
       contributingPoints = Math.min(contributingPoints, tile.contributingPoints);
       maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, tile.maxGridPhaseStepWaves);
@@ -301,11 +336,11 @@ export function StagePanel() {
             centre,
           },
     );
-  }, [progress, pan, useful]);
+  }, [progress, pan, useful, view]);
 
-  // Drag to pan. The pointer moves the plane under a fixed window, so the delta
-  // is subtracted, and it is divided by the display zoom because the zoom is a
-  // property of the screen and not of the picture.
+  // Drag to pan — the viewport's centre moves against the pointer, and the delta
+  // is divided by the display zoom because the zoom is a property of the screen
+  // and not of the picture.
   const drag = useRef<{ x: number; y: number } | null>(null);
   const onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     drag.current = { x: event.clientX, y: event.clientY };
@@ -324,7 +359,7 @@ export function StagePanel() {
     drag.current = null;
   };
 
-  const spanUm = info?.ok === true ? (VIEW * info.info.objectPixelNm) / 1000 : 0;
+  const spanUm = info?.ok === true ? (view * info.info.objectPixelNm) / 1000 : 0;
   const fieldFraction =
     info?.ok === true ? spanUm / 1000 / info.info.fieldMm : 0;
 
@@ -392,15 +427,15 @@ export function StagePanel() {
         <div>
           <canvas
             ref={canvas}
-            width={VIEW}
-            height={VIEW}
+            width={view}
+            height={view}
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
             style={{
-              width: VIEW * zoom,
-              height: VIEW * zoom,
+              width: view * zoom,
+              height: view * zoom,
               imageRendering: "pixelated",
               background: "#111",
               cursor: drag.current ? "grabbing" : "grab",
@@ -414,12 +449,21 @@ export function StagePanel() {
               </span>
             ) : (
               <span style={{ color: "#777" }}>
-                {progress.total > 0
-                  ? `${progress.total} tiles in ${(progress.elapsedMs / 1000).toFixed(1)} s`
-                  : "cached — this pan asked for nothing"}
+                {/* The zero case is the panel's own cache claim, and it has to be
+                    reachable: gated on the batch total instead, it never fires
+                    after the first render and the claim has no readout. */}
+                {lastPanQueued === 0
+                  ? "0 tiles — the cache served this pan whole"
+                  : progress.total > 0
+                    ? `${progress.total} tiles in ${(progress.elapsedMs / 1000).toFixed(1)} s`
+                    : "nothing asked for yet"}
                 {stats && ` · slowest tile ${stats.slowestMs.toFixed(0)} ms`}
               </span>
             )}
+          </div>
+          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#777" }}>
+            {view}² plane pixels — {TILES_ACROSS}×{TILES_ACROSS} tiles, whatever the guard and the
+            sampling do to how much specimen that is
           </div>
         </div>
 

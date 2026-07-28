@@ -693,7 +693,7 @@ describe("§ 6o.8 — the anchored tile, and rendering one alone", () => {
     expect(mosaicTileAt(SYSTEM, stageOptions(1), 0, 0).frame.centreMm.x).toBe(ANCHOR.x);
   });
 
-  it("REFUSES a fractional index and an abutting pitch", () => {
+  it("REFUSES a fractional index, an abutting pitch, and a tile from another lattice", () => {
     // The abutting fixed point is walked outward from the centre of a *finite*
     // mosaic, so it is defined by the tile count — exactly the dependence an
     // anchored index exists to remove. Refused rather than silently uniform,
@@ -702,6 +702,20 @@ describe("§ 6o.8 — the anchored tile, and rendering one alone", () => {
     expect(() =>
       mosaicTileAt(SYSTEM, { ...stageOptions(1), pitch: "abutting" }, 1, 0),
     ).toThrow(/finite mosaic/);
+
+    // `renderMosaicTile` takes its crop from the options and its pixels from the
+    // tile, so a tile laid out on a different lattice would be cropped by the
+    // wrong amount — a perfectly plausible picture of the wrong piece of
+    // specimen, which is the failure mode this file refuses everywhere else.
+    const foreign = mosaicTileAt(
+      SYSTEM,
+      { ...stageOptions(1), size: 2 * SIZE, guardCells: 8 },
+      0,
+      0,
+    );
+    expect(() =>
+      renderMosaicTile(SYSTEM, bars(1e-3), SOURCE, stageOptions(1), foreign),
+    ).toThrow(/lay the tile out with the options it is rendered with/);
   });
 
   it("a tile rendered ALONE is the tile the mosaic composes, bit for bit", () => {
