@@ -507,6 +507,25 @@
    quadratic wavefront sits from the exact Ewald cap (sin α against tan α: 2.6×
    at NA 1.40, but living entirely in the object-side z mapping, since the engine
    defocuses an image space where NA′ is 0.024).
+   *Still open in this step, and now scoped:* everything above forms an image
+   **93.5 µm wide at 4× and 2.6 µm at 100×/1.40**, on the axis, in grey, with no
+   eyepiece — a detail crop, and § 6h's own closed form says raising the grid
+   will never widen it. Closing that is § 6m–§ 6r, ordered and costed in
+   APP.md's Part D: the **off-axis frame** (§ 6m) and the **warped-grid
+   rasterizer** (§ 6n, § 6h's named deferral) so a tile can sit anywhere in the
+   field and its specimen be placed through the traced chief ray; the **mosaic
+   and its guard band** (§ 6o), whose feasibility probe found the reach of a
+   tile is the reach of the **impulse response and not the coherence width** —
+   so the guard is S-independent and small, where the coherence argument
+   predicted it would diverge as the diaphragm closes; the **commensurate
+   condenser and the cached pupil** (§ 6p), which is what makes a traced mosaic
+   cost minutes instead of hours and which § 6i's `latticeMatchedSource` is
+   already the exactness precondition for; the **eyepiece on the intermediate
+   image** (§ 6q) — a genuinely different solve from `afocalTelescope`'s, which
+   reads its spacing off a ray entering collimated; and **polychromatic
+   brightfield** (§ 6r), which is what makes a stained section look stained.
+   § 6l — depth-dependent spherical aberration — is unchanged and independent of
+   all of them.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

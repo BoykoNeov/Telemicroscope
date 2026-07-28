@@ -11,8 +11,15 @@ other telescope gaps in a clearly secondary section, because they are a
 different kind of missing.
 
 Read ARCHITECTURE for the engine's commitments and ROADMAP for build order.
-This doc adds no physics and proposes none; where a surface would need new
+Parts A–C add no physics and propose none; where a surface would need new
 physics, that is called out and the surface is disqualified rather than scoped.
+
+**Part D breaks that rule deliberately and says so.** A1–A5 landed the microscope
+branch's headline results and left the branch unable to do the thing a microscope
+is for — you cannot build an instrument, put a slide under it, look through an
+eyepiece, or see anything wider than a detail crop, in colour. Those are not
+wiring gaps, so Part D scopes the **engine steps** as well, each with the rungs
+that would pin it, and marks which is which throughout.
 
 ## The baseline: what the app draws today, and its house style
 
@@ -795,11 +802,11 @@ small PSF inset:
 
 | surface | blocked on |
 |---|---|
-| Stained tissue / diatom fields | § 6h's warped-grid rasterizer, not built. A points-only scene (A4) sidesteps it; an extended specimen does not. |
-| Depth-dependent spherical aberration in the z-slider | § 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step with its own rungs. `DepthPupils` is the hook. |
+| Stained tissue / diatom fields | § 6h's warped-grid rasterizer, not built. A points-only scene (A4) sidesteps it; an extended specimen does not. **Scoped as § 6n in Part D.** |
+| Depth-dependent spherical aberration in the z-slider | § 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step with its own rungs. `DepthPupils` is the hook. Unchanged, and independent of Part D. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
-| Polychromatic brightfield / fluorescence colour | § 6f and § 6i both name it open. § 6j's band is emission-only. |
-| A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling. |
+| Polychromatic brightfield / fluorescence colour | § 6f and § 6i both name it open. § 6j's band is emission-only. **Scoped as § 6r in Part D.** |
+| A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, measured: § 6m–§ 6o, compute-once, never live at a full field. |
 
 ---
 
@@ -865,6 +872,291 @@ for completeness, not proposed as the next work.
   dial is one short-exposure draw and says so. Promoting the helper to
   `core/wave` is the step; note the cost first — the rung averages 120 screens
   and takes 14–20 s, so this is a compute-once surface, never a live dial.
+
+---
+
+## Part D — the microscope you can look through
+
+Parts A–C close the gap between what the engine can do and what the app draws.
+This part is different in kind: it closes the gap between what the app draws and
+what a **microscope** is. Today you can select one of ten objectives and watch it
+form an image; you cannot build one, change its glass, put a slide under it, look
+through an eyepiece, or see anything wider than a detail crop, in colour.
+
+The priority is the last of those, and it is the one that looked impossible.
+Everything below the first section is ordered behind it.
+
+### D0. The three feasibility measurements this part rests on
+
+Same status as § 2's timings and stated the same way: **single runs under vitest,
+no warmup, on an ideal pupil unless said otherwise.** Good for the
+order-of-magnitude calls they are used for here, and *not* pinned numbers — the
+rungs that would pin them are named with each step.
+
+**1. One Abbe tile, against `pupilSamples`** (S = 0.5, 97-point condenser, grid
+held at 4 px per resolution cell, so every row images the same specimen at the
+same scale and only the *span* changes):
+
+| tile | span at NA 0.10 | cost | per unit area |
+|---|---|---|---|
+| ps 32 / grid 128 | 94 µm | 76 ms | 8.6e-3 ms/µm² |
+| ps 64 / grid 256 | 188 µm | 508 ms | 1.4e-2 |
+| ps 128 / grid 512 | 376 µm | 6 232 ms | 4.4e-2 |
+| ps 256 / grid 1024 | 752 µm | 26 621 ms | 4.7e-2 |
+
+The right-hand column is the one that decides the design: **cost per unit of
+specimen rises with tile size**, and the ps 64 → 128 step is 12.3× where N²·log N
+predicts ~4.3×. That gap is presumably the working set leaving cache (a 512²
+f64 grid is 2 MB and `abbeImage` holds five of them) and it is not chased here,
+because the decision it feeds is only *"do not build the mosaic out of giant
+tiles"*, which it settles either way.
+
+**2. The guard band — and it is not what the coherence argument predicted.**
+
+A tile hard-crops the specimen, which deletes the cross terms between points
+inside and outside the crop; § 6g's factorization gives that error as
+(1 − C)·|cross term| with the cross term ∝ μ(Δ), and μ dies past the coherence
+width 0.61λ/NA_cond. That reasoning says the guard band is a coherence width and
+therefore **diverges as the diaphragm closes**. It is wrong, and the measurement
+is what says so.
+
+Lattice held fixed — one `pupilSamples`, one grid, one pupil sampling — with two
+specimens identical inside a window of width W and *independently random* outside
+it, compared over the central 128 px. The only thing that varies is how far out
+the specimen is the true one:
+
+| guard (cells) | S = 0.25 | S = 0.5 | S = 1.0 |
+|---|---|---|---|
+| 0 | 9.9e-2 | 9.1e-2 | 6.9e-2 |
+| 8 | 5.9e-3 | 7.0e-3 | 8.0e-3 |
+| 16 | 5.5e-3 | 5.9e-3 | 6.2e-3 |
+| 24 | 5.0e-3 | 4.6e-3 | 5.0e-3 |
+| 32 | 4.1e-3 | 3.8e-3 | 3.9e-3 |
+
+(rms relative error; worst-pixel error runs 1.4× at guard 0 and 2–3% of the mean
+at guard 8 and beyond. In coherence widths those same guards span **1.6 to 26.2**
+across the three columns.)
+
+**Read the columns, not the rows.** At a fixed guard *in cells* the three S agree
+to within 30%; at a fixed guard *in coherence widths* they disagree by an order
+of magnitude. So the reach of a tile is set by the **impulse response**, not by
+μ — which is the right physics once stated: a coherent image is the object
+amplitude convolved with h, so h's reach is the reach at every S. μ weights the
+cross terms; it does not extend them. Three consequences, and the first two are
+the good news:
+
+- **The guard does not diverge as S → 0.** The coherent limit is tileable, and a
+  closed diaphragm — brightfield's most interesting setting — is not a special
+  case.
+- **It is small.** The first 8 cells buy 13×; the next 24 buy under 2×. What is
+  left is h's algebraic tail, so there is no guard band that makes a tile exact
+  and the honest deliverable is a **bound**, not a limit.
+- The floor is ~4e-3 rms and ~2–3% worst pixel. That is fine for a picture and it
+  is **not** fine for a rung pinned to a closed form, so § 6o's rungs are written
+  against the bound and its convergence, never against an equality.
+
+**3. The traced-pupil multiplier is the real cost, and the fix is named but not
+built.** § 2 pins traced/ideal at a flat 8–10×, linear in source points, because
+`pupilFunctionFromOpd`'s callback is re-evaluated per source point per lattice
+point. § 6i's `latticeMatchedSource` is already the *exactness precondition* for
+caching that — a source lattice stepping by the pupil's own frequency step means
+every shifted pupil reads the same coordinates — but it fixes the sample count at
+S·`pupilSamples` **across**, which is 3 217 points at S = 0.5 and ps = 128 where a
+picture needs ~100. The construct the mosaic wants is the generalization:
+spacing an **integer multiple** m of the pupil step, count S·ps/m — commensurate
+and coarse at once. That, plus a cached pupil pass in `abbeImage`, is § 6p, and
+it is the difference between a traced full field in minutes and one in hours.
+
+**What the three together say.** A 4× objective's real field is ~5 mm, 19.6 mm²
+of specimen. At ps 128 tiles with an 8-cell guard the useful span is 329 µm, so
+the field is ~181 tiles; at 2 px per resolution cell that is ~1.6 s a tile ideal
+and ~13–16 s traced, i.e. **40–48 min single-threaded and ~6 min across eight
+workers** — before § 6p, which is expected to take most of the traced multiplier
+out. A *viewport* holds tens of tiles, not 181, so panning is seconds. That is
+the whole argument for the design in D2: **not a bigger frame, a tiled stage.**
+
+### D1. § 6m — the off-axis frame — *engine step*
+
+`objectFieldFrame` is centred on the axis and every consumer assumes it.
+`objectFieldTile(system, {centreMm, …})` is the same construction about an
+arbitrary field position, and it is small: `imagePointAt` gains an offset and
+`fieldPupilAt` already traces whatever height it is handed.
+
+**Rungs:** a tile centred on axis reproduces `objectFieldFrame` to f64; a tile's
+own centre pupil equals `fieldPupilAt` at the corresponding frame position; two
+adjacent tiles map their shared edge to the same object points from both sides
+(the registration statement the mosaic will lean on). Note the tile's `scale` is
+read on **its own** axis, which is a departure from § 6h's one-ruler rule and
+needs the ruler drift across a tile, not across the whole field — `scaleDrift`
+already measures it, and A1 already shows it.
+
+### D2. § 6n — the warped-grid rasterizer — *engine step*
+
+§ 6h's named deferral, and the mosaic is what finally forces it: distortion is
+currently carried in the pupil *assignment* while each patch's image is formed on
+the undistorted grid, which is invisible on one on-axis frame and becomes a
+**visible seam misregistration** the moment two tiles meet off axis. `objectPointAt`
+is the seam § 6h left for exactly this.
+
+**Rungs:** a straight line across the mosaic bows by the amount § 6h.1 already
+pins (cubic, ×8.00 per doubling); a specimen rasterized through the warped map
+and read back through the inverse returns its own coordinates; and the negative
+control — the paraxial map — fails the first at the field where § 6h.1 says it
+should. This is also what unblocks **stained tissue and diatom fields**, which the
+disqualified table above blocks on precisely this rasterizer.
+
+### D3. § 6o — the mosaic and its guard band — *engine step*
+
+Compose tiles into one image, each rendered with a guard band and cropped to its
+useful span.
+
+**Rungs, written against a bound because D0.2 says an equality is not available:**
+the guard-band convergence at fixed lattice, pinned as ≤ a stated bound at a
+stated guard, with the guard-0 case as the negative control (it fails by 13×);
+the **S-independence** — the finding — pinned as the three columns agreeing
+within a stated factor where the coherence-width prediction would have them an
+order of magnitude apart; and seam continuity, the step across a seam held to the
+same bound as the interior error.
+
+**Deliberately not attempted:** a mosaic under a *non-telecentric* condenser.
+§ 6h assumes the illumination cone stays centred at every field point, which is
+§ 6a's object-space ray-aiming blocker arriving where it finally bites. A real
+condenser's cone tilts off axis, `shiftPupil` is already the operator that would
+do it, and it is its own step.
+
+### D4. A7 — the stage: a brightfield field of view you can pan — *app* — **picture**
+
+**The priority surface, and the first thing in this repo that looks like a
+microscope rather than an experiment.** A tiled, pannable, zoomable view over a
+specimen that is larger than one frame: tiles render into a cache as the viewport
+reaches them, in workers, and the panel draws what it has.
+
+What it must carry on screen, because every other panel established the rule:
+
+- **Its own span, and what fraction of the real field number it is.** A1 made
+  `objectSpanUm` the thing a microscope frame is labelled with; a stage that
+  covered 1.2 mm of a 5 mm field and did not say so would be the "view through
+  the eyepiece" claim this doc has refused four times.
+- **The guard band's own bound**, as a live readout with the guard it was rendered
+  at. The mosaic's error is a number the engine knows, and D0.2's floor means it
+  is never zero.
+- Tiles still rendering, and the elapsed time, exactly as A1–A5 print theirs.
+- **A live centre tile.** § 2's ~800 ms line has not moved: one tile at ps 32–64
+  is live and the full field is not, so the panel is live where you are looking
+  and compute-once everywhere else. That is the same coarse-to-fine posture
+  `renderFieldScene` has, arriving on a different axis.
+
+**Deliberately not offered:** a live full-field drag. D0.1 measures why, the
+disqualified table already said so, and a control that quietly took 40 minutes
+would be worse than one that is absent.
+
+### D5. § 6p — the commensurate condenser and the cached pupil — *engine step*
+
+The construct and the cache from D0.3. What makes A7 fast rather than possible.
+
+**Rungs:** cached ≡ uncached **bit for bit** on a commensurate source (it is the
+same arithmetic in a different order, so anything looser would be hiding a bug);
+the constructor refuses a non-commensurate (S, ps, m) rather than rounding, on
+`latticeMatchedSource`'s own argument that a rounded lattice produces a
+perfectly plausible image whose disagreement looks like physics; and the source
+sampling that results still clears § 6f.2's convergence, which is not automatic —
+commensurability constrains the count, and the counts it allows are not the
+counts § 6f.2 was measured at.
+
+### D6. § 6q — the eyepiece on the intermediate image — *engine step*
+
+`afocalTelescope` solves its group spacing from a ray entering **collimated** —
+an object at infinity. A microscope eyepiece collimates from a *finite*
+intermediate image, so the solve is different, and `visualSystem` inherits the
+assumption through it. This is the blocker behind "you cannot look through it",
+and it is an engine step rather than app wiring for that reason.
+
+`plosslEyepiece`, `huygensEyepiece`, `reducedEye`, `visualSystem`,
+`afocalProperties` and `apertureStop: "limiting"` all compose unchanged once the
+spacing solve exists.
+
+**Rungs:** total magnification M_obj × (250/f_e) against the stated near-point
+convention — spelled out the way § 6a spells out the 200/180/165 tube lengths,
+because 250 mm is a convention and not a law, and every rung is a ratio against
+whichever value is passed in; the exit pupil at D_obj/M_total and § 5p's
+two-stop collapse when the eye's iris is the narrower; **empty magnification** —
+the M past which the exit pupil is smaller than the eye can use and the image
+gets bigger without getting better, which is the microscope's own version of a
+result this engine can state rather than assert; the **field number** as what
+actually sets the visible circle; and eye relief.
+
+**What it buys A7:** the circular field stop, an honest angular scale, and the
+readout that says whether the magnification on screen is doing any work.
+
+### D7. § 6r — polychromatic brightfield — *engine step*
+
+§ 6f names it open, and it is what makes a stained section look stained.
+`wave/polychromatic` already stacks on a common physical grid and § 3a's CIE path
+already exists; what is new is that the Abbe sum runs per wavelength with the
+pupil re-traced, and that **the pupil lattice step is wavelength-dependent where
+S is not** — S is a ratio of numerical apertures and needs no conversion
+(`illumination/abbe`'s own note), but `pupilSamples` bins across the pupil is a
+different physical frequency at each λ, so the per-λ images land on different
+rulers and stacking them bin-for-bin would be § 2e's error committed again.
+
+**Rungs:** a neutral specimen stays neutral through the whole path; a doublet
+objective's axial colour shows as the focal shift § 6b's own design implies;
+§ 3b's hero result — a singlet fringes and an achromat does not — reproduced in
+the microscope branch, which is the strongest available check that the colour is
+the optics and not the display.
+
+### D8. A8 — the microscope builder — *app wiring only*
+
+Independent of everything above, cheap, and the direct answer to *"can we compose
+one and change its components?"* — today, no: `MICROSCOPE_CATALOG` is ten
+hardcoded rows calling `din(4, 0.1)`, and the constructors' other parameters are
+defaults nothing exposes.
+
+A form over what the engine already takes: architecture (DIN / infinity),
+magnification, NA, crown and flint, tube focal length or optical tube length,
+coverslip thickness and index, objective orientation, infinity-space length,
+Lister or immersion front. Then A1's readouts, unchanged, against whatever was
+built.
+
+**Its best feature is already built:** the engine refuses impossible objectives
+with messages carrying measured numbers — § 6b's f/4.1 doublet ceiling, § 6d's
+NA 0.343 wall, § 6c's slip solve — and A1 established that showing the engine's
+own words *is* the handling. A builder is the surface where a reader walks into
+those walls on purpose, which is worth more than three catalogue rows that exist
+to fail.
+
+**Cost:** ~50 ms a build (A1 measured it), so it is a form-submit cost, not a
+drag cost. Sliders would need the same backpressure every other panel has.
+
+### D9. What stays out, and why
+
+- **A live full-field frame.** D0.1. Compute-once or nothing.
+- **Non-telecentric illumination.** § 6a's object-space aiming blocker (D3).
+- **Köhler illumination as a light budget.** `abbeImage` normalizes the source
+  weights to Σ = 1, so closing the diaphragm costs resolution and no light where
+  a real one goes dim — A2 already prints the mean so the normalization is not
+  hidden. A field diaphragm and a real photometric budget are their own step, and
+  the honest note stays on screen until then.
+- **Confocal, deconvolution, DIC, phase contrast.** Unchanged: § 6j's excitation
+  path and v2's Hopkins TCC.
+
+### Order
+
+**D8 first if the goal is breadth** — it is independent, app-only, and turns ten
+rows into the whole design space.
+
+**Otherwise, the priority path is D1 → D2 → D3 → D4**, which is the shortest line
+to a brightfield field of view you can pan: the off-axis frame, the rasterizer
+that registers it, the mosaic that bounds its error, and the stage that draws it.
+**D5** then makes it fast, **D6** puts an eyepiece on it, **D7** puts it in
+colour. A6 and Part B are untouched by all of this and can go at any point.
+
+The one thing worth predicting, because this doc has been wrong in the same
+direction five times: **D4 will need something D0 did not measure.** A3 needed a
+plot sampling no rung had named, A4 needed a display convention two panels
+disagreed with, A5 needed a lattice period no rung had had to state. A tiled
+stage's version of that is most likely the seam — the place where the bound in
+D0.2 stops being a number and becomes something a reader can see.
 
 ---
 
@@ -959,6 +1251,11 @@ third place.
 
 **Part B** is self-contained and can go in parallel — it touches no microscope
 code. **A6** follows. **Part C** is a separate decision.
+
+**Part D** is where the branch goes next, and it is a different kind of work from
+A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
+steps with their own rungs. Its own order is at the end of that part; the short
+version is **D8 first for breadth, D1 → D4 for the field of view.**
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and
