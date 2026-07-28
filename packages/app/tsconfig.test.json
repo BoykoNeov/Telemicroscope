@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  // `src` is DOM-typed and the tests are not: they call the app's pure jobs
+  // under vitest, which is where `packages/app`'s "numbers in, numbers out, no
+  // DOM and no React" commitment stops being a convention and becomes checkable.
+  // Mirrors `packages/core/tsconfig.test.json` — same split, same reason.
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["src", "test", "vite.config.ts"]
+}

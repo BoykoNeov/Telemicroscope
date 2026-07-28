@@ -5227,6 +5227,28 @@ flux — § 6k.2 again, through machinery that could have broken it.
 - **TIRF and the evanescent side of the wall.** 6l.3 stops at "the rays do not
   exist". What happens beyond n_s is a real imaging modality and it is not
   geometric optics.
+- **Where § 6k.4's support edge goes under a mount, and it is not where 6l.6
+  might suggest.** 6l.6 pins that the missing cone stays **empty** — the ν = 0
+  null needs only an amplitude that does not move with depth, and the SA is a
+  pure phase. It says nothing about the support *boundary* ν·(2 − ν), and the
+  two come apart: that law is derived from a stack whose members differ by
+  nothing but w₂₀, and a `mountPupils` stack's members differ by their own
+  depth's spherical aberration as well. APP.md's D10 draws both beside each
+  other and measures the edges moving by up to **10 axial bins** on the
+  100×/1.25 in water while the null holds at ~2e-15. That is an app measurement
+  at a 2% threshold on a leaked window, so it is reported as a departure and not
+  as a number; what it would take to pin is a support boundary derived for a
+  stack with a depth-varying phase, which is a different closed form and not
+  this step's.
+- **Whether a plane may sit above the coverslip.** Not a gap in the physics —
+  the answer is plainly zero, since such a plane's light crosses only what the
+  objective was corrected for — but nothing here refuses a negative depth, and
+  the stack being *linear* in depth means it will cheerfully return the
+  mismatch with the sign reversed. It never arises in these rungs because they
+  all place a source at a stated positive depth. It arises immediately for a
+  caller that *places a slab*, which is how D10 met it, and D10 handles it by
+  anchoring rather than by clamping. If a second consumer appears, the refusal
+  belongs in `withMountAberration` beside the aperture ceiling.
 
 ## Step 6m — the off-axis frame
 

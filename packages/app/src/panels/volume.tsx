@@ -7,14 +7,23 @@ import {
   axialSincSq,
   AXIAL_PUPIL_SAMPLES,
   CONE_PUPIL_SAMPLES,
+  MOUNT_MEDIA,
   toGrey,
+  WAVEFRONT_RHO,
   type AxialRequest,
   type AxialResult,
+  type DepthRequest,
+  type DepthResult,
+  type MountChoice,
   type VolumeReadout,
   type VolumeRequest,
   type VolumeResult,
 } from "../volume";
-import { createVolumeAxialWorker, createVolumeWorker } from "../workers";
+import {
+  createVolumeAxialWorker,
+  createVolumeDepthWorker,
+  createVolumeWorker,
+} from "../workers";
 
 /**
  * Out-of-focus haze and the focus stack — APP.md's A5.
@@ -43,6 +52,33 @@ import { createVolumeAxialWorker, createVolumeWorker } from "../workers";
  *    picture's says whether the frame it is drawing is honest; the axial stack's
  *    says whether the pupil is carried at its worst member. § 6k.4's own stack
  *    crosses the half-wave line and still measures every support edge exactly.
+ *
+ * ## D10 — the mount, and the two questions it makes the reader choose between
+ *
+ * The specimen now sits in something. Every control above still means what it
+ * did, and two new ones say what the slab is mounted in and how deep below the
+ * slip it sits — after which the panel is asking § 6l's two different questions
+ * at once and labels which is which:
+ *
+ *  - **the picture and the cone** put each plane through its own thickness of
+ *    mount (`mountPupils`), so the stack stops being symmetric about focus;
+ *  - **the axial response** fixes one emitter at that depth and sweeps the focus
+ *    through it (`defocusing(withMountAberration(...))`), which is a different
+ *    curve and the one that shows where best focus moved to.
+ *
+ * The third plot is neither: it is a sweep over depth, and its content is the gap
+ * between the depth budget `mountDepthTolerance` quotes and the depth a bisection
+ * on the Strehl actually finds.
+ *
+ * **A matched mount costs exactly nothing**, at every depth and every aperture —
+ * a hard zero carried by an explicit (n_s²−n_i²) factor, so `withMountAberration`
+ * returns the pupil object itself and no arithmetic happens at all. That is
+ * § 6l.9's identity rung arriving as a UI invariant, and
+ * `packages/app/test/volume-mount.test.ts` holds it there, including the part the
+ * panel had to decide for itself: **no plane may sit above the coverslip**, where
+ * there is no mount to look through and a stack linear in depth would sign the
+ * aberration backwards. Both the slab and the cone's own stack are anchored so
+ * that it cannot be reached rather than clamped after the fact.
  */
 
 /** Half a wave between adjacent transmitting samples — `abbeImage`'s own line. */
@@ -121,6 +157,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
   }
 
   const r = sweep.readout;
+  const asym = r.sweep;
   const closed = r.sweep.waves.map((w) => [w, axialSincSq(w)] as const);
   const measured = r.sweep.waves.map((w, i) => [w, r.sweep.measured[i]!] as const);
   const cone = r.cones.find((c) => c.nu === 0)!;
@@ -188,6 +225,30 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             </span>
           )}
           .
+          <br />
+          <span style={{ color: r.mountMatched ? "#3a7" : "#a60" }}>
+            <strong>±1 wave: </strong>
+            {asym.asymmetry === null ? (
+              "the response one wave before focus is zero here, so the ratio is refused"
+            ) : (
+              <>
+                <strong>{asym.asymmetry.toFixed(2)}×</strong> brighter one wave <em>past</em> focus
+                than one wave <em>before</em> it
+              </>
+            )}
+            {" — "}
+            {r.mountMatched
+              ? "and a matched mount is a hard zero at every depth, so this is the objective's own residual defocus and nothing else"
+              : `of which the mount's own share is ${asym.asymmetryIdeal === null ? "refused" : `${asym.asymmetryIdeal.toFixed(2)}×`} (this NA, ideal pupil) against ${asym.asymmetryBare === null ? "refused" : `${asym.asymmetryBare.toFixed(2)}×`} the objective already carried at zero depth`}
+            .
+          </span>
+          <br />
+          sinc²(π·w₂₀) is <em>even</em>, so an unaberrated pupil reads exactly 1 — the mount is what
+          breaks it, and the direction is the diagnosis: a mount <em>rarer</em> than{" "}
+          {r.objectMedium} aberrates negative and the compensating defocus is positive. Depth{" "}
+          {r.depthUm.toFixed(2)} µm carries{" "}
+          <strong>{r.depthWaves.toFixed(4)}</strong> waves at {WAVEFRONT_RHO.toFixed(2)} of the
+          delivered rim.
         </p>
       </div>
 
@@ -228,9 +289,12 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
         >
           At ν = 0 the transfer of every plane is its own total, which does not move — so its
           transform is zero at every axial frequency but DC. Measured on this{" "}
-          <strong>traced</strong> pupil: <strong>{cone.worstNonDc.toExponential(3)}</strong> of the
-          DC bin. The cone is not an artifact of an ideal lens; it needs only a pupil whose
-          amplitude does not vary with depth.
+          <strong>traced</strong> pupil, through this mount:{" "}
+          <strong>{cone.worstNonDc.toExponential(3)}</strong> of the DC bin. The cone is not an
+          artifact of an ideal lens, and <em>this step does not fill it</em> (§ 6l.6): the depth
+          aberration is a pure phase and the mount&rsquo;s aperture truncation does not vary with
+          depth, so the one thing that would fill the cone — an amplitude that moves with z — is
+          still absent. It needs only a pupil whose amplitude does not vary with depth.
           <br />
           support edges, measured against ν·(2 − ν), in axial bins — § 6k.4 pins them to within
           one, because a finite stack leaks its own window across a sharp boundary:
@@ -240,15 +304,39 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             .map((c) => (
               <span key={c.nu} style={{ marginRight: 10, whiteSpace: "nowrap" }}>
                 ν {c.nu} → {c.edgeMeasured.toFixed(3)} vs {c.edgeLaw.toFixed(3)}{" "}
-                <span style={{ color: GUARD_COLOR[c.edgeBins <= 1.001 ? "ok" : "bad"] }}>
+                <span
+                  style={{
+                    color: r.mountMatched
+                      ? GUARD_COLOR[c.edgeBins <= 1.001 ? "ok" : "bad"]
+                      : GUARD_COLOR.warn,
+                  }}
+                >
                   ({c.edgeBins.toFixed(1)})
                 </span>
               </span>
             ))}
           <br />
+          {!r.mountMatched && (
+            <>
+              <span style={{ color: GUARD_COLOR.warn }}>
+                Through a mismatched mount those numbers stop being a check and become a{" "}
+                <em>measurement</em>, which is why they are amber rather than red.
+              </span>{" "}
+              ν·(2 − ν) is a <strong>defocus-only</strong> law: it is derived from a stack whose
+              members differ by nothing but w₂₀, and here they differ by their own depth&rsquo;s
+              spherical aberration as well. So the two halves of § 6k.4 come apart, and the split is
+              exactly § 6l.6&rsquo;s: the ν = 0 <em>null</em> survives, because it needs only an
+              amplitude that does not move with depth — while the support <em>boundary</em> does
+              not, because it needed the family to be a defocus family. Set the mount back to
+              matched and both return.
+              <br />
+            </>
+          )}
           <span style={{ color: "#777" }}>
             the stack spans <strong>{r.coneWindowWaves}</strong> waves at {CONE_PUPIL_SAMPLES}{" "}
-            bins, against a lattice period of{" "}
+            bins — {r.coneTopDepthUm.toFixed(2)}–{r.coneBottomDepthUm.toFixed(2)} µm of specimen,
+            anchored at the depth control so no slice sits above the slip where there is no mount to
+            look through — against a lattice period of{" "}
             <strong>{r.conePeriodWaves.toFixed(2)}</strong> at the highest ν drawn — the sampled
             pupil makes the axial transfer <em>exactly</em> periodic in w₂₀ with period
             pupilSamples/(4ν), so a longer window would draw a comb of the lattice instead of the
@@ -269,6 +357,153 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
   );
 }
 
+/**
+ * Strehl against depth — and the two vertical rules on it are the whole surface.
+ *
+ * One is `mountDepthTolerance`'s Maréchal budget, a third-order coefficient held
+ * to λ/14; the other is where the engine's own exact wavefront actually crosses
+ * Strehl 0.8, bisected. On the low-NA rows they nearly coincide, which is
+ * third-order theory being right; at an immersion aperture the quoted one is
+ * several times deeper than the truth, because the exact wavefront outruns its
+ * leading term as the aperture approaches the *mount's* index — the smallest
+ * number anywhere in an immersion stack.
+ *
+ * Withdrawn rather than dimmed while stale, A4's rule: the caption quotes an NA
+ * and a mount by name.
+ */
+function DepthPlot({ request }: { request: DepthRequest }) {
+  const { result, pending } = useLatestFromWorker<DepthRequest, DepthResult>(
+    createVolumeDepthWorker,
+    request,
+  );
+  const depth = pending ? null : result;
+
+  if (depth === null) {
+    return (
+      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+        bisecting the depth budget on this objective&rsquo;s own Strehl…
+      </p>
+    );
+  }
+  if (!depth.ok) {
+    return (
+      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
+        the engine refuses this objective: {depth.error}
+      </p>
+    );
+  }
+
+  const d = depth.readout;
+  const span = d.curve[d.curve.length - 1]!.depthUm;
+  const markers = [
+    { y: 0.8, color: "#3a7", label: "Maréchal, Strehl 0.8" },
+    ...(d.bisectedIdealUm !== null && d.bisectedIdealUm <= span
+      ? [{ x: d.bisectedIdealUm, color: "#c00", label: "bisected" } as const]
+      : []),
+    ...(d.quotedMarechalUm !== null && d.quotedMarechalUm <= span
+      ? [{ x: d.quotedMarechalUm, color: "#06a", label: "quoted budget" } as const]
+      : []),
+  ];
+
+  return (
+    <div>
+      <Plot
+        series={[
+          {
+            label: `the depth's own cost — ideal pupil at NA ${d.deliveredNA.toFixed(4)}`,
+            color: "#111",
+            points: d.curve.map((p) => [p.depthUm, p.ideal] as const),
+            width: 2.4,
+            dots: true,
+          },
+          {
+            label: "this objective, traced",
+            color: "#a60",
+            points: d.curve.map((p) => [p.depthUm, p.traced] as const),
+            width: 1.4,
+            dash: [5, 4],
+            dots: true,
+          },
+        ]}
+        markers={markers}
+        xLabel="depth below the coverslip, µm"
+        yLabel="peak at best focus ÷ its value at zero depth"
+        xMin={0}
+        xMax={span}
+        yMin={-0.05}
+        yMax={1.1}
+      />
+      <div
+        style={{
+          fontFamily: "monospace",
+          fontSize: 11,
+          color: "#777",
+          width: 420,
+          marginTop: 4,
+          lineHeight: 1.5,
+        }}
+      >
+        Every point is that pupil at its <strong>own best focus</strong>, over the same at zero
+        depth — so what falls is the depth, with the objective&rsquo;s own residual and the
+        mount&rsquo;s aperture truncation divided out. That division is legitimate because the
+        truncation does <em>not</em> vary with depth (§ 6l.6); the support is identical at every
+        point on these curves. The dots are where it was measured, and they thin out past the
+        crossing: the two rules have to share one axis and are several times apart, so the sampling
+        is dense where the curve turns and sparse where it is only carrying the reader to the
+        quoted budget.
+        <br />
+        {d.quotedMarechalUm === null ? (
+          <span style={{ color: GUARD_COLOR.warn }}>
+            the engine refuses to quote a budget here — {d.quotedRefusal}
+          </span>
+        ) : (
+          <>
+            quoted <strong>{d.quotedMarechalUm.toFixed(3)} µm</strong> Maréchal ·{" "}
+            {d.quotedQuarterUm!.toFixed(3)} µm at Rayleigh&rsquo;s quarter wave
+          </>
+        )}
+        <br />
+        bisected{" "}
+        {d.bisectedIdealUm === null ? (
+          <span style={{ color: GUARD_COLOR.warn }}>
+            never — the Strehl does not reach 0.8 at any depth the search covered, which for a
+            matched mount is the hard zero and not a limit of the search
+          </span>
+        ) : (
+          <>
+            <strong>{d.bisectedIdealUm.toFixed(3)} µm</strong> (ideal) ·{" "}
+            {d.bisectedTracedUm === null ? "never (traced)" : `${d.bisectedTracedUm.toFixed(3)} µm (traced)`}
+          </>
+        )}
+        {d.overReport !== null && (
+          <>
+            <br />
+            <span
+              style={{ color: d.overReport > 1.5 * d.marechalFloor ? GUARD_COLOR.warn : "#3a7" }}
+            >
+              the quoted budget over-reports by <strong>{d.overReport.toFixed(2)}×</strong>
+            </span>{" "}
+            — against a floor of {d.marechalFloor.toFixed(4)}, which is not 1 because λ/14 is
+            Maréchal&rsquo;s <em>approximation</em> to Strehl 0.8 and actually delivers 0.8177. The
+            wavefront is linear in depth, so a bisection at 0.8 runs{" "}
+            {(1 / d.marechalFloor).toFixed(4)}× deeper than the coefficient allows at{" "}
+            <em>every</em> aperture. Everything above that floor is the exact wavefront outrunning
+            its own leading term.
+            <br />
+            {d.elapsedMs.toFixed(0)} ms · does not recompute when the depth slider moves
+          </>
+        )}
+        {d.overReport === null && (
+          <>
+            <br />
+            {d.elapsedMs.toFixed(0)} ms · does not recompute when the depth slider moves
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function VolumePanel() {
   const [kind, setKind] = useState<MicroscopeKind>("inf-20x-010");
   const [pupilSamples, setPupilSamples] = useState(32);
@@ -278,6 +513,10 @@ export function VolumePanel() {
   const [beadsPerPlane, setBeadsPerPlane] = useState(8);
   const [seed, setSeed] = useState(7);
   const [stretch, setStretch] = useState<number>(4);
+  // Matched and at the slip: the panel opens reproducing its own pre-D10 self,
+  // and the interesting configuration is one click away.
+  const [mount, setMount] = useState<MountChoice>("matched");
+  const [depthUm, setDepthUm] = useState(0);
 
   // A4's floor: `incoherentPsf` refuses to truncate a pupil that does not fit
   // the grid, so the grid follows the pupil. Derived, never written back.
@@ -289,10 +528,17 @@ export function VolumePanel() {
   const focusPlane = Math.max(-halfPlanes, Math.min(halfPlanes, focusRaw));
 
   const request = useMemo<VolumeRequest>(
-    () => ({ kind, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed }),
-    [kind, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed],
+    () => ({ kind, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm }),
+    [kind, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm],
   );
-  const axialRequest = useMemo<AxialRequest>(() => ({ kind }), [kind]);
+  const axialRequest = useMemo<AxialRequest>(
+    () => ({ kind, mount, depthUm }),
+    [kind, mount, depthUm],
+  );
+  // Deliberately NOT keyed on the depth: this one is a sweep over depth, so the
+  // slider is already on its x axis and re-running it would be re-deriving the
+  // curve the reader is looking at.
+  const depthRequest = useMemo<DepthRequest>(() => ({ kind, mount }), [kind, mount]);
 
   const { result, pending } = useLatestFromWorker<VolumeRequest, VolumeResult>(
     createVolumeWorker,
@@ -400,6 +646,31 @@ export function VolumePanel() {
           value={seed}
           onChange={setSeed}
         />
+        <Slider
+          label={
+            readout === null
+              ? `${depthUm.toFixed(2)} µm below the coverslip`
+              : `${depthUm.toFixed(2)} µm below the coverslip — the slab's top face, and the axial sweep's emitter${readout.mountMatched ? "; a matched mount costs nothing at any depth" : ""}`
+          }
+          min={0}
+          max={20}
+          step={0.25}
+          value={depthUm}
+          onChange={setDepthUm}
+        />
+      </div>
+      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
+        <Choice
+          label={
+            readout === null
+              ? "mounted in"
+              : `mounted in ${readout.mountMedium} (n = ${readout.mountIndex.toFixed(4)}) — the objective was corrected for ${readout.objectMedium} (${readout.objectMediumIndex.toFixed(4)})`
+          }
+          options={MOUNT_MEDIA}
+          value={mount}
+          onChange={setMount}
+          format={(m) => (m === "matched" ? "matched" : m.toLowerCase())}
+        />
       </div>
 
       {result !== null && !result.ok && (
@@ -418,11 +689,30 @@ export function VolumePanel() {
               style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 340 }}
             >
               <strong>{readout.objectSpanUm.toFixed(2)} µm</strong> across ×{" "}
-              <strong>{readout.slabThicknessUm.toFixed(2)} µm</strong> deep · NA{" "}
-              {readout.tracedNA.toFixed(4)} in {readout.objectMedium} (n ={" "}
-              {readout.objectMediumIndex.toFixed(4)})
+              <strong>{readout.slabThicknessUm.toFixed(2)} µm</strong> deep, its top face{" "}
+              {readout.slabDepthUm.toFixed(2)} µm down · NA {readout.tracedNA.toFixed(4)} engraved
+              in {readout.objectMedium} ({readout.objectMediumIndex.toFixed(4)}), mounted in{" "}
+              {readout.mountMedium} ({readout.mountIndex.toFixed(4)})
               <br />
-              depth of focus {readout.depthOfFocusUm.toFixed(3)} µm = one plane step = half a wave
+              <span
+                style={{ color: readout.deliveredNA < readout.tracedNA ? GUARD_COLOR.warn : "#3a7" }}
+              >
+                delivered NA <strong>{readout.deliveredNA.toFixed(4)}</strong>
+                {readout.deliveredNA < readout.tracedNA
+                  ? " — the mount's own index caps it, and that is not an aberration: no ray of higher invariant leaves the specimen, so the rim of the pupil is simply dark"
+                  : " — the mount carries the whole pupil"}
+              </span>
+              <br />
+              depth of focus {readout.depthOfFocusUm.toFixed(3)} µm = one plane step = half a wave —
+              measured in the <em>mount</em>, so this step in µm moves with the mount control while
+              the step in waves does not
+              <br />
+              focused {readout.focusDepthUm.toFixed(3)} µm down, which costs{" "}
+              <span style={{ color: readout.mountMatched ? "#3a7" : "#a60" }}>
+                <strong>{readout.focusDepthWaves.toFixed(4)}</strong> waves
+              </span>{" "}
+              at {WAVEFRONT_RHO.toFixed(2)} of the delivered rim
+              {readout.mountMatched && " — identically zero, at every depth and every aperture"}
               <br />
               <strong>{readout.placedTotal}</strong> of {readout.requestedTotal} beads landed ·{" "}
               {readout.placedMin}–{readout.placedMax} per plane
@@ -489,6 +779,7 @@ export function VolumePanel() {
           </figure>
         )}
         <AxialPlots request={axialRequest} markWaves={worstPlaneWaves} />
+        <DepthPlot request={depthRequest} />
       </div>
 
       <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
@@ -540,16 +831,50 @@ export function VolumePanel() {
         defocus, so the guard moves while you drag the focus even though the physics does not.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
-        <strong>Two things are deliberately absent.</strong> There is no{" "}
-        <em>depth-dependent spherical aberration</em>: focusing into a specimen whose index does not
-        match the immersion adds aberration that grows with depth — the dominant real defect of deep
-        widefield imaging, and the reason correction collars exist — and while § 6c solves the plate
-        to all orders and § 6e the whole layer stack, wiring focal depth into that stack is its own
-        engine step with its own rungs. `DepthPupils` is the hook and this panel passes it phase
-        only, so the stack here is exactly symmetric about focus in a way a real one is not. And
-        there is <em>no field decomposition</em>: `renderVolume` takes one pupil keyed on depth, not
-        one keyed on position, so the whole frame is imaged through the on-axis traced pupil and the
-        previous panel&rsquo;s corner-versus-axis comparison has no analogue here.
+        <strong>The specimen is mounted in something, and that is where the depth goes.</strong>{" "}
+        Focusing d below the slip drags the cone through d of a medium the objective was not
+        corrected for, and adds spherical aberration <em>that grows with d</em> — the dominant real
+        defect of deep imaging, and the reason correction collars exist. No new physics was needed
+        for it: § 6c solves a plate to all orders and § 6e the N-layer stack, and a focal depth is
+        one more layer. Three consequences are on this page rather than asserted. It is{" "}
+        <strong>exactly linear in depth</strong>, at every aperture and to all orders. It is{" "}
+        <strong>identically zero for a matched mount</strong> — a hard zero carried by an explicit
+        (n_s²−n_i²) factor, not a small residual, which is the whole reason water and glycerol
+        objectives exist and why setting the mount control back to <em>matched</em> reproduces this
+        panel&rsquo;s pre-mount self to the bit. And unlike a slip error, which is a fixed one-off,{" "}
+        <strong>depth is unbounded</strong>: every mismatched mount has a depth past which no
+        objective is diffraction-limited, which is the third plot.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+        <strong>The wall in the delivered NA is not aberration at all.</strong> A ray inside the
+        specimen carries q = n_s·sinθ_s, strictly below n_s, so <em>no ray of higher invariant ever
+        leaves it</em> — an objective engraved 1.40 collects at most 1.3334 from a water mount
+        however well it is made, and the outer annulus of its pupil receives nothing. That costs
+        resolution with no aberration in it, and it is why the resolution above is quoted at the
+        delivered aperture. The ceiling is also <em>open</em>, which is why the budget plot refuses
+        to quote a number for an objective whose engraved NA the mount cannot deliver: the aperture
+        is approached and never reached, so a tolerance quoted there would be a statement about rays
+        that do not exist. The same asymmetry is what lets the pupil <em>mask</em> use that number —
+        a mask&rsquo;s boundary is one lattice point of measure zero.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+        <strong>Two questions, and the panel asks both rather than blurring them.</strong> &ldquo;A
+        pupil that varies with depth&rdquo; means two physically different things. Each plane of a
+        thick specimen sits at its own depth and looks through its own thickness of mount — that is
+        the picture and the cone. One emitter at a known depth with the objective walked through it
+        is the other, and it is the axial response: its aberration is set once and only the focus
+        moves. They give different curves, so the engine makes a caller compose the second by hand
+        rather than offering a flag, and this panel labels which is which. What the second one shows
+        is that <em>refocusing buys back the paraxial half and no more</em>: best focus moves, the
+        response stops being even in the defocus, and the peak never comes back to where it was.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+        <strong>One thing is still deliberately absent.</strong> There is no{" "}
+        <em>field decomposition</em>: `renderVolume` takes one pupil keyed on depth, not one keyed
+        on position, so the whole frame is imaged through the on-axis traced pupil and the previous
+        panel&rsquo;s corner-versus-axis comparison has no analogue here. The mount inherits that
+        limit exactly — a plate in a non-telecentric beam adds coma and astigmatism as well, and the
+        object-space ray aiming that would express it is § 6a&rsquo;s standing blocker.
       </p>
     </>
   );

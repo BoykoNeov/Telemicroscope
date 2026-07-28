@@ -770,21 +770,18 @@ curve at grid 64 matches grid 128 to **1e-14**. It therefore runs on the smalles
 grid a 32-bin pupil fits and spends what it saves on 1/32-wave steps. The peak
 position is identical at 32 and 64 bins for every objective.
 
-**Deliberately absent, and stated on the page:** ~~depth-dependent spherical
-aberration~~ — **§ 6l has since landed and this is now wiring rather than a
-blocker** (see D10). The panel still passes phase only, so its stack is symmetric
-about focus in a way a real one is not; § 6l.7 measures that a real one is
-**19.24×** asymmetric at 20 µm of water under an NA 1.2 oil cone, and § 6l.9's
-`mountVolumeOptions` is what a panel must route its options through so the
-mount's index reaches `renderVolume` and not the immersion's. Also absent: any field
-decomposition (`renderVolume` takes one pupil keyed on *depth*, so the frame is
-imaged through the on-axis pupil and A4's corner-versus-axis comparison has no
-analogue); and `hazeKernel`, which is exact only for a z-uniform specimen — a
-bead field is not one, and § 6k.6's whole content is that over z the sum does not
-factor.
+**~~Deliberately absent, and stated on the page: depth-dependent spherical
+aberration.~~ Wired at D10** — the panel now has a mount and a depth, the stack
+stops being symmetric about focus, and the paragraph that said otherwise is gone
+from the page. What is still absent: any field decomposition (`renderVolume`
+takes one pupil keyed on *depth*, so the frame is imaged through the on-axis
+pupil and A4's corner-versus-axis comparison has no analogue); and `hazeKernel`,
+which is exact only for a z-uniform specimen — a bead field is not one, and
+§ 6k.6's whole content is that over z the sum does not factor.
 
 **No engine capability was added, so no validation rung was.** Everything here is
-§ 6k's, called from the app.
+§ 6k's and § 6l's, called from the app — though D10 did add the branch's first
+**app** test file, for the wiring rather than the physics. See D10.
 
 ### A6. Coverslip mismatch and the slip tolerance — *app wiring only* — **plot**
 
@@ -807,7 +804,7 @@ small PSF inset:
 | surface | blocked on |
 |---|---|
 | ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. What remains is authoring a scene, which is content rather than a blocker. |
-| ~~Depth-dependent spherical aberration in the z-slider~~ | ~~§ 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step.~~ **Unblocked at § 6l** — `mountPupils` is the `DepthPupils` A5 needs, and `mountVolumeOptions` supplies the options that go with it. A5 gains a mount index and a focus depth, and the stack stops being symmetric about focus. See A5's own note, and D10. |
+| ~~Depth-dependent spherical aberration in the z-slider~~ | ~~§ 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step.~~ ~~**Unblocked at § 6l**~~ — **built at D10.** A5 has a mount control and a depth control, `mountPupils` is its `DepthPupils` and `mountVolumeOptions` its options, and the stack is no longer symmetric about focus. Nothing here is disqualified any more. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
 | ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. Fluorescence colour is still open: § 6j's band is emission-only, and an extended emitter field needs the Jacobian § 6n deferred. |
 | A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, now measured and composed: § 6m–§ 6o, compute-once, never live at a full field. § 6o pins the crop error of a tile to a closed form and § 6o.7 composes them. |
@@ -896,8 +893,9 @@ walked — A7 is a stage you can pan. The eyepiece is D6 and is walked too, so
 is the *panel* for it. Colour is D7 and has now landed as well, so a stained
 section is an engine capability too. Building an instrument is D8 and has now
 landed as well — so the opening sentence above is no longer a description of the
-engine at all, only of the app's surfaces, which is what Part D is a queue for,
-and the only surface still queued in it is **D10**.
+engine at all, only of the app's surfaces, which is what Part D is a queue for —
+and **D10 has now landed too, so that queue is empty.** What remains anywhere in
+this doc is A6 and Part B, neither of which was ever in Part D.
 
 ### D0. The three feasibility measurements this part rests on
 
@@ -1611,33 +1609,112 @@ one hide the other. It is a form-submit cost either way: nothing recomputes unti
 the button is pressed, which is how this surface buys the honesty every other
 panel pays backpressure for.
 
-### D10. A5's z-slider through a real mount — *app wiring only* — **pair**
+### D10. A5's z-slider through a real mount — *app wiring only* — **pair** — ✅ **landed**
 
-Unblocked by § 6l, independent of everything else in Part D, and the cheapest
-remaining engine-backed surface in the doc: A5 already has a focus stack, a worker
-and two plots. What it gains is a **mount index** and a **focus depth**, routed
-through `mountVolumeOptions` so `renderVolume` divides by the mount's index and not
-the immersion's — § 6l.9's refusal is what stops that from being a thing a panel
-can get wrong.
+A5 gained a **mount** control (`matched` / water / immersion-oil / air) and a
+**depth** control, and the picture, the axial sweep and a new third plot all run
+off them. `mountPupils` is the `DepthPupils` the module used to fill with
+`defocusing`, and `mountVolumeOptions` emits the four coupled numbers so
+`renderVolume` divides by the mount's index and not the immersion's — § 6l.9's
+refusal is what stops that from being a thing a panel can get wrong, and it is
+also why the panel's own depth of focus had to be re-derived in the mount: a plane
+step is half a wave only if the same n is in both.
 
-What appears on screen is the branch's own asymmetry finding. Today A5's axial
-response is even in the defocus because the pupil carries phase only; drop 20 µm of
-water under an NA 1.2 oil cone and it is **19.24× brighter one wave past focus than
-one wave before it**, with best focus moved to +1.11 waves. The **pair** is
-mandatory here for constraint 3's reason and then some, because two of the step's
-three headline results are things a picture cannot show: the delivered NA is capped
-at the mount's own index (an oil 1.40 collects **1.3347** from water — a readout,
-not a blur), and the third-order budget over-reports the bisected truth by **4.51×**
-at NA 1.2. The plot is Strehl against depth with both the quoted budget and the
-bisected one marked, and the gap between them *is* the surface's content.
+**Three headline results, and only one of them is the picture.** The delivered NA
+is capped at the mount's own index — a readout and not a blur, since no ray of
+higher invariant leaves the specimen. The axial response stops being even in the
+defocus. And the third-order depth budget over-reports what a bisection on the
+Strehl actually finds. The **pair** was mandatory for constraint 3's reason and
+then some: two of the three cannot be seen in a frame.
 
-**Cost:** A5's, unchanged — the mount adds one term to a pupil callback that is
-already being evaluated per slice. The bisected curve is not live: it is A5's
-axial job run once per NA, so it is a compute-once overlay, not a drag cost.
+**What it measured that was not predicted here.** Four things, and the first two
+are corrections to this section as it was written.
 
-**A matched mount must reproduce today's panel exactly**, which is § 6l.9's
-bit-for-bit identity rung showing up as a UI invariant — the mount control at
-"immersion" is not a special case in the panel, it is a hard zero in the engine.
+- **The numbers this section quoted are § 6l's probe, not the panel's.** 19.24×,
+  +1.11 waves and 4.51× are all **NA 1.2 on an ideal pupil**, and no catalogue row
+  is NA 1.2. The panel computes its own: on the **oil 100×/1.25 in water** the
+  budget over-reports by **5.75×** (18.71 µm quoted against **3.25 µm** bisected),
+  and at 10 µm of depth the axial response is **13.17×** asymmetric with best focus
+  at **+0.72 waves**. The engine's own figures are cited on the page as § 6l.4's
+  and § 6l.7's reference points and labelled as such — this doc has been burned
+  once already by quoting a core probe as a panel's number.
+- **The asymmetry needed a control the step had not thought of.** A1 traces to the
+  system's *own* image plane, so a row carries a residual defocus that is already
+  an asymmetry about w₂₀ = 0 with no mount in it: the 100×/1.25 reads **0.47×** at
+  zero depth. Quoting the mounted 13.17× alone would hand that share to the mount —
+  whose own contribution is **larger** at 16.88×, because the objective's residual
+  works the other way. So the panel prints three numbers where the step expected
+  one: mounted, the mount's own (ideal pupil, same NA), and the objective's at zero
+  depth. The prediction below about D4 needing something D0 did not measure holds
+  for D10 as well, and this is its version of it.
+- **§ 6k.4's support-edge check comes apart, and the split is § 6l.6's.** The
+  missing cone stays **empty** through a mount (ν = 0 reads ~2e-15, unchanged),
+  because that needs only an amplitude that does not move with depth. The support
+  *boundary* ν·(2 − ν) does not: it is a **defocus-only** law, derived from a stack
+  whose members differ by nothing but w₂₀, and the edges move by up to **10 axial
+  bins**. So the panel shows those amber as a measurement rather than red as a
+  failure, and says which. § 6l.6 pinned half of this pair; the other half only
+  appears when something draws the edges beside it.
+- **A rule neither § 6l nor § 6k had reason to state: no plane may sit above the
+  coverslip.** The volume's z origin is the slip's underside, and a plane at
+  negative z crosses only what the objective was corrected for — so its aberration
+  is *zero*, while a stack linear in depth continues through negative thickness and
+  signs the mismatch backwards. A5's slab was centred on z = 0 and its cone stack
+  spans ±4 waves, so both would have reached it. The depth control is therefore
+  anchored to the slab's **top face** and the cone stack to its **shallowest
+  slice**: unreachable rather than clamped. This was found by a test, not by
+  reading.
+
+**Cost, measured.** The picture is A5's, unchanged within the noise — 34–165 ms at
+ps 32 / grid 128 across 5–27 planes, matched against mounted, since the mount adds
+one term to a callback already being evaluated per slice. The axial job goes
+**509 → 675 ms** in node when a mount is on it (the cone stack pays
+`stackWavefrontErrorMm` per lattice point). The new depth job is **230–360 ms**,
+in its own worker and keyed on the objective and mount **only** — a sweep over
+depth must not recompute when the depth slider moves.
+
+**That job is a rung's worth of compute done in a fifth of a second**, and how is
+worth stating because neither half touches the physics. § 6l.4's own bisection
+takes minutes: 162 transforms per focus search, 22 bisection steps. The panel
+replaces the focus scan with a **golden section seeded at the least-squares
+balanced defocus** (10 transforms) and wraps the pupil in an **exact memo** — no
+interpolation, no lattice arithmetic, just the first evaluation at each point
+cached, which matters because a traced pupil is a 28-term Zernike sum per sample
+and the mount's phase is a stack solve per sample: 1.9 ms and 4.0 ms of a 5.8 ms
+transform whose FFT is 0.23 ms. Together they take a kernel from 5.8 ms to 0.5 ms.
+Run at § 6l.4's own probe it returns **4.735 µm and 4.51×**, the rung to the digit,
+at grid 64 — which is § 6k's measured grid-indifference for a DC readout being
+spent rather than re-argued.
+
+**The over-report has a floor at 0.9501 and it is not the third-order form.**
+Maréchal's λ/14 is an *approximation* to Strehl 0.8 — exp(−(2πσ)²) there is
+0.8177 — so a bisection at 0.8 runs 1.0525× deeper at *every* aperture. Measured:
+**0.95 on every dry row in the catalogue**, where third-order theory has nothing
+left to be wrong about. Everything above that floor is § 6l.4's departure. The
+panel prints the floor beside the ratio, because a reader who did not know it
+would read 0.95 as the budget being 5% pessimistic.
+
+**Both `mountDepthTolerance` refusals are content.** An oil 1.40 on water is
+refused because the ceiling is *open* — the delivered 1.3334 is a supremum, so
+even it is not an aperture the budget may be quoted at — and a matched mount is
+refused because there is no budget on a hard zero. The panel prints the engine's
+sentence in both cases and still bisects in the first, since a mask's boundary is
+one lattice point of measure zero. That is § 6l.9's supremum-and-not-maximum
+asymmetry as two different things a reader can click on.
+
+**The identity, stated exactly.** A matched mount costs identically zero at every
+depth — `toBe(0)`, an explicit (n_s²−n_i²) factor — and `withMountAberration`
+returns the pupil object itself, so no arithmetic happens at all. The *render* is
+f64-identical rather than bit-identical, and the reason is arithmetic and not
+physics: a slab authored at absolute depths computes (D + z) − (D + f) where it
+used to compute z − f. The doc said "bit for bit"; the test says which half is.
+
+**And the branch's first app test file.** `packages/app/test/volume-mount.test.ts`
+— 14 rungs on the *wiring*, not the physics, plus `packages/app/tsconfig.test.json`
+so `npm run typecheck` covers it. A5's precedent ("no engine capability was added,
+so no validation rung was") still holds and no ladder rung was added; what changed
+is that D10's invariants are about a panel placing a slab, which no ladder rung
+could have held.
 
 ### D9. What stays out, and why
 
@@ -1673,11 +1750,14 @@ depth-dependent spherical aberration this doc had listed as *disqualified*, whic
 closes the microscope branch's last numbered gap and turns A5's stated omission
 into **D10**.
 
-**~~D8~~ has now landed too**, so what is left in the list is **D10** alone — app
-wiring rather than engine, and the cheapest engine-backed surface in the doc,
-since A5 already has the stack, the worker and the plots and § 6l adds one term
-to a callback. A6 and Part B are untouched by all of this and can go at any
-point.
+**~~D8~~ has now landed too**, and so has **~~D10~~** — so **Part D is walked, end
+to end.** D10 was billed as the cheapest engine-backed surface in the doc and the
+picture half of it was: the mount is one more term in a callback already being
+evaluated per slice. The two things it cost that were not budgeted are both about
+*comparison* rather than about rendering — an ideal-pupil control the axial
+asymmetry turned out to need, and a Strehl-versus-depth job that had to be made
+250× cheaper than the rung it reproduces before it could sit in a panel. A6 and
+Part B are untouched by all of this and are what is left in the doc.
 
 **The one engine number that changed the queue — and has now been spent.** D4
 found the *rasterizer*, not the Abbe sum, is what a traced tile costs (see D0.1's
@@ -1831,9 +1911,12 @@ code. **A6** follows. **Part C** is a separate decision.
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
 steps with their own rungs. Its own order is at the end of that part; the short
 version was **D8 first for breadth, D1 → D4 for the field of view** — and every
-engine step in the part has since landed (§ 6m–§ 6s), as has **D8**, so what is
-left in Part D is **D10** alone. D10 exists because § 6l closed the branch's last
-numbered gap, which this doc had scoped as disqualified rather than as work.
+engine step in the part has since landed (§ 6m–§ 6s), as have **D8** and **D10**,
+so **Part D is walked**. D10 existed because § 6l closed the branch's last
+numbered gap, which this doc had scoped as disqualified rather than as work; what
+it found is that wiring a *placed* specimen raises a question no engine rung had
+had to ask — whether a plane may sit above the coverslip — and the answer is a
+panel's to enforce, not the engine's to state.
 **D8 also made the sixth reuse of the adapter pattern say something new**: the
 five before it wired capability and reported it, while a *form* over the same
 capability found that two of the branch's catalogued walls are functions of
