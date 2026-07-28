@@ -1267,7 +1267,7 @@ counts § 6f.2 was measured at.
 
 **All three landed, and the third one bit.** `commensurateSource` and the
 call-local pupil cache are in `illumination/source` and `illumination/abbe`, with
-20 rungs in VALIDATION.md § 6p. The bitwise rung needed a precondition this
+19 rungs in VALIDATION.md § 6p. The bitwise rung needed a precondition this
 section did not anticipate — it is *arithmetic*, not just algebraic, so
 `pupilSamples` must be a power of two and a non-dyadic one is refused rather than
 tolerated. The saving is pinned as an exact integer (`pupilEvaluations` falls by
