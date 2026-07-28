@@ -529,14 +529,25 @@
    carries the slope rather than the curvature, so the gap the seam would have
    shown doubles with field: 16.8× at 0.4 mm to 257× at 6.4 mm. **It unblocks
    stained tissue and diatom fields**, which were blocked on precisely this.
-   Then the **mosaic
-   and its guard band** (§ 6o), whose feasibility probe found the reach of a
-   tile is the reach of the **impulse response and not the coherence width** —
-   so the guard is S-independent and small, where the coherence argument
-   predicted it would diverge as the diaphragm closes; the **commensurate
+   The **mosaic and its guard band** is ✅ **done** (§ 6o): `renderMosaic`
+   composes tiles into one image, each cropped to its useful span, and the guard
+   that crop needs is pinned to a **closed form** — under a coherent source the
+   error falls as `guard^(−1/2)`, the tail integral ∫|h|² of the Airy amplitude,
+   straddled by consecutive measured slopes at 13% and 6.6% either side. Its feasibility probe had
+   read the guard as S-independent and small; **that is corrected**. The guard
+   does grow as the diaphragm closes — the coherent limit is worse than a filled
+   condenser by a factor that *doubles with the guard* (22.9, 42.0, 84.8) — and
+   the ~4e-3 floor the probe took for the impulse response's algebraic tail is
+   the **condenser's own quadrature**: the same guard, specimen and lattice at
+   749 source points instead of 97 falls 7.1×, and the flat tail flattens only
+   at the coarse sampling. The control is that a coherent source has one point
+   and so cannot move under refinement. Its seam, on a traced 4×/0.10, falls 23×
+   from 1.8e-2 to 7.8e-4 and stops being a seam at all. Then the **commensurate
    condenser and the cached pupil** (§ 6p), which is what makes a traced mosaic
-   cost minutes instead of hours and which § 6i's `latticeMatchedSource` is
-   already the exactness precondition for; the **eyepiece on the intermediate
+   cost minutes instead of hours, which § 6i's `latticeMatchedSource` is
+   already the exactness precondition for — and which § 6o showed also **lowers
+   the mosaic's error floor**, since the same 749 points are not converged at
+   S = 1 where `diskSource` spaces them four times wider; the **eyepiece on the intermediate
    image** (§ 6q) — a genuinely different solve from `afocalTelescope`'s, which
    reads its spacing off a ray entering collimated; and **polychromatic
    brightfield** (§ 6r), which is what makes a stained section look stained.

@@ -806,7 +806,7 @@ small PSF inset:
 | Depth-dependent spherical aberration in the z-slider | § 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step with its own rungs. `DepthPupils` is the hook. Unchanged, and independent of Part D. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
 | Polychromatic brightfield / fluorescence colour | § 6f and § 6i both name it open. § 6j's band is emission-only. **Scoped as § 6r in Part D.** |
-| A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, measured: § 6m–§ 6o, compute-once, never live at a full field. |
+| A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, now measured and composed: § 6m–§ 6o, compute-once, never live at a full field. § 6o pins the crop error of a tile to a closed form and § 6o.7 composes them. |
 
 ---
 
@@ -980,6 +980,35 @@ out, the floor did not move (4.20e-3 against 4.15e-3 at S = 0.25, guard 32). The
 first table in this section was drawn without that control and it should not have
 been; the numbers above are the controlled run.
 
+> **⚠️ Corrected by § 6o. Two of the three consequences above did not survive
+> being pinned**, and the paragraph immediately above turns out to have been
+> right to look for a probe artifact and wrong about which one.
+>
+> - **The plateau IS an artifact — it is the condenser's own quadrature.** At the
+>   same guard, the same specimen and the same lattice, taking the condenser from
+>   this section's 97 points to 749 drops the guard-16 error **7.1×**. The flat
+>   guard^(−0.3) tail appears *only* at the coarse sampling: slopes −0.21 and
+>   −0.36 at 97 points against −1.31 and −1.55 at 749. So "what is left is h's
+>   algebraic tail" was reading the source sum's residual arriving from
+>   underneath. The control that makes this a measurement rather than an
+>   inference is that a **coherent** source has one point, so its curve cannot
+>   move under refinement — and it does not.
+> - **The guard DOES grow as the diaphragm closes.** This section was careful to
+>   say S = 0 was not measured and not claimed, and that caution was warranted:
+>   the coherent limit is worse than a filled condenser by 22.9, 42.0 and 84.8×
+>   at guards 4, 8 and 16 — one factor of two per doubling. The S = 1 → 0.25
+>   plateau stands as measured; reading it as an S-independent law does not.
+> - **What survives, and is stronger than a bound:** under a coherent source the
+>   crop error falls as **guard^(−1/2)**, which is the tail integral ∫|h|² of the
+>   Airy amplitude and has no free coefficient. "There is no guard band that
+>   makes a tile exact" is therefore *more* true than this section claimed — it
+>   is a closed form rather than an observation. It is pinned as a **bracket**:
+>   consecutive slopes straddle −1/2 by 13% and 6.6%, since the probe's own
+>   window and finite surround pull the exponent either side of it.
+>
+> § 6o in VALIDATION.md carries all 20 rungs, and the revival hypothesis it
+> raised and measured down in turn.
+
 **3. The traced-pupil multiplier is the real cost, and the fix is named but not
 built.** § 2 pins traced/ideal at a flat 8–10×, linear in source points, because
 `pupilFunctionFromOpd`'s callback is re-evaluated per source point per lattice
@@ -1050,7 +1079,11 @@ D1 got there first:
 And one that D3 and D4 both want: **a mosaic's pitch is not its tile span.** Each
 tile's extent is read on its own ruler, so abutment is a fixed point — it
 converges in three iterations, and a uniform axial pitch is 1.2e-3 of a pixel out
-at 1.6 mm, so D3 may skip the solve and say so.
+at 1.6 mm, so D3 may skip the solve and say so. **D3 took the licence and § 6o.6
+is the "say so"**: `mosaicPitchDriftPx` measures 1.3e-2 of a pixel across 17
+tiles, by which point the outer one is 2.24 mm off axis. `"abutting"` is
+implemented anyway, because a drift is only meaningful against what it drifts
+from.
 
 ### D2. § 6n — the warped-grid rasterizer — *engine step* — ✅ **landed**
 
@@ -1111,20 +1144,58 @@ is not a point property — warping one needs det J, where an amplitude
 transmittance needs nothing — and it is the one place in this branch where an
 energy check genuinely *is* the witness.
 
-### D3. § 6o — the mosaic and its guard band — *engine step*
+### D3. § 6o — the mosaic and its guard band — *engine step* — ✅ **landed**
 
-Compose tiles into one image, each rendered with a guard band and cropped to its
-useful span.
+`mosaicLayout` places the tiles and says how much of each survives the crop;
+`renderMosaic` rasterizes, images and composes them. Nothing is blended across a
+seam and nothing is resampled — a tile's kept pixels are its own — which is what
+makes a seam error a **step** rather than a smear. The guard band is free of
+machinery for § 6n's reason: a `Specimen` is a callback, so what crops is the
+*grid*, and the guard is simply grid that gets thrown away.
 
-**Rungs, written against a bound because D0.2 says an equality is not available:**
-the guard-band convergence at fixed lattice, pinned as ≤ a stated bound at a
-stated guard, with the guard-0 case as the negative control (it fails by 8–16×);
-the **choice of variable** — the finding — pinned as the diagonal-against-row
-comparison above rather than as a collapse, since the measured discrimination is
-1.83 against 1.20 and a rung claiming more than that would be claiming more than
-was seen; and seam continuity, the step across a seam held to the same bound as
-the interior error. All three run with the total transmittance controlled, for
-the reason D0.2's last paragraph gives.
+**The rungs are not the ones this section scoped, and that is the finding.** D3
+planned to write everything against a bound, "because D0.2 says an equality is
+not available". An equality *is* available, in the limit D0.2 declined to
+measure: under a **coherent** source the crop error falls as **guard^(−1/2)** —
+the tail integral ∫|h|² = 2π/d of the Airy amplitude, no coefficient, nothing
+fitted. The measured slopes −0.435 and −0.533 **straddle** it by 13% and 6.6%
+— bracketed rather than converged, because the window's own width dilutes the
+slope at small guard and the probe's finite surround steepens it at large guard,
+and the rung pins the bracket because that is what the numbers show. `coherentSource()` is one point, so the source sum is exact and the
+residual is provably the crop's and nothing else. That rung costs 11 ms a render.
+
+**And the diagonal-against-row rung was dropped rather than reproduced**, because
+what it measures is not the crop. The 1.83-against-1.20 discrimination
+reproduces qualitatively at a different lattice (2.18 against ≤1.50, stable
+across four seed sets) — but D0.2's whole table sits on a ~4e-3 floor that is the
+**condenser's own quadrature**, and a comparison of spreads on top of that floor
+is a comparison of quadrature residuals. Refining the source alone, at the same
+guard and lattice, drops the guard-16 error 7.1×. See the correction box in D0.2.
+
+Three consequences this step owns:
+
+- **The guard is not S-independent**, and the coherent limit is the worst case by
+  a factor that *doubles with the guard*: 22.9, 42.0, 84.8 at guards 4, 8, 16. So
+  the two illuminations' exponents differ by exactly 1, and the coherence-width
+  argument D0.2 rejected was right about the *direction* even though it was wrong
+  about the magnitude over S = 1 → 0.25.
+- **§ 6p is not only a speed step — it lowers the mosaic's error floor.** The same
+  749 points that are converged at S = 0.25 are not at S = 1, where `diskSource`
+  spaces them four times wider, and the witness is that the guard curve goes flat
+  at 2.9e-3 instead of continuing down.
+- **The pitch question is closed as D1 licensed.** Uniform pitch is 1.3e-2 of a
+  pixel from the abutment fixed point across 17 tiles (2.24 mm off axis), so the
+  solve is skipped and `mosaicPitchDriftPx` is what says so. `"abutting"` is
+  implemented anyway, because a drift is only meaningful against what it drifts
+  from.
+
+**The seam needed a reference D3 had not named.** A raw column difference is not
+the seam's error — the two sides sample different object points — and a wider
+reference frame is exactly what § 6h.2 forbids. The reference is a **third tile
+centred on the seam**, § 6n.2's "two readings of one number" move: on a traced
+4×/0.10 at 1.6 mm the step falls 1.768e-2 → 7.81e-4 of peak as the guard goes
+0 → 8 cells, and with no guard the error is *localized* at the seam, 90× its
+neighbour three pixels away — the shape a viewer reads as a grid line.
 
 **Deliberately not attempted:** a mosaic under a *non-telecentric* condenser.
 § 6h assumes the illumination cone stays centred at every field point, which is
@@ -1146,8 +1217,11 @@ What it must carry on screen, because every other panel established the rule:
   covered 1.2 mm of a 5 mm field and did not say so would be the "view through
   the eyepiece" claim this doc has refused four times.
 - **The guard band's own bound**, as a live readout with the guard it was rendered
-  at. The mosaic's error is a number the engine knows, and D0.2's floor means it
-  is never zero.
+  at. It is never zero, and § 6o sharpened what the readout has to say: the bound
+  depends on **S and on the condenser's sampling**, not on the guard alone, so a
+  stage that printed one number for a guard would be printing a third of the
+  answer. The guard, S and the source point count all belong on screen — and at
+  small S the honest number is much larger than D0.2's floor suggested.
 - Tiles still rendering, and the elapsed time, exactly as A1–A5 print theirs.
 - **A live centre tile.** § 2's ~800 ms line has not moved: one tile at ps 32–64
   is live and the full field is not, so the panel is live where you are looking
@@ -1239,7 +1313,8 @@ drag cost. Sliders would need the same backpressure every other panel has.
 ### D9. What stays out, and why
 
 - **A live full-field frame.** D0.1. Compute-once or nothing.
-- **Non-telecentric illumination.** § 6a's object-space aiming blocker (D3).
+- **Non-telecentric illumination.** § 6a's object-space aiming blocker, named by
+  D3 as its one deliberate omission and still open after § 6o landed.
 - **Köhler illumination as a light budget.** `abbeImage` normalizes the source
   weights to Σ = 1, so closing the diaphragm costs resolution and no light where
   a real one goes dim — A2 already prints the mean so the normalization is not
@@ -1253,12 +1328,13 @@ drag cost. Sliders would need the same backpressure every other panel has.
 **D8 first if the goal is breadth** — it is independent, app-only, and turns ten
 rows into the whole design space.
 
-**Otherwise, the priority path is ~~D1~~ → D2 → D3 → D4**, which is the shortest
-line to a brightfield field of view you can pan: the off-axis frame (**landed**),
-the rasterizer that registers it, the mosaic that bounds its error, and the stage
-that draws it. **D5** then makes it fast, **D6** puts an eyepiece on it, **D7**
-puts it in colour. A6 and Part B are untouched by all of this and can go at any
-point.
+**Otherwise, the priority path is ~~D1~~ → ~~D2~~ → ~~D3~~ → D4**, which is the
+shortest line to a brightfield field of view you can pan: the off-axis frame, the
+rasterizer that registers it and the mosaic that bounds its error have all
+**landed**, and what is left on that line is the stage that draws it. **D5** then
+makes it fast — and § 6o found that D5 also lowers the mosaic's error floor, not
+just its cost — **D6** puts an eyepiece on it, **D7** puts it in colour. A6 and
+Part B are untouched by all of this and can go at any point.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a
@@ -1271,8 +1347,20 @@ D0.2 stops being a number and becomes something a reader can see.
 identity rungs and it produced three things this section did not have: the ruler
 crossover at (1+√3)·h_e, below which a tile is better off on the *axial* ruler;
 the anisotropy that is D2's argument with a number attached; and a pitch that is
-a fixed point rather than a span. None of them were the seam — that is still
-waiting for D3 — and all of them were in the part that looked like arithmetic.
+a fixed point rather than a span. None of them were the seam, and all of them
+were in the part that looked like arithmetic.
+
+**And D3 was where it stopped being cheap.** The seam did arrive, and it needed a
+reference D3 had not named — a third tile centred on it, since a wider frame is
+what § 6h.2 forbids. But the larger correction was underneath: D0.2's table, the
+one every D3 rung was to be written against, sits on a floor that is the
+**condenser's own quadrature** rather than the physics it was read as. The
+pattern this doc keeps repeating is not "D4 will need a new measurement" — it is
+**"the feasibility number will turn out to be measuring something else"**, which
+is a different and more expensive failure, and the only defence is that a rung
+has to be pinned to a closed form rather than to a previous measurement. § 6o's
+guard^(−1/2) is that defence working: it survived precisely because it was not
+anchored to D0.2's floor.
 
 ---
 
@@ -1371,9 +1459,10 @@ code. **A6** follows. **Part C** is a separate decision.
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
 steps with their own rungs. Its own order is at the end of that part; the short
-version is **D8 first for breadth, D1 → D4 for the field of view** — and D1 and
-D2 have landed as § 6m and § 6n, so the field of view now waits on D3's mosaic
-and its guard band.
+version is **D8 first for breadth, D1 → D4 for the field of view** — and D1, D2
+and D3 have landed as § 6m, § 6n and § 6o, so the field of view now waits on
+nothing but **D4's stage**: the engine composes tiles into one image, with the
+guard band its error needs measured against a closed form.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and

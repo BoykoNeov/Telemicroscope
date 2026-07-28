@@ -4,6 +4,7 @@ export * from "./render";
 export * from "./brightfield";
 export * from "./object-field";
 export * from "./specimen";
+export * from "./mosaic";
 export * from "./fluorescence";
 export * from "./emission";
 export * from "./volume";

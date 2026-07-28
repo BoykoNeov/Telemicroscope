@@ -59,6 +59,7 @@ whole ladder.
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | The grid itself warped at last — § 6h's named deferral: a `Specimen` callback evaluated at the object point each pixel really looks at, so the warp happens in the ARGUMENT and nothing is resampled; the pixel convention pinned bitwise against § 6i's emitter rasterizer, whole flux in one pixel; a straight object line shown to BOW, and at ×2.00 per doubling rather than the cubic's ×8.00 — the sagitta is the map's CURVATURE, so § 6h.1's cubic, § 6m.4's slope and this complete one ladder of derivatives; the sign pinned as barrel; a negative control that cannot bow AT ALL; and a round trip through a whole picture whose residual is that same curvature, against a uniform map whose residual is the slope — so the gap between them doubles with field, 16.8× to 257×; and the whole thing composed on a traced 4×/0.10, where the two maps' rendered PICTURES differ by 2.8e-3 of peak at 6.4 mm against 1.5e-6 on axis | `specimen` |
+| [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image at last, each cropped to its useful span — and the guard band that crop needs measured against a CLOSED FORM: under a coherent source the error falls as guard^(−1/2), the tail integral ∫\|h\|² of the Airy amplitude, reached from above at −0.334, −0.435, −0.533; a filled condenser beating that limit by a factor that DOUBLES with the guard (22.9, 42.0, 84.8), so the guard does depend on the coherence and D0.2's "S-independent" reading is corrected; the finding that D0.2's ~4e-3 plateau is the CONDENSER'S OWN QUADRATURE and not h's tail — the same guard, specimen and lattice at 749 source points instead of 97 falls 7.1×, and the flat guard^(−0.3) tail flattens only at the coarse sampling; the same 749 points shown NOT converged at S = 1, where `diskSource` spaces them 4× wider; a guard refused rather than rounded when it is not whole pixels; the pitch shown to be a hundredth of a pixel from the abutment fixed point across 17 tiles, so the solve is skipped and said so; and the seam itself, on a traced 4×/0.10, falling 23× from 1.8e-2 to 7.8e-4 and stopping being a seam at all | `mosaic` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -5297,9 +5298,11 @@ already covers it — cached ≡ uncached, bit for bit.
   chief ray, which is why they were the branch's first specimen. Named here
   rather than dropped, and it is the one place in this branch where energy
   genuinely *is* the witness.
-- **No tiles are composed yet.** § 6n removes the misregistration a seam would
-  have shown; it does not lay one tile beside another. That is § 6o, with its
-  guard band, and the bow measured here is what a mosaic would have displayed.
+- ~~**No tiles are composed yet.**~~ **Closed at
+  [§ 6o](#step-6o--the-mosaic-and-its-guard-band).** § 6n removes the
+  misregistration a seam would have shown; it does not lay one tile beside
+  another. `renderMosaic` does, and the bow measured here is what a mosaic
+  would have displayed.
 - **No stained-tissue or diatom scene is authored.** The rasterizer is what those
   were blocked on and they are now unblocked, but a scene is content on top of
   this, not a rung of it — and no rung here claims a specimen that resembles
@@ -5312,6 +5315,204 @@ already covers it — cached ≡ uncached, bit for bit.
 - **Telecentricity, still**, and **one objective** — both inherited from § 6m
   unchanged, and every number above is the DIN 4×/0.10's. The orders are
   third-order theory's and travel; the coefficients do not.
+
+## Step 6o — the mosaic and its guard band
+
+§ 6m put a tile at an arbitrary field position; § 6n warped its grid so two tiles
+agree about where the specimen is. `imaging/mosaic` lays them beside one another:
+`mosaicLayout` places the tiles and says how much of each survives, and
+`renderMosaic` rasterizes, images and crops each one into a composed picture.
+Nothing is blended across a seam and nothing is resampled — a tile's kept pixels
+are its own — which is what makes a seam error a **step** rather than a smear.
+
+**The question a mosaic has to answer first is what a tile's own edge costs.** A
+grid is finite and `abbeImage` is a transform, so the specimen outside the grid
+is not absent but *wrapped*, and the image near the edge is formed from the wrong
+neighbourhood. The guard band is the answer: render a tile whose grid runs past
+the span that will be kept, and keep only the centre.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The coherent crop BRACKETS guard^(−1/2)** — −0.435 and −0.533 straddle it by 13% and 6.6%, monotone | ∫\|h\|² over the Airy tail = 2π/d | ✅ |
+| NEGATIVE CONTROL: an unguarded tile, rms 0.368 and worst pixel 55% of peak | not a tolerance — a different picture | ✅ |
+| …and 16× the guard buys under 5×, so **no guard makes a coherent tile exact** | the tail is algebraic | ✅ |
+| **A filled condenser beats it by a factor that DOUBLES per doubling of guard** — 22.9, 42.0, 84.8 | the two exponents differ by 1 | ✅ |
+| …so 16 cells buy **286×** at S = 0.25 where the coherent limit bought 4.8× | the same table read as convergence | ✅ |
+| **Refining the source alone drops the guard-16 error 7.1×** — 6.4e-3 → 9.0e-4 | 97 → 749 points, all else held | ✅ |
+| …and the flat guard^(−0.3) tail appears only at the coarse sampling (−0.21, −0.36 against −1.31, −1.55) | the plateau arriving from underneath | ✅ |
+| CONTROL: the coherent curve **cannot** move under refinement — it has one point | why § 6o.1 is the pinned exponent | ✅ |
+| The same 749 points are NOT converged at S = 1: the curve goes flat, 2.80/2.91/2.92e-3 | `diskSource` spaces by 2S/samples | ✅ |
+| The two surrounds carry identical total transmittance, to the last bit | a permutation of one multiset | ✅ |
+| Dividing each image by its own mean changes nothing, at any guard or source | the DC control, both halves | ✅ |
+| A guard is cells; pixels follow as size/pupilSamples, and both edges are cropped | § 6h.2's reciprocity | ✅ |
+| A non-integral guard is **refused**, not rounded; so is one that eats the tile | `latticeMatchedSource`'s argument | ✅ |
+| A one-tile mosaic with no guard IS `objectFieldTile`, bitwise | § 6m.1's idiom | ✅ |
+| Uniform pitch is a **hundredth of a pixel** from the abutment fixed point across 17 tiles | D1's licence, measured | ✅ |
+| …and with an EVEN tile count the two agree exactly, which is not a bug | no tile on the axis to walk from | ✅ |
+| A mosaic renders through `renderMosaic`, rules `valid`, survives `requireHonest` | § 6g.3's bridge, composed | ✅ |
+| **The seam step falls monotonically with the guard: 1.8e-2 → 7.8e-4** | on a traced 4×/0.10 at 1.6 mm | ✅ |
+| With no guard the error is LOCALIZED at the seam — 90× its neighbour 3 px away | a seam, not a wrong tile | ✅ |
+| …and by 8 cells it is no longer the worst pixel in its own neighbourhood | the residual has stopped being a seam | ✅ |
+
+### The external number is a closed form, and it lives in the coherent limit
+
+A crop deletes δ = ∫_{|r|>d} Δt(r)·h(r) dr from every amplitude in the window.
+With the deleted structure uncorrelated of variance σ² per unit area,
+Var(δ) = σ²a·∫_{|r|>d}|h|², and for an Airy amplitude h ~ r^(−3/2) that integral
+is ∫_d^∞ r^(−3)·2πr dr = **2π/d**. Under a coherent source the intensity error is
+2Re(A·δ*) and therefore carries δ itself, so it falls as **guard^(−1/2)** — no
+coefficient, nothing fitted, just the tail integral of the Airy amplitude.
+
+`coherentSource()` is **one point**, so the source sum is exact and no quadrature
+residual can contribute: the measured decay is the crop's and nothing else. It
+reads −0.033, −0.334, −0.435, −0.533 over guards 1 → 2 → 4 → 8 → 16, monotone.
+
+**It brackets −1/2 rather than converging to it, and the rung says so.** The
+first version of this step asserted a monotone approach from above; the last
+slope is −0.533, which is *past* −1/2, and asserting an approach would have been
+claiming a convergence the numbers do not show. The probe is squeezed from both
+ends and the closed form is the infinite-surround law that neither end reaches:
+
+- **at small guard the window's own width dilutes it.** The window is 8 cells
+  across, so a chord of it sits between `guard` and `guard + 4` cells from the
+  crop — § 6n.3's correction of order W/d — and the slope reads *shallower*.
+- **at large guard the surround is finite.** The probe's two specimens differ
+  only out to the grid edge, so the integral it measures is ∫_d^R and not
+  ∫_d^∞, and a truncated tail falls *faster* than the untruncated one.
+
+The second reading is checked rather than assumed, because it would otherwise be
+a story that fits: the slope tracks **d/R** and not d. At R = 64 cells the same
+d/R = 0.5 gives −0.524 against this lattice's −0.533, and d/R = 0.25 gives −0.375
+against −0.435. So −1/2 is straddled by consecutive slopes, by 13% and 6.6%, and
+that bracket is what the rung pins.
+
+**The partially coherent exponent is NOT pinned anywhere here**, and that is
+deliberate rather than an omission — it moved from −1.31 to −1.82 across the
+grids probed, because a finite grid truncates the same tail integral at its own
+edge. What is pinned is the coherent limit, where the closed form is clean, and
+the *ratio*, which is lattice-stable.
+
+### Two things this step measured that Part D's feasibility table did not
+
+**1. The guard DOES depend on the coherence, and the coherent limit is the worst
+case.** D0.2 concluded "the guard does not grow as the diaphragm closes", and was
+careful to add that S = 0 was not measured and not claimed. It is measured here,
+and the coherent limit is worse than a filled condenser by 22.9, 42.0 and 84.8×
+at guards 4, 8 and 16 — **one factor of two per doubling of the guard**, so the
+two illuminations' exponents differ by exactly 1. D0.2's plateau across
+S = 1 → 0.25 stands; what does not survive is reading it as an S-independent law,
+which ROADMAP.md said in those words and APP.md implied. Both are corrected.
+
+**2. D0.2's ~4e-3 floor is the CONDENSER'S OWN QUADRATURE, not h's algebraic
+tail.** This is the finding, and it is the kind D0.2's own "one hypothesis
+measured down" paragraph exists for — that paragraph tested a DC artefact, found
+the predicted magnitude and W-scaling both matched, and correctly rejected the
+mechanism. There was a probe artefact; it was simply a different one.
+
+At the *same* guard, the *same* specimen and the *same* lattice, taking the
+condenser from D0.2's own 97 points to 749 drops the guard-16 error **7.1×**,
+6.381e-3 → 8.966e-4. A tail that a source sampling can move is not the impulse
+response's. The mechanism is visible directly in the slopes: at 97 points the
+curve goes flat past guard 4 (−0.214, −0.356), which is D0.2's guard^(−0.3)
+exactly; at 749 it is still falling steeply (−1.310, −1.546). The plateau was the
+sum's residual arriving from underneath, not the crop levelling off.
+
+**The control is what makes that a measurement rather than an inference:** source
+refinement is a knob the coherent case does not have. Its sum is one term and is
+exact, so its curve cannot move — and it does not.
+
+**And the same 749 points are not converged at S = 1.** `diskSource` spaces its
+points by 2S/samples, so a count converged at S = 0.25 is four times too coarse
+at S = 1, and the witness is that the guard curve goes **flat**: 2.795e-3,
+2.910e-3, 2.923e-3 at guards 4, 8, 16. That is the residual and not the crop.
+[§ 6p](#later-rungs)'s commensurate condenser is what fixes it, which is why
+that step is not only about speed — **it lowers the mosaic's error floor.**
+
+### One hypothesis raised against this table and measured down
+
+A discrete source lattice of spacing δ = 2S/samples makes μ(Δ) periodic with
+period 2/δ = samples/S resolution cells — at 97 points that is 44, 22 and 11
+cells at S = 0.25, 0.5 and 1.0, the last sitting *inside* the guard band. If that
+revival were the mechanism, holding δ fixed while S varied would flatten the row.
+It does not: at guard 8 the fixed-spacing row reads 8.128e-3, 3.707e-3, 1.866e-3
+(spread 4.36) where the fixed-count row reads 8.128e-3, 9.440e-3, 1.136e-2
+(spread 1.40). At fixed spacing the error falls as 1/S, which is 1/√(point count)
+since points ∝ S² there — the ratios are 2.19 and 1.99 against a predicted 1.99.
+So the variable is the **number of points averaging the residual down**, and the
+revival is not the mechanism. Recorded because it would have changed the reading
+of § 6o.3 and it is a hypothesis a reader will have too.
+
+### The probe, and why it is built the way it is
+
+The lattice is held fixed — one `pupilSamples`, one grid, one pupil sampling —
+and the only thing that varies is how far out the specimen is the true one: two
+specimens identical inside a box of half-width W/2 + guard, and **permutations of
+one multiset** outside it. Independent draws would differ in total transmittance
+by ~1/√N and T(0) reaches every pixel through the pupil at every source point,
+laying a floor of the probe's own making across the whole table. Both halves of
+the control are pinned — the multiset bitwise, and the per-image mean
+normalization to within 3% at every guard and every source.
+
+128 at `pupilSamples` 64 is **two pixels per resolution cell**, and it was chosen
+against `abbeImage`'s own lattice guard rather than for tidiness: a source point
+at S needs `size ≥ ceil(pupilSamples·(1+S)) + 2`, so 2 px per cell is the finest
+sampling S = 1 admits at *any* grid. What it buys is that a 749-point condenser
+costs 0.6 s a render there and 9.6 s at 256 — the difference between § 6o.3 being
+a rung and being a footnote.
+
+### The pitch is not the span, and the solve is skipped on the licence D1 gave
+
+Each tile reads its own ruler at its own centre (§ 6m), so tile k's useful span in
+millimetres is `usefulPixels · pixelScaleMm_k` and the two neighbours of a seam do
+not agree about it. Exact abutment is therefore a **fixed point**, not an
+arithmetic. § 6m licensed skipping the solve if the drift was measured, and this
+is the measurement: 3.7e-5 px across 3 tiles, 2.2e-4 across 5, 1.6e-3 across 9 and
+1.3e-2 across 17, by which point the outer tile is 2.24 mm off axis. Growing and
+monotone, so it is the ruler's real field dependence and not f64 noise — it is
+simply far below the pixel that would make it matter. `"abutting"` is implemented
+anyway, because a drift is only meaningful against the thing it drifts from.
+
+With an **even** tile count the two schemes agree exactly, and that is named
+rather than left to look like a measurement of nothing: with no tile on the axis
+the innermost pair straddles it half a span out on the reference ruler, which is
+where both put it. The drift appears only once a tile is placed *from* another.
+
+### The seam needs a reference, and a wider frame is not available
+
+"The step across a seam" is not well defined against nothing: the two sides
+sample different object points, so a raw column difference is not the error — and
+a wider reference frame is exactly what § 6h.2 says cannot be built. The
+reference is **a third tile centred on the seam**, § 6n.2's "two readings of one
+number" move, compared along the row through the tile centres so it sits at the
+same field point in *both* coordinates. On a traced 4×/0.10 at 1.6 mm with a bar
+grating authored in object millimetres, the step falls 1.768e-2 → 1.320e-2 →
+8.531e-3 → 7.81e-4 of peak as the guard goes 0 → 2 → 4 → 8 cells.
+
+With no guard the error is **localized at the seam** — 1.8e-2 there against
+1.9e-4 three pixels away, and it is the worst pixel of its own neighbourhood.
+That is the shape a viewer reads as a grid line, and it is what the guard
+removes: by 8 cells the seam is no longer the worst pixel near it, and what
+remains is the tile's own floor, which § 6o.3 says is this 21-point source's
+quadrature rather than the crop.
+
+### Not yet pinned
+
+- **A mosaic under a non-telecentric condenser.** § 6h hands every patch the same
+  `CondenserSource` with its points centred on the pupil, which says the
+  illumination cone stays centred at every field point. A real condenser's cone
+  tilts off axis; `shiftPupil` is already the operator that would do it. § 6a's
+  object-space ray-aiming blocker, arriving where it finally bites.
+- **The converged crop exponent under partial coherence.** It is lattice-bound at
+  every grid affordable here, because a finite grid truncates the tail integral at
+  its own edge. What is pinned instead is the coherent limit and the ratio.
+- **A guard chosen for a caller.** § 6o measures what a guard costs; it does not
+  recommend one, because the answer depends on S, on the source sampling and on
+  the error a caller will accept — and the honest deliverable was always a bound.
+- **The cost.** A tile pays for its guard at full price and throws it away: 64 px
+  with an 8-cell guard at 2 px/cell keeps 36% of what it computes. D0's arithmetic
+  puts a 4×'s real 5 mm field at ~181 tiles, and § 6p is what makes that minutes
+  rather than hours.
+- **One objective**, still — every number here is the DIN 4×/0.10's.
 
 ## Later rungs
 
@@ -5327,18 +5528,22 @@ already covers it — cached ≡ uncached, bit for bit.
   verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
-- **§ 6o–§ 6r — the rest of the microscope's field of view, and looking through
+- **§ 6p–§ 6r — the rest of the microscope's field of view, and looking through
   it.** Named in APP.md's Part D rather than here, because they arrived as the
   scoping of an app surface and their step numbers are not yet claimed —
-  [§ 6m](#step-6m--the-off-axis-frame) and
-  [§ 6n](#step-6n--the-warped-grid-rasterizer) have since claimed theirs and left
-  this list. What remains:
-  the mosaic guard band (§ 6o), the commensurate condenser and cached pupil
-  (§ 6p, exact against the uncached sum bit for bit), the eyepiece on a *finite*
+  [§ 6m](#step-6m--the-off-axis-frame),
+  [§ 6n](#step-6n--the-warped-grid-rasterizer) and
+  [§ 6o](#step-6o--the-mosaic-and-its-guard-band) have since claimed theirs and
+  left this list. What remains: the commensurate condenser and cached pupil
+  (§ 6p, exact against the uncached sum bit for bit — and § 6o found it also
+  lowers the mosaic's error floor, not only its cost), the eyepiece on a *finite*
   intermediate image (§ 6q — `afocalTelescope` solves from a collimated input and
   cannot serve it), and polychromatic brightfield (§ 6r). Part D carries the
   feasibility measurements each would pin, labelled as feasibility figures and
-  **not** as pins, which is the distinction this file exists to keep.
+  **not** as pins, which is the distinction this file exists to keep — and § 6o
+  is the step that shows why it matters: it corrected two of the three
+  conclusions D0.2's feasibility table drew, because a rung pinned to a previous
+  measurement inherits whatever that measurement was really measuring.
 
 ## Rules
 
