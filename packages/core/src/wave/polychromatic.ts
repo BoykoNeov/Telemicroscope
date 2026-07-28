@@ -125,29 +125,86 @@ export interface PolychromaticPsf extends Psf {
  * pixel holds k² times the energy.
  */
 export function resamplePsf(p: Psf, targetPixelScaleMm: number, size = p.size): Float64Array {
-  return resampleGrid(p.intensity, p.size, p.pixelScaleMm, targetPixelScaleMm, size);
+  return resampleEnergyGrid(p.intensity, p.size, p.pixelScaleMm, targetPixelScaleMm, size);
 }
 
 /**
- * Resample an energy-per-pixel grid onto a different pixel scale, bilinearly.
+ * Resample an **energy-per-pixel** grid onto a different pixel scale, bilinearly.
  *
  * Exported because `imaging/emission` stacks a band of incoherent PSFs and hits
  * exactly the failure this module exists to prevent — pixelScaleMm is ∝ λ, so a
  * bin-for-bin sum silently rescales each component instead of stacking it. One
  * resampler, so the two paths cannot drift.
+ *
+ * The `k²` here is the whole difference from `resampleIrradianceGrid` below, and
+ * which one a caller wants is set by what its array holds, not by taste. See
+ * that function for the witness that tells them apart — and note that it is
+ * **not energy**.
  */
-export function resampleGrid(
+export function resampleEnergyGrid(
   src: Float64Array,
   srcSize: number,
   srcPixelScaleMm: number,
   targetPixelScaleMm: number,
   size: number,
 ): Float64Array {
+  return resample(src, srcSize, srcPixelScaleMm, targetPixelScaleMm, size, true);
+}
+
+/**
+ * Resample an **irradiance** grid — a value *per unit area* — onto a different
+ * pixel scale, bilinearly and with no Jacobian.
+ *
+ * `illumination/abbe`'s image is this one, and it is a different physical
+ * quantity from a PSF's `intensity` even though both are `Float64Array` of
+ * squared moduli. A PSF holds the energy landing in each pixel: change the pixel
+ * size and each one holds more, so the Jacobian is mandatory. An Abbe image
+ * holds the irradiance *at* a point — a uniform specimen images to exactly 1
+ * whatever the grid is, which § 6r measured rather than derived — so it is a
+ * point property, and warping it is pure coordinate substitution. Applying `k²`
+ * to it multiplies every wavelength by (λ_target/λ_src)².
+ *
+ * **The witness for getting this wrong is not energy — it is a colour cast.** An
+ * energy check on a stack of extended images is satisfied by construction on
+ * either branch, because nothing has been lost, only rescaled; what the wrong
+ * Jacobian does is tilt the spectrum by 1/λ², which reads as physics and turns a
+ * neutral specimen blue. That is § 6r's finding, and it belongs here rather than
+ * only in the ladder.
+ */
+export function resampleIrradianceGrid(
+  src: Float64Array,
+  srcSize: number,
+  srcPixelScaleMm: number,
+  targetPixelScaleMm: number,
+  size: number,
+): Float64Array {
+  return resample(src, srcSize, srcPixelScaleMm, targetPixelScaleMm, size, false);
+}
+
+/**
+ * The one implementation both siblings share.
+ *
+ * Destinations whose bilinear stencil leaves the source grid are left at zero
+ * rather than clamped — a clamped edge would extend the outermost row outward
+ * and invent structure. That drops the **last** row and column even at k = 1,
+ * because the stencil needs `x0 + 1`, and a caller stacking extended images has
+ * to keep its common grid strictly inside the source for that reason
+ * (`imaging/brightfield-spectrum` does, and says so).
+ */
+function resample(
+  src: Float64Array,
+  srcSize: number,
+  srcPixelScaleMm: number,
+  targetPixelScaleMm: number,
+  size: number,
+  jacobian: boolean,
+): Float64Array {
   const out = new Float64Array(size * size);
   const k = targetPixelScaleMm / srcPixelScaleMm;
   const cs = srcSize / 2;
   const co = size / 2;
   const n = srcSize;
+  const gain = jacobian ? k * k : 1;
 
   for (let y = 0; y < size; y++) {
     const sy = cs + (y - co) * k;
@@ -164,7 +221,7 @@ export function resampleGrid(
       const i11 = src[(y0 + 1) * n + x0 + 1]!;
       const top = i00 * (1 - fx) + i10 * fx;
       const bottom = i01 * (1 - fx) + i11 * fx;
-      out[y * size + x] = (top * (1 - fy) + bottom * fy) * k * k;
+      out[y * size + x] = (top * (1 - fy) + bottom * fy) * gain;
     }
   }
   return out;
@@ -224,7 +281,7 @@ export function spectralStack(
       ...(flat === undefined
         ? {}
         : {
-            diffractionLimited: resampleGrid(
+            diffractionLimited: resampleEnergyGrid(
               flat,
               e.psf.size,
               e.psf.pixelScaleMm,

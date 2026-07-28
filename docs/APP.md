@@ -805,7 +805,7 @@ small PSF inset:
 | ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. What remains is authoring a scene, which is content rather than a blocker. |
 | Depth-dependent spherical aberration in the z-slider | § 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step with its own rungs. `DepthPupils` is the hook. Unchanged, and independent of Part D. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
-| Polychromatic brightfield / fluorescence colour | § 6f and § 6i both name it open. § 6j's band is emission-only. **Scoped as § 6r in Part D.** |
+| ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. Fluorescence colour is still open: § 6j's band is emission-only, and an extended emitter field needs the Jacobian § 6n deferred. |
 | A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, now measured and composed: § 6m–§ 6o, compute-once, never live at a full field. § 6o pins the crop error of a tile to a closed form and § 6o.7 composes them. |
 
 ---
@@ -889,9 +889,11 @@ Everything below the first section is ordered behind it.
 **Where that stands now.** The slide and the wider field are D1–D5 and are
 walked — A7 is a stage you can pan. The eyepiece is D6 and is walked too, so
 "look through" is an engine capability rather than a wish; what remains unbuilt
-is the *panel* for it. Colour (D7) and building an instrument (D8) are still
-open, so the opening sentence above is no longer a description of the engine —
-only of the app's surfaces, which is what Part D is a queue for.
+is the *panel* for it. Colour is D7 and has now landed as well, so a stained
+section is an engine capability too. Only building an instrument (D8) is still
+open, and it was always app wiring — so the opening sentence above is no longer a
+description of the engine at all, only of the app's surfaces, which is what Part
+D is a queue for.
 
 ### D0. The three feasibility measurements this part rests on
 
@@ -1421,7 +1423,52 @@ actually sets the visible circle; and eye relief.
 **What it buys A7:** the circular field stop, an honest angular scale, and the
 readout that says whether the magnification on screen is doing any work.
 
-### D7. § 6r — polychromatic brightfield — *engine step*
+### D7. § 6r — polychromatic brightfield — ✅ **landed**
+
+**Landed as § 6r** (`imaging/brightfield-spectrum`,
+`packages/core/test/brightfield-spectrum.test.ts`). The branch is in colour and a
+stained section looks stained. What follows is what the step corrected in the
+scope below, then the original text.
+
+**The premise was right and the plan under it was wrong.** The diagnosis holds
+exactly: S needs no conversion, `pupilSamples` does, and stacking bin-for-bin
+would be § 2e's error again. But "`wave/polychromatic` already stacks on a common
+physical grid" is the part that does not survive. Its resampler carries an energy
+Jacobian `k²`, because `Psf.intensity` holds energy per pixel; an Abbe image
+holds an **irradiance** — measured, not argued: a clear field images to exactly 1
+at every `size` and every `pupilSamples` — so the Jacobian must not be applied.
+Applying it multiplies each plane by (λ_ruler/λ)², which tilts the lamp as 1/λ²
+and turns a neutral specimen blue. **Energy cannot see it**, since nothing is
+lost either way; the witness is a colour cast. There are now two named
+resamplers, `resampleEnergyGrid` and `resampleIrradianceGrid`, with the physics
+in the name.
+
+**Two more things a builder has to handle.** The common grid is the **bluest**
+plane's and one pixel interior, not the mean's: an extended image has no skirt,
+so what a resampler cannot source is a λ-dependent black border — a coloured
+vignette on a clear field, measured at 0.05 of chromaticity. And a polychromatic
+stack's `pupilSamples` is set by the **blue end**: the DIN 4×'s blue plane is
+worst-resolved by **2.56×** where λ alone gives 1.22, and at 32 bins it rules
+`no-honest-image` while 550 and 650 nm rule `valid`. A panel offering a
+wavelength count has to raise the pupil lattice with it, or the engine will
+correctly refuse the bluest plane.
+
+**What it costs, corrected.** Everything multiplies by the wavelength count —
+one tile trace, one `rasterizeSpecimen` (§ 6n's 0.12 ms/px, still the dominant
+term) and one `renderBrightfield` per λ. Nine wavelengths at 64² is minutes. A
+colour panel is a compute-once surface, not a drag surface, and D0.1's rule
+applies unchanged.
+
+**What is still open**, and it is the third rung below: there is **no singlet
+finite-conjugate objective in the engine**, so the singlet-versus-achromat
+contest cannot be run. `finiteConjugateObjective` is built on
+`achromaticObjective`, whose split divides by V₁ − V₂. Its *substance* landed —
+the colour is the optics and the specimen, not the display, pinned at 1e-12 —
+and so did the second rung, but the contest itself is a design step. A
+polychromatic **mosaic** is also open: the useful span is ∝ λ, so § 6o's pitch
+and guard band would need one reference λ and a crop.
+
+The original scope follows, unchanged.
 
 § 6f names it open, and it is what makes a stained section look stained.
 `wave/polychromatic` already stacks on a common physical grid and § 3a's CIE path
@@ -1483,18 +1530,21 @@ rows into the whole design space.
 walked**: the off-axis frame, the rasterizer that registers it, the mosaic that
 bounds its error and the stage that draws it have all **landed**. **D5** landed
 alongside and makes it fast — though *only* fast: § 6p measured down § 6o's belief
-that it would also lower the mosaic's error floor. **~~D6~~ has since landed**
-too, so the instrument now ends at an eye rather than at an image. What is left
-in Part D is **D7**, colour; **D8** is still independent and still the cheapest
-breadth in the doc. A6 and Part B are untouched by all of this and can go at any
-point.
+that it would also lower the mosaic's error floor. **~~D6~~** landed after it, so
+the instrument ends at an eye rather than at an image, and **~~D7~~ has now
+landed too** — the branch is in colour. **Every engine step in Part D is done.**
+What is left in the list is **D8**, which was always independent and is still the
+cheapest breadth in the doc — and it is now the only thing in Part D that is app
+wiring rather than engine. A6 and Part B are untouched by all of this and can go
+at any point.
 
 **The one engine number that changed the queue:** D4 found the *rasterizer*, not
 the Abbe sum, is what a traced tile costs (see D0.1's correction), so § 6n's
 deferred radial-map cache is now the branch's dominant per-tile cost and its named
 next optimisation. It is not in Part D's list because Part D is about what the app
 cannot yet *show*; it belongs next to D7 in any queue about what the app can show
-*quickly*.
+*quickly* — and D7 has since multiplied it by the wavelength count, which is what
+makes that cache the branch's next optimisation rather than a nicety.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a
@@ -1626,10 +1676,9 @@ code. **A6** follows. **Part C** is a separate decision.
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
 steps with their own rungs. Its own order is at the end of that part; the short
-version is **D8 first for breadth, D1 → D4 for the field of view** — and D1, D2
-and D3 have landed as § 6m, § 6n and § 6o, so the field of view now waits on
-nothing but **D4's stage**: the engine composes tiles into one image, with the
-guard band its error needs measured against a closed form.
+version was **D8 first for breadth, D1 → D4 for the field of view** — and every
+engine step in the part has since landed (§ 6m–§ 6r), so what is left in Part D
+is **D8 alone**, which is app wiring.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and

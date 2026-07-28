@@ -63,6 +63,7 @@ whole ladder.
 | [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so every direction reads one grid and a traced pupil is evaluated once instead of once per direction — cached ≡ uncached **bit for bit**, with the dyadic precondition that makes that provable refused rather than tolerated, and the saving pinned as an exact integer (`contributingPoints`) instead of a wall clock; the construct shown to BE `diskSource`'s lattice, bitwise, with the single 5.6e-17 gap located at the one division `gridCoordinate` cannot represent; a source declaring a lattice it is not on refused; and two corrections — **commensurability is accuracy-neutral**, so § 6o's and D5's "it also lowers the mosaic's error floor" is wrong (812 commensurate points reproduce the plateau; 3 228 un-flatten it), and D0.3's "commensurate *and* coarse" premise does not survive § 6f.2, so the knob is `pupilSamples` and not `stepMultiple` | `commensurate` |
 
 | [6q](#step-6q--the-eyepiece-on-the-intermediate-image) | The eyepiece placed at last — `afocalTelescope`'s gap solved from a collimated input shown to leave **70.5 diopters** of vergence on a microscope, 280× a quarter diopter, which is why the finite-object solve is an engine step; the gap pinned against imageDistance + FFD_e as a check; the visual magnification taken off the REAL chief ray, with its SIGN caught by a magnifier's known +D/f and the near point kept a stated convention; the two object NAs shown to be exactly tan u and sin u, ratio sec u to f64 — so the Lagrange exit pupil D·NA/\|M\| holds with the tangent one and the textbook 500·NA/M **misses by 61% at NA 1.40**; empty magnification restated as an invariance, the detail ratio flat to 1e-6 above the two-stop crossover and exactly ∝ M below it, with λ cancelling and 500·NA/1000·NA falling out of two pupil conventions; and the field number spliced in as a REAL stop that vignettes at FN/(2·M_obj) | `visual-microscope` |
+| [6r](#step-6r--polychromatic-brightfield) | Colour at last, and the ruler that is the whole difficulty: the Abbe sum per wavelength, each on its own frame, stacked on one physical grid — with the Abbe image shown by MEASUREMENT to be an irradiance and not energy per pixel, so the resampler carries **no** Jacobian; the wrong one pinned as an exact 1/λ² tilt of the lamp, 0.02 off neutral where the honest path holds 1e-4, and **energy shown not to be the witness** — a colour cast is; the common grid taken as the BLUEST plane's and strictly interior, so truncation is zero by construction and the mean-scale alternative measured putting a coloured vignette on a clear field; the ruler plane copied **bit for bit**; a dye imaged magenta on § 3a's own white while tinting the monochrome image gives the stain and the field the same hue to 1e-12; the doublet's axial colour recovered as § 1's chromatic shift through § 1.5's defocus wavefront, to 8%, with the achromat's crossing and its SIGN FLIP both surviving; the finding that the blue plane is worst-resolved by **2.56×** where λ alone gives 1.22, so `pupilSamples` is set by the blue end; lateral colour arriving free from concentric frames, zero on axis and linear in field; and the two condenser conventions shown IDENTICAL on a dry front-stopped objective and 0.85% apart on oil | `brightfield-spectrum` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3930,9 +3931,12 @@ will belong to and the gratings never did.
 - **Fluorescence**, which is the *easy* half — a fluorescent specimen is
   self-luminous, so it is the incoherent path the engine already has, plus
   Stokes-shifted emission and filter passbands. Not started.
-- **Polychromatic brightfield.** Every number here is monochromatic. The source
-  is a set of directions at one wavelength; a real lamp is a spectrum, and the
-  sum would run per wavelength on § 2e's common physical grid.
+- ~~**Polychromatic brightfield.**~~ **Closed at § 6r.** The sum does run per
+  wavelength now, and the sentence above was right about the shape and wrong
+  about the grid: § 2e's resampler carries an energy Jacobian, and an Abbe image
+  is an irradiance, so reusing it tilts the lamp's spectrum as 1/λ². What is
+  still true is that every number *in this section* is monochromatic — S needs no
+  wavelength conversion (§ 6r), so nothing here had to change.
 - **A non-uniform source.** `diskSource` weights every direction equally, which
   is Köhler with an evenly filled diaphragm. A real filament image is not even,
   and *critical* illumination — the filament imaged onto the specimen — breaks
@@ -5947,15 +5951,245 @@ stops being good.**
   and pinned for the telescope's; nothing here re-measures its coma or field
   curvature working on an intermediate image, and the 20% edge distortion above
   is reported, not decomposed.
-- **Polychromatic.** One wavelength throughout; lateral colour through the
-  eyepiece is § 5o's Huygens theorem waiting for a caller, and § 6r is the
-  branch's colour step.
+- **Polychromatic.** One wavelength throughout. § 6r has since landed and is the
+  branch's colour step, but it stops at the intermediate image — nothing here
+  runs a spectrum through the eyepiece, and lateral colour through one is still
+  § 5o's Huygens theorem waiting for a caller.
 - **Real eye relief ergonomics and the field lens.** Eye relief is read off the
   pupil imaging and not compared to any spectacle-wearer standard, and no field
   lens is inserted to shorten it.
 - **The exit pupil off axis.** Everything above is the axial pupil; pupil
   aberration and the vignetting a real eyepiece shows at the field edge are
   § 6h's open item, inherited.
+
+## Step 6r — polychromatic brightfield
+
+Every brightfield rung before this one is monochromatic: one wavelength, one
+pupil, one grid. A lamp is a spectrum, and a stained section is a specimen that
+absorbs part of it — so colour here is not a finish applied to a grey image, it
+is what the image is made of. The step is the Abbe sum run per wavelength, and
+almost all of its difficulty is one thing: **the ruler**.
+
+Two quantities cross the wavelength boundary and they behave oppositely.
+**S does not need converting.** The coherence parameter is NA_cond/NA_obj, a
+ratio of numerical apertures, which is the same reason `illumination/abbe` may
+take its object in reduced coordinates — so one `CondenserSource` serves the
+whole band, including a commensurate one (§ 6p), whose lattice is tied to
+`pupilSamples` and not to λ. **`pupilSamples` does.** It counts frequency bins
+across the pupil *diameter*, and what physical frequency a bin carries depends on
+the pupil's size in wavelengths. `imagePixelScaleMm` is ∝ λ, so at fixed `size`
+and `pupilSamples` every wavelength's image arrives on a grid of a different
+physical size, and its frame is proportionally wider. Adding the arrays
+bin-for-bin is **§ 2e's error committed again**, one branch over — it rescales
+each wavelength instead of stacking it, and it looks entirely plausible.
+
+So each wavelength gets its own `objectFieldTile`, and the planes are resampled
+onto one common physical grid before anything else touches them.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A clear field images to exactly 1 at every `size` and `pupilSamples`** | measured, not derived | ✅ |
+| The two resamplers differ by exactly k², and only one leaves a density alone | closed form | ✅ |
+| **A clear field under an equal-energy lamp is § 3a's own white, at every pixel** | § 3a's continuous integral, < 1e-4 | ✅ |
+| The planes' scales span λ exactly; the ruler is the bluest sample | `imagePixelScaleMm` ∝ λ | ✅ |
+| **The Jacobian branch reproduces an SED tilted by 1/λ², exactly** | the observer alone, 10 places | ✅ |
+| **Energy is not the witness — the wrong branch loses none of it** | negative control | ✅ |
+| The plane that sets the ruler is copied **bit for bit** | k = 1 identically | ✅ |
+| A common grid that would reach outside a source is refused | the stencil's reach | ✅ |
+| **The MEAN scale puts a coloured vignette on a neutral field** | negative control | ✅ |
+| **A dye absorbing the middle of the band images magenta on neutral white** | the purple line's direction | ✅ |
+| **Tinting the monochrome image gives the stain and the field the SAME hue** | negative control, < 1e-12 | ✅ |
+| Each wavelength's traced frame is its own size, extents ∝ λ | § 6h.2's closed form | ✅ |
+| A neutral specimen stays neutral through the whole **traced** path | § 3a, < 2e-3 | ✅ |
+| **Refocusing to a wavelength's own paraxial plane removes exactly its chromatic defocus** | § 1's chromatic shift + § 1.5's defocus wavefront, < 8% | ✅ |
+| The achromat's crossing and its **sign flip** both survive the trace | achromat theory | ✅ |
+| **The bluest plane is worst-resolved by 2.56×, where λ alone gives 1.22** | measured | ✅ |
+| Lateral colour is exactly zero on axis and **linear in field**, < 1% | third-order theory | ✅ |
+| On a dry front-stopped objective the two condenser conventions are **identical** | geometry, bitwise | ✅ |
+| On an oil objective they part by 0.85% across 450–650 nm | the oil's own Cauchy series (§ 1) | ✅ |
+
+### 6r.1 — the premise is measured, not derived
+
+The whole step turns on what an Abbe image's `intensity` *holds*, and it is not
+what a PSF's holds. `wave/polychromatic` resamples with a Jacobian `k²` because
+`Psf.intensity` is energy per pixel: change the pixel size and each one holds
+more. An Abbe image is an **irradiance** — a value at a point — so warping it is
+pure coordinate substitution and carries no Jacobian, exactly as
+`imaging/specimen` argues for the amplitude transmittance one layer earlier.
+
+That is asserted rather than reasoned about, because the two are the same type
+and the difference is invisible in it: a clear field images to **exactly 1** at
+(32, 16), (64, 16), (64, 32) and (128, 64) — not close to each other, the same
+f64 number. A density that drifted with the grid would be an energy in disguise.
+
+### 6r.2 — the negative control, and why energy cannot see it
+
+Reusing `wave/polychromatic`'s resampler is the architecturally tempting move:
+one function, already written, already pinned. It multiplies each plane by
+(λ_ruler/λ)², which **tilts the lamp's spectrum as 1/λ²** and turns a neutral
+specimen blue. The rung pins that as an identity rather than as "different": the
+measured chromaticity of the wrong branch reproduces, to ten places, the
+chromaticity of the same lamp with a 1/λ² tilt computed from the observer alone,
+and it sits 0.02 from neutral where the honest path holds 1e-4.
+
+**Energy is not the witness, and that is why the mistake would survive review.**
+Nothing is lost on either branch — every plane is multiplied by a constant — so
+a conservation check is satisfied by both. The rung states it in the currency
+that makes it concrete: the same field, the same optics, two readings whose
+integrals differ by a factor of 2.9, and no check on the arrays can say which is
+right. That is a question about what the array *holds*. This joins § 6g.2 and
+§ 6k.4 on the list of places this engine records that energy is not a witness —
+and here the witness is a **colour cast**.
+
+### 6r.3 — the common grid is the bluest plane's, and strictly interior
+
+`wave/polychromatic` centres its common grid on the mean wavelength and reports
+what falls off the edge (`truncatedFraction`). That is right for a PSF: the
+energy is compact, near the centre, and a truncated skirt is a number a caller
+can weigh. An extended brightfield image has no skirt — it fills the frame — so
+whatever the resampler cannot source is a **black border**, and since the frames'
+extents go as λ, the border's width goes as λ too. A λ-dependent black border is
+a coloured vignette, and it is indistinguishable by eye, and by any energy check,
+from optics. Measured: on the mean scale, the corner of a *clear* field lands
+0.05 from the centre of the same field in chromaticity, and on the red side.
+
+So the fix is to make truncation impossible rather than to report it. The common
+scale is the **smallest** of the planes' — taken over the planes as measured,
+not assumed to be the shortest wavelength's, since the reference sphere and exit
+pupil are traced per λ too — and the output is cropped by one pixel on each side
+because a bilinear stencil needs `x0 + 1`. Truncation is then zero by
+construction, and a caller asking for more is refused with the reason rather than
+handed the border.
+
+One consequence is worth having and is pinned in § 6o.8's currency: at the plane
+that *sets* the scale, k is exactly 1, every destination lands on a lattice point
+and the bilinear weights collapse, so **that plane is copied bit for bit** rather
+than interpolated. Without it, "the ruler is the bluest plane's" would be a
+rounding rather than a statement about arithmetic.
+
+### 6r.4 — a stain is the specimen, and not the display
+
+§ 3b's milestone in this branch's own currency, negative control and all. There,
+the tempting wrong implementation renders the monochrome polychromatic PSF and
+tints it, producing a plausible coloured star with no fringing in it. Here it
+produces a plausible *stained* section in which the stain and the clear field
+around it are **the same hue** — which is exactly what a stain is not. A grey
+image multiplied by one colour has identical chromaticity at every pixel by
+construction, so the difference that is the whole point reads zero to 1e-12 on
+the very specimen that stains most, while the per-wavelength path moves the stain
+0.05 off the background and toward the purple line.
+
+A `SpectralSpecimen` is a `Specimen` that reads a third argument, and "neutral"
+is defined as ignoring it. That is why `rasterizeSpecimen` is unchanged: it is
+called once per wavelength with `nm` already bound, so nothing below the
+authoring layer learns that a spectrum exists — the same seam § 6n keeps for the
+warp.
+
+### 6r.5 — axial colour, in the wavefront the sum is actually formed with
+
+APP.md asked for the doublet's axial colour to show up as the focal shift § 6b's
+design implies. It does, and the measurement **joins two closed forms already on
+the ladder rather than minting a third** — § 3b's move: § 1's chromatic focal
+shift says where each colour focuses, § 1.5's W = ½·δ·NA²·ρ² says what a focus
+error costs in waves, and what § 6r adds is the wavefront the Abbe sum is formed
+with.
+
+It is read as a **difference** — as-built minus refocused — and that is what
+makes it a measurement rather than a fit. The DIN 4×/0.10's traced pupil carries
+~0.44 waves of residual defocus at its own design wavelength, so the absolute
+coefficient is not the chromatic shift and never was; moving the image plane to
+each wavelength's own paraxial focus removes the chromatic part and leaves the
+residual where it is. Across 450–700 nm the measured removal matches the
+predicted defocus to within 8%, and the excess is **systematic and monotone**:
+6.6% at 450 nm falling to 2.9% at 700 nm. That is the diagnosis as well as the
+tolerance — a wrong pupil→image scale, NA or pixel size would bias every
+wavelength the same way, so a residual that shrinks with λ is chromatic, which
+makes it the objective's own spherochromatism.
+
+The **sign flip is the control**. An achromat's focal-shift curve has two zeros,
+and between them the paraxial focus falls in front of the design plane rather
+than behind it. On this objective the curve crosses at ~500 nm — where predicted
+and measured both collapse below 0.005 waves *together* — is negative at 550 and
+positive at 700, and the traced defocus follows it every time.
+
+**And the practical consequence is the one a caller has to act on.** § 6f's
+lattice criterion is phase per pupil sample, so a stack sized at the design
+wavelength is under-sampled in the blue by the ratio of wavelengths — 1.22 here,
+which would be unremarkable. It is not 1.22. The axial colour above puts a whole
+extra wavefront on the blue plane and the measured ratio is **2.56**. So a
+polychromatic brightfield stack's `pupilSamples` is set by the **blue end**, not
+by the design wavelength, and `brightfieldFidelity` says so out loud: at 32 bins
+the blue plane rules `no-honest-image` while 550 and 650 nm rule `valid`, and at
+64 all three are valid. Every traced rung here runs at 64 for that reason.
+
+### 6r.6 — what concentric frames carry for free
+
+The per-λ frames share a wavelength-independent `centreMm` and everything inside
+them is traced at their own wavelength: the chief-ray inversion, the reference
+sphere, the exit pupil. So the object point a given *image* position looks at
+moves with λ — **lateral colour, arriving because the frames are concentric and
+for no other reason**. Nothing in the module codes for it.
+
+Pinned to the law rather than to the engine's own number: primary transverse
+chromatic aberration is linear in field height, so each doubling of the field
+must double the separation, and it does to better than 1% at 1, 2 and 4 mm. On
+the axis there is no field height for it to be proportional to and the two maps
+agree to the last bit, which is the control that says the separation is the
+field's doing and not the inversion's.
+
+### 6r.7 — one condenser for the band, and which convention that is
+
+Reusing a single `CondenserSource` across the band says S is held constant, and
+that is a **statement about the condenser**, not a free simplification: holding S
+is a diaphragm that tracks the objective's own NA across the band, while a
+physically fixed diaphragm holds NA_cond and lets S drift with the objective's
+dispersion. § 6q's move — "any panel printing an exit pupil has to pick, and this
+is which" — in the condenser's currency.
+
+On the DIN 4×/0.10 the two are **the same convention, exactly**, and the reason
+is geometry rather than luck: a DIN objective carries its stop on its own front
+vertex, so the entrance pupil *is* the stop, sitting in object space with no
+glass between it and the specimen. The marginal ray's launch angle is then a pure
+ratio of distances, and n = 1 in air carries no dispersion either — there is
+nothing for λ to act on, and `objectNumericalAperture` returns the same f64
+number at 450 and 650 nm.
+
+Where the exactness comes from is visible in what breaks it. NA is n·sin u, and
+§ 6e's oil is a Cauchy series, so on the 100×/1.40 the same geometric cone is a
+different numerical aperture at each wavelength: 0.85% across 450–650 nm, bluer
+being higher. That is well under § 6f.2's own sampling convergence, so nothing in
+this step turns on the choice — but the step says which one it made.
+
+### Not yet pinned
+
+- **A polychromatic mosaic.** `halfExtentMm` is ∝ λ, so a tile's useful span and
+  therefore § 6o's pitch and guard band are wavelength-dependent. Composing one
+  means fixing the lattice by a reference λ and cropping every other λ to it,
+  which is a design question this step deliberately does not answer. § 6f's "one
+  field point, on axis, like the rest of § 6" is the precedent, and § 6o's guard
+  closed form is monochromatic until it is redone.
+- **A singlet-versus-achromat objective contest.** § 3b's headline is that a
+  singlet fringes and an achromat does not, and its *substance* is reproduced
+  here — the colour is the optics and the specimen, not the display (§ 6r.4), and
+  the doublet's own axial colour is measured (§ 6r.5). What is missing is the
+  contest itself, because there is **no singlet finite-conjugate objective in the
+  engine**: `finiteConjugateObjective` is built on `achromaticObjective`, whose
+  split divides by V₁ − V₂, so a single-glass "doublet" is not a degenerate case
+  of it but a different design. Building one is its own step with its own rungs.
+- **Per-wavelength contrast through the sum.** § 6r.5 measures the axial colour
+  in the *wavefront*; nothing here measures a grating's modulation depth per λ
+  and shows it fall at the band ends. That is the readout an app panel would
+  print, and it is a measurement of this step rather than a new capability.
+- **A real lamp.** Every rung runs an equal-energy illuminant, because that is
+  what § 3a pins a chromaticity for. A tungsten filament is `blackbodySpectrum`
+  and composes with no code change; what is absent is a rung saying the rendered
+  white *is* that lamp's white.
+- **The stain itself.** § 6r.4's dye is a Gaussian absorbance authored in the
+  rung, exactly as § 6f's gratings are measurement fixtures. Real haematoxylin
+  and eosin transmittance curves are published data the engine does not carry,
+  and a rung pinned to them would be the strongest version of this step.
+- **Non-uniform and non-telecentric illumination**, unchanged from § 6f and
+  § 6h — inherited, not made worse.
 
 ## Later rungs
 
@@ -5971,22 +6205,23 @@ stops being good.**
   verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
-- **§ 6r — polychromatic brightfield**, the last of the Part D line still
-  unclaimed. Named in APP.md's Part D rather than here, because it arrived as the
-  scoping of an app surface —
-  [§ 6m](#step-6m--the-off-axis-frame),
+- ~~**§ 6r — polychromatic brightfield.**~~ **Claimed**, and with it the whole
+  Part D line: [§ 6m](#step-6m--the-off-axis-frame),
   [§ 6n](#step-6n--the-warped-grid-rasterizer),
   [§ 6o](#step-6o--the-mosaic-and-its-guard-band),
-  [§ 6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) and
-  [§ 6q](#step-6q--the-eyepiece-on-the-intermediate-image) have since claimed
-  their numbers and left this list. Part D carries the feasibility measurements
-  § 6r would pin, labelled as feasibility figures and **not** as pins, which is
-  the distinction this file exists to keep — and § 6o, § 6p and § 6q are the
-  steps that show why it matters: § 6o corrected two of the three conclusions
+  [§ 6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil),
+  [§ 6q](#step-6q--the-eyepiece-on-the-intermediate-image) and
+  [§ 6r](#step-6r--polychromatic-brightfield) have all left this list. Every one
+  of them arrived as the scoping of an app surface, and Part D carried the
+  feasibility measurements they would pin, labelled as feasibility figures and
+  **not** as pins — which is the distinction this file exists to keep, and four
+  of the five showed why it matters. § 6o corrected two of the three conclusions
   D0.2's feasibility table drew, § 6p corrected D0.3's premise *and* one of
-  § 6o's own conclusions, and § 6q corrected D6's prediction that `visualSystem`
-  would compose unchanged. A rung pinned to a previous measurement inherits
-  whatever that measurement was really measuring.
+  § 6o's own conclusions, § 6q corrected D6's prediction that `visualSystem`
+  would compose unchanged, and § 6r corrected D7's own premise: the ruler is the
+  step's difficulty, but the resampler it needs is **not** the one already on the
+  ladder. A rung pinned to a previous measurement inherits whatever that
+  measurement was really measuring.
 
 ## Rules
 

@@ -87,6 +87,31 @@ export interface SpecimenValue {
  */
 export type Specimen = (xMm: number, yMm: number) => SpecimenValue;
 
+/**
+ * A specimen whose transmittance depends on **wavelength** — a stain (§ 6r).
+ *
+ * The whole of "what makes a stained section look stained" is that this callback
+ * reads its third argument. A specimen that ignores `nm` is neutral by
+ * definition, which is how § 6r states its first rung: neutral in, neutral out,
+ * through a path in which every wavelength was imaged on its own ruler.
+ *
+ * Not a superset of `Specimen` in the type system on purpose. `rasterizeSpecimen`
+ * takes the two-argument form and is called once per wavelength with `nm` already
+ * bound (`atWavelength`), so nothing below the authoring layer learns that a
+ * spectrum exists — the same seam `rasterizeSpecimen` keeps for the warp.
+ */
+export type SpectralSpecimen = (xMm: number, yMm: number, nm: number) => SpecimenValue;
+
+/** One wavelength's slice of a spectral specimen, as a plain `Specimen`. */
+export function atWavelength(specimen: SpectralSpecimen, nm: number): Specimen {
+  return (xMm, yMm) => specimen(xMm, yMm, nm);
+}
+
+/** A wavelength-independent specimen, seen as a spectral one. */
+export function neutralSpecimen(specimen: Specimen): SpectralSpecimen {
+  return (xMm, yMm) => specimen(xMm, yMm);
+}
+
 /** Which map a pixel's object point is read on. */
 export type SpecimenMap =
   /** The traced chief ray, inverted — carries distortion. This is § 6n. */

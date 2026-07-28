@@ -1,7 +1,7 @@
 import { Xyz } from "../photometry/cmf";
 import { Rgb, encodeGamma, xyzToLinearRgb } from "../photometry/srgb";
 import { XyzBasis, spectralXyzBasis } from "../photometry/spectrum";
-import { SpectralStack } from "../wave/polychromatic";
+import { WavelengthSample } from "../trace/system";
 
 /**
  * The rendered image, and the one place wavelengths become colour.
@@ -24,6 +24,19 @@ import { SpectralStack } from "../wave/polychromatic";
  * grid** — pixel scale is ∝ λ, so a red pixel is a bigger piece of the image
  * than a blue one and combining them by index rescales rather than stacks. The
  * stack has done that; nothing here resamples again.
+ *
+ * ## Two callers, two physical quantities, one legal collapse
+ *
+ * `wave/polychromatic`'s `SpectralStack` holds **energy per pixel** — a PSF, so
+ * its planes were resampled with a Jacobian. § 6r's `BrightfieldSpectralStack`
+ * holds **irradiance**, a value per unit area, resampled without one. Both are
+ * linear in energy, which is all the collapse below needs, so one function
+ * serves both. What differs is the unit of `ColorImage.xyz`: XYZ-per-pixel from
+ * the PSF path, XYZ-per-unit-area from the brightfield one. Written down here
+ * rather than inferred, because every readout in this file — `integratedXyz`,
+ * `radialColorProfile`, `autoExposure` — sums pixels, and summing an irradiance
+ * over an area the caller has not weighted is a number that means something only
+ * relative to itself.
  *
  * ## Linear light, everywhere until the last line
  *
@@ -58,6 +71,26 @@ export function pixelXyz(image: ColorImage, x: number, y: number): Xyz {
 }
 
 /**
+ * The least a stack has to be for colour to be taken off it.
+ *
+ * Structural rather than a base class, so `wave/polychromatic`'s `SpectralStack`
+ * and § 6r's `BrightfieldSpectralStack` both satisfy it without either module
+ * importing the other — and so a third stack can arrive without touching this
+ * one. The two obligations it cannot check are the ones the header states: the
+ * planes are on a common physical grid, and `samples` carries the source
+ * spectrum with no observer response folded in.
+ */
+export interface ColorStack {
+  /** Side of the square common grid, in pixels. */
+  readonly size: number;
+  /** Image-plane millimetres per pixel. */
+  readonly pixelScaleMm: number;
+  /** Per-wavelength images, NOT pre-multiplied by their weights. */
+  readonly planes: readonly { readonly intensity: Float64Array }[];
+  readonly samples: readonly WavelengthSample[];
+}
+
+/**
  * Collapse a spectral stack into colour.
  *
  * The observer, the bin integration and the source spectrum collapse into
@@ -65,7 +98,7 @@ export function pixelXyz(image: ColorImage, x: number, y: number): Xyz {
  * is a dot product of length `planes.length` — which is what keeps a full-field
  * render affordable.
  */
-export function colorImageFromStack(stack: SpectralStack, basis?: XyzBasis): ColorImage {
+export function colorImageFromStack(stack: ColorStack, basis?: XyzBasis): ColorImage {
   const n = stack.size;
   const b = basis ?? spectralXyzBasis(stack.samples);
   if (b.x.length !== stack.planes.length) {

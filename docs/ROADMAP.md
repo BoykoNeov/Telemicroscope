@@ -509,11 +509,11 @@
    quadratic wavefront sits from the exact Ewald cap (sin α against tan α: 2.6×
    at NA 1.40, but living entirely in the object-side z mapping, since the engine
    defocuses an image space where NA′ is 0.024).
-   *Still open in this step, and now scoped:* everything above forms an image
+   *Scoped, and now walked:* everything above formed an image
    **93.5 µm wide at 4× and 2.6 µm at 100×/1.40**, on the axis, in grey, with no
    eyepiece — a detail crop, and § 6h's own closed form says raising the grid
-   will never widen it. Closing that is § 6m–§ 6r, ordered and costed in
-   APP.md's Part D. The **off-axis frame** (§ 6m) is ✅ **done** — a tile sits
+   will never widen it. Closing that was § 6m–§ 6r, ordered and costed in
+   APP.md's Part D, and **all six have landed**. The **off-axis frame** (§ 6m) is ✅ **done** — a tile sits
    anywhere in the field, registers with its neighbours in the last bit, and
    carries the first millimetre-scale field measurements in the branch: field
    curvature at ×4.000 per doubling, and the finding that an off-axis tile is
@@ -620,8 +620,43 @@
    sits at the edge and a genuinely wide field needs the transcribed patent members
    rather than a wider aperture on this form. That is the fourth wall of its kind,
    after § 6b's f/4.1, § 6d's NA 0.343 and § 6e.4's NA 1.411.
-   What is left in this step is **polychromatic
-   brightfield** (§ 6r), which is what makes a stained section look stained.
+   *Polychromatic brightfield:* ✅ **done** (§ 6r) — the branch is in colour, and
+   a stained section looks stained. The Abbe sum runs per wavelength, each on its
+   own `objectFieldTile`, because `pupilSamples` is a bin count and the physical
+   frequency a bin carries goes as λ — so every wavelength's image lands on a
+   grid of a different physical size while **S needs no conversion at all**,
+   being a ratio of numerical apertures. What that costs is a ruler, and the
+   correction is APP.md D7's own premise: § 2e's resampler is the wrong one.
+   `Psf.intensity` is energy per pixel and an Abbe image is an **irradiance** —
+   measured, not derived: a clear field images to exactly 1 at every grid and
+   every `pupilSamples` — so the Jacobian must not be applied, and applying it
+   tilts the lamp as 1/λ² and turns a neutral specimen blue. **Energy cannot see
+   it**: nothing is lost either way, only rescaled, so the witness is a colour
+   cast and the ladder gains a third entry beside § 6g.2 and § 6k.4. The common
+   grid is the **bluest** plane's and strictly interior, which makes truncation
+   zero by construction instead of reported — an extended image has no skirt, so
+   what falls off is a λ-dependent black border, i.e. a coloured vignette on a
+   clear field (measured at 0.05 of chromaticity against 1e-4 for the honest
+   path). The ruler plane is copied **bit for bit**. § 3b's negative control
+   transplants exactly: tinting the monochrome image gives the stain and the
+   field the same hue to 1e-12, where the per-wavelength path puts the dye 0.05
+   off § 3a's own white. Three findings came out of the traced half. The
+   doublet's **axial colour is recovered from the wavefront the sum is formed
+   with** — refocusing to each λ's paraxial plane removes exactly the predicted
+   defocus, to 8%, with a systematic excess that *shrinks* with λ (6.6% → 2.9%)
+   and is therefore spherochromatism rather than a scale error, and with the
+   achromat's crossing and its sign flip both surviving. The **blue plane is the
+   worst-resolved by 2.56× where λ alone gives 1.22**, so a polychromatic stack's
+   `pupilSamples` is set by the blue end and `brightfieldFidelity` rules
+   `no-honest-image` there at 32 bins while 550 and 650 nm pass. And **lateral
+   colour arrives free** — the per-λ frames are concentric and everything inside
+   them is traced at its own wavelength — exactly zero on axis and linear in
+   field to under 1%. **Open:** a polychromatic *mosaic* (the useful span is ∝ λ,
+   so § 6o's pitch and guard band would need one reference λ), a singlet-versus-
+   achromat objective contest (there is no singlet finite-conjugate objective —
+   `achromaticObjective`'s split divides by V₁ − V₂), per-λ grating contrast as a
+   readout, and a rung pinning a real lamp's white and a published stain's
+   transmittance.
    § 6l — depth-dependent spherical aberration — is unchanged and independent of
    all of them, and is now a numbered gap in the ladder rather than a plan.
 7. **Teaching layer + polish**

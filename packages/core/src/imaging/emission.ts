@@ -4,7 +4,7 @@ import {
   VISIBLE_MIN_NM,
   type SpectralSamplingOptions,
 } from "../photometry/spectrum";
-import { resampleGrid } from "../wave/polychromatic";
+import { resampleEnergyGrid } from "../wave/polychromatic";
 import { fftShift2d } from "../math/fft";
 import type { WavelengthSample } from "../trace/system";
 import type { OpticalSystem } from "../trace/system";
@@ -208,7 +208,7 @@ export function emissionKernel(
   for (const { sample, kernel } of built) {
     const w = sample.weight / total;
     // `incoherentPsf` hands back DC-at-index-0 so a convolution is a plain
-    // multiply, and `resampleGrid` scales about the grid's CENTRE. Resampling
+    // multiply, and `resampleEnergyGrid` scales about the grid's CENTRE. Resampling
     // the unshifted array would rescale a kernel wrapped into the four corners —
     // which is not a subtle error (it moved the peak by 60% and threw away 74%
     // of the light) but is completely invisible to a "does it still sum to 1"
@@ -217,7 +217,7 @@ export function emissionKernel(
     const centred = Float64Array.from(kernel.values);
     fftShift2d(centred, size);
     // A component already on the common grid is left alone. That is not an
-    // optimization — `resampleGrid` drops destinations sourced from the last row
+    // optimization — `resampleEnergyGrid` drops destinations sourced from the last row
     // and column, so passing an exactly-matching grid through it would lose
     // 2.6e-4 of the light and, after renormalization, move the peak by the same
     // amount. A one-line band must be the monochromatic kernel EXACTLY, or every
@@ -230,7 +230,7 @@ export function emissionKernel(
     const resampled =
       Math.abs(kernel.pixelScaleMm! - targetPixelScaleMm) <= 1e-12 * targetPixelScaleMm
         ? centred
-        : resampleGrid(centred, size, kernel.pixelScaleMm!, targetPixelScaleMm, size);
+        : resampleEnergyGrid(centred, size, kernel.pixelScaleMm!, targetPixelScaleMm, size);
     let kept = 0;
     for (let i = 0; i < values.length; i++) {
       values[i] = values[i]! + w * resampled[i]!;
