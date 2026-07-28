@@ -204,9 +204,11 @@
    step names. A DIN objective is not an infinity objective used differently, it
    is a **re-solved lens** — which needed the position factor, a finite object
    conjugate, that § 5j's `analysis/seidel` had explicitly refused (§ 6b.0).
-   **Open here:** composing an eyepiece onto the intermediate image; and the 4×
+   **Open here:** the 4×
    sitting at f/4.1 — the edge of the cemented-doublet form, and the second piece
-   of evidence for the Lister follow-on.
+   of evidence for the Lister follow-on. *Composing an eyepiece onto the
+   intermediate image was the other open item and is now closed by § 6q, which
+   runs on this architecture and the infinity-corrected one alike.*
    *The coverslip — `160/0.17`:* ✅ `designs/coverslip` (§ 6c), and with it the
    first of this step's named deliverables, **coverslip mismatch**. The plate is
    the strongest external pin in the ladder: its aberration is solvable **to all
@@ -582,9 +584,38 @@
    § 6n's warped rasterizer (1 001 ms against 180 ms at grid 128, 292 against 61 at
    grid 64), which is the radial map cache § 6n deferred *to* § 6p and § 6p spent
    on pupils instead. It is now the branch's dominant per-tile cost and its named
-   next optimisation. Then the **eyepiece on the intermediate
-   image** (§ 6q) — a genuinely different solve from `afocalTelescope`'s, which
-   reads its spacing off a ray entering collimated; and **polychromatic
+   next optimisation.
+   *The eyepiece on the intermediate image:* ✅ `designs/visual-microscope` (§ 6q),
+   and with it **§ 6b's own open item** — the branch's chain no longer ends at an
+   image, it ends at an eye. The blocker was one line of `afocalTelescope`: its gap
+   is solved from a ray entering *collimated*, and a microscope eyepiece collimates
+   a real intermediate image formed a finite distance away, so the ray that must
+   leave flat starts at the **specimen**. `collimatingGap` is that solve, affine in
+   the gap and therefore exact rather than iterative. **The negative control is the
+   step's justification, in the currency that decides it:** the telescope's own gap
+   on the same two modules leaves **70.5 diopters** of vergence — 280× the quarter
+   diopter an observer notices — against 1e-11 for the solved one. Three findings
+   came out of it. The **sign was wrong first**, and what caught it was a degenerate
+   case with a known answer rather than algebra: a single positive lens is a
+   magnifier and reads +D/f erect, on which definition the compound instrument reads
+   −40. The **Lagrange invariant takes the tangent NA, not the sine one** — the
+   engine's two object NAs are exactly n·tan u and n·sin u, ratio sec u to f64 — so
+   the textbook exit pupil = 500·NA/M is right to 2e-6 on a 4×/0.10 and **wrong by
+   61% on the 100×/1.40 oil**, where the paraxial figure is 3.55, larger than the
+   oil's own index, because it is a slope and not an aperture. And **empty
+   magnification is an invariance rather than a rule**: above § 5p's two-stop
+   crossover the ratio of what the objective delivers to what the eye can carry is
+   flat to 1e-6 across a 4× sweep of M — the M cancels identically — while below it
+   the ratio is exactly ∝ M; 500·NA and 1000·NA fall out of two stated pupil
+   conventions with the digits appearing nowhere, and λ cancels entirely. The field
+   number is spliced in as a **real** annular stop, so a field beyond it vignettes
+   in the trace. **Open:** the retinal PSF itself, the eyepiece's own aberrations at
+   this conjugate, colour, and the exit pupil off axis. § 5j's doublet form also
+   walls out again — a computed Plössl admits ~0.88·f_e of clear aperture, so FN 20
+   sits at the edge and a genuinely wide field needs the transcribed patent members
+   rather than a wider aperture on this form. That is the fourth wall of its kind,
+   after § 6b's f/4.1, § 6d's NA 0.343 and § 6e.4's NA 1.411.
+   What is left in this step is **polychromatic
    brightfield** (§ 6r), which is what makes a stained section look stained.
    § 6l — depth-dependent spherical aberration — is unchanged and independent of
    all of them, and is now a numbered gap in the ladder rather than a plan.

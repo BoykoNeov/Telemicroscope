@@ -83,6 +83,61 @@ export function collimatingObjectDistance(p: Prescription, wavelengthNm: number)
   return -b / a;
 }
 
+/**
+ * The separation that makes a two-module chain afocal for an object at a
+ * **finite** distance — the microscope's counterpart to `afocalTelescope`'s gap
+ * solve, and the capability § 6q exists for.
+ *
+ * `afocalTelescope` solves its gap from a ray entering **collimated**: an object
+ * at infinity, which is what a telescope objective sees and what a microscope
+ * eyepiece never does. A microscope eyepiece collimates a real *intermediate
+ * image* formed a finite distance in front of it, so the ray that has to leave
+ * flat is the one from the specimen, and the gap that flattens it is a different
+ * number. Using the telescope's gap on a microscope leaves the exit beam
+ * diverging by tens of diopters (§ 6q.3) — far past anything an eye
+ * accommodates — which is why this is an engine step and not a call-site
+ * argument.
+ *
+ * Affine for the same reason the telescope's solve is: the free transfer across
+ * g is the only place g enters the output slope, so u_out(g) = p + q·g and two
+ * evaluations pin the line. Exact, not iterative.
+ *
+ * @param front the image-forming chain, authored object-side first. Its own
+ * trailing thickness is overwritten by the solved gap, so whatever BFD it
+ * carries standalone is irrelevant here.
+ * @param back the collimating group (the eyepiece), field-side first.
+ * @param objectDistanceMm the axial object, in front of `front`'s surface 0.
+ */
+export function collimatingGap(
+  front: Prescription,
+  back: Prescription,
+  objectDistanceMm: number,
+  wavelengthNm: number,
+): number {
+  const build = (g: number): Prescription =>
+    spliceModules(
+      [
+        { surfaces: front.surfaces, gapAfterMm: g },
+        { surfaces: back.surfaces, gapAfterMm: 0 },
+      ],
+      front.objectMedium ?? "AIR",
+    );
+  const uOut = (g: number): number =>
+    paraxialTrace(build(g), wavelengthNm, { y: objectDistanceMm, u: 1 }).u;
+  const p = uOut(0);
+  const q = uOut(1) - p;
+  if (!(Math.abs(q) > 0)) {
+    throw new Error("collimatingGap: the second module has no power — no gap collimates the exit");
+  }
+  const gapMm = -p / q;
+  if (!(gapMm > 0)) {
+    throw new Error(
+      `collimatingGap: the collimating separation is non-physical (${gapMm.toFixed(3)} mm) — is the object inside the front group's focus?`,
+    );
+  }
+  return gapMm;
+}
+
 export interface AfocalTelescopeSpec {
   /** The objective (refracting), authored standalone; it carries the aperture stop. */
   readonly objective: Prescription;

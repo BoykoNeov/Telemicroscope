@@ -1,7 +1,8 @@
-import { Prescription } from "../trace/prescription";
+import { Prescription, vertexPositions } from "../trace/prescription";
 import { OpticalSystem } from "../trace/system";
 import { afocalTelescope, spliceModules } from "../trace/compose";
 import { reducedEye, ReducedEye, ReducedEyeSpec } from "../designs/eye";
+import { VisualMicroscope } from "../designs/visual-microscope";
 import { afocalProperties } from "./afocal";
 import { pupils } from "./pupils";
 import { limitingStop } from "./aperture-stop";
@@ -114,6 +115,128 @@ export function visualSystem(spec: VisualSystemSpec): VisualSystem {
     eyeReliefMm: props.eyeReliefMm,
     eyePupilDiameterMm: eye.pupilDiameterMm,
     effectiveApertureMm,
+    irisLimited: stop.index === eyeIrisIndex,
+  };
+}
+
+/**
+ * The microscope's exit pupil and eye relief — `afocalProperties`' counterpart
+ * for a chain that is afocal out of a **finite** object.
+ *
+ * `afocalProperties` cannot serve one: its magnification comes from a `{y: 1,
+ * u: 0}` collimated input, which is not a thing a microscope has, and its
+ * `OpticalSystem` declares `conjugate: infinite`, which is false here. What
+ * survives unchanged is the *pupil* half — the exit pupil is the stop imaged
+ * through everything after it whatever the object does, so `pupils` needs no
+ * microscope-specific anything, and the Ramsden disc every observer puts an eye
+ * at is that image. This is the correction APP.md D6 predicted would not be
+ * needed (§ 6q).
+ */
+export interface MicroscopeVisualProperties {
+  /** Exit-pupil (Ramsden disc) semi-diameter (mm), by pupil imaging. */
+  readonly exitPupilRadiusMm: number;
+  /** Where it sits on the axis (mm) — where the observer's iris belongs. */
+  readonly exitPupilZ: number;
+  /** Eye-lens vertex → exit pupil (mm). */
+  readonly eyeReliefMm: number;
+}
+
+export function microscopeVisualProperties(
+  visual: VisualMicroscope,
+  wavelengthNm: number,
+): MicroscopeVisualProperties {
+  const pg = pupils(visual.system, wavelengthNm);
+  const vz = vertexPositions(visual.prescription);
+  return {
+    exitPupilRadiusMm: pg.exit.radius,
+    exitPupilZ: pg.exit.z,
+    eyeReliefMm: pg.exit.z - vz[vz.length - 1]!,
+  };
+}
+
+export interface VisualMicroscopeSystemSpec {
+  /** The instrument, already composed and its eyepiece spacing solved. */
+  readonly visual: VisualMicroscope;
+  /** The observer's eye. */
+  readonly eye: ReducedEyeSpec;
+  readonly wavelengthNm: number;
+}
+
+export interface VisualMicroscopeSystem {
+  /**
+   * (microscope + eyepiece + eye), focal, imaging onto the retina, with
+   * `apertureStop: "limiting"` so the real stop is whichever of the objective
+   * and the iris limits the beam. Feed it to `psf()` for the retinal image.
+   */
+  readonly system: OpticalSystem;
+  readonly eye: ReducedEye;
+  /** The instrument's exit pupil diameter (mm) — the beam offered to the eye. */
+  readonly exitPupilDiameterMm: number;
+  readonly eyeReliefMm: number;
+  readonly eyePupilDiameterMm: number;
+  /**
+   * The pupil that actually carries the beam into the eye (mm): the smaller of
+   * the exit pupil and the iris. The p in `visualDetailRatio`, and the whole
+   * content of empty magnification — past the crossover this is the exit pupil,
+   * which shrinks as fast as the magnification grows.
+   */
+  readonly workingPupilDiameterMm: number;
+  /** True when the eye's iris — not the instrument — limits the beam. */
+  readonly irisLimited: boolean;
+}
+
+/**
+ * Put an observer behind the microscope: § 5q's visual mode on the other
+ * conjugate.
+ *
+ * `visualSystem` does **not** compose here, and the reason is the whole of
+ * § 6q — it calls `afocalTelescope` internally, so it would place the eyepiece
+ * for an object at infinity. Everything downstream of the spacing *does*
+ * compose: `reducedEye` unchanged, the eye's own `isStop` stripped so the
+ * objective stays the sole declared aperture, and § 5p's `limiting` selection
+ * deciding the two-stop competition rather than a rule of thumb. That
+ * competition is what gives empty magnification its crossover (§ 6q.7): while
+ * the iris wins, magnification buys resolution; once the exit pupil wins, it
+ * buys nothing, exactly.
+ */
+export function visualMicroscopeSystem(
+  spec: VisualMicroscopeSystemSpec,
+): VisualMicroscopeSystem {
+  const { visual, wavelengthNm } = spec;
+  const eye = reducedEye(spec.eye);
+  const props = microscopeVisualProperties(visual, wavelengthNm);
+
+  // Same move `visualSystem` makes: the eye's standalone stop flag is dropped so
+  // the objective remains the only DECLARED stop and the iris can only win the
+  // aperture through `limiting` selection.
+  const eyeSurfaces = eye.prescription.surfaces.map(({ isStop, ...s }) => s);
+  const prescription = spliceModules(
+    [
+      { surfaces: visual.prescription.surfaces, gapAfterMm: props.eyeReliefMm },
+      { surfaces: eyeSurfaces, gapAfterMm: eye.axialLengthMm },
+    ],
+    visual.prescription.objectMedium ?? "AIR",
+  );
+
+  const system: OpticalSystem = {
+    prescription,
+    aperture: visual.system.aperture,
+    field: visual.system.field,
+    wavelengths: visual.system.wavelengths,
+    conjugate: { kind: "finite", distance: visual.objectDistanceMm },
+    apertureStop: { kind: "limiting" },
+  };
+
+  const eyeIrisIndex = prescription.surfaces.length - 1;
+  const stop = limitingStop(system, wavelengthNm);
+  const exitPupilDiameterMm = props.exitPupilRadiusMm * 2;
+  return {
+    system,
+    eye,
+    exitPupilDiameterMm,
+    eyeReliefMm: props.eyeReliefMm,
+    eyePupilDiameterMm: eye.pupilDiameterMm,
+    workingPupilDiameterMm: Math.min(exitPupilDiameterMm, eye.pupilDiameterMm),
     irisLimited: stop.index === eyeIrisIndex,
   };
 }

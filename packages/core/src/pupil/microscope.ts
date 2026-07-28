@@ -2,6 +2,7 @@ import { asCompiled } from "../trace/compile";
 import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { traceRay } from "../trace/sequential";
+import { paraxialTrace } from "../trace/paraxial";
 import { getMedium } from "../materials/catalog";
 import { chiefRay, marginalRay } from "./aiming";
 import { imagePlaneZ, pupils } from "./pupils";
@@ -153,4 +154,219 @@ export function abbeResolutionMm(wavelengthNm: number, numericalAperture: number
 export function rayleighResolutionMm(wavelengthNm: number, numericalAperture: number): number {
   if (!(numericalAperture > 0)) throw new Error("rayleighResolutionMm: NA must be positive");
   return (0.61 * wavelengthNm * 1e-6) / numericalAperture;
+}
+
+/**
+ * The object-space NA the **paraxial pupil geometry** implies: n·u, with u the
+ * entrance pupil's semi-diameter over its distance from the specimen.
+ *
+ * The partner to `objectNumericalAperture`, which reads n·**sin** u off the real
+ * marginal ray, and the two are different numbers on purpose. The Lagrange
+ * invariant — the law behind the exit-pupil size (§ 6q.5) — is a statement about
+ * paraxial *slopes*, so it is this one the invariant is exact in; Abbe's sine
+ * condition is a statement about sines, so it is the other one aplanatism is
+ * about. Their ratio is the tangent-versus-sine gap § 6a's header already
+ * names ("a stop of f·NA on the vertex would deliver NA 0.102, not 0.100"), and
+ * at high aperture it is not a rounding error: 2% at NA 0.10 and a factor at
+ * NA 1.40, which is § 6q.5's finding.
+ */
+export function paraxialObjectNumericalAperture(
+  system: OpticalSystem,
+  wavelengthNm: number,
+): number {
+  if (system.conjugate.kind !== "finite") {
+    throw new Error("paraxialObjectNumericalAperture: needs a finite conjugate");
+  }
+  const pupil = pupils(system, wavelengthNm);
+  const n = getMedium(system.prescription.objectMedium ?? "AIR").n(wavelengthNm);
+  const arm = pupil.entrance.z + system.conjugate.distance;
+  if (!(Math.abs(arm) > 0)) {
+    throw new Error("paraxialObjectNumericalAperture: the entrance pupil lies on the specimen");
+  }
+  return (n * pupil.entrance.radius) / arm;
+}
+
+/**
+ * **Visual** magnification: how much bigger the specimen looks through the
+ * instrument than it would held at the near point, from the **traced chief
+ * ray's** exit angle.
+ *
+ * A microscope with an eyepiece has no image to measure — the exit beam is
+ * collimated — so its magnification is angular, not lateral, and
+ * `lateralMagnification` cannot express it. What is measured instead is the
+ * angle the chief ray leaves at, against the angle the same object height would
+ * subtend at the near point:
+ *
+ *     M_visual = −θ_out / (h / D)
+ *
+ * **The minus is a convention and it is load-bearing**, so it is stated rather
+ * than absorbed: a bundle *arriving* at the eye with slope θ came from a source
+ * the observer must look toward at angular position −θ, and an object of height
+ * h held at the near point sits at +h/D. Comparing the two apparent positions is
+ * what "how much bigger does it look" means, and the sign that falls out is the
+ * one every instrument agrees with — a simple magnifier reads **+D/f** (erect,
+ * § 6q.4's control) and a compound microscope reads negative (inverted), which
+ * is § 5l's Keplerian sign arriving on the other conjugate.
+ *
+ * This is a **real** ray's answer, taken at a stated object height like § 5n's
+ * `apparentFieldAngleRad`, so it carries the distortion a paraxial route drops —
+ * which is what makes M_obj·(D/f_e) a rung (§ 6q.4) rather than a definition.
+ *
+ * @param nearPointMm the convention the magnification is quoted against; the
+ * answer is a ratio against whatever is passed in (`NEAR_POINT_MM` is 250).
+ */
+export function visualMagnification(
+  system: OpticalSystem,
+  objectHeightMm: number,
+  wavelengthNm: number,
+  nearPointMm: number,
+): number {
+  if (system.conjugate.kind !== "finite") {
+    throw new Error("visualMagnification: needs a finite conjugate");
+  }
+  if (!(Math.abs(objectHeightMm) > 0)) {
+    throw new Error("visualMagnification: needs a non-zero object height");
+  }
+  if (!(nearPointMm > 0)) throw new Error("visualMagnification: the near point must be positive");
+  const pupil = pupils(system, wavelengthNm);
+  const cr = chiefRay(system, pupil, objectHeightMm, wavelengthNm);
+  const traced = traceRay(system.prescription, cr);
+  if (traced.status !== "ok" || !traced.ray) {
+    throw new Error(
+      `visualMagnification: chief ray ${traced.status} at ${objectHeightMm} mm — object height beyond the field stop?`,
+    );
+  }
+  const d = traced.ray.dir;
+  const thetaOut = Math.atan2(d.x, d.z);
+  return -thetaOut / (objectHeightMm / nearPointMm);
+}
+
+/**
+ * The vergence (diopters) the exit beam leaves with — zero when the instrument
+ * is collimated for a relaxed eye, and the currency the § 6q.3 negative control
+ * is measured in.
+ *
+ * A residual output slope is meaningless on its own ("1e-3 of what?"). What
+ * decides whether it matters is the accommodation it demands of the observer:
+ * an axial ray leaving at height y and slope u converges at L = −y/u mm, and
+ * 1000/L is the diopters the eye must add. A quarter of a diopter is the usual
+ * threshold of noticing; a relaxed eye can supply none at all.
+ */
+export function exitVergenceDiopters(
+  system: OpticalSystem,
+  wavelengthNm: number,
+  marginalHeightMm: number,
+): number {
+  if (system.conjugate.kind !== "finite") {
+    throw new Error("exitVergenceDiopters: needs a finite conjugate");
+  }
+  if (!(Math.abs(marginalHeightMm) > 0)) {
+    throw new Error("exitVergenceDiopters: needs a non-zero probe height");
+  }
+  // A paraxial ray from the axial specimen point reaching surface 0 at the stop
+  // rim: height IS that rim, slope is the rim over the object distance.
+  const r = paraxialTrace(system.prescription, wavelengthNm, {
+    y: marginalHeightMm,
+    u: marginalHeightMm / system.conjugate.distance,
+  });
+  if (!(Math.abs(r.y) > 0)) return Infinity;
+  // L = −y/u is where it crosses the axis, in mm; 1000/L converts to diopters.
+  return (-1000 * r.u) / r.y;
+}
+
+/**
+ * The exit pupil the **Lagrange invariant** predicts: r = D·NA/|M_visual|.
+ *
+ * The microscope's counterpart to § 5l's exit pupil = EPD/|M|, and the same kind
+ * of statement — a conservation law, not a fit. With the chief ray crossing the
+ * axis at the exit pupil and the marginal ray at the object, H = h·NA on the
+ * object side and −r_xp·θ_out on the exit side, so h·NA = −r_xp·θ_out; dividing
+ * by the visual magnification's own definition θ_out = M·h/D leaves
+ *
+ *     r_xp = D·NA / |M_visual|
+ *
+ * — the textbook "exit pupil = 500·NA/M mm" with the 500 shown to be 2·250 and
+ * nothing else. It is a **paraxial** invariant, so the NA it holds for is
+ * `paraxialObjectNumericalAperture`'s; feeding it the traced sine NA is how
+ * § 6q.5 measures what the sine-versus-tangent gap is worth.
+ */
+export function lagrangeExitPupilRadiusMm(
+  numericalAperture: number,
+  nearPointMm: number,
+  visualMagnification: number,
+): number {
+  if (!(Math.abs(visualMagnification) > 0)) {
+    throw new Error("lagrangeExitPupilRadiusMm: needs a non-zero magnification");
+  }
+  return (nearPointMm * numericalAperture) / Math.abs(visualMagnification);
+}
+
+/**
+ * **Empty magnification, as a ratio rather than as a rule.** The finest detail
+ * the objective delivers, measured in units of the finest the observer's own
+ * working pupil can carry:
+ *
+ *     ratio = |M_visual| · p / (2 · NA · D)
+ *
+ * where p is whichever pupil actually limits the beam entering the eye — the
+ * instrument's exit pupil, or the iris when the iris is narrower (§ 5p's
+ * two-stop competition, which is what gives this its crossover).
+ *
+ * Below 1 the eye is the bottleneck and more magnification buys real resolution.
+ * At 1 the two limits meet. **Above the crossover the ratio does not move at
+ * all** — because there p *is* the exit pupil, which is D·NA/|M| by the Lagrange
+ * invariant above, and the M cancels identically. That exact independence is
+ * what "the image gets bigger without getting better" means, and it is a
+ * stronger statement than the 500·NA–1000·NA rule it explains: magnification
+ * past the crossover cannot change whether the eye resolves what the objective
+ * transmits, at any M, to f64.
+ *
+ * **λ cancels**, which is worth saying out loud: both limits scale with
+ * wavelength — Abbe's λ/(2·NA) and the eye pupil's λ/p — so where magnification
+ * stops paying is a property of the geometry alone. The convention is Abbe's
+ * period against the pupil's own cutoff period; Rayleigh's criterion would put
+ * the crossover at 1.22 instead of 1, which changes the number and not the
+ * independence.
+ */
+export function visualDetailRatio(
+  visualMagnification: number,
+  numericalAperture: number,
+  nearPointMm: number,
+  workingPupilDiameterMm: number,
+): number {
+  if (!(numericalAperture > 0)) throw new Error("visualDetailRatio: NA must be positive");
+  if (!(nearPointMm > 0)) throw new Error("visualDetailRatio: the near point must be positive");
+  if (!(workingPupilDiameterMm > 0)) {
+    throw new Error("visualDetailRatio: the working pupil must be positive");
+  }
+  return (
+    (Math.abs(visualMagnification) * workingPupilDiameterMm) / (2 * numericalAperture * nearPointMm)
+  );
+}
+
+/**
+ * The magnifications worth using, as the exit pupils they correspond to — the
+ * textbook 500·NA to 1000·NA, produced from the Lagrange invariant and two
+ * stated eye-pupil conventions rather than quoted.
+ *
+ * Invert r_xp = D·NA/|M|: an exit pupil of p millimetres is M = 2·D·NA/p. So the
+ * *largest* useful pupil gives the smallest useful magnification and vice versa,
+ * and with D = 250 the classic pair falls out of p = 1 mm and p = 0.5 mm exactly.
+ * Both conventions are `designs/visual-microscope`'s named constants; the digits
+ * 500 and 1000 appear nowhere in the engine.
+ */
+export function usefulMagnificationRange(
+  numericalAperture: number,
+  nearPointMm: number,
+  minExitPupilMm: number,
+  maxExitPupilMm: number,
+): { readonly min: number; readonly max: number } {
+  if (!(numericalAperture > 0)) throw new Error("usefulMagnificationRange: NA must be positive");
+  if (!(minExitPupilMm > 0) || !(maxExitPupilMm >= minExitPupilMm)) {
+    throw new Error("usefulMagnificationRange: need 0 < minExitPupil ≤ maxExitPupil");
+  }
+  return {
+    min: (2 * nearPointMm * numericalAperture) / maxExitPupilMm,
+    max: (2 * nearPointMm * numericalAperture) / minExitPupilMm,
+  };
 }

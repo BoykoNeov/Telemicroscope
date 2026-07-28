@@ -886,6 +886,13 @@ through an eyepiece, or see anything wider than a detail crop, in colour.
 The priority is the last of those, and it is the one that looked impossible.
 Everything below the first section is ordered behind it.
 
+**Where that stands now.** The slide and the wider field are D1–D5 and are
+walked — A7 is a stage you can pan. The eyepiece is D6 and is walked too, so
+"look through" is an engine capability rather than a wish; what remains unbuilt
+is the *panel* for it. Colour (D7) and building an instrument (D8) are still
+open, so the opening sentence above is no longer a description of the engine —
+only of the app's surfaces, which is what Part D is a queue for.
+
 ### D0. The three feasibility measurements this part rests on
 
 Same status as § 2's timings and stated the same way: **single runs under vitest,
@@ -1333,7 +1340,59 @@ worth asking rather than ticking:
 `pupilSamples` the tile is already rendered at — i.e. `latticeMatchedSource`,
 which is now affordable rather than theoretical.
 
-### D6. § 6q — the eyepiece on the intermediate image — *engine step*
+### D6. § 6q — the eyepiece on the intermediate image — *engine step* — ✅ **done**
+
+**Landed as `designs/visual-microscope` + `trace/compose`'s `collimatingGap` +
+the visual readouts in `pupil/microscope` and `pupil/visual`, with 24 rungs in
+VALIDATION.md § 6q.** Everything this section asked for is pinned: the total
+magnification against a stated near point, the exit pupil, the two-stop collapse,
+empty magnification, the field number and eye relief.
+
+**This section's own prediction was wrong, and it is the sixth time in the same
+direction.** It said `visualSystem` and `afocalProperties` "compose unchanged".
+Neither does. `visualSystem` calls `afocalTelescope` *internally*, so it commits
+the exact error this step exists to fix — it would place the eyepiece for an
+object at infinity — and `afocalProperties` reads its magnification off a
+`{y: 1, u: 0}` collimated input, a quantity a finite-conjugate chain does not
+have. `visualMicroscopeSystem` and `microscopeVisualProperties` are the
+replacements, and they are short because the *pupil* half genuinely does survive:
+an exit pupil is the stop imaged through whatever follows it, whatever the object
+is doing. `plosslEyepiece`, `huygensEyepiece`, `reducedEye` and
+`apertureStop: "limiting"` all did compose unchanged.
+
+**Three things this section did not anticipate:**
+
+1. **The negative control has a number, and it is decisive.** The telescope's own
+   gap on the same two modules leaves **70.5 diopters** of vergence against
+   1e-11 for the solved one — 280× the quarter diopter an observer notices. The
+   step's existence is justified numerically rather than by argument.
+2. **The sign was wrong first**, and algebra did not catch it — a degenerate case
+   with a known answer did. A single positive lens with the object on its front
+   focus is a magnifier, and a magnifier is erect at +D/f; on the corrected
+   definition it reads +5.00 and the compound instrument reads −40. The loupe is
+   kept as a control rather than deleted once it passed.
+3. **The textbook exit-pupil formula is wrong at high NA.** `exit pupil =
+   500·NA/M` is the Lagrange invariant, which is a law about paraxial *slopes*;
+   the engine's two object NAs are exactly n·tan u and n·sin u (ratio sec u, to
+   f64). Fed the tangent one the law is exact; fed the engraved sine NA it misses
+   by 0.50% at NA 0.10 and by **61% at NA 1.40**. Any panel printing an exit
+   pupil for an oil objective has to pick, and this is which.
+
+**What it buys A7, and what it costs:** the circular field stop is a *real*
+annular surface at the intermediate image, so a field beyond it vignettes in the
+trace rather than being checked for — the specimen circle is FN/M_obj, 5 mm on a
+4× with FN 20, which is the number A7 already prints its own span against.
+Composition is first-order work only (one affine solve, no FFTs), so a build is
+microseconds and it can sit under a live control.
+
+**One thing a builder has to handle:** § 5j's doublet form walls out again. A
+computed Plössl admits a clear aperture of about **0.88·f_e** — 22 mm at
+f_e = 25, refusing 24 — so FN 20 sits at the edge of what the form can hold, and
+a genuinely wide field is the transcribed patent members (still blocked on real
+published prescription data), not a wider aperture on this one. A field-number
+control must expect the engine's refusal, exactly as A1 established.
+
+The original scope follows, unchanged.
 
 `afocalTelescope` solves its group spacing from a ray entering **collimated** —
 an object at infinity. A microscope eyepiece collimates from a *finite*
@@ -1420,10 +1479,18 @@ rows into the whole design space.
 walked**: the off-axis frame, the rasterizer that registers it, the mosaic that
 bounds its error and the stage that draws it have all **landed**. **D5** landed
 alongside and makes it fast — though *only* fast: § 6p measured down § 6o's belief
-that it would also lower the mosaic's error floor. What is left in Part D is
-**D6**, an eyepiece on it, and **D7**, colour; **D8** is still independent and
-still the cheapest breadth in the doc. A6 and Part B are untouched by all of this
-and can go at any point.
+that it would also lower the mosaic's error floor. **~~D6~~ has since landed**
+too, so the instrument now ends at an eye rather than at an image. What is left
+in Part D is **D7**, colour; **D8** is still independent and still the cheapest
+breadth in the doc. A6 and Part B are untouched by all of this and can go at any
+point.
+
+**The one engine number that changed the queue:** D4 found the *rasterizer*, not
+the Abbe sum, is what a traced tile costs (see D0.1's correction), so § 6n's
+deferred radial-map cache is now the branch's dominant per-tile cost and its named
+next optimisation. It is not in Part D's list because Part D is about what the app
+cannot yet *show*; it belongs next to D7 in any queue about what the app can show
+*quickly*.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a

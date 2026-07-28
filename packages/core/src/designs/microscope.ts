@@ -334,7 +334,29 @@ export interface InfinityCorrectedSpec {
   readonly wavelengths?: readonly { readonly nm: number; readonly weight: number }[];
 }
 
-export interface InfinityCorrectedMicroscope {
+/**
+ * What forms an intermediate image, and nothing more — the contract § 6q's
+ * eyepiece composes onto, written down for the same reason
+ * `InfinityCorrectedObjective` is: the two architectures step 6 names are
+ * *different instruments*, and an eyepiece that only fits one of them would be
+ * an eyepiece for the infinity-corrected branch rather than for a microscope.
+ *
+ * Both members below satisfy it already; declaring it makes that a promise
+ * rather than a coincidence of field names.
+ */
+export interface ImageFormingMicroscope {
+  readonly system: OpticalSystem;
+  /** The flat chain from the specimen to the intermediate image. */
+  readonly prescription: Prescription;
+  /** What the labels claim, unsigned. */
+  readonly nominalMagnification: number;
+  /** Specimen plane, in front of surface 0's vertex (mm). */
+  readonly objectDistanceMm: number;
+  /** Last vertex → intermediate image (mm), from the paraxial trace. */
+  readonly imageDistanceMm: number;
+}
+
+export interface InfinityCorrectedMicroscope extends ImageFormingMicroscope {
   readonly system: OpticalSystem;
   /** The flat composed chain: objective, infinity space, tube lens. */
   readonly prescription: Prescription;
@@ -948,7 +970,7 @@ export interface FiniteConjugateSpec {
   readonly wavelengths?: readonly { readonly nm: number; readonly weight: number }[];
 }
 
-export interface FiniteConjugateMicroscope {
+export interface FiniteConjugateMicroscope extends ImageFormingMicroscope {
   readonly system: OpticalSystem;
   /** The objective alone — a DIN microscope has no tube lens, by definition. */
   readonly prescription: Prescription;

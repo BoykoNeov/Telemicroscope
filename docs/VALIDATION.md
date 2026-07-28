@@ -62,6 +62,8 @@ whole ladder.
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image at last, each cropped to its useful span — and the guard band that crop needs measured against a CLOSED FORM: under a coherent source the error falls as guard^(−1/2), the tail integral ∫\|h\|² of the Airy amplitude, reached from above at −0.334, −0.435, −0.533; a filled condenser beating that limit by a factor that DOUBLES with the guard (22.9, 42.0, 84.8), so the guard does depend on the coherence and D0.2's "S-independent" reading is corrected; the finding that D0.2's ~4e-3 plateau is the CONDENSER'S OWN QUADRATURE and not h's tail — the same guard, specimen and lattice at 749 source points instead of 97 falls 7.1×, and the flat guard^(−0.3) tail flattens only at the coarse sampling; the same 749 points shown NOT converged at S = 1, where `diskSource` spaces them 4× wider; a guard refused rather than rounded when it is not whole pixels; the pitch shown to be a hundredth of a pixel from the abutment fixed point across 17 tiles, so the solve is skipped and said so; the seam itself, on a traced 4×/0.10, falling 23× from 1.8e-2 to 7.8e-4 and stopping being a seam at all; and — for a mosaic that PANS — a tile rendered alone shown to be the tile the mosaic composes **bit for bit**, indexed from the anchor rather than from the viewport, with the alternative measured at 3.4e-3 px of ruler drift but **16.0 px** of lattice offset a third of a tile off centre | `mosaic` |
 | [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so every direction reads one grid and a traced pupil is evaluated once instead of once per direction — cached ≡ uncached **bit for bit**, with the dyadic precondition that makes that provable refused rather than tolerated, and the saving pinned as an exact integer (`contributingPoints`) instead of a wall clock; the construct shown to BE `diskSource`'s lattice, bitwise, with the single 5.6e-17 gap located at the one division `gridCoordinate` cannot represent; a source declaring a lattice it is not on refused; and two corrections — **commensurability is accuracy-neutral**, so § 6o's and D5's "it also lowers the mosaic's error floor" is wrong (812 commensurate points reproduce the plateau; 3 228 un-flatten it), and D0.3's "commensurate *and* coarse" premise does not survive § 6f.2, so the knob is `pupilSamples` and not `stepMultiple` | `commensurate` |
 
+| [6q](#step-6q--the-eyepiece-on-the-intermediate-image) | The eyepiece placed at last — `afocalTelescope`'s gap solved from a collimated input shown to leave **70.5 diopters** of vergence on a microscope, 280× a quarter diopter, which is why the finite-object solve is an engine step; the gap pinned against imageDistance + FFD_e as a check; the visual magnification taken off the REAL chief ray, with its SIGN caught by a magnifier's known +D/f and the near point kept a stated convention; the two object NAs shown to be exactly tan u and sin u, ratio sec u to f64 — so the Lagrange exit pupil D·NA/\|M\| holds with the tangent one and the textbook 500·NA/M **misses by 61% at NA 1.40**; empty magnification restated as an invariance, the detail ratio flat to 1e-6 above the two-stop crossover and exactly ∝ M below it, with λ cancelling and 500·NA/1000·NA falling out of two pupil conventions; and the field number spliced in as a REAL stop that vignettes at FN/(2·M_obj) | `visual-microscope` |
+
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
 to. Individual steps also carry their own "Not yet pinned" notes.
@@ -5746,6 +5748,201 @@ errors cancel by different amounts at different counts.
   in a currency a test can hold.
 - **One objective**, still — the traced numbers are the DIN 4×/0.10's.
 
+## Step 6q — the eyepiece on the intermediate image
+
+The step that makes the branch's chain something you can **look through**. Every
+microscope rung before this one ends at an image — a sensor, a grid, a mosaic
+tile — and APP.md's Part D named the missing piece precisely: an eyepiece, and
+the reason one could not simply be composed.
+
+The reason is one line of `afocalTelescope`. Its objective↔eyepiece separation is
+solved from a ray entering **collimated**, `{y: 1, u: 0}` — an object at
+infinity. That is what a telescope objective sees. A microscope eyepiece
+collimates a real *intermediate image* formed a finite distance in front of it,
+so the ray that has to leave flat starts at the **specimen**, and the separation
+that flattens it is a different number. `collimatingGap` is that solve, and it is
+affine for the same reason the telescope's is: the free transfer across g is the
+only place g enters the output slope, so two evaluations pin the line and its
+zero is exact rather than iterative.
+
+Everything else here is a closed form the composed trace can refuse.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The composed exit is collimated for the SPECIMEN** — vergence < 1e-8 D, all three instruments | the afocal condition | ✅ |
+| **Solved gap = intermediate image distance + the eyepiece's own FFD**, to 1e-12 relative | closed form, as a check | ✅ |
+| The eyepiece's FFD is 27% short of its focal length — the solve is thick-correct | thick-group first order | ✅ |
+| A powerless / negative second module is refused rather than solved | negative control | ✅ |
+| **`afocalTelescope`'s gap on the same pair leaves 70.5 D of vergence** — 280× a quarter diopter | the step's own reason | ✅ |
+| **M_visual = M_obj·(D/f_e)** from the REAL chief ray, both architectures | angular magnification | ✅ |
+| **The sign, pinned by a magnifier**: one positive lens reads +D/f (erect); the compound instrument is negative | textbook orientation | ✅ |
+| M is exactly ∝ the near point D — the convention carries no ray | dimensional, by construction | ✅ |
+| M grows 20% toward the field edge and converges cubically as h → 0 | § 5n distortion, this conjugate | ✅ |
+| **The two object NAs are exactly tan u and sin u**: their ratio is sec u to f64, at two apertures | closed form | ✅ |
+| **Exit pupil = D·NA/\|M\| with the PARAXIAL NA** — 1e-5 at NA 0.10, 1e-7 at NA 1.40 | Lagrange invariant | ✅ |
+| ...and with the SINE NA it misses by exactly √(1−NA²) − 1 at NA 0.10 | closed form | ✅ |
+| **...and by 61% at NA 1.40** — the textbook 500·NA/M is wrong by a factor of 2.5 there | measured departure | ✅ |
+| Eye relief = exit pupil − eye-lens vertex, and it shortens with f_e | pupil imaging | ✅ |
+| **`limiting` selection flips exactly where the exit pupil crosses the iris** (bracketed f_e 40/39) | § 5p, on this conjugate | ✅ |
+| **Above the crossover the detail ratio does not move with M** — flat to 1e-6 over a 4× sweep | Lagrange, M cancelling | ✅ |
+| Below it the ratio is exactly ∝ M — ratio/M constant to f64 | the iris fixed, M carried | ✅ |
+| λ cancels out of the ratio entirely | both limits ∝ λ | ✅ |
+| **500·NA and 1000·NA fall out of two exit-pupil conventions** — the digits appear nowhere | inverted Lagrange | ✅ |
+| **The field number is a REAL stop**: h = 2.49 mm traces, h = 2.51 vignettes, bracketing FN/(2·M_obj) | the tracer's own rim | ✅ |
+| Specimen circle = FN/M_obj — 5 mm at 4×, 2 mm at 10× | field-stop conjugacy | ✅ |
+| The field stop disturbs neither the gap, the magnification nor the exit pupil | it limits field, not aperture | ✅ |
+| Exactly one aperture stop survives the splice, on surface 0; a second is refused | § 6a/§ 5q's own scars | ✅ |
+| The computed Plössl's clear aperture walls out at ~0.88·f_e | § 5j's doublet form | ✅ |
+
+### The near point is a convention, and it is the third one
+
+250 mm joins § 6a's 200/180/165 tube-lens focal lengths and § 6b's 160/150 tube
+lengths as a number that is **stated and not computed with silently**. It is a
+claim about human eyes, not about optics; it is quoted as 250 mm and as 10
+inches (254 mm) by different sources; and every magnification here is a *ratio*
+against whichever value is passed in. The rung is that M is exactly proportional
+to D — so the digits move the label and no ray.
+
+The **field number** is the second convention and it is a different kind: it is a
+property of a particular eyepiece, engraved on its barrel, and it is what
+actually sets the visible circle. This step does not print it — it splices a real
+annular surface at the intermediate image, so a field beyond it is clipped by the
+tracer. The specimen circle is FN/M_obj, which is why a 4× with FN 20 shows 5 mm
+and no arrangement of the optics widens it.
+
+### The sign was wrong, and a magnifier is what caught it
+
+The first implementation read M = θ_out/(h/D) and returned **+40** for a compound
+microscope, which is upside down — the image is inverted. The convention that was
+missing is that a bundle *arriving* at the eye with slope θ came from a source
+the observer must look toward at angular position −θ, while an object held at the
+near point sits at +h/D.
+
+What settled it was not the algebra but a **degenerate case with a known
+answer**: a single positive lens with the object on its front focus is a
+magnifier, and everyone knows a magnifier is erect at +D/f. On the corrected
+definition it reads +5.00 at f = 50 mm and the microscope reads −40, which is
+§ 5l's Keplerian sign arriving on the other conjugate. The rung is kept as a
+control rather than deleted once it passed.
+
+### Which numerical aperture the Lagrange invariant takes
+
+The step's sharpest finding, and the § 6h move repeated: pin the law that holds,
+then **measure what the plausible alternative costs** where it stops being a
+rounding error.
+
+The exit pupil obeys h·NA = −r_xp·θ_out — the Lagrange invariant, with the chief
+ray crossing the axis at the exit pupil and the marginal ray at the object.
+Dividing by the visual magnification's own definition gives
+
+    r_xp = D · NA / |M_visual|
+
+which is the textbook "exit pupil = 500·NA/M mm" with the 500 shown to be 2·250
+and nothing else. **But it is a statement about paraxial slopes**, and the engine
+carries two different object NAs:
+
+- `objectNumericalAperture` — n·**sin** u, from the real marginal ray as it
+  leaves the specimen. The defining number of a microscope, the one on the
+  engraving, and the one Abbe's sine condition is about.
+- `paraxialObjectNumericalAperture` — n·u from the entrance pupil's own geometry.
+  With the stop on surface 0 and nothing between it and the specimen the marginal
+  ray is a straight line, so this is exactly n·**tan** u.
+
+Their ratio is therefore exactly **sec u = 1/√(1−NA²)**, and that is pinned to
+f64 at NA 0.10 and NA 0.15. The invariant holds with the tangent one (1e-5 at
+NA 0.10, 1e-7 at NA 1.40, both being the real chief ray's own departure from
+paraxial) and the sine one misses by exactly √(1−NA²) − 1 = −0.50% at NA 0.10.
+
+**At NA 1.40 that gap is not a correction, it is the answer.** On the 100×/1.40
+oil the paraxial figure is **3.55** — larger than the immersion oil's own index,
+so it is not a physically realizable aperture at all; it is a slope, and Lagrange
+is a law about slopes. Feeding the law the sine NA instead misses the traced exit
+pupil by **61%**, a factor of 2.5. So the formula every microscopy text prints is
+exact on a 4×/0.10 to two parts in a million and wrong by a factor on an oil
+immersion objective, and this step measures which.
+
+### Empty magnification, stated rather than quoted
+
+The useful range 500·NA to 1000·NA is a rule of thumb, and reproducing it would
+pin nothing — it is two exit-pupil conventions and an inverted Lagrange
+invariant, which is exactly how `usefulMagnificationRange` produces it (the
+digits 500 and 1000 appear nowhere in the engine). The *content* is the reason
+behind it, and that is a statement the engine can make:
+
+    detail ratio = |M_visual| · p / (2 · NA · D)
+
+— the finest detail the objective delivers, in units of the finest the
+observer's working pupil p can carry, where p is whichever of the exit pupil and
+the iris is narrower. § 5p's two-stop competition decides that, on the trace,
+via `apertureStop: "limiting"`.
+
+**Below the crossover the ratio is exactly proportional to M**: the iris is
+fixed, so magnification buys real resolution (0.398 → 0.995 over M = 10 → 25,
+with ratio/M constant to f64). **Above it the ratio does not move at all** —
+because there p *is* the exit pupil, which is D·NA/|M|, so the M cancels
+identically. Measured flat to 1e-6 across M = 25.6 → 100, and the residual is
+the real chief ray's own departure from paraxial rather than anything physical.
+
+That exact invariance is what "the image gets bigger without getting better"
+means, and it is a stronger claim than the rule it explains: past the crossover,
+magnification **cannot** change whether the eye resolves what the objective
+transmits, at any M. The crossover itself is where the ratio reaches 1 — the
+exit pupil equalling the iris — and `limitingStop` flips there without being
+told to.
+
+**λ cancels**, which is worth saying out loud because it is the one place a
+reader expects a wavelength and there is none: both limits scale with it —
+Abbe's λ/(2·NA) and the pupil's own λ/p — so where magnification stops paying is
+a property of the geometry alone. The convention is Abbe's period against the
+pupil's cutoff period, which puts the crossover at 1; Rayleigh's criterion would
+put it at 1.22 and change nothing about the independence.
+
+### Two predictions this step corrects
+
+**APP.md D6 said `visualSystem` and `afocalProperties` "compose unchanged". They
+do not**, and the doc has now been wrong in the same direction six times.
+`visualSystem` calls `afocalTelescope` internally, so it places the eyepiece for
+an object at infinity — the exact error this step exists to fix — and
+`afocalProperties` reads its magnification off a `{y: 1, u: 0}` collimated input,
+a quantity a finite-conjugate chain does not have. What *does* compose unchanged
+is everything downstream of the spacing: `plosslEyepiece` and `huygensEyepiece`
+(an eyepiece prescription does not know what is in front of it), `reducedEye`,
+and `apertureStop: "limiting"`. The pupil half of `afocalProperties` survives
+too — the exit pupil is the stop imaged through whatever follows it, whatever the
+object does — which is why `microscopeVisualProperties` is short.
+
+**And § 5j's doublet form walls out again, in a new place.** A field number of 20
+needs 20 mm of eyepiece glass, and the computed Plössl admits a clear aperture of
+about **0.88·f_e** — 22 mm at f_e = 25, refusing 24, with each doublet at ~f/2.27.
+So FN 20 sits near the wall rather than comfortably inside it, and a genuinely
+wide field is a different eyepiece *form* — the transcribed patent members
+(Erfle/Nagler-class), still blocked on real published prescription data — not a
+wider aperture on this one. That is the same pattern as § 6b's f/4.1 ceiling,
+§ 6d's NA 0.343 wall and § 6e.4's NA 1.411: **the form stops existing before it
+stops being good.**
+
+### Not yet pinned
+
+- **The retinal image itself.** `visualMicroscopeSystem` composes the eye and
+  hands back a focal system ready for `psf()`, but no rung here forms one — the
+  empty-magnification claim is made on pupils and the Lagrange invariant, which
+  is where it is exact. A retinal PSF sweep showing the diffraction pattern grow
+  in lockstep with the magnification is the natural next rung and is a
+  measurement of § 6q.7 rather than a new capability.
+- **The eyepiece's own aberrations at this conjugate.** § 5m's Plössl was solved
+  and pinned for the telescope's; nothing here re-measures its coma or field
+  curvature working on an intermediate image, and the 20% edge distortion above
+  is reported, not decomposed.
+- **Polychromatic.** One wavelength throughout; lateral colour through the
+  eyepiece is § 5o's Huygens theorem waiting for a caller, and § 6r is the
+  branch's colour step.
+- **Real eye relief ergonomics and the field lens.** Eye relief is read off the
+  pupil imaging and not compared to any spectacle-wearer standard, and no field
+  lens is inserted to shorten it.
+- **The exit pupil off axis.** Everything above is the axial pupil; pupil
+  aberration and the vignetting a real eyepiece shows at the field edge are
+  § 6h's open item, inherited.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
@@ -5760,22 +5957,22 @@ errors cancel by different amounts at different counts.
   verdict that refuses in the meantime.
 - Photometry: star magnitude → photon flux through aperture vs published
   zero points.
-- **§ 6q–§ 6r — the rest of the microscope's field of view, and looking through
-  it.** Named in APP.md's Part D rather than here, because they arrived as the
-  scoping of an app surface and their step numbers are not yet claimed —
+- **§ 6r — polychromatic brightfield**, the last of the Part D line still
+  unclaimed. Named in APP.md's Part D rather than here, because it arrived as the
+  scoping of an app surface —
   [§ 6m](#step-6m--the-off-axis-frame),
   [§ 6n](#step-6n--the-warped-grid-rasterizer),
-  [§ 6o](#step-6o--the-mosaic-and-its-guard-band) and
-  [§ 6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) have since
-  claimed theirs and left this list. What remains: the eyepiece on a *finite*
-  intermediate image (§ 6q — `afocalTelescope` solves from a collimated input and
-  cannot serve it), and polychromatic brightfield (§ 6r). Part D carries the
-  feasibility measurements each would pin, labelled as feasibility figures and
-  **not** as pins, which is the distinction this file exists to keep — and § 6o
-  and § 6p are the steps that show why it matters: § 6o corrected two of the
-  three conclusions D0.2's feasibility table drew, and § 6p corrected D0.3's
-  premise *and* one of § 6o's own conclusions, because a rung pinned to a
-  previous measurement inherits whatever that measurement was really measuring.
+  [§ 6o](#step-6o--the-mosaic-and-its-guard-band),
+  [§ 6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) and
+  [§ 6q](#step-6q--the-eyepiece-on-the-intermediate-image) have since claimed
+  their numbers and left this list. Part D carries the feasibility measurements
+  § 6r would pin, labelled as feasibility figures and **not** as pins, which is
+  the distinction this file exists to keep — and § 6o, § 6p and § 6q are the
+  steps that show why it matters: § 6o corrected two of the three conclusions
+  D0.2's feasibility table drew, § 6p corrected D0.3's premise *and* one of
+  § 6o's own conclusions, and § 6q corrected D6's prediction that `visualSystem`
+  would compose unchanged. A rung pinned to a previous measurement inherits
+  whatever that measurement was really measuring.
 
 ## Rules
 
