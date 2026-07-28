@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
+import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
 import { TelescopePanel } from "./telescope";
 
@@ -55,6 +56,12 @@ export const PANELS: readonly Panel[] = [
     label: "the phase null",
     blurb: "APP.md A3 — a specimen that absorbs nothing, and the term that survives it",
     Component: PhasePanel,
+  },
+  {
+    id: "fluorescence",
+    label: "fluorescence beads",
+    blurb: "APP.md A4 — a specimen that emits, and the cutoff reached with no condenser",
+    Component: FluorescencePanel,
   },
 ];
 

@@ -26,3 +26,9 @@ export const createBrightfieldWorker = () =>
 
 export const createPhaseWorker = () =>
   new Worker(new URL("./phase.worker.ts", import.meta.url), { type: "module" });
+
+export const createFluorescenceWorker = () =>
+  new Worker(new URL("./fluorescence.worker.ts", import.meta.url), { type: "module" });
+
+export const createFluorescenceSweepWorker = () =>
+  new Worker(new URL("./fluorescence.sweep.worker.ts", import.meta.url), { type: "module" });

@@ -16,9 +16,15 @@ physics, that is called out and the surface is disqualified rather than scoped.
 
 ## The baseline: what the app draws today, and its house style
 
-The adapters — `render.ts`, `microscope.ts`, `brightfield.ts`, `phase.ts` — are
-the whole optical pipeline as **pure functions**, numbers in, pixels out, no DOM,
-no React, so running one in a worker was a change of caller and not of code.
+The adapters — `render.ts`, `microscope.ts`, `brightfield.ts`, `phase.ts`,
+`fluorescence.ts` — are the whole optical pipeline as **pure functions**, numbers
+in, pixels out, no DOM, no React, so running one in a worker was a change of
+caller and not of code. A4 stretched "pixels out" and it is worth naming: its
+worker returns the **intensity grid**, and the panel maps it to grey, because the
+display stretch there is a control over the same numbers and re-tracing an
+objective to change a grey scale would be paying an optical cost for a display
+choice. The boundary is unchanged — `toGrey` is still a pure function in the
+adapter — but "the adapter returns RGBA" was a convention rather than the rule.
 Since structural item 1 below, `App.tsx` is a nav row and one panel: each surface
 lives under `src/panels/`, owns its own controls and state, and is routed to by
 hash.
@@ -474,20 +480,125 @@ defocused one at another.
 **Note kept:** this one is *stronger* on ideal pupils than traced ones, because
 the null is exact there. Do not "improve" it by tracing.
 
-### A4. Fluorescence beads — *app wiring only* — **picture**
+### A4. Fluorescence beads ✅ — *app wiring only* — **picture**
 
-The first surface that looks like a microscope photograph rather than a test
-chart. `rasterizeEmitters` places beads through the traced chief ray (distortion
-carried), `renderFluorescence` forms the image. Cheap enough to be live at
-`patches` = 4 and ps = 128 (982 ms) and trivially live at ps = 64 (287 ms).
+Landed as `fluorescence.ts` / `fluorescence.worker.ts` /
+`fluorescence.sweep.worker.ts` / `panels/fluorescence.tsx`. It is the first
+surface in the app that looks like a microscope photograph rather than a test
+chart, and it did what it was scoped to do: `rasterizeEmitters` places beads
+through the traced chief ray, `renderFluorescence` forms the image, and the
+second job — no condenser in the instrument, the ν = 2 cutoff reached where
+brightfield's closed diaphragm stopped at ν = 1 — is a plot on A2's and A3's own
+ν axis. Both halves are live. Four things had to change from the plan, and three
+of them are findings rather than adjustments.
 
-Its second job is to show the contrast with A2 that § 6i is *about*: no condenser
-in the instrument at all, the partition of unity back on the **input** and exact
-there, and the ν = 2 cutoff reached where brightfield's closed diaphragm stopped
-at ν = 1. Worth a one-line caption and a shared frequency axis with A2's plot.
+**The display convention had to break with A2 and A3, and that was not a taste
+call.** Both of those put white at twice the frame's mean, which is right for a
+grating filling every pixel. A bead field is *sparse*: measured, a single bead's
+peak runs **12.7× the frame mean at pupil samples 32 and 99.5× at 128**, so
+white = 2·mean would have clipped every bead into a flat white disc — the panel
+whose entire claim is *"each blob is the PSF"* showing discs with no PSF in
+them. White comes from the image's own peak, and the stretch (peak ÷ 1, 4, 16)
+is a `Choice` with the divisor printed, A3's rule about a stated stretch kept.
+It rides on a second departure: the **worker returns the intensity grid rather
+than pixels**, so moving the stretch remaps the same numbers instead of
+re-tracing an objective to change a grey scale.
 
-**Guard:** `maxGridPhaseStepWaves`. No verdict is minted here and the panel must
-not invent one — § 6f.9's asymmetry is deliberate.
+**The picture's brightness is NOT a reliable reading of the optics, and this is
+the surface's real correction to the plan.** "Every bead emits the same power,
+so a difference between two blobs is the objective" is true of the physics and
+false of the *picture* at coarse sampling. `rasterizeEmitters` splats
+bilinearly — right, and `imaging/scene`'s own convention — but the splat spreads
+a point over up to four pixels, and how much that costs the peak depends on how
+many pixels the PSF spans. Measured on the DIN 4×, one bead walked across a
+pixel in eighths:
+
+| pixels per Abbe distance | peak spread |
+|---|---|
+| 2.01 (grid 128, ps 64) | **19.1%** |
+| 4.02 (grid 128, ps 32) | 5.7% |
+| 8.04 (grid 256, ps 32) | 1.5% |
+
+Against a corner-to-axis kernel drop of 0.2–9.3%, that means at two pixels per
+cell the **rasterizer outweighs the optics**. So the panel prints pixels per
+resolution cell, turns it amber under 3, and says in as many words that blobs
+may be compared by eye only above ~4 — and the corner-coma claim lives in a
+readout computed from the *pupils*, not read off the picture. This is also the
+concrete answer to why `grid` is worth raising when § 6h says it buys no field:
+it buys PSF sampling, and that is what the splat error is a function of.
+
+**§ 6i.5's corner drop has no universal sign.** That rung measured the corner's
+traced pupil giving a lower-peaked kernel than the axis's on one objective, and
+it holds here — but across the catalogue at pupil samples 32 the sign flips: the
+DIN 4×/0.10 drops **0.659%** and the infinity 20×/0.10 drops **0.997%**, while
+the Lister 40×/0.20 **gains 0.188%** and the 100×/1.40 oil **gains 0.184%**.
+Their corner wavefront is genuinely better than their axial one at the system's
+own image plane with no best-focus solve (Lister: 0.01242 waves at the corner
+against 0.01419 on axis). "The corner is worse" is a statement about a
+particular design, not about field position. The drop also scales with the crop
+rather than being a property of the objective alone — on the DIN 4× it runs
+**0.659% → 2.38% → 9.33%** at pupil samples 32 → 64 → 128, because raising
+pupil samples widens the frame (93.5 → 187.1 → 374.2 µm) and walks the "corner"
+further off axis. At 128 it is visible in the picture: the outer beads are
+plainly fatter than the central ones.
+
+**The transfer sweep needed its own worker, where A2's and A3's run on the main
+thread.** Theirs are pupil-evaluation sums at 190 ms and 20 ms, which a
+`setTimeout` deferral covers. This one renders an image per frequency and
+measures **244 ms / 1140 ms / 2511 ms** in the browser at pupil samples
+32 / 64 / 128. On the main thread that froze the page on every objective change
+hard enough that a screenshot timed out — found by driving the panel, not by
+reading the timings. Two workers rather than a second message type on one: the
+picture re-renders on every bead and stretch change while the sweep does not
+move at all, and separate workers let them run at once.
+
+**What the plot actually shows.** Three curves on ν: `incoherentTransfer`'s
+closed form, `weakObjectTransfer` under one on-axis plane wave (brightfield with
+the diaphragm shut — flat at 1 to ν = 1, then a cliff to 0), and the **measured**
+series, `imageHarmonic` read off a rendered `cosineGratingEmitters` through the
+same traced pupil the picture used. Two details are load-bearing:
+
+- **There is no factor of two.** A2's `2·m·T` comes from an *amplitude* object,
+  t = 1 + m·cos, squared. A fluorescent object emits, so E = 1 + m·cos is
+  already an intensity and I = 1 + m·T·cos — T is the measured contrast
+  unhalved. Copying A2's 2 would have doubled every point on the curve. Pinned
+  by a control: on an *ideal* pupil the measured contrast lands on the closed
+  form to worst 3.1e-3 at ps 32 and 1.2e-3 at ps 64, which is § 6i.3's lattice
+  discretization and not a factor. The sweep runs at m = 1 and says why —
+  § 6i.1 leaves nothing for the modulation to enter.
+- **§ 6i.3's tangency reproduces live.** At ν = 2 the DIN 4× reads
+  **1.2546e-3** against 1/797 = **1.2547e-3** transmitting lattice points; the
+  oil reads 1.178e-3 against the same 1/797, and that gap is the traced pupil's
+  own amplitude at the one surviving point. Past tangency the image is flat to
+  f64 (4.1e-16). But ν = 2 is only *on the grid* when the grid carries
+  2·ps + 2 bins, so at pupil samples 128 it is unreachable and the panel says
+  which grid would fix it rather than printing an aliased Nyquist bin.
+
+**§ 6i.4's conservation is live and reads ~1e-15** at every patch count. It is
+measured against the **rasterized** emitter field, not the flux asked for:
+`rasterizeEmitters` drops beads whose splat falls off the grid, and counting
+those as lost photons would print a conservation failure that is nothing of the
+kind. How many landed is printed beside it (78 of 80 at ps 32, 80 of 80 at 128 —
+the wider frame keeps more of them), along with the density in beads per 100 µm²,
+without which the oil objective's 2.65 µm crop looks like a broken bead slider.
+
+**Cost, measured in the browser** (dev build, DIN 4×, 80 beads): **65 ms** at
+ps 32 / grid 128 / patches 1, **189 ms** at ps 64 / grid 256, **246 ms** at
+ps 128 / grid 256. `patches` = 4 costs **983 ms** at ps 64 and **1831 ms** at
+ps 128 — so the plan's "live at `patches` = 4 and ps = 128 (982 ms)" **did not
+hold in the browser**, which ran ~2.3× the node figure this doc's § 2 table was
+built from. Fluorescence is live at `patches` = 1 everywhere and compute-once at
+`patches` ≥ 2, which is brightfield's own line arriving three times further
+along.
+
+**Guard:** `maxGridPhaseStepWaves`, and it is the only one. No verdict is minted
+and the panel does not invent one — `VERDICT_LEVEL` does not appear in the file.
+The trace's `rmsWaves` and `lost` are printed as what they are, a wavefront error
+and a vignetting count, never dressed as fidelity. § 6f.9's asymmetry is
+deliberate and § 6i.5 states it.
+
+**No engine capability was added, so no validation rung was.** Everything here
+is § 6i's, called from the app.
 
 ### A5. Out-of-focus haze and the focus stack — *app wiring only* — **pair**
 
@@ -665,13 +776,22 @@ Note that `@telemicroscope/core/illumination` is already in the package's
 
 ## Suggested order
 
-**A1 ✅ → A2 ✅ → A3 ✅ → A4** lands the microscope branch's headline results with
-one substrate and two panel kinds. A3 was predicted to be "A2's panel with
+**A1 ✅ → A2 ✅ → A3 ✅ → A4 ✅** landed the microscope branch's headline results
+with one substrate and two panel kinds. A3 was predicted to be "A2's panel with
 `phaseGratingObject` in place of the cosine one", and the shape of that held —
 same adapter pattern, same worker hook, same plot primitive — but the *content*
 did not: it needed a second image rather than a second object, a closed form A2
 has no analogue of, and a refusal path A2 never reaches. Cheap to build is not
 the same as a variation on the one before it.
+
+A4 repeated that lesson in a different place. The adapter, worker and plot
+pattern transferred unchanged for the fourth time — but the two conventions
+every previous panel shares, *white at twice the mean* and *the sweep on the
+main thread*, both had to be broken, and neither for reasons visible from the
+plan. A sparse specimen and a per-frequency render are different in kind from a
+grating and a pupil sum. **The house style is the adapter boundary and the
+guards, not the display and scheduling choices layered on it** — those are per
+surface, and each one that changes has to say why on screen.
 **Part B** is self-contained and can go in parallel — it touches no microscope
 code. **A5 and A6** follow. **Part C** is a separate decision.
 
