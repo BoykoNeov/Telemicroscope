@@ -13,6 +13,7 @@ import {
 } from "../src/imaging/object-field";
 import { rotateKernel } from "../src/imaging/render";
 import { renderBrightfield } from "../src/imaging/brightfield";
+import { rasterizeEmitters } from "../src/imaging/fluorescence";
 import { abbeImage, cosineGratingObject, type ObjectField } from "../src/illumination/abbe";
 import { diskSource } from "../src/illumination/source";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
@@ -704,6 +705,60 @@ describe("§ 6m.1 — the tile is the frame, moved", () => {
     }
   });
 
+  it("places an emitter through the tile it is looking at — the first consumer moved", () => {
+    // `rasterizeEmitters` measured from the grid centre and called it the axis,
+    // which was the same point until § 6m. It now reads `frame.centreMm`, and
+    // this is the rung that says so: a bead at the tile's OWN `centreObjectMm`
+    // lands on the tile's centre pixel, through the traced chief ray — while the
+    // axial frame, 0.047 mm wide, clips that same bead out entirely.
+    const system = din4x();
+    const tile = tileOf(system, imageRadius(system, 0.2));
+    const bead = [{ xMm: tile.centreObjectMm.x, yMm: tile.centreObjectMm.y, flux: 1 }];
+    const onTile = rasterizeEmitters(system, tile, bead);
+    const centrePixel = onTile.values[(SIZE / 2) * SIZE + SIZE / 2]!;
+    expect(centrePixel).toBeGreaterThan(0.999);
+    let total = 0;
+    for (const v of onTile.values) total += v;
+    expect(total).toBeCloseTo(1, 12);
+    // The control: the same bead, the same call, the axial frame — and nothing.
+    const onFrame = rasterizeEmitters(system, frameOf(system), bead);
+    let axialTotal = 0;
+    for (const v of onFrame.values) axialTotal += v;
+    expect(axialTotal).toBe(0);
+  });
+
+  it("works in every quadrant, not just the two the rungs are written in", () => {
+    // Every tile above sits at (r, 0) or (0, r), and a stage pans in four
+    // directions — so the first drag lands somewhere no rung has been. A tile
+    // due west is the east tile turned by π and a tile due south by −π/2: the
+    // same object height in the last bit, and the same wavefront through the
+    // rotation. Reasoning says `atan2` and a magnitude cover it; this measures.
+    const system = din4x();
+    const r = imageRadius(system, 0.4);
+    const east = fieldPupilAt(system, tileOf(system, r, 0), 0.5, 0.5);
+    for (const [x, y, azimuth] of [
+      [-r, 0, Math.PI],
+      [0, -r, -Math.PI / 2],
+    ] as const) {
+      const tile = tileOf(system, x, y);
+      const p = fieldPupilAt(system, tile, 0.5, 0.5);
+      expect(p.objectHeightMm).toBe(east.objectHeightMm);
+      expect(p.azimuthRad).toBeCloseTo(azimuth, 15);
+      expect(tile.centreObjectMm.x).toBeCloseTo(Math.sign(x) * Math.abs(tile.centreObjectMm.x), 15);
+      const c = Math.cos(azimuth);
+      const s = Math.sin(azimuth);
+      for (const [px, py] of [
+        [0.4, 0.2],
+        [-0.6, 0.5],
+      ] as const) {
+        expect(p.pupil.phaseWaves(px, py)).toBeCloseTo(
+          east.pupil.phaseWaves(px * c + py * s, -px * s + py * c),
+          15,
+        );
+      }
+    }
+  });
+
   it("refuses a centre it cannot mean, and an infinite conjugate", () => {
     const system = din4x();
     expect(() => tileOf(system, Number.NaN)).toThrow(/centreMm must be finite/);
@@ -972,11 +1027,12 @@ describe("§ 6m.4 — a millimetre of field, which one frame could not see", () 
     expect(Math.abs(defocus[defocus.length - 1]!)).toBeGreaterThan(5e-2);
   });
 
-  it("keeps coma h¹ and astigmatism h² over a decade, where § 6h.4 had a frame", () => {
+  it("keeps coma h¹ and astigmatism h² over 8× of field, where § 6h.4 had a frame", () => {
     // Composition rather than a new pin — § 6h.4 already measured these orders,
     // reaching outside its own frame to do it. What is new is that they are read
     // at tile CENTRES, in range, on tiles that render: the same third-order
-    // dependence surviving from 0.1 mm to 0.8 mm rather than across 47 µm.
+    // dependence surviving across 8× of field — 0.1 mm to 0.8 mm — rather than
+    // across one 47 µm frame.
     const system = din4x();
     const heights = [0.1, 0.2, 0.4, 0.8];
     const coma: number[] = [];
@@ -1024,7 +1080,7 @@ describe("§ 6m.4 — a millimetre of field, which one frame could not see", () 
       ratios.push((radial / m - 1) / (tangential / m - 1));
     }
     expect(ratios[ratios.length - 1]!).toBeCloseTo(3, 2);
-    for (const ratio of ratios) expect(Math.abs(ratio / 3 - 1)).toBeLessThan(3e-2);
+    for (const ratio of ratios) expect(Math.abs(ratio / 3 - 1)).toBeLessThan(1e-2);
     // Exactly square on the axis, where C·h² vanishes — the negative control.
     const axial = tileOf(system, 0);
     const ax = objectPointAt(system, axial, 1, 0.5).x - objectPointAt(system, axial, 0, 0.5).x;

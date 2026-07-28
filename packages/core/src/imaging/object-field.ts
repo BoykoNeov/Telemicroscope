@@ -178,6 +178,14 @@ export interface ObjectFieldFrame {
   /**
    * Object-plane point (mm) the centre looks at, on the **traced** map — so it
    * carries distortion. `{0, 0}` on axis.
+   *
+   * Its azimuth is the **image** point's, unsigned-magnification convention, the
+   * same one `objectPointAt` and `rasterizeEmitters` run on: `illumination/abbe`
+   * takes the object as its geometric image, so the whole module works in
+   * reduced coordinates where the inversion has already been taken out. A caller
+   * going the other way — placing a tile over a known specimen point — must
+   * multiply by **|M|** and not by `magnification`. Using the signed one gives a
+   * mosaic mirrored about the axis, with every rung in § 6m still green.
    */
   readonly centreObjectMm: { readonly x: number; readonly y: number };
   /** Image-plane mm per pixel. */

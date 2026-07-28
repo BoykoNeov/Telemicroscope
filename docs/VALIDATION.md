@@ -57,7 +57,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
-| [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
+| [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -4964,6 +4964,11 @@ specimen**, and that is where the step earns its rungs rather than in the offset
 | …and the image it renders is bit-identical, not merely close | identity | ✅ |
 | Half-extent is pupilSamples·λ·R/(4·n′·r_exit) in the tile's OWN R, to f64 | § 6h.2's closed form, moved | ✅ |
 | A tile's centre pupil is the parent frame's pupil there — height, azimuth, amplitude and phase, bitwise | identity | ✅ |
+| An emitter at a tile's own `centreObjectMm` lands on its centre pixel, through the traced chief ray | § 6i's rasterizer, moved | ✅ |
+| NEGATIVE CONTROL: the axial frame clips that same emitter out entirely | 47 µm against 200 µm | ✅ |
+| West and south tiles work: same height bitwise, wavefront turned π and −π/2 | all four quadrants | ✅ |
+| A non-finite centre is refused rather than rounded | — | ✅ |
+| An infinite conjugate is refused, as `objectFieldFrame` refuses it | § 6h.1, inherited | ✅ |
 | Two tiles naming one image point return one object point, **in the last bit** | registration | ✅ |
 | …and it does not depend on the bracket: 6 seeds over 10⁷ agree bitwise | mantissa exhaustion | ✅ |
 | NEGATIVE CONTROL: a seed 4 000× too small breaks it, by 1.3e-15 | the mechanism, not luck | ✅ |
@@ -4975,7 +4980,7 @@ specimen**, and that is where the step earns its rungs rather than in the offset
 | The tile's own ruler drifts h_e(r+h_e)/R², the axial one is r²/2R² wrong | closed form, to 1e-3 | ✅ |
 | …so they cross at r = (1+√3)·h_e and the gain past it is r²/2h_e(r+h_e) | closed form | ✅ |
 | Defocus across tile centres grows as h² — ×4.000 per doubling, to 0.1% | third-order field curvature | ✅ |
-| Coma h¹ and astigmatism h² held over a decade, at tile centres | third-order field dependence | ✅ |
+| Coma h¹ and astigmatism h² held over 8× of field, at tile centres | third-order field dependence | ✅ |
 | **An off-axis tile is ANISOTROPIC: radial and tangential departures in the ratio 3** | d/dh of § 6h.1's cubic | ✅ |
 | …and exactly square on axis, to f64 | negative control | ✅ |
 | The pitch is not the span; it is a fixed point, converging in 3 iterations | — | ✅ |
@@ -5070,6 +5075,21 @@ immediately — three iterations to f64, the first move already 6e-4 of a pixel 
 and the practical answer is that a mosaic may skip the solve entirely: laying
 tiles on the axial pitch mismatches the true span by 1.9e-5 of a tile, 1.2e-3 of
 a pixel at 1.6 mm off axis.
+
+**The first consumer that assumed the axis has moved with it.** § 6i's
+`rasterizeEmitters` measured from the grid centre and called it the axis, which
+was the same point until this step; it now reads `frame.centreMm`, and a bead at
+a tile's own `centreObjectMm` lands on that tile's centre pixel through the
+traced chief ray, while the axial frame clips the same bead out entirely. The
+convention that comes with it is worth stating because it is invisible when
+wrong: the object point's azimuth is the **image** point's, the reduced
+coordinates `illumination/abbe` already runs in, so a caller placing a tile over
+a known specimen point multiplies by |M| and not by `magnification`. The signed
+one gives a mirrored mosaic with every rung here still green.
+
+**And it works in all four quadrants**, which is measured rather than reasoned:
+every other rung in this step builds its tiles at (r, 0) or (0, r), and a stage
+pans in four directions, so the first drag would land where nothing had been.
 
 **What the picture does.** Off-axis tiles render, rule `valid` and survive
 `requireHonest` — they are traced, so § 6f.9's verdict has the sampling it needs
