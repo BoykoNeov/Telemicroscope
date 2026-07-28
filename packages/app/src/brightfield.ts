@@ -111,7 +111,11 @@ export interface BrightfieldReadout {
   /** The crop, across the whole frame, on the specimen (µm). A1's number. */
   readonly objectSpanUm: number;
   readonly tracedNA: number;
-  /** Where the sampled condenser puts the cutoff — `latticeReach`. */
+  /**
+   * Where the sampled condenser puts the cutoff — `latticeReach`, so **`NaN`**
+   * when no illumination direction enters the pupil at all. A caption must
+   * spend that case rather than compare against it.
+   */
   readonly cutoff: number;
   /** 1 + min(S, 1): the textbook λ/(NA_obj + NA_cond), for comparison. */
   readonly textbookCutoff: number;
@@ -206,14 +210,22 @@ export function maxCoherenceParameter(
  * This is a property of the source and the unit pupil, so it is computed rather
  * than measured; `cutoffSweep` measures the same thing off the pupil sum and the
  * plot shows the two together. They agree to ~1e-12.
+ *
+ * **`NaN` when the pupil admits no direction at all**, which is not the same
+ * statement as a cutoff of zero and must not be printed as one. A `diskSource`
+ * always holds a point near the origin so A2's own controls cannot reach it —
+ * but `annularSource` with an inner radius past 1 is exactly that set, it is
+ * how darkfield works, and A3 is the panel that asks for it. A caller reading
+ * 0 here would show "cutoff 0.0000, past the cutoff" for a configuration whose
+ * actual content is "the undiffracted beam never enters the objective".
  */
 export function latticeReach(source: CondenserSource): number {
-  let best = 0;
+  let best = Number.NaN;
   for (const s of source.points) {
     const r2 = s.sx * s.sx + s.sy * s.sy;
     if (r2 > 1) continue;
     const ceiling = Math.abs(s.sx) + Math.sqrt(1 - s.sy * s.sy);
-    if (ceiling > best) best = ceiling;
+    if (!(ceiling <= best)) best = ceiling;
   }
   return best;
 }

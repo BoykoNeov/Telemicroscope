@@ -565,7 +565,10 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
   }, [result]);
 
   const readout = result?.ok ? result.readout : null;
-  const past = readout !== null && readout.nu > readout.cutoff;
+  // Three states, not two: a source with no direction inside the pupil has no
+  // cutoff to be past, and `latticeReach` says so with NaN rather than 0.
+  const admits = readout !== null && Number.isFinite(readout.cutoff);
+  const past = admits && readout!.nu > readout!.cutoff;
 
   return (
     <figure
@@ -595,13 +598,16 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
             <strong>ν = {readout!.nu.toFixed(4)}</strong> · period{" "}
             {readout!.periodNm.toFixed(0)} nm on a {readout!.objectSpanUm.toFixed(1)} µm crop
             <br />
-            cutoff <strong>{readout!.cutoff.toFixed(4)}</strong> (textbook{" "}
+            cutoff{" "}
+            <strong>{admits ? readout!.cutoff.toFixed(4) : "none"}</strong> (textbook{" "}
             {readout!.textbookCutoff.toFixed(3)})
             <br />
-            <span style={{ color: past ? "#c00" : "#3a7" }}>
-              {past
-                ? "past the cutoff — not transmitted at any contrast"
-                : "inside the cutoff — this frequency gets through"}
+            <span style={{ color: !admits ? "#a60" : past ? "#c00" : "#3a7" }}>
+              {!admits
+                ? "no illumination direction enters the pupil — there is no cutoff to be inside of"
+                : past
+                  ? "past the cutoff — not transmitted at any contrast"
+                  : "inside the cutoff — this frequency gets through"}
             </span>
             <br />
             contrast <strong>{readout!.contrast.toFixed(5)}</strong> · weak-object 2mT{" "}
@@ -1008,10 +1014,12 @@ export default function App() {
       <p style={{ maxWidth: 640, color: "#444" }}>
         The third curve is the one worth the panel. The measured cutoff does not land on the
         textbook line — it lands on the <strong>lattice reach</strong>, the outermost illumination
-        direction the sampled condenser actually holds and the pupil actually admits, and it lands
-        there to about 1e-12 for every objective in the table above. The gap between the two curves
-        is a finite condenser lattice, which this engine has and a real condenser does not. Raise{" "}
-        <strong>source samples</strong> and watch the two close.
+        direction the sampled condenser actually holds and the pupil actually admits. The residual
+        printed under the plot is that agreement for the objective <em>currently selected</em>;
+        switch objectives and it is re-measured, which is the check rather than a claim about a
+        table you cannot see. The gap between the two curves is a finite condenser lattice, which
+        this engine has and a real condenser does not. Raise <strong>source samples</strong> and
+        watch the two close.
       </p>
       <p style={{ maxWidth: 640, color: "#444" }}>
         Past S = 1 that same discretization does something the textbook law does not predict: the
