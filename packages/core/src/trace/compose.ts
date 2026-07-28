@@ -93,10 +93,12 @@ export function collimatingObjectDistance(p: Prescription, wavelengthNm: number)
  * eyepiece never does. A microscope eyepiece collimates a real *intermediate
  * image* formed a finite distance in front of it, so the ray that has to leave
  * flat is the one from the specimen, and the gap that flattens it is a different
- * number. Using the telescope's gap on a microscope leaves the exit beam
- * diverging by tens of diopters (§ 6q.3) — far past anything an eye
- * accommodates — which is why this is an engine step and not a call-site
- * argument.
+ * number. Using the telescope's gap on a microscope puts the eyepiece 132 mm
+ * *before* the intermediate image instead of behind it, so its object is virtual
+ * and the exit beam **converges** to a point 14 mm past the eye lens — +70.5
+ * diopters (§ 6q.3). That is not merely more than an eye accommodates, it is the
+ * wrong side of infinity: an eye cannot accommodate converging light at all.
+ * Which is why this is an engine step and not a call-site argument.
  *
  * Affine for the same reason the telescope's solve is: the free transfer across
  * g is the only place g enters the output slope, so u_out(g) = p + q·g and two

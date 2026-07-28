@@ -593,8 +593,13 @@
    leave flat starts at the **specimen**. `collimatingGap` is that solve, affine in
    the gap and therefore exact rather than iterative. **The negative control is the
    step's justification, in the currency that decides it:** the telescope's own gap
-   on the same two modules leaves **70.5 diopters** of vergence — 280× the quarter
-   diopter an observer notices — against 1e-11 for the solved one. Three findings
+   on the same two modules leaves **+70.5 diopters** — 280× the quarter diopter an
+   observer notices — against 1e-11 for the solved one. The *sign* is the diagnosis
+   and it is the opposite of the obvious guess: a gap 150.8 mm short puts the
+   eyepiece 132 mm **in front of** the image it should collimate, so its object is
+   virtual and the exit beam **converges** 14 mm past the eye lens — the side no
+   accommodation can reach, since accommodation only adds positive power. Three
+   findings
    came out of it. The **sign was wrong first**, and what caught it was a degenerate
    case with a known answer rather than algebra: a single positive lens is a
    magnifier and reads +D/f erect, on which definition the compound instrument reads

@@ -33,7 +33,7 @@ import {
   visualMagnification,
   visualMicroscopeSystem,
 } from "../src/pupil";
-import { LINE_D } from "../src/materials/dispersion";
+import { LINE_C, LINE_D, LINE_F } from "../src/materials/dispersion";
 
 /**
  * Rungs for the eyepiece on the intermediate image (docs/VALIDATION.md § 6q).
@@ -179,7 +179,7 @@ describe("§ 6q.2 — the gap IS the intermediate image plus the eyepiece's fron
 });
 
 describe("§ 6q.3 — the negative control: the telescope's own solve, in diopters", () => {
-  it("afocalTelescope's gap leaves the exit diverging by tens of diopters", () => {
+  it("afocalTelescope's gap leaves the exit CONVERGING by tens of diopters", () => {
     const telescope = afocalTelescope({
       objective: dinMicroscope.prescription,
       eyepiece: eyepiece25.prescription,
@@ -199,17 +199,27 @@ describe("§ 6q.3 — the negative control: the telescope's own solve, in diopte
       prescription: { ...wrong, surfaces: wrong.surfaces.map((s, i) => ({ ...s, isStop: i === 0 })) },
     };
     const stopRadius = pupils(dinVisual.system, L).stopRadius;
-    const diopters = Math.abs(exitVergenceDiopters(wrongSystem, L, stopRadius));
+    const diopters = exitVergenceDiopters(wrongSystem, L, stopRadius);
 
     // The gap is 150.8 mm short — the telescope's solve knows nothing about
     // where the intermediate image is, because for a telescope it is at the
     // objective's focus and for a microscope it is 150 mm of tube further on.
     expect(telescope.gapMm).toBeLessThan(dinVisual.gapMm - 150);
-    // 70.5 D. A relaxed eye supplies none; a quarter diopter is the usual
-    // threshold of noticing. So the wrong solve is ~280× past unusable, which
-    // is why § 6q is an engine step and not a call-site argument.
-    expect(diopters).toBeGreaterThan(60);
+    // ...which puts the eyepiece BEFORE the intermediate image rather than
+    // behind it, so its object is virtual.
+    expect(telescope.gapMm).toBeLessThan(dinMicroscope.imageDistanceMm - 100);
+
+    // +70.5 D, and the SIGN is the diagnosis: positive means the exit beam
+    // converges to a real point ~14 mm past the eye lens. That is not merely
+    // more than an eye accommodates — it is the wrong side of infinity, since
+    // accommodation only ever adds positive power. A quarter diopter is the
+    // usual threshold of noticing, so the wrong solve is ~280× past unusable
+    // in a direction no observer can compensate at all.
+    expect(diopters).toBeGreaterThan(60); // signed: converging, not diverging
+    expect(1000 / diopters).toBeLessThan(20); // crosses the axis within 20 mm
     expect(diopters / 0.25).toBeGreaterThan(200);
+    // The solved gap is the other side of zero by 12 orders of magnitude.
+    expect(Math.abs(exitVergenceDiopters(dinVisual.system, L, stopRadius))).toBeLessThan(1e-8);
   });
 });
 
@@ -369,11 +379,30 @@ describe("§ 6q.5 — the exit pupil, and WHICH numerical aperture the invariant
     const props = microscopeVisualProperties(dinVisual, L);
     expect(props.exitPupilRadiusMm).toBeCloseTo(pupils(dinVisual.system, L).exit.radius, 12);
     expect(props.eyeReliefMm).toBeGreaterThan(15);
-    // A 10 mm eyepiece's is much shorter — the classic complaint about high
-    // power, and it falls out of the pupil imaging rather than a rule.
-    expect(microscopeVisualProperties(oilVisual, L).eyeReliefMm).toBeLessThan(
-      props.eyeReliefMm,
+  });
+
+  it("...and it shortens with the eyepiece's focal length — ONE microscope, three eyepieces", () => {
+    // The classic complaint about high power, and it falls out of the pupil
+    // imaging rather than a rule. Held on one instrument deliberately: comparing
+    // a 25 mm eyepiece on a 4× against a 10 mm on a 100× oil would confound the
+    // eyepiece with the whole objective and the intermediate image's position.
+    const reliefs = [30, 20, 10].map(
+      (fe) =>
+        microscopeVisualProperties(
+          visualMicroscope({
+            microscope: dinMicroscope,
+            eyepiece: eyepieceOf(fe),
+            wavelengthNm: L,
+          }),
+          L,
+        ).eyeReliefMm,
     );
+    expect(reliefs[0]!).toBeGreaterThan(reliefs[1]!);
+    expect(reliefs[1]!).toBeGreaterThan(reliefs[2]!);
+    for (const r of reliefs) expect(r).toBeGreaterThan(0);
+    // Roughly proportional to f_e — a 3× drop in focal length costs most of the
+    // relief, which is why short eyepieces are uncomfortable.
+    expect(reliefs[0]! / reliefs[2]!).toBeGreaterThan(2);
   });
 });
 
@@ -465,21 +494,37 @@ describe("§ 6q.7 — empty magnification, as an invariance rather than as a rul
     expect(ratioAt(39).ratio).toBeGreaterThan(1 - 1e-6);
   });
 
-  it("λ cancels: where magnification stops paying is geometry, not colour", () => {
+  it("λ cancels: the ratio is 1 at F and C too, though every input moved", () => {
     // Both limits scale with wavelength — Abbe's λ/(2·NA) and the eye pupil's
-    // λ/p — so the ratio carries no λ at all. Worth pinning because it is the
-    // one place a reader would expect a wavelength and there is none.
+    // λ/p — so the ratio carries no λ. The honest way to pin that is not to
+    // observe the formula has no λ argument (it would be true of a wrong
+    // formula too) but to TRACE the same instrument at three lines and check
+    // the answer does not move while its inputs do: the glass disperses, so M,
+    // the NA and the exit pupil all shift between F and C.
     const v = visualMicroscope({
       microscope: dinMicroscope,
       eyepiece: eyepieceOf(20),
       wavelengthNm: L,
     });
-    const M = visualMagnification(v.system, 1e-3, L, 250);
-    const na = paraxialObjectNumericalAperture(v.system, L);
-    expect(visualDetailRatio(M, na, 250, 1.005)).toBe(visualDetailRatio(M, na, 250, 1.005));
-    // ...and the readout takes no wavelength argument at all, which is the
-    // structural version of the same statement.
-    expect(visualDetailRatio.length).toBe(4);
+    const at = (nm: number) => {
+      const M = visualMagnification(v.system, 1e-3, nm, 250);
+      const na = paraxialObjectNumericalAperture(v.system, nm);
+      const dxp = 2 * pupils(v.system, nm).exit.radius;
+      // Above the crossover on every line: the exit pupil is ~1.0 mm and the
+      // iris is 2 mm, so the working pupil is the instrument's throughout.
+      expect(dxp).toBeLessThan(2);
+      return { M, na, dxp, ratio: visualDetailRatio(M, na, 250, dxp) };
+    };
+    const f = at(LINE_F);
+    const d = at(LINE_D);
+    const c = at(LINE_C);
+
+    // The inputs genuinely move — this is a real achromat with real residual
+    // colour, not a wavelength-independent stand-in.
+    expect(Math.abs(f.M - c.M)).toBeGreaterThan(1e-6 * Math.abs(d.M));
+    expect(Math.abs(f.dxp - c.dxp)).toBeGreaterThan(1e-6 * d.dxp);
+    // ...and the ratio does not.
+    for (const row of [f, d, c]) expect(Math.abs(row.ratio - 1)).toBeLessThan(1e-6);
   });
 
   it("500·NA and 1000·NA fall out of the two exit-pupil conventions — the digits are nowhere", () => {

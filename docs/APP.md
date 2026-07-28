@@ -1363,9 +1363,13 @@ is doing. `plosslEyepiece`, `huygensEyepiece`, `reducedEye` and
 **Three things this section did not anticipate:**
 
 1. **The negative control has a number, and it is decisive.** The telescope's own
-   gap on the same two modules leaves **70.5 diopters** of vergence against
-   1e-11 for the solved one — 280× the quarter diopter an observer notices. The
-   step's existence is justified numerically rather than by argument.
+   gap on the same two modules leaves **+70.5 diopters** against 1e-11 for the
+   solved one — 280× the quarter diopter an observer notices. The sign is the
+   diagnosis: the gap is short enough to put the eyepiece 132 mm *in front of*
+   the image it should collimate, so the exit beam **converges** 14 mm past the
+   eye lens, the side no accommodation can reach. Justified numerically rather
+   than by argument — and by a trace rather than by reasoning, which had it
+   backwards.
 2. **The sign was wrong first**, and algebra did not catch it — a degenerate case
    with a known answer did. A single positive lens with the object on its front
    focus is a magnifier, and a magnifier is erect at +D/f; on the corrected

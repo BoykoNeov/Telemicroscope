@@ -5765,6 +5765,20 @@ affine for the same reason the telescope's is: the free transfer across g is the
 only place g enters the output slope, so two evaluations pin the line and its
 zero is exact rather than iterative.
 
+**The negative control's sign is the diagnosis, and it is the opposite of the
+obvious guess.** The telescope's gap is 150.8 mm *short*, which sounds like it
+would leave the image inside the eyepiece's front focus and the exit beam
+diverging. It does the other thing: 55.8 mm of gap against an intermediate image
+188.2 mm out puts the eyepiece **132 mm in front of the image it is supposed to
+collimate**, so its object is virtual and the exit beam **converges** to a real
+point 14.2 mm past the eye lens. `exitVergenceDiopters` reads **+70.5 D**, and
+positive is the unusable side — accommodation only ever adds positive power, so
+an eye cannot bring converging light to focus at any effort. The failure is
+therefore not "more than an observer can accommodate" but the wrong side of
+infinity, which is a stronger statement and the one the rung pins. The sign was
+read off the trace rather than reasoned about, after the reasoning went the other
+way.
+
 Everything else here is a closed form the composed trace can refuse.
 
 | Rung | Pinned to | Status |
@@ -5773,7 +5787,7 @@ Everything else here is a closed form the composed trace can refuse.
 | **Solved gap = intermediate image distance + the eyepiece's own FFD**, to 1e-12 relative | closed form, as a check | ✅ |
 | The eyepiece's FFD is 27% short of its focal length — the solve is thick-correct | thick-group first order | ✅ |
 | A powerless / negative second module is refused rather than solved | negative control | ✅ |
-| **`afocalTelescope`'s gap on the same pair leaves 70.5 D of vergence** — 280× a quarter diopter | the step's own reason | ✅ |
+| **`afocalTelescope`'s gap on the same pair leaves +70.5 D** — 280× a quarter diopter, and CONVERGING, the side no eye can accommodate | the step's own reason | ✅ |
 | **M_visual = M_obj·(D/f_e)** from the REAL chief ray, both architectures | angular magnification | ✅ |
 | **The sign, pinned by a magnifier**: one positive lens reads +D/f (erect); the compound instrument is negative | textbook orientation | ✅ |
 | M is exactly ∝ the near point D — the convention carries no ray | dimensional, by construction | ✅ |
@@ -5786,7 +5800,7 @@ Everything else here is a closed form the composed trace can refuse.
 | **`limiting` selection flips exactly where the exit pupil crosses the iris** (bracketed f_e 40/39) | § 5p, on this conjugate | ✅ |
 | **Above the crossover the detail ratio does not move with M** — flat to 1e-6 over a 4× sweep | Lagrange, M cancelling | ✅ |
 | Below it the ratio is exactly ∝ M — ratio/M constant to f64 | the iris fixed, M carried | ✅ |
-| λ cancels out of the ratio entirely | both limits ∝ λ | ✅ |
+| λ cancels: the ratio is 1 at F, d and C while M, the NA and the exit pupil all move | both limits ∝ λ | ✅ |
 | **500·NA and 1000·NA fall out of two exit-pupil conventions** — the digits appear nowhere | inverted Lagrange | ✅ |
 | **The field number is a REAL stop**: h = 2.49 mm traces, h = 2.51 vignettes, bracketing FN/(2·M_obj) | the tracer's own rim | ✅ |
 | Specimen circle = FN/M_obj — 5 mm at 4×, 2 mm at 10× | field-stop conjugacy | ✅ |

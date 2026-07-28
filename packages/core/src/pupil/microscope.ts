@@ -248,9 +248,17 @@ export function visualMagnification(
  *
  * A residual output slope is meaningless on its own ("1e-3 of what?"). What
  * decides whether it matters is the accommodation it demands of the observer:
- * an axial ray leaving at height y and slope u converges at L = −y/u mm, and
- * 1000/L is the diopters the eye must add. A quarter of a diopter is the usual
- * threshold of noticing; a relaxed eye can supply none at all.
+ * an axial ray leaving at height y and slope u crosses the axis at L = −y/u mm,
+ * and 1000/L is the diopters. A quarter of a diopter is the usual threshold of
+ * noticing; a relaxed eye can supply none at all.
+ *
+ * **Signed, and the sign is the whole diagnosis.** Positive means the beam
+ * CONVERGES to a real point L mm past the last surface — light an eye cannot use
+ * at any accommodation, because accommodation only ever adds positive power.
+ * Negative means it diverges from a virtual point behind the instrument, which
+ * is what a near-focused eyepiece delivers and what a young eye can pull in.
+ * Zero is collimated, the relaxed-eye condition every eyepiece is placed for.
+ * § 6q.3's misplaced eyepiece is +70.5 D — the unusable side.
  */
 export function exitVergenceDiopters(
   system: OpticalSystem,
