@@ -51,10 +51,11 @@ export const PANELS: readonly Panel[] = [
   },
 ];
 
-/** The route a bare or unknown hash lands on. */
-export const DEFAULT_PANEL_ID = PANELS[0]!.id;
+/** The route a bare or unknown hash lands on — the first entry, so the nav's
+ * reading order and the default are the same fact stated once. */
+const DEFAULT_PANEL = PANELS[0]!;
 
 export function panelFor(hash: string): Panel {
   const id = hash.replace(/^#\/?/, "");
-  return PANELS.find((p) => p.id === id) ?? PANELS[0]!;
+  return PANELS.find((p) => p.id === id) ?? DEFAULT_PANEL;
 }

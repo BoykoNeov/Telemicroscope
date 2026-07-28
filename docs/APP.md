@@ -16,7 +16,7 @@ physics, that is called out and the surface is disqualified rather than scoped.
 
 ## The baseline: what the app draws today, and its house style
 
-`packages/app` is roughly 2 600 lines. The adapters — `render.ts`,
+`packages/app` is roughly 2 800 lines. The adapters — `render.ts`,
 `microscope.ts`, `brightfield.ts` — are the whole optical pipeline as **pure
 functions**, numbers in, pixels out, no DOM, no React, so running one in a
 worker was a change of caller and not of code. Since structural item 1 below,
