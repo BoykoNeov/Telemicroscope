@@ -203,7 +203,8 @@ Each surface below is tagged **picture**, **plot**, or **pair**.
 
 ## Part A — the microscope branch
 
-A1 has landed; A2–A6 have no app surface yet. Ordered by value per unit of work.
+A1 and A2 have landed; A3–A6 have no app surface yet. Ordered by value per unit
+of work.
 
 ### A1. Objective picker + the specimen frame — ✅ **landed** — *app wiring only*
 
@@ -261,26 +262,79 @@ question with its own rung, not a UI one.
 **Why first:** A2–A6 all consume `buildFrame`, and it is where "the frame is
 93 µm wide, not 5 mm" gets said once instead of five times.
 
-### A2. Brightfield — condenser S, and the (NA_obj + NA_cond) law — *app wiring only* — **pair**
+### A2. Brightfield — condenser S, and the (NA_obj + NA_cond) law — ✅ **landed** — *app wiring only* — **pair**
 
-The step's headline. A cosine-grating specimen through a traced objective, with
-S on a slider from 0 to > 1.
+The step's headline, and it landed as scoped: a cosine-grating specimen through
+a traced objective, S on a slider, `patches` = 1. Shipped as
+`packages/app/src/brightfield.ts` (pure adapter), `brightfield.worker.ts`,
+`plot.tsx`, and a picture/plot pair in `App.tsx`.
 
-- **Picture:** `renderBrightfield(object, tracedFieldPupils(system, frame),
-  diskSource(S, samples), …)`. Contrast collapses as S → 0 and the image goes
-  hard-edged and ringy; opening past S = 1 changes nothing, visibly.
-- **Plot:** the cutoff against S. § 6f bisects it off the sum and it returns
-  1 + S·(1 − 1/N) to 9 places — so the plot can show the measured cutoff, the
-  textbook λ/(NA_obj + NA_cond) line, *and* the lattice discretization term that
-  separates them. That third curve is the difference between a demo and this
-  repo.
-- **Guard:** `fidelity.verdict` — and § 6g.3's rule that the **worst patch
-  rules**, plus `contributingPoints` (min over patches: how well the worst
-  patch's source was sampled) and `maxGridPhaseStepWaves`. Absent sampling reads
-  `unknown`, never `valid`; the panel must show `unknown` as its own state and
-  not round it to green.
+**The pair is joined by two markers, and that is what makes it one claim.** The
+plot carries a vertical rule at the slider's S and a horizontal one at the
+object's own ν; where they cross the curve is where the grating appears in the
+picture beside it. Measured on the traced DIN 4×/0.10 at ν = 1.3125 with an
+11-point condenser: contrast reads **identically 0.00000** at S = 0.30 and
+**0.02446** at S = 0.35 — and the weak-object prediction 2mT is 0.02452, so the
+lift-off is where the transfer says and the magnitude is what the closed form
+says.
 
-**Cost:** live at `patches` = 1 (173–736 ms). Compute-once at `patches` ≥ 2.
+**The third curve is not the one this doc specified, and the correction is the
+finding.** `1 + S·(1 − 1/N)` is right only while the whole source sits inside
+the pupil. What the measured cutoff actually lands on — at every S, for every
+objective in the catalogue, and for *even* sample counts as well as odd — is the
+**lattice reach**: the largest |s_x| + √(1 − s_y²) over the directions the
+sampled condenser holds and the pupil admits. Measured meets it to **~1e-12**
+(`worstResidual` is printed under the plot); it meets the textbook line nowhere.
+At the default sampling there is a slider stop, S = 0.33, where the textbook law
+says ν = 1.3125 is transmitted (cutoff 1.330) and the engine transmits nothing
+(lattice 1.3000) — the disagreement is not described, it is stood in. That is
+why the S slider steps by 0.01: at 0.05 the window where the two laws differ
+contains no stop.
+
+**And this doc's "opening past S = 1 changes nothing, visibly" is wrong on a
+finite lattice.** In the continuum it is exactly right. On the lattice the
+sampled directions keep marching outward, the outermost ones leave the pupil,
+and the measured cutoff steps back **down** — at N = 11 from 1.909 at S = 1 to
+1.818 at S = 1.5 and 1.727 at S = 2, a visible saw-tooth on the plot. It is
+discretization, not physics, and raising `sourceSamples` walks it back up
+(N = 33 reaches exactly 2.000 at S = 1.5). The panel shows it and names which of
+the two it is.
+
+**Two things the plan did not budget for.**
+
+*The S slider needs a hard clamp.* `abbeImage` **throws** when the shifted pupil
+runs off the frequency grid — correctly, since a truncated pupil would read as a
+smaller aperture — so S has a ceiling of ((size − 2)/pupilSamples − 1)/(1 − 1/N)
+that moves with three other controls. `maxCoherenceParameter` derives it, the
+slider is capped at it and says so, and the throw is still caught and shown:
+a clamp from a formula is a claim, and the engine's message is the check on it.
+Verified against the engine at pupilSamples 64 / size 128 / N 11 — predicts
+1.0656, and `abbeImage` throws at 1.1.
+
+*`unknown` is unreachable through `tracedFieldPupils`*, which was the whole
+point of § 6h's wiring — so a **traced / ideal pupil toggle** was added rather
+than leaving the third verdict state as dead code. It earns its place three
+times over: it is the only way the panel reaches `unknown` (and shows the
+engine's reason for it), it puts § 6f.10's contrast ordering on screen (ideal
+0.7407 > Lister 40× 0.7385 > DIN 4× 0.5887, in wavefront order), and it is
+~2.7× faster.
+
+**Guard:** `fidelity.verdict` in three distinct colours, with
+`phaseStepWaves`, `contributingPoints`/source points, and
+`maxGridPhaseStepWaves` beside it. Also reported: the mean intensity (the
+display normalizes to it, and the panel says so), and the harmonic at **2ν** —
+a frequency no linear imager could put there from a single-frequency object,
+which is partial coherence's nonlinearity as a reading rather than an assertion.
+
+**One honesty note the panel carries:** `abbeImage` normalizes the source
+weights to Σ = 1, so closing the diaphragm costs no *light* here where a real
+one goes dim. What it costs is resolution. The mean is printed so the
+normalization is not hiding a change.
+
+**Cost, measured in the browser** (dev build, in the worker, pupilSamples 32 /
+size 128 / N 11): **~620 ms traced, ~228 ms ideal**, against the 173–736 ms
+scoped below. Live. `patches` is fixed at 1 and deliberately not exposed — ≥ 2
+is compute-once and progressive refinement over patches still does not exist.
 
 ### A3. The phase null, and why stains exist — *app wiring only* — **pair**
 
@@ -438,28 +492,41 @@ Structural work implied by the above, independent of which surfaces land:
    `tolerance.ts` — pure functions, no DOM, so they drop into workers unchanged.
    This is the single commitment worth keeping from the current app; everything
    else there is disposable.
-3. **Generalize the worker hooks.** `useRenderedStar` (one reply) and
-   `useRenderedField` (many frames, releases on `done`) are already the two
-   shapes needed. Make them generic over request/result rather than copying a
-   third.
+3. **Generalize the worker hooks.** ✅ **landed with A2** — `useRenderedStar`
+   became `useLatestFromWorker<Req, Res>` and now serves the star panels and the
+   brightfield render both, the worker factory passed in as a module-level
+   constant so Vite still resolves the URL statically. The multi-frame shape
+   (`useRenderedField`, releases on `done`) stays separate: it differs in one
+   line and that line is load-bearing. Done because A2 was the point at which a
+   third hand-copied copy would have been two too many, not as separate work.
 4. **A shared guard-readout component.** Every surface has a verdict or a
-   threshold number; they should look the same and turn red the same way.
-5. **A shared plot primitive.** Constraint 3 means roughly half the microscope
-   surfaces are curves, and there is no plotting in the app at all. A minimal
-   axes+line canvas is enough and keeps the no-dependency posture.
+   threshold number; they should look the same and turn red the same way. A2
+   raised the stakes here: it has a *three*-state verdict, and `unknown` renders
+   in its own colour rather than as a shade of green. The next surface that
+   needs one should extract it rather than copy it.
+5. **A shared plot primitive.** ✅ **landed with A2** — `packages/app/src/plot.tsx`,
+   ~150 lines: linear axes, nice ticks, polylines, and straight-line markers,
+   no dependency. Points are drawn as given; nothing is interpolated or fitted,
+   because a smoothed curve through measured points is a drawing of a claim
+   rather than the claim.
 
 Note that `@telemicroscope/core/illumination` is already in the package's
 `exports` map, so no packaging work is needed for the brightfield surfaces.
 
 ## Suggested order
 
-**A1 ✅ → A2 → A3 → A4** lands the microscope branch's headline results with one
-substrate and two panel kinds, and A3 and A4 are cheap once A1 and A2 exist.
+**A1 ✅ → A2 ✅ → A3 → A4** lands the microscope branch's headline results with
+one substrate and two panel kinds, and A3 and A4 are now cheap: A3 is A2's
+panel with `phaseGratingObject` in place of the cosine one and the ideal-pupil
+path it already has, and both consume the plot primitive A2 built.
 **Part B** is self-contained and can go in parallel — it touches no microscope
 code. **A5 and A6** follow. **Part C** is a separate decision.
 
-The structural items are not a prerequisite, and A1 confirmed it: it landed in
-the current `App.tsx` shape with no registry, no worker and no plot primitive.
-What it did force is the honest version of item 1's problem — the page is now one
-scroll with three unrelated control groups, and A2's canvas is what will make
-that untenable rather than merely untidy.
+The structural items were not a prerequisite, and A1 confirmed it. A2 revised
+that: items 3 and 5 landed *inside* it, because a second worker-backed panel and
+the first curve on the page are exactly what makes a generic hook and a plot
+primitive cheaper to build than to avoid. Items 1 and 4 did not, and item 1 is
+now the real problem — the page is one scroll with five control groups, two of
+which are `pupil samples` / `grid` pairs that mean the same thing in different
+panels and do not share state. A3 will add a sixth. That is the next structural
+step, and it should come before A3 rather than after.
