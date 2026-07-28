@@ -1665,9 +1665,12 @@ are corrections to this section as it was written.
   slice**: unreachable rather than clamped. This was found by a test, not by
   reading.
 
-**Cost, measured.** The picture is A5's, unchanged within the noise — 34–165 ms at
-ps 32 / grid 128 across 5–27 planes, matched against mounted, since the mount adds
-one term to a callback already being evaluated per slice. The axial job goes
+**Cost, measured.** The picture is A5's, and the mount does not move it: matched
+against mounted at ps 32 / grid 128 over 5–27 planes measures 0.85–1.26× with no
+trend, which is run-to-run noise on a five-run best-of, since the mount adds one
+term to a callback already being evaluated per slice. A5's own table above is
+therefore left standing rather than restated — it was measured in a different
+session and this step has no reason to move it. The axial job goes
 **509 → 675 ms** in node when a mount is on it (the cone stack pays
 `stackWavefrontErrorMm` per lattice point). The new depth job is **230–360 ms**,
 in its own worker and keyed on the objective and mount **only** — a sweep over

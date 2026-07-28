@@ -7,6 +7,7 @@ import {
   axialSincSq,
   AXIAL_PUPIL_SAMPLES,
   CONE_PUPIL_SAMPLES,
+  ASYMMETRY_FLOOR,
   MOUNT_MEDIA,
   toGrey,
   WAVEFRONT_RHO,
@@ -83,6 +84,18 @@ import {
 
 /** Half a wave between adjacent transmitting samples — `abbeImage`'s own line. */
 const GRID_STEP_LIMIT = 0.5;
+
+/**
+ * A ratio said in the direction it actually points.
+ *
+ * The asymmetry is (past focus) ÷ (before focus), and printing "0.30× brighter"
+ * for a value below 1 says the opposite of what the number means — the response
+ * past focus is 3.3× *dimmer* there. The mount pushes it far above 1 and the
+ * objective's own residual can push it below, so both directions are reachable
+ * on the same line and the wording has to follow the value.
+ */
+const formatRatio = (value: number): string =>
+  value >= 1 ? `${value.toFixed(2)}× brighter` : `${(1 / value).toFixed(2)}× dimmer`;
 
 /** Below this the bilinear splat outweighs the optics — A4's measured floor. */
 const PIXELS_PER_CELL_FLOOR = 3;
@@ -162,6 +175,19 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
   const measured = r.sweep.waves.map((w, i) => [w, r.sweep.measured[i]!] as const);
   const cone = r.cones.find((c) => c.nu === 0)!;
   const sigmaShare = r.axisRmsWaves > 0 ? r.sweep.defocusSigmaWaves / r.axisRmsWaves : Number.NaN;
+  /**
+   * Whether the peak's offset may be read as a share of A1's traced σ — and it
+   * may only when nothing but the objective is in the beam.
+   *
+   * The decomposition below says "this much of A1's σ is *focus*", and it is a
+   * statement about a pupil carrying the objective's own aberration and nothing
+   * else. A mount moves best focus by its own compensating defocus, which is a
+   * larger number than the whole traced σ on the immersion rows — so the same
+   * arithmetic would hand the mount's defocus to the lens and, clamped at 100%,
+   * read as "this objective's error is all focus" for a reason that is not the
+   * objective's at all.
+   */
+  const readsA1Sigma = r.mountMatched || r.depthUm === 0;
 
   return (
     <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
@@ -211,35 +237,55 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           </span>
           <br />
           that offset carries σ = |w|/(2√3) = {r.sweep.defocusSigmaWaves.toFixed(5)} waves on its
-          own, against the traced σ of {r.axisRmsWaves.toFixed(5)} —{" "}
-          <strong>
-            {sigmaShare > 1 ? "≈" : ""}
-            {(Math.min(sigmaShare, 1) * 100).toFixed(0)}%
-          </strong>{" "}
-          of it
-          {Math.abs(r.sweep.peakWaves) <= 2 / 32 && (
+          own
+          {readsA1Sigma ? (
+            <>
+              , against the traced σ of {r.axisRmsWaves.toFixed(5)} —{" "}
+              <strong>{(Math.min(sigmaShare, 1) * 100).toFixed(0)}%</strong> of it
+              {Math.abs(r.sweep.peakWaves) <= 2 / 32 && (
+                <span style={{ color: GUARD_COLOR.warn }}>
+                  {" "}
+                  — but the peak is within two of this sweep&rsquo;s own 1/32-wave steps of zero, so
+                  that share is quantized by the sweep rather than measured by it
+                </span>
+              )}
+              .
+            </>
+          ) : (
             <span style={{ color: GUARD_COLOR.warn }}>
               {" "}
-              — but the peak is within two of this sweep&rsquo;s own 1/32-wave steps of zero, so
-              that share is quantized by the sweep rather than measured by it
+              — and that is <em>not</em> a share of A1&rsquo;s traced σ ({r.axisRmsWaves.toFixed(5)}
+              ), which is what this line reads when the mount is matched and the depth is zero. Here
+              the offset is dominated by the <strong>mount&rsquo;s</strong> compensating defocus:
+              the depth aberration is what moved best focus, so dividing it into the objective&rsquo;s
+              own wavefront error would attribute the mount&rsquo;s to the lens — and at{" "}
+              {(sigmaShare).toFixed(2)}× the traced σ it is not even a fraction. Set the mount back
+              to matched to read A1&rsquo;s number.
             </span>
           )}
-          .
           <br />
           <span style={{ color: r.mountMatched ? "#3a7" : "#a60" }}>
             <strong>±1 wave: </strong>
             {asym.asymmetry === null ? (
-              "the response one wave before focus is zero here, so the ratio is refused"
+              <>
+                refused — one wave before focus is where sinc² has its own <em>null</em>, and this
+                pupil sits within {(ASYMMETRY_FLOOR * 100).toFixed(0)}% of it, so the ratio would be
+                two rounding errors divided by each other rather than an asymmetry
+              </>
             ) : (
               <>
-                <strong>{asym.asymmetry.toFixed(2)}×</strong> brighter one wave <em>past</em> focus
-                than one wave <em>before</em> it
+                <strong>{formatRatio(asym.asymmetry)}</strong> one wave <em>past</em> focus against
+                one wave <em>before</em> it
               </>
             )}
-            {" — "}
-            {r.mountMatched
-              ? "and a matched mount is a hard zero at every depth, so this is the objective's own residual defocus and nothing else"
-              : `of which the mount's own share is ${asym.asymmetryIdeal === null ? "refused" : `${asym.asymmetryIdeal.toFixed(2)}×`} (this NA, ideal pupil) against ${asym.asymmetryBare === null ? "refused" : `${asym.asymmetryBare.toFixed(2)}×`} the objective already carried at zero depth`}
+            {asym.asymmetry !== null && (
+              <>
+                {" — "}
+                {r.mountMatched
+                  ? "and a matched mount is a hard zero at every depth, so this is the objective's own residual defocus and nothing else"
+                  : `of which the mount's own share is ${asym.asymmetryIdeal === null ? "refused" : formatRatio(asym.asymmetryIdeal)} (this NA, ideal pupil) against ${asym.asymmetryBare === null ? "refused" : formatRatio(asym.asymmetryBare)} the objective already carried at zero depth`}
+              </>
+            )}
             .
           </span>
           <br />
@@ -804,7 +850,14 @@ export function VolumePanel() {
         z-stack means something.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
-        <strong>Where the axial peak sits is a reading of A1&rsquo;s σ.</strong> A1 reports the
+        <strong>
+          Where the axial peak sits is a reading of A1&rsquo;s σ — with the mount matched.
+        </strong>{" "}
+        Everything in this paragraph is a statement about an objective with nothing but itself in
+        the beam, and the numbers in it are read at <em>matched, zero depth</em>. Put a mismatched
+        mount under the specimen and the peak moves by the depth&rsquo;s own compensating defocus
+        instead, which on the immersion rows is several times the whole traced σ — so the caption
+        above stops quoting a share and says so rather than clamping one. A1 reports the
         wavefront error as traced, about the pupil&rsquo;s own mean at the system&rsquo;s{" "}
         <em>own</em> image plane with no best-focus solve, and says a red number means &ldquo;not at
         this focus&rdquo; rather than &ldquo;not correctable&rdquo;. The left-hand plot measures

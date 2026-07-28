@@ -231,8 +231,15 @@ describe("D10 — the two questions, and what each one keeps", () => {
     // which is which, and a matched mount makes it exactly 1.
     const flat = axialResponse({ kind: "oil-100x-125", mount: "matched", depthUm: 10 });
     if (!flat.ok) throw new Error(flat.error);
-    expect(flat.readout.sweep.asymmetryIdeal!).toBeCloseTo(1, 12);
+    // The ideal control is REFUSED here rather than reading 1, and that is the
+    // floor doing its job: an unaberrated pupil at ±1 wave sits exactly on
+    // sinc²'s own null, so the ratio is two rounding errors divided by each
+    // other. "Exactly 1" would have been arithmetic dressed as a measurement.
+    expect(flat.readout.sweep.asymmetryIdeal).toBeNull();
+    // The traced pupil's own residual defocus lifts it off that null, so its
+    // pair IS defined — and the two agree, because a matched mount does nothing.
     expect(flat.readout.sweep.asymmetry).toBe(flat.readout.sweep.asymmetryBare);
+    expect(flat.readout.sweep.asymmetry).not.toBeNull();
 
     const wet = axialResponse({ kind: "oil-100x-125", mount: "WATER", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);

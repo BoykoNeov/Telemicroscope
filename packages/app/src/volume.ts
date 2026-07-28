@@ -186,6 +186,19 @@ const CONE_STACK = Array.from(
  * offset below a measurement rather than a bracket. The peak position is
  * identical at 32 and 64 bins for every objective in the catalogue.
  */
+/**
+ * How far above the closed form's null at ±1 wave the divisor must sit before the
+ * asymmetry ratio is a measurement — as a fraction of the response's own peak.
+ *
+ * sinc²(π·w₂₀) is *exactly* zero at every integer wave, and ±1 is where the
+ * asymmetry is read, so a well-corrected pupil is dividing one near-null by
+ * another. Measured on the catalogue's matched rows the samples sit at ~1e-3 of
+ * peak and their ratio wanders with the lattice rather than with the optics; a
+ * mount lifts the far side by orders of magnitude, which is the whole finding.
+ * 1% keeps the finding and refuses the noise.
+ */
+export const ASYMMETRY_FLOOR = 0.01;
+
 export const AXIAL_PUPIL_SAMPLES = 32;
 export const AXIAL_SIZE = 64;
 const RESPONSE_STEP = 1 / 32;
@@ -760,11 +773,13 @@ export interface AxialSweep {
    * the mismatch: a mount rarer than the immersion (water under oil) aberrates
    * negative and the ratio runs **above** 1.
    *
-   * **`null` when either sample is zero** — an integer wave is where the closed
-   * form has its null, so the ratio is 0/0 territory on a well-corrected row, and
-   * A3's rule says refuse rather than print. Reached in practice: the divisor is
-   * the deep side of the response and a matched pupil puts it within 1e-3 of its
-   * own null.
+   * **`null` when the divisor is at the closed form's own null**, which is a real
+   * hazard rather than a precaution: sinc²(π·w₂₀) is exactly zero at ±1 wave, so
+   * a well-corrected pupil puts *both* samples within ~1e-3 of nothing and the
+   * ratio is two rounding errors divided by each other. The threshold is
+   * `ASYMMETRY_FLOOR` of the response's own peak rather than an exact zero — an
+   * exact-zero test would never fire on a lattice and would let the noise print.
+   * A3's rule: a readout whose value is undefined is refused, not printed.
    */
   readonly asymmetry: number | null;
   /**
@@ -936,15 +951,25 @@ export function axialResponse(request: AxialRequest): AxialResult {
     // ±1 wave, which lands on this sweep's own 1/32 lattice exactly — so the
     // ratio is two samples and not an interpolation. `at` reads the same pair off
     // any pupil, which is what makes the two controls beside it comparable.
+    //
+    // The floor is against the response's own PEAK and not against zero: at ±1
+    // wave the closed form is exactly null, so an exact-zero guard never fires
+    // and the ratio of two near-nulls prints as though it were optics.
     const ratioAt = (pupil: PupilFunction): number | null => {
-      const up = incoherentPsf(withDefocus(pupil, 1), options).values[0]!;
-      const down = incoherentPsf(withDefocus(pupil, -1), options).values[0]!;
-      return down > 0 ? up / down : null;
+      const at = (w: number) => incoherentPsf(withDefocus(pupil, w), options).values[0]!;
+      const reference = at(0);
+      const up = at(1);
+      const down = at(-1);
+      return reference > 0 && down > ASYMMETRY_FLOOR * reference ? up / down : null;
     };
     const oneWave = Math.round((1 + RESPONSE_HALF_WAVES) / RESPONSE_STEP);
     const minusOneWave = Math.round((-1 + RESPONSE_HALF_WAVES) / RESPONSE_STEP);
+    // `measured` is already divided by the value at w₂₀ = 0, so the floor is a
+    // bare comparison here.
     const asymmetry =
-      measured[minusOneWave]! > 0 ? measured[oneWave]! / measured[minusOneWave]! : null;
+      measured[minusOneWave]! > ASYMMETRY_FLOOR
+        ? measured[oneWave]! / measured[minusOneWave]!
+        : null;
 
     const cone0 = buildFrame({
       kind: request.kind,
