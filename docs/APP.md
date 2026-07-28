@@ -904,6 +904,22 @@ same scale and only the *span* changes):
 | ps 128 / grid 512 | 376 µm | 6 232 ms | 4.4e-2 |
 | ps 256 / grid 1024 | 752 µm | 26 621 ms | 4.7e-2 |
 
+> **⚠️ Corrected by D4/§ 6o.8: this table times the Abbe sum, and on a *traced*
+> tile that is no longer the bill.** Every figure above is an ideal pupil's
+> imaging cost. Rendering a real tile also runs § 6n's warped rasterizer, which
+> bisects a traced chief ray **per pixel** to mantissa exhaustion, and with § 6p's
+> cache in place that is now the larger half: at grid 128 / ps 32 the raster is
+> **1 001 ms** against 180 ms of Abbe sum, and at grid 64 / ps 32 it is 292 ms
+> against 61 ms. So the tile size a stage can afford is set by the *rasterizer*
+> and the sensible sampling is 2 px per resolution cell, not the 4 px this table
+> holds. The row structure and the per-unit-area conclusion below stand; the
+> absolute cost of a traced tile is ~5× what a reader would take from them.
+>
+> This is the fourth time the pattern below has repeated, and it is the same one:
+> the feasibility number turned out to be measuring something else. § 6n *named*
+> this cost and deferred the fix to § 6p, which then landed as the pupil cache;
+> the radial map cache is still open and is now the dominant term.
+
 The right-hand column is the one that decides the design: **cost per unit of
 specimen rises with tile size**, and the ps 64 → 128 step is 12.3× where N²·log N
 predicts ~4.3×. That gap is presumably the working set leaving cache (a 512²
@@ -1223,7 +1239,35 @@ neighbour three pixels away — the shape a viewer reads as a grid line.
 condenser's cone tilts off axis, `shiftPupil` is already the operator that would
 do it, and it is its own step.
 
-### D4. A7 — the stage: a brightfield field of view you can pan — *app* — **picture**
+### D4. A7 — the stage: a brightfield field of view you can pan — *app* — ✅ **landed**
+
+**Landed as `panels/stage.tsx` + `stage.ts` + a pool of `stage.worker.ts`**, and
+it needed one engine addition after all — § 6o.8, below. Everything this section
+asked for is on screen: the span against the field number, the guard *with* S and
+the source count, the worst tile's verdict, tiles-and-elapsed, and a centre-first
+queue. What it cost, measured on the DIN 4×/0.10 at ps 32 / grid 64 with a
+208-direction commensurate condenser: **~300 ms a tile, 36 tiles in 3.3 s** across
+three workers, and a pan that crosses no tile boundary renders **nothing**.
+
+**Three things this section did not anticipate**, in the doc's own tradition of
+recording them:
+
+1. **It is an engine step, slightly.** A stage renders tiles singly, out of order,
+   and caches them across pans — none of which `renderMosaic` could do, since it
+   only ever composed a whole finite picture. `renderMosaicTile` and
+   `mosaicTileAt` are the two additions, with ten rungs in § 6o.8. The load-bearing
+   one is that a tile's identity is its **index from the anchor**: re-anchoring on
+   the viewport costs 3.4e-3 px of ruler drift on a tile centre but **16.0 px** of
+   lattice offset a third of a tile off it.
+2. **D0.1's cost model was measuring the wrong half** — see the correction there.
+   The rasterizer, not the Abbe sum, is what a traced tile costs.
+3. **A fixed white is forced.** Every other panel puts mid-grey at its own frame's
+   mean; here that would give each tile its own brightness and paint a grid of
+   seams the physics does not have. `abbeImage` normalizes the source weights to
+   Σ = 1, so a clear field is intensity 1 whatever the condenser does, and the
+   whole plane shares one reference.
+
+The original scope follows, unchanged.
 
 **The priority surface, and the first thing in this repo that looks like a
 microscope rather than an experiment.** A tiled, pannable, zoomable view over a
@@ -1372,14 +1416,14 @@ drag cost. Sliders would need the same backpressure every other panel has.
 **D8 first if the goal is breadth** — it is independent, app-only, and turns ten
 rows into the whole design space.
 
-**Otherwise, the priority path is ~~D1~~ → ~~D2~~ → ~~D3~~ → D4**, which is the
-shortest line to a brightfield field of view you can pan: the off-axis frame, the
-rasterizer that registers it and the mosaic that bounds its error have all
-**landed**, and what is left on that line is the stage that draws it. **D5** has
-**landed** too and makes it fast — though *only* fast: § 6p measured down § 6o's
-belief that it would also lower the mosaic's error floor. **D6** puts an eyepiece
-on it, **D7** puts it in colour. A6 and Part B are untouched by all of this and
-can go at any point.
+**Otherwise, the priority path was ~~D1~~ → ~~D2~~ → ~~D3~~ → ~~D4~~, and it is
+walked**: the off-axis frame, the rasterizer that registers it, the mosaic that
+bounds its error and the stage that draws it have all **landed**. **D5** landed
+alongside and makes it fast — though *only* fast: § 6p measured down § 6o's belief
+that it would also lower the mosaic's error floor. What is left in Part D is
+**D6**, an eyepiece on it, and **D7**, colour; **D8** is still independent and
+still the cheapest breadth in the doc. A6 and Part B are untouched by all of this
+and can go at any point.
 
 The one thing worth predicting, because this doc has been wrong in the same
 direction five times: **D4 will need something D0 did not measure.** A3 needed a
@@ -1394,6 +1438,13 @@ crossover at (1+√3)·h_e, below which a tile is better off on the *axial* rule
 the anisotropy that is D2's argument with a number attached; and a pitch that is
 a fixed point rather than a span. None of them were the seam, and all of them
 were in the part that looked like arithmetic.
+
+**And D4 was predicted wrong in the usual direction.** It was scoped as *app*, and
+it needed two engine functions and ten rungs (§ 6o.8) — a mosaic that pans is not
+a mosaic that is drawn. The seam this section predicted D4 would trip over never
+arrived, because D3 had already paid for it; what arrived instead was the *cost
+model*, D0.1, measuring the wrong half of a tile. Which is the pattern named two
+paragraphs down, on its fourth repetition.
 
 **And D3 was where it stopped being cheap.** The seam did arrive, and it needed a
 reference D3 had not named — a third tile centred on it, since a wider frame is

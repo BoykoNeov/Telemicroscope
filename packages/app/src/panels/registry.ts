@@ -3,6 +3,7 @@ import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
 import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
+import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { VolumePanel } from "./volume";
 
@@ -63,6 +64,12 @@ export const PANELS: readonly Panel[] = [
     label: "fluorescence beads",
     blurb: "APP.md A4 — a specimen that emits, and the cutoff reached with no condenser",
     Component: FluorescencePanel,
+  },
+  {
+    id: "stage",
+    label: "the stage",
+    blurb: "APP.md A7 — a field of view reached by tiling, and a tile that knows its own index",
+    Component: StagePanel,
   },
   {
     id: "volume",

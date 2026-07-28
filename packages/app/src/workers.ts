@@ -38,3 +38,8 @@ export const createVolumeWorker = () =>
 
 export const createVolumeAxialWorker = () =>
   new Worker(new URL("./volume.axial.worker.ts", import.meta.url), { type: "module" });
+
+/** The one factory a panel calls MORE THAN ONCE — A7 keeps a pool of these, one
+ * tile per worker at a time. See `stage.worker.ts` for why that is allowed. */
+export const createStageWorker = () =>
+  new Worker(new URL("./stage.worker.ts", import.meta.url), { type: "module" });

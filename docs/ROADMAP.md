@@ -566,7 +566,23 @@
    price. And APP.md's hope for a source "commensurate **and** coarse" at ~100
    points does not survive § 6f.2: a step multiple of 4 is 52 directions and
    already past that step's own wrong-enough-to-notice threshold, so the knob is
-   `pupilSamples` and not the multiple. Then the **eyepiece on the intermediate
+   `pupilSamples` and not the multiple.
+   **The stage those four steps were for is ✅ done** — APP.md's A7, a brightfield
+   field of view you can drag, and the first surface in the repo that looks like a
+   microscope rather than an experiment. Scoped as app wiring, it needed a little
+   engine after all (§ 6o.8): a mosaic that *pans* renders its tiles singly, out of
+   order and cached, which `renderMosaic` could not do — so `renderMosaicTile` is
+   pinned **bit for bit** against the tile a whole mosaic composes, and
+   `mosaicTileAt` indexes from the **anchor** rather than the viewport. The
+   alternative is measured and splits in two: re-anchoring on a tile centre costs
+   3.4e-3 px — § 6m.4's ppm ruler drift, finally in pixels — while a third of a
+   tile off centre costs **16.0 px**, so what anchoring protects is the *lattice*
+   and not the ruler. Wiring it also **corrected Part D's cost model**: D0.1 timed
+   the Abbe sum, but with § 6p's cache in place a traced tile is dominated by
+   § 6n's warped rasterizer (1 001 ms against 180 ms at grid 128, 292 against 61 at
+   grid 64), which is the radial map cache § 6n deferred *to* § 6p and § 6p spent
+   on pupils instead. It is now the branch's dominant per-tile cost and its named
+   next optimisation. Then the **eyepiece on the intermediate
    image** (§ 6q) — a genuinely different solve from `afocalTelescope`'s, which
    reads its spacing off a ray entering collimated; and **polychromatic
    brightfield** (§ 6r), which is what makes a stained section look stained.
