@@ -265,6 +265,23 @@ wavefront error grows without bound away from focus, so it always brackets
 eventually — and is deliberately not pinned, because a rung with a contrived
 system behind it would pin the contrivance.
 
+**What moved, checked rather than assumed.** A green suite cannot establish
+"no number changed" here, because the looseness that let the defect survive
+§ 6e.5 cuts the same way afterwards: most rungs are `toBeLessThan`, which a σ
+that *improved* passes silently — and this file's **prose** quotes σ and
+best-focus figures that no assertion pins at all. So the widening was
+instrumented and the whole suite run to see which files reach it. **Four do**,
+and only two are not this fix's own fixtures:
+
+| Where | Doublings | What changed |
+|---|---|---|
+| § 6e.5 "the delivered NA is SLIP-DEPENDENT" | 1 | **Nothing it pins.** Traced NA is identical to 12 digits at every thickness, and `lost` does not move — the image plane does not clip rays. The σ in that band *does* move (0.03793 → 0.01657 at t = 0.165), and no rung or prose line reads it. |
+| § 5j "predicts the traced Zernike coma from S_II" | 1 | **The fifth significant figure.** c8 goes 1.11121600e-1 → 1.11124621e-1, a relative 2.7e-5 against a rung that allows 3% — which is Zernike coma being very nearly orthogonal to defocus, measured. |
+
+So no pinned number and no quoted number moved. § 6e.5's σ rungs are untouched
+for a sharper reason than luck: they run at NA 1.0 and 1.25, and the bracket
+never collapses there — the instrumentation is silent for that whole test.
+
 ### Consistency checks (NOT validation)
 
 | Check | Kind |
