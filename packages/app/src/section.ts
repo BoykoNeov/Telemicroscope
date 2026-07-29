@@ -463,7 +463,16 @@ export function renderSection(request: SectionRequest): SectionResult {
     // its own object pixel times the common grid IS the span the picture covers.
     // Every other plane's frame is wider in proportion to λ, which is the whole
     // reason a common ruler had to be chosen at all.
-    const ruler = stack.planes.find((p) => p.resampleRatio === 1) ?? stack.planes[0]!;
+    //
+    // Thrown rather than defaulted to plane 0: the lookup is an exact-float
+    // comparison, and a near-miss would put a silently wrong span on screen — a
+    // number a reader has no way to check. A9.3 pins that the ruler IS the bluest
+    // plane, so this cannot fire today, and a `??` would be the thing that let it
+    // start firing quietly.
+    const ruler = stack.planes.find((p) => p.resampleRatio === 1);
+    if (ruler === undefined) {
+      throw new Error("no plane is the stack's own ruler — its scale cannot be read");
+    }
     const objectSpanUm =
       ruler.frame === undefined ? Number.NaN : ruler.frame.objectPixelScaleMm * 1e3 * stack.size;
 

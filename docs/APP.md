@@ -905,7 +905,7 @@ beside a measurement, and the panel says which is which.
 - **A specimen with NO wavelength in it images in colour, and on the worst pixel
   it beats the stain.** The ruled grid is `neutralSpecimen`; its image has violet
   lines on a cream ground and spreads **0.2227** against the stained section's
-  **0.1556**. Axial colour is concentrated exactly at an edge and a 1.5 µm ruling
+  **0.1700**. Axial colour is concentrated exactly at an edge and a 1.5 µm ruling
   on a 20 µm pitch is nothing but edges, while a dye tints a whole cell mildly.
   This is § 3b's purple fringing arriving in the microscope branch on an object
   that has no colour at all. **It survives the honest lattice**: at ps 64, where
@@ -916,7 +916,7 @@ beside a measurement, and the panel says which is which.
   parameters*; A9 found a rung's **statistic**. A max is an outlier and a stain is
   an area, so the panel reports the luminance-weighted mean beside it — and the
   discriminator that actually separates a fringe from a stain is neither: it is
-  the frame's **mean chromaticity**, which the section moves **0.0200** off the
+  the frame's **mean chromaticity**, which the section moves **0.0234** off the
   lamp's white and the grid moves **0.0010**. A fleck would move the spread and
   not the mean.
 - **§ 6r.7 reproduces exactly, and it is the panel's guard.** At ps 32 on the DIN
@@ -939,6 +939,19 @@ line, and the closed form at the ruler λ lands to −0.50% (the traced frame's 
 departure, A1's column again). And the resample ratio is λ's **to 1.7e-4 and not
 exactly**, because these frames are traced and the exit pupil moves with λ too —
 § 6r.6 states the same agreement to three decimals for the same reason.
+
+**And one claim in this section's own first commit was false, which is the
+fourth thing.** "The stage's picture is unchanged" is true of `ruled` and
+`diatom` — wrapped verbatim, bit-identical at every λ — and **not** of the
+section, which went from stain fractions to two dyes. A monochrome surface sees
+one wavelength's *slice* of a spectrum, and the bands first chosen put the d line
+at 0.195 of the cytoplasmic peak: the stage's cell bodies went from amplitude
+0.55 to 0.80 and vanished, leaving nuclei on a flat ground. **Nothing would have
+caught it** — no golden pins that render, and the A9 rungs are all about colour —
+so it was found by loading `#/stage` and looking. The bands are now picked
+against both surfaces (545/50 puts the d line at 0.485 of the peak, cytoplasm
+back to 0.53) and the header states the trade: a wider band reads better in grey
+and carries less hue.
 
 **The panel found one bug and one false sentence, both at the S slider's left
 end.** S = 0 is a *different source*, not a small one: a commensurate lattice of

@@ -10,9 +10,23 @@ import {
  *
  * They were `stage.ts`'s until a second surface needed them (A9, the colour
  * panel), and the move came with a type change: a `Specimen` is a transmittance
- * at one wavelength, a `SpectralSpecimen` is one that reads λ. Everything the
- * stage draws is unchanged — it binds `atWavelength(spec, LAMBDA_NM)` and never
- * learns a spectrum exists, which is exactly the seam `imaging/specimen` keeps.
+ * at one wavelength, a `SpectralSpecimen` is one that reads λ. The stage binds
+ * `atWavelength(spec, LAMBDA_NM)` and never learns a spectrum exists, which is
+ * exactly the seam `imaging/specimen` keeps.
+ *
+ * **What that seam does NOT mean, corrected here because the first version of
+ * this header claimed it did.** The seam preserves the *interface*, not the
+ * picture. `ruled` and `diatom` are the old callbacks wrapped verbatim in
+ * `neutralSpecimen`, so those two are bit-identical at every wavelength. The
+ * **section is not**: it was authored as stain fractions (`1 − stain`) and is now
+ * two dyes composing by Beer–Lambert, so what the stage draws is one wavelength's
+ * slice of a spectrum rather than the number that was typed. The first bands
+ * chosen made that slice nearly transparent and emptied the stage's cells —
+ * looking at the stage is what caught it, since no golden pins that render — and
+ * the constants below are now picked against **both** surfaces. An unverified
+ * "unchanged" is the class of sentence this repo's ladder exists to prevent, so
+ * the claim is narrowed to what was checked: the two neutral entries are
+ * identical, and the section is a new picture that reads the same way.
  *
  * ## They are pictures, not physics, and the ladder does not pin one
  *
@@ -70,12 +84,19 @@ const band = (nm: number, centreNm: number, widthNm: number): number =>
  * first is and blue-violet where both are, which is what a stained section looks
  * like — arrived at by choosing two centres, not by copying a stain.
  *
- * Both are wide enough to absorb appreciably at the d line as well as at their
- * own peaks, which is not cosmetic: `LAMBDA_NM` is where the **stage** binds
- * them, and a dye that vanished at 587.6 nm would empty a panel that already
- * exists to make room for one that does not.
+ * **Both must absorb appreciably at the d line as well as at their own peaks, and
+ * that constraint is measured rather than assumed.** `LAMBDA_NM` = 587.5618 is
+ * where the **stage** binds them, so a band's value *there* is the whole of what
+ * a monochrome surface sees. The first version of this file centred the
+ * cytoplasmic band at 530 nm with width 45, which is 0.195 of its peak at the d
+ * line — the cell bodies went from amplitude 0.55 to 0.80 and the stage lost them,
+ * leaving nuclei on a flat ground. 545/50 puts 0.485 of the peak there, so the
+ * cytoplasm reads at **0.53** — the old picture back, from a dye rather than from
+ * a stain fraction — while the peak stays selective enough to leave a saturated
+ * magenta. That trade is the authoring: a wider band would read better in grey
+ * and carry less hue.
  */
-const CYTOPLASM_BAND = { centreNm: 530, widthNm: 45, absorbance: 2.3 } as const;
+const CYTOPLASM_BAND = { centreNm: 545, widthNm: 50, absorbance: 2.6 } as const;
 const NUCLEUS_BAND = { centreNm: 600, widthNm: 50, absorbance: 1.8 } as const;
 
 /**

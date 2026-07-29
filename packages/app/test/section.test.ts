@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { brightfieldSpectralStack } from "@telemicroscope/core/imaging";
+import { entryOf } from "../src/microscope";
 import {
   chromaticSpread,
   lampSamples,
@@ -52,6 +54,32 @@ const ok = (request: SectionRequest) => {
   return result.readout;
 };
 
+/**
+ * A stack built straight from core, for the one claim that is about the tint
+ * itself rather than about the readout.
+ *
+ * Deliberately not the adapter's own stack — `renderSection` does not expose it,
+ * and it should not: the claim below is structural (a scalar field times one XYZ
+ * has that XYZ's chromaticity everywhere) and holds for **any** stack, so a test
+ * that had to reach inside the adapter to state it would be testing the wiring
+ * instead of the construction.
+ */
+const stackFor = (request: SectionRequest) =>
+  brightfieldSpectralStack(
+    entryOf(request.kind).build(),
+    specimenOf(request.specimen).specimen,
+    sourceOf(request.coherenceParameter, request.pupilSamples),
+    {
+      size: request.size,
+      pupilSamples: request.pupilSamples,
+      samples: lampSamples(request.lamp, request.wavelengths),
+      patches: 1,
+    },
+  );
+
+const distanceTo = (a: { x: number; y: number }, b: { x: number; y: number }): number =>
+  Math.hypot(a.x - b.x, a.y - b.y);
+
 describe("A9.1 — the tinted control is zero, and the spectral path is not", () => {
   it("a stained section spreads in hue where the tint cannot", () => {
     const readout = ok(BASE);
@@ -74,11 +102,18 @@ describe("A9.1 — the tinted control is zero, and the spectral path is not", ()
     // The section fills the frame, so its mean is not the lamp's — which is the
     // difference between a stain and a fleck: a fleck moves the spread only.
     expect(readout.meanFromLamp).toBeGreaterThan(0.01);
-    // And the tinted image built from the same stack carries the LAMP's hue at
-    // every pixel, so its own mean IS the lamp's — that is what tinting means,
-    // and it is why the control cannot show a stain however stained the specimen.
-    const stack = tintedImage;
-    expect(typeof stack).toBe("function");
+  });
+
+  it("the tint's own mean IS the lamp's white, however stained the specimen", () => {
+    // The other half of the control, and the reason it can never show a stain:
+    // the tinted image is the lamp's colour at every pixel, so its frame mean
+    // sits on the lamp's white no matter what the specimen absorbed. Measured
+    // off `tintedImage` directly rather than inferred from the spread.
+    const readout = ok(BASE);
+    expect(readout.meanFromLamp).toBeGreaterThan(0.01);
+    const tint = tintedImage(stackFor(BASE));
+    const spread = chromaticSpread(tint);
+    expect(distanceTo(spread.mean, readout.lampChromaticity)).toBeLessThan(1e-12);
   });
 });
 

@@ -714,11 +714,11 @@
    expensive axis is the **pupil lattice** and not the wavelength count (ps 64 is
    17×, 208 → 812 directions). Two things came out of driving it. A **neutral**
    specimen — with no λ anywhere in it — images with violet fringes that beat the
-   stain on the worst pixel (0.2227 against 0.1556) and survive at the lattice
+   stain on the worst pixel (0.2227 against 0.1700) and survive at the lattice
    where every plane rules `valid`, so § 3b's purple fringing is in this branch
    too on an object that has no colour at all; what separates a stain from a
    fringe is not the spread but the frame's **mean** chromaticity, which the stain
-   moves 0.0200 off the lamp's white and the grid moves 0.0010. And the blue
+   moves 0.0234 off the lamp's white and the grid moves 0.0010. And the blue
    plane's refusal below reproduces exactly from the app, which is what makes it a
    panel guard rather than a footnote. **Open:** a polychromatic *mosaic* (the useful span is ∝ λ,
    so § 6o's pitch and guard band would need one reference λ), a singlet-versus-
