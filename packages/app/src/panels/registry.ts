@@ -8,6 +8,7 @@ import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
+import { TolerancePanel } from "./tolerance";
 import { VolumePanel } from "./volume";
 
 /**
@@ -91,6 +92,12 @@ export const PANELS: readonly Panel[] = [
     label: "the eyepiece",
     blurb: "APP.md D6 — the chain ends at an eye, and which NA the exit pupil's law takes",
     Component: EyepiecePanel,
+  },
+  {
+    id: "tolerance",
+    label: "tolerances",
+    blurb: "APP.md Part B — a slider per manufacturing error, and the budget that is not a bound",
+    Component: TolerancePanel,
   },
   {
     id: "volume",

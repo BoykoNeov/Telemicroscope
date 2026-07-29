@@ -2669,10 +2669,45 @@ not the λ/4 peak-to-valley Rayleigh quarter-wave — the two coincide only for
 balanced defocus, and the module's currency is an RMS, so the RMS threshold is the
 honest one to pin.
 
+### Flagged, not pinned: what the app surface measured on an ABERRATED nominal
+
+APP.md's Part B put sliders on this module, and because every rung above sits on
+a *perfect* nominal by design, the panel is the first thing to drive it on a real
+N-BK7/F2 doublet. Three measurements came back that no rung here states. They are
+**app probes and deliberately not rungs** — D8's convention — because each is a
+statement about one arbitrary design rather than about the module, and pinning
+them would mean pinning a lens.
+
+- **The RSS is not a bound in either direction.** The section above shows it
+  under-reporting for correlated modes. On the achromat a **conic** error on
+  surface 0 and a **curvature** error on surface 2 — different parameters,
+  different surfaces — each spending σ = λ/28 give a combined trace of 2.7e-4
+  waves against an RSS of 0.0506: the estimate is **189× pessimistic**, because
+  both produce spherical of opposite sign. That factor belongs to the lens rather
+  than to the pair — 214× at f = 50 / EPD 14, 8× at f = 100 / EPD 10 — which is
+  why it is flagged here rather than pinned.
+- **The projection-versus-physical-refocus gap is larger for a COMBINATION than
+  the per-row rung suggests.** The consistency rung measures < 0.8× on one
+  perturbation. On that cancelling pair the projected delta is 2.7e-4 waves and
+  the physically refocused one is **1.85e-2**, sixty-nine times larger, because
+  removing the pair's defocus by moving the plane is a 1.9 mm move undoing 17.5
+  waves. The projection is still the right currency — it is what makes the RSS
+  exact — and this is the size of what it is not.
+- **σ has no sign and the image does, by a factor of 1.45.** A conic error of
+  ±0.0675 reads σ = 0.0716 either way and gives a real PSF Strehl ratio of
+  **0.675 against 0.979**; a negative curvature error at a whole budget makes the
+  star *better* than nominal (1.040). Inverting Maréchal on the three Strehls
+  gives ⟨W_nominal·δ⟩ = 6.08e-4 against σ_n·σ_δ = 6.00e-4 — **correlation 1.01**,
+  i.e. the delta is exactly parallel to the doublet's own residual. This is the
+  concrete content of "every external rung is pinned on a perfect nominal": the
+  currency is correct and it is not the whole answer once a nominal has
+  aberration of its own to interfere with.
+
 Tolerancing lands here, at step 5, rather than in v2: once tilt/decenter exists
 (the § 4a folded-mirror frame closed it) the whole capability is a difference of
 two traces, and it is the most educational thing the simulator can show — a slider
-per tolerance, the image degrading as the RSS budget predicts.
+per tolerance, the image degrading as the RSS budget predicts. **That surface now
+exists** (APP.md Part B), and the three measurements above are what it found.
 
 ## Step 6a — the infinity-corrected microscope: architecture and the first objective
 

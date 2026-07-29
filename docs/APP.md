@@ -24,7 +24,8 @@ that would pin it, and marks which is which throughout.
 ## The baseline: what the app draws today, and its house style
 
 The adapters — `render.ts`, `microscope.ts`, `brightfield.ts`, `phase.ts`,
-`fluorescence.ts`, `volume.ts`, `stage.ts`, `builder.ts`, `coverslip.ts` — are
+`fluorescence.ts`, `volume.ts`, `stage.ts`, `builder.ts`, `coverslip.ts`,
+`eyepiece.ts`, `tolerance.ts` — are
 the whole optical pipeline as **pure functions**, numbers
 in, pixels out, no DOM, no React, so running one in a worker was a change of
 caller and not of code. A4 stretched "pixels out" and it is worth naming: its
@@ -881,7 +882,169 @@ lost rays are the app's refusal, a thrown design is the engine's.
 
 ---
 
-## Part B — tolerancing (step 5's named leftover)
+## Part B — tolerancing (step 5's named leftover) — ✅ **landed** — *app wiring only* — **pair**
+
+Built as `packages/app/src/tolerance.ts` (pure adapter, `render.ts`'s pattern for
+the seventh time), two workers, and `panels/tolerance.tsx`. App-level invariants
+are in `packages/app/test/tolerance.test.ts` (15 rungs); **no engine capability
+was added, so no validation-ladder rung was** — every number the panel draws is
+§ 5t's, called from the app. A6's and D10's convention, and this time nothing in
+the engine had to be fixed for it.
+
+**The scoped moment is real and it is the smaller half.** The section below says
+the panel exists to show `rssWaves` and `combinedWaves` diverging *when the modes
+stop being orthogonal* — combined running ABOVE the estimate. The `correlated`
+preset does exactly that and lands on √2 to four digits (1.4145), which is § 5t's
+own negative control arriving as something a reader clicks. But the larger
+departure is the other way, and it is the panel's headline: a **conic** error on
+the front surface and a **curvature** error on the rear one — different
+parameters, different surfaces, every instinct says independent — each spending
+half the Maréchal budget, and the pair spends **almost none**. On the achromat at
+f = 100 / EPD 20 the rss reads 0.0506 waves, the honest trace reads 2.7e-4, and
+the budget is **189× pessimistic**. Both make spherical aberration, of opposite
+sign. So the claim the panel can make is not "RSS under-reports when modes
+correlate" but **"RSS is not a bound in either direction"**, and that is why every
+slider goes negative.
+
+**How far they cancel is a property of the lens, so the preset is named for the
+mechanism** — `both spherical`, not `cancelling`. Measured across the panel's own
+control space it runs 189× at f = 100 / EPD 20, 214× at f = 50 / EPD 14, 78× on
+the singlet and only **8×** at f = 100 / EPD 10. A button promising a
+cancellation that reads 1.02 somewhere would be the mislabel this doc keeps
+correcting; `independenceRatio` beside it says what actually happened. D8's rule
+about walls, applied to a cancellation.
+
+**Five findings, and the first two are the ones a σ cannot state.**
+
+- **The cancellation is the PROJECTION's, and a real focuser gets only part of
+  it.** § 5t is explicit that its compensator is a *linear projection* of ρ² on
+  one reference plane — which is what makes the RSS exact rather than
+  approximate — and that this is not a physical refocus. The cancelling preset
+  is where that stops being a caveat: the projected delta is 2.7e-4 waves and
+  the physically refocused one is **1.85e-2, sixty-nine times larger**, because
+  removing the pair's defocus means a 1.9 mm plane move undoing 17.5 waves. It
+  is still 2.7× inside the RSS, so the finding cuts both ways.
+- **A σ has no sign and an image does.** § 5t pins every external rung on a
+  *perfect* nominal, "the one place the currency's design subtlety cannot bite";
+  this nominal is a real N-BK7/F2 doublet at f/5 with 0.0323 waves of spherical
+  residual. So a conic error of ±0.0675 reads σ = 0.0716 **both ways** and gives
+  a Strehl ratio of **0.675 against 0.979**, and a negative curvature error at a
+  whole budget makes the star *better* than nominal (1.040). Even the refocused
+  cancelling pair loses 6% of its Strehl, and the mechanism is measurable rather
+  than asserted: inverting Maréchal on the three Strehls gives ⟨W_nominal·δ⟩ =
+  6.08e-4 against σ_n·σ_δ = 6.00e-4, a **correlation of 1.01** — the residual is
+  exactly parallel to the doublet's own. The panel draws the measured Strehl
+  beside Maréchal's prediction and prints their ratio, because that gap is the
+  finding.
+- **The slider scaling is a measurement that checks itself.** A `PerturbTarget`
+  is in its own unit and a slider in 1/mm is unreadable, so ±1 is the drift that
+  spends the whole budget — read from a linear coefficient at a probe delta, then
+  **bisected**, and the ratio between the two printed. § 5t's premise holds: for
+  **twelve of the achromat's fifteen** (surface, target) pairs that ratio is
+  **0.96 to 1.06**, so δW really is linear out to a whole Maréchal. The other
+  three are the interesting ones. A tilt of the
+  **cemented interface** has a linear coefficient 63× smaller than the outer
+  surfaces' — its index step is 0.103 against 0.517 — while its second-order term
+  is not smaller at all, so the extrapolation is **20× wrong** (0.0504) and the
+  bisection is what saves it. And a **decenter of the stop surface** cannot reach
+  the budget at all before the glass runs out, which is § 5t's exact null on a
+  mirror arriving as a mere 11× on a powered refracting stop. (The third is the
+  inert row below.)
+- **Two rows are refusals, not zeros, and one of them was a surprise.** The
+  **last surface's thickness is inert**: `withFocus` sets the image plane as an
+  offset from the last vertex, so that airspace never reaches the image. The tell
+  is that `sigmaBeforeFocusWaves` is exactly 0 **as well** — a compensated row has
+  a large one and a small `sigmaWaves` (measured 357× on an inner airspace) — so
+  the two cases are distinguishable rather than both reading zero. The other is
+  the aperture wall, below.
+- **The aperture wall is mechanical, and it is NOT a focal ratio.** `refractorPair`
+  fixes the crown's centre thickness at 3 mm whatever the focal length, so past
+  some semi-diameter the two sags meet and the tracer reports `miss` from the rim
+  inward. Bisected: EPD **16.11 / 22.99 / 32.65** at f = 50 / 100 / 200, ratios
+  1.427 and 1.420 against √2 — the wall goes as **√f**, which is h = √(t·R) with t
+  fixed, and the f-number at it therefore *loosens*, f/3.10 → f/4.35 → f/6.13.
+  That is the opposite shape from every wall the microscope branch measured, and
+  it sharpens **D8's finding 3** rather than contradicting it: D8 found the
+  cemented doublet's *aberration* ceiling is more nearly a ratio than an aperture;
+  this is the same glass form's *geometry* running out, and geometry is a sag.
+
+- **The singlet is where three of the above stop holding, and the panel only
+  reached it because it was asked to.** Its wall obeys the same h = √(t·R) with a
+  5 mm centre thickness instead of 3, which puts it at EPD **31.8 / 45.2 / 64.1**
+  — past every aperture the panel offers, so the singlet **never reaches its own
+  wall** and unconditional achromat prose would have been the only thing that
+  branch ever showed. Its front-surface curvature row is **not linear**: 0.24 at
+  f/10, climbing to 0.93 at f/3.3, so *which rows are linear is a property of the
+  lens* and the verify-then-bisect step is load-bearing rather than belt-and-
+  braces. And its nominal Strehl falls off a cliff — 0.956 at f/10, 0.500 at
+  f/7.1, **0.067 at f/5**, 0.018 at f/4 — at which point the measured Strehl ratio
+  is two small numbers divided and reads **1.179**, the perturbed system
+  "better" than a nominal that is not forming an image. So the ratio is
+  **refused below Strehl 0.8**, § 5t's own diffraction-limit convention supplying
+  the line. The budget above it is untouched and says so: a delta σ does not need
+  the nominal to be any good, and what is unavailable is the *image* comparison.
+
+**Two things were found by driving the panel and could not have been found
+headlessly**, which is this doc's own tradition on its seventh repetition.
+
+- **A `[]` fallback locked the tab.** With no scaling yet the request carried a
+  fresh empty array on every render, so the memoized request changed identity
+  every render, so the worker hook's post effect re-fired, so it rendered again —
+  a post-per-render spin that saturated the worker queue and froze the renderer
+  hard enough that a screenshot timed out. The headless suite calls
+  `runTolerance` directly and has no render loop to spin. Hoisting one `NO_SCALES`
+  constant is the whole fix.
+- **The stale-scaling window has two sides, and guarding one of them is worse
+  than guarding neither.** A scaling is a statement about (surface, target) pairs
+  and an aperture, so holding the last good one while the next is in flight would
+  print "±1 = 0.27 mm of decentre" under a row that already says *curvature*.
+  `ScaleResult` therefore echoes the question it answers. But that alone produces
+  the mirror bug: the render fired against the *empty* scaling answers first, and
+  once the new scaling lands its table of zeros is displayed as real — "these
+  tolerances cost nothing". So `ToleranceResult` carries a `scaleSignature` too,
+  and the panel shows a result only when it ran on the scaling on screen. **A
+  reply has to carry its question in both directions**, and A4's withdraw-rather-
+  than-grey rule is what says which.
+- **And the same rule has a third axis the first two fixes missed: the
+  compensator.** `refocus` decides the caption under the perturbed frame, which σ
+  the table prints large, and whether the Strehl-against-Maréchal ratio means
+  anything — so driving those from the *control's* state relabels a frame one to
+  three seconds before it is recomputed, which is A4's "makes a false label faint
+  rather than absent" exactly. `ToleranceResult` echoes `refocus` too, and every
+  one of those reads off the result. **A stale-state guard is not one check; it is
+  one per thing the state labels.**
+
+**Cost, measured in the browser** (dev build, achromat f = 100 / EPD 20): the
+whole job — budget, the k sweep, both Strehls and both star frames — is
+**650–990 ms** with the compensator on and **~3 s** with it off, where the
+defocus hands the picture to the geometric branch (`geometricWeight` 1.000, and
+the panel says so). The **scaling** is a second job at **1.7–3.4 s**. So this is
+a backpressured compute-once surface in A5's and A6's sense, not a drag surface —
+and it corrects the cost note at the end of the original scope below, which
+worried about `sensitivity` re-solving best focus under a live slider. It does,
+and at 21 ms a row that is the *cheap* half; what the scope did not anticipate is
+that scaling the sliders honestly costs more than everything it scales. **Focal
+length and aperture are therefore buttons rather than sliders**, because both
+re-derive every row's full scale and the aperture wall, and a drag would put
+seconds under every frame to buy nothing — the continuous axes on this panel are
+the tolerances, which is what it is about.
+
+**Guards:** `truncatedFraction` and `geometricWeight` for both frames — genuinely
+reachable, since turning the compensator off puts 11% of the light off the PSF
+grid where it *wraps*, and the singlet at f/4 reads `geometricWeight` 1.000 on
+*both* frames — and `lost` on the nominal and perturbed pupils, so a σ over a
+shrinking sub-pupil refuses itself. **Three readouts refuse themselves rather
+than defaulting**: the Strehl ratio below the diffraction limit, the
+Strehl-against-Maréchal ratio when the compensator is off, and `combined ÷ rss`
+when no row is perturbed — where rss = 0 would otherwise make the ratio fall back
+to 1 and print "quadrature holds" about no modes at all. The Strehl-against-Maréchal ratio is
+**refused outright** when the compensator is off, because the two then describe
+different systems and a ratio between them is arithmetic rather than a
+comparison. A3's rule, and the σ column swaps its primary reading to
+`sigmaBeforeFocusWaves` in the same state so the number beside the picture is the
+one that describes it.
+
+The original scope follows, unchanged.
 
 ROADMAP asks for *"a slider per tolerance, the image degrading as the budget
 predicts."* Scoped as slider-→-blurrier-picture it loses the only thing that
@@ -965,8 +1128,10 @@ part opens with is no longer true of the app either. Colour is D7 and has now la
 section is an engine capability too. Building an instrument is D8 and has now
 landed as well — so the opening sentence above is no longer a description of the
 engine at all, only of the app's surfaces, which is what Part D is a queue for —
-and **D10 has now landed too, so that queue is empty.** What remains anywhere in
-this doc is A6 and Part B, neither of which was ever in Part D.
+and **D10 has now landed too, so that queue is empty.** What remained anywhere in
+this doc was A6 and Part B, neither of which was ever in Part D — and **both have
+since landed as well**, so what is left is Part C and the scenes nobody has
+authored.
 
 ### D0. The three feasibility measurements this part rests on
 
@@ -1929,13 +2094,17 @@ into **D10**.
 **~~D8~~ has now landed too**, and so has **~~D10~~** — so **Part D is walked, end
 to end.** *(And since then **~~A6~~** has landed as well, and so has **~~the D6
 panel~~** this section's own accounting had lost — see "Suggested order" — so what
-is left in this doc is Part B, Part C, and the scenes nobody has authored.)* D10 was billed as the cheapest engine-backed surface in the doc and the
+is left in this doc is Part B, Part C, and the scenes nobody has authored — and
+**~~Part B~~ has now landed too**, so it is Part C and the scenes.)* D10 was billed as the cheapest engine-backed surface in the doc and the
 picture half of it was: the mount is one more term in a callback already being
 evaluated per slice. The two things it cost that were not budgeted are both about
 *comparison* rather than about rendering — an ideal-pupil control the axial
 asymmetry turned out to need, and a Strehl-versus-depth job that had to be made
 250× cheaper than the rung it reproduces before it could sit in a panel. A6 and
-Part B are untouched by all of this and are what is left in the doc.
+Part B were untouched by all of this and were what was left in the doc; **both
+have since landed**, and Part B's own version of the pattern is that the thing it
+did not budget for was *scaling its own sliders* — which costs more than
+everything it scales.
 
 **The one engine number that changed the queue — and has now been spent.** D4
 found the *rasterizer*, not the Abbe sum, is what a traced tile costs (see D0.1's
@@ -2021,10 +2190,13 @@ Structural work implied by the above, independent of which surfaces land:
    traced brightfield costs 8–10× per source point and would land seconds past
    its live line. Routing is what stops the two groups from being confusable.
    Sharing the state would have made one of the two panels lie about its cost.
-2. **One adapter module per family, on `render.ts`'s pattern.** `microscope.ts`,
-   `tolerance.ts` — pure functions, no DOM, so they drop into workers unchanged.
-   This is the single commitment worth keeping from the current app; everything
-   else there is disposable.
+2. **One adapter module per family, on `render.ts`'s pattern.** ✅ **held, eleven
+   times.** `microscope.ts` and `tolerance.ts` are the two this item named and
+   both exist; so do nine more. Pure functions, no DOM, so they drop into workers
+   unchanged. This is the single commitment worth keeping from the current app;
+   everything else there is disposable — and Part B is the closing evidence, since
+   `tolerance.ts` needed no adaptation at all to be called from a worker, from a
+   panel, and from a vitest file with no DOM in the room.
 3. **Generalize the worker hooks.** ✅ **landed with A2** — `useRenderedStar`
    became `useLatestFromWorker<Req, Res>` and now serves the star panels and the
    brightfield render both, the worker factory passed in as a module-level
@@ -2082,9 +2254,13 @@ rung only summarizes will find the sampling the rung could afford to ignore**,
 which is A3's undersampled lobes and A4's frozen sweep arriving a third time in a
 third place.
 
-**Part B** is self-contained and can go in parallel — it touches no microscope
-code. **~~A6~~ has landed**; see its section for the three findings and for the
-engine defect it turned up in the focus solve. **Part C** is a separate decision.
+**~~Part B~~ has landed**, and it was self-contained exactly as predicted — it
+touches no microscope code and no engine code at all. What it corrects is its own
+scoped headline: the RSS budget diverges from the honest trace **downward** more
+dramatically than upward, so "independence is an assumption and this is where it
+visibly fails" is right about the assumption and wrong about the direction.
+**~~A6~~ has landed**; see its section for the three findings and for the engine
+defect it turned up in the focus solve. **Part C** is a separate decision.
 
 **Two things this doc had lost, recorded here because A6 emptied the queue that
 was hiding them.** First, ~~**the D6 panel does not exist**~~ — **it does now**,
@@ -2094,8 +2270,8 @@ A6 and Part B; the registry sided with the first, and the gap is closed: there
 are ten panels and the tenth is the visual microscope. Second, **scenes are
 content, not blockers**: § 6n unblocked stained tissue and diatom fields, and the
 disqualified table says so, but nobody has authored one. **That is now the only
-microscope item left anywhere in this doc**, beside Part B (which is step 5's,
-not this branch's) and Part C (a separate decision).
+microscope item left anywhere in this doc** — and with **~~Part B~~** landed it is
+the only item of any kind, beside Part C (a separate decision).
 
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine

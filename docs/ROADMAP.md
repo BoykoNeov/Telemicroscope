@@ -168,8 +168,27 @@
    and `bestFocus`, no new physics; the whole difficulty was the *currency* — the
    σ of the *delta* wavefront with compensator modes projected out, so
    independent tolerances' variances stay additive and the RSS budget is exact.
-   Still to build on it: the UI this exists for — a slider per tolerance, the
-   image degrading as the budget predicts.
+   *The UI this exists for:* ✅ **landed** (APP.md Part B) — a slider per
+   tolerance, the image degrading as the budget predicts, and the budget turning
+   out **not to be a bound**. App wiring only; no rung was added because no
+   capability was. What it corrects is the sentence above it: the interesting
+   divergence between `rssWaves` and `combinedWaves` was expected upward, when
+   modes correlate, and § 5t's own two-identical-perturbations control does read
+   √2 to four digits. The larger departure is **downward** — a conic error on one
+   surface and a curvature error on another, each spending half the Maréchal
+   budget, together spend almost none: on the achromat at f = 100 / EPD 20 the
+   RSS is **189× pessimistic**, and how far they cancel is a property of the lens
+   (214× at f = 50 / EPD 14, 8× at f = 100 / EPD 10), so the panel measures it
+   rather than promising it. Two things
+   that only a panel could ask: the cancellation belongs to the *linear
+   projection* and a real focuser recovers 69× less of it, and **a σ has no sign
+   where an image does** — the same |σ| costs a Strehl ratio of 0.675 or 0.979
+   depending on which way the slider went, because this nominal is a real doublet
+   with a spherical residual of its own and § 5t's rungs deliberately sit on a
+   perfect one. Also measured, and it is a wall of a kind the microscope branch
+   never met: `refractorPair`'s fixed 3 mm centre thickness runs the crown's two
+   sags together at h = √(t·R), so the whole-pupil aperture goes as **√f** — EPD
+   16.1 / 23.0 / 32.6 at f = 50 / 100 / 200 — and is not a focal ratio at all.
 6. **Microscope branch** ← current; **every numbered step in it is now closed**
    (§ 6l was the last gap). What remains here is app wiring and scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.

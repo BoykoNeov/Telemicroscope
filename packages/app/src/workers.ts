@@ -57,6 +57,12 @@ export const createEyepieceSweepWorker = () =>
 export const createEyepieceWallWorker = () =>
   new Worker(new URL("./eyepiece.wall.worker.ts", import.meta.url), { type: "module" });
 
+export const createToleranceWorker = () =>
+  new Worker(new URL("./tolerance.worker.ts", import.meta.url), { type: "module" });
+
+export const createToleranceScaleWorker = () =>
+  new Worker(new URL("./tolerance.scale.worker.ts", import.meta.url), { type: "module" });
+
 /** The one factory a panel calls MORE THAN ONCE — A7 keeps a pool of these, one
  * tile per worker at a time. See `stage.worker.ts` for why that is allowed. */
 export const createStageWorker = () =>
