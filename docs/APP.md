@@ -959,8 +959,9 @@ Everything below the first section is ordered behind it.
 
 **Where that stands now.** The slide and the wider field are D1–D5 and are
 walked — A7 is a stage you can pan. The eyepiece is D6 and is walked too, so
-"look through" is an engine capability rather than a wish; what remains unbuilt
-is the *panel* for it. Colour is D7 and has now landed as well, so a stained
+"look through" is an engine capability rather than a wish; ~~what remains unbuilt
+is the *panel* for it~~ — **and that panel has now landed**, so the sentence this
+part opens with is no longer true of the app either. Colour is D7 and has now landed as well, so a stained
 section is an engine capability too. Building an instrument is D8 and has now
 landed as well — so the opening sentence above is no longer a description of the
 engine at all, only of the app's surfaces, which is what Part D is a queue for —
@@ -1436,7 +1437,109 @@ worth asking rather than ticking:
 `pupilSamples` the tile is already rendered at — i.e. `latticeMatchedSource`,
 which is now affordable rather than theoretical.
 
-### D6. § 6q — the eyepiece on the intermediate image — *engine step* — ✅ **done**
+### D6. § 6q — the eyepiece on the intermediate image — *engine step* — ✅ **done**, and its panel is ✅ **landed**
+
+**The panel exists now** (`panels/eyepiece.tsx` + `eyepiece.ts` + two workers), which
+closes the gap this doc's own accounting had lost — see "Suggested order". App
+wiring only: **no new engine capability, so no validation-ladder rung.** What the
+panel claims that no rung states is pinned app-side instead, in
+`packages/app/test/eyepiece.test.ts` (20 assertions), which is A6's and D10's
+convention. Six findings, and the first two are corrections to things written here.
+
+- **It runs on the MAIN THREAD**, the first microscope surface since A2 that
+  does. § 6q's composition really is first-order work — one affine gap solve,
+  one chief ray, one marginal ray, one paraxial pupil image — so a whole
+  instrument is **18–22 ms** and sits under a live slider, exactly as this
+  section predicted. What does *not* fit is neither physics nor wiring but
+  **sweeps of builds**: a 21-point focal-length sweep is 21 `plosslEyepiece`
+  secant solves at ~7.5 ms each (222 ms on the DIN 4×, 274 ms on the oil), and
+  the clear-aperture wall is a bisection over the same solve. Those are the two
+  workers. The split on every previous surface was traces against wiring; here
+  it is *builds* against traces, which is a different axis and is why the
+  scheduling looks nothing like A2–A6's.
+- **The negative control can FAIL, and that is not the instrument failing.** On
+  the 100×/1.40 oil, `afocalTelescope` does not merely return a wrong gap — it
+  **refuses**, because the spacing a collimated-in solve asks for is negative
+  (−254.006 mm). So § 6q.3's point arrives one step earlier than § 6q.3 makes
+  it: on a short-focus objective the telescope's placement is not unusable, it
+  *does not exist*. The first draft of this panel let that throw propagate and
+  reported a perfectly well-composed microscope as a broken one; the control is
+  now guarded in its own line. **A negative control needs its own refusal path.**
+- **§ 6q.9's "about 0.88·f_e" is a bracket, and bisected the wall is
+  0.899195·f_e — a CONSTANT.** This was very nearly written up as D8's own
+  pattern ("a quoted wall turns out to be a function of a defaulted parameter"),
+  on a probe that stepped the clear aperture by 0.5 mm and read ratios of 0.850
+  → 0.887 across f_e 10 → 40. That spread is **inside the step's own
+  quantization** (0.5/f_e is ±0.05 at f_e 10). Bisected to 1e-6 mm the ratio is
+  0.899195 at every f_e from 15 to 50, and the departure below that — 0.8902 at
+  f_e 6, 0.8940 at 8, 0.8962 at 10, 0.8977 at 12 — is `plosslEyepiece`'s **own
+  air-gap floor**, `max(0.3, 0.02·f_e)`, which stops scaling with the design:
+  force the gap to 0.02·f_e and all seven read 0.899195 to six digits. So the
+  form is exactly scale-invariant and the wall is a property of it. That is this
+  doc's recorded failure mode — *"the feasibility number will turn out to be
+  measuring something else"* — arriving in the panel's own probe rather than in a
+  rung, for the seventh time. And **the wall is the Plössl's, not the
+  eyepiece's**: the Huygens has no cemented doublet to fail and no wall at all
+  below the 1.5·f_e the search stops at, which the readout says rather than
+  leaving blank.
+- **The placement band closes as 1/f_e², and the departure from the thin-lens
+  form is EXACTLY the eyepiece's thickness.** How far the eyepiece may sit from
+  its solved position before the exit beam asks the quarter diopter an observer
+  notices, bisected on the trace: **±0.157 mm at f_e 25**, ±0.025 at 10, ±0.403
+  at 40. Read backwards as f_e²·(quarter diopter ÷ band edge), the thin-lens
+  Newton form 1000·Δ/f_e² says that number is **1000 at every focal length**; the
+  traced Plössl gives 997.1965, 996.2620, 995.3275, 994.3931, 992.5241, 990.6551
+  at f_e 15 → 50. That is not "a drift" — it is **affine in f_e with intercept
+  exactly 1000**, to seven digits, which is what a term proportional to the
+  second principal plane's distance from the last vertex has to look like on a
+  scale-invariant form. So the panel is entitled to call the gap between the two
+  curves the thickness rather than merely noticing there is one, and the thin
+  form stays drawn as a **label**, not as a rung. Checked before it was believed:
+  the bisection was re-run at 1e-4, 1e-9 and 1e-13 relative and the numbers agree
+  to 1e-5, so the departure is physics and not the search. This is the pair
+  APP.md's third constraint asks for — § 6q's headline is a null (the exit beam
+  is flat to f64 noise), and a null needs a plot of what leaving it costs. **And
+  f_e 10 is the one point off that line**, by 400× the residuals it holds to
+  above: the air-gap floor again, detected a second time by a quantity that has
+  nothing to do with clear apertures.
+- **The vergence has a pole**, at Δ = **−31.774 mm** on the panel's own fixture
+  (DIN 4×/0.10, Plössl f_e 25, FN 20 — the same fixture every number in this
+  bullet comes from), bisected and reported **with no mechanism attributed**. It
+  is where the axial exit ray's *height* passes through zero, which is **not**
+  the eyepiece's front focus crossing the intermediate image: at Δ = −FFD =
+  −19.670 mm the vergence is −82.6 D, large, finite, and on the side an eye can
+  at least partly accommodate. The flip is **12.1 mm further on**. § 6q.3's
+  virtual-object diagnosis is right about the far *branch*, where the telescope's
+  gap lives; it is not the pole's location, and the panel does not claim it is.
+- **The labelling correction, which is the one a reader would otherwise be
+  misled by.** `pupils().exit.radius` is the aperture stop imaged **paraxially**,
+  and `paraxialObjectNumericalAperture` is n·u off that same pupil geometry — so
+  the two agreeing to 1e-7 is *one bookkeeping being self-consistent through a
+  traced M*, which is what § 6q.5 pins and is weaker than two independent routes
+  meeting. A6's "traced" was a real marginal ray; this is not, and calling it
+  traced would have been precisely the failure this ladder keeps catching. What
+  *is* traced here is the magnification (a real chief ray's exit angle) and the
+  engraved NA (a real marginal ray's launch sine). The panel labels all three by
+  what computed them.
+
+**§ 6q.5's headline arrives live, and it is why this panel exists at all.** On
+the 100×/1.40 oil the exit pupil reads **1.7767 mm**; the invariant in its own
+(paraxial) NA gives 1.7767; the textbook `500·NA/M` gives **0.7002 — off by
+−60.59%**, because sec u is 2.5372 there and n·u is 3.5521, larger than the
+immersion oil's own index. Both forms are plotted, the wrong one deliberately, and
+`sec u` is the guard that says when they part company (1.0050 dry, 1.0206 on the
+Lister, 2.5372 on the oil). `usefulMagnificationRange` is shown on the **engraved**
+NA — the way the textbook rule is stated — with sec u beside it, rather than the
+panel minting a competing "honest" range: the ladder's claim is about which NA the
+invariant takes, not about what a real oil objective's exit pupil measures.
+
+**Open, and unchanged by the panel:** the retinal PSF (there is no image plane
+behind an afocal exit, so nothing is rendered here and that is the physics), the
+eyepiece's own aberrations at this conjugate, colour, and the exit pupil off axis.
+
+The original scope and what § 6q found follow, unchanged.
+
+
 
 **Landed as `designs/visual-microscope` + `trace/compose`'s `collimatingGap` +
 the visual readouts in `pupil/microscope` and `pupil/visual`, with 24 rungs in
@@ -1824,9 +1927,9 @@ closes the microscope branch's last numbered gap and turns A5's stated omission
 into **D10**.
 
 **~~D8~~ has now landed too**, and so has **~~D10~~** — so **Part D is walked, end
-to end.** *(And since then **~~A6~~** has landed as well, so what is left in this
-doc is Part B, plus the D6 panel this section's own accounting had lost — see
-"Suggested order".)* D10 was billed as the cheapest engine-backed surface in the doc and the
+to end.** *(And since then **~~A6~~** has landed as well, and so has **~~the D6
+panel~~** this section's own accounting had lost — see "Suggested order" — so what
+is left in this doc is Part B, Part C, and the scenes nobody has authored.)* D10 was billed as the cheapest engine-backed surface in the doc and the
 picture half of it was: the mount is one more term in a callback already being
 evaluated per slice. The two things it cost that were not budgeted are both about
 *comparison* rather than about rendering — an ideal-pupil control the axial
@@ -1984,15 +2087,15 @@ code. **~~A6~~ has landed**; see its section for the three findings and for the
 engine defect it turned up in the focus solve. **Part C** is a separate decision.
 
 **Two things this doc had lost, recorded here because A6 emptied the queue that
-was hiding them.** First, **the D6 panel does not exist.** Part D's own opening
-says of the eyepiece "what remains unbuilt is the *panel* for it", and its
-closing accounting says the only remaining items are A6 and Part B; the registry
-sides with the first — there are nine panels and none of them is
-`designs/visual-microscope`. § 6q is the branch's headline capability (the chain
-ends at an eye, not at an image) with no surface, and D9's "what stays out" list
-does not name it, so it is a gap rather than a decision. Second, **scenes are
+was hiding them.** First, ~~**the D6 panel does not exist**~~ — **it does now**,
+see D6. Part D's own opening said of the eyepiece "what remains unbuilt is the
+*panel* for it" while its closing accounting said the only remaining items were
+A6 and Part B; the registry sided with the first, and the gap is closed: there
+are ten panels and the tenth is the visual microscope. Second, **scenes are
 content, not blockers**: § 6n unblocked stained tissue and diatom fields, and the
-disqualified table says so, but nobody has authored one.
+disqualified table says so, but nobody has authored one. **That is now the only
+microscope item left anywhere in this doc**, beside Part B (which is step 5's,
+not this branch's) and Part C (a separate decision).
 
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine

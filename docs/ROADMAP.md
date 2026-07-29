@@ -623,12 +623,38 @@
    the ratio is exactly ∝ M; 500·NA and 1000·NA fall out of two stated pupil
    conventions with the digits appearing nowhere, and λ cancels entirely. The field
    number is spliced in as a **real** annular stop, so a field beyond it vignettes
-   in the trace. **Open:** the retinal PSF itself, the eyepiece's own aberrations at
+   in the trace. **Its panel has now landed** (APP.md D6) — app wiring only, and the
+   first microscope surface in the app to run on the **main thread**, because § 6q's
+   composition is first-order work (18–22 ms an instrument) and the only things that
+   need a worker are *sweeps of builds* rather than of traces. Four things came out
+   of driving it. § 6q.9's "about 0.88·f_e" is a **bracket**: bisected, the Plössl's
+   clear-aperture wall is **0.899195·f_e and a constant**, exactly scale-invariant
+   from f_e 15 to 50, and the droop below that is the form's own air-gap floor
+   `max(0.3, 0.02·f_e)` rather than the design — forcing the gap to 0.02·f_e makes
+   every focal length read 0.899195 to six digits. The **negative control can
+   refuse**: on the 100×/1.40 oil `afocalTelescope` returns no gap at all
+   (−254.006 mm, non-physical), so § 6q.3's point arrives one step earlier than
+   § 6q.3 states it and the control needs a refusal path of its own. The eyepiece's
+   **placement band closes as 1/f_e²** — ±0.157 mm at f_e 25 against the quarter
+   diopter an observer notices, ±0.025 at 10 — and its departure from the thin-lens
+   1000·Δ/f_e² is **affine in f_e with intercept exactly 1000** (997.1965 → 990.6551
+   over f_e 15 → 50, to 7 digits), which is what a term proportional to the second
+   principal plane's offset must look like on a scale-invariant form: the gap
+   between the drawn curves *is* the eyepiece's thickness, proved rather than
+   asserted. f_e 10 is the single point off that line, by the same air-gap floor.
+   And the vergence has a **pole** at Δ = −31.774 mm where the axial exit ray's
+   height passes through zero, which is measured rather than explained: it is *not*
+   the front-focus crossing, since at Δ = −FFD = −19.670 mm the vergence is −82.6 D,
+   large but finite — the flip is 12.1 mm further on.
+   **Open:** the retinal PSF itself, the eyepiece's own aberrations at
    this conjugate, colour, and the exit pupil off axis. § 5j's doublet form also
-   walls out again — a computed Plössl admits ~0.88·f_e of clear aperture, so FN 20
-   sits at the edge and a genuinely wide field needs the transcribed patent members
+   walls out again — a computed Plössl admits ~0.88·f_e of clear aperture (**the
+   bracket the panel above bisects to 0.899195·f_e**), so FN 20 sits at the edge and
+   a genuinely wide field needs the transcribed patent members
    rather than a wider aperture on this form. That is the fourth wall of its kind,
-   after § 6b's f/4.1, § 6d's NA 0.343 and § 6e.4's NA 1.411.
+   after § 6b's f/4.1, § 6d's NA 0.343 and § 6e.4's NA 1.411 — and the panel adds
+   that it belongs to the **Plössl** rather than to eyepieces: a Huygens has no
+   cemented doublet to fail and no wall below the 1.5·f_e its search stops at.
    *Polychromatic brightfield:* ✅ **done** (§ 6r) — the branch is in colour, and
    a stained section looks stained. The Abbe sum runs per wavelength, each on its
    own `objectFieldTile`, because `pupilSamples` is a bin count and the physical

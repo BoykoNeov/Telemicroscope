@@ -3,6 +3,7 @@ import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
 import { BuilderPanel } from "./builder";
 import { CoverslipPanel } from "./coverslip";
+import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
 import { StagePanel } from "./stage";
@@ -84,6 +85,12 @@ export const PANELS: readonly Panel[] = [
     label: "the cover slip",
     blurb: "APP.md A6 — a plate the objective does not control, and two walls that are not aberration",
     Component: CoverslipPanel,
+  },
+  {
+    id: "eyepiece",
+    label: "the eyepiece",
+    blurb: "APP.md D6 — the chain ends at an eye, and which NA the exit pupil's law takes",
+    Component: EyepiecePanel,
   },
   {
     id: "volume",

@@ -6293,6 +6293,16 @@ wider aperture on this one. That is the same pattern as § 6b's f/4.1 ceiling,
 § 6d's NA 0.343 wall and § 6e.4's NA 1.411: **the form stops existing before it
 stops being good.**
 
+*The 0.88 above is a bracket — the two builds this rung makes — and not the wall
+itself. Bisected it is **0.899195·f_e**, and it is a **constant**: the Plössl form
+is exactly scale-invariant, so the fraction does not move with focal length at
+all, and the only thing that breaks it is `plosslEyepiece`'s own air-gap default
+`max(0.3, 0.02·f_e)` below f_e = 15. That measurement is an **app** one and lives
+in APP.md D6 and `packages/app/test/eyepiece.test.ts` rather than here, because
+bisecting where a constructor refuses is not new physics and mints no rung. It is
+recorded here so the next reader does not re-derive it, and so "about 0.88" is not
+mistaken for the number.*
+
 ### Not yet pinned
 
 - **The retinal image itself.** `visualMicroscopeSystem` composes the eye and

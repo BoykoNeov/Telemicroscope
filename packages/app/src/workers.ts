@@ -51,6 +51,12 @@ export const createCoverslipIndexWorker = () =>
 export const createCoverslipPointWorker = () =>
   new Worker(new URL("./coverslip.point.worker.ts", import.meta.url), { type: "module" });
 
+export const createEyepieceSweepWorker = () =>
+  new Worker(new URL("./eyepiece.worker.ts", import.meta.url), { type: "module" });
+
+export const createEyepieceWallWorker = () =>
+  new Worker(new URL("./eyepiece.wall.worker.ts", import.meta.url), { type: "module" });
+
 /** The one factory a panel calls MORE THAN ONCE — A7 keeps a pool of these, one
  * tile per worker at a time. See `stage.worker.ts` for why that is allowed. */
 export const createStageWorker = () =>
