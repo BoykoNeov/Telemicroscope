@@ -117,8 +117,6 @@ export function lostRays(system: OpticalSystem): number {
   return opdMap(system, 0, FOCUS_NM, GRID).lost;
 }
 
-export const gridPoints = (): number => GRID.length;
-
 /**
  * The aperture at which the doublet's own glass runs out — bisected, not quoted.
  *

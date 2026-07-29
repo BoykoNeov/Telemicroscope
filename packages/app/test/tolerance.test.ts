@@ -18,16 +18,16 @@ import {
  *
  * **No engine capability was added for the panel, so no validation-ladder rung
  * was**: every number here is § 5t's, called from the app. A6's and D10's
- * convention. What is pinned below is the wiring, plus the four claims the panel
+ * convention. What is pinned below is the wiring, plus the claims the panel
  * makes that no rung states — and each of them is a claim § 5t could not have
  * made, because § 5t deliberately sits on a *perfect* nominal and this panel
  * deliberately does not.
  *
  * 1. **The slider scaling is a measurement that checks itself.** ±1 on a slider
  *    is the drift that spends the Maréchal budget, extrapolated from a linear
- *    coefficient and then *bisected*. The extrapolation is legitimate for
- *    thirteen rows of the catalogue and wrong by 20× for one, and the panel
- *    prints the ratio rather than trusting either.
+ *    coefficient and then *bisected*. The extrapolation is legitimate for twelve
+ *    of the achromat's fifteen (surface, target) pairs and wrong by 20× for one,
+ *    and the panel prints the ratio rather than trusting either.
  * 2. **Two rows are refusals.** The last surface's thickness is inert — the
  *    image plane is an offset from the last vertex, so the airspace never
  *    reaches the image — and the give-away is that `sigmaBeforeFocusWaves` is
@@ -104,10 +104,10 @@ describe("Part B — the slider scaling", () => {
 
   it("δW is linear in the perturbation — for every row but one", () => {
     // § 5t's premise, measured. The extrapolation from a probe-delta coefficient
-    // lands on the bisected budget delta within 6% for the whole catalogue —
-    // measured 0.96 to 1.06 over the achromat's fifteen (surface, target) pairs,
-    // so δW really is linear out to a whole Maréchal budget and the residual is
-    // its own second order...
+    // lands on the bisected budget delta within 6% — 0.96 to 1.06 — for TWELVE of
+    // the achromat's fifteen (surface, target) pairs, so δW really is linear out
+    // to a whole Maréchal budget and the residual is its own second order. (Of
+    // the other three, one is inert, one is out of reach, and one is below.)
     for (const [surface, target] of [
       [0, "curvature"],
       [0, "conic"],
@@ -313,9 +313,9 @@ describe("Part B — the singlet, which is where several of the above stop holdi
   });
 
   it("its wall is the SAME law with a different centre thickness, and out of reach", () => {
-    // 5 mm rather than the crown's 3, so h = √(t·R) puts it √(5/3) = 1.29× further
-    // out — measured 45.19 against 22.99 at f = 100, a ratio of 1.966 because the
-    // singlet's R is also larger. What matters to the panel is that the widest
+    // h = √(t·R) with BOTH factors moving: 5 mm of centre thickness against the
+    // crown's 3, and R 103.36 mm against 44.78. √(5/3 × 2.308) = 1.961 against a
+    // measured 45.19/22.99 = 1.966 at f = 100. What matters to the panel is that the widest
     // aperture it offers (30 mm) never reaches it, so the wall guard's prose must
     // be lens-specific or it is the only thing that branch ever shows, wrongly.
     const walls = [50, 100, 200].map((focalLengthMm) =>
