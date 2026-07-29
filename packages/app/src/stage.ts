@@ -1,14 +1,15 @@
 import { commensurateSource } from "@telemicroscope/core/illumination";
 import {
+  atWavelength,
   mosaicLayout,
   mosaicTileAt,
   renderMosaicTile,
   type MosaicOptions,
-  type Specimen,
 } from "@telemicroscope/core/imaging";
 import { objectNumericalAperture } from "@telemicroscope/core/pupil";
 import type { OpticalSystem } from "@telemicroscope/core/trace";
 import { entryOf, LAMBDA_NM, type MicroscopeKind } from "./microscope";
+import { specimenOf, type SpecimenKind } from "./specimens";
 
 /**
  * The stage — APP.md's A7, as pure functions.
@@ -89,124 +90,6 @@ export const WHITE_INTENSITY = 2;
  * obviously past the floor rather than tuned to it.
  */
 export const RADIAL_MAP_NODES = 64;
-
-export type SpecimenKind = "ruled" | "diatom" | "section";
-
-export interface SpecimenEntry {
-  readonly kind: SpecimenKind;
-  readonly label: string;
-  /** Why it is in the list; one line, and it is the teaching. */
-  readonly note: string;
-  readonly specimen: Specimen;
-}
-
-/** A raised-cosine edge — smooth over `w`, so nothing on screen is the grid's
- * own aliasing wearing a specimen's clothes. */
-function ramp(d: number, w: number): number {
-  if (d <= 0) return 0;
-  if (d >= w) return 1;
-  return 0.5 - 0.5 * Math.cos((Math.PI * d) / w);
-}
-
-/** A deterministic hash — a stained section needs structure that is the same on
- * every tile that reaches it, and a seeded RNG walked per pixel would not be. */
-function hash2(i: number, j: number): number {
-  let h = Math.imul(i, 0x27d4eb2d) ^ Math.imul(j, 0x165667b1);
-  h = Math.imul(h ^ (h >>> 15), 0x2545f491);
-  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
-}
-
-/**
- * The specimens, authored in **object millimetres** (§ 6n: a `Specimen` is a
- * callback, and `rasterizeSpecimen` evaluates it at the point each pixel really
- * looks at, so the warp happens in the argument and nothing is resampled).
- *
- * They are pictures, not physics — no rung pins one — so they live in the app,
- * and each is a real absorption (amplitude in [0, 1]) rather than a phase
- * object, because § 6f's null is that brightfield transfers no phase at all and
- * A3 is the panel that spends it.
- */
-export const SPECIMENS: readonly SpecimenEntry[] = [
-  {
-    kind: "ruled",
-    label: "ruled grid, 20 µm",
-    note: "§ 6n's bow, at field scale: a straight object line images CURVED, and a mosaic is where you can see it.",
-    specimen: (x, y) => {
-      // Distance in mm to the nearest ruling of a 20 µm square grid, then a
-      // 1.5 µm line with a 1 µm soft edge — resolved by every objective in the
-      // catalogue, so what changes across the picker is the field, not the line.
-      const p = 0.02;
-      const toLine = (u: number): number => {
-        const frac = (u / p) % 1;
-        return (0.5 - Math.abs((frac < 0 ? frac + 1 : frac) - 0.5)) * p;
-      };
-      const on = (d: number): number => 1 - ramp(d - 0.0015, 0.001);
-      return { re: 1 - 0.85 * Math.max(on(toLine(x)), on(toLine(y))), im: 0 };
-    },
-  },
-  {
-    kind: "diatom",
-    label: "diatoms, 60 µm",
-    note: "The classic resolution test object: areolae on a polar lattice, crowding toward the centre.",
-    specimen: (x, y) => {
-      // Scattered on a 150 µm lattice rather than one on the axis, so panning
-      // finds another instead of leaving the field empty — and each one is
-      // turned by its own cell's hash, so the rays do not line up across the
-      // stage and read as one periodic object.
-      const p = 0.15;
-      const ci = Math.floor(x / p);
-      const cj = Math.floor(y / p);
-      const cx = (ci + 0.2 + 0.6 * hash2(ci, cj)) * p;
-      const cy = (cj + 0.2 + 0.6 * hash2(cj, ci + 5)) * p;
-      const r = Math.hypot(x - cx, y - cy);
-      const R = 0.03;
-      if (r > R) return { re: 1, im: 0 };
-      const theta = Math.atan2(y - cy, x - cx) + 6.283 * hash2(ci + 2, cj + 9);
-      // 48 rays and rings of 3 µm pitch. The radial pitch is fixed and the
-      // tangential one is 2πr/48 — 3.9 µm at the rim and 1.3 µm a third of the
-      // way in — so one specimen carries a range of frequencies straddling the
-      // 4×/0.10's own 2.94 µm Abbe limit rather than a single one.
-      const ring = Math.cos((2 * Math.PI * r) / 0.003);
-      const ray = Math.cos(48 * theta);
-      const pore = 0.5 + 0.5 * ring * ray;
-      const rim = 1 - ramp(R - r, 0.004);
-      return { re: 1 - 0.8 * (0.35 + 0.5 * pore) * (1 - rim) - 0.7 * rim * (1 - ramp(R - r, 0.001)), im: 0 };
-    },
-  },
-  {
-    kind: "section",
-    label: "stained section",
-    note: "What a mosaic is for: structure with no periodicity, over more specimen than one frame holds.",
-    specimen: (x, y) => {
-      // Cells on a 25 µm lattice, each jittered and sized by its own hash, with
-      // a darker nucleus — deterministic in the object plane, so two tiles that
-      // reach the same cell draw the same cell.
-      const p = 0.025;
-      const ci = Math.floor(x / p);
-      const cj = Math.floor(y / p);
-      let stain = 0;
-      for (let dj = -1; dj <= 1; dj++) {
-        for (let di = -1; di <= 1; di++) {
-          const i = ci + di;
-          const j = cj + dj;
-          const cx = (i + 0.25 + 0.5 * hash2(i, j)) * p;
-          const cy = (j + 0.25 + 0.5 * hash2(j, i + 7)) * p;
-          const rad = (0.28 + 0.12 * hash2(i + 3, j + 11)) * p;
-          const d = Math.hypot(x - cx, y - cy);
-          stain = Math.max(stain, 0.45 * ramp(rad - d, 0.3 * rad));
-          stain = Math.max(stain, 0.85 * ramp(0.4 * rad - d, 0.25 * rad));
-        }
-      }
-      return { re: 1 - stain, im: 0 };
-    },
-  },
-];
-
-export function specimenOf(kind: SpecimenKind): SpecimenEntry {
-  const entry = SPECIMENS.find((s) => s.kind === kind);
-  if (!entry) throw new Error(`unknown specimen ${kind}`);
-  return entry;
-}
 
 export interface StageRequest {
   readonly kind: MicroscopeKind;
@@ -377,7 +260,11 @@ export function renderStageTile(request: StageTileRequest): StageTileResult {
     const source = commensurateSource(request.coherenceParameter, request.pupilSamples, 1);
     const formed = renderMosaicTile(
       system,
-      specimenOf(request.specimen).specimen,
+      // The stage is monochrome, so the specimen's spectrum is bound off at the
+      // d line here and nothing below this line learns one exists — `atWavelength`
+      // is that seam, and it is why promoting the library to `SpectralSpecimen`
+      // for A9 left this panel's picture alone.
+      atWavelength(specimenOf(request.specimen).specimen, LAMBDA_NM),
       source,
       { ...options, patches: 1, radialMapNodes: RADIAL_MAP_NODES },
       tile,

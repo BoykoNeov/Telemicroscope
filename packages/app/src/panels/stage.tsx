@@ -2,13 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
 import { Choice, Guard, GUARD_COLOR, Slider, VERDICT_LEVEL } from "../ui";
 import { createStageWorker } from "../workers";
+import { SPECIMENS, specimenOf, type SpecimenKind } from "../specimens";
 import {
   FIELD_NUMBER_MM,
-  SPECIMENS,
-  specimenOf,
   stageInfo,
   WHITE_INTENSITY,
-  type SpecimenKind,
   type StageInfo,
   type StageRequest,
   type StageTileDone,
