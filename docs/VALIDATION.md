@@ -16,7 +16,7 @@ whole ladder.
 |---|---|---|
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil | `pupil` `opd` `compile` |
-| [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them | `focus` |
+| [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -220,6 +220,50 @@ band.
 
 The criteria are also shown to disagree *usefully*: each one's plane is worse
 than the other's when scored by the other's measure.
+
+### 1.6.1 — the wavefront solve returns a minimum, not a bracket edge
+
+Every rung above runs on a spherical mirror, where the only aberration is
+primary spherical and the two planes the solve involves are locked in the 4/3
+ratio those rungs pin. **That ratio is also what sized the search**, and the two
+uses are not the same claim. `bestFocus` brackets the wavefront minimum with
+twice the distance from the paraxial plane to the *spot* plane; `goldenMin`
+assumes the bracket contains the minimum, and when it does not, both its probes
+move the same way and it converges on the **edge** — returning it, with its
+merit, as though it were a minimum.
+
+A real objective carrying fifth order can balance its transverse aberration
+while its wavefront minimum stays put, at which point the estimate collapses
+toward zero and brackets nothing. That is not hypothetical and it is not rare:
+it is § 6e.4's own 100×/1.40 oil objective looking through a 0.164 mm slip,
+refocused § 6e.5's way.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The estimate COLLAPSES there**: the spot plane is within 0.083 mm of the paraxial one while the wavefront minimum is 1.44 mm away — 17× too narrow | the two planes are different quantities; only third-order theory ties them | ✅ |
+| **The solve lands on the scanned minimum anyway**, and no plane in a 350-point scan of its own merit beats it | an independent computation, not a transcribed number | ✅ |
+| …and the merit it *reports* is the merit at the plane it *returns*, to 1e-12 | a search may not report a value it never evaluated | ✅ |
+| **The edge the collapsed bracket used to return is 3.2× worse** — σ 0.054 against 0.017 waves | what the defect cost, in the currency the app draws | ✅ |
+| **IDENTITY: a slip whose bracket does not collapse is unchanged** — same plane, same merit | widening must not perturb a solve that was already right | ✅ |
+
+**How it was found, and why that matters more than the fix.** Nothing in the
+ladder caught this. § 6e.5's own sweeps run the solve at every slip thickness
+and its rungs are all `toBeLessThan`, which a *worse* σ passes when the bound is
+loose enough — and at NA 1.0 and 1.25, where those rungs live, the bracket never
+collapses. What found it was **APP.md's A6 drawing the curve**: σ against slip
+thickness has a 3.2× spike at one thickness, smooth on either side, converged in
+`pupilSamples`, and it looked exactly like physics. This is the fifth time a
+surface has found what a rung could afford to ignore (A3's undersampled lobes,
+A4's frozen sweep, A5's lattice period, D8's defaulted parameters) — and the
+first time the thing it found was wrong rather than merely unsaid.
+
+The fix widens the bracket until the answer is interior, and **throws** if it
+cannot after 8 doublings rather than returning its last edge: an undefined
+readout is refused, not printed, one layer below where that rule usually
+applies. The throw is a backstop with no known trigger — a real system's
+wavefront error grows without bound away from focus, so it always brackets
+eventually — and is deliberately not pinned, because a rung with a contrived
+system behind it would pin the contrivance.
 
 ### Consistency checks (NOT validation)
 

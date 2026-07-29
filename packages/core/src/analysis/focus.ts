@@ -151,6 +151,60 @@ function oneWaveDefocus(system: OpticalSystem, wavelengthNm: number): number {
   return (2 * wavelengthNm * 1e-6) / (na * na);
 }
 
+/**
+ * How many times the wavefront bracket may double before the search gives up.
+ * 2⁸ = 256× the geometric estimate; past that the estimate is not wrong, the
+ * merit function is not a focus curve.
+ */
+const MAX_BRACKET_DOUBLINGS = 8;
+
+/**
+ * Golden section on [centre − half, centre + half], **widened until the answer
+ * is interior**, because an edge is not a minimum.
+ *
+ * `goldenMin` assumes the bracket contains the minimum. When it does not, both
+ * of its probes keep moving the same way and it converges on the edge nearest
+ * the true minimum, returning it with no indication that it never found one.
+ * That is not a hypothetical: the wavefront bracket is sized from the *spot*
+ * plane (see `bestFocus`), and the two planes are different quantities. On the
+ * § 6e.4 oil objective looking through a 0.164 mm slip the geometric spot plane
+ * lands within 0.083 mm of the paraxial plane while the wavefront minimum sits
+ * 1.44 mm away, so the bracket was 17× too narrow and the solve returned a
+ * plane whose σ is 3.2× the real minimum — silently, and monotonically enough
+ * across neighbouring slips to look like physics. § 1.6 pins it.
+ *
+ * Widening restarts the search rather than reusing the previous run: the cost
+ * is one extra golden section per doubling, paid only where the estimate failed,
+ * against a wrong answer everywhere it fails. If the bracket runs out of
+ * doublings the search **throws** rather than returning its last edge — this
+ * engine refuses an undefined readout instead of printing one.
+ */
+function bracketedMin(
+  f: (x: number) => number,
+  centre: number,
+  span: number,
+  tolerance: number,
+): { x: number; fx: number } {
+  let half = span;
+  for (let doubling = 0; ; doubling++) {
+    const lo = centre - half;
+    const hi = centre + half;
+    const { x, fx } = goldenMin(f, lo, hi, tolerance);
+    // Golden section converges to within `tolerance` of the edge it is pinned
+    // to, so the test is against that and not against equality. The relative
+    // term keeps it meaningful for a bracket far wider than the tolerance.
+    const edge = Math.max(2 * tolerance, (hi - lo) * 1e-6);
+    if (x - lo > edge && hi - x > edge) return { x, fx };
+    if (doubling >= MAX_BRACKET_DOUBLINGS) {
+      throw new Error(
+        `focus search never bracketed a minimum: the merit still falls at the edge of ` +
+          `[${lo}, ${hi}] after ${MAX_BRACKET_DOUBLINGS} doublings of the initial ±${span} mm`,
+      );
+    }
+    half *= 2;
+  }
+}
+
 /** Golden-section minimisation of a unimodal f over [lo, hi]. */
 function goldenMin(
   f: (x: number) => number,
@@ -229,13 +283,14 @@ export function bestFocus(
   // Third-order theory puts this minimum at 3/4 of the geometric one, so twice
   // the geometric gap brackets it comfortably from either side — and the sign
   // is not assumed, because a mirror focuses toward −z.
+  //
+  // That is an ESTIMATE, and third-order theory is the only thing promising the
+  // two planes stay in proportion. Where a system's transverse aberration
+  // balances but its wavefront does not, the geometric gap collapses while the
+  // wavefront minimum stays put, and the estimate is arbitrarily small. So the
+  // bracket is checked and widened rather than trusted — `bracketedMin`.
   const span = gap > fallback * 1e-3 ? 2 * gap : fallback;
 
-  const { x, fx } = goldenMin(
-    rms,
-    paraxialOffset - span,
-    paraxialOffset + span,
-    options.tolerance ?? 1e-7,
-  );
+  const { x, fx } = bracketedMin(rms, paraxialOffset, span, options.tolerance ?? 1e-7);
   return finish(x, fx);
 }
