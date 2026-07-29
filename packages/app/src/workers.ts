@@ -42,6 +42,15 @@ export const createVolumeAxialWorker = () =>
 export const createVolumeDepthWorker = () =>
   new Worker(new URL("./volume.depth.worker.ts", import.meta.url), { type: "module" });
 
+export const createCoverslipSweepWorker = () =>
+  new Worker(new URL("./coverslip.worker.ts", import.meta.url), { type: "module" });
+
+export const createCoverslipIndexWorker = () =>
+  new Worker(new URL("./coverslip.index.worker.ts", import.meta.url), { type: "module" });
+
+export const createCoverslipPointWorker = () =>
+  new Worker(new URL("./coverslip.point.worker.ts", import.meta.url), { type: "module" });
+
 /** The one factory a panel calls MORE THAN ONCE — A7 keeps a pool of these, one
  * tile per worker at a time. See `stage.worker.ts` for why that is allowed. */
 export const createStageWorker = () =>

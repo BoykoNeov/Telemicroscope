@@ -24,7 +24,8 @@ that would pin it, and marks which is which throughout.
 ## The baseline: what the app draws today, and its house style
 
 The adapters — `render.ts`, `microscope.ts`, `brightfield.ts`, `phase.ts`,
-`fluorescence.ts` — are the whole optical pipeline as **pure functions**, numbers
+`fluorescence.ts`, `volume.ts`, `stage.ts`, `builder.ts`, `coverslip.ts` — are
+the whole optical pipeline as **pure functions**, numbers
 in, pixels out, no DOM, no React, so running one in a worker was a change of
 caller and not of code. A4 stretched "pixels out" and it is worth naming: its
 worker returns the **intensity grid**, and the panel maps it to grey, because the
@@ -783,7 +784,7 @@ which is exact only for a z-uniform specimen — a bead field is not one, and
 § 6k's and § 6l's, called from the app — though D10 did add the branch's first
 **app** test file, for the wiring rather than the physics. See D10.
 
-### A6. Coverslip mismatch and the slip tolerance — *app wiring only* — **plot**
+### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**
 
 Sliders for slip thickness and index against σ, on the 100×/1.40 oil. The
 results are sharp and entirely numeric, so this is a plot surface with at most a
@@ -798,6 +799,75 @@ small PSF inset:
   starts losing rays. That coincidence is worth drawing.
 
 `coverslipTolerance`, `stackW040Mm`, `plateWavefrontErrorMm` supply all of it.
+
+**Built as `coverslip.ts` + `panels/coverslip.tsx`, four plots and a readout, in
+three workers** (thickness sweep ~2–5 s, index sweep ~3 s, and the one slip the
+sliders stand on at ~200 ms). App-level invariants are in
+`packages/app/test/coverslip.test.ts`; no ladder rung was added *for the panel*,
+because every number it draws is § 6c's and § 6e.5's. **One was added for what
+the panel found** — see below.
+
+**The line above that says "`coverslipTolerance`, `stackW040Mm`,
+`plateWavefrontErrorMm` supply all of it" is wrong**, and it is this doc's own
+recorded failure mode arriving a sixth time: *the feasibility number turns out to
+be measuring something else.* Those three are closed forms; three of the four
+bullets are **traced** σ, and what supplies them is § 6e.5's whole recipe —
+build the objective, splice a different slip in front of it without re-solving,
+refocus by the closed form, `bestFocus` + `opdMap`. `stackW040Mm` does earn its
+place, but not as a supplier: it is the *decomposition* that makes the σ curve
+legible (below). `plateWavefrontErrorMm` is not used at all — it is the dry
+single-plate form, and this objective looks through a stack.
+
+**What it cost that was not budgeted: an engine defect, and it was in the focus
+solve.** σ against slip thickness at NA 1.40 had a **3.2× spike at one
+thickness**, smooth on either side and converged in `pupilSamples` — it looked
+exactly like physics. It was not: `bestFocus("minRmsWavefront")` brackets its
+golden-section search with twice the distance from the paraxial plane to the
+*spot* plane, and where a system balances its transverse aberration while its
+wavefront minimum stays put, that estimate collapses and `goldenMin` returns a
+**bracket edge** as though it were a minimum. § 1.6.1 now pins the fix against a
+scan of the solver's own merit. Nothing in the ladder had caught it: § 6e.5 runs
+this solve at every thickness, but its rungs are `toBeLessThan` — which a *worse*
+σ passes — and at NA 1.0 and 1.25, where they live, the bracket never collapses.
+**A6's prediction slot therefore resolves harder than A3–A5's**: those found
+things a rung had not needed to *say*; this one found something a rung had got
+*wrong*.
+
+**Three findings, and the first corrects the bullet above it.**
+
+- **"σ flat across 0.15–0.18 mm" is an NA 1.00 statement**, not a general one.
+  Measured on the panel's own sweep: at NA 1.00 the refocused σ moves under 15%
+  across the band (§ 6e.5's flatness rung, reproduced), at **NA 1.25 it varies
+  3×**, and at **NA 1.40 it has a genuine minimum about 5 µm UNDER nominal**.
+  All of it stays inside a third of the budget, so "not flat" is not "not
+  diffraction-limited" — the panel says both.
+- **The minimum is § 6e.4's "the cover slip helps", with the film as the knob.**
+  The oil is the only mismatched layer in the stack (slip and front element are
+  both D263, so the slip's contribution is an identical zero), and it is
+  **rarer** than the glass either side of it — so its W₀₄₀ is negative and
+  opposes the Lister residual. Refocusing a *thinner* slip **thickens** the film,
+  which buys more of that cancellation. `stackW040Mm` on that one layer is drawn
+  beside σ, which is what turns a monotone drift from mysterious into legible.
+  The index slider is the same mechanism on the other axis: a slightly rarer slip
+  adds negative aberration too. Neither is a recommendation — § 6e.5 records the
+  same kind of gain in the placement solve and deliberately does not act on it.
+- **Both ends of the band are geometric, and the panel measures them rather than
+  quoting them.** § 6e.4's NA 1.411 is a number in the validation ladder and not
+  an engine export, so the adapter **bisects** for the slip at which the tracer
+  first loses a ray and reads the closed-form aperture there: **0.1612 mm at NA
+  1.4112**, which is § 6e.5's predicted 0.1613 mm arriving as an observation with
+  the constant appearing nowhere in the app. The thick end is the **film**, not
+  σ — at 0.19 mm the refocus asks for 0.11 µm of oil. The wavefront is
+  comfortably inside budget at both walls.
+
+**And A3's refusal rule is load-bearing here rather than decorative.** `opdMap`
+returns an `rmsWaves` whether or not the pupil is whole, and at the thin end a
+third of this objective's pupil is dark — that σ *rises*, smoothly, and drawn as
+a curve it reads as aberration growing toward a thin slip, which is the opposite
+of what is happening. Every σ carries its own `lost` and refuses itself, so the
+thin end of the black curve is a **gap** and a sentence, never a plotted number.
+The two refusals are also distinguishable by voice, A1's `source` distinction:
+lost rays are the app's refusal, a thrown design is the engine's.
 
 ### Disqualified — needs an engine step first
 
@@ -1754,7 +1824,9 @@ closes the microscope branch's last numbered gap and turns A5's stated omission
 into **D10**.
 
 **~~D8~~ has now landed too**, and so has **~~D10~~** — so **Part D is walked, end
-to end.** D10 was billed as the cheapest engine-backed surface in the doc and the
+to end.** *(And since then **~~A6~~** has landed as well, so what is left in this
+doc is Part B, plus the D6 panel this section's own accounting had lost — see
+"Suggested order".)* D10 was billed as the cheapest engine-backed surface in the doc and the
 picture half of it was: the mount is one more term in a callback already being
 evaluated per slice. The two things it cost that were not budgeted are both about
 *comparison* rather than about rendering — an ideal-pupil control the axial
@@ -1908,7 +1980,19 @@ which is A3's undersampled lobes and A4's frozen sweep arriving a third time in 
 third place.
 
 **Part B** is self-contained and can go in parallel — it touches no microscope
-code. **A6** follows. **Part C** is a separate decision.
+code. **~~A6~~ has landed**; see its section for the three findings and for the
+engine defect it turned up in the focus solve. **Part C** is a separate decision.
+
+**Two things this doc had lost, recorded here because A6 emptied the queue that
+was hiding them.** First, **the D6 panel does not exist.** Part D's own opening
+says of the eyepiece "what remains unbuilt is the *panel* for it", and its
+closing accounting says the only remaining items are A6 and Part B; the registry
+sides with the first — there are nine panels and none of them is
+`designs/visual-microscope`. § 6q is the branch's headline capability (the chain
+ends at an eye, not at an image) with no surface, and D9's "what stays out" list
+does not name it, so it is a gap rather than a decision. Second, **scenes are
+content, not blockers**: § 6n unblocked stained tissue and diatom fields, and the
+disqualified table says so, but nobody has authored one.
 
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine

@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
 import { BuilderPanel } from "./builder";
+import { CoverslipPanel } from "./coverslip";
 import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
 import { StagePanel } from "./stage";
@@ -77,6 +78,12 @@ export const PANELS: readonly Panel[] = [
     label: "the stage",
     blurb: "APP.md A7 — a field of view reached by tiling, and a tile that knows its own index",
     Component: StagePanel,
+  },
+  {
+    id: "coverslip",
+    label: "the cover slip",
+    blurb: "APP.md A6 — a plate the objective does not control, and two walls that are not aberration",
+    Component: CoverslipPanel,
   },
   {
     id: "volume",
