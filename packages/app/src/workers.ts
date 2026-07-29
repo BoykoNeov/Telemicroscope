@@ -57,6 +57,9 @@ export const createEyepieceSweepWorker = () =>
 export const createEyepieceWallWorker = () =>
   new Worker(new URL("./eyepiece.wall.worker.ts", import.meta.url), { type: "module" });
 
+export const createSectionWorker = () =>
+  new Worker(new URL("./section.worker.ts", import.meta.url), { type: "module" });
+
 export const createToleranceWorker = () =>
   new Worker(new URL("./tolerance.worker.ts", import.meta.url), { type: "module" });
 

@@ -6,6 +6,7 @@ import { CoverslipPanel } from "./coverslip";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
+import { SectionPanel } from "./section";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
@@ -80,6 +81,12 @@ export const PANELS: readonly Panel[] = [
     label: "the stage",
     blurb: "APP.md A7 — a field of view reached by tiling, and a tile that knows its own index",
     Component: StagePanel,
+  },
+  {
+    id: "section",
+    label: "the section, in colour",
+    blurb: "APP.md A9 — colour integrated per wavelength, beside the tint that cannot be a stain",
+    Component: SectionPanel,
   },
   {
     id: "coverslip",

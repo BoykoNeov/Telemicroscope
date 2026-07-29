@@ -194,8 +194,11 @@
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i),
    the latter now over a 3-D specimen ✅ (§ 6k); coverslip mismatch ✅ (§ 6c);
-   scenes: fluorescent beads ✅ (§ 6i.5), with diatoms and stained tissue still
-   open.
+   scenes: fluorescent beads ✅ (§ 6i.5), and **diatoms and stained tissue are
+   authored too** — in the app, since § 6n unblocked them (`app/src/specimens.ts`,
+   drawn by A7's stage and, since APP.md's A9, **in colour**). No rung pins one:
+   a specimen is a picture, and the physics it is fed through is § 6f's and
+   § 6r's.
    "Mostly configuration + domain models on the existing engine" held for the
    optics and did **not** hold for brightfield — see § 6f.
    *Prerequisite — dispersive immersion/coverslip glass:* ✅ sourced and
@@ -705,7 +708,19 @@
    `no-honest-image` there at 32 bins while 550 and 650 nm pass. And **lateral
    colour arrives free** — the per-λ frames are concentric and everything inside
    them is traced at its own wavelength — exactly zero on axis and linear in
-   field to under 1%. **Open:** a polychromatic *mosaic* (the useful span is ∝ λ,
+   field to under 1%. *Its panel has now landed* (APP.md A9) — app wiring only,
+   and it corrected this step's own cost line: with § 6s in place nine wavelengths
+   are **403 ms** at ps 32 / grid 64 where D7 had budgeted minutes, so the
+   expensive axis is the **pupil lattice** and not the wavelength count (ps 64 is
+   17×, 208 → 812 directions). Two things came out of driving it. A **neutral**
+   specimen — with no λ anywhere in it — images with violet fringes that beat the
+   stain on the worst pixel (0.2227 against 0.1556) and survive at the lattice
+   where every plane rules `valid`, so § 3b's purple fringing is in this branch
+   too on an object that has no colour at all; what separates a stain from a
+   fringe is not the spread but the frame's **mean** chromaticity, which the stain
+   moves 0.0200 off the lamp's white and the grid moves 0.0010. And the blue
+   plane's refusal below reproduces exactly from the app, which is what makes it a
+   panel guard rather than a footnote. **Open:** a polychromatic *mosaic* (the useful span is ∝ λ,
    so § 6o's pitch and guard band would need one reference λ), a singlet-versus-
    achromat objective contest (there is no singlet finite-conjugate objective —
    `achromaticObjective`'s split divides by V₁ − V₂), per-λ grating contrast as a

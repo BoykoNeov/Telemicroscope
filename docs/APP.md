@@ -870,11 +870,91 @@ thin end of the black curve is a **gap** and a sentence, never a plotted number.
 The two refusals are also distinguishable by voice, A1's `source` distinction:
 lost rays are the app's refusal, a thrown design is the engine's.
 
+### A9. The section in colour, and the tint that cannot be a stain — ✅ **landed** — *app wiring only* — **pair**
+
+Built as `packages/app/src/section.ts` (pure adapter), `section.worker.ts`,
+`panels/section.tsx`, `packages/app/test/section.test.ts`. **No engine capability
+was added, so no validation-ladder rung was** — every number is § 6r's, called
+from the app.
+
+**It starts by correcting this document.** "Scenes nobody has authored" was
+stale: `stage.ts` authored a diatom field and a stained section for A7, and the
+disqualified row below has said "what remains is authoring a scene" since § 6n.
+What was actually missing was **colour** — every microscope surface in the repo
+was grey, the stage's section is a neutral absorber bound at the d line, and
+`brightfieldSpectralStack` (§ 6r, the branch's own headline "a stained section
+looks stained") had **zero callers in the app**. That gap, not the scene, is what
+A9 closes. The specimen library moved to `specimens.ts` and became
+`SpectralSpecimen` on the way; the stage binds `atWavelength(spec, LAMBDA_NM)`
+and its picture is unchanged, which is the seam `imaging/specimen` keeps.
+
+The dyes are **invented** — two Gaussian absorption bands composing by
+Beer–Lambert, stated as synthetic on screen. § 6r lists a rung against a
+published stain's transmittance as open and real dye spectra are measured data
+this repo does not have, so nothing on the page is a claim about a real stain.
+
+**The pair is § 6r.5 drawn.** The same stack produces the honest image (one Abbe
+sum per λ, stacked on the bluest plane's ruler, collapsed against the CIE
+observer) and the tempting one (sum to grey, then multiply by the lamp's colour).
+The tint's chromaticity spread is **4e-16 and zero by construction** — a scalar
+times one XYZ cannot vary — against **0.156** measured on the same frame. A proof
+beside a measurement, and the panel says which is which.
+
+**Four findings, and the first two revise what this section was scoped to say.**
+
+- **A specimen with NO wavelength in it images in colour, and on the worst pixel
+  it beats the stain.** The ruled grid is `neutralSpecimen`; its image has violet
+  lines on a cream ground and spreads **0.2227** against the stained section's
+  **0.1556**. Axial colour is concentrated exactly at an edge and a 1.5 µm ruling
+  on a 20 µm pitch is nothing but edges, while a dye tints a whole cell mildly.
+  This is § 3b's purple fringing arriving in the microscope branch on an object
+  that has no colour at all. **It survives the honest lattice**: at ps 64, where
+  every plane rules `valid`, the grid still reads 0.2254 — so it is the
+  objective's dispersion and not the refused blue plane.
+- **So one number was not enough, and that is this panel's version of the
+  pattern.** A5 found a rung's *sampling*; D8 found a rung's *defaulted
+  parameters*; A9 found a rung's **statistic**. A max is an outlier and a stain is
+  an area, so the panel reports the luminance-weighted mean beside it — and the
+  discriminator that actually separates a fringe from a stain is neither: it is
+  the frame's **mean chromaticity**, which the section moves **0.0200** off the
+  lamp's white and the grid moves **0.0010**. A fleck would move the spread and
+  not the mean.
+- **§ 6r.7 reproduces exactly, and it is the panel's guard.** At ps 32 on the DIN
+  4× the 450 nm plane rules `no-honest-image` while 550 and 650 rule `valid`;
+  doubling the lattice clears it and costs **17×** (208 → 812 directions). The
+  panel names the wavelength rather than colouring the frame, because "the frame
+  is unreliable" and "the blue third of its colour is" are different sentences.
+- **D7's cost line is corrected, and § 6s is the whole reason.** D7 says "nine
+  wavelengths at 64² is still minutes"; measured on the DIN 4×/0.10 at ps 32 /
+  grid 64 with its 208-direction commensurate condenser it is **403 ms** — 149 ms
+  at 3 λ, 231 at 5, and 45–50 ms a wavelength *flat in the count*, which is what
+  "the Abbe sum is the bill" looks like from outside. The expensive axis is the
+  **lattice**, not the wavelength count: ps 64 / grid 128 is 2 487 ms at 3 λ. So
+  this is a select-change surface rather than the button D7 budgeted for.
+
+**Two smaller things the wiring had to state.** A colour frame is the **blue
+end's** — every plane resamples onto the bluest one's grid and § 6h.2's extent is
+∝ λ, so the same objective covers **69.4 µm** here against A1's 93.5 at the d
+line, and the closed form at the ruler λ lands to −0.50% (the traced frame's own
+departure, A1's column again). And the resample ratio is λ's **to 1.7e-4 and not
+exactly**, because these frames are traced and the exit pupil moves with λ too —
+§ 6r.6 states the same agreement to three decimals for the same reason.
+
+**The panel found one bug and one false sentence, both at the S slider's left
+end.** S = 0 is a *different source*, not a small one: a commensurate lattice of
+radius zero holds no points, so `commensurateSource` refuses it where
+`coherentSource` is the single axial direction (A2's `sourceAt` makes the same
+split). Fixing that exposed the second: clamping the frequency-grid reach to zero
+puts "only the coherent limit fits" on screen, and at ps 64 on a 64² grid that is
+**false** — an *unshifted* pupil of 64 bins already needs 66, so nothing renders
+until the grid grows. The reach is now reported raw, a negative value gets its
+own sentence, and both are pinned (A9.7).
+
 ### Disqualified — needs an engine step first
 
 | surface | blocked on |
 |---|---|
-| ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. What remains is authoring a scene, which is content rather than a blocker. |
+| ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. ~~What remains is authoring a scene, which is content rather than a blocker.~~ **Authored, and now in colour**: `stage.ts` had both scenes from A7 and A9 made them spectral (`specimens.ts`). Nothing here is disqualified any more. |
 | ~~Depth-dependent spherical aberration in the z-slider~~ | ~~§ 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step.~~ ~~**Unblocked at § 6l**~~ — **built at D10.** A5 has a mount control and a depth control, `mountPupils` is its `DepthPupils` and `mountVolumeOptions` its options, and the stack is no longer symmetric about focus. Nothing here is disqualified any more. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
 | ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. Fluorescence colour is still open: § 6j's band is emission-only, and an extended emitter field needs the Jacobian § 6n deferred. |
@@ -1130,8 +1210,10 @@ landed as well — so the opening sentence above is no longer a description of t
 engine at all, only of the app's surfaces, which is what Part D is a queue for —
 and **D10 has now landed too, so that queue is empty.** What remained anywhere in
 this doc was A6 and Part B, neither of which was ever in Part D — and **both have
-since landed as well**, so what is left is Part C and the scenes nobody has
-authored.
+since landed as well**. So has **A9**, which is what "the scenes nobody has
+authored" turned out to really be: the scenes existed and the *colour* did not.
+What is left is Part C, and the telescope's own star/planet/lunar scenes, which
+are an engine step rather than wiring.
 
 ### D0. The three feasibility measurements this part rests on
 
@@ -2095,7 +2177,10 @@ into **D10**.
 to end.** *(And since then **~~A6~~** has landed as well, and so has **~~the D6
 panel~~** this section's own accounting had lost — see "Suggested order" — so what
 is left in this doc is Part B, Part C, and the scenes nobody has authored — and
-**~~Part B~~ has now landed too**, so it is Part C and the scenes.)* D10 was billed as the cheapest engine-backed surface in the doc and the
+**~~Part B~~ has now landed too**, so it is Part C and the scenes. **And "the
+scenes" was the wrong name for what was missing**: they were authored at A7 and
+what had no caller was § 6r's colour, which is **~~A9~~**, now landed. So it is
+Part C, and the telescope's extended sources, which are an engine step.)* D10 was billed as the cheapest engine-backed surface in the doc and the
 picture half of it was: the mount is one more term in a callback already being
 evaluated per slice. The two things it cost that were not budgeted are both about
 *comparison* rather than about rendering — an ideal-pupil control the axial
@@ -2254,6 +2339,16 @@ rung only summarizes will find the sampling the rung could afford to ignore**,
 which is A3's undersampled lobes and A4's frozen sweep arriving a third time in a
 third place.
 
+**And the item this section named as the last one has landed too — as something
+else.** "Scenes are content, not blockers" was right that § 6n unblocked them and
+**wrong that nobody had authored one**: `stage.ts` has had a diatom field and a
+stained section since A7, and the registry could have said so. What the doc's
+accounting had actually lost was **colour** — `brightfieldSpectralStack` with no
+caller anywhere in the app, which is § 6r's own headline unwired. That is
+**A9**, it has landed, and its findings are in its section. Twice now this
+document's residue has turned out to name the wrong thing (the D6 panel was the
+first), and both times the registry was the check that would have caught it.
+
 **~~Part B~~ has landed**, and it was self-contained exactly as predicted — it
 touches no microscope code and no engine code at all. What it corrects is its own
 scoped headline: the RSS budget diverges from the honest trace **downward** more
@@ -2269,9 +2364,14 @@ see D6. Part D's own opening said of the eyepiece "what remains unbuilt is the
 A6 and Part B; the registry sided with the first, and the gap is closed: there
 are ten panels and the tenth is the visual microscope. Second, **scenes are
 content, not blockers**: § 6n unblocked stained tissue and diatom fields, and the
-disqualified table says so, but nobody has authored one. **That is now the only
-microscope item left anywhere in this doc** — and with **~~Part B~~** landed it is
-the only item of any kind, beside Part C (a separate decision).
+disqualified table says so, but nobody has authored one. ~~**That is now the only
+microscope item left anywhere in this doc**~~ — **and it was already done when
+this was written.** A7 authored both, in `stage.ts`, grey; the real gap under the
+word "scenes" was colour, and **A9** closed it. What is left in this doc is
+**Part C** (a separate decision) and the telescope's own scenes — star, planet
+and lunar, ROADMAP step 5's item rather than one of this doc's, and an engine
+step rather than wiring, since `rasterizePointSources` is point-only and an
+extended incoherent source has no rasterizer.
 
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
