@@ -15,7 +15,7 @@ import {
   type SpecimenMap,
   type SpectralSpecimen,
 } from "./specimen";
-import { radialMapCovering } from "./radial-map";
+import { radialMapCovering, type RadialMap } from "./radial-map";
 
 /**
  * Polychromatic brightfield — § 6r, and the last of the Part D line.
@@ -334,6 +334,78 @@ export interface BrightfieldSpectrumOptions extends FieldPupilOptions {
 /** `no-honest-image` ≻ `unknown` ≻ `valid` — `imaging/brightfield`'s order. */
 const VERDICT_RANK = { valid: 0, unknown: 1, "no-honest-image": 2 } as const;
 
+/** One wavelength's plane, formed — everything a stack needs from it. */
+export interface FormedBrightfieldPlane {
+  readonly frame: ObjectFieldFrame;
+  readonly input: BrightfieldPlaneInput;
+  readonly fidelity: BrightfieldFidelity;
+  readonly maxGridPhaseStepWaves: number;
+  readonly contributingPoints: number;
+}
+
+/**
+ * Form ONE wavelength's brightfield plane: its own frame, its own raster, its
+ * own traced pupils, its own Abbe sum.
+ *
+ * Factored out of `brightfieldSpectralStack` for the **spectral mosaic** (§ 6t),
+ * which needs the same plane and then crops a guard band off it before stacking.
+ * Shared rather than reimplemented for `mosaicTileAt`'s reason: a second
+ * expression that merely agreed numerically would be free to drift, and § 6t.1
+ * pins a spectral tile's plane **bitwise** against `renderMosaicTile` at the same
+ * wavelength — an identity that only holds while there is one expression.
+ *
+ * `radialMap` overrides `options.radialMapNodes`: a mosaic builds one table per
+ * wavelength over ALL its tiles' frames (the saving that grows with the field),
+ * where a lone stack builds one per plane over its single frame.
+ */
+export function formBrightfieldPlane(
+  system: OpticalSystem,
+  specimen: SpectralSpecimen,
+  source: CondenserSource,
+  options: BrightfieldSpectrumOptions,
+  sample: WavelengthSample,
+  centreMm: { readonly x: number; readonly y: number },
+  radialMap?: RadialMap,
+): FormedBrightfieldPlane {
+  const frame = objectFieldTile(system, {
+    ...options,
+    centreMm,
+    wavelengthNm: sample.nm,
+  });
+  const table =
+    radialMap ??
+    (options.radialMapNodes === undefined
+      ? undefined
+      : radialMapCovering(system, [frame], {
+          nodes: options.radialMapNodes,
+          ...(options.aim === undefined ? {} : { aim: options.aim }),
+        }));
+  const object = rasterizeSpecimen(system, frame, atWavelength(specimen, sample.nm), {
+    ...(options.aim === undefined ? {} : { aim: options.aim }),
+    ...(options.map === undefined ? {} : { map: options.map }),
+    ...(table === undefined ? {} : { radialMap: table }),
+  });
+  const formed = renderBrightfield(object, tracedFieldPupils(system, frame, options), source, {
+    pupilSamples: options.pupilSamples,
+    scale: frame.scale,
+    ...(options.patches === undefined ? {} : { patches: options.patches }),
+    ...(options.requireHonest === undefined ? {} : { requireHonest: options.requireHonest }),
+  });
+  return {
+    frame,
+    input: {
+      nm: sample.nm,
+      weight: sample.weight,
+      size: frame.size,
+      pixelScaleMm: frame.pixelScaleMm,
+      intensity: formed.intensity,
+    },
+    fidelity: formed.fidelity,
+    maxGridPhaseStepWaves: formed.maxGridPhaseStepWaves,
+    contributingPoints: formed.contributingPoints,
+  };
+}
+
 /**
  * The polychromatic brightfield image of a specimen, through a traced system.
  *
@@ -351,56 +423,20 @@ export function brightfieldSpectralStack(
   const { samples } = options;
   if (samples.length === 0) throw new Error("brightfieldSpectralStack: no wavelengths");
   const centreMm = options.centreMm ?? { x: 0, y: 0 };
-  const rasterOptions = {
-    ...(options.aim === undefined ? {} : { aim: options.aim }),
-    ...(options.map === undefined ? {} : { map: options.map }),
-  };
 
   const frames: ObjectFieldFrame[] = [];
   const fidelities: BrightfieldFidelity[] = [];
   const perPlane: { grid: number; points: number }[] = [];
   const input: BrightfieldPlaneInput[] = samples.map((sample, i) => {
-    const frame = objectFieldTile(system, {
-      ...options,
-      centreMm,
-      wavelengthNm: sample.nm,
-    });
-    const object = rasterizeSpecimen(system, frame, atWavelength(specimen, sample.nm), {
-      ...rasterOptions,
-      ...(options.radialMapNodes === undefined
-        ? {}
-        : {
-            radialMap: radialMapCovering(system, [frame], {
-              nodes: options.radialMapNodes,
-              ...(options.aim === undefined ? {} : { aim: options.aim }),
-            }),
-          }),
-    });
-    const formed = renderBrightfield(
-      object,
-      tracedFieldPupils(system, frame, options),
-      source,
-      {
-        pupilSamples: options.pupilSamples,
-        scale: frame.scale,
-        ...(options.patches === undefined ? {} : { patches: options.patches }),
-        ...(options.requireHonest === undefined ? {} : { requireHonest: options.requireHonest }),
-      },
-    );
-    frames.push(frame);
-    fidelities.push(formed.fidelity);
+    const plane = formBrightfieldPlane(system, specimen, source, options, sample, centreMm);
+    frames.push(plane.frame);
+    fidelities.push(plane.fidelity);
     perPlane.push({
-      grid: formed.maxGridPhaseStepWaves,
-      points: formed.contributingPoints,
+      grid: plane.maxGridPhaseStepWaves,
+      points: plane.contributingPoints,
     });
     options.onWavelength?.(i + 1, samples.length, sample.nm);
-    return {
-      nm: sample.nm,
-      weight: sample.weight,
-      size: frame.size,
-      pixelScaleMm: frame.pixelScaleMm,
-      intensity: formed.intensity,
-    };
+    return plane.input;
   });
 
   const stacked = stackBrightfieldPlanes(input, options.stack ?? {});

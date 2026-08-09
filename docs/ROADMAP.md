@@ -806,8 +806,9 @@
    fringe is not the spread but the frame's **mean** chromaticity, which the stain
    moves 0.0234 off the lamp's white and the grid moves 0.0010. And the blue
    plane's refusal below reproduces exactly from the app, which is what makes it a
-   panel guard rather than a footnote. **Open:** a polychromatic *mosaic* (the useful span is ∝ λ,
-   so § 6o's pitch and guard band would need one reference λ), a singlet-versus-
+   panel guard rather than a footnote. **Open:** ~~a polychromatic *mosaic*~~ — **closed at
+   § 6t**, and the reference λ it predicted would be needed turned out to be the
+   *ordering* instead, a singlet-versus-
    achromat objective contest (there is no singlet finite-conjugate objective —
    `achromaticObjective`'s split divides by V₁ − V₂), per-λ grating contrast as a
    readout, and a rung pinning a real lamp's white and a published stain's
@@ -848,6 +849,37 @@
    node distribution for a system whose distortion crowds the field edge, and the
    map under a `DepthPupils` stack — which is § 6l, and there is nothing to
    refuse a wrong-depth table with because there is nothing to build one from.
+   *The polychromatic mosaic:* ✅ `imaging/mosaic-spectrum` (§ 6t) — § 6o's field
+   of view and § 6r's colour, each of which had named the other as its own
+   deferral. § 6r predicted the difficulty would be "one reference λ with every
+   other λ cropped to it"; what it actually is, is an **ordering**. A spectral
+   tile is cropped twice — the guard band because a transform wraps (§ 6o), then
+   the ruler because the planes have different physical scales (§ 6r) — and
+   taking the guard **first, per plane, on that plane's own grid** makes it
+   exactly `guardCells` in every plane's own cells, so § 6o's whole ladder
+   transplants by *identity*: a spectral tile's plane at λ is `renderMosaicTile`'s
+   tile at λ, bit for bit, and the step mints no new guard number. Taking it after
+   the stack would crop one *physical* distance from every plane, which is a
+   different number of cells in each. Three findings. **The ruler plane is the
+   least guarded** — every other plane's kept span is strictly interior to what it
+   rendered, so 4 cells asked is delivered as **4.500 / 6.592 / 8.040** at
+   450 / 550 / 650 nm and the red plane is guarded 1.787× better for free, which by
+   § 6o.1's own `guard^(−1/2)` is 1.34× less crop error. That is § 6r.7's "the blue
+   end sets `pupilSamples`" arriving on a second knob and for the same reason, and
+   it is the **opposite** of the reasoning that reaches for a mosaic first: a guard
+   fixed in millimetres would under-guard red, but every plane renders at the same
+   `size` and `pupilSamples`, so in *cells* the frames are identical and what
+   decides is whose ruler the crop is taken on. **A spectral pitch is not a mono
+   pitch** at the same options — the kept span is `size − 2·guard − 2·rulerCrop`,
+   46 px against 48 — so the two are pinned at the same *centre* and never at the
+   same index, and a tile whose ruler is not the anchor's is refused because two
+   rulers is a scale step nothing downstream can see. And **§ 6r.6's lateral colour
+   finally has field to be measured in**: exactly zero on axis, linear in the tile
+   index, and **0.492 px at a 9 mm field edge** — so the per-λ frames register on
+   their own and a polychromatic mosaic needs no chromatic registration.
+   **Open:** the guard's exponent measured on the *stacked* image rather than
+   transplanted, a polychromatic seam step (does a seam have a hue?), and a band
+   wide enough to reorder the planes — the refusal exists, no real system trips it.
    *Depth-dependent spherical aberration:* ✅ `imaging/depth-aberration` (§ 6l) —
    the branch's **last numbered gap**, and § 6k's own named deferral. A specimen is
    mounted in something whose index is not the immersion's, so focusing d below the

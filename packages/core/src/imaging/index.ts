@@ -7,6 +7,7 @@ export * from "./object-field";
 export * from "./radial-map";
 export * from "./specimen";
 export * from "./mosaic";
+export * from "./mosaic-spectrum";
 export * from "./fluorescence";
 export * from "./emission";
 export * from "./volume";

@@ -148,9 +148,18 @@ export interface MosaicLayout {
   readonly pitchMm: number;
 }
 
-/** What the crop keeps and what it throws away, in pixels. Both callers' rule. */
-function guardOf(
-  options: MosaicOptions,
+/**
+ * What the crop keeps and what it throws away, in pixels. Every caller's rule.
+ *
+ * Exported because the **spectral** mosaic (§ 6t) crops each wavelength's plane
+ * on that plane's own grid, with this rule and not a second one that agreed
+ * numerically — which is `mosaicTileAt`'s argument about the pitch, one layer
+ * down. Its `usefulPixels` is not a spectral tile's, though: a stack takes a
+ * second crop to reach the common ruler, so `mosaic-spectrum` reads `guardPixels`
+ * here and computes its own kept span.
+ */
+export function mosaicGuardPixels(
+  options: Pick<MosaicOptions, "size" | "pupilSamples" | "guardCells">,
   who: string,
 ): { guardPixels: number; usefulPixels: number } {
   const { size, pupilSamples, guardCells } = options;
@@ -207,7 +216,7 @@ export function mosaicLayout(system: OpticalSystem, options: MosaicOptions): Mos
   if (!Number.isInteger(tiles) || tiles < 1) {
     throw new Error(`mosaicLayout: tiles must be a positive integer, got ${tiles}`);
   }
-  const { guardPixels, usefulPixels } = guardOf(options, "mosaicLayout");
+  const { guardPixels, usefulPixels } = mosaicGuardPixels(options, "mosaicLayout");
 
   const centre = options.centreMm ?? { x: 0, y: 0 };
   const common = tileOptions(options);
@@ -330,7 +339,7 @@ export function mosaicTileAt(
         `what an anchored index exists to remove. Use "uniform" (§ 6o.4: it is ~1e-3 of a pixel away).`,
     );
   }
-  const { usefulPixels } = guardOf(options, "mosaicTileAt");
+  const { usefulPixels } = mosaicGuardPixels(options, "mosaicTileAt");
   const anchor = options.centreMm ?? { x: 0, y: 0 };
   const common = tileOptions(options);
   // The anchor's own ruler, and the same expression `mosaicLayout` uses — a
@@ -424,7 +433,7 @@ export function renderMosaicTile(
   options: MosaicOptions & RenderMosaicOptions,
   tile: MosaicTile,
 ): MosaicTileImage {
-  const { guardPixels, usefulPixels } = guardOf(options, "renderMosaicTile");
+  const { guardPixels, usefulPixels } = mosaicGuardPixels(options, "renderMosaicTile");
   const { frame } = tile;
   // The crop comes from `options` and the pixels come from `tile`, so a tile laid
   // out under a different lattice would be cropped by the wrong amount and the
