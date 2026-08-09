@@ -88,7 +88,8 @@
    (APP.md C1–C2), and the **mechanical layer is now ✅ closed** (§ 5u, below);
    still open: scenes (star/planet/lunar), the bench editor, and Part C's
    remaining modes — eyepieces, the eye, the camera, and long-exposure seeing
-   (the one that needs an engine step). **`core/mech` has no app surface yet.**
+   (the one that needs an engine step). **`core/mech`'s panel has landed too**
+   (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
    scenes, visual mode (eye model, exit-pupil matching) and camera mode
@@ -277,6 +278,36 @@
    vignetting (the `semiApertureMm` hook exists, the rung does not), the sensor's
    own cover glass, tilted elements, and the tube-length error with its known
    coverslip equivalence.
+   *Its panel has now landed* (APP.md C3) — app wiring only, no rung, and the
+   first surface in that doc belonging to **neither branch**: three of its blocks
+   are a telescope's imaging train and the fourth is a microscope's DIN mount,
+   which is what a layer about hardware looks like. Four things came out of
+   driving it, two of which correct sentences above. **§ 5u.6 is now traced**,
+   which that rung deliberately is not — by differencing two `withGlassPath`
+   systems, after the two obvious routes failed (a § 5t thickness `Perturbation`
+   moves the image plane 40 mm and reads **7× high**; a zero-thickness plate
+   breaks the tracer outright). It lands within ±1% of W₀₄₀/(6√5), and the
+   residual **never converges** — wandering non-monotonically with `pupilSamples`
+   (1.061 / 0.956 / 1.007 / 0.995 / 0.988 at 9 / 15 / 21 / 31 / 61) and doing the
+   same on a doublet with no residual of its own, so it is the pupil lattice's own
+   quadrature. That ±1% is *larger* than this step's exact/third-order excess at
+   anything slower than f/4, so the traced route cannot resolve the number the
+   rung computed — which makes the closed form the right call rather than a gap in
+   it. **The f/5.315 is a plate in isolation**: on a 100 mm doublet the *lens*
+   leaves Maréchal at **f/6.007** and the lens with the diagonal at **f/6.192**,
+   both slower, so at f/5 the doublet is already 2.3 budgets over and the
+   diagonal — costing 3.1% of focal ratio — is the smaller problem. It is never
+   free either, being positive at every ratio swept, because a plate's spherical
+   aberration shares an achromat residual's sign; the exact **opposite** of
+   § 6e.4's oil, which is rarer than the glass either side and helps. And **the
+   4.236 is not a constant**: it is the NA 0.10 answer, running 4.173 → 4.506 over
+   NA 0.05 → 0.20 with the thin-lens floor unmoved at 4.1387, so the whole spread
+   is glass — while above ≈ NA 0.22 the mount **stops being the binding wall** and
+   § 6b.5's aperture refusal takes over. Telling those two apart is load-bearing:
+   catching both as one exception reports a mount ceiling of 12.6× where no
+   doublet exists to mount. Two nulls arrive free — § 5u.2's position independence
+   at **2.7e-11 waves**, and the plate's cost not knowing the aperture (0.22% over
+   D = 60 → 150 mm) where the doublet's own share moves 2.5×.
 6. **Microscope branch** ← current; **every numbered step in it is now closed**
    (§ 6l was the last gap). What remains here is app wiring and scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.

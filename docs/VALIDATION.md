@@ -2820,6 +2820,32 @@ Rayleigh limit on a common f/5, and is a genuine aberration on anything faster.
 Which is the numerical version of why a diagonal is uncontroversial visually and
 argued about for imaging.
 
+**"No trace in this step" was the right call, and APP.md's C3 is what established
+it** — as an app measurement rather than as a rung, so nothing in the table above
+moves. The panel differences two `withGlassPath` systems at their own best focus,
+which reaches this section's number off the *tracer*: it lands within ±1% of
+W₀₄₀/(6√5). But the residual **never converges**. It wanders non-monotonically
+with the pupil sampling — 1.061 / 0.956 / 1.007 / 0.995 / 0.988 at `pupilSamples`
+9 / 15 / 21 / 31 / 61 — it does the same on an f/40 doublet with no residual of
+its own, and it is exactly linear in the plate's thickness, so what moves is the
+**quadrature of an RMS over a lattice clipped to a disc** and not physics. That
+±1% is *larger* than the exact/third-order excess above at anything slower than
+about f/4 (1.0018 at f/10, 1.0005 at f/20), so a traced route cannot resolve the
+departure this section computes. The two obvious alternatives are worse and are
+recorded because they look reasonable: a § 5t thickness `Perturbation` on the
+glass layer moves the image plane 40 mm and its linear ρ² projection reads **7×
+high**, and a zero-thickness plate — the structurally identical control — breaks
+the tracer, since two coincident plane faces make the chief ray miss.
+
+C3 also measured what this section's f/5.315 does **not** say. It is a plate in
+isolation: on a 100 mm N-BK7/F2 doublet the lens alone leaves Maréchal at
+**f/6.007** and the lens with 40 mm of glass in it at **f/6.192**, both slower, so
+at f/5 the doublet is 2.3 budgets over on its own and the diagonal is the smaller
+term at 3.1% of focal ratio. Never a *negative* term, though — the traced
+difference is positive at every ratio and every sampling, because a plate's
+spherical aberration carries an achromat residual's sign and the two add, which is
+the opposite of § 6e.4's oil.
+
 ### The sixth geometric ceiling, and the first that comes from a mount
 
 The parfocal standard says an objective must put its specimen 45.0 mm below the
@@ -2853,6 +2879,19 @@ already reaching for.) Its physical
 content is that a real 4× DIN objective **cannot be one doublet**: the standard
 reaches back into the optical design and demands a front group closer to the
 specimen than a single group can be.
+
+**And the 4.236 is not a constant — APP.md's C3 made the aperture a slider.** Also
+an app measurement and not a rung, and it is D8's lesson on a third axis: 4.236 is
+the **NA 0.10** answer, and the floor runs 4.173 / 4.236 / 4.341 / 4.506 over
+NA 0.05 / 0.10 / 0.15 / 0.20 because a faster objective is a thicker one and
+thickness is what the standard runs out of room for. The thin-lens floor above
+knows nothing about any of it (4.1387 throughout), so the whole spread is glass;
+against the *standard* instead the penalty is nearly constant, 1.022 to 1.029 over
+parfocal distances from 35 mm to 95 mm. Above about **NA 0.22 the mount stops
+being the binding wall** and § 6b.5's aperture refusal takes over — a different
+kind of wall on the same axis, and telling them apart is not optional: a search
+that catches both as one exception reports a mount ceiling of **12.6× at NA 0.25**,
+where the truth is that no doublet exists there to mount.
 
 ### Not yet pinned
 

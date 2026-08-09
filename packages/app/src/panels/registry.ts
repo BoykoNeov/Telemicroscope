@@ -5,6 +5,7 @@ import { BuilderPanel } from "./builder";
 import { CoverslipPanel } from "./coverslip";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
+import { MechPanel } from "./mech";
 import { PhasePanel } from "./phase";
 import { ReflectorPanel } from "./reflector";
 import { SectionPanel } from "./section";
@@ -52,6 +53,12 @@ export const PANELS: readonly Panel[] = [
     label: "the reflectors",
     blurb: "APP.md Part C — six presets from three numbers, and an obstruction the trace never sees",
     Component: ReflectorPanel,
+  },
+  {
+    id: "train",
+    label: "the mechanical train",
+    blurb: "APP.md C3 — a part's length and its optical cost are different numbers",
+    Component: MechPanel,
   },
   {
     id: "bench",

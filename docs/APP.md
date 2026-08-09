@@ -1248,6 +1248,10 @@ instantiated, not a whole branch. All are app-wiring-only unless noted.
 - **Off-axis diagonal vignetting** (§ 2f) — ✅ **landed** as C2. It needed no
   option at all, which is the finding: `psf()` builds the mask itself and only
   when the trace has already lost rays, so a field angle is the whole input.
+- **The mechanical layer** (§ 5u) — ✅ **landed** as C3, which ROADMAP had named
+  in bold as the one part of step 5 with no app presence at all. It is the only
+  entry in this doc that is not on one branch: three of its blocks are a
+  telescope's imaging train and the fourth is a microscope's DIN mount.
 - **Eyepieces + afocal** (§§ 5l–5o) — Plössl and Huygens, with real-ray AFOV and
   distortion.
 - **Eye model / visual mode** (§§ 5p–5q) — the two-stop collapse, exit-pupil
@@ -1414,6 +1418,125 @@ in C1. And a zero-vane spider is **refused** rather than treated as none
 (`spiderObscures` requires a positive integer), so "no spider" is the absence of
 the option — the same distinction the obstruction draws, and worth a rung because
 the alternative failure is silent.
+
+### C3. The mechanical train, and the ceiling that comes from a mount — ✅ **landed** — *app wiring only* — **plot**
+
+`mech.ts` + `panels/mech.tsx` + `mech.optics.worker.ts` +
+`mech.parfocal.worker.ts` + `test/mech.test.ts`. ROADMAP names this one in bold —
+***`core/mech` has no app surface yet*** — and it had none since § 5u landed. No
+rung was added because no capability was: every number is § 5u's, § 6b.5's or
+§ 6c's, called from the app.
+
+**It is the first entry in this doc that belongs to neither branch**, and that is
+not a filing accident. `core/mech` sits in ROADMAP step 5 with the telescope, and
+three of its four blocks are a telescope's — a diagonal, a filter, a camera body,
+a focuser. The fourth is the **DIN parfocal standard**, which is a microscope's
+mount and reaches back into a microscope objective's optical design. A layer
+whose subject is *hardware* does not sort by branch, and the panel does not
+pretend it does.
+
+**The house style holds and the display convention breaks, for the fifth time.**
+Adapter, worker, plot primitive, `Guard` — all unchanged. What is new is that the
+headline is neither a picture nor a wavefront: it is **two verdicts about one
+parts list, disagreeing**. § 5u measured that on a single focuser; making the
+focuser a control is what turns "the naive sum is wrong by 7.83%" into a band —
+**20 of 25** points along the glass axis, on the default train, where the
+spreadsheet says the train will not reach focus and the physics says it will.
+
+**The first plot is the layer in one picture, and its x axis is the argument.**
+Required travel against *the glass inside a light path of fixed length*: the
+naive line is **exactly flat** — one distinct value across the whole sweep,
+because filling a fixed-length diagonal with glass does not change what it
+occupies — while the honest one slopes at 0.340717 per millimetre, which is
+(1 − 1/n) for N-BK7 read off the slope rather than typed in. Every other control
+on the page translates both lines together; only this one separates them. Its
+x = 0 end is not a fiction either: a diagonal with no glass in it **is** a mirror
+diagonal, and `buildChain` builds one there, so the two lines meet exactly.
+
+**Driving it added a bound the arithmetic does not suggest: the honest line leaves
+the focuser at *both* ends.** Too little glass and the train wants to rack further
+*in* than the drawtube goes; too much and it wants more *out*-travel than exists.
+On the default focuser the trains that reach focus run from about 5 to about
+100 mm of glass, so "a prism diagonal buys back back-focus" has a ceiling as well
+as a floor. Nothing in § 5u says otherwise — it simply never drew the axis.
+
+**Block 2 is § 5u.6 traced, which that rung explicitly is not** ("closed form
+only, no trace in this step"). Two routes were tried and abandoned before the one
+that works, and both are recorded in `mech.ts` because they look reasonable.
+Expressing "insert the diagonal" as a § 5t `Perturbation` on the glass layer's
+thickness **fails**: a 40 mm thickness perturbation moves the image plane 40 mm,
+`sigmaBeforeFocusWaves` comes back at 15 waves, and the linear ρ² projection
+cannot remove a defocus that large, so the currency reads **7× high**. And a
+*zero*-thickness plate — which would have made the no-glass control structurally
+identical to the glassed one — **breaks the tracer**: two coincident plane faces,
+and the chief ray misses at 0 and at 1e-9 mm, while 1e-6 mm is a clean no-op to
+seven digits. What works is differencing two `withGlassPath` systems, which keeps
+the image plane fixed by construction.
+
+**Its headline corrects the reading of § 5u.6's own number.** f/5.315 is a
+statement about a plate **in isolation**. On a 100 mm doublet the *lens* leaves
+the Maréchal budget at **f/6.007** and the lens with the diagonal in it at
+**f/6.192** — both slower than the plate's own quarter-wave crossing. So "a
+diagonal is marginal on a common f/5" does not mean a diagonal spoils an
+otherwise diffraction-limited instrument: at f/5 the doublet is already **2.3
+budgets** over on its own and the diagonal is the smaller of the two problems,
+costing **3.1%** of focal ratio. It is never *free*, though — the difference is
+positive at every ratio swept and at every sampling, because a plate's spherical
+aberration has the same sign as an achromat's residual and the two add. That is
+the **opposite** of § 6e.4's immersion oil, which is rarer than the glass either
+side of it and therefore helps: same physics, opposite sign, and the panel says
+so beside the curve.
+
+**And the second plot is why § 5u.6 stayed closed form.** The traced difference
+reproduces W₀₄₀/(6√5) to about ±1% — but the residual **never converges**, and it
+is not physics. Move the sampling and it wanders non-monotonically (1.061 at
+`pupilSamples` 9, 0.956 at 15, 1.007 at 21, 0.995 at 31, 0.988 at 61), it does the
+same on an f/40 doublet with no residual of its own, and it is linear in the
+plate's thickness — so what is moving is the **quadrature of an RMS over a
+lattice clipped to a disc**, not the exact form's departure and not the doublet's
+higher orders. That ±1% is *larger* than § 5u.6's own exact/third-order excess at
+every ratio slower than about f/4 (1.0018 at f/10, 1.0005 at f/20), so this route
+**cannot resolve the number the rung computed**. A5's lesson — *a surface that
+draws a quantity a rung only summarizes will find the sampling the rung could
+afford to ignore* — arriving a fifth time, and for once it explains a decision the
+ladder had already made rather than correcting one.
+
+**Two nulls fall out for free, and one of them is new.** § 5u.2's
+position-independence, measured at gaps 18× apart rather than at the rung's own
+50 and 600 mm: **2.7e-11 waves**. And the plate's traced cost **does not know the
+aperture** — 3.6557e-3, 3.6506e-3 and 3.6476e-3 waves at D = 60, 100 and 150 mm at
+f/8, agreeing to 0.22% — while the doublet's own share over the same three moves
+**2.5×** (0.140 → 0.349 budgets). A cone angle is the plate's only input; a lens's
+own W₀₄₀ scales with its diameter.
+
+**Block 4's finding is D8's, on a third axis: the ceiling is a function of a
+parameter the ladder defaulted.** § 5u pins the DIN floor at 4.236, and that is
+the **NA 0.10** answer. Walk the aperture and it runs **4.173 / 4.236 / 4.341 /
+4.506** at NA 0.05 / 0.10 / 0.15 / 0.20, because a faster objective is a thicker
+one and thickness is what the standard runs out of room for. The thin-lens floor
+knows nothing about any of it (4.1387 throughout), so the entire spread is glass —
+and against the *standard* rather than the aperture the penalty is nearly
+constant, 1.022 to 1.029 over parfocal distances from 35 mm to 95 mm.
+
+**The block that could not be written naively is the same one.** Above about
+NA 0.22 the mount **stops being the binding wall**, and § 6b.5's aperture refusal
+takes over — a wall of an entirely different kind sitting on the same axis. A
+bisection that caught both as one exception reports a **mount ceiling of 12.6× at
+NA 0.25**, where the truth is that no doublet exists there to mount at all. So
+`barrelAt` discriminates on `DoubletApertureRefusal` and the sweep carries both
+floors, reporting which is binding rather than whichever exception it caught.
+This is § 6b.5.5's message work — *the count already discriminated; the fix
+derives the sentence from it* — paying off in an app, and it is the first place in
+this doc where **naming a refusal was load-bearing rather than polite**.
+
+Two things about that block only a screen could have said. The sweep is **slowest
+exactly where its answer is "not the mount"** — ~0.7 s at NA 0.10 against ~6 s at
+0.27, because a `DoubletApertureRefusal` costs a whole failed bending scan — so
+the panel is least responsive on the branch whose whole content is a refusal. And
+the thin-lens rule had to be **relabelled from what binds to what it is**: at
+NA 0.27 the buildable range starts at 43×, and a grey line labelled "the floor"
+sitting at 4.14 would have been this panel's own refusal rule broken by its own
+plot.
 
 ---
 
@@ -2468,7 +2591,11 @@ is left in this doc is Part B, Part C, and the scenes nobody has authored — an
 **~~Part B~~ has now landed too**, so it is Part C and the scenes. **And "the
 scenes" was the wrong name for what was missing**: they were authored at A7 and
 what had no caller was § 6r's colour, which is **~~A9~~**, now landed. So it is
-Part C, and the telescope's extended sources, which are an engine step.)* D10 was billed as the cheapest engine-backed surface in the doc and the
+Part C, and the telescope's extended sources, which are an engine step. **And Part C
+turned out to contain a C3 this doc had never listed** — `core/mech`, which ROADMAP
+had in bold and APP.md had nowhere, because this doc sorts by branch and a
+mechanical layer has none. It has landed; what remains in Part C is the
+eyepiece/eye/camera modes and long-exposure seeing.)* D10 was billed as the cheapest engine-backed surface in the doc and the
 picture half of it was: the mount is one more term in a callback already being
 evaluated per slice. The two things it cost that were not budgeted are both about
 *comparison* rather than about rendering — an ideal-pupil control the axial
@@ -2637,13 +2764,25 @@ caller anywhere in the app, which is § 6r's own headline unwired. That is
 document's residue has turned out to name the wrong thing (the D6 panel was the
 first), and both times the registry was the check that would have caught it.
 
+**A third time, and in the other direction — where the registry could not have
+helped.** "What is left in this doc is Part C, and the telescope's own scenes" was
+right about Part C and **incomplete about what was in it**: the largest item with
+no app presence was not an eyepiece mode, it was **`core/mech`** — a whole
+validated layer this document had never scoped, because APP.md sorts by branch and
+a mechanical layer does not have one. ROADMAP had it in bold the entire time. It is
+now **C3**. The lesson is the mirror of the registry one: the registry catches a
+panel this doc believes exists and does not, and only ROADMAP catches a *layer*
+this doc never listed.
+
 **~~Part B~~ has landed**, and it was self-contained exactly as predicted — it
 touches no microscope code and no engine code at all. What it corrects is its own
 scoped headline: the RSS budget diverges from the honest trace **downward** more
 dramatically than upward, so "independence is an assumption and this is where it
 visibly fails" is right about the assumption and wrong about the direction.
 **~~A6~~ has landed**; see its section for the three findings and for the engine
-defect it turned up in the focus solve. **Part C** is a separate decision.
+defect it turned up in the focus solve. **Part C** is a separate decision, and
+**C1, C2 and C3 have since landed** — the last of them a whole layer this doc had
+not scoped; see the third-time paragraph below.
 
 **Two things this doc had lost, recorded here because A6 emptied the queue that
 was hiding them.** First, ~~**the D6 panel does not exist**~~ — **it does now**,
@@ -2656,8 +2795,8 @@ disqualified table says so, but nobody has authored one. ~~**That is now the onl
 microscope item left anywhere in this doc**~~ — **and it was already done when
 this was written.** A7 authored both, in `stage.ts`, grey; the real gap under the
 word "scenes" was colour, and **A9** closed it. What is left in this doc is
-**Part C** — **now opened, with C1 and C2 landed, leaving the eyepiece/eye/camera
-modes and long-exposure seeing** — and the telescope's own scenes: star, planet
+**Part C** — **now opened, with C1, C2 and C3 landed, leaving the
+eyepiece/eye/camera modes and long-exposure seeing** — and the telescope's own scenes: star, planet
 and lunar, ROADMAP step 5's item rather than one of this doc's, and an engine step
 rather than wiring, since `rasterizePointSources` is point-only and an extended
 incoherent source has no rasterizer.
