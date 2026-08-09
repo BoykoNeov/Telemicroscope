@@ -864,7 +864,11 @@
    least guarded** — every other plane's kept span is strictly interior to what it
    rendered, so 4 cells asked is delivered as **4.500 / 6.592 / 8.040** at
    450 / 550 / 650 nm and the red plane is guarded 1.787× better for free, which by
-   § 6o.1's own `guard^(−1/2)` is 1.34× less crop error. That is § 6r.7's "the blue
+   § 6o.1's own `guard^(−1/2)` is 1.34× less crop error. That is pinned to the
+   **wavelengths alone** — `imagePixelScaleMm` is ∝ λ, so the resample ratio is
+   λ_ruler/λ — with a **1.69e-4** residual that is itself a finding: the exit pupil
+   is traced per λ too, which is why the ruler is a minimum over *measured* scales
+   rather than an assumption about the shortest wavelength. That is § 6r.7's "the blue
    end sets `pupilSamples`" arriving on a second knob and for the same reason, and
    it is the **opposite** of the reasoning that reaches for a mosaic first: a guard
    fixed in millimetres would under-guard red, but every plane renders at the same
@@ -875,8 +879,11 @@
    same index, and a tile whose ruler is not the anchor's is refused because two
    rulers is a scale step nothing downstream can see. And **§ 6r.6's lateral colour
    finally has field to be measured in**: exactly zero on axis, linear in the tile
-   index, and **0.492 px at a 9 mm field edge** — so the per-λ frames register on
-   their own and a polychromatic mosaic needs no chromatic registration.
+   index, and **0.4962 px at a 9 mm field edge** — *measured* at tile 44 rather than
+   extrapolated, since the split is read off the traced map and a ×44 extrapolation
+   of a ×4 fit would admit a distortion term the linearity check cannot see. The
+   nonlinearity over that reach turns out to be 0.1%, so the per-λ frames register
+   on their own and a polychromatic mosaic needs no chromatic registration.
    *Its panel has landed* (APP.md A10) — app wiring only, and the surface both
    halves of Part D were built for: A7's pannable stage in A9's colour. Three
    things came out of driving it. The exposure has to be the **lamp's** and not the

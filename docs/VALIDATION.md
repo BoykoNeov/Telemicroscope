@@ -68,7 +68,7 @@ whole ladder.
 | [6r](#step-6r--polychromatic-brightfield) | Colour at last, and the ruler that is the whole difficulty: the Abbe sum per wavelength, each on its own frame, stacked on one physical grid — with the Abbe image shown by MEASUREMENT to be an irradiance and not energy per pixel, so the resampler carries **no** Jacobian; the wrong one pinned as an exact 1/λ² tilt of the lamp, 0.02 off neutral where the honest path holds 1e-4, and **energy shown not to be the witness** — a colour cast is; the common grid taken as the BLUEST plane's and strictly interior, so truncation is zero by construction and the mean-scale alternative measured putting a coloured vignette on a clear field; the ruler plane copied **bit for bit**; a dye imaged magenta on § 3a's own white while tinting the monochrome image gives the stain and the field the same hue to 1e-12; the doublet's axial colour recovered as § 1's chromatic shift through § 1.5's defocus wavefront, to 8%, with the achromat's crossing and its SIGN FLIP both surviving; the finding that the blue plane is worst-resolved by **2.56×** where λ alone gives 1.22, so `pupilSamples` is set by the blue end; lateral colour arriving free from concentric frames, zero on axis and linear in field; and the two condenser conventions shown IDENTICAL on a dry front-stopped objective and 0.85% apart on oil | `brightfield-spectrum` |
 | [6s](#step-6s--the-radial-map-tabulated) | The bisection per pixel replaced by a table, and the whole step is identity rungs: the inverse chief-ray map is ONE-DIMENSIONAL — a tile's 16 384 pixels are queries of a single curve, and the curve belongs to the SYSTEM, so one table serves a 16-tile mosaic — tabulated by piecewise 4-point Lagrange whose remainder is the closed form, the error falling ×5.06 per ×1.5 of node count and ×3.16 per ×4/3 (measured 4.83/4.87 and 3.07/3.04, so the scheme is fourth-order and not Catmull-Rom's third) until it meets the f64 floor by 32 nodes; the map's own error ESTIMATE shown to under-read the truth by 7–17%, because a fourth difference reads f⁗ inside its stencil and the remainder wants the maximum over the interval — reported as an estimate rather than dressed as a bound; the axis exact by the map's own ODDNESS, the node below the first interval being the mirror of the one above it, so `heightAt(0)` is bitwise zero from the Lagrange weights and not from a clamp; registration measured at **3.8e-13 px**, nine orders below § 6o.8's 3.4e-3 px of ruler drift, and 6e-11 px from **nine** inversions; the saving pinned as an exact integer (`inversions` = nodes + 1 = 65 against a 128² tile's 16 384) with the wall clock in the prose; the wavelength and the aiming carried as the table's identity and a mismatch REFUSED, § 6r having one frame per λ; and the finding that tabulating the residual instead of the height buys **nothing** — a cubic already reproduces a linear function exactly | `radial-map` |
 
-| [6t](#step-6t--the-polychromatic-mosaic) | § 6o's mosaic and § 6r's colour composed, each having named the other as its deferral — and the answer is an **ordering**: the guard is cropped per plane on that plane's OWN grid, BEFORE the stack, so it is exactly `guardCells` in every plane's own cells and § 6o's ladder transplants by identity rather than by re-measurement — pinned as exactly that, a spectral tile's plane at λ being `renderMosaicTile`'s tile at λ **bit for bit**, and a guard-zero one-tile mosaic being `brightfieldSpectralStack`; the finding that the **ruler plane is the LEAST guarded**, by the closed form (size − useful·s_ruler/s_λ)/2·ps/size, so 4 cells asked is delivered as 4.500 / 6.592 / 8.040 at 450 / 550 / 650 nm and the red plane is guarded 1.787× better for free — § 6r.7's "the blue end sets `pupilSamples`" on a second knob, and the OPPOSITE of the reasoning that reaches for a mosaic first; the kept span shown to be `size − 2·guard − 2·rulerCrop`, so a spectral pitch is **not** a mono pitch at the same options and the two are never pinned at the same index; a tile whose ruler is not the anchor's refused, since two rulers is an invisible scale step; the anchored index pinned bitwise at 3×3 and 5×5 and a tile rendered alone shown to be the composed picture's tile bit for bit **in XYZ**; the verdict shown to be the worst λ of the worst tile and to NAME the wavelength; and § 6r.6's lateral colour read at last over millimetres — exactly zero on axis, linear in the tile index, **0.492 px at a 9 mm field edge**, so the planes register with no correction | `mosaic-spectrum` |
+| [6t](#step-6t--the-polychromatic-mosaic) | § 6o's mosaic and § 6r's colour composed, each having named the other as its deferral — and the answer is an **ordering**: the guard is cropped per plane on that plane's OWN grid, BEFORE the stack, so it is exactly `guardCells` in every plane's own cells and § 6o's ladder transplants by identity rather than by re-measurement — pinned as exactly that, a spectral tile's plane at λ being `renderMosaicTile`'s tile at λ **bit for bit**, and a guard-zero one-tile mosaic being `brightfieldSpectralStack`; the finding that the **ruler plane is the LEAST guarded**, by the closed form (size − useful·s_ruler/s_λ)/2·ps/size, so 4 cells asked is delivered as 4.500 / 6.592 / 8.040 at 450 / 550 / 650 nm and the red plane is guarded 1.787× better for free — pinned to the WAVELENGTHS alone (`imagePixelScaleMm` ∝ λ, so the ratio is λ_ruler/λ) with a 1.69e-4 residual that is the traced pupil's own λ dependence, which is why the ruler is a min over measured scales — § 6r.7's "the blue end sets `pupilSamples`" on a second knob, and the OPPOSITE of the reasoning that reaches for a mosaic first; the kept span shown to be `size − 2·guard − 2·rulerCrop`, so a spectral pitch is **not** a mono pitch at the same options and the two are never pinned at the same index; a tile whose ruler is not the anchor's refused, since two rulers is an invisible scale step; the anchored index pinned bitwise at 3×3 and 5×5 and a tile rendered alone shown to be the composed picture's tile bit for bit **in XYZ**; the verdict shown to be the worst λ of the worst tile and to NAME the wavelength; and § 6r.6's lateral colour read at last over millimetres — exactly zero on axis, linear in the tile index, **0.4962 px at a 9 mm field edge, MEASURED at tile 44** rather than extrapolated (the nonlinearity over that reach is 0.1%), so the planes register with no correction | `mosaic-spectrum` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -6989,7 +6989,8 @@ longer be the guard any plane received.
 | …and each plane's frame is that tile's frame — centre, ruler, traced object point | one expression, not two that agree | ✅ |
 | **A one-tile spectral mosaic at guard zero IS `brightfieldSpectralStack`**, bitwise | § 6o.5's idiom, in colour | ✅ |
 | **The ruler plane is the LEAST guarded**, and every other plane by a closed form | (size − useful·s_ruler/s_λ)/2 · ps/size | ✅ |
-| …4 cells asked delivers **4.500 / 6.592 / 8.040** at 450 / 550 / 650 nm | the resample ratio, to 12 digits | ✅ |
+| …4 cells asked delivers **4.500 / 6.592 / 8.040** at 450 / 550 / 650 nm | **λ_ruler/λ**, the wavelengths alone | ✅ |
+| …with a **1.69e-4** residual that is the traced pupil's own λ dependence | why the ruler is a min over MEASURED scales | ✅ |
 | …and the excess is not a constant of the band — it carries `usefulPixels` | the same form at twice the grid, 1e-10 | ✅ |
 | The kept span is `size − 2·guard − 2·rulerCrop`, and the pitch follows it | 46 px against a mono tile's 48 | ✅ |
 | A fractional index, a non-whole guard, and a crop that eats the tile are **refused** | `mosaicGuardPixels`, shared not copied | ✅ |
@@ -7001,7 +7002,7 @@ longer be the guard any plane received.
 | CONTROL: neighbouring tiles differ in > 90% of a row | registration, not a flat picture | ✅ |
 | The verdict is the worst λ of the worst tile and **names the wavelength** | § 6r.7's blue end, § 6g.3's ordering | ✅ |
 | **Lateral colour is exactly zero on axis and linear in the tile index** | § 6r.6's law, over millimetres | ✅ |
-| …**0.492 px at a 9 mm field edge**, so the planes register with no correction | 0.0547 px per mm, extrapolated | ✅ |
+| …**0.4962 px at a 9 mm field edge, MEASURED at tile 44** — no correction needed | 0.1% off the ×4 fit's extrapolation | ✅ |
 
 ### The ruler plane binds twice, and that is § 6r.7 on a second axis
 
@@ -7018,6 +7019,21 @@ On the bench (grid 64, `pupilSamples` 32, guard 4 cells, 450/550/650 nm) a guard
 of 4 cells is delivered as **4.500, 6.592 and 8.040 cells**: the red plane is
 guarded **1.787×** better than the blue one, which by § 6o.1's own
 `guard^(−1/2)` is 1.34× less crop error, for free and without being asked for.
+
+**The pin is the wavelengths and not that expression.** `imagePixelScaleMm` is
+∝ λ (§ 6r), so `resampleRatio` is λ_ruler/λ and everything above is arithmetic on
+it: 450/550 and 450/650 predict 0.818182 and 0.692308 where the traced planes read
+**0.818067 and 0.692138**. Comparing the delivered guard against the formula that
+computes it would be the module checked against itself; comparing it against
+450 / 550 / 650 nm is a prediction, and the rung is written that way.
+
+The **1.69e-4 residual is the finding attached to it**, because it has a cause: the
+exit pupil and the reference sphere are traced per λ too, so `pixelScaleMm` is ∝ λ
+times a factor that is itself faintly λ-dependent. That is exactly why
+`stackBrightfieldPlanes` takes the minimum over *measured* scales instead of
+assuming the shortest wavelength, and why the ruler is refused rather than assumed
+when two tiles disagree — the ordering is a measurement, and here it comes out the
+ordinary way with 1.7e-4 to spare.
 
 So the blue end of the lamp sets the guard as well as the sampling. § 6r.7 found
 the blue plane worst-resolved by 2.56× and concluded that `pupilSamples` is set
@@ -7063,10 +7079,20 @@ On the DIN 4×/0.10 they do not. The blue–red split of the traced tile centre 
 f64 **zero** on the axis — not small, zero, because `objectHeightForImageRadius`
 bisects on a radius that is identically zero at every λ — and 1.126e-2, 2.252e-2,
 4.505e-2 pixels at 1, 2 and 4 tiles out, which is the linearity to two digits.
-That is **0.0547 px per mm of image**, so at 9 mm — half of the DIN 18 mm field
-number, a convention and not an engine number — it is still **0.492 px**. The
-per-λ frames register on their own everywhere this objective can see, and the
-mosaic needs no chromatic registration step.
+That is 0.0547 px per mm of image near the axis.
+
+**The field edge is measured and not extrapolated to**, which is the discipline
+this file keeps and the reason is specific: the split is read off the *traced*
+map, which carries distortion by construction (§ 6h.1's cubic), so multiplying a
+slope fitted over ×4 out to ×44 admits a term the linearity check cannot see — and
+a tile 44 pitches out is far enough that the tracer *refusing* would be a real
+outcome (§ 2f's wall) rather than a hypothetical. It does not refuse, and at
+9 mm — half of the DIN 18 mm field number, a convention and not an engine number —
+the split reads **0.4962 px**, against 0.4955 px extrapolated. So the nonlinearity
+over that whole reach is **0.1%**, the extrapolation would have been right, and it
+is now a measurement instead of a hope. The per-λ frames register on their own
+everywhere this objective can see, and the mosaic needs no chromatic registration
+step. Reading only frame centres, it costs three traces and no render.
 
 ### Cost, and what it inherits
 

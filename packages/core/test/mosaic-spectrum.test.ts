@@ -231,14 +231,41 @@ describe("§ 6t.3 — the ruler plane is the LEAST guarded, and the rest by a cl
       12,
     );
 
+    // The delivered guard follows from the **wavelengths alone**, and that is the
+    // pin rather than the expression: `imagePixelScaleMm` is ∝ λ (§ 6r), so the
+    // resample ratio is λ_ruler/λ — 450/550 and 450/650 — and everything above
+    // is arithmetic on it. Comparing `effectiveGuardCells` against the formula
+    // that computes it would be the module checked against itself.
     for (const plane of geometry.planes) {
+      const predicted = ruler.nm / plane.nm;
+      expect(plane.resampleRatio).toBeCloseTo(predicted, 3);
       expect(plane.effectiveGuardCells).toBeCloseTo(
-        (SIZE - geometry.usefulPixels * plane.resampleRatio) / 2 / pixelsPerCell,
-        12,
+        (SIZE - geometry.usefulPixels * predicted) / 2 / pixelsPerCell,
+        2,
       );
       expect(plane.effectiveGuardCells).toBeGreaterThanOrEqual(ruler.effectiveGuardCells);
       expect(plane.resampleRatio).toBeLessThanOrEqual(1);
     }
+
+    // …and the residual is NOT noise, which is why `stackBrightfieldPlanes` takes
+    // the minimum over *measured* scales instead of assuming the shortest
+    // wavelength: the exit pupil and the reference sphere are traced per λ too,
+    // so `pixelScaleMm` is ∝ λ times a factor that is itself faintly λ-dependent.
+    // Measured here rather than absorbed into the tolerance above.
+    const residual = geometry.planes.map((p) => Math.abs(p.resampleRatio - ruler.nm / p.nm));
+    const worst = Math.max(...residual);
+    expect(worst).toBeGreaterThan(1e-6);
+    expect(worst).toBeLessThan(1e-3);
+    console.log(
+      `resample ratio vs λ_ruler/λ: ` +
+        geometry.planes
+          .map(
+            (p) =>
+              `${p.nm}nm ${p.resampleRatio.toFixed(6)} vs ${(ruler.nm / p.nm).toFixed(6)}`,
+          )
+          .join(", ") +
+        ` — worst residual ${worst.toExponential(2)}`,
+    );
 
     // The ruler IS the bluest plane on this system — measured, not assumed. The
     // module takes the minimum over the planes because the reference sphere and
@@ -488,22 +515,38 @@ describe("§ 6t.7 — lateral colour is a FIELD effect, and a mosaic is the fiel
     expect(at[1]! / at[0]!).toBeCloseTo(2, 2);
     expect(at[2]! / at[0]!).toBeCloseTo(4, 2);
 
-    // And because it IS linear, the whole field follows from the slope — which
-    // is the answer to the question a mosaic raises and a tile could not: does a
-    // spectral mosaic have to correct its planes' registration? On this
-    // objective, **no**. Half of the DIN 18 mm field number (a convention, not
-    // an engine number — `stage.ts` quotes the same one) is 9 mm of image, and
-    // the split there is still under a pixel, so the per-λ frames register on
-    // their own everywhere a 4× can see.
+    // The question a mosaic raises and a tile could not: does a spectral mosaic
+    // have to correct its planes' registration? On this objective, **no** — and
+    // that is MEASURED at the field edge rather than extrapolated to it. Half of
+    // the DIN 18 mm field number (a convention, not an engine number —
+    // `stage.ts` quotes the same one) is 9 mm of image, which is this pitch's
+    // tile 44, and the rung reads it there. Only frame centres are traced, so it
+    // costs three traces and no render.
+    //
+    // Extrapolating instead would have been unsafe in this branch's own way: the
+    // split is read off the TRACED map, which carries distortion by construction
+    // (§ 6h.1's cubic), so a ×44 extrapolation of a slope fitted over ×4 admits a
+    // cubic term the linearity check cannot see. And a tile 44 pitches out is far
+    // enough that the tracer refusing would be a real outcome (§ 2f's wall), which
+    // is a sentence this rung would have to say rather than assume away.
+    const edgeCol = Math.round(9 / geometry.pitchMm);
+    const atEdge = splitPx(edgeCol);
+    expect(atEdge).toBeLessThan(1);
+    // …and the departure from the linear law over that whole reach, which is what
+    // the extrapolation would have got wrong. Bounded, not asserted to be zero.
+    const linear = (at[0]! / 1) * edgeCol;
     const perMm = at[0]! / geometry.pitchMm;
-    const atFieldEdge = perMm * 9;
-    expect(atFieldEdge).toBeLessThan(1);
+    console.log(
+      `at the 9 mm field edge (tile ${edgeCol}): ${atEdge.toFixed(4)} px measured against ` +
+        `${linear.toFixed(4)} px extrapolated — ${(100 * Math.abs(atEdge / linear - 1)).toFixed(1)}% ` +
+        `of nonlinearity the ×4 fit could not see`,
+    );
     console.log(
       `blue−red object split at tiles 1, 2, 4: ` +
         at.map((v) => v.toExponential(3)).join(", ") +
         ` px (pitch ${geometry.pitchMm.toExponential(3)} mm, ` +
         `${(geometry.usefulPixels * geometry.objectPixelScaleMm * 1e3).toFixed(1)} µm a tile); ` +
-        `${perMm.toFixed(4)} px/mm of image → ${atFieldEdge.toFixed(3)} px at a 9 mm field edge`,
+        `${perMm.toFixed(4)} px/mm of image near the axis`,
     );
   });
 });
