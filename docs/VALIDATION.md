@@ -2841,10 +2841,15 @@ which for the DIN pair (x′ = 150, P = 45) is **4.1387**. Below it the standard
 unreachable by construction. With the built doublet's real thickness the floor
 rises to **4.236**, bisected on the refusal.
 
-This is the sixth geometric ceiling in the repo after § 6b's f/4.1, § 6d's NA
+This is the sixth ceiling in the repo after § 6b's f/4.1, § 6d's NA
 0.343, § 6e.4's NA 1.411, § 6q's 0.88·f_e and § 6l's n_s, and it is the first that
 comes from a **mount** rather than from the ray invariant — which is exactly the
-class of constraint ARCHITECTURE put this layer in the tree for. Its physical
+class of constraint ARCHITECTURE put this layer in the tree for. (That list was
+written as "geometric ceilings"; [§ 6b.5](#-6b5--the-ceiling-and-whose-it-is)
+sorts it into kinds and only § 6e.4's and § 6l's are geometric in the strict
+sense — § 6b's f/4.1 is an aberration edge and § 6q's is a solver locus. This
+one is a mount constraint, which is the distinction the sentence above was
+already reaching for.) Its physical
 content is that a real 4× DIN objective **cannot be one doublet**: the standard
 reaches back into the optical design and demands a front group closer to the
 specimen than a single group can be.
@@ -5441,9 +5446,13 @@ an oil objective labelled 1.40 collects at most **1.3347** from a water mount an
 the outer annulus of its pupil is dark. The boundary is exact: q one ulp below n_s
 computes, q = n_s refuses.
 
-That is the fifth geometric ceiling in this branch — after § 6b's f/4.1, § 6d's
+That is the fifth ceiling in this branch — after § 6b's f/4.1, § 6d's
 NA 0.343, § 6e.4's NA 1.411 and § 6q's 0.88·f_e — and the only one that is a
-single line of algebra.
+single line of algebra. (Written as "the fifth *geometric* ceiling";
+[§ 6b.5](#-6b5--the-ceiling-and-whose-it-is) later split that list and only
+this one and § 6e.4's are geometric — § 6b's f/4.1 is an aberration edge,
+§ 6q's a solver locus. "The only one that is a single line of algebra" was the
+difference showing through before it was named.)
 
 **It is a ceiling on the rays and not on the wavefront, and the two behave
 oppositely there**, which is why the rung says which it pins.
@@ -6613,6 +6622,17 @@ wide field is a different eyepiece *form* — the transcribed patent members
 wider aperture on this one. That is the same pattern as § 6b's f/4.1 ceiling,
 § 6d's NA 0.343 wall and § 6e.4's NA 1.411: **the form stops existing before it
 stops being good.**
+
+**[§ 6b.5](#-6b5--the-ceiling-and-whose-it-is) corrects the mechanism here, and
+the eyepiece conclusion survives it.** This wall is not merely the same *pattern*
+as the microscope doublet's — it is the same *wall*: `achromaticObjective`
+finding a third S_I root once its ±3·span bending scan admits one, at a curvature
+about five times hemispherical. That is why this rung measured the wall as
+scale-invariant in f_e — the refusal carries no length by construction. So "the
+form stops existing" is the right shape of claim with the wrong agent: what stops
+is the solver's two-root bracket, and the honest statement is that FN 20 sits at
+the edge of *what this engine will build*. Whether the glass itself would run out
+there is a Maréchal question this rung does not ask.
 
 *The 0.88 above is a bracket — the two builds this rung makes — and not the wall
 itself. Bisected it is **0.899195·f_e**, and it is a **constant**: the Plössl form

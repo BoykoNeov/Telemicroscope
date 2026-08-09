@@ -114,8 +114,11 @@ within one architecture, holding everything but one variable:
 - NA 0.10 → 0.15 at 4×: span 93.54 → 61.96 µm. Ratio 1.510 against an NA ratio
   of 1.500 — 1/NA, with the ~0.7% residual being the sine-condition departure
   above. (NA ≥ 0.20 throws: *"this glass pair does not admit the classical
-  doublet solution"* — § 6b's f/4.1 ceiling, arriving as an error message. A
-  picker must handle it.)
+  doublet solution"* — a doublet ceiling arriving as an error message. A
+  picker must handle it. **§ 6b.5 corrects the attribution**: this message is
+  `achromaticObjective`'s three-root refusal, a solver locus that for a 4×
+  N-BK7/F2 sits at NA 0.1843 — *not* § 6b's f/4.1, which is an aberration edge
+  at NA 0.10311 and more than twice as slow.)
 - 4× → 10× → 20× at NA 0.10: span **identical** at 93.54 µm, while the image
   pixel scales exactly with M (5.8462 → 14.6154 → 29.2308 µm).
 
@@ -260,7 +263,8 @@ reader runs — move the grid control and watch the crop *not* change — rather
 as a paragraph. The whole catalogue is ~550 ms, which buys it.
 
 **Three entries exist to be refused**, and the engine's own error text is what
-the cell shows: § 6b's f/4.1 doublet ceiling (DIN 4×/0.20) and § 6d's measured
+the cell shows: the doublet's refusal locus (DIN 4×/0.20 — § 6b.5 pins this as
+`achromaticObjective`'s three-root wall rather than § 6b's f/4.1) and § 6d's measured
 NA 0.343 wall (Lister 40×/0.40, whose message carries both glass pairs' numbers).
 This doc predicted a picker "must handle it"; showing the message *is* the
 handling, and it puts two measured findings on screen for free.

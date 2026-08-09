@@ -164,7 +164,9 @@
    `psf()` builds the mask only when `map.lost > 0`, so the criterion being the
    trace means a field angle is the whole input. What it found is a **wall**, the
    sixth of its kind in the repo after § 6b's f/4.1, § 6d's NA 0.343, § 6e.4's NA
-   1.411, § 6q's 0.88·f_e and § 6l's 1.3347: past a certain field the chief ray
+   1.411, § 6q's 0.88·f_e and § 6l's 1.3347 (§ 6b.5 sorts that list into three
+   kinds — geometric, aberration, solver locus — and this one is geometric):
+   past a certain field the chief ray
    misses the diagonal, and since it defines both the image point and the reference
    sphere, `opdMap` **refuses** rather than degrading. Derived from § 4b's own
    footprint sizing as tan θ = (√2·k/2)/[(F − ½ − 1/(16F))·(F − k)] — D cancels
@@ -782,7 +784,9 @@
    bracket the panel above bisects to 0.899195·f_e**), so FN 20 sits at the edge and
    a genuinely wide field needs the transcribed patent members
    rather than a wider aperture on this form. That is the fourth wall of its kind,
-   after § 6b's f/4.1, § 6d's NA 0.343 and § 6e.4's NA 1.411 — and the panel adds
+   after § 6b's f/4.1, § 6d's NA 0.343 and § 6e.4's NA 1.411 — **and § 6b.5 later
+   identifies it as literally the same wall as the doublet's three-root refusal,
+   which is why it is scale-invariant in f_e** — and the panel adds
    that it belongs to the **Plössl** rather than to eyepieces: a Huygens has no
    cemented doublet to fail and no wall below the 1.5·f_e its search stops at.
    *Polychromatic brightfield:* ✅ **done** (§ 6r) — the branch is in colour, and
@@ -945,7 +949,8 @@
    leaves the specimen, so an oil objective engraved 1.40 delivers exactly **1.3347**
    into a water mount and the rest of its pupil is dark — the fifth geometric
    ceiling in this branch after § 6b's f/4.1, § 6d's NA 0.343, § 6e.4's NA 1.411 and
-   § 6q's 0.88·f_e, and the only one that is a single line of the ray invariant. At
+   § 6q's 0.88·f_e (of which, per § 6b.5, only § 6e.4's is geometric alongside this
+   one), and the only one that is a single line of the ray invariant. At
    that wall the *wavefront* is an ordinary number while the *longitudinal*
    aberration diverges, so nothing is clipped by a budget; the rays stop existing.
    **The budget stops being a bound sooner than the slip's, and that is measured
