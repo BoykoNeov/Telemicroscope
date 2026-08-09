@@ -877,6 +877,22 @@
    finally has field to be measured in**: exactly zero on axis, linear in the tile
    index, and **0.492 px at a 9 mm field edge** — so the per-λ frames register on
    their own and a polychromatic mosaic needs no chromatic registration.
+   *Its panel has landed* (APP.md A10) — app wiring only, and the surface both
+   halves of Part D were built for: A7's pannable stage in A9's colour. Three
+   things came out of driving it. The exposure has to be the **lamp's** and not the
+   tile's — A7's fixed white, in colour — and the first version took it off the raw
+   SED×Δλ weights where the image is formed with the **normalized** ones, so every
+   tile rendered **300× too dark**; a factor is exactly what a picture cannot show
+   the size of, so the app rung pins the number and not the shade. The picture
+   cannot pin the white either: an Abbe image's background is **0.92** of a clear
+   field, because a nearby absorber depresses it, so the rung was rewritten to
+   claim only that a fixed exposure adds nothing to that. And the headline —
+   **colour costs a sampling, not a wavelength count**: at the stage's own ps 32
+   the colour picture draws and the verdict rules **`no-honest-image` at 450 nm**,
+   § 6r.7's blue plane reproducing on a mosaic tile, and that wavelength is the
+   *ruler*, so the plane the picture's grid belongs to is the plane that refuses.
+   ps 64 clears it at **~0.39 s → ~2.0 s a tile**, which is now an offered control
+   rather than a hidden one.
    **Open:** the guard's exponent measured on the *stacked* image rather than
    transplanted, a polychromatic seam step (does a seam have a hue?), and a band
    wide enough to reorder the planes — the refusal exists, no real system trips it.

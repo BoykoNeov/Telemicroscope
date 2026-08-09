@@ -1,14 +1,24 @@
 import { commensurateSource } from "@telemicroscope/core/illumination";
 import {
   atWavelength,
+  colorImageFromStack,
   mosaicLayout,
   mosaicTileAt,
   renderMosaicTile,
+  renderSpectralMosaicTile,
+  spectralMosaicGeometry,
+  spectralMosaicTileAt,
+  toSrgbBytes,
   type MosaicOptions,
+  type BrightfieldSpectralStack,
+  type SpectralMosaicGeometry,
+  type SpectralMosaicOptions,
 } from "@telemicroscope/core/imaging";
+import { spectralXyz } from "@telemicroscope/core/photometry";
 import { objectNumericalAperture } from "@telemicroscope/core/pupil";
-import type { OpticalSystem } from "@telemicroscope/core/trace";
+import type { OpticalSystem, WavelengthSample } from "@telemicroscope/core/trace";
 import { entryOf, LAMBDA_NM, type MicroscopeKind } from "./microscope";
+import { lampSamples, type LampKind } from "./section";
 import { specimenOf, type SpecimenKind } from "./specimens";
 
 /**
@@ -102,6 +112,17 @@ export interface StageRequest {
   readonly guardCells: number;
   /** S = NA_cond/NA_obj. Must make `S·pupilSamples` a whole number (§ 6p). */
   readonly coherenceParameter: number;
+  /**
+   * Wavelengths across 400–700 nm, or `0` for the monochrome stage.
+   *
+   * Zero rather than one, and the distinction is the point: `1` would be a
+   * one-wavelength *spectral* stage, which is a legitimate and different thing
+   * (it still takes the ruler crop, so its tiles are 2 px narrower). Zero is
+   * § 6t's other branch — the d-line mono path A7 landed with, untouched, so
+   * turning colour off gives back exactly the picture that panel pinned.
+   */
+  readonly wavelengths: number;
+  readonly lamp: LampKind;
 }
 
 /** One tile of the stage, by its anchored index (§ 6o.8). */
@@ -132,6 +153,36 @@ function optionsOf(request: StageRequest): MosaicOptions {
   };
 }
 
+/** The same stage, one plane per wavelength — § 6t. */
+function spectralOptionsOf(request: StageRequest): SpectralMosaicOptions {
+  return {
+    size: request.size,
+    pupilSamples: request.pupilSamples,
+    guardCells: request.guardCells,
+    samples: lampSamples(request.lamp, request.wavelengths),
+  };
+}
+
+/**
+ * The anchor's spectral geometry, memoized per worker.
+ *
+ * `spectralMosaicTileAt` needs the anchor's ruler plane to read the pitch off,
+ * which costs one trace **per wavelength**; a stage asks for tens of tiles and
+ * the anchor does not move between them. The mono path pays the same twice-per-
+ * tile price (`mosaicTileAt` traces the anchor and the tile) and is left alone,
+ * because at one wavelength it is one trace and § 6o.8's rungs run on it.
+ */
+const GEOMETRIES = new Map<string, SpectralMosaicGeometry>();
+
+function geometryFor(request: StageRequest, system: OpticalSystem): SpectralMosaicGeometry {
+  const id = `${request.kind}|${request.size}|${request.pupilSamples}|${request.guardCells}|${request.wavelengths}|${request.lamp}`;
+  const hit = GEOMETRIES.get(id);
+  if (hit) return hit;
+  const geometry = spectralMosaicGeometry(system, spectralOptionsOf(request));
+  GEOMETRIES.set(id, geometry);
+  return geometry;
+}
+
 /** What the stage is, before any tile of it exists. */
 export interface StageInfo {
   /** Pixels kept per tile per axis — the pitch of the composed plane. */
@@ -149,6 +200,20 @@ export interface StageInfo {
   readonly fieldMm: number;
   /** Illumination directions the commensurate condenser holds at this S. */
   readonly sourcePoints: number;
+  /**
+   * The plane whose grid the picture is on, and what the guard really was in
+   * each plane's own cells — § 6t.3. `null` on the monochrome stage.
+   *
+   * On screen because the panel already prints the guard and § 6t measured that
+   * the number asked for is the number only ONE plane gets: the ruler's. A stage
+   * that printed "guard 4 cells" over a picture whose red plane had 8 would be
+   * printing a third of the answer, which is the sentence § 6o's own readout
+   * exists to avoid.
+   */
+  readonly ruler: {
+    readonly wavelengthNm: number;
+    readonly planes: readonly { readonly nm: number; readonly guardCells: number }[];
+  } | null;
   readonly elapsedMs: number;
 }
 
@@ -168,20 +233,54 @@ export function stageInfo(request: StageRequest): StageInfoResult {
   const started = performance.now();
   try {
     const system = systemFor(request.kind);
-    const layout = mosaicLayout(system, optionsOf(request));
     const source = commensurateSource(request.coherenceParameter, request.pupilSamples, 1);
-    const magnification = Math.abs(layout.tiles[0]!.frame.magnification);
+    // The two branches read the SAME quantities off different layouts, and the
+    // one that differs is the one that matters: a spectral tile keeps
+    // 2·rulerCropPixels fewer pixels (§ 6t.4), so the pitch, the span and the
+    // viewport all move when colour goes on. Sharing `usefulPixels` between the
+    // branches would tile the colour stage on the mono lattice and register
+    // every tile 2 px wrong — the failure § 6t's own refusals are about.
+    const common =
+      request.wavelengths === 0
+        ? (() => {
+            const layout = mosaicLayout(system, optionsOf(request));
+            return {
+              usefulPixels: layout.usefulPixels,
+              tilePixels: layout.tileSize,
+              objectPixelScaleMm: layout.objectPixelScaleMm,
+              magnification: Math.abs(layout.tiles[0]!.frame.magnification),
+              ruler: null,
+            };
+          })()
+        : (() => {
+            const geometry = geometryFor(request, system);
+            return {
+              usefulPixels: geometry.usefulPixels,
+              tilePixels: geometry.tileSize,
+              objectPixelScaleMm: geometry.objectPixelScaleMm,
+              magnification: Math.abs(geometry.planes[geometry.rulerIndex]!.frame.magnification),
+              ruler: {
+                wavelengthNm: geometry.rulerWavelengthNm,
+                planes: geometry.planes.map((p) => ({
+                  nm: p.nm,
+                  guardCells: p.effectiveGuardCells,
+                })),
+              },
+            };
+          })();
+
     return {
       ok: true,
       info: {
-        usefulPixels: layout.usefulPixels,
-        tilePixels: layout.tileSize,
-        tileSpanUm: layout.usefulPixels * layout.objectPixelScaleMm * 1000,
-        objectPixelNm: layout.objectPixelScaleMm * 1e6,
+        usefulPixels: common.usefulPixels,
+        tilePixels: common.tilePixels,
+        tileSpanUm: common.usefulPixels * common.objectPixelScaleMm * 1000,
+        objectPixelNm: common.objectPixelScaleMm * 1e6,
         tracedNA: objectNumericalAperture(system, LAMBDA_NM),
-        magnification,
-        fieldMm: FIELD_NUMBER_MM / magnification,
+        magnification: common.magnification,
+        fieldMm: FIELD_NUMBER_MM / common.magnification,
         sourcePoints: source.points.length,
+        ruler: common.ruler,
         elapsedMs: performance.now() - started,
       },
     };
@@ -200,6 +299,8 @@ export interface StageTileReadout {
   readonly objectCentreMm: { readonly x: number; readonly y: number };
   readonly verdict: "valid" | "unknown" | "no-honest-image";
   readonly verdictReason: string;
+  /** Which wavelength the verdict belongs to — § 6r.7's blue end, by name. */
+  readonly verdictNm: number | null;
   readonly contributingPoints: number;
   readonly maxGridPhaseStepWaves: number;
   readonly elapsedMs: number;
@@ -242,6 +343,51 @@ function toGrey(intensity: Float64Array, size: number): Uint8ClampedArray {
 }
 
 /**
+ * The exposure a colour tile is encoded at — a property of the **lamp** and of
+ * nothing else, which is the one place a colour stage could have gone wrong
+ * invisibly.
+ *
+ * A9 exposes each frame on **its own** mean, which is right for one frame and is
+ * exactly the bug `toGrey` above warns about: per-tile exposure paints a
+ * brightness step at every seam, a grid the physics does not have. So the
+ * exposure here is a property of the **lamp** and of nothing else.
+ *
+ * `colorImageFromStack` folds the observer through the plane weights, so a clear
+ * field — intensity 1 in every plane, which `abbeImage`'s Σ = 1 normalization
+ * guarantees at any condenser — images as the lamp's own XYZ. Dividing by
+ * `WHITE_INTENSITY · Y_lamp` therefore puts a clear field at exactly the same
+ * mid-grey the monochrome stage puts it at, tile after tile, and white is still
+ * `WHITE_INTENSITY` times a clear field.
+ *
+ * **Not white-balanced**, deliberately: a tungsten lamp's field is warm because
+ * the lamp is warm, and § 6r's whole content is that the colour in the picture is
+ * the specimen's and the objective's and the lamp's. Balancing it away here would
+ * hide one of the three. The gamma is `toSrgbBytes`'s, the app's only one, which
+ * is why a colour tile is not a pixel-for-pixel lightening of the grey one.
+ */
+export function clearFieldExposure(samples: readonly WavelengthSample[]): number {
+  // The samples the image was FORMED with, which are `stack.samples` and not the
+  // lamp the request named: `stackBrightfieldPlanes` normalizes the weights to
+  // Σ = 1 and `colorImageFromStack` folds *those* into its basis, so a white
+  // computed from the raw SED×Δλ weights is larger by their sum — 300 for three
+  // equal-energy samples across 400–700 nm — and every tile comes back 300× too
+  // dark. Which is what the first version of this did, and what `stage.test.ts`
+  // caught on its first run: an exposure is only meaningful against the weights
+  // the image was actually formed with, so this function takes them.
+  const white = spectralXyz(
+    samples,
+    samples.map(() => 1),
+  );
+  return white.y > 0 ? 1 / (WHITE_INTENSITY * white.y) : 1;
+}
+
+function toColour(stack: BrightfieldSpectralStack): Uint8ClampedArray {
+  return toSrgbBytes(colorImageFromStack(stack), {
+    exposure: clearFieldExposure(stack.samples),
+  });
+}
+
+/**
  * Render one tile of the stage.
  *
  * Two traces for the tile (`mosaicTileAt`: the anchor's ruler and this tile's),
@@ -255,15 +401,48 @@ export function renderStageTile(request: StageTileRequest): StageTileResult {
   const started = performance.now();
   try {
     const system = systemFor(request.kind);
+    const source = commensurateSource(request.coherenceParameter, request.pupilSamples, 1);
+
+    if (request.wavelengths > 0) {
+      const options = spectralOptionsOf(request);
+      const geometry = geometryFor(request, system);
+      const tile = spectralMosaicTileAt(system, options, request.col, request.row, geometry);
+      const formed = renderSpectralMosaicTile(
+        system,
+        specimenOf(request.specimen).specimen,
+        source,
+        { ...options, patches: 1, radialMapNodes: RADIAL_MAP_NODES },
+        tile,
+        geometry,
+      );
+      return {
+        ok: true,
+        readout: {
+          col: request.col,
+          row: request.row,
+          rgba: toColour(formed.stack),
+          size: formed.size,
+          objectCentreMm: tile.objectCentreMm,
+          verdict: formed.fidelity.verdict,
+          verdictReason: formed.fidelity.reason,
+          verdictNm: formed.verdictNm,
+          contributingPoints: formed.contributingPoints,
+          maxGridPhaseStepWaves: formed.maxGridPhaseStepWaves,
+          elapsedMs: performance.now() - started,
+        },
+      };
+    }
+
     const options = optionsOf(request);
     const tile = mosaicTileAt(system, options, request.col, request.row);
-    const source = commensurateSource(request.coherenceParameter, request.pupilSamples, 1);
     const formed = renderMosaicTile(
       system,
-      // The stage is monochrome, so the specimen's spectrum is bound off at the
-      // d line here and nothing below this line learns one exists — `atWavelength`
-      // is that seam, and it is why promoting the library to `SpectralSpecimen`
-      // for A9 left this panel's picture alone.
+      // The monochrome stage, unchanged: the specimen's spectrum is bound off at
+      // the d line here and nothing below this line learns one exists —
+      // `atWavelength` is that seam, and it is why promoting the library to
+      // `SpectralSpecimen` for A9 left this panel's picture alone. § 6t did not
+      // touch it either, which is why turning colour off gives back A7's picture
+      // rather than a three-plane stack that happens to look grey.
       atWavelength(specimenOf(request.specimen).specimen, LAMBDA_NM),
       source,
       { ...options, patches: 1, radialMapNodes: RADIAL_MAP_NODES },
@@ -279,6 +458,7 @@ export function renderStageTile(request: StageTileRequest): StageTileResult {
         objectCentreMm: tile.frame.centreObjectMm,
         verdict: formed.fidelity.verdict,
         verdictReason: formed.fidelity.reason,
+        verdictNm: null,
         contributingPoints: formed.contributingPoints,
         maxGridPhaseStepWaves: formed.maxGridPhaseStepWaves,
         elapsedMs: performance.now() - started,

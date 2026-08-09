@@ -3,6 +3,7 @@ import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
 import { Choice, Guard, GUARD_COLOR, Slider, VERDICT_LEVEL } from "../ui";
 import { createStageWorker } from "../workers";
 import { SPECIMENS, specimenOf, type SpecimenKind } from "../specimens";
+import type { LampKind } from "../section";
 import {
   FIELD_NUMBER_MM,
   stageInfo,
@@ -87,6 +88,12 @@ export function StagePanel() {
   // slider steps by 1/pupilSamples and cannot walk into the refusal.
   const [sTicks, setSTicks] = useState(16);
   const [zoom, setZoom] = useState(2);
+  // 0 is A7's monochrome stage, untouched. Anything else is § 6t: one plane per
+  // wavelength, each cropped by the guard on its own grid, stacked on the
+  // bluest one's ruler. Three is § 6r.6's own traced sampling and the default
+  // because the cost is linear in this number and nothing else.
+  const [wavelengths, setWavelengths] = useState(0);
+  const [lamp, setLamp] = useState<LampKind>("equal-energy");
   // Where the viewport's CENTRE sits on the composed plane, in plane pixels —
   // the centre and not the corner, so `(0, 0)` is the axis whatever the viewport
   // size turns out to be, and changing the guard does not slide the picture.
@@ -104,8 +111,8 @@ export function StagePanel() {
   const coherenceParameter = ticks / pupilSamples;
 
   const request = useMemo<StageRequest>(
-    () => ({ kind, specimen, pupilSamples, size, guardCells, coherenceParameter }),
-    [kind, specimen, pupilSamples, size, guardCells, coherenceParameter],
+    () => ({ kind, specimen, pupilSamples, size, guardCells, coherenceParameter, wavelengths, lamp }),
+    [kind, specimen, pupilSamples, size, guardCells, coherenceParameter, wavelengths, lamp],
   );
 
   const [info, setInfo] = useState<{ ok: true; info: StageInfo } | { ok: false; error: string } | null>(
@@ -132,6 +139,7 @@ export function StagePanel() {
   const [stats, setStats] = useState<{
     verdict: "valid" | "unknown" | "no-honest-image";
     reason: string;
+    verdictNm: number | null;
     contributingPoints: number;
     maxGridPhaseStepWaves: number;
     slowestMs: number;
@@ -328,6 +336,7 @@ export function StagePanel() {
         : {
             verdict: worst.verdict,
             reason: worst.verdictReason,
+            verdictNm: worst.verdictNm,
             contributingPoints,
             maxGridPhaseStepWaves,
             slowestMs,
@@ -396,11 +405,29 @@ export function StagePanel() {
         />
         <Choice
           label={`pupil samples ${pupilSamples} — the tile's width in cells, and its cost`}
-          options={[16, 32]}
+          options={[16, 32, 64]}
           value={pupilSamples}
           onChange={setPupilSamples}
         />
         <Choice label={`display zoom ${zoom}×`} options={[1, 2, 3]} value={zoom} onChange={setZoom} />
+      </div>
+      <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 12 }}>
+        <Choice
+          label={`wavelengths ${wavelengths === 0 ? "— grey, at the d line" : `— ${wavelengths} planes a tile`}`}
+          options={[0, 3, 5, 9]}
+          value={wavelengths}
+          onChange={setWavelengths}
+          format={(n) => (n === 0 ? "mono" : `${n}`)}
+        />
+        {wavelengths > 0 && (
+          <Choice
+            label="lamp"
+            options={["equal-energy", "tungsten-3200"] as LampKind[]}
+            value={lamp}
+            onChange={setLamp}
+            format={(k) => (k === "equal-energy" ? "equal energy" : "tungsten 3200 K")}
+          />
+        )}
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
         <Slider
@@ -491,7 +518,11 @@ export function StagePanel() {
               <br />
               {stats && (
                 <Guard
-                  label="fidelity, worst tile on screen"
+                  label={
+                    stats.verdictNm === null
+                      ? "fidelity, worst tile on screen"
+                      : `fidelity, worst tile on screen — at ${stats.verdictNm.toFixed(0)} nm`
+                  }
                   value={stats.verdict}
                   level={VERDICT_LEVEL[stats.verdict]}
                   detail={stats.reason}
@@ -508,6 +539,25 @@ export function StagePanel() {
                   exponent is not pinned.
                 </span>
               </div>
+              {info.info.ruler && (
+                <div style={{ marginTop: 8 }}>
+                  <strong>the ruler</strong>: {info.info.ruler.wavelengthNm.toFixed(0)} nm — the
+                  bluest plane, whose grid the picture is on
+                  <br />
+                  delivered guard:{" "}
+                  {info.info.ruler.planes
+                    .map((p) => `${p.nm.toFixed(0)} nm ${p.guardCells.toFixed(2)}`)
+                    .join(" · ")}{" "}
+                  cells
+                  <br />
+                  <span style={{ color: "#777" }}>
+                    the {guardCells} cells asked for are what the <em>ruler</em> plane gets (plus the
+                    1 px stack crop); every redder plane&rsquo;s kept span is strictly interior to
+                    what it rendered, so it is guarded further for free — § 6t.3. The blue end sets
+                    the guard as well as the sampling, and it is the same reason both times.
+                  </span>
+                </div>
+              )}
               <div style={{ marginTop: 8 }}>
                 {stats && (
                   <>
@@ -527,8 +577,37 @@ export function StagePanel() {
       </div>
 
       <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
+        <strong>In colour (§ 6t)</strong>, a tile is one Abbe sum per wavelength, each on its own
+        frame at its own λ, and the planes are stacked on the bluest one&rsquo;s ruler. The guard is
+        cropped <em>first, per plane, on that plane&rsquo;s own grid</em> — which is the whole design
+        decision, and what makes it one is that § 6o&rsquo;s guard measurement then applies to each
+        plane unchanged: a spectral plane at λ is bit for bit the monochrome tile at λ. Doing it the
+        other way round crops one <em>physical</em> distance off every plane, a different number of
+        cells in each, and the guard on the slider stops being the guard anything got. The picture
+        also gets <strong>2 px narrower per tile</strong> than the mono one at the same settings —
+        the stack&rsquo;s own crop — so the whole lattice moves when this is switched, which is why
+        the cache is thrown away with it.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+        <strong>Colour costs a sampling, not just a wavelength count</strong>, and driving this
+        panel is what found it. At <strong>pupil samples 32</strong> the picture is drawn and the
+        fidelity readout says <em>no-honest-image at 450 nm</em> — § 6r.7&rsquo;s blue plane, which
+        is worst-resolved by 2.56× where λ alone gives 1.22, reproducing on a mosaic tile. That
+        wavelength is also the ruler, so the plane the picture&rsquo;s grid belongs to is the plane
+        that refuses. <strong>64 clears it</strong>, and the measured price is a tile going
+        <strong> ~0.39 s → ~2.0 s</strong> — so an honest colour stage is about 5× a plausible one,
+        which is the trade this control now offers rather than hides. The grey stage rules{" "}
+        <em>valid</em> at 32, because the d line is not the blue end.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
         Mid-grey is intensity 1 — a <em>clear field</em> — and white is {WHITE_INTENSITY}× it,
-        linearly. That reference is fixed rather than per tile on purpose: the other panels put
+        linearly. In colour the same reference is the <em>lamp&rsquo;s own</em> XYZ at that
+        intensity: a clear field is 1 in every plane, so the exposure is a property of the lamp and
+        not of the tile. A9 exposes each frame on its own mean, which is right for one frame and
+        would paint a grid of seams here. Nothing is white-balanced — a tungsten field is warm
+        because the lamp is — and the colour path carries <code>toSrgbBytes</code>&rsquo;s gamma
+        where the grey path is linear, so the two are not the same picture lightened. That
+        reference is fixed rather than per tile on purpose: the other panels put
         mid-grey at their own frame&rsquo;s mean, which here would give every tile a slightly
         different brightness and paint a grid of seams the physics does not have. Because{" "}
         <code>abbeImage</code> normalizes the source weights to Σ = 1, a clear field is 1 whatever

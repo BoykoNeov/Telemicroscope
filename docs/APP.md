@@ -963,6 +963,53 @@ puts "only the coherent limit fits" on screen, and at ps 64 on a 64² grid that 
 until the grid grows. The reach is now reported raw, a negative value gets its
 own sentence, and both are pinned (A9.7).
 
+### A10. The stage in colour — ✅ **landed** — *app wiring on § 6t* — **picture**
+
+**The two surfaces this doc built separately, joined.** A7 is a field of view you
+can drag and it is grey; A9 is one frame in colour and it is 93.5 µm wide. § 6t is
+the engine step that lets a mosaic be spectral, and this is `panels/stage.tsx`
+taking it: a `wavelengths` control where `0` is A7's monochrome path **untouched**
+and 3/5/9 is one Abbe sum per wavelength per tile, stacked on the bluest one's
+ruler.
+
+**What it has to say on screen, and both are § 6t's findings rather than
+decorations.** The **ruler**: the picture's grid is the bluest plane's, printed by
+wavelength. And the **delivered guard**, per plane — because the slider says "4
+cells" and § 6t.3 measured that exactly one plane gets 4. The panel prints
+`450 nm 4.50 · 550 nm 6.59 · 650 nm 8.04` at ps 32, and — the closed form visible
+as a control rather than as a claim — `4.50 · 9.50 · 12.97` at ps 64, because the
+excess carries `usefulPixels` and is not a property of the band.
+
+**Three things came out of driving it.**
+
+1. **A factor of 300, caught by a test rather than by an eye.** The exposure has to
+   be the *lamp's* and not the tile's — A7's own fixed white, in colour — but the
+   first version computed it from the raw SED×Δλ weights where
+   `colorImageFromStack` folds in the **normalized** ones. Every tile rendered near
+   black. `stage.test.ts` pins the exposure against an independently normalized
+   lamp for that reason: the failure is a factor, and a factor is exactly what a
+   picture cannot show you the size of.
+2. **The picture cannot pin the white either, and the rung was rewritten.** The
+   first version asserted that a clear field lands on the byte the lamp's XYZ says.
+   It does not — the background of an Abbe image is **0.92** of a clear field,
+   because a nearby absorber depresses it, and how far depends on how much specimen
+   is in reach (a dense ruled grid's background wanders 205 → 207 between two tiles
+   where the sparser diatoms hold still). So the exposure is pinned as a number and
+   the picture only carries that a fixed exposure adds nothing to that.
+3. **Colour costs a sampling, not a wavelength count** — and this is the finding.
+   At the stage's own ps 32 the colour picture draws and the verdict says
+   **`no-honest-image` at 450 nm**: § 6r.7's blue plane, worst-resolved by 2.56×
+   where λ alone gives 1.22, reproducing on a mosaic tile. And that wavelength is
+   the **ruler**, so the plane the picture's grid belongs to is the plane that
+   refuses. ps 64 clears it, measured at **~0.39 s → ~2.0 s a tile** (39 tiles in
+   14.3 s across three workers), so `64` is now an option on this panel and the
+   trade is on screen rather than hidden. The grey stage still rules `valid` at 32,
+   because the d line is not the blue end.
+
+Cost, measured on the DIN 4×/0.10 with the 208-direction commensurate source:
+~0.39 s a tile at ps 32 / 3 λ, ~2.0 s at ps 64 / 3 λ — linear in the wavelength
+count, as § 6r's own panel measured, and the lattice is still the expensive axis.
+
 ### Disqualified — needs an engine step first
 
 | surface | blocked on |
@@ -971,6 +1018,7 @@ own sentence, and both are pinned (A9.7).
 | ~~Depth-dependent spherical aberration in the z-slider~~ | ~~§ 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step.~~ ~~**Unblocked at § 6l**~~ — **built at D10.** A5 has a mount control and a depth control, `mountPupils` is its `DepthPupils` and `mountVolumeOptions` its options, and the stack is no longer symmetric about focus. Nothing here is disqualified any more. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
 | ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. Fluorescence colour is still open: § 6j's band is emission-only, and an extended emitter field needs the Jacobian § 6n deferred. |
+| ~~A pannable field of view in colour~~ | ~~§ 6o's pitch and guard band are pinned at one wavelength, and `halfExtentMm` is ∝ λ.~~ **Unblocked at § 6t** — the guard is cropped per plane on that plane's own grid, before the stack, so § 6o's measurement transplants by identity. Built at **A10**. |
 | A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, now measured and composed: § 6m–§ 6o, compute-once, never live at a full field. § 6o pins the crop error of a tile to a closed form and § 6o.7 composes them. |
 
 ---
