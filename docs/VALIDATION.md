@@ -3186,23 +3186,24 @@ none of the table below is pinned to an external number.
 |---|---|---|
 | **The refusal ratio is aperture-free to ≤ 3 ULP over D = 1 → 1000**, at two conjugates | identity; degree-1 homogeneity in D | ✅ |
 | …and it is **algebraic, not arithmetic** — most values bitwise equal, one 2–3 ULP off | § 6p's distinction, on its other side | ✅ |
-| **F\* is homogeneous of degree 1 in the STATED thickness pair** (×2 → ×2, ×3 → ×3, to 1e-8) | identity — the locus lives in t/f | ✅ |
-| **NEGATIVE CONTROL: the two thicknesses do not trade off** — crown alone ×1.86, flint alone ×1.15 | it is a curve in (t_c/f, t_f/f), not "total glass" | ✅ |
-| **ANTI-CIRCULARITY: the scan's root count flips 2→3 exactly across the constructor's own build/refuse verdict**, thicknesses stated | the reconstruction is checked, not assumed | ✅ |
-| **The arriving third root is >5× hemispherical and ENTERS at \|c₁\|/span = 3⁻** — the scan window's own constant | the literal `3` in `solveBendings` | ✅ |
-| …and it migrates inward as the ratio falls further | it is a window crossing, not a coalescence | ✅ |
-| **The two real roots at the wall are ordinary glass** — both sub-hemispherical, both edges positive | negative control: nothing geometric is binding | ✅ |
+| ~~**F\* is homogeneous of degree 1 in the STATED thickness pair**~~ **FALSIFIED by § 6b.5.7** — ×2 and ×3 now move it by **under 2%** | the locus has stopped living in t/f | ✅ |
+| …and with it ~~the crown/flint asymmetry~~ (×1.86 against ×1.15): both are now ×0.99 | the curve in (t_c/f, t_f/f) is gone, not redrawn | ✅ |
+| **ANTI-CIRCULARITY: it is the LENS count that flips 2→1 across the constructor's verdict**, thicknesses stated | the reconstruction is checked, not assumed (was 2→3 on the raw count) | ✅ |
+| **The arriving third root is >5× hemispherical and ENTERS at \|c₁\|/span = 3⁻** — the scan window's own constant | measurement, unchanged; what changed is that nothing reads it | ✅ |
+| …and the constructor now **BUILDS with that ghost in its scan**, at 1.01·F\* and 1.05·F\* | § 6b.5.7's whole point, stated as a build | ✅ |
+| **The boundary is now GEOMETRIC**: just inside, the steeper real bending is at \|c\|·(D/2) = 0.9999; just outside it has passed 1 | the wall changes kind, not just place | ✅ |
 | ~~**The DIN wall is the fixed point's SEED, in closed form**, to 1e-11~~ **FALSIFIED by § 6b.5.6** — the seed's prediction now misses, low, by 2.9%–9.6% | negative control; the miss runs with M and orientation, so it is the seed's error and not a rescaling | ✅ |
 | **The wall is now the CONVERGED design's own refusal ratio** — f/(2·a·tan u·k) = F\*(s/f) to **3e-13**, both read off the fixed point | identity — exact, but self-consistent rather than predictive | ✅ |
 | …and on a second glass pair, where the seed's form misses by 7.9% and 11.6% | anti-circularity | ✅ |
 | **The optical tube length cancels BITWISE** — three equal walls at x′ = 100/150/250 | identity; survives the re-seed unchanged | ✅ |
 | **WITNESS — the wall as absolute LITERALS**: 8 apertures over M × orientation, the silica pair, and a coverslip row the closed form cannot reach | the only rung here a re-seed cannot satisfy by agreeing with itself | ✅ |
 | …and **what the seed cost, as a literal** — a_conv/a_seed = 0.935788, the seed presenting f/1.782 where the solver's locus is f/1.904 | the 6% of § 6b.5, now read from the other side | ✅ |
-| A glass-pair failure reports **0** roots at any ratio (CaF₂/F2); an aperture failure reports **3** | the count discriminates | ✅ |
+| A glass-pair failure **finds nothing** at any ratio (CaF₂/F2); an aperture failure finds bendings and **fewer than two are lenses** | the count discriminates | ✅ |
 | …and the same pair **builds when slowed**, which falsifies the message's sentence on that branch | negative control | ✅ |
-| **The message now says APERTURE on the 3-root branch and never on the 0-root one**, and the glass sentence is bit-for-bit unchanged where it is true | the count, turned into prose | ✅ |
-| …and it **counts the non-physical roots** rather than assuming one: **1 of 3** at the wall, **3 of 3** at f/1.5 | measured in the failing call | ✅ |
-| **§ 6q's Plössl wall is this same refusal** (found 3), which is why it was scale-invariant | mechanism, not the number | ✅ |
+| **The message says APERTURE on that branch and never on the empty one**, and the glass sentence is bit-for-bit unchanged where it is true | the count, turned into prose | ✅ |
+| …and it **counts the lenses** rather than assuming how many: **2 found, 1 a lens** at the wall, **2 found, 0 lenses** at f/1.2 | measured in the failing call | ✅ |
+| **A glass-pair refusal is NOT retried** — `DoubletApertureRefusal` on the aperture branch, an ordinary `Error` on the empty one | one count decides both the prose and the type | ✅ |
+| **§ 6q's Plössl wall is this same refusal**, which is why it is scale-invariant — and it moved with it, 0.899195 → 0.9615248·f_e | mechanism, not the number | ✅ |
 
 **The closed form.** The DIN constructor seeds its fixed point from the thin
 lens — object at a = f(1 + 1/M), image at b = f(1 + M), glass sized over the
@@ -3230,14 +3231,20 @@ wall, low, by 2.9%–9.6%, which is exactly the aperture the seed was throwing
 away. What replaces it is equally exact and no longer predictive — see § 6b.5.6.
 
 **So "f/2.3" was two solver conventions composed** — the ±3·span scan window,
-which decides F\*, and the seed, which decided how an NA mapped onto it. Neither
-is a property of the glass. **Three ratios were in play and D8 quoted the third:**
+which decided F\*, and the seed, which decided how an NA mapped onto it. Neither
+was a property of the glass. **Three ratios were in play and D8 quoted the third:**
 F\* = 1.904 (the refusal locus), f/D = 2.023 at the converged geometry, and the
 working f/# = 2.266 = 2.023 × 1.12, the glass margin. A number quoted without its
-convention will read as agreeing with D8 while measuring something else. **Since
-§ 6b.5.6 the second of those three is gone**: the design at the wall now presents
-f/1.9044 to the solver, which is F\* itself, so f/D and the locus have become the
-same number and the wall is where they meet.
+convention will read as agreeing with D8 while measuring something else.
+
+**Both conventions have since been taken out, and what is left is not one.**
+§ 6b.5.6 stopped the seed deciding how an NA maps onto the locus — the design at
+the wall now presents its own ratio, so f/D and the locus are the same number and
+the wall is where they meet — and § 6b.5.7 stopped the scan window deciding where
+the locus is, by rejecting bendings no glass can be bent to before counting them.
+What binds now is \|c\|·(D/2) = 1 on a real bending, which is geometry. F\* itself
+moved with that: **1.9042573 → 1.8372723** at s/f = 5, **1.9175107 → 1.7397236**
+at infinity.
 
 **The refusal named the wrong cause, and the engine already printed the right
 one — ~~left alone deliberately~~, now FIXED (§ 6b.5.5).**
@@ -3253,40 +3260,47 @@ binding here is the APERTURE and not the glass pair, so slow the focal ratio"*.
 On the 0-root branch the original sentence is bit-for-bit unchanged, because
 there it is true.
 
-**Nothing about which designs are refused moves.** The extra root is *reported*,
-not rejected — rejecting non-physical bendings before the count is the other open
-item below, and it would move the boundary § 6b.5.2–.4 pin. So this is a message
-change with an identity behind it, and the rungs above are identity rungs.
+**Nothing about which designs are refused moved — in THIS commit.** The extra root
+was *reported*, not rejected, rejecting it being the other open item below; that
+is § 6b.5.7, and it did move the boundary. So § 6b.5.5 was a message change with
+an identity behind it, and the two are separable exactly because of that.
 
 **The count is measured in the failing call rather than assumed**, which the
-build immediately earned: at the wall itself the two real roots are ordinary
-glass, so **1 of 3** is past hemispherical — but drive the ratio far enough below
-it (f/1.5 on N-BK7/F2) and the real pair goes non-physical too, at **3 of 3**. A
-message hard-coding "one ghost root" would have been wrong there, and § 6b.5.3's
-"the two REAL roots at the wall are ordinary glass" is a statement *about the
-wall* and does not travel.
+build immediately earned: at the wall itself the two real roots were ordinary
+glass, so **1 of 3** was past hemispherical — but drive the ratio far enough below
+it and the real pair goes non-physical too. A message hard-coding "one ghost
+root" would have been wrong there, and § 6b.5.3's "the two REAL roots at the wall
+are ordinary glass" was a statement *about that wall* and did not travel — it is
+false at the § 6b.5.7 wall, where one real root is at \|c\|·(D/2) = 1 by
+construction.
 
-**The claim is restricted to the two counts that are measured.** 0 and 3 are what
-the rungs produce and what the branch names; an odd count of **1** falls through
-to the glass-pair sentence with nothing behind it, which is the same attribution
-defect one count over. It is left rather than guessed — no input in the repo
-reaches it, so a branch for it would be a sentence no rung could check — and it
-is named here so the paragraph above is not read as covering every count.
+**The claim was restricted to the two counts that were measured**, 0 and 3, with
+an odd count of **1** falling through to the glass-pair sentence with nothing
+behind it — named here rather than guessed, since no input reached it. **§ 6b.5.7
+closed that hole as a side effect**: what is counted is now a lens, every count
+with anything found at all lands on the aperture branch, and the message prints
+both numbers ("found 2, of which 1 is a lens").
 
 **The unification.** § 6q's Plössl clear-aperture wall — bisected there to
 0.899195·f_e and reported as "exactly scale-invariant from f_e 15 to 50" — throws
-this same three-root refusal. That scale invariance *is* the identity above, seen
-through a different constructor: both forms are specified entirely in ratios, so
-neither boundary can contain an aperture. What is **not** claimed is the number:
-the clear aperture reaches the doublets' apertures through the Plössl's own
-layout, which nothing here measures.
+this same refusal. That scale invariance *is* the identity above, seen through a
+different constructor: both forms are specified entirely in ratios, so neither
+boundary can contain an aperture. What is **not** claimed is the number: the
+clear aperture reaches the doublets' apertures through the Plössl's own layout,
+which nothing here measures. **The unification then paid a bill**: § 6b.5.7 moved
+this refusal, so the Plössl wall moved with it, to **0.9615248·f_e** — same
+constant, same exact scale-invariance, new value.
 
-**So the repo's list of walls is three kinds and not one.** § 6e.4's NA 1.411 and
-§ 6l's 1.3347 are **geometric** — the rays stop existing. § 6b's f/4.1 is an
-**aberration** edge, and § 6b.5.1 is what earns it that name: the wavefront leaves
-Maréchal at f/3.956, with the glass in perfectly good health. § 6q's 0.899·f_e is
-a **solver locus**, as is D8's f/2.3. § 6d's NA 0.343 is unclassified here and
-should not be assumed: § 6d.4 already says "its limit is the SOLVE, not
+**So the repo's list of walls is three kinds and not one — and § 6b.5.7 moved two
+of them between columns.** § 6e.4's NA 1.411 and § 6l's 1.3347 are **geometric** —
+the rays stop existing. § 6b's f/4.1 is an **aberration** edge, and § 6b.5.1 is
+what earns it that name: the wavefront leaves Maréchal at f/3.956, with the glass
+in perfectly good health. § 6q's Plössl wall and D8's f/2.3 were **solver
+loci** — and are not any more. Once the scan stops counting bendings that are not
+surfaces, what refuses at both is a real bending reaching \|c\|·(D/2) = 1: the
+glass runs out. They join the geometric column, at 0.9615248·f_e and f/1.837, and
+the taxonomy's three kinds now have one member fewer in the middle of them.
+§ 6d's NA 0.343 is unclassified here and should not be assumed: § 6d.4 already says "its limit is the SOLVE, not
 aberration — at its ceiling it is still λ/27", which is the shape of this
 mechanism, but the Lister solves two bendings jointly and nothing above measures
 it. That is a named follow-on, not a claim.
@@ -3310,9 +3324,10 @@ pass's aperture by ~0.2·ε; left where the ladder first found it, *that bias*
 would have become the new wall. Driven to a floor of 1e-4 instead, the wall lands
 on the converged design's own refusal ratio to **3e-13**. Only the aperture
 refusal is retried: `achromaticObjective` now throws a distinct
-`DoubletApertureRefusal` on the 3-root branch, while the 0-root glass-pair branch
-stays an ordinary `Error` — the same count § 6b.5.5 derives the prose from now
-also decides the type, so the two cannot disagree.
+`DoubletApertureRefusal` on the aperture branch, while the glass-pair branch — the
+one where the scan finds nothing at all — stays an ordinary `Error`. The same
+count § 6b.5.5 derives the prose from also decides the type, so the two cannot
+disagree.
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -3322,7 +3337,7 @@ also decides the type, so the two cannot disagree.
 | **The lenses in the opened band are genuine solutions** — solved-for conjugate = used-at conjugate, ΣS_I null where used, stop = a·tan u exactly | § 6b.1's own two guards, at apertures that used to be refused | ✅ |
 | **The retry is not slack**: past the wall it still refuses, and still names the APERTURE | the verdict survives | ✅ |
 | **NEGATIVE CONTROL: ordinary apertures are untouched** — the 4×/0.10 is unchanged to 7 digits | the retry only ever engages on a refusal | ✅ |
-| **A glass-pair refusal is not retried** — `DoubletApertureRefusal` on 3 roots, ordinary `Error` on 0, and the DIN constructor passes it through | the type and the prose come off one count | ✅ |
+| **A glass-pair refusal is not retried** — `DoubletApertureRefusal` on the aperture branch, ordinary `Error` when the scan finds nothing, and the DIN constructor passes it through | the type and the prose come off one count | ✅ |
 
 **What it cost, stated as a loss.** § 6b.5.4's closed form gave the wall from M,
 k and the glass pair alone — nothing from the built lens — and predicted the
@@ -3339,6 +3354,56 @@ diffraction-limited — the band opens at 3.45 waves and closes at 5.59. What th
 fix buys is that the refusal now means what it says: the constructor walls out
 where the *lens it has converged to* meets the solver's locus, not where an
 arithmetic seed put a lens nobody was going to build.
+
+**§ 6b.5.7 — the scan window's `3`, and the boundary it stops deciding.** The last
+of § 6b.5's open items, and the one with the widest blast radius. S_I(c₁) is a
+paraxial polynomial and does not know what glass can be bent to: past the wall it
+grows a root at \|c₁\|/span → 3⁻ that is **five times hemispherical** and is not a
+surface. Counting it made the refusal a property of the **scan window** — a wider
+±span would have admitted it sooner — and made the message's own count mean
+something other than what it said. `solveBendings` now rejects bendings with
+\|c\|·(D/2) ≥ 1 **before** it counts, which is the sanity filter
+`designs/lister` already applies to the roots of its two-dimensional scan.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **IDENTITY: the window constant is INERT** — the surviving root set at ±2, ±3 and ±5 agrees to **1e-14**, same roots and same count | the literal `3` no longer reaches any verdict | ✅ |
+| …while the **raw** count still moves with it (2, 3, 3), which is what makes that a statement about the filter | negative control | ✅ |
+| **F\* moves: 1.9042573 → 1.8372723** (s/f = 5) and **1.9175107 → 1.7397236** (infinity) | the boundary the rest of § 6b.5 pins | ✅ |
+| **The DIN walls move OUT flint-first** (+4% at the 4×, +10% at the 40×) **and IN crown-first** (−7%, −8%) | the asymmetry is the finding, not a wash | ✅ |
+| **EXTERNAL: the band gained is 78–106× Maréchal**; the band lost is bounded below at **41×**, and σ rises with NA across it | the same external criterion, in both directions | ✅ |
+| …and **the diffraction-limited reach still does not move** (0.10311) | negative control | ✅ |
+| **What the crown-first band lost was a design with only ONE of its pair a lens** — the refusal prints "found 2, of which 1 is a lens" | the mechanism of the loss, not just its size | ✅ |
+| **The refusal stays MONOTONE in the focal ratio** over a factor of twelve, at two conjugates | what `refusalRatio`, `buildWall` and the app's `measureApertureWall` all assume | ✅ |
+| **§ 6b.5.6's identity survives**: the wall is still the converged design's own F\*, to 1e-9, both orientations | the two fixes compose rather than interfere | ✅ |
+| **NEGATIVE CONTROL: the 4×/0.10 is bit-for-bit** what it was | a filter that changed a working design would be a different commit | ✅ |
+
+**The boundary changes KIND, which is the part worth carrying.** Just inside the
+wall the steeper of the two SA-null bendings sits at \|c\|·(D/2) = 0.9999; just
+outside, it has passed 1 and cannot be ground. So what refuses is the glass
+running out, not a scan convention — and the thickness dependence § 6b.5.2
+measured goes with it: doubling or tripling either element used to scale the
+locus **exactly** and now moves it by **under 2%**.
+
+**It refuses designs that used to build, and that is not free.** Crown-first, the
+scan was already finding one bending that is not a surface, and the constructor
+was building on the pair anyway — picking the physical root by cancellation and
+never noticing that the `branch: "steep"` alternative it advertises could not be
+made. Those designs are refused now: **NA 0.1715–0.1846 at the 4×**, and the
+equivalent band at every other magnification. The classical premise the
+constructor implements is *two* bendings to choose between, and where only one of
+them is a lens that premise has failed. The cost is stated rather than argued
+away, and it is bounded on the external criterion: the refused band cannot be
+measured where it was refused — those designs no longer exist — but σ rises with
+NA, so all of it is worse than its bottom end, which is **2.94 waves, 41×
+Maréchal**.
+
+**Downstream, the same refusal moved two other walls.** § 6q's Plössl
+clear-aperture wall goes **0.899195 → 0.9615248·f_e** and stays exactly
+scale-invariant, which is the identity behind it saying the same thing at a new
+number; § 6d.4's negative control on the single doublet's constructor ceiling goes
+**0.2608 → 0.2874**. Both are the ghost no longer arriving, and both are edited in
+the same commit — as are the app's D6.5 rungs and the eyepiece panel's own prose.
 
 ### Not yet pinned
 
@@ -3363,21 +3428,9 @@ arithmetic seed put a lens nobody was going to build.
   § 6b.5.4's `predict/measured − 1 < 1e-11` was **one-sided**, and a prediction
   that falls 6% short satisfies it vacuously — that rung would have gone on
   passing at the relocated wall. It is two-sided now.
-- **The scan window is a stated constant.** F\* is set by the `3` in
-  `solveBendings`'s ±3·span range. Rejecting non-physical bendings (|c|·D/2 ≥ 1)
-  *before* counting roots would make the count mean what its message says. Same
-  reason for not doing it here, and the same caller list. **§ 6b.5.5 took the
-  cheap half of this** — the message now *reports* which roots are non-physical,
-  which needed no rejection and moved no boundary. The expensive half is
-  unchanged and is still this bullet: a rejection would let the constructor build
-  designs it currently refuses, and every rung above that pins F\* would have to
-  be re-derived in the same commit. **§ 6b.5.6 did not touch it either** — it
-  moved which *ratio* is presented to the solver, not where the solver's locus
-  is, which is why F\* itself (1.9175107 at infinity, 1.9042573 at s/f = 5) is
-  bit-for-bit what it was. Measured, for whoever takes this on: with the filter
-  applied the physical root count runs **2 → 1 → 0** as the ratio falls, so the
-  count-1 branch § 6b.5.5 documents as unreachable becomes reachable and its
-  cause is the aperture, not the glass.
+- ~~**The scan window is a stated constant.**~~ Closed by § 6b.5.7 below — and the
+  window turned out not to be a constant worth stating, because with
+  non-physical bendings rejected nothing downstream can see it.
 - **Where the optical ceiling is for the OTHER forms.** § 6d.4 bisects the
   Lister's Maréchal reach and § 6b.5.1 now does the DIN doublet's; the
   infinity-corrected member of § 6a has neither.
@@ -6742,15 +6795,17 @@ finding a third S_I root once its ±3·span bending scan admits one, at a curvat
 about five times hemispherical. That is why this rung measured the wall as
 scale-invariant in f_e — the refusal carries no length by construction. So "the
 form stops existing" is the right shape of claim with the wrong agent: what stops
-is the solver's two-root bracket, and the honest statement is that FN 20 sits at
-the edge of *what this engine will build*. Whether the glass itself would run out
+is the solver's two-lens bracket, and the honest statement is that FN 20 sits
+inside *what this engine will build* — at the edge of it when this was written,
+with room since § 6b.5.7 moved the wall out to 0.9615·f_e. Whether the glass itself would run out
 there is a Maréchal question this rung does not ask.
 
 *The 0.88 above is a bracket — the two builds this rung makes — and not the wall
-itself. Bisected it is **0.899195·f_e**, and it is a **constant**: the Plössl form
-is exactly scale-invariant, so the fraction does not move with focal length at
-all, and the only thing that breaks it is `plosslEyepiece`'s own air-gap default
-`max(0.3, 0.02·f_e)` below f_e = 15. That measurement is an **app** one and lives
+itself. Bisected it is **0.9615248·f_e** (0.899195 until § 6b.5.7 stopped the
+doublet's bending scan counting a root no glass can be bent to), and it is a
+**constant**: the Plössl form is exactly scale-invariant, so the fraction does not
+move with focal length at all, and the only thing that breaks it is
+`plosslEyepiece`'s own air-gap default `max(0.3, 0.02·f_e)` below f_e = 15. That measurement is an **app** one and lives
 in APP.md D6 and `packages/app/test/eyepiece.test.ts` rather than here, because
 bisecting where a constructor refuses is not new physics and mints no rung. It is
 recorded here so the next reader does not re-derive it, and so "about 0.88" is not

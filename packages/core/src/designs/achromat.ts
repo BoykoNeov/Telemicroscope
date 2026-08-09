@@ -304,14 +304,18 @@ export interface AchromaticObjective {
  * object distance) is about the arguments and stays an ordinary `Error`, so
  * nobody can mistake it for something an aperture retry would fix.
  *
- * The 0-root refusal is deliberately NOT this type. § 6b.5.5's discriminator is
- * the count, and 0 means the glass pair admits no classical solution at any
- * focal ratio — CaF₂/F2 refuses at f/50 — so a caller laddering the aperture
- * down would burn a scan per step and arrive at the same answer. The type and
- * the message's prose therefore come off the same count, and cannot disagree.
+ * The 0-root refusal is deliberately NOT this type. The discriminator is the
+ * count, and finding *nothing* means the glass pair admits no classical solution
+ * at any focal ratio — CaF₂/F2 refuses at f/50 — so a caller laddering the
+ * aperture down would burn a scan per step and arrive at the same answer.
+ * Anything else the scan finds is an aperture failure, because since § 6b.5.7
+ * what is counted is a LENS: bendings the scan finds but no glass can be bent to
+ * are rejected before the count, and the only way to have found bendings and not
+ * two lenses is to be asking for too much aperture. The type and the message's
+ * prose come off that same count and cannot disagree.
  */
 export class DoubletApertureRefusal extends Error {
-  /** Sign changes the scan found — 0 is the glass pair, 3 is the aperture (§ 6b.5.5). */
+  /** Sign changes the scan found. 0 is the glass pair; anything else is aperture. */
   readonly rootCount: number;
   constructor(message: string, rootCount: number) {
     super(message);
@@ -512,10 +516,35 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
     }).s1 - targetS1Mm;
 
   /**
-   * Scan the bending for sign changes of S_I, then bisect each. The classical
-   * result is that S_I(c₁) has TWO roots for a crown-first cemented doublet;
-   * finding a different count means the glass pair does not admit the classical
-   * solution, and that is worth saying out loud rather than silently picking one.
+   * Is this bending a lens at this aperture? |c|·(D/2) = 1 is a hemisphere: a
+   * "surface" past it does not meet the marginal ray at all, so no glass can be
+   * bent to it. `designs/lister` applies the same sanity filter to the roots of
+   * its own two-dimensional scan (`buildable` there), and this is that filter in
+   * one dimension.
+   */
+  const isLens = (c1: number): boolean =>
+    curvaturesFrom(c1).every((c) => Math.abs(c) * (D / 2) < 1);
+
+  /** How far past a hemisphere the steepest surface of a bending goes. */
+  const steepness = (c1: number): number =>
+    Math.max(...curvaturesFrom(c1).map((c) => Math.abs(c) * (D / 2)));
+
+  /**
+   * Scan the bending for sign changes of S_I, bisect each, and keep the ones
+   * that are LENSES. The classical result is that S_I(c₁) has TWO roots for a
+   * crown-first cemented doublet; finding a different count means the glass pair
+   * does not admit the classical solution, and that is worth saying out loud
+   * rather than silently picking one.
+   *
+   * The filter is § 6b.5.7, and what it buys is that the count means what the
+   * message says. S_I(c₁) is a paraxial polynomial and does not know what glass
+   * can be bent to: past the wall it grows a third root at |c₁|/span → 3⁻ that
+   * is five times hemispherical and is not a surface. Counting it made the
+   * refusal boundary a property of the scan WINDOW — the literal 3 below — since
+   * a wider window would have admitted the ghost sooner. Rejected before the
+   * count, the boundary is set by where the real bendings stop being lenses, and
+   * § 6b.5.7 measures that the surviving root set is bitwise identical at
+   * windows of ±2, ±3 and ±5.
    */
   const solveBendings = (): [AchromatBranch, AchromatBranch] => {
     const span = Math.abs(dc1) + Math.abs(dc2);
@@ -552,50 +581,45 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
       prevC = c;
       prevS = s;
     }
-    if (roots.length !== 2) {
+    const lenses = roots.filter(isLens);
+    if (lenses.length !== 2) {
       /**
-       * THREE different failures wear the same shape, and conflating them blames
-       * the glass for what is the caller's arithmetic or this solver's own scan
-       * window. § 6b.5 measured the discriminator: a pair that genuinely admits
-       * no classical solution reports **0** roots at any focal ratio, while an
-       * aperture failure reports **3** — at the wall itself, the two ordinary
-       * bendings still sub-hemispherical, plus a root of the paraxial S_I
-       * polynomial that is not a lens (>5× hemispherical, entering at the window
-       * edge |c₁|/span = 3⁻ and migrating inward as the ratio falls; take the
-       * ratio far enough past the wall and the real pair goes non-physical too).
-       * On that branch "this glass pair does not admit the classical doublet
-       * solution" is simply false — the same pair builds ~10% slower.
+       * TWO different failures wear the same shape, and conflating them blames
+       * the glass for what is the caller's aperture. § 6b.5 measured the
+       * discriminator and § 6b.5.7 sharpened it: a pair that genuinely admits no
+       * classical solution finds **nothing** at any focal ratio, while an
+       * aperture failure finds bendings that are not lenses — at the wall, one
+       * of the surviving pair reaching |c|·(D/2) = 1, and past it the rest
+       * following. So the counts are reported as a pair, "found N, of which K are
+       * lenses", and every N > 0 lands on the aperture: the count-1 case § 6b.5.5
+       * had to leave homeless (a tangency, or a root on the window edge) is a
+       * count like any other now that what is counted is a lens.
        *
-       * The extra root is *reported*, not rejected. Rejecting non-physical
-       * bendings before the count would move the refusal boundary itself, which
-       * is § 6b.5's other open item and is upstream of §§ 5j, 6b, 6c, 6d and 6e.
-       * Naming the cause changes no verdict and no number.
-       *
-       * **Only 0 and 3 are measured.** An odd count of 1 — a tangency, or a root
-       * sitting on the window edge — falls through to the glass-pair sentence
-       * with nothing behind it, and no rung reaches it. That is the same
-       * attribution defect one count over, left rather than guessed: a branch
-       * for a case nobody can produce is a sentence nobody can check.
+       * K > 2 is left with a sentence of its own that says it is unmeasured. No
+       * input in the repo produces it — the physical count runs 2 → 1 → 0 as the
+       * ratio falls (§ 6b.5.7) — and the discipline § 6b.5.5 set is that a branch
+       * nobody can reach does not get prose asserting a cause.
        */
-      // |c|·(D/2) = 1 is a hemisphere: a "surface" past it does not meet the
-      // marginal ray at all, so no glass can be bent to it.
-      const unbuildable = roots
-        .map((c1) => Math.max(...curvaturesFrom(c1).map((c) => Math.abs(c) * (D / 2))))
-        .filter((slope) => slope >= 1);
+      const ghosts = roots.filter((c1) => !isLens(c1)).map(steepness);
       const expected =
         targetS1Mm === 0
           ? "expected two spherical-aberration-null bendings"
           : `expected two bendings with ΣS_I = ${targetS1Mm.toExponential(3)} mm`;
-      const aperture = roots.length > 2 && unbuildable.length > 0;
-      const cause = aperture
-        ? `the classical solution has two, so the bending scan has admitted an extra root, and ${unbuildable.length} of the ${roots.length} are deeper than hemispherical (${Math.max(...unbuildable).toFixed(1)}× at the steepest surface) and are not lenses — what is binding here is the APERTURE and not the glass pair, so slow the focal ratio`
-        : targetS1Mm === 0
+      const aperture = roots.length > 0;
+      const cause = !aperture
+        ? targetS1Mm === 0
           ? "this glass pair does not admit the classical doublet solution"
-          : "no bending of this pair absorbs that much external spherical aberration";
-      const message = `achromaticObjective: ${expected}, found ${roots.length} — ${cause}`;
+          : "no bending of this pair absorbs that much external spherical aberration"
+        : lenses.length < 2
+          ? `the rest are deeper than hemispherical (${Math.max(...ghosts).toFixed(2)}× at the steepest surface) and cannot be made — what is binding here is the APERTURE and not the glass pair, so slow the focal ratio`
+          : `the classical solution has two, so the scan has admitted an extra bending that IS a lens — no input in this repo is known to reach this, and the cause is not established`;
+      const counted = aperture
+        ? `found ${roots.length}, of which ${lenses.length} ${lenses.length === 1 ? "is a lens" : "are lenses"}`
+        : "found 0";
+      const message = `achromaticObjective: ${expected}, ${counted} — ${cause}`;
       throw aperture ? new DoubletApertureRefusal(message, roots.length) : new Error(message);
     }
-    return roots.map((c1): AchromatBranch => {
+    return lenses.map((c1): AchromatBranch => {
       const cs = curvaturesFrom(c1);
       // S_II is linear in field angle, so one radian is just a normalisation.
       const s = seidelSums(build(cs, f), designWavelengthNm, {
@@ -653,9 +677,11 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
   }
   for (const c of curvatures) {
     if (Math.abs(c) * (D / 2) >= 1) {
-      // Also the aperture's doing, and for the same reason as the count: the
-      // bending is a pure ratio, so what decides whether it is a surface anybody
-      // can grind is how much glass the ratio is being asked to span.
+      // Since § 6b.5.7 this is an INVARIANT rather than a check: `solveBendings`
+      // rejects non-physical bendings before it counts them, so the branch that
+      // reaches here is a lens by construction. Kept because it costs nothing
+      // and because the two conditions being the same one is exactly the thing
+      // that would break silently if either moved.
       throw new DoubletApertureRefusal(
         "achromaticObjective: a surface is hemispherical or steeper at this aperture",
         2,

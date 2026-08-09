@@ -345,10 +345,12 @@ describe("§ 6d.4 — reach: Maréchal, bisected", () => {
   });
 
   it("NEGATIVE CONTROL: the single doublet's own ceiling is a different fact", () => {
-    // `achromaticObjective` refuses NA ≥ 0.261 because the root count stops
-    // being the classical two — CONSTRUCTOR STRICTNESS about the structure, not
-    // "no SA-null bending exists". It must not be quoted as the physics wall;
-    // the physics wall is the Maréchal 0.180 above, and the two differ by 45%.
+    // `achromaticObjective` refuses NA ≥ 0.287 because fewer than two of the
+    // bendings it finds are LENSES — CONSTRUCTOR STRICTNESS about the structure,
+    // not "no SA-null bending exists". It must not be quoted as the physics wall;
+    // the physics wall is the Maréchal 0.180 above, and the two differ by 60%.
+    // (0.2608 until § 6b.5.7 stopped the bending scan counting a root that is
+    // five times hemispherical and cannot be ground.)
     const exists = highest(0.1, 0.4, (NA) => {
       try {
         single(NA);
@@ -357,7 +359,7 @@ describe("§ 6d.4 — reach: Maréchal, bisected", () => {
         return false;
       }
     });
-    expect(exists).toBeCloseTo(0.2608, 3);
+    expect(exists).toBeCloseTo(0.2874, 3);
     expect(exists).toBeGreaterThan(0.1797);
   });
 });

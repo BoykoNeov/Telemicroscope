@@ -368,12 +368,25 @@
    prediction-from-M-alone becomes a self-consistency identity and is kept as the
    *falsified* control (it misses low by 2.9%–9.6%). The witness commit that
    preceded it also caught a one-sided assertion that would have passed at the
-   relocated wall. **Still open here:** the scan window's `3` — rejecting
-   non-physical bendings before the count — which would move F\* itself, is
-   upstream of §§ 5j/6b/6c/6d/6e *and* the Plössl and Lister, and so remains its
-   own step. Measured for whoever takes it: with the filter the physical root
-   count runs **2 → 1 → 0**, so § 6b.5.5's "unreachable" count-1 branch becomes
-   reachable.
+   relocated wall. **And the scan window's `3` is the third, ✅ closed as well (§ 6b.5.7).**
+   `solveBendings` rejects bendings with |c|·(D/2) ≥ 1 before it counts them — the
+   sanity filter `designs/lister` already applies in two dimensions — so the count
+   is a count of LENSES and means what the message says. **The window constant
+   becomes inert**: the surviving root set at ±2, ±3 and ±5 agrees to 1e-14 while
+   the raw count still moves with it. **F\* moves** (1.9042573 → 1.8372723 at
+   s/f = 5; 1.9175107 → 1.7397236 at infinity) and **changes kind** — what binds is
+   a real bending reaching a hemisphere, so this wall and § 6q's leave the
+   "solver locus" column of the taxonomy for the geometric one, and § 6b.5.2's
+   thickness homogeneity is falsified with them (×2 and ×3 now move the locus by
+   under 2%). The DIN walls go **out** flint-first (+4% to +10%) and **in**
+   crown-first (−7% to −8%): that second direction **refuses designs that used to
+   build**, the ones where only one of the two SA-null bendings was a lens, and
+   the cost is stated rather than argued away — bounded at 41× Maréchal, since σ
+   rises with NA and the refused band cannot be measured where it was refused.
+   Downstream it moved § 6q's Plössl wall (0.899195 → 0.9615248·f_e, still exactly
+   scale-invariant) and § 6d.4's negative control (0.2608 → 0.2874), both edited
+   in the same commit. **No usable aperture either way**: the band gained is
+   78–106× Maréchal and the diffraction-limited reach does not move.
    *Composing an eyepiece onto the
    intermediate image was the other open item and is now closed by § 6q, which
    runs on this architecture and the infinity-corrected one alike.*
@@ -788,10 +801,11 @@
    composition is first-order work (18–22 ms an instrument) and the only things that
    need a worker are *sweeps of builds* rather than of traces. Four things came out
    of driving it. § 6q.9's "about 0.88·f_e" is a **bracket**: bisected, the Plössl's
-   clear-aperture wall is **0.899195·f_e and a constant**, exactly scale-invariant
-   from f_e 15 to 50, and the droop below that is the form's own air-gap floor
-   `max(0.3, 0.02·f_e)` rather than the design — forcing the gap to 0.02·f_e makes
-   every focal length read 0.899195 to six digits. The **negative control can
+   clear-aperture wall is **0.9615248·f_e and a constant** (0.899195 until § 6b.5.7
+   stopped the doublet's bending scan counting a root no glass can be bent to),
+   exactly scale-invariant from f_e 15 to 50, and the droop below that is the
+   form's own air-gap floor `max(0.3, 0.02·f_e)` rather than the design — forcing
+   the gap to 0.02·f_e makes every focal length read the constant to six digits. The **negative control can
    refuse**: on the 100×/1.40 oil `afocalTelescope` returns no gap at all
    (−254.006 mm, non-physical), so § 6q.3's point arrives one step earlier than
    § 6q.3 states it and the control needs a refusal path of its own. The eyepiece's
@@ -808,13 +822,14 @@
    large but finite — the flip is 12.1 mm further on.
    **Open:** the retinal PSF itself, the eyepiece's own aberrations at
    this conjugate, colour, and the exit pupil off axis. § 5j's doublet form also
-   walls out again — a computed Plössl admits ~0.88·f_e of clear aperture (**the
-   bracket the panel above bisects to 0.899195·f_e**), so FN 20 sits at the edge and
+   walls out again — a computed Plössl admits ~0.96·f_e of clear aperture (**the
+   bracket the panel above bisects to 0.9615248·f_e**), so FN 20 sits inside it and
    a genuinely wide field needs the transcribed patent members
    rather than a wider aperture on this form. That is the fourth wall of its kind,
    after § 6b's f/4.1, § 6d's NA 0.343 and § 6e.4's NA 1.411 — **and § 6b.5 later
-   identifies it as literally the same wall as the doublet's three-root refusal,
-   which is why it is scale-invariant in f_e** — and the panel adds
+   identifies it as literally the same wall as the doublet's aperture refusal,
+   which is why it is scale-invariant in f_e; § 6b.5.7 then moved both together,
+   0.899195 → 0.9615248, which is that identity paying out** — and the panel adds
    that it belongs to the **Plössl** rather than to eyepieces: a Huygens has no
    cemented doublet to fail and no wall below the 1.5·f_e its search stops at.
    *Polychromatic brightfield:* ✅ **done** (§ 6r) — the branch is in colour, and

@@ -20,7 +20,7 @@ import {
  * 1. **The clear-aperture wall is a constant, and § 6q.9 states a bracket.**
  *    § 6q.9 pins that a computed Plössl builds at 22 mm of clear aperture at
  *    f_e = 25 and refuses 24, hence APP.md's "about 0.88·f_e". Bisected, it is
- *    0.899195·f_e — and it does not move with focal length at all, because the
+ *    0.9615248·f_e — and it does not move with focal length at all, because the
  *    form is exactly scale-invariant. The panel very nearly reported the
  *    opposite (a wall that drifts 0.850 → 0.887 over f_e 10 → 40), off a probe
  *    whose 0.5 mm step quantized the ratio by more than the drift it claimed to
@@ -238,12 +238,12 @@ describe("D6.5 — the clear-aperture wall is a CONSTANT, and § 6q.9 states a b
   it("§ 6q.9's bracket is reproduced, and the bisection lands inside it", () => {
     // The ladder's own two builds, restated so the refinement below is visibly
     // a refinement rather than a disagreement.
-    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 22 })).not.toThrow();
-    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24 })).toThrow();
+    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24 })).not.toThrow();
+    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24.5 })).toThrow();
     const wall = measureWall({ form: "plossl", focalLengthMm: 25 });
-    expect(wall.clearApertureMm).toBeGreaterThan(22);
-    expect(wall.clearApertureMm).toBeLessThan(24);
-    expect(wall.perFocalLength).toBeCloseTo(0.899195, 5);
+    expect(wall.clearApertureMm).toBeGreaterThan(24);
+    expect(wall.clearApertureMm).toBeLessThan(24.5);
+    expect(wall.perFocalLength).toBeCloseTo(0.9615248, 5);
   });
 
   it("it does not move with focal length — the form is scale-invariant", () => {
@@ -251,7 +251,7 @@ describe("D6.5 — the clear-aperture wall is a CONSTANT, and § 6q.9 states a b
     const ratios = [15, 20, 25, 40, 50].map(
       (fe) => measureWall({ form: "plossl", focalLengthMm: fe }).perFocalLength!,
     );
-    for (const r of ratios) expect(r).toBeCloseTo(0.899195, 5);
+    for (const r of ratios) expect(r).toBeCloseTo(0.9615248, 5);
     expect(Math.max(...ratios) - Math.min(...ratios)).toBeLessThan(1e-5);
   });
 
@@ -264,10 +264,10 @@ describe("D6.5 — the clear-aperture wall is a CONSTANT, and § 6q.9 states a b
     const drifted = [6, 8, 10, 12].map(
       (fe) => measureWall({ form: "plossl", focalLengthMm: fe }).perFocalLength!,
     );
-    expect(drifted[0]!).toBeLessThan(0.895);
+    expect(drifted[0]!).toBeLessThan(0.955);
     // Monotone toward the invariant as the floor stops binding.
     for (let i = 1; i < drifted.length; i++) expect(drifted[i]!).toBeGreaterThan(drifted[i - 1]!);
-    expect(drifted[3]!).toBeLessThan(0.899195);
+    expect(drifted[3]!).toBeLessThan(0.9615248);
 
     const bisectWith = (fe: number): number => {
       const builds = (d: number) => {
@@ -287,7 +287,7 @@ describe("D6.5 — the clear-aperture wall is a CONSTANT, and § 6q.9 states a b
       }
       return lo / fe;
     };
-    for (const fe of [6, 8, 10, 12]) expect(bisectWith(fe)).toBeCloseTo(0.899195, 5);
+    for (const fe of [6, 8, 10, 12]) expect(bisectWith(fe)).toBeCloseTo(0.9615248, 5);
   });
 
   it("it is the Plössl's wall, not the eyepiece's — a Huygens has none", () => {
@@ -328,7 +328,9 @@ describe("D6.7 — refusals keep their stage, so the panel can name what failed"
   });
 
   it("a field number past the wall refuses at the eyepiece", () => {
-    const made = at({ eyepieceFocalLengthMm: 25, fieldNumberMm: 24 });
+    // 24 until § 6b.5.7 moved the wall from 0.899·f_e to 0.9615·f_e; the field
+    // number that overruns it at f_e 25 is now 24.5.
+    const made = at({ eyepieceFocalLengthMm: 25, fieldNumberMm: 24.5 });
     expect(made.ok).toBe(false);
     if (made.ok) return;
     expect(made.stage).toBe("eyepiece");

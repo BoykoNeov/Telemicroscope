@@ -623,18 +623,23 @@ describe("§ 6q.9 — the guards", () => {
     ).toThrow(/exactly one aperture stop/);
   });
 
-  it("the computed Plössl's clear aperture walls out at ~0.88·f_e", () => {
+  it("the computed Plössl's clear aperture walls out at ~0.96·f_e", () => {
     // Not a § 6q capability — a § 5j one, arriving where it bites. A field
     // number of 20 needs 20 mm of glass, and the cemented-doublet form admits
-    // 22 mm at f_e = 25 and refuses 24. So FN 20 is near the wall rather than
-    // comfortably inside it, and a wider field is a different eyepiece form
-    // (the transcribed patent members), not a wider aperture on this one.
-    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 22 })).not.toThrow();
-    // § 6b.5 identified this as the doublet's three-root refusal rather than a
-    // glass failure, and § 6b.5.5 now makes the message say so: the aperture is
-    // what is binding, which is exactly this rung's own sentence.
-    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24 })).toThrow(
-      /found 3 — .*binding here is the APERTURE and not the glass pair/,
+    // 24 mm at f_e = 25 and refuses 24.5. So FN 20 sits inside the wall with
+    // room, and a wider field is a different eyepiece form (the transcribed
+    // patent members) rather than a wider aperture on this one.
+    //
+    // The wall was ~0.88·f_e when this rung was written and bisected to
+    // 0.899195·f_e at § 6q.9. § 6b.5.7 moved it to 0.9615248·f_e by rejecting
+    // bendings that are not lenses before counting them — the refusal here was
+    // the ghost root arriving, and the ghost is not a surface.
+    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24 })).not.toThrow();
+    // § 6b.5 identified this as the doublet's aperture refusal rather than a
+    // glass failure, and § 6b.5.5 made the message say so; § 6b.5.7 made the count
+    // it prints a count of LENSES, which is what the sentence always claimed.
+    expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24.5 })).toThrow(
+      /of which 1 is a lens — .*binding here is the APERTURE and not the glass pair/,
     );
   });
 });

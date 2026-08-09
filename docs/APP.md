@@ -115,16 +115,17 @@ within one architecture, holding everything but one variable:
   of 1.500 — 1/NA, with the ~0.7% residual being the sine-condition departure
   above. (NA ≥ 0.20 throws — a doublet ceiling arriving as an error message. A
   picker must handle it. **§ 6b.5 corrected the attribution** — this is
-  `achromaticObjective`'s three-root refusal, a solver locus that for a 4×
-  N-BK7/F2 sits at **NA 0.19650** (0.1843 until § 6b.5.6 stopped the fixed
-  point's thin-lens seed from deciding it), *not* § 6b's f/4.1, which is an
-  aberration edge at NA 0.10311 and more than twice as slow — and **§ 6b.5.5 has since corrected
-  the message itself**, which no longer says *"this glass pair does not admit
-  the classical doublet solution"* here. It now reads *"found 3 … 2 of the 3 are
-  deeper than hemispherical (4.8× at the steepest surface) … what is binding
-  here is the APERTURE and not the glass pair"*, so a picker can say which knob
-  to move. The sentence about the glass survives on the branch where it is
-  true — a genuine glass-pair failure, which reports **0** roots.)
+  `achromaticObjective`'s aperture refusal, which for a 4× N-BK7/F2 sits at
+  **NA 0.20427** (0.1843 until § 6b.5.6 stopped the fixed point's thin-lens seed
+  deciding it, then 0.1965 until § 6b.5.7 stopped the scan counting bendings that
+  are not lenses), *not* § 6b's f/4.1, which is an aberration edge at NA 0.10311
+  and twice as slow — and **§ 6b.5.5 corrected the message itself**, which no
+  longer says *"this glass pair does not admit the classical doublet solution"*
+  here. It now reads *"found 2, of which 1 is a lens — the rest are deeper than
+  hemispherical (1.00× at the steepest surface) and cannot be made … what is
+  binding here is the APERTURE and not the glass pair"*, so a picker can say which
+  knob to move. The sentence about the glass survives on the branch where it is
+  true — a genuine glass-pair failure, where the scan finds **nothing**.)
 - 4× → 10× → 20× at NA 0.10: span **identical** at 93.54 µm, while the image
   pixel scales exactly with M (5.8462 → 14.6154 → 29.2308 µm).
 
@@ -1941,17 +1942,25 @@ convention. Six findings, and the first two are corrections to things written he
   *does not exist*. The first draft of this panel let that throw propagate and
   reported a perfectly well-composed microscope as a broken one; the control is
   now guarded in its own line. **A negative control needs its own refusal path.**
-- **§ 6q.9's "about 0.88·f_e" is a bracket, and bisected the wall is
-  0.899195·f_e — a CONSTANT.** This was very nearly written up as D8's own
+- **§ 6q.9's "about 0.88·f_e" is a bracket, and bisected the wall is a
+  CONSTANT.** This was very nearly written up as D8's own
   pattern ("a quoted wall turns out to be a function of a defaulted parameter"),
   on a probe that stepped the clear aperture by 0.5 mm and read ratios of 0.850
   → 0.887 across f_e 10 → 40. That spread is **inside the step's own
   quantization** (0.5/f_e is ±0.05 at f_e 10). Bisected to 1e-6 mm the ratio is
-  0.899195 at every f_e from 15 to 50, and the departure below that — 0.8902 at
-  f_e 6, 0.8940 at 8, 0.8962 at 10, 0.8977 at 12 — is `plosslEyepiece`'s **own
-  air-gap floor**, `max(0.3, 0.02·f_e)`, which stops scaling with the design:
-  force the gap to 0.02·f_e and all seven read 0.899195 to six digits. So the
-  form is exactly scale-invariant and the wall is a property of it. That is this
+  the same at every f_e from 15 to 50, and the departure below that is
+  `plosslEyepiece`'s **own air-gap floor**, `max(0.3, 0.02·f_e)`, which stops
+  scaling with the design: force the gap to 0.02·f_e and all seven agree to six
+  digits. So the form is exactly scale-invariant and the wall is a property of it.
+  **The value has moved once since**, and in a way that confirms rather than
+  disturbs this: it read **0.899195·f_e** (with 0.8902 at f_e 6, 0.8940 at 8,
+  0.8962 at 10, 0.8977 at 12 below the floor) until § 6b.5.7 stopped the doublet's
+  bending scan counting a root that is five times hemispherical and cannot be
+  ground, and now reads **0.9615248·f_e** — with the same exact scale-invariance,
+  the same air-gap droop below f_e 15 (0.9515 at 6, 0.9557 at 8, 0.9582 at 10,
+  0.9599 at 12), and the same mechanism. A constant that moves when the mechanism
+  under it is corrected, and moves *as a constant*, is the strongest form this
+  measurement could take. That is this
   doc's recorded failure mode — *"the feasibility number will turn out to be
   measuring something else"* — arriving in the panel's own probe rather than in a
   rung, for the seventh time. And **the wall is the Plössl's, not the
@@ -2224,12 +2233,18 @@ as constants.**
    | fused silica/F2 | 0.1915 → 0.2293 | f/2.212 → f/2.315 |
    | N-BK7/F2, crown-first | 0.1792 → 0.2074 (M = 4, 20) | f/2.268 → f/2.386 |
 
-   **Every NA in that table has since moved** — § 6b.5.6 took the fixed point's
-   thin-lens seed off the boundary, and the walls went out 2.9%–10.6%: N-BK7/F2
-   reads **0.19650 → 0.24517**, silica/F2 **0.20795 → 0.25926**, crown-first
-   **0.18457 → 0.21842**. The *shape* of the finding survives (the ratio is far
-   tighter than the aperture) and the interpretation below is unaffected, because
-   what this panel bisects was never an optical boundary.
+   **Every NA in that table has since moved twice.** § 6b.5.6 took the fixed
+   point's thin-lens seed off the boundary and the walls went out 2.9%–10.6%;
+   § 6b.5.7 then stopped the bending scan counting roots that are not lenses, which
+   moved them again — **out** flint-first and **in** crown-first, the latter
+   refusing designs that used to build. The table now reads N-BK7/F2
+   **0.20427 → 0.26918**, silica/F2 **0.19039 → 0.25030**, crown-first
+   **0.17152 → 0.20174** (M = 4 → 20). Note the *order* of the two glass pairs
+   reversed with the second move: against the scan window silica/F2 reached 6%
+   further, against |c|·(D/2) = 1 it reaches 7% less. The *shape* of the finding
+   survives (the ratio is far tighter than the aperture) and the interpretation
+   below is unaffected, because what this panel bisects was never an optical
+   boundary.
 
    Across two pairs, two orientations and four magnifications the NA wall spans
    **0.179–0.229** (28%) while the ratio at it spans **f/2.21–f/2.39** (8%) — about

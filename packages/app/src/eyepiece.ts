@@ -73,9 +73,11 @@ import { LAMBDA_NM, entryOf, type MicroscopeKind } from "./microscope";
  *     that is the usual threshold. Drawn beside the thin-lens Newton form
  *     1000·Δ/f_e², which is a *label on a curve* and not a rung.
  *  2. **The clear-aperture wall.** § 6q.9 pins it as a bracket — a computed
- *     Plössl admits 22 mm at f_e = 25 and refuses 24, hence "about 0.88·f_e".
- *     Bisecting it is the same move A6 made for § 6e.4's NA ceiling, and it
- *     lands at 0.899195·f_e.
+ *     Plössl admits 24 mm at f_e = 25 and refuses 24.5. Bisecting it is the same
+ *     move A6 made for § 6e.4's NA ceiling, and it lands at 0.9615248·f_e.
+ *     (0.899195·f_e until § 6b.5.7 stopped the doublet's bending scan counting a
+ *     root that is five times hemispherical and is not a surface — the wall is
+ *     the same refusal, measured after the count was made to mean what it said.)
  */
 
 /** The two computed eyepiece forms in the library (§§ 5m, 5o). */

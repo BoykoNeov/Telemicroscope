@@ -666,9 +666,12 @@ export function EyepiecePanel() {
         field stop of FN millimetres needs FN millimetres of glass behind it, and a computed Plössl
         stops admitting glass at a definite fraction of its own focal length — the readout above
         bisects for it rather than quoting one, which is the move A6 made on § 6e.4&rsquo;s aperture
-        ceiling. § 6q.9 states it as a bracket — 22 mm builds at f_e = 25 and 24 does not, hence
-        &ldquo;about 0.88&rdquo; — and bisected it is <strong>0.899195·f_e</strong>, a constant: the
-        form is exactly scale-invariant, so the fraction does not move with focal length at all.
+        ceiling. § 6q.9 states it as a bracket — 24 mm builds at f_e = 25 and 24.5 does not — and
+        bisected it is <strong>0.9615248·f_e</strong>, a constant: the form is exactly
+        scale-invariant, so the fraction does not move with focal length at all. It read
+        0.899195·f_e until § 6b.5.7 stopped the doublet&rsquo;s bending scan counting a root no
+        glass can be bent to; the wall is the same refusal, measured once its count meant what its
+        message said.
         Past it the <em>doublet solve</em> refuses, in its own words, and that refusal is
         printed here rather than being caught and softened. This is the fourth wall of its kind in
         the branch, after § 6b&rsquo;s f/4.1, § 6d&rsquo;s NA 0.343 and § 6e.4&rsquo;s NA 1.411, and

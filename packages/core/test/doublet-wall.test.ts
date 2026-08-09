@@ -154,6 +154,18 @@ const ulpsApart = (a: number, b: number): bigint => {
   return d < 0n ? -d : d;
 };
 
+/** The largest NA the DIN constructor builds at, per magnification and orientation. */
+const measuredAt = (M: number, orientation: "flintFirst" | "crownFirst", over: Record<string, unknown> = {}): number =>
+  highest(0.05, 0.9, (NA) => {
+    try {
+      finiteConjugateObjective({ magnification: M, numericalAperture: NA, orientation, ...over });
+      return true;
+    } catch {
+      return false;
+    }
+  }, 44);
+const measured = memoize(measuredAt);
+
 const messageFrom = (fn: () => unknown): string => {
   try {
     fn();
@@ -229,24 +241,24 @@ describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", ()
     expect(span(rows.map((r) => r.NA)) / span(rows.map((r) => r.F))).toBeGreaterThan(1.8);
   });
 
-  it("at the constructor's refusal NA the wavefront is 5.6 waves — 78× Maréchal", () => {
+  it("at the constructor's refusal NA the wavefront is 7.6 waves — 106× Maréchal", () => {
     // The measurement that makes everything below an identity rather than a
     // ceiling. D8 read the refusal boundary as "the form survives to NA 0.1843";
     // the form is tens of times past diffraction-limited there and nearly twice
     // past its own Maréchal reach. Nothing optical happens at that NA.
     //
-    // § 6b.5.6 has since moved this boundary — the wall was the fixed point's
-    // thin-lens SEED and is now the converged design's own — and it moved it the
-    // way that matters least: 0.184336 → 0.196500 is 6.6% more aperture, all of
-    // it deeper into a region the external criterion has already disqualified.
-    // The wavefront at the refusal went from 3.45 waves to 5.6. **Nothing usable
-    // was unlocked, and that is the honest summary of the seed fix.**
+    // Two commits have since moved this boundary and neither moved it anywhere
+    // useful. § 6b.5.6 took the fixed point's thin-lens SEED off it (0.184336 →
+    // 0.196500) and § 6b.5.7 stopped the scan counting bendings that are not
+    // lenses (→ 0.204273). The wavefront at the refusal went 3.45 → 5.59 → 7.57
+    // waves. **Nothing usable was unlocked by either, and that is the honest
+    // summary of both.**
     const wall = buildWall({});
-    expect(wall).toBeCloseTo(0.196500, 5);
+    expect(wall).toBeCloseTo(0.204273, 5);
     const sigma = sigmaWaves(4, wall);
-    expect(sigma).toBeGreaterThan(5.5);
-    expect(sigma / MARECHAL).toBeGreaterThan(77);
-    expect(wall / marechalReach(4)).toBeCloseTo(1.906, 2);
+    expect(sigma).toBeGreaterThan(7.5);
+    expect(sigma / MARECHAL).toBeGreaterThan(105);
+    expect(wall / marechalReach(4)).toBeCloseTo(1.981, 2);
   }, SLOW);
 });
 
@@ -256,7 +268,9 @@ describe("§ 6b.5.2 — the refusal boundary is the SOLVER's, and contains no ap
     // constructor is degree-1 homogeneous in D — the thickness floors are 0.1·D
     // and 0.06·D, the sag-driven thicknesses go as D²/f with f = D·F, and S_I
     // itself is ∝ h⁴ exactly. So the dimensionless lens does not change with
-    // aperture at all, and the boundary is a pure ratio.
+    // aperture at all, and the boundary is a pure ratio. § 6b.5.7 moved WHERE it
+    // is (1.9175107 → 1.7397236 at infinity, 1.9042573 → 1.8372723 at s/f = 5)
+    // without touching that: |c|·(D/2) is a pure ratio too.
     //
     // § 6p's distinction, landing on the OTHER side: the identity is algebraic
     // and NOT arithmetic. Most of these values are bitwise equal and one in each
@@ -265,7 +279,7 @@ describe("§ 6b.5.2 — the refusal boundary is the SOLVER's, and contains no ap
     // can flip and the last bits of the bracket differ. Pinned at the measured
     // 4 ULP rather than at a round epsilon, so the day it becomes 400 the rung
     // notices.
-    for (const [sOverF, expected] of [[null, 1.9175107], [5, 1.9042573]] as const) {
+    for (const [sOverF, expected] of [[null, 1.7397236], [5, 1.8372723]] as const) {
       const walls = [1, 10, 100, 1000].map((D) => refusalRatio(sOverF, {}, D));
       for (const F of walls) expect(Number(ulpsApart(F, walls[0]!))).toBeLessThanOrEqual(4);
       expect(walls[0]).toBeCloseTo(expected, 6);
@@ -275,12 +289,20 @@ describe("§ 6b.5.2 — the refusal boundary is the SOLVER's, and contains no ap
     expect(Math.abs(refusalRatio(null) / refusalRatio(5) - 1)).toBeGreaterThan(5e-3);
   });
 
-  it("and it is homogeneous of degree 1 in the STATED thickness pair", () => {
-    // The aperture-freedom above is inherited from the thickness DEFAULTING
-    // rule, not from the glass: state the thicknesses instead and scaling them
-    // scales the boundary ratio exactly, which says the locus lives in t/f. So
-    // "the ceiling is a focal ratio" is a property of how much glass the
-    // constructor decides to put in, one layer below the doublet.
+  it("FALSIFIED by § 6b.5.7: the thickness curve the locus used to live on is gone", () => {
+    // This rung used to read "homogeneous of degree 1 in the STATED thickness
+    // pair" — scale both thicknesses by k and the boundary ratio scaled by k, to
+    // 1e-8 — with a negative control beside it showing the two elements were not
+    // interchangeable (crown ×1.86, flint ×1.15 for a doubling). Both were true,
+    // and both were about a boundary set by a THIRD ROOT whose arrival depends on
+    // the thick-lens Seidel sums, hence on how much glass there is.
+    //
+    // Rejecting non-physical bendings moved the boundary onto |c|·(D/2) = 1,
+    // which is a statement about curvature and aperture and not about thickness
+    // at all. So the locus stops living in (t_crown/f, t_flint/f): doubling and
+    // tripling either or both now moves it by under 2%, where it used to move it
+    // by exactly the factor. The residual is the thick-lens sums' own weak pull
+    // on where the roots sit, and it is not homogeneous in anything.
     const atWall = achromaticObjective({
       apertureMm: 10,
       focalRatio: refusalRatio(5.02),
@@ -289,54 +311,38 @@ describe("§ 6b.5.2 — the refusal boundary is the SOLVER's, and contains no ap
     const tc = atWall.crownThicknessMm;
     const tf = atWall.flintThicknessMm;
     const base = refusalRatio(5.02, { crownThicknessMm: tc, flintThicknessMm: tf });
-    for (const k of [2, 3]) {
-      const scaled = refusalRatio(5.02, { crownThicknessMm: tc * k, flintThicknessMm: tf * k });
-      expect(scaled / base).toBeCloseTo(k, 8);
+    const moved = ([kc, kf]: readonly [number, number]) =>
+      refusalRatio(5.02, { crownThicknessMm: tc * kc, flintThicknessMm: tf * kf }) / base;
+    for (const k of [[2, 1], [3, 1], [1, 2], [2, 2], [3, 3]] as const) {
+      expect(Math.abs(moved(k) - 1)).toBeLessThan(0.02);
     }
-  });
-
-  it("NEGATIVE CONTROL: the two thicknesses are not interchangeable", () => {
-    // If the boundary were "total glass" the two elements would trade off; they
-    // do not, so the locus is a curve in (t_crown/f, t_flint/f) and the single
-    // number is a section through it.
-    const atWall = achromaticObjective({
-      apertureMm: 10,
-      focalRatio: refusalRatio(5.02),
-      objectDistanceMm: 5.02 * 10 * refusalRatio(5.02),
-    });
-    const tc = atWall.crownThicknessMm;
-    const tf = atWall.flintThicknessMm;
-    const base = refusalRatio(5.02, { crownThicknessMm: tc, flintThicknessMm: tf });
-    const crownOnly = refusalRatio(5.02, { crownThicknessMm: tc * 2, flintThicknessMm: tf });
-    const flintOnly = refusalRatio(5.02, { crownThicknessMm: tc, flintThicknessMm: tf * 2 });
-    // Both move it, neither by the factor two, and by different factors.
-    expect(crownOnly / base).toBeGreaterThan(1.7);
-    expect(crownOnly / base).toBeLessThan(2);
-    expect(flintOnly / base).toBeGreaterThan(1.1);
-    expect(flintOnly / base).toBeLessThan(1.2);
-    expect(crownOnly / flintOnly).toBeGreaterThan(1.5);
-  });
+    // The two literals the old rungs pinned, to make the falsification explicit:
+    // a crown doubling used to be ×1.86 and a flint doubling ×1.15.
+    expect(moved([2, 1])).toBeCloseTo(0.98996, 4);
+    expect(moved([1, 2])).toBeCloseTo(0.99340, 4);
+  }, SLOW);
 });
 
-describe("§ 6b.5.3 — what arrives at the boundary is a ghost, at the scan window's edge", () => {
+describe("§ 6b.5.3 — the ghost at the window's edge, now rejected before it counts", () => {
   /**
    * `achromaticObjective` scans c₁ over ±3·span for sign changes of S_I and
-   * refuses any count but two. With the thicknesses STATED there is no second
-   * pass, so the scan below is the constructor's own — and it is checked against
-   * the constructor's verdict rather than assumed to be it.
+   * refuses any count but two — of LENSES, since § 6b.5.7. With the thicknesses
+   * STATED there is no second pass, so the scan below is the constructor's own,
+   * and it is checked against the constructor's verdict rather than assumed to
+   * be it. The window is a parameter here so the rung can ask what the literal
+   * `3` in `solveBendings` is worth, which is the whole point of the filter.
    */
   const D = 10;
   const S_OVER_F = 5.02;
-  const wallF = refusalRatio(S_OVER_F);
-  const atWall = achromaticObjective({
+  const atDefaultWall = achromaticObjective({
     apertureMm: D,
-    focalRatio: wallF,
-    objectDistanceMm: S_OVER_F * D * wallF,
+    focalRatio: refusalRatio(S_OVER_F),
+    objectDistanceMm: S_OVER_F * D * refusalRatio(S_OVER_F),
   });
-  const crownMm = atWall.crownThicknessMm;
-  const flintMm = atWall.flintThicknessMm;
+  const crownMm = atDefaultWall.crownThicknessMm;
+  const flintMm = atDefaultWall.flintThicknessMm;
 
-  const scan = (F: number) => {
+  const scan = (F: number, window = 3) => {
     const f = D * F;
     const form = cementedDoubletForm({ apertureMm: D, focalLengthMm: f });
     const s1Of = (c1: number): number =>
@@ -345,8 +351,8 @@ describe("§ 6b.5.3 — what arrives at the boundary is a ghost, at the scan win
         objectDistanceMm: S_OVER_F * f,
       }).s1;
     const span = Math.abs(form.dc1) + Math.abs(form.dc2);
-    const lo = -3 * span;
-    const hi = 3 * span;
+    const lo = -window * span;
+    const hi = window * span;
     const steps = 2000;
     const roots: number[] = [];
     let prevC = lo;
@@ -373,10 +379,12 @@ describe("§ 6b.5.3 — what arrives at the boundary is a ghost, at the scan win
       prevS = s;
     }
     return roots.map((c1) => ({
+      c1,
       overSpan: c1 / span,
       slope: Math.max(...form.curvaturesAt(c1).map((c) => Math.abs(c) * (D / 2))),
     }));
   };
+  const lenses = (F: number, window = 3) => scan(F, window).filter((r) => r.slope < 1);
 
   const builds = (F: number): boolean => {
     try {
@@ -392,51 +400,115 @@ describe("§ 6b.5.3 — what arrives at the boundary is a ghost, at the scan win
       return false;
     }
   };
+  /**
+   * The wall AT THESE STATED THICKNESSES, which is the boundary the scan below
+   * reconstructs. It is 0.5% off the defaulted-thickness one — since § 6b.5.7 the
+   * locus barely depends on thickness, but "barely" is not "not at all"
+   * (§ 6b.5.2), and reconstructing one boundary while testing against the other
+   * is exactly the circularity these rungs exist to avoid.
+   */
+  const wallF = ((): number => {
+    let lo = 0.2;
+    let hi = 12;
+    for (let i = 0; i < 54; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (builds(mid)) hi = mid;
+      else lo = mid;
+    }
+    return hi;
+  })();
 
-  it("ANTI-CIRCULARITY: the scan's root count flips 2→3 across the constructor's own verdict", () => {
-    // Without this the section below would be a story about a reconstruction.
+  it("ANTI-CIRCULARITY: it is now the LENS count that flips 2→1 across the verdict", () => {
+    // The rung this replaces watched the raw count flip 2→3, which was the right
+    // reconstruction of the old solver and is the wrong one now. What decides is
+    // the count after the filter, and the raw count does something else entirely
+    // on the way past the wall — it stays at 2, because the ghost is only one of
+    // the roots that has stopped being a lens.
     for (const F of [wallF * 1.2, wallF * 1.01]) {
       expect(builds(F)).toBe(true);
-      expect(scan(F)).toHaveLength(2);
+      expect(lenses(F)).toHaveLength(2);
     }
     for (const F of [wallF * 0.999, wallF * 0.9, wallF * 0.7]) {
       expect(builds(F)).toBe(false);
-      expect(scan(F)).toHaveLength(3);
+      expect(lenses(F).length).toBeLessThan(2);
     }
+    // 2 → 1 → 0, which is why § 6b.5.5's "unreachable" count-1 branch is
+    // reachable now and why its cause is the aperture.
+    expect(lenses(wallF * 0.999)).toHaveLength(1);
+    expect(lenses(wallF * 0.7)).toHaveLength(0);
   });
 
-  it("the third root is 5× hemispherical and ENTERS at |c₁|/span = 3 — the window constant", () => {
-    // So the boundary ratio is set by the literal `3` in `solveBendings`'s scan
-    // range, not by anything the glass does. Just below the wall the ghost sits
-    // at the window edge; take the ratio further down and it migrates inward.
-    const just = scan(wallF * 0.999);
-    const ghost = just[2]!;
-    expect(ghost.overSpan).toBeGreaterThan(2.99);
-    expect(ghost.overSpan).toBeLessThan(3);
-    // |c|·(D/2) = 1 is a hemisphere; this "surface" is five times steeper and
-    // does not intersect the marginal ray at all. It is a root of the paraxial
-    // S_I polynomial, not a lens.
-    expect(ghost.slope).toBeGreaterThan(5);
-    const deeper = scan(wallF * 0.7)[2]!;
-    expect(deeper.overSpan).toBeLessThan(ghost.overSpan);
-    expect(deeper.overSpan).toBeGreaterThan(2);
+  it("the boundary is now GEOMETRIC: a real bending arrives at |c|·(D/2) = 1", () => {
+    // What the wall IS after the filter, and it is a different kind of thing
+    // from what it was. Just inside, the steeper of the two SA-null bendings is
+    // a hemisphere all but exactly; just outside, it has passed one and is not a
+    // surface any glass can be ground to. So this wall joins § 6e.4's NA 1.411
+    // and § 6l's 1.3347 in the taxonomy's GEOMETRIC column, where before it sat
+    // with § 6q's 0.899·f_e as a solver locus.
+    const steepestLens = (F: number) => Math.max(...lenses(F).map((r) => r.slope));
+    expect(steepestLens(wallF * 1.0001)).toBeGreaterThan(0.9999);
+    expect(steepestLens(wallF * 1.0001)).toBeLessThan(1);
+    // Just outside, that same bending has passed the hemisphere — it is the one
+    // the filter drops, and dropping it is the whole refusal.
+    const dropped = scan(wallF * 0.9999)
+      .filter((r) => r.slope >= 1 && r.overSpan < 1)
+      .map((r) => r.slope);
+    expect(dropped).toHaveLength(1);
+    expect(dropped[0]).toBeGreaterThan(1);
+    expect(dropped[0]).toBeLessThan(1.001);
   });
 
-  it("…while the two REAL roots at the wall are ordinary glass", () => {
-    // The form has not run out: at the refusal both bendings are still under
-    // hemispherical and the built lens still has positive edges. Nothing
-    // geometric is binding — which is what separates this wall from § 6d's,
-    // § 6e.4's and § 6l's, where the rays stop existing.
-    const both = scan(wallF * 1.01);
-    for (const r of both) expect(r.slope).toBeLessThan(1);
-    const cs = atWall.curvatures;
-    const h = D / 2;
-    const sag = (c: number, r: number) => {
-      const d = 1 - c * c * r * r;
-      return d <= 0 ? c * r * r : (c * r * r) / (1 + Math.sqrt(d));
-    };
-    expect(crownMm + sag(cs[1]!, h) - sag(cs[0]!, h)).toBeGreaterThan(0);
-    expect(flintMm + sag(cs[2]!, h) - sag(cs[1]!, h)).toBeGreaterThan(0);
+  it("the ghost is still there, and the constructor now BUILDS with it in the scan", () => {
+    // The sharpest statement of what changed. The scan's third root is five
+    // times hemispherical and comes in over the window's edge at |c₁|/span = 3⁻,
+    // exactly as § 6b.5 measured — but its arrival is no longer an event: it turns
+    // up while the design is still comfortably buildable, and the constructor
+    // returns a lens with a ghost sitting in its own scan.
+    for (const k of [1.05, 1.01]) {
+      const raw = scan(wallF * k);
+      expect(raw).toHaveLength(3);
+      const ghost = raw.find((r) => r.slope > 3)!;
+      expect(ghost.slope).toBeGreaterThan(4.9);
+      expect(ghost.overSpan).toBeGreaterThan(2.7);
+      expect(ghost.overSpan).toBeLessThan(3);
+      expect(builds(wallF * k)).toBe(true);
+    }
+    // It enters between 1.1·F* and 1.05·F* — above the wall, where the old solver
+    // would have refused — and migrates inward as the ratio falls, so it is a
+    // window crossing and not a coalescence of the real pair.
+    expect(scan(wallF * 1.1)).toHaveLength(2);
+    expect(scan(wallF * 0.7).find((r) => r.slope > 3)!.overSpan)
+      .toBeLessThan(scan(wallF * 1.05).find((r) => r.slope > 3)!.overSpan);
+  });
+
+  it("IDENTITY: with it rejected, the WINDOW CONSTANT is inert — ±2, ±3, ±5 agree", () => {
+    // The rung § 6b.5.7 exists to produce. F* used to be set by the literal 3 in
+    // `solveBendings`, because the boundary was where the ghost entered and a
+    // wider window would have admitted it sooner. Filtered, the surviving root
+    // set does not depend on the window at all: the real bendings sit at
+    // |c₁|/span ≈ 0.12–0.25, and everything the window adds or removes beyond ±2
+    // is not a lens. The agreement is to 1e-14 relative rather than bitwise: the
+    // scan's sample grid is laid over the window, so a different window brackets
+    // each root from a different pair of samples and the bisection's last bit
+    // can differ. Same roots, same count, reached along a different path — which
+    // is § 6p's algebraic-not-arithmetic distinction once more.
+    for (const F of [wallF * 1.01, wallF * 0.999, wallF * 0.9]) {
+      const three = lenses(F, 3).map((r) => r.c1);
+      for (const window of [2, 5]) {
+        const other = lenses(F, window).map((r) => r.c1);
+        expect(other).toHaveLength(three.length);
+        for (let i = 0; i < three.length; i++) {
+          expect(Math.abs(other[i]! / three[i]! - 1)).toBeLessThan(1e-14);
+        }
+      }
+    }
+    // …while the RAW count still moves with it, which is what makes the identity
+    // above a statement about the filter and not about the scan being narrow.
+    expect(scan(wallF * 0.999, 2)).toHaveLength(2);
+    expect(scan(wallF * 0.999, 3)).toHaveLength(3);
+    expect(scan(wallF * 0.999, 5)).toHaveLength(3);
+    // …and the count that DECIDES does not move with it.
+    for (const window of [2, 3, 5]) expect(lenses(wallF * 0.999, window)).toHaveLength(1);
   });
 });
 
@@ -466,18 +538,8 @@ describe("§ 6b.5.4 — the wall was the fixed point's SEED, and § 6b.5.6 moved
     const tanU = 1 / (2 * GLASS_MARGIN * (1 + 1 / M) * refusalRatio(sOverF, over));
     return tanU / Math.sqrt(1 + tanU * tanU);
   };
-  const measuredAt = (M: number, orientation: "flintFirst" | "crownFirst", over: Record<string, unknown> = {}): number =>
-    highest(0.05, 0.9, (NA) => {
-      try {
-        finiteConjugateObjective({ magnification: M, numericalAperture: NA, orientation, ...over });
-        return true;
-      } catch {
-        return false;
-      }
-    }, 44);
-  const measured = memoize(measuredAt);
 
-  it("FALSIFIED: the seed's closed form now misses the wall, low, by 2.9% to 9.6%", () => {
+  it("FALSIFIED: the seed's closed form now misses the wall, low, by 2.4% to 10.4%", () => {
     // The rung this replaces asserted `predict/measured - 1 < 1e-11` — which was
     // ONE-SIDED, and would have gone on passing at any wall the seed fix moved
     // the constructor to, since a prediction that falls short satisfies it
@@ -491,13 +553,13 @@ describe("§ 6b.5.4 — the wall was the fixed point's SEED, and § 6b.5.6 moved
         // Low, every time: the seed sizes MORE glass than the design it is
         // converging to needs, so the aperture it walls out at is smaller.
         expect(miss).toBeLessThan(-0.02);
-        expect(miss).toBeGreaterThan(-0.11);
+        expect(miss).toBeGreaterThan(-0.12);
         misses.push(miss);
       }
     }
-    expect(misses[0]).toBeCloseTo(-0.0619, 3); // flint first, 4×
-    expect(misses[3]).toBeCloseTo(-0.0955, 3); // flint first, 40×
-    expect(misses[4]).toBeCloseTo(-0.0290, 3); // crown first, 4×
+    expect(misses[0]).toBeCloseTo(-0.0659, 3); // flint first, 4×
+    expect(misses[3]).toBeCloseTo(-0.1037, 3); // flint first, 40×
+    expect(misses[4]).toBeCloseTo(-0.0242, 3); // crown first, 4×
     // …and it is not a constant offset that could be absorbed into k: the miss
     // runs with M and with orientation, which is what makes it the seed's error
     // and not a rescaling.
@@ -531,16 +593,19 @@ describe("§ 6b.5.4 — the wall was the fixed point's SEED, and § 6b.5.6 moved
     }
   }, SLOW);
 
-  it("…and on a second glass pair, which is what stops it being a constant", () => {
+  it("…and on a second glass pair, whose ORDER against N-BK7/F2 § 6b.5.7 reversed", () => {
     const over = { crownMedium: "FUSED-SILICA" };
     for (const M of [4, 40]) {
       const miss = predict(M, "flintFirst", over) / measured(M, "flintFirst", over) - 1;
       expect(miss).toBeLessThan(-0.02);
       expect(miss).toBeGreaterThan(-0.13);
     }
-    // The two pairs genuinely differ: silica/F2 reaches 6% more aperture before
-    // refusing.
-    expect(measured(4, "flintFirst", over) / measured(4, "flintFirst")).toBeGreaterThan(1.05);
+    // The two pairs genuinely differ — but which one reaches further changed
+    // when the boundary's mechanism did. Against the scan window, silica/F2 got
+    // 6% MORE aperture than N-BK7/F2 before the ghost arrived; against
+    // |c|·(D/2) = 1 it gets 7% LESS, because what is being compared is now how
+    // steeply each pair has to bend rather than when a root crosses a window.
+    expect(measured(4, "flintFirst", over) / measured(4, "flintFirst")).toBeCloseTo(0.932, 2);
   }, SLOW);
 
   it("WITNESS: the wall is these NUMBERS, and a re-seed has to edit them", () => {
@@ -556,25 +621,29 @@ describe("§ 6b.5.4 — the wall was the fixed point's SEED, and § 6b.5.6 moved
     // currency the ladder measures it in — the numbers on the right are the ones
     // this file pinned one commit ago:
     //
-    //     flint first  4× 0.1965000 (was 0.1843357, +6.6%)
-    //                 10× 0.2265647 (was 0.2078672, +9.0%)
-    //                 20× 0.2386541 (was 0.2169474, +10.0%)
-    //                 40× 0.2451735 (was 0.2217549, +10.6%)
-    //     crown first  4× 0.1845669 (was 0.1792105, +3.0%)
-    //                 40× 0.2233784 (was 0.2113516, +5.7%)
+    //     flint first  4× 0.2042726 (0.1843357 → 0.1965000 → here)
+    //                 10× 0.2434783 (0.2078672 → 0.2265647 → here)
+    //                 20× 0.2600553 (0.2169474 → 0.2386541 → here)
+    //                 40× 0.2691756 (0.2217549 → 0.2451735 → here)
+    //     crown first  4× 0.1715225 (0.1792105 → 0.1845669 → here — DOWN)
+    //                 40× 0.2064431 (0.2113516 → 0.2233784 → here — DOWN)
     //
-    // Every one of them is deeper into the region § 6b.5.1 has already
-    // disqualified on Maréchal, which is the point: this bought attribution,
-    // not aperture.
+    // Two commits have moved them: § 6b.5.6 took the seed off the boundary and
+    // § 6b.5.7 rejected non-physical bendings before counting. The crown-first
+    // rows move the OTHER way under the second, and that is a real refusal of
+    // designs that used to build — measured and accounted for in § 6b.5.7.
+    // Every aperture on either side of either move is deep inside the region
+    // § 6b.5.1 disqualified on Maréchal, which is the point: this bought
+    // attribution, not aperture.
     const walls = [
-      [4, "flintFirst", 0.1965000],
-      [10, "flintFirst", 0.2265647],
-      [20, "flintFirst", 0.2386541],
-      [40, "flintFirst", 0.2451735],
-      [4, "crownFirst", 0.1845669],
-      [10, "crownFirst", 0.2090060],
-      [20, "crownFirst", 0.2184242],
-      [40, "crownFirst", 0.2233784],
+      [4, "flintFirst", 0.2042726],
+      [10, "flintFirst", 0.2434783],
+      [20, "flintFirst", 0.2600553],
+      [40, "flintFirst", 0.2691756],
+      [4, "crownFirst", 0.1715225],
+      [10, "crownFirst", 0.1930702],
+      [20, "crownFirst", 0.2017402],
+      [40, "crownFirst", 0.2064431],
     ] as const;
     for (const [M, orientation, expected] of walls) {
       expect(measured(M, orientation)).toBeCloseTo(expected, 6);
@@ -584,18 +653,18 @@ describe("§ 6b.5.4 — the wall was the fixed point's SEED, and § 6b.5.6 moved
     // plate's contribution is absolute), so § 6b.5.2's identity and § 6b.5.4's
     // closed form do not reach this row. It is pinned as a bare measurement.
     const silica = { crownMedium: "FUSED-SILICA" };
-    expect(measured(4, "flintFirst", silica)).toBeCloseTo(0.2079527, 6);
-    expect(measured(40, "flintFirst", silica)).toBeCloseTo(0.2592565, 6);
-    expect(measured(4, "flintFirst", { coverslip: { thicknessMm: 0.17 } })).toBeCloseTo(0.1987039, 6);
+    expect(measured(4, "flintFirst", silica)).toBeCloseTo(0.1903894, 6);
+    expect(measured(40, "flintFirst", silica)).toBeCloseTo(0.2503027, 6);
+    expect(measured(4, "flintFirst", { coverslip: { thicknessMm: 0.17 } })).toBeCloseTo(0.2067345, 6);
   }, SLOW);
 
   it("WITNESS: and the design at the wall is now one the SEED's arithmetic refuses", () => {
     // The same measurement one commit ago read the other way round. Then: the
     // converged design at the wall sat 6% INSIDE the refusal ratio, so the
     // constructor was walling out lenses it could deliver. Now the converged
-    // design sits ON the boundary — f/1.9044 against F* = 1.9044 — and it is the
-    // SEED that is outside, asking for f/1.787 where the solver's locus is
-    // f/1.904. The wall did not move because the solver changed its mind about
+    // design sits ON the boundary — f/1.8354 against F* = 1.8354 — and it is the
+    // SEED that is outside, asking for f/1.711 where the solver's locus is
+    // f/1.835. The wall did not move because the solver changed its mind about
     // any focal ratio; it moved because the ratio being presented to it is now
     // the design's and not the seed's.
     const M = 4;
@@ -605,12 +674,12 @@ describe("§ 6b.5.4 — the wall was the fixed point's SEED, and § 6b.5.6 moved
     const seedA = f * (1 + 1 / M);
     const tanU = NA / Math.sqrt(1 - NA * NA);
     const convergedA = objective.airEquivalentObjectDistanceMm;
-    expect(convergedA / seedA).toBeCloseTo(0.935788, 6);
+    expect(convergedA / seedA).toBeCloseTo(0.9324841, 6);
     // What the seed would have presented, and what the design does present.
-    expect(f / (2 * seedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.7820859, 6);
-    expect(f / (2 * convergedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.9043689, 6);
+    expect(f / (2 * seedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.7114981, 6);
+    expect(f / (2 * convergedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.8354180, 6);
     // And the seed's is well past the locus, which is why this design used to be
-    // refused: 6.4% of ratio, on the wrong side.
+    // refused: 6.8% of ratio, on the wrong side.
     const sOverF = objective.doublet.objectDistanceMm! / f;
     expect(f / (2 * seedA * tanU * GLASS_MARGIN) / refusalRatio(sOverF)).toBeLessThan(0.94);
   });
@@ -639,19 +708,25 @@ describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them
     }
   });
 
-  it("an aperture failure reports 3, and the SAME pair builds when slowed", () => {
+  it("an aperture failure reports the LENS count, and the SAME pair builds when slowed", () => {
     // Which falsifies the sentence the message USED to print on this branch —
-    // the glass pair does admit the classical solution, at a ratio 10% slower.
-    expect(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 }))).toMatch(/found 3 —/);
-    expect(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 2.2 }))).toBe("builds");
+    // the glass pair does admit the classical solution, at a ratio 20% slower.
+    // Since § 6b.5.7 the count is of lenses and both numbers are printed: at
+    // f/1.5 the scan still finds its two bendings and neither is a surface.
+    expect(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 })))
+      .toMatch(/found 2, of which 1 is a lens —/);
+    expect(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.2 })))
+      .toMatch(/found 2, of which 0 are lenses —/);
+    expect(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.8 }))).toBe("builds");
   });
 
   it("…and the message now says APERTURE there, and never says it on the 0-root branch", () => {
     // The fix this section's own heading used to describe as not done. The
     // discriminator is the count, which the engine already had; what changes is
-    // that the prose is derived from it instead of asserted over it. Nothing
-    // about which designs are refused moves — the extra root is reported, not
-    // rejected, since rejecting it would move the boundary § 6b.5.2–.4 pin.
+    // that the prose is derived from it instead of asserted over it. (When this
+    // landed nothing about which designs are refused moved, the extra root being
+    // reported rather than rejected; § 6b.5.7 is the commit that went on to
+    // reject it, and the sentence below survived that unchanged.)
     const aperture = messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 }));
     expect(aperture).toMatch(/binding here is the APERTURE and not the glass pair/);
     expect(aperture).not.toMatch(/this glass pair does not admit/);
@@ -661,13 +736,17 @@ describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them
     expect(glass).not.toMatch(/APERTURE/);
   });
 
-  it("…and it counts the non-physical roots rather than assuming there is one", () => {
+  it("…and it counts the lenses rather than assuming how many there are", () => {
     // The clause is measured in the failing call, which matters because the
-    // count is NOT always one. At the wall the two real roots are ordinary glass
-    // (§ 6b.5.3) so exactly one of three is past hemispherical; drive the ratio
-    // far enough below it and the real pair goes non-physical too. A message
-    // that hard-coded "one ghost root" would be wrong at f/1.5.
-    const nonPhysical = (message: string): number => Number(/found 3 — .*?(\d+) of the 3 are deeper/.exec(message)![1]);
+    // count is NOT fixed. Just past the wall one of the two SA-null bendings has
+    // reached a hemisphere and the other has not; drive the ratio far enough
+    // below and neither is a surface. A message hard-coding either case would be
+    // wrong at the other, and § 6b.5.7 made this the branch that carries the
+    // count-1 case § 6b.5.5 had to leave homeless.
+    const counts = (message: string): [number, number] => {
+      const m = /found (\d+), of which (\d+) (?:is a lens|are lenses)/.exec(message)!;
+      return [Number(m[1]), Number(m[2])];
+    };
     const D = 10;
     const S_OVER_F = 5.02;
     const justBelow = refusalRatio(S_OVER_F) * 0.999;
@@ -678,24 +757,29 @@ describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them
         objectDistanceMm: S_OVER_F * D * justBelow,
       }),
     );
-    expect(nonPhysical(atWall)).toBe(1);
-    expect(nonPhysical(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 })))).toBe(3);
+    expect(counts(atWall)).toEqual([2, 1]);
+    expect(counts(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.2 })))).toEqual([2, 0]);
+    // The steepness is measured too, and just past the wall it is a hemisphere
+    // to two decimals — which is what "the boundary is geometric now" means read
+    // off the error message.
+    expect(atWall).toMatch(/\(1\.00× at the steepest surface\)/);
   });
 
   it("a glass-pair refusal is NOT retried — it comes back by a different type", () => {
     // § 6b.5.6's retry has to know which refusals an aperture can answer. The
     // count is the discriminator the message already used, and now the ERROR
-    // TYPE comes off the same count: 3 roots with non-physical ones among them
-    // is `DoubletApertureRefusal` and is retryable; 0 roots is the glass pair,
-    // is the same answer at f/50, and stays an ordinary Error so a caller
-    // laddering its aperture cannot burn a bending scan per step on it.
+    // TYPE comes off the same count: anything the scan FOUND, with fewer than
+    // two of them lenses, is `DoubletApertureRefusal` and is retryable; finding
+    // nothing is the glass pair, is the same answer at f/50, and stays an
+    // ordinary Error so a caller laddering its aperture cannot burn a bending
+    // scan per step on it.
     const glass = catchError(() =>
       achromaticObjective({ apertureMm: 10, focalRatio: 10, crownMedium: "CAF2", flintMedium: "F2" }),
     );
     expect(glass.message).toMatch(/found 0 —/);
     expect(glass instanceof DoubletApertureRefusal).toBe(false);
-    const aperture = catchError(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 }));
-    expect(aperture.message).toMatch(/found 3 —/);
+    const aperture = catchError(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.2 }));
+    expect(aperture.message).toMatch(/of which 0 are lenses/);
     expect(aperture instanceof DoubletApertureRefusal).toBe(true);
     // …and the type reaches the DIN constructor intact: an impossible glass pair
     // is refused there with the glass sentence, not with an aperture one.
@@ -706,18 +790,20 @@ describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them
     expect(din instanceof DoubletApertureRefusal).toBe(false);
   });
 
-  it("§ 6q's Plössl wall is this same refusal, which is why it was scale-invariant", () => {
-    // § 6q.9 bisected the Plössl's clear-aperture wall to 0.899195·f_e and found
-    // it "exactly scale-invariant from f_e 15 to 50". That invariance is
-    // § 6b.5.2's identity seen through a different constructor: the same
-    // three-root refusal, on a form specified entirely in ratios. The clear
-    // aperture maps onto the doublets' apertures through the Plössl's own
-    // layout, which nothing here measures, so this pins the mechanism and not
-    // the number.
-    for (const [focalLengthMm, clearApertureMm] of [[25, 24], [50, 48]] as const) {
-      expect(messageFrom(() => plosslEyepiece({ focalLengthMm, clearApertureMm }))).toMatch(/found 3 —/);
+  it("§ 6q's Plössl wall is this same refusal, which is why it is scale-invariant", () => {
+    // § 6q.9 bisected the Plössl's clear-aperture wall and found it "exactly
+    // scale-invariant from f_e 15 to 50". That invariance is § 6b.5.2's identity
+    // seen through a different constructor: the same refusal, on a form
+    // specified entirely in ratios. The clear aperture maps onto the doublets'
+    // apertures through the Plössl's own layout, which nothing here measures, so
+    // this pins the mechanism and not the number — and the number moved with the
+    // mechanism, 0.899195 → 0.9615248·f_e, when § 6b.5.7 stopped counting the
+    // ghost.
+    for (const [focalLengthMm, clearApertureMm] of [[25, 24.5], [50, 49]] as const) {
+      expect(messageFrom(() => plosslEyepiece({ focalLengthMm, clearApertureMm })))
+        .toMatch(/of which 1 is a lens —/);
     }
-    expect(messageFrom(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 22 }))).toBe("builds");
+    expect(messageFrom(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24 }))).toBe("builds");
   });
 });
 
@@ -742,13 +828,16 @@ describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and di
    * is optically worthless.
    */
 
-  it("EXTERNAL: everything the fix unlocked is 60–78× past Maréchal", () => {
-    // The honest headline, on the same criterion § 6b.5.1 uses. The band between
-    // the old wall and the new one is entirely inside the region the wavefront
-    // has already disqualified: 3.4 waves at the bottom of it, 5.6 at the top,
-    // against Maréchal's 1/14. No usable objective became available, and the
-    // ladder should not be read as saying one did.
-    const opened = [0.184336, 0.190418, buildWall({}) * 0.9999];
+  it("EXTERNAL: everything the fix unlocked is 48–78× past Maréchal", () => {
+    // The honest headline, on the same criterion § 6b.5.1 uses. The band this
+    // commit opened — 0.184336 to 0.196500, the seed's wall to the converged
+    // design's — is entirely inside the region the wavefront has already
+    // disqualified: 3.45 waves at the bottom of it, 5.59 at the top, against
+    // Maréchal's 1/14. No usable objective became available, and the ladder
+    // should not be read as saying one did. (The band is quoted as literals
+    // rather than read from `buildWall`, which § 6b.5.7 has since moved further
+    // out — this rung is about what the SEED fix opened.)
+    const opened = [0.184336, 0.190418, 0.196499];
     for (const NA of opened) {
       expect(sigmaWaves(4, NA) / MARECHAL).toBeGreaterThan(45);
     }
@@ -785,7 +874,7 @@ describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and di
       const message = messageFrom(() =>
         finiteConjugateObjective({ magnification: 4, numericalAperture: wall * k }),
       );
-      expect(message).toMatch(/found 3 —/);
+      expect(message).toMatch(/found \d+, of which \d+ (?:is a lens|are lenses) —/);
       expect(message).toMatch(/binding here is the APERTURE and not the glass pair/);
     }
   }, SLOW);
@@ -796,6 +885,132 @@ describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and di
     // catalogued member's headline numbers are pinned here as well as in
     // § 6b.1–.4 so that a future change to the hold-back cannot quietly move a
     // lens nobody is bisecting.
+    const o = finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
+    expect(o.workingFocalRatio).toBeCloseTo(4.0755218, 7);
+    expect(o.objectDistanceMm).toBeCloseTo(45.7757694, 7);
+    expect(o.doublet.curvatures[0]).toBeCloseTo(0.0467369, 7);
+  });
+});
+
+describe("§ 6b.5.7 — the scan window's `3`, and the boundary it stops deciding", () => {
+  /**
+   * § 6b.5's last open item. S_I(c₁) is a paraxial polynomial and does not know
+   * what glass can be bent to, so past the wall it grows a root that is five
+   * times hemispherical and is not a surface. Counting it made the refusal a
+   * property of the SCAN WINDOW — a wider ±span would have admitted it sooner —
+   * and made the message's own count mean something other than what it said.
+   *
+   * `solveBendings` now rejects bendings with |c|·(D/2) ≥ 1 before it counts,
+   * the same sanity filter `designs/lister` applies to the roots of its
+   * two-dimensional scan. § 6b.5.3 carries the identity that falls out of it:
+   * the surviving root set is bitwise identical at windows of ±2, ±3 and ±5.
+   * What is left here is where the boundary went, and what that cost.
+   */
+
+  it("F* MOVES, and the boundary changes kind with it", () => {
+    // The number the whole section is organised around. Both conjugates get
+    // faster, by different amounts, because what binds is no longer a root
+    // crossing a window but a real bending reaching a hemisphere.
+    expect(refusalRatio(null)).toBeCloseTo(1.7397236, 6); // was 1.9175107
+    expect(refusalRatio(5)).toBeCloseTo(1.8372723, 6); // was 1.9042573
+  }, SLOW);
+
+  it("the DIN walls move OUT flint-first and IN crown-first — and the second is a loss", () => {
+    // The asymmetry is the finding, and it is not a wash. Flint-first the ghost
+    // was arriving before either real bending had run out of glass, so dropping
+    // it buys aperture: 0.196500 → 0.204273 at the 4×, 0.245173 → 0.269176 at
+    // the 40×. Crown-first the scan was already finding one bending that is not
+    // a surface, and the constructor was building on the pair anyway — picking
+    // the physical one by cancellation and never noticing that its `branch:
+    // "steep"` alternative could not be made. Those designs are refused now:
+    // 0.184567 → 0.171523 at the 4×.
+    expect(measured(4, "flintFirst") / 0.1965000).toBeGreaterThan(1.03);
+    expect(measured(40, "flintFirst") / 0.2451735).toBeGreaterThan(1.09);
+    expect(measured(4, "crownFirst") / 0.1845669).toBeLessThan(0.94);
+    expect(measured(40, "crownFirst") / 0.2233784).toBeLessThan(0.93);
+  }, SLOW);
+
+  it("EXTERNAL: the band gained is 78–106× Maréchal, and the band lost is worse than 41×", () => {
+    // Both directions on the external criterion, because a commit that refuses
+    // designs has to say what it refused. Everything gained sits past 7 waves of
+    // wavefront error, and the diffraction-limited reach — the only number here
+    // that is about optics — does not move at either end.
+    expect(sigmaWaves(4, 0.196499) / MARECHAL).toBeGreaterThan(77);
+    expect(sigmaWaves(4, buildWall({}) * 0.9999) / MARECHAL).toBeGreaterThan(105);
+    expect(marechalReach(4)).toBeCloseTo(0.10311, 4);
+
+    // The band LOST cannot be measured where it was lost — those designs do not
+    // build any more, which is the point of the commit — so it is bounded from
+    // below instead. σ rises monotonically with NA (§ 6b.5.1 measures the order as
+    // NA^6.2), so the whole refused band 0.1715–0.1846 is worse than its bottom
+    // end, and its bottom end is the new crown-first wall.
+    const lost = { orientation: "crownFirst" };
+    const bottom = sigmaWaves(4, measured(4, "crownFirst") * 0.9999, lost);
+    expect(bottom).toBeCloseTo(2.9425, 3);
+    expect(bottom / MARECHAL).toBeGreaterThan(41);
+    const rising = [0.14, 0.16, 0.1715].map((NA) => sigmaWaves(4, NA * 0.9999, lost));
+    for (let i = 1; i < rising.length; i++) expect(rising[i]).toBeGreaterThan(rising[i - 1]!);
+    // …and even well BELOW the refused band the form is nine times past
+    // diffraction-limited, so nothing usable sits anywhere near it.
+    expect(rising[0]! / MARECHAL).toBeGreaterThan(9);
+  }, SLOW);
+
+  it("what the crown-first band lost was a design with only ONE of its pair a lens", () => {
+    // The mechanism of the loss, stated so it is not mistaken for strictness for
+    // its own sake. In that band the scan finds its two SA-null bendings and one
+    // of them is past a hemisphere — so the classical premise the constructor
+    // implements, TWO bendings to choose between on cancellation, is not met.
+    // The refusal names the aperture and prints both counts.
+    const message = messageFrom(() =>
+      finiteConjugateObjective({ magnification: 4, numericalAperture: 0.18, orientation: "crownFirst" }),
+    );
+    expect(message).toMatch(/found 2, of which 1 is a lens —/);
+    expect(message).toMatch(/binding here is the APERTURE and not the glass pair/);
+  });
+
+  it("the refusal stays MONOTONE in the focal ratio, which every bisection assumes", () => {
+    // `refusalRatio` here, `measureApertureWall` in the app and `buildWall`
+    // above all bracket a boundary by bisection, which is only a boundary if the
+    // verdict does not come back. Checked over a factor of twelve in ratio at
+    // two conjugates — the ghost's steepness grows as the ratio falls, so
+    // nothing re-enters from above.
+    for (const sOverF of [5.02, 1.2]) {
+      const wallF = refusalRatio(sOverF);
+      for (const k of [3, 2, 1.5, 1.1, 1.001]) {
+        expect(messageFrom(() => achromaticObjective({
+          apertureMm: 10,
+          focalRatio: wallF * k,
+          objectDistanceMm: sOverF * 10 * wallF * k,
+        }))).toBe("builds");
+      }
+      for (const k of [0.999, 0.9, 0.6, 0.25]) {
+        expect(messageFrom(() => achromaticObjective({
+          apertureMm: 10,
+          focalRatio: wallF * k,
+          objectDistanceMm: sOverF * 10 * wallF * k,
+        }))).not.toBe("builds");
+      }
+    }
+  }, SLOW);
+
+  it("§ 6b.5.6's identity survives the move: the wall is still the design's own F*", () => {
+    // The two fixes compose rather than interfering. § 6b.5.7 moved F*; the DIN
+    // wall is still exactly where the converged design's own ratio meets it.
+    for (const orientation of ["flintFirst", "crownFirst"] as const) {
+      const NA = measured(4, orientation);
+      const o = finiteConjugateObjective({ magnification: 4, numericalAperture: NA, orientation });
+      const tanU = NA / Math.sqrt(1 - NA * NA);
+      const converged =
+        o.focalLengthMm / (2 * o.airEquivalentObjectDistanceMm * tanU * GLASS_MARGIN);
+      expect(Math.abs(converged / refusalRatio(o.doublet.objectDistanceMm! / o.focalLengthMm) - 1))
+        .toBeLessThan(1e-9);
+    }
+  }, SLOW);
+
+  it("NEGATIVE CONTROL: ordinary apertures are untouched — the 4×/0.10 is bit-for-bit", () => {
+    // Same control as § 6b.5.6's, for the same reason: a filter that changed
+    // which root gets built at a working aperture would be a very different
+    // commit from one that changes where the constructor says no.
     const o = finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
     expect(o.workingFocalRatio).toBeCloseTo(4.0755218, 7);
     expect(o.objectDistanceMm).toBeCloseTo(45.7757694, 7);
