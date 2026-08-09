@@ -3195,6 +3195,8 @@ none of the table below is pinned to an external number.
 | **The DIN wall is the fixed point's SEED, in closed form**, to 1e-11 relative at M = 4/10/20/40, both orientations | derivation, not a fit | ✅ |
 | …and on a second glass pair, which is what stops the agreement being a constant matching itself | anti-circularity | ✅ |
 | **The optical tube length cancels BITWISE** — f is not in the closed form | identity; D8 measured it as three equal numbers | ✅ |
+| **WITNESS — the wall as absolute LITERALS**: 8 apertures over M × orientation, the silica pair, and a coverslip row the closed form cannot reach | the only rung here a re-seed cannot satisfy by agreeing with itself | ✅ |
+| …and **the 6% as a literal too** — a_conv/a_seed = 0.941049, f/1.904257 asked against f/2.023548 built | what the seed costs, pinned before it is touched | ✅ |
 | A glass-pair failure reports **0** roots at any ratio (CaF₂/F2); an aperture failure reports **3** | the count discriminates | ✅ |
 | …and the same pair **builds when slowed**, which falsifies the message's sentence on that branch | negative control | ✅ |
 | **The message now says APERTURE on the 3-root branch and never on the 0-root one**, and the glass sentence is bit-for-bit unchanged where it is true | the count, turned into prose | ✅ |
@@ -3290,13 +3292,19 @@ it. That is a named follow-on, not a claim.
   here: `achromaticObjective` is upstream of §§ 5j, 6b, 6c, 6d and 6e, and this
   change adds no capability to justify moving it.
 
-  **And whoever does it needs a witness this section does not have.**
-  `refusalRatio` bisects against the *live* constructor, so every rung above
-  moves with a seed change instead of failing — including § 6b.5.4's closed form,
-  which takes `F*` from it and would go on agreeing with itself at the relocated
-  wall. The rungs would stay green while the boundary they describe silently
-  went somewhere else. So the wall's **number** has to be pinned as a literal
-  before the seed is touched, or that commit has nothing to falsify it.
+  **And whoever does it needs a witness this section did not have — ~~missing~~,
+  now BUILT.** `refusalRatio` bisects against the *live* constructor, so every
+  rung above moves with a seed change instead of failing — including § 6b.5.4's
+  closed form, which takes `F*` from it and would go on agreeing with itself at
+  the relocated wall. The rungs would stay green while the boundary they describe
+  silently went somewhere else. So the wall's **number** is now pinned as
+  literals: **eight refusal apertures** (M = 4/10/20/40 × both orientations,
+  0.1843357 … 0.2217549), the silica pair at two magnifications, a **coverslip**
+  row — which the closed form does *not* reach, since a target ΣS_I ≠ 0 is
+  absolute while S_I ∝ h⁴, so the refusal ratio there is not aperture-free — and
+  the **6% itself**: a_conv/a_seed = 0.941049 at the 4× wall, the seed asking for
+  f/1.904257 where the design it is about to build is f/2.023548. A commit that
+  moves the seed has to edit those numbers in its own diff.
 - **The scan window is a stated constant.** F\* is set by the `3` in
   `solveBendings`'s ±3·span range. Rejecting non-physical bendings (|c|·D/2 ≥ 1)
   *before* counting roots would make the count mean what its message says. Same

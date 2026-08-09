@@ -443,6 +443,56 @@ describe("§ 6b.5.4 — the DIN wall is the fixed point's SEED, in closed form",
     expect(measured(4, "flintFirst", over) / measured(4, "flintFirst")).toBeGreaterThan(1.03);
   });
 
+  it("WITNESS: the wall is these NUMBERS, and a re-seed has to edit them", () => {
+    // Everything else in this section is measured against the LIVE constructor:
+    // `predict` reads `refusalRatio` and `measured` bisects the same code, so a
+    // change to the seed would move both together and the rungs would stay green
+    // while the boundary they describe went somewhere else. These literals are
+    // the only thing in § 6b.5 that a re-seed cannot satisfy by agreeing with
+    // itself — they are absolute, and the commit that moves the wall must edit
+    // them in its own diff.
+    const walls = [
+      [4, "flintFirst", 0.1843357],
+      [10, "flintFirst", 0.2078672],
+      [20, "flintFirst", 0.2169474],
+      [40, "flintFirst", 0.2217549],
+      [4, "crownFirst", 0.1792105],
+      [10, "crownFirst", 0.1997106],
+      [20, "crownFirst", 0.2073667],
+      [40, "crownFirst", 0.2113516],
+    ] as const;
+    for (const [M, orientation, expected] of walls) {
+      expect(measured(M, orientation)).toBeCloseTo(expected, 6);
+    }
+    // A second glass pair, and a coverslip — the slip matters because with a
+    // target ΣS_I ≠ 0 the refusal ratio is NOT aperture-free (S_I ∝ h⁴ while the
+    // plate's contribution is absolute), so § 6b.5.2's identity and § 6b.5.4's
+    // closed form do not reach this row. It is pinned as a bare measurement.
+    const silica = { crownMedium: "FUSED-SILICA" };
+    expect(measured(4, "flintFirst", silica)).toBeCloseTo(0.1915229, 6);
+    expect(measured(40, "flintFirst", silica)).toBeCloseTo(0.2292907, 6);
+    expect(measured(4, "flintFirst", { coverslip: { thicknessMm: 0.17 } })).toBeCloseTo(0.1861441, 6);
+  });
+
+  it("WITNESS: and the converged design at it sits 6% inside — what the seed costs", () => {
+    // The number the "not yet pinned" item is quoted with. At the wall the
+    // constructor is refusing a lens whose OWN geometry is comfortably inside
+    // the refusal ratio: the seed puts the object 6.3% further out than the
+    // fixed point does, so it sizes 6.3% more glass than the converged design
+    // has, and asks `achromaticObjective` for f/1.904 when the design it is
+    // about to build is f/2.024.
+    const M = 4;
+    const NA = measured(M, "flintFirst");
+    const objective = finiteConjugateObjective({ magnification: M, numericalAperture: NA });
+    const f = objective.focalLengthMm;
+    const seedA = f * (1 + 1 / M);
+    const tanU = NA / Math.sqrt(1 - NA * NA);
+    expect(objective.airEquivalentObjectDistanceMm / seedA).toBeCloseTo(0.941049, 6);
+    // The two ratios the seed and the design would each present to the solver.
+    expect(f / (2 * seedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.904257, 6);
+    expect(f / (2 * objective.airEquivalentObjectDistanceMm * tanU * GLASS_MARGIN)).toBeCloseTo(2.023548, 6);
+  });
+
   it("the optical tube length cancels EXACTLY — f is not in the closed form", () => {
     // D8 measured this as three equal numbers; here it is an identity, and the
     // reason is that f cancels between the seed's aperture and its focal ratio.
