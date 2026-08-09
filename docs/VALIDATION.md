@@ -3367,7 +3367,7 @@ something other than what it said. `solveBendings` now rejects bendings with
 
 | Rung | Pinned to | Status |
 |---|---|---|
-| **IDENTITY: the window constant is INERT** — the surviving root set at ±2, ±3 and ±5 agrees to **1e-14**, same roots and same count | the literal `3` no longer reaches any verdict | ✅ |
+| **IDENTITY: the window constant is INERT over ±2 … ±5** — the surviving root set agrees to **1e-14**, same roots and same count | the literal `3` no longer reaches any verdict in that range | ✅ |
 | …while the **raw** count still moves with it (2, 3, 3), which is what makes that a statement about the filter | negative control | ✅ |
 | **F\* moves: 1.9042573 → 1.8372723** (s/f = 5) and **1.9175107 → 1.7397236** (infinity) | the boundary the rest of § 6b.5 pins | ✅ |
 | **The DIN walls move OUT flint-first** (+4% at the 4×, +10% at the 40×) **and IN crown-first** (−7%, −8%) | the asymmetry is the finding, not a wash | ✅ |
@@ -3377,6 +3377,15 @@ something other than what it said. `solveBendings` now rejects bendings with
 | **The refusal stays MONOTONE in the focal ratio** over a factor of twelve, at two conjugates | what `refusalRatio`, `buildWall` and the app's `measureApertureWall` all assume | ✅ |
 | **§ 6b.5.6's identity survives**: the wall is still the converged design's own F\*, to 1e-9, both orientations | the two fixes compose rather than interfere | ✅ |
 | **NEGATIVE CONTROL: the 4×/0.10 is bit-for-bit** what it was | a filter that changed a working design would be a different commit | ✅ |
+
+**What "inert" does and does not mean.** The scan lays 2000 samples across
+±window·span, so the window still sets the *sample spacing*: widen it far enough
+and sign changes between neighbouring samples start being missed, which is a
+detection limit and not a verdict the window is entitled to. What the rung shows
+is that over ±2 to ±5 — the range where the spacing is fine enough for this
+curve — the surviving roots and the count do not move, where before the filter
+the boundary was set by exactly where the window's edge fell. The claim is
+scoped to that, deliberately.
 
 **The boundary changes KIND, which is the part worth carrying.** Just inside the
 wall the steeper of the two SA-null bendings sits at \|c\|·(D/2) = 0.9999; just
@@ -3428,9 +3437,18 @@ the same commit — as are the app's D6.5 rungs and the eyepiece panel's own pro
   § 6b.5.4's `predict/measured − 1 < 1e-11` was **one-sided**, and a prediction
   that falls 6% short satisfies it vacuously — that rung would have gone on
   passing at the relocated wall. It is two-sided now.
-- ~~**The scan window is a stated constant.**~~ Closed by § 6b.5.7 below — and the
+- ~~**The scan window is a stated constant.**~~ Closed by § 6b.5.7 — and the
   window turned out not to be a constant worth stating, because with
-  non-physical bendings rejected nothing downstream can see it.
+  non-physical bendings rejected nothing downstream can see it (over the ±2 … ±5
+  range measured; the sample grid is laid over the window, so detection
+  resolution still scales with it).
+- **The OTHER `achromaticObjective` caller has not been looked at.**
+  `microscopeObjective` — the infinity-corrected member of § 6a — is the third
+  caller, and its own constructor wall moved 0.2608 → 0.2874 under § 6b.5.7
+  (§ 6d.4's negative control measures it). It never got § 6b.5.6's treatment,
+  because that fix was written for `finiteConjugateObjective`'s fixed point. If
+  its placement solve seeds an aperture the same way, the same defect is sitting
+  there unmeasured. Named rather than assumed: nothing here has looked.
 - **Where the optical ceiling is for the OTHER forms.** § 6d.4 bisects the
   Lister's Maréchal reach and § 6b.5.1 now does the DIN doublet's; the
   infinity-corrected member of § 6a has neither.

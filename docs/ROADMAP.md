@@ -372,8 +372,10 @@
    `solveBendings` rejects bendings with |c|·(D/2) ≥ 1 before it counts them — the
    sanity filter `designs/lister` already applies in two dimensions — so the count
    is a count of LENSES and means what the message says. **The window constant
-   becomes inert**: the surviving root set at ±2, ±3 and ±5 agrees to 1e-14 while
-   the raw count still moves with it. **F\* moves** (1.9042573 → 1.8372723 at
+   becomes inert** over ±2 … ±5: the surviving root set agrees to 1e-14 while the
+   raw count still moves with it (the scan's 2000 samples are laid across the
+   window, so detection resolution still scales with it — what is gone is the
+   window deciding the boundary). **F\* moves** (1.9042573 → 1.8372723 at
    s/f = 5; 1.9175107 → 1.7397236 at infinity) and **changes kind** — what binds is
    a real bending reaching a hemisphere, so this wall and § 6q's leave the
    "solver locus" column of the taxonomy for the geometric one, and § 6b.5.2's

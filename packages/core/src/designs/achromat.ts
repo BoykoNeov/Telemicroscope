@@ -313,14 +313,15 @@ export interface AchromaticObjective {
  * are rejected before the count, and the only way to have found bendings and not
  * two lenses is to be asking for too much aperture. The type and the message's
  * prose come off that same count and cannot disagree.
+ *
+ * The counts themselves are in the MESSAGE and not on the error. Two of the
+ * three sites that throw this are the downstream geometry checks, which have no
+ * scan behind them and would have had to invent a number to carry a field.
  */
 export class DoubletApertureRefusal extends Error {
-  /** Sign changes the scan found. 0 is the glass pair; anything else is aperture. */
-  readonly rootCount: number;
-  constructor(message: string, rootCount: number) {
+  constructor(message: string) {
     super(message);
     this.name = "DoubletApertureRefusal";
-    this.rootCount = rootCount;
   }
 }
 
@@ -595,10 +596,14 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
        * had to leave homeless (a tangency, or a root on the window edge) is a
        * count like any other now that what is counted is a lens.
        *
-       * K > 2 is left with a sentence of its own that says it is unmeasured. No
-       * input in the repo produces it — the physical count runs 2 → 1 → 0 as the
-       * ratio falls (§ 6b.5.7) — and the discipline § 6b.5.5 set is that a branch
-       * nobody can reach does not get prose asserting a cause.
+       * TWO shapes are left with a sentence that says they are unmeasured, and
+       * both say so rather than asserting a cause — the discipline § 6b.5.5 set. A
+       * scan that finds ONE bending which IS a lens has no ghost to point at, so
+       * the "the rest are deeper than hemispherical" clause would have nothing to
+       * describe (and, formatted from an empty list, would print −Infinity). And
+       * K > 2 would mean the classical pair is not a pair. No input in the repo
+       * produces either — the lens count runs 2 → 1 → 0 as the ratio falls, with a
+       * ghost present throughout (§ 6b.5.7).
        */
       const ghosts = roots.filter((c1) => !isLens(c1)).map(steepness);
       const expected =
@@ -610,14 +615,16 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
         ? targetS1Mm === 0
           ? "this glass pair does not admit the classical doublet solution"
           : "no bending of this pair absorbs that much external spherical aberration"
-        : lenses.length < 2
+        : lenses.length < 2 && ghosts.length > 0
           ? `the rest are deeper than hemispherical (${Math.max(...ghosts).toFixed(2)}× at the steepest surface) and cannot be made — what is binding here is the APERTURE and not the glass pair, so slow the focal ratio`
-          : `the classical solution has two, so the scan has admitted an extra bending that IS a lens — no input in this repo is known to reach this, and the cause is not established`;
+          : lenses.length < 2
+            ? `the classical pair is not there — every bending the scan found is a lens, so nothing here says WHY the second one is missing, and no input in this repo is known to reach this`
+            : `the classical solution has two, so the scan has admitted an extra bending that IS a lens — no input in this repo is known to reach this, and the cause is not established`;
       const counted = aperture
         ? `found ${roots.length}, of which ${lenses.length} ${lenses.length === 1 ? "is a lens" : "are lenses"}`
         : "found 0";
       const message = `achromaticObjective: ${expected}, ${counted} — ${cause}`;
-      throw aperture ? new DoubletApertureRefusal(message, roots.length) : new Error(message);
+      throw aperture ? new DoubletApertureRefusal(message) : new Error(message);
     }
     return lenses.map((c1): AchromatBranch => {
       const cs = curvaturesFrom(c1);
@@ -672,7 +679,6 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
   if (!(crownEdge > 0) || !(flintEdge > 0)) {
     throw new DoubletApertureRefusal(
       `achromaticObjective: element edge thickness is negative (crown ${crownEdge.toFixed(2)} mm, flint ${flintEdge.toFixed(2)} mm) — give the elements more centre thickness`,
-      2,
     );
   }
   for (const c of curvatures) {
@@ -684,7 +690,6 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
       // that would break silently if either moved.
       throw new DoubletApertureRefusal(
         "achromaticObjective: a surface is hemispherical or steeper at this aperture",
-        2,
       );
     }
   }
