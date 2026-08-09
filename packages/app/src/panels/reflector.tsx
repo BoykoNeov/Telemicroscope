@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLatestFromWorker } from "../hooks";
+import { Plot } from "../plot";
 import { Choice, Guard, Slider, thresholdLevel } from "../ui";
-import { createReflectorWorker } from "../workers";
+import { createReflectorVignetteWorker, createReflectorWorker } from "../workers";
 import {
   DISPERSION_FLOOR_AIRY_RADII,
   NEWTONIAN_FOCUS_OFFSET_FRACTION,
+  chiefRayFieldLimitDeg,
   describeReflectors,
   newtonianObstruction,
   type ReflectorKind,
@@ -12,6 +14,8 @@ import {
   type ReflectorResult,
   type ReflectorRow,
   type ReflectorSpec,
+  type VignetteRequest,
+  type VignetteSweep,
 } from "../reflector";
 
 /**
@@ -158,6 +162,9 @@ function StarCanvas({ request }: { request: ReflectorRequest }) {
 
   const coreLoss = result ? 1 - result.coreEnergy / result.clearCoreEnergy : 0;
   const dispersed = result ? result.dispersionAiryRadii >= DISPERSION_FLOOR_AIRY_RADII : false;
+  // Two routes to the same fraction, and the gap between them is the readout —
+  // an area integral over a masked pupil against a count of surviving rays.
+  const routeGap = result ? Math.abs(result.transmittedFraction - result.rayFraction) : 0;
 
   return (
     <figure
@@ -196,6 +203,14 @@ function StarCanvas({ request }: { request: ReflectorRequest }) {
               per-λ normalized: {result.dispersionAiryRadii.toExponential(2)}{" "}
               {dispersed ? "— the corrector disperses" : "— at the ruler's floor, not measured"}
             </span>
+            {result.fieldDeg > 0 && (
+              <>
+                <br />
+                field {result.fieldDeg.toFixed(3)}° · the diagonal passes{" "}
+                <strong>{(result.transmittedFraction * 100).toFixed(2)}%</strong> of the on-axis
+                light, and the trace lost {result.rayLost} of {result.rayRequested} rays
+              </>
+            )}
           </>
         ) : (
           <span>tracing…</span>
@@ -216,11 +231,101 @@ function StarCanvas({ request }: { request: ReflectorRequest }) {
             level={result.geometricWeight > 0 ? "warn" : "ok"}
             detail="0% means the wavefront is resolved on this pupil grid and the FFT branch rules"
           />
+          {result.spikeFirstZeroPx > 0 && (
+            <Guard
+              label="vane spike first zero"
+              value={`${result.spikeFirstZeroPx.toFixed(0)} px of ${result.gridHalfPx}`}
+              level={thresholdLevel(result.spikeFirstZeroPx, result.gridHalfPx)}
+              detail={
+                result.spikeFirstZeroPx >= result.gridHalfPx
+                  ? "padFactor/widthFraction is past the grid edge: the spike is real and has left the frame, not been suppressed"
+                  : "padFactor/widthFraction — where the streak's first dark point lands, independent of aperture and focal length"
+              }
+            />
+          )}
+          {result.fieldDeg > 0 && (
+            <Guard
+              label="FFT mask vs ray survivors"
+              value={routeGap.toExponential(1)}
+              level={thresholdLevel(routeGap, 0.02)}
+              detail="two independent routes to one fraction: an area integral over the masked pupil, and a count of rays that physically cleared the diagonal"
+            />
+          )}
         </div>
       )}
     </figure>
   );
 }
+
+/**
+ * Throughput against field, by two routes that share no code.
+ *
+ * § 2f's mechanism as a curve. The denominator of both is the **on-axis** bundle,
+ * never the field's own — that ratio would be 1 by construction however badly the
+ * diagonal were sized, which is the empty rung § 2f dissects at length. The
+ * sweep's right-hand edge is not a slider bound but a **wall**: past the chief-ray
+ * limit `opdMap` refuses, so there is no number to plot rather than a small one.
+ */
+function VignettePlot({ request }: { request: VignetteRequest }) {
+  const { result, pending } = useLatestFromWorker<VignetteRequest, VignetteSweep>(
+    createReflectorVignetteWorker,
+    request,
+  );
+  if (!result) return <p style={{ fontFamily: "monospace", fontSize: 12 }}>sweeping…</p>;
+
+  const closed = chiefRayFieldLimitDeg(request.spec.focalRatio);
+  const last = result.points[result.points.length - 1]!;
+  return (
+    <figure style={{ margin: 0, opacity: pending ? 0.55 : 1 }}>
+      <Plot
+        series={[
+          {
+            label: "FFT mask (masked pupil area)",
+            color: "#06a",
+            points: result.points.map((p) => [p.fieldDeg, p.fftFraction] as const),
+            dots: true,
+          },
+          {
+            label: "ray survivors (no mask, no FFT)",
+            color: "#c60",
+            dash: [4, 3],
+            points: result.points.map((p) => [p.fieldDeg, p.rayFraction] as const),
+          },
+        ]}
+        markers={[
+          {
+            x: result.chiefRayLimitDeg,
+            color: "#c00",
+            label: `chief ray dies ${result.chiefRayLimitDeg.toFixed(3)}°`,
+          },
+        ]}
+        xLabel="field angle (deg)"
+        yLabel="light transmitted, vs on axis"
+        xMin={0}
+        xMax={result.chiefRayLimitDeg * 1.05}
+        yMin={0}
+        yMax={1.05}
+        width={460}
+      />
+      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+        {result.elapsedMs.toFixed(0)} ms · throughput 1 → {last.fftFraction.toFixed(3)} out to{" "}
+        {last.fieldDeg.toFixed(3)}°
+        <br />
+        <span style={{ color: "#777" }}>
+          the two routes never part by more than {result.maxDisagreement.toExponential(2)}, and the
+          gap grows with the clipping rather than sitting flat
+        </span>
+        <br />
+        chief-ray wall: bisected <strong>{result.chiefRayLimitDeg.toFixed(6)}°</strong> against the
+        closed form <strong>{closed.toFixed(6)}°</strong> (
+        {Math.abs(result.chiefRayLimitDeg / closed - 1).toExponential(1)})
+      </figcaption>
+    </figure>
+  );
+}
+
+/** Vane widths as 1/n of the pupil diameter — § 5c's own units. */
+const VANE_DENOMINATORS = [8, 12, 20, 30, 50] as const;
 
 export function ReflectorPanel() {
   const [apertureMm, setApertureMm] = useState(DEFAULT_SPEC.apertureMm);
@@ -228,6 +333,16 @@ export function ReflectorPanel() {
   const [primaryFocalRatio, setPrimaryFocalRatio] = useState(DEFAULT_SPEC.primaryFocalRatio);
   const [kind, setKind] = useState<ReflectorKind>("cassegrain");
   const [obstruct, setObstruct] = useState(true);
+  const [vanes, setVanes] = useState(4);
+  const [vaneDenominator, setVaneDenominator] = useState<number>(12);
+  const [vaneAngleDeg, setVaneAngleDeg] = useState(0);
+  // The field control is a FRACTION of the chief-ray wall rather than a degree
+  // range, because the wall moves by an order across the focal-ratio slider
+  // (2.68° at f/4, 0.147° at f/15) and a fixed degree range would be mostly
+  // invalid at one end and mostly unused at the other. The closed form is exact
+  // to 5e-13 against the engine's own bisection, so driving the control with it
+  // is not an approximation — and the plot below shows the two agreeing.
+  const [fieldFraction, setFieldFraction] = useState(0);
 
   const spec = useMemo<ReflectorSpec>(
     () => ({ apertureMm, focalRatio, primaryFocalRatio }),
@@ -244,6 +359,13 @@ export function ReflectorPanel() {
   // that would throw inside the worker.
   const drawable = selected && !selected.error ? kind : "newtonian";
 
+  // Only the Newtonian's diagonal is a *minimum* one sized to the on-axis cone,
+  // so it is the only member of the six whose field vignettes at all here — the
+  // Cassegrain family's secondary is round and centred and clips nothing. The
+  // field control therefore applies to the Newtonian and reads zero elsewhere.
+  const wallDeg = chiefRayFieldLimitDeg(focalRatio);
+  const fieldDeg = drawable === "newtonian" ? fieldFraction * wallDeg : 0;
+
   const request = useMemo<ReflectorRequest>(
     () => ({
       kind: drawable,
@@ -253,8 +375,24 @@ export function ReflectorPanel() {
       pupilSamples: PUPIL_SAMPLES,
       whiteFraction: 1 / 8000,
       obstruct,
+      fieldDeg,
+      ...(vanes > 0
+        ? { spider: { vanes, widthFraction: 1 / vaneDenominator, angleDeg: vaneAngleDeg } }
+        : {}),
     }),
-    [drawable, spec, obstruct],
+    [drawable, spec, obstruct, fieldDeg, vanes, vaneDenominator, vaneAngleDeg],
+  );
+
+  const vignette = useMemo<VignetteRequest>(
+    () => ({
+      kind: "newtonian",
+      spec,
+      maxFieldDeg: wallDeg,
+      points: 9,
+      pupilSamples: 64,
+      rayGrid: 101,
+    }),
+    [spec, wallDeg],
   );
 
   const newt = rows.find((row) => row.kind === "newtonian");
@@ -320,9 +458,109 @@ export function ReflectorPanel() {
         effect is where the light sits, and it is measured beside the picture rather than described.
       </p>
 
+      <div
+        style={{
+          display: "flex",
+          gap: 24,
+          flexWrap: "wrap",
+          marginBottom: 16,
+          alignItems: "flex-start",
+        }}
+      >
+        <Choice
+          label="spider vanes"
+          options={[0, 3, 4, 6]}
+          value={vanes}
+          onChange={setVanes}
+          format={(n) => (n === 0 ? "none" : String(n))}
+        />
+        <Choice
+          label="vane width (of D)"
+          options={VANE_DENOMINATORS}
+          value={vaneDenominator}
+          onChange={setVaneDenominator}
+          format={(n) => `1/${n}`}
+        />
+        <Choice
+          label="vane azimuth"
+          options={[0, 30, 45]}
+          value={vaneAngleDeg}
+          onChange={setVaneAngleDeg}
+          format={(n) => `${n}°`}
+        />
+        {drawable === "newtonian" && (
+          <Slider
+            label={`field ${fieldDeg.toFixed(3)}° — ${(fieldFraction * 100).toFixed(0)}% of the ${wallDeg.toFixed(3)}° wall`}
+            min={0}
+            max={0.95}
+            step={0.05}
+            value={fieldFraction}
+            onChange={setFieldFraction}
+          />
+        )}
+      </div>
+
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
         <StarCanvas request={request} />
       </div>
+
+      <h2 style={{ fontSize: 16, marginTop: 36 }}>The spikes are not drawn</h2>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+        A vane is an opaque bar, the transform of a bar is a streak <em>perpendicular</em> to it, and
+        the FFT produces the streak for the same reason it produces the Airy rings — so four vanes
+        give a four-arm cross on the axes while three, which cannot pair into diameters, give a
+        six-arm star. Turn the azimuth to 30° and the arms move to 120°, not to 60°: the spike runs
+        ⊥ to the vane, and the two would sit on top of each other at the tempting 45°. Nothing in
+        this panel or in the engine knows the word &ldquo;spike&rdquo;; the same predicate that zeroes
+        the FFT amplitude is what the geometric branch drops rays on, which is why the two branches
+        cannot disagree about where the vanes are.
+      </p>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+        The guard beside the picture is the honest part, and it is a measurement rather than a
+        warning. A streak&rsquo;s first dark point sits at <code>padFactor/widthFraction</code>{" "}
+        pixels — no aperture and no focal length in it — so a fat 1/8 vane puts it 32 px out and a{" "}
+        <em>realistic</em> 1/50 one puts it at 200 px, past the edge of a 256-pixel grid. § 5c sizes
+        its validation vanes fat for exactly this reason. When that guard is red the spike has not
+        been suppressed, it has left the frame: correct physics, off-screen, and worth saying so
+        rather than letting a reader conclude thin vanes are clean.
+      </p>
+
+      <h2 style={{ fontSize: 16, marginTop: 36 }}>
+        The diagonal clips off axis, and then it stops passing the chief ray
+      </h2>
+      <p style={{ maxWidth: 680, color: "#444" }}>
+        There is <strong>no vignetting control</strong> on this panel, and that is § 2f&rsquo;s
+        design rather than an omission: <code>psf()</code> builds a vignette mask by itself and only
+        when the trace has already lost rays, so the criterion <em>is</em> the trace. A minimum
+        diagonal is sized to the on-axis cone, so a field angle is the whole input — and both curves
+        below are measured against the <em>on-axis</em> bundle, never against the field&rsquo;s own,
+        which would be 1 by construction however badly the diagonal were sized.
+      </p>
+
+      <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
+        <VignettePlot request={vignette} />
+      </div>
+
+      <p style={{ maxWidth: 680, fontSize: 13, color: "#666", marginTop: 16 }}>
+        The red rule is a <strong>wall</strong>, not the end of a slider. The chief ray defines both
+        the image point and the reference sphere, so when it misses the diagonal the engine has no
+        wavefront to be right or wrong about and <code>opdMap</code> refuses outright. That happens
+        at <code>tan θ = (√2·k/2) / [(F − ½ − 1/(16F))·(F − k)]</code> — derived from § 4b&rsquo;s own
+        footprint sizing, with <strong>D cancelling again</strong> — and the engine&rsquo;s bisection
+        lands on it to 5e-13. So it is the sixth ceiling of this kind in the repo, after § 6b&rsquo;s
+        f/4.1, § 6d&rsquo;s NA 0.343, § 6e.4&rsquo;s NA 1.411, § 6q&rsquo;s 0.88·f_e and § 6l&rsquo;s
+        1.3347, and like the last of those it is one line of geometry rather than an aberration
+        budget: at the wall the wavefront is an ordinary number and the rays simply stop existing.
+      </p>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+        It closes as <strong>1/F²</strong> — 2.681° at f/4 against 0.147° at f/15, with the local
+        power running 2.34, 2.20 then 2.11 as F grows, approaching 2 from above because the exact form
+        carries an extra (F − k). Which runs <em>opposite</em> to the coma § 4b pins at θ·D/(32F²): a
+        fast Newtonian is comatic sooner per degree while its minimum diagonal passes several times
+        more field. Both effects carry 1/F² and point opposite ways, so &ldquo;how fast should a
+        Newtonian be&rdquo; has no answer that is only about aberration — and the mechanical number k
+        is in one of them and not the other.
+      </p>
 
       <h2 style={{ fontSize: 16, marginTop: 36 }}>
         The Newtonian&rsquo;s obstruction contains no aperture

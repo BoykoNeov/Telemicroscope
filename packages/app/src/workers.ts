@@ -24,6 +24,9 @@ export const createFieldWorker = () =>
 export const createReflectorWorker = () =>
   new Worker(new URL("./reflector.worker.ts", import.meta.url), { type: "module" });
 
+export const createReflectorVignetteWorker = () =>
+  new Worker(new URL("./reflector.vignette.worker.ts", import.meta.url), { type: "module" });
+
 export const createBrightfieldWorker = () =>
   new Worker(new URL("./brightfield.worker.ts", import.meta.url), { type: "module" });
 

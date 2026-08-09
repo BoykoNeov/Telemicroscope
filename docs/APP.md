@@ -1180,9 +1180,10 @@ instantiated, not a whole branch. All are app-wiring-only unless noted.
 - **Presets** — Newtonian, Cassegrain, Ritchey-Chrétien, Schmidt,
   Schmidt-Cassegrain, SCT — ✅ **landed** as C1 below, together with the central
   obstruction each of them reports.
-- **Spider diffraction** (§ 5c) — a `PupilFunction`, so it composes with the
-  seeing screen already wired. Probably the cheapest visible win in the repo.
-- **Off-axis diagonal vignetting** (§ 2f) — one more `PupilFunction` mask.
+- **Spider diffraction** (§ 5c) — ✅ **landed** as C2, on the same panel.
+- **Off-axis diagonal vignetting** (§ 2f) — ✅ **landed** as C2. It needed no
+  option at all, which is the finding: `psf()` builds the mask itself and only
+  when the trace has already lost rays, so a field angle is the whole input.
 - **Eyepieces + afocal** (§§ 5l–5o) — Plössl and Huygens, with real-ray AFOV and
   distortion.
 - **Eye model / visual mode** (§§ 5p–5q) — the two-stop collapse, exit-pupil
@@ -1284,6 +1285,72 @@ is why this slow f/10 Schmidt **camera** sits at the floor with a corrector in i
 while an SCT on an f/4 primary sits three times above. That is the chromatic half
 §§ 5g–5i left open, arriving as a number rather than a caveat.
 
+### C2. The spider, and the diagonal that clips off axis — ✅ **landed** — *app wiring only* — **pair**
+
+The same panel, two more `PupilFunction`s, and § 5c and § 2f finally have a
+caller. Still no rung; the sweep gets its own worker
+(`reflector.vignette.worker.ts`) because it is a sweep of *traces* where the
+picture is one, which is the split D6 drew.
+
+**§ 2f needed no control, and that is the finding.** The obvious design was a
+vignetting toggle. There is none: `psf()` builds a `vignetteMask` by itself and
+only when `map.lost > 0`, so the criterion *is* the trace and an unvignetted
+system never pays for one. A minimum diagonal is sized to the on-axis cone, so a
+**field angle is the whole input** — and the panel's only vignetting parameter is
+therefore the field. Both curves are measured against the *on-axis* bundle rather
+than the field's own, which is § 2f's own dissection of a draft rung that read
+`onAxis / onAxis` and was 1 by construction.
+
+**The largest finding is a wall, and it is the sixth of its kind in this repo.**
+Past a certain field the engine does not degrade, it **refuses**: `opdMap` throws
+`chief ray failed (vignetted)`, because the chief ray defines both the image point
+and the reference sphere and a system without one has no wavefront to be right or
+wrong about. Derived in the app from § 4b's own footprint sizing —
+
+    tan θ_max = (√2·k/2) / [ (F − ½ − 1/(16F)) · (F − k) ]
+
+— with **D cancelling again**, and the engine's bisection (40 halvings on a
+3-point pupil, the criterion being its own refusal) lands on it to **5e-13** at
+every focal ratio and is aperture-independent to every digit. So it joins § 6b's
+f/4.1, § 6d's NA 0.343, § 6e.4's NA 1.411, § 6q's 0.88·f_e and § 6l's 1.3347, and
+like the last of those it is one line of geometry rather than an aberration
+budget: at the wall the wavefront is an ordinary number and the rays stop
+existing. It closes as **1/F²** — 2.681° at f/4 against 0.147° at f/15, local
+power 2.34 → 2.20 → 2.11, approaching 2 from above because the exact form carries
+an extra (F − k) — and it runs **opposite** to the coma § 4b pins at θ·D/(32F²):
+a fast Newtonian is comatic sooner per degree while its minimum diagonal passes
+several times more field. Both carry 1/F² and point opposite ways, so "how fast
+should a Newtonian be" has no answer that is only about aberration — and the
+mechanical k is in one of them and not the other. It is also what makes the field
+control a **fraction of the wall** rather than a degree range: the wall moves by
+an order across the focal-ratio slider, so a fixed range would be mostly invalid
+at one end and mostly unused at the other.
+
+**Throughput, twice, by routes that share no code.** 1 → 0.384 out to 1.561° at
+f/5, the FFT route integrating a masked pupil's area and the ray route counting
+survivors with no mask and no transform in its history. § 2f pins them 1.2e-4
+apart at pupilSamples 128 / 201 rays; at this panel's 64 / 101 the gap is ~1e-4 at
+light clipping and **grows with the clipping** to 1.1e-2 at the wall — which is
+the honest shape of it, since a ray-lattice count of a clipped region converges
+more raggedly than a subdivided edge and the clipped boundary lengthens as the
+pupil empties. Both the tight end and the growth are pinned, so neither can rot
+into a single forgiving tolerance.
+
+**The spider's guard is a measurement, not a warning.** A streak's first dark
+point sits at `padFactor/widthFraction` pixels with no aperture and no focal
+length in it, so a fat 1/8 vane puts it 32 px out and a *realistic* 1/50 one puts
+it at 200 px — past the edge of a 256-pixel grid. § 5c sizes its validation vanes
+fat for exactly this reason, and the panel turns that into a live red guard whose
+meaning is unusual and is spelled out on screen: **the spike has not been
+suppressed, it has left the frame.** Two smaller things fall out. A spider is
+amplitude-only, so it cannot move the Strehl — 1.000000 at every vane width,
+while the core energy falls 0.847 → 0.531 from bare to 1/8 vanes, which is the
+same "where the light sits, not how well it is corrected" the obstruction showed
+in C1. And a zero-vane spider is **refused** rather than treated as none
+(`spiderObscures` requires a positive integer), so "no spider" is the absence of
+the option — the same distinction the obstruction draws, and worth a rung because
+the alternative failure is silent.
+
 ---
 
 ## Part D — the microscope you can look through
@@ -1309,10 +1376,10 @@ and **D10 has now landed too, so that queue is empty.** What remained anywhere i
 this doc was A6 and Part B, neither of which was ever in Part D — and **both have
 since landed as well**. So has **A9**, which is what "the scenes nobody has
 authored" turned out to really be: the scenes existed and the *colour* did not.
-What is left is Part C — whose **presets have now landed too, as C1**, so what
-remains there is the spider, the diagonal's vignetting, the eyepiece/eye/camera
-modes and the one item that needs an engine step — and the telescope's own
-star/planet/lunar scenes, which are an engine step rather than wiring.
+What is left is Part C — whose **presets landed as C1 and whose two pupil masks
+landed as C2**, so what remains there is the eyepiece/eye/camera modes and the one
+item that needs an engine step — and the telescope's own star/planet/lunar scenes,
+which are an engine step rather than wiring.
 
 ### D0. The three feasibility measurements this part rests on
 
@@ -2467,10 +2534,21 @@ disqualified table says so, but nobody has authored one. ~~**That is now the onl
 microscope item left anywhere in this doc**~~ — **and it was already done when
 this was written.** A7 authored both, in `stage.ts`, grey; the real gap under the
 word "scenes" was colour, and **A9** closed it. What is left in this doc is
-**Part C** — **now opened, and its presets landed as C1** — and the telescope's
-own scenes: star, planet and lunar, ROADMAP step 5's item rather than one of this
-doc's, and an engine step rather than wiring, since `rasterizePointSources` is
-point-only and an extended incoherent source has no rasterizer.
+**Part C** — **now opened, with C1 and C2 landed, leaving the eyepiece/eye/camera
+modes and long-exposure seeing** — and the telescope's own scenes: star, planet
+and lunar, ROADMAP step 5's item rather than one of this doc's, and an engine step
+rather than wiring, since `rasterizePointSources` is point-only and an extended
+incoherent source has no rasterizer.
+
+**C2's own version of the pattern is that the cheapest item in the doc was
+cheap, and the one nobody costed was the expensive one.** APP.md called the spider
+"probably the cheapest visible win in the repo" and it was — one option passed
+through. § 2f's vignetting was listed beside it as "one more `PupilFunction`
+mask", and it needed *no option at all* while producing the part's largest
+finding: a **wall** where the chief ray stops clearing the diagonal, which no rung
+states because no rung needed a field range, and which had to be derived before a
+field control could exist at all. A surface that only *displays* a capability can
+still be the thing that finds its edge.
 
 **C1 is the first Part C surface and it repeated the pattern this doc keeps
 naming, in the reverse direction.** Every previous part found the *feasibility

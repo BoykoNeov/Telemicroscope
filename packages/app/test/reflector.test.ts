@@ -3,10 +3,12 @@ import {
   DISPERSION_FLOOR_AIRY_RADII,
   NEWTONIAN_FOCUS_OFFSET_FRACTION,
   REFLECTOR_KINDS,
+  chiefRayFieldLimitDeg,
   describeReflector,
   describeReflectors,
   newtonianObstruction,
   renderReflector,
+  vignetteSweep,
   type ReflectorKind,
   type ReflectorResult,
   type ReflectorSpec,
@@ -45,6 +47,21 @@ import {
  *
  * The fourth is that the corrector's excess over that floor tracks its own A₄,
  * approaching a square law as the plate weakens.
+ *
+ * The fifth arrived with the two pupil masks and is the panel's largest single
+ * finding: **the field at which a minimum diagonal stops passing the chief ray**.
+ * No rung states it because no rung needed a field range, and past it the engine
+ * does not degrade — `opdMap` refuses, since a system with no chief ray has no
+ * reference sphere. It is derived in the app,
+ * tan θ = (√2·k/2)/[(F − ½ − 1/(16F))·(F − k)], bisected in the engine, and the
+ * two agree to 5e-13 with D absent from both. That makes it a wall of the kind
+ * the microscope branch kept finding rather than a tolerance.
+ *
+ * Where a claim is about two routes agreeing, it is pinned as the **mechanism**
+ * and not as one tolerance: a ray-lattice count of a clipped pupil converges more
+ * raggedly than a subdivided area, and the clipped boundary lengthens as the
+ * pupil empties, so the gap is tight under light vignetting and several times
+ * looser under heavy — asserted at both ends, each of which can fail.
  */
 
 const SPEC: ReflectorSpec = { apertureMm: 200, focalRatio: 10, primaryFocalRatio: 4 };
@@ -63,6 +80,7 @@ function render(kind: ReflectorKind, spec: ReflectorSpec, pupilSamples = 64): Re
     pupilSamples,
     whiteFraction: 1 / 8000,
     obstruct: true,
+    fieldDeg: 0,
   });
   rendered.set(key, result);
   return result;
@@ -263,5 +281,196 @@ describe("the corrector's dispersion tracks its own figure", () => {
       Math.log(a.excess / b.excess) / Math.log(a.a4 / b.a4);
     expect(power(mid, weak)).toBeCloseTo(2.07, 1);
     expect(power(strong, mid)).toBeCloseTo(1.92, 1);
+  });
+});
+
+/**
+ * The two pupil masks — § 5c's spider and § 2f's diagonal vignetting.
+ *
+ * Still no rung: both capabilities are pinned in the ladder and this is the app
+ * calling them. What the panel adds, and what is pinned here, is the **wall** —
+ * the field at which a minimum diagonal stops passing the chief ray, which no
+ * rung states because no rung needed a field range. It is derived in the app and
+ * bisected in the engine, and the two agreeing is the check.
+ */
+
+const SWEEP = { points: 7, pupilSamples: 64, rayGrid: 101 } as const;
+
+function sweepAt(focalRatio: number, apertureMm = SPEC.apertureMm) {
+  return vignetteSweep({
+    kind: "newtonian",
+    spec: { ...SPEC, apertureMm, focalRatio },
+    maxFieldDeg: chiefRayFieldLimitDeg(focalRatio),
+    ...SWEEP,
+  });
+}
+
+describe("the spider's spike is a transform, and its reach is a measurement", () => {
+  const spidered = (vanes: number, denominator: number, angleDeg = 0) =>
+    renderReflector({
+      kind: "newtonian",
+      spec: { ...SPEC, focalRatio: 5 },
+      sourceTemperatureK: 5800,
+      wavelengths: 3,
+      pupilSamples: 64,
+      whiteFraction: 1 / 8000,
+      obstruct: true,
+      fieldDeg: 0,
+      spider: { vanes, widthFraction: 1 / denominator, angleDeg },
+    });
+
+  it("the first zero is padFactor/widthFraction, with no aperture in it", () => {
+    // The panel's guard, and the reason it can be red while nothing is wrong.
+    for (const denominator of [8, 20, 50]) {
+      expect(spidered(4, denominator).spikeFirstZeroPx).toBeCloseTo(4 * denominator, 9);
+    }
+    // A realistic vane throws the streak clean off a 256-pixel grid: 200 px
+    // against a 128-px half-width. That is § 5c's own observation — its
+    // validation vanes are deliberately fat — arriving as a live guard.
+    const thin = spidered(4, 50);
+    expect(thin.spikeFirstZeroPx).toBeGreaterThan(thin.gridHalfPx);
+    const fat = spidered(4, 8);
+    expect(fat.spikeFirstZeroPx).toBeLessThan(fat.gridHalfPx);
+  });
+
+  it("takes pupil area, and takes more of it the fatter the vane", () => {
+    // Amplitude only, so the wavefront is untouched and the Strehl cannot move:
+    // what a vane costs is energy and where it puts it, not aberration.
+    const fat = spidered(4, 8);
+    const thin = spidered(4, 50);
+    expect(fat.coreEnergy).toBeLessThan(thin.coreEnergy);
+    expect(fat.strehl).toBeCloseTo(1, 6);
+    expect(thin.strehl).toBeCloseTo(1, 6);
+  });
+
+  it("cancels out of the vignetting ratio, because both fields carry it", () => {
+    // On axis the diagonal loses nothing, and the spider is common to numerator
+    // and denominator — so this is exactly 1 and would not be if the reference
+    // were built from a different pupil.
+    expect(spidered(4, 12).transmittedFraction).toBeCloseTo(1, 12);
+    expect(render("newtonian", { ...SPEC, focalRatio: 5 }).transmittedFraction).toBeCloseTo(1, 12);
+  });
+
+  it("refuses a zero-vane spider rather than treating it as none", () => {
+    // The engine's strictness, and the reason the panel carries its own `vanes > 0`
+    // guard instead of passing a degenerate spec through. "No spider" is the
+    // absence of the option, not a spider with nothing in it — which is the same
+    // distinction the obstruction option draws, and it is worth a rung because
+    // the alternative failure is silent.
+    expect(() => spidered(0, 12)).toThrow(/positive integer/);
+  });
+});
+
+describe("the chief-ray wall", () => {
+  it("the engine's bisection lands on the app's closed form to 5e-13", () => {
+    // The app derives tan θ = (√2·k/2)/[(F − ½ − 1/(16F))·(F − k)] from § 4b's
+    // footprint sizing; the engine finds the field at which `opdMap` refuses.
+    // Neither knows about the other, which is what makes the agreement evidence.
+    for (const focalRatio of [4, 5, 8, 10, 15]) {
+      const sweep = sweepAt(focalRatio);
+      expect(sweep.chiefRayLimitDeg / chiefRayFieldLimitDeg(focalRatio) - 1).toBeCloseTo(0, 11);
+    }
+  });
+
+  it("has no aperture in it either", () => {
+    // Same statement as the obstruction's, one derivative further out: D cancels
+    // from the footprint AND from the chief ray's height at the diagonal.
+    const a = sweepAt(8, 150).chiefRayLimitDeg;
+    const b = sweepAt(8, 300).chiefRayLimitDeg;
+    expect(a).toBeCloseTo(b, 12);
+  });
+
+  it("closes as 1/F², approaching the power from above", () => {
+    // The exact form carries an extra (F − k), so the local power sits over 2 and
+    // falls toward it. Pinned as an ordering plus the two end values, because a
+    // single exponent would be claiming more than a two-factor form supports.
+    const limits = [4, 5, 8, 10, 15].map((f) => ({ f, deg: chiefRayFieldLimitDeg(f) }));
+    for (let i = 1; i < limits.length; i++) {
+      expect(limits[i]!.deg).toBeLessThan(limits[i - 1]!.deg);
+    }
+    const power = (a: { f: number; deg: number }, b: { f: number; deg: number }) =>
+      Math.log(a.deg / b.deg) / Math.log(b.f / a.f);
+    expect(power(limits[0]!, limits[1]!)).toBeCloseTo(2.34, 1);
+    expect(power(limits[3]!, limits[4]!)).toBeCloseTo(2.11, 1);
+    expect(power(limits[3]!, limits[4]!)).toBeLessThan(power(limits[0]!, limits[1]!));
+  });
+});
+
+describe("throughput falls with field, and two routes say so independently", () => {
+  const sweep = sweepAt(5);
+
+  it("starts at exactly 1 and falls monotonically", () => {
+    // On axis is exactly 1 because § 4b's diagonal is derived tangent to the
+    // on-axis cone — a claim that can go red, unlike the self-ratio § 2f warns of.
+    expect(sweep.points[0]!.fieldDeg).toBe(0);
+    expect(sweep.points[0]!.fftFraction).toBeCloseTo(1, 12);
+    expect(sweep.points[0]!.rayFraction).toBeCloseTo(1, 12);
+    for (let i = 1; i < sweep.points.length; i++) {
+      expect(sweep.points[i]!.fftFraction).toBeLessThan(sweep.points[i - 1]!.fftFraction);
+    }
+    // And it falls a long way before the wall: this is a real effect, not a
+    // fraction of a percent dressed up as one.
+    expect(sweep.points[sweep.points.length - 1]!.fftFraction).toBeLessThan(0.5);
+  });
+
+  it("stays inside the wall rather than throwing at it", () => {
+    for (const point of sweep.points) {
+      expect(point.fieldDeg).toBeLessThan(sweep.chiefRayLimitDeg);
+    }
+  });
+
+  it("the masked-area and ray-count routes agree, and part further as clipping grows", () => {
+    // An area integral over a masked pupil and a count of rays that cleared the
+    // clip share no code path — the second builds no mask and runs no FFT. § 2f
+    // pins them 1.2e-4 apart at ps 128 / 201 rays; at this panel's coarser
+    // 64 / 101 the worst case is looser, and where it is worst is the content:
+    // the clipped boundary gets longer as the pupil empties, so a lattice count
+    // of it converges more raggedly. Neither number is a tolerance on physics.
+    expect(sweep.maxDisagreement).toBeLessThan(0.02);
+    const early = sweep.points[1]!;
+    expect(Math.abs(early.fftFraction - early.rayFraction)).toBeLessThan(1e-3);
+    const late = sweep.points[sweep.points.length - 2]!;
+    expect(Math.abs(late.fftFraction - late.rayFraction)).toBeGreaterThan(
+      Math.abs(early.fftFraction - early.rayFraction),
+    );
+  });
+
+  it("an off-axis render carries the mask nobody asked for", () => {
+    // No vignetting option exists: `psf()` builds the mask itself, and only when
+    // the trace has already lost rays. So the ONLY input is a field angle.
+    const at = (fraction: number) =>
+      renderReflector({
+        kind: "newtonian",
+        spec: { ...SPEC, focalRatio: 5 },
+        sourceTemperatureK: 5800,
+        wavelengths: 3,
+        pupilSamples: 64,
+        whiteFraction: 1 / 8000,
+        obstruct: true,
+        fieldDeg: fraction * chiefRayFieldLimitDeg(5),
+      });
+
+    const light = at(0.4);
+    const heavy = at(0.8);
+    expect(heavy.transmittedFraction).toBeLessThan(light.transmittedFraction);
+    expect(heavy.rayLost).toBeGreaterThan(light.rayLost);
+    expect(light.rayLost).toBeGreaterThan(0);
+
+    // The two routes' gap is pinned as the MECHANISM rather than as one number.
+    // A ray count of a clipped region converges more raggedly than a subdivided
+    // area — § 2f measures ~5e-4 for the lattice against 1.6e-5 for the area on
+    // its own geometry, with 201 rays — and the clipped boundary gets longer as
+    // the pupil empties. So the gap is tight where the clipping is light and
+    // several times looser where it is heavy, and both halves can fail.
+    const gap = (r: typeof light) => Math.abs(r.rayFraction - r.transmittedFraction);
+    expect(gap(light)).toBeLessThan(3e-3);
+    expect(gap(heavy)).toBeLessThan(2e-2);
+    expect(gap(heavy)).toBeGreaterThan(gap(light));
+
+    // ...against an on-axis render of the same system, which loses nothing at all
+    // because § 4b's diagonal is derived tangent to the on-axis cone.
+    const on = render("newtonian", { ...SPEC, focalRatio: 5 });
+    expect(on.rayLost).toBe(0);
+    expect(on.transmittedFraction).toBeCloseTo(1, 12);
   });
 });

@@ -6,10 +6,11 @@ import {
   schmidt,
   schmidtCassegrain,
 } from "@telemicroscope/core/designs";
-import { bestFocus, withFocus } from "@telemicroscope/core/analysis";
+import { bestFocus, exitBundle, withFocus } from "@telemicroscope/core/analysis";
 import type { OpticalSystem, Prescription } from "@telemicroscope/core/trace";
 import { blackbodySpectrum, spectralSamples } from "@telemicroscope/core/photometry";
-import { encircledEnergy, psf, spectralStack } from "@telemicroscope/core/wave";
+import { opdMap, pupilGrid } from "@telemicroscope/core/pupil";
+import { encircledEnergy, psf, spectralStack, type SpiderSpec } from "@telemicroscope/core/wave";
 import {
   colorImageFromStack,
   integratedXyz,
@@ -297,6 +298,43 @@ export function newtonianObstruction(focalRatio: number): number {
 }
 
 /**
+ * The field at which a minimum diagonal stops passing the **chief ray** — and it
+ * has no aperture in it either.
+ *
+ * Past this the engine does not degrade, it **refuses**: `opdMap` throws
+ * `chief ray failed (vignetted)`, because the chief ray defines both the image
+ * point and the reference sphere, and a system with no chief ray has no
+ * wavefront to be right or wrong about. So this is not a tolerance, it is a wall
+ * of the kind the microscope branch kept finding — § 6b's f/4.1, § 6d's NA 0.343,
+ * § 6e.4's NA 1.411, § 6q's 0.88·f_e, § 6l's 1.3347 — arriving in the telescope
+ * branch, and like § 6l's it is a single line of geometry rather than an
+ * aberration budget.
+ *
+ * The chief ray leaves the primary's vertex (the stop is the primary) toward an
+ * image point at f·tan θ, so at the diagonal, distance d along, it stands at
+ * d·tan θ. § 4b sizes the flat's clear radius to the marginal beam's footprint,
+ * (D/2)·√2·(f − d)/(f − D/2 + z_sag). Setting the two equal and substituting
+ * d = D(F − k), f − d = kD, z_sag = −D/(16F):
+ *
+ *     tan θ_max = (√2·k/2) / [ (F − ½ − 1/(16F)) · (F − k) ]
+ *
+ * D cancels again, and for large F this is ≈ √2·k/(2F²) — so the diagonal-limited
+ * field closes as **1/F²**, measured 1.5935° at f/5 against 0.3460° at f/10.
+ *
+ * Which runs *opposite* to § 4b's coma. A Newtonian's off-axis coma grows as
+ * θ·D/(32F²), so a fast one is comatic sooner per degree while its minimum
+ * diagonal passes several times more field; the two effects both carry 1/F² and
+ * point in opposite directions, which is why "how fast should a Newtonian be" has
+ * no answer that is only about aberration.
+ */
+export function chiefRayFieldLimitDeg(focalRatio: number): number {
+  const k = NEWTONIAN_FOCUS_OFFSET_FRACTION;
+  const tan =
+    ((Math.SQRT2 * k) / 2) / ((focalRatio - 0.5 - 1 / (16 * focalRatio)) * (focalRatio - k));
+  return (Math.atan(tan) * 180) / Math.PI;
+}
+
+/**
  * Below this, `dispersionAiryRadii` is not a measurement.
  *
  * The three all-mirror members contain no glass and so cannot disperse at all,
@@ -355,6 +393,27 @@ export interface ReflectorRequest {
   readonly whiteFraction: number;
   /** Apply the design's own central obstruction. Off is the ε = 0 control. */
   readonly obstruct: boolean;
+  /**
+   * The vanes holding the secondary, if any (§ 5c).
+   *
+   * Passed straight through to `PsfOptions`. Nothing here computes a spike: a
+   * vane is an opaque bar, the transform of a bar is a streak perpendicular to
+   * it, and the FFT produces both for the same reason it produces the Airy
+   * rings. This adapter's only contribution is that the *same* spec reaches the
+   * pupil function, so the geometric branch's ray-drop and the FFT branch's
+   * amplitude zero cannot disagree about where the vanes are.
+   */
+  readonly spider?: SpiderSpec;
+  /**
+   * Field angle, degrees. Nonzero is what makes § 2f's vignetting happen.
+   *
+   * There is deliberately **no vignetting option**. `psf()` builds a
+   * `vignetteMask` by itself, and only when the trace already lost rays, so the
+   * criterion is the trace and an unvignetted system never pays for it. A field
+   * angle is therefore the whole input: a minimum diagonal is sized to the
+   * on-axis cone, so any off-axis bundle spills past its rim.
+   */
+  readonly fieldDeg: number;
 }
 
 export interface ReflectorResult {
@@ -411,6 +470,84 @@ export interface ReflectorResult {
   readonly strehl: number;
   readonly truncatedFraction: number;
   readonly geometricWeight: number;
+  readonly fieldDeg: number;
+  /**
+   * Light this field angle keeps, against what the SAME pupil keeps on axis.
+   *
+   * The denominator is the load-bearing choice and § 2f says why in its own
+   * words: a first draft of its rung read `onAxis / onAxis` and was 1 by
+   * construction however badly the diagonal were sized. So the reference here is
+   * the *on-axis* transform of the same system with the same obstruction and the
+   * same vanes — both of which cancel — leaving the diagonal's clipping and
+   * nothing else. On axis this is exactly 1 because § 4b's diagonal is derived to
+   * be tangent to the on-axis cone, which is a statement that can go red.
+   */
+  readonly transmittedFraction: number;
+  /**
+   * The same fraction counted a completely different way: rays that physically
+   * cleared the diagonal, over rays launched.
+   *
+   * An area integral over a masked pupil and a count of surviving rays share no
+   * code path — the second never builds a mask and never runs an FFT — so their
+   * agreement is evidence rather than bookkeeping. § 2f pins them 1.2e-4 apart on
+   * its own geometry; here the panel measures the gap live.
+   */
+  readonly rayFraction: number;
+  /** Rays the trace lost at this field, of `rayGrid` requested. */
+  readonly rayLost: number;
+  readonly rayRequested: number;
+  /**
+   * Where a vane's first dark point lands, in pixels — `padFactor/widthFraction`.
+   *
+   * Not a warning but a measurement, and the honest guard for this panel: a spike
+   * is a sinc whose first zero sits at that radius regardless of aperture or
+   * focal length, so a *realistic* vane (w = D/50) throws it 200 px out and off a
+   * 256-pixel grid entirely. § 5c's validation vanes are deliberately fat for
+   * exactly this reason. Compared against the grid half-width below, so a reader
+   * can see the spike leave the frame rather than wonder where it went.
+   */
+  readonly spikeFirstZeroPx: number;
+  readonly gridHalfPx: number;
+}
+
+/** One point of the throughput-against-field sweep. */
+export interface VignettePoint {
+  readonly fieldDeg: number;
+  /** FFT route: masked pupil energy over the on-axis pupil's. */
+  readonly fftFraction: number;
+  /** Ray route: survivors over launched, on the same field. */
+  readonly rayFraction: number;
+}
+
+export interface VignetteSweep {
+  readonly points: readonly VignettePoint[];
+  /** Largest |FFT − ray| across the sweep: the two routes' live disagreement. */
+  readonly maxDisagreement: number;
+  /** The measured chief-ray wall (degrees) — bisected, not quoted. */
+  readonly chiefRayLimitDeg: number;
+  /** What `chiefRayFieldLimitDeg` predicts for the same geometry. */
+  readonly predictedLimitDeg: number;
+  readonly elapsedMs: number;
+}
+
+export interface VignetteRequest {
+  readonly kind: ReflectorKind;
+  readonly spec: ReflectorSpec;
+  readonly maxFieldDeg: number;
+  readonly points: number;
+  readonly pupilSamples: number;
+  /** Rays per pupil diameter for the independent count. */
+  readonly rayGrid: number;
+}
+
+export interface VignetteJob {
+  readonly seq: number;
+  readonly request: VignetteRequest;
+}
+
+export interface VignetteDone {
+  readonly seq: number;
+  readonly result: VignetteSweep;
 }
 
 export interface ReflectorJob {
@@ -433,6 +570,16 @@ export interface ReflectorDone {
 const PAD_FACTOR = 4;
 const AIRY_ZERO_PX = 1.22 * PAD_FACTOR;
 
+/**
+ * Rays per pupil diameter for the independent survivor count.
+ *
+ * A ray count of a curved region converges more raggedly than a subdivided edge
+ * — § 2f measures ~5e-4 for the lattice against 1.6e-5 for the area — so this is
+ * the number that sets how tightly the two routes can be expected to agree, and
+ * it is named rather than inlined for that reason.
+ */
+const RAY_GRID = 101;
+
 /** A star through one reflector: trace, transform, stack, expose. */
 export function renderReflector(request: ReflectorRequest): ReflectorResult {
   const started = performance.now();
@@ -449,9 +596,10 @@ export function renderReflector(request: ReflectorRequest): ReflectorResult {
     padFactor: PAD_FACTOR,
     traceSamples: 21,
     ...(obstruction > 0 ? { obstruction } : {}),
+    ...(request.spider ? { spider: request.spider } : {}),
   } as const;
 
-  const stack = spectralStack(system, 0, options);
+  const stack = spectralStack(system, request.fieldDeg, options);
   const image = colorImageFromStack(stack);
   const elapsedMs = performance.now() - started;
 
@@ -459,8 +607,13 @@ export function renderReflector(request: ReflectorRequest): ReflectorResult {
   // same wavelength, the same transform, with the obstruction the only thing
   // that differs. Differencing two polychromatic stacks would have measured the
   // spectrum as well as the annulus.
-  const obstructed = psf(system, 0, FOCUS_NM, options);
-  const clear = psf(system, 0, FOCUS_NM, { ...options, obstruction: 0 });
+  const obstructed = psf(system, request.fieldDeg, FOCUS_NM, options);
+  const clear = psf(system, request.fieldDeg, FOCUS_NM, { ...options, obstruction: 0 });
+  // The vignetting reference: the SAME pupil on axis. See `transmittedFraction`
+  // on why the denominator cannot be this field's own energy.
+  const onAxis =
+    request.fieldDeg === 0 ? obstructed : psf(system, 0, FOCUS_NM, options);
+  const rays = exitBundle(system, request.fieldDeg, FOCUS_NM, pupilGrid(RAY_GRID));
 
   const f = row.focalLengthMm ?? request.spec.apertureMm * request.spec.focalRatio;
   const naImage = request.spec.apertureMm / (2 * f);
@@ -504,5 +657,98 @@ export function renderReflector(request: ReflectorRequest): ReflectorResult {
     strehl: obstructed.strehl,
     truncatedFraction: stack.truncatedFraction,
     geometricWeight: Math.max(...stack.planes.map((p) => p.geometricWeight)),
+    fieldDeg: request.fieldDeg,
+    transmittedFraction: onAxis.energy > 0 ? obstructed.energy / onAxis.energy : 0,
+    rayFraction: rays.rays.length / (rays.rays.length + rays.lost),
+    rayLost: rays.lost,
+    rayRequested: rays.rays.length + rays.lost,
+    spikeFirstZeroPx: request.spider ? PAD_FACTOR / request.spider.widthFraction : 0,
+    gridHalfPx: stack.size / 2,
   };
+}
+
+/**
+ * Throughput against field angle — § 2f's mechanism as a curve, twice over.
+ *
+ * Two routes per point, and they share no code: an area integral over the masked
+ * FFT pupil, and a count of rays that physically cleared the diagonal. Plotting
+ * both is the point. § 2f pins them 1.2e-4 apart on its own geometry and the
+ * panel is where that agreement stops being a number in a document.
+ *
+ * The on-axis transform is computed **once** and reused as every point's
+ * denominator, which is both cheaper and the only correct thing: a per-point
+ * denominator would be the self-ratio § 2f warns about.
+ */
+export function vignetteSweep(request: VignetteRequest): VignetteSweep {
+  const started = performance.now();
+  const row = describeReflector(request.kind, request.spec);
+  const system = reflectorSystem(row, request.spec, 5800, 1);
+  const options = {
+    pupilSamples: request.pupilSamples,
+    padFactor: PAD_FACTOR,
+    traceSamples: 21,
+    ...(row.obstruction ? { obstruction: row.obstruction } : {}),
+  } as const;
+
+  // Find the wall first, because the sweep has to stay inside it — past it there
+  // is no chief ray, so there is no number to plot rather than a small one.
+  // Bisected on a 3-point pupil, which is all the criterion needs: the chief ray
+  // is the pupil centre and `opdMap` traces it before anything else.
+  const chiefRayLimitDeg = bisectChiefRayLimit(system, request.maxFieldDeg);
+  const ceiling = Math.min(request.maxFieldDeg, 0.98 * chiefRayLimitDeg);
+
+  const reference = psf(system, 0, FOCUS_NM, options).energy;
+  const grid = pupilGrid(request.rayGrid);
+
+  const points: VignettePoint[] = [];
+  let maxDisagreement = 0;
+  for (let i = 0; i < request.points; i++) {
+    const fieldDeg = (i / (request.points - 1)) * ceiling;
+    const fftFraction = psf(system, fieldDeg, FOCUS_NM, options).energy / reference;
+    const bundle = exitBundle(system, fieldDeg, FOCUS_NM, grid);
+    // Survivors over LAUNCHED, so this is a true transmitted fraction rather than
+    // two equally-clipped counts divided by each other (§ 2f's empty-rung note).
+    const rayFraction = bundle.rays.length / grid.length;
+    points.push({ fieldDeg, fftFraction, rayFraction });
+    maxDisagreement = Math.max(maxDisagreement, Math.abs(fftFraction - rayFraction));
+  }
+  return {
+    points,
+    maxDisagreement,
+    chiefRayLimitDeg,
+    predictedLimitDeg: chiefRayFieldLimitDeg(request.spec.focalRatio),
+    elapsedMs: performance.now() - started,
+  };
+}
+
+/**
+ * The largest field angle whose chief ray still clears every surface.
+ *
+ * The criterion is the engine's own refusal — `opdMap` throwing — rather than a
+ * reimplementation of the clip test, which is the same discipline § 2f used in
+ * making the trace itself the vignetting criterion. 40 halvings takes it to f64,
+ * and each probe traces three rays.
+ */
+function bisectChiefRayLimit(system: OpticalSystem, searchTo: number): number {
+  const passes = (fieldDeg: number): boolean => {
+    try {
+      opdMap(system, fieldDeg, FOCUS_NM, pupilGrid(3));
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  // Walk outward first: the wall may lie beyond whatever the caller asked for,
+  // in which case the sweep is simply unconstrained and the number is still worth
+  // reporting.
+  let hi = Math.max(searchTo, 0.05);
+  for (let i = 0; i < 12 && passes(hi); i++) hi *= 2;
+  if (passes(hi)) return hi;
+  let lo = 0;
+  for (let i = 0; i < 40; i++) {
+    const mid = 0.5 * (lo + hi);
+    if (passes(mid)) lo = mid;
+    else hi = mid;
+  }
+  return lo;
 }

@@ -84,9 +84,10 @@
      shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
      it. Rendered coarse-to-fine in its own worker.
 5. **Telescope branch + bench editor + mech layer** ← optics landed, and the
-   **presets now have an app surface** (APP.md C1); still open: the mechanical
-   layer, scenes (star/planet/lunar), the bench editor, and Part C's remaining
-   modes — the spider, the diagonal's vignetting, eyepieces/eye/camera.
+   **presets, the spider and the diagonal's vignetting now have an app surface**
+   (APP.md C1–C2); still open: the mechanical layer, scenes (star/planet/lunar),
+   the bench editor, and Part C's remaining modes — eyepieces, the eye, the camera,
+   and long-exposure seeing (the one that needs an engine step).
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
    scenes, visual mode (eye model, exit-pupil matching) and camera mode
@@ -103,6 +104,14 @@
    coma.
    *Spider diffraction:* ✅ (§ 5c). The vanes as a `PupilFunction` shared by
    both branches, so spikes fall out of the same transform as the Airy rings.
+   **Its panel has landed too** (APP.md C2), and it turned § 5c's own aside into a
+   live guard: a streak's first dark point sits at `padFactor/widthFraction` px
+   with no aperture in it, so a *realistic* 1/50 vane throws it to 200 px and off a
+   256-pixel grid — which is why § 5c's validation vanes are deliberately fat, and
+   the panel says on screen that a red guard there means the spike **left the
+   frame** rather than being suppressed. Also measured: a spider is amplitude-only,
+   so the Strehl holds at 1.000000 at every vane width while the core energy falls
+   0.847 → 0.531, and a zero-vane spider is refused rather than treated as none.
    *Atmospheric seeing:* ✅ (§ 5d). A seeded subharmonic Kolmogorov screen as a
    `PupilFunction` *phase*, pinned to Kolmogorov and Fried statistics. Being
    pure phase it lives only in the FFT branch; **the geometric ∇φ ray-tilt is
@@ -150,6 +159,23 @@
    *Off-axis diagonal vignetting:* ✅ (§ 2f). The partial-vignetting case § 2e
    left open, arriving as one `PupilFunction` mask whose criterion is the trace
    itself, so both branches see one aperture.
+   **Its panel has landed** (APP.md C2), and it needed **no control at all** —
+   `psf()` builds the mask only when `map.lost > 0`, so the criterion being the
+   trace means a field angle is the whole input. What it found is a **wall**, the
+   sixth of its kind in the repo after § 6b's f/4.1, § 6d's NA 0.343, § 6e.4's NA
+   1.411, § 6q's 0.88·f_e and § 6l's 1.3347: past a certain field the chief ray
+   misses the diagonal, and since it defines both the image point and the reference
+   sphere, `opdMap` **refuses** rather than degrading. Derived from § 4b's own
+   footprint sizing as tan θ = (√2·k/2)/[(F − ½ − 1/(16F))·(F − k)] — D cancels
+   again — and the engine's bisection lands on it to **5e-13** at every focal ratio.
+   It closes as **1/F²** (2.681° at f/4 against 0.147° at f/15, local power
+   2.34 → 2.11 from above), which runs *opposite* to this step's own coma ∝ θ/F²:
+   a fast Newtonian is comatic sooner per degree while its minimum diagonal passes
+   several times more field, so "how fast should a Newtonian be" has no answer that
+   is only about aberration. Throughput falls 1 → 0.384 out to 1.561° at f/5, and
+   § 2f's two independent routes are measured live — agreeing to ~1e-4 under light
+   clipping and parting to 1.1e-2 at the wall, because a ray-lattice count of a
+   clipped region converges more raggedly as the clipped boundary lengthens.
    *Achromatic doublet — the refractor preset:* ✅ `designs/achromat` (§ 5j). The
    first preset that is a LENS and the first that had to be *solved*. Choosing
    the bending needed third-order theory, so `analysis/seidel` landed with it,
