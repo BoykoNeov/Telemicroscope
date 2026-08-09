@@ -313,16 +313,38 @@
    step names. A DIN objective is not an infinity objective used differently, it
    is a **re-solved lens** — which needed the position factor, a finite object
    conjugate, that § 5j's `analysis/seidel` had explicitly refused (§ 6b.0).
-   **Open here:** the 4×
-   sitting at f/4.1 — the edge of the cemented-doublet form, and the second piece
-   of evidence for the Lister follow-on. *Refined by APP.md's D8, which built the
-   form at other apertures instead of quoting this one:* f/4.076 is where the
-   4×/0.10 sits, but the form survives to **NA 0.1843 = f/2.27**, and across two
-   glass pairs, two orientations and M = 4→40 the NA wall spans 28% while the
-   ratio at it spans 8%. So the ratio is the near-invariant and **f/4.1 is a
-   landmark rather than the edge**. That is an app probe of the composed build and
-   deliberately **not** a rung — pinning "the ceiling is a focal ratio" belongs
-   here, in this open item, and has not been done. *Composing an eyepiece onto the
+   *The 4× at f/4.1 — the edge of the cemented-doublet form:* ✅ **closed at
+   § 6b.5**, and the open item it closes had two answers because D8's flagged
+   sentence turned out to be about two different boundaries. **The optical edge is
+   Maréchal's, it is EXTERNAL, and § 6b's original sentence survives:** the DIN 4×
+   is diffraction-limited to **NA 0.10311 = f/3.956**, so the catalogued 4×/0.10
+   has **3.1%** of aperture in hand and really is at the edge. **D8's f/2.3 is not
+   an optical boundary at all** — the wavefront there is **3.45 waves, 48×
+   Maréchal** — so "the form survives to NA 0.1843" holds only in the sense that
+   the constructor returns an object, and "f/4.1 is a landmark rather than the
+   edge" is **withdrawn**. What D8 measured is `achromaticObjective`'s refusal
+   locus, which **contains no aperture by construction** (aperture-free to ≤ 3 ULP
+   over four decades of D) — which is exactly why the ratio at it looked invariant
+   at 8%. On the external criterion **neither** measure is invariant: over M = 4→40
+   the reach spans **77%** in NA and **40%** in working ratio, monotone in opposite
+   directions, so **there is no single focal ratio that is this form's ceiling**;
+   the ratio is the tighter of the two by ~2× and that is all it is.
+   Two solver conventions compose to make "f/2.3". The boundary ratio is set by the
+   **±3·span scan window** — what arrives there is a root **5× hemispherical**
+   entering at |c₁|/span = 3⁻ while both real roots are still ordinary glass — and
+   the NA it maps onto is set by the fixed point's **thin-lens seed**, in a closed
+   form that predicts the engine's own wall to **1e-11** at four magnifications,
+   both orientations and two glass pairs (f cancels, which is why the tube length
+   moves it **bitwise** not at all). That exactness is the finding: the *converged*
+   design sits ~6% inside the boundary, so the constructor **refuses apertures it
+   could deliver**. Also unified: **§ 6q's Plössl wall is this same refusal**, and
+   its measured scale-invariance is this same identity — so the repo's walls are
+   three kinds, not one (geometric, aberration, solver locus), with § 6d's NA 0.343
+   deliberately left unclassified.
+   **Open here:** the seed (worth ~6% of ratio, measured), the scan window's
+   `3`, and a refusal message whose sentence names the glass pair when the cause is
+   the aperture — the count already discriminates (0 vs 3), and all three are
+   upstream of §§ 5j/6b/6c/6d/6e, so they are their own step. *Composing an eyepiece onto the
    intermediate image was the other open item and is now closed by § 6q, which
    runs on this architecture and the infinity-corrected one alike.*
    *The coverslip — `160/0.17`:* ✅ `designs/coverslip` (§ 6c), and with it the

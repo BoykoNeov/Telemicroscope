@@ -48,7 +48,7 @@ whole ladder.
 | [5t](#step-5t--tolerancing-sensitivity-compensators-and-the-rss-budget) | Sensitivity, compensators, RSS budget — four external pins | `tolerance` |
 | [5u](#step-5u--the-mechanical-layer-the-glass-path-that-is-not-its-own-length) | The mechanical layer, and the one claim it exists for — a part's mechanical length and its optical cost are different numbers: a spliced chain moving the TRACED focus by exactly t(1−1/n), so the closed form is pinned against the tracer instead of substituted for it (a prism diagonal hands back 0.3407 of its glass, 13.6287 mm, and a mirror one a hard zero); the naive air-only budget over-reporting by exactly Σtᵢ(1−1/nᵢ) — 7.83% of a real chain's length, always pessimistic, and the two verdicts genuinely disagreeing on an ordinary focuser; the glass's position along the converging beam shown **exactly** irrelevant, focus to 1e-11 mm and OPD below 1e-6 waves at a 50 mm and a 600 mm gap, which is what licenses flattening a chain's glass into one stack; the shift shown to be dispersive — blue pushed further back, the opposite of what a positive element does — which makes a glass diagonal a colour COMPENSATOR for both doublets measured (BK7/F2 at −0.2098 mm and § 5k's ED pair at −0.5068 mm), though an achromat's F−C spread is a RESIDUAL whose sign belongs to the lens, so the compensation is measured on two glass pairs rather than asserted as a law; the amount it moves each identical at 0.139742 mm to six digits, four Rayleigh depths of focus at f/5 and inside one at f/10, and invisible to any budget made of lengths; the cost a fourth power of the aperture with the exact form outrunning W₀₄₀ (×16.0216 at f/20→f/10 against ×16.5629 at f/4→f/2, ratio 1.0469 by f/2) and the quarter wave landing at **f/5.315** where the step was scoped for f/3–f/4; and the sixth geometric ceiling, the first from a MOUNT rather than the ray invariant — a single group cannot be DIN-parfocal below M = [x′+√(x′²+4Px′)]/2P = **4.1387** (4.236 with real glass), which is why a real 4× cannot be one doublet | `mech` |
 | [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
-| [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
+| [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective; the doublet's ceiling (§ 6b.5) | `microscope` `seidel` `achromat` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
@@ -3133,8 +3133,137 @@ quarter, not on nine waves, and the honest version of the claim is that
 straddle showing up once more: the SA-better build is not the coma-better one,
 and no bending makes a cemented doublet aplanatic.
 
+### § 6b.5 — the ceiling, and whose it is
+
+`test/doublet-wall.test.ts`. This step left an item open in words — "the 4×
+sitting at f/4.1 — the edge of the cemented-doublet form" — and APP.md's **D8**
+then measured `finiteConjugateObjective`'s own refusal boundary, found it at
+f/2.3 rather than f/4.1, found it nearly constant (8%) across two glass pairs
+and two orientations where the NA was not (28%), and flagged *"the doublet's
+ceiling is a focal ratio ≈ f/2.3, and the ratio is the invariant"* as an open
+question for this step rather than quietly adding it to the ladder. **No
+engine capability is added here**; what follows is that question answered.
+
+**The answer is that the two halves of D8's sentence are about two different
+things, and only one of them is optics.**
+
+#### The optical ceiling — Maréchal, bisected, and § 6b's own sentence survives
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The DIN 4× is diffraction-limited to NA 0.10311**, so the catalogued 4×/0.10 has **3.1%** of aperture in hand | Maréchal — EXTERNAL | ✅ |
+| …at a working ratio of **f/3.956** against the catalogued f/4.076 | the same, in D8's currency | ✅ |
+| σ runs as **NA^6.2** across it, so the reach is bisected and not interpolated | § 5j/§ 6d's order, on two consecutive ratios | ✅ |
+| **NEITHER the aperture NOR the ratio is invariant on it**: reach 0.1031 → 0.1827 (**77%**) and f/3.956 → f/2.823 (**40%**) over M = 4 → 40 | measurement, against D8's flagged claim | ✅ |
+| …monotone in both and in opposite directions — a slower objective reaches a higher NA at a faster working cone | the position factor, showing its sign | ✅ |
+| **At the constructor's refusal NA the wavefront is 3.45 waves — 48× Maréchal**, and 1.79× past the reach | the same criterion, at D8's number | ✅ |
+
+So **§ 6b's original sentence is the one that stands.** The 4×/0.10 really is
+at the edge of the cemented-doublet form: it clears Maréchal by 3% of aperture
+and 3% of ratio, which is as close to an edge as a catalogued member gets. D8's
+"the form survives to NA 0.1843" is true only in the sense that the constructor
+returns an object — the lens there is 48× past diffraction-limited and is not an
+objective. And the invariance D8 measured is real but belongs to something else:
+**there is no single focal ratio that is the cemented doublet's optical ceiling**,
+because on the external criterion the ratio still spans 40%. It is the tighter of
+the two measures by about 2×, which is the grain of truth in "quote a ratio", and
+that is all it is.
+
+#### The refusal boundary — a solver locus, and which parts of the solver
+
+The reason the ratio looked invariant is that `achromaticObjective`'s refusal
+boundary **contains no aperture by construction**, so of course the ratio at it
+barely moves. These rungs are identities, closed forms and negative controls in
+the sense § 6s uses the word: a rung about a solver is an identity rung, and
+none of the table below is pinned to an external number.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The refusal ratio is aperture-free to ≤ 3 ULP over D = 1 → 1000**, at two conjugates | identity; degree-1 homogeneity in D | ✅ |
+| …and it is **algebraic, not arithmetic** — most values bitwise equal, one 2–3 ULP off | § 6p's distinction, on its other side | ✅ |
+| **F\* is homogeneous of degree 1 in the STATED thickness pair** (×2 → ×2, ×3 → ×3, to 1e-8) | identity — the locus lives in t/f | ✅ |
+| **NEGATIVE CONTROL: the two thicknesses do not trade off** — crown alone ×1.86, flint alone ×1.15 | it is a curve in (t_c/f, t_f/f), not "total glass" | ✅ |
+| **ANTI-CIRCULARITY: the scan's root count flips 2→3 exactly across the constructor's own build/refuse verdict**, thicknesses stated | the reconstruction is checked, not assumed | ✅ |
+| **The arriving third root is >5× hemispherical and ENTERS at \|c₁\|/span = 3⁻** — the scan window's own constant | the literal `3` in `solveBendings` | ✅ |
+| …and it migrates inward as the ratio falls further | it is a window crossing, not a coalescence | ✅ |
+| **The two real roots at the wall are ordinary glass** — both sub-hemispherical, both edges positive | negative control: nothing geometric is binding | ✅ |
+| **The DIN wall is the fixed point's SEED, in closed form**, to 1e-11 relative at M = 4/10/20/40, both orientations | derivation, not a fit | ✅ |
+| …and on a second glass pair, which is what stops the agreement being a constant matching itself | anti-circularity | ✅ |
+| **The optical tube length cancels BITWISE** — f is not in the closed form | identity; D8 measured it as three equal numbers | ✅ |
+| A glass-pair failure reports **0** roots at any ratio (CaF₂/F2); an aperture failure reports **3** | the count discriminates | ✅ |
+| …and the same pair **builds when slowed**, which falsifies the message's sentence on that branch | negative control | ✅ |
+| **§ 6q's Plössl wall is this same refusal** (found 3), which is why it was scale-invariant | mechanism, not the number | ✅ |
+
+**The closed form.** The DIN constructor seeds its fixed point from the thin
+lens — object at a = f(1 + 1/M), image at b = f(1 + M), glass sized over the
+stop the object distance implies, D = 2·a·tan u·k with k = 1.12 — so
+
+    tan u_wall = 1 / (2·k·(1 + 1/M)·F*(s/f)),   s/f = 1 + M   (flint first)
+                                                      1 + 1/M (crown first)
+
+with F\* the aperture-free refusal ratio. **f cancels out of f/D**, which is why
+the optical tube length does not move the wall and why D8 measured 0.1843 at
+x′ = 100, 150 and 250 — here that is an identity rather than three equal
+measurements. The prediction lands on the bisected engine wall to **1e-11
+relative** at every magnification, both orientations and both glass pairs.
+
+**And that exactness is the finding.** If the *converged* design were binding,
+the closed form would miss by the ~6% the fixed point moves the object distance.
+It does not miss at all — so the wall is decided by the **thin-lens seed**, before
+the constructor has looked at the lens it is building. The converged geometry at
+that NA sits about 6% inside the boundary, which means `finiteConjugateObjective`
+refuses apertures it could in fact deliver. That is recorded as an open item with
+the number attached rather than fixed here; the fix is upstream of §§ 5j, 6b, 6c,
+6d and 6e, and this change adds no capability.
+
+**So "f/2.3" is two solver conventions composed** — the ±3·span scan window,
+which decides F\*, and the seed, which decides how an NA maps onto it. Neither is
+a property of the glass. **Three ratios are in play and D8 quotes the third:**
+F\* = 1.904 (the refusal locus), f/D = 2.023 at the converged geometry, and the
+working f/# = 2.266 = 2.023 × 1.12, the glass margin. A number quoted without its
+convention will read as agreeing with D8 while measuring something else.
+
+**The refusal names the wrong cause, and the engine already prints the right
+one.** `achromaticObjective` says *"this glass pair does not admit the classical
+doublet solution"* for both branches, and on the aperture branch that sentence is
+false — the same pair builds 10% slower. The **count** in the message is the
+discriminator: **0** is the glass pair (CaF₂/F2, at any ratio), **3** is the
+aperture. The string is left alone deliberately: four tests across `core` and
+`app` match on it, so rewording it is a five-file change and belongs to whoever
+fixes the seed.
+
+**The unification.** § 6q's Plössl clear-aperture wall — bisected there to
+0.899195·f_e and reported as "exactly scale-invariant from f_e 15 to 50" — throws
+this same three-root refusal. That scale invariance *is* the identity above, seen
+through a different constructor: both forms are specified entirely in ratios, so
+neither boundary can contain an aperture. What is **not** claimed is the number:
+the clear aperture reaches the doublets' apertures through the Plössl's own
+layout, which nothing here measures.
+
+**So the repo's list of walls is three kinds and not one.** § 6e.4's NA 1.411 and
+§ 6l's 1.3347 are **geometric** — the rays stop existing. § 6b's f/4.1 is an
+**aberration** edge, and § 6b.5.1 is what earns it that name: the wavefront leaves
+Maréchal at f/3.956, with the glass in perfectly good health. § 6q's 0.899·f_e is
+a **solver locus**, as is D8's f/2.3. § 6d's NA 0.343 is unclassified here and
+should not be assumed: § 6d.4 already says "its limit is the SOLVE, not
+aberration — at its ceiling it is still λ/27", which is the shape of this
+mechanism, but the Lister solves two bendings jointly and nothing above measures
+it. That is a named follow-on, not a claim.
+
 ### Not yet pinned
 
+- **The seed, not the design, decides the wall** — and it costs ~6% of ratio,
+  measured above. Re-seeding the fixed point (or iterating the aperture with it)
+  would let the DIN constructor build members it currently refuses. Not done
+  here: `achromaticObjective` is upstream of §§ 5j, 6b, 6c, 6d and 6e, and this
+  change adds no capability to justify moving it.
+- **The scan window is a stated constant.** F\* is set by the `3` in
+  `solveBendings`'s ±3·span range. Rejecting non-physical bendings (|c|·D/2 ≥ 1)
+  *before* counting roots would make the count mean what its message says. Same
+  reason for not doing it here, and the same caller list.
+- **Where the optical ceiling is for the OTHER forms.** § 6d.4 bisects the
+  Lister's Maréchal reach and § 6b.5.1 now does the DIN doublet's; the
+  infinity-corrected member of § 6a has neither.
 - ~~**The coverslip.**~~ Closed by [§ 6c](#step-6c--the-coverslip-and-what-mismatching-it-costs):
   the 0.17 mm slab, the objective re-solved through it, and mismatch. Read
   `objectDistanceMm` in this step as the bare-specimen case § 6c generalises —
@@ -3145,7 +3274,9 @@ and no bending makes a cemented doublet aplanatic.
   deliberately — the architecture rung is about the objective standing alone.
 - **The 4× is at the edge of the glass form.** f/4.1 is fast for a cemented
   doublet: it clears Maréchal only after the balancing defocus, and it is the
-  member the § 6a "high NA needs a different glass form" note anticipates. The
+  member the § 6a "high NA needs a different glass form" note anticipates.
+  **Measured at [§ 6b.5](#-6b5--the-ceiling-and-whose-it-is): the edge is
+  f/3.956 / NA 0.10311, so "at the edge" was right to 3%.** The
   Lister two-doublet is the follow-on, and this is the second piece of evidence
   for it (the first being F = 1/(2·NA) at high NA). **Closed by
   [§ 6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets)**

@@ -2220,6 +2220,31 @@ as constants.**
    § 6b rather than quietly added to the ladder — D8 is app wiring and adds no
    physics.
 
+   **That question has now been answered at § 6b.5, and refusing to pin it here
+   was the right call — because what this panel measures is not an optical
+   boundary.** At NA 0.1843 the wavefront is **3.45 waves, 48× Maréchal**; the DIN
+   4× stops being diffraction-limited at **NA 0.10311 = f/3.956**, so § 6b's
+   original "the 4× sits at f/4.1, the edge of the form" was right to 3% and this
+   row's "f/4.1 is a landmark rather than the edge" is **withdrawn**. The wall
+   `measureApertureWall` bisects is `achromaticObjective`'s refusal locus, which
+   **contains no aperture by construction** — which is precisely why the ratio at
+   it looked like the invariant. On the external criterion neither measure is: the
+   reach spans **77%** in NA and **40%** in ratio over M = 4→40. So the panel's
+   guard is honest about what it is (where the engine first says no) and the
+   *interpretation* in this paragraph was the part that overreached. **The pattern
+   this doc keeps naming, on its sixth repetition and in its sharpest form yet:
+   the feasibility number was measuring something else** — and this time the
+   surface that found it was a ladder rung reading the panel, rather than a panel
+   reading a rung.
+
+   **Two smaller corrections to this row.** The three ratios are not
+   interchangeable — F\* = 1.904 is the refusal locus, f/D = 2.023 the converged
+   geometry, and the **f/2.266 quoted above is the *working* ratio**, 2.023 × the
+   1.12 glass margin — so a number lifted from this table into an engine context
+   will be 12% off. And the wall's independence of the optical tube length, read
+   here as three equal measurements, is an **identity**: f cancels out of the
+   seed's f/D, and § 6b.5 pins the three as bitwise equal.
+
 **Two refusals in this panel are the app's, not the engine's, and they are styled
 apart.** DIN × Lister and DIN × oil have no engine call to refuse them (the
 finite-conjugate Lister is a named open item in ROADMAP § 6d), and neither
