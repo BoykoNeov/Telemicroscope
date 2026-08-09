@@ -83,8 +83,10 @@
      pixel scale the frame spans ~0.06° and the field is effectively
      shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
      it. Rendered coarse-to-fine in its own worker.
-5. **Telescope branch + bench editor + mech layer** ← optics landed; still open:
-   the mechanical layer, scenes (star/planet/lunar), and the bench editor.
+5. **Telescope branch + bench editor + mech layer** ← optics landed, and the
+   **presets now have an app surface** (APP.md C1); still open: the mechanical
+   layer, scenes (star/planet/lunar), the bench editor, and Part C's remaining
+   modes — the spider, the diagonal's vignetting, eyepieces/eye/camera.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
    scenes, visual mode (eye model, exit-pupil matching) and camera mode
@@ -122,6 +124,29 @@
    and one corrector nulling their *combined* SA, pinned to the published
    two-mirror Seidel corrector (Schroeder; Rutten & van Venrooij). NOT an
    anastigmat — its off-axis coma/astigmatism remain **unpinned**.
+   *The panel the six presets existed for:* ✅ **landed** (APP.md C1) — app wiring
+   only, no rung, and the first Part C surface. Six designs had been in
+   `core/designs` since this step with no app presence at all. What it corrects is
+   an app **readout** rather than a physics line: § 3b's chromatic-spread measure
+   reads **0.36 Airy radii on a Newtonian**, which contains no glass and cannot
+   disperse, because it divides every plane by ONE Airy radius while the Airy
+   pattern scales as λ — untouched as the *difference* between two lenses that
+   § 3b uses it as, wrong as an absolute. Normalizing per wavelength leaves a floor
+   that is the **ruler** (`spectralStack`'s common grid crops red where it pads
+   blue) and that wanders rather than converging with grid, so it is refused; the
+   control is free and exact in its logic, since a Cassegrain and a
+   Ritchey-Chrétien differ *only* in conic constants and a conic has no index —
+   they agree to 1.3e-5, four orders under the corrector's own excess. Above the
+   floor the corrector's dispersion tracks its own figure as **A₄²** (implied power
+   2.07 → 1.92 → 1.45 as the plate steepens and the small-aberration form
+   saturates), and A₄ ∝ F₁⁻³ makes that F₁⁻⁶ — which is why a slow f/10 Schmidt
+   camera sits *at* the floor with a corrector in it. Two more: § 4b's diagonal
+   sizing has **no aperture in it**, ε = (k/F)/(1 − 1/(16F²)) to 12 digits, so a
+   Newtonian's obstruction is a mechanical convention over the focal ratio where
+   the Cassegrain family's ε = s₁/f₁ is optical; and the obstruction is a pupil
+   fact the trace never sees — Strehl 1 to six digits with a fifth of the pupil
+   dark, the annulus's whole on-axis effect being that it moves **18.3%** of the
+   core into the rings.
    *Off-axis diagonal vignetting:* ✅ (§ 2f). The partial-vignetting case § 2e
    left open, arriving as one `PupilFunction` mask whose criterion is the trace
    itself, so both branches see one aperture.

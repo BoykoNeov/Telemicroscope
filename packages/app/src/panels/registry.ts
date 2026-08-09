@@ -6,6 +6,7 @@ import { CoverslipPanel } from "./coverslip";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
 import { PhasePanel } from "./phase";
+import { ReflectorPanel } from "./reflector";
 import { SectionPanel } from "./section";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
@@ -45,6 +46,12 @@ export const PANELS: readonly Panel[] = [
     label: "star & field",
     blurb: "roadmap step 4 — chromatic fringing, and a field-varying PSF across 25 stars",
     Component: TelescopePanel,
+  },
+  {
+    id: "reflector",
+    label: "the reflectors",
+    blurb: "APP.md Part C — six presets from three numbers, and an obstruction the trace never sees",
+    Component: ReflectorPanel,
   },
   {
     id: "bench",

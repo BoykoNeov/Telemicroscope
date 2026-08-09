@@ -21,6 +21,9 @@ export const createStarWorker = () =>
 export const createFieldWorker = () =>
   new Worker(new URL("./render.field.worker.ts", import.meta.url), { type: "module" });
 
+export const createReflectorWorker = () =>
+  new Worker(new URL("./reflector.worker.ts", import.meta.url), { type: "module" });
+
 export const createBrightfieldWorker = () =>
   new Worker(new URL("./brightfield.worker.ts", import.meta.url), { type: "module" });
 

@@ -1175,12 +1175,11 @@ before putting it under a live slider.
 ## Part C — secondary: telescope surfaces with no app presence
 
 Real gaps, but a different kind: these are *presets and modes* the app never
-instantiated, not a whole branch. All are app-wiring-only unless noted. Listed
-for completeness, not proposed as the next work.
+instantiated, not a whole branch. All are app-wiring-only unless noted.
 
 - **Presets** — Newtonian, Cassegrain, Ritchey-Chrétien, Schmidt,
-  Schmidt-Cassegrain, SCT. The app hardcodes `refractorPair`; a preset selector
-  is the same shape as A1 and would light up six designs at once.
+  Schmidt-Cassegrain, SCT — ✅ **landed** as C1 below, together with the central
+  obstruction each of them reports.
 - **Spider diffraction** (§ 5c) — a `PupilFunction`, so it composes with the
   seeing screen already wired. Probably the cheapest visible win in the repo.
 - **Off-axis diagonal vignetting** (§ 2f) — one more `PupilFunction` mask.
@@ -1199,6 +1198,91 @@ for completeness, not proposed as the next work.
   dial is one short-exposure draw and says so. Promoting the helper to
   `core/wave` is the step; note the cost first — the rung averages 120 screens
   and takes 14–20 s, so this is a compute-once surface, never a live dial.
+
+### C1. The six reflectors, and the obstruction each one reports — ✅ **landed** — *app wiring only* — **pair**
+
+`reflector.ts` + `panels/reflector.tsx` + `test/reflector.test.ts`. Six designs
+had sat in `core/designs` since roadmap step 5 with **no app presence at all**;
+the app instantiated one refractor and nothing else. No rung was added because no
+capability was: every number is § 4b's, § 5e's, § 5f's, § 5g's, § 5h's or § 5i's.
+
+**The shape is a table of all six and a picture of one, which inverts A1's split
+for a stated reason.** A1 traces the whole objective catalogue because the
+comparison is the finding and the rows are cheap. Here the *table* is the cheap
+half — constructing a reflector is closed-form layout arithmetic, six of them in
+microseconds, since every radius, conic, separation and obstruction is derived
+rather than solved — while a polychromatic star through one is 88–182 ms of trace
+and transform. So the comparison stays un-clicked and only the picture is
+selected. A row that cannot exist keeps its place and prints the engine's own
+sentence, which is A1's convention: `F > F₁` or the Cassegrain family's secondary
+does not magnify, and **four of the six rows refuse together** at F = F₁ while the
+Newtonian and the Schmidt, which need only D and F, are untouched.
+
+**The panel has its own aperture range and that is deliberate.** 100–400 mm
+against the star panel's 4–20 mm, because `refractorPair` is a toy whose halo has
+to stay on an FFT grid and a 6 mm Newtonian is not a thing. Two sliders that look
+alike and are not is exactly what structural item 1 describes two panels having
+had over `pupil samples`; routing is what keeps them from reading as one control.
+
+Four findings, and **three of them were wrong predictions first** — recorded that
+way because the corrections are the content.
+
+**1. A Newtonian's obstruction contains no aperture, and is not an optical
+choice.** Working § 4b's diagonal sizing through by hand, D cancels exactly:
+ε = (k/F)/(1 − 1/(16·F²)), with k = 0.75 the stand-in focus offset as a fraction
+of the aperture. The app derives it and the engine builds it and they agree to 12
+digits, which is a real cross-check of § 4b's **sag** term rather than a
+restatement — drop the 1/(16F²) and it fails at the fourth digit. The correction
+is worth 0.251% at f/5, reproducing the 0.25% `newtonian.ts` quotes in its own
+header, from the app's side. So a Newtonian's ε is a *mechanical* convention over
+the focal ratio — where the focal plane has to sit off the axis — where the whole
+Cassegrain family's ε = s₁/f₁ is optical, falling out of the magnification the two
+mirrors must supply. At f/10 that makes the Newtonian's 0.075 about a quarter of
+the family's 0.300, and the family's four members share the figure to 15 digits
+because they share one `twoMirrorLayout`.
+
+**2. The obstruction is a pupil fact and the trace never sees it.** `newtonian.ts`
+is explicit that the diagonal is not traced as a blocker — it is reported and
+applied in the pupil function — so on axis the Strehl reads 1 to six digits while
+a fifth of the pupil is dark, and the annulus's entire on-axis effect is *where
+the light sits*. Measured on one grid with ε = 0 as the control, since the same
+system, wavelength and transform then differ in nothing else: energy inside the
+clear Airy first zero falls from 84.70% to 69.20% at ε = 0.300, so the secondary
+moves **18.3% of the core into the rings**.
+
+**3. This app's own fringe measure is diffraction, not dispersion.** `render.ts`
+reports a chromatic spread in Airy radii, and a Newtonian — two mirrors, no glass,
+incapable of dispersing — reads **0.36 Airy radii** of it. The denominator is one
+Airy radius, the focus wavelength's, while the Airy pattern scales as λ, so red
+diffracting wider than blue is being counted as fringing. § 3b's use of it is
+untouched: there a singlet and an achromat share the floor and it cancels in the
+comparison. As an *absolute* number it does not, and a panel with no second lens
+beside it is what exposes that. Dividing each plane by its own Airy radius removes
+λ and is the measure that can vanish.
+
+**4. Even normalized, the floor is the ruler — and the free control is what
+proves it.** The all-mirror members read 1.1e-2 to 2.6e-2, and the number
+**wanders non-monotonically as the grid refines** (Newtonian: 1.72e-2, 1.20e-2,
+1.67e-2 at pupilSamples 32/64/128) rather than converging, so it is neither
+resolution nor optics. It is `spectralStack`'s common-grid step — `pixelScaleMm`
+is ∝ λ, so red planes are cropped where blue ones are padded and an
+energy-weighted mean radius picks up a λ-dependent bias. It is therefore
+**refused rather than subtracted** (0.03 Airy radii), which is A3's rule about
+undefined readouts applied to a floor. The control costs nothing and is exact in
+its logic: a Cassegrain and a Ritchey-Chrétien differ *only* in two conic
+constants, and a conic carries no refractive index, so a dispersion measure must
+return one number for both. They agree to **1.3e-5** of each other — four orders
+under the corrector's own excess on the same layout — and *not* exactly, which is
+the informative part: different conics make different wavefronts, so the two PSFs
+are different shapes and the common-grid crop bites slightly differently on each.
+What survives the control is the ruler reacting to a different picture, still not
+dispersion. What sits *above* the floor tracks the corrector's own figure, and
+approaches **A₄²** as the plate weakens — implied power 2.07, 1.92, then 1.45 over
+F₁ 4 → 3.5 → 3 → 2.5, where the excess reaches 0.64 Airy radii and the
+small-aberration form has plainly saturated. Since A₄ ∝ F₁⁻³ that is F₁⁻⁶, which
+is why this slow f/10 Schmidt **camera** sits at the floor with a corrector in it
+while an SCT on an f/4 primary sits three times above. That is the chromatic half
+§§ 5g–5i left open, arriving as a number rather than a caveat.
 
 ---
 
@@ -1225,8 +1309,10 @@ and **D10 has now landed too, so that queue is empty.** What remained anywhere i
 this doc was A6 and Part B, neither of which was ever in Part D — and **both have
 since landed as well**. So has **A9**, which is what "the scenes nobody has
 authored" turned out to really be: the scenes existed and the *colour* did not.
-What is left is Part C, and the telescope's own star/planet/lunar scenes, which
-are an engine step rather than wiring.
+What is left is Part C — whose **presets have now landed too, as C1**, so what
+remains there is the spider, the diagonal's vignetting, the eyepiece/eye/camera
+modes and the one item that needs an engine step — and the telescope's own
+star/planet/lunar scenes, which are an engine step rather than wiring.
 
 ### D0. The three feasibility measurements this part rests on
 
@@ -2381,10 +2467,20 @@ disqualified table says so, but nobody has authored one. ~~**That is now the onl
 microscope item left anywhere in this doc**~~ — **and it was already done when
 this was written.** A7 authored both, in `stage.ts`, grey; the real gap under the
 word "scenes" was colour, and **A9** closed it. What is left in this doc is
-**Part C** (a separate decision) and the telescope's own scenes — star, planet
-and lunar, ROADMAP step 5's item rather than one of this doc's, and an engine
-step rather than wiring, since `rasterizePointSources` is point-only and an
-extended incoherent source has no rasterizer.
+**Part C** — **now opened, and its presets landed as C1** — and the telescope's
+own scenes: star, planet and lunar, ROADMAP step 5's item rather than one of this
+doc's, and an engine step rather than wiring, since `rasterizePointSources` is
+point-only and an extended incoherent source has no rasterizer.
+
+**C1 is the first Part C surface and it repeated the pattern this doc keeps
+naming, in the reverse direction.** Every previous part found the *feasibility
+number* was measuring something else; C1 found a **readout** was — this app's own
+fringe number reads 0.36 Airy radii on a system with no glass in it, because it
+divides by one Airy radius while the Airy pattern scales as λ. Three of C1's four
+findings began as wrong predictions of the panel's author, which is what a surface
+that puts an absolute number on screen next to nothing else does for you: § 3b's
+measure was only ever used as a *difference* between two lenses, and the floor it
+carries was invisible until something with a guaranteed zero was put through it.
 
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
