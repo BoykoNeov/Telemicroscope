@@ -3257,6 +3257,13 @@ message hard-coding "one ghost root" would have been wrong there, and § 6b.5.3'
 "the two REAL roots at the wall are ordinary glass" is a statement *about the
 wall* and does not travel.
 
+**The claim is restricted to the two counts that are measured.** 0 and 3 are what
+the rungs produce and what the branch names; an odd count of **1** falls through
+to the glass-pair sentence with nothing behind it, which is the same attribution
+defect one count over. It is left rather than guessed — no input in the repo
+reaches it, so a branch for it would be a sentence no rung could check — and it
+is named here so the paragraph above is not read as covering every count.
+
 **The unification.** § 6q's Plössl clear-aperture wall — bisected there to
 0.899195·f_e and reported as "exactly scale-invariant from f_e 15 to 50" — throws
 this same three-root refusal. That scale invariance *is* the identity above, seen
@@ -3282,6 +3289,14 @@ it. That is a named follow-on, not a claim.
   would let the DIN constructor build members it currently refuses. Not done
   here: `achromaticObjective` is upstream of §§ 5j, 6b, 6c, 6d and 6e, and this
   change adds no capability to justify moving it.
+
+  **And whoever does it needs a witness this section does not have.**
+  `refusalRatio` bisects against the *live* constructor, so every rung above
+  moves with a seed change instead of failing — including § 6b.5.4's closed form,
+  which takes `F*` from it and would go on agreeing with itself at the relocated
+  wall. The rungs would stay green while the boundary they describe silently
+  went somewhere else. So the wall's **number** has to be pinned as a literal
+  before the seed is touched, or that commit has nothing to falsify it.
 - **The scan window is a stated constant.** F\* is set by the `3` in
   `solveBendings`'s ±3·span range. Rejecting non-physical bendings (|c|·D/2 ≥ 1)
   *before* counting roots would make the count mean what its message says. Same

@@ -537,6 +537,12 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
        * bendings before the count would move the refusal boundary itself, which
        * is § 6b.5's other open item and is upstream of §§ 5j, 6b, 6c, 6d and 6e.
        * Naming the cause changes no verdict and no number.
+       *
+       * **Only 0 and 3 are measured.** An odd count of 1 — a tangency, or a root
+       * sitting on the window edge — falls through to the glass-pair sentence
+       * with nothing behind it, and no rung reaches it. That is the same
+       * attribution defect one count over, left rather than guessed: a branch
+       * for a case nobody can produce is a sentence nobody can check.
        */
       // |c|·(D/2) = 1 is a hemisphere: a "surface" past it does not meet the
       // marginal ray at all, so no glass can be bent to it.
