@@ -1478,7 +1478,7 @@ statement about a plate **in isolation**. On a 100 mm doublet the *lens* leaves
 the Maréchal budget at **f/6.007** and the lens with the diagonal in it at
 **f/6.192** — both slower than the plate's own quarter-wave crossing. So "a
 diagonal is marginal on a common f/5" does not mean a diagonal spoils an
-otherwise diffraction-limited instrument: at f/5 the doublet is already **2.3
+otherwise diffraction-limited instrument: at f/5 the doublet is already **2.6
 budgets** over on its own and the diagonal is the smaller of the two problems,
 costing **3.1%** of focal ratio. It is never *free*, though — the difference is
 positive at every ratio swept and at every sampling, because a plate's spherical
@@ -1490,11 +1490,16 @@ so beside the curve.
 **And the second plot is why § 5u.6 stayed closed form.** The traced difference
 reproduces W₀₄₀/(6√5) to about ±1% — but the residual **never converges**, and it
 is not physics. Move the sampling and it wanders non-monotonically (1.061 at
-`pupilSamples` 9, 0.956 at 15, 1.007 at 21, 0.995 at 31, 0.988 at 61), it does the
-same on an f/40 doublet with no residual of its own, and it is linear in the
-plate's thickness — so what is moving is the **quadrature of an RMS over a
-lattice clipped to a disc**, not the exact form's departure and not the doublet's
-higher orders. That ±1% is *larger* than § 5u.6's own exact/third-order excess at
+`pupilSamples` 9, 0.956 at 15, 1.007 at 21, 0.995 at 31, 0.988 at 61), it is
+linear in the plate's thickness, and — the discriminator that actually settles it
+— the **same sequence comes back where the lens's share of the total is four
+times different**: bare ÷ plate is 3.64 at f/10 and 0.90 at f/40, while the two
+wobbles agree to 2.5e-3. (The tempting phrasing, "it does the same on a doublet
+with no residual of its own", is **wrong** and was corrected: at f/40 the lens
+residual is 90% of the plate's contribution, not absent. What is pinned is the
+4× swing, which is the stronger claim anyway.) So what is moving is the
+**quadrature of an RMS over a lattice clipped to a disc**, not the exact form's
+departure and not the doublet's higher orders. That ±1% is *larger* than § 5u.6's own exact/third-order excess at
 every ratio slower than about f/4 (1.0018 at f/10, 1.0005 at f/20), so this route
 **cannot resolve the number the rung computed**. A5's lesson — *a surface that
 draws a quantity a rung only summarizes will find the sampling the rung could

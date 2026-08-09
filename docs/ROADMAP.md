@@ -288,14 +288,16 @@
    moves the image plane 40 mm and reads **7× high**; a zero-thickness plate
    breaks the tracer outright). It lands within ±1% of W₀₄₀/(6√5), and the
    residual **never converges** — wandering non-monotonically with `pupilSamples`
-   (1.061 / 0.956 / 1.007 / 0.995 / 0.988 at 9 / 15 / 21 / 31 / 61) and doing the
-   same on a doublet with no residual of its own, so it is the pupil lattice's own
-   quadrature. That ±1% is *larger* than this step's exact/third-order excess at
+   (1.061 / 0.956 / 1.007 / 0.995 / 0.988 at 9 / 15 / 21 / 31 / 61) and coming back
+   *unchanged* where the lens's share of the total is four times different — bare
+   ÷ plate 3.64 at f/10 against 0.90 at f/40, the two wobbles agreeing to 2.5e-3 —
+   so it is the pupil lattice's own quadrature and not the doublet's higher
+   orders. That ±1% is *larger* than this step's exact/third-order excess at
    anything slower than f/4, so the traced route cannot resolve the number the
    rung computed — which makes the closed form the right call rather than a gap in
    it. **The f/5.315 is a plate in isolation**: on a 100 mm doublet the *lens*
    leaves Maréchal at **f/6.007** and the lens with the diagonal at **f/6.192**,
-   both slower, so at f/5 the doublet is already 2.3 budgets over and the
+   both slower, so at f/5 the doublet is already 2.6 budgets over and the
    diagonal — costing 3.1% of focal ratio — is the smaller problem. It is never
    free either, being positive at every ratio swept, because a plate's spherical
    aberration shares an achromat residual's sign; the exact **opposite** of

@@ -124,8 +124,14 @@ function TravelPlot({
   const markers: PlotMarker[] = [
     { y: focuser.outwardTravelMm, color: "#a60", label: "racked out" },
     { y: -focuser.inwardTravelMm, color: "#a60", label: "racked in" },
-    { x: spec.diagonal === "prism" ? spec.prismGlassMm : 0, color: "#06a" },
   ];
+  // "You are here" only when the chain really is somewhere on this axis. A
+  // mirror diagonal is x = 0 exactly; a chain with NO diagonal is 110 mm shorter
+  // than every point on the curve, so marking it at 0 would point at a train the
+  // readouts above are not describing.
+  if (spec.diagonal !== "none") {
+    markers.push({ x: spec.diagonal === "prism" ? spec.prismGlassMm : 0, color: "#06a" });
+  }
   return (
     <Plot
       series={series}
@@ -617,7 +623,7 @@ export function MechPanel() {
         <strong>f/6.007</strong> and the lens with the diagonal in it at <strong>f/6.192</strong> —
         both <em>slower</em> than the plate&rsquo;s own quarter-wave crossing. So the practical
         reading of &ldquo;a diagonal is marginal on a common f/5&rdquo; is not that the diagonal
-        spoils an otherwise diffraction-limited instrument: at f/5 the doublet is already 2.3
+        spoils an otherwise diffraction-limited instrument: at f/5 the doublet is already 2.6
         budgets over on its own, and the diagonal is the smaller of the two problems. It costs 3.1%
         of focal ratio, and it is <em>never</em> free — the difference is positive at every ratio
         swept, because a plate&rsquo;s spherical aberration has the same sign as an achromat&rsquo;s
@@ -629,8 +635,10 @@ export function MechPanel() {
         difference reproduces W₀₄₀/(6√5) to about ±1% — but the residual never converges to one,
         and it is not physics: it is the <em>pupil lattice&rsquo;s own quadrature</em>. Move the
         sampling control and it wanders non-monotonically (1.061 at 9, 0.956 at 15, 1.007 at 21,
-        0.995 at 31, 0.988 at 61) and it does the same on a doublet with no residual of its own, so
-        it is not the lens&rsquo;s higher orders either. That ±1% is <em>larger</em> than the exact
+        0.995 at 31, 0.988 at 61) and the <em>same</em> sequence comes back where the lens&rsquo;s
+        share of the total is four times different — bare ÷ plate is 3.64 at f/10 and 0.90 at
+        f/40, and the two wobbles agree to 2.5e-3 — so it is not the lens&rsquo;s higher orders
+        either. That ±1% is <em>larger</em> than the exact
         form&rsquo;s departure from the third-order one at every ratio slower than about f/4 — the
         green dashed line is under the black one&rsquo;s noise — so this route cannot resolve
         § 5u.6&rsquo;s 1.0018 at f/10. A surface that draws a quantity a rung only summarized has

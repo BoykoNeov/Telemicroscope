@@ -2826,9 +2826,14 @@ moves. The panel differences two `withGlassPath` systems at their own best focus
 which reaches this section's number off the *tracer*: it lands within ±1% of
 W₀₄₀/(6√5). But the residual **never converges**. It wanders non-monotonically
 with the pupil sampling — 1.061 / 0.956 / 1.007 / 0.995 / 0.988 at `pupilSamples`
-9 / 15 / 21 / 31 / 61 — it does the same on an f/40 doublet with no residual of
-its own, and it is exactly linear in the plate's thickness, so what moves is the
-**quadrature of an RMS over a lattice clipped to a disc** and not physics. That
+9 / 15 / 21 / 31 / 61 — it is exactly linear in the plate's thickness, and the
+**same sequence returns where the lens's share of the total is four times
+different**: bare ÷ plate is 3.64 at f/10 and 0.90 at f/40, and the two wobbles
+agree to 2.5e-3. So what moves is the **quadrature of an RMS over a lattice
+clipped to a disc** and not physics. (The first version of this paragraph said
+the control was "an f/40 doublet with no residual of its own", which is **wrong**
+— at f/40 the lens residual is 90% of the plate's contribution rather than
+absent. The 4× swing is what the app's rungs pin, and it is the stronger claim.) That
 ±1% is *larger* than the exact/third-order excess above at anything slower than
 about f/4 (1.0018 at f/10, 1.0005 at f/20), so a traced route cannot resolve the
 departure this section computes. The two obvious alternatives are worse and are
@@ -2840,7 +2845,7 @@ the tracer, since two coincident plane faces make the chief ray miss.
 C3 also measured what this section's f/5.315 does **not** say. It is a plate in
 isolation: on a 100 mm N-BK7/F2 doublet the lens alone leaves Maréchal at
 **f/6.007** and the lens with 40 mm of glass in it at **f/6.192**, both slower, so
-at f/5 the doublet is 2.3 budgets over on its own and the diagonal is the smaller
+at f/5 the doublet is 2.6 budgets over on its own and the diagonal is the smaller
 term at 3.1% of focal ratio. Never a *negative* term, though — the traced
 difference is positive at every ratio and every sampling, because a plate's
 spherical aberration carries an achromat residual's sign and the two add, which is

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { achromaticObjective } from "@telemicroscope/core/designs";
 import {
   DEFAULT_CHAIN,
   DEFAULT_FOCUSER,
@@ -13,6 +14,7 @@ import {
   exactPlatePeakWaves,
   mountSweep,
   opticsSweep,
+  sigmaOf,
   thinLensFloor,
   travelSweep,
   type ChainSpec,
@@ -158,6 +160,24 @@ describe("C3 — the budget, and the two verdicts that disagree", () => {
       expect(asMirror[i]!.requiredTravelMm).toBeCloseTo(asPrism[i]!.requiredTravelMm, 12);
     }
   });
+
+  it("and a chain with NO diagonal is not on that axis at all", () => {
+    // Which is why the panel drops its "you are here" rule there rather than
+    // putting it at x = 0: x = 0 IS a 110 mm mirror diagonal, so a diagonal-less
+    // chain is a whole fold shorter than every point on the curve.
+    const none = chainReadout({ ...DEFAULT_CHAIN, diagonal: "none" }, DEFAULT_FOCUSER);
+    const mirror = chainReadout({ ...DEFAULT_CHAIN, diagonal: "mirror" }, DEFAULT_FOCUSER);
+    expect(mirror.mechanicalLengthMm - none.mechanicalLengthMm).toBeCloseTo(
+      DEFAULT_CHAIN.diagonalPathMm,
+      12,
+    );
+    const atZero = travelSweep(DEFAULT_CHAIN, DEFAULT_FOCUSER, 25)[0]!;
+    expect(atZero.requiredTravelMm).toBeCloseTo(mirror.requiredTravelMm, 12);
+    expect(Math.abs(atZero.requiredTravelMm - none.requiredTravelMm)).toBeCloseTo(
+      DEFAULT_CHAIN.diagonalPathMm,
+      12,
+    );
+  });
 });
 
 describe("C3 — § 5u.6 traced, and what the trace can and cannot resolve", () => {
@@ -188,6 +208,54 @@ describe("C3 — § 5u.6 traced, and what the trace can and cannot resolve", () 
     // Non-monotone, and the swing between two ordinary samplings is ~5%.
     expect(middle - low).toBeGreaterThan(0.04);
     expect(Math.abs(high - 1)).toBeLessThan(0.01);
+  });
+
+  it("and the SAME wobble returns where the lens's share of the total is 4× different", () => {
+    // The discriminator that settles it, and the one this panel's captions rest
+    // on. If the ±1% were the doublet's higher orders leaking into the
+    // difference, it would have to track how much of the total the doublet IS.
+    // It does not: bare ÷ plate is 3.64 at f/10 and 0.90 at f/40, and the two
+    // sampling sequences are the same curve.
+    //
+    // (An earlier phrasing called the slow end "a doublet with no residual of
+    // its own". That is false — at f/40 the lens residual is 90% of the plate's
+    // contribution — and the 4× swing is the stronger claim anyway.)
+    const share = (focalRatio: number): number => {
+      const bare = sigmaOf(
+        achromaticObjective({ apertureMm: APERTURE_MM, focalRatio }).prescription,
+        APERTURE_MM,
+        21,
+      );
+      if (!bare.ok) throw new Error(`expected a σ at f/${focalRatio}: ${bare.reason}`);
+      return bare.sigmaWaves / closedPlateWaves(GLASS_MM, focalRatio);
+    };
+    expect(share(10)).toBeCloseTo(3.64, 1);
+    expect(share(40)).toBeCloseTo(0.90, 1);
+    expect(share(10) / share(40)).toBeGreaterThan(3.5);
+
+    const wobbleAt = (centre: number): number[] =>
+      [9, 15, 21].map((pupilSamples) => {
+        const point = opticsSweep({
+          apertureMm: APERTURE_MM,
+          glassMm: GLASS_MM,
+          minRatio: centre * 0.8,
+          maxRatio: centre * 1.2,
+          points: 3,
+          pupilSamples,
+        }).points[1]!;
+        return point.measuredPlateWaves! / point.closedPlateWaves;
+      });
+    const near = wobbleAt(10);
+    const far = wobbleAt(40);
+    for (let i = 0; i < near.length; i++) {
+      expect(Math.abs(near[i]! - far[i]!)).toBeLessThan(5e-3);
+    }
+    // And it really is a wobble in both: same sign pattern, not a flat line.
+    for (const sequence of [near, far]) {
+      expect(sequence[0]!).toBeGreaterThan(1);
+      expect(sequence[1]!).toBeLessThan(1);
+      expect(sequence[2]!).toBeGreaterThan(1);
+    }
   });
 
   it("which is why § 5u.6 stayed closed form: the wobble outruns the departure", () => {
