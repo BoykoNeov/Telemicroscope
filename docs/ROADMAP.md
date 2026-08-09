@@ -331,15 +331,15 @@
    the reach spans **77%** in NA and **40%** in working ratio, monotone in opposite
    directions, so **there is no single focal ratio that is this form's ceiling**;
    the ratio is the tighter of the two by ~2× and that is all it is.
-   Two solver conventions compose to make "f/2.3". The boundary ratio is set by the
+   Two solver conventions composed to make "f/2.3". The boundary ratio is set by the
    **±3·span scan window** — what arrives there is a root **5× hemispherical**
    entering at |c₁|/span = 3⁻ while both real roots are still ordinary glass — and
-   the NA it maps onto is set by the fixed point's **thin-lens seed**, in a closed
-   form that predicts the engine's own wall to **1e-11** at four magnifications,
+   the NA it mapped onto was set by the fixed point's **thin-lens seed**, in a closed
+   form that predicted the engine's own wall to **1e-11** at four magnifications,
    both orientations and two glass pairs (f cancels, which is why the tube length
-   moves it **bitwise** not at all). That exactness is the finding: the *converged*
-   design sits ~6% inside the boundary, so the constructor **refuses apertures it
-   could deliver**. Also unified: **§ 6q's Plössl wall is this same refusal**, and
+   moves it **bitwise** not at all). That exactness was the finding: the *converged*
+   design sat ~6% inside the boundary, so the constructor **refused apertures it
+   could deliver** — **✅ now fixed at § 6b.5.6, see below**. Also unified: **§ 6q's Plössl wall is this same refusal**, and
    its measured scale-invariance is this same identity — so the repo's walls are
    three kinds, not one (geometric, aberration, solver locus), with § 6d's NA 0.343
    deliberately left unclassified.
@@ -352,9 +352,28 @@
    correction of its own: the non-physical count is **1 of 3 at the wall and 3 of 3
    at f/1.5**, so § 6b.5.3's "the two real roots are ordinary glass" is a statement
    about the wall and does not travel, and the message counts rather than assumes.
-   **Still open here:** the seed (worth ~6% of ratio, measured) and the scan
-   window's `3` — both would move the refusal boundary the § 6b.5 rungs pin, and
-   both are upstream of §§ 5j/6b/6c/6d/6e, so they remain their own step.
+   **The seed was the second of those, and it is ✅ closed (§ 6b.5.6).** A refusal
+   mid-iteration is now an *overshoot*, not a verdict: the aperture is held back
+   only as far as it takes to read the next object distance off a lens, asked for
+   in full again every pass, and the fixed point may close only on a pass that
+   built at it — then the hold-back is **bisected back toward 1**, because a
+   held-back lens reports the specimen further out (∂ln a/∂ln D ≈ −0.1…−0.2,
+   measured) and that bias would otherwise have *become* the new wall. The wall
+   now lands on the **converged design's own refusal ratio to 3e-13**, and moves
+   out **6.6%→10.6%** (flint first, M = 4→40) and 3.0%→5.7% (crown first). Two
+   things are said plainly rather than sold: **no usable aperture was unlocked** —
+   the opened band runs 3.45→5.59 waves, 48→78× Maréchal, and the
+   diffraction-limited reach does not move at all — and the **closed form is
+   gone**, since a and s/f are now the fixed point's outputs, so § 6b.5.4's
+   prediction-from-M-alone becomes a self-consistency identity and is kept as the
+   *falsified* control (it misses low by 2.9%–9.6%). The witness commit that
+   preceded it also caught a one-sided assertion that would have passed at the
+   relocated wall. **Still open here:** the scan window's `3` — rejecting
+   non-physical bendings before the count — which would move F\* itself, is
+   upstream of §§ 5j/6b/6c/6d/6e *and* the Plössl and Lister, and so remains its
+   own step. Measured for whoever takes it: with the filter the physical root
+   count runs **2 → 1 → 0**, so § 6b.5.5's "unreachable" count-1 branch becomes
+   reachable.
    *Composing an eyepiece onto the
    intermediate image was the other open item and is now closed by § 6q, which
    runs on this architecture and the infinity-corrected one alike.*

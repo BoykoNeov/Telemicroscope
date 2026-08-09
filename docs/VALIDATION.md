@@ -3161,7 +3161,7 @@ things, and only one of them is optics.**
 | σ runs as **NA^6.2** across it, so the reach is bisected and not interpolated | § 5j/§ 6d's order, on two consecutive ratios | ✅ |
 | **NEITHER the aperture NOR the ratio is invariant on it**: reach 0.1031 → 0.1827 (**77%**) and f/3.956 → f/2.823 (**40%**) over M = 4 → 40 | measurement, against D8's flagged claim | ✅ |
 | …monotone in both and in opposite directions — a slower objective reaches a higher NA at a faster working cone | the position factor, showing its sign | ✅ |
-| **At the constructor's refusal NA the wavefront is 3.45 waves — 48× Maréchal**, and 1.79× past the reach | the same criterion, at D8's number | ✅ |
+| **At the constructor's refusal NA the wavefront is 5.6 waves — 78× Maréchal**, and 1.91× past the reach | the same criterion, at the § 6b.5.6 wall (was 3.45 waves / 48× at D8's) | ✅ |
 
 So **§ 6b's original sentence is the one that stands.** The 4×/0.10 really is
 at the edge of the cemented-doublet form: it clears Maréchal by 3% of aperture
@@ -3192,11 +3192,12 @@ none of the table below is pinned to an external number.
 | **The arriving third root is >5× hemispherical and ENTERS at \|c₁\|/span = 3⁻** — the scan window's own constant | the literal `3` in `solveBendings` | ✅ |
 | …and it migrates inward as the ratio falls further | it is a window crossing, not a coalescence | ✅ |
 | **The two real roots at the wall are ordinary glass** — both sub-hemispherical, both edges positive | negative control: nothing geometric is binding | ✅ |
-| **The DIN wall is the fixed point's SEED, in closed form**, to 1e-11 relative at M = 4/10/20/40, both orientations | derivation, not a fit | ✅ |
-| …and on a second glass pair, which is what stops the agreement being a constant matching itself | anti-circularity | ✅ |
-| **The optical tube length cancels BITWISE** — f is not in the closed form | identity; D8 measured it as three equal numbers | ✅ |
+| ~~**The DIN wall is the fixed point's SEED, in closed form**, to 1e-11~~ **FALSIFIED by § 6b.5.6** — the seed's prediction now misses, low, by 2.9%–9.6% | negative control; the miss runs with M and orientation, so it is the seed's error and not a rescaling | ✅ |
+| **The wall is now the CONVERGED design's own refusal ratio** — f/(2·a·tan u·k) = F\*(s/f) to **3e-13**, both read off the fixed point | identity — exact, but self-consistent rather than predictive | ✅ |
+| …and on a second glass pair, where the seed's form misses by 7.9% and 11.6% | anti-circularity | ✅ |
+| **The optical tube length cancels BITWISE** — three equal walls at x′ = 100/150/250 | identity; survives the re-seed unchanged | ✅ |
 | **WITNESS — the wall as absolute LITERALS**: 8 apertures over M × orientation, the silica pair, and a coverslip row the closed form cannot reach | the only rung here a re-seed cannot satisfy by agreeing with itself | ✅ |
-| …and **the 6% as a literal too** — a_conv/a_seed = 0.941049, f/1.904257 asked against f/2.023548 built | what the seed costs, pinned before it is touched | ✅ |
+| …and **what the seed cost, as a literal** — a_conv/a_seed = 0.935788, the seed presenting f/1.782 where the solver's locus is f/1.904 | the 6% of § 6b.5, now read from the other side | ✅ |
 | A glass-pair failure reports **0** roots at any ratio (CaF₂/F2); an aperture failure reports **3** | the count discriminates | ✅ |
 | …and the same pair **builds when slowed**, which falsifies the message's sentence on that branch | negative control | ✅ |
 | **The message now says APERTURE on the 3-root branch and never on the 0-root one**, and the glass sentence is bit-for-bit unchanged where it is true | the count, turned into prose | ✅ |
@@ -3216,21 +3217,27 @@ x′ = 100, 150 and 250 — here that is an identity rather than three equal
 measurements. The prediction lands on the bisected engine wall to **1e-11
 relative** at every magnification, both orientations and both glass pairs.
 
-**And that exactness is the finding.** If the *converged* design were binding,
+**And that exactness was the finding.** If the *converged* design were binding,
 the closed form would miss by the ~6% the fixed point moves the object distance.
-It does not miss at all — so the wall is decided by the **thin-lens seed**, before
-the constructor has looked at the lens it is building. The converged geometry at
-that NA sits about 6% inside the boundary, which means `finiteConjugateObjective`
-refuses apertures it could in fact deliver. That is recorded as an open item with
-the number attached rather than fixed here; the fix is upstream of §§ 5j, 6b, 6c,
-6d and 6e, and this change adds no capability.
+It did not miss at all — so the wall was decided by the **thin-lens seed**, before
+the constructor had looked at the lens it was building. The converged geometry at
+that NA sat about 6% inside the boundary, which meant `finiteConjugateObjective`
+refused apertures it could in fact deliver.
 
-**So "f/2.3" is two solver conventions composed** — the ±3·span scan window,
-which decides F\*, and the seed, which decides how an NA maps onto it. Neither is
-a property of the glass. **Three ratios are in play and D8 quotes the third:**
+**That is now FIXED — § 6b.5.6 below — and this closed form is what it cost.**
+The prediction above is kept as the section's negative control: it misses the
+wall, low, by 2.9%–9.6%, which is exactly the aperture the seed was throwing
+away. What replaces it is equally exact and no longer predictive — see § 6b.5.6.
+
+**So "f/2.3" was two solver conventions composed** — the ±3·span scan window,
+which decides F\*, and the seed, which decided how an NA mapped onto it. Neither
+is a property of the glass. **Three ratios were in play and D8 quoted the third:**
 F\* = 1.904 (the refusal locus), f/D = 2.023 at the converged geometry, and the
 working f/# = 2.266 = 2.023 × 1.12, the glass margin. A number quoted without its
-convention will read as agreeing with D8 while measuring something else.
+convention will read as agreeing with D8 while measuring something else. **Since
+§ 6b.5.6 the second of those three is gone**: the design at the wall now presents
+f/1.9044 to the solver, which is F\* itself, so f/D and the locus have become the
+same number and the wall is where they meet.
 
 **The refusal named the wrong cause, and the engine already printed the right
 one — ~~left alone deliberately~~, now FIXED (§ 6b.5.5).**
@@ -3284,27 +3291,78 @@ aberration — at its ceiling it is still λ/27", which is the shape of this
 mechanism, but the Lister solves two bendings jointly and nothing above measures
 it. That is a named follow-on, not a claim.
 
+**§ 6b.5.6 — the seed is no longer the wall, and what that did and did not buy.**
+The fix the item above asked for. `finiteConjugateObjective` sizes its glass off
+an object distance it is still converging, and the seed's is the worst that
+distance ever is — so the first pass presented `achromaticObjective` with a focal
+ratio the design being converged to never needed, and a refusal there was read as
+a verdict. It is now read as an **overshoot**: the aperture is held back only as
+far as it takes to get a lens to read the next object distance off, asked for in
+FULL again every pass, and the fixed point may only close on a pass that built at
+it. Nothing keeps a reduced aperture, so a design whose *converged* glass is past
+the locus is still refused, with `achromaticObjective`'s own sentence.
+
+The hold-back is then **bisected back toward 1** as the geometry settles, and
+that half is not an optimisation — it is what makes the boundary meaningful. A
+held-back lens reports the specimen further out than it is (∂ln a/∂ln D ≈ −0.1
+flint-first, −0.2 crown-first, measured), so a hold-back of ε inflates the next
+pass's aperture by ~0.2·ε; left where the ladder first found it, *that bias*
+would have become the new wall. Driven to a floor of 1e-4 instead, the wall lands
+on the converged design's own refusal ratio to **3e-13**. Only the aperture
+refusal is retried: `achromaticObjective` now throws a distinct
+`DoubletApertureRefusal` on the 3-root branch, while the 0-root glass-pair branch
+stays an ordinary `Error` — the same count § 6b.5.5 derives the prose from now
+also decides the type, so the two cannot disagree.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **EXTERNAL: everything it unlocked is 60–78× past Maréchal** — 3.45 waves at the old wall, 5.59 at the new | the § 6b.5.1 criterion, on the opened band | ✅ |
+| …and **the diffraction-limited reach does not move at all** (0.10311) | negative control: this touched the refusal, not the optics | ✅ |
+| The wall moves **+6.6% (4×) to +10.6% (40×)** flint-first, +3.0% to +5.7% crown-first | the literals, edited in the same commit that moved them | ✅ |
+| **The lenses in the opened band are genuine solutions** — solved-for conjugate = used-at conjugate, ΣS_I null where used, stop = a·tan u exactly | § 6b.1's own two guards, at apertures that used to be refused | ✅ |
+| **The retry is not slack**: past the wall it still refuses, and still names the APERTURE | the verdict survives | ✅ |
+| **NEGATIVE CONTROL: ordinary apertures are untouched** — the 4×/0.10 is unchanged to 7 digits | the retry only ever engages on a refusal | ✅ |
+| **A glass-pair refusal is not retried** — `DoubletApertureRefusal` on 3 roots, ordinary `Error` on 0, and the DIN constructor passes it through | the type and the prose come off one count | ✅ |
+
+**What it cost, stated as a loss.** § 6b.5.4's closed form gave the wall from M,
+k and the glass pair alone — nothing from the built lens — and predicted the
+engine to 1e-11. Its replacement is exact to 3e-13 but **self-consistent rather
+than predictive**: a and s/f are the fixed point's *outputs*, so the lens has to
+be built before the identity can be evaluated. The section keeps its exactness
+and loses its closed form. That is a real reduction in what § 6b.5 can claim, and
+it is recorded here rather than papered over by restating a weaker check in the
+same words.
+
+**And the honest summary of the whole thing: no usable aperture was unlocked.**
+Every design between the old wall and the new one is tens of times past
+diffraction-limited — the band opens at 3.45 waves and closes at 5.59. What the
+fix buys is that the refusal now means what it says: the constructor walls out
+where the *lens it has converged to* meets the solver's locus, not where an
+arithmetic seed put a lens nobody was going to build.
+
 ### Not yet pinned
 
-- **The seed, not the design, decides the wall** — and it costs ~6% of ratio,
-  measured above. Re-seeding the fixed point (or iterating the aperture with it)
-  would let the DIN constructor build members it currently refuses. Not done
-  here: `achromaticObjective` is upstream of §§ 5j, 6b, 6c, 6d and 6e, and this
-  change adds no capability to justify moving it.
+- ~~**The seed, not the design, decides the wall**~~ — closed by § 6b.5.6 above.
+  It was worth 2.9%–10.6% of aperture depending on magnification and orientation,
+  all of it in a region § 6b.5.1 has already disqualified on Maréchal.
 
-  **And whoever does it needs a witness this section did not have — ~~missing~~,
-  now BUILT.** `refusalRatio` bisects against the *live* constructor, so every
+  **The witness this section did not have — ~~missing~~, BUILT, and then spent
+  by § 6b.5.6, which had to edit every number in it.** `refusalRatio` bisects against the *live* constructor, so every
   rung above moves with a seed change instead of failing — including § 6b.5.4's
   closed form, which takes `F*` from it and would go on agreeing with itself at
   the relocated wall. The rungs would stay green while the boundary they describe
   silently went somewhere else. So the wall's **number** is now pinned as
-  literals: **eight refusal apertures** (M = 4/10/20/40 × both orientations,
-  0.1843357 … 0.2217549), the silica pair at two magnifications, a **coverslip**
-  row — which the closed form does *not* reach, since a target ΣS_I ≠ 0 is
-  absolute while S_I ∝ h⁴, so the refusal ratio there is not aperture-free — and
-  the **6% itself**: a_conv/a_seed = 0.941049 at the 4× wall, the seed asking for
-  f/1.904257 where the design it is about to build is f/2.023548. A commit that
-  moves the seed has to edit those numbers in its own diff.
+  literals: **eight refusal apertures** (M = 4/10/20/40 × both orientations), the
+  silica pair at two magnifications, a **coverslip** row — which the closed form
+  does *not* reach, since a target ΣS_I ≠ 0 is absolute while S_I ∝ h⁴, so the
+  refusal ratio there is not aperture-free — and what the seed costs, as a number.
+  **It worked.** § 6b.5.6 could not land without editing all eleven of them
+  (0.1843357 → 0.1965000 at the 4×, and so on) and without turning the closed
+  form into a falsified control, so the commit that moved the boundary had to say
+  so in its own diff. It also caught a defect the literals were not aimed at:
+  § 6b.5.4's `predict/measured − 1 < 1e-11` was **one-sided**, and a prediction
+  that falls 6% short satisfies it vacuously — that rung would have gone on
+  passing at the relocated wall. It is two-sided now.
 - **The scan window is a stated constant.** F\* is set by the `3` in
   `solveBendings`'s ±3·span range. Rejecting non-physical bendings (|c|·D/2 ≥ 1)
   *before* counting roots would make the count mean what its message says. Same
@@ -3313,7 +3371,13 @@ it. That is a named follow-on, not a claim.
   which needed no rejection and moved no boundary. The expensive half is
   unchanged and is still this bullet: a rejection would let the constructor build
   designs it currently refuses, and every rung above that pins F\* would have to
-  be re-derived in the same commit.
+  be re-derived in the same commit. **§ 6b.5.6 did not touch it either** — it
+  moved which *ratio* is presented to the solver, not where the solver's locus
+  is, which is why F\* itself (1.9175107 at infinity, 1.9042573 at s/f = 5) is
+  bit-for-bit what it was. Measured, for whoever takes this on: with the filter
+  applied the physical root count runs **2 → 1 → 0** as the ratio falls, so the
+  count-1 branch § 6b.5.5 documents as unreachable becomes reachable and its
+  cause is the aperture, not the glass.
 - **Where the optical ceiling is for the OTHER forms.** § 6d.4 bisects the
   Lister's Maréchal reach and § 6b.5.1 now does the DIN doublet's; the
   infinity-corrected member of § 6a has neither.

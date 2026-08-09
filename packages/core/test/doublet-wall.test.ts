@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
-import { achromaticObjective, cementedDoubletForm } from "../src/designs/achromat";
+import { DoubletApertureRefusal, achromaticObjective, cementedDoubletForm } from "../src/designs/achromat";
 import { plosslEyepiece } from "../src/designs/eyepiece";
 import { bestFocus, withFocus } from "../src/analysis/focus";
 import { seidelSums } from "../src/analysis/seidel";
@@ -38,16 +38,43 @@ import { LINE_D } from "../src/materials/dispersion";
 
 const LAMBDA = LINE_D;
 const MARECHAL = 1 / 14;
+/**
+ * Timeout for the rungs that bisect a refusal boundary. Since § 6b.5.6 a REFUSED
+ * design is no longer one bending scan but a handful — the aperture is held
+ * back, the geometry re-converged and the hold-back bisected back toward 1 — and
+ * half the samples of a bisection are refusals. The walls are memoized so each
+ * is paid for once, but a rung that reads eight of them still runs for the best
+ * part of a minute under a loaded suite.
+ */
+const SLOW = 180_000;
 /** `finiteConjugateObjective`'s own default — the glass is sized over the stop. */
 const GLASS_MARGIN = 1.12;
 
+/**
+ * Every bisection in this file is a pure function of its arguments, and the
+ * rungs deliberately ask for the SAME walls from several directions — the seed's
+ * miss, the converged identity and the literals are three readings of one set of
+ * boundaries. Since § 6b.5.6 a refused design costs a handful of bending scans
+ * instead of one, so the repeats are what the file's runtime is made of. Cached,
+ * they are read once each.
+ */
+const memoize = <A extends unknown[], R>(fn: (...args: A) => R): ((...args: A) => R) => {
+  const seen = new Map<string, R>();
+  return (...args: A): R => {
+    const key = JSON.stringify(args);
+    if (!seen.has(key)) seen.set(key, fn(...args));
+    return seen.get(key)!;
+  };
+};
+
 /** σ at best focus on the DIN chain, the currency § 6b.4 already reports in. */
-function sigmaWaves(M: number, NA: number, over: Record<string, unknown> = {}): number {
+function sigmaWavesAt(M: number, NA: number, over: Record<string, unknown> = {}): number {
   const objective = finiteConjugateObjective({ magnification: M, numericalAperture: NA, ...over });
   const s = finiteConjugateMicroscope({ objective }).system;
   const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
   return opdMap(withFocus(s, focus.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21)).rmsWaves;
 }
+const sigmaWaves = memoize(sigmaWavesAt);
 
 /** Highest x in [lo, hi] for which `ok` holds. σ runs as NA⁶, so bisect. */
 const highest = (lo: number, hi: number, ok: (x: number) => boolean, steps = 26): number => {
@@ -62,7 +89,7 @@ const highest = (lo: number, hi: number, ok: (x: number) => boolean, steps = 26)
 };
 
 /** The largest NA the DIN constructor will build at all. */
-const buildWall = (over: Record<string, unknown>): number =>
+const buildWall = memoize((over: Record<string, unknown>): number =>
   highest(0.05, 0.9, (NA) => {
     try {
       finiteConjugateObjective({ magnification: 4, numericalAperture: NA, ...over });
@@ -70,24 +97,24 @@ const buildWall = (over: Record<string, unknown>): number =>
     } catch {
       return false;
     }
-  }, 44);
+  }, 44));
 
 /** The reach on Maréchal — the external criterion, on the same chain. */
-const marechalReach = (M: number): number =>
+const marechalReach = memoize((M: number): number =>
   highest(0.05, 0.3, (NA) => {
     try {
       return sigmaWaves(M, NA) <= MARECHAL;
     } catch {
       return false;
     }
-  });
+  }));
 
 /**
  * `achromaticObjective`'s refusal ratio: the smallest focal ratio that still
  * builds, at a stated conjugate ratio s/f. The lens is specified entirely in
  * ratios, so this is the boundary in the solver's own parameter space.
  */
-function refusalRatio(
+function refusalRatioAt(
   sOverF: number | null,
   over: Record<string, unknown> = {},
   apertureMm = 10,
@@ -114,6 +141,7 @@ function refusalRatio(
   }
   return hi;
 }
+const refusalRatio = memoize(refusalRatioAt);
 
 /** Distance between two doubles in units in the last place. */
 const ulpsApart = (a: number, b: number): bigint => {
@@ -132,6 +160,16 @@ const messageFrom = (fn: () => unknown): string => {
     return "builds";
   } catch (e) {
     return (e as Error).message;
+  }
+};
+
+/** The thrown error itself, for the rungs that are about its TYPE. */
+const catchError = (fn: () => unknown): Error => {
+  try {
+    fn();
+    throw new Error("expected a refusal, got a lens");
+  } catch (e) {
+    return e as Error;
   }
 };
 
@@ -191,18 +229,25 @@ describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", ()
     expect(span(rows.map((r) => r.NA)) / span(rows.map((r) => r.F))).toBeGreaterThan(1.8);
   });
 
-  it("at the constructor's refusal NA the wavefront is 3.45 waves — 48× Maréchal", () => {
+  it("at the constructor's refusal NA the wavefront is 5.6 waves — 78× Maréchal", () => {
     // The measurement that makes everything below an identity rather than a
     // ceiling. D8 read the refusal boundary as "the form survives to NA 0.1843";
-    // the form is 48× past diffraction-limited there and 1.79× past its own
-    // Maréchal reach. Nothing optical happens at that NA.
+    // the form is tens of times past diffraction-limited there and nearly twice
+    // past its own Maréchal reach. Nothing optical happens at that NA.
+    //
+    // § 6b.5.6 has since moved this boundary — the wall was the fixed point's
+    // thin-lens SEED and is now the converged design's own — and it moved it the
+    // way that matters least: 0.184336 → 0.196500 is 6.6% more aperture, all of
+    // it deeper into a region the external criterion has already disqualified.
+    // The wavefront at the refusal went from 3.45 waves to 5.6. **Nothing usable
+    // was unlocked, and that is the honest summary of the seed fix.**
     const wall = buildWall({});
-    expect(wall).toBeCloseTo(0.184336, 5);
+    expect(wall).toBeCloseTo(0.196500, 5);
     const sigma = sigmaWaves(4, wall);
-    expect(sigma).toBeGreaterThan(3.4);
-    expect(sigma / MARECHAL).toBeGreaterThan(45);
-    expect(wall / marechalReach(4)).toBeCloseTo(1.788, 2);
-  });
+    expect(sigma).toBeGreaterThan(5.5);
+    expect(sigma / MARECHAL).toBeGreaterThan(77);
+    expect(wall / marechalReach(4)).toBeCloseTo(1.906, 2);
+  }, SLOW);
 });
 
 describe("§ 6b.5.2 — the refusal boundary is the SOLVER's, and contains no aperture", () => {
@@ -395,27 +440,33 @@ describe("§ 6b.5.3 — what arrives at the boundary is a ghost, at the scan win
   });
 });
 
-describe("§ 6b.5.4 — the DIN wall is the fixed point's SEED, in closed form", () => {
+describe("§ 6b.5.4 — the wall was the fixed point's SEED, and § 6b.5.6 moved it off it", () => {
   /**
-   * The DIN constructor seeds its fixed point from the thin lens: the object at
-   * a = f(1 + 1/M), the image at b = f(1 + M), and the glass sized over the stop
-   * the object distance implies, D = 2·a·tan u·k. The focal length cancels out
-   * of f/D — which is why the optical tube length does not move the wall — and
-   * what is left is
+   * The DIN constructor USED TO seed its fixed point from the thin lens and then
+   * refuse on what that seed sized: the object at a = f(1 + 1/M), the image at
+   * b = f(1 + M), the glass over the stop the object distance implies,
+   * D = 2·a·tan u·k. The focal length cancels out of f/D, and what was left was
    *
    *     tan u_wall = 1 / (2·k·(1 + 1/M)·F*(s/f)),   s/f = 1 + M   (flint first)
    *                                                       1 + 1/M (crown first)
    *
-   * with F* the aperture-free refusal ratio above. That the SEED's ratio is the
-   * binding one is the finding: the converged design at that NA sits about 6%
-   * inside the boundary, so the constructor refuses apertures it could deliver.
+   * — a closed form in M and k alone, which predicted the engine's own wall to
+   * 1e-11. That exactness was the finding, because the CONVERGED design at that
+   * NA sat ~6% inside the boundary: the constructor was refusing apertures it
+   * could in fact deliver, and the wall was decided before anything had looked
+   * at the lens being built.
+   *
+   * § 6b.5.6 fixed that, so this section keeps the closed form as its NEGATIVE
+   * CONTROL rather than its headline: the seed's prediction now misses, low, by
+   * the 2.9%–9.6% the seed was costing. What replaces it is exact but no longer
+   * predictive — see the identity below.
    */
   const predict = (M: number, orientation: "flintFirst" | "crownFirst", over: Record<string, unknown> = {}) => {
     const sOverF = orientation === "flintFirst" ? 1 + M : 1 + 1 / M;
     const tanU = 1 / (2 * GLASS_MARGIN * (1 + 1 / M) * refusalRatio(sOverF, over));
     return tanU / Math.sqrt(1 + tanU * tanU);
   };
-  const measured = (M: number, orientation: "flintFirst" | "crownFirst", over: Record<string, unknown> = {}) =>
+  const measuredAt = (M: number, orientation: "flintFirst" | "crownFirst", over: Record<string, unknown> = {}): number =>
     highest(0.05, 0.9, (NA) => {
       try {
         finiteConjugateObjective({ magnification: M, numericalAperture: NA, orientation, ...over });
@@ -424,24 +475,73 @@ describe("§ 6b.5.4 — the DIN wall is the fixed point's SEED, in closed form",
         return false;
       }
     }, 44);
+  const measured = memoize(measuredAt);
 
-  it("predicts the wall to 13 digits at four magnifications, both orientations", () => {
+  it("FALSIFIED: the seed's closed form now misses the wall, low, by 2.9% to 9.6%", () => {
+    // The rung this replaces asserted `predict/measured - 1 < 1e-11` — which was
+    // ONE-SIDED, and would have gone on passing at any wall the seed fix moved
+    // the constructor to, since a prediction that falls short satisfies it
+    // vacuously. That is exactly the hazard § 6b.5's "not yet pinned" item named,
+    // caught here in its own file: the test is two-sided now, and what it pins is
+    // the MISS.
+    const misses = [];
     for (const orientation of ["flintFirst", "crownFirst"] as const) {
       for (const M of [4, 10, 20, 40]) {
-        expect(predict(M, orientation) / measured(M, orientation) - 1).toBeLessThan(1e-11);
+        const miss = predict(M, orientation) / measured(M, orientation) - 1;
+        // Low, every time: the seed sizes MORE glass than the design it is
+        // converging to needs, so the aperture it walls out at is smaller.
+        expect(miss).toBeLessThan(-0.02);
+        expect(miss).toBeGreaterThan(-0.11);
+        misses.push(miss);
       }
     }
-  });
+    expect(misses[0]).toBeCloseTo(-0.0619, 3); // flint first, 4×
+    expect(misses[3]).toBeCloseTo(-0.0955, 3); // flint first, 40×
+    expect(misses[4]).toBeCloseTo(-0.0290, 3); // crown first, 4×
+    // …and it is not a constant offset that could be absorbed into k: the miss
+    // runs with M and with orientation, which is what makes it the seed's error
+    // and not a rescaling.
+    expect(Math.abs(misses[3]! / misses[4]!)).toBeGreaterThan(3);
+  }, SLOW);
 
-  it("…and on a second glass pair, which is what makes it the closed form and not a fit", () => {
+  it("IDENTITY: the wall is the CONVERGED design's own refusal ratio, to 1e-9", () => {
+    // What replaces the closed form. The constructor now walls out exactly where
+    // the lens it has actually converged to meets `achromaticObjective`'s
+    // aperture-free refusal ratio, evaluated at the conjugate that lens is
+    // solved at: f/(2·a·tan u·k) = F*(s/f), with BOTH a and s read off the fixed
+    // point. It holds to parts in 10¹³ at every magnification and both
+    // orientations.
+    //
+    // WHAT THAT COSTS, said out loud: this is a self-consistency identity and no
+    // longer a prediction. The old form gave the wall from M, k and the glass
+    // pair alone, with nothing from the built lens; this one has to build the
+    // lens first, because a and s ARE the fixed point's output. The section
+    // keeps its exactness and loses its closed form, and that is the trade
+    // § 6b.5.6 made deliberately.
+    for (const orientation of ["flintFirst", "crownFirst"] as const) {
+      for (const M of [4, 10, 20, 40]) {
+        const NA = measured(M, orientation);
+        const o = finiteConjugateObjective({ magnification: M, numericalAperture: NA, orientation });
+        const tanU = NA / Math.sqrt(1 - NA * NA);
+        const converged =
+          o.focalLengthMm / (2 * o.airEquivalentObjectDistanceMm * tanU * GLASS_MARGIN);
+        const sOverF = o.doublet.objectDistanceMm! / o.focalLengthMm;
+        expect(Math.abs(converged / refusalRatio(sOverF) - 1)).toBeLessThan(1e-9);
+      }
+    }
+  }, SLOW);
+
+  it("…and on a second glass pair, which is what stops it being a constant", () => {
     const over = { crownMedium: "FUSED-SILICA" };
     for (const M of [4, 40]) {
-      expect(predict(M, "flintFirst", over) / measured(M, "flintFirst", over) - 1).toBeLessThan(1e-11);
+      const miss = predict(M, "flintFirst", over) / measured(M, "flintFirst", over) - 1;
+      expect(miss).toBeLessThan(-0.02);
+      expect(miss).toBeGreaterThan(-0.13);
     }
-    // The two pairs genuinely differ, so the agreement above is not a constant
-    // matching itself: silica/F2 reaches 4% more aperture before refusing.
-    expect(measured(4, "flintFirst", over) / measured(4, "flintFirst")).toBeGreaterThan(1.03);
-  });
+    // The two pairs genuinely differ: silica/F2 reaches 6% more aperture before
+    // refusing.
+    expect(measured(4, "flintFirst", over) / measured(4, "flintFirst")).toBeGreaterThan(1.05);
+  }, SLOW);
 
   it("WITNESS: the wall is these NUMBERS, and a re-seed has to edit them", () => {
     // Everything else in this section is measured against the LIVE constructor:
@@ -451,15 +551,30 @@ describe("§ 6b.5.4 — the DIN wall is the fixed point's SEED, in closed form",
     // the only thing in § 6b.5 that a re-seed cannot satisfy by agreeing with
     // itself — they are absolute, and the commit that moves the wall must edit
     // them in its own diff.
+    //
+    // § 6b.5.6 is that commit, and this is the edit. What the seed cost, in the
+    // currency the ladder measures it in — the numbers on the right are the ones
+    // this file pinned one commit ago:
+    //
+    //     flint first  4× 0.1965000 (was 0.1843357, +6.6%)
+    //                 10× 0.2265647 (was 0.2078672, +9.0%)
+    //                 20× 0.2386541 (was 0.2169474, +10.0%)
+    //                 40× 0.2451735 (was 0.2217549, +10.6%)
+    //     crown first  4× 0.1845669 (was 0.1792105, +3.0%)
+    //                 40× 0.2233784 (was 0.2113516, +5.7%)
+    //
+    // Every one of them is deeper into the region § 6b.5.1 has already
+    // disqualified on Maréchal, which is the point: this bought attribution,
+    // not aperture.
     const walls = [
-      [4, "flintFirst", 0.1843357],
-      [10, "flintFirst", 0.2078672],
-      [20, "flintFirst", 0.2169474],
-      [40, "flintFirst", 0.2217549],
-      [4, "crownFirst", 0.1792105],
-      [10, "crownFirst", 0.1997106],
-      [20, "crownFirst", 0.2073667],
-      [40, "crownFirst", 0.2113516],
+      [4, "flintFirst", 0.1965000],
+      [10, "flintFirst", 0.2265647],
+      [20, "flintFirst", 0.2386541],
+      [40, "flintFirst", 0.2451735],
+      [4, "crownFirst", 0.1845669],
+      [10, "crownFirst", 0.2090060],
+      [20, "crownFirst", 0.2184242],
+      [40, "crownFirst", 0.2233784],
     ] as const;
     for (const [M, orientation, expected] of walls) {
       expect(measured(M, orientation)).toBeCloseTo(expected, 6);
@@ -469,28 +584,35 @@ describe("§ 6b.5.4 — the DIN wall is the fixed point's SEED, in closed form",
     // plate's contribution is absolute), so § 6b.5.2's identity and § 6b.5.4's
     // closed form do not reach this row. It is pinned as a bare measurement.
     const silica = { crownMedium: "FUSED-SILICA" };
-    expect(measured(4, "flintFirst", silica)).toBeCloseTo(0.1915229, 6);
-    expect(measured(40, "flintFirst", silica)).toBeCloseTo(0.2292907, 6);
-    expect(measured(4, "flintFirst", { coverslip: { thicknessMm: 0.17 } })).toBeCloseTo(0.1861441, 6);
-  });
+    expect(measured(4, "flintFirst", silica)).toBeCloseTo(0.2079527, 6);
+    expect(measured(40, "flintFirst", silica)).toBeCloseTo(0.2592565, 6);
+    expect(measured(4, "flintFirst", { coverslip: { thicknessMm: 0.17 } })).toBeCloseTo(0.1987039, 6);
+  }, SLOW);
 
-  it("WITNESS: and the converged design at it sits 6% inside — what the seed costs", () => {
-    // The number the "not yet pinned" item is quoted with. At the wall the
-    // constructor is refusing a lens whose OWN geometry is comfortably inside
-    // the refusal ratio: the seed puts the object 6.3% further out than the
-    // fixed point does, so it sizes 6.3% more glass than the converged design
-    // has, and asks `achromaticObjective` for f/1.904 when the design it is
-    // about to build is f/2.024.
+  it("WITNESS: and the design at the wall is now one the SEED's arithmetic refuses", () => {
+    // The same measurement one commit ago read the other way round. Then: the
+    // converged design at the wall sat 6% INSIDE the refusal ratio, so the
+    // constructor was walling out lenses it could deliver. Now the converged
+    // design sits ON the boundary — f/1.9044 against F* = 1.9044 — and it is the
+    // SEED that is outside, asking for f/1.787 where the solver's locus is
+    // f/1.904. The wall did not move because the solver changed its mind about
+    // any focal ratio; it moved because the ratio being presented to it is now
+    // the design's and not the seed's.
     const M = 4;
     const NA = measured(M, "flintFirst");
     const objective = finiteConjugateObjective({ magnification: M, numericalAperture: NA });
     const f = objective.focalLengthMm;
     const seedA = f * (1 + 1 / M);
     const tanU = NA / Math.sqrt(1 - NA * NA);
-    expect(objective.airEquivalentObjectDistanceMm / seedA).toBeCloseTo(0.941049, 6);
-    // The two ratios the seed and the design would each present to the solver.
-    expect(f / (2 * seedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.904257, 6);
-    expect(f / (2 * objective.airEquivalentObjectDistanceMm * tanU * GLASS_MARGIN)).toBeCloseTo(2.023548, 6);
+    const convergedA = objective.airEquivalentObjectDistanceMm;
+    expect(convergedA / seedA).toBeCloseTo(0.935788, 6);
+    // What the seed would have presented, and what the design does present.
+    expect(f / (2 * seedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.7820859, 6);
+    expect(f / (2 * convergedA * tanU * GLASS_MARGIN)).toBeCloseTo(1.9043689, 6);
+    // And the seed's is well past the locus, which is why this design used to be
+    // refused: 6.4% of ratio, on the wrong side.
+    const sOverF = objective.doublet.objectDistanceMm! / f;
+    expect(f / (2 * seedA * tanU * GLASS_MARGIN) / refusalRatio(sOverF)).toBeLessThan(0.94);
   });
 
   it("the optical tube length cancels EXACTLY — f is not in the closed form", () => {
@@ -500,7 +622,7 @@ describe("§ 6b.5.4 — the DIN wall is the fixed point's SEED, in closed form",
       measured(4, "flintFirst", { opticalTubeLengthMm }),
     );
     for (const w of walls) expect(w).toBe(walls[0]);
-  });
+  }, SLOW);
 });
 
 describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them apart too", () => {
@@ -560,6 +682,30 @@ describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them
     expect(nonPhysical(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 })))).toBe(3);
   });
 
+  it("a glass-pair refusal is NOT retried — it comes back by a different type", () => {
+    // § 6b.5.6's retry has to know which refusals an aperture can answer. The
+    // count is the discriminator the message already used, and now the ERROR
+    // TYPE comes off the same count: 3 roots with non-physical ones among them
+    // is `DoubletApertureRefusal` and is retryable; 0 roots is the glass pair,
+    // is the same answer at f/50, and stays an ordinary Error so a caller
+    // laddering its aperture cannot burn a bending scan per step on it.
+    const glass = catchError(() =>
+      achromaticObjective({ apertureMm: 10, focalRatio: 10, crownMedium: "CAF2", flintMedium: "F2" }),
+    );
+    expect(glass.message).toMatch(/found 0 —/);
+    expect(glass instanceof DoubletApertureRefusal).toBe(false);
+    const aperture = catchError(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 }));
+    expect(aperture.message).toMatch(/found 3 —/);
+    expect(aperture instanceof DoubletApertureRefusal).toBe(true);
+    // …and the type reaches the DIN constructor intact: an impossible glass pair
+    // is refused there with the glass sentence, not with an aperture one.
+    const din = catchError(() =>
+      finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1, crownMedium: "CAF2", flintMedium: "F2" }),
+    );
+    expect(din.message).toMatch(/this glass pair does not admit the classical doublet solution/);
+    expect(din instanceof DoubletApertureRefusal).toBe(false);
+  });
+
   it("§ 6q's Plössl wall is this same refusal, which is why it was scale-invariant", () => {
     // § 6q.9 bisected the Plössl's clear-aperture wall to 0.899195·f_e and found
     // it "exactly scale-invariant from f_e 15 to 50". That invariance is
@@ -572,5 +718,87 @@ describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them
       expect(messageFrom(() => plosslEyepiece({ focalLengthMm, clearApertureMm }))).toMatch(/found 3 —/);
     }
     expect(messageFrom(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 22 }))).toBe("builds");
+  });
+});
+
+describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and did not buy", () => {
+  /**
+   * The fix § 6b.5 left open. `finiteConjugateObjective` sizes its glass off an
+   * object distance it is still converging, and the thin-lens seed's is the
+   * worst that distance ever is — some 6% too far out — so the first pass asked
+   * `achromaticObjective` for a focal ratio the design being converged to never
+   * needed. A refusal there was being read as a verdict.
+   *
+   * It is now read as an overshoot: the aperture is held back only as far as it
+   * takes to get a lens to read the next object distance off, asked for in FULL
+   * again every pass, and the fixed point may only close on a pass that built at
+   * it. The hold-back is then bisected back toward 1 as the geometry settles,
+   * because a held-back lens reports the specimen further out than it is
+   * (∂ln a/∂ln D ≈ −0.1 flint-first to −0.2 crown-first, measured) and that bias
+   * would otherwise BE the new wall.
+   *
+   * What it buys is attribution, not aperture — every rung below is either an
+   * identity about the boundary or an external one saying the region it opened
+   * is optically worthless.
+   */
+
+  it("EXTERNAL: everything the fix unlocked is 60–78× past Maréchal", () => {
+    // The honest headline, on the same criterion § 6b.5.1 uses. The band between
+    // the old wall and the new one is entirely inside the region the wavefront
+    // has already disqualified: 3.4 waves at the bottom of it, 5.6 at the top,
+    // against Maréchal's 1/14. No usable objective became available, and the
+    // ladder should not be read as saying one did.
+    const opened = [0.184336, 0.190418, buildWall({}) * 0.9999];
+    for (const NA of opened) {
+      expect(sigmaWaves(4, NA) / MARECHAL).toBeGreaterThan(45);
+    }
+    expect(sigmaWaves(4, opened[0]!)).toBeCloseTo(3.4507, 3);
+    expect(sigmaWaves(4, opened[2]!)).toBeGreaterThan(5.5);
+    // …and the diffraction-limited reach itself did not move at all, which is
+    // the negative control: this touched the refusal, not the optics.
+    expect(marechalReach(4)).toBeCloseTo(0.10311, 4);
+  });
+
+  it("the lenses in the opened band are genuine solutions, not returned objects", () => {
+    // A wall that moves because the constructor got laxer would be worse than
+    // the wall. These are the two guards § 6b.1 put on the fixed point, read at
+    // apertures that used to be refused outright: the bending is solved for the
+    // conjugate the lens is USED at, and ΣS_I is null where it is used.
+    for (const NA of [0.185, 0.19, 0.1955]) {
+      const o = finiteConjugateObjective({ magnification: 4, numericalAperture: NA });
+      expect(o.doublet.objectDistanceMm).toBeCloseTo(o.imageDistanceMm, 6);
+      expect(Math.abs(o.seidelS1AtWorkingConjugates)).toBeLessThan(1e-12);
+      // The glass is the size the stop implies at the CONVERGED object distance,
+      // not at any held-back one — the retry keeps nothing.
+      const tanU = NA / Math.sqrt(1 - NA * NA);
+      expect(o.stopRadiusMm).toBeCloseTo(o.airEquivalentObjectDistanceMm * tanU, 12);
+    }
+  });
+
+  it("the retry is not slack: past the wall it still refuses, with the solver's message", () => {
+    // The property that makes this a fix rather than a loosening. A design whose
+    // CONVERGED geometry is past `achromaticObjective`'s locus is still refused,
+    // and the sentence is the solver's own — the aperture one, since the count
+    // is 3.
+    const wall = buildWall({});
+    for (const k of [1.0001, 1.02, 1.2]) {
+      const message = messageFrom(() =>
+        finiteConjugateObjective({ magnification: 4, numericalAperture: wall * k }),
+      );
+      expect(message).toMatch(/found 3 —/);
+      expect(message).toMatch(/binding here is the APERTURE and not the glass pair/);
+    }
+  }, SLOW);
+
+  it("NEGATIVE CONTROL: ordinary apertures are untouched — the 4×/0.10 is bit-for-bit", () => {
+    // The retry only ever engages on a refusal, so a design that built before
+    // takes the identical path: first pass, full aperture, same lens. The
+    // catalogued member's headline numbers are pinned here as well as in
+    // § 6b.1–.4 so that a future change to the hold-back cannot quietly move a
+    // lens nobody is bisecting.
+    const o = finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
+    expect(o.workingFocalRatio).toBeCloseTo(4.0755218, 7);
+    expect(o.objectDistanceMm).toBeCloseTo(45.7757694, 7);
+    expect(o.doublet.curvatures[0]).toBeCloseTo(0.0467369, 7);
   });
 });

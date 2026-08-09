@@ -287,6 +287,39 @@ export interface AchromaticObjective {
   readonly flintMedium: string;
 }
 
+/**
+ * The refusal that is about the APERTURE and not about the input: at this focal
+ * ratio the bending scan does not hand back the classical pair, or the bending
+ * it hands back is not a surface that can be made out of glass. § 6b.5 measured
+ * that this is a locus in the focal ratio alone, so the same call at the same
+ * conjugates and a smaller aperture builds.
+ *
+ * It is a distinct type because a caller that is still *converging* its own
+ * geometry cannot read this refusal as a verdict. `finiteConjugateObjective`
+ * sizes the glass from an object distance it is iterating toward, and its first
+ * pass — the thin lens — sits ~6% wide of where the fixed point settles; a
+ * refusal there is an overshoot, not an answer. A caller that STATED its
+ * aperture has no such freedom and should let it through. Everything else this
+ * constructor throws (a swapped glass pair, a non-finite target, a collimating
+ * object distance) is about the arguments and stays an ordinary `Error`, so
+ * nobody can mistake it for something an aperture retry would fix.
+ *
+ * The 0-root refusal is deliberately NOT this type. § 6b.5.5's discriminator is
+ * the count, and 0 means the glass pair admits no classical solution at any
+ * focal ratio — CaF₂/F2 refuses at f/50 — so a caller laddering the aperture
+ * down would burn a scan per step and arrive at the same answer. The type and
+ * the message's prose therefore come off the same count, and cannot disagree.
+ */
+export class DoubletApertureRefusal extends Error {
+  /** Sign changes the scan found — 0 is the glass pair, 3 is the aperture (§ 6b.5.5). */
+  readonly rootCount: number;
+  constructor(message: string, rootCount: number) {
+    super(message);
+    this.name = "DoubletApertureRefusal";
+    this.rootCount = rootCount;
+  }
+}
+
 /** Sag of a sphere of curvature c at radius r — for the edge-thickness check. */
 const sag = (c: number, r: number): number => {
   const d = 1 - c * c * r * r;
@@ -553,13 +586,14 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
         targetS1Mm === 0
           ? "expected two spherical-aberration-null bendings"
           : `expected two bendings with ΣS_I = ${targetS1Mm.toExponential(3)} mm`;
-      const cause =
-        roots.length > 2 && unbuildable.length > 0
-          ? `the classical solution has two, so the bending scan has admitted an extra root, and ${unbuildable.length} of the ${roots.length} are deeper than hemispherical (${Math.max(...unbuildable).toFixed(1)}× at the steepest surface) and are not lenses — what is binding here is the APERTURE and not the glass pair, so slow the focal ratio`
-          : targetS1Mm === 0
-            ? "this glass pair does not admit the classical doublet solution"
-            : "no bending of this pair absorbs that much external spherical aberration";
-      throw new Error(`achromaticObjective: ${expected}, found ${roots.length} — ${cause}`);
+      const aperture = roots.length > 2 && unbuildable.length > 0;
+      const cause = aperture
+        ? `the classical solution has two, so the bending scan has admitted an extra root, and ${unbuildable.length} of the ${roots.length} are deeper than hemispherical (${Math.max(...unbuildable).toFixed(1)}× at the steepest surface) and are not lenses — what is binding here is the APERTURE and not the glass pair, so slow the focal ratio`
+        : targetS1Mm === 0
+          ? "this glass pair does not admit the classical doublet solution"
+          : "no bending of this pair absorbs that much external spherical aberration";
+      const message = `achromaticObjective: ${expected}, found ${roots.length} — ${cause}`;
+      throw aperture ? new DoubletApertureRefusal(message, roots.length) : new Error(message);
     }
     return roots.map((c1): AchromatBranch => {
       const cs = curvaturesFrom(c1);
@@ -612,13 +646,20 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
   const crownEdge = crownThicknessMm + sag(curvatures[1], D / 2) - sag(curvatures[0], D / 2);
   const flintEdge = flintThicknessMm + sag(curvatures[2], D / 2) - sag(curvatures[1], D / 2);
   if (!(crownEdge > 0) || !(flintEdge > 0)) {
-    throw new Error(
+    throw new DoubletApertureRefusal(
       `achromaticObjective: element edge thickness is negative (crown ${crownEdge.toFixed(2)} mm, flint ${flintEdge.toFixed(2)} mm) — give the elements more centre thickness`,
+      2,
     );
   }
   for (const c of curvatures) {
     if (Math.abs(c) * (D / 2) >= 1) {
-      throw new Error("achromaticObjective: a surface is hemispherical or steeper at this aperture");
+      // Also the aperture's doing, and for the same reason as the count: the
+      // bending is a pure ratio, so what decides whether it is a surface anybody
+      // can grind is how much glass the ratio is being asked to span.
+      throw new DoubletApertureRefusal(
+        "achromaticObjective: a surface is hemispherical or steeper at this aperture",
+        2,
+      );
     }
   }
 

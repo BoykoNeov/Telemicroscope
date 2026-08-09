@@ -116,8 +116,9 @@ within one architecture, holding everything but one variable:
   above. (NA ≥ 0.20 throws — a doublet ceiling arriving as an error message. A
   picker must handle it. **§ 6b.5 corrected the attribution** — this is
   `achromaticObjective`'s three-root refusal, a solver locus that for a 4×
-  N-BK7/F2 sits at NA 0.1843, *not* § 6b's f/4.1, which is an aberration edge
-  at NA 0.10311 and more than twice as slow — and **§ 6b.5.5 has since corrected
+  N-BK7/F2 sits at **NA 0.19650** (0.1843 until § 6b.5.6 stopped the fixed
+  point's thin-lens seed from deciding it), *not* § 6b's f/4.1, which is an
+  aberration edge at NA 0.10311 and more than twice as slow — and **§ 6b.5.5 has since corrected
   the message itself**, which no longer says *"this glass pair does not admit
   the classical doublet solution"* here. It now reads *"found 3 … 2 of the 3 are
   deeper than hemispherical (4.8× at the steepest surface) … what is binding
@@ -2223,6 +2224,13 @@ as constants.**
    | fused silica/F2 | 0.1915 → 0.2293 | f/2.212 → f/2.315 |
    | N-BK7/F2, crown-first | 0.1792 → 0.2074 (M = 4, 20) | f/2.268 → f/2.386 |
 
+   **Every NA in that table has since moved** — § 6b.5.6 took the fixed point's
+   thin-lens seed off the boundary, and the walls went out 2.9%–10.6%: N-BK7/F2
+   reads **0.19650 → 0.24517**, silica/F2 **0.20795 → 0.25926**, crown-first
+   **0.18457 → 0.21842**. The *shape* of the finding survives (the ratio is far
+   tighter than the aperture) and the interpretation below is unaffected, because
+   what this panel bisects was never an optical boundary.
+
    Across two pairs, two orientations and four magnifications the NA wall spans
    **0.179–0.229** (28%) while the ratio at it spans **f/2.21–f/2.39** (8%) — about
    3.5× tighter, so the ROADMAP's instinct to quote a ratio is right and the
@@ -2281,6 +2289,18 @@ aplanat by 3×, and the panel prints the two halves separately rather than letti
 one hide the other. It is a form-submit cost either way: nothing recomputes until
 the button is pressed, which is how this surface buys the honesty every other
 panel pays backpressure for.
+
+**§ 6b.5.6 made the DIN half of that ~10× more expensive, and the number is here
+rather than in a footnote.** The wall bisection for the DIN doublet now measures
+**~1.15 s** (4×/0.10 and 40×/0.20 alike) against the 103–213 ms above. Nothing in
+the app changed; what changed is the price of a *refusal*, which is half of every
+bisection's samples: `finiteConjugateObjective` no longer takes one refused
+bending scan as a verdict, it holds the aperture back, re-closes its fixed point
+and bisects the hold-back until the bracket collapses — tens of scans instead of
+one. The two-group forms are untouched (**78 ms** Lister, **74 ms** oil) because
+they refuse for reasons that never enter this path. The panel's own structure is
+what makes that liveable — it is a form submit, not a keystroke — but a 1.15 s
+button is a different thing from a 140 ms one and this row should say so.
 
 ### D10. A5's z-slider through a real mount — *app wiring only* — **pair** — ✅ **landed**
 

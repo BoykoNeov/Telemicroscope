@@ -4,7 +4,7 @@ import { collimatingObjectDistance, spliceModules } from "../trace/compose";
 import { OpticalSystem } from "../trace/system";
 import { LINE_D } from "../materials/dispersion";
 import { seidelSums } from "../analysis/seidel";
-import { AchromaticObjective, achromaticObjective } from "./achromat";
+import { AchromaticObjective, DoubletApertureRefusal, achromaticObjective } from "./achromat";
 import {
   Coverslip,
   CoverslipSpec,
@@ -834,6 +834,50 @@ export function finiteConjugateObjective(
   let targetS1Mm = 0;
   let doublet!: AchromaticObjective;
   let bare!: Prescription;
+  /**
+   * How far back the aperture had to be held on the pass in hand, 1 being not at
+   * all. THE SEED IS THE WORST THE OBJECT DISTANCE EVER IS: the thin lens puts
+   * the specimen f(1 + 1/M) out where the fixed point settles some 6% closer
+   * (§ 6b.5), so the first pass sizes ~6% more glass than the design it is
+   * converging toward has, and hands `achromaticObjective` a focal ratio that
+   * much faster. Reading a refusal there as a verdict is what made the
+   * constructor refuse apertures it could in fact deliver — the wall was the
+   * seed's, decided before anything had looked at the lens being built.
+   *
+   * So a `DoubletApertureRefusal` mid-iteration is treated as an overshoot: the
+   * aperture is stepped back only as far as it takes to get a lens to read the
+   * next object distance off, and asked for in FULL again on the next pass, from
+   * the object distance that lens implies. The step is a search resolution and
+   * not slack — nothing keeps a reduced aperture. The fixed point may only close
+   * on a pass that built at the full aperture (`heldBack === 1` below), so a
+   * design whose CONVERGED geometry is past the solver's wall still refuses,
+   * with the solver's own message and at the solver's own boundary.
+   *
+   * WHY THE HOLD-BACK IS THEN SHRUNK BACK TOWARD 1 AT THE DECISION, and not
+   * simply left where the ladder found it: the object distance a held-back lens
+   * reads off is *biased*, because the defaulted thicknesses go with the
+   * aperture. Measured, ∂ln a/∂ln D ≈ −0.1 (flint first) to −0.2 (crown first) —
+   * a narrower lens reports the specimen further out — so a hold-back of ε
+   * inflates the next pass's aperture by ~0.2·ε, and a design that close to the
+   * wall gets refused for the retry's own error. Halving the gap to 1 whenever
+   * the geometry has converged drives that bias to the refinement floor, so what
+   * is left is parts in 10⁴ of aperture rather than the seed's 6% of ratio. It
+   * is a floor and not zero: the boundary is the converged design's own to
+   * `APERTURE_REFINE`, and is no longer an exactly stated locus the way the
+   * seed's was (§ 6b.5.4's closed form is what that costs).
+   */
+  // Coarse on the way down — every trial is a full bending scan, and a design
+  // that is nowhere near buildable should find that out in a handful of them —
+  // and the resolution comes back from the bisection above, not from the step.
+  const APERTURE_STEP = 0.9;
+  const APERTURE_FLOOR = 0.5;
+  const APERTURE_BISECTIONS = 4;
+  const APERTURE_REFINE = 1e-4;
+  /** The hold-back the pass in hand built at; 0 means none has worked yet. */
+  let heldBack = 1;
+  /** …and the narrowest one this pass refused. The two bracket the ceiling. */
+  let refusedAt = 1;
+  let refusedAtFullAperture: unknown;
 
   for (let i = 0; i < 60; i++) {
     // The glass is sized off the stop the specimen plane implies. S_I ∝ h⁴
@@ -843,16 +887,53 @@ export function finiteConjugateObjective(
     // coupling the iteration absorbs).
     const stop = a * stopPerAirDistance;
     const D = 2 * stop * glassMarginFactor;
-    doublet = achromaticObjective({
-      apertureMm: D,
-      focalRatio: f / D,
-      // Reciprocity: the mirrored chain at object a is the crown-first chain at
-      // the conjugate b. See the header.
-      objectDistanceMm: orientation === "flintFirst" ? b : a,
-      ...glasses,
-      designWavelengthNm,
-      targetS1Mm,
-    });
+    // Reciprocity: the mirrored chain at object a is the crown-first chain at
+    // the conjugate b. See the header.
+    const solveAt = orientation === "flintFirst" ? b : a;
+    // The full aperture first, always — it is the one the answer is about, and
+    // whether it is refused at THIS pass's object distance is what decides
+    // whether the fixed point is allowed to close. After that the trials CLIMB
+    // back toward it, by bisection against the last hold-back that worked,
+    // instead of laddering down from 1 again: the hold-back is what biases the
+    // object distance this pass reads off, so the smallest one that gets a lens
+    // is the one worth having, and every trial costs a full bending scan.
+    let scale = 1;
+    let bisections = 0;
+    refusedAt = 1;
+    refusedAtFullAperture = undefined;
+    for (;;) {
+      try {
+        doublet = achromaticObjective({
+          apertureMm: D * scale,
+          focalRatio: f / (D * scale),
+          objectDistanceMm: solveAt,
+          ...glasses,
+          designWavelengthNm,
+          targetS1Mm,
+        });
+        break;
+      } catch (e) {
+        // Only the aperture is retryable, and `achromaticObjective` says so by
+        // type: a glass pair with no classical solution, or a broken argument,
+        // is the same answer at every aperture and is let straight through.
+        if (!(e instanceof DoubletApertureRefusal)) throw e;
+        if (scale === 1) refusedAtFullAperture = e;
+        refusedAt = scale;
+        if (heldBack === 0) {
+          scale = refusedAt * APERTURE_STEP; // no footing yet — feel for one
+        } else if (bisections < APERTURE_BISECTIONS && heldBack < refusedAt) {
+          scale = 0.5 * (heldBack + refusedAt);
+          bisections++;
+        } else if (refusedAt > heldBack) {
+          scale = heldBack; // fall back on the hold-back that worked last pass
+        } else {
+          heldBack = 0; // even that is refused now — the geometry has moved
+          scale = refusedAt * APERTURE_STEP;
+        }
+        if (!(scale >= APERTURE_FLOOR)) throw refusedAtFullAperture;
+      }
+    }
+    heldBack = scale;
     bare = orientation === "flintFirst"
       ? reversePrescription(doublet.prescription, 0)
       : doublet.prescription;
@@ -885,9 +966,28 @@ export function finiteConjugateObjective(
       moved < 1e-13 * (Math.abs(a) + Math.abs(b)) &&
       targetMoved <= 1e-13 * Math.abs(targetNext)
     ) {
-      break;
+      if (heldBack === 1) break;
+      // The geometry has closed and the full aperture is still refused — but the
+      // hold-back that produced this geometry carries a bias of its own, so that
+      // is not yet an answer. What decides is the BRACKET: `heldBack` is the
+      // widest aperture that built here and `refusedAt` the narrowest that did
+      // not, and while they are apart the trials at the top of the next pass go
+      // on bisecting between them, each one re-closing the fixed point at a
+      // geometry less biased than the last.
+      //
+      // Testing `1 − heldBack` instead was the first version and it was wrong in
+      // the expensive direction: a design that genuinely cannot be built settles
+      // at a hold-back of its own — 0.97, say — which never approaches 1, so
+      // every refusal ran the pass budget out before answering. On the bracket
+      // both cases finish in a few passes: a design that is really inside gets
+      // its full-aperture trial through, and one that is not sees the bracket
+      // collapse onto its own ceiling.
+      if (refusedAt - heldBack <= APERTURE_REFINE) throw refusedAtFullAperture;
     }
   }
+  // Ran out of passes while still holding the aperture back: the full-aperture
+  // lens was never built, so there is nothing to hand back.
+  if (heldBack !== 1) throw refusedAtFullAperture;
 
   // Read the final geometry off the lens that was actually BUILT, not off the
   // iteration's variables.
