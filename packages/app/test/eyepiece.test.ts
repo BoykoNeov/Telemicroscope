@@ -332,7 +332,10 @@ describe("D6.7 — refusals keep their stage, so the panel can name what failed"
     expect(made.ok).toBe(false);
     if (made.ok) return;
     expect(made.stage).toBe("eyepiece");
-    expect(made.error).toMatch(/does not admit the classical doublet solution/);
+    // § 6b.5.5: the refusal names the aperture here, not the glass pair — a
+    // panel that repeated the old sentence would tell a reader to change glass
+    // when what they have to change is the field number.
+    expect(made.error).toMatch(/binding here is the APERTURE and not the glass pair/);
   });
 });
 

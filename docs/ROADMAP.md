@@ -343,10 +343,19 @@
    its measured scale-invariance is this same identity — so the repo's walls are
    three kinds, not one (geometric, aberration, solver locus), with § 6d's NA 0.343
    deliberately left unclassified.
-   **Open here:** the seed (worth ~6% of ratio, measured), the scan window's
-   `3`, and a refusal message whose sentence names the glass pair when the cause is
-   the aperture — the count already discriminates (0 vs 3), and all three are
-   upstream of §§ 5j/6b/6c/6d/6e, so they are their own step. *Composing an eyepiece onto the
+   **The third of those was the refusal message, and it is ✅ closed (§ 6b.5.5).**
+   The count already discriminated (0 vs 3); the fix derives the sentence from it,
+   so the aperture branch now names the aperture and prints how many of its roots
+   are past hemispherical, while the glass sentence survives bit-for-bit where it
+   is true. **No verdict and no boundary moves** — the extra root is reported, not
+   rejected — which is what made it separable from the other two. It also earned a
+   correction of its own: the non-physical count is **1 of 3 at the wall and 3 of 3
+   at f/1.5**, so § 6b.5.3's "the two real roots are ordinary glass" is a statement
+   about the wall and does not travel, and the message counts rather than assumes.
+   **Still open here:** the seed (worth ~6% of ratio, measured) and the scan
+   window's `3` — both would move the refusal boundary the § 6b.5 rungs pin, and
+   both are upstream of §§ 5j/6b/6c/6d/6e, so they remain their own step.
+   *Composing an eyepiece onto the
    intermediate image was the other open item and is now closed by § 6q, which
    runs on this architecture and the infinity-corrected one alike.*
    *The coverslip — `160/0.17`:* ✅ `designs/coverslip` (§ 6c), and with it the

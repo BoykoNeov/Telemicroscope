@@ -453,23 +453,61 @@ describe("§ 6b.5.4 — the DIN wall is the fixed point's SEED, in closed form",
   });
 });
 
-describe("§ 6b.5.5 — one message, two causes, and the count already tells them apart", () => {
-  it("a glass-pair failure reports 0 roots at ANY focal ratio", () => {
+describe("§ 6b.5.5 — one message, two causes, and now the sentence tells them apart too", () => {
+  it("a glass-pair failure reports 0 roots at ANY focal ratio, and keeps its sentence", () => {
     // CaF₂/F2 is § 5k's pair and genuinely admits no classical solution: the
-    // count is zero, and slowing the lens by 5× does not change that.
+    // count is zero, and slowing the lens by 5× does not change that. This is
+    // the branch on which the original sentence was true, so it is unchanged.
     for (const focalRatio of [10, 50]) {
-      expect(messageFrom(() =>
+      const message = messageFrom(() =>
         achromaticObjective({ apertureMm: 10, focalRatio, crownMedium: "CAF2", flintMedium: "F2" }),
-      )).toMatch(/found 0 —/);
+      );
+      expect(message).toMatch(/found 0 —/);
+      expect(message).toMatch(/this glass pair does not admit the classical doublet solution/);
     }
   });
 
   it("an aperture failure reports 3, and the SAME pair builds when slowed", () => {
-    // Which falsifies the sentence the message prints on this branch — the glass
-    // pair does admit the classical solution, at a ratio 10% slower. The count
-    // is the discriminator the engine already emits; the sentence is not.
+    // Which falsifies the sentence the message USED to print on this branch —
+    // the glass pair does admit the classical solution, at a ratio 10% slower.
     expect(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 }))).toMatch(/found 3 —/);
     expect(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 2.2 }))).toBe("builds");
+  });
+
+  it("…and the message now says APERTURE there, and never says it on the 0-root branch", () => {
+    // The fix this section's own heading used to describe as not done. The
+    // discriminator is the count, which the engine already had; what changes is
+    // that the prose is derived from it instead of asserted over it. Nothing
+    // about which designs are refused moves — the extra root is reported, not
+    // rejected, since rejecting it would move the boundary § 6b.5.2–.4 pin.
+    const aperture = messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 }));
+    expect(aperture).toMatch(/binding here is the APERTURE and not the glass pair/);
+    expect(aperture).not.toMatch(/this glass pair does not admit/);
+    const glass = messageFrom(() =>
+      achromaticObjective({ apertureMm: 10, focalRatio: 10, crownMedium: "CAF2", flintMedium: "F2" }),
+    );
+    expect(glass).not.toMatch(/APERTURE/);
+  });
+
+  it("…and it counts the non-physical roots rather than assuming there is one", () => {
+    // The clause is measured in the failing call, which matters because the
+    // count is NOT always one. At the wall the two real roots are ordinary glass
+    // (§ 6b.5.3) so exactly one of three is past hemispherical; drive the ratio
+    // far enough below it and the real pair goes non-physical too. A message
+    // that hard-coded "one ghost root" would be wrong at f/1.5.
+    const nonPhysical = (message: string): number => Number(/found 3 — .*?(\d+) of the 3 are deeper/.exec(message)![1]);
+    const D = 10;
+    const S_OVER_F = 5.02;
+    const justBelow = refusalRatio(S_OVER_F) * 0.999;
+    const atWall = messageFrom(() =>
+      achromaticObjective({
+        apertureMm: D,
+        focalRatio: justBelow,
+        objectDistanceMm: S_OVER_F * D * justBelow,
+      }),
+    );
+    expect(nonPhysical(atWall)).toBe(1);
+    expect(nonPhysical(messageFrom(() => achromaticObjective({ apertureMm: 10, focalRatio: 1.5 })))).toBe(3);
   });
 
   it("§ 6q's Plössl wall is this same refusal, which is why it was scale-invariant", () => {

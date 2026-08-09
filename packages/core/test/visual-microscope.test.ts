@@ -630,8 +630,11 @@ describe("§ 6q.9 — the guards", () => {
     // comfortably inside it, and a wider field is a different eyepiece form
     // (the transcribed patent members), not a wider aperture on this one.
     expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 22 })).not.toThrow();
+    // § 6b.5 identified this as the doublet's three-root refusal rather than a
+    // glass failure, and § 6b.5.5 now makes the message say so: the aperture is
+    // what is binding, which is exactly this rung's own sentence.
     expect(() => plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 24 })).toThrow(
-      /does not admit the classical doublet solution/,
+      /found 3 — .*binding here is the APERTURE and not the glass pair/,
     );
   });
 });

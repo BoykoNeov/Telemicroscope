@@ -113,12 +113,17 @@ within one architecture, holding everything but one variable:
 
 - NA 0.10 → 0.15 at 4×: span 93.54 → 61.96 µm. Ratio 1.510 against an NA ratio
   of 1.500 — 1/NA, with the ~0.7% residual being the sine-condition departure
-  above. (NA ≥ 0.20 throws: *"this glass pair does not admit the classical
-  doublet solution"* — a doublet ceiling arriving as an error message. A
-  picker must handle it. **§ 6b.5 corrects the attribution**: this message is
+  above. (NA ≥ 0.20 throws — a doublet ceiling arriving as an error message. A
+  picker must handle it. **§ 6b.5 corrected the attribution** — this is
   `achromaticObjective`'s three-root refusal, a solver locus that for a 4×
-  N-BK7/F2 sits at NA 0.1843 — *not* § 6b's f/4.1, which is an aberration edge
-  at NA 0.10311 and more than twice as slow.)
+  N-BK7/F2 sits at NA 0.1843, *not* § 6b's f/4.1, which is an aberration edge
+  at NA 0.10311 and more than twice as slow — and **§ 6b.5.5 has since corrected
+  the message itself**, which no longer says *"this glass pair does not admit
+  the classical doublet solution"* here. It now reads *"found 3 … 2 of the 3 are
+  deeper than hemispherical (4.8× at the steepest surface) … what is binding
+  here is the APERTURE and not the glass pair"*, so a picker can say which knob
+  to move. The sentence about the glass survives on the branch where it is
+  true — a genuine glass-pair failure, which reports **0** roots.)
 - 4× → 10× → 20× at NA 0.10: span **identical** at 93.54 µm, while the image
   pixel scales exactly with M (5.8462 → 14.6154 → 29.2308 µm).
 
@@ -267,7 +272,12 @@ the cell shows: the doublet's refusal locus (DIN 4×/0.20 — § 6b.5 pins this 
 `achromaticObjective`'s three-root wall rather than § 6b's f/4.1) and § 6d's measured
 NA 0.343 wall (Lister 40×/0.40, whose message carries both glass pairs' numbers).
 This doc predicted a picker "must handle it"; showing the message *is* the
-handling, and it puts two measured findings on screen for free.
+handling, and it puts two measured findings on screen for free. **§ 6b.5.5
+improved that cell without touching the panel**: the DIN 4×/0.20 row now says
+the aperture is what is binding and prints how many of its three roots are past
+hemispherical, where before it told the reader to change glass. Showing the
+engine's own text means a fix upstream arrives here for nothing — and means a
+wrong sentence would have too.
 
 **Two corrections to what was scoped above.** Frame build is indeed 1–6 ms, but a
 row is ~50 ms — `scaleDrift` is six more field traces and dominates, so the panel

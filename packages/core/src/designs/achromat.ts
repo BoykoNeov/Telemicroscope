@@ -520,13 +520,40 @@ export function achromaticObjective(spec: AchromaticObjectiveSpec): AchromaticOb
       prevS = s;
     }
     if (roots.length !== 2) {
-      // Two different failures wear the same shape, and conflating them would
-      // blame the glass for the caller's arithmetic.
-      throw new Error(
+      /**
+       * THREE different failures wear the same shape, and conflating them blames
+       * the glass for what is the caller's arithmetic or this solver's own scan
+       * window. § 6b.5 measured the discriminator: a pair that genuinely admits
+       * no classical solution reports **0** roots at any focal ratio, while an
+       * aperture failure reports **3** — at the wall itself, the two ordinary
+       * bendings still sub-hemispherical, plus a root of the paraxial S_I
+       * polynomial that is not a lens (>5× hemispherical, entering at the window
+       * edge |c₁|/span = 3⁻ and migrating inward as the ratio falls; take the
+       * ratio far enough past the wall and the real pair goes non-physical too).
+       * On that branch "this glass pair does not admit the classical doublet
+       * solution" is simply false — the same pair builds ~10% slower.
+       *
+       * The extra root is *reported*, not rejected. Rejecting non-physical
+       * bendings before the count would move the refusal boundary itself, which
+       * is § 6b.5's other open item and is upstream of §§ 5j, 6b, 6c, 6d and 6e.
+       * Naming the cause changes no verdict and no number.
+       */
+      // |c|·(D/2) = 1 is a hemisphere: a "surface" past it does not meet the
+      // marginal ray at all, so no glass can be bent to it.
+      const unbuildable = roots
+        .map((c1) => Math.max(...curvaturesFrom(c1).map((c) => Math.abs(c) * (D / 2))))
+        .filter((slope) => slope >= 1);
+      const expected =
         targetS1Mm === 0
-          ? `achromaticObjective: expected two spherical-aberration-null bendings, found ${roots.length} — this glass pair does not admit the classical doublet solution`
-          : `achromaticObjective: expected two bendings with ΣS_I = ${targetS1Mm.toExponential(3)} mm, found ${roots.length} — no bending of this pair absorbs that much external spherical aberration`,
-      );
+          ? "expected two spherical-aberration-null bendings"
+          : `expected two bendings with ΣS_I = ${targetS1Mm.toExponential(3)} mm`;
+      const cause =
+        roots.length > 2 && unbuildable.length > 0
+          ? `the classical solution has two, so the bending scan has admitted an extra root, and ${unbuildable.length} of the ${roots.length} are deeper than hemispherical (${Math.max(...unbuildable).toFixed(1)}× at the steepest surface) and are not lenses — what is binding here is the APERTURE and not the glass pair, so slow the focal ratio`
+          : targetS1Mm === 0
+            ? "this glass pair does not admit the classical doublet solution"
+            : "no bending of this pair absorbs that much external spherical aberration";
+      throw new Error(`achromaticObjective: ${expected}, found ${roots.length} — ${cause}`);
     }
     return roots.map((c1): AchromatBranch => {
       const cs = curvaturesFrom(c1);

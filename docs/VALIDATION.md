@@ -3197,6 +3197,8 @@ none of the table below is pinned to an external number.
 | **The optical tube length cancels BITWISE** — f is not in the closed form | identity; D8 measured it as three equal numbers | ✅ |
 | A glass-pair failure reports **0** roots at any ratio (CaF₂/F2); an aperture failure reports **3** | the count discriminates | ✅ |
 | …and the same pair **builds when slowed**, which falsifies the message's sentence on that branch | negative control | ✅ |
+| **The message now says APERTURE on the 3-root branch and never on the 0-root one**, and the glass sentence is bit-for-bit unchanged where it is true | the count, turned into prose | ✅ |
+| …and it **counts the non-physical roots** rather than assuming one: **1 of 3** at the wall, **3 of 3** at f/1.5 | measured in the failing call | ✅ |
 | **§ 6q's Plössl wall is this same refusal** (found 3), which is why it was scale-invariant | mechanism, not the number | ✅ |
 
 **The closed form.** The DIN constructor seeds its fixed point from the thin
@@ -3228,14 +3230,32 @@ F\* = 1.904 (the refusal locus), f/D = 2.023 at the converged geometry, and the
 working f/# = 2.266 = 2.023 × 1.12, the glass margin. A number quoted without its
 convention will read as agreeing with D8 while measuring something else.
 
-**The refusal names the wrong cause, and the engine already prints the right
-one.** `achromaticObjective` says *"this glass pair does not admit the classical
+**The refusal named the wrong cause, and the engine already printed the right
+one — ~~left alone deliberately~~, now FIXED (§ 6b.5.5).**
+`achromaticObjective` said *"this glass pair does not admit the classical
 doublet solution"* for both branches, and on the aperture branch that sentence is
-false — the same pair builds 10% slower. The **count** in the message is the
-discriminator: **0** is the glass pair (CaF₂/F2, at any ratio), **3** is the
-aperture. The string is left alone deliberately: four tests across `core` and
-`app` match on it, so rewording it is a five-file change and belongs to whoever
-fixes the seed.
+false — the same pair builds 10% slower. The **count** in the message was already
+the discriminator: **0** is the glass pair (CaF₂/F2, at any ratio), **3** is the
+aperture. What the fix does is derive the prose from that count instead of
+asserting over it, so the 3-root branch now reads *"the classical solution has
+two, so the bending scan has admitted an extra root, and N of the 3 are deeper
+than hemispherical (…× at the steepest surface) and are not lenses — what is
+binding here is the APERTURE and not the glass pair, so slow the focal ratio"*.
+On the 0-root branch the original sentence is bit-for-bit unchanged, because
+there it is true.
+
+**Nothing about which designs are refused moves.** The extra root is *reported*,
+not rejected — rejecting non-physical bendings before the count is the other open
+item below, and it would move the boundary § 6b.5.2–.4 pin. So this is a message
+change with an identity behind it, and the rungs above are identity rungs.
+
+**The count is measured in the failing call rather than assumed**, which the
+build immediately earned: at the wall itself the two real roots are ordinary
+glass, so **1 of 3** is past hemispherical — but drive the ratio far enough below
+it (f/1.5 on N-BK7/F2) and the real pair goes non-physical too, at **3 of 3**. A
+message hard-coding "one ghost root" would have been wrong there, and § 6b.5.3's
+"the two REAL roots at the wall are ordinary glass" is a statement *about the
+wall* and does not travel.
 
 **The unification.** § 6q's Plössl clear-aperture wall — bisected there to
 0.899195·f_e and reported as "exactly scale-invariant from f_e 15 to 50" — throws
@@ -3265,7 +3285,12 @@ it. That is a named follow-on, not a claim.
 - **The scan window is a stated constant.** F\* is set by the `3` in
   `solveBendings`'s ±3·span range. Rejecting non-physical bendings (|c|·D/2 ≥ 1)
   *before* counting roots would make the count mean what its message says. Same
-  reason for not doing it here, and the same caller list.
+  reason for not doing it here, and the same caller list. **§ 6b.5.5 took the
+  cheap half of this** — the message now *reports* which roots are non-physical,
+  which needed no rejection and moved no boundary. The expensive half is
+  unchanged and is still this bullet: a rejection would let the constructor build
+  designs it currently refuses, and every rung above that pins F\* would have to
+  be re-derived in the same commit.
 - **Where the optical ceiling is for the OTHER forms.** § 6d.4 bisects the
   Lister's Maréchal reach and § 6b.5.1 now does the DIN doublet's; the
   infinity-corrected member of § 6a has neither.
