@@ -9,3 +9,4 @@ export * from "./analysis";
 export * from "./photometry";
 export * from "./imaging";
 export * from "./designs";
+export * from "./mech";

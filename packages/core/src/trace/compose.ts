@@ -29,6 +29,29 @@ export interface ModulePlacement {
    * it is the composed chain's distance to the image plane / exit.
    */
   readonly gapAfterMm: number;
+  /**
+   * What this part is, for readouts. ARCHITECTURE's second consequence of the
+   * module decision: "analyses must be able to name what a surface came from, or
+   * a per-surface readout in a 30-surface microscope is unreadable." Purely
+   * descriptive — the splice drops it, because a flat `Prescription` is what the
+   * engine consumes and nothing downstream may branch on a label.
+   */
+  readonly name?: string;
+  /**
+   * The mechanical interfaces this part carries — thread, barrel, parfocal or
+   * flange distance (`core/mech`).
+   *
+   * ARCHITECTURE's first consequence, and the reason it hangs *here* rather than
+   * on a `SurfaceSpec`: a barrel and a parfocal distance are properties of the
+   * thing that physically exists, and the thing that physically exists is the
+   * module, not one of the eleven glass faces inside it.
+   *
+   * Deliberately untyped against `core/mech` so `trace/` keeps no dependency on
+   * a layer above it; `core/mech` is what reads it. Like `name`, the splice
+   * drops it — mechanical data reaches the optics only through
+   * `mech.withGlassPath`, never by the tracer learning about mounts.
+   */
+  readonly mech?: Readonly<Record<string, number | string>>;
 }
 
 /**

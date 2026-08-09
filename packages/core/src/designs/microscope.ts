@@ -500,6 +500,12 @@ export function infinityCorrectedMicroscope(
  * Mechanical tube length (mm) — the engraved number, shoulder to eyepiece seat.
  * Carried so the distinction from the optical tube length is written down rather
  * than implied; **nothing computes with it**, because the magnification does not.
+ *
+ * NOT a parfocal distance, which is the *other* shoulder-referenced standard and
+ * lives in `core/mech.PARFOCAL_DISTANCE_MM` — shoulder to **specimen**, 45 mm for
+ * DIN, and the one § 5u's parfocal ceiling is derived against. The two tables are
+ * indexed by the same standards names with different numbers, so the note is on
+ * both sides.
  */
 export const MECHANICAL_TUBE_LENGTH_MM = { din: 160, jis: 160 } as const;
 

@@ -83,11 +83,12 @@
      pixel scale the frame spans ~0.06° and the field is effectively
      shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
      it. Rendered coarse-to-fine in its own worker.
-5. **Telescope branch + bench editor + mech layer** ← optics landed, and the
-   **presets, the spider and the diagonal's vignetting now have an app surface**
-   (APP.md C1–C2); still open: the mechanical layer, scenes (star/planet/lunar),
-   the bench editor, and Part C's remaining modes — eyepieces, the eye, the camera,
-   and long-exposure seeing (the one that needs an engine step).
+5. **Telescope branch + bench editor + mech layer** ← optics landed, the
+   **presets, the spider and the diagonal's vignetting have an app surface**
+   (APP.md C1–C2), and the **mechanical layer is now ✅ closed** (§ 5u, below);
+   still open: scenes (star/planet/lunar), the bench editor, and Part C's
+   remaining modes — eyepieces, the eye, the camera, and long-exposure seeing
+   (the one that needs an engine step). **`core/mech` has no app surface yet.**
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
    scenes, visual mode (eye model, exit-pupil matching) and camera mode
@@ -240,6 +241,40 @@
    never met: `refractorPair`'s fixed 3 mm centre thickness runs the crown's two
    sags together at h = √(t·R), so the whole-pupil aperture goes as **√f** — EPD
    16.1 / 23.0 / 32.6 at f = 50 / 100 / 200 — and is not a focal ratio at all.
+   *The mechanical layer:* ✅ `core/mech` (§ 5u) — this step's last unbuilt item,
+   and ARCHITECTURE's oldest unbuilt line. Most of it is a parts list, so its
+   content is the one claim a parts list gets wrong: **a part's mechanical length
+   and its optical cost are different numbers.** The layer therefore never models
+   an optical effect — `withGlassPath` splices plane surfaces into the
+   prescription and the *tracer* finds the focus, which is what makes the closed
+   form a pin rather than a substitute, and what makes the spliced chain carry
+   spherical aberration and colour that nobody put in by hand. Four findings.
+   A prism diagonal hands back **0.3407** of its glass (13.6287 mm of 40), a
+   mirror one a hard zero, and the naive air-only budget is wrong by **7.83% of a
+   real chain's length** — always pessimistically, and the two verdicts genuinely
+   disagree on an ordinary focuser. The glass's **position along the converging
+   beam is exactly irrelevant** — a cone is straight lines, so a perpendicular
+   plane meets every ray at the same angle wherever it sits — pinned at a 50 mm
+   and a 600 mm gap to 1e-11 mm of focus and 1e-6 waves of OPD, which is what
+   licenses flattening a chain's glass into one stack. The shift is
+   **dispersive**, pushing blue further back where a positive element does the
+   reverse, so a glass diagonal *compensates* both doublets measured — though an
+   achromat's F−C spread is a residual whose sign belongs to the lens, so that
+   half is measured on two glass pairs and not asserted as a law. What is
+   identical across them is the amount: **0.139742 mm** to six digits, because
+   the plate does not know what it is bolted to — four Rayleigh depths of focus
+   at f/5, inside one at f/10, invisible to any budget made of lengths. And the
+   quarter wave lands at **f/5.315** where this
+   step was scoped for f/3–f/4, which is the difference between "diagonals are
+   fine" and "diagonals are marginal on a common f/5". **The headline is a
+   ceiling that comes from a mount.** A single group at magnification M stands
+   off its object by x′(M+1)/M², so a DIN objective is impossible below
+   M = [x′+√(x′²+4Px′)]/2P = **4.1387** — 4.236 with the built doublet's real
+   glass — and a real 4× therefore cannot be one doublet. Sixth geometric ceiling
+   in the repo, and the first that is not the ray invariant. **Open:** barrel
+   vignetting (the `semiApertureMm` hook exists, the rung does not), the sensor's
+   own cover glass, tilted elements, and the tube-length error with its known
+   coverslip equivalence.
 6. **Microscope branch** ← current; **every numbered step in it is now closed**
    (§ 6l was the last gap). What remains here is app wiring and scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.

@@ -128,9 +128,15 @@ domain/microscope coverslip, immersion, fluorescence, specimen scenes
                  (the condenser was planned here and landed in
                  core/illumination instead — partially coherent
                  imaging is not microscope-specific)               [step 5]
-mech/            mechanical interfaces & constraints (barrels, threads,
+core/mech        mechanical interfaces & constraints (barrels, threads,
                  parfocal/back-focus distances) — data + rules; mechanical
-                 changes feed back into optical spacings           [step 4]
+                 changes feed back into optical spacings      ✅ [step 5, § 5u]
+                 Landed under core/ rather than beside it: the feedback route
+                 (`withGlassPath`) produces a `Prescription`, and the rules read
+                 the glass catalog, so it is a consumer of core and not a peer.
+                 Three files, and the split IS the discipline — `standards.ts`
+                 transcribed data (explicitly not rungs), `path.ts` rules over
+                 it, `insert.ts` the ONLY route into the optics.
 app/             React UI, WebGPU viewport, web workers            [step 3+]
 ```
 
@@ -163,12 +169,22 @@ One schema serves both branches:
   authoring data, exactly as `OpticalSystem` sits above `Prescription`.
 
   Two consequences worth fixing now so the later change is additive:
-  mechanical data (barrel, thread, parfocal distance — the `mech/` layer)
+  mechanical data (barrel, thread, parfocal distance — the `core/mech` layer)
   attaches to the *module*, not to a surface, because that is the thing that
   physically exists; and analyses must be able to name what a surface came
   from, or a per-surface readout in a 30-surface microscope is unreadable.
   Lands with step 6; the eyepiece/objective libraries of step 5 are its first
   real consumer.
+
+  **Both slots now exist** (§ 5u): `ModulePlacement` carries optional `name` and
+  `mech`, added when the mechanical layer landed rather than left for the
+  authoring layer, so that layer arrives additive as promised. Two rules travel
+  with them. `mech` is deliberately **untyped against `core/mech`** — `trace/`
+  keeps no dependency on a layer above it, and `core/mech` is what reads it. And
+  **the splice drops both**: a flat `Prescription` is what the engine consumes,
+  nothing downstream may branch on a label, and mechanical data reaches the
+  optics only through `mech.withGlassPath` — never by the tracer learning what a
+  mount is.
 - **OpticalSystem** — a prescription *plus what makes it well-posed*. A
   surface list alone determines EFL and BFD and nothing else; every
   field-, aperture-, or conjugate-dependent analysis (spot, PSF, MTF,

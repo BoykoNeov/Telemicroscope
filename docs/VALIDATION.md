@@ -46,6 +46,7 @@ whole ladder.
 | [5r](#step-5r--camera-mode-pixel-scale-and-sensor-sampling) | Plate scale, the pixel as box integrator, critical sampling | `camera` |
 | [5s](#step-5s--camera-mode-relative-exposure) | Image-space cone from the marginal ray; f-ratio and aperture laws | `exposure` |
 | [5t](#step-5t--tolerancing-sensitivity-compensators-and-the-rss-budget) | Sensitivity, compensators, RSS budget — four external pins | `tolerance` |
+| [5u](#step-5u--the-mechanical-layer-the-glass-path-that-is-not-its-own-length) | The mechanical layer, and the one claim it exists for — a part's mechanical length and its optical cost are different numbers: a spliced chain moving the TRACED focus by exactly t(1−1/n), so the closed form is pinned against the tracer instead of substituted for it (a prism diagonal hands back 0.3407 of its glass, 13.6287 mm, and a mirror one a hard zero); the naive air-only budget over-reporting by exactly Σtᵢ(1−1/nᵢ) — 7.83% of a real chain's length, always pessimistic, and the two verdicts genuinely disagreeing on an ordinary focuser; the glass's position along the converging beam shown **exactly** irrelevant, focus to 1e-11 mm and OPD below 1e-6 waves at a 50 mm and a 600 mm gap, which is what licenses flattening a chain's glass into one stack; the shift shown to be dispersive — blue pushed further back, the opposite of what a positive element does — which makes a glass diagonal a colour COMPENSATOR for both doublets measured (BK7/F2 at −0.2098 mm and § 5k's ED pair at −0.5068 mm), though an achromat's F−C spread is a RESIDUAL whose sign belongs to the lens, so the compensation is measured on two glass pairs rather than asserted as a law; the amount it moves each identical at 0.139742 mm to six digits, four Rayleigh depths of focus at f/5 and inside one at f/10, and invisible to any budget made of lengths; the cost a fourth power of the aperture with the exact form outrunning W₀₄₀ (×16.0216 at f/20→f/10 against ×16.5629 at f/4→f/2, ratio 1.0469 by f/2) and the quarter wave landing at **f/5.315** where the step was scoped for f/3–f/4; and the sixth geometric ceiling, the first from a MOUNT rather than the ray invariant — a single group cannot be DIN-parfocal below M = [x′+√(x′²+4Px′)]/2P = **4.1387** (4.236 with real glass), which is why a real 4× cannot be one doublet | `mech` |
 | [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective | `microscope` `seidel` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
@@ -2708,6 +2709,158 @@ Tolerancing lands here, at step 5, rather than in v2: once tilt/decenter exists
 two traces, and it is the most educational thing the simulator can show — a slider
 per tolerance, the image degrading as the RSS budget predicts. **That surface now
 exists** (APP.md Part B), and the three measurements above are what it found.
+
+## Step 5u — the mechanical layer: the glass path that is not its own length
+
+ARCHITECTURE has carried a `mech/` line since the beginning — "barrels, threads,
+parfocal/back-focus distances; **data + rules; mechanical changes feed back into
+optical spacings**" — and it is ROADMAP step 5's last unbuilt item. Most of it is
+a parts list, and a parts list is not physics. What makes it a ladder step is the
+single claim it exists to get right: **a part's mechanical length and its optical
+cost are different numbers**, and the difference is exactly the glass inside it.
+
+So the discipline here is inverted from every other step, and the inversion is
+written into the module's own file split. `mech/standards.ts` is transcribed
+interface data — 31.75 mm, 55 mm, 45 mm — and is **not rungs**: this file's rule
+is that a rung asserts a number from outside the engine, and `TWO_INCH === 50.8`
+is a spelling check on a constant. `mech/path.ts` is rules over that data.
+`mech/insert.ts` is the one route into the optics, and it hands the tracer glass
+rather than handing an image a formula.
+
+That last point is the whole reason the step is honest. `t(1−1/n)` has a closed
+form and it would have been trivial to *apply* it — move the image plane and
+call the mechanical layer done. The result would have shifted focus correctly
+and carried **no spherical aberration and no colour**, because neither was put
+in by hand. `withGlassPath` splices plane surfaces into the prescription and lets
+the sequential tracer find the focus, so all three arrive from one operation and
+the closed form is pinned *against* the trace rather than substituted for it.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A spliced chain moves the traced focus by exactly t(1−1/n)** | closed form (§ 6c), 9 digits | ✅ |
+| **The shift is position-independent along the converging beam** — same focus, same OPD | exact geometry | ✅ |
+| Linear in thickness; additive across layers of different glass | closed form | ✅ |
+| **The naive air-only budget over-reports the cost by exactly Σtᵢ(1−1/nᵢ)** | closed form + trace | ✅ |
+| A mirror diagonal hands back a hard zero | negative control | ✅ |
+| **The focus shift is itself dispersive: t(1/n_C − 1/n_F), traced** | Schott N-BK7 catalog, 8 digits | ✅ |
+| The same plate moves two different doublets' F−C residual identically | trace, two glass pairs | ✅ |
+| The cost goes as (f/#)⁻⁴, and the exact form outruns the third-order one — **closed form only, no trace in this step** | W₀₄₀ vs the all-orders form, both trace-pinned at § 6c.1 | ✅ |
+| **A single group cannot be DIN-parfocal below M = [x′+√(x′²+4Px′)]/2P** | closed form, = 4.1387 | ✅ |
+| A part carrying more glass than its light path is refused | construction | ✅ |
+
+### The measurement the layer exists for
+
+A 2″ prism star diagonal — ~110 mm of light path with ~40 mm of N-BK7 in it —
+consumes all 110 mm mechanically and hands **13.6287 mm** of it back optically,
+because a plate pushes the focus by t(1−1/n) and 1 − 1/n is **0.3407** at the d
+line. That is the "a prism diagonal buys back about a third of its glass" folk
+result, with the engine's own catalog index in it rather than a rule of thumb.
+
+Spliced into an f/10 achromat the *traced* paraxial focus moves by that number to
+nine digits. On a chain of diagonal + 20 mm spacer + a 44 mm SLR body, the naive
+sum is wrong by **7.83% of the whole chain's length** — not a rounding term, and
+always in the same direction: it never invents reach that is not there, it only
+denies reach that is. On a focuser with 150 mm of back focus and 2 mm of
+in-travel the two verdicts **genuinely disagree**: the spreadsheet says the train
+does not reach and the physics says it does.
+
+### The finding that is not arithmetic: the position does not matter, exactly
+
+A plane plate slid along a converging beam meets every ray at the same angle,
+because the pencil is a cone of *straight lines* and a perpendicular plane
+crossing it does not change any of them. So neither the focus shift nor the
+aberration depends on where the glass sits — only the clear aperture it needs
+there does. Pinned by tracing the same 40 mm prism at a 50 mm gap and a 600 mm
+gap: the focus agrees to 1e-11 mm and the OPD map agrees point for point to below
+**1e-6 waves** over a 100 mm aperture.
+
+It is an exact statement rather than a small-angle one, and it is what licenses
+`insert.ts` to flatten a whole chain's glass into one contiguous stack instead of
+modelling the air between the parts. The air is not a surface; what the spacers
+do is set the total, and the total was already the trailing thickness.
+
+### The colour, and how far the sign claim actually reaches
+
+The focus shift is dispersive — t(1−1/n) grows with n — so a plate pushes **blue
+further back** than red. The traced spread the prism adds is t(1/n_C − 1/n_F) to
+eight digits, and *that* is the pin. A positive element does the reverse for the
+same reason (a larger n is a shorter focal length), and that half is a law.
+
+**The tempting next sentence is not, and it is worth saying why.** "So a glass
+diagonal is a colour compensator" requires the lens's F−C spread to have the
+opposite sign, and for an achromat that spread is a **residual**: F and C are
+united by design, and what is left is the thin-lens split's Gullstrand
+remainder, whose sign belongs to the lens and not to lenses. § 5j and § 5k
+already show partial dispersions are exactly the delicate quantity here. So the
+compensation is *measured on two glass pairs rather than asserted on one*: the
+BK7/F2 achromat at f/5 carries −0.2098 mm and § 5k's CaF₂/BK7 ED pair −0.5068 mm,
+both undercorrected the same way, and the diagonal reduces both.
+
+What is exactly identical across the two is the amount it moves them —
+**0.139742 mm** to six digits, because the plate does not know what it is bolted
+to. And that magnitude is not negligible: it is **more than four Rayleigh depths
+of focus at f/5** (2λ(f/#)²) and inside one at f/10. A diagonal's own colour is a
+fast-scope problem, and it is invisible to any budget made of lengths.
+
+### Where the glass stops being free — and it is not where this step guessed
+
+The plate's wavefront error is W₀₄₀ = t(n²−1)s⁴/(8n³) with s = 1/(2·f/#), so the
+cost is a **fourth power of the aperture** — ×16 per halving of the focal ratio.
+The exact all-orders form (§ 6c) outruns it the way § 6l's does: ×16.0216 between
+f/20 and f/10, ×16.5629 between f/4 and f/2, and the exact/third-order ratio
+climbs monotonically to 1.0469 at f/2.
+
+Bisecting for Rayleigh's quarter wave puts the crossing at **f/5.315**, where this
+step was scoped expecting f/3–f/4. The correction matters, because f/5 is an
+ordinary focal ratio and f/3 is not: an ordinary prism diagonal is comfortably
+free on an f/10 refractor (0.0794 of a quarter wave), sits essentially **at** the
+Rayleigh limit on a common f/5, and is a genuine aberration on anything faster.
+Which is the numerical version of why a diagonal is uncontroversial visually and
+argued about for imaging.
+
+### The sixth geometric ceiling, and the first that comes from a mount
+
+The parfocal standard says an objective must put its specimen 45.0 mm below the
+nosepiece shoulder, whatever its magnification — that is what makes a turret
+work. The optics are already solved, so what the standard adds is where the whole
+thing *hangs*: barrel = parfocal − (object distance + glass length). For the
+objectives that fit, the barrel is what absorbs the difference and it is not a
+constant — a 10× still stands well back from its specimen and needs a short one,
+a 40× is nearly against it and needs almost the whole 45 mm as mount.
+
+**And a 4× does not fit at all.** A single group working at magnification M
+against Newton's x′ has f = x′/M and stands off its object by f(1+1/M), so the
+shortest it can *possibly* be from its specimen is x′(M+1)/M² — before any glass
+and before any mount. Setting that equal to the parfocal distance P gives
+
+    P·M² − x′·M − x′ = 0    ⇒    M_min = [x′ + √(x′² + 4·P·x′)] / (2P)
+
+which for the DIN pair (x′ = 150, P = 45) is **4.1387**. Below it the standard is
+unreachable by construction. With the built doublet's real thickness the floor
+rises to **4.236**, bisected on the refusal.
+
+This is the sixth geometric ceiling in the repo after § 6b's f/4.1, § 6d's NA
+0.343, § 6e.4's NA 1.411, § 6q's 0.88·f_e and § 6l's n_s, and it is the first that
+comes from a **mount** rather than from the ray invariant — which is exactly the
+class of constraint ARCHITECTURE put this layer in the tree for. Its physical
+content is that a real 4× DIN objective **cannot be one doublet**: the standard
+reaches back into the optical design and demands a front group closer to the
+specimen than a single group can be.
+
+### Not yet pinned
+
+- **Barrel vignetting.** The spliced faces default to an unbounded clear
+  aperture, so a 1.25″ diagonal in a 2″ beam does not clip here. It physically
+  does, § 2f's machinery is what would catch it, and `semiApertureMm` is the hook
+  — the missing piece is a rung, not a mechanism.
+- **The sensor's own cover glass** is glass in the converging beam and does shift
+  focus on a fast astrograph. `parts.ts` deliberately leaves it out of
+  `cameraBody` rather than inventing a per-body thickness nobody can check.
+- **Tilted elements.** Every part here is normal to the axis. A tilted plate
+  displaces and astigmatizes, and § 1 already pins the displacement.
+- **The tube-length error** — a 160 mm objective used at 170 — and its known
+  equivalence with a coverslip error as mutual compensators. § 6c has the
+  machinery; this step took the parfocal half of the standard and not that one.
 
 ## Step 6a — the infinity-corrected microscope: architecture and the first objective
 

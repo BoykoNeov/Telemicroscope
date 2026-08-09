@@ -16,6 +16,7 @@
     "./illumination": "./src/illumination/index.ts",
     "./photometry": "./src/photometry/index.ts",
     "./imaging": "./src/imaging/index.ts",
-    "./designs": "./src/designs/index.ts"
+    "./designs": "./src/designs/index.ts",
+    "./mech": "./src/mech/index.ts"
   }
 }
