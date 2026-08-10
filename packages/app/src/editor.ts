@@ -580,8 +580,13 @@ export function benchSeeds(): readonly BenchSeed[] {
  * showing it is how a reader sees that 0.95 in air and 1.4 in oil are the same
  * kind of number and that the engine has an index in hand.
  */
-export const objectSinU = (draft: BenchDraft, numericalAperture: number): number =>
-  numericalAperture / MEDIA_BY_NAME.get(draft.objectMedium)!.n(LINE_D);
+export const objectSinU = (draft: BenchDraft, numericalAperture: number): number => {
+  const medium = MEDIA_BY_NAME.get(draft.objectMedium);
+  // `toPrescription` refuses an unknown medium rather than asserting, and this
+  // renders inside the panel — a throw here is a blank page, not a refusal.
+  if (!medium) throw new AppRefusal(`unknown object medium: ${draft.objectMedium}`);
+  return numericalAperture / medium.n(LINE_D);
+};
 
 /**
  * The draft with its last thickness moved to the paraxial image — the focus

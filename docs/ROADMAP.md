@@ -507,7 +507,11 @@
    immersion**, recorded rather than papered over: `objectNA`'s aperture seed is a
    tangent and is 2.6× out at NA 1.4; telecentricity needs object-space ray aiming
    that does not exist; and F = 1/(2·NA) means high NA is a different glass form
-   (Lister, then the aplanatic hyperhemisphere), not a faster doublet.
+   (Lister, then the aplanatic hyperhemisphere), not a faster doublet. **Two of the
+   three are now closed** — the glass form by § 6e.2–6e.4, and the seed by § 1.5.1,
+   which took neither this step nor the immersion one that was expected to need it
+   (both hand their chains a `stopRadius`) but a *panel*. Telecentricity is the
+   survivor.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it

@@ -15,7 +15,7 @@ whole ladder.
 | Step | What it pins | Tests |
 |---|---|---|
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
-| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil | `pupil` `opd` `compile` |
+| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused | `pupil` `opd` `compile` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
@@ -263,6 +263,18 @@ The correction's own shape is worth one line, because it is the reason the defec
 survived every rung: the wrong form is the right form's **limit**, so it is exact
 on axis at low aperture and degrades smoothly. There is no aperture at which it
 is visibly broken — only apertures at which it is quietly 15% out.
+
+**"Nothing landed moves" is checked at the call sites and not inferred from the
+suite**, since a green suite is exactly what the finding says cannot see this.
+Two modules in `core` resolve an aperture they did not author. `analysis/focus`'s
+`freezeAperture` rewrites any non-`stopRadius` spelling to the radius it
+currently resolves to, so a refocus optimises a fixed pupil rather than a moving
+one; `pupil/aperture-stop` seeds § 5p's fill competition with `r0 =
+resolveStopRadius(...)`, and there a wrong radius would change *which surface
+wins*. Both reach the branch only through this function, so both inherit the fix,
+and the new refusal is reachable only where the old code returned ∞/NaN into
+their arithmetic. Neither constructs an NA spelling itself — which is the same
+sentence as before, now with the two places that could have falsified it named.
 
 ## Step 1.6 — focus solve + spot diagrams
 
@@ -4014,8 +4026,11 @@ the same commit — as are the app's D6.5 rungs and the eyepiece panel's own pro
   some write M = 160/f outright, which conflates the two lengths. Every rung is a
   ratio against the stated value, so sourcing a corrected one moves labels and no
   physics — the same treatment § 6a gave Zeiss's 165-vs-164.5.
-- **Telecentricity, the `objectNA` seed, and immersion** remain exactly as § 6a
-  left them; this step changes none of them.
+- **Telecentricity and immersion** remain exactly as § 6a left them; this step
+  changes neither. The third of that trio, **the `objectNA` seed, is ✅ closed at
+  [§ 1.5.1](#151--an-na-is-nsin-u-and-the-arm-holds-a-tangent)** — and not by
+  this step or by the immersion one that was expected to need it, since both
+  hand their chains a `stopRadius`. It took a *panel*.
 
 ## Step 6c — the coverslip, and what mismatching it costs
 
