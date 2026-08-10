@@ -3235,6 +3235,201 @@ already showed.
 
 ---
 
+## Part F — the build you can look through — *app wiring only* — **scoped, not landed**
+
+D8 answered *"can we compose one and change its components?"* and Part E answered
+*"can we author the surface list under it?"* Neither answered the question a
+reader actually asks next, which is **"can I see through the one I built?"** —
+and the answer is no. The builder draws no picture, and every panel that draws
+one addresses its objective by a **name from a closed list of ten**.
+
+This section is the scope for closing that. It is app wiring only in the strict
+sense this doc uses: no engine call changes, no constructor gains a parameter, no
+rung is added or moved. What changes is which value the imaging panels carry.
+
+### What is already true, which is most of it
+
+Three things that would otherwise be the expensive parts are already done, and
+the scope is small **because** of them:
+
+1. **The catalogue is already builder specs.** D8 made `MicroscopeEntry` carry a
+   `BuildSpec` and a `build: () => buildMicroscope(spec).system` closure
+   (`microscope.ts:101`). Every imaging panel is therefore *already* rendering a
+   builder-built system. What is frozen is not the pipeline — it is the ten
+   specs.
+2. **`describeSystem` is already shared.** D8 extracted it so A1's readouts run
+   against whatever is built. Nothing about the readout layer is catalogue-shaped.
+3. **Refusals already reach the screen from inside a render.** Every imaging
+   adapter wraps its build in `try`/`catch` and returns
+   `{ ok: false, error }` — `brightfield.ts:338`, `fluorescence.ts:345`,
+   `volume.ts:687`, `stage.ts:287`, `section.ts:514`, `eyepiece.ts:329` — and the
+   panels print it in red with the engine's own words
+   (`brightfield.tsx:102`, `fluorescence.tsx:365`, `stage.tsx:498`). That path is
+   live today: it is what `din-4x-020` and `lister-40x-040` do when selected in
+   brightfield. **So "build something impossible and watch a picture panel quote
+   the engine's own refusal" needs no new plumbing at all.** It is the headline of
+   this part and it arrives for free.
+
+### The seam, enumerated
+
+One indirection is the whole obstacle: `MicroscopeKind` — a ten-member string
+union (`microscope.ts:68`) — is what a request carries, and `entryOf` throws on
+anything not in it (`microscope.ts:203`). Three groups of call sites:
+
+- **The two build chokepoints.** `buildFrame(request)` reads `request.kind`
+  (`microscope.ts:424`) and is called ten times: `brightfield.ts:273,404`,
+  `fluorescence.ts:276,446`, `volume.ts:545,920,974,1035,1328,1406`.
+  `entryOf(kind)` is reached directly three more times: `section.ts:425`,
+  `stage.ts:141`, `eyepiece.ts:268`.
+- **Ten request types** carry `kind: MicroscopeKind` and cross a `postMessage`
+  boundary: `brightfield.ts:77`, `fluorescence.ts:83`, `section.ts:75`,
+  `stage.ts:105`, `volume.ts:298,820,1125,1137`, `eyepiece.ts:143,535`.
+- **Six non-null assertions**, one per panel, of the form
+  `MICROSCOPE_CATALOG.find(e => e.kind === k)!.label` —
+  `brightfield.tsx:340`, `fluorescence.tsx:314`, `section.tsx:236`,
+  `stage.tsx:397`, `volume.tsx:638`, `eyepiece.tsx:367`. A custom objective
+  reaching any of these is `undefined.label`. **This is the concrete break
+  list**, and it is why the work is checkable rather than narrative.
+
+**Send the spec, never the entry.** `MicroscopeEntry.build` is a closure and does
+not survive `postMessage` — which is part of why the requests carry a string
+today. `BuildSpec` is strings, numbers and one plain discriminated union, so it
+structured-clones without ceremony. Nobody should reach for the entry.
+
+### Decision 1 — what a request carries
+
+- **A. Replace `kind` with `spec: BuildSpec`.** The string union disappears and
+  the catalogue becomes what it already is, a list of named specs. Largest diff,
+  no second path to maintain.
+- **B. A discriminated `ObjectiveRef`** — `{catalog: MicroscopeKind}` or
+  `{custom: BuildSpec}`. Smaller diff; two paths forever, and every readout site
+  has to ask which it has.
+
+**Recommend A.** After D8 the `kind` is pure indirection, and B's second path
+exists only to preserve a lookup nothing needs. **But note the de-risking claim
+that does not hold:** D8 records that the ten entries "were checked identical —
+object for object, and message for message" against the two-argument calls they
+replaced, and `packages/app/test/builder.test.ts` does **not** contain that check
+— it pins the infinity-refusal behaviour and nothing else. That verification was
+a one-off. Under A it should become a standing test (below), which is cheap and
+worth having regardless of which option is taken.
+
+### Decision 2 — where a custom build lives between routes
+
+This is the one genuinely user-facing choice, and `registry.ts` states the value
+it trades against: *"`id` is the URL hash, so a route survives a reload and can be
+linked to."* A panel owns its own state and unmounts on route change, so a build
+made in the builder needs somewhere to be.
+
+- **Hash parameter.** The spec serializes into the URL. Survives reload **and is
+  sendable to another person** — the design and the view are one link. Sixteen
+  fields makes for an ugly hash, and it needs a versioned encoding or an old link
+  silently decodes wrong.
+- **A saved slot (`localStorage`), one build at a time.** Cleanest to build, no
+  encoding to version, survives reload. **Loses linkability** — a saved build
+  cannot be sent to anyone, which is the property `registry.ts` calls out.
+- **React context in `App.tsx`.** Simplest of the three and the weakest: does not
+  survive a reload, so a link to a picture of your build is not a thing.
+
+No recommendation is forced here; the trade is linkability against encoding cost,
+and it is a product call rather than an engine one. If asked: **the saved slot
+first, with the hash left possible** — the encoding is additive, and a slot that
+cannot be linked is still strictly more than the nothing that exists today.
+
+### What must not regress, and the rule that says so
+
+**The panels' prose names objectives, and with a custom build selected those
+sentences misdescribe what is on screen.** `fluorescence.tsx:485` prints "the DIN
+4×/0.10 drops 0.659% and the infinity 20×/0.10 drops 0.997%"; `volume.tsx:866`
+attributes 90/92/100% focus shares to three named rows. A4's own rule is the
+standard: *a stale reading may be shown greyed only if nothing on screen
+misdescribes it* — and it withdrew a plot rather than dim it for exactly this
+reason. **Line item: every objective-specific claim is gated on a catalogue row
+being the selection.** In this repo that is not polish.
+
+**Two smaller ones.**
+
+- The refusal branches say *"the engine refuses this render"* unconditionally,
+  and the imaging results carry only `{ ok, error }` with **no `source` field**
+  (`brightfield.ts:156`). Today only engine refusals are reachable, so it is
+  true; a custom spec makes `AppRefusal` reachable in principle, and this repo
+  does not let an app sentence wear the engine's voice. `refusal.ts` already has
+  the shape — thread `source` through, or gate the build so an unbuildable spec
+  can never be saved. One field either way.
+- A custom build has no `label` and no `note`. The panels must not print a
+  catalogue note beside a lens the catalogue never described.
+
+### Cost — and there is no new cost class
+
+**A custom spec is not more expensive than a catalogue one.** The catalogue
+already contains `lister-40x-020` and `oil-100x-140`, whose builds D8 measured at
+**131–181 ms**, and brightfield, fluorescence and volume already pay that per job
+for them and are documented live. Nothing about a user's spec is a new class of
+work.
+
+**The wall bisection stays out of the imaging path by construction** — it lives in
+`describeBuild` (`microscope.ts:415`), not in `buildFrame`. That matters more
+since § 6b.5.6: the DIN bisection now measures **~1.15 s**, which would be
+unaffordable per render and is never reached from one.
+
+**One cache breaks and it is the only one.** `stage.ts:134` holds
+`SYSTEMS = new Map<MicroscopeKind, OpticalSystem>()`, memoizing a build across the
+tens of tiles a mosaic asks for. A spec is not a map key. It needs one canonical
+key function — field order fixed in code rather than inherited from whatever
+`postMessage` handed over — and one call site changes.
+
+### What would pin it
+
+No physics is added, so **no ladder rung is appropriate** and one would be a
+category error. App tests, in `packages/app/test/`, following D10's and Part E's
+precedent:
+
+1. **The identity D8 claimed and never pinned.** For each of the ten catalogue
+   entries, the spec path and the kind path produce the same system and the same
+   readout — and, for the three rows that exist to be refused, the **same
+   message**. This is the check that makes A safe, and it is the one that
+   currently does not exist.
+2. **A round trip through whatever encoding decision 2 picks**, so a saved or
+   linked build rebuilds the design it was saved from rather than one that
+   resembles it — `editor.test.ts`'s seed round-trip, applied to `BuildSpec`.
+3. **A refusing custom spec returns rather than hangs**, through at least one
+   imaging adapter. `builder.test.ts`'s own posture: the point is that it
+   *returns*, because an unbounded solve is the one failure a panel cannot
+   report.
+
+### What stays out
+
+- **A custom objective in the bench table.** A1's table is a comparison whose
+  rows are arranged to make two findings read off it; an eleventh row that moves
+  would break the arrangement rather than extend it.
+- **More than one saved build.** A library of builds is a different surface with
+  its own naming and deletion questions. One slot answers the question asked.
+- **A custom *condenser*, eyepiece, camera or stage.** `BuildSpec` is **the
+  objective** — with the tube lens's focal length tied to it — and nothing here
+  widens it. The mismatches a reader might expect to simulate (an infinity
+  objective on the wrong tube, an objective with no tube lens) are *designed out*
+  of `BuildSpec` on stated grounds — `builder.ts:332`, "a magnification quoted
+  against one tube and formed by another is a mislabelled lens, not a design" —
+  and unpicking that is a different scope with a different argument behind it.
+- **A retinal picture through the eyepiece.** § 6q's named open item, unchanged
+  by any of this: the visual exit beam is collimated and there is no image plane
+  to render.
+
+### The prediction
+
+This doc has been wrong in the same direction six times — *the feasibility number
+turns out to be measuring something else* — so the thing worth predicting is
+where this scope's own confidence is misplaced. It is not the plumbing, which is
+enumerated above and countable. The candidate is **the prose gate**: "gate the
+objective-specific claims" is written here as a line item, and the panels'
+teaching is *made of* those claims. A brightfield panel whose caption withdraws
+every measured comparison the moment a custom objective is selected may be
+correct and useless, and the fix — a caption that says something true about an
+arbitrary design — is writing rather than wiring. That is the half of this scope
+with no measurement behind it.
+
+---
+
 ## What the app itself needs to hold this
 
 Structural work implied by the above, independent of which surfaces land:
