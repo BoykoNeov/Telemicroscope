@@ -10,6 +10,7 @@ import {
   MIN_SENSOR_COLS,
   OPTIC_LABELS,
   OPTIC_NOTES,
+  PITCH_SLIDER_MAX_UM,
   buildCameraSystem,
   chromaticDeparturePoints,
   chromaticPitchSpread,
@@ -48,9 +49,16 @@ import {
  * ## Its shape: one picture, one table, two plots
  *
  * The picture is the expensive half and lives in a worker. Everything beside it
- * — the format table, the per-λ critical pitches, both MTF sweeps — is chief
- * rays and array arithmetic, microseconds, and repaints on the slider's own
- * tick. `reflector.tsx`'s asymmetry, falling the same way.
+ * — the format table, the per-λ critical pitches, both MTF sweeps — runs no
+ * transform and repaints on the slider's own tick. `reflector.tsx`'s asymmetry,
+ * falling the same way.
+ *
+ * That half is **not** free, though, and this comment said it was until it was
+ * measured: 50 ms in node, ~115 ms in a browser at A4's 2.3×, of which 21–28 ms
+ * is one `buildCameraSystem` — because in this engine building a system is not
+ * construction, it is a `bestFocus` solve. The memo keys below are what keep it
+ * usable, and they are chosen by what each block genuinely varies with rather
+ * than by what is in scope.
  */
 
 const DEFAULT: CameraSpec = {
@@ -148,8 +156,54 @@ function Pictures({ request }: { request: CameraRequest }) {
           </figcaption>
         </figure>
       </div>
+      {result && <FrameGuards result={result} />}
       {result && !result.refusal && <PictureReadouts result={result} />}
       {result && <ExposureReadouts result={result} />}
+    </div>
+  );
+}
+
+/**
+ * § 3b's two guards, and on this panel they are not boilerplate.
+ *
+ * APP.md's trait 2 — *"an app that showed that silently would be lying with more
+ * conviction than one that showed nothing"* — and both of these bite **inside
+ * this panel's own slider ranges**, which is why they are here rather than
+ * assumed away. At the fast end, singlet f/4 with a 20 mm aperture, the frame
+ * loses **1.45%** of its light off the grid (where it *wraps* rather than
+ * vanishing) and `geometricWeight` reaches **1.000000** — the fidelity switch
+ * abandoning the transform entirely for a ray histogram.
+ *
+ * That second one is the dangerous one *for this surface specifically*, and it
+ * is a coupling no other panel has: everything to the right of the picture — the
+ * critical pitch, the sampling verdict, the whole λ/(4·NA) contest — is about a
+ * **diffraction** limit, and a fully geometric frame is not showing one. The
+ * numbers stay true of the system; the picture stops illustrating them. Saying
+ * so is the difference between a panel and a plausible one.
+ *
+ * Thresholds are C1's, deliberately: `thresholdLevel(·, 0.01)` for truncation
+ * and warn on any geometric weight at all. A reader who learned what red means
+ * on the reflector panel should not have to relearn it here.
+ */
+function FrameGuards({ result }: { result: CameraResult }) {
+  return (
+    <div style={{ marginTop: 8, display: "flex", gap: 24, flexWrap: "wrap" }}>
+      <Guard
+        label="light that left the grid:"
+        value={`${(result.truncatedFraction * 100).toFixed(2)}%`}
+        level={thresholdLevel(result.truncatedFraction, 0.01)}
+        detail="off-grid light WRAPS rather than vanishing, so a red number here means the frame is vivid and wrong — not merely dim (§ 3b)"
+      />
+      <Guard
+        label="geometric branch:"
+        value={`${(result.geometricWeight * 100).toFixed(0)}%`}
+        level={result.geometricWeight > 0 ? "warn" : "ok"}
+        detail={
+          result.geometricWeight > 0
+            ? "the wavefront is too aberrated for the FFT here, so this frame is part ray histogram — and everything beside it is about a DIFFRACTION limit, which a geometric frame does not show"
+            : "the frame is the diffraction branch throughout, which is what the critical-pitch table beside it assumes"
+        }
+      />
     </div>
   );
 }
@@ -339,10 +393,15 @@ export function CameraPanel() {
           value={spec.focalRatio}
           onChange={(v) => set("focalRatio", v)}
         />
+        {/* Max 30 µm, not 20: at `pupilSamples` 32 the frame is 174.2 µm, so a
+            20 µm pitch records exactly 8 columns — `MIN_SENSOR_COLS` and not
+            below it, which left the refusal branch unreachable from the
+            controls. A guard the sliders cannot reach is the same honesty
+            problem as one that never fires. 25 µm reaches it. */}
         <Slider
           label={`pixel pitch ${pitchUm.toFixed(2)} µm`}
           min={1}
-          max={20}
+          max={PITCH_SLIDER_MAX_UM}
           step={0.02}
           value={pitchUm}
           onChange={setPitchUm}

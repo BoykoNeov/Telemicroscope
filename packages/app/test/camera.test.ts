@@ -4,6 +4,7 @@ import {
   CAMERA_OPTICS,
   FOCUS_NM,
   MIN_SENSOR_COLS,
+  PITCH_SLIDER_MAX_UM,
   buildCameraSystem,
   chromaticDeparturePoints,
   chromaticPitchSpread,
@@ -253,6 +254,58 @@ describe("the rebin: what the sensor does to the light", () => {
     // The native frame is still delivered — a refusal removes the sensor, not
     // the panel.
     expect(result.nativeRgba.length).toBeGreaterThan(0);
+  });
+
+  it("…and the sliders can actually reach that refusal", () => {
+    // A guard the controls cannot reach is dead UI, which is the same honesty
+    // problem as one that never fires. The pitch slider had a 20 µm maximum,
+    // and at `pupilSamples` 32 the 174.2 µm frame records EXACTLY 8 columns
+    // there — `MIN_SENSOR_COLS` and not below it. The max is 30 µm for this
+    // reason, so the rung is on the reachability rather than on the number.
+    const atSliderMax = renderCamera({
+      ...spec("achromat", { pupilSamples: 32 }),
+      pitchUm: PITCH_SLIDER_MAX_UM,
+      seconds: 1,
+      gain: 1,
+    });
+    expect(atSliderMax.refusal).toBeDefined();
+  });
+});
+
+describe("§ 3b's guards are on screen, because both bite inside the sliders", () => {
+  it("the fast end of the focal-ratio slider truncates past C1's 1% threshold", () => {
+    // APP.md's trait 2. This panel computes `truncatedFraction` and
+    // `geometricWeight`, and the first version displayed neither — while its own
+    // focal-ratio slider reaches f/4, where they are not zero. The rung is that
+    // the reachable worst case is genuinely bad enough to need the readout, so
+    // deleting the guard would redden here rather than pass quietly.
+    const fast = renderCamera({
+      ...spec("singlet", { focalRatio: 4, apertureMm: 20 }),
+      pitchUm: 3.76,
+      seconds: 1,
+      gain: 1,
+    });
+    expect(fast.truncatedFraction).toBeGreaterThan(0.01);
+  });
+
+  it("…and the frame there is fully GEOMETRIC, which the table beside it is not about", () => {
+    // The coupling that makes this panel's version of the guard load-bearing
+    // rather than boilerplate: the critical pitch, the verdict and the whole
+    // λ/(4·NA) contest are about a DIFFRACTION limit, and at the fast end the
+    // fidelity switch has abandoned the transform completely.
+    const fast = renderCamera({
+      ...spec("singlet", { focalRatio: 4, apertureMm: 20 }),
+      pitchUm: 3.76,
+      seconds: 1,
+      gain: 1,
+    });
+    expect(fast.geometricWeight).toBeCloseTo(1, 6);
+
+    // …while the panel's default configuration is clean on both, so the guards
+    // are informative rather than permanently red.
+    const nominal = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1 });
+    expect(nominal.truncatedFraction).toBe(0);
+    expect(nominal.geometricWeight).toBeLessThan(1e-3);
   });
 });
 

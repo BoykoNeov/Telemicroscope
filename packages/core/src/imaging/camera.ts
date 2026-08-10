@@ -137,12 +137,23 @@ function fieldAngleAtImageRadius(
   wavelengthNm: number,
 ): number {
   if (radiusMm <= 0) return 0;
-  /** `null` where the chief ray does not survive — a fact about the field. */
+  /**
+   * `null` where the chief ray does not survive — a fact about the field.
+   *
+   * The last failure is kept so the refusal below can quote the tracer rather
+   * than paraphrase it. That matters because not every failure is a field
+   * limit: a vignetted chief ray is one, and a total internal reflection or a
+   * numerical breakdown is not, and swallowing all three into "outside the
+   * field this system passes" would relabel a tracer bug as geometry — the
+   * same conflation this whole fix exists to undo, one level down.
+   */
+  let lastFailure = "";
   const radiusAt = (deg: number): number | null => {
     try {
       const p = imagePointOf(system, deg, 0, wavelengthNm);
       return Math.hypot(p.x, p.y);
-    } catch {
+    } catch (error) {
+      lastFailure = (error as Error).message;
       return null;
     }
   };
@@ -155,7 +166,7 @@ function fieldAngleAtImageRadius(
   }
   if (probe === null) {
     throw new Error(
-      `no chief ray reaches the image: the trace fails at every field down to ${hi.toExponential(3)}°`,
+      `no chief ray reaches the image: the trace fails at every field down to ${hi.toExponential(3)}° (${lastFailure})`,
     );
   }
   // `lo` stays 0, as it did before: the radius need not be monotone in field
@@ -178,7 +189,8 @@ function fieldAngleAtImageRadius(
   if (reached === null || reached < radiusMm * (1 - 1e-6)) {
     throw new Error(
       `image radius ${radiusMm.toFixed(4)} mm is outside the field this system passes: ` +
-        `the chief ray reaches ${reached === null ? "nothing" : `${reached.toFixed(4)} mm`} at ${answer.toFixed(4)}° and does not survive beyond it`,
+        `the chief ray reaches ${reached === null ? "nothing" : `${reached.toFixed(4)} mm`} at ${answer.toFixed(4)}° and does not survive beyond it` +
+        (lastFailure === "" ? "" : ` (${lastFailure})`),
     );
   }
   return answer;

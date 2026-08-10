@@ -140,6 +140,18 @@ const TRACE_SAMPLES = 21;
 export const MIN_SENSOR_COLS = 8;
 
 /**
+ * The pitch slider's upper bound, and it lives here rather than in the panel
+ * because it is part of the refusal above rather than a layout choice.
+ *
+ * At 20 µm — the first value chosen — a `pupilSamples` 32 frame of 174.2 µm
+ * records **exactly 8** columns, which is `MIN_SENSOR_COLS` and not below it, so
+ * the red refusal box could not be reached by any combination of controls. A
+ * guard the sliders cannot reach is dead UI, which is the same honesty problem
+ * as one that never fires. 25 µm reaches it; 30 gives room either side.
+ */
+export const PITCH_SLIDER_MAX_UM = 30;
+
+/**
  * The one arbitrary scalar on this panel, and it is arbitrary because § 3a's
  * magnitude → photon-flux zero point is deliberately absent.
  *

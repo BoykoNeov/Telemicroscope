@@ -1592,8 +1592,9 @@ f/10 → f/5 against the paraxial 4, the excess being the faster stop's
 sine-condition departure — and this panel has no extended source in it, so that
 number is printed beside the picture rather than drawn through it.
 
-**Seven findings, four of which were wrong predictions first**, and two of the
-seven only exist because the panel was driven rather than reasoned about.
+**Nine findings, four of which were wrong predictions first**, and four of the
+nine only exist because the panel was driven or reviewed rather than reasoned
+about.
 
 **The headline: the critical pitch is not λ/(4·NA) with λ alone moving.** The
 traced NA moves too, and *how* it moves is the lens's chromatic correction. Over
@@ -1691,6 +1692,27 @@ cell (1.000000000000 at footprints 2, 3, 4 and 5.5, integer and not), while the
 star gains strictly less — 6.25 of 7.63 at footprint 2.763 — and the deficit is
 the PSF core's curvature rather than anything the rebin did. Running only the
 star would have made that deficit look like a defect.
+
+**And the two guards this doc's own trait 2 requires were computed and not
+displayed** — caught in review, before the panel was called done. Both bite
+*inside this panel's own slider ranges*, which is why it matters here rather
+than as a checklist item: at the fast end, singlet f/4 with a 20 mm aperture,
+**1.45%** of the light leaves the grid (where § 3b says it *wraps* rather than
+vanishing) and `geometricWeight` reaches **1.000000**. That second one is a
+coupling no other panel has. Everything to the right of the picture — the
+critical pitch, the verdict, the whole λ/(4·NA) contest — is about a
+**diffraction** limit, and a fully geometric frame is not showing one: the
+numbers stay true of the system while the picture stops illustrating them. The
+thresholds are C1's unchanged, deliberately.
+
+**And the refusal the panel was proudest of could not be reached from it.** The
+pitch slider stopped at 20 µm, where a `pupilSamples` 32 frame of 174.2 µm
+records **exactly 8** columns — `MIN_SENSOR_COLS`, and not below it — so the red
+box existed only in the test suite, which reached it at 60 µm. A guard the
+controls cannot reach is the same honesty problem as one that never fires, in
+the other direction, and this doc has no prior entry for that failure mode. The
+bound now lives in the adapter beside the constant it belongs to, and the rung is
+on the *reachability* rather than on the number.
 
 **What it cost that was not budgeted: an engine defect, and it was in a bracket.**
 `fieldOfView` threw on a Newtonian at *every* sensor size. `fieldAngleAtImageRadius`
