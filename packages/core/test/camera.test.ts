@@ -16,6 +16,8 @@ import { systemProperties } from "../src/trace/paraxial";
 import { psf } from "../src/wave/psf";
 import { mtf } from "../src/wave/mtf";
 import { bestFocus, withFocus } from "../src/analysis/focus";
+import { newtonian } from "../src/designs/newtonian";
+import type { OpticalSystem } from "../src/trace/system";
 import { EPD_MM, FOCAL_MM, FOCUS_NM, PSF_OPTIONS, heroPair, heroSystem } from "./support/heroScene";
 
 /**
@@ -267,6 +269,140 @@ describe("resampleToSensor rebins a colour image", () => {
       for (let i = c; i < src.xyz.length; i += 3) a += src.xyz[i]!;
       for (let i = c; i < out.xyz.length; i += 3) b += out.xyz[i]!;
       expect(b).toBeCloseTo(a, 9);
+    }
+  });
+});
+
+/**
+ * § 5r.1 — the FOV bracket may not start outside the system's own field.
+ *
+ * A defect this step's own rungs could not see, found by driving APP.md's C4
+ * camera panel. `fieldAngleAtImageRadius` probed at a fixed 0.5° and doubled
+ * upward, which silently assumes every system passes at least half a degree.
+ * A **folded** one need not: § 2f's diagonal wall stops a Newtonian's chief ray
+ * at a fraction of a degree — 0.346° at f/10 — so `imagePointOf` threw and the
+ * whole sensor's geometry was refused, for sensors whose answer was a tenth of
+ * that angle and perfectly well defined.
+ *
+ * That is a **bracket artifact reported as a physical wall**, and the two must
+ * not be confusable: one is an implementation detail and the other is geometry.
+ * Every rung above runs on the unfolded achromat, where the 0.5° probe always
+ * landed inside, which is exactly why none of them reddened. A6's engine defect
+ * (§ 1.6.1) was the same shape in `bestFocus` — a bracket estimate collapsing —
+ * and is the precedent for pinning the fix here rather than in the app.
+ *
+ * The pin is **external**: the boundary between "answers" and "refuses" must
+ * land on § 2f's own closed form, which is derived from § 4b's diagonal sizing
+ * and written out below rather than imported (it lives in the app package, and
+ * core must not reach into it).
+ */
+describe("§ 5r.1 — a vignetting-limited system still has a field of view", () => {
+  /** § 4b's stand-in focus offset, as a fraction of D. */
+  const K = 0.75;
+
+  /**
+   * § 2f: the field at which a minimum diagonal stops passing the chief ray.
+   *
+   *     tan θ_max = (√2·k/2) / [ (F − ½ − 1/(16F)) · (F − k) ]
+   *
+   * D cancels, so this is a function of focal ratio alone.
+   */
+  const wallDeg = (F: number): number =>
+    (Math.atan(((Math.SQRT2 * K) / 2) / ((F - 0.5 - 1 / (16 * F)) * (F - K))) * 180) / Math.PI;
+
+  const newtonianSystem = (apertureMm: number, focalRatio: number): OpticalSystem => ({
+    prescription: newtonian({ apertureMm, focalRatio }).prescription,
+    aperture: { kind: "EPD", value: apertureMm },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: FOCUS_NM, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  });
+
+  it("answers inside § 2f's wall, where the old bracket threw", () => {
+    // f/10, 200 mm: the wall is 0.346°, well below the 0.5° the bracket used to
+    // start at, so every one of these used to throw `chief ray failed
+    // (vignetted)` regardless of how small the sensor was.
+    const system = newtonianSystem(200, 10);
+    const focal = 2000;
+    const maxRadius = focal * Math.tan((wallDeg(10) * Math.PI) / 180);
+    expect(maxRadius).toBeCloseTo(12.078, 2);
+
+    for (const halfWidthMm of [0.5, 2.8, 6.4, 11.7]) {
+      expect(halfWidthMm).toBeLessThan(maxRadius);
+      const sensor: Sensor = { pixelPitchMm: 2 * halfWidthMm, cols: 1, rows: 1 };
+      const fov = fieldOfView(system, sensor, FOCUS_NM);
+      // The § 5r round trip, unchanged: the reported half-FOV fed back through
+      // the forward map must land on the sensor edge.
+      const landed = imagePointOf(system, fov.widthDeg / 2, 0, FOCUS_NM);
+      expect(Math.hypot(landed.x, landed.y)).toBeCloseTo(halfWidthMm, 6);
+    }
+  });
+
+  it("still refuses outside it, and the boundary IS § 2f's closed form", () => {
+    // The genuine refusal must survive the fix, or it swallowed the wall rather
+    // than stopped tripping over it. Full frame's 18 mm half-width is past the
+    // 12.078 mm the diagonal passes, so the corner has no image point at all.
+    const system = newtonianSystem(200, 10);
+    expect(() =>
+      fieldOfView(system, { pixelPitchMm: 36, cols: 1, rows: 1 }, FOCUS_NM),
+    ).toThrow(/outside the field this system passes/);
+
+    // Where the boundary itself sits is the pin, and it is measured by bisecting
+    // `fieldOfView`'s own answers/refuses transition — not by reading the
+    // engine's message, which is prose and could drift. The engine never sees
+    // the closed form, so agreement is a cross-check of § 4b's diagonal sizing
+    // and not a restatement of it: drop the 1/(16F) sag term and this reddens.
+    for (const [focalRatio, apertureMm] of [
+      [8, 200],
+      [10, 200],
+      [15, 300],
+    ] as const) {
+      const wallSystem = newtonianSystem(apertureMm, focalRatio);
+      const focal = apertureMm * focalRatio;
+      const predicted = focal * Math.tan((wallDeg(focalRatio) * Math.PI) / 180);
+      const answers = (halfWidthMm: number): boolean => {
+        try {
+          fieldOfView(wallSystem, { pixelPitchMm: 2 * halfWidthMm, cols: 1, rows: 1 }, FOCUS_NM);
+          return true;
+        } catch {
+          return false;
+        }
+      };
+      expect(answers(predicted * 0.5)).toBe(true);
+      expect(answers(predicted * 1.5)).toBe(false);
+      let lo = predicted * 0.5;
+      let hi = predicted * 1.5;
+      for (let i = 0; i < 50; i++) {
+        const mid = (lo + hi) / 2;
+        if (answers(mid)) lo = mid;
+        else hi = mid;
+      }
+      expect((lo + hi) / 2 / predicted).toBeCloseTo(1, 4);
+    }
+  });
+
+  it("is a no-op where the old bracket already worked", () => {
+    // The unfolded achromat passes far more than 0.5°, so the shrink loop never
+    // runs and no `radiusAt` returns null. The answer must be the same one the
+    // fixed bracket used to give, to the round trip's own precision.
+    const sensor: Sensor = { pixelPitchMm: 0.005, cols: 1600, rows: 1200 };
+    const fov = fieldOfView(focused, sensor, FOCUS_NM);
+    const halfWidthMm = (sensor.cols * sensor.pixelPitchMm) / 2;
+    const landed = imagePointOf(focused, fov.widthDeg / 2, 0, FOCUS_NM);
+    expect(Math.hypot(landed.x, landed.y)).toBeCloseTo(halfWidthMm, 9);
+  });
+
+  it("a paraboloid has no distortion, so its traced FOV IS the paraxial one", () => {
+    // The control the C4 panel leans on twice. A Newtonian's mirror carries no
+    // index, and with the stop at the primary's vertex it has no distortion
+    // either — so `EFL·tan θ` is exact here, and any departure the same readout
+    // shows on a refractor is that refractor's, not the readout's.
+    const system = newtonianSystem(200, 10);
+    const efl = systemProperties(system.prescription, FOCUS_NM).efl;
+    for (const halfWidthMm of [1, 4, 11]) {
+      const fov = fieldOfView(system, { pixelPitchMm: 2 * halfWidthMm, cols: 1, rows: 1 }, FOCUS_NM);
+      const paraxialDeg = 2 * Math.atan(halfWidthMm / Math.abs(efl)) * (180 / Math.PI);
+      expect(fov.widthDeg).toBeCloseTo(paraxialDeg, 9);
     }
   });
 });

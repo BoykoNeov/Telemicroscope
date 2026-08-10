@@ -84,11 +84,11 @@
      shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
      it. Rendered coarse-to-fine in its own worker.
 5. **Telescope branch + bench editor + mech layer** ← optics landed, the
-   **presets, the spider and the diagonal's vignetting have an app surface**
-   (APP.md C1–C2), and the **mechanical layer is now ✅ closed** (§ 5u, below);
-   still open: scenes (star/planet/lunar), the bench editor, and Part C's
-   remaining modes — eyepieces, the eye, the camera, and long-exposure seeing
-   (the one that needs an engine step). **`core/mech`'s panel has landed too**
+   **presets, the spider, the diagonal's vignetting and the camera have an app
+   surface** (APP.md C1–C2, C4), and the **mechanical layer is now ✅ closed**
+   (§ 5u, below); still open: scenes (star/planet/lunar), the bench editor, and
+   Part C's remaining modes — eyepieces, the eye, and long-exposure seeing (the
+   one that needs an engine step). **`core/mech`'s panel has landed too**
    (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
@@ -207,6 +207,35 @@
    focal plane (`imaging/camera`); `resampleToSensor` rebins by area, so the
    detector-footprint MTF and aliasing are carried, not assumed. `plateScale` and
    `fieldOfView` invert the *traced* chief-ray map, so they carry distortion.
+   *Its panel has now landed* (APP.md C4) — app wiring **plus one engine fix it
+   forced** (§ 5r.1), the first Part C surface to need one. Five things came out
+   of driving it, and two correct sentences above. **The critical pitch is not
+   λ/(4·NA) with λ alone moving:** the traced NA moves too, and how it moves is
+   the lens's correction — a singlet's spread runs **+2.593%** wider than the
+   wavelength ratio, an achromat's **−0.155%** narrower (the crossing, so the
+   sign flips and the magnitude is 17× smaller), and a Newtonian's is **exactly
+   zero** because a conic has no index and its NA is bitwise identical at every λ.
+   That is § 3b's contest in pixels rather than in colour, with the mirror as the
+   control. So `samplingRegime` is **not one verdict**: at the pitch that is
+   critical at 550 nm the blue plane is undersampled and the red oversampled, one
+   sensor holding three at once, and the ruling plane is the shortest the stack
+   actually contains — **430 nm, not a round 450**. The **FOV-against-paraxial
+   readout has a floor that is not distortion** — 0.0212% at 0.029° of field where
+   distortion is identically zero — and moving the image plane to the last vertex
+   sends it to +3.4553% while leaving the field term unchanged, so it factorizes
+   into a plane-position *scale* (−21.1 µm on the achromat, −190.0 µm on the
+   singlet, −2e-5 µm on the paraboloid) times a distortion that runs ×4.00 per
+   doubling. The **peak gain is parity-dependent by 3.7×**, since sample-at-centre
+   puts the axis on a cell or on a seam by the column count's parity — § 5r's own
+   centroid lesson with the roles swapped, the centroid being the blind one here —
+   against a flat field that reads footprint² **exactly**. And the panel **cannot
+   auto-expose**: the rebin conserves energy, so normalizing would cancel § 5r's
+   headline, and the star's own total is flat in aperture (0.5% over 2× of D and
+   2× of f), so light grasp is applied rather than inherited. The engine fix is
+   the second bracket defect a panel has found after A6's § 1.6.1: the FOV
+   bracket probed at a fixed 0.5° and threw on every Newtonian sensor, § 2f's
+   diagonal wall being 0.346° at f/10, and the refusal boundary now lands on
+   § 2f's closed form to 4e-6.
    *Camera mode — relative exposure:* ✅ (§ 5s). `imaging/exposure`, pinned as
    ratios because the absolute photon zero point is § 3a's deferral. **Shot noise
    stays deferred** — it is a draw from an absolute photon count, which needs

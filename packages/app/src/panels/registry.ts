@@ -2,6 +2,7 @@ import type { ComponentType } from "react";
 import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
 import { BuilderPanel } from "./builder";
+import { CameraPanel } from "./camera";
 import { CoverslipPanel } from "./coverslip";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
@@ -53,6 +54,12 @@ export const PANELS: readonly Panel[] = [
     label: "the reflectors",
     blurb: "APP.md Part C — six presets from three numbers, and an obstruction the trace never sees",
     Component: ReflectorPanel,
+  },
+  {
+    id: "camera",
+    label: "the sensor",
+    blurb: "APP.md C4 — a pixel that integrates, and a critical pitch that is per wavelength",
+    Component: CameraPanel,
   },
   {
     id: "train",

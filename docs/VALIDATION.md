@@ -43,7 +43,7 @@ whole ladder.
 | [5o](#step-5o--the-huygens-eyepiece-achromatism-by-spacing) | Huygens achromatism by spacing | `eyepiece` |
 | [5p](#step-5p--limiting-aperture-stop-selection) | Which stop actually limits the chain | `aperture-stop` |
 | [5q](#step-5q--the-reduced-eye-and-visual-mode) | Reduced eye model; the two-stop competition | `visual` |
-| [5r](#step-5r--camera-mode-pixel-scale-and-sensor-sampling) | Plate scale, the pixel as box integrator, critical sampling | `camera` |
+| [5r](#step-5r--camera-mode-pixel-scale-and-sensor-sampling) | Plate scale, the pixel as box integrator, critical sampling; **5r.1** the FOV bracket that started outside the field | `camera` |
 | [5s](#step-5s--camera-mode-relative-exposure) | Image-space cone from the marginal ray; f-ratio and aperture laws | `exposure` |
 | [5t](#step-5t--tolerancing-sensitivity-compensators-and-the-rss-budget) | Sensitivity, compensators, RSS budget — four external pins | `tolerance` |
 | [5u](#step-5u--the-mechanical-layer-the-glass-path-that-is-not-its-own-length) | The mechanical layer, and the one claim it exists for — a part's mechanical length and its optical cost are different numbers: a spliced chain moving the TRACED focus by exactly t(1−1/n), so the closed form is pinned against the tracer instead of substituted for it (a prism diagonal hands back 0.3407 of its glass, 13.6287 mm, and a mirror one a hard zero); the naive air-only budget over-reporting by exactly Σtᵢ(1−1/nᵢ) — 7.83% of a real chain's length, always pessimistic, and the two verdicts genuinely disagreeing on an ordinary focuser; the glass's position along the converging beam shown **exactly** irrelevant, focus to 1e-11 mm and OPD below 1e-6 waves at a 50 mm and a 600 mm gap, which is what licenses flattening a chain's glass into one stack; the shift shown to be dispersive — blue pushed further back, the opposite of what a positive element does — which makes a glass diagonal a colour COMPENSATOR for both doublets measured (BK7/F2 at −0.2098 mm and § 5k's ED pair at −0.5068 mm), though an achromat's F−C spread is a RESIDUAL whose sign belongs to the lens, so the compensation is measured on two glass pairs rather than asserted as a law; the amount it moves each identical at 0.139742 mm to six digits, four Rayleigh depths of focus at f/5 and inside one at f/10, and invisible to any budget made of lengths; the cost a fourth power of the aperture with the exact form outrunning W₀₄₀ (×16.0216 at f/20→f/10 against ×16.5629 at f/4→f/2, ratio 1.0469 by f/2) and the quarter wave landing at **f/5.315** where the step was scoped for f/3–f/4; and the sixth geometric ceiling, the first from a MOUNT rather than the ray invariant — a single group cannot be DIN-parfocal below M = [x′+√(x′²+4Px′)]/2P = **4.1387** (4.236 with real glass), which is why a real 4× cannot be one doublet | `mech` |
@@ -2471,6 +2471,8 @@ alone, pinned on synthetic targets with no system in the way).
 | **λ/(4·NA) matches the traced MTF cutoff (pitch·2·cutoff = 1)** | Abbe cutoff, independent route | ✅ |
 | Sampling-regime classifier: ½·critical over-, 2×·critical under-samples | definition | ✅ |
 | `resampleToSensor` carries the sensor pitch, conserving each channel | linearity | ✅ |
+| **A vignetting-limited system still has a FOV, and its refusal boundary is § 2f's wall** | § 2f closed form | ✅ |
+| ...the fix is a no-op where the old bracket worked, and a paraboloid's FOV is exactly paraxial | negative control | ✅ |
 
 The **plate scale** rung's only non-trivial input is EFL, and it comes from the
 paraxial trace; pinned to the design's 100 mm and the external 206265″/rad, it
@@ -2522,6 +2524,52 @@ Absolute exposure in electrons and its shot noise are **not** here: they need
 the magnitude → photon-flux zero point § 3a records as deliberately absent.
 Relative exposure — the aperture and f-ratio laws, whose pins are ratios — is
 the § 5s follow-on.
+
+### § 5r.1 — the FOV bracket may not start outside the system's own field
+
+An engine defect none of the rungs above could see, found by driving APP.md's C4
+camera panel and fixed in the same change. It is the second of its kind and the
+same kind as the first: A6 found `bestFocus`'s golden-section **bracket estimate**
+collapsing (§ 1.6.1), and this is a bracket that starts in the wrong place.
+
+`fieldAngleAtImageRadius` probed the traced chief-ray map at a fixed 0.5° and
+doubled *upward*. That silently assumes every system passes at least half a
+degree, and a **folded** one need not: § 2f's diagonal wall stops a Newtonian's
+chief ray at a fraction of a degree — 0.346° at f/10 — so `imagePointOf` threw
+and the whole sensor's geometry was refused, **for sensors whose answer was a
+tenth of that angle and perfectly well defined**. An APS-C frame on a 2000 mm
+f/10 Newtonian spans 0.67°, i.e. ±0.34°, comfortably inside the wall.
+
+So the defect was a **bracket artifact presented as a physical wall**, and the
+two must not be confusable: one is an implementation detail and the other is
+geometry. Every rung above runs on the unfolded achromat, where the 0.5° probe
+always landed inside, which is exactly why none of them reddened — the same
+shape of blindness § 5r's own centroid rung exists to fix.
+
+The fix treats a failed chief ray as **data rather than as an error**: `null`
+means "this angle is past the field", which for the search is the same side of
+the answer as "this angle overshoots the radius", so both send `hi` down. The
+probe shrinks before it grows. The bisection body needs the guard as much as the
+bracket does — without it the crash moves rather than disappears, since a `mid`
+can land past the wall at any iteration. A genuine refusal survives and is now
+*separable*: after converging, the returned angle must actually reach the
+requested radius, and where the sensor is larger than the field the trace passes,
+it does not.
+
+The pin is **external and is not the guard restated**: the boundary between
+"answers" and "refuses" is found by bisecting `fieldOfView`'s own transition —
+the engine never sees a closed form — and must land on § 2f's
+
+    tan θ_max = (√2·k/2) / [ (F − ½ − 1/(16F)) · (F − k) ]
+
+which it does to **4e-6** at f/8, f/10 and f/15. Drop the 1/(16F) sag term and
+the rung reddens, so it is a cross-check of § 4b's diagonal sizing rather than a
+restatement of it. Two controls sit beside it: the achromat's FOV round trip is
+unchanged to 1e-9 where the old bracket already worked, and a **paraboloid's
+traced FOV is the paraxial `EFL·tan θ` to 1e-9** — a mirror carries no index and,
+with the stop at the primary's vertex, no distortion either, which is what makes
+the same readout's departure on a refractor that refractor's rather than the
+readout's.
 
 ## Step 5s — camera mode: relative exposure
 

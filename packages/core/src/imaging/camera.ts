@@ -107,6 +107,29 @@ export function fieldOfView(
  * Bracket then bisect on the traced image radius — a dozen chief rays, nothing
  * beside a PSF. Mirrors the private inverse `renderField` uses; kept local so
  * camera geometry does not reach into the renderer.
+ *
+ * ## The bracket may not start outside the system's own field
+ *
+ * The first version probed at a fixed 0.5° and doubled upward. That assumes
+ * every system passes at least half a degree, and a **folded** one need not:
+ * a Newtonian's diagonal stops passing the chief ray at a fraction of a degree
+ * (§ 2f), ~0.43° at f/10 — so `imagePointOf` threw and a whole sensor's geometry
+ * was refused, for sensors whose answer was a tenth of that angle and perfectly
+ * well defined. That is a bracket artifact reported as a physical wall, and the
+ * two must not be confusable.
+ *
+ * So the probe **shrinks first** until it is inside the field, and a chief ray
+ * that does not survive is treated as *data* rather than as an error: `null`
+ * means "this angle is past the field", which for the search is the same side of
+ * the answer as "this angle overshoots the radius". Both send `hi` down. The
+ * bisection body needs that guard as much as the bracket does — without it the
+ * crash moves rather than disappears, since a `mid` can land past the wall at
+ * any iteration.
+ *
+ * A genuine refusal survives, and is now separable: after converging, the
+ * returned angle must actually reach the requested radius. Where the sensor is
+ * larger than the field the trace passes, it does not, and this throws with what
+ * the chief ray *did* reach.
  */
 function fieldAngleAtImageRadius(
   system: OpticalSystem,
@@ -114,19 +137,51 @@ function fieldAngleAtImageRadius(
   wavelengthNm: number,
 ): number {
   if (radiusMm <= 0) return 0;
-  const radiusAt = (deg: number): number => {
-    const p = imagePointOf(system, deg, 0, wavelengthNm);
-    return Math.hypot(p.x, p.y);
+  /** `null` where the chief ray does not survive — a fact about the field. */
+  const radiusAt = (deg: number): number | null => {
+    try {
+      const p = imagePointOf(system, deg, 0, wavelengthNm);
+      return Math.hypot(p.x, p.y);
+    } catch {
+      return null;
+    }
   };
-  let lo = 0;
+
   let hi = 0.5;
-  for (let i = 0; i < 60 && radiusAt(hi) < radiusMm; i++) hi *= 2;
+  let probe = radiusAt(hi);
+  for (let i = 0; i < 60 && probe === null; i++) {
+    hi /= 2;
+    probe = radiusAt(hi);
+  }
+  if (probe === null) {
+    throw new Error(
+      `no chief ray reaches the image: the trace fails at every field down to ${hi.toExponential(3)}°`,
+    );
+  }
+  // `lo` stays 0, as it did before: the radius need not be monotone in field
+  // under strong distortion, and a tighter lower bound could step over a root.
+  const lo0 = 0;
+  for (let i = 0; i < 60 && probe !== null && probe < radiusMm; i++) {
+    hi *= 2;
+    probe = radiusAt(hi);
+  }
+
+  let lo = lo0;
   for (let i = 0; i < 60; i++) {
     const mid = (lo + hi) / 2;
-    if (radiusAt(mid) < radiusMm) lo = mid;
+    const r = radiusAt(mid);
+    if (r !== null && r < radiusMm) lo = mid;
     else hi = mid;
   }
-  return (lo + hi) / 2;
+  const answer = (lo + hi) / 2;
+  const reached = radiusAt(answer);
+  if (reached === null || reached < radiusMm * (1 - 1e-6)) {
+    throw new Error(
+      `image radius ${radiusMm.toFixed(4)} mm is outside the field this system passes: ` +
+        `the chief ray reaches ${reached === null ? "nothing" : `${reached.toFixed(4)} mm`} at ${answer.toFixed(4)}° and does not survive beyond it`,
+    );
+  }
+  return answer;
 }
 
 /**

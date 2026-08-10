@@ -72,6 +72,9 @@ export const createToleranceWorker = () =>
 export const createToleranceScaleWorker = () =>
   new Worker(new URL("./tolerance.scale.worker.ts", import.meta.url), { type: "module" });
 
+export const createCameraWorker = () =>
+  new Worker(new URL("./camera.worker.ts", import.meta.url), { type: "module" });
+
 export const createMechOpticsWorker = () =>
   new Worker(new URL("./mech.optics.worker.ts", import.meta.url), { type: "module" });
 

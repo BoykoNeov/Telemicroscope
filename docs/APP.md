@@ -1256,10 +1256,10 @@ instantiated, not a whole branch. All are app-wiring-only unless noted.
   distortion.
 - **Eye model / visual mode** (§§ 5p–5q) — the two-stop collapse, exit-pupil
   matching.
-- **Camera mode** (§§ 5r–5s) — `Sensor`, `resampleToSensor`, `plateScale`,
-  `fieldOfView`, `samplingRegime`. The oversampled/critical/undersampled verdict
-  is another ready-made guard readout, and aliasing is carried rather than
-  assumed.
+- **Camera mode** (§§ 5r–5s) — ✅ **landed** as C4 below, and it needed one
+  engine fix (§ 5r.1). The oversampled/critical/undersampled verdict turned out
+  **not** to be a single readout: it is one per wavelength, and one sensor holds
+  three of them at once.
 - **Long-exposure seeing** — *needs a small engine step*, and the distinction
   matters: the **physics is already pinned** (Fried's OTF exp(−3.44·(ρ/r₀)^5/3)
   and the seeing-limited FWHM), but the averaging lives in a **test-local
@@ -1542,6 +1542,173 @@ the thin-lens rule had to be **relabelled from what binds to what it is**: at
 NA 0.27 the buildable range starts at 43×, and a grey line labelled "the floor"
 sitting at 4.14 would have been this panel's own refusal rule broken by its own
 plot.
+
+### C4. The sensor, and the critical pitch that is per wavelength — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **pair**
+
+`camera.ts` + `panels/camera.tsx` + `camera.worker.ts` + `test/camera.test.ts`.
+`core/imaging/camera` (§ 5r) and `core/imaging/exposure` (§ 5s) had existed since
+roadmap step 5 and the app had called **neither** — no `Sensor` had ever been
+instantiated. No ladder rung was added *for the panel*, because every physical
+number it draws is § 5r's or § 5s's; **one was added for what driving it broke**,
+§ 5r.1, and that follows A6's precedent exactly.
+
+**The shape is a picture, a table and two plots**, and the picture is the only
+part that runs a transform. The format table, the per-λ critical pitches and
+both MTF sweeps repaint on the slider's own tick while the star goes to a
+worker. C2's asymmetry, falling the same way.
+
+**They are not free, and the first version of this section said they were** —
+this doc's cost model being wrong a fourth time, after D0.1, D4 and § 6s each
+moved it. Measured: the main-thread block is **50 ms** in node, ~115 ms in a
+browser at A4's 2.3×, of which **21–28 ms is one `buildCameraSystem`**, because
+constructing a system runs a `bestFocus` solve. "Chief rays and array
+arithmetic" describes `describeFormats` (8 ms) and the two sweeps (5.4 and
+1.2 ms) accurately and the *construction* not at all. Worse, almost all of it
+was being spent for nothing: the contest rebuilds three systems and depends on
+the pitch through **no quantity it draws**, so a pitch drag paid for three focus
+solves it could not change. Keying the memos on what each block genuinely varies
+with — the system on the spec, the contest on focal ratio and the source —
+leaves a pitch tick paying the cheap half alone. The lesson is the narrow one:
+*in this engine, building a system is not construction, it is a solve.*
+
+**This is the one panel in the app that does not auto-expose, and the break is
+the surface.** Every other picture here normalizes to its own total; doing that
+here would exactly cancel § 5r's headline rung, since the rebin conserves energy,
+and § 5s's whole axis is a ratio a self-normalizing frame cannot have. So the
+exposure is fixed and the frame is allowed to clip — a camera whose picture
+cannot blow out is not showing you exposure. The factor has to be applied rather
+than inherited, and that is **measured, not assumed**: `spectralStack` normalizes
+to the transmitted pupil energy, so the rendered star's integrated Y is flat in
+aperture (1074.81 / 1069.78 / 1073.73 at f/10·D10, f/5·D20, f/10·D20 — 0.5% across
+a 2× aperture *and* a 2× focal length). Light grasp is not in the picture until it
+is put there. A10's rule travels with it: **a factor is exactly what a picture
+cannot show the size of**, so the rungs pin the numbers and never the shade.
+
+Which of § 5s's two laws drives it is a distinction the panel has to make out
+loud. The picture is a **point** source, so its brightness rides on D², which
+§ 5s itself labels *a consistency check, not a pin*. The validated,
+trace-emergent law is the extended-source 1/F² — measured here at **4.037** for
+f/10 → f/5 against the paraxial 4, the excess being the faster stop's
+sine-condition departure — and this panel has no extended source in it, so that
+number is printed beside the picture rather than drawn through it.
+
+**Seven findings, four of which were wrong predictions first**, and two of the
+seven only exist because the panel was driven rather than reasoned about.
+
+**The headline: the critical pitch is not λ/(4·NA) with λ alone moving.** The
+traced NA moves too, and *how* it moves is the lens's chromatic correction. Over
+430 → 670 nm at f/10:
+
+| optic | traced NA across the band | critical ratio | vs λ ratio 1.558140 |
+|---|---|---|---|
+| N-BK7 singlet | falls monotonically, 0.050708 → 0.049426 | 1.598538 | **+2.593%** |
+| N-BK7/F2 achromat | peaks mid-band at 550 — the crossing | 1.555723 | **−0.155%** |
+| Newtonian | **bitwise identical** at every λ | 1.558140 | **exactly 0** |
+
+Three optics, three signs, and the achromat's magnitude 17× under the singlet's.
+That is § 3b's singlet-versus-achromat contest arriving on the sampling axis,
+measured in pixels rather than in colour, and reusing the app's own lens toggle.
+The mirror is what makes it a statement about *glass* rather than a curiosity: a
+conic has no refractive index, so its spread is the wavelength ratio to the last
+bit, at any aperture — C1's Cassegrain-versus-Ritchey control in a second
+currency.
+
+**One sensor holds three verdicts at once.** `criticalPitchMm` ∝ λ is a 1.56×
+spread against `samplingRegime`'s 2% tolerance, so at the pitch that is exactly
+critical at 550 nm the blue plane is **undersampled** and the red is
+**oversampled**. The verdict is therefore ruled on the shortest wavelength the
+stack *actually contains* — which at five samples is **430 nm, not a round 450**
+— and that is § 6r.7's "the blue end sets `pupilSamples`" arriving on a third
+knob, and § 6g.3's "a frame is not honest in the places where it happens to be"
+arriving on the sensor.
+
+**The FOV readout has a floor, and the floor is not distortion.** The obvious
+number — traced FOV against the paraxial 2·atan(½w/EFL) — reads 0.0212% at a
+half-width of 0.05 mm, i.e. 0.029° of field, where distortion is identically
+zero. Printing that as distortion would be **C1's own fringe error repeating one
+panel later in a different quantity**, and it was caught the same way: by putting
+something with a guaranteed zero through it. The cause is confirmed by moving the
+plane rather than argued — at the last vertex instead of best focus the floor
+becomes **+3.4553%** while the field-dependent part is unchanged (−1.77e-4 against
+−1.57e-4 over the same span) — so the departure **factorizes** into a
+plane-position scale times a distortion. The scale is a *length*: implied EFL
+minus paraxial EFL = **−21.1 µm** on the f/10 achromat, **−190.0 µm** on the
+singlet whose spherical residual is far worse, and **−2e-5 µm** on the paraboloid
+that has none. Reported against the on-axis limit instead, the distortion alone
+runs **×4.00 per doubling of field** — third-order theory's cubic in its
+fractional form — and the mirror reads **0 to f64**, so both floors vanish
+together on the control.
+
+**The detector MTF is measured, not drawn.** `camera.ts` exports no detector MTF
+— § 5r computes it inside the rung — so drawing sinc(π·f·p) would be the app
+asserting physics the engine does not provide. Sweeping a cosine through the
+pinned `resampleGridToSensor` instead costs microseconds and gets § 5r's aliasing
+rung for free: past Nyquist the modulation reappears at |1/p − f|, and projecting
+there returns the **bit-identical** number, because on the sampled grid those are
+one frequency. Two things had to be right and were wrong first — **integer cycles
+across the sensor span** (otherwise the projection leaks and reads 1.08 at a tenth
+of Nyquist, *above* a box filter's own transfer, which was the tell) and **the
+source strictly containing the sensor** (otherwise the outer cells are partly
+empty, which is missing data rather than sampling, and drifts the curve ~1%).
+What survives agrees with the closed form to 2e-5 at a twelfth of Nyquist and
+3e-3 at the last point below it, and **that residual is the target's own
+staircase**: refining the source subdivision gives 0.964045 / 0.991060 / 0.997768
+/ 0.999442 / 0.999861 at sub = 4 / 8 / 16 / 32 / 64, an error falling ×4.00 per
+doubling (measured 4.022 / 4.005 / 4.001 / 4.004) — the midpoint rule's own second
+order. The rung pins the *rate*, because that is a closed form; pinning the 3e-3
+would be pinning a previous measurement, the failure this doc's Part D order
+section names as the expensive one.
+
+**Exactly Nyquist is refused.** The modulation there is entirely phase-dependent
+— 0.634573 with the target aligned to the pixel grid and **exactly 0** a quarter
+period along, the target vanishing into the sampling — so it has no value to
+plot. The 2/π = 0.63662 envelope is real; the point is not. Twice Nyquist is
+refused too, folding to DC. A3's rule, on a curve rather than on a readout.
+
+**And the contest could not be drawn as itself.** Plotting the three optics'
+critical pitches against λ puts three nearly coincident straight lines on the
+page — they differ by under 3% over the band — so the picture said only that
+λ/(4·NA) is linear in λ while the table beside it carried the entire finding.
+The quantity the finding is *about* is the departure from proportionality, so
+that is what the plot draws, and the three separate immediately. This is A3's
+rule ("a readout whose value is undefined must be refused") in its positive
+form: **a plot must draw the quantity the claim is about, not the quantity the
+claim is computed from.** It cost nothing to fix and would have been invisible
+without putting it on a screen.
+
+**And the star's peak gain is parity-dependent, by 3.7×.** This one came from
+dragging the pitch slider and looked like a bug. `overlapWeights` is
+sample-at-centre, so an **even** column count centres a cell on the axis and an
+**odd** one puts the axis on a seam: the star either lands in one pixel or splits
+between two, and the peak reads ~18.5 against ~5.0 as the pitch walks 12 → 20 µm
+and the parity interleaves. It is not a smooth function of pitch and must not be
+drawn as one. This is **§ 5r's own lesson with the roles swapped** — that step's
+centroid rung exists because the energy and frequency rungs are blind to a
+half-pixel shift, and here the *centroid* is the blind one, since the split is
+symmetric. The flat field is immune to both, which is the third reason it is
+worth computing: `resampleGridToSensor` of ones puts **exactly** footprint² in a
+cell (1.000000000000 at footprints 2, 3, 4 and 5.5, integer and not), while the
+star gains strictly less — 6.25 of 7.63 at footprint 2.763 — and the deficit is
+the PSF core's curvature rather than anything the rebin did. Running only the
+star would have made that deficit look like a defect.
+
+**What it cost that was not budgeted: an engine defect, and it was in a bracket.**
+`fieldOfView` threw on a Newtonian at *every* sensor size. `fieldAngleAtImageRadius`
+probed at a fixed 0.5° and doubled upward, which assumes every system passes half
+a degree — and § 2f's diagonal wall stops a Newtonian's chief ray at 0.346° at
+f/10, so an APS-C frame spanning 0.67° total was refused despite sitting well
+inside. A bracket artifact presented as a physical wall, which is precisely what
+this panel keeps catching in readouts, arriving in the engine. Fixed at § 5r.1 by
+treating a failed chief ray as *data* — `null` is the same side of the answer as
+"overshoots", so both send `hi` down — with the probe shrinking before it grows
+and **the bisection body guarded too**, without which the crash moves rather than
+disappears. The genuine refusal survives and is now separable, and the pin is that
+the boundary lands on § 2f's own closed form to **4e-6** at f/8, f/10 and f/15,
+bisected off `fieldOfView`'s own answers/refuses transition so the engine never
+sees the formula. It is the second defect of exactly this shape after A6's
+collapsing focus bracket (§ 1.6.1), which is now a pattern worth naming: **the
+rungs run on the unfolded achromat, and a bracket that assumes its field passes
+unnoticed until something folded arrives.**
 
 ---
 
@@ -2600,7 +2767,11 @@ Part C, and the telescope's extended sources, which are an engine step. **And Pa
 turned out to contain a C3 this doc had never listed** — `core/mech`, which ROADMAP
 had in bold and APP.md had nowhere, because this doc sorts by branch and a
 mechanical layer has none. It has landed; what remains in Part C is the
-eyepiece/eye/camera modes and long-exposure seeing.)* D10 was billed as the cheapest engine-backed surface in the doc and the
+eyepiece/eye/camera modes and long-exposure seeing. **And ~~camera mode~~ has now
+landed too, as C4** — the first Part C entry to force an engine fix, which is A6's
+heading arriving on the telescope side. What remains in Part C is the
+eyepiece/eye modes and long-exposure seeing, the last of which is the only item
+left in this doc that is not app wiring.)* D10 was billed as the cheapest engine-backed surface in the doc and the
 picture half of it was: the mount is one more term in a callback already being
 evaluated per slice. The two things it cost that were not budgeted are both about
 *comparison* rather than about rendering — an ideal-pupil control the axial
@@ -2825,6 +2996,18 @@ findings began as wrong predictions of the panel's author, which is what a surfa
 that puts an absolute number on screen next to nothing else does for you: § 3b's
 measure was only ever used as a *difference* between two lenses, and the floor it
 carries was invisible until something with a guaranteed zero was put through it.
+
+**C4 makes that pattern say something new, and it is about this doc's own
+prediction record.** Every previous part found the *feasibility number* was
+measuring something else, and C1 found a *readout* was. C4 found **the engine
+itself** was: `fieldOfView` reported a bracket's starting point as a physical
+wall, and it did so in the one place the ladder could not see, because every § 5r
+rung runs on an unfolded achromat that always passed the probe. That is the third
+rung of the same ladder — feasibility number, readout, engine — and the defence
+is unchanged and worked again: the fix is pinned to § 2f's closed form rather
+than to any previous measurement. It is also the second bracket defect a panel
+has found (A6's § 1.6.1 was the first), which is now enough to name: **a bracket
+that assumes its own field passes unnoticed until something folded arrives.**
 
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine
