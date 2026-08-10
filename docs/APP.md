@@ -3336,18 +3336,45 @@ and it is a product call rather than an engine one. If asked: **the saved slot
 first, with the hash left possible** — the encoding is additive, and a slot that
 cannot be linked is still strictly more than the nothing that exists today.
 
-### What must not regress, and the rule that says so
+### Decision 3 — what a caption says about a design nobody has measured
 
-**The panels' prose names objectives, and with a custom build selected those
-sentences misdescribe what is on screen.** `fluorescence.tsx:485` prints "the DIN
+**This is the decision, and it is unanswered.** The two above are plumbing with a
+recommendation attached; this one decides whether the feature is worth building.
+
+The panels' prose names objectives, and with a custom build selected those
+sentences misdescribe what is on screen. `fluorescence.tsx:485` prints "the DIN
 4×/0.10 drops 0.659% and the infinity 20×/0.10 drops 0.997%"; `volume.tsx:866`
 attributes 90/92/100% focus shares to three named rows. A4's own rule is the
 standard: *a stale reading may be shown greyed only if nothing on screen
-misdescribes it* — and it withdrew a plot rather than dim it for exactly this
-reason. **Line item: every objective-specific claim is gated on a catalogue row
-being the selection.** In this repo that is not polish.
+misdescribes it* — and A4 **withdrew** a plot rather than dim it, for exactly this
+reason.
 
-**Two smaller ones.**
+The obvious move is to gate every objective-specific claim on a catalogue row
+being selected. But those claims *are* the panels' teaching, and a brightfield
+caption that withdraws every measured comparison the moment a custom objective is
+chosen may be correct and useless — the reader finally gets to look through their
+own lens and the page goes quiet about what they are seeing. The alternative is a
+caption that says something true about an **arbitrary** design, which is writing
+rather than wiring and has no measurement behind it.
+
+Three shapes, none costed:
+
+- **Withdraw.** Honest, cheapest, and risks a panel that teaches nothing about
+  the one design the reader cares about.
+- **Re-measure.** Say the same *kind* of thing about whatever is selected — the
+  corner-versus-axis drop, the axial peak offset — computed live rather than
+  quoted. Some of these are already engine calls the panel makes; some are
+  sweeps that would cost a second job.
+- **Two voices.** Keep the catalogue prose as an explicitly-labelled comparison
+  ("measured, on the ten rows") beside a readout that describes the current
+  selection. Most work, and the only one that loses nothing.
+
+**Recommend deciding this before writing any of the plumbing above**, because it
+is the only part that could make the plumbing not worth doing.
+
+### What must not regress
+
+**Two smaller ones**, both mechanical.
 
 - The refusal branches say *"the engine refuses this render"* unconditionally,
   and the imaging results carry only `{ ok, error }` with **no `source` field**
@@ -3373,10 +3400,13 @@ since § 6b.5.6: the DIN bisection now measures **~1.15 s**, which would be
 unaffordable per render and is never reached from one.
 
 **One cache breaks and it is the only one.** `stage.ts:134` holds
-`SYSTEMS = new Map<MicroscopeKind, OpticalSystem>()`, memoizing a build across the
-tens of tiles a mosaic asks for. A spec is not a map key. It needs one canonical
-key function — field order fixed in code rather than inherited from whatever
-`postMessage` handed over — and one call site changes.
+`SYSTEMS = new Map<MicroscopeKind, OpticalSystem>()`. It is module-level inside an
+adapter that runs **in a worker**, so its scope is one worker's lifetime — built
+once per worker per objective, across the tens of tiles a mosaic asks for, and
+gone when routing away terminates that worker. Nothing spans panels or reloads. A
+spec is still not a map key: it needs one canonical key function, with field order
+fixed in code rather than inherited from whatever `postMessage` handed over, and
+one call site changes.
 
 ### What would pin it
 
@@ -3419,14 +3449,17 @@ precedent:
 
 This doc has been wrong in the same direction six times — *the feasibility number
 turns out to be measuring something else* — so the thing worth predicting is
-where this scope's own confidence is misplaced. It is not the plumbing, which is
-enumerated above and countable. The candidate is **the prose gate**: "gate the
-objective-specific claims" is written here as a line item, and the panels'
-teaching is *made of* those claims. A brightfield panel whose caption withdraws
-every measured comparison the moment a custom objective is selected may be
-correct and useless, and the fix — a caption that says something true about an
-arbitrary design — is writing rather than wiring. That is the half of this scope
-with no measurement behind it.
+where this scope's own confidence is misplaced. It is **not** the plumbing, which
+is enumerated above and countable, and it is not the cost, which has no new class
+in it.
+
+It is decision 3, and the first draft of this section got that wrong in a way
+worth recording: the caption problem was filed as a regression-prevention line
+item, one bullet among several, because it looked like styling. It is not — it is
+the only open question here whose answer could make the rest not worth building,
+and it is the only one with no measurement behind it. **The pattern this doc keeps
+naming arrives before the work rather than after it this time**: the part that
+looked like arithmetic is the part that is not.
 
 ---
 
