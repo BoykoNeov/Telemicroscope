@@ -119,14 +119,25 @@ export interface SeeingResult {
   readonly cleanFwhmPx: number;
   /** The mean's FWHM as an angle on the sky (arcsec) — what an observer quotes. */
   readonly meanFwhmArcsec: number;
+  /** The atmosphere-free frame's FWHM, MEASURED, through the same conversion. */
+  readonly cleanFwhmArcsec: number;
   /** 0.98·λ/r₀ in arcsec: the headline closed form, drawn beside the measurement. */
   readonly friedFwhmArcsec: number;
-  /** 1.22·λ/D in arcsec — what the aperture alone would give. */
+  /**
+   * The Airy pattern's own **FWHM**, 1.02899·λ/D, in arcsec.
+   *
+   * A FWHM and not a radius, and the distinction is not pedantry — it was wrong
+   * here first. The familiar 1.22·λ/D is the first *zero*'s radius (Rayleigh),
+   * roughly 19% larger, and printing it beside a measured FWHM after an equals
+   * sign made a 35% error look like a definition. Everything on this panel that
+   * compares a width to a width uses this one.
+   */
   readonly diffractionFwhmArcsec: number;
   /**
-   * Aperture at which the seeing disc equals the Airy disc, mm: 1.22λ/D =
-   * 0.98λ/r₀ ⇒ D = (1.22/0.98)·r₀. λ cancels, which is the point — the crossover
-   * is a property of r₀ and the telescope, not of colour.
+   * Aperture at which the diffraction FWHM equals the seeing FWHM, mm:
+   * 1.02899·λ/D = 0.98·λ/r₀ ⇒ D = (1.02899/0.98)·r₀ ≈ 1.05·r₀. **λ cancels**,
+   * which is the point — the crossover is a property of r₀ and the telescope,
+   * not of colour, because both angles scale the same way.
    */
   readonly seeingLimitedAboveMm: number;
   /** Whether this aperture is past that crossover — i.e. whether 0.98·λ/r₀ applies. */
@@ -168,6 +179,22 @@ const TRANSFER_DEPARTURE = 1.5;
 const RAD_TO_ARCSEC = (180 / Math.PI) * 3600;
 
 /**
+ * FWHM of the Airy pattern, in units of λ/D — the width at which 2·J₁(x)/x
+ * squared falls to a half, which is 1.02899 and **not** the familiar 1.22.
+ *
+ * 1.22 is the first zero's *radius*, and it is what this panel printed at first
+ * under the label "diffraction FWHM", beside a measured FWHM, after an equals
+ * sign. It reads 19% high, and because the crossover below divides one width by
+ * another it moved that too — 249 mm where the honest answer is 210. C1 found
+ * this app's fringe number was measuring something else; this is the same class
+ * of error in a *unit* rather than a normalization, and it is worth recording
+ * that the tell was a caption whose two sides disagreed by 35%.
+ */
+const AIRY_FWHM_FACTOR = 1.02899;
+/** Fried's seeing-limited FWHM in units of λ/r₀ — § 5d's headline constant. */
+const FRIED_FWHM_FACTOR = 0.98;
+
+/**
  * Build the objective and take its pupil — one trace for the whole ensemble.
  *
  * Both optics are focused by `bestFocus` first, at the same criterion and the
@@ -177,15 +204,12 @@ const RAD_TO_ARCSEC = (180 / Math.PI) * 3600;
  * to be found rather than assumed.
  */
 function opticPupil(request: SeeingRequest) {
-  const prescription =
+  const spec = { apertureMm: request.apertureMm, focalRatio: request.focalRatio };
+  const built =
     request.optic === "newtonian"
-      ? newtonian({ apertureMm: request.apertureMm, focalRatio: request.focalRatio }).prescription
-      : achromaticObjective({ apertureMm: request.apertureMm, focalRatio: request.focalRatio })
-          .prescription;
-  const obstruction =
-    request.optic === "newtonian"
-      ? newtonian({ apertureMm: request.apertureMm, focalRatio: request.focalRatio }).obstruction
-      : 0;
+      ? newtonian(spec)
+      : { ...achromaticObjective(spec), obstruction: 0 };
+  const { prescription, obstruction } = built;
   const base: OpticalSystem = {
     prescription,
     aperture: { kind: "EPD", value: request.apertureMm },
@@ -248,6 +272,7 @@ export function renderSeeing(request: SeeingRequest): SeeingResult | Refusal {
 
     const dOverR0 = request.apertureMm / request.friedParamMm;
     const lambdaMm = LAMBDA_NM * 1e-6;
+    const crossoverMm = (AIRY_FWHM_FACTOR / FRIED_FWHM_FACTOR) * request.friedParamMm;
     // Pixels → radians on the sky: λ/D spans padFactor pixels by construction
     // (n/pupilSamples), so one pixel is (λ/D)/padFactor of angle.
     const radPerPx = lambdaMm / request.apertureMm / PAD_FACTOR;
@@ -283,10 +308,12 @@ export function renderSeeing(request: SeeingRequest): SeeingResult | Refusal {
       drawFwhmPx: draw.fwhmPixels,
       cleanFwhmPx: mean.cleanFwhmPixels,
       meanFwhmArcsec: mean.fwhmPixels * radPerPx * RAD_TO_ARCSEC,
-      friedFwhmArcsec: ((0.98 * lambdaMm) / request.friedParamMm) * RAD_TO_ARCSEC,
-      diffractionFwhmArcsec: ((1.22 * lambdaMm) / request.apertureMm) * RAD_TO_ARCSEC,
-      seeingLimitedAboveMm: (1.22 / 0.98) * request.friedParamMm,
-      seeingLimited: request.apertureMm > (1.22 / 0.98) * request.friedParamMm,
+      cleanFwhmArcsec: mean.cleanFwhmPixels * radPerPx * RAD_TO_ARCSEC,
+      friedFwhmArcsec: ((FRIED_FWHM_FACTOR * lambdaMm) / request.friedParamMm) * RAD_TO_ARCSEC,
+      diffractionFwhmArcsec:
+        ((AIRY_FWHM_FACTOR * lambdaMm) / request.apertureMm) * RAD_TO_ARCSEC,
+      seeingLimitedAboveMm: crossoverMm,
+      seeingLimited: request.apertureMm > crossoverMm,
       transferDepartsAtNu:
         transfer.find((p) => p.measured > TRANSFER_DEPARTURE * p.fried)?.nu ?? null,
 

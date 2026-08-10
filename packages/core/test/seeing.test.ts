@@ -14,7 +14,6 @@ import {
   systemPupil,
   PupilFunction,
   PupilScale,
-  Psf,
 } from "../src/wave/psf";
 import { achromaticObjective } from "../src/designs/achromat";
 import { bestFocus, withFocus } from "../src/analysis/focus";
@@ -26,7 +25,6 @@ import { fitZernike } from "../src/wave/zernike";
 import { OpticalSystem } from "../src/trace/system";
 import { Prescription } from "../src/trace/prescription";
 import { LINE_D } from "../src/materials/dispersion";
-import { mtf } from "../src/wave/mtf";
 
 /**
  * Rungs for atmospheric seeing — the one random draw in the image.
@@ -87,9 +85,12 @@ const flatPupil: PupilFunction = {
  * so an app could show one speckle draw and nothing more. It is now
  * `longExposurePsf` in `wave/long-exposure`, and this is a call to it.
  *
- * The rungs' numbers did not move — same seeds, same per-screen call sequence,
- * same accumulation order — which is the point of pinning them on literals: the
- * promotion is only honest if the bands below stayed where they were.
+ * What was checked, stated as what it is: every rung below **passes unchanged, at
+ * the same seeds and inside the same bands**, and the promotion preserves the
+ * per-screen call sequence and the accumulation order by construction. That is
+ * not the same as having compared the values digit for digit before and after —
+ * these bands are wide (0.9–1.12) and would absorb a small drift — so the claim
+ * is the one that was verified, not the stronger one it is tempting to write.
  */
 function seeingEnsemble(dOverR0: number, nEns: number, seed0: number) {
   return longExposurePsf({

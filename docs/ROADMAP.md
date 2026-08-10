@@ -128,10 +128,15 @@
    of `psf()` for it). Every § 5d rung passes unchanged at the same seeds, which
    is what makes the move a move. Five things came out of driving the panel.
    **0.98·λ/r₀ is an answer only where the telescope is seeing-limited**: the two
-   discs meet at D = (1.22/0.98)·r₀ with **λ cancelling**, and a 200 mm Newtonian
-   lands within 2% of Fried at r₀ = 25 mm while at r₀ = 200 mm it reads 25% wide
-   of Fried and within 1% of its own diffraction limit — the formula stopped
-   describing the thing being measured rather than becoming inaccurate. **The
+   FWHMs meet at D = (1.029/0.98)·r₀ ≈ 1.05·r₀ with **λ cancelling**, and a 200 mm
+   Newtonian lands within 2% of Fried at r₀ = 25 mm while at r₀ = 200 mm it comes
+   out wider than *both* single-cause widths — a quarter over Fried, a third over
+   its own atmosphere-free disc, under their sum — because below the crossover
+   two comparable widths convolve and neither formula describes the result.
+   Getting that right needed a **unit corrected**: the panel first used 1.22·λ/D,
+   which is the first zero's *radius* and not a FWHM (1.02899·λ/D is), moving the
+   crossover 249 → 210 mm and making the wrong claim pass. The tell was on screen
+   — two adjacent captions converting pixels to arcseconds differently, by 35%. **The
    instrument's own quality is in the seeing disc**: on the same sky the
    paraboloid measures 0.98× Fried where a Strehl-0.609 achromat measures 1.09×,
    which no § 5d number can show because they are all flat-pupil numbers — hence

@@ -241,7 +241,12 @@ Each surface below is tagged **picture**, **plot**, or **pair**.
 
 ## Part A — the microscope branch
 
-A1–A5 have landed; A6 has no app surface yet. Ordered by value per unit of work.
+All of A1–A6, A9 and A10 have landed. Ordered by value per unit of work, and
+kept in that order rather than resorted, because the ordering is the record of
+what was expected to be cheap. (This line said "A6 has no app surface yet" long
+after A6 shipped — the third stale-accounting slip this doc has caught in itself,
+and the same registry check found it: every ✅ section that is a panel has a
+route in `panels/registry.ts`, and A6's is `coverslip`.)
 
 ### A1. Objective picker + the specimen frame — ✅ **landed** — *app wiring only*
 
@@ -1915,15 +1920,34 @@ opens on exactly the thing it is about to correct.
 **The headline: 0.98·λ/r₀ is an answer only where the telescope is
 seeing-limited.** The number every observer quotes is a statement about the
 atmosphere with no aperture in it, which is fine until the instrument's own Airy
-disc is the wider of the two. They are equal at 1.22·λ/D = 0.98·λ/r₀, i.e. at
-**D = (1.22/0.98)·r₀**, and **λ cancels** — the crossover is a property of r₀ and
-the telescope, not of colour, because both angles scale the same way. Measured on
-the Newtonian at 200 mm: under r₀ = 25 mm (eight Fried cells across) the mean
-lands within **2%** of Fried, and under r₀ = 200 mm — one cell, short of the
-249 mm crossover — it reads **25% wide of Fried and within 1% of the diffraction
-limit instead**. The formula did not become inaccurate; it stopped describing the
-thing being measured. That is C4's "a plot must draw the quantity the claim is
-about" arriving as a *validity domain* rather than as an axis choice.
+disc is the wider of the two. They are equal at 1.029·λ/D = 0.98·λ/r₀, i.e. at
+**D = (1.029/0.98)·r₀ ≈ 1.05·r₀**, and **λ cancels** — the crossover is a
+property of r₀ and the telescope, not of colour, because both angles scale the
+same way. Measured on the Newtonian at 200 mm: under r₀ = 25 mm (eight Fried
+cells across) the mean lands within **2%** of Fried. Under r₀ = 200 mm — one
+cell, short of the 210 mm crossover — it reads about **a quarter wider than
+Fried and a third wider than its own atmosphere-free disc**, staying under their
+sum. So it does not fall back to the diffraction limit either: below the
+crossover the two widths are comparable and they *convolve*, and neither
+single-cause formula describes the result from either side. That is C4's "a plot
+must draw the quantity the claim is about" arriving as a **validity domain**
+rather than as an axis choice.
+
+**And getting that right needed a unit corrected, which is the section's own
+error to record.** The first version of this panel used **1.22·λ/D** as the
+"diffraction FWHM". That is the first *zero's radius* — the Rayleigh criterion —
+and the Airy pattern's actual FWHM is **1.02899·λ/D**, 19% smaller. The tell was
+on screen and went unread for a while: the clean frame's caption printed "FWHM
+3.60 px = 0.629″" while the mean's printed "17.09 px = 2.204″", two different
+px→arcsec conversions in adjacent captions, the second wrong by **35%**. It
+propagated exactly as far as a wrong unit does — it moved the crossover from
+210 mm to 249 mm, and it made "short of the crossover the disc follows
+diffraction" *pass*, because a width inflated by 19% happened to land on the
+measurement. The test that checked it was comparing two of this file's own
+formulas and structurally could not catch it. This is C1's "the fringe measure is
+measuring something else" in a **unit** rather than in a normalization, and the
+lesson is narrower and worth having: **an equals sign between a measured quantity
+and a closed form is a claim, and it can be checked by reading the two sides.**
 
 **The instrument's own quality is in the seeing disc, and a mirror is what
 separates them.** On the same sky at D/r₀ = 4 the Newtonian — a paraboloid,
@@ -3233,8 +3257,14 @@ this was written.** A7 authored both, in `stage.ts`, grey; the real gap under th
 word "scenes" was colour, and **A9** closed it. What is left in this doc is
 **Part C** — **and Part C is now walked: C1 through C6 have all landed.** The
 last of them, long-exposure seeing, was the only one that was not wiring, and it
-closed § 5d's own named deferral rather than adding physics. **Nothing in this
-document is open.** What remains for the telescope is not this doc's: the
+closed § 5d's own named deferral rather than adding physics. **Nothing scoped in
+this document is open** — checked the way this doc's own history says to check
+it, since it has been wrong about exactly this twice: every ✅ section that is a
+panel has a route in `panels/registry.ts` (seventeen of them), and a sweep for
+residual "unbuilt / no app presence / still to come" language outside the
+deliberate Disqualified and D9 tables turns up only historical quotations — plus
+one genuinely stale line, "A6 has no app surface yet" at the head of Part A,
+which is now fixed. What remains for the telescope is not this doc's: the
 scenes — star, planet and lunar — are ROADMAP step 5's item and an engine step
 rather than wiring, since `rasterizePointSources` is point-only and an extended
 incoherent source has no rasterizer.

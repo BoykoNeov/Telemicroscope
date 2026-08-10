@@ -202,8 +202,13 @@ export function SeeingPanel() {
               <>
                 <strong>no atmosphere</strong> — the instrument alone
                 <br />
-                FWHM {r.cleanFwhmPx.toFixed(2)} px = {r.diffractionFwhmArcsec.toFixed(3)}″ · Strehl{" "}
-                {r.cleanStrehl.toFixed(4)}
+                FWHM {r.cleanFwhmPx.toFixed(2)} px = <strong>{r.cleanFwhmArcsec.toFixed(3)}″</strong>{" "}
+                · Strehl {r.cleanStrehl.toFixed(4)}
+                <br />
+                <span style={{ color: "#777" }}>
+                  the Airy FWHM 1.029·λ/D is {r.diffractionFwhmArcsec.toFixed(3)}″ — the estimator
+                  reads a few percent narrow on a 4-pixel feature
+                </span>
               </>
             }
           />
@@ -344,12 +349,22 @@ export function SeeingPanel() {
           <p style={{ maxWidth: 700, color: "#444" }}>
             The headline number every observer quotes is a statement about the atmosphere and says
             nothing about the aperture, which is fine until the aperture is small enough that its own
-            Airy disc is the wider of the two. Those are equal at 1.22·λ/D = 0.98·λ/r₀, i.e. at{" "}
-            <strong>D = (1.22/0.98)·r₀ = {r.seeingLimitedAboveMm.toFixed(1)} mm</strong> here — and{" "}
+            Airy disc is the wider of the two. Those are equal at 1.029·λ/D = 0.98·λ/r₀, i.e. at{" "}
+            <strong>D = (1.029/0.98)·r₀ = {r.seeingLimitedAboveMm.toFixed(1)} mm</strong> here — and{" "}
             <strong>λ cancels</strong>, so the crossover is a property of r₀ and the telescope and
-            not of colour. Drag the aperture below it and the measured disc stops following Fried
-            and settles onto the diffraction limit instead: it is not that the formula becomes
-            inaccurate, it is that it is no longer describing the thing being measured.
+            not of colour. Both sides of it are <em>full widths at half maximum</em>, which took a
+            correction to get right: 1.029·λ/D is the Airy pattern&rsquo;s FWHM, while the familiar
+            1.22·λ/D is the first <em>zero&rsquo;s radius</em> — 19% larger, and printed here as a
+            FWHM at first, beside a measured one, after an equals sign that was wrong by 35%.
+          </p>
+          <p style={{ maxWidth: 700, color: "#444" }}>
+            Drag the aperture below the crossover and the measured disc does <strong>not</strong>{" "}
+            settle onto the diffraction limit — it comes out wider than <em>either</em> single-cause
+            width, because two comparable widths convolve. That is a stronger statement than
+            &ldquo;the seeing formula stops applying&rdquo;: neither formula describes it, from
+            either side. Under r₀ = 200 mm a 200 mm telescope measures about a quarter wider than
+            Fried and about a third wider than its own atmosphere-free disc, and stays under their
+            sum.
           </p>
           <p style={{ maxWidth: 700, fontSize: 13, color: "#666" }}>
             And the instrument&rsquo;s own quality is in the number too, which the two optics make

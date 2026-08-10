@@ -15,9 +15,14 @@ import {
  *
  * 1. **0.98·λ/r₀ is an answer only where the telescope is seeing-limited.** The
  *    headline number says nothing about aperture, which is fine until the Airy
- *    disc is the wider of the two. They cross at D = (1.22/0.98)·r₀, **λ
- *    cancelling**, and below it the measured disc settles onto the diffraction
- *    limit instead of following Fried.
+ *    disc is the wider of the two. They cross at D = (1.029/0.98)·r₀ — two
+ *    FWHMs — with **λ cancelling**, and below it the measured disc exceeds
+ *    *both* single-cause widths, because two comparable widths convolve.
+ *    A first draft said "it settles onto the diffraction limit instead", and it
+ *    passed only because the panel's `diffractionFwhm` was then the Rayleigh
+ *    first-zero RADIUS, 1.22·λ/D — 19% too wide, and it happened to land on the
+ *    measurement. Correcting the unit moved the crossover 249 → 210 mm and
+ *    turned that claim into the honest one.
  * 2. **The instrument's own quality is in the seeing disc.** A paraboloid lands
  *    within a couple of percent of Fried on the same sky where a 200 mm f/8
  *    achromat measures ~9% wide. The mirror is the control that separates the
@@ -82,10 +87,12 @@ describe("C6.1 — the wiring, and the three frames", () => {
 });
 
 describe("C6.2 — 0.98·λ/r₀ is an answer only where the telescope is seeing-limited", () => {
-  it("the crossover is (1.22/0.98)·r₀, and λ is not in it", () => {
+  it("the crossover is (1.029/0.98)·r₀ — two FWHMs — and λ is not in it", () => {
     for (const friedParamMm of [25, 50, 100]) {
       const r = run({ friedParamMm, screens: 1 });
-      expect(r.seeingLimitedAboveMm).toBeCloseTo((1.22 / 0.98) * friedParamMm, 12);
+      // 1.02899 is the Airy pattern's FWHM in λ/D, not the 1.22 first-zero
+      // radius this panel used at first — see `AIRY_FWHM_FACTOR`.
+      expect(r.seeingLimitedAboveMm).toBeCloseTo((1.02899 / 0.98) * friedParamMm, 12);
       // The two discs really are equal at that aperture — asserted by putting
       // the telescope there and reading the panel's own two closed forms, not
       // by re-deriving the algebra a second time in the test.
@@ -99,24 +106,45 @@ describe("C6.2 — 0.98·λ/r₀ is an answer only where the telescope is seeing
     }
   });
 
-  it("past it the measurement follows Fried; short of it, it follows diffraction", () => {
+  it("past it the measurement follows Fried; short of it, it exceeds BOTH", () => {
     // A 200 mm scope under r₀ = 25 mm is eight Fried cells across — deep in the
-    // seeing-limited regime — and under r₀ = 200 mm it is one, which is short of
-    // the 249 mm crossover.
+    // seeing-limited regime — and under r₀ = 200 mm it is one, short of the
+    // ~210 mm crossover.
     const seeing = run({ optic: "newtonian", friedParamMm: 25, screens: 30 });
-    const diffraction = run({ optic: "newtonian", friedParamMm: 200, screens: 30 });
+    const both = run({ optic: "newtonian", friedParamMm: 200, screens: 30 });
     expect(seeing.seeingLimited).toBe(true);
-    expect(diffraction.seeingLimited).toBe(false);
+    expect(both.seeingLimited).toBe(false);
 
     // Seeing-limited: the measured disc is Fried's, within the finite-screen band.
     expect(seeing.meanFwhmArcsec / seeing.friedFwhmArcsec).toBeGreaterThan(0.9);
     expect(seeing.meanFwhmArcsec / seeing.friedFwhmArcsec).toBeLessThan(1.1);
-    // Not seeing-limited: Fried is 25% under the truth, and the truth is the
-    // instrument's own Airy disc — so the formula is not inaccurate, it has
-    // stopped describing the thing being measured.
-    expect(diffraction.meanFwhmArcsec / diffraction.friedFwhmArcsec).toBeGreaterThan(1.15);
-    expect(diffraction.meanFwhmArcsec / diffraction.diffractionFwhmArcsec).toBeGreaterThan(0.9);
-    expect(diffraction.meanFwhmArcsec / diffraction.diffractionFwhmArcsec).toBeLessThan(1.1);
+
+    // Short of it, the honest statement is NOT "it follows diffraction instead"
+    // — a first draft asserted that and passed only because `diffractionFwhm`
+    // was then the Rayleigh RADIUS, 19% too big, which happened to land on the
+    // measurement. With a real Airy FWHM the disc comes out wider than *either*
+    // single-cause width, which is what a convolution of two comparable widths
+    // does: neither formula describes it, from either side.
+    expect(both.meanFwhmArcsec).toBeGreaterThan(1.15 * both.friedFwhmArcsec);
+    expect(both.meanFwhmArcsec).toBeGreaterThan(1.15 * both.cleanFwhmArcsec);
+    // ...and it is not wider than their sum, so it is a combination and not a
+    // third effect that appeared.
+    expect(both.meanFwhmArcsec).toBeLessThan(both.friedFwhmArcsec + both.cleanFwhmArcsec);
+  });
+
+  it("the measured clean FWHM is the estimator's, and it reads narrow of the closed form", () => {
+    // Stated so no sentence anywhere leans on it as a precise number: λ/D spans
+    // `padFactor` = 4 pixels whatever `pupilSamples` is, and `fwhmPixels` bins by
+    // whole pixels, so a 4-pixel feature is measured with 1-pixel bins at either
+    // grid setting. It comes back a few percent under the Airy FWHM, and that is
+    // the ruler rather than the optics.
+    const r = run({ optic: "newtonian", screens: 1 });
+    const ratio = r.cleanFwhmArcsec / r.diffractionFwhmArcsec;
+    expect(ratio).toBeGreaterThan(0.8);
+    expect(ratio).toBeLessThan(1.0);
+    // Same feature, same bins, at twice the pupil sampling — so it does not move.
+    const fine = run({ optic: "newtonian", screens: 1, pupilSamples: 64 });
+    expect(fine.cleanFwhmArcsec / fine.diffractionFwhmArcsec).toBeCloseTo(ratio, 1);
   });
 });
 
