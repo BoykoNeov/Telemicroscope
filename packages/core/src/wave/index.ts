@@ -5,3 +5,4 @@ export * from "./fidelity";
 export * from "./geometric";
 export * from "./polychromatic";
 export * from "./seeing";
+export * from "./long-exposure";

@@ -11,10 +11,14 @@ import {
   psf,
   psfFromPupilFunction,
   pupilFunctionFromOpd,
+  systemPupil,
   PupilFunction,
   PupilScale,
   Psf,
 } from "../src/wave/psf";
+import { achromaticObjective } from "../src/designs/achromat";
+import { bestFocus, withFocus } from "../src/analysis/focus";
+import { friedAtmosphericMtf, longExposurePsf } from "../src/wave/long-exposure";
 import { spectralStack } from "../src/wave/polychromatic";
 import { opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
@@ -74,91 +78,36 @@ const flatPupil: PupilFunction = {
   phaseWaves: () => 0,
 };
 
-/** Azimuthal average of an fftshifted MTF (DC at centre), one bin per pixel. */
-function radialMtf(mod: Float64Array, n: number, bins: number): Float64Array {
-  const c = n / 2;
-  const sums = new Float64Array(bins);
-  const counts = new Float64Array(bins);
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) {
-      const b = Math.round(Math.hypot(x - c, y - c));
-      if (b >= bins) continue;
-      sums[b] = sums[b]! + mod[y * n + x]!;
-      counts[b] = counts[b]! + 1;
-    }
-  const out = new Float64Array(bins);
-  for (let b = 0; b < bins; b++) out[b] = counts[b]! > 0 ? sums[b]! / counts[b]! : 0;
-  return out;
-}
-
-/** FWHM (px) of the azimuthally-averaged PSF, from peak to half-max crossing. */
-function fwhmPx(intensity: Float64Array, n: number): number {
-  const c = n / 2;
-  const sums = new Float64Array(n);
-  const counts = new Float64Array(n);
-  for (let y = 0; y < n; y++)
-    for (let x = 0; x < n; x++) {
-      const b = Math.floor(Math.hypot(x - c, y - c));
-      if (b >= n) continue;
-      sums[b] = sums[b]! + intensity[y * n + x]!;
-      counts[b] = counts[b]! + 1;
-    }
-  const prof = new Float64Array(n);
-  for (let b = 0; b < n; b++) prof[b] = counts[b]! > 0 ? sums[b]! / counts[b]! : 0;
-  const half = prof[0]! / 2;
-  for (let b = 1; b < n; b++)
-    if (prof[b]! <= half) {
-      const t = (prof[b - 1]! - half) / (prof[b - 1]! - prof[b]!);
-      return 2 * (b - 1 + t);
-    }
-  return NaN;
-}
-
 /**
- * Ensemble-mean PSF through the atmosphere at a given D/r₀, plus what the
- * downstream rungs read off it: the OTF-derived r₀_eff and the pixel FWHM.
+ * Ensemble-mean PSF through the atmosphere at a given D/r₀.
+ *
+ * This used to be twenty lines of accumulation and two radial helpers, all
+ * local to this file — which is exactly why § 5d.1 exists: the physics below was
+ * pinned and the machinery that produces it was unreachable from anywhere else,
+ * so an app could show one speckle draw and nothing more. It is now
+ * `longExposurePsf` in `wave/long-exposure`, and this is a call to it.
+ *
+ * The rungs' numbers did not move — same seeds, same per-screen call sequence,
+ * same accumulation order — which is the point of pinning them on literals: the
+ * promotion is only honest if the bands below stayed where they were.
  */
-function seeingEnsemble(dOverR0: number, nEns: number, seed0: number, cleanMtf: Float64Array) {
-  const r0 = D / dOverR0;
-  const mean = new Float64Array(N * N);
-  let maxStep = 0;
-  for (let s = 0; s < nEns; s++) {
-    const screen = kolmogorovScreen({
-      friedParamMm: r0,
+function seeingEnsemble(dOverR0: number, nEns: number, seed0: number) {
+  return longExposurePsf({
+    pupil: flatPupil,
+    scale: SCALE,
+    seeing: {
+      friedParamMm: D / dOverR0,
       apertureDiameterMm: D,
       screenSamples: SCREEN_N,
       oversize: 4,
       subharmonics: 6,
-      seed: seed0 + s,
-    });
-    const psf = psfFromPupilFunction(withPhaseScreen(flatPupil, screen, REF_LAM), SCALE, 0, {
-      pupilSamples: PUPIL_SAMPLES,
-      padFactor: PAD,
-    });
-    for (let i = 0; i < N * N; i++) mean[i] = mean[i]! + psf.intensity[i]!;
-    if (psf.maxGridPhaseStepWaves > maxStep) maxStep = psf.maxGridPhaseStepWaves;
-  }
-  for (let i = 0; i < N * N; i++) mean[i] = mean[i]! / nEns;
-  const meanPsf: Psf = { ...cleanPsf, intensity: mean };
-  const mScreen = radialMtf(mtf(meanPsf).modulation, N, PUPIL_SAMPLES + 1);
-  // Atmospheric OTF = long-exposure MTF / diffraction MTF, and Fried says it is
-  // exp(−3.44·(D/r₀)^(5/3)·u^(5/3)) with u = f/cutoff = bin/pupilSamples. Invert
-  // for r₀_eff so a flat r₀_eff(u) means "a pure r₀ shift, not a shape change".
-  const r0effOverR0 = (bin: number): number => {
-    const u = bin / PUPIL_SAMPLES;
-    const atm = mScreen[bin]! / cleanMtf[bin]!;
-    const dOverR0Eff = Math.pow(-Math.log(atm) / (3.44 * Math.pow(u, 5 / 3)), 3 / 5);
-    return D / dOverR0Eff / r0;
-  };
-  return { fwhm: fwhmPx(mean, N), r0effOverR0, maxStep };
+      seed: seed0,
+    },
+    wavelengthNm: REF_LAM,
+    screens: nEns,
+    psfOptions: { pupilSamples: PUPIL_SAMPLES, padFactor: PAD },
+  });
 }
-
-// Built once: the diffraction-only PSF and its MTF are the denominators.
-const cleanPsf: Psf = psfFromPupilFunction(flatPupil, SCALE, 0, {
-  pupilSamples: PUPIL_SAMPLES,
-  padFactor: PAD,
-});
-const cleanMtf = radialMtf(mtf(cleanPsf).modulation, N, PUPIL_SAMPLES + 1);
 
 // ---- Plumbing rungs (fast) -----------------------------------------------
 
@@ -389,9 +338,9 @@ describe("the ensemble reproduces Fried's long-exposure seeing", () => {
     // The tight, well-converged pin. r₀_eff recovered from the OTF at each
     // frequency; flatness across u is what proves the generator's small error
     // is a pure r₀ shift, not a shape distortion.
-    const e = seeingEnsemble(4, 120, 10000, cleanMtf);
+    const e = seeingEnsemble(4, 120, 10000);
     const bins = [3, 4, 6, 8, 10]; // u = f/cutoff ∈ [0.05, 0.16], above the noise floor
-    const vals = bins.map((b) => e.r0effOverR0(b));
+    const vals = bins.map((b) => e.effectiveFriedRatio[b]!);
     for (const v of vals) {
       expect(v).toBeGreaterThan(0.9);
       expect(v).toBeLessThan(1.12);
@@ -401,7 +350,7 @@ describe("the ensemble reproduces Fried's long-exposure seeing", () => {
     expect(spread).toBeLessThan(1.12);
     // The under-resolution guard: the fidelity criterion is blind to the screen,
     // so this is what catches a screen the FFT grid cannot represent.
-    expect(e.maxStep).toBeLessThan(0.5);
+    expect(e.maxGridPhaseStepWaves).toBeLessThan(0.5);
   });
 
   it("seeing depends on r₀, not aperture: r₀_eff ≈ r₀ at two different D/r₀", { timeout: 120000 }, () => {
@@ -413,23 +362,175 @@ describe("the ensemble reproduces Fried's long-exposure seeing", () => {
     // finite-screen narrow-bias itself grows with D/r₀ (an 8-cell-wide r₀ on a
     // 64-sample pupil is marginally resolved) and would contaminate a raw FWHM
     // ratio; the OTF's r₀_eff does not, so the scaling law lands cleanly on it.
-    const e4 = seeingEnsemble(4, 120, 11000, cleanMtf);
-    const e8 = seeingEnsemble(8, 120, 12000, cleanMtf);
+    const e4 = seeingEnsemble(4, 120, 11000);
+    const e8 = seeingEnsemble(8, 120, 12000);
     for (const b of [2, 3, 4]) {
-      expect(e4.r0effOverR0(b)).toBeGreaterThan(0.9);
-      expect(e4.r0effOverR0(b)).toBeLessThan(1.13);
-      expect(e8.r0effOverR0(b)).toBeGreaterThan(0.9);
-      expect(e8.r0effOverR0(b)).toBeLessThan(1.16);
+      expect(e4.effectiveFriedRatio[b]!).toBeGreaterThan(0.9);
+      expect(e4.effectiveFriedRatio[b]!).toBeLessThan(1.13);
+      expect(e8.effectiveFriedRatio[b]!).toBeGreaterThan(0.9);
+      expect(e8.effectiveFriedRatio[b]!).toBeLessThan(1.16);
     }
     // The guard holds even under strong seeing: the screen is still resolved.
-    expect(e4.maxStep).toBeLessThan(0.5);
-    expect(e8.maxStep).toBeLessThan(0.5);
+    expect(e4.maxGridPhaseStepWaves).toBeLessThan(0.5);
+    expect(e8.maxGridPhaseStepWaves).toBeLessThan(0.5);
 
     // The pixel FWHM honours the headline number ≈ 0.98·λ/r₀, pinned where it is
     // well resolved (D/r₀ = 4) and by a wide band — it is the noisy estimator,
     // narrow-biased a documented few-to-fifteen percent by the finite screen.
     const fwhmTheory = 0.98 * 4 * LAM_OVER_D_PX;
-    expect(e4.fwhm / fwhmTheory).toBeGreaterThan(0.8);
-    expect(e4.fwhm / fwhmTheory).toBeLessThan(1.05);
+    expect(e4.fwhmPixels / fwhmTheory).toBeGreaterThan(0.8);
+    expect(e4.fwhmPixels / fwhmTheory).toBeLessThan(1.05);
+  });
+});
+
+/**
+ * § 5d.1 — the ensemble is an API now, and it runs on a REAL system.
+ *
+ * The rungs above are § 5d's, unchanged, and the promotion's honesty is that
+ * their bands did not move. What is new is what the helper could not carry: it
+ * closed over a **flat pupil**, so every long-exposure number this ladder had
+ * was measured on a perfect aperture and nothing could ask what an instrument
+ * with aberration of its own does under the same sky. That is exactly what an
+ * app surface wants to draw, so it is pinned before one draws it.
+ */
+describe("§ 5d.1 — the long exposure, exported", () => {
+  it("one screen is `psf({seeing})` exactly — the ensemble's degenerate case", () => {
+    // `screens: 1` must not be a special path. Byte-for-byte against the wiring
+    // rung's own composition, so the average adds nothing at N = 1.
+    const seeing: SeeingSpec = {
+      friedParamMm: D / 4,
+      apertureDiameterMm: D,
+      screenSamples: SCREEN_N,
+      oversize: 4,
+      subharmonics: 6,
+      seed: 7000,
+    };
+    const one = longExposurePsf({
+      pupil: flatPupil,
+      scale: SCALE,
+      seeing,
+      wavelengthNm: REF_LAM,
+      screens: 1,
+      psfOptions: { pupilSamples: PUPIL_SAMPLES, padFactor: PAD },
+    });
+    const manual = psfFromPupilFunction(
+      withPhaseScreen(flatPupil, kolmogorovScreen(seeing), REF_LAM),
+      SCALE,
+      0,
+      { pupilSamples: PUPIL_SAMPLES, padFactor: PAD },
+    );
+    for (const i of [0, 1234, N * N - 1, (N / 2) * N + N / 2]) {
+      expect(one.psf.intensity[i]).toBe(manual.intensity[i]);
+    }
+    expect(one.maxGridPhaseStepWaves).toBe(manual.maxGridPhaseStepWaves);
+    // ...and the seed is the FIRST screen's, so screen 0 is the bare spec's.
+    expect(one.screens).toBe(1);
+  });
+
+  it("the transfer function IS Fried's closed form, evaluated rather than inverted", () => {
+    // The rungs above invert Fried for r₀_eff, which is the discriminator. This
+    // is the same statement forward: the measured atmospheric MTF against
+    // exp(−3.44·(ν·D/r₀)^(5/3)) with no fitting anywhere, over the band where
+    // the ensemble is above its own noise floor.
+    const e = seeingEnsemble(4, 120, 10000);
+    for (const b of [3, 4, 6, 8, 10]) {
+      const nu = b / PUPIL_SAMPLES;
+      const ratio = e.atmosphericModulation[b]! / friedAtmosphericMtf(4, nu);
+      // A few percent high: the finite screen's r₀ inflation, the documented
+      // tolerance of this whole section, seen a fourth way.
+      expect(ratio).toBeGreaterThan(1.0);
+      expect(ratio).toBeLessThan(1.35);
+    }
+  });
+
+  it("a draw's width is a random variable and a mean's is not — 5.3× against 1.08×", () => {
+    // The sentence the app surface exists to show, and the first draft of this
+    // rung got its shape wrong: it asserted a single screen is *narrower* than
+    // the mean, which was a guess about magnitude standing in for the claim. The
+    // claim is about VARIANCE. One screen's FWHM is a draw — over five seeds it
+    // runs 12.3 to 65.3 px, a factor of **5.3** — while a mean over only thirty
+    // is stable to 7.5% between two disjoint seed sets. That contrast is what
+    // "one screen is a speckle pattern and only the mean is the seeing disc"
+    // actually says, and it is why the ensemble is compute-once rather than a
+    // number one draw could stand in for.
+    const draws = [10000, 20000, 30000, 40000, 50000].map((seed) => seeingEnsemble(4, 1, seed));
+    const widths = draws.map((d) => d.fwhmPixels);
+    const drawSpread = Math.max(...widths) / Math.min(...widths);
+    expect(drawSpread).toBeGreaterThan(2.5);
+
+    const a = seeingEnsemble(4, 30, 60000);
+    const b = seeingEnsemble(4, 30, 70000);
+    const meanSpread = Math.max(a.fwhmPixels, b.fwhmPixels) / Math.min(a.fwhmPixels, b.fwhmPixels);
+    expect(meanSpread).toBeLessThan(1.2);
+    expect(drawSpread).toBeGreaterThan(3 * (meanSpread - 1) + 1);
+
+    // And the mean is a genuinely different object, not a noisy version of a
+    // draw: averaging destroys the bright speckle core. Against the same clean
+    // instrument, one draw peaks at ~0.31 of the diffraction peak and the
+    // 120-screen mean at ~0.06 — five times fainter at the centre, which is the
+    // visible difference between a speckle frame and a seeing disc.
+    const many = seeingEnsemble(4, 120, 10000);
+    const peak = (v: Float64Array) => v.reduce((m, x) => (x > m ? x : m), 0);
+    const cleanPeak = peak(many.clean.intensity);
+    expect(peak(draws[0]!.psf.intensity) / cleanPeak).toBeGreaterThan(4 * (peak(many.psf.intensity) / cleanPeak));
+    // The mean is far wider than the diffraction core it came from...
+    expect(many.fwhmPixels / many.cleanFwhmPixels).toBeGreaterThan(3);
+    // ...and the clean instrument is untouched by any of it — same pupil, every
+    // screen, so its FWHM is bitwise the same number in every ensemble above.
+    expect(draws[0]!.cleanFwhmPixels).toBe(many.cleanFwhmPixels);
+  });
+
+  it("...and it recovers r₀ on a REAL traced system, not only on a flat pupil", () => {
+    // The pin the test-local helper could not carry. A 200 mm f/8 achromat has a
+    // fifth-order spherical residual of its own; its pupil is a Zernike fit of a
+    // traced wavefront rather than a mathematical disc. Fried's r₀ must come
+    // back anyway, because the atmospheric MTF is a RATIO against the same
+    // instrument — the system divides out, which is the claim.
+    const objective = achromaticObjective({ apertureMm: D, focalRatio: 8 });
+    const system: OpticalSystem = {
+      prescription: objective.prescription,
+      aperture: { kind: "EPD", value: D },
+      field: { kind: "angle", values: [0] },
+      wavelengths: [{ nm: REF_LAM, weight: 1 }],
+      conjugate: { kind: "infinite" },
+    };
+    const focus = bestFocus(system, "minRmsWavefront", { wavelengthNm: REF_LAM });
+    const { pupil, scale } = systemPupil(withFocus(system, focus.offsetFromLastVertex), 0, REF_LAM);
+
+    const traced = longExposurePsf({
+      pupil,
+      scale,
+      seeing: {
+        friedParamMm: D / 4,
+        apertureDiameterMm: D,
+        screenSamples: SCREEN_N,
+        oversize: 4,
+        subharmonics: 6,
+        seed: 13000,
+      },
+      wavelengthNm: REF_LAM,
+      screens: 60,
+      psfOptions: { pupilSamples: PUPIL_SAMPLES, padFactor: PAD },
+    });
+
+    // The instrument really is aberrated — otherwise this rung is the one above.
+    expect(traced.clean.strehl).toBeLessThan(0.999);
+    expect(traced.clean.strehl).toBeGreaterThan(0.5);
+    for (const b of [3, 4, 6, 8, 10]) {
+      expect(traced.effectiveFriedRatio[b]!).toBeGreaterThan(0.9);
+      expect(traced.effectiveFriedRatio[b]!).toBeLessThan(1.15);
+    }
+    expect(traced.maxGridPhaseStepWaves).toBeLessThan(0.5);
+  });
+
+  it("refuses a screen count that is not a positive integer", () => {
+    const spec = {
+      pupil: flatPupil,
+      scale: SCALE,
+      seeing: { friedParamMm: D / 4, apertureDiameterMm: D, screenSamples: 64 },
+      wavelengthNm: REF_LAM,
+    };
+    expect(() => longExposurePsf({ ...spec, screens: 0 })).toThrow(/positive integer/);
+    expect(() => longExposurePsf({ ...spec, screens: 2.5 })).toThrow(/positive integer/);
   });
 });

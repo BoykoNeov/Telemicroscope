@@ -29,7 +29,7 @@ whole ladder.
 | [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
 | [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
 | [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
-| [5d](#step-5d--atmospheric-seeing-the-one-random-draw-in-the-image) | Kolmogorov D_φ(r), Fried's long-exposure OTF, r₀ not aperture | `seeing` |
+| [5d](#step-5d--atmospheric-seeing-the-one-random-draw-in-the-image) | Kolmogorov D_φ(r), Fried's long-exposure OTF, r₀ not aperture; **5d.1** the ensemble promoted out of the test file and run on a traced system | `seeing` |
 | [5e](#step-5e--the-classical-cassegrain-preset) | Classical Cassegrain geometry, on axis, coma | `cassegrain` |
 | [5f](#step-5f--the-ritchey-chrétien-preset) | Ritchey-Chrétien aplanatism — the coma null | `ritchey` |
 | [5g](#step-5g--the-schmidt-camera-preset) | Schmidt camera, corrector plate, off axis | `schmidt` |
@@ -1410,6 +1410,61 @@ speckle that morphs continuously as the dial moves, not the ensemble-averaged
 disc), and dials **D/r₀** rather than r₀ so the effect stays visible at the toy
 4–20 mm apertures; the long-exposure ensemble and the field-panel wiring are
 named next.
+
+### § 5d.1 — the long exposure becomes an API, and runs on a real system
+
+The first half of that "named next" is now closed, and the shape of the gap is
+worth stating because it is a kind this ladder had not had: **the physics was
+pinned and the machinery that produces it was unreachable.** `seeingEnsemble`
+lived inside `seeing.test.ts`, closed over that file's aperture, grid and flat
+pupil, with no export anywhere — so every long-exposure number in this section
+was true and nothing outside the test could ask for one. An app could show a
+single speckle draw and say so (which is what it did), and no more.
+
+`longExposurePsf` (`wave/long-exposure`) is that helper promoted. Two mechanical
+notes, both load-bearing. It is a **separate module** from `seeing.ts` because
+`psf.ts` imports `withPhaseScreen` as a value while `seeing.ts` imports from
+`psf.ts` as a *type only* — a back-edge that must keep erasing — and the ensemble
+needs `psfFromPupilFunction` as a value. And it takes a **pupil**, not a system,
+because a long exposure is many atmospheres over one instrument: going through
+`psf({seeing})` would re-trace, re-fit and rebuild the vignette mask per screen
+for a result that cannot change. `systemPupil()` was split out of `psf()` for
+that, and `psf()` now calls it, so there is one definition of a system's pupil
+rather than two.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Every § 5d ensemble rung passes unchanged, at the same seeds and the same bands** | the promotion is a move, not a rewrite | ✅ |
+| `screens: 1` is `psfFromPupilFunction(withPhaseScreen(…))` **bit-identical** | no special path at the degenerate case | ✅ |
+| **The atmospheric MTF against exp(−3.44·(ν·D/r₀)^(5/3)) evaluated forward, no fitting** | Fried, the same law the r₀_eff rung inverts | ✅ |
+| **A draw's FWHM spans 5.3× over five seeds; a 30-screen mean is stable to 7.5%** | a realisation is a random variable and a mean is not | ✅ |
+| ...and a draw peaks at ~0.31 of the diffraction peak where the 120-screen mean peaks at ~0.06 | speckle core vs seeing disc | ✅ |
+| **r₀_eff comes back on a REAL traced achromat's pupil, not only on a flat one** | the atmospheric MTF is a ratio, so the instrument divides out | ✅ |
+| A non-integer or non-positive screen count is refused | it is an ensemble size, not a weight | ✅ |
+
+The **traced-system** rung is the one the test-local helper could not carry, and
+it is the claim an app surface rests on: the helper closed over a *flat pupil*,
+so every long-exposure number this ladder had was measured on a perfect
+aperture. A 200 mm f/8 achromat has a fifth-order spherical residual of its own
+and its pupil is a Zernike fit of a traced wavefront rather than a mathematical
+disc — and Fried's r₀ still comes back inside the documented band, because the
+atmospheric MTF is a **ratio against the same instrument** and the system divides
+out. The rung asserts the instrument really is aberrated (Strehl strictly under
+1) before asserting the recovery, or it would silently be the flat-pupil rung
+again.
+
+The **variance** rung replaced a first draft that asserted a single screen is
+*narrower* than the mean — a guess about magnitude standing in for the claim.
+The claim is about spread, not centre: one screen's FWHM runs 12.3 to 65.3 px
+over five seeds while a mean over only thirty is stable to 7.5% between disjoint
+seed sets. That is why this is **compute-once and never a live dial**, and it is
+the sentence APP.md's C6 surface exists to make visible.
+
+Cost is unchanged and irreducible: the low-order wander converges as 1/√N, so
+120 screens is ~8 s and these rungs remain the heaviest in the suite. Note also,
+from § 5d's own convergence warning seen again here: two 30-screen means land at
+12.5 and 13.5 px where 120 screens gives 15.5, so the mean is still *climbing* at
+30 — a cheap ensemble is biased narrow rather than merely noisy.
 
 ## Step 5e — the classical Cassegrain preset
 

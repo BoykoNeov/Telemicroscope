@@ -640,12 +640,32 @@ export interface SystemPsfOptions extends PsfOptions {
 }
 
 /** Trace, fit, transform — the whole pipeline for one field and wavelength. */
-export function psf(
+/** A system's own pupil function and the scale that turns it into an image. */
+export interface SystemPupil {
+  /** Amplitude and phase, including obstruction, spider and vignetting. */
+  readonly pupil: PupilFunction;
+  readonly scale: PupilScale;
+  /** The fidelity signal, measured on the raw traced samples. */
+  readonly sampling: OpdSampling;
+}
+
+/**
+ * Trace and fit, stopping short of the transform — everything `psf()` does
+ * before the FFT.
+ *
+ * Split out so a caller that needs **many transforms of one traced system** does
+ * not re-trace for each: the long-exposure seeing average is exactly that, a
+ * hundred-plus different atmospheres over one unchanging instrument, and going
+ * through `psf({seeing})` would repeat the trace, the Zernike fit and any
+ * vignette mask every single time for a result that cannot change. `psf()` calls
+ * this, so there is one definition of what a system's pupil is rather than two.
+ */
+export function systemPupil(
   system: OpticalSystem,
   fieldValue: number,
   wavelengthNm: number,
   options: SystemPsfOptions = {},
-): Psf {
+): SystemPupil {
   const map = opdMap(
     system,
     fieldValue,
@@ -665,25 +685,34 @@ export function psf(
     ...(options.spider === undefined ? {} : { spider: options.spider }),
     ...(vignette === undefined ? {} : { vignette }),
   });
-  // Atmospheric seeing arrives here, as the last wrapper on the pupil before the
-  // transform — pure phase at this wavelength, amplitude untouched. It is the
-  // successor ARCHITECTURE named after the spider: a new optical effect that is
-  // a `PupilFunction`, so nothing below learns its name.
-  const seenPupil = options.seeing ? withPhaseScreen(pupil, options.seeing, wavelengthNm) : pupil;
-  const transformed = psfFromPupilFunction(
-    seenPupil,
-    {
+  return {
+    pupil,
+    scale: {
       referenceRadius: map.referenceRadius,
       exitRadius: map.pupil.exit.radius,
       wavelengthNm,
       nImage: map.pupil.exit.n,
     },
-    fieldValue,
-    options,
-  );
-  // Measured on the RAW traced samples, which is the only place the criterion
-  // means anything — see wave/fidelity.
-  return { ...transformed, sampling: opdSampling(map, fit) };
+    // Measured on the RAW traced samples, which is the only place the criterion
+    // means anything — see wave/fidelity.
+    sampling: opdSampling(map, fit),
+  };
+}
+
+export function psf(
+  system: OpticalSystem,
+  fieldValue: number,
+  wavelengthNm: number,
+  options: SystemPsfOptions = {},
+): Psf {
+  const { pupil, scale, sampling } = systemPupil(system, fieldValue, wavelengthNm, options);
+  // Atmospheric seeing arrives here, as the last wrapper on the pupil before the
+  // transform — pure phase at this wavelength, amplitude untouched. It is the
+  // successor ARCHITECTURE named after the spider: a new optical effect that is
+  // a `PupilFunction`, so nothing below learns its name.
+  const seenPupil = options.seeing ? withPhaseScreen(pupil, options.seeing, wavelengthNm) : pupil;
+  const transformed = psfFromPupilFunction(seenPupil, scale, fieldValue, options);
+  return { ...transformed, sampling };
 }
 
 /**
