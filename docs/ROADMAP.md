@@ -87,8 +87,11 @@
    mode now has an app surface**: the presets, the spider, the diagonal's
    vignetting, the camera, the eyepieces/eye/visual mode, and the long exposure
    (APP.md C1–C6, all landed). The **mechanical layer is ✅ closed** (§ 5u,
-   below). Still open here: **scenes** (star/planet/lunar) and the **bench
-   editor**. **`core/mech`'s panel has landed too**
+   below). **The scenes' engine step is ✅ closed too** (§ 5v) — an extended
+   incoherent source had no rasterizer, and now does. Still open here: the
+   **bench editor**, and the scenes' own **app surface and content** (a panel,
+   an albedo map, lunar terrain), which is authoring rather than engine.
+   **`core/mech`'s panel has landed too**
    (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
@@ -408,6 +411,42 @@
    doublet exists to mount. Two nulls arrive free — § 5u.2's position independence
    at **2.7e-11 waves**, and the plate's cost not knowing the aperture (0.22% over
    D = 60 → 150 mm) where the doublet's own share moves 2.5×.
+   *The extended source:* ✅ `imaging/extended` (§ 5v) — this step's scenes, at the
+   engine, and the last unbuilt engine capability outside the teaching layer.
+   Everything the branch had imaged from the sky was a **star**, because
+   `rasterizePointSources` places a flux at a point; a planet has no flux until an
+   area is named, and what it carries is a **radiance over solid angle**. So the
+   step adds **no optics** — every ray was already being traced — and its content
+   is that the chief-ray map is **differentiated** rather than only evaluated.
+   The Jacobian is **one-dimensional**, `dΩ/dA = (sin θ/r)·(dθ/dr)`, which is
+   § 6m.4's anisotropy as a *product* rather than a determinant: axial symmetry
+   leaves no off-diagonal term to neglect. Pinned to **cos³θ/f² at 1.3e-10** on a
+   paraboloid whose stop is at the mirror, so its `r = f·tan θ` is the reflection
+   law and holds to **one ulp**, with the axis exact as `(dθ/dr)²` = 1/f². **The
+   headline is a cosine that is deliberately not applied.** The textbook falloff
+   is cos⁴θ, and it was measured *before* the module was written rather than
+   assumed: `psf().energy` is flat in field to **8e-7 at 2°** where cos θ is
+   6.1e-4, and the residual is not even a cosine's shape — the engine's pupil is a
+   normalized grid, so its area is field-independent by construction. Applying the
+   fourth cosine here would have made this rasterizer disagree with the
+   point-source one, which is missing it identically, so it is named as a
+   **pupil-layer deferral** and it **cancels** in the rung that compares them. Four
+   more. **A derivative loses an order**: the Jacobian converges ×8 per doubling of
+   nodes where § 6s's radius converges ×16, and `errorEstimateMm` is therefore not
+   merely under-reading as at § 6s.2 but is the **wrong quantity's order**. **Energy
+   is a real witness here** — a radiance is a density, so this warp carries the
+   Jacobian `imaging/specimen`'s deliberately does not — and it *converges* rather
+   than conserving, the disc's flux residual **changing sign** (+1.70e-1, +1.95e-2,
+   −2.27e-3, +1.99e-4) because a point-sampled hard edge counts lattice points
+   inside a circle, so the sign flip is what is asserted and no rate is claimed.
+   The departure from cos³ on a real doublet **is** the distortion, at **×4.00 per
+   doubling of field** — § 6h.1's ×8.00 cubic and § 6n's ×2.00 sagitta seen one
+   derivative along. And **nothing downstream changed**: a disc and a star of equal
+   flux integrate identically through `renderField` to 1e-13, the rendered light is
+   *bitwise* linear in radiance, and a disc's image reaches f·tan(D/2), which no
+   point source can say. **Open:** the fourth cosine, a panel, and the content —
+   albedo maps, lunar terrain and a real limb-darkening coefficient are measured
+   data or authoring, not engine.
 6. **Microscope branch** ← current; **every numbered step in it is now closed**
    (§ 6l was the last gap). What remains here is app wiring and scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.

@@ -3269,6 +3269,29 @@ scenes — star, planet and lunar — are ROADMAP step 5's item and an engine st
 rather than wiring, since `rasterizePointSources` is point-only and an extended
 incoherent source has no rasterizer.
 
+**That engine step has since landed as § 5v**, and the sentence above was right
+about the diagnosis and incomplete about what would be left afterwards.
+`imaging/extended` gives an extended incoherent source its rasterizer — a sky
+radiance evaluated at the field direction each pixel really looks at, times the
+solid angle that pixel subtends — and the scene it produces is the
+`ImagePlaneScene` `renderField` has consumed since step 4, so **no app-facing
+capability is blocked any more.** What is left for the scenes in *this* doc's
+currency is therefore ordinary: a **panel** (none exists; the registry is the
+check, and there is no route for one), and the **content** — an albedo map,
+lunar terrain, a real limb-darkening coefficient — which is authoring or measured
+data rather than either engine or wiring, exactly as `stage.ts`'s diatoms were
+for the microscope.
+
+Worth recording because this doc keeps a prediction ledger: § 5v is the first
+step in a while where **the feasibility number was not measuring something
+else** — there was no feasibility number, because the measurement that decided
+the design was taken *before* the module was written rather than inherited from
+a scoping note. What it decided was whether the cos⁴ law's fourth cosine was
+already in `psf().energy` (it is not), and the answer changed the module's
+signature. The defence this doc has named three times — pin to a closed form
+rather than to a previous measurement — worked a fourth time by being applied
+one step earlier than usual.
+
 **C2's own version of the pattern is that the cheapest item in the doc was
 cheap, and the one nobody costed was the expensive one.** APP.md called the spider
 "probably the cheapest visible win in the repo" and it was — one option passed

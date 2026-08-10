@@ -47,6 +47,7 @@ whole ladder.
 | [5s](#step-5s--camera-mode-relative-exposure) | Image-space cone from the marginal ray; f-ratio and aperture laws | `exposure` |
 | [5t](#step-5t--tolerancing-sensitivity-compensators-and-the-rss-budget) | Sensitivity, compensators, RSS budget — four external pins | `tolerance` |
 | [5u](#step-5u--the-mechanical-layer-the-glass-path-that-is-not-its-own-length) | The mechanical layer, and the one claim it exists for — a part's mechanical length and its optical cost are different numbers: a spliced chain moving the TRACED focus by exactly t(1−1/n), so the closed form is pinned against the tracer instead of substituted for it (a prism diagonal hands back 0.3407 of its glass, 13.6287 mm, and a mirror one a hard zero); the naive air-only budget over-reporting by exactly Σtᵢ(1−1/nᵢ) — 7.83% of a real chain's length, always pessimistic, and the two verdicts genuinely disagreeing on an ordinary focuser; the glass's position along the converging beam shown **exactly** irrelevant, focus to 1e-11 mm and OPD below 1e-6 waves at a 50 mm and a 600 mm gap, which is what licenses flattening a chain's glass into one stack; the shift shown to be dispersive — blue pushed further back, the opposite of what a positive element does — which makes a glass diagonal a colour COMPENSATOR for both doublets measured (BK7/F2 at −0.2098 mm and § 5k's ED pair at −0.5068 mm), though an achromat's F−C spread is a RESIDUAL whose sign belongs to the lens, so the compensation is measured on two glass pairs rather than asserted as a law; the amount it moves each identical at 0.139742 mm to six digits, four Rayleigh depths of focus at f/5 and inside one at f/10, and invisible to any budget made of lengths; the cost a fourth power of the aperture with the exact form outrunning W₀₄₀ (×16.0216 at f/20→f/10 against ×16.5629 at f/4→f/2, ratio 1.0469 by f/2) and the quarter wave landing at **f/5.315** where the step was scoped for f/3–f/4; and the sixth geometric ceiling, the first from a MOUNT rather than the ray invariant — a single group cannot be DIN-parfocal below M = [x′+√(x′²+4Px′)]/2P = **4.1387** (4.236 with real glass), which is why a real 4× cannot be one doublet | `mech` |
+| [5v](#step-5v--the-extended-source-and-the-jacobian-that-makes-it-one) | The sky's first source with a SIZE, and the one thing that separates it from a star — a star is a flux at a point, a planet is a **radiance over solid angle**, so the chief-ray map is DIFFERENTIATED rather than only evaluated and the step adds no optics at all; the Jacobian shown to be **one-dimensional** on an axially symmetric system, `dΩ/dA = (sin θ/r)·(dθ/dr)`, a tangential factor times a radial one with no off-diagonal term to neglect — § 6m.4's anisotropy as a product rather than a determinant — pinned to the closed form **cos³θ/f² at 1.3e-10** on a paraboloid whose stop is AT the mirror, so its `r = f·tan θ` is the reflection law and holds to **≤ 1 ulp**; the axis exact as the limit of two vanishing quantities, `(dθ/dr)²` = **1/f²** to 1.5e-12, rather than clamped; **the fourth cosine measured to be absent from the engine and therefore NOT applied** — `psf().energy` flat in field to 8e-7 at 2° where cos θ is 6.1e-4, the residual not even a cosine's shape — so the textbook cos⁴ is delivered as its geometric cos³ with the obliquity named as a PUPIL-layer deferral that is missing from both rasterizers identically and therefore **cancels** in the one rung comparing them; the map built FORWARD and inverted by Newton on its own interpolant, since differencing a bisection would have swamped the pin it exists to be checked against; the finding that **a derivative loses an order** — the Jacobian converges ×8 per doubling of nodes where § 6s's radius converges ×16 (7.79, 7.90, 7.95) — and with it that `errorEstimateMm` is not merely under-reading as in § 6s.2 but is **the wrong quantity's order** entirely, falling ×14.91 → 15.74 toward sixteen; **energy a real witness at last** — a radiance is a density, so this warp carries the Jacobian `imaging/specimen`'s deliberately does not — and a CONVERGING one, the disc's flux residual **changing sign** (+1.70e-1, +1.95e-2, −2.27e-3, +1.99e-4) because a point-sampled hard edge counts lattice points inside a circle, so the sign flip is asserted and no rate is claimed; the point-source limit exact in **centroid** and converging in flux but explicitly **not bitwise**, since § 6n.2's two rasterizers both placed a value at a point and these two are different quadratures; the departure from cos³ on a real doublet shown to BE the distortion at **×4.00 per doubling of field**, completing a ladder of derivatives off one coefficient with § 6h.1's ×8.00 and § 6n's ×2.00; and the architectural claim as a number — a disc and a star of equal flux integrating identically through `renderField` to 1e-13, the rendered light **bitwise** linear in radiance, and a disc's image reaching f·tan(D/2) | `extended` |
 | [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective; the doublet's ceiling (§ 6b.5) | `microscope` `seidel` `achromat` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
@@ -3057,6 +3058,283 @@ where the truth is that no doublet exists there to mount.
 - **The tube-length error** — a 160 mm objective used at 170 — and its known
   equivalence with a coverslip error as mutual compensators. § 6c has the
   machinery; this step took the parfocal half of the standard and not that one.
+
+## Step 5v — the extended source, and the Jacobian that makes it one
+
+ROADMAP step 5's last unbuilt item, and the last engine step outside the
+teaching layer: the telescope's scenes. Everything the engine has imaged from
+the sky so far has been a **star**, and `rasterizePointSources` is the reason —
+a point source has no angular size, so its whole light lands at one image point
+and the only question the rasterizer answers is *which* point. A planet, the
+Moon or a nebula has no flux at all until an area is named. What it carries is a
+**radiance**, light per unit solid angle, and turning that into the flux per
+pixel `renderField` convolves needs the solid angle each pixel subtends.
+
+So the step adds **no optics**. Every ray it needs was already being traced by
+`imagePointOf`; what is new is that the chief-ray map is **differentiated**
+rather than only evaluated. Its content is therefore what that derivative costs
+and what it reveals, and both turned out to be more interesting than the
+picture.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **dΩ/dA = cos³θ/f²** on a distortion-free map | closed form / textbook cos⁴ law, 1.3e-10 | ✅ |
+| The axis is exactly **1/f²**, as the limit of two vanishing quantities | closed form, 1.5e-12 | ✅ |
+| The fixture's licence: **r = f·tan θ to ≤ 1 ulp** on a stop-at-the-mirror paraboloid | reflection law | ✅ |
+| The Jacobian converges **×8** per doubling of nodes where the radius converges ×16 | interpolation order | ✅ |
+| A disc's total flux is its **exact solid angle**, with a residual that **changes sign** | closed form + Gauss circle | ✅ |
+| The point-source limit: centroid exact, flux → the star's | § 3c's own rasterizer | ✅ |
+| On a real doublet the departure from cos³ runs **×4.00 per doubling of field** | § 6h.1's cubic, one derivative down | ✅ |
+| A disc and a star of equal flux integrate to the same light through `renderField` | 1e-13 | ✅ |
+| A disc's image reaches **f·tan(D/2)** — the capability itself | geometry | ✅ |
+| `I(μ)/I(0) = 1 − u(1 − μ)` contains the uniform disc bitwise at u = 0 | textbook law | ✅ |
+
+### 5v.1 — the cosine count, and the one this module does not apply
+
+The textbook falloff for an extended source is **cos⁴θ**, and the obvious move
+is to pin that. It would have been wrong, and finding out why was the first
+thing this step did — before a line of the module was written, because the
+answer decides the module's signature.
+
+cos⁴ has two standard decompositions. The classical one is exit-pupil-side
+(inverse square through `d/cos θ` gives cos², pupil foreshortening one more, the
+tilted image plane a fourth). The one this engine's architecture forces is
+object-side: a **geometric cos³** from the sky-to-image-plane Jacobian, times
+**one cosine** for the entrance pupil's projected area. The totals agree; the
+decompositions do not, and the difference lands exactly where this engine
+normalizes.
+
+So it was measured. `psf().energy` — the transmitted pupil energy that § 2b, § 2d
+and § 2f all normalize to — is **flat in field to 8e-7 at 2°** on the hero
+achromat, where cos θ would be 6.1e-4. Three orders apart, and the residual that
+is there is not even a cosine's shape: **linear in θ** on the paraboloid
+(2.33 / 3.50 / 4.66 e-4 at 0.5 / 1 / 2°), quadratic on the doublet. That is the
+pupil lattice's own quantization. The engine's pupil is a *normalized* grid, so
+its area is field-independent by construction and the obliquity cosine is
+**definitively absent**.
+
+That left three options, and the third is the trap. Applying the cosine here
+would make this rasterizer disagree with `rasterizePointSources`, which does not
+apply it either — a star and a disc of the same total flux would render at
+different brightnesses, and 5v.7's limit would have to be written around the
+disagreement instead of pinning it. Fixing `transmittedEnergy` instead would drag
+§ 2b, § 2d and § 2f into a re-pin for a factor none of them is about.
+
+**So the module applies the Jacobian only, and the fourth cosine is named as a
+deferral belonging to the pupil layer** — where fixing it once would serve both
+rasterizers. It is missing from both today, identically, which is precisely what
+makes it cancel in the one rung that compares them. A deferral that cancels in
+the comparison is worth more than a factor applied on one side.
+
+### 5v.2 — the Jacobian is one-dimensional, and that is physics rather than luck
+
+§ 6s found that "where does this pixel look" is a function of one scalar because
+the systems are axially symmetric. The same symmetry makes the **area element**
+factorize. A pixel at image radius r looking at field radius θ(r) covers
+`r·dr·dφ` of image plane and `sin θ·dθ·dφ` of sky, so
+
+    dΩ/dA = (sin θ / r) · (dθ/dr)
+
+— a **tangential** factor times a **radial** one, each a function of r alone.
+That is § 6m.4's anisotropy written as a product rather than as a 2×2
+determinant: the two scales genuinely differ, and the determinant is still
+one-dimensional. There is no off-diagonal term to compute, and none is neglected.
+
+On the axis both factors are the same limit, `sin θ/r → dθ/dr`, so
+`dΩ/dA(0) = (dθ/dr)²` **exactly** — a closed form rather than a 0/0, and on a
+system that images at f it is **1/f²**, measured at 1.5e-12. The alternative
+(clamping the axis, or nudging it off zero) is the kind of special case that
+would have made the frame's brightest pixel the one nobody could pin.
+
+### 5v.3 — the fixture, and why it is exact rather than merely good
+
+cos³θ/f² is true of the map `r = f·tan θ` and of no other. A real doublet does
+not have that map, so pinning cos³ on one would mean choosing a tolerance to
+cover the distortion — which is the move this file forbids.
+
+The fixture is instead psf.test's own **paraboloid at its focus**, and it is
+exact for a structural reason: its stop is **at the mirror**, so the chief ray
+from any field angle strikes the vertex and reflects there. Image height is then
+the reflection law and nothing else. Measured: `r = f·tan θ` to **0 or 1 ulp**
+(≤ 1.11e-16) at every field from 0.05° to 4°.
+
+On that map the Jacobian reproduces **cos³θ/f² to 1.3e-10** over the same range.
+
+The falloff itself is worth stating plainly, because the cos⁴ law is famous from
+wide-angle photography where it bites hard: at 4° of field it is **0.73%**, and a
+telescope's field is degrees at most. **Natural vignetting is real, pinned, and
+invisible in every instrument this branch models.** The rung exists to pin the
+law, not to promise a visible effect — and the honest version of that sentence is
+in the rung.
+
+### 5v.4 — a derivative loses an order, and the error estimate is the wrong quantity's
+
+The map is built **forward** — one chief ray per node, smooth in θ, no search
+anywhere — and inverted afterwards by Newton on the interpolating cubic, with
+`dr/dθ` from differentiating the *same* cubic. The alternative, differencing
+`render.ts`'s bisected `fieldAngleFor`, carries √ε/h noise that would have
+swamped the cos³ pin it exists to be checked against. The round trip
+field → radius → field returns to **1e-15**.
+
+The interpolant is § 6s's — piecewise 4-point Lagrange, with the same odd
+mirror node below the axis for the same reason (r is odd in θ). What is new is
+what reading its **derivative** costs, and it is exactly one order:
+
+| nodes | Jacobian error | ratio |
+|---|---|---|
+| 8 | 5.92e-8 | — |
+| 16 | 7.60e-9 | 7.79 |
+| 32 | 9.63e-10 | 7.90 |
+| 64 | 1.21e-10 | 7.95 |
+
+**×8, not ×16.** The same table that places a pixel to fourth order reports that
+pixel's solid angle to third. That is elementary once stated and it is not
+stated anywhere in § 6s, because § 6s never differentiated anything.
+
+It has a consequence for the reported `errorEstimateMm`, and it is sharper than
+§ 6s.2's. There the estimate under-read the truth by 7–17%; **here it is not
+even the same order** — it falls ×14.91, ×15.47, ×15.74, approaching sixteen
+from below, because it estimates the interpolated *radius*'s remainder while the
+quantity actually consumed is the derivative. Reported rather than fixed: an
+estimate of the wrong order is still the number that says when more nodes stop
+buying anything, and naming what it measures is the honest repair.
+
+### 5v.5 — energy is a witness here, and it converges rather than conserving
+
+`imaging/specimen` records that its warp carries **no** Jacobian, because an
+amplitude transmittance is a property of a point; it also names the case that
+would need one — an extended emitter **density** — as its own deferral. A sky
+radiance is exactly such a density, so this module is the one place in the
+engine where the object-side warp does carry a Jacobian, and where **energy is a
+real witness**, against § 6g.2, § 6k.4 and § 6r.2 all recording that it is not.
+
+It is a *converging* witness, not an exact one, and the distinction is the rung.
+The radiance is point-sampled at each pixel's own field direction — § 6n's
+convention, so the warp stays in the argument and nothing is resampled — and a
+point sample of a hard-edged disc is a count of lattice points inside a circle:
+
+| disc | radius | flux residual |
+|---|---|---|
+| 0.005° | 3.2 px | **+1.70e-1** |
+| 0.01° | 6.3 px | +1.95e-2 |
+| 0.02° | 12.7 px | **−2.27e-3** |
+| 0.04° | 25.4 px | +1.99e-4 |
+
+**The residual changes sign.** A systematic under- or over-count would keep its
+sign and could be corrected by a factor; this is the Gauss circle problem, which
+§ 6i.2 met counting a pupil's points and § 6k.5's truncation met again. So the
+rung asserts the **sign flip** and the falling magnitude, and claims **no rate** —
+because a sequence like this does not have one, and asserting "each step is
+smaller" alone would pass for a drifting image too (§ 6g.3's lesson).
+
+A related null, and the reason it is not bitwise: a bigger frame adds no light to
+**1e-14**, but not to the last bit, because each frame tabulates its map out to
+its **own** corner and a wider frame spreads the same node count over a longer
+span. The sampled sky is identical; the table under it is not. Saying which of
+the two moved is the whole value of the rung.
+
+### 5v.6 — the point-source limit, and what it may not promise
+
+A disc of fixed total flux shrunk below a pixel is a star, and the two
+rasterizers must agree there. They do — in **flux**, converging to 3e-3 by 0.03°,
+and in **centroid**, exactly at every size, because the centroid is the map's and
+not the quadrature's.
+
+It is **not** a bitwise identity, and § 6n.2 is why that is worth saying: there,
+the specimen and emitter rasterizers *were* pinned bit for bit, because both
+place a value at a point. Here `rasterizePointSources` splats one flux
+bilinearly over four pixels while a disc is point-sampled over however many
+pixel centres fall inside it. Two different quadratures cannot be asked to round
+the same way, and a rung demanding it would have been pinning the arithmetic
+rather than the physics.
+
+The negative control is the module's whole content: **drop the Jacobian and a
+uniform sky renders uniform**, which it is not. The error that makes is exactly
+`1 − cos³θ` on the paraboloid — pinned as an absolute difference against 5v.3's
+own accuracy, not as a ratio, since the falloff vanishes on the axis while the
+interpolant's error does not and a relative test would tighten without limit
+toward θ = 0.
+
+### 5v.7 — on a real lens the departure from cos³ IS the distortion
+
+The closed form is exact only on the distortion-free map, so the traced systems
+are where it is *measured* rather than asserted. On the hero achromat, normalized
+to the map's own axial scale — which removes C4's constant 0.0212%
+plane-position offset and leaves the field-dependent term alone — the departure
+from cos³ runs:
+
+| field | departure | ratio |
+|---|---|---|
+| 0.125° | 1.055e-7 | — |
+| 0.25° | 4.220e-7 | 3.99997 |
+| 0.5° | 1.688e-6 | 3.99992 |
+| 1° | 6.752e-6 | 3.99969 |
+| 2° | 2.700e-5 | 3.99878 |
+
+**×4.00 per doubling** — quadratic, where the height's own departure is cubic,
+because this reads the map's *slope* rather than the map. That completes a ladder
+of derivatives off one coefficient: § 6h.1's ×8.00 cubic in the height, § 6m.4's
+slope, § 6n's ×2.00 sagitta, and now ×4.00 in the Jacobian. The paraboloid reads
+below 1e-9 on the identical test, which is the control that makes the number
+distortion rather than arithmetic.
+
+### 5v.8 — the composition, which is the architectural claim as a number
+
+The step's real deliverable is that **nothing downstream changed**. The scene it
+produces is `ImagePlaneScene`, so `renderField`'s patch decomposition, the
+polychromatic stack and the colour integration — all built at step 4, before an
+extended source existed — consume it unaltered.
+
+Pinned rather than asserted: a disc and a star of **equal total flux** integrate
+to the same light through `renderField` to **1e-13** at one patch, and the
+rendered light is **bitwise linear** in the radiance (doubling reads exactly
+2.0000000000000000), which is the shortest statement of incoherent imaging's
+linearity in the branch.
+
+And the capability itself, which no point source can express: a disc's image
+reaches **f·tan(D/2)**, pinned against the geometry rather than against the
+rasterizer — the last lit pixel is the geometric edge's own pixel.
+
+### 5v.9 — what it refuses
+
+The map is monotone or it is not invertible, and every consumer inverts it. Three
+refusals, and the second is C4's lesson applied before it could bite:
+
+- a radius **outside the tabulated range**, rather than extrapolating off the end;
+- a **frame whose corner reaches further than the system passes light**. § 2f's
+  diagonal wall is 1.56° on an f/5 Newtonian, and a frame reaching past it is
+  refused with the field it *did* reach in the message. C4 named the family —
+  "a bracket that assumes its own field passes unnoticed until something folded
+  arrives" — and this is the first routine written after it, so the forward
+  covering search reports rather than assumes;
+- a table too coarse to resolve its own fourth difference (`nodes < 4`), since
+  its error estimate would be noise.
+
+### Not yet pinned
+
+- **The fourth cosine.** 5v.1's deferral, and it belongs to the pupil layer
+  rather than to either rasterizer. Fixing it there would serve both at once;
+  fixing it here would break the one rung that compares them.
+- **A soft-edged or anti-aliased disc.** 5v.5's residual is a hard edge
+  point-sampled, and area-sampling the boundary cells would remove most of it.
+  Deliberately not done: the convergence is the honest report of what § 6n's
+  callback convention costs, and hiding it behind a soft edge would make the
+  rasterizer's accuracy a property of the source's authoring.
+- **Unifying this map with § 6s's `RadialMap` and `render.ts`'s
+  `fieldAngleFor`.** Three inversions of the same chief ray now exist — to an
+  object height, to a field angle by table, and to a field angle by bisection.
+  Deferred on § 6s's own argument: § 3c's rungs pin the render, and an
+  interpolant underneath them would mean they pinned the interpolant.
+- **The extended *emitter* deferral is still `imaging/specimen`'s.** The
+  factorization here is what such a step would need, and it transplants; the
+  microscope's version has a different map and its own rungs, and nothing in
+  this step closes it.
+- **A real limb-darkening coefficient**, a planetary albedo map, and lunar
+  terrain. The law is pinned; `u` for an actual star is measured data, and the
+  same rule that keeps real dye spectra out of § 6i keeps it out of here.
+- **Rotation and phase.** A gibbous Moon is a terminator, which is a shape on
+  the source rather than an optical effect — content for the authoring layer,
+  and it needs no rung.
 
 ## Step 6a — the infinity-corrected microscope: architecture and the first objective
 

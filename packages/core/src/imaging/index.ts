@@ -1,5 +1,6 @@
 export * from "./image";
 export * from "./scene";
+export * from "./extended";
 export * from "./render";
 export * from "./brightfield";
 export * from "./brightfield-spectrum";
