@@ -85,11 +85,10 @@
      it. Rendered coarse-to-fine in its own worker.
 5. **Telescope branch + bench editor + mech layer** ← optics landed, and **every
    mode now has an app surface**: the presets, the spider, the diagonal's
-   vignetting, the camera, and — as of APP.md C5 — the eyepieces, the eye and
-   visual mode (C1–C2, C4–C5). The **mechanical layer is ✅ closed** (§ 5u,
-   below). Still open: scenes (star/planet/lunar), the bench editor, and
-   **long-exposure seeing**, the one item here that needs an engine step.
-   **`core/mech`'s panel has landed too**
+   vignetting, the camera, the eyepieces/eye/visual mode, and the long exposure
+   (APP.md C1–C6, all landed). The **mechanical layer is ✅ closed** (§ 5u,
+   below). Still open here: **scenes** (star/planet/lunar) and the **bench
+   editor**. **`core/mech`'s panel has landed too**
    (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
@@ -119,6 +118,31 @@
    `PupilFunction` *phase*, pinned to Kolmogorov and Fried statistics. Being
    pure phase it lives only in the FFT branch; **the geometric ∇φ ray-tilt is
    the named deferral.**
+   *The long exposure, and its panel:* ✅ (§ 5d.1, APP.md C6) — § 5d's **other**
+   named deferral, and a gap of a kind this ladder had not had: the physics was
+   pinned and the machinery was **unreachable**, since the averaging lived in
+   `seeingEnsemble` inside `seeing.test.ts` with no export. `longExposurePsf`
+   promotes it — in its own module, because `psf.ts` imports `withPhaseScreen` as
+   a value and `seeing.ts`'s back-edge is type-only by design, and taking a
+   *pupil* rather than a system so the trace happens once (`systemPupil` split out
+   of `psf()` for it). Every § 5d rung passes unchanged at the same seeds, which
+   is what makes the move a move. Five things came out of driving the panel.
+   **0.98·λ/r₀ is an answer only where the telescope is seeing-limited**: the two
+   discs meet at D = (1.22/0.98)·r₀ with **λ cancelling**, and a 200 mm Newtonian
+   lands within 2% of Fried at r₀ = 25 mm while at r₀ = 200 mm it reads 25% wide
+   of Fried and within 1% of its own diffraction limit — the formula stopped
+   describing the thing being measured rather than becoming inaccurate. **The
+   instrument's own quality is in the seeing disc**: on the same sky the
+   paraboloid measures 0.98× Fried where a Strehl-0.609 achromat measures 1.09×,
+   which no § 5d number can show because they are all flat-pupil numbers — hence
+   the new rung running the ensemble on a *traced* pupil. **Where the transfer
+   function leaves Fried belongs to the ensemble**, not the sky: it is a residual
+   speckle floor that does not fall with frequency, identified by moving outward
+   as the screen count grows. **The under-resolution guard is about the grid** —
+   doubling `pupilSamples` halves the step on a byte-identical atmosphere, 0.556
+   red to 0.288 green — and both halves are reachable from the panel. And the
+   cost verdict this was scoped with is right for the wrong reason: the bill is
+   the **screen generation**, not the transform, so a 4× finer PSF grid is ~1.2×.
    *Classical Cassegrain:* ✅ `designs/cassegrain` (§ 5e). Two powered mirrors;
    the confocal-conic property makes it exactly stigmatic on axis. The pinnable
    member of the family — the commercial SCT's optimised corrector has no

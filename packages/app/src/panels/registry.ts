@@ -10,6 +10,7 @@ import { MechPanel } from "./mech";
 import { PhasePanel } from "./phase";
 import { ReflectorPanel } from "./reflector";
 import { SectionPanel } from "./section";
+import { SeeingPanel } from "./seeing";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
@@ -67,6 +68,12 @@ export const PANELS: readonly Panel[] = [
     label: "visual mode",
     blurb: "APP.md C5 — the eye takes the aperture, and the apparent field belongs to the eyepiece",
     Component: VisualPanel,
+  },
+  {
+    id: "seeing",
+    label: "long exposure",
+    blurb: "APP.md C6 — one screen is a speckle pattern, and only the mean is the seeing disc",
+    Component: SeeingPanel,
   },
   {
     id: "train",

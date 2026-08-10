@@ -1262,13 +1262,16 @@ instantiated, not a whole branch. All are app-wiring-only unless noted.
   engine fix (§ 5r.1). The oversampled/critical/undersampled verdict turned out
   **not** to be a single readout: it is one per wavelength, and one sensor holds
   three of them at once.
-- **Long-exposure seeing** — *needs a small engine step*, and the distinction
-  matters: the **physics is already pinned** (Fried's OTF exp(−3.44·(ρ/r₀)^5/3)
-  and the seeing-limited FWHM), but the averaging lives in a **test-local
-  helper**, `seeingEnsemble` in `seeing.test.ts`, with no exported API. The app's
-  dial is one short-exposure draw and says so. Promoting the helper to
-  `core/wave` is the step; note the cost first — the rung averages 120 screens
-  and takes 14–20 s, so this is a compute-once surface, never a live dial.
+- **Long-exposure seeing** — ✅ **landed as C6**, and it is the only Part C item
+  that needed an engine step (§ 5d.1). The distinction this entry drew was the
+  right one: the **physics was already pinned** and the averaging lived in a
+  test-local helper with no exported API, so the app's dial could only ever be
+  one short-exposure draw. Two corrections from doing it. The promotion could not
+  go in `seeing.ts` — `psf.ts` imports `withPhaseScreen` as a value and the
+  back-edge is type-only by design — so it is a module above both, and it takes a
+  **pupil** rather than a system so the trace happens once. And the compute-once
+  verdict is right while its reason was not: the bill is the **screen
+  generation**, not the transform, so a 4× finer PSF grid costs only ~1.2×.
 
 ### C1. The six reflectors, and the obstruction each one reports — ✅ **landed** — *app wiring only* — **pair**
 
@@ -1874,6 +1877,97 @@ answering confidently for a system it cannot express. The panel does not offer a
 Newtonian, and it prints the engine's live refusal in the place one would have
 been, so the cell starts working by itself if a later step composes folded
 modules.
+
+### C6. One screen is a speckle pattern, and only the mean is the seeing disc — ✅ **landed** — *needed a small engine step (§ 5d.1)* — **pair**
+
+`seeing.ts` + `panels/seeing.tsx` + `seeing.worker.ts` + `test/seeing.test.ts`,
+on `core/wave/long-exposure` (§ 5d.1). The only Part C item that was **not**
+app-wiring-only, and the gap was an unusual shape — this doc named it correctly
+in advance and one word of it turned out to be worth expanding.
+
+**The engine step, and what it actually was.** § 5d's physics has been pinned
+since roadmap step 5 — Fried's OTF, the seeing-limited FWHM — while the
+*averaging* lived in `seeingEnsemble` inside `seeing.test.ts`, closed over that
+file's aperture, grid and flat pupil, with no export. True numbers, unreachable
+machinery: the app's existing dial could draw **one screen** and say so, and
+nothing more. `longExposurePsf` is that helper promoted. Two things came out of
+promoting it that the plan did not have. It could not live in `seeing.ts`,
+because `psf.ts` imports `withPhaseScreen` as a value and `seeing.ts`'s back-edge
+into `psf.ts` is type-only *by design*; the ensemble needs
+`psfFromPupilFunction` as a value, so it is a module above both. And it takes a
+**pupil**, not a system — a long exposure is many atmospheres over one
+instrument, so `psf({seeing})` per screen would re-trace and re-fit for a result
+that cannot change. `systemPupil()` was split out of `psf()` for that, and
+`psf()` now calls it.
+
+**The cost note this doc wrote in advance was right, and the reason was wrong.**
+"120 screens, 14–20 s, compute-once, never a live dial" holds — measured at ~7 s
+in node and ~12 s in the browser. But the bill is **not the transform**:
+generating one 256² Kolmogorov screen with six subharmonic levels costs more
+than transforming the pupil it lands on, so a **4× finer PSF grid is only ~1.2×**
+the total. The screen count is the whole cost, which is why it is the one control
+that is an explicit choice with its price on the button, and why the panel's
+default is **1 screen** — the star panel's existing behaviour, so the surface
+opens on exactly the thing it is about to correct.
+
+**Five findings, and two of them are about what a formula is for.**
+
+**The headline: 0.98·λ/r₀ is an answer only where the telescope is
+seeing-limited.** The number every observer quotes is a statement about the
+atmosphere with no aperture in it, which is fine until the instrument's own Airy
+disc is the wider of the two. They are equal at 1.22·λ/D = 0.98·λ/r₀, i.e. at
+**D = (1.22/0.98)·r₀**, and **λ cancels** — the crossover is a property of r₀ and
+the telescope, not of colour, because both angles scale the same way. Measured on
+the Newtonian at 200 mm: under r₀ = 25 mm (eight Fried cells across) the mean
+lands within **2%** of Fried, and under r₀ = 200 mm — one cell, short of the
+249 mm crossover — it reads **25% wide of Fried and within 1% of the diffraction
+limit instead**. The formula did not become inaccurate; it stopped describing the
+thing being measured. That is C4's "a plot must draw the quantity the claim is
+about" arriving as a *validity domain* rather than as an axis choice.
+
+**The instrument's own quality is in the seeing disc, and a mirror is what
+separates them.** On the same sky at D/r₀ = 4 the Newtonian — a paraboloid,
+perfect on axis — measures **0.98×** Fried while a 200 mm f/8 achromat, whose own
+Strehl is **0.609**, measures **1.09×**. The seeing disc a telescope delivers is
+the atmosphere convolved with whatever the optic was already doing, and § 5d's
+own numbers are all flat-pupil numbers, so this is not visible anywhere in the
+ladder. It is C1's Cassegrain-versus-Ritchey control in a fourth currency, and it
+is why § 5d.1's new rung runs the ensemble on a *traced* pupil.
+
+**Where the measured transfer function leaves Fried is a property of the
+ensemble, not of the sky.** The curve tracks exp(−3.44·(ν·D/r₀)^(5/3)) to a few
+percent and then runs away — 40× by ν = 0.375 at 120 screens. That is not
+turbulence: a mean over N screens has a residual speckle floor that does **not**
+fall with frequency, so once Fried's exponential plunges under it the ratio
+diverges. It is identified by moving: raise the screen count and the departure
+point moves **outward**, and the low-frequency agreement tightens with it
+(1.23× of Fried at 10 screens against a few percent at 120). The panel draws the
+rule and says which of the two it belongs to, which is § 5d's own "the bins are
+chosen above the noise floor" turned from a test-file comment into something a
+reader can watch.
+
+**The under-resolution guard turns out to be about the grid.** § 5d's
+`maxGridPhaseStepWaves` is the only thing that catches an atmosphere the FFT grid
+cannot represent, because the fidelity criterion runs on traced samples and is
+blind to the screen. What driving this panel shows is that it is not a statement
+about the *sky*: the grid step across the pupil is 2/pupilSamples, so doubling
+the samples **halves** the step on a byte-identical atmosphere — 0.556 red at 32
+becoming 0.288 green at 64, same r₀, same seed, same screens. Both halves are
+reachable from the panel's own controls, which is C4's lesson applied on purpose
+rather than caught in review.
+
+**And the display scale had to be chosen after two wrong ones.** Three frames —
+draw, mean, atmosphere-free — must share one white or the comparison is
+fabricated. Referring it to the frames' shared **energy** (C5's encoder, and the
+star panel's) blows all three out, because a PSF's peak is orders above its mean.
+Referring it to the atmosphere-free **peak** fails the other way: under ordinary
+seeing the mean sits at 6–8% of it and is a smudge. So the white is the **mean's**
+peak — the frame the panel is about — and the other two clip by exactly the
+ratios printed beside them. A10's rule is what makes that acceptable rather than
+sloppy: **a factor is precisely what a picture cannot show the size of**, so the
+peak ratios are numbers on the page (22.0% for a draw against 7.7% for the
+120-screen mean) and the shade only has to make the shapes legible. The shapes
+are the argument: speckle, disc, rings.
 
 ---
 
@@ -3122,9 +3216,9 @@ dramatically than upward, so "independence is an assumption and this is where it
 visibly fails" is right about the assumption and wrong about the direction.
 **~~A6~~ has landed**; see its section for the three findings and for the engine
 defect it turned up in the focus solve. **Part C** is a separate decision, and
-**C1–C5 have since landed** — C3 was a whole layer this doc had not scoped (see
-the third-time paragraph below), and C5 closed the modes. Long-exposure seeing is
-the only item left in the part, and it is the one that needs an engine step.
+**C1–C6 have since landed** — C3 was a whole layer this doc had not scoped (see
+the third-time paragraph below), C5 closed the modes, and **C6 closed the part**
+by promoting § 5d's ensemble out of its own test file.
 
 **Two things this doc had lost, recorded here because A6 emptied the queue that
 was hiding them.** First, ~~**the D6 panel does not exist**~~ — **it does now**,
@@ -3137,15 +3231,13 @@ disqualified table says so, but nobody has authored one. ~~**That is now the onl
 microscope item left anywhere in this doc**~~ — **and it was already done when
 this was written.** A7 authored both, in `stage.ts`, grey; the real gap under the
 word "scenes" was colour, and **A9** closed it. What is left in this doc is
-**Part C** — **now walked: C1, C2, C3, C4 and C5 have landed, and the modes are
-done.** What remains under Part C is **long-exposure seeing**, the one item in it
-that is not wiring: the physics is pinned (§ 5d) and the *averaging* lives in a
-test-local helper with no exported API, so promoting it is a small engine step
-and the surface on it is compute-once by construction. Beside that, the
-telescope's own scenes — star, planet and lunar, ROADMAP step 5's item rather
-than one of this doc's, and an engine step rather than wiring, since
-`rasterizePointSources` is point-only and an extended incoherent source has no
-rasterizer.
+**Part C** — **and Part C is now walked: C1 through C6 have all landed.** The
+last of them, long-exposure seeing, was the only one that was not wiring, and it
+closed § 5d's own named deferral rather than adding physics. **Nothing in this
+document is open.** What remains for the telescope is not this doc's: the
+scenes — star, planet and lunar — are ROADMAP step 5's item and an engine step
+rather than wiring, since `rasterizePointSources` is point-only and an extended
+incoherent source has no rasterizer.
 
 **C2's own version of the pattern is that the cheapest item in the doc was
 cheap, and the one nobody costed was the expensive one.** APP.md called the spider
