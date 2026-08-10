@@ -37,7 +37,7 @@ whole ladder.
 | [5i](#step-5i--the-all-spherical-commercial-sct-preset) | All-spherical commercial SCT and its spherochromatism | `sct` |
 | [5j](#step-5j--third-order-sums-and-the-achromatic-doublet-preset) | `analysis/seidel` closed forms; the achromatic doublet objective | `seidel` `achromat` |
 | [5k](#step-5k--the-ed-fluorite-refractor) | CaF₂ anomalous partial dispersion — what ED buys and costs | `ed-refractor` |
-| [5l](#step-5l--module-composition-and-afocal-telescope-evaluation) | The splice; thin-lens Keplerian closed forms | `afocal` |
+| [5l](#step-5l--module-composition-and-afocal-telescope-evaluation) | The splice; thin-lens Keplerian closed forms; **5l.1** the on-axis splice that silently swallowed a folded module | `afocal` |
 | [5m](#step-5m--the-computed-plössl-eyepiece) | Plössl computed from two achromatic doublets | `eyepiece` |
 | [5n](#step-5n--real-ray-afocal-apparent-field-of-view-and-distortion) | Real-ray AFOV and distortion | `afocal` |
 | [5o](#step-5o--the-huygens-eyepiece-achromatism-by-spacing) | Huygens achromatism by spacing | `eyepiece` |
@@ -2182,6 +2182,48 @@ paraxial), the computed Plössl and the transcribed patent library, and the eye
 model / exit-pupil-to-eye matching. Mechanical metadata and per-surface
 provenance attach to the module and land with step 6; the splice carries only
 `objectiveSurfaceCount`, enough to name which part a surface came from.
+
+### § 5l.1 — the on-axis splice may not swallow a folded module
+
+The defect APP.md's C5 surface exposed, and it is the third of its shape after
+A6's collapsing focus bracket (§ 1.6.1) and C4's FOV bracket (§ 5r.1): a routine
+that **answers** for a system it cannot express, in the one place the ladder
+could not see.
+
+The mechanism is a dropped declaration. `ModulePlacement` carries *surfaces*,
+not a `Prescription`, so a module's `mirrorFrames` never reaches
+`spliceModules` — and the flat chain it returns therefore carries no declaration
+at all, i.e. the default `unfolded`. Splice a folded module and the *tilt*
+survives onto that chain while the *frame* does not. The exact tracer then walks
+a 90° bend, and every first-order layer reads the numbers of a straight chain,
+because `unfoldedTwin` is what drops tilts and it is never reached. Neither
+frame, no announcement.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A Newtonian objective is refused by the splice, naming the tilted surface** | § 4b's own diagonal, `tiltXDeg: 45` | ✅ |
+| ...and by `afocalTelescope` on the **declaration**, which a tilt-free folded chain would need | `isFolded`, the only level that has it | ✅ |
+| **What it answered instead: a 1405 mm afocal gap where the geometry has ~131 mm** | § 4b's focus offset + the eyepiece's FFD | ✅ |
+| **The same optics UNFOLDED still composes, and still gives M = −f_o/f_e** | § 5l's own magnification rung, on a Cassegrain of equal D and f | ✅ |
+| Every existing splice and composition is byte-identical | non-regression — no other design in the repo is `folded` | ✅ |
+
+The wrong number is pinned rather than only the throw, and that is the point of
+the section: "it refuses now" is a statement about the code, while "it used to
+answer 1405 mm where the geometry has 131" is a statement about how far wrong
+silence was. The reconstruction is done in the test from the parts the guard now
+stops — a paraxial gap solve on a chain whose thicknesses are folded-frame
+distances, i.e. positive after the primary where the unfolded convention
+(`n′ = −n`, § 4a) needs them negative.
+
+The **unfolded control** is what makes this a statement about the fold and not
+about mirrors: a classical Cassegrain of the same aperture and system focal
+length has two *powered* mirrors, no tilt anywhere, and composes into an afocal
+telescope that lands on § 5l's magnification rung unchanged. That is why C5's
+objective list has a Cassegrain in it and no Newtonian.
+
+Composing a **folded** module remains the step-6 generalisation `compose.ts`'s
+header has named from the start — placement frames, not a wider splice. What
+changed is that asking for it now fails loudly.
 
 ## Step 5m — the computed Plössl eyepiece
 

@@ -1,10 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { Prescription } from "../src/trace/prescription";
+import { Prescription, isFolded } from "../src/trace/prescription";
 import { systemProperties } from "../src/trace/paraxial";
 import { afocalTelescope, spliceModules } from "../src/trace/compose";
 import { paraxialTrace } from "../src/trace/paraxial";
 import { afocalProperties } from "../src/pupil/afocal";
 import { achromaticObjective } from "../src/designs/achromat";
+import { newtonian } from "../src/designs/newtonian";
+import { cassegrain } from "../src/designs/cassegrain";
 import { getMedium } from "../src/materials/catalog";
 import { LINE_D } from "../src/materials/dispersion";
 
@@ -53,6 +55,90 @@ describe("module composition — the splice", () => {
     expect(chain.surfaces[3]!.thickness).toBe(7);
     // The stop flag rides along on the surface it belongs to.
     expect(chain.surfaces[0]!.isStop).toBe(true);
+  });
+});
+
+/**
+ * § 5l.1 — the splice is on-axis, and it now says so.
+ *
+ * The defect the C5 app surface exposed: `ModulePlacement` carries surfaces and
+ * not a `Prescription`, so `mirrorFrames` never reaches the splice and the
+ * composed chain comes back with the default `unfolded` declaration — while the
+ * folded module's TILT rides along on its surface. The exact tracer then walks a
+ * 90° bend that every first-order layer is blind to, because `unfoldedTwin` is
+ * what drops tilts and it is never reached. Neither frame, and no announcement.
+ *
+ * Pinned as a refusal against the geometry it was silently wrong about, not
+ * merely as "it throws": the Newtonian's own numbers are the external check
+ * (§ 4b), and the unfolded Cassegrain of the SAME aperture and focal length —
+ * two powered mirrors, no tilt anywhere — still composes and still lands on
+ * M = −f_o/f_e, which is what makes this a statement about the FOLD and not
+ * about mirrors.
+ */
+describe("§ 5l.1 — a folded module cannot be spliced on-axis", () => {
+  const D = 150;
+  const F = 5;
+  const fE = 20;
+
+  it("the Newtonian is refused, by the tilt and by the frame, and the message names which", () => {
+    const scope = newtonian({ apertureMm: D, focalRatio: F });
+    const eyepiece = thinLens(fE, 8);
+    expect(isFolded(scope.prescription)).toBe(true);
+    expect(scope.prescription.surfaces[1]!.tiltXDeg).toBe(45);
+
+    // The splice sees only surfaces, so it catches the tilt and names the surface.
+    expect(() =>
+      spliceModules([
+        { surfaces: scope.prescription.surfaces, gapAfterMm: 100 },
+        { surfaces: eyepiece.surfaces, gapAfterMm: 0 },
+      ]),
+    ).toThrow(/surface 1 is tilted/);
+
+    // `afocalTelescope` has the Prescription, so it refuses on the declaration —
+    // which is the case a chain with no tilt on any surface would need.
+    expect(() =>
+      afocalTelescope({ objective: scope.prescription, eyepiece, wavelengthNm: LINE_D }),
+    ).toThrow(/folded chain/);
+  });
+
+  it("what was silently answered instead: 1405 mm where the geometry has 131", () => {
+    // The old behaviour, reconstructed from the parts the guard now stops — the
+    // paraxial solve on a chain whose thicknesses are folded-frame distances,
+    // i.e. positive after the primary where the unfolded convention needs them
+    // negative. Its answer is not close: the diagonal sits 112.5 mm before the
+    // focus (§ 4b's focus offset), so the eyepiece belongs about
+    // BFD + FFD_e ≈ 131 mm past the last vertex.
+    const scope = newtonian({ apertureMm: D, focalRatio: F });
+    const eyepiece = thinLens(fE, 8);
+    const folded = scope.prescription.surfaces.map(({ tiltXDeg, ...s }) => s);
+    const build = (g: number) =>
+      spliceModules([
+        { surfaces: folded, gapAfterMm: g },
+        { surfaces: eyepiece.surfaces, gapAfterMm: 0 },
+      ]);
+    const uOut = (g: number) => paraxialTrace(build(g), LINE_D, { y: 1, u: 0 }).u;
+    const p = uOut(0);
+    const wrongGap = -p / (uOut(1) - p);
+    expect(wrongGap).toBeGreaterThan(1300); // it answered ~1405 mm
+    // The geometry it should have been near: the diagonal-to-focus offset plus
+    // the eyepiece's front focal distance, both well under 150 mm.
+    const focusOffsetMm = scope.prescription.surfaces[1]!.thickness;
+    expect(focusOffsetMm + fE).toBeLessThan(150);
+  });
+
+  it("the same optics unfolded still composes — this is about the fold, not the mirrors", () => {
+    // A Cassegrain of the same aperture and system focal length: two powered
+    // mirrors, `unfolded`, no tilt. It splices, and M is still the EFL ratio.
+    const cass = cassegrain({ apertureMm: D, focalRatio: F, primaryFocalRatio: 2.5 });
+    const eyepiece = thinLens(fE, 8);
+    const composed = afocalTelescope({
+      objective: cass.prescription,
+      eyepiece,
+      wavelengthNm: LINE_D,
+    });
+    const props = afocalProperties(composed, LINE_D, D / 2);
+    expect(props.magnification).toBeCloseTo(-composed.objectiveEflMm / composed.eyepieceEflMm, 9);
+    expect(Math.abs(props.magnification)).toBeCloseTo((D * F) / fE, 0);
   });
 });
 

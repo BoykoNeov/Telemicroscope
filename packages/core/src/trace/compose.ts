@@ -1,4 +1,4 @@
-import { Prescription, SurfaceSpec } from "./prescription";
+import { Prescription, SurfaceSpec, isFolded } from "./prescription";
 import { paraxialTrace, systemProperties } from "./paraxial";
 
 /**
@@ -55,6 +55,40 @@ export interface ModulePlacement {
 }
 
 /**
+ * A tilted or decentered surface makes the splice's own precondition false, and
+ * the failure is silent unless it is checked here.
+ *
+ * `ModulePlacement` carries surfaces, not a `Prescription`, so the splice never
+ * sees a module's `mirrorFrames` declaration — it returns a chain with **no**
+ * declaration, i.e. the default `unfolded`. Splice a folded module and the tilt
+ * survives onto the flat chain while the frame declaration does not: the exact
+ * tracer walks a 90° bend, and every first-order layer (paraxial, pupils, OPD,
+ * focus) reads the same numbers as a straight chain, because `unfoldedTwin`
+ * drops tilts and is never reached. The result is a system that is neither
+ * folded nor unfolded, and it does not announce itself — it answers.
+ *
+ * What it answers is wrong by a lot rather than by a little: a Newtonian
+ * objective spliced to an eyepiece solves an afocal gap of 1405 mm where the
+ * geometry has 130 mm, and the composed chain's chief ray then misses on axis.
+ * So the precondition the header states in prose ("this on-axis splice", with
+ * folded placement named as the step-6 generalisation) is enforced, with the
+ * surface named — `reversePrescription`'s existing folded guard, one layer over.
+ */
+function refuseTilted(surfaces: readonly SurfaceSpec[], moduleIndex: number): void {
+  for (let i = 0; i < surfaces.length; i++) {
+    const s = surfaces[i]!;
+    const tilted = (s.tiltXDeg ?? 0) !== 0 || (s.tiltYDeg ?? 0) !== 0;
+    const decentered = (s.decenterX ?? 0) !== 0 || (s.decenterY ?? 0) !== 0;
+    if (!tilted && !decentered) continue;
+    throw new Error(
+      `spliceModules: module ${moduleIndex}'s surface ${i} is ${tilted ? "tilted" : "decentered"} — ` +
+        "the splice is on-axis, and a folded module's frame declaration does not survive it " +
+        "(composing a folded part is the step-6 generalisation, docs/VALIDATION § 5l.1)",
+    );
+  }
+}
+
+/**
  * Splice modules into one flat `Prescription`. Each module keeps its internal
  * thicknesses; only the trailing thickness of each is replaced by the gap to
  * what follows it. The result is an ordinary prescription that the compiler and
@@ -66,8 +100,10 @@ export function spliceModules(
 ): Prescription {
   if (placements.length === 0) throw new Error("spliceModules: no modules to splice");
   const surfaces: SurfaceSpec[] = [];
-  for (const p of placements) {
+  for (let m = 0; m < placements.length; m++) {
+    const p = placements[m]!;
     if (p.surfaces.length === 0) throw new Error("spliceModules: a module has no surfaces");
+    refuseTilted(p.surfaces, m);
     p.surfaces.forEach((s, i) => {
       surfaces.push(i === p.surfaces.length - 1 ? { ...s, thickness: p.gapAfterMm } : s);
     });
@@ -212,6 +248,23 @@ export interface AfocalTelescope {
 export function afocalTelescope(spec: AfocalTelescopeSpec): AfocalTelescope {
   const { objective, eyepiece, wavelengthNm } = spec;
   const eyeGap = spec.eyeGapMm ?? 0;
+  // The spec above says "refracting" of both groups; this is where it becomes a
+  // refusal instead of a comment. `spliceModules` catches a folded module by its
+  // TILT, which is what a Newtonian's diagonal carries; a folded chain whose
+  // surfaces are all axial would slip past that and still be mis-read, because
+  // the frame declaration is what the splice drops (§ 5l.1). Checked on the
+  // Prescription, which is the only level that has the declaration.
+  for (const [name, p] of [
+    ["objective", objective],
+    ["eyepiece", eyepiece],
+  ] as const) {
+    if (isFolded(p)) {
+      throw new Error(
+        `afocalTelescope: the ${name} is a folded chain — the composed splice is on-axis and ` +
+          "would drop its frame, so the gap solve would answer for a system it cannot express",
+      );
+    }
+  }
   const objectiveEflMm = systemProperties(objective, wavelengthNm).efl;
   const eyepieceEflMm = systemProperties(eyepiece, wavelengthNm).efl;
 
