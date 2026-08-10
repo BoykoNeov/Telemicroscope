@@ -13,6 +13,7 @@ import { SectionPanel } from "./section";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
+import { VisualPanel } from "./visual";
 import { VolumePanel } from "./volume";
 
 /**
@@ -60,6 +61,12 @@ export const PANELS: readonly Panel[] = [
     label: "the sensor",
     blurb: "APP.md C4 — a pixel that integrates, and a critical pitch that is per wavelength",
     Component: CameraPanel,
+  },
+  {
+    id: "visual",
+    label: "visual mode",
+    blurb: "APP.md C5 — the eye takes the aperture, and the apparent field belongs to the eyepiece",
+    Component: VisualPanel,
   },
   {
     id: "train",

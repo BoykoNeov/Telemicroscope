@@ -63,6 +63,12 @@ export const createEyepieceSweepWorker = () =>
 export const createEyepieceWallWorker = () =>
   new Worker(new URL("./eyepiece.wall.worker.ts", import.meta.url), { type: "module" });
 
+export const createVisualRetinaWorker = () =>
+  new Worker(new URL("./visual.worker.ts", import.meta.url), { type: "module" });
+
+export const createVisualCeilingWorker = () =>
+  new Worker(new URL("./visual.ceiling.worker.ts", import.meta.url), { type: "module" });
+
 export const createSectionWorker = () =>
   new Worker(new URL("./section.worker.ts", import.meta.url), { type: "module" });
 

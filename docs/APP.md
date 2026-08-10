@@ -1252,10 +1252,12 @@ instantiated, not a whole branch. All are app-wiring-only unless noted.
   in bold as the one part of step 5 with no app presence at all. It is the only
   entry in this doc that is not on one branch: three of its blocks are a
   telescope's imaging train and the fourth is a microscope's DIN mount.
-- **Eyepieces + afocal** (§§ 5l–5o) — Plössl and Huygens, with real-ray AFOV and
-  distortion.
-- **Eye model / visual mode** (§§ 5p–5q) — the two-stop collapse, exit-pupil
-  matching.
+- **Eyepieces + afocal** (§§ 5l–5o) and **eye model / visual mode** (§§ 5p–5q) —
+  ✅ **landed together as C5**, because they are one surface: an eyepiece has no
+  exit pupil to match until something is behind it. It needed one engine fix
+  (§ 5l.1), and the largest finding is that the apparent field of view is a
+  property of the **eyepiece** — the object-space wall moves 5× across the
+  panel's sliders while the field the observer sees moves under 3%.
 - **Camera mode** (§§ 5r–5s) — ✅ **landed** as C4 below, and it needed one
   engine fix (§ 5r.1). The oversampled/critical/undersampled verdict turned out
   **not** to be a single readout: it is one per wavelength, and one sensor holds
@@ -1731,6 +1733,147 @@ sees the formula. It is the second defect of exactly this shape after A6's
 collapsing focus bracket (§ 1.6.1), which is now a pattern worth naming: **the
 rungs run on the unfolded achromat, and a bracket that assumes its field passes
 unnoticed until something folded arrives.**
+
+### C5. The eye takes the aperture, and the apparent field belongs to the eyepiece — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **pair**
+
+`visual.ts` + `panels/visual.tsx` + `visual.worker.ts` +
+`visual.ceiling.worker.ts` + `test/visual.test.ts`. `core/pupil/visual` (§ 5q)
+has existed since roadmap step 5 with **one caller anywhere in the app, and it is
+the microscope's** (D6): `afocalProperties`, `apparentFieldAngleRad` and
+`visualSystem` were validated, exported and unwired, and no telescope had ever
+been looked through. No rung was added *for the panel* — every physical number is
+§ 5l's, § 5m's, § 5n's, § 5o's, § 5p's or § 5q's — and **one was added for what
+driving it broke**, § 5l.1, which follows A6's and C4's precedent exactly.
+
+**The shape is a picture, a readout block and two plots, and the break from the
+house style is *where the image plane is*.** Every picture in this app is drawn
+at whatever plane `bestFocus` chooses, because a focuser is free. An eye's is
+not: the relaxed eye's retina sits at the reduced model's own paraxial focus, and
+moving it is **accommodation** — something the observer does, with a size. So the
+frame is formed where the retina is and the distance to best focus is reported in
+diopters beside it. C4's refusal to auto-expose, in a second currency, and for the
+same reason: normalizing it away would cancel the finding.
+
+**Cost, measured.** The instrument is main-thread — ~10 ms, of which almost all
+is the Plössl's secant solve (a Huygens is ~0.05 ms) and the achromat's (~1.5 ms;
+a Cassegrain is closed-form arithmetic). Everything else on that thread is free:
+the afocal solve, the pupil imaging, the field wall's ~50 chief rays, a 25-point
+distortion curve and a 41-point aperture-collapse curve come to under a
+millisecond together. Two things go to workers, and the split is D6's unchanged —
+**sweeps of builds are worker work, sweeps of rays are not**: the retinal PSF
+with its focus solve (~145 ms in the browser at pupilSamples 64; ~45–85 ms in
+node), and the aperture ceiling, which is a bisection over ~14 eyepiece builds
+(~120 ms Plössl, ~3 ms Huygens).
+
+**Seven findings, three of which were wrong predictions first**, and two of the
+seven exist only because the panel was driven rather than reasoned about.
+
+**The headline: an eyepiece's apparent field of view is a property of the
+eyepiece, and the app can prove it because both halves are measured.** § 5n names
+the real AFOV *edge* as deferred — deferred as a **measurement**, not as a
+capability, since `apparentFieldAngleRad` already refuses loudly when the chief
+ray stops clearing the glass. Bisecting that refusal gives the object-space wall,
+and it moves a great deal: **atan(r_e/f_o)**, landing within 1–6% of that closed
+form, so a longer objective passes less sky. The *apparent* field it buys does
+not move: across six instruments spanning 4× of aperture, 2.5× of focal ratio and
+5× of eyepiece focal length — whose walls themselves spread **5×** — the apparent
+field holds **58.3° to 59.0°**, under 3%. The two f_o's cancel, which is why a
+catalogue prints AFOV on the eyepiece and never on the telescope.
+
+**The catalogue's own formula is wrong in a direction, and by a fifth.** 2·atan(
+r/f_e) has no trace in it. The real chief ray leaves steeper than |M|·θ, so the
+field an observer actually gets is **larger** — 58.79° against 47.37° on the
+default Plössl, **+24.1%**, which is § 5n's pincushion evaluated at the edge
+instead of near the axis. On the panel's own curve that same distortion runs
+**×4.00 per doubling** nearest the axis (4.005, 4.020, 4.046) and rises
+monotonically to 5.07 at the wall — § 5n's residual octupling one power down,
+with its companion convergence rung read from the other end: the drift *upward*
+is what identifies the excess as fifth order.
+
+**A computed Plössl cannot show more than ≈61° of apparent field, and what stops
+it is not the eyepiece.** Bisecting the clear-aperture wall gives
+**0.9615248·f_e** — bit-identical to the constant D6 measured on the microscope
+conjugate, and scale-free the same way — and that widest glass buys **61.29°**
+against the catalogue's 52.24°. So the ceiling is § 5j's *doublet* refusing an
+aperture, arriving as a limit on how much sky an eyepiece can show. That is the
+concrete reason ROADMAP's wide-field members (Erfle/Nagler-class) need transcribed
+patents with more elements rather than a wider Plössl, stated as a number instead
+of as a plan. Two panels now measure one refusal in two currencies — a length and
+a solid angle — and neither has the constant typed into it.
+
+**And the same comparison on a Huygens reads −35%, which is not distortion
+changing sign.** This was the panel's most useful surprise, caught by driving it
+rather than by reasoning: the Huygens' wall lands **38% short** of atan(r_e/f_o),
+which says the chief ray is dying somewhere *behind* the field lens. § 5o says
+exactly where, in prose, as a scope note — a Huygens' field stop sits **between**
+its two lenses, so the eye lens runs out first — and the panel's two numbers turn
+out to be enough to detect that with **nothing in the engine reporting which
+surface clipped**: the bisected wall against the front rim's closed form is
+0.94–0.99 for every Plössl measured and 0.61–0.78 for every Huygens, a gap wide
+enough that the classifier is not a tuning. So the readout prints *which surface
+is the field stop* and refuses to call the departure distortion when it is not.
+The corrected sentence is the one this section nearly shipped: "the catalogue
+formula is wrong in a direction" is true of a Plössl and is a statement about the
+**field stop's location**, not about eyepieces.
+
+**Accommodation is not zero, and its sign belongs to the eyepiece — proved on a
+control rather than argued.** The afocal solve is paraxially exact, so the
+paraxial image is on the retina by construction and every micron of offset is the
+composed chain's spherical aberration. Whose: the eye is a Cartesian ellipsoid
+with none of its own for a collimated beam (§ 5q), so on a **Cassegrain** —
+exactly stigmatic on axis (§ 5e) — the whole residual is the *eyepiece's*, and it
+is **negative for both forms** (−0.124 D Plössl, −2.58 D Huygens at f_e = 8). Put
+an achromat back and the Plössl's crosses to **+0.696 D**, because the
+objective's own fifth-order residual and the eyepiece's oppose; the Huygens' only
+shrinks. C1's Cassegrain-as-control move, in a third currency.
+
+**The guard turns red on a *negative* demand rather than on a large one**, and
+that is physics rather than a convention: a relaxed eye is at minimum power and
+can only add. A chain whose best focus lands in front of the retina is asking it
+to subtract — § 6q.3's "wrong side of infinity" arriving on the telescope
+conjugate, from the opposite direction, since there it was the eyepiece placement
+and here it is the eyepiece *form*. The Huygens does this at every focal length
+the sliders reach, and because the frame is formed AT the retina its Strehl says
+what that costs: **0.094 at f_e = 20** against the Plössl's 0.980 on the same
+telescope. A panel that silently refocused could not have read that.
+
+**And a diopter is the wrong unit for how much it hurts, which the panel shows by
+printing both.** The demand is a length; the damage is a wave count over the beam
+that actually fills the eye. A short eyepiece hands the iris a narrow exit pupil,
+so it takes a *large* focus shift to spoil the same number of waves — on the
+stigmatic control the demand falls ~4.4× from f_e 8 to 32 while the Strehl gets
+**worse** over the same span (0.9988 → 0.988). Largest where it costs least, and
+the two numbers must be read together or either one alone lies.
+
+**The two-stop collapse is exact, and the picture is where it becomes a
+statement about observing.** § 5q pins the closed form; what a panel adds is that
+the drawn number comes off the entrance pupil under `limiting` selection and
+never off a `Math.min` — `irisLimited` is *which surface won*, and it agrees with
+the side of the knee at all 41 points. In the image the retinal Airy disc grows
+by exactly D/(d_eye·|M|) — 3.20× at an eye pupil of 1 mm against 3.5 on the
+default instrument — and the same ratio carries to the sky: **1.384″ becomes
+2.769″**. Above the knee the frame stops changing to twelve digits at 3, 5 and
+7 mm of iris, which is empty magnification's positive form: past the crossover
+the telescope has stopped resolving what its aperture could, and no further
+magnification is involved in either direction.
+
+**What it cost that was not budgeted: an engine defect, and it was in the
+splice.** `spliceModules` takes *surfaces*, not a `Prescription`, so a module's
+`mirrorFrames` never reaches it — and the flat chain it returns carries no
+declaration at all while the folded module's **tilt** rides along on its surface.
+A Newtonian objective and an eyepiece therefore composed *silently*: an afocal
+gap of **1405 mm** where the geometry has ~131, after which the chief ray missed
+on axis. Fixed at § 5l.1 as a refusal in `reversePrescription`'s shape, pinned
+against § 4b's own geometry and with an **unfolded Cassegrain of the same
+aperture and focal length as the control**, so the statement is about the fold and
+not about mirrors. It is the third defect of this family after A6's § 1.6.1 and
+C4's § 5r.1, and it sharpens what that family is: the first two were **brackets
+that assumed their own starting point**, and this one is a **declaration dropped
+at a boundary** — different mechanism, same signature, which is a routine
+answering confidently for a system it cannot express. The panel does not offer a
+Newtonian, and it prints the engine's live refusal in the place one would have
+been, so the cell starts working by itself if a later step composes folded
+modules.
 
 ---
 
@@ -2979,8 +3122,9 @@ dramatically than upward, so "independence is an assumption and this is where it
 visibly fails" is right about the assumption and wrong about the direction.
 **~~A6~~ has landed**; see its section for the three findings and for the engine
 defect it turned up in the focus solve. **Part C** is a separate decision, and
-**C1, C2 and C3 have since landed** — the last of them a whole layer this doc had
-not scoped; see the third-time paragraph below.
+**C1–C5 have since landed** — C3 was a whole layer this doc had not scoped (see
+the third-time paragraph below), and C5 closed the modes. Long-exposure seeing is
+the only item left in the part, and it is the one that needs an engine step.
 
 **Two things this doc had lost, recorded here because A6 emptied the queue that
 was hiding them.** First, ~~**the D6 panel does not exist**~~ — **it does now**,
@@ -2993,11 +3137,15 @@ disqualified table says so, but nobody has authored one. ~~**That is now the onl
 microscope item left anywhere in this doc**~~ — **and it was already done when
 this was written.** A7 authored both, in `stage.ts`, grey; the real gap under the
 word "scenes" was colour, and **A9** closed it. What is left in this doc is
-**Part C** — **now opened, with C1, C2 and C3 landed, leaving the
-eyepiece/eye/camera modes and long-exposure seeing** — and the telescope's own scenes: star, planet
-and lunar, ROADMAP step 5's item rather than one of this doc's, and an engine step
-rather than wiring, since `rasterizePointSources` is point-only and an extended
-incoherent source has no rasterizer.
+**Part C** — **now walked: C1, C2, C3, C4 and C5 have landed, and the modes are
+done.** What remains under Part C is **long-exposure seeing**, the one item in it
+that is not wiring: the physics is pinned (§ 5d) and the *averaging* lives in a
+test-local helper with no exported API, so promoting it is a small engine step
+and the surface on it is compute-once by construction. Beside that, the
+telescope's own scenes — star, planet and lunar, ROADMAP step 5's item rather
+than one of this doc's, and an engine step rather than wiring, since
+`rasterizePointSources` is point-only and an extended incoherent source has no
+rasterizer.
 
 **C2's own version of the pattern is that the cheapest item in the doc was
 cheap, and the one nobody costed was the expensive one.** APP.md called the spider
@@ -3030,6 +3178,19 @@ is unchanged and worked again: the fix is pinned to § 2f's closed form rather
 than to any previous measurement. It is also the second bracket defect a panel
 has found (A6's § 1.6.1 was the first), which is now enough to name: **a bracket
 that assumes its own field passes unnoticed until something folded arrives.**
+
+**C5 makes it a family of three, and widens what the family is.** Its defect
+(§ 5l.1) is not a bracket at all — it is a **declaration dropped at a boundary**:
+`spliceModules` takes surfaces rather than a `Prescription`, so a folded module's
+frame never arrives while its 45° tilt does, and the composed chain answered a
+1405 mm afocal gap where the geometry has 131. Different mechanism, identical
+signature, and the same defence worked a third time: pin the fix to independent
+geometry (§ 4b's) and carry an unfolded control — a Cassegrain of equal aperture
+and focal length — so the refusal is about the fold and not about mirrors. What
+the three share is therefore not "brackets" but **a routine that answers
+confidently for a system it cannot express**, and all three were found by a panel
+rather than by the ladder, because each routine's ladder fixtures are the ones it
+was written against. Twice now that has been *something folded arriving*.
 
 **Part D** is where the branch goes next, and it is a different kind of work from
 A1–A5: those wired capability the engine already had, and D1–D3, D5–D7 are engine

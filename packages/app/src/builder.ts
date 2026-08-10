@@ -9,6 +9,7 @@ import {
   type ImageFormingMicroscope,
 } from "@telemicroscope/core/designs";
 import type { OpticalSystem } from "@telemicroscope/core/trace";
+import { AppRefusal } from "./refusal";
 
 /**
  * The microscope builder's adapter — APP.md's D8.
@@ -140,13 +141,16 @@ export interface BuildSpec {
   readonly immersionMedium: string;
 }
 
-/** Thrown by this module rather than by the engine — see the header. */
-export class AppRefusal extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AppRefusal";
-  }
-}
+/**
+ * Thrown by this module rather than by the engine — see the header.
+ *
+ * It lives in `refusal.ts` now, beside the result shape that reads its `name`:
+ * C5 became the third surface to need "which voice is this sentence in", and
+ * two copies of a class whose whole content is its name is exactly the
+ * duplication `ui.tsx`'s extraction rule exists to stop. Re-exported here
+ * because this module is where callers learned it.
+ */
+export { AppRefusal };
 
 /** Which controls do anything for a given architecture and form. */
 export function liveFields(spec: BuildSpec): {

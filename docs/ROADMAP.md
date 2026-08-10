@@ -83,12 +83,13 @@
      pixel scale the frame spans ~0.06° and the field is effectively
      shift-invariant, so the scene is sized to ~0.8° and the PSF resampled onto
      it. Rendered coarse-to-fine in its own worker.
-5. **Telescope branch + bench editor + mech layer** ← optics landed, the
-   **presets, the spider, the diagonal's vignetting and the camera have an app
-   surface** (APP.md C1–C2, C4), and the **mechanical layer is now ✅ closed**
-   (§ 5u, below); still open: scenes (star/planet/lunar), the bench editor, and
-   Part C's remaining modes — eyepieces, the eye, and long-exposure seeing (the
-   one that needs an engine step). **`core/mech`'s panel has landed too**
+5. **Telescope branch + bench editor + mech layer** ← optics landed, and **every
+   mode now has an app surface**: the presets, the spider, the diagonal's
+   vignetting, the camera, and — as of APP.md C5 — the eyepieces, the eye and
+   visual mode (C1–C2, C4–C5). The **mechanical layer is ✅ closed** (§ 5u,
+   below). Still open: scenes (star/planet/lunar), the bench editor, and
+   **long-exposure seeing**, the one item here that needs an engine step.
+   **`core/mech`'s panel has landed too**
    (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
    obstruction/spider diffraction, atmospheric seeing dial, star/planet/lunar
@@ -203,6 +204,45 @@
    (`designs/eye`) and the two-stop collapse. **Open:** the
    empty-magnification/acuity ceiling, real ocular aberrations, and the
    photopic/scotopic pupil.
+   *The panel those two existed for:* ✅ **landed** (APP.md C5) — the eyepiece
+   library and the eye are **one surface**, because an eyepiece has no exit pupil
+   to match until something is behind it. App wiring **plus one engine fix it
+   forced** (§ 5l.1), the third Part C surface to need one. Seven things came out
+   of driving it. The headline is that an **apparent field of view belongs to the
+   eyepiece**: bisecting § 5n's own refusal gives the object-space wall as
+   atan(r_e/f_o), which moves **5×** across six instruments spanning 4× of
+   aperture, 2.5× of focal ratio and 5× of eyepiece focal length — while the
+   apparent field those buy holds **58.3°–59.0°**, under 3%, because the two f_o's
+   cancel. The catalogue's 2·atan(r/f_e) is therefore **wrong in a direction**,
+   +24.1% on the default Plössl, that being § 5n's pincushion read at the edge
+   (and running ×4.00 per doubling near the axis, rising to 5.07 at the wall —
+   the fifth-order term identified from the other end than § 5n's). A computed
+   Plössl **cannot exceed ≈61.3°** of apparent field, and what stops it is § 5j's
+   *doublet* refusing an aperture at **0.9615248·f_e** — bit-identical to the
+   constant D6 bisected as a length, so two panels now measure one refusal in two
+   currencies, which is the concrete reason the wide-field members below need
+   patents rather than a wider Plössl. On a Huygens the same comparison reads
+   **−35%, and that is not distortion**: its wall lands 38% short of the front
+   rim, so the chief ray is dying behind the field lens — § 5o's own scope note
+   ("the field stop sits between the lenses"), and the panel's two numbers detect
+   *which surface is the stop* with nothing in the engine reporting one
+   (0.94–0.99 for every Plössl, 0.61–0.78 for every Huygens). **Accommodation is
+   not zero and its sign is the eyepiece's**, proved on the stigmatic Cassegrain
+   as a control: the residual there is the eyepiece's alone and is negative for
+   both forms (−0.124 D Plössl, −2.58 D Huygens), while an achromat's own residual
+   opposes it and sends the Plössl's to **+0.696 D** — and a *negative* demand is
+   the red one, because a relaxed eye can only add, which is § 6q.3's "wrong side
+   of infinity" on the other conjugate. Since the frame is formed AT the retina
+   rather than at best focus, the Huygens' Strehl says what that costs: **0.094**
+   against the Plössl's 0.980 on the same telescope. And **a diopter is the wrong
+   unit for how much it hurts** — on the control the demand falls 4.4× from
+   f_e 8 → 32 while the Strehl gets *worse*, because the demand is a length and
+   the damage is a wave count over a beam that is growing. The engine fix is the
+   third defect of A6's and C4's family and widens it: not a bracket but a
+   **declaration dropped at a boundary** — `spliceModules` takes surfaces rather
+   than a `Prescription`, so a folded Newtonian's frame never reached the splice
+   while its 45° tilt did, and the pair composed *silently* at a **1405 mm**
+   afocal gap where the geometry has 131.
    *Camera mode — pixel scale + sensor sampling:* ✅ (§ 5r). A `Sensor` at the
    focal plane (`imaging/camera`); `resampleToSensor` rebins by area, so the
    detector-footprint MTF and aliasing are carried, not assumed. `plateScale` and

@@ -23,6 +23,7 @@ import { afocalTelescope, spliceModules } from "@telemicroscope/core/trace";
 import type { OpticalSystem, Prescription } from "@telemicroscope/core/trace";
 import { buildMicroscope } from "./builder";
 import { LAMBDA_NM, entryOf, type MicroscopeKind } from "./microscope";
+import { refusalOf, type Refusal as SharedRefusal } from "./refusal";
 
 /**
  * The eyepiece on the intermediate image — APP.md's D6, as pure functions.
@@ -125,22 +126,18 @@ export function buildEyepiece(
     : huygensEyepiece({ focalLengthMm, clearApertureMm }).prescription;
 }
 
-/** Which piece refused, so the panel can name it rather than say "it failed". */
+/**
+ * Which piece refused, so the panel can name it rather than say "it failed".
+ *
+ * The shape moved to `refusal.ts` when C5 became the second surface composing an
+ * objective with an eyepiece; the *stages* stayed here, because they are this
+ * instrument's parts list and a visual telescope's is not the same one.
+ */
 export type RefusalStage = "objective" | "eyepiece" | "composition";
 
-export type Refusal = {
-  readonly ok: false;
-  readonly error: string;
-  readonly source: "engine" | "app";
-  readonly stage: RefusalStage;
-};
+export type Refusal = SharedRefusal<RefusalStage>;
 
-const refusal = (cause: unknown, stage: RefusalStage): Refusal => ({
-  ok: false,
-  error: (cause as Error).message,
-  source: (cause as Error).name === "AppRefusal" ? "app" : "engine",
-  stage,
-});
+const refusal = (cause: unknown, stage: RefusalStage): Refusal => refusalOf(cause, stage);
 
 export interface InstrumentRequest {
   readonly kind: MicroscopeKind;
