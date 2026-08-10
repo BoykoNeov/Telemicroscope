@@ -63,6 +63,43 @@ export function objectPoint(system: OpticalSystem, fieldValue: number): Vec3 {
   return vec3(fieldValue, 0, -system.conjugate.distance);
 }
 
+/**
+ * Orient an aim toward the optics.
+ *
+ * Aiming is a statement about a **line**: the ray from the object point through
+ * the chosen entrance-pupil point. Which way it is *travelled* is separate, and
+ * in object space light always travels +z (surface 0's vertex is at z = 0 and
+ * the object sits behind it; object space is never after a mirror).
+ *
+ * The two come apart because an entrance pupil is a paraxial IMAGE of the stop
+ * and may be virtual — and a virtual one can land **behind the object plane**.
+ * `target − origin` then points away from the optics, and the aimed ray
+ * propagates in −z. Nothing downstream can recover: `traceRay` reports `miss`,
+ * so the system reads as one whose rays do not reach it, when the geometry is
+ * ordinary and the pupil point is perfectly reachable. Pinned at § 1.5.2.
+ *
+ * The regime is not exotic: it is everything approaching object-space
+ * telecentricity from either side. As the stop moves toward the front group's
+ * back focal plane the entrance pupil runs off to ∓∞, and it is behind the
+ * object for every stop position past the one that images it to the object
+ * plane. That is why no rung caught this — the exactly-telecentric case throws
+ * a *different* error (see the head of `aimRay`), and every system in the
+ * ladder puts its stop where the entrance pupil stays in front.
+ *
+ * `dz === 0` is the boundary between the two orientations: the pupil lies IN
+ * the object plane, the line is perpendicular to the axis, and no ray along it
+ * ever reaches the optics. Refused rather than returned as a `miss`.
+ */
+function towardOptics(d: Vec3, objectZ: number): Vec3 {
+  if (d.z === 0) {
+    throw new Error(
+      `entrance pupil lies in the object plane (z = ${objectZ}): the aim is perpendicular to the axis ` +
+        `and no ray along it reaches the optics`,
+    );
+  }
+  return d.z > 0 ? d : scale(d, -1);
+}
+
 export function aimRay(
   system: OpticalSystem,
   pupil: PupilGeometry,
@@ -79,7 +116,7 @@ export function aimRay(
 
   if (system.conjugate.kind === "finite") {
     const o = objectPoint(system, fieldValue);
-    return makeRay(o, normalize(sub(target, o)), wavelengthNm);
+    return makeRay(o, normalize(towardOptics(sub(target, o), o.z)), wavelengthNm);
   }
 
   const dir = fieldDirection(system, fieldValue);

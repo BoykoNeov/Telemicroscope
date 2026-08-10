@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { dot, sub } from "../src/math/vec3";
+import { dot, sub, normalize, vec3 } from "../src/math/vec3";
 import { Prescription } from "../src/trace/prescription";
 import { OpticalSystem, simpleSystem } from "../src/trace/system";
+import { asCompiled } from "../src/trace/compile";
+import { traceRay } from "../src/trace/sequential";
 import { systemProperties } from "../src/trace/paraxial";
 import { pupils, resolveStopRadius } from "../src/pupil/pupils";
 import { aimRay, chiefRay, pupilGrid, pupilFan, fieldDirection } from "../src/pupil/aiming";
@@ -402,5 +404,175 @@ describe("wavefront reference: oblique bundles launch from a plane ⊥ the chief
     const s = (p.entrance.z - r.origin.z) / r.dir.z;
     expect(r.origin.x + r.dir.x * s).toBeCloseTo(0, 12);
     expect(r.origin.y + r.dir.y * s).toBeCloseTo(0, 12);
+  });
+});
+
+/**
+ * Rung § 1.5.2 — an aim is a LINE, and which way it is travelled is separate.
+ *
+ * `aimRay` built its direction as `normalize(target − origin)`. An entrance
+ * pupil is a paraxial IMAGE of the stop, so it can be virtual, and a virtual
+ * one can land BEHIND the object plane — at which point that difference points
+ * away from the optics and the ray propagates in −z. The magnitude stays exact
+ * (12 digits, measured); only the sense is wrong, so nothing produced a
+ * plausible wrong number. What it produced was `traceRay` reporting **`miss`**
+ * on geometry that is entirely ordinary.
+ *
+ * That makes it the fifth member of the family APP.md names — a routine that
+ * answers confidently for a system it cannot express — and the first to answer
+ * with a *status* rather than a number, which is exactly why no rung caught it:
+ * a `miss` reads as the system's fault.
+ *
+ * The regime is everything approaching object-space telecentricity from the far
+ * side. As the stop passes the front group's back focal plane the entrance
+ * pupil goes to +∞, returns from −∞, and walks forward; while it is further
+ * from the optics than the object is, the old construction fired.
+ */
+describe("§ 1.5.2 — a virtual entrance pupil behind the object still aims forward", () => {
+  // Thick and asymmetric on purpose: nothing here may lean on a thin lens.
+  const lens = [
+    { kind: "refract" as const, curvature: 1 / 40, semiAperture: 20, thickness: 9, medium: "N-BK7" },
+    { kind: "refract" as const, curvature: -1 / 80, semiAperture: 20, thickness: 0, medium: "AIR" },
+  ];
+  const BFD = systemProperties({ surfaces: lens }, LINE_D).bfd;
+  const OBJECT_DISTANCE = 200;
+
+  /** The stop as a plane dummy `stopZ` mm past the lens's last vertex. */
+  const at = (stopZ: number, stopRadius: number, distance = OBJECT_DISTANCE): OpticalSystem => ({
+    prescription: {
+      surfaces: [
+        lens[0]!,
+        { ...lens[1]!, thickness: stopZ },
+        { kind: "refract", curvature: 0, semiAperture: 30, thickness: 120, medium: "AIR", isStop: true },
+      ],
+    },
+    aperture: { kind: "stopRadius", value: stopRadius },
+    field: { kind: "objectHeight", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "finite", distance },
+  });
+
+  // Past the back focal plane the entrance pupil is virtual and far behind the
+  // object. Every one of these is the broken regime.
+  const BEHIND = [BFD + 0.5, BFD + 2, BFD + 5, BFD + 10];
+
+  it("the fixture really is in the regime: EP is behind the object plane", () => {
+    for (const stopZ of BEHIND) {
+      const ep = pupils(at(stopZ, 2), LINE_D).entrance.z;
+      expect(ep).toBeLessThan(-OBJECT_DISTANCE);
+    }
+  });
+
+  it("the aimed ray travels toward the optics, and the trace stops missing", () => {
+    for (const stopZ of BEHIND) {
+      const s = at(stopZ, 2);
+      const p = pupils(s, LINE_D);
+      const m = aimRay(s, p, 0, { px: 1, py: 0 }, LINE_D);
+      expect(m.dir.z).toBeGreaterThan(0);
+      expect(traceRay(s.prescription, m).status).toBe("ok");
+
+      // The defect, stated as the thing that is no longer done: the raw
+      // difference — what the old construction returned — points backwards.
+      const raw = normalize(sub(vec3(p.entrance.radius, 0, p.entrance.z), vec3(0, 0, -OBJECT_DISTANCE)));
+      expect(raw.z).toBeLessThan(0);
+      expect(m.dir.z).toBeCloseTo(-raw.z, 15);
+      expect(m.dir.x).toBeCloseTo(-raw.x, 15);
+    }
+  });
+
+  it("the LINE is untouched — the ray still passes through its pupil target", () => {
+    // A virtual pupil sits on the BACKWARD extension of the ray, so the path
+    // length to it is negative. That is what "virtual" means, and asserting the
+    // crossing without asserting the sign of `s` is what keeps this a statement
+    // about the line rather than about the direction.
+    for (const stopZ of BEHIND) {
+      const s = at(stopZ, 2);
+      const p = pupils(s, LINE_D);
+      for (const pt of pupilFan(5)) {
+        const r = aimRay(s, p, 0, pt, LINE_D);
+        const t = (p.entrance.z - r.origin.z) / r.dir.z;
+        expect(t).toBeLessThan(0);
+        expect(r.origin.x + r.dir.x * t).toBeCloseTo(pt.px * p.entrance.radius, 9);
+        expect(r.origin.y + r.dir.y * t).toBeCloseTo(pt.py * p.entrance.radius, 9);
+      }
+    }
+  });
+
+  it("where the pupil was already in front, the aim is bit-identical", () => {
+    // The "re-pins nothing" claim as an assertion rather than as a suite result.
+    // Every system in the ladder is one of these.
+    for (const stopZ of [10, 20, 30, 40, 48]) {
+      const s = at(stopZ, 2);
+      const p = pupils(s, LINE_D);
+      expect(p.entrance.z).toBeGreaterThan(-OBJECT_DISTANCE);
+      for (const pt of pupilFan(5)) {
+        const got = aimRay(s, p, 0, pt, LINE_D);
+        const old = normalize(
+          sub(vec3(pt.px * p.entrance.radius, pt.py * p.entrance.radius, p.entrance.z), vec3(0, 0, -OBJECT_DISTANCE)),
+        );
+        expect(got.dir.x).toBe(old.x);
+        expect(got.dir.y).toBe(old.y);
+        expect(got.dir.z).toBe(old.z);
+      }
+    }
+  });
+
+  it("the traced ray lands on the stop rim, off by third-order pupil aberration", () => {
+    // The pin with teeth: the aim is only correct if the ray it launches
+    // actually fills the stop. It does not do so exactly — `aimRay` targets the
+    // PARAXIAL pupil — so the honest statement is an ORDER, not a tolerance.
+    //
+    // `entrance.radius` is |m|·stopRadius, a magnitude, so px = +1 is a point
+    // in ENTRANCE-PUPIL coordinates and reaches the stop's −x rim wherever the
+    // magnification is negative. The sign is the convention's, not the aim's.
+    const stopZ = BFD + 5;
+    const errors: number[] = [];
+    for (const stopRadius of [2, 1, 0.5, 0.25, 0.125, 0.0625, 0.03125]) {
+      const s = at(stopZ, stopRadius);
+      const p = pupils(s, LINE_D);
+      const traced = traceRay(s.prescription, aimRay(s, p, 0, { px: 1, py: 0 }, LINE_D));
+      expect(traced.status).toBe("ok");
+      const r = traced.ray!;
+      const stopPlaneZ = asCompiled(s.prescription).surfaces[2]!.vertexZ;
+      const t = (stopPlaneZ - r.origin.z) / r.dir.z;
+      const landed = Math.abs(r.origin.x + r.dir.x * t);
+      errors.push(Math.abs(landed - stopRadius) / stopRadius);
+    }
+    const ratios = errors.slice(1).map((e, i) => errors[i]! / e);
+
+    // Relative error ∝ stopRadius², i.e. absolute error ∝ stopRadius³ — the
+    // leading pupil-aberration term. The sweep is wide enough to show BOTH
+    // orders: 4.2902, 4.0665, 4.0163, 4.00406, 4.00101, 4.00025, approaching 4
+    // strictly from above and never reaching it.
+    for (let i = 1; i < ratios.length; i++) expect(ratios[i]!).toBeLessThan(ratios[i - 1]!);
+    for (const r of ratios) expect(r).toBeGreaterThan(4);
+    expect(ratios[ratios.length - 1]!).toBeCloseTo(4, 3);
+
+    // And the EXCESS over 4 is itself ×4 per halving, which names the next term
+    // as fifth order rather than leaving it as "some higher order". Two
+    // aberration orders identified from one sweep of the aperture. It has the
+    // same shape as the sequence it corrects — 4.3605, 4.0825, 4.0202, 4.0050,
+    // 4.0013 — because a seventh-order term sits behind it in exactly the way
+    // the fifth sits behind the third, so what is asserted is the shape and not
+    // a value at a step chosen for passing.
+    const excess = ratios.map((r) => r - 4);
+    const excessRatios = excess.slice(1).map((e, i) => excess[i]! / e);
+    for (let i = 1; i < excessRatios.length; i++) {
+      expect(excessRatios[i]!).toBeLessThan(excessRatios[i - 1]!);
+    }
+    for (const r of excessRatios) expect(r).toBeGreaterThan(4);
+    expect(excessRatios[excessRatios.length - 1]!).toBeCloseTo(4, 2);
+  });
+
+  it("a pupil lying IN the object plane is refused, not returned as a miss", () => {
+    // The boundary between the two orientations, and the one position where no
+    // ray along the line ever reaches the optics. The object distance is chosen
+    // FROM the computed pupil, so the difference is exactly zero in f64.
+    const probe = pupils(at(BFD + 20, 2), LINE_D);
+    const s = at(BFD + 20, 2, -probe.entrance.z);
+    expect(pupils(s, LINE_D).entrance.z).toBe(-(-probe.entrance.z));
+    expect(() => aimRay(s, pupils(s, LINE_D), 0, { px: 1, py: 0 }, LINE_D)).toThrow(
+      /entrance pupil lies in the object plane/,
+    );
   });
 });

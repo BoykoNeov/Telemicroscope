@@ -15,7 +15,7 @@ whole ladder.
 | Step | What it pins | Tests |
 |---|---|---|
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
-| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused | `pupil` `opd` `compile` |
+| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss` | `pupil` `opd` `compile` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
@@ -275,6 +275,71 @@ wins*. Both reach the branch only through this function, so both inherit the fix
 and the new refusal is reachable only where the old code returned ∞/NaN into
 their arithmetic. Neither constructs an NA spelling itself — which is the same
 sentence as before, now with the two places that could have falsified it named.
+
+### 1.5.2 — an aim is a line, and which way it is travelled is separate
+
+`aimRay` built its direction as `normalize(target − origin)`. An entrance pupil
+is a paraxial **image** of the stop, so it can be virtual, and a virtual one can
+land **behind the object plane** — at which point that difference points away
+from the optics and the ray propagates in −z.
+
+**The magnitude was never wrong.** Measured at a stop one picometre past the
+front group's back focal plane, the aimed slope agrees with the exact answer to
+**12 digits**; the relative error against `stopRadius/f` is `−2.000` exactly,
+which is a sign and not an error. So this defect could not produce a plausible
+wrong number. What it produced was `traceRay` reporting **`miss`** — a system
+whose rays do not reach it — on geometry that is entirely ordinary.
+
+That makes it the **fifth member** of the family APP.md names (§ 5r.1's bracket,
+§ 1.6.1's bracket, § 5l.1's dropped declaration, § 6b.5's refusal message): *a
+routine that answers confidently for a system it cannot express.* It is the
+first to answer with a **status** rather than a number, and that is exactly why
+no rung caught it — a `miss` reads as the system's fault, not the aimer's.
+
+**The regime is not exotic.** It is everything approaching object-space
+telecentricity from the far side. As the stop crosses the front group's back
+focal plane the entrance pupil runs off to +∞, returns from −∞ and walks
+forward; while it is further from the optics than the object is, the old
+construction fired. The exactly-telecentric case throws a *different* error
+("aim in object space instead"), so the two failure modes sat either side of one
+boundary and neither pointed at the other.
+
+**"Re-pins nothing" is proved rather than asserted.** The check a green suite
+cannot perform was run directly: `aimRay` was made to *throw* on the backward
+case and the whole ladder re-run — **75 files, 1310 tests, all passing**. No
+system anywhere in the repo aims at an entrance pupil behind its object plane.
+A rung states the same thing positively: where the pupil is in front, the
+returned direction is **bit-identical** to the expression it replaces.
+
+The fix is that the aim is a **line** — the ray from the object point through
+the chosen pupil point — while the direction of travel is object space's, which
+is always +z. The line is what is pinned: a virtual pupil sits on the ray's
+**backward extension**, so the crossing is asserted at a *negative* path length,
+which is what keeps the rung a statement about the line rather than about the
+sense. `dz = 0` — the pupil lying in the object plane — is the boundary between
+the two orientations and the one position where no ray along the line ever
+reaches the optics; it is refused rather than returned as a `miss`.
+
+**The pin with teeth is that the launched ray fills the stop**, since an aim
+that points the right way can still point at the wrong place. It does not do so
+exactly — `aimRay` targets the *paraxial* pupil — so the honest statement is an
+**order**. Halving the aperture, the relative landing error falls
+
+    4.2902, 4.0665, 4.0163, 4.00406, 4.00101, 4.00025
+
+approaching **4 strictly from above**: the absolute error is ∝ stopRadius³, the
+leading pupil-aberration term. And the *excess* over 4 is itself ×4 per halving
+(4.3605, 4.0825, 4.0202, 4.0050, 4.0013), which names the next term as **fifth
+order** instead of leaving it as "some higher order" — two aberration orders
+identified from one sweep of the aperture. Both sequences are asserted by their
+**shape**, monotone and one-sided, because a value at a step chosen for passing
+is not the claim.
+
+One convention is worth writing down, because it makes a correct landing look
+wrong: `entrance.radius` is `|m|·stopRadius`, a **magnitude**, so `px = +1` is a
+point in *entrance-pupil* coordinates and reaches the stop's **−x** rim wherever
+the pupil magnification is negative — which it is throughout this regime. The
+sign belongs to the pupil convention, not to the aim.
 
 ## Step 1.6 — focus solve + spot diagrams
 
