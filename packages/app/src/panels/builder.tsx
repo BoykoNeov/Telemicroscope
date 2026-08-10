@@ -16,7 +16,7 @@ import {
   MICROSCOPE_CATALOG,
   type BuildDescription,
 } from "../microscope";
-import { Choice, Guard, thresholdLevel } from "../ui";
+import { Choice, Fact, Fieldset, Guard, NumberField, num, thresholdLevel } from "../ui";
 
 /**
  * The microscope builder — APP.md's D8.
@@ -55,105 +55,6 @@ import { Choice, Guard, thresholdLevel } from "../ui";
 const PUPIL_SAMPLES = 32;
 const GRID = 64;
 
-/**
- * A free-typed number. Local to this panel deliberately.
- *
- * `ui.tsx` holds the controls two or more surfaces share, and its own rule is
- * that the *next* surface needing one extracts it rather than copying it. D8 is
- * the first panel with free numeric entry at all — every other one is a slider
- * over a range the engine can survive — so extracting now would be a component
- * library of one. It moves the day a second form exists.
- *
- * It keeps a draft string so that typing "0." or "1.4" does not get rounded out
- * from under the cursor, and reports the parse rather than swallowing it: an
- * unparseable field disables the build instead of silently building the old
- * value.
- */
-function NumberField(props: {
-  label: string;
-  value: number;
-  disabled?: boolean;
-  onChange: (value: number) => void;
-}) {
-  const [draft, setDraft] = useState(String(props.value));
-  useEffect(() => setDraft(String(props.value)), [props.value]);
-  const parsed = Number(draft);
-  const bad = draft.trim() === "" || !Number.isFinite(parsed);
-  return (
-    <label
-      style={{
-        fontFamily: "monospace",
-        fontSize: 12,
-        opacity: props.disabled ? 0.35 : 1,
-        display: "block",
-      }}
-    >
-      {props.label}
-      <br />
-      <input
-        type="text"
-        inputMode="decimal"
-        disabled={props.disabled}
-        value={draft}
-        onChange={(event) => {
-          setDraft(event.target.value);
-          const next = Number(event.target.value);
-          if (event.target.value.trim() !== "" && Number.isFinite(next)) props.onChange(next);
-        }}
-        style={{
-          fontFamily: "monospace",
-          fontSize: 12,
-          width: 90,
-          padding: "2px 4px",
-          border: `1px solid ${bad ? "#c00" : "#ccc"}`,
-        }}
-      />
-    </label>
-  );
-}
-
-function Row(props: { children: React.ReactNode; title: string }) {
-  return (
-    <fieldset
-      style={{
-        border: "1px solid #ddd",
-        padding: "8px 12px 12px",
-        marginBottom: 12,
-        display: "flex",
-        gap: 20,
-        flexWrap: "wrap",
-        alignItems: "flex-start",
-      }}
-    >
-      <legend style={{ fontFamily: "monospace", fontSize: 11, color: "#777" }}>
-        {props.title}
-      </legend>
-      {props.children}
-    </fieldset>
-  );
-}
-
-const num = (value: number, digits = 3) =>
-  Math.abs(value) >= 1e5 || (value !== 0 && Math.abs(value) < 1e-3)
-    ? value.toExponential(2)
-    : value.toFixed(digits);
-
-/** One labelled engine number. */
-function Fact(props: { label: string; value: string; note?: string }) {
-  return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 190 }}>
-      <span style={{ color: "#777" }}>{props.label}</span>
-      <br />
-      <strong>{props.value}</strong>
-      {props.note && (
-        <>
-          <br />
-          <span style={{ color: "#999", fontSize: 11 }}>{props.note}</span>
-        </>
-      )}
-    </div>
-  );
-}
 
 /** The objective's own solved numbers — per form, because the forms differ. */
 function ObjectiveFacts({ objective }: { objective: Extract<BuildDescription, { ok: true }>["objective"] }) {
@@ -352,7 +253,7 @@ export function BuilderPanel() {
         held, and shows you your own wall.
       </p>
 
-      <Row title="preset — the bench's ten rows, as points in this space">
+      <Fieldset title="preset — the bench's ten rows, as points in this space">
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
           {MICROSCOPE_CATALOG.map((e) => (
             <button
@@ -374,9 +275,9 @@ export function BuilderPanel() {
             </button>
           ))}
         </div>
-      </Row>
+      </Fieldset>
 
-      <Row title="architecture and form">
+      <Fieldset title="architecture and form">
         <Choice
           label="architecture"
           options={["din", "infinity"] as const}
@@ -401,9 +302,9 @@ export function BuilderPanel() {
             engine&rsquo;s.
           </p>
         )}
-      </Row>
+      </Fieldset>
 
-      <Row title="what the label claims">
+      <Fieldset title="what the label claims">
         <NumberField label="magnification ×" value={spec.magnification} onChange={(v) => set("magnification", v)} />
         <NumberField
           label="numerical aperture"
@@ -427,9 +328,9 @@ export function BuilderPanel() {
           design. The infinity space changes no first-order property — that is why it exists, and it
           is a rung of its own.
         </p>
-      </Row>
+      </Fieldset>
 
-      <Row title="glass">
+      <Fieldset title="glass">
         <Choice
           label="crown"
           options={CROWN_MEDIA}
@@ -478,9 +379,9 @@ export function BuilderPanel() {
             infinity-corrected doublet is authored specimen-side first and has no such choice.
           </p>
         )}
-      </Row>
+      </Fieldset>
 
-      <Row title="cover slip — one control, three meanings">
+      <Fieldset title="cover slip — one control, three meanings">
         <Choice
           label="slip"
           options={["none", "slip"] as const}
@@ -519,9 +420,9 @@ export function BuilderPanel() {
           {live.coverslip === "not-expressible" &&
             "not expressible on this form: the infinity-corrected objective's slip and the Lister's two-group target are both recorded open in the ROADMAP. Asking for one here is refused by the app, not by the engine."}
         </p>
-      </Row>
+      </Fieldset>
 
-      <Row title="two-group and immersion parameters">
+      <Fieldset title="two-group and immersion parameters">
         <NumberField
           label="power split (front's share)"
           value={spec.powerSplit}
@@ -553,7 +454,7 @@ export function BuilderPanel() {
             of a lucky pick. Move them and watch ΣS_I and ΣS_II stay at zero.
           </p>
         )}
-      </Row>
+      </Fieldset>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
         <button

@@ -1,0 +1,256 @@
+import { describe, expect, it } from "vitest";
+import {
+  cassegrain,
+  finiteConjugateMicroscope,
+  finiteConjugateObjective,
+  refractorPair,
+} from "@telemicroscope/core/designs";
+import { LINE_C, LINE_D, LINE_F } from "@telemicroscope/core/materials";
+import { pupils } from "@telemicroscope/core/pupil";
+import { systemProperties } from "@telemicroscope/core/trace";
+import {
+  BLANK_SURFACE,
+  DEFAULT_DRAFT,
+  benchSeeds,
+  describeBench,
+  fromPrescription,
+  naSpellingRatio,
+  solveParaxialFocus,
+  toPrescription,
+  toSystem,
+  type BenchDraft,
+} from "../src/editor";
+
+/**
+ * The bench editor, as invariants.
+ *
+ * **No engine capability was added, so no validation-ladder rung was.** Every
+ * number below belongs to § 1, § 5e or § 6b and is being reached through a form.
+ * What is pinned here is the thing a form can get wrong on its own: the R ↔ c
+ * conversion, which is the only place this app rewrites the schema, and the two
+ * refusals whose voices differ.
+ *
+ * The seeds carry the strongest check available to app wiring — load a design
+ * the engine built, edit nothing, and the readout must be the design's own
+ * numbers. If `fromPrescription`/`toPrescription` ever stop being inverses, an
+ * editor would silently hand back a *different lens* than the one it was seeded
+ * with, and every panel that quotes these designs would disagree with this one.
+ */
+
+const seedById = (id: string): BenchDraft => {
+  const seed = benchSeeds().find((s) => s.id === id);
+  if (!seed) throw new Error(`no seed ${id}`);
+  return seed.draft;
+};
+
+describe("the R ↔ c conversion, which is the only rewrite of the schema", () => {
+  it("round-trips every seed's prescription bit for bit in the fields the engine reads", () => {
+    const originals = [
+      refractorPair(500, 25).achromat,
+      refractorPair(500, 25).singlet,
+      cassegrain({ apertureMm: 200, focalRatio: 10, primaryFocalRatio: 4 }).prescription,
+      finiteConjugateMicroscope({
+        objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+      }).system.prescription,
+    ];
+    const seeds = ["achromat", "singlet", "cassegrain", "din"].map(seedById);
+
+    for (const [i, original] of originals.entries()) {
+      const back = toPrescription(seeds[i]!);
+      expect(back.surfaces.length).toBe(original.surfaces.length);
+      for (const [j, s] of original.surfaces.entries()) {
+        const r = back.surfaces[j]!;
+        expect(r.kind).toBe(s.kind);
+        // Exact, not approximate: 1/(1/c) is not c in binary floating point, so
+        // the conversion has to happen once in each direction and never twice.
+        expect(r.curvature).toBe(s.curvature);
+        expect(r.conic ?? 0).toBe(s.conic ?? 0);
+        expect(r.semiAperture).toBe(s.semiAperture);
+        expect(r.thickness).toBe(s.thickness);
+        expect(r.medium).toBe(s.medium);
+        expect(r.isStop === true).toBe(s.isStop === true);
+      }
+    }
+  });
+
+  it("spells a plane as R = ∞ and puts c = 0 back", () => {
+    const draft = fromPrescription(
+      { surfaces: [{ kind: "refract", curvature: 0, semiAperture: 10, thickness: 5, medium: "N-BK7" }] },
+      { aperture: { kind: "EPD", value: 10 }, conjugate: { kind: "infinite" }, fieldValue: 0, pupilRays: 5 },
+    );
+    expect(draft.surfaces[0]!.radiusMm).toBe(Infinity);
+    expect(toPrescription(draft).surfaces[0]!.curvature).toBe(0);
+  });
+});
+
+describe("the seeded readouts are the designs' own numbers", () => {
+  it("gives the achromat back its 500 mm focal length, and its colour correction", () => {
+    const result = describeBench(seedById("achromat"));
+    if (!result.ok) throw new Error(result.error);
+    if (!result.paraxial.ok) throw new Error(result.paraxial.error);
+
+    const d = result.paraxial.lines.find((l) => l.nm === LINE_D)!;
+    // The thin-lens solve is nominal; real thicknesses move it by parts in 10³.
+    expect(d.eflMm).toBeCloseTo(500, 0);
+    expect(d.eflMm).toBe(systemProperties(toPrescription(seedById("achromat")), LINE_D).efl);
+
+    // Achromatic means F and C land together — the residual is the thin-lens
+    // approximation's, not a failure, and it is three orders under the singlet's.
+    const singlet = describeBench(seedById("singlet"));
+    if (!singlet.ok || !singlet.paraxial.ok) throw new Error("singlet has no paraxial readout");
+    expect(Math.abs(result.paraxial.focalShiftMm)).toBeLessThan(
+      Math.abs(singlet.paraxial.focalShiftMm) / 100,
+    );
+  });
+
+  it("reads the singlet's axial colour as f/V, which is what a lens with one glass costs", () => {
+    const result = describeBench(seedById("singlet"));
+    if (!result.ok || !result.paraxial.ok) throw new Error("no paraxial readout");
+    const f = result.paraxial.lines.find((l) => l.nm === LINE_F)!.eflMm;
+    const c = result.paraxial.lines.find((l) => l.nm === LINE_C)!.eflMm;
+    // N-BK7's Abbe number is 64.17: f/V ≈ 7.8 mm for f = 500, and the F line is
+    // the short one.
+    expect(f).toBeLessThan(c);
+    expect(c - f).toBeCloseTo(500 / 64.17, 0);
+  });
+
+  it("puts the Cassegrain's image where the design says, on a chain that runs backwards", () => {
+    const design = cassegrain({ apertureMm: 200, focalRatio: 10, primaryFocalRatio: 4 });
+    const result = describeBench(seedById("cassegrain"));
+    if (!result.ok || !result.exact.ok) throw new Error("no exact readout");
+
+    // Two mirrors, so the second vertex sits at −d and the image plane in front
+    // of it again: the sign alternation the unfolded convention requires, read
+    // straight off the compiled chain rather than asserted.
+    expect(result.exact.vertexZsMm[0]).toBe(0);
+    expect(result.exact.vertexZsMm[1]).toBeCloseTo(-design.primarySeparationMm, 9);
+    expect(result.exact.imagePlaneZMm).toBeCloseTo(design.backFocusMm, 9);
+
+    // A classical Cassegrain is stigmatic on axis: the spot is solver noise.
+    const axis = result.exact.fields.find((f) => f.fieldValue === 0)!;
+    expect(axis.rmsRadiusMm).toBeLessThan(1e-6);
+    expect(axis.lost).toBe(0);
+  });
+
+  it("reads the DIN objective's image distance off the finite conjugate", () => {
+    const design = finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 });
+    const result = describeBench(seedById("din"));
+    if (!result.ok || !result.paraxial.ok) throw new Error("no paraxial readout");
+    expect(result.paraxial.imageOffsetMm).toBeCloseTo(design.imageDistanceMm, 6);
+    // The chain places the image plane at exactly the paraxial focus, so the
+    // seed opens already solved — unlike the two refractors, whose last
+    // thickness is the round number their own doc calls a placeholder.
+    expect(result.paraxial.authoredOffsetMm).toBe(result.paraxial.imageOffsetMm);
+    // And the objective is solved to ΣS_I = 0 at exactly these conjugates (§ 6b),
+    // which is a claim about the design that only a finite-conjugate Seidel sum
+    // can check — so the editor reproducing it means the envelope is right too.
+    if (!result.seidel.ok) throw new Error(result.seidel.error);
+    expect(Math.abs(result.seidel.s1Mm)).toBeLessThan(1e-9);
+  });
+});
+
+describe("the order of the surviving aberration, read off the aperture", () => {
+  /**
+   * Halving the stop divides the on-axis residual by 2^p, and p is the lowest
+   * order that has NOT been corrected. This is the panel's headline and it is
+   * independent of `seidelSums` — which is the point: the sum refuses conics and
+   * this does not, and where both work they have to agree about the same lens.
+   */
+  it("measures 3 for a plain singlet and 5 for the objective whose third order is nulled", () => {
+    const singlet = describeBench(solveParaxialFocus(seedById("singlet")));
+    if (!singlet.ok || !singlet.order.ok) throw new Error("no order readout");
+    expect(singlet.order.noiseFloor).toBe(false);
+    expect(singlet.order.order).toBeCloseTo(3, 1);
+
+    const din = describeBench(seedById("din"));
+    if (!din.ok || !din.order.ok || !din.seidel.ok) throw new Error("no order readout");
+    expect(din.order.order).toBeCloseTo(5, 1);
+    // The other route to the same claim, on the same lens, in the same call.
+    expect(Math.abs(din.seidel.s1Mm)).toBeLessThan(1e-9);
+  });
+
+  it("refuses to call float noise an order", () => {
+    const result = describeBench(seedById("cassegrain"));
+    if (!result.ok || !result.order.ok) throw new Error("no order readout");
+    // Stigmatic on axis by construction (§ 5e), so the residual is the tracer's
+    // rounding: a slope taken through it would be a number about nothing.
+    expect(result.order.noiseFloor).toBe(true);
+    expect(result.order.steps[0]!.rmsRadiusMm).toBeLessThan(1e-9);
+    // …and the Seidel route does not even run, because a conic is outside it.
+    expect(result.seidel.ok).toBe(false);
+  });
+});
+
+describe("the two things a form does that a constructor never has to", () => {
+  it("solves the placeholder back focus onto the paraxial image", () => {
+    const before = describeBench(seedById("achromat"));
+    if (!before.ok || !before.paraxial.ok) throw new Error("no paraxial readout");
+    // `refractorPair` authors the last thickness as the focal length, which its
+    // own doc calls a stand-in. It is 3.4 mm from where the light goes.
+    expect(before.paraxial.authoredOffsetMm).toBe(500);
+    expect(before.paraxial.imageOffsetMm).toBeCloseTo(496.577, 3);
+
+    const after = describeBench(solveParaxialFocus(seedById("achromat")));
+    if (!after.ok || !after.paraxial.ok || !after.exact.ok) throw new Error("no readout");
+    expect(after.paraxial.authoredOffsetMm).toBe(after.paraxial.imageOffsetMm);
+    // And the exact best focus is STILL not there — 95 µm short of the paraxial
+    // one, which is the spherical aberration the third-order sum only predicts.
+    const axis = after.exact.fields.find((f) => f.fieldValue === 0)!;
+    expect(axis.bestFocusOffsetMm - after.paraxial.imageOffsetMm).toBeCloseTo(-0.095, 3);
+    expect(axis.bestRmsRadiusMm).toBeLessThan(axis.rmsRadiusMm);
+  });
+
+  it("pins the exact ratio between two spellings of the same aperture", () => {
+    // `objectNA` is resolved as a paraxial SLOPE; the DIN objective sized its own
+    // stop with the real tan u at sin u = NA. So re-spelling the seed's aperture
+    // as the NA it was designed for gives a measurably smaller cone.
+    const seed = seedById("din");
+    if (seed.aperture.kind !== "stopRadius") throw new Error("the seed lost its stop radius");
+    const asNA: BenchDraft = { ...seed, aperture: { kind: "objectNA", value: 0.1 } };
+    const designed = seed.aperture.value;
+    const respelled = pupils(toSystem(asNA), LINE_D).stopRadius;
+    expect(designed / respelled).toBeCloseTo(naSpellingRatio(0.1), 12);
+    expect(naSpellingRatio(0.1)).toBeCloseTo(1.005037815, 9);
+  });
+});
+
+describe("the two voices a refusal comes in", () => {
+  it("refuses R = 0 in the app's own voice, because the engine has no error for c = ∞", () => {
+    const draft: BenchDraft = {
+      ...DEFAULT_DRAFT,
+      surfaces: [{ ...BLANK_SURFACE, radiusMm: 0 }],
+    };
+    const result = describeBench(draft);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.source).toBe("app");
+    expect(result.stage).toBe("build");
+  });
+
+  it("quotes the engine verbatim for an unknown glass", () => {
+    const draft: BenchDraft = {
+      ...DEFAULT_DRAFT,
+      surfaces: [{ ...BLANK_SURFACE, medium: "UNOBTAINIUM" }],
+    };
+    const result = describeBench(draft);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.source).toBe("engine");
+    expect(result.error).toContain("unknown medium: UNOBTAINIUM");
+  });
+
+  it("fails one section without taking the others down", () => {
+    // A single plane in air: it compiles and traces, and has no focus at all.
+    const draft: BenchDraft = {
+      ...DEFAULT_DRAFT,
+      surfaces: [{ ...BLANK_SURFACE, isStop: true, thicknessMm: 10 }],
+    };
+    const result = describeBench(draft);
+    if (!result.ok) throw new Error(result.error);
+    expect(result.paraxial.ok).toBe(false);
+    if (result.paraxial.ok) return;
+    expect(result.paraxial.stage).toBe("paraxial");
+    expect(result.paraxial.source).toBe("engine");
+    expect(result.exact.ok).toBe(true);
+  });
+});

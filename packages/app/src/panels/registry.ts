@@ -4,6 +4,7 @@ import { BrightfieldPanel } from "./brightfield";
 import { BuilderPanel } from "./builder";
 import { CameraPanel } from "./camera";
 import { CoverslipPanel } from "./coverslip";
+import { EditorPanel } from "./editor";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
 import { MechPanel } from "./mech";
@@ -86,6 +87,12 @@ export const PANELS: readonly Panel[] = [
     label: "microscope bench",
     blurb: "APP.md A1 — every objective traced, and the crop a frame actually covers",
     Component: BenchPanel,
+  },
+  {
+    id: "editor",
+    label: "the bench editor",
+    blurb: "ROADMAP v1 — the surface list itself, and the order the aperture says is really there",
+    Component: EditorPanel,
   },
   {
     id: "builder",

@@ -21,8 +21,11 @@ stacking), and the rendered hero image.
 Step 5's **optics** have landed — Newtonian, Cassegrain, Ritchey-Chrétien,
 Schmidt, Schmidt-Cassegrain and SCT presets, achromat and ED refractors,
 computed eyepieces, spider diffraction, atmospheric seeing, visual and camera
-modes, and tolerancing. Its mechanical layer, its scenes (star/planet/lunar)
-and the bench editor are still open.
+modes, and tolerancing. Its mechanical layer has since closed (§ 5u), and so has
+the **bench editor** — the prescription schema on a form, with the paraxial and
+exact tracers reported side by side (APP.md Part E). What is still open here is
+the scenes (star/planet/lunar): their engine step landed as § 5v, and what
+remains is a panel and the content itself.
 
 Both microscope architectures now trace: infinity-corrected (§ 6a) and the
 classic 160 mm DIN (§ 6b). Open in this step: the `160/0.17` coverslip,

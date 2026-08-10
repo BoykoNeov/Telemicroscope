@@ -3121,6 +3121,110 @@ anchored to D0.2's floor.
 
 ---
 
+## Part E — the bench editor — ✅ **landed** — *app wiring only* — **form**
+
+ROADMAP's v1 line, and the last item step 5 left open that is not an engine step:
+*"bench editor over the prescription schema; exact + paraxial tracing; glass
+catalog."* This document had never scoped it, for the same reason it had never
+scoped `core/mech` (C3): APP.md sorts by branch, and a `Prescription` has none.
+The registry could not have caught it either — the panel it names is `bench`,
+which is A1's objective table and a different surface entirely. **Only ROADMAP
+carried it**, which is the C3 lesson arriving a second time.
+
+**Route `#/editor`, `src/editor.ts` + `src/panels/editor.tsx`.** D8 edits the
+arguments a constructor is called with and the constructor decides what surfaces
+exist; this edits the surface list itself — one row per surface (kind, R, conic,
+semi-aperture, thickness, medium, stop), plus the four specs a `Prescription`
+does not carry, plus a seed row of designs the engine built.
+
+### What it found
+
+- **The order of the surviving aberration is measurable off the aperture alone,
+  and it is this panel's own result.** Halve the stop and the on-axis RMS at best
+  focus falls by 2^p, where p is the lowest order that has *not* been corrected.
+  The BK7 singlet reads 3.01, 3.00, 3.00 across three halvings; the achromat
+  2.75 → 2.94 → 2.99, settling as the higher orders die faster than the one being
+  measured; and the **DIN 4×/0.10 objective reads 5.20 → 5.05 → 5.01**, which is
+  § 6b's ΣS_I = 0 confirmed by a route that never computes S_I. The two routes
+  are printed side by side and neither is converted into the other.
+- **The Seidel route refuses where the aperture route does not.** `seidelSums`
+  declines a conic outright ("spherical surfaces only — a conic/asphere adds an
+  uncomputed term"), so the Cassegrain has no third-order column at all. That is
+  why the readout is **sectioned**: each of paraxial / pupil / exact / Seidel /
+  order is its own numbers or its own refusal, because they fail independently
+  and each failure is informative. An afocal chain has no EFL and still has a
+  spot; a conic has no S_I and still has an order.
+- **The aperture route needs its own honesty guard.** On the Cassegrain the
+  full-aperture residual is 4.5e-14 mm — stigmatic on axis by construction
+  (§ 5e) — so the exponent through those points would be the shape of the
+  rounding. Below a picometre the panel says *none* and explains why, rather than
+  printing the 1.45 / 1.33 / 0.70 the arithmetic produces.
+- **The same NA, spelled two ways, is two different apertures — exactly
+  1/√(1 − NA²) apart.** `resolveStopRadius`'s `objectNA` branch reads NA as a
+  paraxial *slope*, while `finiteConjugateObjective` sizes its stop with the real
+  `tan u` at `sin u = NA`. That is **0.50% at NA 0.10**, 15.5% at 0.50, 3.2× at
+  0.95. Nothing landed moves — every design in `designs/` hands its chain a
+  `stopRadius`, so the disagreement is only reachable by re-spelling one, which
+  is what a form is for. Pinned to twelve digits in `editor.test.ts`.
+- **An authored back focus is not a focus.** `refractorPair` writes its last
+  thickness as the focal length — 500 mm for a lens whose BFD is 496.577 — and
+  its own doc calls that a stand-in. So the panel carries a *solve focus* button,
+  and the point of it is what happens afterwards: the exact best focus is still
+  **95 µm** short of the paraxial one on the achromat, **1.302 mm** on the
+  singlet, **1.352 mm** on the objective. That gap is the panel's subject and it
+  is not an error in either tracer.
+- **Which prescription to seed from is a real choice, and the first one was
+  wrong.** `finiteConjugateObjective` authors the objective with a trailing
+  thickness of **zero** and lets `finiteConjugateMicroscope` place the image, so
+  seeding from the objective alone opens the form on a design whose image plane
+  is its own last vertex: a **3.25 mm** spot for a lens that is 14 µm at focus.
+  Seeded from the chain instead, and cross-checked against it — 1.405e-2 mm at
+  best focus bare, 1.444e-2 through the chain. The seeds' whole value is that
+  loading one and editing nothing must reproduce the design's own numbers, and a
+  seed that reproduces an authoring convention instead is worth nothing.
+
+### Cost, and why this one is live
+
+2.4 ms for the two-mirror Cassegrain, 2.9 ms for the three-surface achromat,
+4.0 ms for the DIN objective — three paraxial traces, one pupil solve, two exact
+bundles and four more for the aperture sweep, at 149 rays each. (The very first
+render prints 15.8 ms; that is warm-up, and it settles inside one edit. Worth
+recording because the panel prints its own elapsed time and a reader's first
+number is the wrong one.) Two orders under
+the ~800 ms live line, so it recomputes on **every keystroke**: D8 submits because
+a build is 50 ms of solving, and a table you have to press a button to see the
+effect of is not an editor.
+
+### What it does not edit, and why that is not timidity
+
+`SurfaceSpec` also carries `tiltXDeg`/`tiltYDeg`, `decenterX`/`decenterY` and a
+`reflectance` override; `Prescription` carries `mirrorFrames`. **The form is
+unfolded and axial, and says so on screen.** A folded chain's thicknesses run
+along the beam while an unfolded chain's alternate sign at every mirror, so a
+control that flipped the convention under a list authored in the other one would
+silently re-read every number in it — the C5 defect's signature (a routine
+answering confidently for a system it cannot express) rebuilt as a UI control.
+Tilt and decenter already have a home as *perturbations* of a built design, which
+is Part B, where they have rungs behind them; authoring them from scratch is what
+the module layer in ARCHITECTURE.md § Data model is for.
+
+Two app-voice refusals, both marked as the app's: **R = 0** (c = ∞ is a geometry
+the engine has no error for — it would trace to NaN and lose every ray, which is
+the one failure an editor must not have) and an **empty surface list**. Everything
+else is the engine's own sentence, quoted verbatim, exactly as A1 established.
+
+### The structural item it closed
+
+`builder.tsx`'s `NumberField` carried the note *"it moves the day a second form
+exists"*. This is that day, so it moved to `ui.tsx` — along with `Fieldset`,
+`Fact` and `num`, which the second form would otherwise have copied verbatim.
+One behavioural change came with it: the field now accepts **±Infinity**, because
+a plane is R = ∞ and an unbounded rim is `semiAperture: Infinity` — both values
+the schema means rather than overflow, and `String(Infinity)` is what the field
+already showed.
+
+---
+
 ## What the app itself needs to hold this
 
 Structural work implied by the above, independent of which surfaces land:
@@ -3355,6 +3459,21 @@ focal ratio. A surface that lets a reader move a stated parameter will find out
 what the stating cost, which is A5's lesson ("a surface that draws a quantity a
 rung only summarizes will find the sampling the rung could afford to ignore")
 arriving a fourth time, in the design space rather than in the sampling.
+
+**Part E is the fifth time, one layer further down, and it makes the C3 lesson a
+pair.** D8 moved a *stated parameter* and found the walls were not constants;
+Part E moves the *surface list under the parameter* and finds that a design's
+correction state is readable off its aperture — halve the stop, and the exponent
+of the residual names the lowest order still there. That is a quantity no rung
+summarizes because no rung needed it: § 6b pins ΣS_I = 0 and stops, which is the
+right thing for a rung to do and leaves "so what survives?" for a surface to ask.
+And it is the C3 lesson repeated exactly: **only ROADMAP carried this item**,
+because APP.md sorts by branch and a `Prescription` does not have one — the same
+blind spot that hid `core/mech`, in the same document, found the same way. The
+registry could not help here either, and for a sharper reason than with C3: there
+*was* a route called `bench`, and it is A1's objective table. A name collision is
+worse than an absence, since the check that catches absences reads as satisfied.
+The panel count is eighteen.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and

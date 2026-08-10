@@ -88,9 +88,17 @@
    vignetting, the camera, the eyepieces/eye/visual mode, and the long exposure
    (APP.md C1–C6, all landed). The **mechanical layer is ✅ closed** (§ 5u,
    below). **The scenes' engine step is ✅ closed too** (§ 5v) — an extended
-   incoherent source had no rasterizer, and now does. Still open here: the
-   **bench editor**, and the scenes' own **app surface and content** (a panel,
-   an albedo map, lunar terrain), which is authoring rather than engine.
+   incoherent source had no rasterizer, and now does. **The bench editor is ✅
+   closed too** (APP.md Part E) — the prescription schema on a form, seeded from
+   designs the engine built, with both tracers on the same rows. App wiring
+   only, and it produced one result nothing else in the repo states: the
+   **order** of the surviving aberration is measurable off the aperture alone
+   — halve the stop and the on-axis residual falls by 2^p — which reads 3 for an
+   uncorrected singlet and **5.01 for § 6b's objective**, confirming that
+   solve's ΣS_I = 0 by a route that never computes S_I, and working on the
+   conics `seidelSums` refuses outright. Still open here: the scenes' own **app
+   surface and content** (a panel, an albedo map, lunar terrain), which is
+   authoring rather than engine.
    **`core/mech`'s panel has landed too**
    (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
@@ -1195,8 +1203,10 @@
 
 ## v1 cut (both branches shipped)
 
-- Bench editor over the prescription schema; exact + paraxial tracing; glass
-  catalog.
+- ~~Bench editor over the prescription schema; exact + paraxial tracing; glass
+  catalog.~~ ✅ **landed** — route `#/editor`, APP.md Part E. All three clauses:
+  a row per surface, both tracers reported side by side without either being
+  converted into the other, and the media read off `materials/catalog` itself.
 - Analyses: spot diagram, ray fan, chromatic focal shift, PSF/MTF, Zernike
   readout, distortion/field curvature.
 - Hero image simulation with progressive refinement (instant on-axis preview,

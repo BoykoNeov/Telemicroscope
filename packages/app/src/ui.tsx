@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /**
  * The controls every panel shares, plus the one readout they share — APP.md's
  * structural item 4, landed with A3.
@@ -117,6 +119,124 @@ export function Guard(props: {
     </div>
   );
 }
+
+/**
+ * A free-typed number — extracted from `builder.tsx` the day its own note said
+ * it would be ("it moves the day a second form exists"), which is the bench
+ * editor.
+ *
+ * It keeps a draft string so that typing "0." or "1.4" does not get rounded out
+ * from under the cursor, and reports the parse rather than swallowing it: an
+ * unparseable field leaves the last good value in the model and marks itself
+ * red, instead of silently committing something the caller did not type.
+ *
+ * `Infinity` is accepted and round-trips, because the editor's plane is R = ∞
+ * and an unbounded aperture is `semiAperture: Infinity` — both are values the
+ * schema means, not overflow. `label` is optional: in a table the column heading
+ * has already said what the cell is, and repeating it per row would be noise.
+ */
+export function NumberField(props: {
+  label?: string;
+  value: number;
+  disabled?: boolean;
+  width?: number;
+  onChange: (value: number) => void;
+}) {
+  const [draft, setDraft] = useState(String(props.value));
+  useEffect(() => setDraft(String(props.value)), [props.value]);
+  // NaN rather than "not finite": ±Infinity is a value the schema means (a plane
+  // is R = ∞, an unbounded rim is semiAperture ∞), and `String(Infinity)` is
+  // what this field shows, so what it shows is also what it accepts back.
+  const parsed = Number(draft);
+  const bad = draft.trim() === "" || Number.isNaN(parsed);
+  return (
+    <label
+      style={{
+        fontFamily: "monospace",
+        fontSize: 12,
+        opacity: props.disabled ? 0.35 : 1,
+        display: "block",
+      }}
+    >
+      {props.label !== undefined && (
+        <>
+          {props.label}
+          <br />
+        </>
+      )}
+      <input
+        type="text"
+        inputMode="decimal"
+        disabled={props.disabled}
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          const next = Number(event.target.value);
+          if (event.target.value.trim() !== "" && !Number.isNaN(next)) props.onChange(next);
+        }}
+        style={{
+          fontFamily: "monospace",
+          fontSize: 12,
+          width: props.width ?? 90,
+          padding: "2px 4px",
+          border: `1px solid ${bad ? "#c00" : "#ccc"}`,
+        }}
+      />
+    </label>
+  );
+}
+
+/**
+ * A titled group of controls, and one labelled engine number — the rest of what
+ * a *form* needs, extracted alongside `NumberField` for the same reason and in
+ * the same change.
+ *
+ * These are containers, not readouts: the words inside a `Fact` stay the
+ * panel's, exactly as this file's header requires. What is shared is that two
+ * forms in one app should not put their labels in different greys.
+ */
+export function Fieldset(props: { children: React.ReactNode; title: string }) {
+  return (
+    <fieldset
+      style={{
+        border: "1px solid #ddd",
+        padding: "8px 12px 12px",
+        marginBottom: 12,
+        display: "flex",
+        gap: 20,
+        flexWrap: "wrap",
+        alignItems: "flex-start",
+      }}
+    >
+      <legend style={{ fontFamily: "monospace", fontSize: 11, color: "#777" }}>{props.title}</legend>
+      {props.children}
+    </fieldset>
+  );
+}
+
+export function Fact(props: { label: string; value: string; note?: string }) {
+  return (
+    <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 190 }}>
+      <span style={{ color: "#777" }}>{props.label}</span>
+      <br />
+      <strong>{props.value}</strong>
+      {props.note && (
+        <>
+          <br />
+          <span style={{ color: "#999", fontSize: 11 }}>{props.note}</span>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** Fixed point where it reads, exponent where it would not. */
+export const num = (value: number, digits = 3): string =>
+  !Number.isFinite(value)
+    ? String(value)
+    : Math.abs(value) >= 1e5 || (value !== 0 && Math.abs(value) < 1e-3)
+      ? value.toExponential(2)
+      : value.toFixed(digits);
 
 export function Slider(props: {
   label: string;
