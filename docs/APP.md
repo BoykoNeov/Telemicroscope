@@ -3159,13 +3159,23 @@ does not carry, plus a seed row of designs the engine built.
   (§ 5e) — so the exponent through those points would be the shape of the
   rounding. Below a picometre the panel says *none* and explains why, rather than
   printing the 1.45 / 1.33 / 0.70 the arithmetic produces.
-- **The same NA, spelled two ways, is two different apertures — exactly
-  1/√(1 − NA²) apart.** `resolveStopRadius`'s `objectNA` branch reads NA as a
-  paraxial *slope*, while `finiteConjugateObjective` sizes its stop with the real
-  `tan u` at `sin u = NA`. That is **0.50% at NA 0.10**, 15.5% at 0.50, 3.2× at
-  0.95. Nothing landed moves — every design in `designs/` hands its chain a
-  `stopRadius`, so the disagreement is only reachable by re-spelling one, which
-  is what a form is for. Pinned to twelve digits in `editor.test.ts`.
+- **The same NA, spelled two ways, was two different apertures — exactly
+  1/√(1 − NA²) apart — and that turned out to be an engine defect this panel
+  found rather than a fact about spellings.** `resolveStopRadius`'s `objectNA`
+  branch read NA as a paraxial *slope*, while `finiteConjugateObjective` sizes
+  its stop with the real `tan u` at `sin u = NA`: **0.50% at NA 0.10**, 15.5% at
+  0.50, 3.2× at 0.95. Nothing landed moved — every design in `designs/` hands its
+  chain a `stopRadius`, so the disagreement was only reachable by re-spelling one,
+  which is what a form is for, and ROADMAP had recorded the branch as reached by
+  no panel at all. It **was** reached, by this one, and the panel disclosed the
+  discrepancy in a caption instead. ✅ **The engine now reads the sine
+  (§ 1.5.1)**, the caption is retired for the half-angle itself, and
+  `editor.test.ts` pins the *agreement* to twelve digits — keeping 1.005037815 as
+  the size of what was fixed so the number does not vanish with the defect. This
+  is the fourth entry in the C4 / A6 / C5 family (**a routine that answers
+  confidently for a system it cannot express**) and the first where the app had
+  already found the defect and built around it: a disclosure is a workaround, and
+  a workaround in a landed panel is a finding this doc's accounting can lose.
 - **An authored back focus is not a focus.** `refractorPair` writes its last
   thickness as the focal length — 500 mm for a lens whose BFD is 496.577 — and
   its own doc calls that a stand-in. So the panel carries a *solve focus* button,

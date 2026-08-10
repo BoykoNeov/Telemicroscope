@@ -134,6 +134,36 @@ function imageStopBackward(
 }
 
 /**
+ * `tan u` for a cone of numerical aperture NA in a medium of index n — the
+ * factor an NA spelling multiplies its arm by.
+ *
+ * NA is Abbe's `n·sin u`, so `sin u = NA/n` and the *pupil* — a plane a finite
+ * arm away — is filled to `arm·tan u`. Reading NA/n as the tangent itself is
+ * the paraxial limit of this and disagrees by 1/√(1 − (NA/n)²): 0.50% at
+ * NA 0.10, 15.5% at 0.50, 2.6× in oil at NA 1.4. Every design in `designs/`
+ * hands its chain a `stopRadius` and sizes it with this same closed form
+ * (`designs/microscope` writes it out longhand), so nothing built moved when
+ * this replaced the slope reading — what it fixes is the *other four*
+ * spellings meaning what the schema says they mean, which is reachable from the
+ * bench editor's aperture selector. Pinned at § 1.5.1.
+ *
+ * `sin u = 1` is a cone that has closed onto the surface and `> 1` names rays
+ * that do not exist, so both are refused rather than returned as ∞/NaN. That is
+ * § 6l's ray-invariant ceiling arriving one layer up: an NA above the medium's
+ * own index is not a wide aperture, it is no aperture.
+ */
+function marginalTangent(numericalAperture: number, n: number, spelling: string): number {
+  const sinU = numericalAperture / n;
+  if (!(Math.abs(sinU) < 1)) {
+    throw new Error(
+      `${spelling} ${numericalAperture} needs n·sin u with |sin u| = ${Math.abs(sinU).toFixed(4)} ` +
+        `in a medium of index ${n.toFixed(4)}: no such ray exists`,
+    );
+  }
+  return sinU / Math.sqrt(1 - sinU * sinU);
+}
+
+/**
  * Resolve an ApertureSpec into a stop radius. All five spellings constrain
  * the same thing; the pupil magnifications are what convert between them.
  * Magnification is independent of stop size, so a unit-radius probe suffices.
@@ -162,14 +192,14 @@ export function resolveStopRadius(system: OpticalSystem, wavelengthNm: number): 
       const nObj = c.indices(wavelengthNm)[0]!;
       const objectZ = -system.conjugate.distance;
       const armLength = probeEntrance.z - objectZ;
-      const epRadius = Math.abs((spec.value / nObj) * armLength);
+      const epRadius = Math.abs(marginalTangent(spec.value, nObj, "objectNA") * armLength);
       return epRadius / mEP;
     }
     case "imageNA": {
       const probeExit = imageStopForward(c, k, wavelengthNm, 1);
       const nImg = Math.abs(probeExit.n);
       const armLength = imagePlaneZ(c, system) - probeExit.z;
-      const xpRadius = Math.abs((spec.value / nImg) * armLength);
+      const xpRadius = Math.abs(marginalTangent(spec.value, nImg, "imageNA") * armLength);
       return xpRadius / Math.abs(probeExit.magnification);
     }
   }

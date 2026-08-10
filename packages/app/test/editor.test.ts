@@ -16,7 +16,6 @@ import {
   clampPupilRays,
   describeBench,
   fromPrescription,
-  naSpellingRatio,
   solveParaxialFocus,
   toPrescription,
   toSystem,
@@ -237,17 +236,25 @@ describe("the two things a form does that a constructor never has to", () => {
     expect(result.exact.rayCount).toBeLessThan(PUPIL_RAYS_MAX ** 2);
   });
 
-  it("pins the exact ratio between two spellings of the same aperture", () => {
-    // `objectNA` is resolved as a paraxial SLOPE; the DIN objective sized its own
-    // stop with the real tan u at sin u = NA. So re-spelling the seed's aperture
-    // as the NA it was designed for gives a measurably smaller cone.
+  it("pins two spellings of the same aperture landing on ONE stop radius", () => {
+    // This assertion used to pin the opposite. `resolveStopRadius` read an NA as
+    // a paraxial slope while the DIN objective sized its own stop with the real
+    // tan u at sin u = NA, so re-spelling the seed's aperture as the NA it was
+    // designed for came back 1.005037815× narrower — and this panel, being the
+    // only place in the app where a reader can re-spell an aperture at all, was
+    // where that became reachable. § 1.5.1 fixed the engine; what is pinned here
+    // now is the agreement, from the surface that found the disagreement.
     const seed = seedById("din");
     if (seed.aperture.kind !== "stopRadius") throw new Error("the seed lost its stop radius");
     const asNA: BenchDraft = { ...seed, aperture: { kind: "objectNA", value: 0.1 } };
     const designed = seed.aperture.value;
     const respelled = pupils(toSystem(asNA), LINE_D).stopRadius;
-    expect(designed / respelled).toBeCloseTo(naSpellingRatio(0.1), 12);
-    expect(naSpellingRatio(0.1)).toBeCloseTo(1.005037815, 9);
+    expect(respelled).toBeCloseTo(designed, 12);
+    // The size of what was fixed, so the number does not vanish with the defect.
+    expect(designed / (seed.conjugate.kind === "finite" ? seed.conjugate.distance * 0.1 : NaN)).toBeCloseTo(
+      1.005037815,
+      9,
+    );
   });
 });
 

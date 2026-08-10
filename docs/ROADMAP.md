@@ -97,16 +97,26 @@
    uncorrected singlet and **5.01 for § 6b's objective**, confirming that
    solve's ΣS_I = 0 by a route that never computes S_I, and working on the
    conics `seidelSums` refuses outright.
-   *Open, and recorded here rather than only in APP.md because a panel that finds
-   an engine inconsistency gets a line in this file (C4, A6):* **`resolveStopRadius`'s
+   *Recorded here rather than only in APP.md because a panel that finds an engine
+   inconsistency gets a line in this file (C4, A6, C5):* **`resolveStopRadius`'s
    `objectNA`/`imageNA` branches read NA as a paraxial slope, not as n·sin u** —
    (NA/n)·arm rather than arm·tan(asin(NA/n)) — so the same aperture spelled two
-   ways differs by 1/√(1 − (NA/n)²): 0.50% at NA 0.10, 15.5% at 0.50, 3.2× at
-   0.95. **Nothing landed moves** — every microscope design hands its chain a
-   `stopRadius` and every telescope adapter an `EPD`, so no rung and no panel
-   reaches the branch — which is why it stays open rather than being fixed
-   under the ladder: the correction is one line and re-pins nothing, and it
-   should land with a rung of its own that pins n·sin u at a high aperture.
+   ways differed by 1/√(1 − (NA/n)²): 0.50% at NA 0.10, 15.5% at 0.50, 3.2× at
+   0.95. ✅ **Closed at § 1.5.1**, and it landed the way this paragraph said it
+   should — one line, re-pinning nothing, with rungs of its own that pin n·sin u
+   at a high aperture. Two corrections to what stands above it. The clause
+   **"no rung and no panel reaches the branch" had already expired when it was
+   written**: Part E is a form over all five spellings, so the branch was
+   reachable from the editor, and that panel was disclosing the discrepancy in a
+   caption (`naSpellingRatio`, pinned at 1.005037815) rather than the engine
+   being right — which makes this the fourth defect in the C4/A6/C5 family and
+   the first the app had already *found* and worked around. Retiring that
+   caption, and rewriting its test to pin the agreement, was most of the change.
+   And **"nothing landed moves" is exactly true and is the reason it survived**:
+   the wrong form is the right form's paraxial limit, so there is no aperture at
+   which it looks broken, only apertures at which it is quietly 15% out. The
+   fix also **refuses NA ≥ n** rather than returning ∞/NaN, which is § 6l's ray
+   invariant arriving one layer up as a precondition instead of a measurement.
    Still open here: the scenes' own **app surface and content** (a panel, an
    albedo map, lunar terrain), which is authoring rather than engine.
    **`core/mech`'s panel has landed too**

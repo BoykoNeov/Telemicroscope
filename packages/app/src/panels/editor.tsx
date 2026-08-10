@@ -7,7 +7,7 @@ import {
   benchSeeds,
   clampPupilRays,
   describeBench,
-  naSpellingRatio,
+  objectSinU,
   solveParaxialFocus,
   type BenchDraft,
   type BenchSurface,
@@ -515,9 +515,9 @@ export function EditorPanel() {
               />
               {draft.aperture.kind === "objectNA" && (
                 <Fact
-                  label="…but as an objectNA"
-                  value={`×${naSpellingRatio(draft.aperture.value).toFixed(6)} smaller`}
-                  note="this spelling reads NA as a paraxial slope; a design sizing its own stop uses tan u at sin u = NA. Same constraint, 1/√(1−NA²) apart."
+                  label="the cone this NA names"
+                  value={`sin u = ${objectSinU(draft, draft.aperture.value).toFixed(6)}`}
+                  note={`in ${draft.objectMedium}. NA is n·sin u, so the pupil is filled to arm·tan u, not to (NA/n)·arm — this panel used to print how far those two disagreed, and § 1.5.1 made them one number.`}
                 />
               )}
             </div>

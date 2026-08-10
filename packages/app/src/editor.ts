@@ -99,17 +99,12 @@ export const LINES = [
  * belongs in core the day a second caller wants one — this app has no business
  * being the first to put a function there.)
  */
-export const CATALOG_MEDIA: readonly string[] = [
-  AIR,
-  N_BK7,
-  F2,
-  CAF2,
-  FUSED_SILICA,
-  WATER,
-  IMMERSION_OIL,
-  D263,
-  VITREOUS,
-].map((m) => m.name);
+const MEDIA = [AIR, N_BK7, F2, CAF2, FUSED_SILICA, WATER, IMMERSION_OIL, D263, VITREOUS];
+
+export const CATALOG_MEDIA: readonly string[] = MEDIA.map((m) => m.name);
+
+/** The same list as a lookup — `objectSinU` needs an index, not a name. */
+const MEDIA_BY_NAME = new Map(MEDIA.map((m) => [m.name, m]));
 
 /**
  * One editable row.
@@ -567,27 +562,26 @@ export function benchSeeds(): readonly BenchSeed[] {
 }
 
 /**
- * The same NA, spelled two ways, is two different apertures — and the ratio is
- * exact.
+ * `ApertureSpec` offers five spellings of one constraint, and this form is the
+ * first thing in the app that lets a reader switch between them on a design
+ * authored in one. That is what turned an engine defect into something a panel
+ * could reach: `resolveStopRadius`'s two NA branches read NA as a paraxial
+ * *slope*, (NA/n)·arm, where the design that authored the number sized its stop
+ * with the real `tan u` at `sin u = NA/n` — so the same objective came back
+ * 1/√(1 − (NA/n)²) narrower for being asked for in the currency it was designed
+ * in. This panel used to print that ratio beside the pupil, because a 0.5% cone
+ * going quietly is worse than a caption.
  *
- * `ApertureSpec` offers five spellings of one constraint, and a form is the
- * first thing in this app that lets a reader switch between them on a design
- * that was authored in one. `resolveStopRadius`'s `objectNA` branch takes NA as
- * a paraxial *slope* — (NA/n)·(object → entrance pupil) — while
- * `finiteConjugateObjective` sizes its stop with the real `tan u` at
- * `sin u = NA/n`. So the two disagree by exactly
- *
- *     tan(asin(NA/n)) / (NA/n) = 1 / √(1 − (NA/n)²)
- *
- * 0.50% at NA 0.10, 15.5% at NA 0.50, 3.2× at NA 0.95. Nothing landed moves:
- * every design in `designs/` hands its chain a `stopRadius`, so this is only
- * reachable by re-spelling one, which is what this panel is for. It is a
- * paraxial-versus-exact reading of the *aperture*, in a schema whose whole point
- * is that the five spellings are one constraint — so the panel says which
- * spelling a number is in rather than letting a 0.5% cone go quietly.
+ * **The engine now reads the sine** (§ 1.5.1), so the caption is gone and the
+ * five spellings really are one constraint. What is left of the finding is a
+ * test — `test/editor.test.ts` pins the two spellings landing on one stop
+ * radius, from the surface that made the disagreement visible — and this, the
+ * half-angle the panel prints in its place: `sin u` is what an NA *is*, and
+ * showing it is how a reader sees that 0.95 in air and 1.4 in oil are the same
+ * kind of number and that the engine has an index in hand.
  */
-export const naSpellingRatio = (numericalAperture: number, objectIndex = 1): number =>
-  1 / Math.sqrt(1 - (numericalAperture / objectIndex) ** 2);
+export const objectSinU = (draft: BenchDraft, numericalAperture: number): number =>
+  numericalAperture / MEDIA_BY_NAME.get(draft.objectMedium)!.n(LINE_D);
 
 /**
  * The draft with its last thickness moved to the paraxial image — the focus

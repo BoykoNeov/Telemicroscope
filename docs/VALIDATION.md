@@ -156,6 +156,11 @@ coverslip mismatch step 6 will show.
 | Off-axis OPD: coma is cubic in pupil radius (ratio 8) | 3rd-order theory | ✅ |
 | Off-axis OPD vanishes identically on axis | symmetry | ✅ |
 | **Off-axis MIRROR: coma cubic in ρ, linear in field, bounded by ~a wave** | 3rd-order theory | ✅ |
+| **`objectNA` fills the entrance pupil to arm·tan(asin(NA/n))** | NA ≡ n·sin u (Abbe) | ✅ |
+| **`imageNA` fills the exit pupil the same way** | NA ≡ n·sin u (Abbe) | ✅ |
+| **The AIMED marginal ray carries the invariant asked for, to NA 1.4 in oil** | ray invariant | ✅ |
+| **The slope reading it replaces = its paraxial limit, 1/√(1−(NA/n)²)** | small-angle limit | ✅ |
+| **NA ≥ n is refused: no ray of that invariant exists** | ray invariant | ✅ |
 
 The **off-axis mirror** rungs were added after the wave layer's centroid rung
 exposed a defect they then pinned. The reference sphere is centred on the image
@@ -195,7 +200,69 @@ magnification cancels. They catch inverted conversions, nothing deeper.
 | f-number spec → EPD = EFL/f# | round trip |
 | Object-space NA → entrance-pupil arm | round trip |
 | Image-space NA → exit-pupil arm | round trip |
+| The DIN objective's own stop radius survives being re-spelled as its NA | round trip |
 | Stop with power on both sides → distinct, finite pupils | smoke |
+
+The two NA round trips are the ones § 1.5.1 caught, and they are kept as round
+trips rather than promoted: they now invert the *sine* reading, but they still
+invert whatever the resolver did, so what they can catch is an inverted
+conversion and nothing about which reading is right. The DIN entry is new and is
+filed here deliberately — both sides of it are this repo's, since
+`designs/microscope` sizes its stop with the same closed form § 1.5.1 pins
+against Abbe. What it is worth is that the two are now **one number**.
+
+### 1.5.1 — an NA is n·sin u, and the arm holds a tangent
+
+The rungs above come from outside the resolver, which is the whole point: the
+five aperture spellings had four checks and every one of them round-tripped
+`resolveStopRadius` against `pupils`, so none could see a wrong *reading* of the
+number it was handed.
+
+Numerical aperture is Abbe's **n·sin u**. The entrance pupil is a plane a finite
+arm from the object, so what fills it is `arm·tan u`, and therefore
+
+    EP radius = arm · tan(asin(NA/n)) = arm · (NA/n) / √(1 − (NA/n)²).
+
+Both NA branches instead computed `(NA/n)·arm` — the *paraxial slope*, which is
+the small-angle limit of that expression and nothing more. The two disagree by
+1/√(1 − (NA/n)²): **0.50% at NA 0.10, 15.5% at 0.50, 3.2× at 0.95**, and 2.6× in
+oil at NA 1.4.
+
+**Nothing landed moved, and that is why this sat open as long as it did.** Every
+design in `designs/` hands its chain a `stopRadius` and every telescope adapter
+an `EPD`, so no rung and no panel reached the branch — ROADMAP said exactly that,
+and then **Part E made it false**: the bench editor is a form over all five
+spellings, so a reader can re-spell a design's aperture and get a stop 0.5%
+narrower for having asked in the currency the design was authored in. The panel
+handled it the honest way available at the time, by printing the ratio beside the
+pupil (`naSpellingRatio`, pinned at 1.005037815). That caption is now retired,
+its app test rewritten to pin the *agreement*, and the disclosure replaced by the
+half-angle itself — the panel prints `sin u`, which is what an NA is.
+
+**The traced rung is the one that is about physics.** A closed-form rung pins the
+number the resolver must produce, and an algebraic re-derivation of it can pass
+for the old code with the definitions shuffled. So the second rung asks what the
+ray the engine *actually aims* carries: an axial specimen point in Cargille Type
+B under a plane face that is also the stop, `aimRay` to the pupil rim, and
+`n·sin u` read off the **direction cosine** with the resolved radius appearing
+nowhere in the assertion. An aperture engraved 1.40 delivered **1.028242** — not
+a tolerance failure but a different cone, and the discriminator this step is
+pinned by.
+
+**The refusal is deliberate and is not a free rider on a one-line fix.**
+`sin u = NA/n ≥ 1` has no real u; the old form returned Infinity at the equality
+and NaN past it, both of which propagate silently into a stop radius. It is
+refused instead, and it is the same sentence § 6l measures from the other end —
+an oil objective engraved 1.40 delivering exactly 1.3347 into a water mount,
+because no ray of invariant above the medium's index exists. The ceiling was
+already in the ladder as a *measurement*; here it is the aperture spec's
+precondition. The refusal is about the medium and not the number: NA 1.2 throws
+in air and is ordinary in oil, and the rung asserts both.
+
+The correction's own shape is worth one line, because it is the reason the defect
+survived every rung: the wrong form is the right form's **limit**, so it is exact
+on axis at low aperture and degrades smoothly. There is no aperture at which it
+is visibly broken — only apertures at which it is quietly 15% out.
 
 ## Step 1.6 — focus solve + spot diagrams
 
@@ -3435,13 +3502,16 @@ explicitly because § 1's D263 commit had to fix exactly this class of thing
   (path = n × length), and chromatically through its dispersion — i.e. through
   **NA**, not through the image grid. The wiring rung stays open for a
   configuration whose image is itself immersed.
-- **`objectNA`'s aperture seed is wrong at high NA.** `resolveStopRadius`'s
-  `objectNA` branch computes `epRadius = (NA/n)·armLength`, treating NA/n as a
-  *tangent* over the arm. At NA 0.10 in air that is a 0.5% error and harmless;
-  at NA 1.4 in oil, sin u = 0.924 gives u = 67.5° and tan u = 2.42 — the seed is
-  **2.6× out**, and ray aiming will either fail to converge or land on a nonsense
-  stop radius. This step sidesteps it entirely by specifying `stopRadius`
-  directly, but the immersion unit must fix the seed to the true sine relation.
+- ~~**`objectNA`'s aperture seed is wrong at high NA.**~~ ✅ **closed at § 1.5.1**,
+  and the diagnosis here was right in every part except which unit would close
+  it. `resolveStopRadius`'s `objectNA` branch computed
+  `epRadius = (NA/n)·armLength`, treating NA/n as a *tangent* over the arm: 0.5%
+  at NA 0.10 and **2.6× out** at NA 1.4 in oil, where sin u = 0.924 gives
+  u = 67.5° and tan u = 2.42. What this bullet did not predict is that the
+  immersion unit would sidestep it too — § 6e.4 hands its chain a `stopRadius`
+  like every other design — so it was **an app surface** that reached the branch
+  first, the bench editor being a form over all five spellings. `imageNA` had the
+  same defect and is fixed with it.
 - **Telecentricity.** Real objectives put the stop at the **back focal plane**,
   making them object-space telecentric — chief rays parallel to the axis, so
   magnification does not drift with defocus. That puts the entrance pupil at
