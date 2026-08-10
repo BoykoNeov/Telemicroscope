@@ -70,6 +70,7 @@ whole ladder.
 | [6s](#step-6s--the-radial-map-tabulated) | The bisection per pixel replaced by a table, and the whole step is identity rungs: the inverse chief-ray map is ONE-DIMENSIONAL — a tile's 16 384 pixels are queries of a single curve, and the curve belongs to the SYSTEM, so one table serves a 16-tile mosaic — tabulated by piecewise 4-point Lagrange whose remainder is the closed form, the error falling ×5.06 per ×1.5 of node count and ×3.16 per ×4/3 (measured 4.83/4.87 and 3.07/3.04, so the scheme is fourth-order and not Catmull-Rom's third) until it meets the f64 floor by 32 nodes; the map's own error ESTIMATE shown to under-read the truth by 7–17%, because a fourth difference reads f⁗ inside its stencil and the remainder wants the maximum over the interval — reported as an estimate rather than dressed as a bound; the axis exact by the map's own ODDNESS, the node below the first interval being the mirror of the one above it, so `heightAt(0)` is bitwise zero from the Lagrange weights and not from a clamp; registration measured at **3.8e-13 px**, nine orders below § 6o.8's 3.4e-3 px of ruler drift, and 6e-11 px from **nine** inversions; the saving pinned as an exact integer (`inversions` = nodes + 1 = 65 against a 128² tile's 16 384) with the wall clock in the prose; the wavelength and the aiming carried as the table's identity and a mismatch REFUSED, § 6r having one frame per λ; and the finding that tabulating the residual instead of the height buys **nothing** — a cubic already reproduces a linear function exactly | `radial-map` |
 
 | [6t](#step-6t--the-polychromatic-mosaic) | § 6o's mosaic and § 6r's colour composed, each having named the other as its deferral — and the answer is an **ordering**: the guard is cropped per plane on that plane's OWN grid, BEFORE the stack, so it is exactly `guardCells` in every plane's own cells and § 6o's ladder transplants by identity rather than by re-measurement — pinned as exactly that, a spectral tile's plane at λ being `renderMosaicTile`'s tile at λ **bit for bit**, and a guard-zero one-tile mosaic being `brightfieldSpectralStack`; the finding that the **ruler plane is the LEAST guarded**, by the closed form (size − useful·s_ruler/s_λ)/2·ps/size, so 4 cells asked is delivered as 4.500 / 6.592 / 8.040 at 450 / 550 / 650 nm and the red plane is guarded 1.787× better for free — pinned to the WAVELENGTHS alone (`imagePixelScaleMm` ∝ λ, so the ratio is λ_ruler/λ) with a 1.69e-4 residual that is the traced pupil's own λ dependence, which is why the ruler is a min over measured scales — § 6r.7's "the blue end sets `pupilSamples`" on a second knob, and the OPPOSITE of the reasoning that reaches for a mosaic first; the kept span shown to be `size − 2·guard − 2·rulerCrop`, so a spectral pitch is **not** a mono pitch at the same options and the two are never pinned at the same index; a tile whose ruler is not the anchor's refused, since two rulers is an invisible scale step; the anchored index pinned bitwise at 3×3 and 5×5 and a tile rendered alone shown to be the composed picture's tile bit for bit **in XYZ**; the verdict shown to be the worst λ of the worst tile and to NAME the wavelength; and § 6r.6's lateral colour read at last over millimetres — exactly zero on axis, linear in the tile index, **0.4962 px at a 9 mm field edge, MEASURED at tile 44** rather than extrapolated (the nonlinearity over that reach is 0.1%), so the planes register with no correction | `mosaic-spectrum` |
+| [6u](#step-6u--object-space-ray-aiming-and-telecentricity) | § 6a's THIRD and last immersion blocker closed — a real objective's stop sits at the back focal plane, which puts the entrance pupil at infinity and which `aimRay` refused, so every microscope here has carried its stop on the objective's rim while §§ 6f/6h/6m/6o each assumed telecentricity of their *condenser*. **No physics is added**: a pupil at infinity is a set of DIRECTIONS, so a pupil coordinate names a slope and the aperture is `stopRadius/B` **with no object height in it**, which is the defining property rather than an approximation — and B comes free from the trace that already ran, since tracing {y:0,u:1} back from the stop applies the inverse matrix and carries (0,1) to (−B, A), making the existing `|axis.u| < 1e-15` branch already a test of A = 0; `slopeRadius = stopRadius/f_group` **bitwise** on a thick asymmetric lens, with the type carrying `radius` finite XOR `slopeRadius` defined; the chief ray exactly (0,0,1) at every field and its TRACED miss at the stop centre a cubic, **×8.00 per doubling** of object height (§ 6h.1's constant, in the pupil rather than the image); the headline the property it is bought for — with the object plane moving and the image plane HELD FIXED (the experiment is named, since two are defensible) the magnification is **bitwise** unchanged over 20 mm of travel, against a control that drifts as −δz/(L+δz) and loses **9.1%**; `objectNA` round-tripping to 12 places with the object distance cancelling bitwise across 6.7× of conjugate, while `EPD`/`fNumber` are refused instead of returning the silent **0** they did; and the branch shown to be a LIMIT and not a cliff — the two aims converge linearly in the stop's offset from the back focal plane, 5.6e-2 → 5.3e-12 over ten decades, so the f64 threshold cannot matter — which was only measurable after § 1.5.2 | `telecentric` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -8080,6 +8081,162 @@ tile rendered alone has to be made on the exact bisection.
 - **Off-axis coherence**, inherited from § 6g, and the non-telecentric condenser
   (§ 6a's object-space ray-aiming blocker), inherited from § 6o. Both are
   unchanged by the wavelength axis.
+
+## Step 6u — object-space ray aiming, and telecentricity
+
+§ 6a named **three** blockers for immersion and recorded them rather than
+papering over them. The aperture seed closed at § 1.5.1, the glass form at
+§§ 6e.2–6e.4, and this is the third: *"telecentricity needs object-space ray
+aiming that does not exist."* It is the branch's last named engine gap.
+
+A real objective puts its aperture stop at the **back focal plane**, which makes
+it object-space telecentric — the chief ray leaves every specimen point parallel
+to the axis, so magnification does not drift with defocus. That puts the entrance
+pupil at infinity, and `aimRay` refused it by design. So every microscope in this
+repo has carried its stop on the objective's own rim instead, while § 6f, § 6h,
+§ 6m and § 6o each wrote *"telecentricity is assumed"* about their **condenser**.
+The illumination assumed what the objective was not.
+
+**The step adds no physics.** It is the paraxial pupil relation read at A = 0,
+and the reason it took a step at all is that the refusal was right about the
+diagnosis and wrong to stop at it: aiming at a *point* is not what aiming means,
+it is what aiming reduces to when the pupil is a finite distance away. A pupil at
+infinity is a set of **directions**, so a normalized pupil coordinate names a
+slope and the construction is the same one limit further out.
+
+### 6u.1 — the aperture is a slope, and the slope is stopRadius/f
+
+Paraxially a ray leaving object height h with slope u reaches the stop at
+`y = A·h + B·u`. The entrance pupil is at infinity exactly when **A = 0**, and
+the rim is then
+
+    u_max = ± stopRadius / B,   with no h in it at all,
+
+which is not an approximation but the defining property — it is *why* a
+telecentric aperture is field-independent, and why one number suffices where a
+finite pupil needs a position and a radius.
+
+**B comes free from the trace that already ran, and that is the whole
+implementation.** `imageStopBackward` traces `{y: 0, u: 1}` back from the stop,
+which applies the inverse of the object→stop matrix; the matrix has unit
+determinant, so the inverse carries (0, 1) to **(−B, A)**. The branch's own
+condition `|axis.u| < 1e-15` is therefore already a test of A = 0, and the height
+it exits with is already B. No second computation exists to drift from it.
+
+Measured: `slopeRadius` is `stopRadius/f_group` **bitwise**, on a thick
+asymmetric singlet chosen so that no thin-lens identity can be doing the work —
+because "stop at the back focal plane" is precisely what makes `y = f·u`, with
+the principal-plane offsets cancelling. Linear in the stop radius over four
+values, also bitwise.
+
+The type carries the invariant rather than leaving callers to discover it:
+**`radius` finite XOR `slopeRadius` defined.** A caller that has checked one has
+decided the other.
+
+### 6u.2 — the chief ray is parallel to the axis, and it lands on the stop centre
+
+The first half is bitwise and nearly a tautology: the aim contains no object
+height, so `chiefRay` returns exactly `(0, 0, 1)` at every field. Recorded as a
+`toBe`, not a tolerance, because a tolerance here would hide the point.
+
+The second half is the rung with teeth, since a ray parallel to the axis is only
+the *chief* ray if it actually passes through the stop centre. It does not do so
+exactly — `aimRay` targets the **paraxial** pupil — so the honest statement is an
+**order**. On axis the miss is exactly zero; off axis it grows **×8.00 per
+doubling of object height** (8.0013, 8.0052, 8.0209, 8.0846, approaching 8 from
+above as h shrinks, the excess being the fifth-order term). That is the
+third-order cubic — § 6h.1's distortion constant, here in the *pupil* rather than
+in the image.
+
+### 6u.3 — magnification does not drift with defocus
+
+The property telecentricity is bought for, and the experiment is **named**
+because two are defensible: the **object plane moves and the image plane is held
+fixed**. The image blurs and does not change size. (Moving the object and
+refocusing is a different measurement and is not this rung.)
+
+Telecentric: the traced magnification is **bitwise unchanged** over 20 mm of
+object travel — the chief ray is literally the same line, so there is nothing to
+round. The control is a non-telecentric stop 10 mm in front of the same lens,
+where the entrance pupil is a real plane a finite arm L from the object;
+magnification goes as 1/arm, so
+
+    ΔM/M = −δz / (L + δz),
+
+pinned to 1e-3, the residual being real-ray distortion at the 2 mm object height
+the magnification is read at. It is a large effect at ordinary numbers: **20 mm
+of object travel costs 9.1% of magnification**, against a hard zero.
+
+### 6u.4 — the spellings a pupil at infinity does and does not have
+
+`objectNA` is the spelling a telecentric objective is actually engraved in, and
+it survives: `stopRadius = B·tan u` off the same probe, with the delivered
+`n·sin u` read from the aimed ray's **direction cosine** — § 1.5.1's
+discriminator reused, the resolved radius appearing nowhere in the assertion. It
+round-trips to 12 places at four apertures, and the **object distance cancels
+bitwise** across a 6.7× range of conjugate, which for a finite pupil is false.
+
+Two spellings were returning arithmetic on ∞ rather than saying so. `EPD` and
+`fNumber` divide by an infinite pupil magnification and came back a silent
+**0** — an aperture that closes the system. `objectNA` multiplied an infinite arm
+by a finite tangent and divided by an infinite magnification for a silent
+**NaN**. The zero is the worse of the two, because it survives arithmetic and
+propagates as an ordinary number; both are refused now. An object at infinity
+*behind* a telecentric pupil has no object-space cone at all and is refused
+rather than guessed.
+
+### 6u.5 — the branch is a limit, not a cliff
+
+`|axis.u| < 1e-15` is an exact-zero test on an f64 paraxial trace, so whether a
+given design lands inside it is luck — the fixture here sits at 1.11e-16, inside
+by only 9×. What makes that benign rather than a cliff is that the two branches
+**agree in the limit**, and they agree to *first order* in how far the stop sits
+from the back focal plane: relative difference 5.6e-2, 5.3e-4, 5.3e-6, 5.3e-8,
+5.3e-10, 5.3e-12 over ten decades of offset. At the threshold itself the two
+readings differ by ~1e-16 relative, so which side a system falls on cannot
+matter.
+
+**That measurement only became possible at § 1.5.2.** Before it, the finite aim
+on this side of the back focal plane pointed backwards — the convergence would
+have been measured against a ray travelling the wrong way. The two steps are one
+investigation: the sign defect was found while probing whether this branch was
+reachable at all.
+
+### 6u.6 — what it unblocks
+
+`opdMap`, `spotDiagram` and everything built on them funnel through `aimRay`, so
+one refusal made a telecentric system **un-analysable** rather than degraded.
+They now run: the pupil fills with nothing lost on and off axis, and the sample
+count is identical at every object height — which is what telecentricity buys the
+*sampling*, the cone being field-independent so one pupil grid is one physical
+bundle everywhere in the field.
+
+### An aside that is not this step's to fix
+
+The axial spot's centroid is not zero, and it is not the aim's fault:
+**`pupilGrid` is itself asymmetric.** `(i/(n−1))·2 − 1` yields −0.9 exactly but
+0.9000000000000001, so the unit-disc clip keeps different points on the two sides
+and the grid's own Σpx is **−1.2 over 313 points**. An ordinary non-telecentric
+system carries the same bias identically (5.2e-5 of centroid against this one's
+8.9e-4, the ratio being the two spot sizes and nothing else). Correcting the
+sampler would move pinned numbers across the whole ladder and belongs in its own
+step; what belongs here is not leaning on it, so the symmetry rung is asserted on
+a fan, which is symmetric by construction.
+
+### Not yet pinned
+
+- **A telecentric objective in `designs/microscope`.** The capability is here and
+  the presets do not use it yet — the stop still sits on the objective's rim.
+  That is wiring plus a re-measurement of what moves, and it is the next step.
+- **Image-space telecentricity.** `pupils` has had the branch since it was
+  written (`imageStopForward` returns an infinite exit pupil) and `psf` refuses
+  it outright. The object side is what § 6a blocked on; the image side has no
+  caller and stays unpinned.
+- **Pupil aberration**, unchanged: the aim is paraxial, and § 6u.2 measures the
+  cubic it costs rather than removing it. Real ray-aiming iteration would.
+- **Off-axis vignetting against a telecentric stop**, and the condenser: § 6f's
+  "telecentricity is assumed" is now assumable rather than assumed, but nothing
+  has been re-measured against it.
 
 ## Later rungs
 

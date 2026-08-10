@@ -476,7 +476,9 @@
    albedo maps, lunar terrain and a real limb-darkening coefficient are measured
    data or authoring, not engine.
 6. **Microscope branch** ← current; **every numbered step in it is now closed**
-   (§ 6l was the last gap). What remains here is app wiring and scenes.
+   (§ 6l was the last gap, and § 6u has since closed the last *named blocker* —
+   § 6a's telecentricity — which was an engine capability rather than a numbered
+   step). What remains here is app wiring and scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i),
    the latter now over a 3-D specimen ✅ (§ 6k); coverslip mismatch ✅ (§ 6c);
@@ -510,8 +512,37 @@
    (Lister, then the aplanatic hyperhemisphere), not a faster doublet. **Two of the
    three are now closed** — the glass form by § 6e.2–6e.4, and the seed by § 1.5.1,
    which took neither this step nor the immersion one that was expected to need it
-   (both hand their chains a `stopRadius`) but a *panel*. Telecentricity is the
-   survivor.
+   (both hand their chains a `stopRadius`) but a *panel*. **And the third has now
+   closed too, at § 6u** — so all three are shut and this step has no named
+   blocker left. Object-space aiming turned out to add **no physics**: a pupil at
+   infinity is a set of *directions*, so a pupil coordinate names a slope, the
+   aperture is `stopRadius/B` **with no object height in it** — the defining
+   property rather than an approximation — and B falls out of the backward trace
+   `pupils` already ran, because tracing {y:0, u:1} back from the stop applies the
+   inverse matrix and carries (0,1) to (−B, A). The existing `|axis.u| < 1e-15`
+   branch was therefore *already* a test of A = 0 and had B in hand. The headline
+   is the property telecentricity is bought for, in the experiment named rather
+   than assumed — object plane moving, image plane **held fixed**: the
+   magnification is **bitwise** unchanged over 20 mm of travel against a control
+   that drifts as −δz/(L+δz) and loses **9.1%**. Also measured: the traced chief
+   ray's miss at the stop centre is a **cubic**, ×8.00 per doubling of object
+   height, which is § 6h.1's distortion constant appearing in the pupil; and the
+   f64 branch threshold is **not a cliff**, since the two aims converge linearly
+   in the stop's offset from the back focal plane (5.6e-2 → 5.3e-12 over ten
+   decades), so which side a design falls on cannot matter.
+   *Recorded here rather than only in VALIDATION because probing whether the
+   branch was reachable found a defect in a shipped function:* **`aimRay`
+   returned a backward-propagating ray whenever the entrance pupil lay behind the
+   object plane** (§ 1.5.2) — magnitude exact to 12 digits, sign inverted, so
+   `traceRay` answered **`miss`** on ordinary geometry. That is the **fifth**
+   member of the C4/A6/C5 family and the first to answer with a *status* rather
+   than a number, which is exactly why no rung caught it: a `miss` reads as the
+   system's fault. It re-pins nothing, and that was *proved* rather than
+   assumed — `aimRay` was made to throw on the backward case and the whole ladder
+   re-run, 75 files and 1310 tests passing. The two steps are one investigation.
+   **Still open here:** the presets do not use the capability yet — the stop still
+   sits on the objective's own rim — which is wiring plus a re-measurement of what
+   moves, and image-space telecentricity, which has no caller.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it

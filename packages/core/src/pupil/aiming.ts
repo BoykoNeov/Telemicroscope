@@ -100,6 +100,62 @@ function towardOptics(d: Vec3, objectZ: number): Vec3 {
   return d.z > 0 ? d : scale(d, -1);
 }
 
+/**
+ * Aiming when the entrance pupil is at infinity — § 6a's object-space blocker.
+ *
+ * Real objectives put the stop at the **back focal plane**, which makes them
+ * object-space telecentric: chief rays leave the specimen parallel to the axis,
+ * so magnification does not drift with defocus. That is the configuration the
+ * whole microscope branch has been approximating with the stop on the
+ * objective's own rim, and it is the one `aimRay` refused outright.
+ *
+ * The refusal was right about the diagnosis and wrong to stop there. Aiming at
+ * a POINT is not what aiming means — it is what aiming *reduces to* when the
+ * pupil is at a finite distance. A pupil at infinity is a set of **directions**,
+ * so the normalized pupil coordinate names a slope, and the construction is the
+ * same construction one limit further out:
+ *
+ *     dir ∝ (px·tan u_max, py·tan u_max, 1)
+ *
+ * with `tan u_max = stopRadius/B` carried on the pupil geometry (`pupils.ts`).
+ * It contains **no object height**, which is not an approximation but the
+ * defining property: telecentricity is `A = 0` in `y_stop = A·h + B·u`, so every
+ * field point sees the same cone. Aiming here is therefore *simpler* than the
+ * finite case rather than harder, which is why the tangent — matching the finite
+ * branch, where a target a finite arm away subtends one — is the right reading
+ * and not the sine (§ 1.5.1's distinction, on the other spelling of the same
+ * aperture).
+ *
+ * WAVEFRONT REFERENCE is unchanged and needs no new case: this branch is
+ * finite-conjugate, so every ray starts at the object point itself and the
+ * equal-phase surface is a sphere.
+ *
+ * An INFINITE conjugate with a telecentric entrance pupil is a different
+ * animal — the object is at infinity and so is the pupil, so there is no
+ * object-space cone to aim at all — and is refused rather than guessed.
+ */
+function aimObjectSpace(
+  system: OpticalSystem,
+  pupil: PupilGeometry,
+  fieldValue: number,
+  point: PupilPoint,
+  wavelengthNm: number,
+): Ray {
+  const slope = pupil.entrance.slopeRadius;
+  if (slope === undefined) {
+    throw new Error(
+      "entrance pupil is at infinity but carries no slope aperture: the pupil geometry is inconsistent",
+    );
+  }
+  if (system.conjugate.kind !== "finite") {
+    throw new Error(
+      "an object at infinity behind a telecentric entrance pupil has no object-space cone to aim",
+    );
+  }
+  const o = objectPoint(system, fieldValue);
+  return makeRay(o, normalize(vec3(point.px * slope, point.py * slope, 1)), wavelengthNm);
+}
+
 export function aimRay(
   system: OpticalSystem,
   pupil: PupilGeometry,
@@ -110,7 +166,7 @@ export function aimRay(
 ): Ray {
   const r = pupil.entrance.radius;
   if (!Number.isFinite(r)) {
-    throw new Error("entrance pupil is at infinity (telecentric): aim in object space instead");
+    return aimObjectSpace(system, pupil, fieldValue, point, wavelengthNm);
   }
   const target = vec3(point.px * r, point.py * r, pupil.entrance.z);
 

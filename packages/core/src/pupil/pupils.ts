@@ -42,12 +42,28 @@ import { limitingStop } from "./aperture-stop";
 export interface PupilPlane {
   /** Position on the unfolded axis (mm) — the world z of an axial system. */
   readonly z: number;
-  /** Semi-diameter (mm). */
+  /** Semi-diameter (mm). `Infinity` when the pupil is at infinity. */
   readonly radius: number;
   /** Transverse magnification of the stop into this pupil. */
   readonly magnification: number;
   /** Refractive index of the space the pupil lies in (signed, mirror convention). */
   readonly n: number;
+  /**
+   * Semi-aperture as a ray **slope** (tan u) — what a pupil at infinity has
+   * instead of a radius, since a plane infinitely far away has no useful mm.
+   *
+   * INVARIANT, and the reason this is optional rather than always present:
+   * `radius` finite XOR `slopeRadius` defined. A caller that has checked one
+   * has decided the other, and never needs to check both.
+   *
+   * A pupil at infinity is a set of DIRECTIONS, so a normalized pupil
+   * coordinate names a slope rather than a point. Paraxially a ray leaving
+   * object height h with slope u reaches the stop at `y = A·h + B·u`; the pupil
+   * is at infinity exactly when `A = 0`, and the rim is then `u = ±stopRadius/B`
+   * **with no h in it** — which is why a telecentric aperture is field-
+   * independent and why one number suffices here. Pinned at § 6u.
+   */
+  readonly slopeRadius?: number;
 }
 
 export interface PupilGeometry {
@@ -126,7 +142,25 @@ function imageStopBackward(
   }
 
   if (Math.abs(axis.u) < 1e-15) {
-    return { z: -Infinity, radius: Infinity, magnification: Infinity, n: axis.n };
+    // Object-space telecentric: the stop sits at the front group's back focal
+    // plane, so the chief ray leaves every object point parallel to the axis.
+    //
+    // `axis` started {y: 0, u: 1} at the stop and was traced BACKWARDS, which
+    // applies the inverse of the object→stop matrix [[A, B], [C, D]]; since it
+    // has unit determinant, that inverse carries (0, 1) to (−B, A). So this
+    // branch's condition is `A = 0` — telecentricity itself — and the height it
+    // exits with is **−B**, the very quantity the slope aperture needs. No
+    // second trace, and therefore nothing that can drift from this one.
+    //
+    // Measured: |axis.y| is the group's EFL bitwise, thick and asymmetric
+    // included, because "stop at the back focal plane" is what makes y = f·u.
+    return {
+      z: -Infinity,
+      radius: Infinity,
+      magnification: Infinity,
+      n: axis.n,
+      slopeRadius: Math.abs(stopRadius / axis.y),
+    };
   }
   const dz = -axis.y / axis.u;
   const m = height.y + height.u * dz;
@@ -177,6 +211,25 @@ export function resolveStopRadius(system: OpticalSystem, wavelengthNm: number): 
   const probeEntrance = imageStopBackward(c, k, wavelengthNm, 1);
   const mEP = Math.abs(probeEntrance.magnification);
 
+  // An entrance pupil at infinity has no diameter and no arm, so three of the
+  // five spellings have nothing to resolve against. Two of them were returning
+  // arithmetic on ∞ rather than saying so: `EPD` and `fNumber` divide by an
+  // infinite magnification and come back a silent **0** — an aperture that
+  // closes the system — while `objectNA` multiplies an infinite arm by a finite
+  // tangent and divides by an infinite magnification for a silent **NaN**.
+  // A zero is the worse of the two, because it propagates as a number.
+  //
+  // `objectNA` is the spelling that survives, and it is the one a telecentric
+  // microscope is actually engraved in: the aperture is an angle, so
+  // `stopRadius = B·tan u` with B read off the same probe. See § 6u.
+  const telecentric = probeEntrance.slopeRadius;
+  if (telecentric !== undefined && (spec.kind === "EPD" || spec.kind === "fNumber")) {
+    throw new Error(
+      `${spec.kind} cannot size an entrance pupil at infinity (object-space telecentric): ` +
+        `spell the aperture as objectNA, which is an angle`,
+    );
+  }
+
   switch (spec.kind) {
     case "EPD":
       return spec.value / 2 / mEP;
@@ -188,11 +241,17 @@ export function resolveStopRadius(system: OpticalSystem, wavelengthNm: number): 
       if (system.conjugate.kind !== "finite") {
         throw new Error("objectNA requires a finite conjugate");
       }
-      // Marginal ray from the axial object point to the entrance-pupil edge.
       const nObj = c.indices(wavelengthNm)[0]!;
+      const tanU = marginalTangent(spec.value, nObj, "objectNA");
+      // Telecentric: the aperture is an angle and the object distance cancels,
+      // which is the same statement as the chief ray being parallel to the axis.
+      // The unit-radius probe reports 1/|B|, so this is B·tan u.
+      if (telecentric !== undefined) return tanU / telecentric;
+      // Otherwise the marginal ray runs from the axial object point to the
+      // entrance-pupil edge over a finite arm.
       const objectZ = -system.conjugate.distance;
       const armLength = probeEntrance.z - objectZ;
-      const epRadius = Math.abs(marginalTangent(spec.value, nObj, "objectNA") * armLength);
+      const epRadius = Math.abs(tanU * armLength);
       return epRadius / mEP;
     }
     case "imageNA": {
