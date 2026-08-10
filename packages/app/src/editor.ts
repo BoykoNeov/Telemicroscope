@@ -372,7 +372,10 @@ export function describeBench(draft: BenchDraft): BenchDescription {
 
   const compiled = asCompiled(system.prescription);
   const lastVertexZMm = compiled.surfaces[compiled.surfaces.length - 1]!.vertexZ;
-  const points = pupilGrid(draft.pupilRays);
+  // Clamped here too, not only at the control: this is the boundary a worker or
+  // a test would come through, and an unbounded loop is not a thing to leave to
+  // whoever calls next.
+  const points = pupilGrid(clampPupilRays(draft.pupilRays));
 
   const paraxial = section("paraxial", (): ParaxialReadout => {
     const lines = LINES.map((l): LineProperties => {
@@ -596,15 +599,42 @@ export const naSpellingRatio = (numericalAperture: number, objectIndex = 1): num
  * lens whose BFD is 496.58, because it is a *placeholder* its own doc calls one.
  * Pressing this replaces the placeholder with the trace's answer — and the exact
  * best focus is still not there, which is the panel's whole subject.
+ *
+ * **Total by construction.** A draft that does not build, or that builds and has
+ * no focus at all, is an ordinary state of an editor — and this runs inside a
+ * React state updater, where a throw is a blank page rather than a refusal. So
+ * an unsolvable draft comes back unchanged and the refusal a reader sees is the
+ * one `describeBench` already put on screen. The panel disables the button in
+ * exactly that case, so "unchanged" is never the only feedback.
  */
 export function solveParaxialFocus(draft: BenchDraft): BenchDraft {
-  const offset = paraxialImageOffset(toSystem(draft), LINE_D);
+  let offset: number;
+  try {
+    offset = paraxialImageOffset(toSystem(draft), LINE_D);
+  } catch {
+    return draft;
+  }
   const last = draft.surfaces.length - 1;
   return {
     ...draft,
     surfaces: draft.surfaces.map((s, i) => (i === last ? { ...s, thicknessMm: offset } : s)),
   };
 }
+
+/**
+ * Rays across a pupil diameter, bounded — the one control here that costs
+ * quadratically and has nothing in the engine to refuse it.
+ *
+ * `pupilGrid(n)` loops n², and `NumberField` now accepts ±Infinity because R and
+ * the semi-aperture mean it. Handed Infinity this field does not throw, refuse,
+ * or return: it hangs the tab, which is the one failure mode that cannot be
+ * reported on screen. 101 across a diameter is 7 845 rays, already ~50× the
+ * default and far past where a spot RMS stops moving.
+ */
+export const PUPIL_RAYS_MAX = 101;
+
+export const clampPupilRays = (rays: number): number =>
+  Number.isFinite(rays) ? Math.min(PUPIL_RAYS_MAX, Math.max(3, Math.round(rays))) : DEFAULT_PUPIL_RAYS;
 
 /** What a fresh form opens on. */
 export const DEFAULT_DRAFT: BenchDraft = benchSeeds()[0]!.draft;

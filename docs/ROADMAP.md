@@ -96,9 +96,19 @@
    — halve the stop and the on-axis residual falls by 2^p — which reads 3 for an
    uncorrected singlet and **5.01 for § 6b's objective**, confirming that
    solve's ΣS_I = 0 by a route that never computes S_I, and working on the
-   conics `seidelSums` refuses outright. Still open here: the scenes' own **app
-   surface and content** (a panel, an albedo map, lunar terrain), which is
-   authoring rather than engine.
+   conics `seidelSums` refuses outright.
+   *Open, and recorded here rather than only in APP.md because a panel that finds
+   an engine inconsistency gets a line in this file (C4, A6):* **`resolveStopRadius`'s
+   `objectNA`/`imageNA` branches read NA as a paraxial slope, not as n·sin u** —
+   (NA/n)·arm rather than arm·tan(asin(NA/n)) — so the same aperture spelled two
+   ways differs by 1/√(1 − (NA/n)²): 0.50% at NA 0.10, 15.5% at 0.50, 3.2× at
+   0.95. **Nothing landed moves** — every microscope design hands its chain a
+   `stopRadius` and every telescope adapter an `EPD`, so no rung and no panel
+   reaches the branch — which is why it stays open rather than being fixed
+   under the ladder: the correction is one line and re-pins nothing, and it
+   should land with a rung of its own that pins n·sin u at a high aperture.
+   Still open here: the scenes' own **app surface and content** (a panel, an
+   albedo map, lunar terrain), which is authoring rather than engine.
    **`core/mech`'s panel has landed too**
    (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,

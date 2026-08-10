@@ -11,7 +11,9 @@ import { systemProperties } from "@telemicroscope/core/trace";
 import {
   BLANK_SURFACE,
   DEFAULT_DRAFT,
+  PUPIL_RAYS_MAX,
   benchSeeds,
+  clampPupilRays,
   describeBench,
   fromPrescription,
   naSpellingRatio,
@@ -198,6 +200,41 @@ describe("the two things a form does that a constructor never has to", () => {
     const axis = after.exact.fields.find((f) => f.fieldValue === 0)!;
     expect(axis.bestFocusOffsetMm - after.paraxial.imageOffsetMm).toBeCloseTo(-0.095, 3);
     expect(axis.bestRmsRadiusMm).toBeLessThan(axis.rmsRadiusMm);
+  });
+
+  /**
+   * Both of these are about the same thing: a control in a live form can be put
+   * into a state the engine has no answer for, and neither "throw" nor "loop"
+   * is an answer a panel can show. `describeBench` catches, so a refusal always
+   * reaches the screen — but `solveParaxialFocus` runs inside a React state
+   * updater, where a throw is a blank page, and `pupilGrid` loops n² with
+   * nothing in the engine to bound it.
+   */
+  it("returns an unsolvable draft unchanged instead of throwing inside a state updater", () => {
+    const broken: BenchDraft = { ...DEFAULT_DRAFT, surfaces: [{ ...BLANK_SURFACE, radiusMm: 0 }] };
+    expect(() => solveParaxialFocus(broken)).not.toThrow();
+    expect(solveParaxialFocus(broken)).toBe(broken);
+
+    // Builds, traces, and still has no focus: a single plane is afocal, so the
+    // paraxial section refuses and there is nothing to solve to.
+    const afocal: BenchDraft = { ...DEFAULT_DRAFT, surfaces: [{ ...BLANK_SURFACE, isStop: true, thicknessMm: 10 }] };
+    expect(solveParaxialFocus(afocal)).toBe(afocal);
+    const described = describeBench(afocal);
+    if (!described.ok) throw new Error(described.error);
+    expect(described.paraxial.ok).toBe(false);
+  });
+
+  it("bounds the ray count, which is the one control with an unbounded loop behind it", () => {
+    expect(clampPupilRays(Infinity)).toBe(15);
+    expect(clampPupilRays(Number.NaN)).toBe(15);
+    expect(clampPupilRays(1e9)).toBe(PUPIL_RAYS_MAX);
+    expect(clampPupilRays(1)).toBe(3);
+    expect(clampPupilRays(20.6)).toBe(21);
+    // And the adapter clamps too, so no caller can hand the grid an infinity.
+    const result = describeBench({ ...DEFAULT_DRAFT, pupilRays: Infinity });
+    if (!result.ok || !result.exact.ok) throw new Error("no exact readout");
+    expect(result.exact.rayCount).toBeGreaterThan(0);
+    expect(result.exact.rayCount).toBeLessThan(PUPIL_RAYS_MAX ** 2);
   });
 
   it("pins the exact ratio between two spellings of the same aperture", () => {

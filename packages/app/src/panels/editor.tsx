@@ -3,8 +3,9 @@ import {
   BLANK_SURFACE,
   CATALOG_MEDIA,
   DEFAULT_DRAFT,
-  LINES,
+  PUPIL_RAYS_MAX,
   benchSeeds,
+  clampPupilRays,
   describeBench,
   naSpellingRatio,
   solveParaxialFocus,
@@ -149,6 +150,7 @@ export function EditorPanel() {
     });
 
   const seed = seeds.find((s) => s.id === seedId)!;
+  const solvable = result.ok && result.paraxial.ok;
 
   return (
     <>
@@ -380,9 +382,9 @@ export function EditorPanel() {
           onChange={(fieldValue) => setDraft((d) => ({ ...d, fieldValue }))}
         />
         <NumberField
-          label="rays across the pupil"
+          label={`rays across the pupil (≤ ${PUPIL_RAYS_MAX})`}
           value={draft.pupilRays}
-          onChange={(pupilRays) => setDraft((d) => ({ ...d, pupilRays: Math.max(3, Math.round(pupilRays)) }))}
+          onChange={(pupilRays) => setDraft((d) => ({ ...d, pupilRays: clampPupilRays(pupilRays) }))}
         />
         <p style={{ ...note, flex: "1 1 280px", maxWidth: 360 }}>
           the wavelengths are fixed at the F, d and C lines — a set with weights, never one λ, which
@@ -392,9 +394,22 @@ export function EditorPanel() {
       </Fieldset>
 
       <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16, flexWrap: "wrap" }}>
+        {/* Enabled exactly when a paraxial focus exists to move the plane to —
+            which is the same condition as `paraxialImageOffset` not throwing, so
+            the button is never a no-op with no reason on screen. */}
         <button
           onClick={() => setDraft(solveParaxialFocus)}
-          style={{ ...mono, fontSize: 13, padding: "6px 16px", border: "1px solid #333", background: "#333", color: "#fff", cursor: "pointer" }}
+          disabled={!solvable}
+          title={solvable ? "" : "there is no paraxial focus to solve to — see the refusal below"}
+          style={{
+            ...mono,
+            fontSize: 13,
+            padding: "6px 16px",
+            border: "1px solid #333",
+            background: solvable ? "#333" : "#eee",
+            color: solvable ? "#fff" : "#999",
+            cursor: solvable ? "pointer" : "default",
+          }}
         >
           solve focus
         </button>
