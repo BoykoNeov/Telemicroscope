@@ -1,8 +1,11 @@
 import { describe, it, expect } from "vitest";
 
 /**
- * The second rung that pins the HARNESS rather than the physics, and the only
- * one whose subject is the event loop.
+ * The first rung that pins the HARNESS rather than the physics. It is the
+ * second non-physics rung in the suite: `docs-index.test.ts` came first and
+ * pins a document. Like that one it has no `VALIDATION.md` step, because the
+ * ladder is for physics — a rung whose subject is the repo's own machinery
+ * lives here, in its own comment.
  *
  * The suite used to end on four or five `[vitest-worker]: Timeout calling
  * "onTaskUpdate"` errors and a non-zero exit while every assertion passed,
@@ -38,6 +41,12 @@ import { describe, it, expect } from "vitest";
  * defends against is the hook being deleted as an unexplained oddity, which
  * would restore a red suite that no assertion accounts for: the failure mode
  * that cost the most to find.
+ *
+ * The two tests below must run as a pair and in order — `-t` filtering or an
+ * `.only` on the second one fails it for the wrong reason, since the flag it
+ * reads is set by the first. That is inherent: what is being measured is what
+ * the harness does BETWEEN two tests, so there is no single test to fold them
+ * into.
  */
 
 let turnedBetweenTests = false;
