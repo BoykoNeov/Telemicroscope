@@ -977,11 +977,40 @@ section, which went from stain fractions to two dyes. A monochrome surface sees
 one wavelength's *slice* of a spectrum, and the bands first chosen put the d line
 at 0.195 of the cytoplasmic peak: the stage's cell bodies went from amplitude
 0.55 to 0.80 and vanished, leaving nuclei on a flat ground. **Nothing would have
-caught it** — no golden pins that render, and the A9 rungs are all about colour —
-so it was found by loading `#/stage` and looking. The bands are now picked
-against both surfaces (545/50 puts the d line at 0.485 of the peak, cytoplasm
-back to 0.53) and the header states the trade: a wider band reads better in grey
-and carries less hue.
+caught it** — no golden pinned that render, and the A9 rungs are all about
+colour — so it was found by loading `#/stage` and looking. The bands are now
+picked against both surfaces (545/50 puts the d line at 0.485 of the peak,
+cytoplasm back to 0.53) and the header states the trade: a wider band reads
+better in grey and carries less hue.
+
+**A golden pins it now, and that sentence is the reason.** The new
+`packages/app/test/golden.test.ts` commits the stage as `#/stage` opens on it —
+the panel's own default state, verbatim, since the defect was found by opening
+the panel and what is worth pinning is therefore the view it opens on. It is
+**2×2 tiles
+composed on `stageInfo`'s pitch**, not one: `stage.ts` warns that a per-tile
+exposure would paint a brightness step at every seam, and a single-tile golden
+is structurally blind to exactly that, so the frame carries three seams. Both
+branches are committed — the monochrome d-line picture (`valid`, ~50 ms a tile)
+and § 6t's colour one at the panel's 3 λ (~140 ms a tile, and
+`no-honest-image` at 32 pupil samples, which is asserted rather than avoided:
+the panel says so on screen, and honest would cost **1.9 s** a tile at settings
+no default reaches). Per tile, as § 6s's numbers are, so the four-tile frames
+are four times each. Same status as the engine's goldens: **regression, not
+validation.**
+
+Three controls come with it, because a golden that cannot fail is worse than
+none. The four tiles must differ from each other — an index dropped anywhere
+between cache, anchor and worker composes four copies of one tile into a
+picture that tiles perfectly and is wrong. The colour frame must contain an
+off-grey pixel and the monochrome frame none, which is what catches a tinted
+grey stack standing in for a spectral one. And **the cell bodies must still be
+in the picture at the level the dye predicts** — the level read off the specimen
+rather than typed in, so a legitimate re-authoring moves with it: the cytoplasm
+plateau at the d line is intensity 0.284 (amplitude 0.533, the 0.53 above) and
+12.0% of the frame images at or under it. That last one is the only rung that
+*names* this defect instead of detecting it. A golden fails with "drifted"; this
+fails with "the cell bodies faded", which is the sentence that was missing.
 
 **The panel found one bug and one false sentence, both at the S slider's left
 end.** S = 0 is a *different source*, not a small one: a commensurate lattice of
