@@ -10,16 +10,28 @@ the external number, so it is committed and the suite reads it directly. The
 script is here so the number can be re-derived and argued with, which is the
 whole point of a cross-validation.
 
-Regenerating (Python >= 3.12, which is what rayoptics 0.9.9 requires):
+Regenerating (Python >= 3.12, which is what rayoptics 0.9.9 requires). Windows
+paths, since that is this project's platform; use bin/ instead of Scripts/
+elsewhere:
 
-    python -m venv .venv
-    .venv/bin/pip install rayoptics==0.9.9
-    .venv/bin/python docs/notes/rayoptics-crosscheck.py \\
-        packages/core/test/fixtures/rayoptics-crosscheck.json
+    py -m venv .venv
+    .venv\\Scripts\\python -m pip install numpy scipy pandas matplotlib anytree ^
+        parsimonious transforms3d requests json_tricks deprecation traitlets ^
+        opticalglass
+    .venv\\Scripts\\python -m pip install --no-deps rayoptics==0.9.9
+    .venv\\Scripts\\python docs\\notes\\rayoptics-crosscheck.py ^
+        packages\\core\\test\\fixtures\\rayoptics-crosscheck.json
 
-then run `npm test` — the version assertion in crosscheck.test.ts will fail
-first if a different rayoptics wrote the file, which is deliberate: a reference
-that silently changes underneath is not a reference.
+`--no-deps` with the list spelled out, rather than a plain `pip install
+rayoptics`, because rayoptics' full dependency set drags in a Qt/IPython desktop
+stack (pyside6, qtconsole, ipywidgets, ipython) — some 200 MB that this script
+never imports, since it drives the sequential model and the ray trace directly
+and draws nothing.
+
+Verified: run from the path above, this script reproduces the committed fixture
+byte for byte. Then run `npm test` — the version assertion in
+crosscheck.test.ts fails first if a different rayoptics wrote the file, which is
+deliberate: a reference that silently changes underneath is not a reference.
 
 Deliberate choices, each removing a convention that could turn a disagreement
 into an argument about definitions rather than about arithmetic:

@@ -3,7 +3,9 @@
 The engine is only trusted where it is pinned to known physics. Every rung is
 a vitest test in `packages/core/test/`. A rung is "done" only when the test
 asserts a number from outside the engine (textbook, published design, closed
-form) — engine-vs-itself tests are consistency checks, not validation.
+form, or — at [step 0](#step-0--the-exact-tracer-against-an-independent-implementation)
+alone — another program's answer to the same question) — engine-vs-itself tests
+are consistency checks, not validation.
 
 Every step below is landed and green. The prose under each step is the record
 of *why* — why a tolerance is the number it is, and what a rung caught. It is
