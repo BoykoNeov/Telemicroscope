@@ -12,6 +12,7 @@ import { PhasePanel } from "./phase";
 import { ReflectorPanel } from "./reflector";
 import { SectionPanel } from "./section";
 import { SeeingPanel } from "./seeing";
+import { SkyPanel } from "./sky";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
@@ -51,6 +52,12 @@ export const PANELS: readonly Panel[] = [
     label: "star & field",
     blurb: "roadmap step 4 — chromatic fringing, and a field-varying PSF across 25 stars",
     Component: TelescopePanel,
+  },
+  {
+    id: "sky",
+    label: "a disc, not a point",
+    blurb: "APP.md C7 — a source with an angular size, and the diagonal that decides how much sky fits",
+    Component: SkyPanel,
   },
   {
     id: "reflector",

@@ -1322,6 +1322,15 @@ instantiated, not a whole branch. All are app-wiring-only unless noted.
   **pupil** rather than a system so the trace happens once. And the compute-once
   verdict is right while its reason was not: the bill is the **screen
   generation**, not the transform, so a 4× finer PSF grid costs only ~1.2×.
+- **The sky's extended sources** (§ 5v) — ✅ **landed as C7**, the last item
+  ROADMAP step 5 was waiting on and the only surface in this doc that arrived
+  from the *roadmap's* residue rather than from this part's own list. Every
+  telescope panel before it images a **star**, because `rasterizePointSources`
+  places a flux at a point; a planet is a radiance over solid angle and has a
+  limb. App wiring only. The finding is that the thing which stops a Newtonian
+  framing a wide object is not optical and not the sensor — it is the
+  **diagonal**, and how much sky fits is therefore set by the height of the
+  focuser.
 
 ### C1. The six reflectors, and the obstruction each one reports — ✅ **landed** — *app wiring only* — **pair**
 
@@ -2037,6 +2046,120 @@ sloppy: **a factor is precisely what a picture cannot show the size of**, so the
 peak ratios are numbers on the page (22.0% for a draw against 7.7% for the
 120-screen mean) and the shade only has to make the shapes legible. The shapes
 are the argument: speckle, disc, rings.
+
+### C7. A disc, not a point — ✅ **landed** — *app wiring only* — **pair**
+
+`sky.ts` + `sky.worker.ts` + `sky.wall.worker.ts` + `panels/sky.tsx` +
+`test/sky.test.ts`. The last item roadmap step 5 was waiting on, and the only
+entry in this document that arrived from **ROADMAP's** residue rather than from
+Part C's own list — C3's lesson a second time, and from the same blind spot: a
+capability with no branch and no panel is one only the roadmap carries.
+
+Every telescope surface before this one images a **star**. That is not a scoping
+choice, it is what the engine could express: `rasterizePointSources` places a
+flux at a point, and a point has no angular size. § 5v gave the other kind of
+source its rasterizer — a radiance over solid angle, differentiated through the
+same chief-ray map the engine already traces — and it landed with no app surface
+at all. No rung was added here; every number is § 5v's, § 4b's or § 2f's.
+
+**The disc is synthetic, and that is the rule rather than caution.** ROADMAP
+files the scenes' other half — albedo maps, lunar terrain, a real
+limb-darkening coefficient — under *measured data*, beside the patent eyepiece
+prescriptions. So the panel authors a disc, both its size and its darkening are
+the reader's, the limb-darkening **law** is the textbook one in
+`core/imaging/extended`, and the page says all of that on screen. No real body
+is named anywhere.
+
+#### The frame is fixed and the disc moves inside it
+
+The obvious framing — size the frame to the disc — makes the disc the same
+number of pixels across at every angular size, which hides the one thing that
+separates this rasterizer from the point-source one: a source small enough
+**stops being a disc**. Fixing the frame and shrinking the disc inside it is
+§ 5v.7's point-source limit on a slider, and it also makes the refusal
+unambiguous, because the wall is a property of the FRAME. A reader shrinking the
+disc to escape it is not rescued, and the test pins that rather than the caption
+promising it.
+
+#### What it found
+
+**The wall is a diagonal, and it is mechanical.** A Newtonian's frame does not
+dim toward its edge — it *stops*: past a certain field the chief ray misses the
+diagonal, `imagePointOf` answers *chief ray failed (vignetted)*, and the
+rasterizer refuses rather than degrading. That is § 2f's wall arriving at a
+module with no reason to expect it. Measured by bisecting the same map
+construction the render runs (~1 ms, no transform anywhere), it reads **2.383°
+at f/4 falling to 0.131° at f/15**, and **aperture cancels exactly** — the
+bisection returns the identical value at 100, 200 and 400 mm, which is § 2f's
+"D cancels again" through a different routine. The headline is what moves it:
+`newtonian`'s focus offset is "a mechanical number, not an optical one" that
+"moves the diagonal up and down the tube without changing the optics at all",
+and over a focuser height of 100 → 300 mm the largest field the chief ray
+reaches goes **0.320° → 1.109°**. *How much sky a Newtonian can frame is set by
+how tall its focuser is.* The refractor has no such curve at any ratio swept.
+
+**The closed form is deliberately not printed, and that is this part's own
+lesson applied before it cost anything.** ROADMAP quotes § 2f's boundary as a
+closed form; transcribed against this preset it reads **7.7× low** (0.064°
+against a measured 0.497° at f/8), because it is the *minimal* diagonal's case
+and this preset's clear radius carries a √2 footprint allowance and a
+fully-illuminated-field term. Two numbers that far apart under one caption is
+C1's fringe measure and C6's FWHM a third time. What survives the arithmetic is
+the **exponent**: § 2f reports its boundary running 2.34 → 2.11 from above, and
+the chief ray's own wall runs **2.334 → 2.099**, monotone from above — the same
+shape and the same two significant figures through an entirely different
+routine. The test pins the measurement and says in as many words that writing
+2.34 there would be claiming an identity the panel has not got.
+
+**The shared radial profile is an energy profile, and a brightness plot is where
+that stops being free.** `radialColorProfile` sums each annulus and divides by
+nothing — `image.ts` says so in its own header — and `hueProfile` gets away with
+it because chromaticity is a ratio *within* a bin, so the missing normalization
+cancels exactly. Drawing the limb profile is the case where it does not: an
+annulus at twice the radius holds twice the pixels, so a **uniform** disc comes
+back as a straight line rising ~8× across the frame, which is a completely
+convincing picture of nothing. The panel carries the pixel count beside the sum
+and divides. That is A5's lesson — *a surface that draws a quantity a rung only
+summarizes will find what the rung could afford to ignore* — arriving at a
+**shared helper** rather than at a sampling, and it is worth recording that the
+helper is not wrong: it is documented, and it was used for the wrong thing.
+
+**A diameter is not a radius, caught by the case that straddles it.** The
+resolved/unresolved verdict first compared the disc's angular *diameter* to the
+Airy *radius*, which reads a 0.72″ disc as resolved on a system whose Airy
+radius is 0.69″. That is C6's unit error in a second place; the threshold is now
+the Airy pattern's own **diameter** — the width the image of a point already has
+— stated as a display convention with the raw figure printed beside it so a
+reader can apply another.
+
+**The cos³ falloff is a null and is printed as one.** Measured against the closed
+form it agrees to six digits at every field this panel can reach (0.999994 at
+0.118°, 0.999843 at 0.589°), because § 5v.3's own 0.73% needs 4° and no frame
+here gets a tenth of the way there. Constraint 3 asks for a plot beside a null,
+and a flat line at 1.000000 is not a plot but a misleading y-axis — so it is a
+`Fact`, next to the sentence that the **fourth** cosine is absent on purpose
+(§ 5v.1's pupil-layer deferral) and that what is on screen is therefore cos³ by
+construction rather than by luck.
+
+#### Cost, measured
+
+The rasterizer is **not** the bill — 22–78 ms against 76 ms to 10 s of render —
+which is the exact opposite of the microscope branch's shape, where § 6s found
+the warped raster dominating a traced tile. What a reader turns is `patches` and
+the optic: **76 / 441 / 1145 ms** on the Newtonian and **700 / 3569 / 10170 ms**
+on the achromat at 1 / 2 / 3 patches, priced on the control the way C6 prices its
+screen counts. The doublet is an order of magnitude dearer per PSF than the
+mirror at identical settings, which is its own traced wavefront and not this
+surface's doing. It refines coarsest-first, which is what makes the achromat
+usable at all.
+
+#### The structural item it closed
+
+`useRenderedField` was the app's one hard-typed multi-frame hook, and a sky
+render refines in exactly the same way for exactly the same reason. It is now
+`useFramesFromWorker<Req, Res>` with `useRenderedField` a one-line caller —
+`useLatestFromWorker`'s own history repeating, and the same rule that moved A2's
+`VERDICT_COLOR`: the second copy is the one you extract at, not the third.
 
 ---
 
@@ -3845,6 +3968,14 @@ lunar terrain, a real limb-darkening coefficient — which is authoring or measu
 data rather than either engine or wiring, exactly as `stage.ts`'s diatoms were
 for the microscope.
 
+**The panel has since landed as C7**, and the split above held exactly: the
+route is `#/sky`, the disc is synthetic, and the content half is untouched
+because it is still measured data nobody has sourced. One thing the paragraph
+got wrong by omission — it treated the scenes as *only* content once the panel
+existed, and the panel turned out to carry a finding of its own that no rung
+states, because § 5v's rungs run on an unfolded fixture and a Newtonian is
+folded. See C7.
+
 Worth recording because this doc keeps a prediction ledger: § 5v is the first
 step in a while where **the feasibility number was not measuring something
 else** — there was no feasibility number, because the measurement that decided
@@ -3947,6 +4078,16 @@ than into a promise: the count is now derived from the catalogue everywhere,
 including in the test that pins it, so the next time a wall moves the sentence
 moves with it. The panel count is still eighteen; Part F added no route, which is
 the point — the eleventh objective appears inside the eighteen that exist.
+
+**C7 is the seventh, and it makes the count nineteen.** It was found by a
+structural check after all — but not one of this document's: the item was in
+ROADMAP's step 5 and in *no* APP.md list, which is exactly C3's blind spot
+(`core/mech`) recurring, because this doc sorts by branch and "the scenes" is a
+capability rather than a branch. The registry could not have caught it for the
+usual reason it cannot: there was no ✅ section claiming a route that did not
+exist, there was **no section at all**. What the two now say together is that
+the registry checks this document against the app, and only ROADMAP checks this
+document against the engine.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and

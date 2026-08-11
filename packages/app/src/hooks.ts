@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createFieldWorker } from "./workers";
-import type { FieldFrame, FieldJob, FieldRequest, FieldResult } from "./render";
+import type { FieldRequest, FieldResult } from "./render";
 
 /**
  * Runs one request through a worker, keeping the last good reply on screen.
@@ -81,38 +81,44 @@ export function useLatestFromWorker<Req, Res>(
 }
 
 /**
- * Runs a star field through the field worker, painting each refinement level.
+ * Runs a request through a worker that answers with SEVERAL frames, painting
+ * each one.
  *
- * The field render answers one job with several frames (coarse patch grids
- * first, then the finest), so this differs from `useLatestFromWorker` in one place
- * that matters: it advances its backpressure queue only when a frame arrives
- * with `done`. Advancing on the first (coarse) frame — as the single-reply hook
- * does — would fire the next queued job mid-refinement and the finest grid would
+ * A refining render answers one job with a sequence (coarse patch grids first,
+ * then the finest), so this differs from `useLatestFromWorker` in one place that
+ * matters: it advances its backpressure queue only when a frame arrives with
+ * `done`. Advancing on the first (coarse) frame — as the single-reply hook does
+ * — would fire the next queued job mid-refinement and the finest grid would
  * never paint. The stale-`seq` guard still drops frames from a superseded job.
+ *
+ * Generic for the reason `useLatestFromWorker` became generic: C7's sky render
+ * refines exactly like the star field's, and a second hand-copied copy of a
+ * subtlety this specific is one too many. `useRenderedField` below is the
+ * original caller, unchanged in behaviour and now one line long.
  */
-export function useRenderedField(request: FieldRequest): {
-  result: FieldResult | null;
-  refining: boolean;
-} {
+export function useFramesFromWorker<Req, Res>(
+  createWorker: () => Worker,
+  request: Req,
+): { result: Res | null; refining: boolean } {
   const workerRef = useRef<Worker | null>(null);
   const seqRef = useRef(0);
   const busyRef = useRef(false);
-  const queuedRef = useRef<FieldRequest | null>(null);
-  const [result, setResult] = useState<FieldResult | null>(null);
+  const queuedRef = useRef<Req | null>(null);
+  const [result, setResult] = useState<Res | null>(null);
   const [refining, setRefining] = useState(true);
 
-  const post = useCallback((req: FieldRequest) => {
+  const post = useCallback((req: Req) => {
     const worker = workerRef.current;
     if (!worker) return;
     seqRef.current += 1;
     busyRef.current = true;
     setRefining(true);
-    worker.postMessage({ seq: seqRef.current, request: req } satisfies FieldJob);
+    worker.postMessage({ seq: seqRef.current, request: req });
   }, []);
 
   useEffect(() => {
-    const worker = createFieldWorker();
-    worker.onmessage = (event: MessageEvent<FieldFrame>) => {
+    const worker = createWorker();
+    worker.onmessage = (event: MessageEvent<{ seq: number; result: Res; done: boolean }>) => {
       // A superseded job keeps posting its remaining levels; drop them whole.
       if (event.data.seq !== seqRef.current) return;
       setResult(event.data.result);
@@ -136,7 +142,7 @@ export function useRenderedField(request: FieldRequest): {
       busyRef.current = false;
       queuedRef.current = null;
     };
-  }, [post]);
+  }, [post, createWorker]);
 
   useEffect(() => {
     if (!workerRef.current) return;
@@ -148,4 +154,16 @@ export function useRenderedField(request: FieldRequest): {
   }, [request, post]);
 
   return { result, refining };
+}
+
+/**
+ * The star field, on the generic hook above — the original caller, kept as a
+ * named function because two panels reading `useFramesFromWorker(createXWorker,
+ * …)` says less about what is on screen than one of them saying `useRenderedField`.
+ */
+export function useRenderedField(request: FieldRequest): {
+  result: FieldResult | null;
+  refining: boolean;
+} {
+  return useFramesFromWorker<FieldRequest, FieldResult>(createFieldWorker, request);
 }

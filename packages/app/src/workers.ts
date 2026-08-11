@@ -21,6 +21,12 @@ export const createStarWorker = () =>
 export const createFieldWorker = () =>
   new Worker(new URL("./render.field.worker.ts", import.meta.url), { type: "module" });
 
+export const createSkyWorker = () =>
+  new Worker(new URL("./sky.worker.ts", import.meta.url), { type: "module" });
+
+export const createSkyWallWorker = () =>
+  new Worker(new URL("./sky.wall.worker.ts", import.meta.url), { type: "module" });
+
 export const createReflectorWorker = () =>
   new Worker(new URL("./reflector.worker.ts", import.meta.url), { type: "module" });
 

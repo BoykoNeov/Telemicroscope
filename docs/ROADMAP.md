@@ -117,8 +117,26 @@
    which it looks broken, only apertures at which it is quietly 15% out. The
    fix also **refuses NA ≥ n** rather than returning ∞/NaN, which is § 6l's ray
    invariant arriving one layer up as a precondition instead of a measurement.
-   Still open here: the scenes' own **app surface and content** (a panel, an
-   albedo map, lunar terrain), which is authoring rather than engine.
+   The scenes' **app surface** is ✅ **closed too** (APP.md C7) — app wiring
+   only, and it found something no § 5v rung could: those rungs run on an
+   unfolded fixture, and a **Newtonian's frame stops rather than dimming**. Past
+   a certain field the chief ray misses the diagonal and the rasterizer refuses,
+   which is § 2f's wall reached through the chief ray instead of through
+   `opdMap` — measured at **2.383° at f/4 falling to 0.131° at f/15**, with
+   aperture cancelling *exactly* (the bisection returns the identical value at
+   100, 200 and 400 mm) and a local exponent of **2.334 → 2.099** against § 2f's
+   own 2.34 → 2.11. § 2f's closed form is deliberately **not** printed beside
+   it: transcribed against this preset it reads 7.7× low, because it is the
+   minimal diagonal's case and `newtonian`'s clear radius carries a √2 footprint
+   allowance, so the exponent is what the two share and the wall itself is always
+   the measurement. The headline is that the wall is **mechanical**: the focus
+   offset is a number `newtonian` itself calls optical-surface-free, and moving
+   it over a focuser height of 100 → 300 mm takes the reachable field
+   **0.320° → 1.109°** — how much sky a Newtonian can frame is set by how tall
+   its focuser is. Still open here: the scenes' **content** (an albedo map,
+   lunar terrain, a real limb-darkening coefficient), which is measured data
+   rather than engine or wiring — the panel therefore ships a synthetic disc
+   with the darkening law's coefficient left to the reader.
    **`core/mech`'s panel has landed too**
    (APP.md C3) — see the end of § 5u below for what driving it corrected.
    Presets (Newtonian, achromat/ED refractor, SCT), eyepiece library,
@@ -472,9 +490,15 @@
    derivative along. And **nothing downstream changed**: a disc and a star of equal
    flux integrate identically through `renderField` to 1e-13, the rendered light is
    *bitwise* linear in radiance, and a disc's image reaches f·tan(D/2), which no
-   point source can say. **Open:** the fourth cosine, a panel, and the content —
+   point source can say. **Open:** the fourth cosine, and the content —
    albedo maps, lunar terrain and a real limb-darkening coefficient are measured
-   data or authoring, not engine.
+   data or authoring, not engine. ~~a panel~~ — ✅ **landed** (APP.md C7), and it
+   reported one thing back to this step: every rung above runs on an **unfolded**
+   fixture, so none of them could meet the refusal a folded system reaches first.
+   The falloff is also confirmed invisible where a telescope actually works —
+   measured against cos³ to six digits at every field the panel can frame, since
+   § 5v.3's own 0.73% needs 4° — so the panel prints it as a number and draws no
+   axes for it.
 6. **Microscope branch** ← current; **every numbered step in it is now closed**
    (§ 6l was the last gap, and § 6u has since closed the last *named blocker* —
    § 6a's telecentricity — which was an engine capability rather than a numbered
