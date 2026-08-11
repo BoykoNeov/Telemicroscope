@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { refusalVoice } from "../refusal";
+import { objectiveOf, objectiveOptions, type ObjectiveId } from "../objective";
+import { readSavedBuild } from "../saved";
 import { useLatestFromWorker } from "../hooks";
 import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import { Plot } from "../plot";
-import { Choice, Guard, GUARD_COLOR, Slider, VERDICT_LEVEL } from "../ui";
+import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, VERDICT_LEVEL } from "../ui";
 import { createBrightfieldWorker } from "../workers";
 import {
   cutoffSweep,
@@ -249,9 +251,17 @@ export function BrightfieldPanel() {
   // A2's dials. The two sliders are the panel: S is the condenser diaphragm,
   // and `cycles` is how fine the specimen's detail is, in the same frequency
   // units the cutoff is quoted in.
-  const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // The slot is read once, at mount: `readSavedBuild` parses a string, so a
+  // call during a render would hand back a fresh spec object every time and
+  // refire every effect keyed on the request. A panel unmounts on a route
+  // change anyway, so mount is also when a build saved on the builder's own
+  // route arrives here.
+  const [saved] = useState(readSavedBuild);
+  const options = useMemo(() => objectiveOptions(saved), [saved]);
+  const [kind, setKind] = useState<ObjectiveId>("din-4x-010");
+  const objective = objectiveOf(options, kind);
   // Part F: a request carries the prescription, not a name from a list of ten.
-  const spec = useMemo(() => entryOf(kind).spec, [kind]);
+  const spec = objective.spec;
   const [pupil, setPupil] = useState<PupilMode>("traced");
   // Own state, not the bench panel's — see the note there. The option lists are
   // narrower here on purpose: a traced brightfield sum costs 8–10× an ideal one
@@ -337,10 +347,10 @@ export function BrightfieldPanel() {
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
         <Choice
           label="objective"
-          options={MICROSCOPE_CATALOG.map((e) => e.kind)}
+          options={options.map((o) => o.id)}
           value={kind}
           onChange={setKind}
-          format={(k) => MICROSCOPE_CATALOG.find((e) => e.kind === k)!.label}
+          format={(k) => objectiveOf(options, k).label}
         />
         <Choice
           label="pupil — ideal is the only way to reach the unknown verdict"
@@ -366,6 +376,9 @@ export function BrightfieldPanel() {
           value={sourceSamples}
           onChange={setSourceSamples}
         />
+      </div>
+      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+        <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
         <Slider

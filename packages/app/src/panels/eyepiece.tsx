@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useLatestFromWorker } from "../hooks";
-import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
+import { objectiveOf, objectiveOptions, type ObjectiveId } from "../objective";
+import { readSavedBuild } from "../saved";
 import { Plot, type PlotMarker, type PlotSeries } from "../plot";
-import { Choice, Guard, GUARD_COLOR, Slider, thresholdLevel } from "../ui";
+import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, thresholdLevel } from "../ui";
 import { createEyepieceSweepWorker, createEyepieceWallWorker } from "../workers";
 import {
   DEFAULT_NEAR_POINT_MM,
@@ -290,9 +291,17 @@ function WallLine({ wall, focalLengthMm }: { wall: Wall | null; focalLengthMm: n
 }
 
 export function EyepiecePanel() {
-  const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // The slot is read once, at mount: `readSavedBuild` parses a string, so a
+  // call during a render would hand back a fresh spec object every time and
+  // refire every effect keyed on the request. A panel unmounts on a route
+  // change anyway, so mount is also when a build saved on the builder's own
+  // route arrives here.
+  const [saved] = useState(readSavedBuild);
+  const options = useMemo(() => objectiveOptions(saved), [saved]);
+  const [kind, setKind] = useState<ObjectiveId>("din-4x-010");
+  const objective = objectiveOf(options, kind);
   // Part F: a request carries the prescription, not a name from a list of ten.
-  const spec = useMemo(() => entryOf(kind).spec, [kind]);
+  const spec = objective.spec;
   const [form, setForm] = useState<EyepieceForm>("plossl");
   const [focalLengthMm, setFocalLength] = useState(25);
   const [fieldStop, setFieldStop] = useState(true);
@@ -337,7 +346,6 @@ export function EyepiecePanel() {
   const wall = useLatestFromWorker<WallRequest, Wall>(createEyepieceWallWorker, wallRequest);
 
   const readout = instrument.ok ? instrument.readout : null;
-  const entry = MICROSCOPE_CATALOG.find((e) => e.kind === kind)!;
 
   return (
     <>
@@ -363,10 +371,10 @@ export function EyepiecePanel() {
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 8 }}>
         <Choice
           label="objective — A1's catalogue"
-          options={MICROSCOPE_CATALOG.map((e) => e.kind)}
+          options={options.map((o) => o.id)}
           value={kind}
           onChange={setKind}
-          format={(k) => MICROSCOPE_CATALOG.find((e) => e.kind === k)!.label}
+          format={(k) => objectiveOf(options, k).label}
         />
       </div>
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 16 }}>
@@ -536,9 +544,7 @@ export function EyepiecePanel() {
             and is refused — so the control is guarded separately from the instrument, because it is
             the control that fails there and not the microscope.
           </p>
-          <p>
-            <strong>{entry.label}</strong> — {entry.note}
-          </p>
+          <ObjectiveLine label={objective.label} note={objective.note} />
           <p>
             The <em>traced</em> quantities here are the magnification (a real chief ray&rsquo;s exit
             angle, so it carries distortion and is only one number near the axis) and the engraved

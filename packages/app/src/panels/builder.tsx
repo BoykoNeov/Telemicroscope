@@ -17,6 +17,8 @@ import {
   type BuildDescription,
 } from "../microscope";
 import { Choice, Fact, Fieldset, Guard, NumberField, num, thresholdLevel } from "../ui";
+import { clearSavedBuild, readSavedBuild, writeSavedBuild } from "../saved";
+import { customLabel } from "../objective";
 
 /**
  * The microscope builder — APP.md's D8.
@@ -177,6 +179,11 @@ function ListerFacts({
 export function BuilderPanel() {
   const [spec, setSpec] = useState<BuildSpec>(DEFAULT_SPEC);
   const [submitted, setSubmitted] = useState<BuildSpec>(DEFAULT_SPEC);
+  // Part F's slot, read at mount for the same reason the picture panels read
+  // it there: it is a parse, and a parse in a render is a new object a memo
+  // cannot see through. Held in state so the label below follows the button.
+  const [saved, setSaved] = useState(readSavedBuild);
+  const [storageRefused, setStorageRefused] = useState(false);
   const [result, setResult] = useState<BuildDescription | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
 
@@ -478,6 +485,56 @@ export function BuilderPanel() {
             : result
               ? `${elapsedMs.toFixed(0)} ms — the build and its frame, then ~15 more solves to find the wall`
               : "building…"}
+        </span>
+      </div>
+
+      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
+        <button
+          onClick={() => {
+            const kept = writeSavedBuild(submitted);
+            setSaved(kept ? submitted : null);
+            setStorageRefused(!kept);
+          }}
+          // A design that does not build is not a design, and a slot holding one
+          // would put a refusal on every picture panel a reader then opened.
+          disabled={!result?.ok}
+          style={{
+            fontFamily: "monospace",
+            fontSize: 13,
+            padding: "6px 16px",
+            border: "1px solid #333",
+            background: result?.ok ? "#fff" : "#eee",
+            color: result?.ok ? "#333" : "#999",
+            cursor: result?.ok ? "pointer" : "default",
+          }}
+        >
+          keep it, and look through it
+        </button>
+        {saved && (
+          <button
+            onClick={() => {
+              clearSavedBuild();
+              setSaved(null);
+            }}
+            style={{
+              fontFamily: "monospace",
+              fontSize: 12,
+              padding: "6px 12px",
+              border: "1px solid #ccc",
+              background: "#fff",
+              color: "#777",
+              cursor: "pointer",
+            }}
+          >
+            forget it
+          </button>
+        )}
+        <span style={{ fontFamily: "monospace", fontSize: 12, color: storageRefused ? "#c00" : "#777" }}>
+          {storageRefused
+            ? "this browser refused to store it — the picture panels will show the bench's ten rows only"
+            : saved
+              ? `kept: ${customLabel(saved)} — it is now an eleventh row on every panel that draws a picture, until you replace or forget it`
+              : "one slot, kept in this browser. The picture panels offer the bench's ten rows and whatever is in it."}
         </span>
       </div>
 

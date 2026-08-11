@@ -261,3 +261,43 @@ export function Slider(props: {
     </label>
   );
 }
+
+/**
+ * Which objective the picture above was drawn through, in the voice its design
+ * has earned — Part F's decision 3, as the smaller of its two halves.
+ *
+ * A catalogue row carries a one-line measured teaching, and that line is quoted.
+ * A build a reader composed carries none, and this prints **that** rather than
+ * borrowing the nearest row's — A4's rule ("a stale reading may be shown greyed
+ * only if nothing on screen misdescribes it") is about numbers, and a sentence
+ * naming a lens that is not on screen is the same failure with worse manners.
+ *
+ * It is shared for `ui.tsx`'s stated reason: six panels need it, and the one
+ * thing worse than six copies of a rule about honesty is six copies that drift.
+ */
+export function ObjectiveLine(props: {
+  label: string;
+  /** The catalogue's line. `null` for a design nothing here has measured. */
+  note: string | null;
+}) {
+  return (
+    <p>
+      <strong>{props.label}</strong>
+      {props.note === null ? (
+        <>
+          {" — "}
+          <span style={{ color: "#a60" }}>
+            your own build. Nothing in this app has measured it, so the numbers quoted in the prose
+            on this page are about the ten bench rows and not about this lens. The readouts and
+            plots are live and are about this one.
+          </span>
+        </>
+      ) : (
+        <>
+          {" — "}
+          {props.note}
+        </>
+      )}
+    </p>
+  );
+}

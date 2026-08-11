@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { refusalVoice } from "../refusal";
+import { objectiveOf, objectiveOptions, type ObjectiveId } from "../objective";
+import { readSavedBuild } from "../saved";
 import { useLatestFromWorker } from "../hooks";
 import {
   toGrey,
@@ -11,7 +13,7 @@ import {
 } from "../fluorescence";
 import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import { Plot } from "../plot";
-import { Choice, Guard, GUARD_COLOR, Slider, thresholdLevel } from "../ui";
+import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, thresholdLevel } from "../ui";
 import { createFluorescenceSweepWorker, createFluorescenceWorker } from "../workers";
 
 /**
@@ -231,9 +233,17 @@ function TransferPlot({ request }: { request: TransferRequest }) {
 }
 
 export function FluorescencePanel() {
-  const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // The slot is read once, at mount: `readSavedBuild` parses a string, so a
+  // call during a render would hand back a fresh spec object every time and
+  // refire every effect keyed on the request. A panel unmounts on a route
+  // change anyway, so mount is also when a build saved on the builder's own
+  // route arrives here.
+  const [saved] = useState(readSavedBuild);
+  const options = useMemo(() => objectiveOptions(saved), [saved]);
+  const [kind, setKind] = useState<ObjectiveId>("din-4x-010");
+  const objective = objectiveOf(options, kind);
   // Part F: a request carries the prescription, not a name from a list of ten.
-  const spec = useMemo(() => entryOf(kind).spec, [kind]);
+  const spec = objective.spec;
   const [pupilSamples, setPupilSamples] = useState(64);
   const [sizeRaw, setSize] = useState(256);
   const [patches, setPatches] = useState(1);
@@ -311,10 +321,10 @@ export function FluorescencePanel() {
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
         <Choice
           label="objective"
-          options={MICROSCOPE_CATALOG.map((e) => e.kind)}
+          options={options.map((o) => o.id)}
           value={kind}
           onChange={setKind}
-          format={(k) => MICROSCOPE_CATALOG.find((e) => e.kind === k)!.label}
+          format={(k) => objectiveOf(options, k).label}
         />
         <Choice
           label={`pupil samples ${pupilSamples} — also the crop, in resolution cells`}
@@ -345,6 +355,9 @@ export function FluorescencePanel() {
           onChange={setStretch}
           format={(v) => `×${v}`}
         />
+      </div>
+      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+        <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
         <Slider

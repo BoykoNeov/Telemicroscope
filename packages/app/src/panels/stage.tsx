@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { refusalVoice } from "../refusal";
+import { objectiveOf, objectiveOptions, type ObjectiveId } from "../objective";
+import { readSavedBuild } from "../saved";
 import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
-import { Choice, Guard, GUARD_COLOR, Slider, VERDICT_LEVEL } from "../ui";
+import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, VERDICT_LEVEL } from "../ui";
 import { createStageWorker } from "../workers";
 import { SPECIMENS, specimenOf, type SpecimenKind } from "../specimens";
 import type { LampKind } from "../section";
@@ -80,9 +82,17 @@ interface Pending {
 }
 
 export function StagePanel() {
-  const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // The slot is read once, at mount: `readSavedBuild` parses a string, so a
+  // call during a render would hand back a fresh spec object every time and
+  // refire every effect keyed on the request. A panel unmounts on a route
+  // change anyway, so mount is also when a build saved on the builder's own
+  // route arrives here.
+  const [saved] = useState(readSavedBuild);
+  const options = useMemo(() => objectiveOptions(saved), [saved]);
+  const [kind, setKind] = useState<ObjectiveId>("din-4x-010");
+  const objective = objectiveOf(options, kind);
   // Part F: a request carries the prescription, not a name from a list of ten.
-  const spec = useMemo(() => entryOf(kind).spec, [kind]);
+  const spec = objective.spec;
   const [specimen, setSpecimen] = useState<SpecimenKind>("section");
   const [pupilSamples, setPupilSamples] = useState(32);
   const [guardCells, setGuardCells] = useState(4);
@@ -392,10 +402,10 @@ export function StagePanel() {
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 12 }}>
         <Choice
           label="objective"
-          options={MICROSCOPE_CATALOG.map((e) => e.kind)}
+          options={options.map((o) => o.id)}
           value={kind}
           onChange={setKind}
-          format={(k) => MICROSCOPE_CATALOG.find((e) => e.kind === k)!.label}
+          format={(k) => objectiveOf(options, k).label}
         />
         <Choice
           label="specimen"
@@ -411,6 +421,9 @@ export function StagePanel() {
           onChange={setPupilSamples}
         />
         <Choice label={`display zoom ${zoom}×`} options={[1, 2, 3]} value={zoom} onChange={setZoom} />
+      </div>
+      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+        <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 12 }}>
         <Choice
