@@ -8711,6 +8711,12 @@ the rim it is named for.
 - **Off-axis aberration at the field the glass now passes.** This step is about
   whether the light *arrives*; nothing here says what the image looks like at
   2.25 mm, and § 6d's Lister is the form that would have to answer.
+- **The cost has no free working distance to be quoted in.** 6w.5's 2.115% is the
+  distance to the specimen plane, which is what an infinity objective reports.
+  The number a user of a real one would feel is the *free* working distance —
+  that, less the front surface's sag — and only `finiteConjugateObjective`
+  computes one. Not a gap this step opened, and the sag is the smaller term, but
+  it is the currency the cost belongs in.
 - **The DIN objective**, unchanged from § 6v: `finiteConjugateObjective` carries
   its stop on the rim, so it has neither telecentricity nor this parameter.
 - **A coverslip target through an oversized element.** Once a field number is
