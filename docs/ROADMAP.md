@@ -479,9 +479,10 @@
    (§ 6l was the last gap, and § 6u has since closed the last *named blocker* —
    § 6a's telecentricity — which was an engine capability rather than a numbered
    step; **§ 6v then spent it**, moving the shipped objective's stop onto its back
-   focal plane so the presets *are* telecentric rather than able to be). What
-   remains here is app wiring and scenes — plus the one item § 6v named on its way
-   out, an objective whose front element is sized for the field it must pass.
+   focal plane so the presets *are* telecentric rather than able to be, and
+   **§ 6w has since paid its price**, sizing the glass for a field number so the
+   objective knows what field it must pass). What remains here is app wiring and
+   scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i),
    the latter now over a 3-D specimen ✅ (§ 6k); coverslip mismatch ✅ (§ 6c);
@@ -584,7 +585,44 @@
    would have shown it was collimated. The space is now measured from the last
    **glass** vertex, and an infinity space shorter than the back focal distance is
    **refused** rather than composed, pinned at the boundary itself.
-   **Still open here:** the oversized front element above, the DIN objective
+   *The oversized front element it named:* ✅ § 6w. `fieldNumberMm` — the field
+   diameter at the intermediate image, the number a microscope is catalogued by
+   and the one § 6q already splices in as a real stop — sizes the glass to
+   `f·NA + FN/(2M)`, the axial beam plus the walk. **The default stays off, and
+   on principle rather than out of caution:** a stop position is intrinsic to an
+   objective, which is why § 6v could default telecentricity on, while a field is
+   a property of the objective *together with whatever stops the field behind
+   it*, so nothing picks a value — which leaves the § 6v lens standing as this
+   step's negative control. **The content is that every number in it loses the
+   magnification.** The oversize is a RATIO, `1 + FN/(2·f_tube·NA)` = 1.45 at
+   FN 18/NA 0.10 for the 4×, 10× and 40× alike, because the semi-field and the
+   beam are both ∝ 1/M — so § 6v.5's "those figures do not travel" is true in
+   millimetres and **false as a fraction**, and the 4× and the 40× turn out to be
+   one lens scaled (every length ×10, every curvature ÷10, the bending identical,
+   since S_I ∝ h⁴ makes the solve scale-free). Against the shipped control the
+   claim lands as a count: **313 of 313** pupil points at the field edge where
+   the axial objective passes **229**, the same 84 lost at every magnification.
+   Three things the plan did not have. The closed form is an **upper bound never
+   reached** — it adds two heights that live on the equivalent refracting sphere
+   rather than on a vertex, so the traced footprint tops out at 0.98922 of it and
+   the delivered field is 5.27% *more* than asked, with the crown's outer face
+   (0.5% rim margin, against 2% on the specimen side) the one that finally stops
+   it. The cost is **2.115% of working distance** at every magnification, and it
+   exists *because* the doublet is built at the wider aperture rather than having
+   its rim widened — which is the honest route, since `achromaticObjective`
+   checks edge thickness at D/2 and a rim widened afterwards would have passed a
+   check for an element that cannot be made; the delivered NA does not pay,
+   holding to 14 digits because it is re-derived on the lens actually built. And
+   the **traced magnification is the one quantity here that still carries an M**
+   (0.08%, spread 0.18% over 4×→40×), because the microscope is composed against
+   a 200 mm tube lens that does not shrink with the objective — the invariance is
+   the objective family's, not the instrument's. The wall it opens is not a new
+   kind: `D/f = 2·NA + FN/f_tube` is magnification-free, so a field number is a
+   **second door onto § 6b.5.7's geometric doublet ceiling** and costs aperture
+   linearly — the NA ceiling drops by exactly `FN/(2·f_tube)` (0.045 at FN 18, to
+   nine digits) from an axial 0.287401975 that is `1/(2·F*)` for that step's own
+   F\* = 1.7397236, two constants meeting by a route neither was derived through.
+   **Still open here:** the DIN objective
    (`finiteConjugateObjective` still carries its stop on the rim, and a real DIN
    objective is telecentric too), what telecentricity is worth to the illumination
    — §§ 6f/6h/6m/6o each assume it of their *condenser* and nothing has been

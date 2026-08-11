@@ -146,6 +146,41 @@ import {
  *    targets `ρ·s·tan u` a distance s away, giving slope `ρ·tan u`, and the
  *    telecentric one names that slope directly. Which is why moving the default
  *    moved almost nothing in the ladder.
+ *
+ * ## What field the glass is sized for (§ 6w)
+ *
+ * § 6v's price, paid. A telecentric bundle from object height h reaches the
+ * element centred on h, so the glass a field needs is
+ *
+ *     glass semi-diameter = f·NA + h,   h = fieldNumberMm/(2·M)
+ *
+ * — the axial beam plus the walk. `fieldNumberMm` is that field, in the currency
+ * a microscope states it in: the diameter at the intermediate image, the same
+ * number § 6q splices in as a real field stop. The **oversize is a ratio the
+ * magnification cancels out of**,
+ *
+ *     glass/beam = 1 + FN/(2·f_tube·NA)
+ *
+ * because h and f·NA are both ∝ 1/M — so § 6v.5's "those figures do not travel"
+ * is true in millimetres and false as a fraction: the 4× and the 40× need the
+ * same proportional element, and it was only the 40×'s absolute one that looked
+ * hopeless.
+ *
+ * The doublet is **built** at that aperture rather than having its rim widened
+ * afterwards, which is `finiteConjugateObjective`'s `glassMarginFactor` route and
+ * is not merely for consistency: `achromaticObjective` defaults its thicknesses
+ * off D and checks the edge thickness at D/2, so an element widened after the
+ * fact would have passed a check for a rim it does not have. What that costs is
+ * real and is measured rather than waved at (§ 6w.4): thicker glass moves the
+ * principal planes, so the working distance and the stop radius both shift, and
+ * the *delivered* NA survives only because it is re-derived as `f·tan u` on the
+ * lens actually built.
+ *
+ * NOTE for whoever wires this member's coverslip — § 6c's named deferral. Once a
+ * field number is given, **D/2 is no longer the marginal ray's height**, and
+ * `achromaticObjective`'s `targetS1Mm` is documented as being evaluated at D/2.
+ * Nothing bites today because no target is passed here; a slip correction that
+ * passes one must scale it from the beam, not from the glass.
  */
 
 /**
@@ -188,6 +223,30 @@ export interface MicroscopeObjectiveSpec {
    * is only measurable against a system that does not have it.
    */
   readonly stopPlacement?: StopPlacement;
+  /**
+   * The field number (mm) this objective must pass — the diameter of the field
+   * at the INTERMEDIATE IMAGE, which is how a microscope's field is catalogued
+   * (§ 6q splices one in as a real annular stop, and the app's stage uses 18).
+   * The object-space semi-field it implies is `fieldNumberMm/(2·M)`, and the
+   * glass is sized to `f·NA + that` so a telecentric bundle from the field edge
+   * still lands on the element (§ 6w).
+   *
+   * **Omitted — the default — the glass is sized to the axial beam alone**,
+   * `f·NA`, which is every objective this module built before § 6w and is what
+   * § 6v.5 measured vignetting: 11% of the pupil gone at 1 mm of field on the
+   * 4×/0.10, and past total occlusion on the 40×.
+   *
+   * Not defaulted to a number, and the reason is not caution. A stop position is
+   * intrinsic to an objective, which is why § 6v could default telecentricity on;
+   * the field an objective must pass is a property of the objective **together
+   * with whatever stops the field downstream** — an eyepiece's field stop, a
+   * sensor's diagonal — so there is no physics that picks a value. A caller that
+   * knows its field says so; one that does not gets the axial lens and § 6v.5's
+   * numbers, which is now the negative control this step is measured against.
+   *
+   * Refused with `stopPlacement: "rim"` — see `microscopeObjective`.
+   */
+  readonly fieldNumberMm?: number;
 }
 
 /** Where an objective's aperture stop sits. See `MicroscopeObjectiveSpec`. */
@@ -236,10 +295,27 @@ export interface MicroscopeObjective extends InfinityCorrectedObjective {
   /** Traced paraxial EFL at the design wavelength (mm), from the mirrored chain. */
   readonly paraxialFocalLengthMm: number;
   /**
-   * Semi-aperture of the GLASS, f·NA (mm) — the sine-condition height the
-   * emergent marginal ray lands at. Not the stop radius; see the header.
+   * Semi-aperture of the axial BEAM, f·NA (mm) — the sine-condition height the
+   * emergent marginal ray lands at. Not the stop radius; see the header. Before
+   * § 6w this was also the glass's own semi-diameter, and the name still says
+   * "pupil" because that is what it is; `glassRadiusMm` is the element.
    */
   readonly pupilRadiusMm: number;
+  /**
+   * Semi-diameter of the GLASS (mm) — `f·NA` axially sized, `f·NA + h` with a
+   * field number, h being the object-space semi-field. The two are equal exactly
+   * when `fieldNumberMm` is omitted, which is what makes § 6w's comparison a
+   * comparison (§ 6w.1).
+   */
+  readonly glassRadiusMm: number;
+  /**
+   * Object-space semi-field the glass was sized for (mm): `fieldNumberMm/(2·M)`,
+   * or 0 when no field number was given. What the traced bundle's chief ray is
+   * at when it reaches the element, because the objective is telecentric.
+   */
+  readonly objectFieldRadiusMm: number;
+  /** The field number the glass was sized for (mm), if any. */
+  readonly fieldNumberMm?: number;
   /**
    * The aperture stop's semi-diameter (mm): s·tan u, the cone from the solved
    * specimen plane that actually delivers NA at the front vertex. 2% under
@@ -284,23 +360,75 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
   }
   const tubeFocalLengthMm = spec.tubeFocalLengthMm ?? DEFAULT_TUBE_FOCAL_LENGTH_MM;
   const designWavelengthNm = spec.designWavelengthNm ?? LINE_D;
+  const stopPlacement = spec.stopPlacement ?? "backFocal";
+  const fieldNumberMm = spec.fieldNumberMm;
+  if (fieldNumberMm !== undefined) {
+    if (!(fieldNumberMm > 0) || !Number.isFinite(fieldNumberMm)) {
+      throw new Error("microscopeObjective: the field number must be a positive length (mm)");
+    }
+    // A rim-stopped objective's bundles all pivot through surface 0, so its
+    // footprint does not translate with field and there is nothing for a field
+    // number to buy (§ 6v.5: what that control loses off axis is the TUBE LENS
+    // catching the image height). Sizing its glass past the rim would also
+    // decouple surface 0 from the rim it is named for, which is the one thing
+    // the negative control has to keep. Refused rather than silently ignored.
+    if (stopPlacement === "rim") {
+      throw new Error(
+        "microscopeObjective: a field number sizes the glass a TELECENTRIC bundle walks onto — a " +
+          '"rim" stop pivots every bundle through surface 0, so its footprint does not translate ' +
+          "with field and there is nothing to size for (§ 6w)",
+      );
+    }
+  }
 
   const f = tubeFocalLengthMm / M;
   // Sine condition: the marginal ray leaves the object at sin u = NA and EMERGES
-  // at height f·sin u, so the glass spans 2·f·NA and F = 1/(2·NA). The bending
-  // solve is scale-free in this — S_I ∝ h⁴, so the root of S_I(c₁) = 0 and the
-  // branch pick are the same at any aperture — which is why sizing the glass
-  // here and the stop below cannot pull the design around.
+  // at height f·sin u, so the AXIAL BEAM spans 2·f·NA. The bending solve is
+  // scale-free in this — S_I ∝ h⁴, so the root of S_I(c₁) = 0 and the branch pick
+  // are the same at any aperture — which is why sizing the glass here and the
+  // stop below cannot pull the design around.
   const pupilRadiusMm = f * NA;
-  const focalRatio = 1 / (2 * NA);
+  // …and the GLASS is that beam plus wherever the beam's centre has walked to.
+  // A telecentric objective's chief ray leaves the specimen parallel to the axis,
+  // so a bundle from object height h arrives at the element centred on h rather
+  // than on the axis: the element it needs is `f·NA + h`, with h the object-space
+  // semi-field the field number implies (§ 6w). Sized to the axial beam alone —
+  // no field number — that walk runs off the glass, which is § 6v.5's whole cost.
+  const objectFieldRadiusMm = fieldNumberMm === undefined ? 0 : fieldNumberMm / (2 * M);
+  const glassRadiusMm = pupilRadiusMm + objectFieldRadiusMm;
+  // 1/(2·NA) when the glass is the beam; faster than that once it is oversized,
+  // and the doublet is genuinely built at the faster ratio — the thicknesses
+  // default off D, and an element wider than its design aperture would pass an
+  // edge-thickness check for a rim it does not have.
+  const focalRatio = f / (2 * glassRadiusMm);
 
-  const doublet = achromaticObjective({
-    apertureMm: 2 * pupilRadiusMm,
-    focalRatio,
-    ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
-    ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
-    designWavelengthNm,
-  });
+  let doublet: AchromaticObjective;
+  try {
+    doublet = achromaticObjective({
+      apertureMm: 2 * glassRadiusMm,
+      focalRatio,
+      ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
+      ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
+      designWavelengthNm,
+    });
+  } catch (e) {
+    // The cemented-doublet form has an aperture wall of its own (§ 6b.5.7), and
+    // a field number is a second way to walk into it: the glass is `f·NA + h`
+    // against a focal length that does not grow with h, so a wide field makes the
+    // element faster exactly as a high NA does. Which input to back off is not
+    // recoverable from the aperture alone, so the message names both — § 6b.5.5's
+    // rule that a refusal should say what to change.
+    if (e instanceof DoubletApertureRefusal && fieldNumberMm !== undefined) {
+      throw new Error(
+        `microscopeObjective: field number ${fieldNumberMm} mm at NA ${NA} needs a ` +
+          `${(2 * glassRadiusMm).toFixed(3)} mm element at f/${focalRatio.toFixed(3)} — ` +
+          `${(pupilRadiusMm * 2).toFixed(3)} mm of axial beam plus ` +
+          `${(2 * objectFieldRadiusMm).toFixed(3)} mm of field walk — and the cemented doublet ` +
+          `refuses it: ${e.message}`,
+      );
+    }
+    throw e;
+  }
 
   // Turned around: flint toward the specimen. See the header — the un-mirrored
   // orientation is 9 waves of spherical aberration with an identical EFL.
@@ -319,7 +447,6 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
 
   // Where the stop goes, and it is the difference between an objective and a
   // lens with a hole in front of it. See the header's telecentricity section.
-  const stopPlacement = spec.stopPlacement ?? "backFocal";
   let prescription: Prescription;
   let stopRadiusMm: number;
   let stopDistanceMm: number;
@@ -376,6 +503,9 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
     focalLengthMm: f,
     paraxialFocalLengthMm: systemProperties(prescription, designWavelengthNm).efl,
     pupilRadiusMm,
+    glassRadiusMm,
+    objectFieldRadiusMm,
+    ...(fieldNumberMm === undefined ? {} : { fieldNumberMm }),
     stopRadiusMm,
     stopPlacement,
     stopDistanceMm,

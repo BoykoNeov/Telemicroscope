@@ -77,6 +77,8 @@ whole ladder.
 
 | [6v](#step-6v--the-presets-are-telecentric) | § 6u's own "not yet pinned" spent: the shipped objective's stop moves from its rim to its **back focal plane**, so the branch's presets are telecentric rather than merely able to be — the old placement kept as `stopPlacement: "rim"`, the NEGATIVE CONTROL, since what telecentricity buys has no size without a system lacking it; the aperture shown to stop being a length at all — sized `f·tan u`, the f cancels against § 6u.1's `stopRadius/B` and what reaches the aimer is **`tan u` exactly** to 12 places over four apertures and three magnifications, with no focal length, object distance or magnification left in it; the delivered NA the engraving, and **bitwise** unchanged as the specimen moves where the control's is not; the magnification **bitwise** constant under defocus with the image plane held fixed, against the control's −δz/(L+δz) at 0.1% per 50 µm — asserted on the magnification itself, since the difference of two identical negatives is `-0` and a rung phrased on the ratio would fail while reporting a drift of zero; the chief ray exactly (0,0,1); **the price, which the step did not go looking for** — a telecentric bundle's footprint TRANSLATES with object height where a rim-stopped one pivots, so it walks off an element sized for the axial beam: **on the 4×/0.10** nothing to ~0.1 mm of field, **11% of the pupil at 1 mm, 35% at 3 mm**, identified as the GLASS and not the diaphragm by widening one at a time (a 5 mm wider stop changes nothing to 12 places) — and those figures explicitly do NOT travel, since the rim goes as f·NA while the field is absolute, so at 40×/0.10 the same 1 mm is past total occlusion rather than an 11% loss; the ladder barely moving — **9 tests of 1364** — because on axis the two constructions aim the SAME rays, `ρ·s·tan u` over s being `ρ·tan u` named directly, with the only axial shift a REFERENCE (the exit pupil moved, hence § 6d.4's 0.5%) and § 6d's control therefore held at `"rim"` on purpose, third-order S_II having no telecentric spelling; and the defect it turned up, the fourth of APP.md's *routine that answers confidently for a system it cannot express* — the diaphragm becoming the module's last surface **silently pushed the tube lens back by the objective's whole BFD**, ≈ 50 mm, invisible because the space is collimated and caught only by a null rung reading 2.8e-5 — now measured from the last GLASS vertex, with an infinity space shorter than the back focal distance REFUSED and pinned at the boundary | `telecentric-objective` |
 
+| [6w](#step-6w--the-objective-knows-what-field-it-must-pass) | § 6v's price, paid — the objective is sized for a **field number**, the diameter at the intermediate image a microscope is actually catalogued by, so the glass is `f·NA + h` with `h = FN/(2·M)` the object-space semi-field a telecentric bundle's footprint walks to. **No physics is added**, and the default stays OFF *on principle* rather than out of caution: a stop position is intrinsic to an objective (which is why § 6v could default telecentricity on) while a field is a property of the objective TOGETHER with whatever stops the field behind it, so nothing picks a value — which makes the § 6v lens this step's negative control. The content is that **every number in it is magnification-independent**: the oversize is the RATIO `1 + FN/(2·f_tube·NA)` = 1.450000000000 at FN 18 / NA 0.10 for 4×, 10× and 40× alike, because `h` and `f·NA = (f_tube/M)·NA` are both ∝ 1/M — so § 6v.5's "those figures do not travel" is true in millimetres and **false as a fraction**, and the 4× and 40× are one lens scaled (every length ×10, every curvature ÷10, the bending identical, since S_I ∝ h⁴ makes the third-order solve scale-free). The claim itself against the shipped control: the field-sized objective passes **313 of 313** lattice points at its own field edge where the axially-sized one passes **229**, the same 84 lost at every magnification — a discrete count, so § 6w.2's invariance arrives in integers — with § 6v.5's own 11%-at-1-mm reproduced as the bridge, and the shipped 25 mm tube lens shown to pass FN 18 too (the isolation runs a 60 mm one, so this is checked rather than assumed; the chief angle in the infinity space is `FN/(2·f_tube)`, magnification-free again). The closed form is an **upper bound never reached** — `f·NA + h` adds two paraxial statements whose heights live on the equivalent refracting sphere, not on a vertex, so the traced footprint tops out at **0.98922** of it on the last glass face, reported with its sign because the sizing is conservative and that 1.1% is glass a tighter derivation could reclaim; the delivered field is correspondingly **5.27%** more than asked (bisected, identical at 4× and 40×), and what finally stops it is the **crown's outer face**, the one carrying `cementedDoubletForm`'s 0.5% rim margin where the specimen-side faces carry 2%. What it costs: **2.115% of working distance** at every magnification — building the doublet at the wider aperture is what creates the cost and is also what makes it honest, since `achromaticObjective` defaults thicknesses off D and checks edge thickness at D/2, so a rim widened afterwards would have passed a check for an element that cannot be made — with the flint's centre thickness scaling exactly ×1.45 and the crown's ×2.031 because its own is finalised from sags; the delivered NA **not** paying, held to 14 digits because it is re-derived as `f·tan u` on the lens actually built; and the traced magnification moving **0.08%, toward the label**, that being the one quantity here that carries a magnification (−8.0516e-4 at 4× against −8.0368e-4 at 40×) because the microscope is composed against a 200 mm tube lens that does not shrink with the objective. And the wall: `D/f = 2·NA + FN/f_tube` has no M in it either, so a field number is a **second door onto § 6b.5.7's geometric doublet ceiling** and costs aperture linearly — the NA ceiling falls by exactly `FN/(2·f_tube)` (0.045000000 at FN 18, 0.062500000 at FN 25, to nine digits), from an axial 0.287401975 that is `1/(2·F*)` for § 6b.5.7's own F* = 1.7397236, two steps' constants meeting by a route neither was derived through — with the refusal naming the field number beside the aperture (§ 6b.5.5's rule), since NA 0.25 builds axially and refuses at FN 18 | `field-sized-objective` |
+
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
 to. Individual steps also carry their own "Not yet pinned" notes.
@@ -8515,9 +8517,11 @@ because the quantity that would have shown it was collimated.
 
 ### Not yet pinned
 
-- **The oversized front element.** § 6v.5's vignette is the glass, and the fix is
-  an objective that knows what field it must pass. That is a new spec parameter
-  and a re-measurement of the mosaic surfaces, not a constant.
+- ~~**The oversized front element.**~~ **Closed at § 6w**, and it landed the way
+  this bullet said it would — a new spec parameter, not a constant — with one
+  correction to the sentence above it: the numbers § 6v.5 quotes are not per
+  objective at all once they are asked in the units an objective is catalogued
+  in. See § 6w.2.
 - **The DIN objective.** `finiteConjugateObjective` is untouched and still carries
   its stop on the rim. A real DIN objective is telecentric too, and the
   composition it feeds is a different one, so it is its own step.
@@ -8526,6 +8530,194 @@ because the quantity that would have shown it was collimated.
   objective as well, and nothing has been re-measured against it.
 - **Pupil aberration**, unchanged from § 6u: the aim is paraxial, and § 6u.2
   measures the cubic it costs rather than removing it.
+
+## Step 6w — the objective knows what field it must pass
+
+Test: `packages/core/test/field-sized-objective.test.ts`
+
+§ 6v's price, paid. That step measured a cost it did not go looking for — a
+telecentric bundle's footprint *translates* with object height where a
+rim-stopped one pivots through one hole, so it walks off an element sized for
+the axial beam — and named the fix rather than doing it quietly, because "the
+field an objective must pass is not something the objective's own spec currently
+states". This is that parameter. As at § 6v, **no physics is added**: the glass
+is `f·NA + h` instead of `f·NA`, and everything below is a consequence of the h.
+
+`fieldNumberMm` is that field, in the currency a microscope states it in — the
+diameter at the **intermediate image**, the same number § 6q splices in as a real
+annular field stop and the app's stage carries as `FIELD_NUMBER_MM = 18`. The
+object-space semi-field it implies is `h = FN/(2·M)`, and a telecentric chief ray
+leaves the specimen parallel to the axis, so a bundle from the field edge arrives
+at the element centred on h rather than on the axis.
+
+**The default stays off, and the reason is not caution.** § 6v could default
+telecentricity on because a stop position is intrinsic to an objective. A field
+is not: it is a property of the objective *together with whatever stops the field
+behind it* — an eyepiece's field stop, a sensor's diagonal — so no physics picks
+a value, which is what ROADMAP means by "a new spec parameter … not a constant".
+An objective built without one is still the § 6v lens, and that is what makes
+every rung here a comparison against a shipped control. The § 6v rungs pass no
+field number **on purpose** and should keep passing none: they are now this
+step's negative control, and "fixing" them would delete the comparison.
+
+### 6w.1 — the glass is the beam plus the walk, and the oversize is a RATIO
+
+The sizing is one line, so the rung that matters is the second one. Both terms of
+`f·NA + h` are ∝ 1/M — the beam because `f = f_tube/M`, the walk because
+`h = FN/(2M)` — so the magnification cancels out of the fraction entirely:
+
+    glass/beam = 1 + FN/(2·f_tube·NA)
+
+which is **1.450000000000** at FN 18 / NA 0.10 for the 4×, the 10× and the 40×
+alike, pinned to 12 places, and reproduced across NA 0.05–0.20 × FN 10–25.
+
+That is the sentence of § 6v.5's this step corrects. Those figures were quoted in
+millimetres of field — 11% of the pupil at 1 mm on the 4×, past total occlusion
+at 40× — and were explicitly said not to travel. In millimetres they do not. In
+the units an objective is actually catalogued in they are the same number for
+every member: **§ 6v.5's numbers were a verdict about the units, not about the
+40×.**
+
+### 6w.2 — the family is ONE LENS, scaled
+
+Not a restatement of 6w.1: that was one ratio inside one lens, this is every
+dimension of two. Focal length, glass radius, beam radius, stop radius, object
+distance and stop distance all run ×10 from the 40× to the 4× (9–12 places), and
+the three curvatures run ÷10 — a curvature being the reciprocal of a length. The
+**bending is identical**, because `S_I ∝ h⁴` makes the third-order solve
+scale-free, so the catalogue is one shape at three sizes.
+
+This is what licenses quoting a single set of figures below for the whole
+catalogue, and it is why the panning surfaces (§§ 6o, 6t), which run at the high
+magnifications, are fixed by the same field number as the low ones rather than
+needing one each.
+
+### 6w.3 — it passes the field it was sized for, where the § 6v objective does not
+
+The claim of the step, against the shipped control, and it lands as a **discrete
+count**: at its own field edge the field-sized objective delivers **313 of 313**
+lattice points and the axially-sized one delivers **229** — the same 84 lost at
+4×, 10× and 40×, which is 6w.2's invariance arriving in integers, since it is the
+same lens and therefore the same rays.
+
+The bridge to § 6v.5 is the same control read in millimetres: the axial 4×/0.10
+passes 0.888 of its pupil at 1 mm of field, which is that section's "11%". And it
+is not magic past what it was sized for — an FN 18 objective's semi-field is
+2.25 mm, and at 3 mm it vignettes too, gently.
+
+**The isolation is checked rather than assumed.** These rungs compose against a
+60 mm tube lens so that what clips a bundle is the objective and the claim stays
+about the objective. That would be a thumb on the scale if the shipped 25 mm one
+could not carry the field, so it is measured: it passes FN 18 at every
+magnification. The chief angle in the infinity space is `FN/(2·f_tube)` — with no
+magnification in it either — so one check covers the catalogue.
+
+### 6w.4 — the closed form is an UPPER BOUND, and the last glass face is what binds
+
+`f·NA + h` is two paraxial statements added, and neither is a height at a
+*vertex*: the sine condition puts the emergent marginal ray at `f·sin u` on the
+equivalent refracting sphere — the same distinction § 6a records for the stop
+radius — and telecentricity puts the chief ray at exactly h. So the traced
+footprint lands **inside** the size it asks for, at every surface, topping out at
+**0.98922** of the bound on the last glass face, monotone across the three faces
+as the beam climbs toward its emergent height.
+
+Reported with its sign rather than as a tolerance. The sizing is conservative,
+which is the safe direction, and that 1.1% is real glass a tighter derivation
+could reclaim.
+
+The delivered field is correspondingly **5.27% more than asked** — bisected, and
+identical at 4× and 40×. The number is not arbitrary: it is the 1.1% above plus
+`cementedDoubletForm`'s own **0.5% rim margin** on the binding face, divided by
+the ~0.965 mm of footprint each mm of field walks. And the binding face is the
+**crown's outer one** (surface 2 of the mirrored chain), because that is the one
+carrying the 0.5% margin where the two specimen-side faces carry 2%.
+
+### 6w.5 — what it costs, and the delivered NA is not what pays
+
+The doublet is **built** at the wider aperture rather than having its rim widened
+afterwards. That is `finiteConjugateObjective`'s `glassMarginFactor` route, and
+it is not merely consistency: `achromaticObjective` defaults its thicknesses off
+D and checks the **edge thickness at D/2**, so an element widened after the fact
+would have passed a check for a rim it does not have — APP.md's *routine that
+answers confidently for a system it cannot express*, avoided rather than
+committed.
+
+What that costs is **2.115% of working distance**, at every magnification.
+Thicker glass moves the principal planes and the specimen sits on the front
+focus, so it comes closer. The flint's default centre thickness is `0.06·D` and
+scales with the glass exactly (×1.45); the crown's is finalised from the sags,
+which grow faster than the aperture, so it goes ×2.031.
+
+**The delivered NA does not pay**: 0.10 to 14 digits, before and after, because
+it is re-derived as `f·tan u` at the back focal plane on the lens actually
+built — § 6v.1's slope aperture reading whatever group is in front of it. The
+stop radius itself moves; the aperture it delivers does not.
+
+The traced magnification moves **0.08%, toward the label** — a thicker doublet's
+Gullstrand term is smaller, so its traced EFL sits closer to the design focal
+length (49.9694 → 49.9871 on the 4×). Recorded rather than buried: it is a real
+change to a shipped number, it is not an improvement the step was aiming for, and
+nothing downstream reads the traced magnification as a specification.
+
+**And it is the one number in this step that carries a magnification** —
+−8.0516e-4 at 4× against −8.0368e-4 at 40×, a 0.18% spread over a 10× range.
+6w.2's scale invariance belongs to the *objective family*; the **microscope** is
+not scale-free, because every member is composed against the same 200 mm tube
+lens, which does not shrink with the objective. Everything else here is measured
+inside the objective and is exactly invariant; a magnification is a property of
+the pair.
+
+### 6w.6 — the wall: a field number is a second door onto the doublet's own ceiling
+
+The glass is `2(f·NA + h)` against a focal length that does not grow with h, so
+the element's own focal ratio is
+
+    D/f = 2·NA + FN/f_tube
+
+— magnification-free, because both terms lose their M the same way. The cemented
+doublet refuses past a fixed D/f (§ 6b.5.7's geometric wall: a real bending
+reaching a hemisphere), so the aperture ceiling must fall **linearly in the field
+number**, at half the reciprocal tube length. Bisected, it does, to nine digits:
+the drop is **0.045000000** at FN 18 and **0.062500000** at FN 25, against
+`FN/(2·f_tube)` of exactly those.
+
+The axial ceiling it falls from is **NA 0.287401975**, and that is
+`1/(2·F*)` for § 6b.5.7's own **F\* = 1.7397236** — two steps' constants meeting
+by a route neither was derived through, which is what makes this a wall of an
+existing kind rather than a new one. The ceiling is magnification-independent to
+12 places, like everything else here.
+
+The refusal **names the field number beside the aperture**, which is § 6b.5.5's
+rule that a refusal should say what to back off: NA 0.25 builds axially and
+refuses at FN 18, so the aperture alone cannot be the whole message. A refusal
+that has nothing to do with the field — NA 0.30, which builds at no field number
+at all — is passed straight through unwrapped.
+
+### 6w.7 — refused where it would mean nothing
+
+A field number together with `stopPlacement: "rim"` is **refused**. A rim stop
+pivots every bundle through surface 0, so its footprint does not translate and
+there is no walk to size for — what § 6v.5's control loses off axis is the *tube
+lens* catching the image height, which no amount of objective glass fixes. It is
+also the thing the negative control cannot afford to lose: surface 0 has to stay
+the rim it is named for.
+
+### Not yet pinned
+
+- **The 1.1% the bound leaves on the table.** 6w.4 measures the footprint inside
+  `f·NA + h` and does not tighten the form to it. A sizing that traced the real
+  footprint would reclaim it, at the cost of making the glass depend on a trace.
+- **Off-axis aberration at the field the glass now passes.** This step is about
+  whether the light *arrives*; nothing here says what the image looks like at
+  2.25 mm, and § 6d's Lister is the form that would have to answer.
+- **The DIN objective**, unchanged from § 6v: `finiteConjugateObjective` carries
+  its stop on the rim, so it has neither telecentricity nor this parameter.
+- **A coverslip target through an oversized element.** Once a field number is
+  given, D/2 is no longer the marginal ray's height, and `achromaticObjective`'s
+  `targetS1Mm` is documented as evaluated at D/2. Nothing bites today because no
+  target is passed here; § 6c's deferred infinity-corrected slip must scale its
+  target from the beam, not from the glass.
 
 ## Later rungs
 
