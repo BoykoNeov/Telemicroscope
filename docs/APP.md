@@ -2153,6 +2153,20 @@ mirror at identical settings, which is its own traced wavefront and not this
 surface's doing. It refines coarsest-first, which is what makes the achromat
 usable at all.
 
+#### What has NOT been checked, and it is this doc's own headline check
+
+**The panel has not been driven in a browser.** Every finding above came from
+running the adapter — `renderSky`, `skyWallSweep` and the bisection probes —
+plus a real `vite build`, which is what resolves the worker URL literals and is
+the one failure mode this doc records for factories that move out of `src/`.
+None of that mounts `SkyPanel`. Part F's whole lesson is that structural checks
+passed while the panel drew the wrong thing and only *clicking the row* caught
+it, so this entry is deliberately not claiming C1–C6's standard of evidence.
+What is unverified is specifically the React surface: the refusal arriving as a
+first frame, the two plots' axis bounds at the extremes of their sliders, and
+the greying of the focuser control on the refractor. The adapter behind all of
+them is pinned in `test/sky.test.ts`.
+
 #### The structural item it closed
 
 `useRenderedField` was the app's one hard-typed multi-frame hook, and a sky
