@@ -399,6 +399,35 @@ describe("§ 6x.5 — commensurability is a claim about WHERE the source sits", 
     expect(a.intensity).toEqual(b.intensity);
     expect(a.pupilEvaluations).toBe(b.pupilEvaluations);
   });
+
+  it("and the saving it gives up is § 6p's own count, exactly", () => {
+    // The cost as an integer rather than as a wall clock, which is how § 6p
+    // pinned it in the first place: the cached path evaluates the pupil over one
+    // box, the uncached one over that box per contributing direction. Stated here
+    // because this step was scoped believing `commensurateSource` had no caller
+    // and it has three — A7/A10's stage is a mosaic and therefore off axis by
+    // construction, so it is the one that pays. In wall clock that is 404 ms → 727
+    // ms a tile, 1.8× rather than § 6p's 10.76×, because § 6s moved the bill back
+    // onto the Abbe sum; the count below is the part that has not changed.
+    const grating = cosineGratingObject({ size: SIZE, cycles: 8, modulation: 0.6 });
+    const system = din();
+    const p = fieldPupilAt(system, tileAtHeight(system, 0.5), 0.5, 0.5);
+    const centred = commensurateSource(0.5, PS, 2);
+    const cached = abbeImage(grating, p.pupil, centred, { pupilSamples: PS });
+    const uncached = abbeImage(
+      grating,
+      p.pupil,
+      translateSource(centred, p.illuminationOffset.sx, p.illuminationOffset.sy),
+      { pupilSamples: PS },
+    );
+    expect(cached.pupilEvaluations).toBeGreaterThan(0);
+    expect(uncached.pupilEvaluations).toBeGreaterThan(cached.pupilEvaluations);
+    // And it is a *count* of directions, not a fudge: the ratio is bounded by the
+    // contributing-point count, which is what § 6p's saving was defined as.
+    expect(uncached.pupilEvaluations / cached.pupilEvaluations).toBeLessThanOrEqual(
+      uncached.contributingPoints,
+    );
+  });
 });
 
 /* ── 6x.6 — the pupil lattice is the binding knob, not the source count ────── */

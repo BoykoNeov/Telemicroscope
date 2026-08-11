@@ -1069,6 +1069,13 @@ Cost, measured on the DIN 4×/0.10 with the 208-direction commensurate source:
 ~0.39 s a tile at ps 32 / 3 λ, ~2.0 s at ps 64 / 3 λ — linear in the wavelength
 count, as § 6r's own panel measured, and the lattice is still the expensive axis.
 
+**§ 6x raised the off-axis half of that by 1.8×**, and only the off-axis half: a
+tile lit through a displaced cone can no longer use § 6p's pupil cache, so the
+monochrome figure runs **404 ms on the anchor against 727 ms anywhere else** and
+flat with distance — the cache is available or it is not, and how far the cone
+moved does not enter. On a telecentric objective nothing changes at all, which is
+the point of § 6x rather than a caveat to it.
+
 ### Disqualified — needs an engine step first
 
 | surface | blocked on |
@@ -3055,9 +3062,17 @@ could have held.
 - **A live full-field frame.** D0.1. Compute-once or nothing.
 - ~~**Non-telecentric illumination.**~~ **Closed at § 6x**, engine-side, and it
   needed no panel decision: the cone's displacement is read off the trace, so
-  every microscope surface that renders brightfield got it without a control. The
-  only app-visible consequence is that the stage's two goldens moved by 1–2 levels
-  of 255 on under 0.15% of pixels, which is the harness doing its job.
+  every microscope surface that renders brightfield got it without a control. Two
+  app-visible consequences, both small and both measured. The stage's two goldens
+  moved by **1–2 levels of 255 on under 0.15% of pixels** — structurally the same
+  picture, which is the harness doing exactly its job. And **the stage's off-axis
+  tiles lost § 6p's pupil cache**, because a source displaced by a traced offset
+  is no longer on the pupil's lattice: **404 ms on the anchor against 727 ms off
+  it**, 1.8× and flat with distance. That is the whole app cost — A9's colour
+  section renders an axial frame and keeps the cache, and A4's fluorescence never
+  translates its source at all (§ 6x.3). The 1.8× is smaller than § 6p's own
+  10.76× for § 6s's reason: the radial-map cache put the Abbe sum back as the
+  bill, so the pupil saving is a smaller share of a tile than it was.
 - **Köhler illumination as a light budget.** `abbeImage` normalizes the source
   weights to Σ = 1, so closing the diaphragm costs resolution and no light where
   a real one goes dim — A2 already prints the mean so the normalization is not

@@ -661,8 +661,14 @@
    does not survive an offset, and that is a fact about telecentricity rather
    than a limitation of the cache:** commensurability is a claim about where the
    source sits in the pupil, so a non-telecentric objective walks it off the
-   lattice with field — nothing regresses, since that source has no caller outside
-   its own rungs. And **the binding knob is the pupil sampling, not the source
+   lattice with field. **What that costs was measured after the step was scoped
+   on a wrong belief** — the cache was thought to have no caller outside its own
+   rungs and has three, of which only the pannable stage pays, because a mosaic is
+   off axis by construction while the colour section renders on the axis and
+   fluorescence never translates anything. A stage tile goes **404 ms to 727 ms**,
+   which is 1.8× and not § 6p's 10.76×: § 6s cached the radial map and put the
+   Abbe sum back as the bill, so what § 6p bought is a smaller share of a tile
+   than when § 6p measured it. And **the binding knob is the pupil sampling, not the source
    count**: a direction crossing the aperture rim is a step change that now
    happens *between* patches, which stops § 6h.5's 32-bin sequence converging at
    all (ratios 1.95, 0.87) and is **not** rescued by refining the source
