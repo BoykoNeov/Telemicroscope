@@ -109,13 +109,39 @@ import {
  * front that carries the high apertures, and that is where the dispersive oil and
  * D263 already in the catalog (§ 1) start doing work.
  *
- * Also NOT modelled here, and deliberately: real objectives put the aperture stop
- * at the **back focal plane**, which makes them object-space telecentric — chief
- * rays parallel to the axis, so magnification does not drift with defocus. That
- * puts the entrance pupil at infinity, and `aimRay` refuses it by design
- * ("telecentric: aim in object space instead"). Object-space aiming is a real
- * engine gap; until it lands the stop sits on the objective's own rim, which
- * changes no axial property and no magnification, only the chief-ray angle.
+ * ## Where the stop goes, and why it moved (§ 6v)
+ *
+ * A real objective puts its aperture stop at the **back focal plane**, which
+ * makes it object-space telecentric: the chief ray leaves every specimen point
+ * parallel to the axis, so the magnification does not drift with defocus. That
+ * puts the entrance pupil at infinity, and `aimRay` refused it outright — so
+ * this module shipped the stop on the objective's own specimen-side rim
+ * instead, and said so here, while §§ 6f/6h/6m/6o each assumed telecentricity
+ * of their *condenser*. The illumination assumed what the objective was not.
+ *
+ * § 6u closed that gap and § 6v spends it: `stopPlacement` defaults to
+ * `"backFocal"`, and the old placement stays reachable as `"rim"` — as the
+ * **negative control**, because what telecentricity buys has no measurable size
+ * without a system that lacks it. What the two differ in:
+ *
+ *  - The radius. `f·tan u` at the back focal plane against `s·tan u` on the
+ *    rim, and the first has no object distance in it: § 6u.1's aperture is the
+ *    SLOPE `stopRadius/B`, and a stop at the back focal plane is exactly what
+ *    makes B the focal length, so the f cancels and the slope aperture is
+ *    `tan u` with no lens left in it.
+ *  - The magnification under defocus: **bitwise** constant, against a control
+ *    that loses 0.1% over 50 µm of specimen travel.
+ *  - Off axis, the price. A rim stop pivots every bundle through one hole at the
+ *    front vertex, so the footprint on the glass never moves; a telecentric one
+ *    lets it TRANSLATE with the object height, and it walks off an element sized
+ *    for the axial beam. Measured: nothing lost to ~0.1 mm of field, 11% of the
+ *    pupil at 1 mm, 35% at 3 mm. A real objective's front element is much larger
+ *    than its axial beam for exactly this reason, and oversizing it here is the
+ *    named next step rather than something done quietly.
+ *  - **On axis, nothing.** The two constructions aim the SAME rays: the rim
+ *    targets `ρ·s·tan u` a distance s away, giving slope `ρ·tan u`, and the
+ *    telecentric one names that slope directly. Which is why moving the default
+ *    moved almost nothing in the ladder.
  */
 
 /**
@@ -147,7 +173,21 @@ export interface MicroscopeObjectiveSpec {
   readonly flintMedium?: string;
   /** Wavelength (nm) the design is computed at. Default the d line. */
   readonly designWavelengthNm?: number;
+  /**
+   * Where the aperture stop sits. Default `"backFocal"` — a diaphragm on the
+   * group's back focal plane, which is what a real objective has and what makes
+   * it object-space telecentric (§ 6v).
+   *
+   * `"rim"` puts it on the specimen-side glass rim instead. That is what this
+   * module shipped while `aimRay` refused an entrance pupil at infinity, and it
+   * is kept as the **named negative control**: the property telecentricity buys
+   * is only measurable against a system that does not have it.
+   */
+  readonly stopPlacement?: StopPlacement;
 }
+
+/** Where an objective's aperture stop sits. See `MicroscopeObjectiveSpec`. */
+export type StopPlacement = "backFocal" | "rim";
 
 /**
  * What `infinityCorrectedMicroscope` needs of an objective, and nothing more —
@@ -167,6 +207,16 @@ export interface InfinityCorrectedObjective {
   readonly objectDistanceMm: number;
   /** Aperture stop semi-diameter (mm): the cone that delivers the stated NA. */
   readonly stopRadiusMm: number;
+  /**
+   * How far past the module's last GLASS vertex its own stop sits (mm), if it
+   * carries one there. Omitted or 0 means the stop is on the glass, which is
+   * every objective that does not place a diaphragm of its own.
+   *
+   * `infinityCorrectedMicroscope` subtracts it from the infinity space, so that
+   * space keeps meaning "last glass vertex → tube lens" whether or not the
+   * objective is telecentric (§ 6v).
+   */
+  readonly stopDistanceMm?: number;
   readonly designWavelengthNm: number;
 }
 
@@ -192,6 +242,13 @@ export interface MicroscopeObjective extends InfinityCorrectedObjective {
    * `pupilRadiusMm` for the 4×/0.10, and it is the one that sets the NA.
    */
   readonly stopRadiusMm: number;
+  /** Which of the two placements this objective was built with (§ 6v). */
+  readonly stopPlacement: StopPlacement;
+  /**
+   * Last glass vertex → the stop (mm). The group's back focal distance for a
+   * `"backFocal"` objective; 0 for a `"rim"` one, where the stop is surface 0.
+   */
+  readonly stopDistanceMm: number;
   /** 1/(2·NA) — a function of NA alone. */
   readonly focalRatio: number;
   /**
@@ -250,14 +307,65 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
   // objective's own aperture is its specimen-side rim, and so the prescription
   // is self-consistent standing alone rather than only once composed.
   const mirrored = reversePrescription(doublet.prescription, 0);
-  const prescription: Prescription = {
+  const glass: Prescription = {
     ...mirrored,
-    surfaces: mirrored.surfaces.map((s, i) => ({ ...s, isStop: i === 0 })),
+    surfaces: mirrored.surfaces.map((s) => ({ ...s, isStop: false })),
   };
+  const tanU = NA / Math.sqrt(1 - NA * NA);
+
+  // Where the stop goes, and it is the difference between an objective and a
+  // lens with a hole in front of it. See the header's telecentricity section.
+  const stopPlacement = spec.stopPlacement ?? "backFocal";
+  let prescription: Prescription;
+  let stopRadiusMm: number;
+  let stopDistanceMm: number;
+
+  if (stopPlacement === "rim") {
+    // The negative control (§ 6v.3), and what this module shipped before § 6u
+    // made the real placement expressible. The stop is the specimen-side rim, s
+    // from the specimen, so what fills it is s·tan u — not the sine-condition
+    // height f·sin u. Kept reachable because "what does telecentricity buy" has
+    // no answer without a system that does not have it.
+    prescription = { ...glass, surfaces: glass.surfaces.map((s, i) => ({ ...s, isStop: i === 0 })) };
+    stopDistanceMm = 0;
+    stopRadiusMm = collimatingObjectDistance(prescription, designWavelengthNm) * tanU;
+  } else {
+    // A real objective's stop is a diaphragm at the group's BACK FOCAL PLANE,
+    // which is what makes it object-space telecentric: the entrance pupil goes
+    // to infinity, so the chief ray leaves every specimen point parallel to the
+    // axis and the magnification stops depending on where the specimen is.
+    //
+    // The radius is `f·tan u` rather than the rim's `s·tan u`, and that is the
+    // same statement one limit further out: § 6u.1's aperture is the SLOPE
+    // `stopRadius/B`, with B the object→stop matrix's B element, and "stop at
+    // the back focal plane" is exactly what makes B the group's focal length.
+    // So `f·tan u` is what delivers tan u, with no object distance in it —
+    // which is why the delivered NA no longer depends on the conjugate.
+    const group = systemProperties(glass, designWavelengthNm);
+    stopDistanceMm = group.bfd;
+    stopRadiusMm = Math.abs(group.efl) * tanU;
+    const last = glass.surfaces[glass.surfaces.length - 1]!;
+    prescription = {
+      ...glass,
+      surfaces: [
+        ...glass.surfaces.slice(0, -1),
+        { ...last, thickness: stopDistanceMm },
+        // The diaphragm is a real rim, so its clear semi-diameter IS the stop
+        // radius: `apertureStop: "declared"` sizes the pupil from the
+        // ApertureSpec, and this is the same number, so the two cannot drift.
+        {
+          kind: "refract" as const,
+          curvature: 0,
+          semiAperture: stopRadiusMm,
+          thickness: 0,
+          medium: "AIR",
+          isStop: true,
+        },
+      ],
+    };
+  }
+
   const objectDistanceMm = collimatingObjectDistance(prescription, designWavelengthNm);
-  // The stop is on the front vertex, s from the specimen — so what fills it is
-  // s·tan u, not the sine-condition height f·sin u. See the header.
-  const stopRadiusMm = (objectDistanceMm * NA) / Math.sqrt(1 - NA * NA);
 
   return {
     prescription,
@@ -265,6 +373,8 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
     paraxialFocalLengthMm: systemProperties(prescription, designWavelengthNm).efl,
     pupilRadiusMm,
     stopRadiusMm,
+    stopPlacement,
+    stopDistanceMm,
     focalRatio,
     objectDistanceMm,
     doublet,
@@ -382,10 +492,28 @@ export function infinityCorrectedMicroscope(
   const infinitySpaceMm = spec.infinitySpaceMm ?? 100;
   const lambda = objective.designWavelengthNm;
 
+  // `infinitySpaceMm` is measured from the objective's last GLASS vertex, which
+  // is what its doc says and what it meant before § 6v gave the objective a
+  // diaphragm of its own. That diaphragm sits INSIDE the infinity space, so the
+  // gap spliced after the module is the space less the distance already spent
+  // reaching the stop — otherwise inserting a stop would silently push the tube
+  // lens back by the objective's whole back focal distance (≈ 50 mm on the 4×).
+  // The beam there is collimated, so that push changes no first-order property,
+  // which is exactly why it would have gone unnoticed while changing the ray
+  // heights the tube lens sees and therefore its aberration contribution.
+  const stopDistanceMm = objective.stopDistanceMm ?? 0;
+  const gapAfterObjectiveMm = infinitySpaceMm - stopDistanceMm;
+  if (!(gapAfterObjectiveMm >= 0)) {
+    throw new Error(
+      `infinityCorrectedMicroscope: the objective's stop sits ${stopDistanceMm.toFixed(3)} mm ` +
+        `behind its glass, past the ${infinitySpaceMm} mm infinity space — the tube lens would precede the aperture`,
+    );
+  }
+
   const build = (imageGapMm: number): Prescription => {
     const chain = spliceModules(
       [
-        { surfaces: objective.prescription.surfaces, gapAfterMm: infinitySpaceMm },
+        { surfaces: objective.prescription.surfaces, gapAfterMm: gapAfterObjectiveMm },
         { surfaces: tube.prescription.surfaces, gapAfterMm: imageGapMm },
       ],
       objective.prescription.objectMedium ?? "AIR",
@@ -398,7 +526,17 @@ export function infinityCorrectedMicroscope(
     // when it was mirrored, so a composed chain would otherwise carry three
     // flagged stops. `stopIndex` takes the first and would look fine; `seidelSums`
     // throws unless the flagged stop is surface 0. One aperture, one flag.
-    const surfaces: SurfaceSpec[] = chain.surfaces.map((s, i) => ({ ...s, isStop: i === 0 }));
+    // The objective owns its aperture, wherever it put it: a `"backFocal"`
+    // objective carries a diaphragm surface of its own, a `"rim"` one is
+    // flagged on surface 0. Read the index off the module rather than assuming
+    // either — the composed chain must declare exactly ONE stop, and both
+    // doublets flag their own surface 0, so a chain that merely inherited the
+    // flags would carry three. `stopIndex` takes the first and would look fine;
+    // `seidelSums` throws off-axis unless the flagged stop is surface 0, which
+    // is now a real constraint rather than a latent one (§ 6v).
+    const stopAt = objective.prescription.surfaces.findIndex((s) => s.isStop);
+    if (stopAt < 0) throw new Error("infinityCorrectedMicroscope: the objective declares no stop");
+    const surfaces: SurfaceSpec[] = chain.surfaces.map((s, i) => ({ ...s, isStop: i === stopAt }));
     return { ...chain, surfaces };
   };
 

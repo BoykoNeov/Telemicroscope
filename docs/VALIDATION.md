@@ -75,6 +75,8 @@ whole ladder.
 | [6t](#step-6t--the-polychromatic-mosaic) | § 6o's mosaic and § 6r's colour composed, each having named the other as its deferral — and the answer is an **ordering**: the guard is cropped per plane on that plane's OWN grid, BEFORE the stack, so it is exactly `guardCells` in every plane's own cells and § 6o's ladder transplants by identity rather than by re-measurement — pinned as exactly that, a spectral tile's plane at λ being `renderMosaicTile`'s tile at λ **bit for bit**, and a guard-zero one-tile mosaic being `brightfieldSpectralStack`; the finding that the **ruler plane is the LEAST guarded**, by the closed form (size − useful·s_ruler/s_λ)/2·ps/size, so 4 cells asked is delivered as 4.500 / 6.592 / 8.040 at 450 / 550 / 650 nm and the red plane is guarded 1.787× better for free — pinned to the WAVELENGTHS alone (`imagePixelScaleMm` ∝ λ, so the ratio is λ_ruler/λ) with a 1.69e-4 residual that is the traced pupil's own λ dependence, which is why the ruler is a min over measured scales — § 6r.7's "the blue end sets `pupilSamples`" on a second knob, and the OPPOSITE of the reasoning that reaches for a mosaic first; the kept span shown to be `size − 2·guard − 2·rulerCrop`, so a spectral pitch is **not** a mono pitch at the same options and the two are never pinned at the same index; a tile whose ruler is not the anchor's refused, since two rulers is an invisible scale step; the anchored index pinned bitwise at 3×3 and 5×5 and a tile rendered alone shown to be the composed picture's tile bit for bit **in XYZ**; the verdict shown to be the worst λ of the worst tile and to NAME the wavelength; and § 6r.6's lateral colour read at last over millimetres — exactly zero on axis, linear in the tile index, **0.4962 px at a 9 mm field edge, MEASURED at tile 44** rather than extrapolated (the nonlinearity over that reach is 0.1%), so the planes register with no correction | `mosaic-spectrum` |
 | [6u](#step-6u--object-space-ray-aiming-and-telecentricity) | § 6a's THIRD and last immersion blocker closed — a real objective's stop sits at the back focal plane, which puts the entrance pupil at infinity and which `aimRay` refused, so every microscope here has carried its stop on the objective's rim while §§ 6f/6h/6m/6o each assumed telecentricity of their *condenser*. **No physics is added**: a pupil at infinity is a set of DIRECTIONS, so a pupil coordinate names a slope and the aperture is `stopRadius/B` **with no object height in it**, which is the defining property rather than an approximation — and B comes free from the trace that already ran, since tracing {y:0,u:1} back from the stop applies the inverse matrix and carries (0,1) to (−B, A), making the existing `|axis.u| < 1e-15` branch already a test of A = 0; `slopeRadius = stopRadius/f_group` **bitwise** on a thick asymmetric lens, with the type carrying `radius` finite XOR `slopeRadius` defined; the chief ray exactly (0,0,1) at every field and its TRACED miss at the stop centre a cubic, **×8.00 per doubling** of object height (§ 6h.1's constant, in the pupil rather than the image); the headline the property it is bought for — with the object plane moving and the image plane HELD FIXED (the experiment is named, since two are defensible) the magnification is **bitwise** unchanged over 20 mm of travel, against a control that drifts as −δz/(L+δz) and loses **9.1%**; `objectNA` round-tripping to 12 places with the object distance cancelling bitwise across 6.7× of conjugate, while `EPD`/`fNumber` are refused instead of returning the silent **0** they did; and the branch shown to be a LIMIT and not a cliff — the two aims converge linearly in the stop's offset from the back focal plane, 5.6e-2 → 5.3e-12 over ten decades, so the f64 threshold cannot matter — which was only measurable after § 1.5.2 | `telecentric` |
 
+| [6v](#step-6v--the-presets-are-telecentric) | § 6u's own "not yet pinned" spent: the shipped objective's stop moves from its rim to its **back focal plane**, so the branch's presets are telecentric rather than merely able to be — the old placement kept as `stopPlacement: "rim"`, the NEGATIVE CONTROL, since what telecentricity buys has no size without a system lacking it; the aperture shown to stop being a length at all — sized `f·tan u`, the f cancels against § 6u.1's `stopRadius/B` and what reaches the aimer is **`tan u` exactly** to 12 places over four apertures and three magnifications, with no focal length, object distance or magnification left in it; the delivered NA the engraving, and **bitwise** unchanged as the specimen moves where the control's is not; the magnification **bitwise** constant under defocus with the image plane held fixed, against the control's −δz/(L+δz) at 0.1% per 50 µm — asserted on the magnification itself, since the difference of two identical negatives is `-0` and a rung phrased on the ratio would fail while reporting a drift of zero; the chief ray exactly (0,0,1); **the price, which the step did not go looking for** — a telecentric bundle's footprint TRANSLATES with object height where a rim-stopped one pivots, so it walks off an element sized for the axial beam: nothing to ~0.1 mm of field, **11% of the pupil at 1 mm, 35% at 3 mm**, identified as the GLASS and not the diaphragm by widening one at a time (a 5 mm wider stop changes nothing to 12 places); the ladder barely moving — **9 tests of 1364** — because on axis the two constructions aim the SAME rays, `ρ·s·tan u` over s being `ρ·tan u` named directly, with the only axial shift a REFERENCE (the exit pupil moved, hence § 6d.4's 0.5%) and § 6d's control therefore held at `"rim"` on purpose, third-order S_II having no telecentric spelling; and the defect it turned up, the fourth of APP.md's *routine that answers confidently for a system it cannot express* — the diaphragm becoming the module's last surface **silently pushed the tube lens back by the objective's whole BFD**, ≈ 50 mm, invisible because the space is collimated and caught only by a null rung reading 2.8e-5 — now measured from the last GLASS vertex, with an infinity space shorter than the back focal distance REFUSED and pinned at the boundary | `telecentric-objective` |
+
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
 to. Individual steps also carry their own "Not yet pinned" notes.
@@ -8357,9 +8359,12 @@ a fan, which is symmetric by construction.
 
 ### Not yet pinned
 
-- **A telecentric objective in `designs/microscope`.** The capability is here and
-  the presets do not use it yet — the stop still sits on the objective's rim.
-  That is wiring plus a re-measurement of what moves, and it is the next step.
+- ~~**A telecentric objective in `designs/microscope`.**~~ **Claimed at § 6v**,
+  and the "wiring plus a re-measurement" reading was right about the wiring and
+  wrong about where the work would be: the stop is one surface at a distance the
+  paraxial trace already reported, and what the step is actually made of is the
+  re-measurement — including two things nothing here predicted, an off-axis
+  vignette and a silently relocated tube lens.
 - **Image-space telecentricity.** `pupils` has had the branch since it was
   written (`imageStopForward` returns an infinite exit pupil) and `psf` refuses
   it outright. The object side is what § 6a blocked on; the image side has no
@@ -8369,6 +8374,148 @@ a fan, which is symmetric by construction.
 - **Off-axis vignetting against a telecentric stop**, and the condenser: § 6f's
   "telecentricity is assumed" is now assumable rather than assumed, but nothing
   has been re-measured against it.
+
+## Step 6v — the presets are telecentric
+
+§ 6u made an entrance pupil at infinity *expressible* and then said, in its own
+"not yet pinned" list, that nothing used it: *"the capability is here and the
+presets do not use it yet — the stop still sits on the objective's rim. That is
+wiring plus a re-measurement of what moves."* This is that step.
+
+**It adds no physics, and it is not an option either.** `designs/microscope`'s
+header said the rim stop was there *because* `aimRay` refused the real one; once
+that stopped being true, keeping it as the default would have preserved a
+workaround for a gap that had closed. So `stopPlacement` defaults to
+`"backFocal"` and `"rim"` survives as the **negative control** — which is not a
+courtesy: every rung below is a comparison, and the property telecentricity buys
+has no measurable size without a system that lacks it.
+
+### 6v.1 — the aperture stops being a length
+
+The stop goes at the glass group's back focal distance, read off
+`systemProperties` rather than restated, and sized `f·tan u`. What arrives at the
+aimer is then **`tan u` exactly** — pinned to 12 places across four apertures and
+three magnifications — because § 6u.1's telecentric aperture is the *slope*
+`stopRadius/B`, a stop at the back focal plane is what makes B the focal length,
+and the f cancels. No focal length, no object distance and no magnification is
+left in the number. The control keeps a real pupil at a real place, its
+specimen-side vertex, and carries no slope at all.
+
+### 6v.2 — the delivered NA is the engraving, and the conjugate cancels
+
+The label is delivered to 12 places at three apertures. The rung with teeth is
+the second: moving the specimen leaves the delivered NA **bitwise** unchanged,
+where the control's changes — which is the same statement as the aperture having
+no object distance in it, in the spelling a microscope is actually engraved in.
+
+### 6v.3 — the magnification stops drifting with focus
+
+§ 6u.3's experiment on a real objective, and the experiment is **named** because
+two are defensible: the object plane moves and the image plane is **held fixed**.
+The image blurs and must not change size.
+
+Bitwise — asserted on the magnification itself rather than on the relative
+change, because the difference of two identical negatives is `-0` and
+`Object.is(-0, 0)` is false, so a rung phrased on the ratio would fail while
+reporting a drift of zero. The control drifts as −δz/(L+δz) with L its own object
+distance, which is **0.1% over 50 µm** of specimen travel.
+
+### 6v.4 — the chief ray leaves parallel to the axis
+
+Exactly `(0, 0, 1)` at every field, where the control's tangent is the object
+height over the object distance. Both halves are near-tautologies of the aim and
+are recorded as `toBe` for the same reason § 6u.2 does.
+
+### 6v.5 — the price, and it is off axis
+
+**The finding this step did not go looking for.** A rim stop pivots every bundle
+through one hole at the front vertex, so the footprint on the glass never moves.
+A telecentric stop does the opposite: the chief ray is parallel to the axis, so
+the footprint **translates** with the object height and walks off an element
+sized for the axial beam. Measured on the 4×/0.10: nothing lost out to ~0.1 mm of
+field, **11% of the pupil at 1 mm and 35% at 3 mm**, monotone, a falloff rather
+than a wall.
+
+It is the **glass** and not the diaphragm, and that is a controlled experiment
+rather than an assertion: opening the diaphragm by 5 mm changes the throughput by
+nothing to 12 places, and widening the glass by 1 mm recovers part of it. So the
+stop is doing its job and the element is too small — which is why real objectives
+have front elements much larger than their axial beams. Oversizing it here is
+**named as the next step** rather than done quietly, because the field an
+objective must pass is not something the objective's own spec currently states.
+
+The control is not perfectly free either, and saying so is the point: at 3 mm it
+loses one lattice point of 313. What separates them is the mechanism and
+therefore the rate — the control's loss is the tube lens catching a 12 mm image
+height, a rounding error where the telecentric one is spending a tenth of its
+pupil.
+
+### 6v.6 — on axis, the two aim the same rays
+
+Which is why moving the default moved almost nothing: **9 tests of 1364**, six of
+them statements about which surface carries the flag. The reason is sharper than
+"a stop shift changes no axial aberration" — for the same normalized pupil
+coordinate the two constructions produce the *same ray*. The rim targets
+`ρ·s·tan u` a distance s away, giving slope `ρ·tan u`; the telecentric one names
+that slope directly. Two constructions, one bundle, pinned to 12 places.
+
+What does move on axis is a **reference and not an aberration**: the stop moved,
+so its image through the following optics moved, and OPD is struck on a sphere
+against the exit pupil. That is the whole content of the one downstream number
+that shifted — § 6d.4's bisected reach, by 0.5%.
+
+§ 6d's negative control is therefore held at `"rim"` **on purpose**, and for two
+reasons. The section's claim is about the FORM, one cemented doublet against two,
+so holding the stop fixed is what isolates it; moving both at once would report
+the sum of a form change and a stop change. And third-order S_II is derived with
+the stop at the first surface — `seidelSums` refuses any other placement — so the
+§ 6d.2 control has no telecentric spelling at all. Against the telecentric
+single doublet the same comparison reads 6.07× where the controlled one reads
+past 15×, and that number is recorded here rather than substituted there.
+
+### 6v.7 — the defect it turned up, which nothing first-order could see
+
+Inserting the diaphragm made it the objective module's last surface, and
+`infinityCorrectedMicroscope` splices the infinity space **after the module** —
+so the tube lens was silently pushed back by the objective's whole back focal
+distance, ≈ 50 mm on the 4×. The space is collimated, so **no first-order
+property changed and the whole suite stayed green**; what moved was the ray
+height at the tube lens, and with it the aberration it contributes. It surfaced
+only as § 6v.6's rung failing at 2.8e-5 where it expected 1e-12 — a rung written
+to assert a null, catching something else.
+
+The fix is that the gap spliced after the objective is the infinity space *less*
+the distance already spent reaching the stop, so `infinitySpaceMm` keeps meaning
+what its doc says: last **glass** vertex to tube lens, telecentric or not. With
+that, the two placements differ in exactly one thing, which is what makes every
+comparison above a comparison.
+
+It also introduces a real geometric constraint and the engine now refuses rather
+than composes: **the infinity space cannot be shorter than the objective's back
+focal distance**, or the tube lens would precede the aperture that defines the
+beam it sees. Pinned at the boundary itself — `infinitySpaceMm` exactly equal to
+the stop distance builds — and § 6a.3's own sweep starts at 60 mm rather than 20
+because of it, with the control shown to still accept 20.
+
+This is the fourth member of the family APP.md names — *a routine that answers
+confidently for a system it cannot express* — after § 1.6.1's and § 5r.1's
+brackets and § 5l.1's dropped declaration. Same signature as § 5l.1 in
+particular: a module composed at a gap the geometry does not have, silently,
+because the quantity that would have shown it was collimated.
+
+### Not yet pinned
+
+- **The oversized front element.** § 6v.5's vignette is the glass, and the fix is
+  an objective that knows what field it must pass. That is a new spec parameter
+  and a re-measurement of the mosaic surfaces, not a constant.
+- **The DIN objective.** `finiteConjugateObjective` is untouched and still carries
+  its stop on the rim. A real DIN objective is telecentric too, and the
+  composition it feeds is a different one, so it is its own step.
+- **What telecentricity is worth to the illumination.** §§ 6f/6h/6m/6o each say
+  "telecentricity is assumed" about their condenser; that is now assumable of the
+  objective as well, and nothing has been re-measured against it.
+- **Pupil aberration**, unchanged from § 6u: the aim is paraxial, and § 6u.2
+  measures the cubic it costs rather than removing it.
 
 ## Later rungs
 

@@ -239,15 +239,21 @@ export function visualMicroscope(spec: VisualMicroscopeSpec): VisualMicroscope {
     microscope.prescription.objectMedium ?? "AIR",
   );
 
-  // ONE aperture stop. Both composed microscope prescriptions declare theirs on
-  // surface 0 and both eyepieces declare none, so the splice should already
-  // carry exactly one — but § 6a was bitten by three flagged stops and § 5q by a
+  // ONE aperture stop, and the check is about the COUNT rather than the index.
+  // Both eyepieces declare none, so the splice should carry exactly the
+  // microscope's — but § 6a was bitten by three flagged stops and § 5q by a
   // stripped one, so it is checked rather than trusted. The field stop is not an
   // aperture stop and must not have acquired a flag.
+  //
+  // It used to require surface 0 as well, which was true of every microscope
+  // that existed when it was written and stopped being true at § 6v: a
+  // telecentric objective carries its diaphragm at its own back focal plane, so
+  // the flag legitimately sits mid-chain. The index is therefore reported and
+  // not required — what would still be a defect is two stops, or none.
   const flagged = prescription.surfaces.reduce((n, s, i) => (s.isStop ? [...n, i] : n), [] as number[]);
-  if (flagged.length !== 1 || flagged[0] !== 0) {
+  if (flagged.length !== 1) {
     throw new Error(
-      `visualMicroscope: the composed chain must declare exactly one aperture stop, on surface 0 — found ${flagged.length} at [${flagged.join(", ")}]`,
+      `visualMicroscope: the composed chain must declare exactly one aperture stop — found ${flagged.length} at [${flagged.join(", ")}]`,
     );
   }
 

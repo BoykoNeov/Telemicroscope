@@ -90,32 +90,53 @@ describe("§ 6a.1 — the objective is a telescope doublet TURNED AROUND", () =>
     expect(backward).toBeCloseTo(forward, 10);
   });
 
-  it("declares exactly one aperture stop, on surface 0", () => {
-    const obj = build4x();
-    const scope = infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens() });
-
+  it("declares exactly ONE aperture stop, wherever the placement put it", () => {
     // Both doublets declare their own surface 0 as a stop, and the objective's
     // travelled to its last surface when it was mirrored. Un-cleared, the
     // composed chain carries three flagged stops: `stopIndex` takes the first
-    // and looks fine, while `seidelSums` throws unless the flag is on surface 0.
-    const flags = scope.prescription.surfaces.map((s) => s.isStop === true);
-    expect(flags.filter(Boolean)).toHaveLength(1);
-    expect(flags[0]).toBe(true);
+    // and looks fine, while `seidelSums` throws off-axis unless the flag is on
+    // surface 0. The count is the invariant; the INDEX is the placement's, and
+    // since § 6v that is a diaphragm of the objective's own rather than
+    // surface 0. So the rung asserts one flag and reads its position off the
+    // objective instead of asserting a constant.
+    for (const stopPlacement of ["backFocal", "rim"] as const) {
+      const obj = microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement });
+      const scope = infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens() });
 
-    // …and the objective standing alone is self-consistent too, not merely
-    // patched up at composition time.
-    const alone = obj.prescription.surfaces.map((s) => s.isStop === true);
-    expect(alone.filter(Boolean)).toHaveLength(1);
-    expect(alone[0]).toBe(true);
+      // The objective standing alone is self-consistent, not merely patched up
+      // at composition time.
+      const alone = obj.prescription.surfaces.map((s) => s.isStop === true);
+      expect(alone.filter(Boolean)).toHaveLength(1);
+      const expected = stopPlacement === "rim" ? 0 : obj.prescription.surfaces.length - 1;
+      expect(alone.indexOf(true)).toBe(expected);
+
+      // …and the composed chain carries that one flag and no other.
+      const flags = scope.prescription.surfaces.map((s) => s.isStop === true);
+      expect(flags.filter(Boolean)).toHaveLength(1);
+      expect(flags.indexOf(true)).toBe(expected);
+    }
   });
 
   it("builds the objective mirrored: the specimen faces the flint", () => {
     const obj = build4x();
     const [c1, c2, c3] = obj.doublet.curvatures;
+    // The GLASS is the mirrored doublet; the trailing surface is § 6v's
+    // diaphragm, which is flat, in air, and carries the stop flag. Sliced off
+    // here rather than special-cased, so the orientation claim stays about the
+    // three glass surfaces it has always been about.
     const s = obj.prescription.surfaces;
-    expect(s.map((x) => x.curvature)).toEqual([-c3, -c2, -c1]);
-    expect(s[0]!.medium).toBe(obj.doublet.flintMedium);
-    expect(s[1]!.medium).toBe(obj.doublet.crownMedium);
+    const glass = s.slice(0, -1);
+    expect(glass.map((x) => x.curvature)).toEqual([-c3, -c2, -c1]);
+    expect(glass[0]!.medium).toBe(obj.doublet.flintMedium);
+    expect(glass[1]!.medium).toBe(obj.doublet.crownMedium);
+
+    const diaphragm = s[s.length - 1]!;
+    expect(diaphragm.curvature).toBe(0);
+    expect(diaphragm.isStop).toBe(true);
+
+    // The `"rim"` spelling has no fourth surface at all — the flag is the glass.
+    const rim = microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" });
+    expect(rim.prescription.surfaces.map((x) => x.curvature)).toEqual([-c3, -c2, -c1]);
   });
 });
 
@@ -181,7 +202,11 @@ describe("§ 6a.3 — the architecture: M = f_tube / f_objective", () => {
   it("delivers the SAME magnification whatever the infinity space is", () => {
     const obj = build4x();
     const tube = tubeLens();
-    const ms = [20, 100, 250].map((g) =>
+    // The sweep starts at 60 rather than 20 because § 6v gave the objective a
+    // diaphragm 49.98 mm behind its glass, and a 20 mm infinity space cannot
+    // contain it — see the refusal rung below. That is a real constraint the
+    // placement introduces, not a limit of the sweep.
+    const ms = [60, 100, 250].map((g) =>
       lateralMagnification(
         infinityCorrectedMicroscope({ objective: obj, tubeLens: tube, infinitySpaceMm: g }).system,
         0.05,
@@ -193,6 +218,36 @@ describe("§ 6a.3 — the architecture: M = f_tube / f_objective", () => {
     // real-ray version, so it is a tolerance rather than an identity.
     expect(ms[1]!).toBeCloseTo(ms[0]!, 2);
     expect(ms[2]!).toBeCloseTo(ms[0]!, 2);
+
+    // The `"rim"` objective has no diaphragm to fit, so the old range survives
+    // for it — which is what makes the line above a consequence of the stop and
+    // not of the composition.
+    const rim = microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement: "rim" });
+    expect(() =>
+      infinityCorrectedMicroscope({ objective: rim, tubeLens: tube, infinitySpaceMm: 20 }),
+    ).not.toThrow();
+  });
+
+  it("refuses an infinity space too short to hold the objective's own stop", () => {
+    // A telecentric objective's aperture sits at its back focal plane, so the
+    // tube lens cannot be nearer than that: asking for one is asking for a lens
+    // in front of the aperture that defines the beam it sees. Refused with the
+    // two lengths named rather than composed into a chain whose stop is in the
+    // wrong module.
+    const obj = build4x();
+    expect(obj.stopDistanceMm).toBeGreaterThan(20);
+    expect(() =>
+      infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens(), infinitySpaceMm: 20 }),
+    ).toThrow(/the tube lens would precede the aperture/);
+
+    // …and the boundary is the stop distance itself, not a margin around it.
+    expect(() =>
+      infinityCorrectedMicroscope({
+        objective: obj,
+        tubeLens: tubeLens(),
+        infinitySpaceMm: obj.stopDistanceMm,
+      }),
+    ).not.toThrow();
   });
 
   it("re-labels the same objective when the tube convention changes", () => {
@@ -221,17 +276,27 @@ describe("§ 6a.4 — numerical aperture and the sine condition", () => {
     expect(na).toBeCloseTo(0.1, 6);
   });
 
-  it("would be 2% fast if the stop were sized by the sine-condition height", () => {
-    const obj = build4x();
-    const scope = infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens() });
-    const wrong: OpticalSystem = {
-      ...scope.system,
-      aperture: { kind: "stopRadius", value: obj.pupilRadiusMm },
+  it("misses the NA if the stop is sized by the sine-condition height — BOTH ways", () => {
+    // f·NA is a height on the equivalent refracting SPHERE about the principal
+    // plane, and a stop is a plane. Conflating them is a real error, recorded
+    // here because this module made it once.
+    //
+    // What § 6v adds is that the error's SIZE AND SIGN belong to the placement,
+    // not to the mistake: the correct radius is s·tan u on the rim and f·tan u
+    // at the back focal plane, and f·sin u sits ABOVE the first and BELOW the
+    // second. So the same wrong number ships an objective 2% fast in one design
+    // and 0.4% slow in the other, which is why the rung pins two.
+    const wrongWith = (stopPlacement: "backFocal" | "rim"): number => {
+      const obj = microscopeObjective({ magnification: 4, numericalAperture: 0.1, stopPlacement });
+      const scope = infinityCorrectedMicroscope({ objective: obj, tubeLens: tubeLens() });
+      const wrong: OpticalSystem = {
+        ...scope.system,
+        aperture: { kind: "stopRadius", value: obj.pupilRadiusMm },
+      };
+      return objectNumericalAperture(wrong, LAMBDA);
     };
-    // f·NA is a height on the equivalent refracting sphere about the principal
-    // plane; the stop sits on the vertex. Conflating them is a real 2% error,
-    // recorded here because this module made it once.
-    expect(objectNumericalAperture(wrong, LAMBDA)).toBeCloseTo(0.1021, 4);
+    expect(wrongWith("rim")).toBeCloseTo(0.1021, 4);
+    expect(wrongWith("backFocal")).toBeCloseTo(0.09956, 5);
   });
 
   it("obeys the sine condition on the emergent ray — but not perfectly", () => {

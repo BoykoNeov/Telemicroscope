@@ -72,7 +72,24 @@ function measure(system: OpticalSystem): { rms: number; sine: number; coma: numb
 
 const lister = (NA: number, over: Partial<Parameters<typeof listerObjective>[0]> = {}) =>
   listerObjective({ magnification: 40, numericalAperture: NA, ...over });
-const single = (NA: number) => microscopeObjective({ magnification: 40, numericalAperture: NA });
+/**
+ * The negative control: § 6a's single cemented doublet, held at the **rim**
+ * stop this module was written against.
+ *
+ * Not a leftover. § 6v moved the shipped objective's stop to its back focal
+ * plane, which changes the traced coma this section measures — and this
+ * section's claim is about the FORM, one cemented doublet against two, so
+ * holding the stop fixed is what isolates it. Moving both at once would compare
+ * a form change and a stop change and report the sum. § 6v.6 records what the
+ * same comparison reads against the telecentric objective, so the number is
+ * measured rather than hidden; what belongs here is the controlled one.
+ *
+ * It is also what `seidelSums` can compute at all: third-order S_II is derived
+ * with the stop at the first surface and refuses any other placement, so the
+ * § 6d.2 control below has no telecentric spelling.
+ */
+const single = (NA: number) =>
+  microscopeObjective({ magnification: 40, numericalAperture: NA, stopPlacement: "rim" });
 
 /** Highest x in [lo, hi] for which `ok` holds, by bisection. */
 const highest = (lo: number, hi: number, ok: (x: number) => boolean): number => {

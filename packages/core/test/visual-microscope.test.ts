@@ -602,11 +602,16 @@ describe("§ 6q.8 — the field number is a real aperture, not a printed number"
 });
 
 describe("§ 6q.9 — the guards", () => {
-  it("exactly one aperture stop survives the splice, on surface 0", () => {
+  it("exactly one aperture stop survives the splice, wherever it sits", () => {
+    // The COUNT is the invariant. This rung also required surface 0 until
+    // § 6v, which was true of every microscope that existed when it was written
+    // and stopped being true when the infinity-corrected objective got its own
+    // diaphragm at its back focal plane. Requiring the index would now refuse a
+    // telecentric instrument for being telecentric, so what is asserted is one
+    // flag, in the chain, and that the field stop did not acquire one.
     for (const visual of [dinVisual, infinityVisual, oilVisual]) {
       const flags = visual.prescription.surfaces.filter((s) => s.isStop);
       expect(flags.length).toBe(1);
-      expect(visual.prescription.surfaces[0]!.isStop).toBe(true);
     }
   });
 

@@ -478,7 +478,10 @@
 6. **Microscope branch** ← current; **every numbered step in it is now closed**
    (§ 6l was the last gap, and § 6u has since closed the last *named blocker* —
    § 6a's telecentricity — which was an engine capability rather than a numbered
-   step). What remains here is app wiring and scenes.
+   step; **§ 6v then spent it**, moving the shipped objective's stop onto its back
+   focal plane so the presets *are* telecentric rather than able to be). What
+   remains here is app wiring and scenes — plus the one item § 6v named on its way
+   out, an objective whose front element is sized for the field it must pass.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i),
    the latter now over a 3-D specimen ✅ (§ 6k); coverslip mismatch ✅ (§ 6c);
@@ -540,9 +543,50 @@
    system's fault. It re-pins nothing, and that was *proved* rather than
    assumed — `aimRay` was made to throw on the backward case and the whole ladder
    re-run, 75 files and 1310 tests passing. The two steps are one investigation.
-   **Still open here:** the presets do not use the capability yet — the stop still
-   sits on the objective's own rim — which is wiring plus a re-measurement of what
-   moves, and image-space telecentricity, which has no caller.
+   *The presets now USE it:* ✅ § 6v. The infinity-corrected objective's stop
+   moves from its rim to its **back focal plane**, so the branch's presets are
+   telecentric rather than merely able to be — and the old placement stays
+   reachable as the **negative control**, since what telecentricity buys has no
+   measurable size without a system that lacks it. "Wiring plus a re-measurement"
+   was right about the wiring — the stop is one surface at a distance the
+   paraxial trace already reported — and the step is made of the re-measurement.
+   The aperture **stops being a length**: sized f·tan u, the f cancels against
+   § 6u.1's stopRadius/B and what reaches the aimer is **tan u exactly**, with no
+   focal length, object distance or magnification left in it; the delivered NA is
+   then bitwise indifferent to where the specimen is, and so is the
+   **magnification under defocus**, against a control that loses 0.1% over 50 µm.
+   Two things nothing predicted. **The price is off axis and it is the glass:** a
+   telecentric bundle's footprint translates with object height where a
+   rim-stopped one pivots through one hole, so it walks off an element sized for
+   the axial beam — nothing lost to ~0.1 mm of field, 11% of the pupil at 1 mm,
+   35% at 3 mm, and identified as the element rather than the diaphragm by
+   widening one at a time. Real objectives oversize the front element for exactly
+   this reason; doing it here needs an objective that knows what field it must
+   pass, so it is **named as the next step** rather than done quietly. And the
+   ladder **barely moved — 9 tests of 1364** — because on axis the two
+   constructions aim the *same rays*, which is also why the one number that did
+   shift (§ 6d.4's reach, 0.5%) is a **reference** and not an aberration: the stop
+   moved, so the exit pupil the wavefront is struck against moved. § 6d's control
+   is held at the rim deliberately — its claim is about the FORM, one doublet
+   against two, and third-order S_II has no telecentric spelling since
+   `seidelSums` needs the stop at surface 0.
+   *Recorded here rather than only in VALIDATION because it is the fourth member
+   of the C4/A6/C5 family:* giving the objective a diaphragm made it the module's
+   last surface, and the composition splices the infinity space **after the
+   module** — so the tube lens was **silently pushed back by the objective's whole
+   back focal distance**, ≈ 50 mm. The space is collimated, so no first-order
+   property changed and the whole suite stayed green; it surfaced only as a rung
+   written to assert a null reading 2.8e-5. Same signature as § 5l.1 — a module
+   composed at a gap the geometry does not have, hidden because the quantity that
+   would have shown it was collimated. The space is now measured from the last
+   **glass** vertex, and an infinity space shorter than the back focal distance is
+   **refused** rather than composed, pinned at the boundary itself.
+   **Still open here:** the oversized front element above, the DIN objective
+   (`finiteConjugateObjective` still carries its stop on the rim, and a real DIN
+   objective is telecentric too), what telecentricity is worth to the illumination
+   — §§ 6f/6h/6m/6o each assume it of their *condenser* and nothing has been
+   re-measured against the objective now having it — and image-space
+   telecentricity, which has no caller.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it
