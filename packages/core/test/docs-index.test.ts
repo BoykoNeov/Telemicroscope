@@ -16,21 +16,26 @@ import { fileURLToPath } from "node:url";
  *
  * So the shape is a rung like any other, and for the same reason the tolerances
  * elsewhere are numbers rather than opinions: a convention nobody can fail is a
- * convention that erodes. The budget below is deliberately not the current size
- * — there is room for roughly a dozen more one-line rows before it binds, and
- * ~5 KB of remaining slack in the rows still over 800 bytes when it does. When
- * it binds, trim a row. Do not raise the number: this is the one file in the
- * repo whose whole value is being small, and the reasoning it would be
- * protecting already has a home in the step's own section.
+ * convention that erodes. A second pass then spent the slack the first one left
+ * — the five rows between 800 and 1500 bytes — so that the ROW cap could come
+ * down to where it is the binding constraint, which is what CLAUDE.md's rule
+ * actually says. The table is ~15.8 KB against a 20 KB block budget: room for
+ * roughly a dozen more one-line rows. When it binds, trim a row. Do not raise
+ * either number — this is the one file in the repo whose whole value is being
+ * small, and the reasoning it would be protecting already has a home in the
+ * step's own section.
  */
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VALIDATION = join(HERE, "..", "..", "..", "docs", "VALIDATION.md");
 
-/** The heading the table lives under, and the budget for the block it spans. */
+/** The heading the table lives under, and the budget for the block it spans.
+ *  The row cap is the binding constraint and the block budget is the backstop,
+ *  not the other way around — the drift that cost 23 KB was rows creeping up
+ *  one at a time, each too small to notice against a whole-table number. */
 const INDEX_HEADING = "## The ladder at a glance";
-const INDEX_MAX_BYTES = 24_000;
-const ROW_MAX_CHARS = 1_500;
+const INDEX_MAX_BYTES = 20_000;
+const ROW_MAX_CHARS = 800;
 
 /** GitHub's heading slug: lowercase, drop all but alphanumerics/space/hyphen,
  *  then spaces to hyphens. An em dash vanishes and leaves the doubled hyphen
@@ -43,7 +48,11 @@ function slug(heading: string): string {
 }
 
 const doc = readFileSync(VALIDATION, "utf8");
-const lines = doc.split("\n");
+/** Split on either ending and rejoin with "\n" below: `core.autocrlf` is on,
+ *  so this file is CRLF in a Windows working tree and LF in the repo. Measuring
+ *  what happens to be on disk would make the budget platform-dependent and put
+ *  a row one character from its cap for one checkout and not the other. */
+const lines = doc.split(/\r?\n/);
 
 const start = lines.findIndex((l) => l.startsWith(INDEX_HEADING));
 const end = lines.findIndex((l, i) => i > start && l.startsWith("## "));
