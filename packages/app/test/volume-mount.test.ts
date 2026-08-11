@@ -9,7 +9,7 @@ import {
   type MountChoice,
   type VolumeRequest,
 } from "../src/volume";
-import { buildFrame, LAMBDA_NM } from "../src/microscope";
+import { entryOf, buildFrame, LAMBDA_NM } from "../src/microscope";
 import { fieldPupilAt } from "@telemicroscope/core/imaging";
 import { getMedium } from "@telemicroscope/core/materials";
 
@@ -48,7 +48,7 @@ import { getMedium } from "@telemicroscope/core/materials";
  */
 
 const base: Omit<VolumeRequest, "mount" | "depthUm"> = {
-  kind: "oil-100x-125",
+  spec: entryOf("oil-100x-125").spec,
   pupilSamples: 32,
   size: 128,
   planes: 5,
@@ -69,7 +69,7 @@ describe("D10 — the mount reaches the render, and a matched one is a hard zero
     // `objectMedium` for the 100× oil rows is the cover glass D263 (1.5233) and
     // not the oil (1.5151). A panel that called the matched setting "immersion"
     // would be quietly wrong on exactly the rows where the mount matters.
-    const { system } = buildFrame({ kind: "oil-100x-125", pupilSamples: 32, size: 128 });
+    const { system } = buildFrame({ spec: entryOf("oil-100x-125").spec, pupilSamples: 32, size: 128 });
     const matched = resolveMount(system, "matched");
     expect(matched.name).toBe("D263");
     expect(matched.matched).toBe(true);
@@ -83,7 +83,7 @@ describe("D10 — the mount reaches the render, and a matched one is a hard zero
 
     // A dry objective's matched mount is air, and choosing AIR reaches the same
     // branch rather than a near miss: the comparison is on the index.
-    const dry = buildFrame({ kind: "inf-20x-010", pupilSamples: 32, size: 128 }).system;
+    const dry = buildFrame({ spec: entryOf("inf-20x-010").spec, pupilSamples: 32, size: 128 }).system;
     expect(resolveMount(dry, "AIR")).toEqual(resolveMount(dry, "matched"));
   });
 
@@ -167,7 +167,7 @@ describe("D10 — the mount reaches the render, and a matched one is a hard zero
   it("caps the delivered NA at the mount's own index — a readout, not a blur", () => {
     // § 6l.3. An objective engraved 1.40 collects nothing of higher invariant than
     // the mount can carry, so the resolution beside it is quoted at the cap.
-    const oil = renderVolumeScene({ ...base, kind: "oil-100x-140", mount: "WATER", depthUm: 0 });
+    const oil = renderVolumeScene({ ...base, spec: entryOf("oil-100x-140").spec, mount: "WATER", depthUm: 0 });
     if (!oil.ok) throw new Error(oil.error);
     expect(oil.readout.deliveredNA).toBe(getMedium("WATER").n(LAMBDA_NM));
     expect(oil.readout.deliveredNA).toBeLessThan(oil.readout.tracedNA);
@@ -176,7 +176,7 @@ describe("D10 — the mount reaches the render, and a matched one is a hard zero
     );
 
     // The same objective in air is capped harder still, and by exactly 1.
-    const dry = renderVolumeScene({ ...base, kind: "oil-100x-140", mount: "AIR", depthUm: 0 });
+    const dry = renderVolumeScene({ ...base, spec: entryOf("oil-100x-140").spec, mount: "AIR", depthUm: 0 });
     if (!dry.ok) throw new Error(dry.error);
     expect(dry.readout.deliveredNA).toBe(1);
   });
@@ -189,8 +189,8 @@ describe("D10 — the two questions, and what each one keeps", () => {
     // the slip. Its shallowest is the depth control exactly, and its depth in
     // MICRONS carries the mount's index, because a wave of defocus is four depths
     // of focus and a depth of focus is n·λ/(2·NA²).
-    const dry = axialResponse({ kind: "oil-100x-125", mount: "matched", depthUm: 0 });
-    const wet = axialResponse({ kind: "oil-100x-125", mount: "WATER", depthUm: 7.5 });
+    const dry = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "matched", depthUm: 0 });
+    const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "WATER", depthUm: 7.5 });
     if (!dry.ok || !wet.ok) throw new Error("refused");
     expect(dry.readout.coneTopDepthUm).toBe(0);
     expect(wet.readout.coneTopDepthUm).toBe(7.5);
@@ -208,14 +208,14 @@ describe("D10 — the two questions, and what each one keeps", () => {
     // be a DEFOCUS family, and it is not one any more — so it does not. A panel
     // that coloured the second one red would be reporting a broken rung where
     // there is a measurement.
-    const wet = axialResponse({ kind: "oil-100x-125", mount: "WATER", depthUm: 10 });
+    const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "WATER", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);
     expect(wet.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
     const moved = wet.readout.cones.filter((c) => c.nu > 0 && c.edgeBins > 1);
     expect(moved.length).toBeGreaterThan(0);
 
     // And both come back when the mount does.
-    const dry = axialResponse({ kind: "oil-100x-125", mount: "matched", depthUm: 10 });
+    const dry = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "matched", depthUm: 10 });
     if (!dry.ok) throw new Error(dry.error);
     expect(dry.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
     for (const c of dry.readout.cones.filter((c) => c.nu > 0)) {
@@ -229,7 +229,7 @@ describe("D10 — the two questions, and what each one keeps", () => {
     // the 100×/1.25 reads 0.47× at zero depth. Quoting the mounted number alone
     // would hand that share to the mount. The ideal-pupil control is what says
     // which is which, and a matched mount makes it exactly 1.
-    const flat = axialResponse({ kind: "oil-100x-125", mount: "matched", depthUm: 10 });
+    const flat = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "matched", depthUm: 10 });
     if (!flat.ok) throw new Error(flat.error);
     // The ideal control is REFUSED here rather than reading 1, and that is the
     // floor doing its job: an unaberrated pupil at ±1 wave sits exactly on
@@ -241,7 +241,7 @@ describe("D10 — the two questions, and what each one keeps", () => {
     expect(flat.readout.sweep.asymmetry).toBe(flat.readout.sweep.asymmetryBare);
     expect(flat.readout.sweep.asymmetry).not.toBeNull();
 
-    const wet = axialResponse({ kind: "oil-100x-125", mount: "WATER", depthUm: 10 });
+    const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "WATER", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);
     // The mount's own share is LARGER than the mounted objective's, because the
     // objective's residual works the other way — which is the whole reason the
@@ -264,7 +264,7 @@ describe("D10 — the depth budget, bisected", () => {
     // add to it, so the ratio lands on the floor and the whole bisection is
     // checked against a closed form rather than against itself.
     expect(MARECHAL_FLOOR).toBeCloseTo(0.9501, 4);
-    const result = depthStrehl({ kind: "inf-20x-010", mount: "WATER" });
+    const result = depthStrehl({ spec: entryOf("inf-20x-010").spec, mount: "WATER" });
     if (!result.ok) throw new Error(result.error);
     expect(result.readout.overReport!).toBeCloseTo(MARECHAL_FLOOR, 2);
   });
@@ -276,14 +276,14 @@ describe("D10 — the depth budget, bisected", () => {
     // the aperture is approached and never reached, so a tolerance quoted there
     // would be about rays that do not exist. The bisection still works in the
     // second case, because a mask's boundary is one lattice point of measure zero.
-    const matched = depthStrehl({ kind: "oil-100x-125", mount: "matched" });
+    const matched = depthStrehl({ spec: entryOf("oil-100x-125").spec, mount: "matched" });
     if (!matched.ok) throw new Error(matched.error);
     expect(matched.readout.quotedMarechalUm).toBeNull();
     expect(matched.readout.quotedRefusal).toMatch(/identically zero/);
     expect(matched.readout.bisectedIdealUm).toBeNull();
     for (const point of matched.readout.curve) expect(point.ideal).toBe(1);
 
-    const overNa = depthStrehl({ kind: "oil-100x-140", mount: "WATER" });
+    const overNa = depthStrehl({ spec: entryOf("oil-100x-140").spec, mount: "WATER" });
     if (!overNa.ok) throw new Error(overNa.error);
     expect(overNa.readout.quotedMarechalUm).toBeNull();
     expect(overNa.readout.quotedRefusal).toMatch(/not delivered|OPEN/);
@@ -295,7 +295,7 @@ describe("D10 — the depth budget, bisected", () => {
     // § 6l.4 on the row it can actually be quoted for. The departure is not the
     // objective's: it is the exact wavefront outrunning its own leading term as
     // the aperture nears the MOUNT's index, the smallest number in the stack.
-    const result = depthStrehl({ kind: "oil-100x-125", mount: "WATER" });
+    const result = depthStrehl({ spec: entryOf("oil-100x-125").spec, mount: "WATER" });
     if (!result.ok) throw new Error(result.error);
     const r = result.readout;
     expect(r.overReport!).toBeGreaterThan(4);
@@ -314,7 +314,7 @@ describe("D10 — the memo is exact", () => {
     // It is memoization of a pure function and not a model of one: § 6s's radial
     // map is a cache with a MEASURED error because it could not be exact, and
     // this one can be, so any tolerance here would be hiding something.
-    const { system, frame } = buildFrame({ kind: "oil-100x-125", pupilSamples: 32, size: 128 });
+    const { system, frame } = buildFrame({ spec: entryOf("oil-100x-125").spec, pupilSamples: 32, size: 128 });
     const pupil = fieldPupilAt(system, frame, 0.5, 0.5).pupil;
     const memo = memoizedPupil(pupil);
     for (let i = -8; i <= 8; i++) {

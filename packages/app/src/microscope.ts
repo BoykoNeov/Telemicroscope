@@ -20,6 +20,7 @@ import {
   type BuildSpec,
   type ObjectiveNumbers,
 } from "./builder";
+import { refused, type Refused } from "./refusal";
 
 /**
  * The microscope substrate, as pure functions — APP.md's A1.
@@ -204,12 +205,74 @@ export function entryOf(kind: MicroscopeKind): MicroscopeEntry {
   return entry;
 }
 
+/**
+ * What a frame is built from — Part F's seam, and the whole of it.
+ *
+ * This carried a `MicroscopeKind` until Part F. The name was pure indirection
+ * after D8 made every catalogue row a `BuildSpec`, and it was also a wall: a
+ * ten-member string union cannot name a lens a reader designed, so every panel
+ * that draws a picture could only draw one of ten. A spec is strings, numbers
+ * and one plain union, so it structured-clones across `postMessage` where
+ * `MicroscopeEntry.build` — a closure — cannot. **Send the spec, never the
+ * entry.**
+ */
 export interface FrameRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   /** Frequency bins across the pupil diameter — the frame's width, in cells. */
   readonly pupilSamples: number;
   /** Grid size, a power of two. Buys sampling, NOT field. */
   readonly size: number;
+}
+
+/**
+ * Every field of a spec, as a value the compiler checks for completeness.
+ *
+ * A hand-written list of reads would compile perfectly while ignoring a field
+ * added to `BuildSpec` later, and a cache key that ignores a field serves the
+ * wrong system for two designs that differ only in it. This shape cannot: a new
+ * field makes the literal below fail to satisfy `Record<keyof BuildSpec, true>`.
+ */
+const SPEC_FIELDS: Record<keyof BuildSpec, true> = {
+  architecture: true,
+  form: true,
+  magnification: true,
+  numericalAperture: true,
+  crownMedium: true,
+  flintMedium: true,
+  tubeLengthMm: true,
+  coverslip: true,
+  orientation: true,
+  frontGroupOrientation: true,
+  rearGroupOrientation: true,
+  infinitySpaceMm: true,
+  powerSplit: true,
+  separationFactor: true,
+  meniscusCount: true,
+  immersionMedium: true,
+};
+
+/** Sorted, so the order is this file's and not the literal's above. */
+const SPEC_KEY_ORDER = (Object.keys(SPEC_FIELDS) as (keyof BuildSpec)[]).sort();
+
+/**
+ * A spec as a map key, with the field order fixed here rather than inherited.
+ *
+ * `Object.keys` order survives a structured clone, but it is the order the
+ * *sender* happened to build the object in, and two specs that differ only in
+ * that would key differently and each build a second identical system.
+ */
+export function specKey(spec: BuildSpec): string {
+  return JSON.stringify(
+    SPEC_KEY_ORDER.map((field) =>
+      // The one field that is not a scalar, and `JSON.stringify` would take its
+      // key order from the sender for the same reason the top level cannot.
+      field === "coverslip"
+        ? spec.coverslip.kind === "none"
+          ? ["none"]
+          : ["slip", spec.coverslip.thicknessMm, spec.coverslip.medium]
+        : spec[field],
+    ),
+  );
 }
 
 /** What one objective delivers, all of it read back off the trace. */
@@ -266,9 +329,7 @@ export interface FrameReadout {
  * is not cosmetic; this repo does not let an app sentence wear the engine's
  * voice, so the panel colours and labels the two differently.
  */
-export type FrameResult =
-  | { readonly ok: true; readonly readout: FrameReadout }
-  | { readonly ok: false; readonly error: string; readonly source: "engine" | "app" };
+export type FrameResult = { readonly ok: true; readonly readout: FrameReadout } | Refused;
 
 /**
  * Build a system and frame from any builder, and read everything off them.
@@ -320,29 +381,21 @@ export function describeSystem(
       },
     };
   } catch (cause) {
-    return refusalOf(cause);
+    // The engine's own words, not a paraphrase: § 6b's and § 6d's ceilings are
+    // findings, and their error messages carry the measured numbers. D8's own
+    // refusals arrive through the same channel and are tagged apart from them
+    // by `AppRefusal`'s name, so the panel can decline to speak in the engine's
+    // voice.
+    return refused(cause);
   }
 }
 
-/**
- * A thrown design, as a readout.
- *
- * The engine's own words, not a paraphrase: § 6b's and § 6d's ceilings are
- * findings, and their error messages carry the measured numbers. D8's own
- * refusals arrive through the same channel and are tagged apart from them by
- * `AppRefusal`'s name, so the panel can decline to speak in the engine's voice.
- */
-function refusalOf(cause: unknown): { ok: false; error: string; source: "engine" | "app" } {
-  const error = cause as Error;
-  return {
-    ok: false,
-    error: error.message,
-    source: error.name === "AppRefusal" ? "app" : "engine",
-  };
-}
-
 /** One catalogue entry, by kind. */
-export function describeEntry(request: FrameRequest): FrameResult {
+export function describeEntry(request: {
+  readonly kind: MicroscopeKind;
+  readonly pupilSamples: number;
+  readonly size: number;
+}): FrameResult {
   const entry = entryOf(request.kind);
   return describeSystem(entry.build, request);
 }
@@ -383,7 +436,7 @@ export type BuildDescription =
        */
       readonly wall: ApertureWall | null;
     }
-  | { readonly ok: false; readonly error: string; readonly source: "engine" | "app" };
+  | Refused;
 
 export function describeBuild(
   spec: BuildSpec,
@@ -398,7 +451,7 @@ export function describeBuild(
   try {
     made = buildMicroscope(spec);
   } catch (cause) {
-    return refusalOf(cause);
+    return refused(cause);
   }
   const frame = describeSystem(() => made.system, request);
   if (!frame.ok) return frame;
@@ -421,7 +474,7 @@ export function buildFrame(request: FrameRequest): {
   system: OpticalSystem;
   frame: ObjectFieldFrame;
 } {
-  const system = entryOf(request.kind).build();
+  const system = buildMicroscope(request.spec).system;
   return {
     system,
     frame: objectFieldFrame(system, {

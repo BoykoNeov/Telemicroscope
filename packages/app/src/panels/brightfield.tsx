@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { refusalVoice } from "../refusal";
 import { useLatestFromWorker } from "../hooks";
-import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
+import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import { Plot } from "../plot";
 import { Choice, Guard, GUARD_COLOR, Slider, VERDICT_LEVEL } from "../ui";
 import { createBrightfieldWorker } from "../workers";
@@ -102,7 +103,7 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
         ) : !result.ok ? (
           // The engine's own words: § 6b's and § 6d's design ceilings, or
           // `abbeImage`'s frequency-grid wall, which names the size that fixes it.
-          <span style={{ color: "#c00" }}>the engine refuses this render: {result.error}</span>
+          <span style={{ color: "#c00" }}>{refusalVoice(result.source, "this render")}: {result.error}</span>
         ) : (
           <>
             <strong>ν = {readout!.nu.toFixed(4)}</strong> · period{" "}
@@ -194,7 +195,7 @@ function CutoffPlot({
   if (!sweep.ok) {
     return (
       <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
-        the engine refuses this objective: {sweep.error}
+        {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
   }
@@ -249,6 +250,8 @@ export function BrightfieldPanel() {
   // and `cycles` is how fine the specimen's detail is, in the same frequency
   // units the cutoff is quoted in.
   const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // Part F: a request carries the prescription, not a name from a list of ten.
+  const spec = useMemo(() => entryOf(kind).spec, [kind]);
   const [pupil, setPupil] = useState<PupilMode>("traced");
   // Own state, not the bench panel's — see the note there. The option lists are
   // narrower here on purpose: a traced brightfield sum costs 8–10× an ideal one
@@ -276,7 +279,7 @@ export function BrightfieldPanel() {
 
   const request = useMemo<BrightfieldRequest>(
     () => ({
-      kind,
+      spec,
       pupilSamples,
       size,
       sourceSamples,
@@ -285,14 +288,14 @@ export function BrightfieldPanel() {
       modulation: BRIGHTFIELD_MODULATION,
       pupil,
     }),
-    [kind, pupilSamples, size, sourceSamples, s, cycles, pupil],
+    [spec, pupilSamples, size, sourceSamples, s, cycles, pupil],
   );
 
   // Everything the sweep depends on and nothing that only moves a marker: the
   // plot must not re-bisect on every tick of the S slider.
   const sweepRequest = useMemo(
-    () => ({ kind, pupilSamples, size, sourceSamples, pupil }),
-    [kind, pupilSamples, size, sourceSamples, pupil],
+    () => ({ spec, pupilSamples, size, sourceSamples, pupil }),
+    [spec, pupilSamples, size, sourceSamples, pupil],
   );
 
   return (

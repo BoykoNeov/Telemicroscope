@@ -10,7 +10,9 @@ import { renderBrightfield, tracedFieldPupils, type PatchPupil } from "@telemicr
 import { fieldPupilAt } from "@telemicroscope/core/imaging";
 import { objectNumericalAperture } from "@telemicroscope/core/pupil";
 import type { PupilFunction } from "@telemicroscope/core/wave";
-import { buildFrame, LAMBDA_NM, type MicroscopeKind } from "./microscope";
+import { buildFrame, LAMBDA_NM } from "./microscope";
+import type { BuildSpec } from "./builder";
+import { refused, type Refused } from "./refusal";
 
 /**
  * Brightfield through a traced objective, with the condenser on a dial —
@@ -74,7 +76,7 @@ export const WHITE_OVER_MEAN = 2;
 export type PupilMode = "traced" | "ideal";
 
 export interface BrightfieldRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   /** Frequency bins across the pupil diameter — also the crop, in cells (§ 6h). */
   readonly pupilSamples: number;
   /** Grid size, a power of two. Also the headroom the shifted pupil needs. */
@@ -155,7 +157,7 @@ export interface BrightfieldReadout {
 
 export type BrightfieldResult =
   | { readonly ok: true; readonly readout: BrightfieldReadout }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 /** A render asked of the worker; `seq` lets the caller discard stale replies. */
 export interface BrightfieldJob {
@@ -271,7 +273,7 @@ export function renderBrightfieldScene(request: BrightfieldRequest): Brightfield
   const started = performance.now();
   try {
     const { system, frame } = buildFrame({
-      kind: request.kind,
+      spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
     });
@@ -339,7 +341,7 @@ export function renderBrightfieldScene(request: BrightfieldRequest): Brightfield
     // Two kinds of refusal land here and both are readouts: § 6b's and § 6d's
     // design ceilings, and `abbeImage`'s frequency-grid wall — which carries the
     // grid size that would fix it.
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }
 
@@ -377,7 +379,7 @@ export interface CutoffSweep {
 
 export type CutoffResult =
   | { readonly ok: true; readonly sweep: CutoffSweep }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 /**
  * The cutoff against S — the plot half of the pair.
@@ -402,7 +404,7 @@ export function cutoffSweep(
       request.pupil === "traced"
         ? (() => {
             const { system, frame } = buildFrame({
-              kind: request.kind,
+              spec: request.spec,
               pupilSamples: request.pupilSamples,
               size: request.size,
             });
@@ -430,6 +432,6 @@ export function cutoffSweep(
       sweep: { points: out, worstResidual, elapsedMs: performance.now() - started },
     };
   } catch (cause) {
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }

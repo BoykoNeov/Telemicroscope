@@ -21,8 +21,8 @@ import {
 } from "@telemicroscope/core/pupil";
 import { afocalTelescope, spliceModules } from "@telemicroscope/core/trace";
 import type { OpticalSystem, Prescription } from "@telemicroscope/core/trace";
-import { buildMicroscope } from "./builder";
-import { LAMBDA_NM, entryOf, type MicroscopeKind } from "./microscope";
+import { buildMicroscope, type BuildSpec } from "./builder";
+import { LAMBDA_NM } from "./microscope";
 import { refusalOf, type Refusal as SharedRefusal } from "./refusal";
 
 /**
@@ -140,7 +140,7 @@ export type Refusal = SharedRefusal<RefusalStage>;
 const refusal = (cause: unknown, stage: RefusalStage): Refusal => refusalOf(cause, stage);
 
 export interface InstrumentRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   readonly form: EyepieceForm;
   readonly eyepieceFocalLengthMm: number;
   /** The eyepiece's field stop at the intermediate image (mm); `null` = none. */
@@ -263,9 +263,9 @@ export interface InstrumentReadout {
 
 export type InstrumentResult = { readonly ok: true; readonly readout: InstrumentReadout } | Refusal;
 
-/** The chain the eyepiece goes behind, from A1's catalogue by way of D8's specs. */
-function microscopeOf(kind: MicroscopeKind): ImageFormingMicroscope {
-  return buildMicroscope(entryOf(kind).spec).chain;
+/** The chain the eyepiece goes behind — any spec, catalogue row or not (Part F). */
+function microscopeOf(spec: BuildSpec): ImageFormingMicroscope {
+  return buildMicroscope(spec).chain;
 }
 
 /**
@@ -325,7 +325,7 @@ export function describeInstrument(request: InstrumentRequest): InstrumentResult
 
   let microscope: ImageFormingMicroscope;
   try {
-    microscope = microscopeOf(request.kind);
+    microscope = microscopeOf(request.spec);
   } catch (cause) {
     return refusal(cause, "objective");
   }
@@ -532,7 +532,7 @@ function bisectPole(vergenceAt: (deltaMm: number) => number): number | null {
 /* ── the focal-length sweep: 21 eyepiece solves, so a worker ────────────── */
 
 export interface SweepRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   readonly form: EyepieceForm;
   readonly nearPointMm: number;
   readonly minFocalLengthMm: number;
@@ -570,7 +570,17 @@ export interface Sweep {
  */
 export function sweepFocalLengths(request: SweepRequest): Sweep {
   const started = performance.now();
-  const microscope = microscopeOf(request.kind);
+  // A spec that does not build has no curve at all, and since Part F it can be
+  // one a reader typed rather than one of ten that were checked. An uncaught
+  // throw here is a worker that dies silently, which is the single failure a
+  // panel cannot report — `describeInstrument` runs on the main thread and is
+  // what prints the objective's own refusal.
+  let microscope: ImageFormingMicroscope;
+  try {
+    microscope = microscopeOf(request.spec);
+  } catch {
+    return { points: [], elapsedMs: performance.now() - started };
+  }
   const span = request.maxFocalLengthMm - request.minFocalLengthMm;
   const points: SweepPoint[] = [];
   for (let i = 0; i < request.points; i++) {

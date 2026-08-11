@@ -17,7 +17,9 @@ import {
 import { spectralXyz } from "@telemicroscope/core/photometry";
 import { objectNumericalAperture } from "@telemicroscope/core/pupil";
 import type { OpticalSystem, WavelengthSample } from "@telemicroscope/core/trace";
-import { entryOf, LAMBDA_NM, type MicroscopeKind } from "./microscope";
+import { LAMBDA_NM, specKey } from "./microscope";
+import { buildMicroscope, type BuildSpec } from "./builder";
+import { refused, type Refused } from "./refusal";
 import { lampSamples, type LampKind } from "./section";
 import { specimenOf, type SpecimenKind } from "./specimens";
 
@@ -102,7 +104,7 @@ export const WHITE_INTENSITY = 2;
 export const RADIAL_MAP_NODES = 64;
 
 export interface StageRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   readonly specimen: SpecimenKind;
   /** Frequency bins across the pupil diameter — the tile's width, in cells. */
   readonly pupilSamples: number;
@@ -131,15 +133,23 @@ export interface StageTileRequest extends StageRequest {
   readonly row: number;
 }
 
-const SYSTEMS = new Map<MicroscopeKind, OpticalSystem>();
+const SYSTEMS = new Map<string, OpticalSystem>();
 
-/** Built once per worker per objective — a stage asks for tens of tiles and the
- * prescription does not change between them. */
-function systemFor(kind: MicroscopeKind): OpticalSystem {
-  const hit = SYSTEMS.get(kind);
+/**
+ * Built once per worker per objective — a stage asks for tens of tiles and the
+ * prescription does not change between them.
+ *
+ * Keyed by `specKey` since Part F, not by the spec object: a structured clone
+ * arrives as a fresh object every message, so identity would miss every time,
+ * and the field order a key is built from has to be fixed in code rather than
+ * inherited from whatever the sender constructed.
+ */
+function systemFor(spec: BuildSpec): OpticalSystem {
+  const key = specKey(spec);
+  const hit = SYSTEMS.get(key);
   if (hit) return hit;
-  const system = entryOf(kind).build();
-  SYSTEMS.set(kind, system);
+  const system = buildMicroscope(spec).system;
+  SYSTEMS.set(key, system);
   return system;
 }
 
@@ -175,7 +185,7 @@ function spectralOptionsOf(request: StageRequest): SpectralMosaicOptions {
 const GEOMETRIES = new Map<string, SpectralMosaicGeometry>();
 
 function geometryFor(request: StageRequest, system: OpticalSystem): SpectralMosaicGeometry {
-  const id = `${request.kind}|${request.size}|${request.pupilSamples}|${request.guardCells}|${request.wavelengths}|${request.lamp}`;
+  const id = `${specKey(request.spec)}|${request.size}|${request.pupilSamples}|${request.guardCells}|${request.wavelengths}|${request.lamp}`;
   const hit = GEOMETRIES.get(id);
   if (hit) return hit;
   const geometry = spectralMosaicGeometry(system, spectralOptionsOf(request));
@@ -219,7 +229,7 @@ export interface StageInfo {
 
 export type StageInfoResult =
   | { readonly ok: true; readonly info: StageInfo }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 /**
  * The stage's own numbers — one trace, and the condenser it will be summed over.
@@ -232,7 +242,7 @@ export type StageInfoResult =
 export function stageInfo(request: StageRequest): StageInfoResult {
   const started = performance.now();
   try {
-    const system = systemFor(request.kind);
+    const system = systemFor(request.spec);
     const source = commensurateSource(request.coherenceParameter, request.pupilSamples, 1);
     // The two branches read the SAME quantities off different layouts, and the
     // one that differs is the one that matters: a spectral tile keeps
@@ -285,7 +295,7 @@ export function stageInfo(request: StageRequest): StageInfoResult {
       },
     };
   } catch (cause) {
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }
 
@@ -308,7 +318,7 @@ export interface StageTileReadout {
 
 export type StageTileResult =
   | { readonly ok: true; readonly readout: StageTileReadout }
-  | { readonly ok: false; readonly col: number; readonly row: number; readonly error: string };
+  | (Refused & { readonly col: number; readonly row: number });
 
 export interface StageTileJob {
   readonly seq: number;
@@ -400,7 +410,7 @@ function toColour(stack: BrightfieldSpectralStack): Uint8ClampedArray {
 export function renderStageTile(request: StageTileRequest): StageTileResult {
   const started = performance.now();
   try {
-    const system = systemFor(request.kind);
+    const system = systemFor(request.spec);
     const source = commensurateSource(request.coherenceParameter, request.pupilSamples, 1);
 
     if (request.wavelengths > 0) {
@@ -468,6 +478,6 @@ export function renderStageTile(request: StageTileRequest): StageTileResult {
     // The engine's own words again: a design ceiling, a guard that is not whole
     // pixels, `abbeImage`'s frequency-grid wall, or a chief ray that reaches no
     // object height at this field position — which is a real outcome far out.
-    return { ok: false, col: request.col, row: request.row, error: (cause as Error).message };
+    return { ...refused(cause), col: request.col, row: request.row };
   }
 }

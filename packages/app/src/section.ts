@@ -16,7 +16,8 @@ import {
   VISIBLE_MIN_NM,
 } from "@telemicroscope/core/photometry";
 import type { WavelengthSample } from "@telemicroscope/core/trace";
-import { entryOf, type MicroscopeKind } from "./microscope";
+import { buildMicroscope, type BuildSpec } from "./builder";
+import { refused, type Refused } from "./refusal";
 import { specimenOf, type SpecimenKind } from "./specimens";
 
 /**
@@ -72,7 +73,7 @@ import { specimenOf, type SpecimenKind } from "./specimens";
 export type LampKind = "equal-energy" | "tungsten-3200";
 
 export interface SectionRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   readonly specimen: SpecimenKind;
   /** Frequency bins across the pupil diameter. A power of two — see `sourceOf`. */
   readonly pupilSamples: number;
@@ -149,7 +150,7 @@ export interface SectionReadout {
 
 export type SectionResult =
   | { readonly ok: true; readonly readout: SectionReadout }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 export interface SectionJob {
   readonly seq: number;
@@ -422,7 +423,7 @@ const VERDICT_RANK = { valid: 0, unknown: 1, "no-honest-image": 2 } as const;
 export function renderSection(request: SectionRequest): SectionResult {
   const started = performance.now();
   try {
-    const system = entryOf(request.kind).build();
+    const system = buildMicroscope(request.spec).system;
     const samples = lampSamples(request.lamp, request.wavelengths);
     const source = sourceOf(request.coherenceParameter, request.pupilSamples);
 
@@ -515,6 +516,6 @@ export function renderSection(request: SectionRequest): SectionResult {
     // Three kinds of refusal reach here and all are readouts: a design ceiling
     // (§ 6b, § 6d), `abbeImage`'s frequency-grid wall, and § 6p's power-of-two
     // precondition on a commensurate lattice.
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }

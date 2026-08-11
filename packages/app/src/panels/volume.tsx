@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { refusalVoice } from "../refusal";
 import { useLatestFromWorker } from "../hooks";
-import { MICROSCOPE_CATALOG, MARECHAL_WAVES, type MicroscopeKind } from "../microscope";
+import { MICROSCOPE_CATALOG, MARECHAL_WAVES, entryOf, type MicroscopeKind } from "../microscope";
 import { Plot } from "../plot";
 import { Choice, Guard, GUARD_COLOR, Slider, thresholdLevel } from "../ui";
 import {
@@ -164,7 +165,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
   if (!sweep.ok) {
     return (
       <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
-        the engine refuses this objective: {sweep.error}
+        {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
   }
@@ -434,7 +435,7 @@ function DepthPlot({ request }: { request: DepthRequest }) {
   if (!depth.ok) {
     return (
       <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
-        the engine refuses this objective: {depth.error}
+        {refusalVoice(depth.source, "this objective")}: {depth.error}
       </p>
     );
   }
@@ -552,6 +553,8 @@ function DepthPlot({ request }: { request: DepthRequest }) {
 
 export function VolumePanel() {
   const [kind, setKind] = useState<MicroscopeKind>("inf-20x-010");
+  // Part F: a request carries the prescription, not a name from a list of ten.
+  const spec = useMemo(() => entryOf(kind).spec, [kind]);
   const [pupilSamples, setPupilSamples] = useState(32);
   const [sizeRaw, setSize] = useState(128);
   const [planes, setPlanes] = useState<number>(9);
@@ -574,17 +577,17 @@ export function VolumePanel() {
   const focusPlane = Math.max(-halfPlanes, Math.min(halfPlanes, focusRaw));
 
   const request = useMemo<VolumeRequest>(
-    () => ({ kind, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm }),
-    [kind, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm],
+    () => ({ spec, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm }),
+    [spec, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm],
   );
   const axialRequest = useMemo<AxialRequest>(
-    () => ({ kind, mount, depthUm }),
-    [kind, mount, depthUm],
+    () => ({ spec, mount, depthUm }),
+    [spec, mount, depthUm],
   );
   // Deliberately NOT keyed on the depth: this one is a sweep over depth, so the
   // slider is already on its x axis and re-running it would be re-deriving the
   // curve the reader is looking at.
-  const depthRequest = useMemo<DepthRequest>(() => ({ kind, mount }), [kind, mount]);
+  const depthRequest = useMemo<DepthRequest>(() => ({ spec, mount }), [spec, mount]);
 
   const { result, pending } = useLatestFromWorker<VolumeRequest, VolumeResult>(
     createVolumeWorker,
@@ -721,7 +724,7 @@ export function VolumePanel() {
 
       {result !== null && !result.ok && (
         <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
-          the engine refuses this render: {result.error}
+          {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       )}
 

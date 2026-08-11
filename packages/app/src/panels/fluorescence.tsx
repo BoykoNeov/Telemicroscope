@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { refusalVoice } from "../refusal";
 import { useLatestFromWorker } from "../hooks";
 import {
   toGrey,
@@ -8,7 +9,7 @@ import {
   type TransferRequest,
   type TransferResult,
 } from "../fluorescence";
-import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
+import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import { Plot } from "../plot";
 import { Choice, Guard, GUARD_COLOR, Slider, thresholdLevel } from "../ui";
 import { createFluorescenceSweepWorker, createFluorescenceWorker } from "../workers";
@@ -154,7 +155,7 @@ function TransferPlot({ request }: { request: TransferRequest }) {
   if (!sweep.ok) {
     return (
       <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
-        the engine refuses this objective: {sweep.error}
+        {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
   }
@@ -231,6 +232,8 @@ function TransferPlot({ request }: { request: TransferRequest }) {
 
 export function FluorescencePanel() {
   const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // Part F: a request carries the prescription, not a name from a list of ten.
+  const spec = useMemo(() => entryOf(kind).spec, [kind]);
   const [pupilSamples, setPupilSamples] = useState(64);
   const [sizeRaw, setSize] = useState(256);
   const [patches, setPatches] = useState(1);
@@ -247,12 +250,12 @@ export function FluorescencePanel() {
   const size = Math.max(sizeRaw, minSize);
 
   const request = useMemo<FluorescenceRequest>(
-    () => ({ kind, pupilSamples, size, patches, beadCount, seed }),
-    [kind, pupilSamples, size, patches, beadCount, seed],
+    () => ({ spec, pupilSamples, size, patches, beadCount, seed }),
+    [spec, pupilSamples, size, patches, beadCount, seed],
   );
   const sweepRequest = useMemo<TransferRequest>(
-    () => ({ kind, pupilSamples, size }),
-    [kind, pupilSamples, size],
+    () => ({ spec, pupilSamples, size }),
+    [spec, pupilSamples, size],
   );
 
   const { result, pending } = useLatestFromWorker<FluorescenceRequest, FluorescenceResult>(
@@ -364,7 +367,7 @@ export function FluorescencePanel() {
 
       {result !== null && !result.ok && (
         <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
-          the engine refuses this render: {result.error}
+          {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       )}
 

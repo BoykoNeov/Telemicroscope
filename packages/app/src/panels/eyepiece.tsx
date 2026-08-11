@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useLatestFromWorker } from "../hooks";
-import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
+import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import { Plot, type PlotMarker, type PlotSeries } from "../plot";
 import { Choice, Guard, GUARD_COLOR, Slider, thresholdLevel } from "../ui";
 import { createEyepieceSweepWorker, createEyepieceWallWorker } from "../workers";
@@ -291,6 +291,8 @@ function WallLine({ wall, focalLengthMm }: { wall: Wall | null; focalLengthMm: n
 
 export function EyepiecePanel() {
   const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // Part F: a request carries the prescription, not a name from a list of ten.
+  const spec = useMemo(() => entryOf(kind).spec, [kind]);
   const [form, setForm] = useState<EyepieceForm>("plossl");
   const [focalLengthMm, setFocalLength] = useState(25);
   const [fieldStop, setFieldStop] = useState(true);
@@ -304,27 +306,27 @@ export function EyepiecePanel() {
   const instrument = useMemo(
     () =>
       describeInstrument({
-        kind,
+        spec,
         form,
         eyepieceFocalLengthMm: focalLengthMm,
         fieldNumberMm: fieldStop ? fieldNumberMm : null,
         nearPointMm,
         eyePupilMm,
       }),
-    [kind, form, focalLengthMm, fieldStop, fieldNumberMm, nearPointMm, eyePupilMm],
+    [spec, form, focalLengthMm, fieldStop, fieldNumberMm, nearPointMm, eyePupilMm],
   );
 
   // Keyed on the optics alone — NOT on the iris, and not on the field number.
   const sweepRequest = useMemo<SweepRequest>(
     () => ({
-      kind,
+      spec,
       form,
       nearPointMm,
       minFocalLengthMm: FE_MIN_MM,
       maxFocalLengthMm: FE_MAX_MM,
       points: SWEEP_POINTS,
     }),
-    [kind, form, nearPointMm],
+    [spec, form, nearPointMm],
   );
   const wallRequest = useMemo<WallRequest>(
     () => ({ form, focalLengthMm }),

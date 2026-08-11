@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
+import { refusalVoice } from "../refusal";
+import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import { Choice, Guard, GUARD_COLOR, Slider, VERDICT_LEVEL } from "../ui";
 import { createStageWorker } from "../workers";
 import { SPECIMENS, specimenOf, type SpecimenKind } from "../specimens";
@@ -8,7 +9,7 @@ import {
   FIELD_NUMBER_MM,
   stageInfo,
   WHITE_INTENSITY,
-  type StageInfo,
+  type StageInfoResult,
   type StageRequest,
   type StageTileDone,
   type StageTileJob,
@@ -80,6 +81,8 @@ interface Pending {
 
 export function StagePanel() {
   const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // Part F: a request carries the prescription, not a name from a list of ten.
+  const spec = useMemo(() => entryOf(kind).spec, [kind]);
   const [specimen, setSpecimen] = useState<SpecimenKind>("section");
   const [pupilSamples, setPupilSamples] = useState(32);
   const [guardCells, setGuardCells] = useState(4);
@@ -111,13 +114,11 @@ export function StagePanel() {
   const coherenceParameter = ticks / pupilSamples;
 
   const request = useMemo<StageRequest>(
-    () => ({ kind, specimen, pupilSamples, size, guardCells, coherenceParameter, wavelengths, lamp }),
-    [kind, specimen, pupilSamples, size, guardCells, coherenceParameter, wavelengths, lamp],
+    () => ({ spec, specimen, pupilSamples, size, guardCells, coherenceParameter, wavelengths, lamp }),
+    [spec, specimen, pupilSamples, size, guardCells, coherenceParameter, wavelengths, lamp],
   );
 
-  const [info, setInfo] = useState<{ ok: true; info: StageInfo } | { ok: false; error: string } | null>(
-    null,
-  );
+  const [info, setInfo] = useState<StageInfoResult | null>(null);
   useEffect(() => {
     setInfo(null);
     const id = setTimeout(() => setInfo(stageInfo(request)), 0);
@@ -496,7 +497,7 @@ export function StagePanel() {
           {info === null ? (
             <span>tracing the anchor…</span>
           ) : !info.ok ? (
-            <span style={{ color: "#c00" }}>the engine refuses this stage: {info.error}</span>
+            <span style={{ color: "#c00" }}>{refusalVoice(info.source, "this stage")}: {info.error}</span>
           ) : (
             <>
               <strong>{spanUm.toFixed(1)} µm</strong> of specimen on screen —{" "}

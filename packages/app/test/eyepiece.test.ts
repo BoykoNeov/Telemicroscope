@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { entryOf } from "../src/microscope";
+import { refusalVoice } from "../src/refusal";
 import { plosslEyepiece } from "@telemicroscope/core/designs";
 import {
   NOTICEABLE_DIOPTERS,
@@ -46,7 +48,7 @@ import {
  */
 
 const BASE: InstrumentRequest = {
-  kind: "din-4x-010",
+  spec: entryOf("din-4x-010").spec,
   form: "plossl",
   eyepieceFocalLengthMm: 25,
   fieldNumberMm: 20,
@@ -112,7 +114,7 @@ describe("D6.2 — which NA the exit pupil's law takes (§ 6q.5, as the panel pr
   });
 
   it("oil: the textbook 500·NA/M is low by 61%, and sec u is why", () => {
-    const r = ok({ kind: "oil-100x-140", eyepieceFocalLengthMm: 25, fieldNumberMm: 20 });
+    const r = ok({ spec: entryOf("oil-100x-140").spec, eyepieceFocalLengthMm: 25, fieldNumberMm: 20 });
     expect(r.naEngraved).toBeCloseTo(1.4, 5);
     // n·u = 3.55 — larger than the immersion oil's own index, so it is a slope
     // and not an aperture. That is the whole content of the guard the panel puts
@@ -141,7 +143,7 @@ describe("D6.3 — the negative control refuses on a short-focus objective", () 
   it("oil: the control THROWS while the instrument beside it is fine", () => {
     // The bug this rung exists for: letting `afocalTelescope`'s refusal
     // propagate reported a well-composed 100×/1.40 as a broken design.
-    const r = ok({ kind: "oil-100x-140" });
+    const r = ok({ spec: entryOf("oil-100x-140").spec });
     expect(r.telescope.ok).toBe(false);
     if (r.telescope.ok) return;
     expect(r.telescope.reason).toMatch(/non-physical/);
@@ -320,7 +322,7 @@ describe("D6.6 — the Huygens: a negative front focus, and the refusal it earns
 describe("D6.7 — refusals keep their stage, so the panel can name what failed", () => {
   it("a design the engine does not admit refuses at the objective", () => {
     // § 6d's measured NA 0.343 wall, arriving through A1's catalogue.
-    const made = at({ kind: "lister-40x-040" });
+    const made = at({ spec: entryOf("lister-40x-040").spec });
     expect(made.ok).toBe(false);
     if (made.ok) return;
     expect(made.stage).toBe("objective");
@@ -343,7 +345,7 @@ describe("D6.7 — refusals keep their stage, so the panel can name what failed"
 
 describe("D6.8 — the sweep carries what the plots need, and nothing about the eye", () => {
   const sweep = sweepFocalLengths({
-    kind: "din-4x-010",
+    spec: entryOf("din-4x-010").spec,
     form: "plossl",
     nearPointMm: 250,
     minFocalLengthMm: 10,
@@ -371,5 +373,46 @@ describe("D6.8 — the sweep carries what the plots need, and nothing about the 
     // D·NA/|M| exactly: the product is the invariant and does not move.
     const products = sweep.points.map((p) => p.exitPupilDiameterMm * p.magnification);
     for (const q of products) expect(q).toBeCloseTo(products[0]!, 3);
+  });
+});
+
+/**
+ * Part F's first finding, and the enumeration missed it.
+ *
+ * The scope counted two build chokepoints, ten request types and six catalogue
+ * lookups. It did not count this: `sweepFocalLengths` built its objective
+ * outside any `try`, which was safe while the only reachable specs were ten that
+ * had been checked, and stops being safe the moment a reader's own spec crosses
+ * the `postMessage` boundary. A throw there is a dead worker and a plot that
+ * never arrives — Part F's own posture is that an unreported non-return is the
+ * one failure a panel cannot show, so the sweep returns an empty curve and
+ * `describeInstrument`, which runs on the main thread, is what prints the
+ * objective's refusal.
+ */
+describe("D6.9 — a sweep whose objective does not build returns rather than throws", () => {
+  // The app's own refusal, not the engine's: the DIN architecture has no Lister
+  // member to ask for (`builder.ts`), so nothing is thrown by `core` here.
+  const impossible = { ...entryOf("lister-40x-020").spec, architecture: "din" as const };
+
+  it("returns an empty curve", () => {
+    const sweep = sweepFocalLengths({
+      spec: impossible,
+      form: "plossl",
+      nearPointMm: 250,
+      minFocalLengthMm: 10,
+      maxFocalLengthMm: 40,
+      points: 7,
+    });
+    expect(sweep.points.length).toBe(0);
+    expect(sweep.elapsedMs).toBeGreaterThanOrEqual(0);
+  });
+
+  it("and the readout beside it says whose refusal it is, in that voice's own words", () => {
+    const made = describeInstrument({ ...BASE, spec: impossible });
+    expect(made.ok).toBe(false);
+    if (made.ok) return;
+    expect(made.source).toBe("app");
+    expect(made.stage).toBe("objective");
+    expect(refusalVoice(made.source, "this objective")).toMatch(/^this app refuses/);
   });
 });

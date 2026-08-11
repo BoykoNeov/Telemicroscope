@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { entryOf, specKey, MICROSCOPE_CATALOG } from "../src/microscope";
 import { spectralXyz } from "@telemicroscope/core/photometry";
 import { lampSamples } from "../src/section";
 import {
@@ -39,7 +40,7 @@ import {
  */
 
 const BASE: StageRequest = {
-  kind: "din-4x-010",
+  spec: entryOf("din-4x-010").spec,
   specimen: "ruled",
   pupilSamples: 32,
   size: 64,
@@ -248,5 +249,49 @@ describe("A10 — the white is the lamp's, not the tile's", () => {
     // has to surface because the plane that refuses is a plane and not a frame.
     expect(colour.verdictNm).not.toBeNull();
     expect(WHITE_INTENSITY).toBe(2);
+  });
+});
+
+/**
+ * Part F's cache key, and why it is not `JSON.stringify(spec)`.
+ *
+ * `SYSTEMS` is module-level inside an adapter that runs in a worker, so it spans
+ * one worker's tiles: a stage asks for tens of them and the prescription does
+ * not change between them. Until Part F it was keyed on a ten-member string
+ * union, which cannot miss. A spec can: the object arrives fresh from a
+ * structured clone every message, so identity is useless, and the key has to be
+ * a value — one whose field order is this repo's rather than whatever the sender
+ * happened to construct.
+ */
+describe("Part F — a spec is a cache key by value, in an order this app fixes", () => {
+  const din = entryOf("din-4x-010").spec;
+
+  it("is blind to the order the sender's object literal was built in", () => {
+    // The same fields, assembled back-to-front. `Object.keys` order survives a
+    // structured clone, so this is a shape a worker really can receive.
+    const shuffled = Object.fromEntries(
+      Object.entries(din).reverse(),
+    ) as unknown as typeof din;
+    expect(specKey(shuffled)).toBe(specKey(din));
+  });
+
+  it("separates two specs that differ in one field, including inside the slip", () => {
+    expect(specKey({ ...din, numericalAperture: 0.15 })).not.toBe(specKey(din));
+    expect(
+      specKey({ ...din, coverslip: { kind: "slip", thicknessMm: 0.17, medium: "D263" } }),
+    ).not.toBe(specKey(din));
+    // The two slips differ only in a number nested one level down — the field
+    // `JSON.stringify` on the whole spec would have carried, and the one a
+    // hand-written list of top-level reads is most likely to drop.
+    expect(
+      specKey({ ...din, coverslip: { kind: "slip", thicknessMm: 0.17, medium: "D263" } }),
+    ).not.toBe(
+      specKey({ ...din, coverslip: { kind: "slip", thicknessMm: 0.23, medium: "D263" } }),
+    );
+  });
+
+  it("gives every catalogue row its own key", () => {
+    const keys = MICROSCOPE_CATALOG.map((e) => specKey(e.spec));
+    expect(new Set(keys).size).toBe(MICROSCOPE_CATALOG.length);
   });
 });

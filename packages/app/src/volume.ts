@@ -27,7 +27,9 @@ import { mulberry32 } from "@telemicroscope/core/math";
 import { abbeResolutionMm, objectNumericalAperture } from "@telemicroscope/core/pupil";
 import type { OpticalSystem } from "@telemicroscope/core/trace";
 import type { PupilFunction } from "@telemicroscope/core/wave";
-import { buildFrame, LAMBDA_NM, type MicroscopeKind } from "./microscope";
+import { buildFrame, LAMBDA_NM } from "./microscope";
+import type { BuildSpec } from "./builder";
+import { refused, type Refused } from "./refusal";
 
 /**
  * Out-of-focus haze and the focus stack — APP.md's A5, as pure functions.
@@ -295,7 +297,7 @@ export function mountSpecFor(
 }
 
 export interface VolumeRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   /** Frequency bins across the pupil diameter — also the crop, in cells (§ 6h). */
   readonly pupilSamples: number;
   /** Grid size, a power of two. Buys PSF sampling, NOT field. */
@@ -457,7 +459,7 @@ export interface VolumeReadout {
 
 export type VolumeResult =
   | { readonly ok: true; readonly readout: VolumeReadout }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 export interface VolumeJob {
   readonly seq: number;
@@ -543,7 +545,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
   const started = performance.now();
   try {
     const { system, frame } = buildFrame({
-      kind: request.kind,
+      spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
     });
@@ -687,7 +689,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
   } catch (cause) {
     // § 6b's and § 6d's design ceilings arrive here as the engine's own words,
     // exactly as they do in A1, A2 and A4.
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }
 
@@ -817,7 +819,7 @@ export interface AxialSweep {
 }
 
 export interface AxialReadout {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   readonly sweep: AxialSweep;
   readonly cones: readonly ConeCurve[];
   readonly mountMedium: string;
@@ -864,7 +866,7 @@ export interface AxialReadout {
 
 export type AxialResult =
   | { readonly ok: true; readonly readout: AxialReadout }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 /**
  * The axial job depends on the objective and the mount — not the scene, not the
@@ -876,7 +878,7 @@ export type AxialResult =
  * thickness), and the two give different curves, which is why the engine made a
  * caller compose the second rather than offering a flag.
  */
-export type AxialRequest = Pick<VolumeRequest, "kind" | "mount" | "depthUm">;
+export type AxialRequest = Pick<VolumeRequest, "spec" | "mount" | "depthUm">;
 
 export interface AxialJob {
   readonly seq: number;
@@ -918,7 +920,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
   const started = performance.now();
   try {
     const response0 = buildFrame({
-      kind: request.kind,
+      spec: request.spec,
       pupilSamples: AXIAL_PUPIL_SAMPLES,
       size: AXIAL_SIZE,
     });
@@ -972,7 +974,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
         : null;
 
     const cone0 = buildFrame({
-      kind: request.kind,
+      spec: request.spec,
       pupilSamples: CONE_PUPIL_SAMPLES,
       size: CONE_SIZE,
     });
@@ -1032,7 +1034,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
     return {
       ok: true,
       readout: {
-        kind: request.kind,
+        spec: request.spec,
         sweep: {
           waves,
           measured,
@@ -1069,7 +1071,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
       },
     };
   } catch (cause) {
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }
 
@@ -1122,7 +1124,7 @@ export function axialResponse(request: AxialRequest): AxialResult {
  * the golden section below, and `memoizedPupil`.
  */
 export interface DepthRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   readonly mount: MountChoice;
 }
 
@@ -1134,7 +1136,7 @@ export interface DepthPoint {
 }
 
 export interface DepthReadout {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   readonly mountMedium: string;
   readonly mountIndex: number;
   readonly mountMatched: boolean;
@@ -1169,7 +1171,7 @@ export interface DepthReadout {
 
 export type DepthResult =
   | { readonly ok: true; readonly readout: DepthReadout }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 export interface DepthJob {
   readonly seq: number;
@@ -1326,7 +1328,7 @@ export function depthStrehl(request: DepthRequest): DepthResult {
   const started = performance.now();
   try {
     const { system, frame } = buildFrame({
-      kind: request.kind,
+      spec: request.spec,
       pupilSamples: AXIAL_PUPIL_SAMPLES,
       size: AXIAL_SIZE,
     });
@@ -1403,7 +1405,7 @@ export function depthStrehl(request: DepthRequest): DepthResult {
     return {
       ok: true,
       readout: {
-        kind: request.kind,
+        spec: request.spec,
         mountMedium: mount.name,
         mountIndex: mount.index,
         mountMatched: mount.matched,
@@ -1424,6 +1426,6 @@ export function depthStrehl(request: DepthRequest): DepthResult {
       },
     };
   } catch (cause) {
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }

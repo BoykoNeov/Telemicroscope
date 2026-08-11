@@ -17,7 +17,9 @@ import {
 } from "@telemicroscope/core/imaging";
 import { mulberry32 } from "@telemicroscope/core/math";
 import { abbeResolutionMm, objectNumericalAperture } from "@telemicroscope/core/pupil";
-import { buildFrame, LAMBDA_NM, type MicroscopeKind } from "./microscope";
+import { buildFrame, LAMBDA_NM } from "./microscope";
+import type { BuildSpec } from "./builder";
+import { refused, type Refused } from "./refusal";
 
 /**
  * Fluorescent beads through a traced objective — APP.md's A4, as pure functions.
@@ -80,7 +82,7 @@ import { buildFrame, LAMBDA_NM, type MicroscopeKind } from "./microscope";
 export const BEAD_FLUX = 1;
 
 export interface FluorescenceRequest {
-  readonly kind: MicroscopeKind;
+  readonly spec: BuildSpec;
   /** Frequency bins across the pupil diameter — also the crop, in cells (§ 6h). */
   readonly pupilSamples: number;
   /** Grid size, a power of two. Buys sampling, NOT field. */
@@ -202,7 +204,7 @@ export interface FluorescenceReadout {
 
 export type FluorescenceResult =
   | { readonly ok: true; readonly readout: FluorescenceReadout }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 export interface FluorescenceJob {
   readonly seq: number;
@@ -274,7 +276,7 @@ export function renderFluorescenceScene(
   const started = performance.now();
   try {
     const { system, frame } = buildFrame({
-      kind: request.kind,
+      spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
     });
@@ -346,7 +348,7 @@ export function renderFluorescenceScene(
     // § 6b's and § 6d's design ceilings arrive here as the engine's own words,
     // exactly as they do in A1 and A2, and so does `incoherentPsf`'s refusal to
     // truncate a pupil that does not fit the grid.
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }
 
@@ -394,10 +396,10 @@ export interface TransferSweep {
 
 export type TransferResult =
   | { readonly ok: true; readonly sweep: TransferSweep }
-  | { readonly ok: false; readonly error: string };
+  | Refused;
 
 /** What the sweep depends on — not the scene, and not the patch count. */
-export type TransferRequest = Pick<FluorescenceRequest, "kind" | "pupilSamples" | "size">;
+export type TransferRequest = Pick<FluorescenceRequest, "spec" | "pupilSamples" | "size">;
 
 export interface TransferJob {
   readonly seq: number;
@@ -444,7 +446,7 @@ export function transferSweep(request: TransferRequest): TransferResult {
   const started = performance.now();
   try {
     const { system, frame } = buildFrame({
-      kind: request.kind,
+      spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
     });
@@ -507,6 +509,6 @@ export function transferSweep(request: TransferRequest): TransferResult {
       },
     };
   } catch (cause) {
-    return { ok: false, error: (cause as Error).message };
+    return refused(cause);
   }
 }

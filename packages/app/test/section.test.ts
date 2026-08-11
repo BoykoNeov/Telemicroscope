@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { brightfieldSpectralStack } from "@telemicroscope/core/imaging";
 import { entryOf } from "../src/microscope";
+import { buildMicroscope } from "../src/builder";
 import {
   chromaticSpread,
   lampSamples,
@@ -39,7 +40,7 @@ import { SPECIMENS, specimenOf } from "../src/specimens";
  */
 
 const BASE: SectionRequest = {
-  kind: "din-4x-010",
+  spec: entryOf("din-4x-010").spec,
   specimen: "section",
   pupilSamples: 32,
   size: 64,
@@ -66,7 +67,7 @@ const ok = (request: SectionRequest) => {
  */
 const stackFor = (request: SectionRequest) =>
   brightfieldSpectralStack(
-    entryOf(request.kind).build(),
+    buildMicroscope(request.spec).system,
     specimenOf(request.specimen).specimen,
     sourceOf(request.coherenceParameter, request.pupilSamples),
     {

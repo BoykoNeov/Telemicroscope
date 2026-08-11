@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { refusalVoice } from "../refusal";
 import { useLatestFromWorker } from "../hooks";
-import { MICROSCOPE_CATALOG, type MicroscopeKind } from "../microscope";
+import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
 import {
   maxCoherenceParameter,
   type LampKind,
@@ -160,6 +161,8 @@ function PlaneTable({ readout }: { readout: SectionReadout }) {
 
 export function SectionPanel() {
   const [kind, setKind] = useState<MicroscopeKind>("din-4x-010");
+  // Part F: a request carries the prescription, not a name from a list of ten.
+  const spec = useMemo(() => entryOf(kind).spec, [kind]);
   const [specimen, setSpecimen] = useState<SpecimenKind>("section");
   const [wavelengths, setWavelengths] = useState(3);
   // 32 / 64 is not a sampling nicety here: § 6r.7's blue plane refuses at 32 on
@@ -182,8 +185,8 @@ export function SectionPanel() {
   const s = Math.min(sRaw, maxS);
 
   const request = useMemo<SectionRequest>(
-    () => ({ kind, specimen, pupilSamples, size, wavelengths, coherenceParameter: s, lamp }),
-    [kind, specimen, pupilSamples, size, wavelengths, s, lamp],
+    () => ({ spec, specimen, pupilSamples, size, wavelengths, coherenceParameter: s, lamp }),
+    [spec, specimen, pupilSamples, size, wavelengths, s, lamp],
   );
 
   const { result, pending } = useLatestFromWorker<SectionRequest, SectionResult>(
@@ -298,7 +301,7 @@ export function SectionPanel() {
         </p>
       ) : !result.ok ? (
         <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", maxWidth: 660 }}>
-          the engine refuses this render: {result.error}
+          {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       ) : (
         <div style={{ opacity: pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}>
