@@ -558,11 +558,14 @@
    Two things nothing predicted. **The price is off axis and it is the glass:** a
    telecentric bundle's footprint translates with object height where a
    rim-stopped one pivots through one hole, so it walks off an element sized for
-   the axial beam — nothing lost to ~0.1 mm of field, 11% of the pupil at 1 mm,
-   35% at 3 mm, and identified as the element rather than the diaphragm by
-   widening one at a time. Real objectives oversize the front element for exactly
-   this reason; doing it here needs an objective that knows what field it must
-   pass, so it is **named as the next step** rather than done quietly. And the
+   the axial beam — **on the 4×/0.10** nothing lost to ~0.1 mm of field, 11% of
+   the pupil at 1 mm, 35% at 3 mm, and identified as the element rather than the
+   diaphragm by widening one at a time. Those figures do **not** travel: the rim
+   goes as f·NA and the field is absolute, so at 40×/0.10 the same 1 mm is past
+   total occlusion — which is exactly the magnification range the panning
+   surfaces run at. Real objectives oversize the front element for this reason;
+   doing it here needs an objective that knows what field it must pass, so it is
+   **named as the next step** rather than done quietly. And the
    ladder **barely moved — 9 tests of 1364** — because on axis the two
    constructions aim the *same rays*, which is also why the one number that did
    shift (§ 6d.4's reach, 0.5%) is a **reference** and not an aberration: the stop

@@ -134,10 +134,14 @@ import {
  *  - Off axis, the price. A rim stop pivots every bundle through one hole at the
  *    front vertex, so the footprint on the glass never moves; a telecentric one
  *    lets it TRANSLATE with the object height, and it walks off an element sized
- *    for the axial beam. Measured: nothing lost to ~0.1 mm of field, 11% of the
- *    pupil at 1 mm, 35% at 3 mm. A real objective's front element is much larger
- *    than its axial beam for exactly this reason, and oversizing it here is the
- *    named next step rather than something done quietly.
+ *    for the axial beam. Measured **on the 4×/0.10**: nothing lost to ~0.1 mm of
+ *    field, 11% of the pupil at 1 mm, 35% at 3 mm. Those are that lens's numbers
+ *    and they do not travel — the rim goes as f·NA while a field is absolute, so
+ *    at 40×/0.10 the same 1 mm is past total occlusion. A real objective's front
+ *    element is much larger than its axial beam for exactly this reason, and
+ *    oversizing it here is the named next step rather than something done
+ *    quietly, since the field an objective must pass is not currently part of
+ *    its spec.
  *  - **On axis, nothing.** The two constructions aim the SAME rays: the rim
  *    targets `ρ·s·tan u` a distance s away, giving slope `ρ·tan u`, and the
  *    telecentric one names that slope directly. Which is why moving the default

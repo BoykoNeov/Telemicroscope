@@ -231,6 +231,27 @@ describe("§ 6v.5 — what it costs: the bundle walks, so the glass vignettes of
     expect(t3).toBeGreaterThan(0);
   });
 
+  it("has a MAGNIFICATION in it, so the numbers above do not travel", () => {
+    // The figures quoted for the 4×/0.10 are that lens's. What the bundle walks
+    // against is the rim, which goes as f·NA, while a field is quoted in
+    // absolute millimetres — so the same field is a different fraction of a
+    // different lens, and at 40× the element is a tenth the size.
+    //
+    // Pinned because three documents state it: 1 mm of field is an 11% loss on
+    // the 4× and past TOTAL occlusion on the 40×, which is the magnification
+    // range the panning surfaces (§§ 6o, 6t) actually run at.
+    const low = scopeAt("backFocal", NA, 4);
+    const high = scopeAt("backFocal", NA, 40);
+    expect(throughput(low, 1)).toBeGreaterThan(0.8);
+    expect(throughput(high, 1)).toBe(0);
+
+    // …and the reason is the rim and not the aperture: both deliver NA 0.10,
+    // and the elements differ by the magnification ratio.
+    expect(objectNumericalAperture(high.system, L)).toBeCloseTo(NA, 12);
+    const rimOf = (s: { objective: { pupilRadiusMm: number } }) => s.objective.pupilRadiusMm;
+    expect(rimOf(low) / rimOf(high)).toBeCloseTo(10, 9);
+  });
+
   it("IDENTIFIES the glass rather than the diaphragm, by widening one at a time", () => {
     // The controlled experiment the claim above needs: if the loss were the
     // diaphragm's, opening the diaphragm would recover it. It does not, and
