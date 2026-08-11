@@ -243,9 +243,11 @@ export function BuilderPanel() {
         Its best feature was already built. The engine <strong>refuses</strong> designs that do not
         exist, and refuses them in its own words — the cemented doublet when its two
         spherical-aberration-null bendings stop being two, the aplanat when the joint root is gone,
-        the oil form when the slip&rsquo;s apparent depth crowds out the dome. A catalogue shows
-        three of those because three rows were written to fail; here you choose an aperture and find
-        out.
+        the oil form when the slip&rsquo;s apparent depth crowds out the dome. The bench can only
+        show the walls its rows were written to hit, and only while the engine still refuses them —
+        three rows were written to fail and <strong>one still does</strong>, because § 6b.5.6 seeded
+        the doublet solve differently and the design it used to refuse now builds. Here you choose
+        an aperture and find out, against the engine as it is today.
       </p>
       <p style={{ maxWidth: 660, color: "#444" }}>
         And the walls turn out <strong>not to be constants</strong>, which is the thing only a

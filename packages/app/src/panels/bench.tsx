@@ -6,6 +6,7 @@ import {
   MICROSCOPE_CATALOG,
   type FrameResult,
 } from "../microscope";
+import { refusalVoice } from "../refusal";
 import { Choice } from "../ui";
 
 /**
@@ -21,9 +22,15 @@ import { Choice } from "../ui";
  * identical 93.5 µm while their image pixels scale exactly with magnification.
  * A selector would hide that behind a click.
  *
- * The three rows that fail are not omitted. § 6b's cemented-doublet ceiling and
- * § 6d's measured NA 0.343 wall are findings, and the engine states them in its
- * own error text — which is the honest thing to put in the cell.
+ * The rows that fail are not omitted. § 6d's measured NA 0.343 wall is a
+ * finding, and the engine states it in its own error text — which is the honest
+ * thing to put in the cell.
+ *
+ * **How many fail is read off the table, never asserted beside it.** Three rows
+ * were written to fail; § 6b.5.6 re-seeded the doublet solve and one of them
+ * builds now, so this table's own cells are the only current answer. Saying a
+ * number here would be the failure A1 named when it chose to quote the engine:
+ * a fix upstream arrives for nothing, and a wrong sentence arrives the same way.
  */
 function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: number }) {
   const [rows, setRows] = useState<readonly FrameResult[] | null>(null);
@@ -85,7 +92,7 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
                   // The engine's own message, in full. It carries the measured
                   // ceiling; a "not available" would carry nothing.
                   <td style={{ ...cell, textAlign: "left", color: "#c00", whiteSpace: "normal" }} colSpan={11}>
-                    the engine refuses this design: {row.error}
+                    {refusalVoice(row.source, "this design")}: {row.error}
                   </td>
                 ) : (
                   <>
@@ -212,9 +219,13 @@ export function BenchPanel() {
       <p style={{ marginTop: 16, fontSize: 13, color: "#666", maxWidth: 640 }}>
         Move the grid and watch the crop <em>not</em> change: that is the constraint stated as an
         experiment. Move the pupil samples and it scales exactly, which is the only lever there is.
-        Three rows carry an error instead of numbers — the cemented doublet has a focal-ratio
-        ceiling and the Lister form a measured aperture wall, and where the engine refuses to build
-        a design it says so in its own words rather than showing a blank.
+        A row that carries an error instead of numbers is a design the engine will not build — the
+        Lister form has a measured aperture wall, the cemented doublet a focal-ratio ceiling — and
+        where it refuses it says so in its own words rather than showing a blank. <strong>How many
+        rows do that is whatever the table shows above</strong>: three were written to fail, and
+        § 6b.5.6 seeded the doublet solve differently, so the 4×/0.20 that used to be one of them
+        now builds. A number written here instead would be the wrong sentence the quoting was meant
+        to avoid.
       </p>
     </>
   );

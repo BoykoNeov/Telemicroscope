@@ -26,10 +26,13 @@ import { AppRefusal } from "./refusal";
  * exist — § 6b's f/4.1 cemented-doublet ceiling, § 6d's measured NA 0.343 wall,
  * § 6e.4's NA 1.411 geometric one — and it refuses them with error text carrying
  * the measured number. A1 established that showing that text *is* the handling.
- * A catalogue can show three such walls because three rows were written to fail;
- * a builder is where a reader walks into them **on purpose**, at whatever
- * aperture they choose, which is the difference between reading a finding and
- * reproducing it.
+ * A catalogue can only show the walls its rows were written to hit — and only
+ * for as long as the engine still refuses them: § 6b.5.6 moved the doublet's,
+ * and of the three rows written to fail, one still does. A builder is where a
+ * reader walks into a wall **on purpose**, at whatever aperture they choose,
+ * which is the difference between reading a finding and reproducing it — and it
+ * is also why a wall here is bisected against the live engine rather than
+ * quoted.
  *
  * ## Two refusals that are the APP's and not the engine's, and why they are marked
  *

@@ -859,9 +859,11 @@ export function VolumePanel() {
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
         <strong>The frame has a depth as well as a width, and the depth runs out faster.</strong> The
         lateral crop falls as 1/NA (§ 6h) and the depth of focus falls as n/NA², so the slab a panel
-        can hold shrinks the harder of the two: at 4×/0.10 nine planes is <em>529 µm</em> of
-        specimen — thicker than any real slide — while at 100×/1.40 the same nine planes is{" "}
-        <em>4.1 µm</em>, about one cell. That is A1&rsquo;s &ldquo;the span is set by NA
+        can hold shrinks the harder of the two: <em>on the bench&rsquo;s rows</em>, at 4×/0.10 nine
+        planes is <em>529 µm</em> of specimen — thicker than any real slide — while at 100×/1.40 the
+        same nine planes is <em>4.1 µm</em>, about one cell. The slab for whatever is selected here,
+        including a lens you built, is printed under the picture. That is A1&rsquo;s &ldquo;the span
+        is set by NA
         alone&rdquo; with the axial direction added, and it is why the immersion rows are where a
         z-stack means something.
       </p>
@@ -878,14 +880,18 @@ export function VolumePanel() {
         <em>own</em> image plane with no best-focus solve, and says a red number means &ldquo;not at
         this focus&rdquo; rather than &ldquo;not correctable&rdquo;. The left-hand plot measures
         that: a residual defocus moves the axial peak off w₂₀ = 0, and the defocus it takes to get
-        there carries σ = |w|/(2√3) of its own. For the three rows whose traced σ is over
-        λ/14 that accounts for <strong>90%, 92% and 100%</strong> of it — the DIN 4×/0.10 peaks
-        0.438 waves away and is 1.79× brighter there, the 100×/1.25 oil 0.156 waves and 1.10×, the
-        100×/1.40 oil 0.281 waves and 1.27×. Their red is <em>focus</em>, and almost nothing else.
-        The well-corrected rows sit one step of this sweep from zero (the infinity 20× and the
-        Lister both at 0.031 waves, 1.002× and 1.006×), which is a bound rather than a
-        measurement, and the caption says so where it happens. A1&rsquo;s wording was right and
-        this is the number behind it.
+        there carries σ = |w|/(2√3) of its own. <em>Measured on the bench&rsquo;s ten rows</em>, for
+        the three whose traced σ is over λ/14 that accounts for <strong>90%, 92% and 100%</strong>{" "}
+        of it — the DIN 4×/0.10 peaks 0.438 waves away and is 1.79× brighter there, the 100×/1.25
+        oil 0.156 waves and 1.10×, the 100×/1.40 oil 0.281 waves and 1.27×. Their red is{" "}
+        <em>focus</em>, and almost nothing else. The well-corrected rows sit one step of this sweep
+        from zero (the infinity 20× and the Lister both at 0.031 waves, 1.002× and 1.006×), which
+        is a bound rather than a measurement, and the caption says so where it happens. Those five
+        numbers belong to those five lenses; <strong>the same three quantities for whatever is
+        selected — the peak offset, the ratio, and the share of σ it accounts for — are printed
+        under the left-hand plot</strong>, swept live, so a design of your own is measured here
+        rather than compared to a table it is not in. A1&rsquo;s wording was right and this is the
+        number behind it.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
         <strong>What the guard turning red looks like.</strong> A pupil sampled on a lattice has a{" "}

@@ -478,8 +478,9 @@ export function FluorescencePanel() {
             transition: "opacity 120ms ease-out",
           }}
         >
-          kernel peak on axis <strong>{readout.axisKernelPeak.toFixed(6)}</strong> · at the frame
-          corner <strong>{readout.cornerKernelPeak.toFixed(6)}</strong> ·{" "}
+          <span style={{ color: "#999" }}>{objective.label}, as traced just now —</span> kernel peak
+          on axis <strong>{readout.axisKernelPeak.toFixed(6)}</strong> · at the frame corner{" "}
+          <strong>{readout.cornerKernelPeak.toFixed(6)}</strong> ·{" "}
           <span style={{ color: cornerDrop > 0 ? "#a60" : "#06a" }}>
             {cornerDrop > 0 ? "drop" : "gain"} {Math.abs(cornerDrop * 100).toFixed(3)}%
           </span>
@@ -498,17 +499,22 @@ export function FluorescencePanel() {
         at the same total is a worse image. § 6i.5 measured the corner&rsquo;s traced pupil giving a
         <em> lower</em>-peaked kernel than the axis&rsquo;s — corner coma showing up in an image —
         and it holds here, but <strong>the sign is not universal and that is a correction worth
-        stating</strong>. Measured at pupil samples 32: the DIN 4×/0.10 drops 0.659% and the
-        infinity 20×/0.10 drops 0.997%, while the <em>Lister 40×/0.20 and the 100×/1.40 oil both
-        gain ~0.18%</em> — their corner wavefront is genuinely better than their axial one at the
-        system&rsquo;s own image plane, with no best-focus solve. So &ldquo;the corner is worse&rdquo;
-        is a statement about a particular design, not about field position, and this panel prints the
-        number rather than the moral.
+        stating</strong>. <em>Measured on the bench&rsquo;s ten rows, at pupil samples 32</em>: the
+        DIN 4×/0.10 drops 0.659% and the infinity 20×/0.10 drops 0.997%, while the{" "}
+        <em>Lister 40×/0.20 and the 100×/1.40 oil both gain ~0.18%</em> — their corner wavefront is
+        genuinely better than their axial one at the system&rsquo;s own image plane, with no
+        best-focus solve. So &ldquo;the corner is worse&rdquo; is a statement about a particular
+        design, not about field position. Those four numbers are about those four lenses;{" "}
+        <strong>the one that is about whatever is selected is printed above the picture</strong>,
+        re-traced on every change, which is why this panel prints the number rather than the moral —
+        and why an objective you built gets an answer here rather than a shrug.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
-        <strong>The crop moves the corner, too.</strong> Raising pupil samples widens the frame —
-        93.5 µm at 32, 187.1 at 64, 374.2 at 128 on the DIN 4× — so the &ldquo;corner&rdquo; walks
-        further off axis and the drop grows with it: 0.659% → 2.38% → 9.33% on that objective. The
+        <strong>The crop moves the corner, too.</strong> Raising pupil samples widens the frame —{" "}
+        <em>on the DIN 4×</em>, 93.5 µm at 32, 187.1 at 64, 374.2 at 128 — so the
+        &ldquo;corner&rdquo; walks further off axis and the drop grows with it: 0.659% → 2.38% →
+        9.33% <em>on that row</em>. Move the sampling control with any objective selected and the
+        two live numbers above follow the same way. The
         picture at 128 shows it directly, with the outer beads visibly fatter than the central ones.
         That is the same § 6h constraint the brightfield panel is built around, arriving as a visible
         aberration rather than as a number: the frame spans <code>pupilSamples</code> resolution

@@ -53,11 +53,21 @@ import { refused, type Refused } from "./refusal";
  *
  * ## Errors are readouts too
  *
- * Three catalogue entries exist to be *refused* by the engine at the aperture
- * they name — § 6b's f/4.1 cemented-doublet ceiling and § 6d's measured NA 0.343
- * wall for the Lister form. `describeEntry` catches per entry and returns the
- * engine's own message, because a picker that hid those would hide two of the
- * branch's measured findings behind a blank row.
+ * Some catalogue entries are *refused* by the engine at the aperture they name,
+ * and `describeEntry` catches per entry and returns the engine's own message,
+ * because a picker that hid those would hide a measured finding behind a blank
+ * row.
+ *
+ * **How many is a measurement, not a constant, and this header used to state
+ * it as one.** Three rows were written to fail against the engine of the day —
+ * § 6b's f/4.1 cemented-doublet ceiling and § 6d's NA 0.343 wall for the Lister
+ * form. **§ 6b.5.6 moved the first of those**: seeding the doublet solve
+ * differently made designs build that had refused, and today only
+ * `lister-40x-040` refuses at all, while `din-4x-020` draws a picture. A1's own
+ * point about this is the reason it is worth writing down: *"showing the
+ * engine's own text means a fix upstream arrives here for nothing — and means a
+ * wrong sentence would have too."* The sentence was this one. Part F pins the
+ * count against the catalogue rather than restating it.
  */
 
 /** The wavelength every readout is quoted at — the d line, fixed, no control. */
@@ -145,7 +155,7 @@ export const MICROSCOPE_CATALOG: readonly MicroscopeEntry[] = [
     "din-4x-020",
     "DIN 4×/0.20",
     "DIN 160 mm",
-    "§ 6b's f/4.1 ceiling, as an error message: the cemented doublet stops existing here.",
+    "Written to fail at § 6b's f/4.1 ceiling — and it builds: § 6b.5.6 seeded the solve differently.",
     dinSpec(4, 0.2),
   ),
   entry(
