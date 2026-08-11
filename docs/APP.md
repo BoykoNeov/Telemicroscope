@@ -274,17 +274,26 @@ image pixels scale exactly with M. That is constraint 1 as an experiment the
 reader runs — move the grid control and watch the crop *not* change — rather than
 as a paragraph. The whole catalogue is ~550 ms, which buys it.
 
-**Three entries exist to be refused**, and the engine's own error text is what
-the cell shows: the doublet's refusal locus (DIN 4×/0.20 — § 6b.5 pins this as
-`achromaticObjective`'s three-root wall rather than § 6b's f/4.1) and § 6d's measured
-NA 0.343 wall (Lister 40×/0.40, whose message carries both glass pairs' numbers).
-This doc predicted a picker "must handle it"; showing the message *is* the
-handling, and it puts two measured findings on screen for free. **§ 6b.5.5
+**Three entries were written to be refused**, and the engine's own error text is
+what the cell shows: the doublet's refusal locus (DIN 4×/0.20 — § 6b.5 pins this
+as `achromaticObjective`'s three-root wall rather than § 6b's f/4.1) and § 6d's
+measured NA 0.343 wall (Lister 40×/0.40, whose message carries both glass pairs'
+numbers). This doc predicted a picker "must handle it"; showing the message *is*
+the handling, and it puts a measured finding on screen for free. **§ 6b.5.5
 improved that cell without touching the panel**: the DIN 4×/0.20 row now says
 the aperture is what is binding and prints how many of its three roots are past
 hemispherical, where before it told the reader to change glass. Showing the
 engine's own text means a fix upstream arrives here for nothing — and means a
 wrong sentence would have too.
+
+**And it did, which Part F found: today ONE row refuses.** § 6b.5.6 seeded the
+doublet solve differently and the DIN 4×/0.20 builds — it draws a picture in
+brightfield — so the paragraph above went from a count to a history, and the row
+note that called it "an error message" was on screen saying so. The sentence
+predicting exactly this failure was in the same paragraph as the failure. **How
+many rows refuse is now read off the table and asserted nowhere**, in the app and
+in the rungs alike; see Part F's *What it cost that the enumeration did not
+count*.
 
 **Two corrections to what was scoped above.** Frame build is indeed 1–6 ms, but a
 row is ~50 ms — `scaleDrift` is six more field traces and dominates, so the panel
@@ -2769,8 +2778,10 @@ catalogue and the form share one function rather than one copying the other.
 **The catalogue is now generated from the same specs**, so the design space
 provably contains it: each of the ten entries carries a `BuildSpec`, its preset
 button reloads it, and the systems it builds were checked identical — object for
-object, and message for message on the three rows that exist to be refused —
-against the two-argument calls they replaced.
+object, and message for message on the rows that refuse — against the two-argument
+calls they replaced. **That check was a one-off and is a standing rung since Part
+F**, which is where it belonged once every imaging panel started sending a spec
+and no second path remained to catch a preset that drifted.
 
 **The one trap, and it is why `CoverslipChoice` has no absent case.** The two
 engine specs read a missing slip in *opposite* directions:
@@ -3235,7 +3246,7 @@ already showed.
 
 ---
 
-## Part F — the build you can look through — *app wiring only* — **scoped, not landed**
+## Part F — the build you can look through — *app wiring only* — ✅ **landed**
 
 D8 answered *"can we compose one and change its components?"* and Part E answered
 *"can we author the surface list under it?"* Neither answered the question a
@@ -3246,6 +3257,12 @@ one addresses its objective by a **name from a closed list of ten**.
 This section is the scope for closing that. It is app wiring only in the strict
 sense this doc uses: no engine call changes, no constructor gains a parameter, no
 rung is added or moved. What changes is which value the imaging panels carry.
+
+**It landed as scoped, in three commits, and the decisions were taken as: A
+(replace `kind` with `spec`), the saved slot, and two voices.** What follows is
+the scope as written; the corrections it earned are collected at the end, under
+*What it cost that the enumeration did not count*. Read that section too — one of
+its three items is a sentence this document has been getting wrong for a while.
 
 ### What is already true, which is most of it
 
@@ -3399,7 +3416,10 @@ work.
 since § 6b.5.6: the DIN bisection now measures **~1.15 s**, which would be
 unaffordable per render and is never reached from one.
 
-**One cache breaks and it is the only one.** `stage.ts:134` holds
+**One cache breaks and it is the only one.** *(As landed: `SYSTEMS` is keyed by
+`specKey` and the key list is a `Record<keyof BuildSpec, true>`, so a field added
+to the spec breaks the build rather than collapsing two designs onto one system —
+see Part F's measurements below.)* `stage.ts:134` held
 `SYSTEMS = new Map<MicroscopeKind, OpticalSystem>()`. It is module-level inside an
 adapter that runs **in a worker**, so its scope is one worker's lifetime — built
 once per worker per objective, across the tens of tiles a mosaic asks for, and
@@ -3416,16 +3436,33 @@ precedent:
 
 1. **The identity D8 claimed and never pinned.** For each of the ten catalogue
    entries, the spec path and the kind path produce the same system and the same
-   readout — and, for the three rows that exist to be refused, the **same
-   message**. This is the check that makes A safe, and it is the one that
-   currently does not exist.
+   readout — and, for **whichever** rows refuse, the same message. This is the
+   check that makes A safe, and it is the one that currently does not exist.
+   ✅ **Landed**, and the wording above is a correction: the first draft said
+   "the three rows that exist to be refused", which was the stale count again —
+   the rung pins that the two paths *agree*, never how many disagree with the
+   engine.
 2. **A round trip through whatever encoding decision 2 picks**, so a saved or
    linked build rebuilds the design it was saved from rather than one that
    resembles it — `editor.test.ts`'s seed round-trip, applied to `BuildSpec`.
+   ✅ **Landed** as `saved.test.ts`, and it grew past a round trip: the decode
+   is checked to return **nothing** rather than a partial spec for a missing
+   field, a wrong-typed field, a malformed slip, an unknown version and a
+   non-JSON string, because a spec that is fifteen-sixteenths right builds a
+   *different lens* rather than failing. The round trip is compared through
+   `specKey` as well as by value, so a reload cannot produce a spec that builds
+   the same lens while missing the tile cache.
 3. **A refusing custom spec returns rather than hangs**, through at least one
    imaging adapter. `builder.test.ts`'s own posture: the point is that it
    *returns*, because an unbounded solve is the one failure a panel cannot
-   report.
+   report. ✅ **Landed**, both voices: a DIN × Lister spec returns the *app's*
+   sentence and an over-aperture aplanat returns the *engine's*, and a
+   catalogue-free DIN 10×/0.12 draws a picture — which is Part F in one
+   assertion.
+
+**A fourth, unplanned:** `sweepFocalLengths` returning an empty curve instead of
+throwing (D6.9), and the `specKey` invariants — order-blind, field-sensitive
+including inside the slip, one key per catalogue row (`stage.test.ts`).
 
 ### What stays out
 
@@ -3460,6 +3497,102 @@ the only open question here whose answer could make the rest not worth building,
 and it is the only one with no measurement behind it. **The pattern this doc keeps
 naming arrives before the work rather than after it this time**: the part that
 looked like arithmetic is the part that is not.
+
+**The prediction was half right, and the half it missed is the one worth
+keeping.** Decision 3 was indeed the load-bearing one — but it was cheap, not
+expensive, because the panels already computed the live numbers. Fluorescence
+already printed the axis and corner kernel peaks; volume already printed the
+axial peak offset and the share of σ it accounts for. Nothing was missing except
+a sentence saying *which lens* each claim was about, so "two voices" cost two
+labels and one line of prose per panel and **no second worker job** — the cost
+guard this section wrote for it was never reached. What the prediction did not
+see is below, and it is not in the plumbing either: it is that one of the
+sentences being labelled had stopped being true.
+
+### What it cost that the enumeration did not count
+
+Three things, and the enumeration missed all three. The plumbing itself was
+exactly as counted — two build chokepoints, ten request types, six catalogue
+lookups — and none of it surprised anything.
+
+**1. A build site outside a `try`, which is the one failure mode this part cares
+about.** `sweepFocalLengths` (`eyepiece.ts`) built its objective with no `catch`
+around it. That was safe for as long as the only reachable specs were ten that
+had been checked, and stops being safe the moment a reader's own spec crosses the
+`postMessage` boundary: a throw there is a dead worker and a plot that never
+arrives — precisely the *"an unbounded solve is the one failure a panel cannot
+report"* posture `builder.test.ts` already had, arriving at a different site. It
+returns an empty curve now, with `describeInstrument` on the main thread printing
+the objective's own refusal beside it. **Pinned at D6.9.** The lesson generalises:
+the enumeration counted every place a `kind` was *read*, and the site that
+mattered was one where a build was not *guarded*.
+
+**2. The `source` field, as scoped — and it made a second thing shareable.**
+The imaging results carried `{ok, error}` with no `source`, which was true while
+only engine refusals were reachable from a render. `Refused` split out of
+`Refusal<Stage>` for surfaces with exactly one stage (a one-member `stage` union
+would be a field that can never say anything), and `refusalVoice` replaced the
+nine panel sites that said "the engine refuses…" unconditionally — ten, with the
+bench table, which had the same sentence and was not on the list.
+
+**3. "Three entries exist to be refused" is false, and has been for a while.**
+This section's own headline rested on it: *"it is what `din-4x-020` and
+`lister-40x-040` do when selected in brightfield."* Measured against the current
+engine, **one** catalogue row refuses — `lister-40x-040`. § 6b.5.6 seeded the
+doublet solve differently, and the DIN 4×/0.20 that was written to fail at § 6b's
+f/4.1 ceiling now builds and draws a picture, while its own row note still called
+it an error message. The claim was in four places, two of them on screen
+(`builder.tsx`'s prose and the row note itself), and § A1 above stated it while
+naming only two rows, so it was internally inconsistent before the wall even
+moved. A1 predicted this exactly when it chose to quote the engine rather than
+paraphrase it — *"a fix upstream arrives here for nothing — and means a wrong
+sentence would have too"* — and the wrong sentence was that one. **The count is
+now read off the table everywhere and asserted nowhere**, including in the test:
+the rung pins that the two build paths *agree* about which rows refuse and that a
+refusal carries the engine's voice and a number, never how many there are.
+
+The headline this part was built for survives the correction and is
+better for it: build something the engine will not make, and a picture panel
+quotes the engine's own refusal. It is `lister-40x-040` that demonstrates it from
+the catalogue, and the builder that demonstrates it at any aperture you like.
+
+### What it measured
+
+**The cost claim held, and it is now measured rather than argued.** A custom spec
+is not a new class of work: in node, a stage tile is **82 ms** on the catalogue's
+DIN 4×/0.10 and **79 ms** on a composed DIN 10×/0.12, with the first tile of each
+carrying its build (158 ms / 101 ms) and every later one hitting the per-worker
+`SYSTEMS` cache. In the browser, on a settled panel, the same custom lens renders
+**39 tiles in 1.3 s** against the catalogue row's **36 in 1.7 s**.
+
+**One measurement looked like a regression and was not**, which is worth
+recording because the obvious reading was wrong: switching objectives *mid-render*
+showed 39 tiles in 80 s and a slowest tile of 2 545 ms, ~30× the settled number.
+That is the workers finishing the previous epoch's tiles while the new epoch's
+queue waits — pre-existing behaviour on a panel that spawns several workers, and
+nothing to do with the spec. The node measurement is what settled it; the
+plausible story (a cache keyed on an object that arrives fresh every message) was
+checkable and false, because `specKey` had already made the key a value.
+
+**And the cache key is now a compile-time obligation.** `SPEC_FIELDS` is a
+`Record<keyof BuildSpec, true>`, so a field added to the spec breaks the build
+rather than silently collapsing two designs onto one cached system. The first
+draft of that function was a hand-written list of sixteen reads with a comment
+claiming exactly this property, which it did not have.
+
+### What is still open
+
+- **The hash.** Decision 2 took the slot; `encodeBuild` is already a string, so
+  linking a design remains an additive step rather than a rewrite. Nobody has
+  needed it yet.
+- **More than one saved build**, a custom condenser/eyepiece/camera/stage, and a
+  custom row in A1's comparison table — all still out, on the grounds stated
+  above, none of which the work changed.
+- **The prose is labelled, not re-measured.** "Two voices" was taken as *label
+  the catalogue's claim and print the live one beside it*, and every panel that
+  had a live equivalent already had it on screen. Where a panel's teaching has no
+  live counterpart, it now says whose lens it is about and stops — a re-measured
+  version would need the second job this part declined to add.
 
 ---
 
@@ -3712,6 +3845,20 @@ registry could not help here either, and for a sharper reason than with C3: ther
 *was* a route called `bench`, and it is A1's objective table. A name collision is
 worse than an absence, since the check that catches absences reads as satisfied.
 The panel count is eighteen.
+
+**Part F is the sixth, and it is the first one the ledger's own method missed.**
+Every entry above was found by a *structural* check — a registry sweep, a
+grep for "unbuilt", a branch that owns no document. Part F's finding is none of
+those: "three entries exist to be refused" was written in four places, and all
+four were *true when written*. § 6b.5.6 changed the engine, and no structural
+check can see a sentence that quietly stopped matching a solver. What caught it
+was **driving the panel** — clicking the row the doc said would refuse and
+watching it draw a picture — which is A5's and A6's lesson arriving at the
+document instead of at a panel. The consequence is written into the rungs rather
+than into a promise: the count is now derived from the catalogue everywhere,
+including in the test that pins it, so the next time a wall moves the sentence
+moves with it. The panel count is still eighteen; Part F added no route, which is
+the point — the eleventh objective appears inside the eighteen that exist.
 
 The structural items were not a prerequisite, and A1 confirmed it. A2 revised
 that: items 3 and 5 landed *inside* it, because a second worker-backed panel and
