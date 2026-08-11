@@ -105,9 +105,15 @@ export interface MicroscopeEntry {
    * cannot offer a space that fails to contain the catalogue, and a preset
    * loaded into the form rebuilds *this* system rather than one that resembles
    * it. The presets are written against the engine's own defaults
-   * (`ENGINE_DEFAULTS`), which is what keeps this a restatement and not a
-   * change: every row below builds byte-identically to the two-argument
-   * constructor calls it replaced.
+   * (`ENGINE_DEFAULTS`), which is what kept this a restatement and not a change.
+   *
+   * **One row family now departs from that, on purpose:** the infinity cemented
+   * doublets carry `fieldNumberMm: FIELD_NUMBER_MM` (§ 6w), which is not an
+   * engine default and cannot be one — the engine has no way to know what field
+   * is asked of an objective, and this app does, because its stage crops to that
+   * number and prints it on screen. So those three rows are no longer
+   * byte-identical to the constructor calls they replaced, and the sentence
+   * above is corrected rather than left to go stale a second time.
    */
   readonly spec: BuildSpec;
   readonly build: () => OpticalSystem;
@@ -162,7 +168,7 @@ export const MICROSCOPE_CATALOG: readonly MicroscopeEntry[] = [
     "inf-4x-010",
     "infinity 4×/0.10",
     "infinity + 200 mm tube",
-    "§ 6a's chain. Same NA as the DIN 4× and the same span, on a different architecture.",
+    "§ 6a's chain, sized for FN 18 (§ 6w) so it passes the field the stage claims to show.",
     infinitySpec(4, 0.1),
   ),
   entry(
@@ -255,6 +261,7 @@ const SPEC_FIELDS: Record<keyof BuildSpec, true> = {
   frontGroupOrientation: true,
   rearGroupOrientation: true,
   infinitySpaceMm: true,
+  fieldNumberMm: true,
   powerSplit: true,
   separationFactor: true,
   meniscusCount: true,

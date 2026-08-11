@@ -3609,6 +3609,42 @@ rather than silently collapsing two designs onto one cached system. The first
 draft of that function was a hand-written list of sixteen reads with a comment
 claiming exactly this property, which it did not have.
 
+### The eleventh spec field, and the first the engine deliberately will not default
+
+**§ 6w landed after this part and added `fieldNumberMm` to `BuildSpec`** — the
+field number an infinity-corrected doublet's glass is sized to pass. It is worth
+a section here rather than a line, because it is the first parameter whose home
+is *this side* of the seam.
+
+The engine cannot default it, and says so: a stop position is intrinsic to an
+objective, but a field is a property of the objective *together with whatever
+stops the field behind it*, so `microscopeObjective` leaves it off and the § 6v
+lens — sized to its axial beam — stays the shipped default and § 6w's negative
+control. **The app is that "whatever stops the field."** A7's stage crops to
+`FIELD_NUMBER_MM` and prints the number on screen, so before this the panel drew
+a caption naming a field its own objective vignetted **27% of the pupil** at the
+edge of. The catalogue's three infinity doublets now carry the same constant the
+caption quotes, which is also why the constant moved from `stage.ts` (a consumer)
+into `builder.ts`: one number doing two jobs cannot drift from itself.
+
+That makes these the **first catalogue rows that are not byte-identical to the
+constructor calls they replaced**, and the sentence in `microscope.ts` claiming
+they are is corrected rather than left to go stale — this document's own repeated
+lesson, arriving where it can be acted on.
+
+Three smaller things the change had to get right. The parameter is **refused, in
+the app's voice, on the three forms that have no such thing** — a DIN objective
+stops on its rim where a bundle pivots instead of walking, and the Lister and the
+oil front are different constructors — rather than being dropped silently;
+`liveFields` greys the control for the same cases, so the form and the refusal
+agree. `SPEC_FIELDS` and `saved.ts`'s `SPEC_CHECKS` both **broke the build** until
+the field was added to them, which is the compile-time obligation Decision 2
+installed working exactly as designed: a field added to the spec cannot silently
+collapse two designs onto one cache key or vanish from a saved slot. And the
+builder's own control offers **0 = axial glass**, so § 6v's objective stays
+reachable from the form — the comparison this step is measured by is a control
+the user can also run.
+
 ### What is still open
 
 - **The hash.** Decision 2 took the slot; `encodeBuild` is already a string, so

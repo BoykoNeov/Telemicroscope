@@ -85,6 +85,7 @@ const SPEC_CHECKS: Record<keyof BuildSpec, Check> = {
   frontGroupOrientation: oneOf("flintFirst", "crownFirst"),
   rearGroupOrientation: oneOf("flintFirst", "crownFirst"),
   infinitySpaceMm: isFiniteNumber,
+  fieldNumberMm: isFiniteNumber,
   powerSplit: isFiniteNumber,
   separationFactor: isFiniteNumber,
   meniscusCount: isFiniteNumber,

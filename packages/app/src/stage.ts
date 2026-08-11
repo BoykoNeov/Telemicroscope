@@ -18,7 +18,7 @@ import { spectralXyz } from "@telemicroscope/core/photometry";
 import { objectNumericalAperture } from "@telemicroscope/core/pupil";
 import type { OpticalSystem, WavelengthSample } from "@telemicroscope/core/trace";
 import { LAMBDA_NM, specKey } from "./microscope";
-import { buildMicroscope, type BuildSpec } from "./builder";
+import { FIELD_NUMBER_MM, buildMicroscope, type BuildSpec } from "./builder";
 import { refused, type Refused } from "./refusal";
 import { lampSamples, type LampKind } from "./section";
 import { specimenOf, type SpecimenKind } from "./specimens";
@@ -80,13 +80,6 @@ import { specimenOf, type SpecimenKind } from "./specimens";
  * per resolution cell below is a sampling choice rather than a rasterizer
  * budget.
  */
-
-/** The DIN field number a finished microscope delivers, in mm of intermediate
- * image — a **convention** (ISO 8039 eyepiece field numbers run 18–26.5), not
- * an engine number, and quoted as such wherever the stage says what fraction of
- * a real field it covers. 18 is the standard-eyepiece value the 160 mm tube was
- * specified around. */
-export const FIELD_NUMBER_MM = 18;
 
 /** Display convention: intensity 1 — a clear field — is mid-grey, white is 2. */
 export const WHITE_INTENSITY = 2;

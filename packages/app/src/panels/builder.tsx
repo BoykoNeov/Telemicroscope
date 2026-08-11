@@ -331,12 +331,29 @@ export function BuilderPanel() {
           disabled={!live.infinitySpace}
           onChange={(v) => set("infinitySpaceMm", v)}
         />
+        <NumberField
+          label="field number (mm, 0 = axial glass)"
+          value={spec.fieldNumberMm}
+          disabled={!live.fieldNumber}
+          onChange={(v) => set("fieldNumberMm", v)}
+        />
         <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 300, margin: 0 }}>
           the tube length and the objective&rsquo;s own <code>tubeFocalLengthMm</code> are one control:
           a magnification quoted against one tube and formed by another is a mislabelled lens, not a
           design. The infinity space changes no first-order property — that is why it exists, and it
           is a rung of its own.
         </p>
+        {live.fieldNumber && (
+          <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 300, margin: 0 }}>
+            the field number sizes the <em>glass</em> and not the aperture (§ 6w): a telecentric
+            bundle from the field edge arrives centred on <code>FN/2M</code>, so the element is
+            <code> f·NA + FN/2M</code>. Set it to 0 and the objective is § 6v&rsquo;s — sized to its
+            axial beam, and losing 27% of the pupil at the field edge. The oversize is a{" "}
+            <em>ratio</em> with no magnification in it, <code>1 + FN/(2·f_tube·NA)</code>, and it
+            costs 2.1% of working distance and drops the form&rsquo;s NA ceiling by exactly{" "}
+            <code>FN/(2·f_tube)</code>.
+          </p>
+        )}
       </Fieldset>
 
       <Fieldset title="glass">

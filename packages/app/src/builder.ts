@@ -134,6 +134,18 @@ export interface BuildSpec {
   readonly rearGroupOrientation: "flintFirst" | "crownFirst";
   /** Infinity only: objective rear vertex → tube lens front vertex (mm). */
   readonly infinitySpaceMm: number;
+  /**
+   * Infinity cemented doublet only: the field number (mm) the objective's glass
+   * is sized to pass (§ 6w), or **0 for the § 6v objective sized to its axial
+   * beam alone** — which vignettes off axis, 27% of the pupil at its own field
+   * edge, and is the engine's own default.
+   *
+   * Not offered for the other forms because they do not take it: § 6d's Lister
+   * and § 6e's oil front are separate constructors, and the DIN doublet carries
+   * its stop on the rim, where a bundle pivots instead of walking (§ 6w.7). A
+   * non-zero value on any of those is refused rather than ignored.
+   */
+  readonly fieldNumberMm: number;
   /** Lister and the oil form's rear group: the front group's share of the power. */
   readonly powerSplit: number;
   /** Lister and the oil rear group: group gap, in focal lengths. */
@@ -162,6 +174,8 @@ export function liveFields(spec: BuildSpec): {
   readonly listerGroups: boolean;
   readonly meniscus: boolean;
   readonly immersion: boolean;
+  /** § 6w's field sizing — the infinity cemented doublet and nothing else. */
+  readonly fieldNumber: boolean;
   /** How the slip control reads for this form — three meanings, never one. */
   readonly coverslip: "corrected-for" | "looked-through" | "not-expressible";
 } {
@@ -172,6 +186,7 @@ export function liveFields(spec: BuildSpec): {
     listerGroups: spec.form === "lister" || spec.form === "oil",
     meniscus: spec.form === "oil",
     immersion: spec.form === "oil",
+    fieldNumber: infinity && spec.form === "doublet",
     coverslip:
       spec.form === "oil"
         ? "looked-through"
@@ -223,10 +238,18 @@ export type ObjectiveNumbers =
     })
   | (CommonObjectiveNumbers & {
       readonly form: "doublet-infinity";
-      /** 1/(2·NA) — a function of NA alone, so § 6b's ceiling reads differently here. */
+      /**
+       * The AXIAL beam's ratio, 1/(2·NA) — a function of NA alone, so § 6b's
+       * ceiling reads differently here. With a field number the element is
+       * faster than this, by `glassRadiusMm/pupilRadiusMm`.
+       */
       readonly focalRatio: number;
       /** f·NA: the sine-condition height, NOT the stop radius. */
       readonly pupilRadiusMm: number;
+      /** The element itself (mm): `pupilRadiusMm` plus the field walk (§ 6w). */
+      readonly glassRadiusMm: number;
+      /** Object-space semi-field the glass was sized for, 0 when axially sized. */
+      readonly objectFieldRadiusMm: number;
     })
   | (CommonObjectiveNumbers & { readonly form: "lister" } & ListerNumbers)
   | (CommonObjectiveNumbers & {
@@ -286,6 +309,7 @@ export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
   const glass = { crownMedium: spec.crownMedium, flintMedium: spec.flintMedium };
 
   if (spec.architecture === "din") {
+    requireNoFieldNumber(spec);
     if (spec.form !== "doublet") {
       throw new AppRefusal(
         `the ${spec.form === "lister" ? "Lister" : "oil-immersion"} form is an infinity-space ` +
@@ -348,6 +372,7 @@ export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
       magnification: spec.magnification,
       numericalAperture: spec.numericalAperture,
       tubeFocalLengthMm: spec.tubeLengthMm,
+      ...(spec.fieldNumberMm > 0 ? { fieldNumberMm: spec.fieldNumberMm } : {}),
       ...glass,
     });
     const chain = compose(objective);
@@ -362,11 +387,14 @@ export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
         stopRadiusMm: objective.stopRadiusMm,
         focalRatio: objective.focalRatio,
         pupilRadiusMm: objective.pupilRadiusMm,
+        glassRadiusMm: objective.glassRadiusMm,
+        objectFieldRadiusMm: objective.objectFieldRadiusMm,
       },
     };
   }
 
   if (spec.form === "lister") {
+    requireNoFieldNumber(spec);
     requireNoSlip(spec, "§ 6d's two-group form has no target parameter to solve a slip into");
     const objective = listerObjective({
       magnification: spec.magnification,
@@ -393,6 +421,7 @@ export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
     };
   }
 
+  requireNoFieldNumber(spec);
   const objective = oilImmersionObjective({
     magnification: spec.magnification,
     numericalAperture: spec.numericalAperture,
@@ -506,6 +535,21 @@ export function measureApertureWall(
   };
 }
 
+/**
+ * § 6w's parameter exists for ONE constructor, and the reasons the others do not
+ * take it are three different reasons rather than an omission — so a field
+ * number set on them is refused with the reason rather than dropped. See
+ * `liveFields`, which greys the control out for exactly these cases.
+ */
+function requireNoFieldNumber(spec: BuildSpec): void {
+  if (!(spec.fieldNumberMm > 0)) return;
+  throw new AppRefusal(
+    `only the infinity-corrected cemented doublet is sized for a field number (§ 6w). ` +
+      `A DIN objective carries its stop on the rim, where a bundle pivots rather than walking off ` +
+      `the glass; the Lister and the oil front are separate constructors that have no such parameter.`,
+  );
+}
+
 function requireNoSlip(spec: BuildSpec, because: string): void {
   if (spec.coverslip.kind === "none") return;
   throw new AppRefusal(
@@ -528,6 +572,8 @@ export const DEFAULT_SPEC: BuildSpec = {
   frontGroupOrientation: "flintFirst",
   rearGroupOrientation: "flintFirst",
   infinitySpaceMm: 100,
+  // The form opens on a DIN objective, which has no field sizing at all.
+  fieldNumberMm: 0,
   powerSplit: 0.6,
   separationFactor: 0.6,
   meniscusCount: 2,
@@ -558,6 +604,21 @@ export const ENGINE_DEFAULTS = {
   slipMedium: "D263",
 } as const;
 
+/**
+ * The field number a finished microscope delivers, in mm of intermediate image —
+ * a **convention** (ISO 8039 eyepiece field numbers run 18–26.5), not an engine
+ * number. 18 is the standard-eyepiece value the 160 mm tube was specified
+ * around.
+ *
+ * **It is now two things, and that is the point of moving it here** (it lived in
+ * `stage.ts`, which is a consumer). The stage quotes it to say what fraction of
+ * a real field a tile covers, and § 6w's objective is *sized* by it — so a
+ * catalogue built at one number and described at another would put the panel's
+ * caption and the glass in front of it at odds, which is exactly the sort of
+ * drift a shared constant exists to stop. One number, both jobs.
+ */
+export const FIELD_NUMBER_MM = 18;
+
 /** A DIN doublet at the engine's own defaults. */
 export const dinSpec = (magnification: number, numericalAperture: number): BuildSpec => ({
   ...DEFAULT_SPEC,
@@ -569,7 +630,19 @@ export const dinSpec = (magnification: number, numericalAperture: number): Build
   coverslip: { kind: "none" },
 });
 
-/** An infinity-corrected cemented doublet on a 200 mm tube. */
+/**
+ * An infinity-corrected cemented doublet on a 200 mm tube, **sized for the field
+ * it must pass** (§ 6w).
+ *
+ * This is the one preset that departs from "the engine's own defaults", and it
+ * is deliberate rather than an oversight in the sentence above. The engine
+ * cannot default a field number — a field is a property of the objective
+ * together with whatever stops it downstream, so § 6w leaves the parameter off —
+ * but the *app* is that downstream: its stage crops to `FIELD_NUMBER_MM` and
+ * says so on screen. An objective in this catalogue that could not pass the
+ * field the panels claim to show would vignette 27% of its pupil at the edge of
+ * a picture the app had already drawn.
+ */
 export const infinitySpec = (magnification: number, numericalAperture: number): BuildSpec => ({
   ...DEFAULT_SPEC,
   architecture: "infinity",
@@ -577,13 +650,21 @@ export const infinitySpec = (magnification: number, numericalAperture: number): 
   magnification,
   numericalAperture,
   tubeLengthMm: ENGINE_DEFAULTS.tubeFocalLengthMm,
+  fieldNumberMm: FIELD_NUMBER_MM,
   coverslip: { kind: "none" },
 });
 
-/** § 6d's aplanat on the same tube. */
+/**
+ * § 6d's aplanat on the same tube.
+ *
+ * `fieldNumberMm` is cleared rather than inherited: this spreads `infinitySpec`
+ * for the architecture and the tube, and § 6w's parameter belongs to the
+ * cemented-doublet constructor alone.
+ */
 export const listerSpec = (magnification: number, numericalAperture: number): BuildSpec => ({
   ...infinitySpec(magnification, numericalAperture),
   form: "lister",
+  fieldNumberMm: 0,
 });
 
 /**
@@ -593,6 +674,8 @@ export const listerSpec = (magnification: number, numericalAperture: number): Bu
 export const oilSpec = (numericalAperture: number): BuildSpec => ({
   ...infinitySpec(100, numericalAperture),
   form: "oil",
+  fieldNumberMm: 0, // as for the Lister — a different constructor (§ 6e.4)
+
   coverslip: {
     kind: "slip",
     thicknessMm: ENGINE_DEFAULTS.slipThicknessMm,

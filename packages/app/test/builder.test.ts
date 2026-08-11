@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { buildMicroscope, DEFAULT_SPEC, type BuildSpec } from "../src/builder";
+import {
+  buildMicroscope,
+  DEFAULT_SPEC,
+  FIELD_NUMBER_MM,
+  listerSpec,
+  oilSpec,
+  type BuildSpec,
+} from "../src/builder";
+import { exitBundle } from "@telemicroscope/core/analysis";
+import { pupilGrid } from "@telemicroscope/core/pupil";
 import {
   buildFrame,
   describeBuild,
@@ -7,6 +16,7 @@ import {
   describeSystem,
   MICROSCOPE_CATALOG,
 } from "../src/microscope";
+import { LAMBDA_NM } from "../src/microscope";
 import { renderBrightfieldScene } from "../src/brightfield";
 import { refusalVoice } from "../src/refusal";
 import type { OpticalSystem } from "@telemicroscope/core/trace";
@@ -137,6 +147,49 @@ describe("Part F — the ten rows build the same lens through the spec as throug
       const { elapsedMs: _a, ...left } = byName.readout;
       const { elapsedMs: _b, ...right } = bySpec.readout;
       expect(right).toEqual(left);
+    }
+  });
+
+  it("the catalogue's infinity doublets pass the field this app SAYS they show", () => {
+    // § 6w at the app's own seam, and the reason the parameter is set here rather
+    // than defaulted in the engine: a field number is only decidable once
+    // something downstream states the field, and the stage is that something — it
+    // crops to `FIELD_NUMBER_MM` and prints the number on screen. Before this the
+    // three infinity rows were sized to their axial beam, so the panel drew a
+    // caption claiming a field its own objective vignetted 27% of the pupil at.
+    //
+    // Pinned on the CATALOGUE rather than on the constructor (§ 6w.3 has that):
+    // what can go stale here is a row that stops carrying the field number, or a
+    // constant that drifts from the caption's.
+    const doublets = MICROSCOPE_CATALOG.filter(
+      (entry) => entry.spec.architecture === "infinity" && entry.spec.form === "doublet",
+    );
+    expect(doublets.length).toBeGreaterThan(0);
+    for (const entry of doublets) {
+      expect(entry.spec.fieldNumberMm).toBe(FIELD_NUMBER_MM);
+      const h = FIELD_NUMBER_MM / (2 * entry.spec.magnification);
+      const sized = buildMicroscope(entry.spec).system;
+      const axial = buildMicroscope({ ...entry.spec, fieldNumberMm: 0 }).system;
+      const survives = (system: OpticalSystem) => {
+        const bundle = exitBundle(system, h, LAMBDA_NM, pupilGrid(21));
+        return bundle.rays.length / (bundle.rays.length + bundle.lost);
+      };
+      expect(survives(sized)).toBe(1);
+      expect(survives(axial)).toBeLessThan(0.75);
+    }
+  });
+
+  it("refuses a field number on the forms that have no such parameter", () => {
+    // The other three constructors are not "not wired up yet" — a DIN objective
+    // stops on its rim, where a bundle pivots instead of walking, and the Lister
+    // and the oil front are different lenses. The app says which, in its own
+    // voice, rather than dropping the field silently.
+    for (const spec of [DEFAULT_SPEC, listerSpec(40, 0.2), oilSpec(1.25)]) {
+      const result = describeBuild({ ...spec, fieldNumberMm: 18 }, { pupilSamples: 32, size: 64 });
+      expect(result.ok).toBe(false);
+      if (result.ok) return;
+      expect(result.source).toBe("app");
+      expect(result.error).toMatch(/field number/);
     }
   });
 

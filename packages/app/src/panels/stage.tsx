@@ -3,12 +3,12 @@ import { refusalVoice } from "../refusal";
 import { objectiveOf, objectiveOptions, type ObjectiveId } from "../objective";
 import { readSavedBuild } from "../saved";
 import { MICROSCOPE_CATALOG, entryOf, type MicroscopeKind } from "../microscope";
+import { FIELD_NUMBER_MM } from "../builder";
 import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, VERDICT_LEVEL } from "../ui";
 import { createStageWorker } from "../workers";
 import { SPECIMENS, specimenOf, type SpecimenKind } from "../specimens";
 import type { LampKind } from "../section";
 import {
-  FIELD_NUMBER_MM,
   stageInfo,
   WHITE_INTENSITY,
   type StageInfoResult,
@@ -519,7 +519,9 @@ export function StagePanel() {
               <br />
               <span style={{ color: "#777" }}>
                 field = {FIELD_NUMBER_MM} mm field number ÷ {info.info.magnification.toFixed(1)}×, a
-                stated convention and not a traced number
+                stated convention and not a traced number — and the same number the infinity
+                doublets&rsquo; glass is sized to pass (§ 6w), so this caption and the objective in
+                front of it agree
               </span>
               <br />
               tile {info.info.tileSpanUm.toFixed(1)} µm kept · {info.info.objectPixelNm.toFixed(0)} nm
