@@ -1017,12 +1017,42 @@ the picture.
 The distinction is kept sharp: a golden image proves the render has not
 changed, never that it was right. What makes these two trustworthy is that the
 rungs above already pinned the physics inside them; the file only stops it
-drifting afterwards. Three statistics are compared, not one — a re-scaled
-exposure moves the mean everywhere, a flipped axis moves a large fraction by a
-lot, and a one-pixel centring slip moves almost nothing except the max — and
-the harness carries its own negative control, asserting the two goldens are not
-the same image, which is exactly what a copy-paste slip in the fixture would
-otherwise produce silently.
+drifting afterwards. Three statistics are reported and **two of them are the
+gate** — 2/255 on any channel, 0.05/255 on the mean — because the two fail
+differently: a one-pixel centring slip moves almost nothing except the max,
+while a re-scaled exposure moves everything a little and nothing past the max's
+tolerance, so the mean is the whole of that catch. The fraction of changed
+pixels is a *diagnostic*, telling a reader whether a failure is one pixel or
+half the frame; it is not a threshold, and measurement is why. It counts pixels
+moving by 2/255 or more, and 2.5% of a frame doing that has already moved the
+mean past 0.05 — there is no gap for it to cover. This paragraph used to claim
+all three were compared; the code never did, and the code was right.
+
+The harness carries a negative control at both levels. **The fixture's** asserts
+the two goldens are not the same image, which is exactly what a copy-paste slip
+would otherwise produce silently. **The gate's** — added later, and the more
+easily forgotten of the two — damages the committed goldens deliberately and
+asserts the gate rejects the damage, because a tolerance quietly too loose makes
+every golden in the repo pass forever while proving nothing. It records what the
+gate can and cannot see, measured rather than hoped:
+
+| Defect, applied to a committed golden | Reads | Caught by |
+|---|---|---|
+| One-pixel shift | max 255, mean 1.32 | the max |
+| Exposure +0.5% | max 1, mean 0.063 | the mean *alone* |
+| Exposure +0.2% | max 1, mean 0.001 | **nothing — the floor** |
+| Transposed axes, hero star | **max 0** | **nothing — see below** |
+| Transposed axes, star field | max 255, mean 3.2 | both |
+
+Two of those rows are the reason the table is here. The exposure floor is real:
+a drift under ~0.2% is below the level at which a reference render can tell a
+change from a platform's last float bit, and tightening the gate to chase it
+would buy an intermittent rather than a catch. And **the hero goldens are blind
+to a transposed grid** — an on-axis PSF of a rotationally symmetric system *is*
+its own transpose, so swapping the axes returns the identical image and would go
+on doing so however many on-axis goldens were added. The star field is what
+covers that class, which is the argument for it existing: not a third pretty
+picture, a defect the other two structurally cannot see.
 
 Exposure is peak-referenced and pushed 25×, so the core clips as an
 overexposed star does and the halo at ~10⁻³ of peak is visible. The ceiling is

@@ -1,9 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { colorImageFromStack, integratedXyz, toSrgbBytes } from "../src/imaging/image";
-import { decodePng, diffRgba, encodePng } from "./support/png";
+import { decodePng, diffRgba } from "./support/png";
+import {
+  checkGolden as checkGoldenIn,
+  gateRejects,
+  scaleRgba,
+  shiftRgba,
+  transposeRgba,
+} from "./support/golden";
 import { heroPair, heroSystem, PSF_OPTIONS, renderHero } from "./support/heroScene";
 import { blackbodySpectrum } from "../src/photometry/blackbody";
 import { quadratureSamples } from "../src/photometry/spectrum";
@@ -33,7 +40,6 @@ import { bestFocus, withFocus } from "../src/analysis/focus";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const GOLDEN_DIR = join(HERE, "golden");
-const UPDATE = process.env.UPDATE_GOLDEN === "1";
 
 /**
  * Exposure, referenced to the TOTAL LIGHT IN THE FRAME: white is a pixel
@@ -77,38 +83,20 @@ function renderBytes(prescription: Parameters<typeof renderHero>[0]): {
   return { rgba: toSrgbBytes(image, { exposure }), size: image.width, totalY };
 }
 
+/**
+ * The gate itself moved to `support/golden.ts` when `packages/app` grew goldens
+ * of its own (the stage's picture, APP.md A7/A10). One gate, one tolerance, one
+ * place to read what "drifted" means — and one place for the rungs below to
+ * point at when they ask whether it works.
+ */
 function checkGolden(name: string, rgba: Uint8ClampedArray, size: number): void {
-  const path = join(GOLDEN_DIR, `${name}.png`);
-  const png = encodePng(rgba, size, size);
+  checkGoldenIn(name, rgba, size, size, { dir: GOLDEN_DIR });
+}
 
-  if (UPDATE || !existsSync(path)) {
-    mkdirSync(GOLDEN_DIR, { recursive: true });
-    writeFileSync(path, png);
-    if (!UPDATE) {
-      throw new Error(
-        `no golden image for "${name}" — one has been written to ${path}. ` +
-          `Inspect it, then commit it.`,
-      );
-    }
-    return;
-  }
-
-  const reference = decodePng(readFileSync(path));
-  expect(reference.width).toBe(size);
-  const diff = diffRgba(rgba, reference.rgba);
-
-  if (diff.maxChannelDelta > 2 || diff.meanChannelDelta > 0.05) {
-    // Write the actual next to nothing the repo tracks, so the failure can be
-    // looked at rather than only read about.
-    const scratch = join(process.env.TEMP ?? "/tmp", "telemicroscope-golden");
-    mkdirSync(scratch, { recursive: true });
-    writeFileSync(join(scratch, `${name}.actual.png`), png);
-    throw new Error(
-      `${name} drifted: max Δ ${diff.maxChannelDelta}/255, mean Δ ` +
-        `${diff.meanChannelDelta.toFixed(4)}/255, ${(diff.changedFraction * 100).toFixed(2)}% of ` +
-        `pixels changed. Actual written to ${join(scratch, `${name}.actual.png`)}.`,
-    );
-  }
+/** A committed golden, read back as the substrate for the gate's own rungs. */
+function committed(name: string): { rgba: Uint8ClampedArray; width: number } {
+  const png = decodePng(readFileSync(join(GOLDEN_DIR, `${name}.png`)));
+  return { rgba: png.rgba, width: png.width };
 }
 
 describe("golden images (regression, NOT validation)", () => {
@@ -187,5 +175,81 @@ describe("golden images (regression, NOT validation)", () => {
     const a = renderBytes(heroPair().singlet).totalY;
     const b = renderBytes(heroPair().achromat).totalY;
     expect(Math.abs(a - b) / a).toBeLessThan(0.02);
+  });
+});
+
+/**
+ * The gate's own negative control — does the harness detect the defects it was
+ * built for?
+ *
+ * Every rung above asks whether the render changed. **None of them asks whether
+ * the gate can tell.** A tolerance that was too loose, a statistic dropped from
+ * the comparison, a diff that silently compared a buffer with itself: each of
+ * those makes every golden in the repo pass forever while proving nothing, which
+ * is the same failure the fixture's own negative control guards against one
+ * level down.
+ *
+ * So the committed goldens are damaged deliberately — the three defects the
+ * harness exists for, none of which any assertion about a *number* can reach —
+ * and the gate is asked to reject each one. Where it cannot, that is recorded
+ * rather than papered over.
+ */
+describe("the gate detects the defects the goldens exist for", () => {
+  it("catches a one-pixel centring slip, on the statistic that sees it", () => {
+    // The defect that moves almost nothing except the max: a star's core is a
+    // cliff, so sliding it by one pixel puts a 255 next to a 0 there and leaves
+    // the background untouched. Measured: max 255, mean 1.32, 46% of pixels.
+    const { rgba, width } = committed("star-singlet");
+    const slipped = shiftRgba(rgba, width, 1, 0);
+    expect(gateRejects(rgba, slipped)).toBe(true);
+    expect(diffRgba(rgba, slipped).maxChannelDelta).toBeGreaterThan(200);
+  });
+
+  it("catches an exposure rescale down to half a percent, on the mean", () => {
+    // The defect that moves everything a little and nothing much: no pixel
+    // shifts past the 2/255 the max tolerates, so the max is *blind to it* and
+    // the mean is the whole of the catch. Measured on the singlet: +0.5% reads
+    // max 1 — under the tolerance — and mean 0.063, over the 0.05 gate.
+    //
+    // This is the rung that says what the harness's exposure floor actually is,
+    // rather than what it was hoped to be: +0.2% passes. A drift that small is
+    // below the level at which a reference render can distinguish a change from
+    // a platform's last float bit, and pretending otherwise would buy an
+    // intermittent, not a catch.
+    const { rgba } = committed("star-singlet");
+    const brighter = scaleRgba(rgba, 1.005);
+    expect(diffRgba(rgba, brighter).maxChannelDelta).toBeLessThanOrEqual(2);
+    expect(gateRejects(rgba, brighter)).toBe(true);
+    expect(gateRejects(rgba, scaleRgba(rgba, 1.002))).toBe(false);
+  });
+
+  it("catches a transposed grid — but ONLY on the golden that can see one", () => {
+    // The blind spot, measured and stated rather than assumed away.
+    //
+    // An on-axis PSF of a rotationally symmetric system **is its own
+    // transpose**: swapping the axes of `star-singlet` returns the identical
+    // image, max Δ 0 — so a transposed FFT grid or a swapped pair of OPD axes
+    // is *invisible* to both hero goldens, and would be invisible to any number
+    // of further on-axis ones. The defect is real, § 3c's kernel-axis rung was
+    // written for it, and the picture that catches it is the star field, whose
+    // six stars are deliberately not symmetric under the swap: max 255, mean
+    // 3.2, half the frame.
+    //
+    // Which is the argument for the field golden existing at all, in one
+    // measurement: it is not a third pretty picture, it covers a defect class
+    // the other two structurally cannot.
+    const hero = committed("star-singlet");
+    expect(diffRgba(hero.rgba, transposeRgba(hero.rgba, hero.width)).maxChannelDelta).toBe(0);
+
+    const field = committed("star-field");
+    expect(gateRejects(field.rgba, transposeRgba(field.rgba, field.width))).toBe(true);
+  });
+
+  it("passes an image against itself, which is the control on the control", () => {
+    // If `diffRgba` compared a buffer with itself — or the gate inverted — every
+    // rung above would report a catch it never made. Both directions are needed:
+    // a gate that rejects everything is as useless as one that rejects nothing.
+    const { rgba } = committed("star-field");
+    expect(gateRejects(rgba, Uint8ClampedArray.from(rgba))).toBe(false);
   });
 });
