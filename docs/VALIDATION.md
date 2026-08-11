@@ -14,6 +14,7 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: the same rays, given as points and directions, traced through four real systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — and the asphere's Newton floor, which is the only place they cannot | `crosscheck` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss` | `pupil` `opd` `compile` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
@@ -82,6 +83,105 @@ exist: tilt/decenter and folded pupils were prerequisites closed inside § 4a.
 after the § 6m–§ 6s line because that line is what the field of view was blocked
 on and this one is independent of all of it. With it the microscope branch has
 no numbered gap left.
+
+## Step 0 — the exact tracer against an independent implementation
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Cemented doublet (§ 5j's 60 mm f/8 achromat), 11 rays: hit point on every surface | rayoptics 0.9.9 | ✅ |
+| The same, exit direction cosines and optical path length | rayoptics 0.9.9 | ✅ |
+| Two-doublet objective (§ 6d's 20×/0.25 Lister), 6 surfaces, 9 rays, all four quantities | rayoptics 0.9.9 | ✅ |
+| Two-mirror telescope (§ 5e's 200 mm f/10 Cassegrain), paraboloid + hyperboloid, 8 rays | rayoptics 0.9.9 | ✅ |
+| Even asphere on a refracting surface (synthetic singlet), 8 rays | rayoptics 0.9.9 | ✅ |
+| Optical path DIFFERENCES across each pupil — the wavefront the OPD layer is built on | rayoptics 0.9.9 | ✅ |
+| Five negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, and the four systems not being four spellings of one shape | the rung's own tolerances | ✅ |
+
+This is the "one cross-validation against an independent tracer" ROADMAP has
+carried in *Engineering practices* since step 4, and it is a different kind of
+rung from everything below it. Every other rung compares the engine to a closed
+form, which checks it wherever an answer can be written down — a sphere, a
+paraboloid, a thin lens, a plate. This one compares it to another program's
+arithmetic on systems where **no closed form exists**, which is the only
+evidence available that the machinery is right rather than the special cases.
+
+The reference is **rayoptics 0.9.9** (Michael Hayford, BSD-3), a mature
+open-source sequential design package with no shared lineage with this engine.
+It is driven headless by `docs/notes/rayoptics-crosscheck.py`; its answers live
+in `packages/core/test/fixtures/rayoptics-crosscheck.json`, committed, so
+`npm test` needs no Python and the number cannot quietly change underneath the
+rung — the test asserts the tool name, the version and the call that produced
+it, and a different rayoptics writing that file fails there first.
+
+**The design is one decision: compare the primitive, not the workflow.** Both
+programs expose a raw trace of a ray given as a point and a direction, so that
+is what is compared — surface by surface, ending on the last surface. No pupil
+coordinates, no ray aiming, no field angles, no image plane, no focus solve.
+Every index is stated in the fixture as a number and constant, so the glass
+catalog is out of it too. What survives is intersection, Snell and path length,
+and a disagreement could not have been anything else. The alternative — compare
+spot sizes, or EFL, or an OPD map — would have made every disagreement an
+argument about whose definition of a pupil coordinate is right.
+
+**The headline is that there is nothing to report, at the last bit.** Over the
+four systems the worst disagreements are **0.94 ulp** on a hit point, **5 ulp**
+on a direction cosine, **1.6 ulp** on an optical path and **2.3 ulp** on a path
+*difference* — where an ulp is measured at the system's own geometric scale,
+because a hit point may land at y = 0 after the ray travelled 560 mm to reach
+it and the rounding it carries is the travel's, not the zero's. In physical
+units the worst case is the Cassegrain's, at 3.41e-13 mm of wavefront over a
+660 mm path: **5.8e-10 of a wave**. The tolerances are stated in ulp for that
+reason; a bound in millimetres would have to be a different number for a 3 mm
+objective and a 600 mm telescope and would say nothing about either.
+
+**The one place they do not agree to the last bit is not rounding, and it is
+the finding.** An even asphere has no closed-form intersection, so both sides
+Newton-iterate and both stop at an absolute residual of 1e-12 mm
+(`makeEvenAsphere`'s `|g| < 1e-12`, rayoptics' `trace_raw(eps=1e-12)`). Two
+independent stopping criteria cannot agree closer than the looser of them, so
+that system's hit points are held to that floor rather than to a bit count.
+Measured, they agree to **3.8e-14 mm** — both iterations are converging about
+26× tighter than either promises, which is worth knowing and is not something
+either program's own tests would say.
+
+**Four conventions had to be mapped, and naming them is most of what this file
+gains.** Each is a way the comparison could have reported a difference that was
+not one. (i) rayoptics' `EvenPolynomial.coefs` start at **r²** where
+`asphereCoeffs` start at **r⁴**, so a zero is prepended; that mismatch alone
+would have moved a 20 mm ray by 0.016 mm and read as a tracer defect. (ii)
+rayoptics returns hit points in **each interface's own frame**, ours in the
+launch frame, so the vertex offsets are added back. (iii) `trace_raw`'s default
+`intersect_obj=True` starts the path at the *object surface* rather than at the
+given point, which would have measured the optical path from somewhere else —
+it is set `False`, and this is the reason the rung compares path *differences*
+as well as absolute paths, since a shared offset is exactly what a difference
+cannot hide. (iv) `last_surf` does not suppress the image interface, so the
+trailing segment is dropped explicitly.
+
+**And one convention did not need mapping, which is a result rather than a
+convenience.** The unfolded mirror frame this engine has used since § 4a —
+thicknesses going negative after a mirror while the coordinate axis stays put —
+is rayoptics' convention too, so the Cassegrain reconciled with **no sign
+mapping at all**. The engine's highest-risk sign convention agrees with an
+independent implementation's on a two-mirror system, which is the strongest
+statement available about it and one no closed form was going to make.
+
+**What this does NOT pin, stated because the rung is easy to over-read.** It
+does not upgrade the rungs below it: they still assert what they assert, and
+this one adds independent evidence for the shared machinery underneath them
+rather than a second signature on their numbers. **Dispersion is deliberately
+out** — both sides are handed the same indices, so `materials` is untouched
+here and keeps its own datasheet rungs. **Apertures are out** — every ray is
+well inside every rim and the prescriptions are built unbounded, because a rim
+could only let one tracer clip where the other does not. **The systems are
+ours** — captured once from `designs/achromat`, `designs/lister` and
+`designs/cassegrain`, then frozen as literals, so the fixture is a system
+rather than a reference to a solver and a design change cannot silently move
+it. Only the *answers* are external.
+
+**Not yet pinned.** Tilt, decenter and the folded frame: rayoptics expresses
+both, but reconciling two tilt conventions is a second investigation, and it is
+named open rather than done badly — all four systems here are axial. Also open:
+a second independent tracer, which would turn an agreement into a majority.
 
 ## Step 1 — geometry, materials, ray tracing
 

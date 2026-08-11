@@ -1288,10 +1288,29 @@
 - **Golden-image regression harness at step 4**, not step 7. The validation
   ladder pins physics; nothing pins *images*. A small set of committed
   reference renders plus a perceptual diff catches what unit tests cannot.
-- **One cross-validation against an independent tracer.** A single system
-  traced in an existing tool and committed as a fixture upgrades several
-  rungs from "matches closed form" to "matches an independent
-  implementation" — the strongest evidence available for the exact tracer.
+- ~~**One cross-validation against an independent tracer.**~~ ✅ **landed** as
+  VALIDATION § 0 — `crosscheck.test.ts` against **rayoptics 0.9.9**, four
+  systems (§ 5j's achromat, § 6d's Lister, § 5e's Cassegrain, and a synthetic
+  asphere), the fixture committed so `npm test` needs no Python. The scope note
+  above is corrected in one word: it does **not** upgrade the other rungs, which
+  still assert what they assert; it adds independent evidence for the machinery
+  underneath them, which is a different and smaller claim. What made it work was
+  comparing the **primitive** rather than the workflow — a ray as a point and a
+  direction, ending on the last surface, with every index stated as a number —
+  so no pupil, field, aiming, image-plane or glass convention could turn a
+  disagreement into an argument about definitions. Agreement is at the f64
+  rounding floor (worst case 2.3 ulp on a wavefront, **5.8e-10 of a wave**), and
+  the only place it is not is the even asphere, where both sides Newton-iterate
+  to their own 1e-12 mm and therefore cannot agree closer — measured at 3.8e-14,
+  so both converge ~26× tighter than they promise. **The result worth carrying
+  out of it is a sign convention:** the unfolded mirror frame (negative
+  thicknesses after a mirror, axis unmoved) is rayoptics' convention too, so the
+  two-mirror system reconciled with no mapping at all — the engine's
+  highest-risk convention agreeing with an independent implementation, which no
+  closed form was going to say. **Still open:** tilt/decenter and the folded
+  frame, deliberately left out because reconciling two tilt conventions is a
+  second investigation; and a *second* independent tracer, which would turn an
+  agreement into a majority.
 
 ## Deliberate deferrals
 
