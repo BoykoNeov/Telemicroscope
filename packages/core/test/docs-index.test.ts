@@ -1,0 +1,85 @@
+import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
+/**
+ * The one rung that pins a DOCUMENT rather than the physics.
+ *
+ * CLAUDE.md tells a reader to open VALIDATION.md's summary table first and
+ * then only the step they need. That instruction is only worth following while
+ * the table is cheaper than the sections it stands in for, and it stopped being
+ * so by drift rather than by decision: the early steps' rows are one line, and
+ * nine of the later ones had grown to between 1.5 and 4.5 KB — 23 KB of the
+ * table's 40, restating arguments that were already written out under their own
+ * headings. An index that costs as much as the text is not an index.
+ *
+ * So the shape is a rung like any other, and for the same reason the tolerances
+ * elsewhere are numbers rather than opinions: a convention nobody can fail is a
+ * convention that erodes. The budget below is deliberately not the current size
+ * — there is room for roughly a dozen more one-line rows before it binds, and
+ * ~5 KB of remaining slack in the rows still over 800 bytes when it does. When
+ * it binds, trim a row. Do not raise the number: this is the one file in the
+ * repo whose whole value is being small, and the reasoning it would be
+ * protecting already has a home in the step's own section.
+ */
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+const VALIDATION = join(HERE, "..", "..", "..", "docs", "VALIDATION.md");
+
+/** The heading the table lives under, and the budget for the block it spans. */
+const INDEX_HEADING = "## The ladder at a glance";
+const INDEX_MAX_BYTES = 24_000;
+const ROW_MAX_CHARS = 1_500;
+
+/** GitHub's heading slug: lowercase, drop all but alphanumerics/space/hyphen,
+ *  then spaces to hyphens. An em dash vanishes and leaves the doubled hyphen
+ *  the existing links already carry. */
+function slug(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[^a-z0-9 -]/g, "")
+    .replace(/ /g, "-");
+}
+
+const doc = readFileSync(VALIDATION, "utf8");
+const lines = doc.split("\n");
+
+const start = lines.findIndex((l) => l.startsWith(INDEX_HEADING));
+const end = lines.findIndex((l, i) => i > start && l.startsWith("## "));
+const block = lines.slice(start, end);
+const rows = block.filter((l) => l.startsWith("| ["));
+
+describe("VALIDATION.md's summary table stays an index", () => {
+  it("is where this test thinks it is", () => {
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    // Guards against the block silently emptying out and the budget passing
+    // for the wrong reason.
+    expect(rows.length).toBeGreaterThan(40);
+  });
+
+  it("costs less than the sections it stands in for", () => {
+    const bytes = Buffer.byteLength(block.join("\n"), "utf8");
+    expect(bytes).toBeLessThanOrEqual(INDEX_MAX_BYTES);
+  });
+
+  it("has no row that is an essay", () => {
+    const over = rows
+      .filter((r) => r.length > ROW_MAX_CHARS)
+      .map((r) => `${r.slice(0, 60)}… (${r.length} chars)`);
+    expect(over).toEqual([]);
+  });
+
+  it("links only to headings that exist", () => {
+    const headings = new Set(
+      lines
+        .filter((l) => /^#{2,4} /.test(l))
+        .map((l) => slug(l.replace(/^#+ /, "").trim())),
+    );
+    const broken = [...doc.matchAll(/\]\(#([a-z0-9-]+)\)/g)]
+      .map((m) => m[1]!)
+      .filter((anchor) => !headings.has(anchor));
+    expect([...new Set(broken)]).toEqual([]);
+  });
+});

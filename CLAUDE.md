@@ -10,6 +10,10 @@ read its "ladder at a glance" index first and then only the step you need.
 yet, what each panel would cost (measured), and which are blocked on an engine
 step rather than on wiring. Read it before adding anything to `packages/app`.
 
+`VALIDATION.md` (620 KB) and `APP.md` (280 KB) are past the point of being read
+whole — together they are larger than a context window. Grep the headings, then
+read the line range. Only `ARCHITECTURE.md` is sized to be read end to end.
+
 ## Hard rules
 
 - `packages/core` stays pure TypeScript with **no DOM dependencies** — it must
@@ -20,6 +24,10 @@ step rather than on wiring. Read it before adding anything to `packages/app`.
   external numbers (textbook/closed-form/published design), added in the same
   change and recorded in `docs/VALIDATION.md`.
 - Never loosen a test tolerance to make it pass — investigate.
+- An index row is one line. A step's reasoning lives under that step's own
+  heading, never restated in the summary table — an index that costs as much
+  as the text is not an index. Pinned by `docs-index.test.ts`; when its budget
+  binds, trim a row rather than raise the number.
 - Precision-critical tracing (OPD) stays on CPU f64; GPU is for f32-safe bulk
   work only.
 - Units: mm for geometry, nm for wavelength (µm inside Sellmeier). Light
