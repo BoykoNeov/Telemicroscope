@@ -8,7 +8,8 @@ import {
   type SpiderSpec,
 } from "../wave/psf";
 import { opdMap, vignetteMask } from "../pupil/opd";
-import { pupilGrid, type AimOptions } from "../pupil/aiming";
+import { aimRay, pupilGrid, type AimOptions } from "../pupil/aiming";
+import { pupils } from "../pupil/pupils";
 import { isPowerOfTwo } from "../math/fft";
 import { primaryWavelength, type OpticalSystem } from "../trace/system";
 import { lateralMagnification } from "../pupil/microscope";
@@ -131,12 +132,33 @@ import type { PatchPupil } from "./brightfield";
  * is the **authoring** path: nothing here, and nothing downstream, learns that
  * the grid was warped.
  *
- * **Telecentricity is assumed.** Every patch is handed the same `CondenserSource`
- * with its points centred on the pupil, which says the illumination cone stays
- * centred at every field point. § 6a lists object-space ray aiming as an open
- * blocker and this inherits it: a non-telecentric condenser would shift each
- * patch's source points along with its chief ray, and `shiftPupil` is already
- * the operator that would do it.
+ * **~~Telecentricity is assumed.~~ Closed at § 6x, and the sentence it replaces
+ * blamed the wrong component.** What stood here said a non-telecentric
+ * *condenser* would have to shift each patch's source points. It would not:
+ * Köhler illumination delivers one direction per diaphragm point to the whole
+ * field, exactly, and that is the condenser's own property (`illumination/source`
+ * derives it). What decides whether a direction lands at the same *pupil*
+ * coordinate at every field point is the **objective's** entrance pupil, because
+ * these are the objective's pupil coordinates:
+ *
+ *     ρ = h/R_ep + u/u_max
+ *
+ * and the field term dies only when R_ep is infinite — object-space
+ * telecentricity, which § 6v gave the shipped infinity presets and which the DIN
+ * still does not have. `illuminationOffset` below reads that displacement off
+ * the aimer, `fieldPupilAt` hands it down on `PatchPupil`, and
+ * `renderBrightfield` translates the cone with it. A telecentric system gets
+ * **exactly** zero and is byte-for-byte unchanged.
+ *
+ * It is carried beside the pupil rather than folded into it, and that is not
+ * tidiness. Folding it in means `shiftPupil`, whose support then sits at −d
+ * while `abbeImage` derives its visiting box from the source point alone — so
+ * the part of the pupil past the box would be dropped, and abbe's own comment
+ * says a silently truncated pupil is indistinguishable from a smaller aperture.
+ * Carrying it also keeps it OUT of the fluorescence path, which is where it
+ * belongs: a fluorophore has no memory of what excited it, so § 6i's expression
+ * has no condenser in it and `renderFluorescence` reads the same `PatchPupil`
+ * and correctly ignores this field.
  */
 
 /** Where a frame position looks, and what it looks through. */
@@ -145,6 +167,18 @@ export interface FieldPupil extends PatchPupil {
   readonly objectHeightMm: number;
   /** Azimuth the traced +x pupil was turned by (radians). */
   readonly azimuthRad: number;
+  /**
+   * Required here, where `PatchPupil` leaves it optional: this one came from a
+   * system, so where that system's entrance pupil puts the illumination cone is
+   * always known — and it is `{0, 0}` under telecentricity rather than absent.
+   */
+  readonly illuminationOffset: { readonly sx: number; readonly sy: number };
+  /**
+   * `illuminationOffset` at this field point, before the azimuth is applied —
+   * the signed radial displacement, which is the quantity § 6x's closed form is
+   * about. `PatchPupil.illuminationOffset` is this turned into the frame.
+   */
+  readonly radialIlluminationOffset: number;
   /** Image-plane radius (mm) of the frame position, before inversion. */
   readonly imageRadiusMm: number;
   /** This field point's own reference-sphere radius (mm) — NOT used for scale. */
@@ -627,6 +661,59 @@ export function tracedPupil(
 }
 
 /**
+ * Where the axial illumination direction lands in the objective's pupil, at
+ * object height `h` — the displacement § 6x's whole step is about.
+ *
+ * ## Read off the aimer, not derived
+ *
+ * The aimed ray's object-space slope is affine in the pupil coordinate, so two
+ * aims determine it: the coordinate whose ray leaves the specimen parallel to
+ * the axis is `−u(0)/(u(1) − u(0))`. That is the direction a Köhler condenser's
+ * central diaphragm point actually sends, so its pupil coordinate is where the
+ * cone's centre sits.
+ *
+ * Doing it this way rather than as `h/R_ep` settles two things algebra would
+ * have had to be trusted on. The **currency**: the aimer's own parametrization
+ * decides whether a pupil coordinate is a tangent or a sine, and § 6q.5 is the
+ * step where guessing that wrong cost 61%. And the **sign**, which comes out of
+ * a construction instead of a convention. `h/R_ep` remains the closed form the
+ * rungs check this against, and § 6x.1 pins the two to ten digits.
+ *
+ * ## The telecentric case is exact, not merely small
+ *
+ * A telecentric entrance pupil is at infinity, so `aimRay` takes its
+ * object-space branch, where a pupil coordinate names a slope directly (§ 6u.1)
+ * and the chief ray leaves parallel to the axis (§ 6v.4). `u(0)` is then `0` in
+ * f64 and the quotient is a bitwise zero — which is what lets `translateSource`
+ * return its input object and every telecentric render stay byte-identical.
+ */
+export function illuminationOffset(
+  system: OpticalSystem,
+  objectHeightMm: number,
+  wavelengthNm: number,
+  options: { readonly aim?: AimOptions } = {},
+): number {
+  const geometry = pupils(system, wavelengthNm);
+  const aim = options.aim ?? {};
+  const slopeAt = (px: number): number => {
+    const ray = aimRay(system, geometry, objectHeightMm, { px, py: 0 }, wavelengthNm, aim);
+    return ray.dir.x / ray.dir.z;
+  };
+  const chief = slopeAt(0);
+  // On axis both slopes are the aperture's own, and the offset is zero for the
+  // same reason it is zero under telecentricity — but reached without dividing.
+  if (chief === 0) return 0;
+  const span = slopeAt(1) - chief;
+  if (span === 0) {
+    throw new Error(
+      "illuminationOffset: the aimed pupil spans no object-space angle, so no illumination " +
+        "direction can be placed in it",
+    );
+  }
+  return -chief / span;
+}
+
+/**
  * Trace the pupil a normalized frame position looks through.
  *
  * `tracedPupil` at the object height this frame position sees, turned to the
@@ -652,9 +739,19 @@ export function fieldPupilAt(
 
   const traced = tracedPupil(system, objectHeightMm, frame.wavelengthNm, options);
 
+  // Radial in the meridional plane the trace was run in, then turned to this
+  // position's own azimuth — the same rotation `rotatePupil` applies to the
+  // pupil, so the cone and the aperture stay in one frame.
+  const radialOffset = illuminationOffset(system, objectHeightMm, frame.wavelengthNm, { aim });
+
   return {
     pupil: rotatePupil(traced.pupil, azimuthRad),
     sampling: traced.sampling,
+    illuminationOffset:
+      radialOffset === 0
+        ? { sx: 0, sy: 0 }
+        : { sx: radialOffset * Math.cos(azimuthRad), sy: radialOffset * Math.sin(azimuthRad) },
+    radialIlluminationOffset: radialOffset,
     objectHeightMm,
     azimuthRad,
     imageRadiusMm,

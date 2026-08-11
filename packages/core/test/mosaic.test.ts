@@ -586,15 +586,27 @@ describe("§ 6o.7 — composed on a traced objective, and the seam it makes", ()
     }
   });
 
-  it("the seam step falls MONOTONICALLY with the guard — 1.8e-2 to 7.8e-4", () => {
+  it("the seam step falls MONOTONICALLY with the guard — 1.8e-2 to 1.2e-3", () => {
     // The mosaic's own version of § 6o.1, on a traced 4×/0.10 at 1.6 mm rather
     // than on an ideal pupil: the step between what the mosaic puts at the seam
-    // and what a tile placed there sees falls 23× as the guard goes 0 → 8 cells.
+    // and what a tile placed there sees falls 15× as the guard goes 0 → 8 cells.
+    //
+    // **The floor rose from 7.8e-4 to 1.2e-3 at § 6x, and the cause is a second
+    // discontinuity at the seam.** Two abutting tiles are lit from two different
+    // points of this rim-stopped objective's pupil, because their centres are at
+    // different field heights and the offset is h/R_ep — so a seam now carries an
+    // ILLUMINATION step as well as an aberration one, and no amount of guard
+    // removes it. The shape of the claim is unchanged and is the one that matters:
+    // the guard is what the crop error responds to, monotonically. The size of the
+    // remaining floor is partly this fixture's 32 bins, where § 6x.6 measures the
+    // offset's effect to be lattice-decided; it is not raised here because a
+    // mosaic at 64 bins is four transforms per tile per guard and this rung runs
+    // four guards. Stated rather than fixed.
     const steps = [0, 2, 4, 8].map((g) => seamAt(g).seam);
     for (let i = 1; i < steps.length; i++) expect(steps[i]!).toBeLessThan(steps[i - 1]!);
     expect(steps[0]!).toBeGreaterThan(1.5e-2);
-    expect(steps[steps.length - 1]!).toBeLessThan(1e-3);
-    expect(steps[0]! / steps[steps.length - 1]!).toBeGreaterThan(20);
+    expect(steps[steps.length - 1]!).toBeLessThan(1.5e-3);
+    expect(steps[0]! / steps[steps.length - 1]!).toBeGreaterThan(12);
   });
 
   it("and with no guard the error is LOCALIZED at the seam, 90× its neighbour", () => {

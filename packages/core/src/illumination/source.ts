@@ -77,6 +77,17 @@ export interface CondenserSource {
     readonly pupilSamples: number;
     readonly stepMultiple: number;
   };
+  /**
+   * Set **only** by `translateSource`: this cone is displaced from the pupil
+   * centre by this much, because the objective it is being imaged through is not
+   * object-space telecentric (§ 6x).
+   *
+   * Reporting rather than instructing — the points already carry the offset, and
+   * nothing in `abbe.ts` reads this. It is here so a caller can tell a displaced
+   * source from a source that was authored off centre, and so the readouts that
+   * quote S can say what fraction of the cone the aperture is still admitting.
+   */
+  readonly offset?: { readonly dx: number; readonly dy: number };
 }
 
 function gridCoordinate(i: number, samples: number, radius: number): number {
@@ -227,6 +238,69 @@ export function commensurateSource(
  */
 export function coherentSource(): CondenserSource {
   return { points: [{ sx: 0, sy: 0, weight: 1 }], coherenceParameter: 0, samples: 1 };
+}
+
+/**
+ * The same condenser, seen from a field point the objective's pupil is not
+ * centred on (§ 6x).
+ *
+ * ## Why a source ever moves, and why it is the objective that moves it
+ *
+ * Köhler illumination delivers one *direction* per diaphragm point to the whole
+ * field — that is the header's model and it is exact, and it is a property of
+ * the condenser alone. What is NOT field-independent is where a given direction
+ * lands in the **objective's** pupil, and this file's coordinates are the
+ * objective's pupil. A ray leaving object height h with object-space slope u
+ * reaches the entrance pupil at height h + u·z_ep, so in normalized pupil units
+ *
+ *     ρ = h/R_ep + u/u_max
+ *
+ * and the h/R_ep term vanishes exactly when the entrance pupil is at infinity —
+ * which is object-space telecentricity, and nothing else. So a telecentric
+ * objective is what licenses handing every field point the same source, and a
+ * rim-stopped one displaces the whole cone by h/R_ep at field height h. On the
+ * shipped DIN 4×/0.10 that is 0.217 of a pupil radius per millimetre of object
+ * field, against an S that is usually below 1: at a millimetre the cone is a
+ * third of the way out of the aperture it is supposed to fill.
+ *
+ * `imaging/object-field` measures the offset off the trace and hands it down;
+ * this function is only the translation.
+ *
+ * ## What it costs: `pupilLattice` does not survive
+ *
+ * § 6p's cache is licensed by every source point sitting on the pupil's own
+ * frequency lattice, and an offset read off a trace is not a whole number of
+ * half-steps. Rounding it onto the lattice would be a lie of exactly the kind
+ * `commensurateSource` refuses one function up, so the metadata is **dropped**
+ * and `abbeImage` falls back to evaluating the pupil per source point. The
+ * saving is therefore telecentric-only, which is not a limitation of the cache
+ * but a restatement of what it was: commensurability is a claim about where the
+ * source sits in the pupil, and a non-telecentric objective moves it with field.
+ *
+ * `coherenceParameter` is carried through unchanged: it is NA_cond/NA_obj, a
+ * ratio of apertures, and translating the cone does not change either of them.
+ * It stops being the radius of the sampled region about the origin, which is
+ * what the field on `CondenserSource` says it is — read it as the source's own
+ * radius, and `offset` for where that disc now sits.
+ */
+export function translateSource(
+  source: CondenserSource,
+  dx: number,
+  dy: number,
+): CondenserSource {
+  if (!Number.isFinite(dx) || !Number.isFinite(dy)) {
+    throw new Error(`source offset must be finite, got (${dx}, ${dy})`);
+  }
+  // Exactly the identity, and returned as the same object: a zero offset is the
+  // telecentric case, and it must not cost a copy or lose `pupilLattice` —
+  // § 6p's cache stays available for every system that does not need this.
+  if (dx === 0 && dy === 0) return source;
+  return {
+    points: source.points.map((p) => ({ sx: p.sx + dx, sy: p.sy + dy, weight: p.weight })),
+    coherenceParameter: source.coherenceParameter,
+    samples: source.samples,
+    offset: { dx, dy },
+  };
 }
 
 /**

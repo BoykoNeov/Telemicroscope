@@ -2423,11 +2423,16 @@ centred on the seam**, § 6n.2's "two readings of one number" move: on a traced
 0 → 8 cells, and with no guard the error is *localized* at the seam, 90× its
 neighbour three pixels away — the shape a viewer reads as a grid line.
 
-**Deliberately not attempted:** a mosaic under a *non-telecentric* condenser.
-§ 6h assumes the illumination cone stays centred at every field point, which is
-§ 6a's object-space ray-aiming blocker arriving where it finally bites. A real
-condenser's cone tilts off axis, `shiftPupil` is already the operator that would
-do it, and it is its own step.
+~~**Deliberately not attempted:** a mosaic under a *non-telecentric* condenser.~~
+**Built at § 6x, and the omission was named after the wrong component.** A
+Köhler condenser's cone does *not* tilt off axis — every diaphragm point lights
+the whole field from one direction, exactly. What moves is where that direction
+sits in the **objective's** pupil, by `h/R_ep`, and a mosaic is where that is
+largest because a mosaic is how this branch reaches millimetres: 0.217 of a
+pupil radius per millimetre on the 4×/0.10. Each tile is now lit from where it is
+really lit from, and the one thing that does not go away is a seam — two abutting
+tiles are at two field heights, so a seam carries an illumination step the guard
+band cannot remove (§ 6o.7's floor, 7.8e-4 → 1.2e-3).
 
 ### D4. A7 — the stage: a brightfield field of view you can pan — *app* — ✅ **landed**
 
@@ -3048,8 +3053,11 @@ could have held.
 ### D9. What stays out, and why
 
 - **A live full-field frame.** D0.1. Compute-once or nothing.
-- **Non-telecentric illumination.** § 6a's object-space aiming blocker, named by
-  D3 as its one deliberate omission and still open after § 6o landed.
+- ~~**Non-telecentric illumination.**~~ **Closed at § 6x**, engine-side, and it
+  needed no panel decision: the cone's displacement is read off the trace, so
+  every microscope surface that renders brightfield got it without a control. The
+  only app-visible consequence is that the stage's two goldens moved by 1–2 levels
+  of 255 on under 0.15% of pixels, which is the harness doing its job.
 - **Köhler illumination as a light budget.** `abbeImage` normalizes the source
   weights to Σ = 1, so closing the diaphragm costs resolution and no light where
   a real one goes dim — A2 already prints the mean so the normalization is not

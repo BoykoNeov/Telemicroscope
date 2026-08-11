@@ -78,6 +78,7 @@ whole ladder.
 | [6v](#step-6v--the-presets-are-telecentric) | § 6u's own "not yet pinned" spent: the shipped objective's stop moves from its rim to its **back focal plane**, so the branch's presets are telecentric rather than merely able to be — the old placement kept as `stopPlacement: "rim"`, the NEGATIVE CONTROL, since what telecentricity buys has no size without a system lacking it; the aperture shown to stop being a length at all — sized `f·tan u`, the f cancels against § 6u.1's `stopRadius/B` and what reaches the aimer is **`tan u` exactly** to 12 places over four apertures and three magnifications, with no focal length, object distance or magnification left in it; the delivered NA the engraving, and **bitwise** unchanged as the specimen moves where the control's is not; the magnification **bitwise** constant under defocus with the image plane held fixed, against the control's −δz/(L+δz) at 0.1% per 50 µm — asserted on the magnification itself, since the difference of two identical negatives is `-0` and a rung phrased on the ratio would fail while reporting a drift of zero; the chief ray exactly (0,0,1); **the price, which the step did not go looking for** — a telecentric bundle's footprint TRANSLATES with object height where a rim-stopped one pivots, so it walks off an element sized for the axial beam: **on the 4×/0.10** nothing to ~0.1 mm of field, **11% of the pupil at 1 mm, 35% at 3 mm**, identified as the GLASS and not the diaphragm by widening one at a time (a 5 mm wider stop changes nothing to 12 places) — and those figures explicitly do NOT travel, since the rim goes as f·NA while the field is absolute, so at 40×/0.10 the same 1 mm is past total occlusion rather than an 11% loss; the ladder barely moving — **9 tests of 1364** — because on axis the two constructions aim the SAME rays, `ρ·s·tan u` over s being `ρ·tan u` named directly, with the only axial shift a REFERENCE (the exit pupil moved, hence § 6d.4's 0.5%) and § 6d's control therefore held at `"rim"` on purpose, third-order S_II having no telecentric spelling; and the defect it turned up, the fourth of APP.md's *routine that answers confidently for a system it cannot express* — the diaphragm becoming the module's last surface **silently pushed the tube lens back by the objective's whole BFD**, ≈ 50 mm, invisible because the space is collimated and caught only by a null rung reading 2.8e-5 — now measured from the last GLASS vertex, with an infinity space shorter than the back focal distance REFUSED and pinned at the boundary | `telecentric-objective` |
 
 | [6w](#step-6w--the-objective-knows-what-field-it-must-pass) | § 6v's price, paid — the objective is sized for a **field number**, the diameter at the intermediate image a microscope is actually catalogued by, so the glass is `f·NA + h` with `h = FN/(2·M)` the object-space semi-field a telecentric bundle's footprint walks to. **No physics is added**, and the default stays OFF *on principle* rather than out of caution: a stop position is intrinsic to an objective (which is why § 6v could default telecentricity on) while a field is a property of the objective TOGETHER with whatever stops the field behind it, so nothing picks a value — which makes the § 6v lens this step's negative control. The content is that **every number in it is magnification-independent**: the oversize is the RATIO `1 + FN/(2·f_tube·NA)` = 1.450000000000 at FN 18 / NA 0.10 for 4×, 10× and 40× alike, because `h` and `f·NA = (f_tube/M)·NA` are both ∝ 1/M — so § 6v.5's "those figures do not travel" is true in millimetres and **false as a fraction**, and the 4× and 40× are one lens scaled (every length ×10, every curvature ÷10, the bending identical, since S_I ∝ h⁴ makes the third-order solve scale-free). The claim itself against the shipped control: the field-sized objective passes **313 of 313** lattice points at its own field edge where the axially-sized one passes **229**, the same 84 lost at every magnification — a discrete count, so § 6w.2's invariance arrives in integers — with § 6v.5's own 11%-at-1-mm reproduced as the bridge, and the shipped 25 mm tube lens shown to pass FN 18 too (the isolation runs a 60 mm one, so this is checked rather than assumed; the chief angle in the infinity space is `FN/(2·f_tube)`, magnification-free again). The closed form is an **upper bound never reached** — `f·NA + h` adds two paraxial statements whose heights live on the equivalent refracting sphere, not on a vertex, so the traced footprint tops out at **0.98922** of it on the last glass face, reported with its sign because the sizing is conservative and that 1.1% is glass a tighter derivation could reclaim; the delivered field is correspondingly **5.27%** more than asked (bisected, identical at 4× and 40×), and what finally stops it is the **crown's outer face**, the one carrying `cementedDoubletForm`'s 0.5% rim margin where the specimen-side faces carry 2%. What it costs: **2.115% of working distance** at every magnification — building the doublet at the wider aperture is what creates the cost and is also what makes it honest, since `achromaticObjective` defaults thicknesses off D and checks edge thickness at D/2, so a rim widened afterwards would have passed a check for an element that cannot be made — with the flint's centre thickness scaling exactly ×1.45 and the crown's ×2.031 because its own is finalised from sags; the delivered NA **not** paying, held to 14 digits because it is re-derived as `f·tan u` on the lens actually built; and the traced magnification moving **0.08%, toward the label**, that being the one quantity here that carries a magnification (−8.0516e-4 at 4× against −8.0368e-4 at 40×) because the microscope is composed against a 200 mm tube lens that does not shrink with the objective. And the wall: `D/f = 2·NA + FN/f_tube` has no M in it either, so a field number is a **second door onto § 6b.5.7's geometric doublet ceiling** and costs aperture linearly — the NA ceiling falls by exactly `FN/(2·f_tube)` (0.045000000 at FN 18, 0.062500000 at FN 25, to nine digits), from an axial 0.287401975 that is `1/(2·F*)` for § 6b.5.7's own F* = 1.7397236, two steps' constants meeting by a route neither was derived through — with the refusal naming the field number beside the aperture (§ 6b.5.5's rule), since NA 0.25 builds axially and refuses at FN 18 | `field-sized-objective` |
+| [6x](#step-6x--what-telecentricity-is-worth-to-the-illumination) | § 6w's last non-lens open item, and it is a **correction to four module headers before it is a measurement**: §§ 6f/6h/6m/6o each hand every field point one `CondenserSource` centred on the pupil and each called that an assumption about the CONDENSER. It is not one — Köhler illumination really does deliver one direction per diaphragm point to the whole field, exactly. What is field-dependent is where that direction lands in the **objective's** pupil, `ρ = h/R_ep + u/u_max`, whose field term dies only for an entrance pupil at infinity — so the licence belonged to the objective all along and § 6v is what granted it, to the infinity presets **only**. The offset is read off the AIMER (the pupil coordinate whose ray leaves the specimen parallel to the axis) and agrees with the closed `h/R_ep` to **ten digits** on both rim-stopped members, which settles the tangent-vs-sine currency § 6q.5 got wrong and settles the sign by construction; it is **0.21736 per millimetre** on the shipped DIN 4×/0.10 and **bitwise zero** on § 6v's telecentric lens at every height, which licenses `translateSource` returning its own argument so every telecentric and on-axis render stays byte-identical. The claim lands as § 6w's kind of count — **97 of 97** source points admitted on axis against **90 of 97** at 1 mm, the seven lost being the seven furthest out ALONG THE FIELD'S OWN DIRECTION — and that discrimination is the rung, because a *dimming* is sign-blind (±d ejects the same count) and is **true on the telecentric objective too**, 0.8158 → 0.7737, for § 6v.5's quite different reason. While the cone is inside, a clear field costs **exactly nothing** to 1e-5: the offset moves which part of the aberrated pupil each diffracted order crosses, not the throughput. **§ 6i's “no condenser in the expression” becomes a bitwise test** — the offset rides beside the pupil rather than inside it, so fluorescence reads the same `PatchPupil` and ignores it — and folding it in via `shiftPupil` would have been **silently wrong**, since `abbeImage` derives its visiting box from the source point alone and would have truncated a pupil supported off centre, which abbe's own comment says reads as a smaller aperture. What it costs is § 6p's cache, and that is **a fact about telecentricity rather than a limitation**: commensurability is a claim about where the source sits in the pupil, so a non-telecentric objective walks it off the lattice with field; the fallback is pinned to form the same image with the same evaluation count. The second finding is that **the binding knob is the PUPIL sampling and not the source count** — a source point crossing the rim is a step change that now happens BETWEEN patches, which stops § 6h.5's 32-bin sequence converging at all (ratios 1.95/0.87) and is **not** rescued by refining the source (0.82/0.69 at 97 points, 0.46/0.51 at 349) while refining the pupil rescues it at every source count, with § 6m.4's contrast-against-offset sweep saying the same thing independently (non-monotone at 32, smooth 0.525→0.205 at 64) — so two rungs moved to 64 bins as a FIXTURE correction with the claims unchanged. With the fixture adequate the offset's own effect is small and **backwards**: 0.5001/0.4999 becomes 0.5092/0.5067 while the first refinement step SHRINKS ×0.727, the displacement partly cancelling the field aberration, so a rim-stopped frame is slightly more isoplanatic than its wavefront predicts. Exactly one category of rung moved — traced AND rim-stopped — and § 6o.7's is a finding rather than a re-pin: two abutting tiles sit at two field heights, so a mosaic seam now carries an **illumination** step that the guard band cannot remove (floor 7.8e-4 → 1.2e-3, the monotone-in-guard shape unchanged) | `telecentric-illumination` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -8525,9 +8526,12 @@ because the quantity that would have shown it was collimated.
 - **The DIN objective.** `finiteConjugateObjective` is untouched and still carries
   its stop on the rim. A real DIN objective is telecentric too, and the
   composition it feeds is a different one, so it is its own step.
-- **What telecentricity is worth to the illumination.** §§ 6f/6h/6m/6o each say
-  "telecentricity is assumed" about their condenser; that is now assumable of the
-  objective as well, and nothing has been re-measured against it.
+- ~~**What telecentricity is worth to the illumination.**~~ **Closed at § 6x**,
+  and this bullet had the component wrong along with the four modules it quotes:
+  the assumption was never about the condenser. Köhler illumination *is* one
+  direction per diaphragm point over the whole field, exactly. What is
+  field-dependent is where that direction lands in the OBJECTIVE's pupil, by
+  `h/R_ep`, which telecentricity sends to zero. See § 6x.1.
 - **Pupil aberration**, unchanged from § 6u: the aim is paraxial, and § 6u.2
   measures the cubic it costs rather than removing it.
 
@@ -8724,6 +8728,200 @@ the rim it is named for.
   `targetS1Mm` is documented as evaluated at D/2. Nothing bites today because no
   target is passed here; § 6c's deferred infinity-corrected slip must scale its
   target from the beam, not from the glass.
+
+## Step 6x — what telecentricity is worth to the illumination
+
+`packages/core/test/telecentric-illumination.test.ts`
+
+§ 6v moved the shipped infinity objective's stop to its back focal plane and
+§ 6w sized its glass for a field. Both are about the light the objective
+**collects**. This step is the other side, and it is the last item § 6w left
+that is not a new lens: §§ 6f, 6h, 6m and 6o each hand every field point one
+`CondenserSource` with its points centred on the pupil, and each wrote that
+down as an assumption about the *condenser*.
+
+**It is not one, and that is the step.** Köhler illumination images the lamp
+onto the condenser's aperture diaphragm, so each diaphragm point lights the
+whole field with one collimated beam — the set of *directions* is genuinely the
+same at every specimen point, exactly, and that half needed no correction.
+But `illumination/source`'s coordinates are the **objective's** pupil, and a ray
+leaving object height h with object-space slope u reaches the entrance pupil at
+height h + u·z_ep:
+
+    ρ = h/R_ep + u/u_max
+
+The field term dies only when R_ep is infinite — object-space telecentricity and
+nothing else. So the licence for one source at every field point belongs to the
+objective, § 6v is what granted it, and it was granted **only to the infinity
+presets**. The DIN carries its stop on the rim and is the live subject rather
+than a hypothetical.
+
+No physics is added. `translateSource` moves the cone, `imaging/object-field`
+measures where to, and `renderBrightfield` composes them. Nothing on axis and
+nothing telecentric changes by a bit, which is asserted rather than hoped for.
+
+### 6x.1 — the offset is `h/R_ep`, read off the aimer and not derived
+
+The engine never computes `h/R_ep`. `illuminationOffset` inverts the aimer: the
+aimed ray's object-space slope is affine in the pupil coordinate, so the
+coordinate whose ray leaves the specimen **parallel to the axis** is
+`−u(0)/(u(1) − u(0))`, and that is where a Köhler condenser's central diaphragm
+point actually puts its light. The closed form is then an independent check and
+the two agree to **ten digits** on both rim-stopped members (the DIN 4×/0.10 and
+§ 6v's own `"rim"` control).
+
+Reading it rather than deriving it settles two things algebra would have had to
+be trusted on. The **currency** — the aimer's parametrization decides whether a
+pupil coordinate is a tangent or a sine, and § 6q.5 is the step where guessing
+that wrong cost 61%. And the **sign**, which arrives from a construction.
+
+The magnitude is **0.21736 of a pupil radius per millimetre** on the shipped DIN
+4×/0.10, exactly linear in field. Against an S that is rarely above 1, a
+millimetre of field lights the specimen through a cone sitting a fifth of the way
+out of the aperture that has to catch it.
+
+**On § 6v's telecentric objective it is bitwise zero at every height**, not
+small: `aimRay` takes its object-space branch, where a pupil coordinate names a
+slope (§ 6u.1) and the chief ray's slope is § 6v.4's literal `0`, so the
+quotient never happens. That exactness is what licenses `translateSource`
+returning its own argument, and through it every telecentric and every on-axis
+render staying byte-identical to its pre-§ 6x self.
+
+The **sign and the azimuth** are pinned where they are visible: at +x the offset
+is positive and `sy` is under 1e-15, at +y the roles swap — the only witness that
+the offset is turned by the same rotation as the pupil, since every meridional
+rung is blind to it — and at the 45° corner the two components are equal with the
+magnitude the radial offset.
+
+### 6x.2 — the aperture stops admitting the whole cone, and it is a count
+
+§ 6w's currency, and deliberately: at S = 0.9 the objective admits **97 of 97**
+source points on axis and **90 of 97** at 1 mm, with the seven that leave being
+the seven furthest out **along the field's own direction**.
+
+That last clause is the load-bearing one. A *dimming* cannot check this: shifting
+a disc source by ±d pushes the same number of points out of a centred pupil
+whichever way it went, so a mean intensity is sign-blind. Worse, the obvious
+reading of "a clear field dims off axis" is **true on the telecentric objective
+too** — 0.8158 → 0.7737 over the same sweep — for § 6v.5's reason, the imaging
+bundle walking off the glass. The two mechanisms are told apart by the count and
+not by a brightness, and the telecentric control admits all 97 at every field.
+
+And while the cone is still inside, the displacement costs a clear field
+**exactly nothing** (to 1e-5 over four field heights): a clear field uses only
+the undiffracted order, which every source point still carries wherever inside
+the pupil it sits. So the offset is not a brightness fudge — what it moves is
+which part of the aberrated pupil each diffracted order crosses, which is
+§ 6f's contrast story and not § 6f's throughput.
+
+### 6x.3 — the fluorescence null, bit for bit
+
+§ 6i's "there is no condenser in the expression at all", promoted from a sentence
+to a test. `tracedFieldPupils` is shared by both renderers, so the offset now
+travels into the fluorescence path and **must be ignored there** — a fluorophore
+has no phase memory of the field that excited it. Asserted bitwise rather than to
+a tolerance, on patches whose offset is verified non-zero first, so the null is
+not vacuous. This is why the offset rides beside the pupil instead of being
+folded into it.
+
+### 6x.4 — folding it into the pupil would have been silently wrong
+
+Recorded because it is the design decision and it is not obvious.
+`shiftPupil(P, d)` is arithmetically the same composition — the sum evaluates the
+pupil at `ν + s + d` either way. But `abbeImage` derives the box of frequency
+bins it visits from the **source point alone**, on the premise that the pupil is
+supported on |u| ≤ 1; a pupil pre-shifted by d is supported on a disc centred at
+−d, so the part outside that box would be dropped. abbe's own comment says what
+that is worth: a silently truncated pupil is indistinguishable from a smaller
+aperture, "a coverage cap that would read as physics". Translating the source
+puts d inside the box computation, where the grid guard can see it and throw.
+
+It does throw, correctly: a rim-stopped objective off axis needs a wider
+frequency grid than a telecentric one at the same S, because the reach the guard
+sizes against is S + d rather than S.
+
+### 6x.5 — § 6p's cache is a telecentric-only optimisation
+
+An offset read off a trace is not a whole number of half-steps, so a translated
+source cannot carry `pupilLattice` — and rounding it onto the lattice would be
+exactly the lie `commensurateSource` refuses one function up (§ 6p's "a *nearly*
+commensurate source would form a perfectly plausible image"). The metadata is
+dropped and `abbeImage` falls back to evaluating the pupil per source point.
+
+**Which is a fact about telecentricity rather than a limitation of the cache.**
+Commensurability is a claim about where the source sits in the pupil, and a
+non-telecentric objective moves it with field. Nothing regresses today —
+`commensurateSource` has no caller outside its own rungs — and the fallback is
+pinned as a fallback: a translated commensurate source and its own points handed
+over as a plain one form the same image and make the same number of pupil
+evaluations, so what is lost is the saving and not the sum.
+
+### 6x.6 — the binding knob is the PUPIL sampling, not the source count
+
+The step's second finding, and it arrived as two moved rungs rather than as a
+prediction.
+
+Once each patch is lit from its own point of the pupil, a source point crossing
+the aperture rim is a **step change that happens between patches**. At § 6h.5's
+32-bin fixture that stops the patch-refinement sequence converging at all —
+ratios **1.95 and 0.87** where the rung had read 0.50 — and refining the
+**source** does not rescue it: 0.82/0.69 at 97 points, 0.46/0.51 at 349, at three
+and eight times the cost. Refining the **pupil** does, at every source count
+(0.509/0.507 at 21, 97 and 349 points alike, the sequence itself moving only
+1.239 → 1.201e-2). § 6m.4's contrast tells the same story independently: swept by
+hand against the offset at 32 bins it is not even monotone (0.340, 0.239, 0.172,
+**0.320**, 0.165), and at 64 it falls smoothly (0.525, 0.457, 0.378, 0.257,
+0.205) and stops moving when the source is refined.
+
+Both rungs therefore moved to 64 bins, which is a fixture correction and not a
+loosened tolerance: the claims are unchanged, and what was too coarse to carry
+them is measured rather than asserted. This is § 6r.7's "the blue end sets
+`pupilSamples`" and § 6t.4's ruler arriving a third time on the same knob.
+
+**With the fixture adequate, the offset's own effect on the convergence is small
+and in the unexpected direction.** Suppressing it gives 0.5001/0.4999 and
+restoring it gives 0.5092/0.5067 — but the *first* step **shrinks**, 1.71e-2 →
+1.24e-2, a factor 0.727. The displacement partly cancels the field aberration's
+effect on the image, so a rim-stopped objective's frame is slightly **more**
+isoplanatic than its wavefront alone predicts.
+
+### What moved, and what could not
+
+Exactly one category: rungs that are **traced and rim-stopped**. Ideal-pupil
+rungs have no system to be non-telecentric and cannot move; traced telecentric
+ones move by an identical zero. Four numbers moved in three rungs — § 6h.5's
+composition identity (which had to be handed the same translated source, and
+reads 2.5e-3 instead of 1e-12 without it), § 6h.5's convergence ratio, § 6m.4's
+off-axis contrast (0.343 → 0.231, with its rms figures untouched because an
+illumination offset is not an aberration), and § 6o.7's seam floor.
+
+**§ 6o.7's is a finding rather than a re-pin.** Two abutting tiles sit at two
+field heights, so they are lit from two points of the pupil: a mosaic seam now
+carries an **illumination** step as well as an aberration one, and unlike the
+crop error it does not fall with the guard band. The floor rises 7.8e-4 → 1.2e-3
+while the shape of the claim — monotone in the guard, 15× over 0 → 8 cells — is
+unchanged.
+
+### Not yet pinned
+
+- **A condenser that is genuinely not Köhler.** Critical illumination images the
+  filament onto the specimen, which breaks the set-of-directions model itself
+  rather than displacing it, and `illumination/source` says so in its header.
+  Nothing here touches that.
+- **The condenser's own aberrations and its own pupil.** The cone is translated
+  rigidly; a real condenser's cone also *changes shape* off axis, which is a
+  second trace this step does not run.
+- **Whether § 6p's cache can be recovered.** It can, by building the lattice
+  cache on the pre-shifted pupil with per-axis extents, and it was rejected on
+  scope: `abbeImage` is the branch's most-pinned module and § 6p's bit-for-bit
+  identity would need re-pinning to buy a saving nothing currently uses.
+- **§ 6o.7's floor at a finer lattice.** 6x.6 shows the offset's effect is
+  lattice-decided at 32 bins, and the mosaic rung stayed there because it renders
+  four guards; the illumination seam is therefore reported with its size
+  uncertain, not with its existence.
+- **The DIN objective's own stop**, unchanged from § 6v and § 6w. Giving it a
+  back focal stop is what would make this step's subject disappear, which is
+  precisely why it must not happen in this step.
 
 ## Later rungs
 

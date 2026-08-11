@@ -479,10 +479,12 @@
    (§ 6l was the last gap, and § 6u has since closed the last *named blocker* —
    § 6a's telecentricity — which was an engine capability rather than a numbered
    step; **§ 6v then spent it**, moving the shipped objective's stop onto its back
-   focal plane so the presets *are* telecentric rather than able to be, and
-   **§ 6w has since paid its price**, sizing the glass for a field number so the
-   objective knows what field it must pass). What remains here is app wiring and
-   scenes.
+   focal plane so the presets *are* telecentric rather than able to be,
+   **§ 6w paid its price**, sizing the glass for a field number so the
+   objective knows what field it must pass, and **§ 6x has since collected what
+   it is worth on the other side** — the illumination, where four earlier steps
+   had blamed the condenser for something that was the objective's all along).
+   What remains here is app wiring and scenes.
    Infinity-corrected + classic 160 mm architectures; 4x–100x objectives incl.
    oil immersion ✅ (§ 6e); brightfield ✅ (§ 6f) and fluorescence ✅ (§ 6i),
    the latter now over a 3-D specimen ✅ (§ 6k); coverslip mismatch ✅ (§ 6c);
@@ -622,12 +624,66 @@
    linearly — the NA ceiling drops by exactly `FN/(2·f_tube)` (0.045 at FN 18, to
    nine digits) from an axial 0.287401975 that is `1/(2·F*)` for that step's own
    F\* = 1.7397236, two constants meeting by a route neither was derived through.
+   *What it was worth to the illumination:* ✅ § 6x — § 6w's last open item that
+   was not a new lens, and it turned out to be a **correction to four module
+   headers before it was a measurement**. §§ 6f/6h/6m/6o each hand every field
+   point one condenser with its directions centred on the pupil and each wrote
+   that down as an assumption about the *lamp side*. It is not one: Köhler
+   illumination really does send one direction per point of the condenser's
+   diaphragm to the whole field, exactly. What depends on the field is where that
+   direction **lands in the objective's own pupil** — `h/R_ep` of the way out —
+   and that dies only for an entrance pupil at infinity. So the licence belonged
+   to the **objective** all along, § 6v is what granted it, and it granted it to
+   the infinity presets only; the DIN still carries its stop on the rim and is
+   this step's live subject. The displacement is **0.217 of a pupil radius per
+   millimetre** on the shipped 4×/0.10 — against a condenser setting rarely above
+   1, a millimetre of field is lit through a cone a fifth of the way out of the
+   aperture meant to catch it — and it is read off the **aimer** rather than
+   derived, which settles the tangent-versus-sine currency § 6q.5 got wrong and
+   settles the sign by construction; the closed form then agrees to ten digits.
+   On § 6v's telecentric lens it is **bitwise zero** at every height, so every
+   telecentric and every on-axis render is byte-identical to its pre-§ 6x self.
+   The claim lands as § 6w's kind of count — **97 of 97** illumination directions
+   admitted on axis against **90 of 97** at a millimetre, the seven lost being the
+   seven furthest out *along the field's own direction* — and that last clause is
+   the rung, because a **dimming cannot check this**: displacing a disc by ±d
+   ejects the same count either way, and "the clear field dims off axis" is true
+   on the telecentric objective too (0.8158 → 0.7737) for § 6v.5's entirely
+   different reason. While the cone is still inside, the offset costs a clear
+   field **exactly nothing**; what it moves is which part of the aberrated pupil
+   each diffracted order crosses. Three more. **§ 6i's "there is no condenser in
+   the expression at all" becomes a bitwise test** — the offset rides beside the
+   pupil rather than inside it, so fluorescence reads the same object and
+   correctly ignores it — and folding it into the pupil would have been *silently*
+   wrong, since the Abbe sum sizes the frequency box it visits from the source
+   point alone and would have cropped a pupil sitting off centre, which is the
+   truncation its own comment says reads as a smaller aperture. **§ 6p's cache
+   does not survive an offset, and that is a fact about telecentricity rather
+   than a limitation of the cache:** commensurability is a claim about where the
+   source sits in the pupil, so a non-telecentric objective walks it off the
+   lattice with field — nothing regresses, since that source has no caller outside
+   its own rungs. And **the binding knob is the pupil sampling, not the source
+   count**: a direction crossing the aperture rim is a step change that now
+   happens *between* patches, which stops § 6h.5's 32-bin sequence converging at
+   all (ratios 1.95, 0.87) and is **not** rescued by refining the source
+   (0.82/0.69 at 97 directions, 0.46/0.51 at 349, at three and eight times the
+   cost) while refining the pupil rescues it at every source count — with
+   § 6m.4's contrast sweep saying the same thing independently, non-monotone at 32
+   bins and smooth at 64. Two rungs moved to 64 bins as a **fixture** correction
+   with their claims unchanged, and with the fixture adequate the offset's own
+   effect is small and **backwards**: the first refinement step *shrinks* by a
+   factor 0.727, because the displacement partly cancels the field aberration, so
+   a rim-stopped frame is slightly more isoplanatic than its wavefront predicts.
+   Exactly one category of rung moved — traced **and** rim-stopped — and § 6o.7's
+   is a finding rather than a re-pin: two abutting tiles sit at two field heights,
+   so a mosaic seam now carries an **illumination** step the guard band cannot
+   remove.
    **Still open here:** the DIN objective
    (`finiteConjugateObjective` still carries its stop on the rim, and a real DIN
-   objective is telecentric too), what telecentricity is worth to the illumination
-   — §§ 6f/6h/6m/6o each assume it of their *condenser* and nothing has been
-   re-measured against the objective now having it — and image-space
-   telecentricity, which has no caller.
+   objective is telecentric too — and giving it one is what would make § 6x's
+   subject disappear, so it is deliberately not this step), the condenser's own
+   aberrations (§ 6x translates the cone rigidly; a real one changes its shape off
+   axis), and image-space telecentricity, which has no caller.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it

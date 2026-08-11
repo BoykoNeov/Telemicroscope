@@ -48,11 +48,21 @@ import { radialMapCovering, type RadialMap } from "./radial-map";
  *
  * ## What is deliberately not attempted
  *
- * A mosaic under a **non-telecentric** condenser. § 6h hands every patch the
- * same `CondenserSource` with its points centred on the pupil, which says the
- * illumination cone stays centred at every field point; a real condenser's cone
- * tilts off axis. `shiftPupil` is already the operator that would do it, and it
- * is § 6a's object-space ray-aiming blocker arriving where it finally bites.
+ * ~~A mosaic under a **non-telecentric** condenser.~~ **Built at § 6x, and it was
+ * the objective that was non-telecentric, not the condenser.** What stood here
+ * said a real condenser's cone tilts off axis; under Köhler it does not — every
+ * diaphragm point lights the whole field from one direction, exactly. What moves
+ * is where that direction sits in the OBJECTIVE's pupil, by `h/R_ep`, which is
+ * zero only for an entrance pupil at infinity. `imaging/object-field` measures it
+ * and `renderBrightfield` translates the cone, so a mosaic on the rim-stopped DIN
+ * now lights each tile from where that tile is really lit from.
+ *
+ * A mosaic is where this is largest, because a mosaic is how the branch reaches
+ * millimetres: 0.217 of a pupil radius per millimetre on the 4×/0.10. It also
+ * puts a second discontinuity at every seam — two abutting tiles sit at two field
+ * heights, so they are lit from two points of the pupil — and unlike the crop
+ * error that one does not fall with the guard band. § 6o.7 pins the floor it
+ * leaves.
  */
 
 /** How a mosaic's tile centres are spaced. */

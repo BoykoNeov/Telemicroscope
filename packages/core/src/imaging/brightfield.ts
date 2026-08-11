@@ -4,7 +4,7 @@ import {
   type BrightfieldFidelity,
   type BrightfieldVerdict,
 } from "../illumination/fidelity";
-import type { CondenserSource } from "../illumination/source";
+import { translateSource, type CondenserSource } from "../illumination/source";
 import type { OpdSampling } from "../wave/fidelity";
 import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
 import { patchWeight } from "./render";
@@ -96,6 +96,22 @@ export interface PatchPupil {
    * from inside the transform, exactly like an ideal disc.
    */
   readonly sampling?: OpdSampling;
+  /**
+   * Where this field point's illumination cone sits in this pupil, in the same
+   * normalized coordinates the source's points use (§ 6x).
+   *
+   * Absent or zero means centred, which is what an object-space **telecentric**
+   * objective delivers and what every caller before § 6x assumed unconditionally.
+   * A rim-stopped objective displaces the whole cone by `h/R_ep` at object height
+   * h — 0.217 of a pupil radius per millimetre on the shipped DIN 4×/0.10 — and
+   * `imaging/object-field` measures it off the trace.
+   *
+   * It rides on the pupil rather than on the source because it is a property of
+   * the field POINT, and one `renderBrightfield` call has one source and many
+   * field points. `renderFluorescence` reads the same interface and ignores this
+   * field, correctly: § 6i's expression has no condenser in it at all.
+   */
+  readonly illuminationOffset?: { readonly sx: number; readonly sy: number };
 }
 
 export interface BrightfieldFieldOptions {
@@ -180,7 +196,16 @@ export function renderBrightfield(
         worst = verdict;
       }
 
-      const formed = abbeImage(object, patch.pupil, source, {
+      // The cone this field point is actually lit from. `translateSource`
+      // returns its input unchanged at a zero offset, so a telecentric system —
+      // and every ideal-pupil caller, which has no system to be non-telecentric —
+      // reaches `abbeImage` with the identical object it did before § 6x.
+      const lit =
+        patch.illuminationOffset === undefined
+          ? source
+          : translateSource(source, patch.illuminationOffset.sx, patch.illuminationOffset.sy);
+
+      const formed = abbeImage(object, patch.pupil, lit, {
         pupilSamples: options.pupilSamples,
         ...(options.scale === undefined ? {} : { scale: options.scale }),
       });

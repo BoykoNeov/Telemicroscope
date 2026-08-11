@@ -15,7 +15,7 @@ import { rotateKernel } from "../src/imaging/render";
 import { renderBrightfield } from "../src/imaging/brightfield";
 import { rasterizeEmitters } from "../src/imaging/fluorescence";
 import { abbeImage, cosineGratingObject, type ObjectField } from "../src/illumination/abbe";
-import { diskSource } from "../src/illumination/source";
+import { diskSource, translateSource } from "../src/illumination/source";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import {
   imageNumericalAperture,
@@ -465,6 +465,14 @@ describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
     // IS `abbeImage` through that patch's pupil. The composition is checked
     // pixel-for-pixel in that strip, which is the only place it can be checked
     // without a closed form for a non-isoplanatic partially coherent image.
+    //
+    // § 6x added the second half of "that patch's pupil": a patch is lit from a
+    // cone this rim-stopped DIN puts off centre, so the reference side has to
+    // translate the source the same way `renderBrightfield` does. Written with
+    // the patch's own reported offset rather than a repeat of the formula — the
+    // identity being checked is the composition, and § 6x.1 is where the offset
+    // itself is pinned. Handed the untranslated source this reads 2.5e-3 rather
+    // than 1e-12, which is the size of the thing the wiring is carrying.
     const system = din4x();
     const frame = frameOf(system);
     const patches = 2;
@@ -474,7 +482,13 @@ describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
       pupilSamples: PUPIL_SAMPLES,
       scale: frame.scale,
     });
-    const edge = abbeImage(GRATING, pupilAt(0.25, 0.25).pupil, SOURCE, {
+    const edgePatch = pupilAt(0.25, 0.25);
+    const lit = translateSource(
+      SOURCE,
+      edgePatch.illuminationOffset!.sx,
+      edgePatch.illuminationOffset!.sy,
+    );
+    const edge = abbeImage(GRATING, edgePatch.pupil, lit, {
       pupilSamples: PUPIL_SAMPLES,
       scale: frame.scale,
     });
@@ -494,11 +508,10 @@ describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
 
   it("finds the frame NOT isoplanatic, and converges at ratio ½ — not the fixture's 0.4", () => {
     // The measurement that decides whether this unit was worth building, and it
-    // answers yes. The frame spans only pupilSamples resolution cells (§ 6h.2) —
-    // 47 µm of specimen on a 4× — which looked far too small to leave the
-    // objective's isoplanatic patch. It is not: the corner reads 8.8e-3 waves of
-    // coma against the axis's fit-noise 7.5e-6, and the image moves by 1.4% of
-    // peak between one patch and four.
+    // answers yes. The frame spans only pupilSamples resolution cells (§ 6h.2),
+    // which looked far too small to leave the objective's isoplanatic patch. It
+    // is not: the corner's coma runs more than 100× the axis's fit noise, and the
+    // image moves by over 1% of peak between one patch and two.
     //
     // § 6g.3 pinned this convergence as a ratio because a wandering image also
     // satisfies "each step is smaller". On the labelled defocus-ramp fixture the
@@ -506,13 +519,28 @@ describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
     // was representative in SHAPE — geometric convergence — and not in RATE,
     // which is exactly why § 6g.3 pinned a measured number and did not call it a
     // law.
+    //
+    // **The sampling moved to 64 bins at § 6x, and the reason is that step's own
+    // finding.** This rung ran at 32 for its whole life and read 0.50. Once the
+    // illumination cone is placed where the rim-stopped DIN actually puts it,
+    // each patch is lit from a slightly different point of the pupil, so a source
+    // point crossing the aperture rim is a step change that happens BETWEEN
+    // patches — and at 32 bins the sequence stops converging at all
+    // (7.8e-3, 1.5e-2, 1.3e-2; ratios 1.95, 0.87). Refining the source does not
+    // fix it (0.82/0.69 at 97 points, 0.46/0.51 at 349) and refining the PUPIL
+    // does, at every source count (§ 6x.6). That is not a tolerance being
+    // loosened: the claim is the same claim, and the fixture is the thing that
+    // was too coarse to carry it once the cone was allowed to move.
     const system = din4x();
-    const frame = frameOf(system);
+    const size = 128;
+    const pupilSamples = 64;
+    const frame = frameOf(system, pupilSamples, size);
+    const grating = cosineGratingObject({ size, cycles: CYCLES, modulation: 0.6 });
     const pupilAt = tracedFieldPupils(system, frame);
     const levels = [1, 2, 4, 8].map((patches) =>
-      renderBrightfield(GRATING, pupilAt, SOURCE, {
+      renderBrightfield(grating, pupilAt, SOURCE, {
         patches,
-        pupilSamples: PUPIL_SAMPLES,
+        pupilSamples,
         scale: frame.scale,
       }),
     );
@@ -521,10 +549,13 @@ describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
     for (let i = 1; i < levels.length; i++) {
       steps.push(worstDifference(levels[i]!.intensity, levels[i - 1]!.intensity) / pk);
     }
-    // Field variation is REAL: the first refinement moves the image by ~0.9%.
+    // Field variation is REAL: the first refinement moves the image by ~1.2%.
     expect(steps[0]!).toBeGreaterThan(5e-3);
+    // 0.5092 and 0.5067 — geometric, and just above a half. § 6x.6 runs the same
+    // sequence with the offset suppressed and gets 0.5001/0.4999, so the excess
+    // over ½ belongs to the illumination and not to the fixture.
     for (let i = 1; i < steps.length; i++) {
-      expect(steps[i]! / steps[i - 1]!).toBeCloseTo(0.5, 2);
+      expect(steps[i]! / steps[i - 1]!).toBeCloseTo(0.51, 2);
     }
     // The wavefront agrees with the picture: coma, linear in the field, is what
     // varies across this frame.
@@ -622,9 +653,15 @@ describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
  */
 
 /** A § 6m tile of the same construction as `frameOf`, centred where asked. */
-const tileOf = (system: OpticalSystem, x: number, y = 0, pupilSamples = PUPIL_SAMPLES) =>
+const tileOf = (
+  system: OpticalSystem,
+  x: number,
+  y = 0,
+  pupilSamples = PUPIL_SAMPLES,
+  size = SIZE,
+) =>
   objectFieldTile(system, {
-    size: SIZE,
+    size,
     pupilSamples,
     wavelengthNm: LAMBDA,
     centreMm: { x, y },
@@ -1093,14 +1130,28 @@ describe("§ 6m.4 — a millimetre of field, which one frame could not see", () 
     // traced, so § 6f.9's verdict has the sampling it needs — and the picture
     // degrades because the OBJECTIVE does: a single cemented doublet solved on
     // axis carries 0.140 waves rms there and 0.632 at 1.6 mm, and the grating's
-    // contrast follows it down from 0.687 to 0.343. That is the DIN 4×'s own
+    // contrast follows it down from 0.870 to 0.231. That is the DIN 4×'s own
     // field and not the mapping's limit; nothing here vignettes.
+    //
+    // **Two of those numbers moved at § 6x and one did not, which is the point.**
+    // The rms figures are the WAVEFRONT and are untouched — an illumination
+    // offset is not an aberration. The contrasts are the picture, and they fell
+    // because a rim-stopped objective lights 1.6 mm of field from a cone sitting
+    // 0.348 of a pupil radius off centre. This rung also moved to 64 bins with
+    // them, and for § 6h.5's reason: swept by hand at 32 bins the contrast
+    // against the offset is not even monotone (0.340, 0.239, 0.172, 0.320, 0.165
+    // over d = 0 → its true value), so the number there was the lattice's and not
+    // the objective's. At 64 it falls smoothly — 0.525, 0.457, 0.378, 0.257,
+    // 0.205 — and stops moving when the source is refined (§ 6x.6).
     const system = din4x();
+    const size = 128;
+    const pupilSamples = 64;
+    const grating = cosineGratingObject({ size, cycles: CYCLES, modulation: 0.6 });
     const rowContrast = (intensity: Float64Array) => {
       let lo = Infinity;
       let hi = -Infinity;
-      for (let x = 0; x < SIZE; x++) {
-        const value = intensity[(SIZE / 2) * SIZE + x]!;
+      for (let x = 0; x < size; x++) {
+        const value = intensity[(size / 2) * size + x]!;
         lo = Math.min(lo, value);
         hi = Math.max(hi, value);
       }
@@ -1108,12 +1159,12 @@ describe("§ 6m.4 — a millimetre of field, which one frame could not see", () 
     };
     const seen: { rms: number; contrast: number }[] = [];
     for (const h of [0, 0.8, 1.6]) {
-      const tile = tileOf(system, h === 0 ? 0 : imageRadius(system, h));
+      const tile = tileOf(system, h === 0 ? 0 : imageRadius(system, h), 0, pupilSamples, size);
       const centre = fieldPupilAt(system, tile, 0.5, 0.5);
       expect(centre.lost).toBe(0);
-      const out = renderBrightfield(GRATING, tracedFieldPupils(system, tile), SOURCE, {
+      const out = renderBrightfield(grating, tracedFieldPupils(system, tile), SOURCE, {
         patches: 2,
-        pupilSamples: PUPIL_SAMPLES,
+        pupilSamples,
         scale: tile.scale,
         requireHonest: true,
       });
@@ -1126,7 +1177,11 @@ describe("§ 6m.4 — a millimetre of field, which one frame could not see", () 
     }
     expect(seen[0]!.rms).toBeCloseTo(0.14, 2);
     expect(seen[2]!.rms).toBeCloseTo(0.632, 2);
-    expect(seen[0]!.contrast).toBeCloseTo(0.687, 2);
-    expect(seen[2]!.contrast).toBeCloseTo(0.343, 2);
+    expect(seen[0]!.contrast).toBeCloseTo(0.87, 2);
+    expect(seen[2]!.contrast).toBeCloseTo(0.231, 2);
+    // On axis the offset is identically zero, so that first contrast is the one
+    // number here § 6x cannot have touched — it is the fixture change alone.
+    expect(fieldPupilAt(system, tileOf(system, 0, 0, pupilSamples, size), 0.5, 0.5)
+      .radialIlluminationOffset).toBe(0);
   });
 });
