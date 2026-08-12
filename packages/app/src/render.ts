@@ -5,6 +5,7 @@ import { blackbodySpectrum, quadratureSamples, spectralSamples } from "@telemicr
 import { kolmogorovScreen, spectralStack } from "@telemicroscope/core/wave";
 import {
   colorImageFromStack,
+  imagePointOf,
   integratedXyz,
   radialColorProfile,
   rasterizePointSources,
@@ -91,7 +92,15 @@ export interface RenderDone {
   readonly result: RenderResult;
 }
 
-const FOCUS_NM = 550;
+/**
+ * The one wavelength both lenses are focused at, so the pair of images differs
+ * by their chromatism and not by their focus.
+ *
+ * Exported since Part H: the chromatic-shift plot quotes every colour's focus
+ * against the plane this number produced, and a second copy of "550" living in
+ * that file would let the picture and its explanation drift apart silently.
+ */
+export const FOCUS_NM = 550;
 
 export function buildSystem(request: RenderRequest): OpticalSystem {
   const pair = refractorPair(request.focalLengthMm, request.apertureMm, request.focalLengthMm);
@@ -225,6 +234,32 @@ export interface FieldResult {
   readonly elapsedMs: number;
   readonly fNumber: number;
   readonly starCount: number;
+  /**
+   * Where each star was actually put, and at what field angle — Part H's
+   * anchors.
+   *
+   * Emitted by the renderer rather than reconstructed by the panel, and that is
+   * the whole point of it being here: a clickable hotspot over an artifact has
+   * to sit where the artifact *is*, and the only thing that knows that is the
+   * code that placed it. A panel that re-derived a star's pixel from the field
+   * grid would be drawing its own guess on top of the engine's answer, and the
+   * two would agree until the day the pixel scale or the placement rule changed.
+   *
+   * Positions are the chief ray's landing at `FOCUS_NM`, in pixels of this
+   * result's own grid. One wavelength, because a star does not have a single
+   * position — the rasterizer places each wavelength separately and the spread
+   * between them is lateral colour, which is a different artifact from either of
+   * the two these anchors link to.
+   */
+  readonly stars: readonly StarAnchor[];
+}
+
+export interface StarAnchor {
+  /** Pixel position in this result's grid — x to the right, y down. */
+  readonly xPx: number;
+  readonly yPx: number;
+  /** Radial field angle of this star, degrees — what an explanation needs. */
+  readonly fieldDeg: number;
 }
 
 /** A field render asked of the worker; `seq` lets the caller discard stale replies. */
@@ -305,6 +340,23 @@ export function renderFieldScene(
   }
   const scene = rasterizePointSources(system, sources, samples, { size, pixelScaleMm });
 
+  // The same call `rasterizePointSources` makes, at one wavelength: a traced
+  // chief ray, not a field-grid formula. See `StarAnchor`.
+  const stars: StarAnchor[] = sources.map((source) => {
+    const fieldDeg = Math.hypot(source.fieldXDeg, source.fieldYDeg);
+    const point = imagePointOf(
+      system,
+      fieldDeg,
+      Math.atan2(source.fieldYDeg, source.fieldXDeg),
+      FOCUS_NM,
+    );
+    return {
+      xPx: size / 2 + point.x / pixelScaleMm,
+      yPx: size / 2 + point.y / pixelScaleMm,
+      fieldDeg,
+    };
+  });
+
   const fNumber = request.focalLengthMm / request.apertureMm;
   const encode = (image: ColorImage, patches: number, psfEvaluations: number): FieldResult => {
     // Auto-expose so each star sits near the single-star panels' brightness
@@ -321,6 +373,7 @@ export function renderFieldScene(
       elapsedMs: performance.now() - started,
       fNumber,
       starCount: sources.length,
+      stars,
     };
   };
 
