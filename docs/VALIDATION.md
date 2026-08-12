@@ -10236,6 +10236,28 @@ DIN 4×/0.10 through the panel's own request path, S = 0.5, `pupilSamples` 32:
   **31 / 43 / 62 / 174 ms**, so the whole ladder is inside APP.md's ~800 ms live
   line where `diskSource`'s finest setting (349 points, 1 124 ms) never was.
 
+**The cost crosses over, and it is the count and not the cache that does it.** A
+lattice step is a fixed *angular density*, so the direction count follows the
+aperture's area — 49 at S = 0.25, 197 at 0.5, 797 at 1.0, 1 793 at 1.5 — while
+`diskSource` holds 97 wherever S goes. Traced at `pupilSamples` 32 that is
+**49 ms against 231** at S = 0.25 and **1 115 ms against 272** at S = 1.5, with
+the crossing near S = 0.75. Neither number is a defect: § 6p.7 already found
+that what un-flattens the error floor is the point count, and a fixed count does
+not stay a fixed *quality* as the diaphragm opens — it stops saying so. The step
+control is what trades it back, and the panel prints both the count and the
+clock so the trade is visible rather than inferred.
+
+**At `pupilSamples` 64 the panel was already past its own live line, and this
+step improves it rather than causing it.** Traced at size 128: the shipped
+`diskSource(S, 11)` runs **1 523 ms** and its 21-point setting **5 672 ms**,
+against the pupil-matched ladder's **125 / 188 / 299 / 1 110 ms** at steps
+4/3/2/1. So every pupil-matched setting beats the old default there, and step 2
+— 197 directions, the same count the default gives at `pupilSamples` 32 —
+returns it to 299 ms. The default step is left at 1 rather than adjusted per
+lattice: the count is printed on the control itself, and a control that rewrites
+another control's value is the state-chasing-state the panel's own S clamp is
+written to avoid.
+
 ### Not yet pinned
 
 - **The phase panel** (`app/phase.ts`) takes `diskSource` on the same argument

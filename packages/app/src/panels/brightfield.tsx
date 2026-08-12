@@ -48,11 +48,27 @@ const BRIGHTFIELD_MODULATION = 0.4;
 /**
  * The condenser slider's step, and it is 0.01 for a reason worth the extra
  * ticks: the whole claim of the third curve is that the textbook law and the
- * lattice disagree, and at ν = 1.3125 with an 11-point condenser they disagree
- * only for S between 0.3125 and 0.3438. A coarser step has no stop in that
- * window, so the panel could assert the gap but the reader could never stand in
- * it. Mid-drag values are dropped by the worker hook's backpressure, so the
- * finer step costs renders that were never going to be seen.
+ * lattice disagree, and the window where they do is narrow enough that a
+ * coarser step has no stop inside it — the panel could assert the gap and the
+ * reader could never stand in it.
+ *
+ * **Both condensers were measured, and the narrower one sets this.** At
+ * ν = 1.3125: the **independent** 11-point disc disagrees only for S between
+ * 0.3125 and 0.3438, a window of 0.031 with three stops at this step; the
+ * **pupil-matched** lattice at step 2 disagrees from 0.3125 to 0.3750, a window
+ * of 0.0625 with six. So § 6ab widened the target rather than moving it and this
+ * number stands unchanged — but it stands on the independent mode's window,
+ * which is the binding one.
+ *
+ * **A coarser step would now be wrong for a second reason.** § 6ab.7: the
+ * pupil-matched window always *begins* at exactly ν − 1, which is a multiple of
+ * 2/pupilSamples — 0.3125 here — and 0.01 does not divide 0.0625, so the slider
+ * has no stop on that edge and lands strictly inside. A step that did divide it
+ * would put the reader on the boundary, where the two curves touch rather than
+ * separate.
+ *
+ * Mid-drag values are dropped by the worker hook's backpressure, so the finer
+ * step costs renders that were never going to be seen.
  */
 const S_STEP = 0.01;
 
@@ -393,6 +409,18 @@ export function BrightfieldPanel() {
         (163 ms against 90). Switch the pupil to ideal and the pupil-matched condenser is the slower
         of the two, which is not a contradiction: it is the same measurement saying that what was
         removed was never the arithmetic.
+      </p>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        One consequence to watch, because the <strong>ms</strong> under the picture will show it. A
+        lattice step is a fixed <em>angular density</em>, so a pupil-matched condenser&rsquo;s
+        direction count follows the aperture&rsquo;s area — 49 directions at S = 0.25, 197 at 0.5,
+        797 at 1.0 — while the independent one holds its count wherever S goes. Below about
+        S = 0.75 the matched condenser is both cheaper and better sampled (135 ms against 244 at
+        S = 0.5); above it the counts cross and it becomes the slower one (1 115 ms against 272 at
+        S = 1.5) while sampling the cone eighteen times more finely. Neither is wrong. It is worth
+        knowing which is happening: a fixed count does not stay a fixed <em>quality</em> as the
+        diaphragm opens, it just stops saying so. Raise the <strong>lattice step</strong> to trade it
+        back.
       </p>
       <p style={{ maxWidth: 640, color: "#444" }}>
         It also decides what each can show. Past S = 1 the continuum says opening further changes
