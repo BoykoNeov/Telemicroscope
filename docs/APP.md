@@ -3997,6 +3997,28 @@ the other way: the halo's honest anchor is the number already on screen
 (`fringeAiryRadii`), and a ring drawn at a radius chosen to look right would be the
 first faked thing in this app.
 
+**And a zero field is a measurement, not a missing value** — which is a smaller
+thing that had already gone wrong once here. The star image is on axis, so its
+link carries `fieldDeg: 0` and is right to; `?? 0.8` does not fire on zero and
+`|| 0.8` does, so the two panels make **opposite** choices deliberately and each
+says why in place. The ray fan seeds from the link exactly, including zero, and
+prints a notice naming the on-axis case — a fan with no even half is the panel
+working, and a reader who is not told that has been handed a correct plot of
+nothing. The cross-link *out* of the chromatic panel does the reverse and moves an
+on-axis sender off axis, saying so in the link's own text.
+
+### One thing measured in passing, recorded so it is not rediscovered as a bug
+
+Checking the rendered frame for the tail direction turned up a **−0.134 px
+cross-term** on the star at (0.4°, 0) — a y-displacement that symmetry forbids for
+a star on the x axis. It is the patch scheme and not an error in it:
+`renderField` rotates each patch's PSF by the **patch centre's** azimuth, and a
+star does not generally sit at its patch's centre, so the kernel arrives turned by
+up to half a patch's worth of angle. It scales down with `patches` and it is two
+orders under the radial displacement that was being measured (5–7 µm), so it
+changed no conclusion here. Worth knowing before someone measures a star's
+azimuthal asymmetry and believes it.
+
 ### Cost, and the convention this part breaks
 
 **6–19 ms** for a fan (three wavelengths × two fans × 21–81 rays) and **15–49 ms**
@@ -4008,6 +4030,22 @@ adds latency to hide none. APP.md's rule for a surface that breaks a house
 convention is that it says why on screen, so both panels print their elapsed time
 next to the sentence that depends on it — if the number grows, the justification is
 visibly gone rather than quietly wrong.
+
+**And a warning that nearly reversed this decision, which is the third time in this
+part that a number turned out to be measuring something else.** Checked in a real
+browser, the panel's own readout said **13 770 ms** — 300× the vitest figure, and
+prima facie a flat refutation of everything above. It is the **dev server**: the
+first trace on a cold route runs interpreted, on hundreds of unbundled ES modules,
+before V8 has compiled any of the tracing kernels. The same first-load-of-a-cold-page
+measurement on `vite build` output is **45 ms**, and the dev figure had only
+appeared at all because this route happened to be the first one loaded — earlier in
+the same session, arriving at it *after* the ray fan had warmed the shared trace
+code, it read 38 ms. So the cost line is a **built-app** number and both panels now
+say so, because a reader who meets 13 770 ms on a dev page would be reading a
+sentence that contradicts itself. Nothing in the app's other cost figures is
+implicated — every one of them was taken warm — but this is the first time the
+distinction has mattered, because this is the first panel whose *argument* is its
+elapsed number rather than its elapsed number being an aside.
 
 **The structural addition is the route parameter**, which this document listed as
 open at the head of Part F ("the hash… nobody has needed it yet"). Somebody needed

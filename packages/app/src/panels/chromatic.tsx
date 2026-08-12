@@ -213,8 +213,9 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
       <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
         No web worker on this route. The sweep is {Math.round((BAND_NM.max - BAND_NM.min) / stepNm) + 1}{" "}
         first-order solves and the same number of traced spots per lens, and it lands in{" "}
-        <strong>{result.elapsedMs.toFixed(0)} ms</strong> — see the ray fan panel for the full
-        version of this argument, and treat a growing number here as it stopping being true.
+        <strong>{result.elapsedMs.toFixed(0)} ms</strong> in the built app — see the ray fan panel
+        for the full version of this argument, including why a number read off the dev server is not
+        the measurement, and treat a growing number here as it stopping being true.
       </p>
 
       <p style={{ marginTop: 16, fontSize: 13 }}>
@@ -227,11 +228,17 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
             apertureMm: aperture,
             sourceTemperatureK,
             wavelengths,
-            fieldDeg: link?.fieldDeg ?? 0.8,
+            // `||` and not `??`, and the difference is the whole link: a reader
+            // who came from the STAR image arrives with fieldDeg 0, because that
+            // image is on axis and honestly says so. Carrying the zero through
+            // would open the fan where coma is absent by symmetry — a correct
+            // plot of nothing. So an on-axis sender is moved off axis, and the
+            // link says it is doing that rather than doing it quietly.
+            fieldDeg: link?.fieldDeg || 0.8,
             from: "chromatic",
           })}
         >
-          the other artifact: where each ray lands →
+          the other artifact: where each ray lands, {link?.fieldDeg ? "at that star" : "off axis"} →
         </a>
       </p>
     </>

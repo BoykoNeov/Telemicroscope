@@ -29,10 +29,20 @@ describe("the teaching link", () => {
     expect(back).toEqual(LINK);
   });
 
+  /**
+   * A field of zero is a *measurement* — the star image is on axis and says so —
+   * and every reader of this link has to keep it apart from "no field given".
+   * The codec is the first place that can lose the distinction, and the panels
+   * are the second: `?? 0.8` does not fire on 0 and `|| 0.8` does, which is why
+   * the two panels make opposite choices on purpose and each says why.
+   */
   it("round-trips the on-axis case, where the field is zero and not absent", () => {
     const back = decodeLink(encodeLink({ ...LINK, fieldDeg: 0, lens: "singlet" }));
     expect(back?.fieldDeg).toBe(0);
     expect(back?.lens).toBe("singlet");
+    // Not merely falsy-equal to the missing case: a link with no field at all is
+    // refused outright, so the two can never be confused downstream.
+    expect(decodeLink(encodeLink(LINK).replace(/&fld=[^&]*/, ""))).toBeNull();
   });
 
   /**

@@ -42,6 +42,11 @@ const µm = (mm: number) => mm * 1000;
 export function RayFanPanel({ link, linkBroken }: PanelProps) {
   const [lens, setLens] = useState<LensKind>(link?.lens ?? "achromat");
   const [aperture, setAperture] = useState(link?.apertureMm ?? 10);
+  // `??` and not `||` here, which is the opposite choice from the outbound link
+  // in `chromatic.tsx` and is deliberate: a link that says field 0 means the
+  // reader clicked an on-axis image, and seeding 0.8 instead would answer a
+  // question they did not ask. The panel handles the empty case by naming it —
+  // see the on-axis notice below — rather than by avoiding it.
   const [fieldDeg, setFieldDeg] = useState(link?.fieldDeg ?? 0.8);
   const [rays, setRays] = useState<(typeof RAY_COUNTS)[number]>(41);
   const focalLengthMm = link?.focalLengthMm ?? 100;
@@ -172,6 +177,14 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         </div>
       </div>
 
+      {fieldDeg === 0 && (
+        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#a60", maxWidth: 640 }}>
+          You are on the axis, so the even half below is a floor and not a measurement — an axially
+          symmetric lens has no coma there, and a fan that looks empty of it is the panel working.
+          Walk the field slider out to see the quantity this page is about.
+        </p>
+      )}
+
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 16 }}>
         <Fact
           label="coma — even half of the d fan"
@@ -234,7 +247,10 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         number above: a fan is a few dozen traced rays and lands in{" "}
         <strong>{result.elapsedMs.toFixed(0)} ms</strong>, where the cost of posting the job to a
         thread would be a visible share of the work. If that number ever grows, this paragraph is
-        the thing that has stopped being true.
+        the thing that has stopped being true — <em>in the built app</em>, which is the reading that
+        counts. Under the dev server the first trace on a cold route ran 13.8 seconds against the
+        build&rsquo;s 45 ms, all of it interpreter warm-up on unbundled modules, and reading this
+        justification&rsquo;s own number off a dev page would condemn the decision it supports.
       </p>
 
       <p style={{ marginTop: 16, fontSize: 13 }}>
