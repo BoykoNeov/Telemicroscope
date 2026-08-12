@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PANELS, panelFor } from "./panels/registry";
+import { PANELS, resolveHash } from "./panels/registry";
 
 /**
  * The shell: a nav row and one panel. Nothing else lives here.
@@ -11,9 +11,13 @@ import { PANELS, panelFor } from "./panels/registry";
  * panel that says them.
  *
  * Routing is the hash and a `hashchange` listener rather than a router
- * dependency: three routes, no nesting, no params. The panel is keyed on its id
- * so React unmounts the old one instead of reconciling two unrelated trees —
- * which is also what terminates the outgoing panel's workers.
+ * dependency: no nesting, and since Part H exactly one kind of parameter — the
+ * teaching link a clicked artifact travels along, decoded in `resolveHash` and
+ * handed down as an initial value. The panel is keyed on its id **and that
+ * query** so React unmounts the old one instead of reconciling two unrelated
+ * trees — which is also what terminates the outgoing panel's workers, and what
+ * makes a second link to the same route re-seed rather than land on a panel
+ * still showing the first one's numbers.
  */
 export default function App() {
   const [hash, setHash] = useState(() => window.location.hash);
@@ -24,7 +28,7 @@ export default function App() {
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  const panel = panelFor(hash);
+  const { panel, link, linkBroken, query } = resolveHash(hash);
   const { Component } = panel;
 
   return (
@@ -68,7 +72,7 @@ export default function App() {
         {panel.blurb}
       </p>
 
-      <Component key={panel.id} />
+      <Component key={`${panel.id}?${query}`} link={link} linkBroken={linkBroken} />
     </main>
   );
 }

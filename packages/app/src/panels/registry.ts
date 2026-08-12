@@ -1,5 +1,7 @@
 import type { ComponentType } from "react";
+import { decodeLink, type TeachingLink } from "../teaching";
 import { BenchPanel } from "./bench";
+import { ChromaticPanel } from "./chromatic";
 import { BrightfieldPanel } from "./brightfield";
 import { BuilderPanel } from "./builder";
 import { CameraPanel } from "./camera";
@@ -10,6 +12,7 @@ import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
 import { MechPanel } from "./mech";
 import { PhasePanel } from "./phase";
+import { RayFanPanel } from "./rayfan";
 import { ReflectorPanel } from "./reflector";
 import { SectionPanel } from "./section";
 import { SeeingPanel } from "./seeing";
@@ -37,6 +40,11 @@ import { VolumePanel } from "./volume";
  * its own elapsed time while it catches up.
  *
  * `id` is the URL hash, so a route survives a reload and can be linked to.
+ *
+ * Since Part H that sentence is load-bearing rather than a nicety: a teaching
+ * link is a route *plus a query* (`#/rayfan?v=1&lens=achromat&…`), and the panel
+ * it lands on seeds itself from what the query says. See `resolveHash` below for
+ * the bug that shape walked into.
  */
 export type Panel = {
   readonly id: string;
@@ -44,7 +52,22 @@ export type Panel = {
   readonly label: string;
   /** One line under the nav, saying what the surface is for. */
   readonly blurb: string;
-  readonly Component: ComponentType;
+  readonly Component: ComponentType<PanelProps>;
+};
+
+/**
+ * What a panel is handed. Every panel may ignore it — a component declaring no
+ * props is assignable — and only the teaching plots read it.
+ *
+ * `link` is an **initial value**, not shared state: the receiving panel copies
+ * it into its own controls and owns them from there, so the "a panel owns its
+ * own state" rule in this file survives a link landing on it.
+ */
+export type PanelProps = {
+  /** The decoded query, or `null` when there was none or it did not survive. */
+  readonly link: TeachingLink | null;
+  /** `true` only when a query WAS present and failed to decode — see `teaching.ts`. */
+  readonly linkBroken: boolean;
 };
 
 export const PANELS: readonly Panel[] = [
@@ -53,6 +76,18 @@ export const PANELS: readonly Panel[] = [
     label: "star & field",
     blurb: "roadmap step 4 — chromatic fringing, and a field-varying PSF across 25 stars",
     Component: TelescopePanel,
+  },
+  {
+    id: "rayfan",
+    label: "the ray fan",
+    blurb: "APP.md Part H — where each ray in the pupil lands, and the half of the fan coma adds",
+    Component: RayFanPanel,
+  },
+  {
+    id: "chromatic",
+    label: "chromatic focus",
+    blurb: "APP.md Part H — where each colour focuses, and what it costs at the one plane the image has",
+    Component: ChromaticPanel,
   },
   {
     id: "sky",
@@ -174,7 +209,44 @@ export const PANELS: readonly Panel[] = [
  * reading order and the default are the same fact stated once. */
 const DEFAULT_PANEL = PANELS[0]!;
 
+/**
+ * The route half of a hash, with any teaching query split off first.
+ *
+ * **The `?` is why this function was edited rather than left alone.** The
+ * original matched the whole post-`#/` string against `p.id`, so
+ * `#/rayfan?v=1&lens=achromat` produced the id `"rayfan?v=1&lens=achromat"`,
+ * matched nothing, and fell through to the default panel — which is the star
+ * image itself. A teaching link would have returned the reader to the picture
+ * they clicked, with every type checking and no error anywhere. `resolveHash`
+ * below is tested against exactly that string.
+ */
 export function panelFor(hash: string): Panel {
-  const id = hash.replace(/^#\/?/, "");
+  const id = hash.replace(/^#\/?/, "").split("?")[0]!;
   return PANELS.find((p) => p.id === id) ?? DEFAULT_PANEL;
+}
+
+/** What the shell needs from a hash: which panel, and what it was handed. */
+export interface Route {
+  readonly panel: Panel;
+  /** The decoded query, or `null` when there was none or it did not survive. */
+  readonly link: TeachingLink | null;
+  /** `true` only when a query was present AND failed to decode. */
+  readonly linkBroken: boolean;
+  /**
+   * The raw query, so the shell can remount a panel when only the parameters
+   * change — a link is an initial value, and a new one has to re-seed.
+   */
+  readonly query: string;
+}
+
+export function resolveHash(hash: string): Route {
+  const rest = hash.replace(/^#\/?/, "");
+  const cut = rest.indexOf("?");
+  const query = cut === -1 ? "" : rest.slice(cut + 1);
+  const panel = panelFor(hash);
+  const link = query === "" ? null : decodeLink(query);
+  // Broken means *present and unreadable*. A plain `#/rayfan` is not a broken
+  // link, it is no link, and a panel that announced a failure there would be
+  // crying wolf on its own nav entry.
+  return { panel, link, linkBroken: query !== "" && link === null, query };
 }
