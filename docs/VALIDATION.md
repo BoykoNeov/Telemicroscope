@@ -10106,9 +10106,20 @@ a speed claim without its null half is a claim about the wrong quantity.
   sparse-input transform could take the row pass further still. That is a
   different algorithm rather than a skipped call, and it would need its own
   identity rungs.
-- **`imaging/render` and `imaging/volume`'s convolutions.** They transform an
-  object and a kernel that both fill their grids, so there is no sparsity to
-  take. Named here so the absence is a measurement rather than an oversight.
+- **The other `fft2d` call sites, read and found dense.** `imaging/render`'s
+  `convolveCentred`, `imaging/fluorescence`'s and `imaging/volume`'s
+  `convolveCircular` — two transforms each, object and kernel — plus `wave/mtf`
+  and `wave/seeing`'s phase screen. One rule decides all five: what is sparse is
+  a **pupil**, and what these transform is a **PSF or an object**. A PSF
+  *spreads* — that is what a PSF is — so a convolution kernel fills its grid
+  even though the pupil it came from did not, `mtf` transforms a PSF intensity
+  for the same reason, and `seeing` writes coloured noise into every cell by
+  construction. So `fluorescence` takes the band at its `incoherentPsf` and not
+  at its `convolveCircular`, which is the same file treated two ways on purpose.
+  Named here as a **reading** rather than an inference: "there is no sparsity
+  here" is worth exactly what the reading behind it is worth, and the first
+  draft of this bullet asserted it for two of the five without having opened
+  any.
 - **The wall-clock figures are measurements, not rungs**, exactly as § 6p's are.
   A timing assertion is flaky; the identity is the claim a test can hold.
 
