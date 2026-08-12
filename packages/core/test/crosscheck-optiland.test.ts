@@ -57,9 +57,19 @@ import { registerMedium } from "../src/materials/catalog";
  * NO frames for them — comparing `compile()` against frames the generator
  * derived would be checking a transcription against its own source. What the
  * folded four vote on is the BEAM: Optiland traces through that placement and
- * must reproduce rayoptics' hit points, per-surface directions and path
- * lengths, which a wrong placement could not do. That is the rung, and it is
- * the honest one.
+ * must reproduce rayoptics' hit points, per-surface directions and path lengths.
+ *
+ * That is independent evidence rather than two transcriptions agreeing, and it
+ * is worth saying exactly why, because it is the kind of claim that reads
+ * stronger than it is. On three of the four, rayoptics placed the surfaces AFTER
+ * the mirror by its own rule — `DecenterData('bend')` on a tilted fold, a
+ * parity-flipped `'decenter'` on the Newtonian's untilted primary — so two
+ * unrelated placements arrive at one geometry and the rays can adjudicate. On
+ * `fold-compound-tilt` there is nothing after the mirror at all: it is the last
+ * surface on purpose, because that is the one system where 'bend' is 0.88° from
+ * the reflection (§ 0.3). So that system's rays pin the mirror's own tilt and
+ * its reflection, and say nothing about a fold CONTINUATION — which is § 0.3's
+ * `foldCheck` rung and is not restated here.
  *
  * WHAT THIS DOES NOT PIN. § 0.2's aimed chief rays are deliberately out — that
  * is a question about two solvers, and a majority about the tracer does not need
@@ -148,6 +158,13 @@ const RAYOPTICS = read<{
  * about twice its measurement. In physical units the worst disagreement
  * anywhere in this file is 5.7e-13 mm, on the Cassegrain's 660 mm path:
  * 9.7e-10 of a wave.
+ *
+ * They are roughly twice § 0's for one reason, which applies to all four: § 0
+ * compares the engine against a reference, and one of the two sides is then an
+ * implementation this repo controls, so part of the rounding path is shared.
+ * Half the comparisons here have no shared side at all — see
+ * `MAJORITY_ULP_DIR`, where the effect is largest and is stated as its own
+ * number — and the same physical claim therefore costs a few more bits.
  */
 const ULP_POINT = 16;
 const ULP_DIR = 20;
@@ -430,6 +447,11 @@ describe("§ 0.4 — a second independent tracer, and the majority it makes", ()
    * above; the seventh is the positive control the other six need, because a
    * comparison that only ever reports disagreement has not been shown to be able
    * to report agreement.
+   *
+   * "At the tolerances above" is not a formality here: the weakest of the six is
+   * the 1e-7 index error, and it misses by 5.8e5 times the bound. The others run
+   * from 5.6e6 to 6.9e12. None of them is close enough to the tolerance for a
+   * later adjustment of it to quietly turn a control into a coincidence.
    */
   describe("the comparison can fail", () => {
     const system = (id: string) => OPTILAND.systems.find((s) => s.id === id)!;

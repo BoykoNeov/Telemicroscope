@@ -327,11 +327,11 @@ def build(sysdef):
     group = SurfaceGroup(built)
     # ...and re-attached AFTER construction, because SurfaceGroup re-links.
     built[0].previous_surface = obj
-    return group, placement, built
+    return group, placement, built, systems
 
 
 def trace(sysdef, wavelength_um):
-    group, placement, built = build(sysdef)
+    group, placement, built, systems = build(sysdef)
 
     got = float(built[0].material_pre.n(wavelength_um))
     if got != sysdef["objectIndex"]:
@@ -403,9 +403,12 @@ def trace(sysdef, wavelength_um):
         out["mirrorFrames"] = sysdef["mirrorFrames"]
     if placement == "chain":
         # Optiland's own answer about where the glass is: it walked the
-        # reference chain to get here, this script did not.
+        # reference chain to get here, this script did not. Read off the SAME
+        # coordinate systems the geometries were built over — a second, equal
+        # list would give the same numbers but would not be provably the frames
+        # the rays above went through.
         frames = []
-        for cs in coordinate_systems(sysdef)[0]:
+        for cs in systems:
             translation, rotation = cs.get_effective_transform()
             frames.append(
                 {

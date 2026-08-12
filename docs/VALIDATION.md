@@ -516,9 +516,20 @@ identically. Nothing assumes it — § 0's controls (a sign, at −3°; an order
   generator derived would be checking a transcription against its own source, a
   code-duplication check wearing a cross-validation's clothes. What the folded
   four vote on is the **beam**: Optiland traces through that placement and has to
-  reproduce rayoptics' hit points, per-surface directions and path lengths, which
-  a wrong placement could not do. A negative control adds 0.1° to the Newtonian's
-  diagonal and requires the beam to notice.
+  reproduce rayoptics' hit points, per-surface directions and path lengths. A
+  negative control adds 0.1° to the Newtonian's diagonal and requires the beam to
+  notice.
+
+**Why the beam rung is evidence and not two transcriptions agreeing, stated
+because it reads stronger than it is.** On **three** of the four, rayoptics
+placed the surfaces *after* the mirror by its **own** rule — `DecenterData('bend')`
+on a tilted fold, a parity-flipped `'decenter'` on the Newtonian's untilted
+primary — so two unrelated placements arrive at one geometry and the rays can
+adjudicate between them. On **`fold-compound-tilt` there is nothing after the
+mirror at all**: it is the last surface on purpose, because that is the one
+system where 'bend' sits 0.88° from the reflection (§ 0.3). So that system's rays
+pin the mirror's own tilt and its reflection, and say nothing about a fold
+*continuation* — which is § 0.3's `foldCheck` rung, and is not restated here.
 
 **A second reconciliation of the fold, and it is simpler than § 0.3's.** The
 engine's folded chain frame after a mirror is the reflection of the frame the

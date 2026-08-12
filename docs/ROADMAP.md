@@ -1605,8 +1605,10 @@
   the beam and leaves curvature, conic, thickness and asphere coefficients
   exactly as written, collapsing four rules travelling together into one. The
   honest limit is stated rather than glossed: Optiland has **no fold concept at
-  all**, so on the folded four it votes on the beam and not on a frame, and the
-  fixture carries no frames for them.
+  all**, so on the folded four it votes on the beam and not on a frame, the
+  fixture carries no frames for them, and on the one system whose mirror is last
+  there is no fold continuation for anyone to place, so its rays pin the mirror
+  and not the chain.
 
 ## Deliberate deferrals
 
