@@ -7,7 +7,7 @@ import { traceRay } from "../src/trace/sequential";
 import { compile } from "../src/trace/compile";
 import { applyToPoint } from "../src/math/transform";
 import { simpleSystem, type OpticalSystem, type RayAiming } from "../src/trace/system";
-import { fitZernike } from "../src/wave/zernike";
+import { fitZernike, balancedRms } from "../src/wave/zernike";
 import type { Prescription, SurfaceSpec } from "../src/trace/prescription";
 
 /**
@@ -89,20 +89,8 @@ function missAtStop(p: Prescription, aim: RayAiming, fieldDeg: number, px = 0, p
   return Math.hypot(local.x, local.y);
 }
 
-/**
- * The balanced wavefront: RMS with piston, tilt and defocus removed.
- *
- * Parseval on an orthonormal basis, so this is √(Σ_{j≥5} c_j²) and not a
- * quadrature of a residual. It is the currency § 5t already uses, chosen here
- * for the reason that section gives — the removed terms are a pointing error
- * and a focus setting, not image degradation.
- */
-function balancedWaves(map: OpdMap): number {
-  const fit = fitZernike(map.samples, 15);
-  let acc = 0;
-  for (let j = 5; j <= fit.terms; j++) acc += fit.coefficients[j - 1]! ** 2;
-  return Math.sqrt(acc);
-}
+/** The currency this step concludes a misaligned system must be measured in. */
+const balancedWaves = (map: OpdMap): number => balancedRms(fitZernike(map.samples, 15));
 
 const wavefront = (p: Prescription, aim: RayAiming, fieldDeg: number): OpdMap =>
   opdMap(system(p, aim), fieldDeg, WVL, GRID);

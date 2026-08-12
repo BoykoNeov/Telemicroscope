@@ -3821,6 +3821,66 @@ the user can also run.
 
 ---
 
+## Part G — collimation, and the node a knock takes with it — *needed an engine step first* — ✅ **landed** — **pair**
+
+ROADMAP step 7's *"misalignment (tilt/decenter) scenarios"*, route `#/collimation`.
+The **first surface in this document that was not app wiring**: it needed § 1.5.3,
+real ray aiming, and the reason is worth stating because nothing here predicted it.
+
+**Why an engine step.** A misalignment carries every surface after it — the local
+coordinate chain — **the aperture stop included**. `pupils()` computes the
+first-order pupil on the straight-axis twin that has dropped the perturbation, so
+the aim kept pointing at where the stop used to be and the chief ray missed it by
+very nearly the whole displacement. That was diagnosed by a probe before any panel
+code was written, which is the only reason it was found at scoping rather than in
+a curve that looked plausible.
+
+**And the step corrected its own justification, which this section keeps rather
+than tidies.** The engine step was taken because the pupil error had the same
+field-constant shape as the misalignment being measured. True — but the artifact
+turned out to live in the **currency**, not the aim: `OpdMap.rmsWaves` removes
+piston alone, so a misaligned system carries a reference-frame tilt that is not
+blur. Balancing the wavefront removes ~320× of it and the new aiming a further
+1.7×. What § 1.5.3 is actually worth is an exact rigid-translation identity
+(1.5e-4 waves → 3e-12) and pupil coordinates that mean what they say off axis.
+
+**What the panel draws, and three things it got wrong first.** In-plane coma
+against field, for the aligned system, the misaligned one, and the misaligned one
+under the old aiming. Each correction came from looking at the picture or the
+number, not from reasoning:
+
+1. **The total wavefront error is the wrong quantity.** Its minimum moves 2e-3°
+   for a 0.2° tilt, because astigmatism and field curvature go as field² and stay
+   symmetric whatever is misaligned. Coma is the term a misalignment displaces.
+2. **Coma is a VECTOR and its node is a POINT.** Plotting its magnitude drew a
+   *step function*: where the across-sweep component dominates, the sign of the
+   vanishing component flips. Only the in-plane component, signed, has a zero
+   that is the node — and a sweep along one line meets the node only if the
+   misalignment lies in that line's plane. The across component is now on screen
+   beside it, because "the node is at −0.1°" and "the node is not on this axis"
+   are indistinguishable from the curve alone.
+3. **The first draft's ±0.5° sweep made the headline invisible** — the node moved
+   1% of the sweep's width. The defaults are now measurements: −1.39° of node per
+   mm of in-plane shift on this doublet, against −0.017° per degree of tilt of the
+   same surface, which is why the default perturbation is a shift.
+
+**Two findings the panel gets for free**, and they are § 1.5.3's own rigid-motion
+identities arriving in a reader's units without the panel being told: **tilting
+the first surface moves the node by exactly the tilt** — the instrument is not
+decollimated, it is pointed elsewhere — and **shifting the first surface moves it
+not at all**. Only an interior surface decollimates. Both are pinned.
+
+**What it refuses.** Vignetting, for A6's reason on a new axis: a lost ray makes
+every fit an average over a shrinking sub-pupil, which *falls* as the misalignment
+grows and would read as the instrument improving. The rims carry 2% of margin so
+the refusal is reachable from the panel's own slider rather than being decoration.
+A node that has left the sweep is reported as that, not as a NaN.
+
+**Cost** ~300 ms for four field sweeps at 21 pupil samples — real aiming is a few
+traces per ray against one, with the Jacobian shared across a bundle.
+
+---
+
 ## What the app itself needs to hold this
 
 Structural work implied by the above, independent of which surfaces land:

@@ -1483,8 +1483,11 @@
    departs as the *square* of the field when it is not.
 7. **Teaching layer + polish** ← current
    Every artifact in the image links to the plot that explains it (coma flare
-   → ray fan; purple fringe → chromatic focal shift). Misalignment
-   (tilt/decenter) scenarios. Progressive-refinement tuning.
+   → ray fan; purple fringe → chromatic focal shift). ~~Misalignment
+   (tilt/decenter) scenarios.~~ ✅ **landed** — APP.md Part G, route
+   `#/collimation`: in-plane coma against field, and the node a knock takes with
+   it. Part G is the **first app surface in that document that was not wiring**;
+   its engine prerequisite is below. Progressive-refinement tuning.
    *Misalignment's engine prerequisite is ✅ closed* (§ 1.5.3, real ray aiming).
    It was not on any list: a misalignment MOVES the aperture stop, because the
    local coordinate chain carries a perturbation to every surface after it, and

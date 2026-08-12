@@ -282,6 +282,28 @@ export function fitRms(fit: ZernikeFit, options: { includePiston?: boolean } = {
   return Math.sqrt(acc);
 }
 
+/**
+ * The BALANCED wavefront: RMS with piston, tilt AND defocus removed (waves).
+ *
+ * `fitRms` keeps tilt on purpose — off axis it is a real chief-ray displacement
+ * and hiding it would report distortion as perfection. That reasoning does not
+ * survive a MISALIGNED system, where the wavefront is quoted about a reference
+ * point that has itself moved: § 1.5.3 measures a rigidly turned instrument —
+ * the same instrument, pointed differently, so its aberration cannot have
+ * changed — and finds the raw RMS moving by ~1e-2 waves, all of it piston, tilt
+ * and defocus. Remove those three and the identity holds to 4.6e-5.
+ *
+ * So this is the currency a misaligned system may be compared in, and it is the
+ * same one § 5t's `sigmaWaves` already uses for the same reason: what is removed
+ * is a pointing error and a focus setting, neither of which is image blur.
+ * Parseval on an orthonormal basis, so this is √(Σ_{j≥5} c_j²) exactly.
+ */
+export function balancedRms(fit: ZernikeFit): number {
+  let acc = 0;
+  for (let j = 5; j <= fit.terms; j++) acc += fit.coefficients[j - 1]! ** 2;
+  return Math.sqrt(acc);
+}
+
 /** Coefficient for Noll term j (waves), or 0 if the fit did not go that far. */
 export function coefficient(fit: ZernikeFit, j: number): number {
   return j >= 1 && j <= fit.terms ? fit.coefficients[j - 1]! : 0;

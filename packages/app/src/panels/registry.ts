@@ -3,6 +3,7 @@ import { BenchPanel } from "./bench";
 import { BrightfieldPanel } from "./brightfield";
 import { BuilderPanel } from "./builder";
 import { CameraPanel } from "./camera";
+import { CollimationPanel } from "./collimation";
 import { CoverslipPanel } from "./coverslip";
 import { EditorPanel } from "./editor";
 import { EyepiecePanel } from "./eyepiece";
@@ -148,6 +149,12 @@ export const PANELS: readonly Panel[] = [
     label: "the eyepiece",
     blurb: "APP.md D6 — the chain ends at an eye, and which NA the exit pupil's law takes",
     Component: EyepiecePanel,
+  },
+  {
+    id: "collimation",
+    label: "collimation",
+    blurb: "ROADMAP step 7 — the coma node an element knocked out of line takes with it",
+    Component: CollimationPanel,
   },
   {
     id: "tolerance",
