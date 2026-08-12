@@ -1482,12 +1482,35 @@
    real stack is the lens's own **bitwise** when the objective is telecentric, and
    departs as the *square* of the field when it is not.
 7. **Teaching layer + polish** ← current
-   Every artifact in the image links to the plot that explains it (coma flare
-   → ray fan; purple fringe → chromatic focal shift). ~~Misalignment
-   (tilt/decenter) scenarios.~~ ✅ **landed** — APP.md Part G, route
+   ~~Every artifact in the image links to the plot that explains it (coma flare
+   → ray fan; purple fringe → chromatic focal shift).~~ ✅ **landed** — APP.md
+   Part H, routes `#/rayfan` and `#/chromatic`, plus the link between them:
+   neither destination plot existed, and the sender is the step-4 star page where
+   both named artifacts live. The link carries the sender's sliders, because a
+   plot that opened on its own defaults would explain a *different* lens while
+   looking exactly as convincing — there is no exception to throw and no pixel to
+   compare, so the wire format is checked field by field and a link that does not
+   decode says so in red rather than falling back quietly.
+   **What the step is actually worth is that it falsified the page it explains.**
+   `telescope.tsx` said in print that the field's coma tails "point radially
+   outward"; on this achromat they point **inward**, and three measurements agree
+   — the fan's even half is negative at the rim, the traced wavefront PSF puts its
+   centre of light 2.524 µm on the axis side of the chief ray at 1.13° against the
+   geometric centroid's 2.510, and the stars in the rendered frame sit 5–7 µm
+   inward of where the renderer placed them. Which way a comet points is a
+   property of a lens, not a rule of optics, and the sentence had recited the
+   rule. Two smaller corrections went the same way: the fan's on-axis even half is
+   the f64 floor rather than a bitwise zero — the *sampler*'s ±ρ are not exact
+   negatives, and believing they were had also been silently dropping pairs from
+   the split — and the chromatic curve does not cross zero at the wavelength the
+   picture is focused at, because that plane is the balanced one and this plot
+   draws the paraxial one, the gap being spherical aberration (193 µm on the
+   singlet, 24 on the achromat).
+   ~~Misalignment (tilt/decenter) scenarios.~~ ✅ **landed** — APP.md Part G, route
    `#/collimation`: in-plane coma against field, and the node a knock takes with
    it. Part G is the **first app surface in that document that was not wiring**;
-   its engine prerequisite is below. Progressive-refinement tuning.
+   its engine prerequisite is below. **Progressive-refinement tuning** is what is
+   left of this step.
    *Misalignment's engine prerequisite is ✅ closed* (§ 1.5.3, real ray aiming).
    It was not on any list: a misalignment MOVES the aperture stop, because the
    local coordinate chain carries a perturbation to every surface after it, and
@@ -1512,7 +1535,10 @@
   a row per surface, both tracers reported side by side without either being
   converted into the other, and the media read off `materials/catalog` itself.
 - Analyses: spot diagram, ray fan, chromatic focal shift, PSF/MTF, Zernike
-  readout, distortion/field curvature.
+  readout, distortion/field curvature. **The ray fan and the chromatic focal
+  shift now have surfaces of their own** — step 7's teaching layer needed them as
+  destinations (APP.md Part H), and both were wiring on `analysis/spot` and
+  `analysis/focus` rather than new capability.
 - Hero image simulation with progressive refinement (instant on-axis preview,
   background full-field render).
 - Mechanical compatibility (barrels, threads, parfocal/back-focus) feeding
