@@ -1629,7 +1629,26 @@
   readout, distortion/field curvature. **The ray fan and the chromatic focal
   shift now have surfaces of their own** — step 7's teaching layer needed them as
   destinations (APP.md Part H), and both were wiring on `analysis/spot` and
-  `analysis/focus` rather than new capability.
+  `analysis/focus` rather than new capability. **The spot diagram now has one
+  too** — APP.md Part I, route `#/spot`, wiring on the same two modules. Recorded
+  here rather than only in APP.md because the panel found a **defect in its own
+  shipped range**: the shared plot box reduced with `Math.max(...allRays)`, which
+  is 42,300 *arguments* at the densest setting the panel offers, and probing past
+  it took the stack out. The panel's own finding is that a spot diagram
+  misdescribes a **good** lens rather than a bad one — 0.013× the Airy radius on
+  the f/25 achromat — and that the engine's geometric switch does **not** answer
+  that question and visibly parts from it (7.46 Airy radii of spot at
+  `geometricWeight` 0.00), because `wave/fidelity` measures phase change per pupil
+  sample and not total wave error. **What is left on this line is three:** the
+  optical MTF — `core/wave/mtf` has no caller anywhere in the app, and the camera
+  panel's MTF is the sensor's — the Zernike readout, and distortion/field
+  curvature. The last of those is **not wiring**: sagittal and tangential focal
+  surfaces are new engine capability, and the hard rule wants rungs pinned to an
+  external number for them (third-order theory puts the tangential surface three
+  times as far from the Petzval surface as the sagittal, and `seidelSums` already
+  produces the two coefficients independently). It would also close something
+  VALIDATION records as open in four separate places — "astigmatism and field
+  curvature are present in the trace and unpinned."
 - ~~Hero image simulation with progressive refinement (instant on-axis preview,
   background full-field render).~~ ✅ **landed** — the background render is the
   worker each panel posts to, and the on-axis preview is the ladder's first

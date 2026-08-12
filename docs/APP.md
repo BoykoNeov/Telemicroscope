@@ -4162,6 +4162,88 @@ costs one field.
 
 ---
 
+## Part I — the spot diagram, and the lens it lies about — *app wiring only* — ✅ **landed** — **pair**
+
+ROADMAP's v1 analyses line has six entries and four of them had no surface. This
+is the first, route `#/spot`, and the only one of the four that is a picture
+rather than a curve: a field × through-focus grid of ray landings, each cell
+square, with the Airy disc drawn round it. App wiring in the strict sense —
+`exitBundle`, `pupilGrid`, `spotAt` and `bestSpotZ` are steps 1–2 — so no rung was
+added to the ladder and `app/test/spot.test.ts` pins the wiring plus the claims
+the panel makes that no rung states.
+
+**The headline runs opposite to the intuition, and it is the reason the panel is
+worth having.** A spot diagram draws ray landings and *nothing else*, so it is
+honest when the lens is poor — a scatter far wider than the diffraction disc
+essentially IS the image — and it lies when the lens is **good**. The achromat at
+f/25 has an on-axis RMS spot **0.013× the Airy radius**: the cell draws a point
+where the real image is a disc seventy times wider that no ray in the picture
+knows about. Every row therefore carries its spot-to-Airy ratio, so no cell can be
+read without it.
+
+**The engine already has a switch that sounds like it answers that and does not,
+and this is the first surface to put the two side by side.** `wave/fidelity` is
+explicit that its criterion is *phase change per pupil sample, not total wave
+error* — it asks whether the FFT can resolve the wavefront, which is a question
+about arithmetic. The singlet at f/5 has an RMS spot of **7.46 Airy radii**, as
+geometric as anything the app can build, and `geometricWeight` there is **0.00**.
+Nothing is broken: a wavefront can be tens of waves deep and still perfectly
+smooth across 64 samples. Both readouts ship, each labelled with the question it
+answers, because printing either one as "is this diagram trustworthy" quotes the
+answer to the other.
+
+### What driving it changed, and none of it was visible from the plan
+
+This part is a second entry in the ledger APP.md keeps about panels whose cost is
+not where the plan put it. Nothing here was found by writing the module; all four
+were found by opening the page.
+
+1. **A highlight that claimed exactly what the display could not resolve.** The
+   first draft dimmed every cell but the one nearest each row's best-focus plane,
+   to show the plane drifting with field. The drift is **±0.44 columns** and the
+   columns are one unit apart, so the highlight sat on the middle column at every
+   field — illustrating nothing while degrading four cells in five. The drift is
+   real and the *curve* underneath shows it properly, on a continuous axis. The
+   highlight is deleted and the number is on each row label.
+2. **A viewing control was moving printed physics, and the first fix was too
+   narrow.** Every scalar shared the display's ray count, so clicking a sparser
+   picture changed the answer. Swept against pupil sampling the focus-criterion
+   gap reads −8.29, −6.79, −6.09, −6.83, −6.81, −6.78 µm at 7, 11, 15, 21, 31, 51
+   rays — settled from about 21 on, with the app's own first default of 15 sitting
+   on an **outlier 12% from the converged value**. Fixing that one readout was
+   treating a symptom: the spot-to-Airy ratio moved 7.29 → 7.50 over the same
+   change. Numbers now come off a fixed `MEASURE_GRID` and dots off `gridSamples`,
+   pinned bitwise across all four densities with the dot count as the control.
+3. **A crash the shipped range happened to survive.** The shared plot box was
+   `Math.max(...everyRayInTheGrid)`, which passes each ray as a separate
+   *argument* — 42,300 of them at the panel's own densest setting. Probing
+   convergence at 101 rays hit `RangeError: Maximum call stack size exceeded`. It
+   is a loop now, with a rung that runs past the top of the panel's range.
+4. **The no-worker exception is weaker here than the ray fan's, and says so.**
+   34 ms at the default, 61 at the densest, 86 cold, against the ray fan's 6–19.
+   The panel states the real numbers instead of borrowing that justification, and
+   discloses that the timer measures *tracing* while the densest grid also asks
+   the canvas for 42,300 dots — so a worker would buy less than half of what a
+   reader feels there.
+
+**One more, in the test rather than the panel.** The rung asserting the
+through-focus curve is exactly quadratic normalised its residual by the parabola's
+*minimum*, which is near zero on axis — so a constant ~9e-18 rounding floor read
+2.8e-11 there, and the test passed only because it happened to check the one row
+that flattered it. Normalised by the curve's own scale it is ~1e-13 at every
+field, and the floor is accounted for rather than accepted: `rmsRadius` sums 149
+rays, squaring doubles that relative error, and eight such terms combine to ~4e-18
+against a measured 9e-18.
+
+**What the panel does not claim.** The through-focus curve's minimum agrees with
+`bestSpotZ`'s closed form, and the page explicitly declines to present that as two
+methods confirming each other: it is the same algebra on the same rays and would
+agree if both were wrong together. It is pinned as an identity, because a change
+that breaks one side and not the other is a real bug, and described on screen as
+one method drawn twice.
+
+---
+
 ## What the app itself needs to hold this
 
 Structural work implied by the above, independent of which surfaces land:

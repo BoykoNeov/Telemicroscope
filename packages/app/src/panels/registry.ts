@@ -17,6 +17,7 @@ import { ReflectorPanel } from "./reflector";
 import { SectionPanel } from "./section";
 import { SeeingPanel } from "./seeing";
 import { SkyPanel } from "./sky";
+import { SpotPanel } from "./spot";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
@@ -88,6 +89,12 @@ export const PANELS: readonly Panel[] = [
     label: "chromatic focus",
     blurb: "APP.md Part H — where each colour focuses, and what it costs at the one plane the image has",
     Component: ChromaticPanel,
+  },
+  {
+    id: "spot",
+    label: "the spot diagram",
+    blurb: "ROADMAP v1 — where a pupil-full of rays lands, and the lens a spot diagram lies about",
+    Component: SpotPanel,
   },
   {
     id: "sky",
