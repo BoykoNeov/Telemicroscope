@@ -807,8 +807,10 @@
    stays a test, not a construction. **The headline is a null:** at NA 0.10 the
    correction the slip demands is 400× under the objective's own residual, so a
    4×/0.10 is coverslip-*insensitive*; the tolerance runs as 1/NA⁴, from 31 mm at
-   NA 0.10 to 3.9 µm at NA 0.95. **Open:** index mismatch, the correction collar,
-   the off-axis plate terms, and the infinity-corrected member's slip.
+   NA 0.10 to 3.9 µm at NA 0.95. **Open:** index mismatch and the correction
+   collar — the off-axis plate terms are ✅ § 6y and the infinity-corrected
+   member's slip is ✅ § 6z, where the "wiring" this line promised turned out to
+   have three consequences it did not.
    *The Lister — the first aplanat:* ✅ `designs/lister` (§ 6d). Two cemented
    doublets whose bendings are solved **together** for ΣS_I = ΣS_II = 0, which no
    single doublet can be (§ 5j: its two SA-null bendings straddle the coma-free
@@ -1451,6 +1453,34 @@
    the invariant, so off axis it cuts a **crescent** on the field's own side
    rather than an annulus — an apodization, whose PSF is not that of any circular
    pupil, and which nothing yet transforms.
+   *§ 6c's last deferral was the other one, and it is now* ✅ **closed at § 6z** —
+   the infinity-corrected objective can be corrected for the cover glass it works
+   under, which § 6c had written down as wiring. The move is the same one the DIN
+   makes and three of its consequences are not. **The specimen is inside the
+   plate**, so what the chain crosses is one face and the aberration is set by the
+   depth below it — which means a plate laid anywhere else reports a *different*
+   plate (1.90× the truth a tenth of a millimetre out, 9.96× at one, 403× against
+   the glass), so the air gap and the correction target are one fixed point rather
+   than two steps. **§ 6w's oversized element changes what currency the target has
+   to be quoted in**, and quoting it in the beam's instead of the glass's would
+   have left 77% of the plate uncorrected while every readout still said the pair
+   was stigmatic. **And the headline is a contrast with § 6w:** there the oversize
+   was a ratio the magnification cancelled out of, so the 4× and the 40× were one
+   lens scaled; a 0.17 mm coverslip is the one thing in this branch that does not
+   scale, so nothing cancels and the price is **linear in M** — the same absolute
+   correction asked of every member, against a lens ten times smaller having a
+   tenth of a Seidel sum to pay with, so the bending moves ten times further and
+   the aperture ceiling gives up ten times more (0.0123% at 4×, 0.1224% at 40×).
+   That is why a correction collar is a high-power fitting. Two more. Being the
+   first caller to put a specimen in *glass* behind a telecentric stop found a
+   **defect in a shipped function** — the entrance pupil's slope aperture assumed
+   the object and the stop share an index, so an objective labelled NA 0.10
+   delivered **0.152** — and the giveaway was not silence but two readouts
+   disagreeing: the trace lost half its pupil while the NA readout went on
+   reporting the wrong number, so the symptom pointed at the glass. And § 6y's
+   own open item closes with its reasoning revised: the chief invariant through a
+   real stack is the lens's own **bitwise** when the objective is telecentric, and
+   departs as the *square* of the field when it is not.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

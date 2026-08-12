@@ -62,6 +62,10 @@ export interface PupilPlane {
    * is at infinity exactly when `A = 0`, and the rim is then `u = ±stopRadius/B`
    * **with no h in it** — which is why a telecentric aperture is field-
    * independent and why one number suffices here. Pinned at § 6u.
+   *
+   * `u` is the raw geometric slope in the OBJECT medium, which is what makes B
+   * carry an index ratio when the object and the stop do not share one — see
+   * the derivation in `imageStopBackward` and § 6z.7.
    */
   readonly slopeRadius?: number;
 }
@@ -146,20 +150,33 @@ function imageStopBackward(
     // plane, so the chief ray leaves every object point parallel to the axis.
     //
     // `axis` started {y: 0, u: 1} at the stop and was traced BACKWARDS, which
-    // applies the inverse of the object→stop matrix [[A, B], [C, D]]; since it
-    // has unit determinant, that inverse carries (0, 1) to (−B, A). So this
-    // branch's condition is `A = 0` — telecentricity itself — and the height it
-    // exits with is **−B**, the very quantity the slope aperture needs. No
-    // second trace, and therefore nothing that can drift from this one.
+    // applies the inverse of the object→stop matrix [[A, B], [C, D]]; that
+    // inverse carries (0, 1) to (−B, A)/det. So this branch's condition is
+    // `A = 0` — telecentricity itself — and the height it exits with is
+    // **−B/det**, one determinant away from the quantity the slope aperture
+    // needs. No second trace, and therefore nothing that can drift from this
+    // one.
     //
-    // Measured: |axis.y| is the group's EFL bitwise, thick and asymmetric
-    // included, because "stop at the back focal plane" is what makes y = f·u.
+    // AND THE DETERMINANT IS NOT ALWAYS 1. `u` here is the raw geometric slope,
+    // so a refraction contributes n_before/n_after and the object→stop matrix
+    // has det = n_object/n_stop — unity exactly while the two spaces share an
+    // index, which every telecentric system in this repo did until a specimen
+    // was put under a coverslip (§ 6z.7). Left uncorrected the aperture comes
+    // back n times too wide and the trace answers with a NUMBER: an objective
+    // labelled NA 0.10 delivers 0.152 through a D263 slip, 52% fast, with no
+    // ray lost to say so. Both indices are in hand here, and at n_object =
+    // n_stop the arithmetic is `×1 / ×1` — bitwise the old expression, so no
+    // system that ever worked moves.
+    //
+    // Measured in air: |axis.y| is the group's EFL bitwise, thick and
+    // asymmetric included, because "stop at the back focal plane" is what makes
+    // y = f·u.
     return {
       z: -Infinity,
       radius: Infinity,
       magnification: Infinity,
       n: axis.n,
-      slopeRadius: Math.abs(stopRadius / axis.y),
+      slopeRadius: Math.abs((stopRadius * nBeforeStop) / (axis.y * axis.n)),
     };
   }
   const dz = -axis.y / axis.u;

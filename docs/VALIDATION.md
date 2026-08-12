@@ -80,6 +80,7 @@ whole ladder.
 | [6w](#step-6w--the-objective-knows-what-field-it-must-pass) | § 6v's price, paid: the objective is sized for a FIELD NUMBER, so its glass is f·NA + h — every number in it magnification-independent, the closed form an upper bound never reached, and a field number a second door onto § 6b.5.7's geometric doublet ceiling | `field-sized-objective` |
 | [6x](#step-6x--what-telecentricity-is-worth-to-the-illumination) | A correction to four module headers before it is a measurement: the licence for one source at every field point belongs to the OBJECTIVE and not the condenser, so the offset is bitwise zero only on a telecentric lens — and what it costs off axis is § 6p's cache | `telecentric-illumination` |
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
+| [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -9136,17 +9137,276 @@ statement about the axis all along.
   phase, and 6y.4 counts samples where a step that wanted the image would
   transform them. Rendering an off-axis aberrated volume is the follow-on and was
   deliberately kept out of this step.
-- **The chief invariant through a real stack.** `chiefRayInvariant` reads the ray
-  as it leaves the specimen, which is the invariant the stack conserves — but the
-  objectives it is read on have no slab in their prescription, so the number is
-  the chief ray of the *lens* rather than of the lens-plus-slip assembly. For a
-  plane stack those are the same by conservation; for a caller that tilts a slip
-  they would not be.
+- ~~**The chief invariant through a real stack.**~~ **Closed at § 6z.8, and the
+  reason was revised on the way.** The objectives now carry a slab, and this
+  entry's own last clause — *"for a plane stack those are the same by
+  conservation"* — turns out to hold **only where the objective is telecentric**,
+  where both readings are a bitwise zero. On the rim-stopped control they part
+  company as the **square** of the field, because the assembly's chief ray and
+  the lens's chief ray at the *paraxial* apparent depth are not the same ray and
+  a plate's apparent depth depends on angle.
 - **The condenser's own aberrations**, unchanged from § 6x — and now with a
   second reason to want them, since an illumination cone that changes shape off
   axis crosses this crescent rather than the axial pupil.
 - **The DIN objective's own stop**, unchanged from § 6v, § 6w and § 6x. Giving it
   a back focal stop is what would make this step's control disappear.
+
+## Step 6z — the infinity-corrected objective's coverslip
+
+`packages/core/test/infinity-coverslip.test.ts`
+
+§ 6c's last named deferral, and the one it left phrased as pure wiring: *"the
+infinity-corrected member's slip is a named deferral, and the wiring is the same
+target-S_I move `finiteConjugateObjective` makes."* The move is the same. Three
+of its consequences are not, and one of them is the reason this is a step.
+
+New: `coverslip` on `MicroscopeObjectiveSpec`, and with it `airGapMm`,
+`airEquivalentObjectDistanceMm`, `freeWorkingDistanceMm`, `stopSurfaceIndex`,
+`seidelS1AtWorkingConjugates` and `seidelS1OfGlassAlone` on the result — the
+names `finiteConjugateObjective` already uses, so the two architectures report
+the same facts. **No physics is added**: the plate is § 6c's, exact to all
+orders from Snell, and this step spends it at the other conjugate.
+
+**The headline is that the price is linear in magnification.** § 6w measured the
+4× and the 40× to be one lens scaled — every length ×10, the oversize a ratio
+the magnification cancels out of. A 0.17 mm coverslip is the one thing in this
+branch that does **not** scale with the objective, so nothing cancels: the plate
+asks the same absolute correction of every member (one number to 7 digits over
+M = 4→40) while a Seidel sum, having the dimension of a length, gives a lens ten
+times smaller a tenth as much to trade with. The bending it costs runs
+**3.11e-4 → 3.10e-3** and the aperture ceiling gives up **0.0123% → 0.1224%**,
+both linear in M. It is why a correction collar is a high-power fitting.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The gap is solved by trace, and comes back as the apparent depth t/n to 1e-13 of the object distance | § 6c's closed form | ✅ |
+| A stale gap reports a different plate: 1.90× at 0.1 mm out, 9.96× at 1 mm, 403× against the glass | measured | ✅ |
+| The glass alone carries PLUS the plate's −t(n²−1)u⁴/n³, to 9 digits, and the pair sums to zero | closed form, summed over real surfaces | ✅ |
+| Delivered NA to 10 digits and −4× on both stop placements, one stop flag, nothing lost | § 6a/§ 6v identities | ✅ |
+| The stop the slip needs is smaller by √((1−(NA/n)²)/(1−NA²)) = 1.00287, and the bare sizing reads 0.100286 back | § 6c.3's control | ✅ |
+| A field number does not change the delivered correction — same S_I to 10 digits at FN 18 and without | h⁴ homogeneity | ✅ |
+| …and the beam-currency control under-corrects by exactly 1 − 1/k⁴ = 0.7738 | closed form | ✅ |
+| The plate's demand is magnification-free to 7 digits; the bending and the wall cost are both ∝ M | measured | ✅ |
+| `imageStopBackward` assumed det = 1: an NA 0.10 objective delivered **0.152** through a slip | ray invariant | ✅ |
+| …and at n_object = n_stop the corrected expression is bitwise the old one | identity rung | ✅ |
+| The chief invariant through the assembly is a bitwise zero when telecentric, and ×4.00 per doubling when not | § 6y.5 | ✅ |
+| The two mismatches are equal and opposite in the traced wavefront, to 2.4% | third-order identity | ✅ |
+
+### 6z.1 — the specimen is inside the glass, and the gap is what moves
+
+Given a slip, three things move together and none is cosmetic. The specimen goes
+*inside* the glass, so `objectMedium` becomes D263 and `objectDistanceMm` becomes
+the **slip thickness** — surface 0 is the slip's upper face, and the air the
+objective is placed across is `airGapMm`. The lens is placed by that gap rather
+than by the whole object distance. And the bending is re-solved to minus the
+plate's ΣS_I, so the pair is stigmatic and the glass alone deliberately is not.
+
+The gap is solved on the traced paraxial chain by secant — the error is affine in
+the gap, so the secant is exact rather than merely convergent, which is
+`collimatingGap`'s reason (§ 6q) one module along. It never evaluates t/n, which
+is what leaves the apparent depth free to be the check: the objective sits closer
+to the slip than it would to a bare specimen by **exactly** the depth the plate
+gives the specimen, agreeing to 1e-13 of the 48 mm object distance. Quoting that
+residual against the 0.11 mm depth instead would have flattered it 400×, so it is
+not.
+
+### 6z.2 — the gap and the target are ONE fixed point
+
+The finding that separates this from § 6c's wiring sentence.
+
+A plane-parallel plate crossed by both faces in one medium contributes a
+spherical aberration **independent of where it sits**: the two faces' S_I terms
+differ only through the marginal height, and that difference is the transfer
+across the plate, so the sum comes out −t(n²−1)u⁴/n³ with no position in it. That
+is the fact a beamsplitter designer relies on, and it is *not* the fact that
+applies here. A coverslip has the image inside it, so the chain crosses **one**
+face and what sets the aberration is the depth from that face to the image. Move
+the face without re-solving the gap and the Seidel sum faithfully reports the
+plate it can see:
+
+| plate face, relative to focus-consistent | ΣS_I as a multiple of the truth |
+|---|---|
+| 0.1 mm short | **1.896** |
+| 1 mm short | **9.961** |
+| laid against the glass | **402.7** |
+
+So the target and the gap close together or not at all. The fixed point converges
+in a handful of passes because the only thing moving between them is the paraxial
+EFL — parts in 10⁴ — and what the constructor asserts afterwards is the null on
+the **real** chain in the **real** frame, where the target was computed in the
+reversed one.
+
+### 6z.3 — the target is the plate, summed rather than quoted
+
+`achromaticObjective` solves the bending crown-first with the object at infinity,
+which for the mirrored objective is the specimen side seen as the image side — so
+the plate is **appended**, not prepended, and the image lands inside it. The
+target is the difference of two `seidelSums` over real surfaces, never the closed
+form, for § 6c's reason: a design built from the formula would be checking its own
+arithmetic.
+
+The closed form is then the pin. On the delivered lens, `seidelS1OfGlassAlone` is
+**minus** −t(n²−1)u⁴/n³ to 9 digits at NA 0.10, 0.15 and 0.20, where u is the
+slope the emergent marginal ray carries in air; the working sum is zero to 1e-9
+of it. The bending really moves — 2.3e-4 of relative curvature on the 4×/0.10 —
+and the movement is optically negligible on that lens, which is § 6c's headline
+arriving on the other architecture: the plate asks for a balanced RMS under
+2e-4 waves against an objective residual two orders above it.
+
+### 6z.4 — the cone the specimen radiates into is the one inside the glass
+
+The specimen is in D263, so it radiates into sin u = NA/n and not NA. Every stop
+radius in the module is therefore a distance times `n·tan u_glass`, which is the
+bare `tan u` exactly at n = 1 — one expression covering the rim and the back
+focal plane, and the one that will carry an immersion medium unchanged.
+
+Sizing it the bare way over-fills the pupil by
+**√((1−(NA/n)²)/(1−NA²)) = 1.002865**, and the readout sees it: 0.100286 for a
+lens labelled 0.100. That is § 6c.3's negative control reproduced here, and the
+same number, because it is a statement about the object cone rather than about
+where a stop sits. Read on **one** lens, deliberately: comparing the corrected
+build's stop against the bare build's carries their two focal lengths apart as
+well, 6.6e-6 of it, which is a different and real difference.
+
+### 6z.5 — the field number does not enter the currency
+
+§ 6w's own note, closed. Once the glass is sized `f·NA + h` the marginal ray is no
+longer at D/2, and `targetS1Mm` is documented as being evaluated there. So the
+target is summed at D/2 as well — the same currency the solver quotes in — rather
+than at the beam. The Seidel sums are homogeneous of degree four in the marginal
+ray, so one currency for both sides cancels at **every** height rather than
+approximately.
+
+What that buys is measured on the delivered lens rather than argued: at FN 18 and
+without one, two genuinely different builds (the fielded one is 1.45× wider) carry
+`seidelS1OfGlassAlone` **identical to 10 digits**, because the plate in front of
+them is the same plate.
+
+The control is what a caller who measured the plate on the real beam and passed
+that number would get. `achromaticObjective` drives ΣS_I at D/2 to the target, so
+a target k⁴ too small leaves the pair carrying **1 − 1/k⁴** of the plate —
+**0.7738** at FN 18 on the 4×/0.10, matched to 9 digits. Note what is *not*
+claimed: the two builds' **targets** differ by 2.185 where k⁴ is 2.2519, 3% apart,
+because the fielded lens's front focal distance moves. The exactness lives in the
+delivered aberration, not in the target ratio.
+
+### 6z.6 — the price is linear in magnification, and § 6w's was not
+
+The step's headline, and it is a contrast rather than a number. § 6w:
+
+> the oversize is a RATIO, `1 + FN/(2·f_tube·NA)` … because the semi-field and
+> the beam are both ∝ 1/M — so the 4× and the 40× turn out to be one lens scaled
+
+A coverslip does not participate in that scaling. Its aberration is set by t, n
+and the aperture, and none of those knows the objective's focal length:
+`seidelS1OfGlassAlone` is one number to **7 digits** over M = 4, 10, 20, 40 at
+NA 0.20. What the lens can supply is not scale-free in the same way — S_I has the
+dimension of a length, so a lens scaled down by ten has a tenth of it to trade —
+and the two together make the price linear in M:
+
+| M | bending shift | wall cost against the bare NA 0.287401975 |
+|---|---|---|
+| 4 | 3.1122e-4 | 0.01227% |
+| 10 | 7.7744e-4 | 0.03066% |
+| 20 | 1.5529e-3 | 0.06128% |
+| 40 | 3.0977e-3 | 0.12236% |
+
+Both columns are ×2 per doubling of M to three digits, and the bare wall itself
+carries no magnification at all (§ 6w's own 0.287401975 at both 4× and 40×). This
+is § 6b.5.7's geometric ceiling walked into from a **third** direction after NA
+and field number, and the first one whose cost is not magnification-free.
+
+The refusal says so. A target off zero is not the aperture's fault, and the same
+aperture without a slip builds, so the message names the slip and the target it
+was solved to rather than letting the solver's aperture sentence stand alone —
+§ 6b.5.5's rule that a refusal should say what to change.
+
+### 6z.7 — a telecentric aperture assumed the object and the stop shared a medium
+
+*Recorded here rather than only in the design's own section because it is a defect
+in a shipped function:* the **sixth** member of the C4/A6/C5 family, and the
+second after § 1.5.2 to be found by being the first caller to reach a case.
+
+`imageStopBackward`'s telecentric branch traces {y: 0, u: 1} back from the stop
+and reads the height it exits with as **−B**, the quantity the slope aperture
+divides by. That is the inverse of the object→stop matrix carrying (0, 1) to
+(−B, A)/det, and the comment asserted det = 1. With `u` the raw geometric slope a
+refraction contributes n_before/n_after, so **det = n_object/n_stop** — unity
+exactly while the two spaces share an index, which every telecentric system in
+this repo did until a specimen was put under a coverslip.
+
+Left uncorrected the aperture comes back n times too wide and an objective
+labelled NA 0.10 **delivers 0.1519**, 51.9% fast. What makes it the family's shape
+is not that it is silent — it is that **two readouts disagree and neither names
+the other**. The trace does object: glass sized `f·NA` for 0.10 cannot pass a
+0.152 cone, so 176 of the pupil grid's rays are lost. But
+`objectNumericalAperture` goes on reporting 0.152, so what a caller sees is a
+correctly-labelled objective mysteriously vignetting itself — which reads as a
+fault of the **glass**. § 1.5.2's "a miss reads as the system's fault", one
+readout along.
+
+The fix carries both indices, and at n_object = n_stop it multiplies and divides
+by a literal 1.0 — **bitwise** the old expression, so no system that ever worked
+moved, and the whole ladder re-ran unchanged. That identity is asserted as a rung
+rather than left to the suite's silence, because a "no test moved" argument
+expires the moment someone edits the expression again.
+
+### 6z.8 — the chief invariant through a real stack, and § 6y's sentence
+
+§ 6y's second "Not yet pinned" closes here, with its own reasoning revised. It
+said: *"For a plane stack those are the same by conservation."* The objectives
+now carry a slab, so the claim is testable, and it is **half right**.
+
+On the telecentric member the assembly's chief invariant and the lens's are both
+a **bitwise zero** at every height — § 6y.5's null, surviving the arrival of the
+glass it was a statement about. On the rim-stopped control the two part company,
+and the departure is the **square** of the field: 3.0e-7, 1.2e-6, 3.0e-5 at
+h = 0.05, 0.1 and 0.5 mm, which is ×4.00 per doubling and ×25 over a fivefold.
+
+The reason is not conservation failing — a flat face conserves n·sin exactly along
+any ray. It is that the two constructions do not compare the *same* ray: the
+lens-alone system places its specimen at the **paraxial** apparent depth, and a
+plate's apparent depth depends on the angle the ray leaves at. So the assembly's
+chief ray and the lens's chief ray are different rays whose invariants differ at
+second order in field. § 6y's sentence was a paraxial statement wearing an exact
+one's clothes.
+
+That puts a third term on the ladder § 6n assembled off one coefficient — § 6h.1's
+cubic ×8.00, § 6n's curvature ×2.00, § 6m.4's slope — and this is the one § 6y did
+not have.
+
+### 6z.9 — what the correction is worth, and which way it points
+
+Third order says the two mismatches are exactly equal and opposite: the corrected
+glass carries +plate and the bare glass carries 0, so taking the slip away from
+one and putting it in front of the other move ΣS_I by the same amount in opposite
+directions. That survives into a **traced** wavefront to 2.4% on a lens whose
+residual is dominated by orders the target never saw, which is the part worth
+pinning.
+
+**The direction falsifies the slogan on this lens.** § 6c's "using a corrected
+objective without its slip is worse than using no correction at all" is a
+statement about the third-order term. On the 4×/0.10 the corrected objective run
+**dry** is 2.3% *better* than the matched pair — the doublet's own fifth-order
+residual dominates, and the plate's third-order term partly cancels it. That is
+§ 6e.4's "the cover slip HELPS" arriving where it does not help anyone: both
+figures are two orders over what the plate itself asks for, so the sign is a
+curiosity here and would only be a trade on a form that can carry the aperture.
+
+### Not yet pinned
+- **The chromatic half.** The slip is dispersive and the correction is solved at
+  one wavelength, so a slip-corrected objective is corrected at the d line and
+  nowhere else. Unmeasured, and the same deferral § 6e names for the dome.
+- **The correction collar**, which § 6e.5 already re-scoped as an index-and-NA
+  fitting rather than a thickness one — and which § 6z.6 now gives an
+  independent reason to want, since the price of correcting is what grows with
+  magnification.
+- **The mismatch sweep.** § 6c.3 sweeps slip thickness and index on the DIN;
+  nothing here does, because at the apertures this form reaches the tolerance is
+  200× the slip and the sweep would measure the solver.
+- **The immersion members.** `designs/lister` and the aplanatic front take no
+  target at all, so correcting *those* for a stack stays § 6e's open item.
+- **The condenser's own aberrations**, unchanged from § 6x and § 6y.
 
 ## Later rungs
 

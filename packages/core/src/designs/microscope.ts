@@ -176,11 +176,53 @@ import {
  * the *delivered* NA survives only because it is re-derived as `f·tan u` on the
  * lens actually built.
  *
- * NOTE for whoever wires this member's coverslip — § 6c's named deferral. Once a
- * field number is given, **D/2 is no longer the marginal ray's height**, and
- * `achromaticObjective`'s `targetS1Mm` is documented as being evaluated at D/2.
- * Nothing bites today because no target is passed here; a slip correction that
- * passes one must scale it from the beam, not from the glass.
+ * ## The coverslip, and the two things it couples to (§ 6z)
+ *
+ * § 6c's named deferral, closed. `coverslip` puts the specimen against the
+ * underside of a plate the objective is then **corrected for**: the bending is
+ * solved to ΣS_I = −(the plate's), so the pair is stigmatic and the glass alone
+ * deliberately is not. That is `finiteConjugateObjective`'s move at a different
+ * conjugate, and two couplings are new here.
+ *
+ * **The plate's position is not free.** A plate crossed by both faces in one
+ * medium contributes a spherical aberration that does not depend on where it
+ * sits — but a *coverslip* is not that plate: the specimen is INSIDE it, so the
+ * chain crosses one face and the aberration is set by the depth below it. Move
+ * the face without re-solving the air gap and the sum silently reports the
+ * distance from the face to the image instead of the slip's own thickness: 1.90×
+ * the truth a tenth of a millimetre out, 9.96× at one, 403× with the plate laid
+ * against the glass (§ 6z.2). So the gap and the target are one fixed point, not
+ * two steps.
+ *
+ * **The field number does not enter the currency.** § 6w's oversized element
+ * means D/2 is no longer the marginal ray's height, and `targetS1Mm` is evaluated
+ * at D/2. The target here is therefore summed at D/2 as well — the same currency
+ * the solver quotes in — because the Seidel sums are homogeneous of degree 4 in
+ * the marginal ray, so one currency for both sides cancels at every height. What
+ * that buys is measured on the delivered lens: `seidelS1OfGlassAlone` is the same
+ * number to 10 digits with FN 18 and without it, where a caller who measured the
+ * plate on the real beam and passed it unscaled would leave `1 − (beam/glass)⁴`
+ * uncorrected — 77.4% on the 4×/0.10 at FN 18 (§ 6z.5).
+ *
+ * ## …and the price is LINEAR IN MAGNIFICATION, which § 6w's is not
+ *
+ * The plate asks the same absolute correction of every member of the family: its
+ * aberration is set by t, n and the aperture, and none of those knows what the
+ * objective's focal length is — `seidelS1OfGlassAlone` is one number to 7 digits
+ * over M = 4→40. What the lens can supply is not scale-free in the same way: a
+ * Seidel sum has the dimension of a length, so a lens scaled down by ten has a
+ * tenth the S_I to trade with. So the correction costs a 40× ten times what it
+ * costs a 4× — the bending moves 3.11e-4 → 3.10e-3, and the aperture ceiling
+ * gives up 0.0123% → 0.1224%, both linear in M (§ 6z.6).
+ *
+ * That is § 6w's finding turned over on the same lens family. There the oversize
+ * was a RATIO the magnification cancels out of, so the 4× and the 40× were one
+ * lens scaled; here the slip is the one thing in the branch that does not scale,
+ * so nothing cancels. It is also why a correction collar is a high-power fitting.
+ *
+ * SCOPE: the dry, cemented member only. `designs/lister` and the immersion front
+ * take no target at all, so correcting *those* for a stack is § 6e's own open
+ * item and not this one.
  */
 
 /**
@@ -247,6 +289,19 @@ export interface MicroscopeObjectiveSpec {
    * Refused with `stopPlacement: "rim"` — see `microscopeObjective`.
    */
   readonly fieldNumberMm?: number;
+  /**
+   * The cover glass this objective is **corrected for** — `finiteConjugateSpec`'s
+   * `coverslip` at the other architecture's conjugates (§ 6z). Omitted, the
+   * specimen sits bare in air, which is every rung before § 6z.
+   *
+   * Given, three things move together: the specimen goes *inside* the glass
+   * (`objectMedium` becomes the slip and `objectDistanceMm` becomes its
+   * thickness), the lens is placed by an air gap solved so the specimen still
+   * lands on its front focus, and the bending is re-solved to minus the plate's
+   * ΣS_I. See the module header for the two couplings that are this
+   * architecture's own.
+   */
+  readonly coverslip?: CoverslipSpec;
 }
 
 /** Where an objective's aperture stop sits. See `MicroscopeObjectiveSpec`. */
@@ -333,12 +388,48 @@ export interface MicroscopeObjective extends InfinityCorrectedObjective {
   readonly focalRatio: number;
   /**
    * Solved specimen plane: distance from surface 0's vertex to the object, in
-   * front of it (mm). The *free working distance* is this less the front
-   * surface's sag. NO COVERSLIP: § 6c models one for the DIN objective only —
-   * the infinity-corrected member's slip is a named deferral, and the wiring is
-   * the same target-S_I move `finiteConjugateObjective` makes.
+   * front of it (mm) — the system's conjugate distance either way. **With a
+   * coverslip that is the slip thickness**, because surface 0 is then the slip's
+   * upper face and the specimen is against its underside; the air path is
+   * `airGapMm` and the plane the lens is really placed for is
+   * `airEquivalentObjectDistanceMm`.
    */
   readonly objectDistanceMm: number;
+  /** The cover glass the bending was solved for, if any (§ 6z). */
+  readonly coverslip?: Coverslip;
+  /**
+   * Slip upper face → objective front vertex (mm). Equal to `objectDistanceMm`
+   * when there is no slip, where the whole object distance is air.
+   */
+  readonly airGapMm: number;
+  /**
+   * Objective front vertex → where the specimen *appears* to be (mm): the front
+   * focal distance of the glass alone, which is the plane the lens is placed
+   * across. Larger than `airGapMm` by the slip's apparent depth, and equal to
+   * `objectDistanceMm` when there is none. **Read off the traced paraxial chain,
+   * never from t/n** — that closed form is § 6c's external pin.
+   */
+  readonly airEquivalentObjectDistanceMm: number;
+  /**
+   * Front glass to the nearest thing in front of it (mm): the slip's upper face
+   * if there is one, the specimen if not, less the front surface's own sag.
+   */
+  readonly freeWorkingDistanceMm: number;
+  /** Which surface carries the aperture stop: 0 bare, 1 behind a coverslip. */
+  readonly stopSurfaceIndex: number;
+  /**
+   * ΣS_I (mm) of the built objective **including the coverslip if it has one**,
+   * at the conjugates it is actually used at. Zero to solver precision, and a
+   * *readout* rather than an assumption: it is summed on the real chain in the
+   * real frame, where the target was computed in the reversed one (§ 6z.3).
+   */
+  readonly seidelS1AtWorkingConjugates: number;
+  /**
+   * ΣS_I (mm) of the objective GLASS alone, on the same marginal ray. Zero
+   * without a coverslip; with one it is plus the plate's, which is the whole
+   * content of "corrected for 0.17" — the lens is built aberrated on purpose.
+   */
+  readonly seidelS1OfGlassAlone: number;
   /** The telescope-orientation doublet this is the mirror image of. */
   readonly doublet: AchromaticObjective;
   readonly numericalAperture: number;
@@ -402,48 +493,171 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
   // edge-thickness check for a rim it does not have.
   const focalRatio = f / (2 * glassRadiusMm);
 
-  let doublet: AchromaticObjective;
-  try {
-    doublet = achromaticObjective({
-      apertureMm: 2 * glassRadiusMm,
-      focalRatio,
-      ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
-      ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
-      designWavelengthNm,
-    });
-  } catch (e) {
-    // The cemented-doublet form has an aperture wall of its own (§ 6b.5.7), and
-    // a field number is a second way to walk into it: the glass is `f·NA + h`
-    // against a focal length that does not grow with h, so a wide field makes the
-    // element faster exactly as a high NA does. Which input to back off is not
-    // recoverable from the aperture alone, so the message names both — § 6b.5.5's
-    // rule that a refusal should say what to change.
-    if (e instanceof DoubletApertureRefusal && fieldNumberMm !== undefined) {
-      throw new Error(
-        `microscopeObjective: field number ${fieldNumberMm} mm at NA ${NA} needs a ` +
-          `${(2 * glassRadiusMm).toFixed(3)} mm element at f/${focalRatio.toFixed(3)} — ` +
-          `${(pupilRadiusMm * 2).toFixed(3)} mm of axial beam plus ` +
-          `${(2 * objectFieldRadiusMm).toFixed(3)} mm of field walk — and the cemented doublet ` +
-          `refuses it: ${e.message}`,
-      );
-    }
-    throw e;
-  }
+  const slip = spec.coverslip === undefined ? undefined : coverslip(spec.coverslip);
+  const nSlip = slip === undefined ? 1 : coverslipIndex(slip, designWavelengthNm);
+  const tSlip = slip === undefined ? 0 : slip.thicknessMm;
+  const stopIdx = slip === undefined ? 0 : 1;
+  // The cone the specimen radiates into, IN the medium it sits in: sin u = NA/n,
+  // which is the bare tan u exactly at n = 1. What the aimer is handed is a
+  // SLOPE, so every stop radius below is a distance times `stopPerAirDistance` —
+  // the plate's own path counts n times an air millimetre, because a paraxial
+  // flat face multiplies the slope by n.
+  const sinU = NA / nSlip;
+  const tanU = sinU / Math.sqrt(1 - sinU * sinU);
+  const stopPerAirDistance = nSlip * tanU;
 
-  // Turned around: flint toward the specimen. See the header — the un-mirrored
-  // orientation is 9 waves of spherical aberration with an identical EFL.
-  //
-  // The stop flag travels with its surface under reversal (it is a property of
-  // that piece of glass), so the doublet's front-surface stop lands on the
-  // mirrored chain's LAST surface. Re-declared on surface 0 here so the
-  // objective's own aperture is its specimen-side rim, and so the prescription
-  // is self-consistent standing alone rather than only once composed.
-  const mirrored = reversePrescription(doublet.prescription, 0);
-  const glass: Prescription = {
-    ...mirrored,
-    surfaces: mirrored.surfaces.map((s) => ({ ...s, isStop: false })),
+  /** The real chain: the slip's upper face, the air gap, then the glass. */
+  const withSlip = (bareP: Prescription, airGapMm: number): Prescription =>
+    slip === undefined
+      ? bareP
+      : {
+          ...bareP,
+          objectMedium: slip.medium,
+          surfaces: [coverslipSurface(airGapMm), ...bareP.surfaces],
+        };
+
+  /**
+   * The air gap that leaves the specimen — against the slip's underside, a
+   * thickness `tSlip` in front of surface 0 — still on the objective's front
+   * focus, so the output is collimated and the architecture is unchanged.
+   *
+   * Solved on the traced paraxial chain, NOT by subtracting the apparent depth
+   * t/n: that closed form is § 6c's external pin and building from it would
+   * leave nothing to check. The error is affine in the gap, so the secant is
+   * exact rather than merely convergent — which is `collimatingGap`'s reason
+   * (§ 6q) one module along.
+   */
+  const solveAirGap = (bareP: Prescription, aAir: number): number => {
+    const err = (w: number): number =>
+      collimatingObjectDistance(withSlip(bareP, w), designWavelengthNm) - tSlip;
+    let w0 = aAir;
+    let w1 = aAir - tSlip;
+    let f0 = err(w0);
+    let f1 = err(w1);
+    for (let i = 0; i < 40 && Math.abs(w1 - w0) > 1e-15 * Math.abs(w1); i++) {
+      const df = f1 - f0;
+      if (!(Math.abs(df) > 0)) break;
+      const w2 = w1 - (f1 * (w1 - w0)) / df;
+      w0 = w1;
+      f0 = f1;
+      w1 = w2;
+      f1 = err(w1);
+    }
+    if (!(w1 > 0) || !Number.isFinite(w1)) {
+      throw new Error("microscopeObjective: the coverslip air-gap solve did not converge");
+    }
+    return w1;
   };
-  const tanU = NA / Math.sqrt(1 - NA * NA);
+
+  /**
+   * MINUS the plate's own ΣS_I, in the frame `achromaticObjective` solves in —
+   * crown first, collimated in, so the specimen side is the IMAGE side and the
+   * plate is appended rather than prepended, with the image landing inside it.
+   *
+   * Summed by `seidelSums` over real surfaces rather than evaluated from the
+   * plate's closed form, which is § 6c's pin and stays free to be one. The
+   * marginal height is the solver's own D/2, not the beam's `f·NA`: the Seidel
+   * sums are homogeneous of degree 4 in the marginal ray, so quoting both sides
+   * in one currency makes the cancellation exact at every height, and quoting
+   * the plate at the beam instead would under-correct by (beam/glass)⁴ (§ 6z.5).
+   */
+  const plateTargetS1 = (d: AchromaticObjective, airGapMm: number): number => {
+    if (slip === undefined) return 0;
+    const g = d.prescription.surfaces;
+    const opts = { marginalHeightMm: glassRadiusMm };
+    const appended: Prescription = {
+      ...d.prescription,
+      surfaces: [
+        ...g.slice(0, -1),
+        { ...g[g.length - 1]!, thickness: airGapMm },
+        // Air INTO the slip: the reversed frame crosses that face the other way,
+        // so this is not `coverslipSurface`'s glass-into-air.
+        {
+          kind: "refract" as const,
+          curvature: 0,
+          semiAperture: Infinity,
+          thickness: tSlip,
+          medium: slip.medium,
+        },
+      ],
+    };
+    return -(
+      seidelSums(appended, designWavelengthNm, opts).s1 -
+      seidelSums(d.prescription, designWavelengthNm, opts).s1
+    );
+  };
+
+  let doublet!: AchromaticObjective;
+  let glass!: Prescription;
+  let airGapMm = 0;
+  let targetS1Mm = 0;
+  // The gap and the target are ONE fixed point: the target is set by how deep the
+  // specimen sits below the plate's face, and the face's place is set by the lens
+  // the target builds. It closes in a handful of passes because the only thing
+  // moving between them is the paraxial EFL, parts in 10⁴ (§ 6z.3). With no slip
+  // the first pass is the whole of it and nothing below runs.
+  for (let pass = 0; ; pass++) {
+    try {
+      doublet = achromaticObjective({
+        apertureMm: 2 * glassRadiusMm,
+        focalRatio,
+        ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
+        ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
+        designWavelengthNm,
+        ...(targetS1Mm === 0 ? {} : { targetS1Mm }),
+      });
+    } catch (e) {
+      // The cemented-doublet form has an aperture wall of its own (§ 6b.5.7), and
+      // a field number is a second way to walk into it: the glass is `f·NA + h`
+      // against a focal length that does not grow with h, so a wide field makes the
+      // element faster exactly as a high NA does. Which input to back off is not
+      // recoverable from the aperture alone, so the message names both — § 6b.5.5's
+      // rule that a refusal should say what to change.
+      if (e instanceof DoubletApertureRefusal && fieldNumberMm !== undefined) {
+        throw new Error(
+          `microscopeObjective: field number ${fieldNumberMm} mm at NA ${NA} needs a ` +
+            `${(2 * glassRadiusMm).toFixed(3)} mm element at f/${focalRatio.toFixed(3)} — ` +
+            `${(pupilRadiusMm * 2).toFixed(3)} mm of axial beam plus ` +
+            `${(2 * objectFieldRadiusMm).toFixed(3)} mm of field walk — and the cemented doublet ` +
+            `refuses it: ${e.message}`,
+        );
+      }
+      // A slip correction moves the target off zero and therefore moves the wall
+      // (§ 6z.6): the bare lens at this aperture may well build. Say so, rather
+      // than let a refusal read as a verdict on the aperture alone.
+      if (e instanceof DoubletApertureRefusal && slip !== undefined) {
+        throw new Error(
+          `microscopeObjective: corrected for a ${tSlip} mm coverslip the bending is solved to ` +
+            `ΣS_I = ${targetS1Mm.toExponential(3)} mm rather than to zero, and the cemented ` +
+            `doublet refuses that at NA ${NA}: ${e.message}`,
+        );
+      }
+      throw e;
+    }
+
+    // Turned around: flint toward the specimen. See the header — the un-mirrored
+    // orientation is 9 waves of spherical aberration with an identical EFL.
+    //
+    // The stop flag travels with its surface under reversal (it is a property of
+    // that piece of glass), so the doublet's front-surface stop lands on the
+    // mirrored chain's LAST surface. Re-declared below so the objective's own
+    // aperture is where `stopPlacement` says, and so the prescription is
+    // self-consistent standing alone rather than only once composed.
+    const mirrored = reversePrescription(doublet.prescription, 0);
+    glass = {
+      ...mirrored,
+      surfaces: mirrored.surfaces.map((s) => ({ ...s, isStop: false })),
+    };
+    if (slip === undefined) break;
+    airGapMm = solveAirGap(glass, collimatingObjectDistance(glass, designWavelengthNm));
+    const next = plateTargetS1(doublet, airGapMm);
+    const settled = Math.abs(next - targetS1Mm) <= 1e-14 * Math.abs(next);
+    targetS1Mm = next;
+    if (settled) break;
+    if (pass >= 40) {
+      throw new Error("microscopeObjective: the coverslip target did not converge");
+    }
+  }
 
   // Where the stop goes, and it is the difference between an objective and a
   // lens with a hole in front of it. See the header's telecentricity section.
@@ -459,7 +673,8 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
     // no answer without a system that does not have it.
     prescription = { ...glass, surfaces: glass.surfaces.map((s, i) => ({ ...s, isStop: i === 0 })) };
     stopDistanceMm = 0;
-    stopRadiusMm = collimatingObjectDistance(prescription, designWavelengthNm) * tanU;
+    stopRadiusMm =
+      collimatingObjectDistance(prescription, designWavelengthNm) * stopPerAirDistance;
   } else {
     // A real objective's stop is a diaphragm at the group's BACK FOCAL PLANE,
     // which is what makes it object-space telecentric: the entrance pupil goes
@@ -474,7 +689,11 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
     // which is why the delivered NA no longer depends on the conjugate.
     const group = systemProperties(glass, designWavelengthNm);
     stopDistanceMm = group.bfd;
-    stopRadiusMm = Math.abs(group.efl) * tanU;
+    // …and behind a coverslip the same slope argument keeps the same shape. The
+    // aimer is handed the slope IN the object medium, and a paraxial flat face
+    // multiplies a slope by n on the way out, so the B element the aperture
+    // divides by is n·f rather than f. One expression, `tan u` at n = 1.
+    stopRadiusMm = Math.abs(group.efl) * stopPerAirDistance;
     const last = glass.surfaces[glass.surfaces.length - 1]!;
     prescription = {
       ...glass,
@@ -496,10 +715,66 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
     };
   }
 
-  const objectDistanceMm = collimatingObjectDistance(prescription, designWavelengthNm);
-
-  return {
+  // Where the specimen APPEARS to be: the front focal distance of the glass
+  // alone, which is the plane the lens is placed across whether or not a plate
+  // stands between. With no slip it is also where the specimen is.
+  const airEquivalentObjectDistanceMm = collimatingObjectDistance(
     prescription,
+    designWavelengthNm,
+  );
+  if (slip === undefined) airGapMm = airEquivalentObjectDistanceMm;
+  // The slip's upper face takes the front of the list and is not an aperture:
+  // the one stop flag rides along on whichever surface `stopPlacement` chose,
+  // one index further back (§ 6a's one-aperture rule).
+  const withSlipPrescription = withSlip(prescription, airGapMm);
+  const objectDistanceMm = slip === undefined ? airEquivalentObjectDistanceMm : tSlip;
+
+  // ANTI-CIRCULARITY. The gap was solved on the glass alone, before the stop
+  // surface existed; the objective is used with it. If those disagree the
+  // specimen is off the front focus and the "infinity" space is not collimated —
+  // which no downstream rung can see, because every one of them is composed
+  // through a tube lens that will happily focus a slightly convergent beam.
+  const placedAt = collimatingObjectDistance(withSlipPrescription, designWavelengthNm);
+  if (!(Math.abs(placedAt - objectDistanceMm) <= 1e-11 * airEquivalentObjectDistanceMm)) {
+    throw new Error(
+      `microscopeObjective: the specimen plane solve did not converge — the chain collimates ` +
+        `from ${placedAt.toFixed(9)} mm where the specimen sits at ${objectDistanceMm.toFixed(9)} mm`,
+    );
+  }
+
+  // The marginal ray, quoted once and read in both frames: at the glass's own
+  // surface 0 it is `(t + n·w)·tan u_glass`, which is `a·tan u` bare.
+  const glassMarginalHeightMm = airEquivalentObjectDistanceMm * stopPerAirDistance;
+  const seidelS1OfGlassAlone = seidelSums(asObjective(glass, 0), designWavelengthNm, {
+    marginalHeightMm: glassMarginalHeightMm,
+    objectDistanceMm: airEquivalentObjectDistanceMm,
+  }).s1;
+  // ANTI-CIRCULARITY, second half. A lens solved for a plate slightly unlike the
+  // one in front of it sits at the right conjugates and images happily, so the
+  // residual is measured on the REAL chain in the REAL frame — where the target
+  // was computed in the reversed one — and scaled against the sum of the
+  // surfaces' individual contributions, the same currency `achromaticObjective`
+  // picks its branch on.
+  let seidelS1AtWorkingConjugates = seidelS1OfGlassAlone;
+  if (slip !== undefined) {
+    const working = seidelSums(withSlipPrescription, designWavelengthNm, {
+      marginalHeightMm: tSlip * tanU,
+      objectDistanceMm: tSlip,
+    });
+    seidelS1AtWorkingConjugates = working.s1;
+    const cancellation = working.surfaces.reduce((total, x) => total + Math.abs(x.s1), 0);
+    if (!(Math.abs(working.s1) <= 1e-9 * cancellation)) {
+      throw new Error(
+        `microscopeObjective: the spherical-aberration solve did not converge — ΣS_I = ` +
+          `${working.s1.toExponential(3)} mm against a cancellation scale of ` +
+          `${cancellation.toExponential(3)} mm`,
+      );
+    }
+  }
+
+  const front = glass.surfaces[0]!;
+  return {
+    prescription: withSlipPrescription,
     focalLengthMm: f,
     paraxialFocalLengthMm: systemProperties(prescription, designWavelengthNm).efl,
     pupilRadiusMm,
@@ -511,6 +786,13 @@ export function microscopeObjective(spec: MicroscopeObjectiveSpec): MicroscopeOb
     stopDistanceMm,
     focalRatio,
     objectDistanceMm,
+    ...(slip === undefined ? {} : { coverslip: slip }),
+    airGapMm,
+    airEquivalentObjectDistanceMm,
+    freeWorkingDistanceMm: airGapMm - sag(front.curvature, front.semiAperture),
+    stopSurfaceIndex: withSlipPrescription.surfaces.findIndex((s) => s.isStop),
+    seidelS1AtWorkingConjugates,
+    seidelS1OfGlassAlone,
     doublet,
     numericalAperture: NA,
     tubeFocalLengthMm,
