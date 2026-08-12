@@ -1867,6 +1867,11 @@ reason above. At 1 patch the two builds measured 92 against 94 ms and 1254
 against 1277 — the identity as a null, and the check that both columns are the
 same measurement on the same day.
 
+*Superseded at 3 and 4 patches by § 3c.2*, which drops the levels between the
+preview and the finish — so both right-hand figures above are now ladders this
+render no longer walks. The 1- and 2-patch numbers stand, since that ladder is
+unchanged.
+
 **The one invariant the cache introduces**, recorded because nothing enforces
 it: a cached stack's arrays are now shared, so nothing downstream may write into
 them. `rotateKernel` returns its input **by reference** at azimuth 0, a path
@@ -1920,13 +1925,27 @@ refining to 3×3 **is** the standalone `patches: 1` render, bit for bit. Anythin
 weaker would mean the ladder carries state between its levels, and then removing
 a level would be a change to the finished image rather than to the wait.
 
-**Measured** on the star-field scene (median of three warm runs in node, 200 mm
-f/8, pupilSamples 32, 5 wavelengths, 5×5 stars, achromat), as first frame /
-final: at `finest` 2, 103 / 239 ms against 100 / 239 — the identity showing up
-as a null; at 3, 102 / 525 against 99 / 388; at 4, 107 / 694 against 100 / 562.
-The first frame never moves and the finished image lands **26% and 19%** sooner.
-Through the sky panel in the browser, where the panel's own label is priced, 3
-patches went 605 → 501 ms on the mirror and 5456 → 4279 on the doublet.
+**Measured** on the star-field scene, median of three warm runs in node, as
+first frame / final, doubling against preview. At 200 mm f/8, pupilSamples 32,
+5 wavelengths: `finest` 2 is 103 / 239 ms against 100 / 239 — the identity
+showing up as a null; 3 is 102 / 525 against 99 / 388; 4 is 107 / 694 against
+100 / 562. The first frame never moves and the finished image lands **26% and
+19%** sooner. Through the sky panel in the browser, where that panel's label is
+priced, 3 patches went 605 → 501 ms on the mirror and 5456 → 4279 on the
+doublet.
+
+**That system is not the one the star panel ships, and the difference is 5×.**
+`panels/telescope.tsx` runs a 100 mm f/10 at **pupilSamples 64 and 9
+wavelengths** — a 256² grid — where the same three settings read 311 / 1023
+against 329 / 1034, 347 / 2776 against 329 / 2051, and 342 / 4183 against
+343 / 3410. Same ratios, five times the clock. It is recorded because the
+hero-image decision below was taken on the smaller numbers, and they understated
+what a reader waits by that factor; the decision does not turn on it, and if
+anything the preview earns its trace set more easily at four seconds than at
+one. **Driven in the browser too**, which is this document's own standard and
+the check a rung cannot make: the panel paints the 1×1 preview at **1.23 s** and
+the finished 4×4 at **4.80 s**, two frames where there used to be three, and the
+backpressure hook releases its queue on the last of them as it should.
 
 **Two cheaper ladders were measured and declined, and the second is the
 interesting one.** Dropping the preview wherever it is *not* free — no 1×1 at an

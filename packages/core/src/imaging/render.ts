@@ -108,19 +108,28 @@ import { ImagePlaneScene, imagePointOf } from "./scene";
  * preview is genuinely free; at 2 and 4 it is one trace set, knowingly paid.
  * The intermediates are what go, and they were never anything but tax.
  *
- * **Measured** on the star-field scene (median of three warm runs in node,
- * 200 mm f/8, pupilSamples 32, 5 wavelengths, 5×5 stars), as first frame /
- * final:
+ * **Measured** on the star-field scene, median of three warm runs in node, as
+ * first frame / final. Two systems, because the one benched first is not the
+ * one that ships: a 200 mm f/8 at pupilSamples 32 and 5 wavelengths, and then
+ * `panels/telescope.tsx`'s own **100 mm f/10 at pupilSamples 64 and 9
+ * wavelengths**, which is a 256² grid and a different cost regime. The ratios
+ * agree and the magnitudes are 5× apart, so the first table prices the ladder
+ * and only the second prices the panel.
  *
- * | achromat | `finest` 2 | 3 | 4 |
+ * | 200 mm f/8, 5λ, ps 32 | `finest` 2 | 3 | 4 |
  * |---|---|---|---|
  * | doubling | 103 / 239 ms | 102 / 525 ms | 107 / 694 ms |
  * | preview | 100 / 239 ms | 99 / 388 ms | 100 / 562 ms |
  *
- * At `finest` 2 the two ladders ARE the same ladder and the row is an identity,
+ * | 100 mm f/10, 9λ, ps 64 — **as shipped** | `finest` 2 | 3 | 4 |
+ * |---|---|---|---|
+ * | doubling | 311 / 1023 ms | 347 / 2776 ms | 342 / 4183 ms |
+ * | preview | 329 / 1034 ms | 329 / 2051 ms | 343 / 3410 ms |
+ *
+ * At `finest` 2 the two ladders ARE the same ladder and that row is an identity,
  * not a saving — which is also why the sky panel's default setting is untouched
  * by any of this. At 3 and 4 the first frame is unmoved and the finished image
- * lands 26% and 19% sooner.
+ * lands 26% and 19% sooner, on both systems alike.
  *
  * **Two cheaper ladders were measured and not taken.** Dropping the preview
  * wherever it is not free — [`finest`] alone at an even count — costs 1 radius

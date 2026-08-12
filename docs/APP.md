@@ -63,6 +63,26 @@ What the app built optically, when this doc was written, was exactly one thing:
 the microscope catalogue** (`microscope.ts`); no preset, eyepiece, eye, sensor or
 tolerance has been instantiated yet.
 
+### What the star field costs, driven in a browser
+
+The baseline surface had never been priced here, and § 3c.2's ladder tuning is
+the change that made that matter — it is the one surface whose refinement
+*shape* moved, from two preview frames to one. Driven on a dev build at the
+panel's own defaults (100 mm f/10, 9 wavelengths, pupilSamples 64, 4 patches,
+25 stars, a 256² grid): the **1×1 preview paints at 1.23 s and the finished 4×4
+at 4.80 s**, 36 PSFs, and the `refining 1×1 → 4×4` line appears and clears. That
+last clause is the part no rung reaches — `useFramesFromWorker` releases its
+queue only on the frame marked `done`, so changing how many frames a job posts
+is exactly the kind of edit that passes every test and leaves a panel stuck
+mid-refinement. It does not.
+
+**The number worth carrying is that this surface is ~5× the one the ladder was
+benched on.** § 3c.2's first table is a 200 mm f/8 at 5 wavelengths and
+pupilSamples 32 — the sky panel's shape — where 4 patches finishes in 562 ms. At
+the star panel's own settings the same render is 3410 ms in node, and the two
+agree on every ratio. Anything scoping against "the field render costs half a
+second" is reading the wrong system.
+
 ## The rule that decides what is scopeable at all
 
 ROADMAP's own words for the multi-star panel: *"App wiring only — the capability
