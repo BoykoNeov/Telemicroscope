@@ -1862,6 +1862,16 @@ light of the patches not yet summed — and rendering coarse levels at fewer
 wavelengths, which would preview in a different colour from the one it finishes
 in, since the colour basis is built once from the first stack's samples.
 
+That second one is a live limit rather than a hypothetical, and driving the sky
+panel in a browser is what showed it. Watched frame by frame on the achromat at
+3 patches, the ladder lands at **2.1 s, 3.3 s and 5.6 s** — so the 1×1 preview
+the header calls "near-instant" is *two seconds*, because a traced doublet stack
+costs ~0.4 s a wavelength and the preview pays for five. The radius cache is no
+help there by construction: one patch has one radius and there is nothing to
+share. Fewer wavelengths at the coarse level is the only lever left, and it
+costs a colour shift mid-refinement — which is the worse artifact, and is why
+the preview stays slow and honest rather than fast and differently coloured.
+
 ### Golden image
 
 `renderField` now has a committed golden — the first picture it ever produced

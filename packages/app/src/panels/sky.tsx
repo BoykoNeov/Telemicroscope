@@ -70,13 +70,22 @@ const DEFAULTS: SkyRequest = {
  * grow as p². § 3c caches a traced stack per distinct field RADIUS, and a p×p
  * grid has far fewer radii than patches (3×3 has three, one of them the axis the
  * 1×1 preview already paid for), so the ladder costs 5 / 10 / 20 where it used
- * to cost 5 / 25 / 70. Times re-measured with it; see `PATCH_COUNTS` for the
- * before column and the conditions.
+ * to cost 5 / 25 / 70.
+ *
+ * **These are browser figures, where `PATCH_COUNTS` prices the same settings in
+ * node — and that is the correction, not a restatement.** This label sits beside
+ * a readout of the same quantity, so quoting the node number here put two
+ * numbers a factor of 1.6 apart next to each other on one line, which is the
+ * caption failure C1 and C6 both record and which the old copy had as well.
+ * Measured in the worker on a dev build (A2's convention, and the slower of the
+ * two builds a reader might be on): 165 / 296 / 605 ms on the mirror and
+ * 2015 / 3175 / 5456 on the doublet, against node's 94 / 190 / 363 and
+ * 1277 / 1936 / 3332. Rounded to the precision the spread deserves.
  */
 const PATCH_COST: Record<number, string> = {
-  1: "5 PSFs — 94 ms mirror, 1.3 s doublet",
-  2: "10 PSFs — 190 ms mirror, 1.9 s doublet",
-  3: "20 PSFs — 363 ms mirror, 3.3 s doublet",
+  1: "5 PSFs — 0.2 s mirror, 2.0 s doublet",
+  2: "10 PSFs — 0.3 s mirror, 3.2 s doublet",
+  3: "20 PSFs — 0.6 s mirror, 5.5 s doublet",
 };
 
 function SkyCanvas({ result }: { result: SkyResult }) {

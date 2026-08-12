@@ -2163,6 +2163,28 @@ The saving is roughly 2× here and grows with the grid; it is not the 4.2× the
 PSF *count* falls by, because what the cache does not touch is the
 convolutions, and after it those are most of the render.
 
+**Driven in the browser, which is where the control's own copy was wrong.** In
+the worker on a dev build: 165 / 296 / 605 ms Newtonian and 2015 / 3175 /
+5456 ms achromat, a consistent ~1.6× the node column above. The patch control
+had been printing the *node* figure directly beside a readout of the same
+quantity measured in the browser — two numbers 1.6× apart on one line, which is
+the caption failure C1 and C6 both record — so it now quotes the browser
+figure and `PATCH_COUNTS` keeps node's for the doc. The refinement itself was
+watched frame by frame on the slowest cell: 1×1 at 2.1 s, 2×2 at 3.3 s, final
+3×3 at 5.6 s.
+
+**And that first frame is the finding.** § 3c's header calls the 1×1 preview
+"one PSF per wavelength, near-instant", and on the doublet it is 2 seconds —
+because a traced achromat stack is ~0.4 s per wavelength and the preview pays
+for five of them. The radius cache cannot help: one patch has one radius, so
+there is nothing to share. What *would* help is a coarse level at fewer
+wavelengths, and it is the one obvious refinement tuning this pass rejected:
+the colour basis is built once from the first stack's samples, so a preview on
+a different band would come up in a different colour from the one it settles
+to — the plausible-but-wrong failure § 3c already has three entries for. Doing
+it honestly means rebuilding the basis per level and accepting a visible colour
+shift mid-refinement, which is a worse artifact than the wait.
+
 #### What has NOT been checked, and it is this doc's own headline check
 
 **The panel has not been driven in a browser.** Every finding above came from
