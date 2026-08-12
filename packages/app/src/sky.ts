@@ -76,13 +76,27 @@ export const OPTIC_LABELS: Record<SkyOptic, string> = {
 /**
  * The patch counts offered, with their measured cost.
  *
- * Priced the way C6 prices its screen counts, because the spread is the same
- * shape: 1 patch is one PSF per wavelength and near-instant, and each level up
- * is ~2.9× the last. Measured in node at pupilSamples 32, 5 wavelengths, on a
- * 200 mm f/8 — **Newtonian 76 / 441 / 1145 ms** and **achromat 700 / 3569 /
- * 10170 ms** at 1 / 2 / 3 patches. The doublet is an order of magnitude dearer
- * per PSF than the mirror at identical settings, which is the doublet's own
- * traced wavefront and not this surface's doing.
+ * Priced the way C6 prices its screen counts. Re-measured after § 3c's PSF
+ * radius cache landed, since the numbers this comment used to carry were taken
+ * before it and the change is most of a factor of two — median of three warm
+ * runs in node at pupilSamples 32, 5 wavelengths, on a 200 mm f/8:
+ *
+ * | patches | 1 | 2 | 3 |
+ * |---|---|---|---|
+ * | Newtonian | 94 ms | 190 ms | 363 ms |
+ * | achromat | 1277 ms | 1936 ms | 3332 ms |
+ *
+ * against **290 / 1002** and **3704 / 6757** at 2 and 3 before the cache. One
+ * patch is untouched by it and reads the same either way, which is what says
+ * the two columns were measured on the same machine on the same day.
+ *
+ * Two things the table says that the panel's copy leans on. The doublet is an
+ * order of magnitude dearer per PSF than the mirror at identical settings —
+ * that is the doublet's own traced wavefront and not this surface's doing. And
+ * the level-to-level step is now ~1.9× rather than the ~2.9× it was, because
+ * what a level adds is no longer p² traces: a 3×3 grid has nine patches but
+ * three radii, and one of those three is the axis the 1×1 preview already
+ * traced.
  */
 export const PATCH_COUNTS = [1, 2, 3] as const;
 
@@ -407,11 +421,15 @@ export function wallExponents(points: readonly WallPoint[]): readonly number[] {
 /**
  * The whole surface — one trace, one rasterization, then `patches²` PSFs.
  *
- * The rasterization is NOT the bill: 22–78 ms against 76 ms to 10 s of render at
- * the settings offered, so the cost knob a reader turns is `patches` and the
+ * The rasterization is NOT the bill: 22–78 ms against 94 ms to 3.3 s of render
+ * at the settings offered, so the cost knob a reader turns is `patches` and the
  * optic, exactly as `PATCH_COUNTS` prices them. That is worth stating because it
  * is the opposite of the microscope branch's shape, where § 6s found the raster
  * dominating a traced tile.
+ *
+ * The render's end of that span used to reach 10 s and now stops at 3.3; the
+ * raster did not move, so § 3c's radius cache narrowed the gap the sentence
+ * rests on without closing it.
  */
 export function renderSky(
   request: SkyRequest,

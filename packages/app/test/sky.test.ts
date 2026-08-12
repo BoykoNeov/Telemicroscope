@@ -275,7 +275,12 @@ describe("C7.6 — the cost is where the panel says it is", () => {
   it("more patches means more PSFs and the same scene", () => {
     const one = run();
     const two = run({ patches: 2 });
-    expect(two.psfEvaluations).toBe(5 * BASE.wavelengths);
+    // Two, not five: the 1/2 ladder visits five patches but only two field
+    // RADII, and `renderField` traces one stack per radius rather than one per
+    // patch (§ 3c). The four corners of a 2×2 grid are all the same distance off
+    // axis and differ only by the azimuth the kernel is turned through, so the
+    // preview level is the only thing the coarse pass adds here.
+    expect(two.psfEvaluations).toBe(2 * BASE.wavelengths);
     // The scene is rasterized once either way, so its flux cannot move with a
     // rendering choice.
     expect(two.sceneFlux).toBe(one.sceneFlux);

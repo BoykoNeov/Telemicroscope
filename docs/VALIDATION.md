@@ -28,7 +28,7 @@ whole ladder.
 | [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
-| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray | `render` `golden` |
+| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; and the cost model corrected — a p×p grid has far fewer field RADII than patches, so one traced stack serves them all, cached ≡ uncached bit for bit | `render` `golden` |
 | [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
 | [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
 | [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
@@ -1696,7 +1696,10 @@ inside it, which the wave layer already pins.
 | Off-axis stars land off axis, in the placed direction | axial symmetry | ✅ |
 | Image height ≈ f·tan θ, and only *approximately* | distortion exists | ✅ |
 | Every refinement level is a complete image carrying all the light | definition | ✅ |
-| Cost is exactly patches × wavelengths | cost model | ✅ |
+| Cost is exactly **distinct patch radii** × wavelengths — 5 over the 1/2/4 ladder, not 21 | cost model | ✅ |
+| **The radius cache is bit for bit the uncached render**, every channel of every pixel | `toBe`, not a tolerance | ✅ |
+| An odd finest grid gets its 1×1 preview for nothing (4 radii over 1/2/3, not 14) | axis is a patch centre | ✅ |
+| `onPsf` reaches its own stated total | progress is not a guess | ✅ |
 | **SED-weighted samples in a scene render shift colour past a JND** | negative control | ✅ |
 | **Kernel rotation sense: a +x feature turns to +y for an azimuth-90° patch** | trace convention | ✅ |
 | Rotation conserves the kernel's energy exactly | matched normalization | ✅ |
@@ -1794,6 +1797,70 @@ Three rungs now pin orientation end to end, each carrying a distinct part:
   a mirrored pair to itself — measured, the pair metric does not move at all
   (0.000221 both ways) while the transpose metric reads 0.052. Axis error,
   sense flip and missing rotation each read 0.035–0.052 on it.
+
+### 3c.1 — the cost model was wrong, and it was wrong in the render's favour
+
+**"Cost is patches × wavelengths" was never true, and the code was paying it
+anyway.** A p×p grid has p² patches but far fewer distinct field *radii*: the
+centres are the pairs drawn from ⌈p/2⌉ distances off each axis, so 2×2 has
+**one** radius, 3×3 and 4×4 have **three**. Everything at one radius gets the
+same PSF. The render was tracing sixteen stacks where three would do.
+
+**And the licence to share them was one the render had already spent.** The
+engine's field spec is a single scalar, so a PSF is always traced on the +x axis
+and turned to the patch's own azimuth by `rotateKernel` — which *is* the claim
+that the PSF is a function of radius alone, made in the same place since step 4
+and granted by the prescription's axial symmetry. What the cache changes is how
+many times that claim is evaluated, not what is claimed. So this rung is not a
+new approximation with a tolerance: `fieldAngleFor` and `spectralStack` are
+deterministic, a reused stack is bitwise the stack the recomputation would have
+built, and the equivalence is asserted with `toBe` on every channel of every
+pixel of a 4×4 render. `psfCache: false` exists to be that reference, the way
+§ 6p's uncached path exists to be its own — a cache whose claim is exactness has
+to be able to be turned off, or the claim is the header's opinion.
+
+The saving is stated as an integer for § 6p's reason, wall clocks being a
+property of the machine: **21 stacks over the 1/2/4 ladder become 5, and 14 over
+1/2/3 become 4.** The second number carries a small finding of its own — the
+axis is a patch centre of every **odd** grid, so radius 0 is already in the
+finest level's set and the 1×1 preview that begins the refinement costs *nothing
+at all*. An even grid has no patch on the axis and its preview does cost one.
+
+**Two things this corrects that were written down.** The ladder's comment said
+the levels were powers of two so that a level's centres would be a superset of
+the one below, "which is what would let a cache reuse them" — they are not:
+4×4's centres sit at ¼ and ¾ of the half-frame and 2×2's at ½, and the two
+levels share no radius but the axis. The ladder is worth keeping for what it
+shows the viewer, not for a nesting it does not have. And the header's "the PSF
+dominates — *that* is the number progressive refinement exists to hide, not the
+convolutions" is now the wrong way round, which is the more interesting
+correction: measured, the PSF term was **59–66%** of a render, so removing four
+fifths of it leaves a render that is *mostly convolution*. The next saving on
+this path is a cheaper transform, not a cheaper trace.
+
+**End to end, through both app surfaces that call it** (median of three warm runs
+in node, 200 mm f/8, pupilSamples 32, 5 wavelengths), before against after: the
+sky disc on an achromat 3704 → 1936 ms at 2 patches, 6757 → 3332 at 3, 12659 →
+4095 at 4; the star field 1816 → 994, 4326 → 1690, 5796 → 2074. Roughly 2×,
+growing with the grid, and short of the 4.2× the stack count falls by for the
+reason above. At 1 patch the two builds measured 92 against 94 ms and 1254
+against 1277 — the identity as a null, and the check that both columns are the
+same measurement on the same day.
+
+**The one invariant the cache introduces**, recorded because nothing enforces
+it: a cached stack's arrays are now shared, so nothing downstream may write into
+them. `rotateKernel` returns its input **by reference** at azimuth 0, a path
+several patches can reach, and what keeps that safe is only that
+`convolveCentred` copies before transforming. An in-place normalization added
+below would corrupt every later patch at the same radius — and would do it as a
+gradient across the frame, which is the shape of defect this step already has
+three entries for.
+
+*Not done here, deliberately:* emitting partial frames inside the finest level,
+which would break the rung above it — a half-accumulated level is missing the
+light of the patches not yet summed — and rendering coarse levels at fewer
+wavelengths, which would preview in a different colour from the one it finishes
+in, since the colour basis is built once from the first stack's samples.
 
 ### Golden image
 

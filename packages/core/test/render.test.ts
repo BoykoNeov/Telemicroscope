@@ -190,6 +190,7 @@ describe("progressive refinement", () => {
     const scene = sceneOf([star(0, 0), star(0.12, -0.08)], PIXEL_SCALE);
     const seen: number[] = [];
     const energies: number[] = [];
+    const psfProgress: Array<[number, number]> = [];
     const result = renderField(focused, scene, {
       ...PSF_OPTIONS,
       patches: 4,
@@ -197,6 +198,7 @@ describe("progressive refinement", () => {
         seen.push(patches);
         energies.push(integratedXyz(image).y);
       },
+      onPsf: (done, total) => psfProgress.push([done, total]),
     });
 
     // 1×1 and 2×2 are emitted; 4×4 is the return value rather than a callback.
@@ -206,9 +208,59 @@ describe("progressive refinement", () => {
     for (const e of energies) {
       expect(Math.abs(e / integratedXyz(result.image).y - 1)).toBeLessThan(1e-4);
     }
-    // Cost is patches × wavelengths, and it is dominated by the finest level:
-    // (1 + 4 + 16) × 5 wavelengths.
-    expect(result.psfEvaluations).toBe(21 * SAMPLES.length);
+    // Cost is DISTINCT PATCH RADII × wavelengths, not patches × wavelengths: the
+    // 1/2/4 ladder visits 21 patches but only 5 radii, because a p×p grid's
+    // centres are the pairs drawn from ⌈p/2⌉ distances off each axis (4×4 has
+    // three) and the PSF depends on radius alone. See the header's licence.
+    expect(result.psfEvaluations).toBe(5 * SAMPLES.length);
+    // And the progress the caller is handed has to reach its own total, or a
+    // bar built on it sticks at a quarter and never fills — which is the shape
+    // of bug a refinement improvement is most likely to introduce.
+    expect(psfProgress).toHaveLength(5);
+    expect(psfProgress[psfProgress.length - 1]).toEqual([5 * SAMPLES.length, 5 * SAMPLES.length]);
+  });
+
+  it("the radius cache is bit for bit the uncached render, and 4.2× cheaper", () => {
+    // The cache's whole claim: reusing a stack across the patches that share a
+    // field radius is not an approximation, because tracing one kernel per patch
+    // and turning it by the patch's azimuth already asserts the PSF is a
+    // function of radius alone. `fieldAngleFor` and `spectralStack` are
+    // deterministic, so a hit IS the stack the miss would have built — asserted
+    // with `toBe` on every channel of every pixel rather than with a tolerance,
+    // because anything short of equality would mean the licence is false.
+    const scene = sceneOf([star(0, 0), star(0.12, -0.08)], PIXEL_SCALE);
+    const cached = renderField(focused, scene, { ...PSF_OPTIONS, patches: 4 });
+    const uncached = renderField(focused, scene, {
+      ...PSF_OPTIONS,
+      patches: 4,
+      psfCache: false,
+    });
+
+    expect(cached.image.xyz.length).toBe(uncached.image.xyz.length);
+    for (let i = 0; i < uncached.image.xyz.length; i++) {
+      // `toBe` per element rather than on the arrays: a failure has to name the
+      // pixel, and a 256×256×3 diff dump names nothing.
+      if (!Object.is(cached.image.xyz[i], uncached.image.xyz[i])) {
+        expect(cached.image.xyz[i]).toBe(uncached.image.xyz[i]);
+      }
+    }
+    // The saving as an exact integer, not a wall clock: 21 patch traces over the
+    // ladder against 5 radii.
+    expect(uncached.psfEvaluations).toBe(21 * SAMPLES.length);
+    expect(uncached.psfEvaluations / cached.psfEvaluations).toBeCloseTo(4.2, 10);
+  });
+
+  it("an odd finest grid gets its 1×1 preview for nothing", () => {
+    // The axis is a patch centre of every odd grid, so radius 0 is already in
+    // the finest level's set and the coarse preview that starts the refinement
+    // adds no trace at all. 3×3 alone visits {0, 2/3, √2·2/3} — three radii —
+    // and the 1/2/3 ladder visits those plus 2×2's single one.
+    const scene = sceneOf([star(0, 0)], PIXEL_SCALE);
+    const laddered = renderField(focused, scene, { ...PSF_OPTIONS, patches: 3 });
+    expect(laddered.psfEvaluations).toBe(4 * SAMPLES.length);
+    // Where an even grid has no patch on the axis, so its preview does cost one.
+    const even = renderField(focused, scene, { ...PSF_OPTIONS, patches: 2 });
+    expect(even.psfEvaluations).toBe(2 * SAMPLES.length);
   });
 });
 

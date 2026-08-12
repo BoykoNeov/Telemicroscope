@@ -45,15 +45,64 @@ import { ImagePlaneScene, imagePointOf } from "./scene";
  *
  * ## What it costs, which is the point of building it now
  *
- * Cost is **patches × wavelengths × (one PSF + one convolution)**, and the PSF
- * dominates: each is a pupil trace, a Zernike fit and two N² FFTs. So a 4×4
- * patch grid over 9 wavelengths is 144 PSF evaluations, and *that* is the
- * number progressive refinement exists to hide — not the convolutions.
+ * Cost is **patches × wavelengths convolutions**, plus one PSF per distinct
+ * patch *radius* × wavelengths — a PSF being a pupil trace, a Zernike fit and
+ * two N² FFTs, against the convolution's three. Before the radius cache below
+ * the PSF term was patches × wavelengths too and took 59–66% of the render;
+ * with it, a 4×4 grid over 9 wavelengths is 27 PSF evaluations rather than 144,
+ * and what is left of a 4×4 render is *mostly convolution*.
+ *
+ * That reversal is worth stating plainly, because it moves where the next
+ * saving is: the convolutions are per patch and cannot collapse the same way —
+ * each one convolves a different windowed slice of the scene — so a render that
+ * is still too slow is now asking for a cheaper transform or fewer patches, not
+ * for fewer traces.
  *
  * Hence `onRefinement`: the render emits a complete image at 1×1 patches first
  * (one PSF per wavelength, near-instant), then 2×2, then 4×4, each superseding
  * the last. The user sees a correct-but-uniform image immediately and watches
  * the corners sharpen, instead of watching nothing for the whole budget.
+ *
+ * ## The PSF is a function of field RADIUS, so most patches share one
+ *
+ * A p×p grid has p² patches but far fewer distinct radii — 4×4 has **three**,
+ * because the sixteen centres are the pairs drawn from two distances off each
+ * axis. Every patch at the same radius gets the same PSF, differing only in the
+ * azimuth `rotateKernel` applies. So the stacks are cached on the patch radius
+ * and the p² traces collapse onto the distinct set: 21 stacks over the 1/2/4
+ * ladder become 5, and 14 over 1/2/3 become 4.
+ *
+ * **This introduces no assumption the render was not already making.** Tracing
+ * one kernel per patch and turning it by the patch's azimuth is exactly the
+ * claim that the PSF depends on radius alone — a licence this code has been
+ * spending since step 4, and which the axial symmetry of the prescription
+ * grants. The cache spends it once per radius instead of once per patch, and
+ * because `fieldAngleFor` and `spectralStack` are deterministic the reused
+ * stack is bitwise the stack that would have been recomputed. Same pixels, and
+ * `psfCache: false` exists so a rung can say so rather than the header
+ * asserting it.
+ *
+ * It also makes the coarse levels nearly free, which is the point at which
+ * refinement stops being a tax on the finished image: for an odd `finest` the
+ * 1×1 preview costs **nothing at all**, since radius 0 is already a patch
+ * centre of the finest grid.
+ *
+ * **Measured end to end** through the two app surfaces that call this (median of
+ * three warm runs in node, 200 mm f/8, pupilSamples 32, 5 wavelengths), before
+ * against after: the sky disc on an achromat **3704 → 1936 ms** at 2 patches,
+ * **6757 → 3332** at 3 and **12659 → 4095** at 4; the star field **1816 → 994**,
+ * **4326 → 1690** and **5796 → 2074**. Roughly 2× at the counts the panels
+ * offer, growing with the grid, and well short of the 4.2× the PSF *count*
+ * falls by — which is the convolutions, and is why the cost section above now
+ * says what it says. At 1 patch the two builds measured 92 against 94 ms and
+ * 1254 against 1277, which is the identity showing up as a null.
+ *
+ * **The invariant this buys, and it is the only one:** a cached stack's arrays
+ * are shared by several patches, so nothing downstream may write into them.
+ * `rotateKernel` returns its input *by reference* at azimuth 0 — a path that is
+ * now reachable from more than one patch — and `convolveCentred` copies before
+ * transforming, which is what keeps that safe. An in-place normalization added
+ * anywhere below would corrupt every later patch at the same radius.
  *
  * ## Scope
  *
@@ -81,11 +130,22 @@ export interface FieldRenderOptions extends PolychromaticOptions {
   readonly onRefinement?: (image: ColorImage, patches: number) => void;
   /** Called once per PSF evaluated, for progress and cost accounting. */
   readonly onPsf?: (done: number, total: number) => void;
+  /**
+   * Reuse one traced stack across every patch at the same field radius.
+   * Defaults on; `false` is the uncached reference the equivalence rung needs,
+   * and is not otherwise a setting worth having.
+   */
+  readonly psfCache?: boolean;
 }
 
 export interface FieldRenderResult {
   readonly image: ColorImage;
-  /** PSFs actually evaluated — the cost that matters. */
+  /**
+   * PSFs actually evaluated — the cost that matters, and with the radius cache
+   * on it is **distinct patch radii × wavelengths**, not patches × wavelengths.
+   * That is how a caller learns the cache was taken: the saving is an exact
+   * integer a test can assert rather than a wall clock.
+   */
   readonly psfEvaluations: number;
   readonly patches: number;
 }
@@ -223,6 +283,17 @@ function convolveCentred(scene: Float64Array, kernel: Float64Array, n: number): 
 }
 
 /**
+ * Signed offset of patch `index` of `count` from the axis, in millimetres.
+ *
+ * One function rather than the expression written twice because the render
+ * counts its distinct radii before the loop and then visits them inside it, and
+ * the cache is only worth its exactness if those two agree in the last bit.
+ */
+function patchCentre(index: number, count: number, halfExtentMm: number): number {
+  return ((index + 0.5) / count - 0.5) * 2 * halfExtentMm;
+}
+
+/**
  * Render a scene through a system, with a field-dependent PSF.
  *
  * The scene must already be on the image plane at the render's pixel scale
@@ -248,15 +319,42 @@ export function renderField(
   // symmetry check would notice and which would silently disagree with the
   // single-source path in `colorImageFromStack`.
   let basis: ReturnType<typeof spectralXyzBasis> | null = null;
-  // Coarse-to-fine, each level a complete image. Powers of two so a level's
-  // patch centres are a superset of the previous level's field radii — which
-  // is what would let a cache reuse them.
+  // Coarse-to-fine, each level a complete image. Doubling because it is the
+  // ladder that shows the most change per level; the levels do NOT nest — 4×4's
+  // centres sit at ¼ and ¾ of the half-frame and 2×2's at ½, so a level shares
+  // no radius with the one below it except the axis. What makes the previews
+  // affordable is the radius cache, not any nesting: they add one stack each
+  // rather than p², and for an odd `finest` the 1×1 preview adds none at all.
   const levels: number[] = [];
   for (let p = 1; p <= finest; p *= 2) levels.push(p);
   if (levels[levels.length - 1] !== finest) levels.push(finest);
 
+  const cacheEnabled = options.psfCache ?? true;
+  // The whole ladder's distinct radii, up front, so `onPsf` counts down to the
+  // number that will actually be reached. Built from `patchCentre` rather than
+  // from a formula for the count, so it cannot drift from the loop below —
+  // which is the failure mode that leaves a progress bar stuck at a quarter.
+  const radii = new Set<number>();
+  for (const patches of levels) {
+    for (let i = 0; i < patches; i++) {
+      for (let j = 0; j < patches; j++) {
+        radii.add(
+          Math.hypot(
+            patchCentre(j, patches, scene.halfExtentMm),
+            patchCentre(i, patches, scene.halfExtentMm),
+          ),
+        );
+      }
+    }
+  }
+
   let psfEvaluations = 0;
-  const totalPsfs = levels.reduce((acc, p) => acc + p * p, 0);
+  const totalPsfs = cacheEnabled ? radii.size : levels.reduce((acc, p) => acc + p * p, 0);
+  // Keyed on the radius itself, and spanning the levels rather than reset per
+  // level: equal keys mean an equal field angle, so a hit is bitwise the stack
+  // the miss would have built. Nothing may write into a value here — see the
+  // header's invariant.
+  const stacks = new Map<number, SpectralStack>();
   let result: ColorImage | null = null;
 
   for (const patches of levels) {
@@ -265,23 +363,29 @@ export function renderField(
     for (let py = 0; py < patches; py++) {
       for (let px = 0; px < patches; px++) {
         // Field angle at this patch's centre, from its offset on the image
-        // plane. Radial, because the system is axially symmetric.
-        const cx = ((px + 0.5) / patches - 0.5) * 2 * scene.halfExtentMm;
-        const cy = ((py + 0.5) / patches - 0.5) * 2 * scene.halfExtentMm;
+        // plane. Radial, because the system is axially symmetric — which is the
+        // same fact the cache below spends.
+        const cx = patchCentre(px, patches, scene.halfExtentMm);
+        const cy = patchCentre(py, patches, scene.halfExtentMm);
         const radiusMm = Math.hypot(cx, cy);
-        const fieldValue = fieldAngleFor(system, radiusMm, scene);
         // The traced PSF belongs to a field point on the +x axis
         // (`fieldDirection` tilts the bundle in the x–z plane), so it has to be
-        // turned by this patch's own azimuth. See `rotateKernel`.
+        // turned by this patch's own azimuth. See `rotateKernel`. The azimuth is
+        // the ONLY thing two patches at one radius do not share, which is why
+        // the stack can be reused and the kernel cannot.
         const azimuth = radiusMm > 0 ? Math.atan2(cy, cx) : 0;
 
-        const stack: SpectralStack = spectralStack(system, fieldValue, {
-          ...options,
-          pixelScaleMm: scene.pixelScaleMm,
-        });
+        let stack: SpectralStack | undefined = cacheEnabled ? stacks.get(radiusMm) : undefined;
+        if (stack === undefined) {
+          stack = spectralStack(system, fieldAngleFor(system, radiusMm, scene), {
+            ...options,
+            pixelScaleMm: scene.pixelScaleMm,
+          });
+          if (cacheEnabled) stacks.set(radiusMm, stack);
+          psfEvaluations += scene.samples.length;
+          options.onPsf?.(psfEvaluations, totalPsfs * scene.samples.length);
+        }
         basis ??= spectralXyzBasis(stack.samples);
-        psfEvaluations += scene.samples.length;
-        options.onPsf?.(psfEvaluations, totalPsfs * scene.samples.length);
 
         for (let w = 0; w < scene.samples.length; w++) {
           const plane = scene.planes[w]!;

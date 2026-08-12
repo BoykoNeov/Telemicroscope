@@ -2143,15 +2143,25 @@ construction rather than by luck.
 
 #### Cost, measured
 
-The rasterizer is **not** the bill — 22–78 ms against 76 ms to 10 s of render —
+The rasterizer is **not** the bill — 22–78 ms against 94 ms to 3.3 s of render —
 which is the exact opposite of the microscope branch's shape, where § 6s found
 the warped raster dominating a traced tile. What a reader turns is `patches` and
-the optic: **76 / 441 / 1145 ms** on the Newtonian and **700 / 3569 / 10170 ms**
+the optic: **94 / 190 / 363 ms** on the Newtonian and **1277 / 1936 / 3332 ms**
 on the achromat at 1 / 2 / 3 patches, priced on the control the way C6 prices its
 screen counts. The doublet is an order of magnitude dearer per PSF than the
 mirror at identical settings, which is its own traced wavefront and not this
 surface's doing. It refines coarsest-first, which is what makes the achromat
 usable at all.
+
+**Those numbers replace a set measured before § 3c's PSF radius cache**, which
+is the one change to have moved this surface's cost without touching a pixel of
+it: 290 / 1002 ms Newtonian and 3704 / 6757 ms achromat at 2 and 3 patches, and
+a top of the range at 10 s rather than 3.3. The 1-patch column is the same in
+both, because a single patch has one radius and there is nothing for the cache
+to share — which is how the two columns are known to be the same measurement.
+The saving is roughly 2× here and grows with the grid; it is not the 4.2× the
+PSF *count* falls by, because what the cache does not touch is the
+convolutions, and after it those are most of the render.
 
 #### What has NOT been checked, and it is this doc's own headline check
 
