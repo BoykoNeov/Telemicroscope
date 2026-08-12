@@ -124,7 +124,7 @@ export interface CollimationCurve {
    * Non-zero means the node is off this line entirely — the misalignment has a
    * component perpendicular to the field sweep, and no point the sweep visits
    * nulls the coma. It is on screen because it is the difference between "the
-   * node is at −0.008°" and "the node is not on this axis at all", and a reader
+   * node is at −0.105°" and "the node is not on this axis at all", and a reader
    * cannot tell those apart from the curve.
    */
   readonly crossComaWaves: number;
