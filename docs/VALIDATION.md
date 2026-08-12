@@ -81,6 +81,7 @@ whole ladder.
 | [6x](#step-6x--what-telecentricity-is-worth-to-the-illumination) | A correction to four module headers before it is a measurement: the licence for one source at every field point belongs to the OBJECTIVE and not the condenser, so the offset is bitwise zero only on a telecentric lens — and what it costs off axis is § 6p's cache | `telecentric-illumination` |
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
+| [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the negative control is what stops the identity rungs passing on a no-op | `row-band` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -10018,6 +10019,98 @@ curiosity here and would only be a trade on a form that can carry the aperture.
 - **The immersion members.** `designs/lister` and the aplanatic front take no
   target at all, so correcting *those* for a stack stays § 6e's open item.
 - **The condenser's own aberrations**, unchanged from § 6x and § 6y.
+
+## Step 6aa — the transform of a row nobody wrote
+
+Every wave-layer caller in this engine fills a **box** and transforms a
+**grid**, and the gap between the two is paid on every render. The pupil spans
+`pupilSamples` bins inside a `size` array; at the shipped brightfield 32-in-128
+that is 33 rows carrying signal and **95 that are identically zero**, and
+`wave/psf` is sparser still, because `padFactor` 4 puts a `pupilSamples`-wide
+pupil in a grid four times that. A row–column FFT transforms each of those zero
+rows separately. A transform of zeros is zeros.
+
+So `fft2d` takes an optional `writtenRows` band and skips the rest of the row
+pass. Only the ROW pass is skippable: afterwards every row is dense across all
+`n` columns, so every column still runs. Like § 6p and § 6s this is a **speed
+step and nothing else**, and its rungs are therefore identity rungs — the claim
+is that no image anywhere changes, and the way to pin that is `toBe`.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Banded ≡ full, BIT FOR BIT** — 3 sizes, 5 bands, forward and inverse | `toEqual` on Float64Array, not a tolerance | ✅ |
+| `fftShift2d` sends a contiguous row run to a **cyclic** band, count unchanged | the shift itself, not the algebra | ✅ |
+| **NEGATIVE CONTROL: one row short is a DIFFERENT array**, by > 1e-3 | the parameter is load-bearing | ✅ |
+| A band covering the grid, or omitted, is the full transform | `toEqual`, three ways | ✅ |
+| **The Abbe sum ≡ a sum with NO box and NO band** — 2 pupils × 2 sources | `toEqual` on every pixel | ✅ |
+| …including the cached path, so the band and § 6p's cache compose | commensurate source | ✅ |
+| A pupil that blocks whole rows of the box still images identically | the hull is inside the box | ✅ |
+| **`incoherentPsf` ≡ the whole-grid kernel** — 3 grids | `toEqual` | ✅ |
+| **`psfFromPupilFunction` ≡ the whole-grid PSF** — 3 grids, intensity/peak/Strehl | `toEqual`, `toBe` | ✅ |
+| The padding is the sparsity: 65 written rows of 256, under 0.3 | counted off `pupilSampling` | ✅ |
+| A band that is not a band — fractional, negative, empty, off-grid: **refused** | `latticeMatchedSource`'s argument | ✅ |
+
+### The two ways of being wrong are not symmetric, and that decides the API
+
+A band **wider** than the rows the caller wrote is merely slower than it needed
+to be. A band **narrower** than them drops signal and returns a perfectly
+plausible wrong image — the same failure shape `commensurateSource` refuses one
+module over, where a *nearly* commensurate source would take a cached path and
+form an image whose disagreement with the honest sum reads as physics.
+
+So the callers do **not** derive the band from the box bounds they believe.
+They record `iy` as they write and hand back the hull of what they actually
+wrote, which is a superset of the nonzero rows: a row inside the hull whose
+every sample was blocked stays zero and is transformed for nothing. That is the
+safe direction, and § 6aa.5 is the case where the two differ — a pupil that
+transmits only a strip leaves whole rows of the |u + s| ≤ 1 box empty, and the
+recorded hull is the one that is right.
+
+The derivation that *is* shared lives in `shiftedRowBand`, beside `fftShift2d`
+rather than open-coded at three call sites, because it is one fact about the
+shift: row r afterwards holds what row (r + n/2) mod n held before, so a
+rotation takes a contiguous run to a contiguous run — cyclically, since the run
+may straddle row 0. § 6aa.1 pins it against the shift itself rather than against
+the algebra that produced it.
+
+**The negative control is what makes the rest of the table mean anything.**
+Every identity rung above would also pass on an implementation that ignored the
+parameter entirely. § 6aa.3 asserts that a band one row too narrow produces a
+different array, and by more than a rounding — dropping a row drops its whole
+contribution, not a last bit.
+
+### What it buys, measured, and where it does not
+
+Medians of 7 runs after 3 warmups, DIN 4×/0.10, one machine:
+
+- **The Abbe sum, ideal pupil, 97 directions: 125 ms → 80 ms, 1.56×.** This is
+  the pure case — § 6p's null half, where the transforms are the whole bill and
+  the cache buys nothing, is exactly where this buys the most.
+- **The shipped brightfield panel render: 134 ms → 95 ms ideal, 378 ms → 331 ms
+  traced.** The traced figure is small for § 6p's reason in reverse: there the
+  bill is the re-tracing, and this step does not touch it.
+- **`incoherentPsf` at 256/32: 5.9 ms → 4.3 ms.** **`psfFromPupilFunction` at
+  512: 130 ms → 110 ms** — smaller than the row arithmetic predicts, because
+  `pupilSampling`'s edge sub-sampling and the full-grid energy loop are a real
+  fraction of that call and neither is a transform.
+
+The pattern across all three: the saving is a fraction of the *transform*, so it
+is largest exactly where a pupil is cheap and a grid is large, and invisible
+where a traced callback dominates. Both halves are reported, for § 6p's reason —
+a speed claim without its null half is a claim about the wrong quantity.
+
+### Not yet pinned
+
+- **The column pass, and the second factor of two.** Only rows are skipped. The
+  input is sparse in *both* axes — the pupil is a box, not a band — so a
+  sparse-input transform could take the row pass further still. That is a
+  different algorithm rather than a skipped call, and it would need its own
+  identity rungs.
+- **`imaging/render` and `imaging/volume`'s convolutions.** They transform an
+  object and a kernel that both fill their grids, so there is no sparsity to
+  take. Named here so the absence is a measurement rather than an oversight.
+- **The wall-clock figures are measurements, not rungs**, exactly as § 6p's are.
+  A timing assertion is flaky; the identity is the claim a test can hold.
 
 ## Later rungs
 

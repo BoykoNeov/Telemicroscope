@@ -205,6 +205,20 @@ Three findings that change the scoping:
   `renderField` refines *across* grids. Coarse-to-fine over `patches` would want
   the caller to run the whole render repeatedly, as `renderFieldScene` does.
 
+**§ 6aa moves the ideal-pupil column and barely touches the traced ones**, and
+that asymmetry is worth reading before re-using any number above. The step stops
+`fft2d` transforming rows the caller never wrote — 95 of 128 at the shipped
+brightfield grid, three quarters of `wave/psf`'s row pass at `padFactor` 4 — so
+what it removes is a fraction of the **transform**. Re-measured on the shipped
+panel request with warmup and medians rather than the single cold runs this
+section's tables are: the Abbe sum on an ideal pupil ran **125 → 80 ms**, the
+panel's whole ideal render **134 → 95 ms**, and the traced render only
+**378 → 331 ms**, because there the bill is still the re-tracing that the first
+bullet above is about. The two right-hand columns therefore stay roughly where
+they are and the left one does not, which narrows the 8–10× ratio rather than
+scaling it. That ratio is the one number here described as real, so it should be
+re-measured before it is quoted again.
+
 Fluorescence and volume are cheap by comparison and are live everywhere:
 
 | fluorescence (traced DIN 4×) | patches=1 | patches=4 |

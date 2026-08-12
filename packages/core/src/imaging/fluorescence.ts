@@ -1,4 +1,4 @@
-import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
+import { fft2d, fftShift2d, isPowerOfTwo, shiftedRowBand } from "../math/fft";
 import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
 import { commensurateSource, type CondenserSource } from "../illumination/source";
 import { imageRadiusForObjectHeight, type ObjectFieldFrame } from "./object-field";
@@ -214,6 +214,11 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   let transmittingSamples = 0;
   let energy = 0;
   let maxGridPhaseStepWaves = 0;
+  // The hull of the rows actually written, recorded as they are written — see
+  // `fft2d`'s `writtenRows`. `lo`/`hi` above bound the pupil's box; this bounds
+  // what the pupil put in it, which for an obstructed aperture is less.
+  let firstRow = -1;
+  let lastRow = -1;
 
   for (let iy = lo; iy <= hi; iy++) {
     const py = (iy - half) * step;
@@ -246,6 +251,8 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
       const ang = 2 * Math.PI * w;
       re[iy * n + ix] = a * Math.cos(ang);
       im[iy * n + ix] = a * Math.sin(ang);
+      if (firstRow < 0) firstRow = iy;
+      lastRow = iy;
       transmittingSamples++;
       energy += a * a;
     }
@@ -262,7 +269,9 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   // so the kernel lands in the same frame as the images it will convolve.
   fftShift2d(re, n);
   fftShift2d(im, n);
-  fft2d(re, im, n, true);
+  // The throw above is also what makes this band non-empty: `transmittingSamples
+  // > 0` is exactly `firstRow >= 0`, set by the same write.
+  fft2d(re, im, n, true, shiftedRowBand(firstRow, lastRow, n));
   const values = new Float64Array(n * n);
   let sum = 0;
   for (let i = 0; i < n * n; i++) {

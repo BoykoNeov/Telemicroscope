@@ -1,4 +1,4 @@
-import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
+import { fft2d, fftShift2d, isPowerOfTwo, shiftedRowBand } from "../math/fft";
 import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
 import type { CondenserSource } from "./source";
 
@@ -346,6 +346,13 @@ export function abbeImage(
     }
 
     let transmitting = 0;
+    // The hull of the rows this direction actually wrote, recorded as it writes
+    // rather than derived from `iyLo`/`iyHi` afterwards — see `fft2d`'s
+    // `writtenRows`, where the two directions of being wrong are not symmetric.
+    // It is usually tighter than the box: a direction whose shifted pupil is
+    // clipped by the aperture leaves whole rows of the box blocked.
+    let firstRow = -1;
+    let lastRow = -1;
     rowIn.fill(0, ixLo, ixHi + 1);
     for (let iy = iyLo; iy <= iyHi; iy++) {
       const py = (iy - half) * step + s.sy;
@@ -390,15 +397,19 @@ export function abbeImage(
         const ti = specIm[idx]!;
         workRe[idx] = tr * pr - ti * pi;
         workIm[idx] = tr * pi + ti * pr;
+        if (firstRow < 0) firstRow = iy;
+        lastRow = iy;
         transmitting++;
       }
     }
+    // Also what keeps an empty band out of `fft2d`: `transmitting > 0` is
+    // exactly `firstRow >= 0`, because the same write sets both.
     if (transmitting === 0) continue;
     contributingPoints++;
 
     fftShift2d(workRe, n);
     fftShift2d(workIm, n);
-    fft2d(workRe, workIm, n, true);
+    fft2d(workRe, workIm, n, true, shiftedRowBand(firstRow, lastRow, n));
     const w = s.weight;
     for (let i = 0; i < n * n; i++) {
       intensity[i] = intensity[i]! + w * (workRe[i]! * workRe[i]! + workIm[i]! * workIm[i]!);

@@ -1481,6 +1481,28 @@
    own open item closes with its reasoning revised: the chief invariant through a
    real stack is the lens's own **bitwise** when the objective is telecentric, and
    departs as the *square* of the field when it is not.
+   *The row band:* ✅ **done** (§ 6aa) — the branch's second spent optimisation,
+   and unlike § 6p and § 6s it was not on any list. It came out of profiling the
+   shipped brightfield panel rather than out of a predicted cost, and what it
+   found is **architectural rather than physical**: every wave-layer caller fills
+   a box and transforms a grid, so the headroom those grids exist to provide was
+   being paid on rows that hold nothing. At the panel's own 32-in-128 that is 95
+   rows of 128, and `wave/psf` is worse — `padFactor` 4 means three quarters of
+   its row pass is a transform of zeros. Skipping them is not an approximation:
+   bit-reversal permutes zeros to zeros and every butterfly reads 0 ± 0, so
+   § 6aa's rungs are `toEqual` on whole `Float64Array`s at three call sites,
+   against references built with **no box and no band at all**. **The API choice
+   is the finding.** A band wider than what was written is merely slow; a band
+   narrower silently drops signal and returns a plausible wrong image — so the
+   callers do not derive the band from bounds they believe, they *record* rows as
+   they write them, and the hull that comes back is a superset by construction.
+   § 6aa.5 is the case where derived and recorded differ. The measured saving is
+   a fraction of the *transform*, so it lands exactly where § 6p's cache does
+   nothing: the Abbe sum on an ideal pupil goes **125 ms → 80 ms** where § 6p's
+   own null half reported no saving at all, and the traced render moves least
+   because there the bill is still the tracing. **Open:** the input is sparse in
+   both axes and only rows are skipped — a sparse-input transform is a different
+   algorithm and would want its own identity rungs.
 7. **Teaching layer + polish** ← current
    ~~Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift).~~ ✅ **landed** — APP.md

@@ -536,6 +536,14 @@ export function psfFromPupilFunction(
 
   let energy = 0; // Σ⟨A²⟩ — the light that physically gets through
   let fieldPower = 0; // Σ⟨A⟩² — what Parseval will hand back
+  // The hull of the rows the pupil is written into, recorded as it is written —
+  // see `fft2d`'s `writtenRows`. The sparsity here is `padFactor`'s, and it is
+  // the largest in the engine: the pupil spans `pupilSamples` rows of
+  // `pupilSamples × padFactor`, so at the default 4× three quarters of the row
+  // pass is a transform of zeros. The loop below still visits every cell,
+  // because `energy` is a sum over the whole grid; only the band is conditional.
+  let firstRow = -1;
+  let lastRow = -1;
   for (let iy = 0; iy < n; iy++) {
     const py = (iy - half) * step;
     for (let ix = 0; ix < n; ix++) {
@@ -551,6 +559,8 @@ export function psfFromPupilFunction(
       flatRe[idx] = a;
       phaseGrid[idx] = w;
       inside[idx] = 1;
+      if (firstRow < 0) firstRow = iy;
+      lastRow = iy;
       fieldPower += a * a;
     }
   }
@@ -573,8 +583,16 @@ export function psfFromPupilFunction(
     }
   }
 
-  fft2d(re, im, n);
-  fft2d(flatRe, flatIm, n);
+  // No `fftShift2d` on the way in here — the pupil is already centred — so the
+  // band is the hull itself rather than `shiftedRowBand`'s rotation of it.
+  // `flatIm` is never written at all, and `flatRe` shares `re`'s support
+  // exactly: both are written under the same `a > 0`, so one band serves both.
+  // `energy === 0` above has already refused a pupil that transmits nothing, so
+  // the `undefined` fallback is unreachable; it is a full transform if it is
+  // ever reached, which is the safe direction to be wrong in.
+  const written = firstRow < 0 ? undefined : { lo: firstRow, count: lastRow - firstRow + 1 };
+  fft2d(re, im, n, false, written);
+  fft2d(flatRe, flatIm, n, false, written);
 
   // Parseval in this convention is Σ|X|² = n²·Σ|x|², so dividing by n² makes
   // the intensity integrate to Σ⟨A⟩². The second factor carries it the rest of

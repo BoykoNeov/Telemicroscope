@@ -138,17 +138,77 @@ export function fft1d(re: Float64Array, im: Float64Array, inverse = false): void
 }
 
 /**
+ * `count` rows starting at `lo` and wrapping at `n` — a contiguous run of rows,
+ * cyclically. See `fft2d`'s `writtenRows`.
+ *
+ * Cyclic rather than a plain `lo..hi` because that is the shape the callers
+ * actually have: they fill a centred box and then `fftShift2d`, which moves row
+ * r to row (r + n/2) mod n and so wraps a contiguous run around the edge
+ * without breaking it.
+ */
+export interface RowBand {
+  /** First row of the run, in [0, n). */
+  readonly lo: number;
+  /** How many rows the run spans. `count >= n` means "all of them". */
+  readonly count: number;
+}
+
+/**
  * In-place 2-D FFT of a square `n`×`n` array stored row-major.
  *
  * Row–column decomposition: the 2-D DFT is separable, so transforming every
  * row and then every column is the transform, not an approximation of it.
+ *
+ * ## `writtenRows`: rows the caller left alone are not transformed
+ *
+ * Every caller in this engine fills a **box** and transforms a grid: the pupil
+ * spans `pupilSamples` bins inside a `size` grid, and at the shipped 32-in-128
+ * that is 33 rows of 128 with 95 identically zero. The transform of a zero row
+ * is zero — bit for bit, not to a tolerance, because the bit-reversal permutes
+ * zeros to zeros, every butterfly reads 0 ± 0, and the inverse pass's 1/n
+ * leaves 0. So a row that was never written can be skipped outright, and the
+ * output is the same output.
+ *
+ * Only the ROW pass is skippable. After it, each transformed row is dense
+ * across all `n` columns, so every column has to run.
+ *
+ * **The parameter is a promise, and its two directions are not symmetric.** A
+ * band WIDER than the rows the caller touched is merely slower than it had to
+ * be; a band NARROWER than them silently drops signal and returns a plausible
+ * wrong answer. So the callers do not *derive* the band from geometry they
+ * believe — they record `iy` as they write, and hand back the hull of what they
+ * actually wrote. That hull is a superset of the nonzero rows (a row inside it
+ * whose every sample was blocked stays zero and is transformed for nothing),
+ * which is the safe direction. § 6aa pins the skip as an identity and pins a
+ * deliberately-too-narrow band as a *different* image, so the promise is
+ * load-bearing rather than decorative.
  */
-export function fft2d(re: Float64Array, im: Float64Array, n: number, inverse = false): void {
+export function fft2d(
+  re: Float64Array,
+  im: Float64Array,
+  n: number,
+  inverse = false,
+  writtenRows?: RowBand,
+): void {
   requirePowerOfTwo(n, "fft2d size");
   if (re.length !== n * n || im.length !== n * n) {
     throw new Error(`fft2d: arrays must hold ${n * n} elements`);
   }
-  for (let row = 0; row < n; row++) transform(re, im, n, row * n, 1, inverse);
+  if (writtenRows === undefined || writtenRows.count >= n) {
+    for (let row = 0; row < n; row++) transform(re, im, n, row * n, 1, inverse);
+  } else {
+    const { lo, count } = writtenRows;
+    if (!Number.isInteger(lo) || lo < 0 || lo >= n) {
+      throw new Error(`fft2d: writtenRows.lo must be an integer in [0, ${n}), got ${lo}`);
+    }
+    if (!Number.isInteger(count) || count < 1) {
+      throw new Error(`fft2d: writtenRows.count must be a positive integer, got ${count}`);
+    }
+    for (let k = 0; k < count; k++) {
+      const row = (lo + k) % n;
+      transform(re, im, n, row * n, 1, inverse);
+    }
+  }
   for (let col = 0; col < n; col++) transform(re, im, n, col, n, inverse);
 }
 
@@ -156,6 +216,11 @@ export function fft2d(re: Float64Array, im: Float64Array, n: number, inverse = f
  * Swap quadrants so zero frequency moves from index 0 to the array centre
  * (n/2, n/2) — where a PSF is expected to sit before anyone measures a radius
  * from it. Self-inverse for even `n`, which is the only case radix-2 produces.
+ *
+ * Row-wise it is a pure rotation by n/2: row r afterwards holds what row
+ * (r + n/2) mod n held before, with the columns rolled by the same amount. The
+ * columns are why this is not just a rotation, but the ROWS are what
+ * `shiftedRowBand` rests on.
  */
 export function fftShift2d(a: Float64Array, n: number): void {
   if (n % 2 !== 0) throw new Error("fftShift2d: size must be even");
@@ -170,4 +235,24 @@ export function fftShift2d(a: Float64Array, n: number): void {
       a[dst] = tmp;
     }
   }
+}
+
+/**
+ * Where rows `firstRow..lastRow` end up after `fftShift2d` — the `writtenRows`
+ * band for a caller that fills a centred box and then shifts it.
+ *
+ * `fftShift2d` sends row r to row (r + n/2) mod n, which is a rotation, and a
+ * rotation takes a contiguous run to a contiguous run — cyclically, since the
+ * run may straddle row 0. The count is therefore unchanged and only the start
+ * moves, which is the whole of the arithmetic and the reason it lives here
+ * beside the shift rather than being open-coded at each call site.
+ */
+export function shiftedRowBand(firstRow: number, lastRow: number, n: number): RowBand {
+  if (!Number.isInteger(firstRow) || !Number.isInteger(lastRow) || firstRow > lastRow) {
+    throw new Error(`shiftedRowBand: expected firstRow <= lastRow, got ${firstRow}..${lastRow}`);
+  }
+  if (firstRow < 0 || lastRow > n - 1) {
+    throw new Error(`shiftedRowBand: rows ${firstRow}..${lastRow} are outside a ${n}-row grid`);
+  }
+  return { lo: (firstRow + (n >> 1)) % n, count: lastRow - firstRow + 1 };
 }
