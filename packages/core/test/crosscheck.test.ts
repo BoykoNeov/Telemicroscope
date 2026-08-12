@@ -36,7 +36,7 @@ import { registerMedium } from "../src/materials/catalog";
  * constant. A disagreement here is intersection, Snell or path length, and it
  * cannot be anything else.
  *
- * TILT AND DECENTER — the second investigation, now done. Seven of the eleven
+ * TILT AND DECENTER — the second investigation, now done. Seven REFRACTING
  * systems are misaligned, and they exist because the two programs agree on what
  * a misalignment IS and disagree on how to spell one. Both apply the shift and
  * the rotation before the surface and never return to the global axis, and both
@@ -1027,6 +1027,22 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
       });
 
     const folded = (id: string) => FIXTURE.systems.find((s) => s.id === id)!;
+    const FOLDED_IDS = ["fold-flat-45", "newtonian-fold", "fold-sphere-15", "fold-compound-tilt"];
+
+    /**
+     * The controls' own control, and it is the one thing six `toBe(false)`
+     * assertions cannot say. Every damage below is detected by `stillAgrees`
+     * returning false — which a helper that ALWAYS returns false would also do,
+     * leaving all six passing and pinning nothing. So this asserts the true
+     * branch exists: the undamaged prescription, read through the same helper,
+     * does still agree with the reference.
+     */
+    it("the undamaged systems agree, so the controls below are detecting damage", () => {
+      for (const id of FOLDED_IDS) {
+        const s = folded(id);
+        expect(stillAgrees(s, prescriptionOf(s))).toBe(true);
+      }
+    });
 
     it("the z-flip between the two frame conventions is a real rotation, not bookkeeping", () => {
       // The frames rung carries the fixture's rotation through `expectedRotation`
@@ -1104,7 +1120,7 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
      * asserts the fixture contains folds that actually turn a corner.
      */
     it("the folds turn the chain, so the fold rung is not agreeing about a straight line", () => {
-      for (const id of ["fold-flat-45", "newtonian-fold", "fold-sphere-15", "fold-compound-tilt"]) {
+      for (const id of FOLDED_IDS) {
         const s = folded(id);
         const c = compile(prescriptionOf(s));
         const k = s.surfaces.findIndex((x) => x.reflect && (x.tiltXDeg ?? x.tiltYDeg));

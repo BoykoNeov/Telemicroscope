@@ -113,7 +113,7 @@ no numbered gap left.
 | **0.3** The frame the chain continues in after a mirror, against the direction rayoptics' own trace sent the BEAM — the one comparison with no convention in it | rayoptics 0.9.9 | ✅ |
 | **0.3** The direction leaving EVERY surface, on all sixteen systems — an error two surfaces cancel between them is invisible in the exit direction alone | rayoptics 0.9.9 | ✅ |
 | **0.3** rayoptics' own `'bend'` against the reflected frame: identical for an in-plane tilt, 0.88° apart for a compound one, and the traced beam picks the reflection | rayoptics 0.9.9 | ✅ |
-| Fifteen negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, a flipped tilt sign, the two tilt angles swapped, a decenter read along the tilted axes, no two singlets landing in one place, the sixteen systems not being sixteen spellings of one shape — and six for the fold: the z-flip being a real rotation, the same surfaces read on the default chain, a curvature and a thickness that do not carry the parity, the diagonal's conjugated tilt, and the folds turning a corner at all | the rung's own tolerances | ✅ |
+| Sixteen negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, a flipped tilt sign, the two tilt angles swapped, a decenter read along the tilted axes, no two singlets landing in one place, the sixteen systems not being sixteen spellings of one shape — and seven for the fold, starting with the one the other six need: the undamaged systems still agreeing when read through the same helper, then the z-flip being a real rotation, the same surfaces read on the default chain, a curvature and a thickness that do not carry the parity, the diagonal's conjugated tilt, and the folds turning a corner at all | the rung's own tolerances | ✅ |
 
 This is the "one cross-validation against an independent tracer" ROADMAP has
 carried in *Engineering practices* since step 4, and it is a different kind of
@@ -420,7 +420,15 @@ separation, so a 0.23 mm segment inside the Lister's cement earns a looser bound
 than an 800 mm tube, and the rounding floor is added rather than substituted so
 a short segment is never held tighter than a double allows.
 
-**What the fold controls are for, and they are six.** The reconciliation is four
+**What the fold controls are for, and one of them is the others' own control.**
+Six of them damage a rule; the seventh is the one they need, because "a damaged
+system no longer agrees" is also what a helper that always answered *no* would
+report, leaving all six passing and pinning nothing. So the undamaged
+prescriptions are put through the same helper first and required to agree.
+That check is not decorative: it is the assertion that fails when the fold rule
+itself is wrong, which is exactly when the six below stop meaning anything.
+
+The reconciliation is four
 rules travelling together — a frame flip, a curvature parity, a thickness parity
 and a conjugated tilt — and rules that travel together are exactly the ones that
 can be wrong in a way that cancels. Each is damaged alone and the comparison has
