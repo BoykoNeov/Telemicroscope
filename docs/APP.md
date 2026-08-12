@@ -2208,6 +2208,35 @@ to — the plausible-but-wrong failure § 3c already has three entries for. Doin
 it honestly means rebuilding the basis per level and accepting a visible colour
 shift mid-refinement, which is a worse artifact than the wait.
 
+#### The ladder has since been tuned, and every number above is superseded
+
+**Step 7's last item landed as § 3c.2, and this surface is where it is priced.**
+The rejection recorded above still stands — a coarse level at fewer wavelengths
+would settle to a different colour — but it was not the only lever, and the one
+that was taken is on the other side of the preview. The levels *between* the
+1×1 preview and the finish were costing a traced wavefront each and reusing
+none of it: 2×2's four centres all sit at one radius that no other grid puts a
+patch at, so at 3 patches the ladder traced four radii to draw three. The
+default is now the preview and then the finest grid, nothing between.
+
+What that does to this surface, re-read in the browser in one session on a dev
+build: **167 / 361 / 501 ms** Newtonian and **2105 / 3375 / 4279 ms** achromat,
+with the PSF count at 3 patches falling **20 → 15**. Only the 3 column is the
+tuning — 1 and 2 run the ladder they always ran. That those two moved anyway
+(296 → 361 on the mirror, read twice at 360 and 362, so it is the machine and
+not a stray sample) is the honest reading of a re-measurement, and it is why the
+whole row was re-read rather than the one cell that changed. In node the same
+re-read gives **90 / 171 / 263** and **756 / 1181 / 1592**, so the browser factor
+is ~1.9 rather than the ~1.6 recorded above — another reason the control's label
+must not be a scaled node figure.
+
+**The first frame is unchanged, which is the point.** The 2.1 s doublet preview
+above is still 2.1 s; what went is the wait *after* it. And the two ways to make
+that first frame cheap were both declined — the fewer-wavelengths one here, and
+at § 3c.2 a preview built on the finest grid's smallest radius, which would be
+free at every patch count and is refused because it is not a render anyone can
+ask for, so no rung could check it against anything.
+
 #### What has NOT been checked, and it is this doc's own headline check
 
 **The panel has not been driven in a browser.** Every finding above came from

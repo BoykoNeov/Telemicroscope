@@ -28,7 +28,7 @@ whole ladder.
 | [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
-| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; and the cost model corrected — a p×p grid has far fewer field RADII than patches, so one traced stack serves them all, cached ≡ uncached bit for bit | `render` `golden` |
+| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; and the refinement ladder's middle levels dropped, a level being the standalone render at its own patch count | `render` `golden` |
 | [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
 | [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
 | [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
@@ -1891,6 +1891,80 @@ help there by construction: one patch has one radius and there is nothing to
 share. Fewer wavelengths at the coarse level is the only lever left, and it
 costs a colour shift mid-refinement — which is the worse artifact, and is why
 the preview stays slow and honest rather than fast and differently coloured.
+
+### 3c.2 — the ladder was carrying levels nobody looks at and nothing reuses
+
+**§ 3c.1 wrote down the fact and left the ladder alone.** Its own correction says
+the doubling levels do not nest — "4×4's centres sit at ¼ and ¾ of the half-frame
+and 2×2's at ½, and the two levels share no radius but the axis" — and concludes
+the ladder is "worth keeping for what it shows the viewer, not for a nesting it
+does not have". That is right about the 1×1 preview and wrong about everything
+between it and the finish. After the radius cache a level costs the **radii it
+adds**, and an intermediate level adds radii the finished picture never asks
+for: all four of 2×2's centres sit at √2/2 of the half-extent, a distance no
+other grid puts a patch at. So the 2×2 level is a trace set spent on a field
+angle that is computed, drawn once, and thrown away.
+
+**The default ladder is now the 1×1 preview and then `patches`, with nothing
+between** (`refinement: "preview"`; `"doubling"` survives as the reference this
+rung measures against, exactly as `psfCache: false` does). Counted in radii,
+doubling against the new default: `finest` 2 costs 2 either way — **the same
+ladder, which is why the sky panel's default setting is untouched by this** — and
+3 costs 4 against 3, 4 costs 5 against 4.
+
+**The identity that makes dropping a level safe was unpinned until now, and it
+is the rung that matters.** A level is not a partial accumulation on the way to
+the finest one; it is exactly what `renderField` returns when asked for that
+patch count alone. Pinned with `toBe` per element: the 1×1 frame emitted while
+refining to 3×3 **is** the standalone `patches: 1` render, bit for bit. Anything
+weaker would mean the ladder carries state between its levels, and then removing
+a level would be a change to the finished image rather than to the wait.
+
+**Measured** on the star-field scene (median of three warm runs in node, 200 mm
+f/8, pupilSamples 32, 5 wavelengths, 5×5 stars, achromat), as first frame /
+final: at `finest` 2, 103 / 239 ms against 100 / 239 — the identity showing up
+as a null; at 3, 102 / 525 against 99 / 388; at 4, 107 / 694 against 100 / 562.
+The first frame never moves and the finished image lands **26% and 19%** sooner.
+Through the sky panel in the browser, where the panel's own label is priced, 3
+patches went 605 → 501 ms on the mirror and 5456 → 4279 on the doublet.
+
+**Two cheaper ladders were measured and declined, and the second is the
+interesting one.** Dropping the preview wherever it is *not* free — no 1×1 at an
+even `finest`, since the axis is a patch centre of no even grid — saves another
+radius at 2 and at 4, and was declined as a product decision: it removes the
+feature rather than tuning it, and the star field is the app's hero image, where
+it would trade something on screen at ~0.2 s for a blank panel until ~0.8 s. And
+a 1×1 level whose kernel is the finest grid's **smallest** radius rather than the
+axis would cost no trace at any parity — 3 radii at `finest` 4, beating every row
+above. That one is declined on a harder ground than cost: it is not a render
+anyone can ask for. `onRefinement`'s contract is that a level is complete and
+correct *at its own patch count*, which is what the identity rung pins and what
+makes a frame safe to put on screen. A frame formed by applying an off-axis
+kernel to the whole field answers no call to this function, so nothing could
+check it against anything, and the panel's `1×1 → 4×4` readout would name a grid
+that was not what was drawn.
+
+**The parity cuts both ways, and the second half is new.** § 3c.1 records that an
+odd grid gets its preview free. It does not follow that a caller should prefer
+one: an odd grid also spends a patch centred on the axis, where the PSF varies
+least. Measured against a converged 8×8 reference on this scene, in the sRGB
+bytes the panel actually draws, **3×3 is worse than 2×2** — worst pixel 101
+display levels against 91, rms 2.08 against 1.99 — while 4×4 reaches 47 and 1.01
+and 6×6 reaches 13 and 0.43. That is why the star field keeps 4 patches and pays
+one trace set for its preview rather than dropping to 3 to get it free.
+
+**One cost fact found on the way, and not chased further.** The same bench run on
+the *singlet* reads ~5× the achromat's per-stack cost — 478 ms against 92 — which
+is the opposite of every other cost note here, since the doublet is normally the
+expensive one. It is not a mystery and not the ladder: `adaptivePsf` forms the
+diffraction PSF, and where the wavefront's phase step per pupil sample is past
+the limit it forms the **geometric ray histogram as well** and blends. The
+singlet reads 1.208 waves per sample and the achromat 0.005, so the singlet runs
+at `geometricWeight` 1.0 and pays both branches — 97 ms against 4 at one
+wavelength — while the achromat never leaves the diffraction one. Worth
+recording twice over: no app surface renders a singlet *field*, so nothing is
+owed here; and at weight exactly 1 the diffraction PSF is computed and then
+entirely discarded, which is ~9% of that path available to whoever needs it.
 
 ### Golden image
 

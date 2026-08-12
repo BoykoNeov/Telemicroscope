@@ -87,6 +87,64 @@ import { ImagePlaneScene, imagePointOf } from "./scene";
  * 1×1 preview costs **nothing at all**, since radius 0 is already a patch
  * centre of the finest grid.
  *
+ * ## …and the levels BETWEEN are never free, which is the tuning
+ *
+ * The sentence above is true and was read as if it settled the ladder. It
+ * settles one rung of it. The doubling ladder also visits 2×2 on the way to
+ * anything larger, and 2×2's single radius — √2/2 of the half-extent, since all
+ * four of its centres are the same distance out — is a patch centre of **no
+ * other grid at all**. Neither is 4×4's set a superset of anything below it. So
+ * every intermediate level is a trace set spent on radii the finished image
+ * will never ask for, at every `finest`.
+ *
+ * Counted as radii, which after the cache is what a level costs, doubling
+ * against the grid's own need: `finest` 2 traces 2 for 1, `finest` 3 traces 4
+ * for 3, `finest` 4 traces 5 for 3.
+ *
+ * Hence `refinement: "preview"`, the default: **1×1, then `finest`, and nothing
+ * between**. The 1×1 level is kept deliberately and not for free — it is what
+ * the whole feature is for — and what it costs depends on parity, because the
+ * axis is a patch centre of an odd grid and of no even one. At `finest` 3 the
+ * preview is genuinely free; at 2 and 4 it is one trace set, knowingly paid.
+ * The intermediates are what go, and they were never anything but tax.
+ *
+ * **Measured** on the star-field scene (median of three warm runs in node,
+ * 200 mm f/8, pupilSamples 32, 5 wavelengths, 5×5 stars), as first frame /
+ * final:
+ *
+ * | achromat | `finest` 2 | 3 | 4 |
+ * |---|---|---|---|
+ * | doubling | 103 / 239 ms | 102 / 525 ms | 107 / 694 ms |
+ * | preview | 100 / 239 ms | 99 / 388 ms | 100 / 562 ms |
+ *
+ * At `finest` 2 the two ladders ARE the same ladder and the row is an identity,
+ * not a saving — which is also why the sky panel's default setting is untouched
+ * by any of this. At 3 and 4 the first frame is unmoved and the finished image
+ * lands 26% and 19% sooner.
+ *
+ * **Two cheaper ladders were measured and not taken.** Dropping the preview
+ * wherever it is not free — [`finest`] alone at an even count — costs 1 radius
+ * instead of 2 at `finest` 2 and 3 instead of 4 at `finest` 4, so roughly
+ * another fifth off the wall clock where the tracing dominates. It is declined
+ * because a blank panel until the whole render lands is the feature being
+ * removed rather than tuned, and the star field is the app's hero image. And a
+ * 1×1 level whose kernel is the finest grid's SMALLEST radius rather than the
+ * axis would cost no trace at ANY parity — 3 radii at `finest` 4, beating both
+ * rows above. That one is declined on a harder ground than cost: it is not a
+ * render anyone can ask for. `onRefinement`'s contract is that a level is
+ * complete and correct **at its own patch count**, which is what makes it safe
+ * to put on screen and what the identity rung pins bitwise. A frame formed with
+ * an off-axis kernel applied to the whole field answers no call to this
+ * function, so nothing could check it against anything, and the panel's
+ * `1×1 → 4×4` readout would name a grid that was not what was drawn.
+ *
+ * **A caller choosing `finest` should know the parity cuts both ways.** An odd
+ * grid gets its preview free, but it also spends a patch centred on the axis,
+ * where the PSF varies least. Against a converged 8×8 reference on this scene,
+ * in the sRGB bytes the panel actually draws, 3×3 is worse than 2×2 — max error
+ * 101 display levels against 91, rms 2.08 against 1.99 — while 4×4 reaches 47
+ * and 1.01. The free preview is not a reason to prefer an odd count.
+ *
  * **Measured end to end** through the two app surfaces that call this (median of
  * three warm runs in node, 200 mm f/8, pupilSamples 32, 5 wavelengths), before
  * against after: the sky disc on an achromat **3704 → 1936 ms** at 2 patches,
@@ -153,6 +211,16 @@ export interface FieldRenderOptions extends PolychromaticOptions {
    * and is not otherwise a setting worth having.
    */
   readonly psfCache?: boolean;
+  /**
+   * Which coarse levels the ladder visits before the finest.
+   *
+   * Defaults to `"preview"`: the 1×1 level and then `patches`, and nothing in
+   * between. `"doubling"` is 1, 2, 4, … then `patches` — the original ladder,
+   * kept because it is the reference the tuning rung measures against, and for
+   * the same reason `psfCache: false` is kept. It is not a setting a panel
+   * should want. See the header for what the intermediate levels cost.
+   */
+  readonly refinement?: "doubling" | "preview";
 }
 
 export interface FieldRenderResult {
@@ -342,20 +410,11 @@ export function renderField(
   // no radius with the one below it except the axis. What makes the previews
   // affordable is the radius cache, not any nesting: they add one stack each
   // rather than p², and for an odd `finest` the 1×1 preview adds none at all.
-  const levels: number[] = [];
-  for (let p = 1; p <= finest; p *= 2) levels.push(p);
-  if (levels[levels.length - 1] !== finest) levels.push(finest);
-
-  const cacheEnabled = options.psfCache ?? true;
-  // The whole ladder's distinct radii, up front, so `onPsf` counts down to the
-  // number that will actually be reached. Built from `patchCentre` rather than
-  // from a formula for the count, so it cannot drift from the loop below —
-  // which is the failure mode that leaves a progress bar stuck at a quarter.
-  const radii = new Set<number>();
-  for (const patches of levels) {
+  const radiiOf = (patches: number): Set<number> => {
+    const out = new Set<number>();
     for (let i = 0; i < patches; i++) {
       for (let j = 0; j < patches; j++) {
-        radii.add(
+        out.add(
           Math.hypot(
             patchCentre(j, patches, scene.halfExtentMm),
             patchCentre(i, patches, scene.halfExtentMm),
@@ -363,7 +422,24 @@ export function renderField(
         );
       }
     }
+    return out;
+  };
+  let levels: number[];
+  if ((options.refinement ?? "preview") === "doubling") {
+    levels = [];
+    for (let p = 1; p <= finest; p *= 2) levels.push(p);
+    if (levels[levels.length - 1] !== finest) levels.push(finest);
+  } else {
+    levels = finest === 1 ? [1] : [1, finest];
   }
+
+  const cacheEnabled = options.psfCache ?? true;
+  // The whole ladder's distinct radii, up front, so `onPsf` counts down to the
+  // number that will actually be reached. Built from `patchCentre` rather than
+  // from a formula for the count, so it cannot drift from the loop below —
+  // which is the failure mode that leaves a progress bar stuck at a quarter.
+  const radii = new Set<number>();
+  for (const patches of levels) for (const r of radiiOf(patches)) radii.add(r);
 
   let psfEvaluations = 0;
   const totalPsfs = cacheEnabled ? radii.size : levels.reduce((acc, p) => acc + p * p, 0);

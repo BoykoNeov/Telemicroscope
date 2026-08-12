@@ -2,7 +2,12 @@ import { describe, it, expect } from "vitest";
 import { blackbodySpectrum } from "../src/photometry/blackbody";
 import { chromaticity } from "../src/photometry/cmf";
 import { quadratureSamples, spectralSamples } from "../src/photometry/spectrum";
-import { colorImageFromStack, integratedXyz, pixelXyz } from "../src/imaging/image";
+import {
+  colorImageFromStack,
+  integratedXyz,
+  pixelXyz,
+  type ColorImage,
+} from "../src/imaging/image";
 import { PointSource, rasterizePointSources, imagePointOf } from "../src/imaging/scene";
 import { patchWeight, renderField, rotateKernel } from "../src/imaging/render";
 import { spectralStack } from "../src/wave/polychromatic";
@@ -194,6 +199,7 @@ describe("progressive refinement", () => {
     const result = renderField(focused, scene, {
       ...PSF_OPTIONS,
       patches: 4,
+      refinement: "doubling",
       onRefinement: (image, patches) => {
         seen.push(patches);
         energies.push(integratedXyz(image).y);
@@ -202,6 +208,8 @@ describe("progressive refinement", () => {
     });
 
     // 1×1 and 2×2 are emitted; 4×4 is the return value rather than a callback.
+    // `"doubling"` is asked for by name: it is no longer the default, and this
+    // rung is the reference the tuning below measures against.
     expect(seen).toEqual([1, 2]);
     // Every intermediate is a real image carrying the scene's whole light, not
     // a partial accumulation — that is what makes it safe to show the user.
@@ -223,7 +231,7 @@ describe("progressive refinement", () => {
     expect(psfProgress[psfProgress.length - 1]).toEqual([5 * SAMPLES.length, 5 * SAMPLES.length]);
   });
 
-  it("the radius cache is bit for bit the uncached render, and 4.2× cheaper", () => {
+  it("the radius cache is bit for bit the uncached render, and 5.3× cheaper", () => {
     // The cache's whole claim: reusing a stack across the patches that share a
     // field radius is not an approximation, because tracing one kernel per patch
     // and turning it by the patch's azimuth already asserts the PSF is a
@@ -247,10 +255,14 @@ describe("progressive refinement", () => {
         expect(cached.image.xyz[i]).toBe(uncached.image.xyz[i]);
       }
     }
-    // The saving as an exact integer, not a wall clock: 21 patch traces over the
-    // ladder against 5 radii.
-    expect(uncached.psfEvaluations).toBe(21 * SAMPLES.length);
-    expect(uncached.psfEvaluations / cached.psfEvaluations).toBeCloseTo(4.2, 10);
+    // The saving as an exact integer, not a wall clock: 17 patch traces over the
+    // ladder — 1×1 and then 4×4 — against 4 radii. Both integers moved when the
+    // default ladder stopped visiting 2×2 on the way, 21 against 5 before, and
+    // the ratio moved with them. The identity above did not: what the cache
+    // claims is a property of one level, so a shorter ladder tests it over fewer
+    // patches and not less exactly.
+    expect(uncached.psfEvaluations).toBe(17 * SAMPLES.length);
+    expect(uncached.psfEvaluations / cached.psfEvaluations).toBeCloseTo(17 / 4, 10);
   });
 
   it("an odd finest grid gets its 1×1 preview for nothing", () => {
@@ -259,11 +271,117 @@ describe("progressive refinement", () => {
     // adds no trace at all. 3×3 alone visits {0, 2/3, √2·2/3} — three radii —
     // and the 1/2/3 ladder visits those plus 2×2's single one.
     const scene = sceneOf([star(0, 0)], PIXEL_SCALE);
-    const laddered = renderField(focused, scene, { ...PSF_OPTIONS, patches: 3 });
+    const laddered = renderField(focused, scene, {
+      ...PSF_OPTIONS,
+      patches: 3,
+      refinement: "doubling",
+    });
     expect(laddered.psfEvaluations).toBe(4 * SAMPLES.length);
     // Where an even grid has no patch on the axis, so its preview does cost one.
-    const even = renderField(focused, scene, { ...PSF_OPTIONS, patches: 2 });
+    const even = renderField(focused, scene, {
+      ...PSF_OPTIONS,
+      patches: 2,
+      refinement: "doubling",
+    });
     expect(even.psfEvaluations).toBe(2 * SAMPLES.length);
+  });
+
+  it("the default ladder is 1×1 and the finest, and the levels between were pure tax", () => {
+    // The tuning, as the exact integers it is made of rather than as a wall
+    // clock. A level costs the RADII it adds, and an intermediate level adds
+    // radii the finished image never asks for: all four of 2×2's centres sit at
+    // √2/2 of the half-extent, a distance no other grid puts a patch at, and
+    // 4×4's three radii contain nothing below them either. So every level
+    // between the preview and the finest is a trace set spent on a field angle
+    // that gets thrown away.
+    const scene = sceneOf([star(0, 0)], PIXEL_SCALE);
+    const seenAt = (patches: number, refinement?: "doubling") => {
+      const levels: number[] = [];
+      const out = renderField(focused, scene, {
+        ...PSF_OPTIONS,
+        patches,
+        ...(refinement === undefined ? {} : { refinement }),
+        onRefinement: (_image, p) => levels.push(p),
+      });
+      return { levels, radii: out.psfEvaluations / SAMPLES.length };
+    };
+
+    expect(seenAt(1)).toEqual({ levels: [], radii: 1 });
+    expect(seenAt(2)).toEqual({ levels: [1], radii: 2 });
+    expect(seenAt(3)).toEqual({ levels: [1], radii: 3 });
+    expect(seenAt(4)).toEqual({ levels: [1], radii: 4 });
+    // Against the doubling ladder on the same four counts. At `finest` 2 the two
+    // are the SAME ladder, which is why that entry is an identity rather than a
+    // saving — and why the sky panel's default setting is untouched by this.
+    expect(seenAt(1, "doubling")).toEqual({ levels: [], radii: 1 });
+    expect(seenAt(2, "doubling")).toEqual({ levels: [1], radii: 2 });
+    expect(seenAt(3, "doubling")).toEqual({ levels: [1, 2], radii: 4 });
+    expect(seenAt(4, "doubling")).toEqual({ levels: [1, 2], radii: 5 });
+  });
+
+  it("the preview is free on an odd grid and one trace set on an even one", () => {
+    // The parity, isolated from the ladder that spends it. The axis is a patch
+    // centre of every odd grid and of no even one, so at `finest` 3 the 1×1
+    // level's radius 0 is already in the finest set and the preview adds
+    // nothing, while at 2 and 4 it adds exactly one radius. That cost is
+    // knowingly paid — the preview is the feature — and it is recorded here
+    // because it is the number a caller weighing a patch count needs.
+    const scene = sceneOf([star(0, 0)], PIXEL_SCALE);
+    // What the finished grid needs on its own, worked out here from the patch
+    // geometry rather than read back out of the renderer — so the two are
+    // independent and the difference below means something.
+    const gridAlone = (patches: number): number => {
+      const centre = (i: number): number => ((i + 0.5) / patches - 0.5) * 2 * scene.halfExtentMm;
+      const radii = new Set<number>();
+      for (let i = 0; i < patches; i++) {
+        for (let j = 0; j < patches; j++) radii.add(Math.hypot(centre(j), centre(i)));
+      }
+      return radii.size;
+    };
+    const laddered = (patches: number): number =>
+      renderField(focused, scene, { ...PSF_OPTIONS, patches }).psfEvaluations / SAMPLES.length;
+
+    // 3×3 visits {0, 2/3, √2·2/3} — the axis among them — so the preview is
+    // already paid for. 2×2 visits one radius and 4×4 three, neither of them the
+    // axis, so each pays one more.
+    expect([gridAlone(2), gridAlone(3), gridAlone(4)]).toEqual([1, 3, 3]);
+    for (const [patches, extra] of [
+      [2, 1],
+      [3, 0],
+      [4, 1],
+    ] as const) {
+      expect(laddered(patches) - gridAlone(patches)).toBe(extra);
+    }
+  });
+
+  it("a preview level IS the standalone render at that patch count, bit for bit", () => {
+    // The identity the whole tuning rests on, and it was unpinned until now.
+    // Dropping a level from the ladder is only safe because a level is not a
+    // partial accumulation towards the finest one — it is exactly what this
+    // function returns when asked for that patch count on its own, so removing
+    // it removes a frame and changes nothing else. Asserted with `toBe` per
+    // element rather than with a tolerance, because a level that merely nearly
+    // equalled the standalone render would mean the ladder carries state across
+    // its levels, which is the one thing it must not do.
+    const scene = sceneOf([star(0, 0), star(0.12, -0.08)], PIXEL_SCALE);
+    const previews: ColorImage[] = [];
+    renderField(focused, scene, {
+      ...PSF_OPTIONS,
+      patches: 3,
+      onRefinement: (image, p) => {
+        if (p === 1) previews.push(image);
+      },
+    });
+    const standalone = renderField(focused, scene, { ...PSF_OPTIONS, patches: 1 });
+
+    expect(previews).toHaveLength(1);
+    const emitted = previews[0]!;
+    expect(emitted.xyz.length).toBe(standalone.image.xyz.length);
+    for (let i = 0; i < standalone.image.xyz.length; i++) {
+      if (!Object.is(emitted.xyz[i], standalone.image.xyz[i])) {
+        expect(emitted.xyz[i]).toBe(standalone.image.xyz[i]);
+      }
+    }
   });
 });
 

@@ -1537,7 +1537,7 @@
    deliberately untouched — its teaching has not been audited, and switching it
    on the assumption that A2's reasoning transplants is the move this step's own
    history argues against.
-7. **Teaching layer + polish** ← current
+7. **Teaching layer + polish** — ✅ all three items landed
    ~~Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift).~~ ✅ **landed** — APP.md
    Part H, routes `#/rayfan` and `#/chromatic`, plus the link between them:
@@ -1565,8 +1565,32 @@
    ~~Misalignment (tilt/decenter) scenarios.~~ ✅ **landed** — APP.md Part G, route
    `#/collimation`: in-plane coma against field, and the node a knock takes with
    it. Part G is the **first app surface in that document that was not wiring**;
-   its engine prerequisite is below. **Progressive-refinement tuning** is what is
-   left of this step.
+   its engine prerequisite is below.
+   ~~Progressive-refinement tuning.~~ ✅ **landed** (§ 3c.2) — the step's last
+   item, and the thing it tuned was a ladder that had already been measured and
+   left alone. § 3c.1 found that the doubling levels do not nest — 2×2's four
+   centres all sit at one radius that no other grid puts a patch at — and
+   concluded the ladder was worth keeping "for what it shows the viewer". That
+   is true of the 1×1 preview and false of everything between it and the finish:
+   after the radius cache a level costs the radii it ADDS, so an intermediate
+   level is a traced wavefront computed, drawn once and discarded. The default
+   ladder is now the preview and then the finest grid. **The first frame never
+   moves and the finished image lands 26% and 19% sooner** at 3 and 4 patches;
+   at 2 the two ladders are the same ladder, so the sky panel's own default is
+   untouched and its 1- and 2-patch columns moved only with the machine.
+   **What made it safe to remove a level is an identity that was not pinned
+   until now** — a level is not a partial accumulation towards the finest, it is
+   exactly what the renderer returns when asked for that patch count alone, and
+   the preview is now asserted to be that render bit for bit. **Two cheaper
+   ladders were declined**, one because dropping the preview where it is not
+   free removes the feature rather than tuning it, and one — a preview built on
+   the finest grid's smallest radius, free at every patch count — because it is
+   not a render anyone can ask for, so nothing could check it against anything.
+   **And the parity turns out to cut both ways**: an odd grid gets its preview
+   free but also spends a patch on the axis, where the PSF varies least, so 3×3
+   measures *worse* than 2×2 against a converged reference. The free preview is
+   not a reason to prefer an odd count, which is the opposite of what the cost
+   arithmetic alone would have said.
    *Misalignment's engine prerequisite is ✅ closed* (§ 1.5.3, real ray aiming).
    It was not on any list: a misalignment MOVES the aperture stop, because the
    local coordinate chain carries a perturbation to every surface after it, and
@@ -1584,6 +1608,17 @@
    1.5e-4 waves to 3e-12 — and pupil coordinates that mean what they say off the
    nominal axis.
 
+   *With that, every numbered step in this build order is closed.* What is open
+   is recorded where it was found rather than gathered into a new step: the
+   sparse-input transform § 6aa left (rows are skipped, columns are not, and a
+   sparse-input transform is a different algorithm wanting its own identity
+   rungs), the phase panel's condenser § 6ab deliberately did not switch (its
+   teaching has not been audited, and assuming A2's reasoning transplants is the
+   move that step's own history argues against), and the discarded diffraction
+   PSF § 3c.2 found inside `adaptivePsf` at geometric weight 1. The v1 cut below
+   is the list that decides whether this is shippable, and the v2+ list after it
+   is where the next capability comes from.
+
 ## v1 cut (both branches shipped)
 
 - ~~Bench editor over the prescription schema; exact + paraxial tracing; glass
@@ -1595,8 +1630,18 @@
   shift now have surfaces of their own** — step 7's teaching layer needed them as
   destinations (APP.md Part H), and both were wiring on `analysis/spot` and
   `analysis/focus` rather than new capability.
-- Hero image simulation with progressive refinement (instant on-axis preview,
-  background full-field render).
+- ~~Hero image simulation with progressive refinement (instant on-axis preview,
+  background full-field render).~~ ✅ **landed** — the background render is the
+  worker each panel posts to, and the on-axis preview is the ladder's first
+  level, tuned at § 3c.2. One word of the clause is now known to be wrong and is
+  worth leaving visible: **"instant" is a property of the optic, not of the
+  preview**. On the mirror it is 0.2 s; on the doublet the same one-patch frame
+  is 2.1 s, because a traced doublet wavefront costs ~0.4 s a wavelength and the
+  preview pays for five. Nothing in the ladder can fix that — one patch has one
+  radius, so there is nothing for the cache to share — and the two levers that
+  could (fewer wavelengths at the coarse level, an off-axis kernel reused from
+  the finest grid) were both measured and both declined, at § 3c.1 and § 3c.2
+  respectively, for reasons that are about honesty rather than cost.
 - Mechanical compatibility (barrels, threads, parfocal/back-focus) feeding
   back into optics.
 - Telescope: presets above, seeing, eyepieces, visual + camera modes.

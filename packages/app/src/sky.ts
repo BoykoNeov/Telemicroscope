@@ -77,26 +77,36 @@ export const OPTIC_LABELS: Record<SkyOptic, string> = {
  * The patch counts offered, with their measured cost.
  *
  * Priced the way C6 prices its screen counts. Re-measured after § 3c's PSF
- * radius cache landed, since the numbers this comment used to carry were taken
- * before it and the change is most of a factor of two — median of three warm
- * runs in node at pupilSamples 32, 5 wavelengths, on a 200 mm f/8:
+ * radius cache landed, and again after the ladder tuning below — median of
+ * three warm runs in node at pupilSamples 32, 5 wavelengths, on a 200 mm f/8:
  *
  * | patches | 1 | 2 | 3 |
  * |---|---|---|---|
- * | Newtonian | 94 ms | 190 ms | 363 ms |
- * | achromat | 1277 ms | 1936 ms | 3332 ms |
+ * | Newtonian | 90 ms | 171 ms | 263 ms |
+ * | achromat | 756 ms | 1181 ms | 1592 ms |
  *
- * against **290 / 1002** and **3704 / 6757** at 2 and 3 before the cache. One
- * patch is untouched by it and reads the same either way, which is what says
- * the two columns were measured on the same machine on the same day.
+ * **Only the 3 column is this surface's ladder.** The default ladder is now the
+ * 1×1 preview and then the finest grid, with the doubling levels between them
+ * dropped as trace sets spent on radii the finished image never asks for
+ * (`imaging/render`'s header). At 1 and 2 patches that is the SAME ladder as
+ * before, so those two columns are re-measurements and not savings — and the
+ * fact that they moved anyway, 94 → 90 and 1277 → 756, is the honest reading of
+ * this table: the build has got faster underneath it for reasons that are not
+ * this change, and a column quoted from an older run would have credited them
+ * here. What the tuning is worth at 3 patches is stated where it can be stated
+ * exactly: **20 PSFs before and 15 now**. No wall clock for that pair is quoted
+ * here, because `renderSky` offers no way to ask for the old ladder and the two
+ * numbers would come from different runs — `imaging/render`'s header carries the
+ * timed comparison, on the one scene where both ladders can be selected.
  *
  * Two things the table says that the panel's copy leans on. The doublet is an
  * order of magnitude dearer per PSF than the mirror at identical settings —
  * that is the doublet's own traced wavefront and not this surface's doing. And
- * the level-to-level step is now ~1.9× rather than the ~2.9× it was, because
- * what a level adds is no longer p² traces: a 3×3 grid has nine patches but
- * three radii, and one of those three is the axis the 1×1 preview already
- * traced.
+ * the level-to-level step is ~1.5× rather than the ~2.9× it was before the
+ * cache, because what a level adds is no longer p² traces: a 3×3 grid has nine
+ * patches but three radii, and one of those three is the axis the 1×1 preview
+ * already traced — which is exactly why 3 patches is the setting the tuning
+ * helps and 2 is the setting it cannot.
  */
 export const PATCH_COUNTS = [1, 2, 3] as const;
 
