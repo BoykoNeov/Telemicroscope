@@ -1699,7 +1699,7 @@ inside it, which the wave layer already pins.
 | Cost is exactly **distinct patch radii** × wavelengths — 5 over the 1/2/4 ladder, not 21 | cost model | ✅ |
 | **The radius cache is bit for bit the uncached render**, every channel of every pixel | `toBe`, not a tolerance | ✅ |
 | An odd finest grid gets its 1×1 preview for nothing (4 radii over 1/2/3, not 14) | axis is a patch centre | ✅ |
-| `onPsf` reaches its own stated total | progress is not a guess | ✅ |
+| `onPsf` reaches its own stated total — cost accounting, not a progress bar | the total was unreachable | ✅ |
 | **SED-weighted samples in a scene render shift colour past a JND** | negative control | ✅ |
 | **Kernel rotation sense: a +x feature turns to +y for an azimuth-90° patch** | trace convention | ✅ |
 | Rotation conserves the kernel's energy exactly | matched normalization | ✅ |
@@ -1825,6 +1825,24 @@ property of the machine: **21 stacks over the 1/2/4 ladder become 5, and 14 over
 axis is a patch centre of every **odd** grid, so radius 0 is already in the
 finest level's set and the 1×1 preview that begins the refinement costs *nothing
 at all*. An even grid has no patch on the axis and its preview does cost one.
+
+**The key is the radius itself, and that under-collapses at 5, 6 and 7
+patches.** Keying on the computed `radiusMm` is what keeps the render bitwise
+what it was — deriving the radius from canonical integer magnitudes instead
+would group perfectly but perturb the value by an ulp and forfeit the identity
+that makes this a cache rather than a change. The price is that two mirrored
+centres only share a key where their offsets negate *exactly* in floating point,
+which holds at 1, 2, 3, 4 and 8 and fails at 5, 6 and 7: measured, those give
+**8, 11 and 13** buckets where the ⌈p/2⌉ rule predicts 6, 6 and 10. Nothing
+offers a count in that range — the panels stop at 4 — so the rule above is what
+ships, but it is the rule for the geometry and not a guarantee about the key.
+
+**It also holds every distinct stack for the whole render**, where each was
+previously garbage the moment its patch was done. That is distinct radii ×
+wavelengths × n² doubles: a few MB for the sky disc (n = 128, 5 wavelengths) and
+~24 MB for the star field at 9. Affordable at every setting on offer, and the
+term to watch if a caller ever raises the grid and the wavelength count
+together.
 
 **Two things this corrects that were written down.** The ladder's comment said
 the levels were powers of two so that a level's centres would be a superset of

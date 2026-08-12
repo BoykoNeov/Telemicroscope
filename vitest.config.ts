@@ -12,11 +12,13 @@ export default defineConfig({
     setupFiles: ["./vitest.setup.ts"],
     /**
      * A render is a physics computation, not a unit assertion: the star-field
-     * golden traces 4×4 patches × 5 wavelengths and takes ~4 s alone, which the
+     * golden traces 4×4 patches × 5 wavelengths and took ~4 s alone, which the
      * 5 s default clears on an idle machine and misses once the other twenty
      * files are running beside it. That failure says nothing about the image,
      * so the budget is raised rather than the test being made cheaper — a
-     * golden that renders less is a golden that pins less.
+     * golden that renders less is a golden that pins less. (That rung is now
+     * 2.2 s, § 3c.1's PSF radius cache having roughly halved it, and its file
+     * 4.4 s. The number that keeps this budget where it is was never this one.)
      *
      * **Raised to 60 s while wiring § 6o.8.** § 6p.7 renders a 3 228-point
      * condenser and takes 29.2 s alone — inside the old budget, and past it once

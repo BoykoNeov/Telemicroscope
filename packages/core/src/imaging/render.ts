@@ -97,6 +97,13 @@ import { ImagePlaneScene, imagePointOf } from "./scene";
  * says what it says. At 1 patch the two builds measured 92 against 94 ms and
  * 1254 against 1277, which is the identity showing up as a null.
  *
+ * **What it costs is memory.** Every distinct stack stays live for the whole
+ * render where each was previously garbage the moment its patch was done —
+ * distinct radii × wavelengths × n² doubles, so a few MB for the sky disc and
+ * ~24 MB for the star field at 9 wavelengths. Affordable at every setting on
+ * offer, and the term to watch if a caller raises the grid and the wavelength
+ * count together.
+ *
  * **The invariant this buys, and it is the only one:** a cached stack's arrays
  * are shared by several patches, so nothing downstream may write into them.
  * `rotateKernel` returns its input *by reference* at azimuth 0 — a path that is
@@ -128,7 +135,17 @@ export interface FieldRenderOptions extends PolychromaticOptions {
    * and correct at its own resolution; the last one is the returned result.
    */
   readonly onRefinement?: (image: ColorImage, patches: number) => void;
-  /** Called once per PSF evaluated, for progress and cost accounting. */
+  /**
+   * Called once per PSF actually evaluated — cost accounting, and **not a
+   * progress bar**, which is a distinction the radius cache created.
+   *
+   * Every call is now a cache miss, and the misses are front-loaded: a 1/2/4
+   * ladder takes all five of them by the third patch of the finest level, then
+   * convolves the remaining thirteen in silence. Since the trace phase is the
+   * smaller half of the render after the cache, a bar driven off this would
+   * fill early and then sit at 100% for most of the wait. `onRefinement` is the
+   * signal that tracks what the viewer sees; this one counts traces.
+   */
   readonly onPsf?: (done: number, total: number) => void;
   /**
    * Reuse one traced stack across every patch at the same field radius.
@@ -352,8 +369,14 @@ export function renderField(
   const totalPsfs = cacheEnabled ? radii.size : levels.reduce((acc, p) => acc + p * p, 0);
   // Keyed on the radius itself, and spanning the levels rather than reset per
   // level: equal keys mean an equal field angle, so a hit is bitwise the stack
-  // the miss would have built. Nothing may write into a value here — see the
-  // header's invariant.
+  // the miss would have built. Keying on the VALUE rather than on canonical
+  // integer magnitudes is what keeps the render bitwise what it was before the
+  // cache — the integer form would group perfectly and shift the radius by an
+  // ulp — and it costs a few missed hits where two mirrored centres do not
+  // negate exactly: counts 5, 6 and 7 bucket 8, 11 and 13 ways against a
+  // geometric 6, 6 and 10. Correctness never depends on it, only the saving,
+  // and nothing offers a count in that range. Nothing may write into a value
+  // here — see the header's invariant.
   const stacks = new Map<number, SpectralStack>();
   let result: ColorImage | null = null;
 

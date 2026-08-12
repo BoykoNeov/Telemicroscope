@@ -213,9 +213,12 @@ describe("progressive refinement", () => {
     // centres are the pairs drawn from ⌈p/2⌉ distances off each axis (4×4 has
     // three) and the PSF depends on radius alone. See the header's licence.
     expect(result.psfEvaluations).toBe(5 * SAMPLES.length);
-    // And the progress the caller is handed has to reach its own total, or a
-    // bar built on it sticks at a quarter and never fills — which is the shape
-    // of bug a refinement improvement is most likely to introduce.
+    // The count the caller is handed has to reach its own stated total. It used
+    // to be unreachable — the total still counted patches while the calls had
+    // become one per radius, so anything built on it would have stopped at a
+    // fifth. It is cost accounting and NOT progress: every call is a cache miss
+    // and the misses are front-loaded, so all five land by the third patch of
+    // the finest level and the last thirteen convolve in silence.
     expect(psfProgress).toHaveLength(5);
     expect(psfProgress[psfProgress.length - 1]).toEqual([5 * SAMPLES.length, 5 * SAMPLES.length]);
   });
