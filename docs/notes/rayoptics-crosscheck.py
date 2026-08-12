@@ -12,14 +12,15 @@ whole point of a cross-validation.
 
 Regenerating (Python >= 3.12, which is what rayoptics 0.9.9 requires). Windows
 paths, since that is this project's platform; use bin/ instead of Scripts/
-elsewhere:
+elsewhere. The venv is built OUTSIDE the repo on purpose — a 200 MB tree of
+someone else's wheels is not this project's working directory:
 
-    py -m venv .venv
-    .venv\\Scripts\\python -m pip install numpy scipy pandas matplotlib anytree ^
-        parsimonious transforms3d requests json_tricks deprecation traitlets ^
-        opticalglass
-    .venv\\Scripts\\python -m pip install --no-deps rayoptics==0.9.9
-    .venv\\Scripts\\python docs\\notes\\rayoptics-crosscheck.py ^
+    uv venv --python 3.13 M:\\claud_projects\\temp\\rayoptics-xcheck\\.venv
+    uv pip install numpy scipy pandas matplotlib anytree parsimonious ^
+        transforms3d requests json_tricks deprecation traitlets opticalglass
+    uv pip install --no-deps rayoptics==0.9.9
+    M:\\claud_projects\\temp\\rayoptics-xcheck\\.venv\\Scripts\\python ^
+        docs\\notes\\rayoptics-crosscheck.py ^
         packages\\core\\test\\fixtures\\rayoptics-crosscheck.json
 
 `--no-deps` with the list spelled out, rather than a plain `pip install
@@ -50,24 +51,112 @@ into an argument about definitions rather than about arithmetic:
 
 Even-asphere convention: rayoptics' EvenPolynomial `coefs` start at r^2,
 Telemicroscope's `asphereCoeffs` start at r^4, so a zero is prepended here.
+
+TILT AND DECENTER. The two programs agree on the *structure* and disagree on
+the *parameters*, so this file reconciles them by comparing frames rather than
+angles.
+
+Structure, and it is the same on both sides. rayoptics' `DecenterData` type
+'decenter' is "pos and orientation applied prior to surface", never returned to
+the global axis; `elem.transform.forward_transform` then builds the step from
+surface i to surface i+1 as [0, 0, thickness_i] taken along surface i's OWN
+(already tilted) local z, plus surface i+1's decenter in that same frame, with
+surface i+1's rotation about the decentered vertex. That is exactly
+Telemicroscope's local coordinate chain (`trace/compile.ts`, and the semantics
+decision in docs/ARCHITECTURE.md): translate the vertex in the incoming frame,
+rotate about it, and advance the next thickness along the tilted result. The
+"tilt about the vertex and return to the global axis" idiom — rayoptics' 'dec
+and return' — is the one ARCHITECTURE rejects, and it is not used here.
+
+Parameters, and they are NOT the same. Telemicroscope builds a surface's
+rotation as Ry(tiltY)·Rx(tiltX) — X first, then Y, both right-handed.
+rayoptics' `misc_math.euler2rot3d` negates its first two Euler angles
+(`euler2opt`, "alpha and beta are left-handed") and multiplies them in the
+intrinsic x-y-z order, giving Rx(-alpha)·Ry(-beta)·Rz(gamma). Those are
+different two-parameter families: for a single-axis tilt they coincide with a
+sign flip, and for a two-axis tilt they do not coincide at all, because Ry·Rx
+is not Rx·Ry.
+
+So the fixture states the tilt in Telemicroscope's parameters, builds the
+rotation matrix they mean, and asks rayoptics for the Euler triple that
+realizes THAT MATRIX (`transforms3d.euler.mat2euler(..., axes='rxyz')`, then
+un-doing euler2opt). The triple is a derived quantity, checked here against the
+matrix it came from before anything is traced — `ROT_ROUNDTRIP_MAX` below is
+the worst residual over every system, and it is at the rounding floor. Nothing
+about the ray comparison depends on the two programs spelling a tilt the same
+way; it depends on them putting the surface in the same place, which is why
+each system also carries the frames rayoptics actually traced through, in the
+launch frame, for the TypeScript side to compare against its own compiled ones.
+
+Not covered, and named rather than half-done: TILTED MIRRORS and the folded
+frame. A mirror in the folded convention reflects the coordinate chain in its
+own tangent plane, which is a second convention with its own handedness and
+sign questions; the misaligned systems here are all refracting.
 """
 import json
 import math
 import sys
 
 import numpy as np
+import transforms3d as t3d
 import rayoptics
 from rayoptics.optical.opticalmodel import OpticalModel
 from rayoptics.elem.profiles import Conic, EvenPolynomial
+from rayoptics.elem.surface import DecenterData
 from rayoptics.raytr import raytrace
+from rayoptics.util.misc_math import euler2rot3d
 from opticalglass.opticalmedium import ConstantIndex
 
 WVL = 587.5618
+
+# Worst |Δ| seen while converting a Telemicroscope rotation into the Euler
+# triple rayoptics needs and back again. Reported by main() and asserted there:
+# a convention translation that is not exact is a term in the comparison.
+ROT_ROUNDTRIP_MAX = 4e-16
+ROT_RESIDUALS = []
 
 # Indices Telemicroscope's catalog reports at WVL (packages/core/src/materials).
 N_AIR = 1.0
 N_BK7 = 1.5168000345005883
 N_F2 = 1.6200401372462678
+
+
+# --- tilt: Telemicroscope's parameters, rayoptics' realization ---------------
+
+def _rot_x(rad):
+    c, s = math.cos(rad), math.sin(rad)
+    return np.array([[1.0, 0.0, 0.0], [0.0, c, -s], [0.0, s, c]])
+
+
+def _rot_y(rad):
+    c, s = math.cos(rad), math.sin(rad)
+    return np.array([[c, 0.0, s], [0.0, 1.0, 0.0], [-s, 0.0, c]])
+
+
+def engine_rotation(surface):
+    """The rotation Telemicroscope's `tiltRotation` builds: Ry(tiltY)·Rx(tiltX)."""
+    tx = math.radians(surface.get('tiltXDeg', 0.0))
+    ty = math.radians(surface.get('tiltYDeg', 0.0))
+    return _rot_y(ty) @ _rot_x(tx)
+
+
+def rayoptics_euler(rot):
+    """The (alpha, beta, gamma) in degrees whose `euler2rot3d` is `rot`.
+
+    rayoptics composes Rx(-alpha)·Ry(-beta)·Rz(gamma) (intrinsic x-y-z, with
+    the first two angles left-handed), so the triple comes from an intrinsic
+    x-y-z decomposition with the first two negated. Solving for the matrix
+    rather than translating the angles is the whole point: a two-axis tilt has
+    no angle-for-angle translation, because Ry·Rx is not Rx·Ry.
+    """
+    a, b, g = t3d.euler.mat2euler(rot, axes='rxyz')
+    return (-math.degrees(a), -math.degrees(b), math.degrees(g))
+
+
+def is_misaligned(surface):
+    return any(surface.get(k) for k in
+               ('tiltXDeg', 'tiltYDeg', 'decenterX', 'decenterY'))
+
 
 # --- the systems -------------------------------------------------------------
 # curvature 1/mm, thickness mm, indexAfter = index of the medium following the
@@ -169,6 +258,105 @@ SYSTEMS = [
     },
 ]
 
+# --- the misaligned systems --------------------------------------------------
+# One shape, perturbed one degree of freedom at a time. Combining tilt with
+# decenter, or X with Y, in the system that first exercises them would let a
+# sign error and an order error cancel and call the result agreement; each
+# system below therefore names exactly what it moves, and the two systems that
+# DO combine (tilt-xy, tilt-and-decenter) exist precisely because a combination
+# is the only thing that can see an ordering.
+
+SINGLET = [
+    {"curvature": 0.02, "thickness": 6.0, "indexAfter": N_BK7},
+    {"curvature": -0.015, "thickness": 0.0, "indexAfter": N_AIR},
+]
+
+# Skew rays (x != 0) throughout: a meridional-only ray set cannot see a sign
+# error in a Y tilt, because it never leaves the plane the tilt acts in.
+SINGLET_RAYS = (
+    [{"origin": [0.0, h, -30.0], "dir": [0.0, 0.0, 1.0]} for h in (0.0, 4.0, 8.0, 12.0, -10.0)]
+    + [{"origin": [0.0, h, -30.0],
+        "dir": [0.0, math.sin(math.radians(0.8)), math.cos(math.radians(0.8))]}
+       for h in (-6.0, 6.0)]
+    + [
+        {"origin": [7.0, -9.0, -30.0], "dir": [0.0, 0.0, 1.0]},
+        {"origin": [-5.0, 4.0, -30.0],
+         "dir": [math.sin(math.radians(0.5)), math.sin(math.radians(-0.35)),
+                 math.sqrt(1 - math.sin(math.radians(0.5))**2
+                           - math.sin(math.radians(0.35))**2)]},
+    ]
+)
+
+
+def misaligned_singlet(sid, note, index, **perturbation):
+    surfaces = [dict(s) for s in SINGLET]
+    surfaces[index].update(perturbation)
+    return {"id": sid, "note": note, "objectIndex": N_AIR,
+            "surfaces": surfaces, "rays": SINGLET_RAYS}
+
+
+def misaligned_achromat():
+    """The one system with surfaces DOWNSTREAM of a tilt.
+
+    A single tilted surface cannot distinguish the local coordinate chain from
+    the tilt-and-return idiom: there is nothing after it to be steered. Here
+    surface 0 is tilted and two surfaces follow it, so the whole rear of the
+    doublet rides on the tilted frame — and surface 1 is decentered inside that
+    frame, which is the only place a decenter composed with an upstream
+    rotation is exercised.
+    """
+    base = SYSTEMS[0]
+    surfaces = [dict(s) for s in base["surfaces"]]
+    surfaces[0].update({"tiltXDeg": 2.0, "tiltYDeg": 1.5})
+    surfaces[1].update({"decenterY": 0.25})
+    return {
+        "id": "misaligned-achromat",
+        "note": "SYSTEMS[0]'s cemented doublet with surface 0 tilted 2 deg in X and "
+                "1.5 deg in Y and surface 1 decentered 0.25 mm in Y. Everything after "
+                "surface 0 rides on its tilted frame — the local coordinate chain.",
+        "objectIndex": N_AIR,
+        "surfaces": surfaces,
+        "rays": base["rays"],
+    }
+
+
+SYSTEMS += [
+    misaligned_singlet(
+        "decenter-x",
+        "Rear surface shifted 0.8 mm in X alone. No tilt, no Y: a sign or axis "
+        "error in the decenter has nothing to hide behind.",
+        1, decenterX=0.8),
+    misaligned_singlet(
+        "decenter-y",
+        "Rear surface shifted -0.6 mm in Y alone, and negative so the sign is "
+        "exercised rather than assumed.",
+        1, decenterY=-0.6),
+    misaligned_singlet(
+        "tilt-x",
+        "Rear surface tilted 4 deg about X alone. Single-axis, so this is the one "
+        "case where the two programs' tilt parameters do translate angle for "
+        "angle (with rayoptics' left-handed sign).",
+        1, tiltXDeg=4.0),
+    misaligned_singlet(
+        "tilt-y",
+        "Rear surface tilted -3 deg about Y alone.",
+        1, tiltYDeg=-3.0),
+    misaligned_singlet(
+        "tilt-xy",
+        "Rear surface tilted 12 deg about X AND 9 deg about Y. The only system "
+        "that can tell Ry.Rx from Rx.Ry, and the angles are large on purpose: at "
+        "0.1 deg the two orderings differ by less than the tolerance and the "
+        "system would pass either way.",
+        1, tiltXDeg=12.0, tiltYDeg=9.0),
+    misaligned_singlet(
+        "tilt-and-decenter",
+        "Rear surface tilted 5 deg about X and shifted (0.7, -0.5) mm in the same "
+        "step. The only system that can tell 'shift the vertex, then rotate about "
+        "it' from 'rotate, then shift along the rotated axes'.",
+        1, tiltXDeg=5.0, decenterX=0.7, decenterY=-0.5),
+    misaligned_achromat(),
+]
+
 
 def build(system):
     opm = OpticalModel(radius_mode=False)
@@ -193,13 +381,61 @@ def build(system):
             ifc.interact_mode = 'reflect'
         else:
             sm.gaps[-1].medium = ConstantIndex(s['indexAfter'], 'm')
+        if is_misaligned(s):
+            # 'decenter': applied before the surface and NOT returned, which is
+            # Telemicroscope's local coordinate chain. The angles are solved
+            # for the matrix the engine's tiltX/tiltY mean — see the module
+            # docstring — and the solution is checked before it is used.
+            rot = engine_rotation(s)
+            alpha, beta, gamma = rayoptics_euler(rot)
+            ifc.decenter = DecenterData('decenter',
+                                        x=s.get('decenterX', 0.0),
+                                        y=s.get('decenterY', 0.0),
+                                        alpha=alpha, beta=beta, gamma=gamma)
+            residual = float(np.abs(euler2rot3d(np.array([alpha, beta, gamma])) - rot).max())
+            if residual > ROT_ROUNDTRIP_MAX:
+                raise SystemExit(
+                    f"tilt convention translation is not exact on {system['id']}: "
+                    f"{residual:.3e} > {ROT_ROUNDTRIP_MAX:.0e}")
+            ROT_RESIDUALS.append((system['id'], residual))
 
     sm.set_stop(0)
     sm.update_model()
     return opm
 
 
-def trace_one(opm, system, ray_spec):
+def global_frames(opm, system):
+    """Each surface's frame in the LAUNCH frame, as rayoptics realized it.
+
+    `sm.lcl_tfrms[i]` is the step from interface i to interface i+1, stored as
+    (R_cascade transposed, t) with both read in interface i's own coordinates —
+    so composing them forward from the object interface, which is where pt0 and
+    dir0 live, gives the frame each surface was actually traced in. rayoptics'
+    own `gbl_tfrms` anchors instead on the first real surface and moves the
+    object; that is the same geometry in a different origin, and the launch
+    frame is the one Telemicroscope's world coordinates are.
+
+    Dumped because it is the reconciliation itself: the ray comparison says the
+    two programs agree, and this says they agree about WHERE THE GLASS IS
+    rather than by two errors cancelling.
+    """
+    sm = opm['seq_model']
+    rot = np.identity(3)
+    vertex = np.zeros(3)
+    frames = []
+    for i in range(len(system['surfaces'])):
+        r_local, t_local = sm.lcl_tfrms[i]
+        vertex = vertex + rot.dot(t_local)
+        rot = rot.dot(r_local.transpose())
+        frames.append({
+            # row-major, mapping surface-local coordinates into the launch frame
+            "rotation": [float(v) for v in rot.flatten()],
+            "vertex": [float(v) for v in vertex],
+        })
+    return frames
+
+
+def trace_one(opm, system, frames, ray_spec):
     sm = opm['seq_model']
     pt0 = np.array(ray_spec['origin'], dtype=float)
     d = np.array(ray_spec['dir'], dtype=float)
@@ -227,23 +463,36 @@ def trace_one(opm, system, ray_spec):
     for i in range(n_surf):
         opl += indices[i] * ray[i][2]
 
-    # Points come back in each interface's own frame. Every system here is
-    # axial, so that frame differs from the launch frame by the vertex offset
-    # alone — accumulated thickness, signed, which is Telemicroscope's
-    # convention too.
-    vertex_z = [0.0]
-    for s in system['surfaces']:
-        vertex_z.append(vertex_z[-1] + s['thickness'])
+    # Points and directions come back in each interface's OWN frame, so both
+    # are carried into the launch frame here. On an axial system every rotation
+    # is the identity and this reduces to adding the accumulated thickness,
+    # which is what it used to do and why those systems' numbers do not move.
+    def frame_of(i):
+        # ray[0] is on the object interface, whose frame IS the launch frame;
+        # ray[i > 0] is on surface i-1.
+        return frames[i - 1] if i > 0 else None
 
     def to_global(pt, i):
-        return [float(pt[0]), float(pt[1]), float(pt[2]) + vertex_z[i]]
+        frame = frame_of(i)
+        if frame is None:
+            return [float(pt[0]), float(pt[1]), float(pt[2])]
+        r, v = frame["rotation"], frame["vertex"]
+        return [float(r[3 * k] * pt[0] + r[3 * k + 1] * pt[1] + r[3 * k + 2] * pt[2] + v[k])
+                for k in range(3)]
 
-    # ray[0] is on the object interface (vertex 0), ray[i] on surface i-1.
-    hits = [to_global(ray[i][0], i - 1 if i > 0 else 0) for i in range(len(ray))]
+    def dir_to_global(d, i):
+        frame = frame_of(i)
+        if frame is None:
+            return [float(v) for v in d]
+        r = frame["rotation"]
+        return [float(r[3 * k] * d[0] + r[3 * k + 1] * d[1] + r[3 * k + 2] * d[2])
+                for k in range(3)]
+
+    hits = [to_global(ray[i][0], i) for i in range(len(ray))]
 
     return {
         "point": hits[-1],
-        "dir": [float(v) for v in ray[-1][1]],
+        "dir": dir_to_global(ray[-1][1], len(ray) - 1),
         "opl": float(opl),
         "hits": hits,
     }
@@ -265,8 +514,10 @@ def main():
     }
     for system in SYSTEMS:
         opm = build(system)
-        expected = [trace_one(opm, system, r) for r in system['rays']]
+        frames = global_frames(opm, system)
+        expected = [trace_one(opm, system, frames, r) for r in system['rays']]
         entry = dict(system)
+        entry['frames'] = frames
         entry['expected'] = expected
         out['systems'].append(entry)
 
@@ -277,6 +528,10 @@ def main():
     for s in out['systems']:
         print(s['id'], len(s['rays']), "rays; last hit",
               [round(v, 9) for v in s['expected'][-1]['point']])
+    if ROT_RESIDUALS:
+        worst = max(ROT_RESIDUALS, key=lambda r: r[1])
+        print(f"tilt convention translation, worst residual: {worst[1]:.3e} "
+              f"on {worst[0]} (bound {ROT_ROUNDTRIP_MAX:.0e})")
 
 
 if __name__ == "__main__":

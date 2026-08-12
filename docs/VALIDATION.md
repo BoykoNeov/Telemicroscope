@@ -16,7 +16,7 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
-| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: the same rays, given as points and directions, traced through four real systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — and the asphere's Newton floor, which is the only place they cannot | `crosscheck` |
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: the same rays, given as points and directions, traced through eleven systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — and the asphere's Newton floor, the only place they cannot; **0.1** the misaligned seven, where the two programs share the local coordinate chain but not its parameters, so the FRAMES are compared and not the angles | `crosscheck` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss` | `pupil` `opd` `compile` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
@@ -103,7 +103,11 @@ no numbered gap left.
 | Two-mirror telescope (§ 5e's 200 mm f/10 Cassegrain), paraboloid + hyperboloid, 8 rays | rayoptics 0.9.9 | ✅ |
 | Even asphere on a refracting surface (synthetic singlet), 8 rays | rayoptics 0.9.9 | ✅ |
 | Optical path DIFFERENCES across each pupil — the wavefront the OPD layer is built on | rayoptics 0.9.9 | ✅ |
-| Five negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, and the four systems not being four spellings of one shape | the rung's own tolerances | ✅ |
+| **0.1** Every surface's compiled FRAME — rotation and vertex, in the launch frame — against the frame rayoptics traced it in | rayoptics 0.9.9 | ✅ |
+| **0.1** Six singlets misaligned one degree of freedom at a time (decenter X, decenter Y, tilt X, tilt Y), 9 rays each incl. skew | rayoptics 0.9.9 | ✅ |
+| **0.1** The two combinations no isolated system can see: two tilts on one surface (12°, 9°), and a tilt with a decenter on one surface | rayoptics 0.9.9 | ✅ |
+| **0.1** A tilted surface with two surfaces downstream of it — the local coordinate chain against tilt-and-return | rayoptics 0.9.9 | ✅ |
+| Nine negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, a flipped tilt sign, the two tilt angles swapped, a decenter read along the tilted axes, no two singlets landing in one place, and the eleven systems not being eleven spellings of one shape | the rung's own tolerances | ✅ |
 
 This is the "one cross-validation against an independent tracer" ROADMAP has
 carried in *Engineering practices* since step 4, and it is a different kind of
@@ -132,7 +136,7 @@ spot sizes, or EFL, or an OPD map — would have made every disagreement an
 argument about whose definition of a pupil coordinate is right.
 
 **The headline is that there is nothing to report, at the last bit.** Over the
-four systems the worst disagreements are **0.94 ulp** on a hit point, **5 ulp**
+four axial systems the worst disagreements are **0.94 ulp** on a hit point, **5 ulp**
 on a direction cosine, **1.6 ulp** on an optical path and **2.3 ulp** on a path
 *difference* — where an ulp is measured at the system's own geometric scale,
 because a hit point may land at y = 0 after the ray travelled 560 mm to reach
@@ -187,10 +191,101 @@ ours** — captured once from `designs/achromat`, `designs/lister` and
 rather than a reference to a solver and a design change cannot silently move
 it. Only the *answers* are external.
 
-**Not yet pinned.** Tilt, decenter and the folded frame: rayoptics expresses
-both, but reconciling two tilt conventions is a second investigation, and it is
-named open rather than done badly — all four systems here are axial. Also open:
-a second independent tracer, which would turn an agreement into a majority.
+### Step 0.1 — tilt and decenter, and a convention that does not translate
+
+The "second investigation" the paragraph below used to defer. Seven more
+systems, all refracting, and the result is that the two programs **agree about
+misalignment while disagreeing about how to write one down** — which is why the
+step is built the way it is.
+
+**They share the structure, and that was the risk.** rayoptics'
+`DecenterData('decenter')` is "pos and orientation applied prior to surface"
+and is never returned to the global axis; `forward_transform` then steps from
+surface i to surface i+1 by taking the thickness along **surface i's own,
+already tilted, local z**, adding surface i+1's decenter in that same frame,
+and rotating about the decentered vertex. That is exactly the local coordinate
+chain in ARCHITECTURE § Tilt / decenter semantics, down to the order of the two
+operations. The idiom ARCHITECTURE rejects — tilt about the vertex, then return
+to the global axis — is rayoptics' *`dec and return`*, a different type on the
+same class. The engine's most consequential misalignment decision turns out to
+match a mature independent implementation's default, and nothing in the repo
+could have said so before.
+
+**They do not share the parameters, and there is no fixing that.** This engine
+builds a surface's rotation as **Ry(tiltY)·Rx(tiltX)**. rayoptics negates its
+first two Euler angles (`euler2opt`: "alpha and beta are left-handed") and
+multiplies in intrinsic x-y-z order, giving **Rx(−α)·Ry(−β)·Rz(γ)**. For a
+single-axis tilt the two coincide up to a sign. For a two-axis tilt they do not
+coincide at all, because Ry·Rx is not Rx·Ry — no angle-for-angle translation
+exists, and a fixture that tried to state one would have been asserting a
+falsehood.
+
+**So the fixture compares frames, not angles.** It states each tilt in this
+engine's parameters, builds the matrix they mean, and solves for the Euler
+triple that realizes *that matrix* (`mat2euler(…, axes='rxyz')`, then undoing
+`euler2opt`). The triple is checked against the matrix it came from before a
+single ray is traced — worst residual **1.1e-16**, half an ulp — and every
+system then carries the frames rayoptics actually traced in, so the TypeScript
+side compares its own compiled `frame.rotation` and `frame.translation` against
+them. **That rung is what makes the ray agreement mean anything**: two tracers
+can agree about rays while disagreeing about where the glass is only by a
+coincidence, and comparing the frames removes the coincidence.
+
+**The numbers.** Frames agree to **0.50 ulp** of a direction cosine at worst
+and vertices to **0.01 ulp**; rays to **0.96 ulp** on a hit point, **3 ulp** on
+a direction, **1.63 ulp** on a path difference — **2.4e-11 of a wave**. The
+misaligned systems are therefore *tighter* than the axial ones already here (the
+Lister's 5 ulp on a direction, the asphere's 6.9 on a point), which is the
+opposite of what a new convention usually costs.
+
+**Where the half-ulp lives is the whole finding in one number.** The frames are
+bitwise identical on the single-axis tilt-X system, 0.06 ulp out on tilt-Y,
+0.03 on the tilted doublet — and **0.50 ulp on the two-axis system**, the only
+one whose rotation has no angle-for-angle spelling in rayoptics' parameters. The
+convention gap is not an argument; it is half a bit, and it is visible in
+exactly the system that has to pay it.
+
+**Isolation is a property of the design, not a nicety.** Each degree of freedom
+is moved *alone* somewhere — decenter X, decenter Y, tilt X, tilt Y, on one
+singlet shape traced by one ray set — because in a system that moved several at
+once, a sign error in one could be absorbed by an order error in another and the
+pair would still agree. The two systems that *do* combine exist for the opposite
+reason: a combination is the only thing that can see an ordering. `tilt-xy`
+carries **12° and 9°**, deliberately large, because Ry·Rx and Rx·Ry differ at
+second order in the angles — at a tenth of a degree the swap control passes
+under either convention and proves nothing. `tilt-and-decenter` is the only
+system that can tell "shift the vertex, then rotate about it" from "rotate, then
+shift along the rotated axes", and its control is *conservative*: the rotated
+reading puts part of the shift along z, which a decenter has no field for, so
+the damage the test applies is smaller than the difference it stands for.
+
+**One system exists purely to have something downstream.** A single tilted
+surface cannot distinguish the local chain from tilt-and-return, because there
+is nothing after it to be steered. `misaligned-achromat` tilts surface 0 of
+§ 5j's doublet by 2° and 1.5° and puts a decenter on surface 1, so the whole
+rear of the cemented pair rides on the tilted frame — and a decenter composed
+with an upstream rotation is exercised, which no single-surface system reaches.
+
+**Skew rays throughout, and that is load-bearing too.** A meridional-only ray
+set never leaves the plane a Y tilt acts in, so it cannot see a sign error in
+one. Every misaligned system carries rays with x ≠ 0 in both the origin and the
+direction.
+
+**What the last control caught, and it caught it in the drafting.** The check
+that the *reference itself* moved — no two of the six singlets landing in the
+same place, which is the only failure the ray comparison is blind to, since two
+tracers agree perfectly about a surface neither of them moved — first compared
+one ray, the axial one, and failed at **5.5e-17**. Not a defect: **a surface
+tilted about its own vertex leaves the ray through that vertex exactly where it
+was**, so all three tilt systems share that one exit point while differing by
+millimetres everywhere else. The control now runs over the whole ray set. A
+control aimed at the wrong ray is a control that reports geometry as a bug.
+
+**Not yet pinned.** **Tilted mirrors and the folded frame**, deliberately: a
+mirror under `mirrorFrames: "folded"` reflects the coordinate chain in its own
+tangent plane, which is a second convention with its own handedness and sign
+questions, and every misaligned system here refracts. Also open: a second
+independent tracer, which would turn an agreement into a majority.
 
 ## Step 1 — geometry, materials, ray tracing
 

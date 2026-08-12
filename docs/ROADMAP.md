@@ -1515,9 +1515,12 @@
 
 ## Engineering practices to land alongside the code
 
-- **Golden-image regression harness at step 4**, not step 7. The validation
-  ladder pins physics; nothing pins *images*. A small set of committed
-  reference renders plus a perceptual diff catches what unit tests cannot.
+- ~~**Golden-image regression harness at step 4**, not step 7.~~ ✅ **landed**
+  with step 3b — `golden.test.ts` in both packages, with the committed renders
+  beside them and a damage table (VALIDATION § Golden images) proving the
+  comparison can fail. The scope note stands as written: a golden image is
+  regression, **not** validation — it says the render has not changed, never
+  that it was right.
 - ~~**One cross-validation against an independent tracer.**~~ ✅ **landed** as
   VALIDATION § 0 — `crosscheck.test.ts` against **rayoptics 0.9.9**, four
   systems (§ 5j's achromat, § 6d's Lister, § 5e's Cassegrain, and a synthetic
@@ -1537,10 +1540,20 @@
   thicknesses after a mirror, axis unmoved) is rayoptics' convention too, so the
   two-mirror system reconciled with no mapping at all — the engine's
   highest-risk convention agreeing with an independent implementation, which no
-  closed form was going to say. **Still open:** tilt/decenter and the folded
-  frame, deliberately left out because reconciling two tilt conventions is a
-  second investigation; and a *second* independent tracer, which would turn an
-  agreement into a majority.
+  closed form was going to say. **The second investigation has since been
+  done** — VALIDATION § 0.1, seven misaligned systems — and it says the same
+  thing twice over. The engine's local coordinate chain, the misalignment
+  decision ARCHITECTURE calls out as load-bearing, **is rayoptics' default
+  too**, down to the order of the shift and the rotation and to which frame the
+  next thickness runs along. What is *not* shared is how a tilt is spelled: this
+  engine multiplies Ry(tiltY)·Rx(tiltX) and rayoptics Rx(−α)·Ry(−β)·Rz(γ), which
+  for two axes have no angle-for-angle translation at all. So the fixture
+  compares **frames** rather than angles, and the whole cost of the mismatch
+  turns out to be **half an ulp**, on exactly the one system whose rotation has
+  no spelling in the other's parameters. **Still open:** tilted mirrors and the
+  folded frame, which are a second convention rather than the same one again;
+  and a *second* independent tracer, which would turn an agreement into a
+  majority.
 
 ## Deliberate deferrals
 
