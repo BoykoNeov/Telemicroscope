@@ -82,6 +82,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the negative control is what stops the identity rungs passing on a no-op | `row-band` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together | `lattice-disk` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -10122,6 +10123,134 @@ a speed claim without its null half is a claim about the wrong quantity.
   any.
 - **The wall-clock figures are measurements, not rungs**, exactly as § 6p's are.
   A timing assertion is flaky; the identity is the claim a test can hold.
+
+## Step 6ab — the commensurate condenser at an S on no lattice
+
+§ 6p's cache is licensed by every source point sitting on the pupil's own
+frequency lattice, and `commensurateSource` buys that licence by deriving its
+point **count** from S — so it throws on any S making `S·pupilSamples/m` a
+fraction. A caller with a continuous S had to choose between the cache and the
+slider, and both brightfield panels chose the slider: they call `diskSource`,
+and the cache has never once been taken on the surfaces a reader actually opens.
+
+**Snapping S is not the small concession it looks like.** The brightfield
+panel's central demonstration — an S where the textbook law says the grating is
+transmitted and the sampled condenser says it is not — lives in a window of S
+*one lattice cell wide*: 0.3125 to 0.3438 at `pupilSamples` 32, which is 10/32
+to 11/32. A slider snapped to multiples of 1/pupilSamples cannot put a stop
+strictly inside a window one cell wide; it can only land on the endpoints. So
+snapping does not degrade that demonstration, it deletes it, and the proof is
+arithmetic rather than taste.
+
+`latticeDiskSource` decouples the two instead. `abbeImage`'s precondition, read
+off `latticeOffset`, is about **coordinates** — whole numbers of half-steps, one
+parity — and S enters only through the disc mask `sx² + sy² ≤ S²` that
+`commensurateSource` already applies. So the grid is a fixed lattice, S is free,
+and the direction count follows from `stepMultiple` as a consequence.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Cached ≡ uncached BIT FOR BIT at an S on no lattice** — the rung § 6p cannot state | `toEqual`, 3 steps × 3 S × 2 pupils | ✅ |
+| …and `maxGridPhaseStepWaves`, a max over directions, is the same number | `toBe` | ✅ |
+| The saving is EXACTLY `contributingPoints`, at every one of those S | counted, integer | ✅ |
+| `commensurateSource` **refuses every one of those S**, which is the whole point | its own message | ✅ |
+| Every coordinate is a whole number of half-steps, all at parity 0 | `Number.isInteger`, 3 lattices × 4 steps | ✅ |
+| S = 0 leaves exactly the one on-axis direction — the coherent limit, not a case | `toBe`, weight 1 | ✅ |
+| **The extent is `ceil`, so a ring at exactly \|s\| = S is admitted** | `toBe(S)`, the case `floor` needs an epsilon for | ✅ |
+| …and no point outside the disc is ever admitted, whatever it rounded to | the mask, 4 steps × 9 S | ✅ |
+| § 6p.9's identity survives: (S, 64, 2) is (S, 32, 1), same points | `toBe`, 9 S | ✅ |
+| The quadrature converges as the lattice refines, measured at each step | § 6f.2's `maxTransferError` | ✅ |
+| **Not worse per direction than `diskSource`** — 197 points read below its 177 | § 6f.2's metric | ✅ |
+| **The cutoff gap is a DIVISIBILITY LAW**: empty iff m divides cycles − ps/2 | closed form vs a swept measurement, 2 lattices × 32 frequencies | ✅ |
+| …so `stepMultiple` 1 has no gap at **any** frequency | the law, both lattices | ✅ |
+| …and the POWERS OF TWO die together at cycles 20, 24, 28, 32 | `toEqual` on the dead list | ✅ |
+| …which an odd step rescues, leaving only ν = 1.75 | `toEqual([28])` | ✅ |
+| A non-power-of-two `pupilSamples`, a fractional step, a negative S: **refused** | § 6p's exactness argument | ✅ |
+| The frequency-grid wall still throws — no softening anywhere | `abbeImage`'s own message | ✅ |
+
+### Two deliberate differences from `commensurateSource`
+
+**The count is odd, so the grid is centred.** Parity is then 0 whatever
+`stepMultiple` is, there is always an on-axis direction, and S → 0 degenerates
+to `coherentSource`'s one point with no special case. It is therefore *not*
+`diskSource`'s lattice, and § 6p.1's bitwise identity does not transplant — this
+is a different quadrature of the same disc, and § 6ab.6 measures it as one
+rather than assuming § 6p's answer carries over. It does carry: 197 lattice
+directions at S = 0.5 read **1.15e-2** against `diskSource`'s 177 at 1.29e-2 and
+its 349 at 1.04e-2, so the decoupling costs nothing per direction and § 6p.6's
+"commensurability is accuracy-neutral" survives the generalization.
+
+**The extent is `ceil` and carries no tolerance.** The grid only has to *cover*
+radius S, because the mask decides membership: an extra ring is dropped and
+costs nothing, while `floor` can drop a legitimate ring when the division rounds
+down and needs an epsilon to be safe. That is § 6aa's asymmetry — wider is
+merely slower, narrower is silently wrong — and a rounding tolerance inside a
+*lattice* constructor is the exact lie `commensurateSource` refuses two
+functions up. The first draft carried `+ 1e-12`; removing it changed no count
+and no error, which is the point: it was never buying anything, and it was still
+the wrong shape.
+
+### The gap is a divisibility law, and it is why an odd step is offered
+
+The sampled condenser's outermost useful direction is axial, so its reach is
+1 + ⌊S/spacing⌋·spacing against the textbook's 1 + min(S, 1). Those disagree
+*about a given grating* only where the grating's frequency falls between two
+lattice radii, so with ν = 2·cycles/pupilSamples and spacing =
+2·stepMultiple/pupilSamples the question collapses to whether
+(cycles − pupilSamples/2)/stepMultiple is a whole number.
+
+That is not a curiosity. At `stepMultiple` 1 the source lattice has the grid's
+own step and ν is quantized to that same step, so the finest lattice reaches
+exactly the frequencies the grid can hold and there is **no gap at any
+grating** — a true fact that would otherwise read as a broken panel. Worse,
+every power-of-two multiple is dead together wherever 4 divides
+cycles − pupilSamples/2: at `pupilSamples` 32 that is ν = 1.25, 1.5, 1.75 and
+2.0, a quarter of the usable slider. An odd multiple breaks the pattern, and
+{4, 3, 2, 1} leaves only ν = 1.75 uncovered because 28 − 16 = 12 is divisible by
+4, 3, 2 and 1 alike. `latticeCutoffGapExists` is the law as a function, so the
+panel greys out a step rather than leaving a reader hunting for a demonstration
+that is provably not there.
+
+**The rung found a rounding in its own measurement, and the fix was the
+measurement.** Swept against the closed form, ν = 1.375 at `stepMultiple` 1
+reported a gap the law said was empty — at S = 0.37499999999999994, one ulp
+below the lattice radius 0.375, where `1 + S` **rounds up** to exactly 1.375
+while the disc mask (comparing S² against the radius²) correctly excludes the
+ring. Two sides of one comparison reading S at different precisions. Written as
+`min(S, 1) ≥ ν − 1` there is no addition to round and the disagreement is gone.
+Same family as § 6p.1's 5.6e-17: physically nothing, exactly enough to change an
+answer.
+
+### What it buys, measured, and the half it does not
+
+DIN 4×/0.10 through the panel's own request path, S = 0.5, `pupilSamples` 32:
+
+- **Traced: 197 directions in 144 ms, against the shipped 97-point disc's
+  236 ms.** More converged and faster at once, which is the shape of the whole
+  step — 197× fewer pupil evaluations (exactly `contributingPoints`, § 6p.4).
+- **Ideal: 163 ms against 90 ms — slower**, and reported because it is the same
+  fact from the other side. What was removed is the *tracing*; twice the
+  directions cost twice the transforms, and on a pupil that costs nothing to
+  evaluate there is nothing to save. § 6p's null half, reproduced exactly.
+- The step ladder at S = 0.5 traced: **13 / 21 / 49 / 197** directions at
+  **31 / 43 / 62 / 174 ms**, so the whole ladder is inside APP.md's ~800 ms live
+  line where `diskSource`'s finest setting (349 points, 1 124 ms) never was.
+
+### Not yet pinned
+
+- **The phase panel** (`app/phase.ts`) takes `diskSource` on the same argument
+  and would take the same change. Its teaching has not been audited, so it is
+  deliberately untouched rather than switched on the assumption that A2's
+  reasoning transplants.
+- **A commensurate ANNULUS**, still — § 6p's own open item, and now with a
+  constructor that would make it S-free too. Darkfield and phase contrast are
+  where it would pay.
+- **Whether the staircase is the better teaching object.** The pupil-matched
+  cutoff curve is a sawtooth of amplitude one lattice step (measured max 0.060
+  at `pupilSamples` 32, against the plot's 1.2 of range) where `diskSource`'s is
+  a smooth offset curve. Both show "a finite condenser lattice"; nothing here
+  measures which one a reader learns more from, and that is a claim about people
+  rather than optics.
 
 ## Later rungs
 

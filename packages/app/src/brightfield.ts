@@ -3,6 +3,8 @@ import {
   coherentSource,
   diskSource,
   idealPupil,
+  latticeCutoffGapExists,
+  latticeDiskSource,
   weakObjectTransfer,
   type CondenserSource,
 } from "@telemicroscope/core/illumination";
@@ -60,14 +62,39 @@ import { refused, type Refused } from "./refusal";
  * ## Which is why the plot does something APP.md did not predict
  *
  * A2 was scoped with "opening past S = 1 changes nothing, visibly". In the
- * continuum that is exactly right. On the lattice it is not: past S = 1 the
- * sampled directions keep marching outward, the outermost ones leave the pupil
- * entirely, and the measured cutoff **steps back down** — at N = 11 it falls
- * from 1.909 at S = 1 to 1.818 at S = 1.5 and 1.727 at S = 2. That is
- * discretization, not physics, and raising `sourceSamples` walks it back up
- * (N = 33 reaches exactly 2.000 at S = 1.5). The panel shows it and says which
- * of the two it is; hiding it behind a coarser plot would be showing the demo
- * instead of the engine.
+ * continuum that is exactly right. On an **independent** condenser lattice it
+ * is not: past S = 1 the sampled directions keep marching outward, the
+ * outermost ones leave the pupil entirely, and the measured cutoff **steps back
+ * down** — at N = 11 it falls from 1.909 at S = 1 to 1.818 at S = 1.5 and 1.727
+ * at S = 2. That is discretization, not physics, and raising the sample count
+ * walks it back up (N = 33 reaches exactly 2.000 at S = 1.5). The panel shows it
+ * and says which of the two it is; hiding it behind a coarser plot would be
+ * showing the demo instead of the engine.
+ *
+ * ## Two condensers, and the difference between them is § 6p's argument
+ *
+ * `CondenserMode` below offers both, because they teach different halves and
+ * only one of them is affordable.
+ *
+ *  - **pupil-matched** (`latticeDiskSource`, § 6ab) puts the directions on the
+ *    objective's *own* frequency lattice. Opening S admits more of them and
+ *    moves none of the ones already inside — so every direction reads the pupil
+ *    at the same coordinates as every other, and § 6p's cache applies: the
+ *    traced pupil is evaluated **once** instead of once per direction, which is
+ *    197× fewer lens evaluations at the panel's own defaults. It is the default
+ *    for that reason, and because at `stepMultiple` 1 it is *more* converged
+ *    than the shipped `diskSource` was and still faster (197 directions in
+ *    167 ms against 97 in 219).
+ *  - **independent** (`diskSource`) spaces its points by 2S/N, a spacing chosen
+ *    for the source and unrelated to the pupil's. So opening S moves every
+ *    direction it has, nothing can be cached, and the outermost points march
+ *    out of the pupil — which is the paragraph above, and the only place it can
+ *    be seen.
+ *
+ * The trade is stated rather than hidden, exactly as the traced/ideal pupil
+ * choice states its own: a condenser whose directions never move can be cached,
+ * and one whose directions all move cannot. That *is* why § 6p exists, arriving
+ * as something a reader can switch between rather than as an optimisation note.
  */
 
 /** Display convention: mid-grey is the frame's own mean, white is twice it. */
@@ -75,14 +102,30 @@ export const WHITE_OVER_MEAN = 2;
 
 export type PupilMode = "traced" | "ideal";
 
+export type CondenserKind = "pupil-matched" | "independent";
+
+/**
+ * Which condenser is being summed over — see the header for what each teaches.
+ *
+ * A union rather than two always-present numbers, because the two knobs are not
+ * both meaningful at once: `stepMultiple` is a *spacing* and `samples` is a
+ * *count*, and the whole point of § 6ab is that a spacing leaves S free where a
+ * count does not.
+ */
+export type CondenserMode =
+  /** `latticeDiskSource`: spacing of `stepMultiple` pupil steps; count follows. */
+  | { readonly kind: "pupil-matched"; readonly stepMultiple: number }
+  /** `diskSource`: `samples` points across the diameter, whatever S is. */
+  | { readonly kind: "independent"; readonly samples: number };
+
 export interface BrightfieldRequest {
   readonly spec: BuildSpec;
   /** Frequency bins across the pupil diameter — also the crop, in cells (§ 6h). */
   readonly pupilSamples: number;
   /** Grid size, a power of two. Also the headroom the shifted pupil needs. */
   readonly size: number;
-  /** Condenser lattice points across the source DIAMETER. */
-  readonly sourceSamples: number;
+  /** Which condenser, and how finely it is sampled. */
+  readonly condenser: CondenserMode;
   /** S = NA_cond / NA_obj — the dial on the front of a real microscope. */
   readonly coherenceParameter: number;
   /** Grating periods across the grid. ν = 2·cycles/pupilSamples. */
@@ -189,14 +232,30 @@ export function frequencyOf(cycles: number, pupilSamples: number): number {
  * that, so the panel cannot walk the user into the wall — and the throw is
  * still caught and shown, because a clamp derived from a formula is a claim and
  * the engine's message is the check on it.
+ *
+ * **The pupil-matched branch is deliberately conservative and takes no fudge.**
+ * There the outermost direction is a lattice radius ⌊S/spacing⌋·spacing, which
+ * is at or below S — so S may legitimately run up to one spacing past the wall
+ * before the direction that would break it appears. Returning that open bound
+ * would put the answer one ulp from a value that throws; returning the last
+ * lattice radius instead is safe for every S below it, at the cost of up to one
+ * spacing of reachable slider. The panel then floors this again to `S_STEP`, so
+ * the displayed ceiling can sit up to ~0.04 in S below the engine's real one at
+ * pupilSamples 64 where the wall actually bites. That is two conservative steps
+ * stacked, and it is the intended direction — do not "fix" it with a tolerance.
  */
 export function maxCoherenceParameter(
   size: number,
   pupilSamples: number,
-  sourceSamples: number,
+  condenser: CondenserMode,
 ): number {
   const reach = (size - 2) / pupilSamples - 1;
-  return Math.max(0, reach / (1 - 1 / sourceSamples));
+  if (reach <= 0) return 0;
+  if (condenser.kind === "independent") {
+    return Math.max(0, reach / (1 - 1 / condenser.samples));
+  }
+  const spacing = (2 * condenser.stepMultiple) / pupilSamples;
+  return Math.max(0, Math.floor(reach / spacing) * spacing);
 }
 
 /**
@@ -233,15 +292,47 @@ export function latticeReach(source: CondenserSource): number {
 }
 
 /**
- * The condenser at S.
+ * The condenser at S, in whichever of the two shapes was asked for.
  *
- * S = 0 takes `coherentSource` rather than `diskSource(0, N)`: the latter
- * collapses every lattice point onto the origin and would pay for N² identical
- * transforms to compute the one-point coherent limit.
+ * S = 0 on the independent branch takes `coherentSource` rather than
+ * `diskSource(0, N)`: the latter collapses every lattice point onto the origin
+ * and would pay for N² identical transforms to compute the one-point coherent
+ * limit. The pupil-matched branch needs no such case — its grid is centred, so
+ * S = 0 leaves exactly the one on-axis direction and nothing else (§ 6ab.3).
  */
-export function sourceAt(coherenceParameter: number, samples: number): CondenserSource {
-  return coherenceParameter === 0 ? coherentSource() : diskSource(coherenceParameter, samples);
+export function sourceFor(
+  condenser: CondenserMode,
+  coherenceParameter: number,
+  pupilSamples: number,
+): CondenserSource {
+  if (condenser.kind === "pupil-matched") {
+    return latticeDiskSource(coherenceParameter, pupilSamples, condenser.stepMultiple);
+  }
+  return coherenceParameter === 0
+    ? coherentSource()
+    : diskSource(coherenceParameter, condenser.samples);
 }
+
+/**
+ * How many directions this condenser actually holds — a *consequence* on the
+ * pupil-matched branch and a choice on the other, which is the whole difference
+ * between them and the reason the control has to print it.
+ */
+export function directionCount(
+  condenser: CondenserMode,
+  coherenceParameter: number,
+  pupilSamples: number,
+): number {
+  return sourceFor(condenser, coherenceParameter, pupilSamples).points.length;
+}
+
+/**
+ * Whether a lattice step has any S at which this grating disagrees with the
+ * textbook law — § 6ab.7's closed form, re-exported so the panel can grey out a
+ * step rather than leave a reader hunting for a demonstration that is provably
+ * not there.
+ */
+export { latticeCutoffGapExists };
 
 /** Greyscale, mid-grey at the frame's own mean. Linear; nothing is stretched. */
 function toGrey(intensity: Float64Array, size: number, mean: number): Uint8ClampedArray {
@@ -282,7 +373,7 @@ export function renderBrightfieldScene(request: BrightfieldRequest): Brightfield
       cycles: request.cycles,
       modulation: request.modulation,
     });
-    const source = sourceAt(request.coherenceParameter, request.sourceSamples);
+    const source = sourceFor(request.condenser, request.coherenceParameter, request.pupilSamples);
     const pupils =
       request.pupil === "traced" ? tracedFieldPupils(system, frame) : idealPatch;
 
@@ -416,7 +507,7 @@ export function cutoffSweep(
     let worstResidual = 0;
     for (let i = 0; i < points; i++) {
       const S = (i / (points - 1)) * maxS;
-      const source = sourceAt(S, request.sourceSamples);
+      const source = sourceFor(request.condenser, S, request.pupilSamples);
       const measured = measuredCutoff((nu) => weakObjectTransfer(pupil, source, nu));
       const lattice = latticeReach(source);
       worstResidual = Math.max(worstResidual, Math.abs(measured - lattice));

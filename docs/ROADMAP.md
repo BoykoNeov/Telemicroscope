@@ -1503,6 +1503,40 @@
    because there the bill is still the tracing. **Open:** the input is sparse in
    both axes and only rows are skipped — a sparse-input transform is a different
    algorithm and would want its own identity rungs.
+   *The condenser at an S on no lattice:* ✅ **done** (§ 6ab) — § 6p's cache,
+   finally reaching the surfaces a reader opens. It had never once been taken
+   there: both brightfield panels call `diskSource`, because
+   `commensurateSource` derives its point count from S and so **throws on any S
+   that is not on the lattice**, and a panel whose subject is a continuous dial
+   could not pay that. **The obvious fix is provably worse than it looks.** The
+   panel's central demonstration lives in a window of S *one lattice cell wide*
+   (0.3125 to 0.3438, which is 10/32 to 11/32), so a snapped slider cannot land
+   strictly inside it — snapping does not degrade that demonstration, it deletes
+   it. What the cache actually needs is only that the DIRECTIONS sit on the
+   lattice; S enters through the disc mask alone. So `latticeDiskSource` fixes
+   the grid and lets S be free, and the count follows from the spacing as a
+   consequence — which is also the physically natural reading, a lattice step
+   being a fixed angular density where a fixed count oversamples a small
+   aperture and undersamples a large one. **Three findings.** The decoupling is
+   **free per direction**: 197 lattice directions read 1.15e-2 on § 6f.2's
+   metric against `diskSource`'s 177 at 1.29e-2, so § 6p.6's accuracy-neutrality
+   survives being generalized. The panel gets **more converged and faster at
+   once** — 197 directions in 144 ms against the shipped 97 in 236 — while the
+   *ideal*-pupil half goes the other way (163 against 90 ms), which is § 6p's
+   null half reproduced exactly: what was removed is the tracing, and twice the
+   directions cost twice the transforms. And the cutoff gap the third curve
+   exists to show turns out to be a **divisibility law** — empty exactly when
+   the step divides cycles − pupilSamples/2 — so `stepMultiple` 1 has no gap at
+   *any* frequency and every power-of-two step dies together at a quarter of the
+   slider. An odd step is what rescues it, and the law is pinned as a closed
+   form so the panel greys out a dead one instead of leaving a reader hunting.
+   **The rung also caught a rounding in its own measurement**: at one ulp below
+   a lattice radius `1 + S` rounds up onto it while the disc mask does not, so
+   the sweep and the law disagreed until the comparison lost its addition.
+   **Open:** the *phase* panel takes `diskSource` on the same argument and is
+   deliberately untouched — its teaching has not been audited, and switching it
+   on the assumption that A2's reasoning transplants is the move this step's own
+   history argues against.
 7. **Teaching layer + polish** ← current
    ~~Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift).~~ ✅ **landed** — APP.md

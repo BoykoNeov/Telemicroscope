@@ -9,14 +9,31 @@ import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, VERDICT_LEVEL } from
 import { createBrightfieldWorker } from "../workers";
 import {
   cutoffSweep,
+  directionCount,
   frequencyOf,
+  latticeCutoffGapExists,
   maxCoherenceParameter,
   WHITE_OVER_MEAN,
   type BrightfieldRequest,
   type BrightfieldResult,
+  type CondenserKind,
+  type CondenserMode,
   type CutoffResult,
   type PupilMode,
 } from "../brightfield";
+
+/**
+ * The lattice steps offered, and why an ODD one is among them.
+ *
+ * § 6ab.7: the sampled condenser disagrees with the textbook cutoff about a
+ * given grating only where (cycles − pupilSamples/2) is NOT divisible by the
+ * step — so every power of two is dead together wherever 4 divides it, which
+ * at pupilSamples 32 is a quarter of the usable ν slider (ν = 1.25, 1.5, 1.75,
+ * 2.0). Offering 3 alongside them takes that from 4 frequencies of 16 to one.
+ * The panel greys the dead ones rather than leaving a reader hunting for a
+ * demonstration that is provably not there.
+ */
+const LATTICE_STEPS = [4, 3, 2, 1] as const;
 
 /**
  * The grating's modulation depth, fixed rather than dialled.
@@ -269,9 +286,25 @@ export function BrightfieldPanel() {
   // trace would put this panel seconds past the live line.
   const [pupilSamples, setPupilSamples] = useState(32);
   const [size, setSize] = useState(128);
+  // The two condensers keep their own knob, because one is a spacing and the
+  // other is a count — switching modes must not silently reinterpret a number.
+  // `pupil-matched` at step 1 is the default: it is MORE converged than the
+  // 11-point disc this panel shipped with (1.15e-2 against 2.60e-2 on § 6f.2's
+  // metric) and still faster, because § 6p's cache asks the lens 197× fewer
+  // questions.
+  const [condenserKind, setCondenserKind] = useState<CondenserKind>("pupil-matched");
+  const [latticeStep, setLatticeStep] = useState(1);
   const [sourceSamples, setSourceSamples] = useState(11);
   const [sRaw, setS] = useState(0.5);
   const [cyclesRaw, setCycles] = useState(8);
+
+  const condenser = useMemo<CondenserMode>(
+    () =>
+      condenserKind === "pupil-matched"
+        ? { kind: "pupil-matched", stepMultiple: latticeStep }
+        : { kind: "independent", samples: sourceSamples },
+    [condenserKind, latticeStep, sourceSamples],
+  );
 
   // Both sliders are clamped by things the other controls decide, so the value
   // used is derived rather than corrected in an effect — a state write chasing
@@ -281,7 +314,7 @@ export function BrightfieldPanel() {
   // `cycles`'s is ν = 2, past which the pupil autocorrelation has no support.
   const maxS = Math.min(
     1.5,
-    Math.floor(maxCoherenceParameter(size, pupilSamples, sourceSamples) / S_STEP) * S_STEP,
+    Math.floor(maxCoherenceParameter(size, pupilSamples, condenser) / S_STEP) * S_STEP,
   );
   const maxCycles = Math.min(pupilSamples, size / 2 - 1);
   const s = Math.min(sRaw, maxS);
@@ -292,21 +325,25 @@ export function BrightfieldPanel() {
       spec,
       pupilSamples,
       size,
-      sourceSamples,
+      condenser,
       coherenceParameter: s,
       cycles,
       modulation: BRIGHTFIELD_MODULATION,
       pupil,
     }),
-    [spec, pupilSamples, size, sourceSamples, s, cycles, pupil],
+    [spec, pupilSamples, size, condenser, s, cycles, pupil],
   );
 
   // Everything the sweep depends on and nothing that only moves a marker: the
   // plot must not re-bisect on every tick of the S slider.
   const sweepRequest = useMemo(
-    () => ({ spec, pupilSamples, size, sourceSamples, pupil }),
-    [spec, pupilSamples, size, sourceSamples, pupil],
+    () => ({ spec, pupilSamples, size, condenser, pupil }),
+    [spec, pupilSamples, size, condenser, pupil],
   );
+
+  // Which offered steps have any S at all where the picture and the textbook
+  // law disagree about THIS grating — a closed form (§ 6ab.7), not a search.
+  const liveSteps = LATTICE_STEPS.filter((m) => latticeCutoffGapExists(cycles, pupilSamples, m));
 
   return (
     <>
@@ -334,14 +371,36 @@ export function BrightfieldPanel() {
         printed under the plot is that agreement for the objective <em>currently selected</em>;
         switch objectives and it is re-measured, which is the check rather than a claim about a
         table you cannot see. The gap between the two curves is a finite condenser lattice, which
-        this engine has and a real condenser does not. Raise <strong>source samples</strong> and
-        watch the two close.
+        this engine has and a real condenser does not. Refine the condenser — a smaller{" "}
+        <strong>lattice step</strong>, or more <strong>source samples</strong> — and watch the two
+        close.
       </p>
       <p style={{ maxWidth: 640, color: "#444" }}>
-        Past S = 1 that same discretization does something the textbook law does not predict: the
-        continuum says opening further changes nothing, but the lattice&rsquo;s outermost points
-        march out of the pupil entirely and the measured cutoff steps back <em>down</em>. That is
-        sampling, not physics, and more source samples walk it back up.
+        <strong>Two condensers, and the difference between them is why one is fast.</strong> The{" "}
+        <strong>pupil-matched</strong> one puts its directions on the objective&rsquo;s own
+        frequency lattice: opening S admits more of them and <em>moves none of the ones already
+        there</em>, so every direction reads the pupil at the same coordinates and the traced lens
+        is evaluated <em>once</em> instead of once per direction. At these defaults that is 197
+        directions in 144 ms where the 97-point disc this panel used to ship took 236 — more
+        converged and faster at the same time. The <strong>independent</strong> one spaces its
+        points by 2S/N, a spacing chosen for the source and unrelated to the pupil, so opening S
+        moves every direction it has and nothing can be reused. That is the whole trade, and it is
+        physics rather than bookkeeping.
+      </p>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        The saving is the <em>tracing</em>, so it is worth nothing on an <strong>ideal</strong>
+        pupil — there the transforms are the whole bill and twice the directions cost twice as much
+        (163 ms against 90). Switch the pupil to ideal and the pupil-matched condenser is the slower
+        of the two, which is not a contradiction: it is the same measurement saying that what was
+        removed was never the arithmetic.
+      </p>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        It also decides what each can show. Past S = 1 the continuum says opening further changes
+        nothing; on an <strong>independent</strong> lattice the outermost points march out of the
+        pupil entirely and the measured cutoff steps back <em>down</em>, which is sampling and not
+        physics, and more source samples walk it back up. A pupil-matched lattice cannot do that —
+        its directions are pinned, so the reach saturates at 2 and stays. <em>That</em> demonstration
+        lives only in the independent mode, and it is why that mode is still here.
       </p>
 
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
@@ -371,12 +430,47 @@ export function BrightfieldPanel() {
           onChange={setSize}
         />
         <Choice
-          label={`source samples ${sourceSamples} across the diameter`}
-          options={[7, 11, 15, 21]}
-          value={sourceSamples}
-          onChange={setSourceSamples}
+          label="condenser — matched to the pupil's lattice, or on its own"
+          options={["pupil-matched", "independent"] as const}
+          value={condenserKind}
+          onChange={setCondenserKind}
         />
+        {condenserKind === "pupil-matched" ? (
+          <Choice
+            label={`lattice step × the pupil's own — the direction count follows S`}
+            options={LATTICE_STEPS}
+            value={latticeStep}
+            onChange={setLatticeStep}
+            format={(m) =>
+              `${m}× · ${directionCount({ kind: "pupil-matched", stepMultiple: m }, s, pupilSamples)}`
+            }
+          />
+        ) : (
+          <Choice
+            label={`source samples ${sourceSamples} across the diameter`}
+            options={[7, 11, 15, 21]}
+            value={sourceSamples}
+            onChange={setSourceSamples}
+          />
+        )}
       </div>
+      {condenserKind === "pupil-matched" && (
+        <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+          {liveSteps.length === 0 ? (
+            <span style={{ color: GUARD_COLOR.warn }}>
+              at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} no lattice step disagrees with
+              the textbook cutoff — (cycles − pupilSamples/2) is divisible by every step offered, so
+              the gap is provably empty rather than hard to find. Move the grating by one cycle.
+            </span>
+          ) : (
+            <span style={{ color: "#777" }}>
+              at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} the textbook and the lattice
+              disagree about this grating only at step {liveSteps.join("×, ")}× — at the others
+              (cycles − pupilSamples/2) divides exactly and the two agree at every S.
+            </span>
+          )}
+        </div>
+      )}
       <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>

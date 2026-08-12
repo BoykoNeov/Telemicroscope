@@ -190,6 +190,15 @@ Three findings that change the scoping:
   a cache is exact only when the source and pupil lattices are commensurate, as
   § 6i's `latticeMatchedSource` makes them). **Engine step with its own rung, not
   an app task** — but worth knowing it is the reason brightfield is slow.
+  *Closed twice.* § 6p built the cache; **§ 6ab is what let A2 actually take
+  it**, and the gap between the two is the lesson. § 6p's constructor derives its
+  point count from S and throws on any other S, so a panel with a continuous dial
+  could not use it and never did — the cache existed for four steps without
+  reaching a single surface a reader opens. What the cache needs is the
+  *directions* on the lattice, not S, and `latticeDiskSource` separates them. A2
+  now runs **197 directions in 144 ms where 97 cost 236**, so this bullet's
+  "8–10× and linear in source points" is no longer the traced brightfield story;
+  re-measure before quoting it.
 - **Objective complexity is not the cost driver.** The 100×/1.40 oil — dome, two
   menisci, two cemented doublets, slip and oil film — came in at 173 ms, *below*
   the four-surface DIN 4×. Cost is `patches²` × source points × grid, and the

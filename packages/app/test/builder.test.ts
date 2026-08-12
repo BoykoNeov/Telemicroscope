@@ -234,7 +234,9 @@ describe("Part F — an imaging adapter hands back a refusal rather than throwin
   const BASE = {
     pupilSamples: 32,
     size: 128,
-    sourceSamples: 11,
+    // The independent condenser, deliberately: these are refusal rungs, and the
+    // 11-point disc is the source they were written against.
+    condenser: { kind: "independent", samples: 11 } as const,
     coherenceParameter: 0.5,
     cycles: 8,
     modulation: 0.4,

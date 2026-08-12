@@ -230,6 +230,144 @@ export function commensurateSource(
 }
 
 /**
+ * The disc of radius S, sampled on the **pupil's own** lattice — commensurate
+ * at any S, including an S that is on no lattice at all (§ 6ab).
+ *
+ * ## What this is for, and why `commensurateSource` could not do it
+ *
+ * § 6p's cache is licensed by every source point sitting on the pupil's
+ * frequency lattice. `commensurateSource` delivers that by deriving its point
+ * *count* from S — `samples = S·pupilSamples/stepMultiple` — and therefore
+ * **throws on any S that makes that a fraction**. So a caller with a continuous
+ * S must either snap it or give up the cache, and snapping is not a small
+ * concession: the brightfield panel's whole demonstration lives in a window of
+ * S one lattice cell wide, and a snapped slider can only land on its endpoints.
+ *
+ * But the cache never needed S on the lattice. `abbeImage`'s precondition, read
+ * off `latticeOffset`, is about **coordinates**: every point a whole number of
+ * half-steps out, all sharing one parity. `commensurateSource` couples S to
+ * that only because it derives the grid's extent *and* its count from S. Here
+ * the grid is a fixed lattice and S enters through the disc mask alone — the
+ * same `sx² + sy² ≤ S²` that constructor already applies — so S is free.
+ *
+ * ## Two deliberate differences from `commensurateSource`
+ *
+ * **The count is odd, so the grid is centred.** Parity is then 0 whatever
+ * `stepMultiple` is, there is always an on-axis direction, and S → 0 degenerates
+ * to `coherentSource`'s one point without a special case. It is therefore *not*
+ * `diskSource`'s lattice and § 6p.1's bitwise identity does not transplant —
+ * this is a different quadrature of the same disc, and § 6ab measures it as one.
+ *
+ * **The extent is `ceil` and carries no tolerance.** The grid only has to
+ * *cover* radius S, because the mask is what decides membership: an extra ring
+ * is dropped and costs nothing, while `floor` can drop a legitimate ring when
+ * the division rounds down and would need an epsilon to be safe. That is
+ * § 6aa's asymmetry — wider is merely slower, narrower is silently wrong — and
+ * a rounding tolerance in a *lattice* constructor is the exact lie
+ * `commensurateSource` refuses two functions up.
+ *
+ * ## What the two knobs now mean, separately
+ *
+ * S is the diaphragm and `stepMultiple` is how finely the lattice samples it,
+ * and neither moves the other. The count follows as a *consequence*, which is
+ * also the physically natural reading: a lattice step is a fixed angular
+ * density, where `diskSource`'s fixed count oversamples a small aperture and
+ * undersamples a large one. § 6ab measures both against § 6f.2's convergence.
+ */
+export function latticeDiskSource(
+  coherenceParameter: number,
+  pupilSamples: number,
+  stepMultiple = 1,
+): CondenserSource {
+  const S = coherenceParameter;
+  if (!(S >= 0)) {
+    throw new Error(`latticeDiskSource: coherenceParameter must be >= 0, got ${S}`);
+  }
+  if (!Number.isInteger(stepMultiple) || stepMultiple < 1) {
+    throw new Error(
+      `latticeDiskSource: stepMultiple must be a positive integer, got ${stepMultiple}`,
+    );
+  }
+  if (!Number.isInteger(pupilSamples) || !isPowerOfTwo(pupilSamples) || pupilSamples < 2) {
+    throw new Error(
+      `latticeDiskSource: pupilSamples must be a power of two so that the pupil's frequency ` +
+        `step 2/${pupilSamples} is exactly representable and the cached sum is bit-for-bit the ` +
+        `uncached one — got ${pupilSamples}`,
+    );
+  }
+  // Half the pupil's frequency step, exact because pupilSamples is a power of
+  // two — `commensurateSource`'s own argument, and every coordinate below is one
+  // integer product times this one exact scale.
+  const halfStep = 1 / pupilSamples;
+  const spacing = 2 * stepMultiple * halfStep;
+  const rings = Math.ceil(S / spacing);
+  const samples = 2 * rings + 1;
+  const points: SourcePoint[] = [];
+  const r2 = S * S;
+  for (let j = 0; j < samples; j++) {
+    const sy = (2 * j + 1 - samples) * stepMultiple * halfStep;
+    for (let i = 0; i < samples; i++) {
+      const sx = (2 * i + 1 - samples) * stepMultiple * halfStep;
+      if (sx * sx + sy * sy <= r2) points.push({ sx, sy, weight: 0 });
+    }
+  }
+  // S = 0 leaves the single centre point, which is exactly `coherentSource`'s
+  // one direction — so the list is never empty and the limit is not a case.
+  const w = 1 / points.length;
+  return {
+    points: points.map((p) => ({ sx: p.sx, sy: p.sy, weight: w })),
+    coherenceParameter: S,
+    samples,
+    pupilLattice: { pupilSamples, stepMultiple },
+  };
+}
+
+/**
+ * Whether a grating at `cycles` has **any** S at which the textbook cutoff and
+ * a `latticeDiskSource`'s actual reach disagree — a closed form, not a search.
+ *
+ * The sampled condenser's outermost useful direction is axial, so its reach is
+ * 1 + ⌊S/spacing⌋·spacing against the textbook's 1 + min(S, 1). Those disagree
+ * *about a given grating* only where the grating's own frequency falls between
+ * two lattice radii, so with ν = 2·cycles/pupilSamples and spacing =
+ * 2·stepMultiple/pupilSamples the whole question collapses to whether
+ * (ν − 1)/spacing = (cycles − pupilSamples/2)/stepMultiple is a whole number.
+ *
+ * It matters because the answer is often **no**, and not rarely. At
+ * `stepMultiple` 1 the source lattice has the grid's own step and ν is
+ * quantized to that same step, so the finest lattice reaches exactly the
+ * frequencies the grid can hold and there is no gap at *any* grating — a true
+ * and teachable fact that would otherwise look like a broken panel. Every
+ * power-of-two multiple is dead together wherever 4 divides cycles −
+ * pupilSamples/2, which is a quarter of the usable range; an odd multiple is
+ * what breaks that, and § 6ab pins the law rather than a table of samples.
+ *
+ * Below ν = 1 the question does not arise — nothing is past a cutoff both
+ * curves are above — and that is reported as `false` for its own reason.
+ */
+export function latticeCutoffGapExists(
+  cycles: number,
+  pupilSamples: number,
+  stepMultiple: number,
+): boolean {
+  if (!Number.isInteger(cycles) || cycles < 0) {
+    throw new Error(`latticeCutoffGapExists: cycles must be a non-negative integer, got ${cycles}`);
+  }
+  if (!Number.isInteger(pupilSamples) || pupilSamples < 2 || pupilSamples % 2 !== 0) {
+    throw new Error(`latticeCutoffGapExists: pupilSamples must be an even integer >= 2, got ${pupilSamples}`);
+  }
+  if (!Number.isInteger(stepMultiple) || stepMultiple < 1) {
+    throw new Error(
+      `latticeCutoffGapExists: stepMultiple must be a positive integer, got ${stepMultiple}`,
+    );
+  }
+  // nu <= 1: the textbook cutoff is 1 + min(S, 1) >= 1 and any source with an
+  // on-axis direction reaches 1 too, so both transmit at every S.
+  if (cycles <= pupilSamples / 2) return false;
+  return (cycles - pupilSamples / 2) % stepMultiple !== 0;
+}
+
+/**
  * The coherent limit: one on-axis plane wave. S = 0.
  *
  * Not a physical condenser — a real diaphragm has finite area, and closing it
