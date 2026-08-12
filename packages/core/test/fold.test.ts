@@ -30,6 +30,14 @@ import { LINE_D } from "../src/materials/dispersion";
  * points, path lengths — pinning that the chain and the beam agree. The second
  * pins the map that carries the unfolded axis back into the world, which is
  * what lets pupils, OPD, focus and the PSF work on a folded system at all.
+ *
+ * Both halves argue INTERNALLY — against a closed form, or against this file's
+ * own straightened twin. The external argument is `crosscheck.test.ts` (§ 0.3),
+ * where four folded systems are traced by rayoptics 0.9.9: the two programs'
+ * frames turn out to be one z-flip per mirror apart, and their fold RULES to
+ * differ in exactly one case — a diagonal misaligned in a second axis, where
+ * rayoptics' own ray trace leaves along the reflected frame this file pins and
+ * 0.88° away from rayoptics' own `'bend'`.
  */
 
 const FLAT = { kind: "reflect", curvature: 0, semiAperture: 50 } as const;

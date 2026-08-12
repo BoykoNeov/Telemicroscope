@@ -1569,9 +1569,24 @@
   for two axes have no angle-for-angle translation at all. So the fixture
   compares **frames** rather than angles, and the whole cost of the mismatch
   turns out to be **half an ulp**, on exactly the one system whose rotation has
-  no spelling in the other's parameters. **Still open:** tilted mirrors and the
-  folded frame, which are a second convention rather than the same one again;
-  and a *second* independent tracer, which would turn an agreement into a
+  no spelling in the other's parameters. **The third investigation has since
+  been done too** — VALIDATION § 0.3, five systems, sixteen in all — and it
+  splits the thing that was open into two. A tilted mirror on the DEFAULT chain
+  turns out not to be a new convention at all, just a misalignment whose surface
+  happens to reflect, so it reconciled the same way the seven refracting ones
+  did. The FOLDED chain is a second convention, and the whole of it is **one
+  z-flip per mirror**: with D = diag(1, 1, −1), rayoptics' frames are the
+  engine's times D^(mirrors before the surface), and every other difference —
+  why a curvature and a thickness flip sign behind a mirror while a conic and a
+  decenter do not — falls out of what D does to a field. **What is worth
+  carrying out of it is that the two programs' fold RULES are not the same
+  rule.** rayoptics' `'bend'` applies the tilt rotation twice; this engine
+  reflects the frame the light arrived in. Those are identical — residual 0.0 —
+  for a tilt about an in-plane axis, which is every fold mirror that is really a
+  fold mirror, and they part by **0.88°** for a diagonal misaligned in a second
+  axis. Which one follows the light is settled by rayoptics against itself: its
+  own ray trace leaves along the reflected frame's axis to half an ulp. **Still
+  open:** a *second* independent tracer, which would turn an agreement into a
   majority.
 
 ## Deliberate deferrals

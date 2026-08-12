@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { vec3 } from "../src/math/vec3";
+import { applyToDirection } from "../src/math/transform";
 import { makeRay } from "../src/trace/ray";
 import { traceRay } from "../src/trace/sequential";
 import { compile } from "../src/trace/compile";
@@ -55,14 +56,42 @@ import { registerMedium } from "../src/materials/catalog";
  * something — two programs can agree about rays while disagreeing about where
  * the glass is only by a coincidence, and the frames rule the coincidence out.
  *
+ * TILTED MIRRORS AND THE FOLDED FRAME — the third investigation, and the last
+ * thing this header used to name as open. Five more systems, and they split in
+ * two.
+ *
+ * A tilted mirror under the DEFAULT chain is not a new convention at all: it is
+ * a misalignment like the seven above, the chain keeps its direction, and
+ * `tilted-secondary-cassegrain` is built exactly as they are. What it adds is
+ * that the surface which moved is a REFLECTING one, which no system here had.
+ *
+ * A folded chain IS a second convention, and it reconciles by one rule. Writing
+ * `parity` for (−1)^(mirrors so far) and D for diag(1, 1, −1), the frames the
+ * two programs trace in differ by `D^(mirrors before i)` — one z-flip per
+ * mirror, which is the same statement as "a folded prescription's post-mirror
+ * thicknesses are positive where an unfolded one's are negative". Everything
+ * else follows from what D does to a field: curvatures and asphere coefficients
+ * are the sag and carry the parity, conics and decenters do not, and a tilt
+ * matrix conjugates to D·T·D. The flip is applied HERE, from the fixture's own
+ * surface list, because a fixture that arrived pre-flipped would be hiding the
+ * reconciliation in the one place nothing checks it.
+ *
+ * The fold rules themselves differ, and rayoptics' own rays settle it. Its
+ * `DecenterData('bend')` applies the tilt rotation twice; this engine reflects
+ * the incoming frame in the tangent plane. Those coincide exactly for a tilt
+ * about an in-plane axis — every real fold mirror — and the generator asserts
+ * the coincidence before using 'bend' anywhere. For a COMPOUND tilt they part,
+ * and `fold-compound-tilt` records by how much: the beam rayoptics traced
+ * leaves along the reflected frame's axis to the last bit, and 0.88° away from
+ * 'bend'.
+ *
  * WHAT THIS DOES NOT PIN. Dispersion: both sides are handed the same numbers,
  * on purpose, so `materials`' Sellmeier evaluation is out of scope here (it has
  * its own rung against datasheet nd/Vd). Apertures: every ray is well inside
  * every rim and the prescriptions are built unbounded, so vignetting is out of
- * scope too. TILTED MIRRORS and the folded frame stay open, deliberately: a
- * mirror under `mirrorFrames: "folded"` reflects the coordinate chain in its own
- * tangent plane, which is a second convention with its own handedness and sign
- * questions, and every misaligned system here refracts.
+ * scope too. No aimed chief ray is solved on a folded system: that would pull in
+ * pupils and the unfolded-axis map, which is `fold.test.ts`' rung and § 1.5.3's,
+ * not this file's convention question.
  */
 
 interface FixtureSurface {
@@ -110,17 +139,35 @@ interface FixtureExpectation {
   readonly dir: readonly [number, number, number];
   readonly opl: number;
   readonly hits: readonly (readonly [number, number, number])[];
+  /** Direction leaving each surface, in the launch frame. Last entry = `dir`. */
+  readonly segDirs: readonly (readonly [number, number, number])[];
+}
+
+/**
+ * Where rayoptics' own fold concept and this engine's part company: recorded
+ * on the one system that carries a compound tilt, so the divergence is a
+ * measured external number rather than an argument in a comment.
+ */
+interface FixtureFoldCheck {
+  readonly surface: number;
+  /** Where rayoptics' RAY TRACE sent the axial beam after that mirror. */
+  readonly beamDir: readonly [number, number, number];
+  /** Where rayoptics' `DecenterData('bend')` would have pointed the chain. */
+  readonly bendAxis: readonly [number, number, number];
+  readonly bendDeviationDeg: number;
 }
 
 interface FixtureSystem {
   readonly id: string;
   readonly note: string;
   readonly objectIndex: number;
+  readonly mirrorFrames?: "folded";
   readonly surfaces: readonly FixtureSurface[];
   readonly frames: readonly FixtureFrame[];
   readonly rays: readonly FixtureRay[];
   readonly expected: readonly FixtureExpectation[];
   readonly aim?: FixtureAim;
+  readonly foldCheck?: FixtureFoldCheck;
 }
 
 interface Fixture {
@@ -204,8 +251,33 @@ function prescriptionOf(system: FixtureSystem): Prescription {
       ...(s.reflect ? {} : { medium: mediumName(s.indexAfter!) }),
     }),
   );
-  return { objectMedium: mediumName(system.objectIndex), surfaces };
+  return {
+    objectMedium: mediumName(system.objectIndex),
+    surfaces,
+    ...(system.mirrorFrames ? { mirrorFrames: system.mirrorFrames } : {}),
+  };
 }
+
+/**
+ * The fold parity in front of surface i: (−1)^(mirrors strictly before it), and
+ * +1 throughout on any unfolded system. This is the whole reconciliation
+ * between the two frame conventions — see the header — and it is computed here
+ * from the fixture's own surface list rather than stored, so a fixture cannot
+ * quietly hand over frames that have already been flipped.
+ */
+const parityBefore = (s: FixtureSystem, i: number): number => {
+  if (s.mirrorFrames !== "folded") return 1;
+  const mirrors = s.surfaces.slice(0, i).filter((x) => x.reflect).length;
+  return mirrors % 2 === 0 ? 1 : -1;
+};
+
+/** rayoptics' rotation for surface i, carried into this engine's frame. */
+const expectedRotation = (s: FixtureSystem, i: number): number[] => {
+  const p = parityBefore(s, i);
+  // Right-multiplying by diag(1, 1, −1) negates the third column: the axis the
+  // chain runs along, and nothing else.
+  return s.frames[i]!.rotation.map((v, k) => (k % 3 === 2 ? v * p : v));
+};
 
 const traceFixtureRay = (p: Prescription, r: FixtureRay) =>
   traceRay(p, makeRay(vec3(...r.origin), vec3(...r.dir), FIXTURE.wavelengthNm));
@@ -232,7 +304,7 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
     expect(FIXTURE._generator.call).toContain("intersect_obj=False");
     // Exact, not a minimum: this is the guard that notices a fixture which has
     // silently lost a system, which no per-system assertion below can.
-    expect(FIXTURE.systems.length).toBe(11);
+    expect(FIXTURE.systems.length).toBe(16);
   });
 
   for (const system of FIXTURE.systems) {
@@ -250,13 +322,18 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
        * triple that reproduces the matrix they mean, so this rung is where the
        * solution is checked against the engine that defined it. A rotation
        * entry is a direction cosine, so it is held to the direction bound.
+       *
+       * On a FOLDED system the two programs' frames are not the same frame —
+       * they differ by one z-flip per mirror — so the fixture's rotation is
+       * carried through `expectedRotation` first. Vertices need no such thing:
+       * a flip about z leaves the point it is a flip about exactly where it was.
        */
       it("every surface's compiled frame is the one rayoptics traced through", () => {
         const compiled = compile(prescription);
         expect(system.frames.length).toBe(system.surfaces.length);
         for (let i = 0; i < system.frames.length; i++) {
           const frame = compiled.surfaces[i]!.frame;
-          expect(maxAbs([...frame.rotation], system.frames[i]!.rotation)).toBeLessThan(
+          expect(maxAbs([...frame.rotation], expectedRotation(system, i))).toBeLessThan(
             ULP_DIR * ulp(1),
           );
           const v = frame.translation;
@@ -265,6 +342,66 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
           );
         }
       });
+
+      /**
+       * THE FOLD RUNG, and the reason it is worth more than the frame
+       * comparison above: it needs no convention mapping at all.
+       *
+       * A folded chain's whole claim is that its +z follows the light. Ray 0 of
+       * every folded system is exactly axial, so it reaches each mirror's own
+       * vertex travelling along the chain's axis — and the direction it leaves
+       * in is therefore the direction the chain must continue in. That
+       * direction is rayoptics', computed by its ray trace from a surface
+       * normal, with no frame convention in it. So this compares the engine's
+       * `outgoingFrame` against a BEAM rather than against another program's
+       * bookkeeping, which is the one comparison a shared convention error
+       * could not survive.
+       */
+      if (system.mirrorFrames === "folded") {
+        it("the frame the chain continues in after a mirror is where the beam went", () => {
+          const axial = system.rays[0]!;
+          // stated rather than assumed: the rung means nothing if ray 0 drifted
+          expect([axial.origin[0], axial.origin[1]]).toEqual([0, 0]);
+          expect([axial.dir[0], axial.dir[1], axial.dir[2]]).toEqual([0, 0, 1]);
+
+          const c = compile(prescription);
+          const mirrors = system.surfaces
+            .map((s, i) => (s.reflect ? i : -1))
+            .filter((i) => i >= 0);
+          expect(mirrors.length).toBeGreaterThanOrEqual(1);
+          for (const k of mirrors) {
+            const axis = applyToDirection(c.surfaces[k]!.outgoingFrame, vec3(0, 0, 1));
+            const beam = system.expected[0]!.segDirs[k]!;
+            expect(maxAbs([axis.x, axis.y, axis.z], beam)).toBeLessThan(ULP_DIR * ulp(1));
+          }
+        });
+      }
+
+      /**
+       * The one place the two fold RULES disagree, pinned as a number.
+       *
+       * rayoptics' 'bend' applies the tilt rotation twice; this engine reflects
+       * the incoming frame in the tangent plane. They coincide identically for a
+       * tilt about an in-plane axis — the generator refuses to use 'bend'
+       * otherwise — and for a compound tilt they do not. Both halves are
+       * asserted here, because only the pair is a finding: the engine's chain is
+       * the traced beam to the last bits, AND 'bend' is a long way from it.
+       */
+      if (system.foldCheck) {
+        const fold = system.foldCheck;
+        it("the reflected frame follows the beam where the doubled tilt does not", () => {
+          const c = compile(prescription);
+          const axis = applyToDirection(c.surfaces[fold.surface]!.outgoingFrame, vec3(0, 0, 1));
+          expect(maxAbs([axis.x, axis.y, axis.z], fold.beamDir)).toBeLessThan(ULP_DIR * ulp(1));
+
+          const cosine =
+            axis.x * fold.bendAxis[0] + axis.y * fold.bendAxis[1] + axis.z * fold.bendAxis[2];
+          const deviation = (Math.acos(Math.min(1, cosine)) * 180) / Math.PI;
+          expect(deviation).toBeCloseTo(fold.bendDeviationDeg, 9);
+          // and it is a real angle, not a rounding difference dressed up as one
+          expect(fold.bendDeviationDeg).toBeGreaterThan(0.5);
+        });
+      }
 
       it("every fixture ray traces, and reaches every surface", () => {
         expect(system.rays.length).toBe(system.expected.length);
@@ -371,6 +508,43 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
         for (let i = 0; i < traced.length; i++) {
           const d = traced[i]!.ray!.dir;
           expect(maxAbs([d.x, d.y, d.z], system.expected[i]!.dir)).toBeLessThan(ULP_DIR * ulp(1));
+        }
+      });
+
+      /**
+       * The direction after EVERY surface, not only the last one.
+       *
+       * The exit direction is a product of all the interactions, so an error at
+       * one surface that a later surface undoes is invisible in it — and on the
+       * folded systems it is the direction leaving a MIRROR that the fold rung
+       * below needs. `traceRay` reports hit points and a final ray, so the
+       * intermediate directions are recovered from consecutive hits, which is
+       * where the tolerance comes from: two points good to `pointTolerance` fix
+       * a direction to that over their separation, and a 6 mm glass segment
+       * therefore earns a looser bound than an 800 mm tube. The rounding floor
+       * is added rather than substituted, so a short segment is never held
+       * tighter than a double allows.
+       */
+      it("the direction leaving every surface agrees, not only the last", () => {
+        const floor = ULP_DIR * ulp(1);
+        const spread = pointTolerance(system);
+        for (let i = 0; i < traced.length; i++) {
+          const segDirs = system.expected[i]!.segDirs;
+          expect(segDirs.length).toBe(traced[i]!.path.length);
+          const path = traced[i]!.path;
+          for (let s = 0; s < segDirs.length; s++) {
+            if (s === segDirs.length - 1) {
+              const d = traced[i]!.ray!.dir;
+              expect(maxAbs([d.x, d.y, d.z], segDirs[s]!)).toBeLessThan(floor);
+              continue;
+            }
+            const a = path[s]!;
+            const b = path[s + 1]!;
+            const step = vec3(b.x - a.x, b.y - a.y, b.z - a.z);
+            const len = Math.hypot(step.x, step.y, step.z);
+            const dir = [step.x / len, step.y / len, step.z / len];
+            expect(maxAbs(dir, segDirs[s]!)).toBeLessThan(floor + (2 * spread) / len);
+          }
         }
       });
 
@@ -592,7 +766,7 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
       expect(worstAgainstFixture(s, rotated)).toBeGreaterThan(pointTolerance(s));
     });
 
-    it("the eleven systems are not eleven spellings of one shape", () => {
+    it("the sixteen systems are not sixteen spellings of one shape", () => {
       const kinds = FIXTURE.systems.map((s) => ({
         mirrors: s.surfaces.some((x) => x.reflect),
         conics: s.surfaces.some((x) => x.conic !== undefined && x.conic !== 0),
@@ -630,7 +804,12 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
             (k) => x[k] !== undefined && x[k] !== 0,
           ),
         );
-      const misalignedSystems = FIXTURE.systems.filter((s) => moved(s).length > 0);
+      // Scoped to the refracting family on purpose: § 0.3's folded systems also
+      // carry tilts, but a 45° diagonal is a fold and not a misalignment, and
+      // counting it here would make this rung report coverage it does not have.
+      const misalignedSystems = FIXTURE.systems.filter(
+        (s) => moved(s).length > 0 && s.surfaces.every((x) => !x.reflect),
+      );
       expect(misalignedSystems.length).toBe(7);
 
       // one degree of freedom, alone, for each of the four
@@ -645,7 +824,7 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
 
       // the two tilts on ONE surface, large enough that Ry·Rx and Rx·Ry differ
       // by more than a tolerance — 12° and 9° here; at 0.1° they would not
-      const twoAxis = FIXTURE.systems.flatMap((s) =>
+      const twoAxis = misalignedSystems.flatMap((s) =>
         s.surfaces.filter((x) => x.tiltXDeg && x.tiltYDeg),
       );
       expect(twoAxis.length).toBeGreaterThanOrEqual(1);
@@ -653,7 +832,7 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
 
       // a tilt and a decenter on ONE surface, or nothing sees their order
       expect(
-        FIXTURE.systems.some((s) =>
+        misalignedSystems.some((s) =>
           s.surfaces.some((x) => (x.tiltXDeg ?? x.tiltYDeg) && (x.decenterX ?? x.decenterY)),
         ),
       ).toBe(true);
@@ -661,16 +840,79 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
       // a tilted surface with at least two surfaces after it: a tilt with
       // nothing downstream cannot tell the local chain from tilt-and-return
       expect(
-        FIXTURE.systems.some((s) =>
+        misalignedSystems.some((s) =>
           s.surfaces.some(
             (x, i) => (x.tiltXDeg ?? x.tiltYDeg) && s.surfaces.length - i - 1 >= 2,
           ),
         ),
       ).toBe(true);
+    });
 
-      // every misaligned system refracts: tilted mirrors and the folded frame
-      // are named as open in this file's header, and this keeps them out
-      expect(misalignedSystems.every((s) => s.surfaces.every((x) => !x.reflect))).toBe(true);
+    /**
+     * § 0.3's own version of the same argument, and the counterpart of the line
+     * this rung replaced: the header used to promise that every misaligned
+     * system refracts, because tilted mirrors were open. They are not open now,
+     * so what has to be asserted is the opposite — that a REFLECTING surface is
+     * the one that moved, under both chain conventions, with something
+     * downstream of it in each case.
+     */
+    it("a mirror is the surface that moved, folded and unfolded, with a chain to steer", () => {
+      const tiltedMirror = (s: FixtureSystem) =>
+        s.surfaces.findIndex((x) => x.reflect && (x.tiltXDeg ?? x.tiltYDeg));
+
+      // the misalignment reading: a tilted mirror on the DEFAULT chain
+      const unfolded = FIXTURE.systems.filter(
+        (s) => s.mirrorFrames === undefined && tiltedMirror(s) >= 0,
+      );
+      expect(unfolded.length).toBeGreaterThanOrEqual(1);
+      // two axes and a decenter on that mirror, or the mirror case is thinner
+      // than the refracting one it is extending
+      expect(
+        unfolded.some((s) => {
+          const x = s.surfaces[tiltedMirror(s)]!;
+          return Boolean(x.tiltXDeg && x.tiltYDeg && (x.decenterX ?? x.decenterY));
+        }),
+      ).toBe(true);
+
+      // the fold reading: four systems, and each has surfaces downstream of the
+      // mirror whose placement the fold decides
+      const folded = FIXTURE.systems.filter((s) => s.mirrorFrames === "folded");
+      expect(folded.length).toBe(4);
+      expect(folded.every((s) => s.surfaces.some((x) => x.reflect))).toBe(true);
+      expect(
+        folded.filter((s) => {
+          const k = tiltedMirror(s);
+          return k >= 0 && k < s.surfaces.length - 1;
+        }).length,
+      ).toBe(3);
+
+      // one fold is CURVED and one is not 45°, or the parity of a curvature is
+      // never read and half a tilt is indistinguishable from its double
+      expect(
+        folded.some((s) => s.surfaces.some((x) => x.reflect && x.curvature !== 0 && (x.tiltXDeg ?? x.tiltYDeg))),
+      ).toBe(true);
+      expect(
+        folded.some((s) =>
+          s.surfaces.some((x) => x.reflect && (x.tiltYDeg ?? 0) !== 0 && (x.tiltYDeg ?? 0) !== 45),
+        ),
+      ).toBe(true);
+
+      // a surface with POWER behind an odd number of mirrors, which is the only
+      // place the curvature parity of the reconciliation can be wrong
+      expect(
+        folded.some((s) => {
+          let mirrors = 0;
+          return s.surfaces.some((x) => {
+            const behindOdd = mirrors % 2 === 1;
+            if (x.reflect) mirrors++;
+            return behindOdd && !x.reflect && x.curvature !== 0;
+          });
+        }),
+      ).toBe(true);
+
+      // two mirrors somewhere, or the parity never returns and a rule that
+      // flipped once too often would pass everywhere
+      expect(folded.some((s) => s.surfaces.filter((x) => x.reflect).length === 2)).toBe(true);
     });
 
     /**
@@ -729,6 +971,10 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
       const singlets = FIXTURE.systems.filter(
         (s) =>
           s.surfaces.length === 2 &&
+          // refracting only: a two-surface folded system would be swept in here
+          // and then fail the "one shape, one ray set" assertion below for a
+          // reason that is not a defect
+          s.surfaces.every((x) => !x.reflect) &&
           s.surfaces.some(
             (x) => x.tiltXDeg ?? x.tiltYDeg ?? x.decenterX ?? x.decenterY,
           ),
@@ -757,6 +1003,124 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
           );
           expect(worst).toBeGreaterThan(1e-3);
         }
+      }
+    });
+
+    /**
+     * § 0.3's controls. The fold reconciliation is four rules travelling
+     * together — a frame flip, a curvature parity, a thickness parity and a
+     * conjugated tilt — and rules that travel together are exactly the ones
+     * that can be wrong in a way that cancels. Each control below damages one
+     * of them and requires the comparison to notice.
+     *
+     * "Notices" means either the exit point moves past tolerance or the ray
+     * stops tracing at all; both are the fixture doing its job, and a damaged
+     * system that still lands on the reference is the only forbidden outcome.
+     */
+    const stillAgrees = (s: FixtureSystem, rx: Prescription): boolean =>
+      s.rays.every((r, i) => {
+        const res = traceRay(rx, makeRay(vec3(...r.origin), vec3(...r.dir), FIXTURE.wavelengthNm));
+        if (res.status !== "ok") return false;
+        const p = res.path[res.path.length - 1]!;
+        const e = s.expected[i]!.hits[s.expected[i]!.hits.length - 1]!;
+        return maxAbs([p.x, p.y, p.z], e) < pointTolerance(s);
+      });
+
+    const folded = (id: string) => FIXTURE.systems.find((s) => s.id === id)!;
+
+    it("the z-flip between the two frame conventions is a real rotation, not bookkeeping", () => {
+      // The frames rung carries the fixture's rotation through `expectedRotation`
+      // before comparing. If that flip were a no-op the rung would pass whether
+      // or not the engine folded the chain, so here is the flip's own size: the
+      // lens behind `fold-flat-45`'s diagonal, compared RAW, is a whole axis out.
+      const s = folded("fold-flat-45");
+      const c = compile(prescriptionOf(s));
+      expect(maxAbs([...c.surfaces[1]!.frame.rotation], s.frames[1]!.rotation)).toBeGreaterThan(1);
+      // ...and with the flip it is at the rounding floor, which is the rung above
+      expect(maxAbs([...c.surfaces[1]!.frame.rotation], expectedRotation(s, 1))).toBeLessThan(
+        ULP_DIR * ulp(1),
+      );
+    });
+
+    it("reading the same surfaces on the default chain fails, so the fold is what is pinned", () => {
+      // The strongest of these: drop `mirrorFrames` and every downstream surface
+      // moves to where the UNFOLDED convention would put it — along the mirror's
+      // own tilted axis instead of along the beam. Nothing else about the
+      // prescription changes.
+      for (const id of ["fold-flat-45", "newtonian-fold", "fold-sphere-15"]) {
+        const s = folded(id);
+        const { mirrorFrames: _drop, ...unfolded } = prescriptionOf(s);
+        expect(stillAgrees(s, unfolded)).toBe(false);
+      }
+    });
+
+    it("a curvature that does not carry the parity fails, behind an odd mirror count", () => {
+      // `fold-flat-45`'s lens sits behind one mirror, so its +0.01 is −0.01 in
+      // the model rayoptics traced. Negating it here is precisely the engine
+      // reading a curvature in the launch frame instead of against the beam.
+      const s = folded("fold-flat-45");
+      const rx = prescriptionOf(s);
+      const flipped: Prescription = {
+        ...rx,
+        surfaces: rx.surfaces.map((x, i) => (i === 1 ? { ...x, curvature: -x.curvature } : x)),
+      };
+      expect(stillAgrees(s, flipped)).toBe(false);
+    });
+
+    it("a post-mirror thickness that keeps the unfolded sign fails", () => {
+      // The other half of the same rule: in a folded chain the distance to the
+      // next vertex is a distance along the light and stays positive. Writing
+      // the unfolded convention's negative one walks backwards up the tube.
+      const s = folded("newtonian-fold");
+      const rx = prescriptionOf(s);
+      const negated: Prescription = {
+        ...rx,
+        surfaces: rx.surfaces.map((x, i) => (i === 0 ? { ...x, thickness: -x.thickness } : x)),
+      };
+      expect(stillAgrees(s, negated)).toBe(false);
+    });
+
+    it("the conjugated tilt matters: the diagonal's angle is not its own negative", () => {
+      // `newtonian-fold`'s diagonal sits behind one mirror, which is where the
+      // fixture hands rayoptics D·T·D rather than T. If that conjugation were
+      // dropped on one side the two programs would be folding to opposite sides
+      // of the tube, so flipping the sign here must be visible.
+      const s = folded("newtonian-fold");
+      const rx = prescriptionOf(s);
+      const flipped: Prescription = {
+        ...rx,
+        surfaces: rx.surfaces.map((x) =>
+          x.tiltXDeg === undefined ? x : { ...x, tiltXDeg: -x.tiltXDeg },
+        ),
+      };
+      expect(stillAgrees(s, flipped)).toBe(false);
+    });
+
+    /**
+     * The fold rung's own blindness check. It compares the engine's outgoing
+     * frame against the beam rayoptics traced — but on an UNTILTED mirror the
+     * chain simply reverses, which any implementation gets right, so the rung
+     * would pass on a system that never exercised a tilted fold at all. This
+     * asserts the fixture contains folds that actually turn a corner.
+     */
+    it("the folds turn the chain, so the fold rung is not agreeing about a straight line", () => {
+      for (const id of ["fold-flat-45", "newtonian-fold", "fold-sphere-15", "fold-compound-tilt"]) {
+        const s = folded(id);
+        const c = compile(prescriptionOf(s));
+        const k = s.surfaces.findIndex((x) => x.reflect && (x.tiltXDeg ?? x.tiltYDeg));
+        const before = applyToDirection(
+          k === 0 ? c.surfaces[0]!.frame : c.surfaces[k - 1]!.outgoingFrame,
+          vec3(0, 0, 1),
+        );
+        const after = applyToDirection(c.surfaces[k]!.outgoingFrame, vec3(0, 0, 1));
+        const turn =
+          (Math.acos(
+            Math.min(1, before.x * after.x + before.y * after.y + before.z * after.z),
+          ) *
+            180) /
+          Math.PI;
+        // 30° at the shallowest (the 15° curved fold), 90° at the diagonals
+        expect(turn).toBeGreaterThan(25);
       }
     });
   });

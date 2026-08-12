@@ -270,6 +270,16 @@ image parity. Nothing downstream objects — `invert` is a transpose and stays
 valid for any orthogonal matrix, normals go through the same rotation, and the
 clear aperture is a radius.
 
+Both halves of that table now have an independent implementation's agreement
+behind them (VALIDATION § 0.3). The two conventions are **one z-flip per mirror**
+apart — rayoptics' frames are these times diag(1, 1, −1) raised to the mirror
+count — which is where the curvature and thickness sign flips in the table come
+from rather than being conventions chosen here. And the reflection rule is not
+just *a* choice: rayoptics' own fold (`'bend'`) doubles the tilt rotation
+instead, which is identical to reflecting for any single-axis tilt but points
+the chain 0.88° off the beam for a diagonal misaligned in a second axis. Its own
+ray trace leaves along the reflected axis, not the doubled one.
+
 **The unfolded axis, and the map back to the world** (`core/trace/axis`).
 Pupils, ray aiming, OPD, PSF and focus are all positions on *one straight
 axis*, and that axis is the unfolded convention's — it stops following the

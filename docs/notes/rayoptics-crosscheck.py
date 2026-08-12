@@ -107,10 +107,60 @@ Only the CHIEF ray is pinned this way. The rim of the pupil is covered by the
 rigid-motion identities in `real-aiming.test.ts`, for the convention reason
 above.
 
-Not covered, and named rather than half-done: TILTED MIRRORS and the folded
-frame. A mirror in the folded convention reflects the coordinate chain in its
-own tangent plane, which is a second convention with its own handedness and
-sign questions; the misaligned systems here are all refracting.
+TILTED MIRRORS AND THE FOLDED FRAME — the third investigation, and the last
+thing this file used to name as open. Five more systems: one misaligned mirror
+under the default (unfolded) chain, and four folded ones.
+
+The unfolded half needs nothing new. A tilted mirror under `mirrorFrames:
+"unfolded"` is a misalignment like any other — the chain keeps its direction,
+the thickness after it stays negative, and rayoptics' `DecenterData('decenter')`
+places it exactly as the refracting systems above are placed. So
+`tilted-secondary-cassegrain` is built the same way they are.
+
+The folded half is a second convention, and it reconciles by ONE RULE. Write
+`parity` for (-1)^(mirrors so far). A folded prescription and the model built
+here are the same world geometry read in frames that differ by a z-flip per
+mirror, D = diag(1, 1, -1):
+
+    frame_rayoptics(i) = frame_engine(i) . D^(mirrors before i)
+
+Everything else follows from what D does to each field. It negates z, so a
+curvature and an even-asphere coefficient — which are the sag, and the sag is
+along z — carry `parity`, while a conic constant (a shape parameter) and a
+decenter (an (x, y, 0) shift) do not. A thickness carries the parity AFTER its
+own surface, which is why post-mirror thicknesses are positive in a folded
+prescription and negative in the model built here. And a tilt matrix
+conjugates: rayoptics is handed D.T.D after an odd number of mirrors, which for
+this engine's in-plane tilt axes is simply the two angles negated.
+
+Where rayoptics has its own fold concept, it is used rather than emulated:
+`DecenterData('bend')` — "orientation applied before and after surface" — is
+what a tilted fold mirror is built with, so the frames the comparison agrees on
+are the ones rayoptics' own fold produced, not ones this script dictated.
+
+THE ONE PLACE THE TWO FOLD RULES PART, and it is a finding rather than a defect
+on either side. 'bend' applies the tilt rotation T twice; this engine reflects
+the incoming frame in the tangent plane, which is T.D.T^T read in the same
+frame. Those agree exactly when D.T.D = T^T — whenever T is a rotation about an
+axis in the xy-plane, which is every single-axis tilt and so every fold mirror
+that is actually a fold mirror. A TWO-axis tilt is not such a rotation (Ry.Rx
+carries a roll), and there the two rules differ: at 45 deg in x with 3 deg in y
+the chains part by 0.88 deg. Which one follows the light is settled by
+rayoptics' OWN RAY TRACE rather than by argument — the beam leaves along the
+reflected frame's axis to the last bit, and 0.88 deg away from 'bend'. So this
+script asserts the coincidence before it uses 'bend' anywhere, and the one
+system carrying a compound tilt puts the mirror LAST, where nothing downstream
+needs a chain and rayoptics builds it as a plain 'decenter'.
+
+Per-segment directions (`segDirs`) are dumped for every system, not just the
+folded ones: the final direction alone cannot see an error that cancels between
+two surfaces, and the folded rungs need the direction the beam left a MIRROR in
+to compare against the frame the chain continues in.
+
+Not covered, and named rather than half-done: no aimed chief ray is solved on a
+folded system. That would pull in pupils and the unfolded-axis map, which is a
+different rung (§ 1.5.3, and `fold.test.ts`) from the convention this block is
+about.
 """
 import json
 import math
@@ -133,6 +183,17 @@ WVL = 587.5618
 # a convention translation that is not exact is a term in the comparison.
 ROT_ROUNDTRIP_MAX = 4e-16
 ROT_RESIDUALS = []
+
+# The z-flip that relates the two mirror-frame conventions. A folded chain's
+# +z follows the light; rayoptics' runs backwards after every mirror, exactly
+# as an unfolded prescription's negative thicknesses do.
+DFLIP = np.diag([1.0, 1.0, -1.0])
+
+# How far rayoptics' own 'bend' may sit from the reflected frame before this
+# script refuses to use it. The two coincide identically for a tilt about an
+# in-plane axis, so this is a rounding bound and not a tolerance.
+BEND_COINCIDENCE_MAX = 1e-15
+BEND_RESIDUALS = []
 
 # Indices Telemicroscope's catalog reports at WVL (packages/core/src/materials).
 N_AIR = 1.0
@@ -175,6 +236,31 @@ def rayoptics_euler(rot):
 def is_misaligned(surface):
     return any(surface.get(k) for k in
                ('tiltXDeg', 'tiltYDeg', 'decenterX', 'decenterY'))
+
+
+def is_tilted(surface):
+    return bool(surface.get('tiltXDeg') or surface.get('tiltYDeg'))
+
+
+def is_folded(system):
+    return system.get('mirrorFrames') == 'folded'
+
+
+def parities(system):
+    """(-1)^(mirrors so far), one entry per surface BOUNDARY.
+
+    `p[i]` is the parity in front of surface i and `p[i+1]` the parity behind
+    it, so a curvature reads `c * p[i]` and the thickness that follows it reads
+    `t * p[i+1]`. Unfolded systems are all +1 — their author already wrote the
+    negative thicknesses, and nothing about them moves.
+    """
+    folded = is_folded(system)
+    out, p = [1], 1
+    for s in system['surfaces']:
+        if folded and s.get('reflect'):
+            p = -p
+        out.append(p)
+    return out
 
 
 # --- the systems -------------------------------------------------------------
@@ -382,6 +468,185 @@ SYSTEMS += [
     misaligned_achromat(),
 ]
 
+# --- tilted mirrors, and the folded frame ------------------------------------
+# Ray 0 of every folded system is EXACTLY axial, and that is load-bearing: it
+# arrives at each mirror's vertex along the chain's own axis, so the direction
+# it leaves in is the direction the chain must continue in. That single ray is
+# what pins the fold rule against a beam rather than against another frame.
+
+SYSTEMS += [
+    {
+        "id": "tilted-secondary-cassegrain",
+        "note": "SYSTEMS[2]'s Cassegrain with the secondary tilted 0.4 deg in X and "
+                "-0.25 deg in Y and decentered 0.5 mm in X, plus a flat 700 mm behind "
+                "it. UNFOLDED — a tilted mirror as a MISALIGNMENT: the chain keeps its "
+                "direction, the thickness after the mirror stays negative, and the flat "
+                "rides on the secondary's tilted frame. No new convention, and the first "
+                "system here where a REFLECTING surface is the one that moved.",
+        "objectIndex": N_AIR,
+        "surfaces": [
+            {"curvature": -0.000625, "conic": -1.0, "thickness": -560.0, "reflect": True},
+            {"curvature": -0.00125, "conic": -5.4444444444444455, "thickness": 700.0,
+             "reflect": True, "tiltXDeg": 0.4, "tiltYDeg": -0.25, "decenterX": 0.5},
+            {"curvature": 0.0, "thickness": 0.0, "indexAfter": N_AIR},
+        ],
+        "rays": SYSTEMS[2]["rays"],
+    },
+    {
+        "id": "fold-flat-45",
+        "note": "FOLDED. A 45 deg flat steering the chain by 90 deg, then a plano-convex "
+                "lens 100 mm along the folded axis. The lens is the point: its curvature "
+                "sits behind an odd number of mirrors, so the fixture's +0.01 is -0.01 in "
+                "the model rayoptics traces, and getting that parity wrong would put the "
+                "power on the wrong side of the glass.",
+        "mirrorFrames": "folded",
+        "objectIndex": N_AIR,
+        "surfaces": [
+            {"curvature": 0.0, "thickness": 100.0, "reflect": True, "tiltXDeg": 45.0},
+            {"curvature": 0.01, "thickness": 6.0, "indexAfter": N_BK7},
+            {"curvature": 0.0, "thickness": 0.0, "indexAfter": N_AIR},
+        ],
+        "rays": (
+            [{"origin": [0.0, 0.0, -50.0], "dir": [0.0, 0.0, 1.0]}]
+            + [{"origin": [0.0, h, -50.0], "dir": [0.0, 0.0, 1.0]} for h in (6.0, 12.0, -10.0)]
+            + [{"origin": [x, 0.0, -50.0], "dir": [0.0, 0.0, 1.0]} for x in (8.0, -14.0)]
+            + [{"origin": [0.0, h, -50.0],
+                "dir": [0.0, math.sin(math.radians(0.5)), math.cos(math.radians(0.5))]}
+               for h in (0.0, 10.0)]
+            + [
+                {"origin": [7.0, -9.0, -50.0], "dir": [0.0, 0.0, 1.0]},
+                {"origin": [-5.0, 4.0, -50.0],
+                 "dir": [math.sin(math.radians(0.4)), math.sin(math.radians(-0.3)),
+                         math.sqrt(1 - math.sin(math.radians(0.4))**2
+                                   - math.sin(math.radians(0.3))**2)]},
+            ]
+        ),
+    },
+    {
+        "id": "newtonian-fold",
+        "note": "FOLDED. The system the convention exists for: a paraboloid of f = 1000 "
+                "(R = -2000), a 45 deg diagonal 800 mm up the tube, and a flat at the "
+                "eyepiece 200 mm out the side. TWO mirrors, so the parity returns — and "
+                "the diagonal's tilt sits behind an odd number of them, which is the one "
+                "place the conjugated tilt matrix D.T.D is exercised.",
+        "mirrorFrames": "folded",
+        "objectIndex": N_AIR,
+        "surfaces": [
+            {"curvature": -0.0005, "conic": -1.0, "thickness": 800.0, "reflect": True},
+            {"curvature": 0.0, "thickness": 200.0, "reflect": True, "tiltXDeg": 45.0},
+            {"curvature": 0.0, "thickness": 0.0, "indexAfter": N_AIR},
+        ],
+        "rays": (
+            [{"origin": [0.0, 0.0, -2000.0], "dir": [0.0, 0.0, 1.0]}]
+            + [{"origin": [0.0, h, -2000.0], "dir": [0.0, 0.0, 1.0]} for h in (30.0, 60.0, -80.0)]
+            + [{"origin": [x, 0.0, -2000.0], "dir": [0.0, 0.0, 1.0]} for x in (45.0, -70.0)]
+            + [{"origin": [0.0, 50.0, -2000.0],
+                "dir": [0.0, math.sin(math.radians(0.05)), math.cos(math.radians(0.05))]}]
+            + [
+                {"origin": [35.0, 55.0, -2000.0], "dir": [0.0, 0.0, 1.0]},
+                {"origin": [-20.0, 25.0, -2000.0],
+                 "dir": [math.sin(math.radians(0.03)), math.sin(math.radians(-0.02)),
+                         math.sqrt(1 - math.sin(math.radians(0.03))**2
+                                   - math.sin(math.radians(0.02))**2)]},
+            ]
+        ),
+    },
+    {
+        "id": "fold-sphere-15",
+        "note": "FOLDED. A CURVED fold: a concave sphere (R = -800) tilted 15 deg about "
+                "Y, deviating the chain by 30 deg into the x-z plane, with a meniscus in "
+                "the converging beam 300 mm along it. A flat fold cannot see a curvature "
+                "parity and a 45 deg one cannot tell an angle from its double, so this "
+                "system is neither.",
+        "mirrorFrames": "folded",
+        "objectIndex": N_AIR,
+        "surfaces": [
+            {"curvature": -0.00125, "thickness": 300.0, "reflect": True, "tiltYDeg": 15.0},
+            {"curvature": 0.002, "thickness": 5.0, "indexAfter": N_BK7},
+            {"curvature": -0.0025, "thickness": 0.0, "indexAfter": N_AIR},
+        ],
+        "rays": (
+            [{"origin": [0.0, 0.0, -100.0], "dir": [0.0, 0.0, 1.0]}]
+            + [{"origin": [0.0, h, -100.0], "dir": [0.0, 0.0, 1.0]} for h in (20.0, -25.0)]
+            + [{"origin": [x, 0.0, -100.0], "dir": [0.0, 0.0, 1.0]} for x in (15.0, -22.0)]
+            + [{"origin": [0.0, h, -100.0],
+                "dir": [0.0, math.sin(math.radians(0.6)), math.cos(math.radians(0.6))]}
+               for h in (0.0, 18.0)]
+            + [
+                {"origin": [12.0, -16.0, -100.0], "dir": [0.0, 0.0, 1.0]},
+                {"origin": [-9.0, 7.0, -100.0],
+                 "dir": [math.sin(math.radians(0.5)), math.sin(math.radians(-0.4)),
+                         math.sqrt(1 - math.sin(math.radians(0.5))**2
+                                   - math.sin(math.radians(0.4))**2)]},
+            ]
+        ),
+    },
+    {
+        "id": "fold-compound-tilt",
+        "note": "FOLDED, and the one system where the two fold rules disagree: a diagonal "
+                "tilted 45 deg in X AND 3 deg in Y, behind a singlet. The mirror is LAST "
+                "on purpose — rayoptics builds it as a plain 'decenter', because 'bend' "
+                "would point the chain 0.88 deg away from where its own trace sends the "
+                "beam, and with nothing downstream that chain is never needed. What the "
+                "rays pin is the mirror itself; `foldCheck` records the divergence.",
+        "mirrorFrames": "folded",
+        "objectIndex": N_AIR,
+        "surfaces": [
+            {"curvature": 0.008, "thickness": 6.0, "indexAfter": N_BK7},
+            {"curvature": -0.008, "thickness": 150.0, "indexAfter": N_AIR},
+            {"curvature": 0.0, "thickness": 0.0, "reflect": True,
+             "tiltXDeg": 45.0, "tiltYDeg": 3.0},
+        ],
+        "foldCheck": {"surface": 2},
+        "rays": (
+            [{"origin": [0.0, 0.0, -40.0], "dir": [0.0, 0.0, 1.0]}]
+            + [{"origin": [0.0, h, -40.0], "dir": [0.0, 0.0, 1.0]} for h in (5.0, 10.0, -8.0)]
+            + [{"origin": [x, 0.0, -40.0], "dir": [0.0, 0.0, 1.0]} for x in (6.0, -11.0)]
+            + [{"origin": [0.0, 0.0, -40.0],
+                "dir": [0.0, math.sin(math.radians(0.7)), math.cos(math.radians(0.7))]}]
+            + [
+                {"origin": [4.0, -7.0, -40.0], "dir": [0.0, 0.0, 1.0]},
+                {"origin": [-3.0, 5.0, -40.0],
+                 "dir": [math.sin(math.radians(0.6)), math.sin(math.radians(-0.45)),
+                         math.sqrt(1 - math.sin(math.radians(0.6))**2
+                                   - math.sin(math.radians(0.45))**2)]},
+            ]
+        ),
+    },
+]
+
+
+def fold_check(opm, system, frames, expected):
+    """What rayoptics' own 'bend' would have done, where it is not what happens.
+
+    Only meaningful on a mirror carrying a compound tilt. `bendAxis` is the
+    chain 'bend' produces — the tilt rotation applied twice, light running
+    backwards along it as it does after any mirror — and `beamDir` is where
+    rayoptics' ray trace actually sent the axial ray. The engine's rule reflects
+    the incoming frame instead, and the TypeScript side checks its own
+    `outgoingFrame` against `beamDir`, not against either matrix.
+    """
+    k = system['foldCheck']['surface']
+    surface = system['surfaces'][k]
+    par = parities(system)
+    rot = engine_rotation(surface)
+    if par[k] < 0:
+        rot = DFLIP @ rot @ DFLIP
+    # `frames[k]` already carries the rotation applied BEFORE the surface, so
+    # 'bend' — which applies it after as well — would continue the chain in
+    # frame . rot, with the light running backwards along it as after any
+    # mirror.
+    frame = np.array(frames[k]['rotation']).reshape(3, 3)
+    bend_axis = -(frame @ rot).dot(np.array([0.0, 0.0, 1.0]))
+    beam = np.array(expected[0]['segDirs'][k])
+    cosine = float(np.clip(bend_axis.dot(beam), -1.0, 1.0))
+    return {
+        "surface": k,
+        "beamDir": [float(v) for v in beam],
+        "bendAxis": [float(v) for v in bend_axis],
+        "bendDeviationDeg": math.degrees(math.acos(cosine)),
+    }
+
 
 def build(system):
     opm = OpticalModel(radius_mode=False)
@@ -392,16 +657,23 @@ def build(system):
     sm.gaps[0].thi = 0.0
     sm.gaps[0].medium = ConstantIndex(system['objectIndex'], 'obj')
 
-    for s in system['surfaces']:
-        sm.add_surface([0.0, s['thickness']])
+    par = parities(system)
+    n_surf = len(system['surfaces'])
+
+    for i, s in enumerate(system['surfaces']):
+        # The z-flip rule, one field at a time (see the module docstring). On
+        # every unfolded system every parity is +1 and none of this bites.
+        p_before, p_after = par[i], par[i + 1]
+        sm.add_surface([0.0, s['thickness'] * p_after])
         ifc = sm.ifcs[-2]           # the surface just added (last is the image)
         coefs = s.get('asphereCoeffs')
+        curvature = s['curvature'] * p_before
         if coefs:
             # rayoptics coefs start at r^2; Telemicroscope's start at r^4.
-            ifc.profile = EvenPolynomial(c=s['curvature'], cc=s.get('conic', 0.0),
-                                         coefs=[0.0] + list(coefs))
+            ifc.profile = EvenPolynomial(c=curvature, cc=s.get('conic', 0.0),
+                                         coefs=[0.0] + [a * p_before for a in coefs])
         else:
-            ifc.profile = Conic(c=s['curvature'], cc=s.get('conic', 0.0))
+            ifc.profile = Conic(c=curvature, cc=s.get('conic', 0.0))
         if s.get('reflect'):
             ifc.interact_mode = 'reflect'
         else:
@@ -411,9 +683,32 @@ def build(system):
             # Telemicroscope's local coordinate chain. The angles are solved
             # for the matrix the engine's tiltX/tiltY mean — see the module
             # docstring — and the solution is checked before it is used.
+            #
+            # 'bend' instead for a tilted fold mirror with a chain to steer:
+            # rayoptics' own fold concept, applying the rotation after the
+            # surface as well. It is checked against the reflected frame first,
+            # because the two rules only coincide for a tilt about an in-plane
+            # axis and using it where they do not would place the rest of the
+            # system somewhere the light does not go.
             rot = engine_rotation(s)
+            if p_before < 0:
+                # read in a chain whose z runs backwards, the same tilt is the
+                # conjugated matrix — for these axes, both angles negated
+                rot = DFLIP @ rot @ DFLIP
+            dtype = 'decenter'
+            if is_folded(system) and s.get('reflect') and is_tilted(s) and i < n_surf - 1:
+                bend = rot @ rot
+                reflected = (rot @ DFLIP @ rot.transpose()) @ DFLIP
+                residual = float(np.abs(bend - reflected).max())
+                if residual > BEND_COINCIDENCE_MAX:
+                    raise SystemExit(
+                        f"'bend' is not the reflected frame on {system['id']} surface {i}: "
+                        f"{residual:.3e} > {BEND_COINCIDENCE_MAX:.0e} — a compound tilt "
+                        f"must be the last surface, where no chain follows it")
+                BEND_RESIDUALS.append((system['id'], i, residual))
+                dtype = 'bend'
             alpha, beta, gamma = rayoptics_euler(rot)
-            ifc.decenter = DecenterData('decenter',
+            ifc.decenter = DecenterData(dtype,
                                         x=s.get('decenterX', 0.0),
                                         y=s.get('decenterY', 0.0),
                                         alpha=alpha, beta=beta, gamma=gamma)
@@ -443,6 +738,11 @@ def global_frames(opm, system):
     Dumped because it is the reconciliation itself: the ray comparison says the
     two programs agree, and this says they agree about WHERE THE GLASS IS
     rather than by two errors cancelling.
+
+    RAW, deliberately. On a folded system these are not the engine's frames —
+    they are the engine's frames times D^(mirrors before i) — and the flip is
+    applied on the TypeScript side, from the fixture's own surface list. Doing
+    it here would hide the reconciliation in the place nothing checks it.
     """
     sm = opm['seq_model']
     rot = np.identity(3)
@@ -514,12 +814,19 @@ def trace_one(opm, system, frames, ray_spec):
                 for k in range(3)]
 
     hits = [to_global(ray[i][0], i) for i in range(len(ray))]
+    # ray[i][1] is the direction LEAVING interface i, so the tail of this list
+    # is the direction after each real surface. The last entry is `dir` again;
+    # the earlier ones are what no other quantity here can see — a direction
+    # error that two surfaces cancel between them, and, on a folded system, the
+    # direction the beam actually left a mirror in.
+    seg_dirs = [dir_to_global(ray[i][1], i) for i in range(1, len(ray))]
 
     return {
         "point": hits[-1],
         "dir": dir_to_global(ray[-1][1], len(ray) - 1),
         "opl": float(opl),
         "hits": hits,
+        "segDirs": seg_dirs,
     }
 
 
@@ -604,6 +911,8 @@ def main():
         entry['expected'] = expected
         if 'aim' in system:
             entry['aim'] = aim_chief(opm, system, frames)
+        if 'foldCheck' in system:
+            entry['foldCheck'] = fold_check(opm, system, frames, expected)
         out['systems'].append(entry)
 
     path = sys.argv[1] if len(sys.argv) > 1 else "fixture.json"
@@ -617,6 +926,15 @@ def main():
         worst = max(ROT_RESIDUALS, key=lambda r: r[1])
         print(f"tilt convention translation, worst residual: {worst[1]:.3e} "
               f"on {worst[0]} (bound {ROT_ROUNDTRIP_MAX:.0e})")
+    if BEND_RESIDUALS:
+        worst = max(BEND_RESIDUALS, key=lambda r: r[2])
+        print(f"'bend' against the reflected frame, worst residual: {worst[2]:.3e} "
+              f"on {worst[0]} surface {worst[1]} (bound {BEND_COINCIDENCE_MAX:.0e})")
+    for s in out['systems']:
+        if 'foldCheck' in s:
+            fc = s['foldCheck']
+            print(f"{s['id']}: 'bend' would point the chain "
+                  f"{fc['bendDeviationDeg']:.6f} deg off the traced beam")
 
 
 if __name__ == "__main__":

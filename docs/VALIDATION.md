@@ -16,7 +16,7 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
-| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: rays given as points and directions, traced through eleven systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the local coordinate chain but not its parameters, so the FRAMES are compared and not the angles; **0.2** the aimed chief ray, where the ray IS the answer and each side solves for it alone | `crosscheck` |
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: rays given as points and directions, traced through sixteen systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the local coordinate chain but not its parameters, so the FRAMES are compared and not the angles; **0.2** the aimed chief ray, where the ray IS the answer and each side solves for it alone; **0.3** tilted mirrors and the folded frame — two conventions one z-flip per mirror apart, and a fold rule settled by where the beam went | `crosscheck` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities, and the finding that the artifact lived in the currency rather than in the aim | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
@@ -108,7 +108,12 @@ no numbered gap left.
 | **0.1** The two combinations no isolated system can see: two tilts on one surface (12°, 9°), and a tilt with a decenter on one surface | rayoptics 0.9.9 | ✅ |
 | **0.1** A tilted surface with two surfaces downstream of it — the local coordinate chain against tilt-and-return | rayoptics 0.9.9 | ✅ |
 | **0.2** The AIMED chief ray onto a stated surface's own vertex, on all seven misaligned systems — each side solving it with its own Newton around its own tracer | rayoptics 0.9.9 | ✅ |
-| Nine negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, a flipped tilt sign, the two tilt angles swapped, a decenter read along the tilted axes, no two singlets landing in one place, and the eleven systems not being eleven spellings of one shape | the rung's own tolerances | ✅ |
+| **0.3** A tilted MIRROR as a misalignment: the Cassegrain's secondary tilted in two axes and decentered, on the default chain, with a flat riding on its tilted frame | rayoptics 0.9.9 | ✅ |
+| **0.3** Four FOLDED systems — a 45° diagonal, a Newtonian's two mirrors, a curved 15° fold, a compound-tilted diagonal — frames reconciled by one z-flip per mirror | rayoptics 0.9.9 | ✅ |
+| **0.3** The frame the chain continues in after a mirror, against the direction rayoptics' own trace sent the BEAM — the one comparison with no convention in it | rayoptics 0.9.9 | ✅ |
+| **0.3** The direction leaving EVERY surface, on all sixteen systems — an error two surfaces cancel between them is invisible in the exit direction alone | rayoptics 0.9.9 | ✅ |
+| **0.3** rayoptics' own `'bend'` against the reflected frame: identical for an in-plane tilt, 0.88° apart for a compound one, and the traced beam picks the reflection | rayoptics 0.9.9 | ✅ |
+| Fifteen negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, a flipped tilt sign, the two tilt angles swapped, a decenter read along the tilted axes, no two singlets landing in one place, the sixteen systems not being sixteen spellings of one shape — and six for the fold: the z-flip being a real rotation, the same surfaces read on the default chain, a curvature and a thickness that do not carry the parity, the diagonal's conjugated tilt, and the folds turning a corner at all | the rung's own tolerances | ✅ |
 
 This is the "one cross-validation against an independent tracer" ROADMAP has
 carried in *Engineering practices* since step 4, and it is a different kind of
@@ -310,11 +315,129 @@ from the other side: **a tilt is about a surface's own vertex, so it does not
 move that vertex**, and aiming at it is the same problem tilted or not. Those
 three are named in the rung rather than left looking like coverage.
 
-**Not yet pinned.** **Tilted mirrors and the folded frame**, deliberately: a
+**Not yet pinned.** ~~**Tilted mirrors and the folded frame**, deliberately: a
 mirror under `mirrorFrames: "folded"` reflects the coordinate chain in its own
 tangent plane, which is a second convention with its own handedness and sign
-questions, and every misaligned system here refracts. Also open: a second
-independent tracer, which would turn an agreement into a majority.
+questions, and every misaligned system here refracts.~~ — **done, § 0.3 below**,
+and the sentence is struck rather than deleted because it named the risk
+correctly: the folded chain *is* a second convention, and what closed it was
+finding the one rule that maps it onto rayoptics' and then refusing to trust the
+map where it stops holding. Still open: a second independent tracer, which would
+turn an agreement into a majority.
+
+### Step 0.3 — tilted mirrors, and a fold rule settled by where the beam went
+
+Five more systems, and they answer two different questions that the phrase
+"tilted mirrors and the folded frame" had been carrying as one.
+
+**The first question turns out not to be a question.** A tilted mirror on the
+DEFAULT chain is a misalignment like the seven refracting ones above: the chain
+keeps its direction, the thickness behind the mirror stays negative, and
+rayoptics' `DecenterData('decenter')` places it exactly as it places a tilted
+lens. So `tilted-secondary-cassegrain` — § 5e's telescope with the secondary
+tilted 0.4° in X and −0.25° in Y, decentered 0.5 mm, and a flat 700 mm behind it
+riding on the tilted frame — needed no new machinery at all. What it adds is
+that the surface which *moved* is a reflecting one, which no system in § 0.1
+had, and that a two-axis tilt composed with a decenter is exercised on a mirror
+with something downstream of it to steer.
+
+**The second question is real, and it has one answer.** A folded prescription
+and the model rayoptics traces are the same world geometry read in frames that
+differ by **one z-flip per mirror**: with D = diag(1, 1, −1) and `parity` =
+(−1)^(mirrors so far),
+
+> frame_rayoptics(i) = frame_engine(i) · D^(mirrors before i)
+
+and every other difference between the two authorings follows from what D does
+to a field. A curvature and an even-asphere coefficient **are** the sag and the
+sag is along z, so they carry the parity; a conic constant is a shape parameter
+and does not; a decenter is an (x, y, 0) shift and D leaves it alone; a
+thickness carries the parity *behind* its own surface, which is precisely the
+statement that post-mirror thicknesses are positive in a folded prescription and
+negative in an unfolded one. A tilt matrix conjugates to D·T·D — for this
+engine's in-plane tilt axes, both angles negated. **The flip is applied on the
+TypeScript side**, computed from the fixture's own surface list, because a
+fixture that arrived pre-flipped would have hidden the reconciliation in the one
+place nothing checks it.
+
+**rayoptics' own fold is used, not emulated.** `DecenterData('bend')` —
+"orientation applied before and after surface" — is what each tilted fold mirror
+is built with, so the frames the comparison agrees on are the ones rayoptics'
+fold concept produced. Three systems exercise it: `fold-flat-45` (a 45° diagonal
+with a lens 100 mm along the folded axis, whose curvature therefore sits behind
+an odd mirror count), `newtonian-fold` (a paraboloid of f = 1000, a diagonal
+800 mm up the tube, a flat at the eyepiece 200 mm out the side — two mirrors, so
+the parity returns, and the diagonal's tilt is the one place D·T·D is
+exercised), and `fold-sphere-15` (a *curved* fold: a concave sphere tilted 15°
+about Y, deviating the chain by 30°, with a meniscus in the converging beam — a
+flat fold cannot see a curvature parity and a 45° one cannot tell an angle from
+its double, so this system is neither).
+
+**And the two fold rules are not the same rule, which is the finding.** 'bend'
+applies the tilt rotation twice; this engine reflects the incoming frame in the
+mirror's tangent plane. Those coincide **identically** — residual 0.0, not
+merely small — when D·T·D = Tᵀ, i.e. whenever the rotation is about an axis in
+the xy-plane. That is every single-axis tilt, and so every fold mirror that is
+actually a fold mirror. A **two-axis** tilt is not such a rotation, because
+Ry·Rx carries a roll, and there the two rules part: at 45° in X with 3° in Y the
+chains sit **0.880040°** apart.
+
+**Which one follows the light is not a matter of taste, and rayoptics settles it
+against itself.** `fold-compound-tilt` carries exactly that diagonal, and the
+beam its own `trace_raw` sends off the mirror leaves along the **reflected
+frame's** axis to 0.5 ulp of a direction cosine — and 0.88° away from where its
+own 'bend' would have pointed the chain. This is not a defect on either side:
+'bend' is a definition, and for the tilts fold mirrors have it is the reflection
+exactly. It is a definition that stops meaning "follow the beam" for a
+misaligned diagonal, which is exactly the case a tolerancing run reaches. The
+generator therefore **asserts the coincidence before using 'bend' anywhere**,
+and the one system that would violate it puts the mirror last, where no chain
+follows it and rayoptics builds it as a plain 'decenter'.
+
+**The rung that is worth the most needs no mapping at all.** Ray 0 of every
+folded system is exactly axial, so it reaches each mirror's own vertex
+travelling along the chain's axis, and the direction it leaves in *is* the
+direction the chain must continue in. Comparing `outgoingFrame`'s +z against
+that traced direction puts a frame against a **beam** — no D, no parity, no
+'bend' — and it is the one comparison that a convention error shared by both
+programs could not survive. Agreement is **≤ 2.5 ulp** of a direction cosine.
+
+**The numbers.** Frames agree to **2.5 ulp** of a direction cosine and vertices
+to **2.9 ulp**; hit points to **2.9 ulp**, exit directions to **4 ulp**, optical
+paths to **3.1 ulp**. The worst path *difference* is the Newtonian's at
+**2.3e-9 of a wave**, and it is the largest in the whole file for the ordinary
+reason that its rays are launched 2000 mm out — an ulp is measured at the
+system's own scale, and this system's scale is a telescope tube.
+
+**One rung was added for every system, not just the folded ones.** The fixture
+now carries the direction leaving **every** surface, because the exit direction
+is a product of all the interactions and cannot see an error at one surface that
+a later surface undoes — and because the fold rung needs the direction a beam
+left a *mirror* in. `traceRay` reports hit points and a final ray, so the
+intermediate directions are recovered from consecutive hits, which sets the
+tolerance: two points good to their own bound fix a direction to that over their
+separation, so a 0.23 mm segment inside the Lister's cement earns a looser bound
+than an 800 mm tube, and the rounding floor is added rather than substituted so
+a short segment is never held tighter than a double allows.
+
+**What the fold controls are for, and they are six.** The reconciliation is four
+rules travelling together — a frame flip, a curvature parity, a thickness parity
+and a conjugated tilt — and rules that travel together are exactly the ones that
+can be wrong in a way that cancels. Each is damaged alone and the comparison has
+to notice: reading the same surfaces on the **default** chain (the strongest,
+since it changes nothing but where the chain points), a curvature that does not
+carry the parity, a thickness that keeps the unfolded sign, the diagonal's tilt
+un-conjugated, the z-flip shown to be a whole axis rather than bookkeeping, and
+— the blindness check — the folds actually turning a corner, since an *untilted*
+mirror simply reverses the chain and any implementation gets that right.
+"Notices" is stated as either the exit point moving past tolerance **or** the
+ray failing to trace at all; both are the fixture working, and only a damaged
+system still landing on the reference is forbidden.
+
+**Not pinned here, and named rather than half-done.** No aimed chief ray is
+solved on a folded system. That would pull in pupils and the unfolded-axis map,
+which is § 4a's rung and § 1.5.3's — a different claim from the frame convention
+this block is about, and one `fold.test.ts` already makes against closed forms.
 
 ## Step 1 — geometry, materials, ray tracing
 
@@ -1607,6 +1730,12 @@ rigid transform, and one ulp at an 1800 mm path is 4.5·10⁻¹³ mm ≈ 8·10�
 waves. The measured spread sits at that floor. A decimal-places match would be
 asserting below what the representation carries; the bound used (10⁻⁸ waves) is
 still five orders under the engine's ~10⁻³-wave target.
+
+Every rung in this step compares the fold to a closed form or to its own
+straightened twin — both internal arguments. **§ 0.3 has since added the
+external one**: the same convention against rayoptics 0.9.9, which reconciles by
+one z-flip per mirror and, on the rule itself, disagrees with this engine in
+exactly one case and is settled by its own ray trace in this engine's favour.
 
 ### Not yet pinned
 - **Clear apertures differ between a fold and its twin.** The twin drops the
