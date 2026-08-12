@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLatestFromWorker, useRenderedField } from "../hooks";
 import { Slider } from "../ui";
+import { linkHref, type TeachingLink } from "../teaching";
 import { createStarWorker } from "../workers";
 import {
   hueProfile,
@@ -22,6 +23,21 @@ import {
  * dims while its worker catches up. That was only a change of *caller*:
  * `renderStar` was already a pure function. Progressive refinement within a
  * frame is the obvious next step from here.
+ *
+ * ## Since Part H this page is also the sender
+ *
+ * ROADMAP step 7 asks that every artifact in the image link to the plot that
+ * explains it, and both artifacts it names by name are on this route: the halo
+ * on the singlet's star, and the tails on the field's corner stars. Each link
+ * carries the sliders' live values, so the plot on the other end is about *this*
+ * lens (`teaching.ts` says why that is a correctness requirement and not a
+ * nicety).
+ *
+ * The field image's hotspots sit on `FieldResult.stars` — where the renderer
+ * says it put each star, from the same traced chief ray the rasterizer used.
+ * Nothing here places a marker by eye, and a marker placed by eye is the thing
+ * this app must never draw: it would be a claim about where an artifact is,
+ * dressed as a measurement of it.
  */
 
 const DEFAULTS: Omit<RenderRequest, "lens"> = {
@@ -60,6 +76,19 @@ function StarCanvas({ request }: { request: RenderRequest }) {
   const core = hue[0]?.x ?? 0;
   const halo = hue[Math.min(hue.length - 1, 12)]?.x ?? 0;
 
+  // The artifact's own link, and it carries this canvas's sliders rather than
+  // the panel's defaults — the two canvases differ only in `lens`, and a link
+  // that lost that would send both of them to the same plot.
+  const explain: TeachingLink = {
+    lens: request.lens,
+    focalLengthMm: request.focalLengthMm,
+    apertureMm: request.apertureMm,
+    sourceTemperatureK: request.sourceTemperatureK,
+    wavelengths: request.wavelengths,
+    fieldDeg: 0,
+    from: "telescope",
+  };
+
   return (
     <figure
       style={{ margin: 0, opacity: pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}
@@ -76,7 +105,10 @@ function StarCanvas({ request }: { request: RenderRequest }) {
             Airy radius {(result.airyRadiusMm * 1000).toFixed(2)} µm ·{" "}
             {(result.pixelScaleMm * 1000).toFixed(3)} µm/px
             <br />
-            chromatic spread <strong>{result.fringeAiryRadii.toFixed(1)}</strong> Airy radii
+            chromatic spread <strong>{result.fringeAiryRadii.toFixed(1)}</strong> Airy radii{" "}
+            <a href={linkHref("chromatic", explain)} title="the plot that explains this number">
+              why?
+            </a>
             <br />
             hue x: core {core.toFixed(3)} → halo {halo.toFixed(3)}{" "}
             {halo < core ? "(halo bluer)" : "(no drift)"}
@@ -131,16 +163,29 @@ function StarCanvas({ request }: { request: RenderRequest }) {
 
 /**
  * A field of identical stars, imaged through a PSF that changes across the
- * frame — so the on-axis star is a tight disk and the corner stars wear coma
- * tails that point radially outward, because that is what the achromat does off
- * axis. Nothing is drawn: the tails are where the light actually lands.
+ * frame — so the on-axis star is a tight disk and the off-axis ones wear coma
+ * tails that lengthen with field angle. Nothing is drawn: the tails are where
+ * the light actually lands.
  *
  * The frame refines coarsest-first (`useRenderedField`), so a blocky preview
  * appears fast and sharpens in place rather than the panel sitting blank.
+ *
+ * ## The hotspots, and why they are allowed to be there
+ *
+ * Each star is covered by a transparent link to the ray fan at that star's own
+ * field angle. Both halves of that come from `FieldResult.stars`, which the
+ * renderer fills in from the traced chief ray it placed the star with — so the
+ * hotspot is over the artifact because the engine says that is where the
+ * artifact is. The ring is drawn at a fixed radius in CSS pixels and makes no
+ * claim about the tail's size; it is a target, and the plot it opens is where
+ * the measurement lives.
  */
+const HOTSPOT_PX = 26;
+
 function FieldCanvas({ request }: { request: FieldRequest }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const { result, refining } = useRenderedField(request);
+  const displayPx = 420;
 
   useEffect(() => {
     if (!result) return;
@@ -156,15 +201,51 @@ function FieldCanvas({ request }: { request: FieldRequest }) {
 
   return (
     <figure style={{ margin: 0 }}>
-      <canvas
-        ref={canvas}
-        style={{ width: 420, height: 420, imageRendering: "pixelated", background: "#000" }}
-      />
+      <div style={{ position: "relative", width: displayPx, height: displayPx }}>
+        <canvas
+          ref={canvas}
+          style={{
+            width: displayPx,
+            height: displayPx,
+            imageRendering: "pixelated",
+            background: "#000",
+            display: "block",
+          }}
+        />
+        {result?.stars.map((star) => {
+          const scale = displayPx / result.size;
+          return (
+            <a
+              key={`${star.xPx.toFixed(2)},${star.yPx.toFixed(2)}`}
+              href={linkHref("rayfan", {
+                lens: request.lens,
+                focalLengthMm: request.focalLengthMm,
+                apertureMm: request.apertureMm,
+                sourceTemperatureK: request.sourceTemperatureK,
+                wavelengths: request.wavelengths,
+                fieldDeg: star.fieldDeg,
+                from: "telescope",
+              })}
+              title={`field ${star.fieldDeg.toFixed(2)}° — open the ray fan for this star`}
+              style={{
+                position: "absolute",
+                left: star.xPx * scale - HOTSPOT_PX / 2,
+                top: star.yPx * scale - HOTSPOT_PX / 2,
+                width: HOTSPOT_PX,
+                height: HOTSPOT_PX,
+                borderRadius: "50%",
+                border: "1px solid rgba(255,255,255,0.18)",
+              }}
+            />
+          );
+        })}
+      </div>
       <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
         {result ? (
           <>
             <strong>{request.lens}</strong> field · f/{result.fNumber.toFixed(1)} ·{" "}
-            {result.starCount} stars
+            {result.starCount} stars ·{" "}
+            <span style={{ color: "#777" }}>click a star for its ray fan</span>
             <br />
             {refining ? (
               <span style={{ color: "#a60" }}>
@@ -319,9 +400,20 @@ export function TelescopePanel() {
       <p style={{ maxWidth: 640, color: "#444" }}>
         Twenty-five <em>identical</em> stars imaged through the achromat at once. The only thing
         that changes star to star is where it sits in the field, so every difference in the picture
-        is the optics: a tight disk on axis, a coma tail toward each corner that points radially
-        outward and lengthens with field angle. The frame is convolved against a PSF that is
-        re-traced for each patch of the field — a single shift-invariant blur could not show this.
+        is the optics: a tight disk on axis, and a coma tail that lengthens with field angle. The
+        frame is convolved against a PSF that is re-traced for each patch of the field — a single
+        shift-invariant blur could not show this. <strong>Click any star</strong> to open its ray
+        fan, at that star&rsquo;s own field angle and this panel&rsquo;s aperture.
+      </p>
+      <p style={{ maxWidth: 640, color: "#444" }}>
+        This paragraph used to end &ldquo;<s>points radially outward</s>&rdquo;, and building the
+        ray fan is what caught it. On this achromat the tails point <strong>inward</strong>, toward
+        the middle of the frame. Three measurements say so and none of them is this sentence: the
+        ray fan&rsquo;s even half is negative at the pupil rim, the traced wavefront PSF&rsquo;s
+        centre of light sits 2.52 µm on the axis side of the chief ray at 1.13°, and the centre of
+        light of the stars in this very frame is 5–7 µm inward of where the renderer placed them.
+        Which way a comet points is a property of the lens and not a rule of optics, and the
+        original sentence had recited the rule.
       </p>
 
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap" }}>
