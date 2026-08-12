@@ -1639,10 +1639,20 @@
   the f/25 achromat — and that the engine's geometric switch does **not** answer
   that question and visibly parts from it (7.46 Airy radii of spot at
   `geometricWeight` 0.00), because `wave/fidelity` measures phase change per pupil
-  sample and not total wave error. **What is left on this line is three:** the
+  sample and not total wave error. **The Zernike readout now has one too** — APP.md Part J,
+  route `#/wavefront`. Recorded here because it settles a question the engine
+  poses and never answers: `fitRms` and `balancedRms` are both "RMS wavefront
+  error" and **neither is the one Maréchal's Strehl formula wants**. Piston and
+  tilt out with **defocus kept** reproduces the traced Strehl to four digits;
+  keeping tilt is three orders wrong off axis (0.0003 against 0.4002) because a
+  tilt shifts a PSF rather than dimming it; removing defocus is 6.3× wrong
+  wherever defocus is real (0.9633 against 0.1523). The panel also pins a **fit
+  leak** nothing had looked at — on axis the non-symmetric terms come back at
+  ~1e-7 rather than the f64 floor, identified as the fit over a discrete pupil
+  rather than an asymmetry by its equal x/y partners and its cubic growth.
+  **What is left on this line is two:** the
   optical MTF — `core/wave/mtf` has no caller anywhere in the app, and the camera
-  panel's MTF is the sensor's — the Zernike readout, and distortion/field
-  curvature. The last of those is **not wiring**: sagittal and tangential focal
+  panel's MTF is the sensor's — and distortion/field curvature. The second of those is **not wiring**: sagittal and tangential focal
   surfaces are new engine capability, and the hard rule wants rungs pinned to an
   external number for them (third-order theory puts the tangential surface three
   times as far from the Petzval surface as the sagittal, and `seidelSums` already

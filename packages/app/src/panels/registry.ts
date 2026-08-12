@@ -21,6 +21,7 @@ import { SpotPanel } from "./spot";
 import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
+import { WavefrontPanel } from "./wavefront";
 import { VisualPanel } from "./visual";
 import { VolumePanel } from "./volume";
 
@@ -101,6 +102,12 @@ export const PANELS: readonly Panel[] = [
     label: "a disc, not a point",
     blurb: "APP.md C7 — a source with an angular size, and the diagonal that decides how much sky fits",
     Component: SkyPanel,
+  },
+  {
+    id: "wavefront",
+    label: "the wavefront",
+    blurb: "ROADMAP v1 — the Zernike terms, and which RMS the Strehl formula actually wants",
+    Component: WavefrontPanel,
   },
   {
     id: "reflector",

@@ -4244,6 +4244,67 @@ one method drawn twice.
 
 ---
 
+## Part J — the Zernike readout, and which RMS the Strehl formula wants — *app wiring only* — ✅ **landed** — **plot**
+
+Route `#/wavefront`, the second of ROADMAP's four surfaceless analyses. The
+traced optical path difference fitted to the Zernike basis and drawn as a stem
+per Noll index, with the engine's own `nollName` supplying the labels so this
+file keeps no second table. App wiring — `opdMap`, `fitZernike`, `fitRms`,
+`balancedRms` and `psf` are steps 2–3 — so no ladder rung.
+
+**The finding is that "RMS wavefront error" names three different quantities in
+this engine, and only one of them predicts the Strehl.** Maréchal's
+exp(−(2πσ)²) is the most quoted formula in tolerancing and it takes σ without
+saying which. Feeding it each in turn and checking against `psf().strehl` — a
+peak ratio off an FFT, different physics reached by different code, so a real
+two-method comparison and not the spot page's algebraic identity — settles it:
+
+- **Piston and tilt out, defocus KEPT** is correct: 0.9962 predicted against
+  0.9962 traced on the achromat at f/10 on axis.
+- **Keeping tilt** (`fitRms`) fails off axis by three orders — 0.0003 predicted
+  against 0.4002 traced at f/5 and 0.8° — because a tilt shifts a PSF and does
+  not dim it. The engine keeps tilt on purpose, since off axis it is a real
+  chief-ray displacement; it is the right number for a different question.
+- **Removing defocus** (`balancedRms`) fails by **6.3×** wherever defocus is
+  genuinely present — 0.9633 against 0.1523 on the singlet at f/10 — because it
+  answers "how good could this be if you refocused" and the PSF is at the plane
+  the image actually has.
+
+Neither engine helper computes the middle one. It is a hypot over the
+coefficients from j = 4, which is composition rather than new physics, and it is
+what the panel prints.
+
+**And where the correct σ runs out is the classical validity limit, measured
+rather than recited:** four digits below σ ≈ 0.05 λ, 32% out at 0.20, and at 0.93
+the formula returns **0.0000** for a lens the transform still gives **0.0886** —
+an approximation declaring a dead image for something with a ninth of its light
+in the core, and doing it without complaining.
+
+### The fit leaks, and the test that found it was asserting the wrong thing
+
+On axis an axially symmetric lens can excite only j = 1, 4, 11, 22. The first
+draft of the rung asserted every other term was under 1e-12 and they came back at
+**~1e-7** — tilt, astigmatism, coma, trefoil and several mid-order terms
+together. It is the least-squares fit over a discrete pupil, not a lens with an
+asymmetry, and two measurements say so rather than one argument: the **x and y
+partners are equal in magnitude**, where a real asymmetry would have a direction,
+and the leak grows as roughly the **cube** of the wavefront (4.5e-12, 7.1e-9,
+2.2e-6 against a peak-to-valley of 0.0060, 0.0334, 0.1619) where a rounding floor
+would track it linearly. It stays six orders under the terms that are really
+there, so nothing on screen depends on it — and it is pinned so that a change
+which makes it grow fails a test instead of putting a plausible astigmatism on a
+symmetric lens.
+
+**Two smaller things.** The stem chart is `Plot` driven as a stem plot, one
+two-point vertical series per term — a mild abuse of a line renderer, taken
+rather than adding a `bars` mode to a file every other panel shares for the one
+surface that wants it. And piston is dropped from the *picture* but not from the
+fit: it is the largest coefficient on these lenses and carries no image
+information, so plotting it would set the scale and flatten every aberration onto
+the axis.
+
+---
+
 ## What the app itself needs to hold this
 
 Structural work implied by the above, independent of which surfaces land:
