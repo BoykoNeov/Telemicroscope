@@ -111,9 +111,22 @@ export function lateralMagnification(
  * object height `objectHeightMm` — the number that decides how much of a plane
  * stack's aberration is coma rather than spherical (§ 6y).
  *
- * Signed by the ray's own x direction, so a field point at +h and one at −h give
- * opposite answers and the azimuth is the caller's to apply (`illuminationOffset`
- * has the same shape and for the same reason).
+ * ## It is a RADIAL component, and the azimuth is the caller's
+ *
+ * The reading is meridional: `aimRay` puts the object point on the x axis, so
+ * what comes back is the chief ray's tilt resolved along the field's own outward
+ * direction, signed by the ray's own x. A caller at azimuth φ turns it exactly as
+ * `fieldPupilAt` turns `radialIlluminationOffset` —
+ * `(qc·cos φ, qc·sin φ)` — and must do so with the value read at a **positive**
+ * radius, because this is odd in the height and the rotation already carries the
+ * direction. Reading it at a signed height *and* rotating counts the sign twice.
+ *
+ * That is `radialIlluminationOffset`'s convention exactly, parity included — the
+ * offset is `h/R_ep` and is odd in h for the same reason this is. Which is worth
+ * stating rather than assuming: the two are different kinds of quantity, a
+ * direction against a pupil coordinate, and they are consumed by the same
+ * rotation, so the fact that one rule serves both is a fact and not a default.
+ * § 6y.5 pins it, with the offset carried alongside as the parallel case.
  *
  * ## Read off the aimer, not derived — § 6x.1's lesson, one quantity along
  *

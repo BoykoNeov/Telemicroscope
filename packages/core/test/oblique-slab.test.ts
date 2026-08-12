@@ -24,6 +24,7 @@ import {
   type MountSpec,
 } from "../src/imaging/depth-aberration";
 import { chiefRayInvariant } from "../src/pupil/microscope";
+import { illuminationOffset } from "../src/imaging/object-field";
 import { traceRay } from "../src/trace/sequential";
 import { registerMedium } from "../src/materials/catalog";
 import { constantIndex } from "../src/materials/dispersion";
@@ -446,6 +447,54 @@ describe("§ 6y.5 — telecentricity makes the slab's wavefront field-INVARIANT"
       // …and it reverses with the field, which a magnitude could not show.
       expect(chiefRayInvariant(sys, -0.05, LAMBDA)).toBeCloseTo(-first, 15);
       expect(chiefRayInvariant(sys, 0, LAMBDA)).toBe(0);
+    }
+  });
+
+  /**
+   * § 6x.1 pinned the illumination offset's azimuth ("+x positive, sy under
+   * 1e-15, roles swap at +y, equal components at the 45° corner") because every
+   * meridional rung is blind to it. The same blindness applies here, and this is
+   * § 6y's version — with one extra thing to say, because a chief invariant is a
+   * DIRECTION where an illumination offset is a pupil COORDINATE. Two different
+   * kinds of quantity are consumed by the same rotation in `fieldPupilAt`, so
+   * that one convention serves both is a fact to check rather than a default.
+   *
+   * It does: both are odd in the height, so both are read at a positive radius
+   * and rotated. The first draft of this rung asserted the opposite about the
+   * offset and was corrected by running it.
+   */
+  it("composes with an azimuth exactly once, and the offset's convention is the same one", () => {
+    const sys = din();
+    const h = 0.1;
+    const radial = chiefRayInvariant(sys, h, LAMBDA);
+    // The field point at azimuth π is the SAME point the tracer reaches at −h, so
+    // the rotation and the trace have to land on one vector. If the sign were
+    // folded in twice this reads +radial and the tilt points the wrong way.
+    const rotated = { qx: radial * Math.cos(Math.PI), qy: radial * Math.sin(Math.PI) };
+    const traced = chiefRayInvariant(sys, -h, LAMBDA);
+    expect(rotated.qx).toBeCloseTo(traced, 15);
+    expect(Math.abs(rotated.qy)).toBeLessThan(1e-18);
+    expect(traced).toBeCloseTo(-radial, 15);
+    // The parallel case, carried so the shared rotation is checked and not
+    // assumed: § 6x's offset is h/R_ep, so it is odd in h exactly as this is.
+    expect(illuminationOffset(sys, -h, LAMBDA)).toBeCloseTo(-illuminationOffset(sys, h, LAMBDA), 15);
+  });
+
+  it("so the slab's wavefront mirrors with the field, pupil point for pupil point", () => {
+    const sys = din();
+    const s = spec(0.1);
+    const at = (h: number, px: number): number =>
+      mountWavefrontWavesVector(s, DEPTH_MM, px, 0, {
+        qx: chiefRayInvariant(sys, h, LAMBDA),
+        qy: 0,
+      });
+    for (const px of [0.3, 0.7, 1]) {
+      // The physical statement the composition is FOR: mirroring the field and
+      // the pupil together is the same wavefront. A sign counted twice breaks
+      // this and nothing meridional would have noticed.
+      expect(at(0.1, px)).toBeCloseTo(at(-0.1, -px), 18);
+      // Non-vacuous: the two sides are not the same number by symmetry alone.
+      expect(at(0.1, px)).not.toBe(at(0.1, -px));
     }
   });
 

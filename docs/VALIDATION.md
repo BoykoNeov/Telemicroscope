@@ -8989,6 +8989,8 @@ and a quartic evaluated on a displaced disc is not a quartic in ρ. New:
 | The mount's ceiling cuts a crescent off axis, not an annulus: lost on the field's side, zero on the other | ray invariant, off axis | ✅ |
 | The telecentric 4×/0.10 reads a bitwise-zero chief invariant at every height, so the slab wavefront is one wavefront | § 6v.4 | ✅ |
 | The rim-stopped members tilt linearly and with a sign: 2.184557e-3 per 0.1 mm on the DIN, reversing at −h | measured off the aimer | ✅ |
+| Rotating the radial reading by π lands on the trace at −h, with the y component under 1e-18 — and § 6x's offset is odd in h too | § 6x.1's azimuth pin | ✅ |
+| Mirroring the field and the pupil together is the same wavefront, at three pupil radii, where mirroring the pupil alone is not | physical symmetry | ✅ |
 | Coma over spherical is 4·q_c/NA with no stack in it — 8.738e-2 at 0.1 mm, 0.8736 at 1 mm | closed form | ✅ |
 | The slip's coma at 1 mm is 1.1803e-3 waves against 1.3510e-3 of its own spherical, and 66.6× the mount's, opposite in sign | measured | ✅ |
 | A rim that has left the stack is refused; a matched stack is an exact zero off axis as well as on | § 6e.1's identity | ✅ |
@@ -9089,6 +9091,25 @@ the same A, so A cancels and coma over spherical is **4·q_c/NA** — geometry, 
 glass. On the DIN that is 8.738e-2 at 0.1 mm of field and **0.8736 at 1 mm**: by a
 millimetre the plate's coma is 87% of its spherical term, on a lens whose whole
 plate contribution § 6c pinned as negligible on the axis.
+
+**The azimuth, which every meridional rung is blind to.** § 6x.1 pinned the
+illumination offset's ("+x positive, sy under 1e-15, roles swap at +y, equal
+components at the 45° corner") for exactly this reason, and § 6y needs its own —
+with one extra thing to say, because a chief invariant is a **direction** where an
+illumination offset is a pupil **coordinate**, and `fieldPupilAt` turns both with
+the same rotation. So the rule serving both is a fact to check rather than a
+default. It does serve both: each is read at a positive radius and rotated,
+because each is **odd** in the height (the offset is h/R_ep). Pinned by rotating
+the reading through π and landing on the trace at −h, y component under 1e-18,
+and by the physical statement underneath it — mirroring the field and the pupil
+*together* is the same wavefront, where mirroring the pupil alone is not.
+
+*Recorded because the rung earned it:* the first draft of that paragraph asserted
+the offset was **even** in the height, on the reasoning that a ratio flips twice.
+It is not — the numerator flips and the span does not — and the rung failed on
+that clause rather than on the code it was written to check. Which is § 6x.1's own
+lesson arriving one quantity along: parities and signs here are read, not
+reasoned.
 
 *The field range is chosen and the reason is an amplitude.* § 6v.5 measured a
 telecentric bundle walking off an axially-sized front element — 11% of the pupil
