@@ -145,6 +145,19 @@ export function lateralMagnification(
  * rounding residual — which is what lets § 6y assert that a telecentric
  * objective's slab wavefront is the *same wavefront* at every field height,
  * bit for bit, instead of merely a close one.
+ *
+ * ## Read it on the system that HAS the slab, unless it is telecentric (§ 6z.8)
+ *
+ * § 6y read this on objectives with no slab in their prescription and reasoned
+ * that a plane stack conserves the invariant, so the lens's own chief ray would
+ * do. That is exact where the objective is telecentric — both readings are the
+ * same bitwise zero — and it is a **paraxial** statement anywhere else. A plate's
+ * apparent depth depends on the angle a ray leaves at, so the assembly's chief
+ * ray and the chief ray of the same lens placed at the paraxial apparent depth
+ * are different rays, and their invariants part company as the SQUARE of the
+ * field: 3.0e-7, 1.2e-6, 3.0e-5 at 0.05, 0.1 and 0.5 mm on the rim-stopped
+ * 4×/0.10, ×4.00 per doubling. Small, and not zero, and the caller feeding this
+ * to `withMountAberration` is the one who decides whether that matters.
  */
 export function chiefRayInvariant(
   system: OpticalSystem,

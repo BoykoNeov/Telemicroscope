@@ -10,7 +10,7 @@ import {
   coverslipSurface,
   plateW040Mm,
 } from "../src/designs/coverslip";
-import { achromaticObjective } from "../src/designs/achromat";
+import { DoubletApertureRefusal, achromaticObjective } from "../src/designs/achromat";
 import { seidelSums } from "../src/analysis/seidel";
 import { LINE_D } from "../src/materials/dispersion";
 import { Prescription } from "../src/trace/prescription";
@@ -349,7 +349,15 @@ describe("§ 6z.6 — the price is LINEAR IN MAGNIFICATION, and § 6w's was not"
             ...(withSlip ? { coverslip: {} } : {}),
           });
           lo = mid;
-        } catch {
+        } catch (e) {
+          // § 6b.5.6's rule, one constructor along: a throw mid-search is only a
+          // wall if it is the *aperture's*. The fixed point has a
+          // non-convergence throw of its own, and a bisection that accepted it
+          // would quietly move the ceiling onto whichever NA the solver happened
+          // to stall at — and these numbers are pinned in four places.
+          const aperture =
+            e instanceof DoubletApertureRefusal || /coverslip/.test((e as Error).message);
+          if (!aperture) throw e;
           hi = mid;
         }
       }

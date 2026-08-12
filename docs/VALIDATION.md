@@ -9261,7 +9261,7 @@ bare `tan u` exactly at n = 1 — one expression covering the rim and the back
 focal plane, and the one that will carry an immersion medium unchanged.
 
 Sizing it the bare way over-fills the pupil by
-**√((1−(NA/n)²)/(1−NA²)) = 1.002865**, and the readout sees it: 0.100286 for a
+**√((1−(NA/n)²)/(1−NA²)) = 1.0028699**, and the readout sees it: 0.100286 for a
 lens labelled 0.100. That is § 6c.3's negative control reproduced here, and the
 same number, because it is a statement about the object cone rather than about
 where a stop sits. Read on **one** lens, deliberately: comparing the corrected
@@ -9344,6 +9344,13 @@ the other**. The trace does object: glass sized `f·NA` for 0.10 cannot pass a
 correctly-labelled objective mysteriously vignetting itself — which reads as a
 fault of the **glass**. § 1.5.2's "a miss reads as the system's fault", one
 readout along.
+
+*Checked rather than assumed: no other caller was reaching it.* The obvious
+second candidate is immersion, whose specimen also sits in something other than
+air — but `designs/immersion` and `designs/lister` both flag their stop on
+**surface 0**, where `imageStopBackward` returns before the telecentric branch
+exists. So this really was the first system to put a non-air object behind a back
+focal stop, and there is no second silent correction hiding in the fix.
 
 The fix carries both indices, and at n_object = n_stop it multiplies and divides
 by a literal 1.0 — **bitwise** the old expression, so no system that ever worked
