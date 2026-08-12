@@ -16,7 +16,7 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
-| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: rays given as points and directions, traced through sixteen systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the local coordinate chain but not its parameters, so the FRAMES are compared and not the angles; **0.2** the aimed chief ray, where the ray IS the answer and each side solves for it alone; **0.3** tilted mirrors and the folded frame — two conventions one z-flip per mirror apart, and a fold rule settled by where the beam went | `crosscheck` |
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems, rays given as points and directions, traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the chain but not its parameters, so FRAMES are compared and not angles; **0.2** the aimed chief ray, where the ray IS the answer; **0.3** tilted mirrors and the folded frame, two conventions one z-flip apart; **0.4** a THIRD tracer, so the two references can be compared with the engine out of it — and a tilt that had no translation into rayoptics translates angle for angle | `crosscheck` `crosscheck-optiland` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities, and the finding that the artifact lived in the currency rather than in the aim | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
@@ -113,6 +113,11 @@ no numbered gap left.
 | **0.3** The frame the chain continues in after a mirror, against the direction rayoptics' own trace sent the BEAM — the one comparison with no convention in it | rayoptics 0.9.9 | ✅ |
 | **0.3** The direction leaving EVERY surface, on all sixteen systems — an error two surfaces cancel between them is invisible in the exit direction alone | rayoptics 0.9.9 | ✅ |
 | **0.3** rayoptics' own `'bend'` against the reflected frame: identical for an in-plane tilt, 0.88° apart for a compound one, and the traced beam picks the reflection | rayoptics 0.9.9 | ✅ |
+| **0.4** The same sixteen systems and the same rays, traced by a SECOND independent tracer — inputs read verbatim from the rayoptics fixture, and that identity asserted field by field | Optiland 0.6.1 | ✅ |
+| **0.4** rayoptics against Optiland with the engine out of it: the majority, and the only comparison that can see a convention the engine SHARES with one reference | Optiland 0.6.1 vs rayoptics 0.9.9 | ✅ |
+| **0.4** Every surface's frame on the twelve unfolded systems, composed by Optiland's own reference chain rather than by the generator | Optiland 0.6.1 | ✅ |
+| **0.4** The four folded systems placed absolutely, so what they vote on is the beam — Optiland has no fold concept to compare a frame against | Optiland 0.6.1 | ✅ |
+| **0.4** Seven controls: a launch shift, an index error, a flipped tilt sign, the two tilt angles swapped, 0.1° on a fold mirror, two systems' answers crossed — and the seventh asserting agreement | the rung's own tolerances | ✅ |
 | Sixteen negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, a flipped tilt sign, the two tilt angles swapped, a decenter read along the tilted axes, no two singlets landing in one place, the sixteen systems not being sixteen spellings of one shape — and seven for the fold, starting with the one the other six need: the undamaged systems still agreeing when read through the same helper, then the z-flip being a real rotation, the same surfaces read on the default chain, a curvature and a thickness that do not carry the parity, the diagonal's conjugated tilt, and the folds turning a corner at all | the rung's own tolerances | ✅ |
 
 This is the "one cross-validation against an independent tracer" ROADMAP has
@@ -322,8 +327,8 @@ questions, and every misaligned system here refracts.~~ — **done, § 0.3 below
 and the sentence is struck rather than deleted because it named the risk
 correctly: the folded chain *is* a second convention, and what closed it was
 finding the one rule that maps it onto rayoptics' and then refusing to trust the
-map where it stops holding. Still open: a second independent tracer, which would
-turn an agreement into a majority.
+map where it stops holding. ~~Still open: a second independent tracer, which
+would turn an agreement into a majority.~~ — **done, § 0.4 below.**
 
 ### Step 0.3 — tilted mirrors, and a fold rule settled by where the beam went
 
@@ -446,6 +451,142 @@ system still landing on the reference is forbidden.
 solved on a folded system. That would pull in pupils and the unfolded-axis map,
 which is § 4a's rung and § 1.5.3's — a different claim from the frame convention
 this block is about, and one `fold.test.ts` already makes against closed forms.
+
+### Step 0.4 — a second independent tracer, and the majority it makes
+
+Everything above is an agreement between **two** programs, and two programs
+agreeing cannot tell you *why*. Where this engine and rayoptics had agreed about
+a **convention** rather than about arithmetic, nothing in § 0–§ 0.3 could have
+said so: from inside either comparison, a shared definition looks exactly like a
+shared answer. That is what the "still open" line above was pointing at, and
+closing it needs a third implementation rather than more systems.
+
+The third is **Optiland 0.6.1** (Kramer Harrison, MIT, DOI
+10.5281/zenodo.14588961), driven headless by
+`docs/notes/optiland-crosscheck.py` into
+`packages/core/test/fixtures/optiland-crosscheck.json`, committed like the first
+so `npm test` still needs no Python. **Lineage was checked before anything was
+built on it**, because a third vote that is a transcription of the second is not
+a vote: no module in the wheel mentions rayoptics, ray-optics, Hayford or
+opticalglass. Its file-format readers name Zemax, OSLO and CODE V, which is
+import plumbing rather than trace math.
+
+**No new system and no new ray**, on purpose. The generator reads `surfaces`,
+`rays`, `objectIndex`, `mirrorFrames` and the wavelength **verbatim** out of the
+rayoptics fixture, and `crosscheck-optiland.test.ts` asserts that identity field
+by field before it compares an answer. This is the rung the whole third
+comparison rests on: two programs agreeing about an achromat and an
+achromat-*shaped* thing is not evidence about either, and "the generator read
+the other fixture" is a claim in a comment until something checks it.
+
+**So the file compares three ways**, and the third is the point:
+
+| Comparison | What it can see |
+|---|---|
+| engine vs Optiland | a defect in the engine, on sixteen systems |
+| engine vs rayoptics (§ 0) | the same, against a different reference |
+| **rayoptics vs Optiland, engine out of it** | a convention the engine *shares* with one of them |
+
+**The headline is the tilt, and it is a statement about this engine's design
+rather than about its arithmetic.** rayoptics builds a surface's rotation as
+Rx(−α)·Ry(−β)·Rz(γ); this engine builds Ry(tiltY)·Rx(tiltX). Those are not the
+same two-parameter family, which is why § 0.1 had to compare *frames* and solve
+for the Euler triple realizing the matrix the engine meant. Optiland's
+`CoordinateSystem` builds Rz(rz)·Ry(ry)·Rx(rx) — so with rz = 0 it is **this
+engine's spelling, angle for angle**, and the generator states `tiltXDeg` as
+`rx` and `tiltYDeg` as `ry` and stops. The engine's tilt parameterization is
+therefore not idiosyncratic: an independent implementation writes it
+identically. Nothing assumes it — § 0's controls (a sign, at −3°; an order, at
+12°/9°) are what make it measured.
+
+**Two constructions, and which system gets which is the scope note.**
+
+- **Chained — the twelve unfolded systems, eight of them misaligned.** Surface
+  *i*'s coordinate system references surface *i−1*'s and carries a decenter, the
+  previous thickness and the tilt. **Optiland composes the chain**, so the frames
+  in the fixture are its own answer about where the glass is, and comparing them
+  against `compile()`'s is independent evidence for the local coordinate chain
+  from a second source. Agreement: **0.13 ulp** on a rotation entry, **0.01 ulp**
+  on a vertex.
+- **Absolute — the four folded systems.** Optiland has **no fold concept at
+  all**: a coordinate system is a placement, a mirror is an interaction, and
+  nothing in the library reverses a chain. Those systems are therefore placed by
+  absolute frame computed in the generator, and **the fixture deliberately
+  carries no frames for them** — comparing `compile()` against frames the
+  generator derived would be checking a transcription against its own source, a
+  code-duplication check wearing a cross-validation's clothes. What the folded
+  four vote on is the **beam**: Optiland traces through that placement and has to
+  reproduce rayoptics' hit points, per-surface directions and path lengths, which
+  a wrong placement could not do. A negative control adds 0.1° to the Newtonian's
+  diagonal and requires the beam to notice.
+
+**A second reconciliation of the fold, and it is simpler than § 0.3's.** The
+engine's folded chain frame after a mirror is the reflection of the frame the
+light arrived in, which is left-handed, and Optiland's Euler angles can only
+express a rotation. Restoring right-handedness by negating the frame's **x**
+axis — rather than its z, which is what rayoptics' convention amounts to — keeps
++z on the beam, so **curvature, conic, thickness and asphere coefficients are all
+used exactly as the prescription writes them** and no parity flip appears
+anywhere. § 0.3's four rules travelling together become one. Only a misalignment
+would conjugate under the x flip, and no system has one behind an odd mirror
+count, so that branch is not shipped as untested code: the generator raises.
+
+**The numbers.** Against the engine: **4.6 ulp** on a hit point, **9 ulp** on a
+direction cosine, **7.0 ulp** on an optical path, **9.3 ulp** on a path
+*difference*. Against rayoptics with the engine out of it: **6.9**, **14**,
+**6.4**, **7.0**. The worst disagreement anywhere in the file is **5.7e-13 mm**,
+on the Cassegrain's 660 mm path — **9.7e-10 of a wave**.
+
+**The direction bound is the one number that is larger than § 0's, and that is a
+result rather than a slackening.** Everywhere the engine is one of the two sides,
+the quantity is read off an implementation this repo controls and part of the
+rounding path is shared. rayoptics against Optiland shares nothing, so six
+refractions of independently-rounded arithmetic accumulate on both sides
+independently — 14 ulp on the Lister's steep marginal ray where the same rung
+against the engine reads 9. It is stated as its own constant
+(`MAJORITY_ULP_DIR`) rather than folded into the other, which would quietly
+loosen the rung that does not need it.
+
+**Optiland's Newton floor is its own, and is not rayoptics' borrowed.**
+`NewtonRaphsonGeometry` stops at max |sag(x, y) − z| < tol over the whole batch,
+default **1e-10** — looser than the 1e-12 the engine and rayoptics both promise
+— so the generator sets 1e-12: the same *promise*, a different *criterion*. What
+it achieves is **8.3e-16 mm**, converging some **1200× tighter** than it
+promises, which is the same kind of statement § 0 could make about the other two
+and is not something Optiland's own tests say.
+
+**Four conventions had to be handled**, and one of them is the dangerous kind.
+(i) `EvenAsphere.coefficients` start at r² where `asphereCoeffs` start at r⁴ —
+the same prepended zero rayoptics needed, arrived at independently. (ii)
+`SurfaceGroup.__init__` calls `_update_surface_links()`, which sets surface 0's
+`previous_surface` to `None`; `material_pre` then falls back to the surface's
+**own** `material_post`, so the first surface refracts n→n and the launch
+segment's path is measured **in glass**. It traces cleanly and answers wrongly,
+so the object medium is re-attached after construction and then **asserted**
+against the fixture's `objectIndex` before any ray is traced. (iii) Path length
+accumulates as `abs(t·n)`, the absolute geometric distance, which is the physical
+path only while no ray back-tracks within a segment — true of every ray here, and
+the Cassegrain agreeing to the last bits is the evidence. (iv) rayoptics'
+`--no-deps` trick barely applies: `optiland/__init__.py` imports the
+visualization stack eagerly, so matplotlib, numba, vtk and seaborn are
+load-bearing at *import* time even though the script draws nothing.
+
+**Seven controls, and the seventh is the one the other six need.** Six damage
+one input and require the comparison to notice at the tolerances above — a 1 nm
+launch shift, a 1e-7 index error, a flipped tilt sign, the two tilt angles
+swapped, 0.1° on a fold mirror, and one aimed at the majority rung specifically:
+crossing one system's rayoptics answer against a *different* system's Optiland
+answer, which has to blow up, since a comparison of two files would otherwise
+pass on two files generated from each other. The seventh asserts **agreement** —
+undamaged, through the same helper, all sixteen systems, both worst residuals
+stated in ulp — because six assertions that a damaged input disagrees say only
+that the comparison is not blind.
+
+**Deliberately out of scope.** § 0.2's aimed chief rays: that is a question about
+two *solvers*, and a majority about the tracer does not need a third one. New
+systems or new rays: either would force the rayoptics fixture to be regenerated
+to keep the two answering one question, which is a different and much larger
+change. Dispersion and apertures stay out for § 0's reasons, unchanged.
 
 ## Step 1 — geometry, materials, ray tracing
 

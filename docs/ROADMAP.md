@@ -1585,9 +1585,28 @@
   for a tilt about an in-plane axis, which is every fold mirror that is really a
   fold mirror, and they part by **0.88°** for a diagonal misaligned in a second
   axis. Which one follows the light is settled by rayoptics against itself: its
-  own ray trace leaves along the reflected frame's axis to half an ulp. **Still
-  open:** a *second* independent tracer, which would turn an agreement into a
-  majority.
+  own ray trace leaves along the reflected frame's axis to half an ulp.
+  ~~**Still open:** a *second* independent tracer, which would turn an agreement
+  into a majority.~~ **The fourth investigation has since been done, and it was
+  the last one this item was carrying** — VALIDATION § 0.4, **Optiland 0.6.1**
+  (MIT, lineage checked: no module in it mentions rayoptics, ray-optics or
+  Hayford), on the same sixteen systems and the same rays, read verbatim out of
+  the first fixture so the three are provably answering one question. So the
+  comparison that did not exist before is now available and is the point of the
+  step: **rayoptics against Optiland with the engine out of it**, which is the
+  only one of the three that can see a convention the engine *shares* with a
+  reference. It sees none — worst disagreement 5.7e-13 mm, 9.7e-10 of a wave.
+  **What is worth carrying out of it is that the engine's tilt spelling is not
+  idiosyncratic.** rayoptics writes a surface rotation Rx(−α)·Ry(−β)·Rz(γ) and
+  needed a solved Euler triple; Optiland writes Rz·Ry·Rx, so with rz = 0 it is
+  this engine's own Ry(tiltY)·Rx(tiltX), angle for angle, and the generator
+  states the two tilts and stops. The fold reconciled a second and simpler way
+  too — one **x**-flip per mirror instead of § 0.3's z-flip, which keeps +z on
+  the beam and leaves curvature, conic, thickness and asphere coefficients
+  exactly as written, collapsing four rules travelling together into one. The
+  honest limit is stated rather than glossed: Optiland has **no fold concept at
+  all**, so on the folded four it votes on the beam and not on a frame, and the
+  fixture carries no frames for them.
 
 ## Deliberate deferrals
 

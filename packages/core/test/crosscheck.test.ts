@@ -92,6 +92,14 @@ import { registerMedium } from "../src/materials/catalog";
  * scope too. No aimed chief ray is solved on a folded system: that would pull in
  * pupils and the unfolded-axis map, which is `fold.test.ts`' rung and § 1.5.3's,
  * not this file's convention question.
+ *
+ * AND WHAT THIS FILE CANNOT SEE AT ALL, now that something can. Every rung here
+ * is an agreement between TWO programs, so where this engine and rayoptics
+ * agreed about a convention rather than about arithmetic, nothing in this file
+ * could say so — from inside the comparison a shared definition looks exactly
+ * like a shared answer. `crosscheck-optiland.test.ts` (§ 0.4) adds the third
+ * implementation that can: it traces these same sixteen systems along these same
+ * rays, and compares rayoptics to Optiland with the engine out of it.
  */
 
 interface FixtureSurface {
