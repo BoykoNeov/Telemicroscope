@@ -5,6 +5,9 @@ import { vec3 } from "../src/math/vec3";
 import { makeRay } from "../src/trace/ray";
 import { traceRay } from "../src/trace/sequential";
 import { compile } from "../src/trace/compile";
+import { pupils } from "../src/pupil/pupils";
+import { chiefRay } from "../src/pupil/aiming";
+import type { OpticalSystem } from "../src/trace/system";
 import { Prescription, SurfaceSpec } from "../src/trace/prescription";
 import { constantIndex } from "../src/materials/dispersion";
 import { registerMedium } from "../src/materials/catalog";
@@ -75,6 +78,21 @@ interface FixtureSurface {
   readonly decenterY?: number;
 }
 
+/**
+ * The chief ray onto a stated surface's own vertex, solved on the rayoptics
+ * side by its own Newton — the external number for real ray aiming (§ 1.5.3).
+ */
+interface FixtureAim {
+  readonly stopSurface: number;
+  readonly fieldDeg: number;
+  readonly launchZ: number;
+  readonly origin: readonly [number, number, number];
+  readonly dir: readonly [number, number, number];
+  readonly residualMm: number;
+  readonly hits: readonly (readonly [number, number, number])[];
+  readonly exitDir: readonly [number, number, number];
+}
+
 /** A surface's frame as rayoptics traced it, expressed in the launch frame. */
 interface FixtureFrame {
   /** Row-major 3×3, mapping surface-local coordinates into the launch frame. */
@@ -102,6 +120,7 @@ interface FixtureSystem {
   readonly frames: readonly FixtureFrame[];
   readonly rays: readonly FixtureRay[];
   readonly expected: readonly FixtureExpectation[];
+  readonly aim?: FixtureAim;
 }
 
 interface Fixture {
@@ -256,6 +275,86 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
           expect(traced[i]!.path.length).toBe(system.expected[i]!.hits.length - 1);
         }
       });
+
+      /**
+       * REAL RAY AIMING against an independently-solved answer (§ 1.5.3).
+       *
+       * Everywhere else in this file the ray is GIVEN and only the trace is
+       * compared. Here the ray is the answer: both sides solve for the launch
+       * that reaches a stated surface's own vertex from a stated direction, each
+       * with its own Newton around its own tracer, and neither uses the other's
+       * solver. The target is a vertex rather than a pupil fraction on purpose —
+       * a vertex needs no agreement about what a pupil coordinate means on a
+       * tilted stop, so a disagreement here is arithmetic and cannot be a
+       * definition.
+       */
+      if (system.aim) {
+        const aim = system.aim;
+        const aimSystem: OpticalSystem = {
+          prescription: {
+            ...prescription,
+            surfaces: prescription.surfaces.map((s, i) => ({ ...s, isStop: i === aim.stopSurface })),
+          },
+          // px = py = 0, so the stop radius never enters — only the target does.
+          aperture: { kind: "stopRadius", value: 1 },
+          field: { kind: "angle", values: [aim.fieldDeg] },
+          wavelengths: [{ nm: FIXTURE.wavelengthNm, weight: 1 }],
+          conjugate: { kind: "infinite" },
+          rayAiming: "real",
+        };
+
+        it("the independently-solved aimed chief ray agrees, surface by surface", () => {
+          // rayoptics' own solve landed on the vertex to here; ours has its own
+          // bound, and neither can be checked tighter than the looser of them
+          expect(aim.residualMm).toBeLessThan(1e-12);
+
+          const pupil = pupils(aimSystem, FIXTURE.wavelengthNm);
+          const ray = chiefRay(aimSystem, pupil, aim.fieldDeg, FIXTURE.wavelengthNm);
+          const traced = traceRay(aimSystem.prescription, ray);
+          expect(traced.status).toBe("ok");
+
+          const tolerance = Math.max(pointTolerance(system), 1e-11);
+          for (let s = 0; s < traced.path.length; s++) {
+            const p = traced.path[s]!;
+            expect(maxAbs([p.x, p.y, p.z], aim.hits[s + 1]!)).toBeLessThan(tolerance);
+          }
+          const d = traced.ray!.dir;
+          expect(maxAbs([d.x, d.y, d.z], aim.exitDir)).toBeLessThan(ULP_DIR * ulp(1));
+        });
+
+        /**
+         * NEGATIVE CONTROL. Paraxial aiming has to FAIL this wherever the
+         * perturbation actually moved the target, or the rung above would pass
+         * without real aiming existing and would be pinning nothing.
+         *
+         * It is asserted only where the target moved, because a tilt about a
+         * surface's own vertex does not move that vertex — so on the three
+         * pure-tilt singlets the two aiming modes are solving the same problem
+         * and agreeing is the correct answer, not a missed defect. The structural
+         * rung below pins which systems those are.
+         */
+        it("paraxial aiming reaches a different ray wherever the target actually moved", () => {
+          const targetMoved = system.frames[aim.stopSurface]!.vertex;
+          const nominalZ = system.surfaces
+            .slice(0, aim.stopSurface)
+            .reduce((z, s) => z + s.thickness, 0);
+          const moved = Math.hypot(targetMoved[0], targetMoved[1], targetMoved[2] - nominalZ);
+
+          const paraxialSystem: OpticalSystem = { ...aimSystem, rayAiming: "paraxial" };
+          const pupil = pupils(paraxialSystem, FIXTURE.wavelengthNm);
+          const ray = chiefRay(paraxialSystem, pupil, aim.fieldDeg, FIXTURE.wavelengthNm);
+          const traced = traceRay(paraxialSystem.prescription, ray);
+          const p = traced.path[aim.stopSurface]!;
+          const gap = maxAbs([p.x, p.y, p.z], aim.hits[aim.stopSurface + 1]!);
+
+          if (moved > 1e-9) {
+            // the miss is the target's own displacement, not a rounding difference
+            expect(gap).toBeGreaterThan(0.1 * moved);
+          } else {
+            expect(gap).toBeLessThan(1e-6);
+          }
+        });
+      }
 
       it("the hit point on every surface agrees to the last bits of a double", () => {
         const tolerance = pointTolerance(system);
@@ -572,6 +671,47 @@ describe("§ 0 — the exact tracer against an independent implementation", () =
       // every misaligned system refracts: tilted mirrors and the folded frame
       // are named as open in this file's header, and this keeps them out
       expect(misalignedSystems.every((s) => s.surfaces.every((x) => !x.reflect))).toBe(true);
+    });
+
+    /**
+     * What the aimed-chief-ray rungs actually cover, counted rather than
+     * assumed. Three of the seven aim at a target the perturbation did not move
+     * — a tilt is about a surface's own vertex, so aiming at that vertex is the
+     * same problem tilted or not — and on those the paraxial control is
+     * correctly silent. This rung exists so that fact is a recorded property of
+     * the fixture instead of three quietly toothless cases.
+     */
+    it("the aimed rungs say which of them the paraxial control can bite on", () => {
+      const aimed = FIXTURE.systems.filter((s) => s.aim);
+      expect(aimed.length).toBe(7);
+
+      const displacement = (s: FixtureSystem) => {
+        const k = s.aim!.stopSurface;
+        const v = s.frames[k]!.vertex;
+        const nominalZ = s.surfaces.slice(0, k).reduce((z, x) => z + x.thickness, 0);
+        return Math.hypot(v[0], v[1], v[2] - nominalZ);
+      };
+      const moved = aimed.filter((s) => displacement(s) > 1e-9);
+      const still = aimed.filter((s) => displacement(s) <= 1e-9);
+
+      // four targets move, so the negative control is exercised four times
+      expect(moved.length).toBe(4);
+      // and the three that do not are exactly the pure tilts
+      expect(still.map((s) => s.id).sort()).toEqual(["tilt-x", "tilt-xy", "tilt-y"]);
+      expect(
+        still.every((s) => s.surfaces.every((x) => !x.decenterX && !x.decenterY)),
+      ).toBe(true);
+
+      // and at least one aims THROUGH a perturbation rather than AT one, which
+      // is the only arrangement that tests aiming through misaligned glass
+      expect(
+        aimed.some((s) =>
+          s.surfaces.some(
+            (x, i) =>
+              i < s.aim!.stopSurface && (x.tiltXDeg ?? x.tiltYDeg ?? x.decenterX ?? x.decenterY),
+          ),
+        ),
+      ).toBe(true);
     });
 
     /**

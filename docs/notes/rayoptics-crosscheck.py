@@ -88,6 +88,25 @@ way; it depends on them putting the surface in the same place, which is why
 each system also carries the frames rayoptics actually traced through, in the
 launch frame, for the TypeScript side to compare against its own compiled ones.
 
+AIMED CHIEF RAYS — the external number for real ray aiming (VALIDATION
+§ 1.5.3). Each misaligned system also carries the ray that, coming from a
+stated direction, lands on a stated surface's OWN VERTEX. That target is
+chosen because it needs no convention: a vertex is a point on a surface, where
+a rim point at "40% across the stop" would first require both sides to agree
+what a pupil coordinate means on a tilted stop.
+
+Both sides solve it, and neither imports the other's solver. Here it is a
+two-variable Newton on the launch offset, wrapped around rayoptics' own raw
+trace; in the engine it is `aimRay` with `rayAiming: "real"`. So the comparison
+is two independent solvers driving two independent tracers to the same
+geometric condition — which is a stronger statement than either program's
+aiming being checked against a formula, and a different one from the rest of
+this file, where no aiming enters at all.
+
+Only the CHIEF ray is pinned this way. The rim of the pupil is covered by the
+rigid-motion identities in `real-aiming.test.ts`, for the convention reason
+above.
+
 Not covered, and named rather than half-done: TILTED MIRRORS and the folded
 frame. A mirror in the folded convention reflects the coordinate chain in its
 own tangent plane, which is a second convention with its own handedness and
@@ -292,7 +311,10 @@ def misaligned_singlet(sid, note, index, **perturbation):
     surfaces = [dict(s) for s in SINGLET]
     surfaces[index].update(perturbation)
     return {"id": sid, "note": note, "objectIndex": N_AIR,
-            "surfaces": surfaces, "rays": SINGLET_RAYS}
+            "surfaces": surfaces, "rays": SINGLET_RAYS,
+            # the aimed chief ray: onto the rear surface's own vertex, which is
+            # the surface the perturbation is on, so the target itself moves
+            "aim": {"stopSurface": 1, "fieldDeg": 0.4, "launchZ": -30.0}}
 
 
 def misaligned_achromat():
@@ -317,6 +339,9 @@ def misaligned_achromat():
         "objectIndex": N_AIR,
         "surfaces": surfaces,
         "rays": base["rays"],
+        # onto the LAST surface's vertex, so the aim is solved through both the
+        # tilt on surface 0 and the decenter on surface 1
+        "aim": {"stopSurface": 2, "fieldDeg": 0.25, "launchZ": -50.0},
     }
 
 
@@ -498,6 +523,64 @@ def trace_one(opm, system, frames, ray_spec):
     }
 
 
+def aim_chief(opm, system, frames):
+    """Solve for the ray that lands on a stated surface's own vertex.
+
+    Two variables (the launch point's x and y on a plane before the system),
+    two conditions (the transverse coordinates where the traced ray meets the
+    target surface, read in THAT surface's own frame, both zero). Newton with a
+    numerical Jacobian; the map is smooth and nearly affine, so it converges in
+    a few steps and the residual lands at the tracing floor.
+
+    Deliberately written here rather than called from rayoptics' own aiming:
+    the point of this block is two independent solvers agreeing, and reusing
+    one program's solver on both sides would test one solver twice.
+    """
+    spec = system['aim']
+    k = spec['stopSurface']
+    z0 = spec['launchZ']
+    phi = math.radians(spec['fieldDeg'])
+    direction = np.array([math.sin(phi), 0.0, math.cos(phi)])
+    sm = opm['seq_model']
+    n_surf = len(system['surfaces'])
+
+    def local_hit(qx, qy):
+        pt0 = np.array([qx, qy, z0])
+        ray, _op, _wvl = raytrace.trace_raw(
+            iter(sm.path(wl=WVL)), pt0, direction, WVL,
+            check_apertures=False, intersect_obj=False, last_surf=n_surf)
+        # ray[i] sits on interface i, in interface i's own coordinates, and our
+        # surface k is interface k+1 — so this is already the target frame.
+        p = ray[k + 1][0]
+        return np.array([float(p[0]), float(p[1])])
+
+    q = np.array([0.0, 0.0])
+    h = 1e-4
+    for _ in range(40):
+        f = local_hit(q[0], q[1])
+        if np.abs(f).max() < 1e-13:
+            break
+        j = np.column_stack([
+            (local_hit(q[0] + h, q[1]) - local_hit(q[0] - h, q[1])) / (2 * h),
+            (local_hit(q[0], q[1] + h) - local_hit(q[0], q[1] - h)) / (2 * h),
+        ])
+        q = q - np.linalg.solve(j, f)
+    else:
+        raise SystemExit(f"aim did not converge on {system['id']}")
+
+    residual = float(np.abs(local_hit(q[0], q[1])).max())
+    traced = trace_one(opm, system, frames,
+                       {"origin": [q[0], q[1], z0], "dir": list(direction)})
+    return {
+        **spec,
+        "origin": [float(q[0]), float(q[1]), z0],
+        "dir": [float(v) for v in direction],
+        "residualMm": residual,
+        "hits": traced["hits"],
+        "exitDir": traced["dir"],
+    }
+
+
 def main():
     out = {
         "_generator": {
@@ -519,6 +602,8 @@ def main():
         entry = dict(system)
         entry['frames'] = frames
         entry['expected'] = expected
+        if 'aim' in system:
+            entry['aim'] = aim_chief(opm, system, frames)
         out['systems'].append(entry)
 
     path = sys.argv[1] if len(sys.argv) > 1 else "fixture.json"

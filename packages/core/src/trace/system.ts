@@ -90,7 +90,26 @@ export interface OpticalSystem {
   readonly imageSurface?: ImageSurfaceSpec;
   /** How the aperture stop is chosen. Default `declared` (see `ApertureStopPolicy`). */
   readonly apertureStop?: ApertureStopPolicy;
+  /** How a pupil coordinate is turned into a ray. Default `paraxial`. */
+  readonly rayAiming?: RayAiming;
 }
+
+/**
+ * Where a pupil coordinate is aimed AT (docs/VALIDATION.md § 1.5.3).
+ *
+ *  - `"paraxial"` (default) — at the first-order entrance pupil, which
+ *    `pupils()` computes on the straight-axis twin. Exact for an aligned
+ *    system, and the reference every rung below § 1.5.3 is written against.
+ *  - `"real"` — at the aperture stop itself, found by tracing. The two differ
+ *    only when the stop is not where the first-order layer thinks it is, which
+ *    is exactly what a MISALIGNMENT does: a decenter or tilt upstream of the
+ *    stop carries the stop with it, and the paraxial pupil does not follow.
+ *
+ * This is opt-in per system rather than inferred, for the same reason
+ * `mirrorFrames` is: it changes what every pupil coordinate means, and a
+ * misalignment appearing in the data must not silently redefine that.
+ */
+export type RayAiming = "paraxial" | "real";
 
 /**
  * Index of the aperture stop. Falls back to surface 0 when the prescription

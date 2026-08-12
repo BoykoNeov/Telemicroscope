@@ -1481,10 +1481,26 @@
    own open item closes with its reasoning revised: the chief invariant through a
    real stack is the lens's own **bitwise** when the objective is telecentric, and
    departs as the *square* of the field when it is not.
-7. **Teaching layer + polish**
+7. **Teaching layer + polish** ← current
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment
    (tilt/decenter) scenarios. Progressive-refinement tuning.
+   *Misalignment's engine prerequisite is ✅ closed* (§ 1.5.3, real ray aiming).
+   It was not on any list: a misalignment MOVES the aperture stop, because the
+   local coordinate chain carries a perturbation to every surface after it, and
+   the paraxial pupil the aim targets is computed on a twin that has dropped the
+   perturbation — so the chief ray missed by very nearly the whole displacement,
+   at every field alike. Pinned on two rigid-motion identities (an instrument
+   moved sideways, and one turned) plus § 0.2's independently-solved aimed ray.
+   **The step also corrected its own premise.** It was taken because the pupil
+   error had the same field-constant shape as the misalignment being measured —
+   true, but the artifact turned out to live in the CURRENCY rather than in the
+   aim: `OpdMap.rmsWaves` removes piston alone, so a misaligned system's
+   wavefront carries a reference-frame tilt that is not image degradation.
+   Balancing the wavefront removes ~320× of it and the new aiming a further
+   1.7×. What the step is actually worth is the exact translation identity —
+   1.5e-4 waves to 3e-12 — and pupil coordinates that mean what they say off the
+   nominal axis.
 
 ## v1 cut (both branches shipped)
 

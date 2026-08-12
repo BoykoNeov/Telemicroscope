@@ -16,9 +16,9 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
-| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: the same rays, given as points and directions, traced through eleven systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — and the asphere's Newton floor, the only place they cannot; **0.1** the misaligned seven, where the two programs share the local coordinate chain but not its parameters, so the FRAMES are compared and not the angles | `crosscheck` |
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: rays given as points and directions, traced through eleven systems by `traceRay` and by rayoptics 0.9.9, agreeing to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the local coordinate chain but not its parameters, so the FRAMES are compared and not the angles; **0.2** the aimed chief ray, where the ray IS the answer and each side solves for it alone | `crosscheck` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
-| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss` | `pupil` `opd` `compile` |
+| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities, and the finding that the artifact lived in the currency rather than in the aim | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
@@ -107,6 +107,7 @@ no numbered gap left.
 | **0.1** Six singlets misaligned one degree of freedom at a time (decenter X, decenter Y, tilt X, tilt Y), 9 rays each incl. skew | rayoptics 0.9.9 | ✅ |
 | **0.1** The two combinations no isolated system can see: two tilts on one surface (12°, 9°), and a tilt with a decenter on one surface | rayoptics 0.9.9 | ✅ |
 | **0.1** A tilted surface with two surfaces downstream of it — the local coordinate chain against tilt-and-return | rayoptics 0.9.9 | ✅ |
+| **0.2** The AIMED chief ray onto a stated surface's own vertex, on all seven misaligned systems — each side solving it with its own Newton around its own tracer | rayoptics 0.9.9 | ✅ |
 | Nine negative controls: a 1 nm launch shift, a 1e-7 index error, a sphere where the fixture has a paraboloid, the asphere coefficients dropped, a flipped tilt sign, the two tilt angles swapped, a decenter read along the tilted axes, no two singlets landing in one place, and the eleven systems not being eleven spellings of one shape | the rung's own tolerances | ✅ |
 
 This is the "one cross-validation against an independent tracer" ROADMAP has
@@ -280,6 +281,34 @@ tilted about its own vertex leaves the ray through that vertex exactly where it
 was**, so all three tilt systems share that one exit point while differing by
 millimetres everywhere else. The control now runs over the whole ray set. A
 control aimed at the wrong ray is a control that reports geometry as a bug.
+
+### Step 0.2 — the aimed chief ray, where the ray IS the answer
+
+Everywhere else in this file the ray is **given** and only the trace is compared
+— deliberately, since that is what removes every aiming and pupil convention
+from the argument. § 1.5.3 needed the other thing, so this block adds it in the
+one form that keeps the property: the target is a **surface's own vertex**, which
+is a point on a surface and needs no agreement about what a pupil coordinate
+means on a tilted stop. A rim point would have needed exactly that agreement, so
+the rim is left to § 1.5.3's rigid-motion identities and only the chief ray is
+pinned here.
+
+Both sides solve it, and **neither uses the other's solver**: a two-variable
+Newton around `trace_raw` in the generator, `aimRay` with `rayAiming: "real"` in
+the engine. Two independent solvers over two independent tracers driven to one
+geometric condition, which is a different and stronger claim than either
+program's aiming checked against a formula. rayoptics' solve lands on the vertex
+to **1.5e-16 mm at worst**; the engine's own bound is its stop radius times
+1e-12, and the comparison is held to the looser of the two.
+
+**The negative control is asserted where it can bite and silent where it cannot,
+and the fixture records which is which.** Paraxial aiming must reach a *different*
+ray wherever the perturbation actually moved the target — it does, by a fraction
+of the target's own displacement, on four of the seven. On the other three it
+correctly agrees, and the reason is the same geometry the § 0.1 control ran into
+from the other side: **a tilt is about a surface's own vertex, so it does not
+move that vertex**, and aiming at it is the same problem tilted or not. Those
+three are named in the rung rather than left looking like coverage.
 
 **Not yet pinned.** **Tilted mirrors and the folded frame**, deliberately: a
 mirror under `mirrorFrames: "folded"` reflects the coordinate chain in its own
@@ -545,6 +574,102 @@ wrong: `entrance.radius` is `|m|·stopRadius`, a **magnitude**, so `px = +1` is 
 point in *entrance-pupil* coordinates and reaches the stop's **−x** rim wherever
 the pupil magnification is negative — which it is throughout this regime. The
 sign belongs to the pupil convention, not to the aim.
+
+### 1.5.3 — real ray aiming, and the stop a misalignment moved
+
+§ 1.5.2 ended on an honest limitation: `aimRay` targets the *paraxial* pupil, so
+the launched ray fills the stop only to an order — the landing error is
+∝ stopRadius³, the leading pupil-aberration term. This step adds the other
+option, `rayAiming: "real"` on `OpticalSystem`, which aims at the **stop itself**
+by solving for it, and pins what the two modes mean.
+
+**The reason is misalignment, and it is structural rather than a matter of
+degree.** In the local coordinate chain a perturbation on surface *i* carries
+every surface after it — **the stop included**. So a 0.5 mm decenter upstream
+moves the stop 0.5 mm, `pupils()` computes the first-order pupil on the
+straight-axis twin that has dropped the decenter entirely, and the aim keeps
+pointing at where the stop used to be. **The chief ray misses by very nearly the
+whole displacement**, identically at every field, which no aberration would be.
+Real aiming lands it: 0.5 mm becomes **1e-11 mm**, and the rim points land on
+their own radius to the same bound.
+
+**Pinned to two exact identities**, both statements about optical systems rather
+than about this engine, which is what lets them carry the step:
+
+- **A rigid translation is the same instrument.** Decentering surface 0 by *d*
+  moves every surface by *d* — asserted directly on the compiled frames — so
+  that system *is* the aligned one, moved, and its wavefront must be identical.
+  Under real aiming it is, to **3e-12 waves**. Under paraxial aiming it is not:
+  **1.5e-4 waves** at 0.5 mm, and the gap grows faster than 50× for a 10× larger
+  shift, which is the identity failing rather than the optics changing.
+- **A rigid rotation is the same instrument at a shifted field.** Tilting
+  surface 0 by β about y turns the whole chain about y, and `fieldDirection` is
+  (sin t, 0, cos t) in that same plane, so the turned system at field φ is the
+  aligned system at field **φ − β** — exactly, and the other sign is two orders
+  of magnitude away.
+
+**The second identity found what the step was not looking for, and it is the
+result worth carrying out.** Real aiming makes the translation identity exact
+and leaves the rotation identity's raw RMS **as wrong as it was**, because that
+residual was never on the entrance side. `opdMap` quotes the wavefront about the
+chief ray's point on the *nominal* image plane, and a turned instrument's has
+moved — which is piston, tilt and defocus and **nothing else**. Removing those
+three drops the residual from ~1e-2 waves to **4.6e-5**, a factor of ~1700. So
+the invariant is the **balanced** wavefront — § 5t's `sigmaWaves` currency, and
+what Strehl and Maréchal are built on — and `OpdMap.rmsWaves`, which removes
+piston alone, **is not a currency a misaligned system may be measured in.**
+
+**Which correction actually mattered, measured, because the opposite was assumed
+when the step was begun.** A rigid turn introduces no asymmetry across the field,
+so whatever asymmetry the engine reports for one is entirely its own; against a
+genuine one-surface tilt of the same size:
+
+| currency | aiming | artifact | signal | ratio |
+|---|---|---|---|---|
+| raw RMS | paraxial | 9.4e-4 | 3.7e-2 | 39 |
+| raw RMS | real | 9.3e-4 | 3.7e-2 | 40 |
+| balanced | paraxial | 2.9e-6 | 5.8e-3 | 2021 |
+| balanced | real | 1.7e-6 | 5.8e-3 | 3497 |
+
+The artifact lived in the **currency**, not in the aiming: choosing the balanced
+one removes ~320× of it and real aiming a further 1.7×. The step's value is
+therefore the exact translation identity and pupil coordinates that mean what
+they say on a misaligned system — not the artifact, which a currency already
+handled. Recorded this way round because a step that kept a wrong reason would
+be worse than one that states the right one.
+
+**Not inert on an aligned system either, and the two reasons separate.** On axis
+with the stop at the first surface the two modes agree **bitwise** — an on-axis
+bundle runs parallel to z and crosses the pupil plane and the curved stop at the
+same height. Off axis they do not, because *a pupil plane is not a stop surface*:
+the ray is tilted, so the sag displaces it — 2.0 mm of sag at this doublet's rim
+times tan(0.3°) is 1.0e-2 mm of pupil, **2.3e-5 waves**. Move the stop to the
+last surface and § 1.5.2's pupil aberration adds an order of magnitude on top,
+**1.6e-3 waves**, with nothing misaligned at all. That is why the mode is opt-in
+per system and defaults to `paraxial`: every rung in this file below here is
+written against the paraxial aim, and switching it globally would be a silent
+re-baselining rather than a new capability.
+
+**Refusals.** An entrance pupil at infinity (§ 6u's telecentric branch) names a
+set of *directions*, so "the point on the stop this coordinate means" is a
+different construction rather than a refinement of this one; real aiming throws
+there instead of quietly handing back a paraxial ray under the name that was
+asked for. A solve that cannot reach its target throws with the best miss it
+managed.
+
+**External number.** § 0's fixture carries an **aimed chief ray** for each of the
+seven misaligned systems: the launch that reaches a stated surface's own vertex
+from a stated direction, solved on the rayoptics side by its own two-variable
+Newton around its own raw trace. Two independent solvers over two independent
+tracers, agreeing on a target that needs no convention — see § 0.2.
+
+**Not yet pinned.** The **exit side**, deliberately: the reference sphere is
+still built on the axial twin's exit pupil and image plane, which the rotation
+identity shows costs piston, tilt and defocus and nothing else. Fixing it would
+change what every rung in this file quotes and buys 4.6e-5 waves in a currency
+that already removes those three terms. **Cost** is measured only as a shape:
+real aiming is a few traces per ray against one, with the Jacobian shared across
+a whole bundle at one field and wavelength, and no wall-clock figure is claimed.
 
 ## Step 1.6 — focus solve + spot diagrams
 
