@@ -4,7 +4,7 @@ import { OpticalSystem } from "../trace/system";
 import { traceRay } from "../trace/sequential";
 import { paraxialTrace } from "../trace/paraxial";
 import { getMedium } from "../materials/catalog";
-import { chiefRay, marginalRay } from "./aiming";
+import { chiefRay, marginalRay, type AimOptions } from "./aiming";
 import { imagePlaneZ, pupils } from "./pupils";
 
 /**
@@ -104,6 +104,51 @@ export function lateralMagnification(
   const t = (zImage - r.origin.z) / r.dir.z;
   const height = r.origin.x + t * r.dir.x;
   return height / objectHeightMm;
+}
+
+/**
+ * The **chief ray's own transverse invariant** in object space, n·sin θ, at
+ * object height `objectHeightMm` — the number that decides how much of a plane
+ * stack's aberration is coma rather than spherical (§ 6y).
+ *
+ * Signed by the ray's own x direction, so a field point at +h and one at −h give
+ * opposite answers and the azimuth is the caller's to apply (`illuminationOffset`
+ * has the same shape and for the same reason).
+ *
+ * ## Read off the aimer, not derived — § 6x.1's lesson, one quantity along
+ *
+ * The chief ray is the aim at pupil coordinate zero, so this is a *measurement*
+ * of what the objective does with a field point, carrying whatever the real
+ * surfaces did to it. Deriving it as `h/z_ep` instead would need the aimer's
+ * parametrization to be trusted on two separate things — whether a pupil
+ * coordinate is a tangent or a sine (§ 6q.5 got that wrong at a cost of 61%) and
+ * the sign — and would not survive a system where those differ.
+ *
+ * ## Telecentricity makes it a bitwise zero, not a small number
+ *
+ * An entrance pupil at infinity sends `aimRay` down its object-space branch,
+ * where the chief ray's slope is the literal `0` of § 6v.4. Both transverse
+ * direction cosines are then exactly zero, so this returns `0` rather than a
+ * rounding residual — which is what lets § 6y assert that a telecentric
+ * objective's slab wavefront is the *same wavefront* at every field height,
+ * bit for bit, instead of merely a close one.
+ */
+export function chiefRayInvariant(
+  system: OpticalSystem,
+  objectHeightMm: number,
+  wavelengthNm: number,
+  options: { readonly aim?: AimOptions } = {},
+): number {
+  if (system.conjugate.kind !== "finite") {
+    throw new Error(
+      "chiefRayInvariant: needs a finite conjugate (there is no object-space chief ray at infinity)",
+    );
+  }
+  const pupil = pupils(system, wavelengthNm);
+  const c = chiefRay(system, pupil, objectHeightMm, wavelengthNm, options.aim ?? {});
+  const n = getMedium(system.prescription.objectMedium ?? "AIR").n(wavelengthNm);
+  const sin = sinOffAxis(c.dir.x, c.dir.y, c.dir.z);
+  return c.dir.x < 0 ? -n * sin : n * sin;
 }
 
 /**

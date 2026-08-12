@@ -42,8 +42,12 @@ import { DEFAULT_TUBE_FOCAL_LENGTH_MM } from "./microscope";
  * ## The stop is at the front vertex, and at the solution that cannot matter
  *
  * This inherits § 6a's telecentricity deferral: a real objective puts its stop at
- * the back focal plane, which needs object-space ray aiming the engine does not
- * have, so the stop sits on the front group's own rim. The obvious objection is
+ * the back focal plane, and the stop here sits on the front group's own rim. The
+ * *reason* recorded here has expired — it read "which needs object-space ray
+ * aiming the engine does not have", and § 6u built that aiming; § 6v then spent
+ * it on `microscopeObjective`. What is left is a design that has not been
+ * re-solved, not a capability that is missing, and moving this stop is work
+ * rather than a blocker. The obvious objection is
  * that coma is stop-dependent — and it is. Under a shift of the stop the third-
  * order sums transform as
  *

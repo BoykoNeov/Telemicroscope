@@ -73,9 +73,15 @@ import { defocusWaves, withDefocus, type DepthPupils, type VolumeImageOptions } 
  *
  * ## What this step does NOT add
  *
- * **Off axis.** § 6c's plate and § 6e.1's stack are on-axis S_I stories; a plate
- * in a non-telecentric beam also adds coma and astigmatism, and the object-space
- * ray aiming that would express it is § 6a's standing blocker.
+ * **Off axis** — ✅ **since closed at § 6y**, and the sentence that stood here
+ * named a blocker that had already gone. It read "the object-space ray aiming
+ * that would express it is § 6a's standing blocker"; § 6u closed that blocker,
+ * and this comment went on asserting it because no structural check can see a
+ * sentence that quietly stopped matching the engine (APP.md's Part F, arriving in
+ * `core`). What was true underneath it is narrower and is a fact about *this*
+ * module rather than about aiming: every form here takes the invariant as a bare
+ * radius, and a radius cannot express coma. The vector spelling is
+ * `mountWavefrontWavesVector` and `withMountAberration`'s `chief` argument below.
  *
  * **The chromatic half.** Every index here is resolved at one wavelength, so a
  * mount that is dispersive relative to the immersion is one λ at a time — the
@@ -156,6 +162,65 @@ export function mountWavefrontWaves(spec: MountSpec, depthMm: number, rho: numbe
 }
 
 /**
+ * The chief ray's own transverse invariant, resolved onto the pupil's axes —
+ * `chiefRayInvariant` (`pupil/microscope`) turned to a field point's azimuth,
+ * exactly as `FieldPupil.illuminationOffset` turns § 6x's radial offset.
+ *
+ * Zero is the axial case AND the telecentric one, and in both it is a bitwise
+ * zero rather than a small number, which is what the vector path checks for
+ * before deciding it has nothing to do.
+ */
+export interface ChiefInvariant {
+  readonly qx: number;
+  readonly qy: number;
+}
+
+const AXIAL: ChiefInvariant = { qx: 0, qy: 0 };
+const isAxial = (c: ChiefInvariant): boolean => c.qx === 0 && c.qy === 0;
+
+/**
+ * The wavefront a focal depth costs at a **pupil point**, in waves — the vector
+ * form, and the one an off-axis field point needs (§ 6y).
+ *
+ * The stack is symmetric about its own normal rather than about the beam, so the
+ * aberration is still `W(|q|)` and still radial — in the plane of the invariant,
+ * which is not the plane of the pupil once the chief ray is tilted:
+ *
+ *     q = (chief.qx + NA·px,  chief.qy + NA·py)
+ *
+ * With an axial or telecentric chief ray this **delegates** to
+ * `mountWavefrontWaves` at ρ = |(px, py)| rather than reaching the same answer by
+ * a parallel route. That is deliberate: `hypot(NA·px, NA·py)` and
+ * `NA·hypot(px, py)` are the same number in algebra and not always the same f64,
+ * so a vector path that recomputed it would leave every on-axis claim in the
+ * repo agreeing to a tolerance where it used to agree bitwise. § 6y.2 pins the
+ * reduction; this is what makes it structural rather than lucky.
+ *
+ * Returns 0 where the invariant reaches an index in the stack, for
+ * `mountWavefrontWaves`' reason: past there the ray does not exist and
+ * `withMountAberration` is what turns that into an amplitude. Off axis that
+ * region is a **crescent** rather than an annulus, since it is the displaced disc
+ * that leaves the ceiling, not a centred one.
+ */
+export function mountWavefrontWavesVector(
+  spec: MountSpec,
+  depthMm: number,
+  px: number,
+  py: number,
+  chief: ChiefInvariant = AXIAL,
+): number {
+  if (isAxial(chief)) return mountWavefrontWaves(spec, depthMm, Math.hypot(px, py));
+  checkSpec(spec);
+  if (depthMm === 0 || spec.mountIndex === spec.immersionIndex) return 0;
+  const qx = chief.qx + spec.numericalAperture * px;
+  const qy = chief.qy + spec.numericalAperture * py;
+  const q = Math.hypot(qx, qy);
+  if (!(q < spec.mountIndex) || !(q < spec.immersionIndex)) return 0;
+  const layers: readonly PlaneLayer[] = [{ thicknessMm: depthMm, n: spec.mountIndex }];
+  return stackWavefrontErrorMm(layers, spec.immersionIndex, q) / (spec.wavelengthNm * 1e-6);
+}
+
+/**
  * Add a focal depth's aberration to a pupil — `withDefocus`'s shape, one layer
  * of physics further in.
  *
@@ -173,14 +238,52 @@ export function mountWavefrontWaves(spec: MountSpec, depthMm: number, rho: numbe
  * why § 6k.1's flux invariance survives this step (§ 6l.6) — a depth-varying
  * amplitude is exactly what § 6k.5's negative control needed to fill the missing
  * cone, and this is not one.
+ *
+ * ## `chief` — the field point's own tilt, and what it does to BOTH halves
+ *
+ * Passing the chief ray's invariant (`chiefRayInvariant`, turned to this point's
+ * azimuth) is what makes this an off-axis pupil (§ 6y). Both halves change, and
+ * they change differently:
+ *
+ *  - the **phase** picks up coma, astigmatism and a tilt, because a quartic in
+ *    |q| evaluated on a disc that no longer surrounds the origin is not a quartic
+ *    in ρ. The sizes are `stackObliqueSeidelMm`'s;
+ *  - the **amplitude** stops being an annulus. The ceiling is a circle in the
+ *    invariant plane and the pupil is a disc displaced inside it, so what is lost
+ *    is a **crescent** on the field's own side — asymmetric, and therefore an
+ *    apodization rather than a smaller aperture.
+ *
+ * With `chief` omitted or bitwise zero — the axial case, and every field point of
+ * a telecentric objective (§ 6v.4) — this is the identical function it always
+ * was, by delegation rather than by agreement.
  */
 export function withMountAberration(
   pupil: PupilFunction,
   spec: MountSpec,
   depthMm: number,
+  chief: ChiefInvariant = AXIAL,
 ): PupilFunction {
   checkSpec(spec);
   const na = spec.numericalAperture;
+  if (!isAxial(chief)) {
+    // The ceiling is a statement about the INVARIANT, so off axis it has to be
+    // tested there: `mountAperture`'s min(NA, n_s) is that same statement
+    // collapsed onto a pupil radius, which is only available while the disc is
+    // centred on the stack's normal.
+    const matchedOff = depthMm === 0 || spec.mountIndex === spec.immersionIndex;
+    const rim = Math.min(spec.mountIndex, spec.immersionIndex);
+    const rim2 = rim * rim;
+    return {
+      amplitude: (px, py) => {
+        const qx = chief.qx + na * px;
+        const qy = chief.qy + na * py;
+        return qx * qx + qy * qy >= rim2 ? 0 : pupil.amplitude(px, py);
+      },
+      phaseWaves: (px, py) =>
+        pupil.phaseWaves(px, py) +
+        (matchedOff ? 0 : mountWavefrontWavesVector(spec, depthMm, px, py, chief)),
+    };
+  }
   const ceiling = mountAperture(spec);
   const truncates = ceiling < na;
   // ρ at which q reaches the ceiling. Squared, so the test costs no sqrt.

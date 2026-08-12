@@ -1418,10 +1418,39 @@
    § 6k's axial *symmetry* breaking **19.24×** for an emitter at a fixed depth, best
    focus moved to +1.11 waves. § 6e.4's "the cover slip HELPS" finally gets a rate,
    and the rate kills it as a trade: **33.28 µm of slip error per µm of depth**.
-   **Open:** off axis, the chromatic half, correcting the objective *for* a depth
+   **Open:** the chromatic half, correcting the objective *for* a depth
    (§ 6c's `targetS1Mm` route, which is what a collar physically does), § 6s's table
    under a moved conjugate, and TIRF — 6l.3 stops at "the rays do not exist", and
    what happens past n_s is a real modality and not geometric optics.
+   *Off axis was the first of those and is now* ✅ **closed at § 6y** — and it
+   closed with a correction to its own reason, which had expired before it was
+   written. "The object-space ray aiming that would express it is § 6a's standing
+   blocker" stopped being true at § 6u, and the sentence went on standing in
+   `depth-aberration`'s header, in `lister`'s, and in VALIDATION, because no
+   structural check can see a comment that quietly stops matching the engine —
+   which is APP.md's Part F lesson arriving in `core` instead of in a document.
+   What was really missing was narrower and was a fact about the module: every
+   stack form takes the invariant as a bare **radius**, and a radius cannot
+   express coma. **The step adds no physics.** A plane stack is symmetric about
+   its own *normal* rather than about the beam, so the wavefront stays `W(|q|)`
+   and tilting the bundle only moves the pupil's disc of invariants off the
+   origin — a quartic on a displaced disc is not a quartic in ρ, and what falls
+   out is the classical plane-parallel plate set in the ratio **1 : 4 : 4 : 2 : 4**
+   on one coefficient, converging from the exact form at fourth order (4.09 then
+   4.02). Three things nothing predicted. **The headline is invariance and not
+   zero:** on the telecentric preset the chief invariant is a *bitwise* zero at
+   every field height, so the slab's wavefront is the same wavefront across the
+   field — while the spherical part stays at full strength, so "telecentricity
+   fixes the coverslip" would be false. **What it costs is one ratio with no glass
+   in it** — coma over spherical is `4·q_c/NA`, so it is geometry: 8.7e-2 at
+   0.1 mm on the rim-stopped DIN and **0.87 at 1 mm**, where the plate's coma is
+   87% of its spherical term on the lens whose plate contribution § 6c pinned as
+   negligible on the axis (both stay four orders under Maréchal, so § 6c's verdict
+   survives the off-axis half rather than having been about the axis). And **the
+   aperture ceiling stops being an aperture**: § 6l.3's wall is a statement about
+   the invariant, so off axis it cuts a **crescent** on the field's own side
+   rather than an annulus — an apodization, whose PSF is not that of any circular
+   pupil, and which nothing yet transforms.
 7. **Teaching layer + polish**
    Every artifact in the image links to the plot that explains it (coma flare
    → ray fan; purple fringe → chromatic focal shift). Misalignment

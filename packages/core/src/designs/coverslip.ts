@@ -403,12 +403,154 @@ export function stackW040Mm(
   q: number,
 ): number {
   checkStack(layers, nOut, q);
-  const q4 = q * q * q * q;
-  return layers.reduce(
+  return w040Coefficient(layers, nOut) * q * q * q * q;
+}
+
+/**
+ * The q⁴ coefficient alone, with no invariant to validate.
+ *
+ * Split out because the coefficient is a property of the STACK and the guard is a
+ * property of a RAY: asking `stackW040Mm` for it at q = 1 — the obvious way to
+ * spell "just the coefficient" — makes a dry stack refuse, since q = 1 does not
+ * propagate into air however small the real aperture is.
+ */
+const w040Coefficient = (layers: readonly PlaneLayer[], nOut: number): number =>
+  layers.reduce(
     (a, l) =>
-      a + (l.thicknessMm * q4 * (l.n * l.n - nOut * nOut)) / (8 * l.n ** 3 * nOut * nOut),
+      a + (l.thicknessMm * (l.n * l.n - nOut * nOut)) / (8 * l.n ** 3 * nOut * nOut),
     0,
   );
+
+/**
+ * ## The stack OFF AXIS — the same wavefront, reached through a different pupil
+ *
+ * Every form above takes the invariant as a bare number, and on axis that is
+ * exactly right: the cone is centred on the stack's own normal, so a pupil radius
+ * and a ray angle are the same statement. Off axis they part company, and the
+ * physics that separates them is one sentence.
+ *
+ * **A plane stack is symmetric about its NORMAL, not about the beam.** The
+ * invariant is transverse and both its components are conserved at every plane
+ * face, so the wavefront a ray picks up depends on |**q**| and on nothing else —
+ * not on which field point launched it, not on how the bundle is tilted. Tilting
+ * the bundle therefore adds no physics whatever; it moves the pupil's disc of
+ * invariants **off the origin** of the plane the aberration is radial in:
+ *
+ *     **q**(ρ, φ) = **q**_chief + NA·ρ·(cos φ, sin φ)
+ *
+ * That is the whole of the off-axis story, and it is why the aberration that
+ * arrives is coma. W is a quartic in |**q**|, and a quartic evaluated on a
+ * displaced disc is not a quartic in ρ: the fourth power of a shifted radius
+ * carries a ρ³cos φ term whose size is set by the displacement.
+ *
+ * ## The currency, which the module has already had to state once
+ *
+ * ρ is a **sine** coordinate — `q = NA·ρ` — because that is what makes the pupil
+ * a disc in the plane q lives in. An aplanatic objective delivers exactly that
+ * (the sine condition is the statement that it does), and `MountSpec` already
+ * documents the same convention. `analysis/seidel` seeds its marginal ray with a
+ * tangent, which is `plateW040Mm`'s own warning about what may and may not be
+ * compared to what; § 6q.5 is the step where getting this wrong cost 61%.
+ *
+ * **q_chief is a measured quantity, not a construction.** It is the chief ray's
+ * own invariant, read off the aimer by `chiefRayInvariant` (`pupil/microscope`),
+ * for § 6x.1's reason: the aimer's parametrization settles both the currency and
+ * the sign, where algebra would have to be trusted on each.
+ */
+
+/**
+ * Exact wavefront error of the stack for a ray whose transverse invariant vector
+ * is (`qx`, `qy`) — `stackWavefrontErrorMm` at the vector's magnitude, and
+ * nothing more, which is the point.
+ *
+ * This exists to be the seam rather than to be arithmetic. A caller that reaches
+ * for the scalar form off axis will hand it a pupil radius, get an answer, and
+ * never learn that it asked the wrong question; the vector spelling makes the
+ * chief ray's own invariant something you have to supply.
+ */
+export function stackWavefrontVectorMm(
+  layers: readonly PlaneLayer[],
+  nOut: number,
+  qx: number,
+  qy: number,
+): number {
+  return stackWavefrontErrorMm(layers, nOut, Math.hypot(qx, qy));
+}
+
+/**
+ * The stack's third-order aberrations for a bundle whose chief ray carries
+ * invariant `chiefInvariant`, in mm of optical path, as coefficients of the
+ * pupil polynomials named — the published plane-parallel-plate set.
+ *
+ * With A the stack's q⁴ coefficient, the small-q wavefront is A·|**q**|⁴, and on
+ * the displaced disc above that expands term for term:
+ *
+ *     A(q_c² + 2q_c·NA·ρcos φ + NA²ρ²)²
+ *       = A·NA⁴·ρ⁴              spherical    W₀₄₀
+ *       + 4A·q_c·NA³·ρ³cos φ    coma         W₁₃₁
+ *       + 4A·q_c²·NA²·ρ²cos²φ   astigmatism  W₂₂₂
+ *       + 2A·q_c²·NA²·ρ²        field curv.  W₂₂₀
+ *       + 4A·q_c³·NA·ρcos φ     distortion   W₃₁₁
+ *       + A·q_c⁴                piston
+ *
+ * The **1 : 4 : 4 : 2 : 4** pattern is the useful part and it is not this
+ * module's invention — it is what the fourth power of a shifted radius contains,
+ * and it is the classical plate result (Welford, the plane-parallel plate;
+ * Smith, *Modern Optical Engineering*). Every coefficient carries the same A, so
+ * a stack that is spherically harmless is harmless off axis too, and one that is
+ * not is worse off axis by a factor 4·q_c/NA in the leading term.
+ *
+ * Field curvature appears here with **no Petzval in it** — a plane face has no
+ * power, so this is the astigmatic partner term and not a curved image surface.
+ *
+ * REFUSED where the rim invariant q_c + NA reaches a layer index: past there the
+ * outer edge of this pupil carries no rays (§ 6l.3), and a coefficient quoted for
+ * a pupil that is partly dark describes a wavefront that is partly absent. The
+ * exact form is the one to use there — it refuses only the samples that do not
+ * exist, which is the crescent `withMountAberration` masks.
+ */
+export interface StackObliqueSeidelMm {
+  /** ρ⁴ — spherical, and the only term that survives on axis. */
+  readonly w040: number;
+  /** ρ³cos φ — coma, linear in the chief invariant. */
+  readonly w131: number;
+  /** ρ²cos²φ — astigmatism. */
+  readonly w222: number;
+  /** ρ² — the astigmatic field-curvature partner, with no Petzval in it. */
+  readonly w220: number;
+  /** ρ cos φ — distortion, i.e. a tilt: the chief ray's own lateral shift. */
+  readonly w311: number;
+  /** The constant, which is the chief ray's own path through the stack. */
+  readonly piston: number;
+}
+
+export function stackObliqueSeidelMm(
+  layers: readonly PlaneLayer[],
+  nOut: number,
+  apertureNa: number,
+  chiefInvariant: number,
+): StackObliqueSeidelMm {
+  if (!(apertureNa >= 0)) {
+    throw new Error("stackObliqueSeidelMm: the aperture must be a non-negative invariant");
+  }
+  if (!(chiefInvariant >= 0)) {
+    throw new Error(
+      "stackObliqueSeidelMm: the chief invariant is a magnitude — turn the pupil, not the sign",
+    );
+  }
+  // At the rim, which is where the pupil is furthest from the axis of symmetry.
+  checkStack(layers, nOut, chiefInvariant + apertureNa);
+  const a = w040Coefficient(layers, nOut);
+  const qc = chiefInvariant;
+  const na = apertureNa;
+  return {
+    w040: a * na ** 4,
+    w131: 4 * a * qc * na ** 3,
+    w222: 4 * a * qc * qc * na * na,
+    w220: 2 * a * qc * qc * na * na,
+    w311: 4 * a * qc ** 3 * na,
+    piston: a * qc ** 4,
+  };
 }
 
 /**

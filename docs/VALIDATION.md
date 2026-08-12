@@ -79,6 +79,7 @@ whole ladder.
 
 | [6w](#step-6w--the-objective-knows-what-field-it-must-pass) | § 6v's price, paid: the objective is sized for a FIELD NUMBER, so its glass is f·NA + h — every number in it magnification-independent, the closed form an upper bound never reached, and a field number a second door onto § 6b.5.7's geometric doublet ceiling | `field-sized-objective` |
 | [6x](#step-6x--what-telecentricity-is-worth-to-the-illumination) | A correction to four module headers before it is a measurement: the licence for one source at every field point belongs to the OBJECTIVE and not the condenser, so the offset is bitwise zero only on a telecentric lens — and what it costs off axis is § 6p's cache | `telecentric-illumination` |
+| [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -6538,10 +6539,11 @@ with each slice aberrated for its own depth, its planes still delivering equal
 flux — § 6k.2 again, through machinery that could have broken it.
 
 ### Not yet pinned
-- **Off axis.** § 6c's plate and § 6e.1's stack are on-axis S_I stories. A plate
-  in a non-telecentric beam also adds coma and astigmatism, and the object-space
-  ray aiming that would express it is § 6a's standing blocker, inherited here
-  unchanged.
+- ~~**Off axis.**~~ ✅ **Closed at § 6y**, and the reason recorded here had
+  expired before it was written: "the object-space ray aiming that would express
+  it is § 6a's standing blocker" stopped being true at § 6u. What was really
+  missing was narrower — every form in the stack takes the invariant as a bare
+  radius, and a radius cannot express coma. See § 6y.
 - **The chromatic half.** Every index is resolved at one wavelength, so a mount
   dispersive relative to the immersion is one λ at a time — the same deferral
   § 6e names. § 6r's per-wavelength machinery would carry it, at one stack per λ.
@@ -8945,6 +8947,185 @@ unchanged.
 - **The DIN objective's own stop**, unchanged from § 6v and § 6w. Giving it a
   back focal stop is what would make this step's subject disappear, which is
   precisely why it must not happen in this step.
+
+## Step 6y — the plane stack off axis
+
+`packages/core/test/oblique-slab.test.ts`
+
+§ 6l's own "Not yet pinned" opened with **Off axis**, and gave a reason that had
+already expired: "the object-space ray aiming that would express it is § 6a's
+standing blocker". § 6u built that aiming and § 6v spent it. The sentence
+survived in `imaging/depth-aberration`'s header and in this document because no
+structural check can see a comment that quietly stopped matching the engine —
+APP.md's Part F lesson, arriving in `core` rather than in a document.
+
+**What was true underneath it is narrower and is a fact about the module, not
+about aiming:** every stack form takes the invariant as a bare radius, and a
+radius cannot express coma.
+
+The step adds **no physics**, and this is the third time the branch has been able
+to say that with a straight face. A plane stack is symmetric about its own
+**normal**, not about the beam; both components of the transverse invariant are
+conserved at every plane face, so the wavefront is `W(|q|)` and nothing else — the
+same W § 6c solved to all orders. Tilting the bundle moves the pupil's disc of
+invariants **off the origin** of the plane W is radial in,
+
+    q(ρ, φ) = q_chief + NA·ρ·(cos φ, sin φ)
+
+and a quartic evaluated on a displaced disc is not a quartic in ρ. New:
+`stackWavefrontVectorMm`, `stackObliqueSeidelMm` in `designs/coverslip`;
+`chiefRayInvariant` in `pupil/microscope`; `ChiefInvariant`,
+`mountWavefrontWavesVector` and `withMountAberration`'s `chief` argument in
+`imaging/depth-aberration`.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A traced ray's `opl` less q·x_exit reconstructs t·√(n²−q²) to 2e-16, at every azimuth and to q = 1.3 | exact tracer, no lens | ✅ |
+| …and with the reference removed it is `stackWavefrontVectorMm` to 1e-15 | closed form | ✅ |
+| An axial or telecentric chief invariant takes the scalar path by delegation, so every § 6l claim is bitwise unmoved | identity rung | ✅ |
+| The closed coefficient set is 1 : 4 : 4 : 2 : 4 on one A | classical plane-parallel plate (Welford; Smith) | ✅ |
+| The exact form converges onto all five at fourth order — ratio 4.09 then 4.02, from above | closed form | ✅ |
+| Levels at NA 0.10: +9.79e-3, +9.68e-3, +1.17e-2, −2.86e-2, −2.83e-2 — the last two approach from BELOW | measured | ✅ |
+| The mount's ceiling cuts a crescent off axis, not an annulus: lost on the field's side, zero on the other | ray invariant, off axis | ✅ |
+| The telecentric 4×/0.10 reads a bitwise-zero chief invariant at every height, so the slab wavefront is one wavefront | § 6v.4 | ✅ |
+| The rim-stopped members tilt linearly and with a sign: 2.184557e-3 per 0.1 mm on the DIN, reversing at −h | measured off the aimer | ✅ |
+| Coma over spherical is 4·q_c/NA with no stack in it — 8.738e-2 at 0.1 mm, 0.8736 at 1 mm | closed form | ✅ |
+| The slip's coma at 1 mm is 1.1803e-3 waves against 1.3510e-3 of its own spherical, and 66.6× the mount's, opposite in sign | measured | ✅ |
+| A rim that has left the stack is refused; a matched stack is an exact zero off axis as well as on | § 6e.1's identity | ✅ |
+
+### 6y.1 — the tracer reconstructs the closed form, with no lens in the way
+
+§ 6c.1's strength was that a plate is solvable exactly, so the tracer could be
+checked against an exact answer at NA 0.95 where every third-order comparison
+elsewhere has long since become a small-angle approximation. That strength is
+still available off axis, and this is it.
+
+The identity used is `Φ(q) = OPL − q·x_exit`. That subtraction is the Legendre
+transform that turns a path into a phase, and it removes exactly the transverse
+displacement the interface crossing introduces; what is left must be
+`Σ tᵢ√(nᵢ²−q²)`, which is why the stack's formulas are a **sum over layers** at
+all. Both quantities on the traced side are the tracer's own — `opl` and the
+intersection point — so nothing in the check recomputes the refraction it is
+checking. Agreement is **2e-16 mm** at q = 0, 0.2, 0.6, 1.0 and 1.3, at two
+azimuths; with the paraxial reference removed the wavefront agrees with
+`stackWavefrontVectorMm` to **1e-15** at three azimuths.
+
+No lens, no image plane, no pupil convention and no aiming, which is deliberate:
+it is § 0's argument for comparing the *primitive* rather than the workflow, made
+against the engine's own tracer instead of against rayoptics.
+
+### 6y.2 — the axial case is the old path, not a new one that agrees
+
+`mountWavefrontWavesVector` **delegates** to `mountWavefrontWaves` when the chief
+invariant is bitwise zero, rather than reaching the same answer through the vector
+arithmetic. That is not tidiness. `hypot(NA·px, NA·py)` and `NA·hypot(px, py)` are
+the same number in algebra and not always the same f64, so a vector path that
+recomputed it would have left every on-axis claim in § 6l agreeing to a tolerance
+where it used to agree bitwise. `withMountAberration` still returns its own
+argument for a matched, untruncated pupil.
+
+### 6y.3 — the classical plate set, and third order is not uniformly an over-estimate
+
+With A the stack's q⁴ coefficient, expanding A|q_chief + q_ρ|⁴ gives the
+plane-parallel plate's classical coefficients:
+
+    W₀₄₀ = A·NA⁴          W₁₃₁ = 4A·q_c·NA³      W₂₂₂ = 4A·q_c²·NA²
+    W₂₂₀ = 2A·q_c²·NA²    W₃₁₁ = 4A·q_c³·NA      piston = A·q_c⁴
+
+The **1 : 4 : 4 : 2 : 4** pattern is Welford's plate and Smith's, and it is what
+the fourth power of a shifted radius contains. Field curvature appears with **no
+Petzval in it** — a plane face has no power, so W₂₂₀ is the astigmatic partner
+term rather than a curved image surface.
+
+The exact form converges onto all five at fourth order, checked on a geometry held
+*similar* as the aperture shrinks (q_c = NA/4, so the coma-to-spherical ratio is
+fixed at 1 and only the order varies): the relative error's ratio is **4.089 then
+4.022**, approaching 4 from above, which is what separates a fourth-order tail
+from a fit that happens to be good.
+
+**The signs are the content.** At NA 0.10 the five errors are +9.79e-3, +9.68e-3,
++1.17e-2, **−2.86e-2** and **−2.83e-2**: the two terms carrying ρ² and ρ approach
+from *below* while the other three approach from above. § 6l.4 could say "the
+third-order form over-reports" and mean it; off axis that sentence does not
+travel, and a budget built on it would be wrong in two directions at once.
+
+### 6y.4 — the ceiling cuts a crescent, and that makes it an apodization
+
+§ 6l.3's wall is a statement about the **invariant**, and `mountAperture`'s
+min(NA, n_s) is that statement collapsed onto a pupil radius — which is only
+available while the disc is centred on the stack's normal. Off axis the ceiling is
+still a circle in the invariant plane and the pupil is a disc displaced inside it,
+so what is lost is a **crescent on the field's own side**: at NA 1.25 with a chief
+invariant of 0.15 into a water mount, the +x rim is outside (1.40 against 1.333)
+and the −x rim is comfortably inside (1.10), where the centred pupil loses nothing
+at all.
+
+That is a different object from the annulus § 6l.3 measured. An annulus is a
+smaller aperture; a crescent is **asymmetric**, so it is an apodization, and the
+PSF it makes is not the PSF of any circular pupil. Nothing here computes that PSF
+— the rung counts the lost samples on each side and pins that one is zero.
+
+### 6y.5 — the headline is INVARIANCE, and it is not a small number
+
+On § 6v's telecentric 4×/0.10 the chief invariant is a **bitwise zero** at every
+field height, because `aimRay` takes its object-space branch where the chief
+slope is § 6v.4's literal `0`. So the slab's pupil phase is not *nearly* the same
+across the field — it is the **same wavefront**, asserted with `toBe` at three
+pupil radii and four heights, against an axial value first checked to be non-zero
+so the null is not vacuous.
+
+**What that does not mean:** the spherical term is untouched and at full strength
+everywhere. Telecentricity removes what depends on the field and nothing else.
+
+The rim-stopped members give it a size. The DIN 4×/0.10 and § 6v's own `"rim"`
+control both tilt **linearly in field** — 2.184557e-3 of invariant per 0.1 mm on
+the DIN, doubling to 3 digits and reversing sign at −h, with an exact zero on
+axis — read off the aimer for § 6x.1's reason: the aimer's parametrization settles
+both the currency (tangent or sine, where § 6q.5 cost 61% by guessing) and the
+sign, by construction rather than by convention.
+
+**And what it costs is one ratio with no stack in it.** Every coefficient carries
+the same A, so A cancels and coma over spherical is **4·q_c/NA** — geometry, not
+glass. On the DIN that is 8.738e-2 at 0.1 mm of field and **0.8736 at 1 mm**: by a
+millimetre the plate's coma is 87% of its spherical term, on a lens whose whole
+plate contribution § 6c pinned as negligible on the axis.
+
+*The field range is chosen and the reason is an amplitude.* § 6v.5 measured a
+telecentric bundle walking off an axially-sized front element — 11% of the pupil
+at 1 mm on this very lens — so the invariance rung stays inside 0.1 mm where no
+glass is lost and a phase claim cannot be confused with a vignetting one. § 6w's
+`fieldNumberMm` is what buys the range back, and it is not this step's subject.
+
+### 6y.6 — the coverslip carries this too, and it is the bigger one
+
+Same geometry, same 4·q_c/NA, so the ratio is identical for the slip and the
+mount to 12 digits — what differs is A, by **66.6×** and in the opposite **sign**,
+the slip being denser than the air it emerges into and the mount rarer than its
+immersion. That sign is `stackW040Mm`'s rule (§ 6l.8's trade) seen at a pupil point
+instead of in a budget.
+
+In waves at the d line, on the DIN at 1 mm of field: the slip's coma is
+**1.1803e-3** against its own **1.3510e-3** of spherical. Both are four orders
+under Maréchal, so § 6c's headline — low-power objectives really are
+coverslip-insensitive — **survives the off-axis half** rather than having been a
+statement about the axis all along.
+
+### Not yet pinned
+- **Any of this in a PSF.** The crescent is an apodization and the coma is a
+  phase, and 6y.4 counts samples where a step that wanted the image would
+  transform them. Rendering an off-axis aberrated volume is the follow-on and was
+  deliberately kept out of this step.
+- **The chief invariant through a real stack.** `chiefRayInvariant` reads the ray
+  as it leaves the specimen, which is the invariant the stack conserves — but the
+  objectives it is read on have no slab in their prescription, so the number is
+  the chief ray of the *lens* rather than of the lens-plus-slip assembly. For a
+  plane stack those are the same by conservation; for a caller that tilts a slip
+  they would not be.
+- **The condenser's own aberrations**, unchanged from § 6x — and now with a
+  second reason to want them, since an illumination cone that changes shape off
+  axis crosses this crescent rather than the axial pupil.
+- **The DIN objective's own stop**, unchanged from § 6v, § 6w and § 6x. Giving it
+  a back focal stop is what would make this step's control disappear.
 
 ## Later rungs
 
