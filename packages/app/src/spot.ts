@@ -27,9 +27,11 @@ import { buildSystem, FOCUS_NM, type LensKind } from "./render";
  * leaving the last surface is a straight line, so its transverse position is
  * linear in z and a plane costs an intersection rather than a trace. The
  * through-focus row is therefore free. What the grid actually costs is
- * `fields × wavelengths` bundles, and the column count does not appear in the
- * bill at all — which is why the columns are five and the rows are four rather
- * than the other way round.
+ * `fields × (wavelengths + 1)` bundles — three drawn wavelengths plus the one
+ * `MEASURE_GRID` pass that every number comes off — which is **sixteen** at the
+ * shipped four rows. The column count does not appear in the bill at all, which
+ * is why the columns are five and the rows are four rather than the other way
+ * round.
  *
  * ## The columns are Rayleigh units, not millimetres
  *
