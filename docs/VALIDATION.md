@@ -10514,10 +10514,15 @@ against the convention rather than a free parameter.
 - **Astigmatism off the d line, and the medial surface as a focus criterion.**
   Everything is at one wavelength, and `medialZ` is reported but nothing measures
   that it is where a real detector wants to sit.
-- **No app surface.** This is engine capability with no panel: `analysis/field`
-  has no caller in `packages/app`. APP.md's field-curvature entry is what would
-  scope one, and the readouts it would need — both sags, the interval, the
-  Petzval surface, the distortion profile — are the ones above.
+- **No app surface, and not even a scoped one.** This is engine capability with no
+  panel: `analysis/field` has no caller in `packages/app`, and APP.md has no
+  field-curvature entry to cost one — its only mention of the term is in passing,
+  about a tilt tolerance. Scoping it is the next thing this step wants, and the
+  readouts are already decided by what is pinned above: both sags against field,
+  the astigmatic interval, the Petzval surface as the third curve, and the
+  distortion profile. The one design constraint the step hands the panel is that
+  neither number survives being measured against a plane the caller chose —
+  which is why both live behind functions that pick their own.
 
 ## Later rungs
 
