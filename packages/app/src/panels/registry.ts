@@ -22,6 +22,7 @@ import { StagePanel } from "./stage";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
 import { WavefrontPanel } from "./wavefront";
+import { MtfPanel } from "./mtf";
 import { VisualPanel } from "./visual";
 import { VolumePanel } from "./volume";
 
@@ -108,6 +109,12 @@ export const PANELS: readonly Panel[] = [
     label: "the wavefront",
     blurb: "ROADMAP v1 — the Zernike terms, and which RMS the Strehl formula actually wants",
     Component: WavefrontPanel,
+  },
+  {
+    id: "mtf",
+    label: "the MTF",
+    blurb: "ROADMAP v1 — the contrast that survives, and the cutoff of an aperture that did not transmit",
+    Component: MtfPanel,
   },
   {
     id: "reflector",

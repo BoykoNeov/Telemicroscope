@@ -449,3 +449,39 @@ describe("§ 6ad — the reported cutoff is the aperture you asked for", () => {
     }
   });
 });
+
+/**
+ * Rung: `mtfProfile` refuses a bin count its own array cannot fill.
+ *
+ * Found by the panel, not by this file: asking for 161 bins across a 64-bin band
+ * left annuli with no pixels in them, and an empty bin fell through to
+ * `modulation = 0` — which on a plot is indistinguishable from a frequency the
+ * lens transmits nothing at. It read 0.51 of modulation BELOW the two sections,
+ * i.e. it looked exactly like the finding the panel exists to show, at four
+ * times the size. § 6ac's rule applies — an identity a caller can get wrong
+ * silently is refused, not documented — and the caller here genuinely cannot
+ * notice, because the returned array is the right length and full of numbers.
+ */
+describe("§ 6ad — the radial profile refuses a bin count it cannot fill", () => {
+  const p = psf(paraboloid, 0, LAM, GRID);
+  const m = mtf(p);
+
+  it("refuses more bins than there are frequency bins", () => {
+    expect(() => mtfProfile(m, p.pupilSamples + 1, p.pupilSamples)).toThrow(/no pixels/);
+    expect(() => mtfProfile(m, 161, p.pupilSamples)).toThrow(/at most 64/);
+  });
+
+  it("accepts exactly as many as the band has, and fills every one of them", () => {
+    const profile = mtfProfile(m, p.pupilSamples, p.pupilSamples);
+    // Every bin has to carry a real average: the innermost is the DC pixel alone
+    // and the rest have more, so a zero anywhere would be an empty annulus.
+    for (let b = 0; b < profile.modulation.length; b++) {
+      expect(profile.modulation[b]!, `bin ${b}`).toBeGreaterThan(0);
+    }
+  });
+
+  it("refuses a bin count that is not a usable integer", () => {
+    expect(() => mtfProfile(m, 1, p.pupilSamples)).toThrow(/≥ 2/);
+    expect(() => mtfProfile(m, 20.5, p.pupilSamples)).toThrow(/≥ 2/);
+  });
+});

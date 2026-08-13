@@ -1690,8 +1690,18 @@
   because the scale is built from the aperture that was ASKED FOR and the array's
   support is the aperture that TRANSMITTED. On the app's own f/10 doublet those
   differ by 27% — APP.md Part B's aperture wall, arriving as a curve that falls
-  off a cliff at ν = 0.73 while the readout still prints 170.27 c/mm. The panel
-  is what remains, and that part really is wiring.
+  off a cliff at ν = 0.73 while the readout still prints 170.27 c/mm. **The panel
+  is now ✅ landed too** (APP.md Part K, route `#/mtf`), and with it **this whole
+  line closes**: all six v1 analyses have a surface. It corrected one more thing,
+  and the thing it corrected was its own first draft. The complaint it set out to
+  make about the azimuthal average — that it runs over the 45° directions and so
+  sits BELOW both sections, reporting a contrast no bar target gets — measured
+  0.015 and was **the binning**, not the optics; through a fine enough profile it
+  is 3e-5. What is actually wrong with an average is that the two sections are
+  0.28 apart and it reports one number for two. The coarse binning that produced
+  the wrong story was itself an engine sharp edge — empty annuli falling through
+  to zero contrast, which read as four times the real effect *in the same
+  direction* — and `mtfProfile` now refuses a bin count it cannot fill.
 - ~~Hero image simulation with progressive refinement (instant on-axis preview,
   background full-field render).~~ ✅ **landed** — the background render is the
   worker each panel posts to, and the on-axis preview is the ladder's first

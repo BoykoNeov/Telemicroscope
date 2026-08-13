@@ -4305,6 +4305,146 @@ the axis.
 
 ---
 
+---
+
+## Part K — the optical MTF, and the cutoff of an aperture that did not transmit — *needed an engine step first* — ✅ **landed** — **plot**
+
+Route `#/mtf`, the **last** of ROADMAP's v1 analyses line, and the entry that
+line described as wiring. It was not. The other three surfaceless analyses (Parts
+H, I, J) were composition on modules that were already complete; this one opened
+`core/wave/mtf` and found the module had been carrying, since the day it was
+written, a promise it had not kept and a sentence that was false.
+
+Four curves on one chart: the two directional sections, the azimuthal average
+they replace, and the closed-form perfect lens drawn behind all three. That last
+one is worth naming as a property nothing else in the app has — every other panel
+compares the engine against the engine, and here the reference curve is an
+*expression*, (2/π)·[arccos ν − ν√(1−ν²)], so a reader can see the real lens
+against a perfect one of the same aperture without any second measurement being
+involved.
+
+### What it needed before it could be wiring
+
+`wave/mtf` had one profile function and it was an azimuthal average, with a
+comment saying the tangential/sagittal split was "a separate function when field
+curvature work arrives". Field curvature arrived one entry earlier on the same
+ROADMAP line (§ 6ac). So the panel's first act was to land the engine step it had
+been waiting for — **VALIDATION § 6ad**, `mtfSections` — and its rungs, which
+spend nearly all their effort on the one thing a magnitude test cannot catch:
+*which section is which*. Three machineries that share no code above the trace
+agree the coma blur is meridional (ray spot second moments 1.848, PSF intensity
+1.390, the section split 1.48×), and a spherical mirror with its stop at the
+centre of curvature — off axis, 0.75 waves out of round, Strehl under 0.11 —
+still splits by 1e-4.
+
+Recorded here rather than only in VALIDATION because it is a **correction to this
+document's own rule about what "app wiring only" means**: the test is not whether
+the panel calls existing functions, it is whether the functions it needs exist.
+Every prior surface got that right by luck — the capability it wanted was
+complete because a ladder step had *just* completed it. This is the first one
+that wanted a readout the engine had explicitly deferred, and the deferral was
+written down in the module rather than in this file, so no amount of reading
+APP.md would have found it.
+
+### What it found, and the panel found all three
+
+**1. The cutoff on the plot's own axis is the aperture that was asked for.**
+`cutoffCyclesPerMm` is 2·NA/λ off the exit pupil radius. Where the modulation
+actually reaches its floor is the aperture that *transmitted*. On this app's own
+achromat at f/10 those differ by 27%: the curve stops at ν = 0.73 while the
+readout prints 170.27 c/mm. That is **Part B's aperture wall**, arriving by a
+third route — `refractorPair` fixes the crown's centre thickness at 3 mm whatever
+the focal length, the two sags meet at 36.63 mm of semi-diameter, and every ray
+past that is a `miss`. Part B measured the wall as an EPD going as √f; extrapolated
+to f = 1000 that is 73.0 mm against the 72.8 measured here.
+
+What makes this a *panel* finding rather than a restatement is where it becomes
+visible. Part B saw the wall as a bisection endpoint and the wavefront panel sees
+it as a lost-ray count, both of which read as "this lens vignettes". On an MTF
+plot it is **a wrong number on an axis**: every ν on the chart is scaled by a
+cutoff the lens does not reach, so the curve appears to collapse at 0.73 of its
+band, which looks exactly like catastrophic aberration. The check that
+distinguishes them is the one the panel makes: the **aberration-free** PSF — same
+pupil, phase zeroed — cuts off in the same place. So the panel prints both cutoffs,
+prints the traced pupil radius beside them so the two routes can be seen agreeing,
+and says in words that the lens is an f/13.7 wearing an f/10 label.
+
+**2. Off axis there is no such thing as "the" MTF, and the average's problem is
+not the one this document first wrote down.** The two sections part by 0.28 at
+1.6°. The obvious complaint about an azimuthal mean is that it runs over the 45°
+directions, which on a comatic pupil are worse than either axis, so it ought to
+sit *below* both curves it summarizes — and the first draft of the panel measured
+exactly that, 0.015 of modulation, and said so. **It was the binning.** Measured
+through a profile fine enough to mean anything, the excursion below both is
+**3e-5 at 0.8° and 0.0012 at 1.6°** — real, and three orders under the thing that
+matters. The average is not discredited by being slightly outside its own range;
+it is discredited by there *being* a range, and by reporting one number where the
+honest answer is two.
+
+**3. And the binning that produced the wrong story is an engine sharp edge, now
+refused.** `mtfProfile` bins by annulus. Past `pupilSamples` bins the annuli are
+narrower than a pixel, come back empty, and fall through to `modulation = 0` —
+which on a plot is indistinguishable from a frequency the lens transmits nothing
+at. Asking for 161 bins across a 64-bin band read **0.51 of modulation below the
+sections**: four times the real effect, in the same direction, and therefore
+perfectly shaped to confirm whatever the panel had gone looking for. It now throws,
+naming the largest count it can fill — § 6ac's rule that an identity a caller can
+get wrong silently is refused rather than documented, and the caller here genuinely
+cannot notice, because the returned array is the right length and full of numbers.
+
+### What driving it changed, and it was the readout the panel was proudest of
+
+This document's tradition, on its eighth repetition: the thing found by opening
+the page rather than by writing the module. The panel prints the transmitted
+cutoff (off the transform) next to the outermost ray that got through (off the
+trace) and calls their agreement the evidence that the short cutoff is aperture
+and not aberration. **It is evidence, but one of the two is a property of the
+sampling and the panel had it labelled as a property of the lens.**
+
+Clicking the ray-count control moves it: **0.7280 / 0.7211 / 0.7280 at 21 / 31 /
+41 rays**, with the lens untouched — and *not* monotonically, so it is not a bound
+converging on anything. It is whichever lattice point happens to fall just inside
+the wall, and a finer grid can miss one a coarser grid hit. The wall itself is at
+ρ = **0.7326**, where the crown's two sags meet, and no square grid sits on it.
+The transform's own cutoff does not move at all across the same three clicks,
+because it runs on a fixed 64-wide pupil grid that the control does not reach.
+
+Nothing is wrong with either number. What was wrong was a caption that invited a
+reader to take the more precise-looking one as the measurement. It now says
+lattice point, prints the three values it takes, and names the wall separately.
+A readout that changes when you move a control that cannot change the physics is
+the app's own version of the rule the engine keeps — and this is the first time a
+panel has caught it in a number it was using as corroboration.
+
+### Two smaller things
+
+**The panel labels the curve that beats diffraction.** On axis the measured
+section sits ~0.009 *above* the closed form at low ν — a lens appearing to beat
+its own aperture, which is the first thing a careful reader notices on a chart
+with both curves on it. It is the pupil sampled 64 across a circle, so its rim is
+a staircase, plus the interpolation between frequency bins, and it is inside the
+0.01 that § 2b's own closed-form rung allows. Printed as a number with that
+explanation rather than left to be discovered.
+
+**It runs inline, no worker.** One traced wavefront and one transform is 30–50 ms,
+which is a slider that tracks — `spot.tsx` and `wavefront.tsx`'s precedent, and
+the same reasoning: a worker here would buy nothing and would drag in the Vite
+worker-URL constraint for a panel that does not need it.
+
+### What it does not do
+
+- **No through-focus MTF.** The classic tolerancing plot is modulation at one
+  frequency against focus, and it is a loop over `withFocus` — genuinely wiring,
+  and left out because the panel already carries three findings and a fourth
+  curve family would bury them.
+- **No polychromatic MTF.** `spectralStack` would give one, and the honest version
+  needs a decision about weighting that the camera panel already had to make for a
+  different quantity. Deferred rather than guessed.
+- **`pupilSamples` is fixed at 64 and is not a control.** It sets where the cutoff
+  lands in frequency bins, so a slider for it would be moving the horizontal axis
+  while looking like a quality setting — `wavefront.ts` fixes it for the same
+  reason.
+
 ## What the app itself needs to hold this
 
 Structural work implied by the above, independent of which surfaces land:

@@ -10620,6 +10620,7 @@ that wants it.
 | …and the **aberration-free** PSF cuts off in the same place | aperture, not aberration | ✅ |
 | …while `cutoffCyclesPerMm` reports 2·NA/λ regardless, to 1% | the number is right for its own question | ✅ |
 | The singlet of the same pair keeps ρ = 1.0000 and `lost` = 0 at all three focal lengths | the control on the tracer itself | ✅ |
+| `mtfProfile` **refuses** a bin count past `cutoffBins`, and fills every bin at exactly it | § 6ac's refuse-don't-document rule | ✅ |
 
 ### Not yet pinned
 
@@ -10633,10 +10634,26 @@ that wants it.
   scan for where an array falls to its floor, which is a caller's convention
   (what counts as zero) rather than physics. The rungs above do it with an
   explicit threshold and say so.
-- **No app surface.** `mtfSections` has no caller in `packages/app`, and neither
-  did `mtf` before it — ROADMAP's v1 analyses line has been carrying "the optical
-  MTF" as its last open entry, described there as wiring. This step is the
-  evidence that it is not only wiring, and scoping the panel is the next thing.
+### The refusal the panel added, one commit later
+
+`mtfProfile` bins by annulus, and past `cutoffBins` bins the annuli are narrower
+than a pixel: they come back empty and used to fall through to `modulation = 0`,
+which on a plot is indistinguishable from a frequency the lens transmits nothing
+at. Asking for 161 bins across a 64-bin band read **0.51 of modulation below the
+two sections** — four times the real 45°-azimuth effect, in the same direction,
+and therefore perfectly shaped to confirm the very claim the panel had gone
+looking for. It briefly did: APP.md Part K's first draft asserted the excursion
+was 0.015 and it was the bin width.
+
+It now throws, naming the largest count it can fill. § 6ac's rule — an identity a
+caller can get wrong silently is refused rather than documented — and this is the
+strongest case for it yet, because the caller genuinely cannot notice: the
+returned array is the right length and full of plausible numbers.
+
+### Not yet pinned (continued)
+
+- **No app surface.** ~~`mtfSections` has no caller in `packages/app`~~ — ✅ closed
+  by APP.md Part K, route `#/mtf`, which is what found the refusal above.
 
 ## Later rungs
 

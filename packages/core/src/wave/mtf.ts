@@ -120,6 +120,22 @@ export interface MtfProfile {
  * sections it summarizes — the azimuths between them can be worse than either.
  */
 export function mtfProfile(m: Mtf, bins: number, cutoffBins: number): MtfProfile {
+  // An annulus narrower than a pixel can contain no pixels, and an empty bin
+  // here used to fall through to `modulation = 0` — indistinguishable on a plot
+  // from a frequency at which the lens transmits no contrast. Asking for 161
+  // bins across a 64-bin band turned the summary curve into a comb of zeros and
+  // read 0.51 of modulation below the sections it summarizes, which is how this
+  // was found. Refused rather than documented: § 6ac's rule, and the caller has
+  // no way to notice from the returned array. See VALIDATION § 6ad.
+  if (!Number.isInteger(bins) || bins < 2) {
+    throw new Error(`mtfProfile: bins must be an integer ≥ 2, got ${bins}`);
+  }
+  if (bins > cutoffBins) {
+    throw new Error(
+      `mtfProfile: ${bins} bins across ${cutoffBins} frequency bins leaves annuli with no pixels ` +
+        `in them, which would read as zero contrast. Ask for at most ${cutoffBins}.`,
+    );
+  }
   const n = m.size;
   const c = n / 2;
   const sums = new Float64Array(bins);
