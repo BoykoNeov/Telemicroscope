@@ -1650,30 +1650,29 @@
   leak** nothing had looked at — on axis the non-symmetric terms come back at
   ~1e-7 rather than the f64 floor, identified as the fit over a discrete pupil
   rather than an asymmetry by its equal x/y partners and its cubic growth.
-  **What is left on this line is two:** the
+  **Distortion/field curvature now has its rungs** — VALIDATION § 6ac,
+  `analysis/field`, and it was an engine step exactly as predicted. **The brief's
+  own premise was wrong in one load-bearing word:** it said `seidelSums` "already
+  produces the two coefficients independently", and it did not — the module's scope
+  note said in as many words that S_III–S_V were not computed, "an unpinned formula
+  is worse than an absent one". So the step began by adding them, which turned out
+  to be the better half of it: at a stop in contact the closed forms are
+  S_III = H²φ and S_IV = H²Σφ/n with **no shape factor at all**, so a bending scan
+  that moves S_I 8.6× must leave both unmoved — a sharper anchor than the single
+  number that was expected. Both pre-checks the brief demanded came back clean and
+  neither was close: the astigmatic interval is 2.1e8 ulps above the f64 floor, and
+  both sags come out negative with the tangential further, so the sign-blind 3:1
+  ratio (measured 2.9948) is now flanked by assertions it cannot fake. What the
+  brief did not foresee is that **both** of the step's real hazards were in the
+  measurement rather than the physics — a reference plane traced with a different
+  fan density is 59× the signal, and reading distortion at the best-spot plane
+  instead of the paraxial one is 13× — and both are now refused by the API rather
+  than documented. Distortion is pinned as far as it can be reached without
+  stop-shift equations: the published zero for a thin lens with the stop in
+  contact, plus the traced achromat's own cubic against its S_V.
+  **What is left on this line is one:** the
   optical MTF — `core/wave/mtf` has no caller anywhere in the app, and the camera
-  panel's MTF is the sensor's — and distortion/field curvature. The second of those is **not wiring**: sagittal and tangential focal
-  surfaces are new engine capability, and the hard rule wants rungs pinned to an
-  external number for them (third-order theory puts the tangential surface three
-  times as far from the Petzval surface as the sagittal, and `seidelSums` already
-  produces the two coefficients independently). It would also close something
-  VALIDATION records as open in four separate places — "astigmatism and field
-  curvature are present in the trace and unpinned."
-  *Decided and deferred to its own session rather than tacked onto the two
-  panels above, since it is an engine step and they were wiring.* **Two things
-  to settle before the rung is written, both because a 3:1 ratio is sign-blind
-  and would pass while pinning a flipped surface.** First, check which sign
-  `seidelSums` returns for S_III and S_IV and whether its sag convention runs the
-  same way as a traced `bestSpotZ` offset — then assert the ratio *and* that both
-  sags fall on the same side of paraxial focus for a positive lens. Second,
-  measure that astigmatism is actually above the f64 floor at the field height
-  chosen, and record that number in the rung, or the ratio is two floors dividing
-  each other. The chosen system must also satisfy what `seidelSums` requires —
-  stop at surface 0, no conics — or the independent cross-check silently
-  disappears and the trace is left pinning itself. The sagittal and tangential
-  foci themselves are `bestSpotZ` on a `pupilFan` bundle per axis, which is
-  composition; what makes it an engine step is that the *claim* is physics and
-  belongs beside the ladder rather than in a panel.
+  panel's MTF is the sensor's. That one is wiring.
 - ~~Hero image simulation with progressive refinement (instant on-axis preview,
   background full-field render).~~ ✅ **landed** — the background render is the
   worker each panel posts to, and the on-axis preview is the ladder's first

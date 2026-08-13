@@ -23,16 +23,23 @@ import { Prescription, unfoldedTwin } from "../trace/prescription";
  *
  *     A  = n(y·c + u)          the marginal refraction invariant (n·i)
  *     Ā  = n(ȳ·c + ū)          the chief-ray one
- *     Δ(u/n) = u′/n′ − u/n
+ *     Δ(u/n) = u′/n′ − u/n     Δ(1/n) = 1/n′ − 1/n
+ *     H  = n(ū·y − u·ȳ)        the Lagrange invariant, constant through the system
  *
- *     S_I  = −A²·y·Δ(u/n)      S_II = −A·Ā·y·Δ(u/n)
+ *     S_I   = −A²·y·Δ(u/n)     S_II = −A·Ā·y·Δ(u/n)
+ *     S_III = −Ā²·y·Δ(u/n)     S_IV = −H²·c·Δ(1/n)
+ *     S_V   = (Ā/A)·(S_III + S_IV)
  *
- * Both are wavefront measures in the same units as the ray heights (mm here), for
+ * All are wavefront measures in the same units as the ray heights (mm here), for
  * a marginal ray launched at the pupil edge: the wavefront aberration is
  *
  *     W(ρ, θ) = (S_I/8)·ρ⁴ + (S_II/2)·ρ³·cos θ + …
  *
  * so `w040 = S_I/8` is the peak spherical-aberration wavefront error at the rim.
+ *
+ * The four sums past S_II are all field-driven — Ā and H both carry the chief
+ * ray — so with `fieldAngleRad` left at 0 they are identically zero, which is the
+ * on-axis truth and not a missing value.
  *
  * ## Two external anchors pin this, and they are checked before anything is built
  * ## on it (test/seidel.test.ts)
@@ -90,15 +97,50 @@ import { Prescription, unfoldedTwin } from "../trace/prescription";
  *    unpinned one, a non-zero conic or asphere throws. (The aspheric presets do
  *    not need this module: §§ 5g–5i figure their correctors from the sag
  *    difference directly.)
- *  - **S_II needs the stop at the first surface.** The chief ray is then simply
- *    (ȳ = 0, ū = θ) there, with no pupil solve; anywhere else it would need the
- *    stop imaged into object space, and no caller wants that yet — it throws.
- *    With a finite object ū is still the chief ray's slope *at the stop*, which
- *    is an object height η = −ū·s rather than a field angle; the formula does not
- *    care, but the caller's units do.
- *  - S_III…S_V (astigmatism, field curvature, distortion) are not computed. The
- *    doublet solve needs S_I; S_II picks between its two roots. Nothing else is
- *    needed, and an unpinned formula is worse than an absent one.
+ *  - **Every off-axis sum needs the stop at the first surface.** The chief ray is
+ *    then simply (ȳ = 0, ū = θ) there, with no pupil solve; anywhere else it
+ *    would need the stop imaged into object space, and no caller wants that yet —
+ *    it throws. With a finite object ū is still the chief ray's slope *at the
+ *    stop*, which is an object height η = −ū·s rather than a field angle; the
+ *    formula does not care, but the caller's units do.
+ *
+ *    This is also why there is no **stop shift**: the published stop-shift
+ *    equations move a whole set of sums to a displaced stop, and without them
+ *    S_V in particular is only reachable for the stop-in-contact case — which is
+ *    the case whose answer is zero. What that limits is pinned rather than
+ *    hidden: see the S_V bullet below.
+ *  - **S_V is opt-in** (`distortion: true`) and the others are not, because the
+ *    classical per-surface distortion term divides by A. On a surface the
+ *    marginal ray crosses undeviated — a flat in a collimated beam, which the
+ *    coverslip and window presets contain — A is exactly 0, and so is the
+ *    bracket it divides: A = 0 forces u = −y·c, hence Δ(u/n) = −y·c·Δ(1/n) and
+ *    Ā·y = H, which makes S_III + S_IV = c·Δ(1/n)·(Ā²y² − H²) vanish identically.
+ *    So the term is a true 0/0 whose limit needs L'Hôpital on the pair, and an
+ *    unpinned limit is worse than an absent one. Rather than guess it, or make
+ *    every existing caller newly throwable, `distortion` is a flag: a caller that
+ *    does not ask keeps today's behaviour bit for bit, and one that asks on such
+ *    a system is refused out loud.
+ *
+ * ## The field sums have their own anchor, and it is shape-independent
+ *
+ * S_III and S_IV are pinned on the same thin lens as S_I, and the anchor is
+ * stronger than the S_I one in a specific way: for a thin lens with **the stop in
+ * contact**, third-order theory gives (Kingslake, *Lens Design Fundamentals*,
+ * ch. 6; Welford ch. 8)
+ *
+ *     S_III = H²·φ            S_IV = H²·Σ(φₖ/nₖ)        S_V = 0
+ *
+ * — with no shape factor in them at all. Astigmatism and Petzval curvature at a
+ * stop in contact depend only on the POWER and the glass, so bending the lens
+ * cannot touch them, and a q-scan that leaves S_I ranging over a factor of four
+ * must leave these two numerically fixed. That is a much sharper test than
+ * matching one number: an error in Ā, in H, or in the Δ(1/n) of the S_IV term
+ * would almost certainly show up as a spurious shape dependence.
+ *
+ * The S_V = 0 of the same case is the reason distortion is opt-in rather than
+ * absent: it is a published zero, so it can be pinned (the sum vanishes to the
+ * f64 floor while its individual surfaces do not), and it is the one distortion
+ * claim reachable without stop-shift equations.
  */
 
 export interface SeidelOptions {
@@ -117,11 +159,22 @@ export interface SeidelOptions {
    * surface 0 at `marginalHeightMm` with slope u = h/s.
    */
   readonly objectDistanceMm?: number;
+  /**
+   * Compute Σ S_V (distortion) as well. Off by default, and the reason is the
+   * A = 0 singularity in the header's scope note rather than cost: a surface the
+   * marginal ray crosses undeviated makes the classical term 0/0, and this flag
+   * keeps that refusal away from every caller that never asked for distortion.
+   */
+  readonly distortion?: boolean;
 }
 
 export interface SeidelSurfaceTerms {
   readonly s1: number;
   readonly s2: number;
+  readonly s3: number;
+  readonly s4: number;
+  /** Present only when `distortion` was asked for. */
+  readonly s5?: number;
 }
 
 export interface SeidelResult {
@@ -129,8 +182,26 @@ export interface SeidelResult {
   readonly s1: number;
   /** Σ S_II — third-order coma (mm), zero unless a field angle was given. */
   readonly s2: number;
+  /** Σ S_III — third-order astigmatism (mm), zero unless a field angle was given. */
+  readonly s3: number;
+  /**
+   * Σ S_IV — the Petzval sum (mm), zero unless a field angle was given. This is
+   * the field curvature that survives when astigmatism is nulled, and it is the
+   * one sum that depends on no ray heights at all: −H²·Σc·Δ(1/n) is fixed by the
+   * powers and the glasses.
+   */
+  readonly s4: number;
+  /** Σ S_V — third-order distortion (mm). Present only with `distortion: true`. */
+  readonly s5?: number;
   /** Wavefront spherical-aberration coefficient W₀₄₀ = S_I/8 (mm). */
   readonly w040: number;
+  /**
+   * The Lagrange invariant H = n(ū·y − u·ȳ), evaluated at the first surface
+   * (mm·rad). Zero on axis. Reported because every field sum scales as H² and a
+   * caller converting a sum into a focal-surface sag needs the same H the sums
+   * were built with.
+   */
+  readonly lagrangeInvariant: number;
   /** Per-surface contributions, in prescription order. */
   readonly surfaces: readonly SeidelSurfaceTerms[];
 }
@@ -141,7 +212,7 @@ export function seidelSums(
   opts: SeidelOptions,
 ): SeidelResult {
   const prescription = unfoldedTwin(prescriptionIn);
-  const { marginalHeightMm, fieldAngleRad = 0, objectDistanceMm } = opts;
+  const { marginalHeightMm, fieldAngleRad = 0, objectDistanceMm, distortion = false } = opts;
   if (!(marginalHeightMm > 0)) {
     throw new Error("seidelSums: marginal ray height must be positive");
   }
@@ -165,9 +236,17 @@ export function seidelSums(
   let yb = 0;
   let ub = fieldAngleRad;
 
+  // The Lagrange invariant, at the first surface. With the stop there ȳ = 0, so
+  // this is n·ū·y — but it is written in full because it is the quantity the
+  // recursion below must keep constant, not a special case of it.
+  const lagrangeInvariant = n * (ub * y - u * yb);
+
   const surfaces: SeidelSurfaceTerms[] = [];
   let s1 = 0;
   let s2 = 0;
+  let s3 = 0;
+  let s4 = 0;
+  let s5 = 0;
 
   for (const s of prescription.surfaces) {
     if ((s.conic ?? 0) !== 0 || (s.asphereCoeffs?.length ?? 0) > 0) {
@@ -191,9 +270,30 @@ export function seidelSums(
 
     const termS1 = -A * A * y * dun;
     const termS2 = -A * Ab * y * dun;
-    surfaces.push({ s1: termS1, s2: termS2 });
+    const termS3 = -Ab * Ab * y * dun;
+    const termS4 = -lagrangeInvariant * lagrangeInvariant * c * (1 / n2 - 1 / n);
+    let termS5: number | undefined;
+    if (distortion) {
+      if (A === 0) {
+        throw new Error(
+          "seidelSums: distortion is singular at a surface the marginal ray crosses " +
+            "undeviated (A = 0) — the classical S_V term is 0/0 there",
+        );
+      }
+      termS5 = (Ab / A) * (termS3 + termS4);
+      s5 += termS5;
+    }
+    surfaces.push({
+      s1: termS1,
+      s2: termS2,
+      s3: termS3,
+      s4: termS4,
+      ...(termS5 === undefined ? {} : { s5: termS5 }),
+    });
     s1 += termS1;
     s2 += termS2;
+    s3 += termS3;
+    s4 += termS4;
 
     // Transfer to the next vertex.
     y = y + u2 * s.thickness;
@@ -203,5 +303,14 @@ export function seidelSums(
     n = n2;
   }
 
-  return { s1, s2, w040: s1 / 8, surfaces };
+  return {
+    s1,
+    s2,
+    s3,
+    s4,
+    ...(distortion ? { s5 } : {}),
+    w040: s1 / 8,
+    lagrangeInvariant,
+    surfaces,
+  };
 }

@@ -83,6 +83,7 @@ whole ladder.
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the negative control is what stops the identity rungs passing on a no-op | `row-band` |
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together | `lattice-disk` |
+| [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -2172,6 +2173,12 @@ rung in `sequential.test.ts`.
   start to clip — which is the correct physics but is pinned by nothing.
 - **Astigmatism and field curvature** are present in the trace and unpinned;
   coma dominates a Newtonian but it is not the only off-axis term.
+  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion) closes this on a
+  spherical refractor and **cannot** close it here: its closed-form half runs
+  through `seidelSums`, which refuses a conic outright, so a paraboloid has no
+  third-order cross-check to be measured against. What § 6ac does add is the
+  traced readout — both focal surfaces of this mirror are now one call away, and
+  what is missing is the external number, not the measurement.
 
 ## Step 5c — the spider: diffraction spikes from the vanes
 
@@ -2558,6 +2565,8 @@ paraboloid would have hidden it, rather than absorbed into a loose band.
 - **Astigmatism and field curvature** are present in the trace and unpinned;
   coma dominates a classical Cassegrain off axis but it is not the only term, and
   the field curvature of a Cassegrain is strong.
+  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion)'s traced readout
+  reaches this system; its third-order anchor does not, the mirrors being conics.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian. Belongs with the step-5
   app work.
@@ -2660,6 +2669,10 @@ where the Cassegrain had them.
 - **Astigmatism and field curvature** are present in the trace and, beyond the
   "not nulled" negative control above, unpinned to an external number — the RC's
   field curvature is strong and dominates its usable field once coma is gone.
+  Same split as the Cassegrain after
+  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion): measurable now,
+  still without a closed form to be measured against, because the surfaces are
+  conics.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian and Cassegrain.
 
@@ -2865,6 +2878,12 @@ holds it to `lost === 0`.
   the trace but unpinned (the stop-at-corrector budget is neither the
   Cassegrain's nor a clean closed form). The SCT is a compromise between the
   Schmidt's wide field and the Cassegrain's compactness, not an anastigmat.
+  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion) does not change this
+  one at all, and the corrector fails its preconditions twice over: it is an
+  asphere, which `seidelSums` refuses, and it is a FLAT in a collimated beam,
+  which is precisely the A = 0 surface that makes the classical distortion term
+  0/0. The stop being surface 0 — it is, the corrector sits at the primary's
+  centre of curvature — is the one precondition this system does meet.
 - **Off-axis vignetting is a sizing artifact here, not physics.** The mirrors are
   sized for the on-axis beam only, exactly as the Cassegrain/RC secondary is, so
   an off-axis pupil clips — measured ~9% at 0.3° — and it clips at *both* mirrors,
@@ -3091,7 +3110,11 @@ twice: two orders below a singlet's, and shrinking with t/f. The same discipline
 puts the traced EFL a few parts in 10⁴ below D·F rather than fitting it away.
 
 **What is not corrected.** Coma is not nulled (and is not what the branch choice
-optimises); astigmatism and field curvature are traced and unpinned.
+optimises); astigmatism and field curvature are traced and **now pinned, on this
+very lens** — [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion) measures
+both focal surfaces here and reproduces the third-order closed form to 0.04% and
+0.09%. Uncorrected, not unmeasured: an achromat is not an anastigmat, and the
+tangential surface sits 1.44 mm inside focus at 1.6° off axis.
 Spherochromatism (the bending is solved at one wavelength) is present in the trace
 and unpinned here. The secondary spectrum is a property of the glass pair that no
 bending can touch — beating it needs an anomalous-partial-dispersion glass, which
@@ -5301,9 +5324,12 @@ that element will be pinned against.
 - **Chromatically the pair is only as good as its glasses.** Each group is
   achromatic by construction, so the secondary spectrum is § 5j's and is not
   re-pinned here; the joint solve is monochromatic, at the d line.
-- **Field beyond coma.** S_III–S_V are still uncomputed (`analysis/seidel`'s
-  stated scope), so astigmatism and field curvature are traced and unpinned. An
-  aplanat is not an anastigmat.
+- **Field beyond coma.** S_III–S_V now exist
+  ([§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion)), so the reason this
+  stays open has changed rather than gone: the Lister is a FINITE conjugate, and
+  § 6ac's closed-form path refuses one rather than carry § 6b's chief-ray
+  slope-vs-object-height convention untested. The traced focal surfaces are
+  reachable here; the external number is not. An aplanat is not an anastigmat.
 - **The coverslip.** § 6c's `targetS1Mm` route applies unchanged — the target
   would now be a pair of them, one per group — and is not wired here.
 - **The finite-conjugate (DIN) Lister**, which is the historical form. § 6b's
@@ -10366,6 +10392,132 @@ written to avoid.
   a smooth offset curve. Both show "a finite condenser lattice"; nothing here
   measures which one a reader learns more from, and that is a claim about people
   rather than optics.
+
+## Step 6ac — the two focal surfaces, and distortion
+
+Four separate sections of this file have carried the same sentence —
+"astigmatism and field curvature are present in the trace and unpinned" — and
+the reason it kept being true is that nothing was missing from the *engine*. An
+off-axis pencil has never had one focus: the fan in the plane containing the axis
+and the field point comes to a line focus at one z, the fan at right angles to it
+at another, and `spotAt`, `bestFocus` and `opdMap` have all been quietly
+reporting whichever one they landed on since § 6a. What was missing was the
+**claim**, and the sums that would let one be stated: `analysis/seidel` computed
+S_I and S_II and said so in its own scope note — "S_III…S_V are not computed …
+an unpinned formula is worse than an absent one".
+
+So the step is two things joined: S_III and S_IV added to the sums with their own
+external anchor, and `analysis/field` measuring the same two surfaces by tracing,
+so the closed form and the trace can disagree. They agree to 0.04% and 0.09%.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **S_III = H²φ and S_IV = H²Σφ/n** for a thin lens, stop in contact | Kingslake ch. 6 / Welford ch. 8, 2 indices × 6 shapes | ✅ |
+| …and the 6.4e-9 residual **is the centre thickness** — ×10 per decade of it | linearity, 3 decades | ✅ |
+| **Neither carries a shape factor**, while S_I over the same scan moves 8.6× | the closed form's own claim | ✅ |
+| S_IV/S_III = 1/n exactly — the index, read off two sums | closed form, 2 indices | ✅ |
+| H = θ·h to f64, and does not move with the bending | Lagrange invariant | ✅ |
+| **S_V = 0**, and it is a CANCELLATION: 1e-13 against per-surface 2.8e-5 | the published zero, 7 orders | ✅ |
+| Every field sum identically zero on axis, while S_I is not | `toBe(0)` | ✅ |
+| **Distortion refused where the classical term is 0/0** — the reversed plano-convex singlet | A = 0, its own message | ✅ |
+| **The traced sags reproduce −(S_III+S_IV)/2n′u′² and −(3S_III+S_IV)/2n′u′²** | 0.04% / 0.09%, over 128× of field | ✅ |
+| **Tangential departs from Petzval 3× as far as sagittal** — measured 2.9948 | third-order theory | ✅ |
+| Both surfaces INSIDE focus, same side, tangential the further | sign, not ratio | ✅ |
+| The astigmatic interval grows as h² — ×4.000 per doubling, 7 doublings to 7.1e-4 | third-order field dependence | ✅ |
+| NEGATIVE CONTROL: on axis the interval and both sags are **exactly** zero | `toBe(0)` | ✅ |
+| The interval at the smallest field is 2.1e8 ulps of its own focal plane | the f64 floor, measured | ✅ |
+| **A mismatched axial reference is 59× the signal** — why the API traces its own | 21-point fan vs 41 | ✅ |
+| Distortion is **barrel**, cubic — ×4.00 per doubling — and matches S_V/(2n′u′) | 1e-6 at 0.05°, disjoint machinery | ✅ |
+| The paraxial reference IS f·tanθ for a stop at the front vertex | 1e-9, construction check | ✅ |
+| **The wrong plane is 13× the signal and nearly flat where physics is steep** | the refused alternative, measured | ✅ |
+| A finite conjugate and a displaced stop are refused, not approximated | § 6h owns the finite branch | ✅ |
+
+### The anchor is shape-independent, and that is what makes it sharp
+
+§ 5j pins S_I on a thin lens by matching a published *polynomial* in the
+Coddington shape factor — every cross-term and the absolute scale. The field sums
+are anchored on the same lens and the anchor is stronger in a specific way: at a
+stop in contact, S_III and S_IV **have no shape factor in them at all**. They are
+fixed by the power and the glass, so a scan that moves S_I over a factor of 8.6
+must leave both numerically unmoved. An error in the chief-ray invariant Ā, in the
+Lagrange invariant H, or in the Δ(1/n) that only S_IV carries would almost
+certainly show as a spurious q-dependence — which a single-number match would
+have absorbed and this cannot.
+
+The residual is not absorbed either. Matching to 6.4e-9 rather than to f64 wants
+an explanation, and the explanation is testable: these are thin-lens statements
+checked against a two-surface lens 1 nm thick, so a thickness ×10 must cost ×10.
+It does, over three decades. That is the same mechanism § 5j records for S_I, and
+naming it is the difference between a tolerance and a physics statement.
+
+### Two ways to a plausible wrong answer, and the API refuses both
+
+Both hazards were found by measurement while the step was being built, and both
+are the kind that pass a test rather than fail one.
+
+**A sag is a difference, so the reference must be traced the same way.** The
+on-axis best-spot plane of the § 5j achromat moves **2.80e-3 mm** between a
+21-point fan and a 41-point one — fifth-order spherical residual, sampled
+differently, nothing to do with field. That offset is 59× the entire astigmatic
+interval at 0.0125°, and it enters both sags as a field-independent constant: the
+h² law flattens, and the 3:1 ratio the step exists to check reads **1.02**. It
+looks like physics. So `fieldSurfaces` traces its own axial reference with the
+identical fan, and the reference is not a parameter a caller can supply.
+
+**Distortion is only distortion at the paraxial image plane.** A chief ray is
+straight in image space, so at a plane Δz away its height is scaled by roughly
+(1 + Δz/f) — a constant relative error with no field dependence at all. Read at
+the best-spot plane instead, the § 5j achromat shows **3.07e-5** where its real
+third-order term at the edge of the field is 2.27e-6: thirteen times the signal,
+moving 7% over a span of field that multiplies the real term by 256. A reading
+dominated by the lever is nearly flat exactly where the physics is steep, which is
+how a wrong plane makes distortion look absent rather than wrong. So
+`distortionProfile` takes the plane from `paraxialImageOffset` and does not accept
+one.
+
+### The sign a ratio cannot see
+
+The headline is a ratio, and a ratio is sign-blind: 3:1 would pass with both sags
+mirrored, or with the two sections swapped. Three assertions close that separately
+— both sags negative (both surfaces bend toward the lens, inside paraxial focus),
+the tangential the further of the two, and the on-axis interval **exactly** zero
+rather than small. The last is also what licenses the tolerances above: the two
+fans differ by nothing at all when there is nothing to differ about, so the
+0.04%/0.09% residuals at field are the closed form's own higher-order tail and not
+a floor in the measurement.
+
+Distortion's sign is fixed the same way, and deliberately not by the comparison it
+is being checked against: the § 5j achromat carries its stop at the **front
+vertex**, ahead of the lens, and a stop ahead of a positive lens gives barrel —
+the textbook direction. The traced departure is negative. Had the conversion from
+S_V to a length needed a minus sign to agree, that would have been evidence
+against the convention rather than a free parameter.
+
+### Not yet pinned
+
+- **The stop shift.** Every off-axis sum here needs the stop at the first surface,
+  inherited from `seidelSums`' chief-ray shortcut. The published stop-shift
+  equations would lift that, and they are what a *non-zero* external distortion
+  anchor needs: the only closed form reachable now is the stop-in-contact zero.
+  The traced achromat's distortion is therefore pinned against its own S_V and
+  against a power law, not against a textbook number for a displaced stop.
+- **The 0/0 at A = 0.** A surface the marginal ray crosses undeviated makes the
+  classical S_V term 0/0 — the numerator vanishes identically there, shown in the
+  module header — and the reversed plano-convex singlet is not an exotic system to
+  hit it with. The limit needs L'Hôpital on the pair and is not implemented; the
+  flag refuses out loud instead.
+- **The sagittal criterion.** Both foci are `bestSpotZ` on their fan, which is a
+  min-RMS-spot plane over both transverse axes. The classical sagittal focus is
+  the y-crossing of the sagittal fan alone, and the two part company only at
+  higher order — bounded here by the 0.04% agreement with the closed form, but not
+  separately measured.
+- **Astigmatism off the d line, and the medial surface as a focus criterion.**
+  Everything is at one wavelength, and `medialZ` is reported but nothing measures
+  that it is where a real detector wants to sit.
+- **No app surface.** This is engine capability with no panel: `analysis/field`
+  has no caller in `packages/app`. APP.md's field-curvature entry is what would
+  scope one, and the readouts it would need — both sags, the interval, the
+  Petzval surface, the distortion profile — are the ones above.
 
 ## Later rungs
 
