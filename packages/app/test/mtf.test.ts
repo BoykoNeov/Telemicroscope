@@ -11,7 +11,7 @@ import { mtfCurves, MODULATION_FLOOR, type MtfSpec } from "../src/mtf";
  * rather than about the physics:
  *
  *  1. the two sections are one curve on axis and two off it,
- *  2. the azimuthal average misstates a section by 0.11 while sitting between
+ *  2. the azimuthal average misstates a section by 0.0852 while sitting between
  *     them — it is wrong by HIDING the band, not by leaving it, which is the
  *     opposite of what this file first asserted, and
  *  3. the ν axis is scaled by a cutoff this lens does not reach, and the panel
@@ -63,7 +63,7 @@ describe("the MTF panel — the curves themselves", () => {
   /**
    * The panel's second claim, in the corrected form. The average's problem is
    * that it reports ONE number where there are two: at 0.8° it misstates a
-   * section by ~0.11 while sitting neatly between them.
+   * section by 0.0852 while sitting neatly between them.
    *
    * The excursion BELOW both — the 45° azimuths, which on a comatic pupil are
    * worse than either axis — is real and is three orders smaller: 3e-5 here. The
