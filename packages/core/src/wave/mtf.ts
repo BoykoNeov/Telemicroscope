@@ -19,8 +19,17 @@ import { Psf } from "./psf";
  *    diameter D gives support of diameter 2D, so the MTF reaches exactly zero
  *    at f_c = n·D/(λ·R) = 2·NA/λ and no further. Aberrations move contrast
  *    around below the cutoff; they never extend it. On the array that lands at
- *    exactly `psf.pupilSamples` frequency bins, which is a strong internal
- *    check on the whole pupil→image scale.
+ *    exactly `psf.pupilSamples` frequency bins — **when the whole pupil
+ *    transmits**, which is the clause this comment used to leave out. It called
+ *    the coincidence "a strong internal check on the whole pupil→image scale"
+ *    and it is not one: D here is the aperture that was ASKED FOR, read off the
+ *    exit pupil radius, while the array's real support is the aperture that
+ *    actually traced. On the app's own f/10 doublet those differ by 27% — the
+ *    crown element closes on itself at 73% of its semi-diameter (APP.md Part B's
+ *    aperture wall) and every ray past that is a `miss`, so the modulation
+ *    reaches zero at ν = 0.73 while `cutoffCyclesPerMm` still reports the full
+ *    170.27 c/mm. The aberration-free PSF cuts off in the same place, which is
+ *    what says this is aperture and not aberration. See VALIDATION § 6ad.
  *  - **Normalizing by OTF(0) divides out energy**, so an MTF is comparable
  *    between systems of different throughput — and is unaffected by which PSF
  *    branch produced it.
@@ -38,7 +47,12 @@ export interface Mtf {
   readonly modulation: Float64Array;
   /** Cycles per mm per frequency bin. */
   readonly frequencyScale: number;
-  /** Diffraction cutoff 2·NA/λ (cycles/mm) — where the MTF reaches zero. */
+  /**
+   * Diffraction cutoff 2·NA/λ (cycles/mm), off the EXIT PUPIL RADIUS — i.e. the
+   * cutoff of the aperture the system was asked for. Where `modulation` actually
+   * reaches zero is the cutoff of the aperture that transmitted, and a truncated
+   * pupil parts the two. See the header.
+   */
   readonly cutoffCyclesPerMm: number;
   readonly wavelengthNm: number;
   readonly fieldValue: number;
@@ -101,8 +115,9 @@ export interface MtfProfile {
  *
  * Rotationally symmetric for an on-axis system, so the average is exact there
  * and merely a summary off axis — where tangential and sagittal MTF genuinely
- * differ and a directional readout is the honest one. That split is a separate
- * function when field curvature work arrives; this is the radial summary.
+ * differ and a directional readout is the honest one. That split is `mtfSections`
+ * below; this is the radial summary, and off axis it is not bracketed by the two
+ * sections it summarizes — the azimuths between them can be worse than either.
  */
 export function mtfProfile(m: Mtf, bins: number, cutoffBins: number): MtfProfile {
   const n = m.size;
@@ -131,15 +146,91 @@ export function mtfProfile(m: Mtf, bins: number, cutoffBins: number): MtfProfile
   return { nu, frequencyCyclesPerMm, modulation };
 }
 
-/** MTF at a normalized frequency ν, by bilinear sampling along +x. */
-export function mtfAt(m: Mtf, nu: number, cutoffBins: number): number {
+/**
+ * MTF at a normalized frequency ν along one axis of the shifted array, by
+ * linear interpolation between the two straddling bins.
+ *
+ * `axis` is a direction in FREQUENCY space, not a direction in the image: "x"
+ * means the modulation of a pattern whose bars run along y and whose contrast
+ * therefore varies along x.
+ */
+function sampleAlong(m: Mtf, nu: number, cutoffBins: number, axis: "x" | "y"): number {
   const n = m.size;
   const c = n / 2;
-  const x = c + nu * cutoffBins;
-  const i = Math.floor(x);
+  const t = c + nu * cutoffBins;
+  const i = Math.floor(t);
   if (i < 0 || i + 1 >= n) return 0;
-  const t = x - i;
-  const a = m.modulation[c * n + i]!;
-  const b = m.modulation[c * n + i + 1]!;
-  return a * (1 - t) + b * t;
+  const f = t - i;
+  const a = axis === "x" ? m.modulation[c * n + i]! : m.modulation[i * n + c]!;
+  const b = axis === "x" ? m.modulation[c * n + i + 1]! : m.modulation[(i + 1) * n + c]!;
+  return a * (1 - f) + b * f;
+}
+
+/**
+ * MTF at a normalized frequency ν, by bilinear sampling along +x.
+ *
+ * On axis that is *the* MTF, the pattern being rotationally symmetric. Off axis
+ * +x is the meridional direction — a field point is displaced along x in this
+ * engine (`objectPoint`/`fieldDirection`, the same convention `analysis/field`
+ * states) — so this has always returned the TANGENTIAL section specifically,
+ * which is what `mtfSections` now says out loud rather than leaving to be
+ * rediscovered.
+ */
+export function mtfAt(m: Mtf, nu: number, cutoffBins: number): number {
+  return sampleAlong(m, nu, cutoffBins, "x");
+}
+
+export interface MtfSections {
+  /** Normalized frequency ν = f/f_c, spanning [0, 1] inclusive. */
+  readonly nu: Float64Array;
+  readonly frequencyCyclesPerMm: Float64Array;
+  /**
+   * Contrast varying along **x** — the meridional plane, the one containing the
+   * axis and the field point. This is the section coma and tangential
+   * astigmatism degrade.
+   */
+  readonly tangential: Float64Array;
+  /** Contrast varying along **y**, perpendicular to the meridional plane. */
+  readonly sagittal: Float64Array;
+}
+
+/**
+ * The two directional MTF sections — the readout `mtfProfile` promised and did
+ * not have until `analysis/field` gave the two focal surfaces a meaning.
+ *
+ * An azimuthal average is exact on axis and a *summary* off it, and the thing it
+ * summarizes away is the whole content of an off-axis MTF: a comatic or
+ * astigmatic image is blurred more in one direction than the other, and "the
+ * MTF" of such a system is two curves. Measured on the § 5j achromat at 0.8°,
+ * the two part company by 1.5× at ν = 0.1 and stay apart to the cutoff.
+ *
+ * **Which is which is a convention, and it is the one `analysis/field` already
+ * chose:** a field point is displaced along x, so the meridional (tangential)
+ * plane is the x–z plane, and the tangential section is the one whose contrast
+ * varies along x. What checks the convention is not this comment — it is that
+ * three separate machineries agree about which direction the blur lies in (the
+ * ray spot's second moments, the PSF's, and this split), and that a system with
+ * no off-axis asymmetry at all produces no split. See VALIDATION § 6ad.
+ *
+ * `bins` samples span [0, 1] inclusive, unlike `mtfProfile`'s bin centres: a
+ * section is a point sample rather than an average over an annulus, so it can
+ * sit on the endpoints — and ν = 0 is worth having, because both sections must
+ * be exactly 1 there whatever the aberration.
+ */
+export function mtfSections(m: Mtf, bins: number, cutoffBins: number): MtfSections {
+  if (!Number.isInteger(bins) || bins < 2) {
+    throw new Error(`mtfSections: bins must be an integer ≥ 2, got ${bins}`);
+  }
+  const nu = new Float64Array(bins);
+  const frequencyCyclesPerMm = new Float64Array(bins);
+  const tangential = new Float64Array(bins);
+  const sagittal = new Float64Array(bins);
+  for (let b = 0; b < bins; b++) {
+    const v = b / (bins - 1);
+    nu[b] = v;
+    frequencyCyclesPerMm[b] = v * m.cutoffCyclesPerMm;
+    tangential[b] = sampleAlong(m, v, cutoffBins, "x");
+    sagittal[b] = sampleAlong(m, v, cutoffBins, "y");
+  }
+  return { nu, frequencyCyclesPerMm, tangential, sagittal };
 }

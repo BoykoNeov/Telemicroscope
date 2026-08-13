@@ -1672,7 +1672,26 @@
   contact, plus the traced achromat's own cubic against its S_V.
   **What is left on this line is one:** the
   optical MTF — `core/wave/mtf` has no caller anywhere in the app, and the camera
-  panel's MTF is the sensor's. That one is wiring.
+  panel's MTF is the sensor's. ~~That one is wiring.~~ **It was not**, and the
+  engine half is now ✅ closed at § 6ad, recorded here because the sentence above
+  was wrong in the same way § 6ac's brief was: an entry called wiring turned out
+  to be an engine step, and for a reason the module had written down and nobody
+  had read. `wave/mtf` had promised since it was written that the
+  tangential/sagittal split was "a separate function when field curvature work
+  arrives" — which is § 6ac, one entry earlier on this very line. Off axis those
+  two sections part by 1.5× on the achromat, and the azimuthal average that
+  existed instead is **not even bracketed by them**: a panel drawing the average
+  would report a contrast no orientation of a bar target gets. The direction is
+  pinned by three machineries agreeing rather than by one number, and by a
+  stop-at-the-centre-of-curvature mirror that is 0.75 waves out of round and
+  still splits by 1e-4. **And it found a false sentence in the module it was
+  reading**: the MTF cutoff landing at exactly `pupilSamples` bins was called "a
+  strong internal check on the whole pupil→image scale", and it is not one,
+  because the scale is built from the aperture that was ASKED FOR and the array's
+  support is the aperture that TRANSMITTED. On the app's own f/10 doublet those
+  differ by 27% — APP.md Part B's aperture wall, arriving as a curve that falls
+  off a cliff at ν = 0.73 while the readout still prints 170.27 c/mm. The panel
+  is what remains, and that part really is wiring.
 - ~~Hero image simulation with progressive refinement (instant on-axis preview,
   background full-field render).~~ ✅ **landed** — the background render is the
   worker each panel posts to, and the on-axis preview is the ladder's first

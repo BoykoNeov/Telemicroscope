@@ -84,6 +84,7 @@ whole ladder.
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the negative control is what stops the identity rungs passing on a no-op | `row-band` |
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together | `lattice-disk` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
+| [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -10523,6 +10524,119 @@ against the convention rather than a free parameter.
   distortion profile. The one design constraint the step hands the panel is that
   neither number survives being measured against a plane the caller chose —
   which is why both live behind functions that pick their own.
+
+
+## Step 6ad — the two MTF sections, and the cutoff of an aperture that did not transmit
+
+`wave/mtf` has said since it was written that the tangential/sagittal split is
+"a separate function when field curvature work arrives". § 6ac is when it
+arrived: it gave the two sections two focal surfaces and measured them. This step
+is the same split in frequency space — the readout that says which way a lens
+resolves — and it turned out to be two things joined, because writing it required
+opening the module's own prose and one sentence there was false.
+
+**The readout adds no physics and the rungs know it.** § 2b already pinned the
+on-axis MTF against the closed-form circular-pupil curve and its scale against
+2·NA/λ. Slicing a row and a column out of that array is composition. What it adds
+is a **claim about direction** — that the row is the meridional section — and a
+direction is exactly the kind of thing that passes every magnitude test while
+being backwards. So nearly all of the effort below is spent on the direction, and
+the anchor is not one measurement but the **agreement of three machineries that
+share no code above the trace**: the ray spot's second moments (geometry, no
+transform), the PSF intensity's second moments (one transform), and the section
+split itself (two transforms). On the § 5j achromat at 0.8° they read 1.848,
+1.390 and 1.48× — different numbers, because an unweighted ray count and an
+energy-weighted intensity weigh a coma flare's thin tail differently, and the same
+answer about which direction is blurred.
+
+**The negative control is the load-bearing rung, and it had to be made worse to
+be worth anything.** A spherical mirror with its aperture stop at the centre of
+curvature is symmetric about that stop at every field angle — the Schmidt
+camera's premise — so coma, astigmatism and distortion vanish identically. It is
+therefore a system that is genuinely off axis and genuinely round, and any
+machinery that manufactures a split out of a non-zero field rather than out of an
+asymmetry fails on it. The first draft used it at 0.135 waves RMS at 0.8° and
+**0.0698 at 1.6°** — the second is *inside* Maréchal's 0.0745, so it was very
+nearly a perfect system agreeing with itself, which proves almost nothing. At a
+15 mm semi-aperture the same mirror carries **0.747 and 0.593 waves** and a Strehl
+under 0.11, and the sections still agree to 5e-4. Large aberration, no asymmetry,
+no split — that is the statement, and it needed the aperture opened to make it.
+
+**The obvious rung does not hold, and the reason is recorded so it is not
+rediscovered as a bug.** Refocusing to § 6ac's tangential focus and watching the
+tangential section win is the textbook demonstration, and on this achromat it
+fails: at 0.8–1.6° the lens is coma-dominated, not astigmatism-dominated, so
+*both* sections are best at the sagittal focus and the crossover never happens.
+The classical crossover is a statement about pure astigmatism; a real lens at a
+field where its astigmatism is measurable has several times as much coma. A rung
+for it would need a coma-free astigmatic design this repo does not have.
+
+### The sentence that was false
+
+`wave/mtf`'s header said the cutoff landing at exactly `psf.pupilSamples`
+frequency bins is "a strong internal check on the whole pupil→image scale". It is
+not one. The scale is built from the exit pupil **radius**; the array's real
+support is the aperture that survived the **trace**; nothing makes those the same
+aperture, and on the lens the app ships they are not.
+
+`refractorPair` fixes the crown's centre thickness at 3 mm whatever the focal
+length, so past some semi-diameter the two sags meet and the tracer reports
+`miss` from the rim inward. That is APP.md Part B's **aperture wall**, already
+measured there as an EPD going as √f. What is new here is where it becomes
+visible: not as a lost-ray count but as **a wrong number on a plot**. At f/10 with
+D = 100 the modulation reaches zero at ν = 0.73 while `cutoffCyclesPerMm` still
+reports the full 170.27 c/mm, and at f/5 at ν = 0.51. The two measurements agree
+with the surviving pupil radius to better than 2% (0.728 and 0.515 traced), and
+Part B's √f extrapolation lands at 73.0 mm against the 72.8 measured here — the
+same wall reached by a third route.
+
+**What makes it aperture and not aberration** is the one check that distinguishes
+them, because a badly aberrated system also has almost no high-frequency
+contrast: the **aberration-free** PSF — same pupil, phase zeroed — cuts off in the
+same place. A perfect system whose contrast stops at 0.73 of its stated cutoff has
+a smaller aperture than it says it has, and there is no second reading. The
+singlet of the same pair is the control: 5 mm of centre thickness on a much
+flatter crown never closes inside D = 100, so it traces ρ = 1.0000 at every focal
+length the achromat loses one at.
+
+The header now carries the missing clause and `cutoffCyclesPerMm` says in its own
+doc comment that it is the cutoff of the aperture that was *asked for*. The
+engine is not changed: the number is the right number for the question it
+answers, and measuring the transmitted cutoff is a readout, left to the caller
+that wants it.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Both sections reproduce (2/π)·[arccos ν − ν√(1−ν²)] on axis, to 0.01 | Goodman, closed form | ✅ |
+| Both are exactly 1 at ν = 0, and the sections span [0,1] where the profile cannot | the definition | ✅ |
+| On axis the two sections are **the same curve to 1.4e-16** — a floor, not a tolerance | rotational symmetry | ✅ |
+| `mtfAt` **is** the tangential sampler, asserted as an identity | so older callers keep meaning what they meant | ✅ |
+| Monocentric mirror, 0.75 waves RMS and Strehl < 0.11 off axis: split **< 1e-3** | stop-at-CoC symmetry, 2 fields | ✅ |
+| …against the achromat's **0.226** at the same field — three orders | the control's whole purpose | ✅ |
+| Coma blurs the meridional direction: **1.848 / 1.390 / 1.48×** by rays, by PSF, by MTF | three machineries agreeing | ✅ |
+| The tangential section is below the sagittal one at every ν ≥ 0.05 | the convention, checked not asserted | ✅ |
+| The radial average is **not bracketed** by the two sections it summarizes | 45° azimuths are worse than either | ✅ |
+| Transmitted cutoff = surviving pupil radius: **0.728 / 0.515** at f/10 and f/5, to 6% | the trace's own `miss` count | ✅ |
+| …and the **aberration-free** PSF cuts off in the same place | aperture, not aberration | ✅ |
+| …while `cutoffCyclesPerMm` reports 2·NA/λ regardless, to 1% | the number is right for its own question | ✅ |
+| The singlet of the same pair keeps ρ = 1.0000 and `lost` = 0 at all three focal lengths | the control on the tracer itself | ✅ |
+
+### Not yet pinned
+
+- **The classical T/S crossover at the two foci**, for the reason above: it needs a
+  coma-free astigmatic design, and the honest alternative was to pin the direction
+  by agreement between machineries instead.
+- **The 1e-4 residual split off axis** is attributed to Part J's fit-over-a-discrete-pupil
+  leak — it grows with the wavefront and with field, as that leak does — but it is
+  bounded here rather than separately identified the way Part J identified its own.
+- **A transmitted-cutoff readout in the engine.** Deliberate: the measurement is a
+  scan for where an array falls to its floor, which is a caller's convention
+  (what counts as zero) rather than physics. The rungs above do it with an
+  explicit threshold and say so.
+- **No app surface.** `mtfSections` has no caller in `packages/app`, and neither
+  did `mtf` before it — ROADMAP's v1 analyses line has been carrying "the optical
+  MTF" as its last open entry, described there as wiring. This step is the
+  evidence that it is not only wiring, and scoping the panel is the next thing.
 
 ## Later rungs
 
