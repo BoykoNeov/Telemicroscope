@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { abbeImage, cosineGratingObject } from "../src/illumination/abbe";
+import {
+  abbeImage,
+  cosineGratingObject,
+  imageHarmonic,
+  phaseGratingObject,
+} from "../src/illumination/abbe";
 import {
   latticeDiskSource,
   latticeCutoffGapExists,
@@ -338,5 +343,155 @@ describe("§ 6ab.8 — refusals", () => {
     expect(() => abbeImage(OBJECT, idealPupil(), latticeDiskSource(3.5, PS, 1), { pupilSamples: PS })).toThrow(
       /runs off a 128-bin frequency grid/,
     );
+  });
+});
+
+/**
+ * § 6ab.9 — the three facts that decide the phase panel's condenser.
+ *
+ * § 6ab left the phase panel on `diskSource` deliberately, on the ground that
+ * its teaching had not been audited and that assuming A2's reasoning
+ * transplants is the move this step's own history argues against. The audit is
+ * these three rungs and § 6ab.10, and it says the reasoning does NOT
+ * transplant. The panel is ideal-pupil by design (APP.md A3: "do not improve it
+ * by tracing"), so it is exactly § 6p's null half — there is no tracing for the
+ * cache to eliminate, and twice the directions is twice the transforms.
+ */
+describe("§ 6ab.9 — what a lattice condenser would and would not fix", () => {
+  /** Worst |s + (−s)| over each point's best partner. 0 iff exactly symmetric. */
+  function asymmetry(source: CondenserSource): number {
+    let worst = 0;
+    for (const p of source.points) {
+      let best = Infinity;
+      for (const q of source.points) {
+        const d = Math.abs(p.sx + q.sx) + Math.abs(p.sy + q.sy);
+        if (d < best) best = d;
+      }
+      if (best > worst) worst = best;
+    }
+    return worst;
+  }
+
+  /**
+   * The phase null's precondition is a source symmetric under s → −s, and
+   * `diskSource` satisfies it only to rounding: `gridCoordinate` forms
+   * `radius·(2(i+½)/samples − 1)`, and the subtraction of 1 does not commute
+   * with the mirror. At samples 11 the outer pair is 0.9090909090909091 against
+   * 0.9090909090909092. The lattice's coordinates are an integer times an exact
+   * power-of-two step, so its mirror is exact — and the mask compares squares,
+   * which cannot admit one of a pair and drop the other.
+   *
+   * Worth exactly what it is worth: the measured null sits at f64 noise either
+   * way, so this improves the PRECONDITION and nothing observable.
+   */
+  it("diskSource is centro-symmetric only to rounding; the lattice is exact", () => {
+    for (const S of [0.05, 0.25, 0.5, 1.0]) {
+      expect(asymmetry(latticeDiskSource(S, PS, 1))).toBe(0);
+      const disk = asymmetry(diskSource(S, 11));
+      expect(disk).toBeGreaterThan(0);
+      // It scales with S, because every coordinate does.
+      expect(disk).toBeLessThan(1e-15);
+    }
+    expect(asymmetry(diskSource(1.0, 11))).toBeGreaterThan(asymmetry(diskSource(0.25, 11)));
+  });
+
+  /**
+   * The cost the panel would pay. A fixed angular density means the count grows
+   * as S², where `diskSource`'s is fixed by its own sample count — so the switch
+   * is cheaper at small S and dearer at large, and the panel's slider reaches
+   * 1.5. Counted rather than timed: a point count is what the cost is linear in,
+   * and a millisecond is a property of the machine.
+   */
+  it("the lattice costs directions where diskSource costs none", () => {
+    expect(diskSource(0.05, 11).points.length).toBe(97);
+    expect(diskSource(1.0, 11).points.length).toBe(97);
+    expect(latticeDiskSource(0.5, PS, 1).points.length).toBe(197);
+    expect(latticeDiskSource(1.0, PS, 1).points.length).toBe(797);
+  });
+
+  /**
+   * And the dead zone at the bottom, which is why the switch could not have
+   * been a straight swap even if the cost had gone the other way: below one
+   * lattice cell the source holds a single point, so an S slider stepping by
+   * 0.01 would show the coherent limit for its first 6% of travel.
+   */
+  it("below one lattice cell the source collapses to the coherent limit", () => {
+    const cell = 2 / PS;
+    expect(latticeDiskSource(cell * 0.99, PS, 1).points.length).toBe(1);
+    expect(latticeDiskSource(cell * 1.01, PS, 1).points.length).toBeGreaterThan(1);
+    // `diskSource` keeps its full count all the way down, which is the property
+    // the phase panel is actually relying on.
+    expect(diskSource(cell * 0.99, 11).points.length).toBe(97);
+  });
+});
+
+/**
+ * § 6ab.10 — the audit's real finding, and it is not about which source.
+ *
+ * The phase panel prints the 2ν contrast — the second-order term that survives
+ * where the linear one is null — to six digits. That number is a quadrature
+ * over illumination directions, and as S approaches 1 the quantity it is
+ * measuring collapses (2.8e-2 at S = 0.6 against 1.5e-4 at S = 1, at this
+ * grating) while the disagreement between samplings of the SAME source grows to
+ * swamp it.
+ *
+ * Measured across `diskSource` at 11/21/41/61 samples and `latticeDiskSource`
+ * at step multiples 1/2/3/4, on a 256² grid: worst ratio between samplings is
+ * 1.06× at S = 0.6, 1.26× at 0.75, 1.76× at 0.90, and **9.75× at S = 1.00**,
+ * staying between 5.8× and 42.7× at every S above it out to the slider's 1.5.
+ * So this is a band and not a point, and it covers the top ~40% of the panel's
+ * own S range.
+ *
+ * **It is not the sampling being too coarse.** A lattice source at step 3 uses
+ * FEWER points than the shipped disc (89 against 97), a COARSER spacing (0.1875
+ * against 0.1818) and a WORSE rim reach (0.9561 against 0.9791), and reads
+ * 1.58e-4 against the shipped 1.48e-3 — agreeing with the 797-point lattice to
+ * 3%. Refining the disc does not fix it either: at S = 1, 41 and 61 samples
+ * (1 313 and 2 933 points) disagree with each other by 2.2×. The quantity is
+ * dominated by which points land near |s| = 1, where the shifted pupil is
+ * tangent to the objective's — a rim effect that no amount of interior sampling
+ * resolves.
+ *
+ * Deliberately NOT fixed here. What the panel should print above S ≈ 0.9 is a
+ * product question — fewer digits, a stated uncertainty, or a refusal in the
+ * idiom it already uses for a 2ν bin that does not fit the grid — and it costs
+ * a second render to answer honestly. This rung exists so the number cannot
+ * quietly start being believed.
+ */
+describe("§ 6ab.10 — the 2ν readout is converged at S = 0.6 and is not at S = 1", () => {
+  const GRATING = phaseGratingObject({ size: SIZE, cycles: 12, amplitudeRadians: 0.4 });
+
+  function secondHarmonic(source: CondenserSource): number {
+    const out = abbeImage(GRATING, idealPupil(), source, { pupilSamples: PS });
+    return imageHarmonic(out.intensity, SIZE, 24).contrast;
+  }
+
+  /** Worst ratio between the readings a set of samplings gives. */
+  function spread(sources: CondenserSource[]): number {
+    const v = sources.map(secondHarmonic);
+    return Math.max(...v) / Math.min(...v);
+  }
+
+  it("three samplings agree to within 10% at S = 0.6", () => {
+    const s = spread([diskSource(0.6, 11), diskSource(0.6, 21), diskSource(0.6, 41)]);
+    expect(s).toBeLessThan(1.1);
+  });
+
+  it("and disagree by more than 5× at S = 1, refinement included", () => {
+    const s = spread([diskSource(1, 11), diskSource(1, 21), diskSource(1, 41)]);
+    expect(s).toBeGreaterThan(5);
+  });
+
+  it("the shipped sampling is the outlier, not merely one of a scatter", () => {
+    // Every other sampling tried lands within 3× of the lattice's reading; the
+    // panel's own 11-sample disc is an order of magnitude above all of them.
+    const lattice = secondHarmonic(latticeDiskSource(1, PS, 1));
+    const shipped = secondHarmonic(diskSource(1, 11));
+    expect(shipped / lattice).toBeGreaterThan(5);
+    for (const m of [2, 4]) {
+      const other = secondHarmonic(latticeDiskSource(1, PS, m));
+      expect(other / lattice).toBeGreaterThan(1 / 3);
+      expect(other / lattice).toBeLessThan(3);
+    }
   });
 });

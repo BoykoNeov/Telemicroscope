@@ -82,7 +82,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the negative control is what stops the identity rungs passing on a no-op | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together | `lattice-disk` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together; the phase panel audited and declined, its 2ν readout unconverged above S ≈ 0.9 | `lattice-disk` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -10469,12 +10469,66 @@ lattice: the count is printed on the control itself, and a control that rewrites
 another control's value is the state-chasing-state the panel's own S clamp is
 written to avoid.
 
+### The phase panel, audited — and declined (§ 6ab.9, § 6ab.10)
+
+**The reasoning does not transplant, which is what the item said and is now the
+measurement rather than the suspicion.** The phase panel is ideal-pupil *by
+design* — APP.md A3 is explicit that tracing it would replace an exact null with
+a small number that cannot be told from a bug — so it sits exactly in § 6p's
+null half above. There is no tracing for the cache to eliminate, and twice the
+directions is twice the transforms: at S = 1 the panel's own render goes
+**57 ms → 349 ms** on 97 points against 797. Three facts decide it and § 6ab.9
+pins each:
+
+- **The switch would cost directions and buy no cache.** Counted rather than
+  timed, since the cost is linear in the count and a millisecond is a property
+  of the machine: 97 at every S against 197 at S = 0.5 and 797 at S = 1.
+- **It would fix the null's precondition and nothing observable.** The null
+  needs a source symmetric under s → −s, and `diskSource` is symmetric only to
+  rounding — `gridCoordinate` forms `radius·(2(i+½)/samples − 1)`, and the
+  subtraction of 1 does not commute with the mirror, so the outer pair at
+  11 samples is 0.9090909090909091 against 0.9090909090909092. The asymmetry
+  scales with S, reaching 2.2e-16 at S = 1, against the lattice's exact zero.
+  The measured null is ~1e-16 either way.
+- **And it could not have been a straight swap.** Below one lattice cell
+  (S < 2/`pupilSamples` = 0.0625) the lattice holds a single point, so a slider
+  stepping by 0.01 would show the coherent limit for its first 6% of travel,
+  where `diskSource` keeps its full 97 all the way down.
+
+**What the audit actually found is a defect in the panel, and it is not about
+which source (§ 6ab.10).** The panel prints the 2ν contrast — the second-order
+term that survives where the linear one is null — to six digits, and that number
+is not converged over the top ~40% of its own S slider. Worst ratio between
+samplings of the same source: **1.06× at S = 0.6, 1.26× at 0.75, 1.76× at 0.90,
+9.75× at S = 1.00**, and 5.8× to 42.7× at every S above it out to the slider's
+1.5. At S = 1 the shipped `diskSource(S, 11)` reads **1.48e-3** where the
+797-point lattice, the 349-point disc and the 2 933-point disc all read
+~1.5e-4.
+
+**It is not coarseness, and refinement does not fix it.** A lattice at step 3
+uses FEWER points than the shipped disc (89 against 97), a COARSER spacing
+(0.1875 against 0.1818) and a WORSE rim reach (0.9561 against 0.9791) — and
+reads 1.58e-4, agreeing with the 797-point lattice to 3%. Meanwhile refining the
+disc does not converge: at S = 1, 1 313 and 2 933 points disagree with each other
+by 2.2×. The quantity is dominated by which points land near |s| = 1, where the
+shifted pupil is tangent to the objective's, and no amount of interior sampling
+resolves a rim. The signal itself collapses across that band — 2.8e-2 at S = 0.6
+against 1.5e-4 at S = 1 — so the disagreement grows while the thing it is
+measuring shrinks.
+
+The rung asserts the two ends and the outlier and stops there. What the panel
+should *print* above S ≈ 0.9 is a product question — fewer digits, a stated
+uncertainty, or a refusal in the idiom it already uses for a 2ν bin that does
+not fit the grid — and answering it honestly costs a second render, so it is
+listed below rather than guessed at here.
+
 ### Not yet pinned
 
-- **The phase panel** (`app/phase.ts`) takes `diskSource` on the same argument
-  and would take the same change. Its teaching has not been audited, so it is
-  deliberately untouched rather than switched on the assumption that A2's
-  reasoning transplants.
+- **What the phase panel should print above S ≈ 0.9**, given § 6ab.10. The
+  reading is there, it is six digits, and it is not converged. A self-check
+  (render at N and at 2N+1, report the disagreement) is the panel's own idiom —
+  it prints `worstResidual` and `besselCheck.residual` rather than claiming them
+  — but it doubles the render, which at S = 1.25 is not free.
 - **A commensurate ANNULUS**, still — § 6p's own open item, and now with a
   constructor that would make it S-free too. Darkfield and phase contrast are
   where it would pay.

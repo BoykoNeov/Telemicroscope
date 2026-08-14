@@ -1612,9 +1612,28 @@
    is recorded where it was found rather than gathered into a new step: the
    sparse-input transform § 6aa left (rows are skipped, columns are not, and a
    sparse-input transform is a different algorithm wanting its own identity
-   rungs), and the phase panel's condenser § 6ab deliberately did not switch (its
-   teaching has not been audited, and assuming A2's reasoning transplants is the
-   move that step's own history argues against). ~~And the discarded diffraction
+   rungs). ~~And the phase panel's condenser § 6ab deliberately did not switch
+   (its teaching has not been audited, and assuming A2's reasoning transplants is
+   the move that step's own history argues against).~~ **Audited at § 6ab.9 and
+   ✅ declined** — the reasoning does not transplant, and the measurement says so
+   rather than the suspicion. That panel is ideal-pupil *by design* (A3: tracing
+   it would replace an exact null with a small number nobody can tell from a
+   bug), so it is § 6p's null half exactly: no tracing for the cache to remove,
+   and twice the directions is twice the transforms — 57 ms to 349 at S = 1. The
+   switch would fix the null's precondition and nothing observable (`diskSource`
+   is centro-symmetric only to rounding, 2.2e-16 at S = 1, and the measured null
+   is 1e-16 either way), and it could not have been a straight swap regardless:
+   below one lattice cell the source collapses to a single point, so the S slider
+   would show the coherent limit for its first 6% of travel. **The audit's real
+   finding is a defect it went looking for and did not expect** — § 6ab.10. The
+   panel prints the 2ν contrast to six digits and that number is not converged
+   over the top ~40% of its own slider: samplings of the same source agree to
+   1.06× at S = 0.6 and disagree by 9.75× at S = 1, staying 5.8–42.7× apart above
+   it. Not coarseness — a lattice at step 3 with fewer points, coarser spacing
+   and a worse rim reach lands within 3% of the 797-point answer, while refining
+   the disc to 2 933 points does not converge, because the quantity is set by
+   what happens where the shifted pupil is tangent to the objective's. What the
+   panel should print there is left open below rather than guessed at. ~~And the discarded diffraction
    PSF § 3c.2 found inside `adaptivePsf` at geometric weight 1.~~ **That one is
    now ✅ closed at § 3c.3**, and it is recorded here rather than only in
    VALIDATION because § 3c.2 got its *reach* wrong in the same way this file's
