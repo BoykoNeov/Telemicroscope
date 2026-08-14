@@ -1844,10 +1844,26 @@ or name a route that did not resolve.
   architecture commitments keep this a new scheduler, not a rewrite).
 - Thin-film coatings, polarization physics.
 - More catalogs (glasses, patent-derived eyepieces/objectives).
-- **Design mode.** The focus solve (step 2) is already a solver; generalizing
-  it is cheap and turns a simulator into a design tool: curvature/thickness
-  solves ("make EFL = X"), then damped least squares over a few variables.
-  Strongly differentiating — no other web optics sim lets you *design*.
+- **Design mode**, which is two items and was one bullet. Strongly
+  differentiating either way — no other web optics sim lets you *design*.
+  - ~~Curvature/thickness solves ("make EFL = X").~~ ✅ **landed in the engine**
+    — `analysis/solve.ts`, VALIDATION § 1.7. **No surface**: this is a core
+    capability with no panel, which is why it is not a row in the analyses table
+    above. One word of the original clause is now known to be wrong and is worth
+    leaving visible: **"generalizing" the focus solve is not what happened**.
+    `bestFocus` minimises a merit and a design target is a root, so nothing in
+    its bracket-and-golden-section transfers; the two live side by side rather
+    than one inside the other. What the step actually bought that was not
+    forecast is three refusals — a stated search interval, so a target reachable
+    two ways *reports* both instead of the solver picking one; an EFL pole
+    rejected as a sign change that is not a root; and a scan cell holding two
+    roots holding none, measured rather than left to be discovered.
+  - Damped least squares over a few variables. **Blocked on a pin, not on
+    code** — an optimizer test that says only "it converged" is regression, and
+    the hard rule forbids landing on that. The two candidate merits with
+    closed-form minimisers are thin-lens bending for minimum spherical (the
+    Coddington shape factor) and the achromat's crown/flint power split, which
+    § 5j already carries external numbers for.
 
 ## Engineering practices to land alongside the code
 

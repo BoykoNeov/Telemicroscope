@@ -20,6 +20,7 @@ whole ladder.
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities, and the finding that the artifact lived in the currency rather than in the aim | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
+| [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -1054,6 +1055,155 @@ never collapses there — the instrumentation is silent for that whole test.
 | Closed-form best-spot plane beats a scan of neighbouring planes | self-consistency |
 | Evaluating a traced bundle at a plane = re-tracing to that plane | round trip |
 | Vignetted rays counted, not dropped | bookkeeping |
+
+## Step 1.7 — the paraxial solve: the root a design target names
+
+The first half of ROADMAP's v2+ design-mode entry, and it sits here rather than
+at the end of the ladder because of what it generalises: § 1.6 answers "where is
+best focus?", and this answers "what does this parameter have to be?". They are
+neighbours in the file because they are neighbours in the engine, and they are
+**separate modules** because they are not the same problem. `analysis/solve.ts`,
+`solve.test.ts`.
+
+### A solve is a root, and a focus solve is a minimum
+
+The roadmap bullet reads "the focus solve is already a solver; generalizing it is
+cheap". The cheap part is true and the *generalizing* part is not. `bestFocus`
+minimises a merit: no target value, the bottom of a curve, golden section,
+bracketed by three points. A design target is a root: g(x) = property(x) − target,
+bracketed by two points of opposite sign. Nothing in `bracketedMin` transfers —
+and worse than not transferring, a minimiser pointed at a root problem is
+*quietly* less precise, because near a simple root |g| is V-shaped and a
+minimiser reads a V as flat over an interval ~√ε wide instead of ~ε. So the
+solver is a new module, and the damped-least-squares half of design mode — a
+merit minimised over several variables at once — is a third thing that is
+deliberately **not** landed here. See "Not yet pinned" below for what it is
+waiting on, which is a pin and not an implementation.
+
+### The external number, and why it is the inverse rather than the equation
+
+Gullstrand's thick-lens equation, for a lens of index n and axial thickness d in
+air (Hecht, *Optics* § 5.2; Smith, *Modern Optical Engineering* § 2.6):
+
+    P = (n−1)(c₁ − c₂) + (d/n)·(n−1)²·c₁·c₂,    f = 1/P
+    BFD = f·(1 − (d/n)·(n−1)·c₁)
+
+The equation is not here to check the tracer — § 1 did that. It is here because
+it can be **inverted in closed form**, so every rung compares the solver's answer
+against an algebraic expression for the same root rather than against the number
+it converged to last time. That distinction is the whole reason this step is
+landable: an optimiser test that says only "it found something" is regression,
+not validation, and this file never has to say it.
+
+The first rung is anti-circularity and runs before any solving: Gullstrand *is*
+the engine's own EFL and BFD, three geometries, both properties, agreeing to
+**better than 1e-15 relative**. Without it the file could be self-consistently
+wrong — a solver agreeing perfectly with an equation the tracer does not obey.
+
+| Solved for | Variable | Inverse | Measured |
+|---|---|---|---|
+| EFL = 100 mm | thickness | d = (1/f − A)/B | 3e-14 relative, and the relation is exactly linear |
+| EFL = 120 mm | curvature c₂ | c₂ = (1/f − (n−1)c₁)/((d/n)(n−1)²c₁ − (n−1)) | < 1e-16 absolute; R₂ = +1782.82 mm |
+| BFD = 92 mm | thickness | d = (1 − t·A)/(t·B + (n−1)c₁/n) | 3e-14 relative |
+
+with A = (n−1)(c₁−c₂) and B = (n−1)²c₁c₂/n. The first two are **linear**, and
+that is why they are in the table: the inverse is exact, so the comparison is a
+fixed point rather than a converged-close-enough, and the whole of the 3e-14 is
+Brent's stopping width. The third is a genuine rational function of d, and it is
+pinned as one — its second difference in d is measured at 1.5e-4 of the value,
+against the power's, which is **exactly zero** rather than merely small.
+
+### The search is an interval the caller states, and multiplicity is reported
+
+A root find needs somewhere to look. Expanding a bracket outward from a seed
+returns the first sign change it meets and says nothing about the others — so a
+caller asking an equiconvex lens for a focal length gets one of the two
+curvatures that deliver it, chosen by the expansion schedule, which is an
+implementation detail wearing the clothes of a physical answer. This module
+scans a stated interval instead: `roots` carries every root resolved, in
+increasing x, and `x` is the one nearest the seed. The caller states the interval
+because only the caller knows what is physical.
+
+The multiplicity rung uses the equiconvex constraint c₂ = −c₁ — supplied as a
+closure, since nothing in `SolveVariable` couples two surfaces — under which the
+power is a downward parabola P(c) = 2(n−1)c − (d/n)(n−1)²c². One system then pins
+three separate claims, all against the quadratic formula rather than against the
+solver's own output:
+
+- **Two roots for one target.** At f = 2·f_min both curvatures are found —
+  0.1074546282 and 0.6262914696 /mm — each matching the closed form to 1e-12, and
+  each verified to be a real lens of that focal length rather than merely a number.
+- **The seed is the only thing that chooses.** Same interval, same two roots;
+  seeding at 0.02 returns the first and at 0.85 the second.
+- **A shortest achievable focal length.** The parabola has a vertex at
+  c\* = n/(d(n−1)) = 0.3668730489 /mm, so f_min = 5.274261483 mm exists, and a
+  target past it is refused with the closest approach *measured* and named — this
+  engine refuses a readout it cannot produce rather than returning the nearest edge.
+
+### The pole, which is a root the arithmetic invents
+
+EFL is 1/P, so a system whose power passes through zero has an EFL that runs to
++∞, reappears at −∞, and crosses **every** finite target on the way — with a
+genuine sign change, at a place where the property does not take the target value
+at all. A bisection dropped in that cell converges neatly onto the pole and
+returns it, and the returned number is a perfectly plausible thickness.
+
+Pinned on an air-spaced pair (f ≈ +60 then f ≈ −50) that is afocal at a 9.67 mm
+gap: the EFL is negative at 5 mm, positive at 110 mm, and exceeds 1e4 mm in
+between, so the pole is demonstrated to be in the interval before anything is
+asked of it. A bare `solveScalar` aimed at the EFL then **refuses**, naming the
+crossing it rejected — every candidate is re-checked at its own refined x, and a
+residual past `valueTolerance` is an artefact of the sign rather than a root.
+
+`solveParaxial` does better than surviving it: an `efl` target is solved as a
+**power** target, 1/efl against 1/value, which turns the pole into an ordinary
+zero and leaves no spurious crossing for the guard to find. The same question on
+the same system through that entry point meets no pole at all — pinned both ways,
+the guard firing on the general call and the specialised one not needing it. The
+guard stays because `solveScalar` is public and a caller's own merit may have
+poles this module cannot see.
+
+### The blindness the scan buys, measured rather than asserted
+
+A scan cell holding an **even** number of roots shows no sign change across it,
+so a pair closer together than one cell is stepped over as if it were not there.
+That is the same class of sharp edge as § 1.6's bracket width and it fails the
+same way — silently — so it is demonstrated rather than documented and hoped
+about. At 0.9995 of the vertex power the two equiconvex roots sit 0.0164 apart:
+256 cells over [0.01, 0.9] resolve them both to 1e-6, and 8 cells report the
+target as unreachable. The refusal names the resolution it searched at, which is
+the only thing that tells "your interval was too coarse" apart from "this lens
+cannot do that".
+
+### The regression net a general solver gets for free
+
+`huygensEyepiece` runs its own unguarded secant on an overall scale to hit a
+target focal length, and § 5o pins the eyepiece it produces. That same
+one-parameter family, rebuilt and handed to `solveScalar`, lands on the same
+lens: the focal length to 1e-10 mm, and the separation and field-lens focal
+length to 1e-9 mm — so the general solver reproduces a bespoke one that was
+validated independently. **The three bespoke call sites are deliberately not
+refactored onto this module** (`designs/lister.ts`'s coupled fixed point,
+`designs/eyepiece.ts`'s secant, `designs/microscope.ts`'s ffd + efl/M iteration).
+That is diff churn buying nothing this rung does not already assert, and the
+lister one is not even a scalar solve — its geometry moves under the variable.
+
+### Not yet pinned
+
+- **Damped least squares**, which is the rest of design mode. It does not need
+  more implementation than this file has; it needs a **merit whose minimiser is
+  known in closed form**, because an optimizer test that only says "it converged"
+  is regression. The two candidates are thin-lens bending for minimum spherical
+  aberration (the Coddington shape factor, which has a closed-form optimum) and
+  the crown/flint power split of an achromat, which § 5j already carries the
+  external numbers for. If neither survives contact, DLS does not land — that is
+  a reason to keep it out, not a reason to loosen anything.
+- **Targets beyond first order.** Everything here is a paraxial property, so
+  every evaluation is a paraxial trace and 64 scan cells cost nothing. A target
+  on a traced quantity — an RMS spot, a Zernike term — changes the cost model
+  by four orders of magnitude and wants a different search than a full scan.
+- **No surface.** This is engine capability with no panel; ROADMAP's v2+ entry is
+  split rather than ticked, and nothing in APP.md claims it.
 
 ## Step 2a — FFT + Zernike basis
 
