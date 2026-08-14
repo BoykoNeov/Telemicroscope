@@ -48,6 +48,15 @@ import { PANELS } from "../src/panels/registry";
  * | The state at `d3c5b79` | ROADMAP's ✅ row names a route nothing resolves |
  * | A row's route misspelt (`#/trian`) | *names only routes the registry has* |
  * | A landed section's row deleted | *has a row for every section marked ✅* **and** *claims every panel the app ships* |
+ * | A ✅ blanked with its route left behind | *every other row none* — the branch below that had no other exercise |
+ *
+ * The fourth row is there because the first three all drove the ✅ path, and the
+ * other branch is the one that makes this table safe to write **honestly**: an
+ * analysis that has not reached a screen is recorded as a row with no route, and
+ * that is checked to pass rather than assumed to. `| Zernike readout | not yet |
+ * — |` was run and is green, so a future session recording an unsurfaced
+ * capability is not fighting the test to tell the truth. Anything that is not
+ * exactly `✅` reads as not surfaced; there is no third state.
  *
  * **The first row is the one worth reading, and it failed only in the ROADMAP
  * half.** With Part L unscoped there is no ✅ section for APP.md's table to be
