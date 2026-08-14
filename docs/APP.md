@@ -4445,6 +4445,134 @@ worker-URL constraint for a panel that does not need it.
   while looking like a quality setting — `wavefront.ts` fixes it for the same
   reason.
 
+## Part L — the curved field, and the aberration the achromat did not fix — *app wiring only* — ✅ **landed** — **two plots**
+
+Route `#/curvature`, `src/curvature.ts` + `src/panels/curvature.tsx`,
+`test/curvature.test.ts`. It draws `core/analysis/field` (VALIDATION § 6ac),
+which had **no caller anywhere in `packages/app`** until this part.
+
+**This part exists because the accounting was wrong, and that is worth recording
+before anything the panel found.** ROADMAP's v1 analyses line says in as many
+words that "all six v1 analyses have a surface", and five did. The sentence was
+written when Part K landed and counted the entry that had landed *one step
+earlier on the same line* as though its panel had arrived with it. Nothing was
+lost — § 6ac is pinned, 22 rungs — but for a day this document had eleven parts
+and a claim that it had twelve. Three checks would have caught it and none was
+run: `panels/registry.ts` has no route for it, this doc has no Part for it, and
+`analysis/field`'s exported symbols appear nowhere under `src/`. That is the
+registry lesson from the D6 and A9 paragraphs above, arriving a **third** time,
+and the first time it has been ROADMAP rather than APP.md doing the
+miscounting.
+
+### What the surface is for
+
+Every other analysis in this app asks about one point in the field. This one asks
+the question a *detector* asks: the image is not formed on a plane, so where does
+the flat thing go. Two plots — the two astigmatic focal surfaces against field,
+with the third-order closed forms and the Petzval surface drawn behind them; and
+distortion against field, with the S_V cubic behind it.
+
+### Four findings, and the first one is about the lens this whole app ships
+
+**1. The achromat did not flatten the field, and made Petzval worse.** It is this
+app's entire demonstration — the lens that fixes the singlet's colour and its
+spherical aberration — and against this aberration it does nothing: at 1.6° the
+singlet's tangential surface is **1.4233 mm** inside focus and the achromat's is
+**1.4464**, so the corrected lens is 1.6% *worse*. On the Petzval surface, the
+part no astigmatism balancing can move, it is 8.1% worse (0.2575 against 0.2783),
+because that surface is a sum of element powers over their indices and correcting
+colour by adding glass adds power to sum. Two lenses whose Strehl ratios and spot
+sizes are nothing like each other land on nearly the same curved field.
+
+What the achromat *does* fix here is the **chromatic variation** of it: the
+singlet's Petzval sag moves 2.1% across the F-to-C band and the achromat's 0.26%,
+eight times less. The correction reached this aberration — it made the curved
+field the same curved field at every colour.
+
+The practical restatement is the panel's second section. At f/10 and 587.6 nm the
+quarter-wave depth of focus is ±0.1175 mm and the corner of a ±1.6° frame is
+**12.3** of them outside it, for both lenses within 3%; the best flat plane
+available still leaves **4.5**. At f/25 those are 2.0 and 0.7. Stopping down fixes
+it without flattening anything, because the depth of focus grows as the focal
+ratio squared while these surfaces, per finding 2, barely move with aperture at
+all. The panel states the quarter-wave convention inline, because the same
+quantity is quoted full-wave elsewhere and the two differ by exactly 2× — C6 spent
+a caption on a 35% version of that same failure.
+
+**2. Three of the four quantities here have no aperture in them, which is unusual
+in this app.** x_s, x_t and x_p are ratios of Seidel sums to n′u′² and the
+aperture cancels identically — measured constant to 1e-9 over EPD 20 → 120 — and
+traced distortion is a chief-ray property, unmoved to nine digits over the same
+range. The traced *surfaces* do have an aperture in them, because they are where
+a real fan's spot is smallest: over that range the singlet's traced tangential sag
+moves 0.63% and the achromat's 0.04%, sixteen times less.
+
+The panel deliberately does **not** name which aberration that is. The probe
+behind it measured an aperture dependence, not a mechanism, and this document's
+own history says what happens when a panel prints the mechanism it guessed. What
+it does say is the part that matters for reading the plot: the singlet's departure
+from the closed form **changes sign** near EPD 35, so the two curves lying on top
+of each other at one aperture is not a check on anything.
+
+**3. The `lost` guard fires on the app's own default lens, and the control is not
+an explanation.** `AstigmaticFocus.lost` is documented as invalidating the sags,
+and on the shipped f/10 achromat it is **24** — Part B's aperture wall, the crown
+closing on itself at 73% of its semi-diameter, which Part K measures from the
+frequency side and this panel reaches from the field side. The sags are
+nonetheless right, and the panel says so the only way it can: it re-traces the
+edge field at a stopped-down aperture that loses nothing and prints the departure,
+**2.0e-4**. That says the truncation did not move this number. It does not say
+why, and the obvious reason — a rim lost evenly all the way round leaves the
+best-focus z alone — is a mechanism nothing here measured, so the panel prints the
+control and stops. The singlet of the same pair loses nothing at any aperture,
+which is what keeps "the loss is harmless" from being consistent with a tracer
+that always loses rays.
+
+**4. What § 6ac's refused parameter is worth on this app's lenses, which is far
+more than on its own.** Both hazards the step measured are enforced by the module
+rather than documented, so this adapter cannot commit either however it is
+called. The distortion one is worth a number here: § 6ac measured the best-spot
+plane as 13× the signal on its fixture, and on these lenses the gap between the
+paraxial plane and the on-axis best-spot plane is 0.0915 mm on the achromat and
+2.545 mm on the singlet, which as a pure scale error is **218×** and **942×** the
+real distortion at the edge. A panel allowed to choose its own plane would have
+drawn a curve that was three orders of magnitude defocus, in a shape — constant in
+field — that no distortion has.
+
+### Two things driving it changed
+
+**The plots are drawn fat-under-thin, and the first draft was not.** Drawn the
+obvious way — prediction thin and dashed, measurement thick on top — this panel
+shows *three* curves where its legend lists five, at every setting, because the
+traced and predicted surfaces agree to about a part in a thousand and a 2 px line
+hides a 1.4 px one completely. A reader sees a missing series rather than an
+agreement. The predictions are now 2.8 px in a pale tint with the measurement 1.4
+px on top, so the agreement reads as a halo of dashes around the line, and the
+caption says why. The width difference is explicitly *not* a claim about which
+curve is more certain — the closed form is exact and it is the traced one that
+carries the sampling.
+
+**Both lenses are computed on every frame.** The headline is a comparison, and a
+comparison quoted in prose is a number that can go stale while the page still
+looks right — which is exactly the defect the commit before this one fixed
+elsewhere in this document. The second lens's Petzval and tangential sags come
+from a live second call, at ~21 ms.
+
+### What it does not do
+
+- **No through-focus spot or field-tilt control.** A sensor that is tilted rather
+  than merely misplaced is a real question and it is Part G's machinery, not this
+  one's.
+- **No finite conjugate.** `thirdOrderSags` and `distortionProfile` both refuse
+  one outright — § 6h's `objectFieldFrame` is the finite-conjugate field map and
+  has its own convention — so the microscope branch cannot reach this panel and
+  the panel does not pretend otherwise.
+- **No best-flat-plane solve.** The plane the panel marks is the midpoint of the
+  medial surface's range over the sampled field, and it says on screen that it is
+  a midpoint and not an optimum. A real solve would be minimising a blur criterion
+  over the field, which is `bestFocus` generalised — a step-2 solver question, and
+  ROADMAP's v2+ design-mode entry is where that belongs.
+
 ## What the app itself needs to hold this
 
 Structural work implied by the above, independent of which surfaces land:
@@ -4717,6 +4845,18 @@ than into a promise: the count is now derived from the catalogue everywhere,
 including in the test that pins it, so the next time a wall moves the sentence
 moves with it. The panel count is still eighteen; Part F added no route, which is
 the point — the eleventh objective appears inside the eighteen that exist.
+
+**Part L is the twenty-sixth route in the registry, and the first item this
+document missed because ROADMAP said it was already done.** The pair of sentences
+above —
+"the registry checks this document against the app, and only ROADMAP checks this
+document against the engine" — is right and now has a third leg: nothing checks
+ROADMAP against the registry, and that is exactly where the gap was. ROADMAP's v1
+analyses line claimed all six analyses had surfaces while `analysis/field` had no
+caller under `src/` at all, so an accounting error in one document made a whole
+capability invisible to the other. The check that would have caught it is the one
+the D6 and A9 paragraphs already name, pointed the other way: every capability
+ROADMAP marks as *surfaced* should have a route. See Part L.
 
 **C7 is the seventh, and it makes the count nineteen.** It was found by a
 structural check after all — but not one of this document's: the item was in

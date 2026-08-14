@@ -7,6 +7,7 @@ import { BuilderPanel } from "./builder";
 import { CameraPanel } from "./camera";
 import { CollimationPanel } from "./collimation";
 import { CoverslipPanel } from "./coverslip";
+import { CurvaturePanel } from "./curvature";
 import { EditorPanel } from "./editor";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
@@ -115,6 +116,12 @@ export const PANELS: readonly Panel[] = [
     label: "the MTF",
     blurb: "ROADMAP v1 — the contrast that survives, and the cutoff of an aperture that did not transmit",
     Component: MtfPanel,
+  },
+  {
+    id: "curvature",
+    label: "the curved field",
+    blurb: "ROADMAP v1 — the two surfaces a flat sensor sits between, and the one the achromat did not flatten",
+    Component: CurvaturePanel,
   },
   {
     id: "reflector",

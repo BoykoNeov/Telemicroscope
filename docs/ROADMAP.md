@@ -1691,8 +1691,38 @@
   support is the aperture that TRANSMITTED. On the app's own f/10 doublet those
   differ by 27% — APP.md Part B's aperture wall, arriving as a curve that falls
   off a cliff at ν = 0.73 while the readout still prints 170.27 c/mm. **The panel
-  is now ✅ landed too** (APP.md Part K, route `#/mtf`), and with it **this whole
-  line closes**: all six v1 analyses have a surface. It corrected one more thing,
+  is now ✅ landed too** (APP.md Part K, route `#/mtf`). ~~And with it this whole
+  line closes: all six v1 analyses have a surface.~~ **That sentence was false when
+  it was written, and correcting it is why this line has one more entry.** Five
+  analyses had a surface. The sixth — distortion/field curvature, § 6ac, the entry
+  *immediately above* on this very line — had no route, no panel, no APP.md part,
+  and no caller of `analysis/field` anywhere under `packages/app`. **The same
+  error is stated twice on this line**, which is what makes it worth this much
+  space: "what is left on this line is one: the optical MTF" is the first
+  statement of it and was already wrong when written, since § 6ac is described
+  three sentences earlier in this same bullet with no panel; "all six have a
+  surface" is the second. Both were written from the step that landed *after*
+  § 6ac, and both counted the entry in between as though its panel had arrived
+  with its rungs. **It is now ✅ landed** — APP.md Part L, route `#/curvature`,
+  app wiring only — and *now* the line closes. Recorded at length rather than
+  quietly struck, because the failure was in this file's own accounting rather
+  than in any panel or any rung, and because the check that would have caught it
+  is cheap and was never run: a capability this file marks as surfaced should have
+  a route in `panels/registry.ts`. What the panel found is that the achromat —
+  this app's whole demonstration, the lens that fixes the singlet's colour and its
+  spherical aberration — **does not flatten the field**: at 1.6° its tangential
+  surface is 1.6% further inside focus than the singlet's and its Petzval surface
+  8.1% further, because Petzval is a sum of element powers over their indices and
+  correcting colour by adding glass adds power to sum. What it *does* correct is
+  the **chromatic variation** of it, 2.1% of the Petzval sag across the F-to-C
+  band falling to 0.26%. In the units that decide anything, both lenses put the
+  corner of a ±1.6° frame **12 quarter-wave depths of focus** out at f/10 and 2 at
+  f/25 — stopping down fixes it without flattening anything, since the depth of
+  focus grows as the focal ratio squared while these surfaces, measured across
+  EPD 20 → 120, move 0.63% on the singlet and 0.04% on the achromat. And § 6ac's
+  refused plane parameter is worth far more here than on the fixture it was
+  measured against: **218×** the signal on the achromat and **942×** on the
+  singlet, against the 13× the module records. It corrected one more thing,
   and the thing it corrected was its own first draft. The complaint it set out to
   make about the azimuthal average — that it runs over the 45° directions and so
   sits BELOW both sections, reporting a contrast no bar target gets — measured
