@@ -111,6 +111,10 @@ export interface ScalarSolveOptions {
   /**
    * How close `evaluate(x)` must land to `target` for a candidate to count as a
    * root rather than a pole. Default `1e-9·|target| + 1e-12`.
+   *
+   * Always in the units of the TARGET as the caller stated it — `solveParaxial`
+   * converts it when it solves a reciprocal, so mm stays mm for both target
+   * kinds rather than becoming 1/mm for one of them.
    */
   readonly valueTolerance?: number;
 }
@@ -439,13 +443,20 @@ export function solveParaxial(
   // the arithmetic would invent is not there to be found. The result is
   // translated back into mm so a caller reads focal lengths, not diopters.
   const powerTarget = 1 / target.value;
+  // `valueTolerance` is stated in the TARGET's units — mm for both target kinds,
+  // because that is what the caller asked in. Solving the reciprocal changes the
+  // units of the residual the guard sees, so the tolerance is converted with it:
+  // P = 1/f gives |ΔP| = |Δf|/f² to first order. Passing a millimetre tolerance
+  // straight into a solve on 1/f would loosen it by f², which is a factor of a
+  // million on a 1000 mm focal length — and it would do so on ONE of the two
+  // target kinds, so the same option field would mean different things depending
+  // on what was being solved for. This engine does not ship a knob like that.
   const inPower = solveScalar((x) => 1 / at(x).efl, powerTarget, {
     ...options,
-    // The default value tolerance is relative to the target, and the target has
-    // been reciprocated — so reciprocate the tolerance with it rather than
-    // letting a 1000 mm focal length be solved a million times more loosely
-    // than a 1 mm one.
-    valueTolerance: options.valueTolerance ?? 1e-9 * Math.abs(powerTarget) + 1e-15,
+    valueTolerance:
+      options.valueTolerance === undefined
+        ? 1e-9 * Math.abs(powerTarget) + 1e-15
+        : options.valueTolerance / (target.value * target.value),
   });
   const roots = inPower.roots.map((r) => ({ x: r.x, value: 1 / r.value }));
   const value = 1 / inPower.value;

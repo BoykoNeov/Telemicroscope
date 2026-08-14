@@ -1102,16 +1102,25 @@ wrong — a solver agreeing perfectly with an equation the tracer does not obey.
 
 | Solved for | Variable | Inverse | Measured |
 |---|---|---|---|
-| EFL = 100 mm | thickness | d = (1/f − A)/B | 3e-14 relative, and the relation is exactly linear |
-| EFL = 120 mm | curvature c₂ | c₂ = (1/f − (n−1)c₁)/((d/n)(n−1)²c₁ − (n−1)) | < 1e-16 absolute; R₂ = +1782.82 mm |
-| BFD = 92 mm | thickness | d = (1 − t·A)/(t·B + (n−1)c₁/n) | 3e-14 relative |
+| EFL = 100 mm | thickness | d = (1/f − A)/B | 2.28e-15 relative, and the residual is **exactly 0** |
+| EFL = 120 mm | curvature c₂ | c₂ = (1/f − (n−1)c₁)/((d/n)(n−1)²c₁ − (n−1)) | 2.2e-19 absolute; R₂ = +1782.82 mm |
+| BFD = 92 mm | thickness | d = (1 − t·A)/(t·B + (n−1)c₁/n) | **bit for bit**; 1.4e-14 mm left on the property |
 
-with A = (n−1)(c₁−c₂) and B = (n−1)²c₁c₂/n. The first two are **linear**, and
-that is why they are in the table: the inverse is exact, so the comparison is a
-fixed point rather than a converged-close-enough, and the whole of the 3e-14 is
-Brent's stopping width. The third is a genuine rational function of d, and it is
-pinned as one — its second difference in d is measured at 1.5e-4 of the value,
-against the power's, which is **exactly zero** rather than merely small.
+with A = (n−1)(c₁−c₂) and B = (n−1)²c₁c₂/n. The third is the only nonlinear
+target in the set and is pinned as one — its second difference in d is measured
+at 1.5e-4 of the value, against the power's, which is **exactly zero** rather
+than merely small.
+
+**The first row's 2.28e-15 is not the solver's convergence, and saying so was
+the correction this step needed.** The residual is exactly zero: the value the
+solver returns and the value the closed form returns are *both* roots to the last
+bit, and the 2.28e-15 between them is the closed form's own conditioning. The
+reason it can be zero is worth stating because it is not obvious and it decides
+what else in this module can be tested at all: the paraxial system matrix is a
+product of [[1,0],[−φ,1]] and [[1,t],[0,1]] factors, so it is **affine in any one
+curvature or any one thickness** — and so is the power. Brent's first
+interpolation step lands on the root of a straight line exactly. Every EFL solve
+over the supported variable set is therefore an exact solve, not a converged one.
 
 ### The search is an interval the caller states, and multiplicity is reported
 
@@ -1134,7 +1143,12 @@ solver's own output:
   0.1074546282 and 0.6262914696 /mm — each matching the closed form to 1e-12, and
   each verified to be a real lens of that focal length rather than merely a number.
 - **The seed is the only thing that chooses.** Same interval, same two roots;
-  seeding at 0.02 returns the first and at 0.85 the second.
+  seeding at 0.02 returns the first and at 0.85 the second. The tie-break — ties
+  to the smaller x, so the answer is a function of the arguments and not of the
+  scan order — is pinned on x² and **not** on the lens, and that is the finding
+  rather than a shortcut: the midpoint between the two equiconvex roots is not
+  equidistant from them in f64, it misses by an ulp, one root wins on arithmetic
+  and the tie-break is never reached. A tie has to be constructed to be tested.
 - **A shortest achievable focal length.** The parabola has a vertex at
   c\* = n/(d(n−1)) = 0.3668730489 /mm, so f_min = 5.274261483 mm exists, and a
   target past it is refused with the closest approach *measured* and named — this
@@ -1175,6 +1189,22 @@ target as unreachable. The refusal names the resolution it searched at, which is
 the only thing that tells "your interval was too coarse" apart from "this lens
 cannot do that".
 
+### The wall, which the module claimed and no fixture ran
+
+`evaluate` may throw or go non-finite for an x that is not a system — an afocal
+chain has no EFL and the engine says so by throwing — and the module treats that
+as a **wall**: the cells touching it are skipped rather than being allowed to
+manufacture a sign change against a neighbour. That convention was written down
+and then executed by nothing, because every optical fixture in the file is a real
+system and `systemProperties` only throws at |u| < 1e-15, which a 64-cell scan
+meets with probability zero. A documented sharp edge nobody has run is a
+documented guess, so it is pinned on synthetic closures: a root outside a wall is
+still found (both when the wall returns NaN and when it throws), a −1/+1 cliff
+with nothing in between invents **no** root across it — the pole's mistake
+arrived at from the opposite side — and a root lying *inside* a wall is refused
+after the refinement walks into it, which is the one path that exercises the
+in-bracket fallback.
+
 ### The regression net a general solver gets for free
 
 `huygensEyepiece` runs its own unguarded secant on an overall scale to hit a
@@ -1198,6 +1228,15 @@ lister one is not even a scalar solve — its geometry moves under the variable.
   the crown/flint power split of an achromat, which § 5j already carries the
   external numbers for. If neither survives contact, DLS does not land — that is
   a reason to keep it out, not a reason to loosen anything.
+- **The unit of `valueTolerance` on an `efl` target.** `solveParaxial` solves an
+  EFL target as a POWER target, so a caller's tolerance has to be converted with
+  it — |ΔP| = |Δf|/f² — or the same option field would mean mm on a `bfd` target
+  and 1/mm on an `efl` one, loosened by f², which is a factor of a million at
+  1000 mm. That is fixed by construction and it is **not pinned**, because the
+  affineness above makes it unobservable: an exact root passes any guard, in
+  either unit, so no fixture in the supported variable set can tell the two
+  apart. It becomes testable the moment a target arrives whose solve is not
+  exact — which is the same event the next item is waiting on.
 - **Targets beyond first order.** Everything here is a paraxial property, so
   every evaluation is a paraxial trace and 64 scan cells cost nothing. A target
   on a traced quantity — an RMS spot, a Zernike term — changes the cost model

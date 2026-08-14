@@ -131,9 +131,16 @@ describe("step 1.7 — a thickness solved for a focal length", () => {
 
     expect(solved.roots).toHaveLength(1);
     // The relation is linear and the inverse is exact, so this is a fixed-point
-    // comparison and not a converged-close-enough one: 3e-14 relative is ~130
-    // ulp on a 30 mm answer, and the whole of it is Brent's stopping width.
-    expect(Math.abs(solved.x - expected) / expected).toBeLessThan(3e-14);
+    // comparison and not a converged-close-enough one. Measured at 2.28e-15
+    // relative — 10 ulp on the 34.3 mm answer — and the bound is stated at what
+    // was measured rather than at a round number with room in it.
+    //
+    // That residue is NOT the solver failing to converge: `residual` below is
+    // exactly zero, so the value the solver returned and the value the closed
+    // form returns are both roots to the last bit, and the 2.28e-15 between them
+    // is the closed form's own conditioning. Calling it "Brent's stopping width"
+    // would have been the wrong attribution.
+    expect(Math.abs(solved.x - expected) / expected).toBeLessThan(3e-15);
     // What the caller actually asked for, checked on the BUILT lens rather than
     // on the solver's own bookkeeping.
     const built = withVariable(thickLens(c1, c2, 5), THICKNESS(0), solved.x);
@@ -178,7 +185,7 @@ describe("step 1.7 — a curvature solved for a focal length", () => {
     );
 
     expect(solved.roots).toHaveLength(1);
-    expect(Math.abs(solved.x - expected)).toBeLessThan(1e-16);
+    expect(Math.abs(solved.x - expected)).toBeLessThan(1e-18); // measured 2.2e-19
     // The answer in the units an optician would quote it in: a weak POSITIVE
     // second radius, i.e. the lens is bent into a meniscus to give up power.
     expect(1 / expected).toBeCloseTo(1782.8241, 4); // R₂ ≈ +1782.82 mm
@@ -214,8 +221,12 @@ describe("step 1.7 — a back focus solved for, which is the nonlinear one", () 
     );
 
     expect(solved.roots).toHaveLength(1);
-    expect(Math.abs(solved.x - expected) / expected).toBeLessThan(3e-14);
-    expect(Math.abs(solved.residual)).toBeLessThan(1e-10);
+    // The one nonlinear target in the set, and it still lands on the closed
+    // form BIT FOR BIT — measured at exactly zero relative difference, not
+    // merely small. The residual it leaves is on the property rather than on
+    // the variable: 1.4e-14 mm of back focus, which is 1.5e-16 of the 92 mm.
+    expect(Math.abs(solved.x - expected) / expected).toBeLessThan(1e-16);
+    expect(Math.abs(solved.residual)).toBeLessThan(1e-13);
   });
 });
 
@@ -267,6 +278,18 @@ describe("step 1.7 — two roots, and which one the seed picks", () => {
     expect(low.x).not.toBeCloseTo(high.x, 3);
     // Same interval, same roots — only the choice among them moved.
     expect(low.roots.map((r) => r.x)).toEqual(high.roots.map((r) => r.x));
+  });
+
+  it("breaks an EXACT tie toward the smaller x, so the answer is not the scan order", () => {
+    // Pinned on x² rather than on the lens, and the reason is the point: the
+    // midpoint between the two equiconvex roots is not equidistant from them in
+    // f64 — it misses by an ulp, one root wins on arithmetic, and the tie-break
+    // is never reached. A tie has to be CONSTRUCTED to be tested. Here the roots
+    // are ±2 exactly and the seed is 0, so both distances are the same double.
+    const tied = solveScalar((x) => x * x, 4, { interval: [-3, 3], seed: 0 });
+    expect(tied.roots.map((r) => r.x)).toEqual([-2, 2]);
+    expect(Math.abs(tied.roots[0]!.x - 0)).toBe(Math.abs(tied.roots[1]!.x - 0));
+    expect(tied.x).toBe(-2);
   });
 
   it("refuses a focal length shorter than the lens can produce, and says how close it came", () => {
@@ -344,6 +367,102 @@ describe("step 1.7 — the pole, which is a root the arithmetic invents", () => 
     });
     expect(reachable.roots).toHaveLength(1);
     expect(systemProperties(pair(reachable.x), LINE_D).efl).toBeCloseTo(50, 7);
+  });
+});
+
+describe("step 1.7 — the wall, where `evaluate` says there is no system", () => {
+  /**
+   * The module treats a throwing or non-finite `evaluate` as a WALL rather than
+   * propagating it: the cells touching it are skipped instead of being allowed
+   * to manufacture a sign change against a neighbour. Every other fixture in
+   * this file is a real optical system, and `systemProperties` only throws on an
+   * exactly afocal chain — which a 64-cell scan meets with probability zero. So
+   * the convention needs a synthetic closure, or it is a documented guess.
+   */
+  it("still finds a root that lies outside the wall", () => {
+    const walled = (x: number): number => {
+      if (x >= 3 && x <= 5) return Number.NaN; // "not a system here"
+      return x;
+    };
+    const solved = solveScalar(walled, 8, { interval: [0, 10] });
+    expect(solved.x).toBeCloseTo(8, 12);
+    expect(solved.roots).toHaveLength(1);
+  });
+
+  it("does the same when `evaluate` throws rather than returning NaN", () => {
+    const throwing = (x: number): number => {
+      if (x >= 3 && x <= 5) throw new Error("afocal in image space: there is no paraxial image plane");
+      return x;
+    };
+    expect(solveScalar(throwing, 8, { interval: [0, 10] }).x).toBeCloseTo(8, 12);
+  });
+
+  it("invents no root across the wall, even though the value changes sign over it", () => {
+    // −1 on the left, +1 on the right, nothing in between. A solver that read
+    // the wall's neighbours as a bracket would report a root at ~4 that does not
+    // exist — the same shape of mistake as the pole, arrived at from the
+    // opposite direction.
+    const cliff = (x: number): number => {
+      if (x >= 3 && x <= 5) return Number.NaN;
+      return x < 3 ? -1 : 1;
+    };
+    expect(() => solveScalar(cliff, 0, { interval: [0, 10] })).toThrow(/is not reached over/);
+  });
+
+  it("refuses a root that lies INSIDE a wall, having walked into it mid-bracket", () => {
+    // The bracket's own endpoints are finite and opposite in sign, so the scan
+    // hands Brent a cell it must refine — and the refinement walks into the
+    // slit, which is the one path that exercises the in-bracket fallback. The
+    // root is not a system, so whatever comes back fails its own residual check.
+    const slit = (x: number): number => {
+      if (x >= 7.42 && x <= 7.46) return Number.NaN;
+      return x - 7.44;
+    };
+    expect(() => solveScalar(slit, 0, { interval: [0, 10], scanCells: 10 })).toThrow(
+      /was a pole rather than a root/,
+    );
+  });
+});
+
+describe("step 1.7 — the tolerance a caller states, and the solve that lands exactly", () => {
+  const c1 = 1 / 60;
+  const c2 = -1 / 300;
+
+  it("an efl solve lands EXACTLY, which is why no tolerance in either unit can be too tight", () => {
+    // The paraxial system matrix is a product of [[1,0],[−φ,1]] and [[1,t],[0,1]]
+    // factors, so it is AFFINE in any one curvature or any one thickness — and
+    // so is the power. Brent's first interpolation step therefore lands on the
+    // root of a straight line exactly, and the residual is not small, it is
+    // zero. Measured here on both the value and the power it was solved in.
+    const solved = solveParaxial(
+      thickLens(c1, c2, 5),
+      THICKNESS(0),
+      { kind: "efl", value: 100 },
+      LINE_D,
+      { interval: [0.5, 60], valueTolerance: 1e-9 },
+    );
+    expect(solved.residual).toBe(0);
+    const built = withVariable(thickLens(c1, c2, 5), THICKNESS(0), solved.x);
+    expect(1 / systemProperties(built, LINE_D).efl - 1 / 100).toBe(0);
+
+    // This is what makes the unit of `valueTolerance` a correctness question
+    // that no fixture can currently expose: an exact root passes any guard, so
+    // handing the mm figure into a solve on 1/f would be wrong by f² and pass
+    // anyway. It is fixed by construction — the conversion is one line in
+    // `solveParaxial` — and § 1.7 records it as unpinnable until a target
+    // arrives whose solve is not exact. The arithmetic the fix rests on:
+    expect(1e-9 / (100 * 100)).toBe(1e-13);
+  });
+
+  it("a bfd tolerance means the same thing, and it always did", () => {
+    const solved = solveParaxial(
+      thickLens(c1, c2, 5),
+      THICKNESS(0),
+      { kind: "bfd", value: 92 },
+      LINE_D,
+      { interval: [0.5, 60], valueTolerance: 1e-9 },
+    );
+    expect(Math.abs(solved.residual)).toBeLessThan(1e-9);
   });
 });
 
