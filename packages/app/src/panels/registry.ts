@@ -8,6 +8,7 @@ import { CameraPanel } from "./camera";
 import { CollimationPanel } from "./collimation";
 import { CoverslipPanel } from "./coverslip";
 import { CurvaturePanel } from "./curvature";
+import { DesignPanel } from "./design";
 import { EditorPanel } from "./editor";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
@@ -164,6 +165,12 @@ export const PANELS: readonly Panel[] = [
     label: "the bench editor",
     blurb: "ROADMAP v1 — the surface list itself, and the order the aperture says is really there",
     Component: EditorPanel,
+  },
+  {
+    id: "design",
+    label: "the solve",
+    blurb: "ROADMAP v2+ — design mode's first half: what a number has to be, and the pole that is not a root",
+    Component: DesignPanel,
   },
   {
     id: "builder",

@@ -1162,10 +1162,13 @@ genuine sign change, at a place where the property does not take the target valu
 at all. A bisection dropped in that cell converges neatly onto the pole and
 returns it, and the returned number is a perfectly plausible thickness.
 
-Pinned on an air-spaced pair (f ≈ +60 then f ≈ −50) that is afocal at a 9.67 mm
-gap: the EFL is negative at 5 mm, positive at 110 mm, and exceeds 1e4 mm in
-between, so the pole is demonstrated to be in the interval before anything is
-asked of it. A bare `solveScalar` aimed at the EFL then **refuses**, naming the
+Pinned on an air-spaced pair (f ≈ +60 then f ≈ −50) that is afocal at a
+**9.0159878 mm** gap: the EFL is negative at 5 mm, positive at 110 mm, and
+exceeds 1e4 mm in between, so the pole is demonstrated to be in the interval
+before anything is asked of it. (That gap was described here and in the fixture's
+own comment as ≈ 9.67 mm until APP.md's Part M measured it — by bisecting the
+sign of the power, and confirmed against the value the engine's own refusal
+names. No rung asserted it; it was a description of a fixture.) A bare `solveScalar` aimed at the EFL then **refuses**, naming the
 crossing it rejected — every candidate is re-checked at its own refined x, and a
 residual past `valueTolerance` is an artefact of the sign rather than a root.
 
@@ -1205,6 +1208,23 @@ arrived at from the opposite side — and a root lying *inside* a wall is refuse
 after the refinement walks into it, which is the one path that exercises the
 in-bracket fallback.
 
+**The reasoning above is right about the scan and incomplete about what reaches
+the wall, and APP.md's Part M is what showed it.** A *scan* meets the wall with
+probability zero, exactly as stated. A **refinement aimed at it meets it with
+probability one**, because there is an ordinary design question whose root is the
+wall: "which value of this variable makes the system afocal?", i.e. a power target
+of 0. The two widths are what settle it. `systemProperties` throws at |u| < 1e-15
+and u is −1/f, so the hole is exactly where |1/f| < 1e-15; on the pair above the
+power moves 3.565e-4 per mm of gap, putting the last gap that is a system at
+9.015987757053926 and the first one above it at 9.015987757059541 — a hole
+**5.615e-12 mm** wide, against Brent's 8·eps·120 = 2.13e-13 mm, **26× narrower**.
+The final bracket therefore fits inside the hole and the candidate fails its own
+residual check. The engine answers that
+question by refusing — "every sign change was a pole rather than a root" — and
+naming the place, which is how the corrected 9.0159878 above was confirmed. So
+the wall is reachable from a real optical fixture after all; the synthetic
+closures stay, because they exercise three paths this question does not.
+
 ### The regression net a general solver gets for free
 
 `huygensEyepiece` runs its own unguarded secant on an overall scale to hit a
@@ -1241,8 +1261,19 @@ lister one is not even a scalar solve — its geometry moves under the variable.
   every evaluation is a paraxial trace and 64 scan cells cost nothing. A target
   on a traced quantity — an RMS spot, a Zernike term — changes the cost model
   by four orders of magnitude and wants a different search than a full scan.
-- **No surface.** This is engine capability with no panel; ROADMAP's v2+ entry is
-  split rather than ticked, and nothing in APP.md claims it.
+- ~~**No surface.**~~ ✅ **closed** — APP.md **Part M**, route `#/design`, app
+  wiring only and no rung of its own. What it added that is not above: the
+  exactness is in the POWER and a millimetre residual is that ulp times f²
+  (measured 1.048576 of the identity at a 1000 mm target, both quantities being
+  ulp-quantized); the affineness is visible as **work**, two evaluations past the
+  scan against fifty-six for the same question asked at f; there is always
+  exactly **one** root through a single prescription number, so the multiplicity
+  this step pins needs the coupled closure and not merely a different lens; the
+  two equiconvex roots' back focal distances **cancel exactly**, by an algebra
+  this file does not state, so only one of the pair is a lens you can put a
+  sensor behind; and a single-variable solve **spends the correction** the lens
+  was built for, by 29× to 240× on the app's own achromat, which is the measured
+  case for the damped-least-squares half.
 
 ## Step 2a — FFT + Zernike basis
 

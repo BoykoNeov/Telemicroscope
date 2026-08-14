@@ -76,6 +76,7 @@ sufficient alone.
 | Part J | `#/wavefront` | the Zernike terms, and which RMS the Strehl formula wants |
 | Part K | `#/mtf` | the contrast that survives |
 | Part L | `#/curvature` | the two surfaces a flat sensor sits between |
+| Part M | `#/design` | what a number has to be, and the pole that is not a root |
 | ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
 
 ## The baseline: what the app draws today, and its house style
@@ -4678,6 +4679,178 @@ from a live second call, at ~21 ms.
   a midpoint and not an optimum. A real solve would be minimising a blur criterion
   over the field, which is `bestFocus` generalised — a step-2 solver question, and
   ROADMAP's v2+ design-mode entry is where that belongs.
+
+## Part M — design mode's first half: what a number has to be — *app wiring only* — ✅ **landed** — **a form and two plots**
+
+Route `#/design`, `src/design.ts` + `src/panels/design.tsx`, `test/design.test.ts`.
+It draws `core/analysis/solve` (VALIDATION § 1.7), which had **no caller anywhere
+in `packages/app`** until this part — the second capability in a row to land in
+the engine and sit there, after Part L's field module.
+
+**It is the first surface in this app that runs backwards.** Every other panel
+takes a lens and reports what it does. This one takes a property you want and one
+number the design may move, and returns the value that number has to take. That
+is a *root* rather than a minimum, which is why it is a different solver from the
+focus solve every imaging panel already uses, and it is the half of ROADMAP's
+design-mode entry that has landed; the other half moves several numbers at once
+and is blocked on a merit whose answer is known in closed form.
+
+The panel is a form over one refusal the module makes on purpose: `solveScalar`
+will not expand a bracket, so the **caller states the interval**. Each seed
+therefore states one, and the panel says on screen which of them are this app's
+guess (three times the value the design already has, either side of it) and which
+are § 1.7's own — the two borrowed fixtures carry that step's numbers so the
+figures on screen are the figures the ladder pinned.
+
+### Two plots, because the pole is only in one of them
+
+Left: the quantity the solver actually roots on — the **power** for a
+focal-length target, which is a straight line in any single curvature or
+thickness. Right: the focal length itself, where a pole lives. They are the same
+solve. Both are cut where the system passes through afocal rather than drawn
+through it, because a polyline joining +∞ to −∞ draws a vertical line at a place
+the lens has no focal length at all.
+
+### Seven findings, and the first two are one fact in two currencies
+
+**1. The solve is exact, and the exactness is in the POWER rather than in the
+millimetres.** § 1.7 pins `residual === 0` on its own thick lens and explains why
+— the paraxial system matrix is affine in any one curvature or thickness, so
+Brent's first interpolation lands on the root of a straight line. On this app's
+doublet the *millimetre* residual is 0 at some targets and 5.7e-14 mm at others,
+which looks like a converged solve and is not: the power residual is 0 or 4.3e-19
+/mm, one ulp, and |Δf| = f²·|ΔP| magnifies it. The panel prints both columns for
+that reason. The identity holds to within a power of two rather than exactly,
+because both residuals are ulp-quantized — measured **1.048576** at a 1000 mm
+target, which is (1024/1000)² and not a millimetre of anything.
+
+**2. The same claim as work, which is the more convincing half.** Nothing in the
+result says "this was exact"; the evaluation count does. A 64-cell scan is 65
+evaluations whatever is being asked. An EFL target then costs **2 more** — one
+interpolation and one candidate check — and the identical question asked straight
+at f instead of at 1/f costs **56**, because a reciprocal is not a line. A back
+focus on the same variable costs 40-plus for the same reason. Two routes to one
+answer, and the cheap one is the one § 1.7 built.
+
+**3. Through a single prescription number there is always exactly one root.** The
+solver reports *every* root in the interval so that a target reachable two ways is
+never silently resolved one way — and through this door it never has to be: the
+power is affine in the variable and the back focus is a ratio of two affine
+functions, so both have one root. Measured across every surface and both variables
+of the three lenses the panel ships — **28 combinations, of which 17 reach an
+answer and every one has a single root**; the other eleven refuse because the
+target is out of that variable's range, never because two roots hid each other.
+**Multiplicity needs two numbers moving
+together**, which the engine's `SolveVariable` deliberately cannot express, so the
+panel carries § 1.7's equiconvex fixture as a seed and supplies c₂ = −c₁ as a
+closure exactly as that step does.
+
+**4. Of the two lenses that deliver one focal length, one focuses inside itself —
+exactly.** The two equiconvex roots' back focal distances are **+7.458907761 and
+−7.458907761 mm**, and they sum to zero at every reachable target (0, ±1e-15,
+−2e-14 measured at four of them, and again on a pair 0.016 apart rather than 0.5).
+That is algebra rather than luck: BFD = f(1 − (d/n)(n−1)c), the roots are
+symmetric about the vertex c* = n/(d(n−1)), and (d/n)(n−1)·2c* is exactly 2. So
+"reachable two ways" is a **design statement** — only one of the pair is
+something you can put a sensor behind — and not a curiosity about root counts.
+
+**5. The answer holds at one wavelength and the miss at the others is the
+correction.** Every index in the chain is dispersive, so "make it 510 mm" is a
+different equation at F than at C. Solved at d, the shipped achromat misses the
+other two lines by **0.341 mm** and the singlet of the same power by **5.438 mm**
+— a factor of 16, which is this app's own demonstration arriving in a design tool.
+The Cassegrain is the exact control: a conic has no index, so all three lines
+agree to the bit and the miss is **0**.
+
+**6. One curvature is enough to spend the correction the lens exists for, and
+that is the argument for the half that has not landed.** Retargeting the f = 500
+achromat through its crown takes the F−C focal spread from −0.0439 mm to −1.277 mm
+at 400 mm (**29×**) and to +1.826 mm at 600 mm (**42×**, sign reversed); through
+the flint's cemented face, **158×** and **240×**. The same targets on the singlet
+move its spread by 0.8× and 1.2×, because a singlet has no balance to lose — its
+colour is the glass and the focal length. **The corrected lens is the fragile
+one.** A solve that could hold the correction while moving the focal length has to
+move several numbers at once, which is damped least squares, which is waiting on a
+pin rather than on code.
+
+**7. "Where does this go afocal?" is refused every time — and the refusal is the
+answer.** § 1.7 records the wall convention (an `evaluate` that throws marks a
+region as "not a system" instead of manufacturing a sign change) and says it had
+to be pinned on synthetic closures, because `systemProperties` only throws at
+|u| < 1e-15 and a 64-cell scan meets that with probability zero. **A scan does. A
+refinement aimed at the afocal point meets it with probability one**, because the
+wall *is* the root it is converging to — and the two widths say so. The engine
+throws at |u| < 1e-15 and u is −1/f, so the hole is exactly where |1/f| < 1e-15;
+this fixture's power moves 3.565e-4 per mm of gap, which puts the last gap that is
+a system at 9.015987757053926 and the first one above it at 9.015987757059541 — a
+hole **5.615e-12 mm** wide. Brent's convergence width there is 8·eps·120 =
+2.13e-13 mm, **26× narrower**, so its final bracket fits inside the hole. The engine therefore answers with "every sign change was a
+pole rather than a root" and names the place. It is not a property of that
+fixture either — **the doublet this app ships goes afocal at a crown curvature of
+0.00059578 /mm**, R = 1678 mm, inside the interval the panel's own rule states, so
+the default view has a pole in its right-hand plot.
+
+### One number this panel sends back to the ladder
+
+§ 1.7's prose and its fixture's comment both describe that air-spaced pair as
+afocal at "a 9.67 mm gap". Bisecting the sign of the power puts it at
+**9.0159878 mm**, and the engine's own refusal names the same value to nine
+digits. Both sentences are corrected; nothing else moves, because no rung asserts
+the number — it was a description of a fixture, and the panel is the first thing
+that measured it.
+
+### What driving it changed
+
+**The blind-cell guard runs whether or not the solve succeeded, and it had to.**
+The first draft computed "roots at four times the cells" inside the successful
+branch, which is exactly backwards: § 1.7's blind cell — a pair of roots closer
+together than one scan cell — does not present as a wrong answer, it presents as a
+**refusal**. At 8 and 16 cells the near-vertex equiconvex target is reported
+unreachable, naming the resolution it searched at, while 32 cells resolve the pair
+0.0164 apart. The guard is the only thing that tells "your scan was too coarse"
+apart from "this lens cannot do that", so it belongs outside the try.
+
+**The curve is cut at consecutive finite samples rather than adjacent ones.** The
+Cassegrain's 241-point curve lands *on* the wall — one sample is a system the
+engine refuses outright — and a sign-change test over adjacent pairs skips the
+crossing that sample sits in, reporting no afocal point on a system that has one.
+
+**The focal-length plot is scaled to the middle of its branch, not to its
+range.** A branch that ends at a pole reaches tens of thousands of millimetres in
+its last few samples, so scaling to min/max squashed the target line and the root
+into the bottom pixel row — which is what the first draft drew, on the panel's own
+default view. Cropping every curve to its middle is the wrong fix, because the
+power plot is a straight line with no tail to crop, so the heavy tail is detected
+instead: past eight times the middle 80% the window is built from that middle and
+the asymptote runs off the frame, which is what an asymptote should look like.
+
+**The elapsed readout is a load meter as much as a cost meter**, and it was worth
+seeing once: the first frame on a cold page read **797.80 ms** while a full
+`npm test` was saturating the machine, and 1.70 ms on the same cold page with the
+machine quiet. That is the same caveat `vitest.config.ts` already attaches to its
+own timeout — a number that moves with what else is running is about load, not
+about the physics — arriving on a panel instead of on a rung.
+
+### What it does not do
+
+- **No traced targets.** Everything here is first-order, which is why the whole
+  readout is 0.7–1.9 ms in a browser and the elapsed number is at the bottom of
+  the page. A target
+  on an RMS spot or a Zernike term changes the cost model by four orders and wants
+  a different search than a full scan — § 1.7 names it as not-yet-pinned and this
+  panel does not pretend otherwise.
+- **No damped least squares.** The second half of design mode, and the panel says
+  what it is waiting on rather than shipping an optimizer whose test would only be
+  able to say "it converged".
+- **No manufacturability check beyond two cheap ones.** The panel flags negative
+  glass and a radius smaller than its own clear semi-aperture, both read off the
+  prescription. Edge thickness, element collision and the aperture wall Part B and
+  Part K measure are not here; `achromaticObjective`'s own checks are, and this
+  surface does not re-implement them.
+- **No writing back.** A solve returns a value; building the lens is
+  `withVariable`, which is a separate explicit step in the engine and a separate
+  panel here — Part E edits the surface list, and sending an answer there would
+  couple two surfaces' state in the way `registry.ts` exists to prevent.
 
 ## What the app itself needs to hold this
 

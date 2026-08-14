@@ -1846,10 +1846,12 @@ or name a route that did not resolve.
 - More catalogs (glasses, patent-derived eyepieces/objectives).
 - **Design mode**, which is two items and was one bullet. Strongly
   differentiating either way — no other web optics sim lets you *design*.
-  - ~~Curvature/thickness solves ("make EFL = X").~~ ✅ **landed in the engine**
-    — `analysis/solve.ts`, VALIDATION § 1.7. **No surface**: this is a core
-    capability with no panel, which is why it is not a row in the analyses table
-    above. One word of the original clause is now known to be wrong and is worth
+  - ~~Curvature/thickness solves ("make EFL = X").~~ ✅ **landed**, in the engine
+    (`analysis/solve.ts`, VALIDATION § 1.7) and now on a screen too (APP.md
+    Part M, route `#/design`). It is still not a row in the analyses table above,
+    because that table is the **v1** cut and this is a v2+ entry; the row that
+    checks this claim is Part M's in APP.md's own table. One word of the original
+    clause is now known to be wrong and is worth
     leaving visible: **"generalizing" the focus solve is not what happened**.
     `bestFocus` minimises a merit and a design target is a root, so nothing in
     its bracket-and-golden-section transfers; the two live side by side rather
@@ -1858,12 +1860,30 @@ or name a route that did not resolve.
     two ways *reports* both instead of the solver picking one; an EFL pole
     rejected as a sign change that is not a root; and a scan cell holding two
     roots holding none, measured rather than left to be discovered.
+    *Recorded here rather than only in APP.md because the panel carries a
+    finding back to the ladder and a number back to it:* **the wall § 1.7 could
+    only pin on synthetic closures is reachable from an ordinary design
+    question.** "Which value makes this system afocal?" converges *onto* the
+    wall by construction — the hole is 5.615e-12 mm wide in that fixture's gap,
+    measured edge to edge, against a refinement width of 2.13e-13, 26× narrower
+    — so the engine refuses and names the place, where § 1.7 had reasoned that a
+    64-cell scan meets |u| < 1e-15 with probability zero. It does; a bisection
+    aimed at it does not. The number is
+    that same fixture's afocal gap, described in two places as ≈ 9.67 mm and
+    measured at **9.0159878 mm**; no rung asserted it.
   - Damped least squares over a few variables. **Blocked on a pin, not on
     code** — an optimizer test that says only "it converged" is regression, and
     the hard rule forbids landing on that. The two candidate merits with
     closed-form minimisers are thin-lens bending for minimum spherical (the
     Coddington shape factor) and the achromat's crown/flint power split, which
     § 5j already carries external numbers for.
+    *What Part M measured in the meantime is the argument for it:* a
+    single-variable solve hits its target by **spending the correction the lens
+    exists for** — retargeting the shipped achromat ±20% through one curvature
+    costs 29× and 42× of its F−C focal spread, and through the flint's cemented
+    face 158× and 240×, while the same moves on the singlet of the same power
+    cost 20%. The corrected lens is the fragile one, and holding a correction
+    while moving a focal length is exactly a merit over several variables.
 
 ## Engineering practices to land alongside the code
 

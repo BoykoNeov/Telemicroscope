@@ -316,7 +316,11 @@ describe("step 1.7 — the pole, which is a root the arithmetic invents", () => 
   // A two-element air-spaced pair whose net power passes through zero as the gap
   // opens: a weak positive singlet (f ≈ +60) followed by a stronger negative one
   // (f ≈ −50), so P = P₁ + P₂ − d·P₁P₂ starts negative and is driven positive by
-  // the separation. It is afocal at d ≈ 9.67 mm. Either side of that the EFL runs
+  // the separation. It is afocal at d = 9.0159878 mm — measured by bisecting the
+  // sign of the power, and equal to the value this module's own refusal names
+  // below; the ≈ 9.67 this comment used to carry was an estimate nothing had
+  // checked, corrected when APP.md's Part M put the question to the solver.
+  // Either side of that the EFL runs
   // to ∓∞, so it crosses EVERY focal length between the two branches with a sign
   // change — and none of those crossings is a lens of that focal length.
   const pair = (gap: number): Prescription => ({
