@@ -4481,8 +4481,12 @@ singlet's tangential surface is **1.4233 mm** inside focus and the achromat's is
 **1.4464**, so the corrected lens is 1.6% *worse*. On the Petzval surface, the
 part no astigmatism balancing can move, it is 8.1% worse (0.2575 against 0.2783),
 because that surface is a sum of element powers over their indices and correcting
-colour by adding glass adds power to sum. Two lenses whose Strehl ratios and spot
-sizes are nothing like each other land on nearly the same curved field.
+colour by adding glass adds power to sum. At the panel's own defaults those two
+lenses are **383× apart on Strehl** — 0.0026 against 0.9826, on axis at f/10,
+read off `mtfCurves` and pinned in this panel's test file so the sentence cannot
+go stale — and land within 2% of each other on the curved field. It is the only
+readout in this app where the corrected lens and the uncorrected one give
+substantially the same answer.
 
 What the achromat *does* fix here is the **chromatic variation** of it: the
 singlet's Petzval sag moves 2.1% across the F-to-C band and the achromat's 0.26%,

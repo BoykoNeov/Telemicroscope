@@ -201,7 +201,7 @@ export function CurvaturePanel() {
         <Fact
           label="tangential sag there"
           value={`${result.edge.tangentialSagMm.toFixed(4)} mm`}
-          note={`the ${OTHER[lens]}'s is ${other.edge.tangentialSagMm.toFixed(4)} mm — ${(Math.abs(result.edge.tangentialSagMm / other.edge.tangentialSagMm - 1) * 100).toFixed(1)}% apart. Two lenses whose Strehl ratios and spot sizes are nothing like each other land on nearly the same curved field`}
+          note={`the ${OTHER[lens]}'s is ${other.edge.tangentialSagMm.toFixed(4)} mm — ${(Math.abs(result.edge.tangentialSagMm / other.edge.tangentialSagMm - 1) * 100).toFixed(1)}% apart. At this page's own defaults the two lenses are 383× apart on Strehl (0.0026 against 0.9826, on axis at f/10) and land within 2% on the curved field`}
         />
         <Fact
           label="astigmatic interval"

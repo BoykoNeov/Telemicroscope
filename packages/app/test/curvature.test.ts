@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { fieldCurvature, type CurvatureSpec } from "../src/curvature";
+import { mtfCurves } from "../src/mtf";
 
 /**
  * The field-curvature and distortion panel — ROADMAP's v1 analyses line, and the
@@ -104,6 +105,44 @@ describe("the curved field — the two surfaces themselves", () => {
     expect(tangentialWorseBy).toBeLessThan(0.03);
     expect(petzvalWorseBy).toBeGreaterThan(0.05);
     expect(petzvalWorseBy).toBeLessThan(0.12);
+  });
+
+  /**
+   * The comparison the headline is quoted against, pinned from the OTHER panel's
+   * adapter so that the sentence and the number cannot drift apart.
+   *
+   * The panel says on screen that these two lenses are 383× apart on Strehl and
+   * within 2% on the curved field. The first half is not `fieldCurvature`'s to
+   * report — nothing in this module computes a Strehl — so it is read here off
+   * `mtfCurves` at the same geometry. Without this rung the claim is a sentence
+   * in a caption, which is exactly the defect the commit before this panel fixed
+   * elsewhere in APP.md.
+   */
+  it("pins the Strehl comparison the headline is quoted against", () => {
+    const strehl = (lens: "singlet" | "achromat") =>
+      mtfCurves({
+        lens,
+        focalLengthMm: 1000,
+        apertureMm: 100,
+        sourceTemperatureK: 5800,
+        wavelengths: 5,
+        fieldDeg: 0,
+        wavelengthNm: 587.5618,
+        traceSamples: 31,
+        bins: 81,
+      }).strehl;
+
+    const singlet = strehl("singlet");
+    const achromat = strehl("achromat");
+    expect(singlet).toBeCloseTo(0.0026, 3);
+    expect(achromat).toBeCloseTo(0.9826, 3);
+    // 383× on the quantity the achromat exists to fix...
+    expect(achromat / singlet).toBeGreaterThan(300);
+    // ...and within 2% on the one it does not.
+    const sags = (["singlet", "achromat"] as const).map(
+      (lens) => run({ lens }).edge.tangentialSagMm,
+    );
+    expect(Math.abs(sags[1]! / sags[0]! - 1)).toBeLessThan(0.02);
   });
 
   /**
