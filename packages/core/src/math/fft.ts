@@ -169,8 +169,24 @@ export interface RowBand {
  * leaves 0. So a row that was never written can be skipped outright, and the
  * output is the same output.
  *
- * Only the ROW pass is skippable. After it, each transformed row is dense
- * across all `n` columns, so every column has to run.
+ * Only the ROW pass is skippable, and the reason is **not** the one this
+ * comment gave until § 6aa.8 measured it. It said each transformed row is dense
+ * across all `n` columns "so every column has to run" — true of the row's
+ * VALUES and beside the point, because a column's INPUTS are still mostly zero:
+ * after a banded row pass exactly `count` of the `n` rows hold anything, which
+ * § 6aa.8 pins in `row-band.test.ts`. A column is therefore an input-pruned
+ * transform waiting to be written, and what stops it is arithmetic rather than
+ * density.
+ *
+ * A radix-2 stage collapses to copies only when the zeros are an ALIGNED block,
+ * and every caller here has a CENTRED one — `⌊log₂(n/count)⌋` whole stages, and
+ * at both shipped grids that floor is 1, because the pupil spans `pupilSamples`
+ * bins whose inclusive hull is `pupilSamples + 1` inside `4·pupilSamples`: one
+ * row past a quarter, which costs the second stage. Realigning a cyclic block to
+ * where a stage could be skipped is a phase ramp over the output, n² complex
+ * multiplies. Measured at n = 256 that ramp is **0.210 ms** against the one
+ * stage's **0.208 ms** — a wash — and at n = 128 it nets 0.028 ms, 5.5% of the
+ * transform. § 6aa.8 records the whole measurement and declines it.
  *
  * **The parameter is a promise, and its two directions are not symmetric.** A
  * band WIDER than the rows the caller touched is merely slower than it had to

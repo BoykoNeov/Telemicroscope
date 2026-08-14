@@ -1608,53 +1608,83 @@
    1.5e-4 waves to 3e-12 — and pupil coordinates that mean what they say off the
    nominal axis.
 
-   *With that, every numbered step in this build order is closed.* What is open
-   is recorded where it was found rather than gathered into a new step: the
-   sparse-input transform § 6aa left (rows are skipped, columns are not, and a
-   sparse-input transform is a different algorithm wanting its own identity
-   rungs). ~~And the phase panel's condenser § 6ab deliberately did not switch
-   (its teaching has not been audited, and assuming A2's reasoning transplants is
-   the move that step's own history argues against).~~ **Audited at § 6ab.9 and
-   ✅ declined** — the reasoning does not transplant, and the measurement says so
-   rather than the suspicion. That panel is ideal-pupil *by design* (A3: tracing
-   it would replace an exact null with a small number nobody can tell from a
-   bug), so it is § 6p's null half exactly: no tracing for the cache to remove,
-   and twice the directions is twice the transforms — 57 ms to 349 at S = 1. The
-   switch would fix the null's precondition and nothing observable (`diskSource`
-   is centro-symmetric only to rounding, 2.2e-16 at S = 1, and the measured null
-   is 1e-16 either way), and it could not have been a straight swap regardless:
-   below one lattice cell the source collapses to a single point, so the S slider
-   would show the coherent limit for its first 6% of travel. **The audit's real
-   finding is a defect it went looking for and did not expect** — § 6ab.10. The
-   panel prints the 2ν contrast to six digits and that number is not converged
-   over the top ~40% of its own slider: samplings of the same source agree to
-   1.06× at S = 0.6 and disagree by 9.75× at S = 1, staying 5.8–42.7× apart above
-   it. Not coarseness — a lattice at step 3 with fewer points, coarser spacing
-   and a worse rim reach lands within 3% of the 797-point answer, while refining
-   the disc to 2 933 points does not converge, because the quantity is set by
-   what happens where the shifted pupil is tangent to the objective's. What the
-   panel should print there is left open below rather than guessed at. ~~And the discarded diffraction
-   PSF § 3c.2 found inside `adaptivePsf` at geometric weight 1.~~ **That one is
-   now ✅ closed at § 3c.3**, and it is recorded here rather than only in
-   VALIDATION because § 3c.2 got its *reach* wrong in the same way this file's
-   accounting did above: it called the discard "available to whoever needs it",
-   and **two shipped panels need it**. The star panel's singlet canvas at its
-   maximum aperture runs 3 of 9 wavelength planes at weight exactly 1, and the
-   tolerance panel — which samples the pupil half as finely, doubling the
-   criterion for the same wavefront — runs 3 of 5, twice per job. It stayed
-   invisible because the achromat, the lens this app is built around, never
-   leaves weight 0 at any aperture the panels offer. The fix is a change of order
-   and nothing else: the criterion is measured on the traced samples, so it is
-   settled before any transform exists, and asking `psf()` for it was forming a
-   transform to learn something already decided. Pinned as deep-equality
-   identities against the old composition at all three regimes, with the skip
-   itself witnessed by a grid the FFT refuses. **What it is worth is not the
-   time** — the removed work is 18–21 ms per plane where it applies, ~3% of the
-   two frames that reach it, and the ray branch's own run-to-run spread is larger
-   than that — but that at weight 1 the array being discarded is an FFT the
-   criterion has just ruled is aliasing rather than diffraction. The v1 cut below
-   is the list that decides whether this is shippable, and the v2+ list after it
-   is where the next capability comes from.
+   *With that, every numbered step in this build order is closed, and so are the
+   three items it left parked.* **What is open now is four things and none of
+   them is an engine step:** the telescope scenes' *content* (§ 5 above — an
+   albedo map, lunar terrain, a real limb-darkening coefficient, which is
+   measured data to source rather than code to write); § 6x's two deferrals, the
+   DIN objective's telecentricity and the condenser's own aberrations, both left
+   deliberately and both explained there; **what the phase panel should print for
+   its 2ν contrast above S ≈ 0.9**, which is new and is the one defect on this
+   list (§ 6ab.10, and the sub-entry below); and the v2+ list further down. The
+   v1 cut after this is what decides whether this is shippable.
+
+   *The three parked items, and why each is recorded rather than struck.* All
+   three were written down where they were found instead of being gathered into
+   a step, and each turned out to correct the sentence that parked it.
+
+   - ~~*The sparse-input transform § 6aa left* — rows are skipped, columns are
+     not, and a sparse-input transform is a different algorithm wanting its own
+     identity rungs.~~ **Measured and ✅ declined at § 6aa.8.** Recorded because
+     the reason `math/fft` gave for stopping at rows was wrong: it said each
+     transformed row is dense across all n columns "so every column has to run",
+     which is true of a row's *values* and beside the point, since a column's
+     *inputs* are still mostly zero — the thing a pruned transform exploits. What
+     stops it is arithmetic. A radix-2 stage collapses only where the zeros are
+     an **aligned** block and every caller here writes a **centred** one, so the
+     whole skippable stages are ⌊log₂(n/count)⌋ — at both shipped grids that is
+     **1**, not the 2 the 4× padding suggests, because the pupil's inclusive hull
+     is one row past a quarter of the grid. Realigning a cyclic block to earn a
+     stage is a phase ramp over the output, n² complex multiplies: **0.210 ms
+     against the one stage's 0.208** at n = 256, a wash by arithmetic rather than
+     by luck, netting 5.5% at n = 128. And the transform pair is ~4 ms of the
+     17 ms step containing it, so the best case is ~0.4 ms of ~17.
+
+   - ~~*The phase panel's condenser § 6ab deliberately did not switch* — its
+     teaching has not been audited, and assuming A2's reasoning transplants is
+     the move that step's own history argues against.~~ **Audited at § 6ab.9 and
+     ✅ declined**, so that history was right and it is now the measurement
+     rather than the suspicion. The panel is ideal-pupil *by design* (A3: tracing
+     it would replace an exact null with a small number nobody can tell from a
+     bug), which puts it in § 6p's null half exactly — no tracing for the cache
+     to remove, and twice the directions is twice the transforms: 57 ms to 349 at
+     S = 1. The switch would fix the null's precondition and nothing observable
+     (`diskSource` is centro-symmetric only to rounding, 2.2e-16 at S = 1, and
+     the measured null is 1e-16 either way), and it could not have been a
+     straight swap regardless: below one lattice cell the source collapses to a
+     single point, so the S slider would show the coherent limit for its first 6%
+     of travel. **The audit's real finding is the open item named above** —
+     § 6ab.10. The panel prints the 2ν contrast to six digits and that number is
+     not converged over the top ~40% of its own slider: samplings of the same
+     source agree to 1.06× at S = 0.6 and disagree by 9.75× at S = 1, staying
+     5.8–42.7× apart above it. Not coarseness — a lattice at step 3 with fewer
+     points, coarser spacing and a worse rim reach lands within 3% of the
+     797-point answer, while the disc's own refinements scatter by 2× among
+     themselves out to 5 169 points, because the quantity is set by what happens
+     where the shifted pupil is tangent to the objective's. The shipped reading
+     is an order of magnitude outside that scatter. What the panel should print
+     instead costs a second render to decide, so it is left open rather than
+     guessed at.
+
+   - ~~*The discarded diffraction PSF § 3c.2 found inside `adaptivePsf` at
+     geometric weight 1.*~~ **✅ closed at § 3c.3.** Recorded here because § 3c.2
+     got its *reach* wrong in the same way this file's own accounting did above:
+     it called the discard "available to whoever needs it", and **two shipped
+     panels need it**. The star panel's singlet canvas at its maximum aperture
+     runs 3 of 9 wavelength planes at weight exactly 1, and the tolerance panel —
+     which samples the pupil half as finely, doubling the criterion for the same
+     wavefront — runs 3 of 5, twice per job. It stayed invisible because the
+     achromat, the lens this app is built around, never leaves weight 0 at any
+     aperture the panels offer. The fix is a change of order and nothing else:
+     the criterion is measured on the traced samples, so it is settled before any
+     transform exists, and asking `psf()` for it was forming a transform to learn
+     something already decided. Pinned as deep-equality identities against the old
+     composition at all three regimes, with the skip witnessed by a grid the FFT
+     refuses. **What it is worth is not the time** — the removed work is 18–21 ms
+     per plane where it applies, ~3% of the two frames that reach it, and the ray
+     branch's own run-to-run spread is larger than that — but that at weight 1
+     the array being discarded is an FFT the criterion has just ruled is aliasing
+     rather than diffraction.
 
 ## v1 cut (both branches shipped)
 

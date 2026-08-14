@@ -81,7 +81,7 @@ whole ladder.
 | [6x](#step-6x--what-telecentricity-is-worth-to-the-illumination) | A correction to four module headers before it is a measurement: the licence for one source at every field point belongs to the OBJECTIVE and not the condenser, so the offset is bitwise zero only on a telecentric lens — and what it costs off axis is § 6p's cache | `telecentric-illumination` |
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
-| [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the negative control is what stops the identity rungs passing on a no-op | `row-band` |
+| [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together; the phase panel audited and declined, its 2ν readout unconverged above S ≈ 0.9 | `lattice-disk` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
@@ -10311,13 +10311,42 @@ is largest exactly where a pupil is cheap and a grid is large, and invisible
 where a traced callback dominates. Both halves are reported, for § 6p's reason —
 a speed claim without its null half is a claim about the wrong quantity.
 
-### Not yet pinned
+### 6aa.8 — the column pass, measured and declined
 
-- **The column pass, and the second factor of two.** Only rows are skipped. The
-  input is sparse in *both* axes — the pupil is a box, not a band — so a
-  sparse-input transform could take the row pass further still. That is a
-  different algorithm rather than a skipped call, and it would need its own
-  identity rungs.
+**The open item said the input is sparse in both axes while only rows are
+skipped, and that a sparse-input transform is a different algorithm wanting its
+own identity rungs. It is, and it is not worth writing.** The reason `math/fft`
+gave for stopping at rows was also wrong, which is why this is a section rather
+than a struck bullet: it said each transformed row is dense across all `n`
+columns "so every column has to run". That is true of a row's VALUES and beside
+the point. A column's INPUTS are still mostly zero — after a banded row pass
+exactly `count` of the `n` rows hold anything, which § 6aa.8's first rung pins,
+because a declined optimisation whose premise was never checked is an argument
+and not a measurement.
+
+What actually stops it is arithmetic, in two steps:
+
+- **A radix-2 stage collapses to copies only where the zeros are an ALIGNED
+  block, and every caller here writes a CENTRED one.** Whole skippable stages
+  are ⌊log₂(n/count)⌋, and at **both** shipped grids that floor is **1** — not
+  the 2 the 4× padding suggests. The pupil spans `pupilSamples` bins, its
+  inclusive hull is `pupilSamples + 1`, and inside `padFactor` 4 that is one row
+  past a quarter of the grid. One row is the whole margin, and § 6aa.8's second
+  rung pins that it binds at 32 and at 64 alike.
+- **Realigning a cyclic block so a stage becomes skippable is a phase ramp over
+  the output — n² complex multiplies.** Measured at n = 256: the ramp costs
+  **0.210 ms** against the one stage's **0.208 ms**. A wash, to three digits, by
+  arithmetic rather than by luck — the saving is (n²/2)·k butterflies and the
+  correction n² multiplies, so at k = 1 they are the same order and the constant
+  decides. At n = 128 it nets 0.028 ms, **5.5%** of a 0.507 ms banded transform.
+
+Sized against what a caller actually waits for, that best case is smaller again:
+`psfFromPupilFunction` runs **two** transforms inside a step measured at 17–18 ms
+at 256², of which the pair of `fft2d` calls is ~4 ms — so a perfectly realized
+column pruning is ~0.4 ms of ~17 ms, and the pupil sampling and phase loop
+beside it are the larger half. Declined on that, not on difficulty.
+
+### Not yet pinned
 - **The other `fft2d` call sites, read and found dense.** `imaging/render`'s
   `convolveCentred`, `imaging/fluorescence`'s and `imaging/volume`'s
   `convolveCircular` — two transforms each, object and kernel — plus `wave/mtf`
@@ -10503,7 +10532,16 @@ samplings of the same source: **1.06× at S = 0.6, 1.26× at 0.75, 1.76× at 0.9
 9.75× at S = 1.00**, and 5.8× to 42.7× at every S above it out to the slider's
 1.5. At S = 1 the shipped `diskSource(S, 11)` reads **1.48e-3** where the
 797-point lattice, the 349-point disc and the 2 933-point disc all read
-~1.5e-4.
+~1.5e-4 — 1.531, 1.517 and 1.557e-4, agreeing to 3%.
+
+**That trio is not the whole story and is not being selected for.** The
+1 313-point disc reads 3.385e-4, 2.2× off the three that agree, and the
+5 169-point one reads 7.9e-5, 2× off the other way. So the refinements scatter
+among themselves by about a factor of two, and the honest statement is not "the
+converged value is 1.5e-4" but that the shipped reading sits an order of
+magnitude **outside** a scatter it should be inside. Which of the refinements is
+closest to the continuum is not settled here and does not need to be: what the
+panel prints is wrong either way.
 
 **It is not coarseness, and refinement does not fix it.** A lattice at step 3
 uses FEWER points than the shipped disc (89 against 97), a COARSER spacing

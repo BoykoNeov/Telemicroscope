@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fft2d, fftShift2d, shiftedRowBand } from "../src/math/fft";
+import { fft1d, fft2d, fftShift2d, shiftedRowBand } from "../src/math/fft";
 import { mulberry32 } from "../src/math/random";
 import { abbeImage, cosineGratingObject, type ObjectField } from "../src/illumination/abbe";
 import { commensurateSource, diskSource, type CondenserSource } from "../src/illumination/source";
@@ -432,5 +432,81 @@ describe("§ 6aa.7 — the PSF is the whole-grid PSF, bit for bit", () => {
     const written = last - first + 1;
     expect(written).toBeLessThanOrEqual(ps + 2);
     expect(written / n).toBeLessThan(0.3);
+  });
+});
+
+/**
+ * § 6aa.8 — the sparse-input transform § 6aa left open, measured and declined.
+ *
+ * § 6aa's own open item said the input is sparse in BOTH axes while only rows
+ * are skipped, and that a sparse-input transform is a different algorithm
+ * wanting its own identity rungs. It is, and it is not worth writing. The
+ * reason recorded in `math/fft.ts` until now was also wrong: it said each
+ * transformed row is dense across all `n` columns "so every column has to run",
+ * which is true of a row's VALUES and beside the point. A column's INPUTS are
+ * still mostly zero, and that is what a pruned transform exploits. The first
+ * rung below pins that premise, because a declined optimisation whose premise
+ * was never checked is an argument rather than a measurement.
+ *
+ * What actually stops it is arithmetic:
+ *
+ *  - A radix-2 stage collapses to copies only where the zeros form an ALIGNED
+ *    block, and every caller here writes a CENTRED one. Whole skippable stages
+ *    are `⌊log₂(n/count)⌋`, and at BOTH shipped grids that floor is **1** — the
+ *    second rung is that arithmetic. The pupil spans `pupilSamples` bins whose
+ *    inclusive hull is `pupilSamples + 1`, inside `padFactor` 4 that is one row
+ *    past a quarter of the grid, and one row is what costs the second stage.
+ *  - Realigning a cyclic block so a stage becomes skippable is a phase ramp over
+ *    the output: n² complex multiplies. Measured at n = 256 the ramp is 0.210 ms
+ *    against the one stage's 0.208 ms — a wash — and at n = 128 it nets 0.028 ms,
+ *    5.5% of a 0.507 ms banded transform. Both are wall-clock numbers and live
+ *    in the docs, not here; what is pinned here is the arithmetic they turn on.
+ */
+describe("§ 6aa.8 — why the columns are not pruned either", () => {
+  it("PREMISE: after a banded row pass, only the band's rows hold anything", () => {
+    const n = 128;
+    const lo = 47;
+    const count = 33;
+    const re = new Float64Array(n * n);
+    const im = new Float64Array(n * n);
+    for (let y = lo; y < lo + count; y++) {
+      for (let x = 0; x < n; x++) re[y * n + x] = Math.sin(x + y) + 1;
+    }
+    // The row pass alone — the state the column pass starts from.
+    for (let k = 0; k < count; k++) {
+      const row = (lo + k) % n;
+      const rowRe = re.subarray(row * n, row * n + n);
+      const rowIm = im.subarray(row * n, row * n + n);
+      fft1d(rowRe, rowIm);
+    }
+    let nonzeroRows = 0;
+    for (let y = 0; y < n; y++) {
+      let any = false;
+      for (let x = 0; x < n; x++) {
+        if (re[y * n + x] !== 0 || im[y * n + x] !== 0) {
+          any = true;
+          break;
+        }
+      }
+      if (any) nonzeroRows++;
+    }
+    // So each of the n columns is a transform of n inputs of which `count` are
+    // nonzero — an input-pruned transform, not a dense one.
+    expect(nonzeroRows).toBe(count);
+    expect(nonzeroRows / n).toBeLessThan(0.3);
+  });
+
+  it("ARITHMETIC: the shipped bands sit one row past a quarter, so one stage", () => {
+    // ⌊log₂(n/count)⌋ whole stages are skippable for an aligned block. The
+    // inclusive hull is what puts both shipped grids on the wrong side of 2.
+    for (const ps of [32, 64]) {
+      const n = ps * 4;
+      const count = ps + 1;
+      expect(count).toBeGreaterThan(n / 4);
+      expect(Math.floor(Math.log2(n / count))).toBe(1);
+      // One row narrower and the second stage would be there — which is the
+      // whole margin, and why this is arithmetic rather than a tuning knob.
+      expect(Math.floor(Math.log2(n / (count - 1)))).toBe(2);
+    }
   });
 });
