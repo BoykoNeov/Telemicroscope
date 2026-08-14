@@ -557,6 +557,16 @@ the beat that makes 2ν picks up no phase difference at all, while the 0×±1 be
 that makes ν picks up sin(2π·w₂₀·ν²). One slider, two terms in one image, and
 only one of them listening.
 
+**That statement is S = 0 only, and this doc used to say it flat.** The equal-radius
+argument holds for *one on-axis* direction. Off axis the two orders sit at
+|s ± ν|, and the beat picks up w₂₀(|s + ν|² − |s − ν|²) = 4·w₂₀·(s·ν), which
+vanishes for no off-axis source point. Measured at S = 0.9, ν = 0.75, the 2ν
+contrast runs **5.87e-3 in focus, 6.64e-4 at one wave and 1.57e-2 at six**, where
+S = 0 holds 7.691302e-2 at all three (§ 6ab.11). The printed comparison is safe
+— `threeOrderCheck` requires S = 0, so it only exists where the invariance is
+real — but the sentence is not, and the panel now measures its own counterexample
+two sliders away.
+
 **Darkfield does NOT ride along for free, and that is this surface's real
 correction to the plan.** The clear-field half is exactly as scoped —
 `annularSource` outside the pupil, φ = 0, and the mean reads `0.0000e+0` with both
@@ -619,6 +629,41 @@ where the annulus holds 36 directions against the coherent limit's one. Live
 everywhere. One job carries both images rather than two — the panel's claim is a
 comparison, and two jobs can transiently show an in-focus frame at one φ beside a
 defocused one at another.
+
+**The 2ν readout now prints a range, not four significant figures (§ 6ab.11).**
+The § 6ab.9 audit declined to switch this panel's condenser and found something
+worse on the way past: the 2ν contrast was printed to four significant figures
+and is not converged in the source sampling. The fix is *not* a boundary — the
+reading is 9.4× uncertain at ν = 1 for **every** S from 0.25 up (the ±1 orders on
+the pupil rim, the same rim the Bessel comparison already excludes ν = 1 for) and
+inside 1.05× at ν = 1.94 with S = 1.5, and φ moves it as hard as either (838× at
+φ = 0.1 against 1.37× at φ = 3, same cell). Any rule in S alone would refuse
+readings that are fine and keep four digits on ones that are nine times out.
+
+So under each 2ν line the panel prints the reading at **every source sampling its
+own control offers** — 7/11/15/21, all four rendered — as a range and a ratio,
+with no ± anywhere: two samplings agreeing is not an error bar, and the four
+readings are what they are. The claim is deliberately about the control rather
+than about the truth ("moving this moves the number by 13×"), which is complete
+over a four-member list and needs no continuum limit. A single second opinion was
+tried first and **lies** — it reads 1.3× at S = 1 where the widest pair reads
+9.7×. Each frame gets its own probe, because the paragraph above is why the pair
+is two quantities.
+
+Three consequences on the page. **Darkfield at 7 source samples is a defect this
+surfaced**: the annulus holds 16 lattice points there and reads 8.8e-17 where
+11/15/21 agree on ~1.5e-3, so that option shows "no second harmonic in
+darkfield", which is false — the probe now prints the 2.3e13 spread rather than
+the panel gating an option on a threshold nothing measures. **The timing line
+stopped saying "for the pair"** and splits the probe's share out. And the cost is
+**zero in the default state**, because at S = 0 every sampling is the same
+one-point source. Under `vite-node`: 5 ms at the default, 391 ms once S = 1 in
+focus, 989 ms with a distinct defocused frame, 4.8 s at grid 256 / pupil samples
+64 against 2.3 s before. **In the browser** (dev build, in the worker, pupil
+samples 32 / grid 128 / N 11), the same ~2.6× factor the rest of this section
+carries: the pair alone is unchanged at S = 0, and S = 0.74 with a distinct
+defocused frame runs **1080 ms, of which 874 is the six probe renders** — which
+is what the panel now prints instead of "N ms for the pair".
 
 **Note kept:** this one is *stronger* on ideal pupils than traced ones, because
 the null is exact there. Do not "improve" it by tracing.

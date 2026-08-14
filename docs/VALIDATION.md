@@ -83,7 +83,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together; the phase panel audited and declined, its 2ν readout unconverged above S ≈ 0.9 | `lattice-disk` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together; the phase panel audited and declined, and its unconverged 2ν readout answered by printing the range over the four samplings its own control offers — the trouble being no band in S to draw a boundary at | `lattice-disk`, `phase` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -10715,8 +10715,9 @@ pins each:
 
 **What the audit actually found is a defect in the panel, and it is not about
 which source (§ 6ab.10).** The panel prints the 2ν contrast — the second-order
-term that survives where the linear one is null — to six digits, and that number
-is not converged over the top ~40% of its own S slider. Worst ratio between
+term that survives where the linear one is null — to four significant figures
+(`toExponential(3)`; this file said "six digits" until § 6ab.11 went to read the
+call), and that number is not converged over the top ~40% of its own S slider. Worst ratio between
 samplings of the same source: **1.06× at S = 0.6, 1.26× at 0.75, 1.76× at 0.90,
 9.75× at S = 1.00**, and 5.8× to 42.7× at every S above it out to the slider's
 1.5. At S = 1 the shipped `diskSource(S, 11)` reads **1.48e-3** where the
@@ -10747,15 +10748,98 @@ The rung asserts the two ends and the outlier and stops there. What the panel
 should *print* above S ≈ 0.9 is a product question — fewer digits, a stated
 uncertainty, or a refusal in the idiom it already uses for a 2ν bin that does
 not fit the grid — and answering it honestly costs a second render, so it is
-listed below rather than guessed at here.
+listed below rather than guessed at here. **§ 6ab.11 answers it, and the answer
+is none of the three**, for a reason § 6ab.10 could not see from ν = 0.75 alone.
+
+### The 2ν readout, answered (§ 6ab.11) — and there was no boundary to draw
+
+`packages/app/test/phase.test.ts`, the first app-side rung on this panel.
+
+§ 6ab.10's three candidate answers — fewer digits, a stated uncertainty, a
+refusal — **all want a boundary, and measuring across ν and φ says there is not
+one to have.** Both structural facts are new here and either alone kills a rule
+in S:
+
+- **ν = 1 exactly is 9.4× uncertain at every S from 0.25 up**, not just at the
+  top of the slider. The ±1 orders land on the pupil rim, where the lattice
+  decides in-or-out for them one point at a time — the same rim `threeOrderCheck`
+  already excludes ν = 1 for, showing a second face that has nothing to do with
+  S. A band in S would print four significant figures on it.
+- **ν = 1.94 is inside 1.05× at S = 1.5.** High S is not uniformly bad, so a band
+  in S would also refuse readings that are fine.
+- And **φ moves it as hard as either**: at φ = 0.1, S = 1.5 spreads **838×**;
+  at φ = 3 the same cell spreads **1.37×**. The 2ν signal grows as φ² and what
+  disagrees with it does not, so the ratio is a signal-to-noise statement as much
+  as a geometric one.
+
+**A cheaper probe than the exhaustive one lies, measured rather than supposed.**
+The obvious self-check — render at one other sampling, print the disagreement —
+reads **1.3× at S = 1**, where 11-against-21 reads **9.7×**; at S = 1.25 the two
+swap (7.6× against 1.1×). Every three-of-four subset tried under-reports the
+four-way spread somewhere. Two samplings agreeing bounds nothing.
+
+**So the panel prints the range across `PANEL_SOURCE_SAMPLES` — 7/11/15/21,
+every option its own control offers, all of them rendered — and no ± anywhere.**
+What dissolves the hard rule is the scope: the claim is not *"the error is X"*,
+which would need a continuum this file has no external number for, but *"moving
+this control moves the number by X"*, and over a four-member list that
+enumeration is **complete rather than sampled**. Widening to nine samplings
+reaches 41× at S = 0.9 and 185× at S = 1.5, which is exactly why the sentence is
+scoped to the control rather than to the truth. The list is exported from
+`phase.ts` and the control is built from it, so the two cannot drift apart and
+quietly turn the sentence into a sample.
+
+**The defocused frame needed its own probe, and finding that out changed the
+code.** The module's "2ν is the same at every defocus" is derived at S = 0, where
+one on-axis point puts the ±1 orders at equal pupil radius so the defocus phase
+cancels in the beat. Off axis it does not — the beat picks up
+w₂₀(|s + ν|² − |s − ν|²) = 4·w₂₀·(s·ν), which vanishes for no off-axis point.
+Measured at S = 0.9, ν = 0.75: **5.87e-3 in focus against 6.64e-4 at w₂₀ = 1 and
+1.57e-2 at 6**, where S = 0 holds 7.691302e-2 at every one of them. The spreads
+move with it — 1.2× in focus at S = 0.5 against 13.4× at w₂₀ = 3 — so one probe
+over the pair would have reported whichever frame it happened to run on.
+
+**Darkfield was never audited and is the worst case in the panel.**
+`annularSource` masks the same lattice, so the ring holds **16 points at N = 7
+against 128 at N = 21**, and at ν = 0.75 the 16 do not resolve the beat at all:
+**8.8e-17 against ~1.5e-3**, a spread of 2.3e13 across the panel's own control.
+A reader on that option is shown "no second harmonic in darkfield", which is
+false — the other three samplings agree to 1.35×. It is left as a reading the
+probe reports rather than an option the panel gates, because a "too few annulus
+points" gate would need a threshold nothing here measures.
+
+**Cost, and why the default state pays none of it.** At S = 0 in brightfield
+`sourceFor` returns `coherentSource()` whatever the count, so the four options
+are one source and the spread is 1 with **zero extra renders** — verified
+bit-identical (0.07691301586554729 from the N = 7 and N = 21 branches alike),
+not assumed. Past that the probe cost is near enough *fixed*, since it always
+renders the three options the reader did not pick: measured under `vite-node`,
+**5 ms at the panel's default**, 391 ms once S = 1 in focus (339 of it probe),
+989 ms with the defocused frame distinct, and 4.8 s at grid 256 with
+pupilSamples 64 against 2.3 s before. The panel prints the split rather than
+carrying its old "N ms for the pair" label over renders that are not the pair.
+
+Two things deliberately left alone, and why: `besselCheck`'s **nine decimals**
+need no spread, because `threeOrderCheck` requires S = 0 — the one source point,
+where every sampling gives the same image and there is nothing for the count to
+move. And samplings the frequency grid cannot carry are **dropped and named**,
+never clamped: the panel's S ceiling is computed from the count in force and the
+binding lattice sample sits at S·(1 − 1/N), so a reader at N = 7 can be at an S
+that N = 21 cannot render, and a truncated pupil would read as a smaller
+aperture.
 
 ### Not yet pinned
 
-- **What the phase panel should print above S ≈ 0.9**, given § 6ab.10. The
-  reading is there, it is six digits, and it is not converged. A self-check
-  (render at N and at 2N+1, report the disagreement) is the panel's own idiom —
-  it prints `worstResidual` and `besselCheck.residual` rather than claiming them
-  — but it doubles the render, which at S = 1.25 is not free.
+- **Does rim weight predict the spread?** § 6ab.10 attributes the effect to
+  source points near |s ± ν| = 1, where the shifted pupil is tangent to the
+  objective's, and § 6ab.11's ν = 1 row is that attribution's strongest evidence
+  — but nothing here measures a *formula*. A criterion of the shape "weight
+  within one lattice spacing of the tangency circle" would be a cheap render-free
+  substitute for the whole probe, and it would have to hold across ν and φ, not
+  be fitted to the one grating both rungs used.
+- **Whether darkfield at 7 source samples should be reachable at all.** § 6ab.11
+  measures the collapse and prints it; gating the option would need a threshold
+  on annulus points that nothing measures.
 - **A commensurate ANNULUS**, still — § 6p's own open item, and now with a
   constructor that would make it S-free too. Darkfield and phase contrast are
   where it would pay.

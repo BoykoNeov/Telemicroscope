@@ -5,6 +5,7 @@ import {
   frequencyOf,
   gridReach,
   sourceFits,
+  PANEL_SOURCE_SAMPLES,
   threeOrderCheck,
   transferSweep,
   DARKFIELD_INNER,
@@ -55,6 +56,59 @@ function GuardBlock({ frame }: { frame: PhaseFrame }) {
         detail={frame.verdictReason}
       />
     </>
+  );
+}
+
+/** `13.05` → `13.0`, `7.4e11` → `7.4e+11`. Never a ratio in 12 digits. */
+function ratioText(ratio: number): string {
+  if (!Number.isFinite(ratio)) return "∞";
+  return ratio < 1000 ? ratio.toFixed(2) : ratio.toExponential(1);
+}
+
+/**
+ * What the source-samples control does to the 2ν reading above it.
+ *
+ * Printed unconditionally and in one voice, with no threshold deciding whether
+ * it is worth showing and no colour grading it. § 6ab.10 left "what the panel
+ * should print" open between fewer digits, a stated uncertainty and a refusal;
+ * this is none of the three, because all three need a boundary and the
+ * measurements say there is not one to have — the reading is 9.4× uncertain at
+ * ν = 1 and S = 0.25 and inside 1.05× at ν = 1.94 and S = 1.5. So the line
+ * states a fact about this panel's own control instead, which is exact wherever
+ * it is printed and needs no boundary at all.
+ *
+ * A range and not a ± : the four readings are what they are, and turning them
+ * into a centre and a half-width would invent a distribution and a best estimate
+ * that nothing here measured.
+ */
+function SpreadLine({ spread }: { spread: PhaseFrame["secondHarmonicSpread"] }) {
+  if (!spread) return null;
+  // One reading has two causes and they are opposite claims. At S = 0 every
+  // option is the same source, so the reading is count-free and that is a
+  // strength. Past the frequency grid it is the reverse — nothing was compared —
+  // and printing "(1.00×)" from a single number would read as agreement.
+  if (spread.readings.length === 1) {
+    return (
+      <span style={{ color: "#777" }}>
+        &nbsp;&nbsp;
+        {spread.skipped.length === 0
+          ? "source samples do not enter: one illumination direction"
+          : `unchecked: ${spread.skipped.join("/")} are past the frequency grid at this S`}
+      </span>
+    );
+  }
+  return (
+    <span style={{ color: "#777" }}>
+      &nbsp;&nbsp;across source samples {spread.readings.map((r) => r.samples).join("/")}:{" "}
+      {spread.min.toExponential(2)} … {spread.max.toExponential(2)} (
+      <strong>{ratioText(spread.ratio)}×</strong>)
+      {spread.skipped.length > 0 && (
+        <>
+          {" "}
+          · {spread.skipped.join("/")} past the frequency grid at this S, not rendered
+        </>
+      )}
+    </span>
   );
 }
 
@@ -118,6 +172,8 @@ function Frame({
         <strong>
           {Number.isNaN(frame.secondHarmonic) ? "off grid" : frame.secondHarmonic.toExponential(3)}
         </strong>
+        <br />
+        <SpreadLine spread={frame.secondHarmonicSpread} />
         <br />
         mean {frame.meanIntensity.toExponential(4)}
         <br />
@@ -412,7 +468,11 @@ export function PhasePanel() {
         />
         <Choice
           label={`source samples ${sourceSamples} across the diameter`}
-          options={[7, 11, 15, 21]}
+          // The same list `SamplingSpread` enumerates. Shared rather than typed
+          // out twice: the spread's whole claim is that it covers every option
+          // this control offers, and a fifth option added here alone would make
+          // that sentence false without touching the code that says it.
+          options={[...PANEL_SOURCE_SAMPLES]}
           value={sourceSamples}
           onChange={setSourceSamples}
         />
@@ -520,7 +580,9 @@ export function PhasePanel() {
             white = {readout.displayWhite.toExponential(4)} · display gain{" "}
             <strong>×{(WHITE_OVER_MEAN / readout.displayWhite).toFixed(1)}</strong>
             <br />
-            {readout.elapsedMs.toFixed(0)} ms for the pair
+            {readout.elapsedMs.toFixed(0)} ms, of which {readout.checkMs.toFixed(0)} ms for the{" "}
+            {readout.checkFrames} convergence{" "}
+            {readout.checkFrames === 1 ? "render" : "renders"} under the 2ν lines
           </div>
         </div>
       )}

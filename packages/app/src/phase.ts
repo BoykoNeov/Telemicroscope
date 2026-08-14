@@ -95,6 +95,69 @@ export interface PhaseRequest {
   readonly defocusWaves: number;
 }
 
+/**
+ * The `sourceSamples` values the panel's own control offers.
+ *
+ * Exported and consumed by `panels/phase.tsx` rather than written out twice,
+ * because `SamplingSpread` below is a claim about **this list** — an exhaustive
+ * enumeration of what the reader can make the panel show, not a sample of some
+ * continuum — and a copy that drifted from the control would turn it into a
+ * sample without anyone noticing.
+ */
+export const PANEL_SOURCE_SAMPLES = [7, 11, 15, 21] as const;
+
+/**
+ * The 2ν reading at every source sampling this panel offers.
+ *
+ * § 6ab.10 found the panel printing a 2ν contrast to four significant figures
+ * that is not converged, and left what to print about it open. This is the
+ * answer, and the reason it can be answered without pinning a new number is the
+ * scope: it does **not** estimate how far the reading is from the continuum. It
+ * states what moving the panel's own source-samples control does to it. That
+ * enumeration is complete — four options, all four rendered — so there is no
+ * sampling error in it to bound.
+ *
+ * Two things that were measured and are why nothing here is a threshold:
+ *
+ * - **The bad region is not a band in S.** At ν = 1 exactly the reading is 9.4×
+ *   uncertain at *every* S from 0.25 up, because the ±1 orders land on the pupil
+ *   rim where the lattice's own in-or-out decision moves them (the same rim
+ *   `threeOrderCheck` excludes ν = 1 for). At ν = 1.94 it is inside 1.05× at
+ *   S = 1.5. And φ moves it as hard as either: at φ = 0.1, S = 1.5 spreads 838×
+ *   where φ = 3 spreads 1.37×, since the 2ν signal grows as φ² and what
+ *   disagrees does not. Any rule in S alone would refuse readings that are fine
+ *   and print four digits on ones that are 9× out.
+ * - **A cheaper probe lies.** Two samplings agreeing bounds nothing: 7-against-11
+ *   reads 1.3× at S = 1 where 11-against-21 reads 9.7×, and at S = 1.25 the two
+ *   swap (7.6× against 1.1×). Every three-of-four subset tried under-reports the
+ *   four-way spread somewhere.
+ *
+ * `ratio` is `max/min` and is **exactly 1**, with no render at all, wherever
+ * `sourceFor` ignores the count — see `samplingsThatMatter`. Nothing is
+ * suppressed when the readings are f64 noise: at φ = 0 all four sit near 6e-17
+ * and the range says so, in the same voice `worstNull` is printed in exponential
+ * rather than as "0.0000".
+ */
+export interface SamplingSpread {
+  /** One reading per option that the frequency grid could carry. */
+  readonly readings: readonly { readonly samples: number; readonly value: number }[];
+  readonly min: number;
+  readonly max: number;
+  /** `max/min`. Exactly 1 when the source does not depend on the count. */
+  readonly ratio: number;
+  /**
+   * Options `abbeImage` would have refused, and why they are dropped rather than
+   * clamped: the panel's S ceiling is computed from the count in force, and a
+   * coarser lattice reaches further in S than a finer one (S·(1 − 1/N) is the
+   * binding sample), so a reader at N = 7 can be at an S that N = 21 cannot
+   * render. Dropping is the only honest option — a truncated pupil reads as a
+   * smaller aperture, which would look like physics.
+   */
+  readonly skipped: readonly number[];
+  /** Frames rendered for this, over and above the one the panel already had. */
+  readonly extraFrames: number;
+}
+
 /** One canvas: an image formed at one defocus, and everything read off it. */
 export interface PhaseFrame {
   readonly defocusWaves: number;
@@ -104,6 +167,21 @@ export interface PhaseFrame {
   readonly contrast: number;
   /** Modulation at 2ν — the second-order term, which is not null. */
   readonly secondHarmonic: number;
+  /**
+   * What `secondHarmonic` does across the panel's own source samplings. `null`
+   * only when there is no reading to spread — 2ν off the grid.
+   *
+   * Per frame rather than once for the pair, because the two frames are not the
+   * same quantity under an extended source. The module's "2ν is the same at
+   * every defocus" is derived at S = 0, where one on-axis point puts the ±1
+   * orders at equal pupil radius so the defocus phase cancels; off axis the beat
+   * picks up w₂₀(|s + ν|² − |s − ν|²) = 4·w₂₀·(s·ν), which vanishes for no
+   * off-axis point. Measured at S = 0.9, ν = 0.75: 5.87e-3 in focus against
+   * 6.64e-4 at w₂₀ = 1 and 1.57e-2 at 6, where S = 0 holds 7.691302e-2 at every
+   * one of them. The spreads differ with it — 1.2× in focus at S = 0.5 against
+   * 13.4× at w₂₀ = 3 — so one probe could not have covered both.
+   */
+  readonly secondHarmonicSpread: SamplingSpread | null;
   /** `NaN` when 2ν does not fit the grid; never an aliased reading. */
   readonly meanIntensity: number;
   /** `weakPhaseTransfer` at ν through this frame's own pupil. */
@@ -152,7 +230,18 @@ export interface PhaseReadout {
   readonly displayWhite: number;
   readonly focused: PhaseFrame;
   readonly defocused: PhaseFrame;
+  /** The pair, and the convergence probes below — everything this call did. */
   readonly elapsedMs: number;
+  /**
+   * The `SamplingSpread` share of `elapsedMs`, split out rather than folded in
+   * silently: the panel used to print one number labelled "for the pair", and a
+   * label that stayed while extra renders were added underneath it would be the
+   * same kind of quiet overclaim this whole change is about. Zero at S = 0
+   * brightfield, where the probe needs no render.
+   */
+  readonly checkMs: number;
+  /** Frames rendered for the probes, across both frames of the pair. */
+  readonly checkFrames: number;
 }
 
 export type PhaseResult =
@@ -219,6 +308,29 @@ export function sourceFor(
 }
 
 /**
+ * Which of the panel's source samplings are distinct sources here.
+ *
+ * At S = 0 in brightfield `sourceFor` returns `coherentSource()` whatever the
+ * count, so the four options are one source and the spread is exactly 1 — not
+ * approximately, and not after three renders. Verified bit-identical rather than
+ * assumed: 0.07691301586554729 from both the 7 and the 21 branch. This is a read
+ * of `sourceFor`'s own condition rather than a second copy of it, so the two
+ * cannot drift apart, and it is why the panel's default state pays nothing.
+ *
+ * Darkfield gets no such shortcut: `annularSource` masks the same lattice, so
+ * the ring's point count and placement both move with the count — 16 points at
+ * N = 7 against 128 at 21 — and that turns out to matter more here than anywhere
+ * in brightfield.
+ */
+export function samplingsThatMatter(
+  request: Pick<PhaseRequest, "illumination" | "coherenceParameter" | "sourceSamples">,
+): readonly number[] {
+  return request.illumination === "brightfield" && request.coherenceParameter === 0
+    ? [request.sourceSamples]
+    : PANEL_SOURCE_SAMPLES;
+}
+
+/**
  * Is this configuration in the regime where the 2ν term has a closed form?
  *
  * Under **one** on-axis plane wave, exactly three diffracted orders reach the
@@ -274,6 +386,83 @@ function toGrey(intensity: Float64Array, size: number, white: number): Uint8Clam
   return rgba;
 }
 
+/** The 2ν bin, or `NaN` when it is off the grid. Shared by frame and probe. */
+function secondHarmonicOf(intensity: Float64Array, request: PhaseRequest): number {
+  const secondBin = 2 * request.cycles;
+  return secondBin < request.size / 2
+    ? imageHarmonic(intensity, request.size, secondBin).contrast
+    : Number.NaN;
+}
+
+/**
+ * Render one probe frame — the 2ν bin and nothing else.
+ *
+ * Deliberately not `formFrame`: the probe needs one number off one image, and
+ * the transfer, the weak-phase prediction and the Bessel comparison are all
+ * about the frame the panel is actually showing. Computing them for a sampling
+ * the reader did not select would be work spent on numbers with nowhere to go.
+ */
+function probeSecondHarmonic(
+  request: PhaseRequest,
+  source: CondenserSource,
+  defocusWaves: number,
+): number {
+  const object = phaseGratingObject({
+    size: request.size,
+    cycles: request.cycles,
+    amplitudeRadians: request.amplitudeRadians,
+  });
+  const pupil: PupilFunction = defocusWaves === 0 ? idealPupil() : defocusedPupil(defocusWaves);
+  const out = renderBrightfield(object, (): PatchPupil => ({ pupil }), source, {
+    pupilSamples: request.pupilSamples,
+    patches: 1,
+  });
+  return secondHarmonicOf(out.intensity, request);
+}
+
+/**
+ * The 2ν reading across every source sampling the panel offers, at one defocus.
+ *
+ * `shipped` is the reading the panel already has, passed in rather than
+ * re-rendered — the shipped sampling is always one of the four, so the probe is
+ * three frames and not four.
+ */
+export function samplingSpread(
+  request: PhaseRequest,
+  defocusWaves: number,
+  shipped: number,
+): SamplingSpread | null {
+  if (!Number.isFinite(shipped)) return null;
+
+  const readings: { samples: number; value: number }[] = [];
+  const skipped: number[] = [];
+  let extraFrames = 0;
+
+  for (const samples of samplingsThatMatter(request)) {
+    if (samples === request.sourceSamples) {
+      readings.push({ samples, value: shipped });
+      continue;
+    }
+    const source = sourceFor({ ...request, sourceSamples: samples });
+    if (!sourceFits(source, request.size, request.pupilSamples)) {
+      skipped.push(samples);
+      continue;
+    }
+    readings.push({ samples, value: probeSecondHarmonic(request, source, defocusWaves) });
+    extraFrames++;
+  }
+
+  const values = readings.map((r) => r.value);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  // `max === min` first, and not as an optimization: `imageHarmonic` returns a
+  // hard 0 when the mean is 0, which is darkfield on a clear field — every
+  // sampling agreeing on exactly zero. Testing `min === 0` first would call that
+  // an infinite disagreement, which is the opposite of what happened.
+  const ratio = max === min ? 1 : min === 0 ? Number.POSITIVE_INFINITY : max / min;
+  return { readings, min, max, ratio, skipped, extraFrames };
+}
+
 /**
  * Form one image at one defocus and read the two harmonics off it.
  *
@@ -286,7 +475,7 @@ function formFrame(
   request: PhaseRequest,
   source: CondenserSource,
   defocusWaves: number,
-): { frame: Omit<PhaseFrame, "rgba">; intensity: Float64Array } {
+): { frame: Omit<PhaseFrame, "rgba" | "secondHarmonicSpread">; intensity: Float64Array } {
   const object = phaseGratingObject({
     size: request.size,
     cycles: request.cycles,
@@ -307,13 +496,13 @@ function formFrame(
   // keeps it there, and this stays as the second line of defence: an aliased
   // reading reported as the second-order term would be inventing the exact thing
   // the panel claims to have measured.
-  const secondBin = 2 * request.cycles;
-  const second =
-    secondBin < request.size / 2
-      ? imageHarmonic(out.intensity, request.size, secondBin).contrast
-      : Number.NaN;
+  const second = secondHarmonicOf(out.intensity, request);
 
   const phaseTransfer = weakPhaseTransfer(pupil, source, nu);
+  // The nine decimals below need no spread of their own and are not being
+  // overlooked: `threeOrderCheck` requires `coherenceParameter === 0`, which is
+  // the one source point where every sampling gives the same image bit for bit.
+  // Where this comparison exists there is nothing for the count to move.
   const besselCheck = (() => {
     if (!threeOrderCheck(request, nu) || !Number.isFinite(second)) return null;
     const measured = second * fundamental.dc;
@@ -354,6 +543,19 @@ export const WHITE_OVER_MEAN = 2;
  * condenser: **146 ms for the pair**, rising to 503 ms at 21 points and 827 ms
  * at grid 256 with pupilSamples 64. A2's browser figure ran ~2.8× its node
  * figure, so the default here is the 146 ms corner.
+ *
+ * ## The convergence probes, and what they cost
+ *
+ * Each frame's 2ν reading is also taken at every *other* source sampling the
+ * panel offers, so the panel can say what its own control does to the number
+ * rather than printing four digits of it — see `SamplingSpread`. The cost is
+ * near enough **fixed**, since the probe always renders the three options the
+ * reader did not pick: ~660 source points minus whichever one is already on
+ * screen, doubled when the defocused frame is a distinct image.
+ *
+ * It is **free in the panel's default state** — S = 0 puts every sampling on the
+ * same one-point source, so `samplingsThatMatter` returns a single entry and no
+ * probe frame is rendered at all.
  */
 export function renderPhaseScene(request: PhaseRequest): PhaseResult {
   const started = performance.now();
@@ -364,6 +566,16 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
       request.defocusWaves === 0
         ? focused
         : formFrame(request, source, request.defocusWaves);
+
+    const checkStarted = performance.now();
+    const focusedSpread = samplingSpread(request, 0, focused.frame.secondHarmonic);
+    // Reused rather than re-probed when the pair is one image, for the same
+    // reason `defocused` is: it would be the identical render.
+    const defocusedSpread =
+      request.defocusWaves === 0
+        ? focusedSpread
+        : samplingSpread(request, request.defocusWaves, defocused.frame.secondHarmonic);
+    const checkMs = performance.now() - checkStarted;
 
     // One scale for both frames, taken from the in-focus mean. The fallback
     // matters: darkfield on a clear object has a mean of exactly 0, and dividing
@@ -380,13 +592,19 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
         displayWhite,
         focused: {
           ...focused.frame,
+          secondHarmonicSpread: focusedSpread,
           rgba: toGrey(focused.intensity, request.size, displayWhite),
         },
         defocused: {
           ...defocused.frame,
+          secondHarmonicSpread: defocusedSpread,
           rgba: toGrey(defocused.intensity, request.size, displayWhite),
         },
         elapsedMs: performance.now() - started,
+        checkMs,
+        checkFrames:
+          (focusedSpread?.extraFrames ?? 0) +
+          (defocusedSpread === focusedSpread ? 0 : (defocusedSpread?.extraFrames ?? 0)),
       },
     };
   } catch (cause) {
