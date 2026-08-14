@@ -12,7 +12,7 @@ import {
   BLEND_HALF_WIDTH,
   TARGET_RAYS_PER_BLUR_PIXEL,
 } from "../src/wave/geometric";
-import { PHASE_STEP_LIMIT } from "../src/wave/fidelity";
+import { PHASE_STEP_LIMIT, phaseStepPerSample } from "../src/wave/fidelity";
 
 /**
  * Rungs for the second PSF branch and the switch between them.
@@ -412,12 +412,133 @@ describe("adaptivePsf picks the branch the criterion asks for", () => {
     expect(a.geometricWeight).toBe(1);
   });
 
+  /**
+   * The middle offset was `R/2 - 0.3` and that lands at weight **0** (phase step
+   * 0.150 against the band's 0.35), so this rung's own name was wrong: it never
+   * landed on the blend. `R/2 - 1` reads 0.498 and blends 0.490 of ray. Found by
+   * § 3c.3's regime assertions, which fail rather than pass when a fixture
+   * drifts out of the band it is there to cover.
+   */
   it("conserves energy whichever branch it lands on", () => {
-    for (const offset of [undefined, R / 2 - 0.3, R / 2 - 2]) {
+    const weights: number[] = [];
+    for (const offset of [undefined, R / 2 - 1, R / 2 - 2]) {
       const a = adaptivePsf(mirror(-1, offset), 0, LINE_D, GRID);
       let sum = 0;
       for (let i = 0; i < a.intensity.length; i++) sum += a.intensity[i]!;
       expect(sum / a.energy).toBeCloseTo(1, 9);
+      weights.push(a.geometricWeight);
     }
+    expect(weights[0]).toBe(0);
+    expect(weights[1]).toBeGreaterThan(0);
+    expect(weights[1]).toBeLessThan(1);
+    expect(weights[2]).toBe(1);
+  });
+});
+
+/**
+ * Rungs for § 3c.3 — reading the criterion off the trace instead of off a
+ * finished transform.
+ *
+ * `adaptivePsf` used to form the diffraction PSF first and take the criterion
+ * from the `sampling` it carries. The criterion is measured on the TRACED
+ * samples, so it was known one step earlier, and at weight 1 the whole
+ * transform was then discarded — a calculation the criterion had just ruled is
+ * not diffraction on this grid.
+ *
+ * The claim being pinned is that this is a change of ORDER and nothing else,
+ * so the reference here is the old composition written out verbatim rather
+ * than a set of properties the new one should have. Anything that alters what
+ * the branches are handed — a different pupil, a screen applied at the wrong
+ * wavelength, the sampling coming from the other branch's own trace, a key
+ * appearing or vanishing — fails these three regardless of whether the picture
+ * still looks right.
+ */
+describe("§ 3c.3 — the branch decision is the same decision, taken earlier", () => {
+  /** Index of the first element that differs, or −1 for bit-for-bit equal. */
+  function firstDifference(a: Float64Array, b: Float64Array): number {
+    if (a.length !== b.length) return 0;
+    for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return i;
+    return -1;
+  }
+
+  /** `adaptivePsf` exactly as it stood before § 3c.3, transform-first. */
+  function transformFirst(
+    system: OpticalSystem,
+    fieldValue: number,
+    wavelengthNm: number,
+    options: Parameters<typeof adaptivePsf>[3] = {},
+  ) {
+    const pupilSamples = options.pupilSamples ?? 64;
+    const diffraction = psf(system, fieldValue, wavelengthNm, options);
+    const sampling = diffraction.sampling;
+    const step = sampling ? phaseStepPerSample(sampling, pupilSamples) : 0;
+    const weight = geometricWeight(step);
+    if (weight === 0) {
+      return { ...diffraction, geometricWeight: 0, phaseStepWaves: step };
+    }
+    const geometric = geometricPsf(system, fieldValue, wavelengthNm, options);
+    const blended = weight === 1 ? geometric : blendPsf(diffraction, geometric, weight);
+    return { ...blended, geometricWeight: weight, phaseStepWaves: step };
+  }
+
+  // One fixture per regime, and each rung asserts which regime it is in — a
+  // fixture that drifted out of its band would otherwise keep passing while
+  // silently pinning nothing.
+  const REGIMES = [
+    { name: "weight 0 — diffraction alone", offset: undefined, exactly: 0 },
+    { name: "mid-band — both branches blended", offset: R / 2 - 1, exactly: null },
+    { name: "weight 1 — the ray histogram alone", offset: R / 2 - 2, exactly: 1 },
+  ] as const;
+
+  for (const { name, offset, exactly } of REGIMES) {
+    it(`is bit-for-bit the old composition at ${name}`, () => {
+      const system = mirror(-1, offset);
+      const now = adaptivePsf(system, 0, LINE_D, GRID);
+      const before = transformFirst(system, 0, LINE_D, GRID);
+
+      if (exactly === null) {
+        // Strictly inside, or this fixture is a duplicate of one of the others
+        // and the blend path is going unexercised.
+        expect(now.geometricWeight).toBeGreaterThan(0);
+        expect(now.geometricWeight).toBeLessThan(1);
+      } else {
+        expect(now.geometricWeight).toBe(exactly);
+      }
+      // The pixels first, and as a scalar. `toEqual` below covers them too, but
+      // formatting a diff of two 65 536-element arrays costs minutes, so the
+      // cheap scan is what a damaged tree actually reports.
+      expect(firstDifference(now.intensity, before.intensity)).toBe(-1);
+      // Deep equality over the WHOLE object: every Float64Array element, and
+      // the presence or absence of the optional fields too.
+      expect(now).toEqual(before);
+      // `toEqual` is order-blind, and a spread that changed order would change
+      // what a caller's own spread produces.
+      expect(Object.keys(now)).toEqual(Object.keys(before));
+    });
+  }
+
+  /**
+   * Witness that the transform is genuinely not formed at weight 1.
+   *
+   * A timing is not evidence and a discarded array leaves no trace, so the
+   * check is made observable instead: `psfFromPupilFunction` refuses a grid
+   * whose side is not a power of two, and the ray histogram has no such
+   * constraint. So at `padFactor` 3 the old order threw and the new order
+   * returns a picture — the difference being exactly the call that was removed.
+   *
+   * This is also the one behavioural difference § 3c.3 introduces, stated here
+   * rather than left to be discovered: `adaptivePsf` now accepts a grid the FFT
+   * cannot take, on the branch that never needed the FFT. It stops being a
+   * witness (rather than starting to fail) if `fft2d` ever handles arbitrary
+   * sizes — at which point the throw below is what says so.
+   */
+  it("does not form a transform it would discard — witnessed by a grid the FFT refuses", () => {
+    const system = mirror(-1, R / 2 - 2);
+    const ODD_GRID = { pupilSamples: 64, padFactor: 3 } as const;
+    const a = adaptivePsf(system, 0, LINE_D, ODD_GRID);
+    expect(a.geometricWeight).toBe(1);
+    expect(a.size).toBe(192);
+    expect(a.energy).toBeGreaterThan(0);
+    expect(() => psf(system, 0, LINE_D, ODD_GRID)).toThrow(/power of two/);
   });
 });

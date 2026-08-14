@@ -9,9 +9,10 @@ import {
   Psf,
   PsfOptions,
   SystemPsfOptions,
-  psf,
+  psfFromSystemPupil,
   pupilFunctionFromOpd,
   spiderObscures,
+  systemPupil,
   transmittedEnergy,
 } from "./psf";
 import { opdSampling, phaseStepPerSample, PHASE_STEP_LIMIT } from "./fidelity";
@@ -285,6 +286,17 @@ export interface AdaptivePsf extends Psf {
  * The switch is invisible by design — a user dragging a defocus or seeing
  * slider should see the image degrade smoothly, not jump when an internal
  * threshold trips.
+ *
+ * ## The criterion is read before the transform, not after it
+ *
+ * `systemPupil` and not `psf`, because the criterion is measured on the TRACED
+ * samples (see `wave/fidelity`) and is therefore known as soon as the trace is
+ * done. Asking `psf` for it means forming the transform first — and at weight 1
+ * that transform is discarded whole, which is not merely waste: the criterion
+ * has just ruled that an FFT on this pupil grid is noise rather than
+ * diffraction, so the discarded array is a calculation this module says is not
+ * valid here. § 3c.3 pins the identity that makes skipping it safe and measures
+ * what it buys.
  */
 export function adaptivePsf(
   system: OpticalSystem,
@@ -293,19 +305,29 @@ export function adaptivePsf(
   options: SystemPsfOptions & GeometricPsfOptions = {},
 ): AdaptivePsf {
   const pupilSamples = options.pupilSamples ?? 64;
-  // `psf` reads `options.seeing` and adds the screen; `geometricPsf` below is
-  // handed the same options and ignores it — a ray histogram has no phase to add
-  // it to. So seeing rides the diffraction branch alone and fades out with it as
-  // the system's own aberration takes over (docs/VALIDATION § 5d).
-  const diffraction = psf(system, fieldValue, wavelengthNm, options);
-  const sampling = diffraction.sampling;
-  const step = sampling ? phaseStepPerSample(sampling, pupilSamples) : 0;
+  const pupil = systemPupil(system, fieldValue, wavelengthNm, options);
+  const step = phaseStepPerSample(pupil.sampling, pupilSamples);
   const weight = geometricWeight(step);
 
+  // `psfFromSystemPupil` reads `options.seeing` and adds the screen;
+  // `geometricPsf` is handed the same options and ignores it — a ray histogram
+  // has no phase to add it to. So seeing rides the diffraction branch alone and
+  // fades out with it as the system's own aberration takes over (§ 5d). At
+  // weight 1 there is no diffraction branch left to carry it, which is that
+  // fade reaching its end rather than a case this skip introduced.
+  if (weight === 1) {
+    // The geometric branch traces and fits its own OPD map, so the pupil work
+    // above is repeated inside it. Measured at 2.0 ms against the branch's own
+    // 378–481, and left alone: threading a traced map through a public
+    // signature to recover 0.5% is a worse trade than the duplicate (§ 3c.3).
+    const geometric = geometricPsf(system, fieldValue, wavelengthNm, options);
+    return { ...geometric, geometricWeight: 1, phaseStepWaves: step };
+  }
+
+  const diffraction = psfFromSystemPupil(pupil, fieldValue, options);
   if (weight === 0) {
     return { ...diffraction, geometricWeight: 0, phaseStepWaves: step };
   }
   const geometric = geometricPsf(system, fieldValue, wavelengthNm, options);
-  const blended = weight === 1 ? geometric : blendPsf(diffraction, geometric, weight);
-  return { ...blended, geometricWeight: weight, phaseStepWaves: step };
+  return { ...blendPsf(diffraction, geometric, weight), geometricWeight: weight, phaseStepWaves: step };
 }

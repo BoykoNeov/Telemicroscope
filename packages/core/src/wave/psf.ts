@@ -717,20 +717,48 @@ export function systemPupil(
   };
 }
 
+/**
+ * The other half of `psf()`: seeing, transform, and the sampling carried
+ * through — everything that happens once a system's pupil is in hand.
+ *
+ * Split out for the same reason `systemPupil` was, and for a caller going the
+ * other way. `systemPupil` exists so a caller with MANY transforms of ONE traced
+ * system does not re-trace; this exists so a caller who has to see the traced
+ * sampling BEFORE deciding whether it wants a transform at all can stop there.
+ * `adaptivePsf` is that caller: the fidelity criterion is measured on the traced
+ * samples, and where it rules for the ray branch the transform is not merely
+ * unused, it is the calculation the criterion just said is not diffraction here.
+ *
+ * The wavelength is read off `scale` rather than taken as a parameter, so the
+ * screen cannot be applied at a wavelength the pupil was not traced at.
+ */
+export function psfFromSystemPupil(
+  { pupil, scale, sampling }: SystemPupil,
+  fieldValue: number,
+  options: SystemPsfOptions = {},
+): Psf {
+  // Atmospheric seeing arrives here, as the last wrapper on the pupil before the
+  // transform — pure phase at this wavelength, amplitude untouched. It is the
+  // successor ARCHITECTURE named after the spider: a new optical effect that is
+  // a `PupilFunction`, so nothing below learns its name.
+  const seenPupil = options.seeing
+    ? withPhaseScreen(pupil, options.seeing, scale.wavelengthNm)
+    : pupil;
+  const transformed = psfFromPupilFunction(seenPupil, scale, fieldValue, options);
+  return { ...transformed, sampling };
+}
+
 export function psf(
   system: OpticalSystem,
   fieldValue: number,
   wavelengthNm: number,
   options: SystemPsfOptions = {},
 ): Psf {
-  const { pupil, scale, sampling } = systemPupil(system, fieldValue, wavelengthNm, options);
-  // Atmospheric seeing arrives here, as the last wrapper on the pupil before the
-  // transform — pure phase at this wavelength, amplitude untouched. It is the
-  // successor ARCHITECTURE named after the spider: a new optical effect that is
-  // a `PupilFunction`, so nothing below learns its name.
-  const seenPupil = options.seeing ? withPhaseScreen(pupil, options.seeing, wavelengthNm) : pupil;
-  const transformed = psfFromPupilFunction(seenPupil, scale, fieldValue, options);
-  return { ...transformed, sampling };
+  return psfFromSystemPupil(
+    systemPupil(system, fieldValue, wavelengthNm, options),
+    fieldValue,
+    options,
+  );
 }
 
 /**

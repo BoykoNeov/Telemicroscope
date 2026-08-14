@@ -28,7 +28,7 @@ whole ladder.
 | [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
-| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; and the refinement ladder's middle levels dropped, a level being the standalone render at its own patch count | `render` `golden` |
+| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; and the refinement ladder's middle levels dropped, a level being the standalone render at its own patch count; the fidelity criterion read off the trace, so the branch it rules out is not computed | `render` `golden` `geometric` |
 | [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
 | [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
 | [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
@@ -1986,6 +1986,97 @@ wavelength — while the achromat never leaves the diffraction one. Worth
 recording twice over: no app surface renders a singlet *field*, so nothing is
 owed here; and at weight exactly 1 the diffraction PSF is computed and then
 entirely discarded, which is ~9% of that path available to whoever needs it.
+
+### 3c.3 — the criterion was known one step before it was read
+
+**§ 3c.2's closing paragraph recorded the waste and mis-stated its reach.** It
+says that at weight exactly 1 "the diffraction PSF is computed and then entirely
+discarded, which is ~9% of that path available to whoever needs it" — the last
+clause implying nobody shipped does. Two panels do, and one of them reaches
+weight 1 at half its aperture slider's travel. On the star panel's own defaults
+with the aperture at its maximum 20 mm, the **singlet** canvas runs 3 of its 9
+wavelength planes at weight exactly 1 and 2 more inside the band (417, 450 and
+483 nm read phase steps of 2.24, 1.62 and 0.99 against the 0.65 the band ends
+at). The tolerance panel is worse: at `pupilSamples` 32 the criterion is twice as
+large for the same wavefront, so its singlet at 20 mm runs 3 of its 5 planes at
+weight 1 — and it renders **two** stacks per job, nominal and perturbed. The
+achromat never leaves weight 0 at any aperture the panels offer, which is why
+this was invisible: the lens the app is built around does not reach it.
+
+**Why the transform can be skipped at all is a fact about where the criterion is
+measured.** `wave/fidelity` takes it from differences between neighbouring
+TRACED samples, not from the fitted wavefront on the FFT grid — § 2d's reasoning,
+that a Zernike fit is smooth whatever it was fitted to. So the criterion is
+settled when `systemPupil` returns, one step before any transform exists.
+`adaptivePsf` was asking `psf()` for it, which forms the transform to hand back
+the `sampling` that was decided before it started. At weight 1 the discarded
+array is not merely unused work: the criterion has just ruled that an FFT on this
+pupil grid is aliasing rather than diffraction, so the module spends 18 ms
+computing something it has itself declared invalid here.
+
+**`psf()` is now `systemPupil` + `psfFromSystemPupil`**, split for the mirror
+image of the reason `systemPupil` was split out. That one exists so a caller with
+many transforms of one traced system does not re-trace (the long-exposure seeing
+average); this one exists so a caller that must see the sampling *before* it
+knows whether it wants a transform can stop there. The seeing screen's wavelength
+now comes off `scale` rather than a parameter, so it cannot be applied at a
+wavelength the pupil was not traced at.
+
+**The rungs are identities against the old composition written out verbatim,**
+one per regime, since the claim is that this is a change of order and nothing
+else. `toEqual` over the whole returned object — every element of a 65 536-sample
+`Float64Array`, and the presence or absence of the optional fields — plus an
+`Object.keys` comparison, because `toEqual` is order-blind and a caller's own
+spread is not. Damage table, by breaking the new path deliberately: handing the
+transform a pupil traced at 15 samples instead of 21 fails weight 0 and the
+blend and leaves weight 1 green (it uses neither), and dropping `sampling` from
+the weight-0 return fails weight 0 alone.
+
+**The witness that no transform is formed is a grid the FFT refuses.** A timing
+is not evidence and a discarded array leaves no trace, so the check is made
+observable instead: `psfFromPupilFunction` throws on a side that is not a power
+of two and the ray histogram has no such constraint, so at `padFactor` 3 the old
+order threw and the new order returns a picture. That is also **the one
+behavioural difference this change introduces**, stated rather than left to be
+discovered: `adaptivePsf` now accepts a grid the FFT cannot take, on the branch
+that never needed the FFT. It stops being a witness — rather than starting to
+fail — if `fft2d` ever handles arbitrary sizes, at which point the throw beside
+it is what says so.
+
+**Measured, and the honest part is what could not be resolved.** The work
+removed is exactly the transform: 18–21 ms on the star panel's 256² grid, 5.8–6.0
+on the tolerance panel's 128², medians of 15 interleaved reps. End to end the
+difference is consistent with that and no tighter — 21–43 ms measured at 256²
+and 3.7–4.1 at 128² — because what remains is the ray histogram, whose own
+p10–p90 spread is 14–68 ms and therefore **larger than the thing being
+measured**. A first attempt at 5 reps put the frame-level saving at 0.7% with
+individual planes reading negative, which is the number a reader would get by
+running it once. In frame terms the arithmetic is ~3%: three planes × ~19 ms
+against a 1.74 s star frame, and six × ~6 ms against a 0.92 s tolerance job.
+Zero on every other configuration the panels can be put in, because no plane
+leaves weight 0.
+
+**One duplicate measured and deliberately left.** `geometricPsf` traces and fits
+its own OPD map, so at any weight above 0 the pupil work happens twice. It is
+2.0 ms against that branch's own 378–481, and threading a traced map through a
+public signature to recover 0.5% is the worse trade — `geometricPsf` is exported
+and used standalone. Recorded here so the duplicate reads as a decision.
+
+**A fixture was found covering nothing, by the rung that asserts its own
+regime.** The energy rung beside this one ran three offsets under the name "whichever
+branch it lands on", and the middle one — `R/2 − 0.3` — lands at weight **0**
+(phase step 0.150 against the band's 0.35), so the blend was never exercised by
+it. `R/2 − 1` reads 0.498 and blends 0.490 of ray. The regime assertions are
+written to fail rather than pass when a fixture drifts out of the band it exists
+to cover, which is how this surfaced.
+
+**Not chased, and worth writing down: the bottom edge of the band is expensive.**
+The singlet at 20 mm and 550 nm reads a phase step of 0.3528, which is 0.0028
+past the band's start and gives a geometric share of **2.6e-4**. That plane costs
+187 ms against a weight-0 plane's 19, because any weight above zero pays the
+whole ray histogram — ~168 ms for 0.03% of the picture. The blend's smoothness is
+the point of the band (§ 2d) and a threshold on cost would put a visible step
+back into a slider drag, so this is a note rather than a proposal.
 
 ### Golden image
 

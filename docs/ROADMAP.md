@@ -1612,10 +1612,28 @@
    is recorded where it was found rather than gathered into a new step: the
    sparse-input transform § 6aa left (rows are skipped, columns are not, and a
    sparse-input transform is a different algorithm wanting its own identity
-   rungs), the phase panel's condenser § 6ab deliberately did not switch (its
+   rungs), and the phase panel's condenser § 6ab deliberately did not switch (its
    teaching has not been audited, and assuming A2's reasoning transplants is the
-   move that step's own history argues against), and the discarded diffraction
-   PSF § 3c.2 found inside `adaptivePsf` at geometric weight 1. The v1 cut below
+   move that step's own history argues against). ~~And the discarded diffraction
+   PSF § 3c.2 found inside `adaptivePsf` at geometric weight 1.~~ **That one is
+   now ✅ closed at § 3c.3**, and it is recorded here rather than only in
+   VALIDATION because § 3c.2 got its *reach* wrong in the same way this file's
+   accounting did above: it called the discard "available to whoever needs it",
+   and **two shipped panels need it**. The star panel's singlet canvas at its
+   maximum aperture runs 3 of 9 wavelength planes at weight exactly 1, and the
+   tolerance panel — which samples the pupil half as finely, doubling the
+   criterion for the same wavefront — runs 3 of 5, twice per job. It stayed
+   invisible because the achromat, the lens this app is built around, never
+   leaves weight 0 at any aperture the panels offer. The fix is a change of order
+   and nothing else: the criterion is measured on the traced samples, so it is
+   settled before any transform exists, and asking `psf()` for it was forming a
+   transform to learn something already decided. Pinned as deep-equality
+   identities against the old composition at all three regimes, with the skip
+   itself witnessed by a grid the FFT refuses. **What it is worth is not the
+   time** — the removed work is 18–21 ms per plane where it applies, ~3% of the
+   two frames that reach it, and the ray branch's own run-to-run spread is larger
+   than that — but that at weight 1 the array being discarded is an FFT the
+   criterion has just ruled is aliasing rather than diffraction. The v1 cut below
    is the list that decides whether this is shippable, and the v2+ list after it
    is where the next capability comes from.
 
