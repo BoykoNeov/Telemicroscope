@@ -1749,6 +1749,27 @@
 - Telescope: presets above, seeing, eyepieces, visual + camera modes.
 - Microscope: brightfield + fluorescence, immersion, coverslip mismatch.
 
+### The six analyses, and the route each claim is pinned to
+
+**Why this table is here and not only in APP.md.** The analyses bullet above says
+twice, in different words, that a set of analyses has surfaces — and both times it
+was counting an entry whose panel had not arrived. The sentence was prose, so
+nothing could check it. This is the same claim in a form a test can read: a row
+marked ✅ **must** name a route that exists in `packages/app/src/panels/registry.ts`,
+and a row not marked ✅ must name none. `packages/app/test/surfaces.test.ts` pins
+it. Had it existed one commit earlier, the distortion/field-curvature row would
+have had to be written not-✅ — one line above a sentence claiming the opposite —
+or name a route that did not resolve.
+
+| Analysis | Surfaced | Route |
+| --- | --- | --- |
+| Spot diagram | ✅ | `#/spot` |
+| Ray fan | ✅ | `#/rayfan` |
+| Chromatic focal shift | ✅ | `#/chromatic` |
+| PSF / MTF | ✅ | `#/mtf` |
+| Zernike readout | ✅ | `#/wavefront` |
+| Distortion / field curvature | ✅ | `#/curvature` |
+
 ## v2+
 
 - Rigorous partial coherence (Hopkins TCC) → phase contrast, DIC.
@@ -1762,6 +1783,17 @@
   Strongly differentiating — no other web optics sim lets you *design*.
 
 ## Engineering practices to land alongside the code
+
+- ~~**Nothing checks this file's claims against the app.**~~ ✅ **landed** —
+  `packages/app/test/surfaces.test.ts`, plus the two tables it reads (APP.md's
+  *Every landed section*, and the six-analysis table at the end of the v1 cut
+  above). It is the cheap check the field-curvature miss named and nobody ran.
+  The damage table is in the test's own header, and the finding worth carrying
+  out of it is which half caught what: reconstructing the tree at `d3c5b79`
+  left **APP.md's three assertions green** and failed only on ROADMAP's row,
+  because with no ✅ section written there was nothing for a section-to-route
+  check to find missing. A registry checked against APP.md could never have
+  caught this. The claim had to become a row in *this* file.
 
 - ~~**Golden-image regression harness at step 4**, not step 7.~~ ✅ **landed**
   with step 3b — `golden.test.ts` in both packages, with the committed renders

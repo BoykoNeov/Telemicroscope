@@ -21,6 +21,63 @@ eyepiece, or see anything wider than a detail crop, in colour. Those are not
 wiring gaps, so Part D scopes the **engine steps** as well, each with the rungs
 that would pin it, and marks which is which throughout.
 
+## Every landed section, and the route it reached
+
+**The failure that earned this table.** Part L — distortion/field curvature — was
+recorded in ROADMAP as surfaced, twice, while it had no panel, no route and no
+part in this file. Nothing was positioned to notice: the panel registry is
+checked against this doc, this doc is checked against the engine, and ROADMAP was
+checked against neither. So every section this file marks ✅ names the route it
+reached, or says in the same row that it reached none and why.
+`packages/app/test/surfaces.test.ts` pins this table against
+`packages/app/src/panels/registry.ts` in both directions — a ✅ section with no
+row fails, a row naming a route the registry does not have fails, and a panel no
+row claims fails.
+
+**What it does not catch on its own** is the shape the original miss actually
+had: a capability nobody wrote a ✅ section for. Nothing here can miss what was
+never written down. That half is closed by the six-row table at the end of
+ROADMAP's *v1 cut*, which lists the analyses the roadmap claims and pins each
+claim to a route — the two tables together are the check, and neither is
+sufficient alone.
+
+| Section | Route | What reached a screen |
+| --- | --- | --- |
+| A1 | `#/bench` | the objective picker and the specimen frame |
+| A2 | `#/brightfield` | the condenser, the Abbe sum, and where the cutoff lands |
+| A3 | `#/phase` | a specimen that absorbs nothing |
+| A4 | `#/fluorescence` | beads that emit, reached with no condenser |
+| A5 | `#/volume` | out-of-focus haze and the focus stack |
+| A6 | `#/coverslip` | a plate the objective does not control |
+| A9 | `#/section` | colour integrated per wavelength |
+| A10 | `#/stage` | A7's mosaic, in colour — no new route |
+| Part B | `#/tolerance` | a slider per manufacturing error |
+| C1 | `#/reflector` | six presets from three numbers |
+| C2 | `#/reflector` | the spider and the clipping diagonal, on C1's panel |
+| C3 | `#/train` | a part's length against its optical cost |
+| C4 | `#/camera` | a pixel that integrates |
+| C5 | `#/visual` | the eye takes the aperture |
+| C6 | `#/seeing` | one screen is speckle, only the mean is the disc |
+| C7 | `#/sky` | a source with an angular size |
+| D1 | — | engine step (§ 6m); no surface of its own |
+| D2 | — | engine step (§ 6n); no surface of its own |
+| D3 | — | engine step (§ 6o); no surface of its own |
+| D4 | `#/stage` | A7 — a field of view you can pan |
+| D5 | — | engine step (§ 6p); no surface of its own |
+| D6 | `#/eyepiece` | the chain ends at an eye |
+| D7 | `#/brightfield` | polychromatic brightfield, on A2's panel — no new route |
+| D8 | `#/builder` | A8 — the microscope builder |
+| D10 | `#/volume` | A5's z-slider through a real mount — no new route |
+| Part E | `#/editor` | the surface list itself, on a form |
+| Part F | — | no route of its own: it changed which value every imaging panel carries |
+| Part G | `#/collimation` | the coma node a knocked element takes with it |
+| Part H | `#/rayfan`, `#/chromatic` | the two plots a teaching link lands on |
+| Part I | `#/spot` | where a pupil-full of rays lands |
+| Part J | `#/wavefront` | the Zernike terms, and which RMS the Strehl formula wants |
+| Part K | `#/mtf` | the contrast that survives |
+| Part L | `#/curvature` | the two surfaces a flat sensor sits between |
+| ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
+
 ## The baseline: what the app draws today, and its house style
 
 The adapters — `render.ts`, `microscope.ts`, `brightfield.ts`, `phase.ts`,
