@@ -112,14 +112,19 @@ describe("§ 6ab.11 — the two structural facts that rule out a boundary in S",
 
   it("ν = 1.94 is settled at S = 1.5, where any band in S would refuse it", () => {
     expect(frequencyOf(31, 32)).toBeCloseTo(1.9375, 12);
-    expect(spreadAt({ cycles: 31, coherenceParameter: 1.5 }).ratio).toBeLessThan(1.2);
+    // 1.03 measured, and the bound sits just outside it rather than at a round
+    // 1.2: § 6ab.11 prints "inside 1.05×" in prose, and a rung with room for the
+    // prose to go false without failing is the thing this panel is about.
+    expect(spreadAt({ cycles: 31, coherenceParameter: 1.5 }).ratio).toBeLessThan(1.05);
   });
 
   it("φ moves it as hard as S does, at one ν and one S", () => {
+    // 838× and 1.37× measured, at the same ν and S. Bounded close for the same
+    // reason as above — both numbers are quoted in § 6ab.11.
     const weak = spreadAt({ coherenceParameter: 1.5, amplitudeRadians: 0.1 });
     const strong = spreadAt({ coherenceParameter: 1.5, amplitudeRadians: 3 });
-    expect(weak.ratio).toBeGreaterThan(100);
-    expect(strong.ratio).toBeLessThan(2);
+    expect(weak.ratio).toBeGreaterThan(700);
+    expect(strong.ratio).toBeLessThan(1.5);
   });
 
   it("agrees with § 6ab.10 where the two overlap, at ν = 0.75", () => {
@@ -163,9 +168,10 @@ describe("§ 6ab.11 — the defocused frame is a different quantity", () => {
     const b = scene.readout.defocused.secondHarmonicSpread;
     expect(a).not.toBe(b);
     // In focus this cell is settled; at three waves it is not. One probe over the
-    // pair would have reported whichever frame it happened to run on.
-    expect(a!.ratio).toBeLessThan(1.5);
-    expect(b!.ratio).toBeGreaterThan(5);
+    // pair would have reported whichever frame it happened to run on. Measured
+    // 1.17 and 13.4, which are the two numbers § 6ab.11 quotes.
+    expect(a!.ratio).toBeLessThan(1.3);
+    expect(b!.ratio).toBeGreaterThan(10);
     expect(scene.readout.checkFrames).toBe(6);
   });
 
