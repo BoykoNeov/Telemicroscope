@@ -1877,8 +1877,8 @@ or name a route that did not resolve.
     Coddington shape factor, *recovered* by the optimiser rather than evaluated)
     and the achromat's crown/flint power split, on a zero-thickness fixture
     where both residuals reach exactly zero so the answer does not depend on the
-    weighting. It has **no surface yet**: APP.md Part M's screen still asks the
-    single-variable question.
+    weighting. **It is now on a screen too** — APP.md Part N, route
+    `#/optimize`, app wiring only and no rung of its own.
     *Recorded here rather than only in VALIDATION because the step's sharpest
     finding is about the tool and not the physics:* an optimiser always reports
     that it converged, and this one is measured doing it while wrong by 400 mm.

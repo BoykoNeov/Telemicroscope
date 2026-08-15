@@ -77,6 +77,7 @@ sufficient alone.
 | Part K | `#/mtf` | the contrast that survives |
 | Part L | `#/curvature` | the two surfaces a flat sensor sits between |
 | Part M | `#/design` | what a number has to be, and the pole that is not a root |
+| Part N | `#/optimize` | several wishes at once, and the leftover that is part of the answer |
 | ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
 
 ## The baseline: what the app draws today, and its house style
@@ -4862,6 +4863,124 @@ about the physics — arriving on a panel instead of on a rung.
   `withVariable`, which is a separate explicit step in the engine and a separate
   panel here — Part E edits the surface list, and sending an answer there would
   couple two surfaces' state in the way `registry.ts` exists to prevent.
+
+## Part N — design mode's second half: the best this lens can do — *app wiring only* — ✅ **landed** — **a form and two plots**
+
+Route `#/optimize`, `src/optimize.ts` + `src/panels/optimize.tsx`,
+`test/optimize.test.ts`. It draws `core/analysis/optimize` (VALIDATION § 1.8),
+which had **no caller anywhere in `packages/app`** until this part — the third
+capability in a row to land in the engine and sit there, after Part L's field
+module and Part M's solver.
+
+**What makes it a different surface rather than a mode on Part M.** Part M asks a
+question that has an answer: one property, one number, a root. This asks for
+several things at once with fewer freedoms than wishes, and what comes back is a
+compromise. Three consequences shaped the whole screen, and all three are things
+Part M's layout would have got wrong:
+
+1. **The leftover error is part of the answer.** § 1.8's sharpest rung is a run
+   that stops with its convergence test satisfied while sitting 400 mm from the
+   target, so the stop reason and every wish's leftover are printed in the SAME
+   block, each in its own unit. Reading either alone is how you get fooled, and
+   two sections would have let a reader do exactly that.
+2. **The weights are an input.** Where the wishes cannot all be met the answer
+   moves with them, and nothing physical fixes the exchange rate between a
+   millimetre and a diopter. They are a control with prose beside it, not a
+   default the panel hides.
+3. **There is no `roots` array.** A scan reports every solution in an interval; a
+   descent reports the basin it started in. The panel therefore runs a second
+   start, 8% away by default, and says whether the two agreed — which is
+   evidence about a basin and not a proof of uniqueness, and it says that too.
+
+### What driving it measured
+
+**1. Part M's own finding, answered — and both halves are recomputed rather than
+quoted.** Retargeting the app's f = 500 achromat to 400 mm through ONE curvature
+hits the focal length exactly and takes the F-to-C spread from −0.0439 mm to
+−1.277 mm, 29×. The same retarget through TWO curvatures with the colour as a
+second wish hits the same focal length and leaves the spread at **−5.7e-14 mm** —
+gone, not merely smaller, and better corrected than the lens it started from.
+Part M's prose keeps the record of when 29× was first measured; the panel prints
+its own number so the two cannot drift apart.
+
+**2. That answer is a thing § 5j.2 deliberately refused to build, and it is right
+to build it here.** § 5j.2 imposes the thin-lens power split on a thick doublet
+and leaves the residual F−C spread in on purpose: solving the split numerically
+until the thick lens united F and C would have made that step's headline
+chromatic rung true *by construction* and worth nothing. This panel does exactly
+that numerical solve. Same computation, opposite verdict — and which one applies
+depends only on whether you are designing or validating. That sentence is on the
+screen, because a reader who has met § 5j.2 will otherwise think one of the two
+is a mistake.
+
+**3. The currency control changes the ANSWER, not only the work, on every seed —
+and the reachable case teaches more than the unreachable one.** § 1.8 pins the
+extreme: a target on the far side of an afocal configuration, which in
+millimetres of focal length is behind a barrier of infinite merit and is never
+reached (the panel shows it stopping on the gradient test, 150 mm out). But
+switch the same control on the *retarget* seed, where the target is perfectly
+reachable, and both runs hit 400 mm — while the one asked in millimetres ends
+with a colour spread of **−1.62 mm against −5.7e-14**, and uses its whole
+iteration budget doing it. A focal miss in millimetres is a million times the
+same miss in diopters, so it swamps every other wish in the merit. The units
+argument stops being abstract the moment you can toggle it.
+
+**4. …except where every wish can be granted at once.** On the thin doublet both
+residuals reach zero together, so both currencies land on the same lens to twelve
+digits, and so does a weight moved by six orders of magnitude. This is § 1.8's
+reason the headline rungs are pinnable made visible: a zero-residual optimum is
+the one place a weighting cannot reach.
+
+**5. The best-form seed's gap is two gaps, and the panel separates them.** The
+shipped 5 mm singlet, bent for least spherical with its power held by a weighted
+wish, lands at shape factor 0.7367 against Coddington's published 0.7397 —
+4.07e-3 away. Nothing is wrong: q\* is a **thin-lens** result, and the same
+optimisation on a 1 nm version of the same lens lands 5.3e-7 away. Measured, the
+gap is linear in thickness (4.0e-5 at 0.05 mm, 4.1e-4 at 0.5, 4.1e-3 at 5,
+1.6e-2 at 20), which is § 5j.1's own statement about that closed form. What is
+left on the thin control is the *weight*: a constraint imposed by weighting is
+held only to O(1/w), it improves as the weight rises — 1.1e-5, 2.2e-6, 5.3e-7,
+9.7e-8 — and then **gets worse again** at 1e7, because the aberration term stops
+being visible in the merit at all. A weight is not a thing where bigger is
+better, and this is the panel that shows it.
+
+**6. The convergence trail is a replay, and that had to be checked before it was
+drawn.** Both plots come from running the optimiser again with its iteration cap
+set to 1, 2, 3 … The algorithm is deterministic, so a capped run *is* the longer
+run's prefix — pinned in `test/optimize.test.ts` on every field the result
+carries, not just on the answer, because a picture built on an assumption that
+happened to hold is a picture that lies the day it stops holding. Two things
+follow for reading it: the x axis is **work** rather than progress, since a
+rejected step spends an iteration and moves nothing (§ 1.8's own first fixture
+spends five of them raising the damping before it moves at all), and the cost is
+quadratic in the iteration count, so the trail is sampled to at most 48 replays.
+Drawn at every k, the hundred-iteration case costs 40 ms against 20 sampled.
+
+**7. The whole readout is 0.1 to 20 ms**, against Part M's 0.7–1.9. Every
+residual is a paraxial trace or a third-order sum, and the expensive part is not
+the optimisation (5 to 121 evaluations) but the trail's replays. The number that
+would change this is a merit over a *traced* quantity, which is four orders more
+expensive per evaluation and is not offered — see below.
+
+### What it does not do
+
+- **No traced targets.** An RMS spot or a Zernike term as a wish is the same
+  optimiser with a residual four orders more expensive, and it brings a question
+  this panel would have to answer first: a traced merit carries sampling noise,
+  and differencing noise is how an optimiser is made to chase its own tail.
+  § 1.8 names it as not-yet-pinned and this panel does not pretend otherwise.
+- **No constraints, only heavily weighted wishes.** "Hold the focal length
+  *exactly* while minimising aberration" is a Lagrange condition, not a residual
+  with a big weight, and finding 5 above is the difference measured rather than
+  argued.
+- **The variables are the seed's.** Choosing which numbers a design may move is
+  the next control this surface wants, and it is bigger than it looks: two
+  variables that do nearly the same thing are what the damping exists to survive,
+  so a panel that lets you pick them should be able to say when you have picked
+  such a pair. The damping's rejected-step count is most of that signal already.
+- **No writing back.** As in Part M, an answer is a set of values; building the
+  lens is a separate explicit step, and sending one to the bench editor would
+  couple two panels' state in the way `registry.ts` exists to prevent.
 
 ## What the app itself needs to hold this
 

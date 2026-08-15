@@ -25,6 +25,7 @@ import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
 import { WavefrontPanel } from "./wavefront";
 import { MtfPanel } from "./mtf";
+import { OptimizePanel } from "./optimize";
 import { VisualPanel } from "./visual";
 import { VolumePanel } from "./volume";
 
@@ -171,6 +172,12 @@ export const PANELS: readonly Panel[] = [
     label: "the solve",
     blurb: "ROADMAP v2+ — design mode's first half: what a number has to be, and the pole that is not a root",
     Component: DesignPanel,
+  },
+  {
+    id: "optimize",
+    label: "the compromise",
+    blurb: "ROADMAP v2+ — design mode's second half: several wishes at once, and the leftover that is part of the answer",
+    Component: OptimizePanel,
   },
   {
     id: "builder",
