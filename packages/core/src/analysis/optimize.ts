@@ -47,6 +47,14 @@ import { withVariable, type SolveVariable } from "./solve";
  * condition number on the way there. `math/lsq` does the QR, and it is shared
  * with the Zernike fit for exactly this reason.
  *
+ * One inherited detail worth stating, because this caller's columns carry units
+ * the Zernike fit's do not: `math/lsq` zeroes a component whose R pivot falls
+ * below **1e-12 absolute**, which is a scale-dependent floor. The damping is
+ * what keeps it out of reach — the augmented pivot is at least √(λ·dⱼ), so a
+ * column has to be dead in earnest, not merely small, before the floor decides
+ * anything. § 1.8 pins that case: a variable the merit cannot see stays exactly
+ * where it started rather than moving by noise or by a division.
+ *
  * Marquardt's scaling — damping each variable in proportion to how strongly the
  * merit already responds to it — is the default because the alternative is
  * unit-dependent: a plain λI damps a curvature in 1/mm and a thickness in mm by

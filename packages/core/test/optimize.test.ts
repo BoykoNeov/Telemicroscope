@@ -268,16 +268,26 @@ describe("DLS — the achromat's crown/flint power split", () => {
   it("and the answer does not depend on the weighting — which is why it can be a pin", () => {
     // A zero-residual optimum is where every operand is satisfied at once, so
     // any positive exchange rate between them gives the same lens. Six orders of
-    // magnitude of weight move the crown curvature by 5.2e-14 relative — which
-    // is the optimiser's own stopping noise, not an effect of the weighting: the
-    // over-determined rung below moves by 4.6e-3 over a smaller weight range,
-    // eleven orders more. The bound is set above the noise, not on it.
+    // magnitude of weight move the crown curvature by 5.2e-14 relative — and
+    // that residue is stopping noise rather than an effect of the weighting,
+    // which the merit says directly: every run ends with BOTH operands satisfied
+    // to the f64 floor, so all three are the same zero-residual point approached
+    // from three different λ histories. The contrast is the over-determined rung
+    // below, where no such point exists and a smaller weight range moves the
+    // answer by 4.6e-3. The bound here is set above the noise, not on it.
     const values = [1e-3, 1, 1e3].map((weight) => {
       const start = doublet(0.01, C_MID, -0.01);
       const r = optimizePrescription(start, SPLIT_VARS, [
         { kind: "power", wavelengthNm: LINE_D, target: PHI },
         { kind: "chromaticPower", wavelengthsNm: [LINE_F, LINE_C], target: 0, weight },
       ]);
+      // Both operands satisfied at the f64 floor, weights divided back out and
+      // measured against the power target so the bound carries no units: 2.3e-15
+      // on the power (about ten ulp of 1/100 mm) and 1.7e-16 on the colour. That
+      // is what makes all three runs the same point rather than three
+      // compromises that happen to be close.
+      expect(Math.abs(r.residuals[0]!) / PHI).toBeLessThan(1e-13);
+      expect(Math.abs(r.residuals[1]! / weight) / PHI).toBeLessThan(1e-13);
       return r.x[0]!;
     });
     for (const v of values) expect(v / values[0]!).toBeCloseTo(1, 11);
@@ -447,7 +457,7 @@ describe("DLS — the damping's other two jobs", () => {
       if (x[0]! !== 1) throw new Error("not a system");
       return [7];
     };
-    const r = island([1]) && dampedLeastSquares(island, [1]);
+    const r = dampedLeastSquares(island, [1]);
     expect(r.reason).toBe("gradient");
     expect(r.iterations).toBe(1);
     expect(r.residuals[0]).toBe(7); // "converged" is not "arrived"
