@@ -4692,8 +4692,11 @@ takes a lens and reports what it does. This one takes a property you want and on
 number the design may move, and returns the value that number has to take. That
 is a *root* rather than a minimum, which is why it is a different solver from the
 focus solve every imaging panel already uses, and it is the half of ROADMAP's
-design-mode entry that has landed; the other half moves several numbers at once
-and is blocked on a merit whose answer is known in closed form.
+design-mode entry this panel draws. The other half — several numbers at once,
+`core/analysis/optimize`, VALIDATION § 1.8 — has **landed in the engine since
+this part shipped and has no caller in `packages/app`**, which is the same
+sit-and-wait this panel's own opening paragraph describes. Its surface is
+scopeable app wiring, not a blocked step; see "What it does not do" below.
 
 The panel is a form over one refusal the module makes on purpose: `solveScalar`
 will not expand a bracket, so the **caller states the interval**. Each seed
@@ -4839,9 +4842,17 @@ about the physics — arriving on a panel instead of on a rung.
   on an RMS spot or a Zernike term changes the cost model by four orders and wants
   a different search than a full scan — § 1.7 names it as not-yet-pinned and this
   panel does not pretend otherwise.
-- **No damped least squares.** The second half of design mode, and the panel says
-  what it is waiting on rather than shipping an optimizer whose test would only be
-  able to say "it converged".
+- **No damped least squares.** The second half of design mode. It is no longer
+  waiting on a pin — `core/analysis/optimize` and VALIDATION § 1.8 landed after
+  this panel, on two closed-form minimisers — so what is missing here is app
+  wiring, and it is a *different* surface rather than a mode on this one: a
+  minimisation takes a list of variables and a list of weighted wishes, and it
+  answers with a compromise, not with a value a number has to take. Two things
+  § 1.8 measured say what such a panel would have to show before anything else:
+  the optimiser reports that it converged even when it is 400 mm from the
+  target, so the residuals have to be on screen beside the answer; and a merit
+  whose wishes cannot all be met moves with the weights, so the weights are an
+  input the user states rather than a default the panel hides.
 - **No manufacturability check beyond two cheap ones.** The panel flags negative
   glass and a radius smaller than its own clear semi-aperture, both read off the
   prescription. Edge thickness, element collision and the aperture wall Part B and

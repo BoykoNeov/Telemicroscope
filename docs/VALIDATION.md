@@ -21,6 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities, and the finding that the artifact lived in the currency rather than in the aim | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form *recovered* rather than evaluated, and the achromat's power split — plus the run that converges 400 mm from the target | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -64,7 +65,7 @@ whole ladder.
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — and the headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water, the fifth geometric ceiling in this branch | `depth-aberration` |
-| [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin reproducing the frame bitwise, image and all; registration pinned in the LAST BIT and shown to be seed-free because the inverse bisects to mantissa exhaustion; the reference sphere shown to be hypot(R_axis, r) with its departure quartic; the ruler's whole trade in closed form — h_e(r+h_e)/R² on the tile's own against r²/2R² on the axial one, crossing at (1+√3)·h_e; field curvature reached at last, ×4.000 per doubling; § 6i’s bead rasterizer moved off the axis with it; and the finding that an off-axis tile is ANISOTROPIC, its radial and tangential scales departing in the ratio 3 that § 6h.1's cubic implies | `object-field` |
+| [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and the finding that an off-axis tile is ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
 | [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so a traced pupil is evaluated once instead of once per direction — cached ≡ uncached bit for bit, the saving pinned as an exact integer rather than a wall clock, and commensurability shown to be accuracy-neutral | `commensurate` |
@@ -1240,14 +1241,15 @@ lister one is not even a scalar solve — its geometry moves under the variable.
 
 ### Not yet pinned
 
-- **Damped least squares**, which is the rest of design mode. It does not need
-  more implementation than this file has; it needs a **merit whose minimiser is
-  known in closed form**, because an optimizer test that only says "it converged"
-  is regression. The two candidates are thin-lens bending for minimum spherical
-  aberration (the Coddington shape factor, which has a closed-form optimum) and
-  the crown/flint power split of an achromat, which § 5j already carries the
-  external numbers for. If neither survives contact, DLS does not land — that is
-  a reason to keep it out, not a reason to loosen anything.
+- ~~**Damped least squares**, which is the rest of design mode.~~ ✅ **landed**
+  at [§ 1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on).
+  Both candidate merits survived contact and both are pinned: the Coddington
+  shape factor as a genuine minimisation with a nonzero floor, the achromat's
+  power split as a merit that reaches zero on every operand at once. The
+  forecast that turned out to be the load-bearing one is the third sentence of
+  this bullet — "an optimizer test that only says it converged is regression" —
+  because § 1.8 measures a run that reports the gradient test satisfied while
+  sitting 400 mm from what was asked for.
 - **The unit of `valueTolerance` on an `efl` target.** `solveParaxial` solves an
   EFL target as a POWER target, so a caller's tolerance has to be converted with
   it — |ΔP| = |Δf|/f² — or the same option field would mean mm on a `bfd` target
@@ -1256,7 +1258,13 @@ lister one is not even a scalar solve — its geometry moves under the variable.
   affineness above makes it unobservable: an exact root passes any guard, in
   either unit, so no fixture in the supported variable set can tell the two
   apart. It becomes testable the moment a target arrives whose solve is not
-  exact — which is the same event the next item is waiting on.
+  exact. **That was expected to be the damped-least-squares item above, and it
+  was not:** § 1.8 landed with an inexact optimum and still cannot see this,
+  because it is a different module with a different guard — it has no
+  `valueTolerance`, it solves power and focal length as two *operands* rather
+  than one target converted into the other, and § 1.8's own currency rung says
+  what happens when a caller picks the wrong one. The event this is actually
+  waiting on is the next bullet, a target beyond first order.
 - **Targets beyond first order.** Everything here is a paraxial property, so
   every evaluation is a paraxial trace and 64 scan cells cost nothing. A target
   on a traced quantity — an RMS spot, a Zernike term — changes the cost model
@@ -1274,6 +1282,151 @@ lister one is not even a scalar solve — its geometry moves under the variable.
   sensor behind; and a single-variable solve **spends the correction** the lens
   was built for, by 29× to 240× on the app's own achromat, which is the measured
   case for the damped-least-squares half.
+
+## Step 1.8 — damped least squares: the compromise a merit settles on
+
+Design mode's second half, and the last solver the engine needs. § 1.7 roots one
+property against one target with one variable; this minimises a **weighted sum
+of squares** over several variables at once, which is the shape every real design
+question has: more wishes than freedoms, so the answer is a compromise rather
+than a solution.
+
+The method is Levenberg–Marquardt — Gauss–Newton damped by λ, with λ raised when
+a step fails and lowered when it succeeds through Nielsen's gain ratio (Madsen,
+Nielsen & Tingleff, *Methods for Non-Linear Least Squares Problems*, 2nd ed.
+2004, § 3.2). Lens design has called it damped least squares since Wynne (1959).
+The step is solved as an augmented least-squares problem, J stacked on √λ·D^½,
+through the same Householder QR the Zernike fit uses — now `math/lsq`, extracted
+when the second caller arrived — rather than by forming JᵀJ and squaring the
+condition number of a matrix whose columns are parameters in unrelated units.
+
+**The whole difficulty of validating an optimiser is that it can always report
+that it converged.** So this step is built entirely on merits whose minimiser is
+known in closed form, and one of its rungs is a run that converges, reports the
+gradient test satisfied, and is wrong by 400 mm.
+
+### 1.8.1 — the two external numbers
+
+**Coddington's best form**, which is a minimisation with a floor. § 5j.1 pins the
+thin-lens W₀₄₀ polynomial in the shape factor q and evaluates its published
+minimum at q\* = 2(n²−1)/(n+2). What is pinned here is the other direction: an
+optimiser that has never heard of the polynomial, fed nothing but W₀₄₀ values
+from `analysis/seidel`, **recovers** the minimiser. A singlet's spherical
+aberration has a strictly positive floor (~1.67·10⁻³ mm on this fixture), so the
+residual at the optimum is nowhere near zero and the fixture exercises the mode
+that separates least squares from a root find.
+
+**The achromat's crown/flint power split** φ₁ = φ·V₁/(V₁−V₂), which is a merit
+that reaches zero on *every* operand at once. § 5j.2 already carries the external
+numbers. The rung that matters most here is the one that runs before any
+optimising: on a two-element prescription of zero thickness both residuals are
+**exactly** zero at the textbook split — the power target to the bit, the F−C
+difference below 10⁻¹⁷ /mm. A fixture whose "exact" answer were only exact to
+O(t/f) would be pinning the thickness rather than the optimiser, and § 5j.2's
+refusal to solve the split numerically on a *thick* doublet is the same point:
+that would make the headline chromatic rung true by construction.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The weighted mean.** min (x−1)² + (x−3)² = 2 with merit exactly 2, and weighted 1:3 → 2.8 | arithmetic — fixes what "merit" and "weight" mean before either touches a lens | ✅ |
+| **q\* = 2(n²−1)/(n+2) recovered from three starts, at two indices, in both difference schemes** | Jenkins & White / Hecht § 6.3, via § 5j.1's fixture | ✅ |
+| …and the W₀₄₀ there is the published one to 1e-8 | the polynomial's absolute scale | ✅ |
+| …with a strictly positive floor, and neighbours ±0.01 and ±0.4 in q all higher | it is a minimum, not a root | ✅ |
+| **Undamped Gauss–Newton cannot find it** — twelve steps, closest approach 0.073 in q | the method's name, measured | ✅ |
+| **Both residuals vanish exactly at the closed-form achromat split** (0, and < 1e-17 /mm) | § 5j.2 closed form — the fixture check the rung depends on | ✅ |
+| **φ₁ = φ·V₁/(V₁−V₂) recovered from three starts to 1e-12**, in curvatures and in element powers | § 5j.2 closed form | ✅ |
+| …and unchanged over 10⁶ of weight ratio, which is why it can be a pin at all | zero-residual optima are weight-free | ✅ |
+| **On a 10/6 mm doublet the same merit picks a 10.3% different lens**, the thin split being 5.6% off in power there | § 5j.2's "prediction, not construction" | ✅ |
+| **Marquardt scaling against plain λI**: same answer, 8 iterations against 21 | scale-freedom, on a curvature/thickness pair | ✅ |
+| A variable the merit cannot see stays exactly put; a merit no variable can move stops at iteration 1 and reports its residual | rank deficiency, stated not divided by | ✅ |
+| **Both S_I-null bendings of a thick doublet found, one per starting basin**, and § 5j.2's Σ\|S_I,ᵢ\| criterion ranks them 0.0199 vs 0.0350 | § 5j.2's pair of roots, found by search | ✅ |
+| A domain edge is walked to and reported (boundary to 1e-13, λ → 8·10¹³), a one-sided stencil is used where the other side is a wall, a start on a wall is refused | § 1.7's wall convention, one level up | ✅ |
+| An over-determined answer moves 0.68 mm of focal length between two defensible weightings | the units argument, measured | ✅ |
+| Refusals: a variable listed twice, a zero weight, a non-finite target or start, a residual vector that changes length, a step count that does not match | validity | ✅ |
+
+### 1.8.2 — why the two Coddington tolerances differ by seven orders of magnitude
+
+The shape is pinned to 1e-7 and the aberration at that shape to 1e-15, and that
+is the honest way round rather than a hedge. Near a minimum the merit is
+quadratic, m(q) ≈ m\* + ½m″(q−q\*)², so an optimiser that resolves the merit to a
+relative ε resolves q only to √(2ε·m\* / m″). The square root is the shape of a
+minimum, not a weakness of this implementation, and the step pins it twice:
+measured 2.2·10⁻⁸ in q against 4.4·10⁻¹⁶ in W₀₄₀ on the optical fixture, and —
+on the weighted-mean rung, where every quantity is exact algebra — a merit right
+to all 17 digits with the location out at 3·10⁻¹⁰.
+
+The corollary is the one to carry into any future merit: **the value is what an
+optimiser knows; the design is what it guesses.** Two lenses whose merits agree
+to the last bit can differ in the sixth digit of a curvature.
+
+### 1.8.3 — the currency finding, which is § 1.7's pole with teeth
+
+§ 1.7 found that an EFL target hides a pole a bisection converges *onto*, and
+solves power instead so the pole is not there to be found. One level up the same
+choice decides whether the answer is reachable at all.
+
+A doublet starting at −76.5 mm EFL, asked for +150 mm, with an afocal
+configuration in between. In **power** the optimiser is exact in five iterations.
+In **millimetres of focal length** it slides the other way, to EFL → 0, and stops
+with the gradient test satisfied at a merit of 2.25·10⁴ — 150 mm from what was
+asked. 1/f runs to ±∞ between the start and the target, so the merit has a
+barrier of infinite height there, and a downhill method does not cross barriers.
+
+**And it never touches the wall it failed to cross.** The intuition is that the
+afocal configuration throws and a step gets rejected; measured, zero steps are
+rejected and the residual function never throws once. The wall is uphill, so the
+optimiser is never near it. The failure is a barrier, not an exception — which is
+why the guard § 1.7 needed is not the guard this module needs, and why `power` is
+an operand kind at all.
+
+The rung that says this out loud: `reason: "gradient"` with `residuals: [−400]`.
+A converged optimiser is not a correct one, and the residuals are reported so a
+caller can tell the difference.
+
+### 1.8.4 — what least squares gives up, stated rather than discovered
+
+- **Multiplicity.** § 1.7 scans an interval and reports every root it resolved,
+  because a target reachable two ways should say so. A descent method reports the
+  basin it started in. Measured on three curvatures against three wishes — hold
+  the power, hold the colour, null S_I — where two starts land on one bending and
+  the third lands on the other, both satisfying all three wishes to the f64
+  floor. § 5j.2's branch criterion, Σ|S_I,ᵢ|, then ranks roots this file found by
+  *search* the same way it ranked the ones § 5j solved by algebra.
+- **The gradient test is an angle, not a distance.** It measures the cosine
+  between the residual vector and each Jacobian column, which makes it scale-free
+  — immune to a change of weight, unit or overall merit scale — and also blind on
+  a single-operand merit, where the cosine is identically 1 until the residual is
+  zero. The Coddington runs therefore always stop on `merit` or `step`. Pinned
+  so that nobody later reads a gradient of 1 as a failure and "fixes" the
+  tolerance.
+- **Weights are an exchange rate nothing physical fixes.** Where residuals do not
+  all vanish, the optimum is a statement about how many diopters a millimetre is
+  worth. Measured: 0.68 mm of focal length between two defensible weightings of
+  the same two wishes. Both headline rungs are weight-independent by
+  construction, and that is not a convenience of the fixtures — it is what makes
+  them pinnable.
+- **Surplus freedom goes into the shortest step.** Two variables against one
+  operand is not a refusal: the damping picks the smallest move that satisfies
+  it, and both variables move by comparable amounts rather than one being held.
+
+### Not yet pinned
+
+- **Targets on traced quantities.** Every operand here is paraxial or
+  third-order, so a residual evaluation is a paraxial trace and the whole file
+  runs in 24 ms. An RMS spot or a Zernike term as an operand is the same
+  optimiser with a residual four orders of magnitude more expensive, and it
+  changes what the finite-difference step should be — a merit built on a traced
+  quantity carries sampling noise, and differencing noise is how an optimiser
+  is made to chase its own tail.
+- **Constraints, as opposed to heavily weighted operands.** "Hold the power
+  *exactly* while minimising aberration" is a Lagrange condition, not a residual
+  with a big weight, and the difference is measurable: a weighted constraint is
+  satisfied only to O(1/w). The achromat rung avoids it by using a fixture where
+  the constraint and the objective vanish together.
+- **The step's own scaling.** `steps` defaults to εʰ·max(|xⱼ|, 1), and the floor
+  of 1 is a unit assumption — right for a curvature in 1/mm and a thickness in mm
+  because both are O(1) in this engine's units, and stated in the option's own
+  documentation rather than pinned by a rung.
 
 ## Step 2a — FFT + Zernike basis
 

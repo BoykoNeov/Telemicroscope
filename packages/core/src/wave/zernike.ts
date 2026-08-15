@@ -1,4 +1,5 @@
 import { PupilPoint } from "../pupil/aiming";
+import { householderLeastSquares } from "../math/lsq";
 
 /**
  * Zernike decomposition of a wavefront.
@@ -141,55 +142,6 @@ export interface ZernikeFit {
   readonly samplesUsed: number;
 }
 
-/**
- * Solve min‖Ax − b‖ by Householder QR, in place.
- *
- * QR rather than the normal equations: A is a Zernike design matrix whose
- * condition number grows with term count, and AᵀA squares it. QR costs a
- * constant factor more on a problem this size (hundreds of rows, tens of
- * columns) and keeps the fit honest at 36 terms.
- */
-function leastSquares(a: Float64Array, rows: number, cols: number, b: Float64Array): Float64Array {
-  const v = new Float64Array(rows);
-
-  for (let k = 0; k < cols; k++) {
-    let norm2 = 0;
-    for (let i = k; i < rows; i++) norm2 += a[i * cols + k]! ** 2;
-    if (norm2 === 0) continue;
-    const akk = a[k * cols + k]!;
-    // Sign chosen away from akk so the subtraction never cancels.
-    const alpha = akk >= 0 ? -Math.sqrt(norm2) : Math.sqrt(norm2);
-    v[k] = akk - alpha;
-    for (let i = k + 1; i < rows; i++) v[i] = a[i * cols + k]!;
-    let vv = 0;
-    for (let i = k; i < rows; i++) vv += v[i]! ** 2;
-    if (vv === 0) continue;
-
-    for (let j = k; j < cols; j++) {
-      let s = 0;
-      for (let i = k; i < rows; i++) s += v[i]! * a[i * cols + j]!;
-      s = (2 * s) / vv;
-      for (let i = k; i < rows; i++) a[i * cols + j] = a[i * cols + j]! - s * v[i]!;
-    }
-    let s = 0;
-    for (let i = k; i < rows; i++) s += v[i]! * b[i]!;
-    s = (2 * s) / vv;
-    for (let i = k; i < rows; i++) b[i] = b[i]! - s * v[i]!;
-  }
-
-  const x = new Float64Array(cols);
-  for (let i = cols - 1; i >= 0; i--) {
-    let s = b[i]!;
-    for (let j = i + 1; j < cols; j++) s -= a[i * cols + j]! * x[j]!;
-    const d = a[i * cols + i]!;
-    // A rank-deficient column means the samples never excited that mode (e.g.
-    // a pure fan cannot see sagittal terms). Reporting zero beats an infinity
-    // that would poison every later evaluation of the fit.
-    x[i] = Math.abs(d) < 1e-12 ? 0 : s / d;
-  }
-  return x;
-}
-
 /** Largest term count a sample set can support without being underdetermined. */
 export const MAX_ZERNIKE_TERMS = 45; // through radial order 8
 
@@ -225,7 +177,7 @@ export function fitZernike(samples: readonly WavefrontSample[], terms: number): 
     for (let j = 1; j <= terms; j++) a[i * terms + (j - 1)] = zernike(j, s.px, s.py);
   }
 
-  const coefficients = leastSquares(a, rows, terms, b);
+  const coefficients = householderLeastSquares(a, rows, terms, b);
 
   // Residual measured by re-evaluating the fit, not read off the QR: it checks
   // the evaluator and the solver against each other rather than trusting one.

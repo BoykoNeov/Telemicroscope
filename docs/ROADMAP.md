@@ -1871,19 +1871,27 @@ or name a route that did not resolve.
     aimed at it does not. The number is
     that same fixture's afocal gap, described in two places as ≈ 9.67 mm and
     measured at **9.0159878 mm**; no rung asserted it.
-  - Damped least squares over a few variables. **Blocked on a pin, not on
-    code** — an optimizer test that says only "it converged" is regression, and
-    the hard rule forbids landing on that. The two candidate merits with
-    closed-form minimisers are thin-lens bending for minimum spherical (the
-    Coddington shape factor) and the achromat's crown/flint power split, which
-    § 5j already carries external numbers for.
-    *What Part M measured in the meantime is the argument for it:* a
-    single-variable solve hits its target by **spending the correction the lens
-    exists for** — retargeting the shipped achromat ±20% through one curvature
-    costs 29× and 42× of its F−C focal spread, and through the flint's cemented
-    face 158× and 240×, while the same moves on the singlet of the same power
-    cost 20%. The corrected lens is the fragile one, and holding a correction
-    while moving a focal length is exactly a merit over several variables.
+  - ~~Damped least squares over a few variables.~~ ✅ **landed** in the engine
+    (`analysis/optimize.ts`, VALIDATION § 1.8). Both candidate merits survived
+    contact and both are pinned — thin-lens bending for minimum spherical (the
+    Coddington shape factor, *recovered* by the optimiser rather than evaluated)
+    and the achromat's crown/flint power split, on a zero-thickness fixture
+    where both residuals reach exactly zero so the answer does not depend on the
+    weighting. It has **no surface yet**: APP.md Part M's screen still asks the
+    single-variable question.
+    *Recorded here rather than only in VALIDATION because the step's sharpest
+    finding is about the tool and not the physics:* an optimiser always reports
+    that it converged, and this one is measured doing it while wrong by 400 mm.
+    Asked to move a doublet from −76.5 mm focal length to +150 mm, the run in
+    **power** is exact in five iterations; the same question in **millimetres of
+    focal length** slides the other way to EFL → 0 and stops with its gradient
+    test satisfied, because 1/f runs through ±∞ in between and a downhill method
+    does not cross barriers. It never touches the afocal wall it failed to cross
+    — zero rejected steps — so the guard § 1.7 needed is not the guard this
+    needed. What Part M forecast is confirmed on the way: holding a correction
+    while moving a focal length is exactly a merit over several variables, and
+    a single curvature spends 29× to 240× of the achromat's colour correction
+    doing it alone.
 
 ## Engineering practices to land alongside the code
 

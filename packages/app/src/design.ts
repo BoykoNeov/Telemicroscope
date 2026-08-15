@@ -88,7 +88,9 @@ import { AppRefusal, refusalOf, type Refusal } from "./refusal";
  * balance to lose — its colour is the glass and the focal length, and one
  * curvature cannot make it worse. **The corrected lens is the fragile one**, and
  * that is the argument for the damped-least-squares half of design mode, which
- * moves several numbers at once and is blocked on a pin rather than on code.
+ * moves several numbers at once. That half has since landed in the engine
+ * (`analysis/optimize`, VALIDATION § 1.8) and has no surface here yet: this
+ * panel still asks the single-variable question.
  *
  * **6. "Where does this system go afocal?" is a question the solver refuses,
  * every time, and the refusal is the answer.** § 1.7 records the wall convention
