@@ -8,6 +8,7 @@ import {
   describeOptimize,
   optimizeSeedById,
   operandFor,
+  shapeFactor,
   trailWorkLevels,
   type OptimizeSpec,
 } from "../src/optimize";
@@ -121,6 +122,20 @@ describe("one number against two, recomputed rather than quoted", () => {
     expect(Math.abs(single.spreadRatio)).toBeGreaterThan(25);
     expect(Math.abs(single.spreadRatio)).toBeLessThan(35);
 
+    // The row's first cell is the lens BEFORE anything moved — briefly the
+    // solved one instead, which is the whole point of the comparison: all three
+    // rows share a target and differ in where they started.
+    //
+    // And it is 499.714 rather than the 500 the design is named for, which is
+    // § 5j.2's own residual arriving on a screen: that step imposes the
+    // thin-lens power split on a thick doublet and leaves the Gullstrand
+    // thickness term in on purpose, a few parts in 10⁴ low. The panel prints
+    // what the lens traces, not what it is called.
+    expect(r.startEflMm).toBeCloseTo(499.714, 3);
+    expect(1 - r.startEflMm / 500).toBeGreaterThan(1e-4);
+    expect(1 - r.startEflMm / 500).toBeLessThan(1e-3);
+    expect(r.startEflMm).not.toBeCloseTo(r.wishes[0]!.value, 3);
+
     // Two curvatures with the colour as a wish: the same focal length, and a
     // spread that is gone rather than merely smaller.
     expect(r.wishes[0]!.value).toBeCloseTo(400, 9);
@@ -180,6 +195,28 @@ describe("the currency changes the answer, not only the work", () => {
   });
 });
 
+/**
+ * The best-form seed's merit, run on the same singlet with its centre thickness
+ * (and optionally the focal wish's weight) changed: how far the shape factor
+ * lands from Coddington's published minimum. The panel offers neither control,
+ * which is why the sweep lives here and the panel shows two points off it.
+ */
+function gapAtThickness(thicknessMm: number, focalWeight?: number): number {
+  const seed = optimizeSeedById("bestform");
+  const prescription = {
+    ...seed.prescription,
+    surfaces: [
+      { ...seed.prescription.surfaces[0]!, thickness: thicknessMm },
+      seed.prescription.surfaces[1]!,
+    ],
+  };
+  const operands = seed.wishes.map((w, i) =>
+    operandFor(i === 0 && focalWeight !== undefined ? { ...w, weight: focalWeight } : w, seed, "power"),
+  );
+  const r = optimizePrescription(prescription, seed.variables, operands, {});
+  return shapeFactor(r.x[0]!, r.x[1]!) / bestFormShapeFactor(getMedium("N-BK7").n(LINE_D)) - 1;
+}
+
 describe("the closed forms the seeds are checked against", () => {
   it("the thin doublet lands on the textbook split, and the weights cannot move it", () => {
     const r = ok(specFor("split"));
@@ -215,6 +252,35 @@ describe("the closed forms the seeds are checked against", () => {
     // And the residual it settles on is a floor, not a miss: a singlet cannot
     // null its own spherical aberration at any shape.
     expect(r.wishes[1]!.value).toBeGreaterThan(1e-3);
+  });
+
+  it("…and the thickness half of that gap is LINEAR in the thickness", () => {
+    // APP.md Part N's finding 5 states this sweep, so it is run rather than
+    // remembered. The panel itself computes only the two ends of it — the lens
+    // as shipped and a 1 nm control — and a claim no test reads is exactly the
+    // drift `surfaces.test.ts` exists to catch.
+    const gaps = [0.05, 0.5, 5, 20].map((t) => Math.abs(gapAtThickness(t)));
+    for (let i = 1; i < gaps.length; i++) {
+      const thicknessRatio = [0.5, 5, 20][i - 1]! / [0.05, 0.5, 5][i - 1]!;
+      expect(gaps[i]! / gaps[i - 1]!).toBeCloseTo(thicknessRatio, 0);
+    }
+    // The numbers the document quotes, to the digit it quotes them at.
+    expect(gaps[0]!).toBeCloseTo(4.0e-5, 6);
+    expect(gaps[2]!).toBeCloseTo(4.07e-3, 5);
+    // …and at 1 nm the thickness has stopped being the story.
+    expect(Math.abs(gapAtThickness(1e-6))).toBeLessThan(1e-6);
+  });
+
+  it("…while the WEIGHT half improves, and then reverses", () => {
+    // The other half of finding 5, and the reason the panel says a weight is
+    // not a thing where bigger is better. Run on the thin lens so the
+    // thickness is out of the way.
+    const gaps = [1, 1e2, 1e4, 1e6, 1e7].map((w) => Math.abs(gapAtThickness(1e-6, w)));
+    for (let i = 1; i < 4; i++) expect(gaps[i]!).toBeLessThan(gaps[i - 1]!);
+    expect(gaps[3]!).toBeLessThan(gaps[0]! / 100);
+    // Past 1e6 the aberration term stops being visible in the merit at all and
+    // the answer gets WORSE — the measured end of "tighten it by weighting".
+    expect(gaps[4]!).toBeGreaterThan(gaps[3]! * 5);
   });
 });
 

@@ -4903,6 +4903,13 @@ gone, not merely smaller, and better corrected than the lens it started from.
 Part M's prose keeps the record of when 29× was first measured; the panel prints
 its own number so the two cannot drift apart.
 
+*The table's first row says 499.7140 mm and not the 500 the lens is named for*,
+which is § 5j.2's own residual arriving on a screen: that step imposes the
+thin-lens power split on a thick doublet and leaves the Gullstrand thickness
+term in on purpose, a few parts in 10⁴ low. The panel prints what the lens
+traces rather than what it is called, and the rung that pins the row asserts the
+gap rather than rounding it away — it was written expecting 500 and was wrong.
+
 **2. That answer is a thing § 5j.2 deliberately refused to build, and it is right
 to build it here.** § 5j.2 imposes the thin-lens power split on a thick doublet
 and leaves the residual F−C spread in on purpose: solving the split numerically
@@ -4943,6 +4950,12 @@ held only to O(1/w), it improves as the weight rises — 1.1e-5, 2.2e-6, 5.3e-7,
 9.7e-8 — and then **gets worse again** at 1e7, because the aberration term stops
 being visible in the merit at all. A weight is not a thing where bigger is
 better, and this is the panel that shows it.
+
+Both sweeps are **rungs in `test/optimize.test.ts`**, not remembered numbers.
+The panel offers neither control, so it draws two points off them — the lens as
+shipped and the 1 nm control — and the sentences above would otherwise be
+document claims nothing reads, which is the failure `surfaces.test.ts` exists
+to catch.
 
 **6. The convergence trail is a replay, and that had to be checked before it was
 drawn.** Both plots come from running the optimiser again with its iteration cap
