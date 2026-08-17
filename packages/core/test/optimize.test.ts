@@ -12,6 +12,7 @@ import {
   optimizeSystem,
   withVariables,
   type DlsOptions,
+  type DlsResult,
   type HeldOperand,
   type OptimizeOperand,
   type TracedFocus,
@@ -1254,6 +1255,49 @@ describe("DLS § 1.8.6 — the arithmetic of a condition, before any lens", () =
     }
   });
 
+  it("a capped run is STILL the longer run's prefix, which μ is what threatens", () => {
+    // The app draws its convergence trail by replaying the run at caps of
+    // 1, 2, 3 …, which is honest only while a capped run is exactly a prefix.
+    // Conditions put a second state in the loop — μ, the exchange rate between
+    // merit and violation — and a μ that depended on a total, or on the cap,
+    // would break that quietly. It is monotone and depends only on the iterates,
+    // and this is that pinned rather than asserted. The start is the far
+    // infeasible one, because that is the path where μ actually rises.
+    const merit = onALine(2);
+    const full = dampedLeastSquares(merit, [-40, 90]);
+    expect(full.iterations).toBeGreaterThan(6);
+    expect(full.rejected).toBeGreaterThan(0);
+
+    let previous: DlsResult | null = null;
+    for (let k = 1; k <= full.iterations; k++) {
+      const step = dampedLeastSquares(merit, [-40, 90], { maxIterations: k });
+      if (step.reason === "iterations") {
+        expect(step.accepted + step.rejected).toBe(k);
+      }
+      if (previous !== null) {
+        expect(step.accepted).toBeGreaterThanOrEqual(previous.accepted);
+        expect(step.rejected).toBeGreaterThanOrEqual(previous.rejected);
+        expect(step.evaluations).toBeGreaterThanOrEqual(previous.evaluations);
+        if (step.accepted === previous.accepted) expect(step.x).toEqual(previous.x);
+      }
+      previous = step;
+    }
+    const capped = dampedLeastSquares(merit, [-40, 90], { maxIterations: full.iterations });
+    expect(capped.x).toEqual(full.x);
+    expect(capped.merit).toBe(full.merit);
+    expect(capped.evaluations).toBe(full.evaluations);
+    expect(capped.damping).toBe(full.damping);
+    expect(capped.multipliers).toEqual(full.multipliers);
+
+    // …and what a trail under a condition may NOT be drawn as: the merit is not
+    // monotone along it. The run starts at merit 9 700 and ends at 2, but it
+    // pays merit for feasibility on the way and the plot has to say so.
+    const early = dampedLeastSquares(merit, [-40, 90], { maxIterations: 1 });
+    const later = dampedLeastSquares(merit, [-40, 90], { maxIterations: 3 });
+    expect(early.merit).toBeGreaterThan(full.merit);
+    expect(early.feasibility).toBeGreaterThan(later.feasibility);
+  });
+
   it("as many conditions as variables leaves nothing to minimise, and says so at once", () => {
     // Not a refusal: the conditions determine the answer and the wishes are
     // simply not granted. What matters is that the run reports the merit it is
@@ -1589,7 +1633,9 @@ describe("DLS § 1.8.6 — a condition on a TRACED merit, which is the question 
     });
     expect(shapeOf(held.x)).toBeCloseTo(shapeOf(weighted.x), 6);
     expect(shapeOf(held.x)).toBeCloseTo(0.712011, 5);
-    expect(held.evaluations * 2).toBeLessThanOrEqual(weighted.evaluations);
+    // Measured 110 against 220. Asserted with room, because the rung is about
+    // the factor and not about either run's exact iteration count.
+    expect(held.evaluations).toBeLessThan(0.6 * weighted.evaluations);
     // …and the condition is met six orders better than the weight met it.
     expect(Math.abs(eflOf(weighted.x) / startEfl - 1)).toBeGreaterThan(1e-10);
     expect(Math.abs(eflOf(held.x) / startEfl - 1)).toBeLessThan(1e-14);

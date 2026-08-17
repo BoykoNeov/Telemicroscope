@@ -1721,10 +1721,16 @@ converged optimiser is not a correct one, so the run reports what it achieved.
   a weight costs. What it costs is the condition itself, a usable band of
   weights that has to be found, half the evaluations on a traced merit, and a
   price — the multiplier — that a weighted run cannot report at all.
-- **The step's own scaling.** `steps` defaults to εʰ·max(|xⱼ|, 1), and the floor
-  of 1 is a unit assumption — right for a curvature in 1/mm and a thickness in mm
-  because both are O(1) in this engine's units, and stated in the option's own
-  documentation rather than pinned by a rung.
+- **The step's own scaling** — the assumption is now MEASURED, and the decision
+  is still nobody's. `steps` defaults to εʰ·max(|xⱼ|, 1), and the floor of 1 is a
+  unit assumption: right for a thickness in mm, wrong by three orders for a
+  curvature in 1/mm, which is ~10⁻³ and gets differenced over half a percent of
+  itself. § 1.8.6 puts a number on what that costs — the located shape on a
+  two-curvature fixture goes from ~10⁻⁶ to a few·10⁻⁹ when the step is stated —
+  and that number is what retired the reading of APP.md's weight sweep. What is
+  NOT decided is the default: a scale-relative floor would help curvatures and
+  would silently change every existing run's digits, so it wants its own step
+  and its own before/after, not a quiet improvement here.
 
 ## Step 2a — FFT + Zernike basis
 
