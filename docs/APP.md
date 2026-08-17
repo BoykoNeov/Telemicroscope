@@ -670,12 +670,25 @@ worse, and by a lot. At S = 0.7 and ν = 0.375 the 2ν reading spreads **1.15×*
 across the four source samplings while the 4ν reading in the same three renders
 spreads **9.67×**; at S = 0.9 the pair is 1.64× against 20.3×, and at S = 0.7,
 ν = 0.3125 the worst row is h = 6 at **46.9×**. Over the panel's own S range 2ν
-never leaves 1.75×. Nothing new arrives with h — the ratio is a signal-to-noise
-statement (§ 6ab.11 measured φ moving it the same way) and h = 4 simply reads
-4.2e-3 where h = 2 reads 2.4e-1. It is a tendency and not a rule: at S = 0.3,
-ν = 0.375 the higher row is the tighter one. Every row carries its own spread, so
-the panel already says this per row; what the measurement adds is that a reader
-carrying § 6ab.11's habit *down* the column would be under-warned.
+never leaves 1.75×. **And it is not the ratio's own arithmetic** — measured as a
+fraction of the reading rather than as max/min, the four readings span 0.19 of
+their mean at h = 2 and 1.09 at h = 4 in the same cell, with the ordering holding
+in five cells (§ 6ab.18, which had to re-measure this because it found the ratio
+moves for reasons other than disagreement). It is a tendency and not a rule: at
+S = 0.3, ν = 0.375 the higher row is the tighter one, both ways of counting.
+Every row carries its own spread, so the panel already says this per row; what
+the measurement adds is that a reader carrying § 6ab.11's habit *down* the column
+would be under-warned.
+
+**One thing this panel's own explanation got wrong, corrected in place
+(§ 6ab.18).** § 6ab.11 read the 838× at φ = 0.1 against 1.37× at φ = 3 as "the
+signal grows as φ² and what disagrees with it does not". The disagreement grows
+as φ² too — measured ×3.95 and ×3.79 per doubling — and what actually makes the
+printed ratio run is the 7-point lattice reading O(φ⁴) at that cell where the
+other three read O(φ²), so max/min is O(φ^{-2}). As a fraction of the reading the
+φ lever is **9.7×, not 838×**. The panel's sentence is untouched by this, because
+it was always scoped to the control ("moving this moves the number by X") rather
+than to an error; what changes is the reason a reader should carry away.
 
 **And § 6ab.12's gate protects the new rows harder than the old one.** The
 cutoffs fall as 2/h, so most of a ten-row column has no support at any ν the

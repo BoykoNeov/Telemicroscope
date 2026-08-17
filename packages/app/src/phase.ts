@@ -154,9 +154,13 @@ export const PANEL_SOURCE_SAMPLES = [7, 11, 15, 21] as const;
  *   the trouble was at one ν across the whole S range. At ν = 1.94 the spread is
  *   inside 1.05× at S = 1.5. And φ moves it as hard as either: at φ = 0.1,
  *   S = 1.5 spreads 838×
- *   where φ = 3 spreads 1.37×, since the 2ν signal grows as φ² and what
- *   disagrees does not. Any rule in S alone would refuse readings that are fine
- *   and print four digits on ones that are 9× out.
+ *   where φ = 3 spreads 1.37×. Any rule in S alone would refuse readings that
+ *   are fine and print four digits on ones that are 9× out. (**The reason given
+ *   here was wrong — § 6ab.18.** The disagreement grows as φ² too; what makes
+ *   the RATIO run is the 7-point lattice reading O(φ⁴) at that cell where the
+ *   other three read O(φ²). As a fraction of the reading the φ lever is 9.7×,
+ *   not 838×, and the conclusion is re-derived on those numbers plus a ν leg
+ *   that does not involve φ at all.)
  * - **A cheaper probe lies.** Two samplings agreeing bounds nothing: 7-against-11
  *   reads 1.3× at S = 1 where 11-against-21 reads 9.7×, and at S = 1.25 the two
  *   swap (7.6× against 1.1×). Every three-of-four subset tried under-reports the

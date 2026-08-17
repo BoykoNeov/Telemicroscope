@@ -15,6 +15,7 @@ import {
 import {
   apertureCarriesHarmonic,
   diskSource,
+  harmonicSupportWeight,
   idealPupil,
   imageHarmonic,
   phaseGratingObject,
@@ -36,8 +37,10 @@ import { renderBrightfield, type PatchPupil } from "@telemicroscope/core/imaging
  *   - at **ν = 1.94** it is inside 1.05× at S = 1.5, so high S is not uniformly
  *     bad;
  *   - and **φ moves it as hard as either** — at φ = 0.1 and S = 1.5 the spread is
- *     838×, at φ = 3 it is 1.37×, since the 2ν signal grows as φ² and what
- *     disagrees with it does not.
+ *     838×, at φ = 3 it is 1.37×. ~~since the 2ν signal grows as φ² and what
+ *     disagrees with it does not~~ **§ 6ab.18: the disagreement grows as φ² as
+ *     well, and the ratio runs because one lattice reads O(φ⁴) there. The lever
+ *     is 9.7× as a fraction of the reading, and it is still a lever.**
  *
  * A rule in S alone would therefore refuse readings that are fine and print four
  * significant figures on ones that are 9× out.
@@ -855,11 +858,13 @@ describe("§ 6ab.15 — the row's sentence has to agree with the row's number", 
  * § 6ab.11 to treat the 2ν spread as *the* convergence signal would be reading a
  * number one row down that is twenty times less certain than the one above it.
  *
- * **No new mechanism arrives with h — the reading is smaller.** § 6ab.11's own
- * finding is that the 2ν signal grows as φ² and what disagrees with it does not,
- * so the ratio is a signal-to-noise statement; moving h is another way to shrink
- * the signal, and h = 4 reads 4.2e-3 where h = 2 reads 2.4e-1 in one image. It is
- * a tendency and not a law, and the cell where it inverts is recorded below.
+ * **The higher rows are worse as a FRACTION of their own reading too**, so this
+ * is not the printed ratio's sensitivity to a small denominator: at S = 0.7 and
+ * ν = 0.375 the four readings span 0.19 of their mean at h = 2 and 1.09 at h = 4,
+ * and the ordering holds in four more cells. (§ 6ab.11's explanation of the φ
+ * lever — signal grows as φ², disagreement does not — is wrong, and § 6ab.18
+ * measures it; nothing in this block rests on it.) It is a tendency and not a
+ * law, and the cell where it inverts is recorded below.
  */
 describe("§ 6ab.16 — sampling moves the higher harmonics harder than it moves 2ν", () => {
   /** Every even harmonic's spread in one image, keyed by h. */
@@ -952,5 +957,195 @@ describe("§ 6ab.16 — sampling moves the higher harmonics harder than it moves
     const ratio = Math.max(...readings) / Math.min(...readings);
     expect(ratio).toBeLessThan(1.2);
     expect(ratio).toBeLessThan(rows.get(2)!.ratio!);
+  });
+});
+
+/**
+ * § 6ab.18 — the last of § 6ab.11's open items: "does rim weight predict the
+ * spread?" No, and neither does anything else render-free that was tried. What
+ * the search did find is that § 6ab.11's own *explanation* of the φ lever is
+ * wrong, in a way that matters more than the predictor would have.
+ *
+ * ## The disagreement grows as φ², exactly like the signal
+ *
+ * § 6ab.11 wrote: "the 2ν signal grows as φ² and what disagrees with it does
+ * not, so the ratio is a signal-to-noise statement." Measured at its own cell —
+ * S = 1.5, ν = 0.75 — over φ = 0.1, 0.2, 0.4:
+ *
+ *     max − min:  3.319e-4   1.310e-3   4.969e-3     (×3.95, ×3.79 — φ²)
+ *     mean:       1.079e-4   4.313e-4   1.720e-3     (×4.00, ×3.99 — φ²)
+ *
+ * Both are second order. The disagreement measured **as a fraction of the
+ * reading** is 3.075, 3.038, 2.890 — flat to 6% where the printed ratio runs
+ * 838×, 208×, 50×.
+ *
+ * ## What the ratio is reading at small φ is ONE lattice at a different ORDER
+ *
+ * At that cell the 7-point lattice's second-order 2ν term nearly cancels, so its
+ * reading is O(φ⁴) while the other three are O(φ²): contrast/φ² is flat at
+ * 3.3e-2, 6.5e-3 and 3.4e-3 for n = 11, 15 and 21, and runs 4.0e-5 → 1.6e-4 →
+ * 6.3e-4 for n = 7. A max over φ² divided by a min over φ⁴ is O(φ^{-2}), which is
+ * exactly the 838 → 208 → 50 the panel prints.
+ *
+ * **So the φ lever is 9.7×, not 838×** — the relative disagreement runs 3.075 at
+ * φ = 0.1 to 0.317 at φ = 3 — and the rest of that number is the ratio's own
+ * sensitivity to a minimum passing near zero. § 6ab.11's *conclusion* survives
+ * and is re-derived here on the corrected numbers, with a second leg it did not
+ * have: at one S the relative disagreement moves 22× as ν moves, so a band in S
+ * is refuted without leaning on φ at all.
+ *
+ * ## Both render-free predictors are refuted, and by the same structural fact
+ *
+ * A predictor built on the CARRYING SET answers "which directions can contribute
+ * to this beat". The disagreement is an integral over that set with an integrand
+ * that varies across it. So a set-membership statistic can be identical for two
+ * lattices that then disagree by 200% — and it is:
+ *
+ *  - § 6ab.10's proposed rim weight — source weight within one lattice spacing of
+ *    the tangency circle |s ± mν| = 1 — is **exactly zero in 13 of 50 cells where
+ *    the relative disagreement runs up to 0.73**, and where it is positive the
+ *    ratio between the two spans 143×;
+ *  - the cheaper candidate already in the repo, the spread of
+ *    `harmonicSupportWeight` across the same four samplings, is roundoff in most
+ *    of the same cells while the readings differ by up to 2.7× of their mean.
+ *
+ * § 6ab.11's exhaustive four-render probe therefore stands, and this is why.
+ */
+describe("§ 6ab.18 — the φ lever's reason, and two predictors that do not", () => {
+  const SAMPLINGS = [7, 11, 15, 21];
+
+  /** The four readings at h·ν, one render each — the panel's own probe, unrolled
+   *  so that a cell with no support can still be measured rather than refused. */
+  function readings(S: number, cycles: number, phi: number, harmonic: number): number[] {
+    return SAMPLINGS.map((samples) => {
+      const object = phaseGratingObject({ size: 128, cycles, amplitudeRadians: phi });
+      const out = renderBrightfield(
+        object,
+        (): PatchPupil => ({ pupil: idealPupil() }),
+        diskSource(S, samples),
+        { pupilSamples: 32, patches: 1 },
+      );
+      return imageHarmonic(out.intensity, 128, harmonic * cycles).contrast;
+    });
+  }
+
+  /** Disagreement as a fraction of the reading — the quantity the ratio is a
+   *  proxy for, and the one that turns out to be φ-free in the weak limit. */
+  function relativeGap(values: number[]): number {
+    const mean = values.reduce((a, v) => a + v, 0) / values.length;
+    return (Math.max(...values) - Math.min(...values)) / Math.abs(mean);
+  }
+
+  it("has the disagreement growing as φ², which § 6ab.11 said it did not", () => {
+    // § 6ab.11's own cell. Both the gap and the mean are second order, so the
+    // FRACTION is flat where the printed ratio moves by a factor of 17.
+    const gaps: number[] = [];
+    const rels: number[] = [];
+    for (const phi of [0.1, 0.2, 0.4]) {
+      const v = readings(1.5, 12, phi, 2);
+      gaps.push(Math.max(...v) - Math.min(...v));
+      rels.push(relativeGap(v));
+    }
+    // ×3.95 and ×3.79 against φ²'s 4.
+    expect(gaps[1]! / gaps[0]!).toBeGreaterThan(3.5);
+    expect(gaps[1]! / gaps[0]!).toBeLessThan(4.5);
+    expect(gaps[2]! / gaps[1]!).toBeGreaterThan(3.5);
+    expect(gaps[2]! / gaps[1]!).toBeLessThan(4.5);
+    // 3.075, 3.038, 2.890 — within 7% of each other across a 16× in signal.
+    expect(Math.max(...rels) / Math.min(...rels)).toBeLessThan(1.1);
+  });
+
+  it("and the 838× is one lattice reading a different POWER of φ", () => {
+    // n = 11, 15 and 21 are O(φ²) — contrast/φ² is flat. n = 7 is O(φ⁴), because
+    // its second-order term at this cell nearly cancels. max/min is then
+    // O(φ^{-2}), which is the whole shape of 838 → 208 → 50.
+    const scaled = [0.1, 0.2, 0.4].map((phi) => readings(1.5, 12, phi, 2).map((c) => c / phi ** 2));
+    for (const i of [1, 2, 3]) {
+      const column = scaled.map((row) => row[i]!);
+      expect(Math.max(...column) / Math.min(...column), `n = ${SAMPLINGS[i]}`).toBeLessThan(1.2);
+    }
+    const seven = scaled.map((row) => row[0]!);
+    // 4.0e-5 → 1.6e-4 → 6.3e-4: ×4 per doubling of φ, on top of the φ² already
+    // divided out.
+    expect(seven[1]! / seven[0]!).toBeGreaterThan(3.5);
+    expect(seven[2]! / seven[1]!).toBeGreaterThan(3.5);
+  });
+
+  it("leaves the φ lever real at 9.7×, and the conclusion standing on a second leg", () => {
+    // Corrected: 3.075 at φ = 0.1 against 0.317 at φ = 3 — a factor of 9.7 at one
+    // S, which still refutes a band in S. And the ν leg is independent of φ
+    // entirely: at S = 0.3 the relative disagreement runs 0.0336 at ν = 0.3125 to
+    // 0.729 at ν = 0.1875, a factor of 22 inside one S.
+    const weak = relativeGap(readings(1.5, 12, 0.1, 2));
+    const strong = relativeGap(readings(1.5, 12, 3, 2));
+    expect(weak / strong).toBeGreaterThan(5);
+    expect(weak / strong).toBeLessThan(20);
+
+    const acrossNu = [3, 4, 5, 6, 7].map((cycles) => relativeGap(readings(0.3, cycles, 0.4, 2)));
+    expect(Math.max(...acrossNu) / Math.min(...acrossNu)).toBeGreaterThan(10);
+  });
+
+  it("confirms § 6ab.16's h ordering on the φ-free quantity, inversion and all", () => {
+    // § 6ab.16 measured the printed RATIO. Since the ratio has just been shown to
+    // move for a reason that is not disagreement, its h claim is re-measured here
+    // as a fraction of the reading, where it survives: five cells with h = 4 the
+    // worse row, and the same S = 0.3, ν = 0.375 cell inverting.
+    const cells: [number, number][] = [
+      [0.3, 5],
+      [0.5, 6],
+      [0.7, 4],
+      [0.7, 6],
+      [0.9, 6],
+    ];
+    for (const [S, cycles] of cells) {
+      const two = relativeGap(readings(S, cycles, 0.4, 2));
+      const four = relativeGap(readings(S, cycles, 0.4, 4));
+      expect(four, `S = ${S}, ${cycles} cycles`).toBeGreaterThan(two);
+    }
+    // 0.622 at h = 2 against 0.142 at h = 4 — the recorded inversion, and it is
+    // the same cell § 6ab.16 found it in through the ratio.
+    expect(relativeGap(readings(0.3, 6, 0.4, 4))).toBeLessThan(
+      relativeGap(readings(0.3, 6, 0.4, 2)),
+    );
+  });
+
+  it("REFUTES the rim-weight predictor with a cell where it is exactly zero", () => {
+    // § 6ab.10's candidate: source weight within one lattice spacing of the
+    // tangency circle |s ± mν| = 1, where the shifted pupil grazes the objective's
+    // and the lattice's in-or-out decision moves an order. At S = 0.3, ν = 0.1875
+    // NO sample of any of the four lattices is within a spacing of that circle —
+    // the predictor is 0, meaning "nothing here can disagree" — and the four
+    // readings disagree by 0.73 of their own mean.
+    const S = 0.3;
+    const cycles = 3;
+    const nu = (2 * cycles) / 32;
+    for (const samples of SAMPLINGS) {
+      const spacing = (2 * S) / samples;
+      let weight = 0;
+      for (const p of diskSource(S, samples).points) {
+        for (const sign of [1, -1]) {
+          if (Math.abs(Math.hypot(p.sx + sign * nu, p.sy) - 1) <= spacing) {
+            weight += p.weight;
+            break;
+          }
+        }
+      }
+      expect(weight, `${samples} samples`).toBe(0);
+    }
+    expect(relativeGap(readings(S, cycles, 0.4, 2))).toBeGreaterThan(0.5);
+  });
+
+  it("REFUTES the cheaper one too — the carrying set can be unanimous and the reading not", () => {
+    // Every one of the four lattices says the whole aperture carries 2ν here, to
+    // f64: the set-membership statistic is 1 four times over and its spread is
+    // roundoff. The readings still differ by more than half their mean. Which
+    // directions CAN contribute is not how much they DO.
+    const orders = { cycles: 3, pupilSamples: 32, harmonic: 2 };
+    const weights = SAMPLINGS.map((samples) =>
+      harmonicSupportWeight(idealPupil(), diskSource(0.3, samples), orders),
+    );
+    for (const w of weights) expect(w).toBeCloseTo(1, 12);
+    expect(Math.max(...weights) - Math.min(...weights)).toBeLessThan(1e-12);
+    expect(relativeGap(readings(0.3, 3, 0.4, 2))).toBeGreaterThan(0.5);
   });
 });

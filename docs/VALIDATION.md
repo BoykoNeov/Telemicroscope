@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object built from its spectrum; § 6ab.14 the carrying AREA, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)² where the pair is alone; § 6ab.16 a TRACED pupil failing REALNESS, not evenness; § 6ab.17 that bound false at n = 17, the envelope n^{-4/3} | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object built from its spectrum; § 6ab.14 the carrying AREA, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)²; § 6ab.16 a TRACED pupil failing REALNESS, not evenness; § 6ab.17 that bound false at n = 17, the envelope n^{-4/3}; § 6ab.18 the rim predictor REFUTED, the φ lever 9.7× not 838× | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -10960,9 +10960,13 @@ in S:
   tightest agreement in the panel was the strongest evidence of nothing at all —
   a probe over a control cannot tell a converged reading from an absent one.
 - And **φ moves it as hard as either**: at φ = 0.1, S = 1.5 spreads **838×**;
-  at φ = 3 the same cell spreads **1.37×**. The 2ν signal grows as φ² and what
+  at φ = 3 the same cell spreads **1.37×**. ~~The 2ν signal grows as φ² and what
   disagrees with it does not, so the ratio is a signal-to-noise statement as much
-  as a geometric one. **This is the leg the conclusion now rests on**, and it
+  as a geometric one.~~ **Wrong, and corrected at § 6ab.18: the disagreement grows
+  as φ² too. What makes the printed ratio run is the 7-point lattice reading
+  O(φ⁴) at this cell where the other three read O(φ²). The lever measured as a
+  fraction of the reading is 9.7×, not 838×.** **This is the leg the conclusion
+  now rests on**, and it
   survives the withdrawal above on its own: ν = 0.75 at S = 1.5 has 27.8% of its
   illumination carrying 2ν, so both those numbers are readings of something, and
   one S holding both 838× and 1.37× is a band in S refuted at a single S.
@@ -11027,13 +11031,13 @@ aperture.
 
 ### Not yet pinned
 
-- **Does rim weight predict the spread?** § 6ab.10 attributes the effect to
-  source points near |s ± ν| = 1, where the shifted pupil is tangent to the
-  objective's, and § 6ab.11's ν = 1 row is that attribution's strongest evidence
-  — but nothing here measures a *formula*. A criterion of the shape "weight
+- ~~**Does rim weight predict the spread?** … A criterion of the shape "weight
   within one lattice spacing of the tangency circle" would be a cheap render-free
-  substitute for the whole probe, and it would have to hold across ν and φ, not
-  be fitted to the one grating both rungs used.
+  substitute for the whole probe.~~ **No — refuted at § 6ab.18**, with a cell
+  where that weight is *exactly zero* in all four lattices and the readings
+  disagree by 0.73 of their mean. The cheaper candidate already in the repo, the
+  spread of `harmonicSupportWeight`, fails the same way. § 6ab.18 also finds the
+  explanation of the φ lever in this section to be wrong.
 - ~~**Whether darkfield at 7 source samples should be reachable at all.**~~
   **Answered at § 6ab.12, and the framing was the problem.** It is not a
   threshold on annulus points: at ν = 0.75 the ring's carrying band is
@@ -11753,10 +11757,11 @@ spreads 1.15× and h = 4 spreads **9.67×**; at S = 0.9 the pair is 1.64× again
 **46.9×**. Over the twelve cells swept, h = 2 never leaves 1.75× and the higher
 rows reach 27 times further.
 
-No new mechanism arrives with h. § 6ab.11's own conclusion was that the ratio is a
-signal-to-noise statement — the 2ν signal grows as φ² and what disagrees with it
-does not — and moving h is another way to shrink the signal: h = 4 reads 4.2e-3
-where h = 2 reads 2.4e-1 in the same image. That makes it a *tendency*, and the
+**It is worse as a fraction of the reading too, so it is not the ratio's own
+sensitivity to a small denominator.** At S = 0.7 and ν = 0.375 the four readings
+span 0.19 of their mean at h = 2 and 1.09 at h = 4, and the ordering holds in four
+more cells. (§ 6ab.11's signal-to-noise explanation of the φ lever is itself wrong
+— § 6ab.18 — and nothing here rests on it.) That makes it a *tendency*, and the
 cell where it inverts is pinned rather than rounded away: at S = 0.3, ν = 0.375
 the two spreads are 1.148× and 1.145× and the readings are only 2.1× apart.
 
@@ -11831,6 +11836,81 @@ famous open question. Measuring further would land between the same two numbers
 with more digits. That sentence is recorded as the reason to stop, **not as a
 pin** — no rung above is anchored on it, and the 4/3 is a measured envelope over
 a stated range rather than a cited exponent.
+
+### 6ab.18 — the predictor that is not, and the reason § 6ab.11 gave that is not either
+
+`packages/app/test/phase.test.ts`, alongside the § 6ab.11 rungs it corrects.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The disagreement grows as φ², like the signal** — ×3.95 and ×3.79 over φ = 0.1, 0.2, 0.4 | § 6ab.11's own cell | ✅ |
+| …so the disagreement AS A FRACTION of the reading is flat: 3.075, 3.038, 2.890 | 7% across a 16× in signal | ✅ |
+| **The 838× is one lattice reading a different POWER of φ** — n = 7 is O(φ⁴) where 11, 15, 21 are O(φ²) | contrast/φ² flat to 1.2× for three, ×4 per doubling for the fourth | ✅ |
+| The φ lever is therefore **9.7×, not 838×**, and it is still a lever | 3.075 against 0.317 | ✅ |
+| …and the conclusion gains a leg with no φ in it: **22× across ν at one S** | S = 0.3, five ν | ✅ |
+| § 6ab.16's h ordering survives on the φ-free quantity — 5 cells, and the same one inverts | 0.19 vs 1.09 at S = 0.7, ν = 0.375 | ✅ |
+| **REFUTED: rim weight predicts nothing.** Exactly 0 in all four lattices where the readings span 0.73 of their mean | S = 0.3, ν = 0.1875 | ✅ |
+| **REFUTED: so does the carrying-set spread.** Unanimous 1.0 to f64 in the same cell | `toBeCloseTo(1, 12)` × 4 | ✅ |
+
+#### The reason was wrong and the number it explained was real
+
+§ 6ab.11 built its refutation of a band in S partly on φ: 838× at φ = 0.1 and
+1.37× at φ = 3, one S holding both. The reading is right and the sentence
+attached to it — "the 2ν signal grows as φ² and what disagrees with it does not"
+— is not. At that cell, over φ = 0.1, 0.2, 0.4:
+
+| | φ = 0.1 | φ = 0.2 | φ = 0.4 |
+|---|---|---|---|
+| max − min | 3.319e-4 | 1.310e-3 | 4.969e-3 |
+| mean | 1.079e-4 | 4.313e-4 | 1.720e-3 |
+| (max − min)/mean | 3.075 | 3.038 | 2.890 |
+| printed ratio | 838× | 208× | 50× |
+
+Both the disagreement and the signal are second order, and their **quotient is
+flat to 7% across a 16× in signal** while the printed ratio moves by 17. So the
+φ dependence is not in the disagreement at all.
+
+**It is in the minimum.** At this cell the 7-point lattice's second-order 2ν term
+nearly cancels and its reading is O(φ⁴), where the other three are O(φ²):
+contrast/φ² is flat at 3.3e-2, 6.5e-3 and 3.4e-3 for n = 11, 15 and 21 and runs
+4.0e-5 → 1.6e-4 → 6.3e-4 for n = 7. A max over φ² divided by a min over φ⁴ is
+O(φ^{-2}), which is exactly 838 → 208 → 50.
+
+Measured as a fraction of the reading the lever is **9.7×** (3.075 at φ = 0.1
+against 0.317 at φ = 3) rather than 612×. That is still a lever and § 6ab.11's
+conclusion survives — and it now has a second leg with no φ in it: at S = 0.3 the
+relative disagreement runs 0.034 at ν = 0.3125 to 0.73 at ν = 0.1875, **22× inside
+one S**, which refutes a band in S without φ being mentioned.
+
+It also forced § 6ab.16's h claim to be re-measured, since that was stated in
+ratios too. It survives: at S = 0.7, ν = 0.375 the four readings span 0.19 of
+their mean at h = 2 and **1.09** at h = 4, with the ordering holding in five cells
+and inverting in the same S = 0.3, ν = 0.375 cell the ratio found.
+
+#### Both render-free predictors fail, and for one structural reason
+
+§ 6ab.10 attributed the spread to source points near the tangency circle
+|s ± mν| = 1, where the shifted pupil grazes the objective's and the lattice's
+in-or-out decision moves an order. That attribution is plausible and the criterion
+built from it is not a predictor:
+
+- **Rim weight** — source weight within one lattice spacing of that circle — is
+  **exactly 0 for all four lattices** at S = 0.3, ν = 0.1875, where the readings
+  disagree by 0.73 of their mean. Over 50 cells it is zero in 13 of them with
+  relative disagreements up to 0.73, and where it is positive the ratio between
+  the two quantities spans 143×.
+- **The carrying-set spread** — the disagreement of `harmonicSupportWeight` across
+  the same four lattices, which is free and already in the repo — is worse: in the
+  same cell all four lattices report the whole aperture carries 2ν, to f64, so the
+  statistic is unanimous where the readings differ by more than half their mean.
+
+The reason is one sentence. A predictor built on the carrying set answers **which
+directions can contribute**; the disagreement is an **integral over that set with
+an integrand that varies across it**. Two lattices can agree perfectly about the
+set and sample its interior differently, and at S = 0.3, ν = 0.1875 that is
+precisely what they do. Nothing render-free was found, so § 6ab.11's exhaustive
+four-render probe stands — not for want of a cheaper option, but because the
+cheap options answer a different question.
 
 ## Step 6ac — the two focal surfaces, and distortion
 
