@@ -546,10 +546,22 @@ export type OptimizeOperand =
  * `"bestSpot"` refocuses every trial to its own minimum-RMS plane, which
  * `bestSpotZ` gives in closed form — no search, so no search error enters the
  * merit. `"systemImagePlane"` measures where the system actually forms the
- * image, so a design that shifts its focus is charged for it. Both are smooth;
- * neither is more correct, and the difference is a factor of ten in merit on the
- * singlet fixture (2.5·10⁻¹ mm against 2.7·10⁻²), which is why it is stated
- * rather than defaulted.
+ * image, so a design that shifts its focus is charged for it. Both are smooth
+ * and neither is more correct, which is why this is stated rather than
+ * defaulted — and the reason is stronger than the factor of ten between them on
+ * one design (2.5·10⁻¹ mm against 2.7·10⁻²).
+ *
+ * **Refocusing forgives the focal length, so `"bestSpot"` over an unconstrained
+ * power is an unbounded wish.** A design is never charged for where it forms an
+ * image, a weaker lens has less spherical aberration, and nothing stops the
+ * optimiser making one: given a single free curvature on the § 1.8.5 singlet it
+ * walks the focal length from +999.5 mm to −16 411 mm — a nearly flat plate —
+ * with the merit still falling when the step underflows. The infimum is a
+ * window, which is not a lens. `"systemImagePlane"` is bounded on the same
+ * variable because the image has to land somewhere fixed. Hold the power with a
+ * `power` operand and both are well posed, and then they still disagree: 0.7120
+ * against 0.2257 in shape factor, each beating the other on the measure it was
+ * asked for.
  */
 export type TracedFocus = "bestSpot" | "systemImagePlane";
 

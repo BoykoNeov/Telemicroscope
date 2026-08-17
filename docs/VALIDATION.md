@@ -1524,6 +1524,27 @@ to 1 253 the merit's **value** moves 15% and is not even monotone, while the
 knows and the design is what it guesses; across sample sets it is the other way
 round.
 
+**And the focus convention, where the reason turned out to be well-posedness
+rather than a factor.** A traced spot has to be measured on a plane, and there
+are two honest ones: refocus each trial to its own best plane (closed form, so
+no search error enters the merit), or read it where the system actually forms
+the image. They differ by 10× on one design — and that is the *small* half of
+the argument. **Refocusing forgives the focal length, so it is an unbounded wish
+over a free power.** A design is never charged for where it images, a weaker
+lens has less spherical aberration, and nothing stops the optimiser making one:
+one free curvature on this fixture walks the focal length from +999.5 mm to
+**−16 411 mm**, a nearly flat plate, with the merit still falling when the step
+underflows. The infimum of "smallest spot, refocused" is a window, which is not
+a lens. Fixing the image plane bounds the same single variable (EFL 1006.6 mm, a
+merit that settles at 2.71·10⁻²) because the image must land somewhere stated.
+
+Hold the power with a `power` operand and both conventions are well posed — and
+they still disagree, by far more than the sample set or the aperture kind ever
+moved anything: **q = 0.7120 refocused against 0.2257 on the plane**, 0.49 apart.
+The plane run buys focus position with aberration, because on its measure the
+two are the same currency. Neither is wrong; each design beats the other on the
+measure it was asked for. That is what a stated convention means.
+
 | Rung | Pinned to | Status |
 |---|---|---|
 | **Central differences agree to 7 figures over 10⁻⁶…10⁻³**, 5 over 10⁻⁸…10⁻², 3 over ten decades; sign lost below 10⁻¹² | the retired "sampling noise" forecast, measured and refuted | ✅ |
@@ -1538,6 +1559,8 @@ round.
 | **A held run stops AT the boundary** with λ raised and its residual reported | the wall convention, one level up | ✅ |
 | **The sample set moves the value 15% and the answer 5.3e-5** | § 1.8.2's sentence, inverted | ✅ |
 | **A derived aperture (`fNumber`) breathes 50.042 → 49.850 and moves the answer 2.0e-3** | the pupil must be held for the ray set to be | ✅ |
+| **Refocusing is an UNBOUNDED wish on a free power**: EFL walks +999.5 → −16 411 mm, a flat plate; the image plane bounds the same variable at 1006.6 | why the convention is well-posedness and not a factor | ✅ |
+| …and with the power held the two conventions land **0.49 apart in shape** (0.7120 / 0.2257), each best on its own measure | neither is a default | ✅ |
 | **Scalar RMS against one residual per ray: 2.5e-8 apart**, 12% more evaluations | the vector form is not needed, answered by a number | ✅ |
 | **Traced residual is 430× a third-order sum**, linear in ray count | the "four orders" forecast, corrected | ✅ |
 | A mixed traced/paraxial merit holds EFL to 1e-5 and lands on the traced Coddington shape | the question a designer actually asks | ✅ |

@@ -982,6 +982,75 @@ describe("DLS § 1.8.5 — what the caller must state, because nothing can choos
     expect(perRay.gradient).toBeLessThan(1e-3);
   });
 
+  it("refocusing FORGIVES the focal length, so that wish is unbounded on a free power", () => {
+    // The sharpest reason the convention cannot be defaulted, and it is not a
+    // factor — it is whether the question has an answer. `bestSpot` re-focuses
+    // every trial, so a design is never charged for where it forms an image; a
+    // weaker lens then has less spherical aberration and nothing stops the
+    // optimiser making one. Given a single free curvature it walks the focal
+    // length from +999.5 mm to −16 411 mm, a nearly flat plate, and the merit is
+    // still falling when the step underflows. The infimum of "smallest spot,
+    // refocused" over an unconstrained power is a window, which is not a lens.
+    const start = tracedSinglet(qStar(1.5) + 0.5);
+    const c0 = start.prescription.surfaces[0]!.curvature;
+    const free = optimizeSystem(start, [{ kind: "curvature", surface: 0 }], [spotOperand()]);
+    const flattened = withVariables(start.prescription, [{ kind: "curvature", surface: 0 }], free.x);
+    expect(Math.abs(systemProperties(flattened, LINE_D).efl)).toBeGreaterThan(10_000);
+    expect(Math.abs(free.x[0]!)).toBeLessThan(0.1 * Math.abs(c0));
+    expect(Math.sqrt(free.merit)).toBeLessThan(0.05 * tracedRms(start));
+
+    // Fix the image plane instead and the same one free curvature is bounded:
+    // the lens must form its image THERE, so it cannot buy sharpness by ceasing
+    // to be a lens. EFL 1006.6 mm, and a merit that settles rather than slides.
+    const pinned = optimizeSystem(start, [{ kind: "curvature", surface: 0 }], [
+      spotOperand(TRACED_GRID, "systemImagePlane"),
+    ]);
+    const heldEfl = systemProperties(
+      withVariables(start.prescription, [{ kind: "curvature", surface: 0 }], pinned.x),
+      LINE_D,
+    ).efl;
+    expect(heldEfl).toBeCloseTo(1006.6, 0);
+    expect(Math.sqrt(pinned.merit)).toBeCloseTo(2.7102e-2, 5);
+  });
+
+  it("…and with the power held they pick shapes 0.49 apart, each best in its own currency", () => {
+    // Hold the power and the runaway above is gone, so the conventions can be
+    // compared on the same question. They do not agree: refocused lands on the
+    // traced Coddington shape, 0.7120, and the fixed plane lands at 0.2257,
+    // because there the merit is aberration AND focus position and a bending
+    // that moves the focus toward the plane is worth aberration to buy it.
+    const start = tracedSinglet(qStar(1.5) + 0.5);
+    const vars: SolveVariable[] = [
+      { kind: "curvature", surface: 0 },
+      { kind: "curvature", surface: 1 },
+    ];
+    const target = 1 / systemProperties(start.prescription, LINE_D).efl;
+    const shapeFor = (focus: TracedFocus) => {
+      const r = optimizeSystem(start, vars, [
+        { kind: "power", wavelengthNm: LINE_D, target, weight: 1e6 },
+        spotOperand(TRACED_GRID, focus),
+      ]);
+      const moved = withVariables(start.prescription, vars, r.x);
+      const [c1, c2] = [moved.surfaces[0]!.curvature, moved.surfaces[1]!.curvature];
+      const sys = { ...start, prescription: moved };
+      const b = exitBundle(sys, 0, LINE_D, TRACED_GRID);
+      return {
+        q: (c1 + c2) / (c1 - c2),
+        atBest: spotAt(b, bestSpotZ(b)).rmsRadius,
+        atPlane: spotAt(b, imagePlaneZ(asCompiled(moved), sys)).rmsRadius,
+      };
+    };
+    const refocused = shapeFor("bestSpot");
+    const onPlane = shapeFor("systemImagePlane");
+    expect(refocused.q).toBeCloseTo(0.712011, 4);
+    expect(onPlane.q).toBeCloseTo(0.225698, 4);
+    expect(refocused.q - onPlane.q).toBeCloseTo(0.486, 2);
+    // Neither is wrong: each design beats the other on the measure it was asked
+    // for, which is what makes this a stated convention and not a default.
+    expect(refocused.atBest).toBeLessThan(onPlane.atBest);
+    expect(onPlane.atPlane).toBeLessThan(refocused.atPlane);
+  });
+
   it("the two focus conventions differ by 10× and neither is the default", () => {
     const q = 1.2142857142857144;
     const b = exitBundle(tracedSinglet(q), 0, LINE_D, TRACED_GRID);
