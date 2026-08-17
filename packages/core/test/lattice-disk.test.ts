@@ -18,6 +18,7 @@ import {
 import {
   idealPupil,
   defocusedPupil,
+  harmonicCarryingArea,
   harmonicSupportWeight,
   weakObjectTransfer,
   weakObjectTransferDisk,
@@ -770,7 +771,10 @@ describe("§ 6ab.19 — the commensurate annulus", () => {
   /** The family both constructors draw from: an origin-centred square lattice of
    *  step `h` masked to the same ring, with the step free rather than tied to a
    *  count or to the pupil's grid. Plain data — `harmonicSupportWeight` reads
-   *  only `points`, and this is a probe of the family and not a new source. */
+   *  only `points`, and this is a probe of the family and not a new source. The
+   *  extent over-covers and the mask decides membership, as in both constructors;
+   *  the exact `ceil` is therefore not load-bearing here and need not match
+   *  `latticeAnnularSource`'s. */
   function freeStepRing(h: number): CondenserSource {
     const points: { sx: number; sy: number; weight: number }[] = [];
     const extent = Math.ceil(RING_OUTER / h) + 1;
@@ -793,6 +797,12 @@ describe("§ 6ab.19 — the commensurate annulus", () => {
   }
 
   it("is NOT an offset difference — the count-based grid is origin-centred too", () => {
+    // Every difference below is taken against the literal, and the three that
+    // decide the block — the gap and the two quanta — are differences of
+    // same-order numbers. So pin the literal against the quadrature it came from
+    // rather than trusting its digits: they agree to one ulp.
+    expect(harmonicCarryingArea(RING_INNER, RING_OUTER, 0.75, 2).fraction).toBeCloseTo(RING_AT_075, 15);
+
     // The sentence this block corrects said the two rings "differ by an offset and
     // nothing else". `gridCoordinate` returns outer·(2i+1−N)/N, whose numerator is
     // even for odd N: that grid is a multiple of its own step and contains the
