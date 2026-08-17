@@ -16,7 +16,7 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
-| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems, rays given as points and directions, traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the chain but not its parameters, so FRAMES are compared and not angles; **0.2** the aimed chief ray, where the ray IS the answer; **0.3** tilted mirrors and the folded frame, two conventions one z-flip apart; **0.4** a THIRD tracer, so the two references can be compared with the engine out of it — and a tilt that had no translation into rayoptics translates angle for angle | `crosscheck` `crosscheck-optiland` |
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems, rays given as points and directions, traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the chain but not its parameters, so FRAMES are compared and not angles; **0.2** the aimed chief ray, where the ray IS the answer; **0.3** tilted mirrors and the folded frame, two conventions one z-flip apart; **0.4** a THIRD tracer, so the two references can be compared with the engine out of it | `crosscheck` `crosscheck-optiland` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities, and the finding that the artifact lived in the currency rather than in the aim | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
@@ -63,7 +63,7 @@ whole ladder.
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
-| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature; and the finding that z does NOT factor the way § 6j's band does, except for a specimen uniform in z | `volume` |
+| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — and the headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water, the fifth geometric ceiling in this branch | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and the finding that an off-axis tile is ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together; the phase panel audited and declined, and its unconverged 2ν readout answered by printing the range over the four samplings its own control offers — the trouble being no band in S to draw a boundary at | `lattice-disk`, `phase` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together; the phase panel audited and declined, and its unconverged 2ν readout answered by printing the range over the four samplings its own control offers — and § 6ab.12 finding it printed where 2ν does not exist: the beat needs two orders 2ν apart inside the pupil, so ν < 1 anywhere and < (1+outer)/3 in darkfield, and the panel's tightest agreement was four roundoffs | `lattice-disk`, `phase`, `harmonic-support` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -10948,13 +10948,24 @@ in S:
   top of the slider. The ±1 orders land on the pupil rim, where the lattice
   decides in-or-out for them one point at a time — the same rim `threeOrderCheck`
   already excludes ν = 1 for, showing a second face that has nothing to do with
-  S. A band in S would print four significant figures on it.
-- **ν = 1.94 is inside 1.05× at S = 1.5.** High S is not uniformly bad, so a band
-  in S would also refuse readings that are fine.
+  S. A band in S would print four significant figures on it. *§ 6ab.12 names what
+  this is: the carrying set there has zero **area**, so the honest reading is 0 and
+  the 9.4× is a lattice disagreeing with itself about nothing. "Structural" was
+  right and "property of the rim" was not.*
+- ~~**ν = 1.94 is inside 1.05× at S = 1.5.** High S is not uniformly bad, so a
+  band in S would also refuse readings that are fine.~~ **Withdrawn at § 6ab.12,
+  and left visible because it is the sharpest thing this panel taught.** 2ν there
+  is 3.875, nearly twice the incoherent cutoff: nothing carries it at any S, all
+  four samplings are reading f64 roundoff, and *that is why they agreed*. The
+  tightest agreement in the panel was the strongest evidence of nothing at all —
+  a probe over a control cannot tell a converged reading from an absent one.
 - And **φ moves it as hard as either**: at φ = 0.1, S = 1.5 spreads **838×**;
   at φ = 3 the same cell spreads **1.37×**. The 2ν signal grows as φ² and what
   disagrees with it does not, so the ratio is a signal-to-noise statement as much
-  as a geometric one.
+  as a geometric one. **This is the leg the conclusion now rests on**, and it
+  survives the withdrawal above on its own: ν = 0.75 at S = 1.5 has 27.8% of its
+  illumination carrying 2ν, so both those numbers are readings of something, and
+  one S holding both 838× and 1.37× is a band in S refuted at a single S.
 
 **A cheaper probe than the exhaustive one lies, measured rather than supposed.**
 The obvious self-check — render at one other sampling, print the disagreement —
@@ -10988,9 +10999,11 @@ over the pair would have reported whichever frame it happened to run on.
 against 128 at N = 21**, and at ν = 0.75 the 16 do not resolve the beat at all:
 **8.8e-17 against ~1.5e-3**, a spread of 2.3e13 across the panel's own control.
 A reader on that option is shown "no second harmonic in darkfield", which is
-false — the other three samplings agree to 1.35×. It is left as a reading the
+false — the other three samplings agree to 1.35×. ~~It is left as a reading the
 probe reports rather than an option the panel gates, because a "too few annulus
-points" gate would need a threshold nothing here measures.
+points" gate would need a threshold nothing here measures.~~ **§ 6ab.12 gates it,
+and needed no threshold: the 16 points are not too few, they are none of the
+set.**
 
 **Cost, and why the default state pays none of it.** At S = 0 in brightfield
 `sourceFor` returns `coherentSource()` whatever the count, so the four options
@@ -11021,9 +11034,12 @@ aperture.
   within one lattice spacing of the tangency circle" would be a cheap render-free
   substitute for the whole probe, and it would have to hold across ν and φ, not
   be fitted to the one grating both rungs used.
-- **Whether darkfield at 7 source samples should be reachable at all.** § 6ab.11
-  measures the collapse and prints it; gating the option would need a threshold
-  on annulus points that nothing measures.
+- ~~**Whether darkfield at 7 source samples should be reachable at all.**~~
+  **Answered at § 6ab.12, and the framing was the problem.** It is not a
+  threshold on annulus points: at ν = 0.75 the ring's carrying band is
+  s_x ∈ [1.25, 1.4] and the 7-sample lattice's outermost x is 1.2, so it holds
+  **no point of the set at all**. Exact, and the same criterion turns out to
+  condemn two readings § 6ab.11 trusted.
 - **A commensurate ANNULUS**, still — § 6p's own open item, and now with a
   constructor that would make it S-free too. Darkfield and phase contrast are
   where it would pay.
@@ -11033,6 +11049,126 @@ aperture.
   a smooth offset curve. Both show "a finite condenser lattice"; nothing here
   measures which one a reader learns more from, and that is a claim about people
   rather than optics.
+
+### 6ab.12 — the readout had no support, and there was never a threshold to find
+
+`packages/core/src/illumination/transfer.ts`
+(`harmonicSupportWeight`, `apertureCarriesHarmonic`),
+`packages/core/test/harmonic-support.test.ts`, 21 rungs, 15 s.
+
+§ 6ab.11 left "should darkfield at 7 samples be reachable" open **because it was
+looking for a threshold** — how few annulus points is too few — and § 6ab.10
+before it had gone looking for a band in S. There is no threshold in this. There
+is a geometric fact, and it is exact:
+
+> A grating diffracts into orders at s + m·ν. The image is |Σ orders|², so its
+> harmonic at h·ν comes only from beats between order pairs **h apart**, and
+> those sit h·ν apart in the pupil. **The harmonic exists only if some
+> illuminated direction puts both members of one such pair inside the pupil.**
+
+No wavefront, no φ, no defocus — which is the contrast with § 6ab.11's finding
+that the *spread* needed a probe per frame. Existence is geometry and one
+computation covers both frames; magnitude is not and does not.
+
+**The criterion is pinned by recovering two cutoffs this file already has, not
+by asserting itself.** At h = 1 it *is* Abbe's law: asked only "can two orders
+one ν apart both be inside the pupil, from somewhere in a disc of radius S", the
+answer flips at exactly `intensityCutoff(S)` = 1 + min(S, 1) — the
+λ/(NA_obj + NA_cond) of § 6f, arrived at from order geometry with the formula
+nowhere in the code. At h = 2 the same argument caps ν at **1**, because 2ν must
+still clear the incoherent cutoff 2, so **a second harmonic past the coherent
+cutoff does not exist at any S.** Both flips are checked at ±1e-9, not on a
+sweep grid: they are exact, not asymptotic.
+
+**Darkfield has its own, lower cutoff, and nothing had noticed.** Necessary is
+not sufficient — the direction has to be *in* the aperture, and a ring starting
+outside the pupil reaches a pair only by borrowing a whole number of orders. The
+smallest usable count is 3, so the binding condition is 3ν ≤ 1 + outer and the
+ring's second harmonic stops at **(1 + outer)/3 — 0.8 for A3's own 1.1–1.4
+ring**, three slider stops below where a reader would expect anything to change.
+The ring's carrying area *thins* to it rather than falling off it (55% at
+ν = 0.25, 19% at 0.7, 6.6% at 0.75, 0.6% at 0.79, nothing at 0.8), which is the
+evidence that it is a boundary of the geometry. The grating's own line survives
+where its second harmonic does not: at ν = 0.875 the ring still carries ν and
+not 2ν, so darkfield does not stop imaging there — it stops having a second
+harmonic, and those are different claims.
+
+### The two legs disagree in both directions, and each was a shipped defect
+
+`apertureCarriesHarmonic` asks it of the **aperture**, in closed form and on a
+set of **positive area**. `harmonicSupportWeight` asks it of the **sampled**
+source an image was formed from, by calling `pupil.amplitude` at exactly the
+coordinates `abbeImage` evaluates — never a fresh |p| ≤ 1, because A3's ring at
+11 samples carries on **two points out of 36** and one lattice cell is the
+difference between a verdict and its opposite. Three regimes, and the panel was
+printing four significant figures in all of them:
+
+- **aperture yes, sampling no — the lattice is blind.** The 7-sample ring holds
+  16 points and none is in the carrying band, so it reads 8.8e-17 and a reader is
+  shown "darkfield has no second harmonic". § 6ab.11 measured the 2.3e13 spread
+  and could not name the cause. The weights are point counts: **0 of 16, 2 of 36,
+  6 of 68, 10 of 128** — and the surviving three are thin enough (5.6%, 8.8%,
+  7.8%, against the aperture's own 6.6%) to explain why they still disagree by
+  1.35× once they agree there *is* one.
+- **aperture no, sampling yes — the lattice invented it.** At ν = 1 exactly the
+  carrying set is the single on-axis direction: zero area, so a real objective at
+  its own cutoff transmits nothing, but `diskSource` puts a point at the origin at
+  odd counts, `idealPupil` admits the orders because its test is |p| ≤ 1, and the
+  panel reads **8e-4**. § 6ab.11 recorded that number's 9.4× disagreement as a
+  *structural property of the rim*; it is area zero given finite weight, and the
+  weight thins with the count (1/97 against 1/317) exactly as a measure-zero set
+  must. A brute-force scan of the aperture is fooled the same way and the closed
+  form is not — which is the whole reason the leg asks for area.
+- **neither — and this one looked the most settled of anything in the panel.** At
+  ν = 1.9375 the four samplings agree to **1.031×**, the tightest agreement
+  anywhere, because all four are reading f64 roundoff of a quantity whose 2ν is
+  3.875 — nearly twice the incoherent cutoff. § 6ab.11 used precisely that cell
+  as its evidence that high S is not uniformly bad.
+
+**The gate is not conservative, and that is measured rather than argued.** Across
+nine cells, wherever the weight is zero the rendered 2ν contrast is below 1e-13,
+and wherever it is positive the reading is above 1e-4 — thirteen orders apart
+with nothing in between, which is why no threshold appears anywhere in it.
+
+**One cell breaks that floor, and finding it needed the top of the φ slider.**
+The separation above was measured at φ = 0.4. At φ = 3 a zero-weight darkfield
+cell (ν = 0.8125, 21 samples) reads **6.8e-7** — six orders above roundoff, small
+enough to pass for a weak real signal. It is **aliasing**: a phase grating has
+orders at every integer m with amplitude J_m(φ), on a 128-bin grid at 13 cycles
+they wrap past |m| = 5, a wrapped order sits at a coordinate that is not m·ν and
+can re-enter the pupil, and pairs are 2·cycles apart in *bin* space whether or not
+they are 2ν apart in the pupil. J₇(3)·J₉(3) ≈ 3e-7 is the size of it. The cause is
+named by a control rather than by argument: ν is 2·cycles/pupilSamples, so
+**widening the frequency grid changes only where the orders wrap** — same
+aperture, same ν, same φ, same source — and at 256 bins the reading collapses to
+6.5e-16, **nine orders**. This is why the gate suppresses the number instead of
+annotating it: at φ = 3 there is a plausible-looking figure to annotate.
+
+It touches nothing that has real support: aliasing contributes ~1e-7 wherever it
+contributes at all, invisible against a genuine 2ν of 0.088, which is identical
+to five significant figures at 128, 256 and 512 bins. So it is only ever the
+whole reading or none of it, and that is what makes existence the right thing to
+gate and precision the wrong one.
+
+### Not yet pinned
+
+- **Whether the sampled carrying fraction converges to the aperture's area
+  fraction.** The four ring samplings read 0%, 5.6%, 8.8% and 7.8% against a
+  scanned 6.6%: they bracket it and are not monotone in the count. A convergent
+  quadrature statement would make the gate quantitative — "this sampling
+  under-resolves the carrying set by X" — rather than binary, and it is the
+  nearest thing to the render-free spread predictor § 6ab.11 wanted. Existence is
+  now render-free; magnitude still is not.
+- **Whether aliased orders should be refused rather than measured.** The panel's
+  `maxCycles` keeps the 2ν *bin* on the grid, which is a different guard: nothing
+  stops the grating's own high orders wrapping, and at φ = 3, 13 cycles and 128
+  bins the first wrapped order is J₅(3) = 4.3e-2 of the amplitude. It is invisible
+  in every reading that has support, so refusing it would need a threshold on an
+  error nothing here bounds — but it is a contamination of the *image*, not only
+  of this readout.
+- **The h ≥ 3 harmonics**, which the criterion covers and nothing renders. The
+  cutoffs fall as 2/h and the cheap prediction is that a third harmonic needs
+  ν < 2/3; no rung asks for it.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

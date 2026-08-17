@@ -356,3 +356,166 @@ export function brightfieldResolutionMm(
   const na = objectiveNA * intensityCutoff(condenserNA / objectiveNA);
   return (wavelengthNm * 1e-6) / na;
 }
+
+/**
+ * ## Which harmonic of a grating exists at all, and the two legs of the question
+ *
+ * Everything above computes *how much* of a frequency gets through. This pair
+ * answers the prior question — **whether there is anything there to compute** —
+ * and it exists because § 6ab.12 found a panel printing four significant figures
+ * of a quantity that is identically zero.
+ *
+ * A grating of frequency ν diffracts into orders at s + m·ν for integer m. The
+ * image is |Σ orders|², so its harmonic at h·ν is a sum of beats between order
+ * pairs **h apart** — which sit h·ν apart in the pupil. So the harmonic exists
+ * only if some illuminated direction puts *both* members of such a pair inside
+ * the objective pupil, and that is pure geometry: no wavefront, no φ, no
+ * defocus. Two facts fall straight out of it and both are rungs:
+ *
+ *  - **h·ν < 2 is necessary**, because two points h·ν apart cannot both lie in a
+ *    pupil of radius 1 once their separation reaches the diameter. At h = 1 this
+ *    is `intensityCutoff` — the (1 + S) law above, *recovered* from the order
+ *    geometry rather than evaluated — and at h = 2 it caps ν at **1**, so a
+ *    second harmonic beyond the coherent cutoff does not exist at any S.
+ *  - **A darkfield annulus has its own, lower cutoff.** Necessary is not
+ *    sufficient: the direction has to be in the aperture too, and an annulus that
+ *    starts outside the pupil can only reach a pair by borrowing a whole number
+ *    of orders. For the ring `inner ≤ |s| ≤ outer` the second harmonic stops at
+ *    **(1 + outer)/3** — 0.8 for A3's own 1.1–1.4 ring, against 1 in brightfield.
+ *
+ * ## Why two functions and not one
+ *
+ * `apertureCarriesHarmonic` asks it of the **aperture**, in closed form and on a
+ * set of positive area. `harmonicSupportWeight` asks it of the **sampled** source
+ * an image was actually formed from. They disagree in both directions, and each
+ * disagreement is a way for a readout to lie:
+ *
+ *  - *aperture yes, sampling no* — the lattice is blind. A3's darkfield ring at
+ *    7 samples holds 16 points and none of them is in the band that carries 2ν at
+ *    ν = 0.75, so the image says "no second harmonic" where the ring has one.
+ *  - *aperture no, sampling yes* — the lattice invented it. At ν = 1 exactly the
+ *    carrying set is the single on-axis direction: zero area, so nothing, but a
+ *    lattice with a point at the origin gives it finite weight and reads 8e-4.
+ *
+ * A readout may be printed only when both agree, and § 6ab.12 measures that the
+ * gate is not conservative: wherever the weight is zero the rendered harmonic is
+ * f64 roundoff, and wherever it is positive the reading is ten or more orders
+ * larger. There is no threshold anywhere in it, which is the whole point —
+ * § 6ab.11 looked for one over ν, S and φ and there is none to find.
+ */
+export interface GratingOrders {
+  /** Grating periods across the object field — the order spacing, in bins. */
+  readonly cycles: number;
+  /** Frequency bins across the pupil DIAMETER, as everywhere in `abbe.ts`. */
+  readonly pupilSamples: number;
+  /** Which image harmonic. 2 is the +1×−1 beat; 1 is the grating's own line. */
+  readonly harmonic?: number;
+}
+
+/**
+ * Fraction of the illumination weight whose orders can carry `harmonic`·ν.
+ *
+ * The pupil is asked, never re-derived: `pupil.amplitude` is called at exactly
+ * the coordinates `abbeImage` would evaluate it at — (m·cycles)·(2/pupilSamples)
+ * offset by the direction — so an apodized or aberrated pupil answers for
+ * itself and a rim decision cannot differ between this and the render. Writing
+ * `|p| ≤ 1` here instead would put the gate one lattice cell away from the
+ * image it is gating, and A3's ring at 11 samples has **two** carrying points
+ * out of 36: one cell is the difference between a verdict and its opposite.
+ *
+ * Assumes a grating along x, which is `phaseGratingObject`'s geometry — its
+ * spectrum lives on the u_y = 0 row, so both members of a pair are read at the
+ * direction's own s_y.
+ */
+export function harmonicSupportWeight(
+  pupil: PupilFunction,
+  source: CondenserSource,
+  orders: GratingOrders,
+): number {
+  const { cycles, pupilSamples } = orders;
+  const harmonic = orders.harmonic ?? 2;
+  if (!Number.isInteger(cycles) || cycles < 1) {
+    throw new Error(`harmonicSupportWeight: cycles must be a positive integer, got ${cycles}`);
+  }
+  if (!Number.isInteger(pupilSamples) || pupilSamples < 1) {
+    throw new Error(
+      `harmonicSupportWeight: pupilSamples must be a positive integer, got ${pupilSamples}`,
+    );
+  }
+  if (!Number.isInteger(harmonic) || harmonic < 1) {
+    throw new Error(`harmonicSupportWeight: harmonic must be a positive integer, got ${harmonic}`);
+  }
+  const step = 2 / pupilSamples;
+  const nu = cycles * step;
+  let weight = 0;
+  for (const s of source.points) {
+    // An order past the pupil rim in the worst direction cannot be inside it, so
+    // the search is bounded by geometry rather than by a cap: one past each end,
+    // because the bound is on the coordinate and the loop counts orders.
+    const span = (1 + Math.hypot(s.sx, s.sy)) / nu;
+    const lo = Math.ceil(-span) - 1;
+    const hi = Math.floor(span) + 1;
+    for (let m = lo; m <= hi; m++) {
+      const near = m * cycles * step + s.sx;
+      const far = (m + harmonic) * cycles * step + s.sx;
+      if (pupil.amplitude(near, s.sy) !== 0 && pupil.amplitude(far, s.sy) !== 0) {
+        weight += s.weight;
+        break;
+      }
+    }
+  }
+  return weight;
+}
+
+/**
+ * Does a circular or annular aperture carry `harmonic`·ν on a set of directions
+ * of **positive area**? Closed form, exact.
+ *
+ * With the pair at s + m·ν and s + (m+h)·ν both inside the unit pupil, and the
+ * best case s_y = 0 (any other row has less room in x), the near member must
+ * satisfy s_x + m·ν ∈ [−1, 1 − h·ν] with s_x ∈ [inner, outer]. So the whole
+ * question is whether one integer m makes those two intervals overlap in more
+ * than a point — a handful of m to try, since m·ν is bounded by 1 + outer.
+ *
+ * **Positive area rather than merely nonempty, and that distinction is the
+ * ν = 1 defect.** There the interval collapses to the single point s_x = 0: a
+ * real aperture carries no energy on a set of measure zero, but the sampled
+ * lattice has a point sitting on it, and § 6ab.11 recorded the resulting 8e-4
+ * and its 9.4× disagreement as a *structural* property of the rim. It is an
+ * artifact of area zero given finite weight.
+ *
+ * The coherent limit is excluded rather than special-cased: `outer > inner` is
+ * required, because a single direction is not a discretization of an aperture
+ * and there is nothing for this leg to check against `harmonicSupportWeight`.
+ */
+export function apertureCarriesHarmonic(
+  inner: number,
+  outer: number,
+  nu: number,
+  harmonic = 2,
+): boolean {
+  if (!(inner >= 0)) throw new Error(`apertureCarriesHarmonic: inner must be >= 0, got ${inner}`);
+  if (!(outer > inner)) {
+    throw new Error(
+      `apertureCarriesHarmonic: needs an aperture of positive area — outer must exceed inner, ` +
+        `got inner ${inner} and outer ${outer}. A single direction is not one; ask ` +
+        `harmonicSupportWeight instead.`,
+    );
+  }
+  if (!(nu > 0)) throw new Error(`apertureCarriesHarmonic: nu must be > 0, got ${nu}`);
+  if (!Number.isInteger(harmonic) || harmonic < 1) {
+    throw new Error(
+      `apertureCarriesHarmonic: harmonic must be a positive integer, got ${harmonic}`,
+    );
+  }
+  const gap = harmonic * nu;
+  // Two points `gap` apart in a pupil of DIAMETER 2. The h = 1 case of this is
+  // `intensityCutoff`'s own cap, reached from the other side.
+  if (!(gap < 2)) return false;
+  const lo = Math.ceil(-(1 + outer) / nu) - 1;
+  const hi = Math.floor((1 - gap - inner) / nu) + 1;
+  for (let m = lo; m <= hi; m++) {
+    if (Math.max(inner, -1 - m * nu) < Math.min(outer, 1 - gap - m * nu)) return true;
+  }
+  return false;
+}
