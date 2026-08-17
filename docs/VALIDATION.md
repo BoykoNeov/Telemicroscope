@@ -18,10 +18,10 @@ whole ladder.
 |---|---|---|
 | [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems, rays given as points and directions, traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the chain but not its parameters, so FRAMES are compared and not angles; **0.2** the aimed chief ray, where the ray IS the answer; **0.3** tilted mirrors and the folded frame, two conventions one z-flip apart; **0.4** a THIRD tracer, so the two references can be compared with the engine out of it | `crosscheck` `crosscheck-optiland` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
-| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities, and the finding that the artifact lived in the currency rather than in the aim | `pupil` `opd` `compile` `real-aiming` |
+| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form *recovered* rather than evaluated, and the achromat's power split — plus the run that converges 400 mm from the target | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form *recovered* rather than evaluated, and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, two exact conjugates recovered, the ray SET held | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -1268,7 +1268,11 @@ lister one is not even a scalar solve — its geometry moves under the variable.
 - **Targets beyond first order.** Everything here is a paraxial property, so
   every evaluation is a paraxial trace and 64 scan cells cost nothing. A target
   on a traced quantity — an RMS spot, a Zernike term — changes the cost model
-  by four orders of magnitude and wants a different search than a full scan.
+  and wants a different search than a full scan. **"By four orders of magnitude"
+  is corrected: § 1.8.5 measured it at 430× on a 149-ray pupil, linear in the ray
+  count**, so a full scan is dearer but not out of reach. Still open *here*,
+  though § 1.8's optimiser now has one — a root find and a minimisation want
+  different things from the same expensive residual.
 - ~~**No surface.**~~ ✅ **closed** — APP.md **Part M**, route `#/design`, app
   wiring only and no rung of its own. What it added that is not above: the
   exactness is in the POWER and a millimetre residual is that ulp times f²
@@ -1409,15 +1413,149 @@ caller can tell the difference.
   operand is not a refusal: the damping picks the smallest move that satisfies
   it, and both variables move by comparable amounts rather than one being held.
 
+### 1.8.5 — traced operands, and a forecast that was wrong about the mechanism
+
+The bullet this sub-step closes said a traced merit would be hard to difference
+because it "carries sampling noise, and differencing noise is how an optimiser is
+made to chase its own tail". **Measured, that is wrong — and wrong about the
+mechanism rather than the size, which is the third time in this file's history
+that a forecast has been right that something would bite and wrong about what.**
+Against a fixed set of pupil points a traced RMS spot is not noisy at all: it is
+an ordinary smooth function of the design, because the sample set is fixed and
+the tracer is deterministic. There is no stochastic anything in it.
+
+`optimizeSystem` is the entry point, and it is a second one rather than a wider
+signature on `optimizePrescription`, because a spot needs an aperture, a field
+and a conjugate — a prescription has none of those, and every rung above is
+validated through the narrow door.
+
+**The step ladder, which is the whole "can you difference it" question.**
+Central differences of the traced RMS spot in a singlet's shape factor agree to
+**seven figures across h = 10⁻⁶…10⁻³** (2.3577643·10⁻², spread 1.1·10⁻⁷), to five
+across 10⁻⁸…10⁻², and to three across the full ten decades 10⁻¹¹…10⁻². The
+module's own default step, ∛ε ≈ 6·10⁻⁶ for an O(1) variable, sits in the middle
+of that. Below 10⁻¹² the quotient loses its sign, and what it loses it to is f64
+cancellation on the merit — ~10⁻¹⁵ mm on a 2.7·10⁻² mm spot — not sampling.
+
+**The cost forecast was also wrong, by two orders.** A traced residual over a
+149-ray pupil is **430×** a third-order sum (0.091 ms against 2.2·10⁻⁴ ms), and
+it is linear in the ray count (0.6 µs a ray, measured at 29, 149 and 705). Four
+orders of magnitude would need ~3 500 rays. The same sentence appears in § 1.7's
+open list and twice in APP.md and is corrected in all four places.
+
+**What DOES threaten a traced merit is a discontinuity, and there is exactly one:
+a ray entering or leaving the surviving set.** `exitBundle` drops what vignettes
+and `spotAt` divides by the survivors, so the merit averages over a set whose
+membership moves with the design. Measured on a rim placed where a bending walks
+the beam across it: four rays of 149 rejoin and the merit jumps **6.30% across a
+step of 10⁻¹²** — a difference quotient of 10⁹ where the true derivative is
+10⁻⁴. And the cliff is not off in a corner of the design space: it sits
+**8.0·10⁻⁵ from the optimum being sought**.
+
+So a traced operand **holds its survivor set**, recorded at the starting design,
+and a trial whose set differs is not a system — the existing wall convention,
+unchanged. This is `seidelS1`'s fixed `marginalHeightMm` one level up: a ray
+height that moved with the design would change the merit for reasons that are
+not the design, and a ray *count* that moves is the same defect. The consequence
+is pinned rather than left to be met: a run whose optimum lies across a dropout
+boundary walks up to the boundary and stops there, with λ raised by the rejected
+steps and its residual reported, the way § 1.8.3's 400 mm run reports its own.
+
+The same argument decides the aperture, which no one had had to think about
+before: the ray set is only fixed if the pupil is. `stopRadius` states a radius;
+`fNumber`, `imageNA` and `objectNA` **derive** one from the design being
+optimised. Measured, `fNumber` breathes the stop 50.042 → 49.850 across the
+shapes a run visits and moves the answer by **2.0·10⁻³ in shape factor** — the
+same size as the entire thick-lens offset the rungs below spend three ladders
+separating out.
+
+#### The external numbers: two exact conjugates and one squeeze
+
+**The paraboloid**, which is exact at every aperture and to all orders — it is
+the definition of the curve, not an approximation. An optimiser given nothing but
+traced spot radii recovers conic = **−1 to 1.3·10⁻¹⁴ … 1.2·10⁻¹²** from four
+starts, and the spot at the parabola is 1.8·10⁻¹⁴ mm on a 400 mm mirror, which is
+f64 on the coordinates rather than a residual aberration.
+
+**The centre of curvature**, where every ray strikes a sphere at normal incidence
+and returns through the centre — stigmatic at all apertures and all orders. This
+one moves a real prescription number, so it runs through `optimizeSystem` end to
+end: R = −400 mm recovered to **2.3·10⁻⁶ relative** from three starts.
+
+**And the contrast between those two is a finding, not a discrepancy.** § 1.8.2's
+square-root law — resolve the merit to ε and you locate it only to √ε — is a
+statement about a *quadratic* minimum. An RMS radius is a **norm**, so at a design
+that is exactly perfect it grows like |δ|: the merit has a corner, not a bowl, and
+the location is then pinned as tightly as the value. Measured: 6.3677·10⁻² per
+unit of conic, linear over three decades and symmetric to four figures either
+side. Which is why the conic comes back at 10⁻¹² against a merit good to 10⁻¹⁴ —
+the same order — while Coddington's shape, whose optimum has a positive floor and
+therefore a real bowl, comes back at 2·10⁻⁸ against a merit good to 4·10⁻¹⁶. Same
+optimiser, same file, six orders apart, and the difference is the **shape of the
+optimum**, not the machinery.
+
+**Coddington's q\*, in a double limit — and which limit does the work was
+measured, not assumed.** The traced minimum-RMS shape is not the third-order
+minimum-W₀₄₀ shape; they meet only as both the glass and the aperture vanish.
+A first ladder shrank the aperture while scaling the thickness with it (the
+minimum the aperture needs is ∝ h²), measured a clean h² approach to q\*, and
+would have recorded it as the aperture's doing. **It is the glass's.** Separated:
+
+- Aperture held at 50 mm, thickness 2.6 → 40 mm: the gap is a **straight line in
+  t, −5.256·10⁻⁴ per millimetre**, over a 15× range.
+- Thickness held at 3.75 mm, aperture 50 → 1.6 mm: the gap **does not close**. It
+  flattens at −1.9725·10⁻³ from 6 mm of aperture down and stays there — the
+  thick-lens offset of that glass, which no aperture limit can remove.
+- Only the *difference* across that ladder is the aperture's, and that part is
+  the forecast h²: **4.29·10⁻⁴ at 50 mm, quartering with each halving**. It is
+  also exactly the intercept of the thickness line extrapolated to no glass at
+  all, so the two mechanisms are additive and each is accounted for.
+
+Cut the glass to what each aperture needs and both terms are ∝ h², so q\* is
+recovered — −2.4·10⁻³ at 50 mm, −2.34·10⁻⁵ at 5 mm, **under 5·10⁻⁶ at 2 mm** —
+and then it gets *worse* below that, as the spot (∝ h³) falls toward the f64
+floor and the located shape starts to wander. A **window, not a limit**, and the
+step says so rather than quoting the best cell.
+
+**One more thing the caller must state, because nothing can choose it.** The
+pupil sample set is the merit's definition, not a resolution knob. From 29 rays
+to 1 253 the merit's **value** moves 15% and is not even monotone, while the
+**design it picks** moves 5.3·10⁻⁵. § 1.8.2 says the value is what an optimiser
+knows and the design is what it guesses; across sample sets it is the other way
+round.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **Central differences agree to 7 figures over 10⁻⁶…10⁻³**, 5 over 10⁻⁸…10⁻², 3 over ten decades; sign lost below 10⁻¹² | the retired "sampling noise" forecast, measured and refuted | ✅ |
+| **Conic = −1 recovered from four starts**, 1.3e-14…1.2e-12, spot 1.8e-14 mm | the paraboloid — exact at all apertures and orders | ✅ |
+| **R = −400 recovered through `optimizeSystem`** from three starts, 2.3e-6 relative | the centre of curvature — stigmatic at all orders | ✅ |
+| **A zero-residual traced optimum is a CORNER, not a bowl**: 6.3677e-2 per unit conic, linear over three decades, symmetric to 4 figures | why § 1.8.2's √ law does not apply here — and the 6-order contrast with Coddington | ✅ |
+| **The gap to q\* is linear in the glass, −5.256e-4/mm** over 15× of thickness | § 5j.1's thin-lens scope, measured as an offset | ✅ |
+| …and with the glass **held**, shrinking the aperture does **not** close it — flat at −1.9725e-3 | the correction: the first ladder's h² was the thickness, not the aperture | ✅ |
+| …the aperture's own part **is** h²: 4.29e-4 at 50 mm, quartering per halving, equal to the thickness line's intercept | two additive mechanisms, each accounted for | ✅ |
+| **q\* recovered to under 5e-6 at 2 mm of aperture**, and worse below — a window | Jenkins & White / Hecht § 6.3, from traced ray coordinates alone | ✅ |
+| **One ray leaving moves the merit 6.30% across 1e-12**, 8.0e-5 from the optimum | the one real discontinuity, and why the set is held | ✅ |
+| **A held run stops AT the boundary** with λ raised and its residual reported | the wall convention, one level up | ✅ |
+| **The sample set moves the value 15% and the answer 5.3e-5** | § 1.8.2's sentence, inverted | ✅ |
+| **A derived aperture (`fNumber`) breathes 50.042 → 49.850 and moves the answer 2.0e-3** | the pupil must be held for the ray set to be | ✅ |
+| **Scalar RMS against one residual per ray: 2.5e-8 apart**, 12% more evaluations | the vector form is not needed, answered by a number | ✅ |
+| **Traced residual is 430× a third-order sum**, linear in ray count | the "four orders" forecast, corrected | ✅ |
+| A mixed traced/paraxial merit holds EFL to 1e-5 and lands on the traced Coddington shape | the question a designer actually asks | ✅ |
+| Refusals: a start with too few surviving rays, named; a pupil of one point | validity, saying which operand and how far short | ✅ |
+
 ### Not yet pinned
 
-- **Targets on traced quantities.** Every operand here is paraxial or
-  third-order, so a residual evaluation is a paraxial trace and the whole file
-  runs in 24 ms. An RMS spot or a Zernike term as an operand is the same
-  optimiser with a residual four orders of magnitude more expensive, and it
-  changes what the finite-difference step should be — a merit built on a traced
-  quantity carries sampling noise, and differencing noise is how an optimiser
-  is made to chase its own tail.
+- ~~**Targets on traced quantities.**~~ ✅ **closed at § 1.8.5 above**, for the
+  geometric half — the traced RMS spot, through `optimizeSystem`. Both of that
+  bullet's forecasts turned out wrong: the difficulty is not sampling noise (the
+  merit is smooth over ten decades of step) and the cost is not four orders (it
+  is 430× and linear in the ray count). What it did not see at all is the thing
+  that actually bites, a ray leaving the surviving set.
+  **A WAVEFRONT target is still open**, and it is a different question rather
+  than the same one at another wavelength of expense: a Zernike term or an RMS
+  OPD is a fit to a sampled map, so the "held sample set" argument above has to
+  be made again about the fit's own conditioning, and an MTF at a frequency adds
+  a transform between the design and the residual. Neither is pinned anywhere.
 - **Constraints, as opposed to heavily weighted operands.** "Hold the power
   *exactly* while minimising aberration" is a Lagrange condition, not a residual
   with a big weight, and the difference is measurable: a weighted constraint is

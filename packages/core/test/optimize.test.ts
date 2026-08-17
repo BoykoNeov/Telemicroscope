@@ -1,10 +1,22 @@
 import { describe, it, expect } from "vitest";
 import { Prescription } from "../src/trace/prescription";
+import { OpticalSystem } from "../src/trace/system";
+import { asCompiled } from "../src/trace/compile";
 import { registerMedium, getMedium } from "../src/materials/catalog";
 import { constantIndex, abbeNumber, LINE_D, LINE_F, LINE_C } from "../src/materials/dispersion";
 import { seidelSums } from "../src/analysis/seidel";
 import { systemProperties } from "../src/trace/paraxial";
-import { dampedLeastSquares, optimizePrescription, withVariables } from "../src/analysis/optimize";
+import {
+  dampedLeastSquares,
+  optimizePrescription,
+  optimizeSystem,
+  withVariables,
+  type TracedFocus,
+  type TracedOperand,
+} from "../src/analysis/optimize";
+import { exitBundle, spotAt, bestSpotZ } from "../src/analysis/spot";
+import { pupilGrid, type PupilPoint } from "../src/pupil/aiming";
+import { pupils, imagePlaneZ } from "../src/pupil/pupils";
 import type { SolveVariable } from "../src/analysis/solve";
 
 /**
@@ -61,9 +73,12 @@ import type { SolveVariable } from "../src/analysis/solve";
  * assumed, and a third rung measures how far a genuinely over-determined answer
  * moves when the weighting does.
  *
- * SCOPE: paraxial and third-order operands only. A merit over traced quantities
- * — RMS spot, a Zernike term, MTF at a frequency — is the same optimiser with a
- * more expensive residual, and nothing here pins one.
+ * SCOPE: paraxial and third-order operands, plus — since § 1.8.5, at the bottom
+ * of this file — the traced RMS spot, through `optimizeSystem`. It is the same
+ * optimiser with a more expensive residual: measured 430× a third-order sum on
+ * a 149-ray pupil, and linear in the ray count, not the four orders of magnitude
+ * this file and two documents used to forecast. A Zernike term and an MTF at a
+ * frequency are still nowhere pinned.
  */
 
 registerMedium(constantIndex("DLS-N15", 1.5));
@@ -592,5 +607,491 @@ describe("DLS — refusals", () => {
     const r = dampedLeastSquares((x) => [x[0]! ** 2 - 9], [0.5], { maxIterations: 3 });
     expect(r.reason).toBe("iterations");
     expect(r.iterations).toBe(3);
+  });
+});
+
+/**
+ * § 1.8.5 — TRACED operands: the merit a real ray answers.
+ *
+ * Everything above is paraxial or third-order, and the "not yet pinned" note
+ * this sub-step closes forecast that a traced merit would be hard to difference
+ * because it "carries sampling noise". **That forecast is wrong, and wrong about
+ * the mechanism rather than the size.** Over a FIXED set of pupil points the
+ * traced RMS spot is an ordinary smooth function of the design — the rungs below
+ * measure a central-difference plateau nine decades wide — and the one real
+ * threat is a discontinuity nobody had named: a ray entering or leaving the
+ * surviving set, which moves the merit 6.31% across a step of 1e-12.
+ *
+ * **The external numbers are two exact conjugates and one squeeze.**
+ *
+ *  1. **The paraboloid.** A parabolic mirror images an axial object at infinity
+ *     to a point, exactly and at every aperture — it is the definition of the
+ *     curve, not an approximation. So an optimiser fed nothing but traced spot
+ *     radii must recover conic = −1.
+ *  2. **The centre of curvature.** Every ray from the centre of a spherical
+ *     mirror strikes it at normal incidence and returns through the centre, so
+ *     that conjugate is stigmatic at all apertures and all orders. Recovering
+ *     the mirror's curvature from the spot alone is the same statement read
+ *     backwards, and — unlike the paraboloid — it moves a real prescription
+ *     number, so it exercises `optimizeSystem` end to end.
+ *  3. **Coddington's q\*, in a double limit.** The traced minimum-RMS shape is
+ *     NOT the third-order minimum-W₀₄₀ shape; they meet only as both the glass
+ *     and the aperture vanish. Which of those two limits was doing the work is
+ *     measured rather than assumed, and the answer is not the one the first
+ *     ladder suggested.
+ */
+
+/** A mirror at infinite conjugate. The paraboloid is the exact answer. */
+function traceMirror(conic: number, R = -400, semi = 50): OpticalSystem {
+  return {
+    prescription: {
+      surfaces: [
+        { kind: "reflect", curvature: 1 / R, conic, semiAperture: semi, thickness: R / 2, isStop: true },
+      ],
+    },
+    aperture: { kind: "stopRadius", value: semi },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  };
+}
+
+/** A spherical mirror with the object at distance d. Perfect when |R| = d. */
+function concentricMirror(R: number, d: number, semi = 40): OpticalSystem {
+  return {
+    prescription: {
+      surfaces: [{ kind: "reflect", curvature: 1 / R, semiAperture: semi, thickness: -d, isStop: true }],
+    },
+    aperture: { kind: "stopRadius", value: semi },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "finite", distance: d },
+  };
+}
+
+/**
+ * The § 5j.1 singlet with REAL glass in it, and the reason it has to have some.
+ *
+ * § 5j.1's fixture is 1 nm thick because the polynomial it pins is a thin-lens
+ * result. That fixture cannot be traced at its own aperture at all: with 1 nm on
+ * axis the two surfaces cross a fraction of a millimetre off it, the glass has
+ * negative thickness out at the rim, and 140 of 149 rays are lost. A third-order
+ * sum never traces a ray and so never noticed. Measured, 6 mm of centre thickness
+ * is the first round number that clears the whole f/10 pupil.
+ */
+const TRACED_T = 6;
+function tracedSinglet(q: number, t = TRACED_T, semi = 50, stopR = semi): OpticalSystem {
+  const dc = 1 / ((1.5 - 1) * F);
+  const c1 = (dc * (q + 1)) / 2;
+  return {
+    prescription: {
+      surfaces: [
+        { kind: "refract", curvature: c1, semiAperture: semi * 1.2, thickness: t, medium: "DLS-N15", isStop: true },
+        { kind: "refract", curvature: c1 - dc, semiAperture: semi * 1.2, thickness: F, medium: "AIR" },
+      ],
+    },
+    aperture: { kind: "stopRadius", value: stopR },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  };
+}
+
+const TRACED_GRID = pupilGrid(15);
+
+/** The traced RMS spot at best focus — what every rung below reads. */
+function tracedRms(system: OpticalSystem, grid: readonly PupilPoint[] = TRACED_GRID): number {
+  const b = exitBundle(system, 0, LINE_D, grid);
+  return spotAt(b, bestSpotZ(b)).rmsRadius;
+}
+
+const spotOperand = (
+  grid: readonly PupilPoint[] = TRACED_GRID,
+  focus: TracedFocus = "bestSpot",
+): TracedOperand => ({
+  kind: "rmsSpot",
+  fieldValue: 0,
+  wavelengthNm: LINE_D,
+  pupil: grid,
+  focus,
+  target: 0,
+});
+
+describe("DLS § 1.8.5 — a traced merit is smooth; only the ray SET is not", () => {
+  it("differences over ten decades of step, and the floor below it is f64", () => {
+    // The forecast being retired, measured. Central differences of the traced
+    // RMS spot in the shape factor, at a shape well off the optimum so the true
+    // derivative is O(1e-2) and not itself near zero.
+    const q0 = 1.2142857142857144;
+    const d = (h: number) =>
+      (tracedRms(tracedSinglet(q0 + h)) - tracedRms(tracedSinglet(q0 - h))) / (2 * h);
+
+    // The plateau, with three widths stated rather than one generous one,
+    // because "smooth enough to difference" is a claim about a RANGE and the
+    // range has a shape. Steps from 1e-6 to 1e-3 agree to seven figures
+    // (2.3577643e-2, spread 1.1e-7); out to 1e-8…1e-2 to five (5.3e-6); across
+    // the whole ten decades 1e-11…1e-2 to three (1.0e-3), which is already more
+    // than a Jacobian needs.
+    const spread = (es: number[]) => {
+      const v = es.map((e) => d(10 ** e));
+      return (Math.max(...v) - Math.min(...v)) / Math.abs(Math.max(...v));
+    };
+    expect(spread([-6, -5, -4, -3])).toBeLessThan(2e-7);
+    expect(spread([-8, -7, -6, -5, -4, -3, -2])).toBeLessThan(1e-5);
+    expect(spread([-11, -10, -9, -8, -7, -6, -5, -4, -3, -2])).toBeLessThan(2e-3);
+    expect(d(1e-5)).toBeCloseTo(2.3577643e-2, 9);
+    // The module's own default step for an O(1) variable, ∛ε ≈ 6.06e-6, is
+    // inside that plateau by four decades either way. Nothing needed changing.
+    expect(Math.cbrt(Number.EPSILON)).toBeGreaterThan(1e-10);
+    expect(Math.cbrt(Number.EPSILON)).toBeLessThan(1e-3);
+
+    // Below the plateau the quotient is cancellation, not sampling: the merit's
+    // own resolution is ~1e-15 mm on a 2.7e-2 mm spot, which is f64 on the
+    // coordinates, and 2h·(true derivative) drops under it around h = 1e-12.
+    const truth = d(1e-5);
+    for (const h of [1e-13, 1e-14]) {
+      expect(Math.abs(d(h) - truth) / truth).toBeGreaterThan(1);
+    }
+    expect(tracedRms(tracedSinglet(q0))).toBeCloseTo(2.745516711202e-2, 12);
+  });
+
+  it("the ONE discontinuity: four rays of 149 rejoin and the merit jumps 6.31%", () => {
+    // A rim placed where a bending walks the beam across it. Nothing about this
+    // is exotic — it is what any real lens with a real edge does.
+    const dc = 1 / ((1.5 - 1) * F);
+    const clipped = (q: number): OpticalSystem => {
+      const c1 = (dc * (q + 1)) / 2;
+      return {
+        prescription: {
+          surfaces: [
+            { kind: "refract", curvature: c1, semiAperture: 55, thickness: TRACED_T, medium: "DLS-N15", isStop: true },
+            { kind: "refract", curvature: c1 - dc, semiAperture: 49.9, thickness: F, medium: "AIR" },
+          ],
+        },
+        aperture: { kind: "stopRadius", value: 50 },
+        field: { kind: "angle", values: [0] },
+        wavelengths: [{ nm: LINE_D, weight: 1 }],
+        conjugate: { kind: "infinite" },
+      };
+    };
+    const rayCount = (q: number) => exitBundle(clipped(q), 0, LINE_D, TRACED_GRID).rays.length;
+
+    // Bisect onto the boundary. It sits at q = 0.7106219, which is 8.0e-5 from
+    // the optimum this fixture's un-clipped twin settles on (0.7107023) — the
+    // cliff is not somewhere else on the map, it is under the answer.
+    let lo = 0.3;
+    let hi = 0.8;
+    const nLo = rayCount(lo);
+    expect(rayCount(hi)).not.toBe(nLo);
+    for (let i = 0; i < 60; i++) {
+      const mid = (lo + hi) / 2;
+      if (rayCount(mid) === nLo) lo = mid;
+      else hi = mid;
+    }
+    expect(lo).toBeCloseTo(0.710621939, 8);
+    expect(Math.abs(lo - 0.710702268824)).toBeLessThan(1e-4);
+
+    const below = tracedRms(clipped(lo));
+    const above = tracedRms(clipped(lo + 1e-12));
+    expect(rayCount(lo)).toBe(145);
+    expect(rayCount(lo + 1e-12)).toBe(149);
+    // 6.30% of merit across 1e-12 of variable. A central difference straddling
+    // it reports a slope of 1e9 where the true one is 1e-4 — thirteen orders.
+    expect((above - below) / below).toBeCloseTo(0.06304, 4);
+    expect(Math.abs((above - below) / 1e-12)).toBeGreaterThan(1e9);
+  });
+});
+
+describe("DLS § 1.8.5 — two exact conjugates, recovered from traced spots alone", () => {
+  it("recovers the PARABOLOID, conic = −1, from four starts", () => {
+    // The conic is not a `SolveVariable`, and does not need to be: a closure is
+    // how the Coddington rung above moves the shape factor too.
+    for (const k0 of [0, -0.5, -1.5, -2]) {
+      const r = dampedLeastSquares((x) => [tracedRms(traceMirror(x[0]!))], [k0]);
+      expect(r.x[0]!).toBeCloseTo(-1, 11);
+      expect(Math.sqrt(r.merit)).toBeLessThan(1e-12);
+    }
+    // The floor: the parabola's own spot is 1.8e-14 mm on a 400 mm mirror, which
+    // is f64 on the ray coordinates and not a residual aberration.
+    expect(tracedRms(traceMirror(-1))).toBeLessThan(1e-13);
+    // …and it is a real minimum, not a flat region: ±0.001 of conic costs 3 500×
+    // the floor, symmetrically. That symmetry is the next rung's subject.
+    expect(tracedRms(traceMirror(-0.999))).toBeGreaterThan(6e-5);
+    expect(tracedRms(traceMirror(-1.001))).toBeGreaterThan(6e-5);
+  });
+
+  it("recovers the CENTRE OF CURVATURE through optimizeSystem, from three starts", () => {
+    const d = 400;
+    for (const R0 of [-380, -420, -300]) {
+      const r = optimizeSystem(concentricMirror(R0, d), [{ kind: "curvature", surface: 0 }], [
+        spotOperand(),
+      ]);
+      // R = −400 to a micron in 400 mm — 2.3e-6 relative, worst of the three
+      // starts. Loose against the paraboloid's 1e-12 above, and for a reason
+      // the rung after next measures: a curvature this far from focus is a very
+      // flat direction, 1.8e-10 mm of spot per millimetre of radius.
+      expect(1 / r.x[0]!).toBeCloseTo(-d, 2);
+      expect(Math.abs(1 / r.x[0]! + d)).toBeLessThan(1e-3);
+      expect(Math.sqrt(r.merit)).toBeLessThan(1e-12);
+    }
+    expect(tracedRms(concentricMirror(-d, d))).toBeLessThan(1e-13);
+  });
+
+  it("and a zero-residual TRACED optimum does not obey § 1.8.2's square root", () => {
+    // § 1.8.2: near a quadratic minimum, resolving the merit to ε locates it
+    // only to √ε. An RMS radius is a NORM, so at a design that is exactly
+    // perfect it grows like |δ| rather than δ² — the merit has a corner, not a
+    // bowl, and the location is then pinned as tightly as the value is.
+    const slope = (dk: number) => tracedRms(traceMirror(-1 + dk)) / Math.abs(dk);
+    // Linear over three decades and symmetric to four figures: 6.37e-2 per unit
+    // of conic either way. A quadratic would fall by 10× per decade here.
+    for (const dk of [1e-3, 1e-4, 1e-5]) {
+      expect(slope(dk) / slope(-dk)).toBeCloseTo(1, 3);
+      expect(slope(dk)).toBeCloseTo(6.3677e-2, 4);
+    }
+    // The consequence, measured: the conic is recovered to 1e-12 while the merit
+    // resolves to 1e-14 — the same order. The Coddington rung above, whose
+    // optimum has a POSITIVE floor and therefore a genuine bowl, is out at 2e-8
+    // against a merit good to 4e-16. Same optimiser, same file, six orders apart,
+    // and the difference is the shape of the optimum rather than the machinery.
+    const traced = dampedLeastSquares((x) => [tracedRms(traceMirror(x[0]!))], [0]);
+    expect(Math.abs(traced.x[0]! + 1)).toBeLessThan(1e-11);
+    const bowl = dampedLeastSquares((x) => [w040(1.5, "DLS-N15", x[0]!)], [0]);
+    expect(Math.abs(bowl.x[0]! - qStar(1.5))).toBeGreaterThan(1e-10);
+  });
+});
+
+describe("DLS § 1.8.5 — Coddington in a double limit, and which limit does the work", () => {
+  const optimumShape = (t: number, semi: number): number =>
+    dampedLeastSquares((x) => [tracedRms(tracedSinglet(x[0]!, t, semi))], [qStar(1.5) + 0.5]).x[0]!;
+
+  it("the traced shape is NOT the third-order shape, and the gap is linear in the GLASS", () => {
+    // Aperture held at 50, thickness varying 2.6 → 40 mm. The gap to q* is a
+    // straight line in t: −5.256e-4 per millimetre, over a 15× range.
+    const at = (t: number) => optimumShape(t, 50) - qStar(1.5);
+    const a = at(2.6);
+    const b = at(6);
+    const c = at(20);
+    const slope1 = (b - a) / (6 - 2.6);
+    const slope2 = (c - b) / (20 - 6);
+    expect(slope1).toBeCloseTo(-5.256e-4, 6);
+    expect(slope2 / slope1).toBeCloseTo(1, 2);
+    // Extrapolated to no glass at all, 4.3e-4 of gap survives — and THAT part is
+    // the aperture's.
+    expect(a - 2.6 * slope1).toBeCloseTo(-4.29e-4, 5);
+  });
+
+  it("with the glass HELD, shrinking the aperture does NOT close the gap", () => {
+    // The correction that matters. A first ladder shrank the aperture while
+    // scaling the thickness with it — t = 1.5·(the minimum that aperture needs),
+    // which is ∝ h² — measured a clean h² convergence toward q*, and would have
+    // recorded it as the aperture's doing. It is the glass's.
+    const held = [50, 25, 12.5, 6.25, 3.125, 1.5625].map(
+      (semi) => optimumShape(3.75, semi) - qStar(1.5),
+    );
+    // From 6.25 mm down it is flat to three figures at −1.97e-3: the thick-lens
+    // offset of 3.75 mm of glass, which no aperture limit can remove. Twelve
+    // millimetres of aperture is already inside a thousandth of the floor.
+    for (const g of held.slice(3)) expect(g).toBeCloseTo(-1.9725e-3, 5);
+    expect(held[held.length - 1]! / held[0]!).toBeGreaterThan(0.8);
+    // Only the DIFFERENCE across the ladder is the aperture's, and that part is
+    // the forecast h²: 4.29e-4 at 50 mm, quartering with each halving. The tail
+    // is not asserted — once it is under 1e-5 it is at the resolution of the
+    // located shape itself, which the sample-set rung below measures at 5e-5.
+    const aperturePart = (i: number) => held[i]! - held[held.length - 1]!;
+    expect(aperturePart(0)).toBeCloseTo(-4.29e-4, 5);
+    expect(aperturePart(0) / aperturePart(1)).toBeCloseTo(4, 0);
+    expect(aperturePart(1) / aperturePart(2)).toBeCloseTo(4, 0);
+  });
+
+  it("so q* is recovered only in the double limit, and best at 2 mm of aperture", () => {
+    // Both mechanisms are ∝ h² once the glass is cut to what the aperture needs,
+    // so the gap is ≈ −9.6e-7·h² and the recovery is real but slow. Below ~1 mm
+    // the spot itself (∝ h³) drops toward the f64 floor and the located shape
+    // starts to wander instead: a window, not a limit.
+    const shrink = (semi: number) => {
+      const tMin = (semi * semi) / (2 * (1.5 - 1) * F);
+      return optimumShape(1.5 * tMin, semi) - qStar(1.5);
+    };
+    expect(shrink(50)).toBeCloseTo(-2.4e-3, 4);
+    expect(shrink(5)).toBeCloseTo(-2.34e-5, 6);
+    // The best agreement this fixture reaches, and it is a genuine recovery of a
+    // published thin-lens constant from nothing but traced ray coordinates.
+    expect(Math.abs(shrink(2))).toBeLessThan(5e-6);
+    // …and it gets WORSE below that, which is why no limit is claimed.
+    expect(Math.abs(shrink(0.1))).toBeGreaterThan(10 * Math.abs(shrink(2)));
+  });
+});
+
+describe("DLS § 1.8.5 — what the caller must state, because nothing can choose it", () => {
+  it("the sample set moves the VALUE 15% and the ANSWER 5e-5", () => {
+    const grids = [7, 11, 15, 21, 31, 41].map((n) => pupilGrid(n));
+    const values = grids.map((g) => tracedRms(tracedSinglet(1.2142857142857144), g));
+    const answers = grids.map(
+      (g) => dampedLeastSquares((x) => [tracedRms(tracedSinglet(x[0]!), g)], [qStar(1.5) + 0.5]).x[0]!,
+    );
+    // 29 rays to 1 253. The merit is a different number at each: 3.27e-2 down to
+    // 2.85e-2, and it is not even monotone.
+    expect(Math.max(...values) / Math.min(...values) - 1).toBeGreaterThan(0.14);
+    // The design it picks is very nearly the same one, though — 5.3e-5 of spread
+    // against 15% of value. § 1.8.2 says the value is what an optimiser knows and
+    // the design is what it guesses; on the sample set it is the other way round.
+    expect(Math.max(...answers) - Math.min(...answers)).toBeLessThan(1e-4);
+    expect(Math.max(...answers) - Math.min(...answers)).toBeGreaterThan(1e-5);
+  });
+
+  it("a derived aperture breathes with the design, and moves the answer as much as the physics does", () => {
+    // Only `stopRadius` states the pupil outright. `fNumber` computes it from
+    // the design being optimised, so the ray set is not held after all.
+    const byF = (q: number): OpticalSystem => ({
+      ...tracedSinglet(q),
+      aperture: { kind: "fNumber", value: 10 },
+    });
+    const radius = (q: number) => pupils(byF(q), LINE_D).stopRadius;
+    expect(radius(0.4)).toBeCloseTo(50.042035, 5);
+    expect(radius(2.0)).toBeCloseTo(49.850449, 5);
+    const held = dampedLeastSquares((x) => [tracedRms(tracedSinglet(x[0]!))], [qStar(1.5) + 0.5]).x[0]!;
+    const breathing = dampedLeastSquares((x) => [tracedRms(byF(x[0]!))], [qStar(1.5) + 0.5]).x[0]!;
+    // 2.0e-3 apart — the same size as the entire thick-lens offset the rungs
+    // above spend three ladders separating out.
+    expect(Math.abs(breathing - held)).toBeCloseTo(1.97e-3, 4);
+  });
+
+  it("one scalar RMS beats one residual per ray by nothing worth having", () => {
+    // The obvious alternative: hand the optimiser every ray's displacement as
+    // its own residual, 2N rows instead of 1. It is what a lens-design merit
+    // classically is, and here it buys 2.5e-8 of shape for 12% more evaluations.
+    const q0 = qStar(1.5) + 0.5;
+    const scalar = dampedLeastSquares((x) => [tracedRms(tracedSinglet(x[0]!))], [q0]);
+    const perRay = dampedLeastSquares((x) => {
+      const b = exitBundle(tracedSinglet(x[0]!), 0, LINE_D, TRACED_GRID);
+      const s = spotAt(b, bestSpotZ(b));
+      return s.points.flatMap((p) => [p.x - s.centroidX, p.y - s.centroidY]);
+    }, [q0]);
+    expect(Math.abs(scalar.x[0]! - perRay.x[0]!)).toBeLessThan(1e-7);
+    expect(Math.sqrt(perRay.merit / (perRay.residuals.length / 2))).toBeCloseTo(
+      Math.sqrt(scalar.merit),
+      9,
+    );
+    expect(perRay.evaluations).toBeGreaterThan(scalar.evaluations);
+    // The vector form does light up the gradient test, which a single operand
+    // leaves at 1 by construction (§ 1.8.4) — but that is a readout, not an
+    // answer, and it is not worth a residual vector whose LENGTH is a function
+    // of the design in a module that throws when the length changes.
+    expect(scalar.gradient).toBe(1);
+    expect(perRay.gradient).toBeLessThan(1e-3);
+  });
+
+  it("the two focus conventions differ by 10× and neither is the default", () => {
+    const q = 1.2142857142857144;
+    const b = exitBundle(tracedSinglet(q), 0, LINE_D, TRACED_GRID);
+    const atBest = spotAt(b, bestSpotZ(b)).rmsRadius;
+    const atPlane = spotAt(b, imagePlaneZ(asCompiled(tracedSinglet(q).prescription), tracedSinglet(q)))
+      .rmsRadius;
+    expect(atBest).toBeCloseTo(2.7455e-2, 6);
+    expect(atPlane).toBeCloseTo(2.4987e-1, 5);
+    expect(atPlane / atBest).toBeGreaterThan(9);
+  });
+});
+
+describe("DLS § 1.8.5 — the survivor set is held, and the run says when that binds", () => {
+  const dc = 1 / ((1.5 - 1) * F);
+  /** The clipped fixture again: its dropout sits 8e-5 from the optimum. */
+  const clipped = (q: number): OpticalSystem => {
+    const c1 = (dc * (q + 1)) / 2;
+    return {
+      prescription: {
+        surfaces: [
+          { kind: "refract", curvature: c1, semiAperture: 55, thickness: TRACED_T, medium: "DLS-N15", isStop: true },
+          { kind: "refract", curvature: c1 - dc, semiAperture: 49.9, thickness: F, medium: "AIR" },
+        ],
+      },
+      aperture: { kind: "stopRadius", value: 50 },
+      field: { kind: "angle", values: [0] },
+      wavelengths: [{ nm: LINE_D, weight: 1 }],
+      conjugate: { kind: "infinite" },
+    };
+  };
+
+  it("a run started on the far side of a dropout stops at the boundary rather than crossing it", () => {
+    // Started at q = 0.5, where four rays are already clipped. The optimum of
+    // the 145-ray merit is on the other side of the boundary at 0.7106219, and
+    // the hold means the optimiser may not step over it.
+    const r = optimizeSystem(clipped(0.5), [{ kind: "curvature", surface: 0 }], [spotOperand()]);
+    const dcOf = (c: number) => (2 * c) / dc - 1;
+    const qEnd = dcOf(r.x[0]!);
+    // It walks up to the boundary and stops there — 145 rays throughout, and the
+    // stopping shape is on the starting side of 0.7106219.
+    expect(qEnd).toBeLessThan(0.710621940);
+    expect(exitBundle(clipped(qEnd), 0, LINE_D, TRACED_GRID).rays.length).toBe(145);
+    // …and it is not a silent success. λ has been driven up by the rejected
+    // steps, and the residual is reported so a caller can see the spot it
+    // actually settled on rather than trusting the word "converged".
+    expect(["damping", "step", "merit"]).toContain(r.reason);
+    expect(r.rejected).toBeGreaterThan(0);
+    expect(Math.abs(r.residuals[0]!)).toBeGreaterThan(1e-3);
+  });
+
+  it("refuses a start it cannot read, by name", () => {
+    // § 5j.1's own 1 nm fixture at its own aperture: the surfaces cross off axis
+    // and almost nothing gets through. The old message for this was "the
+    // starting point is not a system", which is true and names the wrong thing.
+    expect(() =>
+      optimizeSystem(tracedSinglet(qStar(1.5), 1e-6), [{ kind: "curvature", surface: 0 }], [
+        spotOperand(pupilGrid(31)),
+      ]),
+    ).toThrow(/rays surviving — a spot needs two/);
+    expect(() =>
+      optimizeSystem(tracedSinglet(qStar(1.5)), [{ kind: "curvature", surface: 0 }], [
+        spotOperand([{ px: 0, py: 0 }]),
+      ]),
+    ).toThrow(/no spot to measure/);
+    // And it keeps every refusal `optimizePrescription` makes.
+    expect(() => optimizeSystem(tracedSinglet(1), [], [spotOperand()])).toThrow(/no variables/);
+    expect(() =>
+      optimizeSystem(tracedSinglet(1), [{ kind: "curvature", surface: 9 }], [spotOperand()]),
+    ).toThrow(/not in a prescription/);
+  });
+
+  it("mixes a traced wish with a paraxial one — which is the question a designer asks", () => {
+    // "Hold the focal length and shrink the spot" is one merit over two
+    // operands in different units, so the weight is an exchange rate and the
+    // answer moves with it — § 1.8.4's point, now with a traced operand in it.
+    // Power is in 1/mm and 1e-3 of it is the whole system, so the weight below
+    // is what makes a diopter cost more than a millimetre of blur.
+    const start = tracedSinglet(qStar(1.5) + 0.5);
+    const target = systemProperties(start.prescription, LINE_D).efl;
+    const r = optimizeSystem(
+      start,
+      [
+        { kind: "curvature", surface: 0 },
+        { kind: "curvature", surface: 1 },
+      ],
+      [
+        { kind: "power", wavelengthNm: LINE_D, target: 1 / target, weight: 1e6 },
+        spotOperand(),
+      ],
+    );
+    const moved = withVariables(start.prescription, [
+      { kind: "curvature", surface: 0 },
+      { kind: "curvature", surface: 1 },
+    ], r.x);
+    // The focal length is held to a part in 1e5 while the spot comes down 21%,
+    // and 21% is the whole of what was available: holding the power with two
+    // curvatures leaves exactly one freedom, the bending, so the answer lands on
+    // the traced Coddington optimum the one-variable rungs above found —
+    // 2.1555e-2 mm against 2.1514e-2. Two variables, two wishes, and the merit
+    // recovers a shape the merit was never told about.
+    expect(systemProperties(moved, LINE_D).efl / target).toBeCloseTo(1, 5);
+    const shrunk = tracedRms({ ...start, prescription: moved });
+    expect(shrunk).toBeLessThan(0.8 * tracedRms(start));
+    const bestBending = dampedLeastSquares(
+      (x) => [tracedRms(tracedSinglet(x[0]!))],
+      [qStar(1.5) + 0.5],
+    );
+    expect(shrunk / Math.sqrt(bestBending.merit)).toBeCloseTo(1, 2);
+    // Both operands are live — this is not the traced one riding along.
+    expect(r.residuals).toHaveLength(2);
+    expect(Math.abs(r.residuals[0]!)).toBeGreaterThan(0);
   });
 });

@@ -5128,10 +5128,12 @@ about the physics — arriving on a panel instead of on a rung.
 
 - **No traced targets.** Everything here is first-order, which is why the whole
   readout is 0.7–1.9 ms in a browser and the elapsed number is at the bottom of
-  the page. A target
-  on an RMS spot or a Zernike term changes the cost model by four orders and wants
-  a different search than a full scan — § 1.7 names it as not-yet-pinned and this
-  panel does not pretend otherwise.
+  the page. A target on an RMS spot or a Zernike term changes the cost model and
+  wants a different search than a full scan — § 1.7 names it as not-yet-pinned
+  and this panel does not pretend otherwise. **"By four orders" is corrected:**
+  § 1.8.5 measured a traced residual at **430×** a third-order sum on a 149-ray
+  pupil, linear in the ray count. A 64-cell scan of them is ~0.4 s, not the
+  minute this sentence implied — dear for a slider, and not out of reach.
 - **No damped least squares.** The second half of design mode. It is no longer
   waiting on a pin — `core/analysis/optimize` and VALIDATION § 1.8 landed after
   this panel, on two closed-form minimisers — so what is missing here is app
@@ -5266,11 +5268,20 @@ expensive per evaluation and is not offered — see below.
 
 ### What it does not do
 
-- **No traced targets.** An RMS spot or a Zernike term as a wish is the same
-  optimiser with a residual four orders more expensive, and it brings a question
-  this panel would have to answer first: a traced merit carries sampling noise,
-  and differencing noise is how an optimiser is made to chase its own tail.
-  § 1.8 names it as not-yet-pinned and this panel does not pretend otherwise.
+- **No traced targets *here*** — but the engine has them now, and this bullet's
+  reasoning was wrong twice over, so it is corrected rather than deleted.
+  § 1.8.5 landed `optimizeSystem` with an RMS-spot operand and measured what this
+  bullet guessed at: the residual is **430×** a third-order sum on a 149-ray
+  pupil and linear in the ray count, not four orders; and a traced merit does
+  **not** carry sampling noise — over a fixed ray set it differences cleanly
+  across ten decades of step. What actually bites is a ray leaving the surviving
+  set (6.30% of merit across 10⁻¹² of variable), which the engine handles by
+  holding the set. So what is missing here is **app wiring and a cost decision**,
+  not a pin: at 430× a residual and ~30 evaluations a run, a traced merit puts
+  this panel's 0.1–20 ms readout into the seconds, and the convergence trail
+  (finding 6 above) replays the whole run up to 48 times on top of that. That is
+  a different panel's performance budget, and it wants the same "which settings
+  can this actually be asked at" treatment the darkfield control got.
 - **No constraints, only heavily weighted wishes.** "Hold the focal length
   *exactly* while minimising aberration" is a Lagrange condition, not a residual
   with a big weight, and finding 5 above is the difference measured rather than

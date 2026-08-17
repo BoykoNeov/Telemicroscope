@@ -1,6 +1,11 @@
 import { Prescription } from "../trace/prescription";
+import { OpticalSystem } from "../trace/system";
 import { paraxialTrace, systemProperties } from "../trace/paraxial";
+import { asCompiled } from "../trace/compile";
 import { householderLeastSquares } from "../math/lsq";
+import { PupilPoint } from "../pupil/aiming";
+import { imagePlaneZ } from "../pupil/pupils";
+import { exitBundle, spotAt, bestSpotZ, type ExitRay } from "./spot";
 import { seidelSums } from "./seidel";
 import { withVariable, type SolveVariable } from "./solve";
 
@@ -88,6 +93,50 @@ import { withVariable, type SolveVariable } from "./solve";
  * would be; a wall inside a finite-difference stencil is stepped around by
  * differencing on the other side; and a wall at the STARTING point is a throw,
  * because there is nothing to be damped away from.
+ *
+ * ## Traced operands, and the one thing that actually threatens them
+ *
+ * `optimizePrescription` takes a prescription, which is all a paraxial or
+ * third-order operand needs. A traced one needs a SYSTEM — an aperture, a field,
+ * a conjugate — so it gets its own entry point, `optimizeSystem`, rather than a
+ * widened signature on the one every existing rung is validated through.
+ *
+ * The forecast this file carried until § 1.8.5 was that a traced merit would be
+ * hard to difference because it "carries sampling noise". **Measured, that is
+ * wrong, and wrong about the mechanism rather than the size.** Against a FIXED
+ * set of pupil points the traced RMS spot is an ordinary smooth function of the
+ * design: the central-difference estimate is stable to five significant figures
+ * across nine decades of step, h = 10⁻¹¹ … 10⁻², and the floor below that is f64
+ * rounding on the merit itself (~10⁻¹⁵ mm on a 2.7·10⁻² mm spot), not sampling.
+ * The module's default step sits in the middle of that plateau. Nothing here
+ * needed changing for a traced residual to be differenced.
+ *
+ * What DOES threaten it is a discontinuity, and there is exactly one: **a ray
+ * entering or leaving the surviving set.** `exitBundle` drops what vignettes and
+ * `spotAt` divides by the survivors, so the merit is an average over a set whose
+ * MEMBERSHIP is design-dependent. Measured on a rim placed where a bending walks
+ * the beam across it: four rays of 149 rejoin, and the merit jumps 6.31% across a
+ * step of 10⁻¹² in the variable — a difference quotient of order 10¹⁰ where the
+ * true derivative is 10⁻⁴. That cliff sat 8·10⁻⁵ from the optimum being sought.
+ *
+ * So a traced operand **holds its survivor set**, recorded at the starting point,
+ * and a trial design whose set differs is not a system. This is `seidelS1`'s
+ * fixed `marginalHeightMm` one level up — a ray height that moved with the design
+ * would change the merit for reasons that are not the design, and a ray COUNT
+ * that moves is the same defect. The consequence is deliberate and pinned rather
+ * than left to be discovered: an optimum on the far side of a dropout boundary is
+ * unreachable, and the run says so by stopping on damping with its residual
+ * reported, not by walking through the cliff.
+ *
+ * The same argument decides the aperture: the sample set is only fixed if the
+ * pupil is. `stopRadius` states a radius outright; `fNumber`, `imageNA` and
+ * `objectNA` DERIVE one from the design, so the pupil breathes as the variables
+ * move and the operand is no longer measuring one set of rays. Measured on the
+ * singlet fixture, `fNumber` drifts the stop radius 50.042 → 49.850 across the
+ * shapes an optimiser visits and moves the answer by 2.0·10⁻³ in shape factor —
+ * the same size as the whole thick-lens offset the step is measuring. Held-pupil
+ * aperture kinds are the contract; the rest are a different question, honestly
+ * asked, and not this one.
  */
 
 /** How the step is damped. */
@@ -492,6 +541,47 @@ export type OptimizeOperand =
     };
 
 /**
+ * Which plane a traced spot is measured on.
+ *
+ * `"bestSpot"` refocuses every trial to its own minimum-RMS plane, which
+ * `bestSpotZ` gives in closed form — no search, so no search error enters the
+ * merit. `"systemImagePlane"` measures where the system actually forms the
+ * image, so a design that shifts its focus is charged for it. Both are smooth;
+ * neither is more correct, and the difference is a factor of ten in merit on the
+ * singlet fixture (2.5·10⁻¹ mm against 2.7·10⁻²), which is why it is stated
+ * rather than defaulted.
+ */
+export type TracedFocus = "bestSpot" | "systemImagePlane";
+
+/**
+ * A wish about a quantity only real rays can answer.
+ *
+ * Every field here is something no default can choose: which field point, which
+ * wavelength, which rays. The pupil sample set in particular is the merit's
+ * definition and not a resolution knob — measured on the singlet, going from 29
+ * rays to 1 253 moves the merit's VALUE by 15% and the optimum's LOCATION by
+ * 5.3·10⁻⁵, so two callers who sample differently are asking near-enough the
+ * same design question and reading two different numbers off it.
+ */
+export type TracedOperand = {
+  /** RMS spot radius (mm), about the centroid, unweighted by throughput. */
+  readonly kind: "rmsSpot";
+  /** Field angle in degrees, or object height in mm — as the system spells it. */
+  readonly fieldValue: number;
+  readonly wavelengthNm: number;
+  /** The rays. Fixed for the whole run; `pupilGrid`/`pupilFan` build them. */
+  readonly pupil: readonly PupilPoint[];
+  readonly focus: TracedFocus;
+  readonly target: number;
+  readonly weight?: number;
+};
+
+/** Anything `optimizeSystem` can be asked for. */
+export type SystemOperand = OptimizeOperand | TracedOperand;
+
+const isTraced = (o: SystemOperand): o is TracedOperand => o.kind === "rmsSpot";
+
+/**
  * A copy of `prescription` with several numbers changed at once.
  *
  * `withVariable`'s contract, extended to the variable LIST an optimiser moves:
@@ -555,39 +645,161 @@ export function optimizePrescription(
   operands: readonly OptimizeOperand[],
   options: DlsOptions = {},
 ): DlsResult {
-  if (variables.length === 0) throw new Error("optimizePrescription: no variables to move");
-  if (operands.length === 0) throw new Error("optimizePrescription: no operands to minimise");
-  const seen = new Set<string>();
-  for (const v of variables) {
-    if (!Number.isInteger(v.surface) || v.surface < 0 || v.surface >= prescription.surfaces.length) {
-      throw new Error(
-        `optimizePrescription: surface ${v.surface} is not in a prescription of ` +
-          `${prescription.surfaces.length}`,
-      );
-    }
-    const key = `${v.kind}:${v.surface}`;
-    if (seen.has(key)) throw new Error(`optimizePrescription: ${key} is listed twice`);
-    seen.add(key);
-  }
-  for (const o of operands) {
-    const w = o.weight ?? 1;
-    if (!(Number.isFinite(w) && w !== 0)) {
-      throw new Error(`optimizePrescription: a weight of ${w} on a ${o.kind} operand is not a weight`);
-    }
-    if (!Number.isFinite(o.target)) {
-      throw new Error(`optimizePrescription: a ${o.kind} target of ${o.target} is not a target`);
-    }
-  }
-
-  const x0 = variables.map((v) => {
-    const s = prescription.surfaces[v.surface]!;
-    return v.kind === "curvature" ? s.curvature : s.thickness;
-  });
+  validate("optimizePrescription", prescription, variables, operands);
 
   const residuals = (x: readonly number[]): readonly number[] => {
     const trial = withVariables(prescription, variables, x);
     return operands.map((o) => (o.weight ?? 1) * (operandValue(trial, o) - o.target));
   };
 
-  return dampedLeastSquares(residuals, x0, options);
+  return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
+}
+
+/** The checks both entry points make, so neither can drift from the other. */
+function validate(
+  where: string,
+  prescription: Prescription,
+  variables: readonly SolveVariable[],
+  operands: readonly SystemOperand[],
+): void {
+  if (variables.length === 0) throw new Error(`${where}: no variables to move`);
+  if (operands.length === 0) throw new Error(`${where}: no operands to minimise`);
+  const seen = new Set<string>();
+  for (const v of variables) {
+    if (!Number.isInteger(v.surface) || v.surface < 0 || v.surface >= prescription.surfaces.length) {
+      throw new Error(
+        `${where}: surface ${v.surface} is not in a prescription of ` +
+          `${prescription.surfaces.length}`,
+      );
+    }
+    const key = `${v.kind}:${v.surface}`;
+    if (seen.has(key)) throw new Error(`${where}: ${key} is listed twice`);
+    seen.add(key);
+  }
+  for (const o of operands) {
+    const w = o.weight ?? 1;
+    if (!(Number.isFinite(w) && w !== 0)) {
+      throw new Error(`${where}: a weight of ${w} on a ${o.kind} operand is not a weight`);
+    }
+    if (!Number.isFinite(o.target)) {
+      throw new Error(`${where}: a ${o.kind} target of ${o.target} is not a target`);
+    }
+    if (isTraced(o) && o.pupil.length < 2) {
+      throw new Error(
+        `${where}: a ${o.kind} operand over ${o.pupil.length} pupil point(s) has no spot to measure`,
+      );
+    }
+  }
+}
+
+function startingValues(
+  prescription: Prescription,
+  variables: readonly SolveVariable[],
+): number[] {
+  return variables.map((v) => {
+    const s = prescription.surfaces[v.surface]!;
+    return v.kind === "curvature" ? s.curvature : s.thickness;
+  });
+}
+
+/**
+ * The surviving rays' pupil coordinates, flattened — the set a traced operand
+ * holds. Stored as the coordinates themselves rather than a count, because a
+ * design can lose one ray and gain another and leave the count alone.
+ */
+function survivorKey(rays: readonly ExitRay[]): Float64Array {
+  const k = new Float64Array(rays.length * 2);
+  for (let i = 0; i < rays.length; i++) {
+    k[2 * i] = rays[i]!.px;
+    k[2 * i + 1] = rays[i]!.py;
+  }
+  return k;
+}
+
+function sameSurvivors(a: Float64Array, b: Float64Array): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/** One traced operand's reading, and the survivor set it was read over. */
+function tracedRead(
+  system: OpticalSystem,
+  prescription: Prescription,
+  operand: TracedOperand,
+): { value: number; survivors: Float64Array } {
+  const trial: OpticalSystem = { ...system, prescription };
+  const bundle = exitBundle(trial, operand.fieldValue, operand.wavelengthNm, operand.pupil);
+  const survivors = survivorKey(bundle.rays);
+  // Counted before the spot is asked for. `bestSpotZ` refuses a bundle of one
+  // ray with a message about focus, which is true and is not what went wrong.
+  if (bundle.rays.length < 2) {
+    throw new Error(
+      `a ${operand.kind} operand has ${bundle.rays.length} of ${operand.pupil.length} ` +
+        `rays surviving — a spot needs two`,
+    );
+  }
+  const z =
+    operand.focus === "bestSpot"
+      ? bestSpotZ(bundle)
+      : imagePlaneZ(asCompiled(prescription), trial);
+  return { value: spotAt(bundle, z).rmsRadius, survivors };
+}
+
+/**
+ * Damped least squares over the numbers of a SYSTEM, which is what a traced
+ * operand needs — a spot has a field, an aperture and a conjugate, and a
+ * prescription alone has none of them.
+ *
+ * Paraxial and third-order operands are accepted here too and mean exactly what
+ * they mean in `optimizePrescription`, so a merit may mix them: "hold the power
+ * and shrink the spot" is one question, not two.
+ *
+ * The traced operands' survivor sets are fixed at the starting design (see the
+ * module header). A start that cannot show a spot is refused HERE, by name,
+ * rather than reaching the solver as an unhelpfully general "not a system".
+ */
+export function optimizeSystem(
+  system: OpticalSystem,
+  variables: readonly SolveVariable[],
+  operands: readonly SystemOperand[],
+  options: DlsOptions = {},
+): DlsResult {
+  const prescription = system.prescription;
+  validate("optimizeSystem", prescription, variables, operands);
+
+  // The survivor sets, and the refusal that says which operand could not be
+  // read and how far short it fell. `exitBundle` reports what vignetted, so the
+  // message can name the count rather than the symptom.
+  const held = new Map<number, Float64Array>();
+  operands.forEach((o, i) => {
+    if (!isTraced(o)) return;
+    let survivors: Float64Array;
+    try {
+      ({ survivors } = tracedRead(system, prescription, o));
+    } catch (e) {
+      throw new Error(`optimizeSystem: operand ${i} cannot be read at the start — ${(e as Error).message}`);
+    }
+    held.set(i, survivors);
+  });
+
+  const residuals = (x: readonly number[]): readonly number[] => {
+    const trial = withVariables(prescription, variables, x);
+    return operands.map((o, i) => {
+      const w = o.weight ?? 1;
+      if (!isTraced(o)) return w * (operandValue(trial, o) - o.target);
+      const { value, survivors } = tracedRead(system, trial, o);
+      if (!sameSurvivors(survivors, held.get(i)!)) {
+        // Not a worse design — a different question. Same treatment as any
+        // other wall: the step is undone and the damping rises.
+        throw new Error(
+          `optimizeSystem: operand ${i}'s surviving rays changed, ` +
+            `${held.get(i)!.length / 2} → ${survivors.length / 2}`,
+        );
+      }
+      return w * (value - o.target);
+    });
+  };
+
+  return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
 }

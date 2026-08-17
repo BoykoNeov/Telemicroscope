@@ -1908,6 +1908,25 @@ or name a route that did not resolve.
     while moving a focal length is exactly a merit over several variables, and
     a single curvature spends 29× to 240× of the achromat's colour correction
     doing it alone.
+    **§ 1.8.5 has since added TRACED targets** — `optimizeSystem`, an RMS-spot
+    operand, and two more external numbers: a paraboloid recovered to 1e-12 in
+    conic and a spherical mirror's centre of curvature recovered to 2.3e-6, both
+    exact conjugates at every aperture and to all orders. *The finding to carry
+    out of it is that the bullet it closed was wrong about the mechanism and
+    about the size, and right that something would bite.* A traced merit carries
+    no sampling noise at all against a fixed ray set — it differences cleanly
+    over ten decades of step — and it costs 430× a third-order sum rather than
+    the forecast four orders. What it does carry is one genuine discontinuity
+    nobody had named: a ray entering or leaving the surviving set moves the merit
+    **6.30% across a step of 1e-12**, and on the fixture that shows it the cliff
+    sits 8e-5 from the optimum. The set is therefore held, which is `seidelS1`'s
+    fixed ray height one level up. Second finding, on the ladder rather than the
+    physics: the first convergence ladder shrank the aperture while scaling the
+    glass with it and would have recorded a clean h² approach to Coddington's
+    shape as the aperture's doing. Held apart, the aperture's part is 4.29e-4 and
+    the glass's is −5.256e-4 per millimetre, and **the glass was carrying five
+    sixths of it.** Still no surface — see APP.md Part N, where the missing piece
+    is now a cost decision rather than a pin.
 
 ## Engineering practices to land alongside the code
 
