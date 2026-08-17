@@ -387,17 +387,23 @@ export function OptimizePanel() {
       <h2 style={{ fontSize: 16, marginTop: 24 }}>What this does not do</h2>
       <ul style={{ maxWidth: 700, color: "#444", fontSize: 14, lineHeight: 1.6 }}>
         <li>
-          <strong>No traced targets.</strong> Every wish here is first-order or third-order. A merit
-          on an RMS spot or a Zernike term is the same optimiser with a residual four orders of
-          magnitude more expensive, and it brings a question this panel would have to answer first:
-          a traced merit carries sampling noise, and differencing noise is how an optimiser is made
-          to chase its own tail.
+          <strong>No traced targets here — the engine has them.</strong> Every wish on this panel
+          is first-order or third-order. The engine gained an RMS-spot merit, and both halves of
+          what this bullet used to guess at were measured and wrong: a traced residual is 430× a
+          third-order sum rather than four orders, and it carries no sampling noise at all — over a
+          fixed ray set it differences cleanly across ten decades of step. What bites is a ray
+          leaving the surviving set, which the engine handles by holding the set. What is missing
+          here is the wiring and a cost decision: at 430× a residual, and a convergence trail that
+          replays the run up to 48 times, this panel&rsquo;s millisecond readout becomes seconds.
         </li>
         <li>
-          <strong>No constraints, only heavily weighted wishes.</strong> &ldquo;Hold the focal length{" "}
-          <em>exactly</em> while minimising aberration&rdquo; is a different mathematical object
-          from a wish with a big weight, and the best-form seed shows the difference as a number
-          that will not go to zero.
+          <strong>No conditions here — the engine has those too.</strong> &ldquo;Hold the focal
+          length <em>exactly</em> while minimising aberration&rdquo; is a different mathematical
+          object from a wish with a big weight, and the engine now solves it as one. What it buys is
+          not a more accurate answer, which is what everyone expected: it is the focal length held
+          to the last bit instead of to a part in ten million, a multiplier that says what holding
+          it is costing in aberration, and no weight to guess at. This panel still asks by weight,
+          so the two gaps below are what a weight looks like.
         </li>
         <li>
           <strong>The variables are the seed&rsquo;s.</strong> Choosing which numbers a design may

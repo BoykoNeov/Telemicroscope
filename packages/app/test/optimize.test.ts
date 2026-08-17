@@ -13,6 +13,7 @@ import {
   type OptimizeSpec,
 } from "../src/optimize";
 import { getMedium, LINE_D } from "@telemicroscope/core/materials";
+import { systemProperties } from "@telemicroscope/core/trace";
 
 /**
  * APP.md Part N — design mode's second half on a screen.
@@ -201,7 +202,11 @@ describe("the currency changes the answer, not only the work", () => {
  * lands from Coddington's published minimum. The panel offers neither control,
  * which is why the sweep lives here and the panel shows two points off it.
  */
-function gapAtThickness(thicknessMm: number, focalWeight?: number): number {
+function gapAtThickness(
+  thicknessMm: number,
+  focalWeight?: number,
+  steps?: readonly number[],
+): number {
   const seed = optimizeSeedById("bestform");
   const prescription = {
     ...seed.prescription,
@@ -213,7 +218,7 @@ function gapAtThickness(thicknessMm: number, focalWeight?: number): number {
   const operands = seed.wishes.map((w, i) =>
     operandFor(i === 0 && focalWeight !== undefined ? { ...w, weight: focalWeight } : w, seed, "power"),
   );
-  const r = optimizePrescription(prescription, seed.variables, operands, {});
+  const r = optimizePrescription(prescription, seed.variables, operands, steps ? { steps } : {});
   return shapeFactor(r.x[0]!, r.x[1]!) / bestFormShapeFactor(getMedium("N-BK7").n(LINE_D)) - 1;
 }
 
@@ -271,16 +276,55 @@ describe("the closed forms the seeds are checked against", () => {
     expect(Math.abs(gapAtThickness(1e-6))).toBeLessThan(1e-6);
   });
 
-  it("…while the WEIGHT half improves, and then reverses", () => {
-    // The other half of finding 5, and the reason the panel says a weight is
-    // not a thing where bigger is better. Run on the thin lens so the
-    // thickness is out of the way.
+  it("…while the WEIGHT half improves, and then reverses — at the DEFAULT step", () => {
+    // The other half of finding 5. Run on the thin lens so the thickness is out
+    // of the way. The sweep is real and the panel draws two points off it, but
+    // read the next rung before reading a mechanism into its shape.
     const gaps = [1, 1e2, 1e4, 1e6, 1e7].map((w) => Math.abs(gapAtThickness(1e-6, w)));
     for (let i = 1; i < 4; i++) expect(gaps[i]!).toBeLessThan(gaps[i - 1]!);
     expect(gaps[3]!).toBeLessThan(gaps[0]! / 100);
-    // Past 1e6 the aberration term stops being visible in the merit at all and
-    // the answer gets WORSE — the measured end of "tighten it by weighting".
+    // Past 1e6 the answer gets WORSE — the measured end of "tighten it by
+    // weighting".
     expect(gaps[4]!).toBeGreaterThan(gaps[3]! * 5);
+  });
+
+  it("…and that sweep is the differencing STEP, not the weight — § 1.8.6's correction", () => {
+    // These curvatures are ~1.3e-3 and the module's default step floors at 1, so
+    // the default differences them over half a percent of themselves. State a
+    // step and the whole sweep collapses: every weight from 1 to 1e7 lands
+    // within 1e-8 of the same shape, four orders better than the best cell of
+    // the sweep above, and the ordering between the cells is gone.
+    const stated = [1, 1e2, 1e4, 1e6, 1e7].map((w) =>
+      Math.abs(gapAtThickness(1e-6, w, [1e-9, 1e-9])),
+    );
+    for (const g of stated) expect(g).toBeLessThan(1e-8);
+    const coarse = [1, 1e2, 1e4, 1e6, 1e7].map((w) => Math.abs(gapAtThickness(1e-6, w)));
+    expect(Math.max(...coarse) / Math.max(...stated)).toBeGreaterThan(100);
+
+    // The shape cannot see the weight because q* does not depend on the power:
+    // at weight 1 the recovered shape is right and the LENS is 55% wrong.
+    const seed = optimizeSeedById("bestform");
+    const thin = {
+      ...seed.prescription,
+      surfaces: [{ ...seed.prescription.surfaces[0]!, thickness: 1e-6 }, seed.prescription.surfaces[1]!],
+    };
+    const loose = optimizePrescription(
+      thin,
+      seed.variables,
+      seed.wishes.map((w, i) => operandFor(i === 0 ? { ...w, weight: 1 } : w, seed, "power")),
+      { steps: [1e-9, 1e-9] },
+    );
+    const efl = systemProperties(
+      {
+        ...thin,
+        surfaces: [
+          { ...thin.surfaces[0]!, curvature: loose.x[0]! },
+          { ...thin.surfaces[1]!, curvature: loose.x[1]! },
+        ],
+      },
+      LINE_D,
+    ).efl;
+    expect(Math.abs(efl / 500 - 1)).toBeGreaterThan(0.5);
   });
 });
 

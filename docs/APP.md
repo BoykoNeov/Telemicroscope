@@ -5236,15 +5236,25 @@ wish, lands at shape factor 0.7367 against Coddington's published 0.7397 —
 optimisation on a 1 nm version of the same lens lands 5.3e-7 away. Measured, the
 gap is linear in thickness (4.0e-5 at 0.05 mm, 4.1e-4 at 0.5, 4.1e-3 at 5,
 1.6e-2 at 20), which is § 5j.1's own statement about that closed form. What is
-left on the thin control is the *weight*: a constraint imposed by weighting is
-held only to O(1/w), it improves as the weight rises — 1.1e-5, 2.2e-6, 5.3e-7,
-9.7e-8 — and then **gets worse again** at 1e7, because the aberration term stops
-being visible in the merit at all. A weight is not a thing where bigger is
-better, and this is the panel that shows it.
+left on the thin control sweeps with the *weight* — 1.1e-5, 2.2e-6, 5.3e-7,
+9.7e-8 — and then **gets worse again** at 1e7.
 
-Both sweeps are **rungs in `test/optimize.test.ts`**, not remembered numbers.
-The panel offers neither control, so it draws two points off them — the lens as
-shipped and the 1 nm control — and the sentences above would otherwise be
+**That second sweep is the DIFFERENCING STEP, not the weight, and § 1.8.6
+corrected it.** These curvatures are ~1.3e-3 and the optimiser's default step
+floors at 1 (its own open item), so it differences them over half a percent of
+themselves. State a step and every weight from 1 to 1e7 lands within 1e-8 of the
+same shape — four orders better than the best cell above, with the ordering
+between cells gone. The shape could never have shown a weight anyway: q\* is a
+function of the index alone and does not depend on the power, so at weight 1 the
+recovered shape is right to 1e-7 on a lens whose focal length is **55% wrong**.
+What a weight actually costs is the focal length itself (3.07e-7 at 1e4,
+3.07e-11 at 1e6 — as 1/w², since the weight enters the merit squared), a band of
+usable weights that has to be found, and the multiplier it cannot report.
+
+All three sweeps are **rungs in `test/optimize.test.ts`**, not remembered
+numbers, including the stated-step control that overturned the reading. The
+panel offers none of these controls, so it draws two points off them — the lens
+as shipped and the 1 nm control — and the sentences above would otherwise be
 document claims nothing reads, which is the failure `surfaces.test.ts` exists
 to catch.
 
@@ -5282,10 +5292,18 @@ expensive per evaluation and is not offered — see below.
   (finding 6 above) replays the whole run up to 48 times on top of that. That is
   a different panel's performance budget, and it wants the same "which settings
   can this actually be asked at" treatment the darkfield control got.
-- **No constraints, only heavily weighted wishes.** "Hold the focal length
-  *exactly* while minimising aberration" is a Lagrange condition, not a residual
-  with a big weight, and finding 5 above is the difference measured rather than
-  argued.
+- **No conditions *here* — the engine has them now** (§ 1.8.6, `{ minimize, hold }`
+  on both entry points). "Hold the focal length *exactly* while minimising
+  aberration" is a Lagrange condition and is solved as one. What it buys is not
+  what this bullet used to imply and not what finding 5 was read as showing: the
+  ANSWER is the same either way on this fixture, because the shape it is read on
+  cannot see the power. What a condition buys is the focal length held to 2e-16
+  instead of 3e-7, a multiplier that prices it, half the trial designs on a
+  traced merit, and no weight to guess at — the same achromat by weight is wrong
+  at 1 and wrong again at 1e12. So this is **panel wiring**, and the wiring is
+  cheap: one control per wish saying *held* rather than *weighted*, and a
+  readout for the multiplier, which is the one genuinely new number a designer
+  gets out of it.
 - **The variables are the seed's.** Choosing which numbers a design may move is
   the next control this surface wants, and it is bigger than it looks: two
   variables that do nearly the same thing are what the damping exists to survive,

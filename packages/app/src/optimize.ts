@@ -253,7 +253,7 @@ export function optimizeSeeds(): readonly OptimizeSeed[] {
           unit: "mm",
           target: 500,
           weight: 1e4,
-          note: "held by WEIGHT rather than by construction, which is why it is only held to O(1/w) — see the two gaps below",
+          note: "held by WEIGHT rather than as a condition, so it is held to O(1/w²) and no better — the engine can hold it exactly (§ 1.8.6); this panel asks by weight, and the gaps below are what that costs",
         },
         {
           kind: "spherical",
