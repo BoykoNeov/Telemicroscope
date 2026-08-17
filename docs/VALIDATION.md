@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; the phase panel audited and declined; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 finding the ORDERS folded on too, the object built from its spectrum; § 6ab.14 making it quantitative — the carrying AREA, met by the sampled weight under 0.55/samples, not monotonically, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)² where the symmetric pair is alone | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; the phase panel audited and declined; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object built from its spectrum; § 6ab.14 the carrying AREA, met under 0.55/samples, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)² where the pair is alone; § 6ab.16 a TRACED pupil, where REALNESS and not evenness is what fails | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -11625,15 +11625,130 @@ over the control rather than an approximation of a continuum, the same move
 `SamplingSpread` makes for the source count, and better advice besides: a slider
 position to go to rather than a ν to solve for.
 
-### Not yet pinned
+### Both open items closed at § 6ab.16
 
-- **Whether the odd-h null survives a traced pupil's residual.** Everything here
-  is `idealPupil`, where A3 is deliberately stronger. A real objective is not
-  exactly even, so the parity cancellation should degrade to that asymmetry
-  rather than to zero — nothing measures how far.
-- **The h ≥ 3 spread.** Even harmonics past 2 get one free off the probe frames,
-  but no rung asks whether the sampling moves them the way § 6ab.11 measured the
-  2ν reading moving (1.06× to 9.75×).
+- ~~**Whether the odd-h null survives a traced pupil's residual.** … A real
+  objective is not exactly even, so the parity cancellation should degrade to
+  that asymmetry rather than to zero.~~ **It degrades to something else
+  entirely**, and the two words naming the mechanism were the wrong two: the
+  precondition a real lens fails is **realness**, not evenness.
+- ~~**The h ≥ 3 spread.**~~ **Measured, and it is worse than the row the panel
+  warns about** — 9.7× at h = 4 where 2ν spreads 1.15×, in the same three renders.
+
+### 6ab.16 — the traced pupil, and the precondition that was named wrong
+
+`packages/core/test/traced-parity.test.ts`, and the spread half in
+`packages/app/test/phase.test.ts`.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A traced objective lifts h = 1 from 1.5e-16 to 0.23, 0.52 and 1.25** — ordered by its own RMS wavefront | § 6f.10's two pupils, and one off axis | ✅ |
+| …and h = 3 comes up with it, as one law rather than two readings | § 6ab.15's parity law | ✅ |
+| **It is the PHASE**: phase-only reproduces the lift to 5 figures; amplitude-only reads 3.1e-7 | the decomposition, measured | ✅ |
+| **Symmetrizing the pupil changes nothing** — (P(p)+P(−p))/2 gives the same 0.51637 | evenness, refuted as the cause | ✅ |
+| h = 5 stays at roundoff through all three — § 6ab.12's support null, told apart by a LENS this time | the order geometry | ✅ |
+| **contrast(hν)·mean = 2·J_{h/2}(φ)²·A(+mν)·A(−mν)** at h = 2, 4, 6, 8 × 3 φ × 3 traced pupils | Bessel closed form × the pupil's own A, 1e-13 | ✅ |
+| The bare A = 1 form is **18.4% and 26.3% out, the same fraction at four h** — a transmission, not an aberration | 1e-13 against A(+mν)·A(−mν) | ✅ |
+| **No phase enters at all** — a comatic pupil with 0.17 waves ODD across the pair still holds it | one term is a product of moduli | ✅ |
+| Off axis it departs in proportion to the wavefront: 1.2e-4, 8.5e-4, 0.22 at S = 0.1 | `pairPhaseSurvives`, for a real lens | ✅ |
+| **Sampling spreads h = 4 by 9.67× where 2ν spreads 1.15×**, one image | the panel's own four samplings | ✅ |
+| …reaching 20× at h = 4 and 46.9× at h = 6, where 2ν never leaves 1.75× over the panel's S range | 12 cells | ✅ |
+| NEGATIVE CONTROL: the one cell where the higher harmonic is the tighter one, recorded | S = 0.3, ν = 0.375 | ✅ |
+| The unsupported h = 6 row would print **1.146×** — tighter than h = 2's 1.147× — while reading 5e-16 | § 6ab.12's gate, load-bearing again | ✅ |
+
+#### Evenness was never the precondition, and a real lens is how you find out
+
+§ 6ab.15 derived the null by pairing the term at (s, n) with the term at
+(−s, −n−h) and observing that an even pupil over a centro-symmetric source makes
+the second's pupil factor the **conjugate** of the first's. A conjugate cancels
+against its partner only when it is also an *equal*, which asks the pupil to be
+**real** — and § 6ab.15 knew that, since it is exactly how it explained defocus
+("still even, no longer real"). What it then wrote in its open item was that a
+real objective "is not exactly even, so the cancellation should degrade to that
+asymmetry". A traced objective is not exactly even, and that is not why its null
+is gone.
+
+The decomposition is three renders and settles it:
+
+- the pupil as traced reads **0.51637** at h = 1 where `idealPupil` reads 1.5e-16;
+- its **phase on a perfect disc** reads 0.51637 — the same number to five figures;
+- its **amplitude with the phase zeroed** reads **3.1e-7**.
+
+That last one is the asymmetry, and it is real: a Zernike fit of √throughput is
+not exactly even, so a real pupil that is not quite even lifts the null a little,
+which is the mechanism the open item described. It is **1.6 million times** too
+small to be the answer. And symmetrizing — replacing P by (P(p) + P(−p))/2, which
+is even by construction — leaves the reading at 0.51637, so the lift does not
+even partly live there. Even the comatic pupil 0.3 mm off axis, whose odd part is
+0.17 waves, keeps 1.27 of its 1.25 when symmetrized.
+
+**A prediction can be right about the size of an effect and wrong about which
+effect it is.** Nothing in § 6ab.15 was false; the sentence that carried its open
+item picked one of its two preconditions and it was the one that survives.
+
+#### The closed form gains a factor, and the factor is the same at four harmonics
+
+The family generalizes without an error term. One surviving term in `c_h` is
+J₋ₘJ₊ₘ·P(+mν)·P̄(−mν), whose modulus is a product of two amplitudes, so
+
+> **contrast(h·ν) · mean = 2·J_{h/2}(φ)² · A(+mν) · A(−mν)**
+
+with A the pupil's own amplitude — measured to **1e-13** at h = 2, 4, 6 and 8,
+over φ ∈ {0.4, 1.5, 3}, through all three traced pupils. § 6ab.15's
+2·J_{h/2}(φ)² is its A = 1 case.
+
+This is not a refinement to file away. Against the 4×/0.10 the A = 1 form is
+**18.4%** out and against the Lister **26.3%**, and a nine-decimal readout that
+printed either would be wrong in the second digit. What says it is a transmission
+rather than an aberration is that it is **one number at four harmonics**: the
+four cells put the surviving pair at pupil radii 0.75, 0.75, 0.9375 and 0.875, so
+a wavefront effect would miss by four different amounts, and these agree with each
+other to better than 1e-3 and with A(+mν)·A(−mν) to the same 1e-13 the family
+holds to.
+
+#### And the invariance is stronger than the argument given for it
+
+§ 6ab.15 called the closed form defocus-invariant and explained it by the pair
+sharing a radius: an *even* aberration gives both members the same phase, which
+the beat cancels. True, and narrower than the fact. **One term's modulus has no
+phase in it to cancel**, so any wavefront whatever leaves it alone. The off-axis
+traced pupil is the case that separates the two claims — W(+0.75, 0) − W(−0.75, 0)
+is 0.17 waves, so its aberration is *not* even across the pair — and the closed
+form holds there to 1e-13 like everywhere else.
+
+What does break it is more than one direction, which is unchanged: the surviving
+terms at |s ± mν| carry different phases and stop adding as moduli. § 6ab.15
+measured that against a defocus slider; here it is measured against three real
+lenses and it tracks them, **1.2e-4, 8.5e-4 and 0.22 at S = 0.1 for 0.018, 0.040
+and 0.217 waves RMS**, with the ideal pupil exact over the same source. So the
+app's `pairPhaseSurvives` is the right gate for a traced pupil too, and for the
+same reason.
+
+#### The higher harmonics are the ones the sampling moves
+
+§ 6ab.11 taught a reader to watch the 2ν spread. § 6ab.15 then put nine more rows
+under it, and **the row § 6ab.11 was written about is the steadiest one on the
+screen.** At S = 0.7 and ν = 0.375, in one set of three probe renders, h = 2
+spreads 1.15× and h = 4 spreads **9.67×**; at S = 0.9 the pair is 1.64× against
+20.3×; and at S = 0.7, ν = 0.3125 the worst row in the column is h = 6 at
+**46.9×**. Over the twelve cells swept, h = 2 never leaves 1.75× and the higher
+rows reach 27 times further.
+
+No new mechanism arrives with h. § 6ab.11's own conclusion was that the ratio is a
+signal-to-noise statement — the 2ν signal grows as φ² and what disagrees with it
+does not — and moving h is another way to shrink the signal: h = 4 reads 4.2e-3
+where h = 2 reads 2.4e-1 in the same image. That makes it a *tendency*, and the
+cell where it inverts is pinned rather than rounded away: at S = 0.3, ν = 0.375
+the two spreads are 1.148× and 1.145× and the readings are only 2.1× apart.
+
+**§ 6ab.12's gate turns out to be protecting the new rows harder than the old
+one.** The cutoffs fall as 2/h, so most of a ten-row column has no support at any
+ν the slider is likely to sit at. At S = 0.7 and ν = 0.375 the h = 6 row reads
+4.8e-16, and rendering its four samplings by hand — which is what the panel would
+print without the gate — puts them inside **1.146×, tighter than the h = 2 row's
+own 1.147× in the same images**. That is § 6ab.11's ν = 1.9375 trap exactly, the
+tightest number in the column being the one reading nothing, now reached by moving
+h instead of ν.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

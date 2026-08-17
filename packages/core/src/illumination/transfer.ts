@@ -71,18 +71,27 @@ import type { CondenserSource } from "./source";
  *     c_h = i^h · Σₙ Jₙ₊ₕ(φ)·Jₙ(φ)·P(s+(n+h)ν)·P̄(s+nν)
  *
  * summed over the source. Pair the term at (s, n) with the term at (−s, −n−h):
- * J₋ₖ = (−1)^k Jₖ applies twice and contributes (−1)^h, while the two pupil
- * factors match because the pupil is **even** and the source **centro-symmetric**
- * — the same two preconditions `weakPhaseTransfer` names, doing the same work.
- * For odd h the sum is therefore its own negative.
+ * J₋ₖ = (−1)^k Jₖ applies twice and contributes (−1)^h, while an **even** pupil
+ * over a **centro-symmetric** source turns the second term's pupil factor into
+ * the *conjugate* of the first's — the same two preconditions `weakPhaseTransfer`
+ * names, doing the same work. For odd h the sum is therefore its own negative,
+ * provided the conjugate is also an equal, which asks the pupil to be **real**.
  *
  * **So every odd harmonic is null, not just the first.** Measured at f64
  * roundoff for h = 1, 3 and 5 together — coherent, extended and darkfield, at
  * φ = 3 where the object is nothing like weak, and with 3.9% of the light
  * truncated off the grid, since a symmetric band limit keeps every surviving
- * term's partner. Defocus makes the paired pupil factor a *conjugate* rather
- * than an equal, and breaks all of them at once: at ν = 0.375 under a defocused
- * S = 0.6 disc, h = 3 goes from 2.7e-16 to 3.9e-3.
+ * term's partner. Defocus leaves the pupil even and stops it being real, and
+ * breaks all of them at once: at ν = 0.375 under a defocused S = 0.6 disc, h = 3
+ * goes from 2.7e-16 to 3.9e-3.
+ *
+ * **Realness is the precondition a real lens fails, and evenness is not**
+ * (§ 6ab.16). A traced objective at best focus takes h = 1 from 1.5e-16 to 0.23
+ * and 0.52 for 0.018 and 0.040 waves RMS, and to 1.25 for a comatic pupil 0.3 mm
+ * off the axis. None of that is its asymmetry: symmetrizing the pupil leaves the
+ * lift unchanged to five figures, while zeroing its phase and keeping its
+ * (slightly lopsided) amplitude drops the reading to 3.1e-7 — the asymmetry is
+ * there, and it is six orders too small to be the effect.
  */
 
 /**
@@ -801,26 +810,37 @@ export function harmonicCarryingArea(
  * through, from every direction the source holds?
  *
  * Where this is true the h-th image harmonic has a closed form with no free
- * parameter and no pupil in it at all. One pair contributes one term to `c_h`
+ * parameter and no *wavefront* in it. One pair contributes one term to `c_h`
  * above, its two members carry J₋ₘ and J₊ₘ with m = h/2, and the amplitude is
  *
- *     contrast(h·ν) · mean = 2·J_{h/2}(φ)²
+ *     contrast(h·ν) · mean = 2·J_{h/2}(φ)² · A(+mν) · A(−mν)
  *
- * — measured to 1e-14 at h = 2, 4, 6 and 8 (§ 6ab.15).
+ * where A is this pupil's own amplitude — measured to 1e-13 at h = 2, 4, 6 and 8
+ * (§ 6ab.15 for A = 1, § 6ab.16 through two traced objectives). The pupil enters
+ * only as the transmission at the pair's own two coordinates, and it is not a
+ * correction to ignore: against a real objective the A = 1 form is 18.4% and
+ * 26.3% out, **the same fraction at every h**, which is what a transmission looks
+ * like and what an aberration never does.
  *
- * **It is defocus-invariant on the axis and nowhere else, and the difference is
- * a readout that would otherwise lie.** For an on-axis direction the pair's two
- * members are at the same pupil radius, so any *even* aberration gives them the
- * same phase and the beat cancels it: measured against the same closed form to
- * 1e-13 at w₂₀ = 0, 1 and 3, while the h = 1 reading swings from 0 to 1.14 over
- * that same slider. Off axis they are at |s ± (h/2)ν| and the beat picks up
+ * **It is aberration-invariant on the axis and nowhere else, and the difference
+ * is a readout that would otherwise lie.** One surviving term is a product of two
+ * moduli, so no pupil phase can enter it at all — not defocus, and not an odd
+ * wavefront either: measured to 1e-13 at w₂₀ = 0, 1 and 3, and through a comatic
+ * traced pupil with 0.17 waves between the pair's two members, while the h = 1
+ * reading swings from 0 to 1.14 over that same defocus slider. (§ 6ab.15 argued
+ * this from the pair sharing a radius, so that an *even* aberration gives both
+ * the same phase; that is true and narrower than the fact.) Off axis the pair is
+ * at |s ± (h/2)ν|, more than one direction contributes, and the terms' phases
+ * stop matching — under defocus by
  * w₂₀·(|s+mν|² − |s−mν|²) = 4·w₂₀·m·(s·ν), which vanishes for no off-axis point
  * — so an extended source in this regime still gives the closed form **in
  * focus** and departs from it as soon as the pupil is aberrated: 39% at S = 0.1
- * and one wave, 98% at S = 0.2. This predicate answers about the ORDERS, which
- * is geometry; a caller comparing against 2·J_{h/2}(φ)² through an aberrated
- * pupil owes the extra condition that every direction it sums over is on the
- * grating's own axis.
+ * and one wave, 98% at S = 0.2, and through a TRACED objective in proportion to
+ * what it leaves: 1.2e-4, 8.5e-4 and 0.22 at S = 0.1 for 0.018, 0.040 and 0.217
+ * waves RMS (§ 6ab.16). This predicate answers about the ORDERS, which is
+ * geometry; a caller comparing against the closed form through an aberrated pupil
+ * owes the extra condition that every direction it sums over is on the grating's
+ * own axis.
  *
  * At h = 2 this is § 6f's three-order regime — order ±2 outside the pupil, so
  * ±1 is alone — which A3 had as its own `threeOrderCheck` before there was a

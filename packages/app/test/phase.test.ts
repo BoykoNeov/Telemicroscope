@@ -12,7 +12,14 @@ import {
   secondHarmonicSupport,
   type PhaseRequest,
 } from "../src/phase";
-import { apertureCarriesHarmonic } from "@telemicroscope/core/illumination";
+import {
+  apertureCarriesHarmonic,
+  diskSource,
+  idealPupil,
+  imageHarmonic,
+  phaseGratingObject,
+} from "@telemicroscope/core/illumination";
+import { renderBrightfield, type PatchPupil } from "@telemicroscope/core/imaging";
 
 /**
  * § 6ab.11 — what the phase panel prints where its 2ν reading is not converged.
@@ -832,5 +839,118 @@ describe("§ 6ab.15 — the row's sentence has to agree with the row's number", 
     const { note } = noteFor(scene, 3, false);
     expect(note.kind).toBe("unsupported");
     if (note.kind === "unsupported") expect(note.reason).toMatch(/no 3ν/);
+  });
+});
+
+/**
+ * § 6ab.16 — the other half of § 6ab.15's open item: "even harmonics past 2 get
+ * one free off the probe frames, but no rung asks whether the sampling moves them
+ * the way § 6ab.11 measured the 2ν reading moving (1.06× to 9.75×)."
+ *
+ * **It moves them harder, and the panel's own warning was calibrated on the row
+ * least in need of it.** At S = 0.7 and ν = 0.375 the 2ν reading spreads 1.15×
+ * across the four samplings while the 4ν reading in the same images spreads
+ * 9.67×; at S = 0.9 the pair is 1.64× against 20.3×; and at S = 0.7, ν = 0.3125
+ * the worst row in the column is h = 6 at 46.9×. A reader who has learned from
+ * § 6ab.11 to treat the 2ν spread as *the* convergence signal would be reading a
+ * number one row down that is twenty times less certain than the one above it.
+ *
+ * **No new mechanism arrives with h — the reading is smaller.** § 6ab.11's own
+ * finding is that the 2ν signal grows as φ² and what disagrees with it does not,
+ * so the ratio is a signal-to-noise statement; moving h is another way to shrink
+ * the signal, and h = 4 reads 4.2e-3 where h = 2 reads 2.4e-1 in one image. It is
+ * a tendency and not a law, and the cell where it inverts is recorded below.
+ */
+describe("§ 6ab.16 — sampling moves the higher harmonics harder than it moves 2ν", () => {
+  /** Every even harmonic's spread in one image, keyed by h. */
+  function column(over: Partial<PhaseRequest>) {
+    const scene = renderPhaseScene(at({ amplitudeRadians: 1.5, ...over }));
+    if (!scene.ok) throw new Error(scene.error);
+    const rows = new Map<number, { contrast: number; ratio: number | null; supported: boolean }>();
+    for (const reading of scene.readout.focused.harmonics) {
+      const support = scene.readout.harmonics.find((r) => r.harmonic === reading.harmonic)!.support;
+      rows.set(reading.harmonic, {
+        contrast: reading.contrast,
+        ratio: reading.spread?.ratio ?? null,
+        supported: support.exists,
+      });
+    }
+    return rows;
+  }
+
+  it("reads 1.15× at h = 2 and 9.67× at h = 4 in the same three renders", () => {
+    const rows = column({ coherenceParameter: 0.7, cycles: 6 });
+    const two = rows.get(2)!;
+    const four = rows.get(4)!;
+    // Both supported, both real readings — this is not one of them being absent.
+    expect(two.supported && four.supported).toBe(true);
+    expect(two.ratio!).toBeLessThan(1.2);
+    expect(four.ratio!).toBeGreaterThan(9);
+    // And the smaller reading is the less certain one: 2.36e-1 against 4.24e-3.
+    expect(four.contrast).toBeLessThan(two.contrast / 50);
+  });
+
+  it("reaches 20× at h = 4 and 47× at h = 6, where 2ν never leaves 1.75×", () => {
+    // The panel's whole S range at three ν, so the claim is about the control's
+    // reachable settings rather than about one cell.
+    let worstTwo = 1;
+    let worstHigher = 1;
+    for (const coherenceParameter of [0.3, 0.5, 0.7, 0.9]) {
+      for (const cycles of [4, 5, 6]) {
+        const rows = column({ coherenceParameter, cycles });
+        worstTwo = Math.max(worstTwo, rows.get(2)!.ratio!);
+        for (const h of [4, 6]) {
+          const row = rows.get(h)!;
+          if (row.ratio !== null) worstHigher = Math.max(worstHigher, row.ratio);
+        }
+      }
+    }
+    // Measured: 1.746 at h = 2 (S = 0.9, ν = 0.3125) against 46.881 at h = 6
+    // (S = 0.7, ν = 0.3125) — a factor of 27 between the worst row the panel
+    // warns about and the worst row it prints.
+    expect(worstTwo).toBeLessThan(2);
+    expect(worstHigher).toBeGreaterThan(40);
+  });
+
+  it("is a tendency and not a law, and the cell where it inverts is this one", () => {
+    // S = 0.3, ν = 0.375: h = 2 spreads 1.148× and h = 4 spreads 1.145×, the one
+    // cell of the twelve above where the higher harmonic is the tighter one — and
+    // its reading is only 2.1× smaller rather than 50×. Recorded rather than
+    // rounded away, because "higher h is always worse" is the rule a reader would
+    // otherwise take from the rungs above and it is not true.
+    const rows = column({ coherenceParameter: 0.3, cycles: 6 });
+    expect(rows.get(4)!.ratio!).toBeLessThan(rows.get(2)!.ratio!);
+    expect(rows.get(2)!.contrast / rows.get(4)!.contrast).toBeLessThan(3);
+  });
+
+  it("still refuses a spread where nothing carries the harmonic, and needs to more often", () => {
+    // The cutoffs fall as 2/h, so a column reaching h = 10 has most of its rows
+    // outside support at any ν the slider is likely to be at: at ν = 0.375 only
+    // h ≤ 4 carry, and the panel returns no spread for the rest.
+    const rows = column({ coherenceParameter: 0.7, cycles: 6 });
+    expect(rows.get(6)!.supported).toBe(false);
+    expect(rows.get(6)!.ratio).toBeNull();
+    expect(Math.abs(rows.get(6)!.contrast)).toBeLessThan(1e-13);
+
+    // And the refusal is load-bearing in exactly § 6ab.11's way. Rendering the
+    // four samplings by hand — which is what the panel would print if the gate
+    // were not there — puts the h = 6 readings inside **1.146×**, TIGHTER than the
+    // h = 2 row's own 1.147× in the same images, while every one of them is
+    // roundoff. The tightest number in the column would again be the one reading
+    // nothing, now reached by moving h rather than ν.
+    const readings = PANEL_SOURCE_SAMPLES.map((samples) => {
+      const object = phaseGratingObject({ size: 128, cycles: 6, amplitudeRadians: 1.5 });
+      const out = renderBrightfield(
+        object,
+        (): PatchPupil => ({ pupil: idealPupil() }),
+        diskSource(0.7, samples),
+        { pupilSamples: 32, patches: 1 },
+      );
+      return imageHarmonic(out.intensity, 128, 6 * 6).contrast;
+    });
+    for (const value of readings) expect(Math.abs(value)).toBeLessThan(1e-13);
+    const ratio = Math.max(...readings) / Math.min(...readings);
+    expect(ratio).toBeLessThan(1.2);
+    expect(ratio).toBeLessThan(rows.get(2)!.ratio!);
   });
 });

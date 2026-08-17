@@ -599,7 +599,12 @@ digit, from 0 to 6 waves — while the contrast at ν runs 0 → 0.74 → back.
 Defocus is a pure phase and orders +1 and −1 sit at the *same* pupil radius, so
 the beat that makes 2ν picks up no phase difference at all, while the 0×±1 beat
 that makes ν picks up sin(2π·w₂₀·ν²). One slider, two terms in one image, and
-only one of them listening.
+only one of them listening. (**The real reason is broader than the equal radius**
+— § 6ab.16 traced two objectives through it: where that beat is the only one, its
+reading is a product of two pupil *moduli*, so no wavefront of any shape enters
+it, and an aberration odd across the pair leaves it alone too. What the pupil
+does contribute is its transmission, which the panel's ideal disc puts at 1 and a
+real objective at 0.86.)
 
 **That statement is S = 0 only, and this doc used to say it flat.** The equal-radius
 argument holds for *one on-axis* direction. Off axis the two orders sit at
@@ -658,6 +663,27 @@ is (1 + outer)/(h + 1) up to h = 5 and 1/3 rather than 0.343 at h = 6. So
 `highestCarryingCycles` asks the closed-form predicate at each ν the cycles
 slider can reach — exhaustive over the control, and better advice than a ν the
 reader would have to solve for.
+
+**The row this panel taught a reader to distrust is the steadiest one in the
+column (§ 6ab.16).** § 6ab.11's whole lesson was the 2ν spread; the new rows are
+worse, and by a lot. At S = 0.7 and ν = 0.375 the 2ν reading spreads **1.15×**
+across the four source samplings while the 4ν reading in the same three renders
+spreads **9.67×**; at S = 0.9 the pair is 1.64× against 20.3×, and at S = 0.7,
+ν = 0.3125 the worst row is h = 6 at **46.9×**. Over the panel's own S range 2ν
+never leaves 1.75×. Nothing new arrives with h — the ratio is a signal-to-noise
+statement (§ 6ab.11 measured φ moving it the same way) and h = 4 simply reads
+4.2e-3 where h = 2 reads 2.4e-1. It is a tendency and not a rule: at S = 0.3,
+ν = 0.375 the higher row is the tighter one. Every row carries its own spread, so
+the panel already says this per row; what the measurement adds is that a reader
+carrying § 6ab.11's habit *down* the column would be under-warned.
+
+**And § 6ab.12's gate protects the new rows harder than the old one.** The
+cutoffs fall as 2/h, so most of a ten-row column has no support at any ν the
+slider is likely to be at, and an ungated h = 6 row at S = 0.7, ν = 0.375 would
+print its four samplings inside **1.146× — tighter than the h = 2 row's own
+1.147× in the same images** — while every one of them is 5e-16. That is
+§ 6ab.11's ν = 1.9375 trap reached by moving h instead of ν: the tightest number
+in the column is the one reading nothing.
 
 **Darkfield does NOT ride along for free, and that is this surface's real
 correction to the plan.** The clear-field half is exactly as scoped —
