@@ -725,6 +725,29 @@ What it changes on the page, and the sentences it retires:
 It also *saves* renders rather than costing any: where support is zero the three
 probe frames are not rendered, so the gated cells now cost the pair alone.
 
+**And the gate is no longer only a verdict (§ 6ab.14).** A reader told "no 2ν
+from this source" learns nothing about what to change. The panel now prints how
+much of the condenser's *area* carries 2ν — exact, closed form, no sampling in
+it — beside how much of its weight this lattice puts there:
+
+> 2ν carried by **7.03%** of the condenser's area · this lattice puts **7.81%**
+> of its weight there (×1.11 of the set, not of the contrast)
+
+and the 7-sample refusal above now reads "…though **7.03%** of the aperture it
+samples does — raise source samples", which says how thin the target is rather
+than only which direction to move. The 6.6% this section's predecessor quoted was
+a scan weighting every (ring, angle) sample equally and is not an area at all.
+
+**The parenthesis is load-bearing.** How well a lattice resolves the carrying
+*set* — 0.79, 1.26 and 1.11 at 11, 15 and 21 samples — is a different quantity
+from how far the contrast it produces is off, which is the spread line above and
+ran 1.06× to 9.75×. The two spans do not even match (1.59× against 1.35× on the
+same three lattices), so one label for both would be wrong, and the panel says
+which one it is showing. Cost is **0.02–0.06 ms** per readout at the settings the
+sliders reach, against a pair that runs 57–1080 ms — the quadrature takes almost
+every panel without bisecting, because § 6ab.14 splits at the rows where the
+integrand's description changes.
+
 **Note kept:** this one is *stronger* on ideal pupils than traced ones, because
 the null is exact there. Do not "improve" it by tracing.
 

@@ -262,6 +262,59 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     expect(spreadOf({ ...DARK, cycles: 12, sourceSamples: 7 })).toBeNull();
   });
 
+  it("and § 6ab.14 makes that advice quantitative rather than a direction", () => {
+    // "Raise source samples" is a direction; "7.03% of the aperture carries it
+    // and none of your 16 points is in that set" is advice, because it says how
+    // thin the target is. The number is the exact carrying AREA — the thing the
+    // lattice weight is an estimate of — not a second sampling of it.
+    const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, sourceSamples: 7 }));
+    expect(support.apertureFraction).toBeCloseTo(0.070267681347553, 9);
+    expect(support.reason).toMatch(/7\.03% of the aperture/);
+  });
+
+  it("and the aperture leg's two halves are null together or not at all", () => {
+    // `harmonicCarryingArea` refuses an aperture of no area for the same reason
+    // `apertureCarriesHarmonic` does, so a mismatch here would not be a wrong
+    // number, it would be a throw in the render path. Swept over both
+    // illuminations and the S slider's ends.
+    for (const illumination of ["brightfield", "darkfield"] as const) {
+      for (const coherenceParameter of [0, 0.01, 0.5, 1, 1.4]) {
+        for (const cycles of [4, 12, 16]) {
+          const support = secondHarmonicSupport(at({ illumination, coherenceParameter, cycles }));
+          expect(support.apertureFraction === null).toBe(support.apertureCarries === null);
+          if (support.apertureCarries === false) expect(support.apertureFraction).toBe(0);
+          if (support.apertureCarries === true) {
+            expect(support.apertureFraction!).toBeGreaterThan(0);
+          }
+        }
+      }
+    }
+  });
+
+  it("and what the ratio measures is the SET, which is not the contrast's error", () => {
+    // The two numbers a reader could confuse. How well a lattice resolves the
+    // carrying set — 0.79, 1.26, 1.11 at 11, 15 and 21 samples — is not how far
+    // the contrast it produces is off, which is `secondHarmonicSpread` and is a
+    // separate measurement with a separate size. Asserting they differ is the
+    // point: if they ever coincided the panel would be free to print one label
+    // for both, and it is not.
+    const ratios = [11, 15, 21].map((sourceSamples) => {
+      const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, sourceSamples }));
+      return support.latticeWeight / support.apertureFraction!;
+    });
+    expect(ratios[0]!).toBeCloseTo(0.7906, 3);
+    expect(ratios[1]!).toBeCloseTo(1.2557, 3);
+    expect(ratios[2]!).toBeCloseTo(1.1119, 3);
+    // The same three samplings' 2ν readings disagree by 1.35×, and the ratios
+    // above span 1.59× — same lattices, different quantities.
+    const spread = spreadAt({ ...DARK, cycles: 12, sourceSamples: 11 });
+    const rest = spread.readings.filter((r) => r.samples !== 7).map((r) => r.value);
+    const contrastSpread = Math.max(...rest) / Math.min(...rest);
+    const setSpread = Math.max(...ratios) / Math.min(...ratios);
+    expect(contrastSpread).toBeLessThan(1.5);
+    expect(setSpread).toBeGreaterThan(1.5);
+  });
+
   it("and above ν = 0.8 no sampling is offered one, because the RING has none", () => {
     // (1 + 1.4)/3, three slider stops below brightfield's 1 — the part of this a
     // reader has no way to guess, and the reason the gate names the cutoff.

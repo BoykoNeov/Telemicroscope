@@ -145,6 +145,51 @@ function SupportLine({
 }
 
 /**
+ * How much of the condenser carries 2ν, and how much of it this lattice found.
+ *
+ * The gate above says whether there is a reading; this says what the reading was
+ * taken with. § 6ab.14 made the aperture's carrying fraction exact, and the
+ * sampled weight is a midpoint estimate of that same number — so printing both
+ * turns "there is a 2ν" into "there is a 2ν, and this sampling is 11% high on
+ * the set that produces it".
+ *
+ * **The ratio is about the sampling, not about the contrast.** A lattice 11%
+ * high on the carrying set is not a contrast 11% wrong: what the sampling does
+ * to the printed number is `secondHarmonicSpread`, measured per frame, and it
+ * ran 1.06× to 9.75× where this ratio stays near 1. Two different quantities,
+ * and the panel says which one it is showing.
+ *
+ * Shared by the pair rather than per frame, for the same reason the gate is:
+ * carrying is geometry and does not know about defocus.
+ */
+function CarryingLine({ support }: { support: HarmonicSupport }) {
+  if (support.apertureFraction === null) {
+    return (
+      <>
+        2ν carried by the one direction there is — S = 0 has no area to be a fraction of
+      </>
+    );
+  }
+  const carried = 100 * support.apertureFraction;
+  const found = 100 * support.latticeWeight;
+  return (
+    <>
+      2ν carried by <strong>{carried.toPrecision(3)}%</strong> of the condenser&rsquo;s area · this
+      lattice puts <strong>{found.toPrecision(3)}%</strong> of its weight there
+      {support.apertureFraction > 0 && (
+        <>
+          {" "}
+          <span style={{ color: "#777" }}>
+            (×{(support.latticeWeight / support.apertureFraction).toFixed(2)} of the set, not of the
+            contrast)
+          </span>
+        </>
+      )}
+    </>
+  );
+}
+
+/**
  * One canvas of the pair, with the two harmonics read off it.
  *
  * The layout puts contrast at ν and contrast at 2ν on adjacent lines on purpose:
@@ -636,6 +681,8 @@ export function PhasePanel() {
             >
               {(100 * readout.truncation.droppedEnergy).toPrecision(3)}%
             </strong>
+            <br />
+            <CarryingLine support={readout.secondHarmonicSupport} />
           </div>
         </div>
       )}

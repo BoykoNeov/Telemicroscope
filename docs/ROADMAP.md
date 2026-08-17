@@ -1621,10 +1621,11 @@
    the grid, so the object is now built from its spectrum) and § 6ab.14 (how much
    of the condenser carries the harmonic, which the sampled lattice converges to
    under 0.55/samples and not monotonically); and the v2+ list further down. The
-   v1 cut after this is what decides whether this is shippable. **What is left in
-   the panel is a surface, not an engine step**: the carrying fraction exists and
-   nothing prints it, so the gate is still binary where it could say by how much
-   a sampling under-resolves the set it is reading.
+   v1 cut after this is what decides whether this is shippable. The panel's own
+   half landed with § 6ab.14: it prints how much of the condenser's area carries
+   the harmonic beside how much of its weight the lattice puts there, so the
+   refusal names how thin the set it missed is instead of only pointing at a
+   slider.
 
    *The three parked items, and why each is recorded rather than struck.* All
    three were written down where they were found instead of being gathered into

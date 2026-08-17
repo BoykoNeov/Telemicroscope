@@ -4,6 +4,7 @@ import {
   coherentSource,
   defocusedPupil,
   diskSource,
+  harmonicCarryingArea,
   harmonicSupportWeight,
   idealPupil,
   imageHarmonic,
@@ -401,6 +402,23 @@ export interface HarmonicSupport {
   readonly apertureCarries: boolean | null;
   /** Fraction of the *sampled* source's weight whose orders can carry 2ν. */
   readonly latticeWeight: number;
+  /**
+   * Fraction of the condenser's own **area** that carries 2ν — exact (§ 6ab.14),
+   * and the thing `latticeWeight` is an estimate of.
+   *
+   * `null` in exactly the case `apertureCarries` is: S = 0 brightfield, where
+   * there is one direction and no area for a fraction to be of.
+   *
+   * It is what turns the gate from a verdict into advice. A reader told "no 2ν
+   * from this source" learns nothing about what to change; a reader told the
+   * aperture carries it on 7% of its directions and this 16-point lattice holds
+   * none of them knows to raise the sample count, and roughly how far.
+   *
+   * **It is not an error bar on the contrast.** 0.55/samples bounds how badly a
+   * lattice resolves the carrying *set*; what that does to the printed 2ν number
+   * is a different quantity, measured separately in § 6ab.11 at 1.06× to 9.75×.
+   */
+  readonly apertureFraction: number | null;
   /** Both legs agree there is something to read. The gate. */
   readonly exists: boolean;
   /** Why not, when it does not. Empty when it does. */
@@ -426,13 +444,14 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
   // answering, so the aperture leg is skipped instead of being given a radius it
   // does not have.
   const extended = request.illumination === "darkfield" || request.coherenceParameter > 0;
-  const apertureCarries = extended
-    ? apertureCarriesHarmonic(
-        request.illumination === "darkfield" ? DARKFIELD_INNER : 0,
-        request.illumination === "darkfield" ? DARKFIELD_OUTER : request.coherenceParameter,
-        nu,
-      )
-    : null;
+  const inner = request.illumination === "darkfield" ? DARKFIELD_INNER : 0;
+  const outer =
+    request.illumination === "darkfield" ? DARKFIELD_OUTER : request.coherenceParameter;
+  const apertureCarries = extended ? apertureCarriesHarmonic(inner, outer, nu) : null;
+  // Same guard, same reason: `harmonicCarryingArea` refuses an aperture without
+  // area for the same cause `apertureCarriesHarmonic` does, so the two legs are
+  // null together and never one without the other.
+  const apertureFraction = extended ? harmonicCarryingArea(inner, outer, nu).fraction : null;
 
   if (apertureCarries === false) {
     // The condenser itself has no 2ν to give. Brightfield stops at ν = 1 because
@@ -444,6 +463,7 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
     return {
       apertureCarries,
       latticeWeight,
+      apertureFraction,
       exists: false,
       reason:
         `no 2ν at ν = ${nu.toFixed(4)}: two orders 2ν apart cannot both be inside the pupil from ` +
@@ -454,16 +474,22 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
     };
   }
   if (latticeWeight === 0) {
+    // The actionable case, and the number is what makes it actionable: how thin
+    // the set is says how much more sampling it would take to land in it.
     return {
       apertureCarries,
       latticeWeight,
+      apertureFraction,
       exists: false,
       reason:
-        `no direction in this ${source.points.length}-point source can carry 2ν, though the ` +
-        `aperture it samples does — raise source samples`,
+        `no direction in this ${source.points.length}-point source can carry 2ν, though ` +
+        (apertureFraction === null
+          ? "the aperture it samples does"
+          : `${(100 * apertureFraction).toPrecision(3)}% of the aperture it samples does`) +
+        ` — raise source samples`,
     };
   }
-  return { apertureCarries, latticeWeight, exists: true, reason: "" };
+  return { apertureCarries, latticeWeight, apertureFraction, exists: true, reason: "" };
 }
 
 /**

@@ -11419,9 +11419,12 @@ answer is none.
   looks faster, but the scatter is set by lattice commensurability with a striped
   set and nothing here models that. A rate would need either an averaging argument
   or a lattice-counting one.
-- **What the panel should do with the number.** The engine can now say "this
-  sampling under-resolves the carrying set by X"; no surface says it, and the gate
-  in `packages/app/src/phase.ts` is still binary.
+- ~~**What the panel should do with the number.**~~ **Done in the same change**:
+  `HarmonicSupport.apertureFraction` carries the exact area, the phase panel
+  prints it beside the lattice's own weight, and the 7-sample refusal now names
+  how thin the set it missed is. The label says the ratio is of the *set* and not
+  of the contrast, because those are different quantities — 1.59× against 1.35×
+  on the same three lattices, and § 6ab.11 measured the contrast one separately.
 - **The h ≥ 3 harmonics** — still § 6ab.12's item. The area function answers for
   any h and two rungs use h = 3, but nothing renders one.
 
