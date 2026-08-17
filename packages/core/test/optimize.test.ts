@@ -11,6 +11,9 @@ import {
   optimizePrescription,
   optimizeSystem,
   withVariables,
+  type DlsOptions,
+  type HeldOperand,
+  type OptimizeOperand,
   type TracedFocus,
   type TracedOperand,
 } from "../src/analysis/optimize";
@@ -1162,5 +1165,581 @@ describe("DLS § 1.8.5 — the survivor set is held, and the run says when that 
     // Both operands are live — this is not the traced one riding along.
     expect(r.residuals).toHaveLength(2);
     expect(Math.abs(r.residuals[0]!)).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * § 1.8.6 — a condition, as opposed to a wish with a large weight.
+ *
+ * The open item this closes said the difference "is measurable: a weighted
+ * constraint is satisfied only to O(1/w)". Both halves of that sentence turn out
+ * to need correcting, and the interesting one is not the exponent:
+ *
+ *  - The violation goes as **1/w²**, not 1/w, because the weight enters the
+ *    merit squared. Measured over six decades of weight, below.
+ *  - And the thing a weight costs is **not the accuracy of the answer**. On the
+ *    fixture the app has been quoting for exactly this purpose, the recovered
+ *    SHAPE is the same whether the power is held by weight 1 or held exactly —
+ *    because the shape that minimises spherical aberration does not depend on
+ *    the power at all. At weight 1 the optimiser returns the right shape of a
+ *    lens whose focal length is 55% wrong.
+ *
+ * What a condition buys is measured here instead: the condition itself (2·10⁻¹⁶
+ * against 3·10⁻⁷ at a weight a designer would call large), half the evaluations
+ * on a traced merit, a multiplier that prices it, and the removal of a knob
+ * whose right value cannot be known in advance — the same achromat is wrong at
+ * weight 1 and wrong again at 10¹².
+ */
+const HELD_POWER = (target: number): HeldOperand => ({
+  kind: "power",
+  wavelengthNm: LINE_D,
+  target,
+});
+
+describe("DLS § 1.8.6 — the arithmetic of a condition, before any lens", () => {
+  /** min x² + y² subject to x + y = t. Answer (t/2, t/2), merit t²/2, λ = −t. */
+  const onALine = (t: number) => (x: readonly number[]) => ({
+    minimize: [x[0]!, x[1]!],
+    hold: [x[0]! + x[1]! - t],
+  });
+
+  it("lands on the closed-form constrained minimum, from the free optimum itself", () => {
+    // The start (0,0) IS the unconstrained minimum, so the first step has to
+    // make the merit worse to make the condition true. A step accepted on the
+    // merit alone could never do that, which is what the ℓ1 measure is for.
+    for (const t of [2, 1, 5]) {
+      const r = dampedLeastSquares(onALine(t), [0, 0]);
+      expect(r.x[0]!).toBeCloseTo(t / 2, 10);
+      expect(r.x[1]!).toBeCloseTo(t / 2, 10);
+      expect(r.merit).toBeCloseTo((t * t) / 2, 12);
+      // The condition is met exactly — not nearly, and not to a tolerance.
+      expect(r.constraints[0]!).toBe(0);
+      expect(r.feasibility).toBe(0);
+      // λ = −t, which is the whole Lagrange condition ∇m + λ∇c = 0 written out:
+      // (2x, 2y) + λ(1, 1) = 0 at x = y = t/2.
+      expect(r.multipliers[0]!).toBeCloseTo(-t, 10);
+    }
+  });
+
+  it("…and the multiplier is the PRICE of the condition, at both signs", () => {
+    // The envelope theorem: dm*/dt = −λ. m*(t) = t²/2 here, so dm*/dt = t, and
+    // the multiplier is measured against a difference quotient of the OPTIMUM
+    // rather than against the algebra it happens to agree with.
+    for (const t of [2, -2]) {
+      const eps = 1e-6;
+      const meritAt = (tt: number) => dampedLeastSquares(onALine(tt), [0, 0]).merit;
+      const dmdt = (meritAt(t + eps) - meritAt(t - eps)) / (2 * eps);
+      const lambda = dampedLeastSquares(onALine(t), [0, 0]).multipliers[0]!;
+      expect(dmdt).toBeCloseTo(-lambda, 8);
+      expect(dmdt).toBeCloseTo(t, 8);
+      // …and the sign the doc comment claims: λ > 0 means raising the target
+      // LOWERS the best merit reachable.
+      expect(Math.sign(lambda)).toBe(-Math.sign(t));
+    }
+  });
+
+  it("a condition need not be linear, and a start need not meet it", () => {
+    // Pull to the origin, held on the unit circle: every feasible point is
+    // optimal, so what is pinned is that the answer lands ON the circle — from
+    // outside it, from well inside it, and from the wrong quadrant.
+    for (const start of [[3, 0.5], [0.1, 0.02], [-2, -2]]) {
+      const r = dampedLeastSquares(
+        (x) => ({ minimize: [x[0]!, x[1]!], hold: [x[0]! ** 2 + x[1]! ** 2 - 1] }),
+        start,
+      );
+      expect(Math.hypot(r.x[0]!, r.x[1]!)).toBeCloseTo(1, 15);
+      expect(r.merit).toBeCloseTo(1, 14);
+      // ∇m + λ∇c = 2x + λ·2x = 0 → λ = −1 wherever it lands.
+      expect(r.multipliers[0]!).toBeCloseTo(-1, 10);
+    }
+  });
+
+  it("as many conditions as variables leaves nothing to minimise, and says so at once", () => {
+    // Not a refusal: the conditions determine the answer and the wishes are
+    // simply not granted. What matters is that the run reports the merit it is
+    // stuck with rather than pretending it minimised anything.
+    const r = dampedLeastSquares(
+      (x) => ({ minimize: [x[0]! - 10, x[1]! - 10], hold: [x[0]! - 1, x[1]! - 2] }),
+      [0, 0],
+    );
+    expect(r.x[0]!).toBeCloseTo(1, 14);
+    expect(r.x[1]!).toBeCloseTo(2, 14);
+    expect(r.merit).toBeCloseTo(145, 10);
+    expect(r.feasibility).toBe(0);
+    expect(r.iterations).toBeLessThan(6);
+  });
+});
+
+describe("DLS § 1.8.6 — the weight, measured on the fixture that was quoting it", () => {
+  // The § 1.8.1 singlet with BOTH curvatures free, so the power is a question
+  // rather than a construction: bend for least spherical aberration at 1000 mm.
+  const N = 1.5;
+  const MEDIUM = "DLS-N15";
+  const VARS: SolveVariable[] = [
+    { kind: "curvature", surface: 0 },
+    { kind: "curvature", surface: 1 },
+  ];
+  // Stated, not defaulted: these curvatures are ~1e-3, and the module's default
+  // step floors at 1 (its own open item), so the default differences them over
+  // half a percent of themselves. That is the largest effect in this fixture and
+  // it belongs to neither mechanism — see the last rung of this block.
+  const STEPS = { steps: [1e-9, 1e-9] };
+  const S1_WISH: OptimizeOperand = {
+    kind: "seidelS1",
+    wavelengthNm: LINE_D,
+    marginalHeightMm: H,
+    target: 0,
+    weight: 1,
+  };
+  const START = thinLens(N, qStar(N) + 0.5, MEDIUM);
+  const shapeOf = (x: readonly number[]) => (x[0]! + x[1]!) / (x[0]! - x[1]!);
+  const powerOf = (x: readonly number[]) =>
+    1 / systemProperties(withVariables(START, VARS, x), LINE_D).efl;
+
+  const byWeight = (w: number, options: DlsOptions = STEPS) =>
+    optimizePrescription(
+      START,
+      VARS,
+      [S1_WISH, { kind: "power", wavelengthNm: LINE_D, target: 1 / F, weight: w }],
+      options,
+    );
+  const byCondition = (options: DlsOptions = STEPS) =>
+    optimizePrescription(START, VARS, { minimize: [S1_WISH], hold: [HELD_POWER(1 / F)] }, options);
+
+  it("a weighted condition is satisfied to O(1/w²) — the exponent, corrected", () => {
+    // The weight multiplies the RESIDUAL and the merit squares it, so the
+    // stationary point trades (v−t) against 1/w². The open item said O(1/w).
+    const violation = (w: number) => Math.abs(powerOf(byWeight(w).x) * F - 1);
+    const ladder = [1, 1e2, 1e4, 1e6].map(violation);
+    // The law is asymptotic, and the first cell is outside it: at weight 1 the
+    // focal length is out by tens of percent, which is not a perturbation of
+    // anything. From there on, two decades of weight buy four of violation.
+    expect(ladder[0]!).toBeGreaterThan(0.1);
+    // 3.90 and 3.99 measured: the exponent is 2 in the weight, with the
+    // higher-order terms of a real lens on top of it.
+    expect(Math.log10(ladder[1]! / ladder[2]!)).toBeCloseTo(3.90, 1);
+    expect(Math.log10(ladder[2]! / ladder[3]!)).toBeCloseTo(4, 1);
+    // …which is the correction: 1/w would have made these two numbers 2.
+    for (const [a, b] of [[1, 2], [2, 3]] as const) {
+      expect(Math.log10(ladder[a]! / ladder[b]!)).toBeGreaterThan(3);
+    }
+
+    // And held, it is not satisfied to a tolerance at all — it is satisfied.
+    const held = byCondition();
+    expect(Math.abs(powerOf(held.x) * F - 1)).toBeLessThan(1e-15);
+    expect(held.feasibility).toBeLessThan(1e-16);
+  });
+
+  it("…but the weight was never what limited the ANSWER, and the shape proves it", () => {
+    // The shape factor that minimises spherical aberration does not depend on
+    // the power — q* is a function of the index alone. So at weight 1 the
+    // optimiser returns a shape within 1e-7 of the published minimum while
+    // sitting 55% away in focal length: the readout the app has been reading
+    // this sweep off cannot see the condition at all.
+    const loose = byWeight(1);
+    expect(Math.abs(powerOf(loose.x) * F - 1)).toBeGreaterThan(0.5);
+    expect(shapeOf(loose.x)).toBeCloseTo(qStar(N), 6);
+
+    // Held, weighted-heavily, and weighted-not-at-all land on the same shape.
+    const held = byCondition();
+    const heavy = byWeight(1e6);
+    expect(shapeOf(held.x)).toBeCloseTo(qStar(N), 6);
+    expect(shapeOf(heavy.x)).toBeCloseTo(shapeOf(held.x), 7);
+    expect(shapeOf(loose.x)).toBeCloseTo(shapeOf(held.x), 7);
+  });
+
+  it("what DOES limit it is the differencing step, which is neither mechanism", () => {
+    // At the module's default step — 6e-6 absolute against curvatures of 1.5e-3,
+    // half a percent of the variable — the recovered shape is out by ~1e-6
+    // whether the power is held or weighted, and the sweep of weights that
+    // results is not monotone. State the step and both collapse onto the same
+    // few·1e-9. The lesson is § 1.8.2's, one level along: a number read off a
+    // minimiser is a statement about how the minimiser was differenced.
+    const coarse = Math.abs(shapeOf(byCondition({}).x) / qStar(N) - 1);
+    const stated = Math.abs(shapeOf(byCondition().x) / qStar(N) - 1);
+    expect(coarse).toBeGreaterThan(1e-7);
+    expect(stated).toBeLessThan(1e-8);
+    expect(coarse / stated).toBeGreaterThan(30);
+    // …and the same is true of the weighted run, which is why the two cannot be
+    // told apart by their answers at the default step.
+    const coarseWeighted = Math.abs(shapeOf(byWeight(1e6, {}).x) / qStar(N) - 1);
+    expect(coarseWeighted).toBeGreaterThan(1e-8);
+  });
+});
+
+describe("DLS § 1.8.6 — the multiplier is a price, and a lens can be charged it", () => {
+  // A thick doublet with only the two outer curvatures free: S_I cannot be
+  // nulled, so the condition and the objective genuinely compete and the
+  // multiplier is not zero. (On the zero-thickness fixture every wish and both
+  // conditions vanish together and λ is exactly 0 — which is the same theorem
+  // saying the conditions are free there.)
+  const VARS: SolveVariable[] = [
+    { kind: "curvature", surface: 0 },
+    { kind: "curvature", surface: 2 },
+  ];
+  const STEPS = { steps: [1e-9, 1e-9] };
+  const S1_WISH: OptimizeOperand = {
+    kind: "seidelS1",
+    wavelengthNm: LINE_D,
+    marginalHeightMm: 25,
+    target: 0,
+    weight: 1,
+  };
+  const thick = (c1: number, c3: number) => doublet(c1, C_MID, c3, 10, 6);
+  const atTarget = (target: number) =>
+    optimizePrescription(
+      thick(C1_STAR, C3_STAR),
+      VARS,
+      { minimize: [S1_WISH], hold: [HELD_POWER(target)] },
+      STEPS,
+    );
+
+  it("dm*/dt = −λ on a lens, against a difference quotient of the OPTIMUM", () => {
+    const base = atTarget(PHI);
+    expect(base.multipliers[0]!).toBeCloseTo(-250.705, 2);
+    expect(base.merit).toBeGreaterThan(0.28);
+    // The price is measured the way a price is: move the target and see what
+    // the best reachable merit does. Six figures, on a merit whose optimum has
+    // a floor and therefore a real trade in it.
+    const d = 1e-3;
+    const dmdt = (atTarget(PHI * (1 + d)).merit - atTarget(PHI * (1 - d)).merit) / (2 * PHI * d);
+    expect(dmdt / -base.multipliers[0]!).toBeCloseTo(1, 5);
+
+    // …and every one of those runs met its own condition exactly, which is what
+    // makes the quotient a statement about the optimum rather than about three
+    // different compromises.
+    for (const t of [PHI, PHI * (1 + d), PHI * (1 - d)]) {
+      const r = atTarget(t);
+      expect(r.feasibility).toBeLessThan(1e-15);
+      expect(Math.abs(r.constraints[0]!)).toBeLessThan(1e-17);
+    }
+  });
+
+  it("a zero-residual optimum prices its conditions at nothing, exactly", () => {
+    // The thin doublet: three curvatures, two conditions (power and colour) and
+    // one wish (S_I → 0), and all three reach zero together. A condition that
+    // costs the objective nothing has λ = 0, and this is that sentence measured
+    // rather than asserted.
+    const VARS3: SolveVariable[] = [
+      { kind: "curvature", surface: 0 },
+      { kind: "curvature", surface: 1 },
+      { kind: "curvature", surface: 2 },
+    ];
+    const r = optimizePrescription(
+      doublet(C1_STAR * 0.9, C_MID * 1.1, C3_STAR * 1.05),
+      VARS3,
+      {
+        minimize: [S1_WISH],
+        hold: [HELD_POWER(PHI), { kind: "chromaticPower", wavelengthsNm: [LINE_F, LINE_C], target: 0 }],
+      },
+      { steps: [1e-9, 1e-9, 1e-9] },
+    );
+    expect(r.merit).toBeLessThan(1e-25);
+    for (const l of r.multipliers) expect(Math.abs(l)).toBeLessThan(1e-6);
+    // The closed-form split is recovered as a by-product: two conditions on a
+    // thin doublet are two equations in the two ELEMENT powers, whatever the
+    // three curvatures do, and the wish spends what is left on the bending.
+    const [c1, c2, c3] = r.x as [number, number, number];
+    expect(((nCrown - 1) * (c1 - c2)) / PHI_CROWN).toBeCloseTo(1, 12);
+    expect(((nFlint - 1) * (c2 - c3)) / PHI_FLINT).toBeCloseTo(1, 12);
+    expect(r.feasibility).toBeLessThan(1e-15);
+  });
+
+  it("…and the same design by weight has a window, at both ends of which it is wrong", () => {
+    // The same three curvatures, both conditions turned into wishes. There is a
+    // usable band of weights and it is not wide, and neither end announces
+    // itself: at 1 the run does not converge and the crown power is 2% out; at
+    // 1e12 the conditions are met and the aberration term has vanished from the
+    // merit, so the answer is a doublet with Σ S_I = 0.875 mm instead of 0.
+    const VARS3: SolveVariable[] = [
+      { kind: "curvature", surface: 0 },
+      { kind: "curvature", surface: 1 },
+      { kind: "curvature", surface: 2 },
+    ];
+    const byWeight = (w: number) =>
+      optimizePrescription(
+        doublet(C1_STAR * 0.9, C_MID * 1.1, C3_STAR * 1.05),
+        VARS3,
+        [
+          S1_WISH,
+          { kind: "power", wavelengthNm: LINE_D, target: PHI, weight: w },
+          { kind: "chromaticPower", wavelengthsNm: [LINE_F, LINE_C], target: 0, weight: w },
+        ],
+        { steps: [1e-9, 1e-9, 1e-9] },
+      );
+    const s1Of = (x: readonly number[]) =>
+      seidelSums(doublet(x[0]!, x[1]!, x[2]!, 0, 0), LINE_D, { marginalHeightMm: 25 }).s1;
+
+    const loose = byWeight(1);
+    expect(loose.reason).toBe("iterations");
+    expect(Math.abs((nCrown - 1) * (loose.x[0]! - C_MID) / PHI_CROWN - 1)).toBeGreaterThan(0.02);
+
+    const tight = byWeight(1e12);
+    expect(Math.abs(s1Of(tight.x))).toBeCloseTo(0.875, 2);
+
+    // In between it works, which is the point: the weight has to be found, and
+    // nothing in the run says whether it has been.
+    const good = byWeight(1e6);
+    expect(Math.abs(s1Of(good.x))).toBeLessThan(1e-12);
+  });
+});
+
+describe("DLS § 1.8.6 — § 1.8.3's barrier is about the CURRENCY, not about least squares", () => {
+  // § 1.8.3 measured a focal-length WISH sliding away from +150 mm to EFL → 0,
+  // because 1/f runs through ±∞ in between and a downhill method does not cross
+  // barriers. A condition is a Newton solve rather than a descent — so it is
+  // worth asking whether it crosses. It does not, and for the same reason: the
+  // pole is in the quantity, not in the method.
+  const START = doublet(0.002, C_MID, 0.02, 4, 3);
+  const VARS: SolveVariable[] = [
+    { kind: "curvature", surface: 2 },
+    { kind: "curvature", surface: 0 },
+  ];
+  const S1_WISH: OptimizeOperand = {
+    kind: "seidelS1",
+    wavelengthNm: LINE_D,
+    marginalHeightMm: 25,
+    target: 0,
+    weight: 1,
+  };
+  const heldIn = (hold: HeldOperand) =>
+    optimizePrescription(START, VARS, { minimize: [S1_WISH], hold: [hold] }, { steps: [1e-9, 1e-9] });
+
+  it("held in millimetres of focal length it fails; held in power it is exact", () => {
+    expect(systemProperties(START, LINE_D).efl).toBeCloseTo(-76.540084, 5);
+
+    const inEfl = heldIn({ kind: "efl", wavelengthNm: LINE_D, target: 150 });
+    expect(inEfl.reason).toBe("iterations");
+    expect(inEfl.feasibility).toBeGreaterThan(1);
+    // It slides the same way the wish did: toward EFL → 0, on the near side of
+    // the pole, with a multiplier the size of the barrier it is stuck against.
+    expect(Math.abs(systemProperties(withVariables(START, VARS, inEfl.x), LINE_D).efl)).toBeLessThan(1);
+
+    const inPower = heldIn(HELD_POWER(1 / 150));
+    expect(systemProperties(withVariables(START, VARS, inPower.x), LINE_D).efl).toBeCloseTo(150, 6);
+    expect(inPower.feasibility).toBeLessThan(1e-15);
+    expect(inPower.iterations).toBeLessThan(30);
+  });
+});
+
+describe("DLS § 1.8.6 — a condition on a TRACED merit, which is the question a designer asks", () => {
+  const start = tracedSinglet(qStar(1.5) + 0.5);
+  const VARS: SolveVariable[] = [
+    { kind: "curvature", surface: 0 },
+    { kind: "curvature", surface: 1 },
+  ];
+  const startEfl = systemProperties(start.prescription, LINE_D).efl;
+  const eflOf = (x: readonly number[]) =>
+    systemProperties(withVariables(start.prescription, VARS, x), LINE_D).efl;
+  const shapeOf = (x: readonly number[]) => (x[0]! + x[1]!) / (x[0]! - x[1]!);
+
+  it("holds the focal length exactly while shrinking the spot, from starts that do NOT hold it", () => {
+    // The headline use of the whole feature, and the case the probes could not
+    // reach by accident: the start is infeasible, so every run has to restore
+    // the focal length as well as bend the lens — and a restoration step is a
+    // Newton step, which is longer than a merit step and is exactly what walks
+    // a traced merit's survivor set. Measured, it recovers: a dozen rejected
+    // steps per run, and the condition met to the last bit.
+    expect(startEfl).toBeCloseTo(999.5257, 3);
+    for (const [asked, shape, rms] of [
+      [700, 0.710765, 4.4166e-2],
+      [900, 0.711705, 2.6615e-2],
+      [1100, 0.712255, 1.7784e-2],
+      [1500, 0.712867, 9.5478e-3],
+    ] as const) {
+      const r = optimizeSystem(start, VARS, {
+        minimize: [spotOperand()],
+        hold: [HELD_POWER(1 / asked)],
+      });
+      expect(eflOf(r.x)).toBeCloseTo(asked, 6);
+      expect(r.feasibility).toBeLessThan(1e-17);
+      expect(shapeOf(r.x)).toBeCloseTo(shape, 5);
+      expect(Math.sqrt(r.merit)).toBeCloseTo(rms, 6);
+      expect(r.rejected).toBeGreaterThan(0);
+    }
+  });
+
+  it("…and the price of the focal length rises as the lens is asked to be shorter", () => {
+    // λ is in the merit's units per unit of 1/mm, and it is the number that says
+    // what the condition is costing: a 700 mm lens pays ten times what a 1500 mm
+    // one does for the same held power, on the same glass at the same aperture.
+    const priceAt = (asked: number) =>
+      optimizeSystem(start, VARS, { minimize: [spotOperand()], hold: [HELD_POWER(1 / asked)] })
+        .multipliers[0]!;
+    const short = priceAt(700);
+    const long = priceAt(1500);
+    expect(short).toBeCloseTo(-5.516, 2);
+    expect(long).toBeCloseTo(-0.548, 2);
+    expect(short / long).toBeGreaterThan(9);
+  });
+
+  it("reaches the same design as a heavy weight in HALF the evaluations", () => {
+    // On a traced merit an evaluation is 430× a third-order sum (§ 1.8.5), so
+    // the iteration count is the cost. Refocused, the two mechanisms agree on
+    // the shape to six figures and the condition costs half the trial designs —
+    // a weight has to be walked down to what a condition solves.
+    const target = 1 / startEfl;
+    const weighted = optimizeSystem(start, VARS, [
+      { kind: "power", wavelengthNm: LINE_D, target, weight: 1e6 },
+      spotOperand(),
+    ]);
+    const held = optimizeSystem(start, VARS, {
+      minimize: [spotOperand()],
+      hold: [HELD_POWER(target)],
+    });
+    expect(shapeOf(held.x)).toBeCloseTo(shapeOf(weighted.x), 6);
+    expect(shapeOf(held.x)).toBeCloseTo(0.712011, 5);
+    expect(held.evaluations * 2).toBeLessThanOrEqual(weighted.evaluations);
+    // …and the condition is met six orders better than the weight met it.
+    expect(Math.abs(eflOf(weighted.x) / startEfl - 1)).toBeGreaterThan(1e-10);
+    expect(Math.abs(eflOf(held.x) / startEfl - 1)).toBeLessThan(1e-14);
+  });
+
+  it("on the FIXED image plane the two mechanisms do NOT agree, and λ says why", () => {
+    // § 1.8.5 quoted 0.2257 for this convention with the power held by weight
+    // 1e6. Held exactly it is 0.2230, 1.2% away — because on this convention
+    // the merit is aberration AND focus position, so it fights the power wish
+    // hard enough that 1e6 was not a large weight after all: it bought its
+    // shape by giving away 6.2e-6 of focal length. The multiplier is the same
+    // fact as a number — the condition costs 6700× more here than refocused.
+    const target = 1 / startEfl;
+    const onPlane = (focus: TracedFocus) => ({ ...spotOperand(TRACED_GRID, focus) });
+    const weighted = optimizeSystem(start, VARS, [
+      { kind: "power", wavelengthNm: LINE_D, target, weight: 1e6 },
+      onPlane("systemImagePlane"),
+    ]);
+    const held = optimizeSystem(start, VARS, {
+      minimize: [onPlane("systemImagePlane")],
+      hold: [HELD_POWER(target)],
+    });
+    expect(shapeOf(weighted.x)).toBeCloseTo(0.225698, 5);
+    expect(shapeOf(held.x)).toBeCloseTo(0.222951, 5);
+    expect(Math.abs(eflOf(weighted.x) / startEfl - 1)).toBeCloseTo(6.2e-6, 7);
+    expect(Math.abs(eflOf(held.x) / startEfl - 1)).toBeLessThan(1e-15);
+
+    const refocused = optimizeSystem(start, VARS, {
+      minimize: [spotOperand()],
+      hold: [HELD_POWER(target)],
+    });
+    expect(held.multipliers[0]!).toBeCloseTo(-1.2452e4, -1);
+    expect(refocused.multipliers[0]!).toBeCloseTo(-1.8662, 3);
+    expect(held.multipliers[0]! / refocused.multipliers[0]!).toBeCloseTo(6672, -2);
+  });
+
+  it("bounds the unbounded wish: one free curvature, refocused, told what lens to be", () => {
+    // § 1.8.5's runaway — refocusing forgives the focal length, so a single free
+    // curvature walks the EFL to −16 411 mm. A condition removes the freedom it
+    // was running away in, and with one variable and one condition there is
+    // nothing left to minimise at all: the answer is the lens the condition
+    // names, reported at once.
+    const one: SolveVariable[] = [{ kind: "curvature", surface: 0 }];
+    const free = optimizeSystem(start, one, [spotOperand()]);
+    expect(
+      Math.abs(systemProperties(withVariables(start.prescription, one, free.x), LINE_D).efl),
+    ).toBeGreaterThan(10_000);
+
+    const held = optimizeSystem(start, one, {
+      minimize: [spotOperand()],
+      hold: [HELD_POWER(1 / 1200)],
+    });
+    expect(
+      systemProperties(withVariables(start.prescription, one, held.x), LINE_D).efl,
+    ).toBeCloseTo(1200, 6);
+    expect(held.feasibility).toBeLessThan(1e-16);
+  });
+});
+
+describe("DLS § 1.8.6 — refusals, and the one dependence differencing cannot see", () => {
+  const VARS: SolveVariable[] = [
+    { kind: "curvature", surface: 0 },
+    { kind: "curvature", surface: 2 },
+  ];
+  const S1_WISH: OptimizeOperand = {
+    kind: "seidelS1",
+    wavelengthNm: LINE_D,
+    marginalHeightMm: 25,
+    target: 0,
+    weight: 1,
+  };
+  const START = doublet(C1_STAR * 0.9, C_MID, C3_STAR * 1.05);
+  const held = (hold: readonly HeldOperand[]) =>
+    optimizePrescription(START, VARS, { minimize: [S1_WISH], hold }, { steps: [1e-9, 1e-9] });
+
+  it("names what it will not do", () => {
+    // A weight on a condition. The type makes it unwriteable; the run refuses it
+    // anyway, because a type is not there at run time and a weight silently
+    // ignored is a caller believing something untrue about the answer.
+    expect(() =>
+      held([{ kind: "power", wavelengthNm: LINE_D, target: PHI, weight: 3 } as HeldOperand]),
+    ).toThrow(/a condition is not traded against anything/);
+
+    // More conditions than variables: not an over-determined compromise — a
+    // compromise is what a condition refuses to be.
+    expect(() =>
+      held([
+        HELD_POWER(PHI),
+        { kind: "chromaticPower", wavelengthsNm: [LINE_F, LINE_C], target: 0 },
+        { kind: "bfd", wavelengthNm: LINE_D, target: 99 },
+      ]),
+    ).toThrow(/3 conditions on 2 variable\(s\)/);
+
+    // The same condition twice: two identical rows, and the rank test sees them
+    // because they are identical to the bit.
+    expect(() => held([HELD_POWER(PHI), HELD_POWER(PHI)])).toThrow(/not independent/);
+
+    // A condition nothing can move.
+    expect(() =>
+      dampedLeastSquares((x) => ({ minimize: [x[0]! - 1], hold: [0.5] }), [0, 0]),
+    ).toThrow(/not independent/);
+
+    // And every refusal the unconstrained entry points make still stands.
+    expect(() => optimizePrescription(START, VARS, { minimize: [] })).toThrow(/no operands/);
+  });
+
+  it("two conditions that are ONE condition in different units are not refused — they fail", () => {
+    // Holding the power at 1/100 and the focal length at 100 mm is one condition
+    // written twice, and the rank test cannot see it: the rows are parallel only
+    // to the accuracy the Jacobian was DIFFERENCED at, which is nowhere near the
+    // bit. So this is the honest boundary of the refusal above — what is
+    // guaranteed is not a message, it is that no optimum is reported. The run
+    // stops with the conditions unmet and says so through `feasibility`, which
+    // is § 1.8.3's lesson one level along: a converged optimiser is not a
+    // correct one, so the run reports what it actually achieved.
+    const r = held([HELD_POWER(PHI), { kind: "efl", wavelengthNm: LINE_D, target: 100 }]);
+    expect(r.reason).not.toBe("gradient");
+    expect(r.feasibility).toBeGreaterThan(1e-6);
+    expect(Math.abs(r.constraints[1]!)).toBeGreaterThan(1);
+  });
+
+  it("a condition on the far side of a wall is walked up to, not reported as met", () => {
+    // The domain ends at x = 2 and the condition asks for x = 3. Restoration is
+    // walled, so λ rises and θ halves — and the run stops at the boundary with
+    // the violation reported, the same way § 1.8's own domain-edge rung does.
+    // What is pinned is the negative: it is not a `gradient` stop and the
+    // condition is not claimed.
+    let walls = 0;
+    const r = dampedLeastSquares(
+      (x) => {
+        if (x[0]! > 2) {
+          walls++;
+          throw new Error("outside the domain");
+        }
+        return { minimize: [x[0]! - 1], hold: [x[0]! - 3] };
+      },
+      [0],
+    );
+    expect(walls).toBeGreaterThan(0);
+    expect(r.x[0]!).toBeCloseTo(2, 5);
+    expect(r.reason).toBe("iterations");
+    expect(r.rejected).toBeGreaterThan(50);
+    expect(r.constraints[0]!).toBeCloseTo(-1, 5);
+    expect(r.feasibility).toBeGreaterThan(0.3);
+  });
+
+  it("an unconstrained run carries the new fields as empty, not as zeroes with meaning", () => {
+    const r = optimizePrescription(START, VARS, [S1_WISH], { steps: [1e-9, 1e-9] });
+    expect(r.constraints).toEqual([]);
+    expect(r.multipliers).toEqual([]);
+    expect(r.feasibility).toBe(0);
   });
 });

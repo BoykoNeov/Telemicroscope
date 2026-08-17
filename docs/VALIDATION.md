@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form *recovered* rather than evaluated, and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, two exact conjugates recovered, the ray SET held | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form *recovered* rather than evaluated, and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, two exact conjugates recovered, the ray SET held; § 1.8.6 CONDITIONS held exactly and priced by their multipliers | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -85,7 +85,7 @@ whole ladder.
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object from its spectrum; § 6ab.14 the carrying AREA, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)²; § 6ab.16 a TRACED pupil failing REALNESS, not evenness; § 6ab.17 that bound false at n = 17, the envelope n^{-4/3}; § 6ab.18 the rim predictor REFUTED; § 6ab.19 the commensurate ANNULUS, cached | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
-| [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
+| [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and two plausible-wrong-answer hazards measured and refused by the API | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
@@ -1538,12 +1538,19 @@ underflows. The infimum of "smallest spot, refocused" is a window, which is not
 a lens. Fixing the image plane bounds the same single variable (EFL 1006.6 mm, a
 merit that settles at 2.71·10⁻²) because the image must land somewhere stated.
 
-Hold the power with a `power` operand and both conventions are well posed — and
-they still disagree, by far more than the sample set or the aperture kind ever
-moved anything: **q = 0.7120 refocused against 0.2257 on the plane**, 0.49 apart.
-The plane run buys focus position with aberration, because on its measure the
-two are the same currency. Neither is wrong; each design beats the other on the
-measure it was asked for. That is what a stated convention means.
+Hold the power with a `power` operand at weight 10⁶ and both conventions are well
+posed — and they still disagree, by far more than the sample set or the aperture
+kind ever moved anything: **q = 0.7120 refocused against 0.2257 on the plane**,
+0.49 apart. The plane run buys focus position with aberration, because on its
+measure the two are the same currency. Neither is wrong; each design beats the
+other on the measure it was asked for. That is what a stated convention means.
+
+(**The 0.2257 is a weighted answer, and § 1.8.6 moves it to 0.2230** once the
+power is held as a condition instead: on this convention the merit fights the
+power wish hard enough that 10⁶ was not a large weight, and the weighted run
+bought its shape with 6.2·10⁻⁶ of focal length. The refocused 0.7120 is unmoved,
+and the multiplier says in advance which of the two would be sensitive —
+holding the power costs 6 672× more here than refocused.)
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -1560,11 +1567,138 @@ measure it was asked for. That is what a stated convention means.
 | **The sample set moves the value 15% and the answer 5.3e-5** | § 1.8.2's sentence, inverted | ✅ |
 | **A derived aperture (`fNumber`) breathes 50.042 → 49.850 and moves the answer 2.0e-3** | the pupil must be held for the ray set to be | ✅ |
 | **Refocusing is an UNBOUNDED wish on a free power**: EFL walks +999.5 → −16 411 mm, a flat plate; the image plane bounds the same variable at 1006.6 | why the convention is well-posedness and not a factor | ✅ |
-| …and with the power held the two conventions land **0.49 apart in shape** (0.7120 / 0.2257), each best on its own measure | neither is a default | ✅ |
+| …and with the power held **by weight** the two conventions land **0.49 apart in shape** (0.7120 / 0.2257 — held as a condition, § 1.8.6 reads 0.2230), each best on its own measure | neither is a default | ✅ |
 | **Scalar RMS against one residual per ray: 2.5e-8 apart**, 12% more evaluations | the vector form is not needed, answered by a number | ✅ |
 | **Traced residual is 430× a third-order sum**, linear in ray count | the "four orders" forecast, corrected | ✅ |
 | A mixed traced/paraxial merit holds EFL to 1e-5 and lands on the traced Coddington shape | the question a designer actually asks | ✅ |
 | Refusals: a start with too few surviving rays, named; a pupil of one point | validity, saying which operand and how far short | ✅ |
+
+### 1.8.6 — conditions, and a sentence that was wrong in both halves
+
+The bullet this closes said: *"Hold the power exactly while minimising aberration"
+is a Lagrange condition, not a residual with a big weight, and the difference is
+measurable: a weighted constraint is satisfied only to O(1/w).* Measured, the
+first half is right, the second is out by an exponent — and the sentence's real
+defect is neither, because it points the reader at the wrong quantity.
+
+**The exponent.** A weight multiplies the RESIDUAL and the merit squares it, so
+the stationary point trades violation against **1/w²**. Measured on the § 1.8.1
+singlet with both curvatures free: two decades of weight buy 3.90 and 3.99
+decades of violation, twice in a row. O(1/w) would have made those numbers 2.
+
+**The defect that matters: the weight was never what limited the ANSWER.** The
+shape factor that minimises spherical aberration is a function of the index
+alone — it does not depend on the power — so the readout this comparison has
+been made on cannot see the condition at all. At **weight 1** the optimiser
+returns a shape within 10⁻⁷ of Coddington's published minimum on a lens whose
+focal length is **55% wrong**. Held exactly, weighted at 10⁶, and weighted at 1
+all land on the same shape to seven figures. And the residual spread between
+them — the 10⁻⁵…10⁻⁷ sweep APP.md's Part N has been quoting as the weight's
+doing — is the **differencing step**: these curvatures are ~1.5·10⁻³ and the
+module's default step floors at 1, so it differences them over half a percent of
+themselves. State the step and every cell of that sweep collapses onto the same
+few·10⁻⁹, held or weighted alike. § 1.8.2's lesson one step along: a number read
+off a minimiser is a statement about how the minimiser was differenced.
+
+**So what a condition buys is measured here instead, and it is four things.**
+
+1. **The condition itself.** 2·10⁻¹⁶ relative, and often exactly 0, against
+   3.07·10⁻⁷ at weight 10⁴ and 3.07·10⁻¹¹ at 10⁶.
+2. **Half the evaluations on a traced merit.** The § 1.8.5 fixture, refocused:
+   the same shape to six figures in 110 residual evaluations against 220. At
+   430× a third-order sum per evaluation that is the whole cost of the run.
+3. **A price.** The multiplier λ is d(merit\*)/dt = −λ — the envelope theorem —
+   so a design is told what holding the focal length is COSTING it in
+   aberration. Pinned against a difference quotient of the optimum itself: to
+   ten figures on arithmetic (at both signs of λ) and to six on a thick doublet
+   where S_I has a floor and the trade is real.
+4. **No window to find.** The same achromat by weight is wrong at both ends and
+   neither end announces itself: at weight 1 the run does not converge and the
+   crown power is 2% out; at 10¹² the conditions are met and the aberration term
+   has vanished from the merit, so the answer is a doublet with Σ S_I = 0.875 mm
+   where the answer is 0. The usable band is roughly 10³…10⁹ and nothing in the
+   result says whether the weight is inside it.
+
+#### How the step is built, and the one ordering that is an argument
+
+Each step solves the SAME damped least-squares problem with the linearised
+conditions imposed on it exactly — `math/lsq`'s null-space solve, LAPACK's LSE
+(Golub & Van Loan § 12.1.4). Newton on c, so the violation falls quadratically
+and the fixed point is feasible to the conditioning of C rather than to O(1/w²).
+
+**The damping stacks before the conditions reduce the problem, and that order is
+the argument rather than an implementation detail.** Damping the reduced problem
+would scale each remaining direction by its response in a basis of the null
+space — and that basis is arbitrary, fixed by sign choices inside a QR, so the
+step would depend on something that is not a property of the design at all.
+Stacked first, the damping is still Marquardt's, in the variables' own units,
+and § 1.8's scale-freedom argument survives word for word.
+
+Three consequences a caller can see. **A start need not satisfy the conditions**
+— that is the normal case, and only a start that is not a system is refused.
+**Damping no longer shortens the step to nothing**: as λ → ∞ the wish half
+vanishes and what remains is the shortest move that restores feasibility, so a
+rejected step also shortens the restoration itself, by a factor θ that halves on
+each consecutive rejection and returns to 1 on any acceptance. Exactness is a
+property of the fixed point, where c = 0 and θ multiplies nothing, so backing
+off costs iterations and never accuracy. **And a step is accepted on
+Σrᵢ² + μ·Σ|cₖ|, not on the merit**, because an infeasible start has to be able to
+buy feasibility with merit. μ is not a caller's choice: it is raised only when
+the step's own linear model says the wishes will get worse, to twice what keeps
+the step a descent direction for the combined measure (Nocedal & Wright § 18.3).
+It is monotone and depends only on the iterates, so a run capped at k iterations
+is still exactly the prefix of a longer one — which the app's convergence trail
+is drawn on top of.
+
+#### Three findings that were not the point of the exercise
+
+**§ 1.8.3's barrier is about the CURRENCY, not about least squares.** That step
+measured a focal-length WISH sliding from −76.5 mm away from +150 mm to EFL → 0,
+and read it as what a downhill method does to a barrier. A condition is a Newton
+solve rather than a descent, so it is worth asking whether it crosses. It does
+not: held in millimetres of focal length the same run walks to |EFL| < 1 mm and
+reports the condition unmet, while held in POWER it lands on 150.000000 mm and
+stops. The pole is in the quantity. That is why `power` is an operand kind, and
+it is now the reason at two levels rather than one.
+
+**A shipped number moves.** § 1.8.5 quoted the fixed-image-plane shape as 0.2257
+"with the power held", where held meant weight 10⁶. Held exactly it is **0.2230**
+— 1.2% away — because on that convention the merit is aberration AND focus
+position, so it fights the power wish hard enough that 10⁶ was not a large
+weight: it bought its shape by giving away 6.2·10⁻⁶ of focal length. The
+multiplier is the same fact as a number, and says it in advance: holding the
+power costs **6 672×** more on the fixed plane than refocused (−1.245·10⁴ against
+−1.866). The refocused 0.7120 is unmoved.
+
+**Dependence is only visible to the accuracy the Jacobian was differenced at.**
+Two identical conditions are refused, by name, because their rows are identical
+to the bit. Holding the power at 1/100 AND the focal length at 100 mm is the
+same condition written twice and is **not** refused: differenced, those rows are
+parallel only to about 10⁻⁹. What is guaranteed is not a message but the
+negative — the run does not report an optimum. It stops with the conditions unmet
+and `feasibility` orders above tolerance, which is § 1.8.3's lesson again: a
+converged optimiser is not a correct one, so the run reports what it achieved.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **min x²+y² on x+y = t: (t/2, t/2), merit t²/2, λ = −t**, from the free optimum itself | algebra — and the start that forces the ℓ1 measure to work | ✅ |
+| **d(merit\*)/dt = −λ to ten figures, at both signs of λ** | the envelope theorem, against a quotient of the OPTIMUM | ✅ |
+| A nonlinear condition (the unit circle) from three starts: ‖x‖ = 1 to 1e-16, λ = −1 | a condition is not required to be linear | ✅ |
+| **A weighted condition goes as 1/w², not 1/w** — 3.90 and 3.99 decades per two of weight | the closed bullet's exponent, corrected | ✅ |
+| **At weight 1 the SHAPE is right to 1e-7 and the lens is 55% wrong** in focal length | why the shape cannot be the readout for this comparison | ✅ |
+| …and the 1e-5…1e-7 sweep APP.md quotes is the **differencing step**: state it and every weight lands at few·1e-9 | § 1.8.2, one level along | ✅ |
+| **Held: 2e-16 relative, feasibility below 1e-16** | the condition, met rather than approached | ✅ |
+| **−λ = 250.705 on a thick doublet**, against dm\*/dt to six figures | the price, on a merit with a real floor | ✅ |
+| **λ = 0 exactly where the conditions are free** — the zero-residual achromat, whose closed-form split falls out of two conditions | the same theorem, saying nothing is owed | ✅ |
+| **The weight's window: wrong at 1 (2% of crown power, unconverged) and wrong at 1e12 (Σ S_I = 0.875 mm)** | there is a band and nothing says you are in it | ✅ |
+| **Traced, from starts that do NOT hold it**: EFL 700/900/1100/1500 to 1e-6 while the spot is minimised | the question the feature exists for | ✅ |
+| …in **half the evaluations** of the weighted run, on the same shape to six figures | cost, where an evaluation is 430× a Seidel sum | ✅ |
+| **The fixed-plane shape is 0.2230 held, against 0.2257 weighted**, and λ is 6 672× larger there | § 1.8.5's number, corrected and explained | ✅ |
+| **An EFL CONDITION fails across § 1.8.3's pole where a power condition is exact** | the currency finding, shown to be about the quantity | ✅ |
+| Refusals: a weight on a condition, more conditions than variables, the same condition twice, a condition nothing can move | validity | ✅ |
+| **Two conditions that are one condition are NOT refused — they fail visibly**, feasibility orders above tolerance | the honest boundary of a differenced rank test | ✅ |
+| A condition across a wall is walked up to and reported unmet, not claimed | § 1.8's domain-edge convention, under a condition | ✅ |
+| An unconstrained run's new fields are empty, and its arithmetic is unchanged | the 2 237 rungs that read digits out of this loop | ✅ |
 
 ### Not yet pinned
 
@@ -1579,11 +1713,14 @@ measure it was asked for. That is what a stated convention means.
   OPD is a fit to a sampled map, so the "held sample set" argument above has to
   be made again about the fit's own conditioning, and an MTF at a frequency adds
   a transform between the design and the residual. Neither is pinned anywhere.
-- **Constraints, as opposed to heavily weighted operands.** "Hold the power
-  *exactly* while minimising aberration" is a Lagrange condition, not a residual
-  with a big weight, and the difference is measurable: a weighted constraint is
-  satisfied only to O(1/w). The achromat rung avoids it by using a fixture where
-  the constraint and the objective vanish together.
+- ~~**Constraints, as opposed to heavily weighted operands.**~~ ✅ **closed at
+  § 1.8.6 above** — `{ minimize, hold }` on both entry points, solved as an
+  equality-constrained least-squares step. The bullet was right that a Lagrange
+  condition is not a big weight and wrong about what the difference IS: the
+  violation goes as 1/w² rather than 1/w, and the answer's accuracy is not what
+  a weight costs. What it costs is the condition itself, a usable band of
+  weights that has to be found, half the evaluations on a traced merit, and a
+  price — the multiplier — that a weighted run cannot report at all.
 - **The step's own scaling.** `steps` defaults to εʰ·max(|xⱼ|, 1), and the floor
   of 1 is a unit assumption — right for a curvature in 1/mm and a thickness in mm
   because both are O(1) in this engine's units, and stated in the option's own

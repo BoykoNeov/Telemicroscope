@@ -2,7 +2,7 @@ import { Prescription } from "../trace/prescription";
 import { OpticalSystem } from "../trace/system";
 import { paraxialTrace, systemProperties } from "../trace/paraxial";
 import { asCompiled } from "../trace/compile";
-import { householderLeastSquares } from "../math/lsq";
+import { householderLeastSquares, equalityConstrainedLeastSquares } from "../math/lsq";
 import { PupilPoint } from "../pupil/aiming";
 import { imagePlaneZ } from "../pupil/pupils";
 import { exitBundle, spotAt, bestSpotZ, type ExitRay } from "./spot";
@@ -84,6 +84,23 @@ import { withVariable, type SolveVariable } from "./solve";
  * operand, the other reaches zero on every operand at once — and that is not a
  * convenience of the fixtures. It is what makes them pinnable at all.
  *
+ * ## …and a CONDITION is the thing that has no exchange rate
+ *
+ * `{ minimize, hold }` on either entry point makes the `hold` entries equality
+ * constraints, met exactly rather than eventually. `dampedLeastSquares` below
+ * documents the method; what belongs here is the boundary. A condition is not a
+ * wish with a large weight, and § 1.8.6 measures what that is worth — which is
+ * NOT the accuracy of the answer, the thing everyone (this file included)
+ * expected. It is the condition itself, the multiplier that prices it, roughly
+ * half the trial designs on a traced merit, and the absence of a weight whose
+ * right value cannot be known before the run.
+ *
+ * The other direction of the same boundary: `solve.ts` roots ONE property with
+ * ONE variable and reports every root it found. A condition here is a Newton
+ * solve too, embedded in a minimisation, and it reports the basin it landed in
+ * like everything else in this file. Where a single target has two roots, the
+ * solve is the honest tool.
+ *
  * ## Walls
  *
  * `solve.ts` states the convention this file keeps: a parameter value that is
@@ -155,7 +172,11 @@ export type JacobianScheme =
 
 /** Why the iteration stopped. */
 export type DlsStopReason =
-  /** ‖Jᵀr‖ fell below `gradientTolerance`, measured scale-free. The optimum. */
+  /**
+   * The KKT test passed: ‖Jᵀr‖ fell below `gradientTolerance`, measured
+   * scale-free, and — under constraints — the part of it the conditions do not
+   * account for did, with the conditions themselves met. The optimum.
+   */
   | "gradient"
   /** The step got shorter than `stepTolerance` — the variables stopped moving. */
   | "step"
@@ -164,7 +185,16 @@ export type DlsStopReason =
   /** `maxIterations` used up. Not a converged answer, and says so. */
   | "iterations"
   /** λ grew past every scale in the problem: every step, however short, failed. */
-  | "damping";
+  | "damping"
+  /**
+   * The conditions stopped being independent of one another *during* the run —
+   * two that ask the same thing of the design, or one no variable can move any
+   * more. Damping cannot mend it, because the defect is in the conditions
+   * rather than in the step, so the run says so at once instead of raising λ
+   * against a step it can never compute. At the STARTING design the same
+   * defect throws, as every other caller error here does.
+   */
+  | "conditions";
 
 export interface DlsOptions {
   /** Default 100. Counts accepted and rejected steps alike. */
@@ -203,6 +233,16 @@ export interface DlsOptions {
   readonly stepTolerance?: number;
   /** Stop when an ACCEPTED step changes the merit by less than this, relatively. Default 1e-15. */
   readonly meritTolerance?: number;
+  /**
+   * How nearly a condition must be met before the KKT test may report an
+   * optimum. Default 1e-14, and — like `gradientTolerance` — it is applied to a
+   * scale-free quantity rather than to the violation itself: |cₖ| / (‖Cₖ‖·(‖x‖+1)),
+   * which is how far the variables would have to move to meet condition k,
+   * relative to how large they are. A violation in 1/mm and a violation in mm
+   * are otherwise not comparable numbers, and a tolerance that compared them
+   * would mean something different on every merit.
+   */
+  readonly constraintTolerance?: number;
 }
 
 export interface DlsResult {
@@ -210,7 +250,12 @@ export interface DlsResult {
   readonly x: readonly number[];
   /** The residual vector there — weights already applied. */
   readonly residuals: readonly number[];
-  /** Σ rᵢ², the merit. */
+  /**
+   * Σ rᵢ², the merit — the WISHES only. A condition is not part of the merit,
+   * which is the whole distinction: a merit is a compromise and a condition is
+   * not up for compromise, so the number a caller compares between two designs
+   * must not include it. Empty conditions leave this exactly as it was.
+   */
   readonly merit: number;
   /** Iterations run: accepted + rejected. */
   readonly iterations: number;
@@ -225,22 +270,130 @@ export interface DlsResult {
   /** The scale-free gradient measure at the stopping point. */
   readonly gradient: number;
   readonly reason: DlsStopReason;
+  /**
+   * The conditions' own residuals, vₖ − tₖ, at the stopping point — in each
+   * condition's own unit, unweighted, because a condition has no weight.
+   * Empty when there are none.
+   */
+  readonly constraints: readonly number[];
+  /**
+   * The Lagrange multipliers, from ∇(Σrᵢ²) + Cᵀλ = 0 solved in least squares at
+   * the stopping point.
+   *
+   * λₖ is **the price of the condition**: d(merit\*)/dtₖ = −λₖ, the rate at
+   * which the best merit reachable would improve if condition k's target were
+   * moved. That is the envelope theorem, and it is what makes a multiplier
+   * worth reporting rather than an internal — a designer who is told "holding
+   * the focal length is costing you this much aberration per millimetre" has
+   * been told something the merit alone cannot say. Sign: with the condition
+   * written vₖ − tₖ = 0, a POSITIVE λₖ means raising the target lowers the
+   * merit.
+   *
+   * Meaningful only where the run actually converged; at a stop on
+   * `iterations` it is the multiplier of a point that is not the optimum.
+   */
+  readonly multipliers: readonly number[];
+  /**
+   * The worst condition violation at the stopping point, measured the
+   * scale-free way `constraintTolerance` documents. 0 when unconstrained.
+   */
+  readonly feasibility: number;
 }
 
+/**
+ * What a merit hands back: the wishes, and — where there are any — the
+ * conditions, in one call.
+ *
+ * One call rather than two functions, because on a traced merit the expensive
+ * part is building the trial system, and `evaluations` is a number this module
+ * reports and callers plot. Two entry points would double both.
+ */
+export type MeritVector =
+  | readonly number[]
+  | {
+      /** Residuals to be squared and summed — already weighted, already target-subtracted. */
+      readonly minimize: readonly number[];
+      /** Conditions to be driven to exactly zero. Unweighted, and not part of the merit. */
+      readonly hold: readonly number[];
+    };
+
+/** One evaluation: the wishes' residuals and the conditions' violations. */
+type Evaluated = { readonly r: Float64Array; readonly c: Float64Array };
+
 /** `residuals` with the wall convention applied: `null` means "not a system". */
-type Guarded = (x: Float64Array) => Float64Array | null;
+type Guarded = (x: Float64Array) => Evaluated | null;
+
+const NO_CONSTRAINTS: readonly number[] = [];
+
+/** How short the restoration fraction θ may get before shortening it is noise. */
+const THETA_FLOOR = 2 ** -30;
+
+function splitMerit(v: MeritVector): { w: readonly number[]; h: readonly number[] } {
+  if (Array.isArray(v)) return { w: v as readonly number[], h: NO_CONSTRAINTS };
+  const both = v as { minimize: readonly number[]; hold: readonly number[] };
+  return { w: both.minimize, h: both.hold };
+}
 
 /**
- * Minimise Σ rᵢ(x)² over x by damped least squares.
+ * Minimise Σ rᵢ(x)² over x by damped least squares, optionally **subject to
+ * conditions cₖ(x) = 0 held exactly**.
  *
  * `residuals` returns the residual vector — already weighted, already
  * target-subtracted — and may throw or return a non-finite entry for an x that
  * is not a system. There may be fewer residuals than variables: damping keeps
  * the step well-posed where Gauss–Newton alone would not be, and the surplus
  * freedom simply does not move.
+ *
+ * ## Conditions, and why they are not wishes with a large weight
+ *
+ * Return `{ minimize, hold }` instead of a bare array and the `hold` entries
+ * become equality constraints. Each step then solves
+ *
+ *     min ‖ [    J     ] δ + [ r ] ‖²   subject to   C·δ = −θ·c
+ *         ‖ [ √λ·D^½   ]     [ 0 ] ‖
+ *
+ * — the same damped least-squares step as before, with the linearised
+ * conditions imposed on it exactly (`math/lsq`'s null-space solve). Newton on
+ * c, so the violation falls quadratically and the fixed point is feasible to
+ * the conditioning of C rather than to O(1/weight).
+ *
+ * **The damping stacks BEFORE the conditions reduce the problem, and that order
+ * is the argument rather than an implementation detail.** Damping the reduced
+ * problem instead would scale each free direction by its response in a basis of
+ * the null space — and that basis is arbitrary, fixed by the sign choices
+ * inside a QR, so the step would depend on something that is not a property of
+ * the design at all. Stacked first, the damping is still Marquardt's, in the
+ * variables' own units, and the module header's scale-freedom argument survives
+ * word for word.
+ *
+ * ### Three things a caller can see from the outside
+ *
+ * **A start need not satisfy the conditions.** That is the normal case — "make
+ * this lens 100 mm" starts at a lens that is not. Only a start that is not a
+ * system is refused.
+ *
+ * **Damping no longer shortens the step to nothing.** As λ → ∞ the *wish* half
+ * of the step vanishes but the condition half does not: what is left is the
+ * shortest move that restores feasibility, which is the right thing to keep and
+ * is why `stepTolerance` cannot fire while a condition is unmet. So a rejected
+ * step also shortens the restoration itself, by θ — halved on each consecutive
+ * rejection, back to 1 on any acceptance. Exactness is a property of the fixed
+ * point, where c = 0 and θ multiplies nothing, so backing off costs iterations
+ * and never accuracy. Without it a run whose restoration direction is walled
+ * would raise λ forever against a step that never shrinks.
+ *
+ * **A step is accepted on Σrᵢ² + μ·Σ|cₖ|, not on the merit.** An infeasible
+ * start has to be able to buy feasibility with merit, and the merit alone
+ * cannot express that trade. μ is not a caller's choice and not a constant: it
+ * is raised only when the step's own linear model says the wishes will get
+ * worse, to twice what it takes for the step to still be a descent direction
+ * for the combined measure (Nocedal & Wright, *Numerical Optimization* 2nd ed.
+ * § 18.3). It is monotone and depends only on the iterates, so a run capped at
+ * k iterations remains exactly the prefix of a longer one — which the app's
+ * convergence trail is drawn on top of.
  */
 export function dampedLeastSquares(
-  residuals: (x: readonly number[]) => readonly number[],
+  residuals: (x: readonly number[]) => MeritVector,
   x0: readonly number[],
   options: DlsOptions = {},
 ): DlsResult {
@@ -257,6 +410,7 @@ export function dampedLeastSquares(
   const gradientTolerance = options.gradientTolerance ?? 1e-12;
   const stepTolerance = options.stepTolerance ?? 1e-14;
   const meritTolerance = options.meritTolerance ?? 1e-15;
+  const constraintTolerance = options.constraintTolerance ?? 1e-14;
   const lambda0 = options.initialDamping ?? 1e-3;
   if (!(lambda0 > 0)) {
     throw new Error(`dampedLeastSquares: the initial damping ${lambda0} is not positive`);
@@ -269,39 +423,60 @@ export function dampedLeastSquares(
 
   let evaluations = 0;
   let m = -1;
+  let p = -1;
   const evaluate: Guarded = (x) => {
     evaluations++;
-    let out: readonly number[];
+    let out: MeritVector;
     try {
       out = residuals(Array.from(x));
     } catch {
       return null;
     }
-    if (m < 0) m = out.length;
-    else if (out.length !== m) {
+    const { w, h } = splitMerit(out);
+    if (m < 0) m = w.length;
+    else if (w.length !== m) {
       throw new Error(
-        `dampedLeastSquares: the residual vector changed length, ${m} → ${out.length}`,
+        `dampedLeastSquares: the residual vector changed length, ${m} → ${w.length}`,
       );
+    }
+    if (p < 0) p = h.length;
+    else if (h.length !== p) {
+      throw new Error(`dampedLeastSquares: the condition vector changed length, ${p} → ${h.length}`);
     }
     const r = new Float64Array(m);
     for (let i = 0; i < m; i++) {
-      const v = out[i]!;
+      const v = w[i]!;
       if (!Number.isFinite(v)) return null;
       r[i] = v;
     }
-    return r;
+    const c = new Float64Array(p);
+    for (let k = 0; k < p; k++) {
+      const v = h[k]!;
+      if (!Number.isFinite(v)) return null;
+      c[k] = v;
+    }
+    return { r, c };
   };
 
   let x = Float64Array.from(x0);
-  let r = evaluate(x);
-  if (r === null) {
+  let current = evaluate(x);
+  if (current === null) {
     throw new Error(
       `dampedLeastSquares: the starting point [${x0.join(", ")}] is not a system — ` +
         `there is nothing to damp away from`,
     );
   }
   if (m === 0) throw new Error("dampedLeastSquares: no residuals to minimise");
+  if (p > n) {
+    throw new Error(
+      `dampedLeastSquares: ${p} conditions on ${n} variable(s) — a condition each ` +
+        `variable cannot meet is not a condition`,
+    );
+  }
+  let r = current.r;
+  let cv = current.c;
   let merit = sumSquares(r);
+  let violation = sumAbs(cv);
 
   const step = new Float64Array(n);
   for (let j = 0; j < n; j++) {
@@ -324,23 +499,41 @@ export function dampedLeastSquares(
   let rejected = 0;
   let gradient = Number.POSITIVE_INFINITY;
   let reason: DlsStopReason = "iterations";
+  // The ℓ1 exchange rate between merit and violation, and how much of the
+  // violation one step is asked to remove. Both are 0 and 1 forever when there
+  // are no conditions, which is what keeps the unconstrained arithmetic below
+  // identical to the arithmetic before conditions existed.
+  let mu = 0;
+  let theta = 1;
+  let multipliers: Float64Array = new Float64Array(p);
+  let feasibility = 0;
 
   const j = new Float64Array(m * n);
+  const cj = new Float64Array(p * n);
+  const cs = new Float64Array(p * n);
   const a = new Float64Array((m + n) * n);
   const b = new Float64Array(m + n);
+  const jtr = new Float64Array(n);
+  const colNorm = new Float64Array(n);
+  const rowNorm = new Float64Array(p);
+  const kkt = new Float64Array(n);
+  const rhs = new Float64Array(p);
 
   let iterations = 0;
   while (iterations < maxIterations) {
     iterations++;
 
     // ---- Jacobian, column by column, with the wall convention on the stencil.
+    // The conditions are differenced in the same stencil rather than a second
+    // one: they are read from the same evaluation, so a condition costs no
+    // trial designs of its own.
     for (let c = 0; c < n; c++) {
       const h = step[c]!;
       const xc = x[c]!;
       const xp = Float64Array.from(x);
       xp[c] = xc + h;
       const rp = evaluate(xp);
-      let rm: Float64Array | null = null;
+      let rm: Evaluated | null = null;
       if (scheme === "central") {
         const xm = Float64Array.from(x);
         xm[c] = xc - h;
@@ -349,9 +542,11 @@ export function dampedLeastSquares(
       if (rp !== null && rm !== null) {
         // Both sides available: the O(h²) difference this scheme exists for.
         const twoH = 2 * h;
-        for (let i = 0; i < m; i++) j[i * n + c] = (rp[i]! - rm[i]!) / twoH;
+        for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - rm.r[i]!) / twoH;
+        for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - rm.c[k]!) / twoH;
       } else if (rp !== null) {
-        for (let i = 0; i < m; i++) j[i * n + c] = (rp[i]! - r[i]!) / h;
+        for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - r[i]!) / h;
+        for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - cv[k]!) / h;
       } else {
         // Forward is a wall. Difference backwards instead; the accuracy of this
         // one column drops to O(h), the run continues.
@@ -359,19 +554,20 @@ export function dampedLeastSquares(
         xm[c] = xc - h;
         const back = rm ?? evaluate(xm);
         if (back !== null) {
-          for (let i = 0; i < m; i++) j[i * n + c] = (r[i]! - back[i]!) / h;
+          for (let i = 0; i < m; i++) j[i * n + c] = (r[i]! - back.r[i]!) / h;
+          for (let k = 0; k < p; k++) cj[k * n + c] = (cv[k]! - back.c[k]!) / h;
         } else {
           // Walled on both sides: no information about this variable, so it
           // does not move. `math/lsq` returns 0 for the column either way; this
           // is the same answer said explicitly rather than by rank deficiency.
           for (let i = 0; i < m; i++) j[i * n + c] = 0;
+          for (let k = 0; k < p; k++) cj[k * n + c] = 0;
         }
       }
     }
 
     // ---- Scale-free gradient measure, and the column norms the damping wants.
     const rNorm = Math.sqrt(merit);
-    let worst = 0;
     let maxD = 0;
     for (let c = 0; c < n; c++) {
       let dot = 0;
@@ -383,17 +579,58 @@ export function dampedLeastSquares(
       }
       if (col > dScale[c]!) dScale[c] = col;
       if (dScale[c]! > maxD) maxD = dScale[c]!;
-      const denom = Math.sqrt(col) * rNorm;
-      const cosine = denom > 0 ? Math.abs(dot) / denom : 0;
+      jtr[c] = dot;
+      colNorm[c] = Math.sqrt(col);
+      kkt[c] = dot;
+    }
+
+    // ---- The multipliers, and with them the part of the gradient the
+    // conditions do NOT account for. Under a condition the merit's gradient is
+    // not zero at the optimum and never becomes zero — ∇m = −Cᵀλ there — so the
+    // unconstrained test would refuse to recognise an answer it had found.
+    if (p > 0) {
+      const ct = new Float64Array(n * p);
+      for (let k = 0; k < p; k++) {
+        for (let i = 0; i < n; i++) ct[i * p + k] = cj[k * n + i]!;
+      }
+      const g = new Float64Array(n);
+      for (let i = 0; i < n; i++) g[i] = -2 * jtr[i]!;
+      multipliers = householderLeastSquares(ct, n, p, g);
+      for (let c = 0; c < n; c++) {
+        let s = 0;
+        for (let k = 0; k < p; k++) s += cj[k * n + c]! * multipliers[k]!;
+        kkt[c] = jtr[c]! + s / 2;
+      }
+      // …and how far the variables would have to move to meet each condition,
+      // relative to how large they are: a violation in 1/mm and one in mm are
+      // not comparable, and this quotient is.
+      let xScale = 0;
+      for (let c = 0; c < n; c++) xScale += x[c]! * x[c]!;
+      xScale = Math.sqrt(xScale) + 1;
+      feasibility = 0;
+      for (let k = 0; k < p; k++) {
+        let row = 0;
+        for (let c = 0; c < n; c++) row += cj[k * n + c]! * cj[k * n + c]!;
+        rowNorm[k] = Math.sqrt(row);
+        const far = rowNorm[k]! > 0 ? Math.abs(cv[k]!) / (rowNorm[k]! * xScale) : Infinity;
+        if (far > feasibility) feasibility = far;
+      }
+    }
+
+    let worst = 0;
+    for (let c = 0; c < n; c++) {
+      const denom = colNorm[c]! * rNorm;
+      const cosine = denom > 0 ? Math.abs(kkt[c]!) / denom : 0;
       if (cosine > worst) worst = cosine;
     }
     gradient = worst;
-    if (worst <= gradientTolerance) {
+    if (worst <= gradientTolerance && feasibility <= constraintTolerance) {
       reason = "gradient";
       break;
     }
 
-    // ---- The damped step, as an augmented least-squares problem.
+    // ---- The damped step, as an augmented least-squares problem — and, where
+    // there are conditions, that same problem with C·δ = −θ·c imposed on it.
     a.fill(0);
     b.fill(0);
     for (let i = 0; i < m; i++) {
@@ -404,7 +641,37 @@ export function dampedLeastSquares(
       const d = scaling === "levenberg" ? 1 : (dScale[c]! > 0 ? dScale[c]! : maxD > 0 ? maxD : 1);
       a[(m + c) * n + c] = Math.sqrt(lambda * d);
     }
-    const delta = householderLeastSquares(a, m + n, n, b);
+    let delta: Float64Array | null;
+    if (p === 0) {
+      delta = householderLeastSquares(a, m + n, n, b);
+    } else {
+      // The conditions go in with their rows scaled to unit length. Cδ = −θc
+      // and αCδ = −αθc are the same condition, so this changes no answer — but
+      // it is what makes "are these two conditions the same condition?" a
+      // question about the conditions instead of about their units. Unscaled,
+      // holding the power and holding the focal length — which are one
+      // condition written two ways, with gradients eight orders apart — pass a
+      // relative rank test on the strength of the disparity alone.
+      for (let k = 0; k < p; k++) {
+        const s = rowNorm[k]! > 0 ? 1 / rowNorm[k]! : 1;
+        for (let c = 0; c < n; c++) cs[k * n + c] = cj[k * n + c]! * s;
+        rhs[k] = -theta * cv[k]! * s;
+      }
+      delta = equalityConstrainedLeastSquares(a, m + n, n, b, cs, p, rhs);
+    }
+    if (delta === null) {
+      // Two conditions that have become one, or one no variable can move. λ is
+      // no help against that, so the run stops on it rather than pretending.
+      if (iterations === 1) {
+        throw new Error(
+          `dampedLeastSquares: the ${p} conditions are not independent at the ` +
+            `starting point — one of them asks nothing the others do not, or ` +
+            `nothing these variables can move`,
+        );
+      }
+      reason = "conditions";
+      break;
+    }
 
     let deltaNorm = 0;
     let xNorm = 0;
@@ -421,14 +688,18 @@ export function dampedLeastSquares(
 
     const xNew = new Float64Array(n);
     for (let c = 0; c < n; c++) xNew[c] = x[c]! + delta[c]!;
-    const rNew = evaluate(xNew);
+    const trial = evaluate(xNew);
 
-    if (rNew === null) {
+    if (trial === null) {
       // A wall. Indistinguishable, from here, from a step that made things
       // worse — and treated the same way.
       rejected++;
       lambda *= nu;
       nu *= 2;
+      // …and the restoration itself shortens, down to a floor. Below that the
+      // condition half of the step is smaller than the rounding on the design
+      // and shortening it further asks for noise rather than for feasibility.
+      theta = Math.max(theta / 2, THETA_FLOOR);
       if (!Number.isFinite(lambda)) {
         reason = "damping";
         break;
@@ -436,7 +707,8 @@ export function dampedLeastSquares(
       continue;
     }
 
-    const meritNew = sumSquares(rNew);
+    const meritNew = sumSquares(trial.r);
+    const violationNew = sumAbs(trial.c);
     // Predicted reduction from the LINEAR model the step was built on, computed
     // from J directly rather than from the normal-equation identity, so it stays
     // honest if the QR ever returns something other than the exact minimiser.
@@ -447,18 +719,33 @@ export function dampedLeastSquares(
       predicted += lin * lin;
     }
     predicted = merit - predicted;
-    const rho = predicted > 0 ? (merit - meritNew) / predicted : meritNew < merit ? 1 : -1;
+    // The condition half of the same model is exact by construction: the step
+    // was built to take the linearised violation to (1−θ) of itself. Where the
+    // wishes are predicted to get WORSE, that is the step buying feasibility,
+    // and μ has to be worth at least twice the price for the combined measure
+    // to still be going downhill.
+    if (violation > 0 && predicted < 0) {
+      const needed = -predicted / (0.5 * theta * violation);
+      if (2 * needed > mu) mu = 2 * needed;
+    }
+    predicted += mu * theta * violation;
+    const phi = merit + mu * violation;
+    const phiNew = meritNew + mu * violationNew;
+    const rho = predicted > 0 ? (phi - phiNew) / predicted : phiNew < phi ? 1 : -1;
 
-    if (meritNew < merit) {
+    if (phiNew < phi) {
       accepted++;
-      const change = merit === 0 ? 0 : (merit - meritNew) / merit;
+      const change = phi === 0 ? 0 : (phi - phiNew) / phi;
       x = xNew;
-      r = rNew;
+      r = trial.r;
+      cv = trial.c;
       merit = meritNew;
+      violation = violationNew;
       // Nielsen's update: the better the linear model predicted the outcome, the
       // more the damping relaxes — down to a third, never further in one step.
       lambda *= Math.max(1 / 3, 1 - (2 * rho - 1) ** 3);
       nu = 2;
+      theta = 1;
       if (change < meritTolerance) {
         reason = "merit";
         break;
@@ -467,6 +754,10 @@ export function dampedLeastSquares(
       rejected++;
       lambda *= nu;
       nu *= 2;
+      // …and the restoration itself shortens, down to a floor. Below that the
+      // condition half of the step is smaller than the rounding on the design
+      // and shortening it further asks for noise rather than for feasibility.
+      theta = Math.max(theta / 2, THETA_FLOOR);
       if (!Number.isFinite(lambda)) {
         reason = "damping";
         break;
@@ -485,6 +776,9 @@ export function dampedLeastSquares(
     damping: lambda,
     gradient,
     reason,
+    constraints: Array.from(cv),
+    multipliers: Array.from(multipliers),
+    feasibility,
   };
 }
 
@@ -494,28 +788,33 @@ function sumSquares(v: Float64Array): number {
   return s;
 }
 
+/** ‖c‖₁ — the norm the exact-penalty argument is made in, not a sum of squares. */
+function sumAbs(v: Float64Array): number {
+  let s = 0;
+  for (let i = 0; i < v.length; i++) s += Math.abs(v[i]!);
+  return s;
+}
+
 /**
- * One thing a merit can ask a prescription for.
+ * One thing a merit can ask a prescription for, as a CONDITION — no weight,
+ * because a condition is not traded against anything.
  *
  * Every operand carries its own wavelength, which is the difference between
  * this and `solveParaxial`: a solve answers a question at one line, and the
  * first merit worth writing — hold the power, kill the colour — is a question
  * about two.
- *
- * `weight` multiplies the residual before it is squared, and its unit is
- * 1/(this operand's unit). See the module header: nothing here can choose it.
  */
-export type OptimizeOperand =
+export type HeldOperand =
   /**
    * System power 1/EFL (1/mm), by the engine's own EFL convention. Unlike an
    * `efl` operand this has no pole and no wall — an afocal system has power
    * zero, which is a number a merit can walk through.
    */
-  | { readonly kind: "power"; readonly wavelengthNm: number; readonly target: number; readonly weight?: number }
+  | { readonly kind: "power"; readonly wavelengthNm: number; readonly target: number }
   /** Effective focal length (mm). Afocal is a wall, as everywhere else. */
-  | { readonly kind: "efl"; readonly wavelengthNm: number; readonly target: number; readonly weight?: number }
+  | { readonly kind: "efl"; readonly wavelengthNm: number; readonly target: number }
   /** Back focal distance, last vertex → paraxial focus (mm, signed). */
-  | { readonly kind: "bfd"; readonly wavelengthNm: number; readonly target: number; readonly weight?: number }
+  | { readonly kind: "bfd"; readonly wavelengthNm: number; readonly target: number }
   /**
    * P(λ₁) − P(λ₂), the axial colour of the system in 1/mm. Target 0 is the
    * achromatic condition, stated in the currency it is actually linear in.
@@ -524,7 +823,6 @@ export type OptimizeOperand =
       readonly kind: "chromaticPower";
       readonly wavelengthsNm: readonly [number, number];
       readonly target: number;
-      readonly weight?: number;
     }
   /**
    * Σ S_I, the third-order spherical aberration sum (mm), at a marginal ray
@@ -537,8 +835,18 @@ export type OptimizeOperand =
       readonly wavelengthNm: number;
       readonly marginalHeightMm: number;
       readonly target: number;
-      readonly weight?: number;
     };
+
+/**
+ * The same thing as a WISH: a residual to be squared into the merit alongside
+ * the others.
+ *
+ * `weight` multiplies the residual before it is squared, and its unit is
+ * 1/(this operand's unit). See the module header: nothing here can choose it.
+ * The weight is exactly what a condition does not have, and the two types differ
+ * in that one field for that one reason.
+ */
+export type OptimizeOperand = HeldOperand & { readonly weight?: number };
 
 /**
  * Which plane a traced spot is measured on.
@@ -558,10 +866,17 @@ export type OptimizeOperand =
  * walks the focal length from +999.5 mm to −16 411 mm — a nearly flat plate —
  * with the merit still falling when the step underflows. The infimum is a
  * window, which is not a lens. `"systemImagePlane"` is bounded on the same
- * variable because the image has to land somewhere fixed. Hold the power with a
- * `power` operand and both are well posed, and then they still disagree: 0.7120
- * against 0.2257 in shape factor, each beating the other on the measure it was
- * asked for.
+ * variable because the image has to land somewhere fixed. Hold the power — as a
+ * wish at weight 10⁶ or as a condition — and both are well posed, and then they
+ * still disagree: 0.7120 against 0.2257 in shape factor, each beating the other
+ * on the measure it was asked for.
+ *
+ * The fixed-plane half of that pair is **weight-sensitive and the refocused half
+ * is not**, which the multipliers say before the shapes do: held as a condition
+ * (§ 1.8.6) the plane run reads 0.2230 rather than 0.2257, because its merit is
+ * aberration AND focus position and will trade 6.2·10⁻⁶ of focal length for
+ * shape — a condition it prices 6 672× higher than the refocused run prices the
+ * same one. Refocused, held and weighted agree to six figures.
  */
 export type TracedFocus = "bestSpot" | "systemImagePlane";
 
@@ -575,7 +890,7 @@ export type TracedFocus = "bestSpot" | "systemImagePlane";
  * 5.3·10⁻⁵, so two callers who sample differently are asking near-enough the
  * same design question and reading two different numbers off it.
  */
-export type TracedOperand = {
+export type TracedCondition = {
   /** RMS spot radius (mm), about the centroid, unweighted by throughput. */
   readonly kind: "rmsSpot";
   /** Field angle in degrees, or object height in mm — as the system spells it. */
@@ -585,13 +900,51 @@ export type TracedOperand = {
   readonly pupil: readonly PupilPoint[];
   readonly focus: TracedFocus;
   readonly target: number;
-  readonly weight?: number;
 };
+
+/** The same wish, weighted into the merit. */
+export type TracedOperand = TracedCondition & { readonly weight?: number };
 
 /** Anything `optimizeSystem` can be asked for. */
 export type SystemOperand = OptimizeOperand | TracedOperand;
+/** …and anything it can be told to hold. */
+export type SystemCondition = HeldOperand | TracedCondition;
 
-const isTraced = (o: SystemOperand): o is TracedOperand => o.kind === "rmsSpot";
+const isTraced = (o: SystemCondition): o is TracedCondition => o.kind === "rmsSpot";
+
+/**
+ * How an entry point is asked: a bare list of wishes, as before, or wishes and
+ * conditions told apart.
+ *
+ * They are two lists rather than a flag on one, and the reason is what
+ * `residuals` and `merit` mean in the result: a condition is not a residual and
+ * is not part of the merit, so folding conditions into the same array would
+ * either lengthen `residuals` or shift the indices a caller reads it by. Split,
+ * nothing about either field moves — and a weight on a condition becomes a
+ * thing that cannot be written down rather than a thing that is refused.
+ */
+export type OptimizeRequest =
+  | readonly OptimizeOperand[]
+  | {
+      readonly minimize: readonly OptimizeOperand[];
+      readonly hold?: readonly HeldOperand[];
+    };
+
+/** The same, for the entry point that can also trace. */
+export type SystemRequest =
+  | readonly SystemOperand[]
+  | {
+      readonly minimize: readonly SystemOperand[];
+      readonly hold?: readonly SystemCondition[];
+    };
+
+function asked<W, H>(
+  request: readonly W[] | { readonly minimize: readonly W[]; readonly hold?: readonly H[] },
+): { minimize: readonly W[]; hold: readonly H[] } {
+  if (Array.isArray(request)) return { minimize: request as readonly W[], hold: [] };
+  const both = request as { minimize: readonly W[]; hold?: readonly H[] };
+  return { minimize: both.minimize, hold: both.hold ?? [] };
+}
 
 /**
  * A copy of `prescription` with several numbers changed at once.
@@ -620,7 +973,7 @@ function paraxialPower(prescription: Prescription, wavelengthNm: number): number
   return -paraxialTrace(prescription, wavelengthNm, { y: 1, u: 0 }).u;
 }
 
-function operandValue(prescription: Prescription, operand: OptimizeOperand): number {
+function operandValue(prescription: Prescription, operand: HeldOperand): number {
   switch (operand.kind) {
     case "power":
       return paraxialPower(prescription, operand.wavelengthNm);
@@ -650,18 +1003,27 @@ function operandValue(prescription: Prescription, operand: OptimizeOperand): num
  * The same variable twice is refused rather than damped: two identical columns
  * are a rank deficiency the caller created, and silently splitting the step
  * between them would be an answer to a question nobody asked.
+ *
+ * Pass `{ minimize, hold }` for conditions the answer must satisfy exactly
+ * rather than eventually: "bend this singlet for least spherical aberration
+ * **at** 1000 mm of focal length" is one question with a wish and a condition
+ * in it, and the difference from the same question asked with a large weight is
+ * measured in § 1.8.6 rather than argued.
  */
 export function optimizePrescription(
   prescription: Prescription,
   variables: readonly SolveVariable[],
-  operands: readonly OptimizeOperand[],
+  request: OptimizeRequest,
   options: DlsOptions = {},
 ): DlsResult {
-  validate("optimizePrescription", prescription, variables, operands);
+  const { minimize, hold } = asked<OptimizeOperand, HeldOperand>(request);
+  validate("optimizePrescription", prescription, variables, minimize, hold);
 
-  const residuals = (x: readonly number[]): readonly number[] => {
+  const residuals = (x: readonly number[]): MeritVector => {
     const trial = withVariables(prescription, variables, x);
-    return operands.map((o) => (o.weight ?? 1) * (operandValue(trial, o) - o.target));
+    const wishes = minimize.map((o) => (o.weight ?? 1) * (operandValue(trial, o) - o.target));
+    if (hold.length === 0) return wishes;
+    return { minimize: wishes, hold: hold.map((o) => operandValue(trial, o) - o.target) };
   };
 
   return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
@@ -673,6 +1035,7 @@ function validate(
   prescription: Prescription,
   variables: readonly SolveVariable[],
   operands: readonly SystemOperand[],
+  hold: readonly SystemCondition[],
 ): void {
   if (variables.length === 0) throw new Error(`${where}: no variables to move`);
   if (operands.length === 0) throw new Error(`${where}: no operands to minimise`);
@@ -693,6 +1056,19 @@ function validate(
     if (!(Number.isFinite(w) && w !== 0)) {
       throw new Error(`${where}: a weight of ${w} on a ${o.kind} operand is not a weight`);
     }
+  }
+  for (const o of hold) {
+    // The type says a condition has no weight. The type is not there at run
+    // time, and a weight silently ignored would be a caller believing something
+    // about the answer that is not true of it.
+    if ("weight" in o) {
+      throw new Error(
+        `${where}: a weight on a held ${o.kind} — a condition is not traded against ` +
+          `anything, which is what makes it a condition`,
+      );
+    }
+  }
+  for (const o of [...operands, ...hold]) {
     if (!Number.isFinite(o.target)) {
       throw new Error(`${where}: a ${o.kind} target of ${o.target} is not a target`);
     }
@@ -738,7 +1114,7 @@ function sameSurvivors(a: Float64Array, b: Float64Array): boolean {
 function tracedRead(
   system: OpticalSystem,
   prescription: Prescription,
-  operand: TracedOperand,
+  operand: TracedCondition,
 ): { value: number; survivors: Float64Array } {
   const trial: OpticalSystem = { ...system, prescription };
   const bundle = exitBundle(trial, operand.fieldValue, operand.wavelengthNm, operand.pupil);
@@ -774,17 +1150,20 @@ function tracedRead(
 export function optimizeSystem(
   system: OpticalSystem,
   variables: readonly SolveVariable[],
-  operands: readonly SystemOperand[],
+  request: SystemRequest,
   options: DlsOptions = {},
 ): DlsResult {
   const prescription = system.prescription;
-  validate("optimizeSystem", prescription, variables, operands);
+  const { minimize, hold } = asked<SystemOperand, SystemCondition>(request);
+  validate("optimizeSystem", prescription, variables, minimize, hold);
 
   // The survivor sets, and the refusal that says which operand could not be
   // read and how far short it fell. `exitBundle` reports what vignetted, so the
-  // message can name the count rather than the symptom.
-  const held = new Map<number, Float64Array>();
-  operands.forEach((o, i) => {
+  // message can name the count rather than the symptom. Conditions are numbered
+  // after the wishes, in one space, so a message points at exactly one operand.
+  const all: readonly SystemCondition[] = [...minimize, ...hold];
+  const survivorsOf = new Map<number, Float64Array>();
+  all.forEach((o, i) => {
     if (!isTraced(o)) return;
     let survivors: Float64Array;
     try {
@@ -792,25 +1171,28 @@ export function optimizeSystem(
     } catch (e) {
       throw new Error(`optimizeSystem: operand ${i} cannot be read at the start — ${(e as Error).message}`);
     }
-    held.set(i, survivors);
+    survivorsOf.set(i, survivors);
   });
 
-  const residuals = (x: readonly number[]): readonly number[] => {
+  const read = (trial: Prescription, o: SystemCondition, i: number): number => {
+    if (!isTraced(o)) return operandValue(trial, o) - o.target;
+    const { value, survivors } = tracedRead(system, trial, o);
+    if (!sameSurvivors(survivors, survivorsOf.get(i)!)) {
+      // Not a worse design — a different question. Same treatment as any
+      // other wall: the step is undone and the damping rises.
+      throw new Error(
+        `optimizeSystem: operand ${i}'s surviving rays changed, ` +
+          `${survivorsOf.get(i)!.length / 2} → ${survivors.length / 2}`,
+      );
+    }
+    return value - o.target;
+  };
+
+  const residuals = (x: readonly number[]): MeritVector => {
     const trial = withVariables(prescription, variables, x);
-    return operands.map((o, i) => {
-      const w = o.weight ?? 1;
-      if (!isTraced(o)) return w * (operandValue(trial, o) - o.target);
-      const { value, survivors } = tracedRead(system, trial, o);
-      if (!sameSurvivors(survivors, held.get(i)!)) {
-        // Not a worse design — a different question. Same treatment as any
-        // other wall: the step is undone and the damping rises.
-        throw new Error(
-          `optimizeSystem: operand ${i}'s surviving rays changed, ` +
-            `${held.get(i)!.length / 2} → ${survivors.length / 2}`,
-        );
-      }
-      return w * (value - o.target);
-    });
+    const wishes = minimize.map((o, i) => ((o as OptimizeOperand).weight ?? 1) * read(trial, o, i));
+    if (hold.length === 0) return wishes;
+    return { minimize: wishes, hold: hold.map((o, k) => read(trial, o, minimize.length + k)) };
   };
 
   return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
