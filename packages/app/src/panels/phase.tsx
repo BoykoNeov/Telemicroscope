@@ -249,7 +249,11 @@ function HarmonicTable({
       </thead>
       <tbody>
         {readings.map((reading, i) => {
-          const row = rows[i];
+          // Matched on the harmonic and not on position: `harmonicNote` reads the
+          // row's SUPPORT, so a join that slipped by one would put another
+          // harmonic's verdict under this number — the same shape of defect as
+          // the parity label this table already shipped once.
+          const row = rows.find((r) => r.harmonic === reading.harmonic);
           // One decision, made once, as a value the suite can assert — see
           // `harmonicNote`, which exists because this cell shipped a sentence
           // contradicting the number on its own line.

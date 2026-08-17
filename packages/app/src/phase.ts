@@ -146,8 +146,11 @@ export const PANEL_SOURCE_SAMPLES = [7, 11, 15, 21] as const;
  *   uncertain at *every* S from 0.25 up, because the ±1 orders land on the pupil
  *   rim where the lattice's own in-or-out decision moves them. **That cell is no
  *   longer reachable** — § 6ab.12's gate refuses ν = 1 outright, the carrying set
- *   there having zero area, so the spread comes back `null` and the 8e-4 is not
- *   printed. It stays written here because it is the evidence for the heading:
+ *   there having zero area, so the spread comes back `null`. The 8e-4 itself is
+ *   still on screen, and deliberately: `SupportLine` prints it as the sum's
+ *   leftover *arithmetic* while the contrast field reads "none", which is the
+ *   whole difference between hiding a number and refusing to call it a contrast.
+ *   It stays written here because it is the evidence for the heading:
  *   the trouble was at one ν across the whole S range. At ν = 1.94 the spread is
  *   inside 1.05× at S = 1.5. And φ moves it as hard as either: at φ = 0.1,
  *   S = 1.5 spreads 838×
@@ -1124,7 +1127,14 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
       frame: Omit<PhaseFrame, "rgba" | "secondHarmonicSpread">,
       probe: { spreads: (SamplingSpread | null)[] },
     ): readonly HarmonicReading[] =>
-      frame.harmonics.map((r, i) => ({ ...r, spread: probe.spreads[i] ?? null }));
+      // Joined on the harmonic itself rather than on position. Both lists come
+      // from `panelHarmonics(request)` and so agree today; a positional join that
+      // is right by coincidence is one refactor away from attaching h = 4's
+      // spread to h = 2's row, and nothing downstream could tell.
+      frame.harmonics.map((r) => {
+        const i = harmonics.indexOf(r.harmonic);
+        return { ...r, spread: i >= 0 ? (probe.spreads[i] ?? null) : null };
+      });
     const focusedHarmonics = withSpreads(focused.frame, focusedProbe);
     const defocusedHarmonics = withSpreads(defocused.frame, defocusedProbe);
     // h = 2's own field stays the one the shipped rungs are pinned to, and it is
