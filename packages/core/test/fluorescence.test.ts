@@ -499,8 +499,8 @@ describe("§ 6i.6 — the object brightfield structurally cannot see", () => {
     const phis = [0.01, 0.02, 0.05, 0.1];
     const contrasts = phis.map(brightfieldPhaseContrast);
     // 1.99943 over this range, and the 6e-4 shortfall is not noise: it is the
-    // NEXT term. `phaseGratingObject` is exact — all Bessel orders, not the weak
-    // truncation — so φ⁴ is genuinely present and biases a log-log slope
+    // NEXT term. `phaseGratingObject` carries every Bessel order the grid holds,
+    // not the weak truncation — so φ⁴ is genuinely present and biases a log-log slope
     // downward at the top of the range. Dropping the largest φ recovers the
     // order more tightly, which is what identifies the culprit rather than
     // assuming it.

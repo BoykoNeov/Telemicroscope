@@ -11192,6 +11192,29 @@ The 2ν readout was where it surfaced only because a folded *pair* 2·cycles apa
 in bin space beats there whatever the pupil looks like — orders 5 and 7 land on
 −63 and −37, exactly 26 apart. Nothing about that mechanism is special to 2ν.
 
+**And the image carried it two orders larger, in a cell nothing was gating.**
+This is the claim § 6ab.12 could not make, and measuring it needed a test that a
+difference of the two images cannot give: the truncation's own cost at 12 cycles
+is a 2.4e-2 amplitude ripple, which swamps anything the fold contributed. The
+separation is **periodicity**. Band-limiting removes order bins and can never
+create one, so the band-limited object's spectrum lives only on multiples of
+`cycles`, and the intensity — an autocorrelation of it — does too. A bin that is
+**not** a multiple of `cycles` is therefore a signature of the fold *alone*,
+whatever the truncation does.
+
+At 12 cycles, φ = 3, 128 bins, **brightfield** — where the 2ν reading is 0.0878
+and stable to eight figures, so nothing is gated, refused or annotated — the
+pointwise image holds **3.7e-5** of its mean at image bin 8. Eight is not a
+multiple of twelve. It is order 10, folded onto bin −8 (120 mod 128), inside a
+pupil of radius 16, beating with the direct beam: 2·J₁₀(3)·|J₀(3)| = 2·1.3e-5·0.26.
+Filling the condenser to S = 0.6 makes it **1.4e-4**, 3.8× worse, because more
+directions put the folded order inside the pupil — so partial coherence does not
+wash the artefact out, it amplifies it. The band-limited object reads 5e-15 at the
+same bins with the same pupil, source and φ.
+
+That is the user-visible defect: a frame a reader has no reason to distrust,
+carrying structure at a frequency the object has no order at.
+
 **The fix is to build the object from its spectrum.** `phaseGratingObject` now
 places the orders that fit and inverse-transforms; `pointwisePhaseGratingObject`
 keeps the old construction, exported for the rung that measures the difference.
@@ -11227,7 +11250,7 @@ nothing distinguishes from the real kind. **Missing light is a number a panel ca
 print; misplaced light is not.** That is the whole argument for preferring a
 truncation to a fold, and it is why no threshold appears anywhere in it.
 
-**The § 6ab.12 rungs did not need loosening, and one got stronger.** The aliasing
+**The § 6ab.12 rungs did not need loosening, and two got stronger.** The aliasing
 rung is now an A/B at a *fixed* grid — pointwise reads 1.2e-7, band-limited reads
 3.3e-16, ratio 3.5e8 — which is a better control than the grid-widening one that
 found it, since that compared three different objects and this compares two
@@ -11254,7 +11277,10 @@ where the reading is genuine, removing them changes nothing.
   object is exactly representable. A wrong iᵐ phase would show up there as a
   wrong constant instead of a wrong image.
 
-`packages/core/test/phase-grating-spectrum.test.ts`, 9 rungs.
+- **Periodicity**, for the image claim — the only pin that isolates the fold from
+  the truncation, because the two are otherwise inseparable in a formed image.
+
+`packages/core/test/phase-grating-spectrum.test.ts`, 12 rungs.
 
 ### Not yet pinned
 

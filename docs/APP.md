@@ -522,7 +522,11 @@ finding rather than a caveat on it.
 number on the page.** A grating's orders run to infinity and a grid holds
 finitely many; the surplus used to *fold* onto bins belonging to other
 directions, where the imaging sum admitted them as light the object had
-diffracted into those directions. It had not. So the object is now built from
+diffracted into those directions. It had not — and this was a defect in the
+**picture**, not only in the 2ν number § 6ab.12 gated: at 12 cycles and φ = 3 in
+brightfield, a cell whose 2ν reads a healthy 0.0878, the old object put **3.7e-5**
+of the mean at image bin 8, which is not a multiple of twelve. Filling the
+condenser to S = 0.6 makes it 1.4e-4. So the object is now built from
 its spectrum, what does not fit is left out, and the panel prints two things
 beside the timings: the highest order on the grid, and **the light not on it**.
 That runs 1.6e-14 at φ = 0.4 and 12 cycles and **23%** at the top of both

@@ -1,9 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  coherentSource,
+  diskSource,
+  idealPupil,
+  imageHarmonic,
   phaseGratingObject,
   phaseGratingTruncation,
   pointwisePhaseGratingObject,
+  type CondenserSource,
 } from "../src/illumination";
+import { renderBrightfield } from "../src/imaging";
 import { besselJ, besselJ1, fft1d } from "../src/math";
 
 /**
@@ -330,5 +336,97 @@ describe("§ 6ab.13 — the price of band-limiting, reported rather than discove
     }
     expect(sumRe).toBeCloseTo(Math.cos(3), 13);
     expect(sumIm).toBeCloseTo(Math.sin(3), 13);
+  });
+});
+
+
+describe("§ 6ab.13 — and the folded orders were in the IMAGE, not only in the readout", () => {
+  const SIZE = 128;
+  const PUPIL_SAMPLES = 32;
+  const CYCLES = 12;
+  const PHI = 3;
+
+  /**
+   * The strongest image bin that is NOT a multiple of `cycles`, relative to the
+   * mean — and this is a confound-free test, which a pixel-by-pixel comparison
+   * of the two objects would not be.
+   *
+   * Band-limiting removes order bins; it can never *create* one. So the
+   * band-limited object's spectrum lives only on multiples of `cycles`, and the
+   * image intensity — an autocorrelation of that spectrum — lives only on
+   * multiples of `cycles` too. Truncation cannot put energy on a non-multiple
+   * however severe it gets.
+   *
+   * A folded order can, and only a folded order can. That makes the non-multiple
+   * bins a signature of the fold alone, with the truncation's own cost (a 2.4e-2
+   * amplitude ripple at this cell) contributing exactly nothing to them — where a
+   * direct difference of the two images would be swamped by it.
+   */
+  function worstNonMultiple(
+    build: typeof phaseGratingObject,
+    source: CondenserSource,
+  ): { value: number; bin: number } {
+    const object = build({ size: SIZE, cycles: CYCLES, amplitudeRadians: PHI });
+    const out = renderBrightfield(object, () => ({ pupil: idealPupil() }), source, {
+      pupilSamples: PUPIL_SAMPLES,
+      patches: 1,
+    });
+    const dc = imageHarmonic(out.intensity, SIZE, 0).dc;
+    let value = 0;
+    let bin = -1;
+    for (let b = 1; b < SIZE / 2; b++) {
+      if (b % CYCLES === 0) continue;
+      const r = imageHarmonic(out.intensity, SIZE, b).amplitude / dc;
+      if (r > value) {
+        value = r;
+        bin = b;
+      }
+    }
+    return { value, bin };
+  }
+
+  it("contaminates a BRIGHTFIELD cell whose own 2ν reading is perfectly healthy", () => {
+    // § 6ab.12 found the fold in a darkfield cell that could carry no second
+    // harmonic, where the gate suppresses the number anyway. That understated it.
+    // This cell is 12 cycles at φ = 3 in brightfield — its 2ν reads 0.0878 and is
+    // stable to eight figures, so nothing here is gated, refused or annotated.
+    //
+    // The pointwise object still puts 3.7e-5 of the mean into image bin 8. Eight
+    // is not a multiple of twelve. The object has no order at ν(8) and nothing
+    // about it diffracts light there: it is order 10, which folded onto bin −8
+    // (120 mod 128), passing the pupil at radius 16 and beating with the direct
+    // beam. J₁₀(3) = 1.3e-5 against J₀(3) = −0.26, doubled, is the size of it.
+    //
+    // Two orders larger than the 1.2e-7 the darkfield readout showed, in a frame
+    // a reader would have no reason to distrust — which is the whole claim.
+    const coherent = worstNonMultiple(pointwisePhaseGratingObject, coherentSource());
+    expect(coherent.bin).toBe(8);
+    expect(coherent.value).toBeGreaterThan(3e-5);
+
+    // Filling the condenser makes it worse, not better: more directions put the
+    // folded order inside the pupil. Any argument that partial coherence washes
+    // the artefact out has it backwards.
+    const filled = worstNonMultiple(pointwisePhaseGratingObject, diskSource(0.6, 21));
+    expect(filled.bin).toBe(8);
+    expect(filled.value).toBeGreaterThan(1e-4);
+    expect(filled.value).toBeGreaterThan(3 * coherent.value);
+  });
+
+  it("and the band-limited object puts NOTHING there, at f64", () => {
+    // Not "less" — nothing. The spectrum is on multiples of `cycles` and the
+    // autocorrelation of that is too, so a non-multiple bin can only hold
+    // roundoff. Nine orders below the pointwise reading at the same settings,
+    // with the same pupil, the same source and the same φ.
+    for (const source of [coherentSource(), diskSource(0.6, 21)]) {
+      const clean = worstNonMultiple(phaseGratingObject, source);
+      expect(clean.value).toBeLessThan(1e-14);
+    }
+    // And the truncation this costs does not hide in those bins either — the
+    // dropped orders are 2.7e-4 of the light here, four thousand times the 3.7e-5
+    // the fold was putting into bin 8, and none of it lands on a non-multiple.
+    // That is why the trade is measurable rather than a matter of taste.
+    const t = phaseGratingTruncation({ size: SIZE, cycles: CYCLES, amplitudeRadians: PHI });
+    expect(t.droppedEnergy).toBeGreaterThan(2e-4);
+    expect(t.droppedEnergy).toBeLessThan(3e-4);
   });
 });

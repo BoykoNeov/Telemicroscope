@@ -675,8 +675,12 @@ export function PhasePanel() {
         used to <em>fold</em> — order 5 landing on bin −63, which is no order at all — and the
         imaging sum then let them through the pupil as light the object had diffracted into those
         directions. It had not. That is what made a darkfield cell with no possible second harmonic
-        read 1.2e-7, and the same false orders were in the picture everywhere else, hidden under
-        whatever real signal was there. So what does not fit is now <em>left out</em> rather than
+        read 1.2e-7 — and <strong>the picture had it two orders larger</strong>: at 12 cycles and
+        φ = 3 in brightfield, where the 2ν reading is a healthy 0.0878 and nothing is gated, the old
+        object put <strong>3.7e-5</strong> of the mean at image bin 8. Eight is not a multiple of
+        twelve; that is order 10 folded onto bin −8, inside the pupil, beating with the direct beam.
+        Filling the condenser makes it 1.4e-4 — worse, not better. So what does not fit is now{" "}
+        <em>left out</em> rather than
         misplaced, and the cost is the second number: <strong>light not on the grid</strong>. It is
         1.6e-14 at φ = 0.4 and 12 cycles, and <strong>23%</strong> at the top of both sliders, where
         the grid holds only |m| &le; 2 and J₃(3) = 0.31 goes over the side. There is no threshold

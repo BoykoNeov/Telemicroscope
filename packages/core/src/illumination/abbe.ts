@@ -234,6 +234,11 @@ export interface SpectrumTruncation {
  *
  * `pointwisePhaseGratingObject` keeps the old sample-by-sample construction,
  * for the rung that measures what this fixes.
+ *
+ * One behaviour changed besides the spectrum: φ past `BESSEL_SERIES_LIMIT` now
+ * throws, where the pointwise formula accepted any φ. Building from orders means
+ * evaluating Jₘ(φ), and past 25 radians the series returns noise — a grating
+ * whose orders are noise is worse than a refusal. The panel's slider stops at 3.
  */
 export function phaseGratingObject(options: {
   size: number;
