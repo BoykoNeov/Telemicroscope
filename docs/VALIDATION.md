@@ -11402,8 +11402,13 @@ spends most of its travel.
 **Zero stays exact.** Where no row carries, every integrand evaluation is exactly
 0 and so is the sum, so the area agrees with `apertureCarriesHarmonic` as a
 predicate rather than approximately — measured over 1 600 aperture/ν cells with no
-disagreement, and the smallest positive fraction anywhere in the sweep is 2.9e-4.
-There is still no threshold anywhere in the gate. That property is what forced the
+disagreement. There is still no threshold anywhere in the gate. **What that does
+not say is that positive readings stand clear of zero**, and the first draft of
+this step claimed it did: the smallest positive fraction in the sweep is 2.9e-4,
+which is a fact about steps of 0.01 in ν and not about the quantity — the same
+ring reads 6.4e-6 at ν = 0.7999 and 2.0e-7 at 0.79999, because the area *thins*
+to its cutoff, as the rung two sections up says in so many words. The exactness
+that matters is the zero, and the zero is exact. That property is what forced the
 ring to be integrated as one integrand: computing it as a difference of two discs
 is a true identity and converges just as well, but it leaves 9e-17 where the
 answer is none.

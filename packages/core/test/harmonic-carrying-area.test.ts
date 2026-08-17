@@ -107,8 +107,10 @@ describe("§ 6ab.14 — the area agrees with the predicate, exactly and in both 
     // Not "small where it says no" — zero, bit for bit, because every row's
     // carrying set is empty and the integrand is 0 at every node. That is what
     // lets a gate be built on it without a threshold, which was § 6ab.12's whole
-    // finding. The smallest POSITIVE fraction anywhere in the sweep is 2.9e-4:
-    // there is no ambiguous band between "carries" and "does not".
+    // finding. What it does NOT say is that positive readings stand clear of
+    // zero — the fraction reaches its cutoffs continuously, so the smallest
+    // positive one measures the ν grid and not the quantity: 2.9e-4 on these
+    // steps of 0.01, and 6.4e-6 on steps of 1e-4 near the ring's own 0.8.
     const apertures: [number, number][] = [
       [0, 0.3],
       [0, 0.6],
@@ -136,7 +138,12 @@ describe("§ 6ab.14 — the area agrees with the predicate, exactly and in both 
       }
     }
     expect(cells).toBe(1600);
+    // Recorded, not relied on: this is the grid's number, and a finer grid finds
+    // a smaller one. It is here so that a future edit which quietly starts
+    // returning tiny nonzero areas where the predicate says no has something to
+    // fail against.
     expect(smallestPositive).toBeGreaterThan(2e-4);
+    expect(harmonicCarryingArea(DARK_INNER, DARK_OUTER, 0.7999).fraction).toBeCloseTo(6.352e-6, 9);
   });
 
   it("gives the ν = 1 defect its number: a carrying set of exactly no area", () => {
@@ -193,16 +200,29 @@ describe("§ 6ab.14 — the area agrees with the predicate, exactly and in both 
     // `harmonicCarryingChord`, which is the only part of it a disc never
     // exercises, and it is the reason a darkfield ring can be reasoned about
     // with the same intervals as a brightfield disc.
-    let worst = 0;
-    for (let step = 0; step <= 2000; step++) {
-      const sy = (DARK_OUTER * step) / 2000;
-      const ring = harmonicCarryingChord(DARK_INNER, DARK_OUTER, 0.75, sy);
-      const discs =
-        harmonicCarryingChord(0, DARK_OUTER, 0.75, sy) -
-        harmonicCarryingChord(0, DARK_INNER, 0.75, sy);
-      worst = Math.max(worst, Math.abs(ring - discs));
+    //
+    // Agreement is to rounding rather than bitwise, and the difference is worth
+    // stating: the two sides add the same lengths in different orders, so they
+    // are equal as reals and 1 ULP apart in f64. ν = 0.75 happens to come out
+    // exact — over half its rows are empty on both sides — and ν = 0.25, where
+    // the ring carries 55% and both chord intervals are working on nearly every
+    // row, reads 2.2e-16. Pinning the exact case alone would have pinned the
+    // coincidence.
+    for (const nu of [0.25, 0.5, 0.75]) {
+      let worst = 0;
+      let carrying = 0;
+      for (let step = 0; step <= 2000; step++) {
+        const sy = (DARK_OUTER * step) / 2000;
+        const ring = harmonicCarryingChord(DARK_INNER, DARK_OUTER, nu, sy);
+        const discs =
+          harmonicCarryingChord(0, DARK_OUTER, nu, sy) -
+          harmonicCarryingChord(0, DARK_INNER, nu, sy);
+        if (ring !== 0) carrying++;
+        worst = Math.max(worst, Math.abs(ring - discs));
+      }
+      expect(carrying).toBeGreaterThan(500);
+      expect(worst).toBeLessThan(4e-16);
     }
-    expect(worst).toBe(0);
   });
 });
 

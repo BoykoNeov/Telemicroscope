@@ -733,11 +733,14 @@ export interface HarmonicCarryingArea {
  *
  * **Zero is exact and 1 is not.** Where no row carries, every integrand
  * evaluation is exactly 0 and so is the sum — so this agrees with
- * `apertureCarriesHarmonic` as a predicate rather than approximately (measured
- * over 3 200 aperture/ν combinations, no disagreement, and the smallest nonzero
- * fraction anywhere in that sweep is 2.9e-4 — there is no ambiguous band). A
- * full aperture instead reads 1 to the tolerance, because the integral is then
- * the aperture's own area and has to be got by quadrature like anything else.
+ * `apertureCarriesHarmonic` as a predicate rather than approximately, measured
+ * over 1 600 aperture/ν combinations with no disagreement. That is what keeps
+ * the gate free of a threshold, and it is **not** a claim that positive readings
+ * stand clear of zero: the fraction reaches its cutoffs continuously, and how
+ * small the smallest positive one is says only how fine the ν grid asking was —
+ * 2.9e-4 on steps of 0.01, 6.4e-6 on steps of 1e-4. A full aperture reads 1 to
+ * the tolerance instead of exactly, because the integral is then the aperture's
+ * own area and has to be got by quadrature like anything else.
  */
 export function harmonicCarryingArea(
   inner: number,
