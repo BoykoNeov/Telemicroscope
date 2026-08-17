@@ -1,5 +1,4 @@
 import {
-  annularSource,
   apertureCarriesHarmonic,
   coherentSource,
   defocusedPupil,
@@ -8,6 +7,7 @@ import {
   harmonicSupportWeight,
   idealPupil,
   imageHarmonic,
+  latticeAnnularSource,
   onlySymmetricPairPasses,
   phaseGratingObject,
   phaseGratingTruncation,
@@ -96,6 +96,17 @@ import type { PupilFunction } from "@telemicroscope/core/wave";
 
 export type Illumination = "brightfield" | "darkfield";
 
+/**
+ * What the source control's number means in the illumination in force.
+ *
+ * `"count"` is `diskSource`'s points across the diameter; `"spacing"` is the
+ * darkfield ring's lattice step in |s|. The two are never both meaningful, which
+ * is why they are a discriminant rather than two numbers a caller must know
+ * which of to read — A2's `CondenserMode` makes the same move for the same
+ * reason, one illumination toggle away.
+ */
+export type SourceControlKind = "count" | "spacing";
+
 /** The darkfield annulus, entirely outside the objective's pupil. */
 export const DARKFIELD_OUTER = 1.4;
 export const DARKFIELD_INNER = 1.1;
@@ -105,8 +116,20 @@ export interface PhaseRequest {
   readonly size: number;
   /** Frequency bins across the pupil diameter — the scale, as in `wave/psf`. */
   readonly pupilSamples: number;
-  /** Condenser lattice points across the source DIAMETER. */
+  /**
+   * Condenser lattice points across the source DIAMETER. **Brightfield only** —
+   * darkfield reads `darkfieldSpacing` and never this. Two fields rather than
+   * one reinterpreted by `illumination`, for A2's reason: a spacing and a count
+   * are different quantities and a control that silently reinterprets a number
+   * across a mode switch is a bug waiting for a reader.
+   */
   readonly sourceSamples: number;
+  /**
+   * The darkfield ring's lattice **spacing**, in units of |s|. Darkfield only.
+   * See `PANEL_DARKFIELD_SPACINGS` for why the ring names this where the disc
+   * names a count.
+   */
+  readonly darkfieldSpacing: number;
   readonly illumination: Illumination;
   /** S = NA_cond / NA_obj. Brightfield only; darkfield uses the annulus. */
   readonly coherenceParameter: number;
@@ -119,7 +142,7 @@ export interface PhaseRequest {
 }
 
 /**
- * The `sourceSamples` values the panel's own control offers.
+ * The `sourceSamples` values the panel's own control offers **in brightfield**.
  *
  * Exported and consumed by `panels/phase.tsx` rather than written out twice,
  * because `SamplingSpread` below is a claim about **this list** — an exhaustive
@@ -130,15 +153,70 @@ export interface PhaseRequest {
 export const PANEL_SOURCE_SAMPLES = [7, 11, 15, 21] as const;
 
 /**
+ * The lattice **spacings** the darkfield control offers, in units of |s|.
+ *
+ * ## Why the ring names a spacing where the disc names a count
+ *
+ * § 6ab.19's argument, arriving in the app. `annularSource` inherits
+ * `diskSource`'s "N points across the diameter" and a ring throws most of them
+ * away — 16 of 49 at N = 7, 128 of 441 at N = 21 — so the number the reader sets
+ * and the density they get are only loosely related. A spacing *is* the angular
+ * density, and the ring's point count follows from it: 608, 160 and 36
+ * directions here, the same three at `pupilSamples` 32 and 64 because a spacing
+ * is a property of the ring rather than of the grid under it.
+ *
+ * ## The defect this closed, and it is not the one that was obvious
+ *
+ * The count-based control had a cell where its own advice could not be taken.
+ * At grid 256 / `pupilSamples` 64 and 25 cycles (ν = 0.78125) the aperture
+ * carries 2ν on **1.62%** of its directions and **all four** offered counts hold
+ * none of it — 7, 11, 15 and 21 all read ~6e-16 — so the panel printed "raise
+ * source samples" at every setting the reader could raise it to. That is the
+ * failure APP.md already records fixing once at S = 0, and the reason the count
+ * branch is gone rather than joined. The two finer spacings here read 7.8e-3 and
+ * 1.34e-2 in the same cell.
+ *
+ * (§ 6ab.12's headline cell — 12 cycles at `pupilSamples` 32, where the 7-point
+ * ring reads roundoff — is *also* off the control now, but that one was already
+ * honest: the gate said "raise source samples" and 11, 15 and 21 all worked.)
+ *
+ * ## Why three, when the finest costs 17× the coarsest
+ *
+ * Because two would lie, which is this panel's own established finding. Dropping
+ * 0.0625 narrows the reported disagreement at cells where the disagreement is
+ * real — 1.000× against 1.034× at 6 cycles, 1.010× against 1.081× at 9, and
+ * 1.256× against 1.407× at 11 — so a two-option probe would under-report exactly
+ * as the three-of-four count subsets did.
+ *
+ * Every value is an exact binary fraction, so `===` against the spacing in force
+ * is exact and `darkfieldStepMultiple` lands on an integer at both `pupilSamples`
+ * the panel offers. It is checked there anyway rather than argued here.
+ */
+export const PANEL_DARKFIELD_SPACINGS = [0.0625, 0.125, 0.25] as const;
+
+/**
+ * The default spacing, and the rule it satisfies: **the coarsest spacing that
+ * holds every carrying cell at every (grid, pupil samples) the panel offers.**
+ *
+ * Measured over the cycles slider's whole range at 128/32, 256/32 and 256/64:
+ * 0.25 misses one cell of 25 at 256/64 and this misses none of any. So the
+ * cheapest complete option is the default, and the reader who moves the control
+ * is trading cost against a spread rather than against a hole.
+ */
+export const DEFAULT_DARKFIELD_SPACING = 0.125;
+
+/**
  * The 2ν reading at every source sampling this panel offers.
  *
  * § 6ab.10 found the panel printing a 2ν contrast to four significant figures
  * that is not converged, and left what to print about it open. This is the
  * answer, and the reason it can be answered without pinning a new number is the
  * scope: it does **not** estimate how far the reading is from the continuum. It
- * states what moving the panel's own source-samples control does to it. That
- * enumeration is complete — four options, all four rendered — so there is no
- * sampling error in it to bound.
+ * states what moving the panel's own source control does to it. That
+ * enumeration is complete — every option the control offers, all of them
+ * rendered — so there is no sampling error in it to bound. Which control that
+ * is depends on the illumination: four counts in brightfield, three lattice
+ * spacings in darkfield, and `kind` below says which is on screen.
  *
  * Two things that were measured and are why nothing here is a threshold:
  *
@@ -173,11 +251,21 @@ export const PANEL_SOURCE_SAMPLES = [7, 11, 15, 21] as const;
  * rather than as "0.0000".
  */
 export interface SamplingSpread {
-  /** One reading per option that the frequency grid could carry. */
-  readonly readings: readonly { readonly samples: number; readonly value: number }[];
+  /**
+   * What one `option` below *is* — a point count across the diameter in
+   * brightfield, a lattice spacing in darkfield. Carried rather than inferred
+   * from the request, because the two are different quantities under one field
+   * and a label that describes a different operation is a bug in the readout.
+   */
+  readonly kind: SourceControlKind;
+  /**
+   * One reading per option that the frequency grid could carry. `option` is the
+   * control's own value, in `kind`'s units.
+   */
+  readonly readings: readonly { readonly option: number; readonly value: number }[];
   readonly min: number;
   readonly max: number;
-  /** `max/min`. Exactly 1 when the source does not depend on the count. */
+  /** `max/min`. Exactly 1 when the source does not depend on the control. */
   readonly ratio: number;
   /**
    * Options `abbeImage` would have refused, and why they are dropped rather than
@@ -186,6 +274,14 @@ export interface SamplingSpread {
    * binding sample), so a reader at N = 7 can be at an S that N = 21 cannot
    * render. Dropping is the only honest option — a truncated pupil reads as a
    * smaller aperture, which would look like physics.
+   *
+   * **Reachable in brightfield only, and that is the answer to § 6ab.19's open
+   * question rather than an omission.** The ceiling is a function of S and
+   * darkfield holds S at 0 — the ring's radius is `DARKFIELD_OUTER`, which the
+   * coherence slider does not touch — so moving the ring from a count to a
+   * spacing moves nothing about it. The darkfield options differ in reach by
+   * 1.375 against 1.25, and no (grid, pupil samples) the panel offers has a wall
+   * between those, so this list is empty there at every setting.
    */
   readonly skipped: readonly number[];
   /** Frames rendered for this, over and above the one the panel already had. */
@@ -360,49 +456,113 @@ export function sourceFits(source: CondenserSource, size: number, pupilSamples: 
   return true;
 }
 
-/** The darkfield annulus at this sampling — built once so it can be measured. */
-export function darkfieldSource(samples: number): CondenserSource {
-  return annularSource(DARKFIELD_OUTER, DARKFIELD_INNER, samples);
+/** Everything about a request that decides which condenser it gets. */
+export type SourceRequest = Pick<
+  PhaseRequest,
+  "illumination" | "coherenceParameter" | "sourceSamples" | "darkfieldSpacing" | "pupilSamples"
+>;
+
+/**
+ * The whole-number lattice step a spacing asks for at this pupil sampling.
+ *
+ * `latticeAnnularSource` takes a multiple of the pupil's own half-step 1/P, so
+ * spacing = 2m/P and m = spacing·P/2. The panel's spacings are exact binary
+ * fractions and its pupil samplings are 32 and 64, so every combination lands on
+ * an integer — checked rather than argued, because a non-integer here would
+ * otherwise reach the engine as a source whose coordinates are off the lattice
+ * it claims to be on, and `latticeOffset` would refuse it with a message about
+ * half-steps that says nothing about the control that caused it.
+ */
+export function darkfieldStepMultiple(spacing: number, pupilSamples: number): number {
+  const m = (spacing * pupilSamples) / 2;
+  if (!Number.isInteger(m) || m < 1) {
+    throw new Error(
+      `darkfield spacing ${spacing} is not a whole number of lattice steps at pupilSamples ` +
+        `${pupilSamples} — it asks for ${m}, and the ring's coordinates would not sit on the ` +
+        `pupil's own frequency grid`,
+    );
+  }
+  return m;
 }
 
 /**
- * The condenser this request asks for.
+ * The darkfield annulus at this spacing — built once so it can be measured.
+ *
+ * `latticeAnnularSource` rather than `annularSource`: § 6ab.19's ring, on the
+ * pupil's own lattice. See `PANEL_DARKFIELD_SPACINGS` for what that closed.
+ */
+export function darkfieldSource(pupilSamples: number, spacing: number): CondenserSource {
+  return latticeAnnularSource(
+    DARKFIELD_OUTER,
+    DARKFIELD_INNER,
+    pupilSamples,
+    darkfieldStepMultiple(spacing, pupilSamples),
+  );
+}
+
+/** The control on screen: which quantity it sets, what it offers, and its value. */
+export interface SourceControl {
+  readonly kind: SourceControlKind;
+  /** Every value the control offers, in the order the panel lists them. */
+  readonly options: readonly number[];
+  /** The one in force. */
+  readonly value: number;
+}
+
+/**
+ * Which source control this request is holding.
+ *
+ * One read of the illumination, in one place, so the option list, the value in
+ * force and the label the readout prints cannot disagree about which quantity
+ * the reader is moving.
+ */
+export function sourceControl(request: SourceRequest): SourceControl {
+  return request.illumination === "darkfield"
+    ? { kind: "spacing", options: PANEL_DARKFIELD_SPACINGS, value: request.darkfieldSpacing }
+    : { kind: "count", options: PANEL_SOURCE_SAMPLES, value: request.sourceSamples };
+}
+
+/**
+ * The condenser this request would have at one option of its own control.
  *
  * S = 0 takes `coherentSource` rather than `diskSource(0, N)`, which would
  * collapse every lattice point onto the origin and pay N² transforms for the
  * one-point coherent limit — and the coherent limit is exactly where the closed
  * form below applies, so this panel reaches it often.
  */
-export function sourceFor(
-  request: Pick<PhaseRequest, "illumination" | "coherenceParameter" | "sourceSamples">,
-): CondenserSource {
-  if (request.illumination === "darkfield") return darkfieldSource(request.sourceSamples);
-  return request.coherenceParameter === 0
-    ? coherentSource()
-    : diskSource(request.coherenceParameter, request.sourceSamples);
+export function sourceWith(request: SourceRequest, option: number): CondenserSource {
+  if (request.illumination === "darkfield") {
+    return darkfieldSource(request.pupilSamples, option);
+  }
+  return request.coherenceParameter === 0 ? coherentSource() : diskSource(request.coherenceParameter, option);
+}
+
+/** The condenser this request asks for — `sourceWith` at the option in force. */
+export function sourceFor(request: SourceRequest): CondenserSource {
+  return sourceWith(request, sourceControl(request).value);
 }
 
 /**
- * Which of the panel's source samplings are distinct sources here.
+ * Which of the panel's source options are distinct sources here.
  *
- * At S = 0 in brightfield `sourceFor` returns `coherentSource()` whatever the
+ * At S = 0 in brightfield `sourceWith` returns `coherentSource()` whatever the
  * count, so the four options are one source and the spread is exactly 1 — not
  * approximately, and not after three renders. Verified bit-identical rather than
  * assumed: 0.07691301586554729 from both the 7 and the 21 branch. This is a read
- * of `sourceFor`'s own condition rather than a second copy of it, so the two
+ * of `sourceWith`'s own condition rather than a second copy of it, so the two
  * cannot drift apart, and it is why the panel's default state pays nothing.
  *
- * Darkfield gets no such shortcut: `annularSource` masks the same lattice, so
- * the ring's point count and placement both move with the count — 16 points at
- * N = 7 against 128 at 21 — and that turns out to matter more here than anywhere
- * in brightfield.
+ * Darkfield gets no such shortcut and needs none: the ring never contains the
+ * axis, so there is no S at which its three spacings collapse to one source.
+ * They hold 608, 160 and 36 directions at every pupil sampling the panel offers,
+ * and the reader pays for all three whichever one is selected — which is the
+ * probe's cost and is why the timing line splits it out.
  */
-export function samplingsThatMatter(
-  request: Pick<PhaseRequest, "illumination" | "coherenceParameter" | "sourceSamples">,
-): readonly number[] {
+export function samplingsThatMatter(request: SourceRequest): readonly number[] {
+  const control = sourceControl(request);
   return request.illumination === "brightfield" && request.coherenceParameter === 0
-    ? [request.sourceSamples]
-    : PANEL_SOURCE_SAMPLES;
+    ? [control.value]
+    : control.options;
 }
 
 /**
@@ -507,6 +667,27 @@ export function highestCarryingCycles(request: PhaseRequest, harmonic: number): 
 }
 
 /**
+ * Which settings of the source control hold h·ν at all, at this request's grating.
+ *
+ * The same move `highestCarryingCycles` makes for the cycles slider: the control
+ * is discrete, so asking every option is exhaustive over what the reader can
+ * actually do rather than an estimate of a continuum. It is a sum over source
+ * points and no render, so asking it once per refusal costs nothing measurable
+ * beside the pair.
+ *
+ * Options the frequency grid cannot carry are excluded, for `SamplingSpread`'s
+ * reason: advice a reader would be refused for taking is not advice.
+ */
+export function optionsThatCarry(request: PhaseRequest, harmonic: number): readonly number[] {
+  const orders = { cycles: request.cycles, pupilSamples: request.pupilSamples, harmonic };
+  return sourceControl(request).options.filter((option) => {
+    const source = sourceWith(request, option);
+    if (!sourceFits(source, request.size, request.pupilSamples)) return false;
+    return harmonicSupportWeight(idealPupil(), source, orders) > 0;
+  });
+}
+
+/**
  * `secondHarmonicSupport` for any harmonic — the same two legs, the same gate.
  *
  * Everything § 6ab.12 built took an `h`; only the panel was fixed at 2. The one
@@ -590,6 +771,21 @@ export function harmonicSupportAt(request: PhaseRequest, harmonic: number): Harm
     }
     // The actionable case, and the number is what makes it actionable: how thin
     // the set is says how much more sampling it would take to land in it.
+    //
+    // **The advice names settings rather than a direction**, and the reason is
+    // the defect § 6ab.19's wiring closed. The count-based ring had a cell — 25
+    // cycles at grid 256 / pupilSamples 64, where the aperture carries on 1.62%
+    // of its directions — in which *every* offered count held none of the set,
+    // so "raise source samples" was advice that could not be taken at any
+    // setting the panel had. Reading the options rather than asserting one is
+    // what makes that unrepresentable: if none of them carries it, this says so.
+    const carriers = optionsThatCarry(request, harmonic);
+    const advice =
+      carriers.length === 0
+        ? ` — and no setting of this panel's ${sourceControl(request).kind === "spacing" ? "lattice-spacing" : "source-samples"} control holds any of it`
+        : sourceControl(request).kind === "spacing"
+          ? ` — a finer condenser lattice holds it: spacing ${carriers.join(" or ")}`
+          : ` — raise source samples to ${carriers.join(" or ")}`;
     return {
       apertureCarries,
       latticeWeight,
@@ -597,8 +793,7 @@ export function harmonicSupportAt(request: PhaseRequest, harmonic: number): Harm
       exists: false,
       reason:
         `no direction in this ${source.points.length}-point source can carry ${hv}, though ` +
-        `${(100 * apertureFraction).toPrecision(3)}% of the aperture it samples does — ` +
-        `raise source samples`,
+        `${(100 * apertureFraction).toPrecision(3)}% of the aperture it samples does${advice}`,
     };
   }
   return { apertureCarries, latticeWeight, apertureFraction, exists: true, reason: "" };
@@ -906,22 +1101,26 @@ export function harmonicSpreads(
     return { spreads: harmonics.map(() => null), extraFrames: 0 };
   }
 
-  const perHarmonic: { samples: number; value: number }[][] = harmonics.map(() => []);
+  const control = sourceControl(request);
+  const perHarmonic: { option: number; value: number }[][] = harmonics.map(() => []);
   const skipped: number[] = [];
   let extraFrames = 0;
 
-  for (const samples of samplingsThatMatter(request)) {
-    if (samples === request.sourceSamples) {
-      harmonics.forEach((_, i) => perHarmonic[i]!.push({ samples, value: shipped[i]! }));
+  for (const option of samplingsThatMatter(request)) {
+    // Exact equality on purpose and safe in both units: the counts are integers
+    // and the spacings are exact binary fractions, so the option in force is
+    // recognised rather than re-rendered.
+    if (option === control.value) {
+      harmonics.forEach((_, i) => perHarmonic[i]!.push({ option, value: shipped[i]! }));
       continue;
     }
-    const source = sourceFor({ ...request, sourceSamples: samples });
+    const source = sourceWith(request, option);
     if (!sourceFits(source, request.size, request.pupilSamples)) {
-      skipped.push(samples);
+      skipped.push(option);
       continue;
     }
     const values = probeHarmonics(request, source, defocusWaves, harmonics);
-    harmonics.forEach((_, i) => perHarmonic[i]!.push({ samples, value: values[i]! }));
+    harmonics.forEach((_, i) => perHarmonic[i]!.push({ option, value: values[i]! }));
     extraFrames++;
   }
 
@@ -936,7 +1135,7 @@ export function harmonicSpreads(
     // sampling agreeing on exactly zero. Testing `min === 0` first would call
     // that an infinite disagreement, which is the opposite of what happened.
     const ratio = max === min ? 1 : min === 0 ? Number.POSITIVE_INFINITY : max / min;
-    return { readings, min, max, ratio, skipped, extraFrames };
+    return { kind: control.kind, readings, min, max, ratio, skipped, extraFrames };
   });
   return { spreads, extraFrames };
 }
@@ -1314,6 +1513,7 @@ export function transferSweep(
     | "size"
     | "pupilSamples"
     | "sourceSamples"
+    | "darkfieldSpacing"
     | "illumination"
     | "coherenceParameter"
     | "defocusWaves"

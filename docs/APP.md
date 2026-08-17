@@ -714,8 +714,9 @@ found by driving the app, not by the headless suite.
 
 **Darkfield also has a grid ceiling A2's formula does not describe.** The annulus
 lies outside |s| = 1, so its outermost lattice point needs frequency-grid headroom
-that pupil samples 64 on a 128² grid does not have — measured, the N = 11 ring
-reaches |s| = 1.371 against a reach of 0.969, and `abbeImage` throws. The check
+that pupil samples 64 on a 128² grid does not have — measured, the ~~N = 11~~
+**lattice** ring reaches |s| = ~~1.371~~ **1.375 at the two finer spacings and
+1.25 at the coarsest** against a reach of 0.969, and `abbeImage` throws. The check
 runs over the source's own points rather than as a formula in S, because an
 annulus's reach is not something a formula in S describes; the option is disabled
 with the engine's numbers in the message, and the throw is still caught.
@@ -755,8 +756,11 @@ and reads `unknown` at every setting, correctly: an ideal pupil carries no memor
 of a trace, and A3 must not round that to green.
 
 **Cost, measured in the browser** (dev build, in the worker, pupil samples 32 /
-grid 128 / N 11): **~20–24 ms for the pair** at S = 0 and **~162 ms** in darkfield,
-where the annulus holds 36 directions against the coherent limit's one. Live
+grid 128 / N 11): **~20–24 ms for the pair** at S = 0 and ~~**~162 ms** in
+darkfield, where the annulus holds 36 directions against the coherent limit's
+one~~ — **darkfield's figure moved at § 6ab.19, where the ring became a lattice:
+160 directions at the default spacing, and the probe over all three is what the
+cost is now. See the wiring section at the end of A3.** Live
 everywhere. One job carries both images rather than two — the panel's claim is a
 comparison, and two jobs can transiently show an in-focus frame at one φ beside a
 defocused one at another.
@@ -786,7 +790,8 @@ surfaced**: the annulus holds 16 lattice points there and reads 8.8e-17 where
 11/15/21 agree on ~1.5e-3, so that option shows "no second harmonic in
 darkfield", which is false — ~~the probe now prints the 2.3e13 spread rather than
 the panel gating an option on a threshold nothing measures~~ **closed at
-§ 6ab.12, below**. **The timing line
+§ 6ab.12, below**, and **the option itself is gone at § 6ab.19**: darkfield's
+control is a lattice spacing now and 7 samples is not one of its settings. **The timing line
 stopped saying "for the pair"** and splits the probe's share out. And the cost is
 **zero in the default state**, because at S = 0 every sampling is the same
 one-point source. Under `vite-node`: 5 ms at the default, 391 ms once S = 1 in
@@ -850,6 +855,9 @@ and the 7-sample refusal above now reads "…though **7.03%** of the aperture it
 samples does — raise source samples", which says how thin the target is rather
 than only which direction to move. The 6.6% this section's predecessor quoted was
 a scan weighting every (ring, angle) sample equally and is not an area at all.
+(**The advice half of that sentence was still not takeable everywhere, and
+§ 6ab.19 is where that was found and fixed** — the refusal now names the settings
+that work rather than a direction to move in. See the end of this section.)
 
 **The parenthesis is load-bearing.** How well a lattice resolves the carrying
 *set* — 0.79, 1.26 and 1.11 at 11, 15 and 21 samples — is a different quantity
@@ -871,6 +879,72 @@ S, so nothing on the panel rescues that cell. It says so instead. Cost is **0.02
 sliders reach, against a pair that runs 57–1080 ms — the quadrature takes almost
 every panel without bisecting, because § 6ab.14 splits at the rows where the
 integrand's description changes.
+
+**Darkfield's control is a lattice SPACING now, and the reason is not the cell
+that was on the list (§ 6ab.19).** § 6ab.19 built `latticeAnnularSource` and left
+the wiring as an APP.md decision: *"whether the darkfield control should become a
+step — and what that does to the panel's S ceiling"*. Both halves are answered
+here, and the second one answers to nothing.
+
+The count came off. Darkfield now offers **spacings 0.0625 / 0.125 / 0.25**,
+holding **608 / 160 / 36** directions — the same three counts at pupil samples 32
+and 64, because a spacing is a property of the ring where a count is a property
+of the square it is masked out of. Brightfield is untouched and keeps its count;
+the two knobs are separate state for A2's reason, that switching modes must not
+silently reinterpret a number. Default is 0.125, and the rule it satisfies is
+statable: **the coarsest spacing that holds every carrying cell at every grid and
+pupil sampling the panel offers.**
+
+**The defect that decided this is not the one the open item named.** That item
+pointed at the 7-sample cell, and that cell was already honest — the gate said
+"raise source samples" and 11, 15 and 21 all worked. The unanswerable cell is
+**25 cycles at grid 256 / pupil samples 64**, where the aperture carries 2ν on
+**1.62%** of its directions and *all four counts hold none of it*: 7, 11, 15 and
+21 all read ~6e-16. The panel printed "raise source samples" at every setting a
+reader could raise it to. **That is advice that cannot be taken**, the same
+failure this section records fixing once already at S = 0 — and it is why the
+count branch is gone rather than joined by a second one. The two finer spacings
+read 7.8e-3 and 1.34e-2 in the same cell.
+
+So the refusal **reads the control's options** instead of asserting one, and
+prints the settings that hold it: *"no direction in this 36-point source can carry
+2ν, though 1.62% of the aperture it samples does — a finer condenser lattice
+holds it: spacing 0.0625 or 0.125"*. Pinned by a sweep over every darkfield cell
+the panel can reach: wherever that branch fires, some offered spacing carries the
+set, zero exceptions. Without that sweep this would have moved the defect rather
+than closed it.
+
+**Three spacings, at 17× the cost of the coarsest, and the cost is the honest
+part.** The probe renders every option whichever is selected, so darkfield's
+worst case goes from 248 directions a frame to **804** — ~514 ms at φ = 0.4 and
+~652 ms at φ = 3 under `vite-node`, putting the pair at the same order as the
+brightfield worst case this section already advertises at 1080 ms. Two options
+would be cheaper and would **under-report**: dropping the finest narrows the
+printed disagreement at 6 cycles (1.000× against 1.034×), 9 (1.010× against
+1.081×) and 11 (1.256× against 1.407×) — this section's own "a cheaper probe
+lies", arriving on a different control.
+
+**What it does NOT buy, stated because the obvious sentence is wrong.**
+`latticeAnnularSource` takes § 6p's cache into darkfield, and the cache saves
+*pupil evaluations* — 608× of them. This panel is ideal-pupil by doctrine, so a
+pupil evaluation is an analytic function call and the saving is not measurable
+here; `abbeImage` still runs one transform per source point either way. **The
+wiring costs time and buys correctness.** Quoting 608× as a speed-up would be a
+right number in a wrong sentence, which is § 6ab's most repeated finding.
+
+**The S ceiling: nothing.** It is a function of S, darkfield holds S at exactly 0
+(the ring's radius is the annulus, not the slider), so the ceiling stays a
+brightfield quantity keyed off the count. The spacings differ in reach — 1.375
+against 1.25 — and no grid the panel offers has a wall between them, so no option
+is ever dropped in darkfield either.
+
+**One consequence recorded rather than smoothed.** At 12 cycles and w₂₀ = 3 the
+coarsest spacing's reading passes through zero (1.7e-16 against 1.6e-4 and
+1.0e-3), so the printed max/min runs to 6e12 where the in-focus reading is a clean
+**1.466×**. That is § 6ab.18's own caution about this statistic — a ratio diverges
+when one sampling crosses zero — showing up in a cell whose geometry says all
+three samplings carry the set. The statistic was not changed to hide it; that
+would be a different step.
 
 **Note kept:** this one is *stronger* on ideal pupils than traced ones, because
 the null is exact there. Do not "improve" it by tracing.

@@ -6,6 +6,8 @@ import {
   gridReach,
   sourceFits,
   PANEL_SOURCE_SAMPLES,
+  PANEL_DARKFIELD_SPACINGS,
+  DEFAULT_DARKFIELD_SPACING,
   threeOrderCheck,
   transferSweep,
   DARKFIELD_INNER,
@@ -102,9 +104,15 @@ function SpreadLine({ spread }: { spread: PhaseFrame["secondHarmonicSpread"] }) 
       </span>
     );
   }
+  // The label names the quantity the reader is moving, from the spread's own
+  // discriminant rather than from the illumination read a second time here: a
+  // count and a spacing are different things and this line is the one place the
+  // number is shown without its units.
   return (
     <span style={{ color: "#777" }}>
-      &nbsp;&nbsp;across source samples {spread.readings.map((r) => r.samples).join("/")}:{" "}
+      &nbsp;&nbsp;across{" "}
+      {spread.kind === "spacing" ? "condenser lattice spacing" : "source samples"}{" "}
+      {spread.readings.map((r) => r.option).join("/")}:{" "}
       {spread.min.toExponential(2)} … {spread.max.toExponential(2)} (
       <strong>{ratioText(spread.ratio)}×</strong>)
       {spread.skipped.length > 0 && (
@@ -433,7 +441,13 @@ function Frame({
 /** What the sweep depends on — not `cycles`, which only moves a marker. */
 type SweepRequest = Pick<
   PhaseRequest,
-  "size" | "pupilSamples" | "sourceSamples" | "illumination" | "coherenceParameter" | "defocusWaves"
+  | "size"
+  | "pupilSamples"
+  | "sourceSamples"
+  | "darkfieldSpacing"
+  | "illumination"
+  | "coherenceParameter"
+  | "defocusWaves"
 >;
 
 /**
@@ -557,6 +571,10 @@ export function PhasePanel() {
   const [size, setSize] = useState(128);
   const [pupilSamples, setPupilSamples] = useState(32);
   const [sourceSamples, setSourceSamples] = useState(11);
+  // Darkfield keeps its own knob, and it is a spacing where brightfield's is a
+  // count — A2's rule, one illumination toggle away: switching modes must not
+  // silently reinterpret a number.
+  const [darkfieldSpacing, setDarkfieldSpacing] = useState<number>(DEFAULT_DARKFIELD_SPACING);
   const [illumination, setIllumination] = useState<Illumination>("brightfield");
   const [sRaw, setS] = useState(0);
   const [cyclesRaw, setCycles] = useState(12);
@@ -567,12 +585,13 @@ export function PhasePanel() {
   // lattice point sits past |s| = 1 and needs frequency-grid headroom that
   // pupilSamples 64 on a 128 grid does not have. The check runs on the source's
   // own points rather than on a formula in S, because an annulus's reach is not
-  // something a formula in S describes — measured, the N = 11 ring reaches
-  // |s| = 1.371 against a reach of 0.969 there. The engine's throw is still
-  // caught and shown; this only stops the panel walking into it.
+  // something a formula in S describes — measured, the lattice ring reaches
+  // |s| = 1.375 at the two finer spacings and 1.25 at the coarsest, against a
+  // reach of 0.969 there. The engine's throw is still caught and shown; this
+  // only stops the panel walking into it.
   const darkfieldFits = useMemo(
-    () => sourceFits(darkfieldSource(sourceSamples), size, pupilSamples),
-    [sourceSamples, size, pupilSamples],
+    () => sourceFits(darkfieldSource(pupilSamples, darkfieldSpacing), size, pupilSamples),
+    [darkfieldSpacing, size, pupilSamples],
   );
   const illuminationUsed: Illumination =
     illumination === "darkfield" && !darkfieldFits ? "brightfield" : illumination;
@@ -587,6 +606,13 @@ export function PhasePanel() {
   // actually is (0.97 against 1.07 at pupil samples 64 on a 128 grid).
   // `sourceFits` is the exact check either way and stays wired to the annulus,
   // whose reach no formula in S describes.
+  //
+  // **It stays keyed off `sourceSamples`, and that is § 6ab.19's open question
+  // answered rather than overlooked.** The ceiling is a function of S; darkfield
+  // holds S at exactly 0 two lines below, the ring's radius being
+  // `DARKFIELD_OUTER` and not the slider. So the count remains the only knob
+  // this expression can be about, and moving the ring to a spacing moves nothing
+  // here.
   const maxS = Math.min(
     1.5,
     Math.floor(gridReach(size, pupilSamples) / (1 - 1 / sourceSamples) / 0.01) * 0.01,
@@ -601,13 +627,24 @@ export function PhasePanel() {
       size,
       pupilSamples,
       sourceSamples,
+      darkfieldSpacing,
       illumination: illuminationUsed,
       coherenceParameter: s,
       cycles,
       amplitudeRadians: phi,
       defocusWaves,
     }),
-    [size, pupilSamples, sourceSamples, illuminationUsed, s, cycles, phi, defocusWaves],
+    [
+      size,
+      pupilSamples,
+      sourceSamples,
+      darkfieldSpacing,
+      illuminationUsed,
+      s,
+      cycles,
+      phi,
+      defocusWaves,
+    ],
   );
 
   const sweepRequest = useMemo<SweepRequest>(
@@ -615,11 +652,12 @@ export function PhasePanel() {
       size,
       pupilSamples,
       sourceSamples,
+      darkfieldSpacing,
       illumination: illuminationUsed,
       coherenceParameter: s,
       defocusWaves,
     }),
-    [size, pupilSamples, sourceSamples, illuminationUsed, s, defocusWaves],
+    [size, pupilSamples, sourceSamples, darkfieldSpacing, illuminationUsed, s, defocusWaves],
   );
 
   const { result, pending } = useLatestFromWorker<PhaseRequest, PhaseResult>(
@@ -687,16 +725,32 @@ export function PhasePanel() {
           value={size}
           onChange={setSize}
         />
-        <Choice
-          label={`source samples ${sourceSamples} across the diameter`}
-          // The same list `SamplingSpread` enumerates. Shared rather than typed
-          // out twice: the spread's whole claim is that it covers every option
-          // this control offers, and a fifth option added here alone would make
-          // that sentence false without touching the code that says it.
-          options={[...PANEL_SOURCE_SAMPLES]}
-          value={sourceSamples}
-          onChange={setSourceSamples}
-        />
+        {illuminationUsed === "darkfield" ? (
+          <Choice
+            label="condenser lattice spacing — the ring's direction count follows"
+            // Same sharing rule as the count list below, and the same reason.
+            options={[...PANEL_DARKFIELD_SPACINGS]}
+            value={darkfieldSpacing}
+            onChange={setDarkfieldSpacing}
+            // The count is a consequence here rather than a choice, which is the
+            // whole difference between this control and the other one — so it is
+            // printed rather than left for the reader to infer from a spacing.
+            format={(spacing) =>
+              `${spacing} · ${darkfieldSource(pupilSamples, spacing).points.length}`
+            }
+          />
+        ) : (
+          <Choice
+            label={`source samples ${sourceSamples} across the diameter`}
+            // The same list `SamplingSpread` enumerates. Shared rather than typed
+            // out twice: the spread's whole claim is that it covers every option
+            // this control offers, and a fifth option added here alone would make
+            // that sentence false without touching the code that says it.
+            options={[...PANEL_SOURCE_SAMPLES]}
+            value={sourceSamples}
+            onChange={setSourceSamples}
+          />
+        )}
       </div>
       {illumination === "darkfield" && !darkfieldFits && (
         <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.warn, maxWidth: 660 }}>

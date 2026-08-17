@@ -11998,13 +11998,64 @@ sections of § 6ab have already had to withdraw a mechanism that fit the picture
 so this one is measured before it is believed and reported as a difference rather
 than as a cause.
 
+#### The app is wired to it, and the reason turned out not to be the obvious one
+
+`packages/app/test/phase.test.ts`, in § 6ab.19's name — app wiring, so no engine
+capability and no sub-step of its own.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The control sets a SPACING and the count follows — 608/160/36 at `pupilSamples` 32 **and** 64 | the density being a property of the ring, not of the grid | ✅ |
+| …each deriving a whole step (1/2/4 and 2/4/8) and declaring `pupilLattice` | `latticeOffset`'s precondition, § 6p's cache in darkfield | ✅ |
+| § 6ab.12's headline cell is **off the control** — the 16-point ring still reads 0, and no option is it | what the CONTROL can reach, the image being § 6ab.19's own rung above | ✅ |
+| **Every darkfield refusal names a spacing that works** — 0 unreachable over 2 pupil samplings × 2 grids × every cycle count × 3 spacings | the advice being takeable | ✅ |
+| …and the branch fires rather than passing by never being asked | the sweep's own count | ✅ |
+| § 6ab.14's carrying **area is unchanged** at 0.070267681347553, at all three spacings | a set with no sampling in it | ✅ |
+| The set-resolution ratio moves (0.98/1.07/0.79 against 0.79/1.26/1.11) and is still **not** the contrast's error | § 6ab.14's parenthesis, kept true across a change of lattice | ✅ |
+
+**The defect that decided it was not the cell everyone was looking at.**
+§ 6ab.19's open item named the 7-sample cell, and that one was already honest:
+the gate said "raise source samples" and 11, 15 and 21 all worked. The cell that
+could not be answered is **25 cycles at grid 256 / `pupilSamples` 64**, ν =
+0.78125, where the aperture carries 2ν on **1.62%** of its directions and *all
+four* counts hold none of it — 7, 11, 15 and 21 all read ~6e-16. So the panel
+printed "raise source samples" at every setting a reader could raise it to. That
+is advice that cannot be taken, which APP.md records fixing once already at
+S = 0; the two finer spacings read 7.8e-3 and 1.34e-2 in the same cell.
+
+The refusal now reads the options rather than asserting one, so "no setting holds
+it" is a sentence the panel can say — and the sweep above is the check that it
+never has to.
+
+**Three spacings and not two, at 17× the cost of the coarsest.** The probe
+renders every option, so darkfield's worst case goes from 248 directions a frame
+to 804 — ~514 ms at φ = 0.4 and ~652 ms at φ = 3 under `vite-node`, landing the
+pair at the same order as the brightfield worst case the panel already carries.
+Two would be cheaper and would under-report: dropping the finest narrows the
+reported disagreement at 6 cycles (1.000× against 1.034×), 9 (1.010× against
+1.081×) and 11 (1.256× against 1.407×), which is this panel's own established
+finding that a cheaper probe lies.
+
+**The S ceiling question, asked by the item above, answers to nothing.** The
+ceiling is a function of S and darkfield holds S at exactly 0 — the ring's radius
+is `DARKFIELD_OUTER` and not the slider — so it stays a brightfield quantity
+keyed off the count, which stays the brightfield knob. The three spacings differ
+in reach (1.375 against 1.25) and no grid the panel offers has a wall between
+them, so nothing is dropped there either.
+
+**One measured consequence, recorded rather than smoothed.** At 12 cycles and
+w₂₀ = 3 the coarsest spacing's reading passes through zero — 1.7e-16 against
+1.6e-4 and 1.0e-3 — so the printed max/min runs to 6e12 where the focused reading
+is a clean 1.466×. That is § 6ab.18's own caution about this statistic arriving
+in a cell the geometry says all three samplings carry, not a defect the wiring
+introduced.
+
 ### Not yet pinned
 
-- **The app is not wired to it.** The phase panel's darkfield still builds
-  `annularSource` from a point count, so a reader can still reach the 7-sample
-  cell § 6ab.12 gates. Whether the darkfield control should become a step —
-  and what that does to the panel's S ceiling, which is computed from a count —
-  is an APP.md decision and not an engine one.
+- **§ 6ab.19's convergence gap is still unexplained.** A lattice-point ring
+  converges worse than a cell-centred one (0.901/n against 0.7373/n) while
+  keeping the n^{-4/3} envelope, and the obvious mechanism was measured and
+  refused above. Nothing in the app wiring bears on it.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

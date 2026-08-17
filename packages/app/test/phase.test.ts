@@ -1,18 +1,27 @@
 import { describe, expect, it } from "vitest";
 import {
+  DARKFIELD_INNER,
+  DARKFIELD_OUTER,
+  DEFAULT_DARKFIELD_SPACING,
+  PANEL_DARKFIELD_SPACINGS,
   PANEL_SOURCE_SAMPLES,
+  darkfieldSource,
+  darkfieldStepMultiple,
   frequencyOf,
   harmonicNote,
   harmonicSupportAt,
   highestCarryingCycles,
+  optionsThatCarry,
   panelHarmonics,
   renderPhaseScene,
   samplingSpread,
   samplingsThatMatter,
   secondHarmonicSupport,
+  sourceFits,
   type PhaseRequest,
 } from "../src/phase";
 import {
+  annularSource,
   apertureCarriesHarmonic,
   diskSource,
   harmonicSupportWeight,
@@ -63,6 +72,7 @@ const BASE: PhaseRequest = {
   size: 128,
   pupilSamples: 32,
   sourceSamples: 11,
+  darkfieldSpacing: DEFAULT_DARKFIELD_SPACING,
   illumination: "brightfield",
   coherenceParameter: 0,
   cycles: 12,
@@ -92,7 +102,8 @@ describe("§ 6ab.11 — the 2ν spread is exhaustive over the panel's own contro
     // drifted from the control would silently turn it into a sample.
     expect([...PANEL_SOURCE_SAMPLES]).toEqual([7, 11, 15, 21]);
     const spread = spreadAt({ coherenceParameter: 0.6 });
-    expect(spread.readings.map((r) => r.samples)).toEqual([...PANEL_SOURCE_SAMPLES]);
+    expect(spread.kind).toBe("count");
+    expect(spread.readings.map((r) => r.option)).toEqual([...PANEL_SOURCE_SAMPLES]);
     // Three renders, not four: the shipped sampling is already on screen.
     expect(spread.extraFrames).toBe(3);
   });
@@ -238,53 +249,98 @@ describe("§ 6ab.11 — the defocused frame is a different quantity", () => {
   });
 });
 
-describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
+describe("§ 6ab.19 — darkfield's control is a lattice SPACING, and what that closed", () => {
   const DARK = { illumination: "darkfield", coherenceParameter: 0 } as const;
 
-  it("is where the panel's own control moves the reading by twelve orders", () => {
-    // `annularSource` masks the same lattice, so the ring holds 16 points at
-    // N = 7 against 128 at 21, and at ν = 0.75 the 16 do not resolve the beat at
-    // all: 8.8e-17 against ~1.5e-3. A reader on that option is being shown "no
-    // second harmonic in darkfield", which is false.
-    //
-    // § 6ab.12 gates the 7-sample option, so the spread is now read from a
-    // sampling that HAS support and the 8.8e-17 is asserted through the gate's own
-    // leg rather than as a reading. The 2.3e13 is still what four readings would
-    // do, and it is what sent § 6ab.12 looking.
-    const spread = spreadAt({ ...DARK, cycles: 12, sourceSamples: 11 });
-    const seven = spread.readings.find((r) => r.samples === 7)!.value;
-    const eleven = spread.readings.find((r) => r.samples === 11)!.value;
-    expect(seven).toBeLessThan(1e-15);
-    expect(eleven).toBeGreaterThan(1e-4);
-    expect(spread.ratio).toBeGreaterThan(1e10);
+  it("sets a density, and the ring's direction count follows from it", () => {
+    // The quantity a ring can honestly be asked for. A count across the diameter
+    // is a property of the square the ring is masked out of — 16 of 49 survive at
+    // N = 7 — where a spacing IS the angular density, which is why the same three
+    // options hold the same three counts at both pupil samplings the panel
+    // offers, and a count would not.
+    expect([...PANEL_DARKFIELD_SPACINGS]).toEqual([0.0625, 0.125, 0.25]);
+    for (const pupilSamples of [32, 64]) {
+      expect(
+        PANEL_DARKFIELD_SPACINGS.map((s) => darkfieldSource(pupilSamples, s).points.length),
+        `pupilSamples ${pupilSamples}`,
+      ).toEqual([608, 160, 36]);
+    }
+    // The step each spacing derives is a whole number at both — `latticeOffset`'s
+    // own precondition, and the licence for § 6p's cache in darkfield.
+    expect(PANEL_DARKFIELD_SPACINGS.map((s) => darkfieldStepMultiple(s, 32))).toEqual([1, 2, 4]);
+    expect(PANEL_DARKFIELD_SPACINGS.map((s) => darkfieldStepMultiple(s, 64))).toEqual([2, 4, 8]);
+    expect(darkfieldSource(32, 0.125).pupilLattice).toEqual({ pupilSamples: 32, stepMultiple: 2 });
   });
 
-  it("and the other three agree, so it is the sampling and not the physics", () => {
-    const spread = spreadAt({ ...DARK, cycles: 12, sourceSamples: 11 });
-    const rest = spread.readings.filter((r) => r.samples !== 7).map((r) => r.value);
-    expect(Math.max(...rest) / Math.min(...rest)).toBeLessThan(1.5);
+  it("no longer reaches the cell where the count-based ring read roundoff", () => {
+    // § 6ab.12's headline cell. The rung that used to live here asserted "the
+    // panel's own control moves this reading by twelve orders", and that sentence
+    // is now false — which is the fix, not a loss. The ring that did it still
+    // does, one import away and pinned on an IMAGE by § 6ab.19's own rungs in
+    // `lattice-disk.test.ts`; what changed is that the control cannot reach it.
+    const orders = { cycles: 12, pupilSamples: 32, harmonic: 2 };
+    const counted = annularSource(DARKFIELD_OUTER, DARKFIELD_INNER, 7);
+    expect(counted.points.length).toBe(16);
+    expect(harmonicSupportWeight(idealPupil(), counted, orders)).toBe(0);
+    // Every spacing the control does offer holds the set, so this is a spread of
+    // three readings rather than of one reading and two zeros.
+    const spread = spreadAt({ ...DARK, cycles: 12 });
+    expect(spread.kind).toBe("spacing");
+    expect(spread.readings.map((r) => r.option)).toEqual([...PANEL_DARKFIELD_SPACINGS]);
+    expect(spread.min).toBeGreaterThan(1e-4);
+    expect(spread.ratio).toBeCloseTo(1.4666, 3);
+    // Two renders, not three: the shipped spacing is already on screen.
+    expect(spread.extraFrames).toBe(2);
+    expect(spread.skipped).toEqual([]);
   });
 
-  it("so a reader ON the 7-sample option is told, not shown 8.8e-17", () => {
-    // The defect § 6ab.11 measured and left shipped. The gate names which leg
-    // failed: the ring carries 2ν and this sampling of it does not.
-    const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, sourceSamples: 7 }));
-    expect(support.apertureCarries).toBe(true);
-    expect(support.latticeWeight).toBe(0);
-    expect(support.exists).toBe(false);
-    expect(support.reason).toMatch(/16-point source/);
-    expect(support.reason).toMatch(/raise source samples/);
-    expect(spreadOf({ ...DARK, cycles: 12, sourceSamples: 7 })).toBeNull();
+  it("and where a refusal DOES remain, its advice names settings that exist", () => {
+    // **The defect that decided the design, and it is not the headline cell** —
+    // that one was already honest, since raising the count to 11, 15 or 21 all
+    // worked. At grid 256 / pupil samples 64 and 25 cycles the aperture carries 2ν
+    // on 1.62% of its directions and ALL FOUR counts held none of it, so the panel
+    // printed "raise source samples" at every setting a reader could raise it to.
+    // Advice that cannot be taken — the failure APP.md already records fixing once
+    // at S = 0, reached here by a different route.
+    const cell = { ...DARK, size: 256, pupilSamples: 64, cycles: 25 } as const;
+    for (const samples of PANEL_SOURCE_SAMPLES) {
+      const ring = annularSource(DARKFIELD_OUTER, DARKFIELD_INNER, samples);
+      expect(
+        harmonicSupportWeight(idealPupil(), ring, { cycles: 25, pupilSamples: 64, harmonic: 2 }),
+        `count ${samples}`,
+      ).toBe(0);
+    }
+    // The coarsest spacing is still blind here, and says so in settings rather
+    // than in a direction.
+    const coarse = secondHarmonicSupport(at({ ...cell, darkfieldSpacing: 0.25 }));
+    expect(coarse.apertureCarries).toBe(true);
+    expect(coarse.latticeWeight).toBe(0);
+    expect(coarse.exists).toBe(false);
+    expect(coarse.apertureFraction).toBeCloseTo(0.016244378891, 9);
+    expect(coarse.reason).toMatch(/1\.62% of the aperture/);
+    expect(coarse.reason).toMatch(/a finer condenser lattice holds it: spacing 0\.0625 or 0\.125/);
+    // And the two it names really do hold it, which is what makes it advice.
+    for (const darkfieldSpacing of [0.0625, 0.125]) {
+      expect(
+        secondHarmonicSupport(at({ ...cell, darkfieldSpacing })).exists,
+        `spacing ${darkfieldSpacing}`,
+      ).toBe(true);
+    }
   });
 
-  it("and § 6ab.14 makes that advice quantitative rather than a direction", () => {
-    // "Raise source samples" is a direction; "7.03% of the aperture carries it
-    // and none of your 16 points is in that set" is advice, because it says how
-    // thin the target is. The number is the exact carrying AREA — the thing the
-    // lattice weight is an estimate of — not a second sampling of it.
-    const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, sourceSamples: 7 }));
-    expect(support.apertureFraction).toBeCloseTo(0.070267681347553, 9);
-    expect(support.reason).toMatch(/7\.03% of the aperture/);
+  it("and § 6ab.14's exact carrying area survives the change of lattice untouched", () => {
+    // The area is a property of the annulus and ν with no sampling in it, so the
+    // one number this file pins to nine decimals has to be indifferent to a
+    // wholesale change in how the ring is sampled. It is, at every spacing — and
+    // that is the check that the two legs did not move together by accident.
+    for (const darkfieldSpacing of PANEL_DARKFIELD_SPACINGS) {
+      const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, darkfieldSpacing }));
+      expect(support.apertureFraction, `spacing ${darkfieldSpacing}`).toBeCloseTo(
+        0.070267681347553,
+        9,
+      );
+      expect(support.exists).toBe(true);
+    }
   });
 
   it("and S = 0 above ν = 1 is refused with advice that can actually be taken", () => {
@@ -329,18 +385,23 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
 
   it("and what the ratio measures is the SET, which is not the contrast's error", () => {
     // The two numbers a reader could confuse. How well a lattice resolves the
-    // carrying set — 0.79, 1.26, 1.11 at 11, 15 and 21 samples — is not how far
-    // the contrast it produces is off, which is `secondHarmonicSpread` and is a
-    // separate measurement with a separate size. Asserting they differ is the
+    // carrying set — 0.98, 1.07, 0.79 at spacings 0.0625, 0.125 and 0.25 — is not
+    // how far the contrast it produces is off, which is `secondHarmonicSpread` and
+    // is a separate measurement with a separate size. Asserting they differ is the
     // point: if they ever coincided the panel would be free to print one label
     // for both, and it is not.
-    const ratios = [11, 15, 21].map((sourceSamples) => {
-      const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, sourceSamples }));
+    //
+    // The count-based ring read 0.79, 1.26 and 1.11 at 11, 15 and 21 here. Coming
+    // down to 0.98/1.07/0.79 is not "better" and is not asserted as such — a
+    // fraction of a set is not an error bar on a contrast, which is the sentence
+    // this rung exists to keep true.
+    const ratios = PANEL_DARKFIELD_SPACINGS.map((darkfieldSpacing) => {
+      const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, darkfieldSpacing }));
       return support.latticeWeight / support.apertureFraction!;
     });
-    expect(ratios[0]!).toBeCloseTo(0.7906, 3);
-    expect(ratios[1]!).toBeCloseTo(1.2557, 3);
-    expect(ratios[2]!).toBeCloseTo(1.1119, 3);
+    expect(ratios[0]!).toBeCloseTo(0.9831, 3);
+    expect(ratios[1]!).toBeCloseTo(1.0673, 3);
+    expect(ratios[2]!).toBeCloseTo(0.7906, 3);
 
     // What separates the two is the defocus slider, and it separates them
     // without a number in the middle. The carrying set is geometry — no
@@ -349,10 +410,8 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     // the beat picking up 4·w₂₀·(s·ν) off axis. Identity against difference is
     // the whole discriminator: a threshold separating 1.35× from 1.59× would be
     // a threshold, in the one step whose finding is that none is needed.
-    const focused = renderPhaseScene(at({ ...DARK, cycles: 12, sourceSamples: 15 }));
-    const defocused = renderPhaseScene(
-      at({ ...DARK, cycles: 12, sourceSamples: 15, defocusWaves: 3 }),
-    );
+    const focused = renderPhaseScene(at({ ...DARK, cycles: 12 }));
+    const defocused = renderPhaseScene(at({ ...DARK, cycles: 12, defocusWaves: 3 }));
     if (!focused.ok || !defocused.ok) throw new Error("render refused");
     const here = focused.readout.secondHarmonicSupport;
     const there = defocused.readout.secondHarmonicSupport;
@@ -361,15 +420,23 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     const spreadHere = focused.readout.focused.secondHarmonicSpread!.ratio;
     const spreadThere = defocused.readout.defocused.secondHarmonicSpread!.ratio;
     expect(spreadThere).not.toBe(spreadHere);
+    // How far apart, and why it is not a defect the wiring introduced: at w₂₀ = 3
+    // the coarsest spacing's reading passes through zero (1.7e-16 against 1.6e-4
+    // and 1.0e-3), so max/min runs to 6e12 while the focused reading is a clean
+    // 1.47×. That is § 6ab.18's own caution about this statistic — the ratio
+    // diverges when one sampling crosses zero — showing up in the cell it was
+    // measured to be about, on a set the geometry above says all three carry.
+    expect(spreadHere).toBeCloseTo(1.4666, 3);
+    expect(spreadThere).toBeGreaterThan(1e10);
   });
 
   it("and above ν = 0.8 no sampling is offered one, because the RING has none", () => {
     // (1 + 1.4)/3, three slider stops below brightfield's 1 — the part of this a
     // reader has no way to guess, and the reason the gate names the cutoff.
     for (const cycles of [13, 14, 15]) {
-      for (const sourceSamples of [7, 11, 15, 21]) {
-        const support = secondHarmonicSupport(at({ ...DARK, cycles, sourceSamples }));
-        expect(support.apertureCarries).toBe(false);
+      for (const darkfieldSpacing of PANEL_DARKFIELD_SPACINGS) {
+        const support = secondHarmonicSupport(at({ ...DARK, cycles, darkfieldSpacing }));
+        expect(support.apertureCarries, `${cycles}/${darkfieldSpacing}`).toBe(false);
         expect(support.latticeWeight).toBe(0);
         expect(support.reason).toMatch(/0\.8000/);
       }
@@ -389,7 +456,7 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     const request = at({
       ...DARK,
       cycles: 13,
-      sourceSamples: 21,
+      darkfieldSpacing: 0.25,
       amplitudeRadians: 3,
     });
     expect(secondHarmonicSupport(request).exists).toBe(false);
@@ -435,7 +502,7 @@ describe("§ 6ab.11 — samplings the frequency grid cannot carry are dropped, n
       cycles: 12,
     });
     expect(spread.skipped).toEqual([11, 15, 21]);
-    expect(spread.readings.map((r) => r.samples)).toEqual([7]);
+    expect(spread.readings.map((r) => r.option)).toEqual([7]);
     expect(spread.extraFrames).toBe(0);
   });
 
@@ -482,13 +549,66 @@ describe("§ 6ab.11 — samplings the frequency grid cannot carry are dropped, n
     }
     expect(checked).toBeGreaterThan(3000);
     expect(blind).toBe(0);
-    // And the same sweep in darkfield finds plenty — it is the ring that is thin,
-    // not the criterion that never fires.
+    // And the criterion is not one that never fires — the ring still reaches it,
+    // which is what the darkfield sweep below is about.
     expect(
       secondHarmonicSupport(
-        at({ illumination: "darkfield", coherenceParameter: 0, cycles: 12, sourceSamples: 7 }),
+        at({
+          illumination: "darkfield",
+          coherenceParameter: 0,
+          size: 256,
+          pupilSamples: 64,
+          cycles: 25,
+          darkfieldSpacing: 0.25,
+        }),
       ).latticeWeight,
     ).toBe(0);
+  });
+
+  it("and darkfield's own refusals name a spacing that works — every one of them", () => {
+    // **The rung that says § 6ab.19's wiring closed the item rather than moving
+    // it.** Replacing the control is only a fix if no cell survives where the
+    // panel refuses and none of its remaining settings helps. So: every darkfield
+    // cell the panel can reach — 2 pupil samplings × 2 grids × every cycle count ×
+    // all three spacings — and wherever the actionable branch fires, some offered
+    // spacing must actually hold the set.
+    //
+    // The count-based control failed exactly this at 256/64 and 25 cycles, which
+    // is the measurement the design was chosen on rather than an afterthought.
+    let actionable = 0;
+    let unreachable = 0;
+    let checked = 0;
+    for (const pupilSamples of [32, 64]) {
+      for (const size of [128, 256]) {
+        for (let cycles = 1; 2 * cycles < size / 2; cycles++) {
+          for (const darkfieldSpacing of PANEL_DARKFIELD_SPACINGS) {
+            const request = at({
+              illumination: "darkfield",
+              coherenceParameter: 0,
+              size,
+              pupilSamples,
+              cycles,
+              darkfieldSpacing,
+            });
+            // Cells the frequency grid cannot hold the ring in are not reachable
+            // — the panel shows brightfield there and says why.
+            if (!sourceFits(darkfieldSource(pupilSamples, darkfieldSpacing), size, pupilSamples)) {
+              continue;
+            }
+            checked++;
+            const support = secondHarmonicSupport(request);
+            if (!(support.apertureCarries === true && support.latticeWeight === 0)) continue;
+            actionable++;
+            if (optionsThatCarry(request, 2).length === 0) unreachable++;
+          }
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(100);
+    // The branch fires — otherwise this rung would pass by never being asked.
+    expect(actionable).toBeGreaterThan(0);
+    // And never with advice a reader cannot take.
+    expect(unreachable).toBe(0);
   });
 });
 
