@@ -741,9 +741,20 @@ a scan weighting every (ring, angle) sample equally and is not an area at all.
 **The parenthesis is load-bearing.** How well a lattice resolves the carrying
 *set* — 0.79, 1.26 and 1.11 at 11, 15 and 21 samples — is a different quantity
 from how far the contrast it produces is off, which is the spread line above and
-ran 1.06× to 9.75×. The two spans do not even match (1.59× against 1.35× on the
-same three lattices), so one label for both would be wrong, and the panel says
-which one it is showing. Cost is **0.02–0.06 ms** per readout at the settings the
+ran 1.06× to 9.75×. The defocus slider separates them with no threshold in
+between: both carrying numbers are *bit-identical* between the focused and
+defocused renders, because carrying is geometry and has no wavefront in it, while
+the spread ratios differ. So one label for both would be wrong, and the panel says
+which one it is showing.
+
+**And the S = 0 line was wrong in the first draft of this**, which is worth
+recording because it is the failure this whole step is about. The shared line
+said "carried by the one direction there is" unconditionally, while at ν > 1 —
+two slider drags from the default — the per-canvas line correctly refused. Both
+now key off the same fact, and the refusal there stopped saying "raise source
+samples", which is advice that cannot be taken: `sourceFor` returns the same
+one-point source at every count, and 2ν must clear the incoherent cutoff 2 at any
+S, so nothing on the panel rescues that cell. It says so instead. Cost is **0.02–0.06 ms** per readout at the settings the
 sliders reach, against a pair that runs 57–1080 ms — the quadrature takes almost
 every panel without bisecting, because § 6ab.14 splits at the rows where the
 integrand's description changes.

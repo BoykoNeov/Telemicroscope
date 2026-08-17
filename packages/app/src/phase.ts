@@ -474,6 +474,23 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
     };
   }
   if (latticeWeight === 0) {
+    // Two different failures wearing one sentence until § 6ab.14 separated them.
+    // At S = 0 there is no lattice and no aperture — one direction either carries
+    // 2ν or does not — so "raise source samples" is advice that cannot work:
+    // `sourceFor` returns the same one-point source at every count, and 2ν must
+    // clear the incoherent cutoff 2 at any S, so nothing on the panel rescues it.
+    if (apertureFraction === null) {
+      return {
+        apertureCarries,
+        latticeWeight,
+        apertureFraction,
+        exists: false,
+        reason:
+          `no 2ν at ν = ${nu.toFixed(4)}: the one direction a coherent source has puts orders ` +
+          `2ν apart outside the pupil, and no S rescues that — 2ν must clear the incoherent ` +
+          `cutoff 2, so it exists only below ν = 1`,
+      };
+    }
     // The actionable case, and the number is what makes it actionable: how thin
     // the set is says how much more sampling it would take to land in it.
     return {
@@ -483,10 +500,8 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
       exists: false,
       reason:
         `no direction in this ${source.points.length}-point source can carry 2ν, though ` +
-        (apertureFraction === null
-          ? "the aperture it samples does"
-          : `${(100 * apertureFraction).toPrecision(3)}% of the aperture it samples does`) +
-        ` — raise source samples`,
+        `${(100 * apertureFraction).toPrecision(3)}% of the aperture it samples does — ` +
+        `raise source samples`,
     };
   }
   return { apertureCarries, latticeWeight, apertureFraction, exists: true, reason: "" };

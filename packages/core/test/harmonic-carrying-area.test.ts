@@ -139,9 +139,10 @@ describe("§ 6ab.14 — the area agrees with the predicate, exactly and in both 
     }
     expect(cells).toBe(1600);
     // Recorded, not relied on: this is the grid's number, and a finer grid finds
-    // a smaller one. It is here so that a future edit which quietly starts
-    // returning tiny nonzero areas where the predicate says no has something to
-    // fail against.
+    // a smaller one. What it guards is the other direction from the `toBe(0)`
+    // above — a near-zero area returned where the predicate says the aperture
+    // DOES carry, which is what a quadrature that had started missing a thin
+    // stripe would look like.
     expect(smallestPositive).toBeGreaterThan(2e-4);
     expect(harmonicCarryingArea(DARK_INNER, DARK_OUTER, 0.7999).fraction).toBeCloseTo(6.352e-6, 9);
   });

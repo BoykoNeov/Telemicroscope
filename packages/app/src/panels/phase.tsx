@@ -164,9 +164,15 @@ function SupportLine({
  */
 function CarryingLine({ support }: { support: HarmonicSupport }) {
   if (support.apertureFraction === null) {
+    // S = 0 is one direction and no area for a fraction to be OF, so the honest
+    // line is the whole truth there: it carries 2ν or it does not. Printing
+    // "carried by the one direction there is" unconditionally would contradict
+    // the gate two slider stops up, at ν > 1, where that direction carries
+    // nothing and the refusal under each canvas says so.
     return (
       <>
-        2ν carried by the one direction there is — S = 0 has no area to be a fraction of
+        S = 0 is one direction and no area to be a fraction of — it{" "}
+        <strong>{support.latticeWeight > 0 ? "carries" : "does not carry"}</strong> 2ν
       </>
     );
   }

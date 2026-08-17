@@ -272,6 +272,27 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     expect(support.reason).toMatch(/7\.03% of the aperture/);
   });
 
+  it("and S = 0 above ν = 1 is refused with advice that can actually be taken", () => {
+    // The state where "raise source samples" is false twice over: `sourceFor`
+    // returns the same one-point source at every count, and 2ν must clear the
+    // incoherent cutoff 2 at ANY S, so no control on the panel rescues it. Two
+    // slider drags from the default, and the shared line and the per-canvas line
+    // have to agree there — the first version of § 6ab.14's panel line said the
+    // one direction carries 2ν unconditionally, which contradicts this cell.
+    const support = secondHarmonicSupport(at({ coherenceParameter: 0, cycles: 17 }));
+    expect(frequencyOf(17, 32)).toBeGreaterThan(1);
+    expect(support.apertureCarries).toBeNull();
+    expect(support.apertureFraction).toBeNull();
+    expect(support.latticeWeight).toBe(0);
+    expect(support.exists).toBe(false);
+    expect(support.reason).not.toMatch(/raise source samples/);
+    expect(support.reason).toMatch(/no S rescues that/);
+    expect(support.reason).toMatch(/below ν = 1/);
+    // And just under the cutoff the same single direction does carry it, so the
+    // refusal is about ν and not about being coherent.
+    expect(secondHarmonicSupport(at({ coherenceParameter: 0, cycles: 15 })).exists).toBe(true);
+  });
+
   it("and the aperture leg's two halves are null together or not at all", () => {
     // `harmonicCarryingArea` refuses an aperture of no area for the same reason
     // `apertureCarriesHarmonic` does, so a mismatch here would not be a wrong
@@ -305,14 +326,26 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     expect(ratios[0]!).toBeCloseTo(0.7906, 3);
     expect(ratios[1]!).toBeCloseTo(1.2557, 3);
     expect(ratios[2]!).toBeCloseTo(1.1119, 3);
-    // The same three samplings' 2ν readings disagree by 1.35×, and the ratios
-    // above span 1.59× — same lattices, different quantities.
-    const spread = spreadAt({ ...DARK, cycles: 12, sourceSamples: 11 });
-    const rest = spread.readings.filter((r) => r.samples !== 7).map((r) => r.value);
-    const contrastSpread = Math.max(...rest) / Math.min(...rest);
-    const setSpread = Math.max(...ratios) / Math.min(...ratios);
-    expect(contrastSpread).toBeLessThan(1.5);
-    expect(setSpread).toBeGreaterThan(1.5);
+
+    // What separates the two is the defocus slider, and it separates them
+    // without a number in the middle. The carrying set is geometry — no
+    // wavefront in it — so both legs are BIT-IDENTICAL between a focused render
+    // and a defocused one; the contrast spread is not, because § 6ab.11 measured
+    // the beat picking up 4·w₂₀·(s·ν) off axis. Identity against difference is
+    // the whole discriminator: a threshold separating 1.35× from 1.59× would be
+    // a threshold, in the one step whose finding is that none is needed.
+    const focused = renderPhaseScene(at({ ...DARK, cycles: 12, sourceSamples: 15 }));
+    const defocused = renderPhaseScene(
+      at({ ...DARK, cycles: 12, sourceSamples: 15, defocusWaves: 3 }),
+    );
+    if (!focused.ok || !defocused.ok) throw new Error("render refused");
+    const here = focused.readout.secondHarmonicSupport;
+    const there = defocused.readout.secondHarmonicSupport;
+    expect(there.apertureFraction).toBe(here.apertureFraction);
+    expect(there.latticeWeight).toBe(here.latticeWeight);
+    const spreadHere = focused.readout.focused.secondHarmonicSpread!.ratio;
+    const spreadThere = defocused.readout.defocused.secondHarmonicSpread!.ratio;
+    expect(spreadThere).not.toBe(spreadHere);
   });
 
   it("and above ν = 0.8 no sampling is offered one, because the RING has none", () => {
