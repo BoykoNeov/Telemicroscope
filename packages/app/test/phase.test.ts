@@ -493,17 +493,104 @@ describe("§ 6ab.11 — the timing label the probes made false", () => {
   });
 });
 
-describe("§ 6ab.11 — the nine-decimal Bessel readout needs no spread", () => {
-  it("exists only where every sampling gives the same image", () => {
-    // `threeOrderCheck` requires `coherenceParameter === 0`, which is the one
-    // source point. Where the comparison is printed there is nothing for the
-    // count to move, which is why its precision was left alone.
-    for (const S of [0, 0.25, 0.6, 1]) {
-      const scene = renderPhaseScene(at({ coherenceParameter: S, cycles: 12 }));
+describe("§ 6ab.15 — the nine-decimal Bessel readout still needs no spread", () => {
+  it("agrees at every sampling that is in the regime, not just at the one-point source", () => {
+    // § 6ab.11 justified the nine decimals by there being nothing for the count
+    // to move: `threeOrderCheck` required S = 0, which is one source point at
+    // every count. § 6ab.15 replaced that condition with the order geometry, and
+    // the readout now exists at S > 0 — so the old justification is gone and this
+    // is the one that replaces it. **Inside the regime every direction
+    // contributes the same term**, since all of them pass exactly orders |m| ≤ 1,
+    // so the lattice cannot move the number: measured at 9.7e-15 to 1.4e-14 at
+    // ν = 0.75 across all four samplings and every S up to the regime's edge.
+    for (const S of [0, 0.1, 0.2, 0.25]) {
+      for (const sourceSamples of PANEL_SOURCE_SAMPLES) {
+        const scene = renderPhaseScene(at({ coherenceParameter: S, cycles: 12, sourceSamples }));
+        if (!scene.ok) throw new Error(scene.error);
+        const check = scene.readout.focused.besselCheck;
+        expect(check, `S = ${S} at ${sourceSamples} samples`).not.toBeNull();
+        expect(check!.residual).toBeLessThan(1e-12);
+      }
+    }
+  });
+
+  it("and where a lattice leaves the regime, the readout is refused rather than moved", () => {
+    // The edge is lattice-dependent, because a finer lattice reaches nearer to S:
+    // at S = 0.26 the 7-, 11- and 15-point discs are inside and the 21-point one
+    // is not; by S = 0.28 only the 7-point one is. Each is refused on its own
+    // account — `besselCheck` goes null — so the panel never prints a comparison
+    // whose regime the source it actually used has left.
+    const inside = [7, 11, 15];
+    for (const sourceSamples of PANEL_SOURCE_SAMPLES) {
+      const scene = renderPhaseScene(
+        at({ coherenceParameter: 0.26, cycles: 12, sourceSamples }),
+      );
       if (!scene.ok) throw new Error(scene.error);
       const check = scene.readout.focused.besselCheck;
-      if (check) expect(samplingsThatMatter(at({ coherenceParameter: S }))).toHaveLength(1);
+      if (inside.includes(sourceSamples)) {
+        expect(check, `${sourceSamples} samples`).not.toBeNull();
+        expect(check!.residual).toBeLessThan(1e-12);
+      } else {
+        expect(check, `${sourceSamples} samples`).toBeNull();
+      }
     }
+    // And S = 0.3 is outside it at every count the panel offers.
+    for (const sourceSamples of PANEL_SOURCE_SAMPLES) {
+      const scene = renderPhaseScene(at({ coherenceParameter: 0.3, cycles: 12, sourceSamples }));
+      if (!scene.ok) throw new Error(scene.error);
+      expect(scene.readout.focused.besselCheck).toBeNull();
+    }
+  });
+
+  it("no longer excludes ν = 1, whose exclusion described a defect § 6ab.13 fixed", () => {
+    // The rim exclusion cited 2.6e-8 rising to 1.5e-2 at φ = 3. Those were the
+    // pointwise object's numbers; the spectrum-built one agrees to 5.5e-14 there.
+    for (const amplitudeRadians of [0.4, 1.5, 3]) {
+      const scene = renderPhaseScene(
+        at({ coherenceParameter: 0, cycles: 16, amplitudeRadians }),
+      );
+      if (!scene.ok) throw new Error(scene.error);
+      const check = scene.readout.focused.besselCheck;
+      expect(check, `φ = ${amplitudeRadians}`).not.toBeNull();
+      expect(check!.residual / check!.closed).toBeLessThan(1e-12);
+    }
+  });
+
+  it("refuses the DEFOCUSED frame under an extended source, which the old S = 0 hid", () => {
+    // Opening the regime to S > 0 separated two conditions that the one-point
+    // source used to satisfy together: the orders being alone, and the pair
+    // sharing a pupil phase. Defocus breaks only the second, and only off axis.
+    // Without `pairPhaseSurvives` the defocused canvas would print a nine-decimal
+    // comparison that is 39% out at S = 0.1 and 98% out at S = 0.2.
+    for (const [S, defocusWaves] of [
+      [0.1, 1],
+      [0.2, 1],
+      [0.2, 3],
+    ] as [number, number][]) {
+      const scene = renderPhaseScene(at({ coherenceParameter: S, cycles: 12, defocusWaves }));
+      if (!scene.ok) throw new Error(scene.error);
+      // The in-focus frame keeps it — the pupil is real, so there is no phase to
+      // split — and the defocused one is refused rather than shown wrong.
+      expect(scene.readout.focused.besselCheck, `S = ${S}`).not.toBeNull();
+      expect(scene.readout.focused.besselCheck!.residual).toBeLessThan(1e-12);
+      expect(scene.readout.defocused.besselCheck, `S = ${S}, w₂₀ = ${defocusWaves}`).toBeNull();
+    }
+    // On axis the same defocus keeps it, so what is refused is the direction and
+    // not the aberration.
+    for (const defocusWaves of [1, 3]) {
+      const scene = renderPhaseScene(at({ coherenceParameter: 0, cycles: 12, defocusWaves }));
+      if (!scene.ok) throw new Error(scene.error);
+      expect(scene.readout.defocused.besselCheck, `w₂₀ = ${defocusWaves}`).not.toBeNull();
+      expect(scene.readout.defocused.besselCheck!.residual).toBeLessThan(1e-12);
+    }
+  });
+
+  it("and still refuses ν ≤ 0.5, where order ±2 gets through", () => {
+    // Unchanged, and the reason is unchanged: the closed form is not
+    // approximately right below the regime, it is wrong by 99%.
+    const scene = renderPhaseScene(at({ coherenceParameter: 0, cycles: 8 }));
+    if (!scene.ok) throw new Error(scene.error);
+    expect(scene.readout.focused.besselCheck).toBeNull();
   });
 });
 

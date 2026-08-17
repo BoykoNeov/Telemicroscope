@@ -501,7 +501,7 @@ export function PhasePanel() {
     request,
   );
   const readout = result?.ok ? result.readout : null;
-  const inRegime = threeOrderCheck(request, nu);
+  const inRegime = threeOrderCheck(request);
 
   return (
     <>
@@ -694,8 +694,9 @@ export function PhasePanel() {
       )}
 
       <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
-        <strong>The closed form under the canvases</strong> appears only where it applies: one on-axis
-        plane wave (S = 0) and 0.5 &lt; ν &lt; 1, so exactly three orders reach the image. There the
+        <strong>The closed form under the canvases</strong> appears only where it applies:
+        wherever <em>every</em> illuminated direction puts orders ±1 through the pupil and ±2
+        outside it, so the +1×−1 beat is the only pair two apart in the image. There the
         algebra gives <code>contrast(2ν) · mean = 2·J₁(φ)²</code> with no free parameter, and the
         engine&rsquo;s own <code>besselJ1</code> supplies the right-hand side. It is written that way
         round, multiplying by the <em>measured</em> mean rather than dividing by a computed one,
@@ -711,7 +712,14 @@ export function PhasePanel() {
           ? "You are in that regime now."
           : "You are outside it now — the line under each canvas says which condition is unmet."}{" "}
         Outside it the form is not approximately right, it is wrong: at ν ≤ 0.5 the ±2 orders get
-        through (99% error) and at S = 0.4 the source is no longer one plane wave (70%).
+        through (99% error), and once the condenser is wide enough that some direction loses the ±1
+        pair off the rim, the reading walks away from it — 70% at S = 0.4, ν = 0.875.{" "}
+        <strong>That ceiling is a function of ν and not a number in S</strong>, which is what this
+        panel had wrong until recently: the pair stays inside while |s| ≤ 1 − ν, so it is 0.25 at
+        ν = 0.75 — where S = 0.2 is exact to 1.7e-14 — and 0.125 at ν = 0.875, where the same S is
+        25% out. The panel used to refuse every S &gt; 0 on the strength of that second number, and
+        to refuse ν = 1 on a rim artifact that vanished when the object was rebuilt from its
+        spectrum. Both readings are now taken wherever the order geometry says they mean something.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
         <strong>And the sharpest thing the defocus slider does</strong> is inside that same regime:

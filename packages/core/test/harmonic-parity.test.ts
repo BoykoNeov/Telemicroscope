@@ -233,6 +233,35 @@ describe("§ 6ab.15 — the even harmonics are a family of closed forms", () => 
     expect(harmonicContrast({ ...cell, defocus: 1 }, 1)).toBeGreaterThan(1);
   });
 
+  it("is defocus-invariant ON THE AXIS ONLY, which an extended source disproves", () => {
+    // The invariance argument is that the pair's members share a pupil radius, so
+    // an even aberration gives them the same phase. That is an ON-AXIS statement:
+    // off axis they sit at |s ± mν| and the beat picks up 4·w₂₀·m·(s·ν).
+    //
+    // So the predicate is NOT sufficient for the closed form once the pupil is
+    // aberrated, and this is the rung that says so — `onlySymmetricPairPasses`
+    // answers about the orders, and a caller comparing against 2·J_{h/2}(φ)²
+    // through an aberrated pupil owes the extra condition itself.
+    const orders = { cycles: 12, pupilSamples: 32, harmonic: 2 };
+    const closed = 2 * besselJ(1, 1.5) ** 2;
+    const source = diskSource(0.2, 11);
+    // In the regime, and in focus, the extended source gives the closed form.
+    expect(onlySymmetricPairPasses(PUPIL, source, orders)).toBe(true);
+    const focused: Cell = { pupilSamples: 32, cycles: 12, phi: 1.5, source };
+    expect(Math.abs(harmonicReading(focused, 2).amplitude - closed)).toBeLessThan(1e-12);
+    // One wave of defocus and it is 98% wrong, while the predicate — which never
+    // looked at the wavefront — still says the orders are alone.
+    const defocused: Cell = { ...focused, defocus: 1 };
+    const off = Math.abs(harmonicReading(defocused, 2).amplitude - closed) / closed;
+    expect(off).toBeGreaterThan(0.5);
+    // The same defocus over the on-axis source leaves it exact, so what broke is
+    // the direction and not the aberration.
+    const axial: Cell = { pupilSamples: 32, cycles: 12, phi: 1.5, source: coherentSource() };
+    expect(
+      Math.abs(harmonicReading({ ...axial, defocus: 1 }, 2).amplitude - closed),
+    ).toBeLessThan(1e-12);
+  });
+
   it("recovers § 6f's 2·J₁(φ)² as its h = 2 member rather than restating it", () => {
     // A3 checks contrast(2ν)·mean against 2·J₁(φ)² in 0.5 < ν < 1 at S = 0. That
     // is this family at h = 2, and `onlySymmetricPairPasses` says so without being

@@ -806,12 +806,21 @@ export function harmonicCarryingArea(
  *
  *     contrast(h·ν) · mean = 2·J_{h/2}(φ)²
  *
- * — measured to 1e-14 at h = 2, 4, 6 and 8 (§ 6ab.15). It is also **exactly
- * defocus-invariant**, and for a reason worth keeping: the pair sits symmetric
- * about the axis, so both members are at the same pupil radius, and any *even*
- * aberration gives them the same phase, which the beat then cancels. Measured
- * against the same closed form to 1e-13 at w₂₀ = 0, 1 and 3, while the h = 1
- * reading swings from 0 to 1.14 over that same slider.
+ * — measured to 1e-14 at h = 2, 4, 6 and 8 (§ 6ab.15).
+ *
+ * **It is defocus-invariant on the axis and nowhere else, and the difference is
+ * a readout that would otherwise lie.** For an on-axis direction the pair's two
+ * members are at the same pupil radius, so any *even* aberration gives them the
+ * same phase and the beat cancels it: measured against the same closed form to
+ * 1e-13 at w₂₀ = 0, 1 and 3, while the h = 1 reading swings from 0 to 1.14 over
+ * that same slider. Off axis they are at |s ± (h/2)ν| and the beat picks up
+ * w₂₀·(|s+mν|² − |s−mν|²) = 4·w₂₀·m·(s·ν), which vanishes for no off-axis point
+ * — so an extended source in this regime still gives the closed form **in
+ * focus** and departs from it as soon as the pupil is aberrated: 39% at S = 0.1
+ * and one wave, 98% at S = 0.2. This predicate answers about the ORDERS, which
+ * is geometry; a caller comparing against 2·J_{h/2}(φ)² through an aberrated
+ * pupil owes the extra condition that every direction it sums over is on the
+ * grating's own axis.
  *
  * At h = 2 this is § 6f's three-order regime — order ±2 outside the pupil, so
  * ±1 is alone — which A3 had as its own `threeOrderCheck` before there was a

@@ -552,8 +552,34 @@ by a computed one — it needs only `besselJ1`, which § 6g.2 already pinned, an
 **not** J₀, which the engine does not have and which a panel must not invent.
 The regime boundaries are measured too and the panel refuses the comparison
 outside them rather than showing an approximate one: at ν ≤ 0.5 the ±2 orders get
-through (99% error), at S = 0.4 the source is no longer one plane wave (70%), and
-ν = 1 exactly is excluded because the ±1 orders land on the pupil rim.
+through (99% error).
+
+**Two of those boundaries were wrong, and § 6ab.15 replaced the range with the
+order geometry.** The regime is now `onlySymmetricPairPasses` — every direction
+passing ±1 and not ±2 — rather than a hand-written test on ν and S, which is the
+same recovery of a special case from a general law the engine already does at
+`intensityCutoff`. What changed:
+
+- **ν = 1 was excluded** on "the ±1 orders land on the pupil rim", worth 2.6e-8
+  rising to 1.5e-2 at φ = 3. Those were the **pointwise** object's numbers —
+  reproduced at 2.577e-8 and 1.448e-2 — and § 6ab.13 removed their cause. The cell
+  now agrees to 5.5e-14 and the readout is taken there.
+- **S = 0 was required** on "at S = 0.4 the source is no longer one plane wave
+  (70%)". That reproduces at **ν = 0.875**, which the claim never named, and there
+  is no ceiling in S alone: the pair stays inside the pupil while |s| ≤ 1 − ν, so
+  it is 0.125 at ν = 0.875 and **0.25 at ν = 0.75**, where the panel was refusing
+  S = 0.2 while the closed form was exact there to 1.7e-14.
+
+**Opening it separated two conditions the one-point source had been satisfying at
+once, and the second one is a defect the panel would otherwise have shipped.** The
+closed form needs the orders to be alone *and* the pair's two members to share a
+pupil phase. In focus the pupil is real and there is nothing to share; out of
+focus they sit at |s ± ν| and the beat carries 4·w₂₀·ν·s_x, zero only on the
+grating's own axis. With S = 0 both conditions moved together and the panel could
+not tell which it relied on. With S > 0 allowed, the defocused canvas would have
+printed a nine-decimal comparison **39% out at S = 0.1 with one wave and 98% out
+at S = 0.2** — so `pairPhaseSurvives` asks the source's own points for s_x = 0 and
+refuses that frame, exactly as § 6ab.12 gates the 2ν reading.
 
 **The residual is printed, and the first version of this panel was wrong not to.**
 It read "agrees to ~1e-14" in prose and showed two nine-digit numbers for the
@@ -580,10 +606,13 @@ argument holds for *one on-axis* direction. Off axis the two orders sit at
 |s ± ν|, and the beat picks up w₂₀(|s + ν|² − |s − ν|²) = 4·w₂₀·(s·ν), which
 vanishes for no off-axis source point. Measured at S = 0.9, ν = 0.75, the 2ν
 contrast runs **5.87e-3 in focus, 6.64e-4 at one wave and 1.57e-2 at six**, where
-S = 0 holds 7.691302e-2 at all three (§ 6ab.11). The printed comparison is safe
-— `threeOrderCheck` requires S = 0, so it only exists where the invariance is
-real — but the sentence is not, and the panel now measures its own counterexample
-two sliders away.
+S = 0 holds 7.691302e-2 at all three (§ 6ab.11). The printed comparison is still
+safe, and § 6ab.15 changed what keeps it so: `threeOrderCheck` no longer requires
+S = 0, so the guarantee is now `pairPhaseSurvives` — the defocused frame's
+comparison is refused unless every direction is on the grating's axis, which is
+the *same* condition this paragraph is about, asked where it can be enforced
+rather than argued. The sentence above was the wrong claim; the panel measures its
+own counterexample two sliders away and now declines to compare against it.
 
 **Darkfield does NOT ride along for free, and that is this surface's real
 correction to the plan.** The clear-field half is exactly as scoped —

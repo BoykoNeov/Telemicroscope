@@ -8,6 +8,7 @@ import {
   harmonicSupportWeight,
   idealPupil,
   imageHarmonic,
+  onlySymmetricPairPasses,
   phaseGratingObject,
   phaseGratingTruncation,
   weakObjectTransfer,
@@ -141,11 +142,15 @@ export const PANEL_SOURCE_SAMPLES = [7, 11, 15, 21] as const;
  *
  * Two things that were measured and are why nothing here is a threshold:
  *
- * - **The bad region is not a band in S.** At ν = 1 exactly the reading is 9.4×
+ * - **The bad region is not a band in S.** At ν = 1 exactly the reading was 9.4×
  *   uncertain at *every* S from 0.25 up, because the ±1 orders land on the pupil
- *   rim where the lattice's own in-or-out decision moves them (the same rim
- *   `threeOrderCheck` excludes ν = 1 for). At ν = 1.94 it is inside 1.05× at
- *   S = 1.5. And φ moves it as hard as either: at φ = 0.1, S = 1.5 spreads 838×
+ *   rim where the lattice's own in-or-out decision moves them. **That cell is no
+ *   longer reachable** — § 6ab.12's gate refuses ν = 1 outright, the carrying set
+ *   there having zero area, so the spread comes back `null` and the 8e-4 is not
+ *   printed. It stays written here because it is the evidence for the heading:
+ *   the trouble was at one ν across the whole S range. At ν = 1.94 the spread is
+ *   inside 1.05× at S = 1.5. And φ moves it as hard as either: at φ = 0.1,
+ *   S = 1.5 spreads 838×
  *   where φ = 3 spreads 1.37×, since the 2ν signal grows as φ² and what
  *   disagrees does not. Any rule in S alone would refuse readings that are fine
  *   and print four digits on ones that are 9× out.
@@ -528,19 +533,80 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
  * difference at all. The ν term meanwhile swings from 0 to 0.74. One slider,
  * two terms, and only one of them moves.
  *
- * The regime ends where the algebra says: at ν ≤ 0.5 order ±2 gets through
- * (measured error 99%), and at S ≥ 0.2 the source is no longer one plane wave
- * (25% at S = 0.2, 70% at S = 0.4). ν = 1 exactly is excluded too — the ±1
- * orders land on the pupil rim, where the lattice's own in-or-out decision
- * shows up as 2.6e-8 rising to 1.5e-2 at φ = 3.
+ * ## The regime is asked, not written down here (§ 6ab.15)
+ *
+ * "Three orders" is `onlySymmetricPairPasses` at h = 2 — ±1 through and ±2 not,
+ * from every direction the source holds — and this is now that predicate rather
+ * than a range in ν and a test on S. It is the same move `intensityCutoff` and
+ * the harmonic criterion already make in the engine: recover the specific case
+ * from the general one instead of keeping a second copy of the geometry. The
+ * lower edge is unchanged and still where the algebra says: at ν ≤ 0.5 order ±2
+ * gets through, measured error 99%.
+ *
+ * **Two conditions this function used to impose are gone, and both were wrong
+ * rather than merely conservative.**
+ *
+ *  - **ν = 1 was excluded** for a rim artifact: "2.6e-8 rising to 1.5e-2 at
+ *    φ = 3". Those were the **pointwise** object's numbers — reproduced at
+ *    2.577e-8 and 1.448e-2 through `pointwisePhaseGratingObject` — and § 6ab.13
+ *    removed their cause by building the object from its spectrum. The same cell
+ *    now agrees to **1.2e-13 at φ = 0.4 and 5.5e-14 at φ = 3**. A number kept
+ *    after the defect it described was fixed is a number that describes nothing.
+ *  - **S = 0 was required**, on "25% at S = 0.2, 70% at S = 0.4". Those
+ *    reproduce — at **ν = 0.875**, which the claim did not name, and that is the
+ *    whole defect: there is no ceiling in S alone. The pair stays inside the
+ *    pupil only while |s| ≤ 1 − ν, so the ceiling *is* a function of ν, 0.125 at
+ *    ν = 0.875 and 0.25 at ν = 0.75. At ν = 0.75 the panel refused S = 0.2 while
+ *    the closed form was exact there to **1.7e-14**, and went on being exact to
+ *    S = 0.26. Sixteen cells over ν × S: the predicate says yes exactly where the
+ *    residual is roundoff and no everywhere else.
+ *
+ * Darkfield needs no clause of its own and never did: the annulus starts at
+ * |s| = 1.1, both members of the pair cannot be inside a unit pupil from there,
+ * and the predicate says so without being told about annuli.
+ *
+ * **`defocusWaves` is the one condition the order geometry does not carry**, and
+ * dropping the S = 0 requirement is exactly what exposed it — see
+ * `pairPhaseSurvives`.
  */
-export function threeOrderCheck(request: PhaseRequest, nu: number): boolean {
-  return (
-    request.illumination === "brightfield" &&
-    request.coherenceParameter === 0 &&
-    nu > 0.5 &&
-    nu < 1
-  );
+export function threeOrderCheck(request: PhaseRequest): boolean {
+  return onlySymmetricPairPasses(idealPupil(), sourceFor(request), {
+    cycles: request.cycles,
+    pupilSamples: request.pupilSamples,
+    harmonic: 2,
+  });
+}
+
+/**
+ * Does the ±1 pair still share a pupil phase, so that 2·J₁(φ)² survives this
+ * frame's aberration?
+ *
+ * The closed form needs two independent things and § 6ab.15 separated them. The
+ * orders have to be alone (`threeOrderCheck`, pure geometry), **and** the pupil
+ * has to give the pair's two members the same phase, or their beat carries a
+ * phase difference the algebra assumed away. In focus the pupil is real and
+ * there is nothing to carry. Out of focus the members sit at |s ± ν| and the
+ * beat picks up 4·w₂₀·(s·ν) = 4·w₂₀·ν·s_x, which is zero only for a direction on
+ * the grating's own axis.
+ *
+ * While `threeOrderCheck` required S = 0 this was invisible: one on-axis point
+ * satisfies both conditions at once, so the panel could not tell which one it
+ * was relying on. Opening the regime to extended sources separated them, and
+ * without this the defocused canvas would print a comparison that is **39% out
+ * at S = 0.1 with one wave and 98% at S = 0.2** — a nine-decimal readout of a
+ * form that does not apply, which is the precise failure § 6ab.12 gated the 2ν
+ * reading for.
+ *
+ * Asked of the source's own points rather than of S, for the same reason
+ * `onlySymmetricPairPasses` asks the pupil: `coherentSource` is the one-point
+ * source whatever the count, and s_x = 0 is the condition that actually matters.
+ */
+function pairPhaseSurvives(source: CondenserSource, defocusWaves: number): boolean {
+  if (defocusWaves === 0) return true;
+  for (const p of source.points) {
+    if (p.sx !== 0) return false;
+  }
+  return true;
 }
 
 /**
@@ -687,12 +753,17 @@ function formFrame(
   const second = secondHarmonicOf(out.intensity, request);
 
   const phaseTransfer = weakPhaseTransfer(pupil, source, nu);
-  // The nine decimals below need no spread of their own and are not being
-  // overlooked: `threeOrderCheck` requires `coherenceParameter === 0`, which is
-  // the one source point where every sampling gives the same image bit for bit.
-  // Where this comparison exists there is nothing for the count to move.
+  // The nine decimals below still need no spread of their own, and § 6ab.15
+  // changed why. It used to be that `threeOrderCheck` required S = 0 — one source
+  // point, identical at every count. It no longer does, and the reason survives
+  // the generalization: inside the regime every direction passes exactly the same
+  // orders |m| ≤ 1 and so contributes the same term, which is why all four
+  // samplings read 9.7e-15 to 1.4e-14 against the closed form rather than four
+  // different numbers. A lattice that leaves the regime is refused on its own
+  // account instead, `threeOrderCheck` being asked of the source in force.
   const besselCheck = (() => {
-    if (!threeOrderCheck(request, nu) || !Number.isFinite(second)) return null;
+    if (!threeOrderCheck(request) || !Number.isFinite(second)) return null;
+    if (!pairPhaseSurvives(source, defocusWaves)) return null;
     const measured = second * fundamental.dc;
     const closed = 2 * besselJ1(request.amplitudeRadians) ** 2;
     return { measured, closed, residual: Math.abs(measured - closed) };

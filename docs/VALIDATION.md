@@ -11523,7 +11523,49 @@ the image it predicts consult the **same** `PupilFunction`, so they cannot
 disagree about a convention: `idealPupil` admits the rim and both say the family
 holds (1.7e-13); a pupil whose rim is strict moves both at once, to `false` and
 to roundoff. A rim convention is a property of the pupil, and the family follows
-it wherever it goes.
+it wherever it goes. That is measured rather than argued — over 27 cells sweeping
+ν at h = 2 and h = 4, including both rims, the predicate is true exactly where
+the residual is roundoff and false exactly where it is 74% or worse.
+
+#### Two numbers that outlived the defect they described
+
+A3's `threeOrderCheck` is the h = 2 member of this family, and replacing its
+hand-written range with the predicate found both of its extra conditions to be
+wrong rather than merely conservative.
+
+- **ν = 1 was excluded** on a rim artifact worth "2.6e-8 rising to 1.5e-2 at
+  φ = 3". Those are the **pointwise** object's numbers, reproduced through
+  `pointwisePhaseGratingObject` at 2.577e-8 and 1.448e-2, and § 6ab.13 removed
+  their cause by building the object from its spectrum. The same cell now agrees
+  to 5.5e-14. A number kept after the defect it described was fixed describes
+  nothing, and the only way to find out is to re-measure it.
+- **S = 0 was required** on "25% at S = 0.2, 70% at S = 0.4". Those reproduce —
+  at **ν = 0.875**, which the claim did not name. There is no ceiling in S alone:
+  the pair stays inside the pupil while |s| ≤ 1 − ν, so the ceiling is 0.125 at
+  ν = 0.875 and 0.25 at ν = 0.75, where the panel was refusing S = 0.2 while the
+  closed form was exact there to 1.7e-14. It is the same shape as § 6ab.11's own
+  lesson — "the bad region is not a band in S" — found this time in the condition
+  rather than in the readout.
+
+#### The predicate is not sufficient for the closed form, and the extra condition was hiding
+
+The family needs two independent things: the orders alone, **and** the pair's two
+members sharing a pupil phase. `onlySymmetricPairPasses` answers only the first,
+because only the first is geometry. The second is what makes the reading
+defocus-invariant, and it is an **on-axis** statement: the members sit at
+|s ± mν|, so the beat carries w₂₀(|s+mν|² − |s−mν|²) = 4·w₂₀·m·(s·ν), which is
+zero only for a direction on the grating's own axis.
+
+**Nothing separated those two until this step, because A3's regime was S = 0 and
+one on-axis point satisfies both at once.** Replacing that with the order
+geometry opened the regime to extended sources — which is right in focus, where
+the pupil is real and there is no phase to share, and measured exact to 1.7e-14
+at S = 0.2. Out of focus it is not: the same cell is **39% out at S = 0.1 with
+one wave and 98% at S = 0.2**, and the panel would have printed nine decimals of
+it. So the app carries `pairPhaseSurvives` beside the predicate, asking the
+source's own points for s_x = 0 rather than asking S, and refuses that frame.
+A generalization that removes a condition is worth checking for a *second*
+condition the removed one was silently supplying.
 
 ### Not yet pinned
 
