@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object built from its spectrum; § 6ab.14 the carrying AREA, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)²; § 6ab.16 a TRACED pupil failing REALNESS, not evenness; § 6ab.17 that bound false at n = 17, the envelope n^{-4/3}; § 6ab.18 the rim predictor REFUTED, the φ lever 9.7× not 838× | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object from its spectrum; § 6ab.14 the carrying AREA, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)²; § 6ab.16 a TRACED pupil failing REALNESS, not evenness; § 6ab.17 that bound false at n = 17, the envelope n^{-4/3}; § 6ab.18 the rim predictor REFUTED; § 6ab.19 the commensurate ANNULUS, cached | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -8558,9 +8558,9 @@ errors cancel by different amounts at different counts.
   and it is also the ceiling: a mosaic of 181 tiles × P patches builds 181·P
   caches. Sharing one across patches would be sharing across *different pupils*,
   which is the correctness hazard the call-locality exists to prevent.
-- **A commensurate ANNULUS.** `annularSource` has the same lattice available and
-  does not declare it. Darkfield and phase contrast are where that would pay, and
-  phase contrast is a v2 item (§ 6f).
+- ~~**A commensurate ANNULUS.** `annularSource` has the same lattice available and
+  does not declare it.~~ **Built at § 6ab.19** as `latticeAnnularSource`, with the
+  cache identity measured bit for bit. Phase contrast is still a v2 item (§ 6f).
 - **The wall-clock figures are measurements, not rungs.** 7.21×/10.76×/3.61×
   traced and the ideal-pupil null are reported above and are not asserted
   anywhere: a timing assertion is flaky, and `pupilEvaluations` is the same claim
@@ -11044,9 +11044,10 @@ aperture.
   s_x ∈ [1.25, 1.4] and the 7-sample lattice's outermost x is 1.2, so it holds
   **no point of the set at all**. Exact, and the same criterion turns out to
   condemn two readings § 6ab.11 trusted.
-- **A commensurate ANNULUS**, still — § 6p's own open item, and now with a
-  constructor that would make it S-free too. Darkfield and phase contrast are
-  where it would pay.
+- ~~**A commensurate ANNULUS**, still — § 6p's own open item, and now with a
+  constructor that would make it S-free too.~~ **Built at § 6ab.19**, and it takes
+  the § 6p cache into darkfield: identical images bit for bit at 1 089 pupil
+  evaluations against 662 112. The app is not wired to it.
 - **Whether the staircase is the better teaching object.** The pupil-matched
   cutoff curve is a sawtooth of amplitude one lattice step (measured max 0.060
   at `pupilSamples` 32, against the plot's 1.2 of range) where `diskSource`'s is
@@ -11915,6 +11916,83 @@ set and sample its interior differently, and at S = 0.3, ν = 0.1875 that is
 precisely what they do. Nothing render-free was found, so § 6ab.11's exhaustive
 four-render probe stands — not for want of a cheaper option, but because the
 cheap options answer a different question.
+
+### 6ab.19 — the commensurate annulus, and what a change of offset does and does not move
+
+`packages/core/test/lattice-disk.test.ts`, beside the disc it generalizes.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Every coordinate is a whole number of half-steps, all of parity 0 | `latticeOffset`'s own precondition, asserted directly | ✅ |
+| **The cached and uncached images are IDENTICAL, bit for bit** | every pixel, `toBe` | ✅ |
+| …at **1 089 pupil evaluations against 662 112** | § 6p's claim, 608× | ✅ |
+| **It holds the carrying set the 7-point ring misses entirely** — 0.067–0.069 against exactly 0 | § 6ab.12's headline cell | ✅ |
+| Still darkfield: a clear field through it is **exactly** 0 at every pixel | `toBe(0)`, not a tolerance | ✅ |
+| A step that lands nothing in the ring **throws**, naming the step and the width | the limit `latticeDiskSource` has and this does not | ✅ |
+| § 6ab.17's **constant does not transplant** — 0.901/n here against 0.7373/n | 39 counts, n = 9…358 | ✅ |
+| …and its **envelope does** — tail÷head 0.19 at q = 1, 0.52 at q = 4/3, sup e·n^{4/3} = 2.36 | the same ladder | ✅ |
+| RECORDED AND REFUSED: 21 of 39 lattice cells put a point exactly on the set's edge — and the worst cells have none | 0 of 115 for the cell-centred ring | ✅ |
+
+#### The ring needed a step where the disc merely wanted one
+
+`annularSource` inherits `diskSource`'s "N points across the diameter", and a
+ring throws most of them away: 16 of 49 at N = 7, 128 of 441 at N = 21. So the
+number a caller sets and the density it gets are only loosely related, and
+§ 6ab.12 measured what that costs — at ν = 0.75 the carrying band is
+s_x ∈ [1.25, 1.4] and the 7-point ring's outermost x is 1.2, so it holds **no
+point of the set at all** and reads 8.8e-17 where the other samplings agree to
+1.35×.
+
+`latticeAnnularSource` sets the lattice *step*, which is an angular density, and
+lets the count follow. At `pupilSamples` 64 the same ring holds 2 416 points at
+step 1 and 608 at step 2, reading 0.0671 and 0.0691 against the exact 0.070268.
+
+**And it takes the § 6p cache into darkfield, which nothing did before.** That is
+the constructor's whole justification, so it is measured rather than inherited
+from `latticeDiskSource`'s argument: the same object through the same pupil, with
+the lattice metadata and without it, is identical at **every pixel** — and the
+cached path asks the pupil 1 089 times against 662 112.
+
+**One thing does not carry over from the disc.** `latticeDiskSource` argues that
+an odd centred grid always contains the axis, so S → 0 degenerates to
+`coherentSource` without a special case. A ring with inner > 0 **excludes the
+axis by construction**, so a step too coarse to land inside the annulus produces
+no points at all — a failure, not a limit. It throws with the step it used and
+the width it could not resolve, which is what a caller can act on.
+
+#### A change of offset separates the constant from the envelope
+
+The two rings differ by exactly one thing: `annularSource` samples cell centres,
+`latticeAnnularSource` samples the pupil's own lattice points. Running § 6ab.17's
+ladder on the second is therefore a controlled test of which half of that result
+was about the *set* and which about the *sampling*.
+
+- **The constant is about the sampling.** sup e·n reaches **0.901** here against
+  0.7373 there — 22% worse — so 0.74/n describes a cell-centred lattice on this
+  ring and not the quantity it estimates.
+- **The envelope is about the set.** tail÷head is 0.19 at q = 1 and 0.52 at
+  q = 4/3, the same shape and the same direction, with sup e·n^{4/3} = 2.36
+  against 1.90. n^{-4/3} survives a change of lattice offset, which is what one
+  would want of a claim about a curved boundary.
+
+**One plausible mechanism is recorded and refused.** A lattice commensurate with
+the pupil can place a direction exactly where the shifted pupil is tangent to it,
+making the in-or-out decision a floating-point tie — the rim hazard § 6ab.11 and
+§ 6ab.12 both met. It happens, and often: **21 of 39** lattice configurations have
+at least one such point, where the cell-centred ring has none at any count from 7
+to 40. It is nevertheless **not** why this grid converges worse — all six of the
+worst cells have no such point, including the one that sets the 0.901. Two
+sections of § 6ab have already had to withdraw a mechanism that fit the picture,
+so this one is measured before it is believed and reported as a difference rather
+than as a cause.
+
+### Not yet pinned
+
+- **The app is not wired to it.** The phase panel's darkfield still builds
+  `annularSource` from a point count, so a reader can still reach the 7-sample
+  cell § 6ab.12 gates. Whether the darkfield control should become a step —
+  and what that does to the panel's S ceiling, which is computed from a count —
+  is an APP.md decision and not an engine one.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

@@ -4,17 +4,21 @@ import {
   cosineGratingObject,
   imageHarmonic,
   phaseGratingObject,
+  uniformObject,
 } from "../src/illumination/abbe";
 import {
   latticeDiskSource,
+  latticeAnnularSource,
   latticeCutoffGapExists,
   commensurateSource,
+  annularSource,
   diskSource,
   type CondenserSource,
 } from "../src/illumination/source";
 import {
   idealPupil,
   defocusedPupil,
+  harmonicSupportWeight,
   weakObjectTransfer,
   weakObjectTransferDisk,
 } from "../src/illumination/transfer";
@@ -493,5 +497,213 @@ describe("§ 6ab.10 — the 2ν readout is converged at S = 0.6 and is not at S 
       expect(other / lattice).toBeGreaterThan(1 / 3);
       expect(other / lattice).toBeLessThan(3);
     }
+  });
+});
+
+/**
+ * § 6ab.19 — the commensurate ANNULUS, which § 6p left open and § 6ab.11 kept
+ * asking for.
+ *
+ * `latticeDiskSource` gave the disc a lattice *step* instead of a point count.
+ * The ring needed it more, and for a reason § 6ab.12 measured rather than
+ * argued: `annularSource` inherits "N points across the diameter" and a ring
+ * throws most of them away — 16 of 49 at N = 7 — so at ν = 0.75 the 7-point
+ * darkfield ring holds **no point of the carrying set at all** and reads a
+ * second harmonic of 8.8e-17 where the other samplings agree to 1.35×. A step is
+ * an angular density; a count across a diameter is not.
+ *
+ * ## What it buys, measured
+ *
+ * **The § 6p cache, bit for bit.** Every coordinate is a whole number of
+ * half-steps of the pupil's own frequency grid, so `abbeImage` takes the cached
+ * path: **1 089 pupil evaluations against 662 112**, and the two images are
+ * identical to the last bit rather than to a tolerance. That claim is the whole
+ * point of the constructor and is therefore measured here and not reasoned from
+ * `latticeDiskSource`'s argument.
+ *
+ * **A density that is set rather than hoped for.** At `pupilSamples` 64 the
+ * 1.1–1.4 ring holds 2 416 points at step 1 and 608 at step 2, and its carrying
+ * weight at ν = 0.75 reads 0.0671 and 0.0691 against an exact 0.070268 — where
+ * the count-based ring at N = 7 reads exactly 0.
+ *
+ * ## What does not transplant, and one thing that half does
+ *
+ * `latticeDiskSource`'s S → 0 limit is `coherentSource`'s single on-axis point.
+ * **A ring with inner > 0 excludes the axis**, so a step too coarse to land in
+ * the annulus gives *no* points, which is a failure and not a limit — it throws
+ * with the step and the width.
+ *
+ * And § 6ab.17's convergence result splits in two when it is run on this grid:
+ *
+ *  - **the CONSTANT does not transplant** — sup e·n reaches 0.901 here against
+ *    0.7373 for the cell-centred ring, so 0.74/n is a fact about the offset;
+ *  - **the ENVELOPE does** — tail÷head is 0.19 at q = 1 and 0.52 at q = 4/3, the
+ *    same shape on a lattice whose points sit on the pupil's own grid rather than
+ *    at cell centres. So n^{-4/3} is about the boundary being curved, not about
+ *    where the lattice happens to sit on it.
+ *
+ * One structural difference is recorded and is **not** the explanation: 21 of 39
+ * lattice configurations put a source point *exactly* on the carrying set's
+ * boundary |s ± ν| = 1, where the cell-centred ring does so in 0 of 115. All six
+ * of the worst cells have none, so the ties are real and are not what sets the
+ * bound — the kind of plausible mechanism this file has twice had to withdraw.
+ */
+describe("§ 6ab.19 — the commensurate annulus", () => {
+  const RING_OUTER = 1.4;
+  const RING_INNER = 1.1;
+  const RING_ORDERS = { cycles: 12, pupilSamples: 32 };
+  /** The exact carrying fraction of A3's ring at ν = 0.75 (§ 6ab.14). */
+  const RING_AT_075 = 0.070267681347553;
+
+  /** The same source with its lattice metadata gone — forces the uncached sum. */
+  function uncached(s: CondenserSource): CondenserSource {
+    return { points: s.points, coherenceParameter: s.coherenceParameter, samples: s.samples };
+  }
+
+  it("puts every point on the pupil's own lattice, which is the cache's precondition", () => {
+    for (const pupilSamples of [16, 32, 64]) {
+      for (const stepMultiple of [1, 2, 3]) {
+        const source = latticeAnnularSource(RING_OUTER, RING_INNER, pupilSamples, stepMultiple);
+        expect(source.pupilLattice).toEqual({ pupilSamples, stepMultiple });
+        // `latticeOffset`'s own test, asserted directly rather than through a
+        // render: a whole number of half-steps, and all of one parity — 0, since
+        // the grid is centred on an odd count.
+        expect(source.samples % 2).toBe(1);
+        for (const p of source.points) {
+          for (const s of [p.sx, p.sy]) {
+            const halfSteps = s * pupilSamples;
+            expect(Number.isInteger(halfSteps)).toBe(true);
+            // Math.abs because a negative even multiple gives -0, which `toBe` and
+            // Object.is tell apart from 0 and the lattice does not.
+            expect(Math.abs(halfSteps % 2)).toBe(0);
+          }
+        }
+      }
+    }
+  });
+
+  it("renders the SAME image cached and uncached, to the last bit", () => {
+    // The claim the constructor exists for. Reasoning it from `latticeDiskSource`
+    // would be exactly the kind of argued-not-measured step this ladder refuses:
+    // if it were false the ring would be a slower `annularSource` with a wrong
+    // answer in it.
+    const source = latticeAnnularSource(RING_OUTER, RING_INNER, 32, 1);
+    const object = phaseGratingObject({ size: 128, cycles: 12, amplitudeRadians: 1.5 });
+    const cached = abbeImage(object, idealPupil(), source, { pupilSamples: 32 });
+    const plain = abbeImage(object, idealPupil(), uncached(source), { pupilSamples: 32 });
+    expect(cached.intensity.length).toBe(plain.intensity.length);
+    for (let i = 0; i < cached.intensity.length; i++) {
+      expect(cached.intensity[i], `pixel ${i}`).toBe(plain.intensity[i]);
+    }
+    // And it is the saving § 6p claimed: 1 089 evaluations against 662 112.
+    expect(cached.pupilEvaluations).toBe(1089);
+    expect(plain.pupilEvaluations).toBe(662112);
+    expect(plain.pupilEvaluations / cached.pupilEvaluations).toBeGreaterThan(600);
+  });
+
+  it("holds the carrying set the 7-point ring misses entirely", () => {
+    // § 6ab.12's headline cell. The count-based ring's outermost x at N = 7 is
+    // 1.2 and the carrying band is s_x ∈ [1.25, 1.4], so its weight is exactly 0
+    // — not small, none. Every lattice step tried lands inside it.
+    expect(harmonicSupportWeight(idealPupil(), annularSource(RING_OUTER, RING_INNER, 7), RING_ORDERS)).toBe(0);
+    for (const [pupilSamples, stepMultiple] of [
+      [32, 1],
+      [64, 1],
+      [64, 2],
+    ] as [number, number][]) {
+      const weight = harmonicSupportWeight(
+        idealPupil(),
+        latticeAnnularSource(RING_OUTER, RING_INNER, pupilSamples, stepMultiple),
+        RING_ORDERS,
+      );
+      // 0.0691 at (64, 2), 0.0671 at (64, 1), against the exact 0.070268.
+      expect(Math.abs(weight - RING_AT_075) / RING_AT_075, `${pupilSamples}/${stepMultiple}`).toBeLessThan(0.1);
+    }
+  });
+
+  it("is still darkfield — a clear field through it is exactly black", () => {
+    // The one thing `annularSource` exists to pin, and it must survive the change
+    // of lattice: the ring is entirely outside |s| = 1, so no undiffracted beam
+    // enters the objective and a non-diffracting object images to a hard zero.
+    const clear = uniformObject(128);
+    const dark = abbeImage(clear, idealPupil(), latticeAnnularSource(RING_OUTER, RING_INNER, 32, 1), {
+      pupilSamples: 32,
+    });
+    for (const value of dark.intensity) expect(value).toBe(0);
+  });
+
+  it("refuses a step that lands nothing in the ring, which is not a limit but a failure", () => {
+    // `latticeDiskSource` degenerates gracefully at S → 0 because an odd centred
+    // grid always has the axis. A ring does not contain the axis, so the same
+    // reasoning does not carry and the constructor says so with the step and the
+    // width in the message.
+    expect(() => latticeAnnularSource(1.4, 1.1, 8, 8)).toThrow(/landed no point inside the ring/);
+    // It names the step it used and the width it failed to resolve, which is what
+    // a caller can act on — not the ring's radii, which they already know.
+    expect(() => latticeAnnularSource(1.4, 1.1, 8, 8)).toThrow(/step 2 landed/);
+    expect(() => latticeAnnularSource(1.4, 1.1, 8, 8)).toThrow(/whose width is/);
+    // And the ordinary guards.
+    expect(() => latticeAnnularSource(0, 0, 32)).toThrow(/outer radius/);
+    expect(() => latticeAnnularSource(1.4, 1.4, 32)).toThrow(/inner radius/);
+    expect(() => latticeAnnularSource(1.4, 1.1, 32, 0)).toThrow(/stepMultiple/);
+    expect(() => latticeAnnularSource(1.4, 1.1, 48)).toThrow(/power of two/);
+  });
+
+  it("keeps § 6ab.17's ENVELOPE and not its constant", () => {
+    // The reason to run this ladder here: `annularSource` samples cell centres and
+    // this samples the pupil's own lattice points, so the two differ by an offset
+    // and nothing else. What survives the offset is a property of the boundary.
+    const rows: { n: number; e: number }[] = [];
+    for (const pupilSamples of [8, 16, 32, 64, 128, 256, 512]) {
+      for (const stepMultiple of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        const spacing = (2 * stepMultiple) / pupilSamples;
+        const n = (2 * RING_OUTER) / spacing;
+        if (n < 8 || n > 420) continue;
+        const source = latticeAnnularSource(RING_OUTER, RING_INNER, pupilSamples, stepMultiple);
+        rows.push({
+          n,
+          e: Math.abs(harmonicSupportWeight(idealPupil(), source, RING_ORDERS) - RING_AT_075),
+        });
+      }
+    }
+    expect(rows.length).toBeGreaterThan(30);
+    const sup = (rs: typeof rows, q: number) => rs.reduce((a, r) => Math.max(a, r.e * r.n ** q), 0);
+    const head = rows.filter((r) => r.n <= 121);
+    const tail = rows.filter((r) => r.n >= 200);
+
+    // The constant is NOT § 6ab.17's: 0.901 here against 0.7373 there, at
+    // n = 17.9 (pupilSamples 64, step 5). So 0.74/n describes the cell-centred
+    // lattice and not the quantity.
+    expect(sup(rows, 1)).toBeGreaterThan(0.74);
+    expect(sup(rows, 1)).toBeLessThan(0.95);
+
+    // The envelope IS: falling across the range at q = 1 and q = 4/3, and the
+    // sup at 4/3 stays finite and modest (2.36 against § 6ab.17's 1.90).
+    expect(sup(tail, 1) / sup(head, 1)).toBeLessThan(0.5);
+    expect(sup(tail, 4 / 3) / sup(head, 4 / 3)).toBeLessThan(1);
+    expect(sup(rows, 4 / 3)).toBeLessThan(2.5);
+  });
+
+  it("does land points exactly on the carrying set's edge, and that is NOT the bound", () => {
+    // Worth recording because it is the mechanism a reader would reach for: a
+    // lattice commensurate with the pupil can put a direction exactly where the
+    // shifted pupil is tangent, so the in-or-out decision is a floating-point tie
+    // — the rim hazard § 6ab.11 and § 6ab.12 both met. It happens, often, and the
+    // worst cells do not have it.
+    const onEdge = (source: CondenserSource) => {
+      let count = 0;
+      for (const p of source.points) {
+        for (const sign of [1, -1]) if (Math.hypot(p.sx + sign * 0.75, p.sy) === 1) count++;
+      }
+      return count;
+    };
+    // The lattice ring at pupilSamples 64, step 1 has them; the count-based ring
+    // never does, at any count from 7 to 40.
+    expect(onEdge(latticeAnnularSource(RING_OUTER, RING_INNER, 64, 1))).toBeGreaterThan(0);
+    for (let n = 7; n <= 40; n++) expect(onEdge(annularSource(RING_OUTER, RING_INNER, n)), `n = ${n}`).toBe(0);
+    // And the cell that sets the bound above — pupilSamples 64, step 5 — has none,
+    // so the ties are a real difference between the two grids and not the reason
+    // one of them converges worse.
+    expect(onEdge(latticeAnnularSource(RING_OUTER, RING_INNER, 64, 5))).toBe(0);
   });
 });

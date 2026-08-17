@@ -484,3 +484,94 @@ export function annularSource(outer: number, inner: number, samples = 15): Conde
     samples,
   };
 }
+
+/**
+ * The same ring, sampled on the **pupil's own** lattice — `latticeDiskSource`
+ * with a second mask, and § 6p's last open constructor.
+ *
+ * ## Why the ring needed it more than the disc did
+ *
+ * `annularSource` inherits `diskSource`'s "N points across the diameter", and a
+ * ring throws most of them away: at N = 7 the 1.1–1.4 annulus keeps **16 of 49**
+ * and at N = 21 it keeps 128 of 441, so the count a caller sets and the density
+ * it gets are only loosely related. § 6ab.12 measured what that costs — at
+ * ν = 0.75 the carrying band is s_x ∈ [1.25, 1.4] and the 7-point ring's
+ * outermost x is 1.2, so it holds **no point of the set at all** and reads a
+ * second harmonic of 8.8e-17 where the other samplings agree to 1.35×. Setting a
+ * lattice *step* instead of a count is the fix that names the right quantity: the
+ * step is an angular density, and the ring's point count follows from it.
+ *
+ * And it buys the § 6p cache for darkfield, which `annularSource` cannot have —
+ * every coordinate here is a whole number of half-steps of the pupil's own
+ * frequency grid, which is `abbeImage`'s precondition read off `latticeOffset`.
+ *
+ * ## What does NOT transplant from `latticeDiskSource`
+ *
+ * That function argues that an odd count centres the grid, so there is always an
+ * on-axis direction and S → 0 degenerates to `coherentSource` without a special
+ * case. **A ring with `inner` > 0 excludes the axis by construction**, so the
+ * degenerate limit is not "one point" but "no points", and a step too coarse to
+ * land inside the annulus is a real failure rather than a limit. It throws, with
+ * the step it used and the width it failed to resolve — the same refusal
+ * `annularSource` already makes for a count, moved to the quantity that decides
+ * it. The odd count is still what makes the parity 0, which is the part the cache
+ * cares about.
+ *
+ * The extent is `ceil` for `latticeDiskSource`'s reason: the mask decides
+ * membership, so a grid that is one ring too wide costs a dropped ring and a grid
+ * one ring too narrow is silently wrong.
+ */
+export function latticeAnnularSource(
+  outer: number,
+  inner: number,
+  pupilSamples: number,
+  stepMultiple = 1,
+): CondenserSource {
+  if (!(outer > 0)) throw new Error(`latticeAnnularSource: outer radius must be > 0, got ${outer}`);
+  if (!(inner >= 0) || inner >= outer) {
+    throw new Error(
+      `latticeAnnularSource: inner radius must lie in [0, ${outer}), got ${inner}`,
+    );
+  }
+  if (!Number.isInteger(stepMultiple) || stepMultiple < 1) {
+    throw new Error(
+      `latticeAnnularSource: stepMultiple must be a positive integer, got ${stepMultiple}`,
+    );
+  }
+  if (!Number.isInteger(pupilSamples) || !isPowerOfTwo(pupilSamples) || pupilSamples < 2) {
+    throw new Error(
+      `latticeAnnularSource: pupilSamples must be a power of two so that the pupil's frequency ` +
+        `step 2/${pupilSamples} is exactly representable and the cached sum is bit-for-bit the ` +
+        `uncached one — got ${pupilSamples}`,
+    );
+  }
+  const halfStep = 1 / pupilSamples;
+  const spacing = 2 * stepMultiple * halfStep;
+  const rings = Math.ceil(outer / spacing);
+  const samples = 2 * rings + 1;
+  const points: SourcePoint[] = [];
+  const hi = outer * outer;
+  const lo = inner * inner;
+  for (let j = 0; j < samples; j++) {
+    const sy = (2 * j + 1 - samples) * stepMultiple * halfStep;
+    for (let i = 0; i < samples; i++) {
+      const sx = (2 * i + 1 - samples) * stepMultiple * halfStep;
+      const r2 = sx * sx + sy * sy;
+      if (r2 <= hi && r2 >= lo) points.push({ sx, sy, weight: 0 });
+    }
+  }
+  if (points.length === 0) {
+    throw new Error(
+      `latticeAnnularSource: a lattice of step ${spacing} landed no point inside the ring ` +
+        `${inner}–${outer}, whose width is ${outer - inner} — lower stepMultiple or raise ` +
+        `pupilSamples`,
+    );
+  }
+  const w = 1 / points.length;
+  return {
+    points: points.map((p) => ({ sx: p.sx, sy: p.sy, weight: w })),
+    coherenceParameter: outer,
+    samples,
+    pupilLattice: { pupilSamples, stepMultiple },
+  };
+}
