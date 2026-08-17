@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice masked to radius S frees the slider, the cutoff gap a divisibility law killing every power-of-two step; the phase panel audited and declined; § 6ab.12 gating the 2ν readout on where the beat exists — two orders 2ν apart inside the pupil: ν < 1, and < (1+outer)/3 in darkfield; § 6ab.13 finding the ORDERS folded onto it too, the object now built from its spectrum; § 6ab.14 making it quantitative — the carrying AREA, approached by the sampled weight under 0.55/samples, not monotonically, the whole condenser only below √((1−S²)/2) | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; the phase panel audited and declined; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 finding the ORDERS folded on too, the object built from its spectrum; § 6ab.14 making it quantitative — the carrying AREA, met by the sampled weight under 0.55/samples, not monotonically, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)² where the symmetric pair is alone | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -11169,9 +11169,11 @@ The gate stands unchanged: it was never the aliasing it was gating.
   **Answered at § 6ab.13, and neither — they are not put on the grid at all.**
   Refusing needed a threshold; measuring needed one too. Building the object from
   its spectrum needs neither.
-- **The h ≥ 3 harmonics**, which the criterion covers and nothing renders. The
+- ~~**The h ≥ 3 harmonics**, which the criterion covers and nothing renders. The
   cutoffs fall as 2/h and the cheap prediction is that a third harmonic needs
-  ν < 2/3; no rung asks for it.
+  ν < 2/3.~~ **§ 6ab.15 asks for it, and the prediction was the uninteresting
+  half** — the cutoff is right, and a third harmonic *inside* it is zero anyway,
+  because the phase null is a parity law over h and not a fact about ν.
 
 ### 6ab.13 — the folded orders were in the image, and the fix is not a threshold
 
@@ -11425,8 +11427,110 @@ answer is none.
   how thin the set it missed is. The label says the ratio is of the *set* and not
   of the contrast, because those are different quantities — 1.59× against 1.35×
   on the same three lattices, and § 6ab.11 measured the contrast one separately.
-- **The h ≥ 3 harmonics** — still § 6ab.12's item. The area function answers for
-  any h and two rungs use h = 3, but nothing renders one.
+- ~~**The h ≥ 3 harmonics** — still § 6ab.12's item. The area function answers for
+  any h and two rungs use h = 3, but nothing renders one.~~ **Answered at
+  § 6ab.15, and the prediction in it was the uninteresting half:** a third
+  harmonic inside its own cutoff is still zero, because § 6f's phase null is a
+  parity law and applies to every odd h.
+
+### 6ab.15 — the third harmonic is zero, and the null was never about the first
+
+The open item above predicted that a third harmonic needs ν < 2/3, the cutoffs
+falling as 2/h. That is right, and it is not what happens. **Put a third
+harmonic comfortably inside its own cutoff and it is still zero** — measured at
+f64 roundoff over coherent, extended and darkfield sources — and so is the
+fifth. The reason is not where the orders land:
+
+> A phase grating has orders at every integer m with amplitude Jₘ(φ). Squaring
+> Σₘ iᵐJₘ(φ)·P(s+mν)e^{imu} puts the image's h-th harmonic at
+> **c_h = i^h · Σₙ Jₙ₊ₕ(φ)·Jₙ(φ)·P(s+(n+h)ν)·P̄(s+nν)**, summed over the source.
+> Pair the term at (s, n) with the term at (−s, −n−h): J₋ₖ = (−1)^k Jₖ applies
+> twice and contributes (−1)^h, and the two pupil factors match because the
+> pupil is **even** and the source **centro-symmetric**. For odd h the sum is
+> its own negative.
+
+So § 6f's headline — a brightfield microscope cannot see an unstained cell — is
+the **h = 1 case of a parity law**, and the story it was carried by is weaker
+than the fact. "Two sidebands enter with opposite signs and cancel" is about a
+three-line spectrum and a weak object; the parity argument needs neither, which
+is why the null survives to φ = 3 where the object is nothing like weak. That
+comment in `illumination/transfer` now states the general reason rather than the
+special case it happened to be found in.
+
+**The preconditions are the two `weakPhaseTransfer` already names, and a third
+one that turns out not to be needed.** Evenness of the pupil and centro-symmetry
+of the source do all the work. A symmetric band limit does *not* break it: § 6ab.13
+truncates the order series at |m| ≤ M, and the partner of a surviving term is
+always itself surviving, so the cancellation stays exact — measured at h = 1 and
+h = 3 in the corner § 6ab.12's 6.8e-7 aliasing artifact lived in, φ = 3 with
+**3.9% of the light dropped** and only |m| ≤ 3 on the grid, reading 2.0e-15 to
+3.1e-15 while h = 2 in the same images reads 0.25 to 0.77.
+
+**Defocus breaks them together, and one apparent exception is the interesting
+cell.** A defocused pupil is still even but no longer real, so the paired factor
+becomes a conjugate instead of an equal: at ν = 0.375 under an S = 0.6 disc,
+h = 3 goes from 2.7e-16 to 3.9e-3 and h = 5 from 8.6e-16 to 2.6e-3. Under a
+*coherent* source at the same ν, h = 3 goes to 0.246 and **h = 5 does not move**
+— 1.4e-15 in and out of focus. That is not parity surviving; it is § 6ab.12's
+support criterion, since only |m| ≤ 2 pass and no order pair 5 apart exists to
+beat. Two nulls that look identical on screen, told apart by one slider.
+
+#### The even harmonics are a family of closed forms
+
+Where the symmetric pair (−h/2, +h/2) is the **only** pair h apart that gets
+through, one term survives in c_h, its two members carry J₋ₘ and J₊ₘ, and
+
+> **contrast(h·ν) · mean = 2·J_{h/2}(φ)²**
+
+with no free parameter and no pupil in it. Measured at h = 2, 4, 6 and 8 across
+φ ∈ {0.4, 1.5, 3}, worst residual **2.3e-14**. § 6f's 2·J₁(φ)² and A3's
+`threeOrderCheck` are the h = 2 member of this, recovered rather than restated:
+the predicate is told nothing about three orders and says ν = 0.75 qualifies
+because ±1 passes and ±2 does not.
+
+It is also **exactly defocus-invariant** — the same closed form to 1e-13 at
+w₂₀ = 0, 1 and 3 — and the reason is geometric: the pair sits symmetric about
+the axis, so both members are at the same pupil radius and any *even* aberration
+gives them the same phase, which the beat cancels. Over that same slider the
+h = 1 reading swings from a hard null to 1.14. One control, two harmonics, and
+only one of them moves.
+
+#### Why the regime is a predicate and not a bound on S
+
+The tempting form is a formula: the next order enters at source radius
+(h/2 + 1)·ν − 1, so require S below it. **That formula is wrong**, and one cell
+shows it. An 11-point disc at S = 0.13 has its outermost sample at |s| = 0.1273,
+past the bound's 0.125, and the closed form holds to **7.7e-14** — because the
+sample past the bound is a *corner*, and what displaces an order is s_x alone
+while s_y spends the pupil's budget without moving anything.
+
+So `onlySymmetricPairPasses` asks the pupil at exactly the coordinates
+`abbeImage` evaluates, as `harmonicSupportWeight` does and for the same reason,
+and the answer is then lattice-dependent — which is the honest outcome rather
+than a defect. The regime ends at S = 0.14 for an 11-point disc and at 0.13 for
+a 41-point one. Across 24 cells of measured error either side of both crossings,
+the predicate and the closed form's survival agree **everywhere**, which no
+formula in S can do. Outside it the closed form is not approximately right: 74%
+error one ν step below the regime, 96% two steps below, and 100% above it, where
+no pair h apart passes at all and the harmonic is a hard 4.6e-16.
+
+**The rim is not a hazard here, and the contrast with § 6ab.11 is the point.**
+ν = 1/M puts order M exactly on |p| = 1, the same boundary that gave § 6ab.11 an
+8e-4 reading off a set of zero area. There the two legs were different
+quantities — an aperture's AREA against a lattice's WEIGHT — so a rim decision
+could fall one way for one and the other way for the other. This predicate and
+the image it predicts consult the **same** `PupilFunction`, so they cannot
+disagree about a convention: `idealPupil` admits the rim and both say the family
+holds (1.7e-13); a pupil whose rim is strict moves both at once, to `false` and
+to roundoff. A rim convention is a property of the pupil, and the family follows
+it wherever it goes.
+
+### Not yet pinned
+
+- **Nothing renders h ≥ 3 yet.** The engine answers for any h and the rungs above
+  measure four of them, but A3 still reads only the 2ν bin. The bins are free
+  once an image exists — the sampling probe already renders three frames per
+  defocus — so this is wiring, not cost.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

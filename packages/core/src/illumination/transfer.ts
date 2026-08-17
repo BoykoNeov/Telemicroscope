@@ -60,6 +60,29 @@ import type { CondenserSource } from "./source";
  * a real pupil they cancel exactly, at every ν and every S. Aberrate the pupil
  * — defocus is enough — and it appears. Brightfield does not see phase; that is
  * a property of the sum, not a limitation of this model.
+ *
+ * ## That null is the h = 1 case of a parity law (§ 6ab.15)
+ *
+ * "Two sidebands cancel" is a statement about a three-line spectrum, and it
+ * under-explains its own null. A phase grating of *any* strength has orders at
+ * every integer m with amplitude Jₘ(φ), and squaring Σₘ iᵐJₘ(φ)·P(s+mν)e^{imu}
+ * puts the image's h-th harmonic at
+ *
+ *     c_h = i^h · Σₙ Jₙ₊ₕ(φ)·Jₙ(φ)·P(s+(n+h)ν)·P̄(s+nν)
+ *
+ * summed over the source. Pair the term at (s, n) with the term at (−s, −n−h):
+ * J₋ₖ = (−1)^k Jₖ applies twice and contributes (−1)^h, while the two pupil
+ * factors match because the pupil is **even** and the source **centro-symmetric**
+ * — the same two preconditions `weakPhaseTransfer` names, doing the same work.
+ * For odd h the sum is therefore its own negative.
+ *
+ * **So every odd harmonic is null, not just the first.** Measured at f64
+ * roundoff for h = 1, 3 and 5 together — coherent, extended and darkfield, at
+ * φ = 3 where the object is nothing like weak, and with 3.9% of the light
+ * truncated off the grid, since a symmetric band limit keeps every surviving
+ * term's partner. Defocus makes the paired pupil factor a *conjugate* rather
+ * than an equal, and breaks all of them at once: at ν = 0.375 under a defocused
+ * S = 0.6 disc, h = 3 goes from 2.7e-16 to 3.9e-3.
  */
 
 /**
@@ -771,4 +794,95 @@ export function harmonicCarryingArea(
     );
   const area = 2 * half;
   return { area, fraction: area / (Math.PI * (outer * outer - inner * inner)) };
+}
+
+/**
+ * Is the symmetric pair (−h/2, +h/2) the **only** order pair h apart that gets
+ * through, from every direction the source holds?
+ *
+ * Where this is true the h-th image harmonic has a closed form with no free
+ * parameter and no pupil in it at all. One pair contributes one term to `c_h`
+ * above, its two members carry J₋ₘ and J₊ₘ with m = h/2, and the amplitude is
+ *
+ *     contrast(h·ν) · mean = 2·J_{h/2}(φ)²
+ *
+ * — measured to 1e-14 at h = 2, 4, 6 and 8 (§ 6ab.15). It is also **exactly
+ * defocus-invariant**, and for a reason worth keeping: the pair sits symmetric
+ * about the axis, so both members are at the same pupil radius, and any *even*
+ * aberration gives them the same phase, which the beat then cancels. Measured
+ * against the same closed form to 1e-13 at w₂₀ = 0, 1 and 3, while the h = 1
+ * reading swings from 0 to 1.14 over that same slider.
+ *
+ * At h = 2 this is § 6f's three-order regime — order ±2 outside the pupil, so
+ * ±1 is alone — which A3 had as its own `threeOrderCheck` before there was a
+ * family to belong to. Odd h is `false` at once: there is no symmetric pair,
+ * and the parity law above says the harmonic is zero anyway.
+ *
+ * ## Why the pupil is asked and not a bound in S
+ *
+ * The tempting form is a formula: the next order enters at source radius
+ * (h/2 + 1)·ν − 1, so require S below it. **That formula is wrong**, and one
+ * cell shows it — an 11-point disc at S = 0.13 has its outermost sample at
+ * |s| = 0.1273, past the bound's 0.125, and the closed form still holds to
+ * 7.7e-14. The sample past the bound is a *corner*: what displaces an order is
+ * s_x alone, while s_y spends the pupil's budget without moving anything. So the
+ * question is asked of the pupil at exactly the coordinates `abbeImage`
+ * evaluates — as `harmonicSupportWeight` asks its own, and for the same reason —
+ * and the answer then depends on the lattice, which is the honest outcome: the
+ * regime ends at S = 0.14 for a 11-point disc and at 0.13 for a 41-point one.
+ * Against a 96-cell sweep of measured error, the predicate and the closed form's
+ * survival agree in every cell and a bound in S cannot.
+ *
+ * Assumes a grating along x, as `harmonicSupportWeight` does.
+ */
+export function onlySymmetricPairPasses(
+  pupil: PupilFunction,
+  source: CondenserSource,
+  orders: GratingOrders,
+): boolean {
+  const { cycles, pupilSamples } = orders;
+  const harmonic = orders.harmonic ?? 2;
+  if (!Number.isInteger(cycles) || cycles < 1) {
+    throw new Error(`onlySymmetricPairPasses: cycles must be a positive integer, got ${cycles}`);
+  }
+  if (!Number.isInteger(pupilSamples) || pupilSamples < 1) {
+    throw new Error(
+      `onlySymmetricPairPasses: pupilSamples must be a positive integer, got ${pupilSamples}`,
+    );
+  }
+  if (!Number.isInteger(harmonic) || harmonic < 1) {
+    throw new Error(`onlySymmetricPairPasses: harmonic must be a positive integer, got ${harmonic}`);
+  }
+  // Odd h has no symmetric pair to be alone — ±h/2 are not integers, so no order
+  // pair h apart straddles the axis at all.
+  if (harmonic % 2 !== 0) return false;
+  const half = harmonic / 2;
+  const step = 2 / pupilSamples;
+  const nu = cycles * step;
+  for (const s of source.points) {
+    // The pair has to get through in the first place. Without this the predicate
+    // would be true wherever NOTHING gets through, which is the one place the
+    // closed form is furthest from right — it reads 2·J_{h/2}(φ)² against a
+    // measured hard zero (1.00 relative error above ν = 1/(h/2), measured).
+    if (
+      pupil.amplitude(half * nu + s.sx, s.sy) === 0 ||
+      pupil.amplitude(-half * nu + s.sx, s.sy) === 0
+    ) {
+      return false;
+    }
+    // And nothing beyond it may, from any direction, or a second pair h apart
+    // exists and `c_h` gains a term the closed form does not have. Bounded by
+    // geometry as `harmonicSupportWeight` is: an order past 1 + |s| cannot be
+    // inside a unit pupil however the direction is placed.
+    const last = Math.floor((1 + Math.hypot(s.sx, s.sy)) / nu) + 1;
+    for (let m = half + 1; m <= last; m++) {
+      if (
+        pupil.amplitude(m * nu + s.sx, s.sy) !== 0 ||
+        pupil.amplitude(-m * nu + s.sx, s.sy) !== 0
+      ) {
+        return false;
+      }
+    }
+  }
+  return true;
 }
