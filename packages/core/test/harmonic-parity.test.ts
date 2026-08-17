@@ -62,6 +62,15 @@ import type { PupilFunction } from "../src/wave";
  * family is measured here at h = 2, 4, 6 and 8, and it is exactly where
  * `onlySymmetricPairPasses` says it is — including the part that cannot be
  * written as a bound on S.
+ *
+ * **"No pupil in it" is true of every pupil in this file and false in general
+ * (§ 6ab.16).** Each cell below runs through `idealPupil` or `defocusedPupil`,
+ * whose amplitude is 1 inside the disc; the general form carries the pupil's own
+ * transmission at the pair's two coordinates, 2·J_{h/2}(φ)²·A(+mν)·A(−mν), and a
+ * traced objective misses this file's version by 18% to 26%. The same section
+ * sharpens the defocus-invariance rung below: the reason it holds is not that an
+ * even aberration gives the pair one phase, but that one surviving term is a
+ * product of two MODULI and has no phase in it to cancel.
  */
 
 const SIZE = 128;

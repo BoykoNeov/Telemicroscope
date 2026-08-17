@@ -47,8 +47,8 @@ import type { OpticalSystem } from "../src/trace/system";
  * objective at best focus is the same case for a duller reason: whatever residual
  * the trace leaves, its wavefront is not zero, so the pupil is not real. It does
  * not have to be lopsided, and this file shows it is not: symmetrizing the pupil
- * — replacing P by (P(p) + P(−p))/2, which is even by construction — leaves the
- * lift unchanged to five figures.
+ * — averaging its amplitude with A(−p) and its phase with W(−p), which makes an
+ * even pupil by construction — leaves the lift unchanged to five figures.
  *
  * ## The even harmonics survive, and the closed form gains a factor rather than
  * an error term
@@ -147,7 +147,13 @@ function phaseOnly(p: PupilFunction): PupilFunction {
   return { amplitude: IDEAL.amplitude, phaseWaves: p.phaseWaves };
 }
 
-/** (P(p) + P(−p))/2 — even by construction, and still complex. */
+/**
+ * An even pupil built from this one: A and W each averaged against their own
+ * value at −p. NOT (P(p) + P(−p))/2, which is a different operation — a complex
+ * average does not preserve the modulus and can cancel to zero where this cannot.
+ * What is wanted is a pupil satisfying A(−p) = A(p) and W(−p) = W(p), and this is
+ * the cheapest one that keeps both magnitudes recognisable.
+ */
 function evenPart(p: PupilFunction): PupilFunction {
   return {
     amplitude: (px, py) => (p.amplitude(px, py) + p.amplitude(-px, -py)) / 2,
@@ -211,7 +217,8 @@ describe("§ 6ab.16 — a traced objective lifts the odd harmonics, and not by a
   });
 
   it("survives being made exactly even, which is the whole of the correction", () => {
-    // (P(p) + P(−p))/2 is even by construction, so a null that needed evenness
+    // Averaging A and W each against their value at −p is even by construction,
+    // so a null that needed evenness
     // would come back here. It does not move at all: 0.51637 both ways.
     const full = reading(lister.pupil, coherentCell(), 1).contrast;
     expect(reading(evenPart(lister.pupil), coherentCell(), 1).contrast).toBeCloseTo(full, 4);
@@ -288,9 +295,9 @@ describe("§ 6ab.16 — the even family survives a real lens, with the transmiss
   });
 
   it("misses the bare 2·J_{h/2}(φ)² by ONE fraction at four harmonics, which is a transmission", () => {
-    // The four harmonics put their pair at four different radii — 0.75, 0.75,
-    // 0.9375 and 0.875 — so an aberration would miss by four different amounts
-    // and a transmission by one. Measured: 0.18423 at every h for the 4×, 0.26322
+    // The four harmonics put their pair at three distinct radii — 0.75 twice,
+    // then 0.9375 and 0.875 — so an aberration would miss by more than one
+    // amount and a transmission by exactly one. Measured: 0.18423 at every h for the 4×, 0.26322
     // at every h for the Lister, agreeing across h to better than 1e-3 relative.
     for (const [name, traced] of TRACED) {
       const deficits = FAMILY.map(({ h, pupilSamples, cycles, nu }) => {

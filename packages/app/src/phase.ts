@@ -619,6 +619,15 @@ export function harmonicSupportAt(request: PhaseRequest, harmonic: number): Harm
  * difference at all. The ν term meanwhile swings from 0 to 0.74. One slider,
  * two terms, and only one of them moves.
  *
+ * Two scope notes that this panel satisfies and a caller might not (§ 6ab.16).
+ * The general form is 2·J_{h/2}(φ)²·A(+mν)·A(−mν) with A the pupil's amplitude,
+ * which is 1 for `idealPupil` and `defocusedPupil` — the only two pupils this
+ * module builds — and 0.86 for a traced objective, an 18% to 26% error in the
+ * printed comparison. And the invariance above is not really about the shared
+ * radius: one surviving term is a product of two moduli, so no wavefront of any
+ * parity enters it, which is why the reading survives an aberration that is ODD
+ * across the pair as well as an even one.
+ *
  * ## The regime is asked, not written down here (§ 6ab.15)
  *
  * "Three orders" is `onlySymmetricPairPasses` at h = 2 — ±1 through and ±2 not,

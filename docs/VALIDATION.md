@@ -11482,18 +11482,26 @@ through, one term survives in c_h, its two members carry J₋ₘ and J₊ₘ, an
 
 > **contrast(h·ν) · mean = 2·J_{h/2}(φ)²**
 
-with no free parameter and no pupil in it. Measured at h = 2, 4, 6 and 8 across
-φ ∈ {0.4, 1.5, 3}, worst residual **2.3e-14**. § 6f's 2·J₁(φ)² and A3's
+with no free parameter and ~~no pupil in it~~. Measured at h = 2, 4, 6 and 8
+across φ ∈ {0.4, 1.5, 3}, worst residual **2.3e-14**. § 6f's 2·J₁(φ)² and A3's
 `threeOrderCheck` are the h = 2 member of this, recovered rather than restated:
 the predicate is told nothing about three orders and says ν = 0.75 qualifies
 because ±1 passes and ±2 does not.
 
+**"No pupil in it" is an `idealPupil` statement, corrected at § 6ab.16.** The
+general form carries the pupil's own transmission at the pair's two coordinates,
+2·J_{h/2}(φ)²·A(+mν)·A(−mν), which is 1 for every pupil this section renders
+through and 0.74 for a real objective — an 18% to 26% error, not a rounding.
+
 It is also **exactly defocus-invariant** — the same closed form to 1e-13 at
-w₂₀ = 0, 1 and 3 — and the reason is geometric: the pair sits symmetric about
-the axis, so both members are at the same pupil radius and any *even* aberration
-gives them the same phase, which the beat cancels. Over that same slider the
-h = 1 reading swings from a hard null to 1.14. One control, two harmonics, and
-only one of them moves.
+w₂₀ = 0, 1 and 3 — and the reason given here is geometric: the pair sits
+symmetric about the axis, so both members are at the same pupil radius and any
+*even* aberration gives them the same phase, which the beat cancels. Over that
+same slider the h = 1 reading swings from a hard null to 1.14. One control, two
+harmonics, and only one of them moves. **That reason is true and narrower than
+the fact (§ 6ab.16):** one surviving term is a product of two moduli, so no
+wavefront of any parity enters it, which a pupil aberrated *oddly* across the
+pair then confirms.
 
 #### Why the regime is a predicate and not a bound on S
 
@@ -11645,7 +11653,7 @@ position to go to rather than a ν to solve for.
 | **A traced objective lifts h = 1 from 1.5e-16 to 0.23, 0.52 and 1.25** — ordered by its own RMS wavefront | § 6f.10's two pupils, and one off axis | ✅ |
 | …and h = 3 comes up with it, as one law rather than two readings | § 6ab.15's parity law | ✅ |
 | **It is the PHASE**: phase-only reproduces the lift to 5 figures; amplitude-only reads 3.1e-7 | the decomposition, measured | ✅ |
-| **Symmetrizing the pupil changes nothing** — (P(p)+P(−p))/2 gives the same 0.51637 | evenness, refuted as the cause | ✅ |
+| **Symmetrizing the pupil changes nothing** — A and W each averaged against −p gives the same 0.51637 | evenness, refuted as the cause | ✅ |
 | h = 5 stays at roundoff through all three — § 6ab.12's support null, told apart by a LENS this time | the order geometry | ✅ |
 | **contrast(hν)·mean = 2·J_{h/2}(φ)²·A(+mν)·A(−mν)** at h = 2, 4, 6, 8 × 3 φ × 3 traced pupils | Bessel closed form × the pupil's own A, 1e-13 | ✅ |
 | The bare A = 1 form is **18.4% and 26.3% out, the same fraction at four h** — a transmission, not an aberration | 1e-13 against A(+mν)·A(−mν) | ✅ |
@@ -11677,9 +11685,11 @@ The decomposition is three renders and settles it:
 That last one is the asymmetry, and it is real: a Zernike fit of √throughput is
 not exactly even, so a real pupil that is not quite even lifts the null a little,
 which is the mechanism the open item described. It is **1.6 million times** too
-small to be the answer. And symmetrizing — replacing P by (P(p) + P(−p))/2, which
-is even by construction — leaves the reading at 0.51637, so the lift does not
-even partly live there. Even the comatic pupil 0.3 mm off axis, whose odd part is
+small to be the answer. And symmetrizing — averaging the amplitude against A(−p)
+and the phase against W(−p), which builds an even pupil, and is *not* the complex
+average (P(p) + P(−p))/2, an operation that does not preserve the modulus and can
+cancel to zero — leaves the reading at 0.51637, so the lift does not even partly
+live there. Even the comatic pupil 0.3 mm off axis, whose odd part is
 0.17 waves, keeps 1.27 of its 1.25 when symmetrized.
 
 **A prediction can be right about the size of an effect and wrong about which
@@ -11701,7 +11711,8 @@ This is not a refinement to file away. Against the 4×/0.10 the A = 1 form is
 **18.4%** out and against the Lister **26.3%**, and a nine-decimal readout that
 printed either would be wrong in the second digit. What says it is a transmission
 rather than an aberration is that it is **one number at four harmonics**: the
-four cells put the surviving pair at pupil radii 0.75, 0.75, 0.9375 and 0.875, so
+four cells put the surviving pair at three distinct pupil radii — 0.75, 0.9375
+and 0.875 — so
 a wavefront effect would miss by four different amounts, and these agree with each
 other to better than 1e-3 and with A(+mν)·A(−mν) to the same 1e-13 the family
 holds to.
