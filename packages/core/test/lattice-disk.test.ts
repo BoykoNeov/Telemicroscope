@@ -536,17 +536,35 @@ describe("§ 6ab.10 — the 2ν readout is converged at S = 0.6 and is not at S 
  * And § 6ab.17's convergence result splits in two when it is run on this grid:
  *
  *  - **the CONSTANT does not transplant** — sup e·n reaches 0.901 here against
- *    0.7373 for the cell-centred ring, so 0.74/n is a fact about the offset;
+ *    0.7373 for the count-based ring;
  *  - **the ENVELOPE does** — tail÷head is 0.19 at q = 1 and 0.52 at q = 4/3, the
- *    same shape on a lattice whose points sit on the pupil's own grid rather than
- *    at cell centres. So n^{-4/3} is about the boundary being curved, not about
- *    where the lattice happens to sit on it.
+ *    same shape on a lattice whose points sit on the pupil's own grid. So
+ *    n^{-4/3} is about the boundary being curved, not about which steps the
+ *    ladder happened to ask.
  *
  * One structural difference is recorded and is **not** the explanation: 21 of 39
  * lattice configurations put a source point *exactly* on the carrying set's
- * boundary |s ± ν| = 1, where the cell-centred ring does so in 0 of 115. All six
+ * boundary |s ± ν| = 1, where the count-based ring does so in 0 of 115. All six
  * of the worst cells have none, so the ties are real and are not what sets the
  * bound — the kind of plausible mechanism this file has twice had to withdraw.
+ *
+ * ## The 22% was not an effect, and the block below is why
+ *
+ * This file said the two rings "differ by an offset and nothing else" and left
+ * the 0.901-against-0.7373 gap as an open question. **Both halves were wrong.**
+ * `annularSource`'s coordinates are `outer·(2i+1−N)/N`, which for **odd** N is an
+ * integer multiple of its own step: that grid contains the origin, exactly as
+ * this one does, and § 6ab.17's record is at N = 17. Only the even counts are at
+ * cell centres, and the offset is worth 1.6% inside the count ladder itself
+ * (sup 0.7373 over the odd counts against 0.7259 over the even ones) where the
+ * question attributed 22% to it.
+ *
+ * What the two constructors really differ in is **which steps they can reach** —
+ * `2·outer/N` against `2k/pupilSamples` — and neither set reaches the family's
+ * own maximum. Left free over the same range of n, the same origin-centred
+ * lattice masked to the same ring reaches **1.949**, so 0.7373 and 0.901 are two
+ * suprema over two differently shaped subsets and their ratio is a fact about the
+ * subsets. Both readings survive; the *comparison* is what does not.
  */
 describe("§ 6ab.19 — the commensurate annulus", () => {
   const RING_OUTER = 1.4;
@@ -683,9 +701,12 @@ describe("§ 6ab.19 — the commensurate annulus", () => {
   });
 
   it("keeps § 6ab.17's ENVELOPE and not its constant", () => {
-    // The reason to run this ladder here: `annularSource` samples cell centres and
-    // this samples the pupil's own lattice points, so the two differ by an offset
-    // and nothing else. What survives the offset is a property of the boundary.
+    // The reason to run this ladder here: both constructors mask the same ring
+    // with the same kind of square lattice, and differ in which steps they can
+    // reach — `2·outer/N` against `2k/pupilSamples`. What survives a change of
+    // step set is a property of the boundary. (The block below measures what does
+    // not: the constant, which is a fact about the step sets and not about
+    // either ring.)
     const rows: { n: number; e: number }[] = [];
     for (const pupilSamples of [8, 16, 32, 64, 128, 256, 512]) {
       for (const stepMultiple of [1, 2, 3, 4, 5, 6, 7, 8]) {
@@ -705,8 +726,10 @@ describe("§ 6ab.19 — the commensurate annulus", () => {
     const tail = rows.filter((r) => r.n >= 200);
 
     // The constant is NOT § 6ab.17's: 0.901 here against 0.7373 there, at
-    // n = 17.9 (pupilSamples 64, step 5). So 0.74/n describes the cell-centred
-    // lattice and not the quantity.
+    // n = 17.9 (pupilSamples 64, step 5). So 0.74/n describes the counts
+    // `annularSource` accepts and not the quantity — and 0.901 describes the
+    // steps this one accepts, which the block below measures rather than reads
+    // as a property of the sampling.
     expect(sup(rows, 1)).toBeGreaterThan(0.74);
     expect(sup(rows, 1)).toBeLessThan(0.95);
 
@@ -738,5 +761,149 @@ describe("§ 6ab.19 — the commensurate annulus", () => {
     // so the ties are a real difference between the two grids and not the reason
     // one of them converges worse.
     expect(onEdge(latticeAnnularSource(RING_OUTER, RING_INNER, 64, 5))).toBe(0);
+  });
+
+  /** e·n for any source, against the exact carrying fraction. */
+  const err = (n: number, source: CondenserSource) =>
+    Math.abs(harmonicSupportWeight(idealPupil(), source, RING_ORDERS) - RING_AT_075) * n;
+
+  /** The family both constructors draw from: an origin-centred square lattice of
+   *  step `h` masked to the same ring, with the step free rather than tied to a
+   *  count or to the pupil's grid. Plain data — `harmonicSupportWeight` reads
+   *  only `points`, and this is a probe of the family and not a new source. */
+  function freeStepRing(h: number): CondenserSource {
+    const points: { sx: number; sy: number; weight: number }[] = [];
+    const extent = Math.ceil(RING_OUTER / h) + 1;
+    for (let j = -extent; j <= extent; j++) {
+      for (let i = -extent; i <= extent; i++) {
+        const sx = i * h;
+        const sy = j * h;
+        const r2 = sx * sx + sy * sy;
+        if (r2 <= RING_OUTER * RING_OUTER && r2 >= RING_INNER * RING_INNER) {
+          points.push({ sx, sy, weight: 0 });
+        }
+      }
+    }
+    const w = 1 / points.length;
+    return {
+      points: points.map((p) => ({ sx: p.sx, sy: p.sy, weight: w })),
+      coherenceParameter: RING_OUTER,
+      samples: 2 * extent + 1,
+    };
+  }
+
+  it("is NOT an offset difference — the count-based grid is origin-centred too", () => {
+    // The sentence this block corrects said the two rings "differ by an offset and
+    // nothing else". `gridCoordinate` returns outer·(2i+1−N)/N, whose numerator is
+    // even for odd N: that grid is a multiple of its own step and contains the
+    // origin, exactly like the lattice ring's. Only the EVEN counts are at cell
+    // centres — and § 6ab.17's record is at N = 17.
+    //
+    // So the offset is a variable the count ladder itself sweeps, and it is worth
+    // 1.6% there — not 22%. Its top ten counts split five odd, five even.
+    const rows: { n: number; en: number }[] = [];
+    for (let n = 7; n <= 121; n++) {
+      const source = annularSource(RING_OUTER, RING_INNER, n);
+      const h = (2 * RING_OUTER) / n;
+      for (const p of source.points) {
+        const steps = p.sx / h;
+        const off = Math.abs(steps - Math.round(steps));
+        if (n % 2 === 1) expect(off, `n = ${n}`).toBeLessThan(1e-12);
+        else expect(Math.abs(off - 0.5), `n = ${n}`).toBeLessThan(1e-12);
+      }
+      rows.push({ n, en: err(n, source) });
+    }
+    rows.sort((a, b) => b.en - a.en);
+    expect(rows.slice(0, 10).filter((r) => r.n % 2 === 1)).toHaveLength(5);
+    const supParity = (p: number) =>
+      rows.filter((r) => r.n % 2 === p).reduce((a, r) => Math.max(a, r.en), 0);
+    expect(supParity(1)).toBeCloseTo(0.7373, 4); // origin-centred, and the record
+    expect(supParity(0)).toBeCloseTo(0.7259, 4); // cell centres
+    expect(supParity(1) / supParity(0)).toBeLessThan(1.02);
+  });
+
+  it("the 22% is one cell of twenty, and smaller than one carrying point", () => {
+    // The ladder above reads 39 cells, but a step is `2k/pupilSamples` and several
+    // (P, k) pairs give the same step: it is 20 distinct lattices, each asked up to
+    // four times. The 0.901 is one of those 20.
+    const steps = new Map<number, number>();
+    for (const pupilSamples of [8, 16, 32, 64, 128, 256, 512]) {
+      for (const stepMultiple of [1, 2, 3, 4, 5, 6, 7, 8]) {
+        const h = (2 * stepMultiple) / pupilSamples;
+        const n = (2 * RING_OUTER) / h;
+        if (n < 8 || n > 420 || steps.has(h)) continue;
+        steps.set(h, err(n, latticeAnnularSource(RING_OUTER, RING_INNER, pupilSamples, stepMultiple)));
+      }
+    }
+    expect(steps.size).toBe(20);
+    const lattice = [...steps.values()].sort((a, b) => b - a);
+    const count: number[] = [];
+    for (let n = 7; n <= 121; n++) count.push(err(n, annularSource(RING_OUTER, RING_INNER, n)));
+    count.sort((a, b) => b - a);
+    const [latticeSup = 0, latticeNext = 0] = lattice;
+    const [countSup = 0] = count;
+    expect(latticeSup).toBeCloseTo(0.9008, 4);
+    expect(countSup).toBeCloseTo(0.7373, 4);
+
+    // Drop the single worst lattice cell and the comparison REVERSES: the lattice
+    // ring's runner-up is 0.7006 against the count ring's 0.7373, so "converges
+    // worse" is carried by one cell out of twenty and not by the sampling.
+    expect(latticeNext).toBeCloseTo(0.7006, 4);
+    expect(latticeNext).toBeLessThan(countSup);
+
+    // And the gap between the two records is smaller than the smallest change
+    // either reading can make. e is a ratio of two integer counts, so one source
+    // point entering the carrying set moves e·n by n/Nring: the record cells hold
+    // 2 points of 100 and 10 of 88.
+    const gap = latticeSup - countSup;
+    expect(gap).toBeCloseTo(0.1635, 4);
+    const latticeSource = latticeAnnularSource(RING_OUTER, RING_INNER, 64, 5);
+    const countSource = annularSource(RING_OUTER, RING_INNER, 17);
+    expect(latticeSource.points.length).toBe(100);
+    expect(countSource.points.length).toBe(88);
+    expect(Math.round(harmonicSupportWeight(idealPupil(), latticeSource, RING_ORDERS) * 100)).toBe(2);
+    expect(Math.round(harmonicSupportWeight(idealPupil(), countSource, RING_ORDERS) * 88)).toBe(10);
+    const quantum = { lattice: ((2 * RING_OUTER) / 0.15625) / 100, count: 17 / 88 };
+    expect(quantum.lattice).toBeCloseTo(0.1792, 4);
+    expect(quantum.count).toBeCloseTo(0.1932, 4);
+    expect(gap).toBeLessThan(quantum.lattice);
+    expect(gap).toBeLessThan(quantum.count);
+  });
+
+  it("neither constant is the family's — the step set free reaches 1.949", () => {
+    // Both constructors mask the same ring with the same origin-centred lattice
+    // and differ only in which steps they can reach. Ask the family instead, over
+    // the same range of n, and both constants are left behind — so their ratio is
+    // a fact about two step sets and not about either sampling.
+    const rows: { en: number; phase: number }[] = [];
+    const hLo = (2 * RING_OUTER) / 121;
+    const hHi = (2 * RING_OUTER) / 8;
+    for (let i = 0; i <= 1200; i++) {
+      const h = hLo * Math.pow(hHi / hLo, i / 1200);
+      const t = RING_OUTER / h;
+      rows.push({ en: err((2 * RING_OUTER) / h, freeStepRing(h)), phase: Math.abs(t - Math.round(t)) });
+    }
+    const sup = (rs: typeof rows) => rs.reduce((a, r) => Math.max(a, r.en), 0);
+    expect(sup(rows)).toBeCloseTo(1.9493, 4);
+    expect(sup(rows)).toBeGreaterThan(2 * 0.9008);
+    expect(sup(rows)).toBeGreaterThan(2.6 * 0.7373);
+
+    // The one structural constraint the count ladder does carry, and why it is not
+    // the explanation. `annularSource`'s step is 2·outer/N, so outer/h = N/2 and
+    // its outer boundary sits EXACTLY midway between two lattice lines at every
+    // one of the 115 counts — pinning that phase at offset 0 is algebraically the
+    // same as requiring an odd count.
+    for (let j = 3; j <= 8; j++) {
+      const h = RING_OUTER / (j + 0.5);
+      expect((2 * RING_OUTER) / h).toBeCloseTo(2 * j + 1, 12);
+    }
+    // But the supremum is not ordered by that phase: binned over the free steps it
+    // is largest a fifth of the way across the cell, not at either end. A fourth
+    // plausible mechanism, measured and refused like the three before it.
+    const bin = (lo: number, hi: number) => rows.filter((r) => r.phase >= lo && r.phase < hi);
+    expect(sup(bin(0, 0.05))).toBeCloseTo(1.2641, 4); // hard against a lattice line
+    expect(sup(bin(0.2, 0.25))).toBeCloseTo(1.9493, 4); // and the worst is neither
+    expect(sup(bin(0.45, 0.5))).toBeCloseTo(0.9347, 4); // the count ring's own phase
+    expect(sup(bin(0.2, 0.25))).toBeGreaterThan(sup(bin(0, 0.05)));
   });
 });

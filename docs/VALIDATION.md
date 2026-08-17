@@ -11946,7 +11946,12 @@ cheap options answer a different question.
 | A step that lands nothing in the ring **throws**, naming the step and the width | the limit `latticeDiskSource` has and this does not | ✅ |
 | § 6ab.17's **constant does not transplant** — 0.901/n here against 0.7373/n | 39 counts, n = 9…358 | ✅ |
 | …and its **envelope does** — tail÷head 0.19 at q = 1, 0.52 at q = 4/3, sup e·n^{4/3} = 2.36 | the same ladder | ✅ |
-| RECORDED AND REFUSED: 21 of 39 lattice cells put a point exactly on the set's edge — and the worst cells have none | 0 of 115 for the cell-centred ring | ✅ |
+| RECORDED AND REFUSED: 21 of 39 lattice cells put a point exactly on the set's edge — and the worst cells have none | 0 of 115 for the count-based ring | ✅ |
+| **It is NOT an offset difference** — `annularSource` is origin-centred at every ODD count, and the offset is worth 1.6% inside its own ladder | every point of all 115 counts; sup 0.7373 odd against 0.7259 even | ✅ |
+| **The 22% is one cell of 20** — drop it and the comparison reverses, 0.7006 against 0.7373 | the ladder's 39 rows being 20 distinct steps | ✅ |
+| …and the gap **0.1635 is smaller than one carrying point** — 2 of 100 there, 10 of 88 here | n/N at each record cell, 0.1792 and 0.1932 | ✅ |
+| **Neither constant is the family's** — the same lattice with the step FREE reaches 1.949 over the same n | 1 201 steps, 2.2× and 2.6× the two records | ✅ |
+| RECORDED AND REFUSED, a fourth: sup e·n is not ordered by the boundary's phase — 1.949 a fifth across the cell against 1.264 hard against a line | 3 phase bins of the free-step ladder | ✅ |
 
 #### The ring needed a step where the disc merely wanted one
 
@@ -11986,31 +11991,80 @@ axis by construction**, so a step too coarse to land inside the annulus produces
 no points at all — a failure, not a limit. It throws with the step it used and
 the width it could not resolve, which is what a caller can act on.
 
-#### A change of offset separates the constant from the envelope
+#### A change of step set separates the constant from the envelope
 
-The two rings differ by exactly one thing: `annularSource` samples cell centres,
-`latticeAnnularSource` samples the pupil's own lattice points. Running § 6ab.17's
-ladder on the second is therefore a controlled test of which half of that result
-was about the *set* and which about the *sampling*.
+Running § 6ab.17's ladder on the second ring is a controlled test of which half of
+that result was about the *set* and which about the *sampling* — the carrying
+region is fixed at ν = 0.75 throughout, because `RING_ORDERS` keeps `pupilSamples`
+at 32 while the source's own sweeps 8…512. Only the lattice moves.
 
-- **The constant is about the sampling.** sup e·n reaches **0.901** here against
-  0.7373 there — 22% worse — so 0.74/n describes a cell-centred lattice on this
-  ring and not the quantity it estimates.
+- **The constant is about the ladder.** sup e·n reaches **0.901** here against
+  0.7373 there — 22% worse — so 0.74/n describes the counts `annularSource`
+  accepts and not the quantity it estimates. **And 0.901 describes the steps this
+  one accepts**, which is the subsection below and was originally left open.
 - **The envelope is about the set.** tail÷head is 0.19 at q = 1 and 0.52 at
   q = 4/3, the same shape and the same direction, with sup e·n^{4/3} = 2.36
-  against 1.90. n^{-4/3} survives a change of lattice offset, which is what one
-  would want of a claim about a curved boundary.
+  against 1.90. n^{-4/3} survives a change of lattice, which is what one would
+  want of a claim about a curved boundary.
 
 **One plausible mechanism is recorded and refused.** A lattice commensurate with
 the pupil can place a direction exactly where the shifted pupil is tangent to it,
 making the in-or-out decision a floating-point tie — the rim hazard § 6ab.11 and
 § 6ab.12 both met. It happens, and often: **21 of 39** lattice configurations have
-at least one such point, where the cell-centred ring has none at any count from 7
+at least one such point, where the count-based ring has none at any count from 7
 to 40. It is nevertheless **not** why this grid converges worse — all six of the
 worst cells have no such point, including the one that sets the 0.901. Two
 sections of § 6ab have already had to withdraw a mechanism that fit the picture,
 so this one is measured before it is believed and reported as a difference rather
 than as a cause.
+
+#### The 22% was not an effect, and the sentence that framed it was wrong twice
+
+This section left the gap open as "why the offset costs 22% is unexplained". The
+question was malformed, and the premise under it was false.
+
+**It is not an offset.** `annularSource`'s coordinates are `outer·(2i+1−N)/N`,
+whose numerator is even for **odd** N — an integer multiple of its own step
+`2·outer/N`, so that grid contains the origin exactly as this one does. Only the
+even counts are at cell centres, and § 6ab.17's record is at **N = 17**, odd.
+Asked of every point of all 115 counts, the deviation is under 1e-12 at odd counts
+and exactly ½ a step at even ones. So the offset is a variable the count ladder
+itself sweeps, and inside that ladder it is worth **1.6%** — sup 0.7373 over the
+odd counts against 0.7259 over the even ones, with the top ten splitting five and
+five. It was never 22%'s worth of anything.
+
+**The 22% is one cell of twenty.** The ladder reads 39 cells, but a step is
+`2k/pupilSamples` and several (P, k) pairs give the same step: it is **20 distinct
+lattices**, each asked up to four times. Drop the single cell that sets the 0.901
+and the comparison **reverses** — the runner-up is 0.7006 against the count ring's
+0.7373. A direction that survives only its own extremum is not a direction.
+
+**And the gap is smaller than the statistic's own quantum.** e is a difference of
+two ratios of integer counts, so one source point entering the carrying set moves
+e·n by n/N. The record cells hold **2 carrying points of 100** and **10 of 88**, so
+one point is worth 0.1792 and 0.1932 — where the whole gap between the two records
+is **0.1635**. The two numbers differ by less than the smallest change either can
+make.
+
+**Neither constant is the family's.** Both constructors mask the same ring with
+the same origin-centred square lattice and differ only in which steps they can
+reach — `2·outer/N` against `2k/pupilSamples`. Asked with the step **free** over
+the same range of n, that family reaches sup e·n = **1.949** over 1 201 steps:
+2.2× this ring's constant and 2.6× the other's. So 0.7373 and 0.901 are two
+suprema over two differently shaped subsets of one family, neither of which
+contains its maximum, and the ordering between them is a fact about the subsets.
+Both readings stand as measured; the **comparison** is what does not.
+
+**A fourth plausible mechanism, measured and refused.** The one structural pin the
+count ladder does carry is real: its step is `2·outer/N`, so `outer/h = N/2` and
+its outer boundary sits exactly midway between two lattice lines at **every** one
+of the 115 counts, both parities — and pinning that phase at offset 0 is
+algebraically the same as requiring an odd count. That is the midpoint-optimal
+position, so it is the mechanism a reader would reach for. It does not order the
+supremum: binned over the free-step ladder, sup e·n is **1.949 a fifth of the way
+across the cell**, against 1.264 hard against a lattice line and 0.935 at the
+count ring's own phase. A quantity whose maximum is in the middle is not
+controlled by the ends.
 
 #### The app is wired to it, and the reason turned out not to be the obvious one
 
@@ -12073,10 +12127,14 @@ introduced.
 
 ### Not yet pinned
 
-- **§ 6ab.19's convergence gap is still unexplained.** A lattice-point ring
+- ~~**§ 6ab.19's convergence gap is still unexplained.** A lattice-point ring
   converges worse than a cell-centred one (0.901/n against 0.7373/n) while
-  keeping the n^{-4/3} envelope, and the obvious mechanism was measured and
-  refused above. Nothing in the app wiring bears on it.
+  keeping the n^{-4/3} envelope.~~ **Answered above, by finding the question
+  malformed**: it is not a lattice-point ring against a cell-centred one — both
+  grids are origin-centred where the records are set — the 22% is one cell of the
+  20 the ladder distinguishes, and it is smaller than one carrying point at either
+  record cell. Both constants are suprema over structurally different step sets of
+  one family whose own sup over the same n is 1.949. The envelope is untouched.
 
 ## Step 6ac — the two focal surfaces, and distortion
 
