@@ -11,6 +11,7 @@ import {
   DARKFIELD_INNER,
   DARKFIELD_OUTER,
   WHITE_OVER_MEAN,
+  type HarmonicSupport,
   type Illumination,
   type PhaseFrame,
   type PhaseRequest,
@@ -113,6 +114,37 @@ function SpreadLine({ spread }: { spread: PhaseFrame["secondHarmonicSpread"] }) 
 }
 
 /**
+ * Why there is no 2ν reading here — § 6ab.12's gate, said out loud.
+ *
+ * The number the render produced is printed *beside* the refusal rather than
+ * hidden, because the two failures look different and the difference is the
+ * lesson: where nothing carries 2ν the figure is f64 roundoff, and where the
+ * lattice is blind to a set the aperture has it is an exact zero. It is labelled
+ * as the arithmetic's leftover and not as a contrast, which is the whole change —
+ * before this it sat on the line above in four significant figures, and at φ = 3
+ * one of these cells reads 6.8e-7 and looks like a weak real signal.
+ */
+function SupportLine({
+  support,
+  measured,
+}: {
+  support: HarmonicSupport;
+  measured: number;
+}) {
+  return (
+    <span style={{ color: GUARD_COLOR.warn }}>
+      &nbsp;&nbsp;{support.reason}
+      {Number.isFinite(measured) && (
+        <>
+          {" "}
+          · the sum leaves {measured.toExponential(2)}, which is arithmetic and not contrast
+        </>
+      )}
+    </span>
+  );
+}
+
+/**
  * One canvas of the pair, with the two harmonics read off it.
  *
  * The layout puts contrast at ν and contrast at 2ν on adjacent lines on purpose:
@@ -121,6 +153,7 @@ function SpreadLine({ spread }: { spread: PhaseFrame["secondHarmonicSpread"] }) 
  */
 function Frame({
   frame,
+  support,
   title,
   note,
   size,
@@ -128,6 +161,9 @@ function Frame({
   nu,
 }: {
   frame: PhaseFrame;
+  /** Shared by both frames on purpose — support is geometry, so it is one answer
+   *  for the pair where `secondHarmonicSpread` is one per frame. */
+  support: HarmonicSupport;
   title: string;
   note: string;
   size: number;
@@ -170,10 +206,18 @@ function Frame({
         <br />
         contrast at 2ν{" "}
         <strong>
-          {Number.isNaN(frame.secondHarmonic) ? "off grid" : frame.secondHarmonic.toExponential(3)}
+          {!support.exists
+            ? "none"
+            : Number.isNaN(frame.secondHarmonic)
+              ? "off grid"
+              : frame.secondHarmonic.toExponential(3)}
         </strong>
         <br />
-        <SpreadLine spread={frame.secondHarmonicSpread} />
+        {support.exists ? (
+          <SpreadLine spread={frame.secondHarmonicSpread} />
+        ) : (
+          <SupportLine support={support} measured={frame.secondHarmonic} />
+        )}
         <br />
         mean {frame.meanIntensity.toExponential(4)}
         <br />
@@ -545,6 +589,7 @@ export function PhasePanel() {
           <>
             <Frame
               frame={readout.focused}
+              support={readout.secondHarmonicSupport}
               title="in focus"
               note="the linear term is gone"
               size={readout.size}
@@ -553,6 +598,7 @@ export function PhasePanel() {
             />
             <Frame
               frame={readout.defocused}
+              support={readout.secondHarmonicSupport}
               title={`defocused ${defocusWaves.toFixed(2)} waves`}
               note={defocusWaves === 0 ? "the same image — the slider is at zero" : "the null lifts"}
               size={readout.size}

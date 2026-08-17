@@ -5,6 +5,7 @@ import {
   renderPhaseScene,
   samplingSpread,
   samplingsThatMatter,
+  secondHarmonicSupport,
   type PhaseRequest,
 } from "../src/phase";
 
@@ -58,12 +59,16 @@ const at = (over: Partial<PhaseRequest>): PhaseRequest => ({ ...BASE, ...over })
 
 /** The in-focus spread, which is what most of these rungs are about. */
 function spreadAt(over: Partial<PhaseRequest>) {
-  const request = at(over);
-  const scene = renderPhaseScene(request);
-  if (!scene.ok) throw new Error(scene.error);
-  const spread = scene.readout.focused.secondHarmonicSpread;
-  if (!spread) throw new Error("no spread — 2ν off grid");
+  const spread = spreadOf(over);
+  if (!spread) throw new Error("no spread — 2ν is off the grid or has no support");
   return spread;
+}
+
+/** The same, where the *absence* of a spread is the thing being asserted. */
+function spreadOf(over: Partial<PhaseRequest>) {
+  const scene = renderPhaseScene(at(over));
+  if (!scene.ok) throw new Error(scene.error);
+  return scene.readout.focused.secondHarmonicSpread;
 }
 
 describe("§ 6ab.11 — the 2ν spread is exhaustive over the panel's own control", () => {
@@ -99,23 +104,56 @@ describe("§ 6ab.11 — the 2ν spread is exhaustive over the panel's own contro
   });
 });
 
-describe("§ 6ab.11 — the two structural facts that rule out a boundary in S", () => {
-  it("ν = 1 is 9× uncertain at S = 0.25, where any band in S would call it settled", () => {
-    // cycles 16 at pupilSamples 32 is ν = 1 exactly: the ±1 orders sit on the
-    // pupil rim and the lattice decides in-or-out for them one point at a time.
+describe("§ 6ab.12 — the two facts § 6ab.11 built its boundary argument on", () => {
+  /**
+   * Both are now known to have been readings of nothing, and the rungs are kept
+   * pointed at the same cells so the panel cannot quietly start printing them
+   * again. What survives is the conclusion, on the φ leg below.
+   */
+  it("ν = 1's 9.4× was a lattice arguing about a set of zero area", () => {
+    // cycles 16 at pupilSamples 32 is ν = 1 exactly. § 6ab.11 read the ±1 orders
+    // landing on the rim as a structural property OF the rim; § 6ab.12's closed
+    // form says the carrying set there is the single on-axis direction, so a real
+    // aperture carries nothing and the 8e-4 was the lattice's.
     expect(frequencyOf(16, 32)).toBe(1);
-    expect(spreadAt({ cycles: 16, coherenceParameter: 0.25 }).ratio).toBeGreaterThan(9);
-    // And it does not improve with S, which is what makes it structural rather
-    // than the high-S band § 6ab.10 measured at ν = 0.75.
-    expect(spreadAt({ cycles: 16, coherenceParameter: 0.9 }).ratio).toBeGreaterThan(9);
+    for (const S of [0.25, 0.9]) {
+      const support = secondHarmonicSupport(at({ cycles: 16, coherenceParameter: S }));
+      expect(support.apertureCarries).toBe(false);
+      // The other leg still has weight — which is exactly the disagreement.
+      expect(support.latticeWeight).toBeGreaterThan(0);
+      expect(support.exists).toBe(false);
+      expect(support.reason).toMatch(/incoherent cutoff/);
+      // So no spread is printed, where § 6ab.11 printed 9.4×.
+      expect(spreadOf({ cycles: 16, coherenceParameter: S })).toBeNull();
+    }
   });
 
-  it("ν = 1.94 is settled at S = 1.5, where any band in S would refuse it", () => {
+  it("and ν = 1.94's 1.03× was four readings of f64 roundoff", () => {
     expect(frequencyOf(31, 32)).toBeCloseTo(1.9375, 12);
-    // 1.03 measured, and the bound sits just outside it rather than at a round
-    // 1.2: § 6ab.11 prints "inside 1.05×" in prose, and a rung with room for the
-    // prose to go false without failing is the thing this panel is about.
-    expect(spreadAt({ cycles: 31, coherenceParameter: 1.5 }).ratio).toBeLessThan(1.05);
+    // 2ν = 3.875, nearly twice the incoherent cutoff. § 6ab.11 called this cell
+    // settled and used it as evidence that high S is not uniformly bad — the
+    // tightest agreement in the panel, on a quantity that does not exist.
+    const support = secondHarmonicSupport(at({ cycles: 31, coherenceParameter: 1.5 }));
+    expect(support.apertureCarries).toBe(false);
+    expect(support.latticeWeight).toBe(0);
+    expect(support.exists).toBe(false);
+    expect(spreadOf({ cycles: 31, coherenceParameter: 1.5 })).toBeNull();
+    // And the render still leaves something on the line — it is roundoff, and the
+    // panel now labels it as arithmetic rather than as a contrast.
+    const scene = renderPhaseScene(at({ cycles: 31, coherenceParameter: 1.5 }));
+    if (!scene.ok) throw new Error(scene.error);
+    expect(
+      Math.abs(scene.readout.focused.secondHarmonic) / scene.readout.focused.meanIntensity,
+    ).toBeLessThan(1e-13);
+  });
+
+  it("so the conclusion rests on the φ leg, which has real support", () => {
+    // 27.8% of the illumination at S = 1.5, ν = 0.75 can carry 2ν, so both numbers
+    // in the rung below are readings of something — and one S holding both 838×
+    // and 1.37× refutes a band in S at a single S, without either withdrawn cell.
+    const support = secondHarmonicSupport(at({ coherenceParameter: 1.5 }));
+    expect(support.exists).toBe(true);
+    expect(support.latticeWeight).toBeGreaterThan(0.2);
   });
 
   it("φ moves it as hard as S does, at one ν and one S", () => {
@@ -193,18 +231,68 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     // N = 7 against 128 at 21, and at ν = 0.75 the 16 do not resolve the beat at
     // all: 8.8e-17 against ~1.5e-3. A reader on that option is being shown "no
     // second harmonic in darkfield", which is false.
-    const spread = spreadAt({ ...DARK, cycles: 12 });
-    expect(spread.ratio).toBeGreaterThan(1e10);
+    //
+    // § 6ab.12 gates the 7-sample option, so the spread is now read from a
+    // sampling that HAS support and the 8.8e-17 is asserted through the gate's own
+    // leg rather than as a reading. The 2.3e13 is still what four readings would
+    // do, and it is what sent § 6ab.12 looking.
+    const spread = spreadAt({ ...DARK, cycles: 12, sourceSamples: 11 });
     const seven = spread.readings.find((r) => r.samples === 7)!.value;
     const eleven = spread.readings.find((r) => r.samples === 11)!.value;
     expect(seven).toBeLessThan(1e-15);
     expect(eleven).toBeGreaterThan(1e-4);
+    expect(spread.ratio).toBeGreaterThan(1e10);
   });
 
   it("and the other three agree, so it is the sampling and not the physics", () => {
-    const spread = spreadAt({ ...DARK, cycles: 12 });
+    const spread = spreadAt({ ...DARK, cycles: 12, sourceSamples: 11 });
     const rest = spread.readings.filter((r) => r.samples !== 7).map((r) => r.value);
     expect(Math.max(...rest) / Math.min(...rest)).toBeLessThan(1.5);
+  });
+
+  it("so a reader ON the 7-sample option is told, not shown 8.8e-17", () => {
+    // The defect § 6ab.11 measured and left shipped. The gate names which leg
+    // failed: the ring carries 2ν and this sampling of it does not.
+    const support = secondHarmonicSupport(at({ ...DARK, cycles: 12, sourceSamples: 7 }));
+    expect(support.apertureCarries).toBe(true);
+    expect(support.latticeWeight).toBe(0);
+    expect(support.exists).toBe(false);
+    expect(support.reason).toMatch(/16-point source/);
+    expect(support.reason).toMatch(/raise source samples/);
+    expect(spreadOf({ ...DARK, cycles: 12, sourceSamples: 7 })).toBeNull();
+  });
+
+  it("and above ν = 0.8 no sampling is offered one, because the RING has none", () => {
+    // (1 + 1.4)/3, three slider stops below brightfield's 1 — the part of this a
+    // reader has no way to guess, and the reason the gate names the cutoff.
+    for (const cycles of [13, 14, 15]) {
+      for (const sourceSamples of [7, 11, 15, 21]) {
+        const support = secondHarmonicSupport(at({ ...DARK, cycles, sourceSamples }));
+        expect(support.apertureCarries).toBe(false);
+        expect(support.latticeWeight).toBe(0);
+        expect(support.reason).toMatch(/0\.8000/);
+      }
+    }
+    // And at ν = 0.75 it is the other side of that same cutoff.
+    expect(secondHarmonicSupport(at({ ...DARK, cycles: 12 })).apertureCarries).toBe(true);
+  });
+
+  it("gates the φ = 3 cell that reads 6.8e-7 and looks like a weak signal", () => {
+    // The one place the roundoff floor breaks: aliased orders re-entering the
+    // pupil (§ 6ab.12). The gate does not know that and does not need to — it is
+    // zero-support either way, and suppressing the number is why the reader is not
+    // shown six significant figures of the grating's wrap-around.
+    const request = at({
+      ...DARK,
+      cycles: 13,
+      sourceSamples: 21,
+      amplitudeRadians: 3,
+    });
+    expect(secondHarmonicSupport(request).exists).toBe(false);
+    const scene = renderPhaseScene(request);
+    if (!scene.ok) throw new Error(scene.error);
+    expect(scene.readout.focused.secondHarmonic).toBeGreaterThan(1e-9);
+    expect(scene.readout.focused.secondHarmonicSpread).toBeNull();
   });
 
   it("reports agreement, not an infinite disagreement, on a clear field", () => {

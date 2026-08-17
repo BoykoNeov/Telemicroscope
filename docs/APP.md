@@ -655,8 +655,9 @@ is two quantities.
 Three consequences on the page. **Darkfield at 7 source samples is a defect this
 surfaced**: the annulus holds 16 lattice points there and reads 8.8e-17 where
 11/15/21 agree on ~1.5e-3, so that option shows "no second harmonic in
-darkfield", which is false — the probe now prints the 2.3e13 spread rather than
-the panel gating an option on a threshold nothing measures. **The timing line
+darkfield", which is false — ~~the probe now prints the 2.3e13 spread rather than
+the panel gating an option on a threshold nothing measures~~ **closed at
+§ 6ab.12, below**. **The timing line
 stopped saying "for the pair"** and splits the probe's share out. And the cost is
 **zero in the default state**, because at S = 0 every sampling is the same
 one-point source. Under `vite-node`: 5 ms at the default, 391 ms once S = 1 in
@@ -666,6 +667,47 @@ samples 32 / grid 128 / N 11), the same ~2.6× factor the rest of this section
 carries: the pair alone is unchanged at S = 0, and S = 0.74 with a distinct
 defocused frame runs **1080 ms, of which 874 is the six probe renders** — which
 is what the panel now prints instead of "N ms for the pair".
+
+**The 2ν readout is now GATED, because a range cannot say there is no number
+(§ 6ab.12).** The probe above reports what the source-samples control does to the
+reading. It cannot report that the reading is of nothing — four readings of
+nothing agree — and the panel was printing four significant figures in three
+regimes where the quantity does not exist. One geometric fact settles all three:
+the 2ν term is a beat between grating orders two apart, which sit 2ν apart in the
+pupil, so it exists only if some illuminated direction puts both of them inside
+it. No wavefront and no φ in that, which is why one computation covers both frames
+where the *spread* needed a probe each.
+
+What it changes on the page, and the sentences it retires:
+
+- **Darkfield at 7 samples is now told, not shown.** The 16 points are not too
+  few — at ν = 0.75 the ring's carrying band is s_x ∈ [1.25, 1.4] and this
+  lattice's outermost x is 1.2, so it holds *none* of the set. The line reads
+  "no direction in this 16-point source can carry 2ν, though the aperture it
+  samples does — raise source samples". No threshold was needed after all, which
+  is why the § 6ab.11 sentence above is struck rather than qualified.
+- **Darkfield stops having a second harmonic at ν = 0.8**, three slider stops
+  below brightfield's 1, and nothing had noticed. A ring starting outside the
+  pupil reaches an order pair only by borrowing a whole number of orders, so its
+  cutoff is (1 + outer)/3 rather than 1. It still *images* above that; it stops
+  having a 2ν, and the gate prints the number so a reader is not left inferring a
+  defect.
+- **The 1.05× at ν = 1.94 and the 9.4× at ν = 1 are both withdrawn as evidence.**
+  2ν at ν = 1.94 is 3.875, nearly twice the incoherent cutoff, so all four
+  samplings were reading f64 roundoff — the tightest agreement in the panel was
+  the strongest sign of nothing at all. At ν = 1 the carrying set is the single
+  on-axis direction: zero *area*, so the honest reading is 0 and the 9.4× was a
+  lattice disagreeing with itself. The conclusion above survives on the φ leg,
+  which has 27.8% of its illumination carrying 2ν and is a reading of something.
+- **The suppressed number is printed beside the refusal, labelled as
+  arithmetic.** Not hidden, because the two failures look different and at φ = 3
+  one of them reads **6.8e-7** — aliasing, the grating's own orders wrapping past
+  |m| = 5 on a 128-bin grid and re-entering the pupil, which is small enough to
+  pass for a weak real signal and is why annotating the old line would not have
+  been enough.
+
+It also *saves* renders rather than costing any: where support is zero the three
+probe frames are not rendered, so the gated cells now cost the pair alone.
 
 **Note kept:** this one is *stronger* on ideal pupils than traced ones, because
 the null is exact there. Do not "improve" it by tracing.

@@ -1,8 +1,10 @@
 import {
   annularSource,
+  apertureCarriesHarmonic,
   coherentSource,
   defocusedPupil,
   diskSource,
+  harmonicSupportWeight,
   idealPupil,
   imageHarmonic,
   phaseGratingObject,
@@ -228,6 +230,15 @@ export interface PhaseReadout {
    * that it is dark.
    */
   readonly displayWhite: number;
+  /**
+   * Whether either frame's 2ν reading is a reading of anything.
+   *
+   * On the readout and not on the frame, which is the whole difference between
+   * this and `secondHarmonicSpread`: support is geometry, so one answer covers
+   * both frames, where the spread needed a probe per frame because the beat is
+   * not defocus-invariant off axis.
+   */
+  readonly secondHarmonicSupport: HarmonicSupport;
   readonly focused: PhaseFrame;
   readonly defocused: PhaseFrame;
   /** The pair, and the convergence probes below — everything this call did. */
@@ -328,6 +339,97 @@ export function samplingsThatMatter(
   return request.illumination === "brightfield" && request.coherenceParameter === 0
     ? [request.sourceSamples]
     : PANEL_SOURCE_SAMPLES;
+}
+
+/**
+ * Whether the 2ν reading is a reading of anything — the gate § 6ab.12 added.
+ *
+ * `SamplingSpread` below reports what the source-samples control does to the
+ * number. It cannot report that there is no number: four readings of nothing
+ * agree, and at ν = 1.9375 they agreed to **1.031×**, the tightest agreement
+ * anywhere in this panel. So the prior question is asked separately, and it is
+ * geometry rather than a probe — the 2ν term is a beat between grating orders
+ * two apart, which sit 2ν apart in the pupil, so it exists only if some
+ * illuminated direction puts both of them inside it.
+ *
+ * Both legs are carried rather than collapsed to a verdict, because the two
+ * failures are different stories and the numbers are the interesting part: at
+ * ν = 1 the lattice has ~1% of its weight on a set the aperture has no *area* of
+ * and reads 8e-4, where at ν = 1.9375 both legs are zero and the reading is f64
+ * roundoff. `besselCheck` is the precedent — a measured number, not a ruling.
+ */
+export interface HarmonicSupport {
+  /**
+   * Does the *aperture* carry 2ν, on a set of directions of positive area?
+   * `null` at S = 0, where the source is one direction and not a discretization
+   * of an aperture — there `latticeWeight` is the whole truth.
+   */
+  readonly apertureCarries: boolean | null;
+  /** Fraction of the *sampled* source's weight whose orders can carry 2ν. */
+  readonly latticeWeight: number;
+  /** Both legs agree there is something to read. The gate. */
+  readonly exists: boolean;
+  /** Why not, when it does not. Empty when it does. */
+  readonly reason: string;
+}
+
+/**
+ * The support of this request's 2ν reading — one computation for both frames.
+ *
+ * Defocus-free on purpose, and that is the contrast with `SamplingSpread`, which
+ * needed a probe per frame: `idealPupil` and `defocusedPupil` are the same disc,
+ * so *existence* is the same question in and out of focus even though the
+ * *magnitude* is not (§ 6ab.11 measured the beat picking up 4·w₂₀·(s·ν) off
+ * axis). Geometry does not care about the wavefront; the reading does.
+ */
+export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
+  const nu = frequencyOf(request.cycles, request.pupilSamples);
+  const source = sourceFor(request);
+  const orders = { cycles: request.cycles, pupilSamples: request.pupilSamples, harmonic: 2 };
+  const latticeWeight = harmonicSupportWeight(idealPupil(), source, orders);
+  // S = 0 in brightfield is `coherentSource`'s single direction, which is not a
+  // sampling of anything — `apertureCarriesHarmonic` refuses it rather than
+  // answering, so the aperture leg is skipped instead of being given a radius it
+  // does not have.
+  const extended = request.illumination === "darkfield" || request.coherenceParameter > 0;
+  const apertureCarries = extended
+    ? apertureCarriesHarmonic(
+        request.illumination === "darkfield" ? DARKFIELD_INNER : 0,
+        request.illumination === "darkfield" ? DARKFIELD_OUTER : request.coherenceParameter,
+        nu,
+      )
+    : null;
+
+  if (apertureCarries === false) {
+    // The condenser itself has no 2ν to give. Brightfield stops at ν = 1 because
+    // 2ν must clear the incoherent cutoff 2; the darkfield ring stops at
+    // (1 + outer)/3 = 0.8, three slider stops earlier, which is the part a reader
+    // has no way to guess.
+    const cutoff =
+      request.illumination === "darkfield" ? (1 + DARKFIELD_OUTER) / 3 : 1;
+    return {
+      apertureCarries,
+      latticeWeight,
+      exists: false,
+      reason:
+        `no 2ν at ν = ${nu.toFixed(4)}: two orders 2ν apart cannot both be inside the pupil from ` +
+        `anywhere in this condenser, which carries 2ν only below ν = ${cutoff.toFixed(4)}` +
+        (request.illumination === "darkfield"
+          ? ` — (1 + ${DARKFIELD_OUTER})/3 for this annulus, below brightfield's 1`
+          : " — where 2ν reaches the incoherent cutoff 2"),
+    };
+  }
+  if (latticeWeight === 0) {
+    return {
+      apertureCarries,
+      latticeWeight,
+      exists: false,
+      reason:
+        `no direction in this ${source.points.length}-point source can carry 2ν, though the ` +
+        `aperture it samples does — raise source samples`,
+    };
+  }
+  return { apertureCarries, latticeWeight, exists: true, reason: "" };
 }
 
 /**
@@ -433,6 +535,12 @@ export function samplingSpread(
   shipped: number,
 ): SamplingSpread | null {
   if (!Number.isFinite(shipped)) return null;
+  // No spread over a quantity that does not exist — § 6ab.12. This is the one
+  // place the gate is applied rather than at the call sites, because the probe is
+  // the misleading part: at ν = 1.9375 the four readings agree to 1.031× and that
+  // is the tightest number this panel ever prints. It also saves the three
+  // renders, which were being spent comparing roundoff.
+  if (!secondHarmonicSupport(request).exists) return null;
 
   const readings: { samples: number; value: number }[] = [];
   const skipped: number[] = [];
@@ -567,6 +675,7 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
         ? focused
         : formFrame(request, source, request.defocusWaves);
 
+    const support = secondHarmonicSupport(request);
     const checkStarted = performance.now();
     const focusedSpread = samplingSpread(request, 0, focused.frame.secondHarmonic);
     // Reused rather than re-probed when the pair is one image, for the same
@@ -590,6 +699,7 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
         nu: frequencyOf(request.cycles, request.pupilSamples),
         sourcePoints: source.points.length,
         displayWhite,
+        secondHarmonicSupport: support,
         focused: {
           ...focused.frame,
           secondHarmonicSpread: focusedSpread,
