@@ -509,14 +509,26 @@ no honest µm scale, so the panel quotes ν and grid units and never a span.
 
 **The scoped headline was wrong in a way worth keeping.** This doc said "no
 contrast at any S and any frequency", and the canvas is *not* blank.
-`phaseGratingObject` is exact — every Bessel order, not the weak-object
-truncation — so squaring t = Σ iⁿJₙ(φ)e^{inu} leaves the ν bin (the 0×±1 beat)
+`phaseGratingObject` carries every Bessel order the grid can hold, not the
+weak-object truncation — so squaring t = Σ iⁿJₙ(φ)e^{inu} leaves the ν bin (the 0×±1 beat)
 cancelled and the **2ν bin (the +1×−1 beat) alive at order φ²**. What is null is
 the **linear** response, which is precisely what `weakPhaseTransfer` computes and
 what the plot draws. So the picture carries structure at twice the frequency of
 the object that made it while the transfer at the object's own frequency sits on
 the axis — a better panel than a blank rectangle, and the correction is the
 finding rather than a caveat on it.
+
+**"Every Bessel order" was itself an overclaim, and § 6ab.13 turned it into a
+number on the page.** A grating's orders run to infinity and a grid holds
+finitely many; the surplus used to *fold* onto bins belonging to other
+directions, where the imaging sum admitted them as light the object had
+diffracted into those directions. It had not. So the object is now built from
+its spectrum, what does not fit is left out, and the panel prints two things
+beside the timings: the highest order on the grid, and **the light not on it**.
+That runs 1.6e-14 at φ = 0.4 and 12 cycles and **23%** at the top of both
+sliders, where 31 cycles on 128 bins leaves room for |m| ≤ 2. There is no
+threshold dividing those, which is why it is printed rather than refused — and
+at that corner it is "absorbs nothing" that has stopped being true, not the null.
 
 **And the null is much stronger than "weak".** Measured worst case over
 φ ∈ [0.1, 3.0], ν ∈ [0.25, 1.0], S ∈ [0, 1] *and* darkfield: **2.7e-15**. The φ

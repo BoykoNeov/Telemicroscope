@@ -76,6 +76,61 @@ export function besselJ1(x: number): number {
 }
 
 /**
+ * Jₘ(x) for integer order m — the same defining series, one order up.
+ *
+ *     Jₘ(x) = Σ_{k≥0} (−1)^k (x/2)^{2k+m} / (k! (k+m)!)
+ *
+ * Added for the phase grating's spectrum (`illumination/abbe`), where the object
+ * is a *sum over orders* rather than one closed form: Jacobi–Anger writes
+ * exp(i·φ·cos θ) as Σₘ iᵐ Jₘ(φ) e^{imθ}, so building that object needs every
+ * order the grid can hold, not just the first.
+ *
+ * Negative orders come from J₋ₘ = (−1)ᵐ Jₘ rather than from a second series.
+ *
+ * The seed (x/2)^m/m! is formed by the same running product as the sum, so no
+ * factorial is ever built: at m = 60 the factorial would overflow f64 while the
+ * seed itself is a perfectly ordinary 1e-70. Orders past where the seed
+ * underflows return 0, which is the right answer to fifteen digits — Jₘ(x) for
+ * m ≫ x is smaller than anything the sums it feeds can notice.
+ *
+ * Accuracy is the module note's: the series is alternating, so it gives up about
+ * ε·Iₘ(x), and `BESSEL_SERIES_LIMIT` is where that stops being worth returning.
+ */
+export function besselJ(order: number, x: number): number {
+  if (!Number.isInteger(order)) {
+    throw new Error(`besselJ needs an integer order, got ${order}`);
+  }
+  if (!Number.isFinite(x)) {
+    throw new Error(`besselJ needs a finite argument, got ${x}`);
+  }
+  const ax = Math.abs(x);
+  if (ax > BESSEL_SERIES_LIMIT) {
+    throw new Error(
+      `besselJ is evaluated by its power series and loses accuracy past ` +
+        `|x| = ${BESSEL_SERIES_LIMIT}; got ${x}`,
+    );
+  }
+  if (order < 0) {
+    return order % 2 === 0 ? besselJ(-order, x) : -besselJ(-order, x);
+  }
+  const half = x / 2;
+  // t₀ = (x/2)^m / m!, accumulated one factor at a time.
+  let term = 1;
+  for (let j = 1; j <= order; j++) term *= half / j;
+  if (term === 0) return 0;
+  let sum = term;
+  const halfSq = -half * half;
+  for (let k = 1; k < 400; k++) {
+    term *= halfSq / (k * (k + order));
+    sum += term;
+    // Past the hump only — the terms grow until k ≈ x/2, and an early-out
+    // before then would stop on the way up. See `besselJ1`.
+    if (k > ax && Math.abs(term) < 1e-20) break;
+  }
+  return sum;
+}
+
+/**
  * jinc(v) = 2·J₁(v)/v, with its removable singularity filled in.
  *
  * The shape that keeps appearing wherever a *circle* is transformed: the Airy

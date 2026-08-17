@@ -8,9 +8,11 @@ import {
   idealPupil,
   imageHarmonic,
   phaseGratingObject,
+  phaseGratingTruncation,
   weakObjectTransfer,
   weakPhaseTransfer,
   type CondenserSource,
+  type SpectrumTruncation,
 } from "@telemicroscope/core/illumination";
 import { renderBrightfield, type PatchPupil } from "@telemicroscope/core/imaging";
 import { besselJ1 } from "@telemicroscope/core/math";
@@ -41,10 +43,11 @@ import type { PupilFunction } from "@telemicroscope/core/wave";
  *
  * ## What is actually on the screen, and it is not a blank canvas
  *
- * `phaseGratingObject` is **exact** — every Bessel order, not the weak-object
- * truncation — so the image is not empty. Writing t = Σ iⁿJₙ(φ)e^{inu} and
- * squaring, the ν bin (the 0×±1 beat) cancels and the **2ν bin (the +1×−1 beat)
- * does not**. So the honest statement is not "a phase object is invisible" but:
+ * `phaseGratingObject` carries **every Bessel order the grid can hold**, not the
+ * weak-object truncation — so the image is not empty. Writing t = Σ iⁿJₙ(φ)e^{inu}
+ * and squaring, the ν bin (the 0×±1 beat) cancels and the **2ν bin (the +1×−1
+ * beat) does not**. So the honest statement is not "a phase object is invisible"
+ * but:
  *
  *   - the **linear** term at ν is identically zero — measured at **2.7e-15**,
  *     worst case over φ ∈ [0.1, 3.0], ν ∈ [0.25, 1.0], S ∈ [0, 1] and darkfield;
@@ -71,6 +74,22 @@ import type { PupilFunction } from "@telemicroscope/core/wave";
  * undiffracted beam misses the objective entirely and a clear field goes to a
  * hard 0 — while the ν null survives it untouched. Only breaking the pupil's
  * realness breaks the null, and defocus is the cheapest way to do that.
+ *
+ * ## What the grid cannot hold is missing, not moved (§ 6ab.13)
+ *
+ * "Every order" is a claim a finite grid cannot honour. A phase grating's orders
+ * run to infinity, and at 13 cycles on 128 bins the grid has room for |m| ≤ 4;
+ * the rest used to fold onto bins belonging to other directions, where the
+ * imaging sum admitted them as light the object had diffracted. It had not. The
+ * 2ν readout was where that showed — a darkfield cell with no possible second
+ * harmonic reading 1.2e-7 — but the folded orders were in the picture too, under
+ * whatever real signal was there.
+ *
+ * So the object is now band-limited: what does not fit is left out. `truncation`
+ * on the readout says how much, and refusing on it would need a threshold this
+ * panel has no basis for — φ = 0.4 at 12 cycles loses 1.6e-14 of the light, and
+ * 31 cycles at φ = 3 loses 23%, with everything in between. A printed number
+ * covers both ends; a cutoff would have to invent where they divide.
  */
 
 export type Illumination = "brightfield" | "darkfield";
@@ -239,6 +258,21 @@ export interface PhaseReadout {
    * not defocus-invariant off axis.
    */
   readonly secondHarmonicSupport: HarmonicSupport;
+  /**
+   * How much of the grating did not fit on the grid — § 6ab.13.
+   *
+   * The object is band-limited to the orders this grid can hold in their own
+   * places, because the alternative is not "keep them" but "put them somewhere
+   * else": a folded order re-enters the pupil from a direction the object never
+   * diffracted into, and forms image detail nothing distinguishes from the real
+   * kind. So the cost is a truncation, and it is printed rather than assumed
+   * negligible — over almost all of the two sliders it is 1e-14 of the light,
+   * and at 31 cycles with φ = 3 it is 23%.
+   *
+   * On the readout rather than the frame for the same reason as support: it
+   * depends only on (size, cycles, φ), so one answer covers both frames.
+   */
+  readonly truncation: SpectrumTruncation;
   readonly focused: PhaseFrame;
   readonly defocused: PhaseFrame;
   /** The pair, and the convergence probes below — everything this call did. */
@@ -705,6 +739,11 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
         sourcePoints: source.points.length,
         displayWhite,
         secondHarmonicSupport: support,
+        truncation: phaseGratingTruncation({
+          size: request.size,
+          cycles: request.cycles,
+          amplitudeRadians: request.amplitudeRadians,
+        }),
         focused: {
           ...focused.frame,
           secondHarmonicSpread: focusedSpread,

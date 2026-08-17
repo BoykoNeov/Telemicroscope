@@ -1,4 +1,5 @@
-import { fft2d, fftShift2d, isPowerOfTwo, shiftedRowBand } from "../math/fft";
+import { besselJ } from "../math/bessel";
+import { fft1d, fft2d, fftShift2d, isPowerOfTwo, shiftedRowBand } from "../math/fft";
 import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
 import type { CondenserSource } from "./source";
 
@@ -108,6 +109,13 @@ export interface ObjectField {
   readonly size: number;
   readonly re: Float64Array;
   readonly im: Float64Array;
+  /**
+   * Present when the object's own spectrum did not fit the grid and had to be
+   * cut to it (`phaseGratingObject`). Absent means nothing was lost — a
+   * constructor whose spectrum is finite, like `cosineGratingObject`'s three
+   * lines, has nothing to report.
+   */
+  readonly truncation?: SpectrumTruncation;
 }
 
 /** A perfectly clear field of view — transmittance 1 everywhere. */
@@ -134,9 +142,7 @@ export function cosineGratingObject(options: {
 }): ObjectField {
   const { size, cycles, modulation } = options;
   requireGrid(size);
-  if (!Number.isInteger(cycles) || cycles < 0) {
-    throw new Error(`grating cycles must be a non-negative integer, got ${cycles}`);
-  }
+  requireCycles(cycles);
   if (!(modulation >= 0) || modulation > 1) {
     throw new Error(`grating modulation must lie in [0, 1], got ${modulation}`);
   }
@@ -149,11 +155,85 @@ export function cosineGratingObject(options: {
 }
 
 /**
- * A sinusoidal **phase** grating, t = exp(i·φ·cos(2π·k·x/size)).
+ * What a finite grid costs an object whose spectrum is infinite.
  *
- * |t| = 1 everywhere: it absorbs nothing, and a photographic plate at the
- * object plane would see nothing. Exact — all Bessel orders are present, not
- * the weak-object truncation `transfer.ts` uses.
+ * A phase grating's orders do not stop. `maxOrder` is how many of them the grid
+ * can hold in their own places; the two numbers say how much of the object was
+ * left out, so a caller can print the error instead of discovering it.
+ */
+export interface SpectrumTruncation {
+  /**
+   * Highest diffraction order |m| whose bin m·cycles still lies inside the
+   * grid. `Infinity` at zero cycles, where every order lands on DC and the sum
+   * is exact.
+   */
+  readonly maxOrder: number;
+  /**
+   * Bound on ||t| − 1|, the amplitude ripple the truncation leaves behind:
+   * 2·Σ_{|m|>maxOrder} |Jₘ(φ)|, since each dropped order can add at most its
+   * own modulus. A band-limited phase object is not *quite* a pure phase
+   * object, and this is by how much.
+   */
+  readonly modulusBound: number;
+  /**
+   * Fraction of the transmitted light in the orders that were dropped,
+   * 2·Σ_{|m|>maxOrder} Jₘ(φ)² — exact, not a bound, because Σₘ Jₘ² = 1.
+   */
+  readonly droppedEnergy: number;
+}
+
+/**
+ * A sinusoidal **phase** grating, t = exp(i·φ·cos(2π·k·x/size)) — band-limited
+ * to the orders this grid can actually carry.
+ *
+ * ## Why this is not the pointwise formula
+ *
+ * Jacobi–Anger: exp(i·φ·cos θ) = Σₘ iᵐ Jₘ(φ) e^{imθ}, a sum over **every**
+ * integer order, with the m-th sitting at bin m·cycles. Evaluating the
+ * exponential sample by sample writes all of them onto a grid that has room for
+ * |m·cycles| < size/2, and the rest do not vanish — they **fold**, landing on
+ * bins that are not m·cycles. `abbeImage` then reads those bins as the object's
+ * angular spectrum, because that is what a DFT bin means to it, and admits the
+ * folded orders through the pupil as though they were diffracted into those
+ * directions. They are not; nothing about the object sends light there.
+ *
+ * The damage is not confined to one readout. A folded pair 2·cycles apart in
+ * *bin* space beats into the 2ν bin whatever the pupil looks like, so at φ = 3,
+ * 13 cycles and 128 bins a darkfield cell that can carry no second harmonic at
+ * all still reads 1.2e-7 — small enough to pass for signal (§ 6ab.12). But the
+ * same folded orders are in the image everywhere else too, and there they are
+ * hidden under a real one.
+ *
+ * So this constructor synthesizes the object **from its spectrum**: the orders
+ * that fit are placed in their bins, the rest are left out, and the field is the
+ * inverse transform. Then the DFT bins of the object *are* its angular
+ * spectrum — the thing `abbeImage` already assumes — and no order is ever in a
+ * place the object did not put it.
+ *
+ * ## The price, and it is reported rather than hidden
+ *
+ * A truncated series is no longer exactly unit modulus: dropping orders leaves
+ * an amplitude ripple of up to 2·Σ|Jₘ| over the dropped tail, so the object
+ * absorbs a little. This is physics, not an artefact — a strictly band-limited
+ * object *cannot* be pure phase — and it is returned in `truncation` so a panel
+ * can quote it. It falls off superexponentially past m ≈ φ, so over almost all
+ * of the panel it is invisible: at φ = 0.4 on a 128-grid at 12 cycles the ripple
+ * is 1.8e-7 and the light lost is 1.6e-14.
+ *
+ * At the corner of both sliders it is not small. 31 cycles on 128 bins leaves
+ * room for |m| ≤ 2, and dropping J₃(3) = 0.31 onward loses **23% of the light**.
+ * That is the honest reading of a grating this fine at a phase this deep on a
+ * grid this coarse, and the pointwise construction does not avoid it — it keeps
+ * the same 23% and puts it in directions the object diffracts nothing into,
+ * where it becomes image detail indistinguishable from the real thing. Missing
+ * light is a number a panel can print; misplaced light is not.
+ *
+ * Refusing instead would need a threshold on "how much ripple is too much", and
+ * there is no such number here. A bound the caller can read is the honest
+ * version of the same warning.
+ *
+ * `pointwisePhaseGratingObject` keeps the old sample-by-sample construction,
+ * for the rung that measures what this fixes.
  */
 export function phaseGratingObject(options: {
   size: number;
@@ -163,9 +243,111 @@ export function phaseGratingObject(options: {
 }): ObjectField {
   const { size, cycles, amplitudeRadians } = options;
   requireGrid(size);
-  if (!Number.isInteger(cycles) || cycles < 0) {
-    throw new Error(`grating cycles must be a non-negative integer, got ${cycles}`);
+  requireCycles(cycles);
+  const truncation = phaseGratingTruncation(options);
+
+  // Zero cycles is not a grating: every order lands on DC and Σₘ iᵐJₘ(φ) is
+  // exp(iφ) exactly. Synthesizing it as a spectrum would put the whole series
+  // in one bin and lose digits summing it.
+  if (cycles === 0) {
+    const re = new Float64Array(size * size).fill(Math.cos(amplitudeRadians));
+    const im = new Float64Array(size * size).fill(Math.sin(amplitudeRadians));
+    return { size, re, im, truncation };
   }
+
+  // One row's spectrum: c_m = iᵐ Jₘ(φ) at bin (m·cycles mod size), and
+  // c₋ₘ = c_m because J₋ₘ = (−1)ᵐJₘ cancels i^{−m} against iᵐ. Scaled by `size`
+  // because `fft1d`'s inverse carries the 1/N.
+  const rowRe = new Float64Array(size);
+  const rowIm = new Float64Array(size);
+  const put = (bin: number, cRe: number, cIm: number): void => {
+    const k = ((bin % size) + size) % size;
+    rowRe[k] = size * cRe;
+    rowIm[k] = size * cIm;
+  };
+  put(0, besselJ(0, amplitudeRadians), 0);
+  for (let m = 1; m <= truncation.maxOrder; m++) {
+    const j = besselJ(m, amplitudeRadians);
+    // iᵐ cycles 1, i, −1, −i.
+    const cRe = m % 2 === 0 ? (m % 4 === 0 ? j : -j) : 0;
+    const cIm = m % 2 === 0 ? 0 : m % 4 === 1 ? j : -j;
+    put(m * cycles, cRe, cIm);
+    put(-m * cycles, cRe, cIm);
+  }
+  fft1d(rowRe, rowIm, true);
+
+  // The grating runs along x, so every row of the object is that same row.
+  const re = new Float64Array(size * size);
+  const im = new Float64Array(size * size);
+  for (let x = 0; x < size; x++) {
+    const c = rowRe[x]!;
+    const s = rowIm[x]!;
+    for (let y = 0; y < size; y++) {
+      re[y * size + x] = c;
+      im[y * size + x] = s;
+    }
+  }
+  return { size, re, im, truncation };
+}
+
+/**
+ * How much of `phaseGratingObject`'s spectrum this grid cannot hold.
+ *
+ * Pure arithmetic on (size, cycles, φ) — no field is built, so a panel can quote
+ * the bound beside a slider without paying for a render.
+ */
+export function phaseGratingTruncation(options: {
+  size: number;
+  cycles: number;
+  amplitudeRadians: number;
+}): SpectrumTruncation {
+  const { size, cycles, amplitudeRadians } = options;
+  requireGrid(size);
+  requireCycles(cycles);
+  if (cycles === 0) {
+    return { maxOrder: Number.POSITIVE_INFINITY, modulusBound: 0, droppedEnergy: 0 };
+  }
+  // size/2 is the Nyquist bin, which is its own alias; the last bin that is
+  // unambiguously a positive frequency is size/2 − 1.
+  const maxOrder = Math.floor((size / 2 - 1) / cycles);
+
+  // The dropped tail. Jₘ(φ) decays superexponentially once m > φ, so the sum
+  // converges after a handful of terms — but only past the hump, which is why
+  // the early-out waits for m to clear |φ|.
+  const ax = Math.abs(amplitudeRadians);
+  let modulusBound = 0;
+  let droppedEnergy = 0;
+  for (let m = maxOrder + 1; m <= maxOrder + 1 + 400; m++) {
+    const j = Math.abs(besselJ(m, amplitudeRadians));
+    modulusBound += 2 * j;
+    droppedEnergy += 2 * j * j;
+    if (m > ax && j < 1e-20) break;
+  }
+  return { maxOrder, modulusBound, droppedEnergy };
+}
+
+/**
+ * The pointwise construction — the one that aliases, kept as the control.
+ *
+ * Sampling exp(i·φ·cos θ) at the grid points is the obvious way to build this
+ * object and it is what the engine did until § 6ab.12. Nothing is wrong with the
+ * *samples*: they are the continuous object's values to f64. What is wrong is
+ * reading their DFT as an angular spectrum, which is exactly what `abbeImage`
+ * does, because the orders past |m| = (size/2 − 1)/cycles have folded into bins
+ * that belong to other directions.
+ *
+ * It stays exported so the rung can render both objects through the same imaging
+ * path and show the difference, rather than asserting that a fix worked from the
+ * inside. Not for forming images anyone believes.
+ */
+export function pointwisePhaseGratingObject(options: {
+  size: number;
+  cycles: number;
+  amplitudeRadians: number;
+}): ObjectField {
+  const { size, cycles, amplitudeRadians } = options;
+  requireGrid(size);
+  requireCycles(cycles);
   const re = new Float64Array(size * size);
   const im = new Float64Array(size * size);
   for (let x = 0; x < size; x++) {
@@ -178,6 +360,12 @@ export function phaseGratingObject(options: {
     }
   }
   return { size, re, im };
+}
+
+function requireCycles(cycles: number): void {
+  if (!Number.isInteger(cycles) || cycles < 0) {
+    throw new Error(`grating cycles must be a non-negative integer, got ${cycles}`);
+  }
 }
 
 function requireGrid(size: number): void {

@@ -474,8 +474,8 @@ export function PhasePanel() {
       </p>
       <p style={{ maxWidth: 660, color: "#444" }}>
         <strong>The canvas is not blank, and that is the finding.</strong>{" "}
-        <code>phaseGratingObject</code> is exact — every Bessel order, not the weak-object
-        truncation — so squaring it leaves the ν bin (the 0×±1 beat) cancelled and the{" "}
+        <code>phaseGratingObject</code> carries every Bessel order the grid can hold, not the
+        weak-object truncation — so squaring it leaves the ν bin (the 0×±1 beat) cancelled and the{" "}
         <strong>2ν bin (the +1×−1 beat) alive</strong>, at order φ². What is null is the{" "}
         <em>linear</em> response, which is exactly what the plot draws. So the picture shows
         structure at twice the frequency of the object that made it, while the transfer at the
@@ -629,6 +629,13 @@ export function PhasePanel() {
             {readout.elapsedMs.toFixed(0)} ms, of which {readout.checkMs.toFixed(0)} ms for the{" "}
             {readout.checkFrames} convergence{" "}
             {readout.checkFrames === 1 ? "render" : "renders"} under the 2ν lines
+            <br />
+            orders on the grid |m| &le; {readout.truncation.maxOrder} · light not on it{" "}
+            <strong
+              style={{ color: readout.truncation.droppedEnergy > 0.01 ? "#a33" : "inherit" }}
+            >
+              {(100 * readout.truncation.droppedEnergy).toPrecision(3)}%
+            </strong>
           </div>
         </div>
       )}
@@ -660,6 +667,22 @@ export function PhasePanel() {
         orders +1 and −1 sit at the <em>same</em> pupil radius, so the beat that makes 2ν picks up no
         phase difference at all, while the 0×±1 beat that makes ν picks up sin(2π·w₂₀·ν²). One
         slider, two terms in one image, and only one of them is listening.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+        <strong>&ldquo;Every Bessel order&rdquo; is a promise a finite grid cannot keep</strong>, and
+        the readout says which ones it kept. A grating&rsquo;s orders run to infinity; the grid holds
+        the ones with |m|·cycles inside it, which at 13 cycles on 128 bins is |m| &le; 4. The rest
+        used to <em>fold</em> — order 5 landing on bin −63, which is no order at all — and the
+        imaging sum then let them through the pupil as light the object had diffracted into those
+        directions. It had not. That is what made a darkfield cell with no possible second harmonic
+        read 1.2e-7, and the same false orders were in the picture everywhere else, hidden under
+        whatever real signal was there. So what does not fit is now <em>left out</em> rather than
+        misplaced, and the cost is the second number: <strong>light not on the grid</strong>. It is
+        1.6e-14 at φ = 0.4 and 12 cycles, and <strong>23%</strong> at the top of both sliders, where
+        the grid holds only |m| &le; 2 and J₃(3) = 0.31 goes over the side. There is no threshold
+        dividing those, which is exactly why it is printed rather than refused — and a band-limited
+        object is not quite a pure phase object, so at that corner &ldquo;absorbs nothing&rdquo; is
+        the thing that has stopped being true, not the null.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
         Both canvases share <strong>one</strong> grey scale — white is {WHITE_OVER_MEAN}× the

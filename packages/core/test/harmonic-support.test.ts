@@ -9,6 +9,7 @@ import {
   imageHarmonic,
   intensityCutoff,
   phaseGratingObject,
+  pointwisePhaseGratingObject,
 } from "../src/illumination";
 import { renderBrightfield, type PatchPupil } from "../src/imaging";
 import type { PupilFunction } from "../src/wave";
@@ -298,8 +299,9 @@ describe("§ 6ab.12 — the gate against the render, which is what makes it a ph
     cycles: number,
     amplitudeRadians: number,
     size = SIZE,
+    build = phaseGratingObject,
   ): number {
-    const object = phaseGratingObject({ size, cycles, amplitudeRadians });
+    const object = build({ size, cycles, amplitudeRadians });
     const out = renderBrightfield(object, (): PatchPupil => ({ pupil: PUPIL }), source, {
       pupilSamples: PUPIL_SAMPLES,
       patches: 1,
@@ -337,38 +339,59 @@ describe("§ 6ab.12 — the gate against the render, which is what makes it a ph
     }
   });
 
-  it("but a zero-weight cell can read 6.8e-7 at φ = 3 — and that is ALIASING", () => {
-    // The one place the roundoff floor does not hold, found by asking for it at the
-    // top of the φ slider rather than assuming φ = 0.4 generalized.
+  it("and at φ = 3 the POINTWISE object reads 1.2e-7 where nothing can carry — aliasing", () => {
+    // The one place the roundoff floor did not hold, found by asking for it at the
+    // top of the φ slider rather than assuming φ = 0.4 generalized. It is now an
+    // A/B rather than a defect: `pointwisePhaseGratingObject` is the construction
+    // the engine used until this was measured, kept for exactly this rung.
     //
     // A phase grating has orders at every integer m with amplitude J_m(φ), and on
-    // a 128-bin grid at 13 cycles they wrap past |m| = 5. A wrapped order sits at
-    // a coordinate that is not m·ν, so it can re-enter the pupil, and pairs are
-    // 2·cycles apart in BIN space whether or not they are 2ν apart in the pupil.
-    // At φ = 3, J₇(3)·J₉(3) ≈ 3e-7, which is what comes out.
+    // a 128-bin grid at 13 cycles they fold past |m| = 4. A folded order sits at a
+    // coordinate that is not m·ν, so it can re-enter the pupil, and pairs are
+    // 2·cycles apart in BIN space whether or not they are 2ν apart in the pupil:
+    // order 5 lands on bin −63 and order 7 on bin −37, exactly 26 = 2·cycles
+    // apart, and J₅(3)·J₇(3) ≈ 1e-4 of the amplitude beats between them.
     const ring = annularSource(DARK_OUTER, DARK_INNER, 21);
     expect(harmonicSupportWeight(PUPIL, ring, { cycles: 13, pupilSamples: PUPIL_SAMPLES })).toBe(0);
-    const narrow = relativeSecondHarmonic(ring, 13, 3, 128);
-    expect(narrow).toBeGreaterThan(1e-7);
-    // ν is 2·cycles/pupilSamples, so widening the grid changes only where the
-    // orders wrap — same aperture, same ν, same φ, same source. Nine orders of
-    // collapse names the cause: at 256 bins the wrap moves to |m| = 10 and
-    // J₁₀(3) = 1.3e-5 takes the pair with it.
-    expect(relativeSecondHarmonic(ring, 13, 3, 256)).toBeLessThan(1e-14);
-    expect(narrow / relativeSecondHarmonic(ring, 13, 3, 256)).toBeGreaterThan(1e8);
+    const aliased = relativeSecondHarmonic(ring, 13, 3, 128, pointwisePhaseGratingObject);
+    expect(aliased).toBeGreaterThan(1e-7);
+
+    // Two independent controls name the cause, and they now agree.
+    //
+    // The one that named it first: ν is 2·cycles/pupilSamples, so widening the
+    // grid changes only where the orders fold — same aperture, same ν, same φ,
+    // same source. At 256 bins the fold moves to |m| = 9 and the pair goes with
+    // it, nine orders down.
+    expect(relativeSecondHarmonic(ring, 13, 3, 256, pointwisePhaseGratingObject)).toBeLessThan(
+      1e-14,
+    );
+
+    // The one that fixes it: band-limiting the object at the SAME 128 bins, so the
+    // grid is not widened and nothing about the optics moves — only the orders
+    // that had nowhere to go are no longer put somewhere they do not belong. Same
+    // collapse, which is what makes this a fix for the cause rather than for the
+    // symptom the first control found.
+    const clean = relativeSecondHarmonic(ring, 13, 3, 128);
+    expect(clean).toBeLessThan(1e-14);
+    expect(aliased / clean).toBeGreaterThan(1e8);
   });
 
-  it("and it does not touch a reading that has real support", () => {
-    // Aliasing adds ~1e-7 wherever it adds anything, so it is invisible against a
-    // genuine 2ν of order 1e-1 — identical to five figures across three grids.
-    // Which is why this is a gate on existence and not a correction on precision:
-    // it is only ever the whole reading, or nothing.
+  it("and band-limiting does not touch a reading that has real support", () => {
+    // The orders it drops are the ones that fold, and a folded order is outside the
+    // pupil for every direction in the ring — so where the 2ν reading is genuine,
+    // removing them changes nothing. Eight figures, which is a stronger statement
+    // than the grid-widening control could make: that one compares three different
+    // objects, this compares two constructions of the same one.
     const ring = annularSource(DARK_OUTER, DARK_INNER, 21);
     const at128 = relativeSecondHarmonic(ring, 12, 3, 128);
-    // 0.0878 — five orders above the 6.8e-7 the rung above measured aliasing at.
+    // 0.0878 — six orders above the 1.2e-7 the rung above measured aliasing at.
     expect(at128).toBeGreaterThan(0.08);
-    expect(relativeSecondHarmonic(ring, 12, 3, 256)).toBeCloseTo(at128, 5);
-    expect(relativeSecondHarmonic(ring, 12, 3, 512)).toBeCloseTo(at128, 5);
+    expect(relativeSecondHarmonic(ring, 12, 3, 128, pointwisePhaseGratingObject)).toBeCloseTo(
+      at128,
+      7,
+    );
+    expect(relativeSecondHarmonic(ring, 12, 3, 256)).toBeCloseTo(at128, 7);
+    expect(relativeSecondHarmonic(ring, 12, 3, 512)).toBeCloseTo(at128, 7);
   });
 
   it("and support is defocus-free, unlike the spread it gates", () => {

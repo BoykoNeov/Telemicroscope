@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice grid masked to radius S frees the slider a snapped S would have deleted a one-cell-wide demonstration from, and the cutoff gap turns out to be a divisibility law that kills every power-of-two step together; the phase panel audited and declined, and its unconverged 2ν readout answered by printing the range over the four samplings its own control offers — and § 6ab.12 finding it printed where 2ν does not exist: the beat needs two orders 2ν apart inside the pupil, so ν < 1 anywhere and < (1+outer)/3 in darkfield, and the panel's tightest agreement was four roundoffs | `lattice-disk`, `phase`, `harmonic-support` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice masked to radius S frees the slider whose central demonstration a snapped S would delete, and the cutoff gap is a divisibility law killing every power-of-two step; the phase panel audited and declined, its unconverged 2ν readout answered by the range over four samplings — and § 6ab.12 finding it printed where 2ν cannot exist: the beat needs two orders 2ν apart in the pupil, so ν < 1 and < (1+outer)/3 in darkfield; then § 6ab.13 finding the ORDERS folded onto that grid too — the object now built from its spectrum, what does not fit dropped and printed | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -11150,6 +11150,10 @@ to five significant figures at 128, 256 and 512 bins. So it is only ever the
 whole reading or none of it, and that is what makes existence the right thing to
 gate and precision the wrong one.
 
+The aliasing itself is gone as of § 6ab.13 — the numbers above are what the
+pointwise construction read, and `pointwisePhaseGratingObject` still reads them.
+The gate stands unchanged: it was never the aliasing it was gating.
+
 ### Not yet pinned
 
 - **Whether the sampled carrying fraction converges to the aperture's area
@@ -11159,16 +11163,111 @@ gate and precision the wrong one.
   under-resolves the carrying set by X" — rather than binary, and it is the
   nearest thing to the render-free spread predictor § 6ab.11 wanted. Existence is
   now render-free; magnitude still is not.
-- **Whether aliased orders should be refused rather than measured.** The panel's
-  `maxCycles` keeps the 2ν *bin* on the grid, which is a different guard: nothing
-  stops the grating's own high orders wrapping, and at φ = 3, 13 cycles and 128
-  bins the first wrapped order is J₅(3) = 4.3e-2 of the amplitude. It is invisible
-  in every reading that has support, so refusing it would need a threshold on an
-  error nothing here bounds — but it is a contamination of the *image*, not only
-  of this readout.
+- ~~**Whether aliased orders should be refused rather than measured.**~~
+  **Answered at § 6ab.13, and neither — they are not put on the grid at all.**
+  Refusing needed a threshold; measuring needed one too. Building the object from
+  its spectrum needs neither.
 - **The h ≥ 3 harmonics**, which the criterion covers and nothing renders. The
   cutoffs fall as 2/h and the cheap prediction is that a third harmonic needs
   ν < 2/3; no rung asks for it.
+
+### 6ab.13 — the folded orders were in the image, and the fix is not a threshold
+
+§ 6ab.12 left the aliasing open as a question about the *readout*: refuse the
+1.2e-7 or annotate it, and either needs a number saying how much wrap-around is
+too much. There is no such number, and looking for one was the wrong move —
+because the folded orders were never confined to that readout. They were in every
+image the panel formed, hidden under whatever real signal was there.
+
+**The defect is one sentence: `abbeImage` reads a DFT bin as a diffraction
+direction, and the pointwise object's bins are not that.** Jacobi–Anger writes
+exp(iφ·cos θ) = Σₘ iᵐJₘ(φ)e^{imθ}, orders at every integer m, the m-th at bin
+m·cycles. Evaluating the exponential sample by sample puts all of them on a grid
+with room for |m·cycles| < size/2, and the surplus does not vanish — it **folds**.
+At 128 bins and 13 cycles, order 5 lands on bin −63. That is −4.85 orders: not a
+direction the object diffracts into at all. The imaging sum then admits it
+through the pupil as though it were.
+
+The 2ν readout was where it surfaced only because a folded *pair* 2·cycles apart
+in bin space beats there whatever the pupil looks like — orders 5 and 7 land on
+−63 and −37, exactly 26 apart. Nothing about that mechanism is special to 2ν.
+
+**The fix is to build the object from its spectrum.** `phaseGratingObject` now
+places the orders that fit and inverse-transforms; `pointwisePhaseGratingObject`
+keeps the old construction, exported for the rung that measures the difference.
+Then the object's bins *are* its angular spectrum, which is what the imaging sum
+already assumed, and no order is anywhere the object did not put it.
+
+**What it costs, and why that is reportable rather than thresholded.** A
+truncated series is not exactly unit modulus: a strictly band-limited object
+**cannot** be a pure phase object. `SpectrumTruncation` returns `maxOrder`, a
+bound on the amplitude ripple (2·Σ|Jₘ| over the dropped tail) and the dropped
+energy (2·ΣJₘ², *exact* rather than a bound, because Σₘ Jₘ² = 1). Measured:
+
+| grid | cycles | φ | max order | ripple | bound | light dropped |
+|---|---|---|---|---|---|---|
+| 128 | 12 | 0.4 | 5 | 1.77e-7 | 1.82e-7 | 1.6e-14 |
+| 128 | 12 | 3 | 5 | 2.38e-2 | 2.91e-2 | 2.7e-4 |
+| 128 | 13 | 3 | 4 | 7.11e-2 | 1.15e-1 | 4.0e-3 |
+| 128 | 31 | 3 | 2 | 6.07e-1 | 9.97e-1 | **23%** |
+| 256 | 13 | 3 | 9 | 2.63e-5 | 3.00e-5 | 3.4e-10 |
+| 512 | 13 | 3 | 19 | 2.8e-15 | 2.6e-15 | 3e-30 |
+
+The bound is real (ripple ≤ bound throughout) and not vacuous (0.61–0.97 of it),
+and at 512 bins it has gone under f64 — the last row measures the transform's
+roundoff, not the cut. The last row is also why the rung brackets rather than
+bounds: a bound alone would pass if the truncation were not happening.
+
+**23% at the corner is not the fix failing, it is the fix reporting.** 31 cycles
+is the panel's own `maxCycles` at 128 bins, φ = 3 the top of the other slider, and
+there the grid holds |m| ≤ 2 while J₃(3) = 0.31 goes over the side. The pointwise
+construction does not avoid that quarter of the light — it *keeps* it, in
+directions the object diffracts nothing into, where it becomes image detail
+nothing distinguishes from the real kind. **Missing light is a number a panel can
+print; misplaced light is not.** That is the whole argument for preferring a
+truncation to a fold, and it is why no threshold appears anywhere in it.
+
+**The § 6ab.12 rungs did not need loosening, and one got stronger.** The aliasing
+rung is now an A/B at a *fixed* grid — pointwise reads 1.2e-7, band-limited reads
+3.3e-16, ratio 3.5e8 — which is a better control than the grid-widening one that
+found it, since that compared three different objects and this compares two
+constructions of the same one. And the carrying cell, where § 6ab.12 could only
+claim five figures across three grid sizes, is unchanged to **eight**: the orders
+the band limit drops are outside the pupil for every direction in the ring, so
+where the reading is genuine, removing them changes nothing.
+
+**Pinned against, in order of what would catch a mistake:**
+
+- **An FFT of the continuous object** over 2048 samples of one period, truncated
+  to the same orders. It mentions no Bessel function, so it and the synthesis are
+  two independent derivations of the same field; they agree to 1e-13.
+- **Bessel's integral**, Jₘ(x) = (1/π)∫₀^π cos(mθ − x·sin θ)dθ, by a trapezoid
+  rule that is spectrally convergent on this integrand — the second definition
+  `math/bessel`'s policy demands, since the new `besselJ(m, x)` is the first
+  general-order function in the engine. Agreement is 3e-15 out to |x| = 7.5, and
+  the rung then brackets the documented decay — 1e-13..1e-10 at 15, 1e-9..1e-6 at
+  25 — which is the measurement `BESSEL_SERIES_LIMIT` rests on and had not had.
+- **Neumann's identity** Σₘ Jₘ² = 1, to 3e-15, which is what makes the dropped
+  energy exact; and Parseval on the built field, which recovers 1 − dropped to
+  5.6e-16.
+- **Σₘ iᵐJₘ(φ) = exp(iφ)** at zero cycles, where every order lands on DC and the
+  object is exactly representable. A wrong iᵐ phase would show up there as a
+  wrong constant instead of a wrong image.
+
+`packages/core/test/phase-grating-spectrum.test.ts`, 9 rungs.
+
+### Not yet pinned
+
+- **Whether any other object constructor has the same latent defect.**
+  `cosineGratingObject`'s spectrum is exactly three lines and `uniformObject`'s is
+  one, so neither can fold — but the rule that would cover future ones ("a
+  constructor that evaluates a nonlinear function of position pointwise owes a
+  spectrum") is stated here and enforced nowhere.
+- **What the truncation does to the ν null itself.** The null is measured at
+  2.7e-15 and the band-limited object is no longer exactly |t| = 1, so at the 23%
+  corner the precondition has moved. No rung asks whether the null degrades with
+  `droppedEnergy` or is indifferent to it, and the two would look identical
+  everywhere the panel is usually set.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

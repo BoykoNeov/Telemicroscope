@@ -277,11 +277,14 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     expect(secondHarmonicSupport(at({ ...DARK, cycles: 12 })).apertureCarries).toBe(true);
   });
 
-  it("gates the φ = 3 cell that reads 6.8e-7 and looks like a weak signal", () => {
-    // The one place the roundoff floor breaks: aliased orders re-entering the
-    // pupil (§ 6ab.12). The gate does not know that and does not need to — it is
+  it("gates the φ = 3 cell that USED to read 6.8e-7 and look like a weak signal", () => {
+    // The one place the roundoff floor broke: aliased orders re-entering the pupil
+    // (§ 6ab.12). Two things are true here now and they are independent, which is
+    // why both are asserted.
+    //
+    // The gate never knew about the aliasing and never needed to — the cell is
     // zero-support either way, and suppressing the number is why the reader is not
-    // shown six significant figures of the grating's wrap-around.
+    // shown six significant figures of anything.
     const request = at({
       ...DARK,
       cycles: 13,
@@ -291,8 +294,19 @@ describe("§ 6ab.11 — darkfield, which § 6ab.10 never looked at", () => {
     expect(secondHarmonicSupport(request).exists).toBe(false);
     const scene = renderPhaseScene(request);
     if (!scene.ok) throw new Error(scene.error);
-    expect(scene.readout.focused.secondHarmonic).toBeGreaterThan(1e-9);
     expect(scene.readout.focused.secondHarmonicSpread).toBeNull();
+
+    // And the number the gate is suppressing is no longer 6.8e-7 but f64 roundoff,
+    // because § 6ab.13 band-limited the object and the orders that were folding
+    // into the pupil are simply not in it. This rung asserted `> 1e-9` until then;
+    // the assertion is inverted rather than dropped, because "the gate is not the
+    // only thing standing between the reader and that number" is the claim the
+    // fix actually makes.
+    expect(scene.readout.focused.secondHarmonic).toBeLessThan(1e-14);
+    // What it costs: nine orders in the darkfield cell, against 4.0e-3 of the
+    // light left off a 128-bin grid at 13 cycles and φ = 3.
+    expect(scene.readout.truncation.maxOrder).toBe(4);
+    expect(scene.readout.truncation.droppedEnergy).toBeLessThan(5e-3);
   });
 
   it("reports agreement, not an infinite disagreement, on a clear field", () => {
