@@ -323,6 +323,58 @@ describe("§ 6ab.11 — samplings the frequency grid cannot carry are dropped, n
     expect(spread.readings.map((r) => r.samples)).toEqual([7]);
     expect(spread.extraFrames).toBe(0);
   });
+
+  it("and § 6ab.12's gate does not collide with that — the cell has support", () => {
+    // The two guards answer different questions and could have contradicted: the
+    // spread drops samplings the frequency grid cannot carry, while the gate asks
+    // whether the SHIPPED sampling carries 2ν at all. ν = 0.375 here, well inside
+    // brightfield's cutoff, so the reader still gets a reading and a single-entry
+    // spread rather than a refusal.
+    const support = secondHarmonicSupport(
+      at({ size: 128, pupilSamples: 64, sourceSamples: 7, coherenceParameter: 1.1, cycles: 12 }),
+    );
+    expect(support.exists).toBe(true);
+    expect(support.apertureCarries).toBe(true);
+  });
+
+  it("and the gate never says 'raise source samples' where raising it is refused", () => {
+    // The advice in that message has to be actionable, and at the S ceiling
+    // `abbeImage` refuses the finer samplings. Measured over every brightfield
+    // cell the panel can reach — 3 pupil samplings × 2 grids × every cycle count ×
+    // 8 values of S × all four counts — the aperture-yes/lattice-no branch is
+    // reached exactly **zero** times, so the message is darkfield's alone.
+    //
+    // The reason is structural rather than lucky: `PANEL_SOURCE_SAMPLES` are all
+    // odd, so `diskSource` always has a point at the origin, and the origin
+    // carries 2ν for every ν < 1 — order −1 and order +1, both inside the pupil.
+    // Which is also why the gate's brightfield refusals are all aperture refusals.
+    let blind = 0;
+    let checked = 0;
+    for (const pupilSamples of [16, 32, 64]) {
+      for (const size of [128, 256]) {
+        for (let cycles = 1; 2 * cycles < size / 2; cycles++) {
+          for (const coherenceParameter of [0, 0.25, 0.5, 1, 1.5]) {
+            for (const sourceSamples of PANEL_SOURCE_SAMPLES) {
+              const support = secondHarmonicSupport(
+                at({ size, pupilSamples, cycles, coherenceParameter, sourceSamples }),
+              );
+              checked++;
+              if (support.apertureCarries === true && support.latticeWeight === 0) blind++;
+            }
+          }
+        }
+      }
+    }
+    expect(checked).toBeGreaterThan(3000);
+    expect(blind).toBe(0);
+    // And the same sweep in darkfield finds plenty — it is the ring that is thin,
+    // not the criterion that never fires.
+    expect(
+      secondHarmonicSupport(
+        at({ illumination: "darkfield", coherenceParameter: 0, cycles: 12, sourceSamples: 7 }),
+      ).latticeWeight,
+    ).toBe(0);
+  });
 });
 
 describe("§ 6ab.11 — the timing label the probes made false", () => {

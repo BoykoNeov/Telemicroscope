@@ -533,14 +533,19 @@ export function samplingSpread(
   request: PhaseRequest,
   defocusWaves: number,
   shipped: number,
+  support = secondHarmonicSupport(request),
 ): SamplingSpread | null {
   if (!Number.isFinite(shipped)) return null;
-  // No spread over a quantity that does not exist — § 6ab.12. This is the one
-  // place the gate is applied rather than at the call sites, because the probe is
-  // the misleading part: at ν = 1.9375 the four readings agree to 1.031× and that
-  // is the tightest number this panel ever prints. It also saves the three
-  // renders, which were being spent comparing roundoff.
-  if (!secondHarmonicSupport(request).exists) return null;
+  // No spread over a quantity that does not exist — § 6ab.12. Applied here rather
+  // than at the call sites because the probe is the misleading part: at ν = 1.9375
+  // the four readings agree to 1.031×, the tightest number this panel prints. It
+  // also saves the three renders, which were being spent comparing roundoff.
+  //
+  // Defaulted rather than required so a direct caller cannot forget it, and
+  // passed in by `renderPhaseScene`, which needs the same verdict for the readout
+  // — support is pure geometry, so recomputing it is cheap, but three calls per
+  // render for one answer would be three chances to disagree.
+  if (!support.exists) return null;
 
   const readings: { samples: number; value: number }[] = [];
   const skipped: number[] = [];
@@ -677,13 +682,13 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
 
     const support = secondHarmonicSupport(request);
     const checkStarted = performance.now();
-    const focusedSpread = samplingSpread(request, 0, focused.frame.secondHarmonic);
+    const focusedSpread = samplingSpread(request, 0, focused.frame.secondHarmonic, support);
     // Reused rather than re-probed when the pair is one image, for the same
     // reason `defocused` is: it would be the identical render.
     const defocusedSpread =
       request.defocusWaves === 0
         ? focusedSpread
-        : samplingSpread(request, request.defocusWaves, defocused.frame.secondHarmonic);
+        : samplingSpread(request, request.defocusWaves, defocused.frame.secondHarmonic, support);
     const checkMs = performance.now() - checkStarted;
 
     // One scale for both frames, taken from the in-focus mean. The fallback
