@@ -37,7 +37,8 @@ import { adaptiveIntegral } from "../src/math";
  *  - **It converges, and not monotonically.** |sampled − exact| stays under
  *    0.55/samples ~~across 7…255~~ **at the eleven counts below** — n = 17 reads
  *    0.7373/n and was never asked, which § 6ab.17 found and corrects to 0.74/n
- *    over every integer — but a finer lattice is regularly a worse one: 31
+ *    over a ladder exhaustive to n = 121 — but a finer lattice is regularly a
+ *    worse one: 31
  *    samples beats 45 by 2.8×, because what matters is which stripes of the
  *    carrying set the lattice lands on, not how many points it has.
  *  - **A new cutoff falls out of the same geometry.** Below
@@ -430,7 +431,7 @@ describe("§ 6ab.14 — the open item: does the sampled weight converge to it", 
     // false.** ELEVEN counts are not a range: the ring at n = 17 — which is not
     // one of them — reads 0.7373/n, 34% past this constant. What survives is the
     // statement about these eleven, which is what is asserted here; the bound
-    // over every integer is 0.74/n and lives in § 6ab.17's block below.
+    // over a ladder exhaustive to n = 121 is 0.74/n, in § 6ab.17's block below.
     for (const samples of COUNTS) {
       const sampled = harmonicSupportWeight(PUPIL, ring(samples), ORDERS);
       expect(Math.abs(sampled - RING_AT_075) * samples).toBeLessThan(0.55);
@@ -475,23 +476,30 @@ describe("§ 6ab.14 — the open item: does the sampled weight converge to it", 
  *
  * § 6ab.14 wrote: "Across 7…255 samples on the ring and on an S = 0.9 disc,
  * |sampled − exact| stays below 0.55/samples." It was checked at **eleven**
- * counts. Asked at every integer in the same range, the ring at **n = 17** reads
+ * counts. Asked at every integer from 7 to 121, the ring at **n = 17** reads
  * `0.7373/n` — 34% past the constant, on a lattice one point coarser than the
  * 21 the panel's own control offers. Eleven samples of a range is not a claim
  * about the range, and this is the second time in § 6ab that a number outlived
  * what it was measured on (§ 6ab.15's ν = 1 exclusion was the first).
  *
+ * **So this block states its own quantifier carefully.** The ladder is every
+ * integer 7…121, odd counts to 255, and every twentieth to 801 — because the
+ * cost is n² and because every binding case measured falls inside the exhaustive
+ * window: the q = 1 maxima are at n = 17, 7 and 17, and the q = 4/3 maxima at
+ * n = 17, 26 and 108. Above 121 the quantity is falling and the ladder is a
+ * sample, which is what the rungs below say.
+ *
  * ## What the answer to "is it a rate" actually is
  *
  * **n^{-4/3} is an envelope over the measured range and n^{-3/2} is not**, and
  * the test that separates them needs no theorem: if the error decayed like
- * n^{-p}, then e·n^q is maximized at the *bottom* of the range when q < p and at
- * the *top* when q > p. Over 7…781 in three cells,
+ * n^{-p}, then e·n^q is larger at the *bottom* of the range than at the top when
+ * q < p, and larger at the top when q > p. Comparing sup e·n^q over n ≤ 121
+ * against sup over n ≥ 200, in three cells:
  *
- *  - sup e·n^{4/3} is 1.90, 1.29 and 1.44, attained at n = 17, 26 and 36 — the
- *    bottom, so the true exponent is above 4/3;
- *  - sup e·n^{3/2} is 3.79, 2.35 and 2.69, attained at n = 231, 233 and 44 — the
- *    top in two of the three, so 3/2 over-corrects.
+ *     q = 1     tail/head = 0.338, 0.287, 0.314   — well below 1
+ *     q = 4/3   tail/head = 0.807, 0.736, 0.630   — below 1 in all three
+ *     q = 3/2   tail/head = 1.246, 1.033, 0.727   — at or above 1 in two
  *
  * So the exponent is **between 4/3 and 3/2 and is not one number across
  * apertures**, which is why the deliverable is a measured envelope and not a
@@ -504,15 +512,18 @@ describe("§ 6ab.14 — the open item: does the sampled weight converge to it", 
 describe("§ 6ab.17 — the 0.55 was eleven counts, and the envelope is n^{-4/3}", () => {
   const COUNTS = [7, 11, 15, 21, 31, 45, 65, 91, 127, 181, 255];
 
-  /** Dense where the sup lives, thinning where the cost is n². 2.2 s for all
-   *  three cells, which is what buys asking every integer at the bottom. */
+  /** Exhaustive where every binding case falls, thinning where the cost is n²
+   *  and the quantity is on its way down. ~3 s for all three cells. */
   const LADDER: number[] = (() => {
     const ns: number[] = [];
-    for (let n = 7; n <= 61; n++) ns.push(n);
-    for (let n = 63; n <= 255; n += 2) ns.push(n);
+    for (let n = 7; n <= 121; n++) ns.push(n);
+    for (let n = 123; n <= 255; n += 2) ns.push(n);
     for (let n = 261; n <= 801; n += 20) ns.push(n);
     return ns;
   })();
+
+  /** The window the ladder asks exhaustively, and the tail it samples. */
+  const EXHAUSTIVE_TO = 121;
 
   /** Three apertures at two ν, so an envelope is not one aperture's habit. The
    *  third is a genuinely PARTIAL disc at a different ν — § 6ab.14's two are both
@@ -547,14 +558,14 @@ describe("§ 6ab.17 — the 0.55 was eleven counts, and the envelope is n^{-4/3}
     }));
   }
 
-  /** Where e·n^q is largest, and how large. */
-  function peak(rows: { n: number; e: number }[], q: number): { n: number; value: number } {
-    let best = { n: 0, value: -1 };
-    for (const { n, e } of rows) {
-      const value = e * n ** q;
-      if (value > best.value) best = { n, value };
-    }
-    return best;
+  /** sup e·n^q over a subset of the ladder. */
+  function sup(rows: { n: number; e: number }[], q: number): number {
+    return rows.reduce((a, r) => Math.max(a, r.e * r.n ** q), 0);
+  }
+
+  /** Where e·n^q is largest. */
+  function peak(rows: { n: number; e: number }[], q: number): number {
+    return rows.reduce((a, r) => (r.e * r.n ** q > a.e * a.n ** q ? r : a)).n;
   }
 
   const measured = CELLS.map((cell) => ({ cell, rows: errors(cell) }));
@@ -575,58 +586,69 @@ describe("§ 6ab.17 — the 0.55 was eleven counts, and the envelope is n^{-4/3}
     }
   });
 
-  it("holds at 0.74/samples over every integer 7…781, in all three cells", () => {
+  it("holds at 0.74/samples over this ladder, in all three cells", () => {
     // Measured sups: 0.7373 at n = 17 (ring), 0.5348 at n = 7 (S = 0.9 disc),
-    // 0.4653 at n = 17 (S = 0.5 disc). The constant is the ring's own maximum
-    // rounded up in the fourth digit, not a margin.
+    // 0.4653 at n = 17 (S = 0.5 disc). **0.74 is the ring's own maximum rounded
+    // up in the fourth digit — a 0.36% margin, not a conservative constant** —
+    // and all three maxima are inside the window the ladder asks exhaustively,
+    // which is the part § 6ab.14's own sentence did not have.
     for (const { cell, rows } of measured) {
-      const worst = peak(rows, 1);
-      expect(worst.value, cell.label).toBeLessThan(0.74);
+      expect(sup(rows, 1), cell.label).toBeLessThan(0.74);
+      expect(peak(rows, 1), cell.label).toBeLessThanOrEqual(EXHAUSTIVE_TO);
     }
-    expect(peak(measured[0]!.rows, 1).n).toBe(17);
+    expect(peak(measured[0]!.rows, 1)).toBe(17);
   });
 
   it("and is loose past n ≈ 30 — five times loose by the top of the range", () => {
     // What kills "1/n is the rate": the same quantity that reaches 0.74 at n = 17
-    // is under 0.14 for every n ≥ 401. A bound whose slack grows with n is not a
-    // description of the decay.
+    // is under 0.14 for every n ≥ 401 on the ladder. A bound whose slack grows
+    // with n is not a description of the decay.
     for (const { cell, rows } of measured) {
       const tail = rows.filter((r) => r.n >= 401);
       expect(tail.length).toBeGreaterThan(15);
-      const worst = Math.max(...tail.map((r) => r.e * r.n));
+      const worst = sup(tail, 1);
       expect(worst, cell.label).toBeLessThan(0.14);
-      expect(peak(rows, 1).value / worst, cell.label).toBeGreaterThan(4);
+      expect(sup(rows, 1) / worst, cell.label).toBeGreaterThan(4);
     }
   });
 
-  it("puts n^{-4/3}'s worst case at the BOTTOM of the range, in every cell", () => {
-    // e·n^{4/3} maximized at small n is what an envelope looks like when the true
-    // decay is faster than n^{-4/3}. Measured 1.90 at n = 17, 1.29 at 26, 1.44 at
-    // 36 — all inside the first fifth of the ladder.
+  it("has n^{4/3} smaller at the TOP of the range than at the bottom, in every cell", () => {
+    // The exponent test: e·n^q falls across the range when q is below the true
+    // decay. Measured tail/head at q = 4/3: 0.807, 0.736, 0.630 — and the sup
+    // itself stays under 1.9 (1.896 at n = 17 on the ring).
     for (const { cell, rows } of measured) {
-      const worst = peak(rows, 4 / 3);
-      expect(worst.value, cell.label).toBeLessThan(1.9);
-      expect(worst.n, cell.label).toBeLessThan(64);
+      const head = rows.filter((r) => r.n <= EXHAUSTIVE_TO);
+      const tail = rows.filter((r) => r.n >= 200);
+      expect(sup(rows, 4 / 3), cell.label).toBeLessThan(1.9);
+      expect(sup(tail, 4 / 3) / sup(head, 4 / 3), cell.label).toBeLessThan(1);
+      // And q = 1, the same test on § 6ab.14's own exponent, is emphatic: 0.338,
+      // 0.287, 0.314 — which is the same fact as "loose past n ≈ 30" above,
+      // stated in the form the exponent question needs.
+      expect(sup(tail, 1) / sup(head, 1), cell.label).toBeLessThan(0.5);
     }
   });
 
-  it("NEGATIVE CONTROL: n^{-3/2} puts its worst case at the TOP, so it is not one", () => {
-    // The same construction with q = 3/2. In the two ν = 0.75 cells the maximizer
-    // walks to n = 231 and n = 233 — an envelope whose binding case is the last
-    // thing measured is an envelope about to fail. The third cell peaks at n = 44,
-    // which is why the honest statement is a bracket rather than an exponent: the
-    // decay is between n^{-4/3} and n^{-3/2} and it is not the same in every
-    // aperture.
-    const tops = measured.map(({ rows }) => peak(rows, 1.5).n);
-    expect(tops.filter((n) => n > 200)).toHaveLength(2);
-    // …while no cell's n^{4/3} peak is anywhere near the top.
-    for (const { rows } of measured) expect(peak(rows, 4 / 3).n).toBeLessThan(64);
+  it("NEGATIVE CONTROL: n^{3/2} is NOT smaller at the top, so it is not an envelope", () => {
+    // The same comparison at q = 3/2 gives 1.246, 1.033 and 0.727: the tail is at
+    // or above the head in the two ν = 0.75 cells. An exponent whose e·n^q grows
+    // across the range is above the true decay, so 3/2 over-corrects — and the
+    // third cell, where it does not, is why the honest statement is a BRACKET
+    // rather than an exponent. The decay is between n^{-4/3} and n^{-3/2} and it
+    // is not the same in every aperture.
+    const ratios = measured.map(({ rows }) => {
+      const head = rows.filter((r) => r.n <= EXHAUSTIVE_TO);
+      const tail = rows.filter((r) => r.n >= 200);
+      return sup(tail, 1.5) / sup(head, 1.5);
+    });
+    expect(ratios.filter((r) => r >= 1)).toHaveLength(2);
+    expect(ratios.filter((r) => r < 1)).toHaveLength(1);
   });
 
   it("has an exact zero to be an envelope of, which is what makes the sup meaningful", () => {
     // § 6ab.14's own guarantee, restated as this block's precondition: where no
     // row carries, every integrand evaluation is exactly 0 and so is the sampled
     // weight, so none of the errors above is a difference of two approximations.
+    //
     // An S = 0.3 disc at ν = 1.0625, past the disc's own 2/h = 1: no direction it
     // holds gets both ±1 orders through, so nothing carries 2ν at all.
     const beyond = { cycles: 17, pupilSamples: 32 };

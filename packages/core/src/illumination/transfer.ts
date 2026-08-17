@@ -819,8 +819,9 @@ export function harmonicCarryingArea(
  * (§ 6ab.15 for A = 1, § 6ab.16 through two traced objectives). The pupil enters
  * only as the transmission at the pair's own two coordinates, and it is not a
  * correction to ignore: against a real objective the A = 1 form is 18.4% and
- * 26.3% out, **the same fraction at every h**, which is what a transmission looks
- * like and what an aberration never does.
+ * 26.3% out, **the same fraction at every h** — the deficit is read off the
+ * pupil's own amplitude rather than fitted, and phase cannot enter a product of
+ * two moduli, so transmission is the only thing it can be.
  *
  * **It is aberration-invariant on the axis and nowhere else, and the difference
  * is a readout that would otherwise lie.** One surviving term is a product of two

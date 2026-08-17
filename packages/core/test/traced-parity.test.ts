@@ -61,8 +61,9 @@ import type { OpticalSystem } from "../src/trace/system";
  *
  * where A is the pupil's own amplitude. § 6ab.15's 2·J_{h/2}(φ)² is the A = 1
  * case of it, and against a real objective the bare form is **18.4% out for one
- * and 26.3% for the other — the same fraction at h = 2, 4, 6 and 8**, which is
- * what a transmission looks like and what an aberration never does.
+ * and 26.3% for the other — the same fraction at h = 2, 4, 6 and 8**. The deficit
+ * is read off the pupil rather than fitted, and no phase can enter a product of
+ * two moduli, so transmission is the only thing left for it to be.
  *
  * It also retires the argument § 6ab.15 gave for defocus-invariance. That
  * argument was that the pair sits at one radius, so an EVEN aberration gives both

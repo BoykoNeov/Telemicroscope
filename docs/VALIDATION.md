@@ -11356,8 +11356,8 @@ closest**, which the old comparison did not show.
 
 > **Corrected at § 6ab.17: "across 7…255" was eleven counts, and the bound fails
 > between two of them.** The ring at n = 17 reads 0.7373/n. Everything below is
-> true of the eleven counts it was measured at; the statement over every integer
-> is 0.74/n, and the envelope is n^{-4/3}.
+> true of the eleven counts it was measured at; the statement over a ladder that
+> asks every integer to n = 121 is 0.74/n, and the envelope is n^{-4/3}.
 
 Across 7…255 samples on the ring and on an S = 0.9 disc, |sampled − exact| stays
 below 0.55/samples. That is a bound and not a rate: the observed decay is faster
@@ -11781,12 +11781,12 @@ corrects.
 
 | Rung | Pinned to | Status |
 |---|---|---|
-| **0.55/samples is FALSE at n = 17** — the ring reads 0.7373/n, 34% past it | every integer 7…781, not eleven of them | ✅ |
+| **0.55/samples is FALSE at n = 17** — the ring reads 0.7373/n, 34% past it | every integer 7…121, not eleven of them | ✅ |
 | …and every one of § 6ab.14's own eleven counts still passes, so only the range claimed was wrong | the same eleven | ✅ |
-| The bound over every integer is **0.74/samples**, in three cells at two ν | measured sup, rounded up in the 4th digit | ✅ |
+| The bound is **0.74/samples**, in three cells at two ν, every maximum inside the exhaustive window | measured sup, rounded up in the 4th digit — 0.36% | ✅ |
 | It is **loose past n ≈ 30** — under 0.14/n for every n ≥ 401, five times the slack | the same ladder | ✅ |
-| **sup e·n^{4/3} < 1.9, attained at n = 17, 26 and 36** — the bottom of the range | 3 cells | ✅ |
-| NEGATIVE CONTROL: **sup e·n^{3/2} is attained at n = 231 and 233** — the top, so 3/2 is not an envelope | 2 of 3 cells | ✅ |
+| **sup e·n^{4/3} < 1.9, and smaller at the TOP of the range than the bottom** — tail÷head 0.81, 0.74, 0.63 | 3 cells | ✅ |
+| NEGATIVE CONTROL: **e·n^{3/2} is NOT smaller at the top** — tail÷head 1.25 and 1.03, so 3/2 over-corrects | 2 of 3 cells | ✅ |
 | The third cell is a genuinely PARTIAL disc at a different ν, not one below ν\* that carries everywhere | S = 0.5, ν = 0.875 | ✅ |
 | The zeros are still exact, so no error above is a difference of two approximations | `toBe(0)`, 4 counts | ✅ |
 
@@ -11804,30 +11804,34 @@ Nothing about the eleven readings was wrong, which is what makes this the same
 shape as § 6ab.15's ν = 1 exclusion and § 6ab.14's own "6.6% aperture": **a
 number is only as wide as what it was measured on, and the sentence around it is
 where the width gets exaggerated.** The corrected statement is 0.74/samples over
-every integer in 7…781, in three cells at two ν.
+a ladder that asks **every integer from 7 to 121** — where all three cells attain
+their maximum, at n = 17, 7 and 17 — then odd counts to 255 and every twentieth
+to 801. The 0.74 is the ring's own maximum rounded up in the fourth digit, a
+**0.36% margin**: it is a measured supremum and not a conservative constant, and
+saying which counts were asked is the part § 6ab.14's sentence did not have.
 
-#### Whether it is a rate, answered by where the worst case sits
+#### Whether it is a rate, answered by comparing the two ends of the range
 
 The test that separates exponents needs no theorem. If the error decayed like
-n^{-p}, then e·n^q is maximized at the **bottom** of a range when q < p and at
-the **top** when q > p. Over 7…781:
+n^{-p}, then e·n^q is **larger at the bottom of a range than at the top when
+q < p**, and larger at the top when q > p. Comparing sup e·n^q over n ≤ 121
+against sup over n ≥ 200, in three cells:
 
-| q | sup e·n^q (ring / S = 0.9 / S = 0.5) | attained at n = |
+| q | sup e·n^q (ring / S = 0.9 / S = 0.5) | tail ÷ head |
 |---|---|---|
-| 1 | 0.737 / 0.535 / 0.465 | 17 / 7 / 17 |
-| 4/3 | 1.896 / 1.285 / 1.439 | 17 / 26 / 36 |
-| 3/2 | 3.788 / 2.347 / 2.694 | **231 / 233** / 44 |
+| 1 | 0.737 / 0.535 / 0.465 | 0.338 / 0.287 / 0.314 |
+| 4/3 | 1.896 / 1.285 / 1.473 | 0.807 / 0.736 / 0.630 |
+| 3/2 | 3.788 / 2.347 / 3.214 | **1.246 / 1.033** / 0.727 |
 
-So **n^{-4/3} is an envelope and n^{-3/2} is not**: at q = 4/3 the binding case is
-in the first fifth of the ladder in all three cells, and at q = 3/2 it walks to
-the last thing measured in two of them. An envelope whose worst case is the
-largest n you tried is an envelope about to fail.
+So **n^{-4/3} is an envelope and n^{-3/2} is not**: at q = 4/3 the tail is below
+the head in all three cells, and at q = 3/2 it is at or above it in two. An
+exponent whose e·n^q grows across the range is above the true decay.
 
 The honest claim is therefore a **bracket, not an exponent**: the decay is between
 n^{-4/3} and n^{-3/2}, and it is not the same in every aperture — the S = 0.5 disc
-peaks at n = 44 for q = 3/2 where the ν = 0.75 cells peak past 230. That
-cell-dependence is itself the answer to "is it a rate": there is no single
-exponent for the measurement to converge on.
+still falls at q = 3/2 where the two ν = 0.75 cells rise. That cell-dependence is
+itself the answer to "is it a rate": there is no single exponent for the
+measurement to converge on.
 
 **And this file stops there on purpose.** The quantity is a lattice count inside a
 region bounded by circular arcs, and the exponent for those is the Gauss-circle
