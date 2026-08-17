@@ -11926,7 +11926,8 @@ cheap options answer a different question.
 | Every coordinate is a whole number of half-steps, all of parity 0 | `latticeOffset`'s own precondition, asserted directly | ✅ |
 | **The cached and uncached images are IDENTICAL, bit for bit** | every pixel, `toBe` | ✅ |
 | …at **1 089 pupil evaluations against 662 112** | § 6p's claim, 608× | ✅ |
-| **It holds the carrying set the 7-point ring misses entirely** — 0.067–0.069 against exactly 0 | § 6ab.12's headline cell | ✅ |
+| **It RENDERS the 2ν the 7-point ring reads as 8.8e-17** — and inside 1.4× of the count-based 21 | § 6ab.12's headline cell, on an IMAGE | ✅ |
+| …and holds the carrying set that ring misses entirely — 0.067–0.069 against exactly 0 | the gate's own leg | ✅ |
 | Still darkfield: a clear field through it is **exactly** 0 at every pixel | `toBe(0)`, not a tolerance | ✅ |
 | A step that lands nothing in the ring **throws**, naming the step and the width | the limit `latticeDiskSource` has and this does not | ✅ |
 | § 6ab.17's **constant does not transplant** — 0.901/n here against 0.7373/n | 39 counts, n = 9…358 | ✅ |
@@ -11947,11 +11948,22 @@ point of the set at all** and reads 8.8e-17 where the other samplings agree to
 lets the count follow. At `pupilSamples` 64 the same ring holds 2 416 points at
 step 1 and 608 at step 2, reading 0.0671 and 0.0691 against the exact 0.070268.
 
+**The claim is made on an image, not on the set.** § 6ab.18 has just finished
+measuring that which directions *can* contribute does not determine what they
+*do*, so a carrying weight of 0.067 against 0 would be exactly the inference that
+section refutes. Rendered: the same grating at 12 cycles and φ = 1.5 reads
+**8.8e-17 through the 7-point ring and above 1e-3 through the lattice ring at
+either step**, and the lattice reading sits inside **1.4×** of the count-based
+21-point ring — the spread § 6ab.11 measured among the samplings that agreed.
+
 **And it takes the § 6p cache into darkfield, which nothing did before.** That is
 the constructor's whole justification, so it is measured rather than inherited
 from `latticeDiskSource`'s argument: the same object through the same pupil, with
 the lattice metadata and without it, is identical at **every pixel** — and the
-cached path asks the pupil 1 089 times against 662 112.
+cached path asks the pupil 1 089 times against 662 112, a **608×** saving. (The
+ratio is the claim; only the 33² cache box is pinned exactly, since the other
+number is the ring's point count and a change to the mask would fail it as though
+physics had moved.)
 
 **One thing does not carry over from the disc.** `latticeDiskSource` argues that
 an odd centred grid always contains the axis, so S → 0 degenerates to

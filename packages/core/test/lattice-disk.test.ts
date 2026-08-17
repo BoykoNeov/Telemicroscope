@@ -595,16 +595,49 @@ describe("§ 6ab.19 — the commensurate annulus", () => {
     for (let i = 0; i < cached.intensity.length; i++) {
       expect(cached.intensity[i], `pixel ${i}`).toBe(plain.intensity[i]);
     }
-    // And it is the saving § 6p claimed: 1 089 evaluations against 662 112.
-    expect(cached.pupilEvaluations).toBe(1089);
-    expect(plain.pupilEvaluations).toBe(662112);
+    // And it is the saving § 6p claimed. The RATIO is the claim — one pass over the
+    // cache box instead of one per source point — measured at 608× (1 089 against
+    // 662 112). The box itself is pinned exactly because it is a statement about
+    // the lattice: 33² samples covering |p| ≤ 1 at `pupilSamples` 32. The other
+    // number is the ring's point count times that and is deliberately not pinned,
+    // since a change to the mask would fail it as though physics had moved.
+    expect(cached.pupilEvaluations).toBe(33 * 33);
     expect(plain.pupilEvaluations / cached.pupilEvaluations).toBeGreaterThan(600);
   });
 
+  it("RENDERS the second harmonic the 7-point ring reads as roundoff", () => {
+    // The claim this constructor exists for, and it has to be made on an IMAGE.
+    // § 6ab.18 has just finished measuring that which directions can contribute is
+    // not what they contribute, so a carrying weight of 0.067 against 0 is set
+    // membership and not a reading — the rung below is the reading.
+    const object = phaseGratingObject({ size: 128, cycles: 12, amplitudeRadians: 1.5 });
+    const read = (source: CondenserSource) => {
+      const out = abbeImage(object, idealPupil(), source, { pupilSamples: 32 });
+      return Math.abs(imageHarmonic(out.intensity, 128, 24).contrast);
+    };
+    // § 6ab.12's headline cell: 16 points, none in the carrying set, and the image
+    // says so — 8.8e-17, which a reader is shown as "no second harmonic in
+    // darkfield" and which is false.
+    expect(read(annularSource(RING_OUTER, RING_INNER, 7))).toBeLessThan(1e-13);
+    // The lattice ring at the same ring and the same grating reads a real number,
+    // fourteen orders up, at every step tried.
+    for (const stepMultiple of [1, 2]) {
+      expect(
+        read(latticeAnnularSource(RING_OUTER, RING_INNER, 32, stepMultiple)),
+        `step ${stepMultiple}`,
+      ).toBeGreaterThan(1e-3);
+    }
+    // And it agrees with the samplings § 6ab.11 found agreeing among themselves,
+    // rather than merely being non-zero: 1.35× was their own spread.
+    const lattice = read(latticeAnnularSource(RING_OUTER, RING_INNER, 32, 1));
+    const counted = read(annularSource(RING_OUTER, RING_INNER, 21));
+    expect(Math.max(lattice, counted) / Math.min(lattice, counted)).toBeLessThan(1.4);
+  });
+
   it("holds the carrying set the 7-point ring misses entirely", () => {
-    // § 6ab.12's headline cell. The count-based ring's outermost x at N = 7 is
-    // 1.2 and the carrying band is s_x ∈ [1.25, 1.4], so its weight is exactly 0
-    // — not small, none. Every lattice step tried lands inside it.
+    // The set-membership half of the same fact, which is what the gate reads.
+    // The count-based ring's outermost x at N = 7 is 1.2 and the carrying band is
+    // s_x ∈ [1.25, 1.4], so its weight is exactly 0 — not small, none.
     expect(harmonicSupportWeight(idealPupil(), annularSource(RING_OUTER, RING_INNER, 7), RING_ORDERS)).toBe(0);
     for (const [pupilSamples, stepMultiple] of [
       [32, 1],
