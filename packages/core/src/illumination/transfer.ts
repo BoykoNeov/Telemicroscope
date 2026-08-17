@@ -1,3 +1,4 @@
+import { adaptiveIntegral } from "../math/quadrature";
 import { diffractionLimitedMtf } from "../wave/mtf";
 import type { PupilFunction, PupilScale } from "../wave/psf";
 import type { CondenserSource } from "./source";
@@ -494,20 +495,7 @@ export function apertureCarriesHarmonic(
   nu: number,
   harmonic = 2,
 ): boolean {
-  if (!(inner >= 0)) throw new Error(`apertureCarriesHarmonic: inner must be >= 0, got ${inner}`);
-  if (!(outer > inner)) {
-    throw new Error(
-      `apertureCarriesHarmonic: needs an aperture of positive area — outer must exceed inner, ` +
-        `got inner ${inner} and outer ${outer}. A single direction is not one; ask ` +
-        `harmonicSupportWeight instead.`,
-    );
-  }
-  if (!(nu > 0)) throw new Error(`apertureCarriesHarmonic: nu must be > 0, got ${nu}`);
-  if (!Number.isInteger(harmonic) || harmonic < 1) {
-    throw new Error(
-      `apertureCarriesHarmonic: harmonic must be a positive integer, got ${harmonic}`,
-    );
-  }
+  apertureGuards(inner, outer, nu, harmonic, "apertureCarriesHarmonic");
   const gap = harmonic * nu;
   // Two points `gap` apart in a pupil of DIAMETER 2. The h = 1 case of this is
   // `intensityCutoff`'s own cap, reached from the other side.
@@ -518,4 +506,266 @@ export function apertureCarriesHarmonic(
     if (Math.max(inner, -1 - m * nu) < Math.min(outer, 1 - gap - m * nu)) return true;
   }
   return false;
+}
+
+function apertureGuards(inner: number, outer: number, nu: number, harmonic: number, who: string) {
+  if (!(inner >= 0)) throw new Error(`${who}: inner must be >= 0, got ${inner}`);
+  if (!(outer > inner)) {
+    throw new Error(
+      `${who}: needs an aperture of positive area — outer must exceed inner, got inner ` +
+        `${inner} and outer ${outer}. A single direction is not one; ask ` +
+        `harmonicSupportWeight instead.`,
+    );
+  }
+  if (!(nu > 0)) throw new Error(`${who}: nu must be > 0, got ${nu}`);
+  if (!Number.isInteger(harmonic) || harmonic < 1) {
+    throw new Error(`${who}: harmonic must be a positive integer, got ${harmonic}`);
+  }
+}
+
+/**
+ * How much of ONE row of the aperture carries `harmonic`·ν — exactly, and with
+ * no quadrature anywhere in it.
+ *
+ * The grating runs along x, so its orders differ only in s_x and the whole
+ * criterion decomposes by row: at fixed s_y a direction s_x carries the harmonic
+ * iff some integer m puts s_x + m·ν and s_x + (m+h)·ν both inside the pupil,
+ * which for a hard unit pupil means both within ±R of the axis, R = √(1 − s_y²).
+ * That is the interval
+ *
+ *     s_x ∈ [−R − m·ν, R − (m+h)·ν],   length 2R − h·ν, one per m, spaced ν
+ *
+ * so the carrying set of the row is a union of equal intervals on a lattice of
+ * step ν, and the row's answer is the length of that union inside the aperture's
+ * own chord. Both are finite unions of intervals, so the intersection is exact
+ * arithmetic — `harmonicCarryingArea` is a quadrature *of this*, and every claim
+ * that has to be sharp is made here rather than there.
+ *
+ * Three consequences are visible in the interval form and all three are rungs:
+ *
+ *  - **2R ≤ h·ν kills the row.** The intervals are empty, so rows past
+ *    |s_y| = √(1 − (h·ν/2)²) carry nothing — and a darkfield ring at |s_y| > 1
+ *    carries nothing at any ν, while still counting in the denominator.
+ *  - **2R ≥ (h+1)·ν closes the gaps.** Consecutive intervals then overlap and
+ *    the union is the whole line, so the row carries everywhere the aperture
+ *    reaches, whatever the chord looks like.
+ *  - **Between them the row is striped**, carrying (2R − h·ν) out of every ν,
+ *    and which stripes the chord lands on is what makes the sampled lattice's
+ *    answer jump around (§ 6ab.14).
+ *
+ * Preconditions, both different from `harmonicSupportWeight`: the pupil is the
+ * hard unit disc, **closed** — which is what makes the ν = 1 carrying set the
+ * single axial point rather than nothing — where the sampled leg asks a
+ * `PupilFunction` and so answers for an apodized or aberrated one; and the
+ * grating is along x.
+ */
+export function harmonicCarryingChord(
+  inner: number,
+  outer: number,
+  nu: number,
+  sy: number,
+  harmonic = 2,
+): number {
+  apertureGuards(inner, outer, nu, harmonic, "harmonicCarryingChord");
+  if (!Number.isFinite(sy)) throw new Error(`harmonicCarryingChord: sy must be finite, got ${sy}`);
+  const across = outer * outer - sy * sy;
+  if (across <= 0) return 0;
+  const half = Math.sqrt(across);
+  const hole = inner * inner - sy * sy;
+  // Above the hole the chord is one interval through the axis; inside it, two.
+  const chord: [number, number][] =
+    hole <= 0
+      ? [[-half, half]]
+      : [
+          [-half, -Math.sqrt(hole)],
+          [Math.sqrt(hole), half],
+        ];
+  const radial = 1 - sy * sy;
+  if (radial <= 0) return 0;
+  const reach = Math.sqrt(radial);
+  // Only the m whose interval can meet the chord at all — the rest are empty
+  // work, and the count is O((1 + outer)/ν) rather than a cap someone chose.
+  const first = Math.floor((-reach - outer) / nu) - 1;
+  const last = Math.ceil((reach + outer) / nu) + 1;
+  let carried = 0;
+  for (let m = first; m <= last; m++) {
+    const lo = -reach - m * nu;
+    const hi = reach - (m + harmonic) * nu;
+    if (!(hi > lo)) continue;
+    for (const [c0, c1] of chord) {
+      const from = Math.max(c0, lo);
+      const to = Math.min(c1, hi);
+      if (to > from) carried += to - from;
+    }
+  }
+  // The intervals for consecutive m overlap once (h+1)·ν ≤ 2R, so the sum above
+  // can double-count; the union is then the whole line and the row is full.
+  const chordLength = chord.reduce((sum, [c0, c1]) => sum + (c1 - c0), 0);
+  return Math.min(carried, chordLength);
+}
+
+/**
+ * Every row where the row's description changes, so that no panel straddles one.
+ *
+ * Four of them are the ones a reader would name: |s_y| = inner, where the chord
+ * stops being one interval; |s_y| = 1, where the pupil runs out (which is inside
+ * a darkfield ring, not at its edge); and the two radii where the order
+ * intervals empty (2R = h·ν) and where they close their gaps (2R = (h+1)·ν).
+ *
+ * **Those are not enough, and the failure is quiet.** The rest are the rows
+ * where an order-interval endpoint crosses a chord endpoint — a stripe entering
+ * or leaving the aperture. Between two of those the integrand is a fixed
+ * algebraic expression and Gauss–Kronrod is exact on it to roundoff; across one,
+ * the pair can agree on a value they have both missed, because a stripe narrower
+ * than the node spacing contributes nothing at any of the fifteen nodes and the
+ * error estimate is then **zero**. Measured on a 0.999–1.001 ring: 0.11700
+ * against a true 0.11656, 2.4e-4 high, with the quadrature reporting
+ * convergence. Adaptivity cannot rescue that — it refines where it sees
+ * disagreement, and there is none to see.
+ *
+ * The crossings are not a search. An interval endpoint is ±R − m·ν with
+ * R = √(1 − s_y²) and a chord endpoint is ±√(a − s_y²) with a = outer² or
+ * inner², so in y = s_y² each crossing solves ±√(1 − y) + c = ±√(a − y) for the
+ * offset c the order index contributes. Squaring twice gives
+ *
+ *     y = (4a − K²) / (4c²),   K = 1 + a − c²
+ *
+ * — one root per (radius, m, endpoint), independent of both signs, which is why
+ * the sign pairs are not enumerated. Roots outside the aperture are dropped and
+ * spurious ones cost only an extra panel boundary, so the list is allowed to be
+ * generous.
+ */
+function carryingRowEdges(inner: number, outer: number, nu: number, harmonic: number): number[] {
+  const edges = new Set<number>([0, outer]);
+  const add = (value: number) => {
+    if (Number.isFinite(value) && value > 0 && value < outer) edges.add(value);
+  };
+  add(inner);
+  add(1);
+  for (const gap of [harmonic * nu, (harmonic + 1) * nu]) {
+    const squared = 1 - (gap / 2) * (gap / 2);
+    if (squared > 0) add(Math.sqrt(squared));
+  }
+  for (const radius of inner > 0 ? [outer, inner] : [outer]) {
+    const a = radius * radius;
+    const last = Math.ceil((1 + radius) / nu) + 2;
+    for (let m = -last; m <= last; m++) {
+      for (const c of [-m * nu, -(m + harmonic) * nu]) {
+        if (c === 0) continue;
+        const k = 1 + a - c * c;
+        const y = (4 * a - k * k) / (4 * c * c);
+        if (y >= 0 && y <= a) add(Math.sqrt(y));
+      }
+    }
+  }
+  return [...edges].sort((first, second) => first - second);
+}
+
+/**
+ * The rows between two radii, integrated in the angle that flattens the square
+ * root at whichever edge is in play.
+ *
+ * `scale` is the radius whose edge this piece runs into: s_y = scale·sin φ, so
+ * the chord's √(scale² − s_y²) becomes scale·cos φ and the Jacobian supplies the
+ * other factor of cos. Both edges of an annulus are square-root **cusps** in s_y
+ * — the outer one at the aperture's rim, the inner one where the hole's edge
+ * enters the chord — and bisection converges on a cusp more slowly than the error
+ * budget shrinks, so neither can be left in. Split at |s_y| = inner and each
+ * piece has exactly one, at its own end, where its own substitution removes it.
+ */
+function carryingRowsBetween(
+  inner: number,
+  outer: number,
+  nu: number,
+  harmonic: number,
+  rows: number[],
+  scale: number,
+): number {
+  const angles = [...new Set(rows.map((sy) => Math.asin(Math.min(1, sy / scale))))].sort(
+    (first, second) => first - second,
+  );
+  let total = 0;
+  for (let i = 0; i + 1 < angles.length; i++) {
+    total += adaptiveIntegral(
+      (angle) =>
+        harmonicCarryingChord(inner, outer, nu, scale * Math.sin(angle), harmonic) *
+        scale *
+        Math.cos(angle),
+      angles[i]!,
+      angles[i + 1]!,
+      { tolerance: 1e-12 },
+    );
+  }
+  return total;
+}
+
+/** What `harmonicCarryingArea` reports: an area, and the fraction it is of. */
+export interface HarmonicCarryingArea {
+  /** Carrying area, in the s² units the aperture radii are given in. */
+  readonly area: number;
+  /** That area over the aperture's own — what the sampled weight estimates. */
+  readonly fraction: number;
+}
+
+/**
+ * The **area** of the aperture that carries `harmonic`·ν, and its fraction of
+ * the whole — the quantitative form of `apertureCarriesHarmonic`.
+ *
+ * `harmonicSupportWeight` returns the fraction of a *sampled* source's weight
+ * that carries the harmonic, and `annularSource`/`diskSource` weight their
+ * points equally over equal-area cells, so that weight is a midpoint estimate of
+ * exactly this number. Until § 6ab.14 there was nothing to compare it against:
+ * § 6ab.12 could say the gate was not conservative (positive weight and zero
+ * weight are thirteen orders apart in the rendered harmonic) but not whether a
+ * given lattice *resolves* the carrying set, which is the difference between
+ * "there is a second harmonic" and "this reading of it is worth its digits".
+ *
+ * Integrated row by row over `harmonicCarryingChord`, which is where the
+ * exactness lives. The rows are even in s_y, so half the range is integrated and
+ * doubled; every row where the row's description changes is split at rather than
+ * discovered (`carryingRowEdges`, and the four such rows a reader would name are
+ * *not* enough); and the two pieces either side of |s_y| = inner are each
+ * integrated in their own angle (`carryingRowsBetween`), because both edges of
+ * an annulus are square-root cusps and a cusp is what this quadrature cannot
+ * afford. The annulus 0.3–0.5 at ν = 0.4 — an aperture that carries everywhere,
+ * the easiest case there is — ran out of bisections before that split; after it,
+ * nothing in a 1 345-case sweep bisects more than twice.
+ *
+ * **Zero is exact and 1 is not.** Where no row carries, every integrand
+ * evaluation is exactly 0 and so is the sum — so this agrees with
+ * `apertureCarriesHarmonic` as a predicate rather than approximately (measured
+ * over 3 200 aperture/ν combinations, no disagreement, and the smallest nonzero
+ * fraction anywhere in that sweep is 2.9e-4 — there is no ambiguous band). A
+ * full aperture instead reads 1 to the tolerance, because the integral is then
+ * the aperture's own area and has to be got by quadrature like anything else.
+ */
+export function harmonicCarryingArea(
+  inner: number,
+  outer: number,
+  nu: number,
+  harmonic = 2,
+): HarmonicCarryingArea {
+  apertureGuards(inner, outer, nu, harmonic, "harmonicCarryingArea");
+  const rows = carryingRowEdges(inner, outer, nu, harmonic);
+  const half =
+    (inner > 0
+      ? carryingRowsBetween(
+          inner,
+          outer,
+          nu,
+          harmonic,
+          rows.filter((sy) => sy <= inner),
+          inner,
+        )
+      : 0) +
+    carryingRowsBetween(
+      inner,
+      outer,
+      nu,
+      harmonic,
+      rows.filter((sy) => sy >= inner),
+      outer,
+    );
+  const area = 2 * half;
+  return { area, fraction: area / (Math.PI * (outer * outer - inner * inner)) };
 }

@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice masked to radius S frees the slider whose central demonstration a snapped S would delete, and the cutoff gap is a divisibility law killing every power-of-two step; the phase panel audited and declined, its unconverged 2ν readout answered by the range over four samplings — and § 6ab.12 finding it printed where 2ν cannot exist: the beat needs two orders 2ν apart in the pupil, so ν < 1 and < (1+outer)/3 in darkfield; then § 6ab.13 finding the ORDERS folded onto that grid too — the object now built from its spectrum, what does not fit dropped and printed | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS on the pupil's lattice, never S — so a lattice masked to radius S frees the slider, the cutoff gap a divisibility law killing every power-of-two step; the phase panel audited and declined; § 6ab.12 gating the 2ν readout on where the beat exists — two orders 2ν apart inside the pupil: ν < 1, and < (1+outer)/3 in darkfield; § 6ab.13 finding the ORDERS folded onto it too, the object now built from its spectrum; § 6ab.14 making it quantitative — the carrying AREA, approached by the sampled weight under 0.55/samples, not monotonically, the whole condenser only below √((1−S²)/2) | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -11086,9 +11086,9 @@ outside the pupil reaches a pair only by borrowing a whole number of orders. The
 smallest usable count is 3, so the binding condition is 3ν ≤ 1 + outer and the
 ring's second harmonic stops at **(1 + outer)/3 — 0.8 for A3's own 1.1–1.4
 ring**, three slider stops below where a reader would expect anything to change.
-The ring's carrying area *thins* to it rather than falling off it (55% at
-ν = 0.25, 19% at 0.7, 6.6% at 0.75, 0.6% at 0.79, nothing at 0.8), which is the
-evidence that it is a boundary of the geometry. The grating's own line survives
+The ring's carrying area *thins* to it rather than falling off it (as areas, from
+§ 6ab.14: 55.11% at ν = 0.25, 19.66% at 0.7, 7.027% at 0.75, 0.634% at 0.79,
+nothing at 0.8), which is the evidence that it is a boundary of the geometry. The grating's own line survives
 where its second harmonic does not: at ν = 0.875 the ring still carries ν and
 not 2ν, so darkfield does not stop imaging there — it stops having a second
 harmonic, and those are different claims.
@@ -11108,8 +11108,10 @@ printing four significant figures in all of them:
   shown "darkfield has no second harmonic". § 6ab.11 measured the 2.3e13 spread
   and could not name the cause. The weights are point counts: **0 of 16, 2 of 36,
   6 of 68, 10 of 128** — and the surviving three are thin enough (5.6%, 8.8%,
-  7.8%, against the aperture's own 6.6%) to explain why they still disagree by
-  1.35× once they agree there *is* one.
+  7.8%, against the aperture's own **7.027%**; the 6.6% first quoted here is a
+  scan that weights every (ring, angle) sample equally and so is not an area at
+  all, corrected at § 6ab.14) to explain why they still disagree by 1.35× once
+  they agree there *is* one.
 - **aperture no, sampling yes — the lattice invented it.** At ν = 1 exactly the
   carrying set is the single on-axis direction: zero area, so a real objective at
   its own cutoff transmits nothing, but `diskSource` puts a point at the origin at
@@ -11156,13 +11158,13 @@ The gate stands unchanged: it was never the aliasing it was gating.
 
 ### Not yet pinned
 
-- **Whether the sampled carrying fraction converges to the aperture's area
+- ~~**Whether the sampled carrying fraction converges to the aperture's area
   fraction.** The four ring samplings read 0%, 5.6%, 8.8% and 7.8% against a
-  scanned 6.6%: they bracket it and are not monotone in the count. A convergent
-  quadrature statement would make the gate quantitative — "this sampling
-  under-resolves the carrying set by X" — rather than binary, and it is the
-  nearest thing to the render-free spread predictor § 6ab.11 wanted. Existence is
-  now render-free; magnitude still is not.
+  scanned 6.6%: they bracket it and are not monotone in the count.~~ **Closed at
+  § 6ab.14, and the scanned 6.6% was the wrong reference** — that scan weights
+  every (ring, angle) sample equally, which is not an area. The area is 7.027%,
+  the sampled weight converges to it under 0.55/samples, and the
+  non-monotonicity is real and survives to 255 samples.
 - ~~**Whether aliased orders should be refused rather than measured.**~~
   **Answered at § 6ab.13, and neither — they are not put on the grid at all.**
   Refusing needed a threshold; measuring needed one too. Building the object from
@@ -11294,6 +11296,129 @@ where the reading is genuine, removing them changes nothing.
   corner the precondition has moved. No rung asks whether the null degrades with
   `droppedEnergy` or is indifferent to it, and the two would look identical
   everywhere the panel is usually set.
+
+### 6ab.14 — how much of the condenser carries it, and the reference that was not an area
+
+`packages/core/src/math/quadrature.ts` (`adaptiveIntegral`),
+`packages/core/src/illumination/transfer.ts`
+(`harmonicCarryingChord`, `harmonicCarryingArea`),
+`packages/core/test/harmonic-carrying-area.test.ts`, 19 rungs, 2.3 s.
+
+§ 6ab.12's first open item, closed. It asked whether the *sampled* carrying
+weight converges to the aperture's own carrying fraction, and could not be
+answered because the thing it would converge to did not exist in the repo — the
+number § 6ab.12 compared against was borrowed from a scan, and the scan was
+measuring something else.
+
+**The criterion decomposes by row, and the row is exact.** The grating runs along
+x, so its orders differ only in s_x and each row of constant s_y is an
+independent one-dimensional problem: a direction carries h·ν iff some integer m
+puts s_x + m·ν and s_x + (m+h)·ν both inside the pupil, which is the interval
+s_x ∈ [−R − m·ν, R − (m+h)·ν] with R = √(1 − s_y²). One interval per m, all of
+length 2R − h·ν, all spaced ν apart. Three facts fall out of that picture and all
+three are used:
+
+- **2R ≤ h·ν empties the row** — so nothing above |s_y| = √(1 − (h·ν/2)²) carries,
+  and a darkfield ring's rows past |s_y| = 1 carry nothing at any ν while still
+  counting in the denominator.
+- **2R ≥ (h+1)·ν closes the gaps** and the row carries wherever the aperture
+  reaches, whatever the chord looks like.
+- **Between them the row is striped**, carrying 2R − h·ν out of every ν. Which
+  stripes the chord lands on is the whole story of the sampled lattice's scatter.
+
+`harmonicCarryingChord` is that row measure — finite unions of intervals, exact
+arithmetic, no quadrature — and `harmonicCarryingArea` integrates it.
+
+### The number the open item was measured against was a different quantity
+
+§ 6ab.12 quoted "the aperture's own 6.6%" from a brute-force scan stepping
+uniformly in ring index and angle with **equal weight per sample**. That is
+∫∫ dr dφ, not ∫∫ r dr dφ: a fraction of directions sampled that way, not a
+fraction of area. `annularSource` and `diskSource` weight equal-area cells
+equally, so the lattice weight is a midpoint estimate of the **area** fraction,
+and the two limits are genuinely different — refining the scan 4× moves it from
+6.579% to 6.562% and no closer to the area's **7.0268%**, while putting the r
+back moves the same samples onto 7.030%. The r-weighted scan is the cross-check
+on the quadrature by a route that shares no code with it: no rows, no intervals,
+no Gauss nodes, one point at a time.
+
+Restated against the right reference, § 6ab.12's three lattice readings are
+−21%, +26% and +11% rather than −16%, +34% and +19%, **and the finest is now the
+closest**, which the old comparison did not show.
+
+### It converges, under 0.55/samples, and not monotonically
+
+Across 7…255 samples on the ring and on an S = 0.9 disc, |sampled − exact| stays
+below 0.55/samples. That is a bound and not a rate: the observed decay is faster
+than 1/n over the range, but **31 samples reads 7.246% and 45 reads 6.410%** —
+half again as many points for 2.8× the error — so a rate would be a claim the
+data does not support. The bound's own extreme is § 6ab.12's headline cell: the
+7-sample ring has no point in the carrying set at all, so its error is the whole
+7.027%, which is 0.49 of the 0.55. **The gate exists to catch the case that sets
+the bound**, and "more samples" is not "more accurate" here — what moves the
+reading is which stripes the lattice lands on.
+
+### A new cutoff: √((1 − S²)/2), where the condenser stops carrying with all of itself
+
+Full coverage fails first at a row that is neither the axis nor the rim. A row
+carries its whole chord two ways — the gaps close (2R ≥ (h+1)·ν), hardest at the
+outermost row where R is least; or, **for even h only**, the one interval centred
+on the axis already covers the chord, hardest at the axis. The two bind in
+opposite directions, so the answer is where they cross, and for h = 2 that is
+
+> **ν\* = √((1 − S²)/2)** for S ≥ 1/3, and 1 − S below it, the two agreeing
+> exactly at S = 1/3.
+
+Checked at ±1e-9 on the row the closed form names. For odd h no interval sits on
+the axis, the second branch does not exist, and ν\* = 2√(1 − S²)/(h+1) — verified
+at h = 1 and 3. At S = 0.6 every direction carries 2ν out to ν = 0.5657 while the
+harmonic itself survives to ν = 1: **between them the condenser is imaging the
+harmonic with a shrinking part of itself**, and that is where the panel's slider
+spends most of its travel.
+
+### Two ways a quadrature lies, both found by the aperture that hides a stripe
+
+- **Splitting at the rows a reader can name is not enough.** |s_y| = inner,
+  |s_y| = 1 and the two radii above are the obvious breakpoints; the rest are the
+  rows where an order-interval endpoint crosses a chord endpoint. On a
+  0.999–1.001 ring, a panel straddling one of those has a stripe narrower than the
+  node spacing: all fifteen Kronrod nodes miss it, **the error estimate is
+  therefore zero**, and the answer comes back 0.11700 against a true 0.11656 with
+  every sign of having converged. Adaptivity cannot rescue that — it refines where
+  it sees disagreement and there is none to see. The crossings are not searched
+  for: in y = s_y² each solves ±√(1 − y) + c = ±√(a − y), so y = (4a − K²)/(4c²)
+  with K = 1 + a − c².
+- **A cusp is unaffordable, so it is substituted away rather than refined.** Both
+  edges of an annulus are square-root cusps in s_y. The panel error there falls
+  like w^1.5 while the budget each child inherits falls like w, so bisection loses:
+  the annulus 0.3–0.5 at ν = 0.4 — an aperture that carries *everywhere* — ran out
+  of 40 bisections rather than returning 1. Integrating each piece in its own
+  angle, s_y = scale·sin φ, removes the cusp at that piece's own edge; nothing in
+  a 1 345-case sweep then bisects more than twice. The same lesson is a rung on
+  the integrator itself: ∫₀¹√(1−x²) needs 53 levels at a tolerance of 1e-13 and
+  is exact to 2e-16 whenever it finishes, while the substituted form takes it in
+  **one panel** at 1e-15.
+
+**Zero stays exact.** Where no row carries, every integrand evaluation is exactly
+0 and so is the sum, so the area agrees with `apertureCarriesHarmonic` as a
+predicate rather than approximately — measured over 1 600 aperture/ν cells with no
+disagreement, and the smallest positive fraction anywhere in the sweep is 2.9e-4.
+There is still no threshold anywhere in the gate. That property is what forced the
+ring to be integrated as one integrand: computing it as a difference of two discs
+is a true identity and converges just as well, but it leaves 9e-17 where the
+answer is none.
+
+### Not yet pinned
+
+- **Whether the bound is a rate.** 0.55/samples holds over 7…255 and the decay
+  looks faster, but the scatter is set by lattice commensurability with a striped
+  set and nothing here models that. A rate would need either an averaging argument
+  or a lattice-counting one.
+- **What the panel should do with the number.** The engine can now say "this
+  sampling under-resolves the carrying set by X"; no surface says it, and the gate
+  in `packages/app/src/phase.ts` is still binary.
+- **The h ≥ 3 harmonics** — still § 6ab.12's item. The area function answers for
+  any h and two rungs use h = 3, but nothing renders one.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

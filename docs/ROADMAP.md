@@ -1609,15 +1609,22 @@
    nominal axis.
 
    *With that, every numbered step in this build order is closed, and so are the
-   three items it left parked.* **What is open now is four things and none of
+   three items it left parked.* **What is open now is three things and none of
    them is an engine step:** the telescope scenes' *content* (§ 5 above — an
    albedo map, lunar terrain, a real limb-darkening coefficient, which is
    measured data to source rather than code to write); § 6x's two deferrals, the
    DIN objective's telecentricity and the condenser's own aberrations, both left
-   deliberately and both explained there; **what the phase panel should print for
-   its 2ν contrast above S ≈ 0.9**, which is new and is the one defect on this
-   list (§ 6ab.10, and the sub-entry below); and the v2+ list further down. The
-   v1 cut after this is what decides whether this is shippable.
+   deliberately and both explained there; ~~**what the phase panel should print
+   for its 2ν contrast above S ≈ 0.9**~~ — **closed**, at § 6ab.12 (the readout
+   was printed where the harmonic cannot exist, and the fix is a geometric gate
+   with no threshold in it), § 6ab.13 (the grating's own orders were folding onto
+   the grid, so the object is now built from its spectrum) and § 6ab.14 (how much
+   of the condenser carries the harmonic, which the sampled lattice converges to
+   under 0.55/samples and not monotonically); and the v2+ list further down. The
+   v1 cut after this is what decides whether this is shippable. **What is left in
+   the panel is a surface, not an engine step**: the carrying fraction exists and
+   nothing prints it, so the gate is still binary where it could say by how much
+   a sampling under-resolves the set it is reading.
 
    *The three parked items, and why each is recorded rather than struck.* All
    three were written down where they were found instead of being gathered into
@@ -1664,7 +1671,12 @@
      where the shifted pupil is tangent to the objective's. The shipped reading
      is an order of magnitude outside that scatter. What the panel should print
      instead costs a second render to decide, so it is left open rather than
-     guessed at.
+     guessed at. **Answered at § 6ab.12, and the framing was wrong**: the
+     question is not how much scatter is tolerable but whether the harmonic
+     exists at the setting being read, which is geometry and needs no threshold
+     and no second render. § 6ab.14 then measured what fraction of the condenser
+     carries it, so the scatter has a reference: the lattice converges to that
+     area under 0.55/samples, and not monotonically.
 
    - ~~*The discarded diffraction PSF § 3c.2 found inside `adaptivePsf` at
      geometric weight 1.*~~ **✅ closed at § 3c.3.** Recorded here because § 3c.2
