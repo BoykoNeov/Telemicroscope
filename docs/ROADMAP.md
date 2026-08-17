@@ -1620,7 +1620,8 @@
    with no threshold in it), § 6ab.13 (the grating's own orders were folding onto
    the grid, so the object is now built from its spectrum) and § 6ab.14 (how much
    of the condenser carries the harmonic, which the sampled lattice converges to
-   under 0.55/samples and not monotonically); and the v2+ list further down. The
+   under 0.74/samples and not monotonically — 0.55 until § 6ab.17 asked every
+   count rather than eleven); and the v2+ list further down. The
    v1 cut after this is what decides whether this is shippable. The panel's own
    half landed with § 6ab.14: it prints how much of the condenser's area carries
    the harmonic beside how much of its weight the lattice puts there, so the
@@ -1677,7 +1678,9 @@
      exists at the setting being read, which is geometry and needs no threshold
      and no second render. § 6ab.14 then measured what fraction of the condenser
      carries it, so the scatter has a reference: the lattice converges to that
-     area under 0.55/samples, and not monotonically.
+     area under 0.74/samples, and not monotonically. (0.55 until § 6ab.17: that
+     constant was measured at eleven counts and n = 17 reads 0.7373/n. The
+     envelope over the range is n^{-4/3}; no rate is claimed.)
 
    - ~~*The discarded diffraction PSF § 3c.2 found inside `adaptivePsf` at
      geometric weight 1.*~~ **✅ closed at § 3c.3.** Recorded here because § 3c.2

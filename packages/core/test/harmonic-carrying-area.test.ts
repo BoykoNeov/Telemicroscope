@@ -35,8 +35,10 @@ import { adaptiveIntegral } from "../src/math";
  *    is estimating. Restoring the r turns the three sampled readings from "5.6,
  *    8.8, 7.8 against 6.6" into "against 7.027".
  *  - **It converges, and not monotonically.** |sampled − exact| stays under
- *    0.55/samples across 7…255, but a finer lattice is regularly a worse one:
- *    31 samples beats 45 by 2.8×, because what matters is which stripes of the
+ *    0.55/samples ~~across 7…255~~ **at the eleven counts below** — n = 17 reads
+ *    0.7373/n and was never asked, which § 6ab.17 found and corrects to 0.74/n
+ *    over every integer — but a finer lattice is regularly a worse one: 31
+ *    samples beats 45 by 2.8×, because what matters is which stripes of the
  *    carrying set the lattice lands on, not how many points it has.
  *  - **A new cutoff falls out of the same geometry.** Below
  *    ν* = √((1 − S²)/2) *every* direction of a brightfield condenser carries the
@@ -419,10 +421,16 @@ describe("§ 6ab.14 — the open item: does the sampled weight converge to it", 
     expect(Math.abs(errors[2]!)).toBeLessThan(Math.abs(errors[1]!));
   });
 
-  it("converges, under 0.55/samples across 7…255 and on a disc as well", () => {
+  it("converges, under 0.55/samples at these eleven counts and on a disc as well", () => {
     // The quadrature statement § 6ab.12 wanted. It is a bound and not a rate:
     // the observed decay is faster than 1/n over this range, but not steadily
     // enough for a rate to be the honest claim.
+    //
+    // **This rung's title used to say "across 7…255" and § 6ab.17 found that
+    // false.** ELEVEN counts are not a range: the ring at n = 17 — which is not
+    // one of them — reads 0.7373/n, 34% past this constant. What survives is the
+    // statement about these eleven, which is what is asserted here; the bound
+    // over every integer is 0.74/n and lives in § 6ab.17's block below.
     for (const samples of COUNTS) {
       const sampled = harmonicSupportWeight(PUPIL, ring(samples), ORDERS);
       expect(Math.abs(sampled - RING_AT_075) * samples).toBeLessThan(0.55);
@@ -458,5 +466,174 @@ describe("§ 6ab.14 — the open item: does the sampled weight converge to it", 
     // not by the asymptotics.
     expect(harmonicSupportWeight(PUPIL, ring(7), ORDERS)).toBe(0);
     expect(RING_AT_075 * 7).toBeCloseTo(0.4919, 3);
+  });
+});
+
+/**
+ * § 6ab.17 — "whether the bound is a rate", which § 6ab.14 left open, and the
+ * first thing the wider measurement finds is that the bound is not the bound.
+ *
+ * § 6ab.14 wrote: "Across 7…255 samples on the ring and on an S = 0.9 disc,
+ * |sampled − exact| stays below 0.55/samples." It was checked at **eleven**
+ * counts. Asked at every integer in the same range, the ring at **n = 17** reads
+ * `0.7373/n` — 34% past the constant, on a lattice one point coarser than the
+ * 21 the panel's own control offers. Eleven samples of a range is not a claim
+ * about the range, and this is the second time in § 6ab that a number outlived
+ * what it was measured on (§ 6ab.15's ν = 1 exclusion was the first).
+ *
+ * ## What the answer to "is it a rate" actually is
+ *
+ * **n^{-4/3} is an envelope over the measured range and n^{-3/2} is not**, and
+ * the test that separates them needs no theorem: if the error decayed like
+ * n^{-p}, then e·n^q is maximized at the *bottom* of the range when q < p and at
+ * the *top* when q > p. Over 7…781 in three cells,
+ *
+ *  - sup e·n^{4/3} is 1.90, 1.29 and 1.44, attained at n = 17, 26 and 36 — the
+ *    bottom, so the true exponent is above 4/3;
+ *  - sup e·n^{3/2} is 3.79, 2.35 and 2.69, attained at n = 231, 233 and 44 — the
+ *    top in two of the three, so 3/2 over-corrects.
+ *
+ * So the exponent is **between 4/3 and 3/2 and is not one number across
+ * apertures**, which is why the deliverable is a measured envelope and not a
+ * rate. That is not a gap this file can close by measuring further: what the
+ * quantity *is* is a lattice count inside a region bounded by circular arcs, and
+ * the exponent for those is the Gauss-circle family, where the proven and the
+ * conjectured bounds differ and the truth is a famous open question. Recorded as
+ * the reason to stop, not as a pin — nothing below is anchored on it.
+ */
+describe("§ 6ab.17 — the 0.55 was eleven counts, and the envelope is n^{-4/3}", () => {
+  const COUNTS = [7, 11, 15, 21, 31, 45, 65, 91, 127, 181, 255];
+
+  /** Dense where the sup lives, thinning where the cost is n². 2.2 s for all
+   *  three cells, which is what buys asking every integer at the bottom. */
+  const LADDER: number[] = (() => {
+    const ns: number[] = [];
+    for (let n = 7; n <= 61; n++) ns.push(n);
+    for (let n = 63; n <= 255; n += 2) ns.push(n);
+    for (let n = 261; n <= 801; n += 20) ns.push(n);
+    return ns;
+  })();
+
+  /** Three apertures at two ν, so an envelope is not one aperture's habit. The
+   *  third is a genuinely PARTIAL disc at a different ν — § 6ab.14's two are both
+   *  at ν = 0.75, and a disc below ν* = √((1−S²)/2) carries everywhere and would
+   *  be exact for a reason that has nothing to do with quadrature. */
+  const CELLS = [
+    {
+      label: "ring 1.1–1.4, ν = 0.75",
+      source: (n: number) => annularSource(DARK_OUTER, DARK_INNER, n),
+      orders: ORDERS,
+      exact: RING_AT_075,
+    },
+    {
+      label: "disc S = 0.9, ν = 0.75",
+      source: (n: number) => diskSource(0.9, n),
+      orders: ORDERS,
+      exact: harmonicCarryingArea(0, 0.9, 0.75).fraction,
+    },
+    {
+      label: "disc S = 0.5, ν = 0.875",
+      source: (n: number) => diskSource(0.5, n),
+      orders: { cycles: 14, pupilSamples: 32 },
+      exact: harmonicCarryingArea(0, 0.5, 0.875).fraction,
+    },
+  ];
+
+  /** |sampled − exact| at every count on the ladder, for one cell. */
+  function errors(cell: (typeof CELLS)[number]): { n: number; e: number }[] {
+    return LADDER.map((n) => ({
+      n,
+      e: Math.abs(harmonicSupportWeight(PUPIL, cell.source(n), cell.orders) - cell.exact),
+    }));
+  }
+
+  /** Where e·n^q is largest, and how large. */
+  function peak(rows: { n: number; e: number }[], q: number): { n: number; value: number } {
+    let best = { n: 0, value: -1 };
+    for (const { n, e } of rows) {
+      const value = e * n ** q;
+      if (value > best.value) best = { n, value };
+    }
+    return best;
+  }
+
+  const measured = CELLS.map((cell) => ({ cell, rows: errors(cell) }));
+
+  it("is broken at n = 17, which § 6ab.14 never asked", () => {
+    // The ring one point coarser than the panel's 21. 0.7373 against 0.55, and
+    // the eleven counts' own worst is 0.4919 at n = 7 — so the constant was not
+    // conservative, it was measured on a set that missed its own maximum.
+    const ring = measured[0]!.rows;
+    const at17 = ring.find((r) => r.n === 17)!;
+    expect(at17.e * 17).toBeGreaterThan(0.55);
+    expect(at17.e * 17).toBeCloseTo(0.7373, 4);
+    // And the counts § 6ab.14 did ask all still pass, so nothing there was wrong
+    // except the range the sentence claimed.
+    for (const n of COUNTS) {
+      const row = ring.find((r) => r.n === n)!;
+      expect(row.e * n, `n = ${n}`).toBeLessThan(0.55);
+    }
+  });
+
+  it("holds at 0.74/samples over every integer 7…781, in all three cells", () => {
+    // Measured sups: 0.7373 at n = 17 (ring), 0.5348 at n = 7 (S = 0.9 disc),
+    // 0.4653 at n = 17 (S = 0.5 disc). The constant is the ring's own maximum
+    // rounded up in the fourth digit, not a margin.
+    for (const { cell, rows } of measured) {
+      const worst = peak(rows, 1);
+      expect(worst.value, cell.label).toBeLessThan(0.74);
+    }
+    expect(peak(measured[0]!.rows, 1).n).toBe(17);
+  });
+
+  it("and is loose past n ≈ 30 — five times loose by the top of the range", () => {
+    // What kills "1/n is the rate": the same quantity that reaches 0.74 at n = 17
+    // is under 0.14 for every n ≥ 401. A bound whose slack grows with n is not a
+    // description of the decay.
+    for (const { cell, rows } of measured) {
+      const tail = rows.filter((r) => r.n >= 401);
+      expect(tail.length).toBeGreaterThan(15);
+      const worst = Math.max(...tail.map((r) => r.e * r.n));
+      expect(worst, cell.label).toBeLessThan(0.14);
+      expect(peak(rows, 1).value / worst, cell.label).toBeGreaterThan(4);
+    }
+  });
+
+  it("puts n^{-4/3}'s worst case at the BOTTOM of the range, in every cell", () => {
+    // e·n^{4/3} maximized at small n is what an envelope looks like when the true
+    // decay is faster than n^{-4/3}. Measured 1.90 at n = 17, 1.29 at 26, 1.44 at
+    // 36 — all inside the first fifth of the ladder.
+    for (const { cell, rows } of measured) {
+      const worst = peak(rows, 4 / 3);
+      expect(worst.value, cell.label).toBeLessThan(1.9);
+      expect(worst.n, cell.label).toBeLessThan(64);
+    }
+  });
+
+  it("NEGATIVE CONTROL: n^{-3/2} puts its worst case at the TOP, so it is not one", () => {
+    // The same construction with q = 3/2. In the two ν = 0.75 cells the maximizer
+    // walks to n = 231 and n = 233 — an envelope whose binding case is the last
+    // thing measured is an envelope about to fail. The third cell peaks at n = 44,
+    // which is why the honest statement is a bracket rather than an exponent: the
+    // decay is between n^{-4/3} and n^{-3/2} and it is not the same in every
+    // aperture.
+    const tops = measured.map(({ rows }) => peak(rows, 1.5).n);
+    expect(tops.filter((n) => n > 200)).toHaveLength(2);
+    // …while no cell's n^{4/3} peak is anywhere near the top.
+    for (const { rows } of measured) expect(peak(rows, 4 / 3).n).toBeLessThan(64);
+  });
+
+  it("has an exact zero to be an envelope of, which is what makes the sup meaningful", () => {
+    // § 6ab.14's own guarantee, restated as this block's precondition: where no
+    // row carries, every integrand evaluation is exactly 0 and so is the sampled
+    // weight, so none of the errors above is a difference of two approximations.
+    // An S = 0.3 disc at ν = 1.0625, past the disc's own 2/h = 1: no direction it
+    // holds gets both ±1 orders through, so nothing carries 2ν at all.
+    const beyond = { cycles: 17, pupilSamples: 32 };
+    expect(apertureCarriesHarmonic(0, 0.3, 1.0625)).toBe(false);
+    expect(harmonicCarryingArea(0, 0.3, 1.0625).fraction).toBe(0);
+    for (const n of [7, 17, 45, 255]) {
+      expect(harmonicSupportWeight(PUPIL, diskSource(0.3, n), beyond), `n = ${n}`).toBe(0);
+    }
   });
 });

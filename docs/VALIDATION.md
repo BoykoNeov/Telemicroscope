@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; the phase panel audited and declined; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object built from its spectrum; § 6ab.14 the carrying AREA, met under 0.55/samples, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)² where the pair is alone; § 6ab.16 a TRACED pupil, where REALNESS and not evenness is what fails | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object built from its spectrum; § 6ab.14 the carrying AREA, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)² where the pair is alone; § 6ab.16 a TRACED pupil failing REALNESS, not evenness; § 6ab.17 that bound false at n = 17, the envelope n^{-4/3} | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and both plausible-wrong-answer hazards measured and refused by the API: a mismatched axial reference at 59× the signal, and the wrong measuring plane at 13× | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 
@@ -11350,6 +11350,11 @@ closest**, which the old comparison did not show.
 
 ### It converges, under 0.55/samples, and not monotonically
 
+> **Corrected at § 6ab.17: "across 7…255" was eleven counts, and the bound fails
+> between two of them.** The ring at n = 17 reads 0.7373/n. Everything below is
+> true of the eleven counts it was measured at; the statement over every integer
+> is 0.74/n, and the envelope is n^{-4/3}.
+
 Across 7…255 samples on the ring and on an S = 0.9 disc, |sampled − exact| stays
 below 0.55/samples. That is a bound and not a rate: the observed decay is faster
 than 1/n over the range, but **31 samples reads 7.246% and 45 reads 6.410%** —
@@ -11417,10 +11422,13 @@ answer is none.
 
 ### Not yet pinned
 
-- **Whether the bound is a rate.** 0.55/samples holds over 7…255 and the decay
+- ~~**Whether the bound is a rate.** 0.55/samples holds over 7…255 and the decay
   looks faster, but the scatter is set by lattice commensurability with a striped
   set and nothing here models that. A rate would need either an averaging argument
-  or a lattice-counting one.
+  or a lattice-counting one.~~ **Answered at § 6ab.17, and it starts by finding
+  that 0.55/samples does not hold over 7…255** — it holds at the eleven counts
+  that sentence was measured at, and n = 17 reads 0.7373/n. No rate is claimed;
+  the envelope is n^{-4/3}, and the reason not to push further is named there.
 - ~~**What the panel should do with the number.**~~ **Done in the same change**:
   `HarmonicSupport.apertureFraction` carries the exact area, the phase panel
   prints it beside the lattice's own weight, and the 7-sample refusal now names
@@ -11760,6 +11768,69 @@ print without the gate — puts them inside **1.146×, tighter than the h = 2 ro
 own 1.147× in the same images**. That is § 6ab.11's ν = 1.9375 trap exactly, the
 tightest number in the column being the one reading nothing, now reached by moving
 h instead of ν.
+
+### 6ab.17 — the bound was eleven counts, and the envelope is n^{-4/3}
+
+`packages/core/test/harmonic-carrying-area.test.ts`, alongside the rungs it
+corrects.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **0.55/samples is FALSE at n = 17** — the ring reads 0.7373/n, 34% past it | every integer 7…781, not eleven of them | ✅ |
+| …and every one of § 6ab.14's own eleven counts still passes, so only the range claimed was wrong | the same eleven | ✅ |
+| The bound over every integer is **0.74/samples**, in three cells at two ν | measured sup, rounded up in the 4th digit | ✅ |
+| It is **loose past n ≈ 30** — under 0.14/n for every n ≥ 401, five times the slack | the same ladder | ✅ |
+| **sup e·n^{4/3} < 1.9, attained at n = 17, 26 and 36** — the bottom of the range | 3 cells | ✅ |
+| NEGATIVE CONTROL: **sup e·n^{3/2} is attained at n = 231 and 233** — the top, so 3/2 is not an envelope | 2 of 3 cells | ✅ |
+| The third cell is a genuinely PARTIAL disc at a different ν, not one below ν\* that carries everywhere | S = 0.5, ν = 0.875 | ✅ |
+| The zeros are still exact, so no error above is a difference of two approximations | `toBe(0)`, 4 counts | ✅ |
+
+#### The first thing the wider measurement found was the bound
+
+§ 6ab.14 wrote "across 7…255 samples … stays below 0.55/samples" and checked
+**eleven** counts. Asked at every integer over the same range, the ring at
+**n = 17** reads 0.7373/n — one point coarser than the 21 the panel's own control
+offers, and 34% past the constant. The eleven counts' own worst is 0.4919 at
+n = 7, so the number was not conservative; it was measured on a set that missed
+its own maximum, and the sentence then quantified over a range the set did not
+cover.
+
+Nothing about the eleven readings was wrong, which is what makes this the same
+shape as § 6ab.15's ν = 1 exclusion and § 6ab.14's own "6.6% aperture": **a
+number is only as wide as what it was measured on, and the sentence around it is
+where the width gets exaggerated.** The corrected statement is 0.74/samples over
+every integer in 7…781, in three cells at two ν.
+
+#### Whether it is a rate, answered by where the worst case sits
+
+The test that separates exponents needs no theorem. If the error decayed like
+n^{-p}, then e·n^q is maximized at the **bottom** of a range when q < p and at
+the **top** when q > p. Over 7…781:
+
+| q | sup e·n^q (ring / S = 0.9 / S = 0.5) | attained at n = |
+|---|---|---|
+| 1 | 0.737 / 0.535 / 0.465 | 17 / 7 / 17 |
+| 4/3 | 1.896 / 1.285 / 1.439 | 17 / 26 / 36 |
+| 3/2 | 3.788 / 2.347 / 2.694 | **231 / 233** / 44 |
+
+So **n^{-4/3} is an envelope and n^{-3/2} is not**: at q = 4/3 the binding case is
+in the first fifth of the ladder in all three cells, and at q = 3/2 it walks to
+the last thing measured in two of them. An envelope whose worst case is the
+largest n you tried is an envelope about to fail.
+
+The honest claim is therefore a **bracket, not an exponent**: the decay is between
+n^{-4/3} and n^{-3/2}, and it is not the same in every aperture — the S = 0.5 disc
+peaks at n = 44 for q = 3/2 where the ν = 0.75 cells peak past 230. That
+cell-dependence is itself the answer to "is it a rate": there is no single
+exponent for the measurement to converge on.
+
+**And this file stops there on purpose.** The quantity is a lattice count inside a
+region bounded by circular arcs, and the exponent for those is the Gauss-circle
+family, where the proven bounds and the conjectured one differ and the truth is a
+famous open question. Measuring further would land between the same two numbers
+with more digits. That sentence is recorded as the reason to stop, **not as a
+pin** — no rung above is anchored on it, and the 4/3 is a measured envelope over
+a stated range rather than a cited exponent.
 
 ## Step 6ac — the two focal surfaces, and distortion
 

@@ -439,9 +439,11 @@ export interface HarmonicSupport {
    * aperture carries it on 7% of its directions and this 16-point lattice holds
    * none of them knows to raise the sample count, and roughly how far.
    *
-   * **It is not an error bar on the contrast.** 0.55/samples bounds how badly a
-   * lattice resolves the carrying *set*; what that does to the printed 2ν number
-   * is a different quantity, measured separately in § 6ab.11 at 1.06× to 9.75×.
+   * **It is not an error bar on the contrast.** 0.74/samples bounds how badly a
+   * lattice resolves the carrying *set* — 0.55 until § 6ab.17 asked every integer
+   * count rather than eleven of them, and found n = 17 at 0.7373/n — and what that
+   * does to the printed 2ν number is a different quantity, measured separately in
+   * § 6ab.11 at 1.06× to 9.75× and at h > 2 in § 6ab.16 at up to 46.9×.
    */
   readonly apertureFraction: number | null;
   /** Both legs agree there is something to read. The gate. */
