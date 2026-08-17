@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   PANEL_SOURCE_SAMPLES,
   frequencyOf,
+  harmonicNote,
+  harmonicSupportAt,
+  highestCarryingCycles,
+  panelHarmonics,
   renderPhaseScene,
   samplingSpread,
   samplingsThatMatter,
   secondHarmonicSupport,
   type PhaseRequest,
 } from "../src/phase";
+import { apertureCarriesHarmonic } from "@telemicroscope/core/illumination";
 
 /**
  * § 6ab.11 — what the phase panel prints where its 2ν reading is not converged.
@@ -604,5 +609,228 @@ describe("§ 6ab.11 — no spread where there is no reading", () => {
     expect(Number.isNaN(scene.readout.focused.secondHarmonic)).toBe(true);
     expect(scene.readout.focused.secondHarmonicSpread).toBeNull();
     expect(samplingSpread(request, 0, Number.NaN)).toBeNull();
+  });
+});
+
+describe("§ 6ab.15 — the panel reads every harmonic the grid can hold", () => {
+  it("stops at the grid and not at 2, which is where it used to stop", () => {
+    // The old panel showed h = 1 and h = 2 because those were the two the physics
+    // had been written for. The grid's own limit is h·cycles < size/2, so at the
+    // default 128 grid and 12 cycles there was room for five all along.
+    expect(panelHarmonics(at({ cycles: 12, size: 128 }))).toEqual([1, 2, 3, 4, 5]);
+    expect(panelHarmonics(at({ cycles: 20, size: 128 }))).toEqual([1, 2, 3]);
+    // And a bin past Nyquist is never offered — an aliased reading presented as a
+    // harmonic would invent the thing the panel claims to measure.
+    for (const cycles of [7, 12, 20, 31]) {
+      for (const h of panelHarmonics(at({ cycles }))) {
+        expect(h * cycles).toBeLessThan(128 / 2);
+      }
+    }
+  });
+
+  it("reads the parity law straight down the column", () => {
+    // ν = 0.375: roundoff, 0.149, roundoff, 0.109, roundoff. The odd ones are null
+    // and the even ones are not, in one image, which is the whole point of the
+    // column existing.
+    const scene = renderPhaseScene(at({ coherenceParameter: 0, cycles: 6, amplitudeRadians: 1.5 }));
+    if (!scene.ok) throw new Error(scene.error);
+    const readings = scene.readout.focused.harmonics;
+    // Ten of them at 6 cycles on a 128 grid — the list is bounded by the grid, and
+    // the ones past h = 4 have no order pair to make them, which the gate says.
+    expect(readings.map((r) => r.harmonic)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    const supported = (h: number) =>
+      scene.readout.harmonics.find((r) => r.harmonic === h)!.support.exists;
+    let evensSeen = 0;
+    for (const reading of readings) {
+      if (reading.harmonic % 2 === 1) {
+        // Odd is null whether or not anything carries it — that is the law.
+        expect(Math.abs(reading.contrast), `h = ${reading.harmonic}`).toBeLessThan(1e-13);
+      } else if (supported(reading.harmonic)) {
+        expect(reading.contrast, `h = ${reading.harmonic}`).toBeGreaterThan(1e-3);
+        evensSeen++;
+      } else {
+        // Even but unsupported reads roundoff too, for the other reason.
+        expect(Math.abs(reading.contrast), `h = ${reading.harmonic}`).toBeLessThan(1e-13);
+      }
+    }
+    expect(evensSeen).toBe(2);
+    // h = 1 and h = 2 are the list's own members, not a second computation.
+    expect(readings[0]!.contrast).toBe(scene.readout.focused.contrast);
+    expect(readings[1]!.contrast).toBe(scene.readout.focused.secondHarmonic);
+  });
+
+  it("tells the two kinds of zero apart, and defocus is what separates them", () => {
+    // h = 3 is null because it is odd; h = 5 is null because no order pair 5 apart
+    // is inside the pupil from the one direction a coherent source has. Identical
+    // on screen in focus.
+    const focused = renderPhaseScene(at({ coherenceParameter: 0, cycles: 6 }));
+    if (!focused.ok) throw new Error(focused.error);
+    const support = (h: number) => focused.readout.harmonics.find((r) => r.harmonic === h)!.support;
+    expect(support(3).exists).toBe(true);
+    expect(support(5).exists).toBe(false);
+
+    // One wave of defocus, and only the parity null lifts.
+    const defocused = renderPhaseScene(
+      at({ coherenceParameter: 0, cycles: 6, defocusWaves: 1, amplitudeRadians: 1.5 }),
+    );
+    if (!defocused.ok) throw new Error(defocused.error);
+    const reading = (h: number) =>
+      defocused.readout.defocused.harmonics.find((r) => r.harmonic === h)!.contrast;
+    expect(Math.abs(reading(3))).toBeGreaterThan(0.1);
+    expect(Math.abs(reading(5))).toBeLessThan(1e-13);
+  });
+
+  it("costs the same renders it did when it read one bin", () => {
+    // The probe renders three frames per defocus and every harmonic is read off
+    // each of them. Five harmonics are five passes over an image already in hand,
+    // not five probes — so this count is the one § 6ab.11 pinned, unchanged.
+    const scene = renderPhaseScene(at({ coherenceParameter: 0.5, cycles: 12 }));
+    if (!scene.ok) throw new Error(scene.error);
+    expect(scene.readout.focused.harmonics).toHaveLength(5);
+    expect(scene.readout.checkFrames).toBe(3);
+  });
+
+  it("gives the closed form only to even harmonics, and only where its regime holds", () => {
+    const scene = renderPhaseScene(at({ coherenceParameter: 0, cycles: 6, amplitudeRadians: 1.5 }));
+    if (!scene.ok) throw new Error(scene.error);
+    for (const reading of scene.readout.focused.harmonics) {
+      if (reading.harmonic % 2 === 1) {
+        // No symmetric pair, and J_{h/2} has no half-integer order to evaluate.
+        expect(reading.closedForm, `h = ${reading.harmonic}`).toBeNull();
+      }
+    }
+    // At ν = 0.375 the only pair 4 apart is (−2, +2), so h = 4 gets it and h = 2
+    // does not: ±2 is through, so the 2ν beat has more than one pair behind it.
+    const four = scene.readout.focused.harmonics.find((r) => r.harmonic === 4)!;
+    expect(four.closedForm).not.toBeNull();
+    expect(four.closedForm!.residual).toBeLessThan(1e-12);
+    expect(scene.readout.focused.harmonics.find((r) => r.harmonic === 2)!.closedForm).toBeNull();
+  });
+
+  it("names a slider position rather than a cutoff formula that does not generalize", () => {
+    // `highestCarryingCycles` is exhaustive over the cycles control, and it has to
+    // be: the h = 2 closed forms this panel quotes are 2/h for the disc and
+    // (1 + outer)/(h + 1) for the ring, and BOTH fail at an h the panel can reach
+    // — the disc's is 1 + S at h = 1 and 0.6 rather than 2/3 at h = 3 with
+    // S = 0.2; the ring's is 1/3 rather than 0.343 at h = 6.
+    for (const harmonic of [2, 3, 4, 5]) {
+      for (const request of [
+        at({ illumination: "darkfield", coherenceParameter: 0 }),
+        at({ coherenceParameter: 0.5 }),
+      ]) {
+        const best = highestCarryingCycles(request, harmonic);
+        const inner = request.illumination === "darkfield" ? 1.1 : 0;
+        const outer = request.illumination === "darkfield" ? 1.4 : request.coherenceParameter;
+        if (best === null) continue;
+        // It carries there...
+        expect(
+          apertureCarriesHarmonic(inner, outer, frequencyOf(best, request.pupilSamples), harmonic),
+        ).toBe(true);
+        // ...and at no coarser setting the panel offers.
+        const maxCycles = Math.max(1, Math.min(request.pupilSamples, Math.floor(request.size / 4) - 1));
+        for (let cycles = best + 1; cycles <= maxCycles; cycles++) {
+          expect(
+            apertureCarriesHarmonic(inner, outer, frequencyOf(cycles, request.pupilSamples), harmonic),
+            `h = ${harmonic}, ${cycles} cycles`,
+          ).toBe(false);
+        }
+      }
+    }
+  });
+
+  it("keeps the h = 2 gate the shipped rungs are pinned to", () => {
+    // `harmonicSupportAt(request, 2)` IS `secondHarmonicSupport`, and the readout's
+    // row is the same object rather than a second computation that could drift.
+    for (const S of [0, 0.5, 1.5]) {
+      const request = at({ coherenceParameter: S, cycles: 12 });
+      expect(harmonicSupportAt(request, 2)).toEqual(secondHarmonicSupport(request));
+      const scene = renderPhaseScene(request);
+      if (!scene.ok) throw new Error(scene.error);
+      expect(scene.readout.harmonics.find((r) => r.harmonic === 2)!.support).toBe(
+        scene.readout.secondHarmonicSupport,
+      );
+    }
+  });
+});
+
+describe("§ 6ab.15 — the row's sentence has to agree with the row's number", () => {
+  /**
+   * This rung exists because the harmonic table shipped a label that argued with
+   * the reading beside it: "null by parity" printed next to the DEFOCUSED frame's
+   * h = 1 value of 0.583, which is that null broken and the whole content of the
+   * canvas above. Every rung passed — the readings were right and only the
+   * sentence was wrong — and it was found by opening the panel.
+   *
+   * `harmonicNote` is that sentence as a value, so it can be asserted here.
+   */
+  const noteFor = (scene: ReturnType<typeof renderPhaseScene>, h: number, defocused: boolean) => {
+    if (!scene.ok) throw new Error(scene.error);
+    const frame = defocused ? scene.readout.defocused : scene.readout.focused;
+    const reading = frame.harmonics.find((r) => r.harmonic === h)!;
+    const support = scene.readout.harmonics.find((r) => r.harmonic === h)!.support;
+    return { note: harmonicNote(reading, support, frame.defocusWaves), reading };
+  };
+
+  it("calls an odd harmonic a parity null only while it IS one", () => {
+    const scene = renderPhaseScene(
+      at({ coherenceParameter: 0, cycles: 6, amplitudeRadians: 1.5, defocusWaves: 1 }),
+    );
+    // In focus the pupil is real and h = 1 and h = 3 are nulls.
+    for (const h of [1, 3]) {
+      const { note, reading } = noteFor(scene, h, false);
+      expect(note.kind, `h = ${h} in focus`).toBe("parity-null");
+      expect(Math.abs(reading.contrast)).toBeLessThan(1e-13);
+    }
+    // Defocused it is not, and the row has to say so.
+    for (const h of [1, 3]) {
+      const { note, reading } = noteFor(scene, h, true);
+      expect(note.kind, `h = ${h} defocused`).toBe("parity-lifted");
+      expect(Math.abs(reading.contrast)).toBeGreaterThan(1e-3);
+    }
+  });
+
+  it("never calls a reading a null when the number is not one, at any defocus", () => {
+    // The general form of the same defect, swept over the slider rather than
+    // asserted at one setting — a "null" label is only ever allowed to sit beside
+    // a number below the ceiling.
+    for (const defocusWaves of [0, 0.25, 1, 3]) {
+      for (const cycles of [6, 12]) {
+        for (const coherenceParameter of [0, 0.5]) {
+          const scene = renderPhaseScene(
+            at({ cycles, coherenceParameter, defocusWaves, amplitudeRadians: 1.5 }),
+          );
+          if (!scene.ok) continue;
+          for (const frame of [scene.readout.focused, scene.readout.defocused]) {
+            for (const reading of frame.harmonics) {
+              const support = scene.readout.harmonics.find(
+                (r) => r.harmonic === reading.harmonic,
+              )!.support;
+              const note = harmonicNote(reading, support, frame.defocusWaves);
+              const where = `h = ${reading.harmonic}, ${cycles} cycles, S = ${coherenceParameter}, w₂₀ = ${frame.defocusWaves}`;
+              if (note.kind === "parity-null") {
+                expect(Math.abs(reading.contrast), where).toBeLessThan(1e-13);
+              }
+              if (note.kind === "parity-lifted") {
+                expect(Math.abs(reading.contrast), where).toBeGreaterThanOrEqual(1e-13);
+              }
+              // And a closed form is only ever offered for an even harmonic.
+              if (note.kind === "closed-form") {
+                expect(reading.harmonic % 2, where).toBe(0);
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  it("prefers the gate's own words where nothing carries the harmonic", () => {
+    // ν = 0.75 puts 3ν past the incoherent cutoff, so h = 3 has no support and the
+    // row says so rather than reaching for parity — both are true there, and the
+    // one that explains the absence is the gate.
+    const scene = renderPhaseScene(at({ coherenceParameter: 0, cycles: 12 }));
+    const { note } = noteFor(scene, 3, false);
+    expect(note.kind).toBe("unsupported");
+    if (note.kind === "unsupported") expect(note.reason).toMatch(/no 3ν/);
   });
 });

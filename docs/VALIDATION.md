@@ -11567,12 +11567,73 @@ source's own points for s_x = 0 rather than asking S, and refuses that frame.
 A generalization that removes a condition is worth checking for a *second*
 condition the removed one was silently supplying.
 
+#### What the panel does with it, and why the rows are free
+
+A3 read the ν and 2ν bins. It now reads **every harmonic the grid can hold** —
+`h·cycles < size/2`, which is ten of them at 6 cycles on a 128 grid and five at
+the default 12 — as a column under each canvas, with the § 6ab.12 gate asked per
+h. The point of the column is that a law is visible in it where two numbers were
+not: roundoff, 0.149, roundoff, 0.109, roundoff, straight down.
+
+**The rows cost nothing, and the instinct they defeat is worth naming.** A probe
+is a *render* — one transform per source point, hundreds of them — where a
+harmonic is one pass of `imageHarmonic` over an image already in hand. Five
+harmonics are one probe and four extra passes, not five probes, so `checkFrames`
+is the same 3 per defocus § 6ab.11 pinned and the S = 0 default still pays none.
+
+Two things had to be refused to keep it that way, and both are the same refusal
+§ 6ab.12 already makes:
+
+- **No spread over an odd harmonic.** The parity law says it is identically
+  zero, so four samplings would agree about nothing — the same failure as the
+  1.031× at ν = 1.9375. Without it the *fundamental*, which always has support,
+  orders three renders in every cell that previously ordered none: measured as a
+  test file going from 24 s to 198 s before the refusal went in.
+- **No closed form at odd h.** There is no symmetric pair, and `besselJ` has no
+  half-integer order to evaluate — it throws rather than guess, which is how the
+  omission was found rather than shipped.
+
+**One defect in it was invisible to the suite, and the panel showed it in the
+first screenshot.** The table's first draft printed *"null by parity"* beside the
+defocused canvas's h = 1 reading of **0.583** — the null broken, which is the
+entire content of the picture directly above the label. Every rung passed,
+because the readings were right and only the sentence was wrong, and a sentence
+living inside a `<td>` is not something the headless suite can reach. The colour
+was wrong the same way: the row was painted in the null colour while showing
+0.583.
+
+The fix is not the corrected string but `harmonicNote`, which makes the row's
+explanation a **value** — `parity-null`, `parity-lifted`, `unsupported`,
+`closed-form`, `measured` — that the component only renders. Two rungs then
+assert what no test could assert before: that a `parity-null` note never sits
+beside a number above the null ceiling, swept over defocus × cycles × S. It is
+also decided from the *reading* rather than from the defocus slider, since
+deciding it from w₂₀ would be the same mistake pointed the other way. Same
+lesson as § 6ab.14's: **a new panel line has to be checked against the lines
+already on the screen**, and the cheapest way to check is to open the panel.
+
+**The refusal messages name a slider position, not a cutoff.** The h = 2 forms
+this file pins — ν = 1 in brightfield, (1 + outer)/3 for the annulus — do not
+generalize, and both fail at an h the panel can reach: measured against
+`apertureCarriesHarmonic`, the disc's cutoff is 2/h at h = 2, 4, 5 and 6 but
+**1 + S** at h = 1 (Abbe's law, which is what h = 1 *is*) and 0.6 rather than
+2/3 at h = 3 with S = 0.2; the ring's is (1 + outer)/(h + 1) up to h = 5 and 1/3
+rather than 0.343 at h = 6. So a formula in the string would be an unpinned
+claim the reader is invited to act on. `highestCarryingCycles` asks the
+closed-form predicate at each ν the cycles slider can reach instead — exhaustive
+over the control rather than an approximation of a continuum, the same move
+`SamplingSpread` makes for the source count, and better advice besides: a slider
+position to go to rather than a ν to solve for.
+
 ### Not yet pinned
 
-- **Nothing renders h ≥ 3 yet.** The engine answers for any h and the rungs above
-  measure four of them, but A3 still reads only the 2ν bin. The bins are free
-  once an image exists — the sampling probe already renders three frames per
-  defocus — so this is wiring, not cost.
+- **Whether the odd-h null survives a traced pupil's residual.** Everything here
+  is `idealPupil`, where A3 is deliberately stronger. A real objective is not
+  exactly even, so the parity cancellation should degrade to that asymmetry
+  rather than to zero — nothing measures how far.
+- **The h ≥ 3 spread.** Even harmonics past 2 get one free off the probe frames,
+  but no rung asks whether the sampling moves them the way § 6ab.11 measured the
+  2ν reading moving (1.06× to 9.75×).
 
 ## Step 6ac — the two focal surfaces, and distortion
 

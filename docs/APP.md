@@ -614,6 +614,51 @@ the *same* condition this paragraph is about, asked where it can be enforced
 rather than argued. The sentence above was the wrong claim; the panel measures its
 own counterexample two sliders away and now declines to compare against it.
 
+**Every harmonic the grid can hold now has a row, and the column is the point
+(§ 6ab.15).** The panel read the ν and 2ν bins because those were the two the
+physics had been written for; the grid's own limit is `h·cycles < size/2`, which
+is five harmonics at the default and ten at 6 cycles. Under each canvas is a
+table of them, gated per h, and what it shows is a **law rather than two
+numbers**: roundoff, 0.149, roundoff, 0.109, roundoff, straight down — the odd
+harmonics of a phase object are null by Bessel parity, and the even ones are not.
+
+Two rows can read roundoff for two different reasons and the table labels them
+apart, because one slider tells them apart: **an odd harmonic is null by parity**
+whatever the aperture does, and defocus lifts it; **an unsupported harmonic** has
+no order pair to make it, and defocus does nothing. Under a coherent source at
+ν = 0.375, h = 3 goes to 0.246 with one wave and h = 5 stays at 1.4e-15.
+
+**The rows are free, and that is what makes the table affordable rather than a
+five-fold cost.** A probe is a render — one transform per source point — where a
+harmonic is one pass over an image already in hand, so `checkFrames` stays the 3
+per defocus § 6ab.11 pinned and the S = 0 default still pays none. Keeping it
+that way needed one refusal: **no spread over an odd harmonic**, since the parity
+law says it is identically zero and four samplings would agree about nothing.
+Without it the fundamental — which always has support — orders three renders in
+every cell that previously ordered none, measured as a test file going from 24 s
+to 198 s.
+
+**The table's own first draft is this surface's second "found by driving the
+app".** It printed "null by parity" next to the defocused canvas's h = 1 reading
+of **0.583** — the null broken, which is what that canvas is *for* — and painted
+the row in the null colour while doing it. The suite was green throughout: the
+readings were right and only the sentence was wrong, and a sentence inside a
+`<td>` is out of the headless suite's reach. So the row's explanation is now a
+value (`harmonicNote`: `parity-null`, `parity-lifted`, `unsupported`,
+`closed-form`, `measured`) that the component only renders, and two rungs sweep
+defocus × cycles × S asserting that a "null" note never sits beside a number that
+is not one. Same rule as the darkfield plot below: **a new line has to be checked
+against the lines already on the screen.**
+
+**And where a harmonic has no support the panel names a slider position rather
+than a cutoff.** The h = 2 cutoffs this doc quotes do not generalize: measured
+against `apertureCarriesHarmonic`, the disc's is 2/h at h = 2, 4, 5 and 6 but
+1 + S at h = 1 and 0.6 rather than 2/3 at h = 3 with S = 0.2, and the annulus's
+is (1 + outer)/(h + 1) up to h = 5 and 1/3 rather than 0.343 at h = 6. So
+`highestCarryingCycles` asks the closed-form predicate at each ν the cycles
+slider can reach — exhaustive over the control, and better advice than a ν the
+reader would have to solve for.
+
 **Darkfield does NOT ride along for free, and that is this surface's real
 correction to the plan.** The clear-field half is exactly as scoped —
 `annularSource` outside the pupil, φ = 0, and the mean reads `0.0000e+0` with both

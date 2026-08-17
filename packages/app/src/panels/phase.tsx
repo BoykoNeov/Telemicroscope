@@ -11,6 +11,10 @@ import {
   DARKFIELD_INNER,
   DARKFIELD_OUTER,
   WHITE_OVER_MEAN,
+  harmonicNote,
+  HARMONIC_NULL_CEILING,
+  type HarmonicReading,
+  type HarmonicRow,
   type HarmonicSupport,
   type Illumination,
   type PhaseFrame,
@@ -196,30 +200,140 @@ function CarryingLine({ support }: { support: HarmonicSupport }) {
 }
 
 /**
+ * Every harmonic the grid can hold, off one image — § 6ab.15.
+ *
+ * The panel showed h = 1 and h = 2 as two lines, which is the right shape for
+ * two numbers and the wrong one for the fact: **the odd harmonics are null and
+ * the even ones are not**, and that is a pattern down a column rather than a
+ * pair of readings. At the default settings this reads roundoff, 0.149,
+ * roundoff, 0.109, roundoff — and the reason is parity in the Bessel series, not
+ * anything about where those particular orders landed.
+ *
+ * Which is exactly why the two kinds of zero are labelled apart. A harmonic can
+ * read roundoff because it is odd (parity, no matter what the aperture does) or
+ * because no direction carries it (§ 6ab.12's gate, geometry). They look
+ * identical on screen, and one slider tells them apart: defocus breaks the parity
+ * null and leaves the other alone. Under a coherent source at ν = 0.375, h = 3
+ * goes to 0.246 and h = 5 stays at 1.4e-15, because no order pair 5 apart is
+ * inside the pupil at all.
+ */
+function HarmonicTable({
+  readings,
+  rows,
+  defocusWaves,
+}: {
+  readings: readonly HarmonicReading[];
+  rows: readonly HarmonicRow[];
+  /**
+   * This frame's own w₂₀ — the parity null's precondition is a **real** pupil, so
+   * the odd rows say something different in each canvas of the pair.
+   *
+   * Found by looking at the panel rather than by a test: the first version of
+   * this table printed "null by parity" beside the defocused frame's h = 1
+   * reading of **0.583**, which is the null broken and the whole content of the
+   * canvas next to it. A label that contradicts the number on its own line is
+   * worse than no label, and no rung would have caught it — the readings were
+   * right and the sentence was wrong.
+   */
+  defocusWaves: number;
+}) {
+  return (
+    <table style={{ borderCollapse: "collapse", fontFamily: "monospace", fontSize: 11 }}>
+      <thead>
+        <tr style={{ color: "#777", textAlign: "left" }}>
+          <th style={{ paddingRight: 8, fontWeight: "normal" }}>h</th>
+          <th style={{ paddingRight: 8, fontWeight: "normal" }}>hν</th>
+          <th style={{ paddingRight: 8, fontWeight: "normal" }}>contrast</th>
+          <th style={{ fontWeight: "normal" }}>why / check</th>
+        </tr>
+      </thead>
+      <tbody>
+        {readings.map((reading, i) => {
+          const row = rows[i];
+          // One decision, made once, as a value the suite can assert — see
+          // `harmonicNote`, which exists because this cell shipped a sentence
+          // contradicting the number on its own line.
+          const note = row
+            ? harmonicNote(reading, row.support, defocusWaves)
+            : ({ kind: "measured" } as const);
+          // A null is a reading, not a category: the colour follows the number so
+          // that a lifted null cannot be painted as one.
+          const isNull = Math.abs(reading.contrast) < HARMONIC_NULL_CEILING;
+          return (
+            <tr key={reading.harmonic}>
+              <td style={{ paddingRight: 8 }}>{reading.harmonic}</td>
+              <td style={{ paddingRight: 8, color: "#777" }}>
+                {(row?.frequency ?? 0).toFixed(3)}
+              </td>
+              <td style={{ paddingRight: 8, color: isNull ? GUARD_COLOR.ok : "#111" }}>
+                {reading.contrast.toExponential(2)}
+              </td>
+              <td style={{ color: "#777" }}>
+                {note.kind === "unsupported" ? (
+                  // The gate's own words, hover for the full sentence — a zero
+                  // with no direction behind it is not the same claim as a zero
+                  // the parity law makes.
+                  <span title={note.reason}>no direction carries it</span>
+                ) : note.kind === "parity-null" ? (
+                  <span>null by parity &mdash; J&#8331;&#8342; = (&minus;1)&#7503;J&#8342;</span>
+                ) : note.kind === "parity-lifted" ? (
+                  // The law's precondition is an even AND REAL pupil. Defocus
+                  // keeps it even and makes it complex, so the pair's two terms
+                  // stop being equals and become conjugates.
+                  <span style={{ color: GUARD_COLOR.warn }}>
+                    parity null lifted &mdash; {note.defocusWaves.toFixed(2)} waves makes the pupil
+                    complex
+                  </span>
+                ) : note.kind === "closed-form" ? (
+                  <span style={{ color: "#06a" }}>
+                    2&middot;J{reading.harmonic / 2}(&phi;)&sup2; residual{" "}
+                    <strong>{note.residual.toExponential(1)}</strong>
+                  </span>
+                ) : reading.spread ? (
+                  <span>
+                    &times;{ratioText(reading.spread.ratio)} over {reading.spread.readings.length}{" "}
+                    samplings
+                  </span>
+                ) : (
+                  <span>&mdash;</span>
+                )}
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+/**
  * One canvas of the pair, with the two harmonics read off it.
  *
  * The layout puts contrast at ν and contrast at 2ν on adjacent lines on purpose:
  * they are the same image measured at two bins, one of them is f64 noise and the
  * other is not, and side by side that is a single glance rather than a paragraph.
+ * `HarmonicTable` below then puts the whole column under them, which is where the
+ * parity law is visible as a law rather than as two numbers.
  */
 function Frame({
   frame,
   support,
+  rows,
   title,
   note,
   size,
   phi,
-  nu,
 }: {
   frame: PhaseFrame;
   /** Shared by both frames on purpose — support is geometry, so it is one answer
    *  for the pair where `secondHarmonicSpread` is one per frame. */
   support: HarmonicSupport;
+  /** The same, per harmonic — `rows[1]` and `support` are one verdict. */
+  rows: readonly HarmonicRow[];
   title: string;
   note: string;
   size: number;
   phi: number;
-  nu: number;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
 
@@ -288,7 +402,8 @@ function Frame({
         <br />
         {frame.besselCheck === null ? (
           <span style={{ color: "#777" }}>
-            no closed form here — it needs S = 0 and 0.5 &lt; ν &lt; 1 (ν = {nu.toFixed(4)})
+            no closed form here — it needs the ±1 orders through the pupil and ±2 outside it, from
+            every direction, and an unaberrated pupil or an on-axis source
           </span>
         ) : (
           <span style={{ color: "#06a" }}>
@@ -299,6 +414,13 @@ function Frame({
             residual &nbsp;&nbsp;= <strong>{frame.besselCheck.residual.toExponential(2)}</strong>
           </span>
         )}
+        <div style={{ marginTop: 8 }}>
+          <HarmonicTable
+            readings={frame.harmonics}
+            rows={rows}
+            defocusWaves={frame.defocusWaves}
+          />
+        </div>
       </figcaption>
     </figure>
   );
@@ -641,20 +763,20 @@ export function PhasePanel() {
             <Frame
               frame={readout.focused}
               support={readout.secondHarmonicSupport}
+              rows={readout.harmonics}
               title="in focus"
               note="the linear term is gone"
               size={readout.size}
               phi={phi}
-              nu={nu}
             />
             <Frame
               frame={readout.defocused}
               support={readout.secondHarmonicSupport}
+              rows={readout.harmonics}
               title={`defocused ${defocusWaves.toFixed(2)} waves`}
               note={defocusWaves === 0 ? "the same image — the slider is at zero" : "the null lifts"}
               size={readout.size}
               phi={phi}
-              nu={nu}
             />
           </>
         )}

@@ -17,7 +17,7 @@ import {
   type SpectrumTruncation,
 } from "@telemicroscope/core/illumination";
 import { renderBrightfield, type PatchPupil } from "@telemicroscope/core/imaging";
-import { besselJ1 } from "@telemicroscope/core/math";
+import { besselJ, besselJ1 } from "@telemicroscope/core/math";
 import type { PupilFunction } from "@telemicroscope/core/wave";
 
 /**
@@ -235,6 +235,16 @@ export interface PhaseFrame {
     readonly closed: number;
     readonly residual: number;
   } | null;
+  /**
+   * Every harmonic the grid can hold, read off THIS frame — § 6ab.15.
+   *
+   * `contrast` and `secondHarmonic` above are h = 1 and h = 2 of this list, kept
+   * as their own fields because the claims pinned to them are about those two
+   * specifically. The list is what makes the odd-h null visible as a pattern
+   * rather than as one number: at ν = 0.375 it reads roundoff, 0.149, roundoff,
+   * 0.109, roundoff down the column.
+   */
+  readonly harmonics: readonly HarmonicReading[];
   readonly verdict: "valid" | "unknown" | "no-honest-image";
   readonly verdictReason: string;
   readonly contributingPoints: number;
@@ -264,6 +274,13 @@ export interface PhaseReadout {
    * not defocus-invariant off axis.
    */
   readonly secondHarmonicSupport: HarmonicSupport;
+  /**
+   * The § 6ab.12 gate asked of every harmonic the grid can hold, once for the
+   * pair — support is geometry, so it does not depend on defocus, exactly as
+   * `secondHarmonicSupport` does not. `harmonics[1]` and `secondHarmonicSupport`
+   * are the same verdict; the field stays because ~15 rungs are pinned to it.
+   */
+  readonly harmonics: readonly HarmonicRow[];
   /**
    * How much of the grating did not fit on the grid — § 6ab.13.
    *
@@ -440,9 +457,59 @@ export interface HarmonicSupport {
  * axis). Geometry does not care about the wavefront; the reading does.
  */
 export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
+  return harmonicSupportAt(request, 2);
+}
+
+/**
+ * The largest cycles setting the panel offers at which this condenser still
+ * carries `harmonic`·ν — or `null` when none of them does.
+ *
+ * The reason strings want to say where the harmonic runs out, and for h = 2 the
+ * cutoffs are known closed forms this file already quotes: ν = 1 in brightfield
+ * (2ν reaching the incoherent cutoff 2) and (1 + outer)/3 for the annulus.
+ * **Neither generalizes, and both fail at an h the panel can reach.** Measured
+ * against `apertureCarriesHarmonic` by bisection: the disc's cutoff is 2/h at
+ * h = 2, 4, 5 and 6 but **1 + S** at h = 1 — Abbe's law, which is what h = 1
+ * *is* — and 0.6 rather than 2/3 at h = 3 with S = 0.2; the annulus's is
+ * (1 + outer)/(h + 1) up to h = 5 and 1/3 rather than 0.343 at h = 6. So a
+ * formula here would be a claim the ladder has not pinned, in a string the
+ * reader is meant to act on.
+ *
+ * This says the same thing without one. The cycles slider is discrete —
+ * ν = 2·cycles/pupilSamples — so the panel's reachable ν are enumerable, and
+ * asking the closed-form predicate at each of them is exhaustive over the
+ * control rather than an approximation of a continuum. That is the same move
+ * `SamplingSpread` makes for the source count, and it is also better advice: a
+ * reader is told the slider position to go to, not a ν to solve for.
+ */
+export function highestCarryingCycles(request: PhaseRequest, harmonic: number): number | null {
+  const inner = request.illumination === "darkfield" ? DARKFIELD_INNER : 0;
+  const outer =
+    request.illumination === "darkfield" ? DARKFIELD_OUTER : request.coherenceParameter;
+  if (!(outer > inner)) return null;
+  // The panel's own ceiling, from `panels/phase.tsx`: 2ν has to stay on the grid
+  // and the pupil lattice has to hold the shifted pupil.
+  const maxCycles = Math.max(1, Math.min(request.pupilSamples, Math.floor(request.size / 4) - 1));
+  for (let cycles = maxCycles; cycles >= 1; cycles--) {
+    const nu = frequencyOf(cycles, request.pupilSamples);
+    if (apertureCarriesHarmonic(inner, outer, nu, harmonic)) return cycles;
+  }
+  return null;
+}
+
+/**
+ * `secondHarmonicSupport` for any harmonic — the same two legs, the same gate.
+ *
+ * Everything § 6ab.12 built took an `h`; only the panel was fixed at 2. The one
+ * part that does not generalize is the *cutoff* each refusal quotes, which is
+ * why the sentences below name a slider position from `highestCarryingCycles`
+ * instead of a closed form, except at h = 2 where this file's own two forms are
+ * pinned and can be stated outright.
+ */
+export function harmonicSupportAt(request: PhaseRequest, harmonic: number): HarmonicSupport {
   const nu = frequencyOf(request.cycles, request.pupilSamples);
   const source = sourceFor(request);
-  const orders = { cycles: request.cycles, pupilSamples: request.pupilSamples, harmonic: 2 };
+  const orders = { cycles: request.cycles, pupilSamples: request.pupilSamples, harmonic };
   const latticeWeight = harmonicSupportWeight(idealPupil(), source, orders);
   // S = 0 in brightfield is `coherentSource`'s single direction, which is not a
   // sampling of anything — `apertureCarriesHarmonic` refuses it rather than
@@ -452,38 +519,52 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
   const inner = request.illumination === "darkfield" ? DARKFIELD_INNER : 0;
   const outer =
     request.illumination === "darkfield" ? DARKFIELD_OUTER : request.coherenceParameter;
-  const apertureCarries = extended ? apertureCarriesHarmonic(inner, outer, nu) : null;
+  const apertureCarries = extended ? apertureCarriesHarmonic(inner, outer, nu, harmonic) : null;
   // Same guard, same reason: `harmonicCarryingArea` refuses an aperture without
   // area for the same cause `apertureCarriesHarmonic` does, so the two legs are
   // null together and never one without the other.
-  const apertureFraction = extended ? harmonicCarryingArea(inner, outer, nu).fraction : null;
+  const apertureFraction = extended
+    ? harmonicCarryingArea(inner, outer, nu, harmonic).fraction
+    : null;
+  const hv = `${harmonic}ν`;
 
   if (apertureCarries === false) {
-    // The condenser itself has no 2ν to give. Brightfield stops at ν = 1 because
-    // 2ν must clear the incoherent cutoff 2; the darkfield ring stops at
-    // (1 + outer)/3 = 0.8, three slider stops earlier, which is the part a reader
-    // has no way to guess.
-    const cutoff =
-      request.illumination === "darkfield" ? (1 + DARKFIELD_OUTER) / 3 : 1;
+    // The condenser itself has no hν to give. At h = 2 this file's two closed
+    // forms are pinned and get stated: brightfield stops at ν = 1 because 2ν must
+    // clear the incoherent cutoff 2, and the darkfield ring at (1 + outer)/3 =
+    // 0.8, three slider stops earlier, which is the part a reader has no way to
+    // guess. At other h neither form holds (see `highestCarryingCycles`), so the
+    // advice is a slider position instead of a cutoff.
+    const stillCarries = highestCarryingCycles(request, harmonic);
+    const closedForm =
+      harmonic === 2
+        ? `, which carries 2ν only below ν = ${(request.illumination === "darkfield"
+            ? (1 + DARKFIELD_OUTER) / 3
+            : 1
+          ).toFixed(4)}` +
+          (request.illumination === "darkfield"
+            ? ` — (1 + ${DARKFIELD_OUTER})/3 for this annulus, below brightfield's 1`
+            : " — where 2ν reaches the incoherent cutoff 2")
+        : "";
     return {
       apertureCarries,
       latticeWeight,
       apertureFraction,
       exists: false,
       reason:
-        `no 2ν at ν = ${nu.toFixed(4)}: two orders 2ν apart cannot both be inside the pupil from ` +
-        `anywhere in this condenser, which carries 2ν only below ν = ${cutoff.toFixed(4)}` +
-        (request.illumination === "darkfield"
-          ? ` — (1 + ${DARKFIELD_OUTER})/3 for this annulus, below brightfield's 1`
-          : " — where 2ν reaches the incoherent cutoff 2"),
+        `no ${hv} at ν = ${nu.toFixed(4)}: two orders ${hv} apart cannot both be inside the pupil ` +
+        `from anywhere in this condenser${closedForm}` +
+        (stillCarries === null
+          ? ` — and no grating setting on this grid has one`
+          : `. The coarsest grating that still has one is ${stillCarries} cycles ` +
+            `(ν = ${frequencyOf(stillCarries, request.pupilSamples).toFixed(4)})`),
     };
   }
   if (latticeWeight === 0) {
     // Two different failures wearing one sentence until § 6ab.14 separated them.
     // At S = 0 there is no lattice and no aperture — one direction either carries
-    // 2ν or does not — so "raise source samples" is advice that cannot work:
-    // `sourceFor` returns the same one-point source at every count, and 2ν must
-    // clear the incoherent cutoff 2 at any S, so nothing on the panel rescues it.
+    // hν or does not — so "raise source samples" is advice that cannot work:
+    // `sourceFor` returns the same one-point source at every count.
     if (apertureFraction === null) {
       return {
         apertureCarries,
@@ -491,9 +572,11 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
         apertureFraction,
         exists: false,
         reason:
-          `no 2ν at ν = ${nu.toFixed(4)}: the one direction a coherent source has puts orders ` +
-          `2ν apart outside the pupil, and no S rescues that — 2ν must clear the incoherent ` +
-          `cutoff 2, so it exists only below ν = 1`,
+          `no ${hv} at ν = ${nu.toFixed(4)}: the one direction a coherent source has puts orders ` +
+          `${hv} apart outside the pupil, and no S rescues that` +
+          (harmonic === 2
+            ? ` — 2ν must clear the incoherent cutoff 2, so it exists only below ν = 1`
+            : ` — opening the condenser adds directions further off axis, not orders`),
       };
     }
     // The actionable case, and the number is what makes it actionable: how thin
@@ -504,7 +587,7 @@ export function secondHarmonicSupport(request: PhaseRequest): HarmonicSupport {
       apertureFraction,
       exists: false,
       reason:
-        `no direction in this ${source.points.length}-point source can carry 2ν, though ` +
+        `no direction in this ${source.points.length}-point source can carry ${hv}, though ` +
         `${(100 * apertureFraction).toPrecision(3)}% of the aperture it samples does — ` +
         `raise source samples`,
     };
@@ -610,6 +693,109 @@ function pairPhaseSurvives(source: CondenserSource, defocusWaves: number): boole
 }
 
 /**
+ * Which harmonics this request can honestly report — h = 1 up to the last one
+ * whose bin is on the frequency grid.
+ *
+ * The panel showed h = 1 and h = 2 because those were the two the physics had
+ * been written for, not because the grid stopped there: at the default 128 grid
+ * and 12 cycles there is room to h = 5. § 6ab.15 supplied the missing physics
+ * (odd harmonics are null by parity, even ones have a closed form), so the list
+ * is now bounded by the grid alone.
+ *
+ * `h·cycles < size/2` is the same guard `secondHarmonicOf` applies to the 2ν
+ * bin, for the same reason: a bin past Nyquist is an alias, and an aliased
+ * reading presented as a harmonic invents the thing the panel claims to measure.
+ */
+export function panelHarmonics(request: PhaseRequest): readonly number[] {
+  const harmonics: number[] = [];
+  for (let h = 1; h * request.cycles < request.size / 2; h++) harmonics.push(h);
+  return harmonics;
+}
+
+/** One harmonic's row on the readout: everything about it that defocus cannot move. */
+export interface HarmonicRow {
+  readonly harmonic: number;
+  /** h·ν, in units of NA/λ. */
+  readonly frequency: number;
+  /** The § 6ab.12 gate, asked for this h. */
+  readonly support: HarmonicSupport;
+}
+
+/**
+ * What a harmonic's row says about *why* it reads what it reads.
+ *
+ * A pure function of the reading rather than a branch inside the table, and the
+ * reason is a defect that shipped in the table's first draft: it printed "null by
+ * parity" beside the defocused frame's h = 1 reading of **0.583** — the null
+ * broken, which is the entire content of the canvas above it. Every rung passed,
+ * because the readings were right and only the sentence was wrong, and no test
+ * could have caught a sentence that lived inside a `<td>`. As a value it is
+ * assertable, and § 6ab.15 asserts it.
+ */
+export type HarmonicNote =
+  /** No direction puts an order pair h apart inside the pupil — § 6ab.12's gate. */
+  | { readonly kind: "unsupported"; readonly reason: string }
+  /** Odd h under a real pupil: zero by the Bessel parity law, whatever else. */
+  | { readonly kind: "parity-null" }
+  /** Odd h whose null the wavefront has lifted — the pupil is no longer real. */
+  | { readonly kind: "parity-lifted"; readonly defocusWaves: number }
+  /** Even h in the single-symmetric-pair regime: 2·J_{h/2}(φ)² applies. */
+  | { readonly kind: "closed-form"; readonly residual: number }
+  /** Even h with support, no closed form — the reading is what it is. */
+  | { readonly kind: "measured" };
+
+/**
+ * The note for one row. `defocusWaves` is the frame's own, because the parity
+ * law's precondition is a **real** pupil and so the two canvases of a pair say
+ * different things about the same h.
+ */
+export function harmonicNote(
+  reading: HarmonicReading,
+  support: HarmonicSupport,
+  defocusWaves: number,
+): HarmonicNote {
+  if (!support.exists) return { kind: "unsupported", reason: support.reason };
+  if (reading.harmonic % 2 === 1) {
+    // Asked of the NUMBER and not of the defocus slider: what makes this a null
+    // is that the reading is one. Deciding it from w₂₀ would be the same mistake
+    // in the other direction — a label that argues with its own line.
+    return Math.abs(reading.contrast) < HARMONIC_NULL_CEILING
+      ? { kind: "parity-null" }
+      : { kind: "parity-lifted", defocusWaves };
+  }
+  if (reading.closedForm) return { kind: "closed-form", residual: reading.closedForm.residual };
+  return { kind: "measured" };
+}
+
+/**
+ * Below this a harmonic reading is f64 roundoff and the panel calls it a null.
+ *
+ * A display decision and not a physical one, and it is safe to make because
+ * nothing sits near it: the readings this separates are 1e-16 and 1e-1, thirteen
+ * orders apart, which is the same separation § 6ab.12 measured its gate to have.
+ */
+export const HARMONIC_NULL_CEILING = 1e-13;
+
+/** One harmonic's reading off ONE image. */
+export interface HarmonicReading {
+  readonly harmonic: number;
+  /** Modulation at the h·ν bin. `NaN` never appears — see `panelHarmonics`. */
+  readonly contrast: number;
+  /**
+   * `contrast·mean` against 2·J_{h/2}(φ)², where § 6ab.15's regime says that form
+   * applies — `null` everywhere else, including at every odd h, which has no
+   * symmetric pair and no closed form to compare against.
+   */
+  readonly closedForm: {
+    readonly measured: number;
+    readonly closed: number;
+    readonly residual: number;
+  } | null;
+  /** What the source-samples control does to `contrast`. `null` when gated off. */
+  readonly spread: SamplingSpread | null;
+}
+
+/**
  * Greyscale on a scale the CALLER fixes, so a pair shares one.
  *
  * A2 normalizes each frame to its own mean, which is right for a panel showing
@@ -638,18 +824,26 @@ function secondHarmonicOf(intensity: Float64Array, request: PhaseRequest): numbe
 }
 
 /**
- * Render one probe frame — the 2ν bin and nothing else.
+ * Render one probe frame and read **every** harmonic's bin off it.
  *
- * Deliberately not `formFrame`: the probe needs one number off one image, and
- * the transfer, the weak-phase prediction and the Bessel comparison are all
- * about the frame the panel is actually showing. Computing them for a sampling
- * the reader did not select would be work spent on numbers with nowhere to go.
+ * Deliberately not `formFrame`: the probe needs the bins off one image, and the
+ * transfer, the weak-phase prediction and the Bessel comparison are all about
+ * the frame the panel is actually showing.
+ *
+ * **The extra bins are free, and that is the whole reason the panel can afford
+ * a row per harmonic.** The cost of a probe is the render — one transform per
+ * source point, hundreds of them — and `imageHarmonic` is a single pass over a
+ * size² image per bin. Five harmonics do not cost five probes; they cost one
+ * probe and four more passes, which is why § 6ab.15's rows are wiring rather
+ * than an expense. The instinct to read one bin per render is the thing to
+ * resist here.
  */
-function probeSecondHarmonic(
+function probeHarmonics(
   request: PhaseRequest,
   source: CondenserSource,
   defocusWaves: number,
-): number {
+  harmonics: readonly number[],
+): number[] {
   const object = phaseGratingObject({
     size: request.size,
     cycles: request.cycles,
@@ -660,15 +854,81 @@ function probeSecondHarmonic(
     pupilSamples: request.pupilSamples,
     patches: 1,
   });
-  return secondHarmonicOf(out.intensity, request);
+  return harmonics.map((h) => imageHarmonic(out.intensity, request.size, h * request.cycles).contrast);
+}
+
+/**
+ * Every harmonic's reading across every source sampling the panel offers, at one
+ * defocus — three renders total, not three per harmonic.
+ *
+ * `shipped` is the readings the panel already has, one per harmonic and in the
+ * same order, passed in rather than re-rendered.
+ */
+export function harmonicSpreads(
+  request: PhaseRequest,
+  defocusWaves: number,
+  shipped: readonly number[],
+  harmonics: readonly number[],
+  supports: readonly HarmonicSupport[],
+): { spreads: (SamplingSpread | null)[]; extraFrames: number } {
+  // No spread over a quantity that does not exist — § 6ab.12. The probe is the
+  // misleading part: at ν = 1.9375 the four readings agree to 1.031×, the
+  // tightest number this panel prints, and all four are reading roundoff.
+  //
+  // **Odd h is refused for the same reason and it is the same reason**, which is
+  // what keeps this free: § 6ab.15's parity law says those readings are
+  // identically zero, so four samplings would agree about nothing, exactly as
+  // they do past the cutoff. Without this the fundamental — which always has
+  // support — would order three renders in every cell that previously ordered
+  // none, and the panel's S = 0 default would stop being free.
+  const wanted = harmonics.map(
+    (h, i) => h % 2 === 0 && supports[i]!.exists && Number.isFinite(shipped[i]!),
+  );
+  if (!wanted.some(Boolean)) {
+    return { spreads: harmonics.map(() => null), extraFrames: 0 };
+  }
+
+  const perHarmonic: { samples: number; value: number }[][] = harmonics.map(() => []);
+  const skipped: number[] = [];
+  let extraFrames = 0;
+
+  for (const samples of samplingsThatMatter(request)) {
+    if (samples === request.sourceSamples) {
+      harmonics.forEach((_, i) => perHarmonic[i]!.push({ samples, value: shipped[i]! }));
+      continue;
+    }
+    const source = sourceFor({ ...request, sourceSamples: samples });
+    if (!sourceFits(source, request.size, request.pupilSamples)) {
+      skipped.push(samples);
+      continue;
+    }
+    const values = probeHarmonics(request, source, defocusWaves, harmonics);
+    harmonics.forEach((_, i) => perHarmonic[i]!.push({ samples, value: values[i]! }));
+    extraFrames++;
+  }
+
+  const spreads = harmonics.map((_, i) => {
+    if (!wanted[i]) return null;
+    const readings = perHarmonic[i]!;
+    const values = readings.map((r) => r.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    // `max === min` first, and not as an optimization: `imageHarmonic` returns a
+    // hard 0 when the mean is 0, which is darkfield on a clear field — every
+    // sampling agreeing on exactly zero. Testing `min === 0` first would call
+    // that an infinite disagreement, which is the opposite of what happened.
+    const ratio = max === min ? 1 : min === 0 ? Number.POSITIVE_INFINITY : max / min;
+    return { readings, min, max, ratio, skipped, extraFrames };
+  });
+  return { spreads, extraFrames };
 }
 
 /**
  * The 2ν reading across every source sampling the panel offers, at one defocus.
  *
- * `shipped` is the reading the panel already has, passed in rather than
- * re-rendered — the shipped sampling is always one of the four, so the probe is
- * three frames and not four.
+ * The h = 2 member of `harmonicSpreads`, which is what actually renders — one
+ * path, so the panel's shipped row and its new neighbours cannot come from two
+ * implementations that drift.
  */
 export function samplingSpread(
   request: PhaseRequest,
@@ -677,44 +937,7 @@ export function samplingSpread(
   support = secondHarmonicSupport(request),
 ): SamplingSpread | null {
   if (!Number.isFinite(shipped)) return null;
-  // No spread over a quantity that does not exist — § 6ab.12. Applied here rather
-  // than at the call sites because the probe is the misleading part: at ν = 1.9375
-  // the four readings agree to 1.031×, the tightest number this panel prints. It
-  // also saves the three renders, which were being spent comparing roundoff.
-  //
-  // Defaulted rather than required so a direct caller cannot forget it, and
-  // passed in by `renderPhaseScene`, which needs the same verdict for the readout
-  // — support is pure geometry, so recomputing it is cheap, but three calls per
-  // render for one answer would be three chances to disagree.
-  if (!support.exists) return null;
-
-  const readings: { samples: number; value: number }[] = [];
-  const skipped: number[] = [];
-  let extraFrames = 0;
-
-  for (const samples of samplingsThatMatter(request)) {
-    if (samples === request.sourceSamples) {
-      readings.push({ samples, value: shipped });
-      continue;
-    }
-    const source = sourceFor({ ...request, sourceSamples: samples });
-    if (!sourceFits(source, request.size, request.pupilSamples)) {
-      skipped.push(samples);
-      continue;
-    }
-    readings.push({ samples, value: probeSecondHarmonic(request, source, defocusWaves) });
-    extraFrames++;
-  }
-
-  const values = readings.map((r) => r.value);
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  // `max === min` first, and not as an optimization: `imageHarmonic` returns a
-  // hard 0 when the mean is 0, which is darkfield on a clear field — every
-  // sampling agreeing on exactly zero. Testing `min === 0` first would call that
-  // an infinite disagreement, which is the opposite of what happened.
-  const ratio = max === min ? 1 : min === 0 ? Number.POSITIVE_INFINITY : max / min;
-  return { readings, min, max, ratio, skipped, extraFrames };
+  return harmonicSpreads(request, defocusWaves, [shipped], [2], [support]).spreads[0] ?? null;
 }
 
 /**
@@ -769,6 +992,40 @@ function formFrame(
     return { measured, closed, residual: Math.abs(measured - closed) };
   })();
 
+  // Every harmonic the grid can hold, off the image already rendered above — the
+  // bins are a pass each and the render is the cost. `closedForm` applies the two
+  // conditions § 6ab.15 separated: the orders alone, and the pair sharing a pupil
+  // phase. Odd h has neither a symmetric pair nor a closed form, and gets `null`
+  // rather than a comparison against a number that is not about it.
+  const harmonics = panelHarmonics(request);
+  const contrasts = harmonics.map(
+    (h) => imageHarmonic(out.intensity, request.size, h * request.cycles).contrast,
+  );
+  const readings = harmonics.map((h, i) => {
+    const alone = onlySymmetricPairPasses(idealPupil(), source, {
+      cycles: request.cycles,
+      pupilSamples: request.pupilSamples,
+      harmonic: h,
+    });
+    // `onlySymmetricPairPasses` is already false at odd h — there is no symmetric
+    // pair — and the closed form is only *evaluated* under it, because J_{h/2}
+    // has no half-integer order to evaluate and `besselJ` says so rather than
+    // guessing. The null is the right answer there for both reasons at once.
+    const applies = alone && pairPhaseSurvives(source, defocusWaves);
+    return {
+      harmonic: h,
+      contrast: contrasts[i]!,
+      closedForm: applies
+        ? (() => {
+            const measured = contrasts[i]! * fundamental.dc;
+            const closed = 2 * besselJ(h / 2, request.amplitudeRadians) ** 2;
+            return { measured, closed, residual: Math.abs(measured - closed) };
+          })()
+        : null,
+      spread: null as SamplingSpread | null,
+    };
+  });
+
   return {
     intensity: out.intensity,
     frame: {
@@ -779,6 +1036,7 @@ function formFrame(
       phaseTransfer,
       weakPrediction: 2 * request.amplitudeRadians * phaseTransfer,
       besselCheck,
+      harmonics: readings,
       verdict: out.fidelity.verdict,
       verdictReason: out.fidelity.reason,
       contributingPoints: out.contributingPoints,
@@ -826,16 +1084,53 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
         ? focused
         : formFrame(request, source, request.defocusWaves);
 
-    const support = secondHarmonicSupport(request);
+    // One gate per harmonic, computed once for the pair — geometry, so defocus
+    // cannot move it. `secondHarmonicSupport` is `harmonics[1]`, read out of the
+    // same list rather than computed a second time.
+    const harmonics = panelHarmonics(request);
+    const rows: HarmonicRow[] = harmonics.map((h) => ({
+      harmonic: h,
+      frequency: h * frequencyOf(request.cycles, request.pupilSamples),
+      support: harmonicSupportAt(request, h),
+    }));
+    const support = rows.find((r) => r.harmonic === 2)?.support ?? secondHarmonicSupport(request);
+
     const checkStarted = performance.now();
-    const focusedSpread = samplingSpread(request, 0, focused.frame.secondHarmonic, support);
+    // Three renders per defocus, every harmonic read off each — see
+    // `probeHarmonics` for why the extra bins are not extra renders.
+    const supports = rows.map((r) => r.support);
+    const focusedProbe = harmonicSpreads(
+      request,
+      0,
+      focused.frame.harmonics.map((r) => r.contrast),
+      harmonics,
+      supports,
+    );
     // Reused rather than re-probed when the pair is one image, for the same
     // reason `defocused` is: it would be the identical render.
-    const defocusedSpread =
+    const defocusedProbe =
       request.defocusWaves === 0
-        ? focusedSpread
-        : samplingSpread(request, request.defocusWaves, defocused.frame.secondHarmonic, support);
+        ? focusedProbe
+        : harmonicSpreads(
+            request,
+            request.defocusWaves,
+            defocused.frame.harmonics.map((r) => r.contrast),
+            harmonics,
+            supports,
+          );
     const checkMs = performance.now() - checkStarted;
+
+    const withSpreads = (
+      frame: Omit<PhaseFrame, "rgba" | "secondHarmonicSpread">,
+      probe: { spreads: (SamplingSpread | null)[] },
+    ): readonly HarmonicReading[] =>
+      frame.harmonics.map((r, i) => ({ ...r, spread: probe.spreads[i] ?? null }));
+    const focusedHarmonics = withSpreads(focused.frame, focusedProbe);
+    const defocusedHarmonics = withSpreads(defocused.frame, defocusedProbe);
+    // h = 2's own field stays the one the shipped rungs are pinned to, and it is
+    // taken from the same list so the row and the field cannot disagree.
+    const focusedSpread = focusedHarmonics.find((r) => r.harmonic === 2)?.spread ?? null;
+    const defocusedSpread = defocusedHarmonics.find((r) => r.harmonic === 2)?.spread ?? null;
 
     // One scale for both frames, taken from the in-focus mean. The fallback
     // matters: darkfield on a clear object has a mean of exactly 0, and dividing
@@ -851,6 +1146,7 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
         sourcePoints: source.points.length,
         displayWhite,
         secondHarmonicSupport: support,
+        harmonics: rows,
         truncation: phaseGratingTruncation({
           size: request.size,
           cycles: request.cycles,
@@ -858,19 +1154,23 @@ export function renderPhaseScene(request: PhaseRequest): PhaseResult {
         }),
         focused: {
           ...focused.frame,
+          harmonics: focusedHarmonics,
           secondHarmonicSpread: focusedSpread,
           rgba: toGrey(focused.intensity, request.size, displayWhite),
         },
         defocused: {
           ...defocused.frame,
+          harmonics: defocusedHarmonics,
           secondHarmonicSpread: defocusedSpread,
           rgba: toGrey(defocused.intensity, request.size, displayWhite),
         },
         elapsedMs: performance.now() - started,
         checkMs,
+        // The probe's renders, which are per defocus and NOT per harmonic — the
+        // count is unchanged by § 6ab.15 and that is the point of it.
         checkFrames:
-          (focusedSpread?.extraFrames ?? 0) +
-          (defocusedSpread === focusedSpread ? 0 : (defocusedSpread?.extraFrames ?? 0)),
+          focusedProbe.extraFrames +
+          (defocusedProbe === focusedProbe ? 0 : defocusedProbe.extraFrames),
       },
     };
   } catch (cause) {
