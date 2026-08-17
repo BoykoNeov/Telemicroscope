@@ -10979,6 +10979,10 @@ four-way spread somewhere. Two samplings agreeing bounds nothing.
 
 **So the panel prints the range across `PANEL_SOURCE_SAMPLES` — 7/11/15/21,
 every option its own control offers, all of them rendered — and no ± anywhere.**
+(**In brightfield, since § 6ab.19.** Darkfield's control is a lattice spacing
+there — 0.0625/0.125/0.25 — and the spread carries a `kind` so the readout names
+which quantity it is a range across. The scope argument below is unchanged: it is
+still an exhaustive enumeration of one control, just of a different one.)
 What dissolves the hard rule is the scope: the claim is not *"the error is X"*,
 which would need a continuum this file has no external number for, but *"moving
 this control moves the number by X"*, and over a four-member list that
@@ -11043,7 +11047,11 @@ aperture.
   threshold on annulus points: at ν = 0.75 the ring's carrying band is
   s_x ∈ [1.25, 1.4] and the 7-sample lattice's outermost x is 1.2, so it holds
   **no point of the set at all**. Exact, and the same criterion turns out to
-  condemn two readings § 6ab.11 trusted.
+  condemn two readings § 6ab.11 trusted. (**And at § 6ab.19 the question stopped
+  being about a threshold in the other direction too: the option is gone.**
+  Darkfield's control is a lattice spacing now, so 7 samples is not a setting the
+  panel has. The ring itself still reads 8.8e-17 and is still pinned — as a ring,
+  not as something a reader can select.)
 - ~~**A commensurate ANNULUS**, still — § 6p's own open item, and now with a
   constructor that would make it S-free too.~~ **Built at § 6ab.19**, and it takes
   the § 6p cache into darkfield: identical images bit for bit at 1 089 pupil
@@ -11110,7 +11118,11 @@ printing four significant figures in all of them:
 
 - **aperture yes, sampling no — the lattice is blind.** The 7-sample ring holds
   16 points and none is in the carrying band, so it reads 8.8e-17 and a reader is
-  shown "darkfield has no second harmonic". § 6ab.11 measured the 2.3e13 spread
+  shown "darkfield has no second harmonic". (**No longer reachable from the panel
+  after § 6ab.19** — darkfield's control is a lattice spacing and every setting it
+  offers holds this set. The regime itself still exists and the gate still fires:
+  25 cycles at grid 256 / `pupilSamples` 64 is where, and that cell is why the
+  count came off.) § 6ab.11 measured the 2.3e13 spread
   and could not name the cause. The weights are point counts: **0 of 16, 2 of 36,
   6 of 68, 10 of 128** — and the surviving three are thin enough (5.6%, 8.8%,
   7.8%, against the aperture's own **7.027%**; the 6.6% first quoted here is a
@@ -11437,7 +11449,9 @@ answer is none.
 - ~~**What the panel should do with the number.**~~ **Done in the same change**:
   `HarmonicSupport.apertureFraction` carries the exact area, the phase panel
   prints it beside the lattice's own weight, and the 7-sample refusal now names
-  how thin the set it missed is. The label says the ratio is of the *set* and not
+  how thin the set it missed is. (**That refusal moved at § 6ab.19** — darkfield
+  has no 7-sample setting, and the refusal that remains names the settings that
+  hold the set rather than a direction to move in.) The label says the ratio is of the *set* and not
   of the contrast, because those are different quantities — 1.59× against 1.35×
   on the same three lattices, and § 6ab.11 measured the contrast one separately.
 - ~~**The h ≥ 3 harmonics** — still § 6ab.12's item. The area function answers for
@@ -12027,14 +12041,21 @@ The refusal now reads the options rather than asserting one, so "no setting hold
 it" is a sentence the panel can say — and the sweep above is the check that it
 never has to.
 
-**Three spacings and not two, at 17× the cost of the coarsest.** The probe
-renders every option, so darkfield's worst case goes from 248 directions a frame
-to 804 — ~514 ms at φ = 0.4 and ~652 ms at φ = 3 under `vite-node`, landing the
-pair at the same order as the brightfield worst case the panel already carries.
-Two would be cheaper and would under-report: dropping the finest narrows the
-reported disagreement at 6 cycles (1.000× against 1.034×), 9 (1.010× against
-1.081×) and 11 (1.256× against 1.407×), which is this panel's own established
-finding that a cheaper probe lies.
+**Three spacings and not two, and the cost is measured rather than summed.** The
+probe renders every option whichever is selected, so darkfield's per-frame total
+goes from the counts' **248 directions to 804**. Measured under `vite-node` on a
+whole scene, pair and probe together: **1310, 1322 and 1366 ms** at the three
+spacings and **1333 ms** at φ = 3 — flat, because the selection does not change
+what the probe renders — against **1167 ms** for brightfield at S = 1 with a
+distinct defocused frame, measured the same way on the same machine. So darkfield
+lands at the panel's existing worst case rather than past it. (A3 quotes 989 ms
+for that brightfield cell; this machine reads 1167 ms for it, which is why the
+comparison is re-measured here instead of quoted across.)
+
+Two spacings would be cheaper and would **under-report**: dropping the finest
+narrows the reported disagreement at 6 cycles (1.000× against 1.034×), 9 (1.010×
+against 1.081×) and 11 (1.256× against 1.407×), which is this panel's own
+established finding that a cheaper probe lies.
 
 **The S ceiling question, asked by the item above, answers to nothing.** The
 ceiling is a function of S and darkfield holds S at exactly 0 — the ring's radius

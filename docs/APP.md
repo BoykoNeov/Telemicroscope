@@ -776,7 +776,9 @@ inside 1.05× at ν = 1.94 with S = 1.5, and φ moves it as hard as either (838�
 readings that are fine and keep four digits on ones that are nine times out.
 
 So under each 2ν line the panel prints the reading at **every source sampling its
-own control offers** — 7/11/15/21, all four rendered — as a range and a ratio,
+own control offers** — 7/11/15/21 ~~everywhere~~, **in brightfield; darkfield's
+control became a lattice spacing at § 6ab.19 and its list is 0.0625/0.125/0.25,
+which the readout labels** — all of them rendered — as a range and a ratio,
 with no ± anywhere: two samplings agreeing is not an error bar, and the four
 readings are what they are. The claim is deliberately about the control rather
 than about the truth ("moving this moves the number by 13×"), which is complete
@@ -914,15 +916,23 @@ the panel can reach: wherever that branch fires, some offered spacing carries th
 set, zero exceptions. Without that sweep this would have moved the defect rather
 than closed it.
 
-**Three spacings, at 17× the cost of the coarsest, and the cost is the honest
-part.** The probe renders every option whichever is selected, so darkfield's
-worst case goes from 248 directions a frame to **804** — ~514 ms at φ = 0.4 and
-~652 ms at φ = 3 under `vite-node`, putting the pair at the same order as the
-brightfield worst case this section already advertises at 1080 ms. Two options
-would be cheaper and would **under-report**: dropping the finest narrows the
-printed disagreement at 6 cycles (1.000× against 1.034×), 9 (1.010× against
-1.081×) and 11 (1.256× against 1.407×) — this section's own "a cheaper probe
-lies", arriving on a different control.
+**Three spacings, and the cost is the honest part.** The probe renders every
+option whichever is selected, so darkfield's per-frame total goes from the
+counts' 248 directions to **804**. Measured on whole scenes under `vite-node`,
+pair and probe together: **1310 / 1322 / 1366 ms** at the three spacings and
+**1333 ms** at φ = 3 — flat, because which one is selected does not change what
+the probe renders — against **1167 ms** for brightfield at S = 1 with a distinct
+defocused frame, re-measured on the same machine so the two are comparable. (This
+machine reads 1167 ms where the figure above says 989 ms, which is why the
+brightfield reference is re-measured rather than quoted across, and why neither
+is compared to the 1080 ms *browser* number.) Darkfield therefore lands at this
+panel's existing worst case rather than past it, and the default state is still
+free at 15 ms.
+
+Two options would be cheaper and would **under-report**: dropping the finest
+narrows the printed disagreement at 6 cycles (1.000× against 1.034×), 9 (1.010×
+against 1.081×) and 11 (1.256× against 1.407×) — this section's own "a cheaper
+probe lies", arriving on a different control.
 
 **What it does NOT buy, stated because the obvious sentence is wrong.**
 `latticeAnnularSource` takes § 6p's cache into darkfield, and the cache saves
