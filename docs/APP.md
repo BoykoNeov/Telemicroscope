@@ -5279,6 +5279,52 @@ for an RMS spot, **4.1× that again** for a wavefront and **~7 000×** for an MT
 a frequency (§ 1.8.5, § 1.8.7, § 1.8.8) — so "four orders", which this finding used
 to claim of all three, is true only of the last. Not offered — see below.
 
+**8. The variables are now the reader's, and the control that made possible is
+not the interesting part — the readout it forced is.** Every seed carries a menu
+(each surface's curvature, each thickness) and a default selection; a click
+frees or holds one. Two things had to be fixed before that was safe, and one
+thing had to be added before it was honest.
+
+*Everything keyed by POSITION becomes quietly wrong.* The crown/flint split,
+Coddington's shape and Part M's single-variable solve all reached into the
+variable list by index, which is correct exactly while the list is the seed's
+own. Free a different set and `x[0]` is a different quantity — and a textbook
+value gets printed against it with no error, no NaN, nothing to notice. The
+selection is now a set of **ids**; the closed forms read their curvatures off
+the built lens rather than out of the answer vector; and each **withholds
+itself with a stated reason** when the selection is not the one it describes,
+because q\* is the shape a lens settles at when its *shape* is free and the
+split is the two outer curvatures with the cemented face held. Freeing the
+cemented face as well is a different question, and the textbook number is still
+true and no longer a check on this run.
+
+*The second start's disagreement stops meaning what it says.* That control
+reports "a different lens", which reads as a second minimum. Free three
+curvatures against two wishes and the two starts disagree by 1.8·10⁻¹ **at the
+same merit** — one valley, a family of equally good answers along it, and the
+optimiser rolling to a different point of it. Free the distance to the image
+plane and they "disagree" by 7.4·10⁻² about a number *nothing in the merit can
+move*: the nudged start displaces it and no step ever brings it back. Neither is
+multiplicity. Nothing on the screen said which case you were in.
+
+*So the panel now prints what the merit can see of the variables you chose* —
+each one's response, the pair whose columns are most nearly parallel, any
+variable whose column is exactly zero, and the conditioning of the set with
+every column scaled to unit length (VALIDATION § 1.8.9, off the same Jacobian
+the run differences). Measured on this panel's own seeds: the retargeted
+achromat sits at **169**, the same lens with the focal length asked in
+millimetres instead of diopters at **4.2·10⁷** — and that is exactly the run
+that stops on `iterations` and whose second start disagrees. The best-form
+singlet starts at 2·10³ and **stops at 1.7·10⁹**, so the reading is taken twice;
+a single reading before the run would have called that question well posed.
+
+**And APP.md's own reason for not building this was wrong, measured.** This
+document said the damping's rejected-step count was most of the signal already.
+At fixed physics — one lens, one variable set, only a weight changing — the
+conditioning rises six orders while the rejections fall from **6 to 1** and the
+answer does not move at all. The count points the other way, and the number that
+does carry it was not on the screen.
+
 ### What it does not do
 
 - **No traced targets *here*** — but the engine has them now, and this bullet's
@@ -5316,11 +5362,14 @@ to claim of all three, is true only of the last. Not offered — see below.
   cheap: one control per wish saying *held* rather than *weighted*, and a
   readout for the multiplier, which is the one genuinely new number a designer
   gets out of it.
-- **The variables are the seed's.** Choosing which numbers a design may move is
-  the next control this surface wants, and it is bigger than it looks: two
-  variables that do nearly the same thing are what the damping exists to survive,
-  so a panel that lets you pick them should be able to say when you have picked
-  such a pair. The damping's rejected-step count is most of that signal already.
+- ~~**The variables are the seed's.**~~ ✅ **landed** — see finding 8 above.
+  This bullet's own reasoning was half right and half measurably wrong: two
+  variables that do nearly the same thing are indeed what the damping exists to
+  survive, and the rejected-step count is **not** most of that signal. At fixed
+  physics it moves the other way, 6 → 1 while the conditioning rises six orders
+  (VALIDATION § 1.8.9). What the control actually cost was two positional
+  readouts that had to become id-keyed, and two existing controls that had to
+  learn to withhold themselves.
 - **No writing back.** As in Part M, an answer is a set of values; building the
   lens is a separate explicit step, and sending one to the bench editor would
   couple two panels' state in the way `registry.ts` exists to prevent.

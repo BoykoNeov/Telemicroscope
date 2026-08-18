@@ -56,6 +56,57 @@ export function Choice<T extends string | number>(props: {
 }
 
 /**
+ * `Choice` where the answer is a SET rather than one of the options.
+ *
+ * A separate component and not a flag on `Choice`, because the two ask
+ * different questions and a control that silently changes what a click means is
+ * worse than two controls. Selected options carry the same filled style, so a
+ * reader who has met one has met both; what differs is that clicking a
+ * selected one takes it out again.
+ */
+export function Toggles<T extends string>(props: {
+  label: string;
+  options: readonly T[];
+  values: readonly T[];
+  onToggle: (value: T) => void;
+  format?: (value: T) => string;
+  /** A note under an option — what it is, or what it would cost to free it. */
+  note?: (value: T) => string | undefined;
+}) {
+  return (
+    <div style={{ fontFamily: "monospace", fontSize: 12 }}>
+      {props.label}
+      <br />
+      {props.options.map((option) => {
+        const on = props.values.includes(option);
+        const note = props.note?.(option);
+        return (
+          <button
+            key={option}
+            onClick={() => props.onToggle(option)}
+            title={note}
+            style={{
+              fontFamily: "monospace",
+              fontSize: 12,
+              marginRight: 4,
+              marginBottom: 4,
+              padding: "2px 8px",
+              border: on ? "1px solid #333" : "1px solid #ccc",
+              background: on ? "#333" : "#fff",
+              color: on ? "#fff" : "#333",
+              cursor: "pointer",
+            }}
+          >
+            {on ? "✓ " : ""}
+            {props.format ? props.format(option) : option}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
  * Three states, and the middle one is not a shade of green.
  *
  * `warn` exists because § 6f.9's verdict has three values and the middle one is

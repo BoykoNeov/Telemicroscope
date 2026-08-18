@@ -11,7 +11,7 @@ import {
   type OptimizeSpec,
   type Wish,
 } from "../optimize";
-import { Choice, Fact, Fieldset, Guard, NumberField, num, type GuardLevel } from "../ui";
+import { Choice, Fact, Fieldset, Guard, NumberField, Toggles, num, type GuardLevel } from "../ui";
 import { refusalVoice } from "../refusal";
 
 /**
@@ -51,6 +51,25 @@ function wishLevel(relative: number): GuardLevel {
   return "bad";
 }
 
+/** "3 numbers", "1 thing" — a count in a sentence, not a count with an (s). */
+const plural = (n: number, noun: string): string => `${n} ${noun}${n === 1 ? "" : "s"}`;
+
+/** How alarming a set's conditioning is — one number, three states. */
+function conditionLevel(kappa: number): GuardLevel {
+  if (!Number.isFinite(kappa)) return "bad";
+  if (kappa < 100) return "ok";
+  if (kappa < 1e4) return "warn";
+  return "bad";
+}
+
+/** …and the same for one pair of it. 1 is the same move made twice. */
+function cosineLevel(cosine: number): GuardLevel {
+  if (!Number.isFinite(cosine)) return "bad";
+  if (cosine < 0.9) return "ok";
+  if (cosine < 0.9999) return "warn";
+  return "bad";
+}
+
 const REASON_GLOSS: Record<string, string> = {
   gradient:
     "the merit stopped responding to every variable at once. That is what an optimum looks like — and also what a plateau looks like, which is why the leftovers above are the reading and this is not",
@@ -65,8 +84,18 @@ export function OptimizePanel() {
 
   const pickSeed = (id: OptimizeSeedId) => {
     const seed = optimizeSeedById(id);
-    setSpec((s) => ({ ...s, seed: id, wishes: seed.wishes }));
+    // The selection goes back to the seed's own as well: ids are per seed, and
+    // carrying "the flint back curvature" onto a singlet would name a surface
+    // that is not there.
+    setSpec((s) => ({ ...s, seed: id, wishes: seed.wishes, variables: seed.defaultVariables }));
   };
+  const toggleVariable = (id: string) =>
+    setSpec((s) => ({
+      ...s,
+      variables: s.variables.includes(id)
+        ? s.variables.filter((v) => v !== id)
+        : [...s.variables, id],
+    }));
   const patch = (part: Partial<OptimizeSpec>) => setSpec((s) => ({ ...s, ...part }));
   const patchWish = (index: number, part: Partial<Wish>) =>
     setSpec((s) => ({
@@ -78,7 +107,14 @@ export function OptimizePanel() {
   const result = useMemo(() => describeOptimize(spec), [spec]);
 
   const controls = (
-    <Controls spec={spec} seedId={spec.seed} pickSeed={pickSeed} patch={patch} patchWish={patchWish} />
+    <Controls
+      spec={spec}
+      seedId={spec.seed}
+      pickSeed={pickSeed}
+      patch={patch}
+      patchWish={patchWish}
+      toggleVariable={toggleVariable}
+    />
   );
 
   if (!result.ok) {
@@ -93,7 +129,7 @@ export function OptimizePanel() {
     );
   }
 
-  const { trail, wishes, single, basin, reference } = result;
+  const { trail, wishes, single, basin, reference, geometry } = result;
   const meritSeries: PlotSeries[] = [
     {
       label: "merit",
@@ -146,10 +182,10 @@ export function OptimizePanel() {
       >
         {result.from.map((v, i) => (
           <div key={i} style={{ fontSize: 15 }}>
-            {seed.variableLabels[i]}{" "}
+            {result.variables[i]!.label}{" "}
             <span style={{ color: "#999" }}>{v.toPrecision(9)} →</span>{" "}
             <strong>{result.to[i]!.toPrecision(10)}</strong>{" "}
-            <span style={{ color: "#999" }}>{seed.variableUnits[i]}</span>
+            <span style={{ color: "#999" }}>{result.variables[i]!.unit}</span>
           </div>
         ))}
         <div style={{ marginTop: 8, color: "#555" }}>
@@ -179,6 +215,101 @@ export function OptimizePanel() {
           </div>
         )}
       </div>
+
+      <h2 style={{ fontSize: 16, marginTop: 4 }}>What these variables can do</h2>
+      <p style={{ maxWidth: 700, color: "#444", fontSize: 14 }}>
+        Read before the run, off the same Jacobian the run differences: how hard the merit
+        responds to each number you freed, and whether what you freed contains a combination it
+        cannot see. Two variables that do nearly the same thing do not break an optimisation — the
+        damping exists to survive exactly that — so this is a statement about the{" "}
+        <em>question</em>, not a prediction that the answer is wrong.
+      </p>
+      {geometry.refused !== null ? (
+        <Guard
+          label="the variables&rsquo; geometry —"
+          value="refused"
+          level="bad"
+          detail={geometry.refused}
+        />
+      ) : (
+        <>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 10 }}>
+            <Guard
+              label="conditioning of the set"
+              value={
+                Number.isFinite(geometry.conditionNumber)
+                  ? geometry.conditionNumber >= 1e4
+                    ? geometry.conditionNumber.toExponential(2)
+                    : num(geometry.conditionNumber, 1)
+                  : "unbounded"
+              }
+              level={conditionLevel(geometry.conditionNumber)}
+              detail={
+                Number.isFinite(geometry.conditionNumber)
+                  ? `σ₁/σ_last with every column scaled to unit length, so it is a statement about the design and not about 1/mm against mm. Read again at the answer: ${
+                      Number.isFinite(geometry.conditionAfter)
+                        ? geometry.conditionAfter.toExponential(3)
+                        : "no such lens"
+                    }`
+                  : `you have freed ${plural(result.variables.length, "number")} and asked ${plural(geometry.wishCount, "thing")} of them, so at least one combination of them cannot be seen by the merit at all. That is not an error — the damping still returns an answer — but which member of the family you get is decided by where the run started rather than by the wishes`
+              }
+            />
+            {geometry.worst !== null && (
+              <Guard
+                label="the pair that most nearly repeats itself"
+                value={`${(geometry.worst.cosine * 100).toFixed(4)}% aligned`}
+                level={cosineLevel(geometry.worst.cosine)}
+                detail={`${result.variables[geometry.worst.a]!.label} and ${
+                  result.variables[geometry.worst.b]!.label
+                } move the merit in almost the same direction, so their difference is a freedom the wishes can barely price. cos = 1 would be the same move made twice`}
+              />
+            )}
+            {geometry.dead.length > 0 && (
+              <Guard
+                label="freed but invisible —"
+                value={geometry.dead.map((i) => result.variables[i]!.label).join(", ")}
+                level="bad"
+                detail="no wish here mentions anything this number changes: its column is exactly zero, so the optimiser will not move it and cannot. That is a different fault from two variables doing the same thing, and wants a different fix — another wish, not another variable"
+              />
+            )}
+          </div>
+          <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+            <thead>
+              <tr style={{ color: "#777", textAlign: "left" }}>
+                <th style={CELL}>freed</th>
+                <th style={CELL}>the merit responds</th>
+                <th style={CELL}>share of the direction it can least see</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.variables.map((v, i) => (
+                <tr key={v.id}>
+                  <td style={CELL}>{v.label}</td>
+                  <td style={{ ...CELL, color: geometry.response[i] === 0 ? "#c00" : "#333" }}>
+                    {geometry.response[i]!.toExponential(3)} per {v.unit}
+                  </td>
+                  <td style={CELL}>{(geometry.weakest[i]! ** 2 * 100).toFixed(1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p style={{ maxWidth: 880, color: "#666", fontSize: 13 }}>
+            The last column is the combination the merit responds to least, written as each
+            variable&rsquo;s share of it. On a singlet asked only for power it is 50/50 across the
+            two curvatures, which is <em>bending</em>: moving both together changes the shape and
+            not the focal length, so a power wish cannot see it at all. The conditioning is the
+            same reading as one number — 1 is a set of independent freedoms, and unbounded means
+            one of them is not there.{" "}
+            <strong>
+              Nothing else on this screen carries it: measured, the rejected-step count falls from
+              6 to 1 while the conditioning rises by six orders (§ 1.8.9).
+            </strong>{" "}
+            And where the set is degenerate, the second start below disagreeing is not evidence of
+            a second minimum — both runs reach the same merit at different points of the flat
+            direction.
+          </p>
+        </>
+      )}
 
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "flex-start" }}>
         <Plot
@@ -246,7 +377,9 @@ export function OptimizePanel() {
                 <td style={{ ...CELL, color: "#c00" }}>{num(Math.abs(single.spreadRatio), 2)}×</td>
               </tr>
               <tr>
-                <td style={CELL}>both, with the colour as a wish</td>
+                <td style={CELL}>
+                  the {result.variables.length} freed here, with the colour as a wish
+                </td>
                 <td style={CELL}>{num(result.wishes[0]?.value ?? Number.NaN, 6)}</td>
                 <td style={CELL}>{result.spreadAfterMm.toExponential(4)}</td>
                 <td style={{ ...CELL, color: "#2b7" }}>
@@ -269,12 +402,19 @@ export function OptimizePanel() {
       {reference !== null && (
         <>
           <h2 style={{ fontSize: 16, marginTop: 24 }}>Against the closed form</h2>
-          {reference.kind === "thin-split" ? (
+          {reference.withheld !== null ? (
+            <Guard
+              label={`${reference.label} —`}
+              value="not a check on this run"
+              level="warn"
+              detail={reference.withheld}
+            />
+          ) : reference.kind === "thin-split" ? (
             <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
               {reference.expected.map((e, i) => (
                 <Fact
                   key={i}
-                  label={`${seed.variableLabels[i]} — textbook`}
+                  label={`${SPLIT_FACES[i]} — textbook`}
                   value={e.toPrecision(12)}
                   note={`found ${reference.found[i]!.toPrecision(12)}, a relative ${Math.abs(reference.found[i]! / e - 1).toExponential(2)}`}
                 />
@@ -410,10 +550,15 @@ export function OptimizePanel() {
           so the two gaps below are what a weight looks like.
         </li>
         <li>
-          <strong>The variables are the seed&rsquo;s.</strong> Choosing which numbers a design may
-          move is the next control this panel wants, and it is a bigger question than it looks: two
-          variables that do nearly the same thing are what the damping exists to survive, and a
-          panel that lets you pick them should say so when you have.
+          <strong>The closed forms describe one selection each, and say so rather than
+          drifting.</strong> The variables are now yours to pick, which breaks something that was
+          silently safe while they were the seed&rsquo;s: Coddington&rsquo;s shape and the
+          crown/flint split are statements about a particular question — the shape free, or the two
+          outer curvatures with the cemented face held. Free something else and the textbook number
+          is still true and no longer a check on this run, so the box withholds itself and says
+          which selection it belongs to. It also reads the curvatures off the lens the answer names
+          rather than out of the answer vector, so a value can never be printed against the
+          textbook number for a different surface.
         </li>
         <li>
           <strong>No writing back.</strong> As in Part M, an answer is a set of values; building the
@@ -426,6 +571,8 @@ export function OptimizePanel() {
 }
 
 const WISH_COLORS = ["#36c", "#c0392b", "#2b7", "#c60"] as const;
+/** The two surfaces the classical split names, in the order the closed form gives them. */
+const SPLIT_FACES = ["crown front curvature", "flint back curvature"] as const;
 const CELL = { padding: "2px 10px 2px 0", borderBottom: "1px solid #eee" } as const;
 
 function Heading() {
@@ -440,8 +587,10 @@ function Controls(props: {
   pickSeed: (id: OptimizeSeedId) => void;
   patch: (part: Partial<OptimizeSpec>) => void;
   patchWish: (index: number, part: Partial<Wish>) => void;
+  toggleVariable: (id: string) => void;
 }) {
   const { spec, patch } = props;
+  const seed = optimizeSeedById(spec.seed);
   return (
     <>
       <Fieldset title="the lens, and what may move">
@@ -452,6 +601,23 @@ function Controls(props: {
           onChange={props.pickSeed}
           format={(id) => optimizeSeedById(id).label}
         />
+        <Toggles
+          label="the design may move"
+          options={seed.menu.map((c) => c.id)}
+          values={spec.variables}
+          onToggle={props.toggleVariable}
+          format={(id) => seed.menu.find((c) => c.id === id)!.label}
+          note={(id) => `${seed.menu.find((c) => c.id === id)!.unit} — click to free or hold it`}
+        />
+        <p style={{ maxWidth: 420, color: "#999", fontSize: 11, margin: "4px 0 0" }}>
+          Which numbers the optimiser is allowed to change. More freedom is not
+          automatically better: free more of them than there are wishes and part of what
+          you freed cannot be seen at all, and two that do nearly the same thing make a
+          question the damping has to survive rather than a design it can improve. The
+          box below says which case you are in — nothing else on this screen does, and
+          the rejected-step count, which looks like it should, moves the other way
+          (§ 1.8.9).
+        </p>
       </Fieldset>
       <Fieldset title="the wishes — a target, and what it is worth against the others">
         {spec.wishes.map((w, i) => (

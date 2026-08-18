@@ -2,6 +2,7 @@ import {
   optimizePrescription,
   seidelSums,
   solveParaxial,
+  variableResponse,
   withVariable,
   withVariables,
   type DlsResult,
@@ -105,14 +106,72 @@ export type Currency = "power" | "focal";
 
 export type ReferenceKind = "thin-split" | "best-form";
 
+/** One number a design may be allowed to move, named rather than numbered. */
+export interface VariableChoice {
+  readonly id: string;
+  readonly variable: SolveVariable;
+  readonly label: string;
+  readonly unit: string;
+}
+
+/**
+ * A seed's menu, built so that a selection is stored as an ID.
+ *
+ * That is not a style choice. Everything on this panel that compares the answer
+ * with a closed form — the crown/flint split, Coddington's shape factor,
+ * Part M's single-variable solve — used to reach into the variable list BY
+ * POSITION, which is correct exactly while the list is the seed's own. Let a
+ * reader change the set and `x[0]` stops being the crown front curvature, and
+ * the comparison prints a number against the wrong quantity with nothing to
+ * notice: no error, no NaN, just a wrong sentence in the same place the right
+ * one used to be.
+ */
+function menuOf(
+  curvatures: readonly string[],
+  thicknesses: readonly string[],
+): readonly VariableChoice[] {
+  return [
+    ...curvatures.map(
+      (label, i): VariableChoice => ({
+        id: `c${i}`,
+        variable: { kind: "curvature", surface: i },
+        label,
+        unit: "1/mm",
+      }),
+    ),
+    ...thicknesses.map(
+      (label, i): VariableChoice => ({
+        id: `t${i}`,
+        variable: { kind: "thickness", surface: i },
+        label,
+        unit: "mm",
+      }),
+    ),
+  ];
+}
+
+/** The three surfaces every doublet seed here has, in the order they are traced. */
+const DOUBLET_MENU = menuOf(
+  ["crown front curvature", "cemented face curvature", "flint back curvature"],
+  ["crown thickness", "flint thickness", "to the image plane"],
+);
+const SINGLET_MENU = menuOf(
+  ["front curvature", "back curvature"],
+  ["glass thickness", "to the image plane"],
+);
+
 export interface OptimizeSeed {
   readonly id: OptimizeSeedId;
   readonly label: string;
   readonly note: string;
   readonly prescription: Prescription;
-  readonly variables: readonly SolveVariable[];
-  readonly variableLabels: readonly string[];
-  readonly variableUnits: readonly string[];
+  /** Every number this seed will let a reader free, in trace order. */
+  readonly menu: readonly VariableChoice[];
+  /**
+   * What is free before anything is clicked — and, where the seed has a closed
+   * form, the ONLY selection that closed form describes. See `referenceFor`.
+   */
+  readonly defaultVariables: readonly string[];
   readonly wishes: readonly Wish[];
   /** Held fixed across the whole optimisation — S_I carries h⁴. */
   readonly marginalHeightMm: number;
@@ -121,7 +180,7 @@ export interface OptimizeSeed {
    * would look. `null` where the comparison is not the seed's point.
    */
   readonly singleVariable: {
-    readonly index: number;
+    readonly id: string;
     readonly interval: readonly [number, number];
   } | null;
   readonly reference: ReferenceKind | null;
@@ -174,12 +233,8 @@ export function optimizeSeeds(): readonly OptimizeSeed[] {
       label: "the app's achromat, retargeted",
       note: "Part M's own finding, answered: one curvature hits the focal length and spends the colour correction, and this is the same move with the correction as a second wish",
       prescription: achromat,
-      variables: [
-        { kind: "curvature", surface: 0 },
-        { kind: "curvature", surface: 2 },
-      ],
-      variableLabels: ["crown front curvature", "flint back curvature"],
-      variableUnits: ["1/mm", "1/mm"],
+      menu: DOUBLET_MENU,
+      defaultVariables: ["c0", "c2"],
       wishes: [
         {
           kind: "focal",
@@ -199,7 +254,7 @@ export function optimizeSeeds(): readonly OptimizeSeed[] {
         },
       ],
       marginalHeightMm: REFRACTOR_SEMI_APERTURE_MM,
-      singleVariable: { index: 0, interval: spreadInterval(achromat.surfaces[0]!.curvature, 0.005) },
+      singleVariable: { id: "c0", interval: spreadInterval(achromat.surfaces[0]!.curvature, 0.005) },
       reference: null,
     },
     {
@@ -207,12 +262,8 @@ export function optimizeSeeds(): readonly OptimizeSeed[] {
       label: "§ 1.8's thin cemented doublet",
       note: "zero thickness, so the classical crown/flint power split is EXACT here — the fixture the ladder pins the optimiser on, with the textbook answer printed beside it",
       prescription: thinDoublet(0.01, SPLIT_CEMENTED_CURVATURE, -0.01),
-      variables: [
-        { kind: "curvature", surface: 0 },
-        { kind: "curvature", surface: 2 },
-      ],
-      variableLabels: ["crown front curvature", "flint back curvature"],
-      variableUnits: ["1/mm", "1/mm"],
+      menu: DOUBLET_MENU,
+      defaultVariables: ["c0", "c2"],
       wishes: [
         {
           kind: "focal",
@@ -240,12 +291,8 @@ export function optimizeSeeds(): readonly OptimizeSeed[] {
       label: "the singlet, bent for least spherical",
       note: "the same BK7 singlet the star panel compares against — power held by a weighted wish, shape free, and a textbook minimum to land near",
       prescription: singlet,
-      variables: [
-        { kind: "curvature", surface: 0 },
-        { kind: "curvature", surface: 1 },
-      ],
-      variableLabels: ["front curvature", "back curvature"],
-      variableUnits: ["1/mm", "1/mm"],
+      menu: SINGLET_MENU,
+      defaultVariables: ["c0", "c1"],
       wishes: [
         {
           kind: "focal",
@@ -273,9 +320,8 @@ export function optimizeSeeds(): readonly OptimizeSeed[] {
       label: "§ 1.8's currency trap",
       note: "a doublet 76.5 mm NEGATIVE, asked for +150 mm — with an afocal configuration in between, which is a barrier in one currency and nothing at all in the other",
       prescription: currencySeedPrescription(),
-      variables: [{ kind: "curvature", surface: 2 }],
-      variableLabels: ["flint back curvature"],
-      variableUnits: ["1/mm"],
+      menu: DOUBLET_MENU,
+      defaultVariables: ["c2"],
       wishes: [
         {
           kind: "focal",
@@ -302,6 +348,12 @@ export interface OptimizeSpec {
   readonly seed: OptimizeSeedId;
   /** Editable copies of the seed's wishes, in the seed's order. */
   readonly wishes: readonly Wish[];
+  /**
+   * Which of the seed's numbers may move, by `VariableChoice.id`. Order does
+   * not matter: the run always takes them in the menu's order, so clicking the
+   * same two in the other order is the same question and not a second one.
+   */
+  readonly variables: readonly string[];
   readonly currency: Currency;
   /** How far the second start is moved, as a fraction of each variable. */
   readonly startOffset: number;
@@ -313,6 +365,7 @@ export function defaultSpec(): OptimizeSpec {
   return {
     seed: seed.id,
     wishes: seed.wishes,
+    variables: seed.defaultVariables,
     currency: "power",
     startOffset: 0.08,
     maxIterations: 100,
@@ -391,6 +444,31 @@ export interface SingleVariableComparison {
   readonly refused: string | null;
 }
 
+/**
+ * What the merit can see of the variables that were selected — the question the
+ * damping exists to survive, asked out loud rather than left to be inferred.
+ *
+ * VALIDATION § 1.8.9. Indices are into the SELECTED set, in menu order.
+ */
+export interface GeometryReadout {
+  /** ‖J_j‖ per selected variable: how hard the merit responds to it at all. */
+  readonly response: readonly number[];
+  /** Selected variables no wish can see at all — an exactly zero column. */
+  readonly dead: readonly number[];
+  /** The pair that moves the design most nearly the same way. */
+  readonly worst: { readonly a: number; readonly b: number; readonly cosine: number } | null;
+  /** σ₁/σ_last with the columns scaled to unit length, at the starting design. */
+  readonly conditionNumber: number;
+  /** The same, read again at the answer — a design can move to a worse question. */
+  readonly conditionAfter: number;
+  readonly singularValues: readonly number[];
+  /** The combination the merit responds to LEAST, in the scaled coordinates. */
+  readonly weakest: readonly number[];
+  /** How many wishes there are, which caps how many directions can be seen. */
+  readonly wishCount: number;
+  readonly refused: string | null;
+}
+
 export interface BasinControl {
   readonly offset: number;
   readonly agreed: boolean;
@@ -405,6 +483,13 @@ export interface BasinControl {
 export interface ReferenceReadout {
   readonly kind: ReferenceKind;
   readonly label: string;
+  /**
+   * Why there are no numbers here, when there are none: a closed form describes
+   * ONE question, and freeing a different set of variables asks another. Better
+   * an empty box saying so than a textbook value compared against whatever the
+   * answer's first entry happens to be now.
+   */
+  readonly withheld: string | null;
   /** The textbook values, in the variables' own order where that makes sense. */
   readonly expected: readonly number[];
   readonly found: readonly number[];
@@ -421,6 +506,9 @@ export type OptimizeStage = "build" | "optimise" | "trail" | "single" | "basin";
 
 export interface OptimizeReadout {
   readonly seed: OptimizeSeed;
+  /** The variables this run was actually given, in menu order. */
+  readonly variables: readonly VariableChoice[];
+  readonly geometry: GeometryReadout;
   readonly currency: Currency;
   readonly from: readonly number[];
   readonly to: readonly number[];
@@ -505,6 +593,19 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   const seed = optimizeSeedById(spec.seed);
   const wishes = spec.wishes.length === seed.wishes.length ? spec.wishes : seed.wishes;
 
+  // Menu order, not click order, and ids the seed actually offers: a selection
+  // carried over from another seed names numbers this one may not have.
+  const chosen = seed.menu.filter((c) => spec.variables.includes(c.id));
+  if (chosen.length === 0) {
+    return refusalOf(
+      new AppRefusal(
+        `nothing may move: with no variables there is no question, only a lens and an opinion of it.`,
+      ),
+      "build",
+    );
+  }
+  const variables = chosen.map((c) => c.variable);
+
   for (const w of wishes) {
     if (!Number.isFinite(w.target)) {
       return refusalOf(
@@ -529,24 +630,63 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   }
 
   const operands = wishes.map((w) => operandFor(w, seed, spec.currency));
-  const from = seed.variables.map((v) => valueOf(seed.prescription, v));
+  const from = variables.map((v) => valueOf(seed.prescription, v));
 
   let result: DlsResult;
   try {
-    result = optimizePrescription(seed.prescription, seed.variables, operands, {
+    result = optimizePrescription(seed.prescription, variables, operands, {
       maxIterations: spec.maxIterations,
     });
   } catch (cause) {
     return refusalOf(cause, "optimise");
   }
 
-  const built = withVariables(seed.prescription, seed.variables, result.x);
+  const built = withVariables(seed.prescription, variables, result.x);
   let builtIsAfocal = false;
   try {
     systemProperties(built, LINE_D);
   } catch {
     builtIsAfocal = true;
   }
+
+  // What the merit can see of the variables that were selected, at the design
+  // it started from and again at the one it stopped on. Two readings because a
+  // run can move a design to a worse question than it was asked at — and both
+  // are 5 evaluations of a paraxial trace, so there is no reason to choose.
+  const geometry: GeometryReadout = (() => {
+    const blank = {
+      response: [],
+      dead: [],
+      worst: null,
+      conditionNumber: Number.NaN,
+      conditionAfter: Number.NaN,
+      singularValues: [],
+      weakest: [],
+      wishCount: operands.length,
+    };
+    try {
+      const before = variableResponse(seed.prescription, variables, operands);
+      let conditionAfter = Number.NaN;
+      try {
+        conditionAfter = variableResponse(built, variables, operands).conditionNumber;
+      } catch {
+        conditionAfter = Number.NaN;
+      }
+      return {
+        response: before.response,
+        dead: before.dead,
+        worst: before.worstPair,
+        conditionNumber: before.conditionNumber,
+        conditionAfter,
+        singularValues: before.singularValues,
+        weakest: before.weakest,
+        wishCount: operands.length,
+        refused: null,
+      };
+    } catch (cause) {
+      return { ...blank, refused: (cause as Error).message };
+    }
+  })();
 
   // Every wish read back in its OWN unit off the built lens, rather than from
   // the merit's residual vector: a focal wish asked in power has a residual in
@@ -589,10 +729,10 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   const trail: TrailPoint[] = [];
   try {
     for (const k of trailWorkLevels(result.iterations)) {
-      const step = optimizePrescription(seed.prescription, seed.variables, operands, {
+      const step = optimizePrescription(seed.prescription, variables, operands, {
         maxIterations: k,
       });
-      const at = withVariables(seed.prescription, seed.variables, step.x);
+      const at = withVariables(seed.prescription, variables, step.x);
       trail.push({
         work: k,
         merit: step.merit,
@@ -635,8 +775,12 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   let single: SingleVariableComparison | null = null;
   const focalWish = wishes.find((w) => w.kind === "focal");
   if (seed.singleVariable !== null && focalWish !== undefined) {
-    const variable = seed.variables[seed.singleVariable.index]!;
-    const label = seed.variableLabels[seed.singleVariable.index]!;
+    // By id, and deliberately independent of what is selected: Part M's
+    // question is about THIS curvature on this lens, and stays the same
+    // question however many freedoms the run above was given.
+    const choice = seed.menu.find((c) => c.id === seed.singleVariable!.id)!;
+    const variable = choice.variable;
+    const label = choice.label;
     try {
       const s = solveParaxial(
         seed.prescription,
@@ -673,12 +817,12 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   // say so on a screen is to run one.
   let basin: BasinControl;
   try {
-    const moved = seed.variables.map((v, i) => {
+    const moved = variables.map((v, i) => {
       const x0 = from[i]!;
       return x0 === 0 ? spec.startOffset : x0 * (1 + spec.startOffset);
     });
-    const nudged = withVariables(seed.prescription, seed.variables, moved);
-    const again = optimizePrescription(nudged, seed.variables, operands, {
+    const nudged = withVariables(seed.prescription, variables, moved);
+    const again = optimizePrescription(nudged, variables, operands, {
       maxIterations: spec.maxIterations,
     });
     let worst = 0;
@@ -708,7 +852,7 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
 
   let reference: ReferenceReadout | null = null;
   try {
-    reference = referenceFor(seed, result, spec);
+    reference = referenceFor(seed, built, spec, chosen);
   } catch (cause) {
     return refusalOf(cause, "build");
   }
@@ -716,6 +860,8 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   return {
     ok: true,
     seed,
+    variables: chosen,
+    geometry,
     currency: spec.currency,
     from,
     to: result.x,
@@ -753,12 +899,43 @@ export const shapeFactor = (c1: number, c2: number): number => (c1 + c2) / (c1 -
 /** The published best form for a thin lens in air, object at infinity. */
 export const bestFormShapeFactor = (n: number): number => (2 * (n * n - 1)) / (n + 2);
 
+/**
+ * The closed form beside the answer — or a sentence saying why there is none.
+ *
+ * Both branches read the curvatures off the BUILT lens rather than out of the
+ * answer vector, so a value can never be compared against a textbook number for
+ * a different surface. And both are withheld unless the selection is the one
+ * the closed form describes: Coddington's q\* is the shape a lens settles at
+ * when its SHAPE is what is free, and the crown/flint split is the pair of
+ * outer curvatures with the cemented face held. Free something else and those
+ * are still true statements about optics and no longer statements about this
+ * run.
+ */
 function referenceFor(
   seed: OptimizeSeed,
-  result: DlsResult,
+  built: Prescription,
   spec: OptimizeSpec,
+  chosen: readonly VariableChoice[],
 ): ReferenceReadout | null {
   if (seed.reference === null) return null;
+  const wanted = [...seed.defaultVariables].sort().join(",");
+  const got = chosen.map((c) => c.id).sort().join(",");
+  if (wanted !== got) {
+    const names = seed.defaultVariables
+      .map((id) => seed.menu.find((c) => c.id === id)?.label ?? id)
+      .join(" and ");
+    return {
+      kind: seed.reference,
+      label: seed.reference === "thin-split" ? "the classical split" : "Coddington's best form",
+      withheld:
+        `this closed form describes the run with ${names} free, and nothing else. ` +
+        `What is free here is ${chosen.map((c) => c.label).join(", ")} — a different question, ` +
+        `whose answer the textbook value would not be a check on.`,
+      expected: [],
+      found: [],
+      note: "",
+    };
+  }
 
   if (seed.reference === "thin-split") {
     const nCrown = getMedium(CROWN).n(LINE_D);
@@ -776,7 +953,8 @@ function referenceFor(
         SPLIT_CEMENTED_CURVATURE + phiCrown / (nCrown - 1),
         SPLIT_CEMENTED_CURVATURE - phiFlint / (nFlint - 1),
       ],
-      found: result.x,
+      found: [built.surfaces[0]!.curvature, built.surfaces[2]!.curvature],
+      withheld: null,
       note: "exact here because the elements have no thickness: both wishes reach zero together, so the answer does not depend on the weighting either",
     };
   }
@@ -785,7 +963,7 @@ function referenceFor(
   // thin. So the panel separates the two gaps rather than blaming the optimiser
   // for either: the same optimisation on a 1 nm version of the same lens.
   const n = getMedium(CROWN).n(LINE_D);
-  const q = shapeFactor(result.x[0]!, result.x[1]!);
+  const q = shapeFactor(built.surfaces[0]!.curvature, built.surfaces[1]!.curvature);
   const qStar = bestFormShapeFactor(n);
   const thickness = seed.prescription.surfaces[0]!.thickness;
   const thin: Prescription = {
@@ -795,15 +973,17 @@ function referenceFor(
     ],
   };
   const operands = spec.wishes.map((w) => operandFor(w, seed, spec.currency));
-  const thinResult = optimizePrescription(thin, seed.variables, operands, {
+  const thinResult = optimizePrescription(thin, chosen.map((c) => c.variable), operands, {
     maxIterations: spec.maxIterations,
   });
-  const qThin = shapeFactor(thinResult.x[0]!, thinResult.x[1]!);
+  const thinBuilt = withVariables(thin, chosen.map((c) => c.variable), thinResult.x);
+  const qThin = shapeFactor(thinBuilt.surfaces[0]!.curvature, thinBuilt.surfaces[1]!.curvature);
   return {
     kind: "best-form",
     label: "Coddington's best form, q* = 2(n²−1)/(n+2)",
     expected: [qStar],
     found: [q],
+    withheld: null,
     note: "a thin-lens result, so the gap on a real lens is mostly its thickness — the same solve on a 1 nm version of this lens is the control",
     shapeFactor: q,
     shapeFactorStar: qStar,
