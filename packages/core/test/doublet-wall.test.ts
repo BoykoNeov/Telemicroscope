@@ -67,12 +67,28 @@ const memoize = <A extends unknown[], R>(fn: (...args: A) => R): ((...args: A) =
   };
 };
 
-/** σ at best focus on the DIN chain, the currency § 6b.4 already reports in. */
+/**
+ * σ at best focus on the DIN chain, the currency § 6b.4 already reports in.
+ *
+ * **The placement is stated, not defaulted** (§ 6ai). A wavefront RMS has a stop
+ * position in it — 0.88% of σ on the axial 4×/0.10 — so an EXTERNAL criterion
+ * applied to it is a claim about a named lens or about no lens at all. Every
+ * number in this section is the SHIPPED objective's, and § 6ai.6 is where the
+ * rim-stopped control's own ceiling is put beside it.
+ *
+ * The `lost` guard is new with the same step and is not bookkeeping: a
+ * telecentric objective carries a paraxially-sized diaphragm, and a bending with
+ * enough residual spherical aberration lands its rim ray outside it (§ 6ai.4).
+ * An RMS over a clipped pupil is a different quantity, and it would arrive here
+ * as a plausible smaller number rather than as a failure.
+ */
 function sigmaWavesAt(M: number, NA: number, over: Record<string, unknown> = {}): number {
   const objective = finiteConjugateObjective({ magnification: M, numericalAperture: NA, ...over });
   const s = finiteConjugateMicroscope({ objective }).system;
   const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
-  return opdMap(withFocus(s, focus.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21)).rmsWaves;
+  const map = opdMap(withFocus(s, focus.offsetFromLastVertex), 0, LAMBDA, pupilGrid(21));
+  expect(map.lost).toBe(0);
+  return map.rmsWaves;
 }
 const sigmaWaves = memoize(sigmaWavesAt);
 
@@ -98,6 +114,19 @@ const buildWall = memoize((over: Record<string, unknown>): number =>
       return false;
     }
   }, 44));
+
+/**
+ * The rim-stopped spelling, for the rungs that CANNOT use the shipped lens.
+ *
+ * Not a leftover: past about NA 0.17 the telecentric objective's real rim ray
+ * lands outside its own paraxially-sized diaphragm and the trace clips (§ 6ai.4),
+ * so σ there is an average over part of a pupil. Every rung that quotes a
+ * wavefront in the far band — the region that is TENS of times past Maréchal and
+ * has no usable objective in it — measures the rim member, whose stop is its
+ * launch aperture and which therefore clips at no aperture at all. The numbers
+ * those rungs pin are unchanged from before § 6ai for exactly that reason.
+ */
+const RIM = { stopPlacement: "rim" as const };
 
 /** The reach on Maréchal — the external criterion, on the same chain. */
 const marechalReach = memoize((M: number): number =>
@@ -186,19 +215,19 @@ const catchError = (fn: () => unknown): Error => {
 };
 
 describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", () => {
-  it("the DIN 4× is diffraction-limited to NA 0.1031 — the catalogued 0.10 has 3% in hand", () => {
+  it("the DIN 4× is diffraction-limited to NA 0.1030 — the catalogued 0.10 has 3% in hand", () => {
     // § 6b's own sentence, finally measured: "the 4× sitting at f/4.1 — the edge
     // of the cemented-doublet form". It is the edge. The reach is 3.1% of NA
     // above the member the catalogue ships, and the working ratio there is
     // f/3.956 against the catalogued f/4.076 — 3% of ratio.
     const reach = marechalReach(4);
-    expect(reach).toBeCloseTo(0.10311, 4);
+    expect(reach).toBeCloseTo(0.10295, 4);
     expect(reach / 0.1 - 1).toBeLessThan(0.04);
     expect(reach).toBeGreaterThan(0.1); // the catalogued member does clear it
     const atReach = finiteConjugateObjective({ magnification: 4, numericalAperture: reach });
-    expect(atReach.workingFocalRatio).toBeCloseTo(3.9559, 3);
+    expect(atReach.workingFocalRatio).toBeCloseTo(3.9620, 3);
     // And the pinned member's own σ, which § 6b.4 reports as λ/17.
-    expect(sigmaWaves(4, 0.1)).toBeCloseTo(0.058936, 5);
+    expect(sigmaWaves(4, 0.1)).toBeCloseTo(0.059454, 5);
   });
 
   it("σ runs as NA^6.2 there, so the reach is bisected and not interpolated", () => {
@@ -223,10 +252,10 @@ describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", ()
       const NA = marechalReach(M);
       return { M, NA, F: finiteConjugateObjective({ magnification: M, numericalAperture: NA }).workingFocalRatio };
     });
-    expect(rows[0]!.NA).toBeCloseTo(0.10311, 4);
-    expect(rows[3]!.NA).toBeCloseTo(0.18274, 4);
-    expect(rows[0]!.F).toBeCloseTo(3.9559, 3);
-    expect(rows[3]!.F).toBeCloseTo(2.8227, 3);
+    expect(rows[0]!.NA).toBeCloseTo(0.10295, 4);
+    expect(rows[3]!.NA).toBeCloseTo(0.18152, 4);
+    expect(rows[0]!.F).toBeCloseTo(3.9620, 3);
+    expect(rows[3]!.F).toBeCloseTo(2.8404, 3);
     // Monotone in both, opposite ways: a slower objective reaches a higher NA
     // and does it at a faster working cone.
     for (let i = 1; i < rows.length; i++) {
@@ -241,7 +270,7 @@ describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", ()
     expect(span(rows.map((r) => r.NA)) / span(rows.map((r) => r.F))).toBeGreaterThan(1.8);
   });
 
-  it("at the constructor's refusal NA the wavefront is 7.6 waves — 106× Maréchal", () => {
+  it("at the constructor's refusal NA the wavefront is 7.6 waves — 106× Maréchal (RIM)", () => {
     // The measurement that makes everything below an identity rather than a
     // ceiling. D8 read the refusal boundary as "the form survives to NA 0.1843";
     // the form is tens of times past diffraction-limited there and nearly twice
@@ -253,12 +282,21 @@ describe("§ 6b.5.1 — the optical ceiling: Maréchal, bisected (EXTERNAL)", ()
     // lenses (→ 0.204273). The wavefront at the refusal went 3.45 → 5.59 → 7.57
     // waves. **Nothing usable was unlocked by either, and that is the honest
     // summary of both.**
+    // MEASURED ON THE RIM, and § 6ai is why rather than inertia. Six waves out
+    // the telecentric lens does not pass its own diaphragm — 36 of this grid's
+    // rays are clipped — and an RMS over a clipped pupil is a different quantity
+    // from the one Maréchal's criterion is stated on, so quoting it here would
+    // compare a vignetted number against an unvignetted threshold. The rim's
+    // stop IS its launch aperture, so it clips nothing at any NA and is the only
+    // member of the pair that can carry this statement. Note what does NOT need
+    // saying either way: the wall itself, 0.204273 under both placements to the
+    // digit, because it is the solver's and contains no aperture (§ 6b.5.2).
     const wall = buildWall({});
     expect(wall).toBeCloseTo(0.204273, 5);
-    const sigma = sigmaWaves(4, wall);
+    const sigma = sigmaWaves(4, wall, RIM);
     expect(sigma).toBeGreaterThan(7.5);
     expect(sigma / MARECHAL).toBeGreaterThan(105);
-    expect(wall / marechalReach(4)).toBeCloseTo(1.981, 2);
+    expect(wall / marechalReach(4)).toBeCloseTo(1.984, 2);
   }, SLOW);
 });
 
@@ -828,7 +866,7 @@ describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and di
    * is optically worthless.
    */
 
-  it("EXTERNAL: everything the fix unlocked is 48–78× past Maréchal", () => {
+  it("EXTERNAL: everything the fix unlocked is 48–78× past Maréchal (RIM)", () => {
     // The honest headline, on the same criterion § 6b.5.1 uses. The band this
     // commit opened — 0.184336 to 0.196500, the seed's wall to the converged
     // design's — is entirely inside the region the wavefront has already
@@ -839,13 +877,13 @@ describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and di
     // out — this rung is about what the SEED fix opened.)
     const opened = [0.184336, 0.190418, 0.196499];
     for (const NA of opened) {
-      expect(sigmaWaves(4, NA) / MARECHAL).toBeGreaterThan(45);
+      expect(sigmaWaves(4, NA, RIM) / MARECHAL).toBeGreaterThan(45);
     }
-    expect(sigmaWaves(4, opened[0]!)).toBeCloseTo(3.4507, 3);
-    expect(sigmaWaves(4, opened[2]!)).toBeGreaterThan(5.5);
+    expect(sigmaWaves(4, opened[0]!, RIM)).toBeCloseTo(3.4507, 3);
+    expect(sigmaWaves(4, opened[2]!, RIM)).toBeGreaterThan(5.5);
     // …and the diffraction-limited reach itself did not move at all, which is
     // the negative control: this touched the refusal, not the optics.
-    expect(marechalReach(4)).toBeCloseTo(0.10311, 4);
+    expect(marechalReach(4)).toBeCloseTo(0.10295, 4);
   });
 
   it("the lenses in the opened band are genuine solutions, not returned objects", () => {
@@ -855,12 +893,17 @@ describe("§ 6b.5.6 — the seed is no longer the wall, and what that did and di
     // conjugate the lens is USED at, and ΣS_I is null where it is used.
     for (const NA of [0.185, 0.19, 0.1955]) {
       const o = finiteConjugateObjective({ magnification: 4, numericalAperture: NA });
-      expect(o.doublet.objectDistanceMm).toBeCloseTo(o.imageDistanceMm, 6);
+      // GLASS-relative: since § 6ai the last vertex is the diaphragm, so the
+      // image distance is short of the frame the bending was solved in by the
+      // back focal distance (`stopDistanceMm`, which is 0 on the rim).
+      expect(o.doublet.objectDistanceMm).toBeCloseTo(o.imageDistanceMm + o.stopDistanceMm, 6);
       expect(Math.abs(o.seidelS1AtWorkingConjugates)).toBeLessThan(1e-12);
-      // The glass is the size the stop implies at the CONVERGED object distance,
-      // not at any held-back one — the retry keeps nothing.
+      // The glass is the size the PENCIL implies at the CONVERGED object
+      // distance, not at any held-back one — the retry keeps nothing. Keyed to
+      // the pencil rather than to `stopRadiusMm`, which telecentric is f·tan u
+      // and would make this identity a statement about the focal length.
       const tanU = NA / Math.sqrt(1 - NA * NA);
-      expect(o.stopRadiusMm).toBeCloseTo(o.airEquivalentObjectDistanceMm * tanU, 12);
+      expect(o.pencilRadiusAtGlassMm).toBeCloseTo(o.airEquivalentObjectDistanceMm * tanU, 12);
     }
   });
 
@@ -930,21 +973,21 @@ describe("§ 6b.5.7 — the scan window's `3`, and the boundary it stops decidin
     expect(measured(40, "crownFirst") / 0.2233784).toBeLessThan(0.93);
   }, SLOW);
 
-  it("EXTERNAL: the band gained is 78–106× Maréchal, and the band lost is worse than 41×", () => {
+  it("EXTERNAL: the band gained is 78–106× Maréchal, and the band lost is worse than 41× (RIM)", () => {
     // Both directions on the external criterion, because a commit that refuses
     // designs has to say what it refused. Everything gained sits past 7 waves of
     // wavefront error, and the diffraction-limited reach — the only number here
     // that is about optics — does not move at either end.
-    expect(sigmaWaves(4, 0.196499) / MARECHAL).toBeGreaterThan(77);
-    expect(sigmaWaves(4, buildWall({}) * 0.9999) / MARECHAL).toBeGreaterThan(105);
-    expect(marechalReach(4)).toBeCloseTo(0.10311, 4);
+    expect(sigmaWaves(4, 0.196499, RIM) / MARECHAL).toBeGreaterThan(77);
+    expect(sigmaWaves(4, buildWall({}) * 0.9999, RIM) / MARECHAL).toBeGreaterThan(105);
+    expect(marechalReach(4)).toBeCloseTo(0.10295, 4);
 
     // The band LOST cannot be measured where it was lost — those designs do not
     // build any more, which is the point of the commit — so it is bounded from
     // below instead. σ rises monotonically with NA (§ 6b.5.1 measures the order as
     // NA^6.2), so the whole refused band 0.1715–0.1846 is worse than its bottom
     // end, and its bottom end is the new crown-first wall.
-    const lost = { orientation: "crownFirst" };
+    const lost = { orientation: "crownFirst", ...RIM };
     const bottom = sigmaWaves(4, measured(4, "crownFirst") * 0.9999, lost);
     expect(bottom).toBeCloseTo(2.9425, 3);
     expect(bottom / MARECHAL).toBeGreaterThan(41);

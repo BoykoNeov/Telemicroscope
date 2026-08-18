@@ -712,8 +712,30 @@ export interface MountSweep {
 const glassLengthOf = (p: Prescription): number =>
   p.surfaces.slice(0, -1).reduce((a, s) => a + s.thickness, 0);
 
-/** The thin-lens mount floor: a single group cannot stand closer than x′(M+1)/M². */
+/**
+ * The thin-lens mount floor for a **telecentric** single group (§ 6ai).
+ *
+ * A lens working at magnification M stands off its object by x′(M+1)/M², and
+ * that alone gives the older floor [x′ + √(x′² + 4Px′)]/(2P) — which is what
+ * this returned while the objective carried its stop on its front vertex. The
+ * shipped objective's stop is a diaphragm on the back focal plane, so it does
+ * not END at its last glass vertex: it ends a focal length x′/M further back,
+ * and the mount has to contain that too. The budget becomes
+ *
+ *     x′(M+1)/M² + x′/M ≤ P   →   P·M² − 2x′M − x′ = 0
+ *
+ * which is 7.134× for the DIN pair where the single-group form gives 4.139×.
+ * `singleGroupThinLensFloor` keeps the older one, because the panel plots both
+ * and the gap between them IS the diaphragm's standoff.
+ */
 export const thinLensFloor = (parfocalDistanceMm: number, xPrime = X_PRIME_MM): number =>
+  (xPrime + Math.sqrt(xPrime * xPrime + parfocalDistanceMm * xPrime)) / parfocalDistanceMm;
+
+/** The pre-§ 6ai form: the glass alone, with no diaphragm standing behind it. */
+export const singleGroupThinLensFloor = (
+  parfocalDistanceMm: number,
+  xPrime = X_PRIME_MM,
+): number =>
   (xPrime + Math.sqrt(xPrime * xPrime + 4 * parfocalDistanceMm * xPrime)) /
   (2 * parfocalDistanceMm);
 

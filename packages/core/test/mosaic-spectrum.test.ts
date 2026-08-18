@@ -52,6 +52,21 @@ const GUARD = 4;
 
 /** § 6b's DIN 4×/0.10 — § 6o's own mosaic system, so the two ladders compare. */
 const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({
+    magnification: 4,
+    numericalAperture: 0.1,
+    stopPlacement: "rim",
+  }),
+}).system;
+
+/**
+ * § 6ai's shipped placement, and in this file it is not a control — it is where
+ * two of the rungs below find something the fixture cannot show. The transverse
+ * scale of a telecentric objective is EXACTLY proportional to wavelength, and its
+ * lateral colour stops being linear once the distortion is large enough to be
+ * seen. Both are read as legs on the rungs that already state the law.
+ */
+const TELECENTRIC: OpticalSystem = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
@@ -256,6 +271,33 @@ describe("§ 6t.3 — the ruler plane is the LEAST guarded, and the rest by a cl
     const worst = Math.max(...residual);
     expect(worst).toBeGreaterThan(1e-6);
     expect(worst).toBeLessThan(1e-3);
+
+    // **AND ON THE SHIPPED OBJECTIVE IT VERY NEARLY IS NOISE — six orders below
+    // this, which is a § 6ai finding and not a tolerance.** 450/550 comes back as
+    // 0.818181818 and 450/650 as 0.692307692: the transverse scale of an
+    // object-space telecentric objective is proportional to λ to 2.4e-10.
+    //
+    // The reason is the same one every § 6ai finding has. The scale is set by
+    // where the chief ray puts the object point, the chief ray leaves the
+    // specimen parallel to the axis at every wavelength, and the only λ left in
+    // the pixel is the diffraction one — which is the λ this ratio is made of.
+    // On the rim member the chief ray's direction is a ratio of distances to a
+    // stop that the traced pupil moves with colour, and that residue is the
+    // 1.7e-4 above.
+    //
+    // It does NOT make the minimum-over-measured-scales redundant, and the rung
+    // says so by pinning the floor rather than an equality: 2.4e-10 is still four
+    // thousand ulp, so `stackBrightfieldPlanes` is still reading a measurement.
+    const telecentric = spectralMosaicGeometry(TELECENTRIC, optionsOf());
+    const telecentricRuler = telecentric.planes[telecentric.rulerIndex]!;
+    const telecentricWorst = Math.max(
+      ...telecentric.planes.map((p) =>
+        Math.abs(p.resampleRatio - telecentricRuler.nm / p.nm),
+      ),
+    );
+    expect(telecentricWorst).toBeLessThan(1e-8);
+    expect(telecentricWorst).toBeGreaterThan(100 * Number.EPSILON);
+    expect(worst / telecentricWorst).toBeGreaterThan(1e5);
     console.log(
       `resample ratio vs λ_ruler/λ: ` +
         geometry.planes
@@ -514,6 +556,32 @@ describe("§ 6t.7 — lateral colour is a FIELD effect, and a mosaic is the fiel
     // than as a value, so it is § 6r.6's law and not this lattice's number.
     expect(at[1]! / at[0]!).toBeCloseTo(2, 2);
     expect(at[2]! / at[0]!).toBeCloseTo(4, 2);
+
+    // § 6ai's second half of the same coin. The split is linear in field to two
+    // decimals here and to only one on the shipped telecentric objective — 4.016
+    // rather than 4.000 — and the excess is not a worse inversion, it is the
+    // chromatic aberration of the DISTORTION, which the flip made 70.7× bigger.
+    // § 6r.8 pins its order (the departure from linearity grows as the field
+    // squared); this rung only has to say that the linear law is still the law
+    // and by how much the next term now shows through it.
+    const telecentricGeometry = spectralMosaicGeometry(TELECENTRIC, options);
+    const telecentricSplit = (col: number): number => {
+      const tile = spectralMosaicTileAt(TELECENTRIC, options, col, 0, telecentricGeometry);
+      const b = tile.planes[blue]!.frame.centreObjectMm;
+      const r = tile.planes[red]!.frame.centreObjectMm;
+      return Math.hypot(b.x - r.x, b.y - r.y) / telecentricGeometry.objectPixelScaleMm;
+    };
+    expect(telecentricSplit(0)).toBe(0);
+    const telecentricAt = [1, 2, 4].map(telecentricSplit);
+    expect(telecentricAt[1]! / telecentricAt[0]!).toBeCloseTo(2, 1);
+    expect(telecentricAt[2]! / telecentricAt[0]!).toBeCloseTo(4, 1);
+    // Still linear to 0.4%, and the departure is one-sided — the cubic adds, it
+    // does not scatter.
+    expect(telecentricAt[2]! / telecentricAt[0]!).toBeGreaterThan(4);
+    expect(telecentricAt[2]! / telecentricAt[0]!).toBeLessThan(4.02);
+    // …and the split itself is the bigger number, by the same factor § 6r.8 reads
+    // on the object map directly.
+    expect(telecentricAt[0]! / at[0]!).toBeGreaterThan(3);
 
     // The question a mosaic raises and a tile could not: does a spectral mosaic
     // have to correct its planes' registration? On this objective, **no** — and

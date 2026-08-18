@@ -12,6 +12,7 @@ import {
   plateWavefrontErrorMm,
 } from "../src/designs/coverslip";
 import {
+  StopPlacement,
   finiteConjugateObjective,
   finiteConjugateMicroscope,
 } from "../src/designs/microscope";
@@ -290,7 +291,10 @@ describe("§ 6c.2 — the DIN objective re-solved through the slip", () => {
     // The glass on its own carries exactly PLUS the plate's contribution — the
     // closed form S_I = −t·(n²−1)·u⁴/n³ at the working slope, which the design
     // never evaluated (it summed real surfaces instead).
-    const u = o.stopRadiusMm / o.airEquivalentObjectDistanceMm;
+    // The working slope, from the PENCIL at the glass — `stopRadiusMm` is that
+    // number only on the rim, and `f·n·tan u` under § 6ai's default, so spelling
+    // this with the stop radius would put the whole a/f into a u⁴ (§ 6ai.2).
+    const u = o.pencilRadiusAtGlassMm / o.airEquivalentObjectDistanceMm;
     const plateS1 = (-T_SLIP * u ** 4 * (N_SLIP * N_SLIP - 1)) / N_SLIP ** 3;
     expect(o.seidelS1OfGlassAlone / -plateS1).toBeCloseTo(1, 9);
     // Whereas the objective corrected for NO slip is nulled on its own.
@@ -337,11 +341,23 @@ describe("§ 6c.2 — the DIN objective re-solved through the slip", () => {
 
   it("still delivers its NA, its magnification, and exactly one aperture stop", () => {
     const o = din4x(true);
-    // The slip's upper face takes the front of the list, so the stop moves to
-    // surface 1 — and stays a single flag, the § 6a one-aperture rule.
-    expect(o.stopSurfaceIndex).toBe(1);
+    // ONE flag, wherever it sits — the § 6a one-aperture rule, which is the part
+    // that does not depend on the placement. Where it sits does: § 6ai's default
+    // puts the diaphragm LAST, and a slip pushes the glass back one so the rim
+    // spelling is surface 1 rather than surface 0. Both are asserted by name,
+    // because "the stop is at index 1" was true of one placement and read like a
+    // property of the slip.
+    expect(o.stopSurfaceIndex).toBe(o.prescription.surfaces.length - 1);
     expect(o.prescription.surfaces.filter((s) => s.isStop).length).toBe(1);
-    expect(o.prescription.surfaces[1]!.isStop).toBe(true);
+    expect(o.prescription.surfaces[o.stopSurfaceIndex]!.isStop).toBe(true);
+    const rimmed = finiteConjugateObjective({
+      magnification: 4,
+      numericalAperture: 0.1,
+      coverslip: {},
+      stopPlacement: "rim",
+    });
+    expect(rimmed.stopSurfaceIndex).toBe(1);
+    expect(rimmed.prescription.surfaces.filter((s) => s.isStop).length).toBe(1);
     expect(o.prescription.objectMedium).toBe(SLIP.medium);
     expect(o.prescription.surfaces[0]!.curvature).toBe(0);
 
@@ -363,21 +379,36 @@ describe("§ 6c.2 — the DIN objective re-solved through the slip", () => {
     // the shape of § 6a.4's "2% fast" and § 6b.4's "nine times more expensive"
     // rungs. Without this control the exact NA above only proves the readout and
     // the sizing share an arithmetic, not that either is right.
-    const o = din4x(true);
-    const m = finiteConjugateMicroscope({ objective: o });
-    const naive =
-      (o.airEquivalentObjectDistanceMm * 0.1) / Math.sqrt(1 - 0.1 * 0.1);
     // The two sizings differ by √((1−(NA/n)²)/(1−NA²)) exactly — 0.287% here.
     const overSized = Math.sqrt((1 - (0.1 / N_SLIP) ** 2) / (1 - 0.01));
-    expect(naive / o.stopRadiusMm).toBeCloseTo(overSized, 12);
     expect(overSized - 1).toBeCloseTo(0.00287, 5);
-    const misSized = { ...m.system, aperture: { kind: "stopRadius" as const, value: naive } };
-    const delivered = objectNumericalAperture(misSized, LAMBDA);
-    expect(delivered).toBeCloseTo(0.1002857, 6);
-    // The NA error tracks the stop error almost 1:1 — the launch angle is nearly
-    // linear in pupil height this slow — so the readout reports essentially the
-    // whole mis-sizing rather than absorbing it.
-    expect((delivered / 0.1 - 1) / (overSized - 1)).toBeCloseTo(1, 2);
+    // Run under BOTH placements, because the mistake and the placement are
+    // independent and reading one for the other is how this rung would go quiet.
+    // What changes is only the ARM the naive radius is built on — the specimen's
+    // distance on the rim, the focal length telecentric (§ 6ae's B = f) — and the
+    // 0.287% is the same number either way, which is the statement.
+    for (const stopPlacement of ["backFocal", "rim"] as const) {
+      const o = finiteConjugateObjective({
+        magnification: 4,
+        numericalAperture: 0.1,
+        coverslip: {},
+        stopPlacement,
+      });
+      const m = finiteConjugateMicroscope({ objective: o });
+      const arm =
+        stopPlacement === "rim"
+          ? o.airEquivalentObjectDistanceMm
+          : Math.abs(o.paraxialFocalLengthMm);
+      const naive = (arm * 0.1) / Math.sqrt(1 - 0.1 * 0.1);
+      expect(naive / o.stopRadiusMm).toBeCloseTo(overSized, 12);
+      const misSized = { ...m.system, aperture: { kind: "stopRadius" as const, value: naive } };
+      const delivered = objectNumericalAperture(misSized, LAMBDA);
+      expect(delivered).toBeCloseTo(0.1002857, 6);
+      // The NA error tracks the stop error almost 1:1 — the launch angle is
+      // nearly linear in pupil height this slow — so the readout reports
+      // essentially the whole mis-sizing rather than absorbing it.
+      expect((delivered / 0.1 - 1) / (overSized - 1)).toBeCloseTo(1, 2);
+    }
   });
 
   it("tells a caller when no bending can absorb the plate", () => {
@@ -434,8 +465,18 @@ describe("§ 6c.3 — coverslip MISMATCH: the wrong slip on the right objective"
     // residual rides along. Slow the objective down at fixed NA — where § 6b.4
     // pins the residual falling 16× from 4× to 20× — and the deficit collapses
     // with it, which is what identifies whose it is.
-    const deficitAt = (M: number): number => {
-      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1, coverslip: {} });
+    //
+    // `"rim"` is NAMED, and the rung below is why: the coupling this bullet
+    // describes is between the marginal ray's LANDING HEIGHT and a stop that is a
+    // hole in a plane, so it belongs to the rim placement. § 6ai's default aims
+    // by slope instead, and the deficit nearly disappears.
+    const deficitAt = (M: number, stopPlacement: StopPlacement = "rim"): number => {
+      const o = finiteConjugateObjective({
+        magnification: M,
+        numericalAperture: 0.1,
+        coverslip: {},
+        stopPlacement,
+      });
       const s = finiteConjugateMicroscope({ objective: o }).system;
       const ref = opdMap(s, 0, LAMBDA, grid);
       const mm = opdMap(withMismatch(s, 0.05), 0, LAMBDA, grid);
@@ -447,6 +488,21 @@ describe("§ 6c.3 — coverslip MISMATCH: the wrong slip on the right objective"
     expect(d4).toBeGreaterThan(0.02);
     expect(d20).toBeLessThan(0.01);
     expect(d4 / d20).toBeGreaterThan(3);
+
+    // THE CONFIRMATION, and it is the strongest form the diagnosis above could
+    // take: on the shipped telecentric lens the deficit is a sixth the size
+    // (−0.42% against +2.38% at 4×), it changes SIGN, and it stops depending on
+    // the magnification at all (−0.42%, −0.36%, −0.35% across a 5× span, where
+    // the rim's fell 3.4×). An explanation that named the objective's residual
+    // and were wrong would have no reason to survive a change of stop placement
+    // this cleanly — the M-dependence was the evidence, and it goes with the
+    // coupling that produced it. What is left is small, flat, and not this
+    // section's subject.
+    const t4 = deficitAt(4, "backFocal");
+    const t20 = deficitAt(20, "backFocal");
+    expect(Math.abs(t4)).toBeLessThan(Math.abs(d4) / 5);
+    expect(t4).toBeLessThan(0);
+    expect(Math.abs(t4 / t20 - 1)).toBeLessThan(0.25);
   });
 
   it("cannot spoil a 4×/0.10 at any thickness a real slip could have", () => {

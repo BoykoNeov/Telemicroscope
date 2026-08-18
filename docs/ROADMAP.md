@@ -421,7 +421,11 @@
    off its object by x′(M+1)/M², so a DIN objective is impossible below
    M = [x′+√(x′²+4Px′)]/2P = **4.1387** — 4.236 with the built doublet's real
    glass — and a real 4× therefore cannot be one doublet. Sixth geometric ceiling
-   in the repo, and the first that is not the ray invariant. **Open:** barrel
+   in the repo, and the first that is not the ray invariant. **§ 6ai added a
+   second, higher floor:** the shipped objective's stop is a diaphragm one focal
+   length behind its glass, so the mount must hold that too, and
+   `P·M² − 2x′M − x′ = 0` gives **7.134** (7.212 built). Not one doublet, and not
+   even one doublet below about 7×. **Open:** barrel
    vignetting (the `semiApertureMm` hook exists, the rung does not), the sensor's
    own cover glass, tilted elements, and the tube-length error with its known
    coverslip equivalence.
@@ -449,9 +453,9 @@
    free either, being positive at every ratio swept, because a plate's spherical
    aberration shares an achromat residual's sign; the exact **opposite** of
    § 6e.4's oil, which is rarer than the glass either side and helps. And **the
-   4.236 is not a constant**: it is the NA 0.10 answer, running 4.173 → 4.506 over
-   NA 0.05 → 0.20 with the thin-lens floor unmoved at 4.1387, so the whole spread
-   is glass — while above ≈ NA 0.22 the mount **stops being the binding wall** and
+   mount floor is not a constant**: it is the NA 0.10 answer, running 7.163 →
+   7.427 over NA 0.05 → 0.20 (4.173 → 4.506 before § 6ai) with the thin-lens
+   floor unmoved at 7.1339, so the whole spread is glass — while above ≈ NA 0.22 the mount **stops being the binding wall** and
    § 6b.5's aperture refusal takes over. Telling those two apart is load-bearing:
    catching both as one exception reports a mount ceiling of 12.6× where no
    doublet exists to mount. Two nulls arrive free — § 5u.2's position independence
@@ -658,8 +662,10 @@
    direction **lands in the objective's own pupil** — `h/R_ep` of the way out —
    and that dies only for an entrance pupil at infinity. So the licence belonged
    to the **objective** all along, § 6v is what granted it, and it granted it to
-   the infinity presets only; the DIN still carries its stop on the rim and is
-   this step's live subject. The displacement is **0.217 of a pupil radius per
+   the infinity presets only; the DIN still carried its stop on the rim and
+   was this step's live subject. **§ 6ae gave the DIN the same diaphragm and
+   § 6ai made it the default**, so the displacement quoted next is the rim
+   member's; the shipped lens's is a bitwise zero at every field. The displacement is **0.217 of a pupil radius per
    millimetre** on the shipped 4×/0.10 — against a condenser setting rarely above
    1, a millimetre of field is lit through a cone a fifth of the way out of the
    aperture meant to catch it — and it is read off the **aimer** rather than

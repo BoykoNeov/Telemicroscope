@@ -250,8 +250,37 @@ describe("A9.3 — the guard names the plane that refused", () => {
       expect(plane.resampleRatio).toBeCloseTo(ideal, 3);
       worst = Math.max(worst, Math.abs(plane.resampleRatio - ideal));
     }
-    // Non-zero, or the frames were not traced.
-    expect(worst).toBeGreaterThan(0);
+    // **The ratio is λ_ruler/λ EXACTLY here, and it always was** — which is a
+    // correction to this rung rather than a § 6ai finding. It used to assert
+    // `worst > 0` and pass, on a rim-stopped objective, by exactly one ulp
+    // (1.1e-16); the shipped telecentric one reads a clean 0 and the assertion
+    // went red. Neither number is the objective's dispersion. This surface
+    // renders ONE on-axis frame, and on axis the chief ray is the axis whatever
+    // the stop does, so there is no field-dependent pupil walk for λ to act on.
+    //
+    // § 6t.3 is where the dispersion is real, because its fixture sits at
+    // (1.6, 0.8) mm: 1.7e-4 rim against 2.4e-10 telecentric. Re-measured on THIS
+    // request, both members come back under an ulp — so what changed at § 6ai is
+    // that a one-ulp accident stopped rounding the convenient way.
+    expect(worst).toBeLessThan(4 * Number.EPSILON);
+
+    // The liveness check therefore has to be on something the trace produces and
+    // arithmetic cannot, which is what `worst > 0` was reaching for and did not
+    // reach. Each plane's grid phase step is read off its own traced wavefront at
+    // its own wavelength: three planes, three different numbers, none of them
+    // derivable from the ratios above.
+    const steps = readout.planes.map((p) => p.maxGridPhaseStepWaves);
+    for (const step of steps) {
+      expect(step).not.toBeNull();
+      expect(step!).toBeGreaterThan(0);
+    }
+    expect(new Set(steps).size).toBe(readout.planes.length);
+    // Bluer is a finer wavefront per sample, monotonically — the ordering is the
+    // trace's, and a stack that reused one plane's frame could not produce it.
+    for (let i = 1; i < steps.length; i++) {
+      expect(readout.planes[i]!.nm).toBeGreaterThan(readout.planes[i - 1]!.nm);
+      expect(steps[i]!).toBeLessThan(steps[i - 1]!);
+    }
     // eslint-disable-next-line no-console
     console.log(`resample ratio departs from λ's by up to ${worst.toExponential(3)}`);
   });

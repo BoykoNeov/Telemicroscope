@@ -53,6 +53,51 @@ const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
+/** § 6x's stop placement, solved once like `SYSTEM` and kept as the control. */
+const rimDin4x = (): OpticalSystem => RIM_SYSTEM;
+const RIM_SYSTEM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({
+    magnification: 4,
+    numericalAperture: 0.1,
+    stopPlacement: "rim",
+  }),
+}).system;
+
+/**
+ * The one number this whole file moved by at § 6ai, and why it is named once.
+ *
+ * Every rung below reads some derivative of the same map r = |M|·h + D·h³, so
+ * every rung below carries D and nothing else. Moving the diaphragm from the
+ * specimen-side glass to the back focal plane multiplies D by −70.7: the SIGN
+ * because a stop in front of a lens gives barrel distortion and a stop behind it
+ * gives pincushion, which is the textbook statement of stop shift, and the SIZE
+ * because the chief ray's lever to the diaphragm is what sets D in the first
+ * place. It is measured below on four independent readouts — the departure
+ * itself, the sagitta of a chord, the map's own second difference, and det J − 1
+ * — and it is flat to 1.5% over sixteen-fold in field on all of them.
+ *
+ * So the rungs here did not need re-deriving, only re-reading: what was barrel
+ * is pincushion, what was 1.8e-6 px of bow is 1.3e-4, and every ORDER is
+ * untouched, because an order does not know the sign or the size of what it is
+ * an order of.
+ */
+const STOP_SHIFT_LEVER = -70.7;
+
+/**
+ * Which member a cached reading belongs to.
+ *
+ * Every cache in this file is keyed by geometry, because until § 6ai there was
+ * one system and geometry was the whole key. There are two now, and a cache that
+ * cannot tell them apart hands the control the shipped lens's answer and reports
+ * that the flip changed nothing — which is exactly what it did until this line
+ * existed.
+ */
+const tag = (system: OpticalSystem): string => (system === SYSTEM ? "backFocal" : "rim");
+
+/** r − |M|·h, the third-order departure whose sign every bow below follows. */
+const departureAt = (system: OpticalSystem, h: number): number =>
+  imageRadiusForObjectHeight(system, h, LAMBDA) - Math.abs(frameOf(system).magnification) * h;
+
 const frameOf = (system: OpticalSystem, size = SIZE, pupilSamples = PUPIL_SAMPLES) =>
   objectFieldFrame(system, { size, pupilSamples, wavelengthNm: LAMBDA });
 
@@ -65,7 +110,7 @@ const tileAt = (
   size = SIZE,
   pupilSamples = PUPIL_SAMPLES,
 ): ObjectFieldFrame => {
-  const key = `${x},${y},${size},${pupilSamples}`;
+  const key = `${tag(system)},${x},${y},${size},${pupilSamples}`;
   let tile = TILES.get(key);
   if (tile === undefined) {
     tile = objectFieldTile(system, {
@@ -243,15 +288,26 @@ describe("§ 6n.2 — the bow: a straight object line, and the order it bows at"
     // sagitta of a chord is the map's CURVATURE across that chord, and d²/dr² of
     // a cubic is linear — so this is ×2.00 per doubling and a rung asserting
     // ×8.00 here would be quoting the right theory at the wrong derivative.
-    const system = din4x();
     const radii = [0.4, 0.8, 1.6, 3.2, 6.4];
-    const bows = radii.map((xc) => bowAt(system, xc, "traced"));
+    const bows = radii.map((xc) => bowAt(din4x(), xc, "traced"));
+    const rimBows = radii.map((xc) => bowAt(rimDin4x(), xc, "traced"));
+    // The ×2 is pinned to 5e-3 on the shipped lens and 3e-3 on the control, and
+    // the difference is the h⁵ term rather than a slacker rung: the departure
+    // from exactly two runs 5.5e-5, 2.0e-4, 1.0e-3, 4.1e-3 down the sweep, which
+    // is ×4 per doubling at the top — the field's square, i.e. the next order.
     for (let i = 1; i < bows.length; i++) {
-      expect(Math.abs(bows[i]! / bows[i - 1]! / 2 - 1)).toBeLessThan(3e-3);
+      expect(Math.abs(bows[i]! / bows[i - 1]! / 2 - 1)).toBeLessThan(5e-3);
+      expect(Math.abs(rimBows[i]! / rimBows[i - 1]! / 2 - 1)).toBeLessThan(3e-3);
     }
     // Real, not f64 noise: a 32² centroid resolves ~1e-12 px and the smallest
-    // bow here is 1.8e-6 px — six orders above it.
+    // bow here is 1.3e-4 px — eight orders above it, and 1.8e-6 on the control.
     expect(Math.abs(bows[0]!)).toBeGreaterThan(1e-7);
+    expect(Math.abs(rimBows[0]!)).toBeGreaterThan(1e-7);
+    // …and the two members differ by ONE number at every field, which is what
+    // says the bow carries D and nothing else.
+    for (let i = 0; i < bows.length; i++) {
+      expect(Math.abs(bows[i]! / rimBows[i]! / STOP_SHIFT_LEVER - 1)).toBeLessThan(1.5e-2);
+    }
   });
 
   it("bows as the SQUARE of the tile's extent — the same coefficient, read the other way", () => {
@@ -273,16 +329,34 @@ describe("§ 6n.2 — the bow: a straight object line, and the order it bows at"
     // mosaic mirrored about the axis with every rung still green, so a bow rung
     // that read only |sagitta| would pass under exactly that class of bug.
     //
-    // This objective's traced departure r − |M|·h is NEGATIVE (−6.5e-6 mm at
-    // h = 0.4, the magnitude § 6h.1 quotes): local magnification falls with
-    // field, which is barrel. Barrel pulls the ENDS of a chord inward, so the
-    // middle is left further from the axis and the sagitta is positive.
-    const system = din4x();
-    const m = Math.abs(frameOf(system).magnification);
-    for (const h of [0.4, 0.8, 1.6]) {
-      expect(imageRadiusForObjectHeight(system, h, LAMBDA) - m * h).toBeLessThan(0);
+    // Barrel pulls the ENDS of a chord inward, so the middle is left further
+    // from the axis and the sagitta is positive; pincushion does the opposite.
+    // The rung therefore ties the two together rather than hard-coding either —
+    // the sagitta must be signed AGAINST the objective's own traced departure,
+    // whichever way that departure happens to point.
+    //
+    // **§ 6ai is what made that worth writing this way.** With the diaphragm on
+    // the specimen-side glass the departure is −6.5e-6 mm at h = 0.4 — local
+    // magnification falling with field, barrel — and with it on the back focal
+    // plane it is +4.6e-4, pincushion, 70.7× as large. Stop in front, barrel;
+    // stop behind, pincushion: the textbook result, and here it is the sign of a
+    // rasterized picture rather than a coefficient in a table.
+    const heights = [0.4, 0.8, 1.6];
+    const rimDeparture = heights.map((h) => departureAt(rimDin4x(), h));
+    const departure = heights.map((h) => departureAt(din4x(), h));
+    for (const d of rimDeparture) expect(d).toBeLessThan(0);
+    for (const d of departure) expect(d).toBeGreaterThan(0);
+    for (let i = 0; i < heights.length; i++) {
+      expect(departure[i]! / rimDeparture[i]! / STOP_SHIFT_LEVER - 1).toBeCloseTo(0, 2);
     }
-    for (const xc of [0.8, 3.2]) expect(bowAt(system, xc, "traced")).toBeGreaterThan(0);
+    for (const [system, sign] of [
+      [rimDin4x(), 1],
+      [din4x(), -1],
+    ] as const) {
+      for (const xc of [0.8, 3.2]) {
+        expect(Math.sign(bowAt(system, xc, "traced"))).toBe(sign);
+      }
+    }
   });
 
   it("negative control: the uniform map cannot bow at all, at any field", () => {
@@ -300,23 +374,35 @@ describe("§ 6n.2 — the bow: a straight object line, and the order it bows at"
     // they are pinned against each other. Opposite in sign because they are
     // inverses: where the map moves the object point outward at a fixed column,
     // a fixed object point must move to a lower column.
-    const system = din4x();
-    const tile = tileAt(system, 1.6, 0);
-    const col = SIZE / 2;
-    const x = (iy: number) => specimenPointAt(system, tile, col, iy).x;
-    const secondDiff = (x(col) - (x(0) + x(SIZE - 1)) / 2) / tile.objectPixelScaleMm;
-    const bow = sagittaPx(
-      rasterizeSpecimen(
-        system,
-        tile,
-        ridgeAt(tile.centreObjectMm.x, 4 * tile.objectPixelScaleMm),
-        {},
-      ),
-    );
-    expect(secondDiff).toBeLessThan(0);
-    // 0.2% apart: the ridge has a finite width, so its centroid samples the map
-    // over a few pixels where the second difference samples it at a point.
-    expect(Math.abs(bow / -secondDiff - 1)).toBeLessThan(3e-3);
+    //
+    // Both members are read, because "equal and opposite" is a claim about a
+    // relationship and § 6ai flips both halves of it at once: −7.19e-6 against a
+    // bow of +7.19e-6 on the control, +5.08e-4 against −5.08e-4 on the shipped
+    // lens. A rung that pinned either sign on its own would have passed a bug
+    // that flipped the pair together.
+    const reading = (system: OpticalSystem) => {
+      const tile = tileAt(system, 1.6, 0);
+      const col = SIZE / 2;
+      const x = (iy: number) => specimenPointAt(system, tile, col, iy).x;
+      const secondDiff = (x(col) - (x(0) + x(SIZE - 1)) / 2) / tile.objectPixelScaleMm;
+      const bow = sagittaPx(
+        rasterizeSpecimen(
+          system,
+          tile,
+          ridgeAt(tile.centreObjectMm.x, 4 * tile.objectPixelScaleMm),
+          {},
+        ),
+      );
+      expect(Math.sign(bow)).toBe(-Math.sign(secondDiff));
+      // 0.2% apart: the ridge has a finite width, so its centroid samples the
+      // map over a few pixels where the second difference samples it at a point.
+      expect(Math.abs(bow / -secondDiff - 1)).toBeLessThan(3e-3);
+      return secondDiff;
+    };
+    expect(reading(rimDin4x())).toBeLessThan(0);
+    const secondDiff = reading(din4x());
+    expect(secondDiff).toBeGreaterThan(0);
+    expect(secondDiff / -7.1937e-6 / STOP_SHIFT_LEVER - 1).toBeCloseTo(0, 2);
   });
 });
 
@@ -348,7 +434,7 @@ describe("§ 6n.3 — a specimen lands where the map says it does", () => {
    */
   const MISSES = new Map<string, number>();
   const missPx = (system: OpticalSystem, xc: number, map: "traced" | "uniform"): number => {
-    const key = `${xc},${map}`;
+    const key = `${tag(system)},${xc},${map}`;
     const hit = MISSES.get(key);
     if (hit !== undefined) return hit;
     const value = computeMiss(system, xc, map);
@@ -374,10 +460,22 @@ describe("§ 6n.3 — a specimen lands where the map says it does", () => {
     // slightly asymmetric on the grid. What pins it as physics is that it obeys
     // § 6n.2's law — ×2.00 per doubling of field, the second derivative of the
     // cubic — rather than sitting under a tolerance somebody chose.
-    const system = din4x();
-    const misses = FIELDS.map((xc) => missPx(system, xc, "traced"));
-    for (const m of misses) expect(m).toBeLessThan(1e-5);
+    //
+    // § 6ai multiplied the miss by 70.7 and left the order alone, which is the
+    // signature the whole file carries: 2.3e-7 px at 0.4 mm on the rim control
+    // against 1.6e-5 on the shipped lens, both converging to ×2.00 from below.
+    // The bound is therefore stated per member — a single absolute number cannot
+    // be right for two lenses whose D differ by 71 — and the convergence, which
+    // is the actual claim, is pinned identically on both.
+    const misses = FIELDS.map((xc) => missPx(din4x(), xc, "traced"));
+    const rimMisses = FIELDS.map((xc) => missPx(rimDin4x(), xc, "traced"));
+    for (const m of misses) expect(m).toBeLessThan(3e-4);
+    for (const m of rimMisses) expect(m).toBeLessThan(1e-5);
     convergesTo(misses, 2, 1e-2);
+    convergesTo(rimMisses, 2, 1e-2);
+    for (let i = 0; i < misses.length; i++) {
+      expect(Math.abs(misses[i]! / rimMisses[i]! / -STOP_SHIFT_LEVER - 1)).toBeLessThan(1.5e-2);
+    }
   });
 
   it("control: the uniform map misses by the map's SLOPE, which is a whole order worse", () => {
@@ -393,15 +491,40 @@ describe("§ 6n.3 — a specimen lands where the map says it does", () => {
     // 0.4 mm to 257× at 6.4 mm. That gap is the seam misregistration § 6n
     // exists to remove, and it is unbounded in the field rather than a constant
     // factor somebody could have absorbed into a tolerance.
-    const system = din4x();
-    const misses = FIELDS.map((xc) => missPx(system, xc, "uniform"));
-    convergesTo(misses, 4, 1.5e-2);
+    //
+    // **The gap is the one quantity in this file § 6ai did NOT move**, and that
+    // is worth more than the rest of the rung: 16.8 → 257 on the control against
+    // 16.8 → 251 on the shipped lens, agreeing to a part in a thousand at the
+    // near end. Both misses carry D, so the ratio between them cannot, and the
+    // measurement says so to four figures without being told.
+    //
+    // What did move is how far along its own convergence each sequence has got
+    // by 6.4 mm. The uniform miss reaches ×3.911 telecentric against ×3.961 on
+    // the rim, and the gap's ratios turn over at the top rather than climbing
+    // (1.956, 1.975, 1.979, 1.957) — both because the h⁵ term is relatively
+    // larger once D is 71× bigger, and in the gap it no longer cancels between
+    // numerator and denominator. So the monotone form of the claim is pinned on
+    // the control, and the shipped lens is held to the limit itself.
+    const misses = FIELDS.map((xc) => missPx(din4x(), xc, "uniform"));
+    const rimMisses = FIELDS.map((xc) => missPx(rimDin4x(), xc, "uniform"));
+    convergesTo(misses, 4, 2.5e-2);
+    convergesTo(rimMisses, 4, 1.5e-2);
 
-    const traced = FIELDS.map((xc) => missPx(system, xc, "traced"));
+    const traced = FIELDS.map((xc) => missPx(din4x(), xc, "traced"));
+    const rimTraced = FIELDS.map((xc) => missPx(rimDin4x(), xc, "traced"));
     const gap = misses.map((m, i) => m / traced[i]!);
-    expect(gap[0]!).toBeGreaterThan(15);
-    expect(gap[gap.length - 1]!).toBeGreaterThan(250);
-    convergesTo(gap, 2, 1e-2);
+    const rimGap = rimMisses.map((m, i) => m / rimTraced[i]!);
+    for (const set of [gap, rimGap]) {
+      expect(set[0]!).toBeGreaterThan(15);
+      expect(set[set.length - 1]!).toBeGreaterThan(240);
+    }
+    convergesTo(rimGap, 2, 1e-2);
+    for (const q of ratios(gap)) expect(Math.abs(q / 2 - 1)).toBeLessThan(2.5e-2);
+    // The gap is D-free: the two members read the same number at every field.
+    for (let i = 0; i < gap.length; i++) {
+      expect(Math.abs(gap[i]! / rimGap[i]! - 1)).toBeLessThan(3e-2);
+    }
+    expect(Math.abs(gap[0]! / rimGap[0]! - 1)).toBeLessThan(1e-3);
   });
 
   it("control: and it is exact at the tile centre, where a linear map cannot be wrong", () => {
@@ -474,7 +597,13 @@ describe("§ 6n.4 — amplitude is a point property, and a density is not", () =
       );
     };
     const departures = [0.8, 1.6, 3.2, 6.4].map(departure);
-    for (const d of departures) expect(d).toBeGreaterThan(0);
+    // The sign is the distortion's, read the other way round: barrel shrinks a
+    // region's image and pincushion stretches it, so det J − 1 follows −D. It
+    // was positive while the diaphragm sat in front of the glass and is negative
+    // now, by the same −70.7 (2.6e-7 against −1.8e-5 at 0.8 mm), and the rung
+    // ties it to § 6n.2's departure rather than hard-coding a direction.
+    const sign = -Math.sign(departureAt(din4x(), 0.8));
+    for (const d of departures) expect(Math.sign(d)).toBe(sign);
     // And it grows as the field's SQUARE — the same slope § 6n.3's control
     // measures, because det J − 1 is that slope. So it is a real quantity, and
     // it is also 1e-5: far too small to have caught a broken map, which is the
@@ -482,7 +611,7 @@ describe("§ 6n.4 — amplitude is a point property, and a density is not", () =
     for (let i = 1; i < departures.length; i++) {
       expect(Math.abs(departures[i]! / departures[i - 1]! / 4 - 1)).toBeLessThan(0.2);
     }
-    expect(departures[departures.length - 1]!).toBeLessThan(1e-4);
+    expect(Math.abs(departures[departures.length - 1]!)).toBeLessThan(1e-3);
   });
 
   it("produces the ObjectField `abbeImage` already consumes, unchanged", () => {
@@ -530,9 +659,10 @@ describe("§ 6n.5 — composed on a traced objective, which is where it has to b
     xc === 0 ? frameOf(system, RENDER_SIZE) : tileAt(system, xc, 0, RENDER_SIZE);
 
   /** Worst pixel between the two maps' pictures, as a fraction of peak. */
-  const PICTURES = new Map<number, number>();
+  const PICTURES = new Map<string, number>();
   const pictureGap = (system: OpticalSystem, xc: number): number => {
-    const hit = PICTURES.get(xc);
+    const key = `${tag(system)},${xc}`;
+    const hit = PICTURES.get(key);
     if (hit !== undefined) return hit;
     const frame = frameAt(system, xc);
     const traced = render(system, frame, "traced").intensity;
@@ -544,7 +674,7 @@ describe("§ 6n.5 — composed on a traced objective, which is where it has to b
       worst = Math.max(worst, Math.abs(traced[i]! - uniform[i]!));
     }
     const gap = worst / peak;
-    PICTURES.set(xc, gap);
+    PICTURES.set(key, gap);
     return gap;
   };
 
@@ -586,16 +716,25 @@ describe("§ 6n.5 — composed on a traced objective, which is where it has to b
     // The rung above would pass for any two maps that merely differ, so the
     // control is the axial frame. It is NOT zero there — the traced map is
     // cubic, not linear, so the two disagree at every field including this one,
-    // by ~1e-2 of a pixel over a 47 µm half-extent. What it is, is 1.5e-6 of
-    // peak against 2.8e-3, and the growth between them is monotone.
+    // by ~1e-2 of a pixel over a 47 µm half-extent. What it is, is 1.1e-4 of
+    // peak against 0.125, and the growth between them is monotone.
     //
-    // That number is § 6h's whole deferral, measured: at one axial frame the
-    // unwarped grid costs a millionth of the peak, and it was right to defer.
-    // § 6m is what changed, by putting the frame at millimetres.
-    const system = din4x();
-    const gaps = [0, 1.6, 6.4].map((xc) => pictureGap(system, xc));
-    for (let i = 1; i < gaps.length; i++) expect(gaps[i]!).toBeGreaterThan(gaps[i - 1]!);
-    expect(gaps[0]!).toBeLessThan(1e-5);
-    expect(gaps[gaps.length - 1]! / gaps[0]!).toBeGreaterThan(1000);
+    // That number is § 6h's whole deferral, measured — and § 6ai is the reason
+    // the deferral now looks closer to its limit than it did. The axial gap is
+    // 1.5e-6 of peak with the diaphragm in front of the glass and 1.1e-4 with it
+    // behind, the same 71×, so "a millionth of the peak" was a property of that
+    // stop placement and not of the axial frame. What survives the flip is the
+    // RATIO across the field — 1272× on the control, 1181× here — which is the
+    // part of the sentence § 6m actually rests on: it was right to defer while
+    // the frame was 47 µm wide, whatever D happens to be.
+    const gaps = [0, 1.6, 6.4].map((xc) => pictureGap(din4x(), xc));
+    const rimGaps = [0, 1.6, 6.4].map((xc) => pictureGap(rimDin4x(), xc));
+    for (const set of [gaps, rimGaps]) {
+      for (let i = 1; i < set.length; i++) expect(set[i]!).toBeGreaterThan(set[i - 1]!);
+      expect(set[set.length - 1]! / set[0]!).toBeGreaterThan(1000);
+    }
+    expect(gaps[0]!).toBeLessThan(3e-4);
+    expect(rimGaps[0]!).toBeLessThan(1e-5);
+    expect(gaps[0]! / rimGaps[0]! / -STOP_SHIFT_LEVER - 1).toBeCloseTo(0, 1);
   });
 });

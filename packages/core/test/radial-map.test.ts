@@ -50,6 +50,34 @@ const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
+/**
+ * § 6x's stop placement, kept because THE TABLE SIZE IS THE FINDING here.
+ *
+ * § 6ai put the diaphragm on the back focal plane, and every number in this file
+ * is a truncation error on the inverse of r = |M|·h + D·h³ + … . The cubic term
+ * itself is invisible to a cubic interpolant — a Lagrange cubic reproduces a
+ * cubic exactly — so what this file measures is the QUINTIC, and the stop shift
+ * multiplies that by 2 600 where it multiplies the cubic by −70.7. The order is
+ * untouched, so the whole ladder moves by one factor in the node count:
+ * 2 600^(1/4) is 7.1, and the floor that arrived at 32 nodes arrives at 192.
+ */
+const RIM_SYSTEM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({
+    magnification: 4,
+    numericalAperture: 0.1,
+    stopPlacement: "rim",
+  }),
+}).system;
+
+/**
+ * Nodes enough to reach the rounding floor on the shipped objective.
+ *
+ * 32 sufficed while the diaphragm sat on the specimen-side glass. It is written
+ * once because six rungs below need the same number for the same reason, and a
+ * caller reading them is entitled to see that it is one fact and not six.
+ */
+const FLOOR_NODES = 192;
+
 const tileAt = (x: number, y: number, size = 64, pupilSamples = 32): ObjectFieldFrame =>
   objectFieldTile(SYSTEM, {
     size,
@@ -192,28 +220,51 @@ describe("§ 6s.2 — the interpolation error falls as the fourth power of the s
     }
   });
 
-  it("and it stops falling at the rounding floor, ~4 ulp of the object height", () => {
-    // Past 32 nodes the truncation is under f64 and more nodes buy nothing: the
+  it("and it stops falling at the rounding floor, ~10 ulp of the object height", () => {
+    // Past 192 nodes the truncation is under f64 and more nodes buy nothing: the
     // estimate keeps falling ×h⁴ while the measured error flattens, and the gap
     // between them is how a caller sees the floor has arrived.
-    const e32 = errorAt(32);
-    const e64 = errorAt(64);
-    expect(e32).toBeLessThan(1e-15);
-    expect(e64).toBeLessThan(1e-15);
-    expect(e64 / e32).toBeGreaterThan(0.4);
+    //
+    // **The node count moved at § 6ai and the order did not, which is the whole
+    // shape of this file's change.** The floor arrived at 32 nodes with the
+    // diaphragm in front of the glass and arrives at 192 with it behind — a
+    // factor of six on a quantity that had to move by 2 600^(1/4) = 7.1 if the
+    // error is really h⁴, and the rung measures both ends rather than asserting
+    // the arithmetic. What a caller sees is the same signal either way: the
+    // reported estimate keeps shrinking while the truth stops, so their ratio
+    // climbs past 3 and says the table has stopped buying anything.
     const ulp = Math.abs(exact[exact.length - 1]!) * Number.EPSILON;
-    expect(e64).toBeLessThan(10 * ulp);
-    const map64 = buildRadialMap(SYSTEM, { maxRadiusMm: span, nodes: 64, wavelengthNm: LAMBDA });
-    expect(e64 / map64.errorEstimateMm).toBeGreaterThan(3);
+    const floorOf = (system: OpticalSystem, small: number, large: number) => {
+      const at = (nodes: number) =>
+        worstError(
+          buildRadialMap(system, { maxRadiusMm: span, nodes, wavelengthNm: LAMBDA }),
+          radii,
+          radii.map((r) => objectHeightForImageRadius(system, r, LAMBDA, {})),
+        );
+      const eSmall = at(small);
+      const eLarge = at(large);
+      expect(eSmall).toBeLessThan(15 * ulp);
+      expect(eLarge).toBeLessThan(15 * ulp);
+      // Flattened: doubling the table no longer halves anything.
+      expect(eLarge / eSmall).toBeGreaterThan(0.4);
+      const map = buildRadialMap(system, { maxRadiusMm: span, nodes: large, wavelengthNm: LAMBDA });
+      expect(eLarge / map.errorEstimateMm).toBeGreaterThan(3);
+      return eLarge;
+    };
+    expect(floorOf(RIM_SYSTEM, 32, 64)).toBeLessThan(10 * ulp);
+    expect(floorOf(SYSTEM, FLOOR_NODES, 256)).toBeLessThan(10 * ulp);
+    // …and 32 nodes is NOT at the floor on the shipped lens: it reads 9.2e-13,
+    // three orders above it, which is what makes the six a measurement.
+    expect(errorAt(32)).toBeGreaterThan(100 * ulp);
   });
 });
 
 /* ── § 6s.3 — what that is in the currency that decides it ────────────────── */
 
 describe("§ 6s.3 — registration, in pixels", () => {
-  it("a 2 mm off-axis tile registers to 4e-13 px, against § 6m.4's 3.4e-3", () => {
+  it("a 2 mm off-axis tile registers to 1.6e-12 px, against § 6m.4's 3.4e-3", () => {
     const frame = tileAt(2, 0);
-    const map = radialMapCovering(SYSTEM, [frame], { nodes: 64 });
+    const map = radialMapCovering(SYSTEM, [frame], { nodes: FLOOR_NODES });
     let worstPx = 0;
     for (let iy = 0; iy < frame.size; iy += 2) {
       for (let ix = 0; ix < frame.size; ix += 2) {
@@ -227,14 +278,24 @@ describe("§ 6s.3 — registration, in pixels", () => {
     // of a tile off it. The cache sits **nine orders** below the smaller of them
     // — which is the comparison that decides whether it may be used at all, so
     // it is asserted against that number and not against a round one.
-    expect(worstPx).toBeLessThan(1e-11);
+    //
+    // The table it takes to say that grew from 64 nodes to 192 at § 6ai, for
+    // § 6s.2's reason and no other; the conclusion is unchanged and the price of
+    // reaching it is three times the inversions, which is 193 against 4 096.
+    expect(worstPx).toBeLessThan(5e-12);
     expect(3.4e-3 / worstPx).toBeGreaterThan(1e9);
   });
 
-  it("even nine inversions put a pixel to 6e-11 px", () => {
+  it("even nine inversions put a pixel to 1.5e-7 px", () => {
     // The practical statement of § 6s.2's order: the table does not need to be
     // large, it needs to exist. 8 nodes is 9 chief-ray inversions for the whole
     // tile against 4 096 for its pixels.
+    //
+    // § 6ai cost this rung three and a half orders — 6.0e-11 px with the stop in
+    // front of the glass, 1.5e-7 with it behind — and the sentence survives it
+    // intact, which is the point of stating it as a comparison. 1.5e-7 px is
+    // still four orders under § 6o.8's 3.4e-3 of ruler drift, so nine inversions
+    // remain enough to register a tile against everything else that moves it.
     const frame = tileAt(2, 0);
     const span = radialMapCovering(SYSTEM, [frame], { nodes: 8 });
     expect(span.inversions).toBe(9);
@@ -246,14 +307,15 @@ describe("§ 6s.3 — registration, in pixels", () => {
         worstPx = Math.max(worstPx, Math.hypot(a.x - b.x, a.y - b.y) / frame.objectPixelScaleMm);
       }
     }
-    expect(worstPx).toBeLessThan(1e-9);
+    expect(worstPx).toBeLessThan(2e-7);
+    expect(3.4e-3 / worstPx).toBeGreaterThan(1e4);
   });
 });
 
 /* ── § 6s.4 — the picture ─────────────────────────────────────────────────── */
 
 describe("§ 6s.4 — the rendered tile is the same picture", () => {
-  it("a traced, illuminated, cropped tile differs by 4e-14 of its peak", () => {
+  it("a traced, illuminated, cropped tile differs by 2e-13 of its peak", () => {
     const options = {
       tiles: 1,
       size: 64,
@@ -271,7 +333,7 @@ describe("§ 6s.4 — the rendered tile is the same picture", () => {
       SYSTEM,
       BARS,
       source,
-      { ...options, radialMapNodes: 64 },
+      { ...options, radialMapNodes: FLOOR_NODES },
       tile,
     );
     let worst = 0;
@@ -371,10 +433,10 @@ describe("§ 6s.6 — tabulating the residual buys nothing, measured", () => {
     // on both sides of zero across the ladder (residual worse at 24, better at
     // 64). Pinned as a magnitude, under one ulp of the object height.
     const ulp = Math.abs(exact[exact.length - 1]!) * Number.EPSILON;
-    for (const nodes of [32, 64]) {
+    for (const nodes of [FLOOR_NODES, 256]) {
       const [a, b] = pair(nodes);
-      expect(a).toBeLessThan(1e-15);
-      expect(b).toBeLessThan(1e-15);
+      expect(a).toBeLessThan(15 * ulp);
+      expect(b).toBeLessThan(15 * ulp);
       expect(Math.abs(a - b)).toBeLessThan(ulp);
     }
   });
@@ -488,14 +550,14 @@ describe("§ 6s.8 — § 6r's stack, one table per wavelength", () => {
 describe("§ 6s — the rasterizer itself", () => {
   it("a cached raster is the exact raster, amplitude for amplitude", () => {
     const frame = tileAt(2, 0, 64);
-    const map = radialMapCovering(SYSTEM, [frame], { nodes: 64 });
+    const map = radialMapCovering(SYSTEM, [frame], { nodes: FLOOR_NODES });
     const exact = rasterizeSpecimen(SYSTEM, frame, BARS, {});
     const cached = rasterizeSpecimen(SYSTEM, frame, BARS, { radialMap: map });
     let worst = 0;
     for (let i = 0; i < exact.re.length; i++) {
       worst = Math.max(worst, Math.hypot(exact.re[i]! - cached.re[i]!, exact.im[i]! - cached.im[i]!));
     }
-    expect(worst).toBeLessThan(1e-12);
+    expect(worst).toBeLessThan(5e-13);
   });
 
   it("the uniform control ignores the table, because it inverts nothing", () => {

@@ -20,10 +20,11 @@ import {
   spotAt,
   type Spot,
 } from "@telemicroscope/core/analysis";
-import { imagePlaneZ, pupilGrid, pupils } from "@telemicroscope/core/pupil";
+import { imagePlaneZ, marginalRay, pupilGrid, pupils } from "@telemicroscope/core/pupil";
 import {
   asCompiled,
   systemProperties,
+  traceRay,
   type ApertureSpec,
   type ConjugateSpec,
   type OpticalSystem,
@@ -426,11 +427,34 @@ export function describeBench(draft: BenchDraft): BenchDescription {
     };
   });
 
-  // The marginal height the Seidel sums need is the entrance pupil's, so this
-  // section inherits the pupil section's failure rather than inventing a height.
+  // The marginal height the Seidel sums need is the axial ray's height AT THE
+  // FIRST SURFACE, and this section inherits the pupil section's failure rather
+  // than inventing a height.
+  //
+  // It used to read the entrance pupil's radius, which is the same number only
+  // when the stop is surface 0 — and § 6ai made that stop being anywhere else
+  // the ordinary case. A telecentric objective's entrance pupil is at infinity
+  // WITH AN INFINITE RADIUS, so the old reading handed `seidelSums` an Infinity
+  // and every aberration coefficient came back NaN, silently, in a section that
+  // reported itself as ok. The height is now traced: aim the marginal ray and
+  // read where it actually crosses the first surface, which is the same number
+  // as before on a front-stopped lens and a finite one on every other.
   const seidel = section("seidel", (): SeidelReadout => {
     if (!pupil.ok) throw new AppRefusal(`no marginal ray height without a pupil: ${pupil.error}`);
-    const marginalHeightMm = pupil.entranceRadiusMm;
+    const traced = traceRay(
+      system.prescription,
+      marginalRay(system, pupils(system, LINE_D), 0, LINE_D),
+    );
+    const entry = traced.path[0];
+    if (entry === undefined) {
+      throw new AppRefusal("the marginal ray does not reach the first surface");
+    }
+    const marginalHeightMm = Math.hypot(entry.x, entry.y);
+    if (!(marginalHeightMm > 0) || !Number.isFinite(marginalHeightMm)) {
+      throw new AppRefusal(
+        `the marginal ray enters the first surface at ${marginalHeightMm} mm, which is not a height`,
+      );
+    }
     const r = seidelSums(system.prescription, LINE_D, {
       marginalHeightMm,
       ...(draft.conjugate.kind === "finite" ? { objectDistanceMm: draft.conjugate.distance } : {}),

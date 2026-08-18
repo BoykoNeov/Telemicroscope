@@ -180,17 +180,62 @@ describe("Part F — the ten rows build the same lens through the spec as throug
   });
 
   it("refuses a field number on the forms that have no such parameter", () => {
-    // The other three constructors are not "not wired up yet" — a DIN objective
-    // stops on its rim, where a bundle pivots instead of walking, and the Lister
-    // and the oil front are different lenses. The app says which, in its own
-    // voice, rather than dropping the field silently.
-    for (const spec of [DEFAULT_SPEC, listerSpec(40, 0.2), oilSpec(1.25)]) {
+    // The other two constructors are not "not wired up yet" — the Lister and the
+    // oil front are different lenses with no such parameter. The app says which,
+    // in its own voice, rather than dropping the field silently.
+    //
+    // **The DIN doublet came OFF this list at § 6ai** and is the rung below
+    // instead. Its old reason — that it stops on its rim, where a bundle pivots
+    // instead of walking — was a fact about the default stop placement, and the
+    // default moved: the shipped finite conjugate is telecentric, its bundle
+    // translates across the front element, and a field number is now the only
+    // way to size it for one.
+    for (const spec of [listerSpec(40, 0.2), oilSpec(1.25)]) {
       const result = describeBuild({ ...spec, fieldNumberMm: 18 }, { pupilSamples: 32, size: 64 });
       expect(result.ok).toBe(false);
       if (result.ok) return;
       expect(result.source).toBe("app");
       expect(result.error).toMatch(/field number/);
     }
+  });
+
+  it("…and ACCEPTS one on the DIN doublet, which is § 6ai's whole point", () => {
+    // The other half of the rung above, and it is a build rather than a refusal:
+    // an object-space telecentric objective that is not told what field it must
+    // pass will clip its own bundle off axis, so the app's catalogue states the
+    // field its stage crops to.
+    const sized = describeBuild(
+      { ...DEFAULT_SPEC, fieldNumberMm: 18 },
+      { pupilSamples: 32, size: 64 },
+    );
+    expect(sized.ok).toBe(true);
+    if (!sized.ok) return;
+    // Bigger glass, and it is the semi-field that made it bigger: 18/(2·4) is
+    // 2.25 mm of specimen, and the element grows by very nearly that.
+    const frontOf = (spec: BuildSpec): number =>
+      buildMicroscope(spec).system.prescription.surfaces[0]!.semiAperture;
+    const grew = frontOf({ ...DEFAULT_SPEC, fieldNumberMm: 18 }) - frontOf(DEFAULT_SPEC);
+    expect(grew).toBeGreaterThan(2.1);
+    expect(grew).toBeLessThan(2.3);
+    // …and the focal length is untouched by it, to the last bit: a field number
+    // buys aperture, not a different lens (§ 6ai.4).
+    const bare = describeBuild(DEFAULT_SPEC, { pupilSamples: 32, size: 64 });
+    if (!bare.ok) throw new Error("the default no longer builds");
+    expect(sized.objective.focalLengthMm).toBe(bare.objective.focalLengthMm);
+    // What it does cost is the working distance, and § 6w.4 said it would:
+    // thicker glass moves the principal planes.
+    expect(sized.objective.objectDistanceMm).toBeLessThan(bare.objective.objectDistanceMm);
+    // And it is still refused where it cannot be paid: at NA 0.20 an 18 mm field
+    // asks for f/1.53 and the cemented doublet has no bending for it. The
+    // refusal is the ENGINE's, with its measured numbers, not the app's.
+    const fast = describeBuild(
+      { ...DEFAULT_SPEC, numericalAperture: 0.2, fieldNumberMm: 18 },
+      { pupilSamples: 32, size: 64 },
+    );
+    expect(fast.ok).toBe(false);
+    if (fast.ok) return;
+    expect(fast.source).toBe("engine");
+    expect(fast.error).toMatch(/field walk/);
   });
 
   it("whichever rows refuse do it in the engine's voice, with a number in the sentence", () => {

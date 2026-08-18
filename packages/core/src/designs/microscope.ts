@@ -255,10 +255,14 @@ import {
  *    it trades 3.4× of coma for 2.4× of astigmatism and comes out 1.9× ahead in
  *    wavefront RMS at a millimetre of field.
  *
- * **The default did not move**, and that is deliberate rather than caution: § 6x's
- * subject is the illumination cone displaced in a rim-stopped objective's pupil,
- * measured on this lens, and a telecentric default sends it to a bitwise zero. See
- * `FiniteConjugateObjectiveSpec.stopPlacement`.
+ * **The default moved at § 6ai**, one step later, and the gap between the two is
+ * the whole argument. § 6ae could not move it: § 6x's subject is the illumination
+ * cone displaced in a rim-stopped objective's pupil, measured on this lens, and a
+ * telecentric default sends that displacement to a bitwise zero — rungs still
+ * green, measuring nothing. What § 6ae bought was the placement becoming
+ * *nameable*, so § 6x's rungs could say `"rim"` out loud instead of inheriting it.
+ * Once they did, the default was free to be the lens the app ships and a real DIN
+ * has. See `FiniteConjugateObjectiveSpec.stopPlacement`.
  */
 
 /**
@@ -1136,26 +1140,29 @@ export interface FiniteConjugateObjectiveSpec {
    */
   readonly glassMarginFactor?: number;
   /**
-   * Where the aperture stop sits. **Default `"rim"`**, which is the specimen-side
-   * glass rim this constructor has always carried — and the default is the one
-   * place this spec deliberately differs from `MicroscopeObjectiveSpec`, whose
-   * § 6v default is `"backFocal"`.
+   * Where the aperture stop sits. **Default `"backFocal"` since § 6ai**, which is
+   * what a real DIN objective has: a diaphragm on the group's back focal plane,
+   * entrance pupil at infinity, chief rays leaving every specimen point parallel
+   * to the axis. The two specs now agree, and `MicroscopeObjectiveSpec`'s § 6v
+   * reasoning is this one's.
    *
-   * The reason is § 6x. A rim-stopped objective's entrance pupil sits a finite
-   * arm away, so a Köhler cone reaches the pupil displaced by `h/R_ep` off axis,
-   * and that displacement is the whole subject of § 6x — measured on **this**
-   * lens, the shipped DIN 4×/0.10. Defaulting the DIN telecentric would send
-   * that offset to a bitwise zero and leave § 6x's rungs passing while measuring
-   * nothing, which is the failure mode this file exists to prevent. So the
-   * placement moved from unavailable to *chosen*, and § 6x's rungs choose `"rim"`
-   * by name.
+   * The default was `"rim"` from § 6b until § 6ai, and the reason it stayed was
+   * § 6x rather than caution: a rim-stopped objective's entrance pupil sits a
+   * finite arm away, so a Köhler cone reaches the pupil displaced by `h/R_ep` off
+   * axis, and that displacement is the whole subject of § 6x — measured on
+   * **this** lens, the shipped DIN 4×/0.10. Defaulting the DIN telecentric sends
+   * that offset to a bitwise zero. What retired the argument is that § 6ae made
+   * the placement *nameable*: § 6x's rungs choose `"rim"` by name and go on
+   * measuring what they always measured, so the default is free to be the lens
+   * the app ships rather than the lens one section needs.
    *
-   * `"backFocal"` is what a real DIN objective has: a diaphragm on the group's
-   * back focal plane, entrance pupil at infinity, chief rays leaving every
-   * specimen point parallel to the axis. See the header's finite-conjugate
-   * telecentricity section for what the two placements differ in, and note the
-   * one thing that does **not** differ: the bending solve, because a stop shift
-   * moves S_II/S_III/S_V and leaves S_I alone.
+   * `"rim"` is therefore the **named negative control**, exactly as it is one
+   * module over: the specimen-side glass rim this constructor carried for
+   * fourteen steps, and the only system telecentricity's price can be measured
+   * against. See the header's finite-conjugate telecentricity section for what
+   * the two differ in, and note the one thing that does **not** differ: the
+   * bending solve, because a stop shift moves S_II/S_III/S_V and leaves S_I
+   * alone.
    */
   readonly stopPlacement?: StopPlacement;
   /**
@@ -1293,6 +1300,21 @@ export interface FiniteConjugateObjective {
    */
   readonly stopRadiusMm: number;
   /**
+   * The axial pencil's semi-diameter where it meets the front glass (mm) — the
+   * cone the specimen actually radiates into, `a·n·tan u`, and the aperture the
+   * ELEMENTS are sized against (`glassMarginFactor` multiplies this).
+   *
+   * **Invariant under `stopPlacement`, which is why it is exposed** (§ 6ai).
+   * `stopRadiusMm` is not: it is this number on the rim and `f·n·tan u`
+   * telecentric, and the two part company by the whole `a/f` — 21% on the 4×.
+   * Anything that wants "how wide is the beam in the glass" — sizing a
+   * comparison lens, a marginal height for `seidelSums`, a focal ratio — wants
+   * this one, and reading `stopRadiusMm` for it is a quantity named by the wrong
+   * spelling: correct under one placement, silently 21% off under the other,
+   * and broken under neither. `workingFocalRatio` is `f/(2·this)`.
+   */
+  readonly pencilRadiusAtGlassMm: number;
+  /**
    * The ratio of the focal length to the axial PENCIL where it meets the front
    * glass — `f/(2·a·n·tan u)`, faster than 1/(2·NA) by roughly (1 + 1/M) on a
    * thin lens, and exactly `f/(2·stopRadiusMm)` when the stop is on the rim.
@@ -1379,10 +1401,10 @@ export function finiteConjugateObjective(
   const designWavelengthNm = spec.designWavelengthNm ?? LINE_D;
   const orientation = spec.orientation ?? "flintFirst";
   const glassMarginFactor = spec.glassMarginFactor ?? 1.12;
-  // Rim by default, and deliberately not `microscopeObjective`'s "backFocal" —
-  // see the spec: § 6x's subject is this lens without telecentricity, and a
-  // defaulted placement would make those rungs measure a bitwise zero.
-  const stopPlacement = spec.stopPlacement ?? "rim";
+  // Telecentric by default since § 6ai, the same as `microscopeObjective`'s.
+  // § 6x's rungs, whose subject is this lens WITHOUT telecentricity, name `"rim"`
+  // rather than inheriting it — which is what let the default move.
+  const stopPlacement = spec.stopPlacement ?? "backFocal";
   const fieldNumberMm = spec.fieldNumberMm;
   if (fieldNumberMm !== undefined) {
     if (!(fieldNumberMm > 0) || !Number.isFinite(fieldNumberMm)) {
@@ -1864,6 +1886,7 @@ export function finiteConjugateObjective(
     stopDistanceMm,
     ...(fieldNumberMm === undefined ? {} : { fieldNumberMm }),
     stopRadiusMm,
+    pencilRadiusAtGlassMm,
     // The PENCIL, not the stop radius: the cone the specimen radiates into is the
     // same under both placements, and a ratio that swung by (1 + 1/M) when only
     // the stop's spelling changed would be reporting the spelling.

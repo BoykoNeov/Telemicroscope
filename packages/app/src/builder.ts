@@ -174,7 +174,7 @@ export function liveFields(spec: BuildSpec): {
   readonly listerGroups: boolean;
   readonly meniscus: boolean;
   readonly immersion: boolean;
-  /** § 6w's field sizing — the infinity cemented doublet and nothing else. */
+  /** § 6w's field sizing — the cemented doublets, at either conjugate (§ 6ai). */
   readonly fieldNumber: boolean;
   /** How the slip control reads for this form — three meanings, never one. */
   readonly coverslip: "corrected-for" | "looked-through" | "not-expressible";
@@ -186,7 +186,7 @@ export function liveFields(spec: BuildSpec): {
     listerGroups: spec.form === "lister" || spec.form === "oil",
     meniscus: spec.form === "oil",
     immersion: spec.form === "oil",
-    fieldNumber: infinity && spec.form === "doublet",
+    fieldNumber: spec.form === "doublet",
     coverslip:
       spec.form === "oil"
         ? "looked-through"
@@ -309,8 +309,8 @@ export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
   const glass = { crownMedium: spec.crownMedium, flintMedium: spec.flintMedium };
 
   if (spec.architecture === "din") {
-    requireNoFieldNumber(spec);
     if (spec.form !== "doublet") {
+      requireNoFieldNumber(spec);
       throw new AppRefusal(
         `the ${spec.form === "lister" ? "Lister" : "oil-immersion"} form is an infinity-space ` +
           `design — the finite-conjugate DIN member is a named open item in the ROADMAP ` +
@@ -322,6 +322,9 @@ export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
       numericalAperture: spec.numericalAperture,
       opticalTubeLengthMm: spec.tubeLengthMm,
       orientation: spec.orientation,
+      // § 6ai: the finite conjugate is telecentric now, so its bundle walks
+      // across the front element and a field number is what sizes it for that.
+      ...(spec.fieldNumberMm > 0 ? { fieldNumberMm: spec.fieldNumberMm } : {}),
       ...glass,
       ...(spec.coverslip.kind === "none"
         ? {}
@@ -536,17 +539,26 @@ export function measureApertureWall(
 }
 
 /**
- * § 6w's parameter exists for ONE constructor, and the reasons the others do not
- * take it are three different reasons rather than an omission — so a field
- * number set on them is refused with the reason rather than dropped. See
+ * § 6w's parameter exists for the two CEMENTED-DOUBLET constructors, and the
+ * reasons the others do not take it are reasons rather than an omission — so a
+ * field number set on them is refused with the reason rather than dropped. See
  * `liveFields`, which greys the control out for exactly these cases.
+ *
+ * **This used to name the DIN doublet among the refusals, and § 6ai is why it no
+ * longer does.** The reason it gave was true of the old default and of nothing
+ * else: a rim-stopped objective pivots every bundle through its front surface,
+ * so the footprint does not translate with field and there is nothing to size
+ * for. The shipped finite conjugate is object-space telecentric, its bundle
+ * walks across the front element by exactly the object height, and a field
+ * number is the only way to tell it how far. The engine agrees — it is
+ * `finiteConjugateObjective` that refuses the pair `fieldNumberMm` +
+ * `stopPlacement: "rim"`, and this function no longer has to guess which.
  */
 function requireNoFieldNumber(spec: BuildSpec): void {
   if (!(spec.fieldNumberMm > 0)) return;
   throw new AppRefusal(
-    `only the infinity-corrected cemented doublet is sized for a field number (§ 6w). ` +
-      `A DIN objective carries its stop on the rim, where a bundle pivots rather than walking off ` +
-      `the glass; the Lister and the oil front are separate constructors that have no such parameter.`,
+    `only the cemented-doublet objectives are sized for a field number (§ 6w). ` +
+      `The Lister and the oil front are separate constructors that have no such parameter.`,
   );
 }
 
@@ -619,14 +631,46 @@ export const ENGINE_DEFAULTS = {
  */
 export const FIELD_NUMBER_MM = 18;
 
-/** A DIN doublet at the engine's own defaults. */
-export const dinSpec = (magnification: number, numericalAperture: number): BuildSpec => ({
+/**
+ * A DIN doublet at the engine's own defaults, **sized for the field it must
+ * pass** — which since § 6ai it has to be, for `infinitySpec`'s reason.
+ *
+ * This preset did carry the engine's defaults and nothing else, and the sentence
+ * below `infinitySpec` explaining why the infinity rows were the exception is
+ * now the rule. § 6ai moved the finite conjugate's aperture stop to the back
+ * focal plane, which makes it object-space telecentric — so its bundle no longer
+ * pivots through the front element, it TRANSLATES across it, and an element
+ * sized for the axial pencil alone starts clipping about two thirds of a
+ * millimetre off axis. The stage crops to `FIELD_NUMBER_MM`, which is 2.25 mm of
+ * specimen at 4×, so without this line the app would draw the outer half of
+ * every picture through a vignetted pupil.
+ *
+ * It is not free and § 6w.4 says what it costs: the element is built at the
+ * wider aperture rather than reamed out afterwards, so the glass is thicker, the
+ * principal planes move and the working distance comes back about a millimetre
+ * shorter. That is the honest trade — a real 4× objective is much larger than
+ * its axial beam for exactly this reason.
+ *
+ * **And it is not always payable**, which is why the field number is an argument
+ * rather than a constant here. At NA 0.20 an 18 mm field asks for a 24.5 mm
+ * element at f/1.53 and the cemented doublet refuses it outright — § 6b.5's
+ * aperture wall, reached through the field rather than through the aperture. The
+ * catalogue's fast row therefore passes 0 and says so in its note: a DIN doublet
+ * that fast cannot cover a standard field, and that is a fact about the design
+ * space rather than a limitation of this preset.
+ */
+export const dinSpec = (
+  magnification: number,
+  numericalAperture: number,
+  fieldNumberMm: number = FIELD_NUMBER_MM,
+): BuildSpec => ({
   ...DEFAULT_SPEC,
   architecture: "din",
   form: "doublet",
   magnification,
   numericalAperture,
   tubeLengthMm: ENGINE_DEFAULTS.opticalTubeLengthMm,
+  fieldNumberMm,
   coverslip: { kind: "none" },
 });
 

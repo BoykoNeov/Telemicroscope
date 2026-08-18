@@ -17,7 +17,7 @@ import {
   withGlassPath,
 } from "../src/mech";
 import { achromaticObjective } from "../src/designs/achromat";
-import { finiteConjugateObjective } from "../src/designs/microscope";
+import { finiteConjugateObjective, type StopPlacement } from "../src/designs/microscope";
 import { plateFocusShiftMm, plateW040Mm, plateWavefrontErrorMm } from "../src/designs/coverslip";
 import { getMedium } from "../src/materials/catalog";
 import { LINE_C, LINE_D, LINE_F } from "../src/materials/dispersion";
@@ -353,19 +353,30 @@ describe("§ 5u.6 — what the glass costs, and the f-ratio where it stops being
 });
 
 describe("§ 5u.7 — parfocality, and the magnification a single group cannot reach", () => {
-  /** Front vertex → last vertex (mm): the objective's own axial glass length. */
-  const glassLengthMm = (p: Prescription): number =>
+  /**
+   * Front vertex → last surface (mm): the objective's own axial extent.
+   *
+   * It was called `glassLengthMm` until § 6ai, and the rename is the finding.
+   * With the stop on the specimen-side glass the last surface IS glass and the
+   * two names mean the same thing. With it on the back focal plane the last
+   * surface is a diaphragm standing a focal length behind the glass, and the
+   * thing the mount has to contain is the whole of that — which is what makes
+   * the floor below move. `parfocalBarrelLengthMm` still takes the number under
+   * its old parameter name, because what the MOUNT cares about is the axial
+   * extent whatever it is made of.
+   */
+  const axialExtentMm = (p: Prescription): number =>
     p.surfaces.slice(0, -1).reduce((a, s) => a + s.thickness, 0);
 
-  const built = (magnification: number) =>
-    finiteConjugateObjective({ magnification, numericalAperture: 0.1 });
+  const built = (magnification: number, stopPlacement: StopPlacement = "backFocal") =>
+    finiteConjugateObjective({ magnification, numericalAperture: 0.1, stopPlacement });
 
-  const barrelFor = (magnification: number): number => {
-    const obj = built(magnification);
+  const barrelFor = (magnification: number, stopPlacement: StopPlacement = "backFocal"): number => {
+    const obj = built(magnification, stopPlacement);
     return parfocalBarrelLengthMm({
       parfocalDistanceMm: PARFOCAL_DISTANCE_MM.din,
       objectDistanceMm: obj.objectDistanceMm,
-      glassLengthMm: glassLengthMm(obj.prescription),
+      glassLengthMm: axialExtentMm(obj.prescription),
     });
   };
 
@@ -374,7 +385,7 @@ describe("§ 5u.7 — parfocality, and the magnification a single group cannot r
       const obj = built(magnification);
       const barrel = barrelFor(magnification);
       expect(barrel).toBeGreaterThan(0);
-      expect(barrel + glassLengthMm(obj.prescription) + obj.objectDistanceMm).toBeCloseTo(
+      expect(barrel + axialExtentMm(obj.prescription) + obj.objectDistanceMm).toBeCloseTo(
         PARFOCAL_DISTANCE_MM.din,
         10,
       );
@@ -402,13 +413,29 @@ describe("§ 5u.7 — parfocality, and the magnification a single group cannot r
    * which for the DIN pair (x′ = 150, P = 45) is 4.139. Below it the standard
    * is unreachable by construction: the objective's own object distance already
    * exceeds the whole shoulder-to-specimen budget.
+   *
+   * **And a TELECENTRIC single group has a second, higher floor** (§ 6ai). Its
+   * aperture stop is a diaphragm on the back focal plane, so the objective does
+   * not end at its last glass vertex — it ends one focal length further back, and
+   * the mount must contain that too. The same budget with f = x′/M added:
+   *
+   *     x′(M+1)/M² + x′/M ≤ P   →   P·M² − 2x′M − x′ = 0
+   *     M_min = [x′ + √(x′² + P·x′)] / P
+   *
+   * which is 7.134 for the same pair. The two forms differ by exactly the factor
+   * of two on the middle term, because "plus a focal length" is "plus x′/M", and
+   * that one term nearly doubles the magnification below which the standard is
+   * geometrically out of reach.
    */
-  it("a 4× single group cannot be DIN-parfocal at all, and the floor is 4.14×", () => {
+  it("a 4× single group cannot be DIN-parfocal, and there are TWO floors", () => {
     const xPrime = 150;
     const parfocal = PARFOCAL_DISTANCE_MM.din;
     const floor =
       (xPrime + Math.sqrt(xPrime * xPrime + 4 * parfocal * xPrime)) / (2 * parfocal);
+    const telecentricFloor =
+      (xPrime + Math.sqrt(xPrime * xPrime + parfocal * xPrime)) / parfocal;
     expect(floor).toBeCloseTo(4.1387, 4);
+    expect(telecentricFloor).toBeCloseTo(7.1339, 4);
 
     // The engine agrees, and by more than the closed form demands — the built
     // objective is thick, so its glass eats into a budget the thin-lens floor
@@ -416,29 +443,63 @@ describe("§ 5u.7 — parfocality, and the magnification a single group cannot r
     expect(() => barrelFor(4)).toThrow(/does not fit the mount/);
     expect(built(4).objectDistanceMm).toBeGreaterThan(parfocal);
 
-    // Where the REAL floor sits, glass included. Bisected on the refusal.
-    let lo = 4;
-    let hi = 10;
-    for (let i = 0; i < 60; i++) {
-      const mid = 0.5 * (lo + hi);
-      let fits = true;
-      try {
-        barrelFor(mid);
-      } catch {
-        fits = false;
+    // Where the REAL floor sits, glass included. Bisected on the refusal, on each
+    // member against its own closed form.
+    const bisect = (stopPlacement: StopPlacement): number => {
+      let lo = 3;
+      let hi = 20;
+      for (let i = 0; i < 60; i++) {
+        const mid = 0.5 * (lo + hi);
+        let fits = true;
+        try {
+          barrelFor(mid, stopPlacement);
+        } catch {
+          fits = false;
+        }
+        if (fits) hi = mid;
+        else lo = mid;
       }
-      if (fits) hi = mid;
-      else lo = mid;
-    }
-    const realFloor = 0.5 * (lo + hi);
+      return 0.5 * (lo + hi);
+    };
+    const realFloor = bisect("rim");
     expect(realFloor).toBeGreaterThan(floor);
     expect(realFloor).toBeCloseTo(4.236, 2);
 
-    // This is why a real 4× DIN objective is not one doublet. The standard is a
-    // MECHANICAL constraint that reaches back into the optical design and says
-    // the front group must sit closer than a single group can — which is the
-    // sixth geometric ceiling in this repo, and the first that comes from a
-    // mount rather than from the ray invariant.
+    const realTelecentricFloor = bisect("backFocal");
+    expect(realTelecentricFloor).toBeGreaterThan(telecentricFloor);
+    expect(realTelecentricFloor).toBeCloseTo(7.212, 2);
+
+    // **What moved, and the check that says it is the stop and not a slip.** A
+    // diaphragm cannot change where an objective focuses or how far it stands
+    // off its specimen — those are paraxial and the stop is not in them — so if
+    // the floor moved for any reason other than the diaphragm's own standoff,
+    // `objectDistanceMm` would have moved with it. It does not, at any
+    // magnification and to the last bit. The whole 4.236 → 7.212 is the axial
+    // extent, and the extent's excess IS the back focal distance.
+    for (const magnification of [4, 10, 20, 40]) {
+      expect(built(magnification, "rim").objectDistanceMm).toBe(
+        built(magnification, "backFocal").objectDistanceMm,
+      );
+    }
+    for (const magnification of [10, 20, 40]) {
+      const rim = built(magnification, "rim");
+      const tele = built(magnification, "backFocal");
+      const excess = axialExtentMm(tele.prescription) - axialExtentMm(rim.prescription);
+      // Not equal to the focal length but converging on it: the extra length is
+      // the back focal distance, which is f less the rear principal plane's own
+      // setback, and the glass thins as 1/M so the gap closes as 1/M².
+      expect(excess).toBeCloseTo(tele.stopDistanceMm, 10);
+      expect(excess / tele.focalLengthMm).toBeGreaterThan(0.94);
+      expect(excess / tele.focalLengthMm).toBeLessThan(1);
+    }
+
+    // This is why a real 4× DIN objective is not one doublet, and § 6ai raises
+    // the bar rather than moving it: not one doublet, and not even one doublet
+    // below about 7×. The standard is a MECHANICAL constraint that reaches back
+    // into the optical design and says the front group must sit closer than a
+    // single group can — which is the sixth geometric ceiling in this repo, and
+    // the first that comes from a mount rather than from the ray invariant. The
+    // stop placement is now inside that ceiling, which is the part that is new.
   });
 
   it("refuses an objective that does not fit its own standard", () => {

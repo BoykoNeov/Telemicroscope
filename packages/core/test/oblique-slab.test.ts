@@ -391,9 +391,23 @@ describe("§ 6y.4 — what the mount's ceiling cuts off axis is asymmetric", () 
 /* ── 6y.5 — the headline: invariance, and the rim-stopped control ──────────── */
 
 /** § 6b's DIN 4×/0.10 — rim-stopped by construction, so the live subject. */
+/**
+ * The DIN 4×/0.10 **rim-stopped**, which § 6ai made a name rather than a default.
+ *
+ * Every rung below that uses this one needs a chief ray that leaves the specimen
+ * at an ANGLE — the oblique invariant q_c is the whole subject, and on the
+ * shipped telecentric lens it is a bitwise zero. So this is the negative control
+ * in the strict sense: not an old spelling kept around, but the only member of
+ * the pair that has the quantity being measured. § 6y.5's telecentric arm is the
+ * other member, and the contrast is the rung.
+ */
 const din = (): OpticalSystem =>
   finiteConjugateMicroscope({
-    objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    objective: finiteConjugateObjective({
+      magnification: 4,
+      numericalAperture: 0.1,
+      stopPlacement: "rim",
+    }),
   }).system;
 
 /** § 6v's infinity 4×/0.10, in both placements — the pair the claim needs. */

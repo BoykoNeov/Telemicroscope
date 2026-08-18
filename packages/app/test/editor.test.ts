@@ -251,10 +251,25 @@ describe("the two things a form does that a constructor never has to", () => {
     const respelled = pupils(toSystem(asNA), LINE_D).stopRadius;
     expect(respelled).toBeCloseTo(designed, 12);
     // The size of what was fixed, so the number does not vanish with the defect.
-    expect(designed / (seed.conjugate.kind === "finite" ? seed.conjugate.distance * 0.1 : NaN)).toBeCloseTo(
-      1.005037815,
-      9,
-    );
+    //
+    // It used to be read as `stopRadius / (s·sin u)` with s the specimen-to-stop
+    // distance, which is 1/cos u when the stop sits on the specimen-side glass
+    // and means nothing since § 6ai put it on the back focal plane — the lever
+    // is a focal length now, not a working distance. So the same fact is read in
+    // the form that does not care where the stop is: whatever the lever, a
+    // TANGENT reading and a SINE reading of the same aperture disagree by
+    // 1/cos u, so two NAs must come back in the ratio of their tangents and not
+    // of their sines. At 0.1 and 0.5 those are 5.745 and 5.000 — a 15% gap that
+    // no rounding can hide, where at 0.1 alone the whole defect was 0.5%.
+    const radiusAtNA = (value: number): number =>
+      pupils(toSystem({ ...seed, aperture: { kind: "objectNA", value } }), LINE_D).stopRadius;
+    const tangentOf = (na: number) => na / Math.sqrt(1 - na * na);
+    expect(radiusAtNA(0.5) / radiusAtNA(0.1)).toBeCloseTo(tangentOf(0.5) / tangentOf(0.1), 9);
+    expect(radiusAtNA(0.5) / radiusAtNA(0.1)).toBeCloseTo(5.7446, 4);
+    expect(Math.abs(radiusAtNA(0.5) / radiusAtNA(0.1) - 5)).toBeGreaterThan(0.7);
+    // …and at the seed's own aperture the disagreement is the 1.005037815 the
+    // original defect was worth, stated as the identity rather than as a lever.
+    expect(tangentOf(0.1) / 0.1).toBeCloseTo(1.005037815, 9);
   });
 });
 

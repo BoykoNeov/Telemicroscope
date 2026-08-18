@@ -161,8 +161,8 @@ export const MICROSCOPE_CATALOG: readonly MicroscopeEntry[] = [
     "din-4x-020",
     "DIN 4×/0.20",
     "DIN 160 mm",
-    "Written to fail at § 6b's f/4.1 ceiling — and it builds: § 6b.5.6 seeded the solve differently.",
-    dinSpec(4, 0.2),
+    "Written to fail at § 6b's f/4.1 ceiling — and it builds: § 6b.5.6 seeded the solve differently. Alone in this family it cannot be sized for FN 18 (§ 6ai).",
+    dinSpec(4, 0.2, 0),
   ),
   entry(
     "inf-4x-010",

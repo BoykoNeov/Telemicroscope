@@ -419,11 +419,11 @@ describe("§ 6b.1 — the DIN objective is a RE-SOLVED lens, not a placed one", 
     const din = buildDin4x();
     // The same glasses, the same focal length, the same aperture — only the
     // conjugate the bending was solved for differs, which is the § 6a recipe.
-    const D = 2 * din.stopRadiusMm * 1.12;
+    const D = 2 * din.pencilRadiusAtGlassMm * 1.12;
     const infinitySolved = achromaticObjective({ apertureMm: D, focalRatio: din.focalLengthMm / D });
     const mirrored = reversePrescription(infinitySolved.prescription, 0);
     const s1 = seidelSums(mirrored, LAMBDA, {
-      marginalHeightMm: din.stopRadiusMm,
+      marginalHeightMm: din.pencilRadiusAtGlassMm,
       objectDistanceMm: din.objectDistanceMm,
     }).s1;
     // W₀₄₀ = S_I/8, in waves at the rim. Two waves is not a refinement.
@@ -435,7 +435,7 @@ describe("§ 6b.1 — the DIN objective is a RE-SOLVED lens, not a placed one", 
 
   it("lands on a visibly different bending — 14% of the curvature", () => {
     const din = buildDin4x();
-    const D = 2 * din.stopRadiusMm * 1.12;
+    const D = 2 * din.pencilRadiusAtGlassMm * 1.12;
     const infinitySolved = achromaticObjective({ apertureMm: D, focalRatio: din.focalLengthMm / D });
     const ratio = din.doublet.curvatures[0] / infinitySolved.curvatures[0];
     expect(ratio).toBeLessThan(0.9);
@@ -448,7 +448,7 @@ describe("§ 6b.1 — the DIN objective is a RE-SOLVED lens, not a placed one", 
     // achromatic split fixes c₁−c₂ and c₂−c₃, so a different bending is a
     // different pair of real shapes with a different Gullstrand separation term.
     const din = buildDin4x();
-    const D = 2 * din.stopRadiusMm * 1.12;
+    const D = 2 * din.pencilRadiusAtGlassMm * 1.12;
     const infinitySolved = achromaticObjective({ apertureMm: D, focalRatio: din.focalLengthMm / D });
     expect(infinitySolved.paraxialFocalLengthMm / infinitySolved.focalLengthMm - 1).toBeLessThan(0);
     expect(din.paraxialFocalLengthMm / din.focalLengthMm - 1).toBeGreaterThan(0);
@@ -479,7 +479,7 @@ describe("§ 6b.1 — the DIN objective is a RE-SOLVED lens, not a placed one", 
     };
     const s1Direct = (c1: number): number =>
       seidelSums(mirroredAt(c1), LAMBDA, {
-        marginalHeightMm: din.stopRadiusMm,
+        marginalHeightMm: din.pencilRadiusAtGlassMm,
         objectDistanceMm: din.objectDistanceMm,
       }).s1;
 
@@ -509,7 +509,14 @@ describe("§ 6b.1 — the DIN objective is a RE-SOLVED lens, not a placed one", 
     // passing, because the trace confirms whatever it was solved for.
     for (const M of [4, 10, 20]) {
       const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
-      expect(o.doublet.objectDistanceMm).toBeCloseTo(o.imageDistanceMm, 6);
+      // GLASS-relative, and it has to be said rather than defaulted: since § 6ai
+      // the last vertex of `prescription` is the DIAPHRAGM, so `imageDistanceMm`
+      // is shorter than the distance the bending was solved at by exactly the
+      // back focal distance. Comparing the two raw would refuse every telecentric
+      // objective by that distance and pass every rim one — a check keyed to a
+      // position, silently wrong rather than broken (§ 6ae's own hazard, and the
+      // reason `stopDistanceMm` is 0 on the rim so this stays one expression).
+      expect(o.doublet.objectDistanceMm).toBeCloseTo(o.imageDistanceMm + o.stopDistanceMm, 6);
       // …and the S_I it was solved for really is null where it is USED.
       expect(Math.abs(o.seidelS1AtWorkingConjugates)).toBeLessThan(1e-12);
     }
@@ -561,13 +568,23 @@ describe("§ 6b.2 — Newton's equation, on the traced cardinal points", () => {
 
   it("has no tube lens at all — the objective IS the microscope", () => {
     const scope = finiteConjugateMicroscope({ objective: buildDin4x() });
-    // Three surfaces: one cemented doublet. The architectural difference from
-    // § 6a in one assertion, and the reason the objective carries the whole
-    // correction itself.
-    expect(scope.prescription.surfaces).toHaveLength(3);
+    // Three refracting surfaces: one cemented doublet, and no tube lens. The
+    // architectural difference from § 6a in one assertion, and the reason the
+    // objective carries the whole correction itself.
+    // POWERED surfaces, and the distinction is § 6ai's: the diaphragm is a
+    // `kind: "refract"` dummy with zero curvature and air on both sides, so
+    // neither the list's length nor its `kind` separates the lens from its stop.
+    // Curvature does. Counting the list was the same statement as counting the
+    // lens until the default moved, and is not any more.
+    const glass = scope.prescription.surfaces.filter((s) => s.curvature !== 0);
+    expect(glass).toHaveLength(3);
+    expect(scope.prescription.surfaces).toHaveLength(4);
+    const stop = scope.prescription.surfaces[3]!;
+    expect(stop.curvature).toBe(0);
+    expect(stop.medium).toBe("AIR");
     const flags = scope.prescription.surfaces.map((s) => s.isStop === true);
     expect(flags.filter(Boolean)).toHaveLength(1);
-    expect(flags[0]).toBe(true);
+    expect(flags[flags.length - 1]).toBe(true);
   });
 
   it("keeps the mechanical 160 out of the optics", () => {
@@ -599,12 +616,23 @@ describe("§ 6b.3 — orientation, re-contested at the DIN conjugates", () => {
     // round for the DIN pair and the contest is much closer: the flint-first
     // build still wins at every magnification, by about a quarter.
     for (const M of [4, 10, 20]) {
-      const flint = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
-      const crown = finiteConjugateObjective({
-        magnification: M,
-        numericalAperture: 0.1,
-        orientation: "crownFirst",
-      });
+      // `"rim"` by NAME, and the reason is the assertion three lines down. Since
+      // § 6ai the default puts a paraxially-sized diaphragm at the back focal
+      // plane, and a lens with enough residual spherical aberration lands its
+      // real rim ray OUTSIDE that radius — crown-first by 0.21–0.75%, which
+      // clips 8 of this grid's rays while flint-first (landing 0.7–0.8% inside)
+      // loses none. Contesting the two orientations there would compare an RMS
+      // over a clipped pupil against one over a full pupil, which is not the
+      // bending contest this rung is. § 6ai.4 measures the clipping itself.
+      const at = (orientation: "flintFirst" | "crownFirst") =>
+        finiteConjugateObjective({
+          magnification: M,
+          numericalAperture: 0.1,
+          orientation,
+          stopPlacement: "rim",
+        });
+      const flint = at("flintFirst");
+      const crown = at("crownFirst");
       const rms = (o: typeof flint): number => {
         const s = finiteConjugateMicroscope({ objective: o }).system;
         const map = opdMap(s, 0, LAMBDA, pupilGrid(21));
@@ -624,11 +652,19 @@ describe("§ 6b.3 — orientation, re-contested at the DIN conjugates", () => {
     // the two roots: crown-first is worse on axis and better on the sine
     // condition. Neither orientation is aplanatic, and no bending makes one so.
     const M = 4;
-    const flint = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+    // `"rim"` for the same reason as the rung above: `sineConditionResidual`
+    // needs a marginal ray that survives to the image, and crown-first's does
+    // not clear a paraxially-sized back focal diaphragm (§ 6ai.4).
+    const flint = finiteConjugateObjective({
+      magnification: M,
+      numericalAperture: 0.1,
+      stopPlacement: "rim",
+    });
     const crown = finiteConjugateObjective({
       magnification: M,
       numericalAperture: 0.1,
       orientation: "crownFirst",
+      stopPlacement: "rim",
     });
     const res = (o: typeof flint): number =>
       Math.abs(sineConditionResidual(finiteConjugateMicroscope({ objective: o }).system, 0.05, LAMBDA));
@@ -666,15 +702,24 @@ describe("§ 6b.4 — the DIN architecture's numbers", () => {
     }
   });
 
-  it("makes § 6a's f·NA mistake NINE times more expensive at a finite conjugate", () => {
+  it("makes § 6a's f·NA mistake NINE times more expensive at a RIM-stopped finite conjugate", () => {
     // § 6a: a stop sized by the sine-condition height f·NA instead of a·tan u
-    // ships 2.1% fast. Here the specimen sits BEYOND the front focus, so a > f
-    // and the same mistake is 18% — and it shrinks back toward § 6a's figure as
-    // the magnification climbs and the DIN objective approaches an
+    // ships 2.1% fast. On the rim the specimen sits BEYOND the front focus, so
+    // a > f and the same mistake is 18% — and it shrinks back toward § 6a's
+    // figure as the magnification climbs and the DIN objective approaches an
     // infinity-corrected one. The error is a property of the conjugate, not a
     // constant, which is exactly why it cannot be carried over by rule of thumb.
+    //
+    // `"rim"` is NAMED here, and § 6ai changed what that means: this is no longer
+    // the default lens but the control, because the mistake is a property of the
+    // PLACEMENT and not of the architecture. The rung below is the same
+    // arithmetic on the shipped one, and it is where the 18% goes.
     const na = (M: number): number => {
-      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      const o = finiteConjugateObjective({
+        magnification: M,
+        numericalAperture: 0.1,
+        stopPlacement: "rim",
+      });
       const base = finiteConjugateMicroscope({ objective: o }).system;
       return objectNumericalAperture(
         { ...base, aperture: { kind: "stopRadius", value: o.paraxialFocalLengthMm * 0.1 } },
@@ -684,6 +729,30 @@ describe("§ 6b.4 — the DIN architecture's numbers", () => {
     expect(na(4)).toBeCloseTo(0.0821, 4);
     expect(na(20)).toBeCloseTo(0.0976, 4);
     expect(Math.abs(na(4) - 0.1)).toBeGreaterThan(7 * Math.abs(na(20) - 0.1));
+  });
+
+  it("…and § 6ai's default RETIRES it: f·NA is 0.50% fast at every conjugate", () => {
+    // The same stop radius, the same call, the telecentric default. The 18%
+    // collapses to the tangent-versus-sine gap and stops depending on the
+    // conjugate at all — which is § 6ae's B = f arriving as a number a caller
+    // could trip over: object plane → back focal plane has B = f at EVERY object
+    // distance, so f·NA is off by exactly sec u and by nothing else.
+    //
+    // So an 18%-to-0.5% trap is one of the things the flip buys, and it is worth
+    // saying which kind of thing it is: not a better image, a smaller gap between
+    // what a reader would write down and what the lens does.
+    const na = (M: number): number => {
+      const o = finiteConjugateObjective({ magnification: M, numericalAperture: 0.1 });
+      const base = finiteConjugateMicroscope({ objective: o }).system;
+      return objectNumericalAperture(
+        { ...base, aperture: { kind: "stopRadius", value: o.paraxialFocalLengthMm * 0.1 } },
+        LAMBDA,
+      );
+    };
+    const gap = (M: number) => na(M) / 0.1 - 1;
+    for (const M of [4, 10, 20]) expect(gap(M)).toBeCloseTo(-0.004963, 5);
+    // Conjugate-independent to five digits, where the rim's spread was 18% to 2%.
+    expect(Math.abs(gap(4) / gap(20) - 1)).toBeLessThan(1e-4);
   });
 
   it("runs FASTER than 1/(2·NA), approaching it as the magnification climbs", () => {

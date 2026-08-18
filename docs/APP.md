@@ -2015,13 +2015,26 @@ f/8, agreeing to 0.22% — while the doublet's own share over the same three mov
 own W₀₄₀ scales with its diameter.
 
 **Block 4's finding is D8's, on a third axis: the ceiling is a function of a
-parameter the ladder defaulted.** § 5u pins the DIN floor at 4.236, and that is
-the **NA 0.10** answer. Walk the aperture and it runs **4.173 / 4.236 / 4.341 /
-4.506** at NA 0.05 / 0.10 / 0.15 / 0.20, because a faster objective is a thicker
+parameter the ladder defaulted.** § 5u pins the DIN floor at 7.212, and that is
+the **NA 0.10** answer. Walk the aperture and it runs **7.163 / 7.212 / 7.296 /
+7.427** at NA 0.05 / 0.10 / 0.15 / 0.20, because a faster objective is a thicker
 one and thickness is what the standard runs out of room for. The thin-lens floor
-knows nothing about any of it (4.1387 throughout), so the entire spread is glass —
+knows nothing about any of it (7.1339 throughout), so the entire spread is glass —
 and against the *standard* rather than the aperture the penalty is nearly
-constant, 1.022 to 1.029 over parfocal distances from 35 mm to 95 mm.
+constant, 1.010 to 1.015 over parfocal distances from 35 mm to 95 mm.
+
+**Those numbers were 4.236 and 4.1387 until § 6ai**, and the panel gained a
+second closed form rather than an edited constant. The shipped finite conjugate
+is object-space telecentric now, so its aperture stop is a diaphragm on the back
+focal plane and the objective does not end at its last glass vertex — it ends a
+focal length further back, and the mount must contain the standoff too. The
+budget `x′(M+1)/M² + x′/M ≤ P` gives `P·M² − 2x′M − x′ = 0`, so
+`M_min = [x′ + √(x′² + P·x′)]/P = 7.134` where the single-group form gave 4.139.
+`thinLensFloor` is the telecentric one the catalogue's objectives obey;
+`singleGroupThinLensFloor` keeps the older one, and the gap between the two lines
+the panel plots IS the diaphragm's standoff. The glass penalty fell from ~2.3% to
+~1.2% for the same reason: the glass is the thickness it always was, and it is
+now a smaller share of a longer objective.
 
 **The block that could not be written naively is the same one.** Above about
 NA 0.22 the mount **stops being the binding wall**, and § 6b.5's aperture refusal

@@ -118,6 +118,24 @@ function checkGolden(name: string, composed: Composed): void {
   checkGoldenIn(name, composed.rgba, composed.width, composed.width, { dir: GOLDEN_DIR });
 }
 
+/**
+ * ## Why the baselines moved at § 6ai
+ *
+ * Both were rewritten once, and the entry is here rather than in a commit
+ * message because a golden that moves without a stated reason is a golden nobody
+ * will trust the next time.
+ *
+ * § 6ai made the finite-conjugate objective object-space telecentric, and the
+ * catalogue's DIN rows then had to be sized for the field the stage crops to —
+ * a telecentric bundle translates across the front element instead of pivoting
+ * through it, so an axially-sized element vignettes off axis (§ 6w, § 6ai.4).
+ * The picture that came back differs by at most 8 of 255 in colour and 1 of 255
+ * in monochrome: a photometric shift across the outer field, which is what a
+ * change in vignetting and in the chief ray's direction looks like, and not a
+ * change in what is drawn where. The verdicts either side of it are unchanged
+ * and are still asserted below, which is the part that says the regime is the
+ * same one.
+ */
 describe("the stage's picture (regression, NOT validation)", () => {
   it("the monochrome stage has not changed", () => {
     // The render APP.md § A10 records as having changed under everyone's nose.

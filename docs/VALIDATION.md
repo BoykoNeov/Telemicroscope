@@ -18,10 +18,10 @@ whole ladder.
 |---|---|---|
 | [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double, bar the asphere's Newton floor — then misalignment, aimed chief rays, folded frames, and a THIRD tracer so the two references can be compared with the engine out of it | `crosscheck` `crosscheck-optiland` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
-| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities | `pupil` `opd` `compile` `real-aiming` |
+| [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables on two closed-form minimisers — Coddington's best form, the achromat's power split — plus the run that converges 400 mm from the target; TRACED targets, spot (§ 1.8.5), wavefront (§ 1.8.7) and MTF where one frequency is not a merit (§ 1.8.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables on two closed-form minimisers — Coddington's best form, the achromat's power split — plus the run that converges 400 mm from the target; TRACED targets, spot (§ 1.8.5), wavefront (§ 1.8.7), MTF (§ 1.8.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -87,10 +87,11 @@ whole ladder.
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on what a phase object's harmonics do to the readout that reports them | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | Four sections' shared deferral closed: S_III/S_IV against a closed form carrying NO shape factor, the traced foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
-| [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop, whose radius has no conjugate in it because object plane → back focal plane is B = f at every one — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
+| [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop whose radius carries no conjugate — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
 | [6af](#step-6af--the-condenser-is-a-lens) | § 6x's last deferral, first half: a condenser to trace through, uncorrected on purpose, its aberration measured as the AMBIGUITY it puts in `illumination/source`'s premise — two readings of one direction 11.5% apart, closing as NA² | `condenser` |
 | [6ag](#step-6ag--the-traced-cone-into-condensersource) | § 6x's last deferral closed, and inverted: traced BACKWARDS from the specimen the aberration lands in the WEIGHTS, not the positions — so § 6p's cache SURVIVES a shape-changing cone, 289 pupil evaluations against 35 088 | `condenser-source` |
 | [6ah](#step-6ah--the-paraxial-na-of-a-pupil-at-infinity) | ∞/∞: the DEFAULT objective has had no paraxial NA since § 6v, refusing three of the app's ten rows outright — and the slope branch reaches the rim lens's own double BITWISE | `telecentric-na` |
+| [6ai](#step-6ai--the-default-stop-placement) | § 6ae's queued flip landed: what a caller gets unasked is telecentric, and ONE lever — D × −70.7, barrel to pincushion — re-read nine files without re-deriving one; the app's DIN rows now state the field they pass | `stop-default` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -14009,8 +14010,149 @@ adds no physics; it removes a NaN.
   so it returns ∞ for a telecentric system. Its only callers build the camera's
   telescope, which is front-stopped, so nothing reaches it today — but it is the
   same shape as this bug, unpinned, and a microscope camera panel would find it.
-- **The DIN's default is still `"rim"`** — § 6ae's queued flip, unchanged by this
-  step except that the flip no longer has to carry this NaN with it.
+- ~~**The DIN's default is still `"rim"`**~~ — § 6ae's queued flip, **landed at
+  § 6ai**. The NaN this step removed was one of the things that had to go first.
+
+## Step 6ai — the default stop placement
+
+§ 6ae built the DIN objective's back-focal diaphragm, checked it against
+Welford's stop-shift algebra, sent § 6x's illumination offset to zero and priced
+the translating bundle. It could not make it the default, and said so: the flip
+would move readings in nine files at once, and doing that in the same step as the
+physics would leave no way to tell a finding from a re-pin. This is that flip.
+
+### What is new, and it is deliberately small
+
+**The physics is § 6ae's and none of it is repeated.** `stop-default` holds two
+things that step could not:
+
+- **The default itself.** Every § 6ae rung names its placement, so all of them
+  would still pass with the default pointing at the other member. § 6ai.1 asks
+  the question from the caller's side — what does an omitted argument build —
+  and answers it bitwise at four magnifications, through the objective and
+  through the composed microscope, including that `"rim"` is still reachable and
+  is still the finite-pupil lens everything else was measured against.
+- **The one lever the rest of the branch reads.** § 6ae.5 pins the third-order
+  *wavefront*. What § 6h–§ 6ag actually carry is the traced *image-height* map
+  r = |M|·h + D·h³, and the shift multiplies D by −70.7. **Both halves of that
+  factor are external.** The sign is the textbook rule — a stop in front of a
+  lens gives barrel and a stop behind it gives pincushion — and the size is
+  Welford's distortion stop-shift equation,
+
+      S_V* = S_V + E(3·S_III + S_IV) + 3E²·S_II + E³·S_I
+
+  evaluated **entirely on the rim member**, whose stop is surface 0 and whose
+  Seidel sums are therefore available; the E³ term vanishes because the doublet
+  is solved to ΣS_I = 0 (§ 6b). It predicts −70.7001 and predicts the same
+  −70.7001 at three field heights — E goes as h and S_V as h³, so the ratio has
+  to be field-free, and that it is confirms E was formed as a ratio. The traced
+  map reads −70.7169. Two machineries, **0.024% apart**, and the third-order one
+  never sees the ray that confirms it. § 6ai.2 also pins that the map's linear
+  term does not move at all, which is what makes this a stop shift rather than a
+  lens that was re-solved.
+
+That flatness is the whole reason the flip cost re-reading and not re-deriving.
+
+### Why the readings moved the way they did
+
+Two families, and each is one factor:
+
+- **§ 6m and § 6n read derivatives of that map**, so all of them carry D and
+  nothing else: the bow of a chord, the map's second difference, det J − 1 and
+  the traced-vs-uniform miss moved by 70.7 and changed no order. § 6n.3's *gap*
+  between the two misses is the exception that proves it — both misses carry D,
+  so their ratio cannot, and it reads 16.75 against 16.76 across the two members.
+- **§ 6s reads truncation error on that map's inverse.** A Lagrange cubic
+  reproduces a cubic exactly, so what those rungs measure is the QUINTIC, which
+  the same shift multiplies by 2 600. The error is h⁴ in node spacing, so the
+  tables grow by 2 600^(1/4) = 7.1 and by nothing else: the floor that arrived at
+  32 nodes arrives at 192, measured at both ends rather than asserted.
+
+### What the flip BOUGHT, measured where it lives
+
+Each is a telecentric leg on a rung that already states its law, not a new claim
+collected here:
+
+| Finding | Where | Rim | Shipped |
+| --- | --- | --- | --- |
+| The transverse scale is exactly proportional to λ | § 6t.3 | 1.7e-4 | 2.4e-10 |
+| The cone arrives centred, so the field-edge reweighting keeps its axial SIGN | § 6ag.4 | −6.6e-3 | +2.3e-3 |
+| `illuminationOffset` is a bitwise zero at EVERY field | § 6ag.3 | 0.49 at 2.25 mm | 0 |
+| The cone's membership flips, so a tile stops reading `coarse` | § 6ag.5 | 2.9% / 5.8% | 1.0% / 0.6% |
+| Off-axis wavefront rms at 1 mm, so the fidelity rules `valid` | § 6ag.4 | 0.395 λ | 0.204 λ |
+| § 6x.6's predicted isoplanatism excess, removed physically | § 6h.5 | 0.509 | 0.501 |
+
+### What it COST, and one of them is a second closed form
+
+- **§ 6w's price, now paid by default.** A telecentric bundle translates across
+  the front element instead of pivoting through it, so an axially-sized element
+  vignettes off axis — 15 rays of 289 at 1 mm. § 6ae.6 measured this; what § 6ai
+  adds is that it is now what a caller gets unasked, and that the loss is on the
+  GLASS and never on the diaphragm, which passes every ray at every field. The
+  app's DIN catalogue rows therefore state FN 18, the field its stage already
+  crops to — and the fast 4×/0.20 row **cannot**, because an 18 mm field there
+  asks for f/1.53 and the cemented doublet has no bending for it.
+- **A SECOND parfocal floor** (§ 5u.7). The objective no longer ends at its last
+  glass vertex; it ends a focal length further back, where its diaphragm is, and
+  the mount must contain that too:
+
+      x′(M+1)/M² + x′/M ≤ P   →   P·M² − 2x′M − x′ = 0
+      M_min = [x′ + √(x′² + P·x′)] / P  =  7.134   (x′ = 150, P = 45)
+
+  against the single-group form's 4.139. The engine's bisected floors, 7.212 and
+  4.236, each sit just above their own closed form by the thickness of the glass.
+  The app carries both forms and plots the one its objectives obey.
+- **Telecentric only at the DESIGN wavelength** (§ 6r.9). The diaphragm sits on
+  the back focal plane of one λ, so it sits somewhere else at every other: the
+  offset is a bitwise zero at 587.56 nm and 9.3e-4 at 450 nm, and the same fact
+  read as an aperture is a **chromatic NA on a DRY objective** — 0.09985 blue
+  against 0.09994 red, 0.084%, where the front-stopped lens is exact and § 6e's
+  oil is 0.85%.
+- **Lateral colour stops being linear** (§ 6r.8, § 6t.7). The departure from a
+  doubling is the chromatic aberration of the DISTORTION, so it grows as the
+  field squared: 0.0092, 0.0364, 0.1428 — ×3.98 and ×3.92. On the rim member it
+  is 4e-4 and there is nothing to be said about it.
+- **A field stop delivers a SMALLER circle than the number printed on it**
+  (§ 6q.8). The stop is a radius in the image and the image height is
+  |M|·h + D·h³, so pincushion pushes the paraxial edge outside it: 2.2298 mm
+  against FN/(2·M) = 2.25, where the rim member read 2.25029. And at FN 20 the
+  eyepiece's own 22 mm clear aperture bites first, so § 6q's fixture states 18.
+
+### Two defects the flip exposed, both fixed here
+
+Neither is a re-pin, and both were found by asking why a number moved the wrong
+way rather than by a test going red on its own:
+
+- **A cache keyed by geometry alone** (`specimen.test.ts`). Its tiles, misses and
+  pictures were keyed on position and grid, which was a complete key while there
+  was one system. Reading two members through it silently returned the first
+  one's answer — which is to say it would have reported that the flip changed
+  nothing.
+- **The app's Seidel readout took the entrance pupil's radius as the marginal ray
+  height** (`editor.ts`). That is the same number only when the stop is surface
+  0. A telecentric objective's entrance pupil is at infinity with an INFINITE
+  radius, so the section handed `seidelSums` an ∞ and reported NaN coefficients
+  while still calling itself ok. The height is traced now.
+
+### Not pinned to an external number, and honest about which parts are
+
+The sign rule, the stop-shift equation that gives the 70.7, and the two parfocal
+closed forms are external. The 2 600 and every number in the tables above are
+this lens's own and are quoted as measured. What is CLAIMED rather than quoted is
+that each is one number — flat across the field, or the same at both ends of a
+sweep — because that is what distinguishes a stop shift from a lens that was
+re-solved.
+
+### Still open
+
+- **The `"rim"` member is a control, not a product.** Nine test files now build
+  both. That is the right cost while the branch's numbers were all measured on
+  one of them, but a later step that finds itself maintaining two lenses should
+  retire the control rather than keep paying for it.
+- **`pointSourceCollection` still reads `entrance.radius`** (§ 6ah's own open
+  item, unchanged): it returns ∞ for a telecentric system, and its callers are
+  all front-stopped today. It is the same shape as the `editor.ts` defect above,
+  which is now a reason to expect it rather than a reason to hope.
 
 ## Later rungs
 

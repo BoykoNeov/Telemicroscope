@@ -408,6 +408,15 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
   const LAMBDA = 587.5618;
   const din4x = () =>
     finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({
+        magnification: 4,
+        numericalAperture: 0.1,
+        stopPlacement: "rim",
+      }),
+    }).system;
+  /** § 6ai's shipped placement — the same glass, telecentric. */
+  const telecentricDin4x = () =>
+    finiteConjugateMicroscope({
       objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
     }).system;
   const frameOf = (system: ReturnType<typeof din4x>) =>
@@ -450,11 +459,37 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
       for (let i = 0; i < kernel.values.length; i++) peak = Math.max(peak, kernel.values[i]!);
       return peak;
     };
+    //
+    // § 6ai is where this rung found its own limit. On the shipped telecentric
+    // objective the corner peak comes back 0.2% ABOVE the axis rather than 0.7%
+    // below it, and the honest reading is not that the corner got better — it is
+    // that over 47 µm the two are the same kernel and the sign of a 0.2%
+    // difference is not something this frame can order. What survives the flip,
+    // and is the sentence the rung exists for, is the SIZE: under 1% either way
+    // on both members, and three times closer to equality on the lens whose
+    // off-axis wavefront § 6ag.4 measures as the better one.
+    //
+    // So the direction is asserted where there is enough coma to have one, and
+    // the bound is asserted on both.
     const axis = peakAt(0.5, 0.5);
     expect(peakAt(1, 1)).toBeLessThan(axis);
     // Small, and it must be: this frame spans 47 µm of specimen, well inside a
     // corrected 4×'s isoplanatic patch (§ 6h.5).
     expect(peakAt(1, 1) / axis).toBeGreaterThan(0.99);
+    expect(Math.abs(frame.objectHalfExtentMm * 1000 - 46.77)).toBeLessThan(0.01);
+
+    const telecentric = telecentricDin4x();
+    const telecentricFrame = frameOf(telecentric);
+    const telecentricPeakAt = (u: number, v: number): number => {
+      const patch = fieldPupilAt(telecentric, telecentricFrame, u, v);
+      const kernel = incoherentPsf(patch.pupil, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
+      let peak = 0;
+      for (let i = 0; i < kernel.values.length; i++) peak = Math.max(peak, kernel.values[i]!);
+      return peak;
+    };
+    const telecentricRatio = telecentricPeakAt(1, 1) / telecentricPeakAt(0.5, 0.5);
+    expect(Math.abs(telecentricRatio - 1)).toBeLessThan(0.01);
+    expect(Math.abs(telecentricRatio - 1)).toBeLessThan(Math.abs(peakAt(1, 1) / axis - 1));
   });
 
   it("a bead field renders through the traced pupils and conserves its light", () => {

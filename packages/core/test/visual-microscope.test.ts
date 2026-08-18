@@ -33,6 +33,7 @@ import {
   visualMagnification,
   visualMicroscopeSystem,
 } from "../src/pupil";
+import { imageRadiusForObjectHeight } from "../src/imaging/object-field";
 import { LINE_C, LINE_D, LINE_F } from "../src/materials/dispersion";
 
 /**
@@ -71,6 +72,18 @@ const eyepiece25 = plosslEyepiece({ focalLengthMm: 25, clearApertureMm: 22 });
 const eyepieceOf = (fe: number): Prescription =>
   plosslEyepiece({ focalLengthMm: fe, clearApertureMm: 0.86 * fe }).prescription;
 
+/**
+ * The shipped DIN 4×/0.10, and since § 6ai that is a **telecentric** one.
+ *
+ * Kept at the engine's default deliberately, because what this file measures is
+ * the instrument a caller composes and not a lens chosen to make the rungs come
+ * out. The flip cost two of them a number and the reason is recorded where they
+ * are, in § 6q.4 and § 6q.8: an object-space telecentric objective's exit pupil
+ * sits closer to the intermediate image, so the chief ray arrives at the
+ * eyepiece STEEPER, and this eyepiece's 22 mm clear aperture — which is at the
+ * Plössl form's own wall, § 6q.6 — becomes the binding aperture before a 20 mm
+ * field stop does.
+ */
 const dinMicroscope = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 });
@@ -292,12 +305,26 @@ describe("§ 6q.4 — visual magnification: M_obj × (D/f_e), from the real chie
     // visual magnification at the field edge is 20% above the paraxial value —
     // pincushion — so "the magnification" is only a single number near the axis,
     // and every rung above is taken there deliberately.
+    //
+    // **The edge is 2.24 mm rather than 2.49 since § 6ai**, and that is a
+    // measurement rather than a retreat. The objective is telecentric now, so
+    // its exit pupil sits at the diaphragm rather than a working distance in
+    // front of the specimen; the chief ray leaves the intermediate image at a
+    // steeper angle for the same object height, and the eyepiece's 22 mm clear
+    // aperture stops it at about 2.43 mm. Not the objective's glass — surface 4,
+    // the eyepiece's own first element — which is why a field number on the
+    // objective does not buy it back. § 6q.8 pins the same wall from the other
+    // side.
     const near = Math.abs(visualMagnification(dinVisual.system, 1e-4, L, 250));
     const mid = Math.abs(visualMagnification(dinVisual.system, 1, L, 250));
-    const edge = Math.abs(visualMagnification(dinVisual.system, 2.49, L, 250));
+    const edge = Math.abs(visualMagnification(dinVisual.system, 2.24, L, 250));
     expect(near).toBeCloseTo(40, 5);
     expect(mid).toBeGreaterThan(40.9);
-    expect(edge / 40 - 1).toBeGreaterThan(0.15);
+    expect(edge / 40 - 1).toBeGreaterThan(0.12);
+    // And the wall itself, bracketed, so "2.24" is not a number someone lowered
+    // until it passed: 2.4 reaches the eye and 2.49 does not.
+    expect(() => visualMagnification(dinVisual.system, 2.4, L, 250)).not.toThrow();
+    expect(() => visualMagnification(dinVisual.system, 2.49, L, 250)).toThrow(/vignetted/);
     // Cubic: the departure from paraxial falls ×~100 per decade of height.
     const d1 = Math.abs(visualMagnification(dinVisual.system, 0.1, L, 250)) - near;
     const d2 = Math.abs(visualMagnification(dinVisual.system, 0.01, L, 250)) - near;
@@ -545,7 +572,22 @@ describe("§ 6q.7 — empty magnification, as an invariance rather than as a rul
 });
 
 describe("§ 6q.8 — the field number is a real aperture, not a printed number", () => {
-  const fieldNumberMm = 20;
+  /**
+   * 18 mm, the DIN standard's own, and it was 20 until § 6ai.
+   *
+   * The rung brackets FN/(2·M_obj) by tracing a chief ray just inside the circle
+   * and just outside it, so it needs the field stop to be the FIRST aperture the
+   * ray meets. With a telecentric objective the eyepiece's 22 mm clear aperture
+   * bites at about 2.43 mm of object height (§ 6q.4), which is inside a 20 mm
+   * field's 2.5 mm edge and outside an 18 mm field's 2.25 — so at 20 the rung
+   * would be bracketing the eyepiece and reporting it as the stop.
+   *
+   * Lowering it keeps the claim exactly as it was and makes it true again. What
+   * it costs is that this file no longer exercises a 20 mm field anywhere, and
+   * what it buys is the sentence in the heading: a printed number would not have
+   * cared which aperture came first.
+   */
+  const fieldNumberMm = 18;
   const withStop = visualMicroscope({
     microscope: dinMicroscope,
     eyepiece: eyepiece25.prescription,
@@ -553,8 +595,8 @@ describe("§ 6q.8 — the field number is a real aperture, not a printed number"
     fieldNumberMm,
   });
 
-  it("the specimen circle is FN/M_obj — 5 mm on a 4×", () => {
-    expect(withStop.objectFieldDiameterMm).toBeCloseTo(5, 12);
+  it("the specimen circle is FN/M_obj — 4.5 mm on a 4×", () => {
+    expect(withStop.objectFieldDiameterMm).toBeCloseTo(4.5, 12);
     // And it is the objective, not the eyepiece, that sets it: the same field
     // stop on a 10× shows a fifth as much specimen.
     const ten = visualMicroscope({
@@ -565,14 +607,37 @@ describe("§ 6q.8 — the field number is a real aperture, not a printed number"
       wavelengthNm: L,
       fieldNumberMm,
     });
-    expect(ten.objectFieldDiameterMm).toBeCloseTo(2, 12);
+    expect(ten.objectFieldDiameterMm).toBeCloseTo(1.8, 12);
   });
 
   it("a field beyond it VIGNETTES in the trace, bracketing FN/(2·M_obj) to 0.4%", () => {
     // The stop is spliced in as a real annular surface at the intermediate
     // image, so the chief ray is clipped by the tracer rather than by a check.
-    expect(() => visualMagnification(withStop.system, 2.49, L, 250)).not.toThrow();
-    expect(() => visualMagnification(withStop.system, 2.51, L, 250)).toThrow(/vignetted/);
+    //
+    // **The circle is 0.9% SMALLER than FN/(2·M_obj) since § 6ai**, and the rung
+    // now measures that rather than allowing for it. A field stop is a radius in
+    // the IMAGE, the traced image height is |M|·h + D·h³, and the flip made D
+    // pincushion and 70.7× bigger — so the image of the paraxial edge overshoots
+    // the stop and the specimen circle closes in to meet it. It was 2.25029 mm
+    // against a paraxial 2.25 on the rim member, 0.013% and indistinguishable
+    // from the printed number; it is 2.2298 now.
+    expect(() => visualMagnification(withStop.system, 2.22, L, 250)).not.toThrow();
+    expect(() => visualMagnification(withStop.system, 2.24, L, 250)).toThrow(/vignetted/);
+    // The shortfall IS the distortion, from the map itself: the paraxial edge
+    // images 0.9% outside a stop of radius FN/2, which is the same 0.9%.
+    const atParaxialEdge = imageRadiusForObjectHeight(
+      dinMicroscope.system,
+      fieldNumberMm / (2 * 4),
+      L,
+    );
+    expect(atParaxialEdge).toBeGreaterThan(fieldNumberMm / 2);
+    expect(atParaxialEdge / (fieldNumberMm / 2) - 1).toBeCloseTo(9.2e-3, 3);
+
+    // …and it IS the field stop doing it, not the eyepiece, which is what the
+    // number moving from 20 to 18 keeps true: without the stop the same 2.24 mm
+    // reaches the eye, because the eyepiece's own wall does not arrive until
+    // 2.43 (§ 6q.4).
+    expect(() => visualMagnification(dinVisual.system, 2.24, L, 250)).not.toThrow();
   });
 
   it("the apparent field of view is the stop's angular size at f_e", () => {
@@ -580,8 +645,13 @@ describe("§ 6q.8 — the field number is a real aperture, not a printed number"
       (2 * Math.atan(fieldNumberMm / (2 * withStop.eyepieceFocalLengthMm)) * 180) / Math.PI,
       12,
     );
-    expect(withStop.apparentFieldOfViewDeg).toBeGreaterThan(43);
-    expect(withStop.apparentFieldOfViewDeg).toBeLessThan(44);
+    // A printed number, and it stays one: the apparent field is the stop's
+    // angular size at the eyepiece's focal length and knows nothing about what
+    // the objective did to the image inside it. 39.60° at FN 18, where FN 20
+    // read 43.60° — the change is the field number this rung declares and not
+    // § 6ai, which is exactly why the two are worth keeping in one file.
+    expect(withStop.apparentFieldOfViewDeg).toBeGreaterThan(39);
+    expect(withStop.apparentFieldOfViewDeg).toBeLessThan(40);
   });
 
   it("the field stop does not disturb the aperture: same gap, same magnification", () => {

@@ -10,7 +10,7 @@ import {
   renderMosaic,
   renderMosaicTile,
 } from "../src/imaging/mosaic";
-import { objectFieldTile, tracedFieldPupils } from "../src/imaging/object-field";
+import { objectFieldFrame, objectFieldTile, tracedFieldPupils } from "../src/imaging/object-field";
 import { rasterizeSpecimen, type Specimen } from "../src/imaging/specimen";
 import { renderBrightfield } from "../src/imaging/brightfield";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
@@ -372,6 +372,15 @@ describe("§ 6o.4 — the probe's own controls", () => {
 const SIZE = 64;
 const TILE_PS = 32;
 const SYSTEM: OpticalSystem = finiteConjugateMicroscope({
+  objective: finiteConjugateObjective({
+    magnification: 4,
+    numericalAperture: 0.1,
+    stopPlacement: "rim",
+  }),
+}).system;
+
+/** § 6ai's shipped placement — the same glass, telecentric (§ 6o.6's leg). */
+const TELECENTRIC: OpticalSystem = finiteConjugateMicroscope({
   objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
 }).system;
 
@@ -458,6 +467,61 @@ describe("§ 6o.6 — a mosaic's pitch is not its tile span, and the solve is sk
     for (let i = 1; i < drifts.length; i++) expect(drifts[i]!).toBeGreaterThan(drifts[i - 1]!);
     expect(drifts[drifts.length - 1]!).toBeLessThan(2e-2);
     expect(drifts[0]!).toBeGreaterThan(1e-5);
+
+    // **§ 6ai moved the size and not one digit of the shape**, and that is the
+    // rung's real content rather than the 1.3e-2. The same four counts on the
+    // shipped telecentric objective grow by the same 6.000, 7.333 and 7.818 —
+    // agreeing to five figures at the near end, because those ratios are how many tile-widths
+    // the outer tile has been placed FROM the axis and no lens has a say in it.
+    //
+    // What moves is one constant: 1.586× at every count, which is the square of
+    // the two members' reference radii (189.87 against 150.78). The drift is
+    // reported in PIXELS, a pixel is set by the exit pupil, and the exit pupil is
+    // what a stop placement changes. So this is a smaller pixel and not a worse
+    // ruler — the third-order distortion grew 70.7× at § 6ai and none of that
+    // appears here, which is how a caller can tell the two apart.
+    const telecentricDrifts = [3, 5, 9, 17].map((tiles) =>
+      mosaicPitchDriftPx(TELECENTRIC, {
+        tiles,
+        size: SIZE,
+        pupilSamples: TILE_PS,
+        guardCells: 4,
+        wavelengthNm: LAMBDA,
+      }),
+    );
+    const departure = drifts.slice(1).map((_, i) => {
+      const here = telecentricDrifts[i + 1]! / telecentricDrifts[i]!;
+      const there = drifts[i + 1]! / drifts[i]!;
+      return Math.abs(here / there - 1);
+    });
+    // Not zero, and the residue is attributed rather than absorbed: it GROWS
+    // monotonically with the tile count — 9.5e-6, 3.5e-5, 1.4e-4 — which is the
+    // distortion's own share showing through, since the outer tile of a wider
+    // mosaic sits further off axis and D is 70.7× what it was. At 3 tiles, where
+    // the outermost centre is 0.4 mm out, the two agree to five figures.
+    for (let i = 1; i < departure.length; i++) {
+      expect(departure[i]!).toBeGreaterThan(departure[i - 1]!);
+    }
+    expect(departure[0]!).toBeLessThan(2e-5);
+    expect(departure[departure.length - 1]!).toBeLessThan(2e-4);
+    const scale = objectFieldFrame(SYSTEM, {
+      size: SIZE,
+      pupilSamples: TILE_PS,
+      wavelengthNm: LAMBDA,
+    }).scale.referenceRadius;
+    const telecentricScale = objectFieldFrame(TELECENTRIC, {
+      size: SIZE,
+      pupilSamples: TILE_PS,
+      wavelengthNm: LAMBDA,
+    }).scale.referenceRadius;
+    // The magnitude ratio IS the pupil ratio squared, and it is sharpest at the
+    // near end for the same reason the departure above is smallest there.
+    const predicted = (scale / telecentricScale) ** 2;
+    expect(Math.abs(telecentricDrifts[0]! / drifts[0]! / predicted - 1)).toBeLessThan(1e-5);
+    for (let i = 0; i < drifts.length; i++) {
+      expect(Math.abs(telecentricDrifts[i]! / drifts[i]! / predicted - 1)).toBeLessThan(2e-4);
+    }
+    expect(telecentricDrifts[telecentricDrifts.length - 1]!).toBeLessThan(3e-2);
   });
 
   it("and with an EVEN tile count the two agree exactly, which is not a bug", () => {

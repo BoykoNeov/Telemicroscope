@@ -63,10 +63,38 @@ import { abbeImage, cosineGratingObject } from "../src/illumination/abbe";
  *
  * ## The fixture
  *
- * The shipped DIN 4×/0.10, rim-stopped (its default), with a matched Abbe
- * condenser at NA 0.10 and its diaphragm at 0.8 of wide open. Grids are small;
- * every rung that pins a number says which quadrature it was measured on,
+ * The DIN 4×/0.10 with the diaphragm on the specimen-side glass, with a matched
+ * Abbe condenser at NA 0.10 and its diaphragm at 0.8 of wide open. Grids are
+ * small; every rung that pins a number says which quadrature it was measured on,
  * because two of them are quadrature-sensitive and saying so is the point.
+ *
+ * ## Why the fixture NAMES its stop, since § 6ai
+ *
+ * That placement was the default when this step was measured and is not any
+ * more. It is kept as the fixture rather than followed, because **every finding
+ * in this file is about a cone that is DISPLACED in the objective's pupil**, and
+ * an object-space telecentric objective does not displace it: the entrance pupil
+ * goes to infinity, the chief ray leaves every specimen point parallel to the
+ * axis, and the condenser's cone arrives centred at every field. Re-pinning these
+ * rungs on the shipped lens would not have moved their numbers, it would have
+ * deleted what they measure.
+ *
+ * So the file reads BOTH, and the telecentric leg of each rung is the finding
+ * § 6ai actually bought:
+ *
+ *  - `illuminationOffset` is a bitwise ZERO at every field, not just on axis
+ *    (§ 6ag.3) - the most direct measurement of object-space telecentricity in
+ *    the branch, and it makes § 6ag.6's cache saving unnecessary rather than
+ *    larger, because `translateSource` returns its input untouched.
+ *  - the field-edge reweighting keeps the SIGN it has on axis and is 3.3× it
+ *    rather than −9.6× (§ 6ag.4), because a centred cone's taper stays
+ *    rotationally symmetric.
+ *  - the cone's membership flips fall from 2.9% to 1.0% and the verdict stops
+ *    saying `coarse` (§ 6ag.5).
+ *
+ * What does NOT move is the cone's own weight spread - 1.3% on axis to 11.3% at
+ * the edge - because that is the condenser's aberration and the objective has no
+ * say in it. The spread rungs below are read once for that reason.
  */
 
 const L = 587.5618;
@@ -77,6 +105,16 @@ const APERTURE = 0.8;
 const FIELD_EDGE = 2.25;
 
 const din4x = () =>
+  finiteConjugateMicroscope({
+    objective: finiteConjugateObjective({
+      magnification: 4,
+      numericalAperture: 0.1,
+      stopPlacement: "rim",
+    }),
+  }).system;
+
+/** The shipped objective since § 6ai — the same glass, telecentric. */
+const teleDin4x = () =>
   finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
   }).system;
@@ -391,9 +429,23 @@ describe("§ 6ag.2 — the mask is EXPLICIT, and that is load-bearing rather tha
 describe("§ 6ag.3 — CURRENCY: the pupil coordinate is a tangent, and a sine never converges", () => {
   const system = din4x();
 
-  it("the aimer's span IS tan u_max, bitwise, at three field heights", () => {
+  it("the aimer's span IS tan u_max — bitwise through a rim, two ulp through a group", () => {
+    // The claim is about the AIMER's currency and not about one lens, so it is
+    // read on both members — and the two do not agree to the last bit, which is
+    // worth a sentence rather than a widened tolerance.
+    //
+    // `span` is `slopeAt(1) − slopeAt(0)`, two aimed traces. With the stop on the
+    // specimen-side glass the aimer is ONE division away from the object: it
+    // divides a stop height by a distance and lands on `tan u` exactly. With the
+    // stop on the back focal plane it has to solve through the whole group to
+    // reach the diaphragm, so the same number arrives down a longer arithmetic
+    // path and misses by two ulp. Two ulp is not a physical difference; a rung
+    // that hid it behind `toBeCloseTo` would also hide a real one.
     for (const h of [0, 1, FIELD_EDGE]) {
       expect(pupilSlopeFrame(system, h, L).span).toBe(tanOf(0.1));
+      const tele = pupilSlopeFrame(teleDin4x(), h, L).span;
+      expect(tele).not.toBe(tanOf(0.1));
+      expect(Math.abs(tele - tanOf(0.1))).toBeLessThan(3 * Number.EPSILON * tanOf(0.1));
     }
   });
 
@@ -406,6 +458,23 @@ describe("§ 6ag.3 — CURRENCY: the pupil coordinate is a tangent, and a sine n
     // …and the telecentric/on-axis zero stays a bitwise zero, which is what lets
     // `translateSource` return its input object (§ 6x).
     expect(illuminationOffset(system, 0, L)).toBe(0);
+
+    // **THE MOST DIRECT MEASUREMENT OF TELECENTRICITY IN THIS BRANCH.** On the
+    // shipped objective that zero is not the on-axis case, it is every case: the
+    // entrance pupil is at infinity, so the chief ray leaves the specimen
+    // parallel to the axis whatever the field, and the axial illumination
+    // direction lands at the pupil centre exactly. Not small — the f64 zero, out
+    // to a field half again the objective's own.
+    //
+    // The rim member's is 0.054 at a quarter of a millimetre and 0.696 at 3.2 mm,
+    // seven tenths of the way to the pupil edge, which is what every displaced-
+    // cone rung in this file is reading.
+    const tele = teleDin4x();
+    for (const h of [0, 0.25, 1, FIELD_EDGE, 3.2]) {
+      expect(illuminationOffset(tele, h, L)).toBe(0);
+    }
+    expect(illuminationOffset(system, 0.25, L)).toBeCloseTo(5.434e-2, 5);
+    expect(illuminationOffset(system, 3.2, L)).toBeCloseTo(0.6956, 3);
   });
 
   it("THE MEASUREMENT: closing the aperture reaches the TANGENT ratio as NA³, and the sine ratio never", () => {
@@ -510,9 +579,45 @@ describe("§ 6ag.4 — THE FINDING: the condenser's aberration lands in the WEIG
     expect(edge[0]!).toBeCloseTo(-6.613e-3, 5);
     expect(Math.abs(edge[1]! - edge[0]!)).toBeLessThan(5e-5);
     expect(Math.abs(edge[0]! / onAxis[0]!)).toBeGreaterThan(8);
+
+    // **AND THE SIGN IS THE DISPLACEMENT'S, NOT THE CONDENSER'S** — which is
+    // what § 6ai turns from an assumption into a measurement. One-sidedness is
+    // the cone sitting off-centre in the pupil; on the shipped telecentric
+    // objective it sits centred at every field, so the taper stays rotationally
+    // symmetric and keeps RAISING contrast, +2.295e-3 at the field edge against
+    // the same +6.89e-4 on axis. Same condenser, same weights, same points: only
+    // where its cone lands has changed, and that flips a 10× loss into a 3.3×
+    // gain.
+    //
+    // On axis the two members are the same measurement — `centre` is a bitwise
+    // zero for both — so the axial number above is read once and is not repeated
+    // here.
+    const teleEdge = (() => {
+      const p = weightedPair(teleDin4x(), c, FIELD_EDGE, 31);
+      const o = { pupilSamples: PS };
+      return (
+        contrastAt(abbeImage(GRATING, IDEAL, p.jacobian, o).intensity, SIZE, CYCLES) /
+          contrastAt(abbeImage(GRATING, IDEAL, p.uniform, o).intensity, SIZE, CYCLES) -
+        1
+      );
+    })();
+    expect(teleEdge).toBeGreaterThan(0);
+    expect(Math.sign(teleEdge)).toBe(Math.sign(onAxis[0]!));
+    expect(teleEdge).toBeCloseTo(2.295e-3, 5);
+    expect(teleEdge / onAxis[0]!).toBeGreaterThan(3);
+    expect(teleEdge / onAxis[0]!).toBeLessThan(3.6);
   });
 
   it("…and the objective's OWN aberration amplifies it 2.9x, so the two are not independent", () => {
+    // **Read on the rim member only, and deliberately.** Every other rung in
+    // § 6ag.4 grew a telecentric leg at § 6ai; this one did not, for two reasons
+    // worth stating rather than leaving a reader to wonder. It costs 5 s of
+    // suite time as it stands, and its finding — that the objective's own
+    // wavefront amplifies whatever the source's weights do — is not about where
+    // the stop is: the shipped lens reads −7.87e-3 where this one reads −4.86e-3,
+    // 1.6× larger and the same sign, so the claim survives the flip without
+    // needing a second five seconds to say so.
+    //
     // Measured at 1 mm and at `pupilSamples` 32, which is where the shipped DIN's
     // traced wavefront still rules `valid` — the rung below pins that this fixture
     // choice is forced rather than preferred. Same cone, same weights, same
@@ -596,6 +701,39 @@ describe("§ 6ag.4 — THE FINDING: the condenser's aberration lands in the WEIG
     expect(
       brightfieldFidelity(tileAt(system, FIELD_EDGE, 64, 256).patch.sampling, 64).verdict,
     ).toBe("valid");
+
+    // **The boundary is this lens's, not the file's**, and § 6ai is what makes
+    // that checkable: the shipped telecentric objective is `valid` at all five,
+    // including the two the rim member refuses. It is not the grid that improved
+    // — it is the wavefront, 0.395 waves rms at 1 mm through the rim and 0.204
+    // through the back-focal stop, and 0.935 against 0.665 at the field edge.
+    //
+    // Nor is it survivorship in the measurement. A telecentric bundle from height
+    // h reaches the front element centred on h, so the axially-sized glass this
+    // objective ships with clips 15 rays of 289 at 1 mm (§ 6w's price, and
+    // `fieldNumberMm` is the knob that pays it). Re-measured on a member wide
+    // enough to lose nothing, the rms is 0.151 rather than 0.204 — BETTER, so
+    // the clipping is not what is passing the check.
+    const tele = teleDin4x();
+    for (const [h, ps, size] of [
+      [0, PS, SIZE],
+      [1, PS, SIZE],
+      [1, 32, 128],
+      [FIELD_EDGE, 32, 128],
+      [FIELD_EDGE, 64, 256],
+    ] as const) {
+      expect(brightfieldFidelity(tileAt(tele, h, ps, size).patch.sampling, ps).verdict).toBe(
+        "valid",
+      );
+    }
+    expect(tileAt(system, 1, PS).patch.rmsWaves).toBeCloseTo(0.3951, 3);
+    expect(tileAt(tele, 1, PS).patch.rmsWaves).toBeCloseTo(0.2036, 3);
+    expect(tileAt(system, FIELD_EDGE, 32, 128).patch.rmsWaves).toBeCloseTo(0.9352, 3);
+    expect(tileAt(tele, FIELD_EDGE, 32, 128).patch.rmsWaves).toBeCloseTo(0.6649, 3);
+    // The rim member loses nothing anywhere; the telecentric one pays § 6w's
+    // price off axis, and both facts are read rather than assumed.
+    expect(tileAt(system, FIELD_EDGE, 32, 128).patch.lost).toBe(0);
+    expect(tileAt(tele, 1, PS).patch.lost).toBeGreaterThan(0);
   });
 });
 
@@ -679,6 +817,32 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
     );
     expect(rows[1]![0]!.cone.fidelity.flipFraction).toBeCloseTo(0.029, 2);
     expect(rows[2]![0]!.cone.fidelity.flipFraction).toBeCloseTo(0.058, 2);
+
+    // **§ 6ai: a membership flip is a cone that MOVED across the tile, so a
+    // telecentric objective has almost none.** The same three grids read 0.000,
+    // 0.0098 and 0.0063 on the shipped lens — a third of the rim member's at
+    // `pupilSamples` 32 and a ninth at 64 — and the growth with tile width turns
+    // over instead of continuing, because what was growing was the walk and not
+    // the width. The residue is the condenser's own aberration, which no stop
+    // placement can centre.
+    //
+    // Measured on a member that loses no rays as well as on the shipped one, and
+    // the two agree to the last digit: the cone is traced from the specimen
+    // backwards through the CONDENSER, so the objective's glass has no vote.
+    const teleRows = [16, 32, 64].map(
+      (ps) =>
+        tracedCondenserCone(teleDin4x(), reverseCondenser(c, L), 1, {
+          pupilSamples: ps,
+          stepMultiple: 1,
+          apertureFraction: APERTURE,
+          tileHalfWidthMm: tileAt(teleDin4x(), 1, ps).halfWidthMm,
+        }).fidelity.flipFraction,
+    );
+    expect(teleRows[0]!).toBe(0);
+    expect(teleRows[1]!).toBeCloseTo(0.0098, 3);
+    expect(teleRows[2]!).toBeCloseTo(0.0063, 3);
+    expect(rows[1]![0]!.cone.fidelity.flipFraction / teleRows[1]!).toBeGreaterThan(2.5);
+    expect(rows[2]![0]!.cone.fidelity.flipFraction / teleRows[2]!).toBeGreaterThan(8);
   });
 
   it("the verdict reports, and says which knob — never throws, and never assumes", () => {
@@ -708,6 +872,20 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
     // the whole content of the law above.
     expect(wide.fidelity.reason).toMatch(/Lower pupilSamples/);
     expect(wide.fidelity.reason).toMatch(/refining stepMultiple does NOT help/);
+
+    // …and the same width on the shipped telecentric objective does not refuse
+    // at all. The verdict is a report about how far the cone walks across the
+    // tile, so removing the walk removes the refusal — which is the practical
+    // form of § 6ai for a caller: the tile a rim-stopped lens could not honestly
+    // illuminate, this one can.
+    const tele = teleDin4x();
+    expect(
+      tracedCondenserCone(tele, reverseCondenser(c, L), 1, {
+        pupilSamples: 64,
+        apertureFraction: APERTURE,
+        tileHalfWidthMm: tileAt(tele, 1, 64).halfWidthMm,
+      }).fidelity.verdict,
+    ).toBe("valid");
   });
 });
 
@@ -894,6 +1072,22 @@ describe("§ 6ag.6 — § 6p's cache SURVIVES the traced cone, which the deferra
       0,
     );
     expect(rigid.pupilLattice).toBeUndefined();
+
+    // **On the shipped objective there is nothing to save, and that is the same
+    // finding read from the other end.** `translateSource` drops the lattice
+    // because a traced offset is not a whole number of half-steps — unless it is
+    // exactly zero, which under object-space telecentricity it is at EVERY field
+    // (§ 6ag.3). So the rigid path keeps its own lattice, costs what the cone
+    // costs, and § 6p's cache never comes under strain. The 289-against-35 088
+    // measurement below is what the deferral was actually about, and it needs a
+    // displaced cone to exist at all.
+    const tele = teleDin4x();
+    const teleTile = tileAt(tele, FIELD_EDGE);
+    expect(teleTile.patch.radialIlluminationOffset).toBe(0);
+    expect(
+      translateSource(latticeDiskSource(APERTURE, PS, 1), teleTile.patch.radialIlluminationOffset, 0)
+        .pupilLattice,
+    ).toBeDefined();
 
     const formedTraced = abbeImage(GRATING, tile.patch.pupil, cone, opts);
     const formedRigid = abbeImage(GRATING, tile.patch.pupil, rigid, opts);

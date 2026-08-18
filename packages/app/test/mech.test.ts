@@ -15,6 +15,7 @@ import {
   mountSweep,
   opticsSweep,
   sigmaOf,
+  singleGroupThinLensFloor,
   thinLensFloor,
   travelSweep,
   type ChainSpec,
@@ -46,11 +47,20 @@ import {
  * Maréchal budget before the plate does**, so § 5u.6's f/5.315 is a statement
  * about a plate in isolation and not about an f/5 refractor.
  *
- * The fourth is that § 5u.7's 4.236 is not a constant. It is the NA 0.10 answer,
- * it moves with the aperture the ladder defaulted, and above ~NA 0.22 the mount
- * stops being the binding wall at all — § 6b.5's aperture refusal takes over,
- * which the panel has to tell apart from the mount's because catching both as
- * one exception reports a mount ceiling of 12.6× where nothing can be built.
+ * The fourth is that § 5u.7's mount floor is not a constant. It is the NA 0.10
+ * answer, it moves with the aperture the ladder defaulted, and above ~NA 0.22 the
+ * mount stops being the binding wall at all — § 6b.5's aperture refusal takes
+ * over, which the panel has to tell apart from the mount's because catching both
+ * as one exception reports a mount ceiling of 12.6× where nothing can be built.
+ *
+ * **§ 6ai raised that floor from 4.24× to 7.21×**, and the app had to learn why
+ * rather than have the number edited. The shipped objective's aperture stop is a
+ * diaphragm on the back focal plane, so the objective does not end at its last
+ * glass vertex — it ends a focal length further back, and the mount must contain
+ * the standoff too. That is a second closed form, `P·M² − 2x′M − x′ = 0`, and the
+ * app carries both: `thinLensFloor` is the telecentric one the shipped lens
+ * actually obeys and `singleGroupThinLensFloor` is the glass-only one, with the
+ * gap between them being the diaphragm and nothing else.
  */
 
 const APERTURE_MM = 100;
@@ -414,24 +424,40 @@ describe("C3 — the colour a budget made of lengths cannot see", () => {
 });
 
 describe("C3 — the mount ceiling, and the wall that is not it", () => {
-  it("bisects § 5u.7's 4.236 without the app containing it", () => {
+  it("bisects § 5u.7's 7.212 without the app containing it", () => {
     const sweep = mountAt(0.1);
-    expect(sweep.thinLensFloor).toBeCloseTo(4.1387, 4);
+    expect(sweep.thinLensFloor).toBeCloseTo(7.1339, 4);
     expect(sweep.measuredFloor).not.toBeNull();
-    expect(sweep.measuredFloor!).toBeCloseTo(4.236, 2);
+    expect(sweep.measuredFloor!).toBeCloseTo(7.2123, 2);
     expect(sweep.floorVerdictBelow).toBe("mount");
     // The built doublet is thick, so the real floor is above the thin-lens one.
     expect(sweep.glassPenalty!).toBeGreaterThan(1);
-    expect(sweep.glassPenalty!).toBeCloseTo(1.0235, 3);
+    expect(sweep.glassPenalty!).toBeCloseTo(1.011, 3);
+
+    // Both forms, and the whole of the § 6ai move is the term between them. The
+    // glass-only floor is unchanged at 4.1387 — it is arithmetic on the tube
+    // length and the standard and no lens enters it — and the telecentric one
+    // adds exactly the diaphragm's focal-length standoff. The app plots the
+    // second and keeps the first so a reader can see which is which.
+    expect(singleGroupThinLensFloor(DIN_PARFOCAL_MM)).toBeCloseTo(4.1387, 4);
+    expect(thinLensFloor(DIN_PARFOCAL_MM)).toBeCloseTo(7.1339, 4);
+    // The identity, rather than the two numbers: at the telecentric floor the
+    // object distance and the focal length together fill the standard exactly.
+    const M = thinLensFloor(DIN_PARFOCAL_MM);
+    const xPrime = 150;
+    expect((xPrime * (M + 1)) / (M * M) + xPrime / M).toBeCloseTo(DIN_PARFOCAL_MM, 9);
+    // …and at the older one, the object distance alone does.
+    const single = singleGroupThinLensFloor(DIN_PARFOCAL_MM);
+    expect((xPrime * (single + 1)) / (single * single)).toBeCloseTo(DIN_PARFOCAL_MM, 9);
   });
 
-  it("and 4.236 is NOT a constant — it is the NA 0.10 answer", () => {
+  it("and the measured floor is NOT a constant — it is the NA 0.10 answer", () => {
     // D8's lesson on a third axis: a surface that lets a reader move a stated
     // parameter finds out what the stating cost. A faster objective is a
     // thicker one, and thickness is what the standard runs out of room for.
     const floors = [0.05, 0.1, 0.15, 0.2].map((na) => mountAt(na).measuredFloor!);
-    expect(floors[0]).toBeCloseTo(4.173, 2);
-    expect(floors[3]).toBeCloseTo(4.506, 2);
+    expect(floors[0]).toBeCloseTo(7.163, 2);
+    expect(floors[3]).toBeCloseTo(7.427, 2);
     for (let i = 1; i < floors.length; i++) expect(floors[i]!).toBeGreaterThan(floors[i - 1]!);
     // The thin-lens floor knows nothing about it, so the whole spread is glass.
     expect(new Set([0.05, 0.2].map((na) => mountAt(na).thinLensFloor)).size).toBe(1);
@@ -480,13 +506,13 @@ describe("C3 — the mount ceiling, and the wall that is not it", () => {
     }
   });
 
-  it("moves the floor with the standard, and the glass costs a near-constant 2.3%", () => {
+  it("moves the floor with the standard, and the glass costs a near-constant 1.2%", () => {
     // The thin-lens floor is a function of the standard alone; what the glass
     // adds on top of it barely moves across a wide range of standards.
     for (const [parfocalDistanceMm, expected] of [
-      [35, 5.1224],
-      [60, 3.2656],
-      [95, 2.2735],
+      [35, 9.0452],
+      [60, 5.4580],
+      [95, 3.5969],
     ] as const) {
       const sweep = mountSweep({
         numericalAperture: 0.1,
@@ -497,8 +523,11 @@ describe("C3 — the mount ceiling, and the wall that is not it", () => {
       });
       expect(sweep.thinLensFloor).toBeCloseTo(expected, 3);
       expect(thinLensFloor(parfocalDistanceMm)).toBeCloseTo(expected, 3);
-      expect(sweep.glassPenalty!).toBeGreaterThan(1.02);
-      expect(sweep.glassPenalty!).toBeLessThan(1.03);
+      // Near-constant, and SMALLER since § 6ai: the glass is the same thickness
+      // it always was, but it is now a smaller share of a longer objective, so
+      // what it costs as a fraction fell from ~2.3% to ~1.2%.
+      expect(sweep.glassPenalty!).toBeGreaterThan(1.01);
+      expect(sweep.glassPenalty!).toBeLessThan(1.015);
     }
   });
 });
