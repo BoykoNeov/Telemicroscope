@@ -5275,8 +5275,9 @@ Drawn at every k, the hundred-iteration case costs 40 ms against 20 sampled.
 residual is a paraxial trace or a third-order sum, and the expensive part is not
 the optimisation (5 to 121 evaluations) but the trail's replays. The number that
 would change this is a merit over a *traced* quantity: **430×** a third-order sum
-for an RMS spot and **4.1× that again** for a wavefront (§ 1.8.5, § 1.8.7), not the
-four orders this finding used to say. Not offered — see below.
+for an RMS spot, **4.1× that again** for a wavefront and **~7 000×** for an MTF at
+a frequency (§ 1.8.5, § 1.8.7, § 1.8.8) — so "four orders", which this finding used
+to claim of all three, is true only of the last. Not offered — see below.
 
 ### What it does not do
 
@@ -5294,11 +5295,15 @@ four orders this finding used to say. Not offered — see below.
   (finding 6 above) replays the whole run up to 48 times on top of that. That is
   a different panel's performance budget, and it wants the same "which settings
   can this actually be asked at" treatment the darkfield control got.
-  **§ 1.8.7 widened what is on offer and did not change that verdict**: the engine
-  now also takes a wavefront RMS, a balanced RMS and a named Zernike coefficient
-  with a target of its own, at 4.1× the traced spot on the same rays — so the
-  wiring decision above applies to a residual four times dearer again, and the
-  panel would have to say which readings it can honestly offer at which grid.
+  **§ 1.8.7 and § 1.8.8 widened what is on offer and did not change that
+  verdict**: the engine now also takes a wavefront RMS, a balanced RMS, a named
+  Zernike coefficient with a target of its own, and an MTF at a stated frequency
+  — at 4.1× and ~7 000× a third-order sum respectively. So the wiring decision
+  above applies to residuals four and seven-thousand times dearer, and the panel
+  would have to say which readings it can honestly offer at which grid. The MTF
+  brings a second question a panel cannot dodge: its merit is multimodal by
+  physics (§ 1.8.8's impostor), so a panel offering it would have to say
+  something true about the basin as well as about the cost.
 - **No conditions *here* — the engine has them now** (§ 1.8.6, `{ minimize, hold }`
   on both entry points). "Hold the focal length *exactly* while minimising
   aberration" is a Lagrange condition and is solved as one. What it buys is not

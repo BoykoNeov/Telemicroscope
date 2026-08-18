@@ -22,6 +22,8 @@ import { exitBundle, spotAt, bestSpotZ } from "../src/analysis/spot";
 import { opdMap } from "../src/pupil/opd";
 import { fitZernike, fitRms, balancedRms, coefficient, zernike } from "../src/wave/zernike";
 import { pupilGrid, type PupilPoint } from "../src/pupil/aiming";
+import { psf } from "../src/wave/psf";
+import { mtf, mtfAt, diffractionLimitedMtf } from "../src/wave/mtf";
 import { pupils, imagePlaneZ } from "../src/pupil/pupils";
 import type { SolveVariable } from "../src/analysis/solve";
 
@@ -85,9 +87,10 @@ import type { SolveVariable } from "../src/analysis/solve";
  * a 149-ray pupil, and linear in the ray count, not the four orders of magnitude
  * this file and two documents used to forecast. § 1.8.7 adds the WAVEFRONT:
  * an RMS over the fitted map, a balanced RMS, and a named Zernike coefficient
- * with a target of its own — 4.1× the traced spot on the same rays. An MTF at a
- * frequency is still nowhere pinned, and is a different question again, because
- * it puts a grid and a transform between the design and the residual.
+ * with a target of its own — 4.1× the traced spot on the same rays. § 1.8.8
+ * adds the MTF at a stated frequency: the one operand with a transform between
+ * the design and the residual, ~7 000× a third-order sum, and the only merit
+ * here that is not safe to hand an optimiser on its own.
  */
 
 registerMedium(constantIndex("DLS-N15", 1.5));
@@ -2557,5 +2560,264 @@ describe("DLS § 1.8.7 — a reading that sums nothing is a merit that measures 
     expect(() =>
       optimizeSystem(wfMirror(10), [FOCUS], [wfZernike(1, 0, WF_GRID, 1)], { maxIterations: 2 }),
     ).not.toThrow();
+  });
+});
+
+/**
+ * § 1.8.8's fixtures. Both are EXACT, because the thing being measured is how
+ * an MTF merit behaves at and around a design with no aberration at all, and a
+ * fixture with a residual would hide the two effects that matter: the
+ * discretization bias, and the shape of the merit at its own floor.
+ */
+const MTF_R = -400;
+const mtfParabola = (conic: number, thickness = MTF_R / 2, semi = 40): OpticalSystem => ({
+  prescription: {
+    surfaces: [
+      { kind: "reflect", curvature: 1 / MTF_R, conic, semiAperture: semi, thickness, isStop: true },
+    ],
+  },
+  aperture: { kind: "stopRadius", value: semi },
+  field: { kind: "angle", values: [0] },
+  wavelengths: [{ nm: LINE_D, weight: 1 }],
+  conjugate: { kind: "infinite" },
+});
+
+const MTF_SAMPLES = 32;
+const mtfRead = (system: OpticalSystem, nu: number, pupilSamples = MTF_SAMPLES): number => {
+  const image = psf(system, 0, LINE_D, { pupilSamples, padFactor: 4 });
+  return mtfAt(mtf(image), nu, image.pupilSamples);
+};
+const mtfOperand = (
+  nu: number,
+  target: number,
+  pupilSamples = MTF_SAMPLES,
+): TracedOperand => ({
+  kind: "mtf",
+  fieldValue: 0,
+  wavelengthNm: LINE_D,
+  nu,
+  pupilSamples,
+  target,
+});
+
+/**
+ * DLS § 1.8.8 — CONTRAST as an operand, and the one merit here that is not safe
+ * to hand an optimiser on its own.
+ *
+ * The last piece of § 1.8's "targets on traced quantities", and the only one
+ * with a transform between the design and the residual. Structurally it is the
+ * wavefront operand plus an FFT — same trace, same fit, same held survivor set,
+ * taken from `systemPupil` so there is one definition of a system's pupil
+ * rather than two. What is new is entirely in what the transform does to the
+ * merit's SHAPE, and three of the four things below were not what this ladder
+ * expected.
+ */
+describe("DLS § 1.8.8 — the MTF reads above the closed form, and the grid says by how much", () => {
+  /**
+   * The pin that cannot be the obvious one.
+   *
+   * A real system cannot beat the diffraction-limited MTF
+   * (2/π)(arccos ν − ν√(1−ν²)), so that closed form looked like a target with a
+   * zero residual at a perfect design. It is not: a sampled pupil's
+   * autocorrelation over-counts its own edge, so the engine reads ABOVE the
+   * closed form on a paraboloid whose Strehl is exactly 1. The excess is
+   * first order in the sampling — bias·pupilSamples is one number — which is
+   * what makes it a discretization law rather than a discrepancy, and it is the
+   * square-grid-on-a-disc counting of § 6ab.17 arriving in a third place.
+   *
+   * So an operand told to hit `diffractionLimitedMtf` would report a residual
+   * at a perfect design and go looking for the grid. The reachable target is
+   * the engine's own ceiling at the sampling the caller stated, which the rung
+   * after next reaches exactly.
+   */
+  it("a Strehl-1 paraboloid reads 0.66/pupilSamples ABOVE the closed form", () => {
+    for (const pupilSamples of [16, 32, 64, 128]) {
+      const image = psf(mtfParabola(-1), 0, LINE_D, { pupilSamples, padFactor: 4 });
+      expect(image.strehl).toBeCloseTo(1, 9);
+      for (const nu of [0.25, 0.5]) {
+        const bias = mtfAt(mtf(image), nu, image.pupilSamples) / diffractionLimitedMtf(nu) - 1;
+        // Positive at every sampling: it is over-counting, not aberration.
+        expect(bias).toBeGreaterThan(0);
+        // …and bias·N is one number, 0.65…0.76, falling toward ~0.65 as the
+        // grid refines. Halving the sampling doubles the error.
+        expect(bias * pupilSamples).toBeGreaterThan(0.64);
+        expect(bias * pupilSamples).toBeLessThan(0.76);
+      }
+    }
+    // The numbers themselves, so a change in the transform has to edit them.
+    const at = (n: number) =>
+      mtfAt(mtf(psf(mtfParabola(-1), 0, LINE_D, { pupilSamples: n, padFactor: 4 })), 0.5, n);
+    expect(at(32) / diffractionLimitedMtf(0.5) - 1).toBeCloseTo(2.1797e-2, 6);
+    expect(at(64) / diffractionLimitedMtf(0.5) - 1).toBeCloseTo(1.0580e-2, 6);
+  });
+
+  /**
+   * …and the OTHER sampling knob does not move the reading at all, which is why
+   * one is a required field of the operand and the other has a default. Padding
+   * buys image-plane sampling — points BETWEEN the frequency bins — and the
+   * value at a bin is set by the pupil sampling alone.
+   */
+  it("padFactor does not move the reading; pupilSamples is the knob that does", () => {
+    const values = [2, 4, 8].map(
+      (padFactor) =>
+        mtfAt(
+          mtf(psf(mtfParabola(-1), 0, LINE_D, { pupilSamples: 32, padFactor })),
+          0.5,
+          32,
+        ),
+    );
+    for (const v of values) expect(v).toBe(values[0]!);
+    expect(mtfRead(mtfParabola(-1), 0.5, 64)).not.toBe(values[0]!);
+  });
+
+  /**
+   * The shape of the merit at a zero-aberration optimum, and it is the OPPOSITE
+   * of § 1.8.5's.
+   *
+   * A traced spot and a wavefront RMS are NORMS, so at a perfect design they
+   * grow like |δ| — a corner, which is why § 1.8.2's square-root law did not
+   * apply to them. Contrast is quadratic in the wavefront error, so this one is
+   * a genuine bowl: the deficit below the ceiling is (488.5)·ΔK², constant to
+   * three figures over two decades of ΔK and symmetric in the sign.
+   */
+  it("at a perfect design this merit is a BOWL, where every other traced one is a corner", () => {
+    const ceiling = mtfRead(mtfParabola(-1), 0.5, 64);
+    const curvature: number[] = [];
+    for (const dk of [3e-3, 1e-3, 3e-4, 1e-4]) {
+      const below = ceiling - mtfRead(mtfParabola(-1 - dk), 0.5, 64);
+      const above = ceiling - mtfRead(mtfParabola(-1 + dk), 0.5, 64);
+      // Symmetric to 5e-5 — the residue is the cubic term, and a corner would
+      // be symmetric too. What tells them apart is the exponent, below.
+      expect(below / above).toBeCloseTo(1, 3);
+      curvature.push(below / dk ** 2);
+    }
+    // Approached from below as ΔK shrinks — 486.4 at 3e-3, then 488.3, 488.5,
+    // 488.5 — the quartic term retiring and leaving one constant.
+    expect(curvature[0]!).toBeCloseTo(486.4, 0);
+    for (const c of curvature.slice(1)) expect(c).toBeCloseTo(488.4, 0);
+    // And the discriminator, stated as the thing a corner cannot do: deficit/ΔK
+    // is NOT constant — it falls by the same factor ΔK does.
+    const linear = [3e-3, 1e-4].map((dk) => (ceiling - mtfRead(mtfParabola(-1 - dk), 0.5, 64)) / dk);
+    expect(linear[0]! / linear[1]!).toBeCloseTo(30, 0);
+  });
+
+  it("differences over four decades of step, off the optimum", () => {
+    // Off the optimum, because at the bottom of a bowl the true derivative is
+    // zero and a step ladder there measures the floor and nothing else.
+    const k0 = -0.995;
+    const d = (h: number) => (mtfRead(mtfParabola(k0 + h), 0.5, 64) - mtfRead(mtfParabola(k0 - h), 0.5, 64)) / (2 * h);
+    const v = [-4, -5, -6, -7].map((e) => d(10 ** e));
+    const spread = (Math.max(...v) - Math.min(...v)) / Math.abs(v[0]!);
+    expect(spread).toBeLessThan(1e-4);
+    expect(d(1e-5)).toBeCloseTo(-4.77089865, 5);
+  });
+});
+
+describe("DLS § 1.8.8 — one frequency is not a merit, and the impostor proves it", () => {
+  const CONJUGATE = 400;
+
+  it("reaches the engine's own ceiling EXACTLY, from inside the basin", () => {
+    const ceiling = mtfRead(concentricMirror(-CONJUGATE, CONJUGATE), 0.5);
+    // The reachable target, not the closed form — 2.2% above it at this grid.
+    expect(ceiling / diffractionLimitedMtf(0.5) - 1).toBeCloseTo(2.1797e-2, 6);
+
+    const r = optimizeSystem(
+      concentricMirror(-CONJUGATE + 0.05, CONJUGATE),
+      [RADIUS],
+      [mtfOperand(0.5, ceiling)],
+      { steps: [1e-9] },
+    );
+    // Merit exactly zero: the run reproduces the perfect design's own reading
+    // bit for bit, and the radius to 1e-9 relative.
+    expect(r.merit).toBeLessThan(1e-30);
+    expect(Math.abs(1 / r.x[0]! + CONJUGATE) / CONJUGATE).toBeLessThan(1e-8);
+  });
+
+  /**
+   * **The finding this sub-step exists for.**
+   *
+   * The OTF changes sign as aberration grows and the MTF is its modulus, so
+   * contrast at ONE frequency is not monotone in how good the design is: a
+   * far-out side lobe reads as high contrast. On this fixture there is a design
+   * at 2.31 waves RMS — Strehl 0.0075, 133× worse than diffraction-limited, an
+   * image that is gone — whose modulation at ν = 0.5 sits within **2.8·10⁻⁴**
+   * of the perfect system's.
+   *
+   * An optimiser started outside the basin walks straight to it and stops with
+   * a merit of 7.7·10⁻⁸, which no caller reading the result could tell from the
+   * true answer's zero. That is not a convention that can be fixed the way
+   * `"balancedRms"`'s false minimum was: it is what contrast at a frequency IS.
+   */
+  it("an impostor at 2.31 waves matches the perfect design to 2.8e-4 at one frequency", () => {
+    const impostorR = -399.52717849;
+    const perfect = concentricMirror(-CONJUGATE, CONJUGATE);
+    const impostor = concentricMirror(impostorR, CONJUGATE);
+
+    // It is genuinely ruined, by every other readout the engine has.
+    const image = psf(impostor, 0, LINE_D, { pupilSamples: MTF_SAMPLES, padFactor: 4 });
+    expect(image.strehl).toBeCloseTo(7.507e-3, 5);
+    expect(fitRms(wfFit(impostor, pupilGrid(21), 28))).toBeCloseTo(2.3084, 3);
+
+    // …and indistinguishable at ν = 0.5.
+    expect(Math.abs(mtfRead(impostor, 0.5) - mtfRead(perfect, 0.5))).toBeLessThan(3e-4);
+
+    // A single-frequency run started 0.1 mm out lands on it and reports a merit
+    // four orders under anything a caller would question.
+    const fooled = optimizeSystem(
+      concentricMirror(-CONJUGATE + 0.1, CONJUGATE),
+      [RADIUS],
+      [mtfOperand(0.5, mtfRead(perfect, 0.5))],
+      { steps: [1e-9] },
+    );
+    expect(fooled.merit).toBeLessThan(1e-6);
+    expect(Math.abs(1 / fooled.x[0]! + CONJUGATE)).toBeGreaterThan(0.4);
+  });
+
+  /**
+   * …and the fix, which is a second operand rather than a cleverer one. The
+   * impostor is degenerate at ν = 0.5 and nowhere else — 0.826 against 0.0045
+   * at ν = 0.15 — so a merit over two frequencies separates the two designs by
+   * three orders and converges from the start that fooled the single one.
+   *
+   * It widens the basin; it does not abolish multimodality. Started 0.2 mm out
+   * the two-frequency merit still lands somewhere else, and says so with a
+   * residual that is visible rather than tiny. `solve.ts`'s convention, which
+   * this file has kept throughout: a run reports the basin it landed in.
+   */
+  it("a second frequency separates them by three orders and widens the basin", () => {
+    const perfect = concentricMirror(-CONJUGATE, CONJUGATE);
+    const impostor = concentricMirror(-399.52717849, CONJUGATE);
+    for (const nu of [0.15, 0.3, 0.7]) {
+      expect(Math.abs(mtfRead(impostor, nu) - mtfRead(perfect, nu))).toBeGreaterThan(0.18);
+    }
+    expect(Math.abs(mtfRead(impostor, 0.15) - mtfRead(perfect, 0.15))).toBeGreaterThan(0.8);
+
+    const both = [mtfOperand(0.5, mtfRead(perfect, 0.5)), mtfOperand(0.15, mtfRead(perfect, 0.15))];
+    const rescued = optimizeSystem(concentricMirror(-CONJUGATE + 0.1, CONJUGATE), [RADIUS], both, {
+      steps: [1e-9],
+    });
+    expect(rescued.merit).toBeLessThan(1e-30);
+    expect(Math.abs(1 / rescued.x[0]! + CONJUGATE) / CONJUGATE).toBeLessThan(1e-8);
+
+    // The boundary, stated rather than left to be met.
+    const beyond = optimizeSystem(concentricMirror(-CONJUGATE + 0.2, CONJUGATE), [RADIUS], both, {
+      steps: [1e-9],
+    });
+    expect(Math.abs(1 / beyond.x[0]! + CONJUGATE)).toBeGreaterThan(1);
+    expect(beyond.merit).toBeGreaterThan(1e-2);
+  });
+
+  it("refuses a frequency at which nothing is being measured", () => {
+    for (const nu of [0, 1, 1.5, -0.2]) {
+      expect(() =>
+        optimizeSystem(mtfParabola(-1), [FOCUS], [mtfOperand(nu, 0.3)]),
+      ).toThrow(/the modulation is defined on \(0, 1\)/);
+    }
+    expect(() => optimizeSystem(mtfParabola(-1), [FOCUS], [mtfOperand(0.5, 0.3, 1)])).toThrow(
+      /the FFT grid needs an integer of at least 2/,
+    );
+    expect(() => optimizeSystem(mtfParabola(-1), [FOCUS], [mtfOperand(0.5, 0.3, 33)])).toThrow(
+      /operand 0 cannot be read at the start/,
+    );
   });
 });

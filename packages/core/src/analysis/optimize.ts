@@ -7,6 +7,8 @@ import { PupilPoint } from "../pupil/aiming";
 import { imagePlaneZ } from "../pupil/pupils";
 import { opdMap } from "../pupil/opd";
 import { fitZernike, fitRms, balancedRms, coefficient, MAX_ZERNIKE_TERMS } from "../wave/zernike";
+import { systemPupil, psfFromSystemPupil } from "../wave/psf";
+import { mtf, mtfAt } from "../wave/mtf";
 import { exitBundle, spotAt, bestSpotZ } from "./spot";
 import { seidelSums } from "./seidel";
 import { withVariable, type SolveVariable } from "./solve";
@@ -171,6 +173,25 @@ import { withVariable, type SolveVariable } from "./solve";
  * exploit the reference sphere's radius, which no longer measures the design —
  * so it converges, confidently, on a plane where the image has been destroyed.
  * The type comment carries the numbers.
+ *
+ * ## …and the MTF, which is the one that is not safe on its own
+ *
+ * § 1.8.8 adds `MtfCondition`: the same pupil again, transformed. It is the only
+ * operand here whose merit is genuinely MULTIMODAL, and not by a convention that
+ * could be chosen differently — contrast at a frequency is |OTF| and the OTF
+ * changes sign, so a thoroughly ruined design can read the same contrast as a
+ * perfect one at that frequency. Measured: 2.31 waves RMS, Strehl 0.0075, and a
+ * modulation 2.8·10⁻⁴ from the perfect system's. A run started outside the basin
+ * lands there and reports 7.7·10⁻⁸.
+ *
+ * Two consequences a caller has to be told rather than left to meet. **The
+ * diffraction-limited closed form is not a reachable target** — a sampled pupil
+ * over-counts its own edge, so the engine reads 0.66/`pupilSamples` above it on
+ * a perfect design, and the reachable target is the engine's own ceiling at the
+ * stated sampling. **And one frequency is not a merit**: a second one separates
+ * the impostor from the answer by three orders and widens the basin, without
+ * abolishing the multimodality. It is also ~7 000× a third-order sum, which is
+ * the first thing in this file the retired "four orders" forecast is true of.
  */
 
 /** How the step is damped. */
@@ -1025,8 +1046,92 @@ export type WavefrontCondition = {
   readonly target: number;
 } & WavefrontReading;
 
+/**
+ * A wish about CONTRAST at one spatial frequency — the question a user actually
+ * asks, and the only operand here with a transform between the design and the
+ * residual.
+ *
+ * ## What is held, and why it is ν rather than cycles/mm
+ *
+ * `mtfAt` samples the modulation array at `size/2 + ν·pupilSamples`, bilinearly
+ * between two bins. Stated in NORMALIZED frequency both of those are the
+ * caller's own numbers, so the sample position — and the two interpolation
+ * weights — are **fixed for the whole run**, exactly as the held pupil set fixes
+ * a wavefront operand's design matrix. Stated in cycles/mm they would not be:
+ * `Psf.pixelScaleMm` is built from the exit-pupil radius and the reference
+ * distance, both of which move with the design, so a fixed physical frequency
+ * lands on a drifting bin and the merit picks up a kink at every bin crossing.
+ * Measured on the § 1.8.8 mirror that drift is small — 0.056 bins per mm of
+ * focus, against a signal of 4 contrast units per mm — and it is avoidable for
+ * nothing, so it is avoided.
+ *
+ * The cost of choosing ν is stated rather than hidden: ν is normalized to
+ * `2·NA/λ` read off the exit pupil, which is the aperture the system was ASKED
+ * for. Where a clear aperture truncates the beam the modulation reaches zero
+ * earlier than ν = 1 — 27% earlier on the app's own doublet, § 6ad — so on a
+ * truncated system this operand's frequency is not the frequency its own array
+ * cuts off at. That is a property of the fixture, and § 6ad is where it is
+ * measured; the operand's job is to hold the ruler still, not to relabel it.
+ *
+ * ## The two things it is honest about and a spot merit is not
+ *
+ * **The reading is ~0.66/`pupilSamples` ABOVE the diffraction-limited closed
+ * form on a pupil that is perfect** — 1.06% at 64 samples, 2.18% at 32 — because
+ * a sampled pupil's autocorrelation over-counts its own edge. So
+ * `diffractionLimitedMtf` is NOT a reachable target here: an operand told to hit
+ * it at a perfect design would report a residual and go looking for the grid.
+ * § 1.8.8 pins the bias and its 1/N law instead.
+ *
+ * **And contrast at a fixed frequency is not monotone in aberration.** The OTF
+ * changes sign as defocus grows and the MTF is its modulus, so the merit passes
+ * through zeros and rises again: on a perfect paraboloid at ν = 0.5 it falls
+ * 0.395 → 3.5·10⁻⁴ by half a millimetre of defocus and is back at 3.5·10⁻² a
+ * millimetre later. That is real optics rather than a convention — unlike
+ * `"balancedRms"`'s false minimum — and it means this merit is genuinely
+ * multimodal and the basin is the caller's problem. `solve.ts`'s rule applies:
+ * a run reports the basin it landed in.
+ *
+ * One more difference worth knowing before designing around it: at a
+ * zero-aberration optimum this merit is a **bowl**, where every other traced
+ * operand here gives a corner. Contrast is quadratic in the wavefront error
+ * where an RMS is linear in it, so § 1.8.2's square-root law applies to this one
+ * and not to § 1.8.5's.
+ */
+export type MtfCondition = {
+  readonly kind: "mtf";
+  /** Field angle in degrees, or object height in mm — as the system spells it. */
+  readonly fieldValue: number;
+  readonly wavelengthNm: number;
+  /**
+   * Normalized frequency ν = f/f_c, strictly inside (0, 1). Tangential — the
+   * section whose contrast varies along x, which is the meridional plane this
+   * engine puts a field point in. `mtfSections`' other half is not offered.
+   */
+  readonly nu: number;
+  /**
+   * Samples across the pupil DIAMETER on the FFT grid. Stated rather than
+   * defaulted because it is the one knob that moves the number: it sets the
+   * bias above, so two callers who sample the pupil differently are reading two
+   * different contrasts off the same design.
+   */
+  readonly pupilSamples: number;
+  /**
+   * FFT size / pupilSamples. Default 4, and — measured — it does not move the
+   * reading at all: 2, 4 and 8 agree to eight decimals, because the value at a
+   * bin is set by the pupil sampling and padding only interpolates between
+   * bins. Defaulted for that reason and not by convention.
+   */
+  readonly padFactor?: number;
+  /** Pupil grid resolution for the TRACE, not the FFT. Default 21. */
+  readonly traceSamples?: number;
+  /** Zernike terms fitted to the traced OPD before the transform. Default 28. */
+  readonly zernikeTerms?: number;
+  /** Modulation, 0…1. */
+  readonly target: number;
+};
+
 /** Anything `optimizeSystem` has to trace to answer. */
-export type TracedCondition = SpotCondition | WavefrontCondition;
+export type TracedCondition = SpotCondition | WavefrontCondition | MtfCondition;
 
 /** The same wish, weighted into the merit. */
 export type TracedOperand = TracedCondition & { readonly weight?: number };
@@ -1037,7 +1142,7 @@ export type SystemOperand = OptimizeOperand | TracedOperand;
 export type SystemCondition = HeldOperand | TracedCondition;
 
 const isTraced = (o: SystemCondition): o is TracedCondition =>
-  o.kind === "rmsSpot" || o.kind === "wavefront";
+  o.kind === "rmsSpot" || o.kind === "wavefront" || o.kind === "mtf";
 
 /**
  * How an entry point is asked: a bare list of wishes, as before, or wishes and
@@ -1243,6 +1348,24 @@ function validate(
         );
       }
     }
+    if (o.kind === "mtf") {
+      // ν outside (0, 1) is the same defect the term floor above closes, in
+      // this operand's currency: past the cutoff the pupil autocorrelation is
+      // empty, so the reading is 0 whatever the design and the residual is a
+      // constant. At or below 0 the sample walks off the DC bin the wrong way.
+      if (!(o.nu > 0 && o.nu < 1)) {
+        throw new Error(
+          `${where}: a ${o.kind} operand at ν = ${o.nu} — the modulation is defined on ` +
+            `(0, 1) and is identically zero past the cutoff, where a residual measures nothing`,
+        );
+      }
+      if (!Number.isInteger(o.pupilSamples) || o.pupilSamples < 2) {
+        throw new Error(
+          `${where}: a ${o.kind} operand over ${o.pupilSamples} pupil samples — the FFT ` +
+            `grid needs an integer of at least 2`,
+        );
+      }
+    }
   }
 }
 
@@ -1290,7 +1413,36 @@ function tracedRead(
 ): { value: number; survivors: Float64Array } {
   return operand.kind === "rmsSpot"
     ? spotRead(system, prescription, operand)
-    : wavefrontRead(system, prescription, operand);
+    : operand.kind === "wavefront"
+      ? wavefrontRead(system, prescription, operand)
+      : mtfRead(system, prescription, operand);
+}
+
+/**
+ * One MTF reading, and the traced samples underneath it.
+ *
+ * Goes through `systemPupil` and `psfFromSystemPupil` rather than `psf()` for
+ * one reason: `systemPupil` carries out the traced samples, so the survivor set
+ * this operand holds is the SAME set the pupil was fitted from, taken from the
+ * one place that decides what a system's pupil is. Tracing separately for the
+ * key would have been a second definition waiting to drift.
+ */
+function mtfRead(
+  system: OpticalSystem,
+  prescription: Prescription,
+  operand: MtfCondition,
+): { value: number; survivors: Float64Array } {
+  const trial: OpticalSystem = { ...system, prescription };
+  const options = {
+    pupilSamples: operand.pupilSamples,
+    padFactor: operand.padFactor ?? 4,
+    traceSamples: operand.traceSamples ?? 21,
+    zernikeTerms: operand.zernikeTerms ?? 28,
+  };
+  const pupil = systemPupil(trial, operand.fieldValue, operand.wavelengthNm, options);
+  const survivors = survivorKey(pupil.samples);
+  const image = psfFromSystemPupil(pupil, operand.fieldValue, options);
+  return { value: mtfAt(mtf(image), operand.nu, image.pupilSamples), survivors };
 }
 
 /**

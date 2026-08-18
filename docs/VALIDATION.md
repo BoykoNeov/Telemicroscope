@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, the ray SET held; § 1.8.6 CONDITIONS held exactly and priced; § 1.8.7 WAVEFRONT targets, the fit's conditioning settled, and a balanced RMS that converges on a ruined image | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, the ray SET held; § 1.8.6 CONDITIONS held exactly and priced; § 1.8.7 WAVEFRONT targets, the fit's conditioning settled; § 1.8.8 MTF, where one frequency is not a merit | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -1271,7 +1271,8 @@ lister one is not even a scalar solve — its geometry moves under the variable.
   and wants a different search than a full scan. **"By four orders of magnitude"
   is corrected: § 1.8.5 measured it at 430× on a 149-ray pupil, linear in the ray
   count, and § 1.8.7 measured a wavefront at 4.1× that again**, so a full scan is
-  dearer but not out of reach. Still open *here*, though § 1.8's optimiser now has
+  dearer but not out of reach. § 1.8.8's MTF is the one that IS four orders
+  (~7 000×), and a full scan of it is not a slider. Still open *here*, though § 1.8's optimiser now has
   both — a root find and a minimisation want different things from the same
   expensive residual.
 - ~~**No surface.**~~ ✅ **closed** — APP.md **Part M**, route `#/design`, app
@@ -1937,6 +1938,127 @@ Seidel**. A one-variable run is 81 evaluations unconstrained and 12 with c₄ he
 | **A reading whose sum is empty is refused** — it would report a converged optimum at iteration one, merit 0, nothing moved | the worst failure shape available here, measured then closed | ✅ |
 | Refusals by name: a fit wider than the pupil, a term count off the basis, a Noll index past the fit | validity, said where the operand can be named | ✅ |
 
+### 1.8.8 — contrast, where one frequency is not a merit
+
+The last piece of "targets on traced quantities", and the only operand in this
+step with a **transform** between the design and the residual. Structurally it
+is § 1.8.7's twin — same trace, same Zernike fit, same held survivor set, taken
+out of `systemPupil` so there is one definition of what a system's pupil is
+rather than two — and everything new is in what the transform does to the
+merit's *shape*. Three of the four things below are not what this file expected.
+
+#### What is held: ν, not cycles per millimetre
+
+`mtfAt` samples the modulation at `size/2 + ν·pupilSamples`, bilinearly between
+two bins. Stated in NORMALIZED frequency both of those numbers are the caller's,
+so the sample position and its two interpolation weights are fixed for the whole
+run — the same discipline as the held pupil set, which is what fixes a wavefront
+operand's design matrix. Stated in cycles/mm they would not be: `pixelScaleMm`
+is built from the exit-pupil radius and the reference distance, and **it moves
+with the design** — 7.3445·10⁻⁴ at the paraxial plane against 7.7117·10⁻⁴ five
+millimetres out, though identical to twelve figures across a 10% change of
+curvature, because on this fixture the stop is the mirror. A fixed physical
+frequency therefore lands on a drifting bin. Measured, that drift is small —
+0.056 bins per mm of focus against a signal of 4 contrast units per mm — so the
+kink at a bin crossing was never going to be the thing that bit. It is avoidable
+for nothing, so it is avoided.
+
+The cost of choosing ν is stated rather than hidden: ν is normalized to 2·NA/λ
+off the exit pupil, which is the aperture the system was ASKED for, and § 6ad
+measures that parting company with the aperture that actually transmits by 27%
+on the app's own doublet. The operand's job is to hold the ruler still, not to
+relabel it.
+
+#### The obvious pin is not available: the engine reads ABOVE the closed form
+
+A real system cannot beat (2/π)(arccos ν − ν√(1−ν²)), so the diffraction-limited
+MTF looked like a target with a zero residual at a perfect design. It is not. A
+sampled pupil's autocorrelation over-counts its own edge, so a paraboloid whose
+Strehl is **exactly 1** reads high, by an amount that is first order in the
+sampling:
+
+| pupilSamples | bias at ν = 0.25 | at ν = 0.5 | at ν = 0.75 | bias × N (ν = 0.5) |
+|---|---|---|---|---|
+| 16 | 4.461·10⁻² | 4.709·10⁻² | 5.689·10⁻² | 0.7535 |
+| 32 | 2.157·10⁻² | 2.180·10⁻² | 2.600·10⁻² | 0.6975 |
+| 64 | 1.041·10⁻² | 1.058·10⁻² | 1.116·10⁻² | 0.6771 |
+| 128 | 5.058·10⁻³ | 5.181·10⁻³ | 5.323·10⁻³ | 0.6632 |
+
+bias·N is one number, ~0.66 and falling toward it — a discretization law rather
+than a discrepancy, and the square-grid-on-a-disc counting of § 6ab.17 arriving
+in a third place. So an operand told to hit the closed form would report a
+residual at a perfect design and go looking for the grid. **The reachable target
+is the engine's own ceiling at the sampling the caller stated**, and given that,
+a run started inside the basin reproduces it *exactly* — merit 0 in f64, radius
+to 10⁻⁹ relative.
+
+The other sampling knob does nothing at all: `padFactor` 2, 4 and 8 agree to the
+last bit, because padding buys points BETWEEN bins and the value AT a bin is set
+by the pupil sampling alone. That is why one is a required field of the operand
+and the other has a default — a default that is measured rather than conventional.
+
+#### A bowl, where every other traced operand gives a corner
+
+§ 1.8.5 found that a zero-residual traced optimum is a CORNER and that § 1.8.2's
+square-root law therefore does not apply to it. A spot radius and a wavefront RMS
+are NORMS, so at a perfect design they grow like |δ|. **Contrast is quadratic in
+the wavefront error**, so this merit is a genuine bowl: the deficit below the
+ceiling is 488.5·ΔK² on the paraboloid, constant to three figures once ΔK is
+below 10⁻³ (486.4 at 3·10⁻³ is the quartic term retiring), and symmetric in sign
+to 5·10⁻⁵. deficit/ΔK falls by the same factor ΔK does, which is what a corner
+cannot do. So § 1.8.2's law applies to this operand and not to the two before it.
+
+Differencing is unremarkable: off the optimum the central difference agrees to
+four decades of step, h = 10⁻⁴…10⁻⁷.
+
+#### The finding: an impostor at 2.31 waves, indistinguishable at one frequency
+
+The OTF changes sign as aberration grows and the MTF is its modulus, so contrast
+at ONE frequency is **not monotone** in how good the design is — a far-out side
+lobe reads as high contrast. On the concentric fixture there is a radius 0.47 mm
+from the exact conjugate where the wavefront is **2.31 waves RMS** and the Strehl
+is **0.0075** — 133× worse than diffraction-limited, an image that is gone — and
+whose modulation at ν = 0.5 sits within **2.8·10⁻⁴** of the perfect system's.
+
+An optimiser started 0.1 mm out walks straight to it and stops with a merit of
+7.7·10⁻⁸, which no caller reading the result could tell from the true answer's
+zero. This is not a convention that can be corrected the way § 1.8.7's
+`"balancedRms"` was: it is what contrast at a frequency IS.
+
+The usable basin is about **a quarter wave** — starts at ±0.02 and ±0.05 mm
+(0.098 and 0.244 waves RMS) converge exactly; ±0.1 and ±0.2 do not — which is
+Rayleigh's criterion turning up as an optimiser's basin rather than as a quality
+threshold. And the success set is not an interval: at 64 samples a start at 0.15
+converges where 0.1 does not.
+
+**The fix is a second operand, not a cleverer one.** The impostor is degenerate
+at ν = 0.5 and nowhere else — 0.0045 against 0.826 at ν = 0.15 — so a merit over
+two frequencies separates the two designs by three orders and converges from the
+start that fooled the single one. It widens the basin; it does not abolish
+multimodality, and the rung says so: at 0.2 mm out the two-frequency merit still
+lands elsewhere, and reports a residual that is visible rather than tiny.
+`solve.ts`'s convention, which this whole step has kept: a run reports the basin
+it landed in.
+
+**Cost.** 13.5 ms an evaluation at 32 pupil samples and 35.5 ms at 64, against
+0.571 ms a wavefront, 0.138 ms a traced spot and 1.93·10⁻³ ms a third-order sum
+— **24× the wavefront and 98× the spot** at the cheaper grid. A one-variable run
+is 1 to 2 seconds. The "four orders of magnitude" this file forecast in 2026 and
+retired at § 1.8.5 is finally true of something: an MTF residual is ~7 000× a
+Seidel sum.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A Strehl-1 paraboloid reads 0.66/pupilSamples ABOVE the closed form**, positive at four samplings and three frequencies | Goodman's closed form, and a discretization law identified by its order | ✅ |
+| `padFactor` 2/4/8 agree to the last bit; `pupilSamples` does not | which knob is the merit's definition and which is a default | ✅ |
+| **At a perfect design the merit is a BOWL**: 488.5·ΔK², symmetric to 5e-5, and deficit/ΔK is not constant | the contrast between this and § 1.8.5's corner — and § 1.8.2's law applying again | ✅ |
+| Differences over four decades of step, off the optimum | the window | ✅ |
+| **Reaches the engine's own ceiling EXACTLY** — merit 0 in f64, R to 1e-9 — from inside the basin | that the reachable target is not the closed form | ✅ |
+| **An impostor at 2.31 waves / Strehl 0.0075 matches the perfect design to 2.8e-4 at ν = 0.5**, and a run lands on it at merit 7.7e-8 | contrast at one frequency is not monotone in quality | ✅ |
+| **A second frequency separates them by three orders** and rescues the start that failed | the fix is another operand, not a cleverer one | ✅ |
+| …and 0.2 mm out the two-frequency merit still lands elsewhere, with a visible residual | the boundary, stated rather than left to be met | ✅ |
+| Refusals: ν outside (0, 1), a pupil sampling under 2, a grid that is not a power of two | validity, and the "measures nothing" floor in this operand's currency | ✅ |
+
 ### Not yet pinned
 
 - ~~**Targets on traced quantities.**~~ ✅ **closed at § 1.8.5 above**, for the
@@ -1954,16 +2076,23 @@ Seidel**. A one-variable run is 81 evaluations unconstrained and 12 with c₄ he
   the sub-step found instead was a focus convention that converges on a
   destroyed image, and a difference step worth six orders on a fixture § 1.8.5
   had read as flat.
-- **An MTF at a frequency is still open**, and is the one piece of that bullet
-  that stays a different question. It puts a GRID and a transform between the
-  design and the residual: a PSF on `pupilSamples`, an FFT, a frequency bin and
-  an interpolation between bins, none of which the wavefront operand has to
-  cross. Two things want measuring before it is written — whether the merit is
-  smooth in the design or stepped by the binning, and which aperture the
-  modulation actually cuts off at, since § 6ad measures the reported and real
-  cutoffs differing by 27% on the app's own doublet. Neither is pinned anywhere,
-  and § 1.8.7's cost line says what it would be built on: a wavefront
-  evaluation is already 4.1× a traced spot before any transform is taken.
+- ~~**An MTF at a frequency.**~~ ✅ **closed at § 1.8.8 above.** Both things
+  that bullet said wanted measuring were measured, and both came back the
+  opposite way round from the worry. The binning does NOT step the merit —
+  stated in ν the sample position and its interpolation weights are the
+  caller's own numbers and do not move at all, and even in cycles/mm the drift
+  is 0.056 bins per mm of focus against a signal of 4 contrast units per mm. And
+  the aperture question, § 6ad's 27%, is a property of a truncated FIXTURE
+  rather than of the operand: what the operand has to do is hold the ruler
+  still, which ν does.
+  What bit instead was the merit's own shape. The engine reads **0.66/N above**
+  the diffraction-limited closed form on a Strehl-1 pupil, so the obvious target
+  is unreachable; the merit is a BOWL where every other traced operand gives a
+  corner; and contrast at one frequency is not monotone in quality, so there is
+  a design at 2.31 waves RMS that matches a perfect one to 2.8·10⁻⁴ and a run
+  lands on it reporting 7.7·10⁻⁸. A second frequency separates them by three
+  orders. The cost forecast this file carried since 2026 and retired at § 1.8.5
+  is finally true of something: an MTF residual is ~7 000× a Seidel sum.
 - ~~**Constraints, as opposed to heavily weighted operands.**~~ ✅ **closed at
   § 1.8.6 above** — `{ minimize, hold }` on both entry points, solved as an
   equality-constrained least-squares step. The bullet was right that a Lagrange

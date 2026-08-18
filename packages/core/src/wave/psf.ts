@@ -1,7 +1,7 @@
 import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
-import { OpdMap, opdMap, vignetteMask } from "../pupil/opd";
+import { OpdMap, OpdSample, opdMap, vignetteMask } from "../pupil/opd";
 import { ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
 import { OpdSampling, opdSampling } from "./fidelity";
 import { withPhaseScreen, type PhaseScreen } from "./seeing";
@@ -665,6 +665,17 @@ export interface SystemPupil {
   readonly scale: PupilScale;
   /** The fidelity signal, measured on the raw traced samples. */
   readonly sampling: OpdSampling;
+  /**
+   * The traced samples this pupil was fitted from — the rays that survived.
+   *
+   * Carried out because an OPTIMISER has to hold that set: a design that loses
+   * or gains a ray changes what the merit averages over, which is a different
+   * question rather than a worse design (`analysis/optimize`, VALIDATION
+   * § 1.8.5). The alternative was for the optimiser to trace once for the set
+   * and again for the pupil, or to grow a second definition of what a system's
+   * pupil is, and this function exists so there is only one.
+   */
+  readonly samples: readonly OpdSample[];
 }
 
 /**
@@ -714,6 +725,7 @@ export function systemPupil(
     // Measured on the RAW traced samples, which is the only place the criterion
     // means anything — see wave/fidelity.
     sampling: opdSampling(map, fit),
+    samples: map.samples,
   };
 }
 
