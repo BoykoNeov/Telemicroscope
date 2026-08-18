@@ -79,9 +79,10 @@ import { pupilSlopeFrame } from "./object-field";
  * goes through `pupilSlopeFrame` and nothing here divides by an NA.
  *
  * The size of it, § 6ag.3: against the tangent reading the aberration-free limit
- * converges as NA³ and reaches **5e-9**; against the sine reading it floors at
- * **5e-4** and never converges at all. 0.5% at NA 0.10, and the whole point is
- * that a floor at 5e-4 looks like a converged answer. This does not redefine
+ * converges as NA³ and reaches **5.039e-9** absolute; against the sine reading it
+ * floors at **5.0e-3** relative and never converges at all. That floor is the
+ * tan/sin gap at the objective's own NA, and the whole point is that it looks
+ * exactly like a converged answer. This does not redefine
  * what S means for the authored sources — `diskSource` and friends carry no
  * trace and are internally consistent — it states which currency a *traced* cone
  * is in, and § 6ag.3 pins the discrepancy as its own rung.
@@ -96,19 +97,22 @@ import { pupilSlopeFrame } from "./object-field";
  * the same for all of them.
  *
  * On the shipped DIN 4×/0.10 with a matched Abbe condenser, § 6ag.4 measures the
- * Jacobian spread across the cone at **1.3% on axis** and **12.5% at 2.25 mm of
+ * Jacobian spread across the cone at **1.32% on axis** and **11.3% at 2.25 mm of
  * field**, and what that does to a grating's contrast — against the *identical*
  * point set, so the quadrature cancels exactly and only the weights differ — is
- * **+0.10% on axis and −3.4% at the field edge**, converged to three digits over
- * three refinements. That is the number this step is for.
+ * **+0.069% on axis and −0.661% at the field edge**, converged over two grids
+ * 2.1× apart in point count. The sign flips with field: on axis the taper is
+ * rotationally symmetric and raises contrast, off axis it is one-sided and lowers
+ * it. And the objective's OWN aberration amplifies it **2.9×**, so the source's
+ * reweighting and the wavefront are not independent contributions.
  *
  * ## The coupling, which is one knob and not two
  *
  * § 6af deferred "patch size and source sampling are coupled" as the thing to
  * pin. They are, and § 6ag.5 finds the coupling is tighter than a trade-off: a
  * tile's object span and the source's sampling step are **both** set by
- * `pupilSamples`, in opposite directions, and their product is constant — 5.846e-3
- * mm to five digits across a 16→128 sweep on this system. So a caller cannot buy
+ * `pupilSamples`, in opposite directions, and their product is constant — 5.846166e-3
+ * mm to TWELVE digits across a 16→128 sweep on this system. So a caller cannot buy
  * a wider tile without buying a coarser cone; § 6af's own two feasibility patch
  * sizes, 0.094 mm and 0.374 mm, are `pupilSamples` 32 and 128 and nothing else.
  *
@@ -134,6 +138,8 @@ export interface CondenserConeFidelity {
   readonly flipFraction: number;
   /** Largest relative change in a shared point's weight across the tile. */
   readonly weightDrift: number;
+  /** Rays traced to answer this question — 0 when the verdict is `unknown`. */
+  readonly traces: number;
   readonly reason: string;
 }
 
@@ -161,10 +167,43 @@ export interface TracedConeOptions {
   readonly tileHalfWidthMm?: number;
   readonly aim?: AimOptions;
   /**
+   * Azimuth of this field point in the frame (radians), as `fieldPupilAt`
+   * measures it. Default 0 — the meridional plane the trace is run in.
+   *
+   * ## Why a rotationally symmetric condenser needs this at all
+   *
+   * The condenser is rotationally symmetric, but the cone it delivers to a field
+   * point is **not** symmetric about the axis: § 6ag.8 measures it reaching
+   * +0.9236 and −1.0702 about its own offset, which is coma. So the cone at
+   * azimuth φ is the meridional cone *turned by φ*, and handing every field point
+   * the meridional one would point every tile's illumination asymmetry the same
+   * way — `imaging/object-field`'s own named hazard ("every tile's coma pointing
+   * the wrong way"), on the other side of the specimen.
+   *
+   * ## And it is applied to the SAMPLING, not to the result
+   *
+   * Rotating the finished points would take them off the pupil lattice and cost
+   * § 6p's cache at every azimuth that is not a multiple of a quarter turn. So
+   * the rotation goes the other way: the candidates stay the frame's own lattice,
+   * and each one is turned by −φ into the condenser's meridian to be traced.
+   * Membership and the area element are read there and belong to the frame
+   * coordinate unchanged — the Jacobian is a determinant, and a determinant is
+   * rotation-invariant, so nothing is approximated by doing it in this order.
+   */
+  readonly azimuthRad?: number;
+  /**
    * Pupil radii the candidate lattice must cover about the cone's centre.
-   * Default 1.35, which is wider than any mask this repo has measured. The mask
+   * Default 1.35, which is wider than any mask on the shipped pair. The mask
    * decides membership, so a grid one ring too wide costs a dropped ring and a
    * grid one ring too narrow is silently wrong — § 6aa's asymmetry.
+   *
+   * **A constant is not enough on its own**, and that asymmetry is the argument
+   * for the guard rather than for a bigger number: a condenser whose NA exceeds
+   * the objective's puts the cone past 1 (S > 1 is modelled — see `abbeImage`
+   * and darkfield), the default stops at 1.35, and the mask is simply never
+   * asked about what lies outside. So a member landing on the outermost candidate
+   * ring is **refused**, naming the reach it used. A truncated cone would
+   * otherwise be a plausible image rather than an error.
    */
   readonly reach?: number;
 }
@@ -189,6 +228,8 @@ export interface ReversedCondenser {
   readonly prescription: ReturnType<typeof reversePrescription>;
   readonly workingDistanceMm: number;
   readonly diaphragmRadiusMm: number;
+  /** The condenser's own engraved illumination NA, wide open. */
+  readonly numericalAperture: number;
   readonly wavelengthNm: number;
 }
 
@@ -200,9 +241,13 @@ export function reverseCondenser(
     prescription: reversePrescription(condenser.prescription, 0),
     workingDistanceMm: condenser.workingDistanceMm,
     diaphragmRadiusMm: condenser.diaphragmRadiusMm,
+    numericalAperture: condenser.numericalAperture,
     wavelengthNm,
   };
 }
+
+/** tan u for a cone of numerical aperture NA in air — `designs/condenser`'s. */
+const tanOf = (na: number): number => na / Math.sqrt(1 - na * na);
 
 /**
  * Where a ray leaving the specimen point at object-space slope (sx, sy) lands on
@@ -281,8 +326,18 @@ export function tracedCondenserCone(
     stepMultiple,
     apertureFraction,
     reach,
+    azimuthRad: options.azimuthRad ?? 0,
     ...(options.aim === undefined ? {} : { aim: options.aim }),
   });
+  if (built.touchedEdge) {
+    throw new Error(
+      `tracedCondenserCone: the cone reaches the edge of a candidate grid ${reach} pupil radii ` +
+        `wide, so the mask was never asked about what lies outside it and this source may be a ` +
+        `TRUNCATED cone rather than the whole one — raise \`reach\`. A condenser whose NA ` +
+        `(${rev.numericalAperture}) exceeds the objective's puts S past 1, which is modelled and ` +
+        `is where the default stops being enough`,
+    );
+  }
   if (built.points.length === 0) {
     throw new Error(
       `tracedCondenserCone: a lattice of step ${(2 * stepMultiple) / pupilSamples} landed no ` +
@@ -293,16 +348,31 @@ export function tracedCondenserCone(
 
   const fidelity = coneFidelity(system, rev, objectHeightMm, options, built);
   const total = built.points.reduce((t, p) => t + p.weight, 0);
+  // S, as `CondenserSource` documents it: NA_cond/NA_obj — a ratio of the two
+  // apertures and NOT the fraction the diaphragm is closed to, which is a
+  // fraction of the CONDENSER's own NA and coincides with S only when the two
+  // lenses happen to share an aperture. Reporting `apertureFraction` here would
+  // have been § 6ag.3's currency slip landing in the field one line down, on a
+  // fixture that could not show it. Taken as a ratio of tangents for § 6ag.3's
+  // reason: `span` is the objective's `tan u_max`, so the pupil radius this
+  // number is expressed in is a tangent.
+  //
+  // It stays a PARAXIAL statement — the traced cone is neither centred on it nor
+  // circular, and its measured radius differs (1.0052 wide open on the shipped
+  // pair, which is the aberration). Read this as the dial and the points as the
+  // geometry, exactly as `translateSource` already renegotiated the field once.
+  const paraxialS =
+    (apertureFraction * tanOf(rev.numericalAperture)) /
+    pupilSlopeFrame(
+      system,
+      objectHeightMm,
+      rev.wavelengthNm,
+      options.aim === undefined ? {} : { aim: options.aim },
+      "tracedCondenserCone",
+    ).span;
   return {
     points: built.points.map((p) => ({ sx: p.sx, sy: p.sy, weight: p.weight / total })),
-    // The cone's radius in pupil units is a TRACED consequence of the diaphragm
-    // rather than the dial's own number, so what is reported is the dial: this
-    // is NA_cond/NA_obj as the condenser is engraved, and the points are where
-    // the trace actually put them. `CondenserSource.coherenceParameter` says it
-    // is "the outer radius of the sampled region", which was already renegotiated
-    // once by `translateSource`; a traced cone is neither centred nor circular,
-    // so read it as the dial and the points as the geometry.
-    coherenceParameter: apertureFraction,
+    coherenceParameter: paraxialS,
     // ODD, and that is load-bearing: `abbeImage` INFERS the lattice parity from
     // this count, and the candidate grid here is the global lattice — it contains
     // the origin — so the parity is 0 whatever `stepMultiple` is. That is
@@ -312,7 +382,11 @@ export function tracedCondenserCone(
     samples: 2 * built.candidatesPerAxis + 1,
     pupilLattice: { pupilSamples, stepMultiple },
     fidelity,
-    traces: built.traces,
+    // EVERY ray this call traced, the verdict's two extra builds included — so
+    // asking for a verdict roughly triples it, and the number says so. Counting
+    // only the centre build would have made the cost readout stop responding to
+    // the option that moves it most.
+    traces: built.traces + fidelity.traces,
     weightSpread: built.jMin > 0 ? built.jMax / built.jMin - 1 : Infinity,
   };
 }
@@ -325,6 +399,8 @@ interface BuiltCone {
   readonly traces: number;
   readonly jMin: number;
   readonly jMax: number;
+  /** A member sat on the outermost candidate ring: the grid may have cut the cone. */
+  readonly touchedEdge: boolean;
 }
 
 function buildCone(
@@ -336,10 +412,11 @@ function buildCone(
     stepMultiple: number;
     apertureFraction: number;
     reach: number;
+    azimuthRad: number;
     aim?: AimOptions;
   },
 ): BuiltCone {
-  const { pupilSamples, stepMultiple, apertureFraction, reach } = options;
+  const { pupilSamples, stepMultiple, apertureFraction, reach, azimuthRad } = options;
   const frame = pupilSlopeFrame(
     system,
     objectHeightMm,
@@ -352,10 +429,17 @@ function buildCone(
   // added to any coordinate: it only decides which lattice indices are worth
   // tracing, which is what keeps every point exactly on the lattice.
   const centre = frame.chief === 0 ? 0 : frame.pupilOf(0);
+  // In the FRAME the cone sits at that radius on this field point's own azimuth,
+  // exactly as `fieldPupilAt` places `illuminationOffset`.
+  const cos = Math.cos(azimuthRad);
+  const sin = Math.sin(azimuthRad);
+  const cx = centre * cos;
+  const cy = centre * sin;
   const spacing = (2 * stepMultiple) / pupilSamples;
-  const kLoX = Math.floor((centre - reach) / spacing) - 1;
-  const kHiX = Math.ceil((centre + reach) / spacing) + 1;
-  const kY = Math.ceil(reach / spacing) + 1;
+  const kLoX = Math.floor((cx - reach) / spacing) - 1;
+  const kHiX = Math.ceil((cx + reach) / spacing) + 1;
+  const kLoY = Math.floor((cy - reach) / spacing) - 1;
+  const kHiY = Math.ceil((cy + reach) / spacing) + 1;
   const radius = rev.diaphragmRadiusMm * apertureFraction;
   const r2 = radius * radius;
   const d = JACOBIAN_STEP;
@@ -366,20 +450,29 @@ function buildCone(
   let traces = 0;
   let jMin = Infinity;
   let jMax = 0;
-  for (let jy = -kY; jy <= kY; jy++) {
+  let touchedEdge = false;
+  for (let jy = kLoY; jy <= kHiY; jy++) {
     // An integer times one exactly representable scale — `commensurateSource`'s
     // own construction, and the reason `latticeOffset` recovers the index rather
     // than rounding to it.
     const sy = jy * spacing;
     for (let jx = kLoX; jx <= kHiX; jx++) {
       const sx = jx * spacing;
-      const s0x = frame.slopeOf(sx);
-      const s0y = sy * frame.span;
+      // Turned by −azimuth into the condenser's meridian, which is the only
+      // plane the trace is run in. The condenser is rotationally symmetric, so
+      // this is the same physics; the frame coordinates (sx, sy) are what the
+      // point KEEPS, and they are the ones on the lattice.
+      const mx = sx * cos + sy * sin;
+      const my = -sx * sin + sy * cos;
+      const s0x = frame.slopeOf(mx);
+      const s0y = my * frame.span;
       const landing = diaphragmLanding(rev, objectHeightMm, s0x, s0y);
       traces++;
       if (landing === null || landing.x * landing.x + landing.y * landing.y > r2) continue;
       // dA_diaphragm/ds, centrally differenced. Four extra traces, and they are
-      // what carries the whole of the finding — see the header.
+      // what carries the whole of the finding — see the header. Differenced in
+      // the meridian too: a determinant is invariant under the rotation, so the
+      // area element belongs to the frame coordinate without conversion.
       const dx = d * frame.span;
       const xp = diaphragmLanding(rev, objectHeightMm, s0x + dx, s0y);
       const xm = diaphragmLanding(rev, objectHeightMm, s0x - dx, s0y);
@@ -397,6 +490,7 @@ function buildCone(
       const a22 = (yp.y - ym.y) / (2 * d);
       const jacobian = Math.abs(a11 * a22 - a12 * a21);
       if (!(jacobian > 0)) continue;
+      if (jx === kLoX || jx === kHiX || jy === kLoY || jy === kHiY) touchedEdge = true;
       jMin = Math.min(jMin, jacobian);
       jMax = Math.max(jMax, jacobian);
       const k = key(jx, jy);
@@ -413,6 +507,7 @@ function buildCone(
     traces,
     jMin,
     jMax,
+    touchedEdge,
   };
 }
 
@@ -446,6 +541,7 @@ function coneFidelity(
       membershipFlips: 0,
       flipFraction: 0,
       weightDrift: 0,
+      traces: 0,
       reason:
         "no tileHalfWidthMm supplied, so how much the cone moves across the patch this source " +
         "is for was not measured — supply it to get a verdict",
@@ -460,6 +556,7 @@ function coneFidelity(
       stepMultiple: options.stepMultiple ?? 1,
       apertureFraction: options.apertureFraction ?? 1,
       reach: options.reach ?? 1.35,
+      azimuthRad: options.azimuthRad ?? 0,
       ...(options.aim === undefined ? {} : { aim: options.aim }),
     });
   const lo = build(objectHeightMm - half);
@@ -487,6 +584,7 @@ function coneFidelity(
     membershipFlips: flips,
     flipFraction,
     weightDrift: drift,
+    traces: lo.traces + hi.traces,
     reason: valid
       ? `${flips} of ${centre.points.length} lattice points change membership across the tile ` +
         `(${(100 * flipFraction).toFixed(1)}%), and shared weights move ${(100 * drift).toFixed(1)}%`

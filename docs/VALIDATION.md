@@ -13830,6 +13830,11 @@ coma.
 | …and § 6af's own two feasibility patch sizes ARE `pupilSamples` 32 and 128 | they were never independent choices | ✅ |
 | Membership flips are 2–6% and **scale-invariant in the step** | refining the source cannot fix them | ✅ |
 | The verdict reports rather than throws, and names the knob that helps AND the one that does not | `illumination/fidelity`'s convention | ✅ |
+| **The AZIMUTH turns the cone**, checked as the exact quarter-turn identity, and the turned cone is still on the lattice | the cone is asymmetric, so it is not rotation-invariant | ✅ |
+| …and an arbitrary azimuth stays on the lattice, because the rotation is applied to the SAMPLING | turning the result would cost § 6p's cache at every azimuth | ✅ |
+| **REFUSES a candidate grid the cone reaches the edge of**, on a condenser whose NA exceeds the objective's | a truncated cone is a plausible image, not an error | ✅ |
+| `coherenceParameter` is NA_cond/NA_obj and **not** the fraction the diaphragm closes to, pinned on a condenser NA ≠ objective NA | § 6ag.3's currency slip, one field down | ✅ |
+| `traces` triples when a verdict is asked for, because the verdict's own builds are counted | before quoting a cost, check the readout responds | ✅ |
 | Every point on the pupil's own lattice at four field heights, and the count **odd** so the inferred parity is 0 | `abbeImage` infers parity from the count | ✅ |
 | **THE MEASUREMENT: 289 pupil evaluations against the rigid translation's 35 088** | § 6p's cache, restored off axis | ✅ |
 | …but § 6p.1's bitwise identity does NOT transplant, and the images differ by <5% of peak | a different quadrature of the same cone | ✅ |
@@ -13838,6 +13843,51 @@ coma.
 | The axial diaphragm point's direction is **bitwise** aperture-free and grows as h³ | § 6af's `fieldBeamW040Mm`, one derivative down | ✅ |
 | So the cone's centre lags § 6x's `h/R_ep` by **0.042813** at 2.25 mm | § 6af's 0.0428, from a different construction | ✅ |
 | Composed: a traced cone and a traced pupil, both verdicts `valid`, `contributingPoints` the cone's own count | two verdicts, two questions, neither standing in for the other | ✅ |
+
+### Four readouts that had to respond, and one thing that had to turn
+
+Every one of these is invisible to a fixture that sits on the +x meridian with one
+patch and a condenser matched to the objective — which is what the first draft's
+rungs were. They are the branch's own recurring shape: **silently wrong rather than
+broken**.
+
+**The cone must TURN with the azimuth.** The trace runs in one meridional plane, and
+the cone it produces is *not* symmetric about the axis — it reaches +0.9236 and
+−1.0702 about its own offset, which is coma. So a field point at azimuth φ is lit by
+the meridional cone turned by φ, exactly as `fieldPupilAt` already turns the pupil
+and places `illuminationOffset` on the field point's own azimuth. Handing every tile
+the meridional cone would have pointed every tile's illumination asymmetry the same
+way — `imaging/object-field`'s own named hazard, on the other side of the specimen.
+
+And the rotation is applied to the **sampling**, not to the result. Turning the
+finished points would take them off the pupil lattice and cost § 6p's cache at every
+azimuth that is not a quarter turn; instead the candidates stay the frame's lattice
+and each is turned by −φ into the meridian to be traced. The Jacobian is a
+determinant and a determinant is rotation-invariant, so nothing is approximated by
+doing it in that order.
+
+**The candidate grid's reach is refused, not assumed.** It is a constant (1.35 pupil
+radii), and a constant cannot cover S > 1 — which `abbeImage` models and which
+darkfield lives in. A condenser with more aperture than the objective puts the cone
+past it, and the mask is then never asked about what lies outside: a truncated cone,
+which forms a perfectly plausible image. So a member landing on the outermost
+candidate ring throws, naming the reach it used. That is § 6aa's asymmetry — wider is
+merely slower, narrower is silently wrong — turned into a guard rather than into a
+bigger number.
+
+**`coherenceParameter` is S, not the dial.** The field is documented as
+NA_cond/NA_obj; what the constructor takes is `apertureFraction`, a fraction of the
+condenser's *own* engraved NA. The two coincide exactly when the two lenses share an
+aperture, which this file's fixture does — so the wrong one would have passed every
+rung. It is reported as `apertureFraction · tan u_cond / tan u_obj`, a ratio of
+tangents for the currency section's reason, and pinned on a condenser at NA 0.05
+where the two readings differ by a factor of two. Nothing reads the field today, but
+`intensityCutoff`, `weakObjectTransferDisk` and `coherenceWidthCells` all take an S
+and a panel would hand them this one.
+
+**`traces` counts the verdict's own builds.** Asking for a tile verdict runs the whole
+construction twice more, and a cost readout that counted only the centre build would
+have said the verdict was free. It triples, and the rung pins that it does.
 
 ### Not pinned to an external number, and not pretending to be
 

@@ -711,6 +711,147 @@ describe("§ 6ag.5 — the coupling is ONE knob, and the failure mode is discret
   });
 });
 
+describe("§ 6ag.5b — the three readouts that had to respond, and one that had to turn", () => {
+  const system = din4x();
+  const c = abbeCondenser({ numericalAperture: 0.1 });
+  const rev = reverseCondenser(c, L);
+
+  it("THE AZIMUTH TURNS THE CONE, and the cone is not symmetric so that is not free", () => {
+    // The condenser is rotationally symmetric; the cone it delivers to a field
+    // point is NOT — § 6ag.8 measures it reaching +0.9236 and −1.0702 about its
+    // own offset, which is coma. So a field point at azimuth φ is lit by the
+    // meridional cone TURNED by φ, and handing every tile the meridional one
+    // would point every tile's illumination asymmetry the same way. That is
+    // `imaging/object-field`'s own named hazard, on the other side of the
+    // specimen, and it is invisible to any fixture that only ever sits on +x.
+    const mer = tracedCondenserCone(system, rev, 1, {
+      pupilSamples: PS,
+      apertureFraction: APERTURE,
+    });
+    const quarter = tracedCondenserCone(system, rev, 1, {
+      pupilSamples: PS,
+      apertureFraction: APERTURE,
+      azimuthRad: Math.PI / 2,
+    });
+    // Same cone, so the same point count and the same multiset of weights.
+    expect(quarter.points.length).toBe(mer.points.length);
+    expect(quarter.weightSpread).toBeCloseTo(mer.weightSpread, 12);
+    // A quarter turn is exact on a square lattice, so this one can be checked as
+    // an identity: (sx, sy) -> (-sy, sx), weight unchanged.
+    const key = (x: number, y: number) => `${Math.round(x * 1e9)},${Math.round(y * 1e9)}`;
+    // Relative, and at 1e-10 rather than at the last bit, for a reason that is
+    // arithmetic rather than optical: the weight is a CENTRAL DIFFERENCE at a
+    // 1e-4 step, so it carries ~5e-12 of cancellation noise before anything is
+    // rotated (f64 positions of order 1 mm, divided by a 2e-5 mm interval). The
+    // turn itself contributes less — cos(π/2) is 6.1e-17 rather than a bitwise
+    // zero. Tightening this past the difference's own floor would be pinning
+    // the noise, so the threshold sits an order above it and the identity is
+    // still 8 orders tighter than any physical difference here.
+    const turned = new Map(mer.points.map((p) => [key(-p.sy, p.sx), p.weight]));
+    for (const p of quarter.points) {
+      const t = turned.get(key(p.sx, p.sy));
+      expect(t).toBeDefined();
+      expect(Math.abs(t! - p.weight) / p.weight).toBeLessThan(1e-10);
+    }
+    // …and it really did move: the meridional cone is NOT its own quarter turn,
+    // which is the assertion that fails if `azimuthRad` is ignored.
+    const same = new Map(mer.points.map((p) => [key(p.sx, p.sy), p.weight]));
+    let differing = 0;
+    for (const p of quarter.points) if (same.get(key(p.sx, p.sy)) !== p.weight) differing++;
+    expect(differing).toBeGreaterThan(0.2 * quarter.points.length);
+    // Still on the lattice after turning, because the ROTATION IS APPLIED TO THE
+    // SAMPLING and not to the result — the whole reason it is done that way.
+    for (const p of quarter.points) {
+      expect(Number.isInteger(p.sx * PS)).toBe(true);
+      expect(Number.isInteger(p.sy * PS)).toBe(true);
+    }
+  });
+
+  it("…and an arbitrary azimuth stays on the lattice too, where turning the RESULT would not", () => {
+    const odd = tracedCondenserCone(system, rev, 1, {
+      pupilSamples: PS,
+      apertureFraction: APERTURE,
+      azimuthRad: 0.7,
+    });
+    expect(odd.pupilLattice).toBeDefined();
+    for (const p of odd.points) {
+      expect(Number.isInteger(p.sx * PS)).toBe(true);
+      expect(Number.isInteger(p.sy * PS)).toBe(true);
+    }
+    // A rotation of the finished points by 0.7 rad lands on no lattice at all —
+    // stated as the thing that was avoided, not as a property of the code.
+    const rotated = { sx: 0.125 * Math.cos(0.7), sy: 0.125 * Math.sin(0.7) };
+    expect(Number.isInteger(rotated.sx * PS)).toBe(false);
+  });
+
+  it("REFUSES a candidate grid the cone reaches the edge of, rather than truncating it", () => {
+    // S > 1 is modelled (`abbeImage`, and darkfield lives there), so a condenser
+    // with more aperture than the objective puts the cone past the default reach
+    // — and the mask is then never asked about what lies outside. Silently
+    // truncated, that is a plausible image; refused, it is a message naming the
+    // knob.
+    const bright = abbeCondenser({ numericalAperture: 0.3 });
+    const brightRev = reverseCondenser(bright, L);
+    expect(() =>
+      tracedCondenserCone(system, brightRev, 0, { pupilSamples: PS, apertureFraction: 1 }),
+    ).toThrow(/TRUNCATED cone/);
+    // With room to hold it, the same cone builds — and reaches past 1, which is
+    // what the default could not have covered.
+    const wide = tracedCondenserCone(system, brightRev, 0, {
+      pupilSamples: PS,
+      apertureFraction: 1,
+      reach: 4,
+    });
+    let maxR = 0;
+    for (const p of wide.points) maxR = Math.max(maxR, Math.hypot(p.sx, p.sy));
+    expect(maxR).toBeGreaterThan(1.35);
+  });
+
+  it("`coherenceParameter` is S = NA_cond/NA_obj, NOT the fraction the diaphragm is closed to", () => {
+    // The two coincide exactly when the two lenses share an aperture, which is
+    // this file's own fixture — so the rung is written on a condenser whose NA
+    // differs from the objective's, or it would pass under either reading. That
+    // is § 6ag.3's currency slip in the shape it would actually have shipped in:
+    // `intensityCutoff` and `weakObjectTransferDisk` both take an S, and a panel
+    // would hand them this field.
+    const half = abbeCondenser({ numericalAperture: 0.05 });
+    const cone = tracedCondenserCone(system, reverseCondenser(half, L), 0, {
+      pupilSamples: PS,
+      apertureFraction: 0.8,
+      reach: 0.8,
+    });
+    expect(cone.coherenceParameter).not.toBeCloseTo(0.8, 3);
+    expect(cone.coherenceParameter).toBeCloseTo((0.8 * tanOf(0.05)) / tanOf(0.1), 12);
+    expect(cone.coherenceParameter).toBeCloseTo(0.398493, 6);
+    // And on the matched pair the two DO coincide, which is why the fixture
+    // could not have caught it.
+    const matched = tracedCondenserCone(system, rev, 0, {
+      pupilSamples: PS,
+      apertureFraction: APERTURE,
+    });
+    expect(matched.coherenceParameter).toBeCloseTo(APERTURE, 12);
+  });
+
+  it("`traces` counts the verdict's own builds, so the cost readout responds to asking for one", () => {
+    // Before quoting what an option costs, check the readout moves when it is
+    // set. Asking for a verdict runs the whole build twice more, and a `traces`
+    // that counted only the centre build would have said the verdict was free.
+    const bare = tracedCondenserCone(system, rev, 1, {
+      pupilSamples: PS,
+      apertureFraction: APERTURE,
+    });
+    const judged = tracedCondenserCone(system, rev, 1, {
+      pupilSamples: PS,
+      apertureFraction: APERTURE,
+      tileHalfWidthMm: tileAt(system, 1, PS).halfWidthMm,
+    });
+    expect(bare.fidelity.traces).toBe(0);
+    expect(judged.fidelity.traces).toBeGreaterThan(0);
+    expect(judged.traces / bare.traces).toBeGreaterThan(2.8);
+    expect(judged.traces / bare.traces).toBeLessThan(3.2);
+  });
+});
+
 describe("§ 6ag.6 — § 6p's cache SURVIVES the traced cone, which the deferral predicted it would not", () => {
   const system = din4x();
   const c = abbeCondenser({ numericalAperture: 0.1 });
