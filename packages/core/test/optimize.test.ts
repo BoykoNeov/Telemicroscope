@@ -8,8 +8,10 @@ import { seidelSums } from "../src/analysis/seidel";
 import { systemProperties } from "../src/trace/paraxial";
 import {
   dampedLeastSquares,
+  meritResponse,
   optimizePrescription,
   optimizeSystem,
+  variableResponse,
   withVariables,
   type DlsOptions,
   type DlsResult,
@@ -259,6 +261,11 @@ const C3_STAR = C_MID - PHI_FLINT / (nFlint - 1);
 const SPLIT_VARS: SolveVariable[] = [
   { kind: "curvature", surface: 0 },
   { kind: "curvature", surface: 2 },
+];
+/** The two curvatures of a singlet — § 1.8.9's exactly degenerate pair. */
+const SINGLET_VARS: SolveVariable[] = [
+  { kind: "curvature", surface: 0 },
+  { kind: "curvature", surface: 1 },
 ];
 const SPLIT_OPERANDS = [
   { kind: "power", wavelengthNm: LINE_D, target: PHI },
@@ -2987,5 +2994,300 @@ describe("DLS § 1.8.8 — a contrast held exactly, and a multiplier that says i
     // theorem has nothing to charge for.
     expect(Math.abs(r.multipliers[0]!)).toBeLessThan(1e-9);
     expect(r.merit).toBeLessThan(1e-25);
+  });
+});
+
+/**
+ * DLS § 1.8.9 — what the variables can do, before anything is optimised.
+ *
+ * Every rung above chooses a variable set and never asks what it chose. This
+ * one asks. `variableResponse` differences the SAME Jacobian the run does and
+ * reports its geometry: each variable's response, the angles between them, and
+ * the singular values of the set scaled to unit columns.
+ *
+ * **The external number is the achromat's own.** For a zero-thickness cemented
+ * doublet the two outer curvatures enter the two wishes in closed form —
+ * ∂φ/∂c₁ = n₁−1 and ∂(φ_F−φ_C)/∂c₁ = (n₁−1)/V₁, and the same with a minus sign
+ * and the flint's numbers for c₃ — so the whole 2 × 2 Jacobian is textbook.
+ * Scaled to unit columns the indices cancel exactly and what is left depends on
+ * the two ABBE NUMBERS ALONE:
+ *
+ *     cos = (1 + ρ²/(V₁V₂)) / √((1 + ρ²/V₁²)(1 + ρ²/V₂²)),   κ = √((1+cos)/(1−cos))
+ *
+ * with ρ the ratio of the two wishes' weights. Not the indices, not the
+ * curvatures, not the focal length asked for: an achromat's design problem is
+ * as well conditioned as its two glasses are far apart in dispersion, and by
+ * exactly that much. At equal weights κ ≈ 2/|1/V₁ − 1/V₂|.
+ *
+ * And a thin lens in air, asked only for power, is EXACTLY degenerate in its
+ * two curvatures — bending does not change power — so the readout has a
+ * fixture whose answer is 0 and 1 rather than a tolerance.
+ */
+describe("DLS § 1.8.9 — the variable set's own geometry, read before the run", () => {
+  /** A zero-thickness singlet: φ = (n−1)(c₁−c₂), exactly. */
+  function thinSinglet(c1: number, c2: number): Prescription {
+    return {
+      surfaces: [
+        { kind: "refract", curvature: c1, semiAperture: 25, thickness: 0, medium: CROWN, isStop: true },
+        { kind: "refract", curvature: c2, semiAperture: 25, thickness: 100, medium: "AIR" },
+      ],
+    };
+  }
+  const POWER_ONLY: OptimizeOperand[] = [
+    { kind: "power", wavelengthNm: LINE_D, target: 1 / 500 },
+  ];
+
+  it("bending is the direction a power wish cannot see, and the readout says so exactly", () => {
+    const r = variableResponse(thinSinglet(0.01, -0.01), SINGLET_VARS, POWER_ONLY);
+
+    // Both columns are the thin-lens closed form, to the differencing floor.
+    expect(r.response[0]!).toBeCloseTo(nCrown - 1, 12);
+    expect(r.response[1]!).toBeCloseTo(nCrown - 1, 12);
+    expect(r.dead).toEqual([]);
+
+    // …and they are the same column twice, up to sign: one wish, and a wish
+    // that depends on c₁ − c₂ only.
+    expect(r.cosines[0]![1]!).toBe(1);
+    expect(r.worstPair).toEqual({ a: 0, b: 1, cosine: 1 });
+    expect(r.singularValues[0]!).toBeCloseTo(Math.SQRT2, 12);
+    expect(r.singularValues[1]!).toBe(0);
+    expect(r.conditionNumber).toBe(Infinity);
+
+    // The direction it cannot see is (1, 1)/√2 — both curvatures moving
+    // together, which is what BENDING is: § 1.8.1's shape factor q traverses
+    // exactly this line, and that is why a best-form fixture can hold power
+    // while it bends.
+    expect(r.weakest[0]!).toBeCloseTo(Math.SQRT1_2, 12);
+    expect(r.weakest[1]!).toBeCloseTo(Math.SQRT1_2, 12);
+
+    // Not an inference from the Jacobian: the lens itself, bent along that
+    // direction, has the same power to the last bit.
+    const straight = thinSinglet(0.01, -0.01);
+    const bent = thinSinglet(0.01 + 1e-4, -0.01 + 1e-4);
+    const steeper = thinSinglet(0.01 + 1e-4, -0.01);
+    const power = (p: Prescription) => 1 / systemProperties(p, LINE_D).efl;
+    expect(Math.abs(power(bent) / power(straight) - 1)).toBeLessThan(1e-15);
+    expect(power(steeper) - power(straight)).toBeCloseTo((nCrown - 1) * 1e-4, 12);
+  });
+
+  /** cos between the two outer curvatures' columns, from the Abbe numbers alone. */
+  const cosFromAbbe = (v1: number, v2: number, rho = 1): number =>
+    (1 + (rho * rho) / (v1 * v2)) /
+    Math.sqrt((1 + (rho * rho) / (v1 * v1)) * (1 + (rho * rho) / (v2 * v2)));
+  const kappaFromCos = (cos: number): number => Math.sqrt((1 + cos) / (1 - cos));
+
+  const pairResponse = (
+    crown: string,
+    flint: string,
+    c1 = 0.02,
+    c2 = C_MID,
+    c3 = -0.01,
+    focal = 100,
+    weights: readonly [number, number] = [1, 1],
+  ) =>
+    variableResponse(
+      {
+        surfaces: [
+          { kind: "refract", curvature: c1, semiAperture: 25, thickness: 0, medium: crown, isStop: true },
+          { kind: "refract", curvature: c2, semiAperture: 25, thickness: 0, medium: flint },
+          { kind: "refract", curvature: c3, semiAperture: 25, thickness: 100, medium: "AIR" },
+        ],
+      },
+      SPLIT_VARS,
+      [
+        { kind: "power", wavelengthNm: LINE_D, target: 1 / focal, weight: weights[0] },
+        { kind: "chromaticPower", wavelengthsNm: [LINE_F, LINE_C], target: 0, weight: weights[1] },
+      ],
+    );
+
+  it("an achromat's conditioning is a function of the two Abbe numbers ALONE", () => {
+    for (const [crown, flint] of [
+      [CROWN, FLINT],
+      ["CAF2", FLINT],
+      [CROWN, "D263"],
+      [CROWN, "FUSED-SILICA"],
+    ] as const) {
+      const v1 = abbeNumber(getMedium(crown));
+      const v2 = abbeNumber(getMedium(flint));
+      const r = pairResponse(crown, flint);
+      const cos = cosFromAbbe(v1, v2);
+      expect(Math.abs(r.cosines[0]![1]! / cos - 1)).toBeLessThan(1e-13);
+      expect(Math.abs(r.conditionNumber / kappaFromCos(cos) - 1)).toBeLessThan(1e-9);
+      // …and the simple form of the same statement, good to a part in 500:
+      // twice the reciprocal of the two glasses' dispersive-power difference.
+      expect(Math.abs(r.conditionNumber / (2 / Math.abs(1 / v1 - 1 / v2)) - 1)).toBeLessThan(2e-3);
+    }
+  });
+
+  it("neither the indices, nor the curvatures, nor the focal length asked for move it", () => {
+    const base = pairResponse(CROWN, FLINT);
+    // A different starting lens, a different cemented face, a target 2.5×
+    // away: the same conditioning to eleven figures, because the columns'
+    // DIRECTIONS carry only the two glasses.
+    const elsewhere = pairResponse(CROWN, FLINT, 0.03, -1 / 40, -0.02, 250);
+    expect(Math.abs(elsewhere.conditionNumber / base.conditionNumber - 1)).toBeLessThan(1e-9);
+    // The responses themselves are not invariant — they are the columns'
+    // LENGTHS over BOTH wishes, (n−1)·√(1+1/V²) in 1/mm per 1/mm, and those
+    // carry the indices. The rung was written asserting (n−1) alone and was
+    // wrong by the 1.2·10⁻⁴ that the colour row contributes.
+    expect(base.response[0]!).toBeCloseTo((nCrown - 1) * Math.sqrt(1 + 1 / vCrown ** 2), 12);
+    expect(base.response[1]!).toBeCloseTo((nFlint - 1) * Math.sqrt(1 + 1 / vFlint ** 2), 12);
+    expect(base.conditionNumber).toBeCloseTo(167.9534, 3);
+  });
+
+  it("the weights are inside the geometry, and their best setting is √(V₁V₂)", () => {
+    const rhoStar = Math.sqrt(vCrown * vFlint);
+    const kappaAt = (rho: number) => pairResponse(CROWN, FLINT, 0.02, C_MID, -0.01, 100, [1, rho]).conditionNumber;
+
+    // The closed form holds across four decades of the weight ratio.
+    for (const rho of [1, 10, rhoStar, 100, 1e4]) {
+      expect(Math.abs(kappaAt(rho) / kappaFromCos(cosFromAbbe(vCrown, vFlint, rho)) - 1)).toBeLessThan(1e-9);
+    }
+
+    // …and it has a MINIMUM, at the geometric mean of the two Abbe numbers:
+    // 7.09, against 168 at the equal weights a panel would offer by default.
+    // A weight is usually argued about as an exchange rate between wishes;
+    // this is the other thing it does, and nothing on a screen says so.
+    const best = kappaAt(rhoStar);
+    expect(best).toBeCloseTo(7.0914, 3);
+    for (const away of [0.5, 0.8, 1.25, 2]) expect(kappaAt(rhoStar * away)).toBeGreaterThan(best);
+    expect(kappaAt(1) / best).toBeCloseTo(23.68, 2);
+  });
+
+  it("the CURRENCY moves it by three and a half orders — § 1.8.3's finding, on the variables", () => {
+    const inPower = pairResponse(CROWN, FLINT).conditionNumber;
+    const inFocal = variableResponse(doublet(0.02, C_MID, -0.01), SPLIT_VARS, [
+      { kind: "efl", wavelengthNm: LINE_D, target: 100 },
+      { kind: "chromaticPower", wavelengthsNm: [LINE_F, LINE_C], target: 0 },
+    ]).conditionNumber;
+    expect(inPower).toBeCloseTo(167.9534, 3);
+    expect(inFocal / inPower).toBeGreaterThan(4.5e3);
+    expect(inFocal / inPower).toBeLessThan(4.6e3);
+  });
+
+  it("a dead variable is not a degenerate pair, and is not allowed to look like one", () => {
+    // The last surface's thickness is the distance to an image plane no
+    // first-order wish here mentions: its column is exactly zero.
+    const r = variableResponse(
+      doublet(0.02, C_MID, -0.01),
+      [...SPLIT_VARS, { kind: "thickness", surface: 2 }],
+      [...SPLIT_OPERANDS],
+    );
+    expect(r.dead).toEqual([2]);
+    expect(r.response[2]!).toBe(0);
+    expect(r.cosines[2]!.every((c) => Number.isNaN(c))).toBe(true);
+    expect(Number.isNaN(r.cosines[0]![2]!)).toBe(true);
+    expect(r.weakest[2]!).toBe(0);
+    // …and the two live variables' conditioning is untouched by its presence,
+    // to the bit. A dead column sent through the singular values would have
+    // read κ = ∞ and said nothing about the pair that is alive.
+    expect(r.conditionNumber).toBe(pairResponse(CROWN, FLINT).conditionNumber);
+    expect(r.singularValues).toHaveLength(2);
+  });
+
+  it("more variables than wishes: the surplus σ is 0 by RANK, not by rounding", () => {
+    const three: SolveVariable[] = [
+      { kind: "curvature", surface: 0 },
+      { kind: "curvature", surface: 1 },
+      { kind: "curvature", surface: 2 },
+    ];
+    const r = variableResponse(doublet(0.02, C_MID, -0.01), three, [...SPLIT_OPERANDS]);
+    // Two wishes cannot see three directions. One-sided Jacobi leaves the third
+    // column at 10⁻¹⁶², which is not a small number about the design — it is an
+    // arithmetic artefact, and reported as κ = 10¹⁶¹ it would read as one.
+    expect(r.singularValues[2]!).toBe(0);
+    expect(r.conditionNumber).toBe(Infinity);
+    expect(r.dead).toEqual([]);
+    expect(r.worstPair!.a).toBe(0);
+    expect(r.worstPair!.b).toBe(2);
+  });
+
+  it("…and THAT is what the second start is disagreeing about", () => {
+    // The panel's basin control runs the optimisation again from a nudged
+    // start and reports whether the two agreed. On a rank-deficient set they
+    // do not — and a reader told only that would conclude there are two
+    // minima. There are not: both runs reach the SAME merit, at different
+    // points of the flat direction the readout above names.
+    const three: SolveVariable[] = [
+      { kind: "curvature", surface: 0 },
+      { kind: "curvature", surface: 1 },
+      { kind: "curvature", surface: 2 },
+    ];
+    const start = doublet(0.02, C_MID, -0.01);
+    const nudged = withVariables(start, three, [0.02 * 1.08, C_MID * 1.08, -0.01 * 1.08]);
+    const a = optimizePrescription(start, three, [...SPLIT_OPERANDS], { maxIterations: 200 });
+    const b = optimizePrescription(nudged, three, [...SPLIT_OPERANDS], { maxIterations: 200 });
+    const worst = Math.max(
+      ...a.x.map((v, i) => Math.abs(b.x[i]! - v) / Math.max(Math.abs(v), Math.abs(b.x[i]!), 1e-12)),
+    );
+    expect(worst).toBeGreaterThan(1e-3);
+    expect(a.merit).toBeLessThan(1e-30);
+    expect(b.merit).toBeLessThan(1e-30);
+
+    // The same two starts on the two-variable set, whose σ_min is 168× down
+    // and not 0, agree to fourteen figures.
+    const c = optimizePrescription(start, SPLIT_VARS, [...SPLIT_OPERANDS], { maxIterations: 200 });
+    const d = optimizePrescription(
+      withVariables(start, SPLIT_VARS, [0.02 * 1.08, -0.01 * 1.08]),
+      SPLIT_VARS,
+      [...SPLIT_OPERANDS],
+      { maxIterations: 200 },
+    );
+    const worstTwo = Math.max(
+      ...c.x.map((v, i) => Math.abs(d.x[i]! - v) / Math.max(Math.abs(v), Math.abs(d.x[i]!), 1e-12)),
+    );
+    expect(worstTwo).toBeLessThan(1e-12);
+  });
+
+  it("THE FINDING: the rejected-step count does not carry this signal — it moves the OTHER WAY", () => {
+    // APP.md said the damping's rejected-step count was most of this signal
+    // already, and offered that as the reason a degeneracy readout might not
+    // be needed. Measured on one lens with one set of variables, where the
+    // only thing that changes is a weight: six orders of conditioning, and the
+    // rejections FALL while it happens.
+    const seen: { kappa: number; rejected: number; iterations: number; x: readonly number[] }[] = [];
+    for (const w of [1, 1e2, 1e4, 1e6]) {
+      const operands: OptimizeOperand[] = [
+        { kind: "power", wavelengthNm: LINE_D, target: PHI, weight: w },
+        { kind: "chromaticPower", wavelengthsNm: [LINE_F, LINE_C], target: 0 },
+      ];
+      const start = doublet(0.02, C_MID, -0.01);
+      const r = variableResponse(start, SPLIT_VARS, operands);
+      const run = optimizePrescription(start, SPLIT_VARS, operands, { maxIterations: 200 });
+      seen.push({ kappa: r.conditionNumber, rejected: run.rejected, iterations: run.iterations, x: run.x });
+    }
+    expect(seen[0]!.kappa).toBeCloseTo(167.9534, 3);
+    expect(seen[3]!.kappa / seen[0]!.kappa).toBeGreaterThan(9e5);
+    // Above the first decade the conditioning is simply proportional to the
+    // weight: one row grows and the columns line up with it.
+    expect(seen[3]!.kappa / seen[2]!.kappa).toBeCloseTo(100, -1);
+    expect(seen.map((s) => s.rejected)).toEqual([6, 5, 2, 1]);
+    expect(seen.map((s) => s.iterations)).toEqual([20, 26, 31, 40]);
+    // And the ANSWER is untouched: at a zero-residual optimum the conditioning
+    // is spent on iterations, not on digits. It is the merits that cannot
+    // reach zero where a κ of 10⁸ would also cost accuracy — which is why this
+    // readout is a warning about the QUESTION and not a prediction of failure.
+    for (const s of seen) {
+      expect(s.x[0]!).toBeCloseTo(seen[0]!.x[0]!, 12);
+      expect(s.x[1]!).toBeCloseTo(seen[0]!.x[1]!, 12);
+    }
+  });
+
+  it("what it costs, and what it refuses", () => {
+    const r = variableResponse(doublet(0.02, C_MID, -0.01), SPLIT_VARS, [...SPLIT_OPERANDS]);
+    // One evaluation at the design, then the central stencil's two per variable.
+    expect(r.evaluations).toBe(5);
+    expect(r.merit).toBeGreaterThan(0);
+
+    // A condition is not part of a merit, and the geometry it leaves behind is
+    // a different object — so it is declined rather than silently dropped.
+    expect(() =>
+      meritResponse(() => ({ minimize: [1], hold: [1] }), [1]),
+    ).toThrow(/condition/);
+    // A starting point that is not a system has no response to read.
+    expect(() => meritResponse(() => [Number.NaN], [1])).toThrow(/not a system/);
+    expect(() => variableResponse(doublet(0.02, C_MID, -0.01), [], [...SPLIT_OPERANDS])).toThrow(
+      /no variables/,
+    );
   });
 });

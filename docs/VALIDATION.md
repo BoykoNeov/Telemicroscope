@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, the ray SET held; § 1.8.6 CONDITIONS held exactly and priced; § 1.8.7 WAVEFRONT targets, the fit's conditioning settled; § 1.8.8 MTF, where one frequency is not a merit | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables on two closed-form minimisers — Coddington's best form, the achromat's power split — plus the run that converges 400 mm from the target; TRACED targets, spot (§ 1.8.5), wavefront (§ 1.8.7) and MTF where one frequency is not a merit (§ 1.8.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -2105,6 +2105,137 @@ Seidel sum.
 | Off axis 6 of 313 rays are lost, so the MASKED pupil branch runs — at +16% / +21%, not an order | a code path every other rung here skips, and the cost figure surviving it | ✅ |
 | **`pixelScaleMm` is exactly linear in the reference distance and bit-identical across 30% of curvature** | why the operand's frequency is ν and not cycles/mm | ✅ |
 | A held MTF is met to 1e-15 and priced at λ ≈ 0 — both frequencies peak together | that `hold` accepts this operand, and what it means when it does | ✅ |
+
+### 1.8.9 — the variables' own geometry, and a claim about it that was backwards
+
+Every rung above picks a variable set and never asks what it picked.
+`variableResponse` asks: it differences the Jacobian **with the same builder the
+run uses** — same stencil, same wall convention, same default step, factored out
+of `dampedLeastSquares` so a second copy cannot drift from the first — and
+reports what that matrix looks like. Each variable's response ‖J_j‖, the angle
+between every pair of columns, and the singular values of the set with **every
+column scaled to unit length**.
+
+The scaling is the whole difference between a diagnostic and a unit conversion.
+A column is a curvature in 1/mm beside a thickness in mm, so the raw matrix's
+condition number is a statement about the units; scaled, "are these two
+variables the same variable?" becomes a question about the design. It is the
+same move the conditions' rows already get before their independence is
+tested, and for the same reason.
+
+**The external number is the achromat's, and it is stronger than a tolerance
+band.** On the zero-thickness cemented doublet the 2 × 2 Jacobian is textbook —
+∂φ/∂c₁ = n₁−1 and ∂(φ_F−φ_C)/∂c₁ = (n₁−1)/V₁, the same with a minus sign and the
+flint's numbers for c₃. Scale the columns and the indices cancel **exactly**,
+leaving
+
+    cos = (1 + ρ²/(V₁V₂)) / √((1 + ρ²/V₁²)(1 + ρ²/V₂²)),   κ = √((1+cos)/(1−cos))
+
+with ρ the ratio of the two wishes' weights. Measured against the engine on four
+real glass pairs: cos to 10⁻¹³ and κ to 10⁻⁹. So **an achromat's design problem
+is as well conditioned as its two glasses are far apart in dispersion, and by
+exactly that much** — at equal weights κ ≈ 2/|1/V₁ − 1/V₂|, good to a part in
+500. N-BK7/F2 sits at 168, CaF₂/F2 at 118, and N-BK7 against fused silica —
+ΔV = 3.65 — at 2 382.
+
+Nothing else is in it. A different starting lens, a different cemented face and
+a focal target 2.5× away give the same κ to eleven figures, because the columns'
+*directions* carry only the two glasses. Their *lengths* are the indices, and
+those do move: ‖J_j‖ = (n−1)·√(1+1/V²), which is the rung this file first wrote
+as (n−1) and got wrong by the 1.2·10⁻⁴ the colour row contributes.
+
+**And there is a fixture whose answer is 0 and 1 rather than a tolerance.** A
+thin lens in air asked only for power is *exactly* degenerate in its two
+curvatures: bending does not change power. cos = 1 to the bit, σ₂ = 0, κ = ∞,
+and the direction the merit cannot see comes back as (1, 1)/√2 — which is
+bending itself, the line § 1.8.1's shape factor q traverses. The rung does not
+stop at the Jacobian: the lens bent along that direction has the same power to
+the last bit, and the same move on one curvature alone changes it by (n−1)·δ.
+
+**A dead variable is not a degenerate pair**, and the readout is built so the
+two cannot be confused. The last surface's thickness against any first-order
+wish has an exactly zero column — no wish can see it at all — which is a rank
+deficiency too, but it wants a different sentence and a different fix. It is
+named in `dead`, its angles are NaN rather than 0, and it is kept out of the
+singular values: sent through them it would have read κ = ∞ and said nothing
+about the variables that are alive. Measured: the pair's κ with a dead third
+variable present is the *same bits* as the pair's κ alone.
+
+**Fewer wishes than variables is the ordinary case and reads as κ = ∞** —
+honestly, because a 2 × 3 Jacobian cannot have three independent columns. One-
+sided Jacobi leaves the third at 10⁻¹⁶², which reported as κ = 10¹⁶¹ would be an
+arithmetic artefact dressed as a measurement, so the surplus σ's are zeroed by
+rank rather than by a tolerance.
+
+#### The weights are inside the geometry, and they have a best setting
+
+A weight scales a ROW, and row scaling changes the angles between columns — so
+this geometry belongs to the merit *as asked* and not to the design alone. Two
+consequences neither the engine nor any panel was saying.
+
+**The weight ratio has a minimum, at the geometric mean of the two Abbe
+numbers.** κ(ρ) follows the closed form across four decades, and ρ\* = √(V₁V₂) =
+48.3 puts N-BK7/F2 at **κ = 7.09 against 168 at the equal weights a panel offers
+by default** — 23.7× better conditioned, from a control that is normally argued
+about only as an exchange rate between wishes.
+
+**The currency moves it by three and a half orders.** The same two wishes with
+the focal length asked in millimetres instead of diopters: κ from 168 to
+7.65·10⁵, **×4 554**. § 1.8.3 found the currency putting a barrier in front of a
+target; this is the same choice seen from the variables' side, on a fixture with
+no barrier anywhere near it.
+
+#### THE finding: the rejected-step count does not carry this signal
+
+APP.md offered the damping's rejected-step count as most of this signal already,
+and gave that as a reason a degeneracy readout might not be needed. Measured on
+one lens with one variable set, where the only thing that changes is a weight:
+
+| weight on the power wish | 1 | 10² | 10⁴ | 10⁶ |
+|---|---|---|---|---|
+| κ | 168 | 1.68·10⁴ | 1.68·10⁶ | 1.68·10⁸ |
+| rejected steps | 6 | 5 | 2 | 1 |
+| iterations | 20 | 26 | 31 | 40 |
+
+Six orders of conditioning, and the rejections **fall** while it happens. The
+glass sweep says the same thing with no ordering at all: κ = 118 → 0 rejections,
+168 → 6, 725 → 7, 2 382 → 0. The count a designer would have read this off is
+not merely weak, it points the other way.
+
+**What κ costs here is iterations, not digits.** The answer is identical across
+that whole sweep to twelve figures, because this optimum has a zero residual and
+an ill-conditioned route to an exact answer is still an exact answer. So the
+readout is a warning about the QUESTION — this variable set contains a
+combination your wishes cannot see — and not a prediction that the run will
+fail. Where the residual cannot reach zero, a κ of 10⁸ costs accuracy as well;
+that is a different measurement and this step does not claim it.
+
+**And it explains a control that was already on screen saying something else.**
+The app's optimiser runs a second start and reports whether the two agreed. On a
+rank-deficient set they do not — three curvatures against two wishes disagree by
+2.2·10⁻², where the two-variable set agrees to 1.8·10⁻¹⁴ — and a reader told
+only that would conclude there are two minima. There are not: **both runs reach
+the same merit**, at different points of the flat direction. Disagreement means
+multiplicity only when the set is not degenerate, and until now nothing said
+which case you were in.
+
+**Cost**: one evaluation at the design plus the central stencil's two per
+variable — 5 for a two-variable merit, exactly one iteration's worth of the run
+it is describing.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **A power wish cannot see a singlet's bending**: cos = 1 to the bit, σ₂ = 0, weakest = (1,1)/√2 — and the bent lens's power is unchanged to the last bit | the thin-lens closed form φ = (n−1)(c₁−c₂), and § 1.8.1's shape factor | ✅ |
+| **κ from the two Abbe numbers ALONE**, four real glass pairs, cos to 1e-13 and κ to 1e-9; κ ≈ 2/\|1/V₁−1/V₂\| to a part in 500 | the doublet's textbook Jacobian, scaled | ✅ |
+| Neither the indices, nor the curvatures, nor the focal target move it (1e-11) — while ‖J_j‖ = (n−1)√(1+1/V²) does | what a scaled column keeps and what it discards | ✅ |
+| **The best-conditioned weight ratio is √(V₁V₂)**: κ 7.09 against 168 at equal weights | the closed form's own minimum, measured on the engine | ✅ |
+| The CURRENCY multiplies κ by 4 554 on a fixture with no barrier in it | § 1.8.3's finding, from the variables' side | ✅ |
+| A dead column is reported as dead, with NaN angles, and leaves the live pair's κ bit-identical | that "moves nothing" and "moves the same as that one" are different faults | ✅ |
+| More variables than wishes → σ = 0 **by rank**, κ = ∞, not Jacobi's 10⁻¹⁶² | an artefact refused the shape of a measurement | ✅ |
+| **κ ×10⁶ while the rejected steps go 6 → 1**, iterations 20 → 40, answer unchanged to 1e-12 | the claim that the rejection count already carried this — corrected | ✅ |
+| A rank-deficient set makes the second start disagree by 2.2e-2 **at the same merit**; the well-posed set agrees to 1.8e-14 | what the app's basin control is actually reporting | ✅ |
+| Refusals: a condition (a different geometry), a start that is not a system, an empty variable set | that the readout answers the question it was asked | ✅ |
+
 
 ### Not yet pinned
 

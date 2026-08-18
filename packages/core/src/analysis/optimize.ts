@@ -2,7 +2,11 @@ import { Prescription } from "../trace/prescription";
 import { OpticalSystem } from "../trace/system";
 import { paraxialTrace, systemProperties } from "../trace/paraxial";
 import { asCompiled } from "../trace/compile";
-import { householderLeastSquares, equalityConstrainedLeastSquares } from "../math/lsq";
+import {
+  householderLeastSquares,
+  equalityConstrainedLeastSquares,
+  singularSystem,
+} from "../math/lsq";
 import { PupilPoint } from "../pupil/aiming";
 import { imagePlaneZ } from "../pupil/pupils";
 import { opdMap } from "../pupil/opd";
@@ -373,6 +377,151 @@ function splitMerit(v: MeritVector): { w: readonly number[]; h: readonly number[
 }
 
 /**
+ * A residual function with the wall convention applied and the bookkeeping the
+ * callers share: how many wishes and conditions the vector turned out to hold,
+ * and what it has cost so far.
+ *
+ * Written once because the wall convention IS the contract between this module
+ * and a merit — `null` for a trial that is not a system, and a length that may
+ * not change under the caller's feet — and a second copy of a contract is a
+ * contract that will differ from itself.
+ */
+interface Evaluator {
+  at: Guarded;
+  /** Wishes in the vector; −1 before the first evaluation. */
+  m: number;
+  /** Conditions in it; −1 before the first. */
+  p: number;
+  evaluations: number;
+}
+
+function makeEvaluator(
+  where: string,
+  residuals: (x: readonly number[]) => MeritVector,
+): Evaluator {
+  const e: Evaluator = { at: () => null, m: -1, p: -1, evaluations: 0 };
+  e.at = (x) => {
+    e.evaluations++;
+    let out: MeritVector;
+    try {
+      out = residuals(Array.from(x));
+    } catch {
+      return null;
+    }
+    const { w, h } = splitMerit(out);
+    if (e.m < 0) e.m = w.length;
+    else if (w.length !== e.m) {
+      throw new Error(`${where}: the residual vector changed length, ${e.m} → ${w.length}`);
+    }
+    if (e.p < 0) e.p = h.length;
+    else if (h.length !== e.p) {
+      throw new Error(`${where}: the condition vector changed length, ${e.p} → ${h.length}`);
+    }
+    const r = new Float64Array(e.m);
+    for (let i = 0; i < e.m; i++) {
+      const v = w[i]!;
+      if (!Number.isFinite(v)) return null;
+      r[i] = v;
+    }
+    const c = new Float64Array(e.p);
+    for (let k = 0; k < e.p; k++) {
+      const v = h[k]!;
+      if (!Number.isFinite(v)) return null;
+      c[k] = v;
+    }
+    return { r, c };
+  };
+  return e;
+}
+
+/** Each variable's difference step: the caller's, or the scheme's own scale rule. */
+function differenceSteps(
+  where: string,
+  x: Float64Array,
+  scheme: JacobianScheme,
+  given: readonly number[] | undefined,
+): Float64Array {
+  const n = x.length;
+  if (given !== undefined && given.length !== n) {
+    throw new Error(`${where}: ${given.length} finite-difference steps for ${n} variables`);
+  }
+  const step = new Float64Array(n);
+  for (let j = 0; j < n; j++) {
+    const auto =
+      (scheme === "central" ? Math.cbrt(Number.EPSILON) : Math.sqrt(Number.EPSILON)) *
+      Math.max(Math.abs(x[j]!), 1);
+    const s = given?.[j] ?? auto;
+    if (!(s > 0 && Number.isFinite(s))) {
+      throw new Error(`${where}: variable ${j}'s difference step ${s} is not positive`);
+    }
+    step[j] = s;
+  }
+  return step;
+}
+
+/**
+ * The Jacobian at x, column by column, with the wall convention on the stencil
+ * — and the conditions differenced in the SAME stencil rather than a second
+ * one, since they are read from the same evaluation and so cost no trial
+ * designs of their own.
+ *
+ * `r` and `cv` are the residuals at x itself, which a one-sided difference
+ * needs and a central one does not. Writes into `j` (m × n) and `cj` (p × n).
+ */
+function jacobianColumns(
+  e: Evaluator,
+  x: Float64Array,
+  step: Float64Array,
+  scheme: JacobianScheme,
+  r: Float64Array,
+  cv: Float64Array,
+  j: Float64Array,
+  cj: Float64Array,
+): void {
+  const n = x.length;
+  const m = e.m;
+  const p = e.p;
+  for (let c = 0; c < n; c++) {
+    const h = step[c]!;
+    const xc = x[c]!;
+    const xp = Float64Array.from(x);
+    xp[c] = xc + h;
+    const rp = e.at(xp);
+    let rm: Evaluated | null = null;
+    if (scheme === "central") {
+      const xm = Float64Array.from(x);
+      xm[c] = xc - h;
+      rm = e.at(xm);
+    }
+    if (rp !== null && rm !== null) {
+      // Both sides available: the O(h²) difference this scheme exists for.
+      const twoH = 2 * h;
+      for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - rm.r[i]!) / twoH;
+      for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - rm.c[k]!) / twoH;
+    } else if (rp !== null) {
+      for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - r[i]!) / h;
+      for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - cv[k]!) / h;
+    } else {
+      // Forward is a wall. Difference backwards instead; the accuracy of this
+      // one column drops to O(h), the run continues.
+      const xm = Float64Array.from(x);
+      xm[c] = xc - h;
+      const back = rm ?? e.at(xm);
+      if (back !== null) {
+        for (let i = 0; i < m; i++) j[i * n + c] = (r[i]! - back.r[i]!) / h;
+        for (let k = 0; k < p; k++) cj[k * n + c] = (cv[k]! - back.c[k]!) / h;
+      } else {
+        // Walled on both sides: no information about this variable, so it does
+        // not move. `math/lsq` returns 0 for the column either way; this is the
+        // same answer said explicitly rather than by rank deficiency.
+        for (let i = 0; i < m; i++) j[i * n + c] = 0;
+        for (let k = 0; k < p; k++) cj[k * n + c] = 0;
+      }
+    }
+  }
+}
+
+/**
  * Minimise Σ rᵢ(x)² over x by damped least squares, optionally **subject to
  * conditions cₖ(x) = 0 held exactly**.
  *
@@ -459,51 +608,18 @@ export function dampedLeastSquares(
     );
   }
 
-  let evaluations = 0;
-  let m = -1;
-  let p = -1;
-  const evaluate: Guarded = (x) => {
-    evaluations++;
-    let out: MeritVector;
-    try {
-      out = residuals(Array.from(x));
-    } catch {
-      return null;
-    }
-    const { w, h } = splitMerit(out);
-    if (m < 0) m = w.length;
-    else if (w.length !== m) {
-      throw new Error(
-        `dampedLeastSquares: the residual vector changed length, ${m} → ${w.length}`,
-      );
-    }
-    if (p < 0) p = h.length;
-    else if (h.length !== p) {
-      throw new Error(`dampedLeastSquares: the condition vector changed length, ${p} → ${h.length}`);
-    }
-    const r = new Float64Array(m);
-    for (let i = 0; i < m; i++) {
-      const v = w[i]!;
-      if (!Number.isFinite(v)) return null;
-      r[i] = v;
-    }
-    const c = new Float64Array(p);
-    for (let k = 0; k < p; k++) {
-      const v = h[k]!;
-      if (!Number.isFinite(v)) return null;
-      c[k] = v;
-    }
-    return { r, c };
-  };
+  const e = makeEvaluator("dampedLeastSquares", residuals);
 
   let x = Float64Array.from(x0);
-  let current = evaluate(x);
+  const current = e.at(x);
   if (current === null) {
     throw new Error(
       `dampedLeastSquares: the starting point [${x0.join(", ")}] is not a system — ` +
         `there is nothing to damp away from`,
     );
   }
+  const m = e.m;
+  const p = e.p;
   if (m === 0) throw new Error("dampedLeastSquares: no residuals to minimise");
   if (p > n) {
     throw new Error(
@@ -516,16 +632,7 @@ export function dampedLeastSquares(
   let merit = sumSquares(r);
   let violation = sumAbs(cv);
 
-  const step = new Float64Array(n);
-  for (let j = 0; j < n; j++) {
-    const auto = (scheme === "central" ? Math.cbrt(Number.EPSILON) : Math.sqrt(Number.EPSILON)) *
-      Math.max(Math.abs(x[j]!), 1);
-    const s = options.steps?.[j] ?? auto;
-    if (!(s > 0 && Number.isFinite(s))) {
-      throw new Error(`dampedLeastSquares: variable ${j}'s difference step ${s} is not positive`);
-    }
-    step[j] = s;
-  }
+  const step = differenceSteps("dampedLeastSquares", x, scheme, options.steps);
 
   // Marquardt's running maximum: a variable whose column has gone quiet stays
   // damped by the strongest response it ever showed, so a temporarily flat
@@ -561,48 +668,10 @@ export function dampedLeastSquares(
   while (iterations < maxIterations) {
     iterations++;
 
-    // ---- Jacobian, column by column, with the wall convention on the stencil.
-    // The conditions are differenced in the same stencil rather than a second
-    // one: they are read from the same evaluation, so a condition costs no
-    // trial designs of its own.
-    for (let c = 0; c < n; c++) {
-      const h = step[c]!;
-      const xc = x[c]!;
-      const xp = Float64Array.from(x);
-      xp[c] = xc + h;
-      const rp = evaluate(xp);
-      let rm: Evaluated | null = null;
-      if (scheme === "central") {
-        const xm = Float64Array.from(x);
-        xm[c] = xc - h;
-        rm = evaluate(xm);
-      }
-      if (rp !== null && rm !== null) {
-        // Both sides available: the O(h²) difference this scheme exists for.
-        const twoH = 2 * h;
-        for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - rm.r[i]!) / twoH;
-        for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - rm.c[k]!) / twoH;
-      } else if (rp !== null) {
-        for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - r[i]!) / h;
-        for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - cv[k]!) / h;
-      } else {
-        // Forward is a wall. Difference backwards instead; the accuracy of this
-        // one column drops to O(h), the run continues.
-        const xm = Float64Array.from(x);
-        xm[c] = xc - h;
-        const back = rm ?? evaluate(xm);
-        if (back !== null) {
-          for (let i = 0; i < m; i++) j[i * n + c] = (r[i]! - back.r[i]!) / h;
-          for (let k = 0; k < p; k++) cj[k * n + c] = (cv[k]! - back.c[k]!) / h;
-        } else {
-          // Walled on both sides: no information about this variable, so it
-          // does not move. `math/lsq` returns 0 for the column either way; this
-          // is the same answer said explicitly rather than by rank deficiency.
-          for (let i = 0; i < m; i++) j[i * n + c] = 0;
-          for (let k = 0; k < p; k++) cj[k * n + c] = 0;
-        }
-      }
-    }
+    // ---- Jacobian, column by column, with the wall convention on the stencil
+    // — the same builder `variableResponse` reads, so what a caller is shown
+    // about these variables is what the step was actually computed from.
+    jacobianColumns(e, x, step, scheme, r, cv, j, cj);
 
     // ---- Scale-free gradient measure, and the column norms the damping wants.
     const rNorm = Math.sqrt(merit);
@@ -726,7 +795,7 @@ export function dampedLeastSquares(
 
     const xNew = new Float64Array(n);
     for (let c = 0; c < n; c++) xNew[c] = x[c]! + delta[c]!;
-    const trial = evaluate(xNew);
+    const trial = e.at(xNew);
 
     if (trial === null) {
       // A wall. Indistinguishable, from here, from a step that made things
@@ -810,7 +879,7 @@ export function dampedLeastSquares(
     iterations,
     accepted,
     rejected,
-    evaluations,
+    evaluations: e.evaluations,
     damping: lambda,
     gradient,
     reason,
@@ -1262,6 +1331,224 @@ export function optimizePrescription(
   };
 
   return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
+}
+
+/** Two variables that move the merit the same way, and how nearly the same. */
+export interface DegeneratePair {
+  readonly a: number;
+  readonly b: number;
+  /** |cos| between their columns — 1 is the same move made twice. */
+  readonly cosine: number;
+}
+
+/** What a merit can see of a set of variables, read at one design. */
+export interface MeritResponse {
+  /** ‖J_j‖ per variable: the merit's units over the variable's own. */
+  readonly response: readonly number[];
+  /** Variables whose column is exactly zero — no wish here can see them at all. */
+  readonly dead: readonly number[];
+  /** |cos| between every pair of columns, n × n. NaN wherever either is dead. */
+  readonly cosines: readonly (readonly number[])[];
+  /** The live pair whose columns are most nearly parallel. Null below two live ones. */
+  readonly worstPair: DegeneratePair | null;
+  /** Singular values of the live columns SCALED TO UNIT LENGTH, descending. */
+  readonly singularValues: readonly number[];
+  /**
+   * σ₁/σ_last over those. Infinity where the live columns are exactly
+   * dependent — which includes the ordinary case of more variables than
+   * wishes, where the surplus freedom cannot be seen by definition.
+   */
+  readonly conditionNumber: number;
+  /**
+   * The combination of variables the merit responds to least, as a unit vector
+   * in the SCALED coordinates: entry j is how much of variable j's own response
+   * goes into it, and exactly 0 for a dead variable. Divide entry j by
+   * `response[j]` for the same direction in the variables' own units. Signed so
+   * that its largest component is positive, which is a convention and not a
+   * result.
+   */
+  readonly weakest: readonly number[];
+  /** Σrᵢ² at this design — a response is read AT a point, and this names it. */
+  readonly merit: number;
+  /** Residual-vector evaluations spent: 2n on the default central stencil, plus one. */
+  readonly evaluations: number;
+}
+
+/**
+ * What these variables can do to this merit, read at one design: how strongly
+ * it responds to each, which pairs move it the same way, and how nearly
+ * dependent the set is as a whole.
+ *
+ * This is the question the damping exists to survive, asked out loud. Two
+ * variables that do nearly the same thing do not stop a run — Marquardt's λ
+ * keeps the step well-posed and an answer still arrives — so what is owed to a
+ * caller here is a READOUT and not a refusal. That is the exact opposite of
+ * what the same defect among CONDITIONS gets, and the asymmetry is the point:
+ * λ damps a step, and a defect in the conditions is not in the step, so that
+ * one stops the run (`"conditions"`) while this one is merely reported.
+ * Whoever chooses which numbers a design may move is choosing this geometry,
+ * and normally is not told what they chose.
+ *
+ * ## The columns are scaled to unit length, and that is not a detail
+ *
+ * A column is a curvature in 1/mm beside a thickness in mm, so the raw
+ * matrix's condition number is a statement about the units rather than about
+ * the design — the same disparity that lets "hold the power" and "hold the
+ * focal length", one condition written two ways, pass a relative rank test on
+ * the strength of the units alone. Every live column is scaled to unit length
+ * before the singular values are taken, for the reason the conditions' rows
+ * are: it makes *are these two variables the same variable?* a question about
+ * the design.
+ *
+ * ## A dead variable is not a degenerate pair
+ *
+ * An exactly zero column — the last surface's thickness against any first-order
+ * wish — means no wish here can see that variable at all. It is a rank
+ * deficiency too, but it wants a different sentence and a different fix, so it
+ * is named in `dead` and kept out of the singular values rather than sending
+ * them to zero and thereby saying nothing about the variables that are alive.
+ *
+ * ## The weights are inside the answer
+ *
+ * A weight scales a ROW, and row scaling changes the angles between columns.
+ * So this geometry belongs to the merit *as asked* — weights, currency and
+ * targets' units included — and is not a property of the design alone. § 1.8.9
+ * measures both halves of that.
+ *
+ * Conditions are refused rather than ignored: the response under a condition is
+ * a different object (the geometry inside the null space of C), and answering a
+ * question that was not asked is worse here than declining it.
+ */
+export function meritResponse(
+  residuals: (x: readonly number[]) => MeritVector,
+  x0: readonly number[],
+  options: DlsOptions = {},
+): MeritResponse {
+  const n = x0.length;
+  if (n === 0) throw new Error("meritResponse: no variables to read");
+  for (const v of x0) {
+    if (!Number.isFinite(v)) {
+      throw new Error(`meritResponse: the point [${x0.join(", ")}] is not finite`);
+    }
+  }
+  const scheme = options.jacobian ?? "central";
+  const e = makeEvaluator("meritResponse", residuals);
+  const x = Float64Array.from(x0);
+  const at = e.at(x);
+  if (at === null) {
+    throw new Error(
+      `meritResponse: [${x0.join(", ")}] is not a system — there is no response to read at it`,
+    );
+  }
+  const m = e.m;
+  if (m === 0) throw new Error("meritResponse: no residuals to respond");
+  if (e.p > 0) {
+    throw new Error(
+      `meritResponse: ${e.p} condition(s) — this reads what the WISHES can see of ` +
+        `these variables, and under a condition that is a different geometry`,
+    );
+  }
+  const step = differenceSteps("meritResponse", x, scheme, options.steps);
+  const j = new Float64Array(m * n);
+  jacobianColumns(e, x, step, scheme, at.r, at.c, j, new Float64Array(0));
+
+  const norm = new Float64Array(n);
+  for (let c = 0; c < n; c++) {
+    let s = 0;
+    for (let i = 0; i < m; i++) s += j[i * n + c]! * j[i * n + c]!;
+    norm[c] = Math.sqrt(s);
+  }
+  const dead: number[] = [];
+  const live: number[] = [];
+  for (let c = 0; c < n; c++) (norm[c]! > 0 ? live : dead).push(c);
+
+  const cosines: number[][] = [];
+  let worstPair: DegeneratePair | null = null;
+  for (let a = 0; a < n; a++) {
+    const row: number[] = [];
+    for (let b = 0; b < n; b++) {
+      if (norm[a]! === 0 || norm[b]! === 0) {
+        row.push(Number.NaN);
+        continue;
+      }
+      let dot = 0;
+      for (let i = 0; i < m; i++) dot += j[i * n + a]! * j[i * n + b]!;
+      // Rounding can put a normalised dot product a few ULP outside [−1, 1],
+      // and an angle of 1.0000000000000002 is a number no reader can use.
+      const cos = Math.min(1, Math.abs(dot) / (norm[a]! * norm[b]!));
+      row.push(cos);
+      if (a < b && (worstPair === null || cos > worstPair.cosine)) worstPair = { a, b, cosine: cos };
+    }
+    cosines.push(row);
+  }
+
+  const k = live.length;
+  const scaled = new Float64Array(m * k);
+  for (let i = 0; i < m; i++) {
+    for (let t = 0; t < k; t++) scaled[i * k + t] = j[i * n + live[t]!]! / norm[live[t]!]!;
+  }
+  const { values, right } = singularSystem(scaled, m, k);
+  // Fewer wishes than variables is the ordinary case, not a pathology, and the
+  // surplus σ's are 0 by rank rather than by rounding — a 2 × 3 Jacobian cannot
+  // have three independent columns whatever the arithmetic says. Jacobi leaves
+  // them at 10⁻¹⁶² instead, which would be reported as a condition number of
+  // 10¹⁶¹: a made-up number where the true one is "these variables include a
+  // combination the merit cannot see at all".
+  for (let t = m; t < k; t++) values[t] = 0;
+  const smallest = k > 0 ? values[k - 1]! : 0;
+  const conditionNumber = k === 0 ? Number.POSITIVE_INFINITY : smallest > 0 ? values[0]! / smallest : Number.POSITIVE_INFINITY;
+
+  const weakest = new Array<number>(n).fill(0);
+  if (k > 0) {
+    let biggest = 0;
+    for (let t = 0; t < k; t++) {
+      if (Math.abs(right[t * k + (k - 1)]!) > Math.abs(biggest)) biggest = right[t * k + (k - 1)]!;
+    }
+    const sign = biggest < 0 ? -1 : 1;
+    for (let t = 0; t < k; t++) weakest[live[t]!] = sign * right[t * k + (k - 1)]!;
+  }
+
+  let merit = 0;
+  for (let i = 0; i < m; i++) merit += at.r[i]! * at.r[i]!;
+
+  return {
+    response: Array.from(norm),
+    dead,
+    cosines,
+    worstPair,
+    singularValues: Array.from(values),
+    conditionNumber,
+    weakest,
+    merit,
+    evaluations: e.evaluations,
+  };
+}
+
+/**
+ * `meritResponse` over prescription numbers: what this merit can see of these
+ * variables, at the design the prescription already carries.
+ *
+ * The Jacobian is the one `optimizePrescription` differences — same builder,
+ * same stencil, same wall convention, same default step — so what a caller is
+ * shown about a variable set is what the optimiser's step is actually computed
+ * from, rather than a second opinion about it that can drift.
+ *
+ * Wishes only, as the type says: a condition is not part of the merit, and the
+ * geometry it leaves behind is a different question this does not pretend to
+ * answer.
+ */
+export function variableResponse(
+  prescription: Prescription,
+  variables: readonly SolveVariable[],
+  operands: readonly OptimizeOperand[],
+  options: DlsOptions = {},
+): MeritResponse {
+  validate("variableResponse", prescription, variables, operands, []);
+  const residuals = (x: readonly number[]): MeritVector => {
+    const trial = withVariables(prescription, variables, x);
+    return operands.map((o) => (o.weight ?? 1) * (operandValue(trial, o) - o.target));
+  };
+  return meritResponse(residuals, startingValues(prescription, variables), options);
 }
 
 /** The checks both entry points make, so neither can drift from the other. */

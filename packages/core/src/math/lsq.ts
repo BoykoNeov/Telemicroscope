@@ -200,3 +200,100 @@ export function equalityConstrainedLeastSquares(
   }
   return y;
 }
+
+/** A matrix's singular values, and the directions the smallest ones belong to. */
+export interface SingularSystem {
+  /** σ₁ ≥ σ₂ ≥ … ≥ σ_cols ≥ 0. */
+  readonly values: Float64Array;
+  /**
+   * The right singular vectors, row-major `cols × cols`: entry `i*cols + j` is
+   * component i of the vector belonging to `values[j]`. Orthonormal.
+   */
+  readonly right: Float64Array;
+}
+
+/**
+ * Singular values of a dense `rows × cols` matrix by one-sided Jacobi, with the
+ * right singular vectors. `a` is row-major and is DESTROYED — it comes back
+ * holding U·Σ.
+ *
+ * One-sided Jacobi rather than the usual bidiagonalise-and-QR: it computes
+ * every singular value to high *relative* accuracy, including the small ones,
+ * and the small ones are the entire question its caller asks — a design
+ * problem's smallest singular value is the combination of variables that moves
+ * nothing, and a σ that is 10⁻¹⁴ rather than 0 is a different statement from
+ * one that is 10⁻¹ rather than 0. It orthogonalises pairs of COLUMNS by plane
+ * rotations until they are orthogonal, at which point their lengths are the
+ * singular values and the accumulated rotations are V. Demmel & Veselić (1992)
+ * is the accuracy argument; on the sizes here — a handful of columns — the cost
+ * argument that usually favours the alternative does not apply.
+ *
+ * A zero column is left alone rather than rotated: it is already orthogonal to
+ * everything, and its σ is exactly 0.
+ */
+export function singularSystem(a: Float64Array, rows: number, cols: number): SingularSystem {
+  const right = new Float64Array(cols * cols);
+  for (let i = 0; i < cols; i++) right[i * cols + i] = 1;
+
+  // 30 sweeps is a backstop, not a schedule: one-sided Jacobi converges
+  // quadratically and a matrix this size is done in single figures.
+  for (let sweep = 0; sweep < 30; sweep++) {
+    let off = 0;
+    for (let p = 0; p < cols - 1; p++) {
+      for (let q = p + 1; q < cols; q++) {
+        let alpha = 0;
+        let beta = 0;
+        let gamma = 0;
+        for (let i = 0; i < rows; i++) {
+          const ap = a[i * cols + p]!;
+          const aq = a[i * cols + q]!;
+          alpha += ap * ap;
+          beta += aq * aq;
+          gamma += ap * aq;
+        }
+        if (gamma === 0 || alpha === 0 || beta === 0) continue;
+        // The relative test: rotate while the columns' overlap is above the
+        // rounding of their own lengths, which is what "to high relative
+        // accuracy" costs and buys.
+        if (Math.abs(gamma) <= Number.EPSILON * Math.sqrt(alpha * beta)) continue;
+        off++;
+        const zeta = (beta - alpha) / (2 * gamma);
+        const t =
+          (zeta >= 0 ? 1 : -1) / (Math.abs(zeta) + Math.sqrt(1 + zeta * zeta));
+        const c = 1 / Math.sqrt(1 + t * t);
+        const s = c * t;
+        for (let i = 0; i < rows; i++) {
+          const ap = a[i * cols + p]!;
+          const aq = a[i * cols + q]!;
+          a[i * cols + p] = c * ap - s * aq;
+          a[i * cols + q] = s * ap + c * aq;
+        }
+        for (let i = 0; i < cols; i++) {
+          const vp = right[i * cols + p]!;
+          const vq = right[i * cols + q]!;
+          right[i * cols + p] = c * vp - s * vq;
+          right[i * cols + q] = s * vp + c * vq;
+        }
+      }
+    }
+    if (off === 0) break;
+  }
+
+  const values = new Float64Array(cols);
+  for (let j = 0; j < cols; j++) {
+    let s = 0;
+    for (let i = 0; i < rows; i++) s += a[i * cols + j]! * a[i * cols + j]!;
+    values[j] = Math.sqrt(s);
+  }
+
+  // Descending, columns of V carried along with them.
+  const order = Array.from({ length: cols }, (_, j) => j).sort((x, y) => values[y]! - values[x]!);
+  const sortedValues = new Float64Array(cols);
+  const sortedRight = new Float64Array(cols * cols);
+  for (let j = 0; j < cols; j++) {
+    const from = order[j]!;
+    sortedValues[j] = values[from]!;
+    for (let i = 0; i < cols; i++) sortedRight[i * cols + j] = right[i * cols + from]!;
+  }
+  return { values: sortedValues, right: sortedRight };
+}
