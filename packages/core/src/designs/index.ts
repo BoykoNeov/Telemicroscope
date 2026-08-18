@@ -14,3 +14,4 @@ export * from "./microscope";
 export * from "./visual-microscope";
 export * from "./lister";
 export * from "./immersion";
+export * from "./condenser";

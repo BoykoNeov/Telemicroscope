@@ -16,7 +16,7 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
-| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems, rays given as points and directions, traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double — bar the asphere's Newton floor; **0.1** the misaligned seven, sharing the chain but not its parameters, so FRAMES are compared and not angles; **0.2** the aimed chief ray, where the ray IS the answer; **0.3** tilted mirrors and the folded frame, two conventions one z-flip apart; **0.4** a THIRD tracer, so the two references can be compared with the engine out of it | `crosscheck` `crosscheck-optiland` |
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double, bar the asphere's Newton floor — then misalignment, aimed chief rays, folded frames, and a THIRD tracer so the two references can be compared with the engine out of it | `crosscheck` `crosscheck-optiland` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
@@ -63,7 +63,7 @@ whole ladder.
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
-| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis shown to follow sinc²(π·w₂₀), with 8/π² at the quarter wave and a hard null at every integer one; the missing cone as that same constant transformed — zero axial transfer at zero lateral frequency, 2.2e-15, with a negative control that fills it in; the support boundary μ = ν(2−ν) measured exactly at three frequencies and the defocused OTF pinned against an independent quadrature | `volume` |
+| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis following sinc²(π·w₂₀); the missing cone as that same constant transformed, 2.2e-15 of axial transfer at zero lateral frequency against a control that fills it in; the support boundary μ = ν(2−ν) exact at three frequencies | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — and the headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water, the fifth geometric ceiling in this branch | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and the finding that an off-axis tile is ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
@@ -87,7 +87,8 @@ whole ladder.
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on what a phase object's harmonics do to the readout that reports them | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and two plausible-wrong-answer hazards measured and refused by the API | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
-| [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop, whose radius has no conjugate in it because object plane → back focal plane is B = f at every one — and third order says the shift costs no coma where the trace moves 71% of it | `telecentric-din` |
+| [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop, whose radius has no conjugate in it because object plane → back focal plane is B = f at every one — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
+| [6af](#step-6af--the-condenser-is-a-lens) | § 6x's last deferral, first half: a condenser to trace through, uncorrected on purpose, its aberration measured as the AMBIGUITY it puts in `illumination/source`'s premise — two readings of one direction 11.5% apart, closing as NA² | `condenser` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -13471,6 +13472,149 @@ recorded here rather than taken quietly.
   cone is still translated rigidly, and a real condenser's cone also changes shape
   off axis. With this step closed that is the microscope branch's last deferral.
 - **Image-space telecentricity**, which still has no caller (§ 6u).
+
+## Step 6af — the condenser is a lens
+
+§ 6x's last deferral, and its first half. Since § 6f the condenser has been a
+**set of directions**: `illumination/source` builds points on a disc and
+`illumination/abbe` sums over them. That reduction is exact for Köhler
+illumination and it is where partial coherence lives, so it is not being
+replaced. What it cannot express is § 6x's own sentence — *"the cone is
+translated rigidly; a real condenser's cone also changes shape off axis, which
+is a second trace this step does not run"* — and that trace needs a condenser to
+run through. `designs/` had none. This step is the lens; feeding its cone into
+`CondenserSource` is the next one.
+
+### The decision that came before any glass
+
+Not the prescription: **whether the second half is a step at all.** A
+`CondenserSource` is a set of PLANE waves and Abbe's sum takes the modulus
+squared per direction, so "the direction an aberrated condenser sends to
+specimen point h" is a ray summary of something that is not a plane wave.
+Refining the diaphragm sampling does not repair that — it makes each sample's
+*angular* spread small, which is a different claim and the one that has to be
+measured. Measured, before designing anything, on a throwaway condenser: the
+direction from one diaphragm point moves **0.006–0.009 of the objective's pupil
+radius across a 0.094 mm patch** (a 64-pixel tile at 4×), against a source
+sampling step of 0.031 at 65 samples — a tenth of a step, so the ray summary is a
+legitimate discretization **per patch**. At a 0.374 mm patch it is 0.027–0.042,
+comparable to the step or larger. **The patch size and the source sampling are
+coupled**, and that coupling is what the second step has to pin rather than
+assume; it is § 6h.5's convergence question with a new axis.
+
+### Uncorrected on purpose
+
+`designs/immersion` already holds the pieces of a *good* condenser — the
+aplanatic hyperhemisphere is stigmatic in closed form — and using them would have
+been the obvious move and the wrong one. An aplanat has zero spherical aberration
+and zero coma by construction, so its cone barely deforms: the subject would have
+been designed away, which is § 6x's own trap about defaulting the DIN telecentric,
+one module over. The Abbe form is the right subject *because* it is uncorrected.
+
+The control is therefore not a second design. It is the **aberration-free limit**
+reached by closing the condenser's own aperture — § 6ae.5's shape, one lens.
+
+Two plano-convex elements, flats toward the lamp, one free parameter (the shared
+radius) solved on the traced paraxial chain so the thicknesses are in the answer
+and the closed form stays free to be a pin. The aperture diaphragm is **surface 0,
+at the group's front focal plane**, and that placement is the whole of Köhler
+illumination here: an object at the front focus leaves collimated, so every
+diaphragm point lights the entire field with one direction. It is § 6ae's stop
+placement read from the other side — a stop at a group's focal plane makes the
+conjugate space telecentric, and which space depends on which focal plane.
+
+### EXTERNAL, and arranged so each pin is sharp
+
+**Coddington's thin-lens polynomial** in shape factor q and position factor p, the
+one § 5j.1 and § 6b already pin, quoted here at q = −1. The element this
+constructor ships is a quarter of its own focal length thick, so the thin form does
+not describe it and is not expected to; what is pinned is the limit and the
+approach — ratio 1.968 at 2.5 mm of glass, 1.291, 1.064, 1.012, **1.0025 at 0.01
+mm**, with the departure linear in the thickness at 0.247 per mm.
+
+**The plano-convex shape is what makes that pin discriminate p**, and that is why
+it is not equiconvex. The polynomial's only term odd in p is `4(n+1)·p·q`, so at
+q = 0 the p = +1 and p = −1 readings are *identical* and the rung would pass under
+either — while this lens is emphatically p = +1, its image at infinity and its
+object not. At q = −1 the two branches are a factor 3.93 apart.
+
+**The Abbe number's own linearization error.** `f_C − f_F = f_d/V` is first-order.
+Carrying the same algebra without expanding gives `(n_d−1)²/((n_C−1)(n_F−1))`, and
+the single element lands on **that** to nine digits while the familiar form misses
+by **0.591%**. So the discrepancy is not the lens, the tracer or the glass table:
+it is the linearization inside the Abbe number's usual spelling. The two-element
+pair does not follow it (0.9498 of f/V) — a separated pair has a chromatic law of
+its own, and the gap is the freedom an achromatic condenser spends and this one
+does not.
+
+### THE FINDING: the aberration is an AMBIGUITY in `illumination/source`'s premise
+
+"One direction per diaphragm point" is a sentence about a lens with no spherical
+aberration. On a real one there are two natural readings of that direction and
+they are not the same:
+
+| | via the vertex | onto the axial specimen point | apart |
+|---|---|---|---|
+| NA 0.30 | 0.9433 | 1.0582 | **0.1149** |
+| NA 0.20 | 0.9751 | 1.0224 | 0.0472 |
+| NA 0.10 | 0.9938 | 1.0052 | 0.0114 |
+| NA 0.05 | 0.9985 | 1.0013 | 0.0028 |
+| NA 0.0125 | 0.9999 | 1.0001 | 0.00018 |
+
+— as fractions of the paraxial construction's own answer, which the two
+**straddle**: the ray through the condenser's front vertex leaves 5.7% short and
+the ray that actually reaches the specimen point leaves 5.8% long, at the NA a
+real Abbe condenser is engraved with. The gap closes as NA², a clean factor of
+four per halving, and vanishes into the aberration-free limit.
+
+So a source builder does not get to leave "the direction" unstated, and this is
+the rung that says the choice is worth 11.5%. The ray that reaches the specimen
+point being lit is the physically right one for a per-patch source.
+
+**And the cone both translates and stretches.** At the illumination aperture a
+DIN 4×/0.10 actually uses, over 2.25 mm of field, the cone's centre walks 0.0428
+of the objective's pupil radius and its rim walks 0.0650 — so the cone's *radius*
+changes by 0.0222, half again as much as a fifth of the translation. § 6x
+displaces the cone rigidly and has no way to say that; it is exactly the sentence
+§ 6x deferred, now with a size.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The radius solve delivers the asked focal length at 2 element counts × 4 lengths | the traced paraxial chain, not the maker's equation | ✅ |
+| Shape factor is −1 identically, and every first face is flat | the construction, computed not asserted | ✅ |
+| Exactly one stop, and it is the diaphragm at surface 0; the trailing thickness IS the working distance | so the prescription's image plane is the specimen plane | ✅ |
+| Four refusals, including the afocal solve naming all three inputs that caused it | § 6b.5.5 — a refusal says what to change | ✅ |
+| EXTERNAL: W₀₄₀ → Coddington's polynomial as the element thins, 1.968 → **1.0025**, departure linear at 0.247/mm | published closed form, q = −1, p = +1 | ✅ |
+| …and the pin DISCRIMINATES p, which q = 0 could not — the p-odd term is `4(n+1)·p·q` | why the elements are plano-convex | ✅ |
+| The aberration is LARGE: 8.5e-3 mm, **14.4 waves** | what the word "Abbe" is doing in the name | ✅ |
+| EXTERNAL: the chromatic shift lands on `(n_d−1)²/((n_C−1)(n_F−1))` to **9 digits**, where f/V misses by 0.591% | the Abbe number's own linearization error | ✅ |
+| …and the two-element pair does NOT follow it (0.9498) | a gap is a second chromatic freedom, unspent here | ✅ |
+| The diaphragm sits exactly where the group collimates, at three focal lengths | `collimatingObjectDistance`, bitwise | ✅ |
+| The axial diaphragm point sends **exactly** zero on axis | that ray IS the axis — a construction, not a residual | ✅ |
+| The diaphragm radius is `f·tan u` bitwise at three apertures | the aperture in the currency a condenser is engraved in | ✅ |
+| **THE FINDING: two readings of one direction, 0.9433 and 1.0582, straddling the paraxial value** | `illumination/source`'s premise, measured | ✅ |
+| …and the ambiguity closes as NA², a factor 4.0 per halving over four octaves | third-order spherical, read as an angle error | ✅ |
+| CONTROL: at NA 0.0125 both readings meet the paraxial value inside 2e-4 | the aberration-free limit, reached | ✅ |
+| The cone TRANSLATES 0.0428 and its rim 0.0650, so it STRETCHES by 0.0222 | § 6x's rigid displacement cannot say this | ✅ |
+| The glass passes the whole field from every diaphragm point, at two apertures | § 6w's sizing, with aperture and field swapped | ✅ |
+
+### Not yet pinned
+
+- **The second half**, which is the point of this one: turning the traced cone into
+  a per-patch `CondenserSource` and re-pinning what it does to `abbeImage`. The
+  feasibility is measured above and so is its condition; what is not measured is
+  the cost, and that is where it lands hard — § 6p's cache rests on the source
+  sitting on a lattice, and a cone that changes shape off axis is not one lattice.
+- **The design is not a catalogued prescription.** Nobody publishes "the" Abbe
+  condenser, and a plano-convex pair solved for a focal length is a
+  *representative* uncorrected condenser. Everything that can be pinned is; the
+  glass itself is a construction, and is labelled one.
+- **Critical illumination**, unchanged from § 6x: imaging the filament onto the
+  specimen breaks the set-of-directions model rather than deforming it.
+- **The condenser's field diaphragm.** The specimen plane here is a stated working
+  distance; a real Köhler condenser images a field stop onto it, and where that
+  stop sits follows from the working distance rather than being free. Nothing here
+  needs it, and a step that renders a field edge will.
 
 ## Later rungs
 

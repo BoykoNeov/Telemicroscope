@@ -722,9 +722,20 @@
    shift costs no coma when ΣS_I = 0, and at the f/4 the 4×/0.10 works at it moves
    71% of it, because the only spherical left is fifth order and the induced coma
    rides on that.
-   **Still open here:** the condenser's own aberrations (§ 6x translates the cone
-   rigidly; a real one changes its shape off axis), and image-space
-   telecentricity, which has no caller.
+   ~~**Still open here:** the condenser's own aberrations~~ — **half closed at
+   § 6af**, which built the condenser this branch never had: an UNCORRECTED Abbe
+   pair, chosen that way on purpose because an aplanat's cone barely deforms and
+   the subject would have been designed away. Its aberration turns out to be
+   expressible as an AMBIGUITY in `illumination/source`'s own premise — "one
+   direction per diaphragm point" has two natural readings that straddle the
+   paraxial value by 5.7% and 5.8% at NA 0.30, closing as NA² — and the cone does
+   not merely translate as § 6x models it but STRETCHES, its radius moving 0.0222
+   of the objective's pupil over 2.25 mm of field against a 0.0428 translation.
+   **Still open here:** feeding that cone into `CondenserSource` per patch, which
+   is well-posed under a MEASURED condition (the direction moves a tenth of a
+   sampling step across a 0.094 mm patch and a whole step across a 0.374 mm one,
+   so patch size and source sampling are coupled) and lands on § 6p's lattice
+   cache; and image-space telecentricity, which has no caller.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it
@@ -1625,9 +1636,9 @@
    albedo map, lunar terrain, a real limb-darkening coefficient, which is
    measured data to source rather than code to write); ~~§ 6x's two deferrals, the
    DIN objective's telecentricity and the condenser's own aberrations~~ — **the
-   first closed at § 6ae**, leaving one: the condenser's own aberrations and its
-   own pupil, which is the microscope branch's last deferral and needs a
-   condenser prescription `designs/` does not have; ~~**what the phase panel should print
+   first closed at § 6ae** and the second's own first half at **§ 6af**, leaving
+   the wiring: a traced cone into `CondenserSource` per patch, well-posed under a
+   measured condition and landing on § 6p's lattice cache; ~~**what the phase panel should print
    for its 2ν contrast above S ≈ 0.9**~~ — **closed**, at § 6ab.12 (the readout
    was printed where the harmonic cannot exist, and the fix is a geometric gate
    with no threshold in it), § 6ab.13 (the grating's own orders were folding onto
