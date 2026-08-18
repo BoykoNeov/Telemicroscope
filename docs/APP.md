@@ -3182,8 +3182,8 @@ which is now affordable rather than theoretical.
 closes the gap this doc's own accounting had lost — see "Suggested order". App
 wiring only: **no new engine capability, so no validation-ladder rung.** What the
 panel claims that no rung states is pinned app-side instead, in
-`packages/app/test/eyepiece.test.ts` (20 assertions), which is A6's and D10's
-convention. Six findings, and the first two are corrections to things written here.
+`packages/app/test/eyepiece.test.ts` (26 rungs), which is A6's and D10's
+convention. Seven findings, and the first two are corrections to things written here.
 
 - **It runs on the MAIN THREAD**, the first microscope surface since A2 that
   does. § 6q's composition really is first-order work — one affine gap solve,
@@ -3268,6 +3268,19 @@ convention. Six findings, and the first two are corrections to things written he
   *is* traced here is the magnification (a real chief ray's exit angle) and the
   engraved NA (a real marginal ray's launch sine). The panel labels all three by
   what computed them.
+- **The panel was DARK on three catalogue rows for six steps, and its own rungs
+  could not see it (§ 6ah).** Every rung above runs on one fixture, `din-4x-010`,
+  which is rim-stopped. The three infinity cemented doublets are telecentric by
+  § 6v's default, their entrance pupil is at infinity, and
+  `paraxialObjectNumericalAperture` computed semi-diameter ÷ arm — ∞/∞ — so the
+  panel printed *"this engine refuses this design"* for all three from § 6v until
+  § 6ah found it. Two things this costs a doc to say plainly. **A panel-side rung
+  suite inherits its fixture's blind spots**, and a fixture is a choice nobody
+  re-examines; D6.10 now walks the whole catalogue rather than one more chosen
+  row. And **the refusal looked like the engine's** — it was routed through the
+  honest refusal path this panel is praised for above, wearing the engine's voice,
+  which is exactly what made it read as a design that cannot be built rather than
+  as a bug.
 
 **§ 6q.5's headline arrives live, and it is why this panel exists at all.** On
 the 100×/1.40 oil the exit pupil reads **1.7767 mm**; the invariant in its own

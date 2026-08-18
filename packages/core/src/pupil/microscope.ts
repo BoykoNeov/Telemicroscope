@@ -240,6 +240,18 @@ export function rayleighResolutionMm(wavelengthNm: number, numericalAperture: nu
  * names ("a stop of f·NA on the vertex would deliver NA 0.102, not 0.100"), and
  * at high aperture it is not a rounding error: 2% at NA 0.10 and a factor at
  * NA 1.40, which is § 6q.5's finding.
+ *
+ * **A telecentric objective has no arm and no radius, and the slope is still
+ * there** (§ 6ah). "Semi-diameter over distance" is a *construction* of n·u, not
+ * its definition: when the stop sits on the back focal plane the entrance pupil
+ * goes to infinity and both terms of that ratio go with it, for a silent NaN —
+ * ∞/∞ — that reached the app as an engine refusal on every infinity cemented
+ * doublet in the catalogue, three shipped rows, from § 6v's default until this
+ * was found. `PupilPlane` already carries the answer as `slopeRadius`, which is
+ * the same u the finite construction was reaching for and is why that field's
+ * invariant is `radius` finite XOR `slopeRadius` defined: the two branches are
+ * one quantity, and they agree to the bit on a lens where the aperture is the
+ * only thing that decides it.
  */
 export function paraxialObjectNumericalAperture(
   system: OpticalSystem,
@@ -250,6 +262,11 @@ export function paraxialObjectNumericalAperture(
   }
   const pupil = pupils(system, wavelengthNm);
   const n = getMedium(system.prescription.objectMedium ?? "AIR").n(wavelengthNm);
+  // `slopeRadius` is the raw geometric slope in the OBJECT medium, so the index
+  // that multiplies it is the object medium's — the same n the finite branch
+  // uses, and the coverslip's rather than air's when the specimen sits in glass.
+  const slope = pupil.entrance.slopeRadius;
+  if (slope !== undefined) return n * slope;
   const arm = pupil.entrance.z + system.conjugate.distance;
   if (!(Math.abs(arm) > 0)) {
     throw new Error("paraxialObjectNumericalAperture: the entrance pupil lies on the specimen");

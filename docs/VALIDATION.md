@@ -51,21 +51,21 @@ whole ladder.
 | [5r](#step-5r--camera-mode-pixel-scale-and-sensor-sampling) | Plate scale, the pixel as box integrator, critical sampling; **5r.1** the FOV bracket that started outside the field | `camera` |
 | [5s](#step-5s--camera-mode-relative-exposure) | Image-space cone from the marginal ray; f-ratio and aperture laws | `exposure` |
 | [5t](#step-5t--tolerancing-sensitivity-compensators-and-the-rss-budget) | Sensitivity, compensators, RSS budget — four external pins | `tolerance` |
-| [5u](#step-5u--the-mechanical-layer-the-glass-path-that-is-not-its-own-length) | The mechanical layer, and the one claim it exists for: a part's mechanical length is not its optical cost — glass moves the traced focus by t(1−1/n), dispersively, and exactly independently of where it sits in the converging beam — plus the sixth geometric ceiling, the first from a MOUNT rather than the ray invariant | `mech` |
+| [5u](#step-5u--the-mechanical-layer-the-glass-path-that-is-not-its-own-length) | Glass moves the traced focus by t(1−1/n), dispersively, and exactly independently of where it sits in the converging beam — plus the sixth geometric ceiling, the first from a MOUNT rather than the ray invariant | `mech` |
 | [5v](#step-5v--the-extended-source-and-the-jacobian-that-makes-it-one) | The sky's first source with a SIZE: a radiance over solid angle, so the chief-ray map is differentiated rather than only evaluated — a Jacobian shown to be one-dimensional and pinned to cos³θ/f², with the fourth cosine measured to be absent from the engine and therefore NOT applied | `extended` |
-| [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | Infinity-corrected architecture; M = f_tube/f_obj; the first objective | `microscope` |
+| [6a](#step-6a--the-infinity-corrected-microscope-architecture-and-the-first-objective) | M = f_tube/f_obj, and the doublet solved for it | `microscope` |
 | [6b](#step-6b--the-classic-160-mm-din-microscope) | Finite conjugates (position factor); the re-solved DIN objective; the doublet's ceiling (§ 6b.5) | `microscope` `seidel` `achromat` |
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
-| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; the 0.61·λ/NA_cond coherence width measured; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
+| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, which explains its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis following sinc²(π·w₂₀); the missing cone as that same constant transformed, 2.2e-15 of axial transfer at zero lateral frequency against a control that fills it in; the support boundary μ = ν(2−ν) exact at three frequencies | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — and the headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water, the fifth geometric ceiling in this branch | `depth-aberration` |
-| [6m](#step-6m--the-off-axis-frame) | The frame moved off axis, so a field is reached by tiling and not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and the finding that an off-axis tile is ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
+| [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling and not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and the finding that an off-axis tile is ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
 | [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so a traced pupil is evaluated once instead of once per direction — cached ≡ uncached bit for bit, the saving pinned as an exact integer rather than a wall clock, and commensurability shown to be accuracy-neutral | `commensurate` |
@@ -79,7 +79,7 @@ whole ladder.
 
 | [6v](#step-6v--the-presets-are-telecentric) | The shipped objective's stop moves from its rim to its back focal plane, the rim kept as the NEGATIVE CONTROL — and the price the step did not go looking for: a telecentric bundle's footprint translates with field, so it walks off glass sized for the axial beam | `telecentric-objective` |
 
-| [6w](#step-6w--the-objective-knows-what-field-it-must-pass) | § 6v's price, paid: the objective is sized for a FIELD NUMBER, so its glass is f·NA + h — every number in it magnification-independent, the closed form an upper bound never reached, and a field number a second door onto § 6b.5.7's geometric doublet ceiling | `field-sized-objective` |
+| [6w](#step-6w--the-objective-knows-what-field-it-must-pass) | § 6v's price, paid: the glass is f·NA + h — every number in it magnification-independent, the closed form an upper bound never reached, and a field number a second door onto § 6b.5.7's geometric doublet ceiling | `field-sized-objective` |
 | [6x](#step-6x--what-telecentricity-is-worth-to-the-illumination) | A correction to four module headers before it is a measurement: the licence for one source at every field point belongs to the OBJECTIVE and not the condenser, so the offset is bitwise zero only on a telecentric lens — and what it costs off axis is § 6p's cache | `telecentric-illumination` |
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
@@ -90,6 +90,7 @@ whole ladder.
 | [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop, whose radius has no conjugate in it because object plane → back focal plane is B = f at every one — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
 | [6af](#step-6af--the-condenser-is-a-lens) | § 6x's last deferral, first half: a condenser to trace through, uncorrected on purpose, its aberration measured as the AMBIGUITY it puts in `illumination/source`'s premise — two readings of one direction 11.5% apart, closing as NA² | `condenser` |
 | [6ag](#step-6ag--the-traced-cone-into-condensersource) | § 6x's last deferral closed, and inverted: traced BACKWARDS from the specimen the aberration lands in the WEIGHTS, not the positions — so § 6p's cache SURVIVES a shape-changing cone, 289 pupil evaluations against 35 088 | `condenser-source` |
+| [6ah](#step-6ah--the-paraxial-na-of-a-pupil-at-infinity) | ∞/∞: the DEFAULT objective has had no paraxial NA since § 6v, refusing three of the app's ten rows outright — and the slope branch reaches the rim lens's own double BITWISE | `telecentric-na` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -13917,6 +13918,99 @@ real constraint; none is an external number, and calling the currency rung
 - **Critical illumination**, unchanged from § 6x and § 6af: imaging the filament
   onto the specimen breaks the set-of-directions model rather than deforming it.
 - **The condenser's field diaphragm**, unchanged from § 6af.
+
+## Step 6ah — the paraxial NA of a pupil at infinity
+
+**Not a new capability. A shipped readout that had no answer on the DEFAULT
+lens, found by taking the branch the fixture did not.**
+
+`paraxialObjectNumericalAperture` reports n·u for the paraxial pupil geometry,
+and its doc says how: *the entrance pupil's semi-diameter over its distance from
+the specimen.* It computed exactly that. § 6v then moved `microscopeObjective`'s
+stop to the back focal plane **by default**, which is what puts the entrance
+pupil at infinity — and sends both terms of that ratio there with it. ∞/∞ is
+NaN; `visualDetailRatio` refuses a non-positive NA; and the app's eyepiece panel
+answered *"this engine refuses this design"* for **every infinity cemented
+doublet in its catalogue — three shipped rows — from § 6v until this step**.
+
+Nothing failed while that was true, and the reason is the interesting part. The
+eyepiece rungs (D6.1–D6.9) all run on one fixture, `din-4x-010`, which is
+rim-stopped because § 6x asked the DIN to stay that way. § 6v's own rungs measure
+where the stop lands, what the pupil does, what the placement buys off axis —
+and never ask this readout for a number. So the default architecture's default
+objective had a readout that returned NaN, with 2 400 rungs green.
+
+This is the branch-and-fixture form of a finding this file has now recorded three
+times: **a shipped option with no rung is a shipped claim with no evidence.** The
+two new corners of it are that the unmeasured branch was the *default* one, and
+that the fixture hiding it belonged to the *other* architecture — a rung suite can
+be exhaustive about one lens and blind to the catalogue.
+
+### The repair is exact, and that is what makes it a repair
+
+`PupilPlane` has carried `slopeRadius` since § 6u — the aperture as a slope,
+which is what a pupil at infinity has instead of a radius — under a stated
+invariant: `radius` finite **XOR** `slopeRadius` defined. So "semi-diameter over
+arm" was never the definition of n·u, only one of its two constructions, and the
+other was already in the return value the function was reading.
+
+§ 6ah.2 pins that they are one quantity rather than two answers. On the same
+4×/0.10 design the rim lens's semi-diameter-over-arm and the telecentric lens's
+slope are **the same double**, `toBe` and not `toBeCloseTo`, and that double is
+also the closed form NA/√(1 − NA²). Over three octaves of aperture the agreement
+holds to an ulp. A limit that is reached exactly is worth more than a tolerance:
+it says the branch is the same physics rather than a second opinion about it.
+The finite conjugate reaches it through a different arithmetic path — a solved
+object distance rather than a focal length — and lands 3 ulp away, which is what
+distinguishes a computation's agreement from an expression's.
+
+**The index that multiplies the slope is the specimen's** (§ 6ah.3). NA is
+n·sin u, so a specimen under a cover glass subtends a smaller angle for the same
+engraved aperture and the closed form becomes NA/√(1 − (NA/n)²) — 0.286% below
+air's at NA 0.10 on D263. The finite branch gets that index handed to it by the
+arm; the slope branch has to take it from the object medium, and a sign error
+away it would have been invisible.
+
+### What the readout is for, and what still misses
+
+§ 6q.5's Lagrange invariant is a statement about paraxial **slopes**, which is
+why it takes this NA and not Abbe's sine one — the whole reason this function is
+separate from `objectNumericalAperture`. § 6ah.4 checks the law itself survives
+on a telecentric visual instrument: r_xp = D·NA/|M| holds to 6.5e-5, against the
+rim instrument's 5.7e-5. Both miss by the distortion a real chief ray carries and
+a paraxial law does not, and the ratio of the two misses is 1.15 — the same
+order, which is the statement. A branch merely made *finite* could have landed
+anywhere; this one lands where the law does.
+
+The control is that § 6q.5's finding must survive the fix. The textbook
+D·NA_engraved/|M| still misses the same pupil by 0.50% at NA 0.10, telecentric as
+well as rim-stopped, because sec u is a property of the aperture and not of where
+the stop went. Had the repair quietly made the two NA spellings equal, that
+control is where it would have shown.
+
+### The app rung is the catalogue, not one more row
+
+D6.10 walks **every** row of `MICROSCOPE_CATALOG` through `describeInstrument`
+rather than adding a second chosen fixture, because choosing was the failure. Nine
+rows compose; `lister-40x-040` refuses, and the rung names *which* refusal — § 6d's
+joint-root wall at NA 0.343, matched by message. A bare `ok === false` would have
+accepted the NA bug as readily as the wall it is there to record.
+
+### Not pinned to an external number, and not pretending to be
+
+NA/√(1 − NA²) is a definition rearranged, not a published measurement, so the
+pins here are exactness (bitwise agreement, an ulp over three octaves) and one
+law that was already external (§ 6q.5's Lagrange invariant, unchanged). The step
+adds no physics; it removes a NaN.
+
+### Still open
+
+- **`pointSourceCollection` reads `entrance.radius` too** (`imaging/exposure`),
+  so it returns ∞ for a telecentric system. Its only callers build the camera's
+  telescope, which is front-stopped, so nothing reaches it today — but it is the
+  same shape as this bug, unpinned, and a microscope camera panel would find it.
+- **The DIN's default is still `"rim"`** — § 6ae's queued flip, unchanged by this
+  step except that the flip no longer has to carry this NaN with it.
 
 ## Later rungs
 

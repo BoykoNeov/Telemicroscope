@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { entryOf } from "../src/microscope";
+import { MICROSCOPE_CATALOG, entryOf } from "../src/microscope";
 import { refusalVoice } from "../src/refusal";
 import { plosslEyepiece } from "@telemicroscope/core/designs";
 import {
@@ -414,5 +414,59 @@ describe("D6.9 — a sweep whose objective does not build returns rather than th
     expect(made.source).toBe("app");
     expect(made.stage).toBe("objective");
     expect(refusalVoice(made.source, "this objective")).toMatch(/^this app refuses/);
+  });
+});
+
+/**
+ * D6.10 — the panel's own catalogue, every row of it (§ 6ah).
+ *
+ * Every rung above runs on `din-4x-010`, and that fixture is rim-stopped. The
+ * three infinity cemented doublets are telecentric — § 6v's default — and on
+ * them this panel printed *"this engine refuses…"* rather than an instrument,
+ * because `paraxialObjectNumericalAperture` had no answer for an entrance pupil
+ * at infinity. A whole architecture's worth of the panel was dark, and no rung
+ * here could see it, which is what a fixture on one row buys and costs.
+ *
+ * So the rung is the catalogue itself rather than one more chosen row, and the
+ * refusal it does contain is named: `lister-40x-040` is in the table BECAUSE it
+ * does not build (§ 6d's wall at NA 0.343), and a sweep that treated every
+ * refusal as a bug would have to delete the row that teaches the wall.
+ */
+describe("D6.10 — every catalogue row reaches the panel, not just the fixture's", () => {
+  /** The one row the catalogue ships to be refused, and whose refusal is § 6d. */
+  const WALLED = "lister-40x-040";
+
+  it("composes an instrument on every row the engine admits, and refuses only § 6d's", () => {
+    for (const entry of MICROSCOPE_CATALOG) {
+      const made = describeInstrument({ ...BASE, spec: entry.spec });
+      if (entry.kind === WALLED) {
+        expect(made.ok).toBe(false);
+        if (made.ok) continue;
+        // The wall, by name — not "some refusal", which is what a bare
+        // `.ok === false` would have accepted from the NA bug as readily.
+        expect(made.error).toMatch(/listerObjective: no joint/);
+        continue;
+      }
+      if (!made.ok) throw new Error(`${entry.kind}: ${made.error}`);
+      expect(made.readout.naParaxial).toBeGreaterThan(0);
+    }
+  });
+
+  it("and the NA it prints is the aperture's own tangent, telecentric or not", () => {
+    // `naParaxial` is n·tan u and `naEngraved` is n·sin u, so their ratio is
+    // sec u — a function of the engraved NA and the medium, and of nothing about
+    // where the stop went. Checked across the two placements the catalogue
+    // actually mixes: the DIN and the Lister are rim-stopped, the three infinity
+    // doublets are telecentric, and one closed form covers all five.
+    for (const kind of ["din-4x-010", "inf-4x-010", "inf-10x-010", "inf-20x-010", "lister-40x-020"] as const) {
+      const entry = entryOf(kind);
+      const r = ok({ spec: entry.spec });
+      const na = entry.nominalNA;
+      expect(r.secU).toBeCloseTo(1 / Math.sqrt(1 - na * na), 4);
+    }
+    // The oil row takes the same form with the immersion index in it, and
+    // D6.2 already pins what that is worth (61% against the textbook), so it is
+    // the dry rows that this rung adds.
+    expect(ok({ spec: entryOf("oil-100x-140").spec }).secU).toBeGreaterThan(1);
   });
 });
