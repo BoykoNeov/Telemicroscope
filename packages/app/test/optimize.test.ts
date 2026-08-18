@@ -832,12 +832,23 @@ describe("what a traced wish does to the rest of the panel", () => {
     expect(spotOf(off).startValue / spotOf(axis).startValue).toBeCloseTo(1, 1);
 
     // What it does is change the answer. Two curvatures can take the axial spot
-    // to 9·10⁻⁴ mm and stop on `step`; at half a degree the best they reach is
-    // 4.8× larger and the run spends every iteration it is allowed.
+    // to 9·10⁻⁴ mm; at half a degree the best they reach is 4.8× larger.
     expect(spotOf(off).value / spotOf(axis).value).toBeGreaterThan(4);
-    expect(axis.reason).toBe("step");
-    expect(off.reason).toBe("iterations");
     expect(off.to).not.toEqual(axis.to);
+
+    // **Both runs now spend every iteration they are allowed, and the axial one
+    // used to stop on `step`.** That was not convergence: at the old default
+    // step this seed's axial run stopped after 26 iterations having ACCEPTED 9
+    // of them and rejected 16, which is a Jacobian too coarse to predict its own
+    // merit rather than a run that has arrived. At § 1.8.11's step the same run
+    // accepts 77 of 100 and the merit is still falling in its sixth figure when
+    // the cap arrives. The spot it reaches is better — 9.359149e-4 against
+    // 9.359194e-4 — for 501 traced evaluations against 130. Pinned as an
+    // equality on BOTH so a later change of stop rule has to come here and say
+    // so; the § 1.8.11 note in VALIDATION.md carries why the rule is the
+    // suspect and not the step.
+    expect(axis.reason).toBe("iterations");
+    expect(off.reason).toBe("iterations");
   });
 
   it("a paraxial spec is bit-for-bit what it was before the traced half landed", () => {

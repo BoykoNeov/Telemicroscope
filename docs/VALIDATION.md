@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: two closed-form minimisers — Coddington's best form, the achromat's power split — and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9), and the same reading where the merit TRACES (§ 1.8.10) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -2357,7 +2357,10 @@ rejoin: both curvature columns come back `walled` and both `survivorChanged`,
 `dead` and `blind` empty. **And 10⁻⁹ of curvature — twelve orders below the
 difference step — moves the reported response by 6.7%**, because on one side of
 that the stencil straddles the cliff and on the other it does not. A reader
-shown either number alone had no way to know which one they had.
+shown either number alone had no way to know which one they had. (6.3% and ten
+orders at § 1.8.11's step, where this was 6.7% and twelve at the old one — a
+finer stencil does not resolve a discontinuity, it straddles a narrower piece of
+one.)
 
 **Cost**: 2n + 1 evaluations, plus up to two more per walled column for the
 probe — one iteration's worth of the run it describes, which is the same
@@ -2374,11 +2377,224 @@ would wall every column and report a merit that can see nothing.
 | 15 mm of image plane moves the ratio under 1e-5, 1% of its own departure | that the plane is not in this column | ✅ |
 | Paraxial operands through this entry point are `variableResponse` **bitwise** | that a mixed merit's paraxial half still means what it meant | ✅ |
 | One traced wish, two variables: cos = 1 to the bit, σ₂ = 0, κ = ∞, weakest = (1,1)/√2 | a 1 × 2 Jacobian's rank | ✅ |
-| **The flat direction is a real level set**: 1.14e-9 against 1.00e-3 at the same step, and quadratic against linear in it | that a null direction is stationarity and not bookkeeping | ✅ |
-| A ray leaving the set reads `walled` + `survivorChanged`, not `dead`; and 1e-9 of curvature moves the response 6.7% | § 1.8.5's cliff, met by the readout instead of by the run | ✅ |
+| **The flat direction is a real level set**: 1.13e-9 against 1.00e-3 at the same step, and quadratic against linear in it | that a null direction is stationarity and not bookkeeping | ✅ |
+| A ray leaving the set reads `walled` + `survivorChanged`, not `dead`; and 1e-9 of curvature moves the response 6.3% | § 1.8.5's cliff, met by the readout instead of by the run | ✅ |
 | `blind` and `dead` are the same zero and the same κ, separated only by the lists | that "nothing measured" and "nothing to measure" are different fixes | ✅ |
 | Refusals: an empty variable set, an operand that cannot be read at the start (by index) | that the readout answers the question it was asked | ✅ |
 
+
+### 1.8.11 — the step's own scale, and the proposal this file carried for it
+
+The recorded "step's own scaling" item, answered — and the answer is not the one
+the item proposed. `steps` defaulted to εʰ·max(|xⱼ|, 1), and the bullet's
+diagnosis was right: the floor of 1 is a unit assumption, right for a thickness
+in mm and wrong by three orders for a curvature in 1/mm. Its prescription was to
+make the floor **scale-relative**. Measured, that is worse than what it replaces.
+
+The default is now εʰ·max(|C|, 1/a) for a curvature on a merit that TRACES,
+where a is that surface's own semi-aperture. Everything else — every thickness,
+every merit that does not trace, and every caller of `dampedLeastSquares` or
+`meritResponse` directly — is unchanged **to the bit**, which is what let this
+land as one commit rather than as a rewrite of 2 437 recorded digits.
+
+#### THE finding: a variable's magnitude says nothing about the merit's response
+
+The proposal's hidden premise is that a variable's own size is evidence about
+how sensitive the merit is to it. On the fixture the item was written against —
+§ 1.8.7's concentric mirror, one curvature, the conjugate as the answer — the
+two really are linked, because ∂(rms)/∂C carries R². So a relative step looks
+excellent there: 9.2·10⁻¹⁴ in the located conjugate at every size, two orders
+better even than the rule finally chosen.
+
+Put the same rule on a surface whose system's power lives somewhere else and it
+collapses. A plano-convex singlet, all the power on surface 0, the BACK
+curvature as the variable: the column ∂c₁₁/∂c₂ is ≈52.8 whether c₂ is 10⁻² or
+exactly 0 — the merit does not know or care how small the number is.
+
+| c₂ | max(\|x\|, 1) | relative \|x\| | 1/a |
+|---|---|---|---|
+| 10⁻³ | 8.9·10⁻⁸ | 9.7·10⁻⁶ | 1.2·10⁻⁷ |
+| 10⁻⁵ | −1.5·10⁻⁷ | 4.7·10⁻⁴ | −2.0·10⁻⁷ |
+| 10⁻⁶ | 1.8·10⁻⁷ | −3.3·10⁻³ | 2.4·10⁻⁷ |
+| 10⁻⁸ | −2.1·10⁻⁷ | **−4.8·10⁻¹** | −2.1·10⁻⁷ |
+| 10⁻¹⁰ | −1.4·10⁻⁸ | **+2.5·10¹** | −1.6·10⁻⁸ |
+| 0 | −6.3·10⁻⁷ | **refused** | −7.0·10⁻⁷ |
+
+Relative error against the plateau, which runs 10⁻⁹…10⁻⁴ and agrees to six
+figures across it. The relative rule degrades without bound and then stops being
+a rule at all: a step of exactly 0 is refused, as it must be. **And a plano
+surface is not a contrivance** — `designs/coverslip.ts`, `designs/immersion.ts`
+and `designs/microscope.ts` all ship one, so the rule that cannot difference it
+is disqualified by the catalogue rather than by a fixture built to break it.
+
+#### What replaces it is a length, and the argument is dimensional
+
+A curvature has no natural unit; 1 mm⁻¹ is a 1 mm radius. What it does have is a
+surface, and the surface has a rim. One difference step h moves the **rim sag**
+by h·a²/2, so:
+
+| rule | rim sag moved | at a = 10 | a = 40 | a = 160 |
+|---|---|---|---|---|
+| max(\|C\|, 1) | ∛ε·a²/2 | 3.0·10⁻⁴ mm | 4.8·10⁻³ | 7.8·10⁻² |
+| relative | ∛ε·(the sag itself) | — | 1.2·10⁻⁵ | 4.8·10⁻⁵ |
+| **1/a** | **∛ε·a/2** | 3.0·10⁻⁵ mm | 1.2·10⁻⁴ | 4.8·10⁻⁴ |
+
+The old floor moves the rim by a quantity that grows with the aperture SQUARED —
+which is why "nudge the curvature a little" was 15 mm of radius on a 160 mm
+mirror and 5 µm on a 10 mm one. 1/a moves it by a fixed fraction of the aperture
+at every aperture. That is the whole rule: **difference a curvature by ∛ε/2 of
+its own rim.**
+
+#### And the evidence that it is a currency is that it stops moving
+
+§ 1.8.7's concentric conjugate over a 16× range of size, worst of two starts:
+
+| d, a | max(\|C\|, 1) | 1/a |
+|---|---|---|
+| 100, 10 | 9.00·10⁻¹⁰ | 9.04·10⁻¹² |
+| 400, 40 | 1.39·10⁻⁸ | 9.04·10⁻¹² |
+| 1600, 160 | 1.86·10⁻⁸ | 9.04·10⁻¹² |
+
+One number at three sizes against a reading that walks a factor of 21 over the
+same range — the same shape of argument as § 6ag's `tan u_max`, and the reason
+this is a currency rather than a constant that suited one fixture. The gain is
+two orders at the smallest and **three at the largest**, and it grows with the
+mirror because the defect did.
+
+Three orders and not the six § 1.8.7 measured, which is the honest shape of it:
+stating 1·10⁻⁸ by hand still buys the last two. **The default is not the floor.
+It is off the truncation arm, which is all a default has to be.**
+
+#### The external number, and a curvature column is not a thickness column
+
+§ 1.8.10 pinned a Jacobian column against a closed form and the column was a
+THICKNESS — the one kind the old floor already suited, so it could not have
+discriminated anything here. The same rung in the kind that can turns out to
+need a closed form that is a **sum of two textbook terms**:
+
+    ∂c₁₁/∂C  =  3h⁴C²/(24√5·λ)  −  (1/(2C²))·NA⁴/(48√5·λ)
+
+The first is Born & Wolf's W₀₄₀ = h⁴/(4R³) for a mirror at infinite conjugate,
+carried through the ρ⁴→Z₁₁ expansion c₁₁ = W₀₄₀/(6√5) and differentiated in
+C = 1/R. The second is the ρ⁴ content of the defocus that appears because the
+image plane is HELD while the paraxial focus walks: ΔZ·NA⁴/8 in mm, through the
+same expansion, with dΔZ/dC = −1/(2C²) because a mirror's focus is at R/2.
+
+**The second term is exactly 4/3 of the first and takes the opposite sign, so
+the column's SIGN is set by the conjugate motion and not by the aberration.**
+Anyone differentiating W₀₄₀ alone gets this column backwards — which is the
+reason a curvature column was worth pinning and a thickness one was not enough.
+
+| a | NA | excess | excess/NA² |
+|---|---|---|---|
+| 5 | 0.025 | 1.019·10⁻⁴ | 0.1630 |
+| 10 | 0.050 | 4.696·10⁻⁴ | 0.1878 |
+| 20 | 0.100 | 1.893·10⁻³ | 0.1893 |
+| 40 | 0.200 | 7.615·10⁻³ | 0.1904 |
+
+Monotone toward 0.1904 from below over an 8× range of NA — § 1.8.7's fifth-order
+signature again, the neglected term identifying itself by its own order. **Each
+point is taken at its own 1/a step, and that is not a detail**: at one fixed
+1·10⁻⁸ the smallest aperture is differencing-floor-limited and reads −0.679,
+breaking the sequence entirely. Four points that line up because each was read
+at its own resolution is a different claim from four that happened to.
+
+#### Why `traces` is a condition and not a hedge
+
+The rule is applied only where the merit traces, and the measurement that makes
+that a decision is the opposite regime. A paraxial or third-order operand is a
+closed form in f64 and φ = (n−1)(c₁−c₂) is **exactly linear** in either
+curvature, so its column carries no truncation error at all and the whole window
+is one arm: every decade of step is a decade less cancellation.
+
+| h | column against (n−1) = 0.51680003450058831 |
+|---|---|
+| 10⁻³ | −1.3·10⁻¹⁵ |
+| 10⁻⁴ | 2.2·10⁻¹⁵ |
+| ∛ε = 6.06·10⁻⁶ | −9.8·10⁻¹⁴ |
+| ∛ε/25 | 2.7·10⁻¹² |
+| ∛ε/100 | −2.5·10⁻¹¹ |
+
+Bigger is strictly better, and the cost of 1/a grows straight with the aperture:
+27× at a 25 mm rim, 256× at a 100 mm one. So the two operand families want
+**opposite** steps, and what says which is the merit rather than the variable.
+A merit that mixes them takes the traced rule, because a merit's floor is the
+worst of its parts — and a HELD traced quantity counts, a condition being
+differenced in the same stencil as the wishes.
+
+Gating on `isTraced` is not free bookkeeping either: it took the number of
+recorded rungs whose digits move from 17 to 9. The eight it saved are § 1.8.9's
+whole conditioning family and § 1.8.10's `variableResponse` ≡ `systemResponse`
+identity, all of which are paraxial and all of which the aperture rule made
+measurably worse.
+
+#### The correction it forced, which is two orders on a shipped finding
+
+§ 1.8.6 records that on the FIXED image plane a weighted run and an exactly-held
+one "do NOT agree", quoting 0.2257 against 0.2230 — 1.2% apart. Swept over eight
+decades of step, both settle:
+
+| h | weighted | held | gap |
+|---|---|---|---|
+| 6.06·10⁻⁶ (the old default) | 0.225698 | 0.222947 | **2.75·10⁻³** |
+| 1·10⁻⁶ | 0.212946 | 0.212908 | 3.86·10⁻⁵ |
+| 1·10⁻⁷ (the new default here) | 0.212726 | 0.212699 | 2.66·10⁻⁵ |
+| 1·10⁻⁸ … 1·10⁻¹⁰ | 0.2127247 | 0.2126977 | 2.70·10⁻⁵ |
+
+**The finding survives in direction and was 102× overstated in size.** The two
+mechanisms do disagree, by a gap that is stable over four decades of step; the
+1.2% was the differencing resolution, and BOTH shapes were wrong in their third
+digit. The multiplier moved with them, −1.2452·10⁴ against −1.25213·10⁴ settled.
+§ 1.8.5's 0.2257 for the same convention is the same number and moves the same
+way; its refocused 0.7120 does not move at all, because there the power is held
+well enough that the answer is the condition's rather than the step's.
+
+That is § 1.8.6's own lesson arriving from a new direction: a condition is
+solved, and a weight is a compromise — so how finely the merit can be resolved is
+one of the things a weighted run is compromising with, and an exactly-held one
+is not.
+
+#### What it costs, and the defect it uncovered rather than caused
+
+On the app's `retarget` seed, axial, two curvatures, an 11-point grid:
+
+| step | spot (mm) | reason | it | accepted | rejected | evaluations |
+|---|---|---|---|---|---|---|
+| 6.06·10⁻⁶ (old) | 9.35919415·10⁻⁴ | `step` | 26 | 9 | 16 | 130 |
+| 2.42·10⁻⁷ (1/a) | 9.35914939·10⁻⁴ | `iterations` | 100 | 77 | 23 | 501 |
+| 2.42·10⁻⁶ | 9.35916930·10⁻⁴ | `iterations` | 100 | 50 | 50 | 501 |
+| 2.42·10⁻⁸ | 9.35902428·10⁻⁴ | `iterations` | 100 | 74 | 26 | 501 |
+
+3.9× the traced evaluations for an answer better by 5·10⁻⁹ mm. **But the old
+run's `step` stop was not convergence**: it accepted 9 of 26 trials, which is a
+Jacobian too coarse to predict its own merit, and the coarser step beside it
+accepts 50 of 100 and does not stop either. At the new step the run accepts 77
+of 100 and the merit is still falling in its sixth figure when the cap arrives —
+8.7594943·10⁻⁷ at 10 iterations to 8.7592976·10⁻⁷ at 200.
+
+**The defect is in the stopping rule, and it is not fixed here.**
+`stepTolerance` stops when ‖δ‖ ≤ 10⁻¹⁴·(‖x‖ + 10⁻¹⁴); with ‖x‖ ≈ 4.45·10⁻³ that
+is 4.45·10⁻¹⁷, so the run is asked to keep going until it moves 5·10⁻¹¹ of its
+own difference step. The stop criteria are keyed to the variable's MAGNITUDE
+while the Jacobian's resolution is keyed to the STEP, and those were coupled
+only by the floor of 1 that this sub-step removed. Repairing it moves every
+recorded run's stopping point, so it is named here and left open rather than
+folded in — the same reasoning that kept this sub-step out of § 1.8.10.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **∂c₁₁/∂C is a SUM: the aberration plus the focus walking out from under a held plane, the second −4/3 of the first** | Born & Wolf's W₀₄₀ and the ρ⁴ term of a longitudinal defocus, both through c₁₁ = W₀₄₀/(6√5) | ✅ |
+| …and its residue is FIFTH order: excess/NA² = 0.1630, 0.1878, 0.1893, 0.1904 over an 8× range, monotone from below | the neglected term identifying itself by its own order | ✅ |
+| …**each point read at its own step**: at one fixed 1e-8 the smallest aperture reads −0.679 and leaves the sequence | that four aligned points are a measurement and not a coincidence | ✅ |
+| **The located conjugate is 9.04e-12 at d = 100, 400 and 1600** where the old floor walks 9.0e-10 → 1.86e-8 | scale invariance, which is what makes a scale a currency | ✅ |
+| A curvature step is a rim sag h·a²/2, so 1/a moves it by ∛ε·a/2 and the old floor by ∛ε·a²/2 | the dimensional argument, as arithmetic | ✅ |
+| **The proposal falsified: a relative step is off by 48% at c₂ = 1e-8 and 2 500% at 1e-10**, where 1/a holds 1e-5 across the same sweep | the recorded item's own prescription, measured | ✅ |
+| …and at c₂ = 0 exactly it is refused, while 1/a differences the plano surface every shipped coverslip has | the branch the proposal could not take at all | ✅ |
+| **A paraxial column is exactly linear, so it wants the LARGER step** — 9.8e-14 at ∛ε against 2.5e-11 at ∛ε/100 | why `traces` is a condition and not a hedge | ✅ |
+| A thickness, a non-tracing merit, and both response readers come out **bitwise** unchanged | the negative controls that made this landable | ✅ |
+| One traced row anywhere — wished or HELD — chooses the traced rule, for the whole merit | a merit's floor is the worst of its parts | ✅ |
+| An unbounded surface borrows the prescription's widest bounded rim; a prescription with none falls back to 1 | `semiAperture: Infinity`, which three shipped designs declare | ✅ |
+| A declared rim wider than the radius hands the scale back to \|C\| — the `max` guarding a "do not clip this" aperture | that the max is a guard and not decoration | ✅ |
 
 ### Not yet pinned
 
@@ -2422,16 +2638,22 @@ would wall every column and report a merit that can see nothing.
   a weight costs. What it costs is the condition itself, a usable band of
   weights that has to be found, half the evaluations on a traced merit, and a
   price — the multiplier — that a weighted run cannot report at all.
-- **The step's own scaling** — the assumption is now MEASURED, and the decision
-  is still nobody's. `steps` defaults to εʰ·max(|xⱼ|, 1), and the floor of 1 is a
-  unit assumption: right for a thickness in mm, wrong by three orders for a
-  curvature in 1/mm, which is ~10⁻³ and gets differenced over half a percent of
-  itself. § 1.8.6 puts a number on what that costs — the located shape on a
-  two-curvature fixture goes from ~10⁻⁶ to a few·10⁻⁹ when the step is stated —
-  and that number is what retired the reading of APP.md's weight sweep. What is
-  NOT decided is the default: a scale-relative floor would help curvatures and
-  would silently change every existing run's digits, so it wants its own step
-  and its own before/after, not a quiet improvement here.
+- ~~**The step's own scaling**~~ ✅ **closed at § 1.8.11 above.** The bullet's
+  diagnosis was right and its prescription was wrong, and measuring the
+  prescription is what closed it. `max(|xⱼ|, 1)` really is a unit assumption
+  — 1 mm⁻¹ is a 1 mm radius — but the SCALE-RELATIVE floor this bullet asked for
+  is worse than what it replaces, because a variable's magnitude is not evidence
+  about the merit's sensitivity to it: on a near-plano surface whose system's
+  power lives elsewhere a relative step is off by 48% at c₂ = 10⁻⁸ and refused
+  outright at 0, which every shipped coverslip has. What the floor becomes is
+  **1/a**, the surface's own semi-aperture — a curvature differenced by ∛ε/2 of
+  its own rim — and the evidence that it is a currency is that the located
+  conjugate reads 9.04·10⁻¹² at three sizes where the old floor walks a factor
+  of 21. It got its own step and its own before/after, as this bullet asked:
+  9 recorded rungs moved, every one of them traced, and it corrected § 1.8.6's
+  "the two mechanisms do NOT agree" by two orders in the size while leaving its
+  direction alone. What it did NOT fix, and named instead, is the stopping rule
+  the old floor was hiding — see the last part of § 1.8.11.
 
 ## Step 2a — FFT + Zernike basis
 

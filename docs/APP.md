@@ -5479,8 +5479,10 @@ and simply never had a wish loud enough to expose it.
     it "traced" is the cheap way to get this wrong, so the panel pins that the
     two disagree), and the box now names a column that was **differenced across
     a vignetting edge** — § 1.8.5's cliff, which the old readout could only have
-    printed as a number with no warning on it, and which moves by 6.7% for
-    10⁻⁹ of curvature.
+    printed as a number with no warning on it, and which moves by 6.3% for
+    10⁻⁹ of curvature. (6.7% before § 1.8.11 rescaled the difference step; the
+    cliff is still eight decades inside the stencil, because a finer stencil
+    does not resolve a discontinuity — it straddles a narrower piece of one.)
 
   **What the term count is worth here, since the panel offers it.** § 1.8.7's
   point stands — `terms` is the operand's definition, not a resolution knob —
@@ -5498,7 +5500,14 @@ and simply never had a wish loud enough to expose it.
   **Whole-readout cost over every offered cell**, on this machine under
   `vite-node`: **42 ms** (77-ray spot, on axis) to **3.8 s** (313-ray wavefront
   off axis, where two curvatures cannot correct field coma and the run spends
-  its whole iteration budget). The same sweep re-run reads 51 ms to 5.5 s, so
+  its whole iteration budget). **§ 1.8.11 moved the bottom of that range**: the
+  on-axis run now spends its whole budget too — 501 traced evaluations against
+  130 — so the cheap corner is ~3.9× what is recorded here. It is not a worse
+  run. At the old step it accepted 9 of 26 trials, which is a Jacobian too
+  coarse to predict its own merit rather than one that has arrived, and its
+  `step` stop was that coarseness giving up; at the new one it accepts 77 of
+  100 and reaches a slightly better spot. What is actually wrong is the stopping
+  rule — § 1.8.11's last part measures it and leaves it open. The same sweep re-run reads 51 ms to 5.5 s, so
   the top of that range is a load meter as much as a cost meter — Part M's own
   caveat, and the reason the panel prints its own elapsed number rather than a
   remembered one. **The two geometry reads § 1.8.10 added are inside those

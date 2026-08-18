@@ -252,14 +252,21 @@ export interface DlsOptions {
   /** Default `"central"`. */
   readonly jacobian?: JacobianScheme;
   /**
-   * Absolute finite-difference step per variable. Default: εʰ·max(|xⱼ|, 1),
+   * Absolute finite-difference step per variable. Default: εʰ·max(|xⱼ|, scale),
    * with h = 1/2 for forward differences and 1/3 for central — the exponents
    * that balance truncation against cancellation for each scheme.
    *
-   * The `max(…, 1)` floor is a unit assumption and the one place this module
-   * makes one: a variable that starts at exactly 0 has no scale of its own, and
-   * 1 is right for a curvature in 1/mm and a thickness in mm alike only because
-   * both are O(1)-ish in this engine's units. State the steps when they are not.
+   * `scale` is **1** here, and here it is a unit assumption: `dampedLeastSquares`
+   * and `meritResponse` are handed a residual function and have no way to ask
+   * what a variable measures, so 1 is the only honest floor for a variable that
+   * starts at exactly 0. State the steps when that is wrong.
+   *
+   * The OPTICAL entry points — `optimizePrescription`, `optimizeSystem`,
+   * `systemResponse` — do know, and fill this in from the prescription when a
+   * caller states nothing: see `designSteps` and § 1.8.11. A thickness keeps
+   * `max(|t|, 1)` to the bit; a curvature is scaled by its surface's own
+   * semi-aperture instead, which is worth up to 2·10³ in the located answer.
+   * Stating `steps` there overrides that, exactly as before.
    */
   readonly steps?: readonly number[];
   /**
@@ -434,6 +441,20 @@ function makeEvaluator(
   return e;
 }
 
+/**
+ * One variable's automatic step: εʰ times the MAGNITUDE it is differenced
+ * against — its own value, or `scale` where that is larger.
+ *
+ * Written once because there are two callers with two different scales, and a
+ * second spelling of this expression is a second answer to "what did the
+ * Jacobian actually see". `differenceSteps` passes scale = 1, the kind-blind
+ * unit assumption; `designSteps` passes the surface's own (see § 1.8.11).
+ */
+function autoStep(scheme: JacobianScheme, x: number, scale: number): number {
+  const eps = scheme === "central" ? Math.cbrt(Number.EPSILON) : Math.sqrt(Number.EPSILON);
+  return eps * Math.max(Math.abs(x), scale);
+}
+
 /** Each variable's difference step: the caller's, or the scheme's own scale rule. */
 function differenceSteps(
   where: string,
@@ -447,16 +468,99 @@ function differenceSteps(
   }
   const step = new Float64Array(n);
   for (let j = 0; j < n; j++) {
-    const auto =
-      (scheme === "central" ? Math.cbrt(Number.EPSILON) : Math.sqrt(Number.EPSILON)) *
-      Math.max(Math.abs(x[j]!), 1);
-    const s = given?.[j] ?? auto;
+    const s = given?.[j] ?? autoStep(scheme, x[j]!, 1);
     if (!(s > 0 && Number.isFinite(s))) {
       throw new Error(`${where}: variable ${j}'s difference step ${s} is not positive`);
     }
     step[j] = s;
   }
   return step;
+}
+
+/**
+ * The steps an OPTICAL entry point differences with, when the caller stated
+ * none — the one place in this module that knows what a variable measures and
+ * can therefore give it a scale instead of a unit assumption (§ 1.8.11).
+ *
+ * A **thickness** keeps `max(|t|, 1)` unchanged, to the bit. It is a length in
+ * millimetres and the engine's geometry unit is a millimetre, so the floor is a
+ * statement in the variable's own units.
+ *
+ * A **curvature on a merit that TRACES** does not have that. 1 mm⁻¹ is a 1 mm
+ * radius, which no surface in this engine has ever had, so the floor of 1 was
+ * never the curvature's own scale — it was three orders above it, and a
+ * curvature of 2.5·10⁻³ was being differenced over a quarter of a percent of
+ * itself. The scale used instead is **1/a**, the reciprocal of the surface's own
+ * semi-aperture, because that is the number that turns a curvature into a
+ * length: a step h moves the rim sag by h·a²/2, so h = ∛ε/a moves it by ∛ε·a/2 —
+ * a fixed fraction of the aperture, at every aperture. The old floor moved it by
+ * ∛ε·a²/2, which grows with the aperture SQUARED and reaches 15 mm of radius on
+ * a 160 mm mirror. Worth up to 2·10³ in the located answer.
+ *
+ * **And `traces` is a real condition, not a hedge.** A paraxial or third-order
+ * operand is a closed form in f64, exactly LINEAR in a curvature, so its column
+ * carries no truncation error at all and every decade of step is a decade less
+ * cancellation: measured on the thin-singlet power column, ∛ε·1 reads (n−1) to
+ * 9.8·10⁻¹⁴ and ∛ε/25 to 2.7·10⁻¹², a factor 27 that grows straight with the
+ * aperture. A traced operand has the opposite shape — a 2·10⁻¹² floor on the
+ * OPD and a merit that really bends — so the two families want opposite steps
+ * and the merit says which it is. A merit that mixes them takes the traced rule,
+ * because a merit's floor is the worst of its parts.
+ *
+ * The `max(|C|, 1/a)` in `autoStep` is not decoration. |C| > 1/a cannot happen
+ * to the GLASS — the rim would be further from the axis than the sphere's own
+ * radius, so the surface never reaches it — but it happens easily to a
+ * PRESCRIPTION, which declares a rim it does not have to fill. A generous
+ * `semiAperture` beside a small stop is the ordinary way to write "do not clip
+ * this", and 1/a off a 10⁵ mm declared rim is 10⁻⁵ of the curvature it is meant
+ * to scale. The max is the guard against a declared aperture that is a
+ * statement about clipping rather than a length the surface has.
+ *
+ * **`semiAperture: Infinity` is shipped** — coverslips, immersion gaps and the
+ * microscope's plates all declare it — so an unbounded surface takes the widest
+ * bounded semi-aperture in the same prescription, and a prescription with no
+ * bounded surface anywhere falls back to the kind-blind 1. Both branches are
+ * pinned, because a branch the default does not take is where a shipped claim
+ * hides.
+ */
+function designSteps(
+  prescription: Prescription,
+  variables: readonly SolveVariable[],
+  traces: boolean,
+  scheme: JacobianScheme,
+): number[] {
+  const bounded = prescription.surfaces
+    .map((s) => s.semiAperture)
+    .filter((a) => Number.isFinite(a) && a > 0);
+  const widest = bounded.length > 0 ? Math.max(...bounded) : 0;
+  const x = startingValues(prescription, variables);
+  return variables.map((v, j) => {
+    if (v.kind === "thickness" || !traces) return autoStep(scheme, x[j]!, 1);
+    const a = prescription.surfaces[v.surface]!.semiAperture;
+    const rim = Number.isFinite(a) && a > 0 ? a : widest;
+    return autoStep(scheme, x[j]!, rim > 0 ? 1 / rim : 1);
+  });
+}
+
+/**
+ * `options` with the design's own steps filled in, where the caller stated none.
+ *
+ * `operands` is every row of the merit — wishes and conditions alike — because
+ * a condition is differenced in the same stencil and a merit that holds a
+ * traced quantity traces whether or not any wish does.
+ */
+function withDesignSteps(
+  prescription: Prescription,
+  variables: readonly SolveVariable[],
+  operands: readonly SystemCondition[],
+  options: DlsOptions,
+): DlsOptions {
+  if (options.steps !== undefined) return options;
+  const traces = operands.some(isTraced);
+  return {
+    ...options,
+    steps: designSteps(prescription, variables, traces, options.jacobian ?? "central"),
+  };
 }
 
 /**
@@ -1354,7 +1458,11 @@ export function optimizePrescription(
     return { minimize: wishes, hold: hold.map((o) => operandValue(trial, o) - o.target) };
   };
 
-  return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
+  return dampedLeastSquares(
+    residuals,
+    startingValues(prescription, variables),
+    withDesignSteps(prescription, variables, [...minimize, ...hold], options),
+  );
 }
 
 /** Two variables that move the merit the same way, and how nearly the same. */
@@ -1622,7 +1730,11 @@ export function variableResponse(
     const trial = withVariables(prescription, variables, x);
     return operands.map((o) => (o.weight ?? 1) * (operandValue(trial, o) - o.target));
   };
-  return meritResponse(residuals, startingValues(prescription, variables), options);
+  return meritResponse(
+    residuals,
+    startingValues(prescription, variables),
+    withDesignSteps(prescription, variables, operands, options),
+  );
 }
 
 /**
@@ -1687,8 +1799,13 @@ export function systemResponse(
     return operands.map((o, i) => ((o as OptimizeOperand).weight ?? 1) * read(trial, o, i));
   };
 
+  // Filled in ONCE and used for both the reading and the wall probe below.
+  // `meritResponse` is kind-blind by design — it is handed a residual function
+  // and has no surface to ask — so the design's own scales are resolved here
+  // and passed down as though the caller had stated them.
+  const withSteps = withDesignSteps(prescription, variables, operands, options);
   const x0 = startingValues(prescription, variables);
-  const base = meritResponse(residuals, x0, options);
+  const base = meritResponse(residuals, x0, withSteps);
 
   // Why the wall was a wall, for the columns that hit one — and only those.
   // Re-probed here rather than recorded inside `residuals`, because the
@@ -1700,7 +1817,12 @@ export function systemResponse(
   let probes = 0;
   if (suspect.length > 0) {
     const x = Float64Array.from(x0);
-    const step = differenceSteps("systemResponse", x, options.jacobian ?? "central", options.steps);
+    const step = differenceSteps(
+      "systemResponse",
+      x,
+      withSteps.jacobian ?? "central",
+      withSteps.steps,
+    );
     for (const c of suspect) {
       const moved = [x[c]! + step[c]!, x[c]! - step[c]!].some((v) => {
         const trial = Float64Array.from(x);
@@ -1998,7 +2120,11 @@ export function optimizeSystem(
     return { minimize: wishes, hold: hold.map((o, k) => read(trial, o, minimize.length + k)) };
   };
 
-  return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
+  return dampedLeastSquares(
+    residuals,
+    startingValues(prescription, variables),
+    withDesignSteps(prescription, variables, [...minimize, ...hold], options),
+  );
 }
 
 /** The sentence a wall gets when it was a ray leaving the set, so it can be recognised again. */

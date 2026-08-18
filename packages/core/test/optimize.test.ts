@@ -1033,10 +1033,10 @@ describe("DLS § 1.8.5 — what the caller must state, because nothing can choos
     expect(Math.sqrt(pinned.merit)).toBeCloseTo(2.7102e-2, 5);
   });
 
-  it("…and with the power held they pick shapes 0.49 apart, each best in its own currency", () => {
+  it("…and with the power held they pick shapes 0.50 apart, each best in its own currency", () => {
     // Hold the power and the runaway above is gone, so the conventions can be
     // compared on the same question. They do not agree: refocused lands on the
-    // traced Coddington shape, 0.7120, and the fixed plane lands at 0.2257,
+    // traced Coddington shape, 0.7120, and the fixed plane lands at 0.2127,
     // because there the merit is aberration AND focus position and a bending
     // that moves the focus toward the plane is worth aberration to buy it.
     const start = tracedSinglet(qStar(1.5) + 0.5);
@@ -1063,8 +1063,15 @@ describe("DLS § 1.8.5 — what the caller must state, because nothing can choos
     const refocused = shapeFor("bestSpot");
     const onPlane = shapeFor("systemImagePlane");
     expect(refocused.q).toBeCloseTo(0.712011, 4);
-    expect(onPlane.q).toBeCloseTo(0.225698, 4);
-    expect(refocused.q - onPlane.q).toBeCloseTo(0.486, 2);
+    // § 1.8.11 moved this one and left the refocused shape alone. The fixed
+    // plane is where a WEIGHT is doing the holding (1e6, and § 1.8.6 measures
+    // that it is not enough), so the shape it lands on is a compromise the
+    // differencing resolution takes part in; the refocused convention holds the
+    // power well enough that the answer is the condition's, not the step's. The
+    // exactly-HELD number for this same convention — § 1.8.6's 0.222951 — does
+    // not move either, which is the same statement from the other side.
+    expect(onPlane.q).toBeCloseTo(0.212726, 4);
+    expect(refocused.q - onPlane.q).toBeCloseTo(0.499, 2);
     // Neither is wrong: each design beats the other on the measure it was asked
     // for, which is what makes this a stated convention and not a default.
     expect(refocused.atBest).toBeLessThan(onPlane.atBest);
@@ -1649,9 +1656,13 @@ describe("DLS § 1.8.6 — a condition on a TRACED merit, which is the question 
     });
     expect(shapeOf(held.x)).toBeCloseTo(shapeOf(weighted.x), 6);
     expect(shapeOf(held.x)).toBeCloseTo(0.712011, 5);
-    // Measured 110 against 220. Asserted with room, because the rung is about
-    // the factor and not about either run's exact iteration count.
-    expect(held.evaluations).toBeLessThan(0.6 * weighted.evaluations);
+    // Measured 120 against 195 at § 1.8.11's step, where it was 110 against 220
+    // at the old one. The saving is real and it SHRANK, from 2.0× to 1.63× — a
+    // finer Jacobian helps the weighted run more than the held one, because the
+    // weighted run is the one whose answer the resolution was moving (see the
+    // shape rung in § 1.8.5). Asserted with room, because the rung is about the
+    // factor and not about either run's exact iteration count.
+    expect(held.evaluations).toBeLessThan(0.7 * weighted.evaluations);
     // …and the condition is met six orders better than the weight met it.
     expect(Math.abs(eflOf(weighted.x) / startEfl - 1)).toBeGreaterThan(1e-10);
     expect(Math.abs(eflOf(held.x) / startEfl - 1)).toBeLessThan(1e-14);
@@ -1659,11 +1670,21 @@ describe("DLS § 1.8.6 — a condition on a TRACED merit, which is the question 
 
   it("on the FIXED image plane the two mechanisms do NOT agree, and λ says why", () => {
     // § 1.8.5 quoted 0.2257 for this convention with the power held by weight
-    // 1e6. Held exactly it is 0.2230, 1.2% away — because on this convention
-    // the merit is aberration AND focus position, so it fights the power wish
-    // hard enough that 1e6 was not a large weight after all: it bought its
-    // shape by giving away 6.2e-6 of focal length. The multiplier is the same
-    // fact as a number — the condition costs 6700× more here than refocused.
+    // 1e6. Held exactly it is 0.21270 — because on this convention the merit is
+    // aberration AND focus position, so it fights the power wish hard enough
+    // that 1e6 was not a large weight after all: it bought its shape by giving
+    // away 6.2e-6 of focal length. The multiplier is the same fact as a number
+    // — the condition costs 6700× more here than refocused.
+    //
+    // **§ 1.8.11 corrected the SIZE of this by two orders and left its
+    // direction alone.** Swept over eight decades of step, both mechanisms
+    // settle — weighted on 0.2127247, held on 0.2126977 — and the gap between
+    // them settles with them, at 2.70e-5 from 1e-7 down to 1e-10. At the old
+    // default step the same gap read 2.75e-3, **102× too large**, and BOTH
+    // shapes were wrong in their third digit. So the disagreement is real and
+    // step-independent, and the 1.2% this rung used to quote for it was the
+    // differencing resolution, not the two mechanisms. The multiplier moved
+    // with it: −1.2452e4 at the old step against −1.25213e4 settled, 0.55% out.
     const target = 1 / startEfl;
     const onPlane = (focus: TracedFocus) => ({ ...spotOperand(TRACED_GRID, focus) });
     const weighted = optimizeSystem(start, VARS, [
@@ -1674,8 +1695,11 @@ describe("DLS § 1.8.6 — a condition on a TRACED merit, which is the question 
       minimize: [onPlane("systemImagePlane")],
       hold: [HELD_POWER(target)],
     });
-    expect(shapeOf(weighted.x)).toBeCloseTo(0.225698, 5);
-    expect(shapeOf(held.x)).toBeCloseTo(0.222951, 5);
+    expect(shapeOf(weighted.x)).toBeCloseTo(0.212726, 5);
+    expect(shapeOf(held.x)).toBeCloseTo(0.212699, 5);
+    // The gap itself, asserted as the quantity the rung is about rather than
+    // left to be read off two numbers: 2.7e-5, where the old step said 2.8e-3.
+    expect(shapeOf(weighted.x) - shapeOf(held.x)).toBeCloseTo(2.66e-5, 6);
     expect(Math.abs(eflOf(weighted.x) / startEfl - 1)).toBeCloseTo(6.2e-6, 7);
     expect(Math.abs(eflOf(held.x) / startEfl - 1)).toBeLessThan(1e-15);
 
@@ -1683,9 +1707,9 @@ describe("DLS § 1.8.6 — a condition on a TRACED merit, which is the question 
       minimize: [spotOperand()],
       hold: [HELD_POWER(target)],
     });
-    expect(held.multipliers[0]!).toBeCloseTo(-1.2452e4, -1);
+    expect(held.multipliers[0]!).toBeCloseTo(-1.25213e4, -1);
     expect(refocused.multipliers[0]!).toBeCloseTo(-1.8662, 3);
-    expect(held.multipliers[0]! / refocused.multipliers[0]!).toBeCloseTo(6672, -2);
+    expect(held.multipliers[0]! / refocused.multipliers[0]!).toBeCloseTo(6709, -2);
   });
 
   it("bounds the unbounded wish: one free curvature, refocused, told what lens to be", () => {
@@ -1707,7 +1731,11 @@ describe("DLS § 1.8.6 — a condition on a TRACED merit, which is the question 
     expect(
       systemProperties(withVariables(start.prescription, one, held.x), LINE_D).efl,
     ).toBeCloseTo(1200, 6);
-    expect(held.feasibility).toBeLessThan(1e-16);
+    // 2.3e-16 at § 1.8.11's step against under 1e-16 at the old one. Both are
+    // the f64 floor of a relative measure — the quantity is |c|/(‖C‖·(‖x‖+1)) —
+    // and 2.3e-16 is one ULP of it, so this is a bound on rounding and not on
+    // the condition, which is met to a part in 1e6 of a millimetre above.
+    expect(held.feasibility).toBeLessThan(1e-15);
   });
 });
 
@@ -2315,10 +2343,14 @@ describe("DLS § 1.8.7 — the differencing window, and what actually sets its f
    * decisive rather than cosmetic — and a correction to how § 1.8.5's number
    * for this fixture reads.
    *
-   * The variable is a curvature of 2.5e-3, so the default step's `max(|x|, 1)`
-   * floor makes it ∛ε = 6.06e-6 — a quarter of a percent of the variable, and
-   * on this merit that is a straddle rather than a difference. State the step
-   * at 1e-8 and the recovered radius improves by SIX ORDERS.
+   * **§ 1.8.11 answered the item, so this rung now measures the DEFAULT.** The
+   * old default's `max(|x|, 1)` floor made the step ∛ε = 6.06e-6 on a curvature
+   * of 2.5e-3 — a quarter of a percent of the variable, and on this merit a
+   * straddle rather than a difference — and the recovered radius came back at
+   * 1.39e-8. The default is now ∛ε/a on the surface's own semi-aperture, 40 mm
+   * here, so 1.51e-7, and the same run reads **9.04e-12**: three orders for
+   * nothing stated. Stating 1e-8 still buys the last two, which is the honest
+   * shape of it — the default is not the floor, it is off the truncation arm.
    *
    * With the step held, the wavefront and the fixed-plane spot land in the same
    * place, at the f64 floor. `"bestSpot"` does not, and is seven orders behind
@@ -2346,9 +2378,13 @@ describe("DLS § 1.8.7 — the differencing window, and what actually sets its f
     };
 
     const wave = wfOperand("rms");
-    expect(relative(wave)).toBeCloseTo(1.39e-8, 9);
+    expect(relative(wave)).toBeCloseTo(9.04e-12, 13);
+    // The step the OLD default would have chosen, stated by hand so the three
+    // orders § 1.8.11 bought stay measured here rather than only asserted there.
+    expect(relative(wave, [Math.cbrt(Number.EPSILON)])).toBeCloseTo(1.39e-8, 9);
     expect(relative(wave, [1e-8])).toBeLessThan(1e-13);
-    expect(relative(wave) / relative(wave, [1e-8])).toBeGreaterThan(1e5);
+    expect(relative(wave, [Math.cbrt(Number.EPSILON)]) / relative(wave)).toBeGreaterThan(1e3);
+    expect(relative(wave) / relative(wave, [1e-8])).toBeGreaterThan(90);
 
     // Same step, same fixture, the other traced currency: indistinguishable.
     expect(relative(spotOp("systemImagePlane"), [1e-8])).toBeLessThan(1e-12);
@@ -3409,7 +3445,10 @@ describe("DLS § 1.8.10 — a traced merit's own geometry", () => {
     const across = (d: number): number =>
       Math.abs(moved(withVariables(sys.prescription, RESPONSE_VARS, [x0[0]! + d, x0[1]!])) - base) / base;
 
-    expect(along(1e-6)).toBeCloseTo(1.1388e-9, 12);
+    // 1.13206e-9 at § 1.8.11's step, 1.1388e-9 at the old one — 0.6% apart,
+    // which is the level set's DIRECTION being read off a finer Jacobian. The
+    // ratio below is what the rung is about and it does not care.
+    expect(along(1e-6)).toBeCloseTo(1.13206e-9, 12);
     expect(across(1e-6)).toBeCloseTo(1.0008e-3, 6);
     // Six orders between them at the same step — and the flat one grows as d²
     // while the other grows as d, which is what "stationary" means and what a
@@ -3562,12 +3601,15 @@ describe("DLS § 1.8.10 — a traced merit's own geometry", () => {
     expect(r.evaluations).toBe(7);
 
     // What the readout would have printed without this. 10⁻⁹ of curvature —
-    // twelve orders below the difference step — moves the reported response by
-    // 6.7%, because on one side of that the stencil straddles the cliff and on
+    // ten orders below the difference step — moves the reported response by
+    // 6.3%, because on one side of that the stencil straddles the cliff and on
     // the other it does not. A reader shown either number alone would have no
-    // way to know which one they had.
+    // way to know which one they had. (6.7% and twelve orders at the old step:
+    // § 1.8.11 shortened the gap between the cliff and the step, and the cliff
+    // is still eight decades inside it — a finer stencil does not resolve a
+    // discontinuity, it only straddles a narrower piece of one.)
     const above = systemResponse(clipped(c1Star + 1e-9), RESPONSE_VARS, [spotOperand()]);
-    expect(Math.abs(above.response[0]! / r.response[0]! - 1)).toBeCloseTo(0.0669, 3);
+    expect(Math.abs(above.response[0]! / r.response[0]! - 1)).toBeCloseTo(0.0634, 3);
     expect(above.survivorChanged).toEqual([0, 1]);
   });
 
@@ -3623,7 +3665,11 @@ describe("DLS § 1.8.10 — a traced merit's own geometry", () => {
     // Two wishes, so the pair is no longer rank 1 — but only just. A power
     // wish and a spot wish over the two curvatures of a singlet are nearly the
     // same question asked twice.
-    expect(r.conditionNumber).toBeCloseTo(3374.2045, 3);
+    // 3374.2302 at § 1.8.11's step against 3374.2045 at the old one — 7.6e-6
+    // apart. The pair's near-degeneracy is a property of the two wishes, not of
+    // how finely either is differenced, which is why four digits survive a step
+    // change of twenty-five fold.
+    expect(r.conditionNumber).toBeCloseTo(3374.2302, 3);
     expect(r.cosines[0]![1]!).toBeCloseTo(0.99999982, 8);
     expect(r.singularValues[1]!).toBeCloseTo(4.19125e-4, 8);
 
