@@ -223,6 +223,42 @@ import {
  * SCOPE: the dry, cemented member only. `designs/lister` and the immersion front
  * take no target at all, so correcting *those* for a stack is § 6e's own open
  * item and not this one.
+ *
+ * ## The DIN objective's own stop (§ 6ae)
+ *
+ * `finiteConjugateObjective` carried its stop on the specimen-side rim from § 6b
+ * until § 6ae, which was § 6v's, § 6w's and § 6x's shared open item. It now takes
+ * the same `stopPlacement` and the same `fieldNumberMm`, and everything above
+ * composes unchanged. Three things are the finite conjugate's own:
+ *
+ *  - **The stop radius still has no object distance in it.** That is not an
+ *    infinite-conjugate accident. The object→stop transfer for a stop at the back
+ *    focal plane is `[[0, f], [-1/f, 1 - s/f]]` at EVERY object distance s: the
+ *    A = 0 is telecentricity and the B = f beside it is why § 6u.1's slope
+ *    aperture `stopRadius/B` reduces to `tan u` whatever the conjugate. So the
+ *    radius is `f·n·tan u` here as well, and the delivered NA stops depending on
+ *    where the specimen is (bitwise, § 6ae.2) where the rim's loses 2.1% over a
+ *    millimetre of travel.
+ *  - **A DIN has no tube lens, so the prescription's LAST VERTEX is the
+ *    diaphragm.** `imageDistanceMm` is measured from it and shortens by the back
+ *    focal distance; `tracedOpticalTubeLengthMm` is a difference of two distances
+ *    from that same vertex and does not move; the bending solve's conjugate check
+ *    has to be read on the glass chain, because `solveAt` was a distance from the
+ *    last GLASS surface. Three readouts keyed to one vertex and one to the other.
+ *  - **The bending does not move at all**, to the bit — a stop shift changes
+ *    S_II/S_III/S_V and leaves S_I alone, and this lens is solved to ΣS_I = 0.
+ *    Which makes the classical prediction sharp: the shift should cost NO coma.
+ *    It does not, in the limit; and at the f/4 the catalogued 4×/0.10 works at it
+ *    moves 71% of the coma, because the only spherical this lens has left is
+ *    FIFTH order, and the induced coma rides on that — falling as NA⁵ where the
+ *    coma falls as NA³ (§ 6ae.5). Telecentric is the better lens here regardless:
+ *    it trades 3.4× of coma for 2.4× of astigmatism and comes out 1.9× ahead in
+ *    wavefront RMS at a millimetre of field.
+ *
+ * **The default did not move**, and that is deliberate rather than caution: § 6x's
+ * subject is the illumination cone displaced in a rim-stopped objective's pupil,
+ * measured on this lens, and a telecentric default sends it to a bitwise zero. See
+ * `FiniteConjugateObjectiveSpec.stopPlacement`.
  */
 
 /**
@@ -1100,6 +1136,45 @@ export interface FiniteConjugateObjectiveSpec {
    */
   readonly glassMarginFactor?: number;
   /**
+   * Where the aperture stop sits. **Default `"rim"`**, which is the specimen-side
+   * glass rim this constructor has always carried — and the default is the one
+   * place this spec deliberately differs from `MicroscopeObjectiveSpec`, whose
+   * § 6v default is `"backFocal"`.
+   *
+   * The reason is § 6x. A rim-stopped objective's entrance pupil sits a finite
+   * arm away, so a Köhler cone reaches the pupil displaced by `h/R_ep` off axis,
+   * and that displacement is the whole subject of § 6x — measured on **this**
+   * lens, the shipped DIN 4×/0.10. Defaulting the DIN telecentric would send
+   * that offset to a bitwise zero and leave § 6x's rungs passing while measuring
+   * nothing, which is the failure mode this file exists to prevent. So the
+   * placement moved from unavailable to *chosen*, and § 6x's rungs choose `"rim"`
+   * by name.
+   *
+   * `"backFocal"` is what a real DIN objective has: a diaphragm on the group's
+   * back focal plane, entrance pupil at infinity, chief rays leaving every
+   * specimen point parallel to the axis. See the header's finite-conjugate
+   * telecentricity section for what the two placements differ in, and note the
+   * one thing that does **not** differ: the bending solve, because a stop shift
+   * moves S_II/S_III/S_V and leaves S_I alone.
+   */
+  readonly stopPlacement?: StopPlacement;
+  /**
+   * The field number (mm) this objective must pass — the diameter of the field
+   * at the intermediate image, exactly as in `MicroscopeObjectiveSpec`, and the
+   * object-space semi-field it implies is `fieldNumberMm/(2·M)`.
+   *
+   * A telecentric bundle from object height h arrives at the front element
+   * centred on h, so the glass it needs is the axial beam **plus** that walk.
+   * Omitted, the glass is `glassMarginFactor` times the axial beam alone, which
+   * is every DIN this module has built — and what that costs off axis is the
+   * measurement, not an assumption.
+   *
+   * Refused with `stopPlacement: "rim"`: a rim-stopped bundle pivots through
+   * surface 0, so its footprint does not translate with field and there is
+   * nothing for a field number to size. Same refusal, same reason, as § 6w's.
+   */
+  readonly fieldNumberMm?: number;
+  /**
    * The cover glass this objective is **corrected for** — the `0.17` of the
    * `160/0.17` engraving. Omitted, the objective is corrected for none and the
    * specimen sits bare in air, which is what every rung before § 6c means.
@@ -1155,9 +1230,35 @@ export interface FiniteConjugateObjective {
    * number an objective is catalogued by, and what a slide has to fit inside.
    */
   readonly freeWorkingDistanceMm: number;
-  /** Which surface carries the aperture stop: 0 bare, 1 behind a coverslip. */
+  /**
+   * Which surface carries the aperture stop. Rim-stopped: 0 bare, 1 behind a
+   * coverslip. Telecentric: the **last** surface, which is the diaphragm the
+   * back-focal placement appends — read it from here rather than assuming a
+   * position, because both ends of the list are a stop under some spec.
+   */
   readonly stopSurfaceIndex: number;
-  /** Last vertex to the intermediate image (mm), from the paraxial trace. */
+  /** Where this objective's stop sits. See `FiniteConjugateObjectiveSpec`. */
+  readonly stopPlacement: StopPlacement;
+  /**
+   * How far past the last GLASS vertex the objective's own diaphragm sits (mm) —
+   * the group's back focal distance when telecentric, 0 when rim-stopped.
+   *
+   * `imageDistanceMm` is already measured from the diaphragm, so a caller
+   * composing on `prescription` needs nothing from this. It is here so a caller
+   * that wants the glass-relative geometry can recover it, and so the two
+   * placements' image distances can be compared without one of them silently
+   * meaning something else.
+   */
+  readonly stopDistanceMm: number;
+  /** The field number the glass was sized for (mm), if one was asked for. */
+  readonly fieldNumberMm?: number;
+  /**
+   * Last vertex of `prescription` to the intermediate image (mm), from the
+   * paraxial trace. **Telecentric, that last vertex is the diaphragm**, not the
+   * last glass surface — shorter than the glass-relative distance by
+   * `stopDistanceMm`, which is what keeps `finiteConjugateMicroscope`'s trailing
+   * thickness meaning the same thing under both placements.
+   */
   readonly imageDistanceMm: number;
   /** The optical tube length asked for (mm) — Newton's x′. */
   readonly opticalTubeLengthMm: number;
@@ -1175,6 +1276,16 @@ export interface FiniteConjugateObjective {
    * launch angle sees is (t + n·w)·tan u_glass with sin u_glass = NA/n — one
    * formula that collapses to the bare one at n = 1, and the one that will carry
    * an immersion medium unchanged.
+   *
+   * **Telecentric, the object distance drops out entirely**: `f·n·tan u_glass`,
+   * the same expression `microscopeObjective` uses at infinite conjugates. Both
+   * are one statement — § 6u.1's aperture is the slope `stopRadius/B` with B the
+   * object→stop transfer element, and object plane → back focal plane is
+   * `[[0, f], [−1/f, 1 − s/f]]` at every object distance s, so B is the focal
+   * length whatever the conjugate. A flat plate has no power, so a specimen
+   * under a slip is an air object at the air-equivalent plane and the slip only
+   * multiplies the slope by n on its way out. Which is why a telecentric
+   * objective's delivered NA does not depend on where the specimen is.
    */
   readonly stopRadiusMm: number;
   /** f/(2·stopRadius): the working focal ratio, faster than 1/(2·NA) by (1+1/M). */
@@ -1253,6 +1364,33 @@ export function finiteConjugateObjective(
   const designWavelengthNm = spec.designWavelengthNm ?? LINE_D;
   const orientation = spec.orientation ?? "flintFirst";
   const glassMarginFactor = spec.glassMarginFactor ?? 1.12;
+  // Rim by default, and deliberately not `microscopeObjective`'s "backFocal" —
+  // see the spec: § 6x's subject is this lens without telecentricity, and a
+  // defaulted placement would make those rungs measure a bitwise zero.
+  const stopPlacement = spec.stopPlacement ?? "rim";
+  const fieldNumberMm = spec.fieldNumberMm;
+  if (fieldNumberMm !== undefined) {
+    if (!(fieldNumberMm > 0) || !Number.isFinite(fieldNumberMm)) {
+      throw new Error(
+        "finiteConjugateObjective: the field number must be a positive length (mm)",
+      );
+    }
+    if (stopPlacement === "rim") {
+      throw new Error(
+        "finiteConjugateObjective: a field number sizes the glass a TELECENTRIC bundle walks " +
+          'onto — a "rim" stop pivots every bundle through surface 0, so its footprint does not ' +
+          "translate with field and there is nothing to size for (§ 6w)",
+      );
+    }
+  }
+  /**
+   * Object-space semi-field the glass must reach, 0 when no field was asked for.
+   * A telecentric chief ray leaves the specimen parallel to the axis, so a bundle
+   * from height h arrives at the front element centred on h and the glass it
+   * needs is the axial beam plus h — § 6w's `f·NA + h` at this architecture's
+   * conjugates, where the axial beam is the diverging pencil rather than `f·NA`.
+   */
+  const objectFieldRadiusMm = fieldNumberMm === undefined ? 0 : fieldNumberMm / (2 * M);
   const glasses = {
     ...(spec.crownMedium === undefined ? {} : { crownMedium: spec.crownMedium }),
     ...(spec.flintMedium === undefined ? {} : { flintMedium: spec.flintMedium }),
@@ -1274,6 +1412,16 @@ export function finiteConjugateObjective(
   }
   const tanU = sinU / Math.sqrt(1 - sinU * sinU);
   const stopPerAirDistance = nSlip * tanU;
+  /**
+   * The element the objective is BUILT at, for an air-equivalent object distance
+   * `aAir`: the axial pencil at surface 0 held back by the margin factor, plus
+   * the field walk. Sized here rather than widened afterwards for
+   * `microscopeObjective`'s reason — `achromaticObjective` defaults its
+   * thicknesses off D and checks the edge at D/2, so an element widened after the
+   * fact would have passed a check for a rim it does not have.
+   */
+  const glassDiameter = (aAir: number): number =>
+    2 * (aAir * stopPerAirDistance * glassMarginFactor + objectFieldRadiusMm);
 
   /** The real chain: slip's upper face, the air gap, then the glass. */
   const withSlip = (bareP: Prescription, airGapMm: number): Prescription =>
@@ -1432,6 +1580,25 @@ export function finiteConjugateObjective(
   /** …and the narrowest one this pass refused. The two bracket the ceiling. */
   let refusedAt = 1;
   let refusedAtFullAperture: unknown;
+  /**
+   * A field number is a second way into the cemented doublet's aperture wall —
+   * the glass is the pencil plus h against a focal length that does not grow
+   * with h, so a wide field makes the element faster exactly as a high NA does.
+   * Which input to back off is not recoverable from the aperture alone, so the
+   * refusal names both (§ 6b.5.5). Untouched without one: the DIN's own wall is
+   * § 6b.5's subject and its message is the one that has been pinned.
+   */
+  const refuse = (e: unknown, aAir: number): unknown => {
+    if (fieldNumberMm === undefined || !(e instanceof DoubletApertureRefusal)) return e;
+    const D = glassDiameter(aAir);
+    return new Error(
+      `finiteConjugateObjective: field number ${fieldNumberMm} mm at NA ${NA} needs a ` +
+        `${D.toFixed(3)} mm element at f/${(f / D).toFixed(3)} — ` +
+        `${(2 * aAir * stopPerAirDistance * glassMarginFactor).toFixed(3)} mm of held-back pencil ` +
+        `plus ${(2 * objectFieldRadiusMm).toFixed(3)} mm of field walk — and the cemented doublet ` +
+        `refuses it: ${e.message}`,
+    );
+  };
 
   for (let i = 0; i < 60; i++) {
     // The glass is sized off the stop the specimen plane implies. S_I ∝ h⁴
@@ -1439,8 +1606,7 @@ export function finiteConjugateObjective(
     // the sizing cannot pull the design around, it only decides how much glass
     // there is (and, through the defaulted thicknesses, a weak second-order
     // coupling the iteration absorbs).
-    const stop = a * stopPerAirDistance;
-    const D = 2 * stop * glassMarginFactor;
+    const D = glassDiameter(a);
     // Reciprocity: the mirrored chain at object a is the crown-first chain at
     // the conjugate b. See the header.
     const solveAt = orientation === "flintFirst" ? b : a;
@@ -1484,7 +1650,7 @@ export function finiteConjugateObjective(
           heldBack = 0; // even that is refused now — the geometry has moved
           scale = refusedAt * APERTURE_STEP;
         }
-        if (!(scale >= APERTURE_FLOOR)) throw refusedAtFullAperture;
+        if (!(scale >= APERTURE_FLOOR)) throw refuse(refusedAtFullAperture, a);
       }
     }
     heldBack = scale;
@@ -1504,13 +1670,7 @@ export function finiteConjugateObjective(
     a = aNext;
     b = bNext;
     airGapMm = gapNext;
-    const targetNext = plateTargetS1(
-      doublet,
-      2 * a * stopPerAirDistance * glassMarginFactor,
-      airGapMm,
-      a,
-      b,
-    );
+    const targetNext = plateTargetS1(doublet, glassDiameter(a), airGapMm, a, b);
     // The target has to be converged too, not just the conjugates: the lens in
     // hand was built with the PREVIOUS one, and a stale target is a lens solved
     // for a plate that is not quite the one in front of it.
@@ -1536,12 +1696,12 @@ export function finiteConjugateObjective(
       // both cases finish in a few passes: a design that is really inside gets
       // its full-aperture trial through, and one that is not sees the bracket
       // collapse onto its own ceiling.
-      if (refusedAt - heldBack <= APERTURE_REFINE) throw refusedAtFullAperture;
+      if (refusedAt - heldBack <= APERTURE_REFINE) throw refuse(refusedAtFullAperture, a);
     }
   }
   // Ran out of passes while still holding the aperture back: the full-aperture
   // lens was never built, so there is nothing to hand back.
-  if (heldBack !== 1) throw refusedAtFullAperture;
+  if (heldBack !== 1) throw refuse(refusedAtFullAperture, a);
 
   // Read the final geometry off the lens that was actually BUILT, not off the
   // iteration's variables.
@@ -1549,8 +1709,84 @@ export function finiteConjugateObjective(
   const ffd = collimatingObjectDistance(bare, designWavelengthNm);
   const airEquivalentObjectDistanceMm = ffd + paraxialFocalLengthMm / M;
   const objectDistanceMm = slip === undefined ? airEquivalentObjectDistanceMm : tSlip;
-  const prescription = asObjective(withSlip(bare, airGapMm), 0, stopIdx);
-  const imageDistanceMm = paraxialImageDistance(prescription, objectDistanceMm, designWavelengthNm);
+
+  /**
+   * The axial pencil where it reaches the objective's FRONT GLASS — the height
+   * the marginal ray of the stated NA arrives at surface 0 with. It is the same
+   * ray under both placements, because both deliver the same object-space slope:
+   * the rim's radius over its arm and the diaphragm's over the focal length are
+   * two spellings of `tan u`. So every readout about the pencil is keyed to this
+   * rather than to `stopRadiusMm`, which is a spelling and changes.
+   */
+  const pencilRadiusAtGlassMm = airEquivalentObjectDistanceMm * stopPerAirDistance;
+
+  // Where the stop goes — the difference between an objective and a lens with a
+  // hole in front of it. See the header's finite-conjugate telecentricity note.
+  const stopDistanceMm =
+    stopPlacement === "rim" ? 0 : systemProperties(bare, designWavelengthNm).bfd;
+  const stopRadiusMm =
+    stopPlacement === "rim"
+      ? pencilRadiusAtGlassMm
+      : // `f·n·tan u`, with no object distance in it. Object plane → back focal
+        // plane has B = f at EVERY conjugate, so the aperture the slope
+        // `stopRadius/B` names is `tan u` whatever the specimen distance, which
+        // is what makes a telecentric objective's delivered NA conjugate-free.
+        Math.abs(paraxialFocalLengthMm) * stopPerAirDistance;
+
+  /**
+   * The glass chain, stop on the rim: the frame every solve above ran in and the
+   * one the conjugate check has to be read in, because `solveAt` was a distance
+   * from the last GLASS vertex. Under `"backFocal"` the delivered prescription
+   * ends on a diaphragm instead, and comparing that image distance against the
+   * bending's would refuse every telecentric objective for the back focal
+   * distance — a readout keyed to a position, silently wrong rather than broken.
+   */
+  const glassChain = asObjective(withSlip(bare, airGapMm), 0, stopIdx);
+  const imageDistanceFromGlassMm = paraxialImageDistance(
+    glassChain,
+    objectDistanceMm,
+    designWavelengthNm,
+  );
+
+  let prescription: Prescription;
+  let stopSurfaceIndex: number;
+  if (stopPlacement === "rim") {
+    prescription = glassChain;
+    stopSurfaceIndex = stopIdx;
+  } else {
+    // The diaphragm is a real rim, so its clear semi-diameter IS the stop radius:
+    // one number, so the declared aperture and the surface cannot drift apart.
+    const last = bare.surfaces[bare.surfaces.length - 1]!;
+    const full = withSlip(
+      {
+        ...bare,
+        surfaces: [
+          ...bare.surfaces.slice(0, -1),
+          { ...last, thickness: stopDistanceMm },
+          {
+            kind: "refract" as const,
+            curvature: 0,
+            semiAperture: stopRadiusMm,
+            thickness: 0,
+            medium: "AIR",
+            isStop: true,
+          },
+        ],
+      },
+      airGapMm,
+    );
+    stopSurfaceIndex = full.surfaces.length - 1;
+    prescription = asObjective(full, 0, stopSurfaceIndex);
+  }
+  // Measured on the chain that is handed out, not derived by subtracting the back
+  // focal distance from the glass-relative one. The two agree because a flat
+  // dummy surface has no power, and that agreement is a rung rather than an
+  // assumption this line bakes in.
+  const imageDistanceMm = paraxialImageDistance(
+    prescription,
+    objectDistanceMm,
+    designWavelengthNm,
+  );
 
   // ANTI-CIRCULARITY. The bending was solved for one conjugate; the objective is
   // used at another. If the fixed point has not closed, those differ — and every
@@ -1558,20 +1794,20 @@ export function finiteConjugateObjective(
   // lens was solved for. So the two are compared explicitly.
   const solvedAt = doublet.objectDistanceMm;
   const usedAt =
-    orientation === "flintFirst" ? imageDistanceMm : airEquivalentObjectDistanceMm;
+    orientation === "flintFirst" ? imageDistanceFromGlassMm : airEquivalentObjectDistanceMm;
   if (solvedAt === undefined || !(Math.abs(solvedAt - usedAt) <= 1e-9 * Math.abs(usedAt))) {
     throw new Error(
       `finiteConjugateObjective: the conjugate solve did not converge — bending solved for ${solvedAt?.toFixed(6)} mm, objective used at ${usedAt.toFixed(6)} mm`,
     );
   }
 
-  const stopRadiusMm = airEquivalentObjectDistanceMm * stopPerAirDistance;
   // The marginal ray's height where the chain STARTS: at the slip's face it has
-  // only crossed the glass, so it is short of the stop by the plate's transfer.
+  // only crossed the glass, so it is short of the front glass by the plate's
+  // transfer. Keyed to the pencil, so it is the same seed under both placements.
   const seidelMarginalHeightMm =
     slip === undefined
-      ? stopRadiusMm
-      : (tSlip * stopRadiusMm) / (tSlip + nSlip * airGapMm);
+      ? pencilRadiusAtGlassMm
+      : (tSlip * pencilRadiusAtGlassMm) / (tSlip + nSlip * airGapMm);
   // ANTI-CIRCULARITY, second half. The conjugate check above cannot see a stale
   // coverslip target: a lens solved for a plate slightly unlike the one in front
   // of it sits at the right conjugates and images perfectly happily. The residual
@@ -1608,12 +1844,18 @@ export function finiteConjugateObjective(
     airGapMm,
     airEquivalentObjectDistanceMm,
     freeWorkingDistanceMm,
-    stopSurfaceIndex: stopIdx,
+    stopSurfaceIndex,
+    stopPlacement,
+    stopDistanceMm,
+    ...(fieldNumberMm === undefined ? {} : { fieldNumberMm }),
     stopRadiusMm,
-    workingFocalRatio: f / (2 * stopRadiusMm),
+    // The PENCIL, not the stop radius: the cone the specimen radiates into is the
+    // same under both placements, and a ratio that swung by (1 + 1/M) when only
+    // the stop's spelling changed would be reporting the spelling.
+    workingFocalRatio: f / (2 * pencilRadiusAtGlassMm),
     seidelS1AtWorkingConjugates: workingSums.s1,
     seidelS1OfGlassAlone: seidelSums(asObjective(bare, 0), designWavelengthNm, {
-      marginalHeightMm: stopRadiusMm,
+      marginalHeightMm: pencilRadiusAtGlassMm,
       objectDistanceMm: airEquivalentObjectDistanceMm,
     }).s1,
     doublet,

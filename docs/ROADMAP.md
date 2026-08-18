@@ -708,12 +708,23 @@
    is a finding rather than a re-pin: two abutting tiles sit at two field heights,
    so a mosaic seam now carries an **illumination** step the guard band cannot
    remove.
-   **Still open here:** the DIN objective
-   (`finiteConjugateObjective` still carries its stop on the rim, and a real DIN
-   objective is telecentric too — and giving it one is what would make § 6x's
-   subject disappear, so it is deliberately not this step), the condenser's own
-   aberrations (§ 6x translates the cone rigidly; a real one changes its shape off
-   axis), and image-space telecentricity, which has no caller.
+   ~~**Still open here:** the DIN objective~~ — **closed at § 6ae**, which took the
+   placement this step deliberately left alone. It arrived the way this bullet
+   said it would (a `stopPlacement` and a `fieldNumberMm` on the finite-conjugate
+   constructor, no physics added) with one correction to the sentence above it:
+   the DIN's stop radius has no conjugate in it EITHER, and that is not an
+   infinite-conjugate accident but the B = f of the object→back-focal-plane
+   matrix, which holds at every object distance. § 6ae did **not** move the
+   default, for exactly the reason this bullet gives — it would make § 6x's
+   subject disappear — so the placement is now *chosen*, § 6x's fixture chooses
+   `"rim"` by name, and the flip is priced at 81 rungs across 17 files. The
+   finding is that the classical prediction FAILS on the shipped lens: a stop
+   shift costs no coma when ΣS_I = 0, and at the f/4 the 4×/0.10 works at it moves
+   71% of it, because the only spherical left is fifth order and the induced coma
+   rides on that.
+   **Still open here:** the condenser's own aberrations (§ 6x translates the cone
+   rigidly; a real one changes its shape off axis), and image-space
+   telecentricity, which has no caller.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it
@@ -1612,9 +1623,11 @@
    three items it left parked.* **What is open now is three things and none of
    them is an engine step:** the telescope scenes' *content* (§ 5 above — an
    albedo map, lunar terrain, a real limb-darkening coefficient, which is
-   measured data to source rather than code to write); § 6x's two deferrals, the
-   DIN objective's telecentricity and the condenser's own aberrations, both left
-   deliberately and both explained there; ~~**what the phase panel should print
+   measured data to source rather than code to write); ~~§ 6x's two deferrals, the
+   DIN objective's telecentricity and the condenser's own aberrations~~ — **the
+   first closed at § 6ae**, leaving one: the condenser's own aberrations and its
+   own pupil, which is the microscope branch's last deferral and needs a
+   condenser prescription `designs/` does not have; ~~**what the phase panel should print
    for its 2ν contrast above S ≈ 0.9**~~ — **closed**, at § 6ab.12 (the readout
    was printed where the harmonic cannot exist, and the fix is a geometric gate
    with no threshold in it), § 6ab.13 (the grating's own orders were folding onto

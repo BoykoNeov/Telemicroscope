@@ -77,10 +77,23 @@ const L = 587.5618;
 const SIZE = 64;
 const PS = 32;
 
-/** § 6b's DIN 4×/0.10 — rim-stopped by construction, so the subject. */
+/**
+ * § 6b's DIN 4×/0.10, rim-stopped — the subject.
+ *
+ * `"rim"` is NAMED rather than defaulted, and § 6ae is why: the placement is a
+ * choice on this constructor too now, and every rung below measures what a stop
+ * a finite arm away does to the illumination. Reading the default here would
+ * leave the whole file passing while measuring a bitwise zero the day that
+ * default moves. § 6ae.7 pins the zero deliberately, on a telecentric DIN, which
+ * is the other half of the same statement.
+ */
 const din = (): OpticalSystem =>
   finiteConjugateMicroscope({
-    objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    objective: finiteConjugateObjective({
+      magnification: 4,
+      numericalAperture: 0.1,
+      stopPlacement: "rim",
+    }),
   }).system;
 
 /** § 6v's infinity 4×/0.10, in both placements — the pair the claim needs. */

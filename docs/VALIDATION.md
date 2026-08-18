@@ -84,9 +84,10 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider, the gap a divisibility law; § 6ab.12 gating the 2ν readout on where the beat exists; § 6ab.13 the ORDERS folded on too, the object from its spectrum; § 6ab.14 the carrying AREA, the whole condenser only below √((1−S²)/2); § 6ab.15 the ODD harmonics null by PARITY, the even ones 2·J_{h/2}(φ)²; § 6ab.16 a TRACED pupil failing REALNESS, not evenness; § 6ab.17 that bound false at n = 17, the envelope n^{-4/3}; § 6ab.18 the rim predictor REFUTED; § 6ab.19 the commensurate ANNULUS, cached | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on what a phase object's harmonics do to the readout that reports them | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and two plausible-wrong-answer hazards measured and refused by the API | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
+| [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop, whose radius has no conjugate in it because object plane → back focal plane is B = f at every one — and third order says the shift costs no coma where the trace moves 71% of it | `telecentric-din` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -13258,6 +13259,190 @@ returned array is the right length and full of plausible numbers.
 
 - **No app surface.** ~~`mtfSections` has no caller in `packages/app`~~ — ✅ closed
   by APP.md Part K, route `#/mtf`, which is what found the refusal above.
+
+## Step 6ae — the DIN objective's own stop
+
+Three steps deferred this one and each said why. § 6v: *"`finiteConjugateObjective`
+is untouched and still carries its stop on the rim. A real DIN objective is
+telecentric too, and the composition it feeds is a different one, so it is its own
+step."* § 6w repeated it. § 6x sharpened it into a reason to wait rather than a
+reason to skip: giving the DIN a back focal stop *"is what would make this step's
+subject disappear, which is precisely why it must not happen in this step."*
+
+**No physics is added.** § 6u made an entrance pupil at infinity expressible,
+§ 6v built the diaphragm, § 6w wrote down the glass a telecentric bundle needs;
+all three compose here. What is worth the step is where the finite conjugate makes
+the same sentence mean something different, and one measurement that refutes the
+classical prediction on the lens this repo actually ships.
+
+### The aperture has no conjugate in it, and that is not an infinite-conjugate accident
+
+`f·n·tan u`, bitwise, at every magnification and NA and behind a coverslip too —
+the same expression `microscopeObjective` uses at infinity. The reason is one
+matrix. Object plane → back focal plane is
+
+    [[0, f], [−1/f, 1 − s/f]]
+
+at **every** object distance s. The A = 0 is telecentricity itself; the B = f
+beside it is why § 6u.1's slope aperture `stopRadius/B` reduces to `tan u`
+whatever the specimen distance. A flat plate has no power, so a specimen under a
+slip is an air object at the air-equivalent plane and the slip only multiplies the
+slope by n on the way out — which is why the coverslip case did **not** need its
+own derivation, where the rim's `(t + n·w)·tan u_glass` did.
+
+So the delivered NA stops depending on where the specimen is, **bitwise**, against
+a rim-stopped control that gives up 2.1% of its aperture over a millimetre of
+travel. The rim's own radius is `a·tan u` with a = ffd + f/M, so its ratio to
+`f·tan u` walks toward 1 as the objective gets shorter — 1.2144 at 4×, 1.0684 at
+10×, 1.0197 at 20×, 0.9953 at 40× — which is the same statement read as a family.
+
+### A DIN has no tube lens, so the last vertex is the diaphragm
+
+The coupling this step had to get right, and it is § 6l.9's failure shape again: a
+readout keyed to a position rather than to a thing. `imageDistanceMm` is "last
+vertex to the intermediate image", the last vertex is now the disc, and the number
+shortens by the back focal distance — 188.2139 → 150.7785 against a 37.4353 mm
+BFD. Three readouts follow it and one must not:
+
+- `tracedOpticalTubeLengthMm` is a **difference** of two distances from that same
+  vertex, so it cannot move, and does not (to 12 places).
+- `finiteConjugateMicroscope` splices `imageDistanceMm` in as the trailing
+  thickness, so it stays right by construction under both placements.
+- The **anti-circularity check does not follow it**. `solveAt` was a distance from
+  the last GLASS surface, so comparing the delivered image distance against the
+  bending's would refuse every telecentric objective by exactly the back focal
+  distance. It is read on the glass chain, deliberately, and that is the one line
+  in the constructor where the two frames are not interchangeable.
+
+`workingFocalRatio` moved for the same reason and in the other direction: it was
+`f/(2·stopRadius)`, which would have swung by the whole `a/f` ratio when only the
+stop's SPELLING changed. It is keyed to the pencil at the front glass now, which
+is the same physical cone under both placements, and reads the same number.
+
+### The bending does not move, and the stop-shift equations say why (EXTERNAL)
+
+A stop shift changes S_II, S_III and S_V and leaves S_I alone, and this lens is
+solved to ΣS_I = 0. So the two placements are built on the **identical doublet** —
+every curvature, medium, semi-aperture and internal gap to the bit — and the free
+working distance, the object distance and `seidelS1OfGlassAlone` are bitwise equal.
+
+The classical algebra is the external anchor and the trace is the check, fitted on
+Welford's own basis rather than a Zernike one because the stop-shift equations are
+written in these coefficients and a balanced basis would mix the defocus back into
+them. Closing the aperture three octaves, the ratios go to −1 — the minus being
+`pupil/opd`'s sign convention (positive OPD = the ray lags) against Welford's W —
+and the approach is quadratic in NA:
+
+| | f/4.08 | f/8.05 | f/16.06 | f/32.06 |
+|---|---|---|---|---|
+| traced W₁₃₁ / ½·S_II | −1.134 | −1.025 | −1.006 | −1.0015 |
+| traced W₂₂₂ / ½·S_III | −0.988 | −0.998 | −0.9995 | −0.9998 |
+| ΔW₂₂₂ / E·S_II | −0.655 | −0.932 | −0.986 | −0.997 |
+
+with E = Δ(ȳ/y) = h/(a·tan u). That the difference of the two chief rays is
+*proportional to the marginal ray* — both have y/u = a — is what makes this a stop
+shift at all, and is why E is the same at every surface without being checked at
+each one.
+
+### THE FINDING: the shift is third-order-free of coma, and moves 71% of it
+
+`S_II* = S_II + E·S_I` with S_I = 0 predicts that a stop shift on this lens leaves
+the coma **exactly** alone. It does, in the limit, and it does not at the aperture
+the catalogued 4×/0.10 works at: the induced coma is 0.85% of the coma at f/32 and
+**70.6% at f/4.08**, falling by about a factor 4 per halving of the aperture.
+
+The premise is the same null that made the prediction sharp. ΣS_I is zero to solver
+precision at every aperture, so the ρ⁴ term the fit reports is the projection of a
+ρ⁶ one — 7.51e-1, 1.09e-2, 1.67e-4, 2.65e-6 waves, ratios 69, 65, 63 against
+2⁶ = 64. **The only spherical this lens has left is fifth order**, the induced coma
+rides on it, and so it falls as NA⁵ where the coma itself falls as NA³. The two
+cross over inside the objective's own working range. A third-order argument that
+"the shift is free because S_I is nulled" is true and useless here, and it is
+useless *because* the null is exact.
+
+Which way it goes is the practical half: telecentric trades **3.4× less coma for
+2.4× more astigmatism** at a quarter millimetre, and coma is the bigger term, so
+the wavefront RMS comes out 1.54× better at half a millimetre and **1.94× better at
+one**. The DIN 4× is a better lens telecentric.
+
+**And on axis, "nothing changes" is true of the rays and false of the number.** The
+axial marginal ray is identical to a ULP; the reported RMS differs by 1.1%, because
+the stop moves the EXIT pupil 39.087 mm and `opdMap`'s reference sphere is centred
+on the image point with the exit-pupil radius. The reference radius follows by
+exactly the same 39.087 mm. Without the ray identity pinned beside it that 1.1%
+reads as physics.
+
+### What it costs, what a field number buys, and what it does not
+
+§ 6v.5's price at this architecture's conjugates. A rim stop pivots every bundle
+through surface 0, so its footprint never moves and it passes the whole pupil at
+every field; a telecentric bundle **translates** with object height and walks off
+glass sized for the axial pencil — 4.8% of the pupil gone at 1 mm, 21.4% at 2.25
+mm, which is an 18 mm field number's own edge.
+
+`fieldNumberMm` pays it, by § 6w's formula with the diverging pencil in place of
+`f·NA`, and it pays it exactly: full throughput to its own edge at FN 4, 10 and 18,
+and FN 4 still losing rays at 1 mm, so the sizing is the walk and not slack. The
+price is a 1.42× element, f/4.08 → f/2.55, 0.88 mm of tube length and 1.11 mm of
+working distance. It walls where the cemented doublet does — FN 40 still builds, at
+f/1.88; FN 60 refuses, naming the pencil and the walk separately, because the glass
+is the sum of two things and neither is recoverable from the aperture alone.
+
+**The honest half, which the rung says with a number: a field number buys the
+aperture and buys nothing else.** At 2.25 mm the doublet carries 0.65 waves RMS —
+8.7× Maréchal — so a single cemented doublet is not a field lens, and sizing its
+glass for one does not make it one. § 6d's Lister is the answer to that and this
+step is not.
+
+### The default did not move, and that is the step's one real decision
+
+`microscopeObjective` defaults to `"backFocal"`; this constructor defaults to
+`"rim"`. § 6x is why. Its whole subject is the Köhler cone displaced by `h/R_ep` in
+a rim-stopped objective's pupil, measured on this very lens, and telecentricity
+sends that displacement to a **bitwise zero** — so a telecentric default would have
+left every § 6x rung green while measuring nothing. § 6ae.7 pins the zero on
+purpose, at four heights, against the rim's 0.217 per millimetre and its exact
+linearity in h; § 6x's own fixture now names `"rim"` rather than reading a default.
+
+What flipping the shipped default would cost is measured rather than guessed: **81
+rungs across 17 files**, § 6b.5's external Maréchal wall among them, because the
+aperture a DIN is diffraction-limited to is not stop-placement-free. That is a
+decision about what the app ships, not about what the engine can express, and it is
+recorded here rather than taken quietly.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The diaphragm sits at the glass group's own BFD, bitwise, at three magnifications | `systemProperties`, not a chosen distance | ✅ |
+| Exactly one stop flag, and `stopSurfaceIndex` is where it is — surface 0 rim, last surface telecentric | both ends are a stop under some spec | ✅ |
+| Stop radius = `f·n·tan u` **bitwise**, at 4 magnifications × 2 NAs, and behind a coverslip | object→BFP has B = f at every conjugate | ✅ |
+| The delivered NA is **bitwise** constant over specimen travel; the rim gives up 2.1% in 1 mm | telecentricity's defining property | ✅ |
+| The magnification is **bitwise** constant under defocus; the rim drifts as −δz/(a+δz) to 5 places | closed form, and the DIN's M is the engraving | ✅ |
+| Every chief ray is exactly (0, 0, 1); the control's tangent is −h/a to 12 places | the definition, and its negative control | ✅ |
+| `imageDistanceMm` shortens by the BFD while `tracedOpticalTubeLengthMm` does not move | a difference of two distances from one vertex | ✅ |
+| The IDENTICAL doublet is built — curvatures, media, gaps, `seidelS1OfGlassAlone` to the bit | S_I is stop-independent | ✅ |
+| EXTERNAL: traced W₁₃₁, W₂₂₂ and ΔW₂₂₂ converge onto Welford's stop-shift equations, monotonically | the classical algebra, three octaves of aperture | ✅ |
+| The residual spherical is ENTIRELY fifth order — the ρ⁴ projection falls as NA⁶ (69, 65, 63 vs 64) | ΣS_I = 0 to solver precision | ✅ |
+| **The shift moves 70.6% of the coma at f/4 and 0.85% at f/32**, ×4 per halving | third order says exactly zero | ✅ |
+| 3.4× less coma for 2.4× more astigmatism; 1.94× better wavefront RMS at 1 mm | which way the trade goes, measured | ✅ |
+| On axis the marginal ray is identical to a ULP and the RMS differs by 1.1% — the reference SPHERE | the exit pupil moves 39.087 mm and so does the radius | ✅ |
+| Telecentric loses 4.8% of the pupil at 1 mm and 21.4% at 2.25; the rim loses none anywhere | the bundle translates, § 6v.5 at these conjugates | ✅ |
+| `fieldNumberMm` restores full throughput to its own edge at FN 4, 10, 18 — and FN 4 fails at 1 mm | it sizes the walk, not slack | ✅ |
+| It walls at FN 60 (FN 40 builds at f/1.88) and the refusal names the pencil and the walk apart | § 6b.5.5 — a refusal says what to change | ✅ |
+| At FN 18's own edge the lens is 8.7× Maréchal | a field number buys aperture and nothing else | ✅ |
+| A field number is REFUSED on the rim placement | § 6w's refusal, same reason | ✅ |
+| § 6x's illumination offset is **exactly 0** at every height, against 0.217/mm and exactly linear | `h/R_ep`, and R_ep = ∞ | ✅ |
+
+### Not yet pinned
+
+- **The default.** Deliberate, priced at 81 rungs across 17 files, and the price is
+  the finding rather than the obstacle: it includes an EXTERNAL Maréchal wall, so
+  "which aperture is a DIN diffraction-limited to" has a stop placement in it that
+  § 6b.5 does not currently state.
+- **Pupil aberration**, unchanged from § 6u and § 6v: the aim is paraxial.
+- **The condenser's own aberrations and its own pupil**, unchanged from § 6x — the
+  cone is still translated rigidly, and a real condenser's cone also changes shape
+  off axis. With this step closed that is the microscope branch's last deferral.
+- **Image-space telecentricity**, which still has no caller (§ 6u).
 
 ## Later rungs
 
