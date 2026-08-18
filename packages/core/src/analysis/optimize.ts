@@ -261,12 +261,21 @@ export interface DlsOptions {
    * what a variable measures, so 1 is the only honest floor for a variable that
    * starts at exactly 0. State the steps when that is wrong.
    *
-   * The OPTICAL entry points — `optimizePrescription`, `optimizeSystem`,
-   * `systemResponse` — do know, and fill this in from the prescription when a
-   * caller states nothing: see `designSteps` and § 1.8.11. A thickness keeps
-   * `max(|t|, 1)` to the bit; a curvature is scaled by its surface's own
-   * semi-aperture instead, which is worth up to 2·10³ in the located answer.
-   * Stating `steps` there overrides that, exactly as before.
+   * All four OPTICAL entry points — `optimizePrescription`, `optimizeSystem`,
+   * `variableResponse`, `systemResponse` — do know, and fill this in from the
+   * prescription when a caller states nothing: see `designSteps` and § 1.8.11.
+   * A thickness keeps `max(|t|, 1)` to the bit; a curvature is scaled by its
+   * surface's own semi-aperture instead, which is worth up to 2·10³ in the
+   * located answer. Stating `steps` overrides that, exactly as before.
+   *
+   * Only TWO of the four can actually reach that scale, and the type system is
+   * what says so: `optimizePrescription` and `variableResponse` take
+   * `OptimizeOperand`/`HeldOperand`, which is paraxial and third-order kinds and
+   * nothing else, so `operands.some(isTraced)` is false at every call and the
+   * array they fill in is the old rule's values bitwise. They still go through
+   * the same function rather than around it, so a traced operand becoming legal
+   * there would carry the rule with it instead of quietly keeping this floor.
+   * That is also the whole reason § 1.8.9's conditioning family did not move.
    */
   readonly steps?: readonly number[];
   /**
