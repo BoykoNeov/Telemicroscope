@@ -13587,6 +13587,7 @@ displaces the cone rigidly and has no way to say that; it is exactly the sentenc
 | EXTERNAL: W₀₄₀ → Coddington's polynomial as the element thins, 1.968 → **1.0025**, departure linear at 0.247/mm | published closed form, q = −1, p = +1 | ✅ |
 | …and the pin DISCRIMINATES p, which q = 0 could not — the p-odd term is `4(n+1)·p·q` | why the elements are plano-convex | ✅ |
 | The aberration is LARGE: 8.5e-3 mm, **14.4 waves** | what the word "Abbe" is doing in the name | ✅ |
+| …and BITWISE aperture-free over 12× of NA, while moving as h⁴ with the field | Köhler: a diaphragm point's beam is sized by the FIELD | ✅ |
 | EXTERNAL: the chromatic shift lands on `(n_d−1)²/((n_C−1)(n_F−1))` to **9 digits**, where f/V misses by 0.591% | the Abbe number's own linearization error | ✅ |
 | …and the two-element pair does NOT follow it (0.9498) | a gap is a second chromatic freedom, unspent here | ✅ |
 | The diaphragm sits exactly where the group collimates, at three focal lengths | `collimatingObjectDistance`, bitwise | ✅ |
@@ -13597,6 +13598,20 @@ displaces the cone rigidly and has no way to say that; it is exactly the sentenc
 | CONTROL: at NA 0.0125 both readings meet the paraxial value inside 2e-4 | the aberration-free limit, reached | ✅ |
 | The cone TRANSLATES 0.0428 and its rim 0.0650, so it STRETCHES by 0.0222 | § 6x's rigid displacement cannot say this | ✅ |
 | The glass passes the whole field from every diaphragm point, at two apertures | § 6w's sizing, with aperture and field swapped | ✅ |
+
+### A readout that must NOT respond, and why saying so is a rung
+
+`fieldBeamW040Mm` is bitwise identical over a 12× range of illumination NA, and
+that was nearly shipped as a number quoted beside an aperture it ignores. The
+invariance is real physics — every diaphragm point lights the whole field with one
+beam, so the beam's width at the glass is the FIELD's and closing the diaphragm
+never narrows it — but "the condenser's own aberration" was being used for two
+different quantities. The beam's spherical aberration is field-set and
+aperture-free (h⁴ in the field, exactly). The CONE's angular error is what the
+aperture moves, and it goes as NA². The readout is named for the beam now and the
+invariance is asserted rather than left to be noticed, which is § 6af's instance of
+the habit: before quoting what a change buys, check the readout responds to it —
+and when it must not, pin that.
 
 ### Not yet pinned
 

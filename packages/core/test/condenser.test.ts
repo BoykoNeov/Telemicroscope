@@ -207,7 +207,7 @@ describe("§ 6af.2 — EXTERNAL: Coddington's polynomial, and why the shape is p
       const h = c.fieldRadiusMm;
       const predicted =
         (h ** 4 / (32 * c.paraxialFocalLengthMm ** 3 * n * (n - 1))) * bracket(n, -1, 1);
-      ratios.push({ t, ratio: c.w040Mm / predicted });
+      ratios.push({ t, ratio: c.fieldBeamW040Mm / predicted });
     }
     expect(ratios[0]!.ratio).toBeCloseTo(1.968, 2);
     expect(ratios[4]!.ratio).toBeCloseTo(1.0025, 3);
@@ -234,8 +234,8 @@ describe("§ 6af.2 — EXTERNAL: Coddington's polynomial, and why the shape is p
     const h = c.fieldRadiusMm;
     const at = (p: number) =>
       (h ** 4 / (32 * c.paraxialFocalLengthMm ** 3 * n * (n - 1))) * bracket(n, -1, p);
-    expect(c.w040Mm / at(1)).toBeCloseTo(1, 2);
-    expect(c.w040Mm / at(-1)).toBeLessThan(0.3);
+    expect(c.fieldBeamW040Mm / at(1)).toBeCloseTo(1, 2);
+    expect(c.fieldBeamW040Mm / at(-1)).toBeLessThan(0.3);
   });
 
   it("and the aberration is LARGE — which is the whole point of the form", () => {
@@ -243,8 +243,26 @@ describe("§ 6af.2 — EXTERNAL: Coddington's polynomial, and why the shape is p
     // anyone corrected, and the number is here so "the condenser's own
     // aberrations" has a size rather than an adjective.
     const c = abbeCondenser({ numericalAperture: 0.3 });
-    expect(c.w040Mm).toBeCloseTo(8.464e-3, 5);
-    expect(c.w040Mm / (L * 1e-6)).toBeGreaterThan(14);
+    expect(c.fieldBeamW040Mm).toBeCloseTo(8.464e-3, 5);
+    expect(c.fieldBeamW040Mm / (L * 1e-6)).toBeGreaterThan(14);
+  });
+
+  it("…and it is BITWISE aperture-free, which is Köhler illumination and not an oversight", () => {
+    // Asserted rather than left to be noticed. The rung above pins a number that
+    // does not respond to the NA stated in the same call, and a reader is owed
+    // the reason: every diaphragm point lights the whole field with one beam, so
+    // that beam's width at the glass is the FIELD's and closing the diaphragm
+    // never narrows it. What the aperture does move is the ANGLE the beams leave
+    // at, and that is § 6af.5's measurement, which goes as NA².
+    //
+    // The habit this rung comes from: before quoting what a change buys, check
+    // the readout responds to it. Here it must not, and saying so is the rung.
+    const w = [0.6, 0.3, 0.1, 0.05].map((na) => abbeCondenser({ numericalAperture: na }).fieldBeamW040Mm);
+    for (const x of w) expect(x).toBe(w[0]!);
+    // …while the FIELD does move it, as h⁴ — so it is not simply a constant.
+    const wide = abbeCondenser({ numericalAperture: 0.3, fieldRadiusMm: 4.5 });
+    const narrow = abbeCondenser({ numericalAperture: 0.3, fieldRadiusMm: 2.25 });
+    expect(wide.fieldBeamW040Mm / narrow.fieldBeamW040Mm).toBeCloseTo(16, 5);
   });
 });
 

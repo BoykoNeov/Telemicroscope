@@ -152,12 +152,21 @@ export interface AbbeCondenser {
    */
   readonly shapeFactor: number;
   /**
-   * ΣS_I/8 of the condenser's own glass at its working conjugates (mm) — its
-   * spherical aberration as a wavefront coefficient. **This is not zero and is
-   * not meant to be**; it is the quantity that makes an Abbe condenser an Abbe
-   * condenser, and the one a corrected condenser would spend elements on.
+   * ΣS_I/8 of one diaphragm point's BEAM (mm) — its spherical aberration as a
+   * wavefront coefficient. Not zero and not meant to be: it is the quantity that
+   * makes an Abbe condenser an Abbe condenser.
+   *
+   * **It does not move when the diaphragm closes, and that is Köhler
+   * illumination rather than an oversight.** Every diaphragm point lights the
+   * whole field with one beam, so that beam's width at the glass is set by the
+   * FIELD and not by the aperture — the marginal ray height here is
+   * `fieldRadiusMm`, and closing the diaphragm changes how many such beams there
+   * are and what angles they leave at, never how wide any one of them is. Which
+   * is why this is named for the beam: the aperture-dependent quantity is the
+   * ANGULAR error of the cone the beams make between them, it goes as NA², and
+   * it is § 6af.5's measurement rather than this readout.
    */
-  readonly w040Mm: number;
+  readonly fieldBeamW040Mm: number;
   /** Which surface carries the stop. 0 — the diaphragm, and there is no other. */
   readonly stopSurfaceIndex: number;
   readonly elements: 1 | 2;
@@ -225,7 +234,9 @@ export function abbeCondenser(spec: AbbeCondenserSpec): AbbeCondenser {
   // the most oblique beam has moved by the time it reaches the specimen. Same
   // shape as § 6w's `f·NA + h` and for the same reason, with the roles of the
   // aperture and the field swapped because the light is going the other way.
-  const glassSemiDiameterMm = fieldRadiusMm + (workingDistanceMm + gapMm + 2 * thicknessMm) * tanU;
+  const glassSemiDiameterMm =
+    fieldRadiusMm +
+    (workingDistanceMm + elements * thicknessMm + (elements === 2 ? gapMm : 0)) * tanU;
 
   // One free parameter, solved on the TRACED paraxial chain rather than from the
   // thin-lens maker's equation — the element thicknesses are then in the answer,
@@ -302,10 +313,11 @@ export function abbeCondenser(spec: AbbeCondenserSpec): AbbeCondenser {
     ],
   };
 
-  // The condenser's own spherical aberration, at the conjugates it works at: the
-  // diaphragm in front, the beam leaving collimated. A READOUT, and a large one —
-  // it is what the word "Abbe" is doing in the name of this constructor.
-  const w040Mm =
+  // One diaphragm point's beam, at the conjugates it works at: the diaphragm in
+  // front, the beam leaving collimated, and its width set by the FIELD because
+  // that is what Köhler illumination means. A READOUT, and a large one — it is
+  // what the word "Abbe" is doing in the name of this constructor.
+  const fieldBeamW040Mm =
     seidelSums(glass, designWavelengthNm, {
       marginalHeightMm: fieldRadiusMm,
       objectDistanceMm: frontFocalDistanceMm,
@@ -326,15 +338,9 @@ export function abbeCondenser(spec: AbbeCondenserSpec): AbbeCondenser {
     // c₁ = 0 and c₂ = −1/R, so (c₁+c₂)/(c₁−c₂) = −1 identically. Computed rather
     // than written down, so it cannot drift from the surfaces above.
     shapeFactor: (0 + -1 / radiusMm) / (0 - -1 / radiusMm),
-    w040Mm,
+    fieldBeamW040Mm,
     stopSurfaceIndex: 0,
     elements,
     designWavelengthNm,
   };
-}
-
-/** The index the elements were solved at — exported for the rungs' closed forms. */
-export function condenserGlassIndex(condenser: AbbeCondenser, wavelengthNm: number): number {
-  const medium = condenser.glass.surfaces[0]!.medium ?? DEFAULT_CONDENSER_MEDIUM;
-  return getMedium(medium).n(wavelengthNm);
 }
