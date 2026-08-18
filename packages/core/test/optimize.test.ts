@@ -1866,8 +1866,12 @@ const wfZernike = (
 });
 
 /** The fitted wavefront of a system, as the operand reads it. */
-const wfFit = (system: OpticalSystem, pupil: readonly PupilPoint[] = WF_GRID, terms = WF_TERMS) =>
-  fitZernike(opdMap(system, 0, LINE_D, pupil).samples, terms);
+const wfFit = (
+  system: OpticalSystem,
+  pupil: readonly PupilPoint[] = WF_GRID,
+  terms = WF_TERMS,
+  fieldValue = 0,
+) => fitZernike(opdMap(system, fieldValue, LINE_D, pupil).samples, terms);
 
 const FOCUS = { kind: "thickness", surface: 0 } as const satisfies SolveVariable;
 const RADIUS = { kind: "curvature", surface: 0 } as const satisfies SolveVariable;
@@ -2410,5 +2414,148 @@ describe("DLS § 1.8.7 — the refusals a wavefront operand needs of its own", (
     expect(() => optimizeSystem(starved, [FOCUS], [wfOperand("rms", WF_GRID, 45)])).toThrow(
       /operand 0 cannot be read at the start — a wavefront operand fitting 45 terms has \d+ of 313 rays surviving/,
     );
+  });
+});
+
+/**
+ * DLS § 1.8.7 — off axis, where keeping tilt is the whole reason `"rms"` and
+ * `"balancedRms"` are two readings rather than one.
+ *
+ * `fitRms` keeps tilt on purpose — `zernike.ts` says why, and § 1.5.3 measures
+ * the case that forces the other choice. On axis the distinction is invisible:
+ * the tilt and coma terms sit at 10⁻⁷ waves by symmetry, so every rung above
+ * would pass with the two readings swapped. Everything that makes them
+ * different quantities happens off axis, and that is where it has to be pinned.
+ */
+describe("DLS § 1.8.7 — off axis, which is where the two RMS readings part", () => {
+  const FIELDS = [0.5, 1, 2] as const;
+  const OFF_TERMS = 15;
+
+  it("tilt and coma are linear in the field, and are what `balancedRms` discards", () => {
+    const at = (field: number) =>
+      fitZernike(opdMap(wfMirror(10), field, LINE_D, WF_GRID).samples, OFF_TERMS);
+
+    // On axis both are at the trace's own noise, six orders under the 1° value:
+    // this is the symmetry that would let a swapped reading pass unnoticed.
+    const axis = at(0);
+    expect(Math.abs(coefficient(axis, 2))).toBeLessThan(1e-6);
+    expect(Math.abs(coefficient(axis, 8))).toBeLessThan(1e-6);
+
+    // Off axis, tilt (Noll 2) and primary coma (Noll 8) are both first order in
+    // the field, which is what says the fit is reading the right terms and not
+    // merely producing numbers.
+    for (const field of FIELDS) {
+      const fit = at(field);
+      expect(coefficient(fit, 2) / field).toBeCloseTo(0.2470, 2);
+      expect(coefficient(fit, 8) / field).toBeCloseTo(0.08727, 3);
+    }
+
+    // …and the exact relation between the two readings, which is Parseval on an
+    // orthonormal basis rather than an approximation: what `balancedRms` throws
+    // away is precisely tilt and defocus, so rms² − balanced² = c₂² + c₃² + c₄².
+    for (const field of FIELDS) {
+      const fit = at(field);
+      const discarded =
+        coefficient(fit, 2) ** 2 + coefficient(fit, 3) ** 2 + coefficient(fit, 4) ** 2;
+      expect(fitRms(fit) ** 2 - balancedRms(fit) ** 2).toBeCloseTo(discarded, 12);
+    }
+    // At 1° that is 0.0974 waves² of a 0.1093 total — most of what `"rms"`
+    // charges the design for, and none of it image blur if the instrument is
+    // merely pointed differently. Which reading is right is the caller's
+    // question; that they are different questions is this rung.
+    const one = at(1);
+    expect(fitRms(one)).toBeCloseTo(3.3065e-1, 5);
+    expect(balancedRms(one)).toBeCloseTo(1.0935e-1, 5);
+  });
+
+  it("an off-axis operand starts with a reduced ray set, and holds that one", () => {
+    // Six of 313 rays never reach the reference sphere at any nonzero field —
+    // the footprint has walked off the mirror's own rim. So the held set here
+    // is smaller than the pupil that was asked for from the very first
+    // evaluation, which is the survivor machinery meeting a different cause
+    // than § 1.8.5's bending-across-a-rim, and reaching the same place.
+    expect(opdMap(wfMirror(10), 0, LINE_D, WF_GRID).lost).toBe(0);
+    for (const field of FIELDS) expect(opdMap(wfMirror(10), field, LINE_D, WF_GRID).lost).toBe(6);
+
+    const offAxis = (reading: "rms" | "balancedRms"): TracedOperand => ({
+      kind: "wavefront",
+      fieldValue: 1,
+      wavelengthNm: LINE_D,
+      pupil: WF_GRID,
+      terms: OFF_TERMS,
+      reading,
+      target: 0,
+    });
+
+    // `"rms"` refocuses the field point and stops: the merit is charged for
+    // the defocus, so it drives c₄ to 6e-4 and stays put.
+    const bounded = optimizeSystem(wfMirror(10), [FOCUS], [offAxis("rms")], { steps: [1e-4] });
+    expect(bounded.x[0]! - MIRROR_R / 2).toBeCloseTo(7.7505e-2, 5);
+    // Read at the field it was optimised for — reading this plane on axis was
+    // the first thing tried here and it says nothing about the run.
+    const moved = wfFit(
+      { ...wfMirror(10), prescription: withVariables(wfMirror(10).prescription, [FOCUS], bounded.x) },
+      WF_GRID,
+      OFF_TERMS,
+      1,
+    );
+    expect(Math.abs(coefficient(moved, 4))).toBeLessThan(1e-3);
+    // The tilt is untouched by refocusing, which is the point of keeping it:
+    // a plane shift cannot mend a chief ray that lands somewhere else.
+    expect(coefficient(moved, 2)).toBeCloseTo(0.2471, 3);
+
+    // …and `"balancedRms"` walks 94 mm, the same false minimum as on axis and
+    // further, on a start whose ray set was already short of the pupil.
+    const forgiving = optimizeSystem(wfMirror(10), [FOCUS], [offAxis("balancedRms")], {
+      steps: [1e-4],
+    });
+    expect(forgiving.x[0]! - MIRROR_R / 2).toBeLessThan(-80);
+  });
+});
+
+describe("DLS § 1.8.7 — a reading that sums nothing is a merit that measures nothing", () => {
+  /**
+   * The failure this refusal exists to prevent has the worst shape a failure
+   * can have here. `fitRms` sums Noll j = 2… and `balancedRms` sums j = 5…, so
+   * a term count below the reading's own first term leaves the sum EMPTY: the
+   * residual is exactly zero at every design, the first gradient test passes,
+   * and the run returns at iteration one on `"gradient"` — the converged-optimum
+   * reason — with merit 0 and the variables exactly where they started.
+   *
+   * A caller reading that result cannot tell it apart from a design that was
+   * already perfect. Measured before the refusal was written, and it is the
+   * reason the check is keyed on the reading rather than on the basis.
+   */
+  it("refuses a term count the reading cannot see past, by name and with the floor", () => {
+    expect(() =>
+      optimizeSystem(wfMirror(10), [FOCUS], [wfOperand("balancedRms", WF_GRID, 4)]),
+    ).toThrow(/reading balancedRms over 4 terms sums nothing — that reading starts at Noll 5/);
+    expect(() => optimizeSystem(wfMirror(10), [FOCUS], [wfOperand("rms", WF_GRID, 1)])).toThrow(
+      /reading rms over 1 terms sums nothing — that reading starts at Noll 2/,
+    );
+    // A condition is refused on the same grounds — a constraint that is 0 = 0
+    // for every design is not a constraint, and its row would be a zero row in
+    // C rather than a dependency the `conditions` stop can report.
+    expect(() =>
+      optimizeSystem(wfMirror(10), [FOCUS], {
+        minimize: [wfOperand("rms")],
+        hold: [wfOperand("balancedRms", WF_GRID, 4)],
+      }),
+    ).toThrow(/sums nothing/);
+
+    // One term past the floor is a legitimate request and is accepted: the
+    // boundary is the reading's own first term, not a judgement about whether
+    // the fixture happens to excite it.
+    expect(() =>
+      optimizeSystem(wfMirror(10), [FOCUS], [wfOperand("balancedRms", WF_GRID, 5)], {
+        maxIterations: 2,
+      }),
+    ).not.toThrow();
+    // …and `"zernike"` needs no floor of its own: the Noll index is already
+    // checked against the term count, so it can never name a term the fit did
+    // not compute.
+    expect(() =>
+      optimizeSystem(wfMirror(10), [FOCUS], [wfZernike(1, 0, WF_GRID, 1)], { maxIterations: 2 }),
+    ).not.toThrow();
   });
 });

@@ -1871,6 +1871,45 @@ monotonically — the same square-grid-on-a-disc counting § 6ab.17 measures. A
 reading that could not be reproduced by a caller who sampled slightly
 differently is not a merit worth optimising.
 
+#### Off axis, and one refusal the first commit did not have
+
+Everything above is on axis, and on axis the two RMS readings are almost the
+same number: tilt and coma sit at 10⁻⁷ waves by symmetry, so every rung so far
+would have passed with `"rms"` and `"balancedRms"` swapped. What makes them
+different quantities happens off axis, and `zernike.ts`'s reason for keeping
+tilt is a claim about off-axis behaviour, so it is pinned there.
+
+At 0.5°, 1° and 2° on the same mirror, tilt (Noll 2) and primary coma (Noll 8)
+are both first order in the field — c₂/θ = 0.2470 and c₈/θ = 0.08727, constant
+to three figures — and the exact relation between the readings is Parseval
+rather than an approximation: **rms² − balanced² = c₂² + c₃² + c₄²** to twelve
+figures. At 1° that is 0.0974 waves² out of 0.1093, so most of what `"rms"`
+charges is a pointing error and a focus setting, and none of it is image blur
+on an instrument that is merely aimed differently. Which reading is right is
+the caller's question; that they are two questions is the rung.
+
+An off-axis operand also starts with a **reduced** survivor set — six rays of
+313 never reach the reference sphere at any nonzero field, the footprint having
+walked off the mirror's own rim — which is the held-set machinery meeting a
+different cause than § 1.8.5's bending-across-a-rim and reaching the same place.
+Refocusing then moves c₄ to 6·10⁻⁴ and leaves c₂ exactly where it was, which is
+the whole argument for keeping tilt in one sentence: a plane shift cannot mend a
+chief ray that lands somewhere else. `"balancedRms"` walks 94 mm off, further
+than it did on axis.
+
+**And a term count the reading cannot see past is a merit that measures
+nothing.** `fitRms` sums Noll j = 2… and `balancedRms` sums j = 5…, so 4 terms
+of a balanced RMS — or 1 of a plain one — leaves the sum EMPTY. Measured before
+the refusal was written, the failure has the worst shape available here: the
+residual is exactly zero at every design, the first gradient test passes, and
+the run returns **at iteration one on `"gradient"` — the converged-optimum
+reason — with merit 0 and the variables where they started**. Indistinguishable,
+from the result alone, from a design that was already perfect. The floor is
+keyed on the reading rather than on the basis, applies to conditions as well as
+wishes (a row that is 0 = 0 for every design is not a constraint), and one term
+past it is accepted, because the boundary is the reading's own first term and
+not a judgement about whether a fixture happens to excite it.
+
 **Cost.** On the same 313 rays: 0.571 ms a wavefront evaluation against 0.138 ms
 a traced spot and 1.93·10⁻³ ms a third-order sum — **4.1× the spot, 296× the
 Seidel**. A one-variable run is 81 evaluations unconstrained and 12 with c₄ held.
@@ -1892,6 +1931,10 @@ Seidel**. A one-variable run is 81 evaluations unconstrained and 12 with c₄ he
 | Differences over six decades; floor ≈2e-12 waves, derived from f64 on the OPL and the fit's √n | the window, and what actually sets it | ✅ |
 | **The concentric conjugate improves six orders when the step is stated**, and the currencies then agree | § 1.8's step-scaling item, and a correction to how § 1.8.5's 2.3e-6 reads | ✅ |
 | A wavefront operand holds its surviving rays; § 1.8.5's clipped rim is a wall for it too | one survivor mechanism over two producers | ✅ |
+| **Off axis, tilt and coma are linear in the field** (c₂/θ = 0.2470, c₈/θ = 0.08727) where on axis both are 1e-7 | that the fit reads the terms its names claim | ✅ |
+| **rms² − balanced² = c₂² + c₃² + c₄² to twelve figures** — 0.0974 of 0.1093 at 1° | Parseval, and exactly what the balanced reading discards | ✅ |
+| An off-axis start loses 6 of 313 rays and holds that set; refocusing moves c₄ and not c₂ | the held set from a second cause, and why tilt is kept | ✅ |
+| **A reading whose sum is empty is refused** — it would report a converged optimum at iteration one, merit 0, nothing moved | the worst failure shape available here, measured then closed | ✅ |
 | Refusals by name: a fit wider than the pupil, a term count off the basis, a Noll index past the fit | validity, said where the operand can be named | ✅ |
 
 ### Not yet pinned

@@ -1013,7 +1013,13 @@ export type WavefrontCondition = {
   readonly wavelengthNm: number;
   /** The rays. Fixed for the whole run; `pupilGrid`/`pupilFan` build them. */
   readonly pupil: readonly PupilPoint[];
-  /** Noll terms fitted, j = 1…terms. Part of the merit, not a resolution knob. */
+  /**
+   * Noll terms fitted, j = 1…terms. Part of the merit, not a resolution knob —
+   * and it has a floor that depends on the reading, because `fitRms` sums from
+   * j = 2 and `balancedRms` from j = 5. Below that the sum is empty and the
+   * residual is zero for every design; refused rather than allowed to report a
+   * converged optimum it never looked for.
+   */
   readonly terms: number;
   /** In waves, in the reading's own sign convention. */
   readonly target: number;
@@ -1218,6 +1224,22 @@ function validate(
       if (o.reading === "zernike" && (!Number.isInteger(o.noll) || o.noll < 1 || o.noll > o.terms)) {
         throw new Error(
           `${where}: a ${o.kind} operand reads Noll ${o.noll} out of a ${o.terms}-term fit`,
+        );
+      }
+      // A term count the reading cannot see past is a merit that is EXACTLY
+      // zero for every design, and the failure it produces is the worst shape a
+      // failure can have here: the run stops at iteration one, on `gradient` —
+      // the converged-optimum reason — having never moved the design and
+      // reporting a merit of 0. `fitRms` sums from j = 2 and `balancedRms` from
+      // j = 5, so those are the counts below which the sum is empty. Refused
+      // rather than documented: a caller reading the result has no way to tell
+      // this apart from a design that was already perfect.
+      const floor = o.reading === "balancedRms" ? 5 : o.reading === "rms" ? 2 : 1;
+      if (o.terms < floor) {
+        throw new Error(
+          `${where}: a ${o.kind} operand reading ${o.reading} over ${o.terms} terms sums ` +
+            `nothing — that reading starts at Noll ${floor}, so its residual would be zero ` +
+            `for every design`,
         );
       }
     }
