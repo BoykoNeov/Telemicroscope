@@ -843,7 +843,7 @@ describe("what a traced wish does to the rest of the panel", () => {
   it("a paraxial spec is bit-for-bit what it was before the traced half landed", () => {
     const before = ok(specFor("retarget"));
     expect(before.traced).toBeNull();
-    expect(before.geometry.withheld).toBeNull();
+    expect(before.geometry.refused).toBeNull();
     expect(before.wishes.map((w) => w.value)).toEqual(
       ok(specFor("retarget", { traced: null })).wishes.map((w) => w.value),
     );
@@ -927,12 +927,52 @@ describe.each([
     expect(r.wishes.reduce((a, x) => a + x.shareStart, 0)).toBeCloseTo(1, 12);
   });
 
-  it("withholds the three readouts that cannot mean what they say", () => {
+  it("withholds the two readouts that cannot mean what they say — and now READS the third", () => {
     const r = ok(specFor("retarget", { traced }));
-    expect(r.geometry.withheld).toMatch(/variableResponse/);
+    // This box used to be empty under a traced merit, and the sentence in it
+    // named the engine boundary: `variableResponse` differences a merit built
+    // from a prescription and cannot see a wish that needs a field, an
+    // aperture and a conjugate. § 1.8.10 is that reader where those exist, so
+    // the box is now filled from the merit the run actually used.
+    expect(r.geometry.refused).toBeNull();
+    expect("withheld" in r.geometry).toBe(false);
+    expect(r.geometry.wishCount).toBe(r.wishes.length);
+    expect(r.geometry.response).toHaveLength(r.variables.length);
+    expect(r.geometry.response.every((v) => Number.isFinite(v) && v > 0)).toBe(true);
+
+    // The two that stay withheld are choices rather than boundaries: both
+    // describe a design settled under first-order wishes alone.
     expect(r.single!.withheld).toMatch(/not answers to the same question/);
     expect(ok(specFor("bestform", { traced })).reference!.withheld).toMatch(/thin-lens/);
     expect(r.trail.length).toBeLessThanOrEqual(TRACED_TRAIL_POINTS);
+  });
+
+  it("…and the traced wish is really IN that Jacobian, not decoration on the paraxial one", () => {
+    // The cheap way to get this wrong is to read the paraxial wishes and label
+    // the box "traced". The same seed and the same variables, with and without
+    // the traced wish, must not agree — a wish adds a ROW, which changes the
+    // angles between the columns and the conditioning with them.
+    const withTraced = ok(specFor("retarget", { traced }));
+    const paraxial = ok(specFor("retarget"));
+    expect(paraxial.geometry.wishCount).toBe(withTraced.geometry.wishCount - 1);
+    expect(withTraced.geometry.conditionNumber).not.toBe(paraxial.geometry.conditionNumber);
+    expect(withTraced.geometry.response[0]).not.toBe(paraxial.geometry.response[0]);
+    // Nothing walled on this seed, so the numbers are the O(h²) ones the rest
+    // of the box is quoted at — said out loud rather than assumed.
+    expect(withTraced.geometry.survivorChanged).toEqual([]);
+    expect(withTraced.geometry.walled).toEqual([]);
+    expect(withTraced.geometry.blind).toEqual([]);
+  });
+
+  it("the second reading is taken at the ANSWER, with the ray set re-anchored there", () => {
+    // Both readings exist because a run can move a design to a worse question
+    // than it was asked at. On a traced merit that needs the survivor lock
+    // re-anchored at the built design: carried over from the seed, every
+    // column would wall at the answer and the number would be a statement
+    // about the bookkeeping rather than about the lens.
+    const r = ok(specFor("retarget", { traced }));
+    expect(Number.isFinite(r.geometry.conditionAfter)).toBe(true);
+    expect(r.geometry.conditionAfter).toBeGreaterThan(0);
   });
 });
 

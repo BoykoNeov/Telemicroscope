@@ -5,11 +5,13 @@ import {
   seidelSums,
   solveParaxial,
   spotDiagram,
+  systemResponse,
   variableResponse,
   withVariable,
   withVariables,
   type DlsResult,
   type DlsStopReason,
+  type MeritResponse,
   type OptimizeOperand,
   type SolveVariable,
   type TracedOperand,
@@ -717,9 +719,29 @@ export interface GeometryReadout {
   readonly weakest: readonly number[];
   /** How many wishes there are, which caps how many directions can be seen. */
   readonly wishCount: number;
+  /**
+   * Selected variables whose column was differenced across a vignetting
+   * boundary — the ray set at one end of the step is not the ray set at the
+   * other. Only a traced merit can produce these, and they are the reason the
+   * traced reading is not simply the paraxial one with more evaluations: the
+   * number is real and its accuracy is not what the rest of the box is quoted
+   * at. VALIDATION § 1.8.10.
+   */
+  readonly survivorChanged: readonly number[];
+  /** Selected variables whose column lost a side of its stencil, for any reason. */
+  readonly walled: readonly number[];
+  /** Selected variables whose column lost BOTH sides: nothing was learned about them. */
+  readonly blind: readonly number[];
+  /**
+   * A response that could not be read at all — an operand that cannot be read
+   * at the starting design, or a variable set the reader refuses.
+   *
+   * There is no `withheld` beside it, and there used to be: this box was empty
+   * under a traced merit because `variableResponse` could not see the wish.
+   * § 1.8.10's reader can, so the branch went rather than being kept as a
+   * field nothing sets — the mirror of a shipped option with no rung.
+   */
   readonly refused: string | null;
-  /** Set where the reader cannot see this merit at all — see the traced branch. */
-  readonly withheld: string | null;
 }
 
 export interface BasinControl {
@@ -1016,6 +1038,7 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   // run can move a design to a worse question than it was asked at — and both
   // are 5 evaluations of a paraxial trace, so there is no reason to choose.
   const geometry: GeometryReadout = (() => {
+    const wishCount = operands.length + (tracedOperand === null ? 0 : 1);
     const blank = {
       response: [],
       dead: [],
@@ -1024,30 +1047,38 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
       conditionAfter: Number.NaN,
       singularValues: [],
       weakest: [],
-      wishCount: operands.length,
-      withheld: null,
+      wishCount,
+      survivorChanged: [],
+      walled: [],
+      blind: [],
     };
-    // § 1.8.9's reader is `variableResponse`, which takes a PRESCRIPTION — it
-    // can read a paraxial merit's Jacobian and cannot see a traced wish at all.
-    // Withheld rather than taken over the paraxial wishes alone, which would
-    // print a conditioning for a merit nobody asked for, in the one place on
-    // this panel whose whole job is to say what the merit can see.
-    if (traced !== null) {
-      return {
-        ...blank,
-        refused: null,
-        withheld:
-          `the reader for this is \`variableResponse\`, which differences a merit built from a ` +
-          `prescription — it cannot see a ${tracedLabel(traced.reading)}, which needs a field, an ` +
-          `aperture and a conjugate. Reading it over the paraxial wishes alone would print the ` +
-          `conditioning of a merit this run did not use.`,
-      };
-    }
+    // Whichever merit this run asked, read with the reader that can see it.
+    // `variableResponse` differences a merit built from a PRESCRIPTION, so it
+    // cannot see a wish that needs a field, an aperture and a conjugate;
+    // `systemResponse` (§ 1.8.10) is the same question where those exist, and
+    // takes the paraxial wishes unchanged, so a mixed merit is read whole
+    // rather than half-read over the paraxial half.
+    const at = (prescription: Prescription): MeritResponse & { survivorChanged?: readonly number[] } =>
+      tracedOperand === null
+        ? variableResponse(prescription, variables, operands)
+        : systemResponse(systemOf(prescription, traced!.fieldDeg), variables, [
+            ...operands,
+            tracedOperand,
+          ]);
     try {
-      const before = variableResponse(seed.prescription, variables, operands);
+      const before = at(seed.prescription);
+      // Read again at the design the run stopped on, because a run can move a
+      // design to a worse question than it was asked at. Affordable on a
+      // traced merit for the same reason it is on a paraxial one: a response
+      // is 2n + 1 evaluations against a run's iterations × (2n + 1), so the
+      // two reads together cost about two iterations of the run beside them —
+      // measured at 1.6 ms against 29 ms for a 20-iteration spot run. The
+      // survivor lock is re-anchored by handing in the BUILT design; carrying
+      // the seed's rays here would wall every column and report a merit that
+      // can see nothing.
       let conditionAfter = Number.NaN;
       try {
-        conditionAfter = variableResponse(built, variables, operands).conditionNumber;
+        conditionAfter = at(built).conditionNumber;
       } catch {
         conditionAfter = Number.NaN;
       }
@@ -1059,9 +1090,11 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
         conditionAfter,
         singularValues: before.singularValues,
         weakest: before.weakest,
-        wishCount: operands.length,
+        wishCount,
+        survivorChanged: before.survivorChanged ?? [],
+        walled: before.walled,
+        blind: before.blind,
         refused: null,
-        withheld: null,
       };
     } catch (cause) {
       return { ...blank, refused: (cause as Error).message };

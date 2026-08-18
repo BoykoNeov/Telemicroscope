@@ -5458,13 +5458,22 @@ and simply never had a wish loud enough to expose it.
   - **the two closed-form comparisons withhold themselves**, § 1.8.9's idiom:
     both describe a design settled under first-order wishes alone, and a run
     that also asked for real rays is a different minimum;
-  - **so does the variable-geometry readout**, and this one is an *engine*
-    boundary rather than a choice: `variableResponse` differences a merit built
+  - **the variable-geometry readout does NOT**, and that is the one thing on
+    this list that changed rather than being decided. It used to withhold
+    itself for an *engine* reason: `variableResponse` differences a merit built
     from a prescription and cannot see an operand that needs a field, an
-    aperture and a conjugate. Reading it over the paraxial wishes alone would
-    print the conditioning of a merit the run did not use. **The next item this
-    panel wants is a system-level reader** — `meritResponse` already takes a
-    residual function, so what is missing is the wrapper and its rungs.
+    aperture and a conjugate, so reading it over the paraxial wishes alone
+    would have printed the conditioning of a merit the run did not use.
+    **§ 1.8.10 built the reader** — `systemResponse`, the same question where
+    `optimizeSystem` lives — and the box is now filled from the merit the run
+    actually used, traced wish included, at both the seed and the answer. Two
+    things it gained with it: the traced wish's row genuinely moves the
+    conditioning (a wish adds a ROW, and reading the paraxial half and labelling
+    it "traced" is the cheap way to get this wrong, so the panel pins that the
+    two disagree), and the box now names a column that was **differenced across
+    a vignetting edge** — § 1.8.5's cliff, which the old readout could only have
+    printed as a number with no warning on it, and which moves by 6.7% for
+    10⁻⁹ of curvature.
 
   **What the term count is worth here, since the panel offers it.** § 1.8.7's
   point stands — `terms` is the operand's definition, not a resolution knob —
@@ -5485,7 +5494,15 @@ and simply never had a wish loud enough to expose it.
   its whole iteration budget). The same sweep re-run reads 51 ms to 5.5 s, so
   the top of that range is a load meter as much as a cost meter — Part M's own
   caveat, and the reason the panel prints its own elapsed number rather than a
-  remembered one. Either way it is 100× to 10⁵× a keystroke's budget, so the
+  remembered one. **The two geometry reads § 1.8.10 added are inside those
+  numbers and are not what sets them**: measured directly, one read is 1.1 ms
+  (77-ray spot) to 15.5 ms (313-ray wavefront off axis), so both together are
+  0.7% to 2% of the cell they sit in — 2n + 1 evaluations against a run's
+  iterations × (2n + 1), which is the structural reason and not a timing.
+  Re-measured today the same two corners read **250 ms and 3.7 s**, and they
+  read 247–281 ms and 4.3–4.8 s on the tree WITHOUT this change, so the bottom
+  of the range has drifted 6× from the 42 ms recorded here for reasons this
+  session did not introduce and does not attribute. Either way it is 100× to 10⁵× a keystroke's budget, so the
   traced half is **behind an explicit button and runs in a worker** — and the
   button is the load-bearing half. A worker alone would fire a multi-second run
   per keystroke, each superseding the last, and a readout that never settles is

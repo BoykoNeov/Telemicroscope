@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables on two closed-form minimisers — Coddington's best form, the achromat's power split — plus the run that converges 400 mm from the target; TRACED targets, spot (§ 1.8.5), wavefront (§ 1.8.7), MTF (§ 1.8.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: two closed-form minimisers — Coddington's best form, the achromat's power split — and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9), and the same reading where the merit TRACES (§ 1.8.10) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -2164,7 +2164,9 @@ deficiency too, but it wants a different sentence and a different fix. It is
 named in `dead`, its angles are NaN rather than 0, and it is kept out of the
 singular values: sent through them it would have read κ = ∞ and said nothing
 about the variables that are alive. Measured: the pair's κ with a dead third
-variable present is the *same bits* as the pair's κ alone.
+variable present is the *same bits* as the pair's κ alone. (§ 1.8.10 found this
+word carrying two more facts than it should — a column that is zero because both
+trial designs were walls is `blind` there, not `dead`.)
 
 **Fewer wishes than variables is the ordinary case and reads as κ = ∞** —
 honestly, because a 2 × 3 Jacobian cannot have three independent columns. One-
@@ -2240,6 +2242,142 @@ it is describing.
 | **κ ×10⁶ while the rejected steps go 6 → 1**, iterations 20 → 40, answer unchanged to 1e-12 | the claim that the rejection count already carried this — corrected | ✅ |
 | A rank-deficient set makes the second start disagree by 2.2e-2 **at the same merit**; the well-posed set agrees to 1.8e-14 | what the app's basin control is actually reporting | ✅ |
 | Refusals: a condition (a different geometry), a start that is not a system, an empty variable set | that the readout answers the question it was asked | ✅ |
+
+
+### 1.8.10 — the same question where the merit TRACES
+
+§ 1.8.9 asks what a merit can see of a variable set and asks it of a
+PRESCRIPTION, so it can difference a power wish and cannot see a spot at all —
+a spot has a field, an aperture and a conjugate, and a prescription has none of
+them. `systemResponse` is that reader where `optimizeSystem` already lives:
+same builder as the run, same stencil, same wall convention, **same survivor
+lock**, so what a caller is shown about a variable set is what the step would
+be computed from rather than a second opinion about it.
+
+It takes a list of operands and not a `{ minimize, hold }` request, which makes
+§ 1.8.9's refusal of conditions structural instead of run-time: the geometry
+inside the null space of C is a different object, and here it is a thing that
+cannot be written down.
+
+**The composition claim is bitwise.** Handed paraxial operands only,
+`systemResponse` returns `variableResponse`'s answer to the last bit — response,
+angles, singular values, weakest direction, merit and evaluation count — because
+it is the same difference of the same builder at the same step. That is what
+makes a MIXED merit meaningful: "hold the focal length and shrink the spot" is
+one question, and its paraxial half means in the readout exactly what it meant
+before there was a traced half.
+
+#### THE external number, and it is a closed form for a COLUMN
+
+Most textbook aberration formulas give an operand's VALUE. A response rung needs
+the derivative, and the classical defocus relation is one of the few that hands
+it over. Move the image plane by δz and the two reference spheres differ by
+
+    W(ρ) = (h/R)²·ρ²·δz/2
+
+with h the marginal ray's height at the exit-pupil plane and R the sphere's own
+radius. Noll's Z₄ = √3(2ρ² − 1) takes the ρ² projection with the factor
+1/(2√3), so
+
+    ∂a₄/∂z = (h/R)²·10⁶ / (4√3·λ_nm)      waves per millimetre.
+
+Measured on § 1.8.5's traced singlet over three aperture octaves: **0.9981238,
+0.9998831, 0.9999929** of the closed form, the departure dividing by sixteen
+each time the aperture quarters. It is not left as a residue with an order and
+no size — expand 1 − cos u and the ρ⁴ coefficient is **+¼ written in the sine
+and −¾ written in the tangent**, and (1 − ratio)/(¾(h/R)²) reads 1.005 and 1.004
+at the two widest apertures. The third reads 0.976, and that is this rung's own
+floor rather than the law failing: its departure is 7.1·10⁻⁶ against the
+6.4·10⁻⁷ that three different image planes already disagree by.
+
+**And there is a second reading of "the aperture" that is wrong by a term the
+aperture cannot close.** Take the marginal ray's own convergence angle — the
+obvious NA, and what every other rung in this file means by it — and the column
+is out by **(1 − Δ/R)²**, Δ being how far the reference sphere's centre sits
+from where the beam actually converges. On this singlet at a round 1000 mm of
+back distance that is **0.586%, and it is the same 0.586% sixteen times further
+down in aperture**. Two spellings of one word, and this column belongs to the
+SPHERE and not to the beam — § 6ag's tangent-against-sine currency split,
+arriving on a wavefront derivative. The 2.78·10⁻⁵ that (1 − Δ/R)² leaves over
+is spent too: 2.09·10⁻⁵ is the ray's own longitudinal spherical aberration
+(Δ above is the PARAXIAL focus and this ray crosses elsewhere, doubled because
+a tangent is squared) and 7.10·10⁻⁶ is the ρ⁴ term the same aperture still
+carries. They sum to it within 1.6·10⁻⁷.
+
+The image plane is moved 15 mm across the three readings and the ratio moves by
+under 10⁻⁵ — 1% of its own departure from 1 — so the plane is genuinely not in
+this column once (h/R) is the aperture in it.
+
+#### The two rungs whose answers are exact
+
+**One traced wish over two variables is rank 1**, because a 1 × 2 Jacobian
+cannot be anything else: cos = 1 to the bit, σ₂ = 0 by rank, κ = ∞, and the
+direction the merit cannot see comes back as (1, 1)/√2 in the scaled
+coordinates. § 1.8.9's bending fixture, arrived at from the other side.
+
+**And the readout does not stop at the Jacobian.** Divide `weakest` by the
+response to put it back in the curvatures' own units and step the design along
+it: the traced RMS spot moves by **1.14·10⁻⁹** of itself, against **1.00·10⁻³**
+for the same step on one curvature alone. Six orders — and the flat one grows as
+d² while the other grows as d, which is what *stationary* means and what a
+single ratio would not have said.
+
+#### THE finding: a zero column was three facts wearing one number
+
+`meritResponse` had one bucket, `dead`, for an exactly zero column, and § 1.8.9's
+own text argues that a rank deficiency wanting a different sentence must not be
+reported in the same word. It was reporting three in the same word:
+
+- the merit genuinely cannot see the variable — `dead`, and the only one the
+  word ever meant;
+- **both** trial designs either side were walls, so the zero says nothing was
+  learned rather than that there is nothing to learn — now `blind`;
+- **one** side was a wall, so the column is real and one-sided, O(h) where the
+  rest of the readout is quoted at O(h²) — now `walled`.
+
+The fix is in `meritResponse`, so `variableResponse` inherits it, and
+`jacobianColumns` carries the stencil each column actually took rather than the
+readout guessing from the number. A run is right not to care — the damping
+survives a bad column and the next iterate is elsewhere — and a readout cannot
+be so relaxed, which is the asymmetry § 1.8.9 already draws for conditions.
+
+**On a traced merit there is a fourth fact, and it is the one that bites.**
+§ 1.8.5 found a ray leaving the surviving set to be what actually costs a traced
+run; `optimizeSystem` handles it by holding the set and treating a change as a
+wall. Reported as "not a system" that would send a reader to look at the wrong
+lens, so `systemResponse` re-probes exactly the walled columns and names them in
+`survivorChanged` — a fact about this lens's aperture at this field, not about
+the variable and not about the merit. Re-probed after the fact rather than
+recorded inside the residual function, because the stencil's call order is
+`jacobianColumns`'s business and a readout that depended on it would be right
+by luck.
+
+Measured on § 1.8.5's clipping fixture, at the shape where four of 149 rays
+rejoin: both curvature columns come back `walled` and both `survivorChanged`,
+`dead` and `blind` empty. **And 10⁻⁹ of curvature — twelve orders below the
+difference step — moves the reported response by 6.7%**, because on one side of
+that the stencil straddles the cliff and on the other it does not. A reader
+shown either number alone had no way to know which one they had.
+
+**Cost**: 2n + 1 evaluations, plus up to two more per walled column for the
+probe — one iteration's worth of the run it describes, which is the same
+fraction § 1.8.9 quotes and the reason a panel can afford it twice. The survivor
+lock is anchored at the system handed in, so reading again at the design a run
+stopped on means handing in THAT design; carrying the seed's rays to the answer
+would wall every column and report a merit that can see nothing.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **∂a₄/∂z = (h/R)²·10⁶/(4√3·λ)** to 0.998/0.9999/0.99999 over three aperture octaves, the departure ÷16 each time | the classical defocus relation, differentiated | ✅ |
+| …and the departure IS the ρ⁴ term: (1 − ratio)/(¾(h/R)²) = 1.005 and 1.004, the third 0.976 at this rung's own floor | 1 − cos u expanded in the TANGENT, where the coefficient is −¾ | ✅ |
+| **The ray's own angle instead is wrong by (1 − Δ/R)² — 0.586%, unchanged over 16× of aperture**; the 2.78e-5 left over splits into spherical aberration and ρ⁴ to 1.6e-7 | two readings of "the aperture", told apart by the SIGN | ✅ |
+| 15 mm of image plane moves the ratio under 1e-5, 1% of its own departure | that the plane is not in this column | ✅ |
+| Paraxial operands through this entry point are `variableResponse` **bitwise** | that a mixed merit's paraxial half still means what it meant | ✅ |
+| One traced wish, two variables: cos = 1 to the bit, σ₂ = 0, κ = ∞, weakest = (1,1)/√2 | a 1 × 2 Jacobian's rank | ✅ |
+| **The flat direction is a real level set**: 1.14e-9 against 1.00e-3 at the same step, and quadratic against linear in it | that a null direction is stationarity and not bookkeeping | ✅ |
+| A ray leaving the set reads `walled` + `survivorChanged`, not `dead`; and 1e-9 of curvature moves the response 6.7% | § 1.8.5's cliff, met by the readout instead of by the run | ✅ |
+| `blind` and `dead` are the same zero and the same κ, separated only by the lists | that "nothing measured" and "nothing to measure" are different fixes | ✅ |
+| Refusals: an empty variable set, an operand that cannot be read at the start (by index) | that the readout answers the question it was asked | ✅ |
 
 
 ### Not yet pinned

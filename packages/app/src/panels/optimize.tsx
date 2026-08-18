@@ -305,16 +305,12 @@ export function OptimizePanel() {
         responds to each number you freed, and whether what you freed contains a combination it
         cannot see. Two variables that do nearly the same thing do not break an optimisation — the
         damping exists to survive exactly that — so this is a statement about the{" "}
-        <em>question</em>, not a prediction that the answer is wrong.
+        <em>question</em>, not a prediction that the answer is wrong.{" "}
+        {result.traced !== null
+          ? "This reading includes the traced wish: § 1.8.10's reader differences the merit where a field, an aperture and a conjugate exist, which is what the run itself did."
+          : ""}
       </p>
-      {geometry.withheld !== null ? (
-        <Guard
-          label="the variables&rsquo; geometry —"
-          value="withheld"
-          level="warn"
-          detail={geometry.withheld}
-        />
-      ) : geometry.refused !== null ? (
+      {geometry.refused !== null ? (
         <Guard
           label="the variables&rsquo; geometry —"
           value="refused"
@@ -360,6 +356,28 @@ export function OptimizePanel() {
                 value={geometry.dead.map((i) => result.variables[i]!.label).join(", ")}
                 level="bad"
                 detail="no wish here mentions anything this number changes: its column is exactly zero, so the optimiser will not move it and cannot. That is a different fault from two variables doing the same thing, and wants a different fix — another wish, not another variable"
+              />
+            )}
+            {geometry.walled.length > 0 && (
+              <Guard
+                label="read from one side only —"
+                value={geometry.walled.map((i) => result.variables[i]!.label).join(", ")}
+                level="warn"
+                detail={
+                  geometry.survivorChanged.length > 0
+                    ? `stepping ${geometry.survivorChanged
+                        .map((i) => result.variables[i]!.label)
+                        .join(" or ")} by the difference step moves a ray in or out of the surviving set, so the column either side of it is a different question rather than a worse design. The response beside it is real and accurate to first order rather than second — and what it is telling you about is this lens's aperture at this field, not the variable (§ 1.8.10)`
+                    : "one of the two trial designs this column is differenced from is not a system, so the column was taken from the surviving side alone: real, and accurate to first order rather than second"
+                }
+              />
+            )}
+            {geometry.blind.length > 0 && (
+              <Guard
+                label="nothing measured —"
+                value={geometry.blind.map((i) => result.variables[i]!.label).join(", ")}
+                level="bad"
+                detail="both trial designs either side of this number were walls, so its column is zero because nothing was learned rather than because no wish can see it. Same zero as “freed but invisible” above and a different fault: this design sits on a boundary the difference step cannot step off"
               />
             )}
           </div>
@@ -616,7 +634,11 @@ export function OptimizePanel() {
         <Fact
           label="elapsed"
           value={`${result.elapsedMs.toFixed(2)} ms`}
-          note={`the optimisation, ${result.trail.length} replays for the trail, and the controls. Every residual is a paraxial trace or a third-order sum; a merit over traced quantities is measured rather than guessed: 430× a third-order sum for an RMS spot (§ 1.8.5), 4.1× that again for a wavefront (§ 1.8.7) and ~7 000× for an MTF at a frequency (§ 1.8.8), and none of the three is offered here`}
+          note={`the optimisation, ${result.trail.length} replays for the trail, the controls, and two readings of the variables' geometry. ${
+            result.traced === null
+              ? "Every residual here is a paraxial trace or a third-order sum, at 0.02 ms apiece. A traced wish is 103× that for a spot, 493× fitted to 28 terms and 1 229–4 317× for contrast — which is why it is behind the button and not on a keystroke"
+              : "Each residual traces real rays: 103× a third-order sum for a spot, 493× fitted to 28 terms, 1 229–4 317× for contrast — measured on this seed rather than quoted from the ladder"
+          }`}
         />
         <Fact
           label="what pins the machinery"
@@ -628,18 +650,19 @@ export function OptimizePanel() {
       <h2 style={{ fontSize: 16, marginTop: 24 }}>What this does not do</h2>
       <ul style={{ maxWidth: 700, color: "#444", fontSize: 14, lineHeight: 1.6 }}>
         <li>
-          <strong>No traced targets here — the engine has them.</strong> Every wish on this panel
-          is first-order or third-order. The engine gained an RMS-spot merit, and both halves of
-          what this bullet used to guess at were measured and wrong: a traced residual is 430× a
-          third-order sum rather than four orders, and it carries no sampling noise at all — over a
-          fixed ray set it differences cleanly across ten decades of step. What bites is a ray
-          leaving the surviving set, which the engine handles by holding the set. § 1.8.7 then added the wavefront — an RMS
-          over the fitted map, and one named Zernike coefficient with a target of its own — at
-          4.1× the spot again, and § 1.8.8 the MTF at a frequency, at ~7 000× a third-order sum
-          and with a merit that is genuinely multimodal: a design 133× worse than
-          diffraction-limited can match a perfect one at one frequency to 2.8e-4. What is missing here is the wiring and a cost decision: at 430× a
-          residual, and a convergence trail that replays the run up to 48 times, this
-          panel&rsquo;s millisecond readout becomes seconds.
+          <strong>The traced wish is here, behind a button, and that button is the design.</strong>{" "}
+          This bullet used to say the panel had no traced targets at all, and both halves of what
+          it guessed at before the engine had them were measured and wrong: a traced residual is
+          two to three orders above a third-order sum rather than four, and it carries no sampling
+          noise — over a fixed ray set it differences cleanly across ten decades of step. What
+          bites is a ray leaving the surviving set, which the engine handles by holding the set and
+          which the geometry box above now names when it happens. The cost decision the bullet
+          asked for was made rather than avoided: the readout runs in a worker on an explicit
+          press, the convergence trail drops from 48 replays to {TRACED_TRAIL_POINTS}, and the two
+          comparisons that describe a first-order minimum withhold themselves. What is still not
+          offered is the MTF at a frequency — ~7 000× a third-order sum, and a merit that is
+          genuinely multimodal: a design 133× worse than diffraction-limited can match a perfect
+          one at one frequency to 2.8e-4.
         </li>
         <li>
           <strong>No conditions here — the engine has those too.</strong> &ldquo;Hold the focal

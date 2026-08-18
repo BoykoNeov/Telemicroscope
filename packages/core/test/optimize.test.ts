@@ -11,6 +11,7 @@ import {
   meritResponse,
   optimizePrescription,
   optimizeSystem,
+  systemResponse,
   variableResponse,
   withVariables,
   type DlsOptions,
@@ -3288,6 +3289,381 @@ describe("DLS § 1.8.9 — the variable set's own geometry, read before the run"
     expect(() => meritResponse(() => [Number.NaN], [1])).toThrow(/not a system/);
     expect(() => variableResponse(doublet(0.02, C_MID, -0.01), [], [...SPLIT_OPERANDS])).toThrow(
       /no variables/,
+    );
+  });
+});
+
+/**
+ * DLS § 1.8.10 — the same question where the merit TRACES.
+ *
+ * § 1.8.9 reads what a merit can see of a variable set, and reads it off a
+ * PRESCRIPTION — so it can difference a power wish and cannot see a spot at
+ * all, because a spot has a field, an aperture and a conjugate and a
+ * prescription has none of them. `systemResponse` is that reader where
+ * `optimizeSystem` already lives: the same builder as the run, survivor lock
+ * included, so what a caller is shown about a variable set is what the step
+ * would be computed from.
+ *
+ * **The external number is the classical defocus relation**, and it is a
+ * closed form for a COLUMN rather than for an operand's value — which is what
+ * a response rung needs, and what most textbook aberration formulas do not
+ * give. Move the image plane by δz and the wavefront gains
+ *
+ *     W(ρ) = (h/R)²·ρ²·δz/2                       [the two spheres' sag]
+ *
+ * with h the marginal ray's height at the exit-pupil plane and R the reference
+ * sphere's radius. Noll's Z₄ = √3(2ρ² − 1) takes the ρ² projection with the
+ * same factor 1/(2√3) that ρ⁴ would, so
+ *
+ *     ∂a₄/∂z = (h/R)²·10⁶ / (4√3·λ_nm)   waves per millimetre.
+ *
+ * **And there is a second reading of "the aperture" that is wrong by a term
+ * the aperture cannot close.** Use the marginal ray's own convergence angle —
+ * the obvious NA, and the one every other rung in this file means — and the
+ * column is out by (1 − Δ/R)², with Δ the distance from the reference sphere's
+ * centre to where the beam actually converges. That is 0.586% on this singlet
+ * at a round 1000 mm of back distance, and it does NOT vanish as the aperture
+ * closes. This column belongs to the SPHERE and not to the beam.
+ *
+ * The two rungs that need no external number at all are the ones with exact
+ * answers. One traced wish over two variables is rank 1 by construction, and
+ * the direction it cannot see is the merit's own level set — measured, not
+ * asserted: a step along it moves the traced RMS spot 10⁶ times less than the
+ * same step along one variable, and quadratically rather than linearly.
+ */
+describe("DLS § 1.8.10 — a traced merit's own geometry", () => {
+  const RESPONSE_VARS: SolveVariable[] = [
+    { kind: "curvature", surface: 0 },
+    { kind: "curvature", surface: 1 },
+  ];
+  const IMAGE_DISTANCE: SolveVariable[] = [{ kind: "thickness", surface: 1 }];
+  /** The best-form shape § 1.8.5's traced fixture settles on. */
+  const Q_STAR = 0.7107023;
+
+  /** § 1.8.5's traced singlet with its back distance freed — the defocus rungs move it. */
+  function backedSinglet(semi: number, back: number): OpticalSystem {
+    const base = tracedSinglet(Q_STAR, TRACED_T, semi, semi);
+    return {
+      ...base,
+      prescription: {
+        surfaces: base.prescription.surfaces.map((s, i) =>
+          i === 1 ? { ...s, thickness: back } : s,
+        ),
+      },
+    };
+  }
+
+  it("a paraxial merit read through the SYSTEM entry point is the same reading, bitwise", () => {
+    // The composition claim, and the cheapest possible way to state it: mixing
+    // is only meaningful if the paraxial half means exactly what it meant
+    // before. Not "agrees to twelve figures" — the same bits, because it is
+    // the same difference of the same builder at the same step.
+    const sys = tracedSinglet(0.7);
+    const ops: OptimizeOperand[] = [
+      { kind: "power", wavelengthNm: LINE_D, target: 1 / F },
+      { kind: "bfd", wavelengthNm: LINE_D, target: 990 },
+    ];
+    const paraxial = variableResponse(sys.prescription, RESPONSE_VARS, ops);
+    const traced = systemResponse(sys, RESPONSE_VARS, ops);
+    expect(traced.response).toEqual(paraxial.response);
+    expect(traced.conditionNumber).toBe(paraxial.conditionNumber);
+    expect(traced.cosines).toEqual(paraxial.cosines);
+    expect(traced.weakest).toEqual(paraxial.weakest);
+    expect(traced.merit).toBe(paraxial.merit);
+    expect(traced.evaluations).toBe(paraxial.evaluations);
+    // Nothing traced, so nothing can wall: the three new lists are empty and
+    // the extra probes they would have paid for were never spent.
+    expect(traced.walled).toEqual([]);
+    expect(traced.blind).toEqual([]);
+    expect(traced.survivorChanged).toEqual([]);
+  });
+
+  it("one traced wish over two curvatures is rank 1 — and the flat direction is a real level set", () => {
+    const sys = tracedSinglet(0.7);
+    const r = systemResponse(sys, RESPONSE_VARS, [spotOperand()]);
+
+    // A 1 × 2 Jacobian cannot have two independent columns. Exactly, not
+    // nearly: the scaled columns are ±1 apiece.
+    expect(r.cosines[0]![1]!).toBe(1);
+    expect(r.singularValues[0]!).toBeCloseTo(Math.SQRT2, 12);
+    expect(r.singularValues[1]!).toBe(0);
+    expect(r.conditionNumber).toBe(Infinity);
+    expect(r.dead).toEqual([]);
+    expect(r.walled).toEqual([]);
+    expect(r.blind).toEqual([]);
+    expect(r.survivorChanged).toEqual([]);
+    expect(r.weakest[0]!).toBeCloseTo(Math.SQRT1_2, 12);
+    expect(r.weakest[1]!).toBeCloseTo(Math.SQRT1_2, 12);
+
+    // …and the readout does not stop at the Jacobian. `weakest` is in the
+    // SCALED coordinates, so dividing by the response puts it back in the
+    // curvatures' own units — and the design moved along it holds the traced
+    // RMS spot while the same step on one curvature alone does not.
+    const x0 = RESPONSE_VARS.map((v) => sys.prescription.surfaces[v.surface]!.curvature);
+    const dir = r.weakest.map((w, jj) => w / r.response[jj]!);
+    const base = tracedRms(sys);
+    const moved = (pres: Prescription): number =>
+      tracedRms({ ...sys, prescription: pres });
+    const along = (d: number): number =>
+      Math.abs(moved(withVariables(sys.prescription, RESPONSE_VARS, x0.map((v, jj) => v + d * dir[jj]!))) - base) / base;
+    const across = (d: number): number =>
+      Math.abs(moved(withVariables(sys.prescription, RESPONSE_VARS, [x0[0]! + d, x0[1]!])) - base) / base;
+
+    expect(along(1e-6)).toBeCloseTo(1.1388e-9, 12);
+    expect(across(1e-6)).toBeCloseTo(1.0008e-3, 6);
+    // Six orders between them at the same step — and the flat one grows as d²
+    // while the other grows as d, which is what "stationary" means and what a
+    // single ratio would not have said.
+    expect(across(1e-6) / along(1e-6)).toBeGreaterThan(8e5);
+    expect(along(1e-5) / along(1e-6)).toBeCloseTo(100, -1);
+    expect(across(1e-5) / across(1e-6)).toBeCloseTo(10, 0);
+  });
+
+  it("THE external number: the defocus column, and WHICH aperture it belongs to", () => {
+    // ∂a₄/∂z = (h/R)²·10⁶/(4√3·λ) waves per mm, with h the marginal ray's
+    // height at the exit-pupil PLANE and R the reference sphere's radius.
+    const defocusOperand: TracedOperand = {
+      kind: "wavefront",
+      fieldValue: 0,
+      wavelengthNm: LINE_D,
+      pupil: pupilGrid(21),
+      terms: 11,
+      reading: "zernike",
+      noll: 4,
+      target: 0,
+    };
+    const sphere = (sys: OpticalSystem): { h: number; r: number } => {
+      const c = asCompiled(sys.prescription);
+      const p = pupils(sys, LINE_D);
+      const rad = imagePlaneZ(c, sys) - p.exit.z;
+      const edge = exitBundle(sys, 0, LINE_D, [{ px: 1, py: 0 }]).rays[0]!;
+      const o = edge.ray.origin;
+      const d = edge.ray.dir;
+      const s = (p.exit.z - o.z) / d.z;
+      return { h: Math.hypot(o.x + s * d.x, o.y + s * d.y), r: rad };
+    };
+
+    const seen: number[] = [];
+    const spreads: number[] = [];
+    const sines: number[] = [];
+    for (const semi of [50, 12.5, 3.125]) {
+      // Three back distances, 15 mm apart, so a dependence on where the image
+      // plane sits could not hide inside the tolerance.
+      const ratios = [1000, 1005, 990].map((back) => {
+        const sys = backedSinglet(semi, back);
+        const { h, r } = sphere(sys);
+        const column = systemResponse(sys, IMAGE_DISTANCE, [defocusOperand]).response[0]!;
+        return column / (((h / r) ** 2 * 1e6) / (4 * Math.sqrt(3) * LINE_D));
+      });
+      // The same number at all three planes, to 1% of its own departure from
+      // 1 — so 15 mm of image plane is not in this column, and the (1 − Δ/R)²
+      // the ray-angle reading pays below is gone entirely.
+      seen.push(ratios[0]!);
+      spreads.push(Math.max(...ratios) - Math.min(...ratios));
+      sines.push(sphere(backedSinglet(semi, 1000)).h / sphere(backedSinglet(semi, 1000)).r);
+    }
+    expect(seen[0]!).toBeCloseTo(0.9981238, 6);
+    expect(seen[1]!).toBeCloseTo(0.9998831, 6);
+    expect(seen[2]!).toBeCloseTo(0.9999929, 6);
+    // Quartering the aperture divides the residue by sixteen: the departure is
+    // the ρ⁴ term the closed form drops, and it goes as NA².
+    expect((1 - seen[0]!) / (1 - seen[1]!)).toBeCloseTo(16, -0.5);
+    expect((1 - seen[1]!) / (1 - seen[2]!)).toBeCloseTo(16, -0.5);
+
+    // …and it is not left as a residue with an order and no size. Expand
+    // 1 − cos u, whose ρ⁴ coefficient is +¼s² written in the SINE and −¾t²
+    // written in the TANGENT — two spellings of one aperture, and the SIGN is
+    // what tells them apart. The departure is negative, so what (h/R) reads as
+    // here is a tangent: § 6ag's currency split, on a wavefront column.
+    const quarticShare = seen.map((v, k) => (1 - v) / (0.75 * sines[k]! ** 2));
+    expect(quarticShare[0]!).toBeCloseTo(1.005, 2);
+    expect(quarticShare[1]!).toBeCloseTo(1.004, 2);
+    // The third is 2.4% low rather than 0.5%, and that is this rung's own
+    // floor showing rather than the law failing: its departure is 7.1·10⁻⁶
+    // against the 6.4·10⁻⁷ the three image planes already disagree by. Stated,
+    // not tolerated.
+    expect(quarticShare[2]!).toBeCloseTo(0.976, 2);
+    expect(1 - seen[2]!).toBeLessThan(12 * spreads[2]!);
+    // The plane dependence shrinks with the aperture as well: 1.9·10⁻⁵,
+    // 1.2·10⁻⁶, 6.4·10⁻⁷. The first step is the same factor of 16 the
+    // departure takes; the second is not, and this rung measures that floor
+    // rather than attributing it.
+    expect(spreads[0]!).toBeCloseTo(1.887e-5, 7);
+    expect(spreads[0]! / (1 - seen[0]!)).toBeCloseTo(0.0101, 3);
+    expect(spreads[1]! / (1 - seen[1]!)).toBeCloseTo(0.0105, 3);
+    expect(spreads[0]! / spreads[1]!).toBeCloseTo(15.4, 0);
+    expect(spreads[2]!).toBeLessThan(1e-6);
+
+    // THE FINDING. Read the aperture off the marginal RAY instead — its own
+    // convergence angle, which is what every other rung in this file means by
+    // NA — and the column is out by (1 − Δ/R)², Δ being how far the reference
+    // sphere's centre sits from where the beam converges. On this singlet at a
+    // round 1000 mm that is 0.586%, and closing the aperture does not touch it.
+    const byRay = [50, 3.125].map((semi) => {
+      const sys = backedSinglet(semi, 1000);
+      const edge = exitBundle(sys, 0, LINE_D, [{ px: 1, py: 0 }]).rays[0]!;
+      const d = edge.ray.dir;
+      const t = Math.hypot(d.x, d.y) / d.z;
+      const column = systemResponse(sys, IMAGE_DISTANCE, [defocusOperand]).response[0]!;
+      return column / ((t * t * 1e6) / (4 * Math.sqrt(3) * LINE_D));
+    });
+    expect(byRay[0]!).toBeCloseTo(0.9870035, 6);
+    expect(byRay[1]!).toBeCloseTo(0.9941482, 6);
+    // Sixteen times less aperture, and the error is the same 0.586%: it is not
+    // an aperture term at all. Attributed, rather than left as a residue —
+    // (1 − Δ/R)² with the paraxial focus at 997.0720 and R = 1004.0023.
+    const narrow = backedSinglet(3.125, 1000);
+    const bfd = systemProperties(narrow.prescription, LINE_D).bfd;
+    const { h, r } = sphere(narrow);
+    expect(bfd).toBeCloseTo(997.07205, 4);
+    const predicted = (1 - (1000 - bfd) / r) ** 2;
+    expect(predicted).toBeCloseTo(byRay[1]!, 4);
+    // 2.78·10⁻⁵ is left over, and it is spent rather than tolerated. Two
+    // pieces, both already named: Δ above is the PARAXIAL focus while the ray
+    // whose angle was read crosses the axis short of it (2.09·10⁻⁵, twice its
+    // relative angle error because a tangent is squared), plus the ρ⁴ term
+    // this aperture still carries (7.10·10⁻⁶, measured three lines up). They
+    // sum to the residue to 1.6·10⁻⁷.
+    const residue = Math.abs(predicted - byRay[1]!);
+    expect(residue).toBeCloseTo(2.78e-5, 6);
+    const edge = exitBundle(narrow, 0, LINE_D, [{ px: 1, py: 0 }]).rays[0]!;
+    const tan = Math.hypot(edge.ray.dir.x, edge.ray.dir.y) / edge.ray.dir.z;
+    const fromRay = 2 * Math.abs(tan / (h / (r - (1000 - bfd))) - 1);
+    expect(fromRay).toBeCloseTo(2.086e-5, 7);
+    expect(fromRay + (1 - seen[2]!)).toBeCloseTo(residue, 6);
+  });
+
+  it("a ray leaving the set is not a dead variable — and the old readout could not say so", () => {
+    // § 1.8.5's clipping fixture, at the shape where four of 149 rays rejoin.
+    // Both curvature columns straddle it at the default step.
+    const clipped = (c1: number): OpticalSystem => ({
+      prescription: {
+        surfaces: [
+          { kind: "refract", curvature: c1, semiAperture: 55, thickness: TRACED_T, medium: "DLS-N15", isStop: true },
+          { kind: "refract", curvature: c1 - 1 / ((1.5 - 1) * F), semiAperture: 49.9, thickness: F, medium: "AIR" },
+        ],
+      },
+      aperture: { kind: "stopRadius", value: 50 },
+      field: { kind: "angle", values: [0] },
+      wavelengths: [{ nm: LINE_D, weight: 1 }],
+      conjugate: { kind: "infinite" },
+    });
+    const c1Star = ((1 / ((1.5 - 1) * F)) * (0.710621939 + 1)) / 2;
+    const r = systemResponse(clipped(c1Star), RESPONSE_VARS, [spotOperand()]);
+
+    expect(r.walled).toEqual([0, 1]);
+    expect(r.survivorChanged).toEqual([0, 1]);
+    // Not dead, not blind, and not silent: the columns are real numbers taken
+    // one-sidedly, which is a different sentence from either.
+    expect(r.dead).toEqual([]);
+    expect(r.blind).toEqual([]);
+    expect(r.response[0]!).toBeGreaterThan(0);
+    // Two probes, one per suspect column, on top of the stencil's five.
+    expect(r.evaluations).toBe(7);
+
+    // What the readout would have printed without this. 10⁻⁹ of curvature —
+    // twelve orders below the difference step — moves the reported response by
+    // 6.7%, because on one side of that the stencil straddles the cliff and on
+    // the other it does not. A reader shown either number alone would have no
+    // way to know which one they had.
+    const above = systemResponse(clipped(c1Star + 1e-9), RESPONSE_VARS, [spotOperand()]);
+    expect(Math.abs(above.response[0]! / r.response[0]! - 1)).toBeCloseTo(0.0669, 3);
+    expect(above.survivorChanged).toEqual([0, 1]);
+  });
+
+  it("blind, dead and walled are three facts wearing the same zero", () => {
+    // At the entry point the distinction is made, on residual functions that
+    // are the three cases and nothing else. A lens reaches `walled` easily —
+    // the rung above — and reaches `blind` only with two vignetting boundaries
+    // inside one difference step, which is a contrivance and not a fixture.
+    const blind = meritResponse(
+      (x) => {
+        if (Math.abs(x[1]! - 3) > 1e-12) throw new Error("not a system");
+        return [2 * x[0]! - 1];
+      },
+      [1, 3],
+    );
+    const dead = meritResponse((x) => [2 * x[0]! - 1 + 0 * x[1]!], [1, 3]);
+
+    // The same two numbers, and the same conditioning, from two different facts.
+    expect(blind.response[1]!).toBe(0);
+    expect(dead.response[1]!).toBe(0);
+    expect(blind.response[0]!).toBe(dead.response[0]!);
+    expect(blind.conditionNumber).toBe(dead.conditionNumber);
+    // Only the lists tell them apart, which is the whole point of adding them.
+    expect(blind.blind).toEqual([1]);
+    expect(blind.dead).toEqual([]);
+    expect(dead.dead).toEqual([1]);
+    expect(dead.blind).toEqual([]);
+    // Both are kept out of the angles and out of the singular values, for the
+    // reason § 1.8.9 keeps `dead` out: a rank deficiency reported through them
+    // says nothing about the variables that are alive.
+    expect(blind.cosines[1]![1]!).toBeNaN();
+    expect(blind.singularValues).toHaveLength(1);
+    expect(blind.weakest[1]!).toBe(0);
+
+    // And a wall on ONE side leaves a real column, at O(h) instead of O(h²).
+    const walled = meritResponse(
+      (x) => {
+        if (x[1]! > 3) throw new Error("not a system");
+        return [2 * x[0]! + 5 * x[1]!];
+      },
+      [1, 3],
+    );
+    expect(walled.walled).toEqual([1]);
+    expect(walled.dead).toEqual([]);
+    expect(walled.blind).toEqual([]);
+    expect(walled.response[1]!).toBeCloseTo(5, 9);
+  });
+
+  it("a paraxial wish and a traced one in one merit, and what the weight does to the pair", () => {
+    const sys = tracedSinglet(0.7);
+    const power: OptimizeOperand = { kind: "power", wavelengthNm: LINE_D, target: 1 / F };
+    const r = systemResponse(sys, RESPONSE_VARS, [power, spotOperand()]);
+    // Two wishes, so the pair is no longer rank 1 — but only just. A power
+    // wish and a spot wish over the two curvatures of a singlet are nearly the
+    // same question asked twice.
+    expect(r.conditionNumber).toBeCloseTo(3374.2045, 3);
+    expect(r.cosines[0]![1]!).toBeCloseTo(0.99999982, 8);
+    expect(r.singularValues[1]!).toBeCloseTo(4.19125e-4, 8);
+
+    // § 1.8.9's weight finding, transplanted: a weight scales a ROW, so the
+    // conditioning belongs to the merit as asked. Above a weight of about one
+    // the traced row simply dominates and κ is proportional to it.
+    const kappa = (w: number): number =>
+      systemResponse(sys, RESPONSE_VARS, [power, { ...spotOperand(), weight: w }]).conditionNumber;
+    expect(kappa(1e3) / kappa(1)).toBeCloseTo(999, -2);
+    expect(kappa(1e6) / kappa(1e3)).toBeCloseTo(1000, -2);
+    // …and below it there is a better setting than the one a panel offers by
+    // default, which is the same shape as the achromat's ρ* and is measured
+    // here rather than derived: no closed form is claimed for it.
+    expect(kappa(1e-3)).toBeLessThan(kappa(1));
+  });
+
+  it("what it costs, and what it refuses", () => {
+    const sys = tracedSinglet(0.7);
+    // One evaluation at the design plus the central stencil's two per
+    // variable — one iteration's worth of the run it describes, which is the
+    // same fraction § 1.8.9 quotes and the reason a panel can afford it twice.
+    expect(systemResponse(sys, RESPONSE_VARS, [spotOperand()]).evaluations).toBe(5);
+
+    // A condition cannot be written down here at all: the parameter is a list
+    // of operands and not a `SystemRequest`, so the geometry inside the null
+    // space of C is a question this entry point declines by its own type.
+    expect(() => systemResponse(sys, [], [spotOperand()])).toThrow(/no variables/);
+    // An operand that cannot be read at the START is refused by name and by
+    // index, rather than reaching the differencer as five walls in a row and
+    // coming back as a variable set nothing can see.
+    const stopped: OpticalSystem = {
+      ...sys,
+      prescription: {
+        surfaces: sys.prescription.surfaces.map((surface, k) =>
+          k === 1 ? { ...surface, semiAperture: 1 } : surface,
+        ),
+      },
+    };
+    expect(() => systemResponse(stopped, RESPONSE_VARS, [spotOperand()])).toThrow(
+      /operand 0 cannot be read at the start/,
     );
   });
 });

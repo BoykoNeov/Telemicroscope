@@ -467,7 +467,23 @@ function differenceSteps(
  *
  * `r` and `cv` are the residuals at x itself, which a one-sided difference
  * needs and a central one does not. Writes into `j` (m × n) and `cj` (p × n).
+ *
+ * `stencil`, when given, records WHICH of the four cases each column took.
+ * A run does not care — a column is a column and the damping survives a bad
+ * one — but a readout does: a zero column because the merit cannot see the
+ * variable and a zero column because both trial designs were walls are the
+ * same number and different facts, and `meritResponse` is the caller whose
+ * whole job is to tell a reader which one they have.
  */
+/** The scheme got the trials it asked for — no wall touched this column. */
+const STENCIL_CLEAN = 0;
+/** Under `central`, x − h was a wall: this column is one-sided and O(h). */
+const STENCIL_FORWARD = 1;
+/** x + h was a wall, so the column was differenced backwards. Also O(h). */
+const STENCIL_BACKWARD = 2;
+/** Neither side was a system. The column is zero because nothing was learned. */
+const STENCIL_BLIND = 3;
+
 function jacobianColumns(
   e: Evaluator,
   x: Float64Array,
@@ -477,6 +493,7 @@ function jacobianColumns(
   cv: Float64Array,
   j: Float64Array,
   cj: Float64Array,
+  stencil?: Int8Array,
 ): void {
   const n = x.length;
   const m = e.m;
@@ -498,9 +515,13 @@ function jacobianColumns(
       const twoH = 2 * h;
       for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - rm.r[i]!) / twoH;
       for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - rm.c[k]!) / twoH;
+      if (stencil) stencil[c] = STENCIL_CLEAN;
     } else if (rp !== null) {
       for (let i = 0; i < m; i++) j[i * n + c] = (rp.r[i]! - r[i]!) / h;
       for (let k = 0; k < p; k++) cj[k * n + c] = (rp.c[k]! - cv[k]!) / h;
+      // A one-sided FORWARD difference is what the "forward" scheme always
+      // does; under "central" it means x − h was a wall, and only then.
+      if (stencil) stencil[c] = scheme === "central" ? STENCIL_FORWARD : STENCIL_CLEAN;
     } else {
       // Forward is a wall. Difference backwards instead; the accuracy of this
       // one column drops to O(h), the run continues.
@@ -510,12 +531,14 @@ function jacobianColumns(
       if (back !== null) {
         for (let i = 0; i < m; i++) j[i * n + c] = (r[i]! - back.r[i]!) / h;
         for (let k = 0; k < p; k++) cj[k * n + c] = (cv[k]! - back.c[k]!) / h;
+        if (stencil) stencil[c] = STENCIL_BACKWARD;
       } else {
         // Walled on both sides: no information about this variable, so it does
         // not move. `math/lsq` returns 0 for the column either way; this is the
         // same answer said explicitly rather than by rank deficiency.
         for (let i = 0; i < m; i++) j[i * n + c] = 0;
         for (let k = 0; k < p; k++) cj[k * n + c] = 0;
+        if (stencil) stencil[c] = STENCIL_BLIND;
       }
     }
   }
@@ -669,8 +692,9 @@ export function dampedLeastSquares(
     iterations++;
 
     // ---- Jacobian, column by column, with the wall convention on the stencil
-    // — the same builder `variableResponse` reads, so what a caller is shown
-    // about these variables is what the step was actually computed from.
+    // — the same builder `variableResponse` and `systemResponse` read, so what
+    // a caller is shown about these variables is what the step was actually
+    // computed from, on a paraxial merit and on a traced one alike.
     jacobianColumns(e, x, step, scheme, r, cv, j, cj);
 
     // ---- Scale-free gradient measure, and the column norms the damping wants.
@@ -1345,9 +1369,27 @@ export interface DegeneratePair {
 export interface MeritResponse {
   /** ‖J_j‖ per variable: the merit's units over the variable's own. */
   readonly response: readonly number[];
-  /** Variables whose column is exactly zero — no wish here can see them at all. */
+  /**
+   * Variables whose column is exactly zero **and was measured** — no wish here
+   * can see them at all. A column that is zero because both trial designs were
+   * walls is in `blind` instead: same number, different fact, different fix.
+   */
   readonly dead: readonly number[];
-  /** |cos| between every pair of columns, n × n. NaN wherever either is dead. */
+  /**
+   * Variables whose stencil lost ONE side to a wall, so the column is a
+   * one-sided difference and O(h) rather than O(h²). The number is real; its
+   * accuracy is not the one the rest of the readout is quoted at.
+   */
+  readonly walled: readonly number[];
+  /**
+   * Variables whose stencil lost BOTH sides. The column is zero and the merit
+   * has said nothing about them — the design sits on a boundary the difference
+   * step cannot step off. Kept out of `dead`, out of the singular values, and
+   * out of the angles, for the reason `dead` is: a rank deficiency that wants
+   * a different sentence should not be reported in the same word.
+   */
+  readonly blind: readonly number[];
+  /** |cos| between every pair of columns, n × n. NaN wherever either is dead or blind. */
   readonly cosines: readonly (readonly number[])[];
   /** The live pair whose columns are most nearly parallel. Null below two live ones. */
   readonly worstPair: DegeneratePair | null;
@@ -1370,7 +1412,11 @@ export interface MeritResponse {
   readonly weakest: readonly number[];
   /** Σrᵢ² at this design — a response is read AT a point, and this names it. */
   readonly merit: number;
-  /** Residual-vector evaluations spent: 2n on the default central stencil, plus one. */
+  /**
+   * Residual-vector evaluations spent: 2n on the default central stencil, plus
+   * one — and plus up to two more per walled column where the caller is
+   * `systemResponse`, which re-probes those to say what the wall was.
+   */
   readonly evaluations: number;
 }
 
@@ -1407,6 +1453,22 @@ export interface MeritResponse {
  * deficiency too, but it wants a different sentence and a different fix, so it
  * is named in `dead` and kept out of the singular values rather than sending
  * them to zero and thereby saying nothing about the variables that are alive.
+ *
+ * ## …and a zero column is not always a dead one
+ *
+ * The stencil can hit a wall: a trial design that is not a system, or — on a
+ * traced merit — one whose surviving rays are not the same set. `jacobianColumns`
+ * handles that for a RUN by dropping the column to a one-sided difference, or
+ * to zero where both sides are walls, and a run is right not to care: the
+ * damping survives a bad column and the next iterate is somewhere else.
+ *
+ * A READOUT cannot be so relaxed, because the zero it would report is the same
+ * number `dead` reports and a different fact — "no wish here can see this
+ * variable" against "this design is on a boundary the step cannot step off,
+ * and nothing was learned". So the stencil each column actually took is
+ * carried out: `walled` for the ones that lost a side and are therefore O(h)
+ * rather than O(h²), `blind` for the ones that lost both, and `dead` keeps its
+ * old meaning of a column that was measured and came back zero.
  *
  * ## The weights are inside the answer
  *
@@ -1450,7 +1512,8 @@ export function meritResponse(
   }
   const step = differenceSteps("meritResponse", x, scheme, options.steps);
   const j = new Float64Array(m * n);
-  jacobianColumns(e, x, step, scheme, at.r, at.c, j, new Float64Array(0));
+  const stencil = new Int8Array(n);
+  jacobianColumns(e, x, step, scheme, at.r, at.c, j, new Float64Array(0), stencil);
 
   const norm = new Float64Array(n);
   for (let c = 0; c < n; c++) {
@@ -1459,8 +1522,17 @@ export function meritResponse(
     norm[c] = Math.sqrt(s);
   }
   const dead: number[] = [];
+  const walled: number[] = [];
+  const blind: number[] = [];
   const live: number[] = [];
-  for (let c = 0; c < n; c++) (norm[c]! > 0 ? live : dead).push(c);
+  for (let c = 0; c < n; c++) {
+    if (stencil[c] === STENCIL_BLIND) {
+      blind.push(c);
+      continue;
+    }
+    if (stencil[c] !== STENCIL_CLEAN) walled.push(c);
+    (norm[c]! > 0 ? live : dead).push(c);
+  }
 
   const cosines: number[][] = [];
   let worstPair: DegeneratePair | null = null;
@@ -1514,6 +1586,8 @@ export function meritResponse(
   return {
     response: Array.from(norm),
     dead,
+    walled,
+    blind,
     cosines,
     worstPair,
     singularValues: Array.from(values),
@@ -1549,6 +1623,104 @@ export function variableResponse(
     return operands.map((o) => (o.weight ?? 1) * (operandValue(trial, o) - o.target));
   };
   return meritResponse(residuals, startingValues(prescription, variables), options);
+}
+
+/**
+ * A traced merit's response, and which of its columns are honest.
+ *
+ * Every field is `MeritResponse`'s, plus the one distinction only a system can
+ * draw: `walled` and `blind` say a column's stencil hit a wall, and this says
+ * WHICH wall it was.
+ */
+export interface SystemResponse extends MeritResponse {
+  /**
+   * Variables whose stencil was walled by the surviving rays MOVING, rather
+   * than by a trial that is not a system. The design sits within one difference
+   * step of a vignetting boundary in that variable, which is a fact about the
+   * aperture and the field — not about the merit, and not about the variable.
+   *
+   * A subset of `walled` ∪ `blind`, and the reason those two are not enough
+   * on their own: § 1.8.5 found a ray leaving the set to be the thing that
+   * actually bites a traced run, and a readout that reported it as "not a
+   * system" would send a reader to look at the wrong lens.
+   */
+  readonly survivorChanged: readonly number[];
+}
+
+/**
+ * `meritResponse` over a SYSTEM's numbers: what a merit that traces can see of
+ * these variables, at the design the system already carries.
+ *
+ * `variableResponse`'s question asked where a traced operand can be asked it.
+ * Same builder as the run again — `optimizeSystem`'s own reader, survivor lock
+ * included — so what a caller is shown about a variable set is what the step
+ * would be computed from, and not a second opinion about it.
+ *
+ * **The survivor lock is anchored HERE, at this system's own prescription.**
+ * Reading the response again at a design a run stopped on therefore means
+ * handing in that design: `{ ...system, prescription: built }`. Carrying the
+ * seed's survivors to the answer would wall every column and report a merit
+ * that can see nothing, which is a statement about the bookkeeping.
+ *
+ * Wishes only, as the type says — `readonly SystemOperand[]` rather than
+ * `SystemRequest`, so a condition is a thing that cannot be written down here
+ * rather than a thing refused at run time. The geometry under a condition is
+ * the geometry inside the null space of C, which is a different object.
+ *
+ * **Cost is the reason this is not the same call as `variableResponse`.** The
+ * central stencil is 2n + 1 evaluations either way, but a traced evaluation is
+ * 10²–10³ times a paraxial one (APP.md Part N measures 103× for a 149-ray spot
+ * and 4 317× for contrast at 32 pupil samples), so this belongs wherever the
+ * run itself belongs and not on a keystroke.
+ */
+export function systemResponse(
+  system: OpticalSystem,
+  variables: readonly SolveVariable[],
+  operands: readonly SystemOperand[],
+  options: DlsOptions = {},
+): SystemResponse {
+  const prescription = system.prescription;
+  validate("systemResponse", prescription, variables, operands, []);
+  const read = systemReader("systemResponse", system, operands);
+  const residuals = (x: readonly number[]): MeritVector => {
+    const trial = withVariables(prescription, variables, x);
+    return operands.map((o, i) => ((o as OptimizeOperand).weight ?? 1) * read(trial, o, i));
+  };
+
+  const x0 = startingValues(prescription, variables);
+  const base = meritResponse(residuals, x0, options);
+
+  // Why the wall was a wall, for the columns that hit one — and only those.
+  // Re-probed here rather than recorded inside `residuals`, because the
+  // stencil's call order is `jacobianColumns`'s business and a readout that
+  // depends on it would be right by luck. The steps are the same function
+  // `meritResponse` used, so the probe lands on the same trial designs.
+  const survivorChanged: number[] = [];
+  const suspect = [...base.walled, ...base.blind].sort((a, b) => a - b);
+  let probes = 0;
+  if (suspect.length > 0) {
+    const x = Float64Array.from(x0);
+    const step = differenceSteps("systemResponse", x, options.jacobian ?? "central", options.steps);
+    for (const c of suspect) {
+      const moved = [x[c]! + step[c]!, x[c]! - step[c]!].some((v) => {
+        const trial = Float64Array.from(x);
+        trial[c] = v;
+        probes++;
+        try {
+          residuals(Array.from(trial));
+          return false;
+        } catch (e) {
+          return (e as Error).message.includes(SURVIVORS_MOVED);
+        }
+      });
+      if (moved) survivorChanged.push(c);
+    }
+  }
+
+  // Counted in, rather than quoted as the stencil's 2n + 1: a probe is a trial
+  // design like any other, and on a merit whose evaluation is the expensive
+  // thing a cost readout that omits some of them is the wrong number.
+  return { ...base, evaluations: base.evaluations + probes, survivorChanged };
 }
 
 /** The checks both entry points make, so neither can drift from the other. */
@@ -1817,37 +1989,7 @@ export function optimizeSystem(
   const prescription = system.prescription;
   const { minimize, hold } = asked<SystemOperand, SystemCondition>(request);
   validate("optimizeSystem", prescription, variables, minimize, hold);
-
-  // The survivor sets, and the refusal that says which operand could not be
-  // read and how far short it fell. `exitBundle` reports what vignetted, so the
-  // message can name the count rather than the symptom. Conditions are numbered
-  // after the wishes, in one space, so a message points at exactly one operand.
-  const all: readonly SystemCondition[] = [...minimize, ...hold];
-  const survivorsOf = new Map<number, Float64Array>();
-  all.forEach((o, i) => {
-    if (!isTraced(o)) return;
-    let survivors: Float64Array;
-    try {
-      ({ survivors } = tracedRead(system, prescription, o));
-    } catch (e) {
-      throw new Error(`optimizeSystem: operand ${i} cannot be read at the start — ${(e as Error).message}`);
-    }
-    survivorsOf.set(i, survivors);
-  });
-
-  const read = (trial: Prescription, o: SystemCondition, i: number): number => {
-    if (!isTraced(o)) return operandValue(trial, o) - o.target;
-    const { value, survivors } = tracedRead(system, trial, o);
-    if (!sameSurvivors(survivors, survivorsOf.get(i)!)) {
-      // Not a worse design — a different question. Same treatment as any
-      // other wall: the step is undone and the damping rises.
-      throw new Error(
-        `optimizeSystem: operand ${i}'s surviving rays changed, ` +
-          `${survivorsOf.get(i)!.length / 2} → ${survivors.length / 2}`,
-      );
-    }
-    return value - o.target;
-  };
+  const read = systemReader("optimizeSystem", system, [...minimize, ...hold]);
 
   const residuals = (x: readonly number[]): MeritVector => {
     const trial = withVariables(prescription, variables, x);
@@ -1857,4 +1999,56 @@ export function optimizeSystem(
   };
 
   return dampedLeastSquares(residuals, startingValues(prescription, variables), options);
+}
+
+/** The sentence a wall gets when it was a ray leaving the set, so it can be recognised again. */
+const SURVIVORS_MOVED = "surviving rays changed";
+
+/**
+ * One operand's residual at a trial design, with the survivor sets locked at
+ * `system`'s own prescription — the reader `optimizeSystem` steps with and
+ * `systemResponse` differences, written once so the two cannot disagree about
+ * what a traced merit IS.
+ *
+ * The lock is anchored at the system handed in, which is the point being read.
+ * Passing the design a run STOPPED on therefore re-anchors it, and has to:
+ * survivors carried over from the seed would wall every column at the answer
+ * and report a merit that can see nothing, which is a statement about the
+ * bookkeeping and not about the design.
+ *
+ * Refuses at construction, by operand index, when an operand cannot be read at
+ * that design at all — `exitBundle` reports what vignetted, so the message can
+ * name the count rather than the symptom. Conditions are numbered after the
+ * wishes in one space, so a message points at exactly one operand.
+ */
+function systemReader(
+  where: string,
+  system: OpticalSystem,
+  all: readonly SystemCondition[],
+): (trial: Prescription, o: SystemCondition, i: number) => number {
+  const survivorsOf = new Map<number, Float64Array>();
+  all.forEach((o, i) => {
+    if (!isTraced(o)) return;
+    let survivors: Float64Array;
+    try {
+      ({ survivors } = tracedRead(system, system.prescription, o));
+    } catch (e) {
+      throw new Error(`${where}: operand ${i} cannot be read at the start — ${(e as Error).message}`);
+    }
+    survivorsOf.set(i, survivors);
+  });
+
+  return (trial: Prescription, o: SystemCondition, i: number): number => {
+    if (!isTraced(o)) return operandValue(trial, o) - o.target;
+    const { value, survivors } = tracedRead(system, trial, o);
+    if (!sameSurvivors(survivors, survivorsOf.get(i)!)) {
+      // Not a worse design — a different question. Same treatment as any
+      // other wall: the step is undone and the damping rises.
+      throw new Error(
+        `${where}: operand ${i}'s ${SURVIVORS_MOVED}, ` +
+          `${survivorsOf.get(i)!.length / 2} → ${survivors.length / 2}`,
+      );
+    }
+    return value - o.target;
+  };
 }
