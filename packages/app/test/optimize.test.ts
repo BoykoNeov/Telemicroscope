@@ -412,6 +412,10 @@ describe("every seed draws, and the refusals are refusals", () => {
       }
       expect(seed.defaultVariables.length).toBeGreaterThan(0);
       for (const id of seed.defaultVariables) expect(ids).toContain(id);
+      // Part M's comparison looks its curvature up by id and asserts it is
+      // there, so a typo would take the panel down rather than refuse. Same
+      // fault class as the whole id change: a name that resolves to nothing.
+      if (seed.singleVariable !== null) expect(ids).toContain(seed.singleVariable.id);
     }
   });
 });

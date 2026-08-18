@@ -5271,9 +5271,13 @@ spends five of them raising the damping before it moves at all), and the cost is
 quadratic in the iteration count, so the trail is sampled to at most 48 replays.
 Drawn at every k, the hundred-iteration case costs 40 ms against 20 sampled.
 
-**7. The whole readout is 0.1 to 20 ms**, against Part M's 0.7–1.9. Every
+**7. The whole readout is 0.1 to 25 ms**, against Part M's 0.7–1.9. Every
 residual is a paraxial trace or a third-order sum, and the expensive part is not
-the optimisation (5 to 121 evaluations) but the trail's replays. The number that
+the optimisation (5 to 121 evaluations) but the trail's replays — which is why
+the top of that range moved when finding 8 landed and not because of what
+finding 8 added: the two reads of the variables' geometry are five evaluations
+each, while freeing a third variable costs iterations and the trail replays
+every one of them. The number that
 would change this is a merit over a *traced* quantity: **430×** a third-order sum
 for an RMS spot, **4.1× that again** for a wavefront and **~7 000×** for an MTF at
 a frequency (§ 1.8.5, § 1.8.7, § 1.8.8) — so "four orders", which this finding used
@@ -5337,7 +5341,7 @@ does carry it was not on the screen.
   set (6.30% of merit across 10⁻¹² of variable), which the engine handles by
   holding the set. So what is missing here is **app wiring and a cost decision**,
   not a pin: at 430× a residual and ~30 evaluations a run, a traced merit puts
-  this panel's 0.1–20 ms readout into the seconds, and the convergence trail
+  this panel's 0.1–25 ms readout into the seconds, and the convergence trail
   (finding 6 above) replays the whole run up to 48 times on top of that. That is
   a different panel's performance budget, and it wants the same "which settings
   can this actually be asked at" treatment the darkfield control got.

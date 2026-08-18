@@ -30,8 +30,12 @@ import { refusalVoice } from "../refusal";
  * Runs inline on every keystroke, like Part M and for the same reason: every
  * residual here is a paraxial trace or a third-order sum. The whole readout —
  * the optimisation, up to 48 replays of it for the convergence trail, a
- * single-variable control, a second-start control and a thin-lens control — is
- * 0.1 to 20 ms in this browser, against 0.7–1.9 ms for Part M.
+ * single-variable control, a second-start control, a thin-lens control and the
+ * two reads of what the merit can see of the variables — is 0.1 to 25 ms in
+ * this browser, against 0.7–1.9 ms for Part M. The top of that range is the
+ * variable-selection control's doing rather than the geometry reads', which
+ * are five paraxial evaluations each: free more numbers and the run takes more
+ * iterations, and the trail replays every one of them.
  */
 
 const CURRENCIES: readonly Currency[] = ["power", "focal"];
@@ -295,11 +299,14 @@ export function OptimizePanel() {
           </table>
           <p style={{ maxWidth: 880, color: "#666", fontSize: 13 }}>
             The last column is the combination the merit responds to least, written as each
-            variable&rsquo;s share of it. On a singlet asked only for power it is 50/50 across the
-            two curvatures, which is <em>bending</em>: moving both together changes the shape and
-            not the focal length, so a power wish cannot see it at all. The conditioning is the
-            same reading as one number — 1 is a set of independent freedoms, and unbounded means
-            one of them is not there.{" "}
+            variable&rsquo;s share of it. It says how that combination is spread across what you
+            freed, <em>not</em> whether the merit can see it: on the two-curvature seeds it sits
+            near 50/50 whether the set is well posed or hopeless, and the conditioning beside it
+            is the reading that tells those apart. A lens asked <em>only</em> for power — which no
+            seed here is — is the extreme case: 50/50 across two curvatures at an unbounded
+            conditioning, because moving both together bends the lens without changing its focal
+            length. One number is the whole reading — 1 is a set of independent freedoms, and
+            unbounded means one of them is not there.{" "}
             <strong>
               Nothing else on this screen carries it: measured, the rejected-step count falls from
               6 to 1 while the conditioning rises by six orders (§ 1.8.9).
