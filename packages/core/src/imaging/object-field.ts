@@ -693,6 +693,67 @@ export function illuminationOffset(
   wavelengthNm: number,
   options: { readonly aim?: AimOptions } = {},
 ): number {
+  const frame = pupilSlopeFrame(system, objectHeightMm, wavelengthNm, options, "illuminationOffset");
+  // On axis both slopes are the aperture's own, and the offset is zero for the
+  // same reason it is zero under telecentricity — but reached without dividing.
+  // Checked BEFORE `pupilOf`, which is where the degenerate-span refusal lives:
+  // that is the order this function had before § 6ag factored the frame out of
+  // it, and a chain that spans no angle at all is not a case whose answer should
+  // change because a helper was extracted.
+  if (frame.chief === 0) return 0;
+  return frame.pupilOf(0);
+}
+
+/**
+ * The affine map between an object-space **slope** and a normalized pupil
+ * coordinate, at one field point — `illuminationOffset` generalized off zero.
+ *
+ * That function answers "where does the axial illumination direction land", and
+ * it is the σ = 0 case of a map that is affine in the pupil coordinate for the
+ * reason its own header gives: the aimed ray's object-space slope is affine in
+ * that coordinate, so two aims determine the whole of it. `chief` is the slope
+ * at the pupil centre and `span` the slope range across the pupil radius, so
+ *
+ *     ρ = (σ − chief)/span        σ = ρ·span + chief
+ *
+ * ## The currency is the aimer's, and that is the whole point of reading it here
+ *
+ * Whether a pupil coordinate names a **tangent** or a **sine** is the aimer's
+ * decision, not this module's, and § 6q.5 is the step where guessing it wrong
+ * cost 61%. Anything that has an object-space direction and needs to know where
+ * it sits in the pupil must come through here rather than divide by an NA it
+ * assumed the parametrization of. `imaging/condenser-field` is the caller that
+ * made this worth exporting: a traced illumination direction arrives as a slope
+ * off a ray, and § 6ag.3 measures what dividing it by `NA_c/NA_obj` instead
+ * would have cost — the aberration-free limit stops converging and floors at
+ * 5e-4 where the tangent reading reaches 5e-9.
+ *
+ * `span` is `tan u_max` bitwise on every finite-conjugate system in the repo,
+ * which is a fact about the aimer and is pinned as one rather than assumed here.
+ */
+export interface PupilSlopeFrame {
+  /** Object-space slope of the ray through the pupil centre — the chief ray. */
+  readonly chief: number;
+  /** Slope range per unit pupil coordinate: σ(1) − σ(0). */
+  readonly span: number;
+  /**
+   * Pupil coordinate of an object-space slope. **Refuses** a chain whose aimed
+   * pupil spans no angle, because that is where the division is — a zero span
+   * makes `slopeOf` a constant, which is merely useless, and `pupilOf` a
+   * division by zero, which is a plausible Infinity in a coordinate.
+   */
+  readonly pupilOf: (slope: number) => number;
+  /** Object-space slope of a pupil coordinate. */
+  readonly slopeOf: (pupil: number) => number;
+}
+
+export function pupilSlopeFrame(
+  system: OpticalSystem,
+  objectHeightMm: number,
+  wavelengthNm: number,
+  options: { readonly aim?: AimOptions } = {},
+  who = "pupilSlopeFrame",
+): PupilSlopeFrame {
   const geometry = pupils(system, wavelengthNm);
   const aim = options.aim ?? {};
   const slopeAt = (px: number): number => {
@@ -700,17 +761,21 @@ export function illuminationOffset(
     return ray.dir.x / ray.dir.z;
   };
   const chief = slopeAt(0);
-  // On axis both slopes are the aperture's own, and the offset is zero for the
-  // same reason it is zero under telecentricity — but reached without dividing.
-  if (chief === 0) return 0;
   const span = slopeAt(1) - chief;
-  if (span === 0) {
-    throw new Error(
-      "illuminationOffset: the aimed pupil spans no object-space angle, so no illumination " +
-        "direction can be placed in it",
-    );
-  }
-  return -chief / span;
+  return {
+    chief,
+    span,
+    pupilOf: (slope) => {
+      if (span === 0) {
+        throw new Error(
+          `${who}: the aimed pupil spans no object-space angle, so no illumination ` +
+            "direction can be placed in it",
+        );
+      }
+      return (slope - chief) / span;
+    },
+    slopeOf: (pupil) => pupil * span + chief,
+  };
 }
 
 /**

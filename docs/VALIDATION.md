@@ -85,10 +85,11 @@ whole ladder.
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on what a phase object's harmonics do to the readout that reports them | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
-| [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | The sentence four sections carried — astigmatism and field curvature traced and unpinned — closed: S_III/S_IV added to the sums against a closed form carrying NO shape factor, the traced sagittal and tangential foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery — and two plausible-wrong-answer hazards measured and refused by the API | `field-curvature` |
+| [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | Four sections' shared deferral closed: S_III/S_IV against a closed form carrying NO shape factor, the traced foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
 | [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop, whose radius has no conjugate in it because object plane → back focal plane is B = f at every one — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
 | [6af](#step-6af--the-condenser-is-a-lens) | § 6x's last deferral, first half: a condenser to trace through, uncorrected on purpose, its aberration measured as the AMBIGUITY it puts in `illumination/source`'s premise — two readings of one direction 11.5% apart, closing as NA² | `condenser` |
+| [6ag](#step-6ag--the-traced-cone-into-condensersource) | § 6x's last deferral closed, and inverted: traced BACKWARDS from the specimen the aberration lands in the WEIGHTS, not the positions — so § 6p's cache SURVIVES a shape-changing cone, 289 pupil evaluations against 35 088 | `condenser-source` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -13630,6 +13631,242 @@ and when it must not, pin that.
   distance; a real Köhler condenser images a field stop onto it, and where that
   stop sits follows from the working distance rather than being free. Nothing here
   needs it, and a step that renders a field edge will.
+
+## Step 6ag — the traced cone into `CondenserSource`
+
+§ 6x's last deferral, second half, and the microscope branch's last piece.
+§ 6af built the lens and measured its aberration as an **ambiguity** in
+`illumination/source`'s premise. This step is the wiring — and the wiring changed
+what the finding is, because the construction that makes it affordable also moves
+the aberration from one place to another.
+
+### The construction runs BACKWARDS, and that is the whole step
+
+Forward is the obvious build and it is what § 6af's fixture does: sample the
+aperture diaphragm, and for each diaphragm point solve for the ray that reaches
+the specimen point being lit. The landing height is what you are solving for, so
+it costs a bisection — about **ninety traces per direction**.
+
+Run it the other way and the solve disappears. Launch from the **specimen point**
+in a chosen direction, trace backwards through the condenser, and read off where
+the ray lands on the diaphragm: **one trace, no iteration**, and § 6ag.1 pins
+that it inverts the forward solve to **1e-15** — machine precision rather than a
+bisection tolerance, from two independently written constructions through the
+same glass.
+
+That is a change of variables in the source integral, from diaphragm *area* to
+solid angle:
+
+    I(x) = ∫ |A(x; s)|² dA_diaphragm = ∫ |A(x; s)|² · |∂A_diaphragm/∂s| ds
+
+and it is not a convenience. The directions are now sampled on a fixed grid and
+the diaphragm decides *membership*, so **the condenser's aberration stops moving
+the sample positions and starts changing the sample weights**. Everything below
+follows from that one move.
+
+### THE FINDING: the aberration lands in the WEIGHTS
+
+§ 6x displaced the cone rigidly; § 6af measured that a real cone also stretches.
+Both are statements about *where* the directions are. Under the change of
+variables the directions do not move at all, and the whole of the condenser's
+aberration appears as a non-uniform `dA_diaphragm/ds` — **how much light each
+direction carries**, which every `CondenserSource` before this one took to be the
+same for all of them.
+
+| field height | Jacobian spread across the cone | contrast, against uniform weights |
+|---|---|---|
+| 0 | 1.32% | **+0.069%** |
+| 1 mm | 4.95% | −0.160% |
+| 2.25 mm | 11.3% | **−0.661%** |
+
+Measured on an **identical point set** — same points, same mask, only the weights
+differ — so the quadrature cancels exactly and what is left is the weights and
+nothing else. Converged: two grids 2.1× apart in point count agree to four digits.
+The sign flips with field: on axis the taper is rotationally symmetric, is the
+condenser's own spherical, and *raises* contrast; off axis it becomes one-sided
+and lowers it by ten times as much.
+
+**And the objective's own aberration amplifies it 2.9×.** The same cone through
+the shipped DIN's traced pupil at 1 mm costs −0.486% where the perfect pupil costs
+−0.160%. So the source's reweighting and the objective's wavefront are **not
+independent contributions**, and a budget that adds them separately is wrong.
+
+The weight rungs are measured on a *perfect* pupil deliberately, and § 6ag.4's
+last rung pins why rather than leaving the fixture to be trusted: the shipped
+DIN's traced wavefront rules `no-honest-image` past about a millimetre of field at
+this file's `pupilSamples`, so a contrast measured through it off axis would be a
+number `illumination/fidelity` refuses. The amplification figure is therefore
+taken at 1 mm and `pupilSamples` 32, where it rules `valid`.
+
+### § 6p's cache SURVIVES — the opposite of what the deferral predicted
+
+The deferral note said a cone that changes shape off axis *"is no longer one
+lattice, so § 6p's bit-for-bit identity is in the path on the branch's most-pinned
+module."* That is true of the forward construction. The change of variables
+repeals it.
+
+The candidate directions here are the objective pupil's **own** frequency lattice,
+unshifted. The field point enters through `chief` inside `pupilSlopeFrame`, which
+decides *which* lattice points the traced mask admits and *what weight* each
+carries — never where any of them sits. So every coordinate is an integer times
+one exactly representable scale, `abbeImage`'s `latticeOffset` precondition holds
+at every field height, and the cache is available where `translateSource` cannot
+make it available at all.
+
+Measured at 2.25 mm on the shipped rim-stopped DIN: **289 pupil evaluations for
+the traced cone against 35 088 for the rigid translation**, a factor of 121, and
+the rigid one has no cache off axis by construction (`translateSource` drops
+`pupilLattice`, correctly, because an offset read off a trace is not a whole
+number of half-steps). This is `latticeDiskSource`'s own argument about S — *"the
+cache never needed S on the lattice … S enters through the disc mask alone"* —
+applied to a mask that came off a trace instead of out of a formula.
+
+**What does NOT transplant is § 6p.1's bitwise identity**, and § 6ag.6 says so
+rather than letting the shared `pupilLattice` field imply otherwise. A traced cone
+is a *different quadrature* of the same physical cone: its mask is not the disc and
+its weights are not uniform, so its image is not a reordering of a `diskSource`'s.
+Same caveat `latticeDiskSource` carries, for the same reason.
+
+### The coupling is ONE knob, and it is an exact reciprocal
+
+§ 6af deferred *"patch size and source sampling are coupled"* as the thing this
+step had to pin. They are — and the coupling is tighter than a trade-off. A tile's
+object span and the source's sampling step are **both** set by `pupilSamples`, in
+opposite directions, and their product is a constant of the system:
+
+| pupilSamples | tile object span | source step | product |
+|---|---|---|---|
+| 16 | 0.046769 mm | 0.125000 | 5.846166e-3 |
+| 32 | 0.093539 mm | 0.062500 | 5.846166e-3 |
+| 64 | 0.187077 mm | 0.031250 | 5.846166e-3 |
+| 128 | 0.374155 mm | 0.015625 | 5.846166e-3 |
+
+To twelve digits. So a caller **cannot buy a wider tile without buying a coarser
+cone**, and § 6af's own two feasibility patch sizes — 0.094 mm and 0.374 mm — are
+`pupilSamples` 32 and 128 and were never independent choices. The tile's span does
+not depend on the pixel count at all, which is § 6h.2's closed form showing up
+where it decides something new.
+
+**And the failure mode changed shape with the construction.** Forward, the hazard
+was a direction *drifting* across the patch by a fraction of a sampling step —
+what § 6af measured. Backwards, positions do not drift. What varies across a tile
+is the weights, smoothly and small, and **membership, discretely**: a lattice point
+inside the cone at one tile edge and outside it at the other. That is a step in the
+formed image, not a small error, and it is 2–6% of the points on this system.
+
+Its fraction is **scale-invariant in the sampling step** — halving the step
+quadruples the point count and leaves the fraction where it was, because the mask's
+boundary grows exactly as fast as the count does. So the flips **cannot be refined
+away by sampling the cone more finely**; they are reduced by narrowing the tile,
+which is the same knob pulling the other way. `condenserConeFidelity` reports the
+count and the fraction, names `pupilSamples` as the knob that helps, and says
+explicitly that `stepMultiple` does not.
+
+### CURRENCY: the pupil coordinate is a tangent, and a sine never converges
+
+A traced direction arrives as an object-space **slope**; a `SourcePoint` is a
+normalized pupil coordinate. `illumination/source`'s header says a point at radius
+ρ carries illumination NA ρ·NA_obj — a ratio of **sines**. The aimer parametrizes
+the pupil by a **tangent**, and § 6ag.3 pins that `pupilSlopeFrame`'s span is
+`tan u_max` *bitwise*.
+
+Closing the condenser's own aperture is the aberration-free control, and it
+discriminates the two readings completely:
+
+| against | NA 0.10 | NA 0.05 | NA 0.01 | NA 0.001 |
+|---|---|---|---|---|
+| the tangent ratio (absolute) | 5.188e-3 | 6.344e-4 | 5.040e-6 | **5.039e-9** |
+| the sine ratio (relative) | 5.188e-3 | 2.498e-3 | 4.912e-3 | **5.012e-3** |
+
+The tangent reading converges, and at the **order of the aberration**: the absolute
+departure falls as NA³ to better than 1% per step over three octaves-and-more
+(8.18, 125.87, 1000.29 against 8, 125, 1000), which is third-order spherical and is
+the only thing left. Expressed as a fraction of the cone's own radius the same
+quantity falls as NA², and both are asserted — quoting one order for the other is
+exactly the slip the rung is about.
+
+The sine reading **floors at 0.5% and stays there**, because that is not an
+aberration, it is the currency, and no lens improves it. Six orders separate the
+two at the smallest aperture. This is § 6q.5's 61% hazard in miniature, and the
+danger is precisely that a floor at 5e-3 looks like a converged answer.
+
+This does **not** redefine S for the authored sources: `diskSource` and its
+relatives carry no trace and are internally consistent. It states which currency a
+*traced* cone is in, and pins the discrepancy as its own rung.
+
+### What closing the aperture does NOT control
+
+The aberration-free limit is an **on-axis** control, and the reason is § 6af's own
+`fieldBeamW040Mm` invariance one derivative down. Every diaphragm point lights the
+whole field with one beam, so that beam's width at the glass is set by the FIELD
+and closing the diaphragm never narrows it. § 6ag.8 pins that the axial diaphragm
+point's delivered direction is **bitwise identical** across a 10× range of
+illumination NA and grows as **h³** — the derivative of the h⁴ the wavefront
+coefficient is.
+
+So off axis there is an irreducible floor no aperture change touches: the cone's
+centre lands **short** of where § 6x's `h/R_ep` puts it, by 0.042813 at 2.25 mm —
+which is § 6af's own measured centre walk of 0.0428, recovered from an entirely
+different construction. The cone's edges about that offset reach +0.9236 and
+−1.0702, so the cone is not a displaced circle at all; the midpoint of its edges
+lags by 0.0733 where its diaphragm centre lags by 0.0428, and the difference is
+coma.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The reverse trace inverts § 6af's forward bisection to **1e-15**, 2 apertures × 3 field heights × 3 diaphragm points | two independent constructions, no shared code | ✅ |
+| 5 traces per surviving direction against the forward solve's ~90 | the cost, read off the thing that ships | ✅ |
+| Three refusals, and a degenerate cone that is one on-axis point rather than none | `latticeDiskSource`'s S → 0 limit, reached through a trace | ✅ |
+| The reversed chain's stop carries the **wide-open** semi-diameter, so the mask is load-bearing and not a duplicate | `reversePrescription` moves `isStop` with its surface | ✅ |
+| `pupilSlopeFrame`'s span is `tan u_max` **bitwise** at three field heights | the aimer's own parametrization | ✅ |
+| `illuminationOffset` is that frame's σ = 0 case, bitwise, and its on-axis zero stays bitwise | § 6x.1 unmoved by the refactor | ✅ |
+| EXTERNAL-shaped CONTROL: the aberration-free limit reaches the **tangent** ratio as NA³ → 5.039e-9, and the **sine** ratio never (floors at 5.0e-3) | the currency, discriminated over four apertures | ✅ |
+| **THE FINDING: the Jacobian spread runs 1.32% → 11.3% across the field** | the weights every prior source assumed uniform | ✅ |
+| **…and on an IDENTICAL point set that is +0.069% of contrast on axis and −0.661% at 2.25 mm**, converged over 2.1× of point count | the weights alone, quadrature cancelled | ✅ |
+| …and the objective's own aberration **amplifies it 2.9×** | the two are not independent contributions | ✅ |
+| CONTROL: closing the condenser's aperture flattens the spread 20× over 4× of NA | § 6ae.5's shape, one lens | ✅ |
+| The fixture's own honesty: which (field, `pupilSamples`) pairs rule `valid` | why the weight rungs use a perfect pupil | ✅ |
+| **THE LAW: tile span × source step is constant to 12 digits** over a 16→128 sweep | § 6af's "coupled" made exact | ✅ |
+| …and § 6af's own two feasibility patch sizes ARE `pupilSamples` 32 and 128 | they were never independent choices | ✅ |
+| Membership flips are 2–6% and **scale-invariant in the step** | refining the source cannot fix them | ✅ |
+| The verdict reports rather than throws, and names the knob that helps AND the one that does not | `illumination/fidelity`'s convention | ✅ |
+| Every point on the pupil's own lattice at four field heights, and the count **odd** so the inferred parity is 0 | `abbeImage` infers parity from the count | ✅ |
+| **THE MEASUREMENT: 289 pupil evaluations against the rigid translation's 35 088** | § 6p's cache, restored off axis | ✅ |
+| …but § 6p.1's bitwise identity does NOT transplant, and the images differ by <5% of peak | a different quadrature of the same cone | ✅ |
+| A traced cone REPLACES the source and reproduces `abbeImage` through it exactly | the seam, checked as an identity | ✅ |
+| **REFUSES a patch carrying both a traced source and an `illuminationOffset`** | translating a traced cone is an IMAGE, not an error | ✅ |
+| The axial diaphragm point's direction is **bitwise** aperture-free and grows as h³ | § 6af's `fieldBeamW040Mm`, one derivative down | ✅ |
+| So the cone's centre lags § 6x's `h/R_ep` by **0.042813** at 2.25 mm | § 6af's 0.0428, from a different construction | ✅ |
+| Composed: a traced cone and a traced pupil, both verdicts `valid`, `contributingPoints` the cone's own count | two verdicts, two questions, neither standing in for the other | ✅ |
+
+### Not pinned to an external number, and not pretending to be
+
+**There is no catalogued number for the source an Abbe condenser presents to a DIN
+objective.** § 6af spent this branch's published closed forms — Coddington's
+thin-lens polynomial and the Abbe number's own linearization error — on the lens
+itself, which is where they were sharp. What this step pins instead is the forward
+solve inverted to machine precision (two independent constructions), the
+aberration-free limit and the order it is reached at, § 6x.1's `h/R_ep` as the
+σ = 0 case, and convergence in the diaphragm sampling and in the field. Each is a
+real constraint; none is an external number, and calling the currency rung
+"EXTERNAL-shaped" above is the closest this file will go.
+
+### Still open
+
+- **The weights are a first-order summary of something that is not a plane wave.**
+  § 6af's scoping sentence stands: a diaphragm point's beam arrives with a
+  direction that varies across the field, and reducing it to one direction and one
+  area element per (direction, field point) is a ray summary. What this step adds
+  is that the summary's error is now *measurable per tile* and reported, not that
+  it is gone.
+- **The membership flips are reported, not smoothed.** A partial-membership weight
+  at the mask edge would turn the discrete step into a continuous one, and would be
+  a quadrature choice with no rung behind it yet.
+- **No app surface reads any of this.** The traced cone is engine capability with no
+  panel; `docs/APP.md` is where that gets scoped.
+- **Critical illumination**, unchanged from § 6x and § 6af: imaging the filament
+  onto the specimen breaks the set-of-directions model rather than deforming it.
+- **The condenser's field diaphragm**, unchanged from § 6af.
 
 ## Later rungs
 

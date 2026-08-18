@@ -731,11 +731,21 @@
    paraxial value by 5.7% and 5.8% at NA 0.30, closing as NA² — and the cone does
    not merely translate as § 6x models it but STRETCHES, its radius moving 0.0222
    of the objective's pupil over 2.25 mm of field against a 0.0428 translation.
-   **Still open here:** feeding that cone into `CondenserSource` per patch, which
-   is well-posed under a MEASURED condition (the direction moves a tenth of a
-   sampling step across a 0.094 mm patch and a whole step across a 0.374 mm one,
-   so patch size and source sampling are coupled) and lands on § 6p's lattice
-   cache; and image-space telecentricity, which has no caller.
+   ~~**Still open here:** feeding that cone into `CondenserSource` per patch~~ —
+   **closed at § 6ag**, and the wiring inverted two of the sentences that scoped
+   it. Traced BACKWARDS from the specimen point the solve disappears (one trace
+   against ninety, inverting the forward fixture to 1e-15), and with it the
+   aberration moves out of the sample POSITIONS and into the sample WEIGHTS —
+   1.32% of spread on axis, 11.3% at 2.25 mm, worth −0.661% of contrast on an
+   identical point set and 2.9× that through the objective's own aberration. So
+   § 6p's cache **survives** a shape-changing cone rather than being lost to it
+   (289 pupil evaluations against the rigid translation's 35 088), and "patch size
+   and source sampling are coupled" is an exact reciprocal: tile span × source
+   step is constant to 12 digits, both set by `pupilSamples`, so § 6af's 0.094 mm
+   and 0.374 mm patches are that one knob at 32 and 128. The residual failure mode
+   is discrete membership rather than continuous drift, and it is scale-invariant
+   in the step — refining the source cannot reduce it.
+   **Still open here:** image-space telecentricity, which has no caller.
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it
@@ -1636,9 +1646,10 @@
    albedo map, lunar terrain, a real limb-darkening coefficient, which is
    measured data to source rather than code to write); ~~§ 6x's two deferrals, the
    DIN objective's telecentricity and the condenser's own aberrations~~ — **the
-   first closed at § 6ae** and the second's own first half at **§ 6af**, leaving
-   the wiring: a traced cone into `CondenserSource` per patch, well-posed under a
-   measured condition and landing on § 6p's lattice cache; ~~**what the phase panel should print
+   first closed at § 6ae**, the second's own first half at **§ 6af** and its
+   second half at **§ 6ag**, where the traced cone went into `CondenserSource` per
+   patch — backwards, which put the aberration in the WEIGHTS and *restored*
+   § 6p's cache instead of costing it; ~~**what the phase panel should print
    for its 2ν contrast above S ≈ 0.9**~~ — **closed**, at § 6ab.12 (the readout
    was printed where the harmonic cannot exist, and the fix is a geometric gate
    with no threshold in it), § 6ab.13 (the grating's own orders were folding onto

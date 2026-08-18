@@ -112,6 +112,25 @@ export interface PatchPupil {
    * field, correctly: § 6i's expression has no condenser in it at all.
    */
   readonly illuminationOffset?: { readonly sx: number; readonly sy: number };
+  /**
+   * The cone this field point is lit by, **traced** — `imaging/condenser-field`
+   * (§ 6ag), which is the second half of what `illuminationOffset` is the first
+   * half of.
+   *
+   * Supplied, it *replaces* the source `renderBrightfield` was called with at
+   * this field point rather than modifying it: a traced cone's points are
+   * absolute pupil coordinates with the field displacement already in them,
+   * because the trace put them where they actually are. It rides on the pupil
+   * for `illuminationOffset`'s reason — it is a property of the field POINT, and
+   * one call has one source and many field points.
+   *
+   * **Never both.** Supplying this and `illuminationOffset` together would
+   * translate an already-displaced cone and double-count § 6x, which does not
+   * fail — it forms a perfectly plausible image at the wrong illumination — so
+   * `renderBrightfield` refuses the pair rather than picking one by reading
+   * order. `imaging/object-field` never sets both.
+   */
+  readonly source?: CondenserSource;
 }
 
 export interface BrightfieldFieldOptions {
@@ -200,10 +219,25 @@ export function renderBrightfield(
       // returns its input unchanged at a zero offset, so a telecentric system —
       // and every ideal-pupil caller, which has no system to be non-telecentric —
       // reaches `abbeImage` with the identical object it did before § 6x.
+      //
+      // A traced cone (§ 6ag) arrives with the displacement already in its
+      // coordinates, so it replaces the source rather than being translated. The
+      // pair is refused because translating it would double-count § 6x and the
+      // result would be an image, not an error — see `PatchPupil.source`.
+      if (patch.source !== undefined && patch.illuminationOffset !== undefined) {
+        throw new Error(
+          `renderBrightfield: the patch at (${px}, ${py}) carries both a traced \`source\` and an ` +
+            "`illuminationOffset`. A traced cone's points are absolute pupil coordinates with the " +
+            "field displacement already in them, so translating it again would double-count § 6x " +
+            "and form a plausible image at the wrong illumination — supply one or the other",
+        );
+      }
       const lit =
-        patch.illuminationOffset === undefined
-          ? source
-          : translateSource(source, patch.illuminationOffset.sx, patch.illuminationOffset.sy);
+        patch.source !== undefined
+          ? patch.source
+          : patch.illuminationOffset === undefined
+            ? source
+            : translateSource(source, patch.illuminationOffset.sx, patch.illuminationOffset.sy);
 
       const formed = abbeImage(object, patch.pupil, lit, {
         pupilSamples: options.pupilSamples,
