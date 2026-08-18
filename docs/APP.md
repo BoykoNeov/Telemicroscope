@@ -5130,7 +5130,8 @@ about the physics — arriving on a panel instead of on a rung.
   readout is 0.7–1.9 ms in a browser and the elapsed number is at the bottom of
   the page. A target on an RMS spot or a Zernike term changes the cost model and
   wants a different search than a full scan — § 1.7 names it as not-yet-pinned
-  and this panel does not pretend otherwise. **"By four orders" is corrected:**
+  for a SOLVE, which is what this panel runs, and both are now pinned for the
+  optimiser (§ 1.8.5, § 1.8.7). **"By four orders" is corrected:**
   § 1.8.5 measured a traced residual at **430×** a third-order sum on a 149-ray
   pupil, linear in the ray count. A 64-cell scan of them is ~0.4 s, not the
   minute this sentence implied — dear for a slider, and not out of reach.
@@ -5273,8 +5274,9 @@ Drawn at every k, the hundred-iteration case costs 40 ms against 20 sampled.
 **7. The whole readout is 0.1 to 20 ms**, against Part M's 0.7–1.9. Every
 residual is a paraxial trace or a third-order sum, and the expensive part is not
 the optimisation (5 to 121 evaluations) but the trail's replays. The number that
-would change this is a merit over a *traced* quantity, which is four orders more
-expensive per evaluation and is not offered — see below.
+would change this is a merit over a *traced* quantity: **430×** a third-order sum
+for an RMS spot and **4.1× that again** for a wavefront (§ 1.8.5, § 1.8.7), not the
+four orders this finding used to say. Not offered — see below.
 
 ### What it does not do
 
@@ -5292,6 +5294,11 @@ expensive per evaluation and is not offered — see below.
   (finding 6 above) replays the whole run up to 48 times on top of that. That is
   a different panel's performance budget, and it wants the same "which settings
   can this actually be asked at" treatment the darkfield control got.
+  **§ 1.8.7 widened what is on offer and did not change that verdict**: the engine
+  now also takes a wavefront RMS, a balanced RMS and a named Zernike coefficient
+  with a target of its own, at 4.1× the traced spot on the same rays — so the
+  wiring decision above applies to a residual four times dearer again, and the
+  panel would have to say which readings it can honestly offer at which grid.
 - **No conditions *here* — the engine has them now** (§ 1.8.6, `{ minimize, hold }`
   on both entry points). "Hold the focal length *exactly* while minimising
   aberration" is a Lagrange condition and is solved as one. What it buys is not

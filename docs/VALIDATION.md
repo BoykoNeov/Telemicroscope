@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope — pinned on the ray the engine AIMS, and NA ≥ n refused; **1.5.2** an aim is a line, so a virtual entrance pupil behind the object still launches forward instead of reporting `miss`; **1.5.3** real aiming, because a misalignment MOVES the stop and the paraxial pupil does not follow — pinned on two rigid-motion identities | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form *recovered* rather than evaluated, and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, two exact conjugates recovered, the ray SET held; § 1.8.6 CONDITIONS held exactly and priced by their multipliers | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: a merit over several variables, on two closed-form minimisers — Coddington's best form and the achromat's power split — plus the run that converges 400 mm from the target; § 1.8.5 TRACED spot targets, the ray SET held; § 1.8.6 CONDITIONS held exactly and priced; § 1.8.7 WAVEFRONT targets, the fit's conditioning settled, and a balanced RMS that converges on a ruined image | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -1270,9 +1270,10 @@ lister one is not even a scalar solve — its geometry moves under the variable.
   on a traced quantity — an RMS spot, a Zernike term — changes the cost model
   and wants a different search than a full scan. **"By four orders of magnitude"
   is corrected: § 1.8.5 measured it at 430× on a 149-ray pupil, linear in the ray
-  count**, so a full scan is dearer but not out of reach. Still open *here*,
-  though § 1.8's optimiser now has one — a root find and a minimisation want
-  different things from the same expensive residual.
+  count, and § 1.8.7 measured a wavefront at 4.1× that again**, so a full scan is
+  dearer but not out of reach. Still open *here*, though § 1.8's optimiser now has
+  both — a root find and a minimisation want different things from the same
+  expensive residual.
 - ~~**No surface.**~~ ✅ **closed** — APP.md **Part M**, route `#/design`, app
   wiring only and no rung of its own. What it added that is not above: the
   exactness is in the POWER and a millimetre residual is that ulp times f²
@@ -1700,6 +1701,199 @@ converged optimiser is not a correct one, so the run reports what it achieved.
 | A condition across a wall is walked up to and reported unmet, not claimed | § 1.8's domain-edge convention, under a condition | ✅ |
 | An unconstrained run's new fields are empty, and its arithmetic is unchanged | the 2 237 rungs that read digits out of this loop | ✅ |
 
+### 1.8.7 — the wavefront, and a fit whose conditioning cannot move
+
+The other half of "targets on traced quantities", and § 1.8.5's bullet was right
+that it is a different question rather than the same one at more expense. A spot
+is read off ray intercepts. This is read off a **fit** to a sampled phase map —
+`opdMap` then `fitZernike` — and the recorded worry was that the fit's own
+conditioning would move under the optimiser the way the survivor set does.
+
+`WavefrontCondition` carries the field, the wavelength, the pupil list, the term
+count, and one of three readings: `"rms"` (piston out, tilt and defocus in),
+`"balancedRms"` (piston, tilt and defocus out — § 1.5.3's currency), and
+`"zernike"`, one named Noll coefficient in waves, signed, and the only reading
+that takes a nonzero target sensibly. All three go through the fit, including
+the two that could have been read straight off `OpdMap.rmsWaves`, and the last
+finding below is why.
+
+**The conditioning question answers itself, and in the opposite direction from
+the one the bullet feared.** `fitZernike` builds its design matrix out of sample
+COORDINATES, and `opdMap` reports every sample at the normalized pupil point
+that was *asked* for rather than at wherever the ray landed. Hold the survivor
+set — which the operand already does, for § 1.8.5's reason — and the matrix, its
+factorisation, every R pivot and every decision the 10⁻¹² pivot floor makes are
+fixed for the whole run. The fit is ONE LINEAR MAP applied to a right-hand side,
+and the right-hand side is the only thing a design moves. Pinned by
+superposition rather than by inspection: two genuinely different designs, one
+held coordinate set, and the fit of αb₁ + βb₂ equals αc₁ + βc₂ to **8·10⁻¹⁶**.
+
+The amplification runs the other way too. A least-squares fit spreads
+independent per-sample noise across the coefficients, so ‖Δc‖ is √(terms/samples)
+of it — an **attenuation of 4.4×** at eleven terms on a 313-point grid, measured
+to 2% of √(terms/samples) at four widths of fit. Measured as an ENSEMBLE of 64
+draws, because a single ±1 pattern puts the ratio anywhere between 0.10 and 0.28:
+the statistic has only `terms` degrees of freedom in it, and one draw would have
+pinned a realisation. And the 10⁻¹² absolute pivot floor is nowhere in sight,
+which the fit says itself — hand it a right-hand side that IS a basis function
+and the exact answer is e_j, so what comes back short of e_j is the solve's own
+conditioning: **10⁻¹⁵ across every term of a 45-term fit**, an O(1) condition
+number.
+
+#### The external number: balanced spherical, recovered rather than evaluated
+
+Third-order theory writes a spherical mirror's wavefront as W(ρ) = a·ρ⁴ + b·ρ²,
+b the defocus a plane shift buys. Var(W) is minimised at b = −a, and there
+
+    RMS = W₀₄₀/(6√5)                             [Born & Wolf; Mahajan]
+
+§ 1.6 / § 2a already pin that as a READOUT through `bestFocus`, a one-variable
+search with no target. Here damped least squares moves the image distance and
+reads `fitRms` off the operand's own fit — a second mechanism arriving at the
+same external result. What makes it a pin rather than a band is the residual's
+shape: divide the excess over the third-order value by NA² and one number is
+left at every aperture.
+
+| semi-aperture | NA | RMS found | W₀₄₀/(6√5) | excess / NA² |
+|---|---|---|---|---|
+| 20 mm | 0.200 | 6.35807926·10⁻¹ | 6.34278805·10⁻¹ | 6.027·10⁻² |
+| 10 mm | 0.100 | 3.96665593·10⁻² | 3.96424253·10⁻² | 6.088·10⁻² |
+| 5 mm | 0.050 | 2.47802960·10⁻³ | 2.47765158·10⁻³ | 6.103·10⁻² |
+| 2.5 mm | 0.025 | 1.54859132·10⁻⁴ | 1.54853224·10⁻⁴ | 6.105·10⁻² |
+
+Approached from below, each halving of NA cutting the remaining gap about
+fourfold: the neglected fifth-order term identifying itself by its own order,
+not a tolerance chosen to fit. The plane it lands on is the balancing defocus
+δz = −2a/NA² to the same law (1.00058 at NA 0.1, 1.000147 at 0.05), and the
+min-spot plane sits **4/3** as far out as the min-wavefront plane — `focus.ts`'s
+classical spread, reproduced here by two OPERANDS handed to one optimiser over
+one variable rather than by three separate searches, and to 10⁻³ against that
+file's 1%.
+
+**c₄ = 0 at best focus is a third-order statement, and this is what says so.**
+Minimising √(Σ cⱼ²) balances c₄ against the higher terms' own drift with the
+plane — dc₁₁/dz is 1.58·10⁻³ waves per mm here, not zero — so the min-RMS plane
+and the c₄ = 0 plane are **1.05·10⁻⁵ mm apart**, each better than the other on
+its own measure. The operand can ask for either, and § 1.8.6's machinery can
+hold one while minimising the other: the condition is met to 10⁻¹², priced at
+λ = −5.13·10⁻⁵, and gets there in a **fifth** of the evaluations, because it
+removes the one free direction and what is left is a triangular solve rather
+than a descent down a very flat bowl.
+
+#### A coefficient is an operand, and it inverts a closed form
+
+The reading that passes through the fit and nothing else, given the nonzero
+target no other operand in this file has been given. Ask for a stated amount of
+primary spherical and the answer is the mirror that produces it:
+
+    |R| = ( h⁴ / (4·6√5·λ·|c₁₁|) )^(1/3)
+
+Two variables, because the radius that carries the aberration also moves the
+focus: the curvature is the wish's variable and the plane is pinned by a
+CONDITION, c₄ = 0, so the answer is read at one focus rather than at whichever
+one the run drifted to.
+
+| c₁₁ asked | R found | R closed-form | NA | excess / NA² |
+|---|---|---|---|---|
+| −0.02 waves | −251.263445 mm | −251.231102 mm | 0.0796 | 2.03·10⁻² |
+| −0.05 waves | −185.152472 mm | −185.108658 mm | 0.1080 | 2.03·10⁻² |
+| −0.10 waves | −146.975907 mm | −146.920839 mm | 0.1361 | 2.02·10⁻² |
+
+c₁₁ hits its target to nine figures and c₄ is held to 10⁻¹² throughout, while
+the aberration asked for changes 5× and the radius carrying it moves 100 mm.
+The same fifth-order signature, in a second currency.
+
+#### `balancedRms` converges on a destroyed image, which is worse than diverging
+
+`TracedFocus` again, in the wavefront's units, and the answer is worse than the
+spot's was. The obvious argument — remove the defocus term and the merit stops
+depending on the image plane, so a run over that variable learns nothing — is
+**false**, and this sub-step is where that was found. Removing the Zernike
+defocus is not the same operation as refocusing: the OPD's reference sphere is
+centred on the image point and its RADIUS is the exit-pupil distance, so moving
+the plane inflates the sphere and shrinks every high-order coefficient with it.
+
+| image plane | balanced RMS | rms | reference sphere | geometric spot |
+|---|---|---|---|---|
+| paraxial | 3.9567·10⁻² | 1.5838·10⁻¹ | 100.000 mm | 6.27·10⁻³ mm |
+| best focus (−0.0625) | 3.9469·10⁻² | 3.0895·10⁻¹ | 100.063 mm | 1.05·10⁻² mm |
+| **−50 mm** | **1.0278·10⁻²** | 8.1925·10¹ | 150.000 mm | **3.55 mm** |
+
+So the merit has a real gradient and a real minimum **half a focal length past
+focus**, where the reading is 3.85× better than at true best focus and the image
+is some 1 690× larger. The sphere's radius grew ×1.5 and c₁₁ fell to 0.2598 of
+itself, against the 0.2963 a pure R⁻³ scaling would give. An `optimizeSystem`
+run walks there and reports success — and that is the point: `"bestSpot"` was
+UNBOUNDED (§ 1.8.5), and an unbounded wish announces itself by never settling.
+This one converges. Over a free power it does the other thing as well: a
+singlet's one free curvature walks the focal length to 2 036 mm and the merit to
+4·10⁻¹² waves, a lens that forms no image where the image is. `"rms"` is bounded
+on both variables, because it is charged for where the light actually goes.
+
+#### The floor is neither the fit's nor the spot's, and the step decides a fixture
+
+The differencing window is six decades wide — central differences of `fitRms` in
+the image distance agree to seven figures across h = 10⁻³…10⁻⁵ and to four
+across 10⁻²…10⁻⁷ — and the floor under it is **≈2·10⁻¹² waves**. Derived rather
+than fitted: f64 on a ~200 mm optical path is 2·10⁻¹⁴ mm, which is 3.4·10⁻¹¹
+waves at 587.6 nm, attenuated by the fit's √313 to 1.9·10⁻¹². Relative to the
+reading that is 5·10⁻¹¹ where § 1.8.5's traced spot sits at 4·10⁻¹⁴ — three
+decades coarser, because an OPD is a difference of large paths expressed in a
+tiny unit — and still four decades below the module's own default step.
+
+**And § 1.8.5's concentric-mirror number reads differently once the step is
+held.** That rung recovered R = −400 mm to 2.3·10⁻⁶ and explained it as a very
+flat direction. The variable is a curvature of 2.5·10⁻³, so the default step's
+`max(|x|, 1)` floor makes it ∛ε = 6.06·10⁻⁶ — a quarter of a percent of the
+variable, and on this merit a straddle rather than a difference.
+
+| operand | default step | step stated at 10⁻⁸ |
+|---|---|---|
+| wavefront `"rms"` | 1.39·10⁻⁸ | **2.4·10⁻¹⁵ … 3.6·10⁻¹⁴** |
+| spot `"systemImagePlane"` | 1.6·10⁻⁹ … 5.8·10⁻⁸ | **4.8·10⁻¹⁵ … 1.5·10⁻¹³** |
+| spot `"bestSpot"` | 7.0·10⁻⁷ … 1.1·10⁻⁶ | 4.5·10⁻⁸ … 2.6·10⁻⁷ |
+
+Six orders from stating the step. Held at one step the wavefront and the
+fixed-plane spot are indistinguishable, both at the f64 floor, and `"bestSpot"`
+is seven orders behind — because the quantity that locates a perfect conjugate
+is exactly the defocus refocusing throws away. So the flatness reading is true
+of `"bestSpot"`, which is what § 1.8.5 measured, and does NOT carry to the other
+two currencies; and the § 1.8 open item on the step's own scaling now has a
+fixture where it is worth six orders rather than three. The merit there is
+linear in ΔR over five decades at 4.8765 waves/mm — a corner, § 1.8.2's
+non-square-root case.
+
+**Why every reading goes through the fit.** The fitted RMS is an integral over
+the disc; `OpdMap.rmsWaves` is an average over whatever points landed in it.
+Densify the grid 65× (77 → 5 021 samples) and the fit moves in its **eighth**
+figure while the raw sample average wanders by 2·10⁻² and does not settle
+monotonically — the same square-grid-on-a-disc counting § 6ab.17 measures. A
+reading that could not be reproduced by a caller who sampled slightly
+differently is not a merit worth optimising.
+
+**Cost.** On the same 313 rays: 0.571 ms a wavefront evaluation against 0.138 ms
+a traced spot and 1.93·10⁻³ ms a third-order sum — **4.1× the spot, 296× the
+Seidel**. A one-variable run is 81 evaluations unconstrained and 12 with c₄ held.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **RMS at the optimum = W₀₄₀/(6√5)**, excess/NA² = 6.03…6.11·10⁻² over an 8× range of NA | Born & Wolf / Mahajan, and the fifth-order term identifying itself | ✅ |
+| …and the plane is the balancing defocus δz = −2a/NA², to the same law | third-order balancing | ✅ |
+| **min-spot focus sits 4/3 as far out as min-wavefront focus**, both by DLS over one thickness | the classical spread, by a second mechanism | ✅ |
+| **The min-RMS plane is NOT the c₄ = 0 plane** — 1.05·10⁻⁵ mm apart, each best on its own measure | c₄ = 0 is third-order, and the operand can ask for either | ✅ |
+| **c₄ = 0 held: met to 1e-12, priced at λ = −5.13e-5, in a fifth of the evaluations** | § 1.8.6's machinery on the new operand | ✅ |
+| **A prescribed c₁₁ inverts to a radius**, excess/NA² = 2.02…2.03·10⁻² while the aberration changes 5× | the r⁴ conic/sag closed form, run backwards | ✅ |
+| **`balancedRms` has a false minimum half a focal length out** — 3.85× "better" on a 1 690× larger image | the reference sphere is not held, and converging is worse than diverging | ✅ |
+| …and over a free power it reaches 4e-12 waves at EFL 2 036 mm; `"rms"` is bounded on both | `"bestSpot"`'s defect, in the other currency | ✅ |
+| **Superposition to 8e-16**: the fit is one linear map, so no conditioning can move under the run | the recorded open item, answered by measurement | ✅ |
+| **Every basis function recovered to 1e-15** through a 45-term fit — no pivot is being zeroed | `math/lsq`'s 1e-12 floor, shown to be out of reach | ✅ |
+| **The fit ATTENUATES sample noise by √(terms/samples)**, to 2%, over 64 draws | the direction of the effect the bullet feared | ✅ |
+| The fitted RMS holds eight figures across a 65× grid change; the raw sample RMS wanders 2e-2 | why every reading goes through the fit | ✅ |
+| Differences over six decades; floor ≈2e-12 waves, derived from f64 on the OPL and the fit's √n | the window, and what actually sets it | ✅ |
+| **The concentric conjugate improves six orders when the step is stated**, and the currencies then agree | § 1.8's step-scaling item, and a correction to how § 1.8.5's 2.3e-6 reads | ✅ |
+| A wavefront operand holds its surviving rays; § 1.8.5's clipped rim is a wall for it too | one survivor mechanism over two producers | ✅ |
+| Refusals by name: a fit wider than the pupil, a term count off the basis, a Noll index past the fit | validity, said where the operand can be named | ✅ |
+
 ### Not yet pinned
 
 - ~~**Targets on traced quantities.**~~ ✅ **closed at § 1.8.5 above**, for the
@@ -1708,11 +1902,25 @@ converged optimiser is not a correct one, so the run reports what it achieved.
   merit is smooth over ten decades of step) and the cost is not four orders (it
   is 430× and linear in the ray count). What it did not see at all is the thing
   that actually bites, a ray leaving the surviving set.
-  **A WAVEFRONT target is still open**, and it is a different question rather
-  than the same one at another wavelength of expense: a Zernike term or an RMS
-  OPD is a fit to a sampled map, so the "held sample set" argument above has to
-  be made again about the fit's own conditioning, and an MTF at a frequency adds
-  a transform between the design and the residual. Neither is pinned anywhere.
+  The WAVEFRONT half is ✅ **closed at § 1.8.7 above** — an RMS over the fitted
+  map, a balanced RMS, and a named Zernike coefficient with a target of its own.
+  That bullet was right that the fit's conditioning had to be argued again and
+  wrong about which way it would go: the design matrix is built from the
+  coordinates a caller asked for, so with the survivor set held it cannot move
+  at all, and the fit ATTENUATES sample noise rather than amplifying it. What
+  the sub-step found instead was a focus convention that converges on a
+  destroyed image, and a difference step worth six orders on a fixture § 1.8.5
+  had read as flat.
+- **An MTF at a frequency is still open**, and is the one piece of that bullet
+  that stays a different question. It puts a GRID and a transform between the
+  design and the residual: a PSF on `pupilSamples`, an FFT, a frequency bin and
+  an interpolation between bins, none of which the wavefront operand has to
+  cross. Two things want measuring before it is written — whether the merit is
+  smooth in the design or stepped by the binning, and which aperture the
+  modulation actually cuts off at, since § 6ad measures the reported and real
+  cutoffs differing by 27% on the app's own doublet. Neither is pinned anywhere,
+  and § 1.8.7's cost line says what it would be built on: a wavefront
+  evaluation is already 4.1× a traced spot before any transform is taken.
 - ~~**Constraints, as opposed to heavily weighted operands.**~~ ✅ **closed at
   § 1.8.6 above** — `{ minimize, hold }` on both entry points, solved as an
   equality-constrained least-squares step. The bullet was right that a Lagrange

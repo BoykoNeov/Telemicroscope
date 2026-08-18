@@ -57,6 +57,9 @@ import { huygensEyepiece } from "../src/designs/eyepiece";
  *    against a traced quantity (an RMS spot, a Zernike term) is the
  *    damped-least-squares half of design mode and is deliberately not here —
  *    it needs a merit whose minimiser is closed-form before it can be pinned.
+ *    Both now are, on that side: § 1.8.5 for the spot and § 1.8.7 for the
+ *    wavefront. What stays true here is that a ROOT FIND and a minimisation
+ *    want different things from the same expensive residual.
  *  - **One variable.** Nothing here couples two parameters; `solveScalar` takes
  *    a closure, so a caller can constrain them (the equiconvex rung does
  *    exactly that), but the solver moves one number.

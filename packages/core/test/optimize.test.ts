@@ -19,6 +19,8 @@ import {
   type TracedOperand,
 } from "../src/analysis/optimize";
 import { exitBundle, spotAt, bestSpotZ } from "../src/analysis/spot";
+import { opdMap } from "../src/pupil/opd";
+import { fitZernike, fitRms, balancedRms, coefficient, zernike } from "../src/wave/zernike";
 import { pupilGrid, type PupilPoint } from "../src/pupil/aiming";
 import { pupils, imagePlaneZ } from "../src/pupil/pupils";
 import type { SolveVariable } from "../src/analysis/solve";
@@ -81,8 +83,11 @@ import type { SolveVariable } from "../src/analysis/solve";
  * of this file — the traced RMS spot, through `optimizeSystem`. It is the same
  * optimiser with a more expensive residual: measured 430× a third-order sum on
  * a 149-ray pupil, and linear in the ray count, not the four orders of magnitude
- * this file and two documents used to forecast. A Zernike term and an MTF at a
- * frequency are still nowhere pinned.
+ * this file and two documents used to forecast. § 1.8.7 adds the WAVEFRONT:
+ * an RMS over the fitted map, a balanced RMS, and a named Zernike coefficient
+ * with a target of its own — 4.1× the traced spot on the same rays. An MTF at a
+ * frequency is still nowhere pinned, and is a different question again, because
+ * it puts a grid and a transform between the design and the residual.
  */
 
 registerMedium(constantIndex("DLS-N15", 1.5));
@@ -1787,5 +1792,623 @@ describe("DLS § 1.8.6 — refusals, and the one dependence differencing cannot 
     expect(r.constraints).toEqual([]);
     expect(r.multipliers).toEqual([]);
     expect(r.feasibility).toBe(0);
+  });
+});
+
+/**
+ * § 1.8.7's fixture: a spherical mirror, whose only significant on-axis
+ * aberration is primary spherical — and whose W₀₄₀ is a closed form.
+ *
+ * The same mirror `focus.test.ts` uses, and deliberately so: that file already
+ * pins the *analysis* side of every number below (the balanced RMS at best
+ * focus, the 4/3 spread between the criteria) through `bestFocus`, which is a
+ * one-variable search with no target. Reaching the same numbers here, through
+ * damped least squares over a thickness, is a second mechanism arriving at an
+ * external result rather than a re-assertion of the first.
+ */
+const MIRROR_R = -200;
+const WAVES_PER_MM = 1e6 / LINE_D;
+const LAMBDA_MM = LINE_D * 1e-6;
+
+function wfMirror(
+  semiAperture: number,
+  focus = MIRROR_R / 2,
+  curvature = 1 / MIRROR_R,
+): OpticalSystem {
+  return {
+    prescription: {
+      surfaces: [
+        { kind: "reflect", curvature, conic: 0, semiAperture, thickness: focus, isStop: true },
+      ],
+    },
+    aperture: { kind: "stopRadius", value: semiAperture },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  };
+}
+
+/** W₀₄₀ in mm for a spherical mirror at infinite conjugate. */
+const primarySA = (semiAperture: number): number =>
+  semiAperture ** 4 / (4 * Math.abs(MIRROR_R) ** 3);
+
+const WF_GRID = pupilGrid(21);
+const WF_TERMS = 11;
+
+const wfOperand = (
+  reading: "rms" | "balancedRms",
+  pupil: readonly PupilPoint[] = WF_GRID,
+  terms = WF_TERMS,
+): TracedOperand => ({
+  kind: "wavefront",
+  fieldValue: 0,
+  wavelengthNm: LINE_D,
+  pupil,
+  terms,
+  reading,
+  target: 0,
+});
+
+const wfZernike = (
+  noll: number,
+  target = 0,
+  pupil: readonly PupilPoint[] = WF_GRID,
+  terms = WF_TERMS,
+): TracedOperand => ({
+  kind: "wavefront",
+  fieldValue: 0,
+  wavelengthNm: LINE_D,
+  pupil,
+  terms,
+  reading: "zernike",
+  noll,
+  target,
+});
+
+/** The fitted wavefront of a system, as the operand reads it. */
+const wfFit = (system: OpticalSystem, pupil: readonly PupilPoint[] = WF_GRID, terms = WF_TERMS) =>
+  fitZernike(opdMap(system, 0, LINE_D, pupil).samples, terms);
+
+const FOCUS = { kind: "thickness", surface: 0 } as const satisfies SolveVariable;
+const RADIUS = { kind: "curvature", surface: 0 } as const satisfies SolveVariable;
+
+/**
+ * DLS § 1.8.7 — a WAVEFRONT target.
+ *
+ * The other half of the "targets on traced quantities" item, and it is a
+ * different question from § 1.8.5's rather than the same one at more expense.
+ * The spot is read off ray intercepts; this is read off a *fit* to a sampled
+ * phase map, and the recorded worry was that the fit's conditioning would move
+ * under the optimiser the way the survivor set does.
+ *
+ * **It cannot.** `fitZernike` builds its design matrix out of sample
+ * COORDINATES, and `opdMap` reports every sample at the normalized pupil point
+ * that was asked for, not at wherever the ray landed. Hold the survivor set —
+ * which the operand already does, for § 1.8.5's reason — and the matrix, its
+ * factorisation and every decision the 1e-12 pivot floor makes are fixed for
+ * the whole run. The fit is ONE LINEAR MAP applied to a right-hand side, and
+ * the right-hand side is the only thing the design moves. Four rungs below
+ * measure that rather than asserting it.
+ *
+ * What the fit does do is *attenuate* noise, by √(terms/samples) — the opposite
+ * of the amplification the bullet feared. The floor that actually binds is
+ * somewhere else entirely: an OPD is a difference of two ~200 mm optical paths
+ * expressed in waves, so f64 on the path becomes ~3e-11 waves on a sample, and
+ * the reading's own resolution is ~2e-12 waves. Three decades coarser than the
+ * traced spot's, and still four decades below anything a Jacobian needs.
+ */
+describe("DLS § 1.8.7 — the balanced-focus wavefront, recovered from a closed form", () => {
+  /**
+   * Third-order theory writes the wavefront of a spherical mirror as
+   * W(ρ) = a·ρ⁴ + b·ρ², b being the defocus a plane shift buys. Var(W) is
+   * minimised at b = −a, and there
+   *
+   *     RMS = W₀₄₀/(6√5)                    [Born & Wolf; Mahajan]
+   *
+   * which is the number this rung recovers by moving the image plane with
+   * damped least squares and reading `fitRms` off the operand's own fit.
+   */
+  it("the RMS at the optimum is W₀₄₀/(6√5), and the excess is fifth-order", () => {
+    const excess: number[] = [];
+    for (const semi of [20, 10, 5, 2.5]) {
+      const system = wfMirror(semi);
+      const predicted = (primarySA(semi) / (6 * Math.sqrt(5))) * WAVES_PER_MM;
+      const r = optimizeSystem(system, [FOCUS], [wfOperand("rms")], { steps: [1e-4] });
+      const found = fitRms(wfFit({ ...system, prescription: withVariables(system.prescription, [FOCUS], r.x) }));
+      const na = semi / Math.abs(MIRROR_R / 2);
+      excess.push((found / predicted - 1) / na ** 2);
+      expect(found / predicted).toBeCloseTo(1, 2);
+    }
+    // The whole claim, and it is stronger than a percentage band: divide the
+    // excess by NA² and what is left is one number — 6.105e-2 — approached from
+    // below as the aperture closes, each halving of NA cutting the remaining
+    // gap about fourfold. That is the neglected fifth-order term identifying
+    // itself by its own order, not a tolerance chosen to fit.
+    expect(excess[0]).toBeCloseTo(6.027e-2, 5);
+    expect(excess[1]).toBeCloseTo(6.088e-2, 5);
+    expect(excess[2]).toBeCloseTo(6.103e-2, 5);
+    expect(excess[3]).toBeCloseTo(6.105e-2, 5);
+    const gap = excess.map((e) => Math.abs(e - 6.1053e-2));
+    for (let i = 1; i < gap.length; i++) expect(gap[i]!).toBeLessThan(gap[i - 1]! / 3);
+  });
+
+  it("…and the plane it lands on is the balancing defocus b = −a", () => {
+    // W = ½·δz·NA²·ρ² (opd.test.ts pins that), so b = −a is δz = −2a/NA². The
+    // sign is the mirror's: light travels −z after it, so the thickness this
+    // rung moves is negative and a shorter focus is a POSITIVE change.
+    for (const [semi, expected] of [
+      [10, 1.00058],
+      [5, 1.000147],
+    ] as const) {
+      const system = wfMirror(semi);
+      const na = semi / Math.abs(MIRROR_R / 2);
+      const predicted = (2 * primarySA(semi)) / na ** 2;
+      const r = optimizeSystem(system, [FOCUS], [wfOperand("rms")], { steps: [1e-4] });
+      expect((r.x[0]! - MIRROR_R / 2) / predicted).toBeCloseTo(expected, 5);
+    }
+  });
+
+  /**
+   * The identity c₄ = 0 at best focus is a THIRD-ORDER statement, and this rung
+   * is what says so. Minimising √(Σ c_j²) balances c₄ against the higher terms'
+   * own drift with the plane — dc₁₁/dz is 1.58e-3 waves per mm here, not zero —
+   * so the min-RMS plane and the c₄ = 0 plane are 1.05e-5 mm apart, and each is
+   * the better of the two on its own measure.
+   */
+  it("the min-RMS plane is NOT the c₄ = 0 plane, and the operand can ask for either", () => {
+    const system = wfMirror(10);
+    const byRms = optimizeSystem(system, [FOCUS], [wfOperand("rms")], { steps: [1e-4] });
+    const byC4 = optimizeSystem(system, [FOCUS], [wfZernike(4)], { steps: [1e-4] });
+
+    const at = (x: readonly number[]) =>
+      wfFit({ ...system, prescription: withVariables(system.prescription, [FOCUS], x) });
+    // The c₄ run drives its own residual to nothing; the RMS run leaves c₄ at
+    // 2.6e-5 waves on purpose, because moving further would cost more elsewhere.
+    expect(Math.abs(coefficient(at(byC4.x), 4))).toBeLessThan(1e-11);
+    expect(coefficient(at(byRms.x), 4)).toBeCloseTo(-2.566e-5, 8);
+    expect(byC4.x[0]! - byRms.x[0]!).toBeCloseTo(1.046e-5, 8);
+    // …and each really is better by its own measure, which is what makes them
+    // two questions rather than one answer computed twice.
+    expect(fitRms(at(byRms.x))).toBeLessThan(fitRms(at(byC4.x)));
+    expect(Math.abs(coefficient(at(byC4.x), 4))).toBeLessThan(Math.abs(coefficient(at(byRms.x), 4)));
+  });
+
+  /**
+   * `focus.ts` pins this ratio through a 1-D search over three criteria. Here
+   * the same two criteria are two OPERANDS handed to the same optimiser over
+   * the same variable, so the 4/3 is being reproduced by a different mechanism
+   * — and the two traced operand kinds are shown to be talking about one
+   * system rather than two.
+   */
+  it("min-spot focus sits 4/3 as far out as min-wavefront focus, both by DLS", () => {
+    for (const semi of [10, 5]) {
+      const system = wfMirror(semi);
+      const wave = optimizeSystem(system, [FOCUS], [wfOperand("rms")], { steps: [1e-4] });
+      const spot = optimizeSystem(
+        system,
+        [FOCUS],
+        [
+          {
+            kind: "rmsSpot",
+            fieldValue: 0,
+            wavelengthNm: LINE_D,
+            pupil: WF_GRID,
+            focus: "systemImagePlane",
+            target: 0,
+          },
+        ],
+        { steps: [1e-4] },
+      );
+      const ratio = (spot.x[0]! - MIRROR_R / 2) / (wave.x[0]! - MIRROR_R / 2);
+      // 1e-3, against focus.test.ts's 1%. The residual is fifth-order plus the
+      // stopping precision of two very flat minima, not a disagreement.
+      expect(Math.abs(ratio / (4 / 3) - 1)).toBeLessThan(1e-3);
+    }
+  });
+});
+
+describe("DLS § 1.8.7 — a Zernike coefficient is an operand, and it inverts a closed form", () => {
+  /**
+   * The reading that goes through the fit and nothing else, given a NONZERO
+   * target — which no other operand in this file has been given.
+   *
+   * Ask for a stated amount of primary spherical and the answer is the mirror
+   * that produces it:  c₁₁ = −W₀₄₀/(6√5)/λ with W₀₄₀ = h⁴/(4|R|³), so
+   *
+   *     |R| = ( h⁴ / (4·6√5·λ·|c₁₁|) )^(1/3)
+   *
+   * Two variables, because the radius that carries the aberration also moves
+   * the focus: the curvature is the wish's variable and the plane is pinned by
+   * a § 1.8.6 CONDITION, c₄ = 0, so the answer is read at one focus rather
+   * than at whichever one the run drifted to.
+   */
+  it("a prescribed c₁₁ inverts to a radius, with the plane held by a condition", () => {
+    const semi = 10;
+    const excess: number[] = [];
+    for (const target of [-0.02, -0.05, -0.1]) {
+      const predicted = -(
+        (semi ** 4 / (4 * 6 * Math.sqrt(5) * LAMBDA_MM * Math.abs(target))) ** (1 / 3)
+      );
+      const start = wfMirror(semi);
+      const r = optimizeSystem(
+        start,
+        [RADIUS, FOCUS],
+        { minimize: [wfZernike(11, target)], hold: [wfZernike(4)] },
+        { steps: [1e-8, 1e-4] },
+      );
+      const found = 1 / r.x[0]!;
+      const fit = wfFit({ ...start, prescription: withVariables(start.prescription, [RADIUS, FOCUS], r.x) });
+
+      expect(coefficient(fit, 11)).toBeCloseTo(target, 8);
+      expect(Math.abs(coefficient(fit, 4))).toBeLessThan(1e-10);
+      expect(Math.abs(r.constraints[0]!)).toBeLessThan(1e-10);
+      expect(found / predicted).toBeCloseTo(1, 3);
+      excess.push((found / predicted - 1) / (semi / (Math.abs(found) / 2)) ** 2);
+    }
+    // Same signature as the balanced-focus rung: divide the gap from the
+    // third-order closed form by NA² and one number is left — 2.03e-2 — while
+    // the aberration asked for changes 5× and the radius that carries it moves
+    // 100 mm. A fifth-order residual, not an optimiser error.
+    for (const e of excess) {
+      expect(e).toBeGreaterThan(2.0e-2);
+      expect(e).toBeLessThan(2.05e-2);
+    }
+  });
+
+  /**
+   * The condition machinery of § 1.8.6, on the new operand. The point is not
+   * that it converges: it is that holding c₄ = 0 is a different request from
+   * minimising the RMS, lands on the c₄ = 0 plane rather than the min-RMS one,
+   * prices itself, and gets there in a fraction of the work.
+   */
+  it("holding c₄ = 0 is met exactly, priced by a multiplier, and cheaper than the wish", () => {
+    const system = wfMirror(10);
+    const free = optimizeSystem(system, [FOCUS], [wfOperand("rms")], { steps: [1e-4] });
+    const held = optimizeSystem(
+      system,
+      [FOCUS],
+      { minimize: [wfOperand("rms")], hold: [wfZernike(4)] },
+      { steps: [1e-4] },
+    );
+
+    expect(Math.abs(held.constraints[0]!)).toBeLessThan(1e-10);
+    expect(held.reason).toBe("gradient");
+    expect(free.reason).toBe("step");
+    // The price of the condition, in RMS waves per wave of c₄ target.
+    expect(held.multipliers[0]!).toBeCloseTo(-5.13e-5, 6);
+    // Fewer evaluations by a factor of several — the condition removes the one
+    // free direction, so what is left is a triangular solve rather than a
+    // descent down a very flat bowl.
+    expect(held.evaluations * 4).toBeLessThan(free.evaluations);
+    // …and the plane it lands on is the c₄ one, not the RMS one.
+    expect(held.x[0]! - free.x[0]!).toBeCloseTo(1.046e-5, 8);
+  });
+});
+
+describe("DLS § 1.8.7 — `balancedRms` forgives the focus, and that is a false minimum", () => {
+  /**
+   * `TracedFocus` again, in the wavefront's currency, and the answer is worse
+   * than the spot's was.
+   *
+   * `"bestSpot"` over a free power was UNBOUNDED (§ 1.8.5): the merit fell for
+   * ever and the run said so by never settling. Removing the defocus term from
+   * a wavefront does something more dangerous — it CONVERGES, on a plane half a
+   * focal length past focus, where the image is 1 690× larger and the reading
+   * is 3.85× better. The mechanism is that the reference sphere's radius is not
+   * held: it grows with the plane, and every high-order coefficient shrinks
+   * with it.
+   */
+  it("over the image distance it prefers a plane half a focal length out", () => {
+    const balanced = (dz: number) => balancedRms(wfFit(wfMirror(10, MIRROR_R / 2 + dz)));
+    const bestFocusShift = -0.0625;
+
+    expect(balanced(bestFocusShift)).toBeCloseTo(3.9469e-2, 6);
+    expect(balanced(-50)).toBeCloseTo(1.0278e-2, 6);
+    // 3.85× "better" where the geometric image has been destroyed.
+    expect(balanced(bestFocusShift) / balanced(-50)).toBeGreaterThan(3.8);
+    const bundle = exitBundle(wfMirror(10), 0, LINE_D, WF_GRID);
+    const atBest = spotAt(bundle, imagePlaneZ(asCompiled(wfMirror(10, MIRROR_R / 2 + bestFocusShift).prescription), wfMirror(10, MIRROR_R / 2 + bestFocusShift))).rmsRadius;
+    const atFalse = spotAt(bundle, imagePlaneZ(asCompiled(wfMirror(10, MIRROR_R / 2 - 50).prescription), wfMirror(10, MIRROR_R / 2 - 50))).rmsRadius;
+    expect(atFalse / atBest).toBeGreaterThan(300);
+
+    // The reference sphere is what moved: 100 → 150 mm of radius, and c₁₁ falls
+    // by 0.26 against the 0.30 a pure R⁻³ scaling would give.
+    const near = opdMap(wfMirror(10), 0, LINE_D, WF_GRID);
+    const far = opdMap(wfMirror(10, MIRROR_R / 2 - 50), 0, LINE_D, WF_GRID);
+    expect(far.referenceRadius / near.referenceRadius).toBeCloseTo(1.5, 9);
+    expect(
+      coefficient(fitZernike(far.samples, WF_TERMS), 11) /
+        coefficient(fitZernike(near.samples, WF_TERMS), 11),
+    ).toBeCloseTo(0.25976, 4);
+
+    // And the optimiser walks there and reports success, which is the whole
+    // hazard: not a divergence a caller would notice, an answer.
+    const r = optimizeSystem(wfMirror(10), [FOCUS], [wfOperand("balancedRms")], { steps: [1e-4] });
+    expect(r.x[0]! - MIRROR_R / 2).toBeLessThan(-40);
+  });
+
+  it("over a free power it doubles the focal length and calls the lens perfect", () => {
+    const start = tracedSinglet(1);
+    const grid = pupilGrid(11);
+    const one = [RADIUS];
+
+    const bounded = optimizeSystem(start, one, [wfOperand("rms", grid)], { maxIterations: 400 });
+    const forgiving = optimizeSystem(start, one, [wfOperand("balancedRms", grid)], {
+      maxIterations: 400,
+    });
+    const eflOf = (r: DlsResult) =>
+      systemProperties(withVariables(start.prescription, one, r.x), LINE_D).efl;
+
+    // `rms` charges the design for where it puts the image, so the focal length
+    // stays where the fixture put it.
+    expect(eflOf(bounded)).toBeCloseTo(1005.45, 1);
+    expect(bounded.merit).toBeGreaterThan(1e-3);
+    // `balancedRms` does not, and takes the same freedom `"bestSpot"` took.
+    expect(eflOf(forgiving)).toBeGreaterThan(2000);
+    expect(forgiving.merit).toBeLessThan(1e-10);
+  });
+});
+
+describe("DLS § 1.8.7 — the fit's conditioning, which is the question this operand opened", () => {
+  /**
+   * The bullet asked whether the fit's conditioning moves under the optimiser.
+   * It cannot, and this is the measurement rather than the argument: two
+   * genuinely different designs, fitted over the same held coordinates, and
+   * the fit of a LINEAR COMBINATION of their OPD vectors is the same linear
+   * combination of their coefficients — to 8e-16, which is f64 and nothing
+   * else. A matrix that moved with the design could not do that.
+   */
+  it("the fit is one linear map: superposition holds to machine precision", () => {
+    const a = opdMap(wfMirror(10), 0, LINE_D, WF_GRID);
+    const b = opdMap(wfMirror(10, MIRROR_R / 2 - 0.4), 0, LINE_D, WF_GRID);
+    expect(a.samples.length).toBe(b.samples.length);
+    for (let i = 0; i < a.samples.length; i++) {
+      expect(a.samples[i]!.px).toBe(b.samples[i]!.px);
+      expect(a.samples[i]!.py).toBe(b.samples[i]!.py);
+    }
+
+    const alpha = 0.37;
+    const beta = -1.9;
+    const terms = 21;
+    const fa = fitZernike(a.samples, terms);
+    const fb = fitZernike(b.samples, terms);
+    const fm = fitZernike(
+      a.samples.map((s, i) => ({ px: s.px, py: s.py, waves: alpha * s.waves + beta * b.samples[i]!.waves })),
+      terms,
+    );
+    let num = 0;
+    let den = 0;
+    for (let j = 1; j <= terms; j++) {
+      num += (coefficient(fm, j) - (alpha * coefficient(fa, j) + beta * coefficient(fb, j))) ** 2;
+      den += coefficient(fm, j) ** 2;
+    }
+    expect(Math.sqrt(num / den)).toBeLessThan(1e-14);
+  });
+
+  /**
+   * The pivot floor, approached from the only direction that can measure it: a
+   * right-hand side that IS a basis function has the exact answer e_j, so what
+   * comes back short of e_j is the solve's own conditioning. It is 1e-15 across
+   * every term of a 45-term fit — an O(1) condition number, and the 1e-12
+   * absolute floor in `math/lsq` is nowhere in sight.
+   */
+  it("every basis function is recovered exactly, so no pivot is being zeroed", () => {
+    const coords = opdMap(wfMirror(10), 0, LINE_D, WF_GRID).samples;
+    const terms = 45;
+    let worst = 0;
+    for (let j = 1; j <= terms; j++) {
+      const fit = fitZernike(
+        coords.map((s) => ({ px: s.px, py: s.py, waves: zernike(j, s.px, s.py) })),
+        terms,
+      );
+      for (let k = 1; k <= terms; k++) {
+        worst = Math.max(worst, Math.abs(coefficient(fit, k) - (k === j ? 1 : 0)));
+      }
+    }
+    expect(worst).toBeLessThan(1e-13);
+  });
+
+  /**
+   * …and the direction of the effect the bullet feared. A least-squares fit of
+   * `terms` coefficients to `n` samples spreads independent per-sample noise
+   * over the fit, so ‖Δc‖ is √(terms/n) of it — an ATTENUATION of 4.4× at 11
+   * terms on this grid, not an amplification.
+   */
+  it("the fit attenuates per-sample noise by √(terms/samples)", () => {
+    const samples = opdMap(wfMirror(10), 0, LINE_D, WF_GRID).samples;
+    const n = samples.length;
+    const delta = 1e-6;
+
+    // Sixty-four draws, and the ensemble is the point rather than caution: a
+    // SINGLE ±1 pattern puts ‖Δc‖/δ anywhere between 0.10 and 0.28 at eleven
+    // terms, because the statistic has only  degrees of freedom in it.
+    // One draw would have pinned a realisation. Their RMS is the response.
+    for (const terms of [11, 21, 28, 45]) {
+      const base = fitZernike(samples, terms);
+      let sumSq = 0;
+      const draws = 64;
+      for (let d = 0; d < draws; d++) {
+        // A ±1 pattern with zero mean to build — a CONSTANT offset would be pure
+        // piston, which the basis absorbs whole into c₁ and which reads as an
+        // amplification of exactly 1 while measuring nothing at all.
+        let seed = 12345 + d * 7919;
+        const sign = () =>
+          ((seed = (Math.imul(seed, 1664525) + 1013904223) | 0) >>> 30) & 1 ? 1 : -1;
+        const bumped = fitZernike(
+          samples.map((sample) => ({ px: sample.px, py: sample.py, waves: sample.waves + delta * sign() })),
+          terms,
+        );
+        for (let j = 1; j <= terms; j++) sumSq += (coefficient(bumped, j) - coefficient(base, j)) ** 2;
+      }
+      const amplification = Math.sqrt(sumSq / draws) / delta;
+      // Well under 1: the fit SPREADS independent per-sample noise over the
+      // coefficients rather than concentrating it. 4.4× down at eleven terms.
+      expect(amplification).toBeLessThan(0.4);
+      // …and the size of it is √(terms/samples) to within 2%, at four widths of
+      // fit — which is what a design matrix with an O(1) condition number does.
+      expect(amplification / Math.sqrt(terms / n)).toBeGreaterThan(1.0);
+      expect(amplification / Math.sqrt(terms / n)).toBeLessThan(1.03);
+    }
+  });
+
+  it("the fitted RMS is steady where the raw sample RMS is not", () => {
+    const system = wfMirror(10, MIRROR_R / 2 - 0.0625);
+    const readings = [11, 21, 41, 81].map((n) => {
+      const map = opdMap(system, 0, LINE_D, pupilGrid(n));
+      return { fit: fitRms(fitZernike(map.samples, 28)), raw: map.rmsWaves, rows: map.samples.length };
+    });
+    expect(readings[0]!.rows).toBe(77);
+    expect(readings[3]!.rows).toBe(5021);
+    for (const r of readings) expect(r.fit).toBeCloseTo(3.08948745e-1, 8);
+    const raw = readings.map((r) => r.raw);
+    expect(Math.max(...raw) - Math.min(...raw)).toBeGreaterThan(6e-3);
+  });
+});
+
+describe("DLS § 1.8.7 — the differencing window, and what actually sets its floor", () => {
+  it("differences over six decades of step, on a floor that is not the spot's", () => {
+    const read = (dz: number) => fitRms(wfFit(wfMirror(10, MIRROR_R / 2 + dz)));
+    const z0 = -0.03;
+    const d = (h: number) => (read(z0 + h) - read(z0 - h)) / (2 * h);
+
+    const spread = (es: number[]) => {
+      const v = es.map((e) => d(10 ** e));
+      return (Math.max(...v) - Math.min(...v)) / Math.abs(Math.max(...v));
+    };
+    expect(spread([-3, -4, -5])).toBeLessThan(2e-6);
+    expect(spread([-2, -3, -4, -5, -6, -7])).toBeLessThan(2e-4);
+    expect(d(1e-5)).toBeCloseTo(-2.41234256, 6);
+
+    // The floor, stated as the quantity it is: |d(h) − truth|·2h is the
+    // reading's own resolution, ~2e-12 waves. Derived, it is f64 on a ~200 mm
+    // optical path (2e-14 mm) turned into waves (×1702) and then attenuated by
+    // the fit's √313 — 3.4e-11/17.7 ≈ 1.9e-12, which is what comes back.
+    const truth = d(1e-5);
+    for (const h of [1e-12, 1e-13]) {
+      expect(Math.abs(d(h) - truth) * 2 * h).toBeGreaterThan(1e-12);
+      expect(Math.abs(d(h) - truth) * 2 * h).toBeLessThan(1e-11);
+    }
+    // Relative to the reading itself that is 5e-11, where § 1.8.5's traced spot
+    // sits at 4e-14: three decades coarser, because an OPD is a difference of
+    // large paths expressed in a tiny unit. Still four decades under the
+    // module's own default step.
+    expect(Math.abs(truth)).toBeGreaterThan(1);
+  });
+
+  /**
+   * The recorded "step's own scaling" item, measured on a fixture where it is
+   * decisive rather than cosmetic — and a correction to how § 1.8.5's number
+   * for this fixture reads.
+   *
+   * The variable is a curvature of 2.5e-3, so the default step's `max(|x|, 1)`
+   * floor makes it ∛ε = 6.06e-6 — a quarter of a percent of the variable, and
+   * on this merit that is a straddle rather than a difference. State the step
+   * at 1e-8 and the recovered radius improves by SIX ORDERS.
+   *
+   * With the step held, the wavefront and the fixed-plane spot land in the same
+   * place, at the f64 floor. `"bestSpot"` does not, and is seven orders behind
+   * both — because the quantity that locates a perfect conjugate is exactly the
+   * defocus refocusing throws away. § 1.8.5's 2.3e-6 on this fixture is a
+   * `"bestSpot"` number taken at the default step; its "very flat direction"
+   * reading is true of `"bestSpot"` and does not carry to the other two.
+   */
+  it("the concentric conjugate: six orders from stating the step, and the currencies then agree", () => {
+    const d = 400;
+    const spotOp = (focus: TracedFocus): TracedOperand => ({
+      kind: "rmsSpot",
+      fieldValue: 0,
+      wavelengthNm: LINE_D,
+      pupil: WF_GRID,
+      focus,
+      target: 0,
+    });
+    const relative = (op: TracedOperand, steps?: number[]) => {
+      const worst = [-380, -420].map((R0) => {
+        const r = optimizeSystem(concentricMirror(R0, d), [RADIUS], [op], steps ? { steps } : {});
+        return Math.abs(1 / r.x[0]! + d) / d;
+      });
+      return Math.max(...worst);
+    };
+
+    const wave = wfOperand("rms");
+    expect(relative(wave)).toBeCloseTo(1.39e-8, 9);
+    expect(relative(wave, [1e-8])).toBeLessThan(1e-13);
+    expect(relative(wave) / relative(wave, [1e-8])).toBeGreaterThan(1e5);
+
+    // Same step, same fixture, the other traced currency: indistinguishable.
+    expect(relative(spotOp("systemImagePlane"), [1e-8])).toBeLessThan(1e-12);
+    // …and the refocused one is not, by seven orders.
+    expect(relative(spotOp("bestSpot"), [1e-8])).toBeGreaterThan(1e-8);
+
+    // A corner and not a bowl, as § 1.8.2 requires of a zero-residual optimum:
+    // the merit is linear in ΔR over five decades, 4.8765 waves per mm.
+    for (const dR of [1e-2, 1e-4, 1e-6]) {
+      expect(fitRms(wfFit(concentricMirror(-d + dR, d))) / dR).toBeCloseTo(4.8765, 3);
+    }
+  });
+});
+
+describe("DLS § 1.8.7 — the refusals a wavefront operand needs of its own", () => {
+  it("a fit wider than the pupil offered is refused before a ray is traced", () => {
+    expect(() =>
+      optimizeSystem(wfMirror(10), [FOCUS], [wfOperand("rms", pupilGrid(7), 45)]),
+    ).toThrow(/fits 45 terms over 29 pupil point\(s\), before a single ray is lost/);
+    expect(() => optimizeSystem(wfMirror(10), [FOCUS], [wfOperand("rms", WF_GRID, 46)])).toThrow(
+      /1…45 is what the basis has/,
+    );
+    expect(() => optimizeSystem(wfMirror(10), [FOCUS], [wfZernike(12, 0, WF_GRID, 11)])).toThrow(
+      /reads Noll 12 out of a 11-term fit/,
+    );
+    expect(() => optimizeSystem(wfMirror(10), [FOCUS], [wfZernike(0)])).toThrow(/reads Noll 0/);
+  });
+
+  /**
+   * The survivor set, held, on the other producer. § 1.8.5's clipped singlet
+   * walks four rays across a rim as the shape bends; `opdMap` drops what does
+   * not reach the reference sphere exactly as `exitBundle` drops what
+   * vignettes, so the same fixture is a wall for the same reason — and the
+   * generalized key is what lets one mechanism cover both.
+   */
+  it("a wavefront operand holds its surviving rays, and a design that changes them is a wall", () => {
+    const dc = 1 / ((1.5 - 1) * F);
+    const clippedAt = (q: number): OpticalSystem => {
+      const c1 = (dc * (q + 1)) / 2;
+      return {
+        prescription: {
+          surfaces: [
+            { kind: "refract", curvature: c1, semiAperture: 55, thickness: TRACED_T, medium: "DLS-N15", isStop: true },
+            { kind: "refract", curvature: c1 - dc, semiAperture: 49.9, thickness: F, medium: "AIR" },
+          ],
+        },
+        aperture: { kind: "stopRadius", value: 50 },
+        field: { kind: "angle", values: [0] },
+        wavelengths: [{ nm: LINE_D, weight: 1 }],
+        conjugate: { kind: "infinite" },
+      };
+    };
+    const grid = pupilGrid(15);
+    const survivors = (q: number) => opdMap(clippedAt(q), 0, LINE_D, grid).samples.length;
+    // The same boundary the spot operand meets, seen through the OPD map.
+    expect(survivors(0.5)).toBeLessThan(survivors(0.9));
+
+    const r = optimizeSystem(clippedAt(0.5), [RADIUS], [wfOperand("rms", grid)]);
+    const qEnd = (2 * r.x[0]!) / dc - 1;
+    expect(survivors(qEnd)).toBe(survivors(0.5));
+    // It stopped because the set was in the way, not because it converged: the
+    // damping is up, exactly as § 1.8.5's spot run reports it.
+    expect(r.rejected).toBeGreaterThan(0);
+  });
+
+  it("a start that cannot be read at all is refused by name, not by symptom", () => {
+    // A pupil the trace cannot fill: the mirror clipped to a quarter of the
+    // stop leaves too few samples for the fit that was asked for.
+    const system = wfMirror(10);
+    const starved: OpticalSystem = {
+      ...system,
+      prescription: { surfaces: [{ ...system.prescription.surfaces[0]!, semiAperture: 1.5 }] },
+    };
+    expect(() => optimizeSystem(starved, [FOCUS], [wfOperand("rms", WF_GRID, 45)])).toThrow(
+      /operand 0 cannot be read at the start — a wavefront operand fitting 45 terms has \d+ of 313 rays surviving/,
+    );
   });
 });

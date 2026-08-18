@@ -5,7 +5,9 @@ import { asCompiled } from "../trace/compile";
 import { householderLeastSquares, equalityConstrainedLeastSquares } from "../math/lsq";
 import { PupilPoint } from "../pupil/aiming";
 import { imagePlaneZ } from "../pupil/pupils";
-import { exitBundle, spotAt, bestSpotZ, type ExitRay } from "./spot";
+import { opdMap } from "../pupil/opd";
+import { fitZernike, fitRms, balancedRms, coefficient, MAX_ZERNIKE_TERMS } from "../wave/zernike";
+import { exitBundle, spotAt, bestSpotZ } from "./spot";
 import { seidelSums } from "./seidel";
 import { withVariable, type SolveVariable } from "./solve";
 
@@ -154,6 +156,21 @@ import { withVariable, type SolveVariable } from "./solve";
  * the same size as the whole thick-lens offset the step is measuring. Held-pupil
  * aperture kinds are the contract; the rest are a different question, honestly
  * asked, and not this one.
+ *
+ * ## …and the wavefront, which is the same machinery and a different hazard
+ *
+ * § 1.8.7 adds `WavefrontCondition`: the same held rays, read as a phase map
+ * through `opdMap` and `fitZernike` instead of as a scatter of intercepts. The
+ * survivor hold is one mechanism over two producers, and the fit turns out to
+ * settle its own recorded worry rather than raise a new one (see the type's own
+ * comment). Costed on the same 313 rays it is 4.1× a traced spot and 296× a
+ * third-order sum.
+ *
+ * The hazard it does bring is the focus convention again, and worse. `"rms"` is
+ * bounded; `"balancedRms"` removes the defocus term and thereby lets the merit
+ * exploit the reference sphere's radius, which no longer measures the design —
+ * so it converges, confidently, on a plane where the image has been destroyed.
+ * The type comment carries the numbers.
  */
 
 /** How the step is damped. */
@@ -890,7 +907,7 @@ export type TracedFocus = "bestSpot" | "systemImagePlane";
  * 5.3·10⁻⁵, so two callers who sample differently are asking near-enough the
  * same design question and reading two different numbers off it.
  */
-export type TracedCondition = {
+export type SpotCondition = {
   /** RMS spot radius (mm), about the centroid, unweighted by throughput. */
   readonly kind: "rmsSpot";
   /** Field angle in degrees, or object height in mm — as the system spells it. */
@@ -902,6 +919,109 @@ export type TracedCondition = {
   readonly target: number;
 };
 
+/**
+ * Which number a wavefront operand reads off the fitted map.
+ *
+ * This is `TracedFocus` again in another currency, and the resemblance is the
+ * useful part: an OPD is measured against a reference sphere centred on the
+ * system's own image point, so a wavefront operand is always the analogue of
+ * `"systemImagePlane"` — there is no refocusing branch, because refocusing a
+ * wavefront IS removing its defocus term, and that is what `"balancedRms"`
+ * does algebraically instead of geometrically.
+ *
+ * What each one forgives, and therefore what each one is for:
+ *
+ *  - `"rms"` — piston out, **tilt and defocus in**. Charges a design for where
+ *    it puts its focus and where it points. `fitRms`'s own reasoning: off axis
+ *    tilt is a real chief-ray displacement, and hiding it reports distortion as
+ *    perfection.
+ *  - `"balancedRms"` — piston, tilt and defocus out (`balancedRms`, § 1.5.3's
+ *    currency). The wavefront a system would show if it were refocused and
+ *    re-pointed for free.
+ *  - `"zernike"` — one Noll coefficient in waves, signed. The only reading that
+ *    can be given a nonzero target sensibly, and the one whose residual passes
+ *    through the fit and nothing else.
+ *
+ * **`"balancedRms"` must not be given the focus or the power to move, and the
+ * reason is worse than the one this comment first claimed.** The obvious
+ * argument — remove the defocus term and the merit stops depending on the image
+ * plane, so a run over that variable learns nothing — is false, and § 1.8.7
+ * measures how. Removing the Zernike defocus is not the same operation as
+ * refocusing: the OPD's reference sphere is centred on the image point and its
+ * RADIUS is the exit-pupil distance, so moving the plane inflates the sphere
+ * and shrinks every high-order coefficient with it. The merit therefore has a
+ * real gradient, and a real minimum, **half a focal length past focus** — where
+ * the reading is 3.85× better than at true best focus and the geometric image
+ * is 1 690× larger.
+ *
+ * That is a worse failure than `"bestSpot"`'s. An unbounded wish diverges and
+ * says so by never settling; this one CONVERGES and reports success. Over a
+ * free power it does the other thing too — a singlet's one free curvature walks
+ * the focal length to 2 036 mm and the merit to 4·10⁻¹² waves, a lens that
+ * forms no image where the image is. `"rms"` is bounded on both variables
+ * because it is charged for where the light actually goes.
+ */
+export type WavefrontReading =
+  | { readonly reading: "rms" }
+  | { readonly reading: "balancedRms" }
+  | { readonly reading: "zernike"; readonly noll: number };
+
+/**
+ * A wish about the WAVEFRONT — the same rays, read as a phase map rather than
+ * as a scatter of intercepts.
+ *
+ * Everything `SpotCondition` says about the sample set applies here unchanged:
+ * the pupil list is the merit's definition, the surviving set is held, and a
+ * trial design that loses or gains a ray is a wall rather than a worse design.
+ * `opdMap` drops what does not reach the reference sphere exactly as
+ * `exitBundle` drops what vignettes.
+ *
+ * ## The fit, and the conditioning question this operand was opened by
+ *
+ * Every reading here goes through `fitZernike`, including the two RMS ones,
+ * which could have been read straight off `OpdMap.rmsWaves` without a fit. That
+ * is deliberate: the fit is the operand's definition, `terms` is part of what
+ * the caller is asking for, and a reading that quietly avoided the fit would
+ * leave the question this operand exists to answer unasked.
+ *
+ * The question — recorded in § 1.8 as "the held-sample-set argument has to be
+ * made again about the fit's own conditioning" — has a cleaner answer than the
+ * bullet expected. `fitZernike` builds its design matrix from the sample
+ * COORDINATES, and `opdMap` reports each sample at the normalized pupil point
+ * that was ASKED for rather than at wherever the ray landed. So with the
+ * survivor set held, the matrix, its factorisation, every R pivot and every
+ * decision the 10⁻¹² pivot floor makes are all fixed for the whole run: the fit
+ * is one linear map, applied to a right-hand side that is the only thing the
+ * design moves. There is no conditioning that can change under the optimiser,
+ * and § 1.8.7 pins that by superposition — to 8·10⁻¹⁶ — rather than by
+ * inspection.
+ *
+ * The amplification the bullet feared runs the other way. A least-squares fit
+ * spreads independent per-sample noise across the coefficients, so ‖Δc‖ is
+ * √(terms/samples) of it: an ATTENUATION of 4.4× at eleven terms on a 313-point
+ * grid, measured to 2% of √(terms/samples) at four widths of fit. The floor
+ * that does bind is not the fit's at all — an OPD is a difference of two ~200 mm
+ * optical paths expressed in waves, so f64 on the path is ~3·10⁻¹¹ waves per
+ * sample and ~2·10⁻¹² waves on the reading. Three decades coarser than a traced
+ * spot's, in relative terms, and still four decades below the module's own
+ * differencing step.
+ */
+export type WavefrontCondition = {
+  readonly kind: "wavefront";
+  /** Field angle in degrees, or object height in mm — as the system spells it. */
+  readonly fieldValue: number;
+  readonly wavelengthNm: number;
+  /** The rays. Fixed for the whole run; `pupilGrid`/`pupilFan` build them. */
+  readonly pupil: readonly PupilPoint[];
+  /** Noll terms fitted, j = 1…terms. Part of the merit, not a resolution knob. */
+  readonly terms: number;
+  /** In waves, in the reading's own sign convention. */
+  readonly target: number;
+} & WavefrontReading;
+
+/** Anything `optimizeSystem` has to trace to answer. */
+export type TracedCondition = SpotCondition | WavefrontCondition;
+
 /** The same wish, weighted into the merit. */
 export type TracedOperand = TracedCondition & { readonly weight?: number };
 
@@ -910,7 +1030,8 @@ export type SystemOperand = OptimizeOperand | TracedOperand;
 /** …and anything it can be told to hold. */
 export type SystemCondition = HeldOperand | TracedCondition;
 
-const isTraced = (o: SystemCondition): o is TracedCondition => o.kind === "rmsSpot";
+const isTraced = (o: SystemCondition): o is TracedCondition =>
+  o.kind === "rmsSpot" || o.kind === "wavefront";
 
 /**
  * How an entry point is asked: a bare list of wishes, as before, or wishes and
@@ -1072,10 +1193,33 @@ function validate(
     if (!Number.isFinite(o.target)) {
       throw new Error(`${where}: a ${o.kind} target of ${o.target} is not a target`);
     }
-    if (isTraced(o) && o.pupil.length < 2) {
+    if (o.kind === "rmsSpot" && o.pupil.length < 2) {
       throw new Error(
         `${where}: a ${o.kind} operand over ${o.pupil.length} pupil point(s) has no spot to measure`,
       );
+    }
+    if (o.kind === "wavefront") {
+      // The term count is refused here rather than left to `fitZernike`,
+      // because at this level the message can say which operand asked and how
+      // many points it offered — and because a fit that is exactly determined
+      // is a different complaint from one that is over-wide.
+      if (!Number.isInteger(o.terms) || o.terms < 1 || o.terms > MAX_ZERNIKE_TERMS) {
+        throw new Error(
+          `${where}: a ${o.kind} operand fitting ${o.terms} terms — ` +
+            `1…${MAX_ZERNIKE_TERMS} is what the basis has`,
+        );
+      }
+      if (o.pupil.length < o.terms) {
+        throw new Error(
+          `${where}: a ${o.kind} operand fits ${o.terms} terms over ` +
+            `${o.pupil.length} pupil point(s), before a single ray is lost`,
+        );
+      }
+      if (o.reading === "zernike" && (!Number.isInteger(o.noll) || o.noll < 1 || o.noll > o.terms)) {
+        throw new Error(
+          `${where}: a ${o.kind} operand reads Noll ${o.noll} out of a ${o.terms}-term fit`,
+        );
+      }
     }
   }
 }
@@ -1094,12 +1238,18 @@ function startingValues(
  * The surviving rays' pupil coordinates, flattened — the set a traced operand
  * holds. Stored as the coordinates themselves rather than a count, because a
  * design can lose one ray and gain another and leave the count alone.
+ *
+ * Written over `PupilPoint` rather than over one producer's row type because
+ * there are two producers: `exitBundle`'s `ExitRay` for a spot and `opdMap`'s
+ * `OpdSample` for a wavefront. Both carry the pupil coordinate that was ASKED
+ * for, so both key the same way — and one function is what stops the two keys
+ * from being compared across producers by accident.
  */
-function survivorKey(rays: readonly ExitRay[]): Float64Array {
-  const k = new Float64Array(rays.length * 2);
-  for (let i = 0; i < rays.length; i++) {
-    k[2 * i] = rays[i]!.px;
-    k[2 * i + 1] = rays[i]!.py;
+function survivorKey(points: readonly PupilPoint[]): Float64Array {
+  const k = new Float64Array(points.length * 2);
+  for (let i = 0; i < points.length; i++) {
+    k[2 * i] = points[i]!.px;
+    k[2 * i + 1] = points[i]!.py;
   }
   return k;
 }
@@ -1115,6 +1265,53 @@ function tracedRead(
   system: OpticalSystem,
   prescription: Prescription,
   operand: TracedCondition,
+): { value: number; survivors: Float64Array } {
+  return operand.kind === "rmsSpot"
+    ? spotRead(system, prescription, operand)
+    : wavefrontRead(system, prescription, operand);
+}
+
+/**
+ * One wavefront reading, and the samples it was fitted over.
+ *
+ * `opdMap` throws when the chief ray fails or does not reach the reference
+ * sphere. That is a wall in this file's sense and needs no handling here: the
+ * throw propagates to `evaluate`, which rejects the trial and raises the
+ * damping, exactly as an afocal trial or a lost ray does. At the STARTING
+ * design `optimizeSystem` turns the same throw into a named refusal.
+ */
+function wavefrontRead(
+  system: OpticalSystem,
+  prescription: Prescription,
+  operand: WavefrontCondition,
+): { value: number; survivors: Float64Array } {
+  const trial: OpticalSystem = { ...system, prescription };
+  const map = opdMap(trial, operand.fieldValue, operand.wavelengthNm, operand.pupil);
+  const survivors = survivorKey(map.samples);
+  // Counted before the fit is asked for. `fitZernike` refuses an
+  // underdetermined fit with a message about sample counts, which is true and
+  // does not say that the shortfall is vignetting rather than a small grid.
+  if (map.samples.length < operand.terms) {
+    throw new Error(
+      `a ${operand.kind} operand fitting ${operand.terms} terms has ` +
+        `${map.samples.length} of ${operand.pupil.length} rays surviving`,
+    );
+  }
+  const fit = fitZernike(map.samples, operand.terms);
+  const value =
+    operand.reading === "rms"
+      ? fitRms(fit)
+      : operand.reading === "balancedRms"
+        ? balancedRms(fit)
+        : coefficient(fit, operand.noll);
+  return { value, survivors };
+}
+
+/** One traced SPOT reading, and the rays it was measured over. */
+function spotRead(
+  system: OpticalSystem,
+  prescription: Prescription,
+  operand: SpotCondition,
 ): { value: number; survivors: Float64Array } {
   const trial: OpticalSystem = { ...system, prescription };
   const bundle = exitBundle(trial, operand.fieldValue, operand.wavelengthNm, operand.pupil);

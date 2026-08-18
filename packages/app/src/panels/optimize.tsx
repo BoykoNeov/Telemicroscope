@@ -375,7 +375,7 @@ export function OptimizePanel() {
         <Fact
           label="elapsed"
           value={`${result.elapsedMs.toFixed(2)} ms`}
-          note={`the optimisation, ${result.trail.length} replays for the trail, and the controls. Every residual is a paraxial trace or a third-order sum; a merit over traced quantities — an RMS spot, a Zernike term — is four orders more expensive per evaluation and is not offered here`}
+          note={`the optimisation, ${result.trail.length} replays for the trail, and the controls. Every residual is a paraxial trace or a third-order sum; a merit over traced quantities is measured rather than guessed: 430× a third-order sum for an RMS spot (§ 1.8.5) and 4.1× that again for a wavefront (§ 1.8.7), and neither is offered here`}
         />
         <Fact
           label="what pins the machinery"
@@ -392,9 +392,11 @@ export function OptimizePanel() {
           what this bullet used to guess at were measured and wrong: a traced residual is 430× a
           third-order sum rather than four orders, and it carries no sampling noise at all — over a
           fixed ray set it differences cleanly across ten decades of step. What bites is a ray
-          leaving the surviving set, which the engine handles by holding the set. What is missing
-          here is the wiring and a cost decision: at 430× a residual, and a convergence trail that
-          replays the run up to 48 times, this panel&rsquo;s millisecond readout becomes seconds.
+          leaving the surviving set, which the engine handles by holding the set. § 1.8.7 then added the wavefront — an RMS
+          over the fitted map, and one named Zernike coefficient with a target of its own — at
+          4.1× the spot again. What is missing here is the wiring and a cost decision: at 430× a
+          residual, and a convergence trail that replays the run up to 48 times, this
+          panel&rsquo;s millisecond readout becomes seconds.
         </li>
         <li>
           <strong>No conditions here — the engine has those too.</strong> &ldquo;Hold the focal
