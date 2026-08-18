@@ -13460,7 +13460,12 @@ recorded here rather than taken quietly.
 - **The default.** Deliberate, priced at 81 rungs across 17 files, and the price is
   the finding rather than the obstacle: it includes an EXTERNAL Maréchal wall, so
   "which aperture is a DIN diffraction-limited to" has a stop placement in it that
-  § 6b.5 does not currently state.
+  § 6b.5 does not currently state. **DECIDED 2026-08-18: the flip happens, in its
+  own step.** Telecentric is the physically right preset and the measurably better
+  lens; what it is not is something to fold into a step that also introduced the
+  option, since 81 re-pins would then be indistinguishable from this step's own.
+  Nothing blocks it — the caller census found no app or `mech/path.ts` reader that
+  keys off the DIN's stop by position.
 - **Pupil aberration**, unchanged from § 6u and § 6v: the aim is paraxial.
 - **The condenser's own aberrations and its own pupil**, unchanged from § 6x — the
   cone is still translated rigidly, and a real condenser's cone also changes shape
