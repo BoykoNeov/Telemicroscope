@@ -1191,9 +1191,13 @@ export interface FiniteConjugateObjectiveSpec {
 export interface FiniteConjugateObjective {
   /**
    * The objective alone, authored **specimen-side first**, trailing thickness 0.
-   * Exactly one stop flag, on `stopSurfaceIndex` — surface 0 bare, surface 1
-   * with a coverslip, whose upper face takes the front of the list and is not an
-   * aperture.
+   *
+   * Exactly one stop flag, and it is on `stopSurfaceIndex` — which is where it
+   * has to be READ from, because both ends of the list are the stop under some
+   * spec. Rim-stopped it is surface 0 bare and surface 1 with a coverslip, whose
+   * upper face takes the front of the list and is not an aperture; telecentric it
+   * is the LAST surface, the diaphragm `"backFocal"` appends a back focal
+   * distance past the glass.
    */
   readonly prescription: Prescription;
   /** x′/M (mm) — the focal length the nominal magnification implies. */
@@ -1288,7 +1292,18 @@ export interface FiniteConjugateObjective {
    * objective's delivered NA does not depend on where the specimen is.
    */
   readonly stopRadiusMm: number;
-  /** f/(2·stopRadius): the working focal ratio, faster than 1/(2·NA) by (1+1/M). */
+  /**
+   * The ratio of the focal length to the axial PENCIL where it meets the front
+   * glass — `f/(2·a·n·tan u)`, faster than 1/(2·NA) by roughly (1 + 1/M) on a
+   * thin lens, and exactly `f/(2·stopRadiusMm)` when the stop is on the rim.
+   *
+   * Keyed to the pencil and NOT to the stop radius, because the two part company
+   * the moment the stop moves: `stopRadiusMm` is `f·n·tan u` telecentric against
+   * `a·n·tan u` on the rim, so a ratio spelled `f/(2·stopRadius)` would swing by
+   * the whole `a/f` — 21% on the 4× — when nothing about the cone the specimen
+   * radiates into had changed. It reads the same number under both placements
+   * (§ 6ae.4), which is the claim.
+   */
   readonly workingFocalRatio: number;
   /**
    * ΣS_I (mm) of the built objective **including the coverslip if it has one**,

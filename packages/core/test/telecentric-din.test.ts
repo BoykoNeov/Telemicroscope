@@ -403,6 +403,77 @@ function classicalFit(samples: readonly { px: number; py: number; waves: number 
   return { w222: x[3]!, w131: x[4]!, quartic: x[5]! };
 }
 
+describe("§ 6ae.4b — the two crosses the shipped combination does not reach on its own", () => {
+  it("the CROWN-FIRST arm is a different branch, and it takes the diaphragm too", () => {
+    // `orientation: "crownFirst"` skips `reversePrescription` and — the part that
+    // matters here — takes the OTHER side of the anti-circularity check, comparing
+    // the object distance rather than the image distance. So the glass-chain frame
+    // this step introduced is exercised on one arm only unless this rung exists.
+    // Same finding as commit 8fcf7d7's, one axis over: a shipped option needs a
+    // rung on every branch it reaches, not on the default one.
+    for (const orientation of ["flintFirst", "crownFirst"] as const) {
+      const rim = finiteConjugateObjective({
+        magnification: 4,
+        numericalAperture: NA,
+        orientation,
+        stopPlacement: "rim",
+      });
+      const tele = finiteConjugateObjective({
+        magnification: 4,
+        numericalAperture: NA,
+        orientation,
+        stopPlacement: "backFocal",
+      });
+      expect(tele.stopDistanceMm).toBeCloseTo(systemProperties(glassOf(tele), L).bfd, 12);
+      expect(tele.stopRadiusMm).toBe(Math.abs(tele.paraxialFocalLengthMm) * tanOf(NA));
+      expect(tele.tracedOpticalTubeLengthMm).toBeCloseTo(rim.tracedOpticalTubeLengthMm, 12);
+      expect(tele.seidelS1AtWorkingConjugates).toBe(rim.seidelS1AtWorkingConjugates);
+      expect(tele.freeWorkingDistanceMm).toBe(rim.freeWorkingDistanceMm);
+    }
+    // …and the two orientations really are different lenses, so the loop above is
+    // not testing one design twice: their back focal distances differ by 0.21 mm.
+    const a = finiteConjugateObjective({
+      magnification: 4,
+      numericalAperture: NA,
+      stopPlacement: "backFocal",
+    });
+    const b = finiteConjugateObjective({
+      magnification: 4,
+      numericalAperture: NA,
+      orientation: "crownFirst",
+      stopPlacement: "backFocal",
+    });
+    expect(Math.abs(a.stopDistanceMm - b.stopDistanceMm)).toBeGreaterThan(0.2);
+  });
+
+  it("a field number and a coverslip compose, and § 6z.5's currency claim survives it", () => {
+    // The second untested cross: the field walk now feeds the glass diameter that
+    // `plateTargetS1` evaluates the plate's own S_I at. § 6z.5's answer at the
+    // infinite conjugate was that this cannot matter — the Seidel sums are
+    // homogeneous of degree 4 in the marginal ray, so one currency for both sides
+    // cancels at every height — and that is a claim about the algebra, not about
+    // that architecture. Here it is, on this one: the same correction to 10
+    // digits with FN 18 and without, on a lens whose air gap moved 0.83 mm.
+    const bare = objectiveAt("backFocal", { coverslip: { thicknessMm: 0.17 } });
+    const wide = objectiveAt("backFocal", {
+      coverslip: { thicknessMm: 0.17 },
+      fieldNumberMm: 18,
+    });
+    expect(wide.seidelS1OfGlassAlone / bare.seidelS1OfGlassAlone).toBeCloseTo(1, 9);
+    expect(Math.abs(wide.airGapMm - bare.airGapMm)).toBeGreaterThan(0.8);
+    // Both are still stigmatic as a PAIR, and both still deliver the closed-form
+    // telecentric radius through the slip.
+    for (const o of [bare, wide]) {
+      expect(Math.abs(o.seidelS1AtWorkingConjugates)).toBeLessThan(1e-12);
+      const n = coverslipIndex(coverslip({ thicknessMm: 0.17 }), L);
+      const sinUg = NA / n;
+      expect(o.stopRadiusMm).toBe(
+        Math.abs(o.paraxialFocalLengthMm) * n * (sinUg / Math.sqrt(1 - sinUg * sinUg)),
+      );
+    }
+  });
+});
+
 describe("§ 6ae.5 — the classical stop-shift equations, and where they stop describing this lens", () => {
   const H = 0.25;
   const grid = pupilGrid(31);

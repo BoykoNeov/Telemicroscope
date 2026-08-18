@@ -13372,6 +13372,27 @@ on the image point with the exit-pupil radius. The reference radius follows by
 exactly the same 39.087 mm. Without the ray identity pinned beside it that 1.1%
 reads as physics.
 
+### The two crosses the shipped preset does not reach on its own
+
+Both were spotted in review rather than by a failing rung, and both are commit
+8fcf7d7's finding one axis over: a shipped option needs a rung on every branch it
+reaches, not on the one the default happens to take.
+
+`orientation: "crownFirst"` skips `reversePrescription` and takes the **other**
+side of the anti-circularity check — the object distance rather than the image
+distance — so the glass-chain frame this step introduced was exercised on one arm
+only. It builds: the diaphragm still lands on that arm's own BFD (which differs
+from the flint-first one by 0.21 mm, so the rung is not testing one lens twice),
+the radius is still `f·tan u`, the tube length still does not move.
+
+`fieldNumberMm` × `coverslip` is the second, and the interesting one: the field
+walk now feeds the glass diameter that `plateTargetS1` evaluates the plate's own
+S_I at. § 6z.5's answer at the infinite conjugate was that this cannot matter —
+the Seidel sums are homogeneous of degree 4 in the marginal ray, so one currency
+for both sides cancels at every height — and that is a claim about the algebra
+rather than about that architecture. It holds here: the same correction to 10
+digits with FN 18 and without, on a lens whose air gap moved 0.83 mm.
+
 ### What it costs, what a field number buys, and what it does not
 
 § 6v.5's price at this architecture's conjugates. A rim stop pivots every bundle
@@ -13431,6 +13452,8 @@ recorded here rather than taken quietly.
 | At FN 18's own edge the lens is 8.7× Maréchal | a field number buys aperture and nothing else | ✅ |
 | A field number is REFUSED on the rim placement | § 6w's refusal, same reason | ✅ |
 | § 6x's illumination offset is **exactly 0** at every height, against 0.217/mm and exactly linear | `h/R_ep`, and R_ep = ∞ | ✅ |
+| The CROWN-FIRST arm takes the diaphragm too — its own BFD, its own `f·tan u`, its tube length unmoved | the other side of the anti-circularity check | ✅ |
+| A field number and a coverslip compose: the same correction to 10 digits, air gap moved 0.83 mm | § 6z.5's currency claim, at this architecture | ✅ |
 
 ### Not yet pinned
 
