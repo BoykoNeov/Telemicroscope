@@ -5303,7 +5303,9 @@ the optimisation (5 to 121 evaluations) but the trail's replays — which is why
 the top of that range moved when finding 8 landed and not because of what
 finding 8 added: the two reads of the variables' geometry are five evaluations
 each, while freeing a third variable costs iterations and the trail replays
-every one of them. The number that
+every one of them. (§ 1.8.10 later put those two reads on the traced branch as
+well, at the same 2n + 1 evaluations — which are traced ones there, and are
+still 1–2% of the cell they sit in.) The number that
 would change this is a merit over a *traced* quantity: **430×** a third-order sum
 for an RMS spot, **4.1× that again** for a wavefront and **~7 000×** for an MTF at
 a frequency (§ 1.8.5, § 1.8.7, § 1.8.8) — so "four orders", which this finding used
@@ -5342,7 +5344,12 @@ multiplicity. Nothing on the screen said which case you were in.
 each one's response, the pair whose columns are most nearly parallel, any
 variable whose column is exactly zero, and the conditioning of the set with
 every column scaled to unit length (VALIDATION § 1.8.9, off the same Jacobian
-the run differences). Measured on this panel's own seeds: the retargeted
+the run differences). **"Exactly zero" turned out to be three sentences and not
+one**, which § 1.8.10 split: the merit cannot see the variable (`dead`), or
+nothing was measured because both trial designs were walls (`blind`), or one was
+and the column is one-sided (`walled`). On a traced merit the panel names a
+fourth — a column differenced across a vignetting edge — which is a fact about
+this lens's aperture at this field rather than about the variable. Measured on this panel's own seeds: the retargeted
 achromat sits at **169**, the same lens with the focal length asked in
 millimetres instead of diopters at **4.2·10⁷** — and that is exactly the run
 that stops on `iterations` and whose second start disagrees. The best-form

@@ -372,6 +372,14 @@ export function OptimizePanel() {
                 }
               />
             )}
+            {/* A GUARD, not a path. No seed this panel offers can reach it:
+                a both-sided wall needs two vignetting boundaries inside one
+                difference step (§ 1.8.10 measured the clipping fixture's ray
+                count and found it monotone), and a paraxial trial is afocal on
+                a set of measure zero. Kept because `blind` is a real state of
+                the reader — pinned at `meritResponse`, where the distinction is
+                made — and a future seed that vignettes harder must not have its
+                zero column reported as "freed but invisible". */}
             {geometry.blind.length > 0 && (
               <Guard
                 label="nothing measured —"
