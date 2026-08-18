@@ -5156,7 +5156,7 @@ about the physics — arriving on a panel instead of on a rung.
   panel here — Part E edits the surface list, and sending an answer there would
   couple two surfaces' state in the way `registry.ts` exists to prevent.
 
-## Part N — design mode's second half: the best this lens can do — *app wiring only* — ✅ **landed** — **a form and two plots**
+## Part N — design mode's second half: the best this lens can do — *app wiring only* — ✅ **landed** — **a form, two plots and a traced wish in a worker**
 
 Route `#/optimize`, `src/optimize.ts` + `src/panels/optimize.tsx`,
 `test/optimize.test.ts`. It draws `core/analysis/optimize` (VALIDATION § 1.8),
@@ -5281,7 +5281,8 @@ every one of them. The number that
 would change this is a merit over a *traced* quantity: **430×** a third-order sum
 for an RMS spot, **4.1× that again** for a wavefront and **~7 000×** for an MTF at
 a frequency (§ 1.8.5, § 1.8.7, § 1.8.8) — so "four orders", which this finding used
-to claim of all three, is true only of the last. Not offered — see below.
+to claim of all three, is true only of the last. Two of the three are offered now,
+behind a button and off the main thread — finding 9.
 
 **8. The variables are now the reader's, and the control that made possible is
 not the interesting part — the readout it forced is.** Every seed carries a menu
@@ -5329,31 +5330,150 @@ conditioning rises six orders while the rejections fall from **6 to 1** and the
 answer does not move at all. The count points the other way, and the number that
 does carry it was not on the screen.
 
+**9. The traced half, and the one number that decided its shape.** Two of the
+engine's five traced readings are on the panel now — the RMS spot on the
+system's own image plane and the wavefront RMS — behind an explicit button and
+in a worker. The full reasoning, the ladder that admits two readings and
+excludes three, the basin measurement the open item asked for, and the cost
+composition are in the first bullet below, because that is the bullet they
+answer. Two things belong up here with the other findings.
+
+*The number that shaped the panel is not the residual's cost — it is the
+trail's.* A traced residual is 103–493× a third-order sum, which is affordable;
+the readout around it is a run, up to 48 replays of that run, a second start and
+two geometry reads, and **the replays alone cost 12–16× the run they draw**. So
+the wiring decision was never "can a traced merit be evaluated here" (yes, in
+tens of milliseconds) but "what else on this screen is a multiple of it" — and
+four of the panel's readouts had to change or withhold themselves. A cost model
+that stops at the inner loop would have got this backwards.
+
+*And driving it found the defect a test would not have.* Switching seeds left
+the previous lens's traced answer on screen — every number in it, including the
+variable labels and the closed form, belonging to a different design. A control
+moving is only *stale*, and is labelled; a seed change is a different lens, and
+the answer is dropped. That is a distinction the adapter cannot make, because
+the adapter is handed one spec at a time and both cases look the same from
+inside it.
+
+**10. A traced wish at weight 1 silently owns the merit, and the panel now says
+so.** See the last bullet below: 99.998% of the merit before anything moves, a
+focal length that ends 103 mm from its target, and a run that reports it
+converged. Every wish prints its share of the merit at the start and at the
+answer now — the paraxial ones too, where the same arithmetic was always true
+and simply never had a wish loud enough to expose it.
+
 ### What it does not do
 
-- **No traced targets *here*** — but the engine has them now, and this bullet's
-  reasoning was wrong twice over, so it is corrected rather than deleted.
-  § 1.8.5 landed `optimizeSystem` with an RMS-spot operand and measured what this
-  bullet guessed at: the residual is **430×** a third-order sum on a 149-ray
-  pupil and linear in the ray count, not four orders; and a traced merit does
-  **not** carry sampling noise — over a fixed ray set it differences cleanly
-  across ten decades of step. What actually bites is a ray leaving the surviving
-  set (6.30% of merit across 10⁻¹² of variable), which the engine handles by
-  holding the set. So what is missing here is **app wiring and a cost decision**,
-  not a pin: at 430× a residual and ~30 evaluations a run, a traced merit puts
-  this panel's 0.1–25 ms readout into the seconds, and the convergence trail
-  (finding 6 above) replays the whole run up to 48 times on top of that. That is
-  a different panel's performance budget, and it wants the same "which settings
-  can this actually be asked at" treatment the darkfield control got.
-  **§ 1.8.7 and § 1.8.8 widened what is on offer and did not change that
-  verdict**: the engine now also takes a wavefront RMS, a balanced RMS, a named
-  Zernike coefficient with a target of its own, and an MTF at a stated frequency
-  — at 4.1× and ~7 000× a third-order sum respectively. So the wiring decision
-  above applies to residuals four and seven-thousand times dearer, and the panel
-  would have to say which readings it can honestly offer at which grid. The MTF
-  brings a second question a panel cannot dodge: its merit is multimodal by
-  physics (§ 1.8.8's impostor), so a panel offering it would have to say
-  something true about the basin as well as about the cost.
+- ~~**No traced targets *here*.**~~ ✅ **landed — two of the engine's five
+  readings, behind a button, in a worker.** The open item asked for the
+  "which settings can this actually be asked at" sweep the darkfield control
+  got, *and*, for the MTF, a true statement about the basin. Both are below,
+  and the second one is why the panel offers two readings rather than five.
+
+  **The rule, and it is not a cost rule.** A reading is offered only where it
+  is **bounded and single-basin over every variable the seed lets a reader
+  free** — and the menu includes the distance to the image plane. Measured on
+  the app's own f = 500 achromat, moving that distance alone, from five starts
+  either side of where the lens actually focuses (496.50 mm at 0.011 waves RMS;
+  the shipped 500 mm is 3.5 mm behind it, at **2.14 waves**):
+
+  | reading | from −2, −0.5, +0.5, +2, +5 mm it lands | offered |
+  | --- | --- | --- |
+  | `rmsSpot` at the image plane | −0.019594 mm from focus, from all five | ✅ |
+  | `wavefront` `rms` | on focus, to 10⁻⁵ mm, from all five | ✅ |
+  | `rmsSpot` at its own best plane | **exactly where it started**, all five | no |
+  | `wavefront` `balancedRms` | **−20.1 mm, at 12.9 waves** — all five alike | no |
+  | `mtf` at ν | exact inside ¼ wave; 3 mm out just past it | no |
+
+  The spot's 0.0196 mm is not an error and not a tolerance: the plane of least
+  RMS *spot* is not the plane of least wavefront error, and the panel names
+  which one it moved. The two excluded non-MTF rows are each worse than
+  "unbounded", which is what the engine's own comments warn about over a free
+  *power*: the refocused spot makes the image distance a **dead variable** —
+  the answer is the question, at any defocus, reported as converged — and the
+  balanced reading converges on the same wrong point from every start, so
+  **this panel's own second-start control would agree with it and call that a
+  basin.**
+
+  **The MTF's basin, which is the statement the open item wanted.** Asked at a
+  target that is actually reachable — § 1.8.8's warning is that the
+  diffraction-limited closed form is not one, and neither is 1 — contrast at
+  ν = 0.3 is *exact*: merit 10⁻²³ from any start inside **0.124 waves** of
+  defocus. From **0.308 waves** the same wish walks 2.97 mm away, lands at 1.84
+  waves and stops reporting merit 1.9·10⁻². The basin is a quarter wave, which
+  is Rayleigh's — and **the panel's own seed starts 2.14 waves out, seventeen
+  times outside it.** A second frequency, which is what rescued § 1.8.8's own
+  0.1 mm start, does not rescue this one: the pair lands 2.94 mm out at 1.82
+  waves, because the operands do not share a trace and two frequencies are two
+  full transforms, not one. That failure is *loud in the leftover column and
+  quiet in the merit* — 21% of the contrast asked for, against a merit of
+  0.019 — which is exactly the split this panel's answer block exists to show,
+  and it is still not a thing to ship: a wish whose basin is narrower than the
+  seed's own starting error is a wish that reports success somewhere else.
+
+  **The cost, re-measured at the panel rather than quoted from the ladder.**
+  Per residual on this achromat, against its own third-order sum (1.63 µs):
+  **103×** for a 149-ray spot, **493×** for the same rays fitted to 28 terms,
+  **1 229×** for contrast at 16 pupil samples and **4 317×** at 32. (§ 1.8.5
+  measures 430× for the spot on *its* fixture. A ratio against a third-order sum
+  is a property of the lens both halves are read on — a different surface count
+  and a different ray count move numerator and denominator by different factors
+  — so the panel measures its own rather than quoting the ladder's.) What
+  decides the wiring is not that ratio but the **composition**: this readout is
+  a run, a trail, a second start and two geometry reads, and the trail alone
+  costs **12–16× the run it draws** (a 77-ray spot run is 17.7 ms and its 36
+  replays 213 ms). So:
+
+  - **the trail's replay budget drops from 48 to 4** on a traced merit. Four
+    evenly spaced replays re-run ¼, ½, ¾ and all of the iterations, so they cost
+    2.5 runs' worth of iterations where the full trail costs 12–16 — and four
+    points still show the merit falling, which is what the picture is for;
+  - **the two closed-form comparisons withhold themselves**, § 1.8.9's idiom:
+    both describe a design settled under first-order wishes alone, and a run
+    that also asked for real rays is a different minimum;
+  - **so does the variable-geometry readout**, and this one is an *engine*
+    boundary rather than a choice: `variableResponse` differences a merit built
+    from a prescription and cannot see an operand that needs a field, an
+    aperture and a conjugate. Reading it over the paraxial wishes alone would
+    print the conditioning of a merit the run did not use. **The next item this
+    panel wants is a system-level reader** — `meritResponse` already takes a
+    residual function, so what is missing is the wrapper and its rungs.
+
+  What is left on screen under a traced merit is the answer, every wish's
+  leftover in its own unit, the stop reason, the second start and a four-point
+  trail — which is the coherent half, because the leftover column is where a
+  traced wish is read.
+
+  **Whole-readout cost over every offered cell**, on this machine under
+  `vite-node`: 51 ms (29-ray spot, on axis) to **5.5 s** (313-ray wavefront at
+  0.5°, where two curvatures cannot correct field coma and the run spends its
+  whole iteration budget). That is 100× to 10⁵× a keystroke's budget, so the
+  traced half is **behind an explicit button and runs in a worker** — and the
+  button is the load-bearing half. A worker alone would fire a multi-second run
+  per keystroke, each superseding the last, and a readout that never settles is
+  worse than one that waits to be asked. The paraxial readout stays live at
+  0.1–25 ms; the traced answer is labelled with the settings it was traced at,
+  and says so when the controls have moved since.
+
+  **Two refusals that a reader can act on, both before the run rather than
+  after it** (the darkfield rule, § A2). A 28-term fit over a 29-ray grid loses
+  rays off axis — 26 survive at 0.25° and 0.5° — so the panel names the grids
+  that carry it *at that field* rather than reporting a count. And **§ 1.8's
+  thin cemented doublet cannot carry a traced wish at all**: it has zero
+  thickness, which is exactly what makes the classical split exact on it, and a
+  lens of no thickness cannot be traced at a finite aperture — its two faces sag
+  into each other and all 29 rays are lost before the second one. The control is
+  withheld on that seed with that sentence, not offered and then refused.
+
+  **And the default hazard the share column now catches.** A spot residual on
+  this achromat starts at 1.2·10⁻¹ mm and a focal-length residual asked in power
+  at 5·10⁻⁴ 1/mm, so **at equal weights the merit is 99.998% spot before
+  anything moves**: the run ignores the focal length it was also given and ends
+  103 mm from the 400 mm it was asked for, having converged. Nothing throws and
+  nothing is NaN. Every wish now prints its share of the merit at the start and
+  again at the answer, which is the only thing on the panel that says so — and
+  the fix is the exchange rate the panel already teaches: at weight 10⁶ the
+  focal wish takes the merit back and lands on its target.
 - **No conditions *here* — the engine has them now** (§ 1.8.6, `{ minimize, hold }`
   on both entry points). "Hold the focal length *exactly* while minimising
   aberration" is a Lagrange condition and is solved as one. What it buys is not

@@ -1,17 +1,32 @@
 import { describe, it, expect } from "vitest";
-import { optimizePrescription, type SolveVariable } from "@telemicroscope/core/analysis";
+import {
+  optimizePrescription,
+  optimizeSystem,
+  withVariables,
+  type SolveVariable,
+  type SystemOperand,
+} from "@telemicroscope/core/analysis";
 import {
   OPTIMIZE_SEEDS,
+  TRACED_FIELDS,
+  TRACED_GRIDS,
+  TRACED_TRAIL_POINTS,
   TRAIL_MAX_POINTS,
   bestFormShapeFactor,
   defaultSpec,
+  defaultTracedWish,
   describeOptimize,
   optimizeSeedById,
   operandFor,
   shapeFactor,
+  systemOf,
+  tracedOperandFor,
+  tracedRefusal,
   trailWorkLevels,
   type OptimizeSpec,
 } from "../src/optimize";
+import { opdMap, pupilGrid } from "@telemicroscope/core/pupil";
+import { fitRms, fitZernike, mtf, mtfAt, psfFromSystemPupil, systemPupil } from "@telemicroscope/core/wave";
 import { getMedium, LINE_D } from "@telemicroscope/core/materials";
 import { systemProperties } from "@telemicroscope/core/trace";
 
@@ -589,5 +604,310 @@ describe("which numbers may move, and what the merit can see of them", () => {
     // dropped rather than trusted.
     const stale = ok(specFor("bestform", { variables: ["c0", "c1", "c2", "t9"] }));
     expect(stale.variables.map((v) => v.id)).toEqual(["c0", "c1"]);
+  });
+});
+
+/**
+ * The traced half, and the one rule that decides all of it.
+ *
+ * The engine offers five traced readings (§ 1.8.5, § 1.8.7, § 1.8.8). This
+ * panel offers two, and the cut is not a cost verdict — it is:
+ *
+ * > offered only where the reading is bounded and single-basin over EVERY
+ * > variable the seed lets a reader free, measured on this lens over this menu.
+ *
+ * The menu includes the distance to the image plane, and that variable is what
+ * separates the five: it is the one every reading has an opinion about, and
+ * three of them have the wrong one. Both halves of the rule are measured here,
+ * because a rule whose admitted half is assumed indicts the panel it justifies.
+ */
+describe("the traced wish, and the rule that says which readings are offered", () => {
+  const seed = optimizeSeedById("retarget");
+  const FOCUS: SolveVariable[] = [{ surface: 2, kind: "thickness" }];
+  const GRID = pupilGrid(15);
+  const shipped = seed.prescription.surfaces[2]!.thickness;
+
+  const waveWish = (reading: "rms" | "balancedRms") =>
+    ({
+      kind: "wavefront",
+      reading,
+      fieldValue: 0,
+      wavelengthNm: LINE_D,
+      pupil: GRID,
+      terms: 28,
+      target: 0,
+      weight: 1,
+    }) as const;
+  const spotWish = (focus: "systemImagePlane" | "bestSpot") =>
+    ({
+      kind: "rmsSpot",
+      fieldValue: 0,
+      wavelengthNm: LINE_D,
+      pupil: GRID,
+      focus,
+      target: 0,
+      weight: 1,
+    }) as const;
+
+  const at = (mm: number) => withVariables(seed.prescription, FOCUS, [mm]);
+  const wavesAt = (mm: number) =>
+    fitRms(fitZernike(opdMap(systemOf(at(mm), 0), 0, LINE_D, GRID).samples, 28));
+  /** Where the lens actually focuses, found in the reading that is monotone in it. */
+  const focus = optimizeSystem(systemOf(seed.prescription, 0), FOCUS, [waveWish("rms")], {
+    maxIterations: 100,
+  }).x[0]!;
+  const landing = (start: number, wish: SystemOperand) =>
+    optimizeSystem(systemOf(at(start), 0), FOCUS, [wish], { maxIterations: 100 }).x[0]! - focus;
+
+  it("the seed ships 3.5 mm behind its own focus, which is what the rule is measured against", () => {
+    expect(focus).toBeCloseTo(496.5018, 3);
+    expect(shipped - focus).toBeCloseTo(3.4982, 3);
+    expect(wavesAt(shipped)).toBeCloseTo(2.1437, 3);
+    expect(wavesAt(focus)).toBeLessThan(0.012);
+  });
+
+  it("the two OFFERED readings converge on that focus from every start", () => {
+    for (const start of [focus - 2, focus - 0.5, focus + 0.5, focus + 2, focus + 5]) {
+      // The wavefront lands on it. The spot lands on the plane of least RMS
+      // SPOT, which is 0.0196 mm short of it — not an error and not a
+      // tolerance: the two are different planes, and the panel names which one
+      // it moved. Both are the same landing to five decimals from all five
+      // starts, so this is one basin and not a band.
+      expect(landing(start, waveWish("rms"))).toBeCloseTo(0, 5);
+      expect(landing(start, spotWish("systemImagePlane"))).toBeCloseTo(-0.019594, 5);
+    }
+  });
+
+  it("the refocused spot is not offered: the image distance is DEAD to it", () => {
+    // Every start lands exactly on itself and the run reports it converged.
+    // Not "unbounded" as the engine's own comment says of a free power — worse
+    // on this menu, because there is nothing to notice: the answer is the
+    // question, at any distance, at any defocus.
+    for (const offset of [-2, -0.5, 0.5, 2, 5]) {
+      const start = focus + offset;
+      const r = optimizeSystem(systemOf(at(start), 0), FOCUS, [spotWish("bestSpot")], {
+        maxIterations: 100,
+      });
+      expect(r.x[0]! - start).toBeCloseTo(0, 9);
+      expect(r.reason).not.toBe("iterations");
+    }
+  });
+
+  it("the balanced wavefront is not offered: it agrees with itself 20 mm past focus", () => {
+    // The failure shape that matters is not the distance — it is that all five
+    // starts land on the SAME wrong point, so this panel's own second-start
+    // control would call it a basin and endorse it.
+    const landings = [-2, -0.5, 0.5, 2, 5].map((o) => landing(focus + o, waveWish("balancedRms")));
+    for (const l of landings) expect(l).toBeCloseTo(-20.101, 2);
+    expect(wavesAt(focus + landings[0]!)).toBeGreaterThan(12);
+  });
+
+  it("contrast at a frequency is not offered: exact inside a quarter wave, three mm out just past it", () => {
+    // Asked at a REACHABLE target — § 1.8.8's own warning is that the
+    // diffraction-limited closed form is not one, and a target of 1 is not
+    // either. This is the reading at the optimum, at the sampling asked for.
+    const OPTS = { pupilSamples: 16, padFactor: 4, traceSamples: 11, zernikeTerms: 28 };
+    const contrast = (mm: number, nu: number) => {
+      const pupil = systemPupil(systemOf(at(mm), 0), 0, LINE_D, OPTS);
+      const image = psfFromSystemPupil(pupil, 0, OPTS);
+      return mtfAt(mtf(image), nu, image.pupilSamples);
+    };
+    const ceiling = contrast(focus, 0.3);
+    const wish = (nu: number, target: number) =>
+      ({ kind: "mtf", fieldValue: 0, wavelengthNm: LINE_D, nu, ...OPTS, target, weight: 1 }) as const;
+
+    // Inside: 0.063 and 0.124 waves of defocus. Exact, and the merit says so.
+    for (const offset of [0.1, 0.2]) {
+      expect(wavesAt(focus + offset)).toBeLessThan(0.125);
+      const r = optimizeSystem(systemOf(at(focus + offset), 0), FOCUS, [wish(0.3, ceiling)], {
+        maxIterations: 60,
+      });
+      expect(Math.abs(r.x[0]! - focus)).toBeLessThan(0.01);
+      expect(r.merit).toBeLessThan(1e-20);
+    }
+
+    // Just outside: 0.308 waves. It walks three millimetres away, lands at 1.8
+    // waves, and stops with a merit of 2·10⁻² — the § 1.8 shape, on this panel's
+    // own lens. And a SECOND frequency, which is what rescued § 1.8.8's 0.1 mm
+    // start, does not rescue this one.
+    const outside = focus + 0.5;
+    expect(wavesAt(outside)).toBeGreaterThan(0.3);
+    const one = optimizeSystem(systemOf(at(outside), 0), FOCUS, [wish(0.3, ceiling)], {
+      maxIterations: 60,
+    });
+    expect(one.x[0]! - focus).toBeLessThan(-2.9);
+    expect(wavesAt(one.x[0]!)).toBeGreaterThan(1.8);
+    expect(one.merit).toBeLessThan(5e-2);
+
+    const pair = optimizeSystem(
+      systemOf(at(outside), 0),
+      FOCUS,
+      [wish(0.3, ceiling), wish(0.7, contrast(focus, 0.7))],
+      { maxIterations: 60 },
+    );
+    expect(pair.x[0]! - focus).toBeLessThan(-2.8);
+    expect(wavesAt(pair.x[0]!)).toBeGreaterThan(1.8);
+  });
+});
+
+describe("what the panel offers, and what it refuses before the button", () => {
+  it("every offered cell can be read at the design it starts from", () => {
+    // The property that makes the control honest: not that every cell is fast,
+    // but that every cell is ASKABLE. One evaluation each — `maxIterations: 0`
+    // reads x0 and stops.
+    const seed = optimizeSeedById("retarget");
+    const variables = seed.menu.filter((c) => ["c0", "c2"].includes(c.id)).map((c) => c.variable);
+    const cells: string[] = [];
+    for (const reading of ["spot", "wavefront"] as const) {
+      for (const grid of TRACED_GRIDS) {
+        for (const fieldDeg of TRACED_FIELDS) {
+          const wish = { ...defaultTracedWish(), reading, grid, fieldDeg };
+          try {
+            optimizeSystem(systemOf(seed.prescription, fieldDeg), variables, [tracedOperandFor(wish)], {
+              maxIterations: 0,
+            });
+          } catch {
+            cells.push(`${reading} grid ${grid} at ${fieldDeg}°`);
+          }
+        }
+      }
+    }
+    // The one family that cannot be read is a 28-term fit over a 29-ray grid
+    // off axis, where rays are lost: 26 survive and a fit needs one per term.
+    expect(cells).toEqual(["wavefront grid 7 at 0.25°", "wavefront grid 7 at 0.5°"]);
+  });
+
+  it("…and the refusal for those cells names a grid the reader can actually pick", () => {
+    const refused = describeOptimize(
+      specFor("retarget", { traced: { ...defaultTracedWish(), reading: "wavefront", grid: 7, fieldDeg: 0.5 } }),
+    );
+    expect(refused.ok).toBe(false);
+    if (refused.ok) return;
+    expect(refused.stage).toBe("trace");
+    expect(refused.source).toBe("app");
+    expect(refused.error).toMatch(/26 rays surviving at 0.5°/);
+    // Darkfield's rule: the sentence names options this panel offers.
+    expect(refused.error).toMatch(/11 or 15 or 21 points across carries it at this field/);
+    for (const grid of [11, 15, 21]) {
+      expect(TRACED_GRIDS).toContain(grid);
+    }
+  });
+
+  it("the thin doublet refuses the whole control, because it has no thickness", () => {
+    expect(tracedRefusal(optimizeSeedById("split"))).toMatch(/zero thickness/);
+    expect(tracedRefusal(optimizeSeedById("split"))).toMatch(/all 29 rays are lost/);
+    for (const id of ["retarget", "bestform", "currency"] as const) {
+      expect(tracedRefusal(optimizeSeedById(id))).toBeNull();
+    }
+  });
+
+  it("a target below zero and a weight of zero are refused in the wish's own units", () => {
+    for (const [part, pattern] of [
+      [{ target: -1 }, /is not something to ask for/],
+      [{ weight: 0 }, /is not an exchange rate/],
+    ] as const) {
+      const r = describeOptimize(specFor("retarget", { traced: { ...defaultTracedWish(), ...part } }));
+      expect(r.ok).toBe(false);
+      if (!r.ok) {
+        expect(r.stage).toBe("build");
+        expect(r.error).toMatch(pattern);
+      }
+    }
+  });
+});
+
+describe("what a traced wish does to the rest of the panel", () => {
+  const traced = { ...defaultTracedWish(), grid: 11 };
+
+  it("the wish reads back in its own unit, and the run improves it", () => {
+    const r = ok(specFor("retarget", { traced }));
+    const spot = r.wishes[r.wishes.length - 1]!;
+    expect(r.traced).toEqual(traced);
+    expect(spot.unit).toBe("mm");
+    expect(spot.label).toMatch(/RMS spot radius at 0°/);
+    // 0.12 mm on the lens as shipped, and the run takes two orders off it.
+    expect(spot.startValue).toBeGreaterThan(0.1);
+    expect(spot.value).toBeLessThan(spot.startValue / 100);
+  });
+
+  it("THE default hazard: a traced wish at weight 1 owns the merit before anything moves", () => {
+    // A spot residual starts at 1.2·10⁻¹ mm and a focal-length residual asked in
+    // power at 5·10⁻⁴ 1/mm, so at equal weights the merit is all spot and the
+    // run ignores the focal length it was also given — it ends 100 mm from the
+    // 400 mm it was asked for, having converged. Nothing throws; the share
+    // column is the only thing on the panel that says so.
+    const r = ok(specFor("retarget", { traced }));
+    const [focal, , spot] = r.wishes;
+    expect(spot!.shareStart).toBeGreaterThan(0.999);
+    expect(focal!.shareStart).toBeLessThan(1e-4);
+    expect(Math.abs(focal!.leftover)).toBeGreaterThan(50);
+    expect(r.wishes.reduce((a, w) => a + w.shareStart, 0)).toBeCloseTo(1, 12);
+    expect(r.wishes.reduce((a, w) => a + w.shareEnd, 0)).toBeCloseTo(1, 12);
+
+    // And the exchange rate is the fix, not a bug report: weight the focal wish
+    // by 10⁶ and it takes the merit back and lands on its target.
+    const heavier = ok(
+      specFor("retarget", {
+        traced,
+        wishes: optimizeSeedById("retarget").wishes.map((w) =>
+          w.kind === "focal" ? { ...w, weight: 1e6 } : w,
+        ),
+      }),
+    );
+    expect(heavier.wishes[0]!.shareStart).toBeGreaterThan(0.99);
+    expect(Math.abs(heavier.wishes[0]!.leftover)).toBeLessThan(1);
+  });
+
+  it("the three readouts that cannot mean what they say withhold themselves", () => {
+    const withTraced = ok(specFor("retarget", { traced }));
+    expect(withTraced.geometry.withheld).toMatch(/variableResponse/);
+    expect(withTraced.geometry.refused).toBeNull();
+    expect(withTraced.single!.withheld).toMatch(/not answers to the same question/);
+    expect(ok(specFor("bestform", { traced })).reference!.withheld).toMatch(/thin-lens/);
+
+    const paraxial = ok(specFor("retarget"));
+    expect(paraxial.geometry.withheld).toBeNull();
+    expect(paraxial.single!.withheld).toBeNull();
+    expect(ok(specFor("bestform")).reference!.withheld).toBeNull();
+  });
+
+  it("the trail's replay budget drops from 48 to 4, and the shape of it is the same", () => {
+    expect(trailWorkLevels(100, TRACED_TRAIL_POINTS)).toEqual([1, 34, 67, 100]);
+    expect(trailWorkLevels(3, TRACED_TRAIL_POINTS)).toEqual([1, 2, 3]);
+    const r = ok(specFor("retarget", { traced }));
+    expect(r.trail.length).toBeLessThanOrEqual(TRACED_TRAIL_POINTS);
+    expect(r.trail[r.trail.length - 1]!.work).toBe(r.iterations);
+    // One relative-miss series per wish, the traced one included.
+    expect(r.trail[0]!.relative).toHaveLength(r.wishes.length);
+    expect(ok(specFor("retarget")).trail.length).toBeGreaterThan(TRACED_TRAIL_POINTS);
+  });
+
+  it("off axis changes what is REACHABLE, not what the lens starts at", () => {
+    const axis = ok(specFor("retarget", { traced: { ...traced, fieldDeg: 0 } }));
+    const off = ok(specFor("retarget", { traced: { ...traced, fieldDeg: 0.5 } }));
+    const spotOf = (r: typeof axis) => r.wishes[r.wishes.length - 1]!;
+
+    // The STARTING readings agree to 2%, which is not what a field control is
+    // expected to do — and the reason is this seed: it ships 3.5 mm behind its
+    // own focus, and defocus is the same blur at every field. Reading only the
+    // start would have said the field control does nothing.
+    expect(spotOf(off).startValue / spotOf(axis).startValue).toBeCloseTo(1, 1);
+
+    // What it does is change the answer. Two curvatures can take the axial spot
+    // to 9·10⁻⁴ mm and stop on `step`; at half a degree the best they reach is
+    // 4.8× larger and the run spends every iteration it is allowed.
+    expect(spotOf(off).value / spotOf(axis).value).toBeGreaterThan(4);
+    expect(axis.reason).toBe("step");
+    expect(off.reason).toBe("iterations");
+    expect(off.to).not.toEqual(axis.to);
+  });
+
+  it("a paraxial spec is bit-for-bit what it was before the traced half landed", () => {
+    const before = ok(specFor("retarget"));
+    expect(before.traced).toBeNull();
+    expect(before.geometry.withheld).toBeNull();
+    expect(before.wishes.map((w) => w.value)).toEqual(
+      ok(specFor("retarget", { traced: null })).wishes.map((w) => w.value),
+    );
   });
 });

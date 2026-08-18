@@ -99,6 +99,9 @@ export const createMechParfocalWorker = () =>
 export const createCollimationWorker = () =>
   new Worker(new URL("./collimation.worker.ts", import.meta.url), { type: "module" });
 
+export const createOptimizeWorker = () =>
+  new Worker(new URL("./optimize.worker.ts", import.meta.url), { type: "module" });
+
 /** The one factory a panel calls MORE THAN ONCE — A7 keeps a pool of these, one
  * tile per worker at a time. See `stage.worker.ts` for why that is allowed. */
 export const createStageWorker = () =>

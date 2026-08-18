@@ -1,7 +1,10 @@
 import {
+  exitBundle,
   optimizePrescription,
+  optimizeSystem,
   seidelSums,
   solveParaxial,
+  spotDiagram,
   variableResponse,
   withVariable,
   withVariables,
@@ -9,8 +12,16 @@ import {
   type DlsStopReason,
   type OptimizeOperand,
   type SolveVariable,
+  type TracedOperand,
 } from "@telemicroscope/core/analysis";
-import { systemProperties, type Prescription } from "@telemicroscope/core/trace";
+import { opdMap, pupilGrid } from "@telemicroscope/core/pupil";
+import { fitRms, fitZernike } from "@telemicroscope/core/wave";
+import {
+  stopIndex,
+  systemProperties,
+  type OpticalSystem,
+  type Prescription,
+} from "@telemicroscope/core/trace";
 import { abbeNumber, getMedium, LINE_C, LINE_D, LINE_F } from "@telemicroscope/core/materials";
 import { refractorPair } from "@telemicroscope/core/designs";
 import { AppRefusal, refusalOf, type Refusal } from "./refusal";
@@ -105,6 +116,99 @@ export interface Wish {
 export type Currency = "power" | "focal";
 
 export type ReferenceKind = "thin-split" | "best-form";
+
+/**
+ * A wish only real rays can answer, and the shortest statement of what this
+ * panel will and will not ask for.
+ *
+ * `core/analysis/optimize` offers five traced readings: an RMS spot on the
+ * system's own image plane or on its own best plane, a wavefront RMS with the
+ * defocus in or balanced out, and the contrast at one spatial frequency. This
+ * panel offers **two**, and the cut is one rule measured on this panel's own
+ * lens over this panel's own variable menu:
+ *
+ * > a reading is offered only where it is bounded and single-basin over EVERY
+ * > variable the seed lets a reader free — and the menu includes the distance
+ * > to the image plane.
+ *
+ * The ladder that decides it starts each reading from seven image distances
+ * either side of where the app's f = 500 achromat actually focuses (496.50 mm,
+ * 0.011 waves RMS — the shipped 500 mm is 3.5 mm behind it, at 2.14 waves) and
+ * asks each one to move that distance alone:
+ *
+ *  - **`rmsSpot` on the image plane — offered.** Lands 0.020 mm short of the
+ *    wavefront optimum (0.016 waves) from every start out to +5 mm. The 0.020
+ *    is not an error: the plane of least RMS *spot* is not the plane of least
+ *    wavefront error, and the panel says which one it moved.
+ *  - **`wavefront` reading `rms` — offered.** Lands on the optimum to 1·10⁻³ mm
+ *    from every start out to ±2 mm.
+ *  - **`rmsSpot` on the best plane — not offered.** It refocuses every trial, so
+ *    the image distance is a DEAD variable to it: from −2, −0.5, +0.5, +2 and
+ *    +5 mm it lands EXACTLY where it started, every time, and reports it
+ *    converged. Over the two curvatures instead, with the focal wish at weight
+ *    1, it walks the focal length to 517.8 mm and leaves 8.67 waves at the plane
+ *    the design actually has, merit 8·10⁻⁹.
+ *  - **`wavefront` reading `balancedRms` — not offered.** From all seven starts
+ *    it converges on the same point **20.1 mm past focus at 12.9 waves**. Worse
+ *    than wandering: it agrees with itself, so this panel's own second-start
+ *    control would call that a basin and endorse it.
+ *  - **`mtf` at a frequency — not offered**, and this one is a basin statement
+ *    rather than a cost verdict. Given a REACHABLE target (§ 1.8.8: the
+ *    diffraction-limited closed form is not one) it is exact — merit 10⁻²³ —
+ *    from any start within 0.124 waves of defocus, and from 0.308 waves it walks
+ *    2.97 mm away to 1.84 waves and stops reporting merit 1.9·10⁻². The basin is
+ *    a quarter wave, which is Rayleigh's, and **this panel's own seed starts
+ *    2.14 waves out — seventeen times outside it.** A second frequency, which is
+ *    what rescued § 1.8.8's own 0.1 mm start, does not rescue this one: from
+ *    +0.5 mm the pair lands 2.94 mm out at 1.82 waves. Cost seals it —
+ *    1 229× a third-order sum at 16 pupil samples and 4 317× at 32, against
+ *    103× for the spot and 493× for the wavefront.
+ */
+export type TracedReading = "spot" | "wavefront";
+
+/**
+ * The rays a traced wish is read over, and the field it is read at.
+ *
+ * `grid` is points across the pupil DIAMETER, not a resolution knob: § 1.8.5
+ * measures the merit's value moving 15% and its optimum 5·10⁻⁵ between 29 and
+ * 1 253 rays, so two readers who sample differently are reading two different
+ * numbers off the same design. Same for `terms`. Both are therefore stated on
+ * screen beside the answer rather than defaulted out of sight.
+ */
+export interface TracedWish {
+  readonly reading: TracedReading;
+  /** Points across the pupil diameter; `pupilGrid` keeps the ones inside it. */
+  readonly grid: number;
+  /** Noll terms fitted to the OPD. A spot reading ignores it. */
+  readonly terms: number;
+  /** Field angle in degrees — this panel's seeds are all infinite-conjugate. */
+  readonly fieldDeg: number;
+  /** mm for a spot, waves for a wavefront. */
+  readonly target: number;
+  readonly weight: number;
+}
+
+/** Points across the pupil diameter a traced wish may be asked over. */
+export const TRACED_GRIDS = [7, 11, 15, 21] as const;
+/** Noll terms a wavefront reading may be fitted over. */
+export const TRACED_TERMS = [11, 28] as const;
+/** Fields a traced wish may be read at. Not all zero — see the header. */
+export const TRACED_FIELDS = [0, 0.25, 0.5] as const;
+
+export const defaultTracedWish = (): TracedWish => ({
+  reading: "spot",
+  grid: 15,
+  terms: 28,
+  fieldDeg: 0,
+  target: 0,
+  weight: 1,
+});
+
+/** What a traced reading is called and what its number means. */
+export const tracedLabel = (reading: TracedReading): string =>
+  reading === "spot" ? "RMS spot radius" : "wavefront error, RMS";
+export const tracedUnit = (reading: TracedReading): string =>
+  reading === "spot" ? "mm" : "waves";
 
 /** One number a design may be allowed to move, named rather than numbered. */
 export interface VariableChoice {
@@ -358,6 +462,17 @@ export interface OptimizeSpec {
   /** How far the second start is moved, as a fraction of each variable. */
   readonly startOffset: number;
   readonly maxIterations: number;
+  /**
+   * A wish about real rays, appended to the seed's own — or `null`, which is
+   * every readout on this panel before Part N's second half.
+   *
+   * It is a separate field rather than a fifth `WishKind` because it carries
+   * four numbers no paraxial wish has (the grid, the terms, the field, and
+   * which reading), and because it is the one wish that decides how the whole
+   * panel runs: with it the merit costs 103–493× a third-order sum, so the
+   * readout leaves the main thread and stops recomputing on every keystroke.
+   */
+  readonly traced: TracedWish | null;
 }
 
 export function defaultSpec(): OptimizeSpec {
@@ -369,7 +484,121 @@ export function defaultSpec(): OptimizeSpec {
     currency: "power",
     startOffset: 0.08,
     maxIterations: 100,
+    traced: null,
   };
+}
+
+/**
+ * The system a traced wish is read on: this panel's seeds are objectives, so
+ * the conjugate is infinity and the aperture is the stop's own rim.
+ *
+ * Derived rather than stored per seed, because a stored aperture is a number
+ * that can disagree with the prescription it is read against — and every seed
+ * here declares its stop.
+ */
+export function systemOf(prescription: Prescription, fieldDeg: number): OpticalSystem {
+  const stop = prescription.surfaces[stopIndex(prescription)]!;
+  return {
+    prescription,
+    aperture: { kind: "EPD", value: 2 * stop.semiAperture },
+    field: { kind: "angle", values: [fieldDeg] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  };
+}
+
+/**
+ * Whether this seed can carry a traced wish at all, and the sentence if not.
+ *
+ * Asked before the control is offered rather than after the button is pressed,
+ * which is the darkfield rule (APP.md § A2): a refusal a reader meets only by
+ * running something is advice they cannot act on. One 29-ray trace, ~0.03 ms.
+ *
+ * The seed that fails is the one whose whole point is that it cannot be traced.
+ * § 1.8's thin cemented doublet has **zero thickness** — which is what makes the
+ * classical power split exact on it — and a lens of no thickness is a
+ * first-order fiction: at a 50 mm aperture its surfaces sag 3.2 and −5.3 mm and
+ * therefore cross, so every one of the 149 rays is lost before the second face.
+ * Nothing here is broken; a seed that exists to make a thin-lens closed form
+ * exact is a seed real rays cannot be asked about.
+ */
+export function tracedRefusal(seed: OptimizeSeed): string | null {
+  const elements = seed.prescription.surfaces.slice(0, -1);
+  let survived = 0;
+  let asked = 0;
+  try {
+    const bundle = exitBundle(systemOf(seed.prescription, 0), 0, LINE_D, pupilGrid(7));
+    survived = bundle.rays.length;
+    asked = bundle.rays.length + bundle.lost;
+    if (survived >= 2) return null;
+  } catch (cause) {
+    return (cause as Error).message;
+  }
+  if (elements.every((s) => s.thickness === 0)) {
+    return (
+      `this seed has zero thickness — which is exactly what makes the classical split exact on ` +
+      `it — and a lens of no thickness cannot be traced at a finite aperture: its two faces sag ` +
+      `into each other, so all ${asked} rays are lost before the second one. A traced wish needs a ` +
+      `lens that exists in the third dimension; the other seeds have one.`
+    );
+  }
+  return `${survived} of ${asked} rays reach the image plane at full aperture, and a traced wish needs at least two.`;
+}
+
+/** The engine operand a traced wish becomes. Both readings are the bounded one. */
+export function tracedOperandFor(t: TracedWish): TracedOperand {
+  const pupil = pupilGrid(t.grid);
+  return t.reading === "spot"
+    ? {
+        kind: "rmsSpot",
+        fieldValue: t.fieldDeg,
+        wavelengthNm: LINE_D,
+        pupil,
+        focus: "systemImagePlane",
+        target: t.target,
+        weight: t.weight,
+      }
+    : {
+        kind: "wavefront",
+        reading: "rms",
+        fieldValue: t.fieldDeg,
+        wavelengthNm: LINE_D,
+        pupil,
+        terms: t.terms,
+        target: t.target,
+        weight: t.weight,
+      };
+}
+
+/**
+ * A traced wish read off a built lens, in the wish's own unit.
+ *
+ * Read through the same two entry points the operand is built on — `spotDiagram`
+ * is `rmsSpot` at `"systemImagePlane"` and `fitRms(fitZernike(...))` is
+ * `"rms"` — rather than off the residual, so the number on screen is the
+ * quantity the wish names and not the weighted difference the merit squared.
+ */
+function readTraced(prescription: Prescription, t: TracedWish): number {
+  const system = systemOf(prescription, t.fieldDeg);
+  const pupil = pupilGrid(t.grid);
+  return t.reading === "spot"
+    ? spotDiagram(system, t.fieldDeg, LINE_D, pupil).rmsRadius
+    : fitRms(fitZernike(opdMap(system, t.fieldDeg, LINE_D, pupil).samples, t.terms));
+}
+
+/**
+ * How many rays of an offered grid survive to the reference sphere at a field.
+ *
+ * Only ever called on the failing path, to say which of the panel's own options
+ * would work — the darkfield rule (APP.md § A2): a refusal that names a setting
+ * a reader cannot reach has moved the defect rather than closed it.
+ */
+function survivorsAt(prescription: Prescription, grid: number, fieldDeg: number): number {
+  try {
+    return opdMap(systemOf(prescription, fieldDeg), fieldDeg, LINE_D, pupilGrid(grid)).samples.length;
+  } catch {
+    return 0;
+  }
 }
 
 /** The engine operand a wish becomes, in the currency the spec asked for. */
@@ -407,6 +636,22 @@ export interface WishReadout {
   readonly value: number;
   /** value − target, UNWEIGHTED. The number that says whether it was granted. */
   readonly leftover: number;
+  /** The same quantity on the lens as it was BEFORE the run. */
+  readonly startValue: number;
+  /**
+   * This wish's share of the merit at the STARTING design, and again at the
+   * answer — rᵢ²/Σrⱼ² off the residual vector the solver itself saw.
+   *
+   * On screen because of what adding a traced wish does to a panel whose other
+   * wishes are asked in diopters. A spot residual on this app's achromat starts
+   * at 1.2·10⁻¹ mm and a focal-length residual asked in power at 5·10⁻⁴ 1/mm,
+   * so at equal weights the merit is **99.999% spot before anything moves** and
+   * the run ignores the focal length it was also given. Nothing is wrong and
+   * nothing throws; the answer is simply to a question the reader did not think
+   * they were asking. This column is where that shows up.
+   */
+  readonly shareStart: number;
+  readonly shareEnd: number;
   /** |leftover| ÷ |target|, or |leftover| against the starting value when the target is 0. */
   readonly relative: number;
   readonly weight: number;
@@ -442,6 +687,12 @@ export interface SingleVariableComparison {
   /** How many times the starting lens's colour spread that is. */
   readonly spreadRatio: number;
   readonly refused: string | null;
+  /**
+   * Why the box is empty when nothing went wrong. `refused` is a solve that
+   * failed; this is a comparison that would have been misleading — the
+   * distinction `ReferenceReadout` already draws, and for the same reason.
+   */
+  readonly withheld: string | null;
 }
 
 /**
@@ -467,6 +718,8 @@ export interface GeometryReadout {
   /** How many wishes there are, which caps how many directions can be seen. */
   readonly wishCount: number;
   readonly refused: string | null;
+  /** Set where the reader cannot see this merit at all — see the traced branch. */
+  readonly withheld: string | null;
 }
 
 export interface BasinControl {
@@ -502,7 +755,7 @@ export interface ReferenceReadout {
   readonly thicknessMm?: number;
 }
 
-export type OptimizeStage = "build" | "optimise" | "trail" | "single" | "basin";
+export type OptimizeStage = "build" | "trace" | "optimise" | "trail" | "single" | "basin";
 
 export interface OptimizeReadout {
   readonly seed: OptimizeSeed;
@@ -510,6 +763,8 @@ export interface OptimizeReadout {
   readonly variables: readonly VariableChoice[];
   readonly geometry: GeometryReadout;
   readonly currency: Currency;
+  /** The traced wish this run carried, or `null` for a paraxial merit. */
+  readonly traced: TracedWish | null;
   readonly from: readonly number[];
   readonly to: readonly number[];
   readonly reason: DlsStopReason;
@@ -535,6 +790,30 @@ export interface OptimizeReadout {
   readonly elapsedMs: number;
 }
 
+/**
+ * The job shape for `optimize.worker.ts`, and the reason this panel has a
+ * worker at all.
+ *
+ * A paraxial readout is 0.1–25 ms and recomputes on every keystroke. A traced
+ * one is 51 ms to 5.5 s over the cells this panel offers — 100× to 10⁵× a
+ * keystroke's budget — so it goes off the main thread AND behind an explicit
+ * trigger. The trigger is the load-bearing half: a worker alone would fire a
+ * multi-second run per keystroke, each superseding the last, and a readout that
+ * never settles is worse than one that waits to be asked.
+ *
+ * `request: null` is a legitimate job and answers `result: null`. The panel
+ * mounts the worker before there is anything to trace.
+ */
+export interface TracedJob {
+  readonly seq: number;
+  readonly request: OptimizeSpec | null;
+}
+
+export interface TracedDone {
+  readonly seq: number;
+  readonly result: OptimizeDescription | null;
+}
+
 export type OptimizeDescription =
   | ({ readonly ok: true } & OptimizeReadout)
   | Refusal<OptimizeStage>;
@@ -543,16 +822,34 @@ export type OptimizeDescription =
 export const TRAIL_MAX_POINTS = 48;
 
 /**
+ * The same budget for a traced merit, and the ratio is the reason it is a
+ * different number rather than the same one.
+ *
+ * A replay at k costs k/N of the run it is a prefix of, so m replays evenly
+ * spaced cost about (m+1)/2 runs. Measured: the full 48-point trail costs
+ * **12–16× the run** (a 77-ray spot run is 17.7 ms and its 36 replays 213 ms;
+ * a 149-ray one is 15.8 ms and its 29 replays 248 ms). Four evenly spaced
+ * replays re-run ¼, ½, ¾ and all of the iterations — 2.5 runs' worth against
+ * the full trail's 12–16 — which is what keeps a traced readout in the same
+ * order as the run it draws instead of an order above it, and four points still
+ * show the merit falling, which is what the picture is for.
+ */
+export const TRACED_TRAIL_POINTS = 4;
+
+/**
  * The work levels a trail is replayed at: every one up to the cap, evenly
  * spaced above it, and always including 1 and the last.
  */
-export function trailWorkLevels(iterations: number): readonly number[] {
-  if (iterations <= TRAIL_MAX_POINTS) {
+export function trailWorkLevels(
+  iterations: number,
+  maxPoints: number = TRAIL_MAX_POINTS,
+): readonly number[] {
+  if (iterations <= maxPoints) {
     return Array.from({ length: iterations }, (_, i) => i + 1);
   }
   const out = new Set<number>([1, iterations]);
-  for (let i = 0; i < TRAIL_MAX_POINTS; i++) {
-    out.add(1 + Math.round(((iterations - 1) * i) / (TRAIL_MAX_POINTS - 1)));
+  for (let i = 0; i < maxPoints; i++) {
+    out.add(1 + Math.round(((iterations - 1) * i) / (maxPoints - 1)));
   }
   return [...out].sort((a, b) => a - b);
 }
@@ -632,13 +929,73 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   const operands = wishes.map((w) => operandFor(w, seed, spec.currency));
   const from = variables.map((v) => valueOf(seed.prescription, v));
 
+  const traced = spec.traced;
+  if (traced !== null) {
+    if (!Number.isFinite(traced.target) || traced.target < 0) {
+      return refusalOf(
+        new AppRefusal(
+          `a ${tracedLabel(traced.reading)} of ${traced.target} ${tracedUnit(traced.reading)} is not ` +
+            `something to ask for — both readings are magnitudes, and 0 is the smallest wish there is.`,
+        ),
+        "build",
+      );
+    }
+    if (!(Number.isFinite(traced.weight) && traced.weight > 0)) {
+      return refusalOf(
+        new AppRefusal(
+          `a weight of ${traced.weight} on the ${tracedLabel(traced.reading)} is not an exchange rate.`,
+        ),
+        "build",
+      );
+    }
+    // The fit before the run, so the sentence can name the options that work.
+    // `optimizeSystem` refuses this too, and correctly — but its message says
+    // how many rays survived, not which of THIS panel's four grids would carry
+    // the fit at this field, and the reader can only act on the second.
+    if (traced.reading === "wavefront") {
+      const survivors = survivorsAt(seed.prescription, traced.grid, traced.fieldDeg);
+      if (survivors < traced.terms) {
+        const wide = TRACED_GRIDS.filter(
+          (g) => survivorsAt(seed.prescription, g, traced.fieldDeg) >= traced.terms,
+        );
+        return refusalOf(
+          new AppRefusal(
+            `a ${traced.terms}-term fit over ${traced.grid} points across the pupil has ${survivors} ` +
+              `rays surviving at ${traced.fieldDeg}°, and a fit needs at least one sample per term. ` +
+              (wide.length > 0
+                ? `${wide.join(" or ")} points across carries it at this field.`
+                : `no grid this panel offers carries ${traced.terms} terms at this field — ` +
+                  `${TRACED_TERMS.filter((t) => t < traced.terms).join(" or ") || "fewer"} terms would.`),
+          ),
+          "trace",
+        );
+      }
+    }
+  }
+
+  const tracedOperand = traced === null ? null : tracedOperandFor(traced);
+  /**
+   * One run, whichever merit is being asked. The traced branch goes through
+   * `optimizeSystem` because a spot has a field, an aperture and a conjugate
+   * and a prescription alone has none of them — and it takes the paraxial
+   * operands unchanged, so "hold the focal length and shrink the spot" stays
+   * one question rather than two.
+   */
+  const run = (start: Prescription, maxIterations: number): DlsResult =>
+    tracedOperand === null
+      ? optimizePrescription(start, variables, operands, { maxIterations })
+      : optimizeSystem(
+          systemOf(start, traced!.fieldDeg),
+          variables,
+          [...operands, tracedOperand],
+          { maxIterations },
+        );
+
   let result: DlsResult;
   try {
-    result = optimizePrescription(seed.prescription, variables, operands, {
-      maxIterations: spec.maxIterations,
-    });
+    result = run(seed.prescription, spec.maxIterations);
   } catch (cause) {
-    return refusalOf(cause, "optimise");
+    return refusalOf(cause, traced === null ? "optimise" : "trace");
   }
 
   const built = withVariables(seed.prescription, variables, result.x);
@@ -663,7 +1020,24 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
       singularValues: [],
       weakest: [],
       wishCount: operands.length,
+      withheld: null,
     };
+    // § 1.8.9's reader is `variableResponse`, which takes a PRESCRIPTION — it
+    // can read a paraxial merit's Jacobian and cannot see a traced wish at all.
+    // Withheld rather than taken over the paraxial wishes alone, which would
+    // print a conditioning for a merit nobody asked for, in the one place on
+    // this panel whose whole job is to say what the merit can see.
+    if (traced !== null) {
+      return {
+        ...blank,
+        refused: null,
+        withheld:
+          `the reader for this is \`variableResponse\`, which differences a merit built from a ` +
+          `prescription — it cannot see a ${tracedLabel(traced.reading)}, which needs a field, an ` +
+          `aperture and a conjugate. Reading it over the paraxial wishes alone would print the ` +
+          `conditioning of a merit this run did not use.`,
+      };
+    }
     try {
       const before = variableResponse(seed.prescription, variables, operands);
       let conditionAfter = Number.NaN;
@@ -682,16 +1056,34 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
         weakest: before.weakest,
         wishCount: operands.length,
         refused: null,
+        withheld: null,
       };
     } catch (cause) {
       return { ...blank, refused: (cause as Error).message };
     }
   })();
 
+  // The merit's own residual vector at the starting design — one evaluation,
+  // and the only way to say what share of the merit each wish held BEFORE the
+  // run rather than after it. `maxIterations: 0` is a read, not a run: the
+  // solver evaluates x0 and stops without stepping.
+  const shares = (r: readonly number[]): number[] => {
+    const total = r.reduce((acc, v) => acc + v * v, 0);
+    return r.map((v) => (total > 0 ? (v * v) / total : Number.NaN));
+  };
+  const shareStart = (() => {
+    try {
+      return shares(run(seed.prescription, 0).residuals);
+    } catch {
+      return [];
+    }
+  })();
+  const shareEnd = shares(result.residuals);
+
   // Every wish read back in its OWN unit off the built lens, rather than from
   // the merit's residual vector: a focal wish asked in power has a residual in
   // 1/mm, and "you are 400 mm short" is the sentence that means something.
-  const wishReadouts: WishReadout[] = wishes.map((w) => {
+  const wishReadouts: WishReadout[] = wishes.map((w, i) => {
     let value: number;
     try {
       value = readWish(built, w, seed);
@@ -712,11 +1104,45 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
       target: w.target,
       value,
       leftover,
+      startValue,
+      shareStart: shareStart[i] ?? Number.NaN,
+      shareEnd: shareEnd[i] ?? Number.NaN,
       relative: relativeMiss(leftover, w.target, startValue),
       weight: w.weight,
       solvedUnit: w.kind === "focal" && spec.currency === "power" ? "1/mm" : w.unit,
     };
   });
+
+  // The traced wish reads last, in the same table and the same units-of-its-own
+  // rule as the others. It is one extra trace of the built lens (0.17 ms for a
+  // 149-ray spot, 0.80 ms for the same rays fitted to 28 terms) against a run
+  // that costs a hundred of them, so there is no reason to read it off the
+  // residual instead and every reason not to: the residual is weighted.
+  if (traced !== null) {
+    const readSafely = (p: Prescription): number => {
+      try {
+        return readTraced(p, traced);
+      } catch {
+        return Number.NaN;
+      }
+    };
+    const value = readSafely(built);
+    const startValue = readSafely(seed.prescription);
+    const leftover = value - traced.target;
+    wishReadouts.push({
+      label: `${tracedLabel(traced.reading)} at ${traced.fieldDeg}°`,
+      unit: tracedUnit(traced.reading),
+      target: traced.target,
+      value,
+      startValue,
+      shareStart: shareStart[wishes.length] ?? Number.NaN,
+      shareEnd: shareEnd[wishes.length] ?? Number.NaN,
+      leftover,
+      relative: relativeMiss(leftover, traced.target, startValue),
+      weight: traced.weight,
+      solvedUnit: tracedUnit(traced.reading),
+    });
+  }
 
   // The trail, by replay. Deterministic, so a capped run is the longer run's
   // prefix — pinned in this panel's test rather than assumed here.
@@ -728,10 +1154,11 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   // the curve still starts where the design started and ends where it stopped.
   const trail: TrailPoint[] = [];
   try {
-    for (const k of trailWorkLevels(result.iterations)) {
-      const step = optimizePrescription(seed.prescription, variables, operands, {
-        maxIterations: k,
-      });
+    for (const k of trailWorkLevels(
+      result.iterations,
+      traced === null ? TRAIL_MAX_POINTS : TRACED_TRAIL_POINTS,
+    )) {
+      const step = run(seed.prescription, k);
       const at = withVariables(seed.prescription, variables, step.x);
       trail.push({
         work: k,
@@ -739,13 +1166,34 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
         accepted: step.accepted,
         rejected: step.rejected,
         damping: step.damping,
-        relative: wishes.map((w) => {
-          try {
-            return relativeMiss(readWish(at, w, seed) - w.target, w.target, readWish(seed.prescription, w, seed));
-          } catch {
-            return Number.NaN;
-          }
-        }),
+        relative: [
+          ...wishes.map((w) => {
+            try {
+              return relativeMiss(
+                readWish(at, w, seed) - w.target,
+                w.target,
+                readWish(seed.prescription, w, seed),
+              );
+            } catch {
+              return Number.NaN;
+            }
+          }),
+          ...(traced === null
+            ? []
+            : [
+                (() => {
+                  try {
+                    return relativeMiss(
+                      readTraced(at, traced) - traced.target,
+                      traced.target,
+                      readTraced(seed.prescription, traced),
+                    );
+                  } catch {
+                    return Number.NaN;
+                  }
+                })(),
+              ]),
+        ],
       });
     }
   } catch (cause) {
@@ -774,7 +1222,26 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   // first measured it.
   let single: SingleVariableComparison | null = null;
   const focalWish = wishes.find((w) => w.kind === "focal");
-  if (seed.singleVariable !== null && focalWish !== undefined) {
+  if (seed.singleVariable !== null && focalWish !== undefined && traced !== null) {
+    // Part M's question is still a valid question — it is the COMPARISON that
+    // stops being one. That box exists to say what a second freedom bought
+    // against a single-number solve for the same focal length, and with a
+    // traced wish in the merit the run beside it is no longer answering that.
+    const choice = seed.menu.find((c) => c.id === seed.singleVariable!.id)!;
+    single = {
+      label: choice.label,
+      from: valueOf(seed.prescription, choice.variable),
+      to: Number.NaN,
+      eflMm: Number.NaN,
+      spreadMm: Number.NaN,
+      spreadRatio: Number.NaN,
+      refused: null,
+      withheld:
+        `this box compares a one-number solve for the focal length against the run beside it. ` +
+        `That run is now also asking for a ${tracedLabel(traced.reading)}, so the two are not ` +
+        `answers to the same question and the ratio between them would not mean what it says.`,
+    };
+  } else if (seed.singleVariable !== null && focalWish !== undefined) {
     // By id, and deliberately independent of what is selected: Part M's
     // question is about THIS curvature on this lens, and stays the same
     // question however many freedoms the run above was given.
@@ -799,6 +1266,7 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
         spreadMm: spread,
         spreadRatio: spreadBeforeMm === 0 ? Number.NaN : spread / spreadBeforeMm,
         refused: null,
+        withheld: null,
       };
     } catch (cause) {
       single = {
@@ -809,6 +1277,7 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
         spreadMm: Number.NaN,
         spreadRatio: Number.NaN,
         refused: (cause as Error).message,
+        withheld: null,
       };
     }
   }
@@ -822,9 +1291,7 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
       return x0 === 0 ? spec.startOffset : x0 * (1 + spec.startOffset);
     });
     const nudged = withVariables(seed.prescription, variables, moved);
-    const again = optimizePrescription(nudged, variables, operands, {
-      maxIterations: spec.maxIterations,
-    });
+    const again = run(nudged, spec.maxIterations);
     let worst = 0;
     again.x.forEach((v, i) => {
       const a = result.x[i]!;
@@ -863,6 +1330,7 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
     variables: chosen,
     geometry,
     currency: spec.currency,
+    traced,
     from,
     to: result.x,
     reason: result.reason,
@@ -918,6 +1386,21 @@ function referenceFor(
   chosen: readonly VariableChoice[],
 ): ReferenceReadout | null {
   if (seed.reference === null) return null;
+  if (spec.traced !== null) {
+    return {
+      kind: seed.reference,
+      label: seed.reference === "thin-split" ? "the classical split" : "Coddington's best form",
+      withheld:
+        `both closed forms here describe a design settled under FIRST-ORDER wishes alone — the ` +
+        `classical split is a thin-lens power split and Coddington's shape is a thin-lens ` +
+        `minimum. This run also asked for a ${tracedLabel(spec.traced.reading)} over real rays, ` +
+        `which is a different minimum: the textbook value is still true and is no longer a check ` +
+        `on this answer.`,
+      expected: [],
+      found: [],
+      note: "",
+    };
+  }
   const wanted = [...seed.defaultVariables].sort().join(",");
   const got = chosen.map((c) => c.id).sort().join(",");
   if (wanted !== got) {

@@ -3,16 +3,29 @@ import { Plot, type PlotSeries } from "../plot";
 import {
   OPTIMIZE_LINES,
   OPTIMIZE_SEEDS,
+  TRACED_FIELDS,
+  TRACED_GRIDS,
+  TRACED_TERMS,
+  TRACED_TRAIL_POINTS,
   defaultSpec,
+  defaultTracedWish,
   describeOptimize,
   optimizeSeedById,
+  tracedLabel,
+  tracedRefusal,
+  tracedUnit,
   type Currency,
+  type OptimizeDescription,
   type OptimizeSeedId,
   type OptimizeSpec,
+  type TracedReading,
+  type TracedWish,
   type Wish,
 } from "../optimize";
 import { Choice, Fact, Fieldset, Guard, NumberField, Toggles, num, type GuardLevel } from "../ui";
 import { refusalVoice } from "../refusal";
+import { useLatestFromWorker } from "../hooks";
+import { createOptimizeWorker } from "../workers";
 
 /**
  * Design mode's second half: the panel that asks the engine for a compromise.
@@ -83,15 +96,36 @@ const REASON_GLOSS: Record<string, string> = {
   damping: "every step failed, however short: the damping grew past every scale in the problem",
 };
 
+/** "off" is a reading here, because the control that turns it on is the same one. */
+const TRACED_CHOICES = ["off", "spot", "wavefront"] as const;
+
 export function OptimizePanel() {
   const [spec, setSpec] = useState<OptimizeSpec>(defaultSpec);
+  /**
+   * The spec the traced answer on screen belongs to — set by the button, never
+   * by a keystroke. A traced readout is 51 ms to 5.5 s (measured over every cell
+   * this panel offers), so it is asked for rather than recomputed, and the
+   * answer stays labelled with the settings it was asked at.
+   */
+  const [submitted, setSubmitted] = useState<OptimizeSpec | null>(null);
 
   const pickSeed = (id: OptimizeSeedId) => {
     const seed = optimizeSeedById(id);
+    // A traced answer belongs to the lens it was traced on, so switching seeds
+    // drops it rather than labelling it stale: everything in that readout —
+    // the variables, the closed form, the answer itself — is about the other
+    // seed. (A control moving is different, and IS only labelled: same lens.)
+    setSubmitted(null);
     // The selection goes back to the seed's own as well: ids are per seed, and
     // carrying "the flint back curvature" onto a singlet would name a surface
     // that is not there.
-    setSpec((s) => ({ ...s, seed: id, wishes: seed.wishes, variables: seed.defaultVariables }));
+    setSpec((s) => ({
+      ...s,
+      seed: id,
+      wishes: seed.wishes,
+      variables: seed.defaultVariables,
+      traced: tracedRefusal(seed) === null ? s.traced : null,
+    }));
   };
   const toggleVariable = (id: string) =>
     setSpec((s) => ({
@@ -101,6 +135,15 @@ export function OptimizePanel() {
         : [...s.variables, id],
     }));
   const patch = (part: Partial<OptimizeSpec>) => setSpec((s) => ({ ...s, ...part }));
+  /**
+   * Changing a traced control does NOT re-run anything — see `submitted`. It
+   * does drop the previous answer's claim to be current, which `stale` reports.
+   */
+  const patchTraced = (part: Partial<TracedWish> | null) =>
+    setSpec((s) => ({
+      ...s,
+      traced: part === null ? null : { ...(s.traced ?? defaultTracedWish()), ...part },
+    }));
   const patchWish = (index: number, part: Partial<Wish>) =>
     setSpec((s) => ({
       ...s,
@@ -108,7 +151,24 @@ export function OptimizePanel() {
     }));
 
   const seed = optimizeSeedById(spec.seed);
-  const result = useMemo(() => describeOptimize(spec), [spec]);
+  /** Whether real rays can be asked about this seed at all — one 29-ray trace. */
+  const cannotTrace = useMemo(() => tracedRefusal(seed), [seed]);
+
+  // The paraxial readout, live on every keystroke exactly as before. It is also
+  // what stays on screen while a traced run is in flight, which is why it is
+  // computed whether or not a traced wish is set.
+  const live = useMemo(() => describeOptimize({ ...spec, traced: null }), [spec]);
+  const { result: traced, pending } = useLatestFromWorker<OptimizeSpec | null, OptimizeDescription | null>(
+    createOptimizeWorker,
+    submitted,
+  );
+  const showTraced = spec.traced !== null && submitted !== null && traced !== null;
+  const result = showTraced ? traced! : live;
+  // The controls can move after the button was pressed. Saying so beats either
+  // of the alternatives: silently showing an answer to a question that is no
+  // longer on screen, or clearing it and making the reader run it again.
+  const stale =
+    submitted !== null && spec.traced !== null && JSON.stringify(submitted) !== JSON.stringify(spec);
 
   const controls = (
     <Controls
@@ -118,6 +178,12 @@ export function OptimizePanel() {
       patch={patch}
       patchWish={patchWish}
       toggleVariable={toggleVariable}
+      patchTraced={patchTraced}
+      cannotTrace={cannotTrace}
+      onRun={() => setSubmitted(spec)}
+      pending={pending && submitted !== null}
+      stale={stale}
+      hasAnswer={showTraced}
     />
   );
 
@@ -208,11 +274,24 @@ export function OptimizePanel() {
                 label={`${w.label}: wanted ${num(w.target, 6)} ${w.unit}, got`}
                 value={`${Number.isFinite(w.value) ? w.value.toPrecision(10) : "no such lens"} ${w.unit}`}
                 level={wishLevel(w.relative)}
-                detail={`leftover ${w.leftover.toExponential(3)} ${w.unit} — ${w.relative.toExponential(2)} of what was asked for. Weight ${w.weight}, and the merit saw this wish in ${w.solvedUnit}`}
+                detail={
+                  `started at ${Number.isFinite(w.startValue) ? w.startValue.toPrecision(6) : "no such lens"} ${w.unit}. ` +
+                  `Leftover ${w.leftover.toExponential(3)} ${w.unit} — ${w.relative.toExponential(2)} of what was asked for. ` +
+                  `Weight ${w.weight}, and the merit saw this wish in ${w.solvedUnit}. ` +
+                  `It held ${(w.shareStart * 100).toFixed(3)}% of the merit at the start and ${(w.shareEnd * 100).toFixed(3)}% at the answer`
+                }
               />
             </div>
           ))}
         </div>
+        {result.traced !== null && (
+          <div style={{ marginTop: 8, color: "#555", fontSize: 12 }}>
+            traced: {tracedLabel(result.traced.reading)} over {result.traced.grid} points across the
+            pupil{result.traced.reading === "wavefront" ? `, ${result.traced.terms} Noll terms` : ""}, at{" "}
+            {result.traced.fieldDeg}°, weight {result.traced.weight} — {num(result.elapsedMs, 0)} ms for
+            this whole readout, in a worker.
+          </div>
+        )}
         {result.builtIsAfocal && (
           <div style={{ color: "#c00", marginTop: 8 }}>
             The lens this answer names is afocal: it has no focal length at all.
@@ -228,7 +307,14 @@ export function OptimizePanel() {
         damping exists to survive exactly that — so this is a statement about the{" "}
         <em>question</em>, not a prediction that the answer is wrong.
       </p>
-      {geometry.refused !== null ? (
+      {geometry.withheld !== null ? (
+        <Guard
+          label="the variables&rsquo; geometry —"
+          value="withheld"
+          level="warn"
+          detail={geometry.withheld}
+        />
+      ) : geometry.refused !== null ? (
         <Guard
           label="the variables&rsquo; geometry —"
           value="refused"
@@ -350,9 +436,17 @@ export function OptimizePanel() {
         {result.rejected} rejected ones.
         {trail.length < result.iterations &&
           ` The trail is sampled at ${trail.length} of them, because a capped run at k costs O(k) and drawing every one is quadratic.`}
+        {result.traced !== null &&
+          ` On a traced merit the budget is ${TRACED_TRAIL_POINTS} replays rather than 48: the full trail costs 12–16× the run it draws, which is affordable at 0.02 ms a residual and not at 0.8.`}
       </p>
 
-      {single !== null && (
+      {single !== null && single.withheld !== null && (
+        <>
+          <h2 style={{ fontSize: 16, marginTop: 24 }}>One number against two, on the same lens</h2>
+          <Guard label="withheld —" value="not the same question" level="warn" detail={single.withheld} />
+        </>
+      )}
+      {single !== null && single.withheld === null && (
         <>
           <h2 style={{ fontSize: 16, marginTop: 24 }}>One number against two, on the same lens</h2>
           <p style={{ maxWidth: 700, color: "#444", fontSize: 14 }}>
@@ -595,9 +689,16 @@ function Controls(props: {
   patch: (part: Partial<OptimizeSpec>) => void;
   patchWish: (index: number, part: Partial<Wish>) => void;
   toggleVariable: (id: string) => void;
+  patchTraced: (part: Partial<TracedWish> | null) => void;
+  cannotTrace: string | null;
+  onRun: () => void;
+  pending: boolean;
+  stale: boolean;
+  hasAnswer: boolean;
 }) {
   const { spec, patch } = props;
   const seed = optimizeSeedById(spec.seed);
+  const t = spec.traced;
   return (
     <>
       <Fieldset title="the lens, and what may move">
@@ -648,6 +749,113 @@ function Controls(props: {
           between quantities in different units — how many millimetres of focus one diopter is worth.
           Nothing physical fixes it. Where every wish can be granted at once, as on the thin doublet,
           the answer does not depend on these at all.
+        </p>
+      </Fieldset>
+      <Fieldset title="a wish about real rays">
+        {props.cannotTrace !== null ? (
+          <Guard
+            label="not on this seed —"
+            value="no rays get through"
+            level="bad"
+            detail={props.cannotTrace}
+          />
+        ) : (
+          <>
+            <Choice
+              label="ask for"
+              options={TRACED_CHOICES}
+              value={t === null ? "off" : t.reading}
+              onChange={(choice) =>
+                props.patchTraced(choice === "off" ? null : { reading: choice as TracedReading })
+              }
+              format={(c) =>
+                c === "off" ? "nothing traced" : `${tracedLabel(c as TracedReading)} (${tracedUnit(c as TracedReading)})`
+              }
+            />
+            {t !== null && (
+              <>
+                <Choice
+                  label="rays across the pupil"
+                  options={TRACED_GRIDS}
+                  value={t.grid as (typeof TRACED_GRIDS)[number]}
+                  onChange={(grid) => props.patchTraced({ grid })}
+                />
+                {t.reading === "wavefront" && (
+                  <Choice
+                    label="Noll terms fitted"
+                    options={TRACED_TERMS}
+                    value={t.terms as (typeof TRACED_TERMS)[number]}
+                    onChange={(terms) => props.patchTraced({ terms })}
+                  />
+                )}
+                <Choice
+                  label="read at field"
+                  options={TRACED_FIELDS}
+                  value={t.fieldDeg as (typeof TRACED_FIELDS)[number]}
+                  onChange={(fieldDeg) => props.patchTraced({ fieldDeg })}
+                  format={(f) => `${f}°`}
+                />
+                <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+                  <NumberField
+                    label={`target (${tracedUnit(t.reading)})`}
+                    value={t.target}
+                    onChange={(target) => props.patchTraced({ target })}
+                    width={110}
+                  />
+                  <NumberField
+                    label="weight"
+                    value={t.weight}
+                    onChange={(weight) => props.patchTraced({ weight })}
+                    width={80}
+                  />
+                  {/* Disabled once the answer on screen belongs to the settings
+                      on screen: the run is deterministic, so pressing again
+                      would spend seconds reproducing the same numbers. It comes
+                      back the moment a control moves. */}
+                  <button
+                    type="button"
+                    onClick={props.onRun}
+                    disabled={props.pending || (props.hasAnswer && !props.stale)}
+                    style={{
+                      padding: "6px 14px",
+                      fontSize: 13,
+                      cursor: props.pending ? "wait" : "pointer",
+                      border: "1px solid #888",
+                      background: props.stale || !props.hasAnswer ? "#ffd" : "#f4f4f4",
+                    }}
+                  >
+                    {props.pending
+                      ? "tracing…"
+                      : props.hasAnswer && !props.stale
+                        ? "traced"
+                        : props.hasAnswer
+                          ? "trace it again"
+                          : "trace it"}
+                  </button>
+                </div>
+                <p style={{ maxWidth: 460, color: props.stale ? "#c60" : "#999", fontSize: 11, margin: "4px 0 0" }}>
+                  {props.pending
+                    ? "running off the main thread — the page stays live, and the answer below is still the paraxial one."
+                    : props.stale
+                      ? "the controls have moved since this answer was traced: what is below answers the settings you pressed the button at, not the ones on screen now."
+                      : props.hasAnswer
+                        ? "this answer was traced; the paraxial readout returns the moment you switch the wish off."
+                        : "nothing is traced until you press the button. A traced merit costs 103–493× a third-order sum per residual and a whole readout runs 51 ms to 5.5 s here, so it is asked for rather than recomputed on every keystroke."}
+                </p>
+              </>
+            )}
+          </>
+        )}
+        <p style={{ maxWidth: 460, color: "#999", fontSize: 11, margin: "4px 0 0" }}>
+          Two readings, out of the five the engine offers, and the cut is one rule measured on
+          this lens over this menu: <em>offered only where it is bounded and single-basin over
+          every number the seed lets you free</em> — and that list includes the distance to the
+          image plane. The spot on its own <em>best</em> plane refocuses every trial, so that
+          distance is invisible to it: from −2, −0.5, +0.5, +2 and +5 mm it lands exactly where it
+          started and calls it converged. A <em>balanced</em> wavefront lands 20.1 mm past focus
+          at 12.9 waves from all five, identically — so the second start below would agree with it
+          and call that a basin. Contrast at a frequency is exact from within a quarter wave and
+          walks 3 mm away from just outside it, and this seed starts 2.14 waves out.
         </p>
       </Fieldset>
       <Fieldset title="the currency a focal-length wish is asked in">
