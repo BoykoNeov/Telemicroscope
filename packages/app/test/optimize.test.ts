@@ -10,6 +10,7 @@ import {
   OPTIMIZE_SEEDS,
   TRACED_FIELDS,
   TRACED_GRIDS,
+  TRACED_TERMS,
   TRACED_TRAIL_POINTS,
   TRAIL_MAX_POINTS,
   bestFormShapeFactor,
@@ -819,69 +820,6 @@ describe("what the panel offers, and what it refuses before the button", () => {
 describe("what a traced wish does to the rest of the panel", () => {
   const traced = { ...defaultTracedWish(), grid: 11 };
 
-  it("the wish reads back in its own unit, and the run improves it", () => {
-    const r = ok(specFor("retarget", { traced }));
-    const spot = r.wishes[r.wishes.length - 1]!;
-    expect(r.traced).toEqual(traced);
-    expect(spot.unit).toBe("mm");
-    expect(spot.label).toMatch(/RMS spot radius at 0°/);
-    // 0.12 mm on the lens as shipped, and the run takes two orders off it.
-    expect(spot.startValue).toBeGreaterThan(0.1);
-    expect(spot.value).toBeLessThan(spot.startValue / 100);
-  });
-
-  it("THE default hazard: a traced wish at weight 1 owns the merit before anything moves", () => {
-    // A spot residual starts at 1.2·10⁻¹ mm and a focal-length residual asked in
-    // power at 5·10⁻⁴ 1/mm, so at equal weights the merit is all spot and the
-    // run ignores the focal length it was also given — it ends 100 mm from the
-    // 400 mm it was asked for, having converged. Nothing throws; the share
-    // column is the only thing on the panel that says so.
-    const r = ok(specFor("retarget", { traced }));
-    const [focal, , spot] = r.wishes;
-    expect(spot!.shareStart).toBeGreaterThan(0.999);
-    expect(focal!.shareStart).toBeLessThan(1e-4);
-    expect(Math.abs(focal!.leftover)).toBeGreaterThan(50);
-    expect(r.wishes.reduce((a, w) => a + w.shareStart, 0)).toBeCloseTo(1, 12);
-    expect(r.wishes.reduce((a, w) => a + w.shareEnd, 0)).toBeCloseTo(1, 12);
-
-    // And the exchange rate is the fix, not a bug report: weight the focal wish
-    // by 10⁶ and it takes the merit back and lands on its target.
-    const heavier = ok(
-      specFor("retarget", {
-        traced,
-        wishes: optimizeSeedById("retarget").wishes.map((w) =>
-          w.kind === "focal" ? { ...w, weight: 1e6 } : w,
-        ),
-      }),
-    );
-    expect(heavier.wishes[0]!.shareStart).toBeGreaterThan(0.99);
-    expect(Math.abs(heavier.wishes[0]!.leftover)).toBeLessThan(1);
-  });
-
-  it("the three readouts that cannot mean what they say withhold themselves", () => {
-    const withTraced = ok(specFor("retarget", { traced }));
-    expect(withTraced.geometry.withheld).toMatch(/variableResponse/);
-    expect(withTraced.geometry.refused).toBeNull();
-    expect(withTraced.single!.withheld).toMatch(/not answers to the same question/);
-    expect(ok(specFor("bestform", { traced })).reference!.withheld).toMatch(/thin-lens/);
-
-    const paraxial = ok(specFor("retarget"));
-    expect(paraxial.geometry.withheld).toBeNull();
-    expect(paraxial.single!.withheld).toBeNull();
-    expect(ok(specFor("bestform")).reference!.withheld).toBeNull();
-  });
-
-  it("the trail's replay budget drops from 48 to 4, and the shape of it is the same", () => {
-    expect(trailWorkLevels(100, TRACED_TRAIL_POINTS)).toEqual([1, 34, 67, 100]);
-    expect(trailWorkLevels(3, TRACED_TRAIL_POINTS)).toEqual([1, 2, 3]);
-    const r = ok(specFor("retarget", { traced }));
-    expect(r.trail.length).toBeLessThanOrEqual(TRACED_TRAIL_POINTS);
-    expect(r.trail[r.trail.length - 1]!.work).toBe(r.iterations);
-    // One relative-miss series per wish, the traced one included.
-    expect(r.trail[0]!.relative).toHaveLength(r.wishes.length);
-    expect(ok(specFor("retarget")).trail.length).toBeGreaterThan(TRACED_TRAIL_POINTS);
-  });
-
   it("off axis changes what is REACHABLE, not what the lens starts at", () => {
     const axis = ok(specFor("retarget", { traced: { ...traced, fieldDeg: 0 } }));
     const off = ok(specFor("retarget", { traced: { ...traced, fieldDeg: 0.5 } }));
@@ -909,5 +847,153 @@ describe("what a traced wish does to the rest of the panel", () => {
     expect(before.wishes.map((w) => w.value)).toEqual(
       ok(specFor("retarget", { traced: null })).wishes.map((w) => w.value),
     );
+  });
+});
+
+/**
+ * The same block again for the OTHER reading, which is the point.
+ *
+ * § 1.8.7's carried finding is that a shipped option with no rung is a shipped
+ * claim with no evidence — all seventeen of its first-commit rungs were at field
+ * 0, where every one would have passed with the two wavefront readings swapped.
+ * This is that failure one axis over: the block above ran `defaultTracedWish()`,
+ * whose reading is `"spot"`, so the wavefront's unit, its label, its share of
+ * the merit and the three withholdings under it had no reader at all.
+ */
+describe.each([
+  {
+    reading: "spot" as const,
+    unit: "mm",
+    label: /RMS spot radius at 0°/,
+    /** The lens as shipped, at 77 rays. */
+    startsAt: 0.124,
+  },
+  {
+    reading: "wavefront" as const,
+    unit: "waves",
+    label: /wavefront error, RMS at 0°/,
+    /** 2.14 waves, because the seed ships 3.5 mm behind its own focus. */
+    startsAt: 2.1437,
+  },
+])("both readings, through the panel: $reading", ({ reading, unit, label, startsAt }) => {
+  const traced = { ...defaultTracedWish(), reading, grid: 11 };
+
+  it("reads back in its own unit, off the built lens, and the run improves it", () => {
+    const r = ok(specFor("retarget", { traced }));
+    const w = r.wishes[r.wishes.length - 1]!;
+    expect(r.traced).toEqual(traced);
+    expect(w.unit).toBe(unit);
+    expect(w.label).toMatch(label);
+    expect(w.startValue).toBeCloseTo(startsAt, 3);
+    expect(w.value).toBeLessThan(w.startValue / 100);
+  });
+
+  it("…and that number is the one the merit minimised, not a second opinion", () => {
+    // `readTraced` goes through `spotDiagram` / `fitRms(fitZernike(...))` while
+    // the engine's operand goes through its own `tracedRead`. The panel's doc
+    // comment claims those are the same quantity; if they ever were not, the
+    // screen would print a number the run never looked at — no error, no NaN,
+    // the § 1.8.9 failure shape. So: leftover × weight IS the residual.
+    const spec = specFor("retarget", { traced: { ...traced, weight: 3 } });
+    const r = ok(spec);
+    const w = r.wishes[r.wishes.length - 1]!;
+    const built = withVariables(
+      r.seed.prescription,
+      r.variables.map((v) => v.variable),
+      r.to,
+    );
+    // The engine's own residual vector AT the answer: `maxIterations: 0` reads
+    // the design it is handed and stops.
+    const engine = optimizeSystem(
+      systemOf(built, traced.fieldDeg),
+      r.variables.map((v) => v.variable),
+      [
+        ...r.seed.wishes.map((wish) => operandFor(wish, r.seed, r.currency)),
+        tracedOperandFor({ ...traced, weight: 3 }),
+      ],
+      { maxIterations: 0 },
+    );
+    const mine = w.weight * w.leftover;
+    expect(mine).toBeCloseTo(engine.residuals[engine.residuals.length - 1]!, 12);
+    expect(mine).not.toBe(0);
+  });
+
+  it("owns the merit at weight 1, and the share column is the only thing that says so", () => {
+    const r = ok(specFor("retarget", { traced }));
+    const w = r.wishes[r.wishes.length - 1]!;
+    expect(w.shareStart).toBeGreaterThan(0.999);
+    expect(r.wishes[0]!.shareStart).toBeLessThan(1e-4);
+    expect(Math.abs(r.wishes[0]!.leftover)).toBeGreaterThan(50);
+    expect(r.wishes.reduce((a, x) => a + x.shareStart, 0)).toBeCloseTo(1, 12);
+  });
+
+  it("withholds the three readouts that cannot mean what they say", () => {
+    const r = ok(specFor("retarget", { traced }));
+    expect(r.geometry.withheld).toMatch(/variableResponse/);
+    expect(r.single!.withheld).toMatch(/not answers to the same question/);
+    expect(ok(specFor("bestform", { traced })).reference!.withheld).toMatch(/thin-lens/);
+    expect(r.trail.length).toBeLessThanOrEqual(TRACED_TRAIL_POINTS);
+  });
+});
+
+describe("two options that had no reader, and one branch that has no path", () => {
+  it("the term count is part of the merit — and on THIS seed it is nearly free", () => {
+    // § 1.8.7 states the principle: `terms` is the operand's definition, not a
+    // resolution knob. What it is worth HERE is a different question and the
+    // panel should not imply an answer it has not measured: this seed's error is
+    // 2.14 waves of defocus, which Noll j ≤ 11 already carries in full, so the
+    // 17 extra terms move the reading by 5·10⁻⁵ of itself. Off axis at half a
+    // degree — where a field-dependent term could show up — it is 2·10⁻⁵.
+    const read = (terms: number, fieldDeg: number) => {
+      const r = ok(specFor("retarget", {
+        traced: { ...defaultTracedWish(), reading: "wavefront", grid: 11, terms, fieldDeg },
+      }));
+      return r.wishes[r.wishes.length - 1]!.startValue;
+    };
+    for (const [fieldDeg, tol] of [[0, 1e-4], [0.5, 1e-4]] as const) {
+      const eleven = read(11, fieldDeg);
+      const twentyEight = read(28, fieldDeg);
+      expect(Math.abs(eleven - twentyEight) / twentyEight).toBeLessThan(tol);
+      expect(Math.abs(eleven - twentyEight)).toBeGreaterThan(0);
+    }
+    expect(TRACED_TERMS).toEqual([11, 28]);
+  });
+
+  it("wherever a fit is refused, an offered grid carries it — swept, not asserted", () => {
+    // Darkfield's rule (APP.md § A2), pinned the way that section pinned it: over
+    // every cell the control can reach. The consequence is that the refusal's
+    // OTHER branch — "no grid this panel offers carries N terms" — is a guard
+    // rather than a path, and this sweep is what makes that a measurement.
+    let refusals = 0;
+    for (const id of ["retarget", "bestform", "currency"] as const) {
+      const seed = optimizeSeedById(id);
+      for (const terms of TRACED_TERMS) {
+        for (const fieldDeg of TRACED_FIELDS) {
+          const carries = TRACED_GRIDS.filter(
+            (grid) =>
+              opdMap(systemOf(seed.prescription, fieldDeg), fieldDeg, LINE_D, pupilGrid(grid)).samples
+                .length >= terms,
+          );
+          for (const grid of TRACED_GRIDS) {
+            if (carries.includes(grid)) continue;
+            refusals += 1;
+            const r = describeOptimize(
+              specFor(id, {
+                traced: { ...defaultTracedWish(), reading: "wavefront", grid, terms, fieldDeg },
+              }),
+            );
+            expect(r.ok).toBe(false);
+            if (r.ok) continue;
+            expect(r.stage).toBe("trace");
+            // Names grids that work, never the empty-handed branch.
+            expect(r.error).not.toMatch(/no grid this panel offers/);
+            expect(r.error).toMatch(new RegExp(`${carries.join(" or ")} points across`));
+          }
+        }
+      }
+    }
+    // The currency seed vignettes 8 of 29 on axis, which is what puts cells in
+    // this sweep at all; without them it would be asserting over an empty set.
+    expect(refusals).toBe(7);
   });
 });

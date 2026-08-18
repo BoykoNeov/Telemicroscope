@@ -5404,8 +5404,9 @@ and simply never had a wish loud enough to expose it.
   is Rayleigh's — and **the panel's own seed starts 2.14 waves out, seventeen
   times outside it.** A second frequency, which is what rescued § 1.8.8's own
   0.1 mm start, does not rescue this one: the pair lands 2.94 mm out at 1.82
-  waves, because the operands do not share a trace and two frequencies are two
-  full transforms, not one. That failure is *loud in the leftover column and
+  waves. (And it would not be cheap if it did — the operands do not share a
+  trace, so two frequencies are two full transforms per evaluation rather than
+  two readings off one.) That failure is *loud in the leftover column and
   quiet in the merit* — 21% of the contrast asked for, against a merit of
   0.019 — which is exactly the split this panel's answer block exists to show,
   and it is still not a thing to ship: a wish whose basin is narrower than the
@@ -5439,15 +5440,26 @@ and simply never had a wish loud enough to expose it.
     panel wants is a system-level reader** — `meritResponse` already takes a
     residual function, so what is missing is the wrapper and its rungs.
 
+  **What the term count is worth here, since the panel offers it.** § 1.8.7's
+  point stands — `terms` is the operand's definition, not a resolution knob —
+  but on *this* seed it is nearly free: 11 terms against 28 move the reading by
+  5·10⁻⁵ of itself on axis and 2·10⁻⁵ at half a degree, because the error being
+  measured is 2.14 waves of defocus and Noll j ≤ 11 already carries that in
+  full. Measured rather than implied, which is the difference between offering a
+  control and claiming it matters.
+
   What is left on screen under a traced merit is the answer, every wish's
   leftover in its own unit, the stop reason, the second start and a four-point
   trail — which is the coherent half, because the leftover column is where a
   traced wish is read.
 
   **Whole-readout cost over every offered cell**, on this machine under
-  `vite-node`: 51 ms (29-ray spot, on axis) to **5.5 s** (313-ray wavefront at
-  0.5°, where two curvatures cannot correct field coma and the run spends its
-  whole iteration budget). That is 100× to 10⁵× a keystroke's budget, so the
+  `vite-node`: **42 ms** (77-ray spot, on axis) to **3.8 s** (313-ray wavefront
+  off axis, where two curvatures cannot correct field coma and the run spends
+  its whole iteration budget). The same sweep re-run reads 51 ms to 5.5 s, so
+  the top of that range is a load meter as much as a cost meter — Part M's own
+  caveat, and the reason the panel prints its own elapsed number rather than a
+  remembered one. Either way it is 100× to 10⁵× a keystroke's budget, so the
   traced half is **behind an explicit button and runs in a worker** — and the
   button is the load-bearing half. A worker alone would fire a multi-second run
   per keystroke, each superseding the last, and a readout that never settles is
@@ -5458,7 +5470,13 @@ and simply never had a wish loud enough to expose it.
   **Two refusals that a reader can act on, both before the run rather than
   after it** (the darkfield rule, § A2). A 28-term fit over a 29-ray grid loses
   rays off axis — 26 survive at 0.25° and 0.5° — so the panel names the grids
-  that carry it *at that field* rather than reporting a count. And **§ 1.8's
+  that carry it *at that field* rather than reporting a count. Swept over every
+  cell the control can reach on all three traceable seeds, **there are seven
+  such cells and every one of them can name a grid that works**, which makes the
+  other branch of that sentence — "no grid this panel offers carries N terms" —
+  a guard rather than a path: the widest grid keeps 213 rays on the worst seed.
+  (That seed is the currency trap, which vignettes 8 of 29 rays on axis; without
+  it the sweep would be asserting over an empty set.) And **§ 1.8's
   thin cemented doublet cannot carry a traced wish at all**: it has zero
   thickness, which is exactly what makes the classical split exact on it, and a
   lens of no thickness cannot be traced at a finite aperture — its two faces sag

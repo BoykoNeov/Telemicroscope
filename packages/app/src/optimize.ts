@@ -964,7 +964,12 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
               `rays surviving at ${traced.fieldDeg}°, and a fit needs at least one sample per term. ` +
               (wide.length > 0
                 ? `${wide.join(" or ")} points across carries it at this field.`
-                : `no grid this panel offers carries ${traced.terms} terms at this field — ` +
+                : // A GUARD, not a path: swept over every cell the control can
+                  // reach on all three traceable seeds, the seven refusing cells
+                  // can all name a grid that works, because the widest grid keeps
+                  // 213 rays on the worst-vignetting seed. Kept anyway — a future
+                  // seed that vignettes harder must not print an empty list.
+                  `no grid this panel offers carries ${traced.terms} terms at this field — ` +
                   `${TRACED_TERMS.filter((t) => t < traced.terms).join(" or ") || "fewer"} terms would.`),
           ),
           "trace",
