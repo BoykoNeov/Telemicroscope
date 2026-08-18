@@ -1105,7 +1105,10 @@ export type MtfCondition = {
   /**
    * Normalized frequency ν = f/f_c, strictly inside (0, 1). Tangential — the
    * section whose contrast varies along x, which is the meridional plane this
-   * engine puts a field point in. `mtfSections`' other half is not offered.
+   * engine puts a field point in, pinned to the bit against `mtfSections`.
+   * That other half is not offered as an operand: it is a boundary rather than
+   * an oversight, and off axis it is a different number — the two part company
+   * by 27% at 2° on § 1.8.8's own mirror.
    */
   readonly nu: number;
   /**

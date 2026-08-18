@@ -23,7 +23,7 @@ import { opdMap } from "../src/pupil/opd";
 import { fitZernike, fitRms, balancedRms, coefficient, zernike } from "../src/wave/zernike";
 import { pupilGrid, type PupilPoint } from "../src/pupil/aiming";
 import { psf } from "../src/wave/psf";
-import { mtf, mtfAt, diffractionLimitedMtf } from "../src/wave/mtf";
+import { mtf, mtfAt, mtfSections, diffractionLimitedMtf } from "../src/wave/mtf";
 import { pupils, imagePlaneZ } from "../src/pupil/pupils";
 import type { SolveVariable } from "../src/analysis/solve";
 
@@ -2666,8 +2666,14 @@ describe("DLS § 1.8.8 — the MTF reads above the closed form, and the grid say
           32,
         ),
     );
-    for (const v of values) expect(v).toBe(values[0]!);
-    expect(mtfRead(mtfParabola(-1), 0.5, 64)).not.toBe(values[0]!);
+    // To one ulp, not to the bit: three padding factors are three different FFT
+    // sizes and therefore three different summation orders. On this fixture
+    // they happen to agree exactly and on the concentric one the widest pad is
+    // a single ulp away, so `toBe` here would have been an assertion about
+    // accumulation order wearing the clothes of a claim about optics.
+    for (const v of values) expect(Math.abs(v / values[0]! - 1)).toBeLessThan(4 * Number.EPSILON);
+    // …where changing the PUPIL sampling moves it in the second figure.
+    expect(Math.abs(mtfRead(mtfParabola(-1), 0.5, 64) / values[0]! - 1)).toBeGreaterThan(1e-2);
   });
 
   /**
@@ -2819,5 +2825,167 @@ describe("DLS § 1.8.8 — one frequency is not a merit, and the impostor proves
     expect(() => optimizeSystem(mtfParabola(-1), [FOCUS], [mtfOperand(0.5, 0.3, 33)])).toThrow(
       /operand 0 cannot be read at the start/,
     );
+  });
+});
+
+/**
+ * DLS § 1.8.8 — off axis, the direction the operand actually reads, and the
+ * one code path an on-axis rung can never reach.
+ *
+ * Every rung above is at field 0, where the pattern is rotationally symmetric —
+ * so none of them can tell the tangential section from the sagittal one, and
+ * the type's claim to be reading a particular direction had no evidence. Off
+ * axis it also changes what RUNS: `systemPupil` builds a vignette mask only
+ * when the trace has already lost something, and these fixtures lose nothing on
+ * axis, so the masked branch had never once been exercised through this
+ * operand.
+ */
+describe("DLS § 1.8.8 — off axis, where the operand's direction becomes a claim", () => {
+  const OFF_GRID = pupilGrid(21);
+
+  it("`mtfAt` is the TANGENTIAL section, and off axis the two part company", () => {
+    for (const field of [0, 1, 2]) {
+      const image = psf(wfMirror(10), field, LINE_D, { pupilSamples: 32, padFactor: 4 });
+      const m = mtf(image);
+      const sections = mtfSections(m, 33, image.pupilSamples);
+      const i = 8; // ν = 0.25 exactly, on this bin count
+      expect(sections.nu[i]).toBeCloseTo(0.25, 12);
+      // The convention, pinned rather than asserted in a comment: what the
+      // operand reads is the x-section, to the bit.
+      expect(mtfAt(m, sections.nu[i]!, image.pupilSamples)).toBe(sections.tangential[i]!);
+      if (field === 0) {
+        // Rotationally symmetric, which is exactly why this rung had to be
+        // written at a field and not on the axis.
+        expect(sections.tangential[i]).toBe(sections.sagittal[i]!);
+      }
+    }
+    // And they split, in the direction an off-axis mirror's coma and
+    // astigmatism put the blur: 0.2% at 1° and 27% at 2°.
+    const at = (field: number) => {
+      const image = psf(wfMirror(10), field, LINE_D, { pupilSamples: 32, padFactor: 4 });
+      const s = mtfSections(mtf(image), 33, image.pupilSamples);
+      return s.tangential[8]! / s.sagittal[8]!;
+    };
+    expect(at(1)).toBeCloseTo(0.99770, 4);
+    expect(at(2)).toBeCloseTo(0.73149, 4);
+  });
+
+  it("off axis the masked pupil branch runs, and the cost figure survives it", () => {
+    // The branch: six of 313 traced rays are lost at any nonzero field, so
+    // `systemPupil` builds a vignette mask and the pupil amplitude re-aims and
+    // re-traces per grid point. On axis nothing is lost and it never runs.
+    expect(opdMap(wfMirror(10), 0, LINE_D, OFF_GRID).lost).toBe(0);
+    expect(opdMap(wfMirror(10), 1, LINE_D, OFF_GRID).lost).toBe(6);
+
+    // It is a real extra cost and it is not an order of magnitude: measured
+    // ~16% at 32 pupil samples and ~21% at 64, so § 1.8.8's ~7 000× is an
+    // on-axis number that stays the right size off axis. Asserted as a bound
+    // rather than a value — a timing is about the machine, and what this rung
+    // is for is that the masked path does not change the SHAPE of the cost.
+    const time = (field: number): number => {
+      const t0 = performance.now();
+      for (let i = 0; i < 3; i++) {
+        const image = psf(wfMirror(10), field, LINE_D, { pupilSamples: 32, padFactor: 4 });
+        mtfAt(mtf(image), 0.25, image.pupilSamples);
+      }
+      return performance.now() - t0;
+    };
+    time(0); // warm
+    expect(time(1)).toBeLessThan(time(0) * 4);
+
+    // …and the operand itself runs there, which is the whole point of the field.
+    const image = psf(wfMirror(10), 1, LINE_D, { pupilSamples: 32, padFactor: 4 });
+    const r = optimizeSystem(
+      wfMirror(10),
+      [FOCUS],
+      [
+        {
+          kind: "mtf",
+          fieldValue: 1,
+          wavelengthNm: LINE_D,
+          nu: 0.25,
+          pupilSamples: 32,
+          target: 1,
+        },
+      ],
+      { steps: [1e-4], maxIterations: 30 },
+    );
+    // Asked for a contrast no system can reach, so this is a refocus rather
+    // than a solve: it moves the plane and stops with its residual reported.
+    expect(mtfAt(mtf(image), 0.25, image.pupilSamples)).toBeCloseTo(0.33421, 4);
+    expect(r.x[0]! - MIRROR_R / 2).toBeGreaterThan(0);
+    expect(r.merit).toBeGreaterThan(0.1);
+  });
+
+  /**
+   * The operand's central design decision, measured rather than argued.
+   *
+   * ν was chosen over cycles/mm because in ν the sample position is the
+   * caller's own arithmetic and cannot drift. That is only worth saying if the
+   * alternative really would drift, so: `pixelScaleMm` moves with the image
+   * distance — and, on this fixture, is bit-identical across a 30% change of
+   * curvature, because the stop is the mirror and the exit pupil does not move
+   * with its power. Both halves matter. A frequency in cycles/mm would ride the
+   * first and not the second, which is a merit whose ruler depends on WHICH
+   * variable an optimiser happens to be moving.
+   */
+  it("pixelScaleMm moves with the image distance and not with the curvature", () => {
+    const scaleOf = (thickness: number, curvature: number): number =>
+      psf(
+        { ...wfMirror(10), prescription: { surfaces: [{ ...wfMirror(10).prescription.surfaces[0]!, thickness, curvature }] } },
+        0,
+        LINE_D,
+        { pupilSamples: 32, padFactor: 4 },
+      ).pixelScaleMm;
+
+    const base = scaleOf(MIRROR_R / 2, 1 / MIRROR_R);
+    expect(base).toBeCloseTo(7.3445225e-4, 11);
+    // It rides the reference distance exactly — `imagePixelScaleMm` is linear
+    // in it — so half a millimetre of focus is 0.5% of the ruler and five
+    // millimetres is 5%. That is the drift a frequency in cycles/mm would sit on.
+    for (const dz of [-0.5, -5]) {
+      const moved = scaleOf(MIRROR_R / 2 + dz, 1 / MIRROR_R);
+      expect(moved / base).toBeCloseTo((MIRROR_R / 2 + dz) / (MIRROR_R / 2), 12);
+    }
+    expect(scaleOf(MIRROR_R / 2 - 5, 1 / MIRROR_R) / base - 1).toBeCloseTo(5.0e-2, 6);
+    // …and a 30% change of curvature moves it not at all, to the bit.
+    for (const curvature of [1 / -210, 1 / -260]) {
+      expect(scaleOf(MIRROR_R / 2, curvature)).toBe(base);
+    }
+  });
+});
+
+/**
+ * DLS § 1.8.8 — and a held MTF, which `{ minimize, hold }` accepts and which
+ * therefore needs a rung rather than a comment.
+ *
+ * Holding a MULTIMODAL quantity as an equality constraint is not obviously
+ * sound, and the honest position is § 1.8.6's: the condition is a Newton solve
+ * embedded in a minimisation, so it reaches the nearest design that satisfies
+ * it and reports the basin it landed in — exactly what a wish over the same
+ * quantity does. Started inside the basin it behaves like any other condition.
+ */
+describe("DLS § 1.8.8 — a contrast held exactly, and a multiplier that says it is free", () => {
+  it("holds one frequency while another is minimised, and prices it at zero", () => {
+    const d = 400;
+    const perfect = concentricMirror(-d, d);
+    const r = optimizeSystem(
+      concentricMirror(-d + 0.03, d),
+      [RADIUS],
+      {
+        minimize: [mtfOperand(0.15, mtfRead(perfect, 0.15))],
+        hold: [mtfOperand(0.5, mtfRead(perfect, 0.5))],
+      },
+      { steps: [1e-9] },
+    );
+    expect(r.reason).toBe("gradient");
+    expect(Math.abs(r.constraints[0]!)).toBeLessThan(1e-12);
+    expect(Math.abs(1 / r.x[0]! + d) / d).toBeLessThan(1e-10);
+    // λ ≈ 0, and that is a statement rather than a rounding: § 1.8.6's rung on
+    // the zero-residual achromat is the same fact. Both frequencies peak at the
+    // same design, so holding one costs the other nothing and the envelope
+    // theorem has nothing to charge for.
+    expect(Math.abs(r.multipliers[0]!)).toBeLessThan(1e-9);
+    expect(r.merit).toBeLessThan(1e-25);
   });
 });

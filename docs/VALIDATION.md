@@ -1984,10 +1984,20 @@ sampling:
 | 64 | 1.041·10⁻² | 1.058·10⁻² | 1.116·10⁻² | 0.6771 |
 | 128 | 5.058·10⁻³ | 5.181·10⁻³ | 5.323·10⁻³ | 0.6632 |
 
-bias·N is one number, ~0.66 and falling toward it — a discretization law rather
-than a discrepancy, and the square-grid-on-a-disc counting of § 6ab.17 arriving
-in a third place. So an operand told to hit the closed form would report a
-residual at a perfect design and go looking for the grid. **The reachable target
+**At ν = 0.25 and 0.5, bias·N is one number** — 0.647…0.754, settling toward
+~0.66 as the grid refines — which is a discretization law rather than a
+discrepancy, and the square-grid-on-a-disc counting of § 6ab.17 arriving in a
+third place. The rung covers those two frequencies and no more, because the
+product is NOT flat across the whole table: at ν = 0.75 it runs 0.910 down to
+0.681, and the ν-dependence only fades as N grows. That is what an edge-counting
+bias should do — the fraction of the autocorrelation that lives near the
+truncated overlap rises toward the cutoff — but it is stated here as a
+measurement over the cells actually evaluated rather than as a law, because a
+quantifier is a claim and this one was written wider than its evidence before
+being narrowed to it.
+
+Either way an operand told to hit the closed form would report a residual at a
+perfect design and go looking for the grid. **The reachable target
 is the engine's own ceiling at the sampling the caller stated**, and given that,
 a run started inside the basin reproduces it *exactly* — merit 0 in f64, radius
 to 10⁻⁹ relative.
@@ -2040,6 +2050,39 @@ lands elsewhere, and reports a residual that is visible rather than tiny.
 `solve.ts`'s convention, which this whole step has kept: a run reports the basin
 it landed in.
 
+#### Off axis: the direction it reads, and the branch an on-axis rung cannot reach
+
+`mtfAt` samples along +x, which this engine's convention makes the meridional
+plane, so the operand reads the TANGENTIAL section — and on axis no rung can
+tell that from the sagittal one, the pattern being rotationally symmetric. Off
+axis it is pinned to the bit against `mtfSections`, and the two sections part
+company as they should: 0.2% at 1° and **27% at 2°** on the § 1.8.7 mirror.
+`mtfSections`' other half is not offered as an operand, which is a boundary
+rather than an oversight.
+
+Off axis also changes what RUNS. `systemPupil` builds a vignette mask only when
+the trace has already lost something, and these fixtures lose nothing on axis —
+six of 313 at any nonzero field — so the masked pupil branch, which re-aims and
+re-traces per grid point, had never once been exercised through this operand.
+Measured, it costs **~16% at 32 pupil samples and ~21% at 64**: a real extra
+cost, not an order of magnitude, so the cost figure below is an on-axis number
+that stays the right size off axis.
+
+And the currency decision is pinned rather than argued. ν was chosen over
+cycles/mm because in ν the sample position is the caller's own arithmetic; that
+is only worth saying if the alternative would really drift, so: `pixelScaleMm`
+is exactly linear in the reference distance — 0.5% of the ruler for half a
+millimetre of focus, 5% for five — and **bit-identical across a 30% change of
+curvature**, the stop being the mirror. Both halves matter. A frequency in
+cycles/mm would ride the first and not the second, which is a merit whose ruler
+depends on which variable an optimiser happens to be moving.
+
+A held MTF is accepted by `{ minimize, hold }` and so has a rung of its own:
+holding ν = 0.5 at the ceiling while minimising ν = 0.15 meets the condition to
+10⁻¹⁵, lands on the conjugate to 10⁻¹⁰, and prices it at **λ ≈ 0** — both
+frequencies peak at the same design, so the condition is free, which is
+§ 1.8.6's zero-residual achromat saying the same thing in another currency.
+
 **Cost.** 13.5 ms an evaluation at 32 pupil samples and 35.5 ms at 64, against
 0.571 ms a wavefront, 0.138 ms a traced spot and 1.93·10⁻³ ms a third-order sum
 — **24× the wavefront and 98× the spot** at the cheaper grid. A one-variable run
@@ -2058,6 +2101,10 @@ Seidel sum.
 | **A second frequency separates them by three orders** and rescues the start that failed | the fix is another operand, not a cleverer one | ✅ |
 | …and 0.2 mm out the two-frequency merit still lands elsewhere, with a visible residual | the boundary, stated rather than left to be met | ✅ |
 | Refusals: ν outside (0, 1), a pupil sampling under 2, a grid that is not a power of two | validity, and the "measures nothing" floor in this operand's currency | ✅ |
+| **`mtfAt` IS `mtfSections`' tangential half, to the bit**, and off axis the two split 27% at 2° | the direction the operand claims to read, which no on-axis rung can see | ✅ |
+| Off axis 6 of 313 rays are lost, so the MASKED pupil branch runs — at +16% / +21%, not an order | a code path every other rung here skips, and the cost figure surviving it | ✅ |
+| **`pixelScaleMm` is exactly linear in the reference distance and bit-identical across 30% of curvature** | why the operand's frequency is ν and not cycles/mm | ✅ |
+| A held MTF is met to 1e-15 and priced at λ ≈ 0 — both frequencies peak together | that `hold` accepts this operand, and what it means when it does | ✅ |
 
 ### Not yet pinned
 
