@@ -143,7 +143,12 @@ export type ReferenceKind = "thin-split" | "best-form";
  *    is not an error: the plane of least RMS *spot* is not the plane of least
  *    wavefront error, and the panel says which one it moved.
  *  - **`wavefront` reading `rms` — offered.** Lands on the optimum to 1·10⁻³ mm
- *    from every start out to ±2 mm.
+ *    from every start out to ±2 mm. That ladder moves ONE variable, where a
+ *    one-row merit is still full rank, which is why it read as sound while the
+ *    shipped two-curvature run was not: § 1.8.13 asks this wish as its Zernike
+ *    terms at target 0, and the same cell goes from the 2 001-evaluation cap at
+ *    9.122502·10⁻³ waves to `step` at **6.842737·10⁻³** — 33.3% better — while
+ *    the 313-ray off-axis corner improves **6.1×**.
  *  - **`rmsSpot` on the best plane — not offered.** It refocuses every trial, so
  *    the image distance is a DEAD variable to it: from −2, −0.5, +0.5, +2 and
  *    +5 mm it lands EXACTLY where it started, every time, and reports it
@@ -579,6 +584,15 @@ export function tracedOperandFor(t: TracedWish): TracedOperand {
         terms: t.terms,
         target: t.target,
         weight: t.weight,
+        // § 1.8.13, and the split is the spot's above for the same reason
+        // rather than by analogy — the analogy is what that step measured
+        // wrong twice. A target of 0 is unreachable, so what decides the
+        // answer is the model the step is built on, and ONE row over two
+        // variables is a rank-deficient one: this panel's own achromat stalls
+        // 33.7% above the optimum that way and cannot leave it. A nonzero
+        // target is reachable, so the residual really does go to zero and the
+        // scalar form's premise is true.
+        form: t.target === 0 ? "terms" : "value",
       };
 }
 

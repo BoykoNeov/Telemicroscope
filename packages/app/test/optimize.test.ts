@@ -1000,12 +1000,13 @@ describe.each([
     // are scaled by 1/√N precisely so that their squares sum to the RMS
     // squared. The paraxial wishes are the leading rows; the rest are these.
     const tracedRows = engine.residuals.slice(r.seed.wishes.length);
-    // A spot at target 0 is 2N rows; a wavefront has no per-ray form and stays
-    // one. Asserting the COUNT per reading is what keeps this identity honest
-    // in both shapes rather than only in the one the default takes — and
-    // `hypot` of a single row is that row's magnitude, so the line below is the
-    // same statement in either.
-    expect(tracedRows.length).toBe(reading === "spot" ? 154 : 1);
+    // A spot at target 0 is 2N rows and — since § 1.8.13 — a wavefront at
+    // target 0 is one row per fitted Zernike term above piston, 27 of the
+    // panel's 28. This comment said "a wavefront has no per-ray form and stays
+    // one" until that step measured otherwise, which is the reason to assert
+    // the COUNT per reading at all: the identity below holds for any number of
+    // rows, so it is the count that notices when a reading changes shape.
+    expect(tracedRows.length).toBe(reading === "spot" ? 154 : traced.terms - 1);
     expect(Math.abs(mine)).toBeCloseTo(Math.hypot(...tracedRows), 12);
     expect(mine).not.toBe(0);
   });
@@ -1127,5 +1128,147 @@ describe("two options that had no reader, and one branch that has no path", () =
     // The currency seed vignettes 8 of 29 on axis, which is what puts cells in
     // this sweep at all; without them it would be asserting over an empty set.
     expect(refusals).toBe(7);
+  });
+});
+
+/**
+ * § 1.8.13 through the panel — the wavefront wish the panel ships.
+ *
+ * The engine step's rungs are in `packages/core/test/wavefront-form.test.ts`
+ * and no external number is pinned again here. What this block pins is the
+ * panel's own claim: that asking the wish as its Zernike terms is what the
+ * screen actually does at target 0, and what that is worth on the cells a
+ * reader can reach.
+ *
+ * It is here for the reason APP.md's own paragraph gives. That paragraph said
+ * "the wavefront corner has no per-ray form yet and is NOT fixed" for as long
+ * as it was true and would have gone on saying it — the panel had no rung that
+ * could tell a converged answer from a stalled one, only that the run improved
+ * the number it started from, which a stalled run also does.
+ */
+describe("§ 1.8.13 — the panel's wavefront wish, asked as its terms", () => {
+  const tracedAt = (over: Partial<ReturnType<typeof defaultTracedWish>>) => ({
+    ...defaultTracedWish(),
+    reading: "wavefront" as const,
+    ...over,
+  });
+
+  it("target 0 is asked as terms and a nonzero target is not, which is the spot's own split", () => {
+    // Not "because the spot does it": at target 0 the residual cannot reach
+    // zero, so what decides the answer is the model the step is built on. At a
+    // reachable target Gauss–Newton's premise is true and the summary is the
+    // honest thing to ask for — the same two sentences as the spot above, and
+    // the ONLY part of § 1.8.12 that did transfer intact.
+    const zero = tracedOperandFor(tracedAt({ grid: 11, target: 0 }));
+    const nonzero = tracedOperandFor(tracedAt({ grid: 11, target: 0.05 }));
+    expect(zero).toMatchObject({ kind: "wavefront", reading: "rms", form: "terms" });
+    expect(nonzero).toMatchObject({ kind: "wavefront", reading: "rms", form: "value" });
+  });
+
+  it("the shipped on-axis cell converges where it used to spend its whole budget", () => {
+    // The before/after APP.md now records. `form: "value"` is the operand the
+    // panel built until this step — kept here rather than described, because a
+    // before-number nobody can re-run is a claim rather than a measurement.
+    const traced = tracedAt({ grid: 11, fieldDeg: 0 });
+    const r = ok(specFor("retarget", { traced }));
+    const vars = r.variables.map((v) => v.variable);
+    const paraxial = r.seed.wishes.map((wish) => operandFor(wish, r.seed, r.currency));
+    const run = (operand: SystemOperand) =>
+      optimizeSystem(systemOf(r.seed.prescription, traced.fieldDeg), vars, [...paraxial, operand], {
+        maxIterations: 400,
+      });
+    const readAt = (x: readonly number[]): number =>
+      fitRms(
+        fitZernike(
+          opdMap(
+            systemOf(withVariables(r.seed.prescription, vars, x), traced.fieldDeg),
+            traced.fieldDeg,
+            LINE_D,
+            pupilGrid(traced.grid),
+          ).samples,
+          traced.terms,
+        ),
+      );
+
+    const before = run({ ...tracedOperandFor(traced), form: "value" } as SystemOperand);
+    const after = run(tracedOperandFor(traced));
+    expect(before.reason).toBe("iterations");
+    expect(before.evaluations).toBe(2001);
+    expect(readAt(before.x)).toBeCloseTo(9.122502e-3, 8);
+
+    expect(after.reason).toBe("step");
+    expect(after.evaluations).toBeLessThan(300);
+    expect(after.gradient).toBeLessThan(1e-8);
+    expect(readAt(after.x)).toBeCloseTo(6.842737e-3, 8);
+    expect(readAt(before.x) / readAt(after.x) - 1).toBeCloseTo(0.333, 2);
+
+    // …and it is the panel's own answer, not a number only this test can see.
+    expect(r.wishes[r.wishes.length - 1]!.value).toBeCloseTo(readAt(after.x), 9);
+  });
+
+  it("the off-axis corner APP.md names improves 6.1×, which is where the blind direction was", () => {
+    // Two curvatures cannot correct field coma, so off axis most of the error
+    // lives in the direction a rank-one model cannot see — which is why the
+    // corner that was slowest is also the one that gains most. Stated as the
+    // reason rather than left as a bigger number.
+    const traced = tracedAt({ grid: 21, fieldDeg: 0.5 });
+    const r = ok(specFor("retarget", { traced }));
+    const vars = r.variables.map((v) => v.variable);
+    const paraxial = r.seed.wishes.map((wish) => operandFor(wish, r.seed, r.currency));
+    const run = (operand: SystemOperand) =>
+      optimizeSystem(systemOf(r.seed.prescription, traced.fieldDeg), vars, [...paraxial, operand], {
+        maxIterations: 400,
+      });
+    const readAt = (x: readonly number[]): number =>
+      fitRms(
+        fitZernike(
+          opdMap(
+            systemOf(withVariables(r.seed.prescription, vars, x), traced.fieldDeg),
+            traced.fieldDeg,
+            LINE_D,
+            pupilGrid(traced.grid),
+          ).samples,
+          traced.terms,
+        ),
+      );
+    const before = run({ ...tracedOperandFor(traced), form: "value" } as SystemOperand);
+    const after = run(tracedOperandFor(traced));
+    expect(before.reason).toBe("iterations");
+    // 0.99999995 rather than the exact 1 the engine's own fixture reads, and
+    // the difference is the finding: the panel's two paraxial wishes are extra
+    // rows, so this merit is 3 × 2 and NOT rank-deficient overall. It is stuck
+    // anyway. Rows that do not span the traced wish's blind direction do not
+    // rescue it — which is worth knowing before "add another wish" is offered
+    // as the remedy for a stalled run.
+    expect(before.gradient).toBeGreaterThan(0.99999);
+    expect(readAt(before.x)).toBeCloseTo(1.781354e-1, 6);
+    expect(after.reason).toBe("step");
+    expect(after.evaluations).toBeLessThan(200);
+    expect(readAt(after.x)).toBeCloseTo(2.900004e-2, 7);
+    expect(readAt(before.x) / readAt(after.x)).toBeCloseTo(6.14, 1);
+  });
+
+  it("every offered wavefront cell converges, which is the claim a single cell cannot make", () => {
+    // § 6ai's rule, in this panel's currency: a reading is only as good as the
+    // fixture that could have refuted it, and one on-axis cell could not. The
+    // sweep is over the grids and fields the control actually offers, skipping
+    // the cells the fit refuses for want of surviving rays (pinned separately
+    // above).
+    let ran = 0;
+    for (const grid of TRACED_GRIDS) {
+      for (const fieldDeg of TRACED_FIELDS) {
+        const traced = tracedAt({ grid, fieldDeg });
+        const r = describeOptimize(specFor("retarget", { traced }));
+        if (!r.ok) continue;
+        ran += 1;
+        expect(r.reason).toBe("step");
+      }
+    }
+    // 10 of the 12 grid × field cells; the other two are the fit refusing for
+    // want of surviving rays, swept and pinned by name in the block above. The
+    // count is asserted so a cell going quiet — refused rather than stuck —
+    // cannot pass this sweep by not running.
+    expect(ran).toBe(10);
+    expect(TRACED_GRIDS.length * TRACED_FIELDS.length).toBe(12);
   });
 });
