@@ -118,8 +118,8 @@ const buildWall = memoize((over: Record<string, unknown>): number =>
 /**
  * The rim-stopped spelling, for the rungs that CANNOT use the shipped lens.
  *
- * Not a leftover: past about NA 0.17 the telecentric objective's real rim ray
- * lands outside its own paraxially-sized diaphragm and the trace clips (§ 6ai.4),
+ * Not a leftover: past NA 0.1461 the telecentric objective's real rim ray lands
+ * outside its own paraxially-sized diaphragm and the trace clips (§ 6ai.4),
  * so σ there is an average over part of a pupil. Every rung that quotes a
  * wavefront in the far band — the region that is TENS of times past Maréchal and
  * has no usable objective in it — measures the rim member, whose stop is its

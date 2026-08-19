@@ -14662,12 +14662,65 @@ that each is one number — flat across the field, or the same at both ends of a
 sweep — because that is what distinguishes a stop shift from a lens that was
 re-solved.
 
+### Two rungs that were cited before they existed (2026-08-19)
+
+`doublet-wall` twice, `microscope`, `object-field` and the app's `golden` each
+send a reader to "§ 6ai.4" for the clipping and to "§ 6ai.6" for the control's
+own ceiling. This step shipped § 6ai.1 and § 6ai.2 and nothing else, so five call
+sites had been citing a measurement that was never taken. **A cross-reference is
+a readout too**, the same shape § 1.8.12 found in a doc comment that printed a
+wrong diagnosis as a finding. Both are written now, in `stop-default`:
+
+- **§ 6ai.4 — the shipped member clips its own diaphragm, and where.** The
+  diaphragm is sized paraxially, which is what makes the aperture a slope
+  (§ 6ae.2); the real marginal ray is therefore free to land outside it, and at
+  4× it does above **NA 0.146146**. Two machineries agree on that crossing: a
+  traced ray's height over the surface's semi-aperture, which has no fixture in
+  it, and `opdMap`'s lost count, which does not move across grids of 11, 21 and
+  41 — the outermost sample of a square grid clipped to the disc IS the marginal
+  ray at every odd resolution. **The rim member cannot do it at any buildable
+  aperture**, its stop being its own launch aperture, and that is the identity
+  `doublet-wall`'s far-band rungs rest on. Clipped, the RMS reads SMALLER — 0.809
+  of the control's at NA 0.17 — because the lost rays are the aberrated ones, so
+  `sigmaWaves`' `lost === 0` is a guard and not bookkeeping. And the crossing
+  sits ABOVE the Maréchal reach on every member (42% clear at 4×, closing to 13%
+  at 40×), so no diffraction-limited objective is touched by any of it.
+- **§ 6ai.6 — the optical ceiling is the GLASS's, not the diaphragm's.** The two
+  members' Maréchal reaches side by side: 0.16% apart at 4×, 0.68% at 40×, the
+  control always the further of the two because it has no diaphragm to fill.
+  That is what makes § 6b.5.1's shipped-member reach and rim-member far band
+  halves of one statement rather than two yardsticks.
+
+The prose at those call sites put the crossing at "about NA 0.17". It is 0.1461,
+and § 6ai.4 is the correction.
+
 ### Still open
 
-- **The `"rim"` member is a control, not a product.** Nine test files now build
-  both. That is the right cost while the branch's numbers were all measured on
-  one of them, but a later step that finds itself maintaining two lenses should
-  retire the control rather than keep paying for it.
+- **The `"rim"` member is refused retirement, and § 6ai.4 is why.** The item this
+  step recorded — nine files build both, so a later step maintaining two lenses
+  should retire the control — is closed as a REFUSAL rather than as work. Its
+  trigger never fired (the microscope branch closed at § 6ag/§ 6ai without such a
+  step), and the enumeration says it should not: **twenty test files name
+  `"rim"`, and every one of them either reads the pair or states why the control
+  is the only member carrying the quantity.** `oblique-slab` is the strict case —
+  the oblique invariant q_c is a bitwise zero on the shipped lens — and
+  `telecentric-illumination` is the same shape; § 6w.7 refuses to field-size the
+  rim member *by name*, so its surface 0 stays the rim it is called after. Two
+  things make retirement cost rather than save:
+  - **§ 6ai.4.** Above NA 0.1461 the shipped member cannot carry a wavefront
+    claim at all — Maréchal's criterion is stated on an unvignetted pupil and the
+    shipped member vignettes on its own diaphragm. The far band has no telecentric
+    spelling, and no amount of test rewriting gives it one.
+  - **`seidelSums` refuses any stop but surface 0** (`analysis/seidel`, pinned at
+    `seidel.test.ts`). § 6ai.2's own EXTERNAL rung evaluates Welford's −70.7001 on
+    the rim member for exactly that reason. Retiring the option would not remove
+    the second lens — it would RELOCATE it into a hand-built fixture duplicating
+    the ΣS_I = 0 bending solve and the glass sizing, and stop exercising it
+    through the shipped constructor. That is more lens to maintain, not less.
+
+  Revisit only if `seidelSums` grows a stop shift of its own, or if a later step
+  genuinely finds itself maintaining two lenses. Until then the control is not a
+  leftover and the cost is the measurement.
 - **`pointSourceCollection` still reads `entrance.radius`** (§ 6ah's own open
   item, unchanged): it returns ∞ for a telecentric system, and its callers are
   all front-stopped today. It is the same shape as the `editor.ts` defect above,

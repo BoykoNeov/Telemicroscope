@@ -7,6 +7,10 @@ import {
 import { pupils } from "../src/pupil/pupils";
 import { seidelSums } from "../src/analysis/seidel";
 import { imageRadiusForObjectHeight } from "../src/imaging/object-field";
+import { bestFocus, withFocus } from "../src/analysis/focus";
+import { opdMap } from "../src/pupil/opd";
+import { marginalRay, pupilGrid } from "../src/pupil/aiming";
+import { traceRay } from "../src/trace/sequential";
 import type { OpticalSystem } from "../src/trace/system";
 
 /**
@@ -20,7 +24,8 @@ import type { OpticalSystem } from "../src/trace/system";
  * not the default, so nothing a caller got by default was telecentric.
  *
  * This step is that flip, and it has exactly two things to pin that § 6ae could
- * not.
+ * not — and, since § 6ag, two more that four other files had already started
+ * quoting by number before anyone wrote them.
  *
  * ## 1. The default itself
  *
@@ -53,6 +58,31 @@ import type { OpticalSystem } from "../src/trace/system";
  * multiplies by 2 600, so their tables grew by 2 600^(1/4) = 7.1 in node count
  * and by nothing else. Both are measured where they live, beside the rungs that
  * already state their laws.
+ *
+ * ## 3 and 4. Two rungs that were cited before they existed
+ *
+ * `doublet-wall` (twice), `microscope`, `object-field` and the app's `golden`
+ * each point a reader at "§ 6ai.4" for the clipping and at "§ 6ai.6" for the
+ * control's own ceiling. Neither rung was ever written: this step shipped § 6ai.1
+ * and § 6ai.2 and nothing else, so five call sites have been citing a
+ * measurement that did not exist. **A cross-reference is a readout too** — the
+ * same shape § 1.8.12 found in a doc comment that stated a wrong diagnosis as a
+ * finding — and both are written here, measured rather than assumed:
+ *
+ *  - **§ 6ai.4.** The telecentric member's diaphragm is sized paraxially, so the
+ *    real marginal ray outgrows it: at 4× it lands outside above **NA 0.1461**,
+ *    which two independent machineries agree on (a traced ray's height over the
+ *    surface's semi-aperture, carrying no fixture; and `opdMap`'s lost count,
+ *    which does not move between grids of 11, 21 and 41). The rim member cannot
+ *    do it at any aperture — its stop IS its launch aperture — and that is why
+ *    `doublet-wall`'s far-band rungs name it. The crossing sits ABOVE the
+ *    Maréchal reach on every member, by 42% at 4× closing to 13% at 40×, so no
+ *    diffraction-limited objective is affected. The prose those call sites carry
+ *    said "about NA 0.17"; it is 0.1461, and this rung is the correction.
+ *  - **§ 6ai.6.** The two members' Maréchal reaches, side by side: 0.16% apart
+ *    at 4× and 0.68% at 40×. The optical ceiling § 6b.5.1 bisects is the glass's,
+ *    not the diaphragm's — which is what makes that step's shipped-member reach
+ *    and rim-member far band halves of one statement rather than two yardsticks.
  *
  * ## What moved, and where to read it
  *
@@ -226,4 +256,207 @@ describe("§ 6ai.2 — stop in front, barrel; stop behind, pincushion", () => {
     expect(imageRadiusForObjectHeight(SHIPPED, 0, L)).toBe(0);
     expect(imageRadiusForObjectHeight(RIM, 0, L)).toBe(0);
   });
+});
+
+/**
+ * The bisection § 6b.5's ceiling rungs use, repeated here because the subject is
+ * the difference between two members and not the ceiling itself. Same bounds,
+ * same step count and the same criterion, so the 4× value below is the number
+ * `doublet-wall` already pins and this file is not free to disagree with it.
+ */
+const highest = (lo: number, hi: number, ok: (x: number) => boolean, steps = 26): number => {
+  let a = lo;
+  let b = hi;
+  for (let i = 0; i < steps; i++) {
+    const m = 0.5 * (a + b);
+    if (ok(m)) a = m;
+    else b = m;
+  }
+  return a;
+};
+
+const MARECHAL = 1 / 14;
+
+const objectiveFor = (M: number, NA: number, placement?: StopPlacement) =>
+  finiteConjugateObjective({
+    magnification: M,
+    numericalAperture: NA,
+    ...(placement === undefined ? {} : { stopPlacement: placement }),
+  });
+
+const scopeAt = (M: number, NA: number, placement?: StopPlacement): OpticalSystem =>
+  finiteConjugateMicroscope({ objective: objectiveFor(M, NA, placement) }).system;
+
+/** The axial wavefront map at best focus, in the currency § 6b.4 reports in. */
+const mapAt = (M: number, NA: number, placement?: StopPlacement) => {
+  const s = scopeAt(M, NA, placement);
+  const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
+  return opdMap(withFocus(s, focus.offsetFromLastVertex), 0, L, pupilGrid(21));
+};
+
+/**
+ * How much of its own diaphragm the REAL marginal ray fills, as a ratio.
+ *
+ * The diaphragm is sized paraxially — that is what makes the aperture a slope
+ * (§ 6ae.2) — so the ray that actually arrives is free to land outside it, and a
+ * ratio past 1 is that happening. Nothing here counts samples: the quantity is
+ * one traced ray's height over one surface's semi-aperture, so it carries no
+ * fixture in it and moves with the lens alone.
+ */
+const diaphragmFill = (M: number, NA: number, placement?: StopPlacement): number => {
+  const system = scopeAt(M, NA, placement);
+  const p = system.prescription;
+  expect(p.surfaces.filter((s) => s.isStop).length).toBe(1);
+  const stop = p.surfaces.findIndex((s) => s.isStop);
+  const hit = traceRay(p, marginalRay(system, pupils(system, L), 0, L)).path[stop];
+  expect(hit).toBeDefined();
+  return Math.hypot(hit!.x, hit!.y) / p.surfaces[stop]!.semiAperture;
+};
+
+/** The highest NA whose axial wavefront clears Maréchal on an UNCLIPPED pupil. */
+const marechalReach = (M: number, placement?: StopPlacement): number =>
+  highest(0.05, 0.3, (NA) => {
+    try {
+      const map = mapAt(M, NA, placement);
+      return map.lost === 0 && map.rmsWaves <= MARECHAL;
+    } catch {
+      return false;
+    }
+  });
+
+/** The NA at which the real marginal ray first lands outside the diaphragm. */
+const fillCrossing = (M: number): number =>
+  highest(
+    0.05,
+    0.28,
+    (NA) => {
+      try {
+        return diaphragmFill(M, NA) <= 1;
+      } catch {
+        return false;
+      }
+    },
+    30,
+  );
+
+describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", () => {
+  it("the real marginal ray overfills the paraxial diaphragm above NA 0.1461", () => {
+    // The claim four call sites — `doublet-wall` twice, `microscope`,
+    // `object-field` and the app's golden — already make in prose, measured here
+    // for the first time. Sized paraxially, the diaphragm is a hole the
+    // aberrated ray is under no obligation to pass, and past this aperture it
+    // does not. The catalogued 4×/0.10 is 0.7% inside it.
+    expect(diaphragmFill(4, 0.1)).toBeCloseTo(0.99286, 5);
+    expect(diaphragmFill(4, 0.1)).toBeLessThan(1);
+    expect(fillCrossing(4)).toBeCloseTo(0.146146, 5);
+    // Monotone through it, which is what makes one crossing the whole story.
+    expect(diaphragmFill(4, 0.14)).toBeLessThan(1);
+    expect(diaphragmFill(4, 0.16)).toBeGreaterThan(1);
+    expect(diaphragmFill(4, 0.2)).toBeGreaterThan(diaphragmFill(4, 0.16));
+  });
+
+  it("and the sampled pupil agrees — the first ray lost is the marginal one", () => {
+    // Two machineries, and the second is the one every wavefront rung actually
+    // runs: `opdMap` counts what it could not get through. It has a grid in it
+    // and the rung above does not, so if the two crossings agreed by accident
+    // the count would move with the sampling. It does not move — the outermost
+    // sample of a square grid clipped to the disc IS the marginal ray at every
+    // odd resolution — so the threshold is the lens's and not the fixture's.
+    const lostAt = (NA: number, n: number): number => {
+      const s = scopeAt(4, NA);
+      const focus = bestFocus(s, "minRmsWavefront", { pupilSamples: 21 });
+      return opdMap(withFocus(s, focus.offsetFromLastVertex), 0, L, pupilGrid(n)).lost;
+    };
+    for (const n of [11, 21, 41]) {
+      expect(lostAt(0.145, n)).toBe(0);
+      expect(lostAt(0.15, n)).toBeGreaterThan(0);
+    }
+  });
+
+  it("the RIM control cannot do it, which is why the far band is measured on it", () => {
+    // Not a leftover and not caution — an identity. The rim member's stop IS its
+    // launch aperture, so a ray aimed through it arrives through it and the fill
+    // cannot reach 1 at any aperture the constructor will build. What is left
+    // below 1 is the glass around the hole, and it barely moves.
+    expect(diaphragmFill(4, 0.1, "rim")).toBeCloseTo(0.87864, 5);
+    expect(diaphragmFill(4, 0.2, "rim")).toBeCloseTo(0.89339, 5);
+    for (const NA of [0.1, 0.14, 0.16, 0.2]) {
+      expect(diaphragmFill(4, NA, "rim")).toBeLessThan(1);
+      expect(mapAt(4, NA, "rim").lost).toBe(0);
+    }
+    // …while the shipped member loses rays over the same sweep, 28 of this grid
+    // at the top of it. An RMS over a clipped pupil is a different quantity from
+    // the one Maréchal's criterion is stated on, which is the whole reason
+    // `doublet-wall`'s far-band rungs name `"rim"`.
+    expect(mapAt(4, 0.16).lost).toBe(8);
+    expect(mapAt(4, 0.2).lost).toBe(28);
+  }, 30_000);
+
+  it("and it reads SMALLER when it clips — the guard is not bookkeeping", () => {
+    // The failure mode `sigmaWaves`' `expect(map.lost).toBe(0)` exists to catch.
+    // Losing the outer pupil removes the rays carrying the most aberration, so
+    // the clipped member's wavefront RMS comes back BELOW the unclipped
+    // control's: a plausible smaller number arriving as an improvement rather
+    // than as a failure. The two members are the same glass to the bit
+    // (§ 6ae.4), so the whole of the difference is which rays survived.
+    for (const NA of [0.16, 0.17, 0.2]) {
+      expect(mapAt(4, NA).rmsWaves).toBeLessThan(mapAt(4, NA, "rim").rmsWaves);
+    }
+    expect(mapAt(4, 0.17).rmsWaves / mapAt(4, 0.17, "rim").rmsWaves).toBeCloseTo(0.8086, 3);
+  }, 30_000);
+
+  it("but it never bites inside the band a wavefront claim is made in", () => {
+    // Why none of the above is a defect in the shipped lens. The crossing sits
+    // above the Maréchal reach on every member, so an objective that is
+    // diffraction-limited at all passes its own diaphragm whole. The margin is
+    // not constant — the reach climbs faster than the crossing does — and it is
+    // quoted here so that a member built past 40× is checked rather than assumed.
+    const rows = [4, 20, 40].map((M) => ({ M, crossing: fillCrossing(M), reach: marechalReach(M) }));
+    expect(rows[0]!.crossing).toBeCloseTo(0.146146, 5);
+    expect(rows[2]!.crossing).toBeCloseTo(0.205083, 5);
+    for (const r of rows) expect(r.crossing).toBeGreaterThan(r.reach);
+    expect(rows[0]!.crossing / rows[0]!.reach).toBeCloseTo(1.4196, 3);
+    expect(rows[2]!.crossing / rows[2]!.reach).toBeCloseTo(1.1298, 3);
+    for (let i = 1; i < rows.length; i++) {
+      expect(rows[i]!.crossing / rows[i]!.reach).toBeLessThan(
+        rows[i - 1]!.crossing / rows[i - 1]!.reach,
+      );
+    }
+  }, 60_000);
+});
+
+describe("§ 6ai.6 — the optical ceiling is the GLASS's, not the diaphragm's", () => {
+  it("both members reach Maréchal within 0.7%, and the gap grows with M", () => {
+    // What § 6b.5.1's ceiling survives. That step bisected the diffraction-limit
+    // reach on the shipped member and read the far band on the rim one, and a
+    // reader is entitled to ask whether the two halves are commensurable. They
+    // are: the placement moves the reach by 0.16% at 4× and 0.68% at 40×, which
+    // is the diaphragm's whole say in a ceiling that ΣS_I = 0 and the higher
+    // orders left over set. Both legs require `lost === 0`, so these are two
+    // unvignetted numbers rather than two yardsticks — and § 6ai.4 is what makes
+    // that possible, every reach here sitting below its own crossing.
+    const rows = [4, 20, 40].map((M) => {
+      const shipped = marechalReach(M);
+      const rim = marechalReach(M, "rim");
+      return { M, shipped, rim, ratio: rim / shipped };
+    });
+    // The 4× value is § 6b.5.1's own, and this file is not free to disagree.
+    expect(rows[0]!.shipped).toBeCloseTo(0.10295, 4);
+    expect(rows[0]!.rim).toBeCloseTo(0.103114, 5);
+    expect(rows[2]!.shipped).toBeCloseTo(0.181517, 5);
+    expect(rows[2]!.rim).toBeCloseTo(0.182742, 5);
+    for (const r of rows) {
+      // The control always reaches slightly FURTHER, and the sign is the point:
+      // it has no diaphragm to fill, so nothing but the glass limits it.
+      expect(r.ratio).toBeGreaterThan(1);
+      expect(r.ratio).toBeLessThan(1.007);
+      expect(mapAt(r.M, r.shipped).lost).toBe(0);
+      expect(mapAt(r.M, r.rim, "rim").lost).toBe(0);
+    }
+    for (let i = 1; i < rows.length; i++) {
+      expect(rows[i]!.ratio).toBeGreaterThan(rows[i - 1]!.ratio);
+    }
+    expect(rows[0]!.ratio).toBeCloseTo(1.00159, 5);
+    expect(rows[2]!.ratio).toBeCloseTo(1.00675, 5);
+  }, 60_000);
 });
