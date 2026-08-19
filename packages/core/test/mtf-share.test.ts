@@ -37,6 +37,7 @@ import { constantIndex, LINE_D } from "../src/materials/dispersion";
 import { pupilGrid } from "../src/pupil/aiming";
 import {
   optimizeSystem,
+  systemResponse,
   withVariables,
   type TracedOperand,
   type MtfCondition,
@@ -291,6 +292,67 @@ describe("§ 1.8.15 — what shares, and what must not", () => {
     };
     const run = counted([wf, mtfOp(0.15), mtfOp(0.5)]);
     expect(run.pupil).toBe(run.r.evaluations + 1);
+  });
+});
+
+describe("§ 1.8.15 — the OTHER consumer of the reader", () => {
+  /**
+   * § 1.8.5's clipping fixture, where both curvature columns straddle a
+   * vignetting edge — the design that makes `systemResponse`'s wall probe run
+   * at all. `optimizeSystem` is not the only caller of the shared reader, and
+   * this is the path where sharing could plausibly have changed something
+   * without changing an answer: the probe's verdict is read off WHICH throw
+   * comes back, and the trace that throws is now one trace for both operands.
+   */
+  const clipped = (c1: number): OpticalSystem => ({
+    prescription: {
+      surfaces: [
+        {
+          kind: "refract",
+          curvature: c1,
+          semiAperture: 55,
+          thickness: 6,
+          medium: "MTF-SHARE-N15",
+          isStop: true,
+        },
+        { kind: "refract", curvature: c1 - DC, semiAperture: 49.9, thickness: F, medium: "AIR" },
+      ],
+    },
+    aperture: { kind: "stopRadius", value: 50 },
+    field: { kind: "angle", values: [0] },
+    wavelengths: [{ nm: LINE_D, weight: 1 }],
+    conjugate: { kind: "infinite" },
+  });
+  const cStar = (DC * (0.710621939 + 1)) / 2;
+
+  it("the wall probe reports the same three facts, and shares its traces too", () => {
+    // Every field here was compared against the pre-sharing engine on this
+    // fixture and on three others — one frequency, two, the design 1e-9 away
+    // where the probe count changes, and an unclipped one — and reproduced to
+    // the digit including `response`, `cosines` and `singularValues`. What is
+    // asserted is the part a reader would notice first: the wall is still a
+    // wall, it is still the survivors' doing rather than "not a system", and
+    // the probes are still counted into the evaluation total.
+    TRACES.pupil = 0;
+    const r = systemResponse(clipped(cStar), VARS, [mtfOp(0.15), mtfOp(0.5)]);
+    expect(r.walled).toEqual([0, 1]);
+    expect(r.survivorChanged).toEqual([0, 1]);
+    expect(r.dead).toEqual([]);
+    expect(r.blind).toEqual([]);
+    // 2n + 1 stencil evaluations plus one probe per suspect column.
+    expect(r.evaluations).toBe(7);
+    // …and the same `evaluations + 1` identity holds here: a trial that ends in
+    // a wall traced once for both frequencies, not once each, because the throw
+    // comes from the survivor check that happens AFTER the shared read.
+    expect(TRACES.pupil).toBe(r.evaluations + 1);
+  });
+
+  it("…and one frequency costs the same on this path, which is what makes it a saving", () => {
+    TRACES.pupil = 0;
+    const r = systemResponse(clipped(cStar), VARS, [mtfOp(0.15)]);
+    expect(r.evaluations).toBe(7);
+    expect(TRACES.pupil).toBe(8);
+    expect(r.survivorChanged).toEqual([0, 1]);
   });
 });
 

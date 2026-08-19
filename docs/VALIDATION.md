@@ -3113,6 +3113,19 @@ merit 3.802189683875607·10⁻¹. The integers are the sharp end — a merit cha
 in its last place takes a different number of steps long before it changes a
 digit anyone quotes.
 
+`optimizeSystem` is not the only caller of the shared reader, and the second
+one is where sharing could plausibly have changed something without changing an
+answer: `systemResponse`'s wall probe reads its verdict off WHICH throw comes
+back, and the trace that throws is now one trace for two operands rather than
+two. Checked on § 1.8.5's clipping fixture, where both curvature columns
+straddle a vignetting edge, and on three neighbours of it — one frequency, two,
+the design 10⁻⁹ away where the probe count itself changes, and an unclipped
+one. Every field reproduces the pre-sharing engine to the digit, `response`,
+`cosines`, `singularValues`, `conditionNumber` and `evaluations` included: the
+wall is still a wall, it is still `survivorChanged` rather than "not a system",
+and the probes are still counted into the total. The identity holds on that
+path too — 8 traced stages for 7 evaluations at one frequency and at two.
+
 #### The slot, and which way it fails
 
 The channel is one slot holding one design's readings, keyed on the trial
@@ -3144,6 +3157,8 @@ so they are two traces and the rung asserts that they stay two.
 | **The same sampling spelled two ways shares** — an omitted `padFactor` against a stated 4 | that the key is the resolved options and not the operand's fields | ✅ |
 | …and a DIFFERENT sampling does not: 32 samples beside 16 is `2 × (evaluations + 1)` | § 1.8.8's 0.66/N bias — two arrays are two readings | ✅ |
 | A wavefront operand beside two frequencies leaves the frequencies sharing | that the slot is per-reading, not per-evaluation | ✅ |
+| **`systemResponse`'s wall probe is unchanged** — `walled` [0, 1], `survivorChanged` [0, 1], 7 evaluations, at one frequency and at two | § 1.8.5's clipping fixture, read through the reader's second caller | ✅ |
+| …and it shares there too: 8 traced stages for 7 evaluations, a walled trial tracing once for both operands | that the throw comes from the survivor check AFTER the shared read | ✅ |
 | **The trace is 15–55% of a reading and the lookup is under 10⁻³ of it** | the correction to "sharing the transform", measured | ✅ |
 
 #### What this does NOT do
