@@ -2723,6 +2723,32 @@ should be MINIMISED as, and § A-onwards' panel opts in.
 | With the power HELD both readings land on the same shape to 1·10⁻⁵, and it is the fixed-plane 0.2344 rather than q\* | the negative control: the reading changes the model, not the physics | ✅ |
 | Refusals: a nonzero target on a per-ray reading; the same reading HELD | that 2N rows is neither a summary to aim at nor one equation | ✅ |
 
+#### What this does NOT fix, measured rather than assumed
+
+`wavefront` and `mtf` are the same shape — one non-negative row summarising many
+samples — and the obvious guess is that they carry the same defect. They do, and
+the wavefront is stuck HARDER than the spot was. On the same seed, two
+curvatures, an 11-point grid at 11 terms:
+
+| | RMS reached (waves) | where |
+|---|---|---|
+| the run, 2 001 evaluations, `iterations`, KKT 1.000 | 9.0126156741·10⁻³ | c₀ = 4.45274·10⁻³ |
+| Nelder–Mead | **6.7406570415·10⁻³** | c₀ = 4.16098·10⁻³ |
+
+**33.7% above the optimum, and it is a hard fixed point**: restarted at its own
+answer the run moves 0.000·10⁰, five times over, where the spot at least
+crawled. It is stalled in the same valley — c₀ = 4.4527·10⁻³ against the spot
+run's 4.4527·10⁻³ — which is what says this is one defect with two readings and
+not two.
+
+The remedy is the same shape and is NOT built here: an OPD map's per-sample
+residuals, scaled so their squares sum to the fitted RMS, exactly as the spot's
+rows are. It is a separate step because `wavefront` has three readings rather
+than one — `"balancedRms"` removes terms from the fit and `"zernike"` is a
+single signed coefficient that is already well posed — so the per-sample form
+means something different in each, and § 1.8.7's own warning is that the reading
+the default does not take is where a shipped claim hides.
+
 ### Not yet pinned
 
 - ~~**Targets on traced quantities.**~~ ✅ **closed at § 1.8.5 above**, for the

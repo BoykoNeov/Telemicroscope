@@ -5512,8 +5512,12 @@ and simply never had a wish loud enough to expose it.
   converges on `step` in ~155 evaluations and reads **6.927037e-4 mm against the
   9.359149e-4 recorded here** — a 26% better answer for a third of the work.
   Re-measured today that corner is **46–50 ms**, so it is back where this
-  paragraph first found it. The wavefront corner has no per-ray form and does
-  not move: 3.5 s, still on `iterations`. The same sweep re-run reads 51 ms to 5.5 s, so
+  paragraph first found it. **The wavefront corner has no per-ray form yet and
+  is NOT fixed**: 3.5 s, still on `iterations`, and § 1.8.12's tail measures it
+  stalling 33.7% above its own optimum and refusing to move when restarted
+  there. A reader comparing the two traced readings on this panel is comparing a
+  converged answer with a stuck one, which is worth knowing before the numbers
+  are read against each other. The same sweep re-run reads 51 ms to 5.5 s, so
   the top of that range is a load meter as much as a cost meter — Part M's own
   caveat, and the reason the panel prints its own elapsed number rather than a
   remembered one. **The two geometry reads § 1.8.10 added are inside those
