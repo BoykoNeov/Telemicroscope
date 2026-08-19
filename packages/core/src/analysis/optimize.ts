@@ -1125,6 +1125,47 @@ export type OptimizeOperand = HeldOperand & { readonly weight?: number };
 export type TracedFocus = "bestSpot" | "systemImagePlane";
 
 /**
+ * How a spot wish is handed to the solver: as ONE number, or as the rays it was
+ * summarised from.
+ *
+ * Both spell the same merit — Σ over `"transverse"`'s rows is exactly the RMS
+ * squared, which is what the 1/√N on each row is for — so `weight` means the
+ * same thing in either and the two are comparing designs by the same measure.
+ * What differs is what Gauss–Newton can see of it, and § 1.8.12 measures that
+ * the difference is the answer rather than the cost.
+ *
+ * **`"rms"` collapses N rays into one NON-NEGATIVE magnitude, and that is what
+ * defeats the method.** A least-squares step models the merit as ‖r + Jδ‖² and
+ * so carries JᵀJ, dropping Σrᵢ∇²rᵢ. On one non-negative row that dropped term
+ * is coherent — every ray's curvature enters with the same sign as r — and on
+ * this app's own achromat it measures **2.2·10⁷ against 0.4 for the term that
+ * is kept**, seven orders the wrong way. Given each ray its own SIGNED row the
+ * same term has mixed signs across the pupil and largely cancels, and JᵀJ stops
+ * being rank one: 154 rows over 2 variables instead of 1 over 2.
+ *
+ * Measured on the panel's own merit, two curvatures, an 11-point grid:
+ *
+ * | | evaluations | stop | ‖Jᵀr‖ measure | merit |
+ * |---|---|---|---|---|
+ * | `"rms"` | 2 001 | `iterations` | 1.000 | 1.1389·10⁻⁶ |
+ * | `"transverse"` | 155 | `step`, 22 accepted | 4.4·10⁻¹² | 7.4188·10⁻⁷ |
+ *
+ * The second is the optimum — an independent Nelder–Mead agrees to twelve
+ * digits — and the first is **53.5% above it in merit and 35.1% in the spot**,
+ * after thirteen times the work. `"rms"` is kept, defaulted and unchanged
+ * because every recorded number in § 1.8.5 onward was measured on it, not
+ * because it is the one to ask for.
+ *
+ * **A nonzero `target` is refused on `"transverse"`, and that is the honest
+ * boundary rather than a gap.** "Make the RMS 0.001 mm" does not decompose into
+ * a wish about any one ray; it is a statement about the summary, and the summary
+ * is the thing this reading declines to form. Target 0 — make the image a point
+ * — is the only per-ray wish there is. For the same reason it cannot be HELD:
+ * a condition is one equation, and this is 2N of them.
+ */
+export type SpotReading = "rms" | "transverse";
+
+/**
  * A wish about a quantity only real rays can answer.
  *
  * Every field here is something no default can choose: which field point, which
@@ -1144,6 +1185,13 @@ export type SpotCondition = {
   readonly pupil: readonly PupilPoint[];
   readonly focus: TracedFocus;
   readonly target: number;
+  /**
+   * Default `"rms"`, which is every number this ladder recorded before
+   * § 1.8.12. `"transverse"` gives the solver one signed row per ray per axis
+   * for the same merit — see `SpotReading`, and prefer it for anything being
+   * MINIMISED rather than read.
+   */
+  readonly reading?: SpotReading;
 };
 
 /**
@@ -1805,7 +1853,10 @@ export function systemResponse(
   const read = systemReader("systemResponse", system, operands);
   const residuals = (x: readonly number[]): MeritVector => {
     const trial = withVariables(prescription, variables, x);
-    return operands.map((o, i) => ((o as OptimizeOperand).weight ?? 1) * read(trial, o, i));
+    return operands.flatMap((o, i) => {
+      const w = (o as OptimizeOperand).weight ?? 1;
+      return read(trial, o, i).map((v) => w * v);
+    });
   };
 
   // Filled in ONCE and used for both the reading and the wall probe below.
@@ -1892,6 +1943,16 @@ function validate(
           `anything, which is what makes it a condition`,
       );
     }
+    // 2N rows is not a condition. Refused here rather than at the reader,
+    // because `optimizeSystem` takes a condition's FIRST row on the strength
+    // of this and a silent truncation is the shape of bug this file's survivor
+    // lock exists to prevent.
+    if (o.kind === "rmsSpot" && o.reading === "transverse") {
+      throw new Error(
+        `${where}: a transverse ${o.kind} is HELD — a condition is one equation and ` +
+          `this reading is one per ray, so it can be minimised but not held`,
+      );
+    }
   }
   for (const o of [...operands, ...hold]) {
     if (!Number.isFinite(o.target)) {
@@ -1900,6 +1961,12 @@ function validate(
     if (o.kind === "rmsSpot" && o.pupil.length < 2) {
       throw new Error(
         `${where}: a ${o.kind} operand over ${o.pupil.length} pupil point(s) has no spot to measure`,
+      );
+    }
+    if (o.kind === "rmsSpot" && o.reading === "transverse" && o.target !== 0) {
+      throw new Error(
+        `${where}: a transverse ${o.kind} operand asks for a target of ${o.target} — ` +
+          `a per-ray reading has no summary to aim at, so 0 is the only wish it can carry`,
       );
     }
     if (o.kind === "wavefront") {
@@ -2003,7 +2070,7 @@ function tracedRead(
   system: OpticalSystem,
   prescription: Prescription,
   operand: TracedCondition,
-): { value: number; survivors: Float64Array } {
+): { value: number; rows?: readonly number[]; survivors: Float64Array } {
   return operand.kind === "rmsSpot"
     ? spotRead(system, prescription, operand)
     : operand.kind === "wavefront"
@@ -2079,7 +2146,7 @@ function spotRead(
   system: OpticalSystem,
   prescription: Prescription,
   operand: SpotCondition,
-): { value: number; survivors: Float64Array } {
+): { value: number; rows?: readonly number[]; survivors: Float64Array } {
   const trial: OpticalSystem = { ...system, prescription };
   const bundle = exitBundle(trial, operand.fieldValue, operand.wavelengthNm, operand.pupil);
   const survivors = survivorKey(bundle.rays);
@@ -2095,7 +2162,18 @@ function spotRead(
     operand.focus === "bestSpot"
       ? bestSpotZ(bundle)
       : imagePlaneZ(asCompiled(prescription), trial);
-  return { value: spotAt(bundle, z).rmsRadius, survivors };
+  const spot = spotAt(bundle, z);
+  if ((operand.reading ?? "rms") === "rms") return { value: spot.rmsRadius, survivors };
+  // One signed row per ray per axis, scaled so Σ rows² IS the RMS squared: the
+  // merit is the same number and only the model the step is built on changes.
+  // The survivor lock above is what makes the LENGTH of this vector a constant
+  // of the run — a ray leaving the set is a wall, not a shorter merit.
+  const k = 1 / Math.sqrt(spot.points.length);
+  const rows: number[] = [];
+  for (const p of spot.points) {
+    rows.push((p.x - spot.centroidX) * k, (p.y - spot.centroidY) * k);
+  }
+  return { value: spot.rmsRadius, rows, survivors };
 }
 
 /**
@@ -2124,9 +2202,16 @@ export function optimizeSystem(
 
   const residuals = (x: readonly number[]): MeritVector => {
     const trial = withVariables(prescription, variables, x);
-    const wishes = minimize.map((o, i) => ((o as OptimizeOperand).weight ?? 1) * read(trial, o, i));
+    // `flatMap`, because a `"transverse"` spot is 2N rows of one wish rather
+    // than one row (§ 1.8.12). Every other operand returns a single-element
+    // array, so the vector this builds is bitwise what it was.
+    const wishes = minimize.flatMap((o, i) => {
+      const w = (o as OptimizeOperand).weight ?? 1;
+      return read(trial, o, i).map((v) => w * v);
+    });
     if (hold.length === 0) return wishes;
-    return { minimize: wishes, hold: hold.map((o, k) => read(trial, o, minimize.length + k)) };
+    // A condition stays one row — `validate` refuses the reading that is not.
+    return { minimize: wishes, hold: hold.map((o, k) => read(trial, o, minimize.length + k)[0]!) };
   };
 
   return dampedLeastSquares(
@@ -2160,7 +2245,7 @@ function systemReader(
   where: string,
   system: OpticalSystem,
   all: readonly SystemCondition[],
-): (trial: Prescription, o: SystemCondition, i: number) => number {
+): (trial: Prescription, o: SystemCondition, i: number) => readonly number[] {
   const survivorsOf = new Map<number, Float64Array>();
   all.forEach((o, i) => {
     if (!isTraced(o)) return;
@@ -2173,9 +2258,9 @@ function systemReader(
     survivorsOf.set(i, survivors);
   });
 
-  return (trial: Prescription, o: SystemCondition, i: number): number => {
-    if (!isTraced(o)) return operandValue(trial, o) - o.target;
-    const { value, survivors } = tracedRead(system, trial, o);
+  return (trial: Prescription, o: SystemCondition, i: number): readonly number[] => {
+    if (!isTraced(o)) return [operandValue(trial, o) - o.target];
+    const { value, rows, survivors } = tracedRead(system, trial, o);
     if (!sameSurvivors(survivors, survivorsOf.get(i)!)) {
       // Not a worse design — a different question. Same treatment as any
       // other wall: the step is undone and the damping rises.
@@ -2184,6 +2269,8 @@ function systemReader(
           `${survivorsOf.get(i)!.length / 2} → ${survivors.length / 2}`,
       );
     }
-    return value - o.target;
+    // `rows` is the per-ray reading, and it carries its own target (0, which
+    // `validate` is what makes true) rather than subtracting one here.
+    return rows ?? [value - o.target];
   };
 }

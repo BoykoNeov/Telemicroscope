@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS, not one row (§ 1.8.12) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -86,7 +86,7 @@ whole ladder.
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on what a phase object's harmonics do to the readout that reports them | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | Four sections' shared deferral closed: S_III/S_IV against a closed form carrying NO shape factor, the traced foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery | `field-curvature` |
-| [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false, the cutoff being the aperture ASKED FOR while the array stops at ν = 0.73 where the crown closes on itself | `mtf-sections` |
+| [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false | `mtf-sections` |
 | [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop whose radius carries no conjugate — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
 | [6af](#step-6af--the-condenser-is-a-lens) | § 6x's last deferral, first half: a condenser to trace through, uncorrected on purpose, its aberration measured as the AMBIGUITY it puts in `illumination/source`'s premise — two readings of one direction 11.5% apart, closing as NA² | `condenser` |
 | [6ag](#step-6ag--the-traced-cone-into-condensersource) | § 6x's last deferral closed, and inverted: traced BACKWARDS from the specimen the aberration lands in the WEIGHTS, not the positions — so § 6p's cache SURVIVES a shape-changing cone, 289 pupil evaluations against 35 088 | `condenser-source` |
@@ -1575,7 +1575,7 @@ holding the power costs 6 672× more here than refocused.)
 | **A derived aperture (`fNumber`) breathes 50.042 → 49.850 and moves the answer 2.0e-3** | the pupil must be held for the ray set to be | ✅ |
 | **Refocusing is an UNBOUNDED wish on a free power**: EFL walks +999.5 → −16 411 mm, a flat plate; the image plane bounds the same variable at 1006.6 | why the convention is well-posedness and not a factor | ✅ |
 | …and with the power held **by weight** the two conventions land **0.49 apart in shape** (0.7120 / 0.2257 — held as a condition, § 1.8.6 reads 0.2230), each best on its own measure | neither is a default | ✅ |
-| **Scalar RMS against one residual per ray: 2.5e-8 apart**, 12% more evaluations | the vector form is not needed, answered by a number | ✅ |
+| **Scalar RMS against one residual per ray: 2.5e-8 apart**, 12% more evaluations — true of ONE variable, and § 1.8.12 measures it at 27.9% of the answer on two | a fixture that could not discriminate, corrected | ✅ |
 | **Traced residual is 430× a third-order sum**, linear in ray count | the "four orders" forecast, corrected | ✅ |
 | A mixed traced/paraxial merit holds EFL to 1e-5 and lands on the traced Coddington shape | the question a designer actually asks | ✅ |
 | Refusals: a start with too few surviving rays, named; a pupil of one point | validity, saying which operand and how far short | ✅ |
@@ -2572,14 +2572,16 @@ accepts 50 of 100 and does not stop either. At the new step the run accepts 77
 of 100 and the merit is still falling in its sixth figure when the cap arrives —
 8.7594943·10⁻⁷ at 10 iterations to 8.7592976·10⁻⁷ at 200.
 
-**The defect is in the stopping rule, and it is not fixed here.**
+**The defect looks like the stopping rule, and § 1.8.12 measures that it is not.**
 `stepTolerance` stops when ‖δ‖ ≤ 10⁻¹⁴·(‖x‖ + 10⁻¹⁴); with ‖x‖ ≈ 4.45·10⁻³ that
 is 4.45·10⁻¹⁷, so the run is asked to keep going until it moves 5·10⁻¹¹ of its
 own difference step. The stop criteria are keyed to the variable's MAGNITUDE
 while the Jacobian's resolution is keyed to the STEP, and those were coupled
-only by the floor of 1 that this sub-step removed. Repairing it moves every
-recorded run's stopping point, so it is named here and left open rather than
-folded in — the same reasoning that kept this sub-step out of § 1.8.10.
+only by the floor of 1 that this sub-step removed. Both of those sentences are
+true and neither is the reason the run does not stop: it has not FINISHED, and
+its answer here is 35.1% above the optimum. A stop keyed to the step would only
+have reached that answer sooner. See § 1.8.12, which fixes the merit's own
+conditioning instead and leaves all four tolerances alone.
 
 | Rung | Pinned to | Status |
 |---|---|---|
@@ -2595,6 +2597,131 @@ folded in — the same reasoning that kept this sub-step out of § 1.8.10.
 | One traced row anywhere — wished or HELD — chooses the traced rule, for the whole merit | a merit's floor is the worst of its parts | ✅ |
 | An unbounded surface borrows the prescription's widest bounded rim; a prescription with none falls back to 1 | `semiAperture: Infinity`, which three shipped designs declare | ✅ |
 | A declared rim wider than the radius hands the scale back to \|C\| — the `max` guarding a "do not clip this" aperture | that the max is a guard and not decoration | ✅ |
+
+### 1.8.12 — a spot wish as ONE row, or as the rays it summarised
+
+§ 1.8.11 closed by naming the stopping rule as the next defect: the axial traced
+run spends its whole 100-iteration budget, `stepTolerance` stops on the
+variable's MAGNITUDE where the Jacobian's resolution is set by the STEP, and
+repairing it would move every recorded run's stopping point. Both halves of that
+are true. The diagnosis is still wrong, and measuring it is what says so.
+
+**The run does not fail to stop. It has not finished.** Its answer on the app's
+own panel is **53.5% above the optimum in merit and 35.1% in the spot**, and no
+stopping rule can improve a number by stopping sooner.
+
+#### The optimum, found three ways, so that the gap is a fact and not a claim
+
+A stalled optimiser reports nothing about how far it stalled, so the reference
+had to come from outside it. On the panel's own merit — the retargeted achromat,
+two curvatures, power and colour and an 11-point spot:
+
+| | merit | spot (mm) |
+|---|---|---|
+| Nelder–Mead, from the seed | 7.418751049071·10⁻⁷ | 6.9270373340·10⁻⁴ |
+| …restarted from the stalled answer | agrees to 11 digits | |
+| a 25 × 25 grid scan about it | 6.927033076870·10⁻⁴ | (spot-only fixture) |
+| **`dampedLeastSquares` STARTED at that point** | **stops on `step`, 0 accepted, moved 0.000·10⁰** | |
+| the shipped run | 1.138909799018·10⁻⁶ | 9.3589790790·10⁻⁴ |
+
+The last row of the reference is the one worth keeping: **the solver recognises
+the optimum when it is put there and cannot reach it from 1 200 difference steps
+away.** So this is not a merit the engine misunderstands. It is a merit the STEP
+cannot walk.
+
+#### THE finding: one non-negative row makes the dropped term coherent
+
+A least-squares step models the merit as ‖r + Jδ‖², so it carries JᵀJ and drops
+Σrᵢ∇²rᵢ. The dropped term is negligible where the residual reaches zero, which
+is the premise the whole method rests on and which the module header states.
+
+`rmsSpot` collapses N rays into ONE NON-NEGATIVE magnitude. That is what makes
+the dropped term coherent — every ray's curvature enters with the sign of r
+rather than cancelling against its neighbours — and on the app's achromat it
+measures **2.2·10⁷ against 0.4 for the term that is kept.** Seven orders. The
+premise does not fail marginally here; it fails completely.
+
+Give each ray its own SIGNED row and both halves change at once: Σrᵢ∇²rᵢ has
+mixed signs across the pupil and largely cancels, and JᵀJ stops being rank one —
+154 rows over 2 variables instead of 1 over 2. Σ over the rows is exactly the
+RMS squared, so it is the same merit, to 6.4·10⁻¹⁶ (the order 154 squares are
+summed in) and bitwise in the scalar row.
+
+On the singlet the tests pin — two free curvatures, seeded half a shape factor
+off the best form:
+
+| | evaluations | stop | KKT | shape q | spot (mm) |
+|---|---|---|---|---|---|
+| `"rms"` | 2 001 | `iterations` | **1.000** | 1.222386 | 2.942362885466·10⁻² |
+| `"transverse"` | **135** | `step`, 19 accepted | 1.3·10⁻¹⁰ | **0.713816** | 2.300862144710·10⁻² |
+
+**The external number is Coddington's**: q\* = 2(n²−1)/(n+2) = 0.714285714286 at
+infinite conjugate, the same closed form § 1.8.5 and § 5j.1 are built on. The
+per-ray reading lands on it to 4.7·10⁻⁴. The scalar reading ends at 1.222386
+against a SEED of 1.214286 — it moved 0.008 of a shape factor in 2 001
+evaluations, and the answer was 0.5 away.
+
+And the KKT column is the same fact one level up: with one non-negative row the
+cosine between r and the single Jacobian column is 1 **by construction**
+(§ 1.8.4 noted this and read it as a readout), so the optimum test can never
+fire and the iteration cap is the only thing left to stop the run.
+
+#### The proof that needs no reference number
+
+A converged answer is a fixed point. Restarted at the scalar answer, the run
+**moves 7.1·10⁻⁴ and lands on the per-ray answer**; restarted at the per-ray
+answer it moves 1.3·10⁻¹⁵. That is the whole claim without a single external
+digit, and it is what makes the 27.9% below a defect rather than a preference.
+
+#### Four candidates measured and refused first
+
+The mechanism was not obvious and three plausible readings of it are wrong. All
+were measured on the failing fixture before the fourth was built:
+
+| candidate | why it looked right | measured |
+|---|---|---|
+| Marquardt's running-maximum damping | `dScale` really does freeze at 2.1170·10⁷ from iteration 1 while the current column is ~1 | using the CURRENT column instead moves the landing point in its 4th digit |
+| the missing Σrᵢ∇²rᵢ, by SECANT (Dennis–Gay–Welsch, with sizing) | it is exactly the dropped term | 35.03% off instead of 35.11% — a rank-2 update cannot build a 2.2·10⁷ matrix from steps of 10⁻¹⁰ |
+| the difference step is wider than the valley | the canyon's half-width really is ~0.04 h | swept 10 h → 10⁻⁴ h, **every run lands on the same 9.3589·10⁻⁴** |
+| a line search along the step direction | the direction is right — walking it 1 000× further is monotone downhill | 35.66% off; the canyon needs curvature, not a longer step |
+
+A damped Newton on the scalar merit with a FULL finite-difference Hessian does
+reach the optimum (3.9·10⁻⁷, 337 evaluations), which is what identified the
+second-order term as the true obstacle — and is also why it was not shipped: the
+per-ray reading gets there in 135 evaluations, needs no symmetric indefinite
+solve, and leaves the QR the module header argues for exactly where it is.
+
+#### What it costs, which is nothing
+
+**The rows come off the trace that was already taken.** The Jacobian is 2n trial
+designs whatever m is, so both readings evaluate 5 designs per iteration on two
+variables and the per-ray form is 36 evaluations at 7 iterations in either
+spelling. What grows is the QR — 154 × 2 instead of 1 × 2 — against a residual
+that costs a ray trace. The saving is the iteration COUNT: 135 against 2 001.
+
+#### The correction to § 1.8.5, and why the old rung could not see it
+
+§ 1.8.5 asked this exact question and recorded **"scalar RMS against one residual
+per ray: 2.5·10⁻⁸ apart, 12% more evaluations — the vector form is not needed."**
+That measurement is correct and its fixture is one free curvature. With one
+variable there is no valley to follow: JᵀJ is 1 × 1, damping alone resolves the
+unreachable target, and the two readings must agree. **The claim was true of
+everything it could reach.** On the second variable it is worth 27.9% of the
+answer on the singlet and 35.1% on the app's achromat.
+
+`"rms"` stays the default, and every number recorded from § 1.8.5 onward stays
+on it, bitwise. It is what a spot wish is READ as; `"transverse"` is what it
+should be MINIMISED as, and § A-onwards' panel opts in.
+
+| Rung | Pinned to | Status |
+| **The per-ray reading recovers q\* = 0.714286 to 4.7·10⁻⁴ on two free curvatures**, where the scalar reading ends 0.008 from the SEED | Coddington's best form (Jenkins & White; Hecht § 6.3) | ✅ |
+| …and the EFL it settles at is 1005.2 | § 1.8.5's own bound on a free power at the fixed image plane, 1006.6 | ✅ |
+| **Σ of the per-ray rows IS the RMS squared** — 154 rows against 1, agreeing to 6.4·10⁻¹⁶, the scalar row bitwise spot² | the definition of an RMS, which is what makes the two one merit | ✅ |
+| **The scalar answer is not a fixed point**: restarted there the run moves 7.1·10⁻⁴ and lands on the per-ray answer, which moves 1.3·10⁻¹⁵ | convergence, asserted without any external digit | ✅ |
+| **The KKT test reads exactly 1 and cannot leave it** on one non-negative row; 1.3·10⁻¹⁰ on the signed rows | the cosine of a vector with itself — § 1.8.4's readout, as the reason a run cannot stop | ✅ |
+| Both readings evaluate **36 designs at 7 iterations** — the rows come off one trace | that this is a conditioning change and not a resolution knob | ✅ |
+| With the power HELD both readings land on the same shape to 1·10⁻⁵, and it is the fixed-plane 0.2344 rather than q\* | the negative control: the reading changes the model, not the physics | ✅ |
+| Refusals: a nonzero target on a per-ray reading; the same reading HELD | that 2N rows is neither a summary to aim at nor one equation | ✅ |
 
 ### Not yet pinned
 
