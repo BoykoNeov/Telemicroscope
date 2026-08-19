@@ -5500,14 +5500,20 @@ and simply never had a wish loud enough to expose it.
   **Whole-readout cost over every offered cell**, on this machine under
   `vite-node`: **42 ms** (77-ray spot, on axis) to **3.8 s** (313-ray wavefront
   off axis, where two curvatures cannot correct field coma and the run spends
-  its whole iteration budget). **§ 1.8.11 moved the bottom of that range**: the
-  on-axis run now spends its whole budget too — 501 traced evaluations against
-  130 — so the cheap corner is ~3.9× what is recorded here. It is not a worse
-  run. At the old step it accepted 9 of 26 trials, which is a Jacobian too
-  coarse to predict its own merit rather than one that has arrived, and its
-  `step` stop was that coarseness giving up; at the new one it accepts 77 of
-  100 and reaches a slightly better spot. What is actually wrong is the stopping
-  rule — § 1.8.11's last part measures it and leaves it open. The same sweep re-run reads 51 ms to 5.5 s, so
+  its whole iteration budget). **§ 1.8.11 moved the bottom of that range and
+  § 1.8.12 moved it back**, and the round trip is worth keeping because the
+  middle of it was a wrong diagnosis this file printed as a finding. § 1.8.11
+  made the on-axis run spend its whole budget too — 501 traced evaluations
+  against 130 — and this paragraph concluded that the stopping rule was at
+  fault. It was not. The run had not FINISHED: a spot asked for as one
+  non-negative number hides the term that decides an unreachable target, so it
+  stalled **35.1% above the optimum** with the KKT test frozen at 1 where it can
+  never fire. Asked for as the rays it was summarised from, the same cell
+  converges on `step` in ~155 evaluations and reads **6.927037e-4 mm against the
+  9.359149e-4 recorded here** — a 26% better answer for a third of the work.
+  Re-measured today that corner is **46–50 ms**, so it is back where this
+  paragraph first found it. The wavefront corner has no per-ray form and does
+  not move: 3.5 s, still on `iterations`. The same sweep re-run reads 51 ms to 5.5 s, so
   the top of that range is a load meter as much as a cost meter — Part M's own
   caveat, and the reason the panel prints its own elapsed number rather than a
   remembered one. **The two geometry reads § 1.8.10 added are inside those

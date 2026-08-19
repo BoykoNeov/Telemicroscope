@@ -831,24 +831,59 @@ describe("what a traced wish does to the rest of the panel", () => {
     // start would have said the field control does nothing.
     expect(spotOf(off).startValue / spotOf(axis).startValue).toBeCloseTo(1, 1);
 
-    // What it does is change the answer. Two curvatures can take the axial spot
-    // to 9·10⁻⁴ mm; at half a degree the best they reach is 4.8× larger.
-    expect(spotOf(off).value / spotOf(axis).value).toBeGreaterThan(4);
+    // What it does is change the answer. Two curvatures take the axial spot to
+    // 6.93·10⁻⁴ mm; at half a degree the best they reach is 2.47× larger.
+    expect(spotOf(off).value / spotOf(axis).value).toBeCloseTo(2.4653, 3);
     expect(off.to).not.toEqual(axis.to);
 
-    // **Both runs now spend every iteration they are allowed, and the axial one
-    // used to stop on `step`.** That was not convergence: at the old default
-    // step this seed's axial run stopped after 26 iterations having ACCEPTED 9
-    // of them and rejected 16, which is a Jacobian too coarse to predict its own
-    // merit rather than a run that has arrived. At § 1.8.11's step the same run
-    // accepts 77 of 100 and the merit is still falling in its sixth figure when
-    // the cap arrives. The spot it reaches is better — 9.359149e-4 against
-    // 9.359194e-4 — for 501 traced evaluations against 130. Pinned as an
-    // equality on BOTH so a later change of stop rule has to come here and say
-    // so; the § 1.8.11 note in VALIDATION.md carries why the rule is the
-    // suspect and not the step.
-    expect(axis.reason).toBe("iterations");
-    expect(off.reason).toBe("iterations");
+    // **Both runs now CONVERGE, and until § 1.8.12 neither did.** The history is
+    // worth keeping because it is the shape of a defect this panel could not
+    // see: the axial run used to spend all 100 iterations and report a spot of
+    // 9.359149e-4, and the comment here used to pin that as an equality on the
+    // theory that the stopping rule was the suspect. It was not. The merit was
+    // handed to the solver as ONE non-negative row, which hides the second-order
+    // term that decides an unreachable target, and the run stalled 35.1% above
+    // the optimum with the KKT test frozen at 1 where it can never fire. Posed
+    // as the rays it was summarised from, the same question converges — and the
+    // two stops differ, which is the point: `step` on axis, `gradient` off it.
+    // A run that stops on `iterations` here again is the regression.
+    expect(axis.reason).toBe("step");
+    expect(off.reason).toBe("gradient");
+    expect(spotOf(axis).value).toBeCloseTo(6.9270373e-4, 10);
+  });
+
+  it("a NONZERO spot target keeps the scalar reading, and that is the physics", () => {
+    // § 1.8.12's split, and the branch the default does not take. Target 0 is
+    // UNREACHABLE, so the term Gauss–Newton drops is what decides the answer
+    // and the per-ray form is needed. A target the lens can actually hit makes
+    // the residual go to zero, which is the premise the method is built on —
+    // there the scalar form is not merely adequate, it is exact, and the engine
+    // refuses a per-ray reading with a target anyway because a summary is not a
+    // statement about any one ray.
+    const asked = 2e-3;
+    const r = ok(specFor("retarget", { traced: { ...traced, target: asked } }));
+    const w = r.wishes[r.wishes.length - 1]!;
+    expect(w.value).toBeCloseTo(asked, 6);
+    expect(Math.abs(w.leftover) / asked).toBeLessThan(1e-4);
+    // …and it really did go through the single-row spelling.
+    expect(tracedOperandFor({ ...traced, target: asked })).toMatchObject({ reading: "rms" });
+    expect(tracedOperandFor({ ...traced, target: 0 })).toMatchObject({ reading: "transverse" });
+  });
+
+  it("the share column is one number per WISH, not one per residual row", () => {
+    // The regression § 1.8.12 could have shipped: `shares` indexed the residual
+    // vector by wish position, which stops being a lookup the moment one wish
+    // owns 154 rows. Every share is a fraction and they add to 1 — which is
+    // what says the traced wish's rows were folded rather than dropped or
+    // double-counted.
+    const r = ok(specFor("retarget", { traced }));
+    expect(r.wishes).toHaveLength(r.seed.wishes.length + 1);
+    for (const w of r.wishes) {
+      expect(w.shareStart).toBeGreaterThanOrEqual(0);
+      expect(w.shareStart).toBeLessThanOrEqual(1);
+    }
+    expect(r.wishes.reduce((acc, w) => acc + w.shareStart, 0)).toBeCloseTo(1, 12);
+    expect(r.wishes.reduce((acc, w) => acc + w.shareEnd, 0)).toBeCloseTo(1, 12);
   });
 
   it("a paraxial spec is bit-for-bit what it was before the traced half landed", () => {
@@ -925,7 +960,19 @@ describe.each([
       { maxIterations: 0 },
     );
     const mine = w.weight * w.leftover;
-    expect(mine).toBeCloseTo(engine.residuals[engine.residuals.length - 1]!, 12);
+    // Since § 1.8.12 a spot at target 0 is 2N rows rather than one, so the
+    // quantity to compare against is the ROOT SUM OF SQUARES of the rows the
+    // traced wish owns — which is the same identity, because the per-ray rows
+    // are scaled by 1/√N precisely so that their squares sum to the RMS
+    // squared. The paraxial wishes are the leading rows; the rest are these.
+    const tracedRows = engine.residuals.slice(r.seed.wishes.length);
+    // A spot at target 0 is 2N rows; a wavefront has no per-ray form and stays
+    // one. Asserting the COUNT per reading is what keeps this identity honest
+    // in both shapes rather than only in the one the default takes — and
+    // `hypot` of a single row is that row's magnitude, so the line below is the
+    // same statement in either.
+    expect(tracedRows.length).toBe(reading === "spot" ? 154 : 1);
+    expect(Math.abs(mine)).toBeCloseTo(Math.hypot(...tracedRows), 12);
     expect(mine).not.toBe(0);
   });
 

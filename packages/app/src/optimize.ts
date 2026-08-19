@@ -559,6 +559,16 @@ export function tracedOperandFor(t: TracedWish): TracedOperand {
         focus: "systemImagePlane",
         target: t.target,
         weight: t.weight,
+        // § 1.8.12: "make it a point" is posed to the solver as the rays it was
+        // summarised from, and the split on the target is the physics rather
+        // than a workaround for the refusal. A target of 0 is UNREACHABLE, so
+        // the dropped second-order term is what decides the answer and one
+        // non-negative row hides it — this panel's own seed stalls 35.1% above
+        // the optimum that way. A NONZERO target is reachable, the residual
+        // really does go to zero, Gauss–Newton's premise is true, and the
+        // scalar form lands on it in tens of iterations to eleven digits. Each
+        // reading is right where the other is not.
+        reading: t.target === 0 ? "transverse" : "rms",
       }
     : {
         kind: "wavefront",
@@ -1105,9 +1115,17 @@ export function describeOptimize(spec: OptimizeSpec): OptimizeDescription {
   // and the only way to say what share of the merit each wish held BEFORE the
   // run rather than after it. `maxIterations: 0` is a read, not a run: the
   // solver evaluates x0 and stops without stepping.
+  // One share per WISH, which stopped being one share per row at § 1.8.12: a
+  // spot asked for as rays is 2N rows of a single wish. The paraxial wishes are
+  // the first `wishes.length` rows in the order they were built, and every row
+  // after them belongs to the traced wish — so the grouping is a fold rather
+  // than a lookup, and it does not need to know how many rays survived.
   const shares = (r: readonly number[]): number[] => {
     const total = r.reduce((acc, v) => acc + v * v, 0);
-    return r.map((v) => (total > 0 ? (v * v) / total : Number.NaN));
+    const per = r.slice(0, wishes.length).map((v) => v * v);
+    const tracedShare = r.slice(wishes.length).reduce((acc, v) => acc + v * v, 0);
+    const grouped = traced === null ? per : [...per, tracedShare];
+    return grouped.map((s) => (total > 0 ? s / total : Number.NaN));
   };
   const shareStart = (() => {
     try {
