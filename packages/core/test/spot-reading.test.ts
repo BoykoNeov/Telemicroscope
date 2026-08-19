@@ -120,7 +120,15 @@ describe("§ 1.8.12 — what the reading is worth on TWO free curvatures", () =>
   it("the per-ray reading recovers Coddington's best form; the scalar one does not move off the seed", () => {
     // THE rung. q* is a closed form from outside the engine, and the seed is
     // half a shape factor away from it on purpose.
-    expect(qOf(perRay.x[0]!, perRay.x[1]!)).toBeCloseTo(qStar(N), 3);
+    //
+    // The 4.7e-4 gap is MEASURED AND NOT ATTRIBUTED, and saying so is the point
+    // rather than a hedge: § 1.8.5 attributes a thick singlet's departure from
+    // the thin-lens q* at −5.256e-4 per mm of glass, which at 6 mm predicts
+    // −3.15e-3 — six times what is seen here and the wrong size to explain it.
+    // That fixture held the power and this one does not, so the free power is
+    // the obvious suspect and it has not been measured. A bound this file
+    // authored is still a bound; it is here to catch a regression, not to claim
+    // the residue is understood.
     expect(Math.abs(qOf(perRay.x[0]!, perRay.x[1]!) - qStar(N))).toBeLessThan(5e-4);
     // …where the scalar reading ends 0.008 from the SEED's shape and 0.51 from
     // the answer, having spent thirteen times the evaluations to get there.

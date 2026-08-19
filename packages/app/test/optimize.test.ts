@@ -886,6 +886,40 @@ describe("what a traced wish does to the rest of the panel", () => {
     expect(r.wishes.reduce((acc, w) => acc + w.shareEnd, 0)).toBeCloseTo(1, 12);
   });
 
+  it("a VIGNETTING cell is the row count's real test, and 30 of the 36 offered are one", () => {
+    // The hazard § 1.8.12 introduces: a per-ray merit's LENGTH is a property of
+    // the design, and `dampedLeastSquares` throws when it changes. The survivor
+    // lock is what makes it a constant — the rows are 2× what survives AT THE
+    // SEED, not 2× what was asked for, and a ray leaving afterwards is a wall
+    // like any other. That distinction has no reader at field 0 on `retarget`,
+    // where nothing is lost and the two counts coincide, so it is read here on
+    // a cell where they do not.
+    const off = ok(specFor("retarget", { traced: { ...traced, fieldDeg: 0.5 } }));
+    expect(off.reason).toBe("gradient");
+    const engine = optimizeSystem(
+      systemOf(off.seed.prescription, 0.5),
+      off.variables.map((v) => v.variable),
+      [
+        ...off.seed.wishes.map((wish) => operandFor(wish, off.seed, off.currency)),
+        tracedOperandFor({ ...traced, fieldDeg: 0.5 }),
+      ],
+      { maxIterations: 0 },
+    );
+    // 73 of the 77 asked for survive at half a degree, so 146 rows and not 154.
+    expect(engine.residuals).toHaveLength(off.seed.wishes.length + 146);
+
+    // …and the seed that vignettes hardest of the three still runs: `currency`
+    // at 21 points across keeps 213 of 313, and a third of the rays going
+    // missing is not what stops it.
+    const worst = ok(
+      specFor("currency", { traced: { ...traced, grid: 21, fieldDeg: 0.5 } }),
+    );
+    expect(worst.reason).not.toBe("iterations");
+    expect(worst.wishes[worst.wishes.length - 1]!.value).toBeLessThan(
+      worst.wishes[worst.wishes.length - 1]!.startValue,
+    );
+  });
+
   it("a paraxial spec is bit-for-bit what it was before the traced half landed", () => {
     const before = ok(specFor("retarget"));
     expect(before.traced).toBeNull();

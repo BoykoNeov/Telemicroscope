@@ -2657,7 +2657,13 @@ off the best form:
 
 **The external number is Coddington's**: q\* = 2(n²−1)/(n+2) = 0.714285714286 at
 infinite conjugate, the same closed form § 1.8.5 and § 5j.1 are built on. The
-per-ray reading lands on it to 4.7·10⁻⁴. The scalar reading ends at 1.222386
+per-ray reading lands on it to 4.7·10⁻⁴ — **measured and NOT attributed**, which
+is worth stating because the obvious attribution does not fit: § 1.8.5 puts a
+thick singlet's departure from the thin-lens q\* at −5.256·10⁻⁴ per mm of glass,
+and 6 mm of it predicts −3.15·10⁻³, six times the gap and the wrong size. That
+fixture held the power and this one leaves it free, so the free power is the
+suspect and it has not been measured. The rung is a regression bound, not a
+claim that the residue is understood. The scalar reading ends at 1.222386
 against a SEED of 1.214286 — it moved 0.008 of a shape factor in 2 001
 evaluations, and the answer was 0.5 away.
 
