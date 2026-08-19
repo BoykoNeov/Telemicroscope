@@ -1236,9 +1236,60 @@ export type SpotCondition = {
  * forms no image where the image is. `"rms"` is bounded on both variables
  * because it is charged for where the light actually goes.
  */
+/**
+ * How an RMS wavefront wish is handed to the solver: as ONE number, or as the
+ * COEFFICIENTS it is the root-sum-square of.
+ *
+ * This is § 1.8.12's question in the wavefront's currency, and the answer is
+ * shorter here because the reading is already a sum of squares. `fitRms` is
+ * √(Σ_{j≥2} c_j²) and `balancedRms` is √(Σ_{j≥5} c_j²) — Parseval on an
+ * orthonormal basis, exactly rather than by quadrature — so the terms of the
+ * sum ARE the residual rows, with no scale factor and nothing approximated.
+ * `"value"` is the default and every number recorded from § 1.8.7 onward is on
+ * it, bitwise.
+ *
+ * **The remedy § 1.8.12 forecast for this operand — "an OPD map's per-sample
+ * residuals, scaled so their squares sum to the fitted RMS" — is the wrong
+ * shape, and § 1.8.13 measures why.** A sample's OPD is not a term of this
+ * merit. It carries the piston `fitRms` excludes and the part of the map the
+ * fit did not capture, which the operand's own definition excludes too; and
+ * discrete orthonormality on a disc-clipped square grid is an approximation
+ * where the coefficient identity is exact. Per-sample rows sum to a DIFFERENT
+ * number: the raw map's RMS about its mean is **1.39% away** on this ladder's
+ * own singlet, and — the part that says the shortfall is the GRID rather than
+ * the fit residual — resampling the fitted model at those same 77 points is
+ * 1.40% away, no closer. So per-sample rows would spell a merit the operand
+ * does not name. The forecast was written from the spot's shape rather than
+ * from this one's.
+ *
+ * **And the mechanism in the lead is not the one § 1.8.12 measured either.**
+ * There the dropped Σrᵢ∇²rᵢ was 2.2·10⁷ against 0.4 for the term that is kept;
+ * here it is 4.5·10⁻³ of it — negligible, and the step still cannot move. What
+ * defeats this operand is the RANK the single row leaves: one residual over two
+ * variables makes JᵀJ a rank-one matrix by construction, and it measures so —
+ * eigenvalues 1.88·10¹¹ and **exactly 0**, the two columns anti-parallel to the
+ * last bit. There is a direction in the design space the step cannot see at
+ * all, which is why the KKT test reads 1 and the run stops on `iterations`. The
+ * decomposed form is rank two (second eigenvalue 2.8·10⁴, condition 6.7·10⁶).
+ * § 1.8.12 named both mechanisms; which one dominates is per operand, and
+ * assuming the spot's answer transferred would have been wrong.
+ *
+ * **`"zernike"` has no decomposed spelling, and that is an answer rather than a
+ * gap.** One signed coefficient is already one signed row: there is nothing to
+ * decompose, and the conditioning defect this field exists to fix cannot reach
+ * it. Which is why this is a field on the two RMS readings rather than two more
+ * `reading` names — the term floor below is keyed by reading name, and a name
+ * that fell through its table would validate an identically-zero merit.
+ *
+ * The two refusals are § 1.8.12's, transferred with their arguments intact: a
+ * nonzero target does not decompose into a wish about one Zernike coefficient,
+ * and `terms − 1` rows are not one equation, so this form cannot be HELD.
+ */
+export type WavefrontForm = "value" | "terms";
+
 export type WavefrontReading =
-  | { readonly reading: "rms" }
-  | { readonly reading: "balancedRms" }
+  | { readonly reading: "rms"; readonly form?: WavefrontForm }
+  | { readonly reading: "balancedRms"; readonly form?: WavefrontForm }
   | { readonly reading: "zernike"; readonly noll: number };
 
 /**
@@ -1953,6 +2004,14 @@ function validate(
           `this reading is one per ray, so it can be minimised but not held`,
       );
     }
+    // The same refusal in the wavefront's currency (§ 1.8.13). `terms − 1` rows
+    // is not one equation either, and the truncation would be just as silent.
+    if (o.kind === "wavefront" && "form" in o && o.form === "terms") {
+      throw new Error(
+        `${where}: a decomposed ${o.kind} is HELD — a condition is one equation and ` +
+          `this form is one per Zernike term, so it can be minimised but not held`,
+      );
+    }
   }
   for (const o of [...operands, ...hold]) {
     if (!Number.isFinite(o.target)) {
@@ -1999,6 +2058,17 @@ function validate(
       // j = 5, so those are the counts below which the sum is empty. Refused
       // rather than documented: a caller reading the result has no way to tell
       // this apart from a design that was already perfect.
+      // A per-term wish about a summary is the same refusal § 1.8.12 makes
+      // per-ray, and for the same reason: "make the RMS 0.001 waves" is a
+      // statement about the root-sum-square, and the decomposition is exactly
+      // the step that declines to form it. Target 0 — make the wavefront flat
+      // in every term it fits — is the only wish these rows can carry.
+      if ("form" in o && o.form === "terms" && o.target !== 0) {
+        throw new Error(
+          `${where}: a decomposed ${o.kind} operand asks for a target of ${o.target} — ` +
+            `a per-term reading has no summary to aim at, so 0 is the only wish it can carry`,
+        );
+      }
       const floor = o.reading === "balancedRms" ? 5 : o.reading === "rms" ? 2 : 1;
       if (o.terms < floor) {
         throw new Error(
@@ -2118,7 +2188,7 @@ function wavefrontRead(
   system: OpticalSystem,
   prescription: Prescription,
   operand: WavefrontCondition,
-): { value: number; survivors: Float64Array } {
+): { value: number; rows?: readonly number[]; survivors: Float64Array } {
   const trial: OpticalSystem = { ...system, prescription };
   const map = opdMap(trial, operand.fieldValue, operand.wavelengthNm, operand.pupil);
   const survivors = survivorKey(map.samples);
@@ -2132,13 +2202,17 @@ function wavefrontRead(
     );
   }
   const fit = fitZernike(map.samples, operand.terms);
-  const value =
-    operand.reading === "rms"
-      ? fitRms(fit)
-      : operand.reading === "balancedRms"
-        ? balancedRms(fit)
-        : coefficient(fit, operand.noll);
-  return { value, survivors };
+  if (operand.reading === "zernike") {
+    return { value: coefficient(fit, operand.noll), survivors };
+  }
+  const balanced = operand.reading === "balancedRms";
+  const value = balanced ? balancedRms(fit) : fitRms(fit);
+  if (operand.form !== "terms") return { value, survivors };
+  // The terms of the sum the reading already IS. No 1/√N: the spot needed one
+  // because `rmsRadius` is a mean over rays, and Σ c_j² is the fitted RMS
+  // squared with no averaging in it. `validate` refuses a term count below the
+  // first index, so this slice is never empty.
+  return { value, rows: Array.from(fit.coefficients.subarray((balanced ? 5 : 2) - 1)), survivors };
 }
 
 /** One traced SPOT reading, and the rays it was measured over. */

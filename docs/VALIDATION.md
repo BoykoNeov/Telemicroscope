@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS, not one row (§ 1.8.12) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS and a wavefront as TERMS, not one row (§ 1.8.12/.13) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -2733,8 +2733,11 @@ should be MINIMISED as, and § A-onwards' panel opts in.
 
 `wavefront` and `mtf` are the same shape — one non-negative row summarising many
 samples — and the obvious guess is that they carry the same defect. They do, and
-the wavefront is stuck HARDER than the spot was. On the same seed, two
-curvatures, an 11-point grid at 11 terms:
+the wavefront is stuck HARDER than the spot was. On **the app's own achromat**
+over its two outer curvatures, an 11-point grid at 11 terms — this paragraph
+said "the same seed" when it was written, which reads as the singlet above and
+is not the design these digits are from; § 1.8.13 reproduces them bitwise on the
+achromat and corrects the sentence:
 
 | | RMS reached (waves) | where |
 |---|---|---|
@@ -2754,6 +2757,121 @@ than one — `"balancedRms"` removes terms from the fit and `"zernike"` is a
 single signed coefficient that is already well posed — so the per-sample form
 means something different in each, and § 1.8.7's own warning is that the reading
 the default does not take is where a shipped claim hides.
+
+> ✅ **Closed at § 1.8.13 — and the remedy this paragraph names is the wrong
+> shape.** Per-sample residuals do not sum to the fitted RMS at all; the
+> coefficients do, exactly. The paragraph reasoned from the spot's shape rather
+> than from this operand's, and § 1.8.13 measures both the 1.4% the per-sample
+> form would have missed by and the mechanism — the RANK, not the dropped
+> second-order term this one assumed transferred. The last sentence survives:
+> the three readings did mean three different things, and the answer for the
+> third is that it has no decomposed form at all.
+
+### 1.8.13 — a wavefront wish as ONE row, or as the terms it is built from
+
+§ 1.8.12 closed the spot and forecast this one in a sentence: "an OPD map's
+per-sample residuals, scaled so their squares sum to the fitted RMS, exactly as
+the spot's rows are." **The forecast is the wrong shape, and measuring why is
+most of what this rung is.** `fitRms` is √(Σ_{j≥2} c_j²) and `balancedRms` is
+√(Σ_{j≥5} c_j²) — Parseval on an orthonormal basis, exactly rather than by
+quadrature. The merit is ALREADY a sum of squares of signed quantities, so its
+terms are the Zernike coefficients and there is nothing to scale.
+
+`WavefrontCondition` gains `form?: "value" | "terms"` on the two RMS readings.
+`"value"` is the default and every number recorded from § 1.8.7 onward is on it,
+bitwise.
+
+#### Why not per-sample, in numbers
+
+A sample's OPD is not a term of this merit. It carries the piston `fitRms`
+excludes and the part of the map the fit did not represent, which the operand's
+own definition excludes too — and the discrete basis is not orthonormal on a
+disc-clipped square grid in the first place. Both readings of "per-sample" miss,
+and they miss by the same amount, which is what identifies the grid rather than
+the fit residual as the culprit:
+
+| what a row could have been | Σ rows² gives | against `fitRms` |
+|---|---|---|
+| the raw sample OPDs about their mean | 4.124284763298 | **+1.39%** |
+| the FITTED model resampled at the same 77 points | 4.124902553022 | **+1.40%** |
+| the coefficients c₂…c₁₁ | 4.067757191317 | **bitwise** |
+
+The second row is the one that settles it: it has no fit residual in it at all,
+so if the sample set were orthonormal it would be exact. It is no closer than
+the raw one.
+
+#### Why it is a `form` field and not two more `reading` names
+
+`"zernike"` has no decomposed spelling, and that is an answer rather than a gap:
+one signed coefficient is already one signed row, so there is nothing to
+decompose and the defect cannot reach it. Making the decomposition a second axis
+keeps `reading` meaning "which number" — which matters, because the term-count
+floor (§ 1.8.7) is keyed by reading NAME, and a name that fell through its table
+would validate an operand whose residual is identically zero for every design.
+That is this ladder's own "a readout keyed by name into a list is silently wrong
+rather than broken", avoided at the point it would have been introduced.
+
+#### The mechanism, which is NOT the one that transferred
+
+§ 1.8.12's spot was defeated by the term a Gauss–Newton step drops, Σrᵢ∇²rᵢ,
+measured at 2.2·10⁷ against 0.4 for the term that is kept. Assuming that
+explanation transferred would have been wrong. On this operand the dropped term
+is **4.5·10⁻³ of the kept one** — negligible — and the run is stuck harder than
+the spot ever was. What defeats it is the RANK:
+
+| at the seed, 2 free curvatures | eigenvalues of JᵀJ | condition |
+|---|---|---|
+| `"value"` — one row | 1.8826·10¹¹, **exactly 0** | singular |
+| `"terms"` — ten rows | 1.8909·10¹¹, 2.8185·10⁴ | 6.71·10⁶ |
+
+A 1 × 2 Jacobian's outer product is rank one *by construction*, however the
+design is placed: there is a direction in the design space the step cannot see
+at all. That is what the KKT test reading exactly 1 is a symptom of, and why the
+run stops on `iterations` having never found a step. The decomposed form is
+merely ill-conditioned, which is what the damping is for.
+
+#### The run, on § 1.8.12's own singlet
+
+Same fixture, same seed half a shape factor from Coddington's best form:
+
+| | q reached | fitted RMS (waves) | evaluations | stop | KKT |
+|---|---|---|---|---|---|
+| `"value"` | 1.222215 | 2.6912·10⁻¹ | 2 001 | `iterations` | 1.000 |
+| `"terms"` | **0.713201** | **2.1029·10⁻¹** | 170 | `step` | 1.8·10⁻⁹ |
+| q\* = 2(n²−1)/(n+2) | **0.714286** | | | | |
+
+The external number pins this operand for a reason worth stating rather than
+assuming: at third order the wave and transverse spherical aberrations are the
+same coefficient, so the shape that nulls one nulls the other and a wavefront
+merit has to find the form a spot merit does. It does, to 1.09·10⁻³ — the same
+order as § 1.8.12's 4.7·10⁻⁴ and, like it, a residue that is measured and not
+attributed. The one-row form ends 5.08·10⁻¹ away, on the seed it started at.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **The decomposed form recovers Coddington's best form to 1.09·10⁻³** where the one-row form ends 0.508 away, 0.008 from its own seed | q\* = 2(n²−1)/(n+2) (Jenkins & White; Hecht § 6.3) | ✅ |
+| …and the EFL it settles at is 1004.8 | § 1.8.5's bound on a free power at the fixed image plane, 1006.6 | ✅ |
+| **Σ of the coefficient rows IS the fitted RMS squared, BITWISE** — 10 rows against 1, `Object.is` equal, where § 1.8.12's spot agreed to 6.4·10⁻¹⁶ | Parseval on an orthonormal basis, which is what makes the two one merit | ✅ |
+| …and a weight prices both forms the same, to 1·10⁻¹⁵ | that a weight is per WISH and not per row | ✅ |
+| **Neither per-sample spelling sums to the reading**, both +1.4%, the fitted model resampled no closer than the raw samples | the forecast § 1.8.12 recorded, refuted in its own currency | ✅ |
+| **JᵀJ's second eigenvalue is exactly 0 on one row** and 2.82·10⁴ on ten | rank of an outer product, which is why the KKT test cannot leave 1 | ✅ |
+| …and the term the step DROPS is under 1% of the term it keeps, in both forms | § 1.8.12's 2.2·10⁷ against 0.4 — the explanation that did not transfer | ✅ |
+| **The one-row answer is not a fixed point**: restarted as `"terms"` it moves 7.1·10⁻⁴ and lands on the decomposed answer, which moves 8.1·10⁻¹³ | convergence, asserted without any external digit | ✅ |
+| The wavefront it costs: the one-row form ends **28.0% above** the answer | the reading's own currency | ✅ |
+| Both forms evaluate **36 designs at 7 iterations** — the rows come off one fit | that this is a conditioning change and not a resolution knob | ✅ |
+| With the power HELD, `"balancedRms"` lands on the same shape in both forms (1·10⁻⁴) and the same reading (1·10⁻⁹) | the negative control: the form changes the model, not the physics | ✅ |
+| A `"zernike"` reading is one signed row already, converges as it did, and has no `form` to pass | that the third reading was never the one with the defect | ✅ |
+| **§ 1.8.12's forecast digits reproduce on the app's achromat** — 9.0126156741·10⁻³, KKT 1.000 — and `"terms"` reaches its Nelder–Mead reference to 2.5·10⁻⁹ relative | the recorded forecast, closed in the fixture it was measured on | ✅ |
+| Refusals: a nonzero target on a decomposed form; the same form HELD | that terms − 1 rows is neither a summary to aim at nor one equation | ✅ |
+
+#### What is still open after this
+
+`mtf` is the third operand of this shape and it is **still unmeasured**. The
+lesson this rung teaches is not "decompose it too": contrast at a frequency is
+not a sum of squares of anything, so there may be no decomposition, and the two
+transfers attempted here — the per-sample form and the second-order explanation
+— were both wrong in ways only measuring found. § 1.8.7's warning stands
+unchanged: the reading the default does not take is where a shipped claim hides.
 
 ### Not yet pinned
 
