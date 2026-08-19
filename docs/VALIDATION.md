@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS, a wavefront as TERMS, contrast as neither (§ 1.8.12–.14) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS, a wavefront as TERMS, contrast as neither (§ 1.8.12–.14); N frequencies off ONE trace (§ 1.8.15) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -2944,8 +2944,8 @@ steps whose direction turns is a descent that gets there.
 So the second frequency buys the READOUT and not the answer. It is rank two, the
 KKT test can leave 1 and the run can report the optimum it reached rather than
 the cap it hit — and it lands within **1.5·10⁻⁴** in shape of where one row
-lands, for two traces instead of one, this being the most expensive operand in
-the step.
+lands — and § 1.8.15 has since made that one trace rather than two, on what is
+the most expensive operand in the step.
 
 #### The fixture, and why it is not § 1.8.13's
 
@@ -3006,7 +3006,7 @@ is that on this fixture it is the merit's entire output.
 | Refusal: a `form` on an `mtf` operand, by name | Σ rows² is the reading SQUARED, and only target 0 makes that the merit | ✅ |
 | **One row is singular at 9.1·10⁻¹⁷ — and not exactly 0, as § 1.8.13's was** | an outer product's determinant in f64; the digit is the fixture's | ✅ |
 | …**and the run converges anyway**, `step` in 135 evaluations with the KKT test at 1 | § 1.8.13's mechanism, refuted as a transfer | ✅ |
-| Two frequencies are rank two (1.5·10⁸) and land 1.5·10⁻⁴ away in shape, for two traces | that more rows buy the readout, not the answer | ✅ |
+| Two frequencies are rank two (1.5·10⁸) and land 1.5·10⁻⁴ away in shape, for two traces — one since § 1.8.15 | that more rows buy the readout, not the answer | ✅ |
 | **THE rung: contrast leaves half a shape factor of error untouched** and buys 0.43 waves of defocus, where § 1.8.13's operand recovers q\* to 1.1·10⁻³ | q\* = 2(n²−1)/(n+2) (Jenkins & White; Hecht § 6.3) | ✅ |
 | …and it is a FIXED POINT: restarted, the ν = 0.15 run moves 3·10⁻¹⁰ and the ν = 0.5 run accepts NO step and stays bitwise put | § 1.8.12's proof shape, on an answer that is not the optimum of anything else | ✅ |
 | **The price, in contrast's own currency: 21.0% at ν = 0.15 and 9.2% at ν = 0.5** | the same operand asked after a wavefront merit rather than instead of one | ✅ |
@@ -3018,11 +3018,144 @@ is that on this fixture it is the merit's entire output.
 The operand-decomposition question is closed: a spot has rays, a wavefront RMS
 has terms, and contrast has neither. What this rung leaves is a COST, measured
 and not fixed: two frequencies are two full traces and two transforms per
-evaluation, where they are two readings off one array. Sharing the transform is
-worth roughly 2× on the most expensive operand in the step and it does not fit
-the channel that exists — `systemReader` returns per-operand rows that carry a
-target of 0 by construction, and N frequencies have N targets of their own. It
-wants its own step, not a widening of this one.
+evaluation, where they are two readings off one array.
+
+> ✅ **Closed at § 1.8.15 below**, and the sentence this paragraph used to end
+> with was wrong twice. It said the saving "does not fit the channel that
+> exists — `systemReader` returns per-operand rows that carry a target of 0 by
+> construction, and N frequencies have N targets of their own", which is true of
+> the ROWS channel and irrelevant to the saving: sharing needs no decomposition
+> at all, and N operands go on returning N residuals against N targets of their
+> own. It also called the saving "sharing the transform", which names about two
+> thirds of it — ν enters at the array lookup and nowhere earlier, so the pupil
+> TRACE is shared too, and that is 29–36% of a reading. The forecast size was
+> right: **2.07× at two frequencies**, and 3.74× at four.
+
+### 1.8.15 — several frequencies, one trace
+
+§ 1.8.14 closed the ladder above and left one thing measured and not fixed:
+asking for contrast at two frequencies re-traced the whole lens twice per
+evaluation, when both numbers are lookups in one array. This step spends that,
+and it adds no capability at all — the operand, its fields, its refusals and
+every digit it returns are exactly what they were. It is therefore pinned to
+the engine's own previous output, bitwise, rather than to an external number,
+and to two exact integers.
+
+#### The blocked channel was the wrong channel
+
+The reason § 1.8.14 recorded for not building it was that `systemReader`
+returns per-operand ROWS which carry a target of 0 by construction, while N
+frequencies have N targets of their own. That is a true statement about
+decomposition and it does not apply here. Collapsing N frequencies into one
+operand's row vector would indeed need one target for N rows; sharing does no
+such thing. N operands stay N operands, each returning its own single residual
+against its own target — what stops happening is tracing the same lens N times
+to produce them. Nothing about the merit, the Jacobian's shape, or the rank
+argument in § 1.8.14 changes, which is why the run's own bookkeeping reproduces
+to the digit.
+
+#### What is shared, which is more than "the transform"
+
+A contrast reading is four stages, and ν enters at the last one. Measured on
+§ 1.8.14's own singlet at 32 pupil samples, over two runs on the same machine:
+
+| stage | ms | share of a reading |
+|---|---|---|
+| pupil TRACE (`systemPupil`, 21 × 21 rays) | 2.0–3.2 | **29–36%** |
+| transform to the PSF (`psfFromSystemPupil`) | 4.0–4.5 | 51–58% |
+| transform to the MTF (`mtf`) | 0.87–1.2 | 13% |
+| the reading itself (`mtfAt`) | 7.4·10⁻⁵ | **1·10⁻⁵** |
+
+So § 1.8.14's phrase "sharing the transform" named about two thirds of the
+saving. The trace is a third of a reading and is shared too — everything up to
+the lookup depends on the design, the field, the wavelength and the sampling,
+and on nothing else. A second frequency at the same four is free to five
+decimal places.
+
+#### The count, which is the claim
+
+Traced stages per evaluation, counted by wrapping `systemPupil` and
+`psfFromSystemPupil` and calling straight through. The `+1` is the survivor
+lock's own read at the starting design, which is a design like any other and
+shares as well:
+
+| operands | before | after |
+|---|---|---|
+| ν = 0.15 | 136 over 135 evaluations (1.007) | **136 (1.007)** — unchanged |
+| ν = 0.15, 0.5 | 202 over 100 evaluations (2.020) | **101 (1.010)** |
+| ν = 0.15, 0.3, 0.5, 0.7 | 2 664 over 665 evaluations (4.006) | **666 (1.002)** |
+
+One operand costs exactly what it always did, which is the check that nothing
+was quietly bought from the single-frequency case. And end to end, on the same
+runs:
+
+| operands | before | after | |
+|---|---|---|---|
+| ν = 0.15 | 7.45 ms/evaluation | 7.35 ms/evaluation | 1.01× — noise |
+| ν = 0.15, 0.5 | 14.86 | 7.19 | **2.07×** |
+| four frequencies | 33.24 | 8.89 | **3.74×** |
+
+Four frequencies save 3.74× and not 4.00×, and the missing quarter-step is the
+honest part of the number: with the traces gone, the solver's own algebra over
+four rows is finally visible in the total. § 1.8.14's forecast of "roughly 2×"
+was right in the case it measured.
+
+#### Neutral to the bit, checked two ways
+
+The run is not merely close to the one it replaces. Its residual vector is
+compared with `toBe` against the same reading spelled out longhand — trace,
+transform, transform, lookup — at the seed and again at the design the run
+stops on, the second being the check a stale slot would fail, since a reading
+held over from an earlier trial agrees with nothing at that point. And the
+two-frequency run reproduces § 1.8.14's recorded bookkeeping exactly: 100
+evaluations, 6 accepted steps, stop reason `step`, KKT 1.5350096313156713·10⁻³,
+merit 3.802189683875607·10⁻¹. The integers are the sharp end — a merit changed
+in its last place takes a different number of steps long before it changes a
+digit anyone quotes.
+
+#### The slot, and which way it fails
+
+The channel is one slot holding one design's readings, keyed on the trial
+prescription's object IDENTITY. That is sound because both entry points build
+the trial once per evaluation and hand the same object to every operand, and
+because `withVariable` copies rather than mutates, so identity implies the
+design. The alternative — a `WeakMap` over every trial ever built — was
+rejected on which way each fails rather than on taste: a map's failure is
+memory, since a 128² modulation array is a megabyte and a caller holding
+designs alive would hold those alive with them; a slot's failure is a cache
+MISS, which costs exactly the speed that existed before this step. A wrong
+answer is not among the failure modes either way, and that is what makes the
+cheap one the right one.
+
+The key is built from the RESOLVED options — `padFactor ?? 4` and the rest —
+so an operand that omits a default shares with one that states the same value,
+which is the difference between a saving that happens and one that silently
+does not. Sampling is IN the key: 32 pupil samples and 16 are two different
+arrays reading two different numbers at one ν (§ 1.8.8's 0.66/N bias is why),
+so they are two traces and the rung asserts that they stay two.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **N frequencies cost `evaluations + 1` traced stages, for N = 1, 2 and 4** | a counted wrapper on `systemPupil`, calling through | ✅ |
+| …against the 202 and 2 664 the same runs cost before — 2.020 and 4.006 per evaluation | § 1.8.14's cost, as the counterfactual the rung fails against | ✅ |
+| **One frequency is unchanged: 136 stages, 135 evaluations, KKT exactly 1** | that nothing was bought from the single-operand case | ✅ |
+| **A shared residual IS the longhand reading, `toBe`** — at the seed and at the answer | the four calls `mtfRead` shares, respelled outside it | ✅ |
+| …and the run reproduces § 1.8.14's bookkeeping exactly: 100 evaluations, 6 accepted, KKT 1.535·10⁻³ | the engine's own output before the sharing existed | ✅ |
+| **The same sampling spelled two ways shares** — an omitted `padFactor` against a stated 4 | that the key is the resolved options and not the operand's fields | ✅ |
+| …and a DIFFERENT sampling does not: 32 samples beside 16 is `2 × (evaluations + 1)` | § 1.8.8's 0.66/N bias — two arrays are two readings | ✅ |
+| A wavefront operand beside two frequencies leaves the frequencies sharing | that the slot is per-reading, not per-evaluation | ✅ |
+| **The trace is 15–55% of a reading and the lookup is under 10⁻³ of it** | the correction to "sharing the transform", measured | ✅ |
+
+#### What this does NOT do
+
+It shares one kind of reading. A spot operand goes through `exitBundle` and a
+wavefront operand through `opdMap`, and two of either at one field and
+wavelength still trace twice — two spots differing only in `focus`, or a fitted
+RMS beside a named Zernike coefficient over the same pupil, are the same saving
+waiting in two other chains. They are not wired here because each needs its own
+bitwise pin against its own variants, and a shared stage that is right for
+contrast is not evidence about either. The channel is shaped so they can drop
+in: `TrialShare` is keyed by a string its caller builds.
 
 ### Not yet pinned
 

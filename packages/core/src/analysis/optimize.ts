@@ -12,7 +12,7 @@ import { imagePlaneZ } from "../pupil/pupils";
 import { opdMap } from "../pupil/opd";
 import { fitZernike, fitRms, balancedRms, coefficient, MAX_ZERNIKE_TERMS } from "../wave/zernike";
 import { systemPupil, psfFromSystemPupil } from "../wave/psf";
-import { mtf, mtfAt } from "../wave/mtf";
+import { mtf, mtfAt, type Mtf } from "../wave/mtf";
 import { exitBundle, spotAt, bestSpotZ } from "./spot";
 import { seidelSums } from "./seidel";
 import { withVariable, type SolveVariable } from "./solve";
@@ -1436,8 +1436,21 @@ export type WavefrontCondition = {
  * evaluations. Rank-one paralysis was a property of a merit whose residual
  * reaches zero, not of one row. A second frequency gives rank two and a KKT
  * test that can leave 1 (10⁻²…10⁻³), and lands within 3·10⁻⁴ of the one-row
- * answer in shape, for two traces instead of one: it buys the READOUT, not the
- * answer.
+ * answer in shape: it buys the READOUT, not the answer.
+ *
+ * ## …and it no longer costs a second trace (§ 1.8.15)
+ *
+ * ν is read at the very end of the chain — one lookup in an array built from a
+ * pupil trace and two transforms, none of which it enters. So every frequency
+ * at the same field, wavelength and sampling is a reading off ONE array, and
+ * `systemReader` builds that array once per evaluation and hands it to all of
+ * them: N frequencies cost `evaluations + 1` traced stages rather than
+ * N × (evaluations + 1), which is 2.07× at two of them and 3.74× at four. The
+ * saving is invisible in the answer by construction and is pinned that way —
+ * every digit of a two-frequency run is bitwise what it was. What a caller has
+ * to know is only the boundary: `pupilSamples` and the rest are part of what
+ * makes two readings the same array, so two frequencies at two samplings are
+ * two traces, correctly.
  *
  * ## What this merit spends its freedom on, which is the PLANE
  *
@@ -2207,12 +2220,70 @@ function tracedRead(
   system: OpticalSystem,
   prescription: Prescription,
   operand: TracedCondition,
+  share: TrialShare,
 ): { value: number; rows?: readonly number[]; survivors: Float64Array } {
   return operand.kind === "rmsSpot"
     ? spotRead(system, prescription, operand)
     : operand.kind === "wavefront"
       ? wavefrontRead(system, prescription, operand)
-      : mtfRead(system, prescription, operand);
+      : mtfRead(system, prescription, operand, share);
+}
+
+/**
+ * The traced stage a contrast reading is a sample of: one pupil trace and the
+ * two transforms over it. Every ν at the same field, wavelength and sampling is
+ * a reading off this one array — `mtfAt` indexes it and does nothing else.
+ */
+interface SharedTransform {
+  readonly modulation: Mtf;
+  /** `Psf.pupilSamples`, which is the ruler `mtfAt` measures ν against. */
+  readonly cutoffBins: number;
+  readonly survivors: Float64Array;
+}
+
+/**
+ * Where the traced stages of ONE trial design are kept while its operands are
+ * being read — the channel two frequencies share a trace and a transform
+ * through (§ 1.8.15).
+ *
+ * **It holds one design, not a history.** Both entry points build a trial
+ * prescription once per evaluation and hand that same object to every operand
+ * in turn, so a slot keyed on object identity is hit by every operand of one
+ * evaluation and by none of the next. `withVariable` copies rather than
+ * mutates, so identity implies the design and the reading is the one an
+ * unshared read would have produced, to the bit.
+ *
+ * One slot rather than a `WeakMap` over every trial ever built, and the reason
+ * is which way each fails. A map's failure is memory — a 128² modulation array
+ * is a megabyte, and a caller holding designs alive would hold those alive too.
+ * A slot's failure is a cache MISS: an interleaved read order re-traces and is
+ * merely as slow as it was before this existed. A wrong answer is not among the
+ * failures either way, which is what makes the cheap one the right one.
+ */
+type TrialShare = (
+  prescription: Prescription,
+  key: string,
+  build: () => SharedTransform,
+) => SharedTransform;
+
+function trialShare(): TrialShare {
+  let design: Prescription | undefined;
+  const built = new Map<string, SharedTransform>();
+  return (prescription, key, build) => {
+    if (design !== prescription) {
+      design = prescription;
+      built.clear();
+    }
+    let hit = built.get(key);
+    if (hit === undefined) {
+      // Only a SUCCESS is kept. A trace that throws is a wall, and the throw
+      // leaves the whole evaluation before a second operand is ever asked, so
+      // there is no repeat to save and no failure to remember wrongly.
+      hit = build();
+      built.set(key, hit);
+    }
+    return hit;
+  };
 }
 
 /**
@@ -2228,18 +2299,38 @@ function mtfRead(
   system: OpticalSystem,
   prescription: Prescription,
   operand: MtfCondition,
+  share: TrialShare,
 ): { value: number; survivors: Float64Array } {
-  const trial: OpticalSystem = { ...system, prescription };
   const options = {
     pupilSamples: operand.pupilSamples,
     padFactor: operand.padFactor ?? 4,
     traceSamples: operand.traceSamples ?? 21,
     zernikeTerms: operand.zernikeTerms ?? 28,
   };
-  const pupil = systemPupil(trial, operand.fieldValue, operand.wavelengthNm, options);
-  const survivors = survivorKey(pupil.samples);
-  const image = psfFromSystemPupil(pupil, operand.fieldValue, options);
-  return { value: mtfAt(mtf(image), operand.nu, image.pupilSamples), survivors };
+  // The key is built from the RESOLVED options, not from the operand's own
+  // fields, so two frequencies that spell the same sampling differently — one
+  // omitting `padFactor`, one stating the same 4 — share the trace rather than
+  // silently paying for it twice. ν is deliberately absent: it is the one thing
+  // that does not change the array.
+  const key = [
+    operand.fieldValue,
+    operand.wavelengthNm,
+    options.pupilSamples,
+    options.padFactor,
+    options.traceSamples,
+    options.zernikeTerms,
+  ].join("/");
+  const { modulation, cutoffBins, survivors } = share(prescription, key, () => {
+    const trial: OpticalSystem = { ...system, prescription };
+    const pupil = systemPupil(trial, operand.fieldValue, operand.wavelengthNm, options);
+    const image = psfFromSystemPupil(pupil, operand.fieldValue, options);
+    return {
+      modulation: mtf(image),
+      cutoffBins: image.pupilSamples,
+      survivors: survivorKey(pupil.samples),
+    };
+  });
+  return { value: mtfAt(modulation, operand.nu, cutoffBins), survivors };
 }
 
 /**
@@ -2388,11 +2479,15 @@ function systemReader(
   all: readonly SystemCondition[],
 ): (trial: Prescription, o: SystemCondition, i: number) => readonly number[] {
   const survivorsOf = new Map<number, Float64Array>();
+  // Shared by the starting reads below AND by every trial the returned reader
+  // is asked for, which is what makes the lock and the run one trace: the
+  // start's design is a design like any other, so N frequencies key it once.
+  const share = trialShare();
   all.forEach((o, i) => {
     if (!isTraced(o)) return;
     let survivors: Float64Array;
     try {
-      ({ survivors } = tracedRead(system, system.prescription, o));
+      ({ survivors } = tracedRead(system, system.prescription, o, share));
     } catch (e) {
       throw new Error(`${where}: operand ${i} cannot be read at the start — ${(e as Error).message}`);
     }
@@ -2401,7 +2496,10 @@ function systemReader(
 
   return (trial: Prescription, o: SystemCondition, i: number): readonly number[] => {
     if (!isTraced(o)) return [operandValue(trial, o) - o.target];
-    const { value, rows, survivors } = tracedRead(system, trial, o);
+    // The survivor check stays HERE, per operand, on the shared reading: what
+    // is shared is the trace, not the bookkeeping, so a message still names the
+    // one operand whose set moved.
+    const { value, rows, survivors } = tracedRead(system, trial, o, share);
     if (!sameSurvivors(survivors, survivorsOf.get(i)!)) {
       // Not a worse design — a different question. Same treatment as any
       // other wall: the step is undone and the damping rises.

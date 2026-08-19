@@ -5437,9 +5437,12 @@ and simply never had a wish loud enough to expose it.
   is Rayleigh's — and **the panel's own seed starts 2.14 waves out, seventeen
   times outside it.** A second frequency, which is what rescued § 1.8.8's own
   0.1 mm start, does not rescue this one: the pair lands 2.94 mm out at 1.82
-  waves. (And it would not be cheap if it did — the operands do not share a
-  trace, so two frequencies are two full transforms per evaluation rather than
-  two readings off one.) That failure is *loud in the leftover column and
+  waves. (**The price half of that sentence has since been paid off** and is
+  corrected here rather than left standing: § 1.8.15 shares the trace and both
+  transforms between frequencies, so the pair is one traced stage per
+  evaluation — 2.07× cheaper than when this was written, which halves the
+  4 317× below when it is read per residual rather than per operand. What
+  refuses the pair on this panel is the basin, not the cost.) That failure is *loud in the leftover column and
   quiet in the merit* — 21% of the contrast asked for, against a merit of
   0.019 — which is exactly the split this panel's answer block exists to show,
   and it is still not a thing to ship: a wish whose basin is narrower than the
