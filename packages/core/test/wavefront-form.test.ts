@@ -270,6 +270,40 @@ describe("§ 1.8.13 — the mechanism is the RANK, not the dropped curvature ter
     expect(tBig / tSmall).toBeLessThan(1e7);
   });
 
+  it("…and `\"terms\"` is not a PROMISE of rank — at the reading's floor it is one row again", () => {
+    // A bound authored this session is still a bound. The rows number
+    // `terms − 1`, so `terms: 2` on `"rms"` — allowed, because only BELOW the
+    // floor is refused — decomposes to a single row and cannot exceed rank one
+    // over two variables. The 2.8·10⁴ measured above is a property of an
+    // 11-term fit, not of the form.
+    //
+    // What does survive the boundary is the other half, and it is pinned as an
+    // identity rather than by a sign this fixture happens to give: the row IS
+    // the coefficient, signed, where the summary is its magnitude. On axis at
+    // this design that coefficient is positive and the two rows coincide, which
+    // is exactly why asserting "they differ" would have been a fixture fact
+    // rather than the claim.
+    const two = (form: "value" | "terms"): TracedOperand => ({
+      kind: "wavefront",
+      fieldValue: 0.5,
+      wavelengthNm: LINE_D,
+      pupil: GRID,
+      terms: 2,
+      target: 0,
+      weight: 1,
+      reading: "rms",
+      form,
+    });
+    const value = optimizeSystem(at(SEED), VARS, [two("value")], { maxIterations: 0 });
+    const terms = optimizeSystem(at(SEED), VARS, [two("terms")], { maxIterations: 0 });
+    expect(terms.residuals).toHaveLength(1);
+    expect(terms.merit).toBe(value.merit);
+
+    const fit = fitZernike(opdMap(at(SEED), 0.5, LINE_D, GRID).samples, 2);
+    expect(terms.residuals[0]).toBe(fit.coefficients[1]);
+    expect(value.residuals[0]).toBe(Math.abs(fit.coefficients[1]!));
+  });
+
   it("…and the term a Gauss–Newton step DROPS is negligible here, unlike the spot's", () => {
     // § 1.8.12 measured 2.2e7 against 0.4 and that is why the spot's fix works.
     // Transferring the explanation would have been wrong: on this operand the

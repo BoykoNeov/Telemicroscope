@@ -1274,6 +1274,17 @@ export type SpotCondition = {
  * § 1.8.12 named both mechanisms; which one dominates is per operand, and
  * assuming the spot's answer transferred would have been wrong.
  *
+ * **`"terms"` is not a promise of rank, and the boundary is reachable.** The
+ * rows number `terms − 1` (or `terms − 4` balanced), so at a term count equal
+ * to the reading's own floor — 2 for `"rms"`, 5 for `"balancedRms"`, both
+ * allowed, since only *below* the floor is refused — the decomposition is ONE
+ * row again and cannot exceed rank one over two or more variables. The 2.8·10⁴
+ * above is a measurement on an 11-term fit, not a guarantee. What survives at
+ * the boundary is the other half: that row is a SIGNED coefficient where the
+ * summary is a non-negative magnitude, so the dropped second-order term can
+ * still cancel even where the rank cannot improve. Ask for terms comfortably
+ * above the floor if the rank is what is wanted.
+ *
  * **`"zernike"` has no decomposed spelling, and that is an answer rather than a
  * gap.** One signed coefficient is already one signed row: there is nothing to
  * decompose, and the conditioning defect this field exists to fix cannot reach
