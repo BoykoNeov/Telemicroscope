@@ -2935,9 +2935,9 @@ Two things in that table would have been wrong if carried over. The second
 eigenvalue is **not exactly zero** as § 1.8.13's was — an outer product's
 determinant is a cancellation in f64 here, not a structural zero, so the digit
 belongs to the fixture and not to the algebra. And the singular run **converges
-anyway**, on `step`, in a third of the evaluations § 1.8.13's one-row form spent
-before hitting its cap. Rank-one paralysis was a property of a merit whose
-residual reaches zero, not of one row: this operand's target is unreachable by
+anyway**, on `step`, in 135 evaluations against the 2 001 § 1.8.13's one-row
+form spent before hitting its cap — one fifteenth of them. Rank-one paralysis
+was a property of a merit whose residual reaches zero, not of one row: this operand's target is unreachable by
 construction (§ 1.8.8), the residual stays large, and a sequence of rank-one
 steps whose direction turns is a descent that gets there.
 
@@ -2949,9 +2949,11 @@ the step.
 
 #### The fixture, and why it is not § 1.8.13's
 
-§ 1.8.12 and § 1.8.13 leave the image plane at F = 1000, where the thick
-singlet's back focus misses by 1.68 mm and the seed carries four waves of
-DEFOCUS on top of its shape error. That is the right fixture for those two —
+§ 1.8.12 and § 1.8.13 leave the image plane at F = 1000, which is **6.58 mm**
+past where this seed's wavefront is flattest — its paraxial focus sits at
+995.0993, and spherical aberration moves the min-RMS plane 1.6821 mm ahead of
+that again — so the seed carries four waves of DEFOCUS (4.0678 against 0.2731
+placed) on top of its shape error. That is the right fixture for those two —
 both readings are norms, and defocus is simply more of the thing they minimise.
 It is the wrong one here, because this rung's whole question is what a contrast
 merit spends its freedom ON. Placed by the engine's own `bestFocus`
@@ -2976,8 +2978,8 @@ error — and buys its contrast with a third of a wave of defocus instead, or wi
 two waves of it at ν = 0.5, where the run walks out to a side lobe. The balanced
 error, which is what the shape controls, is untouched to two decimals in all
 four. And this is not a run that stopped early: all four stop on `step`, and
-restarted at its own answer the ν = 0.15 run moves 3·10⁻¹⁰ and the ν = 0.5 run
-moves **exactly zero**. It is a fixed point of a merit that is doing what it was
+restarted at its own answer the ν = 0.15 run moves 3·10⁻¹⁰ while the ν = 0.5 run
+accepts **no step at all** and comes back bitwise where it started. It is a fixed point of a merit that is doing what it was
 asked, on a design nobody would ship.
 
 The price is quoted in contrast's own currency, because in any other currency it
@@ -3006,7 +3008,7 @@ is that on this fixture it is the merit's entire output.
 | …**and the run converges anyway**, `step` in 135 evaluations with the KKT test at 1 | § 1.8.13's mechanism, refuted as a transfer | ✅ |
 | Two frequencies are rank two (1.5·10⁸) and land 1.5·10⁻⁴ away in shape, for two traces | that more rows buy the readout, not the answer | ✅ |
 | **THE rung: contrast leaves half a shape factor of error untouched** and buys 0.43 waves of defocus, where § 1.8.13's operand recovers q\* to 1.1·10⁻³ | q\* = 2(n²−1)/(n+2) (Jenkins & White; Hecht § 6.3) | ✅ |
-| …and it is a FIXED POINT: restarted it moves 3·10⁻¹⁰, and exactly 0 at ν = 0.5 | § 1.8.12's proof shape, on an answer that is not the optimum of anything else | ✅ |
+| …and it is a FIXED POINT: restarted, the ν = 0.15 run moves 3·10⁻¹⁰ and the ν = 0.5 run accepts NO step and stays bitwise put | § 1.8.12's proof shape, on an answer that is not the optimum of anything else | ✅ |
 | **The price, in contrast's own currency: 21.0% at ν = 0.15 and 9.2% at ν = 0.5** | the same operand asked after a wavefront merit rather than instead of one | ✅ |
 | …and a wavefront merit from the contrast answer reaches the same q\*, dropping the error 57.9% | that the freedom was there and was spent on the plane | ✅ |
 | **Given the shape, contrast keeps it to 4·10⁻⁴ and asks for two different PLANES** — 0.32 waves at ν = 0.15 against 0.22 at ν = 0.5 | best focus is frequency-dependent; here it is the whole output | ✅ |

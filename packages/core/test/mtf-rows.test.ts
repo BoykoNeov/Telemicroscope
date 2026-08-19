@@ -351,8 +351,16 @@ describe("§ 1.8.14 — what a contrast merit spends its freedom on", () => {
       // § 1.8.13 measured, so it is not what stopped this run either
       expect(r.gradient).toBe(1);
     }
-    const again = optimizeSystem(at(alone15.x), VARS, [mtfOp(0.15)], { maxIterations: 200 });
-    expect(Math.hypot(again.x[0]! - alone15.x[0]!, again.x[1]! - alone15.x[1]!)).toBeLessThan(1e-9);
+    const again15 = optimizeSystem(at(alone15.x), VARS, [mtfOp(0.15)], { maxIterations: 200 });
+    expect(
+      Math.hypot(again15.x[0]! - alone15.x[0]!, again15.x[1]! - alone15.x[1]!),
+    ).toBeLessThan(1e-9);
+    // …and the ν = 0.5 answer is the stronger version of the same statement:
+    // the restart accepts NO step at all, so it does not move by a bit.
+    const again50 = optimizeSystem(at(alone50.x), VARS, [mtfOp(0.5)], { maxIterations: 200 });
+    expect(again50.accepted).toBe(0);
+    expect(again50.x[0]).toBe(alone50.x[0]);
+    expect(again50.x[1]).toBe(alone50.x[1]);
 
     // …while a wavefront merit started at that same point walks to the same q*
     // it reached from the seed, and drops the error by 58%.

@@ -186,7 +186,8 @@ function sampleAlong(m: Mtf, nu: number, cutoffBins: number, axis: "x" | "y"): n
  * MTF at a normalized frequency ν, sampled along +x — linearly between the two
  * straddling bins, as `sampleAlong` says. Two values of the MODULUS, blended:
  * off a bin the result is therefore not the modulus of anything, which is the
- * boundary VALIDATION § 1.8.14 measures (16% at ν = 0.15 on a 32-sample pupil).
+ * boundary VALIDATION § 1.8.14 measures — 79.6% at ν = 0.15 on that rung's own
+ * aberrated seed, where the transform turns between the two bins it blends.
  *
  * On axis that is *the* MTF, the pattern being rotationally symmetric. Off axis
  * +x is the meridional direction — a field point is displaced along x in this
