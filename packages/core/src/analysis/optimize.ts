@@ -1369,7 +1369,7 @@ export type WavefrontCondition = {
  *
  * ## What is held, and why it is ν rather than cycles/mm
  *
- * `mtfAt` samples the modulation array at `size/2 + ν·pupilSamples`, bilinearly
+ * `mtfAt` samples the modulation array at `size/2 + ν·pupilSamples`, linearly
  * between two bins. Stated in NORMALIZED frequency both of those are the
  * caller's own numbers, so the sample position — and the two interpolation
  * weights — are **fixed for the whole run**, exactly as the held pupil set fixes
@@ -1412,6 +1412,46 @@ export type WavefrontCondition = {
  * operand here gives a corner. Contrast is quadratic in the wavefront error
  * where an RMS is linear in it, so § 1.8.2's square-root law applies to this one
  * and not to § 1.8.5's.
+ *
+ * ## No `form`, and what a second frequency actually buys (§ 1.8.14)
+ *
+ * A spot decomposes into its rays and a wavefront RMS into its Zernike terms,
+ * and this is the third operand of that shape. It has no decomposed spelling,
+ * and the reason is not that the rows do not exist. AT A BIN they do, exactly:
+ * the reading is |OTF|/OTF(0), so (re, im)/OTF(0) are two signed rows whose
+ * squares sum to the reading squared — bitwise at ν = 0.5 and 0.75 on a
+ * 32-sample pupil. What they cannot spell is the MERIT. Both shipped
+ * decompositions satisfy Σ rows² = value², and the merit is (value − target)²;
+ * those agree only at target 0, which is why `validate` refuses a nonzero
+ * target on both. **On contrast, a target of 0 is a wish for no image at all**,
+ * so the only merit the rows could carry is the opposite of every wish anyone
+ * asks. And off a bin the rows do not exist even in principle: `mtfAt` blends
+ * two MODULI, which is not the modulus of any complex pair — 16% adrift at
+ * ν = 0.15. A `form` on this operand is refused by name rather than ignored.
+ *
+ * § 1.8.13's mechanism does NOT transfer either, and assuming it would have
+ * been the third wrong transfer in a row. One row over two variables is rank
+ * one here too — the second eigenvalue of JᵀJ is 10⁻¹⁶ of the first and the KKT
+ * test reads exactly 1 — and the run converges anyway, on `step`, in ~140
+ * evaluations. Rank-one paralysis was a property of a merit whose residual
+ * reaches zero, not of one row. A second frequency gives rank two and a KKT
+ * test that can leave 1 (10⁻²…10⁻³), and lands within 3·10⁻⁴ of the one-row
+ * answer in shape, for two traces instead of one: it buys the READOUT, not the
+ * answer.
+ *
+ * ## What this merit spends its freedom on, which is the PLANE
+ *
+ * The finding a caller has to know before using it. On a singlet seeded half a
+ * shape factor from Coddington's best form with the plane already placed —
+ * the shape is the only defect — a wavefront merit recovers q\* to 1.1·10⁻³
+ * and **this one leaves the shape exactly where it found it** (8·10⁻⁴ of a
+ * 5·10⁻¹ error) and buys its contrast with a third of a wave of defocus
+ * instead. It converges: restarted at its own answer it moves exactly zero,
+ * while a wavefront merit from that same point drops the RMS 57%. The cost is
+ * in contrast's own currency — 19.5% at ν = 0.15 and 66.7% at ν = 0.5 below
+ * what this same operand reaches when a wavefront merit places the shape
+ * first. Use it to place a plane, or to polish a design that is already the
+ * right shape; a merit that has to FIND the shape wants § 1.8.13's operand.
  */
 export type MtfCondition = {
   readonly kind: "mtf";
@@ -2104,6 +2144,22 @@ function validate(
         throw new Error(
           `${where}: a ${o.kind} operand over ${o.pupilSamples} pupil samples — the FFT ` +
             `grid needs an integer of at least 2`,
+        );
+      }
+      // A `form` here is a decomposition this operand does not have, and
+      // § 1.8.14 is why. The rows CAN be spelled: at a frequency bin the
+      // reading is |OTF|/OTF(0), so (re, im)/OTF(0) are two signed rows whose
+      // squares sum to the reading squared, bitwise. What they cannot spell is
+      // the MERIT. Σ rows² is value², and the merit is (value − target)²; the
+      // two agree only where the target is 0, and a target of 0 on this
+      // operand is a wish for no image at all. Refused by NAME rather than
+      // ignored, because a field that falls through a table is § 1.8.13's own
+      // defect — silently wrong rather than broken.
+      if ("form" in o) {
+        throw new Error(
+          `${where}: a ${o.kind} operand carries a form — contrast has no decomposed ` +
+            `spelling, because Σ rows² is the reading SQUARED and only a target of 0 makes ` +
+            `that the merit, which here is a wish for no image at all`,
         );
       }
     }

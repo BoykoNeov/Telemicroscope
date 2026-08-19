@@ -5445,6 +5445,21 @@ and simply never had a wish loud enough to expose it.
   and it is still not a thing to ship: a wish whose basin is narrower than the
   seed's own starting error is a wish that reports success somewhere else.
 
+  **§ 1.8.14 shuts the door this row was left leaning on.** The other two
+  readings on this list were fixed after being written off — the spot at
+  § 1.8.12, the wavefront at § 1.8.13 — by giving a one-row wish its own rows,
+  so "not offered" on the MTF row was a verdict with an obvious appeal
+  pending. There is none. Contrast's rows exist at a frequency bin and spell
+  Σ rows² = value², which is the merit only at a target of 0 — no image at
+  all — so this operand has no decomposed form and is not getting one. What
+  that rung measured instead is a worse fact for this panel than the basin:
+  given two curvatures and a plane already placed, a contrast merit leaves half
+  a shape factor of error untouched and spends its whole freedom on the plane,
+  converging — a true fixed point, restarted it does not move — 21% below what
+  the same wish reaches once a wavefront merit has placed the shape. A reading
+  that optimises the plane it was given is not the reading this panel's
+  variable menu is built around.
+
   **The cost, re-measured at the panel rather than quoted from the ladder.**
   Per residual on this achromat, against its own third-order sum (1.63 µs):
   **103×** for a 149-ray spot, **493×** for the same rays fitted to 28 terms,

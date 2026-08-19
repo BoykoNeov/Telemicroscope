@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS and a wavefront as TERMS, not one row (§ 1.8.12/.13) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, and a run that converges 400 mm from the target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS, a wavefront as TERMS, contrast as neither (§ 1.8.12–.14) | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -2866,12 +2866,161 @@ attributed. The one-row form ends 5.08·10⁻¹ away, on the seed it started at.
 
 #### What is still open after this
 
-`mtf` is the third operand of this shape and it is **still unmeasured**. The
-lesson this rung teaches is not "decompose it too": contrast at a frequency is
-not a sum of squares of anything, so there may be no decomposition, and the two
-transfers attempted here — the per-sample form and the second-order explanation
-— were both wrong in ways only measuring found. § 1.8.7's warning stands
-unchanged: the reading the default does not take is where a shipped claim hides.
+`mtf` is the third operand of this shape and it was **still unmeasured** — now
+✅ **measured at § 1.8.14 below**, and the warning this paragraph carried was
+the right one. The lesson was not "decompose it too", and it was not quite "no
+decomposition exists" either: the rows DO exist at a frequency bin, exactly, and
+what they cannot spell is the merit, because Σ rows² is the reading squared and
+only a target of 0 makes that the merit — which on contrast is a wish for no
+image at all. The mechanism did not carry either, so § 1.8.12 → § 1.8.13 →
+§ 1.8.14 is three rungs and **five attempted transfers, not one of which
+arrived intact**.
+§ 1.8.7's warning stands unchanged: the reading the default does not take is
+where a shipped claim hides.
+
+### 1.8.14 — contrast's rows, and the three transfers that failed
+
+`mtf` is the third operand of § 1.8.12's shape and the last one. § 1.8.13 closed
+by saying its lesson was not "decompose this one too", and this rung measures
+which parts of the pattern reach contrast. **None of the three do** — not the
+rows, not the mechanism, not the remedy — and each was refuted by a different
+measurement rather than by the same argument three times.
+
+#### The rows exist. They cannot carry the merit.
+
+At a frequency BIN the reading is |OTF|/OTF(0), so its real and imaginary parts
+over the same normalisation are two signed rows whose squares sum to the reading
+squared. That is an identity in the arithmetic `mtf()` already does, not an
+approximation. Three candidate row sets, measured on the seed below:
+
+| what a row could have been | what Σ rows² gives | against the reading |
+|---|---|---|
+| (re, im)/OTF(0) **at a bin** | the reading, squared | **bitwise** at ν = 0.25 and 0.5; 2.2·10⁻¹⁶ at 0.75 |
+| the same, **off a bin** | nothing — `mtfAt` blends two MODULI | the blended pair's modulus is **79.6% low** at ν = 0.15 |
+| one row per pupil **overlap** — the autocorrelation `mtf.ts` is built on | 271.79, a constant | moves **8.6·10⁻⁷** where the reading moves **14.8×** |
+
+The third row is the one that looks most like § 1.8.12's spot and is the least
+usable: |P·conj(P′)| is a product of AMPLITUDES, so the phase — which is the
+whole design — cannot enter Σ|row|² at all. What is left of even 8.6·10⁻⁷ is the
+traced pupil's own amplitude at the rim.
+
+The second row says the first one is not generally available: ν is a real
+number, `mtfAt` interpolates linearly between the two straddling bins of the
+MODULUS array, and a blend of two moduli is not the modulus of any complex pair
+wherever the transform turns between them. (The operand's own comment said
+"bilinearly", and the code has always been linear along one row. Corrected.)
+
+**And the first row does not spell the merit.** Both shipped decompositions
+satisfy Σ rows² = value², where the merit is (value − target)²; the two are the
+same question only at target 0, which is exactly why `validate` refuses a
+nonzero target on a transverse spot and on a decomposed wavefront. For those two
+readings a target of 0 is what everybody asks for. **On contrast it is a wish
+for no image at all.** So the decomposition exists, is exact, and the only merit
+it could carry is the opposite of every wish anyone has. `MtfCondition` gets no
+`form` field, and a `form` arriving at run time is refused by name rather than
+ignored — § 1.8.13's "a readout keyed by name into a list is silently wrong
+rather than broken", closed at the point it would have been opened.
+
+#### The mechanism does not transfer, and neither does the remedy
+
+§ 1.8.13 was defeated by RANK: one row over two variables is a rank-one JᵀJ by
+construction. That is just as true here and it is **not what stops this run**:
+
+| at the seed, 2 free curvatures | eigenvalues of JᵀJ | the run |
+|---|---|---|
+| one `mtf` row, ν = 0.15 | 8.3828·10¹⁰, 7.6·10⁻⁶ (**9.1·10⁻¹⁷** of the first) | `step`, 135 evaluations, KKT 1 |
+| two rows, ν = 0.15 and 0.5 | 8.9748·10¹⁰, 6.0072·10² — conditioned 1.5·10⁸ | `step`, 100 evaluations, KKT 1.5·10⁻³ |
+
+Two things in that table would have been wrong if carried over. The second
+eigenvalue is **not exactly zero** as § 1.8.13's was — an outer product's
+determinant is a cancellation in f64 here, not a structural zero, so the digit
+belongs to the fixture and not to the algebra. And the singular run **converges
+anyway**, on `step`, in a third of the evaluations § 1.8.13's one-row form spent
+before hitting its cap. Rank-one paralysis was a property of a merit whose
+residual reaches zero, not of one row: this operand's target is unreachable by
+construction (§ 1.8.8), the residual stays large, and a sequence of rank-one
+steps whose direction turns is a descent that gets there.
+
+So the second frequency buys the READOUT and not the answer. It is rank two, the
+KKT test can leave 1 and the run can report the optimum it reached rather than
+the cap it hit — and it lands within **1.5·10⁻⁴** in shape of where one row
+lands, for two traces instead of one, this being the most expensive operand in
+the step.
+
+#### The fixture, and why it is not § 1.8.13's
+
+§ 1.8.12 and § 1.8.13 leave the image plane at F = 1000, where the thick
+singlet's back focus misses by 1.68 mm and the seed carries four waves of
+DEFOCUS on top of its shape error. That is the right fixture for those two —
+both readings are norms, and defocus is simply more of the thing they minimise.
+It is the wrong one here, because this rung's whole question is what a contrast
+merit spends its freedom ON. Placed by the engine's own `bestFocus`
+(`minRmsWavefront`, 993.4172 mm), the same seed reads c₄ = −1.5·10⁻² waves
+against 2.7·10⁻¹ of total error: **its only defect is the shape**.
+
+#### THE finding: an MTF wish is a wish about the PLANE
+
+Two free curvatures, seeded half a shape factor from Coddington's best form,
+q\* = 2(n²−1)/(n+2) = 0.714286 (Jenkins & White; Hecht § 6.3) — the same
+external number § 1.8.12 and § 1.8.13 are pinned to, on the same singlet:
+
+| from the seed at q = 1.214286, 0.2731 waves | q reached | c₄ (waves) | fitted RMS | its own reading |
+|---|---|---|---|---|
+| § 1.8.13's wavefront, as terms | **0.713178** | 0.0002 | **0.2145** | — |
+| contrast at ν = 0.15 | 1.213464 | **−0.4295** | 0.5091 | 0.0743 → 0.2665 |
+| contrast at ν = 0.5 | 1.218367 | **+2.0334** | 2.0512 | 0.0027 → 0.1250 |
+| contrast at ν = 0.15 and 0.5 | 1.213607 | −0.3576 | 0.4500 | — |
+
+**Every contrast run leaves the shape where it found it** — 8·10⁻⁴ of a 5·10⁻¹
+error — and buys its contrast with a third of a wave of defocus instead, or with
+two waves of it at ν = 0.5, where the run walks out to a side lobe. The balanced
+error, which is what the shape controls, is untouched to two decimals in all
+four. And this is not a run that stopped early: all four stop on `step`, and
+restarted at its own answer the ν = 0.15 run moves 3·10⁻¹⁰ and the ν = 0.5 run
+moves **exactly zero**. It is a fixed point of a merit that is doing what it was
+asked, on a design nobody would ship.
+
+The price is quoted in contrast's own currency, because in any other currency it
+would be an argument. Asked again AFTER a wavefront merit has placed the shape,
+the same operand at the same frequency reaches **0.3226 at ν = 0.15 (21.0% more
+contrast)** and **0.1364 at ν = 0.5 (9.2% more)**. The ν = 0.5 gap is the
+narrower one only because the run that skipped the shape landed on a lobe that
+reads well. And a wavefront merit started at the contrast answer walks to the
+same q\* it reaches from the seed and drops the fitted error **57.9%**, which
+says the freedom was there and was spent elsewhere.
+
+Given a shape that is already right, contrast keeps it: both runs from the
+wavefront answer hold q to **4·10⁻⁴**. So the two merits agree about the glass
+and disagree about the plane — by 0.32 waves of defocus at ν = 0.15 and 0.22 at
+ν = 0.5, **45% apart from each other**, where the wavefront merit asks for none.
+That best focus depends on the spatial frequency is ordinary optics; what is new
+is that on this fixture it is the merit's entire output.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **At a bin the reading IS two signed rows**, bitwise at ν = 0.25 and 0.5 | that the decomposition exists — the objection is not that it does not | ✅ |
+| …and OFF a bin it does not exist at all: a blend of two moduli, 79.6% from the blended pair's | `mtfAt`'s linear interpolation, and a comment that said bilinear | ✅ |
+| **A per-overlap row set moves 8.6·10⁻⁷ where the reading moves 14.8×** | a merit that measures nothing, in this operand's currency | ✅ |
+| Refusal: a `form` on an `mtf` operand, by name | Σ rows² is the reading SQUARED, and only target 0 makes that the merit | ✅ |
+| **One row is singular at 9.1·10⁻¹⁷ — and not exactly 0, as § 1.8.13's was** | an outer product's determinant in f64; the digit is the fixture's | ✅ |
+| …**and the run converges anyway**, `step` in 135 evaluations with the KKT test at 1 | § 1.8.13's mechanism, refuted as a transfer | ✅ |
+| Two frequencies are rank two (1.5·10⁸) and land 1.5·10⁻⁴ away in shape, for two traces | that more rows buy the readout, not the answer | ✅ |
+| **THE rung: contrast leaves half a shape factor of error untouched** and buys 0.43 waves of defocus, where § 1.8.13's operand recovers q\* to 1.1·10⁻³ | q\* = 2(n²−1)/(n+2) (Jenkins & White; Hecht § 6.3) | ✅ |
+| …and it is a FIXED POINT: restarted it moves 3·10⁻¹⁰, and exactly 0 at ν = 0.5 | § 1.8.12's proof shape, on an answer that is not the optimum of anything else | ✅ |
+| **The price, in contrast's own currency: 21.0% at ν = 0.15 and 9.2% at ν = 0.5** | the same operand asked after a wavefront merit rather than instead of one | ✅ |
+| …and a wavefront merit from the contrast answer reaches the same q\*, dropping the error 57.9% | that the freedom was there and was spent on the plane | ✅ |
+| **Given the shape, contrast keeps it to 4·10⁻⁴ and asks for two different PLANES** — 0.32 waves at ν = 0.15 against 0.22 at ν = 0.5 | best focus is frequency-dependent; here it is the whole output | ✅ |
+
+#### What is still open after this
+
+The operand-decomposition question is closed: a spot has rays, a wavefront RMS
+has terms, and contrast has neither. What this rung leaves is a COST, measured
+and not fixed: two frequencies are two full traces and two transforms per
+evaluation, where they are two readings off one array. Sharing the transform is
+worth roughly 2× on the most expensive operand in the step and it does not fit
+the channel that exists — `systemReader` returns per-operand rows that carry a
+target of 0 by construction, and N frequencies have N targets of their own. It
+wants its own step, not a widening of this one.
 
 ### Not yet pinned
 

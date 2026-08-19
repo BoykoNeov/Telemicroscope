@@ -167,7 +167,16 @@ export type ReferenceKind = "thin-split" | "best-form";
  *    a quarter wave, which is Rayleigh's, and **this panel's own seed starts
  *    2.14 waves out — seventeen times outside it.** A second frequency, which is
  *    what rescued § 1.8.8's own 0.1 mm start, does not rescue this one: from
- *    +0.5 mm the pair lands 2.94 mm out at 1.82 waves. Cost seals it —
+ *    +0.5 mm the pair lands 2.94 mm out at 1.82 waves. **And § 1.8.14 closes
+ *    the door the other two readings walked through**: this one has no
+ *    decomposed form to be asked in — contrast's rows exist, but they spell
+ *    Σ rows² = value², which is the merit only at a target of 0, i.e. no image
+ *    at all — so no remedy of § 1.8.12's or § 1.8.13's shape is coming for it.
+ *    What that rung measured instead is worse for this panel than the basin:
+ *    given two curvatures and a plane already placed, a contrast merit leaves
+ *    half a shape factor of error untouched and spends its freedom on the
+ *    plane, converging to a true fixed point 21% below what the same wish
+ *    reaches once a wavefront merit has placed the shape. Cost seals it —
  *    1 229× a third-order sum at 16 pupil samples and 4 317× at 32, against
  *    103× for the spot and 493× for the wavefront.
  */
