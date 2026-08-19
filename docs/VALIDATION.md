@@ -14664,12 +14664,14 @@ re-solved.
 
 ### Two rungs that were cited before they existed (2026-08-19)
 
-`doublet-wall` twice, `microscope`, `object-field` and the app's `golden` each
-send a reader to "§ 6ai.4" for the clipping and to "§ 6ai.6" for the control's
-own ceiling. This step shipped § 6ai.1 and § 6ai.2 and nothing else, so five call
-sites had been citing a measurement that was never taken. **A cross-reference is
-a readout too**, the same shape § 1.8.12 found in a doc comment that printed a
-wrong diagnosis as a finding. Both are written now, in `stop-default`:
+**Eight citations across five files**, counted rather than estimated:
+`doublet-wall` ×3 (two for the clipping, one for the ceiling), `microscope` ×2,
+`object-field`, and the app's `builder` and `golden` each send a reader to
+"§ 6ai.4" for the clipping or to "§ 6ai.6" for the control's own ceiling. This
+step shipped § 6ai.1 and § 6ai.2 and nothing else, so every one of them named a
+measurement that was never taken. **A cross-reference is a readout too**, the
+same shape § 1.8.12 found in a doc comment that printed a wrong diagnosis as a
+finding. Both are written now, in `stop-default`:
 
 - **§ 6ai.4 — the shipped member clips its own diaphragm, and where.** The
   diaphragm is sized paraxially, which is what makes the aperture a slope
@@ -14700,9 +14702,10 @@ and § 6ai.4 is the correction.
   step recorded — nine files build both, so a later step maintaining two lenses
   should retire the control — is closed as a REFUSAL rather than as work. Its
   trigger never fired (the microscope branch closed at § 6ag/§ 6ai without such a
-  step), and the enumeration says it should not: **twenty test files name
-  `"rim"`, and every one of them either reads the pair or states why the control
-  is the only member carrying the quantity.** `oblique-slab` is the strict case —
+  step), and the enumeration says it should not: **twenty-one test files name
+  `"rim"`, counted, and every one of them either reads the pair or states why the
+  control is the only member carrying the quantity.** `oblique-slab` is the
+  strict case —
   the oblique invariant q_c is a bitwise zero on the shipped lens — and
   `telecentric-illumination` is the same shape; § 6w.7 refuses to field-size the
   rim member *by name*, so its surface 0 stays the rim it is called after. Two
@@ -14711,9 +14714,11 @@ and § 6ai.4 is the correction.
     claim at all — Maréchal's criterion is stated on an unvignetted pupil and the
     shipped member vignettes on its own diaphragm. The far band has no telecentric
     spelling, and no amount of test rewriting gives it one.
-  - **`seidelSums` refuses any stop but surface 0** (`analysis/seidel`, pinned at
-    `seidel.test.ts`). § 6ai.2's own EXTERNAL rung evaluates Welford's −70.7001 on
-    the rim member for exactly that reason. Retiring the option would not remove
+  - **`seidelSums` refuses any stop but surface 0 once a field angle is asked
+    for** (`analysis/seidel`, pinned at `seidel.test.ts`) — a spherical-only call
+    is unaffected, which is why the qualifier matters. Welford's shift needs the
+    field terms, so § 6ai.2's own EXTERNAL rung evaluates −70.7001 on the rim
+    member for exactly that reason. Retiring the option would not remove
     the second lens — it would RELOCATE it into a hand-built fixture duplicating
     the ΣS_I = 0 bending solve and the glass sizing, and stop exercising it
     through the shipped constructor. That is more lens to maintain, not less.

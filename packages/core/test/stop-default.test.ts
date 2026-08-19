@@ -24,8 +24,8 @@ import type { OpticalSystem } from "../src/trace/system";
  * not the default, so nothing a caller got by default was telecentric.
  *
  * This step is that flip, and it has exactly two things to pin that § 6ae could
- * not — and, since § 6ag, two more that four other files had already started
- * quoting by number before anyone wrote them.
+ * not — and two more that five other files had been quoting by number before
+ * anyone wrote them.
  *
  * ## 1. The default itself
  *
@@ -61,11 +61,13 @@ import type { OpticalSystem } from "../src/trace/system";
  *
  * ## 3 and 4. Two rungs that were cited before they existed
  *
- * `doublet-wall` (twice), `microscope`, `object-field` and the app's `golden`
- * each point a reader at "§ 6ai.4" for the clipping and at "§ 6ai.6" for the
- * control's own ceiling. Neither rung was ever written: this step shipped § 6ai.1
- * and § 6ai.2 and nothing else, so five call sites have been citing a
- * measurement that did not exist. **A cross-reference is a readout too** — the
+ * **Eight citations across five files**, counted rather than estimated:
+ * `doublet-wall` ×3 (two for the clipping, one for the ceiling), `microscope`
+ * ×2, `object-field`, and the app's `builder` and `golden` each point a reader
+ * at "§ 6ai.4" for the clipping or at "§ 6ai.6" for the control's own ceiling.
+ * Neither rung was ever written: this step shipped § 6ai.1 and § 6ai.2 and
+ * nothing else, so every one of those citations named a measurement that did not
+ * exist. **A cross-reference is a readout too** — the
  * same shape § 1.8.12 found in a doc comment that stated a wrong diagnosis as a
  * finding — and both are written here, measured rather than assumed:
  *
@@ -341,11 +343,11 @@ const fillCrossing = (M: number): number =>
 
 describe("§ 6ai.4 — the shipped member clips its own diaphragm, and where", () => {
   it("the real marginal ray overfills the paraxial diaphragm above NA 0.1461", () => {
-    // The claim four call sites — `doublet-wall` twice, `microscope`,
-    // `object-field` and the app's golden — already make in prose, measured here
-    // for the first time. Sized paraxially, the diaphragm is a hole the
-    // aberrated ray is under no obligation to pass, and past this aperture it
-    // does not. The catalogued 4×/0.10 is 0.7% inside it.
+    // The claim seven call sites — `doublet-wall` ×2, `microscope` ×2,
+    // `object-field`, and the app's `builder` and `golden` — already make in
+    // prose, measured here for the first time. Sized paraxially, the diaphragm
+    // is a hole the aberrated ray is under no obligation to pass, and past this
+    // aperture it does not. The catalogued 4×/0.10 is 0.7% inside it.
     expect(diaphragmFill(4, 0.1)).toBeCloseTo(0.99286, 5);
     expect(diaphragmFill(4, 0.1)).toBeLessThan(1);
     expect(fillCrossing(4)).toBeCloseTo(0.146146, 5);
