@@ -59,7 +59,7 @@ whole ladder.
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
-| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
+| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the field-varying brightfield render built on it, `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
@@ -94,6 +94,7 @@ whole ladder.
 | [6ai](#step-6ai--the-default-stop-placement) | § 6ae's queued flip landed: what a caller gets unasked is telecentric, and ONE lever — D × −70.7, barrel to pincushion — re-read nine files without re-deriving one; the app's DIN rows now state the field they pass | `stop-default` |
 | [6aj](#step-6aj--image-space-telecentricity-the-exit-pupils-slope) | § 6u's eleven-step deferral: the exit pupil grows the slope § 5s.5's refusals had nothing to redirect to — `imageNA` returned NaN at the telecentric point and **0** with the sensor on the pupil, and nine listed readers became measurements | `telecentric-image` |
 | [6ak](#step-6ak--the-exit-side-readers-read-the-slope) | § 6aj.6's audit repaired: the six readers that reported a pixel scale of exactly **0** read the slope, two more the list of nine had missed answered ∞ and NaN, and the two it called separately guarded were one guard — lifted, so a telecentric system renders | `telecentric-image` |
+| [6al](#step-6al--scene-content-through-a-telecentric-frame) | A specimen actually put through that path, no engine code added: a clear field at Fresnel's (1 − R)², contrast dying at Abbe's period read off the ENTRANCE pupil so the two rulers stay independent, 2 mm of sensor shift on a bitwise-identical ruler | `telecentric-scene` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -15750,10 +15751,164 @@ a growth monotone in the gap, a drift that vanishes where a term drops out.
   both `app/eyepiece.ts` sites — remain untouched and remain *structurally*
   unreachable, which § 6aj.6 proved rather than sampled. Nothing here changes
   that argument; they are listed so the audit's nine are accounted for.
-- **Scene content through a telecentric frame.** The frame now has a size and the
-  transform now runs, so the rendering path exists — but nothing has been put
+- ~~**Scene content through a telecentric frame.** The frame now has a size and
+  the transform now runs, so the rendering path exists — but nothing has been put
   through it end to end, and "the ruler is right" is a weaker claim than "the
-  image is right."
+  image is right."~~ **Claimed** by
+  [§ 6al](#step-6al--scene-content-through-a-telecentric-frame), which added no
+  engine code and found the prediction right about the difficulty and wrong about
+  where it sat: the image came out matching the theory on the first run, and what
+  the step had to work for was keeping the two rulers it compares independent.
+
+
+## Step 6al — scene content through a telecentric frame
+
+**The sentence § 6ak's own deferral list ends on, answered. A specimen authored
+in object millimetres, rasterized onto the frame § 6ak.5 gave a size to, imaged
+through the objective's traced pupils under a condenser — and the picture checked
+against four numbers from outside the engine. No new physics and no new engine
+code: `packages/core` is byte-for-byte unchanged and the whole step is one test
+file.**
+
+Every component was pinned already — § 6f's Abbe sum, § 6h's field mapping,
+§ 6n's specimen rasterizer, § 6x's illumination displacement. What was never done
+is run them **in series on the fixture whose exit pupil is at infinity**, where
+the grid spacing comes from `slopeRadius` rather than from a reference sphere. A
+ruler that is right in isolation and wrong in the chain looks exactly like a ruler
+that is right, so the rungs below are arranged so that no claim closes through the
+frame's own arithmetic twice.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6al.1 — a specimen goes through the whole path and a clear field comes back FLAT** | verdict `valid`, all 177 directions | ✅ |
+| ...at (1 − R)² for two uncoated N-BK7 surfaces | Fresnel at normal incidence, 2.7e−8 | ✅ |
+| **§ 6al.2 — a grating authored in millimetres lands on the grid `cosineGratingObject` puts it on** | 2.2e−16, and the odd-cycle inversion is the pixel convention | ✅ |
+| ...and § 6n's warp is 1.3e−4 of a pixel HERE, so the cheap map is not a silent choice | measured negative control | ✅ |
+| **§ 6al.3 — the rendered image is the three-order Abbe sum evaluated off the lattice** | `gratingImage`, 1e−12 over ν = 0.25…1.375 | ✅ |
+| **§ 6al.4 — and that sum is Hopkins' closed form, to the objective's own aberration** | `weakObjectTransferDisk`, 4.9e−4 at 0.0179 waves RMS | ✅ |
+| ...with the near-cutoff departure attributed to the SOURCE lattice, 1.35 → 0.99 | § 6ab.12's known failure, not a new one | ✅ |
+| **§ 6al.5 — the rendered contrast dies at the period Abbe's λ/(NA_o + NA_c) names** | 11 orders down in one cycle bin, 2.1e−8 in mm | ✅ |
+| ...and the tangent-vs-sine fork reaches the picture: 1.2e−5 here, named not averaged | § 6ak.3's gap, in millimetres | ✅ |
+| **§ 6al.6 — the sensor moves and the picture does not rescale: BITWISE, over 20× of shift** | the reason to build telecentric | ✅ |
+| ...against the ordinary fixture's 1 + δ/R, which is the same statement at finite R | closed form, 4.5e−12 | ✅ |
+| **§ 6al.7 — and image-space telecentric is NOT object-space telecentric: h/r_ep is alive** | § 6x's closed form, on a telecentric fixture | ✅ |
+
+### The one number that would catch light going missing
+
+Every other rung here is a **contrast**, and a contrast is a ratio: multiply the
+whole image by 0.7 and not one of them moves. So the imaging chain could lose
+30% of the light — a normalization dropped in the rasterizer, a pupil area
+counted twice — and this file would be green without § 6al.1's second half.
+
+A clear field's brightness is Fresnel's, twice: (1 − R)² with
+R = ((n−1)/(n+1))² = 0.0421646 for N-BK7 at the d line, so **0.9174487**. The
+render gives 0.9174487379809863, 2.7e−8 away, and the residual is not slack —
+the traced amplitude is Fresnel at each ray's *real* incidence and the closed
+form is at normal incidence, so it closes as the cone does. The field is also
+**flat to the last bit**, which one patch through one pupil on a constant object
+requires and which would break first if the transform had any structure of its
+own.
+
+### The cutoff is the rung, and its two routes are kept apart
+
+The contrast at 11 cycles is 2.59e−3 and at 12 it is 7e−16: eleven orders in one
+bin, which is what "the aperture does not carry this at all" looks like as
+distinct from "it carries it weakly". Twelve is ν = 1 + S at S = 0.5, so the
+*normalized* prediction is § 6f's and already pinned.
+
+What is new is the **millimetre**. The object period at 12 cycles is
+`size · objectPixelScaleMm / 12` = 0.0783415750 mm — a number built entirely out
+of § 6ak.5's slope-derived pixel and the traced magnification. Abbe's
+λ/(NA_o + NA_c) computed off the **entrance pupil's** geometry instead —
+r_ep/z_obj = 2/400 exactly, which never touches the frame — gives 0.0783415733.
+**2.1e−8 apart**, and that residual is the paraxial construction against the
+traced one with nothing from the imaging chain between them.
+
+Had the two been allowed to share a route the rung would have been arithmetic:
+`objectExtent/cutoffCycles` reduces to λ/(NA_obj·(1+S)) identically once NA_obj is
+*defined* as |M|·n′tan u′, and |M| cancels. That version passes whatever the slope
+is. The measurement is the vanishing; the closed form only says where to look.
+
+### § 6ak.3's fork reaches the picture, and it is 13 nanometres
+
+§ 6ak.3 recorded that `pupilNumericalAperture` is the **tangent** reading and that
+Abbe's is the **sine**, 3.3% apart at NA 0.25. That was a statement about a pupil.
+Here it is a statement about a specimen: the frequency axis is built on n·tan u,
+so the engine's cutoff period is √(1 + tan²u) **short** of the sine condition's —
+the engine claims very slightly finer resolution than Abbe allows.
+
+On this f/100 fixture that is 1.25e−5: **13 nm out of 78 µm**, which puts the two
+readings 1.5e−4 of one cycle apart, and a cycle count is an integer. So they
+cannot disagree about which bin is the last, and the render's zero lands on 12
+under either. Pinned at its size rather than left implicit, so that a higher-NA
+fixture inherits a number instead of a surprise.
+
+### The sensor's position is a different axis from the field, and this is the one telecentricity is for
+
+§ 6ak.5 pinned that the ruler does not drift **across the field** and read its
+`exitRadius` row as plumbing. The axis it did not walk is the **sensor's own
+position**, and that is the textbook reason to build image-space telecentric:
+`pixelScaleMm` reads tan u′, a pupil property with no image-plane position in it,
+so it is **bitwise identical** at δ = 0.1, 0.25, 0.5, 1 and 2 mm of defocus. The
+magnification moves by 1e−9 over that 20× range, which is the traced probe ray's
+own noise and not a defocus term.
+
+The control is the same optics with the stop 20 mm ahead instead: its
+magnification is **1 + δ/R** to 4.5e−12, R being the exit-pupil-to-image distance
+of 98.27 mm. Telecentric is R = ∞ in that formula, which is why the first half is
+an equality and not a tolerance — the two rungs are one closed form read at its
+two ends.
+
+Said in pictures, which is this step's job: the same grating at the same eight
+cycles, sensor 1 mm out, loses 29% of its contrast on a ruler that has not moved
+by a bit. Blur without rescale. And the verdict is still `valid` at 0.076 waves
+RMS, so that is a defocused picture and not a refusal wearing one.
+
+### The negative the name invites
+
+This fixture is image-space telecentric and its entrance pupil is the **stop**,
+400 mm ahead of the specimen. So § 6x's displacement is fully alive: at object
+height h the illumination cone sits at h/r_ep of a pupil radius off centre —
+0.1175 at h = 0.235 mm, exactly h/2 — and `renderBrightfield` translates the
+condenser by it at every field point off the axis.
+
+The consequence is visible only in a picture, so it is measured in one: one patch
+through the axial pupil under a centred cone against four patches each with their
+own pupil and their own translated cone differ by **5.3%**. The frame is not
+isoplanatic, and a telecentric image plane buys nothing whatever on the object
+side. Two ends, two independent properties.
+
+### What is not pinned to an external number
+
+§ 6al.2's rasterizer agreement, § 6al.3's `gratingImage` agreement and § 6al.6's
+bitwise invariance are all this engine against itself — deliberately, because each
+is a *seam* rather than a physical claim, and a seam is exactly where two correct
+components disagree. The external numbers are the four named at the top of the
+test file: Fresnel, Hopkins' transfer, Abbe's limit, and the 1 + δ/R of chief-ray
+geometry.
+
+The 5.3% of § 6al.7 and the 1.3e−4 pixel of § 6al.2 are this fixture's own
+measurements quoted as measured.
+
+### Not yet pinned
+
+- **A shipped image-space telecentric design**, unchanged from § 6aj and § 6ak:
+  the fixture is still built in the test file, so nothing in `designs/` exercises
+  this branch. Nothing here made that cheaper — a catalogue entry drags in the
+  app's own rows (§ 6ah) and is its own step.
+- **Colour, and a stain.** Every render here is monochromatic at the d line.
+  § 6r's polychromatic brightfield path exists and would compose, but "the image
+  is right" has not been asked of a spectrum through this branch.
+- **A specimen with structure worth looking at.** The scene content here is a
+  cosine grating, chosen because it is the object whose spectrum is three lines
+  and therefore the one with a closed form behind it. That is what makes the
+  rungs sharp and it is also their limit: nothing above says what a *picture* of
+  something looks like, only that the transfer of one frequency at a time is
+  right.
+- **The tangent frequency axis at a high NA**, which § 6al.5 measures at 1.2e−5
+  and cannot make bite: the fixture would have to be opened to where its own
+  spherical aberration swamps the effect. The gap is quantified; a fixture in
+  which it is visible in an image is not built.
 
 
 ## Later rungs
