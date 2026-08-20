@@ -61,6 +61,11 @@ import { LINE_D } from "../src/materials/dispersion";
  * axis, so moving the image plane blurs the picture without rescaling it
  * (§ 6al.6). Against the ordinary fixture, whose magnification goes as 1 + δ/R.
  *
+ * And § 6al.8 is the only claim here about the image being **nonlinear** in the
+ * object: the picture carries a periodicity at 2ν, put there by the beat between
+ * two diffracted orders, at frequencies whose linear transfer is exactly zero.
+ * That is the property that leaves brightfield with no fallback branch at all.
+ *
  * The second is a negative, and it matters because the name invites the mistake:
  * **this system is image-space telecentric and is NOT object-space telecentric**
  * (§ 6al.7). Its entrance pupil is the stop, 400 mm ahead of the specimen, so
@@ -241,7 +246,7 @@ describe("§ 6al.1 — the clear field renders, and its brightness is Fresnel's"
     // 2.7e−8 from the closed form: the traced amplitude is Fresnel evaluated at
     // each ray's real incidence, which on this f/100 axial cone is normal to
     // within that. Not a tolerance chosen to fit — the gap closes as the cone.
-    expect(min / transmitted - 1).toBeLessThan(1e-7);
+    expect(Math.abs(min / transmitted - 1)).toBeLessThan(1e-7);
     expect(min).toBeCloseTo(transmitted, 7);
   });
 });
@@ -545,5 +550,98 @@ describe("§ 6al.7 — image-space telecentric is not object-space telecentric",
     expect(four.harmonic.contrast).toBeCloseTo(0.03771756163402071, 12);
     expect(one.harmonic.contrast / four.harmonic.contrast - 1).toBeCloseTo(0.0531, 3);
     expect(four.rendered.fidelity.verdict).toBe("valid");
+  });
+});
+
+
+describe("§ 6al.8 — the picture carries a frequency a linear imager could not put there", () => {
+  it("the rendered second harmonic is the order-pair beat, to f64 accumulation", () => {
+    // The one claim in this file that is about the image being NONLINEAR in the
+    // object, which is the property that makes brightfield the one branch with no
+    // fallback at all (ARCHITECTURE.md). `gratingImage.secondHarmonic` is the
+    // beat between the +1 and −1 orders — a product of pupil samples 2ν apart —
+    // and it has no counterpart in any transfer function.
+    //
+    // Ratios, not amplitudes: the two computations normalize their intensity
+    // differently and § 6al.3 dodged that by comparing contrast. Here the second
+    // harmonic is read against the fundamental of the same picture.
+    const frame = frameOf(TELECENTRIC);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const expected = [0.004995809761011927, 0.004965595376895924, 0.003440521300677634];
+    [2, 4, 6].forEach((cycles, i) => {
+      const { rendered, harmonic } = renderGrating(TELECENTRIC, frame, cycles);
+      const second = imageHarmonic(rendered.intensity, frame.size, 2 * cycles, 0);
+      const closed = gratingImage(centre.pupil, SOURCE, nuOf(cycles), MOD);
+      const measured = second.amplitude / harmonic.amplitude;
+      expect(measured).toBeCloseTo(expected[i]!, 12);
+      expect(Math.abs(measured / (closed.secondHarmonic / closed.fundamental) - 1)).toBeLessThan(
+        1e-10,
+      );
+    });
+  });
+
+  it("and it is ALIVE at a frequency whose linear transfer is exactly zero", () => {
+    // The demonstration, and it is the same image bin read two ways on one system
+    // and one grid. § 6al.5 renders a 12-cycle grating and gets f64 zero at bin
+    // 12, because ν = 1.5 is (1 + S) and the aperture carries nothing there.
+    // Render a SIX-cycle grating instead and bin 12 comes back at 1.0e−4 of
+    // contrast — the picture has a periodicity at a frequency the objective
+    // cannot transmit, put there by the image being |Σ orders|² and not a
+    // filtered copy of the object's intensity.
+    //
+    // A linear-in-intensity imager could not: the object's own |t|² does carry
+    // m²/2 at 2ν, and multiplying it by a transfer that is exactly 0 there gives
+    // exactly 0.
+    const frame = frameOf(TELECENTRIC);
+    expect(weakObjectTransferDisk(S, 2 * nuOf(6))).toBe(0);
+    expect(weakObjectTransferDisk(S, 2 * nuOf(7))).toBe(0);
+
+    const six = renderGrating(TELECENTRIC, frame, 6);
+    const seven = renderGrating(TELECENTRIC, frame, 7);
+    expect(imageHarmonic(six.rendered.intensity, frame.size, 12, 0).contrast).toBeCloseTo(
+      1.0350664975467584e-4,
+      12,
+    );
+    expect(imageHarmonic(seven.rendered.intensity, frame.size, 14, 0).contrast).toBeCloseTo(
+      4.159726761923105e-5,
+      12,
+    );
+    // Eleven orders above the same bin's reading when the OBJECT is what puts a
+    // frequency there — § 6al.5's 12-cycle render, whose contrast is 7e−16.
+    expect(renderGrating(TELECENTRIC, frame, 12).harmonic.contrast).toBeLessThan(1e-14);
+  });
+
+  it("and it dies past ν = 1, which is § 6ab.12's h·ν < 2 seen in a render", () => {
+    // The second harmonic's own cutoff, and it is NOT (1 + S): two orders 2ν
+    // apart cannot both sit inside a pupil of radius 1 once 2ν reaches the
+    // diameter, whatever the condenser does. So ν = 1 caps it, and § 6ab.12
+    // pins that from the aperture geometry. Here it is the picture: at ν = 1.125
+    // the bin is 3e−16, and the closed form is exactly 0.
+    const frame = frameOf(TELECENTRIC);
+    const nine = renderGrating(TELECENTRIC, frame, 9);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    expect(gratingImage(centre.pupil, SOURCE, nuOf(9), MOD).secondHarmonic).toBe(0);
+    expect(imageHarmonic(nine.rendered.intensity, frame.size, 18, 0).amplitude).toBeLessThan(1e-15);
+  });
+
+  it("and the sweep stops below 8 cycles because bin 16 is Nyquist, where the reading is 2× high", () => {
+    // NOT a physics limit and NOT a tolerance — a defect in the MEASUREMENT, and
+    // it is exactly a factor of two. `imageHarmonic` doubles a bin's modulus
+    // because "a real image splits its energy between the ±k bins", which is true
+    // of every bin except k = 0 and k = N/2: the Nyquist bin is its own conjugate
+    // and there is no partner to add. At 8 cycles the second harmonic lands on
+    // bin 16 of a 32 grid, and the render and the closed form — which agree to
+    // 1e−10 at every other frequency in this file — differ by 2.0000000000 there.
+    //
+    // Recorded rather than worked around, because `app/brightfield.ts` and
+    // `app/phase.ts` both compute a harmonic bin as h·cycles and can reach N/2.
+    const frame = frameOf(TELECENTRIC);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const { rendered, harmonic } = renderGrating(TELECENTRIC, frame, 8);
+    const nyquist = imageHarmonic(rendered.intensity, frame.size, 16, 0);
+    const closed = gratingImage(centre.pupil, SOURCE, nuOf(8), MOD);
+    const ratio =
+      nyquist.amplitude / harmonic.amplitude / (closed.secondHarmonic / closed.fundamental);
+    expect(ratio).toBeCloseTo(2, 10);
   });
 });

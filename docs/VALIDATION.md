@@ -15792,6 +15792,9 @@ frame's own arithmetic twice.
 | **§ 6al.6 — the sensor moves and the picture does not rescale: BITWISE, over 20× of shift** | the reason to build telecentric | ✅ |
 | ...against the ordinary fixture's 1 + δ/R, which is the same statement at finite R | closed form, 4.5e−12 | ✅ |
 | **§ 6al.7 — and image-space telecentric is NOT object-space telecentric: h/r_ep is alive** | § 6x's closed form, on a telecentric fixture | ✅ |
+| **§ 6al.8 — the picture carries a periodicity at 2ν where the LINEAR transfer is exactly 0** | the order-pair beat, 1e−10 | ✅ |
+| ...and it dies past ν = 1 at 3e−16, which is § 6ab.12's h·ν < 2 in a render | closed form is exactly 0 | ✅ |
+| ...and the Nyquist bin reads exactly **2× high**, which is `imageHarmonic`'s and not the physics | measured defect, factor pinned | ✅ |
 
 ### The one number that would catch light going missing
 
@@ -15878,6 +15881,48 @@ own pupil and their own translated cone differ by **5.3%**. The frame is not
 isoplanatic, and a telecentric image plane buys nothing whatever on the object
 side. Two ends, two independent properties.
 
+### The same image bin, dead one way and alive the other
+
+Everything above § 6al.8 is a *transfer* claim: how much of one frequency
+survives. Every one of them would still pass if the image were a linear filter
+applied to the object's intensity, which brightfield is not — and the whole
+reason `illumination/fidelity` refuses rather than falling back (ARCHITECTURE.md)
+is that a coherent sum has no ray analog to cross-fade to.
+
+The nonlinearity is visible in one place, and it is the same bin of the same grid
+on the same system, read twice. Bin 12 of a 32-pixel frame:
+
+- a **12-cycle** grating puts it there and it renders **7e−16** — ν = 1.5 is
+  (1 + S) and the aperture carries nothing at all (§ 6al.5);
+- a **six-cycle** grating does not put it there and it renders **1.04e−4** — the
+  beat between the +1 and −1 orders, which sit 2ν apart in the pupil and are both
+  inside it.
+
+The object's own |t|² *does* carry m²/2 at 2ν, so this is not a frequency out of
+nowhere; what makes it a nonlinearity is that a linear imager would multiply that
+by a transfer which is **exactly zero** there and get exactly zero. The engine's
+1.04e−4 agrees with `gratingImage`'s order-pair sum to 1e−10.
+
+Its own cutoff is not (1 + S) but **ν = 1**: two orders 2ν apart cannot both fit
+a pupil of diameter 2 once 2ν reaches it, whatever the condenser does. At
+ν = 1.125 the bin reads 3e−16 against a closed form of exactly 0 — § 6ab.12's
+h·ν < 2, derived there from aperture geometry and here seen in a render.
+
+### A defect found on the way, in the measurement and not the physics
+
+The sweep stops below eight cycles, and the reason is worth writing down because
+it is a trap rather than a limit. `imageHarmonic` doubles a bin's modulus, on the
+stated grounds that "a real image splits its energy between the ±k bins". True of
+every bin except **k = 0 and k = N/2**: the Nyquist bin is its own conjugate and
+has no partner to add. At eight cycles the second harmonic lands on bin 16 of a
+32-pixel grid and the reading comes back **exactly 2× high** — two paths that
+agree to 1e−10 at every other frequency in this step.
+
+It is pinned as the factor it is rather than avoided silently, because
+`app/brightfield.ts` and `app/phase.ts` both form a harmonic bin as h·cycles and
+can reach N/2 with the controls they expose. Fixing it is a change to a readout
+four callers share and is not this step; see "Still open".
+
 ### What is not pinned to an external number
 
 § 6al.2's rasterizer agreement, § 6al.3's `gratingImage` agreement and § 6al.6's
@@ -15902,13 +15947,21 @@ measurements quoted as measured.
 - **A specimen with structure worth looking at.** The scene content here is a
   cosine grating, chosen because it is the object whose spectrum is three lines
   and therefore the one with a closed form behind it. That is what makes the
-  rungs sharp and it is also their limit: nothing above says what a *picture* of
-  something looks like, only that the transfer of one frequency at a time is
-  right.
+  rungs sharp and it is also their limit: § 6al.8 gets one step past
+  "one frequency at a time" by reading the beat *between* two orders, but nothing
+  here says what a *picture* of something looks like.
 - **The tangent frequency axis at a high NA**, which § 6al.5 measures at 1.2e−5
   and cannot make bite: the fixture would have to be opened to where its own
   spherical aberration swamps the effect. The gap is quantified; a fixture in
   which it is visible in an image is not built.
+
+### Still open
+
+- **`imageHarmonic` reads the Nyquist bin 2× high**, and k = 0 the same way if
+  anyone asks it for the DC as an amplitude. § 6al.8 pins the factor; the fix is a
+  self-conjugate test on (kx, ky) and it changes a readout that `app/brightfield`,
+  `app/phase` and four rungs share, so it wants its own step and its own re-pins.
+  It is a defect and not a convention: no caller could want 2× there.
 
 
 ## Later rungs
