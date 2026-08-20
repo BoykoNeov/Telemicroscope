@@ -17099,6 +17099,23 @@ about the band; `poleOrders` is why a caller can tell.
   nothing in `packages/app` offers either. That was always a separate step and
   this one deliberately does not open it; what has changed is that the engine
   side is no longer the blocker.
+  **Half of that has since moved, and not into the catalogue.** The triplet is
+  now the bench editor's fifth *seed* (APP.md Part E, E2) at this step's own
+  spec — which is a `Prescription`, and therefore not `MICROSCOPE_CATALOG`, a
+  list of microscope objectives a 53 mm telescope triplet does not belong in.
+  § 6ah is unchanged; **`designs/telecentric` still has no caller in the app.**
+  What the seed found belongs here because it is about this step's numbers: a
+  lens whose EFL is one value at F, d and C makes the panel's colour readout
+  read zero, and the axial colour that survives — 17.9 µm on 53 mm, monotonic
+  in λ — is the principal planes walking, which the three-power split does not
+  touch. Normalized by EFL that is 3.38e−4 against 5.30e−4 and 5.11e−4 for the
+  two doublets the panel ships. Those two agreeing to 4% across a 13× difference
+  in focal length is **the glass and not two routes**: both are N-BK7/F2, and a
+  thin achromatized doublet's relative secondary spectrum is that pair's own
+  (P₁ − P₂)/(V₁ − V₂) = 4.993e−4, which is the external number E2 pins to and
+  which the two sit 6.0% and 2.3% above (the formula is thin; the lenses are
+  not). Against it the third colour is worth **32%** rather than an order of
+  magnitude.
 - **A superachromat, and whether four united colours are reachable**, unchanged
   from § 6aq — and § 6ar.6 sharpens what the honest finding would be about. The
   catalogue's one anomalous glass is what conditions the 3×3; a four-glass split

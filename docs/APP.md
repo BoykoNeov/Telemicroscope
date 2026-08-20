@@ -69,6 +69,7 @@ sufficient alone.
 | D8 | `#/builder` | A8 — the microscope builder |
 | D10 | `#/volume` | A5's z-slider through a real mount — no new route |
 | Part E | `#/editor` | the surface list itself, on a form |
+| E2 | `#/editor` | § 6ar's triplet as a fifth seed — no new route |
 | Part F | — | no route of its own: it changed which value every imaging panel carries |
 | Part G | `#/collimation` | the coma node a knocked element takes with it |
 | Part H | `#/rayfan`, `#/chromatic` | the two plots a teaching link lands on |
@@ -3858,7 +3859,8 @@ carried it**, which is the C3 lesson arriving a second time.
 arguments a constructor is called with and the constructor decides what surfaces
 exist; this edits the surface list itself — one row per surface (kind, R, conic,
 semi-aperture, thickness, medium, stop), plus the four specs a `Prescription`
-does not carry, plus a seed row of designs the engine built.
+does not carry, plus a seed row of designs the engine built (four at first; the
+fifth arrived later and is E2 below).
 
 ### What it found
 
@@ -3945,6 +3947,75 @@ Two app-voice refusals, both marked as the app's: **R = 0** (c = ∞ is a geomet
 the engine has no error for — it would trace to NaN and lose every ray, which is
 the one failure an editor must not have) and an **empty surface list**. Everything
 else is the engine's own sentence, quoted verbatim, exactly as A1 established.
+
+### E2 — the fifth seed, and the two numbers it corrected — ✅ **landed** — *app wiring only* — **a seed and a readout**
+
+Nothing in `packages/app` offered a `designs/` entry that shipped after the
+panels did: § 6ar's cemented apochromatic triplet and its telecentric tail both
+existed in the engine with no caller here. The triplet is now the fifth **bench
+seed** — at exactly the aperture, focal ratio, glasses and object distance the
+ladder pinned it at (5 mm, f/10.6, CaF₂/F2/BK7, object 453 mm), because § 6ar.6
+found the focal ratio is not a free choice: the default triple refuses at f/5.
+
+**This is not the app catalogue.** That item (§ 6ah) is `MICROSCOPE_CATALOG`, a
+list of microscope objectives, and a 53 mm telescope triplet does not belong in
+it. A seed is the right surface for a `Prescription`; the catalogue item stays
+open, and the telecentric tail is still unwired.
+
+- **The panel's chromatic readout was reporting the residual of a correction,
+  not the focus range.** `focalShiftMm` is BFD(F) − BFD(C), and a corrected
+  doublet is precisely the design that puts those two together on purpose — so
+  on the lenses the number was written for, it reports the one quantity
+  guaranteed to be small while the d line sits outside both. The range over all
+  three lines exceeds it by **4.7×** on the f = 500 achromat and **24×** on the
+  DIN objective. The seed is what made this visible, by being a lens whose F − C
+  is zero for a different reason: the triplet's EFL is the *same number* at all
+  three lines (spread < 1e−12 mm on 53), so `eflSpreadMm` reads zero and says
+  nothing, and only the BFD column still has colour in it. `focusRangeMm` is
+  the new number, and where the colour is monotonic in λ — the singlet, and the
+  triplet — it equals the old one exactly, so it costs nothing to carry.
+- **And the ratio it exposes is a quality of correction, not a size — which is
+  C1's lesson again.** Divide the range by each lens's own EFL and the two
+  doublets are the same lens: **5.30e−4** and **5.11e−4**, a 500 mm telescope
+  objective and a 37.7 mm microscope one at a finite conjugate. What separates
+  4.7 from 24 is the *denominator* — how tightly each united F and C — not the
+  leftover. **The agreement is the GLASS, and saying so is the difference
+  between a finding and an arithmetic identity**: both seeds are the same
+  N-BK7/F2 pair, cemented in opposite order, and a thin achromatized doublet's
+  relative secondary spectrum is that pair's own number, (P₁ − P₂)/(V₁ − V₂) =
+  **4.993e−4** from four catalogue constants and no tracing. The two measured
+  values sit 6.0% and 2.3% above it, which is the formula being thin-lens and
+  these lenses not being. So the check worth having here is against the closed
+  form, not between the two seeds — "two constructors that share no code" would
+  have been a claim about the code when the number is a claim about the glass.
+  Against that external number the triplet's **3.38e−4** is **32% lower** (36%
+  below the achromat seed as built), which is what nulling the third colour is
+  worth: real, and not the order of magnitude the word "apochromat" advertises,
+  because what it removes (secondary spectrum) is not what is left (the
+  principal planes walking with λ, which a three-power split does not touch).
+  The singlet, for scale, is 1.55e−2 — 29× either doublet, and 1/V.
+- **The seed also broke this part's own free check, and the check was the thing
+  that was wrong.** Part E's headline claim is that loading a seed and editing
+  nothing reproduces the design's numbers, pinned as a **bit-exact** curvature
+  round trip. It is not bit-exact and never could be: `1/(1/c)` returns c for
+  88% of curvatures and not the other 12%, measured over 200k values. The four
+  original seeds carry ten non-trivial curvatures and all ten survived — a
+  0.879¹⁰ = **27.5%** coin flip that came up heads. The triplet has four and one
+  does not. The exact invariant is **R**, not c: `1/(1/(1/c)) === 1/c` held for
+  every value tested, so a reader's *typed radius* reaches the engine unchanged,
+  which is what this panel's header always claimed. The test now pins that, plus
+  one ulp on the curvature — 7.1e−15 mm of the triplet's 53 mm EFL, one ulp of
+  the focal length, and the same "the exactness is in the POWER rather than the
+  millimetres" Part M makes about the solve. Neither escape was taken: rounding
+  the seed's radii, or picking a spec that survives, would have put a lens on
+  screen that § 6ar did not trace. Both are the move § 6ah found had gone
+  unexamined for six steps: choosing a fixture because it is convenient and
+  then never asking what it hides.
+- **One free cross-check came with it.** The triplet's aperture-scaling exponent
+  reads **5.00**, third order nulled and fifth surviving, agreeing with its own
+  ΣS_I ≈ 1.3e−17 mm. That is the DIN objective's result reached on a design from
+  the other branch of the engine, by a route that never computes S_I — two
+  constructors, two conjugates, one exponent.
 
 ### The structural item it closed
 

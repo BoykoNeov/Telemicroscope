@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  apochromaticObjective,
   cassegrain,
   finiteConjugateMicroscope,
   finiteConjugateObjective,
   refractorPair,
 } from "@telemicroscope/core/designs";
-import { LINE_C, LINE_D, LINE_F } from "@telemicroscope/core/materials";
+import { LINE_C, LINE_D, LINE_F, getMedium } from "@telemicroscope/core/materials";
 import { pupils } from "@telemicroscope/core/pupil";
 import { systemProperties } from "@telemicroscope/core/trace";
 import {
@@ -38,6 +39,25 @@ import {
  * with, and every panel that quotes these designs would disagree with this one.
  */
 
+/** § 6ar's own spec, restated here so the seed is checked against the ladder's. */
+const TRIPLET_SPEC = {
+  apertureMm: 5,
+  focalRatio: 53 / 5,
+  media: ["CAF2", "F2", "N-BK7"],
+  thicknessesMm: [1.6, 1.2, 1.2],
+  objectDistanceMm: 453,
+} as const;
+
+/**
+ * `editor.ts`'s `radiusOf`, re-spelled rather than exported.
+ *
+ * Deliberate duplication: the assertion this feeds is *about* that conversion,
+ * and a test that imports the function it is checking cannot catch the function
+ * being wrong — it would agree with a bug by construction. Three tokens is a
+ * cheap independent statement of what a plane and a reciprocal are.
+ */
+const radiusOf = (c: number): number => (c === 0 ? Infinity : 1 / c);
+
 const seedById = (id: string): BenchDraft => {
   const seed = benchSeeds().find((s) => s.id === id);
   if (!seed) throw new Error(`no seed ${id}`);
@@ -45,7 +65,7 @@ const seedById = (id: string): BenchDraft => {
 };
 
 describe("the R ↔ c conversion, which is the only rewrite of the schema", () => {
-  it("round-trips every seed's prescription bit for bit in the fields the engine reads", () => {
+  it("round-trips every seed's radii exactly, and its curvatures to one ulp", () => {
     const originals = [
       refractorPair(500, 25).achromat,
       refractorPair(500, 25).singlet,
@@ -53,8 +73,9 @@ describe("the R ↔ c conversion, which is the only rewrite of the schema", () =
       finiteConjugateMicroscope({
         objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
       }).system.prescription,
+      apochromaticObjective(TRIPLET_SPEC).prescription,
     ];
-    const seeds = ["achromat", "singlet", "cassegrain", "din"].map(seedById);
+    const seeds = ["achromat", "singlet", "cassegrain", "din", "apochromat"].map(seedById);
 
     for (const [i, original] of originals.entries()) {
       const back = toPrescription(seeds[i]!);
@@ -62,9 +83,31 @@ describe("the R ↔ c conversion, which is the only rewrite of the schema", () =
       for (const [j, s] of original.surfaces.entries()) {
         const r = back.surfaces[j]!;
         expect(r.kind).toBe(s.kind);
-        // Exact, not approximate: 1/(1/c) is not c in binary floating point, so
-        // the conversion has to happen once in each direction and never twice.
-        expect(r.curvature).toBe(s.curvature);
+        // **The exact invariant is R, and it is not c.** `1/(1/c)` returns c for
+        // 88% of curvatures and not for the other 12% — measured over 200k
+        // values in [−0.1, 0.1] mm⁻¹ — so a curvature that goes out as a radius
+        // and comes back is exact only by luck. This assertion used to be
+        // `toBe`, and it passed because the four seeds before the triplet
+        // carried ten non-trivial curvatures and all ten happened to survive: a
+        // 0.879¹⁰ = 27.5% coin flip that came up heads. The triplet's third
+        // surface is the tail, off by one ulp.
+        //
+        // The fix is NOT to round the seed's radii, and NOT to pick a spec that
+        // survives — either would make the row on screen a lens § 6ar did not
+        // trace. It is to pin what the form actually promises: a reader's typed
+        // radius reaches the engine unchanged, which is `1/(1/(1/c)) === 1/c`,
+        // true for every value tested and the reason a second round trip can
+        // never drift further. The curvature is then within one ulp, which is
+        // 7.1e−15 mm of the triplet's 53 mm EFL — one ulp of the focal length
+        // too, and the same "the exactness is in the POWER" this file's header
+        // makes about the solve.
+        // Relative, deliberately: `toBeCloseTo(c, 15)` is an ABSOLUTE bound of
+        // 0.5e-15, and these curvatures are ~5e-2, so it would wave through a
+        // ten-ulp regression. One epsilon-relative step is the real bound.
+        expect(Math.abs(r.curvature - s.curvature)).toBeLessThanOrEqual(
+          Math.abs(s.curvature) * Number.EPSILON,
+        );
+        expect(radiusOf(r.curvature)).toBe(radiusOf(s.curvature));
         expect(r.conic ?? 0).toBe(s.conic ?? 0);
         expect(r.semiAperture).toBe(s.semiAperture);
         expect(r.thickness).toBe(s.thickness);
@@ -148,6 +191,124 @@ describe("the seeded readouts are the designs' own numbers", () => {
     if (!result.seidel.ok) throw new Error(result.seidel.error);
     expect(Math.abs(result.seidel.s1Mm)).toBeLessThan(1e-9);
   });
+
+  it("gives the apochromat one focal length at all three lines, and three focuses", () => {
+    const design = apochromaticObjective(TRIPLET_SPEC);
+    const result = describeBench(seedById("apochromat"));
+    if (!result.ok || !result.paraxial.ok) throw new Error("no paraxial readout");
+
+    // § 6ar solved the three powers on the THICK first order, so the EFL is the
+    // target to solver precision — and it is the same number at F, d and C,
+    // which is the whole content of "three united colours". 53 mm carries ~7e-15
+    // in its last bit, and the spread across the three lines is three of those.
+    for (const l of result.paraxial.lines) {
+      expect(l.eflMm).toBeCloseTo(design.focalLengthMm, 12);
+    }
+    expect(Math.abs(result.paraxial.eflSpreadMm)).toBeLessThan(1e-12);
+
+    // The colour that survives is therefore ENTIRELY the principal planes
+    // walking with λ — a thick-lens effect the three-power split does not touch
+    // — and it is 17.9 µm of back focal distance on a 53 mm lens.
+    expect(result.paraxial.focusRangeMm).toBeCloseTo(0.0179116, 6);
+
+    // And it is MONOTONIC in λ, which is what "no crossing" means here: F is the
+    // long focus and C the short one with d strictly between, so the range and
+    // F − C are the same number. On the two corrected doublets they are not.
+    const [f, d, c] = result.paraxial.lines as [
+      (typeof result.paraxial.lines)[number],
+      (typeof result.paraxial.lines)[number],
+      (typeof result.paraxial.lines)[number],
+    ];
+    expect(f.bfdMm).toBeGreaterThan(d.bfdMm);
+    expect(d.bfdMm).toBeGreaterThan(c.bfdMm);
+    expect(result.paraxial.focusRangeMm).toBe(result.paraxial.focalShiftMm);
+  });
+});
+
+describe("the number the apochromat seed made visible", () => {
+  /**
+   * `focalShiftMm` is F − C, and a corrected doublet is the design that puts
+   * those two together on purpose. So on exactly the lenses the readout was
+   * written for, the readout reports the residual of a correction rather than
+   * the focus range — and nothing on the panel said so until a lens arrived
+   * whose F − C is zero for a *different* reason.
+   */
+  it("reads F − C small and the range large on both corrected doublets", () => {
+    for (const [id, factor] of [
+      ["achromat", 4.71],
+      ["din", 23.94],
+    ] as const) {
+      const r = describeBench(seedById(id));
+      if (!r.ok || !r.paraxial.ok) throw new Error(`no paraxial readout for ${id}`);
+      expect(r.paraxial.focusRangeMm / Math.abs(r.paraxial.focalShiftMm)).toBeCloseTo(factor, 1);
+    }
+
+    // The control: where the colour does not cross, the two agree exactly, so
+    // the new number costs a reader nothing to carry.
+    for (const id of ["singlet", "apochromat"] as const) {
+      const r = describeBench(seedById(id));
+      if (!r.ok || !r.paraxial.ok) throw new Error(`no paraxial readout for ${id}`);
+      expect(r.paraxial.focusRangeMm).toBe(Math.abs(r.paraxial.focalShiftMm));
+    }
+  });
+
+  /**
+   * And the ratio above is not a size — it is a quality of correction, which is
+   * a different thing and worth pinning before a reader takes 24 for a lens 5×
+   * worse than the one that reads 4.7. Divide the range by each lens's own EFL
+   * and the two doublets are the SAME lens: what separates 4.7 from 24 is the
+   * denominator, i.e. how tightly each put F and C together, not the leftover.
+   */
+  it("makes the two doublets one number once the focal length is divided out", () => {
+    const rel = (id: string): number => {
+      const r = describeBench(seedById(id));
+      if (!r.ok || !r.paraxial.ok) throw new Error(`no paraxial readout for ${id}`);
+      const efl = r.paraxial.lines.find((l) => l.nm === LINE_D)!.eflMm;
+      return r.paraxial.focusRangeMm / Math.abs(efl);
+    };
+
+    // A 500 mm telescope objective and a 37.7 mm microscope objective at a
+    // finite conjugate, landing within 4% of each other.
+    const [achromat, din] = [rel("achromat"), rel("din")];
+    expect(achromat).toBeCloseTo(5.295e-4, 6);
+    expect(din).toBeCloseTo(5.107e-4, 6);
+    expect(Math.abs(din / achromat - 1)).toBeLessThan(0.04);
+
+    // **And what they agree ON is the glass, not each other.** Both seeds are
+    // N-BK7/F2, cemented in opposite order, and a thin achromatized doublet's
+    // relative secondary spectrum is that pair's own (P₁ − P₂)/(V₁ − V₂) —
+    // four catalogue constants, no tracing, and the external number this rung
+    // is actually pinned to. Quoting the two seeds against each other would
+    // have been a claim about the code for a quantity that is a property of
+    // the glasses; both sit a few percent high because the formula is thin and
+    // these lenses are not.
+    const p = (m: string): number => {
+      const n = (nm: number) => getMedium(m).n(nm);
+      return (n(LINE_D) - n(LINE_C)) / (n(LINE_F) - n(LINE_C));
+    };
+    const v = (m: string): number => {
+      const n = (nm: number) => getMedium(m).n(nm);
+      return (n(LINE_D) - 1) / (n(LINE_F) - n(LINE_C));
+    };
+    const pairSecondary = Math.abs(
+      (p("N-BK7") - p("F2")) / (v("N-BK7") - v("F2")),
+    );
+    expect(pairSecondary).toBeCloseTo(4.9934e-4, 7);
+    expect(achromat / pairSecondary - 1).toBeCloseTo(0.060, 2);
+    expect(din / pairSecondary - 1).toBeCloseTo(0.023, 2);
+
+    // Against that external number the third colour is worth 32% (36% against
+    // the achromat seed as built) — real, and not the order of magnitude the
+    // word "apochromat" advertises, because the mechanism it removes
+    // (secondary spectrum) is not the one left behind (the principal planes).
+    // The singlet says what BOTH corrections are worth: 29×, which is 1/V.
+    const apo = rel("apochromat");
+    expect(apo).toBeCloseTo(3.380e-4, 6);
+    expect(apo / pairSecondary).toBeCloseTo(0.677, 2);
+    expect(apo / achromat).toBeCloseTo(0.638, 2);
+    expect(rel("singlet") / achromat).toBeCloseTo(29.2, 0);
+    expect(rel("singlet")).toBeCloseTo(1 / v("N-BK7"), 3);
+  });
 });
 
 describe("the order of the surviving aberration, read off the aperture", () => {
@@ -168,6 +329,17 @@ describe("the order of the surviving aberration, read off the aperture", () => {
     expect(din.order.order).toBeCloseTo(5, 1);
     // The other route to the same claim, on the same lens, in the same call.
     expect(Math.abs(din.seidel.s1Mm)).toBeLessThan(1e-9);
+
+    // …and 5 for the apochromat too, which is the same claim reached from the
+    // other branch of the engine. § 6ar nulls ΣS_I by a Newton solve on the
+    // bending; this measures how a REAL traced spot shrinks as the stop halves,
+    // which knows nothing about Seidel. Two designs, two constructors, one
+    // exponent.
+    const apo = describeBench(seedById("apochromat"));
+    if (!apo.ok || !apo.order.ok || !apo.seidel.ok) throw new Error("no order readout");
+    expect(apo.order.noiseFloor).toBe(false);
+    expect(apo.order.order).toBeCloseTo(5, 1);
+    expect(Math.abs(apo.seidel.s1Mm)).toBeLessThan(1e-9);
   });
 
   it("refuses to call float noise an order", () => {

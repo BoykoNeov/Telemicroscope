@@ -32,6 +32,7 @@ import {
   type SurfaceSpec,
 } from "@telemicroscope/core/trace";
 import {
+  apochromaticObjective,
   cassegrain,
   finiteConjugateMicroscope,
   finiteConjugateObjective,
@@ -75,13 +76,24 @@ import { AppRefusal, refusalOf, type Refusal } from "./refusal";
  * it (§ 4a, § 5t). Authoring them from scratch needs the module layer
  * ARCHITECTURE.md § Data model schedules, not four more columns here.
  *
- * ## The three seeds, and the check they hand over for free
+ * ## The seeds, and the check they hand over for free
  *
  * A blank surface list says nothing, so the form opens on a design the engine
  * built. Each seed is round-tripped through `fromPrescription`, so loading one
  * and editing nothing must reproduce the design's own numbers — `editor.test.ts`
  * pins exactly that, and it is a real check of the conversions rather than a
  * restatement of them.
+ *
+ * What that check turned out to be pinning is **R and not c**, and the fifth
+ * seed is what found it: `1/(1/c)` returns c for 88% of curvatures and not for
+ * the other 12%, so "the conversion happens once in each direction" above is a
+ * statement about the number a reader TYPED — a radius, which survives the trip
+ * exactly and always — and not about the curvature it was derived from, which
+ * comes back within one ulp. The four seeds this file opened with carried ten
+ * non-trivial curvatures between them and all ten survived, which had a 27.5%
+ * chance of happening; § 6ar's triplet has four and one does not. The cost is
+ * one ulp of EFL (7.1e−15 mm on 53), and `editor.test.ts` now pins the
+ * invariant that is true rather than the one that was lucky.
  */
 
 /** The d line is the design wavelength; F and C are what make the glass visible. */
@@ -249,6 +261,37 @@ export interface ParaxialReadout {
   /** BFD(F) − BFD(C): the axial colour a focus solve cannot remove. */
   readonly focalShiftMm: number;
   /**
+   * max BFD − min BFD over the three lines, which is the focus range a sensor
+   * actually has to straddle — and NOT `focalShiftMm`, on exactly the designs
+   * `focalShiftMm` was invented for. A doublet unites F and C *because that is
+   * what it corrects*, so their difference is the one number guaranteed to be
+   * small; the d line is then the outlier, and the range exceeds it by **4.7×**
+   * on the f = 500 achromat and by **24×** on the DIN objective. Where the
+   * colour is monotonic in λ — the singlet, and the apochromat seed — the two
+   * are the same number to the bit, so this costs nothing to read.
+   *
+   * **Read the ratio, though, and it is the DENOMINATOR that moves.** Divided by
+   * each lens's own EFL the two doublets leave 5.30e−4 and 5.11e−4 — the same
+   * relative focus range to 4%, a 500 mm telescope objective and a 37.7 mm
+   * microscope one. What differs by 5× is how tightly each put F and C
+   * together, which is the ratio's bottom. So 4.7 and 24 are two *correction
+   * qualities* and one leftover, not two magnitudes of the same defect, and the
+   * number worth comparing across lenses is range ÷ EFL.
+   *
+   * **What they agree on is the GLASS.** Both are N-BK7/F2 cemented in opposite
+   * order, and a thin achromatized doublet's relative secondary spectrum is that
+   * pair's own (P₁ − P₂)/(V₁ − V₂) = 4.993e−4 — four catalogue constants and no
+   * tracing. The measured pair sit 6.0% and 2.3% above it, the formula being
+   * thin and these lenses not. Quoting the two seeds against *each other* would
+   * have made a claim about the code for a number that belongs to the glasses.
+   * Against the closed form the apochromat's 3.38e−4 is **32% lower** (36% below
+   * the achromat seed as built), which is what nulling the third colour is
+   * worth — real, and not an order of magnitude, because what it removes is the
+   * secondary spectrum and what is left is the principal planes walking. (The
+   * singlet, for scale, is 1.55e−2 — 29× either doublet, and 1/V.)
+   */
+  readonly focusRangeMm: number;
+  /**
    * Where the paraxial image lands for the *conjugate actually set* (mm from the
    * last vertex), which equals the BFD only at an infinite one.
    */
@@ -407,10 +450,12 @@ export function describeBench(draft: BenchDraft): BenchDescription {
       return { nm: l.nm, label: l.label, eflMm: p.efl, bfdMm: p.bfd };
     });
     const [f, , c] = lines as unknown as [LineProperties, LineProperties, LineProperties];
+    const bfds = lines.map((l) => l.bfdMm);
     return {
       lines,
       eflSpreadMm: f.eflMm - c.eflMm,
       focalShiftMm: f.bfdMm - c.bfdMm,
+      focusRangeMm: Math.max(...bfds) - Math.min(...bfds),
       imageOffsetMm: paraxialImageOffset(system, LINE_D),
       authoredOffsetMm: system.prescription.surfaces[system.prescription.surfaces.length - 1]!.thickness,
     };
@@ -536,7 +581,7 @@ const ORDER_FRACTIONS = [1, 0.5, 0.25, 0.125] as const;
 const ORDER_NOISE_FLOOR_MM = 1e-9;
 
 /**
- * The seeds — four designs the engine built, as rows.
+ * The seeds — five designs the engine built, as rows.
  *
  * Chosen to span the schema rather than to be pretty: a singlet and its achromat
  * differ only in glass and show the catalog doing the work; the Cassegrain is
@@ -544,6 +589,20 @@ const ORDER_NOISE_FLOOR_MM = 1e-9;
  * DIN objective is the finite conjugate, where field means a height and the
  * aperture is an object-space NA. Between them every control on the form is
  * exercised by something that is known to trace.
+ *
+ * The fifth is § 6ar's cemented triplet, and it is here because it is the first
+ * thing in this app to offer a `designs/` entry that shipped after the panels
+ * did — three glasses, one of them the catalogue's only fluorite, at the exact
+ * aperture, focal ratio and object distance the ladder pinned it at. What it
+ * added is not a row: it is `focusRangeMm`, above. Put a lens whose EFL is the
+ * same number at all three lines next to `eflSpreadMm` and the readout reads
+ * zero, which is correct and says nothing; look at the BFDs instead and the
+ * colour is all still there, monotonic in λ, because the powers were united and
+ * the principal planes were not. Then the same column on the two *corrected
+ * doublets* — the f = 500 achromat and the DIN objective — shows F and C sitting
+ * together with d well outside them, which `focalShiftMm`, being F − C, cannot
+ * report at all. A seed that made one number read zero is what found that the
+ * number beside it was understating every corrected lens in the list.
  */
 export interface BenchSeed {
   readonly id: string;
@@ -556,12 +615,32 @@ const REFRACTOR_FOCAL_MM = 500;
 const REFRACTOR_SEMI_APERTURE_MM = 25;
 const DEFAULT_PUPIL_RAYS = 15;
 
+/**
+ * § 6ar's triplet, spelled the way that step's own fixtures spell it.
+ *
+ * Not this app's guess: 5 mm at f/10.6 with the object 453 mm in front is the
+ * spec `telecentric-design.test.ts` and `telecentric-apochromat.test.ts` both
+ * build, so the radii the form opens on (18.348, −16.871, −19.012, −670.472)
+ * are the ones the ladder pinned. The focal ratio is not free — § 6ar.6 found
+ * that the default triple refuses at f/5, the steep branch's surfaces having
+ * gone past hemispherical — so a seed that "rounded" it to f/10 would be
+ * choosing an aperture the ladder never traced.
+ */
+const TRIPLET_SPEC = {
+  apertureMm: 5,
+  focalRatio: 53 / 5,
+  media: ["CAF2", "F2", "N-BK7"],
+  thicknessesMm: [1.6, 1.2, 1.2],
+  objectDistanceMm: 453,
+} as const;
+
 export function benchSeeds(): readonly BenchSeed[] {
   const pair = refractorPair(REFRACTOR_FOCAL_MM, REFRACTOR_SEMI_APERTURE_MM);
   const cass = cassegrain({ apertureMm: 200, focalRatio: 10, primaryFocalRatio: 4 });
   const dinChain = finiteConjugateMicroscope({
     objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
   });
+  const triplet = apochromaticObjective(TRIPLET_SPEC);
 
   const infinite: Omit<BenchDraft, "objectMedium" | "surfaces"> = {
     aperture: { kind: "EPD", value: 2 * REFRACTOR_SEMI_APERTURE_MM },
@@ -609,6 +688,27 @@ export function benchSeeds(): readonly BenchSeed[] {
         aperture: dinChain.system.aperture,
         conjugate: dinChain.system.conjugate,
         fieldValue: 0.05,
+        pupilRays: DEFAULT_PUPIL_RAYS,
+      }),
+    },
+    {
+      id: "apochromat",
+      label: "CaF₂/F2/BK7 apochromat, f = 53, f/10.6",
+      note: "§ 6ar — three glasses unite three colours in EFL, so watch the BFDs instead: the colour is still there, and it no longer crosses",
+      // The design's own stop radius rather than an EPD: at a finite conjugate
+      // "entrance pupil diameter" is a solved quantity, and surface 0 carries
+      // `isStop` with a semi-aperture deliberately 0.5% oversize of D/2 — the
+      // mechanical edge, not the beam. Seeding from the oversize number would
+      // open the form on a slightly faster lens than the one § 6ar traced.
+      draft: fromPrescription(triplet.prescription, {
+        aperture: { kind: "stopRadius", value: TRIPLET_SPEC.apertureMm / 2 },
+        conjugate: { kind: "finite", distance: TRIPLET_SPEC.objectDistanceMm },
+        // An object height, because the conjugate is finite. 1 mm is this app's
+        // choice and not the ladder's — § 6ar solves the bending on axis and
+        // never states a field — so it is picked to be visibly off-axis at a
+        // 2.5 mm semi-aperture without being a field this design was corrected
+        // for. The off-axis spot is what it is; nothing here claims otherwise.
+        fieldValue: 1,
         pupilRays: DEFAULT_PUPIL_RAYS,
       }),
     },

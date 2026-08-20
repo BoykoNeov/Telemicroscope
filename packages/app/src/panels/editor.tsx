@@ -486,6 +486,11 @@ export function EditorPanel() {
                   note="the axial colour no focus solve can remove"
                 />
                 <Fact
+                  label="BFD range, all three"
+                  value={`${num(result.paraxial.focusRangeMm, 4)} mm`}
+                  note="what a sensor straddles — 4.7× and 24× the line above on the two corrected doublets, because d is the outlier they leave behind"
+                />
+                <Fact
                   label="image: paraxial / authored"
                   value={`${num(result.paraxial.imageOffsetMm, 3)} / ${num(result.paraxial.authoredOffsetMm, 3)}`}
                   note="from the last vertex — the second is whatever the last thickness says"
