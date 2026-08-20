@@ -520,7 +520,15 @@ export function EditorPanel() {
               <Fact
                 label="exit pupil"
                 value={`r = ${num(result.pupil.exitRadiusMm, 4)} mm`}
-                note={`at z = ${num(result.pupil.exitZMm, 3)}`}
+                note={
+                  Math.abs(result.pupil.exitRadiusMm) > 1e3
+                    ? `at z = ${num(result.pupil.exitZMm, 3)} — running off toward image-space ` +
+                      "telecentric, and unlike the entrance pupil above there is no slope " +
+                      "spelling to fall back on: the engine's radius-XOR-slope invariant has no " +
+                      "image-space half yet (§ 5s.5, still open). Read this as a direction, not " +
+                      "a semi-diameter."
+                    : `at z = ${num(result.pupil.exitZMm, 3)}`
+                }
               />
               {draft.aperture.kind === "objectNA" && (
                 <Fact

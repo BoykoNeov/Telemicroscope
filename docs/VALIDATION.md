@@ -6139,6 +6139,19 @@ That is a bigger family than this step and needs the slope to exist before it
 needs the readers audited — left open with the file:line list so the next step
 inherits the audit rather than redoing it.
 
+**And the bench panel is now DELIBERATELY asymmetric, which is worth saying out
+loud because this step is what made it so.** The same form reaches the exit-side
+gap in three rows — stop on surface 0, a singlet at its front focal distance —
+and the panel reads `exit r = 2 659 670.894 mm at z = 26 952 190.75`. Beside an
+entrance pupil that now prints a clean `tan u`, a bare number like that reads as
+a different physical situation rather than as a missing spelling. It is the
+missing spelling. Until `imageStopForward` grows a slope there is nothing
+truthful to print instead, so the exit `Fact` says so in its own note above
+1 000 mm rather than pretending the two sides are alike. **Note that the
+reachable defect on this side is the huge plausible number and not the ∞** — the
+same lesson § 5s.5 learned on the entrance side, arriving before the repair
+instead of after it.
+
 ## Step 5t — tolerancing: sensitivity, compensators, and the RSS budget
 
 Perturb a parameter by its manufacturing tolerance and watch the image degrade.
