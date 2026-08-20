@@ -8,6 +8,7 @@ import { lateralMagnification } from "../src/pupil/microscope";
 import { objectFieldTile } from "../src/imaging/object-field";
 import { diskSource } from "../src/illumination/source";
 import { achromaticObjective } from "../src/designs/achromat";
+import { telecentricStop } from "../src/designs/telecentric";
 import {
   brightfieldSpectralStack,
   formBrightfieldPlane,
@@ -59,9 +60,15 @@ import type { SpectralSpecimen } from "../src/imaging/specimen";
  *
  * ## No new engine code
  *
- * `packages/core` is byte-for-byte what § 6ao left. The tail is `designs/achromat`'s
+ * `packages/core` was byte-for-byte what § 6ao left. The tail is `designs/achromat`'s
  * computed cemented doublet — the § 6b constructor, not a transcribed patent —
- * and everything else is § 6aj's fixture with a different lens in it.
+ * and everything else was § 6aj's fixture with a different lens in it.
+ *
+ * **The STOP is now a catalogue entry too.** § 6ar shipped `designs/telecentric`,
+ * whose whole subject is the millimetre this step spends its rungs on, and this
+ * file's two placements — the d line's front focal distance, and the turn 3.8 µm
+ * inside it — are that constructor called twice with one option changed. Every
+ * number below is § 6ap's own and unchanged.
  */
 
 const STOP_R = 2;
@@ -134,8 +141,23 @@ const TAIL_THICKNESS = TAIL[0]!.thickness + TAIL[1]!.thickness;
 const GROUP: Prescription = {
   surfaces: TAIL.map((s, i) => (i === TAIL.length - 1 ? { ...s, thickness: 0 } : s)),
 };
-/** Where the stop goes: the tail's front focal distance AT THE D LINE. */
-const FFD_D = ffd(GROUP, LINE_D);
+/**
+ * Where the stop goes — and it now comes from `designs/telecentric`, which § 6ar
+ * shipped, rather than from a local `ffd` call.
+ *
+ * The placement IS the design here: `frontFocal` puts the stop at the value
+ * FFD(λ) passes through at the d line, `turn` at the value it turns at, and the
+ * whole of § 6ap.5 is the 3.8 µm between them. Both come off one constructor with
+ * one option changed, which is exactly the pair this file's own deferral asked a
+ * `designs/` entry to carry.
+ */
+const PLACED = telecentricStop({ tail: { surfaces: TAIL }, imageDistanceMm: 100 });
+const PLACED_TURN = telecentricStop({
+  tail: { surfaces: TAIL },
+  placement: { kind: "turn" },
+  imageDistanceMm: 100,
+});
+const FFD_D = PLACED.stopToVertexMm;
 
 /** § 6aj's fixture with the achromatic tail in it — everything else unchanged. */
 const finiteAt = (gap: number, defocus = 0): OpticalSystem => {
@@ -255,10 +277,17 @@ const argmin = (g: (x: number) => number, a: number, b: number): number => {
 };
 
 /** The second wavelength at which the stop is at a front focal point. */
-const SECOND_TELECENTRIC_NM = bisect((nm) => ffd(GROUP, nm) - FFD_D, 500, 560);
+/**
+ * The second wavelength the d-line placement is telecentric at. § 6ap bisected
+ * for it here; it is now the constructor's own second crossing, and § 6ar.7 pins
+ * the two routes equal.
+ */
+const SECOND_TELECENTRIC_NM = PLACED.telecentricWavelengthsNm.find(
+  (nm) => Math.abs(nm - LINE_D) > 1,
+)!;
 /** Where FFD(λ) turns — the stop placement that makes the root double. */
-const TURN_NM = argmin((nm) => ffd(GROUP, nm), 450, 700);
-const FFD_TURN = ffd(GROUP, TURN_NM);
+const TURN_NM = PLACED.turningPointsNm[0]!;
+const FFD_TURN = PLACED_TURN.stopToVertexMm;
 
 const tileAt = (nm: number, system: OpticalSystem = TELECENTRIC) =>
   objectFieldTile(system, {

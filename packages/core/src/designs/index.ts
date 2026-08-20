@@ -15,3 +15,5 @@ export * from "./visual-microscope";
 export * from "./lister";
 export * from "./immersion";
 export * from "./condenser";
+export * from "./apochromat";
+export * from "./telecentric";

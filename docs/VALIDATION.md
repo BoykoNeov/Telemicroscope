@@ -100,6 +100,7 @@ whole ladder.
 | [6ao](#step-6ao--a-specimen-with-real-structure) | Edges and ends, not a cosine: a bar puts 4/π of a cosine's amplitude into the fundamental at the same transfer, and a chart element past the cutoff draws bars where its own ruling is dead | `structure` |
 | [6ap](#step-6ap--an-achromatic-telecentric-tail) | An achromatic tail turns FFD(λ) around inside the band, so telecentricity holds at TWO wavelengths and the rescale reverses twice — unless the stop sits at the turn | `telecentric-achromat` |
 | [6aq](#step-6aq--an-apochromatic-telecentric-tail) | Three united colours put TWO turns in FFD(λ), so a stop is telecentric THREE times, not the deferral's four, and which spherical-null bending is built decides three or one | `telecentric-apochromat` |
+| [6ar](#step-6ar--the-telecentric-designs-ship) | The last two solves leave the test files: `designs/apochromat` and `designs/telecentric` rebuild §§ 6ap–6aq to the digit — and § 6aq.4's ninth decimal was the bracket | `telecentric-design` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -16923,6 +16924,173 @@ the bracket.
   moves the turns and § 6aq.3's sweep shows how far, but nothing here solves for
   a bending that puts a pole at a wanted colour. § 6ap's "turn's own wavelength as
   a design input" is the same open question with one more knob on it.
+
+## Step 6ar — the telecentric designs ship
+
+**The oldest entry on this ladder's deferral list, carried since § 6aj and
+re-priced upward twice on the way. Its complaint never changed: machine-vision
+telecentric lenses are the real article, every fixture that exercises the branch
+is built inside a test file, and `designs/` has none. § 6ap made it two fixtures
+differing by a spacer; § 6aq made it three and added a design solve. Two entries
+close it, and no new physics arrives with them — what arrives is an audit,
+because shipping a fixture is where its prose gets read by a compiler.**
+
+`designs/apochromat` is the cemented triplet § 6aq solved inside its own fixture,
+with the branch choice and the refusals the deferral predicted.
+`designs/telecentric` is the *placement* — the stop on the tail's front focal
+plane — and it takes a tail rather than choosing one, because § 6aq's own finding
+is that the glass and the millimetre are independent knobs: the glass decides how
+many turns FFD(λ) has, the placement decides whether a pole is crossed or touched.
+A constructor that fused them would have hidden the last three steps' whole result.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6ar.1 — the triplet's external number is the catalogue's three-glass split** | Cramer on Σφ = φ, Σφ/V = 0, ΣφP/V = 0, to 12 digits; § 6aq.1's own three powers | ✅ |
+| ...and the thick solve's 3.80e−2 gap from it halves with the glass, five times | linear to 2%, so it extrapolates to zero | ✅ |
+| **§ 6ar.2 — the scan finds the classical pair, and has no ghost to filter** | Welford's S_I nulled to 1e−11 on both; § 6aq.7's 18.348 and −102.649 | ✅ |
+| ...and "shallow" is a claim about the STEEPEST surface — surface 1 goes the other way | 0.148 against 0.328, where R₁ alone would pick the other root | ✅ |
+| **§ 6ar.3 — the solve's reachable set is not an interval, and the scan is built for it** | 8 → 16 → 32 → 101 runs at 200 → 4000 samples: a basin, not a geometry | ✅ |
+| ...so a bracket it cannot narrow is abandoned and reported, never returned as a root | f/4 refuses as a `TripletApertureRefusal`, not as the solver's own error | ✅ |
+| **§ 6ar.4 — the composed prescription is the fixtures', where it can be told** | one stop flag, `pupils` identical with it kept; FFD and EFL bitwise | ✅ |
+| **§ 6ar.5 — the placement is the design, and both placements are one constructor** | § 6ap.5's −3.774536e−3 mm; two crossings at the d line, one at the turn | ✅ |
+| ...and a turn placement on a TWO-turn tail is touched at 498.76 and still CROSSED at 728.43 | no fixture could see it; `poleOrders` is why a caller can | ✅ |
+| ...and a singlet has no turn to place at, refused as a fact about the GLASS | FFD monotone, so it is not something another index fixes | ✅ |
+| **§ 6ar.6 — conditioning is the glass triple's, and it is NOT a refusal** | the normal line P = 0.2751 + 5.139e−4·V to ±4.4e−4, CaF₂ 44× off it | ✅ |
+| ...so what it costs is a TOLERANCE, Δf/f = −ε·f·cₖ·Δnₖ, and a focal-ratio wall | the maker's equation differentiated, to 6%; f/5.5 builds, f/5 does not | ✅ |
+| **§ 6ar.7 — the fixtures call the constructors, and no digit moved** | equivalence, not physics: 528.349225534, 53.007115531, 5.7919e−4 | ✅ |
+| **§ 6ar.8 — a crossing has a floor too, and § 6aq.4 was quoted past it** | 53·ε ÷ dFFD/dλ = 4.15e−10 nm; five brackets spread 1.6e−9 | ✅ |
+
+### What shipping the fixture found, which is the point of shipping it
+
+Three sentences did not survive being compiled. None of them changes a lens; all
+three change what the ladder is entitled to claim.
+
+**§ 6aq called an ordinary-glass triple "a singular matrix". It is not.** The
+sentence is doing real work there — it is why the catalogue has exactly one
+apochromatic glass triple, and why the superachromat question is about the
+catalogue — so it mattered that it was wrong. Every CaF₂-free triple in
+`materials/catalog` **solves**: the 3×3 inverts, the powers come out finite, F, d
+and C are united exactly, and at a slow enough focal ratio the result is a real
+lens — N-BK7/F2/fused silica at f/200, F2/fused silica/D263 at f/1000. What is
+true is weaker and more useful. The conditioning, max|φᵢ|/φ, is **scale-free**:
+2.58 for a fluorite triple and 49.9 or 518 without one, at any focal length. Being
+scale-free, it cannot be a refusal by itself — it converts into two things that
+are, a focal-ratio wall and a manufacturing tolerance.
+
+The tolerance is the half worth having, because it is closed-form. Differentiate
+the maker's equation for a cemented stack, φ = Σ(nₖ−nₖ₋₁)cₖ, and a *relative*
+error ε on one curvature moves the focal length by Δf/f = −ε·f·cₖ·(nₖ−nₖ₋₁). So
+the amplification is |f·cₖ·Δnₖ|, it is traced to within 6% — the gap being
+thickness, as everywhere else on this rung — and across the same three triples it
+runs **1.6×, 13.2× and 64.3×**. An apochromat of ordinary glass is a design that
+exists and cannot be MADE. That is a different claim from a matrix that will not
+invert, and it is the one the measurements support.
+
+The constructor still refuses every CaF₂-free triple here — and the reason is one
+step further on again, which is why the sentence had to be rewritten rather than
+softened. At ratios where their curvatures are buildable at all, ΣS_I keeps **one
+sign** across every buildable bending (N-BK7/F2/fused silica at f/50, f/100 and
+f/200), so there is no bending to null it at; slower still, where it does change
+sign, the scan finds one root and not the classical pair. "No apochromat without
+fluorite" survives, as a measured result about the **spherical solve**.
+
+### § 6aq.4's ninth decimal was the bracket, one rung after § 6aq caught itself
+
+§ 6aq.3 is where this ladder learned to quote a searched extremum to what the
+search can locate: golden section on a smooth minimum is a √ε business, the same
+turn from five brackets spread 3.2e−4 nm, and the digits past that belong to the
+bracket. § 6aq.4, one rung earlier in the same file, pinned the d line's own pole
+to **nine decimals** — and the argument offered for it, here and in
+`designs/telecentric`'s first header, was that a crossing is different because *a
+sign is exact*.
+
+The sign is exact. The **function** is not. FFD(λ) minus the placement is a
+difference of two numbers near 53 mm, so it carries no information below
+53·ε ≈ 1.2e−14 mm, and at the d line the curve climbs at only 2.84e−5 mm/nm.
+Dividing gives the floor, with nothing fitted:
+
+    53·ε ÷ |dFFD/dλ| = 4.15e−10 nm
+
+and bisection spends a couple of those before the lens is consulted. Measured on
+§ 6aq's **own** triplet — the one it shipped with, not the one this step rebuilt —
+five brackets around that pole spread 1.6e−9 nm, and four of the five miss the d
+line by more than nine decimals allowed. It passed because `polesFor` walks at
+0.05 nm from 380 and handed bisection one bracket rather than another.
+
+So the pin is now eight decimals, with a rung beside it that measures the floor
+and the spread; and `designs/telecentric` reports `crossingUncertaintyNm` beside
+`turnUncertaintyNm`, six orders apart, because reporting one and not the other
+invites exactly this. **The lesson § 6aq wrote down was right, and it stopped one
+rung short of its own file.**
+
+### The reachable set is a convergence basin, and calling it a family cost a bug
+
+`designs/apochromat` solves its three trailing curvatures by Newton on the thick
+first order, because the thin split taken literally is not an apochromat at all
+(§ 6aq.1, and § 6ap.1 one rung out). Two changes make that solve robust enough to
+scan with: the finite-difference step is **relative** rather than absolute — at a
+fixed 1e−9 the bumped and unbumped focal lengths round to exactly equal once an
+iterate wanders, giving a Jacobian singular for a floating-point reason rather
+than an optical one — and the step is **damped** by backtracking on the residual
+norm. The damping is what buys reach: raw Newton converges on 37 of 121 bendings
+across the scan window, the damped one on 116. At both roots the two agree to
+eleven significant digits, so it buys reach and not accuracy, and every digit
+§ 6aq pinned is unmoved.
+
+The first draft then wrote down that the bendings the solve reaches form an
+**interval**, and that outside it no triplet exists. Both halves were wrong, and
+the first half was load-bearing: the bisection inside the scan assumed a bracket
+with two reachable ends has a reachable middle. It does not. Sampled at 200, 400,
+1000 and 4000 points the reachable set comes apart into **8, 16, 32 and 101**
+contiguous runs — and a set whose piece-count grows with how hard it is looked at
+is a convergence basin, not a geometry. The consequence was a real bug: at f/4 the
+scan bisected into a hole and returned that midpoint as a root, so a caller asking
+for a lens got the solver's own `TripletBendingUndefined` thrown at them.
+
+Such a bracket is now **abandoned**, and counted in the refusal message rather
+than dropped quietly — a silently discarded sign change reads as "there was
+nothing there". `TripletBendingUndefined` says the solver did not converge, and
+explicitly does not say that no triplet exists, which is all that was measured.
+
+### What the placement entry is for, and the finding it produced
+
+The stop at the tail's front focal plane is one number, and §§ 6aj–6aq spent five
+fixtures on it. Shipped, it carries the argument: `frontFocal` puts the stop at a
+value FFD(λ) passes through, so the roots are simple and the defocus rescale
+reverses sign at each; `turn` puts it at a value FFD(λ) turns at, so the roots
+merge, the pole is touched, and — on § 6ap's doublet — the whole band defocuses
+one way. The two are 3.8 µm apart, which is the entire design decision, and a
+number a mount has to hold.
+
+Putting the two in one constructor immediately showed something no fixture could.
+§ 6ap.5's "the sign never reverses" is true of a tail with **one** turn, where the
+placement's level is reached nowhere else. Put the same placement on § 6aq's
+triplet and the curve, having turned twice, comes back down to that level at the
+red end: the pole is touched at 498.76 nm and still **crossed** at 728.43, so the
+band reverses once after all. `poleOrder` alone would have read as a statement
+about the band; `poleOrders` is why a caller can tell.
+
+### Not yet pinned
+
+- **The app catalogue (§ 6ah), still.** Two `designs/` entries exist now and
+  nothing in `packages/app` offers either. That was always a separate step and
+  this one deliberately does not open it; what has changed is that the engine
+  side is no longer the blocker.
+- **A superachromat, and whether four united colours are reachable**, unchanged
+  from § 6aq — and § 6ar.6 sharpens what the honest finding would be about. The
+  catalogue's one anomalous glass is what conditions the 3×3; a four-glass split
+  would need a second, and there is not one.
+- **The reversal in a picture rather than in a magnification**, unchanged from
+  §§ 6an, 6ap and 6aq. That rung still belongs on the singlet.
+- **Whether the pole structure can be designed for.** `designs/telecentric` now
+  reports where the turns are and what a placement achieves, which is the readout
+  such a solve would need — but nothing here solves for a bending that puts a pole
+  at a wanted colour, and § 6aq.7's finding that the bending moves the turns is
+  still an observation rather than a control.
+- **The tolerance rung is one perturbation, not a tolerance budget.** § 6ar.6
+  moves one curvature at a time and reads the focal length. Thicknesses, wedge,
+  centring, and the couplings between them are untouched; a real tolerance
+  analysis is a different exercise.
 
 ## Later rungs
 

@@ -7,6 +7,7 @@ import { seidelSums } from "../src/analysis/seidel";
 import { lateralMagnification } from "../src/pupil/microscope";
 import { diskSource } from "../src/illumination/source";
 import { achromaticObjective } from "../src/designs/achromat";
+import { apochromaticObjective, cementedTripletForm } from "../src/designs/apochromat";
 import { formBrightfieldPlane } from "../src/imaging/brightfield-spectrum";
 import { getMedium } from "../src/materials/catalog";
 import { abbeNumber, LINE_D, LINE_F, LINE_C } from "../src/materials/dispersion";
@@ -54,13 +55,21 @@ import type { SpectralSpecimen } from "../src/imaging/specimen";
  *
  * ## No new engine code
  *
- * `packages/core` is byte-for-byte what § 6ap left. What is new in this file and
- * was not in § 6ap's is that the fixture carries **its own design solve**: there
- * is no `designs/apochromat` to borrow, so the triplet's three curvatures are
- * solved here from the catalogue split and Newton's method on the paraxial
+ * `packages/core` was byte-for-byte what § 6ap left. What was new in this file
+ * and was not in § 6ap's is that the fixture carried **its own design solve**:
+ * there was no `designs/apochromat` to borrow, so the triplet's three curvatures
+ * were solved here from the catalogue split and Newton's method on the paraxial
  * first order. That is why § 6aq.2 exists — a design solved on `paraxialTrace`
  * and then measured with `paraxialTrace` would be pinned to nothing, so the
  * closed-form matrix confirms it before any claim rests on it.
+ *
+ * **§ 6ar shipped that solve as `designs/apochromat`, and this file now calls
+ * it.** Every number below is § 6aq's own, unchanged — which is the point: the
+ * constructor had to reproduce the fixture to the digit before the fixture was
+ * allowed to depend on it, and § 6ar.7 is the rung that says so. What is still
+ * solved locally is § 6aq.3's 1044-design SURVEY, which is a bulk sweep over
+ * glass orders and thicknesses rather than a design, and has no business being a
+ * catalogue entry.
  */
 
 const STOP_R = 2;
@@ -179,35 +188,33 @@ const prescriptionOf = (
  * solved on the thick first order, and the thin split is what they are measured
  * against (§ 6aq.1) rather than what they are.
  */
-function solveTriplet(bending: number, thickness: readonly number[] = THICKNESS): number[] {
-  const target = thinSplit(GLASSES).map((p) => p / EFL_TARGET);
-  const start = [bending];
-  for (let i = 0; i < 3; i++) start.push(start[i]! - target[i]! / (GLASSES[i]!.nD - 1));
-  let v = start.slice(1);
-  const residual = (w: readonly number[]): number[] => {
-    const p = prescriptionOf([bending, ...w], thickness);
-    const fD = efl(p, LINE_D);
-    return [fD - EFL_TARGET, efl(p, LINE_F) - fD, efl(p, LINE_C) - fD];
-  };
-  for (let step = 0; step < 100; step++) {
-    const r = residual(v);
-    if (Math.max(...r.map(Math.abs)) < 1e-14) break;
-    const h = 1e-9;
-    const column: number[][] = [];
-    for (let j = 0; j < 3; j++) {
-      const bumped = v.slice();
-      bumped[j]! += h;
-      const rb = residual(bumped);
-      column.push([0, 1, 2].map((i) => (rb[i]! - r[i]!) / h));
-    }
-    const delta = solve3x3(
-      [0, 1, 2].map((i) => [column[0]![i]!, column[1]![i]!, column[2]![i]!]),
-      r.map((x) => -x),
-    );
-    v = v.map((x, i) => x + delta[i]!);
-  }
-  return [bending, ...v];
-}
+/**
+ * The design solve is `designs/apochromat`'s, not this file's.
+ *
+ * § 6aq built its own — there was no `designs/apochromat` to borrow — and that
+ * was the last thing on this ladder's deferral list still living in a test file.
+ * § 6ar shipped it, and these two helpers are all that is left here: the form,
+ * for the rungs that need the SAME bending at a different thickness, and the
+ * design itself.
+ *
+ * `curvaturesAt` is the same Newton on the same thick first order, with two
+ * differences § 6ar.3 measured and this file's numbers do not feel: the
+ * finite-difference step is relative rather than absolute, and the step is damped
+ * by backtracking. At both roots the damped and undamped solves agree to twelve
+ * significant digits, which is why every digit below is § 6aq's unchanged.
+ */
+const formAt = (thickness: readonly [number, number, number]) =>
+  cementedTripletForm({
+    apertureMm: APERTURE,
+    focalLengthMm: EFL_TARGET,
+    media: GLASS,
+    thicknessesMm: thickness,
+  });
+const FORM = formAt(THICKNESS);
+const solveTriplet = (
+  bending: number,
+  thickness: readonly [number, number, number] = THICKNESS,
+): readonly number[] => formAt(thickness).curvaturesAt(bending);
 
 /** Third-order spherical aberration of a bending, at the conjugate it is used at. */
 const sphericalOf = (bending: number): number =>
@@ -245,11 +252,33 @@ const goldenSection = (g: (x: number) => number, a: number, b: number, sign = 1)
  * doublet has two (`designs/achromat`'s `branch`), and so does this triplet —
  * and § 6aq.7 is that the two are NOT interchangeable here for a reason that has
  * nothing to do with aberration.
+ *
+ * § 6aq found them by bisecting inside two hand-chosen brackets. They now come
+ * off `designs/apochromat`'s own scan, which searches the whole bending window
+ * and picks between the roots on Σ|S_I,ᵢ| — the criterion `designs/achromat`
+ * uses. The two routes agree: the constructor's default branch IS the bending
+ * § 6aq called robust, which the third rung of § 6aq.7 measures and calls a
+ * coincidence, and the radii below are unchanged to every digit § 6aq pinned.
  */
-const BENDING_ROBUST = bisect(sphericalOf, 0.05, 0.06);
-const BENDING_OTHER = bisect(sphericalOf, -0.015, -0.005);
+const DESIGN = apochromaticObjective({
+  apertureMm: APERTURE,
+  focalRatio: EFL_TARGET / APERTURE,
+  media: GLASS,
+  thicknessesMm: THICKNESS,
+  objectDistanceMm: CONJUGATE,
+});
+const DESIGN_STEEP = apochromaticObjective({
+  apertureMm: APERTURE,
+  focalRatio: EFL_TARGET / APERTURE,
+  media: GLASS,
+  thicknessesMm: THICKNESS,
+  objectDistanceMm: CONJUGATE,
+  branch: "steep",
+});
+const BENDING_ROBUST = DESIGN.curvatures[0];
+const BENDING_OTHER = DESIGN_STEEP.curvatures[0];
 
-const CURVATURE = solveTriplet(BENDING_ROBUST);
+const CURVATURE = DESIGN.curvatures;
 /** The tail alone — what a focal length and a front focal distance are OF. */
 const GROUP = prescriptionOf(CURVATURE, THICKNESS);
 /** Where the stop goes: the tail's front focal distance AT THE D LINE. */
@@ -461,7 +490,11 @@ describe("§ 6aq.1 — three glasses unite three wavelengths, and the thin limit
     expect(split[0]! * split[2]!).toBeLessThan(0);
 
     const deviationAt = (scale: number): number => {
-      const thickness = THICKNESS.map((t) => t * scale);
+      const thickness = THICKNESS.map((t) => t * scale) as unknown as readonly [
+        number,
+        number,
+        number,
+      ];
       const c = solveTriplet(BENDING_ROBUST, thickness);
       const power = [0, 1, 2].map((i) => (GLASSES[i]!.nD - 1) * (c[i]! - c[i + 1]!) * EFL_TARGET);
       return Math.max(...[0, 1, 2].map((i) => Math.abs(power[i]! - split[i]!)));
@@ -672,9 +705,50 @@ describe("§ 6aq.4 — a stop at the d line's front focal distance is telecentri
     const poles = polesFor(FFD_D);
     expect(poles.length).toBe(3);
     expect(poles[0]).toBeCloseTo(454.965737917, 6);
-    expect(poles[1]).toBeCloseTo(LINE_D, 9);
+    expect(poles[1]).toBeCloseTo(LINE_D, 8);
     expect(poles[2]).toBeCloseTo(678.030794906, 6);
     expect(FFD_D).toBeCloseTo(53.0071155, 7);
+  });
+
+  it("...and the d line's own pole is quoted to what the BISECTION can locate", () => {
+    // § 6aq wrote this pin at NINE decimals, and § 6ar found that nine was the
+    // bracket and not the lens — the same mistake § 6aq.3 caught for the TURN, made
+    // one rung earlier and left standing there.
+    //
+    // The d line is a pole by construction, so the temptation is to demand it
+    // back to the last bits, and the reasoning offered for that was "a sign is
+    // exact". The sign is exact; the FUNCTION is not. FFD(λ) − FFD(d) is a
+    // difference of two numbers near 53 mm, so it carries no information below
+    // 53·ε ≈ 1.2e−14 mm, and at d the curve climbs at only 2.84e−5 mm/nm. The
+    // crossing is therefore locatable to about
+    //
+    //     53·ε / |dFFD/dλ| = 4.1e−10 nm
+    //
+    // and bisection spends a couple of those, which is 5e−10 gone before the lens
+    // is consulted. Measured on § 6aq's OWN triplet, five brackets around the same
+    // pole spread 1.6e−9 nm and four of the five miss the d line by more than the
+    // nine-decimal pin allowed: it passed because `polesFor` walks at 0.05 nm from
+    // 380 and happens to hand bisection one bracket rather than another.
+    const g = (nm: number) => ffd(GROUP, nm) - FFD_D;
+    const answers = ([[587.5, 587.6], [587.55, 587.57], [587, 588], [585, 590],
+      [587.56, 587.5619]] as const).map(([a, b]) => bisect(g, a, b));
+    const spread = Math.max(...answers) - Math.min(...answers);
+    // The spread is the search's, and it is what the digits are quoted to. Bounded
+    // rather than transcribed, because the exact figure is a property of which
+    // brackets this rung happens to list.
+    expect(spread).toBeGreaterThan(4.1e-10);
+    expect(spread).toBeLessThan(5e-9);
+    // Every bracket puts the pole within the floor of the d line, and none within
+    // nine decimals of it — which is the whole finding.
+    for (const nm of answers) expect(Math.abs(nm - LINE_D)).toBeLessThan(5e-9);
+    expect(Math.max(...answers.map((nm) => Math.abs(nm - LINE_D)))).toBeGreaterThan(5e-10);
+
+    // The floor is not a fitted number: it is ε on the FFD scale over the slope.
+    const slope = (ffd(GROUP, LINE_D + 1) - ffd(GROUP, LINE_D - 1)) / 2;
+    expect(slope).toBeCloseTo(2.8377e-5, 8);
+    const floor = (Math.abs(FFD_D) * Number.EPSILON) / Math.abs(slope);
+    expect(floor).toBeCloseTo(4.148e-10, 12);
+    expect(spread).toBeGreaterThan(floor);
   });
 
   it("and Newton's f² puts the exit pupil at infinity at all three, either side real", () => {
