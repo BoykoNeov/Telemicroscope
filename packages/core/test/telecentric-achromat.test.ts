@@ -14,7 +14,7 @@ import {
 } from "../src/imaging/brightfield-spectrum";
 import { colorImageFromStack, pixelXyz } from "../src/imaging/image";
 import { chromaticity, spectrumToXyz, type Chromaticity } from "../src/photometry/cmf";
-import { spectralSamples } from "../src/photometry/spectrum";
+import { spectralSamples, spectralXyz } from "../src/photometry/spectrum";
 import { getMedium } from "../src/materials/catalog";
 import { LINE_D, LINE_F, LINE_C } from "../src/materials/dispersion";
 import type { SpectralSpecimen } from "../src/imaging/specimen";
@@ -293,6 +293,17 @@ const stackOver = (fromNm: number, toNm: number, count: number) =>
     patches: 1,
   });
 
+/** A traced 61-plane stack costs seconds, and two rungs read the same four. */
+const STACKS = new Map<number, ReturnType<typeof stackOver>>();
+const stackAt = (count: number): ReturnType<typeof stackOver> => {
+  const had = STACKS.get(count);
+  if (had) return had;
+  const built = stackOver(400, 700, count);
+  STACKS.set(count, built);
+  return built;
+};
+const SAMPLE_COUNTS = [11, 21, 31, 61];
+
 /** § 6an.1's own measurements on the singlet, at THIS size and pupil sampling. */
 const SINGLET_PHASE_STEP_470 = 0.3605176139086672;
 const SINGLET_PHASE_STEP_480 = 0.3170573468954293;
@@ -332,6 +343,10 @@ describe("§ 6ap.1 — the tail is achromatic, to the glass pair's own number", 
     const singletC = efl(SINGLET, LINE_C);
     const singletPrimary = (singletF - singletC) / efl(SINGLET, LINE_D);
     expect(singletPrimary).toBeCloseTo(-1.522484e-2, 8);
+    // `DESIGN.crownAbbe` is N-BK7's V here only because the crown defaults to
+    // N-BK7 — the same glass the singlet is made of. Swap the crown and this
+    // control silently becomes a comparison between two different glasses.
+    expect(DESIGN.crownMedium).toBe(SINGLET_FRONT.medium);
     expect(Math.abs(singletPrimary / (-1 / DESIGN.crownAbbe) - 1)).toBeLessThan(0.025);
 
     // And the doublet, whose two powers were split so this term cancels.
@@ -476,11 +491,15 @@ describe("§ 6ap.3 — telecentricity holds at TWO wavelengths, not one", () => 
     // form's own front focal point reaches the stop, and the closed form is a
     // 2×2 matrix product on two Sellmeier indices. It agrees with the paraxial
     // engine's on the same double — not to a tolerance, bitwise.
+    // Pinned to twelve digits rather than bitwise, though bitwise is what it
+    // measures today: these are two different expression trees — a 2×2 matrix
+    // product and a y–u trace — and an equality between them would turn any
+    // ULP-level change in `paraxialTrace` into a failure that looks like physics.
     const closedFormSecond = bisect((nm) => closedFormTail(nm).frontFocus, 500, 560);
-    expect(closedFormSecond).toBe(SECOND_TELECENTRIC_NM);
+    expect(closedFormSecond).toBeCloseTo(SECOND_TELECENTRIC_NM, 9);
     // The d line is authored, so the closed form puts the front focal point at
-    // zero there exactly, the way § 6an.3 did on the singlet.
-    expect(closedFormTail(LINE_D).frontFocus).toBe(0);
+    // zero there, the way § 6an.3 did on the singlet — and to its digit count.
+    expect(closedFormTail(LINE_D).frontFocus).toBeCloseTo(0, 12);
   });
 
   it("so blue and red sit on the SAME side of the stop, and the middle on the other", () => {
@@ -737,34 +756,89 @@ describe("§ 6ap.7 — what the achromat buys, and why it is more than the excur
 });
 
 describe("§ 6ap.8 — the whole visible band renders, and its colour is the CIE integral", () => {
-  it("400…700 nm against the 1 nm observer on the tail's three interfaces", () => {
-    // THE EXTERNAL NUMBER, and the band is the point: § 6an.6 asked this over
-    // 480…700 because the engine refused everything bluer, and the answer it
-    // could not reach is here. The spectrum is Fresnel at normal incidence over
-    // air–crown, the cement joint and flint–air; the observer is CIE 1931 walked
-    // at 1 nm with no optical system anywhere in it.
+  it("the imaging chain carries the spectrum across the wider band, to 4.1e−10", () => {
+    // THE IMAGING HALF, and it is a separate rung for § 6an.6's reason: the two
+    // answers below have residuals four orders apart, and reporting the larger
+    // one as "the imaging error" would blame the lens for the ruler.
+    //
+    // Here the observer is held fixed and only the spectrum's route differs: the
+    // rendered chromaticity against what the SAME observer gives for Fresnel at
+    // the tail's three interfaces — air–crown, the cement joint, flint–air —
+    // evaluated straight off Sellmeier. The frames, the per-λ Abbe sums and the
+    // stack's resampling carry the spectrum and add 4e−10 to it, at every sample
+    // count. This is the rung a regression in the imaging chain has to pass.
+    for (const count of SAMPLE_COUNTS) {
+      const stack = stackAt(count);
+      expect(stack.fidelity?.verdict).toBe("valid");
+      const rendered = centreChromaticity(stack);
+      const throughObserver = chromaticity(
+        spectralXyz(
+          stack.samples,
+          stack.samples.map((s) => transmittance(s.nm)),
+        ),
+      );
+      expect(distance(rendered, throughObserver)).toBeLessThan(5e-10);
+
+      // The negative control, on that same fixed observer: an equal-energy lamp
+      // that never met the glass. The render sits a million times closer to the
+      // tinted spectrum than to the flat one, so the rung above is a measurement
+      // and not two small numbers agreeing.
+      const flatObserver = chromaticity(
+        spectralXyz(
+          stack.samples,
+          stack.samples.map(() => 1),
+        ),
+      );
+      expect(distance(rendered, flatObserver) / distance(rendered, throughObserver)).toBeGreaterThan(
+        1e6,
+      );
+    }
+  });
+
+  it("and the absolute colour is the CIE integral at 1 nm, over a band § 6an could not reach", () => {
+    // THE EXTERNAL HALF. § 6an.6 asked this over 480…700 nm because the engine
+    // refused everything bluer; the band is what is new, and the observer is the
+    // CIE 1931 one walked at 1 nm with no optical system in it.
     const closed = chromaticity(spectrumToXyz(transmittance, { fromNm: 400, toNm: 700, stepNm: 1 }));
     const flat = chromaticity(spectrumToXyz(() => 1, { fromNm: 400, toNm: 700, stepNm: 1 }));
 
-    // The negative control first, on the same observer, so the rung below is a
-    // measurement and not two small numbers agreeing: a lamp that never met the
-    // glass sits 5.3e−4 away, and the tint's direction is the one dispersion
-    // names — both glasses reflect more in the blue, so what gets through is
-    // warmer than what lit it.
+    // The tint first: both glasses reflect more in the blue, so what gets through
+    // is warmer than what lit it, and a lamp that never met the glass is 5.3e−4
+    // away — the distance the agreement below is measured against.
     expect(distance(closed, flat)).toBeCloseTo(5.2752e-4, 7);
     expect(closed.x - flat.x).toBeGreaterThan(3e-4);
 
-    // And the render is on top of it at every sample count tried: the frames,
-    // the per-λ Abbe sums and the stack's resampling carry the spectrum and add
-    // nothing to it. The residual does not fall with the count because it is not
-    // a quadrature error — it is `spectralXyzBasis`'s binned observer against
-    // `spectrumToXyz`'s 1 nm walk, which is § 6an.6's 9.8e−6 seen on a wider band.
-    for (const count of [11, 21, 31, 61]) {
-      const stack = stackOver(400, 700, count);
-      expect(stack.fidelity?.verdict).toBe("valid");
-      const rendered = centreChromaticity(stack);
+    for (const count of SAMPLE_COUNTS) {
+      const rendered = centreChromaticity(stackAt(count));
       expect(distance(rendered, closed)).toBeLessThan(2e-6);
       expect(distance(rendered, flat) / distance(rendered, closed)).toBeGreaterThan(250);
+    }
+  });
+
+  it("and that gap is the OBSERVER's, reproduced with no optical system in it", () => {
+    // The attribution, measured rather than asserted — § 6ao.8's lesson, which
+    // is that a mechanism named is not a mechanism shown. The claim is that the
+    // 1e−6-ish residual above is `spectralXyzBasis`'s binned observer against
+    // `spectrumToXyz`'s 1 nm walk and has nothing to do with the optics. What
+    // discriminates it is running the same two routes with the lens removed: the
+    // gap comes back to within 0.2%, and it does so at four sample counts where
+    // it is not even monotone in the count — 1.7e−6 at 11 planes, 8.2e−8 at 21.
+    //
+    // Which is also why the residual above is NOT a convergence: a quadrature
+    // error would fall with the count, and this wanders.
+    const closed = chromaticity(spectrumToXyz(transmittance, { fromNm: 400, toNm: 700, stepNm: 1 }));
+    for (const count of SAMPLE_COUNTS) {
+      const stack = stackAt(count);
+      const rendered = centreChromaticity(stack);
+      const throughObserver = chromaticity(
+        spectralXyz(
+          stack.samples,
+          stack.samples.map((s) => transmittance(s.nm)),
+        ),
+      );
+      expect(
+        Math.abs(distance(throughObserver, closed) / distance(rendered, closed) - 1),
+      ).toBeLessThan(2e-3);
     }
   });
 });

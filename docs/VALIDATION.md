@@ -16525,6 +16525,7 @@ the pole is touched instead of crossed and the sign never reverses at all.
 | **§ 6ap.7 — the blue-to-red defocus colour is 51× smaller than the singlet's** | 6.75e−6 against § 6an.4's 3.48e−4 | ✅ |
 | ...but the excursion is only 17.4× smaller — the rest is the SIGN | both ends outside the pair, so they cancel instead of adding | ✅ |
 | **§ 6ap.8 — the whole visible band renders, and its colour is the CIE integral** | CIE 1931 at 1 nm on three interfaces, 2e−6 at 11…61 samples | ✅ |
+| ...and the imaging chain adds 4e−10 to the spectrum — the rest is the observer's | the same gap reproduced with no optics in the calculation, 0.2% | ✅ |
 
 ### The prediction that had to be computed before it was written
 
@@ -16637,14 +16638,27 @@ honest pair; one number over two different bands would not be a comparison.
 ### The colour of a band that could not be rendered before
 
 § 6an.6 asked "does the imaging chain carry a spectrum" over 480…700 nm because
-the engine refused everything bluer. Asked over 400…700 the answer is the same
-and the integral is a different one: the rendered chromaticity sits 2e−6 from the
-CIE 1931 observer walked at 1 nm over Fresnel at the tail's three interfaces —
-air–crown, the cement joint, flint–air — at every sample count from 11 to 61,
-against 5.3e−4 to an equal-energy lamp that never met the glass. The residual does
-not fall with the sample count because it is not a quadrature error: it is
-`spectralXyzBasis`'s binned observer against `spectrumToXyz`'s 1 nm walk, which is
-§ 6an.6's 9.8e−6 seen on a wider band and with a smoother spectrum in it.
+the engine refused everything bluer. Asked over 400…700 the answer is the same,
+and it is asked in the same two halves, because the two residuals are four orders
+apart and quoting the larger one as the imaging error would blame the lens for the
+ruler.
+
+**The imaging half.** With the observer held fixed and only the spectrum's route
+differing, the render is what that observer gives for Fresnel at the tail's three
+interfaces — air–crown, the cement joint, flint–air — straight off Sellmeier:
+**4.0e−10**, at 11, 21, 31 and 61 planes alike. The negative control on the same
+observer is an equal-energy lamp that never met the glass, and the render sits 1.3
+million times closer to the tinted spectrum than to the flat one.
+
+**The external half.** Against the CIE 1931 observer walked at 1 nm the gap is
+1e−6-ish — 1.7e−6 at 11 planes, 8.2e−8 at 21 — against 5.3e−4 to the flat lamp.
+It does not fall with the sample count, and that is the tell: a quadrature error
+would, and this wanders. **So the attribution is measured rather than named**,
+which is § 6ao.8's lesson applied to a claim that would otherwise have read
+plausibly: run the same two routes with the lens taken out entirely, and the gap
+comes back to within 0.2% at every count. It is `spectralXyzBasis`'s binned
+observer against `spectrumToXyz`'s 1 nm walk — § 6an.6's 9.8e−6, on a wider band
+with a smoother spectrum in it — and it is not the optics.
 
 ### What is not pinned to an external number
 
@@ -16653,6 +16667,12 @@ measurement — § 6an's numbers at the same sampling — and are labelled as su
 wherever they appear. What makes them measurements rather than a fixture's mood
 is that the singlet's own primary colour is −1/V to 2.4% and its band was already
 pinned; the achromat is measured against something that was itself pinned.
+
+§ 6ap.8's 4.0e−10 is the engine against its own observer, deliberately and for
+§ 6an.6's reason: it is the seam between the imaging chain and the colorimetry,
+and a seam is where two correct components disagree. The external number for it
+is the 1 nm CIE integral, quoted separately with its own residual and its own
+no-optics control.
 
 § 6ap.4's 6.8e−10 per millimetre and § 6ap.6's 4e−10 are the traced probe ray's
 noise floor, the same one § 6al.6 and § 6an.5 recorded. The 3.8 µm between the two
