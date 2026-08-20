@@ -84,7 +84,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the columns are declined | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on what a phase object's harmonics do to the readout that reports them | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on a phase object's harmonics in the readout | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | Four sections' shared deferral closed: S_III/S_IV against a closed form carrying NO shape factor, the traced foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false | `mtf-sections` |
 | [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop whose radius carries no conjugate — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
@@ -96,6 +96,7 @@ whole ladder.
 | [6ak](#step-6ak--the-exit-side-readers-read-the-slope) | § 6aj.6's audit repaired: the six readers that reported a pixel scale of exactly **0** read the slope, two more the list of nine had missed answered ∞ and NaN, and the two it called separately guarded were one guard — lifted, so a telecentric system renders | `telecentric-image` |
 | [6al](#step-6al--scene-content-through-a-telecentric-frame) | A specimen actually put through that path, no engine code added: a clear field at Fresnel's (1 − R)², contrast dying at Abbe's period read off the ENTRANCE pupil so the two rulers stay independent, 2 mm of sensor shift on a bitwise-identical ruler | `telecentric-scene` |
 | [6am](#step-6am--the-self-conjugate-bins-of-the-harmonic-readout) | § 6al.8's defect fixed: the contrast readout doubled every bin, but at k = 0 and k = N/2 the ±k pair is ONE bin and it read 2× high — authored components read back, Rayleigh's variance off the pixels, § 6al.8's reach claim corrected | `harmonic-bin` |
+| [6an](#step-6an--colour-through-a-telecentric-frame) | Telecentricity holds at ONE wavelength — the exit pupil crosses infinity there — so the sensor rescales every colour but one as 1 + d/R, sign reversing across it; and a stain images as its own spectrum | `telecentric-colour` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -15953,9 +15954,11 @@ measurements quoted as measured.
   the fixture is still built in the test file, so nothing in `designs/` exercises
   this branch. Nothing here made that cheaper — a catalogue entry drags in the
   app's own rows (§ 6ah) and is its own step.
-- **Colour, and a stain.** Every render here is monochromatic at the d line.
-  § 6r's polychromatic brightfield path exists and would compose, but "the image
-  is right" has not been asked of a spectrum through this branch.
+- ~~**Colour, and a stain.**~~ **Claimed** by
+  [§ 6an](#step-6an--colour-through-a-telecentric-frame), and § 6r's path did
+  compose unchanged. What the step found is not in this prediction at all: the
+  telecentric condition is itself a single-wavelength one, so the invariance
+  § 6al.6 pinned bitwise is bitwise at the d line and nowhere else.
 - **A specimen with structure worth looking at.** The scene content here is a
   cosine grating, chosen because it is the object whose spectrum is three lines
   and therefore the one with a closed form behind it. That is what makes the
@@ -16087,6 +16090,210 @@ amplitudes, quoted as computed.
   branch, a shipped `designs/` entry, and a specimen with structure worth looking
   at — are untouched by it and stand as § 6al left them.
 
+
+## Step 6an — colour through a telecentric frame
+
+**§ 6al's own deferral list opens on it: every render there is monochromatic at
+the d line, and "the image is right" had never been asked of a spectrum through
+this branch. Asking it turns up a property of the fixture nobody had stated —
+image-space telecentricity holds at exactly ONE wavelength — and everything else
+here is downstream of that sentence. No new physics and no new engine code:
+`packages/core` is byte-for-byte what § 6am left, and the step is one test file.**
+
+The exit pupil is at infinity because the stop sits at the tail's front focal
+point. A front focal point is a length divided by a power and a power is
+dispersive, so the stop is at the front focal point of one wavelength and of no
+other. Either side of it the exit pupil is at a finite distance and — because
+the pole is **crossed** rather than approached — on opposite sides of the image
+plane. So § 6al.6's bitwise invariance of the ruler under sensor shift is bitwise
+at one wavelength, and at every other one the sensor's position rescales the
+picture by 1 + δ/R(λ) with a sign that reverses at the design wavelength.
+**Defocus makes lateral colour, in a system that has none in focus.**
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6an.1 — the honest band is 480…700 nm, and the engine is what says so** | `no-honest-image` at 470, `valid` at 480; 0.3605 vs 0.3171 waves per pupil sample | ✅ |
+| ...and a stack straddling the edge carries the worst plane's verdict, not an average | § 6r's contract, exercised | ✅ |
+| **§ 6an.2 — the object-side ruler is achromatic, and the number is AUTHORED** | slope(λ)·|M(λ)| = r_stop/z_stop = 2/400, 3e−8 | ✅ |
+| ...so the object pixel is ∝ λ, and the ratio of two of them is exact to 1.1e−9 | closed form with no traced term | ✅ |
+| **§ 6an.3 — the exit pupil is at infinity at one λ and Newton's f² either side** | thick lens + Sellmeier, nothing traced, 1e−11 | ✅ |
+| **§ 6an.4 — so the sensor rescales every colour but one, as 1 + δ/R(λ)** | closed-form R, 1e−5; linear in δ to 5e−12 | ✅ |
+| ...and the sign REVERSES across the design wavelength, where the shift is 4e−10/mm | the pole, seen in a magnification | ✅ |
+| ...so blue and red share a ruler in focus and are 3.5e−4 apart 1 mm out of it | measured, both signs of δ | ✅ |
+| **§ 6an.5 — the branch switch at the pole is a removable singularity** | ruler flat to 5e−12 across it, reference sphere at 8e7 mm | ✅ |
+| **§ 6an.6 — the imaging chain carries the spectrum, to 5e−11** | the same observer on (1 − R(λ))², 1e6× the flat control | ✅ |
+| ...and the absolute colour is the CIE integral at 1 nm, to the OBSERVER's binning | 9.8e−6, reproduced with no optics at all | ✅ |
+| **§ 6an.7 — a stain images as its own spectrum** | Beer–Lambert × Fresnel × CIE 1931; 0.12 from the clear field | ✅ |
+| ...and √T is what the specimen returns, so the picture is not the dye squared | 0.087 apart, and the render is 200× the right side | ✅ |
+| **§ 6an.8 — Abbe's limit is a colour: one grating, alive in blue, dead in red** | 1.7e−4 against 1.2e−15, at 9 and 12 cycles | ✅ |
+| ...and the cutoff period is λ/(NA_obj·(1 + S)) in millimetres, at each λ | 3e−8, off the entrance pupil's geometry | ✅ |
+
+### The band is not the visible band, and the refusal is the measurement
+
+A singlet has axial colour and this one has a great deal: its focal length runs
+52.35 → 53.33 mm across 480…700 nm against an image distance of 156 mm. The
+sensor sits at the d-line focus and can sit nowhere else, so every other
+wavelength arrives defocused, and `illumination/fidelity` — which for brightfield
+**refuses** rather than falling back, there being no ray analog of a coherent sum
+to cross-fade to (ARCHITECTURE.md) — declines the blue end.
+
+It declines 470 nm at 0.3605 waves per pupil sample and accepts 480 at 0.3171.
+That is what sets the band every colour rung below runs in, and it is the honest
+shape for the step: a colour measured through a plane the engine has refused
+would be a picture of the sampling rather than of the optics. The red end stays
+honest past 800 nm, which is not symmetry lost — n(λ) is steep in the blue and
+nearly flat in the red, so the two ends of a band are never the same distance
+from focus.
+
+### The one ruler with no glass in it
+
+`objectPixelScaleMm` is `pixelScaleMm / |M|`, so pinning one against the other
+would be arithmetic. The statement that is not is this: the marginal ray from the
+axial object point leaves at r_stop/z_stop = 2/400, a ratio of two authored
+lengths with no glass anywhere in it, and Lagrange fixes the image-side slope as
+that divided by the magnification. So
+
+    slopeRadius(λ) · |M(λ)| = r_stop / z_stop
+
+with the left side **two independent traced solves** — the exit pupil's slope out
+of `opdMap`, the magnification out of a traced probe ray — and the right side
+arithmetic on the prescription. It holds to 3e−8 across the band.
+
+The consequence is the one a caller sees: the object pixel is exactly ∝ λ, so a
+frame of fixed `size` covers the same specimen in every colour. The image-side
+pixel does **not** — it carries |M(λ)|, 1.8% across the band — and that is the
+same statement read at the other end rather than a second measurement, which is
+why it is labelled as such where it appears.
+
+### Where the exit pupil is, from Sellmeier and nothing else
+
+The thick-lens focal length and principal planes are textbook arithmetic on three
+curvatures, one thickness and one index; the stop's image is Newton's f² over the
+distance from the front focal point. Evaluated on n(λ) alone this reproduces the
+engine's paraxial exit pupil to **1e−11**, on both sides of a pole that carries
+the quantity through 2.6e5 mm and out the other side with its sign changed.
+
+Blue's focal length is the shorter one, so blue's front focal point lies past the
+stop (+0.592 mm at 480) and red's short of it (−0.374 mm at 700). The pole is
+therefore at the d line **by construction** — the design wavelength is authored,
+not discovered — and the closed form says so by putting the front focal point at
+zero there.
+
+### The sign, and what it would look like
+
+`lateralMagnification` on a sensor moved by δ returns M·(1 + δ/R(λ)) with R the
+exit-pupil-to-image distance, and the relation is linear in δ to 5e−12 over
+δ = 0.5, 1 and 2 mm — a rescale, not a blur term. The coefficient is the closed
+form's to 1e−5, and it is **negative at 480 and 550 nm and positive at 620 and
+700**, passing through 4e−10 per millimetre at the d line, which is the traced
+probe's own floor and § 6al.6's bitwise claim seen one wavelength at a time.
+
+Said as a picture: a defocused edge fringes one way inside focus and the other
+way outside it, with the reversal at the **design** wavelength rather than at the
+middle of the band. The blue-to-red magnification ratio is 1 to twelve digits in
+focus and 3.5e−4 away from it one millimetre out. Nothing in the engine is coded
+for this; it falls out of an exit pupil crossing infinity.
+
+### The pole is in the code as well, and it is removable
+
+`imagePixelScaleMm` has two formulas — one off `exitRadius/referenceRadius`, one
+off `slopeRadius` — and this fixture takes the second at exactly one wavelength.
+A discontinuity there would be a seam in every spectral stack and it would look
+like optics. Within 0.01 nm of the pole the reference sphere runs to 8e7 mm, five
+orders longer than the system, and the object pixel per nanometre is constant
+across the switch to **5e−12**. The two formulas are one formula with a
+removable singularity, measured rather than assumed.
+
+### Two residuals four orders apart, and only one of them is the optics
+
+The colour rungs are each asked twice, because the two answers are not the same
+size and reporting the larger one as "the imaging error" would blame the lens for
+the ruler.
+
+**The imaging half.** The rendered chromaticity is what the *same* observer gives
+for the spectrum evaluated straight off Sellmeier — 5e−11, at every sample count
+tried from 11 to 61. The frames, the pupils, the per-λ Abbe sums and the stack's
+resampling carry the spectrum and add nothing to it. The negative control is the
+same observer on an equal-energy lamp: the render sits **a million times** closer
+to the Fresnel-tinted spectrum than to the flat one.
+
+**The external half.** Against the CIE 1931 observer integrated at 1 nm the gap is
+9.8e−6 for the clear field and 3.4e−4 for the stain. That gap is
+`spectralXyzBasis`'s bin-averaged observer against `spectrumToXyz`'s 1 nm walk,
+and it is **reproduced to a part in 2000 with no optical system in the
+calculation at all**. It is larger for the stain because a 35 nm absorption band
+is not flat across a 7 nm bin and Fresnel's smooth tilt is.
+
+The tint itself is worth its own line: N-BK7 reflects more in the blue, so what
+gets through is warmer than what lit it — 1.4e−4 in chromaticity, +x and, on a
+band starting at 480 nm, −y. That is the signal the 5e−11 is measured against.
+
+### The stain, and the square root
+
+The specimen callback returns **amplitude** transmittance, so a Beer–Lambert dye
+returns √T. It is the one place in the chain where the square root has to appear,
+and getting it wrong would return the square of the dye's spectrum: very nearly
+the right hue, more saturated — an error a picture cannot show and a chromaticity
+can. The two land 0.087 apart and the render is 200× nearer the right one.
+
+A dye absorbing at 540 nm with a 35 nm width and 1.6 of absorbance images 0.12
+away from the clear field in chromaticity, which is nine orders above the imaging
+residual: this is not a tint, it is a stain.
+
+### Abbe's limit is a colour, and the arithmetic is exact for a reason
+
+Abbe's limit is λ/(NA_obj + NA_cond), so it is ∝ λ, and the same ruled specimen is
+resolved in blue and not in red. § 6an.2 makes that exact rather than approximate:
+the object pixel is ∝ λ, so a period fixed in **millimetres** is a cycle count
+∝ 1/λ, and 640/480 = 4/3 turns 9 cycles into exactly 12. Twelve is where this
+fixture's contrast vanishes (§ 6al.5) — ν = 1 + S at S = 0.5 — so one grating sits
+comfortably inside blue's limit and *exactly on* red's.
+
+It renders at contrast 1.7e−4 at 480 nm and 1.2e−15 at 640: eleven orders in one
+object, which is "the aperture does not carry this at all" rather than "it carries
+it weakly". Both planes are `valid`; neither claim goes through the stack, so no
+resampling touches either number. And the cutoff read as a **length** is Abbe's to
+3e−8 at each wavelength, computed off the entrance pupil's own geometry — § 6al.5's
+route, which never touches the frame.
+
+### What is not pinned to an external number
+
+§ 6an.6's and § 6an.7's 5e−11 are the engine against its own observer, and
+deliberately: they are the seam between the imaging chain and the colorimetry, and
+a seam is where two correct components disagree. The external number for both is
+the 1 nm CIE integral, quoted separately with its own residual.
+
+§ 6an.5's 5e−12 and § 6an.2's 1.1e−9 are the traced probe ray's noise floor, the
+same one § 6al.6 recorded. The 1.8% chromatic magnification and the 0.12
+chromaticity distance of the stain are this fixture's own measurements quoted as
+measured.
+
+### Not yet pinned
+
+- **A telecentric design that is achromatic enough to use the whole visible
+  band.** The band here is set by a *singlet's* axial colour, and an achromatic
+  tail would move it — the telecentric condition would still hold at one
+  wavelength, but 1/R(λ) would be secondary spectrum rather than primary, and the
+  defocus colour would be perhaps two orders smaller. Nothing here says how much.
+- **The reversal in a picture rather than in a magnification.** § 6an.4 measures
+  the rescale with a traced probe ray. Rendering a defocused edge at three
+  wavelengths and reading the fringe would cost three stacks and would pin the
+  same closed form one layer further out.
+- **A shipped image-space telecentric design**, unchanged from § 6aj, § 6ak and
+  § 6al: the fixture is still built in the test file.
+- **A specimen with structure worth looking at**, also unchanged: the scene
+  content here is still a cosine grating and a uniform stain.
+
+### Still open
+
+- **Whether the honest band should be reported rather than discovered.**
+  `brightfieldSpectralStack` returns the worst plane's verdict, which is correct
+  and is what § 6an.1 pins — but a caller who hands it 400…700 nm on this fixture
+  gets one refusal for a stack in which two thirds of the planes were fine, and
+  no way to learn which. A per-plane verdict is already carried on
+  `BrightfieldPlane`; what is missing is a caller that reads it. That is an app
+  question (§ 6ah) and not an engine one, and it is recorded here because this
+  step is where it first costs something.
 
 ## Later rungs
 
