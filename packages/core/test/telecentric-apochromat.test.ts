@@ -492,7 +492,11 @@ describe("§ 6aq.1 — three glasses unite three wavelengths, and the thin limit
     const naive = prescriptionOf(c, THICKNESS);
     const fD = efl(naive, LINE_D);
     const primary = (efl(naive, LINE_F) - efl(naive, LINE_C)) / fD;
-    expect(Math.abs(primary)).toBeCloseTo(2.8971e-4, 8);
+    // Bounded rather than transcribed: the claim is that a thin-split triplet is
+    // not apochromatic at these thicknesses, and the digit it misses by is a
+    // property of the bending it happens to be built at, which this rung is not
+    // about. (It measures 2.90e−4.)
+    expect(Math.abs(primary)).toBeGreaterThan(2.5e-4);
     expect(Math.abs(primary / -9.373168e-5)).toBeGreaterThan(3);
   });
 });
@@ -533,8 +537,19 @@ describe("§ 6aq.3 — FFD(λ) has TWO turns, so a stop is telecentric at most T
     expect(turns.length).toBe(2);
     const low = goldenSection((nm) => ffd(GROUP, nm), 430, 570, 1);
     const high = goldenSection((nm) => ffd(GROUP, nm), 570, 720, -1);
-    expect(low).toBeCloseTo(498.7622, 3);
-    expect(high).toBeCloseTo(634.264, 3);
+    expect(low).toBeCloseTo(498.76, 2);
+    expect(high).toBeCloseTo(634.26, 2);
+    // Two decimals and not twelve, and the reason is measured rather than
+    // asserted: a golden section on a smooth extremum locates it to √ε, so the
+    // SAME lens searched from five different brackets gives five answers 3.2e−4
+    // nm apart. That spread is the search's, not the lens's — the bending root
+    // the design hangs on moves the same turn by only 1e−5 nm — and a number
+    // quoted past it would be pinning the bracket.
+    const spread = ([[430, 570], [440, 560], [450, 550], [460, 540], [470, 530]] as const)
+      .map(([a, b]) => goldenSection((nm) => ffd(GROUP, nm), a, b, 1));
+    expect(Math.max(...spread) - Math.min(...spread)).toBeLessThan(1e-3);
+    expect(Math.max(...spread) - Math.min(...spread)).toBeGreaterThan(1e-5);
+
     // A minimum then a maximum, both between 400 and 700 — which is what the
     // deferral asked and is the half of its prediction that was right.
     expect(ffd(GROUP, low)).toBeLessThan(ffd(GROUP, 400));
@@ -585,7 +600,7 @@ describe("§ 6aq.3 — FFD(λ) has TWO turns, so a stop is telecentric at most T
       ["D263", "F2", "CAF2"], ["FUSED-SILICA", "CAF2", "D263"],
     ];
     let tried = 0;
-    let worst = 0;
+    const histogram = new Map<number, number>();
     for (const names of orders) {
       const gs = names.map(glassOf);
       const split = thinSplit(gs).map((p) => p / EFL_TARGET);
@@ -632,15 +647,20 @@ describe("§ 6aq.3 — FFD(λ) has TWO turns, so a stop is telecentric at most T
           expect(Math.abs(fD - EFL_TARGET)).toBeLessThan(1e-8);
           expect(Math.abs(efl(solved, LINE_F) - fD)).toBeLessThan(1e-10);
           tried++;
-          worst = Math.max(
-            worst,
-            turningPoints((nm) => ffd(solved, nm), 370, 830).length,
-          );
+          const turns = turningPoints((nm) => ffd(solved, nm), 370, 830).length;
+          histogram.set(turns, (histogram.get(turns) ?? 0) + 1);
         }
       }
     }
     expect(tried).toBe(1044);
-    expect(worst).toBe(2);
+    // The whole histogram and not just its largest key: a maximum of two is also
+    // what 1043 monotone designs and one turning one would report, and that
+    // would not be evidence for "never three". Two turns is the COMMON case.
+    expect([...histogram.keys()].sort((a, b) => a - b)).toEqual([0, 1, 2]);
+    expect(histogram.get(0)).toBe(428);
+    expect(histogram.get(1)).toBe(49);
+    expect(histogram.get(2)).toBe(567);
+    expect([...histogram.values()].reduce((a, b) => a + b, 0)).toBe(tried);
   });
 });
 

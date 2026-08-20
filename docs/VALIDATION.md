@@ -16746,8 +16746,8 @@ tracer agreeing with itself.
 | ...and the 1.5% the thick solve sits off the catalogue's 3×3 split is THICKNESS | halving the glass halves the deviation, five times, to better than 2% | ✅ |
 | ...and the same triplet built ON the thin split is not apochromatic at all | 2.90e−4 primary — 3.1× the doublet's own, on a lens meant to have none | ✅ |
 | **§ 6aq.2 — a four-surface Gaussian matrix confirms the solve it never saw** | 2×2 ray-transfer product on Sellmeier, EFL and FFD to 1e−12 over 380…800 | ✅ |
-| **§ 6aq.3 — FFD(λ) has TWO turns, so the count is THREE and not four** | 498.762 and 634.264 nm against the doublet's single 556.1; no level takes more | ✅ |
-| ...and two is what a triplet has — 1044 solved designs, never three | 12 glass orders × 3 thickness sets × 29 bendings, all converged | ✅ |
+| **§ 6aq.3 — FFD(λ) has TWO turns, so the count is THREE and not four** | 498.76 and 634.26 nm against the doublet's single 556.1; no level takes more | ✅ |
+| ...and two is what a triplet has — 1044 solved designs, never three | 12 glass orders × 3 thickness sets × 29 bendings; the histogram is 428/49/567 | ✅ |
 | **§ 6aq.4 — the stop at FFD(d) is telecentric at three wavelengths** | 454.9657, 587.5618, 678.0308 nm; Newton's f² sends the pupil to infinity at each | ✅ |
 | **§ 6aq.5 — so the defocus rescale reverses sign three times: +, −, +, −** | closed-form 1/R(λ); linear in δ, and the miss a constant −1.26e−9 per millimetre | ✅ |
 | **§ 6aq.6 — the three-pole placement is a 1.61 µm window with two unlike edges** | one edge merges two roots, the other loses one off the band; both computed | ✅ |
@@ -16760,7 +16760,7 @@ tracer agreeing with itself.
 
 § 6ap deferred this with a shape and a count, and the shape survives contact:
 uniting a third wavelength does put a second turning point in FFD(λ), and on this
-glass triple both turns fall at 498.762 and 634.264 nm, comfortably inside the
+glass triple both turns fall at 498.76 and 634.26 nm, comfortably inside the
 band the fixture renders. What does not survive is "a value it takes four times."
 A horizontal line meets a curve with k interior turns at most k+1 times. Two turns
 therefore admit three telecentric wavelengths and not four, whatever the band
@@ -16783,6 +16783,11 @@ front focal distance at 498.8 and 634.3. The principal-plane term moves both tur
 by tens of nanometres. That it never *adds* one is what 1044 designs say: twelve
 glass orders that solve, three thickness sets, twenty-nine bendings each, every
 one converged and none skipped, and the turn count is 0, 1 or 2 and never 3.
+
+The rung asserts the whole histogram — 428 monotone, 49 with one turn, 567 with
+two — and not merely its largest key, because a maximum of two is also what 1043
+monotone designs and a single turning one would report. Two turns is the common
+case here, not the outlier that happened to cap the range.
 
 ### The design had to be solved thick, and the catalogue is its thin limit
 
@@ -16888,9 +16893,16 @@ sampling — the ruler-and-lens split this ladder has now had to make five times
 § 6aq.5's −1.26e−9 per millimetre is the traced probe ray's noise floor, the same
 one § 6al.6, § 6an.5 and § 6ap.4 recorded. The turn wavelengths, the 1.61 µm
 window and the 2.63 µm to the other turn are this fixture's own geometry quoted as
-computed — and the turn positions are quoted to four figures rather than twelve
-because a golden section on a smooth extremum locates it to √ε, which is a
-property of the search and not of the lens.
+computed.
+
+**And the turns are quoted to two decimals for a reason that was measured rather
+than assumed.** A golden section on a smooth extremum locates it to √ε, so the
+question is whether the digits past that belong to the lens or to the search. The
+same lens searched from five different brackets gives five answers 3.2e−4 nm
+apart, while the bending root the whole design hangs on moves the same turn by
+1e−5 nm — thirty times less. The uncertainty is the search's, the rung says so
+with its own five-bracket spread, and a turn quoted past 498.76 would be pinning
+the bracket.
 
 ### Not yet pinned
 
