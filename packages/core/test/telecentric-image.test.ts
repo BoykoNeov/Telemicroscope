@@ -778,12 +778,30 @@ describe("§ 6ak.4 — the refusal that had nothing to redirect to now has the s
     expect(p.pixelScaleMm).toBe(SCALE_64_16);
   });
 
-  it("and adaptivePsf no longer answers or throws depending on an aberration threshold", () => {
-    // The inconsistency lifting only ONE guard would have created: this reaches
-    // the diffraction branch whenever the fidelity switch gives it any weight.
-    const a = adaptivePsf(TELECENTRIC, 0, LINE_D, { pupilSamples: 32, padFactor: 4 });
-    expect(a.geometricWeight).toBe(0);
-    expect(a.pixelScaleMm).toBe(SCALE_64_16);
+  it("and adaptivePsf runs BOTH branches on one telecentric system, in the blend band", () => {
+    // The inconsistency lifting only ONE guard would have created — and it has
+    // to be pinned where it actually bites. On the shipped fixture the fidelity
+    // switch gives the diffraction branch full weight, so `adaptivePsf` returns
+    // without ever calling the geometric one: that case exercises nothing about
+    // two branches agreeing, and pinning it alone would have been a rung that
+    // passes without touching what it claims.
+    const clean = adaptivePsf(TELECENTRIC, 0, LINE_D, { pupilSamples: 32, padFactor: 4 });
+    expect(clean.geometricWeight).toBe(0);
+    expect(clean.pixelScaleMm).toBe(SCALE_64_16);
+
+    // The case that bites: widen the stop until the wavefront is steep enough to
+    // put the switch strictly INSIDE the blend band. Both branches now run on
+    // one system and their two images are cross-faded — which before § 6ak meant
+    // `geometricPsf` returning a pixel scale of 0 while `psfFromPupilFunction`
+    // threw, on the same call, decided by an aberration threshold.
+    const blended = adaptivePsf(at(FFD, stopR(5)), 0, LINE_D, { pupilSamples: 16, padFactor: 4 });
+    expect(blended.geometricWeight).toBeGreaterThan(0);
+    expect(blended.geometricWeight).toBeLessThan(1);
+    expect(blended.geometricWeight).toBeCloseTo(0.01890609123900193, 9);
+    // And the blend lands on ONE ruler, which is the whole point of the two
+    // branches reading `imagePixelScaleMm` instead of each forming its own:
+    // 2.5× the stop is 2.5× the slope is 1/2.5 the pixel, exactly.
+    expect(blended.pixelScaleMm).toBe(SCALE_64_16 / 2.5);
   });
 
   it("bestFocus searches a telecentric system, on a bracket that is the sine of the slope", () => {

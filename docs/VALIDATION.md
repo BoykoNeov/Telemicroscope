@@ -15581,6 +15581,7 @@ decades in; this step has the number to put there.
 | ...and the `imageNA` round trip closes on Abbe's sine, 3.3% from the tangent at NA 0.25 | Abbe's n·sin u, 16 digits | ✅ |
 | **§ 6ak.4 — `psf()` renders a telecentric system at the Strehl its wavefront predicts** | Maréchal exp(−(2πσ)²) | ✅ |
 | ...on transmitted energy bitwise equal to the ordinary fixture's, and `bestFocus` converges | negative control | ✅ |
+| ...and `adaptivePsf` runs BOTH branches on one telecentric system, inside the blend band | the case that actually bites | ✅ |
 | **§ 6ak.5 — the frame has a size, and its ruler does not drift where a finite one does** | 4.7e−7 vs exactly 0 | ✅ |
 
 ### Why the finite line was not rewritten, and what that cost
@@ -15703,6 +15704,18 @@ conservative. `geometricPsf` renders this fixture, and `adaptivePsf` reaches the
 diffraction branch whenever the fidelity switch gives it any weight — so one
 branch would have answered and the other thrown, on one system, decided by an
 aberration threshold.
+
+**And that had to be pinned where it bites, which the rung's first draft did
+not.** On the shipped fixture the switch gives the diffraction branch *full*
+weight, so `adaptivePsf` returns without ever calling the geometric one — a rung
+pinning only that case exercises nothing about two branches meeting and passes
+without touching what it claims. Widening the stop to 5 mm at 16 pupil samples
+puts the switch strictly inside the blend band at weight **0.0189**, where both
+branches run on one system and their images are cross-faded. That is the call
+that would have had `geometricPsf` reporting a pixel scale of 0 while
+`psfFromPupilFunction` threw, and it is what § 6ak.4 pins — landing, as the two
+branches reading one `imagePixelScaleMm` requires, on exactly 1/2.5 of the
+shipped fixture's pixel for 2.5× its stop.
 
 Lifted, and pinned: Strehl **0.99342** against the **0.99366** Maréchal predicts
 from the trace's own RMS, on transmitted energy **bitwise equal** to the ordinary
