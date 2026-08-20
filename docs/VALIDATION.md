@@ -21,7 +21,7 @@ whole ladder.
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
 | [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
-| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form, the achromat's power split, a run that converges 400 mm off target; TRACED targets — spot, wavefront, MTF (§ 1.8.5/.7/.8); CONDITIONS held and priced (§ 1.8.6); the VARIABLE set's conditioning = its Abbe numbers (§ 1.8.9); a zero column split into three (§ 1.8.10); the STEP's scale = 1/aperture (§ 1.8.11); a spot as RAYS, a wavefront as TERMS, contrast as neither, N frequencies off ONE trace (§ 1.8.12–.15) | `optimize` |
+| [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, reached by a solve whose targets are TRACED — spot, wavefront, MTF — and whose conditioning, step scale and per-target currency are each their own rung | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
 | [2c](#step-2c--the-fidelity-criterion) | When the FFT branch is trustworthy — measured on raw traced samples | `fidelity` |
@@ -60,7 +60,7 @@ whole ladder.
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
 | [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the bridge built on it — a field-varying brightfield render whose edge patches are exact and which is `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
-| [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, and its 2.7% gap from the NA form shown to BE the objective's aplanatism; the pupil rotation exact and pinned against `rotateKernel`'s; a traced frame that finally rules `valid`; and the finding that the frame is NOT isoplanatic — convergence ratio ½, not the fixture's 0.4 | `object-field` |
+| [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution — exactly, at any modulation — once the source lattice steps by the pupil's own frequency step and reaches past 1 + B; the transfer shown to be a lattice point COUNT, and its non-monotone departure from § 2b's closed form; ν = 2 reached with no condenser at all; the input-side partition of unity exact where § 6g.2's output-side one was forced; beads placed through their own traced chief rays | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | The excitation shown to be absent from the imaging path by construction; the depth of focus DERIVED from § 1.5's own defocus wavefront and checked against a traced one; a 20 nm Stokes shift measured at 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40; the emission band stacked over KERNELS on one physical grid; and the finding that scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis following sinc²(π·w₂₀); the missing cone as that same constant transformed, 2.2e-15 of axial transfer at zero lateral frequency against a control that fills it in; the support boundary μ = ν(2−ν) exact at three frequencies | `volume` |
@@ -92,6 +92,7 @@ whole ladder.
 | [6ag](#step-6ag--the-traced-cone-into-condensersource) | § 6x's last deferral closed, and inverted: traced BACKWARDS from the specimen the aberration lands in the WEIGHTS, not the positions — so § 6p's cache SURVIVES a shape-changing cone, 289 pupil evaluations against 35 088 | `condenser-source` |
 | [6ah](#step-6ah--the-paraxial-na-of-a-pupil-at-infinity) | ∞/∞: the DEFAULT objective has had no paraxial NA since § 6v, refusing three of the app's ten rows outright — and the slope branch reaches the rim lens's own double BITWISE | `telecentric-na` |
 | [6ai](#step-6ai--the-default-stop-placement) | § 6ae's queued flip landed: what a caller gets unasked is telecentric, and ONE lever — D × −70.7, barrel to pincushion — re-read nine files without re-deriving one; the app's DIN rows now state the field they pass | `stop-default` |
+| [6aj](#step-6aj--image-space-telecentricity-the-exit-pupils-slope) | § 6u's eleven-step deferral: the exit pupil grows the slope § 5s.5's refusals had nothing to redirect to — `imageNA` returned NaN at the telecentric point and **0** with the sensor on the pupil, and nine listed readers became measurements | `telecentric-image` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -6130,27 +6131,31 @@ enumerated:
   sweep), because an afocal front group cannot put A = 0 in the object→stop
   matrix. Recorded rather than changed, so a later step inherits the measurement.
 
-**The exit side has no second half of that invariant at all.** `imageStopForward`
-returns `radius: Infinity` with **no** `slopeRadius`, so an image-space
-telecentric system has no slope spelling to redirect to. `analysis/focus.ts:145`
-guards; `imaging/object-field.ts` (×3), `wave/psf.ts:721`, `wave/geometric.ts:145`,
-`pupil/afocal.ts:69`, `pupil/visual.ts:151` and `app/eyepiece.ts` (×2) do not.
-That is a bigger family than this step and needs the slope to exist before it
-needs the readers audited — left open with the file:line list so the next step
-inherits the audit rather than redoing it.
+**The exit side had no second half of that invariant at all**, and this is the
+paragraph § 6aj closes. `imageStopForward` returned `radius: Infinity` with no
+`slopeRadius`, so an image-space telecentric system had no slope spelling to
+redirect to; `analysis/focus.ts:145` guarded, and `imaging/object-field.ts` (×3),
+`wave/psf.ts:721`, `wave/geometric.ts:145`, `pupil/afocal.ts:69`,
+`pupil/visual.ts:151` and `app/eyepiece.ts` (×2) did not. That list was left open
+with its file:lines rather than acted on, because a reader audit whose remedy
+does not exist yet is a list of complaints. **§ 6aj grows the quantity and turns
+the list into measurements**; six of the nine are reachable and still unguarded
+there, now with numbers attached and a single named line to repair.
 
-**And the bench panel is now DELIBERATELY asymmetric, which is worth saying out
-loud because this step is what made it so.** The same form reaches the exit-side
-gap in three rows — stop on surface 0, a singlet at its front focal distance —
-and the panel reads `exit r = 2 659 670.894 mm at z = 26 952 190.75`. Beside an
-entrance pupil that now prints a clean `tan u`, a bare number like that reads as
-a different physical situation rather than as a missing spelling. It is the
-missing spelling. Until `imageStopForward` grows a slope there is nothing
-truthful to print instead, so the exit `Fact` says so in its own note above
-1 000 mm rather than pretending the two sides are alike. **Note that the
-reachable defect on this side is the huge plausible number and not the ∞** — the
-same lesson § 5s.5 learned on the entrance side, arriving before the repair
-instead of after it.
+**And the bench panel was DELIBERATELY asymmetric for one step**, which was worth
+saying out loud because this step is what made it so. The same form reaches the
+exit-side gap in three rows — stop on surface 0, a singlet at its front focal
+distance — and the panel read `exit r = 2 659 670.894 mm at z = 26 952 190.75`.
+Beside an entrance pupil printing a clean `tan u`, a bare number like that reads
+as a different physical situation rather than as a missing spelling. It was the
+missing spelling, and § 6aj supplies it: the exit `Fact` now prints `tan u′`
+where the semi-diameter does not exist. **What the slope does NOT fix is the
+number above** — a finite pupil 2.66 million mm across is a true reading, so the
+panel's large-radius note survives, saying what it is actually warning about.
+That was this step's own lesson arriving before the repair rather than after it:
+**the reachable defect on this side is the huge plausible number and not the ∞**,
+and § 6aj found a second one of exactly that kind — an exit pupil sitting ON the
+image plane, at 1.53 mm and z = 218.49, where `imageNA` answered **0**.
 
 ## Step 5t — tolerancing: sensitivity, compensators, and the RSS budget
 
@@ -14576,7 +14581,9 @@ recorded here rather than taken quietly.
 - **The condenser's own aberrations and its own pupil**, unchanged from § 6x — the
   cone is still translated rigidly, and a real condenser's cone also changes shape
   off axis. With this step closed that is the microscope branch's last deferral.
-- **Image-space telecentricity**, which still has no caller (§ 6u).
+- **Image-space telecentricity**, which had no caller from § 6u until § 6aj gave
+  the exit pupil a slope; what still has no caller is a *rendering* path through
+  one, since six of § 6aj's nine readers remain unguarded.
 
 ## Step 6af — the condenser is a lens
 
@@ -15318,6 +15325,198 @@ and § 6ai.4 is the correction.
   `editor.ts` readout one section over: the app's pupil panel printed
   "r = Infinity mm" at the design line and a plausible-looking 64 338.9 mm beside
   it. Expecting it was right; expecting it to be a single ∞ was not.
+
+## Step 6aj — image-space telecentricity: the exit pupil's slope
+
+**Not a new capability. The other end of a quantity § 6u built once and § 5s.5
+then made load-bearing, plus the two silent numbers its absence was producing.**
+
+§ 6u gave `PupilPlane` a `slopeRadius` — the aperture as an angle, which is what
+a pupil at infinity has instead of a semi-diameter — under a stated invariant:
+`radius` finite **XOR** `slopeRadius` defined. It gave it to the **entrance**
+pupil only, and closed with a deferral it then carried for eleven steps:
+*"image-space telecentricity, which still has no caller."*
+
+§ 5s.5 turned that from an omission into a debt. It taught the entrance side to
+**refuse** a pupil whose placement makes an area meaningless and to redirect the
+caller to the slope instead — and a refusal is only as good as what it redirects
+to. The exit side had nothing: `imageStopForward` returned `radius: Infinity`
+with no slope beside it, so nine readers were listed, unaudited, and left for the
+step that grew one. This is that step.
+
+It adds **no physics.** It is the same paraxial pupil relation read at the other
+end: with the stop→image matrix [[A, B], [C, D]], a ray through the stop rim
+leaves with `u′ = C·y + D·u`, the exit pupil is at infinity exactly when `D = 0`,
+and the rim is then `u′ = ±C·stopRadius` **with no u in it at all** — the mirror
+of § 6u.1's field-independence.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6aj.1 — the gap that fires the branch is the tail's FFD = f(1 + (n−1)d/(nR₂))** | thick-lens closed form | ✅ |
+| ...its BFD mirror reproducing the engine's own `bfd`, so the sign convention is shown not assumed | thick-lens closed form | ✅ |
+| **§ 6aj.2 — the branch's CONDITION: chief rays exit along +z, exactly traced** | definition of D = 0 | ✅ |
+| ...the departure cubic in θ where the ordinary gap's is linear and 10⁵× larger | negative control | ✅ |
+| **§ 6aj.3 — the slope aperture is stopRadius/f_tail, BITWISE, on a thick lens** | § 6u.1 mirrored | ✅ |
+| ...magnification = det/D, so it is never 0 and diverges only where the slope takes over | matrix algebra | ✅ |
+| **§ 6aj.4 — `imageNA` resolves through the slope where it returned NaN** | limit of the finite branch, 12 digits | ✅ |
+| ...and in water n′·sin u′ comes back the NA, where reading the slope as the NA misses by 25% | Abbe's n·sin u | ✅ |
+| **§ 6aj.5 — an exit pupil ON the image plane is a FIELD stop: refuse, don't answer 0** | conjugacy | ✅ |
+| § 6aj.6 — the nine readers, measured rather than listed | audit — *not repaired* | ✅ |
+
+### Where the symmetry with the entrance side stops
+
+`imageStopBackward` traces `{y: 0, u: 1}` **backwards**, which applies the
+inverse of the object→stop matrix, and an inverse carries (0, 1) to (−B, A)/det.
+So one ray hands that branch both elements it needs — its own condition (A = 0)
+and the height it must divide by — and its comment says "no second trace" for
+that reason.
+
+The exit branch cannot do that. Traced **forwards**, `{y: 0, u: 1}` exits as
+(B, D): it carries the condition and does not contain C at all. C comes off the
+**height** ray, `{y: 1, u: 0}` → (A, C), which the loop already traces for the
+magnification — so there is still nothing that can drift between two traces,
+because there are not two traces. The reason is simply different, and a reader
+arriving from the entrance-side comment would otherwise go looking for a trick
+that is not there. Both comments now say which they are.
+
+**And there is no determinant correction here, which is not an assumption about
+indices.** § 6z.7 had to divide one out of the entrance side because that
+branch's value came through an inverse, and an inverse carries det = n_object/
+n_stop; left uncorrected an objective labelled NA 0.10 delivered 0.152 through a
+coverslip. The forward trace never introduces that factor: `u` is the raw
+geometric slope throughout, so `height.u` **is** C in that basis and is already
+expressed in the image medium. § 6aj.4 is the rung that would catch it if it were
+not — a round trip through water, where dropping the index misses by the index.
+
+### § 6aj.2 is the rung that carries the branch, and § 6aj.3 cannot
+
+Worth stating because the obvious mirror of § 6u.1 is not a pin. The slope is
+`|C|·stopRadius`, and `C = −1/f` for the tail **wherever the stop sits** — the
+telecentric condition fixes D, and the slope's value knows nothing about D. So a
+stub returning `stopRadius/f` unconditionally satisfies both the value rung and
+the linearity sweep. On the entrance side that was not so: there the value came
+off `axis.y = −B/det`, and "stop at the back focal plane" is precisely what makes
+B the focal length, so the condition was *inside* the number.
+
+What carries the condition here is its physical content, measured with the
+**exact** tracer rather than the paraxial one that defines it: chief rays leave
+parallel to the axis. At the telecentric gap the traced exit slope is 1.1e−14 at
+θ = 0.001 rad and 1.4e−12 at 0.005 — five times the angle for 125 times the
+departure, so the residual is the tail's own **cubic** chief-ray aberration and
+not noise. At an ordinary gap the same rays leave at 1.0e−5 and 5.1e−4: four to
+five orders larger, and **linear** in θ. The two are different phenomena, and the
+negative control's own control says so.
+
+### What the quantity is for: two silent numbers
+
+`imageNA` is one of the five aperture spellings the bench editor offers, and the
+only one defined against the exit pupil. Both of its failures return a **number**.
+
+**NaN, at the telecentric point.** The formula runs on an arm and a magnification
+that both diverge — ∞·tan u′ over ∞ — for a silent NaN. The repair mirrors
+`objectNA`'s telecentric branch exactly: the unit-radius probe reports |C|, so
+the stop radius is tan u′/|C|. § 6aj.4 shows the new branch is the **limit** of
+the old formula and not a special case: at (1 − ε)·FFD for ε from 1e−2 down to
+1e−6 the finite branch returns 2.650952117866665 and the telecentric branch
+returns the same twelve digits. The old formula's value *at* the point was NaN.
+
+**Zero, at ordinary finite numbers, and this is the reachable one.** The exit
+pupil sweeps out to infinity as the gap passes the front focal distance, returns
+from the far side, and crosses the **image plane** — which happens whenever the
+sensor is put where the exit pupil is, a thing an observer does on purpose to
+look at the pupil instead of the image. The arm is then zero and `imageNA`
+answered **0**: an aperture that closes the system, computed off an exit pupil
+1.53 mm across at z = 218.49, with nothing infinite anywhere in the readout.
+
+Physically the stop has become conjugate to the image plane — a **field stop
+wearing the aperture flag**. Every ray that clears it reaches the same image
+point whatever its angle, so no stop radius produces a given u′, and the honest
+answer is not a small number but no number. It refuses now, and names the
+redirect (`stopRadius`, or `objectNA`).
+
+The refusal is on the singular point **alone**. A sensor a micron off the pupil
+genuinely does need a vanishing stop to fill a 0.05 cone through a vanishing arm,
+and the radius is linear in the offset — 6.53e−8 mm at a micron, 6.53e−4 at a
+hundredth. Those answers are physics, so a tolerance here would refuse correct
+arithmetic rather than catch anything. Same shape as § 5s.5's placement refusals,
+same reason.
+
+### § 6aj.6 — the nine readers, measured
+
+§ 5s.5 listed nine exit-side readers and said they were not worth auditing until
+the slope existed. It exists, so this is the audit — as measurements, so the step
+that guards them inherits numbers rather than adjectives. **Nothing here is
+repaired**, and that is deliberate: the six that need it fail through one shared
+line, and fixing that is one change with its own rungs, not a postscript.
+
+- `analysis/focus.ts:145` and `wave/psf.ts:516` — **guarded, and verified to
+  fire**: "cannot size a focus search bracket" and "PSF needs a finite exit
+  pupil". Both answer ordinarily on the same fixture one gap away, so the
+  refusals are about the pupil and not about the system.
+- `wave/psf.ts:721`, `wave/geometric.ts:145`, `imaging/object-field.ts` (×3) —
+  **unguarded and reachable**: `systemPupil` hands back `exitRadius: Infinity`,
+  `geometricPsf` reports `pixelScaleMm` **0**, and `objectFieldFrame` reports a
+  pixel scale and a half-extent of **0** — a frame with no size, silently.
+- `pupil/afocal.ts:69`, `pupil/visual.ts:151`, `app/eyepiece.ts` (×2) —
+  **structurally unreachable**, which is stronger than what § 5s.5 could say
+  about `visual.ts:108`. All four read the exit pupil of a chain that is afocal
+  with its stop on surface 0. Write the whole-system matrix as M_after·R₀: its C
+  is C_after − D_after·φ₀/n₁, afocality sets that to zero, so D_after = 0 would
+  force C_after = 0 and make M_after singular — and its determinant is
+  n_stop/n_image, which cannot vanish. Corroborated rather than proved by trace:
+  the exit pupil stays finite and smooth over ±400 mm of the objective–eyepiece
+  gap.
+
+**The single line, and why the repair is a substitution.** All six reachable
+readers run through `pupil/opd.ts:132`, which substitutes a reference sphere of
+radius 1 when the exit pupil is not at a finite z. That is *correct for the OPD* —
+the sphere enters only as a common subtrahend, and the traced wavefront comes
+back right, 0.012748 waves RMS with no ray lost. It is wrong for
+`referenceRadius`, which is **also** the arm in λ·R/(n′·size·Δ). R falls to 1
+while the exit radius stays infinite, so every scale built from the pair is zero.
+
+And the ratio that pair was standing in for is the slope itself. The pixel scale
+depends on `r_exit/R`, and at D = 0 that **is** |C|·stopRadius: with det = AD −
+BC and D = 0, det = −BC, so r/R → det·stopRadius/B = −C·stopRadius. § 6aj.6 pins
+the convergence four decades in. Today the engine computes that ratio as ∞ over
+1; after this step it has the number to substitute.
+
+### The app
+
+The bench panel's exit `Fact` printed a bare semi-diameter one step ago, and
+`docs/APP.md` recorded that asymmetry as deliberate rather than accidental. It
+prints `tan u′` now, defined exactly when the radius is not — the same shape as
+the entrance side, from the same invariant.
+
+What did **not** move is the large-radius note, and that is the honest half. A
+finite exit pupil 2 659 670.894 mm across at z = 26 952 190.75 — three rows from
+the shipped form — is a *true* reading, and a slope spelling does nothing for it.
+So the note stays and now says what it is actually warning about: a number that
+size is a direction seen through a long arm, not a lens you could hold. **The
+reachable defect on this side was the plausible number, not the ∞, and it still
+is.**
+
+### What is not pinned to an external number
+
+§ 6aj.1 is: the thick-lens FFD and BFD closed forms are textbook, and the engine
+reproduces both to twelve digits. § 6aj.4's index round trip is Abbe's definition.
+The rest are this fixture's own numbers, quoted as measured — the 1.1e−14, the
+0.012748, the 2.650952117866665 — and what is claimed about them is a *shape*: a
+cubic against a linear, a limit reached to twelve digits, a zero where an
+ordinary system reads 0.0019.
+
+### Not yet pinned
+
+- **The six reachable readers**, above, with their file:lines and their numbers.
+  The repair is `opd.ts:132` and the substitution is named; what it needs is its
+  own rungs, because "the PSF of a system with no exit pupil" is a question about
+  the diffraction integral's reference and not about pupil bookkeeping.
+- **Pupil aberration**, unchanged from § 6u: the aim is paraxial, and § 6aj.2
+  measures the residual rather than removing it.
+- **A shipped image-space telecentric design.** Every fixture here is built in
+  the test file. Machine-vision telecentric lenses are the real article and
+  `designs/` has none, so nothing in the catalogue exercises this branch — the
+  same gap § 6ah found on the other side, recorded before it can hide anything.
 
 ## Later rungs
 

@@ -519,15 +519,22 @@ export function EditorPanel() {
               />
               <Fact
                 label="exit pupil"
-                value={`r = ${num(result.pupil.exitRadiusMm, 4)} mm`}
+                value={
+                  result.pupil.exitSlope === undefined
+                    ? `r = ${num(result.pupil.exitRadiusMm, 4)} mm`
+                    : `tan u′ = ${num(result.pupil.exitSlope, 6)}`
+                }
                 note={
-                  Math.abs(result.pupil.exitRadiusMm) > 1e3
-                    ? `at z = ${num(result.pupil.exitZMm, 3)} — running off toward image-space ` +
-                      "telecentric, and unlike the entrance pupil above there is no slope " +
-                      "spelling to fall back on: the engine's radius-XOR-slope invariant has no " +
-                      "image-space half yet (§ 5s.5, still open). Read this as a direction, not " +
-                      "a semi-diameter."
-                    : `at z = ${num(result.pupil.exitZMm, 3)}`
+                  result.pupil.exitSlope !== undefined
+                    ? "at infinity — image-space telecentric, so the cone leaving is an ANGLE " +
+                      "and there is no semi-diameter to quote (§ 6aj)"
+                    : Math.abs(result.pupil.exitRadiusMm) > 1e3
+                      ? `at z = ${num(result.pupil.exitZMm, 3)} — running off toward image-space ` +
+                        "telecentric. The slope spelling exists now (§ 6aj) but this pupil is " +
+                        "still at a finite distance, so the radius is the true reading and the " +
+                        "warning is about its SIZE: a number this large is a direction seen " +
+                        "through a long arm, not a lens you could hold."
+                      : `at z = ${num(result.pupil.exitZMm, 3)}`
                 }
               />
               {draft.aperture.kind === "objectNA" && (

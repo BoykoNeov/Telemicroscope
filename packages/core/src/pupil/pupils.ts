@@ -66,6 +66,13 @@ export interface PupilPlane {
    * `u` is the raw geometric slope in the OBJECT medium, which is what makes B
    * carry an index ratio when the object and the stop do not share one — see
    * the derivation in `imageStopBackward` and § 6z.7.
+   *
+   * BOTH SIDES CARRY IT, and they are not computed alike. On the exit pupil the
+   * same word means the marginal ray's slope in IMAGE space: a ray through the
+   * stop rim leaves with `u′ = C·y + D·u`, the exit pupil is at infinity exactly
+   * when `D = 0`, and the rim is then `u′ = ±C·stopRadius` **with no u in it** —
+   * field- and aperture-independent for the same reason the entrance side's is
+   * object-height-independent. Pinned at § 6aj.
    */
   readonly slopeRadius?: number;
 }
@@ -108,8 +115,39 @@ function imageStopForward(
   }
 
   if (Math.abs(axis.u) < 1e-15) {
-    // Stop imaged to infinity — telecentric in image space.
-    return { z: Infinity, radius: Infinity, magnification: Infinity, n: axis.n };
+    // Image-space telecentric: the stop sits at the FRONT focal plane of the
+    // surfaces that follow it, so every chief ray leaves parallel to the axis
+    // and the image scale does not drift with focus.
+    //
+    // `axis` started {y: 0, u: 1} at the stop and was traced FORWARDS, which
+    // applies the stop→image matrix [[A, B], [C, D]] directly: it exits as
+    // (B, D), so this branch's condition is `D = 0`. The aperture the branch
+    // owes is the marginal ray's image-space slope `u′ = C·y + D·u`, which at
+    // D = 0 is `C·stopRadius` with no `u` in it at all — the exit-side twin of
+    // § 6u.1's field-independence.
+    //
+    // AND THAT IS WHERE THE SYMMETRY WITH `imageStopBackward` STOPS. There the
+    // inverse map handed back both matrix elements the branch needed from ONE
+    // ray, and the comment above says "no second trace" for that reason. Here
+    // `axis` carries B and D and simply does not contain C. `height` does — it
+    // started {y: 1, u: 0} and exits as (A, C) — and it is traced in the same
+    // loop for the magnification anyway, so there is still nothing that can
+    // drift; the reason is just a different one, and a reader arriving from the
+    // entrance side should be told so rather than left to look for the trick.
+    //
+    // NO DETERMINANT CORRECTION HERE, and not because indices are assumed
+    // equal. `u` is the raw geometric slope throughout, so `height.u` IS C in
+    // that basis and it is already expressed in the image medium — the index
+    // ratio that § 6z.7 had to divide out of the entrance side is one the
+    // forward trace never introduced. An immersed image space therefore reads
+    // its own tan u′, and Abbe's n′·sin u′ is that times `n` (§ 6aj.4).
+    return {
+      z: Infinity,
+      radius: Infinity,
+      magnification: Infinity,
+      n: axis.n,
+      slopeRadius: Math.abs(height.u * stopRadius),
+    };
   }
   const dz = -axis.y / axis.u;
   const m = height.y + height.u * dz;
@@ -274,8 +312,34 @@ export function resolveStopRadius(system: OpticalSystem, wavelengthNm: number): 
     case "imageNA": {
       const probeExit = imageStopForward(c, k, wavelengthNm, 1);
       const nImg = Math.abs(probeExit.n);
+      const tanU = marginalTangent(spec.value, nImg, "imageNA");
+
+      // Image-space telecentric: the exit pupil has no arm and no diameter, and
+      // the arithmetic below was reading ∞·tan u over an ∞ magnification for a
+      // silent **NaN**. `imageNA` is exactly the spelling that survives it — the
+      // aperture is an angle, and the unit-radius probe reports |C|, so this is
+      // tan u′/|C|. The mirror of `objectNA`'s telecentric branch above, and the
+      // reason the exit side grew a `slopeRadius` at all (§ 6aj.3).
+      if (probeExit.slopeRadius !== undefined) return tanU / probeExit.slopeRadius;
+
       const armLength = imagePlaneZ(c, system) - probeExit.z;
-      const xpRadius = Math.abs(marginalTangent(spec.value, nImg, "imageNA") * armLength);
+
+      // The other end of the same placement question, and the one that is
+      // reachable at ordinary finite numbers rather than at an infinity: the
+      // exit pupil can land ON the image plane. The stop is then conjugate to
+      // the image — a FIELD stop wearing the aperture flag — and every ray that
+      // clears it arrives at the same image point whatever its angle, so no stop
+      // radius produces a given u′. The formula answered that with a silent
+      // **0**, an aperture that closes the system, off an exit pupil whose own
+      // radius and z look entirely plausible. § 6aj.5.
+      if (armLength === 0) {
+        throw new Error(
+          "imageNA cannot size a stop whose exit pupil lies ON the image plane: " +
+            "the stop is conjugate to the image (a field stop), so it constrains no " +
+            "cone — spell the aperture as stopRadius or objectNA",
+        );
+      }
+      const xpRadius = Math.abs(tanU * armLength);
       return xpRadius / Math.abs(probeExit.magnification);
     }
   }

@@ -370,3 +370,74 @@ describe("the pupil readout of a stop the user put behind power (§ 5s.5)", () =
     expect(result.pupil.entranceSlope).toBeUndefined();
   });
 });
+
+describe("the exit-pupil half of the same readout (§ 6aj)", () => {
+  /**
+   * The mirror image of the block above, and the asymmetry § 5s.5 left in this
+   * panel on purpose. Put the stop on surface 0 and stand the singlet at its
+   * FRONT focal distance and the system is image-space telecentric: the exit
+   * pupil is at infinity and its aperture is an angle. The panel used to print a
+   * bare `r = Infinity mm` there — or, three rows away, a plausible-looking
+   * 2 659 670.894 mm — because the engine had no image-space slope.
+   *
+   * The lens is symmetric — radii ±51.68, so reversing it reproduces it — which
+   * is why its front focal distance is the same number the entrance-side block
+   * measures as a BACK focal distance, and why the two fixtures differ only in
+   * which side of the glass the diaphragm sits on. It is read here from the
+   * lens's own trace rather than copied across, so the fixture stops being
+   * telecentric loudly if the glass ever changes.
+   */
+  const stopFirst = (gapMm: number): BenchDraft => ({
+    objectMedium: "AIR",
+    surfaces: [
+      { kind: "refract", radiusMm: Infinity, conic: 0, semiApertureMm: 5, thicknessMm: gapMm, medium: "AIR", isStop: true },
+      { kind: "refract", radiusMm: 51.68, conic: 0, semiApertureMm: 12, thicknessMm: 4, medium: "N-BK7", isStop: false },
+      { kind: "refract", radiusMm: -51.68, conic: 0, semiApertureMm: 12, thicknessMm: 100, medium: "AIR", isStop: false },
+    ],
+    aperture: { kind: "stopRadius", value: 5 },
+    conjugate: { kind: "infinite" },
+    fieldValue: 0,
+    pupilRays: 9,
+  });
+
+  const FFD = systemProperties(
+    toPrescription({ ...stopFirst(0), surfaces: stopFirst(0).surfaces.slice(1) }),
+    LINE_D,
+  ).bfd;
+
+  it("reports tan u′, and only when there is no radius to report", () => {
+    const at = describeBench(stopFirst(FFD));
+    if (!at.ok) throw new Error(at.error);
+    expect(at.pupil.ok).toBe(true);
+    if (!at.pupil.ok) return;
+    expect(at.pupil.exitRadiusMm).toBe(Infinity);
+    expect(at.pupil.exitSlope).toBeDefined();
+    expect(at.pupil.exitSlope).toBeCloseTo(pupils(toSystem(stopFirst(FFD)), LINE_D).exit.slopeRadius!, 15);
+    // The entrance pupil of the same system is the stop itself — ordinary, with
+    // a radius and no slope. The two halves of the invariant are independent.
+    expect(at.pupil.entranceRadiusMm).toBe(5);
+    expect(at.pupil.entranceSlope).toBeUndefined();
+  });
+
+  it("one micrometre off that plane the radius is finite again — and enormous", () => {
+    // This is the reading the slope does NOT rescue, and the reason the panel's
+    // large-radius note survives this step instead of being retired with the
+    // rest of § 5s.5's exit-side text.
+    const off = describeBench(stopFirst(FFD - 0.001));
+    if (!off.ok) throw new Error(off.error);
+    expect(off.pupil.ok).toBe(true);
+    if (!off.pupil.ok) return;
+    expect(off.pupil.exitSlope).toBeUndefined();
+    expect(Number.isFinite(off.pupil.exitRadiusMm)).toBe(true);
+    expect(off.pupil.exitRadiusMm).toBeGreaterThan(1e5);
+  });
+
+  it("an ordinary front-stopped seed keeps a radius and grows no exit slope either", () => {
+    const result = describeBench(seedById(benchSeeds()[0]!.id));
+    if (!result.ok) throw new Error(result.error);
+    expect(result.pupil.ok).toBe(true);
+    if (!result.pupil.ok) return;
+    expect(Number.isFinite(result.pupil.exitRadiusMm)).toBe(true);
+    expect(result.pupil.exitSlope).toBeUndefined();
+  });
+});

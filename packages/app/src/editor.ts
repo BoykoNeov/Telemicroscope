@@ -279,6 +279,20 @@ export interface PupilReadout {
   readonly entranceSlope?: number;
   readonly exitZMm: number;
   readonly exitRadiusMm: number;
+  /**
+   * `tan u′` — the same quantity on the exit pupil, and the half of the
+   * invariant this panel was deliberately missing one step ago.
+   *
+   * The exit `Fact` used to carry a note saying the engine had no image-space
+   * slope to fall back on. It has one now (§ 6aj), so the panel prints the
+   * angle where the semi-diameter does not exist, exactly as the entrance side
+   * does. The note it replaces is NOT retired wholesale: the reachable defect on
+   * this side was never the ∞ but the plausible number beside it —
+   * 2 659 670.894 mm at z = 26 952 190.75, three rows from the shipped form —
+   * and a slope does nothing about that, so the large-radius warning stays and
+   * says what it is warning about.
+   */
+  readonly exitSlope?: number;
 }
 
 export interface FieldReadout {
@@ -413,6 +427,7 @@ export function describeBench(draft: BenchDraft): BenchDescription {
       ...(g.entrance.slopeRadius === undefined ? {} : { entranceSlope: g.entrance.slopeRadius }),
       exitZMm: g.exit.z,
       exitRadiusMm: g.exit.radius,
+      ...(g.exit.slopeRadius === undefined ? {} : { exitSlope: g.exit.slopeRadius }),
     };
   });
 
