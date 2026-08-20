@@ -233,3 +233,173 @@ export function rasterizeSpecimen(
 
   return { size, re, im };
 }
+
+/**
+ * ## Structure, as opposed to a ruling
+ *
+ * Everything the branch has imaged so far is a cosine grating or a flat stain:
+ * one spatial frequency, or none. That is the right object for pinning a
+ * transfer — it puts all of the object's energy in one bin, so the number that
+ * comes back is the optics' and nothing else — but it is not a *picture*, and it
+ * hides two whole classes of question. A cosine has no edges, so nothing ever
+ * asked what happens to the harmonics an edge carries; and it is unbounded in
+ * both directions, so nothing ever asked what happens at the end of a feature.
+ *
+ * The three factories below are the smallest set that asks both. They are
+ * authored in **millimetres on the object plane**, in `Specimen`'s own
+ * unsigned-magnification coordinates, and they are shipped rather than
+ * test-local because `packages/app` will want the same targets: a bar element
+ * and a star are what a microscopist actually puts on the stage to see whether
+ * the instrument is working.
+ *
+ * They are binary amplitude targets — chrome on glass, not a phase object — and
+ * that is what makes them exactly analysable. § 6ao.1 reads the Fourier
+ * coefficient of the sampled bar in closed form, which is possible only because
+ * the authored value is two-valued and the sampling is the whole of the
+ * difference between it and a mathematical square wave.
+ *
+ * **Sub-pixel edges are the caller's problem, deliberately.** A bar edge that
+ * lands exactly on a sample is a coin toss — `<=` says opaque, `<` says clear,
+ * and neither is more right. The factories do not dither, do not area-average
+ * and do not anti-alias, because any of those would put a resampling kernel
+ * between the authored target and the image, and § 6n's header explains at
+ * length why this module refuses to do that. A caller who wants an exactly
+ * commensurate ruling offsets the target by half a pixel and gets an exact
+ * answer; § 6ao.1 does precisely that.
+ */
+
+export interface BarTargetOptions {
+  /** Line pairs per millimetre. One cycle is one bar plus one gap. */
+  readonly cyclesPerMm: number;
+  /** Centre of the element, in object mm. Defaults to the origin. */
+  readonly centreMm?: { readonly x: number; readonly y: number };
+  /**
+   * How many bars. Omit for an **unbounded ruling** — no ends, no sides, the
+   * square-wave counterpart of `cosineGratingObject`. The standard's own
+   * element is 3.
+   */
+  readonly bars?: number;
+  /**
+   * Bar length in bar widths. MIL-STD-150A's aspect is 5; ignored when the
+   * ruling is unbounded.
+   */
+  readonly lengthInWidths?: number;
+  /** Which way the bars RUN. `"vertical"` bars modulate along x. Default. */
+  readonly orientation?: "vertical" | "horizontal";
+  /** Amplitude transmittance of a bar. Default 0 — opaque chrome. */
+  readonly barTransmittance?: number;
+  /** Amplitude transmittance of the surround. Default 1. */
+  readonly clearTransmittance?: number;
+}
+
+/**
+ * A bar target: `bars` opaque bars on a clear field, or an unbounded ruling.
+ *
+ * The element is symmetric about `centreMm` and **starts and ends on a bar**,
+ * so its extent across the bars is `(2·bars − 1)` bar widths — 5 for the
+ * standard's three — and an odd `bars` puts a bar centre on the centre while an
+ * even one puts a gap there.
+ */
+export function barTarget(options: BarTargetOptions): Specimen {
+  const { cyclesPerMm, bars, orientation = "vertical" } = options;
+  if (!(cyclesPerMm > 0)) throw new Error(`cyclesPerMm must be positive, got ${cyclesPerMm}`);
+  if (bars !== undefined && !(bars >= 1 && Number.isInteger(bars))) {
+    throw new Error(`bars must be a positive integer, got ${bars}`);
+  }
+  const centre = options.centreMm ?? { x: 0, y: 0 };
+  const opaque = options.barTransmittance ?? 0;
+  const clear = options.clearTransmittance ?? 1;
+  const widthMm = 1 / (2 * cyclesPerMm);
+  const periodMm = 2 * widthMm;
+  // An even bar count has no bar on the centre line, so the ruling's phase is
+  // shifted by one bar to keep the element symmetric about it either way.
+  const phaseOffsetMm = bars !== undefined && bars % 2 === 0 ? widthMm : 0;
+  const acrossHalfMm = bars === undefined ? Infinity : ((2 * bars - 1) * widthMm) / 2;
+  const alongHalfMm = bars === undefined ? Infinity : ((options.lengthInWidths ?? 5) * widthMm) / 2;
+
+  return (xMm, yMm) => {
+    const dx = xMm - centre.x;
+    const dy = yMm - centre.y;
+    // `across` is the direction the ruling modulates in; `along` runs up a bar.
+    const across = orientation === "vertical" ? dx : dy;
+    const along = orientation === "vertical" ? dy : dx;
+    if (Math.abs(across) > acrossHalfMm || Math.abs(along) > alongHalfMm) {
+      return { re: clear, im: 0 };
+    }
+    const u = across + phaseOffsetMm;
+    const offsetFromNearestBar = u - periodMm * Math.round(u / periodMm);
+    const inBar = Math.abs(offsetFromNearestBar) <= widthMm / 2;
+    return { re: inBar ? opaque : clear, im: 0 };
+  };
+}
+
+export interface SiemensStarOptions {
+  /** Opaque spokes. The pattern's angular period is `2π/spokes`. */
+  readonly spokes: number;
+  /** Outside this radius the field is clear. */
+  readonly radiusMm: number;
+  readonly centreMm?: { readonly x: number; readonly y: number };
+  /** An opaque hub, which hides the singular centre. Default 0. */
+  readonly hubMm?: number;
+  /** Amplitude transmittance of a spoke. Default 0. */
+  readonly barTransmittance?: number;
+  /** Amplitude transmittance of the surround. Default 1. */
+  readonly clearTransmittance?: number;
+}
+
+/**
+ * A Siemens star — the one target whose spatial frequency is a function of
+ * position.
+ *
+ * At radius r the pattern is a ruling of `spokes / (2πr)` cycles per mm, so a
+ * single exposure sweeps the whole frequency axis and the instrument draws its
+ * own cutoff as the grey disc where the spokes stop being spokes. That local
+ * frequency is an approximation and stops being a good one where the period
+ * approaches the radius, which is exactly where the disc is — so the disc's
+ * radius is a *bracket* on the cutoff and not a measurement of it (§ 6ao.8).
+ */
+export function siemensStar(options: SiemensStarOptions): Specimen {
+  const { spokes, radiusMm } = options;
+  if (!(spokes >= 1 && Number.isInteger(spokes))) {
+    throw new Error(`spokes must be a positive integer, got ${spokes}`);
+  }
+  if (!(radiusMm > 0)) throw new Error(`radiusMm must be positive, got ${radiusMm}`);
+  const centre = options.centreMm ?? { x: 0, y: 0 };
+  const hubMm = options.hubMm ?? 0;
+  const opaque = options.barTransmittance ?? 0;
+  const clear = options.clearTransmittance ?? 1;
+
+  return (xMm, yMm) => {
+    const dx = xMm - centre.x;
+    const dy = yMm - centre.y;
+    const r = Math.hypot(dx, dy);
+    if (r > radiusMm) return { re: clear, im: 0 };
+    if (r <= hubMm) return { re: opaque, im: 0 };
+    // Half of each angular period is opaque, which is the star's 50% duty.
+    const turns = Math.atan2(dy, dx) / (2 * Math.PI);
+    const phase = turns * spokes;
+    return { re: phase - Math.floor(phase) < 0.5 ? opaque : clear, im: 0 };
+  };
+}
+
+/**
+ * The USAF 1951 chart's frequency ladder, from MIL-STD-150A:
+ * `2^(group + (element − 1)/6)` line pairs per mm, six elements to a group.
+ *
+ * The external number this module can be pinned against, and the reason to have
+ * it here rather than in a test: it is the *specification* of the target, so a
+ * caller asking for "group 7, element 6" gets the frequency the physical chart
+ * has and not one this engine invented. Bar width is half the period, `1/(2f)`,
+ * and the standard's element is three bars five widths long — `barTarget`'s
+ * defaults.
+ *
+ * Groups may be negative — that is the large end of a chart — and the standard
+ * tabulates −2 through 7.
+ */
+export function usafFrequencyCyclesPerMm(group: number, element: number): number {
+  if (!(element >= 1 && element <= 6 && Number.isInteger(element))) {
+    throw new Error(`element must be an integer in 1…6, got ${element}`);
+  }
+  if (!Number.isInteger(group)) throw new Error(`group must be an integer, got ${group}`);
+  return 2 ** (group + (element - 1) / 6);
+}

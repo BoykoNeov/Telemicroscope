@@ -97,6 +97,7 @@ whole ladder.
 | [6al](#step-6al--scene-content-through-a-telecentric-frame) | A specimen actually put through that path, no engine code added: a clear field at Fresnel's (1 − R)², contrast dying at Abbe's period read off the ENTRANCE pupil so the two rulers stay independent, 2 mm of sensor shift on a bitwise-identical ruler | `telecentric-scene` |
 | [6am](#step-6am--the-self-conjugate-bins-of-the-harmonic-readout) | § 6al.8's defect fixed: the contrast readout doubled every bin, but at k = 0 and k = N/2 the ±k pair is ONE bin and it read 2× high — authored components read back, Rayleigh's variance off the pixels, § 6al.8's reach claim corrected | `harmonic-bin` |
 | [6an](#step-6an--colour-through-a-telecentric-frame) | Telecentricity holds at ONE wavelength — the exit pupil crosses infinity there — so the sensor rescales every colour but one as 1 + d/R, sign reversing across it; and a stain images as its own spectrum | `telecentric-colour` |
+| [6ao](#step-6ao--a-specimen-with-real-structure) | Edges and ends, not a cosine: a bar puts 4/π of a cosine's amplitude into the fundamental at the same transfer, and a three-bar element past the cutoff images INVERTED where a ruling is dead | `structure` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -16307,6 +16308,165 @@ measured.
   `BrightfieldPlane`; what is missing is a caller that reads it. That is an app
   question (§ 6ah) and not an engine one, and it is recorded here because this
   step is where it first costs something.
+
+## Step 6ao — a specimen with real structure
+
+Every object the imaging branch has put through a lens has been a cosine grating
+or a flat stain: one spatial frequency, or none. That is the right object for
+pinning a transfer — all of its energy is in one bin, so what comes back is the
+optics' and nothing else — and it is the wrong object for ever finding out what
+a **picture** does, because a cosine has no edges and no ends. This step gives
+the branch a bar target, a Siemens star and the USAF 1951 frequency ladder, and
+asks what the extra structure costs and what it reveals. **No new physics: three
+authoring factories in `imaging/specimen`, and one test file.**
+
+The external number is the square wave's own Fourier series. A 50%-duty binary
+bar is ½ + (2/π)·cos θ − (2/3π)·cos 3θ + …, so hard edges put **4/π more** into
+the fundamental than the 0.5 + 0.5·cos everyone has been imaging. Choose the
+commensuration so that only the orders 0 and ±1 clear the aperture and the whole
+image is that series read term by term, in closed form to 1e−12.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6ao.1 — the sampled bar's own coefficient is 1/(p·sin(π/p)), not 1/π** | exact to 2e−15, with no optics in the path at all | ✅ |
+| ...and it converges on 2/π as p², the overshoot in the ratio quartering too | 4.0535 and 4.0135, from the series' next term | ✅ |
+| **§ 6ao.2 — the coherent image is DC, f and 2f in the three-order expansion** | a₀ = ½ and § 6ao.1's a₁; 1e−12 on all three | ✅ |
+| ...and the bars' own 3f is ABSENT, not attenuated, at every source direction | 2e−16, against a fundamental of 0.65 | ✅ |
+| ...and the 2f the image DOES carry is the fundamental beating with itself | a₁/(2a₀): 0.3266 for the bar, 0.2500 for the cosine | ✅ |
+| **§ 6ao.3 — the transfer is the optics', and the 4/π is the specimen's** | bar ÷ cosine = 1 in the ratio, coherent AND at S = 0.5, 1e−12 | ✅ |
+| ...and the CONTRAST ratio is 1.078 where the amplitude ratio is 1.3066 | the image DC the two objects do not share | ✅ |
+| ...and 4/π is what 1.3066 becomes with the sampling divided out | 1.2773 at p = 32, within 0.3% | ✅ |
+| **§ 6ao.4 — partial coherence keeps the fundamental and moves 2f** | 0.2704 against the coherent 0.3266, two pairs weighted apart | ✅ |
+| **§ 6ao.5 — the element is MIL-STD-150A's, not this engine's** | 2^(G+(E−1)/6) against eleven printed rows, 5e−3 | ✅ |
+| ...and the drawing is three bars, five widths across and five along | probed at w/100 off the callback, no grid | ✅ |
+| **§ 6ao.6 — a round pupil has no preferred direction** | rotated element ≡ transpose, 1e−13, coherent and with a condenser | ✅ |
+| **§ 6ao.7 — a bar's ends ring, and the reach is λ/NA** | flat to 10% then 14 px of end effect against 10.7 px of λ/NA | ✅ |
+| ...and inside that reach the dark bar overshoots ×2.2 and passes through a null | 0.036 of its own middle — an amplitude zero crossing | ✅ |
+| **§ 6ao.8 — the chart lies past the cutoff and the ruling does not** | element at ν = 1.78 reads −0.089; the ruling reads +1.3e−3 | ✅ |
+| ...and inside the cutoff the two agree, so the lie is the ends' | 0.951 vs 0.949 and 0.736 vs 0.712, at ν = 0.76 and 1.07 | ✅ |
+| **§ 6ao.9 — the star draws the cutoff as a disc** | collapse brackets N/(2π·f_c) = 20.4 px within a factor | ✅ |
+| **§ 6ao.10 — two committed pictures** | regression only, `usaf-block` and `siemens-star` | ✅ |
+
+### The ruler and the lens, split for the third time
+
+§ 6an's first lesson was that a colour claim has to be asked twice, because the
+engine's bin-averaged observer differs from a 1 nm CIE integral by far more than
+the imaging chain does — quote the second as the imaging residual and you have
+blamed the lens for the ruler. The same trap is here in a different costume, and
+it is worth the repetition because the shape recurs.
+
+A binary edge on a pixel grid is **not** a mathematical square wave. Sample a
+50%-duty bar p times to the period and the fundamental is the sum of p/2 unit
+phasors, a Dirichlet kernel:
+
+    a₁ = 1 / (p · sin(π/p))     →     1/π as p → ∞
+
+At p = 8 that is 0.32664 against 1/π = 0.31831 — **2.6% high**, which is four
+orders above every imaging residual in the step and would have looked exactly
+like an optical defect. So § 6ao.1 measures it with nothing in the path, shows
+the gap is the sampling's by watching it quarter as the period doubles (4.0535
+and 4.0135 — overshooting 4 because the series' next term is positive, and the
+overshoot quarters too), and every rung downstream normalizes by the object's
+**measured** coefficient rather than by the textbook one. The 4/π is then
+recovered where it belongs: at p = 32 the bar-to-cosine ratio is 1.2773, within
+0.3% of 4/π and closing as p².
+
+This also fixes where a target may sit. The frame's centre falls **on** sample
+`size/2`, so a bar an even number of pixels wide centred there puts both of its
+edges exactly on samples — and an edge on a sample is a coin toss between `<=`
+and `<`, neither more right than the other. The factories refuse to dither or
+area-average it away, for § 6n's reason: any of those is a resampling kernel
+between the authored specimen and the image. Half a pixel of offset moves every
+edge to a half-integer and the closed form is exact instead of approximate.
+
+### Amplitude, not contrast, and the fifth that separates them
+
+With only 0 and ±1 through the aperture the image intensity is
+
+    |a₀ + 2a₁cos θ|² = (a₀² + 2a₁²) + 4a₀a₁·cos θ + 2a₁²·cos 2θ
+
+Both objects have a₀ = ½ and they differ only in a₁, so the **fundamental
+amplitude** ratio is a₁ᵇᵃʳ/a₁ᶜᵒˢ — 1.3066 on this grid, 4/π in the limit. Their
+image DC is not shared, though: the bar puts 2a₁² more into it, 0.4634 against
+0.3750. So the **contrast** ratio is 1.078, and a rung written on contrast would
+have missed the number it was quoting by a fifth and looked like physics doing
+it. Both are measured (§ 6ao.3), which is what makes the choice a finding rather
+than a convention.
+
+The image/object ratio at the fundamental is then identical for the two objects,
+coherent and under a condenser, to 1e−12. That is a real claim about where the
+4/π lives: the fundamental bin can only be fed by pairs of transmitted orders one
+f apart, a square wave has no order at 2f, so that pair is (0, ±f) for both
+objects and rides the same aperture arithmetic. **The transfer is the
+instrument's; everything the edges did is in the object's own coefficient.**
+
+Where the expansion stops is § 6ao.4. The fundamental bin is fed by (0, ±f) and
+the second-harmonic bin by (−f, +f), and those two pairs overlap different areas
+of the shifted pupil as the source point moves, so a condenser weights them
+differently: 2f/f falls from the coherent 0.3266 to 0.2704 at S = 0.5 while the
+fundamental transfer is untouched. The expansion assumed one direction; the
+transfer never did.
+
+### The chart lies past the cutoff, and the ruling does not
+
+The step's own finding, and the reason § 6ao.8 is not the resolution measurement
+it looks like. Three elements on one piece of glass at ν = 0.762, 1.067 and
+1.778 of the coherent cutoff, under S = 0.5 so the aperture runs out at 1.5:
+
+- inside the cutoff, a three-bar element and an unbounded ruling of the same
+  period are the same picture — 0.951 against 0.949, 0.736 against 0.712;
+- **past it they are not.** The ruling is dead, as § 6an.8 already showed it
+  must be. The element is not: it reads −0.089. **Negative** — its bars come out
+  brighter than its gaps.
+
+That is spurious resolution, and the mechanism is the ends. A three-bar element
+is the ruling multiplied by a window five bar widths square, so its spectrum is
+the ruling's line smeared to about half the frequency it sits at; an element
+beyond 1 + S still has skirts inside it, and what comes through them is under no
+obligation to carry the sign of the bars. **A chart element therefore reads
+optimistically past the limit, showing structure where a ruling shows nothing,**
+which is why § 6an.8 measures Abbe's limit on a ruling and why a reader should
+distrust any resolution quoted off a chart at the exact element where it fails.
+
+The ruling's residual there is 1.3e−3 rather than the 1e−13 § 6an.8 gets, and
+that is the grid's rather than the aperture's: a period of six pixels does not
+divide 128, so the ruling wraps on a discontinuity and smears a little of itself
+across the spectrum. Named because it is the third instance of the same rule —
+if a number is not the floor, say whose it is.
+
+### Ends, direction, and what the two pictures are for
+
+§ 6ao.6 and § 6ao.7 are the two questions a single Fourier bin cannot ask.
+
+A vertical ruling read at bin (k, 0) says nothing whatever about y, so no rung in
+this suite has ever constrained an image's **orientation** — `golden.test.ts`
+says as much in its own header, and a transposed axis or a row-major slip passes
+every other rung green. A rotated element must image as the exact transpose of
+the original, and does, to 1e−13 through a condenser as well as coherently. The
+condenser half is the sharper claim of the two: it holds only because
+`diskSource`'s lattice has four-fold symmetry, and a source that did not would
+break it through a perfectly round pupil.
+
+Along a bar, an unbounded ruling is constant to 1e−13 — the object does not vary
+there, so neither does the image — which makes every feature of a finite bar's
+profile the ends' doing and nothing else. The middle of a bar five widths long is
+flat to 10%, the end effect reaches 14 pixels in against λ/NA = 10.7, and inside
+that reach the picture does what a coherent picture does: the dark bar
+**overshoots to 2.2× the brightness of its own middle** and then passes through a
+near-perfect null, 0.036, on its way out to the clear field. The null is an
+amplitude zero crossing, so it is physics rather than a rounding, and it is
+absent from every cosine this branch has imaged.
+
+The two committed renders are **regression, not validation**, on the standing
+rule — a golden proves a picture has not changed, never that it was right, and
+what makes these trustworthy is the seventeen rungs above them. They earn their
+place because they are the only artefacts in the suite a person can look at and
+see the findings in: specimen on the left, image on the right, the finest element
+reduced to a grey blob and the star's spokes dissolving into the disc the
+aperture draws for itself. Exposure is 1 and nothing is auto-scaled — clear glass
+images at unit intensity, so white means "as bright as no specimen at all". An
+auto-exposure would have hidden § 6ao.8 outright, since an inverted element is
+still a perfectly contrasty picture once it has been normalized.
 
 ## Later rungs
 
