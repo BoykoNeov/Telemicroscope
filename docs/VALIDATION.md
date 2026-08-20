@@ -15911,8 +15911,10 @@ h·ν < 2, derived there from aperture geometry and here seen in a render.
 
 ### A defect found on the way, in the measurement and not the physics
 
-The sweep stops below eight cycles, and the reason is worth writing down because
-it is a trap rather than a limit. `imageHarmonic` doubles a bin's modulus, on the
+The sweep stopped below eight cycles when this step was written, and the reason
+is worth writing down because it is a trap rather than a limit — it is also the
+reason the sweep carries eight cycles now; see the correction below.
+`imageHarmonic` doubles a bin's modulus, on the
 stated grounds that "a real image splits its energy between the ±k bins". True of
 every bin except **k = 0 and k = N/2**: the Nyquist bin is its own conjugate and
 has no partner to add. At eight cycles the second harmonic lands on bin 16 of a
