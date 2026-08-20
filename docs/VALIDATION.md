@@ -16114,7 +16114,8 @@ picture by 1 + δ/R(λ) with a sign that reverses at the design wavelength.
 |---|---|---|
 | **§ 6an.1 — the honest band is 480…700 nm, and the engine is what says so** | `no-honest-image` at 470, `valid` at 480; 0.3605 vs 0.3171 waves per pupil sample | ✅ |
 | ...and a stack straddling the edge carries the worst plane's verdict, not an average | § 6r's contract, exercised | ✅ |
-| **§ 6an.2 — the object-side ruler is achromatic, and the number is AUTHORED** | slope(λ)·|M(λ)| = r_stop/z_stop = 2/400, 3e−8 | ✅ |
+| **§ 6an.2 — the object-side ruler is achromatic, and the number is AUTHORED** | slope(λ)·|M(λ)| = r_stop/z_stop = 2/400, 2.1e−8 | ✅ |
+| ...and that residual is the traced ray’s own cubic distortion, shown by scaling | k = −1.3176e−5 mm⁻², flat over 30× of probe height | ✅ |
 | ...so the object pixel is ∝ λ, and the ratio of two of them is exact to 1.1e−9 | closed form with no traced term | ✅ |
 | **§ 6an.3 — the exit pupil is at infinity at one λ and Newton's f² either side** | thick lens + Sellmeier, nothing traced, 1e−11 | ✅ |
 | **§ 6an.4 — so the sensor rescales every colour but one, as 1 + δ/R(λ)** | closed-form R, 1e−5; linear in δ to 5e−12 | ✅ |
@@ -16155,9 +16156,21 @@ that divided by the magnification. So
 
     slopeRadius(λ) · |M(λ)| = r_stop / z_stop
 
-with the left side **two independent traced solves** — the exit pupil's slope out
-of `opdMap`, the magnification out of a traced probe ray — and the right side
-arithmetic on the prescription. It holds to 3e−8 across the band.
+and the right side is arithmetic on the prescription. Which of the two factors on
+the left is traced matters, and saying so is the difference between a measurement
+and an identity: the exit pupil's slope is the **paraxial** stop-image matrix and
+the magnification is a **real ray** aimed at the stop centre and traced. So the
+rung measures the real ray against the paraxial construction with an authored
+target, and it holds to 2.1e−8 across the band.
+
+That residual is the same 2.1e−8 at every wavelength, which is steady enough to
+be suspicious — and it is steady because it is not an error. The traced image
+height is M·h·(1 + k·h²), so a probe at h = 0.04 mm reports a magnification short
+of the paraxial one by k·h² with k this system's **third-order distortion**
+coefficient, −1.3176e−5 mm⁻². It is pinned by making it scale: over a 30× range of
+probe height the ratio is constant to five digits, so the number is the probe's
+height and not the ruler's accuracy. § 6ac's quantity, arriving out of a
+measurement that was not about distortion.
 
 The consequence is the one a caller sees: the object pixel is exactly ∝ λ, so a
 frame of fixed `size` covers the same specimen in every colour. The image-side

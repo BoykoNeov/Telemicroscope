@@ -297,9 +297,14 @@ describe("§ 6an.2 — the object-side ruler is achromatic, and its number is au
     //
     //     slopeRadius(λ) · |M(λ)| = r_stop / z_stop
     //
-    // with the left side two independent traced solves — the exit pupil's slope
-    // out of `opdMap`, the magnification out of a traced probe ray — and the
-    // right side arithmetic on the prescription.
+    // and the right side is arithmetic on the prescription. The two factors on
+    // the left are NOT both traced, and saying which is which is the difference
+    // between a measurement and an identity: the exit pupil's slope is the
+    // PARAXIAL stop-image matrix (`pupils`), and the magnification is a REAL ray
+    // aimed at the stop centre and traced through the surfaces. So what this
+    // rung measures is the real ray's departure from the paraxial construction,
+    // against a target that is authored — and the rung below shows the departure
+    // to be the system's own distortion by making it scale.
     const authored = STOP_R / OBJECT_DISTANCE;
     expect(authored).toBe(0.005);
 
@@ -316,6 +321,32 @@ describe("§ 6an.2 — the object-side ruler is achromatic, and its number is au
       const slope = p.exit.slopeRadius ?? Math.abs(p.exit.radius / (IMAGE_Z - p.exit.z));
       expect(Math.abs((slope * magnification) / authored - 1)).toBeLessThan(3e-8);
       expect(tile.objectPixelScaleMm).toBeGreaterThan(0);
+    }
+  });
+
+  it("and the 2e−8 it misses by is the traced ray's own distortion, not the ruler", () => {
+    // The residual above is 2.1e−8 at every wavelength, which is suspiciously
+    // steady for an error. It is steady because it is not an error: the traced
+    // image height is M·h·(1 + k·h²), so the probe ray at h = 0.04 mm reports a
+    // magnification short of the paraxial one by k·h², and k is this system's
+    // third-order distortion coefficient (§ 6ac's quantity, arriving here from a
+    // measurement that was not about distortion at all).
+    //
+    // Which makes it falsifiable: the residual must go as h². Over a 30× range
+    // of probe height the ratio is constant to five digits, so the 2.1e−8 is the
+    // probe's height and not the ruler's accuracy — at h → 0 the identity is
+    // exact, and a real ruler error would not care what the probe did.
+    const p = pupils(TELECENTRIC, 550);
+    const slope = p.exit.slopeRadius ?? Math.abs(p.exit.radius / (IMAGE_Z - p.exit.z));
+    const coefficient = (h: number) =>
+      ((slope * Math.abs(lateralMagnification(TELECENTRIC, h, 550))) / (STOP_R / OBJECT_DISTANCE) -
+        1) /
+      (h * h);
+
+    const reference = coefficient(0.04);
+    expect(reference).toBeCloseTo(-1.3176e-5, 9);
+    for (const h of [0.4, 1.2]) {
+      expect(Math.abs(coefficient(h) / reference - 1)).toBeLessThan(1e-4);
     }
   });
 
