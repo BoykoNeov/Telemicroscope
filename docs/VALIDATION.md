@@ -16138,3 +16138,7 @@ amplitudes, quoted as computed.
 - New engine capability ⇒ new rung(s) in the same PR.
 - Never loosen a tolerance to make a test pass — investigate; tolerances
   document the physics, not the implementation's mood.
+- A row in the table above is for a numbered step; a sub-step folds into its
+  parent's row. What is charged is the MEAN row, so a row at or under the
+  average costs nothing and a fat one pays only its overrun — see
+  `docs-index.test.ts`, which is the one rung that pins this file.

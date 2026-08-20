@@ -24,10 +24,12 @@ read the line range. Only `ARCHITECTURE.md` is sized to be read end to end.
   external numbers (textbook/closed-form/published design), added in the same
   change and recorded in `docs/VALIDATION.md`.
 - Never loosen a test tolerance to make it pass — investigate.
-- An index row is one line. A step's reasoning lives under that step's own
+- An index row is one line, and a row is for a numbered STEP — a sub-step folds
+  into its parent's row. A step's reasoning lives under that step's own
   heading, never restated in the summary table — an index that costs as much
-  as the text is not an index. Pinned by `docs-index.test.ts`; when its budget
-  binds, trim a row rather than raise the number.
+  as the text is not an index. Pinned by `docs-index.test.ts`, which charges the
+  MEAN row, not the whole table: a row at or under the average is free, and a
+  fat one is paid for by trimming its overrun. Trim rather than raise a cap.
 - Precision-critical tracing (OPD) stays on CPU f64; GPU is for f32-safe bulk
   work only.
 - Units: mm for geometry, nm for wavelength (µm inside Sellmeier). Light
