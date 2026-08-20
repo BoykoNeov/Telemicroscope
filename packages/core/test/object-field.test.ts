@@ -301,6 +301,7 @@ describe("§ 6h.3 — the rotation, against `imaging/render`'s own convention", 
     exitRadius: 10,
     wavelengthNm: LAMBDA,
     nImage: 1,
+    slopeRadius: undefined,
   };
   const psfOf = (pupil: PupilFunction) =>
     psfFromPupilFunction(pupil, SCALE, 0, { pupilSamples: 32, padFactor: 4 });

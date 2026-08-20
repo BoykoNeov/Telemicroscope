@@ -201,7 +201,7 @@ describe("Airy pattern of a perfect circular pupil", () => {
       amplitude: (px, py) => (px * px + py * py <= 1 ? 1 : 0),
       phaseWaves: () => 0,
     };
-    const scale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+    const scale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1, slopeRadius: undefined };
 
     const build = (pupilSamples: number, edgeSamples: number): Psf =>
       psfFromPupilFunction(analytic, scale, 0, { pupilSamples, padFactor: 4, edgeSamples });
@@ -540,7 +540,7 @@ describe("spider vanes stamp diffraction spikes perpendicular to themselves", ()
     };
   }
 
-  const dummyScale = { referenceRadius: 100, exitRadius: 10, wavelengthNm: LINE_D, nImage: 1 };
+  const dummyScale = { referenceRadius: 100, exitRadius: 10, wavelengthNm: LINE_D, nImage: 1, slopeRadius: undefined };
 
   /**
    * Streak brightness along the image line at `angleDeg`: intensity summed in a

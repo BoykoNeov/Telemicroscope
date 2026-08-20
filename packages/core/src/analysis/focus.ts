@@ -142,11 +142,34 @@ function oneWaveDefocus(system: OpticalSystem, wavelengthNm: number): number {
   const c = asCompiled(system.prescription);
   const pupil = pupils(system, wavelengthNm);
   const arm = imagePlaneZ(c, system) - pupil.exit.z;
-  if (!Number.isFinite(arm) || !Number.isFinite(pupil.exit.radius)) {
-    // Telecentric in image space: no exit-pupil arm to form an NA from.
-    throw new Error("cannot size a focus search bracket: exit pupil is at infinity");
+  // An exit pupil at infinity has no arm and no diameter, and this refused for
+  // that reason until § 6ak — correctly, since there was nothing to form an NA
+  // from. There is now. `slopeRadius` IS tan u′ (§ 6aj.3), and the line below
+  // computes sin u′ from a radius and an arm as r/√(arm² + r²); the same sine
+  // out of a tangent is t/√(1 + t²), which is that expression with the arm
+  // normalized to 1. So this is the SAME quantity by the same identity, not an
+  // approximation of it — the arm cancels out of a sine, which is exactly why
+  // an infinite one costs nothing here.
+  //
+  // Reachable, and not merely defensible: the guard's real caller was `psf()`
+  // one call down, which refused first, so a telecentric system could not be
+  // focused OR rendered. Both move in this step or neither is worth moving.
+  const slope = pupil.exit.slopeRadius;
+  // The half of the old refusal that survives: an infinite ARM with a finite
+  // radius and no slope. That is not the telecentric case (which the invariant
+  // gives a slope) but an image at infinity, where a defocus of δ is not a
+  // wavefront error of anything. Left as a refusal rather than folded into the
+  // "zero NA" message below, which would report a cause that is not the cause.
+  if (slope === undefined && !Number.isFinite(arm)) {
+    throw new Error(
+      "cannot size a focus search bracket: the exit pupil has no arm to the image plane " +
+        "and no slope aperture — the image is at infinity",
+    );
   }
-  const na = Math.abs(pupil.exit.radius) / Math.hypot(arm, pupil.exit.radius);
+  const na =
+    slope === undefined
+      ? Math.abs(pupil.exit.radius) / Math.hypot(arm, pupil.exit.radius)
+      : Math.abs(slope) / Math.hypot(1, slope);
   if (na < 1e-12) throw new Error("cannot size a focus search bracket: zero NA");
   return (2 * wavelengthNm * 1e-6) / (na * na);
 }

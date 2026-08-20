@@ -67,7 +67,7 @@ const PUPIL_SAMPLES = 64;
 const PAD = 4;
 const N = PUPIL_SAMPLES * PAD; // 256-pixel PSF grid
 const SCREEN_N = 256;
-const SCALE: PupilScale = { referenceRadius: 1000, exitRadius: D / 2, wavelengthNm: REF_LAM, nImage: 1 };
+const SCALE: PupilScale = { referenceRadius: 1000, exitRadius: D / 2, wavelengthNm: REF_LAM, nImage: 1, slopeRadius: undefined };
 // λ/D in pixels equals n/pupilSamples = PAD, which sets the FWHM scale.
 const LAM_OVER_D_PX = PAD;
 
@@ -230,6 +230,7 @@ describe("psf() composes the seeing screen, in the FFT branch, colour-honestly",
       exitRadius: map.pupil.exit.radius,
       wavelengthNm: LINE_D,
       nImage: map.pupil.exit.n,
+      slopeRadius: map.pupil.exit.slopeRadius,
     };
     const manual = psfFromPupilFunction(withPhaseScreen(pupil, screen, LINE_D), scale, 0, WIRE_GRID);
 

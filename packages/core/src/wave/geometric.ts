@@ -9,6 +9,7 @@ import {
   Psf,
   PsfOptions,
   SystemPsfOptions,
+  imagePixelScaleMm,
   psfFromSystemPupil,
   pupilFunctionFromOpd,
   spiderObscures,
@@ -141,10 +142,23 @@ export function geometricPsf(
   });
   const energy = transmittedEnergy(pupil, pupilSamples, size);
 
-  const lambdaMm = wavelengthNm * 1e-6;
-  const deltaPupil = (2 * map.pupil.exit.radius) / pupilSamples;
-  const pixelScaleMm = Math.abs(
-    (lambdaMm * map.referenceRadius) / (Math.abs(map.pupil.exit.n) * size * deltaPupil),
+  // The shared reader, not a fourth copy of its arithmetic. This inline
+  // duplicate is what § 6aj.6 had to name as a SECOND repair site: the formula
+  // lives in `imagePixelScaleMm` precisely so two transforms landing on one grid
+  // cannot disagree about the ruler, and a copy here meant the telecentric
+  // branch would have had to be written twice or `geometricPsf` would have gone
+  // on reporting zero with the shared reader already fixed. Bitwise identical on
+  // a finite pupil — the same expression in the same association, moved.
+  const pixelScaleMm = imagePixelScaleMm(
+    {
+      referenceRadius: map.referenceRadius,
+      exitRadius: map.pupil.exit.radius,
+      wavelengthNm,
+      nImage: map.pupil.exit.n,
+      slopeRadius: map.pupil.exit.slopeRadius,
+    },
+    size,
+    pupilSamples,
   );
 
   // Measured before the bundle is traced, because the blur it reports is what

@@ -132,11 +132,29 @@ export function spiderObscures(spec: SpiderSpec): (px: number, py: number) => bo
 export interface PupilScale {
   /** Exit-pupil-to-image distance (mm) — the reference sphere's radius. */
   readonly referenceRadius: number;
-  /** Exit pupil semi-diameter (mm). */
+  /** Exit pupil semi-diameter (mm). `Infinity` when the pupil is at infinity. */
   readonly exitRadius: number;
   readonly wavelengthNm: number;
   /** Refractive index of image space (1 in air, ~1.515 for oil immersion). */
   readonly nImage: number;
+  /**
+   * `PupilPlane.slopeRadius` carried through: the semi-aperture as a ray slope
+   * (tan u′), which is what an exit pupil at infinity has instead of a radius.
+   *
+   * REQUIRED KEY, OPTIONAL VALUE, deliberately — `PupilPlane` spells the same
+   * quantity `slopeRadius?: number` and this does not. That plane is built in
+   * two branches of one function; a `PupilScale` is built at three call sites in
+   * three modules, and § 6ak's whole defect was one of them handing on an
+   * infinity with nothing beside it. With `?` a site that forgets still
+   * compiles and still returns a silent zero; with `| undefined` the compiler
+   * names every site that has to decide. The cost is one `undefined` in the
+   * literals that legitimately have none.
+   *
+   * Read only where `exitRadius` is not finite — the invariant is `PupilPlane`'s
+   * unchanged, `radius` finite XOR `slopeRadius` defined, and `imagePixelScaleMm`
+   * refuses the fourth quadrant rather than answering through it.
+   */
+  readonly slopeRadius: number | undefined;
 }
 
 /**
@@ -149,9 +167,49 @@ export interface PupilScale {
  * grid — `illumination/abbe`'s partially coherent image — and the two must
  * agree about scale bin for bin or a partially coherent MTF and a PSF MTF would
  * be measured against different rulers.
+ *
+ * ## The exit pupil at infinity, and why the finite line is untouched
+ *
+ * Substituting Δ = 2·r_exit/N and cancelling gives the same scale as
+ *
+ *     Δx = λ·N / (2·n′·size · (r_exit/R))
+ *
+ * — the pupil enters ONLY as the ratio r_exit/R, and at the image-space
+ * telecentric point that ratio is exactly the exit pupil's slope aperture
+ * (§ 6aj.6: D = 0 makes det = −BC, so r/R → det·stopRadius/B = −C·stopRadius,
+ * which is `slopeRadius`). So the branch is a substitution into a formula that
+ * was already right, not a second formula.
+ *
+ * THE FINITE BRANCH IS NOT REWRITTEN INTO THAT FORM, and that is the point of
+ * splitting rather than unifying. The two spellings are algebraically the same
+ * and are NOT the same in binary — `λ·R/(n·size·(2r/N))` and
+ * `λ·N/(2·n·size·(r/R))` reassociate three products and two quotients. Every
+ * finite pixel scale in the ladder is pinned to twelve or fifteen digits, so a
+ * unified expression would move numbers that no physics moved. The infinite
+ * branch has no legacy digits to preserve and is written in the cancelled form
+ * because that is the only form the slope fits into.
+ *
+ * The fourth case — no finite radius AND no slope — is REFUSED. It is not an
+ * exotic input: it is precisely what every construction site produced before
+ * § 6ak, and it answered `0` (an infinite radius drives the scale to zero
+ * whatever R is, § 6aj.6), which is a frame with no size reported as a number.
+ * `psf.ts`'s old guard and § 6aj.5's are the same discipline — the silent zero
+ * is the failure, and a throw is the repair for anyone who reaches here without
+ * the slope.
  */
 export function imagePixelScaleMm(scale: PupilScale, size: number, pupilSamples: number): number {
   const lambdaMm = scale.wavelengthNm * 1e-6;
+  if (!Number.isFinite(scale.exitRadius)) {
+    if (scale.slopeRadius === undefined) {
+      throw new Error(
+        "pupil scale has an exit pupil at infinity and no slope aperture: a PupilScale built " +
+          "from such a pupil must carry `slopeRadius` (PupilPlane's radius-XOR-slope invariant)",
+      );
+    }
+    return Math.abs(
+      (lambdaMm * pupilSamples) / (2 * Math.abs(scale.nImage) * size * scale.slopeRadius),
+    );
+  }
   const deltaPupil = (2 * scale.exitRadius) / pupilSamples;
   return Math.abs((lambdaMm * scale.referenceRadius) / (Math.abs(scale.nImage) * size * deltaPupil));
 }
@@ -513,8 +571,37 @@ export function psfFromPupilFunction(
       `pupilSamples × padFactor must be a power of two, got ${pupilSamples} × ${padFactor} = ${n}`,
     );
   }
-  if (!Number.isFinite(scale.referenceRadius) || !Number.isFinite(scale.exitRadius)) {
-    throw new Error("PSF needs a finite exit pupil: telecentric image space is not supported yet");
+  // WHAT THIS USED TO REFUSE, AND WHY IT NO LONGER DOES (§ 6ak.4).
+  //
+  // Until § 6ak this read `!isFinite(referenceRadius) || !isFinite(exitRadius)`
+  // and threw "telecentric image space is not supported yet". The exit-pupil
+  // half of that was protecting the RULER and nothing else: `scale` is read in
+  // this function only here, by `imagePixelScaleMm` at the end, and for its
+  // wavelength — the transform runs on NORMALIZED pupil coordinates, which an
+  // exit pupil at infinity describes perfectly well, and the OPD behind them
+  // was already right (§ 6aj.6 measured it at 0.012748 waves RMS with no ray
+  // lost). So once the ruler consumes the slope there is nothing left to guard.
+  //
+  // Leaving it would also have been newly INCONSISTENT rather than merely
+  // conservative: `geometricPsf` renders the same fixture, and `adaptivePsf`
+  // reaches this function whenever the fidelity switch gives the diffraction
+  // branch any weight at all — so one branch would have answered and the other
+  // thrown, on one system, decided by an aberration threshold.
+  //
+  // Measured with it lifted: a telecentric system returns Strehl 0.99342 where
+  // Maréchal's exp(−(2πσ)²) on its own traced 0.012748 waves predicts 0.99366,
+  // on transmitted energy bitwise equal to the ordinary fixture's.
+  //
+  // A reference sphere with no finite radius is a DIFFERENT failure and is
+  // still refused. `opd.ts` substitutes a unit sphere whenever the exit pupil
+  // has no finite z, so a non-finite R that survives to here means the image
+  // itself is at infinity — an afocal system, which has no image plane to lay
+  // millimetre-sized pixels on, whatever the pupil does.
+  if (!Number.isFinite(scale.referenceRadius)) {
+    throw new Error(
+      "PSF needs a finite reference sphere: the image is at infinity, so there is no image " +
+        "plane to sample — an afocal system's PSF belongs to whatever follows it",
+    );
   }
 
   const re = new Float64Array(n * n);
@@ -721,6 +808,7 @@ export function systemPupil(
       exitRadius: map.pupil.exit.radius,
       wavelengthNm,
       nImage: map.pupil.exit.n,
+      slopeRadius: map.pupil.exit.slopeRadius,
     },
     // Measured on the RAW traced samples, which is the only place the criterion
     // means anything — see wave/fidelity.

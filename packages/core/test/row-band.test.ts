@@ -183,7 +183,7 @@ describe("§ 6aa.3 — NEGATIVE CONTROL: a band that is too narrow is a differen
 
 /* ── § 6aa.4/5 — the callers, against a reference with no box and no band ─── */
 
-const SCALE: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+const SCALE: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1, slopeRadius: undefined };
 
 /**
  * A pupil that transmits only a horizontal strip — the case where the recorded

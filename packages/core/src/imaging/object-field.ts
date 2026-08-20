@@ -185,6 +185,12 @@ export interface FieldPupil extends PatchPupil {
   readonly referenceRadius: number;
   /** This field point's own exit-pupil semi-diameter (mm) — likewise. */
   readonly exitRadius: number;
+  /**
+   * Its slope aperture (tan u′) when that semi-diameter is infinite, else
+   * `undefined` — `PupilScale.slopeRadius` beside the flat radius, so
+   * `scaleDrift` can read an aperture without reaching for the whole scale.
+   */
+  readonly slopeRadius: number | undefined;
   /** Rays lost to vignetting in this field point's trace. */
   readonly lost: number;
   /** RMS OPD in waves about its own mean, from the trace. */
@@ -469,6 +475,7 @@ function buildFrame(
     exitRadius: map.pupil.exit.radius,
     wavelengthNm,
     nImage: map.pupil.exit.n,
+    slopeRadius: map.pupil.exit.slopeRadius,
   };
   const pixelScaleMm = imagePixelScaleMm(scale, size, pupilSamples);
   const halfExtentMm = (size / 2) * pixelScaleMm;
@@ -608,6 +615,8 @@ export interface TracedPupil extends PatchPupil {
   readonly scale: PupilScale;
   readonly referenceRadius: number;
   readonly exitRadius: number;
+  /** `PupilScale.slopeRadius` beside the flat radius, on the same invariant. */
+  readonly slopeRadius: number | undefined;
   readonly lost: number;
   readonly rmsWaves: number;
   readonly fit: ZernikeFit;
@@ -651,9 +660,11 @@ export function tracedPupil(
       exitRadius: map.pupil.exit.radius,
       wavelengthNm,
       nImage: map.pupil.exit.n,
+      slopeRadius: map.pupil.exit.slopeRadius,
     },
     referenceRadius: map.referenceRadius,
     exitRadius: map.pupil.exit.radius,
+    slopeRadius: map.pupil.exit.slopeRadius,
     lost: map.lost,
     rmsWaves: map.rmsWaves,
     fit,
@@ -822,6 +833,7 @@ export function fieldPupilAt(
     imageRadiusMm,
     referenceRadius: traced.referenceRadius,
     exitRadius: traced.exitRadius,
+    slopeRadius: traced.slopeRadius,
     lost: traced.lost,
     rmsWaves: traced.rmsWaves,
     fit: traced.fit,
@@ -848,7 +860,9 @@ export function tracedFieldPupils(
 export interface ScaleDrift {
   /** max |R_field/R_axis − 1| over the sampled positions. */
   readonly referenceRadius: number;
-  /** max |r_exit,field/r_exit,axis − 1|. */
+  /** max |r_exit,field/r_exit,axis − 1| — or, on an exit pupil at infinity,
+   *  the same drift read on the slope aperture, which is the only aperture
+   *  there is there. */
   readonly exitRadius: number;
   /** The implied max relative error in `pixelScaleMm` — what one ruler costs. */
   readonly pixelScale: number;
@@ -881,11 +895,35 @@ export function scaleDrift(
   let referenceRadius = 0;
   let exitRadius = 0;
   let pixelScale = 0;
+  const axisSlope = frame.scale.slopeRadius;
   for (const [u, v] of positions) {
     const p = fieldPupilAt(system, frame, u, v, options);
     const dR = Math.abs(p.referenceRadius / frame.scale.referenceRadius - 1);
-    const dr = Math.abs(p.exitRadius / frame.scale.exitRadius - 1);
     referenceRadius = Math.max(referenceRadius, dR);
+
+    // An exit pupil at infinity: both members of the radius drift were
+    // `Infinity` and the ratio below read |∞/∞ − 1| = **NaN** — the third of
+    // this step's silent answers, and the only one that was not a zero. The
+    // aperture is a slope here, so the drift is the slope's drift, and the
+    // ratio the pixel scale depends on IS that slope (§ 6ak.1) rather than a
+    // quotient of two drifting members: the two rows coincide instead of
+    // multiplying. `dR` above stays in the report and is 0 for a reason worth
+    // knowing — every field point gets `opd.ts`'s substituted unit sphere, and
+    // this branch never reads it.
+    if (axisSlope !== undefined) {
+      if (p.slopeRadius === undefined) {
+        throw new Error(
+          "scaleDrift: the frame's exit pupil is at infinity but this field point's is not — " +
+            "image-space telecentricity is a property of the system, not of the field point",
+        );
+      }
+      const ds = Math.abs(p.slopeRadius / axisSlope - 1);
+      exitRadius = Math.max(exitRadius, ds);
+      pixelScale = Math.max(pixelScale, ds);
+      continue;
+    }
+
+    const dr = Math.abs(p.exitRadius / frame.scale.exitRadius - 1);
     exitRadius = Math.max(exitRadius, dr);
     // pixelScale ∝ R / r_exit, so the two drifts enter as a ratio.
     const scaled = Math.abs(

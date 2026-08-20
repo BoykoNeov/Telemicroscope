@@ -443,7 +443,7 @@ describe("the frequency axis is the engine's, not this module's (§ 6f.11)", () 
   // factor-of-two error in it would leave every closed-form comparison
   // passing. These two rungs are the bridge, and they exist because § 3c's
   // kernel-orientation drift was exactly this shape.
-  const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+  const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1, slopeRadius: undefined };
 
   it("bin pupilSamples on an Abbe grid IS 2·NA/λ, exactly", () => {
     for (const pupilSamples of [32, 64]) {
@@ -654,7 +654,7 @@ describe("the geometric branch has no coherence, so brightfield rules instead of
     // DEFAULT case, not an edge one. `adaptivePsf` reads a missing sampling as
     // a phase step of zero, which is right there (it is only ever reached from
     // a fresh trace) and would be the whole bug here.
-    const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+    const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1, slopeRadius: undefined };
     const fromPupil = psfFromPupilFunction(idealPupil(), scale, 0, { pupilSamples: 64 });
     expect(fromPupil.sampling).toBeUndefined();
     expect(brightfieldFidelity(fromPupil.sampling, 64).verdict).toBe("unknown");
@@ -919,7 +919,7 @@ describe("and the sum's own lattice reports whether it carried the pupil (§ 6f.
     // measured fact and not the theorem — the PSF's extra rim ring has no pair
     // of its own on the row through the centre, because 1/h being an integer
     // already put a lattice point on ρ = 1.
-    const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1 };
+    const scale: PupilScale = { referenceRadius: 100, exitRadius: 5, wavelengthNm: 550, nImage: 1, slopeRadius: undefined };
     for (const pupilSamples of [16, 32, 64, 128]) {
       const pupil = defocusedPupil(3);
       const viaAbbe = abbeImage(uniformObject(pupilSamples * 4), pupil, coherentSource(), {

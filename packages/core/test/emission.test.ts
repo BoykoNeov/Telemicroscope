@@ -67,6 +67,7 @@ const scaleOf = (nm: number): PupilScale => ({
   exitRadius: 5,
   wavelengthNm: nm,
   nImage: 1,
+  slopeRadius: undefined,
 });
 
 function peakOf(values: Float64Array): number {

@@ -101,8 +101,35 @@ import type { CondenserSource } from "./source";
  * The tangent form, which is what `wave/mtf`'s cutoff identity 2·NA/λ is built
  * on — so using it here is what makes the two modules' frequency axes the same
  * axis rather than two that happen to look alike.
+ *
+ * ## The exit pupil at infinity
+ *
+ * The same ratio `imagePixelScaleMm` is built on, and it fails the same way for
+ * the same reason: r_exit/R is ∞/R and this answered **Infinity** — which then
+ * became an infinite cutoff frequency through `spatialFrequencyCyclesPerMm`, so
+ * a partially coherent transfer would have run its whole frequency axis at
+ * zero. Not on § 6aj.6's list of nine, and reachable by exactly the callers that
+ * list covers, which is why it moves in the same step as they do.
+ *
+ * `slopeRadius` IS that ratio at the telecentric point, so this reduces to
+ * n′·tan u′ with nothing else in it — the same n′·tan u′ that
+ * `imageStopForward`'s branch computed as |C|·stopRadius. That makes it the
+ * paraxial twin of § 6aj.4's `imageNA` spelling and not its equal: this is
+ * Abbe's NA in the TANGENT reading, and n′·sin u′ is that over √(1 + tan²u′),
+ * the same 1/√(1 − (NA/n)²) gap `marginalTangent` documents. § 6ak.3 pins both
+ * the identity and the size of the gap rather than letting the two spellings
+ * look interchangeable.
  */
 export function pupilNumericalAperture(scale: PupilScale): number {
+  if (!Number.isFinite(scale.exitRadius)) {
+    if (scale.slopeRadius === undefined) {
+      throw new Error(
+        "pupil scale has an exit pupil at infinity and no slope aperture: a PupilScale built " +
+          "from such a pupil must carry `slopeRadius` (PupilPlane's radius-XOR-slope invariant)",
+      );
+    }
+    return Math.abs(scale.nImage * scale.slopeRadius);
+  }
   return Math.abs((scale.nImage * scale.exitRadius) / scale.referenceRadius);
 }
 
