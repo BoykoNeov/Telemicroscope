@@ -16822,7 +16822,14 @@ CaF₂ is not decoration in that list. The 3×3 system is conditioned only by a 
 whose partial dispersion is anomalous for its Abbe number, and in this catalogue
 that means fluorite: every solvable triple contains it, and the element powers
 come out ~2.5× the total either way. A triplet of ordinary glasses is not a
-near-miss apochromat, it is a singular matrix.
+near-miss apochromat, ~~it is a singular matrix~~ — **and that last clause is
+wrong, corrected at [§ 6ar.6](#step-6ar--the-telecentric-designs-ship).** Every
+CaF₂-free triple in the catalogue inverts, solves, unites F, d and C exactly and
+builds a real lens at a slow enough focal ratio. The conditioning is scale-free
+(2.58 with fluorite, 49.9 or 518 without), so it cannot be a refusal by itself:
+what it buys is a focal-ratio wall and a manufacturing tolerance. The conclusion
+this paragraph draws survives — no apochromat here without fluorite — but the
+reason is the spherical solve, not a matrix that will not invert.
 
 ### Three poles, and the 1.6 µm of spacer that holds all three
 
@@ -16911,12 +16918,28 @@ the bracket.
   bounded by the turn count, so four telecentric wavelengths need four united
   ones — a fourth glass, and this catalogue has one anomalous-dispersion glass in
   it. Whether `materials/catalog` can be made to solve a four-glass split is not
-  asked, and if it cannot, the honest finding is about the catalogue.
-- **A shipped image-space telecentric design**, unchanged from § 6aj, § 6ak,
+  asked, and if it cannot, the honest finding is about the catalogue. **[§ 6ar.6]
+  (#step-6ar--the-telecentric-designs-ship) delivered half of that finding
+  early**, for three glasses: the four ordinary ones lie on a normal line
+  P = 0.2751 + 5.139e−4·V to ±4.4e−4 and CaF₂ sits 1.93e−2 off it, 44× further,
+  which is exactly why every solvable triple contains it. A four-glass split would
+  need a SECOND glass off that line, and there is not one. Four colours is still
+  unasked; what § 6ar.6 supplies is the measurement the answer would rest on.
+- ~~**A shipped image-space telecentric design**, unchanged from § 6aj, § 6ak,
   § 6al, § 6an and § 6ap — and this step raises its price rather than lowering
   it: there are now three fixtures, and the third carries a design solve that
   would have to become a `designs/apochromat` with a branch choice and a
-  no-solution throw, which is § 6b's whole argument again for three glasses.
+  no-solution throw, which is § 6b's whole argument again for three glasses.~~
+  **Closed at [§ 6ar](#step-6ar--the-telecentric-designs-ship)**, and the
+  prediction grades well but not exactly. The branch choice is there and is
+  `designs/achromat`'s own Σ|S_I,ᵢ| criterion; the price was real and was paid.
+  Two things it did not foresee. The "no-solution throw" is **two** refusals, not
+  one — an aperture refusal a slower focal ratio fixes, and a plain one it does
+  not — and a third failure the deferral had no way to predict, a bending the
+  damped solve cannot reach, which is neither. And the third fixture's solve
+  turned out to be what BECAME the entry rather than what blocked it: the
+  expensive part was not writing the constructor but auditing the prose around
+  it, which is where § 6ar's three corrections came from.
 - **The reversal in a picture rather than in a magnification**, unchanged from
   § 6an and § 6ap, and harder again for the same reason: the effect is smaller on
   a better-corrected tail. That rung still belongs on the singlet.
