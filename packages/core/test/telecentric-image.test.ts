@@ -329,6 +329,49 @@ describe("§ 6aj.5 — the exit pupil ON the image plane: a field stop wearing t
     expect(() => resolveStopRadius(onPupil(imageNA(0.05)), LINE_D)).toThrow(/conjugate to the image/);
   });
 
+  it("and a SOLVED field stop lands on it exactly, which is why the guard is an equality", () => {
+    // The fixture above places the sensor by arithmetic on the pupil's own z, so
+    // it could be argued into being a construction. This one is not: a relay
+    // whose field stop sits at the intermediate image, placed by the front
+    // lens's own back focal distance — the arrangement every eyepiece has — and
+    // the arm comes back a BITWISE zero, not 1e-14. The coincidence is an
+    // algebraic identity, so the two routes to it agree exactly rather than to
+    // float noise, and an exact-equality guard is the right shape rather than a
+    // lucky one. Reaching the noise band instead takes tuning a gap to eleven
+    // digits, which is the `visual.ts:108` case: recorded, not guarded.
+    const nGlass = getMedium("N-BK7").n(LINE_D);
+    const lens = (f: number, trailing: number, semiAperture: number) => {
+      const curvature = 1 / (2 * (nGlass - 1) * f);
+      return [
+        { kind: "refract" as const, curvature, semiAperture, thickness: 1e-3, medium: "N-BK7" },
+        { kind: "refract" as const, curvature: -curvature, semiAperture, thickness: trailing, medium: "AIR" },
+      ];
+    };
+    const intermediate = systemProperties({ surfaces: lens(50, 0, 20) }, LINE_D).bfd;
+    const relay = (aperture: OpticalSystem["aperture"]): OpticalSystem => {
+      const base: OpticalSystem = {
+        prescription: {
+          surfaces: [
+            ...lens(50, intermediate, 20),
+            { kind: "refract", curvature: 0, semiAperture: 8, thickness: 100, medium: "AIR", isStop: true },
+            ...lens(50, 75, 20),
+          ],
+        },
+        aperture,
+        field: { kind: "angle", values: [0] },
+        wavelengths: [{ nm: LINE_D, weight: 1 }],
+        conjugate: { kind: "infinite" },
+      };
+      return { ...base, imageSurface: { offsetFromLastVertex: paraxialImageOffset(base, LINE_D) } };
+    };
+
+    const system = relay(stopR(8));
+    const exit = pupils(system, LINE_D).exit;
+    expect(imagePlaneZ(asCompiled(system.prescription), system) - exit.z).toBe(0);
+    expect(exit.radius).toBeCloseTo(8, 9);
+    expect(() => resolveStopRadius(relay(imageNA(0.05)), LINE_D)).toThrow(/conjugate to the image/);
+  });
+
   it("and answers ordinarily on either side of it, because the neighbourhood is not sick", () => {
     // The refusal is on the singular point alone, and the answers around it are
     // physics rather than damage: a sensor a micron off the pupil really does
@@ -365,12 +408,17 @@ describe("§ 6aj.6 — the nine readers, measured", () => {
   });
 
   it("the four core readers that do not refuse answer with a pixel scale of ZERO", () => {
-    // `opd.ts`'s own fallback is the single line all four run through: with the
-    // exit pupil at infinity it substitutes a reference sphere of radius 1 —
-    // correct for the OPD, which uses the sphere only as a common subtrahend,
-    // and wrong for `referenceRadius`, which is ALSO the arm in
-    // lambda·R/(n'·size·delta). R falls to 1 while the exit radius stays
-    // infinite, so every scale built from the pair is 0.
+    // What all four share is the EXPRESSION, not one line of it. The pixel
+    // scale is lambda·R/(n'·size·delta) with delta = 2·r_exit/N, so an infinite
+    // exit radius alone drives it to zero whatever R is — measured:
+    // (R = 1, r = inf) and (R = 1e6, r = inf) both give exactly 0. What
+    // `opd.ts:132` decides is only WHICH silent answer: it substitutes a
+    // reference sphere of radius 1 when the pupil has no finite z — correct for
+    // the OPD, which uses the sphere only as a common subtrahend — and that
+    // turns an indeterminate (inf, inf) NaN into a definite 0. A zero is the
+    // worse of the two, because it propagates as a number. So the repair has
+    // TWO sites, not one: `imagePixelScaleMm` and `geometric.ts:145`'s inline
+    // copy of the same formula both have to consume the slope.
     const map = opdMap(TELECENTRIC, 0, LINE_D, pupilGrid(9), {});
     expect(map.referenceRadius).toBe(1);
     expect(map.lost).toBe(0);
@@ -392,6 +440,21 @@ describe("§ 6aj.6 — the nine readers, measured", () => {
     // zero is the pupil's and not the arrangement's.
     expect(imagePixelScaleMm(systemPupil(ORDINARY, 0, LINE_D, { pupilSamples: 16 }).scale, 64, 16)).toBeGreaterThan(0);
     expect(objectFieldFrame(finiteAt(20), { size: 32, pupilSamples: 16 }).pixelScaleMm).toBeGreaterThan(0);
+  });
+
+  it("and it is the exit radius that zeroes the scale, not the substituted sphere", () => {
+    // Asserted rather than reasoned, because the difference decides how many
+    // sites the next step has to touch. Feed `imagePixelScaleMm` the pair
+    // directly: an infinite exit radius gives 0 for ANY finite R, and only the
+    // (inf, inf) pair — the one `opd.ts:132` prevents — gives NaN.
+    const base = { wavelengthNm: LINE_D, nImage: 1 };
+    expect(imagePixelScaleMm({ ...base, referenceRadius: 1, exitRadius: Infinity }, 64, 16)).toBe(0);
+    expect(imagePixelScaleMm({ ...base, referenceRadius: 1e6, exitRadius: Infinity }, 64, 16)).toBe(0);
+    expect(imagePixelScaleMm({ ...base, referenceRadius: Infinity, exitRadius: Infinity }, 64, 16)).toBeNaN();
+    // And with an ordinary pupil it is an ordinary number, so the zero is the
+    // infinity's and not the function's.
+    expect(imagePixelScaleMm({ ...base, referenceRadius: 90.67652583591146, exitRadius: 3.4248104237017927 }, 64, 16))
+      .toBeCloseTo(0.001944562477428594, 15);
   });
 
   it("and the quantity that pair was standing in for is the slope itself", () => {

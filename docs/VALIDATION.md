@@ -15434,12 +15434,27 @@ point whatever its angle, so no stop radius produces a given u′, and the hones
 answer is not a small number but no number. It refuses now, and names the
 redirect (`stopRadius`, or `objectNA`).
 
-The refusal is on the singular point **alone**. A sensor a micron off the pupil
-genuinely does need a vanishing stop to fill a 0.05 cone through a vanishing arm,
-and the radius is linear in the offset — 6.53e−8 mm at a micron, 6.53e−4 at a
-hundredth. Those answers are physics, so a tolerance here would refuse correct
-arithmetic rather than catch anything. Same shape as § 5s.5's placement refusals,
-same reason.
+The refusal is on the singular point **alone**, and it is an exact equality. A
+sensor a micron off the pupil genuinely does need a vanishing stop to fill a 0.05
+cone through a vanishing arm, and the radius is linear in the offset — 6.53e−8 mm
+at a micron, 6.53e−4 at a hundredth. Those answers are physics, so a tolerance
+here would refuse correct arithmetic rather than catch anything.
+
+**Why an equality is the right shape and not a lucky one**, since a coincidence
+between two separately computed positions would normally land at 1e−14 rather
+than at 0. Because the coincidence is an *algebraic identity*, and both routes
+reach it through the same arithmetic: a relay whose field stop sits at the
+intermediate image — placed by the front lens's own back focal distance, which is
+the arrangement every eyepiece has — returns an arm that is a **bitwise zero**,
+and the refusal fires. § 6aj.5 pins that fixture beside the sensor-on-the-pupil
+one precisely because it is *solved* rather than constructed.
+
+**The noise band is recorded, not guarded.** An arm of 1e−14 does return a stop
+radius of 1e−15 mm, and it takes tuning a gap to eleven digits to reach one — no
+solve in the repo lands there, because the solves land on the identity. That is
+the `visual.ts:108` treatment: measured, stated, and left for a step that has a
+reason to change it. A relative guard would need a length scale, and every
+candidate for one is a tolerance in disguise.
 
 ### § 6aj.6 — the nine readers, measured
 
@@ -15467,13 +15482,22 @@ line, and fixing that is one change with its own rungs, not a postscript.
   the exit pupil stays finite and smooth over ±400 mm of the objective–eyepiece
   gap.
 
-**The single line, and why the repair is a substitution.** All six reachable
-readers run through `pupil/opd.ts:132`, which substitutes a reference sphere of
-radius 1 when the exit pupil is not at a finite z. That is *correct for the OPD* —
-the sphere enters only as a common subtrahend, and the traced wavefront comes
-back right, 0.012748 waves RMS with no ray lost. It is wrong for
-`referenceRadius`, which is **also** the arm in λ·R/(n′·size·Δ). R falls to 1
-while the exit radius stays infinite, so every scale built from the pair is zero.
+**What they share is the EXPRESSION, not one line of it** — and the difference
+decides how much the next step has to touch, so it is measured rather than
+argued. The pixel scale is λ·R/(n′·size·Δ) with Δ = 2·r_exit/N, so an **infinite
+exit radius alone** drives it to zero whatever R is: (R = 1, r = ∞) and
+(R = 10⁶, r = ∞) both return exactly 0, and only the (∞, ∞) pair returns NaN.
+
+What `pupil/opd.ts:132` decides is therefore only *which* silent answer. It
+substitutes a reference sphere of radius 1 when the exit pupil has no finite z —
+*correct for the OPD*, where the sphere enters only as a common subtrahend, and
+the traced wavefront does come back right at 0.012748 waves RMS with no ray lost —
+and that turns the indeterminate NaN into a definite **0**, which is the worse of
+the two because it propagates as a number.
+
+So the repair has **two sites**: `imagePixelScaleMm` and `wave/geometric.ts:145`,
+which carries its own inline copy of the same formula. `geometricPsf` would still
+read zero with `opd.ts:132` repaired and nothing else.
 
 And the ratio that pair was standing in for is the slope itself. The pixel scale
 depends on `r_exit/R`, and at D = 0 that **is** |C|·stopRadius: with det = AD −
@@ -15508,9 +15532,10 @@ ordinary system reads 0.0019.
 ### Not yet pinned
 
 - **The six reachable readers**, above, with their file:lines and their numbers.
-  The repair is `opd.ts:132` and the substitution is named; what it needs is its
-  own rungs, because "the PSF of a system with no exit pupil" is a question about
-  the diffraction integral's reference and not about pupil bookkeeping.
+  The two repair sites are named and the substitution is measured; what they need
+  is their own rungs, because "the PSF of a system with no exit pupil" is a
+  question about the diffraction integral's reference and not about pupil
+  bookkeeping.
 - **Pupil aberration**, unchanged from § 6u: the aim is paraxial, and § 6aj.2
   measures the residual rather than removing it.
 - **A shipped image-space telecentric design.** Every fixture here is built in
