@@ -534,8 +534,8 @@ describe("§ 6ao.6 — a round pupil has no preferred direction", () => {
     // tolerance. It holds for a condenser too, which is a statement about
     // `diskSource`'s sampling as much as about the pupil: a source lattice
     // without four-fold symmetry would break this even through a round pupil.
-    const vertical = elementAtPixels(8, 0, { bars: 3 });
-    const horizontal = elementAtPixels(8, 0, { bars: 3, orientation: "horizontal" });
+    const vertical = elementAtPixels(7, 0, { bars: 3 });
+    const horizontal = elementAtPixels(7, 0, { bars: 3, orientation: "horizontal" });
 
     for (const source of [coherentSource(), diskSource(0.5, 15)]) {
       const a = imagePicture(vertical, source).intensity;
@@ -556,8 +556,8 @@ describe("§ 6ao.6 — a round pupil has no preferred direction", () => {
     // The negative control the rung above needs: compared WITHOUT transposing,
     // the same two images must differ loudly, or the assertion above is only
     // saying that both arrays are nearly uniform.
-    const a = imagePicture(elementAtPixels(8, 0, { bars: 3 })).intensity;
-    const b = imagePicture(elementAtPixels(8, 0, { bars: 3, orientation: "horizontal" })).intensity;
+    const a = imagePicture(elementAtPixels(7, 0, { bars: 3 })).intensity;
+    const b = imagePicture(elementAtPixels(7, 0, { bars: 3, orientation: "horizontal" })).intensity;
     let worst = 0;
     for (let i = 0; i < a.length; i++) worst = Math.max(worst, Math.abs(a[i]! - b[i]!));
     expect(worst).toBeGreaterThan(0.1);
@@ -569,66 +569,69 @@ describe("§ 6ao.7 — the ends of a bar are where a chart stops being a ruling"
     // A ruling has nothing to say about the direction ALONG its bars: the
     // object does not vary there, so neither does the image, and the negative
     // control below measures exactly that — a column down the unbounded ruling
-    // is constant to the last bits. Every structure in the profile that follows
-    // therefore belongs to the element's ends and to nothing else.
+    // is constant to the last BIT, not merely to a tolerance. Every structure
+    // in the profile that follows therefore belongs to the element's ends and
+    // to nothing else.
     //
     // The scale of it is the instrument's, not the specimen's: λ/NA, the
-    // coherent resolution, 10.7 object pixels on this frame against a bar half
-    // as long again.
+    // coherent resolution, 10.7 object pixels against a bar 17.5 long.
     const frame = pictureFrame();
     const lambdaOverNaPx = LAMBDA_OVER_NA_MM / frame.objectPixelScaleMm;
     expect(lambdaOverNaPx).toBeCloseTo(10.7, 1);
 
     const centre = SIZE_PICTURE / 2;
-    const halfLengthPx = (5 * 8) / 2; // five bar widths of eight pixels
-    const element = imagePicture(elementAtPixels(8, 0, { bars: 3 })).intensity;
-    const unbounded = imagePicture(elementAtPixels(8)).intensity;
+    /** Five bar widths of seven pixels, halved — a half-integer, which is the
+     *  point: the bar's END edge misses the sample grid the way its sides do. */
+    const halfLengthPx = (5 * 7) / 2;
+    const element = imagePicture(elementAtPixels(7, 0, { bars: 3 })).intensity;
+    const unbounded = imagePicture(elementAtPixels(7)).intensity;
 
-    // The control: no ends, no variation, to 1e-15 of the value itself.
+    // The control: no ends, no variation, bit for bit down the whole column.
     const ruled = pixel(unbounded, centre, centre);
     for (let iy = 0; iy < SIZE_PICTURE; iy++) {
-      expect(Math.abs(pixel(unbounded, centre, iy) / ruled - 1)).toBeLessThan(1e-13);
+      expect(pixel(unbounded, centre, iy)).toBe(ruled);
     }
 
     // The element's own column, in units of its value at the bar's centre.
     const middle = pixel(element, centre, centre);
     const along = (d: number) => pixel(element, centre, centre + d) / middle;
 
-    // Flat in the middle — 6% of ripple over the inner six pixels, which is the
-    // far end of the bar making itself felt two resolution widths away and not
-    // a claim that a coherent image is ever perfectly flat.
-    for (let d = 0; d <= 6; d++) expect(Math.abs(along(d) - 1)).toBeLessThan(0.1);
+    // Flat in the middle — 5% of ripple over the inner four pixels, which is
+    // the far end of the bar making itself felt a resolution width and a half
+    // away, and not a claim that a coherent image is ever perfectly flat.
+    for (let d = 0; d <= 4; d++) expect(Math.abs(along(d) - 1)).toBeLessThan(0.1);
 
     // How far in the end reaches: walk out until the profile leaves that 10%
     // band and call the rest of the bar the end's. Bracketed against λ/NA
     // rather than pinned, because the 10% is a choice and a different one moves
     // the answer by a pixel or two.
     let lastFlat = 0;
-    for (let d = 0; d <= halfLengthPx; d++) {
+    for (let d = 0; d < halfLengthPx; d++) {
       if (Math.abs(along(d) - 1) >= 0.1) break;
       lastFlat = d;
     }
     const reachPx = halfLengthPx - lastFlat;
+    expect(reachPx).toBeCloseTo(13.5, 6);
     expect(reachPx).toBeGreaterThan(0.7 * lambdaOverNaPx);
     expect(reachPx).toBeLessThan(2 * lambdaOverNaPx);
 
     // And what is inside that reach is the coherent edge's signature, which no
-    // rung in this suite has looked at before: the dark bar OVERSHOOTS to twice
-    // the brightness of its own middle and then passes through a near-perfect
-    // null on its way out to the clear field. The null is an amplitude zero
-    // crossing — the sum of the transmitted orders changes sign — so it is
-    // physics and not a rounding, and it is the thing that makes a coherent
-    // picture look like a coherent picture.
+    // rung in this suite has looked at before: the dark bar OVERSHOOTS to 2.27
+    // times the brightness of its own middle and then passes through a
+    // near-perfect null, 0.054, on its way out to the clear field. The null is
+    // an amplitude zero crossing — the sum of the transmitted orders changes
+    // sign — so it is physics and not a rounding, and it is the thing that
+    // makes a coherent picture look like a coherent picture.
     let brightest = 0;
     let darkest = Infinity;
-    for (let d = 10; d <= halfLengthPx; d++) {
+    for (let d = 10; d < halfLengthPx; d++) {
       brightest = Math.max(brightest, along(d));
       darkest = Math.min(darkest, along(d));
     }
     expect(brightest).toBeGreaterThan(1.8);
     expect(darkest).toBeLessThan(0.1);
-    // Beyond the end it is simply the clear field, twenty-five times the bar.
-    expect(along(halfLengthPx + 30)).toBeGreaterThan(20);
+    // Beyond the end it is simply the clear field, forty times the bar.
+    expect(along(30)).toBeGreaterThan(20);
   });
 });
 
@@ -652,10 +655,13 @@ describe("§ 6ao.8 — three elements of a chart, and the one that lies", () => 
     return (gaps - bar) / (gaps + bar);
   };
 
-  it("draws the ladder, and inverts the element the aperture cannot carry", () => {
+  /** ν in units of the coherent cutoff, for a bar this many pixels wide. */
+  const nuOf = (barWidthPx: number) =>
+    1 / (2 * barWidthPx * pictureFrame().objectPixelScaleMm) / CUTOFF_CYCLES_PER_MM;
+
+  it("draws the ladder, and does not draw the element past the cutoff", () => {
     // THE PICTURE. Three elements side by side on one piece of glass, the
-    // frequency rising, and the aperture running out somewhere along the row.
-    const frame = pictureFrame();
+    // frequency rising, and the aperture running out along the row.
     const offsets = [-40, 0, 40];
     const block = overlay(
       ...LADDER.map((barWidthPx, index) =>
@@ -664,15 +670,12 @@ describe("§ 6ao.8 — three elements of a chart, and the one that lies", () => 
     );
     const image = imagePicture(block, diskSource(0.5, 15));
 
-    const nu = LADDER.map(
-      (barWidthPx) => 1 / (2 * barWidthPx * frame.objectPixelScaleMm) / CUTOFF_CYCLES_PER_MM,
-    );
-    expect(nu[0]!).toBeCloseTo(0.762, 2);
-    expect(nu[1]!).toBeCloseTo(1.067, 2);
+    expect(nuOf(7)).toBeCloseTo(0.762, 2);
+    expect(nuOf(5)).toBeCloseTo(1.067, 2);
     // The last one is past 1 + S, where a ruling of that period transmits
     // nothing at all.
-    expect(nu[2]!).toBeCloseTo(1.778, 2);
-    expect(nu[2]!).toBeGreaterThan(1.5);
+    expect(nuOf(3)).toBeCloseTo(1.778, 2);
+    expect(nuOf(3)).toBeGreaterThan(1.5);
 
     const contrasts = LADDER.map((barWidthPx, index) =>
       contrastOf(image.intensity, barWidthPx, offsets[index]!),
@@ -681,25 +684,23 @@ describe("§ 6ao.8 — three elements of a chart, and the one that lies", () => 
     expect(contrasts[0]!).toBeGreaterThan(0.9);
     expect(contrasts[1]!).toBeCloseTo(0.74, 1);
     expect(contrasts[0]!).toBeGreaterThan(contrasts[1]!);
-    expect(contrasts[1]!).toBeGreaterThan(Math.abs(contrasts[2]!));
+    // Eight times down from the middle rung, which is the aperture running out
+    // and not a gentle roll-off.
+    expect(contrasts[1]! / Math.abs(contrasts[2]!)).toBeGreaterThan(7);
 
-    // THE FINDING, and the reason this rung is not the resolution measurement
-    // it looks like. The finest element is not blank: it is INVERTED. Its bars
-    // come out brighter than its gaps, at about 9% — spurious resolution, the
-    // effect that makes a chart read optimistically, and the reason § 6an.8
-    // measures Abbe's limit on a ruling and not on a chart.
+    // What is left of the finest element is not a faint copy of it. It comes
+    // out at −0.089: NEGATIVE, its bars brighter than its gaps. § 6ao.8's third
+    // rung is what decides how much that sign is worth.
     expect(contrasts[2]!).toBeLessThan(0);
     expect(Math.abs(contrasts[2]!)).toBeGreaterThan(0.02);
-    expect(Math.abs(contrasts[2]!)).toBeLessThan(0.2);
   });
 
-  it("and the same period ruled without ends carries nothing, which is where the lie comes from", () => {
-    // The control that says whose fault the inversion is. A three-bar element
-    // is the ruling times a window five widths square, and a window five widths
-    // square has a spectrum half as wide as the frequency it multiplies — so an
-    // element at ν = 1.78 still has skirts inside 1 + S, and what comes through
-    // them is not required to have the sign of the bars. Remove the ends and
-    // the skirts go with them.
+  it("and the same period ruled without ends carries nothing, which is where the rest comes from", () => {
+    // Whose fault the residual is. A three-bar element is the ruling times a
+    // window five widths square, and a window five widths square has a spectrum
+    // reaching about 0.4 of the frequency it multiplies — so an element at
+    // ν = 1.78 still has skirts inside 1 + S, while the ruling it was cut from
+    // has none. Remove the ends and the skirts go with them.
     const source = diskSource(0.5, 15);
     for (const [barWidthPx, bound] of [
       [7, 0.9],
@@ -720,11 +721,11 @@ describe("§ 6ao.8 — three elements of a chart, and the one that lies", () => 
       expect(Math.abs(element - ruled)).toBeLessThan(0.03);
     }
 
-    // Past the cutoff they part company completely: the element reverses and
+    // Past the cutoff they part company completely: the element shows bars and
     // the ruling reads flat. The ruling's residual is 1.3e−3 and it is the
     // GRID's, not the aperture's — a period of six pixels does not divide 128,
     // so the ruling wraps on a discontinuity and smears a little of itself
-    // across the spectrum. That is why this is a ratio of seventy and not the
+    // across the spectrum. That is why this is a ratio of sixty and not the
     // 1e−13 § 6an.8 gets from a commensurate one.
     const element = contrastOf(
       imagePicture(elementAtPixels(3, 0, { bars: 3 }), source).intensity,
@@ -734,8 +735,51 @@ describe("§ 6ao.8 — three elements of a chart, and the one that lies", () => 
     const ruled = contrastOf(imagePicture(elementAtPixels(3), source).intensity, 3, 0);
     expect(ruled).toBeGreaterThan(0);
     expect(Math.abs(ruled)).toBeLessThan(2e-3);
-    expect(element).toBeLessThan(0);
     expect(Math.abs(element) / Math.abs(ruled)).toBeGreaterThan(20);
+  });
+
+  it("but the SIGN of what survives is the window's, not the aperture's", () => {
+    // THE RUNG THAT DECIDES WHAT § 6ao.8 IS ENTITLED TO CLAIM, and it took the
+    // headline away from the first draft of this step. "Past the cutoff a chart
+    // element images INVERTED" rested on one geometry, and the perturbation
+    // that tests it is the BAR COUNT — because the bar count is what sets the
+    // skirt width the paragraph above invokes. Three bars is a 5w window
+    // reaching ~0.4f, five is 9w reaching ~0.22f, seven is 13w reaching ~0.15f,
+    // which is about what it takes to clear 1 + S at ν = 1.78.
+    //
+    // Past the cutoff the sign does NOT survive that sweep: −7.5e−2, −8.6e−3,
+    // +1.0e−2, +6.6e−3, +1.3e−3 for three, five, seven, nine bars and the
+    // ruling. So the inversion is real and it belongs to THIS element, not to
+    // every element past the aperture's limit. What survives the sweep is the
+    // magnitude: sixty times the ruling at three bars, falling toward it.
+    const source = diskSource(0.5, 15);
+    const past = [3, 5, 7, 9].map((bars) =>
+      contrastOf(imagePicture(elementAtPixels(3, 0, { bars }), source).intensity, 3, 0),
+    );
+    const ruledPast = contrastOf(imagePicture(elementAtPixels(3), source).intensity, 3, 0);
+
+    expect(past[0]!).toBeLessThan(0);
+    expect(past[1]!).toBeLessThan(0);
+    // …and then it is not negative any more, which is the whole finding.
+    expect(past[2]!).toBeGreaterThan(0);
+    expect(past[3]!).toBeGreaterThan(0);
+    // Every one of them is still far above the ruling, and the largest is the
+    // shortest element — the one whose window is widest in frequency.
+    for (const contrast of past) expect(Math.abs(contrast)).toBeGreaterThan(3 * ruledPast);
+    expect(Math.abs(past[0]!)).toBeGreaterThan(4 * Math.abs(past[1]!));
+    expect(Math.abs(past[0]!) / ruledPast).toBeGreaterThan(50);
+
+    // INSIDE the cutoff the same sweep is a non-event, which is the control
+    // that makes the sweep above mean something: ends matter to an element the
+    // aperture cannot carry and hardly at all to one it can. Monotone down to
+    // the ruling, and the whole spread is 3.5%.
+    const inside = [3, 5, 7, 9].map((bars) =>
+      contrastOf(imagePicture(elementAtPixels(5, 0, { bars }), source).intensity, 5, 0),
+    );
+    const ruledInside = contrastOf(imagePicture(elementAtPixels(5), source).intensity, 5, 0);
+    for (let i = 1; i < inside.length; i++) expect(inside[i]!).toBeLessThan(inside[i - 1]!);
+    expect(inside[3]!).toBeGreaterThan(ruledInside);
+    expect(inside[0]! / ruledInside - 1).toBeLessThan(0.05);
   });
 });
 
@@ -800,7 +844,7 @@ describe("§ 6ao.9 — the star draws the cutoff as a disc", () => {
     expect(ringModulation(image.intensity, 0.5 * criticalPx)).toBeLessThan(0.05);
     // …and the crossing is monotone through the disc's edge rather than noisy,
     // which is what makes the grey disc an edge at all.
-    const half = (ringModulation(image.intensity, 2.2 * criticalPx) + 0) / 2;
+    const half = ringModulation(image.intensity, 2.2 * criticalPx) / 2;
     let crossingPx = 0;
     for (let rPx = 4; rPx <= 45; rPx++) {
       if (ringModulation(image.intensity, rPx) > half) {

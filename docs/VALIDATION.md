@@ -97,7 +97,7 @@ whole ladder.
 | [6al](#step-6al--scene-content-through-a-telecentric-frame) | A specimen actually put through that path, no engine code added: a clear field at Fresnel's (1 − R)², contrast dying at Abbe's period read off the ENTRANCE pupil so the two rulers stay independent, 2 mm of sensor shift on a bitwise-identical ruler | `telecentric-scene` |
 | [6am](#step-6am--the-self-conjugate-bins-of-the-harmonic-readout) | § 6al.8's defect fixed: the contrast readout doubled every bin, but at k = 0 and k = N/2 the ±k pair is ONE bin and it read 2× high — authored components read back, Rayleigh's variance off the pixels, § 6al.8's reach claim corrected | `harmonic-bin` |
 | [6an](#step-6an--colour-through-a-telecentric-frame) | Telecentricity holds at ONE wavelength — the exit pupil crosses infinity there — so the sensor rescales every colour but one as 1 + d/R, sign reversing across it; and a stain images as its own spectrum | `telecentric-colour` |
-| [6ao](#step-6ao--a-specimen-with-real-structure) | Edges and ends, not a cosine: a bar puts 4/π of a cosine's amplitude into the fundamental at the same transfer, and a three-bar element past the cutoff images INVERTED where a ruling is dead | `structure` |
+| [6ao](#step-6ao--a-specimen-with-real-structure) | Edges and ends, not a cosine: a bar puts 4/π of a cosine's amplitude into the fundamental at the same transfer, and a chart element past the cutoff draws bars where its own ruling is dead | `structure` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -16340,10 +16340,11 @@ image is that series read term by term, in closed form to 1e−12.
 | **§ 6ao.5 — the element is MIL-STD-150A's, not this engine's** | 2^(G+(E−1)/6) against eleven printed rows, 5e−3 | ✅ |
 | ...and the drawing is three bars, five widths across and five along | probed at w/100 off the callback, no grid | ✅ |
 | **§ 6ao.6 — a round pupil has no preferred direction** | rotated element ≡ transpose, 1e−13, coherent and with a condenser | ✅ |
-| **§ 6ao.7 — a bar's ends ring, and the reach is λ/NA** | flat to 10% then 14 px of end effect against 10.7 px of λ/NA | ✅ |
-| ...and inside that reach the dark bar overshoots ×2.2 and passes through a null | 0.036 of its own middle — an amplitude zero crossing | ✅ |
-| **§ 6ao.8 — the chart lies past the cutoff and the ruling does not** | element at ν = 1.78 reads −0.089; the ruling reads +1.3e−3 | ✅ |
-| ...and inside the cutoff the two agree, so the lie is the ends' | 0.951 vs 0.949 and 0.736 vs 0.712, at ν = 0.76 and 1.07 | ✅ |
+| **§ 6ao.7 — a bar's ends ring, and the reach is λ/NA** | 13.5 px of end effect against 10.7 px of λ/NA, off a bit-flat control | ✅ |
+| ...and inside that reach the dark bar overshoots ×2.27 and passes through a null | 0.054 of its own middle — an amplitude zero crossing | ✅ |
+| **§ 6ao.8 — the chart draws bars past the cutoff and the ruling does not** | element at ν = 1.78 reads −0.089; the ruling reads +1.3e−3 | ✅ |
+| ...and inside the cutoff the two agree, so the residual is the ends' | 0.951 vs 0.949 and 0.736 vs 0.712, at ν = 0.76 and 1.07 | ✅ |
+| ...but the SIGN is the window's: it flips at seven bars, where the skirts run out | −7.5e−2, −8.6e−3, +1.0e−2, +6.6e−3 against the ruling's +1.3e−3 | ✅ |
 | **§ 6ao.9 — the star draws the cutoff as a disc** | collapse brackets N/(2π·f_c) = 20.4 px within a factor | ✅ |
 | **§ 6ao.10 — two committed pictures** | regression only, `usaf-block` and `siemens-star` | ✅ |
 
@@ -16407,7 +16408,7 @@ differently: 2f/f falls from the coherent 0.3266 to 0.2704 at S = 0.5 while the
 fundamental transfer is untouched. The expansion assumed one direction; the
 transfer never did.
 
-### The chart lies past the cutoff, and the ruling does not
+### The chart draws bars past the cutoff, and the ruling does not
 
 The step's own finding, and the reason § 6ao.8 is not the resolution measurement
 it looks like. Three elements on one piece of glass at ν = 0.762, 1.067 and
@@ -16416,17 +16417,35 @@ it looks like. Three elements on one piece of glass at ν = 0.762, 1.067 and
 - inside the cutoff, a three-bar element and an unbounded ruling of the same
   period are the same picture — 0.951 against 0.949, 0.736 against 0.712;
 - **past it they are not.** The ruling is dead, as § 6an.8 already showed it
-  must be. The element is not: it reads −0.089. **Negative** — its bars come out
-  brighter than its gaps.
+  must be. The element is not: it reads −0.089, sixty times the ruling's
+  residual, and **negative** — its bars come out brighter than its gaps.
 
-That is spurious resolution, and the mechanism is the ends. A three-bar element
-is the ruling multiplied by a window five bar widths square, so its spectrum is
-the ruling's line smeared to about half the frequency it sits at; an element
-beyond 1 + S still has skirts inside it, and what comes through them is under no
-obligation to carry the sign of the bars. **A chart element therefore reads
-optimistically past the limit, showing structure where a ruling shows nothing,**
-which is why § 6an.8 measures Abbe's limit on a ruling and why a reader should
-distrust any resolution quoted off a chart at the exact element where it fails.
+The mechanism is the ends. A three-bar element is the ruling multiplied by a
+window five bar widths square, so its spectrum is the ruling's line smeared to
+about 0.4 of the frequency it sits at; an element beyond 1 + S still has skirts
+inside it and the ruling it was cut from has none. **A chart element therefore
+reads optimistically past the limit, showing structure where a ruling shows
+nothing,** which is why § 6an.8 measures Abbe's limit on a ruling and why a
+reader should distrust any resolution quoted off a chart at the element where it
+fails.
+
+**The sign, though, is the window's and not the aperture's, and saying otherwise
+was this step's own first draft.** "Past the cutoff a chart element images
+INVERTED" rested on one geometry, and the perturbation that tests it is the bar
+COUNT, because the bar count is what sets the skirt width the paragraph above
+invokes: three bars is a 5w window reaching ~0.4f, five is 9w reaching ~0.22f,
+seven is 13w reaching ~0.15f, which is about what it takes to clear 1 + S at
+ν = 1.78. Swept, the contrast runs −7.5e−2, −8.6e−3, **+1.0e−2**, +6.6e−3 for
+three, five, seven and nine bars, against the ruling's +1.3e−3. The sign flips
+where the skirts run out. What survives the sweep is the **magnitude** — every
+element is at least three times the ruling and the shortest is sixty times it —
+so the claim the step is entitled to is that ends put structure past the cutoff,
+not that they invert it.
+
+The control that makes the sweep mean something is the same sweep inside the
+cutoff, where it is a non-event: 0.7371, 0.7341, 0.7144, 0.7134 down to the
+ruling's 0.7123, monotone, the whole spread 3.5%. Ends matter to an element the
+aperture cannot carry, and hardly at all to one it can.
 
 The ruling's residual there is 1.3e−3 rather than the 1e−13 § 6an.8 gets, and
 that is the grid's rather than the aperture's: a period of six pixels does not
@@ -16447,13 +16466,14 @@ condenser half is the sharper claim of the two: it holds only because
 `diskSource`'s lattice has four-fold symmetry, and a source that did not would
 break it through a perfectly round pupil.
 
-Along a bar, an unbounded ruling is constant to 1e−13 — the object does not vary
-there, so neither does the image — which makes every feature of a finite bar's
+Along a bar, an unbounded ruling is constant bit for bit — the object does not
+vary there, so neither does the image — which makes every feature of a finite bar's
 profile the ends' doing and nothing else. The middle of a bar five widths long is
-flat to 10%, the end effect reaches 14 pixels in against λ/NA = 10.7, and inside
-that reach the picture does what a coherent picture does: the dark bar
-**overshoots to 2.2× the brightness of its own middle** and then passes through a
-near-perfect null, 0.036, on its way out to the clear field. The null is an
+flat to 10% over its inner four pixels, the end effect reaches 13.5 pixels in
+against λ/NA = 10.7, and inside that reach the picture does what a coherent
+picture does: the dark bar **overshoots to 2.27× the brightness of its own
+middle** and then passes through a near-perfect null, 0.054, on its way out to
+the clear field. The null is an
 amplitude zero crossing, so it is physics rather than a rounding, and it is
 absent from every cosine this branch has imaged.
 
