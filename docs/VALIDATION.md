@@ -98,6 +98,7 @@ whole ladder.
 | [6am](#step-6am--the-self-conjugate-bins-of-the-harmonic-readout) | § 6al.8's defect fixed: the contrast readout doubled every bin, but at k = 0 and k = N/2 the ±k pair is ONE bin and it read 2× high — authored components read back, Rayleigh's variance off the pixels, § 6al.8's reach claim corrected | `harmonic-bin` |
 | [6an](#step-6an--colour-through-a-telecentric-frame) | Telecentricity holds at ONE wavelength — the exit pupil crosses infinity there — so the sensor rescales every colour but one as 1 + d/R, sign reversing across it; and a stain images as its own spectrum | `telecentric-colour` |
 | [6ao](#step-6ao--a-specimen-with-real-structure) | Edges and ends, not a cosine: a bar puts 4/π of a cosine's amplitude into the fundamental at the same transfer, and a chart element past the cutoff draws bars where its own ruling is dead | `structure` |
+| [6ap](#step-6ap--an-achromatic-telecentric-tail) | An achromatic tail turns FFD(λ) around inside the band, so telecentricity holds at TWO wavelengths and the rescale reverses twice — unless the stop sits at the turn | `telecentric-achromat` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -16487,6 +16488,207 @@ aperture draws for itself. Exposure is 1 and nothing is auto-scaled — clear gl
 images at unit intensity, so white means "as bright as no specimen at all". An
 auto-exposure would have hidden § 6ao.8 outright, since an inverted element is
 still a perfectly contrasty picture once it has been normalized.
+
+## Step 6ap — an achromatic telecentric tail
+
+**§ 6an's own deferral list opens on it: the band there is set by a *singlet's*
+axial colour, and an achromatic tail would move it — "the telecentric condition
+would still hold at one wavelength, but 1/R(λ) would be secondary spectrum rather
+than primary. Nothing here says how much." This step says how much, and the
+sentence it had to correct on the way is its headline: telecentricity holds at
+TWO wavelengths here, not one. No new physics and no new engine code —
+`packages/core` is byte-for-byte what § 6ao left, the tail is `designs/achromat`'s
+computed doublet, and the step is one test file.**
+
+The stop wants the tail's front focal distance, and for a singlet FFD(λ) is
+monotone: it crosses the stop once, and that is § 6an's whole story. Achromatise
+the tail and FFD(λ) **turns around inside the visible band**, so the value it
+takes at the d line it also takes at 528.35 nm. The exit pupil is at infinity at
+both, the defocus rescale 1 + δ/R(λ) reverses sign twice rather than once, and
+the band's ends land on the *same* side of the pair where a singlet's straddle
+its one crossing. It also makes the pole's character a **design choice**: put the
+stop 3.8 µm further in, at the turn, and the two roots merge into a double one —
+the pole is touched instead of crossed and the sign never reverses at all.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6ap.1 — the tail is achromatic, and what is left is the pair's secondary spectrum** | −(P₁−P₂)/(V₁−V₂) off the catalogue, 4.3%; the primary 162× under the singlet's | ✅ |
+| ...and the 4.3% is the elements' THICKNESS, shown by tripling it | linear to 4.3%, intercept 4% of the 1× reading | ✅ |
+| **§ 6ap.2 — the refusal § 6an.1 measured is gone, at the same sampling** | 0.0245 waves per pupil sample at 470 nm against § 6an's 0.3605; `valid` 380…800 | ✅ |
+| ...and § 6an.1's own negative control, a 400…700 stack, now passes | § 6r's contract, the other way up | ✅ |
+| **§ 6ap.3 — telecentricity holds at TWO wavelengths, not one** | 528.349225534 nm and the d line, off Sellmeier on the same double | ✅ |
+| ...and Newton's f² still says where the pupil is, either side of two poles | 2×2 Gaussian product, nothing traced, 2e−12 | ✅ |
+| **§ 6ap.4 — so the defocus rescale reverses sign twice: +, −, +** | closed-form 1/R(λ); linear in δ to 2e−10 | ✅ |
+| ...and what it misses by is a CONSTANT 6.8e−10 per millimetre | spread 3e−11 through a coefficient that changes sign | ✅ |
+| **§ 6ap.5 — a stop at the TURN makes the root double, and the pole is touched** | positive at every λ tried; 3.8 µm from the other placement | ✅ |
+| **§ 6ap.6 — two removable branch switches in one band** | the ruler monotone across both, 4e−10 over 520…600 nm | ✅ |
+| **§ 6ap.7 — the blue-to-red defocus colour is 51× smaller than the singlet's** | 6.75e−6 against § 6an.4's 3.48e−4 | ✅ |
+| ...but the excursion is only 17.4× smaller — the rest is the SIGN | both ends outside the pair, so they cancel instead of adding | ✅ |
+| **§ 6ap.8 — the whole visible band renders, and its colour is the CIE integral** | CIE 1931 at 1 nm on three interfaces, 2e−6 at 11…61 samples | ✅ |
+
+### The prediction that had to be computed before it was written
+
+The obvious sentence to write here was "1/R(λ) becomes secondary spectrum rather
+than primary", and it is very nearly true and was not safe to build on. The
+classical power split achromatises the **focal length**; the stop is placed at the
+**front focal distance**, which is the focal length displaced by a principal
+plane, and a principal-plane offset is first-order dispersive and not part of what
+the split cancels. Whether the two together turn around inside the band decides
+the shape of the whole step, and nothing in the argument settles it.
+
+Measured, they do turn around, and the reason is that on this pair the
+principal-plane term is small and partly cancels what the split leaves behind:
+the residual primary colour is −9.4e−5 of the focal length but only −1.2e−5 of
+the front focal distance, eight times smaller. **The quantity telecentricity
+actually depends on is the better-corrected one**, which is luck rather than
+design and is why the turn sits inside the visible band instead of outside it.
+
+### Achromatic to the catalogue's number, and the gap is the glass being thick
+
+The tail's residual colour splits in two, and only the second half is a property
+of the glasses. Between the F and C lines the focal length moves by −9.4e−5 of
+itself against the singlet's −1.5e−2, which is 162× and is the achromat doing its
+job; the singlet's own figure is −1/V to 2.4%, so the control is a known quantity
+before the doublet is asked to beat it.
+
+What is left is the pair's **secondary spectrum**, −(P₁−P₂)/(V₁−V₂) = −4.9934e−4
+computed from two Abbe numbers and two partial dispersions and nothing else. The
+traced tail measures −4.7812e−4, 4.3% under it — and that gap is not slack, it is
+Gullstrand: the power split is the *thin*-lens closed form, so a thick pair keeps
+the separation term and is not exactly achromatic. Which is falsifiable, and the
+rung falsifies it rather than asserting it: build the same design at 1×, 2× and 3×
+the centre thicknesses and the residual primary is linear in thickness to 4.3%
+with an intercept 4% of the 1× reading, and the gap to the closed form grows with
+it — 4.3%, 8.4%, 12.3%. A thin pair would land on the catalogue's number.
+
+### The band is now the band, and the comparison has to be at one sampling
+
+§ 6an.1's band was 480…700 nm and it was measured rather than chosen: brightfield
+**refuses** where the wavefront aliases, there being no ray analog of a coherent
+sum to cross-fade to (ARCHITECTURE.md), and on the singlet the criterion declined
+470 nm at 0.3605 waves per pupil sample. The same plane on the same frame with
+this tail is 0.0245 — `valid`, and 14× under the number that was refused. At 480
+it is 0.0178 against 0.3171, and every wavelength from 380 to 800 nm is honest.
+§ 6an.1's negative control has become a positive one: the 400…700 stack it used to
+show its band was real carries `valid` here.
+
+Both numbers are at `size` 32 and `pupilSamples` 16, which is not a detail. A
+denser pupil grid lowers the phase step per sample by construction (the criterion
+is |∇OPD|·Δ_pupil, not total wave error), so a band quoted at a different sampling
+would be partly a picture of the sampling — the ruler-and-lens split this ladder
+has now had to make four times.
+
+### Two poles, and which kind of pole is a spacer's decision
+
+At the d line the exit pupil is at infinity, and 528.349225534 nm it is at
+infinity again — the paraxial engine and the closed form agree on that wavelength
+to the last bit of a double, because both are asking where the same front focal
+point reaches the same stop. Between the two the pupil is real and far behind the
+image; outside them it is virtual and far in front. So the blue end and the red
+end of the band share a sign, and the middle takes the other one.
+
+The traced magnification follows: 1 + δ/R(λ) with the sign +, −, + across the
+band, reaching the probe ray's own floor at both poles. And the closed form's R is
+what it follows — but **absolutely, not relatively**. § 6an.4 quoted this
+agreement as 1e−5 relative and separately recorded "4e−10 per millimetre at the
+design wavelength" as the probe's floor; they are the same number seen twice. Here
+the coefficient runs over two orders and changes sign twice inside the band, so a
+relative bound would read 7e−6 at 400 nm and 5e−4 at 550 and would look like the
+closed form failing near a pole. The absolute difference is flat: −6.6e−10 at 400
+and −6.84e−10 at 700, a spread of 3e−11 through a coefficient that passes through
+zero between them.
+
+Then the part § 6an's fixture could not show. FFD(λ) has a minimum, so the stop
+can be put *at* it — 3.8 µm further from the glass, a part in 14 000 — and the two
+simple roots merge into a double one. The rescale then reaches zero at 556.11 nm
+and comes back on the same side: positive at every wavelength from 400 to 700, so
+a defocused frame fringes in one direction across the whole band instead of
+reversing twice. Same glass, same powers, same conjugates. **Whether the defocus
+colour reverses is decided by a spacer**, and the ladder had no rung saying that
+because it had never had a system with a turning point to place a stop against.
+
+The two branch switches are both removable, which § 6an.5 pinned once and now has
+to hold twice: `imagePixelScaleMm` has a slope-branch formula and a
+reference-sphere formula, and this fixture takes the first at two wavelengths. The
+object pixel per nanometre is monotone through both, varying by 4e−10 over
+520…600 nm — the ruler's own λ drift, not a step at either seam.
+
+### 51× out of 17×, and the missing factor is a sign
+
+The quantity a caller sees is § 6an.4's closing one: the ratio of the blue and red
+magnifications, 1 in focus and 3.48e−4 a millimetre out of it. Here it is 6.75e−6,
+**51× better** — and the temptation is to call that the achromat's factor, which
+would be wrong by three.
+
+The excursion of FFD(λ) away from the stop, which is what the rescale is built
+out of, improves by only 17.4× over 480…700 nm. Per wavelength the improvement is
+18.6× at 480 and 7.2× at 700; neither is 51. The rest is § 6ap.3's second pole:
+on the singlet blue and red straddle the one crossing, so their shifts have
+opposite signs and the blue-to-red difference is their **sum**, while here both
+ends sit outside the pair and the difference is what is left after they cancel.
+Same signs are worth more here than a smaller excursion, and neither number alone
+would have said so.
+
+Over 400…700 nm — the band this fixture actually has and the singlet never did —
+the same figure is 7.5e−5, because 400 nm is where the residual colour is
+steepest. Quoting the 51× against § 6an's band and this against its own is the
+honest pair; one number over two different bands would not be a comparison.
+
+### The colour of a band that could not be rendered before
+
+§ 6an.6 asked "does the imaging chain carry a spectrum" over 480…700 nm because
+the engine refused everything bluer. Asked over 400…700 the answer is the same
+and the integral is a different one: the rendered chromaticity sits 2e−6 from the
+CIE 1931 observer walked at 1 nm over Fresnel at the tail's three interfaces —
+air–crown, the cement joint, flint–air — at every sample count from 11 to 61,
+against 5.3e−4 to an equal-energy lamp that never met the glass. The residual does
+not fall with the sample count because it is not a quadrature error: it is
+`spectralXyzBasis`'s binned observer against `spectrumToXyz`'s 1 nm walk, which is
+§ 6an.6's 9.8e−6 seen on a wider band and with a smoother spectrum in it.
+
+### What is not pinned to an external number
+
+§ 6ap.2's and § 6ap.7's comparisons are this engine against its own earlier
+measurement — § 6an's numbers at the same sampling — and are labelled as such
+wherever they appear. What makes them measurements rather than a fixture's mood
+is that the singlet's own primary colour is −1/V to 2.4% and its band was already
+pinned; the achromat is measured against something that was itself pinned.
+
+§ 6ap.4's 6.8e−10 per millimetre and § 6ap.6's 4e−10 are the traced probe ray's
+noise floor, the same one § 6al.6 and § 6an.5 recorded. The 3.8 µm between the two
+stop placements and the 528.349225534 nm second pole are this fixture's own
+geometry quoted as computed.
+
+### Not yet pinned
+
+- **The reversal in a picture rather than in a magnification**, unchanged from
+  § 6an — and this step makes it *harder*, not easier: the effect it would render
+  is 51× smaller here, so the rung belongs on the singlet, where a defocused edge
+  fringes at 3.5e−4 rather than at 7e−6. Improving a system is not always the way
+  to pin what it does.
+- **A shipped image-space telecentric design**, unchanged from § 6aj, § 6ak, § 6al
+  and § 6an: both fixtures are still built in test files, and now there are two of
+  them differing by a spacer, which is exactly the kind of pair a `designs/` entry
+  with a documented placement argument would carry.
+- **An apochromatic tail**, the next term in the same series: three glasses unite
+  three wavelengths, so FFD(λ) would have two interior turning points and the stop
+  could sit at a value it takes *four* times. Whether the visible band is wide
+  enough to contain them all is the question, and nothing here answers it.
+- **The turn's own wavelength as a design input.** 556.11 nm is where this glass
+  pair puts it; it was found, not chosen. A caller who wanted the double root at a
+  particular colour would have to solve for the pair, and no rung asks that.
+
+### Still open
+
+- **Whether a caller can find out which pole it is near.** § 6an's "still open"
+  asked for a per-plane verdict on a refused stack; this step adds a second
+  question of the same shape. `pupils` reports `Infinity` at a telecentric
+  wavelength and a large finite number 0.05 nm away, and there is no way to ask
+  "how far is this system from telecentric, and on which side" — the sign of
+  1/R(λ) is the thing a user of a metrology instrument would want on screen, and
+  it is currently only obtainable by shifting the sensor and measuring. That is an
+  app question (§ 6ah), recorded here because this is the step where two poles
+  made it cost something.
 
 ## Later rungs
 
