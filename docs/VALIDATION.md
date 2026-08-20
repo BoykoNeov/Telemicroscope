@@ -99,6 +99,7 @@ whole ladder.
 | [6an](#step-6an--colour-through-a-telecentric-frame) | Telecentricity holds at ONE wavelength — the exit pupil crosses infinity there — so the sensor rescales every colour but one as 1 + d/R, sign reversing across it; and a stain images as its own spectrum | `telecentric-colour` |
 | [6ao](#step-6ao--a-specimen-with-real-structure) | Edges and ends, not a cosine: a bar puts 4/π of a cosine's amplitude into the fundamental at the same transfer, and a chart element past the cutoff draws bars where its own ruling is dead | `structure` |
 | [6ap](#step-6ap--an-achromatic-telecentric-tail) | An achromatic tail turns FFD(λ) around inside the band, so telecentricity holds at TWO wavelengths and the rescale reverses twice — unless the stop sits at the turn | `telecentric-achromat` |
+| [6aq](#step-6aq--an-apochromatic-telecentric-tail) | Three united colours put TWO turns in FFD(λ), so a stop is telecentric THREE times, not the deferral's four, and which spherical-null bending is built decides three or one | `telecentric-apochromat` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -16690,10 +16691,17 @@ geometry quoted as computed.
   and § 6an: both fixtures are still built in test files, and now there are two of
   them differing by a spacer, which is exactly the kind of pair a `designs/` entry
   with a documented placement argument would carry.
-- **An apochromatic tail**, the next term in the same series: three glasses unite
+- ~~**An apochromatic tail**, the next term in the same series: three glasses unite
   three wavelengths, so FFD(λ) would have two interior turning points and the stop
   could sit at a value it takes *four* times. Whether the visible band is wide
-  enough to contain them all is the question, and nothing here answers it.
+  enough to contain them all is the question, and nothing here answers it.~~
+  **Closed at [§ 6aq](#step-6aq--an-apochromatic-telecentric-tail), and the
+  sentence above is half wrong.** The two turning points are there and both land
+  inside the band — and *four* was arithmetic, not physics: a curve with two turns
+  meets a horizontal line at most three times, so the stop is telecentric THREE
+  times and the band's width was never the binding constraint. § 6aq also found
+  what this list had no reason to ask: the pole count is decided by which of the
+  two spherical-aberration-nulled bendings is built, three against one.
 - **The turn's own wavelength as a design input.** 556.11 nm is where this glass
   pair puts it; it was found, not chosen. A caller who wanted the double root at a
   particular colour would have to solve for the pair, and no rung asks that.
@@ -16709,6 +16717,200 @@ geometry quoted as computed.
   it is currently only obtainable by shifting the sensor and measuring. That is an
   app question (§ 6ah), recorded here because this is the step where two poles
   made it cost something.
+
+## Step 6aq — an apochromatic telecentric tail
+
+**§ 6ap's own deferral list names it, and this step corrects its arithmetic
+rather than extending it: "three glasses unite three wavelengths, so FFD(λ) would
+have two interior turning points and the stop could sit at a value it takes FOUR
+times." The shape was right — FFD(λ) does gain a second turn, and both land
+inside the visible band — and the count was wrong. A curve with two turns is cut
+by a horizontal line at most THREE times. Four crossings need three turns, which
+is four united wavelengths and one more glass. So a stop is telecentric at three
+wavelengths here, and what bounds the number is the turn count, not whether the
+band is wide enough. No new physics and no new engine code — `packages/core` is
+byte-for-byte what § 6ap left.**
+
+There is no `designs/apochromat` to borrow, so this fixture carries its **own
+design solve**, which § 6ap's did not: a cemented CaF₂ / F2 / N-BK7 triplet whose
+three trailing curvatures are solved so the focal length takes one value at F, d
+and C, with the bending left free and then spent on the third-order spherical
+null. That is also why the step opens with a closed-form check — a design solved
+on `paraxialTrace` and then measured with `paraxialTrace` would be pinned to the
+tracer agreeing with itself.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6aq.1 — three glasses unite three wavelengths, where two unite two** | the doublet's −9.37e−5 primary and −4.78e−4 secondary as the control; F, d and C to 1e−14 | ✅ |
+| ...and what is left over the rendered band is 8.3× under the doublet's | 5.79e−4 against 4.83e−3, both worst-over-400…700, both at 400 nm | ✅ |
+| ...and the 1.5% the thick solve sits off the catalogue's 3×3 split is THICKNESS | halving the glass halves the deviation, five times, to better than 2% | ✅ |
+| ...and the same triplet built ON the thin split is not apochromatic at all | 2.90e−4 primary — 3.1× the doublet's own, on a lens meant to have none | ✅ |
+| **§ 6aq.2 — a four-surface Gaussian matrix confirms the solve it never saw** | 2×2 ray-transfer product on Sellmeier, EFL and FFD to 1e−12 over 380…800 | ✅ |
+| **§ 6aq.3 — FFD(λ) has TWO turns, so the count is THREE and not four** | 498.762 and 634.264 nm against the doublet's single 556.1; no level takes more | ✅ |
+| ...and two is what a triplet has — 1044 solved designs, never three | 12 glass orders × 3 thickness sets × 29 bendings, all converged | ✅ |
+| **§ 6aq.4 — the stop at FFD(d) is telecentric at three wavelengths** | 454.9657, 587.5618, 678.0308 nm; Newton's f² sends the pupil to infinity at each | ✅ |
+| **§ 6aq.5 — so the defocus rescale reverses sign three times: +, −, +, −** | closed-form 1/R(λ); linear in δ, and the miss a constant −1.26e−9 per millimetre | ✅ |
+| **§ 6aq.6 — the three-pole placement is a 1.61 µm window with two unlike edges** | one edge merges two roots, the other loses one off the band; both computed | ✅ |
+| ...and 2.63 µm further in is § 6ap.5's touch-only placement, on the other turn | positive at every λ in 400…700; the tangency at the probe's floor | ✅ |
+| **§ 6aq.7 — which spherical-null bending is built decides the pole count** | R1 = 18.348 gives three, R1 = −102.649 gives one; both S_I-nulled, same colours | ✅ |
+| ...and the criterion that picks between them knows nothing about it | Σ of per-surface \|S_I\| 5.29e−3 against 2.30e−2 — it picks three poles by luck | ✅ |
+| **§ 6aq.8 — the band renders and the aperture stop is the only stop** | `valid` 380…800; 0.01443 waves per pupil sample at 470 against § 6ap's 0.02445 | ✅ |
+
+### The half of the prediction that was wrong, and it was not the physics
+
+§ 6ap deferred this with a shape and a count, and the shape survives contact:
+uniting a third wavelength does put a second turning point in FFD(λ), and on this
+glass triple both turns fall at 498.762 and 634.264 nm, comfortably inside the
+band the fixture renders. What does not survive is "a value it takes four times."
+A horizontal line meets a curve with k interior turns at most k+1 times. Two turns
+therefore admit three telecentric wavelengths and not four, whatever the band
+does — the question the deferral asked itself, *whether the visible band is wide
+enough to contain them all*, was the wrong question, because the binding
+constraint was never the band.
+
+The rung measures it rather than arguing it: sweep the stop across the whole
+range FFD(λ) covers and count the roots at every placement. The best is three.
+Four would need a lens whose focal length takes one value at four wavelengths — a
+superachromat, four glasses — and nothing here is one.
+
+**And the two-turn claim is itself a measurement, not a theorem**, which is the
+distinction § 6ap.1 had to make in the other direction. Rolle gives two critical
+points to the FOCAL LENGTH, because three wavelengths share a value there. FFD is
+a different function — the focal length displaced by a principal plane, and the
+displacement is dispersive in its own right — and on this design the two do not
+even turn in the same places: the focal length turns at 521.6 and 623.7 nm, the
+front focal distance at 498.8 and 634.3. The principal-plane term moves both turns
+by tens of nanometres. That it never *adds* one is what 1044 designs say: twelve
+glass orders that solve, three thickness sets, twenty-nine bendings each, every
+one converged and none skipped, and the turn count is 0, 1 or 2 and never 3.
+
+### The design had to be solved thick, and the catalogue is its thin limit
+
+The classical three-glass split — Σφᵢ = φ, Σφᵢ/Vᵢ = 0, Σφᵢ·Pᵢ/Vᵢ = 0, off two
+Abbe numbers and two partial dispersions per glass — is the external number here,
+and taking it literally produces a lens that is **not apochromatic**. Built at
+these thicknesses on the catalogue's own powers, the focal length moves 2.90e−4 of
+itself between F and C: 3.1× the primary colour of § 6ap's *doublet*, on a design
+whose whole purpose is to have none. The split is a thin-lens statement, and an
+apochromat's entire residual is smaller than the separation term a thick one
+carries. A step that used the closed form directly would have measured Gullstrand
+and called it tertiary spectrum.
+
+So the powers are solved on the thick first order, and the closed form is what
+they are measured **against**. The solved elements sit 1.5% off the catalogue's
+split — and that gap is the thickness, shown the way § 6ap.1 showed its own:
+halve the three centre thicknesses and the deviation halves, five times over, each
+ratio within 2% of exactly two. A thin triplet is the catalogue's triplet. This
+one is 4 mm of glass.
+
+What is left after three colours are united has no clean closed form the way a
+doublet's secondary spectrum does — −(P₁−P₂)/(V₁−V₂) is a property of two glasses
+and has no three-glass analogue that is a property of the glasses alone. So the
+residual is quoted as a comparison over one band instead: worst |Δf/f| across
+400…700 nm is 5.79e−4 for the triplet against 4.83e−3 for the doublet, 8.3×, both
+worst at 400 nm where a residual dispersion is steepest. Quoting the doublet's
+F-to-C figure against the triplet's worst would be two different measurements
+wearing one name — § 6ap.7's mistake, in the other direction.
+
+CaF₂ is not decoration in that list. The 3×3 system is conditioned only by a glass
+whose partial dispersion is anomalous for its Abbe number, and in this catalogue
+that means fluorite: every solvable triple contains it, and the element powers
+come out ~2.5× the total either way. A triplet of ordinary glasses is not a
+near-miss apochromat, it is a singular matrix.
+
+### Three poles, and the 1.6 µm of spacer that holds all three
+
+§ 6ap's placement is unchanged — the stop at the d line's front focal distance,
+53.0071155 mm — and it buys a third pole rather than a second: 454.9657,
+587.5618 and 678.0308 nm, the middle one the d line itself. The closed form agrees
+that the exit pupil runs to infinity at each, and between and outside them the
+pupil is finite and alternates side, so there are four regions where § 6ap had
+three. The traced magnification follows: +, −, +, − across the band, at the probe
+ray's floor at each pole, and the closed form's 1/R(λ) tracks it to a **constant**
+−1.26e−9 per millimetre — quoted absolutely for § 6ap.4's reason, now with three
+zero crossings inside the band rather than two for a relative bound to blow up on.
+
+The placements that give all three form an interval 1.61 µm wide, and the d-line
+placement sits inside it with 0.91 µm of margin one way and 0.71 µm the other.
+That is luck rather than design, in exactly the way § 6ap's turn landing inside
+the band was luck; nothing in the power split or the bending solve is aware of
+where the stop goes.
+
+**The two edges of that window are different kinds of end, which is what one turn
+could not show.** At the top the level meets the maximum and two roots merge: the
+pole is touched rather than crossed while the third is still crossed, so a touched
+pole and a crossed pole coexist in one band. At the bottom nothing merges — the
+reddest root simply walks off the end of the band, an edge that is about the band
+and not about the lens. And 2.63 µm further in, at the *other* turn, the level
+meets the minimum and the root is double and alone: the rescale reaches zero at
+498.76 nm and comes back on the same side, positive at every wavelength in
+400…700, which is § 6ap.5's finding reproduced on a triplet and now one of three
+placements a spacer chooses between rather than one of two.
+
+### Two nulled bendings, and only one of them is telecentric more than once
+
+The bending is free after the three chromatic conditions, as a doublet's is after
+two, and S_I(c₁) has two roots here as it does there. Both are genuine designs:
+same glasses, same focal length, same three united wavelengths, third-order
+spherical nulled to 1e−11. They are not interchangeable.
+
+On R1 = 18.348 the turns sit at 498.8 and 634.3 nm and the stop is telecentric
+three times. On R1 = −102.649 the same bending freedom has moved them to 383.6 and
+805.3 nm — effectively out of the visible — FFD(λ) is monotone across 400…700 the
+way a *singlet's* is, and § 6ap's placement buys nothing: the stop is at a front
+focal point at the d line and at no other wavelength in the band. One design
+choice, made on spherical aberration and made twice with the same justification,
+and the chromatic pole structure differs by a factor of three.
+
+`designs/achromat` chooses its branch on the sum of the per-surface |S_I| — a
+design whose surfaces each contribute little carries less of the fifth order
+third-order theory does not model — and applied here that criterion picks the
+three-pole bending, 5.29e−3 against 2.30e−2. **Recorded as a coincidence, because
+that is what it is.** Nothing in a robustness criterion knows where FFD(λ) turns,
+and on a different glass triple it could as easily have picked the other. What the
+rung pins is that the two questions are independent, not that they agree.
+
+### What is not pinned to an external number
+
+§ 6aq.1's "F, d and C to 1e−14" is the Newton solve's own target and on its own
+proves only that it converged. What makes the design a measurement is § 6aq.2,
+where a 2×2 ray-transfer product that never saw the solve reproduces both the
+focal length and the front focal distance to 1e−12 across 380…800 nm, and the
+three rungs that follow, which compare the design to numbers the solve does not
+contain: the catalogue's thin split, the doublet's residual over the same band,
+and the thin-limit convergence.
+
+§ 6aq.8's comparison against 0.024451901 waves per pupil sample is this engine
+against its own § 6ap measurement at identical `size` and `pupilSamples`, and is
+labelled as such. A band read at a different sampling would be a picture of the
+sampling — the ruler-and-lens split this ladder has now had to make five times.
+
+§ 6aq.5's −1.26e−9 per millimetre is the traced probe ray's noise floor, the same
+one § 6al.6, § 6an.5 and § 6ap.4 recorded. The turn wavelengths, the 1.61 µm
+window and the 2.63 µm to the other turn are this fixture's own geometry quoted as
+computed — and the turn positions are quoted to four figures rather than twelve
+because a golden section on a smooth extremum locates it to √ε, which is a
+property of the search and not of the lens.
+
+### Not yet pinned
+
+- **A superachromat, and whether four is reachable at all.** The count here is
+  bounded by the turn count, so four telecentric wavelengths need four united
+  ones — a fourth glass, and this catalogue has one anomalous-dispersion glass in
+  it. Whether `materials/catalog` can be made to solve a four-glass split is not
+  asked, and if it cannot, the honest finding is about the catalogue.
+- **A shipped image-space telecentric design**, unchanged from § 6aj, § 6ak,
+  § 6al, § 6an and § 6ap — and this step raises its price rather than lowering
+  it: there are now three fixtures, and the third carries a design solve that
+  would have to become a `designs/apochromat` with a branch choice and a
+  no-solution throw, which is § 6b's whole argument again for three glasses.
+- **The reversal in a picture rather than in a magnification**, unchanged from
+  § 6an and § 6ap, and harder again for the same reason: the effect is smaller on
+  a better-corrected tail. That rung still belongs on the singlet.
+- **Whether the pole structure can be designed for.** § 6aq.7 shows the bending
+  moves the turns and § 6aq.3's sweep shows how far, but nothing here solves for
+  a bending that puts a pole at a wanted colour. § 6ap's "turn's own wavelength as
+  a design input" is the same open question with one more knob on it.
 
 ## Later rungs
 
