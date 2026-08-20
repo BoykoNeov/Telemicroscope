@@ -313,3 +313,60 @@ describe("the two voices a refusal comes in", () => {
     expect(result.exact.ok).toBe(true);
   });
 });
+
+describe("the pupil readout of a stop the user put behind power (§ 5s.5)", () => {
+  /**
+   * A diaphragm on a singlet's own back focal plane — three rows a user can type
+   * into this form, and object-space telecentric. `entranceRadiusMm` is then
+   * `Infinity` and the panel used to print "r = Infinity mm at z = -Infinity":
+   * true, and throwing away the answer, which is that the aperture is an angle.
+   */
+  const singlet = (gapMm: number): BenchDraft => ({
+    objectMedium: "AIR",
+    surfaces: [
+      { kind: "refract", radiusMm: 51.68, conic: 0, semiApertureMm: 12, thicknessMm: 4, medium: "N-BK7", isStop: false },
+      { kind: "refract", radiusMm: -51.68, conic: 0, semiApertureMm: 12, thicknessMm: gapMm, medium: "AIR", isStop: false },
+      { kind: "refract", radiusMm: Infinity, conic: 0, semiApertureMm: 5, thicknessMm: 100, medium: "AIR", isStop: true },
+    ],
+    aperture: { kind: "stopRadius", value: 5 },
+    conjugate: { kind: "infinite" },
+    fieldValue: 0,
+    pupilRays: 9,
+  });
+
+  const BFD = systemProperties(toPrescription({ ...singlet(0), surfaces: singlet(0).surfaces.slice(0, 2) }), LINE_D).bfd;
+
+  it("reports the slope, and only when there is no radius to report", () => {
+    const at = describeBench(singlet(BFD));
+    if (!at.ok) throw new Error(at.error);
+    expect(at.pupil.ok).toBe(true);
+    if (!at.pupil.ok) return;
+    expect(at.pupil.entranceRadiusMm).toBe(Infinity);
+    // The invariant, at the panel's own boundary: a radius XOR a slope.
+    expect(at.pupil.entranceSlope).toBeDefined();
+    expect(at.pupil.entranceSlope).toBeCloseTo(
+      pupils(toSystem(singlet(BFD)), LINE_D).entrance.slopeRadius!,
+      15,
+    );
+
+    // One micrometre off that plane the radius is finite again — and huge. The
+    // slope field goes away with it, so the panel never shows both and never
+    // shows neither.
+    const off = describeBench(singlet(BFD - 0.001));
+    if (!off.ok) throw new Error(off.error);
+    expect(off.pupil.ok).toBe(true);
+    if (!off.pupil.ok) return;
+    expect(off.pupil.entranceSlope).toBeUndefined();
+    expect(off.pupil.entranceRadiusMm).toBeGreaterThan(1e5);
+    expect(Number.isFinite(off.pupil.entranceRadiusMm)).toBe(true);
+  });
+
+  it("an ordinary front-stopped seed keeps a radius and grows no slope", () => {
+    const result = describeBench(seedById(benchSeeds()[0]!.id));
+    if (!result.ok) throw new Error(result.error);
+    expect(result.pupil.ok).toBe(true);
+    if (!result.pupil.ok) return;
+    expect(Number.isFinite(result.pupil.entranceRadiusMm)).toBe(true);
+    expect(result.pupil.entranceSlope).toBeUndefined();
+  });
+});

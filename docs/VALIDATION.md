@@ -5958,12 +5958,16 @@ ray, and the 1/F² law is checked against it as a consequence.
 
 | Rung | Pinned to | Status |
 |---|---|---|
-| **sin u′ from the traced marginal ray ≈ 1/(2F)** | paraxial, first order | ✅ |
+| **§ 5s.1 — sin u′ from the traced marginal ray ≈ 1/(2F)** | paraxial, first order | ✅ |
 | **...departing by the sine condition, and MORE at the faster stop** | Abbe sine condition | ✅ |
-| **Extended-source illuminance ∝ 1/F² (f/10 → f/5 is 4×)** | image irradiance π·L·sin²u′ | ✅ |
+| **§ 5s.2 — extended-source illuminance ∝ 1/F² (f/10 → f/5 is 4×)** | image irradiance π·L·sin²u′ | ✅ |
 | ...landing just ABOVE 4, by the faster stop's sine-condition excess | Abbe sine condition | ✅ |
-| Point-source light grasp ∝ D² | entrance-pupil area — *consistency check* | ✅ |
-| Exposure scale = illuminance × time × gain | definition | ✅ |
+| § 5s.3 — point-source light grasp ∝ D², on a front stop | entrance-pupil area — *bookkeeping* | ✅ |
+| § 5s.4 — exposure scale = illuminance × time × gain | definition | ✅ |
+| **§ 5s.5 — the telecentric member's grasp spans 13 orders across one spectrum** | measured; rim member flat | ✅ |
+| ...so light grasp refuses on the pupil's PLACEMENT, at every wavelength | π·r² is an area | ✅ |
+| ...and an NA is a magnitude: a virtual pupil must not return it negative | n·sin u ≥ 0 | ✅ |
+| **§ 5s.6 — iris-limited grasp = π(d_eye·|M|)²/4, 6.25× under the declared aperture** | § 5q two-stop competition | ✅ |
 
 The load-bearing rung is the **sine-condition departure**. sin u′ read from the
 traced marginal ray is 0.050237 at f/10 and 0.100941 at f/5, against the
@@ -5976,15 +5980,164 @@ lands at 4.04, not exactly the paraxial 4 — the faster stop's larger
 sine-condition departure pushing it *above*, which the rung asserts
 directionally so a paraxial stub returning exactly 4 fails it.
 
-The **point-source D²** rung is labelled a consistency check, not a pin, and the
-label is the honest part: with a front stop the entrance-pupil radius is the
-declared aperture, so π·r² recovers D² by construction. Making it independent
-would need a stop imaged through preceding power (the entrance pupil ≠ the
-declared aperture) — worth doing when such a preset exists, not manufactured
-here. The validated, trace-emergent exposure law is the extended-source 1/F².
+The **point-source D²** rung (§ 5s.3) is labelled bookkeeping, not a pin, and
+the label is the honest part: with a front stop the entrance-pupil radius is the
+declared aperture, so π·r² recovers D² by construction. This step said making it
+independent "would need a stop imaged through preceding power (the entrance
+pupil ≠ the declared aperture) — worth doing when such a preset exists, not
+manufactured here." **§ 5s.6 is that preset, and it was already shipped.**
+
+### § 5s.6 — the pupil the aperture spec did not name
+
+§ 5q's visual telescope puts the observer's eye on the end of the chain, and
+below the exit pupil the eye's own iris **becomes** the stop. The entrance pupil
+is then that iris imaged backward through the eyepiece *and* the objective —
+surface 9 of a ten-surface chain, not the surface the `stopRadius: 50` spec
+names. On a 100 mm f/10 with a 25 mm Plössl (M = 39.9896):
+
+| d_eye | iris limits? | entrance r (mm) | grasp (mm²) | vs the declared aperture |
+|---|---|---|---|---|
+| 7 | no | 50 | 7853.9816 | 1.000000 |
+| 4 | no | 50 | 7853.9816 | 1.000000 |
+| 2.5 | yes | 49.9843 | 7849.8937 | 0.999480 |
+| 2 | yes | 39.9875 | 5023.9320 | 0.639667 |
+| 1.5 | yes | 29.9906 | 2825.9617 | 0.359813 |
+| 1 | yes | 19.9937 | 1255.9830 | 0.159917 |
+
+The external law is § 5q's own two-stop competition, effective aperture
+min(D, d_eye·|M|), so the grasp is π·min(D, d_eye·|M|)²/4 — matched to **5.2e-12
+relative at all four under-filling points**, the same residue at each, which is
+what distinguishes a construction from a fit. The load-bearing case is the
+under-filling one and the reason is in the table's last column: at 7 mm and 4 mm
+the entrance pupil *is* the declared aperture, so a stub returning π·(declared
+radius)² reads 1.000000 — and reads it at every eye pupil, so it cannot follow
+the law either. At d_eye = 1 the honest answer is **6.25× below** the declared
+one. The two rows where they coincide are kept as the control, because the
+coincidence is exactly what made § 5s.3 bookkeeping.
+
+### § 5s.5 — the pupil that is not an area, and why ∞ was the wrong thing to guard
+
+`pointSourceCollection` read `entrance.radius` unconditionally. § 6ah flagged
+that as returning ∞ for a telecentric system and § 6ai repeated the flag; both
+described it as one branch returning one bad value. **It is not: ∞ is the
+best-behaved point in the whole spectrum.**
+
+The shipped default 4×/0.10 objective — telecentric by default since § 6v — has
+its entrance pupil at infinity **only at the line it was designed on**. A
+wavelength away the pupil comes back finite and enormous, and π·r² returns those
+as ordinary numbers:
+
+| λ (nm) | telecentric member: entrance r (mm) | its grasp (mm²) | rim member's grasp (mm²) |
+|---|---|---|---|
+| 430 | 2 039.72 | 1.31e7 | 75.278387 |
+| 486.13 (F) | 11 028.93 | 3.82e8 | 75.278387 |
+| 550 | 64 338.91 | 1.30e10 | 75.278387 |
+| **587.5618 (d)** | **∞** | **∞** | 75.278387 |
+| 587.5619 | 1.12e10 | 3.92e20 | 75.278387 |
+| 656.27 (C) | 9 749.89 | 2.99e8 | 75.278387 |
+
+**Thirteen orders of grasp across one visible spectrum, and the camera renders a
+five-wavelength stack.** A guard keyed on `Number.isFinite` would have caught
+exactly one row of that and passed the rest as numbers. The right-hand column is
+what makes the rest damning: the *same objective* with its stop on the front rim
+instead reads 75.278387 mm² at every one of those wavelengths, flat to the bit,
+because its entrance pupil **is** its stop. So the defect is the pupil's
+placement, not the conjugate and not the glass.
+
+So the refusal is on the placement and fires at every wavelength: at a finite
+conjugate with the stop anywhere but surface 0, the collected flux from a point
+source is a **solid angle**, and π·r² is proportional to it only while the arm
+it is measured over stays put. Behind preceding power the arm runs off with the
+radius — which is exactly why the *cone* stays ≈ 0.1005 while the radius spans
+those thirteen orders.
+
+**A second, different refusal covers a pupil at infinity at an INFINITE
+conjugate.** That corner is not microscope-only: a singlet with a diaphragm on
+its own back focal distance reaches it, and there a source at infinity is
+precisely where π·r² *is* the collected flux, so what fails is only that no area
+exists. Its remedy is different too — re-read with `apertureStop: {kind:
+"limiting"}`, which finds the aperture that actually limits the beam: 452.3893
+mm² (π·12², the glass), and **the same number at the telecentric plane and 1 µm
+and 1% off it**, where the declared reading is ∞, 2.0e11 and 8.3e5.
+
+**That second remedy does NOT generalise, and the step says so rather than
+leaving a general-sounding sentence on a special-case fixture.** It works
+because that singlet's declared stop is not its limiting one — 5 mm of diaphragm
+behind power against 12 mm of glass, a fixture built to make the point. On the
+objective `limitingStop` **agrees** with the declared stop (surface 3), so there
+is nothing to escape to and the first clause has to carry it. The negative
+control asserts exactly that.
+
+### The thing found by asking what the refusal redirects TO
+
+The first clause sends a reader to `paraxialObjectNumericalAperture`, so that
+reading had to be sound. It was not. Its finite branch divides by a **signed**
+arm, `pupil.entrance.z + conjugate.distance`, and at 550 nm the telecentric
+member's pupil has crossed through infinity and sits *behind* the specimen — so
+the arm is negative and the function returned **NA = −0.100517 on the shipped
+default objective**. § 6ah repaired the ∞/∞ NaN at the design line; this sat one
+wavelength away from it, in the branch that repair added. A cone has the same
+half-angle whichever side the pupil is on, so the fix is |r/arm| — bitwise
+unchanged wherever the arm was already positive, which is every rung § 6ah
+pinned.
+
+**No shipped panel was dark from it, and the reason is the finding, not an
+excuse.** `visualDetailRatio` refuses a non-positive NA and would have said so —
+but every app caller of this function passes `LAMBDA_NM`, which *is* 587.5618,
+the one wavelength where the telecentric branch is exact and the sign cannot go
+wrong. § 6ah's blind spot was a fixture; this one is a **constant**, and it hides
+the same way: a defect reachable at every wavelength but the one the callers
+happen to use is invisible to app and engine rungs alike. What makes it worth
+fixing anyway is that § 5s.5's refusal *redirects* readers to this function, and
+a redirect to a reading that is only right on one line is not a redirect.
+
+**A repair is only repaired at the wavelengths it was measured at.** § 6ah
+checked its identity at the design line, where the telecentric branch is exact
+and the slope agrees with the rim member's arm construction to the bit. That
+agreement is real and § 5s.5 re-pins it — and it is a property of *that
+wavelength*: across the spectrum the two members' NAs differ by up to 0.21%, and
+at 550 nm by a sign.
+
+### What is not pinned to an external number
+
+§ 5s.6 is: § 5q's min(D, d_eye·|M|) is the external law and this rung is that law
+in flux rather than in aperture. § 5s.5 is not — the thirteen-order table and
+the 452.3893 are this fixture's own numbers, quoted as measured, and the claims
+made about them are that one column is FLAT and the other is not, and that a
+refusal fires at six wavelengths rather than one. The sign fix is a definition
+(an NA is n·sin u, a magnitude), not a measurement.
 
 Shot noise remains the named deferral: it is a draw from an absolute photon
 count, and there is no honest count until the § 3a zero point lands.
+
+### Still open — the audit this step did and did not act on
+
+The invariant `radius` finite XOR `slopeRadius` defined makes "who reads a pupil
+radius without checking" a grep rather than a hunch. Every entrance-side reader,
+enumerated:
+
+- `pupil/aiming.ts` (×2) — **guarded**, and it is why § 5s.2's law was untouched.
+- `pupil/microscope.ts` — **guarded** (§ 6ah), and its finite branch is repaired
+  above.
+- `imaging/exposure.ts` — this step.
+- `app/editor.ts` — this step. It printed "r = Infinity mm at z = -Infinity",
+  which is *true* and throws away the answer; and one wavelength away it printed
+  64 338.9 mm, which reads as plausible and is not. `PupilReadout` now carries
+  `entranceSlope`, defined exactly when the radius is not finite, and the panel
+  prints `tan u` instead of a semi-diameter that does not exist.
+- `pupil/visual.ts:108` — **unguarded, and measured not to matter**: every
+  shipped preset reads finite (19.9937 / 49.9843 / 50 across the eye-pupil
+  sweep), because an afocal front group cannot put A = 0 in the object→stop
+  matrix. Recorded rather than changed, so a later step inherits the measurement.
+
+**The exit side has no second half of that invariant at all.** `imageStopForward`
+returns `radius: Infinity` with **no** `slopeRadius`, so an image-space
+telecentric system has no slope spelling to redirect to. `analysis/focus.ts:145`
+guards; `imaging/object-field.ts` (×3), `wave/psf.ts:721`, `wave/geometric.ts:145`,
+`pupil/afocal.ts:69`, `pupil/visual.ts:151` and `app/eyepiece.ts` (×2) do not.
+That is a bigger family than this step and needs the slope to exist before it
+needs the readers audited — left open with the file:line list so the next step
+inherits the audit rather than redoing it.
 
 ## Step 5t — tolerancing: sensitivity, compensators, and the RSS budget
 
@@ -14942,10 +15095,14 @@ adds no physics; it removes a NaN.
 
 ### Still open
 
-- **`pointSourceCollection` reads `entrance.radius` too** (`imaging/exposure`),
-  so it returns ∞ for a telecentric system. Its only callers build the camera's
-  telescope, which is front-stopped, so nothing reaches it today — but it is the
-  same shape as this bug, unpinned, and a microscope camera panel would find it.
+- ~~**`pointSourceCollection` reads `entrance.radius` too**~~ — **landed at
+  [§ 5s.5](#step-5s--camera-mode-relative-exposure)**, and the flag understated
+  it. "Returns ∞ for a telecentric system" is one wavelength: at the others the
+  same pupil comes back finite and enormous, 1.3e7 to 3.9e20 mm² of grasp across
+  one spectrum, so a guard keyed on ∞ would have caught a single row of it. The
+  rung that closed it also found this step's own repair returning a **negative
+  NA** at 550 nm on the default objective — the finite branch divides by a signed
+  arm, and a pupil that crossed through infinity sits behind the specimen.
 - ~~**The DIN's default is still `"rim"`**~~ — § 6ae's queued flip, **landed at
   § 6ai**. The NaN this step removed was one of the things that had to go first.
 
@@ -15143,10 +15300,11 @@ and § 6ai.4 is the correction.
   Revisit only if `seidelSums` grows a stop shift of its own, or if a later step
   genuinely finds itself maintaining two lenses. Until then the control is not a
   leftover and the cost is the measurement.
-- **`pointSourceCollection` still reads `entrance.radius`** (§ 6ah's own open
-  item, unchanged): it returns ∞ for a telecentric system, and its callers are
-  all front-stopped today. It is the same shape as the `editor.ts` defect above,
-  which is now a reason to expect it rather than a reason to hope.
+- ~~**`pointSourceCollection` still reads `entrance.radius`**~~ — **landed at
+  [§ 5s.5](#step-5s--camera-mode-relative-exposure)**, along with the same
+  `editor.ts` readout one section over: the app's pupil panel printed
+  "r = Infinity mm" at the design line and a plausible-looking 64 338.9 mm beside
+  it. Expecting it was right; expecting it to be a single ∞ was not.
 
 ## Later rungs
 

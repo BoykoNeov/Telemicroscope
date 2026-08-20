@@ -263,6 +263,20 @@ export interface PupilReadout {
   readonly stopZMm: number;
   readonly entranceZMm: number;
   readonly entranceRadiusMm: number;
+  /**
+   * `tan u` — what the entrance pupil has INSTEAD of a radius when it is at
+   * infinity, defined exactly when `entranceRadiusMm` is not finite (§ 6u's
+   * invariant, arriving at the panel).
+   *
+   * Present because "r = Infinity mm at z = -Infinity" is a true sentence that
+   * throws away the answer: a diaphragm on the front group's back focal plane
+   * is a perfectly ordinary design, and its aperture is an ANGLE. § 5s.5 is the
+   * rung — and the reason it is not enough to print the ∞ honestly is what
+   * happens a wavelength away, where the same pupil comes back finite and
+   * enormous (64 338.9 mm on the shipped 4× objective at 550 nm) and reads as a
+   * plausible number instead.
+   */
+  readonly entranceSlope?: number;
   readonly exitZMm: number;
   readonly exitRadiusMm: number;
 }
@@ -396,6 +410,7 @@ export function describeBench(draft: BenchDraft): BenchDescription {
       stopZMm: g.stopZ,
       entranceZMm: g.entrance.z,
       entranceRadiusMm: g.entrance.radius,
+      ...(g.entrance.slopeRadius === undefined ? {} : { entranceSlope: g.entrance.slopeRadius }),
       exitZMm: g.exit.z,
       exitRadiusMm: g.exit.radius,
     };

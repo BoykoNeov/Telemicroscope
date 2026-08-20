@@ -73,13 +73,72 @@ export function extendedSourceIlluminance(system: OpticalSystem, wavelengthNm: n
  *
  * From the traced entrance-pupil radius (`pupils`, the stop imaged through the
  * surfaces before it). A point source's whole image is the PSF, whose total
- * energy scales with the light grasp π·r² — light gathering ∝ D². Where the stop
- * is the front aperture this radius is the declared one, so this is a consistency
- * check on the light-grasp bookkeeping rather than an independent pin; the
- * validated, trace-emergent law is `extendedSourceIlluminance`'s 1/F².
+ * energy scales with the light grasp π·r² — light gathering ∝ D².
+ *
+ * **The pupil need not be the declared aperture, and the rung that says so is
+ * § 5s.6.** Where the stop is the front surface the two coincide and π·r² only
+ * recovers what was typed in; § 5q's iris-limited telescope is the case where
+ * they part, the eye's own pupil imaged back through eyepiece *and* objective
+ * giving a 19.9937 mm entrance radius against a declared 50 mm, and the grasp
+ * 6.25× below what the declared aperture would claim. That is the preset § 5s
+ * said this rung was waiting for.
+ *
+ * **Two constructions have no answer here, and both refuse** (§ 5s.5). What
+ * makes π·r² a flux is that a plane wave of irradiance E delivers E·πr² through
+ * the pupil, so the pupil has to be an area a beam actually fills:
+ *
+ *  1. **A FINITE conjugate whose pupil is not the stop itself.** From a point
+ *     source a finite distance away the collected flux is a SOLID ANGLE, and
+ *     π·r² is proportional to it only while the arm r is measured over stays
+ *     put. Behind preceding power it does not: on the default telecentric 4×
+ *     objective the entrance radius runs 2 039.7 mm at 430 nm → 11 028.9 at the
+ *     F line → 64 338.9 at 550 → ∞ at the d line it was designed on, thirteen
+ *     orders of grasp across one visible spectrum, while the arm runs off with
+ *     it and the *cone* stays ≈ 0.1005. Refusing only the ∞ would have caught
+ *     one wavelength of that and passed the rest as finite numbers. The rim
+ *     member, whose pupil IS its stop, reads 75.278387 mm² at every one of
+ *     those wavelengths — flat — which is why the refusal is about the pupil's
+ *     placement and not about the conjugate.
+ *  2. **An entrance pupil at infinity**, at either conjugate. There is no area
+ *     at all. `PupilPlane.slopeRadius` carries what the aperture is *instead*
+ *     (an angle), on the invariant `radius` finite XOR `slopeRadius` defined —
+ *     and an angle is not an area, so returning one for the other would be
+ *     worse than the ∞ it replaced.
+ *
+ * Each refusal names the reading that does survive, and they are different
+ * readings: the cone (`paraxialObjectNumericalAperture`) for the first, and for
+ * the second — where the beam is collimated and an area is the right kind of
+ * thing — the system re-read with `apertureStop: {kind: "limiting"}`, which
+ * finds the aperture that actually limits it. **The second remedy is not
+ * general**: it works when the declared stop is not the limiting one, and the
+ * telecentric objective is exactly the case where `limitingStop` agrees with the
+ * declared stop and there is nothing to escape to. § 5s.5 measures both.
  */
 export function pointSourceCollection(system: OpticalSystem, wavelengthNm: number): number {
-  const r = pupils(system, wavelengthNm).entrance.radius;
+  const pupil = pupils(system, wavelengthNm);
+  const entrance = pupil.entrance;
+  const r = entrance.radius;
+  // Checked first, so a telecentric objective gets the same sentence at every
+  // wavelength rather than one sentence at the design line and a wrong number
+  // beside it.
+  if (system.conjugate.kind === "finite" && pupil.stopIndex !== 0) {
+    throw new Error(
+      `light grasp is an entrance-pupil AREA, and at a finite conjugate that is a collected flux ` +
+        `only while the pupil is the stop itself: here the stop is surface ${pupil.stopIndex}, so ` +
+        `preceding power images it to r = ${r.toPrecision(6)} mm over an arm that moved with it. ` +
+        `From a point source a finite distance away the flux is a SOLID ANGLE — read the cone ` +
+        `(paraxialObjectNumericalAperture), which is stop-placement free (§ 5s.5)`,
+    );
+  }
+  if (!Number.isFinite(r)) {
+    const slope = entrance.slopeRadius;
+    throw new Error(
+      "light grasp is an entrance-pupil AREA and this pupil is at infinity" +
+        (slope === undefined ? "" : ` — the aperture is the slope tan u = ${slope.toFixed(6)}`) +
+        ": an angle is not an area. Re-read the system with apertureStop: " +
+        '{kind: "limiting"} to collect on the aperture that actually limits it (§ 5s.5)',
+    );
+  }
   return Math.PI * r * r;
 }
 

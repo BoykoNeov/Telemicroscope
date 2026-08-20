@@ -271,7 +271,17 @@ export function paraxialObjectNumericalAperture(
   if (!(Math.abs(arm) > 0)) {
     throw new Error("paraxialObjectNumericalAperture: the entrance pupil lies on the specimen");
   }
-  return (n * pupil.entrance.radius) / arm;
+  // **The arm is signed and an NA is not** (§ 5s.5). A VIRTUAL entrance pupil —
+  // one the preceding power throws behind the specimen — gives a negative arm,
+  // and the cone it subtends is the same cone either way: the half-angle is
+  // |r/arm|. Unsigned, this returned a NEGATIVE NA on the shipped default
+  // objective one wavelength off its design line (−0.100517 at 550 nm, the
+  // pupil having crossed through infinity at the d line and come back on the
+  // other side), and `visualDetailRatio` refuses a non-positive NA — so § 6ah's
+  // repair held at the wavelength it was measured at and not beside it. Bitwise
+  // unchanged wherever the arm was already positive, which is every rung § 6ah
+  // pinned.
+  return Math.abs((n * pupil.entrance.radius) / arm);
 }
 
 /**

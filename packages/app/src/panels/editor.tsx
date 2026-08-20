@@ -505,8 +505,17 @@ export function EditorPanel() {
               />
               <Fact
                 label="entrance pupil"
-                value={`r = ${num(result.pupil.entranceRadiusMm, 4)} mm`}
-                note={`at z = ${num(result.pupil.entranceZMm, 3)}`}
+                value={
+                  result.pupil.entranceSlope === undefined
+                    ? `r = ${num(result.pupil.entranceRadiusMm, 4)} mm`
+                    : `tan u = ${num(result.pupil.entranceSlope, 6)}`
+                }
+                note={
+                  result.pupil.entranceSlope === undefined
+                    ? `at z = ${num(result.pupil.entranceZMm, 3)}`
+                    : "at infinity — object-space telecentric, so the aperture is an ANGLE and " +
+                      "there is no semi-diameter to quote (§ 6u, § 5s.5)"
+                }
               />
               <Fact
                 label="exit pupil"
