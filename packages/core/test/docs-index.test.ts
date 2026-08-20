@@ -19,8 +19,15 @@ import { fileURLToPath } from "node:url";
  * convention that erodes. A second pass then spent the slack the first one left
  * — the five rows between 800 and 1500 bytes — so that the ROW cap could come
  * down to where it is the binding constraint, which is what CLAUDE.md's rule
- * actually says. The table is ~15.8 KB against a 20 KB block budget: room for
- * roughly a dozen more one-line rows. When it binds, trim a row. Do not raise
+ * actually says.
+ *
+ * **The slack is gone, and the block budget is what binds now.** § 6am's row was
+ * the one that spent the last of it: the table went to 20370 and the row cap was
+ * not touched, because no row is anywhere near 800 — the fattest is 440. So the
+ * rule ran as written for the first time and four rows paid for the new one
+ * (§ 0, § 3c, § 6aa, and § 6am trimming itself), each by dropping a clause that
+ * restated reasoning already written out under its own heading. The table is
+ * 19972 of 20000: the NEXT row must buy its own space the same way. Do not raise
  * either number — this is the one file in the repo whose whole value is being
  * small, and the reasoning it would be protecting already has a home in the
  * step's own section.

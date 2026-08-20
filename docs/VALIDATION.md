@@ -16,7 +16,7 @@ whole ladder.
 
 | Step | What it pins | Tests |
 |---|---|---|
-| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program** rather than a closed form: sixteen systems traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double, bar the asphere's Newton floor — then misalignment, aimed chief rays, folded frames, and a THIRD tracer so the two references can be compared with the engine out of it | `crosscheck` `crosscheck-optiland` |
+| [0](#step-0--the-exact-tracer-against-an-independent-implementation) | The one rung whose external number is another **program**: sixteen systems traced by `traceRay` and by rayoptics 0.9.9 to the last bits of a double, bar the asphere's Newton floor — then misalignment, aimed chief rays, folded frames, and a THIRD tracer | `crosscheck` `crosscheck-optiland` |
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
@@ -30,7 +30,7 @@ whole ladder.
 | [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
-| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; and the refinement ladder's middle levels dropped, a level being the standalone render at its own patch count; the fidelity criterion read off the trace, so the branch it rules out is not computed | `render` `golden` `geometric` |
+| [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
 | [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
 | [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
 | [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
@@ -83,7 +83,7 @@ whole ladder.
 | [6x](#step-6x--what-telecentricity-is-worth-to-the-illumination) | A correction to four module headers before it is a measurement: the licence for one source at every field point belongs to the OBJECTIVE and not the condenser, so the offset is bitwise zero only on a telecentric lens — and what it costs off axis is § 6p's cache | `telecentric-illumination` |
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
-| [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, the negative control is what stops the identity rungs passing on a no-op, and the columns are declined because realigning a centred block costs the one stage it would buy | `row-band` |
+| [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the columns are declined | `row-band` |
 | [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on what a phase object's harmonics do to the readout that reports them | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | Four sections' shared deferral closed: S_III/S_IV against a closed form carrying NO shape factor, the traced foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false | `mtf-sections` |
@@ -95,6 +95,7 @@ whole ladder.
 | [6aj](#step-6aj--image-space-telecentricity-the-exit-pupils-slope) | § 6u's eleven-step deferral: the exit pupil grows the slope § 5s.5's refusals had nothing to redirect to — `imageNA` returned NaN at the telecentric point and **0** with the sensor on the pupil, and nine listed readers became measurements | `telecentric-image` |
 | [6ak](#step-6ak--the-exit-side-readers-read-the-slope) | § 6aj.6's audit repaired: the six readers that reported a pixel scale of exactly **0** read the slope, two more the list of nine had missed answered ∞ and NaN, and the two it called separately guarded were one guard — lifted, so a telecentric system renders | `telecentric-image` |
 | [6al](#step-6al--scene-content-through-a-telecentric-frame) | A specimen actually put through that path, no engine code added: a clear field at Fresnel's (1 − R)², contrast dying at Abbe's period read off the ENTRANCE pupil so the two rulers stay independent, 2 mm of sensor shift on a bitwise-identical ruler | `telecentric-scene` |
+| [6am](#step-6am--the-self-conjugate-bins-of-the-harmonic-readout) | § 6al.8's defect fixed: the contrast readout doubled every bin, but at k = 0 and k = N/2 the ±k pair is ONE bin and it read 2× high — authored components read back, Rayleigh's variance off the pixels, § 6al.8's reach claim corrected | `harmonic-bin` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -15918,10 +15919,19 @@ has no partner to add. At eight cycles the second harmonic lands on bin 16 of a
 32-pixel grid and the reading comes back **exactly 2× high** — two paths that
 agree to 1e−10 at every other frequency in this step.
 
-It is pinned as the factor it is rather than avoided silently, because
-`app/brightfield.ts` and `app/phase.ts` both form a harmonic bin as h·cycles and
-can reach N/2 with the controls they expose. Fixing it is a change to a readout
-four callers share and is not this step; see "Still open".
+It is pinned as the factor it is rather than avoided silently. Fixing it is a
+change to a shared readout and is not this step; see "Still open".
+
+> **Fixed by [§ 6am](#step-6am--the-self-conjugate-bins-of-the-harmonic-readout),
+> which also corrects the reach this step claimed.** The sentence that stood here
+> — that `app/brightfield.ts` and `app/phase.ts` "both form a harmonic bin as
+> h·cycles and can reach N/2 with the controls they expose" — was wrong in its
+> second half, and § 6am replaces it: every h·cycles path is guarded with a strict
+> `<`, and the panels' own `maxCycles` holds the unguarded *fundamental* reads off
+> Nyquist too. No slider reached the bin. The one reader that did is this step's
+> own sweep, and the honest re-pin count was **one assertion in 2583**, not the
+> four this step estimated. The defect was real and the argument for its urgency
+> was not; § 6am has both.
 
 ### What is not pinned to an external number
 
@@ -15957,11 +15967,123 @@ measurements quoted as measured.
 
 ### Still open
 
-- **`imageHarmonic` reads the Nyquist bin 2× high**, and k = 0 the same way if
+- ~~**`imageHarmonic` reads the Nyquist bin 2× high**, and k = 0 the same way if
   anyone asks it for the DC as an amplitude. § 6al.8 pins the factor; the fix is a
   self-conjugate test on (kx, ky) and it changes a readout that `app/brightfield`,
   `app/phase` and four rungs share, so it wants its own step and its own re-pins.
-  It is a defect and not a convention: no caller could want 2× there.
+  It is a defect and not a convention: no caller could want 2× there.~~
+  **Claimed** by [§ 6am](#step-6am--the-self-conjugate-bins-of-the-harmonic-readout).
+  The fix was the self-conjugate test this entry predicted; the re-pins were one
+  and not four, for the reason recorded above.
+
+## Step 6am — the self-conjugate bins of the harmonic readout
+
+**§ 6al.8's deferral, closed. `imageHarmonic` is the measurement every § 6f rung
+is made with, and it doubled a bin's modulus at every bin — correct wherever the
+±k pair is two bins, wrong at the two places it is one. Six rungs of arithmetic
+with no optics in them, one re-pin, and a correction to what § 6al.8 said about
+who could reach the bad bin.**
+
+### What was wrong
+
+The readout turns a rendered intensity into "how much of this periodicity
+survived", and it did it by doubling one bin's modulus, on the reasoning — stated
+in its own comment — that a real image splits its energy between the +k and −k
+bins. That reasoning is sound and it has a precondition nobody wrote down: that
+the two bins are two bins. They are **one** bin when (−kx, −ky) ≡ (kx, ky) on an
+N-point grid, which is exactly 2k ≡ 0 in each axis, which is **k = 0 and
+k = N/2** — and in 2-D the four corners those make. There the single bin already
+carries the whole component, and doubling it reports twice the modulation the
+image has.
+
+The fix is the predicate and nothing else:
+
+```ts
+const selfConjugate =
+  Number.isInteger(kx) && Number.isInteger(ky) && (2 * kx) % n === 0 && (2 * ky) % n === 0;
+const amplitude = ((selfConjugate ? 1 : 2) * Math.hypot(re, im)) / cells;
+```
+
+Modular rather than `kx === n / 2`, and the difference is not stylistic: the sum
+the readout runs is over cos(2πkx/N), which cannot tell k from k + N, so a
+classification that was not periodic would double a bin at kx = N that it read
+once at kx = 0 — the same measurement, two answers. It also makes an odd N
+correct for free, where only DC qualifies and there is no Nyquist bin at all. The
+integer guard keeps a fractional argument out of a statement about lattice
+points. The return stays a modulus, so the sign is still not reported: at Nyquist
+the alternating −A and +A patterns read alike, as at every other bin.
+
+### The external numbers
+
+There is no engine below this line and that is the point — the claims are
+arithmetic and they are checked against arithmetic, on an image whose Fourier
+components were written down rather than rendered. Five cosines on a 32 grid:
+two ordinary, and the three self-conjugate ones a 2-D even grid has besides DC —
+Nyquist in x, Nyquist in y, and the corner where both are.
+
+| Rung | Claim | Reading |
+| --- | --- | --- |
+| **§ 6am.1 — every authored amplitude comes back, self-conjugate and ordinary alike** | 1e−12, where the last three used to come back at exactly 2× | ✅ |
+| **§ 6am.1 — and a bin nothing was authored at reads f64 zero, so the account is complete** | worst 1.8e−15 over both half-planes | ✅ |
+| **§ 6am.2 — the DC bin's amplitude is the mean and its contrast is 1** | the old answer was twice the mean, which describes no image | ✅ |
+| **§ 6am.3 — Rayleigh's theorem, computed off the pixels and not off the readout** | 1e−12 | ✅ |
+| **§ 6am.3 — and the old formula overshot by exactly 3A² per self-conjugate component** | 0.4575 against a variance of 0.26375 — a claim of 2.73× the energy the pixels hold | ✅ |
+| **§ 6am.4 — an ordinary bin still reads twice its modulus, and its partner is there to be read** | the doubling is untouched wherever it is right | ✅ |
+| **§ 6am.4 — on an ODD grid only DC is self-conjugate, and the middle two bins are an ordinary pair** | N = 31, bins 15 and 16 | ✅ |
+| **§ 6am.5 — k, k + N and −k are one bin and read alike** | 1e−12 over ±N, ±N/2, 3N/2, 5N/2 | ✅ |
+| **§ 6am.5 — and a NON-integer argument is never self-conjugate, whatever it is near** | N/2 + 1e−9 reads 2× N/2, as it should | ✅ |
+| **the re-pin — § 6al.8's bin 16, on the rendered picture that found the defect** | render against closed form, ratio 2.0000000000 → 1 to 7e−13 | ✅ |
+
+**Rayleigh is the anchor**, and the reason is that it is the one rung the old
+formula fails on a number it never touches. The left-hand side is the pixels'
+own mean square about their own mean, computed in a loop that does not call the
+readout. The right-hand side is what the five readings say should be there, with
+weights that are two trigonometric means and not free parameters: ⟨cos²(θx)⟩ = ½
+at an ordinary frequency, ⟨cos²(πx)⟩ = 1 where the cosine is really an
+alternation. Double the self-conjugate readings and their energy becomes 4A²
+where the image holds A², so the accounted variance overshoots by 3A² each. It is
+not a subtle failure — the components would claim 2.7× the energy in the picture.
+
+### What § 6al.8 got wrong about the reach
+
+§ 6al.8 justified pinning the factor rather than fixing it by saying
+`app/brightfield.ts` and `app/phase.ts` "both form a harmonic bin as h·cycles and
+can reach N/2 with the controls they expose". The first half is true and the
+second is not, and it is corrected in place above rather than left standing under
+a step that closes it.
+
+Every h·cycles path is guarded with a strict `<` — `secondBin < size / 2` in both
+panels' frame readouts, `h * cycles < size / 2` in `panelHarmonics`, and
+`floor(size / 2) - 1` as the top of the fluorescence sweep. The h·cycles route is
+the one route that cannot get there. The unguarded reads are the **fundamentals**,
+`imageHarmonic(…, cycles)` in `renderBrightfieldScene` and in the phase panel's
+frame, and those are held off Nyquist one level up by the panels' own
+`maxCycles`: `size / 2 - 1` for brightfield, `floor(size / 4) - 1` for phase. No
+slider reaches the bin. What reaches it is a hand-built request through the
+exported entry points — and a test.
+
+So the honest re-pin count is **one**, and the suite says so rather than the
+argument: the change moved one assertion in 2583. The other files that touch a
+self-conjugate bin ask for `.dc`, which is the mean and was never doubled, or
+read bin 32 of a 128 grid, which is an ordinary bin. **The defect was real and
+the estimate of its blast radius was four times too big**, which is worth as much
+of the record as the fix: a shared readout invites the assumption that everything
+downstream moves, and the way to find out is to change it and run the suite.
+
+### What is not pinned to an external number
+
+Nothing here is this engine against itself except the re-pin, which is
+deliberately a render: § 6am.1–5 would all pass on a readout that was never
+wired to anything, and the bin that actually broke broke in a picture. The
+0.4575 and the 0.26375 are exact rational consequences of the five authored
+amplitudes, quoted as computed.
+
+### Still open
+
+- **Nothing this step opened.** The readout is now correct at every bin it can be
+  asked about, and § 6al's remaining deferrals — colour through the telecentric
+  branch, a shipped `designs/` entry, and a specimen with structure worth looking
+  at — are untouched by it and stand as § 6al left them.
 
 
 ## Later rungs

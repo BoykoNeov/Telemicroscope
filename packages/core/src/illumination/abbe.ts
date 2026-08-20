@@ -737,8 +737,17 @@ export function imageHarmonic(
   }
   const cells = n * n;
   const mean = dc / cells;
-  // A real image splits its energy between the ±k bins, so the cosine
-  // amplitude is twice one of them.
-  const amplitude = (2 * Math.hypot(re, im)) / cells;
+  // A real image splits its energy between the ±k bins, so the cosine amplitude
+  // is twice one of them — at every bin that HAS a partner. A bin is its own
+  // conjugate when (−kx, −ky) ≡ (kx, ky) on the grid, which is exactly 2k ≡ 0 in
+  // each axis: k = 0 and k = N/2, and the four corners they make in 2-D. There
+  // the one bin already carries the whole component, and doubling it reports
+  // twice the modulation that is in the image. The test is modular, so an
+  // argument that aliases (kx = N is bin 0) is classified by the bin it lands on.
+  const selfConjugate =
+    Number.isInteger(kx) && Number.isInteger(ky) && (2 * kx) % n === 0 && (2 * ky) % n === 0;
+  // Still a modulus, so the sign is not reported: at Nyquist the alternating
+  // −A and +A patterns read alike, as at every other bin.
+  const amplitude = ((selfConjugate ? 1 : 2) * Math.hypot(re, im)) / cells;
   return { dc: mean, amplitude, contrast: mean > 0 ? amplitude / mean : 0 };
 }

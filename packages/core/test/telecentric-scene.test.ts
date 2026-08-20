@@ -567,8 +567,15 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     // harmonic is read against the fundamental of the same picture.
     const frame = frameOf(TELECENTRIC);
     const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
-    const expected = [0.004995809761011927, 0.004965595376895924, 0.003440521300677634];
-    [2, 4, 6].forEach((cycles, i) => {
+    // Eight cycles is here because of § 6am and was not before: its 2ν lands on
+    // bin 16, which on a 32 grid is Nyquist and its own conjugate, and the
+    // readout used to double it. It is now the sweep's TOP for a reason that is
+    // the grid's rather than the readout's — ten cycles would put 2ν on bin 20,
+    // which folds back onto bin 12 and would be an alias reported as a beat.
+    const expected = [
+      0.004995809761011927, 0.004965595376895924, 0.003440521300677634, 6.542574753689873e-5,
+    ];
+    [2, 4, 6, 8].forEach((cycles, i) => {
       const { rendered, harmonic } = renderGrating(TELECENTRIC, frame, cycles);
       const second = imageHarmonic(rendered.intensity, frame.size, 2 * cycles, 0);
       const closed = gratingImage(centre.pupil, SOURCE, nuOf(cycles), MOD);
@@ -624,17 +631,21 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     expect(imageHarmonic(nine.rendered.intensity, frame.size, 18, 0).amplitude).toBeLessThan(1e-15);
   });
 
-  it("and the sweep stops below 8 cycles because bin 16 is Nyquist, where the reading is 2× high", () => {
-    // NOT a physics limit and NOT a tolerance — a defect in the MEASUREMENT, and
-    // it is exactly a factor of two. `imageHarmonic` doubles a bin's modulus
-    // because "a real image splits its energy between the ±k bins", which is true
-    // of every bin except k = 0 and k = N/2: the Nyquist bin is its own conjugate
-    // and there is no partner to add. At 8 cycles the second harmonic lands on
-    // bin 16 of a 32 grid, and the render and the closed form — which agree to
-    // 1e−10 at every other frequency in this file — differ by 2.0000000000 there.
+  it("and bin 16 is Nyquist, where the reading used to be 2× high — § 6am's defect, in the picture that found it", () => {
+    // The site § 6al.8 found the readout defect on, kept as the regression guard
+    // for § 6am's fix, because a synthetic image is not the thing that broke: a
+    // rendered one is. `imageHarmonic` doubled every bin's modulus on the
+    // reasoning that "a real image splits its energy between the ±k bins", true
+    // of every bin except k = 0 and k = N/2, which are their own conjugates and
+    // have no partner to add. At 8 cycles the second harmonic lands on bin 16 of
+    // a 32 grid, and the render and the closed form — which agree to 1e−10 at
+    // every other frequency in this file — differed by 2.0000000000 there.
     //
-    // Recorded rather than worked around, because `app/brightfield.ts` and
-    // `app/phase.ts` both compute a harmonic bin as h·cycles and can reach N/2.
+    // Now 1 to 7e−13, which is the same agreement the rest of the file reports,
+    // and the sweep above carries 8 cycles because of it. § 6am owns the general
+    // claim, the arithmetic behind it and the correction to what § 6al.8 said
+    // about which callers could reach the bin — h·cycles is guarded everywhere,
+    // and this test was the one reader that actually got there.
     const frame = frameOf(TELECENTRIC);
     const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
     const { rendered, harmonic } = renderGrating(TELECENTRIC, frame, 8);
@@ -642,6 +653,6 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     const closed = gratingImage(centre.pupil, SOURCE, nuOf(8), MOD);
     const ratio =
       nyquist.amplitude / harmonic.amplitude / (closed.secondHarmonic / closed.fundamental);
-    expect(ratio).toBeCloseTo(2, 10);
+    expect(ratio).toBeCloseTo(1, 10);
   });
 });
