@@ -17095,15 +17095,36 @@ about the band; `poleOrders` is why a caller can tell.
 
 ### Not yet pinned
 
-- **The app catalogue (§ 6ah), still.** Two `designs/` entries exist now and
-  nothing in `packages/app` offers either. That was always a separate step and
-  this one deliberately does not open it; what has changed is that the engine
-  side is no longer the blocker.
-  **Half of that has since moved, and not into the catalogue.** The triplet is
-  now the bench editor's fifth *seed* (APP.md Part E, E2) at this step's own
-  spec — which is a `Prescription`, and therefore not `MICROSCOPE_CATALOG`, a
-  list of microscope objectives a 53 mm telescope triplet does not belong in.
-  § 6ah is unchanged; **`designs/telecentric` still has no caller in the app.**
+- ~~**The app catalogue (§ 6ah), still.**~~ **Both `designs/` entries now have a
+  caller**, and the item as it was written is closed — what remains under that
+  number is not. The triplet became the bench editor's fifth *seed* (APP.md
+  Part E, E2) at this step's own spec, which is a `Prescription` and therefore
+  not `MICROSCOPE_CATALOG`, a list of microscope objectives a 53 mm telescope
+  triplet does not belong in; and `designs/telecentric` got a surface of its own
+  (APP.md **Part O**, `#/telecentric`) rather than a seed, because the entry is a
+  *placement* and what makes it interesting is the wavelength list a seed form
+  has no column for.
+  **What is left under § 6ah has no definition, and inheriting it again would be
+  the third session to carry a queue entry nobody has scoped.** That step's own
+  *Still open* list is entirely struck through, and its app rung — D6.10 walking
+  the whole catalogue — landed with it. The lesson it is cited for did the work
+  here: Part O runs **all four tails** on every frame rather than the one that
+  makes the point, and that is what turned up the finding below.
+  **The panel found a third limit on a quoted wavelength, and it is this file's
+  own § 6ar lesson one rung further in.** A `frontFocal` placement puts the stop
+  at FFD(λ₀), so λ₀ is a root by CONSTRUCTION and has to come back as a
+  crossing — which makes the miss a measured error against a known answer rather
+  than an estimate of one. On two of the four tails it exceeds
+  `crossingUncertaintyNm`: 1.75e−10 nm against 1.00e−10 on the achromat, and
+  **1.87e−9 against 6.90e−10** on § 6aq's triplet, whose d-line crossing has the
+  shallowest slope of any here. § 6ar replaced *"a sign is exact"* with a
+  five-bracket spread; five brackets that all bottom out on the same flat patch
+  of a numerically-zero function agree with each other about a wrong answer, so
+  the spread wants a control of its own. § 6ar.8's arithmetic floor is the honest
+  **lower** bound and the panel reproduces it live at 4.147e−10 nm against this
+  file's stated 4.15e−10 — 4.5× below the measured miss. Nothing in
+  `packages/core` moves: the numbers `telecentricStop` returns are unchanged and
+  correct, and what this adds is a third way to price them.
   What the seed found belongs here because it is about this step's numbers: a
   lens whose EFL is one value at F, d and C makes the panel's colour readout
   read zero, and the axial colour that survives — 17.9 µm on 53 mm, monotonic

@@ -21,6 +21,7 @@ import { SeeingPanel } from "./seeing";
 import { SkyPanel } from "./sky";
 import { SpotPanel } from "./spot";
 import { StagePanel } from "./stage";
+import { TelecentricPanel } from "./telecentric";
 import { TelescopePanel } from "./telescope";
 import { TolerancePanel } from "./tolerance";
 import { WavefrontPanel } from "./wavefront";
@@ -166,6 +167,12 @@ export const PANELS: readonly Panel[] = [
     label: "the bench editor",
     blurb: "ROADMAP v1 — the surface list itself, and the order the aperture says is really there",
     Component: EditorPanel,
+  },
+  {
+    id: "telecentric",
+    label: "the telecentric stop",
+    blurb: "VALIDATION § 6ar — the stop is a millimetre, and how many colours one millimetre can serve",
+    Component: TelecentricPanel,
   },
   {
     id: "design",

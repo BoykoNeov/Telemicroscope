@@ -751,7 +751,12 @@
    and 0.374 mm patches are that one knob at 32 and 128. The residual failure mode
    is discrete membership rather than continuous drift, and it is scale-invariant
    in the step — refining the source cannot reduce it.
-   **Still open here:** image-space telecentricity, which has no caller.
+   ~~**Still open here:** image-space telecentricity, which has no caller.~~ —
+   **closed at § 6aj**, which grew the exit-side slope this sentence is § 6u's
+   own wording of, and shipped as `designs/telecentric` at § 6ar. It carried
+   nine steps past the fix here: the deferral was quoted forward as written
+   rather than re-read against the ladder. The app half followed at APP.md
+   **Part O** (`#/telecentric`).
    *Classic 160 mm (DIN/JIS) architecture:* ✅ `finiteConjugateObjective` /
    `finiteConjugateMicroscope` (§ 6b). The second of the two architectures this
    step names. A DIN objective is not an infinity objective used differently, it

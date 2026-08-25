@@ -625,8 +625,13 @@ const DEFAULT_PUPIL_RAYS = 15;
  * that the default triple refuses at f/5, the steep branch's surfaces having
  * gone past hemispherical — so a seed that "rounded" it to f/10 would be
  * choosing an aperture the ladder never traced.
+ *
+ * **Exported, and to exactly one caller.** `telecentric.ts` places a stop in
+ * front of this same triplet, and a second spelling of five numbers is a second
+ * place for them to drift from the ladder's. Extracted rather than copied, on
+ * the rule `ui.tsx` states for its own guards.
  */
-const TRIPLET_SPEC = {
+export const TRIPLET_SPEC = {
   apertureMm: 5,
   focalRatio: 53 / 5,
   media: ["CAF2", "F2", "N-BK7"],

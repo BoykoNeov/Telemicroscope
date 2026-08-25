@@ -79,6 +79,7 @@ sufficient alone.
 | Part L | `#/curvature` | the two surfaces a flat sensor sits between |
 | Part M | `#/design` | what a number has to be, and the pole that is not a root |
 | Part N | `#/optimize` | several wishes at once, and the leftover that is part of the answer |
+| Part O | `#/telecentric` | the stop that is a millimetre, and how many colours one can serve |
 | ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
 
 ## The baseline: what the app draws today, and its house style
@@ -3960,7 +3961,10 @@ found the focal ratio is not a free choice: the default triple refuses at f/5.
 **This is not the app catalogue.** That item (§ 6ah) is `MICROSCOPE_CATALOG`, a
 list of microscope objectives, and a 53 mm telescope triplet does not belong in
 it. A seed is the right surface for a `Prescription`; the catalogue item stays
-open, and the telecentric tail is still unwired.
+open. ~~The telecentric tail is still unwired.~~ **Wired at Part O**, which gave
+it a surface of its own rather than a seed — the entry is a *placement*, and the
+numbers that make it interesting are the wavelengths it is telecentric at, none
+of which this form has a column for.
 
 - **The panel's chromatic readout was reporting the residual of a correction,
   not the focus range.** `focalShiftMm` is BFD(F) − BFD(C), and a corrected
@@ -5683,6 +5687,188 @@ and simply never had a wish loud enough to expose it.
 - **No writing back.** As in Part M, an answer is a set of values; building the
   lens is a separate explicit step, and sending one to the bench editor would
   couple two panels' state in the way `registry.ts` exists to prevent.
+
+## Part O — the stop that is a millimetre — *app wiring only* — ✅ **landed** — **a plot and three tables**
+
+§ 6ar shipped two `designs/` entries and this app offered neither. Half of that
+closed when the cemented triplet became Part E's fifth seed (E2 above); the other
+half is that **`designs/telecentric` had no caller anywhere in `packages/app`** —
+the ladder's own queue says so in those words, and it had been true since the
+entry landed. This is that caller, and it is `#/telecentric`.
+
+It is the `curvature.ts` shape for the second time: a validated capability whose
+numbers had nowhere to be read. **No engine capability is added and no rung is
+appropriate** — everything here is `telecentricStop` plus arithmetic on what it
+returns, which is Part F's precedent that a ladder rung for app wiring would be a
+category error. `packages/app/test/telecentric.test.ts` carries 20.
+
+**This still does not close § 6ah**, and a section claiming it did would be
+wrong. That item is `MICROSCOPE_CATALOG` — a list of microscope objectives — and
+§ 6ah's own *Still open* list is entirely struck through. What was open under
+that heading and had a definition was the missing caller; what is left under it
+has none. The queue entry wants re-scoping or dropping rather than inheriting
+again.
+
+### Two controls, because the entry refuses to be one
+
+`designs/telecentric` will not be a preset list and says why in its own header:
+§ 6aq measured that the tail and the placement are **independent knobs**. The
+glass decides how many times the front focal distance FFD(λ) turns around inside
+the band; the placement decides whether a pole is crossed or merely touched. A
+control offering *singlet telecentric / doublet telecentric / triplet
+telecentric* would fuse them back together and hide the finding the entry exists
+to state, so the two are separate here and **every combination is reachable,
+including the ones that refuse**.
+
+That matters more than it sounds. A reader who picks *at a turn* on the singlet
+gets the engine's own sentence — its front focal distance is monotone across the
+visible, so there is no double-root placement to ask for — which is the clearest
+statement on the page of what a second and third glass buy: not sharpness,
+another colour the same millimetre can serve. The refusal is a **feature of the
+surface**, not an error state, and it sits on the panel's own default list rather
+than being reachable only by a wrong entry.
+
+### The plot is the argument
+
+FFD(λ) across the band, with the chosen placement as a horizontal line across it.
+Every meeting is a wavelength the system is image-space telecentric at, so *a
+curve with k interior turns meets a horizontal line at most k+1 times* stops
+being an assertion and becomes something a reader counts off the picture. That
+bound is where § 6ap's deferral went wrong — it predicted four crossings from two
+turns, which needs three — and the panel prints the count against the bound
+rather than printing the bound as a rule.
+
+**The bound is not tight, and the panel's own table is what says so.** The steep
+branch of the same triplet has one turn and one crossing: its turn sits at
+383.6 nm, 3.6 nm inside the band, and the curve never comes back down to the
+d-line level afterwards. Three of the four tails reach the bound and one does
+not, which is the difference between a bound and a formula.
+
+### Three limits on a quoted wavelength, and the third is new
+
+This is the part with a history, and the history is why the panel was built this
+way. § 6aq.4 pinned a crossing to nine decimals on the argument that a sign
+change is exact; § 6ar found nine was the *bracket*. A panel that printed
+`telecentricWavelengthsNm` raw would commit that error on screen at sixteen
+digits instead of nine, so **nothing is displayed to more digits than something
+measured supports** — pinned as an invariant over every wavelength the panel can
+show, not left as a formatting choice.
+
+Three different things set that limit, and the coarsest wins:
+
+1. **What the search located.** `telecentricStop` returns `crossingUncertaintyNm`
+   and `turnUncertaintyNm`, each the spread of its own search run from five
+   brackets. Turns are a √ε business and their spread (1e−4 nm and up) swamps
+   everything; crossings are an ε business at ~1e−10 nm.
+2. **What the arithmetic can carry.** FFD(λ) minus the placement is a difference
+   of two numbers near 53 mm, so it holds nothing below 53·ε; divide by the slope
+   the curve crosses at and the result is a wavelength. The adapter *evaluates*
+   § 6ar's derivation rather than restating it, and on the triplet's d-line
+   crossing it computes **4.147e−10 nm** against that step's stated 4.15e−10 —
+   a check on the derivation, not a second claim.
+3. **The round trip, which is this panel's own finding.** A `frontFocal`
+   placement puts the stop at FFD(λ₀), so **λ₀ is a root by construction** and
+   has to come back as one of the crossings. How far off it comes back is a
+   measured error *against a known answer* — the only one of the three that is —
+   and on two of the four tails it is **larger than the five-bracket spread**:
+   1.75e−10 nm against 1.00e−10 on the achromat, and 1.87e−9 against 6.90e−10 on
+   § 6ar's triplet, whose d-line crossing has the shallowest slope here.
+
+**The five-bracket spread is itself optimistic.** Five brackets that all bottom
+out on the same flat patch of a numerically-zero function agree with each other
+about a wrong answer, and the round trip is what catches it. This is the same
+shape § 6ar found in § 6aq, one rung further in: § 6ar replaced *"a sign is
+exact"* with a measured spread, and the spread needs a control of its own. The
+arithmetic floor is the honest **lower** bound — the round trip is 4.5× it on
+that crossing — which is why all three are kept rather than one being chosen.
+
+Each of the three wins somewhere across the four tails: arithmetic on the singlet
+(whose five brackets agree bitwise, and a measured spread of zero is not a
+statement that the answer is exact), the round trip on the achromat and the
+triplet, the bracket spread on the steep branch. **A rule that only ever fired
+one way would not have been tested by anything**, and this one is exercised in
+all three directions by the panel's own default list.
+
+One consequence worth stating separately: a touched pole is quoted against the
+**turn** search, four orders coarser than a crossing's, because `telecentricStop`
+adds it from the placement rather than bisecting for it — a double root has no
+sign change to find. Quoting it against the crossing spread would be borrowing
+the precision of a search that never ran on it.
+
+### The per-crossing orders, and why one word was not enough
+
+§ 6ap.5 found that a turn placement makes the whole band defocus one way. That is
+true of a tail with **one** turn, and § 6ar put the same placement on a tail with
+two: the curve, having turned twice, comes back down to that level at the red
+end, so the pole is touched at 498.76 nm and still **crossed** at 728.43. The
+design-wavelength readout says `"double"` on both. The panel reads the
+per-crossing list everywhere, and the survey table carries the same distinction,
+so neither can print a word that means the opposite of what the lens does.
+
+### Every tail, which is the point of citing § 6ah
+
+§ 6ah's finding is that *choosing one fixture* was the failure — D6.10 walks the
+whole catalogue rather than adding a second chosen row. Each of §§ 6ak–6aq built
+its own single tail and each one hid something the next one found, so the survey
+table runs **all four on every frame** (~25 ms) rather than quoting three of them
+from prose, on Part L's rule that a comparison in prose is a number that can go
+stale while the page still looks right. It reports *which* refusal a tail without
+a turn gives, not a bare `ok === false`: a singlet's is about the glass and an
+out-of-range index is about the request, and a caller can act on the second and
+not on the first.
+
+The same rule produced the live reading of § 6ap's **3.8 µm** between the two
+placements — "the entire design decision, and a number a mount has to hold" —
+computed from a second call rather than quoted.
+
+### Two small things the enumeration would have missed
+
+- **The dummy stop's aperture is the tail's, not the fixtures' 30 mm.**
+  `stopSemiApertureMm` defaults to 30 because §§ 6ak–6aq's fixtures use it. On
+  the 5 mm triplet that is a twelvefold oversize plane standing in front of the
+  lens as the system's only flagged surface, and `trace/system` takes the first
+  flagged one — harmless for everything this panel shows, which is paraxial and
+  aperture-free, and wrong for anything traced through the same prescription
+  later. The substitution is free **only if it moves nothing**, so the test pins
+  every reported number bitwise identical either way rather than assuming it.
+- **One triplet, one spelling.** `editor.ts`'s `TRIPLET_SPEC` is exported to
+  exactly one caller instead of being typed a second time, because a second
+  spelling of five numbers is a second place to drift from what § 6ar traced —
+  and that seed's own note records that the focal ratio is not a free choice.
+  A test compares the panel's tail against the bench editor's fifth seed radius
+  by radius.
+
+### The app's two sentences, and the engine's rest
+
+Part F's rule is that an app sentence must not wear the engine's voice. Every
+refusal here is the engine's except two, and neither is about optics:
+
+- **The design wavelength must lie inside the band the panel searches.**
+  `telecentricStop` has no opinion — the band is a search window, not a property
+  of the lens, and it will happily place a stop at FFD(900 nm) and report
+  crossings that do not include it. The test pins both halves: that the app
+  refuses it, and that the engine does not.
+- **The band is at most 2 000 nm wide.** The engine walks it at a *fixed*
+  0.1 nm for the turns and 0.05 nm for the crossings, so the cost is linear in
+  the width — fine for a caller running one search offline, and not fine behind a
+  free-typed field where a mistyped exponent is ten million steps. Checked
+  *before* either entry point rather than inside one, because a bound on cost
+  that arrives from inside the search has already been paid.
+
+Both are marked `source: "app"`, and the panel prints them with the app's clause
+rather than the engine's.
+
+A stop that is telecentric **nowhere** in the band is the opposite case and is
+deliberately not a refusal. The gap is buildable and no colour reaches it; that
+is a finding about the design, and the table says so in words rather than the
+page going red.
+
+### Cost
+
+4.5–8 ms per tail, measured in node: the coarse walks are 4 200 and 8 400
+evaluations of a two-ray paraxial trace and the searches are 200 iterations each.
+Inline, no worker, on Part L's precedent — and the whole four-tail survey is
+~25 ms, which is what lets the page recompute every row on every frame.
 
 ## What the app itself needs to hold this
 
