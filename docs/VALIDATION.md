@@ -17206,6 +17206,7 @@ it on the area element, and E never appears in either.
 | **§ 6as.5 — NEGATIVE CONTROL: without det J the flux is wrong by the distortion** | 1.047e−5 on axis, ×4 per doubling of field, 1.816e−3 at 2 mm | ✅ |
 | **§ 6as.6 — the point limit: the disc lands where § 6i's bead lands** | 2.074e−5 px at 8 px across, falling ×4.006 as the disc halves | ✅ |
 | **§ 6as.7 — an extended fluorescent specimen images, chain unchanged** | flux through `renderFluorescence` to 1e−6; the peak falls, so it imaged | ✅ |
+| **§ 6as.8 — the residual tabulation costs the DERIVATIVE what it never cost the height** | height flat at 1 ulp; slope 7.1e−15 → 1.45e−13 as the spacing falls ×16 | ✅ |
 
 ### The table is required, and that is not a convenience
 
@@ -17330,6 +17331,36 @@ so the quadrature's first moment cancels by symmetry however coarse it is. This
 rung's disc sits at 0.5 mm off axis, where det J varies *across* the disc — so
 there is a real first moment to find, and finding it converging as R² is a
 stronger statement than finding zero would have been.
+
+### § 6s.6's null does not extend to the derivative
+
+§ 6s offers two tabulations — the height itself, or the height minus the map's
+own first-node slope — and § 6s.6 measured the second as worth **nothing**: a
+cubic reproduces a linear function exactly, so subtracting the linear part and
+adding it back is a null, and it said so as a measurement rather than an
+argument.
+
+Both new readouts have to add that linear part back as well, the derivative by
+`slope` and the height by `slope·r`, and a dropped term would have been invisible
+to every other rung here — all of which run on the default. So the two forms are
+pinned against each other, and the pin found something § 6s.6 had no reason to
+look for. **The null holds for the height and fails for the derivative.** The
+residual table's entries carry ulp(h) of cancellation from the subtraction, and
+differentiating divides by the node spacing, so that cancellation is amplified by
+**1/spacing** where the height's never is:
+
+| nodes | spacing | height disagreement | slope disagreement |
+|---|---|---|---|
+| 32 | 6.25e−2 mm | 4.4e−16 | 7.1e−15 |
+| 128 | 1.56e−2 mm | 4.4e−16 | 2.9e−14 |
+| 512 | 3.91e−3 mm | 4.4e−16 | 1.5e−13 |
+
+The height column is flat at one or two ulps across a ×16 of node count, which is
+§ 6s.6 restated; the slope column grows ×20 over the same range. It is documented
+rather than refused, because 2.9e−14 at the node count in use sits two orders
+under § 6as.3's own 3e−12 floor — but a caller tabulating a residual map *and*
+pushing the node count up is making the derivative worse in exchange for nothing,
+and that is now written down where `RadialTabulation` is chosen.
 
 ### Still open
 

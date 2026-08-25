@@ -99,7 +99,18 @@ export type RadialTabulation =
    * rounds at the same place. Measured, not argued.
    */
   | "height"
-  /** Height minus the map's own first-node slope — the negative control. */
+  /**
+   * Height minus the map's own first-node slope — the negative control.
+   *
+   * **Not** a neutral choice for `heightSlopeAt` and `objectAreaPerImageArea`,
+   * even though § 6s.6 measured it as neutral for `heightAt`. The subtraction
+   * leaves ulp(h) of cancellation in every entry, and differentiating divides by
+   * the spacing, so the derivative disagrees with the `"height"` form as
+   * 1/spacing — 7.1e−15 at 32 nodes and 1.5e−13 at 512, where the height stays
+   * flat at one ulp (§ 6as.8). Harmless at the node counts in use, two orders
+   * under § 6as.3's floor, and worth knowing before raising the node count on a
+   * residual map: it makes the derivative worse and the height no better.
+   */
   | "residual";
 
 export interface RadialMapOptions {
@@ -271,22 +282,28 @@ export function buildRadialMap(system: OpticalSystem, options: RadialMapOptions)
     return { k, t: s - k, y0: k === 0 ? -table[1]! : table[k - 1]! };
   };
 
-  const heightAt = (radiusMm: number): number => {
-    const { k, t, y0 } = stencilAt(radiusMm);
-    const v = lagrange4(y0, table[k]!, table[k + 1]!, table[k + 2]!, t);
+  type Stencil = { k: number; t: number; y0: number };
+  const heightFrom = (st: Stencil, radiusMm: number): number => {
+    const v = lagrange4(st.y0, table[st.k]!, table[st.k + 1]!, table[st.k + 2]!, st.t);
     return tabulate === "residual" ? v + slope * radiusMm : v;
   };
-
-  const heightSlopeAt = (radiusMm: number): number => {
-    const { k, t, y0 } = stencilAt(radiusMm);
-    const v = lagrange4Slope(y0, table[k]!, table[k + 1]!, table[k + 2]!, t) / spacingMm;
+  const slopeFrom = (st: Stencil): number => {
+    const v = lagrange4Slope(st.y0, table[st.k]!, table[st.k + 1]!, table[st.k + 2]!, st.t) / spacingMm;
     // The residual table is h − slope·r, so its derivative is dh/dr − slope and
-    // the linear part comes back the same way `heightAt` adds it back.
+    // the linear part comes back the same way `heightFrom` adds it back. § 6as.8
+    // pins the two tabulations against each other rather than trusting this.
     return tabulate === "residual" ? v + slope : v;
   };
 
+  const heightAt = (radiusMm: number): number => heightFrom(stencilAt(radiusMm), radiusMm);
+  const heightSlopeAt = (radiusMm: number): number => slopeFrom(stencilAt(radiusMm));
+
   const objectAreaPerImageArea = (radiusMm: number): number => {
-    const radial = heightSlopeAt(radiusMm);
+    // ONE stencil for both factors — this runs per pixel in
+    // `rasterizeEmitterDensity`, and selecting the interval twice would also
+    // pay the range check twice for a radius that cannot have moved.
+    const st = stencilAt(radiusMm);
+    const radial = slopeFrom(st);
     if (!(radial > 0)) {
       throw new Error(
         `RadialMap: dh/dr is ${radial} at ${radiusMm} mm — the chief-ray map is not ` +
@@ -298,7 +315,7 @@ export function buildRadialMap(system: OpticalSystem, options: RadialMapOptions)
     // central pixel a closed form — 1/M² on a system that images at M (§ 6as.1)
     // — rather than a division of two small numbers.
     if (radiusMm === 0) return radial * radial;
-    return (heightAt(radiusMm) / radiusMm) * radial;
+    return (heightFrom(st, radiusMm) / radiusMm) * radial;
   };
 
   return {

@@ -295,9 +295,79 @@ describe("§ 6as — the extended fluorescent specimen", () => {
     const exponent = logSlope(logR, logErr);
     // Measured −1.3415. Reported as sitting INSIDE the bracket, not as a law:
     // the true exponent is an open problem, so a rung claiming one would be
-    // claiming more than mathematics knows.
-    expect(exponent).toBeLessThan(-4 / 3 + 0.02);
+    // claiming more than mathematics knows. The bound is the bracket itself and
+    // not the bracket plus slack — the placements are a deterministic
+    // golden-ratio walk, so 0.008 of headroom is all there is and all that is
+    // needed.
+    expect(exponent).toBeLessThan(-4 / 3);
     expect(exponent).toBeGreaterThan(-3 / 2);
+  });
+
+  it("§ 6as.8 — the residual tabulation costs the DERIVATIVE what it never cost the height", () => {
+    // § 6s tabulates either the height or the height minus the map's own
+    // first-node slope, and § 6s.6 found the residual form buys **nothing**: a
+    // cubic reproduces a linear function exactly, so subtracting the linear part
+    // first and adding it back is a null. Both new readouts have to add that
+    // linear part back too — the derivative adds `slope`, the height adds
+    // `slope·r` — and a dropped term would be invisible to every rung above,
+    // all of which run on the default. Hence this rung.
+    //
+    // It found something § 6s.6 could not have: the null does NOT extend to the
+    // derivative. The residual table's values carry ulp(h) of cancellation from
+    // the subtraction, and `lagrange4Slope` divides by the node spacing — so the
+    // disagreement is **amplified by 1/spacing**, where the height's is not.
+    const at = (nodes: number) => {
+      const options = { maxRadiusMm: 2, nodes, wavelengthNm: LAMBDA } as const;
+      const height = buildRadialMap(SYSTEM, { ...options, tabulate: "height" });
+      const residual = buildRadialMap(SYSTEM, { ...options, tabulate: "residual" });
+      let slope = 0;
+      let area = 0;
+      let h = 0;
+      for (let i = 1; i <= 200; i++) {
+        const r = (2 * i) / 200.5;
+        slope = Math.max(slope, Math.abs(residual.heightSlopeAt(r) / height.heightSlopeAt(r) - 1));
+        area = Math.max(
+          area,
+          Math.abs(residual.objectAreaPerImageArea(r) / height.objectAreaPerImageArea(r) - 1),
+        );
+        h = Math.max(h, Math.abs(residual.heightAt(r) / height.heightAt(r) - 1));
+      }
+      return { slope, area, h };
+    };
+
+    const coarse = at(32);
+    const fine = at(512);
+
+    // The HEIGHT is § 6s.6's null at both ends — one or two ulps, and flat in
+    // the node count, which is what "buys nothing" means.
+    expect(coarse.h).toBeLessThan(1e-15);
+    expect(fine.h).toBeLessThan(1e-15);
+    expect(fine.h / coarse.h).toBeLessThan(3);
+
+    // The DERIVATIVE is not. It grows with the node count — ×16 of spacing buys
+    // ×20 of disagreement — which identifies the mechanism, since nothing about
+    // the map itself got worse.
+    expect(coarse.slope).toBeGreaterThan(coarse.h * 4);
+    expect(fine.slope / coarse.slope).toBeGreaterThan(8);
+
+    // It stays far below what the table is worth anyway (§ 6as.3's 3e-12 floor),
+    // so this is a documented property and not a refusal: 2.9e-14 at the node
+    // count every rung here uses.
+    expect(at(NODES).slope).toBeLessThan(1e-13);
+    expect(at(NODES).area).toBeLessThan(1e-13);
+
+    // And the residual form still reaches the same external number on the axis,
+    // which is where a dropped `slope` would be least visible — the derivative
+    // there IS the whole of the linear part.
+    const residual = buildRadialMap(SYSTEM, {
+      maxRadiusMm: 2,
+      nodes: NODES,
+      wavelengthNm: LAMBDA,
+      tabulate: "residual",
+    });
+    expect(Math.abs(residual.objectAreaPerImageArea(0) * NAMEPLATE * NAMEPLATE - 1)).toBeLessThan(
+      1e-12,
+    );
   });
 
   it("§ 6as.5 — NEGATIVE CONTROL: without det J the flux is wrong by the distortion", () => {
