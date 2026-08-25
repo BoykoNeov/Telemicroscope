@@ -11,6 +11,7 @@ export * from "./specimen";
 export * from "./mosaic";
 export * from "./mosaic-spectrum";
 export * from "./fluorescence";
+export * from "./emitter-density";
 export * from "./emission";
 export * from "./volume";
 export * from "./depth-aberration";

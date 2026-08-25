@@ -484,9 +484,13 @@ export interface PointEmitter {
  * That rasterizer is now `imaging/specimen` (§ 6n), and the distinction it
  * draws is the reason this one stays: it warps an amplitude **transmittance**,
  * which is a property of a point and needs no Jacobian. Emitters are a
- * **density**, so an extended emitter field would need det J — § 6n names it,
- * and placing points through their own chief rays is how this function avoids
- * ever having to. § 6n.1 pins the two rasterizers to one pixel convention.
+ * **density**, so an extended emitter field needs det J — § 6n named it and
+ * § 6as built it, in `imaging/emitter-density`. Placing points through their own
+ * chief rays is how *this* function avoids ever having to, which is why it stays
+ * rather than being replaced by the general one. § 6n.1 pins the first two
+ * rasterizers to one pixel convention and § 6as.6 pins the third to them — on
+ * centroid, because a bilinear splat and a point sample cannot agree pixel for
+ * pixel without one of them being measured instead of the optics.
  *
  * Bilinear splatting, `imaging/scene`'s convention and for its reason: a bead
  * between pixels must land between pixels, or moving one produces a brightness

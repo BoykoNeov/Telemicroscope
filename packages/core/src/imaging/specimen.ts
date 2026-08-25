@@ -49,14 +49,18 @@ import { requireRadialMapMatches, type RadialMap } from "./radial-map";
  * to more of the image, and § 6m.4's ratio-3 anisotropy is exactly det J
  * departing from 1.
  *
- * **The deferral this makes explicit:** an extended *fluorescent* specimen is an
- * emitter **density**, and warping one without multiplying by det J would move
- * flux between pixels. § 6i's `rasterizeEmitters` sidesteps it — a point emitter
- * is placed through its own traced chief ray, so there is no density to
- * transform — and that is why beads were the branch's first specimen. An
- * extended emitter field needs the Jacobian, and it is not built here. Unusually
- * for this engine, **energy is a real witness there**, which is worth saying
- * given how often § 6g.2 and § 6k.4 record that it is not.
+ * **The deferral this made explicit, closed by § 6as:** an extended
+ * *fluorescent* specimen is an emitter **density**, and warping one without
+ * multiplying by det J would move flux between pixels. § 6i's
+ * `rasterizeEmitters` sidesteps it — a point emitter is placed through its own
+ * traced chief ray, so there is no density to transform — and that is why beads
+ * were the branch's first specimen. The Jacobian is not built *here*, and that
+ * has not changed: it is `imaging/emitter-density`, which needs the derivative
+ * of the map this module only evaluates. Unusually for this engine, **energy is
+ * a real witness there**, which is worth saying given how often § 6g.2 and
+ * § 6k.4 record that it is not — and § 6as.4 found that it has two rates, an
+ * error function for a smooth density and the Gauss circle problem's open
+ * exponent for a hard edge.
  *
  * ## Cost, measured
  *

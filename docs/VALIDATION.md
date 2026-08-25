@@ -101,6 +101,7 @@ whole ladder.
 | [6ap](#step-6ap--an-achromatic-telecentric-tail) | An achromatic tail turns FFD(λ) around inside the band, so telecentricity holds at TWO wavelengths and the rescale reverses twice — unless the stop sits at the turn | `telecentric-achromat` |
 | [6aq](#step-6aq--an-apochromatic-telecentric-tail) | Three united colours put TWO turns in FFD(λ), so a stop is telecentric THREE times, not the deferral's four, and which spherical-null bending is built decides three or one | `telecentric-apochromat` |
 | [6ar](#step-6ar--the-telecentric-designs-ship) | The last two solves leave the test files: `designs/apochromat` and `designs/telecentric` rebuild §§ 6ap–6aq to the digit — and § 6aq.4's ninth decimal was the bracket | `telecentric-design` |
+| [6as](#step-6as--the-extended-fluorescent-specimen) | An emitter is a DENSITY, so warping one needs det J = (h/r)·(dh/dr) — 1/M² on the axis; a Gaussian’s loss is erf exactly, a hard edge’s the Gauss circle problem’s open exponent | `emitter-density` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -6778,10 +6779,14 @@ refusals, and the second is C4's lesson applied before it could bite:
   object height, to a field angle by table, and to a field angle by bisection.
   Deferred on § 6s's own argument: § 3c's rungs pin the render, and an
   interpolant underneath them would mean they pinned the interpolant.
-- **The extended *emitter* deferral is still `imaging/specimen`'s.** The
-  factorization here is what such a step would need, and it transplants; the
-  microscope's version has a different map and its own rungs, and nothing in
-  this step closes it.
+- ~~**The extended *emitter* deferral is still `imaging/specimen`'s.**~~
+  **Claimed by [§ 6as](#step-6as--the-extended-fluorescent-specimen).** The
+  prediction held exactly: the factorization transplanted, with `sin θ` replaced
+  by an object height, and the microscope's version did have its own map and its
+  own rungs. What the prediction missed is that the *residual* does not
+  transplant — a sky radiance is authored smooth and a specimen has edges, so
+  § 6as.4 had to split one convergence rate into two, an error function and an
+  open exponent from number theory.
 - **A real limb-darkening coefficient**, a planetary albedo map, and lunar
   terrain. The law is pinned; `u` for an actual star is measured data, and the
   same rule that keeps real dye spectra out of § 6i keeps it out of here.
@@ -17152,6 +17157,197 @@ about the band; `poleOrders` is why a caller can tell.
   moves one curvature at a time and reads the focal length. Thicknesses, wedge,
   centring, and the couplings between them are untouched; a real tolerance
   analysis is a different exercise.
+
+## Step 6as — the extended fluorescent specimen
+
+**`imaging/specimen`'s named deferral, closed — and it is the deferral three
+modules stated from three sides. § 6i imaged beads and said why it could: a
+point emitter is placed through its own traced chief ray, so there is no density
+to transform. § 6n built the warped-grid rasterizer and said why it needs no
+Jacobian either: an amplitude transmittance is a property *of a point*, so
+warping it is pure coordinate substitution. § 5v then built the Jacobian for the
+sky and said, in its own header, that the factorization it had just derived was
+what the microscope's half would need and that it was not closing it. One
+function closes all three.**
+
+No optics arrive with this step. Every ray it needs was traced by § 6s; what is
+new is that the map is **differentiated** rather than only evaluated, and the
+whole of the step is the question of what that derivative can be measured
+against.
+
+### The Jacobian is one scalar, and the axial symmetry is why
+
+A pixel at image radius r looks at object height h(r) and covers `r·dr·dφ` of
+image plane against `h·dh·dφ` of specimen, so
+
+    dA_object / dA_image = (h/r) · (dh/dr)
+
+— a **tangential** factor times a **radial** one, each a function of r alone.
+That is § 5v's derivation with `sin θ` replaced by `h`, and it earns the same
+remark: no off-diagonal term exists to compute, because the systems are axially
+symmetric. § 6m.4's anisotropy is this product, written as a product.
+
+The two factors are what make the step pinnable without a fit anywhere. On the
+axis they go to the same limit, so the area element is `(dh/dr)²` — **1/M²**,
+the objective's nameplate and not a number this engine chose. Away from it,
+third-order distortion `r = M·h·(1 + E·h²)` moves the tangential factor by
+−E·h² and the radial one by −3E·h², so the **ratio of their departures is 3**
+and the coefficient cancels. § 6m.4 pinned that ratio on the map; § 6as.2 pins
+it on the area element, and E never appears in either.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6as.1 — the area element on the axis is 1/M², the objective's nameplate** | (dh/dr)²·16 − 1 = 4.885e−14, § 5v's 1/f² one branch over | ✅ |
+| ...and it is the LIMIT of the real map: the approach is quadratic, ×100 per decade of r | 4.5e−14 → 4.5e−12 → 4.5e−10 → 4.5e−8, and f64 zero by 1e−8 mm | ✅ |
+| **§ 6as.2 — the two factors depart in the ratio 3, with nothing fitted** | 2.999992 at 0.125 mm, monotone to 2.998045 at 2 mm; E cancels | ✅ |
+| **§ 6as.3 — the derivative comes off a table; the BEST differenced step is worse** | 1.288e−12 against 7.987e−12 over seven steps, and the best step is unknowable | ✅ |
+| **§ 6as.4 — a Gaussian's residual is the frame truncation, and that is erf** | 1 − erf(√2·a/w)², four decades from 1.27e−4 to 5.29e−11, tracked to 1% | ✅ |
+| ...and a hard edge's residual is the Gauss circle problem's OPEN exponent | −1.3415, inside Sierpiński's −4/3 and the conjectural −3/2 | ✅ |
+| **§ 6as.5 — NEGATIVE CONTROL: without det J the flux is wrong by the distortion** | 1.047e−5 on axis, ×4 per doubling of field, 1.816e−3 at 2 mm | ✅ |
+| **§ 6as.6 — the point limit: the disc lands where § 6i's bead lands** | 2.074e−5 px at 8 px across, falling ×4.006 as the disc halves | ✅ |
+| **§ 6as.7 — an extended fluorescent specimen images, chain unchanged** | flux through `renderFluorescence` to 1e−6; the peak falls, so it imaged | ✅ |
+
+### The table is required, and that is not a convenience
+
+`rasterizeSpecimen` takes a `RadialMap` as an **option**, on § 6s's own argument:
+its rungs pin the exact map, and an interpolant underneath them would mean they
+pinned the interpolant. `rasterizeEmitterDensity` **requires** one, and the
+reason is the reason § 5v gives for tabulating at all — a Jacobian is a
+derivative, and a derivative differenced from a per-pixel search carries √ε/h
+noise that would swamp the pins it exists to be checked against.
+
+That was worth measuring rather than repeating. § 6as.3 sweeps seven step sizes
+through a central difference of `objectHeightForImageRadius` and takes the best
+one: **7.99e−12**, against the cubic's **1.29e−12**. The table wins by 6.2× —
+and the sweep is the point, because a caller has no way to find that best step,
+and the two steps either side of it are 8× and 22× worse. The cost runs the same
+direction: 129 bisections for a whole frame against two *extra per pixel*, so
+the extended emitter is the one rasterizer on this branch that is **cheaper**
+than the exact path rather than dearer.
+
+**A hypothesis that did not survive being measured, recorded because it was
+load-bearing.** § 6s tabulates the *inverse* map, and each of its nodes is a
+bisection; § 5v deliberately tabulates *forward*, one smooth trace per node and
+"no search anywhere". The obvious inference is that a derivative off § 6s's
+table inherits the bisection's noise and that this step needs a forward table of
+its own. It does not. Built both ways on the same objective, the two families
+have the same smoothness floor — max |2nd difference| of dh/dr over a fine
+sweep, **8.252e−12** against **8.241e−12** — the same self-convergence stall at
+~2.4e−12, and agree with each other to 7% at the node count a caller would use.
+The floor is the **traced chief ray's own rounding**, inherited equally, and the
+bisection contributes nothing to it because it runs to mantissa exhaustion
+against that same trace. So no second module was built, and `RadialMap` gained
+two methods instead. More than ~128 nodes buys nothing here, which is a
+different floor from § 6s.2's and had to be measured separately: that one is
+about the *height*, this one about its derivative.
+
+### Energy is a real witness, and it has two different residuals
+
+Because a density is being transformed, total flux is a genuine check — worth
+saying given how often § 6g.2, § 6k.4 and § 6r.2 record that it is not. It is a
+**converging** witness rather than an exact one, for § 5v.6's reason: the
+density is point-sampled at each pixel's own object point, § 6n's convention, so
+the warp stays in the argument and nothing is resampled — and a point sample of
+a density integrates its cell only in the limit.
+
+What this step adds to § 5v.6 is that the limit has **two different rates**, and
+separating them is what makes either one a pin.
+
+A **Gaussian** has no edge. Its residual is therefore not sampling at all — it
+is the tail outside the square frame, and that is the error function exactly:
+`∫∫_square = (πw²/2)·erf(√2·a/w)²`. Measured against that closed form over four
+decades of truncation, 1.27e−4 down to 5.29e−11, the rasterizer tracks it to
+**within 1%** — and the 0.14%…1.0% that is left is the point sampling, growing
+as a share exactly as the truncation shrinks past it. Push the waist smaller
+still and the closed form falls under the f64 summation floor and the comparison
+stops meaning anything, which is where the rung stops.
+
+A **disc** is all edge. Point-sampling a discontinuity miscounts the area by the
+lattice-point discrepancy of a circle — the **Gauss circle problem**, open since
+Gauss. Sierpiński's 1906 bound puts the count error at O(R^(2/3)), so the
+relative error against R² falls as R^(−4/3); the conjectured average behaviour
+R^(1/2) would give R^(−3/2). Measured, averaged over sixteen sub-pixel
+placements: **−1.3415**, inside that bracket. It is reported as *inside a
+bracket* and not as a law of its own, on § 6ao.9's discipline — the true exponent
+is an open problem, and a rung claiming one would be claiming more than
+mathematics knows.
+
+**This is the one place where a rung here goes further than § 5v.5, and the
+difference is the averaging rather than the physics.** § 5v.5 met the same
+lattice count on the sky, watched the residual *change sign* between disc sizes,
+and refused to claim any rate at all: "a sequence like this does not have one".
+That refusal was right for what it measured. A single placement's residual is
+the lattice accident — *which* pixel centres happen to fall inside this
+particular circle at this particular offset — and it scatters between ×1.5 and
+×3.6 per doubling here too, sign included. Averaging |residual| over sixteen
+sub-pixel offsets is what turns the accident into the law, and only then is
+there an exponent to bracket. § 5v.5's claim stands unchanged; what is new is a
+different measurement, not a correction.
+
+`discEmitter` keeps its hard edge for exactly this reason, as `uniformDisc` does
+one branch over: a soft edge would make the rung pass and delete what it
+measures.
+
+### What the negative control costs, in a number that was already recorded
+
+§ 6as.5 is the rung that says the module needed to exist. The rasterizer a
+caller would write without thinking treats the object grid as uniform —
+`objectPixelScaleMm` squared per pixel — which is the **linear reference**, so it
+is nearly right on the axis and wrong off it by exactly the distortion.
+
+Nearly, not exactly: on an *axial* tile the naive grid is already wrong by
+**1.047e−5**, because a tile has extent. § 6n.3 recorded that same number from
+the other side and did not know what to do with it — total |t|² drifting "by
+1e−5 growing as the field's square, which is det J − 1", called "far too small
+to have caught a broken map". It is the same 1e−5, and here it is det J itself
+rather than a shadow of it. Off axis it grows ×3.20, ×3.76, ×3.94 per doubling
+of field — approaching ×4, the quadratic signature again — and reaches
+**1.816e−3** at 2 mm. A part in 550 of the flux, thrown away by a rasterizer
+that looked correct and had no rung to fail.
+
+### Three rasterizers, one pixel convention
+
+§ 6n.1 pinned two rasterizers against each other rather than trusting either,
+because half a pixel of disagreement is a seam misregistration. This is the
+third, and § 6as.6 pins it to § 6i's beads — but on **centroid**, not pixel for
+pixel, and the reason is that they are different instruments. `rasterizeEmitters`
+splats a bead bilinearly so that moving it a sub-pixel distance cannot produce
+brightness jitter; this one point-samples a density. A rung comparing them pixel
+for pixel would be measuring the splat.
+
+They agree about where the light **is** to **2.074e−5 of a pixel** with the disc
+8 px across, and the residual falls **×4.006** as the disc halves — quadratic in
+the disc's radius, which identifies it: it is the second-order variation of det J
+across the disc, a real effect that vanishes with the extent, and not a
+misregistration, which would not. Below about 2 px across the comparison stops
+converging, and that is the splat and the point sampling parting company rather
+than either being wrong.
+
+**§ 5v.6 got a centroid that agreed *exactly* at every size, and the difference
+is the field position, not the quality of either module.** Its disc sits on the
+axis, where the area element is radially symmetric about the disc's own centre,
+so the quadrature's first moment cancels by symmetry however coarse it is. This
+rung's disc sits at 0.5 mm off axis, where det J varies *across* the disc — so
+there is a real first moment to find, and finding it converging as R² is a
+stronger statement than finding zero would have been.
+
+### Still open
+
+- **A spectral emitter density.** `rasterizeEmitters` has no spectrum either, and
+  the emission band lives in `imaging/emission` where it serves both — so this is
+  a seam that already works, not a gap. It becomes one the moment a specimen's
+  *emission colour* varies with position, which is what a two-stain preparation
+  is, and § 6r's spectral stack is the shape the answer would take.
+- **A photometric zero point**, unchanged and still § 3a's. Every number here is
+  a ratio.
+- **A volumetric emitter density.** This module warps a *plane*. `imaging/volume`
+  carries depth, and an emitter density through a focal series needs the third
+  dimension of the same Jacobian — which is not `(h/r)·(dh/dr)` and is not a
+  scalar.
+- **The fourth cosine**, inherited verbatim from § 5v: the entrance pupil's
+  projected area is not applied by any rasterizer on either branch, it cancels in
+  every comparison between them, and it belongs to the pupil layer where fixing
+  it once would serve both.
 
 ## Later rungs
 

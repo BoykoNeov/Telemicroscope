@@ -1073,9 +1073,12 @@
    forced and cost 89% of the interference — two operators, opposite sides, and
    the reason is the specimen rather than the optics. **Beads are the first
    specimen for an engine reason:** a point emitter is placed through its own
-   traced chief ray, so distortion is carried and § 6h's unbuilt warped-grid
+   traced chief ray, so distortion is carried and § 6h's then-unbuilt warped-grid
    rasterizer is not needed — which is exactly what a stained-tissue field would
-   need. **No verdict is minted** (§ 6f.9's asymmetry, stated: incoherent imaging
+   need. Both halves of that sentence have since been built: § 6n's rasterizer
+   for a transmittance, and § 6as's `imaging/emitter-density` for an emitter
+   **density**, which is the one that needs det J because a density moves flux
+   between pixels when a transmittance does not. **No verdict is minted** (§ 6f.9's asymmetry, stated: incoherent imaging
    *has* a geometric branch) and no fluorophore is named — real dye spectra are
    measured data. **Open:** colour, and the remaining scenes. Out-of-focus haze
    from a 3-D specimen — the thing that makes deconvolution and confocal mean

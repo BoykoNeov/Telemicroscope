@@ -155,6 +155,25 @@ export interface RadialMap {
   readonly errorEstimateMm: number;
   /** Object height (mm) reaching `radiusMm`. Refuses a radius outside the range. */
   heightAt(radiusMm: number): number;
+  /**
+   * dh/dr — the **radial** factor of the area element, mm of object per mm of
+   * image. The interpolating cubic differentiated, not differenced (§ 6as.3).
+   */
+  heightSlopeAt(radiusMm: number): number;
+  /**
+   * Object area per unit image area at an image radius — the Jacobian § 6as
+   * exists for, and `imaging/specimen`'s named deferral closed.
+   *
+   * `(h/r) · (dh/dr)`: a **tangential** factor times a **radial** one, each a
+   * function of r alone, because the systems are axially symmetric. § 5v's
+   * header derives the same factorization for the sky (`sin θ/r · dθ/dr`) and
+   * says why no off-diagonal term exists to compute. The two factors depart
+   * from their axis value in the ratio 3 under third-order distortion, which is
+   * § 6m.4's anisotropy in this currency and is what § 6as.2 pins.
+   *
+   * The axis is the exact limit, not a clamp.
+   */
+  objectAreaPerImageArea(radiusMm: number): number;
 }
 
 /** The interpolating cubic through four consecutive nodes, at `t ∈ [0, 1]`
@@ -164,6 +183,23 @@ function lagrange4(y0: number, y1: number, y2: number, y3: number, t: number): n
   const c1 = ((t + 1) * (t - 1) * (t - 2)) / 2;
   const c2 = (-(t + 1) * t * (t - 2)) / 2;
   const c3 = ((t + 1) * t * (t - 1)) / 6;
+  return c0 * y0 + c1 * y1 + c2 * y2 + c3 * y3;
+}
+
+/**
+ * d/dt of `lagrange4` — the same cubic **differentiated**, never differenced.
+ *
+ * § 6as is why this exists. A Jacobian is a derivative, and § 5v's header states
+ * the hazard for the telescope's half of the same problem: a derivative taken by
+ * differencing a search carries √ε/h noise. § 6as.3 measures it here — the best
+ * step differencing `objectHeightForImageRadius` reaches 8.0e-12 against this
+ * cubic's 1.3e-12, and *which* step is best is not knowable at a call site.
+ */
+function lagrange4Slope(y0: number, y1: number, y2: number, y3: number, t: number): number {
+  const c0 = -(3 * t * t - 6 * t + 2) / 6;
+  const c1 = (3 * t * t - 4 * t - 1) / 2;
+  const c2 = -(3 * t * t - 2 * t - 2) / 2;
+  const c3 = (3 * t * t - 1) / 6;
   return c0 * y0 + c1 * y1 + c2 * y2 + c3 * y3;
 }
 
@@ -217,7 +253,8 @@ export function buildRadialMap(system: OpticalSystem, options: RadialMapOptions)
   }
   const errorEstimateMm = (3 / 128) * fourth;
 
-  const heightAt = (radiusMm: number): number => {
+  /** The four nodes bracketing an interval, with the axis mirror below it. */
+  const stencilAt = (radiusMm: number): { k: number; t: number; y0: number } => {
     if (!(radiusMm >= 0) || radiusMm > maxRadiusMm) {
       throw new Error(
         `RadialMap: image radius ${radiusMm} mm is outside the tabulated range ` +
@@ -228,13 +265,40 @@ export function buildRadialMap(system: OpticalSystem, options: RadialMapOptions)
     const s = radiusMm / spacingMm;
     let k = Math.floor(s);
     if (k > nodes - 1) k = nodes - 1;
-    const t = s - k;
     // The node below the first interval is the mirror of the node above it —
     // the map is odd through the axis, so this is the map and not a boundary
     // condition invented for it.
-    const y0 = k === 0 ? -table[1]! : table[k - 1]!;
+    return { k, t: s - k, y0: k === 0 ? -table[1]! : table[k - 1]! };
+  };
+
+  const heightAt = (radiusMm: number): number => {
+    const { k, t, y0 } = stencilAt(radiusMm);
     const v = lagrange4(y0, table[k]!, table[k + 1]!, table[k + 2]!, t);
     return tabulate === "residual" ? v + slope * radiusMm : v;
+  };
+
+  const heightSlopeAt = (radiusMm: number): number => {
+    const { k, t, y0 } = stencilAt(radiusMm);
+    const v = lagrange4Slope(y0, table[k]!, table[k + 1]!, table[k + 2]!, t) / spacingMm;
+    // The residual table is h − slope·r, so its derivative is dh/dr − slope and
+    // the linear part comes back the same way `heightAt` adds it back.
+    return tabulate === "residual" ? v + slope : v;
+  };
+
+  const objectAreaPerImageArea = (radiusMm: number): number => {
+    const radial = heightSlopeAt(radiusMm);
+    if (!(radial > 0)) {
+      throw new Error(
+        `RadialMap: dh/dr is ${radial} at ${radiusMm} mm — the chief-ray map is not ` +
+          `invertible there, so no area element exists to transform a density by`,
+      );
+    }
+    // On the axis both factors are the same limit: h/r → dh/dr as r → 0, so the
+    // product is (dh/dr)². Exact, and it is what makes a uniform emitter's
+    // central pixel a closed form — 1/M² on a system that images at M (§ 6as.1)
+    // — rather than a division of two small numbers.
+    if (radiusMm === 0) return radial * radial;
+    return (heightAt(radiusMm) / radiusMm) * radial;
   };
 
   return {
@@ -248,6 +312,8 @@ export function buildRadialMap(system: OpticalSystem, options: RadialMapOptions)
     heights,
     errorEstimateMm,
     heightAt,
+    heightSlopeAt,
+    objectAreaPerImageArea,
   };
 }
 

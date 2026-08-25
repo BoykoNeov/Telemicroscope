@@ -67,8 +67,12 @@ import { imagePointOf, type ImagePlaneScene } from "./scene";
  * substitution. A radiance is a density over solid angle, and moving it onto an
  * image grid without `dΩ/dA` would move light between pixels. That module named
  * this as its own deferral for the extended *emitter* case, and the
- * factorization above is what such a step would need — but the deferral is the
- * microscope's and is **not** closed by this module, which images the sky.
+ * factorization above is what such a step needed. It transplanted: § 6as built
+ * `imaging/emitter-density` on `(h/r)·(dh/dr)`, the same product with `sin θ`
+ * replaced by an object height, and pinned its axis limit at 1/M² the way this
+ * one is pinned at 1/f². What did **not** transplant is the residual — a sky
+ * radiance is authored smooth, where a specimen has edges, and § 6as.4 had to
+ * separate two convergence rates that § 5v.6 sees as one.
  *
  * Because a density is being transformed, **energy is a real witness here**,
  * which is worth saying given how often § 6g.2, § 6k.4 and § 6r.2 record that it
