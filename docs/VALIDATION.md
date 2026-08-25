@@ -11192,9 +11192,21 @@ The reason is worth stating because it is not obvious and it generalises: **a
 cubic already reproduces a linear function exactly**, so subtracting one changes
 no truncation error at all — and the reconstruction's final add, `slope·r + δ`,
 rounds at the same magnitude the direct table does, so it changes no rounding
-error either. There is no régime in which it wins. The control is kept as code
-(`tabulate: "residual"`) rather than as this paragraph, on the ladder's usual
-rule that a negative control which cannot be run is an assertion.
+error either. There is no régime in which it wins **for the height**. The control
+is kept as code (`tabulate: "residual"`) rather than as this paragraph, on the
+ladder's usual rule that a negative control which cannot be run is an assertion.
+
+**That qualifier was added by § 6as.8, which falsified this section's original
+unqualified claim.** Keeping the control as code is what made it falsifiable:
+§ 6as gave the map a *derivative*, ran both forms through it, and the null broke.
+The entries of a residual table carry ulp(h) of cancellation from the
+subtraction, and differentiating divides by the node spacing — so where the
+height's disagreement is flat in the node count, the slope's is amplified by
+**1/spacing** and grows ×20 over a ×16 refinement. It loses rather than merely
+failing to win, and it loses *more* the finer the table. § 6as.8 has the
+measurements; the lesson for this section is that **a null measured on a quantity
+does not transfer to its derivative**, and this one said "no régime" about a
+readout that did not exist yet.
 
 ### 6s.6 — a table is a function of three things, and two are invisible
 
@@ -17332,10 +17344,10 @@ rung's disc sits at 0.5 mm off axis, where det J varies *across* the disc — so
 there is a real first moment to find, and finding it converging as R² is a
 stronger statement than finding zero would have been.
 
-### § 6s.6's null does not extend to the derivative
+### § 6s.5's null does not extend to the derivative
 
 § 6s offers two tabulations — the height itself, or the height minus the map's
-own first-node slope — and § 6s.6 measured the second as worth **nothing**: a
+own first-node slope — and § 6s.5 measured the second as worth **nothing**: a
 cubic reproduces a linear function exactly, so subtracting the linear part and
 adding it back is a null, and it said so as a measurement rather than an
 argument.
@@ -17343,9 +17355,12 @@ argument.
 Both new readouts have to add that linear part back as well, the derivative by
 `slope` and the height by `slope·r`, and a dropped term would have been invisible
 to every other rung here — all of which run on the default. So the two forms are
-pinned against each other, and the pin found something § 6s.6 had no reason to
-look for. **The null holds for the height and fails for the derivative.** The
-residual table's entries carry ulp(h) of cancellation from the subtraction, and
+pinned against each other, and the pin **falsified § 6s.5's own words**, which
+were "there is no régime in which it wins" — said about a readout that did not
+exist yet, and since qualified there. **The null holds for the height and fails
+for the derivative.**
+
+The residual table's entries carry ulp(h) of cancellation from the subtraction, and
 differentiating divides by the node spacing, so that cancellation is amplified by
 **1/spacing** where the height's never is:
 
@@ -17356,7 +17371,7 @@ differentiating divides by the node spacing, so that cancellation is amplified b
 | 512 | 3.91e−3 mm | 4.4e−16 | 1.5e−13 |
 
 The height column is flat at one or two ulps across a ×16 of node count, which is
-§ 6s.6 restated; the slope column grows ×20 over the same range. It is documented
+§ 6s.5 restated; the slope column grows ×20 over the same range. It is documented
 rather than refused, because 2.9e−14 at the node count in use sits two orders
 under § 6as.3's own 3e−12 floor — but a caller tabulating a residual map *and*
 pushing the node count up is making the derivative worse in exchange for nothing,

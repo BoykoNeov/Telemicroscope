@@ -305,14 +305,14 @@ describe("§ 6as — the extended fluorescent specimen", () => {
 
   it("§ 6as.8 — the residual tabulation costs the DERIVATIVE what it never cost the height", () => {
     // § 6s tabulates either the height or the height minus the map's own
-    // first-node slope, and § 6s.6 found the residual form buys **nothing**: a
+    // first-node slope, and § 6s.5 found the residual form buys **nothing**: a
     // cubic reproduces a linear function exactly, so subtracting the linear part
     // first and adding it back is a null. Both new readouts have to add that
     // linear part back too — the derivative adds `slope`, the height adds
     // `slope·r` — and a dropped term would be invisible to every rung above,
     // all of which run on the default. Hence this rung.
     //
-    // It found something § 6s.6 could not have: the null does NOT extend to the
+    // It found something § 6s.5 could not have: the null does NOT extend to the
     // derivative. The residual table's values carry ulp(h) of cancellation from
     // the subtraction, and `lagrange4Slope` divides by the node spacing — so the
     // disagreement is **amplified by 1/spacing**, where the height's is not.
@@ -338,7 +338,7 @@ describe("§ 6as — the extended fluorescent specimen", () => {
     const coarse = at(32);
     const fine = at(512);
 
-    // The HEIGHT is § 6s.6's null at both ends — one or two ulps, and flat in
+    // The HEIGHT is § 6s.5's null at both ends — one or two ulps, and flat in
     // the node count, which is what "buys nothing" means.
     expect(coarse.h).toBeLessThan(1e-15);
     expect(fine.h).toBeLessThan(1e-15);

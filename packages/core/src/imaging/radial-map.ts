@@ -93,7 +93,7 @@ export type RadialTabulation =
   /**
    * The object height itself.
    *
-   * The default, and § 6s.6 is why: subtracting the linear part first is the
+   * The default, and § 6s.5 is why: subtracting the linear part first is the
    * obvious optimisation and it is worth **nothing**, because a cubic already
    * reproduces a linear function exactly and the reconstruction's final add
    * rounds at the same place. Measured, not argued.
@@ -103,7 +103,7 @@ export type RadialTabulation =
    * Height minus the map's own first-node slope — the negative control.
    *
    * **Not** a neutral choice for `heightSlopeAt` and `objectAreaPerImageArea`,
-   * even though § 6s.6 measured it as neutral for `heightAt`. The subtraction
+   * even though § 6s.5 measured it as neutral for `heightAt`. The subtraction
    * leaves ulp(h) of cancellation in every entry, and differentiating divides by
    * the spacing, so the derivative disagrees with the `"height"` form as
    * 1/spacing — 7.1e−15 at 32 nodes and 1.5e−13 at 512, where the height stays
