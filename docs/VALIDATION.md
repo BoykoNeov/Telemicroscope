@@ -11078,6 +11078,15 @@ to the *system* rather than to the tile, so one table serves a whole mosaic.
 | § 6r's spectral planes are unchanged, one table per wavelength | exact stack, < 1e-12 | ✅ |
 | The `"uniform"` control ignores a table, because it inverts nothing | § 6n's negative control, bitwise | ✅ |
 
+**A bare § 6s.N is ambiguous, and has been since `552debe`.** The prose
+headings below number this step to `.6`; `radial-map.test.ts` numbers the same
+work to `.8`, because it gives the rendered-tile rung a number of its own and
+splits the identity section in two. The two agree through `.3` and are offset
+by one from `.4` on — so the residual-tabulation null is `§ 6s.5` here and
+`§ 6s.6` in the test file. Neither is wrong; they are different partitions of
+one step, and reconciling them would break live citations for nothing. **Cite
+these rungs by name**, as § 6as.8 does.
+
 ### 6s.1 — the axis is exact because the map is odd
 
 The first interval's stencil wants a node at −h and there is no chief ray there.

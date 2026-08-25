@@ -88,12 +88,17 @@ import { objectHeightForImageRadius, type ObjectFieldFrame } from "./object-fiel
  * a frame that disagrees, rather than trusting the caller to pass the right one.
  */
 
-/** Which quantity the table holds. Both reconstruct the same map; § 6s.4. */
+/**
+ * Which quantity the table holds. Both reconstruct the same map; the rung is
+ * **the residual-tabulation null** — VALIDATION.md’s § 6s.5, which
+ * `radial-map.test.ts` numbers § 6s.6. Cite it by name; see § 6s’s note on the
+ * two numberings.
+ */
 export type RadialTabulation =
   /**
    * The object height itself.
    *
-   * The default, and § 6s.5 is why: subtracting the linear part first is the
+   * The default, and the residual-tabulation null (§ 6s.5) is why: subtracting the linear part first is the
    * obvious optimisation and it is worth **nothing**, because a cubic already
    * reproduces a linear function exactly and the reconstruction's final add
    * rounds at the same place. Measured, not argued.
@@ -103,7 +108,8 @@ export type RadialTabulation =
    * Height minus the map's own first-node slope — the negative control.
    *
    * **Not** a neutral choice for `heightSlopeAt` and `objectAreaPerImageArea`,
-   * even though § 6s.5 measured it as neutral for `heightAt`. The subtraction
+   * even though the residual-tabulation null (§ 6s.5) measured it as neutral
+   * for `heightAt`. The subtraction
    * leaves ulp(h) of cancellation in every entry, and differentiating divides by
    * the spacing, so the derivative disagrees with the `"height"` form as
    * 1/spacing — 7.1e−15 at 32 nodes and 1.5e−13 at 512, where the height stays
