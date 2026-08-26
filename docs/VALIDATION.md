@@ -17833,6 +17833,16 @@ on the achromat, and for the same reason: several rows produce spherical of
 opposite sign. The factor belongs to this lens rather than to the method, so it
 is measured and not offered as a law.
 
+**And it belongs to this lens AT THIS FOCAL RATIO**, which this step could not
+see with one lens at one geometry.
+[§ 6aw](#step-6aw--the-quadruplets-budget-and-a-currency-with-a-kink) runs the
+same eleven rows on the same triplet at f/25 and gets **0.0130** — a factor of
+59, from a focal ratio alone — while the colour figure comes back 0.378 at both.
+So the blur factor is a fact about a geometry and the paraxial colour one is the
+lens's. The scale is a caveat too: at f/25 a hundredth of the budget puts 3.5 mm
+of runout on the rear centring row and the re-measure cannot be traced at all,
+so § 6aw's comparison runs at a ten-thousandth.
+
 That number needs one control before it means anything, and it is a control § 5t
 did not need. Contributions vignette the pupil differently — a decentre clips one
 rim, a tilt the other — and variances add exactly only over a **common support**,
