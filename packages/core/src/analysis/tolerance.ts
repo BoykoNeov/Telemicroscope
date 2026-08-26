@@ -6,6 +6,15 @@ import { opdMap } from "../pupil/opd";
 import { traceRay } from "../trace/sequential";
 import { Vec3, dot, normalize } from "../math/vec3";
 import { bestFocus, withFocus } from "./focus";
+import { SolveVariable } from "./solve";
+import {
+  optimizePrescription,
+  withVariables,
+  type DlsOptions,
+  type DlsStopReason,
+  type OptimizeOperand,
+} from "./optimize";
+import { getMedium, registerMedium, LINE_D } from "../materials";
 
 /**
  * Tolerancing — how much the image degrades when a parameter drifts by its
@@ -796,4 +805,226 @@ export function allocateEqualShare(
     rows.flatMap((r, i) => (Number.isFinite(r.allowance) ? [params[i]!.at(r.allowance)] : [])),
   );
   return { rows, target, rss, combined, couplingRatio: rss > 0 ? combined / rss : 1 };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Compensation — the edits a build makes AFTER it measures what it got
+ * ───────────────────────────────────────────────────────────────────────── */
+
+/**
+ * ## A budget without this is a budget for a drawing nobody builds to
+ *
+ * Everything above prices an error against a FROZEN prescription: the drawing
+ * is settled, the shop misses it by δ, and the image pays. That is one real
+ * manufacturing model and it is the wrong one for the errors a design has
+ * freedoms to answer. A shop does not receive glass and hope; it measures the
+ * melt it was sent and the radius it actually ground, and the design is
+ * re-solved around those measurements before anything is assembled. The trades
+ * have names — **melt fitting** for the glass, **test-plate fitting** for the
+ * radii — and both are the same operation: perturb, re-solve the free
+ * variables, then charge only what is left.
+ *
+ * The size of the difference is not a detail. On § 6av's quadruplet a frozen
+ * drawing demands the front glass's dispersion to a few parts per million,
+ * which no glass is sold or measured to; re-solve the radii for the melt that
+ * arrived and an error a thousand times larger leaves the residual where it
+ * started. A budget that cannot express that reports a lens as unbuildable
+ * when what is unbuildable is the *procedure*, not the lens.
+ *
+ * ## The shape is § 6au's, one step further on
+ *
+ * § 6au found that a local error is not one surface edit but a GROUP — the
+ * error, plus the edit that restores the frame chain behind it. Compensation is
+ * that same observation applied to a later stage: the error, plus the edits the
+ * BUILD makes once it has measured the error. So the answer here is again a
+ * `PerturbationGroup`, and every currency, budget, allocation and coupling
+ * measurement above composes with it unchanged. Nothing downstream needs to
+ * learn a new type, which is the test of whether the shape is right.
+ *
+ * It works because `SolveVariable` and `PerturbTarget` overlap exactly where it
+ * matters: a compensator that moves a curvature or a thickness IS a
+ * `Perturbation` on that surface, so the re-solve's answer can be handed back
+ * in the same currency the error arrived in.
+ *
+ * ## What compensation cannot touch, and why that is the interesting half
+ *
+ * A design freedom can only answer an error the design still has freedom over.
+ * A curvature that is wrong is answerable — re-solve the other curvatures. A
+ * glass that is wrong is answerable — re-solve every curvature. An element
+ * that is *decentred at assembly* is not: it happens after the design is
+ * frozen and there is no variable left to move. So compensation sorts a budget
+ * into the rows a build can design its way out of and the rows it must actually
+ * hold, and the second list is the one a shop is really constrained by.
+ *
+ * ## The warning that comes with it
+ *
+ * `allocateEqualShare` measures one probe and extrapolates linearly, which is
+ * what an inverse-sensitivity budget is. **That extrapolation is invalid on a
+ * compensated row.** Compensation removes the first-order term by construction
+ * — that is what "restore the conditions" means — so what is left is second
+ * order in the error, and a slope read at one probe says nothing about where
+ * the allowance lands. `linearity` will report it, and a caller who wants a
+ * compensated allowance must SOLVE for it (scan for the first crossing, then
+ * bisect) rather than divide by a slope.
+ */
+
+/** What a build is allowed to re-solve, and the conditions it re-solves to. */
+export interface Compensator {
+  /** The prescription numbers the re-solve may move. */
+  readonly variables: readonly SolveVariable[];
+  /**
+   * What the re-solve puts back — the design's own defining conditions, as
+   * WISHES rather than holds.
+   *
+   * Wishes for two reasons that point the same way. `optimizePrescription`
+   * refuses an empty `minimize`, so a request made entirely of conditions is
+   * not expressible; and a condition, by that module's contract, has no weight,
+   * while these operands routinely span six decades of unit — a power near
+   * 4·10⁻³ mm⁻¹ beside a chromatic power near 10⁻⁹. Something has to state the
+   * exchange rate between "hold the focal length" and "unite the colours", and
+   * this module is not entitled to choose it. The caller is.
+   */
+  readonly restore: readonly OptimizeOperand[];
+  readonly options?: DlsOptions;
+}
+
+/** A design re-solved around a measurement. */
+export interface Refit {
+  /** The perturbed prescription with the compensators moved. */
+  readonly prescription: Prescription;
+  /** Where each compensator ended. */
+  readonly values: readonly number[];
+  /** How far each moved from the perturbed design — the compensating edit. */
+  readonly moved: readonly number[];
+  /**
+   * vₖ − tₖ for each restore operand at the answer, in the operand's OWN unit
+   * with its weight divided back out. A refit that did not actually restore is
+   * not a compensation, and this is where a caller sees it.
+   */
+  readonly restored: readonly number[];
+  /** The run reached an optimum rather than running out of iterations or λ. */
+  readonly converged: boolean;
+  readonly reason: DlsStopReason;
+  readonly merit: number;
+  readonly iterations: number;
+}
+
+/** A manufacturing error and the compensating edits, as one budget row. */
+export interface CompensatedGroup extends PerturbationGroup {
+  /** The compensator's own edits, separated from the error's. */
+  readonly compensation: readonly Perturbation[];
+  /** The re-solve that produced them — check `converged` and `restored`. */
+  readonly fit: Refit;
+}
+
+const variableValue = (p: Prescription, v: SolveVariable): number => {
+  const s = need(p, v.surface, "refit");
+  return v.kind === "curvature" ? s.curvature : s.thickness;
+};
+
+/**
+ * Re-solve `compensator.variables` on an already-perturbed prescription until
+ * `compensator.restore` is satisfied again.
+ *
+ * Starts from the values the perturbed design carries, which is what makes the
+ * answer a REFIT rather than a redesign: with more variables than conditions
+ * the damping lands on the nearest solution, so the design that comes back is
+ * the one the shop was already making and not another branch of the same
+ * family. Callers should still check it — `converged`, `restored`, and (where
+ * it matters) that the variables moved by something like the size of the error.
+ */
+export function refit(perturbed: Prescription, compensator: Compensator): Refit {
+  const { variables, restore, options } = compensator;
+  if (restore.length === 0) {
+    throw new Error("refit: a compensator that restores nothing is not a compensator");
+  }
+  const before = variables.map((v) => variableValue(perturbed, v));
+  const result = optimizePrescription(perturbed, variables, restore, options ?? {});
+  const values = result.x;
+  return {
+    prescription: withVariables(perturbed, variables, values),
+    values,
+    moved: values.map((x, i) => x - before[i]!),
+    restored: result.residuals.map((r, k) => r / (restore[k]?.weight ?? 1)),
+    converged:
+      result.reason === "gradient" || result.reason === "step" || result.reason === "merit",
+    reason: result.reason,
+    merit: result.merit,
+    iterations: result.iterations,
+  };
+}
+
+/**
+ * One manufacturing error, priced the way a real build meets it: the error is
+ * applied, the design is re-solved around it, and the row that comes back
+ * carries BOTH sets of edits.
+ *
+ * The result is an ordinary `PerturbationGroup`, so it drops into `sensitivity`,
+ * `toleranceBudget` and a `ToleranceParameter`'s `at()` with nothing else
+ * changed — see the section header on why that is the point rather than a
+ * convenience.
+ */
+export function compensated(
+  nominal: Prescription,
+  group: PerturbationGroup,
+  compensator: Compensator,
+): CompensatedGroup {
+  const fit = refit(applyPerturbations(nominal, group.perturbations), compensator);
+  const compensation = compensator.variables.map(
+    (v, i): Perturbation => ({ surface: v.surface, target: v.kind, delta: fit.moved[i]! }),
+  );
+  return {
+    ...group,
+    perturbations: [...group.perturbations, ...compensation],
+    compensation,
+    fit,
+  };
+}
+
+/**
+ * A melt: the glass that arrived is not quite the glass in the catalogue.
+ *
+ * `indexD` shifts n_d outright; `dispersion` scales every n(λ) − n_d by
+ * (1 + dispersion), which moves the Abbe number and every partial dispersion
+ * with it while leaving n_d alone. Those are the two numbers a melt sheet
+ * actually reports, and they are independent, so both are offered separately.
+ *
+ * **This is not a `Perturbation` and the arity is the reason** — § 6av.8's
+ * lesson in the other direction. A melt is not an edit to a surface; it is a
+ * substitution of the material behind however many surfaces bound that glass,
+ * and forcing it into a per-surface type would be exactly the mistake that let
+ * a non-solid pass a per-surface filter. It returns a prescription, and `refit`
+ * takes it from there.
+ *
+ * **Side effect, stated because it is one:** a prescription stores media by
+ * NAME, so the shifted glass has to be registered in the module-level catalogue
+ * to be traceable at all. The name encodes the shift, so calling this twice
+ * with the same arguments re-registers an identical medium and two different
+ * shifts cannot collide.
+ */
+export interface MeltShift {
+  /** Δn_d, absolute. */
+  readonly indexD?: number;
+  /** Relative change of n(λ) − n_d, so of (n_F − n_C) and of 1/V. */
+  readonly dispersion?: number;
+}
+
+export function meltShift(p: Prescription, glass: string, shift: MeltShift): Prescription {
+  const indexD = shift.indexD ?? 0;
+  const dispersion = shift.dispersion ?? 0;
+  if (!p.surfaces.some((s) => s.medium === glass)) {
+    throw new Error(`meltShift: no surface in this prescription is followed by ${glass}`);
+  }
+  if (indexD === 0 && dispersion === 0) return p;
+  const base = getMedium(glass);
+  const nd = base.n(LINE_D);
+  const name = `${glass}#melt[dn=${indexD.toExponential(6)},dv=${dispersion.toExponential(6)}]`;
+  registerMedium({
+    name,
+    n: (wavelengthNm: number) => nd + indexD + (base.n(wavelengthNm) - nd) * (1 + dispersion),
+  });
+  return {
+    ...p,
+    surfaces: p.surfaces.map((s) => (s.medium === glass ? { ...s, medium: name } : s)),
+  };
 }

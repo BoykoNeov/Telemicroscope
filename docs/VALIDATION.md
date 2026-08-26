@@ -106,6 +106,7 @@ whole ladder.
 | [6au](#step-6au--a-real-tolerance-budget) | Wedge and centring are ONE freedom per sphere, δ = −R sin α, so eleven rows and not fifteen — and COLOUR sets six of them by 3.6–26×, blur five including the four it cannot see at all | `tolerance-budget` |
 | [6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) | A root can be a SURFACE and not a SOLID — the wall is f/21.9, not f/11; the thin split is not a START; ONE S_I null, not two; crossing 0.077% | `superachromat-lens` |
 | [6aw](#step-6aw--the-quadruplets-budget-and-a-currency-with-a-kink) | Fourteen rows, nine bound by COLOUR — and the currency has a KINK, so a SMALLER probe is a worse budget: the solved radius is 0.00034%, 30× past precision | `tolerance-quadruplet` |
+| [6ax](#step-6ax--compensation-and-one-currency) | Perturb, RE-SOLVE, then charge: a melt 1000× past the frozen budget refits to 0.93, and on a real λ/14 target the tightest radius is 0.25% not 0.00034% — only centring is left | `tolerance-compensated` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -18329,6 +18330,18 @@ specification and the superachromat is not buildable to its** — by a factor of
 397 between their tightest rows, on one lens that exists and one that would have
 to be made 30× better than precision practice to be worth making at all.
 
+**Read that sentence with [§ 6ax](#step-6ax--compensation-and-one-currency)
+beside it, which is where it is corrected.** *Its specification* is doing all the
+work: the target above is the lens's OWN residual, so a design whose residual is
+91.4× smaller is held to a 91.4× harder standard by arithmetic rather than by
+any requirement. Charged instead against the λ/14 the blur rows already use —
+which needs an exchange rate this step does not have — the same tightest row is
+**2.493e−3**, 739× looser and an ordinary precision number. And the budget here
+is a FROZEN one: it never lets the design be re-solved around the melt and the
+radii a shop actually delivers, which is what a shop actually does, and which
+removes all nine powered rows entirely. Nothing above moves; what moves is what
+the numbers are a statement about.
+
 ### The support, and the defect it is a symptom of
 
 § 6au.7's common-support control reports something on this lens: the quadruplet
@@ -18367,6 +18380,94 @@ be reporting its support and not its lens.
 - **No `packages/app` surface**, for both reasons at once: APP.md Part B drives
   § 5t's per-surface sliders and knows nothing of groups, currencies or an
   allocation, and nothing in APP.md drives this constructor either.
+
+## Step 6ax — compensation, and one currency
+
+**§ 6aw's verdict, revisited:** *"the apochromat is buildable to its
+specification and the superachromat is not buildable to its."* That sentence is
+true and it is about the specification, not about the lens. This step adds the
+manufacturing stage the ladder had been leaving out and gives the colour
+currency an exchange rate for the first time, and between them the two
+corrections move the quadruplet's tightest radius tolerance by **739×** —
+after which no radius or thickness constrains the lens at all.
+
+**The first thing missing was the re-solve.** Every rung above § 6ax prices an
+error against a prescription settled before any glass is bought: the drawing is
+frozen, the shop misses it by δ, and the image pays. Real optical manufacture
+does the opposite. It measures the melt it received and the radius it actually
+ground, and re-solves the design around those measurements — *melt fitting* and
+*test-plate fitting*, the same operation twice. `refit` and `compensated` add
+that stage, and the size of what it buys is the point: a dispersion error of
+0.5%, three orders of magnitude past anything § 6aw's frozen budget would
+allow, refits to 0.926 of the nominal residual. Better than nominal, not worse,
+because the refit lands on a slightly different member of the same family.
+
+The shape is § 6au's, one step further on. That step found a local error is not
+one surface edit but a GROUP — the error plus the edit that restores the frame
+chain. Compensation is the same observation at a later stage: the error, plus
+the edits the BUILD makes once it has measured the error. So the answer is
+again a `PerturbationGroup` and every currency, budget and allocation above
+composes with it unchanged, which is the test of whether the shape is right. A
+melt is the exception and deliberately so: it is not a surface edit but a
+substitution of the material behind however many surfaces bound that glass, so
+`meltShift` returns a prescription and not a group. Forcing it into a
+per-surface type would be [§ 6av.8](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound)'s
+mistake in the other direction.
+
+**The second thing missing was a real target.** § 6aw charges colour against the
+lens's own residual, so a lens with a 91.4× smaller residual is automatically
+held to a 91.4× harder standard — bookkeeping, not physics. Here the chromatic
+focal shift is converted into WAVES and charged against the same λ/14 the blur
+rows already use, by two closed-form steps and no external constant: § 1.5's
+`defocusWaves` prices an axial offset at δ·NA²/(2nλ) waves at the rim, and the
+balanced RMS of a defocus ρ² is that over 2√3. On that scale the quadruplet's
+residual is **1192× inside** the diffraction target and the apochromatic
+triplet's is 13× inside. At f/25 colour is not what either lens is limited by,
+and § 6aw's nine colour-bound rows were nine rows bound by a requirement nobody
+has.
+
+What that does NOT mean is that colour stops mattering. Charged honestly the
+two currencies become *comparable* rather than one dominating: the front radius
+at the size blur alone would permit injects 0.159 waves of colour, over twice
+the whole budget. So the drawing below is solved in both at once.
+
+**What survives both corrections is the interesting half.** A refit answers an
+error only where the design's own conditions can SEE it. The five curvatures
+and four thicknesses are seen — power, three chromatic powers and ΣS_I all move
+with them. A decentre at assembly is not: every restored condition is
+rotationally symmetric and a decentre is not, so the row passes through
+compensation identical to twelve digits. The nine/five split § 6aw reads as
+"colour rows and blur rows" is really the split between errors the design still
+has freedom over when they happen and errors that happen after the freedom is
+spent — and only the second kind reaches the drawing.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6ax.1 — a refit reproduces the textbook achromat's own closed form** | φ₁ = φ·V₁/(V₁−V₂) with V₁′ = V₁/(1+δ); the two curvature moves to 0.16% and 0.64% | ✅ |
+| ...and the gap is CONSTANT over a hundredfold in melt size, so it is the thickness | 0.99836 / 1.00637 at δ = 1e−4, 1e−3 and 1e−2, spread under 1e−4 — § 6at.8's same thick-lens gap | ✅ |
+| ...and restoring to ZERO instead of to nominal is 36× wrong | the doublet is thick, so its standing chromatic power is 6.389e−7 and the refit corrects that too | ✅ |
+| **§ 6ax.2 — melt fitting: 0.1% of dispersion costs 106× the residual frozen, 1.6% refitted** | 2.580e−4 against 2.4401e−6; refit lands at 0.9839 with every condition restored below 1e−15 | ✅ |
+| ...and 0.5% — three decades past § 6aw's frozen allowance — refits to 0.926 | converged in 124 iterations; the frozen budget's own glass row is a few parts per million | ✅ |
+| ...and it is the SAME design refitted, not another branch | every radius moves the same sign and 9.8× for 10× the melt; largest relative move 2.54e−3 for a 0.1% melt | ✅ |
+| **§ 6ax.3 — test-plate fitting: a 1% radius error costs 1216× frozen and nothing refitted** | four radii alone leave 1.159× (over-determined, so a compromise); add the four thicknesses and it is 1.000× | ✅ |
+| **§ 6ax.4 — the exchange rate, from two closed forms and no external constant** | δ·NA²/(2nλ) from § 1.5 and /(2√3) for the balanced RMS; checked as an identity, 2.4565e−3 waves per 1e−4 of R | ✅ |
+| ...and at f/25 BOTH lenses are already inside the diffraction target | the quadruplet 1192× inside λ/14, the apochromatic triplet 13× inside | ✅ |
+| ...but colour does not vanish — at the blur allowance it still breaches | 0.159 waves injected at c₁'s blur-only allowance, over 2× the whole budget | ✅ |
+| **§ 6ax.5 — a decentre passes through compensation to twelve digits** | every restored condition is rotationally symmetric; the solve converges having moved nothing | ✅ |
+| ...so the rows a build can design its way out of are exactly the nine powered ones | 9 of 9 curvature and thickness rows move a condition; 0 of 5 centring rows do | ✅ |
+| **§ 6ax.6 — frozen but honestly targeted, the tightest radius is 0.25%, not 0.00034%** | 2.493e−3 at the second cement joint against § 6aw's 3.374e−6 — 739×, same lens and same solver | ✅ |
+| ...and compensated, no radius or thickness constrains the lens at all | 1% of radius and 0.5 mm of thickness both spend under a fourteenth of the budget after refitting | ✅ |
+| ...the tightest radius solved after compensation being 8.2 — a number, not a tolerance | eight times the radius itself, which is § 6au's `linearity` remark in its strongest form | ✅ |
+| ...so the drawing is five centring callouts, and compensation moved none of them | 72.5 / 22.2 / 14.2 / 594.1 / 29.4 µm, or 7.51 / 5.58 / 3.32 / 67.45 / 5.00 arcmin | ✅ |
+
+**Still open.** The refit restores the design's *defining* conditions and
+nothing else, which is why a decentre is invisible to it — a real build also
+aligns, and an alignment compensator (tilt one element to cancel another's
+coma) would move the five rows this step leaves untouched. Nothing here models
+one. The centring rows also remain ON AXIS at one wavelength, which is § 6au's
+and § 6aw's shared leftover and is if anything sharper now that they are the
+only rows left. And the equal share is still a poor allocation across rows that
+differ by orders of magnitude.
 
 ## Later rungs
 
