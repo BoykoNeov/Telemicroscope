@@ -40,24 +40,34 @@ import { createBudgetWorker } from "../workers";
  * eleven rows CANCEL — applied together they cost 0.76 of the root-sum-square a
  * budget predicts — and is careful to say the factor "belongs to this lens
  * rather than to the method". One lens cannot show that; a reader has to take
- * it. So this panel always draws BOTH, and they land on opposite sides of one:
- * **the triplet's rows cancel at 0.587 and the doublet's reinforce at 1.134**,
- * each flat across three decades of budget and bending only where the pupil
- * starts losing points. An RSS budget is pessimistic on one of the two lenses
- * this repo ships and optimistic on the other, and neither is the method's
- * fault. That is § 6au's sentence turned into a measurement, and it is the
- * finding this surface exists for.
+ * it. So this panel always draws BOTH, and at the ladder's own fixture — 10 mm
+ * at f/6 — they land on opposite sides of one: **the triplet's rows cancel at
+ * 0.587 and the doublet's reinforce at 1.134**, each flat across three decades
+ * of budget and bending only where the pupil starts losing points. An RSS
+ * budget is pessimistic on one of the two lenses this repo ships and optimistic
+ * on the other, and neither is the method's fault.
+ *
+ * **And the controls can falsify half of that, which is why they are here.**
+ * Over the nine aperture-and-focal-ratio combinations this panel offers, the
+ * triplet cancels every time — 0.27 to 0.74, never once above one. The doublet
+ * reinforces in seven of the nine and **turns over below one in the other two**,
+ * both at f/10. So "the rows cancel" is a fact about that triplet, "opposite
+ * sides of one" is a fact about that PAIR at that configuration, and a reader
+ * who walks the focal-ratio control finds the second one out. The guard above
+ * the table reads the measurement rather than this paragraph.
  *
  * ## Three things the panel says that a number alone would not
  *
  *  - **A colour budget never mentions the alignment, on either lens.** Every
  *    centring row's colour column reads a clean **0** — not small, zero — on the
  *    triplet and on the doublet both, because a decentred sphere is a prism and a
- *    prism has no paraxial power. So half of § 6au's headline is lens-independent
- *    and half is not: "the two currencies disagree by up to 26×" is a fact about
- *    apochromats (the doublet's columns agree to within 1.2–2.6×, its own
- *    residual colour being ten times looser), while "colour cannot see the
- *    alignment at all" is a fact about tolerancing.
+ *    prism has no paraxial power. That one is lens-independent, and it survives
+ *    every configuration the controls reach. The SIZE of the disagreement does
+ *    not: at the fixture the triplet's two currencies part company by up to 25.9×
+ *    and the doublet's by 2.6×, its own residual colour being ten times looser,
+ *    but over the whole grid the triplet reaches 133× and the doublet 11.6×. The
+ *    triplet's spread is wider in all nine, so the ORDERING is the robust part
+ *    and the ratio is the fixture's.
  *  - **Four of the numbers on this sheet are not tolerances**, and the sheet says
  *    which. An inverse-sensitivity budget divides a target by a slope and will
  *    return a number for anything: the triplet's rear airspace comes back at
@@ -174,10 +184,13 @@ export function BudgetPanel() {
         Every number a shop would have to hold, priced in <strong>both</strong> of
         § 6au&apos;s currencies — the blur a focuser cannot remove, and the colour a
         cemented objective was bought to not have — and quoted from whichever one
-        binds it. The curve underneath is why there are two lenses here: applied
-        together, the triplet&apos;s rows <strong>cancel</strong> and the
-        doublet&apos;s <strong>reinforce</strong>, so a root-sum-square budget is
-        pessimistic on one and optimistic on the other.
+        binds it. The curve underneath is why there are two lenses here: at this
+        aperture and focal ratio the triplet&apos;s rows{" "}
+        <strong>cancel</strong> when applied together and the doublet&apos;s{" "}
+        <strong>reinforce</strong>, so a root-sum-square budget is pessimistic on
+        one and optimistic on the other. Walk the focal ratio to <code>f/10</code>{" "}
+        and the doublet crosses back below one — the triplet never does, at any
+        setting here. The guard below reads what was measured, not this sentence.
       </p>
 
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", margin: "12px 0" }}>

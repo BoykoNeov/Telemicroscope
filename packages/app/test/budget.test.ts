@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   allocateEqualShare,
+  toleranceBudget,
   type ToleranceParameter,
 } from "@telemicroscope/core/analysis";
 import {
@@ -240,5 +241,138 @@ describe("Part P — the worker's job", () => {
         .couplingRatio!;
     expect(at("apochromat")).toBeLessThan(1);
     expect(at("achromat")).toBeGreaterThan(1);
+  });
+});
+
+const APERTURES = [10, 20, 40] as const;
+const RATIOS = [4, 6, 10] as const;
+
+describe("Part P — every configuration the panel offers answers, or refuses in a way it can draw", () => {
+  it("no combination of the three controls throws", () => {
+    // The worker posts one message and has no catch, so a constructor that
+    // refused at some aperture or focal ratio would leave the panel dimmed for
+    // ever with nothing on screen to say why — the one failure the per-row
+    // refusal handling exists to prevent. Eighteen sheets, and the assertion is
+    // that a sheet comes back at all.
+    for (const lens of ["apochromat", "achromat"] as SheetLens[]) {
+      for (const apertureMm of APERTURES) {
+        for (const focalRatio of RATIOS) {
+          const sheet = sheetAt(prepareSheet({ lens, apertureMm, focalRatio }, 11), 1);
+          expect(sheet.rows.length, `${lens} ${apertureMm} f/${focalRatio}`).toBe(
+            3 * sheet.surfaces - 1,
+          );
+          // At a full budget five of the eighteen cannot take the combined
+          // trace — the allowance perturbs the lens past what the tracer can
+          // follow. That is a `drawing: null` with a reason, never an exception.
+          if (sheet.drawing === null) expect(sheet.refusal).not.toBe("");
+        }
+      }
+    }
+  });
+});
+
+describe("Part P — how far the headline travels, which is not everywhere", () => {
+  /** Coupling in the flat region, where the extrapolation still holds. */
+  const flat = (lens: SheetLens, apertureMm: number, focalRatio: number): number =>
+    sheetAt(prepareSheet({ lens, apertureMm, focalRatio }, 21), 1e-2).drawing!.couplingRatio;
+
+  it("the triplet's rows cancel in ALL NINE configurations", () => {
+    // The robust half. Between 0.27 and 0.75, never once above one.
+    const all = APERTURES.flatMap((a) => RATIOS.map((f) => flat("apochromat", a, f)));
+    for (const c of all) expect(c).toBeLessThan(1);
+    expect(Math.max(...all)).toBeLessThan(0.75);
+    expect(Math.min(...all)).toBeGreaterThan(0.26);
+  });
+
+  it("...and the doublet's reinforce in seven of nine, and TURN OVER in two", () => {
+    // The half that does not travel, and the reason this rung exists: the
+    // panel's headline is measured at the ladder's own fixture, and a reader
+    // who moves the focal-ratio control can walk out of it. At f/4 and f/6 the
+    // doublet is above one at every aperture; at f/10 the two smaller apertures
+    // fall below it. "Opposite sides of one" is a statement about a PAIR of
+    // lenses at a configuration, not a law about doublets.
+    for (const a of APERTURES) {
+      for (const f of [4, 6] as const) expect(flat("achromat", a, f), `${a} f/${f}`).toBeGreaterThan(1);
+    }
+    expect(flat("achromat", 40, 10)).toBeGreaterThan(1);
+    expect(flat("achromat", 10, 10)).toBeLessThan(1);
+    expect(flat("achromat", 20, 10)).toBeLessThan(1);
+  });
+
+  it("the currency spread is always wider on the triplet, but not by 26× everywhere", () => {
+    // Same shape a third time. At the ladder's fixture the triplet spreads to
+    // 25.9× and the doublet to 2.6×; over the whole grid the triplet reaches
+    // 133× and the doublet 11.6×, so the ORDERING is robust and the numbers are
+    // not. APP.md's Part P quotes the fixture's pair and says which is which.
+    const widest = (lens: SheetLens, a: number, f: number): number =>
+      Math.max(
+        ...sheetAt(prepareSheet({ lens, apertureMm: a, focalRatio: f }, 21), 1e-2)
+          .rows.filter((r) => r.colourPerUnit > 0)
+          .map((r) => r.bindsBy),
+      );
+    for (const a of APERTURES) {
+      for (const f of RATIOS) {
+        expect(widest("apochromat", a, f), `${a} f/${f}`).toBeGreaterThan(widest("achromat", a, f));
+      }
+    }
+    expect(widest("apochromat", 10, 10)).toBeGreaterThan(100);
+    expect(widest("achromat", 10, 10)).toBeLessThan(15);
+  });
+});
+
+describe("Part P — why the sheet does not use § 6au.7's grouping", () => {
+  it("that grouping spends the blur budget twice, by 1.04×", () => {
+    // The claim `budget.ts` makes in prose and APP.md repeats, pinned. § 6au.7
+    // divides colour over the seven rows it can SEE and blur over the four it
+    // cannot; assembled and traced, the result costs more blur than it allowed,
+    // because the seven colour-allocated rows spend blur too and no share was
+    // ever set aside for them. This sheet divides each currency over every row
+    // and quotes the tighter, which keeps both budgets true.
+    const ctx = prepareSheet({ ...SPEC, lens: "apochromat" }, SAMPLES);
+    const rows = ctx.build.parameters as ToleranceParameter[];
+    const scale = 1e-2;
+    const sees = ctx.slopes.map((s) => s.colour > 0);
+    expect(sees.filter(Boolean)).toHaveLength(7);
+    const co = allocateEqualShare(
+      ctx.build.system,
+      rows.filter((_, i) => sees[i]),
+      ctx.build.nominalColour * scale,
+      ctx.opts,
+      ctx.colour,
+    );
+    const bl = allocateEqualShare(
+      ctx.build.system,
+      rows.filter((_, i) => !sees[i]),
+      MARECHAL_WAVES * scale,
+      ctx.opts,
+    );
+    let ci = 0;
+    let bi = 0;
+    const groups = rows.map((p, i) =>
+      p.at(sees[i] ? co.rows[ci++]!.allowance : bl.rows[bi++]!.allowance),
+    );
+    const all = toleranceBudget(ctx.build.system, groups, ctx.opts);
+    expect(all.combinedWaves / (MARECHAL_WAVES * scale)).toBeCloseTo(1.04, 2);
+
+    // …and of that, the four rows the blur share WAS divided among contribute
+    // 4.4e−6 waves against the seven it was not, at 7.4e−4. Quoted as the two
+    // measurements rather than as a percentage: they combine in quadrature, so a
+    // linear share of them is not a share of anything.
+    const colourAllocated = toleranceBudget(
+      ctx.build.system,
+      groups.filter((_, i) => sees[i]),
+      ctx.opts,
+    );
+    const blurAllocated = toleranceBudget(
+      ctx.build.system,
+      groups.filter((_, i) => !sees[i]),
+      ctx.opts,
+    );
+    expect(colourAllocated.combinedWaves).toBeCloseTo(7.42e-4, 5);
+    expect(blurAllocated.combinedWaves).toBeCloseTo(4.4e-6, 6);
+
+    // The sheet's own grouping, for contrast: both budgets met, neither over.
+    const sheet = sheetAt(ctx, scale);
+    expect(sheet.drawing!.combinedWaves).toBeLessThan(MARECHAL_WAVES * scale);
   });
 });

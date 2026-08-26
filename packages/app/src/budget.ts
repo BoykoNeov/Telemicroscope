@@ -34,8 +34,12 @@ import {
  *
  * A rung can state that. Only a second lens can show it, and that is what this
  * module is for: the same eleven-row machinery run on the cemented DOUBLET
- * `designs/achromat` ships, where the same number comes back on the **other
- * side of one**. See `panels/budget.tsx` for what the screen says about it.
+ * `designs/achromat` ships, where at the ladder's own fixture the same number
+ * comes back on the **other side of one**. Over the nine aperture-and-focal-ratio
+ * combinations the panel offers, the triplet cancels in all nine and the doublet
+ * reinforces in seven — so "the rows cancel" travels and "opposite sides of one"
+ * is a statement about a pair at a configuration. `test/budget.test.ts` pins
+ * both halves. See `panels/budget.tsx` for what the screen says about it.
  *
  * Pure functions and no DOM, so this runs in the worker, in the panel, and in
  * vitest unchanged — APP.md's structural item 2, held once more.
@@ -366,10 +370,13 @@ export function prepareSheet(spec: SheetSpec, pupilSamples: number): SheetContex
  * then the rows colour CAN see would be spending it a second time. On the
  * apochromat that second helping is the whole budget over again: § 6au.7's
  * seven-four grouping, assembled and traced, spends **1.04× the λ/14** it
- * allowed, and 99.4% of that comes from the seven rows the blur share was never
- * divided among. § 6au.7 is measuring a coupling ratio rather than issuing a
- * drawing, so this is a difference between two allocations and not a defect in
- * either — but a sheet has to pick the one whose numbers a shop could work to.
+ * allowed — the seven colour-allocated rows come to 7.42e−4 waves on their own
+ * against 4.4e−6 from the four the blur share WAS divided among. (Two
+ * measurements rather than a percentage: they combine in quadrature, so a linear
+ * share of them is a share of nothing.) § 6au.7 is measuring a coupling ratio
+ * rather than issuing a drawing, so this is a difference between two allocations
+ * and not a defect in either — but a sheet has to pick the one whose numbers a
+ * shop could work to.
  *
  * Because the share is the same √N for both currencies, the currency with the
  * larger normalized slope is always the one with the smaller allowance: "binds"

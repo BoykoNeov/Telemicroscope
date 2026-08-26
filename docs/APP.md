@@ -5903,14 +5903,28 @@ RSS, and the step is careful to say the factor "belongs to this lens rather than
 to the method, so it is measured and not offered as a law". That is the right
 sentence and one lens cannot make it — a reader has to take it.
 
-Two lenses can. **The triplet's rows cancel at 0.587 and the doublet's reinforce
-at 1.134**, at the same budget, on the same eleven-row machinery, with the same
-common support and nothing dropped. An independence estimate is *pessimistic* on
-one of the two objectives this repo ships and *optimistic* on the other, and
-both curves are flat across three decades of budget — which is what says the
-factor is a property of the lens and not of the budget it was read at. § 6au's
-caveat is now a measurement, and Part B's own headline generalizes with it: the
-RSS is not a bound in either direction, per LENS as well as per row-pair.
+Two lenses can. At the ladder's own fixture — 10 mm at f/6 — **the triplet's rows
+cancel at 0.587 and the doublet's reinforce at 1.134**, at the same budget, on the
+same eleven-row machinery, with the same common support and nothing dropped. An
+independence estimate is *pessimistic* on one of the two objectives this repo
+ships and *optimistic* on the other, and both curves are flat across three
+decades of budget — which is what says the factor is a property of the lens and
+not of the budget it was read at. § 6au's caveat is now a measurement, and
+Part B's own headline generalizes with it: the RSS is not a bound in either
+direction, per LENS as well as per row-pair.
+
+**And the panel's own controls falsify half of that, which is the better half of
+the finding.** The aperture and focal-ratio controls reach nine configurations per
+lens, and exactly one of them was ever looked at until the sheet was pinned across
+the grid. The triplet cancels in **all nine** — 0.27 to 0.74, never once above
+one — so "the rows cancel" is a fact about that lens. The doublet reinforces in
+**seven of nine and turns over below one in the other two**, both at f/10. So
+"opposite sides of one" is a fact about a PAIR at a configuration, and a reader
+who walks the focal-ratio control finds that out for themselves. The panel's prose
+now says which claim is which and invites the walk; the guard above the table has
+always read the measurement rather than the prose. What was worth reporting turned
+out to be **how far the result travels**, and it was found by exercising controls
+the surface already had.
 
 ### The half of § 6au's headline that travels, and the half that does not
 
@@ -5923,12 +5937,16 @@ is a prism and a prism has no paraxial power. So "a colour budget never mentions
 the alignment" is a fact about tolerancing, and the four alignment rows are
 blur's whether the lens has three glasses or two.
 
-**Apochromat-only.** "The two currencies disagree by 3.6× to 25.9×" does not
-travel at all. On the doublet, where both currencies can see a row, they agree to
-within **1.2× to 2.6×** — and the reason is one number: the doublet's own
-residual colour is 2.204e−3 against the triplet's 2.206e−4, **9.99× looser**, so
-its colour budget stops dominating. The dramatic version of § 6au's headline is a
-statement about how well corrected the lens already is, not about tolerancing.
+**Fixture-only.** "The two currencies disagree by 3.6× to 25.9×" does not travel.
+At the fixture, on the doublet, where both currencies can see a row, they agree to
+within **1.2× to 2.6×** — and the reason is one number: the doublet's own residual
+colour is 2.204e−3 against the triplet's 2.206e−4, **9.99× looser**, so its colour
+budget stops dominating. Over the whole grid neither number survives: the triplet
+reaches **133×** at 10 mm f/10 and the doublet **11.6×**. What does survive is the
+ordering — the triplet's spread is wider in all nine — so the dramatic version of
+§ 6au's headline is a statement about how well corrected the lens already is *and
+about the configuration it was read at*, and only the direction is a fact about
+tolerancing.
 
 ### One number this panel sends back to the ladder
 
@@ -5987,11 +6005,14 @@ earlier than usual pays; this is the same lesson one step earlier again.
   binds; its coupling rung divides colour over the seven it can see and blur over
   the four it cannot. This sheet uses the first, because the second spends the
   blur budget twice — assembled and traced, the seven-four grouping costs **1.04×
-  the λ/14 it allowed**, and 99.4% of that comes from the seven rows the blur
-  share was never divided among. § 6au.7 is measuring a ratio rather than issuing
-  a drawing, so this is a difference between two allocations and not a defect in
-  either. It is also why this panel's coupling reads 0.587 where § 6au.7 reads
-  0.763: one row, t₃, in a different group.
+  the λ/14 it allowed**: the seven colour-allocated rows come to 7.42e−4 waves on
+  their own against 4.4e−6 from the four the blur share actually was divided
+  among. (Two measurements rather than a percentage of one — they combine in
+  quadrature, so a linear share of them would be a share of nothing.) § 6au.7 is
+  measuring a ratio rather than issuing a drawing, so this is a difference between
+  two allocations and not a defect in either. It is also why this panel's coupling
+  reads 0.587 where § 6au.7 reads 0.763: one row, t₃, in a different group. The
+  1.04× is pinned in `budget.test.ts` beside everything else on the sheet.
 - **The curve was nearly unaffordable and then was not.** A slope costs a traced
   wavefront per row per currency and is **scale-free**, so hoisting it out of the
   sweep turned seven curve points from seven sheets into seven combined traces.
@@ -6019,8 +6040,10 @@ and a large number would not be.
 
 ### Cost
 
-`budget.ts` 641 lines, `panels/budget.tsx` 366, `budget.worker.ts` 27, a factory,
-a route, and `test/budget.test.ts` at 244 lines and 15 rungs. No engine work beyond the defect
+`budget.ts` 648 lines, `panels/budget.tsx` 379, `budget.worker.ts` 27, a factory,
+a route, and `test/budget.test.ts` at 378 lines and 20 rungs — five of them added
+after the first version shipped, when it turned out that eighteen configurations
+were one click away and one had been exercised. No engine work beyond the defect
 above, which was a fix rather than a capability.
 
 ### What stays out
