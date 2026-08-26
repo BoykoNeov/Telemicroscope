@@ -62,8 +62,8 @@ import type { Prescription } from "../src/trace/prescription";
 const D_MM = 10;
 /**
  * The default lens, built once: f/12 at 10 mm, the ratio most of the step reads
- * its numbers at. Constructing it scans 400 bendings through a four-step
- * continuation each, so it is shared rather than rebuilt per rung.
+ * its numbers at. Constructing it scans 400 bendings through an eight-step
+ * thickness continuation each, so it is shared rather than rebuilt per rung.
  */
 const F12 = superachromaticObjective({ apertureMm: D_MM, focalRatio: 12 });
 /** The band the four united lines span. NOT a neutral choice — see § 6at.5. */

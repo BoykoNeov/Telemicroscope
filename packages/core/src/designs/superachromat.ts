@@ -44,12 +44,19 @@ import { seidelSums } from "../analysis/seidel";
  *
  * The residual system has more than one thick solution. At neighbouring bendings
  * the thin start lands in different basins, so the solved lens jumps: at one
- * sampled bending the direct solve returns a lens 2.8× steeper than the one it
- * returns a step away, both satisfying all four colour conditions to 1e−14.
- * Everything downstream is then measuring a function that is not one — S_I(c₁)
- * acquires jump discontinuities, the bisection brackets them as if they were
- * crossings, and the root count comes out 3, 4, 5 or 6 depending only on how
- * finely the bending was sampled. § 6av.2 is the rung that measures this.
+ * sampled bending the direct solve returns a lens more than 2.2× steeper than
+ * the one it returns a step away, both satisfying all four colour conditions to
+ * 1e−13 — and § 6av.2 is the rung that measures that, at 10 of the 104 bendings
+ * where both methods reach a solution.
+ *
+ * Everything downstream is then measuring a function that is not one: S_I(c₁)
+ * acquires jump discontinuities and the bisection brackets them as though they
+ * were crossings. **That is not a hypothetical.** The first draft of this module
+ * solved directly and its root count came out 3, 4, 5 or 6 depending only on how
+ * finely the bending was sampled — every number in it an artefact. No rung pins
+ * that spread, because the code that produced it was discarded rather than
+ * shipped; what is pinned is the divergence above and the stable count at
+ * § 6av.3.
  *
  * Why four glasses and not three: the split's conditioning is 12.29 against the
  * apochromatic triple's 2.578, so the element powers are ~12× the total power,
@@ -65,9 +72,11 @@ import { seidelSums } from "../analysis/seidel";
  * really is nearly thin and the thin split really is a nearby start; every step
  * after tracks one branch. The result is a function of the bending again, and
  * `continuationSteps` is exposed rather than hidden so that a rung can check the
- * answer does not depend on it: 8 steps and 24 agree bit for bit wherever both
- * converge (§ 6av.2), which is what says the walk is tracking a branch and not
- * finding a step-size-dependent artefact.
+ * answer does not depend on it: 8 steps and 24 agree to better than 1e−9
+ * relative wherever both converge (§ 6av.2) — they are separate Newton paths
+ * onto one root, so they agree to solver precision and not bit for bit, and that
+ * is what says the walk tracks a branch rather than finding a step-size
+ * artefact.
  *
  * ## There is ONE spherical-aberration null, not two, and that was measured
  *
@@ -82,27 +91,28 @@ import { seidelSums } from "../analysis/seidel";
  * `designs/apochromat` types that pair into its signature: `branches` is a
  * 2-tuple, `branch: "shallow" | "steep"` picks between them, and any other count
  * is a refusal. **None of that carries over.** Inside the bending family this
- * solve reaches there is exactly one root, at scan windows of ±2, ±3, ±5 and ±8
+ * solve reaches there is exactly one root, at scan windows of ±2, ±3 and ±5
  * spans and at 400 and 1600 samples alike (§ 6av.3). So there is no branch to
  * choose, no cancellation criterion to choose it by, and this constructor has no
  * `branch` option — a copied 2-tuple would have turned the finding into a throw.
  *
- * What IS there, and the triplet does not have, is a root that is not a surface.
- * A warm-started walk along the bending reaches further than a cold start does
- * and finds a second crossing, 2.6× hemispherical at the aperture it was found
- * at. `designs/achromat` needs its root-is-a-lens filter for a ghost past the
- * aperture wall and `designs/apochromat` keeps the filter although nothing it
- * ever built needed it (§ 6ar.2); here the filter is doing real work again.
+ * What IS there, and the triplet does not have, is a root that is not a surface:
+ * at f/11 the scan finds two roots and only one of them is one, the other more
+ * than two hemispheres deep (§ 6av.4). `designs/achromat` needs its
+ * root-is-a-lens filter for a ghost past the aperture wall, and
+ * `designs/apochromat` keeps the filter although nothing it ever built needed it
+ * (§ 6ar.2); here the filter is doing real work again.
  *
  * ## The prices, and both of them are worse than the thin split said
  *
  *  - **The focal-ratio wall.** § 6at.6's bound is f/7.25 — the shallowest
  *    bending the split admits, true of every bending and free of any aberration
  *    scan. The S_I-null bending is not the shallowest one, so the lens actually
- *    built is steeper: it builds at f/11 and refuses at f/10.5, where the
- *    steepest surface passes hemispherical. That is **49% steeper than the
- *    bound**, against the apochromatic triplet's 3% (§ 6at.6). A bound stays a
- *    bound; what this measures is how far from it the real design sits.
+ *    built is steeper: it builds at f/11 and refuses at f/10.75, where the
+ *    steepest surface passes hemispherical. The bending it builds at needs
+ *    f/10.81, which is **1.49× the bound**, against the apochromatic triplet's
+ *    1.03× (§ 6at.6). A bound stays a bound; what this measures is how far from
+ *    it the real design sits.
  *  - **The tolerance.** § 6at.8's break-even — the relative curvature error at
  *    which the colour a lens injects equals the colour it was built to remove —
  *    came out as a band, 0.09% to 0.14% of radius, from two thin bendings. The
