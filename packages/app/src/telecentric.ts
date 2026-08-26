@@ -48,6 +48,15 @@ import { AppRefusal, refused, type Refused } from "./refusal";
  * branch of the same triplet has one turn and one crossing, because its turn
  * sits at the blue edge of the band where the curve never comes back.
  *
+ * **What the panel must not be read as saying is that more united wavelengths
+ * buy more turns**, which § 6ay measured and found false. Uniting a fourth
+ * wavelength puts a third turn in the focal length EFL(λ), but the stop sits at
+ * a level of FFD, and FFD = EFL·D: the chromatic solve reaches C and never
+ * touches D. The superachromatic quadruplet unites four and is telecentric
+ * ONCE, where the achromatic doublet unites two and is telecentric twice. So
+ * `crossingBound` is a bound on what the tail handed in actually does, and
+ * choosing a tail with more glass in it is not a way to raise it.
+ *
  * ## What is quoted to how many digits — two floors, and the coarser wins
  *
  * This is the part with a history. § 6aq.4 pinned a crossing to nine decimals on

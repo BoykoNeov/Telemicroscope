@@ -107,6 +107,7 @@ whole ladder.
 | [6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) | A root can be a SURFACE and not a SOLID — the wall is f/21.9, not f/11; the thin split is not a START; ONE S_I null, not two; crossing 0.077% | `superachromat-lens` |
 | [6aw](#step-6aw--the-quadruplets-budget-and-a-currency-with-a-kink) | Fourteen rows, nine bound by COLOUR — and the currency has a KINK, so a SMALLER probe is a worse budget: the solved radius is 0.00034%, 30× past precision | `tolerance-quadruplet` |
 | [6ax](#step-6ax--compensation-and-one-currency) | Perturb, RE-SOLVE, then charge: a melt 1000× past the frozen budget refits to 0.93, and on a real λ/14 target the tightest radius is 0.25% not 0.00034% — only centring is left | `tolerance-compensated` |
+| [6ay](#step-6ay--four-united-colours-one-telecentric-one) | The stop reads f·D and four united colours constrain only f: EFL(λ) turns three times, FFD(λ) never, and the quadruplet is telecentric ONCE, the doublet twice | `telecentric-quadruplet` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -17635,11 +17636,14 @@ luck, not a law, and is labelled as luck.
   Newton from it converges to a different root without saying so. § 6b's root
   count came back ONE and not the triplet's two, so there is no branch to choose.
   And the band below does not contain the traced answer, which is 0.077%.
-- **Whether four united colours actually give four telecentric ones.** § 6aq
-  bounds the telecentric count by the turn count in FFD(λ), and four united
-  wavelengths is the *precondition*, not the conclusion — the turns have to
-  land inside the band as well. Nothing here traces FFD(λ) for a quadruplet,
-  because nothing here builds one.
+- ~~**Whether four united colours actually give four telecentric ones.**~~
+  **Closed at [§ 6ay](#step-6ay--four-united-colours-one-telecentric-one), and
+  the answer is ONE.** The precondition was right — four united wavelengths do
+  put three turns in EFL(λ), by Rolle — but the stop is a level of FFD = EFL·D,
+  and the chromatic solve constrains EFL and never touches D. The turns did not
+  land outside the band, which is what this bullet was guarding against: two of
+  the three leave no trace in FFD at all, the corrected ripple being 61.9×
+  shallower than the trend D carries.
 - **The g line's own trade**, § 6at.5: h corrects the wider band better, and no
   rung asks what a design that unites g *and* h — five glasses — would cost.
 - **Coupled tolerances**, unchanged from § 6ar: one curvature moves at a time
@@ -18155,11 +18159,13 @@ which is the distinction earning its keep.
   1.02·D/2, and repairs nothing: it is a real defect, it is much smaller than the
   one that step is about, and a design that sized its discs honestly would want
   to solve its thicknesses too. Neither is attempted.
-- **Whether four united colours give four telecentric ones.** § 6aq bounds the
-  telecentric count by the turn count in FFD(λ), and uniting four wavelengths is
-  the precondition and not the conclusion — the turns have to land inside the
-  band as well. This step makes the question *askable* by building the lens, and
-  does not ask it.
+- ~~**Whether four united colours give four telecentric ones.**~~ **Closed at
+  [§ 6ay](#step-6ay--four-united-colours-one-telecentric-one): ONE, against the
+  apochromatic triplet's three at the same aperture and the same focal ratio.**
+  This lens is what made the question askable, and the answer turns on a
+  quantity no rung above had separated out — FFD = EFL·D, and only EFL is
+  solved. No bending this design's family reaches is telecentric four times,
+  and the three that reach three carry 2.03 waves of spherical aberration.
 - **The g line's own trade**, unchanged from § 6at.5: h corrects 380–800 better,
   and a design uniting g *and* h is five glasses and is not attempted.
 - **One field point, one wavelength for the aberrations.** The bending nulls S_I
@@ -18468,6 +18474,164 @@ one. The centring rows also remain ON AXIS at one wavelength, which is § 6au's
 and § 6aw's shared leftover and is if anything sharper now that they are the
 only rows left. And the equal share is still a poor allocation across rows that
 differ by orders of magnitude.
+
+## Step 6ay — four united colours, one telecentric one
+
+**The question §§ 6aq, 6at, 6av and 6aw all deferred, in the same words every
+time:** *"whether four united colours actually give four telecentric ones —
+§ 6aq bounds the telecentric count by the turn count in FFD(λ), and uniting four
+wavelengths is the precondition and not the conclusion."* § 6av built the lens
+that makes it askable and said so in the same breath. This step asks it, and the
+answer is **no, and in a direction nobody on this ladder predicted**: the
+superachromatic quadruplet is telecentric at **ONE** wavelength, where the
+apochromatic triplet at the same aperture and the same focal ratio is
+telecentric at three and the achromatic doublet at two. One more united colour,
+two fewer telecentric ones. Nothing here adds engine capability; the only source
+change is a refusal message that asserted the opposite of what is measured.
+
+**The precondition holds exactly, and it is a theorem rather than a
+measurement.** Four united wavelengths make EFL(λ) − f a function with four
+roots in the band, so by Rolle it has three interior turns — and § 6ay.1 finds
+all three, one strictly inside each gap between consecutive united lines, at
+454.0, 529.3 and 625.2 nm. "One more glass, one more turn" is true.
+
+**What every one of those deferrals skipped is that telecentricity does not read
+EFL.** The stop is at a front focal point where FFD(λ) meets the placement, and
+`frontFocalDistance` is −D/C where EFL is −1/C, so
+
+    FFD = EFL · D
+
+with C and D the tail's own ray-transfer elements. The chromatic solve
+constrains C — that is exactly what "the focal length takes one value at four
+wavelengths" means — and touches D not at all. D is where the principal planes
+live, it is 1 for a thin lens exactly, and every millimetre of glass moves it.
+On this quadruplet D is 0.9337 and drifts 4.97e−4 across the band while the
+corrected EFL varies by 2.6e−15 at the united lines. The curve the placement is
+a level of is therefore not the corrected curve: it is the corrected curve times
+an uncorrected monotone factor, and the factor wins.
+
+### The fourth glass inflates precisely what the stop reads
+
+§ 6at.2's conditioning is the whole story, arriving from an unexpected side. A
+four-glass split needs element powers 12.3× the total where the apochromatic
+triple's are 2.5×, and D − 1 is built out of those powers and the separations
+between them. So the fourth glass shrinks the quantity it corrects and inflates
+the quantity telecentricity actually reads, and § 6ay.7 measures both at once,
+each lens over the span its own united lines cover:
+
+| Lens | EFL ripple | FFD trend | trend ÷ ripple | telecentric at |
+|---|---|---|---|---|
+| doublet, 2 united | 147.70 µm | 2.83 µm | 0.019 | 2 λ |
+| triplet, 3 united | 6.32 µm | 0.19 µm | 0.030 | 3 λ |
+| quadruplet, 4 united | 1.11 µm | 68.76 µm | 61.85 | 1 λ |
+
+The ripple is what can bend FFD back on itself; the trend is what carries it
+away. Two glasses and three glasses are ripple-dominated by 52× and 33×, so
+every turn their EFL has survives into their FFD. Four is trend-dominated by
+61.9×, so none does. Read across the middle two columns rather than down: the
+fourth glass improves what it corrects by 5.7× and degrades what the stop reads
+by **362×**.
+
+**So four is not a near miss**, and this is the part worth keeping. The
+deferral's own guard — *"the turns have to land inside the band as well"* — is
+§ 6aq.7's failure mode, where a bending moved both turns to 383.6 and 805.3 nm
+and left FFD monotone across the visible. That is not what happens here. The
+turns have not moved outside the band; two of the three leave no trace in FFD at
+all, because a 1.11 µm ripple cannot bend a 68.76 µm trend. Widen the band to
+1200 nm and exactly one turn appears, at 933.7 nm, and it is D's own turn rather
+than any of EFL's.
+
+### It is not this bending either, and the three it can reach cost the null
+
+§ 6aq.7 is that the turn count is a property of the **bending**, decided by a
+criterion that knows nothing about it — so a count read off the single built
+lens would be exactly the mistake that rung exists to prevent. § 6av.3 found one
+S_I root where the triplet has two, so there is no second aplanatic design to
+compare against, but the family is continuous. Sweeping the form's own scan
+window, 111 bendings are reachable, and asking each not how many turns it has
+but how many crossings its **best** placement achieves: 107 are telecentric
+once, one twice, three of them three times, and **none four**. The best of the
+three carries ΣS_I = −9.56e−3 mm, which is **2.03 waves** of spherical
+aberration at the d line, and it buys a placement window of 6.32 µm — against
+the apochromatic triplet, which reaches three with a 6.12 µm window at a nulled
+ΣS_I. The fourth glass buys no telecentric wavelength and costs the spherical
+null to match the third's count.
+
+That sweep is 401 samples and § 6ay.6 quotes it as a sweep. What makes the
+result more than a sweep is the row above it: 61.9× is not a margin a bending
+closes.
+
+### The thin lens the deferral was right about
+
+D → 1 as the glass goes to zero, exactly, so if D is what destroys the turns
+then thinning the lens must bring them back — and § 6ay.5 is that, in § 6aq.1's
+shape. Halve the four centre thicknesses at the shipped bending and D − 1 halves,
+seven times over, each ratio nearer exactly two than the last: 1.9524, 1.9758,
+1.9878, 1.9939, 1.9969, 1.9985, 1.9992. At a quarter of the glass one turn is
+back inside the band; at a thirty-second all **three** are, and at a
+hundred-and-twenty-eighth each of the three has walked nearer EFL's own 454.0,
+529.3 and 625.2. **The deferral's prediction is true of a thin quadruplet.**
+5.2 mm of glass is the whole of what breaks it — which is why this rung drives
+`cementedQuadrupletForm` at a fixed bending rather than the constructor, since
+`superachromaticObjective` refuses every one of these thin variants as not a
+solid (§ 6av.8).
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6ay.1 — the precondition holds: four united colours put THREE turns in EFL(λ)** | Rolle on the solve's four roots; one turn strictly inside each gap, at 454.0 / 529.3 / 625.2 nm | ✅ |
+| ...and the same theorem gives the triplet two and the doublet one | blind walks over 380…800 at the same aperture and focal ratio return 2 and 1 | ✅ |
+| **§ 6ay.2 — and FFD(λ) has NO turn in the visible, so the stop is telecentric ONCE** | `turningPointsNm` empty, one crossing at the d line to 7 decimals, stop at 233.421504530 mm | ✅ |
+| ...monotone by direct measurement and not by a search failing | 4200 steps of 0.1 nm, every one rising, none falling | ✅ |
+| ...the one turn there is sits at 933.7 nm, in the infrared | band widened to 1200 nm; still one crossing, so the width was never what bound it | ✅ |
+| ...against THREE for the triplet and TWO for the doublet, same aperture, same ratio | 485.414 / 587.562 / 651.910 and 528.376 / 587.562; glass count 2, 3, 4 gives 2, 3, 1 | ✅ |
+| **§ 6ay.3 — because telecentricity reads FFD = EFL·D, and the solve constrains only EFL** | the identity to 1e−13 across the band; EFL united to 2.6e−15, FFD spread 2.9463e−4 | ✅ |
+| ...and D is what carries it — 0.9337 against the triplet's 1.0010 | D − 1 is 65× the triplet's and 672× the doublet's; band drift 4.97e−4 against 9.37e−6, 53× | ✅ |
+| **§ 6ay.4 — a five-surface Gaussian matrix that never saw the solve agrees** | 2×2 ray-transfer product on Sellmeier; EFL, FFD and D to 1e−12, and the same zero turns | ✅ |
+| **§ 6ay.5 — the cause is the glass: halve the thicknesses, halve D − 1, seven times** | 1.9524 → 1.9992, each nearer two than the last; D − 1 under 6e−4 at 1/128 | ✅ |
+| ...and the three turns come back at a thirty-second of the glass, on EFL's own | 0 turns at full thickness, 1 at a quarter, 3 at a thirty-second, each nearer EFL's at 1/128 | ✅ |
+| **§ 6ay.6 — and no bending the family reaches is telecentric four times** | 111 reachable of 401 sampled; best-placement counts 107 / 1 / 3 at one, two, three, none at four | ✅ |
+| ...and the three it does reach cost 2.03 waves of spherical, where the triplet's cost none | ΣS_I = −9.56e−3 mm, W₀₄₀ = S_I/8; 6.32 µm window against the triplet's 6.12 µm at ΣS_I = 0 | ✅ |
+| **§ 6ay.7 — four is not a near miss: the ripple is 61.9× too shallow** | 1.11 µm against 68.76 µm on the quadruplet, where the doublet is 147.70 against 2.83 | ✅ |
+| ...which is the fourth glass's trade in one comparison | 5.68× better at what it corrects, 362× worse at what the stop reads | ✅ |
+| **§ 6ay.8 — the refusal said the opposite, and it is now measured false** | the message no longer blames "too few united wavelengths"; the doublet takes the placement the quadruplet cannot | ✅ |
+
+### A claim the code asserted, on the wrong lens
+
+`telecentricStop` refuses a turn placement when FFD(λ) has no turn, and until
+this step it explained why: *"FFD(λ) is monotone here, which is what a tail with
+too few united wavelengths does."* Every fixture that had ever reached that
+branch was a singlet, so the clause looked like a summary of §§ 6an–6aq. It is
+false in both halves — the lens in this repo that unites the **most** wavelengths
+is the monotone one, and the two-glass achromat is not — and it named a cause
+that the design's own solve cannot reach. § 6ay.8 pins the corrected text rather
+than only fixing it, because prose in a doc comment is a note and a string a
+caller receives is a claim.
+
+This is the third time the ladder has found a wrong sentence sitting in a place
+nothing tested: § 6aq's "it is a singular matrix" (corrected at § 6ar.6), § 6at's
+prediction that a fluorite-free quadruple would not solve, and now this. All
+three were *explanations* attached to correct behaviour.
+
+### Still open
+
+- **Whether the pole structure can be designed for**, unchanged from § 6ar and
+  now with a target worth aiming at. § 6ay.6 shows three telecentric wavelengths
+  exist in the quadruplet's bending family and that the aplanatic bending is not
+  one of them; nothing here solves for a bending that puts a turn at a wanted
+  colour, and the two-objective solve — S_I and a turn placement together — is
+  not attempted. Whether four is reachable by trading glass rather than bending
+  is a question about **thicknesses**, since § 6ay.5 shows the count is a
+  thickness quantity, and no rung asks it of a lens that is still a solid.
+- **One quadruple of the five**, inherited from § 6av. The 61.9× is measured on
+  the best-conditioned quadruple only, and since conditioning is what inflates
+  D − 1, a worse-conditioned quadruple should be worse still — expected, not
+  measured.
+- **The g line's own trade**, § 6at.5's, and it now has a second edge: h unites
+  further into the violet, which would move EFL's three turns without changing
+  the trend they are fighting.
+- **Paraxial only**, as every rung on this branch has been since § 6aj. The
+  condition is `u′ = C·y + D·u` at D = 0 on the tail's own matrix, so pupil
+  aberration is not modelled and the count is a first-order count.
 
 ## Later rungs
 

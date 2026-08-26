@@ -38,9 +38,20 @@ import { LINE_D } from "../materials/dispersion";
  * The pattern is not "one more glass, one more colour" — it is that a curve with
  * k interior turns meets a horizontal line at most k+1 times. § 6ap's deferral
  * predicted FOUR crossings from two turns and that was arithmetic, not physics;
- * four needs three turns, which is four united wavelengths. `telecentricWavelengthsNm`
- * reports what the tail handed in actually achieves, and `turningPointsNm` reports
- * the bound.
+ * four needs three turns. `telecentricWavelengthsNm` reports what the tail
+ * handed in actually achieves, and `turningPointsNm` reports the bound.
+ *
+ * **What is NOT true is that a fourth united wavelength supplies the third
+ * turn**, and this file said it was until § 6ay measured it. Four united
+ * wavelengths put three turns in **EFL(λ)** — that much is Rolle's theorem on
+ * the solve's own conditions. But the placement is a level of FFD, and
+ * FFD = EFL · D: the chromatic solve constrains C, which is EFL, and leaves the
+ * ray-transfer element D alone. On the superachromatic quadruplet D drifts
+ * monotonically, and over the span its four united lines cover it carries FFD
+ * 61.9× further than the corrected EFL's ripple bends it back — so FFD(λ) has
+ * NO turn in the visible and the stop is telecentric ONCE, fewer than the
+ * doublet two glasses back. The turn count is a fact about the tail's principal planes,
+ * and a chromatic solve is not how one gets more of them.
  *
  * ## Two placements, and the difference is 3.8 µm
  *
@@ -374,9 +385,15 @@ export function telecentricStop(spec: TelecentricStopSpec): TelecentricStopSyste
     if (index >= turningPointsNm.length) {
       // A singlet's FFD is monotone and has none — which is § 6an's tail, and is
       // a fact about the GLASS, not about the request. Say which.
+      //
+      // **And do NOT say it is a fact about the united wavelengths**, which this
+      // message did until § 6ay measured the opposite: the superachromatic
+      // quadruplet unites four and is monotone across the visible, where the
+      // achromatic doublet unites two and turns at 556 nm. What FFD(λ) turns on
+      // is the ray-transfer element D, which the chromatic solve never touches.
       throw new Error(
         turningPointsNm.length === 0
-          ? `telecentricStop: this tail's front focal distance has no turn in ${from}…${to} nm, so there is no double-root placement — FFD(λ) is monotone here, which is what a tail with too few united wavelengths does`
+          ? `telecentricStop: this tail's front focal distance has no turn in ${from}…${to} nm, so there is no double-root placement — FFD(λ) is monotone here. That is a fact about D and not about how many wavelengths the tail unites: a four-glass superachromat unites four and is monotone across the visible (§ 6ay)`
           : `telecentricStop: this tail has ${turningPointsNm.length} turn${turningPointsNm.length === 1 ? "" : "s"} in ${from}…${to} nm, so turn ${index} does not exist`,
       );
     }
