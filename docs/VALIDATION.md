@@ -103,7 +103,7 @@ whole ladder.
 | [6ar](#step-6ar--the-telecentric-designs-ship) | The last two solves leave the test files: `designs/apochromat` and `designs/telecentric` rebuild §§ 6ap–6aq to the digit — and § 6aq.4's ninth decimal was the bracket | `telecentric-design` |
 | [6as](#step-6as--the-extended-fluorescent-specimen) | An emitter is a DENSITY, so warping one needs det J = (h/r)·(dh/dr) — 1/M² on the axis; a Gaussian’s loss is erf exactly, a hard edge’s the Gauss circle problem’s open exponent | `emitter-density` |
 | [6at](#step-6at--the-fourth-colour-and-its-price) | The four-glass split SOLVES: the fourth row needs non-COPLANARITY, not a second anomalous glass, and the 102× less colour it buys is 9× at 0.01% radius tolerance and nil by 0.1–0.2% | `superachromat` |
-| [6au](#step-6au--a-real-tolerance-budget) | Wedge and centring are ONE freedom per sphere, δ = −R sin α, so eleven rows and not fifteen — and COLOUR sets seven of them by 3.6–26×, blur the four alignment rows it cannot see at all | `tolerance-budget` |
+| [6au](#step-6au--a-real-tolerance-budget) | Wedge and centring are ONE freedom per sphere, δ = −R sin α, so eleven rows and not fifteen — and COLOUR sets six of them by 3.6–26×, blur five including the four it cannot see at all | `tolerance-budget` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -17679,7 +17679,7 @@ its premise.**
 | **§ 6au.4 — a decentred element is a prism of deviation δ/f** | Smith's thin rule to 5% on a 4 mm singlet at δ = 0.05, 0.1, 0.2 mm | ✅ |
 | ...and a rigid lateral shift is a null only for a PERFECT lens | < 1e−9 on the paraboloid; **3.913e−2 waves/mm** on the triplet, linear to 1e−3 | ✅ |
 | **§ 6au.5 — d(1/f)/dt = (n−1)²c₁c₂/n**, the thick maker's equation differentiated | 1e−6, which is the central difference's own floor and not a percentage | ✅ |
-| **§ 6au.6 — seven rows are set by COLOUR and four by BLUR** | normalized slopes; the two disagree by 3.6× to 25.9× where they compete | ✅ |
+| **§ 6au.6 — SIX rows are set by COLOUR and five by BLUR** | normalized slopes; the two disagree by 3.6× to 25.9× where they compete | ✅ |
 | ...and the worst curvature row re-measures § 6at.8's break-even by a second route | 4.413e−3 traced thick against 4.319e−3 thin, 2.2% | ✅ |
 | ...and the allocation checks its own extrapolation instead of trusting it | 9 of 11 rows within 3% of their share; the two that are not are 0.54 and 0.68 | ✅ |
 | ...and a centring error's colour is LATERAL, the axial zero being a readout limit | 1.169e−5 rad of F−C on 1.111e−3 of deviation — **1.05%**, § 6au.2's fraction | ✅ |
@@ -17747,12 +17747,20 @@ still within 2e−6, because a conic departs from its own osculating sphere *off
 axis* and the chief ray never goes there. That is why the equality is pinned on
 the chief ray and the aperture is left as a measured residual.
 
-### Two currencies, and the seven-four split
+### Two currencies, and the six-five split
 
 Each row is normalized by its own currency's **target** — λ/14 for blur, the
 lens's own residual colour 2.206e−4 for colour — which makes the two comparable
 without extrapolating either to an allowance. The larger normalized slope is the
 constraint a shop actually has to meet.
+
+**Six and five, and this section said seven and four until Part P's panel put
+the split on screen.** There are two splits here and they are one row apart. What
+colour can SEE is seven rows against four: the four alignment rows have a colour
+slope of exactly zero, and § 6au.7 groups by that. What colour BINDS is six rows
+against five, because t₃ is visible to colour and constrained by blur — which is
+what the table below has always said and what the rung has always asserted. The
+prose took the first split's numbers and attached them to the second's sentence.
 
 | row | colour, per unit ÷ target | blur, per unit ÷ target | binds | by |
 |---|---|---|---|---|

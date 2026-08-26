@@ -423,7 +423,7 @@ describe("§ 6au.6 — the budget: eleven rows, two currencies, and which one bi
     // allowance. Whichever normalized slope is larger is the constraint the shop
     // actually has to meet.
     //
-    // Seven rows are set by COLOUR and four by BLUR, and the two are 3.6× to 26×
+    // SIX rows are set by COLOUR and five by BLUR, and the two are 3.6× to 26×
     // apart where they compete. The curvatures are the tight ones: c2 spends 227
     // times its colour budget per unit against 22 times its blur budget, so
     // holding the monochromatic image diffraction-limited leaves the third glass
