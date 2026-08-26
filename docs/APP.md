@@ -6149,6 +6149,32 @@ belongs to each design. That is § 6au's caution and Part P's correction arrivin
 one part later, and the test file says which axes were swept and which were not
 rather than leaving it to be discovered.
 
+### The rasterizer reaches five rows and the picture reaches three
+
+Found by chasing a figcaption that appeared to show two grid-step values for one
+optical configuration. It did not — `maxGridPhaseStepWaves` is **bit-identical**
+across shape, size and offset, as it must be, since it comes off the pupil and
+the DFT lattice and no part of a density reaches it, and that is now a rung where
+the panel’s only guard previously had no coverage at all. What the sweep behind
+the check turned up is the thing worth recording.
+
+`abbeImage`’s criterion is half a wave between adjacent transmitting samples.
+*Over every crop this panel offers:* the DIN 4×/0.10, the infinity 4×/0.10 and the
+infinity 10×/0.10 stay under it everywhere — worst 0.272 — while the **DIN 4×/0.15
+runs 0.84 to 2.86 and the DIN 4×/0.20 runs 6.58 to 21.8**. Over the line at *every*
+setting, not at the extreme of one: those two carry enough residual wavefront that
+the lattice cannot represent their pupil at any sampling this surface reaches.
+
+**It costs this part no claim, and the reason is which canvas the claims come
+off.** Everything in the finding above is read from the *authored* grid — the
+density times the area element — which involves no lattice and no pupil; the flux
+residual, the Jacobian’s worth and the area element are all pre-optical. Only
+`peakDrop` and `lightResidual` pass through `renderFluorescence`, and both are
+pinned on the 4×/0.10, which clears the criterion at every crop. The canvas is
+still drawn for the two that do not, with the guard red beside it — A4’s house
+rule, and the honest one here: a withheld picture would hide that the *other*
+canvas is unaffected.
+
 ### The number this part sends back: which lenses can carry the surface at all
 
 `rasterizeEmitterDensity` asks the map for `hypot(x, y)` at every pixel, so the
@@ -6185,8 +6211,8 @@ the reader wants and not what the density is.
 
 ### Cost
 
-`emitter.ts` 461 lines, `panels/emitter.tsx` 475, `emitter.worker.ts` 28, a
-factory, a route, and `test/emitter.test.ts` at 420 lines and 21 rungs. No engine
+`emitter.ts` 461 lines, `panels/emitter.tsx` 492, `emitter.worker.ts` 28, a
+factory, a route, and `test/emitter.test.ts` at 474 lines and 23 rungs. No engine
 work at all —
 § 6as needed none, which is the difference from Part P, whose feasibility
 measurement turned up a defect in `opdMap`. The whole job is ~70 ms at grid 256

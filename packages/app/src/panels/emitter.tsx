@@ -437,6 +437,23 @@ export function EmitterPanel() {
         grid.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+        <strong>
+          Two of those five rows form a picture the grid step guard rejects, and the guard is the
+          only thing on this page that says so.
+        </strong>{" "}
+        Everything above is read off the <em>authored</em> canvas — the density times the area
+        element — which involves no DFT lattice and no pupil at all. The <em>imaged</em> canvas
+        beside it does, and <code>abbeImage</code>&rsquo;s criterion is half a wave between adjacent
+        transmitting samples. <em>Measured over every crop this panel offers</em>: the DIN 4×/0.10,
+        the infinity 4×/0.10 and the infinity 10×/0.10 stay under it everywhere (worst 0.272), while
+        the <strong>DIN 4×/0.15 runs 0.84 to 2.86 and the DIN 4×/0.20 runs 6.58 to 21.8</strong> —
+        over the line at <em>every</em> setting, not at the extremes of one. Those two designs carry
+        enough residual wavefront that the lattice cannot represent their pupil at any sampling this
+        surface reaches. <strong>So the rasterizer reaches five objectives and the picture reaches
+        three</strong>, and the guard turns red rather than the canvas being withheld — the numbers
+        the panel is actually about are on the other canvas and stay true.
+      </p>
+      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
         <strong>The negative control is small, and that is the finding rather than a let-off.</strong>{" "}
         Across those five rows, throwing the area element away costs between{" "}
         <strong>4.4e−9</strong> and <strong>2.7e−5</strong> of the flux, and{" "}

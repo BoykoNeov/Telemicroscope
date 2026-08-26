@@ -407,6 +407,60 @@ describe("Part Q — the optics, which is one number and is not a verdict", () =
     expect(drops[3]!).toBeGreaterThan(0.4);
   });
 
+  it("the grid step guard is bit-identical whatever the emitter is or where it sits", () => {
+    // The panel's ONLY guard, and it had no coverage until this rung. It comes
+    // off `renderFluorescence` and is a property of the pupil and the DFT
+    // lattice, so nothing about the density may reach it — a guard that moved
+    // with the emitter would not be the criterion it prints itself as.
+    //
+    // Written because a figcaption appeared to show two values for one optical
+    // configuration; it did not, and the readings were a misread of a small
+    // screenshot. The rung is worth keeping anyway: the claim it makes is one
+    // nothing else here checks, and it is exact rather than approximate.
+    for (const kind of ["din-4x-010", "din-4x-020"] as const) {
+      const reference = readoutOf(req(kind, { scaleUm: 5 })).maxGridPhaseStepWaves;
+      for (const shape of ["disc", "gaussian"] as const) {
+        for (const scaleUm of [5, 23.4]) {
+          for (const offsetUm of [0, 40.5]) {
+            expect(
+              readoutOf(req(kind, { shape, scaleUm, offsetUm })).maxGridPhaseStepWaves,
+              `${kind} ${shape} ${scaleUm} ${offsetUm}`,
+            ).toBe(reference);
+          }
+        }
+      }
+    }
+  });
+
+  it("...and two of the five rows are over its line at every crop, not at one extreme", () => {
+    // What sweeping that invariance turned up, and it is the caveat the panel
+    // now carries: the numbers this surface is ABOUT come off the authored
+    // canvas, which involves no lattice — but the imaged canvas beside them does,
+    // and two designs cannot be represented on it at any sampling offered here.
+    //
+    // Both directions are pinned. A rung that only checked the failing rows
+    // would pass on a criterion that had silently become unreachable for
+    // everything.
+    const LIMIT = 0.5;
+    const CROPS = [16, 32, 64, 96];
+    const worstOver = (kind: MicroscopeKind): number =>
+      Math.max(...CROPS.map((pupilSamples) =>
+        readoutOf(req(kind, { pupilSamples, scaleUm: 5 })).maxGridPhaseStepWaves,
+      ));
+    for (const kind of ["din-4x-010", "inf-4x-010", "inf-10x-010"] as const) {
+      expect(worstOver(kind), `${kind} should clear the lattice everywhere`).toBeLessThan(LIMIT);
+    }
+    for (const kind of ["din-4x-015", "din-4x-020"] as const) {
+      const best = Math.min(...CROPS.map((pupilSamples) =>
+        readoutOf(req(kind, { pupilSamples, scaleUm: 5 })).maxGridPhaseStepWaves,
+      ));
+      expect(best, `${kind} should clear it nowhere`).toBeGreaterThan(LIMIT);
+    }
+    // The worst row, by the factor the panel quotes: 21.8 against a limit of 0.5.
+    expect(worstOver("din-4x-020")).toBeGreaterThan(21);
+    expect(worstOver("din-4x-020")).toBeLessThan(22);
+  });
+
   it("patches changes the imaged peak by under a percent, which is why it carries no claim", () => {
     // Recorded rather than pinned tightly: the axis is offered because an
     // extended source is what a field-varying pupil is for, and the honest thing
