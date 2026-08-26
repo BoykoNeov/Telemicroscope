@@ -31,8 +31,10 @@ import type { Prescription } from "../src/trace/prescription";
  *    three-glass split to 1.1e−12. The three-glass split is § 6ar.1's external
  *    number; this step inherits it rather than re-deriving it.
  *  - **The SCHOTT N-BK7 data sheet's printed partial dispersions**, P_g,F =
- *    0.5349 and P_d,C = 0.3076, which `materials.test.ts` pins directly. They
- *    are why this step's second condition rests on a printed number.
+ *    0.5349 and P_d,C = 0.3076. **That is § 6at.4, and it is deliberately NOT
+ *    in this file** — a datasheet pin on a catalogue medium belongs with the
+ *    other datasheet pins, so it lives in `materials.test.ts`. The rungs here
+ *    run .1, .2, .3, .5 …; the gap is that pin and not a missing one.
  *  - **The thin-lens derivative of the maker's equation**, § 6ar.6's own
  *    Δf/f = −ε·f·cₖ·Δnₖ, split into the part that refocuses and the part that
  *    does not (§ 6at.7) and **validated against a traced thick apochromat**.

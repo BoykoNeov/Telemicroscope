@@ -17464,6 +17464,7 @@ the quantity conditioning it is the second relative partial dispersion
 | **§ 6at.2 — every four-glass quadruple SOLVES, and the predicted refusal is absent** | conditioning 12.29 / 12.89 / 15.54 / 59.22 / 92.36; scale-free at f = 10 and 1000 | ✅ |
 | ...including the FLUORITE-FREE one, which is what kills the deferral's reasoning | 59.22, against the fluorite-free apochromatic triple's 517.95 | ✅ |
 | **§ 6at.3 — the fourth row wants NON-COPLANARITY, not a second anomaly** | ordinary glasses miss the (1, V, P_dC) → P_gF plane by 5.833e−4; CaF₂ 1.946e−2, 33× further | ✅ |
+| **§ 6at.4 — the catalogue's partial dispersions against a PRINTED sheet** (in `materials`, not `superachromat` — a datasheet pin belongs with the datasheet pins) | SCHOTT 517642.251: n_g, n_F, n_C, P_g,F = 0.5349, P_d,C = 0.3076, all to 5e−6 | ✅ |
 | **§ 6at.5 — what the fourth colour buys, on two bands and against five lines** | 102.4× over 430–680, 8.7× over 380–800; g beats h in-band 4.53×, loses the full band 2.06× | ✅ |
 | **§ 6at.6 — a focal-ratio wall that holds at EVERY bending** | min over bending of max\|c\|·(D/2): f/7.25 quad, f/1.49 triplet, f/28.3 fluorite-free; built lens f/1.53 | ✅ |
 | **§ 6at.7 — the chromatic half of a curvature error, traced** | thin closed form vs the traced thick apochromat, < 3.2% on all four surfaces | ✅ |
