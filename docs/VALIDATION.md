@@ -104,7 +104,7 @@ whole ladder.
 | [6as](#step-6as--the-extended-fluorescent-specimen) | An emitter is a DENSITY, so warping one needs det J = (h/r)·(dh/dr) — 1/M² on the axis; a Gaussian’s loss is erf exactly, a hard edge’s the Gauss circle problem’s open exponent | `emitter-density` |
 | [6at](#step-6at--the-fourth-colour-and-its-price) | The four-glass split SOLVES: the fourth row needs non-COPLANARITY, not a second anomalous glass, and the 102× less colour it buys is 9× at 0.01% radius tolerance and nil by 0.1–0.2% | `superachromat` |
 | [6au](#step-6au--a-real-tolerance-budget) | Wedge and centring are ONE freedom per sphere, δ = −R sin α, so eleven rows and not fifteen — and COLOUR sets six of them by 3.6–26×, blur five including the four it cannot see at all | `tolerance-budget` |
-| [6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) | The thin split stops being a START — the thick lens is 3.3 total powers off — and there is ONE S_I null, not two; traced crossing 0.070%, BELOW § 6at's band | `superachromat-lens` |
+| [6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) | A root can be a SURFACE and not a SOLID — the wall is f/21.9, not f/11; the thin split is not a START; ONE S_I null, not two; crossing 0.077% | `superachromat-lens` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -17586,7 +17586,7 @@ apochromat to 3.2% on every surface — tighter than the 6% § 6ar.6 got for the
 refocusable half, and it is what licenses using the thin formula on a
 quadruplet that does not exist as a traced lens. **[§ 6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound)
 builds one**, and the licence is where this reasoning is weakest: traced at the
-bending a lens is really built at, the quadruplet's sensitivity is 34% larger
+bending a lens is really built at, the quadruplet's sensitivity is 23% larger
 than the thin route gives at the shallowest bending.
 
 So: the break-even relative curvature error, where the colour a lens *injects*
@@ -17617,7 +17617,7 @@ favourable to it, at 1.4e−3. So the crossing is **between 0.09% and 0.14%**, a
 the step quotes the band. **It is the wrong band**, and
 [§ 6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) is where that is
 measured: the S_I-null bending is worse than BOTH bendings quoted here, so the
-traced crossing is 0.070% and falls below the interval. Two samples of a quantity
+traced crossing is 0.077% and falls below the interval. Two samples of a quantity
 that moves 4.6× are not a bound on it, and this paragraph reads as though they
 were. That the triplet's own shallowest-bending sensitivity
 lands within 4% of what its real S_I-nulled bending traces is this triple's
@@ -17632,7 +17632,7 @@ luck, not a law, and is labelled as luck.
   since at conditioning 12.29 the thin split stops being a usable start and
   Newton from it converges to a different root without saying so. § 6b's root
   count came back ONE and not the triplet's two, so there is no branch to choose.
-  And the band below does not contain the traced answer, which is 0.070%.
+  And the band below does not contain the traced answer, which is 0.077%.
 - **Whether four united colours actually give four telecentric ones.** § 6aq
   bounds the telecentric count by the turn count in FFD(λ), and four united
   wavelengths is the *precondition*, not the conclusion — the turns have to
@@ -17647,7 +17647,7 @@ luck, not a law, and is labelled as luck.
   their RSS — and re-measures § 6at.8's own break-even by tracing the built lens
   rather than the thin split, 4.413e−3 against 4.319e−3. It cannot close it for
   the quadruplet, and [§ 6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) does
-  not either: the lens exists now, but its five surfaces make sixteen rows where
+  not either: the lens exists now, but its five surfaces make fourteen rows where
   the triplet has eleven, and nothing has run the budget on them.
 
 ## Step 6au — a real tolerance budget
@@ -17887,43 +17887,59 @@ quantity that decides it moves 4.6× with a bending nothing there solved for, an
 nothing there built a lens. `designs/superachromat` is that lens: five surfaces,
 four cement joints, the four chromatic conditions on the **thick** first order
 and the bending chosen by nulling third-order spherical aberration on the real
-prescription. The band becomes **0.070%**, and the band does not contain it.
+prescription. The band becomes **0.077%**, and the band does not contain it.
 
-Three of the five findings here are corrections to what § 6at expected, and the
-first one is about where the difficulty sat rather than about the optics.
+Four of the eight findings here are corrections to what § 6at expected. The
+fifth, § 6av.8, is a correction to what this step itself first shipped: the lens
+it called the default had two elements with no glass at the rim, and putting
+`designs/achromat`'s edge condition into the root-is-a-lens filter moved the
+focal-ratio wall from f/10.81 to f/21.88 and every number below with it.
 
 | Rung | Pinned to | Status |
 |---|---|---|
-| **§ 6av.1 — the quadruplet exists as a thick lens** | four lines united to < 1e−13 of f, ΣS_I < 1e−9 mm, conditioning 12.292 against § 6at.2's; radii −12.838 / 5.765 / 6.295 / 15.576 / −8.823 mm at f/12 | ✅ |
-| ...and the thin split is its LIMIT, by § 6ar.1's halving check | gap 3.2955 → 1.1147 → 0.4867 → 0.2291 as the glass thins, ratio → 2 | ✅ |
-| **§ 6av.2 — the thin split stops being a START, and the failure is silent** | 10 of 104 shared bendings solve to a different lens, the direct one > 2.2× steeper; both unite the four lines to 1e−13 | ✅ |
+| **§ 6av.1 — the quadruplet exists as a thick lens** | four lines united to < 1e−13 of f, ΣS_I < 1e−9 mm, conditioning 12.292 against § 6at.2's; radii −33.177 / 13.664 / 14.723 / 30.282 / −20.192 mm at f/25, thinnest edge 0.156 mm | ✅ |
+| ...and the thin split is its LIMIT, by § 6ar.1's halving check | gap 1.0576 → 0.4649 → 0.2194 → 0.1068 as the glass thins, ratio → 2 — and the same 1.0576 at a fifth of the aperture, which is what makes it the focal length's number | ✅ |
+| **§ 6av.2 — the thin split stops being a START, and the failure is silent** | 6 of 125 shared bendings solve to a different lens, the direct one > 4.3× steeper; both unite the four lines to 1e−13 | ✅ |
 | ...and the continuation's depth is not a parameter of the answer | 8 steps against 24, < 1e−9 relative on every bending both reach | ✅ |
-| **§ 6av.3 — ONE spherical-aberration null, where doublet and triplet have two** | 1 root and 1 lens at windows of ±2, ±3, ±5 spans and at 400 and 1600 samples; the triplet at the same aperture and ratio: 2 | ✅ |
-| **§ 6av.4 — the wall the bound could not place, and a root that is not a surface** | builds at f/11 (0.983 hemispheres), refuses at f/10.75; needs f/10.81 against § 6at.6's f/7.25 bound, 1.49× | ✅ |
-| ...and at f/11 the root-is-a-lens filter removes something, which it never did on the triplet | 2 roots found, 1 a surface, the ghost > 2 hemispheres | ✅ |
-| **§ 6av.5 — the bending belongs to the focal length, not the aperture** | f/30 at 10 mm and f/15 at 20 mm are the same five curvatures to 1e−12; steepness scales 2.000× and only it decides buildability | ✅ |
-| **§ 6av.6 — the band becomes a number, and the number is outside the band** | traced crossing 7.012e−4 against § 6at.8's 9.493e−4–1.358e−3; 76.0× perfect where thin said 102.4× | ✅ |
-| ...because the S_I bending is worse than BOTH bendings the band was built from | traced sensitivity 3.127e−1 against the band's 2.334e−1 and 1.631e−1 | ✅ |
-| ...and the crossing is the design's, not the fixture's | 7.01e−4 / 7.56e−4 / 7.72e−4 / 7.70e−4 over three ratios and a halved thickness, all below the band | ✅ |
-| **§ 6av.7 — and there is still no superachromat without fluorite** | the fluorite-free split solves at 59.224 and ΣS_I keeps one sign at f/30, f/200 — an ordinary refusal, not the aperture one | ✅ |
+| **§ 6av.3 — ONE spherical-aberration null, where doublet and triplet have two** | 1 root, and it is 1 lens and 1 solid, at windows of ±2, ±3, ±5 spans and at 400 and 1600 samples; the triplet at the same aperture and ratio: 2 | ✅ |
+| **§ 6av.4 — the wall is not the kind of wall the bound is a bound on** | builds at f/21.9 (0.423 hemispheres, 1.2 µm of edge), refuses at f/21.8; **3.018×** § 6at.6's f/7.25 where the built bending's own steepness needs 1.277× | ✅ |
+| ...and at f/11 BOTH halves of the filter fire, on one shipping input | 2 roots and 0 lenses: one past two hemispheres, the other shallow enough and 1.492 mm short of an edge | ✅ |
+| **§ 6av.5 — the bending belongs to the focal length, the SOLID to the aperture** | f/30 at 10 mm and f/15 at 20 mm are the same five curvatures to 1e−12; edges 2.678 / 1.143 / 0.836 / 0.334 mm and 6.192 / 0.912 / −0.440 / −2.358 | ✅ |
+| **§ 6av.6 — the band becomes a number, and the number is outside the band** | traced crossing 7.664e−4 against § 6at.8's 9.493e−4–1.358e−3; 91.4× perfect where thin said 102.4× | ✅ |
+| ...because the S_I bending is worse than BOTH bendings the band was built from | traced sensitivity 2.878e−1 against the band's 2.334e−1 and 1.631e−1 | ✅ |
+| ...and the crossing is the design's, not the fixture's | 7.66 / 7.72 / 7.79 / 7.57 / 7.83 · 10⁻⁴ over three focal ratios and two glass thicknesses, every one of them solid and every one below the band | ✅ |
+| **§ 6av.7 — and there is still no superachromat without fluorite** | the fluorite-free split solves at 59.224 and ΣS_I keeps one sign at f/30, f/200 — an ordinary refusal, not the aperture one, and § 6av.8 did not touch it | ✅ |
+| **§ 6av.8 — a root can be a SURFACE and still not be a SOLID** | the f/12 lens § 6av first shipped has edges 5.509 / 0.775 / **−0.446** / **−1.178** mm at D/2; its rear element closes at 3.615 mm of a 5 mm semi-aperture | ✅ |
+| ...and a per-surface steepness cannot see a relation between a PAIR of surfaces | 0.867 hemispheres at the steepest of the five, while two of the four elements have no glass at the rim at all | ✅ |
+| ...and the ray trace agrees with the arithmetic: a lens labelled f/12 passes f/18.6 | rays above 3.2307 mm entering height MISS surface 4, glass margins being irrelevant; the marginal ray climbs to 5.724 mm inside 5.1 mm discs | ✅ |
+| ...and thickening the glass does not buy the fast end back | at f/12 with elements thick enough to be solid the scan finds NO S_I null, at [1.6, 1.2, 1.85, 2.6] and at [2, 2, 3, 4] alike | ✅ |
+| ...and the wall is now a joint property of f AND D, where a steepness wall is not | f/20.97 at 5 mm, f/21.88 at 10 mm, f/43.14 at 20 mm — same glasses, same four thicknesses, three different walls | ✅ |
 
-### The thin split stops being a start, and that is the step's real cost
+### The thin split stops being a start, and that is the step's first real cost
 
 § 6at scoped this rung as "five surfaces, four cement joints, `analysis/seidel`
 already generalizes". Seidel does generalize and the surfaces were never the
 difficulty. **What does not carry over is `designs/apochromat`'s solver.**
 
 That solve runs damped Newton on the thick first order from the thin split, and
-the split is a good start there because the built triplet sits 0.038 of the total
+the split is a good start there because the built triplet sits 0.040 of the total
 power away from it (§ 6ar.1's `thinPowerGap`). At four glasses the conditioning
 is 12.29 rather than 2.578, so the element powers are ~12× the total power and
 Gullstrand's separation term — which goes as φᵢφⱼd — is **larger than the power
-it corrects**. The built quadruplet sits **3.30 total powers** from its own thin
+it corrects**. The built quadruplet sits **1.06 total powers** from its own thin
 split. At that distance the split is not a nearby lens; it is a different one.
 
+That gap is the focal length's and the thicknesses', not the aperture's, and the
+halving rung now says so in passing: the same 1.0576 comes back at a 2 mm
+aperture as at 10 mm. It was quoted as 3.30 while the shipped lens was 120 mm;
+at the 250 mm § 6av.8 moved it to, the same glass is relatively thinner and the
+number is smaller. The conclusion is unchanged — 1.06 against the triplet's
+0.040 is still a factor of 27, and still far outside anything a Newton start can
+be trusted across.
+
 Newton does not fail there. It **converges to another root of the same residual
-system**, and which root depends on the bending it started at: at 10 of the 104
-bendings where both methods reach a solution the direct one is more than 2.2×
+system**, and which root depends on the bending it started at: at 6 of the 125
+bendings where both methods reach a solution the direct one is more than 4.3×
 steeper, and both unite g, F, d and C to 1e−13. Everything downstream is then
 reading a function that is not one — S_I(c₁) acquires jump discontinuities, the
 bisection brackets them as though they were crossings, and the root count comes
@@ -17944,6 +17960,66 @@ and now a solver's starting point. The pattern is worth naming: a deferral
 predicts the difficulty from the PHYSICS that is missing, and the difficulty has
 three times been in the machinery that was assumed to carry over.
 
+### A root can be a surface and still not be a solid
+
+And the fourth time is in this same step, one filter along. § 6av shipped a lens
+that cannot be made, and the condition it violates has been in this repo since
+§ 6b: **`designs/achromat` refuses a doublet whose elements meet before the
+rim**, by the elementary arithmetic that an element's edge thickness at
+semi-diameter y is
+
+    edge_k(y) = t_k + sag(c_{k+1}, y) − sag(c_k, y),   sag(c, y) = cy²/(1 + √(1 − c²y²))
+
+and this design did not check it. The lens it called the default — f/12 at 10 mm
+— has a rear element 1.2 mm thick between radii of +15.58 and −8.82 mm. At the
+5 mm semi-aperture its front face has sagged +0.82 mm and its rear face −1.36,
+so the two crossed **1.178 mm ago**: the element runs out of glass at 3.615 mm,
+72% of the way to the rim, and the element in front of it at 4.460 mm.
+
+**The root-is-a-lens filter did not catch it because it was asking a different
+question.** `maxSurfaceSlope` is max|cₖ|·(D/2) over the five surfaces — is each
+surface, on its own, shallower than a hemisphere at the entering height. It is
+0.867 on this lens: comfortable, and true. An edge thickness is a relation
+between a **pair** of surfaces, and no quantity computed one surface at a time is
+ever going to see a pair. The two conditions are independent, and this design is
+where they come apart, for the reason everything else here comes apart — element
+powers ~12× the total power mean cement joints far more strongly curved than a
+doublet's at the same focal length, so two of them meet long before either passes
+a hemisphere.
+
+The ray trace agrees with the arithmetic and was in fact what found it, from an
+unlikely direction: § 6aw's tolerance budget kept only 137 of the 313 pupil
+samples the triplet keeps at the same aperture. Rays entering above **3.2307 mm**
+miss surface 4 outright — not clipped by a glass margin, since widening every
+disc to 50 mm changes the number not at all, but arriving where the prescription
+has no surface left. A lens labelled f/12 passes an **f/18.6** beam. The trace
+stops a little inside the arithmetic's own 3.615 mm because a marginal ray does
+not keep its entering height: it climbs to 5.724 mm inside a lens whose entrance
+is 5 mm, which is a second and much smaller defect — the glass discs are sized
+off D and not off the ray height inside — recorded here and not repaired, because
+widening a disc cannot help an element with no edge to widen.
+
+Solidity is now half of the root-is-a-lens filter and three things follow.
+
+ - **The wall moves from f/10.81 to f/21.88** at 10 mm, and the refusal stays the
+   APERTURE one, because slowing the ratio is still exactly what fixes it.
+ - **Thickening the glass does not buy the fast end back.** The obvious repair is
+   to give each element the centre thickness its sags demand; do that at f/12 and
+   the four-glass system stops having a spherical-aberration null at all. So f/12
+   is not a thickness this design got wrong. There is no solid aplanatic
+   quadruplet of these glasses at 10 mm and 120 mm.
+ - **The wall stops being a pure focal-ratio statement.** Steepness scales:
+   max|c|·D/2 doubles when the aperture doubles, so a ratio that builds at one
+   aperture builds at any. Solidity does not, because the centre thicknesses are
+   absolute millimetres while the sags grow with the aperture. The wall is f/20.97
+   at 5 mm, f/21.88 at 10 mm and f/43.14 at 20 mm.
+
+The generalization worth keeping is the one about where difficulty lives. Three
+times it was machinery assumed to carry over; this time it was a **condition the
+repo already had and this design did not apply** — which is worse, because
+nothing had to be invented to catch it and nothing but a habit of copying the
+filter next door would have.
+
 ### One null, and the pair does not carry over
 
 § 6at deferred this explicitly — "§ 6b's root-count and root-is-a-lens filters
@@ -17958,68 +18034,80 @@ there is no branch to choose and no cancellation criterion to choose it by, and
 `superachromaticObjective` has no `branch` option. A copied 2-tuple would have
 turned the finding into a throw.
 
-What this design has and the triplet does not is **a root that is not a surface**.
-`designs/achromat` needs its root-is-a-lens filter for a ghost past the aperture
-wall (§ 6b.5.7); `designs/apochromat` keeps the filter although § 6ar.2 records
-that it removes nothing on any input in this repo. Here it removes something on a
-shipping input: at f/11 the scan finds two roots and exactly one is a lens, the
-other more than two hemispheres deep. The filter is doing work again, and the
-lens built is not the first root found.
+What this design has and the triplet does not is **a root that is not a lens**,
+and since § 6av.8 there are two ways for a root to fail to be one.
+`designs/achromat` needs its filter for a ghost past the aperture wall
+(§ 6b.5.7); `designs/apochromat` keeps the filter although § 6ar.2 records that
+it removes nothing on any input in this repo. Here both halves remove something
+on one real input: at f/11 the scan finds two roots, one more than two
+hemispheres deep and the other shallow enough to be a surface and still 1.492 mm
+short of an edge.
 
-### The wall the bound could not place
+### The wall the bound could not place, and what it is made of
 
 § 6at.6's f/7.25 is a lower bound over *every* bending, closed-form and free of
 any aberration scan, and it stays true. What it cannot say is where the design
-actually lands, because the S_I-null bending is not the shallowest one. The built
-lens needs **f/10.81** and refuses at f/10.75 — **1.49× the bound**, against the
-apochromatic triplet's 1.03× (§ 6at.6). Both are the same statement about what a
-bound is; the two designs simply sit very differently far from theirs.
+actually lands — and § 6av's first answer to that, f/10.81, was measuring the
+wrong condition. The steepness the built bending needs really is modest: at
+f/21.9 the steepest of the five surfaces is 0.423 of a hemisphere, and in
+§ 6at.6's own units the bending would be buildable at f/9.26, only **1.277×** the
+bound. What it is not is a solid before f/21.88, which is **3.018×** the bound,
+against the apochromatic triplet's 1.03×. A bound is not a prediction; a bound on
+the wrong quantity is not even the right kind of number.
 
 One property of the solve is worth having pinned because it says which knob does
 what, and the answer is not symmetric. The colour split and the S_I null are both
 properties of the **focal length and the centre thicknesses**: S_I ∝ h⁴ scales the
 whole sum uniformly, so its zero does not move with the marginal height. f/30 at
 10 mm and f/15 at 20 mm are the same 300 mm lens to twelve digits. The aperture
-then decides one thing only — whether that bending is a surface — which is why
-f/7.5 at 40 mm, the same lens again, refuses.
+then decides one thing only — whether that bending is a lens — and since § 6av.8
+that is a stronger condition than it was: the same five curvatures have edges of
+2.678, 1.143, 0.836 and 0.334 mm at a 10 mm aperture and 6.192, 0.912, −0.440 and
+−2.358 mm at 20 mm, so one of the two is a lens and the other is not, while a
+steepness test passes both at 0.30 and 0.60 hemispheres.
 
 ### The band was not a bound, and the number is below it
 
 The headline. Both lenses traced, both at the same aperture and the same focal
-ratio, and the ratio is one the quadruplet can be built at: the triplet would
-rather be f/6 and is f/12 here, because a comparison of two lenses at two
+ratio, and the ratio is one the quadruplet can be built at. The triplet would
+rather be f/6 and is f/25 here, because a comparison of two lenses at two
 geometries measures the geometry. Colour is read as R(λ) = f_d/f_λ − 1 against
 each perturbed prescription's **own** d line, which is § 6at.7's 74× trap and the
 reason that step's first version disagreed with itself.
 
 Over 430–680 the traced crossing — where the quadruplet's delivered colour equals
-a perfect triplet's — is **7.012e−4**, that is 0.070% of radius. § 6at.8's band
+a perfect triplet's — is **7.664e−4**, that is 0.077% of radius. § 6at.8's band
 was 9.493e−4 to 1.358e−3. **The band does not contain the answer**, and the
 reason is one number: the band was computed at two bendings, the shallowest and
 the most favourable in a scan, and the bending a lens is actually built at is
-worse than both — traced sensitivity 3.127e−1, against 2.334e−1 and 1.631e−1.
+worse than both — traced sensitivity 2.878e−1, against 2.334e−1 and 1.631e−1.
 A band built from two samples of a quantity is not a bound on it, and § 6at
-described it as "the crossing is between" rather than as a sample of two.
+described it as "the crossing is between" rather than as a sample of two. The
+finding survived § 6av.8 moving the lens: at f/12 the same crossing read
+7.012e−4, which is below the band for the same reason.
 
 Three more numbers come with it, none of them flattering to the fourth glass:
 
- - **The perfect-glass advantage is 76.0×, not 102.4×.** The thick lens keeps
-   three quarters of what the thin split promised, its own residual colour being
-   34% larger than the thin one's.
- - **On 380–800 it is 6.3×**, against the thin 8.7×, crossing at 0.16%.
+ - **The perfect-glass advantage is 91.4×, not 102.4×.** The thick lens keeps
+   89% of what the thin split promised, its own residual colour being 12% larger
+   than the thin one's. At f/12 it kept 74%, a slower lens being a thinner one in
+   units of its own focal length.
+ - **On 380–800 it is 7.7×**, against the thin 8.7×, crossing at 0.18%.
  - **The crossing belongs to the design, not to the fixture.** Three focal ratios
-   and a halved glass thickness put it at 7.01e−4, 7.56e−4, 7.72e−4 and 7.70e−4 —
-   a 10% spread, drifting monotonically towards the thin limit as the glass thins
-   and the ratio slows, which is the direction it should drift. Every one of them
-   is below the band's lower end, so the finding is not an artefact of the ratio
-   the headline is quoted at.
+   and two glass thicknesses put it at 7.66, 7.72, 7.79, 7.57 and 7.83 · 10⁻⁴ —
+   a 3% spread, drifting towards the thin limit as the glass thins and the ratio
+   slows, which is the direction it should drift. Every one of them is below the
+   band's lower end, so the finding is not an artefact of the ratio the headline
+   is quoted at. The grid this step first ran included f/12 and a halved
+   thickness, and § 6av.8 says neither of those is a lens.
 
 So the practical verdict § 6at reached on thin arithmetic survives being traced
-and gets sharper: published radius grades sit near 0.1% and 0.01%, and **at 0.1%
-the quadruplet is already worse than the apochromat it replaces** — while being
-five times slower, carrying an extra cemented element, and needing the fluorite
-anyway. Those grades are shop practice rather than physics and nothing here is
-pinned to them; they are the scale the reader brings.
+and gets sharper, and § 6av.8 sharpens it again: published radius grades sit near
+0.1% and 0.01%, and **at 0.1% the quadruplet is already worse than the apochromat
+it replaces** — while now being **four times slower** rather than twice, carrying
+an extra cemented element, and needing the fluorite anyway. Those grades are shop
+practice rather than physics and nothing here is pinned to them; they are the
+scale the reader brings.
 
 ### Still no superachromat without fluorite
 
@@ -18031,7 +18119,9 @@ sign at every bending the continuation reaches, so there is no bending to null i
 at, and slowing the ratio does not help because the aperture is not what binds.
 The refusal is an ordinary `Error` and deliberately **not** the aperture refusal:
 the type distinction is the one `designs/apochromat` draws, and it is the
-difference between "slow it down" and "this glass will not do it".
+difference between "slow it down" and "this glass will not do it". § 6av.8 raised
+the aperture wall by a factor of two and left this refusal exactly where it was,
+which is the distinction earning its keep.
 
 ### Not yet pinned
 
@@ -18044,9 +18134,14 @@ difference between "slow it down" and "this glass will not do it".
   § 6ar.6 do. [§ 6au](#step-6au--a-real-tolerance-budget) closes this for the
   TRIPLET — eleven rows moved together, combining to 0.763 of their RSS — and
   § 6at recorded that it could not do so for the quadruplet because there was no
-  such lens to trace. **There is now**, and nothing here runs that budget on it:
-  five surfaces make sixteen rows rather than eleven, and the allocation is its
-  own exercise.
+  such lens to trace. There is now, and nothing here runs that budget on it: five
+  surfaces make fourteen rows rather than eleven, and the allocation is its own
+  exercise.
+- **The glass discs are sized off D and not off the ray inside.** § 6av.8
+  measures the marginal ray reaching 1.14·D/2 within a stack whose every disc is
+  1.02·D/2, and repairs nothing: it is a real defect, it is much smaller than the
+  one that step is about, and a design that sized its discs honestly would want
+  to solve its thicknesses too. Neither is attempted.
 - **Whether four united colours give four telecentric ones.** § 6aq bounds the
   telecentric count by the turn count in FFD(λ), and uniting four wavelengths is
   the precondition and not the conclusion — the turns have to land inside the
@@ -18058,7 +18153,7 @@ difference between "slow it down" and "this glass will not do it".
   on axis; coma is reported and astigmatism and field curvature are traced and
   unpinned, exactly as for `designs/apochromat`.
 - **No `packages/app` surface.** Nothing in APP.md drives this constructor, and
-  at f/11 minimum it is not a microscope objective; where it would belong is a
+  at f/22 minimum it is not a microscope objective; where it would belong is a
   telescope-objective panel that does not exist.
 
 ## Later rungs

@@ -44,9 +44,9 @@ import { seidelSums } from "../analysis/seidel";
  *
  * The residual system has more than one thick solution. At neighbouring bendings
  * the thin start lands in different basins, so the solved lens jumps: at one
- * sampled bending the direct solve returns a lens more than 2.2× steeper than
+ * sampled bending the direct solve returns a lens more than 4.3× steeper than
  * the one it returns a step away, both satisfying all four colour conditions to
- * 1e−13 — and § 6av.2 is the rung that measures that, at 10 of the 104 bendings
+ * 1e−13 — and § 6av.2 is the rung that measures that, at 6 of the 125 bendings
  * where both methods reach a solution.
  *
  * Everything downstream is then measuring a function that is not one: S_I(c₁)
@@ -61,10 +61,12 @@ import { seidelSums } from "../analysis/seidel";
  * Why four glasses and not three: the split's conditioning is 12.29 against the
  * apochromatic triple's 2.578, so the element powers are ~12× the total power,
  * and Gullstrand's separation term — which goes as φᵢφⱼd — is then LARGER than
- * the power it corrects. The thick lens sits **3.3 total powers** away from the
- * thin split it started at, where the triplet sits 0.038 away (§ 6ar.1's
+ * the power it corrects. The thick lens sits **1.06 total powers** away from the
+ * thin split it started at, where the triplet sits 0.040 away (§ 6ar.1's
  * `thinPowerGap`). At that distance the thin split is not a nearby start; it is
- * a different lens.
+ * a different lens. The gap belongs to the focal length and the thicknesses and
+ * not to the aperture, so it is quoted at the 250 mm the shipped lens now has;
+ * at the 120 mm § 6av first shipped it is 3.3.
  *
  * So the solve **continues in thickness**: the trailing curvatures are solved at
  * a fraction of the centre thicknesses and the solution walked up to full
@@ -103,24 +105,50 @@ import { seidelSums } from "../analysis/seidel";
  * `designs/apochromat` keeps the filter although nothing it ever built needed it
  * (§ 6ar.2); here the filter is doing real work again.
  *
+ * ## A root can be a surface and still not be a SOLID
+ *
+ * And that filter was still not enough, which is § 6av.8 and the correction that
+ * moved most of the numbers below. `maxSurfaceSlope` asks of each surface
+ * separately whether it is shallower than a hemisphere at the entering height.
+ * An element's EDGE THICKNESS — `t + sag(c_{k+1}) − sag(c_k)` at D/2 — is a
+ * relation between a PAIR of surfaces, and no amount of per-surface testing sees
+ * it. `designs/achromat` has checked it since § 6b and this design did not.
+ *
+ * It matters here far more than it does for a doublet, for the same reason the
+ * continuation exists: element powers ~12× the total power mean cement joints
+ * curved far more steeply than a doublet's at the same focal length, so two of
+ * them meet inside the clear aperture long before either passes a hemisphere.
+ * The lens § 6av first shipped — f/12 at 10 mm — had a steepest surface of 0.867
+ * hemispheres and a rear element that ran out of glass at 3.62 mm of a 5 mm
+ * semi-aperture. It passed an f/18.6 beam and rays above 3.23 mm entering height
+ * missed the last surface outright.
+ *
+ * Solidity is now half of the root-is-a-lens filter, and three things follow.
+ * The wall moves from f/10.81 to **f/21.88** at 10 mm — 3.02× § 6at.6's bound
+ * rather than 1.49×. Thickening the glass does not buy the fast end back: at
+ * f/12 with elements thick enough to be solid there is no S_I null at all. And
+ * the wall is no longer a pure focal-ratio statement, because the centre
+ * thicknesses are absolute millimetres while the sags grow with the aperture:
+ * f/20.97 at 5 mm, f/21.88 at 10 mm, f/43.14 at 20 mm.
+ *
  * ## The prices, and both of them are worse than the thin split said
  *
  *  - **The focal-ratio wall.** § 6at.6's bound is f/7.25 — the shallowest
  *    bending the split admits, true of every bending and free of any aberration
- *    scan. The S_I-null bending is not the shallowest one, so the lens actually
- *    built is steeper: it builds at f/11 and refuses at f/10.75, where the
- *    steepest surface passes hemispherical. The bending it builds at needs
- *    f/10.81, which is **1.49× the bound**, against the apochromatic triplet's
- *    1.03× (§ 6at.6). A bound stays a bound; what this measures is how far from
- *    it the real design sits.
+ *    scan. It is a STEEPNESS bound, and steepness is not what binds this design:
+ *    it builds at f/21.9 and refuses at f/21.8, where the thinnest element runs
+ *    out of glass at the rim. That is **3.02× the bound**, against the
+ *    apochromatic triplet's 1.03× (§ 6at.6), while the steepness the built
+ *    bending needs is only f/9.26. A bound stays a bound; what this measures is
+ *    how far from it the real design sits, and why.
  *  - **The tolerance.** § 6at.8's break-even — the relative curvature error at
  *    which the colour a lens injects equals the colour it was built to remove —
  *    came out as a band, 0.09% to 0.14% of radius, from two thin bendings. The
- *    traced answer is **0.070%**, and the band does not contain it. The band was
+ *    traced answer is **0.077%**, and the band does not contain it. The band was
  *    built from the shallowest bending and the most favourable one in a scan;
  *    the S_I-null bending is worse than both, and nothing thin knew that. § 6av.6
  *    measures the crossing on a grid of focal ratios and thicknesses, where it
- *    runs 0.070% to 0.077% — so the number is a property of the design and not
+ *    runs 0.0757% to 0.0783% — so the number is a property of the design and not
  *    of the fixture it was measured on.
  *
  * ## And there is still no superachromat without fluorite
@@ -128,7 +156,7 @@ import { seidelSums } from "../analysis/seidel";
  * § 6at.2's load-bearing rung is that the fluorite-free quadruple SOLVES, at
  * conditioning 59.2 — better than the fluorite-free apochromatic triple that
  * § 6ar.6 showed is a real, slow lens. It solves here too, and it is still not a
- * lens: across f/30, f/40, f/60 and f/100 its ΣS_I keeps one sign at every
+ * lens: at f/30 and at f/200 alike its ΣS_I keeps one sign at every
  * bending the solve reaches, so there is no bending to null it at (§ 6av.7).
  * That is the same shape of result as `designs/apochromat`'s "no apochromat
  * without fluorite", measured the same way, and it is a statement about the
@@ -154,7 +182,10 @@ import { seidelSums } from "../analysis/seidel";
  * SCOPE. The stop is at the front vertex, the glass carries `designs/achromat`'s
  * margins over D/2, and cement layers, coatings and the cell are absent — all as
  * for `designs/apochromat`, and drive the preset with `{kind:"stopRadius"}` for
- * the same reason.
+ * the same reason. Those margins are sized off D and not off the marginal ray's
+ * height inside the glass, which on this design runs to 1.14·D/2 — a second and
+ * much smaller defect than § 6av.8's, measured there and not repaired here,
+ * since widening a disc cannot help an element that has no edge to widen.
  */
 
 /** The four glasses, in the order light meets them. */
@@ -298,6 +329,13 @@ function solveLinear(rows: readonly (readonly number[])[], rhs: readonly number[
 
 /** Paraxial EFL of a group, from the public paraxial trace and nothing else. */
 const groupEfl = (g: Prescription, nm: number): number => -1 / paraxialTrace(g, nm, { y: 1, u: 0 }).u;
+
+/**
+ * Sag of a sphere of curvature c at radius y — `designs/achromat`'s, for the
+ * edge-thickness check. NaN where the sphere does not reach y at all, which the
+ * caller reads as "not a solid" rather than as an error.
+ */
+const sagAt = (c: number, y: number): number => (c * y * y) / (1 + Math.sqrt(1 - c * c * y * y));
 
 export function cementedQuadrupletForm(
   spec: CementedQuadrupletFormSpec,
@@ -533,6 +571,14 @@ export interface QuadrupletBending {
   readonly curvatures: QuadrupletCurvatures;
   /** max|c|·(D/2) over the five surfaces. 1 is a hemisphere and is the wall. */
   readonly maxSurfaceSlope: number;
+  /**
+   * The smallest element edge thickness at D/2 (mm): min over the four elements
+   * of `t + sag(c_{k+1}) − sag(c_k)`. Zero or less means two surfaces cross
+   * before the rim and the prescription is **not a solid** — `designs/achromat`'s
+   * check, which this design needs more than the doublet does (§ 6av.8).
+   * `−Infinity` where a surface is deeper than hemispherical and has no sag.
+   */
+  readonly minEdgeMm: number;
   /** Σᵢ|S_I,ᵢ| — how violently the surfaces cancel. Reported; nothing selects on it. */
   readonly cancellation: number;
   /** Σ S_II per radian of field (mm/rad). */
@@ -755,15 +801,32 @@ export function superachromaticObjective(
       fieldAngleRad: 1,
       ...conjugate,
     });
+    const edges = thicknessesMm.map(
+      (t, k) => t + sagAt(cs[k + 1]!, D / 2) - sagAt(cs[k]!, D / 2),
+    );
+    const minEdgeMm = Math.min(...edges);
     return {
       bending: c1,
       curvatures: cs,
       maxSurfaceSlope: Math.max(...cs.map((c) => Math.abs(c) * (D / 2))),
+      minEdgeMm: Number.isNaN(minEdgeMm) ? -Infinity : minEdgeMm,
       cancellation: s.surfaces.reduce((total, x) => total + Math.abs(x.s1), 0),
       comaPerRadian: s.s2,
     };
   });
-  const lenses = described.filter((b) => b.maxSurfaceSlope < 1);
+  /**
+   * A root is a lens when every surface is shallower than hemispherical AND every
+   * element still has glass at the rim. The second half is `designs/achromat`'s
+   * edge check, and until § 6av.8 this design did not make it: the four-glass
+   * split wants ~12× the total power in its elements, so its cement joints are
+   * far more strongly curved than a doublet's at the same focal length, and two
+   * of them meet inside the clear aperture long before either passes a
+   * hemisphere. The two conditions are independent — the shipped f/12 lens had
+   * `maxSurfaceSlope` 0.867 and a rear element that closed at 3.6 mm of a 5 mm
+   * semi-aperture — and a per-surface steepness cannot see a relation between a
+   * PAIR of surfaces, which is what an edge thickness is.
+   */
+  const lenses = described.filter((b) => b.maxSurfaceSlope < 1 && b.minEdgeMm > 0);
 
   if (lenses.length !== 1) {
     /**
@@ -773,7 +836,9 @@ export function superachromaticObjective(
      * aperture is binding" unless the roots are actually there and actually too
      * steep.
      */
-    const ghosts = described.filter((b) => b.maxSurfaceSlope >= 1);
+    const ghosts = described.filter((b) => !(b.maxSurfaceSlope < 1 && b.minEdgeMm > 0));
+    const steep = ghosts.filter((b) => b.maxSurfaceSlope >= 1);
+    const closed = ghosts.filter((b) => b.maxSurfaceSlope < 1 && b.minEdgeMm <= 0);
     const expected =
       targetS1Mm === 0
         ? "expected one spherical-aberration-null bending"
@@ -785,7 +850,9 @@ export function superachromaticObjective(
           ? `no bending of ${form.media.join("/")} the continuation reaches nulls the third-order spherical aberration at this conjugate`
           : `no bending of ${form.media.join("/")} the continuation reaches absorbs that much external spherical aberration`
         : aperture
-          ? `the roots found are deeper than hemispherical (${Math.min(...ghosts.map((b) => b.maxSurfaceSlope)).toFixed(2)}× at the shallowest of them) and cannot be made — what is binding is the APERTURE and not the glasses, so slow the focal ratio`
+          ? steep.length > 0 && closed.length === 0
+            ? `the roots found are deeper than hemispherical (${Math.min(...steep.map((b) => b.maxSurfaceSlope)).toFixed(2)}× at the shallowest of them) and cannot be made — what is binding is the APERTURE and not the glasses, so slow the focal ratio`
+            : `the roots found are shallower than hemispherical and still are not solids — the thinnest element closes ${(-Math.max(...closed.map((b) => b.minEdgeMm))).toFixed(3)} mm short of the rim at the best of them${steep.length > 0 ? `, and ${steep.length} further root${steep.length === 1 ? " is" : "s are"} past hemispherical` : ""} — what is binding is the APERTURE and not the glasses, so slow the focal ratio`
           : `${lenses.length} of the ${described.length} roots found are lenses, and this design is not known to have more than one — no input in this repo reaches this`;
     const dropped =
       abandoned > 0
