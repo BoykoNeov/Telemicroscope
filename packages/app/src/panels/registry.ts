@@ -1,6 +1,7 @@
 import type { ComponentType } from "react";
 import { decodeLink, type TeachingLink } from "../teaching";
 import { BenchPanel } from "./bench";
+import { BudgetPanel } from "./budget";
 import { ChromaticPanel } from "./chromatic";
 import { BrightfieldPanel } from "./brightfield";
 import { BuilderPanel } from "./builder";
@@ -245,6 +246,12 @@ export const PANELS: readonly Panel[] = [
     label: "tolerances",
     blurb: "APP.md Part B — a slider per manufacturing error, and the budget that is not a bound",
     Component: TolerancePanel,
+  },
+  {
+    id: "budget",
+    label: "the tolerance sheet",
+    blurb: "APP.md Part P — every number a shop holds, in two currencies, and the lens whose rows reinforce",
+    Component: BudgetPanel,
   },
   {
     id: "volume",

@@ -80,6 +80,7 @@ sufficient alone.
 | Part M | `#/design` | what a number has to be, and the pole that is not a root |
 | Part N | `#/optimize` | several wishes at once, and the leftover that is part of the answer |
 | Part O | `#/telecentric` | the stop that is a millimetre, and how many colours one can serve |
+| Part P | `#/budget` | the tolerance sheet, and the second lens whose rows reinforce |
 | ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
 
 ## The baseline: what the app draws today, and its house style
@@ -5869,6 +5870,175 @@ page going red.
 evaluations of a two-ray paraxial trace and the searches are 200 iterations each.
 Inline, no worker, on Part L's precedent — and the whole four-tail survey is
 ~25 ms, which is what lets the page recompute every row on every frame.
+
+## Part P — the tolerance sheet, and the second lens that says what the first one's numbers were — *app wiring only* — ✅ **landed** — **a table and a curve**
+
+§ 6au built a real tolerance budget on the shipped apochromat and closed
+§ 6ar.6's oldest deferral with it. Everything that step measured had no app
+surface at all: `allocateEqualShare`, `centringError`, `wedgeError`,
+`equivalentWedgeDeg`, `withTrailingReference` and the whole `PerturbationGroup`
+shape had **zero callers under `packages/app/`** the day this part was scoped.
+The route is `#/budget`, and it is `#/tolerance`'s sibling rather than its
+extension — Part B is a slider per manufacturing error on a telescope doublet,
+this is the drawing a shop would be handed for a microscope objective, and the
+structural argument for routing (item 1) is exactly that two surfaces sharing
+engine parameters and not purpose should not share a scroll.
+
+### What the surface is
+
+A **table**: one row per number a shop has to hold — 3n−1 of them for a cemented
+block of n surfaces, eleven for the triplet and eight for the doublet — each
+priced in both of § 6au's currencies, allocated in whichever binds it, and
+quoted in the unit that row is inspected in. The centring rows carry a second
+unit beside the first, because § 6au.3 proved they are one error written twice.
+
+A **curve**: the coupling ratio — every row at its allowance, applied together
+and traced once, over the root-sum-square the budget predicts — against the
+budget it was measured at, for **both** lenses at once.
+
+### The finding, and it is the reason there are two lenses
+
+§ 6au measures that the eleven rows **cancel**: together they cost 0.76 of their
+RSS, and the step is careful to say the factor "belongs to this lens rather than
+to the method, so it is measured and not offered as a law". That is the right
+sentence and one lens cannot make it — a reader has to take it.
+
+Two lenses can. **The triplet's rows cancel at 0.587 and the doublet's reinforce
+at 1.134**, at the same budget, on the same eleven-row machinery, with the same
+common support and nothing dropped. An independence estimate is *pessimistic* on
+one of the two objectives this repo ships and *optimistic* on the other, and
+both curves are flat across three decades of budget — which is what says the
+factor is a property of the lens and not of the budget it was read at. § 6au's
+caveat is now a measurement, and Part B's own headline generalizes with it: the
+RSS is not a bound in either direction, per LENS as well as per row-pair.
+
+### The half of § 6au's headline that travels, and the half that does not
+
+Driving it split the step's other result in two, and the split was not visible
+from the plan.
+
+**Lens-independent.** Colour's slope on every centring row is exactly **0** — not
+small, zero — on the triplet and on the doublet both, because a decentred sphere
+is a prism and a prism has no paraxial power. So "a colour budget never mentions
+the alignment" is a fact about tolerancing, and the four alignment rows are
+blur's whether the lens has three glasses or two.
+
+**Apochromat-only.** "The two currencies disagree by 3.6× to 25.9×" does not
+travel at all. On the doublet, where both currencies can see a row, they agree to
+within **1.2× to 2.6×** — and the reason is one number: the doublet's own
+residual colour is 2.204e−3 against the triplet's 2.206e−4, **9.99× looser**, so
+its colour budget stops dominating. The dramatic version of § 6au's headline is a
+statement about how well corrected the lens already is, not about tolerancing.
+
+### One number this panel sends back to the ladder
+
+§ 6au.6's heading, its row in the ladder index, its section heading and its own
+test comment all said **seven rows are set by colour and four by blur**. Its
+table says six and five, and its assertion spells out `"t1", "t2" — but not t3`.
+There are two splits one row apart: seven-against-four is what colour can SEE
+(the alignment rows read exactly zero, and § 6au.7 groups by that), six-against-
+five is what colour BINDS. The prose took the first split's numbers and attached
+them to the second's sentence. Nothing measured was wrong; the panel found it by
+counting the rows it allocates and printing the total beside the index row it
+was reproducing. Fixed at `cdc980d`.
+
+### The engine defect it found before a line of panel code was written
+
+The larger one, and it was found while **measuring what this part would cost** —
+timing the allocation to decide whether the panel could be slider-driven, then
+running the same budget on the doublet as a control.
+
+`opdMap` chose between the reference sphere's two crossings by absolute
+distance. That is a metric test and it needs the candidates to be at different
+distances; they are for a ray near the sphere's *surface* and are not for a ray
+near its *centre*, where the roots are ±radius and rounding decides. An
+evaluation plane sitting AT the image puts every ray there — which is precisely
+what § 6au's own trailing reference plane does. Eight rays out of 313 took the
+far crossing and came back one sphere diameter long, none of them reported lost,
+and a 0.0055-wave tolerance read 3.085e+4 waves. § 6au's rung asking whether that
+plane is inert passed because it asks at a 1e−6 probe, where the rays still land
+on the image point *by symmetry* and the two crossings are indistinguishable;
+and the apochromat could not have found it either, because its own rows stay in
+the region where both agree. Fixed at `48a2185`, damage-verified in both
+directions, with the rung extended to a second lens and to every error size.
+
+**That is the fourth rung of a ladder this document keeps climbing** — C1 found a
+*readout* was measuring something else, C4 the *engine*, C5 a declaration dropped
+at a boundary, and this one a *tie-break* that was correct in the only region
+anything had looked at. The defence is unchanged and worked a fourth time: pin to
+an independent construction (the same mirror without the plane, plus third-order
+coma through it) rather than to a previous measurement. What is new is where it
+was found — not by driving the panel, but by taking the **feasibility measurement
+for** the panel. § 5v's paragraph in this file predicted that pinning one step
+earlier than usual pays; this is the same lesson one step earlier again.
+
+### What driving it changed
+
+- **The allocation is the engine's, and only the fault tolerance is ours.**
+  `allocateEqualShare` re-measures its currency at the allowance it computed,
+  which is the diagnostic that makes it trustworthy — and it means a single-row
+  call spends the whole target on that row and can throw. A sheet cannot lose ten
+  good rows to the eleventh, so the app runs the loop and catches per row. The
+  first rung of `budget.test.ts` is that the two agree to f64 wherever the engine
+  can answer at all: what is app-side is presentation and refusal handling, never
+  a budget of its own.
+- **Both allocations in § 6au are defensible and they are not the same.** Its
+  drawing numbers divide each currency over all eleven rows and quote whichever
+  binds; its coupling rung divides colour over the seven it can see and blur over
+  the four it cannot. This sheet uses the first, because the second spends the
+  blur budget twice — assembled and traced, the seven-four grouping costs **1.04×
+  the λ/14 it allowed**, and 99.4% of that comes from the seven rows the blur
+  share was never divided among. § 6au.7 is measuring a ratio rather than issuing
+  a drawing, so this is a difference between two allocations and not a defect in
+  either. It is also why this panel's coupling reads 0.587 where § 6au.7 reads
+  0.763: one row, t₃, in a different group.
+- **The curve was nearly unaffordable and then was not.** A slope costs a traced
+  wavefront per row per currency and is **scale-free**, so hoisting it out of the
+  sweep turned seven curve points from seven sheets into seven combined traces.
+  The whole job — sheet, curve, and the other lens's curve — is ~0.7 s on the
+  triplet where the first arrangement was ~10 s.
+
+### What it refuses
+
+Walk the budget past its target and rows stop reporting and start refusing: the
+allowance perturbs the lens until the chief ray no longer clears the glass. The
+sheet survives that row by row and names the row; the combined trace refuses as a
+whole rather than returning a large number. Four rows across the two lenses come
+back marked **not a tolerance** rather than numbered — an allowance larger than
+the part it describes (3.1 mm of airspace on a 1.2 mm element, 30 mm on a 0.6 mm
+one) is the statement that neither currency constrains that parameter and the
+mechanical drawing does. § 6au leaves those rows out of its own summary sentence;
+this sheet keeps them and labels them, because a reader who cannot see the row
+cannot see that it was excluded.
+
+The wedge column is `null` rather than a number on a **plane** surface: δ = −R sin α
+diverges as R → ∞, the engine refuses, and the cell says so. Neither shipped
+objective has a plane, so that path is reachable only from a lens this panel does
+not yet offer — it is written because the engine's refusal is the correct answer
+and a large number would not be.
+
+### Cost
+
+`budget.ts` 641 lines, `panels/budget.tsx` 366, `budget.worker.ts` 27, a factory,
+a route, and `test/budget.test.ts` at 244 lines and 15 rungs. No engine work beyond the defect
+above, which was a fix rather than a capability.
+
+### What stays out
+
+**The extended emitter (§ 6as) still has no surface, and this part deliberately
+did not take it.** `imaging/emitter-density.ts` — `rasterizeEmitterDensity`,
+`discEmitter`, `gaussianEmitter` — has zero callers under `packages/app/`, which
+is the same accounting that made this part visible. It is the natural next
+part rather than a leftover of this one: a fluorescent source with a SIZE is a
+picture and a Jacobian, and it shares nothing with a table of drawing numbers.
+
+Also out: the **allocation is equal-share**, and § 6au's own "Still open" says
+equal shares are a poor allocation when rows differ by three orders of magnitude.
+A panel offering a cost-weighted allocation would be answering a question no rung
+has asked yet. And every σ on this sheet is **on axis at one wavelength**, which
+is § 6au's own leftover and matters most for exactly the two rows the sheet is
+proudest of: centring and wedge are odd aberrations whose whole cost is at the
+field edge. The sheet says what § 6au measured, and no more than that.
 
 ## What the app itself needs to hold this
 
