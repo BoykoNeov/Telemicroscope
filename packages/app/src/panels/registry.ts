@@ -11,6 +11,7 @@ import { CoverslipPanel } from "./coverslip";
 import { CurvaturePanel } from "./curvature";
 import { DesignPanel } from "./design";
 import { EditorPanel } from "./editor";
+import { EmitterPanel } from "./emitter";
 import { EyepiecePanel } from "./eyepiece";
 import { FluorescencePanel } from "./fluorescence";
 import { MechPanel } from "./mech";
@@ -210,6 +211,12 @@ export const PANELS: readonly Panel[] = [
     label: "fluorescence beads",
     blurb: "APP.md A4 — a specimen that emits, and the cutoff reached with no condenser",
     Component: FluorescencePanel,
+  },
+  {
+    id: "emitter",
+    label: "a source with a size",
+    blurb: "APP.md Part Q — a density, not a point, and the one error the grid cannot refine away",
+    Component: EmitterPanel,
   },
   {
     id: "stage",

@@ -45,6 +45,9 @@ export const createFluorescenceWorker = () =>
 export const createFluorescenceSweepWorker = () =>
   new Worker(new URL("./fluorescence.sweep.worker.ts", import.meta.url), { type: "module" });
 
+export const createEmitterWorker = () =>
+  new Worker(new URL("./emitter.worker.ts", import.meta.url), { type: "module" });
+
 export const createVolumeWorker = () =>
   new Worker(new URL("./volume.worker.ts", import.meta.url), { type: "module" });
 

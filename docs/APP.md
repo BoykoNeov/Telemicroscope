@@ -81,6 +81,7 @@ sufficient alone.
 | Part N | `#/optimize` | several wishes at once, and the leftover that is part of the answer |
 | Part O | `#/telecentric` | the stop that is a millimetre, and how many colours one can serve |
 | Part P | `#/budget` | the tolerance sheet, and the second lens whose rows reinforce |
+| Part Q | `#/emitter` | a source with a size, and the error no grid refines away |
 | ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
 
 ## The baseline: what the app draws today, and its house style
@@ -1522,7 +1523,7 @@ the point of § 6x rather than a caveat to it.
 | ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. ~~What remains is authoring a scene, which is content rather than a blocker.~~ **Authored, and now in colour**: `stage.ts` had both scenes from A7 and A9 made them spectral (`specimens.ts`). Nothing here is disqualified any more. |
 | ~~Depth-dependent spherical aberration in the z-slider~~ | ~~§ 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step.~~ ~~**Unblocked at § 6l**~~ — **built at D10.** A5 has a mount control and a depth control, `mountPupils` is its `DepthPupils` and `mountVolumeOptions` its options, and the stack is no longer symmetric about focus. Nothing here is disqualified any more. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
-| ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. Fluorescence colour is still open: § 6j's band is emission-only, and an extended emitter field needs the Jacobian § 6n deferred. |
+| ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. Fluorescence colour is still open: § 6j's band is emission-only, and an extended emitter field needs the Jacobian § 6n deferred. ~~The second half of that has been true since § 6as~~ — **the Jacobian is built and surfaced at Part Q** (`#/emitter`), so what actually blocks fluorescence colour is now one thing and not two: an emitter density whose *emission colour* varies with position, which is § 6as's own "Still open" and the shape a two-stain preparation takes. |
 | ~~A pannable field of view in colour~~ | ~~§ 6o's pitch and guard band are pinned at one wavelength, and `halfExtentMm` is ∝ λ.~~ **Unblocked at § 6t** — the guard is cropped per plane on that plane's own grid, before the stack, so § 6o's measurement transplants by identity. Built at **A10**. |
 | A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, now measured and composed: § 6m–§ 6o, compute-once, never live at a full field. § 6o pins the crop error of a tile to a closed form and § 6o.7 composes them. |
 
@@ -6048,12 +6049,15 @@ above, which was a fix rather than a capability.
 
 ### What stays out
 
-**The extended emitter (§ 6as) still has no surface, and this part deliberately
+~~**The extended emitter (§ 6as) still has no surface, and this part deliberately
 did not take it.** `imaging/emitter-density.ts` — `rasterizeEmitterDensity`,
 `discEmitter`, `gaussianEmitter` — has zero callers under `packages/app/`, which
 is the same accounting that made this part visible. It is the natural next
 part rather than a leftover of this one: a fluorescent source with a SIZE is a
-picture and a Jacobian, and it shares nothing with a table of drawing numbers.
+picture and a Jacobian, and it shares nothing with a table of drawing numbers.~~
+**Closed by Part Q**, which took it as the next part exactly as written — the
+zero-caller count is no longer true and the sentence would otherwise be this
+file's own § 6aq defect, advertising a deferral the part below it closed.
 
 Also out: the **allocation is equal-share**, and § 6au's own "Still open" says
 equal shares are a poor allocation when rows differ by three orders of magnitude.
@@ -6062,6 +6066,153 @@ has asked yet. And every σ on this sheet is **on axis at one wavelength**, whic
 is § 6au's own leftover and matters most for exactly the two rows the sheet is
 proudest of: centring and wedge are odd aberrations whose whole cost is at the
 field edge. The sheet says what § 6au measured, and no more than that.
+
+## Part Q — a source with a size, and the error the grid cannot refine away — *app wiring only* — ✅ **landed** — **two pictures and a two-row table**
+
+§ 6as closed a deferral three modules had stated from three sides: § 6i imaged
+beads and said why a **point** needs no Jacobian, § 6n built the warped-grid
+rasterizer and said why an amplitude transmittance needs none either, and § 5v
+built the area element for the sky and said the microscope's half was not being
+closed. `imaging/emitter-density.ts` is that closure, and the day this part was
+scoped its three exports — `rasterizeEmitterDensity`, `discEmitter`,
+`gaussianEmitter` — had **zero callers under `packages/app/`**. Part P named it
+as its own first deferral and this is it, taken in the order that was written
+down. The route is `#/emitter`.
+
+### What the surface is
+
+**Two pictures**: the emitter as authored — the density times the area element,
+per pixel — beside the same emitter through the objective's own incoherent PSF.
+Two rather than one because the whole claim is about what happens to the first,
+and a panel showing only the image could not draw the object the Jacobian was
+applied to.
+
+**A two-row table**: the flux against its closed form, and the same grid with the
+area element thrown away. Both are departures from the same picture, and the part
+below is what driving them turned out to show.
+
+### The finding: the two errors are orthogonal, and only one of them is optics
+
+A density's total flux is a real witness — worth saying, given how often this
+ladder records that it is not — because `π·r²` and `π·w²/2` are properties of
+what was *authored* and no optic can touch them. So both departures can be read
+off one frame. *Measured on an emitter a tenth of the half frame across, at pupil
+samples 64 and grid 256, over the five bench rows this surface reaches:*
+
+- **The sampling residual is the grid's, and it is the same number on every
+  objective.** −1.1110e−2 on all five, agreeing to **five significant figures**
+  (−1.111004e−2 to −1.111081e−2). It tracks the emitter's radius **in pixels**
+  and nothing else: 12.8 px gives the same number on the 4×/0.10 and the
+  10×/0.10, at two different crops, on designs 2.5× apart in magnification. It is
+  a count of lattice points inside a circle — the Gauss circle problem, § 6as.4's
+  open exponent — and it is not optics at all.
+- **The Jacobian's worth is the lens's, and no grid moves it.** On a smooth
+  emitter it is flat to **nine significant figures** over ×4 of grid
+  (9.135252899e−6 to 9.135252905e−6 on the DIN 4×/0.10), and it spreads **179×**
+  across the same five objectives at the same configuration — 4.35e−9 on the DIN
+  4×/0.20 to 7.80e−7 on the infinity 10×/0.10.
+
+So the same picture carries an arithmetic error that every lens shares and an
+optical error that no grid can see, and the reader separates them with two
+controls. That is a better statement of *why the module had to exist* than the
+step's own negative control makes on its own, because it is the reader's
+measurement rather than a rung's.
+
+**The residual does not converge tidily either, and the panel says so rather than
+implying otherwise.** Over grids 128, 256 and 512 it reads **+2.490e−3,
+−1.1110e−2, +1.032e−3** — two sign changes, and larger at 256 than at 128. A
+sentence like "raise the grid and it falls" would pass at these three sizes and
+would be asserting something nobody has proved: Sierpiński bounds the exponent
+below −4/3 and the conjectural value is −3/2, and § 6as.4 is careful to call it
+open. Three signed numbers is the honest readout.
+
+### What driving it changed, and it was found the same way Part P's was
+
+**The size and offset controls walk the emitter off the frame, and the residual
+then reads truncation.** A 23.4 µm disc pushed 46.8 µm off the axis sits entirely
+inside the 4×/0.10's crop and **half outside the 4×/0.20's** — § 6h fixes the
+object half-extent at `pupilSamples·λ/(4·NA)`, so the *higher* aperture sees less
+specimen. The residual there is **−0.52**, and printed beside a paragraph about
+point sampling it would teach exactly the wrong lesson. The panel now carries
+`reachUm` against `frameHalfUm` and names the regime; the guard is a comparison
+of two numbers the readout already had.
+
+**Two of this part's first-draft claims were artefacts of comparing unlike
+configurations, and the sweep is what caught them.** Written at a fixed micron
+size and offset — which is a different fraction of every objective's frame — the
+off-axis multiplier came out as "9–10× on every objective" and the negative
+control's range had a lower end that moved whenever the emitter size changed.
+Restated with the geometry held fixed *relative to the frame*, the multiplier is
+**35× to 380×** and the range is 4.4e−9 to 2.7e−5. What survives is the
+**ordering** — off axis costs more than centred on all five rows — and the factor
+belongs to each design. That is § 6au's caution and Part P's correction arriving
+one part later, and the test file says which axes were swept and which were not
+rather than leaving it to be discovered.
+
+### The number this part sends back: which lenses can carry the surface at all
+
+`rasterizeEmitterDensity` asks the map for `hypot(x, y)` at every pixel, so the
+table has to cover the frame's **diagonal**. Against that stands the largest
+image radius the objective's chief ray reaches — a property of the design, so it
+is measured here by bisection rather than quoted, the way `measureApertureWall`
+is. Both numbers move with magnification and they move **opposite ways**: the
+crop is fixed in *object* millimetres, so the image-side corner grows as |M|
+while the field a high-power design reaches shrinks.
+
+The ratio is therefore the whole story, and it is exactly inverse in the crop —
+halving pupil samples doubles it, on every row. *At the default crop five of the
+bench's ten rows fit; at pupil samples 16, seven of the nine that build.* The
+infinity 20×/0.10 is the one worth looking at: it fails at pupil samples 32 with
+a headroom of **0.99**, missing by one percent, and one halving of the crop is
+all it needs. Two rows — the Lister 40×/0.20 and the 100×/1.25 oil — never reach
+1 at any crop this panel offers, and the 40×/0.40 Lister does not build at all,
+for a reason about its own form that predates this part.
+
+**The refusal carries those two numbers**, which is the part worth copying: a
+surface that can only say *no* is one a reader cannot learn the shape of the
+limit from. A refusal with no frame — the 40×/0.40 — carries no headroom instead
+of a number about a system that was never built.
+
+### What it refuses
+
+An emitter with **no extent** is refused in the *app's* voice rather than the
+engine's, and the ordering of two lines is what makes that true: both factories
+refuse a non-positive size, correctly and in the engine's words, and that is the
+wrong sentence here — an emitter with no extent is a **point**, which is A4's
+surface. The check moved above the factory call, and `emitter.test.ts` pins the
+`source` field rather than the message, because the distinction is which panel
+the reader wants and not what the density is.
+
+### Cost
+
+`emitter.ts` 461 lines, `panels/emitter.tsx` 475, `emitter.worker.ts` 28, a
+factory, a route, and `test/emitter.test.ts` at 420 lines and 21 rungs. No engine
+work at all —
+§ 6as needed none, which is the difference from Part P, whose feasibility
+measurement turned up a defect in `opdMap`. The whole job is ~70 ms at grid 256
+and ~300 ms at 512, so every control is live rather than a button; `patches` 4 at
+grid 512 reaches 4.2 s and is the one combination that is not.
+
+### What stays out
+
+**A spectral emitter density**, which is § 6as's own first leftover and the thing
+that actually blocks fluorescence colour — the disqualified table above has been
+updated, because the *other* half of what blocked it (the Jacobian) is what this
+part surfaced. **A volumetric one**: this module warps a plane, and an emitter
+density through a focus stack needs the third dimension of the same Jacobian,
+which is not `(h/r)·(dh/dr)` and is not a scalar. **A photometric zero point**,
+unchanged and still § 3a's, so every number on the page is a ratio. And **the
+fourth cosine**, inherited verbatim from § 5v: the entrance pupil's projected
+area is applied by no rasterizer on either branch, it cancels in every comparison
+between them, and it belongs to the pupil layer where fixing it once would serve
+both.
+
+`patches` is offered and **carries no claim**, which is a deliberate statement
+rather than an omission: it changes how the pupil may vary across the field, not
+what the rasterizer does with a density, and its measured effect on the imaged
+peak is 0.44% from 1 to 2 and 0.004% from 2 to 4 — for 2.5× and 8× the cost. It
+is there because an extended source is exactly the object a field-varying pupil
+is for, and the test file records that it was not swept and why.
 
 ## What the app itself needs to hold this
 
