@@ -17659,6 +17659,7 @@ its premise.**
 | ...and the worst curvature row re-measures § 6at.8's break-even by a second route | 4.413e−3 traced thick against 4.319e−3 thin, 2.2% | ✅ |
 | ...and the allocation checks its own extrapolation instead of trusting it | 9 of 11 rows within 3% of their share; the two that are not are 0.54 and 0.68 | ✅ |
 | ...and a centring error's colour is LATERAL, the axial zero being a readout limit | 1.169e−5 rad of F−C on 1.111e−3 of deviation — **1.05%**, § 6au.2's fraction | ✅ |
+| ...and the same allowance is a WEDGE callout, α = asin(δ·c), which § 6au.3 makes exact | 69 / 39 / 103 µm of runout is **12.1 / 6.6 / 15.5 arcmin** on the drawing | ✅ |
 | **§ 6au.7 — the eleven rows CANCEL: the combined trace is 0.763 of the RSS** | 0.378 in the colour currency; § 5t's sign, on a real lens rather than a probe | ✅ |
 | ...on ONE support, which is what makes the comparison a measurement | 313 points, 0 dropped at a hundredth of the budget; 19 drop at a tenth | ✅ |
 
@@ -17734,10 +17735,17 @@ constraint a shop actually has to meet.
 magnitude**, and a colour-only budget would not mention the alignment at all. In
 drawing numbers, from whichever currency binds: **0.36%, 0.13%, 0.20% and 6.3%**
 on the four radii, 0.20 mm and 0.42 mm on the first two centre thicknesses, and
-**69, 39, 103 µm** of centring on the first three surfaces. The tightest number
-on the sheet is 0.13% of radius on the first cement joint, which an ordinary
-0.1% commercial radius grade already clears — so this triplet is buildable, and
-the budget's real content is *which* three numbers to watch.
+**69, 39, 103 µm** of centring on the first three surfaces. A shop quotes that
+last row twice — as runout and as wedge — and § 6au.3 is what makes the second
+column exact rather than a rule of thumb, since the two are the same error:
+`α = asin(δ·c)` gives **12.1, 6.6 and 15.5 arcmin**. That is the other half of
+§ 6ar.6's deferral, which named wedge beside centring; it turns out not to be
+another row but another *unit* for one.
+
+The tightest number on the sheet is 0.13% of radius on the first cement joint,
+which an ordinary 0.1% commercial radius grade already clears — so this triplet
+is buildable, and the budget's real content is *which* three numbers to watch:
+the two cement radii, and 6.6 arcmin of wedge on the first joint.
 
 The two rows left out of that sentence are left out on purpose. t₃ and the rear
 centring row come back with allowances larger than the parts they describe — 11 mm

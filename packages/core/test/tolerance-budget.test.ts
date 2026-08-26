@@ -428,6 +428,23 @@ describe("§ 6au.6 — the budget: eleven rows, two currencies, and which one bi
     expect(blur.rows[10]!.linearity).toBeLessThan(0.7);
   });
 
+  it("and the centring allowance is a WEDGE callout too, exactly", () => {
+    // A shop quotes centring in micrometres of runout and wedge in arcminutes,
+    // and they are the same line on the drawing because § 6au.3 says they are the
+    // same error: α = asin(δ·c) per surface, no rule of thumb in it. The three
+    // alignment rows are 69, 39 and 103 µm — or 12.1, 6.6 and 15.5 arcmin, which
+    // is the half of § 6ar.6's deferral ("wedge") a reader would otherwise have
+    // to derive. The tightest is the FIRST cement joint at 6.6 arcmin, and it is
+    // tightest because that joint's index step is the largest in the stack.
+    const blur = allocateEqualShare(apoSystem, ROWS, DIFFRACTION_WAVES);
+    const arcmin = [0, 1, 2].map(
+      (s) => Math.abs(equivalentWedgeDeg(APO, s, blur.rows[7 + s]!.allowance)) * 60,
+    );
+    expect(arcmin[0]!).toBeCloseTo(12.11, 1);
+    expect(arcmin[1]!).toBeCloseTo(6.57, 1);
+    expect(arcmin[2]!).toBeCloseTo(15.48, 1);
+  });
+
   it("and the worst curvature row reproduces § 6at.8's break-even to 2.2%", () => {
     // The cross-pin, and the reason the colour currency here is worth trusting.
     // § 6at.8 computed the relative curvature error at which the colour a triplet
