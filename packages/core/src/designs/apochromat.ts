@@ -129,7 +129,13 @@ import { seidelSums } from "../analysis/seidel";
  * one root and not the classical pair. So "no apochromat without fluorite" does
  * hold for this catalogue, as a MEASURED result about the spherical solve, and
  * not as the linear-algebra claim § 6aq made. Whether a fourth glass changes that
- * is the superachromat question, and is not asked here.
+ * is the superachromat question; **§ 6at asked it, and the answer is yes.** Every
+ * four-glass quadruple in this catalogue solves — the fourth condition is
+ * conditioned by the glasses failing to be coplanar in (V, P_dC, P_gF), not by a
+ * second anomalous glass, so the fluorite-free quadruple solves too. Nothing
+ * changes here: what four colours cost is a wall at f/7.25 and a curvature
+ * tolerance 460× tighter than this triplet's, which is why `designs/` still ships
+ * three glasses and not four.
  *
  * ## What is corrected, and what honestly is not
  *

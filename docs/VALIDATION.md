@@ -102,6 +102,7 @@ whole ladder.
 | [6aq](#step-6aq--an-apochromatic-telecentric-tail) | Three united colours put TWO turns in FFD(λ), so a stop is telecentric THREE times, not the deferral's four, and which spherical-null bending is built decides three or one | `telecentric-apochromat` |
 | [6ar](#step-6ar--the-telecentric-designs-ship) | The last two solves leave the test files: `designs/apochromat` and `designs/telecentric` rebuild §§ 6ap–6aq to the digit — and § 6aq.4's ninth decimal was the bracket | `telecentric-design` |
 | [6as](#step-6as--the-extended-fluorescent-specimen) | An emitter is a DENSITY, so warping one needs det J = (h/r)·(dh/dr) — 1/M² on the axis; a Gaussian’s loss is erf exactly, a hard edge’s the Gauss circle problem’s open exponent | `emitter-density` |
+| [6at](#step-6at--the-fourth-colour-and-its-price) | The four-glass split SOLVES: the fourth row needs non-COPLANARITY, not a second anomalous glass, and the 102× less colour it buys is 9× at 0.01% radius tolerance and nil by 0.1–0.2% | `superachromat` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -16940,17 +16941,22 @@ the bracket.
 
 ### Not yet pinned
 
-- **A superachromat, and whether four is reachable at all.** The count here is
+- ~~**A superachromat, and whether four is reachable at all.** The count here is
   bounded by the turn count, so four telecentric wavelengths need four united
   ones — a fourth glass, and this catalogue has one anomalous-dispersion glass in
-  it. Whether `materials/catalog` can be made to solve a four-glass split is not
-  asked, and if it cannot, the honest finding is about the catalogue. **[§ 6ar.6]
-  (#step-6ar--the-telecentric-designs-ship) delivered half of that finding
-  early**, for three glasses: the four ordinary ones lie on a normal line
-  P = 0.2751 + 5.139e−4·V to ±4.4e−4 and CaF₂ sits 1.93e−2 off it, 44× further,
-  which is exactly why every solvable triple contains it. A four-glass split would
-  need a SECOND glass off that line, and there is not one. Four colours is still
-  unasked; what § 6ar.6 supplies is the measurement the answer would rest on.
+  it. A four-glass split would need a SECOND glass off that line, and there is
+  not one.~~ **Closed at [§ 6at](#step-6at--the-fourth-colour-and-its-price),
+  and the prediction in it was wrong.** Four is reachable: every quadruple in
+  `materials/catalog` solves, the best at conditioning 12.29 against the
+  apochromatic triple's 2.58, and the quadruple with the fluorite *removed*
+  solves at 59.22 — better than the fluorite-free apochromatic TRIPLE at 517.95.
+  The reasoning failed because the fourth condition is not a second line but a
+  second **dimension**: what conditions it is whether the glasses are coplanar in
+  (V, P_dC, P_gF), and the four ordinary ones miss that plane by 5.833e−4, which
+  is small, not zero, and enough. § 6ar.6's normal-line measurement is untouched
+  and still explains why fluorite gives the *best* conditioning; what it does not
+  support is the word "need". What four colours actually cost is a focal-ratio
+  wall of f/7.25 and a tolerance 460× tighter — see § 6at.
 - ~~**A shipped image-space telecentric design**, unchanged from § 6aj, § 6ak,
   § 6al, § 6an and § 6ap — and this step raises its price rather than lowering
   it: there are now three fixtures, and the third carries a design solve that
@@ -17017,7 +17023,11 @@ three change what the ladder is entitled to claim.
 **§ 6aq called an ordinary-glass triple "a singular matrix". It is not.** The
 sentence is doing real work there — it is why the catalogue has exactly one
 apochromatic glass triple, and why the superachromat question is about the
-catalogue — so it mattered that it was wrong. Every CaF₂-free triple in
+catalogue — so it mattered that it was wrong. (**And the same paragraph's own
+forward claim, that a four-glass split "would need a SECOND glass off that line",
+did not survive either — see [§ 6at.3](#step-6at--the-fourth-colour-and-its-price).**
+The line measured here is right; what a fourth condition is conditioned by is a
+plane, and the ordinary glasses miss it by enough.) Every CaF₂-free triple in
 `materials/catalog` **solves**: the 3×3 inverts, the powers come out finite, F, d
 and C are united exactly, and at a slow enough focal ratio the result is a real
 lens — N-BK7/F2/fused silica at f/200, F2/fused silica/D263 at f/1000. What is
@@ -17163,10 +17173,14 @@ about the band; `poleOrders` is why a caller can tell.
   which the two sit 6.0% and 2.3% above (the formula is thin; the lenses are
   not). Against it the third colour is worth **32%** rather than an order of
   magnitude.
-- **A superachromat, and whether four united colours are reachable**, unchanged
+- ~~**A superachromat, and whether four united colours are reachable**, unchanged
   from § 6aq — and § 6ar.6 sharpens what the honest finding would be about. The
   catalogue's one anomalous glass is what conditions the 3×3; a four-glass split
-  would need a second, and there is not one.
+  would need a second, and there is not one.~~ **Closed at
+  [§ 6at](#step-6at--the-fourth-colour-and-its-price)**, which found the opposite:
+  a second anomalous glass is not needed, non-coplanarity is, and the catalogue
+  has enough of it. This sentence's "would need a second" is the error § 6at.3
+  corrects.
 - **The reversal in a picture rather than in a magnification**, unchanged from
   §§ 6an, 6ap and 6aq. That rung still belongs on the singlet.
 - **Whether the pole structure can be designed for.** `designs/telecentric` now
@@ -17403,6 +17417,183 @@ and that is now written down where `RadialTabulation` is chosen.
   projected area is not applied by any rasterizer on either branch, it cancels in
   every comparison between them, and it belongs to the pupil layer where fixing
   it once would serve both.
+
+## Step 6at — the fourth colour and its price
+
+**The oldest open question on the colour branch, and the ladder had predicted
+the wrong answer for it.** § 6aq asked whether a *superachromat* — four united
+wavelengths, and therefore, since the telecentric count is bounded by the turn
+count, four telecentric ones — is reachable from `materials/catalog`. Both § 6aq
+and § 6ar.6 expected a refusal, and stated the reason plainly: the catalogue has
+exactly one anomalous-dispersion glass, CaF₂, and "a four-glass split would need
+a SECOND glass off that line, and there is not one."
+
+It does not need one. **Every four-glass quadruple in the catalogue solves**,
+the best of them within a factor of five of the apochromatic triple's own
+conditioning, and the quadruple with the fluorite *removed* solves better than
+the fluorite-free apochromatic triple § 6ar.6 already showed is a real lens.
+§ 6at.3 is the correction and is what this step exists for; the rest of the step
+is the price, which turns out to be the interesting half.
+
+No lens is built and no constructor ships. These are thin splits — element
+powers, the shallowest bending they admit, and what a curvature error does to
+them — and the step says so at every point where that limit shapes a number.
+
+### The formulation is the classical one, written so it generalizes
+
+A thin element's power scales across the spectrum as `kᵢ(λ) = (nᵢ(λ)−1)/(nᵢ,d−1)`,
+so uniting *m* wavelengths with *m* glasses is *m* linear conditions on the
+element powers:
+
+    Σ φᵢ                      = φ      the lens has the focal length asked for
+    Σ φᵢ·(kᵢ(λⱼ) − kᵢ(λ_m))   = 0      for each j < m
+
+For m = 3 at F, d and C those rows are `Σφᵢ/Vᵢ = 0` and `Σφᵢ·Pᵢ/Vᵢ = 0`
+*exactly* — the classical split, row-scaled. That equivalence is the step's
+entry pin rather than a remark: § 6at.1 runs all sixty ordered triples through
+the general solver and against `cementedTripletForm`'s Abbe/partial-dispersion
+Cramer solve, which is § 6ar.1's external number, and the two agree to 1e−12.
+The fourth row is the same statement at the mercury **g line**, 435.8343 nm, and
+the quantity conditioning it is the second relative partial dispersion
+`P_g,F = (n_g − n_F)/(n_F − n_C)`.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6at.1 — the N-glass split reduces to the three-glass one already pinned** | all 60 ordered triples against § 6ar.1's Cramer solve, < 1e−10; 1.1e−12 on the fluorite triple | ✅ |
+| ...and the agreement degrades exactly where the triple is ill-conditioned, which is the arithmetic telling the truth about itself | 1.1e−12 at conditioning 2.58, 3.1e−11 at 518 | ✅ |
+| **§ 6at.2 — every four-glass quadruple SOLVES, and the predicted refusal is absent** | conditioning 12.29 / 12.89 / 15.54 / 59.22 / 92.36; scale-free at f = 10 and 1000 | ✅ |
+| ...including the FLUORITE-FREE one, which is what kills the deferral's reasoning | 59.22, against the fluorite-free apochromatic triple's 517.95 | ✅ |
+| **§ 6at.3 — the fourth row wants NON-COPLANARITY, not a second anomaly** | ordinary glasses miss the (1, V, P_dC) → P_gF plane by 5.833e−4; CaF₂ 1.946e−2, 33× further | ✅ |
+| **§ 6at.5 — what the fourth colour buys, on two bands and against five lines** | 102.4× over 430–680, 8.7× over 380–800; g beats h in-band 4.53×, loses the full band 2.06× | ✅ |
+| **§ 6at.6 — a focal-ratio wall that holds at EVERY bending** | min over bending of max\|c\|·(D/2): f/7.25 quad, f/1.49 triplet, f/28.3 fluorite-free; built lens f/1.53 | ✅ |
+| **§ 6at.7 — the chromatic half of a curvature error, traced** | thin closed form vs the traced thick apochromat, < 3.2% on all four surfaces | ✅ |
+| **§ 6at.8 — so the advantage is a BAND, and it closes at a shop tolerance** | break-even ε 4.319e−3 triplet / 9.361e−6 quad; 102× → 8.97× → 1.17× → below 1 | ✅ |
+
+### § 6at.3 — the correction, and why the old reasoning was the right shape
+
+§ 6ar.6 measured a **normal line**, `P = 0.2751 + 5.139e−4·V`, found the four
+ordinary glasses on it to ±4.4e−4 and CaF₂ 44× off it, and read off that
+conclusion that a fourth condition would need a second glass off the same line.
+The measurement is right and is not disturbed here. The inference is wrong, and
+it is wrong in a way worth naming because it is easy to make twice: **the fourth
+condition is not a second line, it is a second dimension.** What conditions it
+is whether the glasses are coplanar in (V, P_dC, P_gF) — not whether any one of
+them is anomalous.
+
+Fitted over the four ordinary glasses (three parameters, four points, so exactly
+one degree of freedom left to be missed by), the miss is **5.833e−4**. It is
+small. It is also not zero, and being not zero is the entire reason the
+fluorite-free quadruple solves at all. Fluorite is 1.946e−2 off that plane, 33×
+further — so fluorite is still the anomalous glass and still buys the best
+conditioning by 4.8×. What it has stopped being is *necessary*.
+
+The step claims the direction and refuses to claim the law: 33× less off-plane
+buys 4.8× worse conditioning, not 33×, because a split's conditioning is a
+property of all four glasses at once and no single pairwise distance carries it.
+§ 6at.3's second rung pins the ratio and says exactly that.
+
+Two smaller things fall out. The catalogue's partial dispersions are now pinned
+to a **printed** number rather than to a line this repo fitted to itself:
+`materials.test.ts` checks N-BK7's n_g, n_F, n_C, P_g,F = 0.5349 and
+P_d,C = 0.3076 against the SCHOTT 517642.251 data sheet, all to 5e−6 or better.
+**That anchors § 6ar.6 retroactively**, which measured P_d,C off the Sellmeier
+and never compared it to the sheet. And the data sheet's own ΔP_g,F for N-BK7 is
+−0.0009 where the plane fit here gives +8.3e−4 — same magnitude, opposite sign,
+because SCHOTT's normal line is anchored on a fixed glass pair and this one is
+least-squares over this catalogue. Different lines, not a discrepancy.
+
+### What the fourth colour buys, stated on the band that flatters it and the one that does not
+
+Over **430–680 nm the quadruplet's residual colour is 102× smaller** than the
+apochromatic triplet's — 2.18e−6 against 2.24e−4, as a fraction of focal length.
+That is a real advantage and it is also the most flattering way to state it, so
+it never appears alone: 430–680 is very nearly the interval the four united
+lines *span*, so the quadruplet interpolates there while the triplet, united
+only at F, d and C, extrapolates below 486. Over the whole traced **380–800 the
+factor is 8.7×**.
+
+Which fourth line to unite is a choice, and a choice that is not measured is an
+assumption wearing a number, so § 6at.5 ran five. The g line wins the band it
+spans, beating h by 4.53×; **h wins the full 380–800 by 2.06×**, reaching
+further into the violet where the residual actually lives. The step keeps g
+because the in-band figure is what § 6aq's telecentric question is bounded by,
+and says which line wins what rather than implying one wins everything.
+
+### The price, and why the answer has to be a band
+
+Two costs, and they are not the same kind of number.
+
+The first is a **focal-ratio wall**, and it is the solid one. The split fixes
+only the curvature *differences*; the bending slides all of them together and
+changes nothing chromatic, so minimizing max|cₖ| over the bending is a
+closed-form lower bound on how steep the lens must be — no aberration scan, no
+thick solve, and true of *every* bending rather than of one sampled one. It is
+scale-free like the conditioning. **No superachromat from this catalogue can be
+faster than f/7.25**, against f/1.49 for the apochromatic triplet and f/28.3
+with the fluorite removed. It bounds what is impossible, not what is achievable:
+`designs/apochromat` builds its triplet at f/1.53 because its bending is the
+spherical-aberration null and not the shallowest, 3% steeper than the bound.
+
+The second is a **tolerance**, and it needs a distinction § 6ar.6 did not need.
+§ 6ar.6 pinned what a curvature error does to the focal length. Most of that is
+a uniform shift — a refocus, which costs a corrected lens nothing. What matters
+is the part that survives refocusing, and separating them is not bookkeeping:
+measured against the original d-line focal length instead of the perturbed
+lens's own, the refocusable part is **74× the chromatic one** on the front
+surface and drowns it completely. § 6at.7's first version did exactly that and
+reported a 74× disagreement with its own closed form. Once the reference is each
+prescription's own d line, the thin formula matches the **traced thick**
+apochromat to 3.2% on every surface — tighter than the 6% § 6ar.6 got for the
+refocusable half, and it is what licenses using the thin formula on a
+quadruplet that does not exist as a traced lens.
+
+So: the break-even relative curvature error, where the colour a lens *injects*
+equals the colour it was built to remove, is **4.3e−3 for the triplet and
+9.4e−6 for the quadruplet** — a factor of 460. In delivered colour, at the same
+bending for both:
+
+| radius error | triplet | quadruplet | quad better by |
+|---|---|---|---|
+| perfect | 2.24e−4 | 2.18e−6 | 102× |
+| 0.01% | 2.29e−4 | 2.55e−5 | 9.0× |
+| 0.1% | 2.76e−4 | 2.36e−4 | 1.17× |
+| 0.2% | 3.27e−4 | 4.69e−4 | below 1 |
+
+**The hundredfold is a paper number.** Around a tenth of a percent of radius the
+fourth glass has bought nothing, and past it the lens is worse than the
+apochromat it replaced — while being five times slower and carrying an extra
+cemented element. Published radius grades sit near 0.1% and 0.01%; those are
+shop practice rather than physics, so nothing here is pinned to them, and they
+are the scale the reader brings.
+
+**Where in that band the crossing falls is not something this step can say, and
+the reason is the scope limit.** The quantity that decides it moves **4.6×**
+across bendings, and `designs/apochromat` chooses a bending by nulling spherical
+aberration — which nothing here does for a quadruplet. At the shallowest bending
+the quadruplet ties a *perfect* triplet at 9.5e−4; at the bending most
+favourable to it, at 1.4e−3. So the crossing is **between 0.09% and 0.14%**, and
+the step quotes the band. That the triplet's own shallowest-bending sensitivity
+lands within 4% of what its real S_I-nulled bending traces is this triple's
+luck, not a law, and is labelled as luck.
+
+### Not yet pinned
+
+- **A thick cemented quadruplet, with its bending solved.** It would replace the
+  band above with a number, and it is the natural § 6au: five surfaces, four
+  cement joints, `analysis/seidel` already generalizes, and § 6b's root-count and
+  root-is-a-lens filters would both have to be re-asked. The thin numbers decide
+  *whether* the fourth glass is worth having; they cannot decide where inside a
+  0.09–0.14% band it stops being worth it.
+- **Whether four united colours actually give four telecentric ones.** § 6aq
+  bounds the telecentric count by the turn count in FFD(λ), and four united
+  wavelengths is the *precondition*, not the conclusion — the turns have to
+  land inside the band as well. Nothing here traces FFD(λ) for a quadruplet,
+  because nothing here builds one.
+- **The g line's own trade**, § 6at.5: h corrects the wider band better, and no
+  rung asks what a design that unites g *and* h — five glasses — would cost.
+- **Coupled tolerances**, unchanged from § 6ar: one curvature moves at a time
+  here too, and the quadruplet's five surfaces make the untouched couplings
+  worse rather than better.
 
 ## Later rungs
 

@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { indexD, indexE, abbeNumber, abbeNumberE } from "../src/materials/dispersion";
+import {
+  indexD,
+  indexE,
+  abbeNumber,
+  abbeNumberE,
+  LINE_G,
+  LINE_F,
+  LINE_C,
+  LINE_D,
+} from "../src/materials/dispersion";
 import {
   N_BK7,
   F2,
@@ -20,6 +29,25 @@ describe("glass catalog vs datasheets", () => {
   it("N-BK7: nd ≈ 1.5168, Vd ≈ 64.17", () => {
     expect(indexD(N_BK7)).toBeCloseTo(1.5168, 3);
     expect(abbeNumber(N_BK7)).toBeCloseTo(64.17, 0);
+  });
+
+  it("N-BK7: the g line and BOTH relative partial dispersions, off the datasheet", () => {
+    // SCHOTT N-BK7® data sheet 517642.251 (19-Aug-2010), which prints the index
+    // at each Fraunhofer line and the relative partial dispersions computed from
+    // them. This is the pin that lets § 6at's four-glass split rest on a printed
+    // partial dispersion instead of on a line this repo fitted to itself — and
+    // it anchors § 6ar.6 retroactively, since that rung measured P_d,C from the
+    // Sellmeier and never compared it to the datasheet's own printed 0.3076.
+    expect(N_BK7.n(LINE_G)).toBeCloseTo(1.52668, 5); // datasheet n_g
+    expect(N_BK7.n(LINE_F)).toBeCloseTo(1.52238, 5); // datasheet n_F
+    expect(N_BK7.n(LINE_C)).toBeCloseTo(1.51432, 5); // datasheet n_C
+    expect(N_BK7.n(LINE_F) - N_BK7.n(LINE_C)).toBeCloseTo(0.008054, 6);
+
+    const span = N_BK7.n(LINE_F) - N_BK7.n(LINE_C);
+    // P_g,F = (n_g − n_F)/(n_F − n_C): datasheet 0.5349
+    expect((N_BK7.n(LINE_G) - N_BK7.n(LINE_F)) / span).toBeCloseTo(0.5349, 4);
+    // P_d,C = (n_d − n_C)/(n_F − n_C): datasheet 0.3076
+    expect((N_BK7.n(LINE_D) - N_BK7.n(LINE_C)) / span).toBeCloseTo(0.3076, 4);
   });
 
   it("F2: nd ≈ 1.620, Vd ≈ 36.37", () => {
