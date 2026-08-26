@@ -103,6 +103,7 @@ whole ladder.
 | [6ar](#step-6ar--the-telecentric-designs-ship) | The last two solves leave the test files: `designs/apochromat` and `designs/telecentric` rebuild §§ 6ap–6aq to the digit — and § 6aq.4's ninth decimal was the bracket | `telecentric-design` |
 | [6as](#step-6as--the-extended-fluorescent-specimen) | An emitter is a DENSITY, so warping one needs det J = (h/r)·(dh/dr) — 1/M² on the axis; a Gaussian’s loss is erf exactly, a hard edge’s the Gauss circle problem’s open exponent | `emitter-density` |
 | [6at](#step-6at--the-fourth-colour-and-its-price) | The four-glass split SOLVES: the fourth row needs non-COPLANARITY, not a second anomalous glass, and the 102× less colour it buys is 9× at 0.01% radius tolerance and nil by 0.1–0.2% | `superachromat` |
+| [6au](#step-6au--a-real-tolerance-budget) | Wedge and centring are ONE freedom per sphere, δ = −R sin α, so eleven rows and not fifteen — and COLOUR sets seven of them by 3.6–26×, blur the four alignment rows it cannot see at all | `tolerance-budget` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -6306,6 +6307,15 @@ them would mean pinning a lens.
   concrete content of "every external rung is pinned on a perfect nominal": the
   currency is correct and it is not the whole answer once a nominal has
   aberration of its own to interfere with.
+
+**[§ 6au](#step-6au--a-real-tolerance-budget) is where these three stop being
+the whole story.** It drives the same module on a real apochromat, and needs two
+things this step does not have: perturbation GROUPS, because a centring or wedge
+error is local and a bare surface edit moves the whole tail with it, and a second
+currency, because a colour-corrected lens can be inside the diffraction limit and
+still have lost what its third glass bought. The middle bullet above — the
+projection-versus-refocus gap on a cancelling pair — is the same phenomenon as
+§ 6au's linearity check, one budget earlier.
 
 Tolerancing lands here, at step 5, rather than in v2: once tilt/decenter exists
 (the § 4a folded-mirror frame closed it) the whole capability is a difference of
@@ -17188,10 +17198,14 @@ about the band; `poleOrders` is why a caller can tell.
   such a solve would need — but nothing here solves for a bending that puts a pole
   at a wanted colour, and § 6aq.7's finding that the bending moves the turns is
   still an observation rather than a control.
-- **The tolerance rung is one perturbation, not a tolerance budget.** § 6ar.6
+- ~~**The tolerance rung is one perturbation, not a tolerance budget.** § 6ar.6
   moves one curvature at a time and reads the focal length. Thicknesses, wedge,
   centring, and the couplings between them are untouched; a real tolerance
-  analysis is a different exercise.
+  analysis is a different exercise.~~ **Closed at
+  [§ 6au](#step-6au--a-real-tolerance-budget)**, which found that the missing
+  half was not more parameters but a second CURRENCY: colour sets the curvatures
+  and the first two thicknesses, blur sets the alignment, and the two disagree by
+  up to 26× on the rows where both apply.
 
 ## Step 6as — the extended fluorescent specimen
 
@@ -17594,7 +17608,210 @@ luck, not a law, and is labelled as luck.
   rung asks what a design that unites g *and* h — five glasses — would cost.
 - **Coupled tolerances**, unchanged from § 6ar: one curvature moves at a time
   here too, and the quadruplet's five surfaces make the untouched couplings
-  worse rather than better.
+  worse rather than better. **[§ 6au](#step-6au--a-real-tolerance-budget) closes
+  this for the TRIPLET** — eleven rows moved together, combining to 0.763 of
+  their RSS — and re-measures § 6at.8's own break-even by tracing the built lens
+  rather than the thin split, 4.413e−3 against 4.319e−3. It cannot close it for
+  the quadruplet, for the reason at the head of this list: there is no such lens
+  to trace.
+
+## Step 6au — a real tolerance budget
+
+**§ 6ar.6's own deferral, carried unchanged by § 6at:** *"the tolerance rung is
+one perturbation, not a tolerance budget. § 6ar.6 moves one curvature at a time
+and reads the focal length. Thicknesses, wedge, centring, and the couplings
+between them are untouched."* § 5t built the machinery for exactly this and
+pinned every rung of it on a **perfect** nominal, by design. This step drives it
+on the lens `designs/apochromat` ships, and two things had to be built first.
+
+The first is that **a surface edit is not a manufacturing error.** The frame
+chain is cumulative — `frame_{i+1} = surfaceFrame_i ∘ T(0,0,tᵢ)` — so decentring
+surface *k* slides every later surface sideways with it and tilting it swings the
+whole tail. That is the right model for a misaligned *group*, and it is what
+§ 5t's Newtonian-diagonal rung measures. It is not what a shop quotes. Centring
+(surface *k*'s centre of curvature off the axis the others share) and wedge
+(surface *k* tilted about its own vertex) are **local**: nothing else moves. Each
+is therefore a GROUP of surface edits — the error, plus the edit on the next
+surface that puts the chain back — and one group is one budget row however many
+edits it takes.
+
+The second is that **an apochromat has two currencies and they disagree.** § 5t
+prices a tolerance in wavefront error; §§ 6ar.6 and 6at price it in injected
+colour. Neither is the answer alone: a tolerance that leaves the monochromatic
+image diffraction-limited while undoing what the third glass bought has not been
+paid for, and a colour budget cannot see an alignment error at all. Every row
+below is priced in both, and **which one binds is the step's result rather than
+its premise.**
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6au.1 — the compensation is exact, and the chain proves it** | compiled frames from the carrier on, 1e−15 in rotation and 1e−14 in translation | ✅ |
+| ...and the carrier is put back FLAT, which a decentre-only compensation would fake | surface *k* tilted by 0.3°, surface *k+1* unrotated to 1e−15 | ✅ |
+| ...and the trailing reference plane the rear surface needs is optically nothing | EFL to 12 digits, σ to 1e−6, its own decentre σ **exactly 0**, its own tilt 1.5e−11 | ✅ |
+| **§ 6au.2 — a wedge deviates by asin(n sin α) − α**, Snell twice and no thin-lens step | 1e−9 at α = 0.05°, 0.2°, 0.5°; the textbook (n−1)α is that to 0.03% | ✅ |
+| ...and the SAME wedge disperses, which is the whole colour a wedge has | F−C spread to 1e−8 of asin(n_F sin α) − asin(n_C sin α); ≈ (n_F−n_C)α to 1e−3 | ✅ |
+| **§ 6au.3 — wedge and centring are ONE freedom on a sphere**, δ = −R sin α | the chief ray is **bit-identical**; the blur 5.9e−7 at 10 µm to 3.9e−5 at 200 µm | ✅ |
+| ...and it is SPHERICITY: a plane has no equivalent at all, a conic breaks in the blur | plane refuses; conic K = −6 is 5.10× in σ and 2e−6 on the chief ray | ✅ |
+| **§ 6au.4 — a decentred element is a prism of deviation δ/f** | Smith's thin rule to 5% on a 4 mm singlet at δ = 0.05, 0.1, 0.2 mm | ✅ |
+| ...and a rigid lateral shift is a null only for a PERFECT lens | < 1e−9 on the paraboloid; **3.913e−2 waves/mm** on the triplet, linear to 1e−3 | ✅ |
+| **§ 6au.5 — d(1/f)/dt = (n−1)²c₁c₂/n**, the thick maker's equation differentiated | 1e−6, which is the central difference's own floor and not a percentage | ✅ |
+| **§ 6au.6 — seven rows are set by COLOUR and four by BLUR** | normalized slopes; the two disagree by 3.6× to 25.9× where they compete | ✅ |
+| ...and the worst curvature row re-measures § 6at.8's break-even by a second route | 4.413e−3 traced thick against 4.319e−3 thin, 2.2% | ✅ |
+| ...and the allocation checks its own extrapolation instead of trusting it | 9 of 11 rows within 3% of their share; the two that are not are 0.54 and 0.68 | ✅ |
+| ...and a centring error's colour is LATERAL, the axial zero being a readout limit | 1.169e−5 rad of F−C on 1.111e−3 of deviation — **1.05%**, § 6au.2's fraction | ✅ |
+| **§ 6au.7 — the eleven rows CANCEL: the combined trace is 0.763 of the RSS** | 0.378 in the colour currency; § 5t's sign, on a real lens rather than a probe | ✅ |
+| ...on ONE support, which is what makes the comparison a measurement | 313 points, 0 dropped at a hundredth of the budget; 19 drop at a tenth | ✅ |
+
+### The compensation, derived rather than fitted
+
+A wedge on surface *k* is four edits and a centring error is two, and the numbers
+in them are not first-order approximations. Writing the perturbed chain out,
+
+    surfaceFrame_{k+1} = F·R(α)·T(t′ẑ)·T_d·R(−α) = F·T(R(α)(t′ẑ + d))
+
+so restoring it to the nominal `F·T(tẑ)` needs `t′ẑ + d = R(−α)(tẑ)`, and since a
+`SurfaceSpec` carries no axial decenter, `d` is confined to the transverse plane
+and the split is forced: **`t′ = t·cos α` and `d_y = t·sin α`**, with `−α` on the
+carrier. Centring is the same statement with `α = 0`: `+δ` on *k*, `−δ` on *k+1*.
+
+The invariant is checked against **compiled frames**, not against a second copy
+of that algebra: every surface from the carrier on must be where it was, and the
+rung asserts it in rotation and translation separately, because a decentre-only
+compensation would restore *k+2* onward while leaving *k+1* crooked. The second
+rung is that negative control, and the third is the reference plane's own
+inertness — an air-to-air plane at the image, so that the REAR surface has a
+carrier at all. Its own decentre costs σ **exactly zero**, which is the concrete
+form of "the image plane's lateral position is a compensator, not a tolerance."
+
+### Eleven rows and not fifteen
+
+A sphere is fixed by its centre and its radius. Tilting it by α about its vertex
+leaves the vertex and moves the centre to `(0, −R sin α, R cos α)`; decentring it
+by δ moves the centre to `(0, δ, R)`. Equal radius, equal centre when
+**δ = −R sin α** — not two similar surfaces but the *same surface*, and the chief
+ray through the two prescriptions is bit-for-bit the same number at every
+displacement tried. So a budget carrying a wedge row and a centring row for each
+of four surfaces has counted one freedom twice, and the eleven rows below would
+have been fifteen.
+
+What survives the equality is second order and is measured rather than waved at:
+the centre's own axial offset `R(cos α − 1)`, and the clear aperture, which is cut
+about the **vertex** and the two realizations put the vertex in different places.
+Together they run 5.9e−7 of the blur at 10 µm and 3.9e−5 at 200 µm — faster than
+linear, slower than square, because the two sources scale differently.
+
+Two negative controls, failing in opposite directions, say what the degeneracy is
+a property of. `δ = −R sin α` **diverges as R → ∞**: decentring a plane is a
+no-op, so nothing imitates a plane's wedge and the conversion refuses rather than
+returning a large number. And a **conic** of revolution tilted about its vertex is
+not that conic translated — at K = −6 the blur is 5.10× out. But the chief ray is
+still within 2e−6, because a conic departs from its own osculating sphere *off
+axis* and the chief ray never goes there. That is why the equality is pinned on
+the chief ray and the aperture is left as a measured residual.
+
+### Two currencies, and the seven-four split
+
+Each row is normalized by its own currency's **target** — λ/14 for blur, the
+lens's own residual colour 2.206e−4 for colour — which makes the two comparable
+without extrapolating either to an allowance. The larger normalized slope is the
+constraint a shop actually has to meet.
+
+| row | colour, per unit ÷ target | blur, per unit ÷ target | binds | by |
+|---|---|---|---|---|
+| c₁ | 84.4 | 20.7 | colour | 4.1× |
+| c₂ | **226.6** | 22.5 | colour | 10.1× |
+| c₃ | 148.6 | 8.87 | colour | 16.8× |
+| c₄ | 4.81 | 0.518 | colour | 9.3× |
+| t₁ | 1.54 | 0.423 | colour | 3.6× |
+| t₂ | 0.712 | 0.0275 | colour | 25.9× |
+| t₃ | 0.0400 | 0.0966 | blur | 2.4× |
+| centring s₁ | **0** | 4.37 | blur | — |
+| centring s₂ | **0** | **7.78** | blur | — |
+| centring s₃ | **0** | 2.92 | blur | — |
+| centring s₄ | **0** | 0.0619 | blur | — |
+
+**A blur-only budget would under-specify the two cement joints by an order of
+magnitude**, and a colour-only budget would not mention the alignment at all. In
+drawing numbers, from whichever currency binds: **0.36%, 0.13%, 0.20% and 6.3%**
+on the four radii, 0.20 mm and 0.42 mm on the first two centre thicknesses, and
+**69, 39, 103 µm** of centring on the first three surfaces. The tightest number
+on the sheet is 0.13% of radius on the first cement joint, which an ordinary
+0.1% commercial radius grade already clears — so this triplet is buildable, and
+the budget's real content is *which* three numbers to watch.
+
+The two rows left out of that sentence are left out on purpose. t₃ and the rear
+centring row come back with allowances larger than the parts they describe — 11 mm
+of extra glass on a 1.2 mm element, 4.9 mm of runout — and those are not
+tolerances. They are the statement that neither currency constrains those
+parameters, and that the mechanical drawing does.
+
+### The allocation measures its own extrapolation
+
+An inverse-sensitivity budget divides the target by √N and inverts a slope
+measured at a probe a thousand times smaller, which is a **linear
+extrapolation**, and nothing in the arithmetic knows where linearity stops. So
+`allocateEqualShare` re-measures the currency AT the allowance it just computed
+and reports `linearity = checked/share`. On this lens nine of eleven rows come
+back inside 3%; the two that do not are 0.54 and 0.68, and they are exactly the
+two rows named above. **The diagnostic found them rather than a reader noticing**
+— which matters, because the first draft of this step spent the colour budget on
+t₃, got a 9.5 mm allowance, and reported a combined blur of 5.9e+4 waves for the
+whole lens before the check existed to say why.
+
+### The couplings, and the support that makes them a measurement
+
+At a hundredth of the budget, where every slope holds, the combined trace of all
+eleven rows is **0.763** of their RSS, and 0.378 in the colour currency. The
+independence estimate is *pessimistic* — the same direction § 5t's app probe found
+on the achromat, and for the same reason: several rows produce spherical of
+opposite sign. The factor belongs to this lens rather than to the method, so it
+is measured and not offered as a law.
+
+That number needs one control before it means anything, and it is a control § 5t
+did not need. Contributions vignette the pupil differently — a decentre clips one
+rim, a tilt the other — and variances add exactly only over a **common support**,
+which is the whole justification for the linear defocus projection. So
+`toleranceBudget` now intersects the supports across every row and the combined
+trace, and reports what survived: 313 points with none dropped at a hundredth of
+the budget, and 19 dropped at a tenth, where the tilted rows start clipping.
+Without it, a gap between RSS and combined has a third explanation and stops
+being a measurement of correlation at all.
+
+### A rigid shift is a null only for a perfect lens
+
+§ 5t measured σ ≈ 2e−11 for decentring the stop of a paraboloid and read it as
+the pupil moving with the surface. Half of that is right, and the half that
+matters is the **nominal being perfect**. The pupil is a set of aiming coordinates
+fixed in space, so sliding an aberrated lens sideways samples its own residual off
+centre — a quartic on a displaced disc is not a quartic in ρ, which is § 6y's
+sentence arriving in a different section. On this triplet that costs 3.913e−2
+waves per millimetre, linear in the shift to 1e−3; on the paraboloid, where there
+is no residual to sample, it is nothing. The centring rows carry that term, and
+naming it is the difference between a tolerance and an artefact.
+
+### Not yet pinned
+
+- **Wedge rows are absent from the budget, and that is the degeneracy's
+  consequence rather than an omission** — but it is only exact for SPHERES. The
+  moment `designs/` grows an aspheric element, the four alignment rows become
+  eight and § 6au.3's conic control is the rung that says so.
+- **One field point, one wavelength.** Every σ here is on axis at the d line.
+  Centring and wedge are odd aberrations whose signature is a FIELD dependence,
+  and a budget evaluated only on axis cannot see a tolerance whose whole cost is
+  at the edge. The machinery takes `fieldValue`; nothing here sweeps it.
+- **Equal shares are a choice, and a poor one when a parameter is cheap to
+  hold.** The rows here differ by three orders of magnitude in sensitivity, so
+  equal shares hand a slack parameter an allowance it cannot use — which is what
+  the linearity check keeps catching. A cost-weighted allocation would be a
+  different exercise and would need a cost model this repo has no source for.
+- **The colour currency is paraxial.** It reads `paraxialTrace`, which is first
+  order about the axis and cannot see tilt or decentre at all, so the four zeros
+  in the table are exact for a reason that is about the readout and not about the
+  optics. § 6au.6's last rung measures what it misses by ray trace — 1.05% of the
+  deviation, as lateral colour — but nothing here builds a lateral-colour budget
+  beside the axial one.
+- **No `packages/app` surface.** APP.md Part B drives § 5t's per-surface sliders;
+  nothing there knows about groups, currencies, or an allocation.
 
 ## Later rungs
 
