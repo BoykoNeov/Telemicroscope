@@ -105,6 +105,7 @@ whole ladder.
 | [6at](#step-6at--the-fourth-colour-and-its-price) | The four-glass split SOLVES: the fourth row needs non-COPLANARITY, not a second anomalous glass, and the 102× less colour it buys is 9× at 0.01% radius tolerance and nil by 0.1–0.2% | `superachromat` |
 | [6au](#step-6au--a-real-tolerance-budget) | Wedge and centring are ONE freedom per sphere, δ = −R sin α, so eleven rows and not fifteen — and COLOUR sets six of them by 3.6–26×, blur five including the four it cannot see at all | `tolerance-budget` |
 | [6av](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) | A root can be a SURFACE and not a SOLID — the wall is f/21.9, not f/11; the thin split is not a START; ONE S_I null, not two; crossing 0.077% | `superachromat-lens` |
+| [6aw](#step-6aw--the-quadruplets-budget-and-a-currency-with-a-kink) | Fourteen rows, nine bound by COLOUR — and the currency has a KINK, so a SMALLER probe is a worse budget: the solved radius is 0.00034%, 30× past precision | `tolerance-quadruplet` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -17988,8 +17989,9 @@ doublet's at the same focal length, so two of them meet long before either passe
 a hemisphere.
 
 The ray trace agrees with the arithmetic and was in fact what found it, from an
-unlikely direction: § 6aw's tolerance budget kept only 137 of the 313 pupil
-samples the triplet keeps at the same aperture. Rays entering above **3.2307 mm**
+unlikely direction: a coupled tolerance budget run on this lens kept only 137 of
+the 313 pupil samples the triplet keeps at the same aperture, and asking why is
+what produced everything below. Rays entering above **3.2307 mm**
 miss surface 4 outright — not clipped by a glass margin, since widening every
 disc to 50 mm changes the number not at all, but arriving where the prescription
 has no surface left. A lens labelled f/12 passes an **f/18.6** beam. The trace
@@ -18130,13 +18132,13 @@ which is the distinction earning its keep.
   best-conditioned. Whether the other three fluorite quadruples have one S_I
   null, or two, or none is unmeasured, and § 6av.3's count is a statement about
   this quadruple and not about quadruplets.
-- **Coupled tolerances.** § 6av.6 moves one curvature at a time, as § 6at.8 and
-  § 6ar.6 do. [§ 6au](#step-6au--a-real-tolerance-budget) closes this for the
-  TRIPLET — eleven rows moved together, combining to 0.763 of their RSS — and
-  § 6at recorded that it could not do so for the quadruplet because there was no
-  such lens to trace. There is now, and nothing here runs that budget on it: five
-  surfaces make fourteen rows rather than eleven, and the allocation is its own
-  exercise.
+- ~~**Coupled tolerances.**~~ **Closed at [§ 6aw](#step-6aw--the-quadruplets-budget-and-a-currency-with-a-kink)**:
+  fourteen rows moved together, combining to 0.4472 of their RSS, and colour
+  binds nine of them by three orders of magnitude. What that step found on the
+  way is that the colour currency is not differentiable at its peak on this
+  lens, so the allowance has to be solved rather than extrapolated — and the
+  tightest radius it asks for, 3.37e−6, is thirty times finer than a precision
+  grade.
 - **The glass discs are sized off D and not off the ray inside.** § 6av.8
   measures the marginal ray reaching 1.14·D/2 within a stack whose every disc is
   1.02·D/2, and repairs nothing: it is a real defect, it is much smaller than the
@@ -18155,6 +18157,206 @@ which is the distinction earning its keep.
 - **No `packages/app` surface.** Nothing in APP.md drives this constructor, and
   at f/22 minimum it is not a microscope objective; where it would belong is a
   telescope-objective panel that does not exist.
+
+## Step 6aw — the quadruplet's budget, and a currency with a kink
+
+**§ 6av's own deferral, and § 6at's before it:** *"§ 6au closes this for the
+TRIPLET — eleven rows moved together, combining to 0.763 of their RSS — and
+§ 6at recorded that it could not do so for the quadruplet because there was no
+such lens to trace. There is now, and nothing here runs that budget on it."*
+This step runs it. Nothing here adds engine capability: every rung drives
+`analysis/tolerance` exactly as § 6au pinned it, on a second lens.
+
+The lens is `designs/superachromat` at f/25 and 10 mm, which is the solid one
+[§ 6av.8](#step-6av--the-quadruplet-and-the-band-that-was-not-a-bound) leaves
+behind. Every triplet number quoted beside a quadruplet number is measured at
+that same aperture and that same focal ratio and never read off § 6au, whose
+lens is f/6 — and that turns out to matter more than commensurability usually
+does, because one of § 6au's two headline factors is a fact about a focal ratio
+rather than about a triplet.
+
+**What did not carry over is the currency.** § 6au prices colour as the worst of
+R(λ) = f_d/f_λ − 1 over the band, and a worst-over-band is differentiable only
+while the wavelength it peaks at stays put. On the triplet it does. On the
+quadruplet the residual peaks at the RED end of the band and the colour a
+curvature error injects peaks at the BLUE end, so the functional has a **kink**,
+and the allowance lands on the far side of it by construction.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6aw.1 — fourteen rows, by the rule that makes the triplet's eleven** | 5 curvatures + 4 thicknesses + 5 centring, no wedge row (§ 6au.3); § 6av's deferral said sixteen | ✅ |
+| ...and the target is the lens's own residual, 91.4× smaller than the triplet's | 2.4401e−6 against 2.2301e−4 at the same aperture and ratio | ✅ |
+| **§ 6aw.2 — the colour currency has a KINK: the slope steps 4.03×** | 5.6835e−2 below ε ≈ 1e−7 with the peak at 680 nm, 2.2897e−1 above ε ≈ 1e−4 with it at 430 | ✅ |
+| ...and the triplet has none, which is why § 6au never met it | both peaks at 430 nm; slope 5.0233e−2 to 1e−3 relative over eight decades of ε | ✅ |
+| ...so a probe is a FRACTION of the residual it perturbs, not a size | § 6au's 1e−5 injects 0.225% of the triplet's residual colour and **88.9%** of the quadruplet's | ✅ |
+| **§ 6aw.3 — NINE rows bind on colour and five on blur, by 2138× to 28746×** | every powered freedom is a colour row; the five alignment rows are colour-blind exactly, § 6au.6's readout limit | ✅ |
+| ...and the triplet at the SAME geometry is seven and four, by 33× to 2169× | so the gap is tenfold against the triplet, not thousandfold — most of § 6au's 3.6–26× is its focal ratio | ✅ |
+| **§ 6aw.4 — the allowance must be SOLVED, and a smaller probe makes it worse** | extrapolation 0.89–1.83× the solved value on curvatures and 2.69–2.79× on thicknesses from a 1e−5 probe; **2.27–3.39× from a 1e−8 one** | ✅ |
+| ...and the linearity diagnostic is what says so, on nine rows of nine | 0.842 to 1.984, not one inside 3%, where the same allocation on the triplet is inside 0.5% on all seven | ✅ |
+| ...and the solve reproduces the extrapolation where the currency IS linear | all seven triplet rows within 0.6%, which is what pins a bisection that has no external number | ✅ |
+| **§ 6aw.5 — the fourteen rows cancel to 0.4472 of their RSS**, and the ratio does not move | three scales two decades apart, 293 points retained and none dropped at any of them | ✅ |
+| ...and § 6au's 0.763 is a fact about f/6: the same triplet at f/25 gives 0.0130 | 59× on one lens; the COLOUR factor is the one that belongs to a lens — 0.3780 at both ratios against 0.3874 here | ✅ |
+| **§ 6aw.6 — the drawing: 3.374e−6 of radius and 3.32 arcmin of wedge** | tightest at the second cement joint; centring 72.5 / 22.2 / 14.2 / 512.4 / 29.4 µm, or 7.51 / 5.58 / 3.32 / 58.18 / 5.00 arcmin | ✅ |
+| ...and that is 30× finer than a 0.01% precision grade, where the triplet's clears 0.1% | 3.374e−6 against the triplet's own tightest 1.3376e−3 at the same geometry, 397× | ✅ |
+| **§ 6aw.7 — the support: 293 of the 313 the triplet keeps**, and the discs are why | the marginal ray reaches 5.281 mm inside 5.1 mm discs; 6 mm discs restore all 313, as does stopping to 4.8 mm | ✅ |
+| ...and nothing in the budget depends on it | same binding pattern and the same 0.4472 on 313 points as on 293 | ✅ |
+| ...and the trailing reference plane is inert on a third lens, at every size used | wrapped against bare to 1e−6 relative over curvature 1e−4…4e−2 and centring 1e−3…1e−1 | ✅ |
+
+### A maximum is differentiable only while its argmax stays put
+
+The step's methodological finding, and it is about a functional rather than
+about optics. § 6au's colour currency is
+
+    C(p) = max over 430–680 of |f_d(p)/f_λ(p) − 1|
+
+evaluated on the perturbed prescription against its own d line, and a budget
+needs its slope. A maximum of smooth functions is smooth **where the maximizing
+argument is unique and stable**, and stops being so where two candidates cross.
+
+On the apochromatic triplet nothing crosses: the residual peaks at 430 nm, the
+colour a curvature error injects peaks at 430 nm, and the slope is 5.0233e−2 to
+a part in a thousand from ε = 1e−10 to ε = 1e−3 — eight decades. On the
+quadruplet the four united lines leave a residual that peaks at **680** nm while
+the injected colour peaks at **430**, and the two cross. Below ε ≈ 1e−7 the peak
+is still the residual's and the slope is 5.6835e−2; above ε ≈ 1e−4 the peak is
+the injection's and the slope is 2.2897e−1. **A factor of 4.03, across a kink
+that sits where the injected colour is a few percent of the residual.**
+
+That last clause is the transferable part. The kink's *location* is a fraction of
+the residual, so where a given probe falls relative to it is decided by the
+lens, not by the number: § 6au's 1e−5 injects 0.225% of the triplet's residual
+and **88.9%** of the quadruplet's, because the quadruplet's residual is 91×
+smaller while its sensitivity is 4.6× larger. A probe size is not portable
+between lenses, and this repo had been treating it as a constant.
+
+**The consequence inverts the usual repair.** An extrapolated allowance is
+`share / slope`, and the share here is the residual over √14 — 27% of the
+residual, which is *past* the kink. So the slope that matters is the far one, and
+measuring the probe smaller to be safer measures the near one: from a 1e−8 probe
+every one of the nine powered rows comes out 2.27× to 3.39× loose, where § 6au's
+own 1e−5 is 0.89× to 2.79×. The honest allowance is not a slope at all; it is the
+first root of C(m) = share, and this step solves it by a scan and a bisection
+written in the test file.
+
+That solve is deliberately **not** added to `analysis/tolerance`. A bisection has
+no external number to be pinned against, and the repo's rule is that new engine
+capability comes with one. What pins it here is a lens: on the triplet, where the
+currency has no kink, solved and extrapolated agree on all seven powered rows to
+0.6% — so when the two disagree by 2.8× on the quadruplet, the disagreement is
+the lens and not the method. The scan matters too, and a rung says why: an error
+that partially cancels the residual it is added to makes |ΔC| non-monotonic, and
+a bare bisection lands 1.9× from the answer on the triplet's own front curvature.
+
+### Nine rows and five, and most of the drama is the focal ratio
+
+§ 6au's result on the triplet is six rows set by colour and five by blur, with
+the two currencies within a factor of 26 wherever they compete. Here the split is
+**nine and five** — every powered freedom is a colour row — and the margin runs
+2138× to 28746×. A blur-only budget of this lens would not be loose; it would be
+irrelevant.
+
+But the honest size of that finding is smaller than it looks, and the control
+that says so is the triplet at the same geometry. At f/25 the triplet is **seven
+and four** (t₃ having crossed over from blur) and colour beats blur there by 33×
+to 2169×. So the quadruplet is about **ten times** more colour-dominated than the
+triplet, not a thousand times: most of the distance from § 6au's 3.6–26× is the
+focal ratio, because σ falls with the ratio while a paraxial colour readout does
+not see the aperture at all. § 6au's numbers are f/6's.
+
+The five alignment rows remain exactly zero in the colour currency, and that zero
+is a fact about the readout rather than about the optics — `paraxialTrace` is
+first order about the axis and cannot see a decentre. § 6au.6's last rung
+measures what it misses by ray trace; nothing here extends that to a quadruplet.
+
+### One coupling factor belongs to the lens and the other does not
+
+The fourteen rows moved together combine to **0.4472** of their RSS, so the
+independence estimate is pessimistic here as it was on the triplet, and by more:
+these rows cancel each other by 2.2× where the triplet's at f/6 cancel by 1.3×.
+The number is measured at three scales two decades apart and does not move in the
+fourth digit, on one support with nothing dropped — § 6au.7's control, which is
+what makes a gap between RSS and combined a measurement of correlation rather
+than a difference of domain.
+
+Then the comparison § 6au's own headline invites, and it does not survive being
+made. **The same triplet at f/25 combines to 0.0130 of its RSS**, against 0.763
+at f/6: a factor of 59 on one lens, from a focal ratio. So "the eleven rows
+combine to 0.763 of their RSS" is a statement about a geometry, and the
+quadruplet's 0.4472 is 34× the triplet's at the geometry where they can be
+compared at all. What *is* a property of the lens is the colour coupling factor,
+which is paraxial and therefore blind to the aperture: **0.3780** for the triplet
+at f/6 and at f/25 alike, against **0.3874** for the quadruplet — two designs a
+glass apart, agreeing to 2.5%.
+
+One row could not be measured § 6au's way at all. At a hundredth of the budget —
+§ 6au.7's own scale — the triplet's rear centring allowance at f/25 is 3.5 mm and
+the re-measure the allocation performs at its own answer cannot be traced: the
+chief ray leaves the glass. That is § 6au's "not a tolerance" category in its
+strongest available form, and it is why the coupled comparison above runs at a
+ten-thousandth.
+
+### The drawing, and what it says about the fourth glass
+
+From whichever currency binds each row, with the colour rows solved rather than
+extrapolated:
+
+ - **The five radii**: 1.31e−5, 3.39e−6, **3.37e−6**, 3.36e−5 and 6.69e−6 of
+   relative curvature error. The tightest is the second cement joint, at
+   0.00034% of radius.
+ - **The four centre thicknesses**: 0.558, 0.493, 0.201 and 0.274 mm.
+ - **The five centring rows**: 72.5, 22.2, 14.2, 512.4 and 29.4 µm of runout —
+   or, as the wedge callout a drawing carries beside it and by § 6au.3 exactly
+   the same line, **7.51, 5.58, 3.32, 58.18 and 5.00 arcmin**.
+
+The verdict is sharper than § 6av's, and it is a different question. § 6av.6 asks
+where the quadruplet's *delivered* colour falls to a perfect triplet's and finds
+them level at 0.077% of radius, so at a 0.1% commercial grade the fourth glass is
+already a loss. This asks what error keeps the lens inside **its own** residual,
+and the answer is 3.37e−6: published radius grades near 0.1% and 0.01% miss it by
+factors of 300 and 30. The triplet's own tightest row at the same geometry is
+1.3376e−3, which a 0.1% grade clears. **So the apochromat is buildable to its
+specification and the superachromat is not buildable to its** — by a factor of
+397 between their tightest rows, on one lens that exists and one that would have
+to be made 30× better than precision practice to be worth making at all.
+
+### The support, and the defect it is a symptom of
+
+§ 6au.7's common-support control reports something on this lens: the quadruplet
+keeps **293** of the pupil samples where the triplet keeps 313 at the same stop.
+It is not § 6av.8's solidity — the f/25 lens is a solid — but the second defect
+§ 6av.8 names and leaves unrepaired. The glass discs are sized off D at
+1.02·D/2 = 5.1 mm while the marginal ray climbs to **5.281 mm** inside the stack,
+so the rim of the beam meets the edge of a disc. Widening every disc to 6 mm
+restores all 313, which is the control that identifies the cause; stopping down
+to 4.8 mm does the same and costs 4% of the aperture.
+
+Nothing in the step depends on it, and that is asserted rather than assumed: the
+whole allocation run on the full 313 gives the same binding pattern and the same
+0.4472 to four digits. A budget that changed when 6% of the pupil came back would
+be reporting its support and not its lens.
+
+### Not yet pinned
+
+- **One field point, one wavelength**, unchanged from § 6au and now inherited by
+  a second lens. Every σ here is on axis at the d line, and centring and wedge
+  are odd aberrations whose whole signature is a field dependence. The machinery
+  takes `fieldValue`; nothing here sweeps it.
+- **Equal shares are still a choice**, and a worse one here than on the triplet:
+  these rows differ by five orders of magnitude in sensitivity, where § 6au's
+  differ by three. A cost-weighted allocation would be a different exercise and
+  would need a cost model this repo has no source for.
+- **The solved allowance is not a coupled allowance.** § 6aw.4 solves each row
+  against its own share, and § 6aw.5 measures how the rows combine at a scale
+  where every slope holds. Nothing solves the fourteen TOGETHER against the
+  target, which is the allocation the 0.4472 says is available.
+- **No lateral-colour budget**, § 6au's deferral repeated: the four zeros in the
+  colour column are exact because the readout is paraxial, and what it misses is
+  measured on the triplet at § 6au.6 and not here.
+- **The glass discs**, whose 20 missing samples this step measures and which
+  § 6av.8 records and does not repair.
+- **No `packages/app` surface**, for both reasons at once: APP.md Part B drives
+  § 5t's per-surface sliders and knows nothing of groups, currencies or an
+  allocation, and nothing in APP.md drives this constructor either.
 
 ## Later rungs
 
