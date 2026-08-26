@@ -132,10 +132,17 @@ import { seidelSums } from "../analysis/seidel";
  * is the superachromat question; **§ 6at asked it, and the answer is yes.** Every
  * four-glass quadruple in this catalogue solves — the fourth condition is
  * conditioned by the glasses failing to be coplanar in (V, P_dC, P_gF), not by a
- * second anomalous glass, so the fluorite-free quadruple solves too. Nothing
- * changes here: what four colours cost is a wall at f/7.25 and a curvature
- * tolerance 460× tighter than this triplet's, which is why `designs/` still ships
- * three glasses and not four.
+ * second anomalous glass, so the fluorite-free quadruple solves too. **It is
+ * still not a lens**, and § 6av is where that is measured: `designs/superachromat`
+ * builds the thick quadruplet, and with the fluorite dropped its ΣS_I keeps one
+ * sign at every bending the solve reaches — the same way, and for the same kind
+ * of reason, as the fluorite-free TRIPLE two paragraphs up.
+ *
+ * What four colours cost, now that one has been built: a wall the S_I-null
+ * bending raises from f/7.25 to f/11, one bending where this design has two, and
+ * a traced break-even at 0.070% of radius — past which the fourth glass has
+ * bought nothing. So this triplet is still the design `designs/` reaches for, and
+ * that is a verdict about the price and not about a quadruplet being unreachable.
  *
  * ## What is corrected, and what honestly is not
  *

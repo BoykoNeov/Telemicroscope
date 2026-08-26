@@ -17,3 +17,4 @@ export * from "./immersion";
 export * from "./condenser";
 export * from "./apochromat";
 export * from "./telecentric";
+export * from "./superachromat";
