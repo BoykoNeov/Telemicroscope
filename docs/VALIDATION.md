@@ -18457,7 +18457,7 @@ spent — and only the second kind reaches the drawing.
 | ...so the rows a build can design its way out of are exactly the nine powered ones | 9 of 9 curvature and thickness rows move a condition; 0 of 5 centring rows do | ✅ |
 | **§ 6ax.6 — frozen but honestly targeted, the tightest radius is 0.25%, not 0.00034%** | 2.493e−3 at the second cement joint against § 6aw's 3.374e−6 — 739×, same lens and same solver | ✅ |
 | ...and compensated, no radius or thickness constrains the lens at all | 1% of radius and 0.5 mm of thickness both spend under a fourteenth of the budget after refitting | ✅ |
-| ...the tightest radius solved after compensation being 8.2 — a number, not a tolerance | eight times the radius itself, which is § 6au's `linearity` remark in its strongest form | ✅ |
+| ...the tightest radius solved after compensation being past UNITY — a number, not a tolerance | several times the radius itself, which is § 6au's `linearity` remark in its strongest form | ✅ |
 | ...so the drawing is five centring callouts, and compensation moved none of them | 72.5 / 22.2 / 14.2 / 594.1 / 29.4 µm, or 7.51 / 5.58 / 3.32 / 67.45 / 5.00 arcmin | ✅ |
 
 **Still open.** The refit restores the design's *defining* conditions and
