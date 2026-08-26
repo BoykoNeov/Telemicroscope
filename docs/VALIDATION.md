@@ -696,6 +696,8 @@ coverslip mismatch step 6 will show.
 | Off-axis OPD: coma is cubic in pupil radius (ratio 8) | 3rd-order theory | ✅ |
 | Off-axis OPD vanishes identically on axis | symmetry | ✅ |
 | **Off-axis MIRROR: coma cubic in ρ, linear in field, bounded by ~a wave** | 3rd-order theory | ✅ |
+| **An evaluation plane AT the image plane changes no wavefront**: the off-axis map equal sample for sample, `lost` equal | the same mirror without it | ✅ |
+| ...and coma is still cubic in ρ and linear in field THROUGH it, Fermat's zero still zero, ½·δ·NA² still 1% | 3rd-order theory, Fermat, closed form | ✅ |
 | **`objectNA` fills the entrance pupil to arm·tan(asin(NA/n))** | NA ≡ n·sin u (Abbe) | ✅ |
 | **`imageNA` fills the exit pupil the same way** | NA ≡ n·sin u (Abbe) | ✅ |
 | **The AIMED marginal ray carries the invariant asked for, to NA 1.4 in oil** | ray invariant | ✅ |
@@ -709,14 +711,35 @@ and the curved sphere straddle each other, and off axis the sphere's centre also
 shifts transversely, pushing an entire side of the pupil **inside** it. For a
 point inside a sphere the only forward intersection is the far one, beyond the
 focus — so half the pupil was picking up a full sphere diameter of spurious
-path: 200 mm, or 3.4·10⁵ waves, on an f/5 system. `intersectSphere` now returns
-the *signed nearest* crossing rather than the first positive one.
+path: 200 mm, or 3.4·10⁵ waves, on an f/5 system. `intersectSphere` was changed
+to return the *signed nearest* crossing rather than the first positive one.
 
 On axis every point lands outside the sphere and both readings agree, which is
 precisely why every symmetric rung was blind to it — and why the off-axis rungs
 existed only for a refracting singlet, whose geometry happened to keep its
 points outside. The lesson is recorded because it generalizes: a rung on one
 surface kind is not a rung on the other.
+
+**And the signed-nearest rule was itself a half-fix, which § 6au's app surface
+found by putting a second thing inside the sphere.** "Nearest" is a distance
+comparison, and a distance comparison needs the two candidates to be at
+different distances. They are, for a point *near the sphere* — the case above,
+where the near crossing is a sagitta away and the far one a diameter. They are
+not for a point near the sphere's **centre**, where the two crossings are
+±radius and the comparison is settled by rounding. That is not an exotic
+position: an evaluation plane sitting at the image puts every ray there, which
+is exactly what § 6au's trailing reference plane does, and it made a
+0.0055-wave tolerance read 3.085·10⁴ waves with all 313 rays reported present.
+
+The rule that covers both is geometric rather than metric — **the crossing that
+still has the sphere's centre ahead of it along the ray**, which is the one the
+ray makes on its way *to* the image point. It costs no comparison at all:
+substituting each root into dot(centre − o − t·d, d) gives ±√disc/2, so the
+smaller root is always the answer and `intersectSphere` returns it unconditionally.
+The two new rungs are the ones that bite; the two on-axis ones beside them are
+recorded as passing under the old rule as well, because a rung that cannot fail
+is worth knowing about as such. Both failures were found the same way — something
+was put where the symmetric fixtures never go — and that is now twice.
 
 The defocus rung's 1% tolerance is set by the first neglected term of the NA
 expansion, not by convenience — the comparison is deliberately made at low NA
@@ -17648,6 +17671,7 @@ its premise.**
 | **§ 6au.1 — the compensation is exact, and the chain proves it** | compiled frames from the carrier on, 1e−15 in rotation and 1e−14 in translation | ✅ |
 | ...and the carrier is put back FLAT, which a decentre-only compensation would fake | surface *k* tilted by 0.3°, surface *k+1* unrotated to 1e−15 | ✅ |
 | ...and the trailing reference plane the rear surface needs is optically nothing | EFL to 12 digits, σ to 1e−6, its own decentre σ **exactly 0**, its own tilt 1.5e−11 | ✅ |
+| ...and it is inert at EVERY error size and not just the probe's, which took a SECOND lens to see | the same two lenses without it, to 1e−8 relative over 1e−3…1.6e−1 | ✅ |
 | **§ 6au.2 — a wedge deviates by asin(n sin α) − α**, Snell twice and no thin-lens step | 1e−9 at α = 0.05°, 0.2°, 0.5°; the textbook (n−1)α is that to 0.03% | ✅ |
 | ...and the SAME wedge disperses, which is the whole colour a wedge has | F−C spread to 1e−8 of asin(n_F sin α) − asin(n_C sin α); ≈ (n_F−n_C)α to 1e−3 | ✅ |
 | **§ 6au.3 — wedge and centring are ONE freedom on a sphere**, δ = −R sin α | the chief ray is **bit-identical**; the blur 5.9e−7 at 10 µm to 3.9e−5 at 200 µm | ✅ |
@@ -17674,6 +17698,19 @@ so restoring it to the nominal `F·T(tẑ)` needs `t′ẑ + d = R(−α)(tẑ)`
 `SurfaceSpec` carries no axial decenter, `d` is confined to the transverse plane
 and the split is forced: **`t′ = t·cos α` and `d_y = t·sin α`**, with `−α` on the
 carrier. Centring is the same statement with `α = 0`: `+δ` on *k*, `−δ` on *k+1*.
+
+**The third rung was true and under-ranged, and the app surface is what said
+so.** It asks whether the plane is inert at a 1e−6 probe, and that is the one
+error size where the question is free: the rays still land on the image point,
+so a ray's endpoint sits at the reference sphere's centre *by symmetry* and the
+two crossings are ±radius with nothing to choose between them. Let the error
+grow and the endpoints spread — still a thousandth of the radius from the centre,
+still deep inside the sphere — and `opdMap`'s nearest-crossing rule stops being
+a geometric statement. On the ACHROMAT a 2% curvature error read 3.085·10⁴ waves
+against the 1.1192·10⁻² the same lens reads without the plane, with all 313 rays
+present. The shipped apochromat could not have found it — its own rows stay in
+the region where both crossings agree — so the rung now carries a second lens,
+and the fix is recorded at step 1.5 where the routine lives.
 
 The invariant is checked against **compiled frames**, not against a second copy
 of that algebra: every surface from the carrier on must be where it was, and the

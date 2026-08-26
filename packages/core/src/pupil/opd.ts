@@ -52,23 +52,38 @@ export interface OpdMap {
 }
 
 /**
- * Signed distance along a ray to the NEAREST crossing of the reference sphere.
+ * Signed distance along a ray to the crossing of the reference sphere that still
+ * has the sphere's CENTRE ahead of it.
  *
- * "Nearest", not "first forward" — and the difference is not cosmetic. The
- * sphere is centred on the image point and passes through the chief ray where
- * it crosses the exit-pupil plane. That plane is flat and the sphere is curved,
- * so the traced rays end up straddling it: some land just outside, some just
- * inside, by of order the sagitta. Off axis the sphere's centre also shifts
- * transversely, which pushes a whole side of the pupil inside it.
+ * Not "first forward", and not "nearest" either — and neither difference is
+ * cosmetic. The sphere is centred on the image point and passes through the
+ * chief ray where it crosses the exit-pupil plane. That plane is flat and the
+ * sphere is curved, so the traced rays straddle it: some land just outside, some
+ * just inside, by of order the sagitta. Off axis the sphere's centre also shifts
+ * transversely, which pushes a whole side of the pupil inside it. For a point
+ * INSIDE the sphere the only forward crossing is the far one, beyond the focus —
+ * a full sphere diameter away, ~2R of spurious path (200 mm, or 3·10⁵ waves, on
+ * an f/5 system) on half the pupil. So the quantity wanted is a SIGNED path,
+ * negative when the ray's endpoint has already passed the sphere, and "first
+ * forward" is wrong.
  *
- * For a point INSIDE the sphere the only forward crossing is the far one,
- * beyond the focus — a full sphere diameter away. Taking it adds ~2R of
- * spurious path (200 mm, or 3·10⁵ waves, on an f/5 system) to half the pupil.
- * The physically meaningful quantity is the signed path from the ray's endpoint
- * to the sphere, which is negative when the endpoint has already passed it.
+ * "Nearest" gets that case right and one other case wrong, which is why this
+ * reads the way it does now rather than as `Math.abs(t1) <= Math.abs(t2)`. Near
+ * the sphere's CENTRE the two roots are ±radius and the comparison is decided by
+ * rounding, so a handful of rays out of a pupil-full pick the far crossing and
+ * come back a sphere diameter long. That is not a corner case: an evaluation
+ * plane sitting AT the image puts every ray there, which is exactly what § 6au's
+ * trailing reference plane does, and it made a 0.0055-wave tolerance read
+ * 3.1·10⁴ waves with no ray reported lost.
  *
- * On axis every point lands outside and both readings agree, which is why the
- * symmetric rungs never saw this.
+ * The rule that covers both is the geometric one — the wavefront is sampled
+ * where the ray crosses on its way TO the image point, never on the far side
+ * after passing it — and it costs no test to apply. Substituting each root into
+ * dot(centre − o − t·d, d) gives +√disc/2 for `(−b − √disc)/2` and −√disc/2
+ * for the other, so the root is fixed by the algebra: the smaller root, always.
+ *
+ * On axis every point lands outside the sphere and all three readings agree,
+ * which is why the symmetric rungs never saw either failure.
  */
 function intersectSphere(o: Vec3, d: Vec3, centre: Vec3, radius: number): number | null {
   const oc = sub(o, centre);
@@ -76,12 +91,7 @@ function intersectSphere(o: Vec3, d: Vec3, centre: Vec3, radius: number): number
   const cc = dot(oc, oc) - radius * radius;
   const disc = b * b - 4 * cc; // a = 1 for a unit direction
   if (disc < 0) return null;
-  const sq = Math.sqrt(disc);
-  const t1 = (-b - sq) / 2;
-  const t2 = (-b + sq) / 2;
-  // A ray may start exactly ON the sphere — the chief ray does, whenever the
-  // exit pupil coincides with the last surface. t = 0 is then the answer.
-  return Math.abs(t1) <= Math.abs(t2) ? t1 : t2;
+  return (-b - Math.sqrt(disc)) / 2;
 }
 
 /** Where a ray meets the (flat) image plane. */

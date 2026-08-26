@@ -250,3 +250,108 @@ describe("off-axis OPD for a mirror follows third-order coma", () => {
     expect(Math.abs(oddPart(0, 0.75))).toBeLessThan(1e-6);
   });
 });
+
+/**
+ * Rung: an EVALUATION PLANE AT THE IMAGE is optically nothing, and the
+ * reference sphere has to agree with that.
+ *
+ * A plane surface with the same medium either side refracts nothing and
+ * reflects nothing, so appending one at the image plane must leave every OPD
+ * sample exactly where it was. § 6au needs one — a local manufacturing error on
+ * the rear surface has no successor to carry its compensation unless something
+ * follows it — and pinned its inertness on the shipped apochromat, on axis, at
+ * probe-sized perturbations. That is the one region where the question is free:
+ * the rays land on the image point to a part in 10¹¹, so a ray's endpoint sits
+ * at the sphere's CENTRE exactly, and the two crossings are ±radius with nothing
+ * to choose between them.
+ *
+ * Off axis, or perturbed, the endpoints spread. They are still a thousandth of
+ * the radius from the centre — far inside the sphere — and there the nearest
+ * crossing is decided by rounding rather than by geometry. A handful of rays
+ * take the far one and come back a sphere DIAMETER long.
+ *
+ * The pin is the plane-free system, which the rungs above pin to Fermat and to
+ * third-order coma, plus those same scaling laws re-asserted THROUGH the plane —
+ * so this is an independent construction rather than a second copy of the
+ * engine's own answer.
+ *
+ * **Damage table — run before the fix, with the nearest-crossing rule restored.**
+ *
+ * | Damage | Caught by |
+ * | --- | --- |
+ * | `Math.abs(t1) <= Math.abs(t2) ? t1 : t2` | *sample for sample* and *bounded by a wave*: rms 1.6999e+5 waves against 4.0318e−1 |
+ * | ...the same, on axis | *nothing here* — every on-axis reading is identical to 11 digits, which is why § 6au's own rung passed |
+ *
+ * The second row is the point of the table: the failure is invisible to a
+ * symmetric fixture, so a rung for it has to be off axis or perturbed.
+ */
+describe("an evaluation plane AT the image plane changes no wavefront", () => {
+  /** The same paraboloid, with an air-to-air plane appended at its focus. */
+  const withPlaneAtFocus = (imageOffset?: number): OpticalSystem => {
+    const base = mirror(-1, imageOffset);
+    return {
+      ...base,
+      prescription: {
+        ...base.prescription,
+        surfaces: [
+          ...base.prescription.surfaces,
+          { kind: "refract", curvature: 0, semiAperture: Infinity, thickness: 0, medium: "AIR" },
+        ],
+      },
+      // The plane IS the last vertex now, so an offset is measured from there.
+      imageSurface: { offsetFromLastVertex: imageOffset === undefined ? 0 : imageOffset - R / 2 },
+    };
+  };
+
+  it("Fermat's zero survives it", () => {
+    const map = opdMap(withPlaneAtFocus(), 0, LINE_D, pupilGrid(21));
+    expect(map.lost).toBe(0);
+    expect(map.rmsWaves).toBeLessThan(1e-4);
+  });
+
+  it("the off-axis map is unchanged, sample for sample", () => {
+    // Where it bites. The chief ray lands off axis, coma spreads the endpoints,
+    // and the ray no longer sits at the sphere's centre by symmetry.
+    const bare = opdMap(mirror(-1), 1.5, LINE_D, pupilGrid(21));
+    const through = opdMap(withPlaneAtFocus(), 1.5, LINE_D, pupilGrid(21));
+    expect(through.samples.length).toBe(bare.samples.length);
+    expect(through.lost).toBe(bare.lost);
+    for (const [i, s] of through.samples.entries()) {
+      expect(s.waves).toBeCloseTo(bare.samples[i]!.waves, 9);
+    }
+  });
+
+  it("...and is still bounded by a wave, not by the sphere's diameter", () => {
+    // The same guard the plane-free fixture carries. Under the nearest-crossing
+    // rule this read 1.6999e+5 waves — 2R of spurious path on the rays that
+    // flipped, with none of them reported lost.
+    const map = opdMap(withPlaneAtFocus(), 1.5, LINE_D, pupilGrid(21));
+    expect(map.rmsWaves).toBeLessThan(2);
+    for (const s of map.samples) expect(Math.abs(s.waves)).toBeLessThan(5);
+  });
+
+  it("third-order coma still scales as ρ³ and as θ through the plane", () => {
+    // The external pin: the plane cannot be inert *and* the aberration wrong.
+    const oddPart = (field: number, rho: number): number => {
+      const map = opdMap(withPlaneAtFocus(), field, LINE_D, pupilFan(41));
+      const at = (target: number) =>
+        map.samples.reduce((a, b) => (Math.abs(b.px - target) < Math.abs(a.px - target) ? b : a))
+          .waves;
+      return (at(rho) - at(-rho)) / 2;
+    };
+    expect(oddPart(1.5, 0.75) / oddPart(1.5, 0.5)).toBeCloseTo((0.75 / 0.5) ** 3, 1);
+    expect(oddPart(1.5, 0.75) / oddPart(0.5, 0.75)).toBeCloseTo(3, 1);
+  });
+
+  it("the closed-form defocus coefficient is untouched by it", () => {
+    const NA = APERTURE / Math.abs(R / 2);
+    const delta = 0.05;
+    const map = opdMap(withPlaneAtFocus(R / 2 - delta), 0, LINE_D, pupilFan(41));
+    const edge = map.samples.reduce((a, b) => (Math.abs(b.px) > Math.abs(a.px) ? b : a));
+    const centre = map.samples.reduce((a, b) => (Math.abs(b.px) < Math.abs(a.px) ? b : a));
+    const measuredMm = Math.abs(edge.waves - centre.waves) * (LINE_D * 1e-6);
+    const expectedMm = 0.5 * delta * NA * NA;
+    expect(measuredMm).toBeGreaterThan(expectedMm * 0.99);
+    expect(measuredMm).toBeLessThan(expectedMm * 1.01);
+  });
+});

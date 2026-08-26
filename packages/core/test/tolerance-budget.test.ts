@@ -6,6 +6,7 @@ import { paraxialTrace, systemProperties } from "../src/trace/paraxial";
 import { bestFocus } from "../src/analysis/focus";
 import { getMedium } from "../src/materials/catalog";
 import { LINE_D, LINE_F, LINE_C } from "../src/materials/dispersion";
+import { achromaticObjective } from "../src/designs/achromat";
 import { apochromaticObjective } from "../src/designs/apochromat";
 import {
   applyPerturbations,
@@ -218,6 +219,46 @@ describe("§ 6au.1 — a local error is a GROUP, and the compensation is exact",
     const last = APO.surfaces.length - 1;
     expect(sensitivity(apoSystem, { surface: last, target: "decenterY", delta: 0.2 }).sigmaWaves).toBe(0);
     expect(sensitivity(apoSystem, { surface: last, target: "tiltX", delta: 0.2 }).sigmaWaves).toBeLessThan(1e-10);
+  });
+
+  it("...and it is inert at EVERY perturbation size, which the probe alone did not say", () => {
+    // The rung above asks the question at 1e−6, and that is the one size where it
+    // costs nothing to answer: the perturbed rays still land on the image point,
+    // so a ray's endpoint sits at the reference sphere's centre by symmetry and
+    // the two crossings are ±radius with nothing between them. Let the error grow
+    // and the endpoints spread — still a thousandth of the radius from the
+    // centre, still deep inside the sphere — and the nearest crossing stops being
+    // a geometric statement. Rays take the far one and come back a sphere
+    // DIAMETER long: on the ACHROMAT below, a 2% curvature error read 3.085e+4
+    // waves against the 1.1192e−2 the same lens reads without the plane, with all
+    // 313 rays reported present. See `pupil/opd.ts`.
+    //
+    // The apochromat could not have found it, which is why this rung carries a
+    // second lens: its own rows stay in the region where both crossings agree.
+    // A plane that is optically nothing has to be nothing at every size, so the
+    // pin is the SAME LENS without the plane rather than a tolerance on σ.
+    // The bound is RELATIVE and it is the focus search's floor, not a choice:
+    // `bestFocus` runs golden section on each of the two systems independently,
+    // and the leftover disagreement in z is absolute, so it shows worst where σ
+    // is smallest — 5.1e−9 at the 1e−3 curvature error, and less everywhere
+    // else. What it has to separate is six orders of magnitude in the other
+    // direction, so there is no tension between the two.
+    const ach = achromaticObjective({ apertureMm: AP, focalRatio: F_RATIO }).prescription;
+    for (const bare of [apo.prescription, ach]) {
+      const wrapped = withTrailingReference(bare);
+      const bareSys = systemOf(bare, AP / 2);
+      const wrappedSys = systemOf(wrapped, AP / 2);
+      for (const m of [1e-3, 1e-2, 2e-2, 4e-2, 8e-2, 1.6e-1]) {
+        const b = sensitivity(bareSys, curvatureError(bare, 0, m)).sigmaWaves;
+        const w = sensitivity(wrappedSys, curvatureError(wrapped, 0, m)).sigmaWaves;
+        expect(Math.abs(w / b - 1)).toBeLessThan(1e-8);
+      }
+      for (const d of [1e-3, 1e-2, 5e-2, 1e-1, 5e-1]) {
+        const b = sensitivity(bareSys, centringError(bare, 0, d)).sigmaWaves;
+        const w = sensitivity(wrappedSys, centringError(wrapped, 0, d)).sigmaWaves;
+        expect(Math.abs(w / b - 1)).toBeLessThan(1e-8);
+      }
+    }
   });
 });
 
