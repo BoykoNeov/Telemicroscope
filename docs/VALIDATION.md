@@ -19179,17 +19179,19 @@ rate, one raster and one `renderVolume` per wavelength, stacked by § 6ba's own
 | **§ 6bb.1 — one wavelength of the driver IS the § 6az render** | bitwise, the largest pixel difference exactly 0, against the frame, table, rate, raster and render written out | ✅ |
 | ...and the NA it converts depth to waves with is TRACED per wavelength | 0.10001613548968476 at 546.074 nm, not the 0.1 the objective is named for | ✅ |
 | **§ 6bb.2 — a slab at focus is § 6ba's plane, times the thickness and the throughput** | ratio equals `formedSum` to 1e−14; 0.17484107 at 430 nm against 0.17599094 at 680 | ✅ |
-| ...and that factor is a COLOUR the plane path normalizes away | 0.658% across the band, which the on-axis amplitude squared reproduces to 4.4e−6 | ✅ |
+| ...and that factor is a COLOUR the plane path normalizes away | 0.658% across the band, which the on-axis amplitude squared reproduces to 4.4e−6 — the residue is the pupil profile's own λ-dependence, second order in a ratio | ✅ |
 | **§ 6bb.3 — one volume, one rate per channel** | 6.77853e−5 /mm at 430 nm to a finite −0 at 587.5618; `maxStretchDeparture` 2.25951e−5 → exactly 0, 47.10× between the extremes | ✅ |
 | ...and another wavelength's rate is refused rather than zooming the stack backwards | § 6az's identity, reached through this driver | ✅ |
-| **§ 6bb.4 — the zoom reverses IN THE PICTURE**, which is § 6az's own deferral | −2.163917e−6 at 430 nm, **+7.891797e−8** at 546, −7.578683e−7 at 656; −2.9e−16 at BOTH crossings; the raster within 0.05% of −2·z·k | ✅ |
+| **§ 6bb.4 — the zoom reverses IN THE PICTURE**, which is § 6az's own deferral | −2.163917e−6 at 430 nm, **+7.891797e−8** at 546, −7.578683e−7 at 656; −2.9e−16 at BOTH crossings; the raster within 0.198% of −2·z·k, worst at 680 nm | ✅ |
 | **§ 6bb.5 — the picture reads the perspective DILUTED, and chromatically** | 4.5582e−2 at 430 nm rising monotonically to 8.3631e−2 at 680 | ✅ |
 | ...and through the TRACED pupil the same measurement is 3.9e5× the perspective | 0.8483541 at 430 nm — axial colour, not geometry, which is why the crossing rung needs the ideal-pupil control | ✅ |
 | **§ 6bb.6 — the channels focus at different STAGE POSITIONS** | 0.213627 / 0.051049 / 0.046893 / 0.067222 mm at 430 / 546.074 / 587.5618 / 656.2725; 3.8775 depths of focus from the blue channel to the design wavelength | ✅ |
+| ...and the estimator has its own zero: an ABERRATION-FREE pupil focuses at 0 | 2.8e−7 mm at 430 nm and 3.5e−17 at the design λ, against the 0.0469 mm the traced pupil puts there — so no part of the row above is the sweep grid, the parabola or the slice count | ✅ |
 | **§ 6bb.7 — and it is NOT the paraxial chromatic focal shift** | `focusDepthMm` 0.110213 mm at 430 and 0 at the design λ; the picture is 1.5129× that, because the ρ⁴ term of the traced wavefront falls 4.5960× across the band | ✅ |
 | **§ 6bb.8 — in focus at TWO wavelengths, telecentric at TWO, and one is shared** | 500.514925275 and 587.5618 against 530.567099263 and 587.5618; the two free roots 30.052174 nm apart | ✅ |
-| **§ 6bb.9 — the perspective is NOT ordered by colour: GREEN is the extreme** | 2.979390e−5 blue, 8.601662e−8 green (346.37× smaller), 8.132820e−6 red — the two channels furthest apart in colour are the two closest in perspective | ✅ |
-| **§ 6bb.10 — the depth-dependent misregistration is BOUNDED, and it is small** | Δk 2.166108e−5 /mm, so parity with § 6ba.9's static 0.180% only at 83.0984 mm of depth; 1.0831e−6 at a thick preparation's 50 µm | ✅ |
+| **§ 6bb.9 — the perspective is NOT ordered by colour: GREEN is the extreme** | at 61, 121, 241 and 481 samples alike: blue 2.9e−5, red 8.0e−6, green below 1.3e−7 and above 5e−8, so the two channels furthest apart in colour are the two closest in perspective | ✅ |
+| ...and the green figure is a CANCELLATION, so its digits belong to the quadrature | it falls monotonically by 2.1× over 61 → 481 samples while blue moves under 4% — § 6ba.8's staircase, pinned rather than walked into | ✅ |
+| **§ 6bb.10 — the depth-dependent misregistration is BOUNDED, and it is small** | Δk between 2.09e−5 and 2.17e−5 /mm over the same four sample counts — a difference, not a cancellation — so parity with § 6ba.9's static 0.180% only at 83–86 mm of depth, and 0.06% of it at a thick preparation's 50 µm | ✅ |
 | ...and a two-label volume still renders as two channels of one exposure | 9 planes on a 434.444 nm ruler, carrying rates of BOTH signs inside one exposure | ✅ |
 | **§ 6bb.11 — the haze is chromatic** | in-focus share 0.215686 at 430 nm against 0.333333 at 656, a factor 1.5455, each within one slice of 2·halfDepth/span | ✅ |
 | ...and the object-side NA is chromatic too, though only just | 0.26% across the band against the wavelength's own 53%; exactly 0.1 at the design λ | ✅ |
@@ -19203,9 +19205,9 @@ about wavelengths. A *channel* is not a wavelength, it is a band, so what a
 channel sees is the band average of the rate — and averaging across a sign
 reversal does something no monochromatic intuition predicts:
 
-    433–500 nm (blue)    2.979390e−5 /mm
-    510–560 nm (green)   8.601662e−8 /mm    — 346× smaller: telecentric
-    600–667 nm (red)     8.132820e−6 /mm
+    433–500 nm (blue)    ≈2.9e−5 /mm
+    510–560 nm (green)   ≈6e−8 /mm     — 300× smaller and more: telecentric
+    600–667 nm (red)     ≈8.0e−6 /mm
 
 The green channel straddles the free crossing at 530.567099 nm, so its
 perspective **cancels against itself**: a green channel of a three-stain
@@ -19216,6 +19218,17 @@ are further from the one between them than from each other. "How far apart are
 these two dyes" therefore says nothing about whether their images of a thick
 specimen share a perspective; what decides it is which side of a crossing each
 band sits on.
+
+**The green figure is a cancellation, and § 6bb.9 says so with a measurement.**
+It is roughly +1e−5 against −1.5e−6 on a sample grid whose bins do not subdivide
+the band edges, so it is § 6ba.8's staircase and not a converging quadrature: it
+falls monotonically by 2.1× between 61 and 481 samples across 400–700 nm while
+the blue moves under 4% and the red under 3%. The digits therefore belong to the
+quadrature and only the order of magnitude to the objective, which is why the
+rung pins bands rather than values — and why the *ordering* is the claim, since
+it survives every count. § 6bb.10's blue-against-red spread is a **difference**
+rather than a cancellation, moves 1.5% over the same refinement, and is
+therefore the one of the two that may be quoted as a number.
 
 This is § 6ap's mechanism arriving in a place where it changes an answer rather
 than adding a second root. An achromatic element turns a quantity around inside
@@ -19234,7 +19247,8 @@ place: 0.2136 mm at 430 nm against 0.0469 at the design wavelength, which is
 **3.88 depths of focus** apart. Beside that the perspective term is nothing, and
 § 6bb.10 says so with a number rather than an adjective: the depth-dependent part
 of the two channels' misregistration reaches § 6ba.9's *static* 0.180% only at
-83 mm of specimen depth, and at a thick preparation's 50 µm it is 0.06% of it.
+83–86 mm of specimen depth, and at a thick preparation's 50 µm it is 0.06% of
+it.
 One affine registration per channel is right for any specimen there is.
 
 **And the focus separation is not the paraxial chromatic focal shift.**
@@ -19247,6 +19261,15 @@ term of the traced on-axis wavefront falls 4.60× across the band (1.9284 waves 
 own spherical aberration and no single conjugate shift describes them all. A
 chromatic-focal-shift figure is a real quantity and it does not say where a
 channel focuses.
+
+**The focus readout has its own zero, and it was checked before any of this was
+attributed to the objective.** Run the same sweep with `idealPupil` — no axial
+colour, no spherical aberration — and best focus comes back at 2.8e−7 mm at
+430 nm and 3.5e−17 at the design wavelength, against the 0.0469 mm the traced
+pupil puts there. So none of § 6bb.6's numbers belong to the 0.02 mm sweep grid,
+the three-point parabola or the three-slice axial discretization. It is the same
+discipline § 6bb.4 needs for a different estimator, and § 6ba's own lesson that
+a readout which cannot produce its own zero is not a readout.
 
 ### Two conditions, twice each, and only the engineered root is shared
 

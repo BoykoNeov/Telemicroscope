@@ -45,10 +45,12 @@ import type { OpticalSystem } from "../src/trace/system";
  * object-space telecentric zeros inside the visible band and reverses sign
  * between them, so a *channel* — which is a band, not a wavelength — averages
  * across a reversal. § 6bb.9 measures what that does: the green channel's rate
- * cancels to 346× less than the blue's, so the quantity is **not monotone in
- * colour** and the middle channel is the extreme one. § 6bb.10 then bounds the
- * whole effect against § 6ba.9's static channel misregistration and finds it
- * reaches parity only at 83 mm of specimen depth.
+ * cancels to two or three orders below the blue's, so the quantity is **not
+ * monotone in colour** and the middle channel is the extreme one. Being a
+ * cancellation it is also the one figure here that moves with the quadrature, so
+ * that rung pins the ordering and the staircase and not one count's digits.
+ * § 6bb.10 then bounds the whole effect against § 6ba.9's static channel
+ * misregistration and finds it reaches parity only at 83–86 mm of depth.
  *
  * The **large** one is the focus. A stack is rendered at one stage position, so
  * the objective's own axial colour decides which depth each channel is sharp at,
@@ -187,6 +189,54 @@ function pictureFocusMm(nm: number): number {
   return xs[best]! + ((0.5 * (y0 - y2)) / (y0 - 2 * y1 + y2)) * step;
 }
 
+/**
+ * The same sweep with an ABERRATION-FREE pupil — the estimator's own control.
+ *
+ * § 6bb.6 reads a stage position off a rendered peak and § 6bb.7 attributes all
+ * of it to the objective. That is only allowed if the sweep grid, the three-point
+ * parabola and the three-slice axial discretization contribute nothing, and this
+ * is what says so: with no axial colour and no spherical aberration anywhere,
+ * best focus must come back at exactly zero. It is § 6bb.4's discipline applied
+ * to a different estimator — a readout that cannot produce its own zero is not a
+ * readout.
+ */
+function idealFocusMm(nm: number): number {
+  const step = 0.02;
+  const xs: number[] = [];
+  const ys: number[] = [];
+  for (let i = -3; i <= 3; i++) {
+    const focusMm = i * step;
+    const frame = tile(nm, 128, 48);
+    const volume = rasterizeEmitterVolume(
+      frame,
+      gaussianBallEmitter({ waistMm: 0.005, axialWaistMm: 0.004, peak: 1 }),
+      {
+        radialMap: radialMapCovering(SYSTEM, [frame], { nodes: 128 }),
+        rescale: depthRescale(SYSTEM, nm),
+        slabs: uniformSlabs(-0.008, 0.008, 3),
+        focusMm,
+      },
+    );
+    const image = renderVolume(volume, defocusing(idealPupil()), {
+      pupilSamples: 48,
+      numericalAperture: objectNumericalAperture(SYSTEM, nm),
+      wavelengthNm: nm,
+      refractiveIndex: 1,
+      scale: frame.scale,
+    });
+    let peak = 0;
+    for (const v of image.intensity) if (v > peak) peak = v;
+    xs.push(focusMm);
+    ys.push(peak);
+  }
+  let best = 1;
+  for (let i = 1; i < ys.length - 1; i++) if (ys[i]! > ys[best]!) best = i;
+  const y0 = ys[best - 1]!;
+  const y1 = ys[best]!;
+  const y2 = ys[best + 1]!;
+  return xs[best]! + ((0.5 * (y0 - y2)) / (y0 - 2 * y1 + y2)) * step;
+}
+
 /** The ρ⁴ coefficient of the traced on-axis wavefront, in waves at the rim. */
 function sphericalWaves(nm: number): number {
   const p = fieldPupilAt(SYSTEM, tile(nm), 0.5, 0.5, {}).pupil;
@@ -196,10 +246,18 @@ function sphericalWaves(nm: number): number {
   return (wHalf - 0.25 * w1) / (0.0625 - 0.25);
 }
 
-/** The band average of the depth rate — what a CHANNEL sees, not a wavelength. */
-function bandRate(fromNm: number, toNm: number): number {
+/**
+ * The band average of the depth rate — what a CHANNEL sees, not a wavelength.
+ *
+ * The sample count is an argument because the answer depends on it: the band
+ * edges do not fall on bin boundaries, so this is § 6ba.8's staircase and not a
+ * converging quadrature — and the green channel, which is a cancellation, feels
+ * it far more than the other two. § 6bb.9 measures that rather than pinning one
+ * count's digits.
+ */
+function bandRate(fromNm: number, toNm: number, count = 121): number {
   const band = boxcarBand((fromNm + toNm) / 2, toNm - fromNm);
-  const samples = quadratureSamples({ fromNm: 400, toNm: 700, count: 121 });
+  const samples = quadratureSamples({ fromNm: 400, toNm: 700, count });
   let weight = 0;
   let sum = 0;
   for (const s of samples) {
@@ -365,12 +423,18 @@ describe("§ 6bb — the spectral volume", () => {
         };
       };
 
-      // The rasterized geometry first: the closed form, to 0.05%.
+      // The rasterized geometry first: the closed form, to 0.198% — and the
+      // departure is not noise, it grows monotonically with wavelength
+      // (0.0497% at 430 nm to 0.1978% at 680), which is the Gaussian's finite
+      // width read against a frame whose scale is ∝ λ.
+      let worst = 0;
       for (const nm of [430, 486.1327, 546.074, 656.2725, 680]) {
         const k = depthRescale(SYSTEM, nm).ratePerMm;
         const { raster } = read(nm);
-        expect(raster / (-2 * z * k)).toBeCloseTo(1, 2);
+        worst = Math.max(worst, Math.abs(raster / (-2 * z * k) - 1));
       }
+      expect(worst).toBeLessThan(2.0e-3);
+      expect(worst).toBeGreaterThan(1.9e-3);
 
       // Then the picture, which is what § 6az's deferral asked for. Deeper
       // images SMALLER where the rate is positive, and LARGER between the
@@ -453,6 +517,15 @@ describe("§ 6bb — the spectral volume", () => {
       expect(design).toBeLessThan(green);
       expect(design).toBeLessThan(red);
     });
+
+    it("and the estimator's own zero: an aberration-free pupil focuses at 0", () => {
+      // 2.8e-7 mm at 430 nm and 3.5e-17 at the design wavelength, against the
+      // 0.0469 mm the traced pupil puts there — so none of § 6bb.6's numbers
+      // belong to the sweep grid, the parabola or the axial discretization.
+      expect(Math.abs(idealFocusMm(430))).toBeLessThan(1e-6);
+      expect(Math.abs(idealFocusMm(DESIGN))).toBeLessThan(1e-6);
+      expect(Math.abs(pictureFocusMm(DESIGN))).toBeGreaterThan(0.04);
+    });
   });
 
   describe("§ 6bb.7 — and it is NOT the paraxial chromatic focal shift", () => {
@@ -506,38 +579,66 @@ describe("§ 6bb — the spectral volume", () => {
   });
 
   describe("§ 6bb.9 — the perspective is NOT ordered by colour", () => {
-    it("the green channel is telecentric and the blue and red are not — the middle is the extreme", () => {
-      const blue = bandRate(433, 500);
-      const green = bandRate(510, 560);
-      const red = bandRate(600, 667);
+    it("the green channel is telecentric and the blue and red are not, at EVERY sample count", () => {
+      const counts = [61, 121, 241, 481];
+      const greens: number[] = [];
+      for (const count of counts) {
+        const blue = bandRate(433, 500, count);
+        const green = bandRate(510, 560, count);
+        const red = bandRate(600, 667, count);
+        greens.push(green);
 
-      expect(blue).toBeCloseTo(2.979390e-5, 10);
-      expect(green).toBeCloseTo(8.601662e-8, 12);
-      expect(red).toBeCloseTo(8.132820e-6, 11);
+        // Two to three orders below both, which is what 'telecentric channel'
+        // means. The digits are the quadrature's; the order of magnitude is not.
+        expect(blue).toBeGreaterThan(2.88e-5);
+        expect(blue).toBeLessThan(2.99e-5);
+        expect(red).toBeGreaterThan(7.9e-6);
+        expect(red).toBeLessThan(8.2e-6);
+        expect(green).toBeGreaterThan(5.0e-8);
+        expect(green).toBeLessThan(1.3e-7);
+        expect(blue / green).toBeGreaterThan(240);
+        expect(green / red).toBeLessThan(0.016);
 
-      // A band that straddles the free crossing averages its own reversal away.
-      expect(blue / green).toBeCloseTo(346.37, 1);
-      expect(green / red).toBeLessThan(0.011);
-      // And the two channels FURTHEST apart in colour are the two CLOSEST in
-      // perspective, which is the whole point.
-      expect(Math.abs(blue - red)).toBeLessThan(Math.abs(blue - green));
-      expect(Math.abs(green - red)).toBeLessThan(Math.abs(blue - green));
+        // The finding, and it survives every count: the two channels FURTHEST
+        // apart in colour are the two CLOSEST in perspective, and both are
+        // further from the one BETWEEN them than from each other.
+        expect(Math.abs(blue - red)).toBeLessThan(Math.abs(blue - green));
+        expect(Math.abs(green - red)).toBeLessThan(Math.abs(blue - green));
+      }
+
+      // And the trap, measured rather than walked into: the band edges do not
+      // fall on bin boundaries, so this is § 6ba.8's staircase. Blue and red
+      // wobble by a few percent while GREEN — a cancellation of +1e−5 against
+      // −1.5e−6 — falls by half over the same refinement. Its digits belong to
+      // the quadrature and only its order of magnitude to the objective.
+      for (let i = 1; i < greens.length; i++) {
+        expect(greens[i]!).toBeLessThan(greens[i - 1]!);
+      }
+      expect(greens[0]! / greens[greens.length - 1]!).toBeGreaterThan(1.9);
+      const blues = counts.map((c) => bandRate(433, 500, c));
+      expect(Math.max(...blues) / Math.min(...blues)).toBeLessThan(1.04);
     });
   });
 
   describe("§ 6bb.10 — the depth-dependent misregistration is bounded, and it is small", () => {
-    it("parity with § 6ba.9's static 0.180% only at 83 mm of depth", () => {
-      const spread = Math.abs(bandRate(433, 500) - bandRate(600, 667));
-      expect(spread).toBeCloseTo(2.166108e-5, 11);
-      // § 6ba.9 measured the two channels' STATIC magnification difference at
-      // 0.180%. The depth-dependent part is z·Δk, so the depth at which the
-      // volume's contribution equals the plane's is one division.
-      const crossoverMm = 1.8e-3 / spread;
-      expect(crossoverMm).toBeCloseTo(83.0984, 3);
-      // At a thick preparation's 50 µm it is 0.06% of the static part: one
-      // affine registration per channel is right for any specimen there is.
-      expect(0.05 * spread).toBeCloseTo(1.0831e-6, 10);
-      expect((0.05 * spread) / 1.8e-3).toBeLessThan(1e-3);
+    it("parity with § 6ba.9's static 0.180% only at 83–86 mm of depth", () => {
+      // Blue against red is a DIFFERENCE and not a cancellation, so unlike
+      // § 6bb.9's green it is stable under refinement — 1.5% over 61 → 481
+      // samples, which is why this bound survives being quoted.
+      for (const count of [61, 121, 241, 481]) {
+        const spread = Math.abs(bandRate(433, 500, count) - bandRate(600, 667, count));
+        expect(spread).toBeGreaterThan(2.09e-5);
+        expect(spread).toBeLessThan(2.17e-5);
+        // § 6ba.9 measured the two channels' STATIC magnification difference at
+        // 0.180%. The depth-dependent part is z·Δk, so the depth at which the
+        // volume's contribution equals the plane's is one division.
+        const crossoverMm = 1.8e-3 / spread;
+        expect(crossoverMm).toBeGreaterThan(83);
+        expect(crossoverMm).toBeLessThan(86.2);
+        // At a thick preparation's 50 µm it is 0.06% of the static part: one
+        // affine registration per channel is right for any specimen there is.
+        expect((0.05 * spread) / 1.8e-3).toBeLessThan(6.1e-4);
+      }
     });
 
     it("two labels at two depths still render as two channels of one exposure", () => {

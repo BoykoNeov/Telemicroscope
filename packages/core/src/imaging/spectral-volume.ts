@@ -50,9 +50,16 @@ import { defocusing, renderVolume, type VolumeImage } from "./volume";
  * channel sees is the band average of `k`, and averaging across a sign reversal
  * does something a monochromatic intuition does not predict:
  *
- *     433–500 nm (blue)    2.9794e−5 /mm
- *     510–560 nm (green)   8.6017e−8 /mm      — telecentric, 346× smaller
- *     600–667 nm (red)     8.1328e−6 /mm
+ *     433–500 nm (blue)    ≈2.9e−5 /mm
+ *     510–560 nm (green)   ≈6e−8 /mm       — telecentric: 300× smaller and more
+ *     600–667 nm (red)     ≈8.0e−6 /mm
+ *
+ * The green figure is a **cancellation** — roughly +1e−5 against −1.5e−6 — so it
+ * is the one number here that moves with the quadrature: it halves between 61
+ * and 481 samples across 400–700 nm while the blue and the red wobble by 3% and
+ * 1%. § 6bb.9 therefore pins the order of magnitude and the *ordering*, which
+ * survive every count, and pins the staircase itself rather than one count's
+ * digits — § 6ba.8's lesson, on a quantity that needed it more.
  *
  * The green channel straddles the free crossing, so its perspective **cancels**:
  * a green channel of a three-stain preparation has essentially no depth
@@ -81,7 +88,10 @@ import { defocusing, renderVolume, type VolumeImage } from "./volume";
  * depths of focus** at 430 nm (§ 6bb.6). Beside that, the perspective term is
  * nothing: § 6bb.10 pins the depth-dependent part of the two channels'
  * misregistration against § 6ba.9's static 0.180% and finds it reaches parity
- * only at **83 mm** of specimen depth, which is to say never.
+ * only at **83–86 mm** of specimen depth, which is to say never. That bound is
+ * safe to quote where the green channel's own figure is not: blue against red is
+ * a difference and not a cancellation, so it moves 1.5% under the same
+ * refinement that halves the green.
  *
  * **And the focus separation is not the catalogue number.** `focusDepthMm` is
  * the paraxial object-side chromatic focal shift, and it puts 430 nm at
@@ -127,8 +137,10 @@ import { defocusing, renderVolume, type VolumeImage } from "./volume";
  * That difference has a readout of its own: the volume path multiplies by
  * `formedSum` and the plane path normalizes it away, so **the volume path
  * carries the objective's transmission spectrum and § 6ba's does not** — 0.658%
- * across 430–680 nm, matching the on-axis amplitude squared to 4.4e−6, the
- * residue being the amplitude's own variation across the pupil (§ 6bb.2).
+ * across 430–680 nm, matching the on-axis amplitude squared to 4.4e−6 — the
+ * residue is the λ-dependence of the pupil's *profile*, which is second order
+ * because the profile itself largely cancels in a ratio between two
+ * wavelengths (§ 6bb.2).
  *
  * ## What is deliberately not here
  *
