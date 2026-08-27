@@ -79,11 +79,51 @@ import type { SpectralVolumeEmitterDensity } from "./spectral-volume";
  *
  * Each tile is corrected at its own centre's field height, so the two sides of a
  * seam are the same physical place corrected to two stage positions one tile
- * apart. That is a **step** and not a gradient — nothing is blended across a
- * seam, following § 6o — and § 6bh.5 measures it where § 6bg.8 measured the
- * in-frame tilt: it is a field quantity, vanishing on the axis where the focus
- * surface is flat (0.00416 of a depth of focus, under § 6be.2's estimator floor)
- * and reaching 0.15903 of one at 1 mm of field — 38.2× more.
+ * apart. That is a **step** and not a gradient — and § 6bh.5 measures it where
+ * § 6bg.8 measured the in-frame tilt: it is a field quantity, vanishing on the
+ * axis where the focus surface is flat (0.00416 of a depth of focus, under
+ * § 6be.2's estimator floor) and reaching 0.15903 of one at 1 mm of field —
+ * 38.2× more.
+ *
+ * ## § 6bi — the overlap, and why it comes out of the KEPT span
+ *
+ * `overlapPixels` lets neighbouring tiles share a band, which every tile then
+ * carries a ramp across so the seam is a gradient rather than a step. It is
+ * `undefined` by default and a mosaic without it is § 6bh's, bit for bit
+ * (§ 6bi.1) — the pitch, the composed size and the tile origins are integer
+ * expressions in `keptPixels − overlapPixels`, so a zero overlap is not a
+ * neutral factor applied to the old arithmetic, it *is* the old arithmetic.
+ *
+ * **The band is taken out of what a tile keeps and never out of its guard.**
+ * That is not bookkeeping: § 6bh.4 measured what is in a guard band, and at
+ * 430 nm on the nominal stage it is 9.8% of a point emitter's light wrapped
+ * back in from the far edge. Guard pixels are the contaminated ones — blending
+ * them in would put the wrap into the picture with a weight rather than
+ * discarding it, which is worse than the step it was meant to hide. So an
+ * overlap costs tiles: the pitch falls to `keptPixels − overlapPixels`, so
+ * covering one area costs `(1 − f)^−2` times as many exposures at an overlap
+ * fraction f, and the guard is untouched.
+ *
+ * ## What a blend can and cannot do, and where the seam's real artifact is
+ *
+ * A ramp is a **partition of unity** — a rising weight and its own `1 − w`,
+ * separable in x and y so that the four tiles meeting at a corner sum to one
+ * as well — so it preserves a uniform picture to rounding (§ 6bi.5) and cannot
+ * change the total light. What it does to the *sharpness* is the law of total
+ * variance: a blended pixel is a mixture of two images of the same place taken
+ * at two stage positions, so the mixture's second moment is
+ * `w·M₂(A) + (1−w)·M₂(B) + w(1−w)·|Δcentroid|²`. § 6bg.6's centroid walk is the
+ * Δ, and it is an odd-order field quantity — 109× larger at 1 mm of field than
+ * on the axis — so the blend's own penalty is a *third* seam quantity that
+ * vanishes on the axis and is worst at w = ½ (§ 6bi.6).
+ *
+ * And a blend is the wrong tool for the seam's biggest artifact, which § 6bh
+ * did not measure. Two abutting tiles are lit through two pupils at two field
+ * heights, so their brightness differs by the objective's own throughput
+ * profile: on a featureless specimen the composed picture is a **staircase**,
+ * 0.53% across a seam at 1 mm of field against 1.9e-6 on the axis (§ 6bi.2).
+ * That is multiplicative and it *divides out* — see `mosaic-flat-field`, which
+ * is the correction. A ramp only spreads it over the band.
  */
 
 /** Which plane's grid the picture is on, and what that costs the others. */
@@ -124,13 +164,20 @@ export interface FluorescenceMosaicGeometry {
   readonly guardCells: number;
   /** Pixels kept from each tile per axis — `stackedSize − 2·guardPixels`. */
   readonly keptPixels: number;
-  /** Side of the composed picture, in pixels. */
+  /**
+   * Pixels of kept span two neighbouring tiles share — `0` for an abutting
+   * mosaic, which is § 6bh's and the default. Never taken from the guard.
+   */
+  readonly overlapPixels: number;
+  /** Tile-centre spacing in pixels — `keptPixels − overlapPixels`. */
+  readonly pitchPixels: number;
+  /** Side of the composed picture, in pixels — `tiles·kept − (tiles−1)·overlap`. */
   readonly size: number;
   /** Image-plane mm per pixel of the composed picture — the ruler plane's. */
   readonly pixelScaleMm: number;
   /** Object-plane mm per pixel on the ruler plane's linear reference. */
   readonly objectPixelScaleMm: number;
-  /** Image-plane spacing of tile centres (mm) — `keptPixels · pixelScaleMm`. */
+  /** Image-plane spacing of tile centres (mm) — `pitchPixels · pixelScaleMm`. */
   readonly pitchMm: number;
   /** The anchor: the mosaic's centre, and the only place the pitch is read. */
   readonly centreMm: { readonly x: number; readonly y: number };
@@ -152,6 +199,24 @@ export interface FluorescenceMosaicOptions
    * quantity: see the header, and § 6bh.4.
    */
   readonly guardCells: number;
+  /**
+   * Pixels of **kept span** two neighbouring tiles share, blended with a ramp.
+   *
+   * `undefined` — the default — is § 6bh's abutting mosaic, bit for bit
+   * (§ 6bi.1). Above zero, the pitch falls to `keptPixels - overlapPixels` and
+   * every tile carries a linear ramp across each band it shares, separable in
+   * x and y so the four tiles meeting at a corner still sum to one.
+   *
+   * **It comes out of the kept span and never out of the guard**, because
+   * § 6bh.4 measured what is in a guard: at 430 nm on the nominal stage, 9.8%
+   * of a point emitter's light wrapped back in from the opposite edge.
+   * Blending that in with a weight is worse than the step it hides.
+   *
+   * What a ramp buys and what it does not is § 6bi.5 and § 6bi.6, and the seam
+   * artifact it is *not* the tool for is § 6bi.2's brightness staircase, which
+   * `mosaic-flat-field` divides out.
+   */
+  readonly overlapPixels?: number;
   /**
    * Centre of the whole mosaic (mm). Defaults to the axis.
    *
@@ -247,12 +312,31 @@ export function fluorescenceMosaicGeometry(
     { size, pupilSamples, guardCells },
     "fluorescenceMosaicGeometry",
   );
+  const overlapPixels = options.overlapPixels ?? 0;
+  if (!Number.isInteger(overlapPixels) || overlapPixels < 0) {
+    throw new Error(
+      `fluorescenceMosaicGeometry: overlapPixels must be a non-negative integer, got ${overlapPixels}`,
+    );
+  }
   const keptPixels = stackedSize - 2 * guardPixels;
   if (keptPixels < 1) {
     throw new Error(
       `fluorescenceMosaicGeometry: a guard of ${guardCells} cells is ${guardPixels} px per edge, ` +
         `which leaves ${keptPixels} of the ${stackedSize}-px stacked tile ` +
         `(${size} rendered, ${croppedPixels} px per edge to the common ruler)`,
+    );
+  }
+  // The overlap is taken out of the KEPT span — see the option's own comment on
+  // why never out of the guard — so the pitch is what is left of a tile once its
+  // shared bands are removed. Integer arithmetic, so a zero overlap leaves the
+  // pitch, the origins and the composed size as the expressions § 6bh had
+  // rather than as a neutral factor applied to them.
+  const pitchPixels = keptPixels - overlapPixels;
+  if (pitchPixels < 1) {
+    throw new Error(
+      `fluorescenceMosaicGeometry: an overlap of ${overlapPixels} px leaves a pitch of ` +
+        `${pitchPixels} px of the ${keptPixels}-px kept span — two tiles would advance by ` +
+        `nothing, so the mosaic would cover no more field than one tile does`,
     );
   }
 
@@ -276,7 +360,7 @@ export function fluorescenceMosaicGeometry(
     };
   });
 
-  const pitchMm = keptPixels * ruler.pixelScaleMm;
+  const pitchMm = pitchPixels * ruler.pixelScaleMm;
   const half = (tiles - 1) / 2;
   const centresMm: { x: number; y: number }[] = [];
   for (let row = 0; row < tiles; row++) {
@@ -299,7 +383,9 @@ export function fluorescenceMosaicGeometry(
     guardPixels,
     guardCells,
     keptPixels,
-    size: tiles * keptPixels,
+    overlapPixels,
+    pitchPixels,
+    size: tiles * keptPixels - (tiles - 1) * overlapPixels,
     pixelScaleMm: ruler.pixelScaleMm,
     objectPixelScaleMm: ruler.objectPixelScaleMm,
     pitchMm,
@@ -326,9 +412,13 @@ export function fluorescenceMosaicPitchDriftPx(
   options: FluorescenceMosaicOptions,
 ): number {
   const geometry = fluorescenceMosaicGeometry(system, options);
-  const { keptPixels, centreMm, tilesPerAxis, rulerWavelengthNm, pixelScaleMm } = geometry;
+  const { pitchPixels, centreMm, tilesPerAxis, rulerWavelengthNm, pixelScaleMm } = geometry;
+  // The span two neighbours must agree about is the PITCH, not the kept span:
+  // under an overlap the tiles are meant to share a band, and what has to abut
+  // is what each tile advances by. With no overlap the two are the same number
+  // and this is § 6bh's expression unchanged.
   const spanOf = (x: number): number =>
-    keptPixels *
+    pitchPixels *
     anchorFrame(system, options, { x, y: centreMm.y }, rulerWavelengthNm).pixelScaleMm;
 
   const half = (tilesPerAxis - 1) / 2;
@@ -336,13 +426,13 @@ export function fluorescenceMosaicPitchDriftPx(
   const seed = tilesPerAxis % 2 === 1 ? [(tilesPerAxis - 1) / 2] : [tilesPerAxis / 2 - 1, tilesPerAxis / 2];
   if (tilesPerAxis % 2 === 1) abutting[seed[0]!] = 0;
   else {
-    const halfSpan = (keptPixels / 2) * pixelScaleMm;
+    const halfSpan = (pitchPixels / 2) * pixelScaleMm;
     abutting[seed[0]!] = -halfSpan;
     abutting[seed[1]!] = halfSpan;
   }
   const walk = (from: number, step: number): void => {
     for (let k = from + step; k >= 0 && k < tilesPerAxis; k += step) {
-      let x = abutting[k - step]! + step * keptPixels * pixelScaleMm;
+      let x = abutting[k - step]! + step * pitchPixels * pixelScaleMm;
       const prevSpan = spanOf(centreMm.x + abutting[k - step]!);
       for (let i = 0; i < 8; i++) {
         const next = abutting[k - step]! + (step * (prevSpan + spanOf(centreMm.x + x))) / 2;
@@ -363,6 +453,35 @@ export function fluorescenceMosaicPitchDriftPx(
   return worst;
 }
 
+/**
+ * The ramp one tile carries across its own kept span, on one axis.
+ *
+ * `1` everywhere except in a band it shares with a neighbour, where it rises
+ * from a half-pixel inside the band to a half-pixel from its far edge. The
+ * falling side is written as `1 − rising` **of the identical subexpression**,
+ * so the two tiles sharing a band contribute weights that sum to one rather
+ * than to two quotients that happen to agree — which is what makes § 6bi.5's
+ * uniform-preservation a rounding figure and not a tolerance.
+ *
+ * An edge of the mosaic has no neighbour and so has no ramp: the outermost
+ * tiles carry weight 1 out to the picture's own border.
+ */
+function rampWeights(
+  keptPixels: number,
+  overlapPixels: number,
+  index: number,
+  tilesPerAxis: number,
+): Float64Array {
+  const w = new Float64Array(keptPixels).fill(1);
+  if (overlapPixels === 0) return w;
+  for (let j = 0; j < overlapPixels; j++) {
+    const rising = (j + 0.5) / overlapPixels;
+    if (index > 0) w[j] = rising;
+    if (index < tilesPerAxis - 1) w[keptPixels - overlapPixels + j] = 1 - rising;
+  }
+  return w;
+}
+
 /** Copy the kept centre of one tile plane into the composed grid. */
 function placeKept(
   dst: Float64Array,
@@ -381,6 +500,67 @@ function placeKept(
   }
 }
 
+/** `placeKept` with a separable ramp, accumulating where two tiles overlap. */
+function blendKept(
+  dst: Float64Array,
+  dstSize: number,
+  src: Float64Array,
+  srcSize: number,
+  guardPixels: number,
+  keptPixels: number,
+  originX: number,
+  originY: number,
+  wx: Float64Array,
+  wy: Float64Array,
+): void {
+  for (let r = 0; r < keptPixels; r++) {
+    const srcRow = (guardPixels + r) * srcSize + guardPixels;
+    const dstRow = (originY + r) * dstSize + originX;
+    const vy = wy[r]!;
+    for (let c = 0; c < keptPixels; c++) {
+      dst[dstRow + c] = dst[dstRow + c]! + wx[c]! * vy * src[srcRow + c]!;
+    }
+  }
+}
+
+/**
+ * Lay one value per tile into the composed grid, through the picture's own ramp.
+ *
+ * What a mosaic of *constant* tiles would look like, and the reason it is here
+ * rather than in `mosaic-flat-field`: the throughput flat field is exactly that
+ * picture (§ 6bi.3), and a second copy of the blend would be a second chance for
+ * the correction and the picture it corrects to disagree about where a seam is.
+ * With no overlap it is a piecewise-constant staircase; with one it is that
+ * staircase with each step ramped.
+ */
+export function composeTileScalars(
+  geometry: FluorescenceMosaicGeometry,
+  value: (col: number, row: number) => number,
+): Float64Array {
+  const { keptPixels, overlapPixels, pitchPixels, size, tilesPerAxis } = geometry;
+  const out = new Float64Array(size * size);
+  const ramps = Array.from({ length: tilesPerAxis }, (_, k) =>
+    rampWeights(keptPixels, overlapPixels, k, tilesPerAxis),
+  );
+  for (let row = 0; row < tilesPerAxis; row++) {
+    for (let col = 0; col < tilesPerAxis; col++) {
+      const v = value(col, row);
+      const wx = ramps[col]!;
+      const wy = ramps[row]!;
+      const originX = col * pitchPixels;
+      const originY = row * pitchPixels;
+      for (let r = 0; r < keptPixels; r++) {
+        const dstRow = (originY + r) * size + originX;
+        const vy = wy[r]!;
+        for (let c = 0; c < keptPixels; c++) {
+          out[dstRow + c] = out[dstRow + c]! + wx[c]! * vy * v;
+        }
+      }
+    }
+  }
+  return out;
+}
+
 /**
  * Render a mosaic of focus-corrected fluorescence tiles and compose them.
  *
@@ -388,9 +568,10 @@ function placeKept(
  * them, **unchanged and un-forked**, which is what keeps § 6bg's claim that the
  * correction and the composition are separable true in the code as well as in
  * the prose; and this crops each tile's stacked planes to the kept span and lays
- * them side by side. Nothing is blended across a seam and nothing is resampled a
- * second time — a tile's kept pixels are its own, following § 6o, so a seam
- * error is a step and can be measured as one.
+ * them side by side. Nothing is resampled a second time — a tile's kept pixels
+ * are its own, following § 6o — and without `overlapPixels` nothing is blended
+ * across a seam either, so a seam error is a step and can be measured as one.
+ * That is the default and § 6bi.1 keeps it bitwise; `overlapPixels` ramps it.
  *
  * A one-tile mosaic's tile is `focusCorrectedTiles`'s tile cropped by hand, bit
  * for bit (§ 6bh.1).
@@ -401,7 +582,7 @@ export function renderFluorescenceMosaic(
   options: FluorescenceMosaicOptions,
 ): FluorescenceMosaic {
   const geometry = fluorescenceMosaicGeometry(system, options);
-  const { guardPixels, keptPixels, size, tilesPerAxis } = geometry;
+  const { guardPixels, keptPixels, overlapPixels, pitchPixels, size, tilesPerAxis } = geometry;
 
   const rendered = focusCorrectedTiles(system, density, {
     ...options,
@@ -413,22 +594,46 @@ export function renderFluorescenceMosaic(
   const planeCount = first.planes.length;
   const composed = Array.from({ length: planeCount }, () => new Float64Array(size * size));
 
+  // One ramp per column index and per row index, not one per tile: the weight is
+  // separable, so a tile's is the product of the two its position names.
+  const ramps = Array.from({ length: tilesPerAxis }, (_, k) =>
+    rampWeights(keptPixels, overlapPixels, k, tilesPerAxis),
+  );
+
   const tiles: FluorescenceMosaicTile[] = rendered.tiles.map((tile, i) => {
     const col = i % tilesPerAxis;
     const row = (i - col) / tilesPerAxis;
-    const originPx = { x: col * keptPixels, y: row * keptPixels };
+    const originPx = { x: col * pitchPixels, y: row * pitchPixels };
     for (let p = 0; p < planeCount; p++) {
       const plane = tile.volume.planes[p]!;
-      placeKept(
-        composed[p]!,
-        size,
-        plane.intensity,
-        tile.volume.size,
-        guardPixels,
-        keptPixels,
-        originPx.x,
-        originPx.y,
-      );
+      // Two paths and not one with a weight of 1: an abutting mosaic writes the
+      // tile's own pixel, which is the assignment § 6bh.1 pins bitwise, and a
+      // blended one accumulates. Nothing is multiplied by 1.
+      if (overlapPixels === 0) {
+        placeKept(
+          composed[p]!,
+          size,
+          plane.intensity,
+          tile.volume.size,
+          guardPixels,
+          keptPixels,
+          originPx.x,
+          originPx.y,
+        );
+      } else {
+        blendKept(
+          composed[p]!,
+          size,
+          plane.intensity,
+          tile.volume.size,
+          guardPixels,
+          keptPixels,
+          originPx.x,
+          originPx.y,
+          ramps[col]!,
+          ramps[row]!,
+        );
+      }
     }
     return { ...tile, col, row, originPx };
   });

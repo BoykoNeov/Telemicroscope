@@ -117,6 +117,7 @@ whole ladder.
 | [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² is the ladder's own 4× at its own wavelength read over its outer third, the edge coefficient goes as f^-0.60 across three objectives, and a sweep that reads a plateau is refused | `focus-surface` |
 | [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.88× the peak on the axis, 39.0% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
 | [6bh](#step-6bh--the-fluorescence-mosaic) | The tiles composed — and the guard band is the CORRECTION's business: a nominal blue tile leaks 9.82% of a point's light past its own frame, a corrected one 1.87%, and 0.24 mm of specimen adds 0.26 | `fluorescence-mosaic` |
+| [6bi](#step-6bi--the-flat-field-and-the-blend) | The seam's biggest artifact is a brightness STAIRCASE § 6bh never measured — 5.29e-3 at 1 mm of field, 2783× the axis — and a scanner's per-tile flat field makes it 11% WORSE | `mosaic-flat-field` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -20488,11 +20489,15 @@ without knowing it was in a mosaic.
 - **The seam step's factor of 2 against § 6bg.8 is not derived.** It lands at
   half, on a different grid and at a different radius, and is left as a
   coincidence rather than promoted to a relation.
-- **The mosaic has no BLEND and no flat-field.** Seams are steps by construction,
-  following § 6o, and § 6bh.5 measures the focus step across one. Nothing
-  feathers a seam, and nothing corrects the throughput's own field profile —
-  § 6bd.3's 1.699e-2 span across a frame at 4.5 mm — which is what a real slide
-  scanner's flat-field does and is a separate quantity from the focus.
+- ~~**The mosaic has no BLEND and no flat-field.**~~ **Built at
+  [§ 6bi](#step-6bi--the-flat-field-and-the-blend)**, and the blend turned out to
+  be the cosmetic half. What this rung did not know is that the throughput's field
+  profile puts a **brightness** step at every seam — 5.2943e-3 at 1 mm of field,
+  and the one artifact a featureless specimen shows, where § 6bh.5's focus step
+  shows none. A flat field divides it out, 121× off it from a readout that already
+  shipped; a ramp only spreads it. And a real scanner's per-tile flat field makes
+  it *worse* here, because this mosaic scans the field where a scanner scans the
+  stage.
 - **The guard band has no closed form on this branch.** § 6o has one in the
   coherent limit; the escape measured here is a rendered figure per
   configuration, ordered by a readout but not predicted by a formula. What the
@@ -20505,6 +20510,216 @@ without knowing it was in a mosaic.
   depth-dependent maps**, **the shared-radius economy**, **the weight is still
   not an absolute throughput**, **the fourth cosine**, and **§ 3a's photometric
   zero point** — all inherited from § 6bg.
+
+
+## Step 6bi — the flat field and the blend
+
+Source: `packages/core/src/imaging/mosaic-flat-field.ts`,
+`packages/core/src/imaging/fluorescence-mosaic.ts` ·
+Tests: `packages/core/test/mosaic-flat-field.test.ts`
+
+§ 6bh composed the tiles and closed with two things missing: "nothing feathers a
+seam, and nothing corrects the throughput's own field profile — which is what a
+real slide scanner's flat-field does and is a separate quantity from the focus".
+Both are built here. They are not two halves of one job, and the step exists for
+what separates them.
+
+**§ 6bh measured the wrong seam artifact.** It measured the one it had built —
+each tile corrected at its own field height, so a seam joins two stage positions
+— and it is real, 0.159 of a depth of focus at 1 mm of field. But every tile is
+also *formed through its own pupil at its own field height*, and nothing
+normalises that away: `field-volume` renders in `transmitted` units on purpose
+(§ 6bc). So a mosaic of a featureless specimen is not featureless. It is a
+**brightness staircase**, and on the picture where the staircase is most visible
+the focus step is invisible outright, because a uniform object convolved with any
+kernel is uniform.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bi.1 — an abutting mosaic is § 6bh's, bit for bit** | `Object.is` on every pixel of all nine tiles × three planes against `focusCorrectedTiles` cropped by hand, and an explicit `overlapPixels: 0` against the option absent | ✅ |
+| | and the zero is the old *arithmetic* and not a neutral factor on it — integer expressions, so `pitchPixels === keptPixels`, `size === 3·kept` and `pitchMm === kept·pixelScaleMm` exactly | ✅ |
+| **§ 6bi.2 — the seam's brightness step is a FIELD quantity** | 1.9021e-6 across an axial seam against **5.2943e-3** at 1 mm of field — **2783×**, and even in field radius for the same reason § 6bh.5 is | ✅ |
+| | and it is the whole picture and not only its seams: the flat field's own span is 7.7847e-5 on the axis and 1.3870e-2 at the edge | ✅ |
+| | and it is barely the correction's business, where § 6bh.4's escape was all of it: putting every tile back on the nominal stage moves the escape 5.264× and moves this **4.06%** | ✅ |
+| **§ 6bi.3 — two flat fields, and the difference between them is the MAP** | at 1 mm of field the rendered field spans 1.3870e-2 and the free one 1.1831e-2 — the pupil is **85%** of what a calibration removes and the rasterizer's Jacobian the rest | ✅ |
+| | on the axis the two swap outright: 7.7847e-5 against 6.5233e-8, **1193×**, so an axial flat field is the map and none of it is the glass | ✅ |
+| | and the pupil's tile-to-tile ratio is ACHROMATIC — 0.9921774 at 430, 587.5618 and 656.2725 nm, spread under 5e-8 — which is why one blank slide serves every channel | ✅ |
+| **§ 6bi.4 — division removes the amplitude and cannot touch the phase** | the free field takes the edge seam from 5.2943e-3 to 4.3689e-5, **121.2×**, and the axial one from 1.9021e-6 to 1.8687e-6, **1.018×** — nothing, because there is nothing there of its kind | ✅ |
+| | and "exact for the pupil" is MEASURED: a stage move is a phase, so the free field built from a flat-stage blank agrees with the corrected one to 1.04e-14 and leaves the identical residual — the 4.37e-5 is the map and none of it is the stage | ✅ |
+| | **a real slide scanner's per-tile repeating field makes it 11.0% WORSE** — 5.8773e-3 — where the mosaic-wide render of the same blank removes it exactly | ✅ |
+| | and on a point emitter the correction moves the brightness 4.7209e-3 and the second moment −1.5495e-5 — **304.7×**, the amplitude and not the shape | ✅ |
+| **§ 6bi.5 — the ramp is a partition of unity, and it spreads what it cannot remove** | constant tiles compose to one **exactly** at overlaps 0, 2, 3 and 8, and within one ulp (2.2204e-16) at 24 and 31 — including at the corner where four tiles meet | ✅ |
+| | the visible step is the total divided by the overlap: `acrossSeam/maxAdjacent` = 2.0009, 7.9781, 23.8549 at overlaps 2, 8, 24, inside 0.7% of the overlap itself | ✅ |
+| | and the band comes out of the KEPT span and never the guard: `guardPixels` unmoved, `pitchPixels = kept − overlap`, `size = 3·kept − 2·overlap` | ✅ |
+| **§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement** | the law of total variance, an identity, held to 5.3e-15 at the edge and 2.0e-15 on the axis | ✅ |
+| | the cross term — the double image — is **1.6339e-6** of the mixture at 1 mm of field and **1.6642e-12** on the axis, going as the square of a centroid separation of 1.1312e-4 mm against 1.1186e-7 | ✅ |
+| | what it *does* cost is the average of two blurs: **+2.3215%** of the second moment at the edge and +0.06240% on the axis | ✅ |
+| | and the two tiles' own blurs differ **37.20×** more at the edge than on the axis, beside § 6bh.5's 38.2× for the stage step that causes it — suggestive and NOT pinned as an identity | ✅ |
+| **§ 6bi.7 — the refusals** | a fractional or negative overlap, an overlap that eats the pitch, a field of the wrong plane count, the wrong size or the wrong wavelength, and a calibration that came back dark | ✅ |
+
+### The staircase, and why § 6bh could not have seen it
+
+§ 6bh's specimen was a speckle, and a speckle hides this: the readout that finds
+a seam takes row and column means first, and on a structured specimen those means
+carry the structure. On a **featureless** specimen they carry nothing else, and
+the staircase is what is left — 5.2943e-3 across a seam at 1 mm of field against
+1.9021e-6 on the axis.
+
+The evenness is § 6bd.3's. Throughput is an even function of field radius, so its
+gradient vanishes on the axis exactly, and two tiles either side of an axial seam
+were formed through pupils that pass the same light to eight figures. This is the
+third quantity on this branch to vanish on the axis for that one reason — best
+focus (§ 6be), the seam's focus step (§ 6bh.5), and now its brightness step — and
+the fourth is § 6bi.6's blend penalty below.
+
+§ 6bi.2's third rung is the discriminator against § 6bh, and it is what says these
+are two artifacts and not one. Abandon the focus correction entirely — every tile
+back at the nominal stage — and § 6bh.4's escape past a tile's own frame moves by
+**5.264×** while this moves by **4.06%**. It cannot move more: a uniform object is
+uniform under any kernel and defocus is not a loss, so the pupil's share of the
+step is untouchable by the stage. The 4% that does move is the *map's* share,
+blurred by a different kernel.
+
+### Two flat fields, and what a real scanner's would do here
+
+A flat field is whatever multiplies the picture, and there are two candidates.
+`throughputFlatField` reads one scalar per tile off `patchThroughput` — a readout
+every render has carried since § 6i — and costs nothing. `renderedFlatField`
+re-renders the whole mosaic through a featureless specimen, which is literally
+what a blank-slide calibration is, and costs a second acquisition.
+
+The free one is **exact for the pupil**, and § 6bi.4's second rung is what makes
+that a measurement rather than a claim. A stage move is a phase, so it cannot
+change what a pupil transmits (§ 6bc's "depth exactly 0"), which means
+`patchThroughput` is a function of field position alone. Built from a mosaic
+rendered at a flat stage and applied to the corrected one, the field agrees to
+1.04e-14 and leaves the identical residual — so the 4.37e-5 it cannot remove is
+the map below, and none of it is the stage.
+
+The difference between them is the **rasterizer's Jacobian**: a uniform density in
+the *object* is not uniform on the *image* grid, because the radial map's local
+scale changes across the field (§ 6az). At the field edge the pupil is 85% of what
+a calibration removes. On the axis the two swap outright, 1193×, because that is
+where the pupil has no gradient and the map still does.
+
+**And the correction a real slide scanner uses is not merely useless here, it is
+harmful.** A scanner holds the optics still and translates the *stage*, so every
+tile is imaged through the same part of the objective's field, its vignetting
+repeats identically in every tile, and one calibration frame divided into every
+tile is exactly right. This mosaic moves the tile centre in the *image plane*, so
+each tile samples a different part of the field, the profile is one global even
+function of absolute field radius, and a per-tile-repeating field carries none of
+the between-tile information at all — it merely stamps the anchor tile's own
+profile onto every tile. Measured: it takes the seam from 5.2943e-3 to 5.8773e-3,
+**11.0% worse**, where the mosaic-wide field of the same render removes it exactly.
+
+That is a qualification to § 6bg's prose and not a retraction. "A stage racked
+between tiles" *is* a scanner's focus map — same corrector, one scalar stage per
+tile. What differs is what drives it: field curvature here, specimen topography
+and stage flatness there. A stage-scanning mosaic is a different geometry and is
+left open below.
+
+### Division reaches the amplitude and stops
+
+`flatFieldCorrect` divides, which is both why it works and where it ends. The
+brightness profile multiplies the formed image, so dividing removes it; the focus
+step is a convolution, so dividing cannot touch it. § 6bi.4's last rung measures
+the split on a point emitter: the correction moves its brightness by 4.7209e-3 and
+its second moment by −1.5495e-5, a factor of **304.7**. That is § 6bd.6's
+amplitude/phase decomposition arriving one layer up — the flat field is the
+amplitude half of a seam and § 6bh.5 is the phase half, and neither fixes the
+other.
+
+The division is not exact even on the amplitude side, and the reason decides which
+field to use. A tile's pupil transmission is constant across the tile and factors
+out of the convolution exactly; the map's Jacobian **varies within** a tile and
+the render has already blurred it with that tile's own kernel. So dividing by an
+unblurred analytic profile would be the error, and dividing by the *rendered*
+calibration is right precisely because the calibration went through the same
+kernel. The free field's 121× is what the exact-for-the-pupil half is worth on its
+own.
+
+### The blend spreads what it cannot remove, and its own cost is not the one to fear
+
+`overlapPixels` lets two tiles share a band and ramps each across it. The ramp is
+a rising weight and its own `1 − w`, separable in x and y so that the four tiles
+meeting at a corner sum to one as well, and § 6bi.5 pins that the sum is
+**exactly** one where the quotients are exact binary fractions and one ulp
+otherwise — never a tolerance. **The band comes out of the kept span and never out
+of the guard**, which is not bookkeeping: § 6bh.4 measured what is in a guard
+band, and at 430 nm on the nominal stage it is 9.8% of a point emitter's light
+wrapped in from the opposite edge. Blending that in with a weight is worse than
+the step it hides. So an overlap costs tiles — covering one area costs
+`(1 − f)^−2` exposures at overlap fraction f — and the guard is untouched.
+
+What a ramp does to a seam is exact and unflattering: it leaves the total change
+alone and divides the *visible* step by the overlap, measured at 2.0009, 7.9781
+and 23.8549 for overlaps of 2, 8 and 24. It is cosmetics, and the correction is
+the division.
+
+Its optical cost is the rung worth having. A blended pixel is a mixture of two
+images of one place taken at two stage positions, so its second moment obeys the
+**law of total variance** — `w·M₂(A) + (1−w)·M₂(B) + w(1−w)·|Δcentroid|²` — which
+the renders satisfy to 5.3e-15. The term one would fear is the third, the double
+image; § 6bg.6 already measured the centroid walk that feeds it and found it an
+odd-order field quantity, so it enters here squared and is **1.6339e-6** of the
+spot at the field edge and **1.6642e-12** on the axis. It is nothing.
+
+What a blend actually costs is the first two terms: half the light came from the
+worse-focused tile, so the blended spot is the average of two blurs and is 2.3215%
+wider than the sharper of them at the field edge and 0.06240% on the axis. The
+ratio of those, **37.20×**, sits beside § 6bh.5's 38.2× for the stage step that
+causes them, read off the pixels rather than off the stage. It is left as an
+agreement and not promoted to a relation: a second moment is not linear in
+defocus, and the two are measurements of different quantities that happen to be
+driven by one.
+
+### What this did to the prose already on the ladder
+
+No pinned number moved, and § 6bi.1 is why none could have: with no overlap the
+composition is the assignment § 6bh.1 pins, and the geometry is integer arithmetic
+in `keptPixels − 0`.
+
+- **§ 6bh's "the mosaic has no BLEND and no flat-field"** is this step, and is
+  struck above.
+- **§ 6bh's "nothing feathers a seam, following § 6o"** stands as a statement
+  about the *default* and is no longer a statement about the capability. The
+  sentences in `fluorescence-mosaic.ts` that read "nothing is blended across a
+  seam" now say what an abutting mosaic is rather than what a mosaic is.
+- **§ 6bg's "a stage racked between tiles is what a slide scanner's focus map
+  is"** stands about the corrector and gains a qualification about the driver,
+  above.
+- **§ 6be.6's achromatic throughput null** was measured between patches of one
+  frame and is re-measured here between tiles of one mosaic, to 5e-8, which is
+  what makes one calibration serve three channels.
+- **§ 6bd.3's even throughput profile** gains its third consequence: it is why
+  the brightness staircase vanishes on the axis, and why what survives there is
+  the map instead.
+
+### Still open
+
+- **A stage-scanning mosaic.** The whole of § 6bi.4's second rung is about a
+  geometry this engine does not have: optics fixed, specimen translated, one part
+  of the field re-used for every tile. Under it the per-tile focus correction
+  would not be field curvature's at all — every tile centre would be the same
+  field height — and the flat field would be the per-tile frame a scanner really
+  calibrates. Both branches are physical and this engine builds one of them.
+- **The blend has no window but the linear ramp.** A raised cosine is the usual
+  choice and would be a partition of unity too; nothing here measures whether the
+  kink at a band's edge is worth removing, and § 6bi.5's closed form is the linear
+  ramp's.
+- **Nothing corrects the map's share of the flat field analytically.** The
+  Jacobian is known — it is the radial map's own derivative — so the 15% of the
+  field the rendered calibration catches beyond the free one could in principle be
+  computed rather than acquired. What stops it is the paragraph above on blurring:
+  the analytic profile is the unblurred one.
+- **The guard band still has no closed form on this branch**, **the registration
+  cost has no closed form**, **the readout has no fit**, **the seeded table is not
+  the default**, **nothing measures any of this on a second objective**,
+  **depth-dependent pupils are not depth-dependent maps**, **the shared-radius
+  economy**, **the weight is still not an absolute throughput**, **the fourth
+  cosine**, and **§ 3a's photometric zero point** — all inherited from § 6bh and
+  § 6bg.
 
 
 ## Later rungs
