@@ -1255,7 +1255,12 @@ because § 6bd.5 measured it: the haze **dilutes** the field variation, so a
 thick-specimen frame moves less between one patch and sixteen than a single
 plane does (4.1055e-2 against 5.5543e-2 at 4.5 mm) — and § 6bd.4 says the
 one-pupil error changes sign with field radius, so the panel may not offer a
-scalar correction in place of the patches. Still absent: `hazeKernel`,
+scalar correction in place of the patches. **§ 6be.7 adds a second thing it
+would show**: a patched frame is not isoplanatic in FOCUS either — across one
+frame at the edge of the catalogued field the patch columns' own best focus
+spans 0.409 of a depth of focus — so the panel's corner-versus-axis comparison
+differs in sharpness as well as in brightness, and a single focus control cannot
+be right at both ends of one frame out there. Still absent: `hazeKernel`,
 which is exact only for a z-uniform specimen — a bead field is not one, and
 § 6k.6's whole content is that over z the sum does not factor.
 

@@ -499,6 +499,9 @@ describe("§ 6be — the third axis", () => {
       // so without this rung the field term above could have belonged to either
       // of them rather than to the objective. With no aberration anywhere the
       // answer must not move with height, and it does not.
+      // 0, 0.8 and 1.1 — h = 0.4 is dropped for cost and not for trouble: the
+      // control is flat in height by construction, so three points spanning the
+      // range say what four would and the sweep is the expensive part.
       const ideal = HEIGHTS.filter((h) => h !== 0.4).map(
         (h) => bestFocus(430, h, 0, 0.02, 0.06, true).mm,
       );
