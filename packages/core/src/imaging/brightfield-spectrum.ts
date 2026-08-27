@@ -1,7 +1,6 @@
 import type { CondenserSource } from "../illumination/source";
 import type { BrightfieldFidelity } from "../illumination/fidelity";
 import type { OpticalSystem, WavelengthSample } from "../trace/system";
-import { resampleIrradianceGrid } from "../wave/polychromatic";
 import { renderBrightfield } from "./brightfield";
 import {
   objectFieldTile,
@@ -16,6 +15,13 @@ import {
   type SpectralSpecimen,
 } from "./specimen";
 import { radialMapCovering, type RadialMap } from "./radial-map";
+import {
+  stackSpectralPlanes,
+  type SpectralPlaneInput,
+  type StackSpectralOptions,
+  type StackedSpectralPlane,
+  type StackedSpectralPlanes,
+} from "./spectral-stack";
 
 /**
  * Polychromatic brightfield — § 6r, and the last of the Part D line.
@@ -112,28 +118,18 @@ import { radialMapCovering, type RadialMap } from "./radial-map";
  * rest of § 6" is the precedent, and the deferral is recorded in the ladder.
  */
 
-/** One wavelength's brightfield image, on its own grid, before stacking. */
-export interface BrightfieldPlaneInput {
-  readonly nm: number;
-  /** Relative weight. Pure quadrature (Δλ) plus the lamp's SED; see below. */
-  readonly weight: number;
-  readonly size: number;
-  readonly pixelScaleMm: number;
-  /** Irradiance, in the object's own coordinates (NOT fftshifted). */
-  readonly intensity: Float64Array;
-}
+/**
+ * One wavelength's brightfield image, on its own grid, before stacking.
+ *
+ * The stacking geometry is `imaging/spectral-stack`'s, shared with the emitter
+ * branch (§ 6ba) — what makes this one brightfield is `"irradiance"`, and that
+ * module's header says why the choice is the rasterizer's rather than the
+ * branch's.
+ */
+export type BrightfieldPlaneInput = SpectralPlaneInput;
 
 /** One wavelength's plane, already on the stack's common physical grid. */
-export interface BrightfieldPlane {
-  readonly nm: number;
-  /** Normalized weight actually used (the weights sum to 1). */
-  readonly weight: number;
-  /** Irradiance on the common grid. NOT pre-multiplied by `weight`. */
-  readonly intensity: Float64Array;
-  /** This plane's own grid scale, before resampling — the ruler it arrived on. */
-  readonly sourcePixelScaleMm: number;
-  /** `commonPixelScaleMm / sourcePixelScaleMm`; exactly 1 for the bluest plane. */
-  readonly resampleRatio: number;
+export interface BrightfieldPlane extends StackedSpectralPlane {
   /** Present only for a traced stack. */
   readonly frame?: ObjectFieldFrame;
   readonly fidelity?: BrightfieldFidelity;
@@ -141,20 +137,8 @@ export interface BrightfieldPlane {
   readonly contributingPoints?: number;
 }
 
-export interface BrightfieldSpectralStack {
-  /** Side of the common grid, in pixels — the input `size` less the crop. */
-  readonly size: number;
-  /** Image-plane millimetres per pixel of the common grid. */
-  readonly pixelScaleMm: number;
-  /** Weighted-mean wavelength (nm). Reported, NOT what the grid refers to. */
-  readonly meanWavelengthNm: number;
-  /** The wavelength whose own grid the common one is — the smallest scale. */
-  readonly rulerWavelengthNm: number;
+export interface BrightfieldSpectralStack extends StackedSpectralPlanes {
   readonly planes: readonly BrightfieldPlane[];
-  /** Pixels dropped from each side. See the header: the crop replaces truncation. */
-  readonly croppedPixels: number;
-  /** The normalized samples, for `spectralXyzBasis` to build an observer against. */
-  readonly samples: readonly WavelengthSample[];
   /** Worst verdict across every wavelength, when the planes were traced. */
   readonly fidelity?: BrightfieldFidelity;
   /** Max over wavelengths — keyed on the bluest, worst-resolved plane. */
@@ -163,28 +147,7 @@ export interface BrightfieldSpectralStack {
   readonly contributingPoints?: number;
 }
 
-export interface StackBrightfieldOptions {
-  /**
-   * Side of the common grid. Defaults to `size − 2·croppedPixels`.
-   *
-   * Refused rather than clamped when it is large enough for a resample to reach
-   * outside a source grid: the failure is a black border, and a black border is
-   * a colour the caller would read as physics.
-   *
-   * Must leave an EVEN number of pixels to drop. An odd difference would put the
-   * common grid's centre half a pixel off the source's, so the ruler plane would
-   * be interpolated rather than copied and every plane would shift by half a
-   * pixel — § 6n's own class of bug, and invisible in the picture.
-   */
-  readonly size?: number;
-  /**
-   * Pixels dropped from each side. Default 1 — the bilinear stencil's reach.
-   *
-   * A knob on the default `size` and nothing more, so passing both is refused
-   * unless they agree rather than one silently winning.
-   */
-  readonly croppedPixels?: number;
-}
+export type StackBrightfieldOptions = StackSpectralOptions;
 
 /**
  * Put per-wavelength brightfield images on one common physical grid.
@@ -192,106 +155,16 @@ export interface StackBrightfieldOptions {
  * Separated from the tracing driver below on purpose: the ruler is the whole of
  * § 6r's difficulty, and it is pinnable in milliseconds against ideal pupils
  * where a traced stack costs minutes. § 6r.1–§ 6r.4 run here.
+ *
+ * The geometry itself is `imaging/spectral-stack`'s, shared with § 6ba's emitter
+ * branch since the two agree on every part of it but the resampler. This is
+ * where `"irradiance"` is chosen, and § 6r.1 is what earns the choice.
  */
 export function stackBrightfieldPlanes(
   input: readonly BrightfieldPlaneInput[],
   options: StackBrightfieldOptions = {},
 ): BrightfieldSpectralStack {
-  if (input.length === 0) throw new Error("stackBrightfieldPlanes: no wavelengths");
-  const srcSize = input[0]!.size;
-  let totalWeight = 0;
-  for (const p of input) {
-    if (p.size !== srcSize) {
-      throw new Error(
-        `stackBrightfieldPlanes: every plane must share one grid size — ${p.nm} nm is ` +
-          `${p.size} against ${srcSize}. The grids differ in physical SCALE, which is what ` +
-          `this function exists to reconcile; differing in pixel COUNT is a caller error`,
-      );
-    }
-    if (p.intensity.length !== p.size * p.size) {
-      throw new Error(`stackBrightfieldPlanes: ${p.nm} nm holds ${p.intensity.length} pixels`);
-    }
-    if (!(p.pixelScaleMm > 0)) {
-      throw new Error(`stackBrightfieldPlanes: ${p.nm} nm has pixel scale ${p.pixelScaleMm}`);
-    }
-    if (p.weight < 0) throw new Error(`stackBrightfieldPlanes: ${p.nm} nm has weight ${p.weight}`);
-    totalWeight += p.weight;
-  }
-  if (!(totalWeight > 0)) throw new Error("stackBrightfieldPlanes: weights sum to zero");
-
-  const croppedPixels = options.croppedPixels ?? 1;
-  if (!Number.isInteger(croppedPixels) || croppedPixels < 0) {
-    throw new Error(`stackBrightfieldPlanes: croppedPixels must be ≥ 0, got ${croppedPixels}`);
-  }
-  const size = options.size ?? srcSize - 2 * croppedPixels;
-  if (!Number.isInteger(size) || size < 1) {
-    throw new Error(`stackBrightfieldPlanes: common grid size must be ≥ 1, got ${size}`);
-  }
-  if (options.size !== undefined && options.croppedPixels !== undefined) {
-    if (srcSize - 2 * options.croppedPixels !== options.size) {
-      throw new Error(
-        `stackBrightfieldPlanes: size ${options.size} and croppedPixels ${options.croppedPixels} ` +
-          `disagree on a ${srcSize} px source — croppedPixels is a knob on the default size, so ` +
-          `pass one or the other rather than letting one silently win`,
-      );
-    }
-  }
-  // An odd difference would centre the common grid half a pixel off the source's:
-  // `resample` maps destination x to srcSize/2 + (x − size/2)·k, so the ruler
-  // plane's k = 1 identity turns into a half-pixel interpolation and every plane
-  // shifts with it. Refused, for § 6n.2's reason — half a pixel of
-  // misregistration is exactly the class of error a picture cannot show.
-  if ((srcSize - size) % 2 !== 0) {
-    throw new Error(
-      `stackBrightfieldPlanes: a ${size} px common grid on a ${srcSize} px source drops an odd ` +
-        `${srcSize - size} pixels, so the two grids cannot share a centre — the ruler plane would ` +
-        `be interpolated instead of copied and every plane would shift by half a pixel`,
-    );
-  }
-
-  // The smallest scale, not the mean — see the header. Taken over the planes as
-  // measured rather than assumed to be the shortest wavelength's, because the
-  // reference sphere and the exit pupil are traced per λ too and a pathological
-  // system could order them differently.
-  let ruler = input[0]!;
-  for (const p of input) if (p.pixelScaleMm < ruler.pixelScaleMm) ruler = p;
-  const pixelScaleMm = ruler.pixelScaleMm;
-
-  // Whether a destination can be sourced at all, checked once against the
-  // WIDEST stencil reach rather than discovered as zeros in the output. k ≤ 1
-  // for every plane by the choice above, so this is a statement about the crop.
-  const reach = size / 2;
-  const hi = srcSize / 2 + (reach - 1);
-  const lo = srcSize / 2 - reach;
-  if (lo < 0 || hi + 1 > srcSize - 1) {
-    throw new Error(
-      `stackBrightfieldPlanes: a common grid of ${size} px reaches outside a ${srcSize} px ` +
-        `source — the bilinear stencil needs one pixel beyond the last destination, so the ` +
-        `common grid must be at most ${srcSize - 2} px. Raising it would fill the border with ` +
-        `zeros, which is a wavelength-dependent black frame and reads as a coloured vignette`,
-    );
-  }
-
-  const planes: BrightfieldPlane[] = input.map((p) => {
-    const ratio = pixelScaleMm / p.pixelScaleMm;
-    return {
-      nm: p.nm,
-      weight: p.weight / totalWeight,
-      intensity: resampleIrradianceGrid(p.intensity, p.size, p.pixelScaleMm, pixelScaleMm, size),
-      sourcePixelScaleMm: p.pixelScaleMm,
-      resampleRatio: ratio,
-    };
-  });
-
-  return {
-    size,
-    pixelScaleMm,
-    meanWavelengthNm: input.reduce((a, p) => a + p.nm * p.weight, 0) / totalWeight,
-    rulerWavelengthNm: ruler.nm,
-    planes,
-    croppedPixels: (srcSize - size) / 2,
-    samples: planes.map((p) => ({ nm: p.nm, weight: p.weight })),
-  };
+  return stackSpectralPlanes(input, "irradiance", options, "stackBrightfieldPlanes");
 }
 
 export interface BrightfieldSpectrumOptions extends FieldPupilOptions {

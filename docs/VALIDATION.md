@@ -63,7 +63,7 @@ whole ladder.
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
-| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus shown to be a pure phase, so a plane's flux is EXACTLY invariant with depth and the haze cannot be focused away; the axis following sinc²(π·w₂₀); the missing cone as that same constant transformed, 2.2e-15 of axial transfer at zero lateral frequency against a control that fills it in; the support boundary μ = ν(2−ν) exact at three frequencies | `volume` |
+| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus is a pure PHASE, so a plane's flux is exactly invariant with depth and the haze cannot be focused away — and the missing cone is that same constant transformed | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — and the headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water, the fifth geometric ceiling in this branch | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling and not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and the finding that an off-axis tile is ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
@@ -109,6 +109,7 @@ whole ladder.
 | [6ax](#step-6ax--compensation-and-one-currency) | Perturb, RE-SOLVE, then charge: a melt 1000× past the frozen budget refits to 0.93, and on a real λ/14 target the tightest radius is 0.25% not 0.00034% — only centring is left | `tolerance-compensated` |
 | [6ay](#step-6ay--four-united-colours-one-telecentric-one) | The stop reads f·D and four united colours constrain only f: EFL(λ) turns three times, FFD(λ) never, and the quadruplet is telecentric ONCE, the doublet twice | `telecentric-quadruplet` |
 | [6az](#step-6az--the-volumetric-emitter-density) | The third Jacobian dimension IS a scalar: depth rescales the map by 1 + z/P, isotropically, so ONE table serves a volume — and the DIN objective is object-space telecentric TWICE | `emitter-volume` |
+| [6ba](#step-6ba--the-spectral-emitter-density) | ONE band collapses to ONE kernel and TWO need TWO — a MONOCHROME failure, not colour's; colour needs the planes apart even for one label, and that halo is AXIAL COLOUR, not diffraction | `emitter-spectrum` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -9187,7 +9188,12 @@ afterwards, because the sum is renormalized either way.
 economy: a single-label specimen emits with one spectrum, so E(x)·w(λ) factors
 and Σ_λ w_λ(h_λ ⊛ E) = (Σ_λ w_λ h_λ) ⊛ E — one convolution with the whole band in
 the kernel. A two-label specimen does not factor that way, which is § 6i's colour
-deferral rather than a limit found here.
+deferral rather than a limit found here. **Qualified at
+[§ 6ba](#step-6ba--the-spectral-emitter-density), numbers untouched:** that
+sentence joins two failures that have nothing to do with each other. The
+non-factorization is a *monochrome* failure — S labels need S kernels whether or
+not colour is asked for — and colour needs the planes kept apart even for ONE
+label, where the density factors perfectly. Each half is measured there.
 
 **A band is not automatically a blur, and that is a finding.** With an
 aberration-free pupil the only thing λ changes is the scale, and a band symmetric
@@ -17456,11 +17462,12 @@ and that is now written down where `RadialTabulation` is chosen.
 
 ### Still open
 
-- **A spectral emitter density.** `rasterizeEmitters` has no spectrum either, and
-  the emission band lives in `imaging/emission` where it serves both — so this is
-  a seam that already works, not a gap. It becomes one the moment a specimen's
-  *emission colour* varies with position, which is what a two-stain preparation
-  is, and § 6r's spectral stack is the shape the answer would take.
+- ~~**A spectral emitter density.**~~ **Closed at
+  [§ 6ba](#step-6ba--the-spectral-emitter-density)**, and § 6r's spectral stack was
+  indeed the shape — down to the ruler, the crop and the even-drop rule, which are
+  now one shared module. What the prediction did not contain is that the seam
+  breaks in **two independent places**: two labels need two kernels even for a
+  monochrome readout, and colour needs the planes kept apart even for one label.
 - **A photometric zero point**, unchanged and still § 3a's. Every number here is
   a ratio.
 - ~~**A volumetric emitter density.**~~ **Closed at
@@ -18858,11 +18865,10 @@ refused rather than documented.
 
 ### Still open
 
-- **A spectral emitter density**, unchanged from § 6as and now the last of its
-  three. `rasterizeEmitters` has no spectrum either and the emission band lives
-  in `imaging/emission`, so this is a seam that already works — it becomes a gap
-  the moment a specimen's *emission colour* varies with position, which is what a
-  two-stain preparation is.
+- ~~**A spectral emitter density**, the last of § 6as's three.~~ **Closed at
+  [§ 6ba](#step-6ba--the-spectral-emitter-density).** A spectral *volume* is this
+  step's rescale times that step's spectrum and is untouched by either: the two
+  are independent today, and nothing measures them together.
 - **A photometric zero point**, still § 3a's. Every number here is a ratio.
 - **The rate is paraxial.** With `rayAiming: "real"` the chief ray is solved onto
   the stop rather than aimed at the paraxial entrance pupil, so the same-line
@@ -18881,6 +18887,267 @@ refused rather than documented.
 - **The fourth cosine**, inherited verbatim from § 5v and § 6as: the entrance
   pupil's projected area is applied by no rasterizer on either branch, it cancels
   in every comparison between them, and it belongs to the pupil layer.
+
+## Step 6ba — the spectral emitter density
+
+**§ 6as's last deferral, closed — and the sentence that deferred it turns out to
+be two sentences wearing one name.** § 6as closed the extended fluorescent
+specimen and § 6az the volumetric one, and both left the same line behind:
+`rasterizeEmitters` has no spectrum either, the emission band lives in
+`imaging/emission` where it serves both, so *"this is a seam that already works,
+not a gap — it becomes one the moment a specimen's emission colour varies with
+position, which is what a two-stain preparation is."*
+
+It does become one, and § 6r's spectral stack really is the shape of the answer.
+What the deferral did not contain is that the seam gives way in **two places that
+have nothing to do with each other**, and that § 6j's header — the branch's own
+statement of the economy — joins them.
+
+No optics arrive with this step. Every ray was traced by § 6s, every kernel built
+by § 6i, every area element differentiated by § 6as; what is new is that the
+density reads a **wavelength**.
+
+New: `imaging/emitter-spectrum` (`SpectralEmitterDensity`,
+`atEmissionWavelength`, `EmitterLabel`, `labelledEmitters`,
+`neutralEmitterDensity`, `channelCrosstalk`, `stackEmitterPlanes`,
+`formEmitterPlane`, `fluorescenceSpectralStack`, `channelBasis`) and
+`imaging/spectral-stack` (`stackSpectralPlanes`, `SpectralQuantity`), which is
+§ 6r's stacking geometry lifted out and shared — `stackBrightfieldPlanes` is now
+one line of it, and § 6r's forty-four rungs are what say the lift was exact.
+
+### Two failures, and neither is the other's reason
+
+§ 6j's header states the economy this branch has run on since it landed. A
+single-label specimen emits with one spectrum, so the density factors as
+`E(x)·w(λ)` and linearity moves the whole band into the kernel:
+
+    I = Σ_λ w_λ · (h_λ ⊛ E) = (Σ_λ w_λ h_λ) ⊛ E
+
+— one convolution, not one per wavelength. It then says a two-label specimen
+"does not factor that way, and that is the colour deferral § 6i already
+recorded". **That is two claims, and joining them hides both.**
+
+**One — colour needs the planes kept apart, and the label count never enters.**
+`imaging/image` has said since § 2f that colour must be integrated *while* the
+wavelengths are still separate, because a monochrome collapse has already summed
+away the axis a tint would need. That is true of a specimen with exactly one
+label, whose density factors perfectly. § 6ba.5 measures it on one: a Gaussian
+emitter with a flat band images to a **yellow-green core at (0.4104, 0.4425)** and
+a **blue-violet skirt at (0.2285, 0.1826)** twenty-four pixels out, while the
+whole image integrates to (0.3356, 0.3378) — white to three decimals, as an
+equal-energy source must be. A tint is one chromaticity everywhere by
+construction, so no choice of tint reproduces that.
+
+**And the mechanism is the objective's own axial colour, not diffraction.**
+Repeat every plane through `idealPupil` and the same emitter's swing falls by
+7.1× *and reverses sign* — (0.3208, 0.3243) at the core to (0.3490, 0.3587) at the
+skirt, a faint reddening outward, which is the λ-scaling a diffraction skirt has.
+The traced objective's halo goes the other way because the blue is badly focused:
+it is § 6e's named "chromatic half" arriving as a colour. A sign reversal is not
+a magnitude a tolerance could have hidden, and without the ideal-pupil control
+the step would have had a number and no cause.
+
+**Two — two labels break the factorization, and colour never enters.** With
+`E(x, λ) = Σ_s E_s(x)·w_s(λ)` the label sum still passes through the convolution,
+but it passes through **once per label**:
+
+    I = Σ_s (Σ_λ w_λ w_s(λ) h_λ) ⊛ E_s
+
+— S kernels, not one. So a *monochrome* readout of a two-label specimen is
+already wrong under § 6j's collapse. § 6ba.6 pins it on one frame and one grid,
+with the kernels differing only through the traced pupil, so no ruler and no
+resampling can be blamed: one band for both labels agrees to **2.9e−16**, an
+identity in f64, and two 100 nm bands separated by 60 nm differ by **14.52%**
+relative RMS, 30.03% at 120 nm and 45.33% at 200 nm.
+
+### The negative control has a resolution threshold, and that is the trap
+
+At nine samples across 400–700 nm the bins are 33.33 nm wide, and two 100 nm
+bands separated by 15 or 30 nm cover the **same nine samples**. The identity then
+holds to 2.9e−16 as well — not because the specimen factors, but because the
+quadrature cannot see that it doesn't. § 6ba.6 pins that too, because it is the
+more dangerous half: a two-stain render whose labels sit inside one bin is a
+single-label render wearing two names, and nothing downstream says so.
+
+The same shape returns in § 6ba.8's crosstalk and in § 6ba.6's own sweep, where
+the departure is **flat** between 60 and 90 nm and moves only when a sample
+crosses a band edge. Monotone is claimed; a rate is not (§ 6as.4's discipline,
+and § 6az.8's).
+
+### The resampler is chosen by the RASTERIZER, and it is a colour both ways
+
+§ 6r resamples its planes with **no** Jacobian and § 2e's PSF stack with `k²`,
+and the reason is not which branch they are on — it is what the rasterizer put in
+the pixel. § 6n warps an amplitude transmittance, a property *of a point*, so a
+brightfield plane is an irradiance and warping it is coordinate substitution.
+§ 6as multiplies a density by the object area the pixel covers and `incoherentPsf`
+sums to 1, so an emitter plane is a **flux** and `k²` is mandatory. The Jacobian's
+presence at *authoring* time settles the resampler at *stacking* time, separated
+by the whole imaging chain.
+
+§ 6ba.3 measures the negative control as an identity rather than a discrepancy:
+the two resamplers share one implementation and differ by the gain alone, so
+using the wrong one inflates a plane by exactly `1/k²`. On the reddest plane
+against the bluest ruler that is **(41/25)² = 2.6896×**, and `k` is not merely
+close to the wavelength ratio — `imagePixelScaleMm` is ∝ λ, so k **is** 25/41 to
+the last bit.
+
+**Energy is not the witness on this branch either.** Nothing is lost by choosing
+wrong; each plane is merely rescaled. § 6r's error tilts the spectrum as 1/λ² and
+turns a neutral specimen blue; this one tilts as λ² and turns the same specimen
+red. The witness is chromaticity, in both directions.
+
+### Where a spectrum may live: POSITIONAL or not
+
+`photometry/spectrum` splits the world into "one source, no scene — the SED goes
+in the weights" and "a scene — the SED belongs to each source and the weights are
+pure quadrature", and § 6j puts a single-label band squarely in the first. A
+two-label specimen is the second, and the rule that covers both is neither:
+**what varies with position goes in the density, and what is common to the path
+goes in the weights.**
+
+That settles three questions at once. Each label's band is positional — it is
+*which stain is here* — so it lives in `SpectralEmitterDensity`. The **emission
+filter** is not: it is one piece of glass, common to every label, so it lives in
+the sample weights and `filter` is the single place it enters. `samples` is
+therefore pure quadrature.
+
+§ 6ba.7 pins the failure, which is § 6j.1's "the band enters once" with more to
+lose: hand this path `emissionSamples` and the band is applied twice, and with
+two labels the doubly-applied band is not even the right *shape*. It is **not
+refused**, and the reason is that the only available test — do the weights sum to
+1 — would refuse a caller with a legitimate 1 nm band. A heuristic that refuses
+correct callers is worse than a pinned negative control; `imaging/scene` reached
+the same verdict.
+
+**A boxcar cannot witness this**, and that cost the step a rung's worth of
+rewriting. A boxcar takes only 0 and 1, so B² = B and applying it twice is
+applying it once: the negative control passes while measuring nothing. The band
+has to *vary* across its passband, so § 6ba.7 uses a caller-supplied ramp — the
+escape § 6j documents — rather than naming a dye.
+
+### Crosstalk has a closed form, and the quadrature is exact on aligned edges
+
+Two stains and two filters are two channels, and the number that decides whether
+they are really two is the bleed-through: the fraction of one label's emitted
+power that the *other* label's filter passes,
+
+    ∫ B(λ)·T(λ) dλ / ∫ B(λ) dλ
+
+which for boxcars is one division, external to the engine. `channelCrosstalk`
+computes it on the samples the render will use, so it is the leak the render
+actually shows rather than an ideal one.
+
+**The exactness is a theorem, not a tolerance.** Midpoint quadrature is exact for
+a function constant on each bin, and a boxcar whose edges are bin boundaries is
+exactly that — so the discrete overlap equals the continuous one at **every**
+sample count that subdivides the band. § 6ba.8 checks 9, 18, 27, 36, 72, 90 and
+144 samples and gets agreement to 1e−14 at all of them.
+
+Off a boundary it does not, and it does not converge smoothly either. The error
+only moves when a sample crosses an edge, so it is a **staircase**: 5.00e−2 at 9,
+18 and 36 samples, 1.25e−2 at 72 and 144, 3.125e−3 at 288 and 576 — three levels,
+each a quarter of the last, with a ×4 of sample count buying nothing in between.
+So the aligned identity is what is pinned, and the staircase is measured as three
+flat levels rather than quoted as a rate it does not have.
+
+### What comes out free, and it is a real microscope's problem
+
+The per-λ frames share a λ-independent *image* centre and each is traced at its
+own wavelength, so the object point a given pixel looks at is wavelength-dependent
+— § 6r.6's lateral colour. On a two-label specimen that stops being an aberration
+and becomes **channel misregistration**: the same physical structure lands at
+different pixels in the two channels of one exposure, so a two-stain overlay is
+misaligned before anything is measured off it.
+
+§ 6ba.9 measures it on the DIN 4×/0.10 between a 433–500 nm channel and a
+600–667 nm one:
+
+| field (mm) | displacement (px) | fraction of field |
+|---|---|---|
+| 0 | 1.7e−4 | — |
+| 0.2 | 0.11493 | 1.787e−3 |
+| 0.4 | 0.23004 | 1.788e−3 |
+| 0.8 | 0.46229 | 1.797e−3 |
+
+The last column is what makes this a finding rather than a number: constant to
+0.5% over a ×4 of field, so the misregistration is a **magnification difference
+of 0.180% between the channels** and not a higher-order distortion. The axial
+zero is load-bearing — it is what says the estimator is reading lateral colour
+and not the window it was taken over, and reaching it required a centroid window
+symmetric about the grid centre. A window one pixel wider on one side reported
+0.078 px on the axis, which is 17% of the largest real number here.
+
+### The lattice residual has become a colour
+
+§ 6as.4 weighed a hard-edged disc's flux against `ρ·πR²` and found the Gauss
+circle problem in the residual — the lattice-point discrepancy, whose exponent
+has been open since Gauss, bracketed rather than claimed. On a **stack** each
+wavelength point-samples that disc on its own lattice, so each miscounts
+differently, and a scalar nuisance becomes a chromatic one. § 6ba.4 measures it:
+
+| λ (nm) | flux ÷ πR² − 1 |
+|---|---|
+| 430 | −7.821e−4 |
+| 550 | +5.903e−3 |
+| 680 | −2.798e−3 |
+
+— 8.70e−3 of spread, with no shared sign, which is what says it is the lattice
+count and not a systematic of the raster. It is small, and it is the reason every
+chromaticity rung here runs on a **smooth** density: the disc is the control that
+says what a hard edge costs, not the instrument the colour is measured with.
+
+### The cost is the wavelength count, and the labels are free
+
+The convolution count is the *label* count and the plane count is the *band's*,
+and they pull opposite ways. This module renders a stack — one frame, one table,
+one raster and one `renderFluorescence` per wavelength, exactly as § 6r does — and
+the labels are summed **in the density's argument**, before anything is
+convolved. § 6ba.10 pins that bitwise against a hand-summed density: two labels
+cost one raster per wavelength and not two, because `E(·, λ)` is a plain
+`EmitterField` once λ is bound, and § 6as's seam still holds — nothing below the
+authoring layer learns that a spectrum exists.
+
+The S-kernel form above is what a *monochrome* two-label render would cost, and
+it is cheaper when S is under the wavelength count. It is not built, because a
+monochrome two-label image is a readout of the colour one.
+
+**And this stack is far cheaper than § 6r's.** A brightfield plane costs one Abbe
+sum per source point; a fluorescence plane costs one transform pair —
+`imaging/fluorescence`'s "the cost of emitting rather than modulating". Nine
+wavelengths at 64² is seconds here against minutes there, which is why § 6ba.9
+can afford to sweep four field positions.
+
+A channel costs no second render at all: since the planes are already separate, a
+filter is a **reweighting of the observer basis** (`channelBasis`), not a
+re-exposure. § 6ba.12 pins the two expressions bitwise. That is legal only because
+the stack kept the wavelengths apart — the first failure above, seen from the
+other side, since a collapsed kernel would have summed away the very axis a filter
+selects on.
+
+### Still open
+
+- **A spectral VOLUME.** § 6az rescales the map with depth and this step varies
+  it with wavelength; the two are independent today. Both are chromatic — § 6az.4
+  found the depth rate has *two* telecentric zeros inside the band and reverses
+  sign between them — so a thick two-stain preparation is a volume whose
+  perspective differs per channel, and nothing measures the product.
+- **A spectral MOSAIC**, § 6r's own deferral inherited unchanged: `halfExtentMm`
+  is ∝ λ, so a mosaic's pitch and guard band would have to be fixed by one
+  reference λ with every other λ cropped to it.
+- **Nothing models a stain's own lineshape**, and nothing should without measured
+  data (§ 6j's rule). `boxcarBand` is a statement about an interference filter;
+  every rung here that needed a varying spectrum used a caller's ramp and said so.
+- **No excitation, and therefore no differential bleaching.** The emission filter
+  blocks the excitation, so it never reaches the image — § 6j's structural null,
+  which also means a preparation whose two stains are excited by different lasers
+  is outside this module. § 6i's photobleaching and saturation deferral stands.
+- **Crosstalk is not corrected, only measured.** Linear unmixing is the standard
+  answer and is a readout, not physics; it would belong wherever the analyses do.
+- **A photometric zero point**, still § 3a's. Every number here is a ratio.
+- **The fourth cosine**, inherited verbatim from § 5v, § 6as and § 6az: the
+  entrance pupil's projected area is applied by no rasterizer on either branch, it
+  cancels in every comparison between them, and it belongs to the pupil layer.
 
 ## Later rungs
 
