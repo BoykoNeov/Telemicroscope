@@ -116,6 +116,7 @@ whole ladder.
 | [6be](#step-6be--the-third-axis) | The third axis — best focus SEPARATES into a colour curve plus a field curve (interaction 0.03 of a depth of focus), and the field term is EVEN, so § 6bb.6's on-axis 3.88 depths of focus is 5.79 over the square | `spectral-field-volume` |
 | [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² is the ladder's own 4× at its own wavelength read over its outer third, the edge coefficient goes as f^-0.60 across three objectives, and a sweep that reads a plateau is refused | `focus-surface` |
 | [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.88× the peak on the axis, 39.0% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
+| [6bh](#step-6bh--the-fluorescence-mosaic) | The tiles composed — and the guard band is the CORRECTION's business: a nominal blue tile leaks 9.82% of a point's light past its own frame, a corrected one 1.87%, and 0.24 mm of specimen adds 0.26 | `fluorescence-mosaic` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -20296,10 +20297,13 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
   even-polynomial fit with a reported residual would still be useful and is still
   not built, because the honest fit's order is per objective. § 6bg's
   interpolation is not that fit and does not become one.
-- **The mosaic is still where the field lives.** This step corrects tile by tile
-  and does not compose them; a fluorescence mosaic — guard band, common ruler,
-  pitch — is still § 6r's machinery on a branch that does not have it, and
-  § 6be.8's `halfExtentMm ∝ λ` measurement is still the open half of it.
+- ~~**The mosaic is still where the field lives.**~~ **Built at § 6bh**, and the
+  composition turned out to be the cheap half: `mosaicGuardPixels` and the ruler
+  rule transplant verbatim, and what the step found instead is that the guard
+  band is the *correction's* business — an uncorrected blue tile leaks 9.82% of a
+  point emitter's light past its own frame against a corrected one's 1.87%. So
+  "the correction and the composition are separable" is true of the arithmetic
+  here and false of the cost. § 6be.8's `halfExtentMm ∝ λ` is closed with it.
 - **Nothing measures the correction on a second objective.** § 6bf.4's whole
   finding is that the curve is per objective in shape, and every number above is
   the ladder's 4×/0.10. The correction's *machinery* is objective-independent by
@@ -20314,6 +20318,179 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
   depth-dependent maps**, **the shared-radius economy**, **the weight is still
   not an absolute throughput**, **the fourth cosine**, and **§ 3a's photometric
   zero point** — all six inherited verbatim from § 6bf.
+
+
+## Step 6bh — the fluorescence mosaic
+
+Source: `packages/core/src/imaging/fluorescence-mosaic.ts` ·
+Tests: `packages/core/test/fluorescence-mosaic.test.ts`
+
+§ 6bg renders a list of focus-corrected tiles and hands back a list — "no guard
+band, no common ruler, no pitch" — and named the mosaic as its own deferral, the
+last one § 6r left on this branch. This composes them.
+
+**The composition is the cheap half, and the step is not about it.**
+`fluorescenceMosaicGeometry` places the tiles and `renderFluorescenceMosaic`
+crops and lays them side by side, wrapping `focusCorrectedTiles` **unforked** —
+which is what keeps § 6bg's own claim that the correction and the composition are
+separable true in the code as well as in the prose. `mosaicGuardPixels` is
+shared with the brightfield branch rather than restated, so a guard of *n* cells
+here is the guard § 6o measured; the ruler rule is `mosaic-spectrum`'s verbatim.
+
+**What the step is about is what that guard band has to contain**, and the answer
+is not what § 6o's is.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bh.1 — a one-tile mosaic IS the tile it composes** | `Object.is` on every pixel of every plane against `focusCorrectedTiles`'s own tile cropped by hand, and the correction it carries is that function's | ✅ |
+| | CONTROL: the kept span is nowhere zero, two tiles differ in > 90% of their pixels, and `colorImageFromStack` takes the composed stack unchanged | ✅ |
+| **§ 6bh.2 — the ruler is the bluest plane, and `halfExtentMm` is ∝ λ** | 0.13691027134586664 mm at 430 against 0.20895452570193085 at 656.2725 — the ratio is the WAVELENGTHS' ratio to the last bit, `Object.is`-equal and not merely close | ✅ |
+| | so the ruler is chosen by scale, and `effectiveGuardCells` is **4.25 at the ruler** against 7.4009 and 8.3012 further red — § 6t's ordering, on a branch whose planes are stacked before this module sees them | ✅ |
+| **§ 6bh.3 — the pitch is uniform, on a measurement** | 4.1798e-5 of a pixel from the abutment fixed point across three tiles, re-measured on this branch's own kept span rather than inherited | ✅ |
+| | and an EVEN tile count straddles the anchor, half a pitch out on both axes | ✅ |
+| **§ 6bh.4 — what a tile's edge is made of is the STAGE** | 430 nm at the nominal stage leaks **9.823%** of a point emitter's light past a tile-sized frame; at § 6bf's swept stage, **1.866%** — **5.264×** | ✅ |
+| | and the tile crosses § 6bd.8's half-wave containment limit doing it: 0.6324 waves of grid phase step against 0.3326 | ✅ |
+| | BUILT-IN ZERO: at the design wavelength the nominal tile already leaks 1.1687% and correcting it buys 1.0968% — nothing. The red end agrees at 1.1368% | ✅ |
+| | thickness is the SMALL term: 0.24 mm of specimen adds **0.257 points** where leaving the stage at nominal adds **7.957** — a factor of **31** | ✅ |
+| | …and the two compound, 11.516% for a thick specimen at the nominal stage | ✅ |
+| | **`maxGridPhaseStepWaves` orders the escape** over all seven configurations of colour, correction and thickness — a readout that has shipped since § 6i, against a measurement that costs a second double-extent render | ✅ |
+| **§ 6bh.5 — the seam's focus step is a FIELD quantity** | 1.7978e-4 mm on the axis against 6.8737e-3 mm at 1 mm of field — **38.2×**, and 0.00416 against 0.15903 depths of focus | ✅ |
+| | the axial figure is under § 6be.2's 1.2e-3 mm estimator floor, and the edge figure is half § 6bg.8's in-frame tilt one tile further out, which it must be | ✅ |
+| **§ 6bh.6 — the refusals** | a fractional or non-positive tile count, a guard that is not whole pixels, a guard that eats the tile, a negative guard, an empty band, and a tile whose own traced height runs past the swept surface | ✅ |
+
+### The guard band is the correction's business
+
+A brightfield tile needs a guard because `abbeImage` is a transform and the
+specimen outside the grid is *wrapped* rather than absent; § 6o measured what
+that costs and found a closed form for it in the coherent limit, the Airy
+amplitude's tail integral, falling as `guard^(−1/2)`.
+
+**None of that transplants, and the first reason is that the mechanism is not
+the same one.** A fluorescence tile rasterizes its emitters onto the frame's own
+grid, so a neighbour's material outside the grid is not wrapped in — it is simply
+not there. What wraps is the tile's *own* light, through
+`renderFieldVolume`'s circular convolution, and the quantity a guard has to
+contain is therefore the **escape**: the share of a point emitter's light that
+leaves a tile-sized frame. § 6bd.8 already owns the way to measure it — a second
+render at double the extent, since a tile cannot see light it has already wrapped
+back inside itself — and § 6bh.4 uses that method unchanged.
+
+The second reason is the size of it. On the ladder's 4×/0.10:
+
+| | escaped past the tile | grid phase step |
+| --- | --- | --- |
+| 430 nm, nominal stage | **9.823%** | 0.6324 waves |
+| 430 nm, § 6bf's stage | **1.866%** | 0.3326 waves |
+| design λ, nominal stage | 1.1687% | 0.1643 waves |
+| design λ, corrected | 1.0968% | 0.1157 waves |
+| 656 nm, nominal stage | 1.1368% | 0.1491 waves |
+
+**Correcting one number keeps 5.264× more light inside the tile.** And the design
+wavelength's row is the built-in zero that says which number: there the nominal
+stage is already nearly right (§ 6bb.6 puts best focus 0.047 mm from nominal
+against 430's 0.214 mm), the correction has nothing left to buy, and the tile is
+tight to begin with. So the broad response at 430 nm is the **stage error** and
+not the traced pupil's aberration — the discriminator the ladder's own lesson
+demands, and one extra row buys it.
+
+**It also moves the tile across a limit rather than along a scale.** § 6bd.8
+pins the frame's containment against `maxGridPhaseStepWaves` and puts the knee
+at half a wave. An uncorrected blue tile reports 0.6324 and is past it; a
+corrected one reports 0.3326 and is not. A mosaic composed of uncorrected blue
+tiles is not merely a worse picture, it is one whose tiles are outside the regime
+the engine's own readout says it can form.
+
+### Haze is the small term, which is the wrong way round
+
+The natural instinct is that a thick specimen is what makes a tile bleed into its
+neighbours, so a mosaic of thick specimens wants a wider guard. It is wrong here
+by a factor of 31.
+
+At the corrected stage, going from a 0.016 mm specimen to a **0.24 mm** one takes
+the escape from 1.866% to 2.123% — **0.257 points**. Leaving the stage at nominal
+on the thin specimen takes it from 1.866% to 9.823% — **7.957 points**. The two
+compound rather than trade (11.516% for a thick specimen at the nominal stage),
+but a caller sizing a guard band is choosing against the stage error and almost
+not at all against the specimen.
+
+The reason is that defocus and stage error are the *same* aberration and the
+stage error here is simply bigger: 430 nm at the nominal stage sits five depths
+of focus out (§ 6bg's 0.214 mm against a 0.0432 mm depth of focus), where ±0.12
+mm of specimen puts its worst slice 2.8 depths out and its median much less.
+Quoted as a bound over the thickness range this branch renders rather than at its
+extreme, per the ladder's own rule about bounds.
+
+### The readout that sizes a guard already ships
+
+Seven configurations — three wavelengths, corrected and not, thin and thick —
+sort into the **same order** by `maxGridPhaseStepWaves` as by measured escape,
+and the jump between the two clusters (0.4767 → 0.6324 waves, 2.12% → 9.82%)
+straddles § 6bd.8's half-wave knee. So a caller sizes a guard band from a number
+every render has carried since § 6i, and pays the double-extent second render
+only to calibrate it once.
+
+This is the same shape as § 6bd.8's own finding — five pupils spanning the ideal
+disc to a frame corner collapsing onto one curve in the step rather than in the
+defocus — extended across a *wavelength* and a *stage* as well as a field
+position, which is the axis § 6bd could not vary.
+
+### The seam has a focus step, and it is the surface's rise across one pitch
+
+Each tile is corrected at its own centre's field height, so the two sides of a
+seam are the same physical place corrected to two stage positions one pitch
+apart. Nothing is blended across a seam (§ 6o), so this is a **step** and can be
+read as one.
+
+It is a field quantity, and vanishes where the focus surface is flat: **1.7978e-4
+mm** across an axial seam against **6.8737e-3 mm** across one at 1 mm of field,
+**38.2×**. § 6be's finding that the field term is EVEN in radius is the reason —
+its gradient is zero on the axis, so an axial seam joins two tiles that wanted the
+same stage to within 0.00416 of a depth of focus, which is under § 6be.2's
+estimator floor and is bookkeeping rather than a measurement.
+
+The edge figure, **0.15903 of a depth of focus**, is the honest cost of composing
+a corrected mosaic, and it reconciles with § 6bg.8 rather than competing with it:
+a seam step is the surface's rise across one *pitch* and § 6bg.8's 0.3183 is its
+rise across a whole *frame* one tile further out. A per-tile correction converts a
+continuous tilt into a staircase; it does not remove it.
+
+### What this did to the prose already on the ladder
+
+No pinned number moved. § 6bh.1's bitwise rung is why none could have: the
+composition reads pixels out of tiles that `focusCorrectedTiles` produced
+without knowing it was in a mosaic.
+
+- **§ 6bg's "the mosaic is still where the field lives"** is this step, and is
+  struck above.
+- **§ 6be.8's `halfExtentMm` ∝ λ** was measured there and *used* here, and
+  § 6bh.2 upgrades it from "proportional" to `Object.is`-equal on the ratio.
+- **§ 6bg's "the correction and the composition are separable"** stands as an
+  arithmetic statement and gains a qualification: the composition's *cost* is not
+  independent of the correction, because a corrected tile keeps 5.264× more of
+  its own light inside its own frame.
+- **APP.md's fluorescence-colour row** said a per-tile control "is a tile series,
+  not a mosaic: § 6bg composes nothing, so the panel would show tiles side by
+  side and not a stitched field". It is a mosaic now, and the row says so.
+
+### Still open
+
+- **The mosaic has no BLEND and no flat-field.** Seams are steps by construction,
+  following § 6o, and § 6bh.5 measures the focus step across one. Nothing
+  feathers a seam, and nothing corrects the throughput's own field profile —
+  § 6bd.3's 1.699e-2 span across a frame at 4.5 mm — which is what a real slide
+  scanner's flat-field does and is a separate quantity from the focus.
+- **The guard band has no closed form on this branch.** § 6o has one in the
+  coherent limit; the escape measured here is a rendered figure per
+  configuration, ordered by a readout but not predicted by a formula. What the
+  ordering buys is a *ranking*, not a size.
+- **Nothing measures the mosaic on a second objective**, inherited from § 6bg and
+  § 6bf.4 unchanged, and it bites harder here: the escape figures are the
+  4×/0.10's axial colour, and an apochromat's would be a different table.
+- **The registration cost has no closed form**, **the readout has no fit**,
+  **the seeded table is not the default**, **depth-dependent pupils are not
+  depth-dependent maps**, **the shared-radius economy**, **the weight is still
+  not an absolute throughput**, **the fourth cosine**, and **§ 3a's photometric
+  zero point** — all inherited from § 6bg.
 
 
 ## Later rungs
