@@ -210,10 +210,11 @@ export function withDefocus(pupil: PupilFunction, waves: number): PupilFunction 
  * defocus instead of wavelength.
  *
  * A callback rather than a single pupil so that a caller can vary more than the
- * defocus with depth. Nothing in the engine does yet — depth-dependent spherical
- * aberration is the header's named deferral — but § 6k.3's negative control
- * needs exactly this freedom, and a pupil that only ever defocused could not
- * express it.
+ * defocus with depth. § 6k.3's negative control was the first user of that
+ * freedom, and two things in the engine now are: § 6l's `mountPupils`, which
+ * varies the aberration with depth, and § 6bd's `FieldDepthPupils`, which is
+ * this type keyed on the field position as well — `(u, v) => DepthPupils`, so a
+ * patched depth stack composes with everything here and needs no adapter.
  */
 export type DepthPupils = (defocusWaves: number) => PupilFunction;
 

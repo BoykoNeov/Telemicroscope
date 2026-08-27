@@ -1245,9 +1245,17 @@ position is identical at 32 and 64 bins for every objective.
 **~~Deliberately absent, and stated on the page: depth-dependent spherical
 aberration.~~ Wired at D10** — the panel now has a mount and a depth, the stack
 stops being symmetric about focus, and the paragraph that said otherwise is gone
-from the page. What is still absent: any field decomposition (`renderVolume`
+from the page. ~~What is still absent: any field decomposition (`renderVolume`
 takes one pupil keyed on *depth*, so the frame is imaged through the on-axis
-pupil and A4's corner-versus-axis comparison has no analogue); and `hazeKernel`,
+pupil and A4's corner-versus-axis comparison has no analogue)~~ — **unblocked at
+§ 6bd**: `renderFieldVolume` takes `(u, v) => DepthPupils` and patches a depth
+stack across the field, so A4's comparison does have an analogue here and the
+panel is wiring rather than engine work. What it would show is worth stating,
+because § 6bd.5 measured it: the haze **dilutes** the field variation, so a
+thick-specimen frame moves less between one patch and sixteen than a single
+plane does (4.1055e-2 against 5.5543e-2 at 4.5 mm) — and § 6bd.4 says the
+one-pupil error changes sign with field radius, so the panel may not offer a
+scalar correction in place of the patches. Still absent: `hazeKernel`,
 which is exact only for a z-uniform specimen — a bead field is not one, and
 § 6k.6's whole content is that over z the sum does not factor.
 

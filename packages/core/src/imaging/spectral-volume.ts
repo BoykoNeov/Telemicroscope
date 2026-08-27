@@ -126,13 +126,15 @@ import { defocusing, renderVolume, type VolumeImage } from "./volume";
  * except for a specimen uniform in z, which the rescale stops being uniform on
  * the grid the moment the system is not telecentric (§ 6az.11).
  *
- * **`patches` is not supported.** The pupil is read once at the tile centre and
- * defocused per slice, because `renderVolume` weighs each slice by the pupil's
- * own `formedSum` and `renderFluorescence` does not — they are two expressions
- * of one convolution and only one of them carries the throughput. Blending
- * field-varying patches through a depth stack would need the two reconciled, and
- * a second expression that merely agreed numerically is what § 6ba refused to
- * ship. Named here rather than silently folded to one patch.
+ * **`patches` is not supported, and the reason has changed.** It was that
+ * `renderVolume` weighs each slice by the pupil's own `formedSum` and
+ * `renderFluorescence` does not — two expressions of one convolution, only one
+ * carrying the throughput, so field-varying patches through a depth stack had no
+ * single answer to be given. § 6bc reconciled them and § 6bd built the renderer,
+ * `renderFieldVolume`. So this is now a **scope** line rather than a blocked
+ * one: what is missing here is the third axis, a field and a depth and a
+ * wavelength at once, at `N_λ × patches² × N_z` convolutions. Still named rather
+ * than silently folded to one patch.
  *
  * That difference has a readout of its own: the volume path multiplies by
  * `formedSum` and the plane path normalizes it away, so **the volume path

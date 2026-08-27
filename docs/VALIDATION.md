@@ -112,6 +112,7 @@ whole ladder.
 | [6ba](#step-6ba--the-spectral-emitter-density) | ONE band collapses to ONE kernel and TWO need TWO — a MONOCHROME failure, not colour's; colour needs the planes apart even for one label, and that halo is AXIAL COLOUR, not diffraction | `emitter-spectrum` |
 | [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.88 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
 | [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
+| [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm varies 1.699e-2, and the one-pupil error changes SIGN with radius | `field-volume` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -19469,10 +19470,15 @@ the frame it is showing.
 
 ### Still open
 
-- **Field-varying pupils through a depth stack** — the wiring, now that the
-  physics is settled. `renderVolume` takes `DepthPupils`, a function of the
-  defocus alone; a patched depth stack needs the field position on the same
-  callback and costs `patches²` times as much per slice.
+- ~~**Field-varying pupils through a depth stack**~~ — **closed at
+  [§ 6bd](#step-6bd--the-field-and-the-depth-on-one-callback)**, and the wiring
+  was the cheap half. The callback is `(u, v) => DepthPupils`, curried so a
+  tracing caller is not asked to re-trace a field point per slice, and the
+  renderer reduces to `renderVolume` and to `renderFluorescence` bitwise. What
+  the step actually found is that **this rung's own framing above was wrong
+  about where the field varies**: § 6bc.4's 1.9e-8 was read on the axis, where
+  an even function's gradient vanishes by construction, and a frame at 4.5 mm
+  spans 1.699e-2 across its own patches (§ 6bd.3).
 - **The weight is not an absolute throughput.** It is Σ|P|² over a *normalized*
   pupil, so at fixed `pupilSamples` a 0.10 and a 0.95 objective count the same
   lattice points. It carries apodization and aperture clipping and it does not
@@ -19482,6 +19488,171 @@ the frame it is showing.
 - **The fourth cosine**, unchanged and inherited from § 5v, § 6as, § 6az, § 6ba
   and § 6bb: no rasterizer applies the entrance pupil's projected area, it cancels
   in every comparison here, and it belongs to the pupil layer.
+
+## Step 6bd — the field and the depth on one callback
+
+Source: `packages/core/src/imaging/field-volume.ts` ·
+Tests: `packages/core/test/field-volume.test.ts`
+
+§ 6k varies the pupil with **depth**, § 6i across the **field**, and until now no
+module has had both. The obstacle was never the optics. The two renderers
+disagreed about brightness — `renderVolume` weighing each slice by the light its
+pupil passed, `renderFluorescence` dividing the same factor out — so a patched
+depth stack had two answers and no way to choose between them. § 6bc chose, and
+this step is the wiring that decision was made for. No physics arrives: the
+operator is § 6i's, summed over patches and over depth, each contribution
+carrying its own pupil's weight.
+
+What arrives is the measurement of a coupling nobody had priced, and it
+disagrees with the deferral's own framing in four places.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bd.1 — the renderer reduces to BOTH of the two it reconciles, bitwise** | one patch is `renderVolume`: `Object.is` on every pixel, and on `inFocusFraction`, `maxGridPhaseStepWaves` and every `sliceFlux` | ✅ |
+| | one in-focus slice in `transmitted` units is `renderFluorescence`: `Object.is` on every pixel, on all sixteen `patchThroughput` and on `weightedEmittedFlux` — § 6bb.2's seam, which before § 6bc had no tolerance that could have been the right one | ✅ |
+| | and the four refusals: a non-integer, zero or negative patch count, an empty volume, a slice of the wrong size, a slice of the wrong length | ✅ |
+| **§ 6bd.2 — the input split stays exact however defocused** | a field-independent pupil renders identically at 1, 4 and 8 patches to below 1e-14 at ±0.06, ±0.12, ±0.25 and ±0.45 mm — measured 3.0e-16 to 7.6e-16, and not degrading with depth | ✅ |
+| | and the deepest is not vacuous: 4.0909 waves, where **24.41%** of the kernel has left the frame against 1.39% at the shallowest. The wrap is the same wrap in both renders, so it cancels out of the comparison | ✅ |
+| **§ 6bd.3 — § 6bc read the field profile exactly where it is FLAT** | within-frame throughput span 1.9040e-8 on axis, 6.8646e-3 at 2.25 mm, 1.6990e-2 at 4.5 mm, 1.2755e-2 at 6 mm | ✅ |
+| | the radii those patch centres actually span — 2.1517–2.3506 mm and 4.4016–4.5996 mm — so the span and § 6bc.4's axis-to-2.25 mm 0.227% cannot be read as one interval | ✅ |
+| | and the same objective from the other side: the centre pupil reproduces § 6bc.4's 0.997728 / 0.941036 / 0.893415 to six decimals | ✅ |
+| **§ 6bd.4 — the one-pupil error has no fixed SIGN** | patched flux over centred flux 0.99999999 on axis, 0.99917570 at 2.25 mm, **1.00112776** at 4.5 mm — below one where the aperture has not begun to clip and above it once it has | ✅ |
+| **§ 6bd.5 — out-of-focus light dilutes the field variation** | one patch against sixteen moves a single plane 5.5543e-2 at 4.5 mm and a five-slice stack 4.1055e-2, a ratio of 0.7392; 2.6852e-2 against 2.0606e-2 at 2.25 mm | ✅ |
+| | four patches against eight is 6.4632e-3 — an order of magnitude under the 1-against-4 move and not two, so the field is not resolved at four patches, merely no longer ignored | ✅ |
+| | and the axis is the control: with no throughput gradient to dilute, the ordering reverses | ✅ |
+| **§ 6bd.6 — what the patches buy is the PHASE, not the clip** | of 4.1055e-2 at 4.5 mm, the patches' own phase against a frozen amplitude carries 3.9219e-2 and their own amplitude against a frozen phase 8.9971e-3 — a ratio above 4 where the clip is at its worst | ✅ |
+| | on axis the amplitude half vanishes outright, 2.8e-7 against 1.8e-2, and the phase half is the whole effect to six decimals | ✅ |
+| **§ 6bd.7 — the haze fraction is the specimen's only if the specimen SEPARATES** | a slab uniform across the field: the throughput cancels from `inFocusFraction` to 1e-14, and the fraction is 3/7 to twelve decimals | ✅ |
+| | signal in one half of the frame and haze in the other: 0.19927341 against 0.2, a move of −3.6329e-3 on a 1.6990e-2 throughput span | ✅ |
+| **§ 6bd.8 — the lattice's Nyquist and the frame's containment are ONE limit** | both give ǀwǀ = pupilSamples/8; at it the escape past the frame is 7.19 / 5.45 / 4.53% for pupilSamples 16 / 24 / 32, spanning 2.7 points and ordered | ✅ |
+| | a quarter past it they converge to 16.46 / 15.68 / 15.73% — within one point and no longer ordered, which is what makes it a knee | ✅ |
+| | on a TRACED pupil the identity fails and the readout does not: five pupils reach a half-wave step between 1.5965 and 3.1304 waves, a spread above 1.9×, and escape 3.67–6.49% there, a spread below 1.8× | ✅ |
+
+### § 6bc read the field profile exactly where it is flat
+
+§ 6bc.4 swept the objective's throughput along a radius and concluded that the
+variation *within* one frame is nothing, on the strength of an on-axis probe
+that came back at 1.9e-8. The probe was right and the conclusion does not
+follow. Throughput is an **even function of field radius**, so its gradient
+vanishes at the axis exactly: the on-axis frame is the one frame in the field
+across which the pupil does not change, and it is the frame § 6bc measured.
+
+Move the frame out and its patches spread over a range where the profile is
+steep — 6.8646e-3 across a frame centred at 2.25 mm, 1.6990e-2 at 4.5 mm. That
+is **not** a correction of § 6bc.4, and the rung is written so no later step can
+read it as one: § 6bc.4's 0.227% is a centre-to-centre ratio along 2.25 mm of
+radius, and this is a max-against-min over a patch grid whose centres cover
+2.1517–2.3506 mm. Both are pinned, and § 6bd.3 re-derives § 6bc.4's own profile
+from this module to six decimals so the two rungs are pinned to one objective
+rather than to two measurements that happen to agree.
+
+The consequence is § 6bd.4, and it is the one that decides the API. The profile
+is concave before the aperture clips and convex once it has, so a frame rendered
+through its centre's pupil alone holds **more** light than the patched frame at
+one radius and **less** at another: 0.99917570 at 2.25 mm against 1.00112776 at
+4.5 mm. A correction factor fitted at one field radius has the wrong sign at
+another, which is why this is a renderer and not a scalar.
+
+### What the patches buy, and what dilutes it
+
+Freeze one half of the traced pupil and let the other half vary. At 4.5 mm the
+**phase** carries 3.9219e-2 of the 4.1055e-2 total and the **amplitude** 8.9971e-3
+— so a patched render is bought for the aberration and gets the vignetting as
+change. On the axis the amplitude half vanishes outright, 2.8e-7, which is the
+even function above seen a third way. A caller holding a throughput profile and
+no traced wavefront has the small half of the effect everywhere and none of it on
+axis.
+
+Out-of-focus light **dilutes** all of this: the same comparison moves 5.5543e-2
+on a single plane where the five-slice stack moves 4.1055e-2. Haze carries no
+detail and is nearly insensitive to which patch's kernel formed it, so it enters
+both renders alike and enlarges the denominator of every relative error.
+
+**The corollary that does not follow is "a thick specimen needs fewer patches".**
+What fell is the *relative* error, on a larger total; the absolute one did not.
+The patch count is set by the in-focus content's share of the frame rather than
+by the stack's depth, and a caller who intends to deconvolve the haze away later
+is not entitled to the discount. The rung records the axis as its own control:
+with no throughput gradient to dilute, the ordering reverses.
+
+### § 6k.2 keeps its statement and gains a condition
+
+§ 6k.2 pins that the in-focus share of the light is the specimen's own and not
+the instrument's, because every plane delivers its whole flux however far out of
+focus it is. A field-varying pupil puts a second weight on that sum: the flux of
+patch p at depth z is T_p·F_{p,z}, and **T cancels from the ratio if and only if
+F factors into a field pattern times a depth pattern**.
+
+A uniform slab factors, and the cancellation there is exact to 1e-14 — which is
+exactly why a slab could never have caught this, and why the rung carries the
+non-separable case beside it. Put the in-focus material in one half of the frame
+and the haze in the other and the fraction moves −3.6329e-3 on a 1.6990e-2
+throughput span. The same shape as § 6bc's own lesson: the quantity that reads
+like a property of the specimen was reading a normalizer that happened to cancel.
+
+### One limit, derived twice and measured on five pupils
+
+A defocused kernel is wide and `convolveCircular` is periodic, so light leaving
+one edge of the frame re-enters at the other — in this module, for the first
+time, under a *different pupil's* patch. Two candidate limits say when that
+starts, and on an unaberrated pupil they coincide to the digit:
+
+    blur radius   = 4·n·ǀwǀ·size/pupilSamples px   against a half-frame of size/2
+    phase step    = 4·ǀwǀ/pupilSamples waves       against a Nyquist of ½
+
+Both give **ǀwǀ = pupilSamples/8**, and they are one statement twice: the shift
+theorem reads a phase ramp of half a wave per sample as a displacement of half a
+grid. Measured, escape past the frame is 7.19 / 5.45 / 4.53% there for
+pupilSamples 16 / 24 / 32 and converges to within a point of 16% a quarter past
+it, which is what makes it a knee rather than a slope.
+
+**On a traced pupil the identity fails and the readout survives it.** An
+aberrated pupil has spent part of the same budget before any defocus is applied
+— 0.245 waves of step on the shipped 4×/0.10 on axis — so `pupilSamples/8` is no
+longer where the knee sits. Read against `maxGridPhaseStepWaves` rather than
+against the defocus and five pupils spanning the ideal disc, the traced axis,
+4.5 mm, 6 mm and a frame corner reach a half-wave step between 1.5965 and 3.1304
+waves and escape 3.67–6.49% there: a spread above 1.9× in the cause collapsing
+to one below 1.8× in the effect. So the guard `incoherentPsf` has reported since
+§ 6i is the containment guard too.
+
+No `escapedFraction` is minted, and that is deliberate. Measuring one takes a
+grid of double the extent, which is a second render; the test does it and the
+module does not, because a readout that quoted the estimate as a measurement is
+the shape of trap § 6bc spent a step removing.
+
+### What this did to the prose already on the ladder
+
+No pinned number moved — the reductions are bitwise, so nothing downstream could
+have. Three claims in prose did:
+
+- **§ 6bc's own first "still open" bullet** is this step, and is struck below.
+- **`volume.ts`'s header** said `DepthPupils` is a callback so that a caller can
+  vary more than the defocus with depth, and that nothing in the engine did yet.
+  Something does now.
+- **`spectral-volume.ts`'s header** said "`patches` is not supported" and gave
+  the reconciliation as the reason. The reason is spent; the line is now a scope
+  boundary rather than a blocked one, and says so.
+- **`APP.md`'s A5** said a field decomposition has no analogue on the haze panel
+  because `renderVolume` takes one pupil keyed on depth. It has one now, and the
+  row is corrected rather than left to age.
+
+### Still open
+
+- **The third axis.** § 6bb runs a spectrum through a depth stack and this runs a
+  field through one; all three at once is its own step at `N_λ × patches² × N_z`
+  convolutions. Deferred rather than smuggled in, and `spectral-volume`'s line
+  now names it as scope.
+- **The shared-radius economy.** `imaging/render` caches PSF stacks on the patch
+  radius, since a p×p grid has far fewer distinct radii than patches, and turns
+  the reused kernel by the patch azimuth. Available here and not taken:
+  `rotateKernel` is bilinear, so a cached stack would be *nearly* the stack that
+  would have been formed, and § 6bd.1's two bitwise reductions are worth more
+  than the 3× they would cost. Cost is `patches² × slices` convolutions and it is
+  named rather than hidden.
+- **The weight is still not an absolute throughput**, **the fourth cosine** is
+  still nobody's, and **§ 3a's photometric zero point** is still open — all three
+  inherited verbatim from § 6bc.
 
 ## Later rungs
 
