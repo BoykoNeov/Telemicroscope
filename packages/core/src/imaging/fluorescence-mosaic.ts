@@ -7,8 +7,8 @@ import {
   type FocusCorrectedTilesOptions,
   type TileStageMm,
 } from "./focus-tiles";
-import type { FluorescenceSpectralStack } from "./emitter-spectrum";
-import type { SpectralVolumeEmitterDensity, VolumePlane } from "./spectral-volume";
+import type { EmitterPlane, FluorescenceSpectralStack } from "./emitter-spectrum";
+import type { SpectralVolumeEmitterDensity } from "./spectral-volume";
 
 /**
  * § 6bh — the fluorescence mosaic, and what a tile's edge is made of.
@@ -46,9 +46,9 @@ import type { SpectralVolumeEmitterDensity, VolumePlane } from "./spectral-volum
  * so "a thick specimen bleeds further, so guard it more" is the wrong instinct
  * on this branch. § 6bh.4 pins the ordering.
  *
- * **And the readout that ranks it already ships.** Nine configurations spanning
+ * **And the readout that ranks it already ships.** Seven configurations spanning
  * colour, correction and thickness put `maxGridPhaseStepWaves` and the escaped
- * fraction in the *same order*, with the jump between them landing exactly at
+ * fraction in the *same order*, with the jump between the two clusters straddling
  * § 6bd.8's half-wave knee. So a caller sizes a guard band from a number every
  * render has carried since § 6i, without the double-extent second render that
  * measuring the escape would cost.
@@ -61,10 +61,10 @@ import type { SpectralVolumeEmitterDensity, VolumePlane } from "./spectral-volum
  * anchor tile's ruler plane and nowhere else.
  *
  * What makes it load-bearing here is § 6be.8, whose open half this closes: a
- * frame's `halfExtentMm` is **∝ λ exactly** — 0.20536540701879996 mm at 430 nm
- * against 0.3134317885528963 at 656.2725, a ratio of 1.5262 against the
- * wavelengths' own 1.5262 — so one tile centre is a different amount of specimen
- * in every channel. The planes are already on the bluest one's ruler when a tile
+ * frame's `halfExtentMm` is **∝ λ exactly** — on § 6bh's own tile,
+ * 0.13691027134586664 mm at 430 nm against 0.20895452570193085 at 656.2725, whose
+ * ratio is `Object.is`-equal to the wavelengths' own — so one tile centre is a
+ * different amount of specimen in every channel. The planes are already on the bluest one's ruler when a tile
  * comes back from `fluorescenceSpectralVolume`, so the composed picture inherits
  * that ruler and the redder planes are over-guarded, by the closed form in
  * `effectiveGuardCells`.
@@ -82,7 +82,8 @@ import type { SpectralVolumeEmitterDensity, VolumePlane } from "./spectral-volum
  * apart. That is a **step** and not a gradient — nothing is blended across a
  * seam, following § 6o — and § 6bh.5 measures it where § 6bg.8 measured the
  * in-frame tilt: it is a field quantity, vanishing on the axis where the focus
- * surface is flat and reaching a third of a depth of focus at the field edge.
+ * surface is flat (0.00416 of a depth of focus, under § 6be.2's estimator floor)
+ * and reaching 0.15903 of one at 1 mm of field — 38.2× more.
  */
 
 /** Which plane's grid the picture is on, and what that costs the others. */
@@ -116,6 +117,8 @@ export interface FluorescenceMosaicGeometry {
   readonly tileSize: number;
   /** Side of a tile's stacked grid — `tileSize − 2·croppedPixels`. */
   readonly stackedSize: number;
+  /** Pixels each plane loses per edge reaching the common ruler (§ 6r). */
+  readonly croppedPixels: number;
   /** Pixels of guard dropped from each edge of the stacked grid. */
   readonly guardPixels: number;
   readonly guardCells: number;
@@ -179,9 +182,20 @@ export interface FluorescenceMosaic {
    *
    * Shaped as a `FluorescenceSpectralStack` so that `colorImageFromStack` takes
    * it unchanged — a mosaic is a bigger picture and not a different kind of one.
-   * Each plane's `intensity` is `size × size`; every other field is the anchor
-   * tile's, because they describe the ruler the picture is on and that is read
-   * on the anchor and nowhere else.
+   *
+   * Each plane's `intensity` is `size × size`, and every field describing the
+   * **ruler** — `pixelScaleMm`, `sourcePixelScaleMm`, `resampleRatio`, `frame` —
+   * is built from `geometry`'s own anchor frames rather than borrowed from a
+   * rendered tile. The distinction is not cosmetic: with an EVEN tile count no
+   * tile sits on the anchor at all, so there is no tile whose ruler is the
+   * picture's, and taking one would make `composed.pixelScaleMm` disagree with
+   * `geometry.pixelScaleMm` (§ 6bh.2's rung pins that they do not).
+   *
+   * The **per-tile** quantities a single volume carries — `focusMm`,
+   * `inFocusFraction`, `patchThroughput`, `maxStretchDeparture` — are
+   * deliberately NOT here. A mosaic has one per tile and no single value, and
+   * § 6bg.5 is the standing warning about a readout quoted where its reference
+   * has moved. They stay on `tiles[k].volume`, where they are true.
    */
   readonly composed: FluorescenceSpectralStack;
   /** Exposures the whole series is, summed over tiles — `focusCorrectedTiles`'s. */
@@ -281,6 +295,7 @@ export function fluorescenceMosaicGeometry(
     tilesPerAxis: tiles,
     tileSize: size,
     stackedSize,
+    croppedPixels,
     guardPixels,
     guardCells,
     keptPixels,
@@ -394,8 +409,8 @@ export function renderFluorescenceMosaic(
     ...(options.onTile === undefined ? {} : { onTile: options.onTile }),
   });
 
-  const anchorTile = rendered.tiles[Math.floor(rendered.tiles.length / 2)]!;
-  const planeCount = anchorTile.volume.planes.length;
+  const first = rendered.tiles[0]!.volume;
+  const planeCount = first.planes.length;
   const composed = Array.from({ length: planeCount }, () => new Float64Array(size * size));
 
   const tiles: FluorescenceMosaicTile[] = rendered.tiles.map((tile, i) => {
@@ -423,19 +438,34 @@ export function renderFluorescenceMosaic(
     maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, tile.volume.maxGridPhaseStepWaves);
   }
 
-  // Everything but the pixels is the anchor tile's, because everything but the
-  // pixels describes the ruler the picture is on, and that is read on the anchor
-  // and nowhere else — `mosaicTileAt`'s rule, one layer up.
-  const template = anchorTile.volume;
-  const planes: VolumePlane[] = template.planes.map((p, i) => ({
-    ...p,
+  // The ruler is the ANCHOR's and is taken from the geometry, not from a tile:
+  // an even tile count puts no tile on the anchor, so there is no tile to borrow
+  // it from. `weight` and `meanWavelengthNm` are read off the first tile because
+  // they are functions of `samples` and the emission filter alone — the same
+  // number in every tile by construction — and reading them keeps one expression
+  // for the filter rather than a second that merely agreed.
+  const planes: EmitterPlane[] = geometry.planes.map((p, i) => ({
+    nm: p.nm,
+    weight: first.planes[i]!.weight,
     intensity: composed[i]!,
+    sourcePixelScaleMm: p.frame.pixelScaleMm,
+    resampleRatio: p.resampleRatio,
+    frame: p.frame,
   }));
 
   return {
     geometry,
     tiles,
-    composed: { ...template, size, planes },
+    composed: {
+      size,
+      pixelScaleMm: geometry.pixelScaleMm,
+      meanWavelengthNm: first.meanWavelengthNm,
+      rulerWavelengthNm: geometry.rulerWavelengthNm,
+      croppedPixels: geometry.croppedPixels,
+      samples: options.samples,
+      planes,
+      maxGridPhaseStepWaves,
+    },
     exposures: rendered.exposures,
     stageSpreadMm: rendered.stageSpreadMm,
     maxGridPhaseStepWaves,

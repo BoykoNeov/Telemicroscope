@@ -20344,6 +20344,7 @@ is not what § 6o's is.
 | --- | --- | --- |
 | **§ 6bh.1 — a one-tile mosaic IS the tile it composes** | `Object.is` on every pixel of every plane against `focusCorrectedTiles`'s own tile cropped by hand, and the correction it carries is that function's | ✅ |
 | | CONTROL: the kept span is nowhere zero, two tiles differ in > 90% of their pixels, and `colorImageFromStack` takes the composed stack unchanged | ✅ |
+| | the composed ruler is the ANCHOR's at 1, 2 and 3 tiles per axis — the EVEN case has no tile on the anchor to borrow it from, and its own tiles all read a different scale | ✅ |
 | **§ 6bh.2 — the ruler is the bluest plane, and `halfExtentMm` is ∝ λ** | 0.13691027134586664 mm at 430 against 0.20895452570193085 at 656.2725 — the ratio is the WAVELENGTHS' ratio to the last bit, `Object.is`-equal and not merely close | ✅ |
 | | so the ruler is chosen by scale, and `effectiveGuardCells` is **4.25 at the ruler** against 7.4009 and 8.3012 further red — § 6t's ordering, on a branch whose planes are stacked before this module sees them | ✅ |
 | **§ 6bh.3 — the pitch is uniform, on a measurement** | 4.1798e-5 of a pixel from the abutment fixed point across three tiles, re-measured on this branch's own kept span rather than inherited | ✅ |
@@ -20355,7 +20356,7 @@ is not what § 6o's is.
 | | …and the two compound, 11.516% for a thick specimen at the nominal stage | ✅ |
 | | **`maxGridPhaseStepWaves` orders the escape** over all seven configurations of colour, correction and thickness — a readout that has shipped since § 6i, against a measurement that costs a second double-extent render | ✅ |
 | **§ 6bh.5 — the seam's focus step is a FIELD quantity** | 1.7978e-4 mm on the axis against 6.8737e-3 mm at 1 mm of field — **38.2×**, and 0.00416 against 0.15903 depths of focus | ✅ |
-| | the axial figure is under § 6be.2's 1.2e-3 mm estimator floor, and the edge figure is half § 6bg.8's in-frame tilt one tile further out, which it must be | ✅ |
+| | the axial figure is under § 6be.2's 1.2e-3 mm estimator floor; the edge figure LANDS AT half § 6bg.8's in-frame tilt, read on a different grid and at a different radius, so the factor is suggestive and is not pinned | ✅ |
 | **§ 6bh.6 — the refusals** | a fractional or non-positive tile count, a guard that is not whole pixels, a guard that eats the tile, a negative guard, an empty band, and a tile whose own traced height runs past the swept surface | ✅ |
 
 ### The guard band is the correction's business
@@ -20449,9 +20450,13 @@ same stage to within 0.00416 of a depth of focus, which is under § 6be.2's
 estimator floor and is bookkeeping rather than a measurement.
 
 The edge figure, **0.15903 of a depth of focus**, is the honest cost of composing
-a corrected mosaic, and it reconciles with § 6bg.8 rather than competing with it:
-a seam step is the surface's rise across one *pitch* and § 6bg.8's 0.3183 is its
-rise across a whole *frame* one tile further out. A per-tile correction converts a
+a corrected mosaic, and it sits beside § 6bg.8 rather than competing with it: a
+seam step is the surface's rise across one *pitch* and § 6bg.8's 0.3183 is its
+rise across a whole *frame* one tile further out. That it lands at almost exactly
+half is **suggestive and is not pinned as an identity** — the two are read on
+different grids (32 pupil samples here against 48 there) and at different radii,
+so a factor of 2.0018 is a coincidence this step has not earned the right to
+derive. What is pinned is the field dependence. A per-tile correction converts a
 continuous tilt into a staircase; it does not remove it.
 
 ### What this did to the prose already on the ladder
@@ -20474,6 +20479,15 @@ without knowing it was in a mosaic.
 
 ### Still open
 
+- **The composed stack carries no per-tile readout.** `focusMm`,
+  `inFocusFraction`, `patchThroughput` and `maxStretchDeparture` are per-tile and
+  a mosaic has one of each per tile, so they stay on `tiles[k].volume` and no
+  mosaic-wide summary of them is offered. What a caller wanting one should
+  compute is not obvious — § 6bg.5's inversion is the reason to be careful about
+  it — and this step declines rather than choosing.
+- **The seam step's factor of 2 against § 6bg.8 is not derived.** It lands at
+  half, on a different grid and at a different radius, and is left as a
+  coincidence rather than promoted to a relation.
 - **The mosaic has no BLEND and no flat-field.** Seams are steps by construction,
   following § 6o, and § 6bh.5 measures the focus step across one. Nothing
   feathers a seam, and nothing corrects the throughput's own field profile —

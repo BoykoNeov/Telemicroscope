@@ -184,6 +184,31 @@ describe("§ 6bh.1 — a one-tile mosaic IS the tile it composes", () => {
     expect(image.pixelScaleMm).toBe(three.geometry.pixelScaleMm);
     expect(three.geometry.size).toBe(3 * three.geometry.keptPixels);
   });
+
+  it("and the composed ruler is the ANCHOR's — including when no tile is on it", () => {
+    // The case that catches a template borrowed from a tile index: an even tile
+    // count puts no tile on the anchor, so a mosaic that reads its ruler off
+    // "the middle tile" advertises an off-axis tile's scale while `geometry`
+    // advertises the anchor's, and the two silently disagree.
+    for (const tiles of [1, 2, 3]) {
+      const m = renderFluorescenceMosaic(SYSTEM, DENSITY, mosaicOptions({ tiles }));
+      expect(m.composed.pixelScaleMm).toBe(m.geometry.pixelScaleMm);
+      expect(m.composed.rulerWavelengthNm).toBe(m.geometry.rulerWavelengthNm);
+      expect(m.composed.size).toBe(m.geometry.size);
+      for (let i = 0; i < SAMPLES.length; i++) {
+        const plane = m.composed.planes[i]!;
+        expect(plane.resampleRatio).toBe(m.geometry.planes[i]!.resampleRatio);
+        expect(plane.sourcePixelScaleMm).toBe(m.geometry.planes[i]!.frame.pixelScaleMm);
+        expect(plane.intensity).toHaveLength(m.geometry.size * m.geometry.size);
+      }
+    }
+    // …and an even mosaic's own tiles do NOT read the anchor's scale, which is
+    // what makes the assertion above a real one rather than a tautology.
+    const even = renderFluorescenceMosaic(SYSTEM, DENSITY, mosaicOptions({ tiles: 2 }));
+    for (const tile of even.tiles) {
+      expect(tile.volume.pixelScaleMm).not.toBe(even.geometry.pixelScaleMm);
+    }
+  });
 });
 
 describe("§ 6bh.2 — the ruler is the bluest plane, and `halfExtentMm` is ∝ λ", () => {
@@ -402,10 +427,13 @@ describe("§ 6bh.5 — the seam's focus step is a FIELD quantity", () => {
 
   it("and reaches a sixth of a depth of focus at the field edge", () => {
     // 0.00416 against 0.15903 depths of focus. The axial figure is under
-    // § 6be.2's 1.2e-3 mm estimator floor and is bookkeeping; the edge figure is
-    // half § 6bg.8's 0.3183 in-frame tilt one tile further out, which it must be
-    // — a seam step is the surface's rise across ONE pitch and the in-frame tilt
-    // is its rise across a whole frame.
+    // § 6be.2's 1.2e-3 mm estimator floor and is bookkeeping. The edge figure
+    // LANDS AT half § 6bg.8's 0.3183 in-frame tilt, which is the same kind of
+    // quantity read one tile further out — a seam step is the surface's rise
+    // across one PITCH and the in-frame tilt is its rise across a whole FRAME —
+    // but the factor is not derived here: the two are read on different grids
+    // (32 against 48 pupil samples) at different radii, so the agreement is
+    // suggestive and is not pinned as an identity.
     expect(seamStepMm(0) / DOF430).toBeCloseTo(4.159455588293538e-3, 13);
     expect(seamStepMm(4) / DOF430).toBeCloseTo(0.15902743771693587, 12);
     expect(seamStepMm(0)).toBeLessThan(1.2e-3);
