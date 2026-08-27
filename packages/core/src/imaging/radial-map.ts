@@ -138,6 +138,18 @@ export interface RadialMapOptions {
   readonly aim?: AimOptions;
   /** Default `"height"`; see `RadialTabulation`. */
   readonly tabulate?: RadialTabulation;
+  /**
+   * Opens `objectHeightForImageRadius`'s bracket, and nothing else — § 6m
+   * pins that the seed chooses the PATH and not the answer, six seeds spanning
+   * 10^7 agreeing bitwise.
+   *
+   * It is not an economy. Unseeded the bracket opens at the image radius
+   * itself, which is an object height `M` times too large, and on an objective
+   * past about 4x that probe height is outside the field the chief ray survives
+   * — so the table does not converge slowly, it THROWS. Omitted here is the
+   * behaviour every caller had before this option existed.
+   */
+  readonly magnification?: number;
 }
 
 export interface RadialMap {
@@ -248,7 +260,10 @@ export function buildRadialMap(system: OpticalSystem, options: RadialMapOptions)
   const spacingMm = maxRadiusMm / nodes;
   const heights = new Float64Array(nodes + 2);
   for (let k = 1; k <= nodes + 1; k++) {
-    heights[k] = objectHeightForImageRadius(system, k * spacingMm, wavelengthNm, { aim });
+    heights[k] = objectHeightForImageRadius(system, k * spacingMm, wavelengthNm, {
+      aim,
+      ...(options.magnification === undefined ? {} : { magnification: options.magnification }),
+    });
   }
 
   // The linear reference is the map's own first node, not a paraxial

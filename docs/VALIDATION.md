@@ -20,7 +20,7 @@ whole ladder.
 | [1](#step-1--geometry-materials-ray-tracing) | Snell, Fresnel, conics, glass catalogs, paraxial + exact trace, mirrors | `geometry` `materials` `interaction` `paraxial` `sequential` `physics` `math` |
 | [1.5](#step-15--system-spec--pupils) | Entrance/exit pupils, ray aiming, OPD at the exit pupil; **1.5.1** an NA read as Abbe's n·sin u rather than as a paraxial slope; **1.5.2** an aim is a line, so a virtual entrance pupil still launches forward; **1.5.3** real aiming, because a misalignment MOVES the stop | `pupil` `opd` `compile` `real-aiming` |
 | [1.6](#step-16--focus-solve--spot-diagrams) | The three focus criteria and the 4/3 and 2 ratios between them; and the bracket that makes the wavefront solve a minimum rather than an edge | `focus` |
-| [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — and the three findings that are not the arithmetic: the search is a stated interval so multiplicity is reported rather than chosen, an EFL pole is a sign change that is not a root, and a scan cell holding two roots holds none | `solve` |
+| [1.7](#step-17--the-paraxial-solve-the-root-a-design-target-names) | Design mode's first half: a parameter solved for a first-order target, pinned against Gullstrand INVERTED rather than evaluated — the search is a stated interval, so multiplicity is reported rather than chosen, and an EFL pole is a sign change that is not a root | `solve` |
 | [1.8](#step-18--damped-least-squares-the-compromise-a-merit-settles-on) | Design mode's second half: Coddington's best form and the achromat's power split, reached by a solve whose targets are TRACED — spot, wavefront, MTF — and whose conditioning, step scale and per-target currency are each their own rung | `optimize` |
 | [2a](#step-2a--fft--zernike-basis) | FFT transform pairs; Noll indexing, closed forms, orthonormality | `fft` `zernike` |
 | [2b](#step-2b--psf--mtf) | Airy encircled energy, Maréchal Strehl, closed-form circular MTF | `psf` |
@@ -114,6 +114,7 @@ whole ladder.
 | [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
 | [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm varies 1.699e-2, and the one-pupil error changes SIGN with radius | `field-volume` |
 | [6be](#step-6be--the-third-axis) | The third axis — best focus SEPARATES into a colour curve plus a field curve (interaction 0.03 of a depth of focus), and the field term is EVEN, so § 6bb.6's on-axis 3.88 depths of focus is 5.79 over the square | `spectral-field-volume` |
+| [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² is the ladder's own 4× at its own wavelength read over its outer third, the edge coefficient goes as f^-0.60 across three objectives, and a sweep that reads a plateau is refused | `focus-surface` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -19820,11 +19821,16 @@ No pinned number moved, and the bitwise rung is why nothing could have.
   with depth, § 6az and § 6bb the map and the defocus; a mount whose index is not
   the immersion's does all three, and its rescale is not `1 + z·k` at all. Now
   with a wavelength and a field as further independent axes.
-- **A focus surface is measured here and not offered.** § 6be.2 says a correction
-  wants two one-dimensional curves; nothing in the engine returns them, and a
-  `focusSurface` readout that did would be the natural next rung. It is deferred
-  rather than half-built, because the curve that matters is per objective and the
-  ladder has one.
+- ~~**A focus surface is measured here and not offered.** § 6be.2 says a
+  correction wants two one-dimensional curves; nothing in the engine returns
+  them, and a `focusSurface` readout that did would be the natural next rung. It
+  is deferred rather than half-built, because the curve that matters is per
+  objective and the ladder has one.~~ **Closed by
+  [§ 6bf](#step-6bf--the-focus-surface-offered)**, which builds the readout and
+  measures two more objectives — and finds the objection was right in a stronger
+  way than it knew: the curve is per objective in SHAPE, not only in scale, and
+  the h² reading above is this objective's, at this wavelength, over the outer
+  third of its field.
 - **The mosaic is still where the field lives.** § 6be.7 bounds what patches
   reach at 0.409 of a depth of focus inside one frame; the other 0.25 mm needs
   § 6r's mosaic, whose own `halfExtentMm` ∝ λ deferral § 6be.8 has now measured
@@ -19832,6 +19838,200 @@ No pinned number moved, and the bitwise rung is why nothing could have.
 - **The shared-radius economy**, **the weight is still not an absolute
   throughput**, **the fourth cosine**, and **§ 3a's photometric zero point** — all
   four inherited verbatim from § 6bd.
+
+## Step 6bf — the focus surface, offered
+
+Source: `packages/core/src/imaging/focus-surface.ts` ·
+Tests: `packages/core/test/focus-surface.test.ts`
+
+§ 6be measured where the stage has to be for each colour and each field point,
+found the two separate, and closed by saying that a focus correction therefore
+wants two one-dimensional curves rather than a map — then returned neither. It
+deferred the readout on one objection: the curve that matters is per objective,
+and the ladder had one. This step builds the readout, and answers that objection
+by measuring two more objectives.
+
+The wiring is again the smallest part of it. § 6be's estimator moves into source
+unchanged, `spectral-field-volume.test.ts` imports it, and § 6bf.1 pins the swap
+**bitwise** — so every figure in that file is now the shipped readout's own
+output rather than a second construction that resembles it.
+
+What the deferral did not expect is that its own objection was right in a
+stronger way than it knew.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bf.1 — the readout IS § 6be's estimator, bitwise** | five (wavelength, height) pairs at three wavelengths and two field radii: `Object.is` on the vertex and on the peak against the sweep written out | ✅ |
+| | and it returns § 6bb.6's on-axis figures, 0.21400556 / 0.04709541 / 0.06736525 mm, to the digits § 6be pinned them to | ✅ |
+| | § 6be's own file now calls it, so its twelve-point surface and every number read off it stand untouched | ✅ |
+| **§ 6bf.2 — the bracket does not have to be handed in** | a coarse pass seeded from `focusDepthMm` returns 0.21400523 mm against § 6be's hand-tabulated 0.21400556 — 3.3e-7 mm, under 1e-4 of a depth of focus and three orders below § 6be.2's floor | ✅ |
+| | and the seed is not an estimate: the paraxial shift is 0.1102 mm where the picture is sharpest at 0.2140, § 6bb.7's 50%, so it opens the bracket and cannot choose it | ✅ |
+| | a window that may not widen onto a maximum **refuses** rather than returning its own edge | ✅ |
+| **§ 6bf.3 — a COEFFICIENT is not the field curve** | the 4× at its design wavelength is quadratic across the whole field: the h² coefficient runs −0.066276 → −0.068860 mm/mm², +3.90%, wobbling with no trend | ✅ |
+| | the SAME objective at 430 nm drifts −11.14% and **monotonely**, −0.076898 → −0.068331 — which a wobble about a constant does not do | ✅ |
+| | and § 6be could not have seen it: across its own outer-third pair the 430 nm coefficient is constant to 0.16%, against 12% over the full field | ✅ |
+| **§ 6bf.4 — the curve is per objective in SHAPE, not only in scale** | the edge coefficient is 0.045459 / 0.068860 / 0.120476 mm/mm² at focal lengths 75 / 37.5 / 15 mm — **f^-0.60**, three independent pairs agreeing to 2%, where a form that merely scaled gives f^-1 | ✅ |
+| | the negative control on that: a scaled form demands the 10× sit at 2.5× the 4×. It is 1.749579× | ✅ |
+| | and the shape differs too — the 10× drifts 48.70% across the same field the 4× is flat to 6.75% over, monotonely at every height | ✅ |
+| | not the estimator giving up: the 10×'s sweeps are conditioned within 2.2% of the 4×'s own, 0.405839 against 0.397282 of a depth of focus | ✅ |
+| **§ 6bf.5 — a plateau is REFUSED, not reported** | the 2×/0.10 at 430 nm and object height 0.7 mm: the parabola fits, and the readout throws | ✅ |
+| | and the same objective at the same height at its design wavelength reads a real vertex, under one depth of focus — so the refusal is about the configuration and not about the objective | ✅ |
+| **§ 6bf.6 — a 10× renders only with a seeded bracket** | unseeded, the inverse chief-ray map refuses at object height 0.55 mm; seeded with the frame's own magnification the same sweep runs | ✅ |
+| | and the seed is opt-in because it is not free: where both paths work the table moves 3.9e-16 and a rendered pixel 1.6e-12, and § 6bb.1 compares bitwise | ✅ |
+| **§ 6bf.7 — the readout reports its own separability** | the interaction over the 4×'s grid is 2.152515e-3 mm, 4.980007e-2 of a depth of focus | ✅ |
+| | and with two wavelengths the two-curve prediction's worst error is **exactly half** of it, to fifteen decimals — which is what makes the figure the thing to read the prediction against rather than a decoration on it | ✅ |
+| | a one-wavelength surface cannot disagree with itself: interaction 0, and the prediction is the sample | ✅ |
+| **§ 6bf.8 — the refusals** | a field curve read against a height other than 0, an empty band, a sweep whose window has no interior, and a non-positive plateau limit | ✅ |
+
+### The estimator moves into source, which is what makes § 6be the reproduction
+
+The lesson § 6be closed on was to reproduce the number you are extending, with
+its own method, before extending it. The cheapest way to keep doing that is not
+to have two methods. So `renderedBestFocus` **is** § 6be's sweep — the same tile,
+the same probe at the tile's own object centre, the same three-point parabola —
+and § 6bf.1 pins the two `Object.is`-equal on the vertex and on the peak before
+§ 6be's file is switched over to it. After the switch that file's every figure is
+the readout's output, so any future drift in the estimator fails § 6be's rungs
+rather than passing quietly beside them.
+
+Two things could not move into source with it. The **aberration-free control**
+of § 6be.5 renders through `renderVolume` on an ideal pupil rather than through
+`formVolumePlane`, deliberately, and stays written out. And the **hand-tabulated
+brackets** could not ship at all — twelve numbers a human read off a coarse pass
+is not a readout — which is § 6bf.2.
+
+### The seed opens the bracket and does not choose the answer
+
+`focusDepthMm` is the paraxial catalogue shift, and § 6bb.7 pins it 50% away
+from where the picture is actually sharpest. That is exactly what makes it a good
+seed and a useless estimate: 0.1102 mm against 0.2140 mm at 430 nm, close enough
+to open a bracket around and nowhere near close enough to be mistaken for the
+answer. The coarse pass doubles its window until the maximum is interior and
+**throws** if it runs out of doublings — `analysis/focus`'s own rule, that this
+engine refuses an undefined readout instead of printing one, and for the reason
+§ 1.6 gives: a search that returns its own edge does it silently.
+
+Auto-seeded, the answer lands 3.3e-7 mm from § 6be's hand-bracketed figure. That
+gap is worth naming for what it is: the vertex depends on where the fine grid's
+points happen to fall relative to the peak, and that dependence is three orders
+under the 1.2e-3 mm floor § 6be.2 measured for the estimator as a whole.
+
+### A coefficient is not the field curve
+
+§ 6be read the field term as h² and found one curve serving every wavelength to
+2.3%. Read across the whole field rather than its outer third, that is a
+statement about **one objective at one wavelength**.
+
+The 4× at its own design wavelength does hold it: the coefficient runs
+−0.066276, −0.069060, −0.070752 and −0.068860 mm/mm² — it rises and then falls,
+which is a wobble about a constant and not a shape. The same objective at 430 nm
+runs −0.076898, −0.076175, −0.068439, −0.068331: a monotone fall of 11.14%, four
+heights in a row, in the same direction.
+
+And the reason § 6be reported 1.04% rather than 11% is **where it sampled**. Its
+two heights are the outer two of these four, and across just those the
+coefficient is constant to 0.16% — the drift is all in the inner field, which it
+did not read. That is the fourth time the ladder has been caught by where a
+quantity was sampled rather than by what it read: § 6bc on the axis, § 6bd's
+repair of it, § 6be's own finding that § 6bb.6 sat at the field term's flat spot,
+and now the outer third of that same field term.
+
+### The curve is per objective, and not by a rule either
+
+Three objectives from the same solver, at the same numerical aperture, over the
+same object heights, at the design wavelength. The edge coefficient is 0.045459,
+0.068860 and 0.120476 mm/mm² at focal lengths 75, 37.5 and 15 mm.
+
+A doublet form that merely scaled would put a Petzval-shaped term at f^-1 — a
+factor 5 across that range. It is a factor 2.65, and the three pairs of
+objectives give exponents 0.5991, 0.6104 and 0.6058: **f^-0.60 to 2%**, which is
+a clean power law and is not the one scaling predicts. The forms are not
+similar — the working focal ratio moves from F/3.38 to F/4.65 across the three —
+so the solver is not producing a scaled copy, and there is no rule here to
+substitute for measuring the objective in front of you.
+
+The **shape** is per objective as well, which is the stronger half. The 10×'s
+coefficient drifts 48.70% across the field, monotonely at every height, where the
+4× is flat to 6.75% over the same heights. The obvious objection is that a longer
+sweep on a worse-corrected objective is just a worse-conditioned estimate, and
+§ 6bf.4's last rung answers it: the 10×'s sweeps are conditioned to 0.405839 of a
+depth of focus against the 4×'s own 0.397282, within 2.2%. The same estimator, at
+the same sharpness, reads a flat curve on one and a drifting one on the other.
+
+### A sweep stops resolving before it stops returning a number
+
+The 2× is where that objection is not answerable, and the readout says so rather
+than being caught by it. At 430 nm its best focus sits twelve depths of focus
+from nominal, past this cemented doublet's Maréchal reach (§ 6as pins that at
+0.10295 NA on the 4×, and a 2× at NA 0.10 is on the wrong side of it), and its
+axial response flattens into a plateau with secondary structure either side. The
+three-point parabola fits it perfectly well and returns a vertex. Two object
+heights 0.35 mm apart returned vertices 5e-4 mm apart — which is nothing, from a
+field term that should have moved them thirty times that.
+
+So every sample carries the half-width over which its own peak falls 5%, in
+depths of focus, and `maxPlateauDepths` refuses the sweep rather than reporting a
+vertex read off a plateau. On the configurations that mean anything it sits
+between 0.32 and 0.90; on the 2× at 430 nm it does not, and the readout throws.
+The same objective at its design wavelength passes, which is what says the
+refusal is about a configuration and not about an objective.
+
+This is the discriminator lesson of § 6be.2 turned into an interface: a residual
+at the resolution limit needs something that distinguishes it from no residual,
+and a caller who cannot see the resolution limit cannot look for one.
+
+### What a 10× cost, and why the fix is opt-in
+
+The third objective did not render at all at first. `buildRadialMap` tabulates
+the inverse chief-ray map, and unseeded that inversion opens its bracket at the
+**image radius**, which is `M` object heights out — fine at 4×, and past the
+field the chief ray survives at 10×, so the table does not converge slowly, it
+throws. Every other inversion on the imaging path already passes the frame's own
+magnification; this one did not.
+
+§ 6m pins that the seed chooses the path and not the answer, six seeds spanning
+10⁷ agreeing bitwise, and the temptation was to wire the seed in and call it
+free. It is not free. Where both paths work the seeded table differs from the
+unseeded one by 3.9e-16 of a height and 1.6e-12 of a rendered pixel — the
+mantissa, and § 6bb.1 compares a rendered plane **bitwise**, so wiring it in
+re-pins that rung to buy an ulp. So `magnification` is an opt-in option on
+`RadialMapOptions` whose omission is exactly the behaviour every caller had
+before it existed, `focus-surface` asks for it by name, and the size of what it
+costs is pinned so that nobody has to guess later.
+
+### What this did to the prose already on the ladder
+
+No pinned number moved, and § 6bf.1's bitwise rung is why none could have.
+
+- **§ 6be's focus-surface deferral** is this step, and is struck above.
+- **§ 6be.4's h² reading** is not withdrawn — it is reproduced here to the digit —
+  but it is now qualified where it stands: it is that objective, at that
+  wavelength, over the outer third of that field.
+- **`radial-map.ts`'s `RadialMapOptions`** gained `magnification`, opt-in, with
+  the cost of using it in its own doc comment.
+- **APP.md's fluorescence-colour row** said the correction a per-exposure focus
+  control would need is two one-dimensional curves and that nothing returns
+  them. Something does now, and the row says what it is worth.
+
+### Still open
+
+- **The readout has no fit.** It returns sampled points and the conditioning of
+  each, deliberately — § 6bf.3 is the argument that a coefficient handed back as
+  *the* curve would be wrong on two of the three objectives measured here. An
+  even-polynomial fit with a reported residual would still be useful, and is not
+  built, because the honest fit's ORDER is itself per objective.
+- **Nothing corrects with the curve.** `separatedFocusMm` predicts a stage
+  position; no renderer takes one per channel or per tile, and § 6be.7's finding
+  that the tilt inside one frame is 0.409 of a depth of focus says a per-tile
+  correction is where this would first pay.
+- **The seeded table is not the default**, for the ulp § 6bf.6 measures. Wiring
+  it in is a re-pin of § 6bb.1 and a handful of bitwise seams below it, and it
+  would make every high-magnification objective renderable without an option.
+  Priced here, not taken.
+- **Depth-dependent pupils are not depth-dependent maps**, **the mosaic is still
+  where the field lives**, **the shared-radius economy**, **the weight is still
+  not an absolute throughput**, **the fourth cosine**, and **§ 3a's photometric
+  zero point** — all six inherited verbatim from § 6be.
 
 ## Later rungs
 

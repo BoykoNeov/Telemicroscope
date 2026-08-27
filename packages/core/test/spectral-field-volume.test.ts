@@ -16,6 +16,11 @@ import { gaussianEmitter } from "../src/imaging/emitter-density";
 import { pupilThroughput } from "../src/imaging/fluorescence";
 import { radialMapCovering } from "../src/imaging/radial-map";
 import { defocusing, renderVolume } from "../src/imaging/volume";
+import {
+  renderedBestFocus,
+  type FocusProbe,
+  type FocusSweepOptions,
+} from "../src/imaging/focus-surface";
 import { fieldDefocusing, renderFieldVolume } from "../src/imaging/field-volume";
 import { idealPupil } from "../src/illumination/transfer";
 import {
@@ -147,7 +152,16 @@ function tileAtHeight(nm: number, objectHeightMm: number) {
   });
 }
 
-function peakAt(nm: number, objectHeightMm: number, focusMm: number, ideal: boolean): number {
+/**
+ * The ABERRATION-FREE control's peak — § 6be.5's estimator zero, and the only
+ * sweep this file still writes out.
+ *
+ * The traced sweep beside it moved into `imaging/focus-surface` at § 6bf and is
+ * called through `renderedBestFocus` below, so every figure in this file is
+ * now the shipped readout's output rather than a second construction that
+ * resembles it. § 6bf.1 pins the two identical, bitwise, before the swap.
+ */
+function idealPeakAt(nm: number, objectHeightMm: number, focusMm: number): number {
   const frame = tileAtHeight(nm, objectHeightMm);
   const ball = gaussianBallEmitter({
     waistMm: 0.005,
@@ -155,40 +169,42 @@ function peakAt(nm: number, objectHeightMm: number, focusMm: number, ideal: bool
     peak: 1,
     centreMm: { x: frame.centreObjectMm.x, y: frame.centreObjectMm.y, z: 0 },
   });
-  let intensity: Float64Array;
-  if (ideal) {
-    const volume = rasterizeEmitterVolume(frame, ball, {
-      radialMap: radialMapCovering(SYSTEM, [frame], { nodes: 128 }),
-      rescale: depthRescale(SYSTEM, nm),
-      slabs: uniformSlabs(-0.008, 0.008, 3),
-      focusMm,
-    });
-    intensity = renderVolume(volume, defocusing(idealPupil()), {
-      pupilSamples: FOCUS_PS,
-      numericalAperture: objectNumericalAperture(SYSTEM, nm),
-      wavelengthNm: nm,
-      refractiveIndex: 1,
-      scale: frame.scale,
-    }).intensity;
-  } else {
-    intensity = formVolumePlane(
-      SYSTEM,
-      neutralVolumeEmitterDensity(ball),
-      {
-        size: FOCUS_SIZE,
-        pupilSamples: FOCUS_PS,
-        samples: [],
-        slabs: uniformSlabs(-0.008, 0.008, 3),
-        focusMm,
-      },
-      { nm, weight: 1 },
-      frame.centreMm,
-    ).image.intensity;
-  }
+  const volume = rasterizeEmitterVolume(frame, ball, {
+    radialMap: radialMapCovering(SYSTEM, [frame], { nodes: 128 }),
+    rescale: depthRescale(SYSTEM, nm),
+    slabs: uniformSlabs(-0.008, 0.008, 3),
+    focusMm,
+  });
+  const { intensity } = renderVolume(volume, defocusing(idealPupil()), {
+    pupilSamples: FOCUS_PS,
+    numericalAperture: objectNumericalAperture(SYSTEM, nm),
+    wavelengthNm: nm,
+    refractiveIndex: 1,
+    scale: frame.scale,
+  });
   let peak = 0;
   for (const v of intensity) if (v > peak) peak = v;
   return peak;
 }
+
+const BALL: FocusProbe = (centreMm) =>
+  gaussianBallEmitter({ waistMm: 0.005, axialWaistMm: 0.004, peak: 1, centreMm });
+
+/**
+ * The sweep § 6bf moved into source, configured as this file always ran it.
+ *
+ * `maxPlateauDepths` is set loose deliberately: this file pins focus POSITIONS,
+ * and where the refusal bites is § 6bf.5's quantity, measured there against the
+ * 2× whose axial response actually flattens. The 4×'s worst sample here reads
+ * 0.90 of a depth of focus.
+ */
+const SWEEP: Omit<FocusSweepOptions, "stepMm" | "halfMm"> = {
+  size: FOCUS_SIZE,
+  pupilSamples: FOCUS_PS,
+  slabs: uniformSlabs(-0.008, 0.008, 3),
+  probe: BALL,
+  maxPlateauDepths: 2,
+};
 
 /**
  * The stage position that maximizes the peak, § 6bb.6's parabola.
@@ -197,6 +213,11 @@ function peakAt(nm: number, objectHeightMm: number, focusMm: number, ideal: bool
  * whether the maximum was found strictly inside the swept window, and every
  * rung below asserts it. A bracket that had contained no peak would fail there
  * rather than return its own edge.
+ *
+ * Since § 6bf the traced branch is `renderedBestFocus` — the same arithmetic,
+ * pinned bitwise by § 6bf.1, so every number below is unmoved by the move. The
+ * aberration-free branch stays written out because the readout renders through
+ * `formVolumePlane` and § 6be.5's control deliberately does not.
  */
 function bestFocus(
   nm: number,
@@ -206,13 +227,22 @@ function bestFocus(
   half: number,
   ideal = false,
 ): { mm: number; interior: boolean } {
+  if (!ideal) {
+    const point = renderedBestFocus(SYSTEM, nm, objectHeightMm, {
+      ...SWEEP,
+      stepMm: step,
+      halfMm: half,
+      aboutMm: about,
+    });
+    return { mm: point.focusMm, interior: point.interior };
+  }
   const xs: number[] = [];
   const ys: number[] = [];
   const n = Math.round(half / step);
   for (let i = -n; i <= n; i++) {
     const focusMm = about + i * step;
     xs.push(focusMm);
-    ys.push(peakAt(nm, objectHeightMm, focusMm, ideal));
+    ys.push(idealPeakAt(nm, objectHeightMm, focusMm));
   }
   let best = 1;
   for (let i = 1; i < ys.length - 1; i++) if (ys[i]! > ys[best]!) best = i;
