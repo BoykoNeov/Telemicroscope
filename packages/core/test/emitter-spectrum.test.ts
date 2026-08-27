@@ -298,8 +298,13 @@ describe("§ 6ba — the spectral emitter density", () => {
       );
     const right = stacked(true);
     const wrong = stacked(false);
-    expect(right.x).toBeCloseTo(0.3356, 3);
-    expect(right.y).toBeCloseTo(0.3378, 3);
+    // Moved by § 6bc, and by exactly what that step measured: the stack now
+    // carries the objective's own transmission spectrum, which rises with
+    // wavelength, so this integrates 3.80e-4 redder in x and 3.71e-4 in y than
+    // the same render with the weight divided away. Still white to three
+    // decimals, which is all this rung ever claimed of it.
+    expect(right.x).toBeCloseTo(0.335980, 5);
+    expect(right.y).toBeCloseTo(0.338171, 5);
     expect(wrong.x).toBeGreaterThan(right.x + 0.02);
     expect(wrong.y).toBeGreaterThan(right.y);
   });
@@ -408,19 +413,34 @@ describe("§ 6ba — the spectral emitter density", () => {
     const ideal = build(true);
     const c = traced.width >> 1;
 
-    // White overall, both ways: nothing has been lost, only rearranged.
-    for (const img of [traced, ideal]) {
-      const w = integratedChromaticity(img);
+    // White overall, both ways, to the two decimals this rung claims: nothing
+    // has been LOST either way, and the halo below is a rearrangement.
+    //
+    // They are not the same white, and since § 6bc that is a measurement rather
+    // than a rounding. The traced stack carries the objective's transmission,
+    // which rises with wavelength, so it integrates 3.9e-3 redder in x than the
+    // ideal pupil's — whose weight is the same at every wavelength and so
+    // cancels exactly. The mechanism is § 6bc.3's, read here on a second scene.
+    const tracedWhite = integratedChromaticity(traced);
+    const idealWhite = integratedChromaticity(ideal);
+    for (const w of [tracedWhite, idealWhite]) {
       expect(w.x).toBeCloseTo(0.3335, 2);
       expect(w.y).toBeCloseTo(0.3341, 2);
     }
+    expect(idealWhite.x).toBeCloseTo(0.332093, 5);
+    expect(idealWhite.y).toBeCloseTo(0.332604, 5);
+    expect(tracedWhite.x).toBeCloseTo(0.335980, 5);
+    expect(tracedWhite.y).toBeCloseTo(0.338171, 5);
+    expect(tracedWhite.x - idealWhite.x).toBeGreaterThan(3.8e-3);
 
     const tracedCore = pixelChromaticity(traced, c, c);
     const tracedSkirt = pixelChromaticity(traced, c + 24, c);
-    expect(tracedCore.x).toBeCloseTo(0.4104, 3);
-    expect(tracedCore.y).toBeCloseTo(0.4425, 3);
-    expect(tracedSkirt.x).toBeCloseTo(0.2285, 3);
-    expect(tracedSkirt.y).toBeCloseTo(0.1826, 3);
+    // The traced pair moved with the white point above, and by the same 2.6e-4
+    // — § 6bc's tilt is a property of the stack and not of where in it you look.
+    expect(tracedCore.x).toBeCloseTo(0.410663, 5);
+    expect(tracedCore.y).toBeCloseTo(0.442636, 5);
+    expect(tracedSkirt.x).toBeCloseTo(0.228763, 5);
+    expect(tracedSkirt.y).toBeCloseTo(0.182984, 5);
 
     const idealCore = pixelChromaticity(ideal, c, c);
     const idealSkirt = pixelChromaticity(ideal, c + 24, c);

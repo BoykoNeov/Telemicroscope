@@ -18941,7 +18941,7 @@ away the axis a tint would need. That is true of a specimen with exactly one
 label, whose density factors perfectly. § 6ba.5 measures it on one: a Gaussian
 emitter with a flat band images to a **yellow-green core at (0.4104, 0.4425)** and
 a **blue-violet skirt at (0.2285, 0.1826)** twenty-four pixels out, while the
-whole image integrates to (0.3356, 0.3378) — white to three decimals, as an
+whole image integrates to (0.33598, 0.33817) — white to three decimals, as an
 equal-energy source must be. A tint is one chromaticity everywhere by
 construction, so no choice of tint reproduces that.
 
@@ -19448,6 +19448,18 @@ two normalized things reads 1 whatever the pupils did (§ 6k.3's trap):
   formed image only because the kernel conserved. It is read off the object now
   and its three pinned residuals are unchanged to every digit.
 - **§ 6bb.2**'s seam ratio was `formedSum`; it is **1**.
+
+Two more moved without failing, which is the more dangerous kind. § 6ba's
+spectral stacks now carry the objective's transmission, so **§ 6ba.3**'s white
+point is (0.33598, 0.33817) rather than (0.3356, 0.3378) and **§ 6ba.5**'s
+traced core and skirt moved 2.6e−4 apiece. Every one of those sat inside a
+three-decimal tolerance and consumed about three quarters of it — a green suite
+recording digits the code no longer produced, which is § 6bb.4's lesson in the
+file whose job is to hold the measurements. They are re-pinned five decimals
+deep, and § 6ba.5's two white points are no longer asserted as one number: the
+ideal pupil's weight is the same at every wavelength and cancels exactly, the
+traced one's does not, and the 3.9e−3 between them is § 6bc.3's mechanism read
+on a second scene.
 
 The app's two fluorescence panels carried the same claim to the user — a green
 tick reading "no light lost" through an objective passing a fifth of it. They
