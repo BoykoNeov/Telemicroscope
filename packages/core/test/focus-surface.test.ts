@@ -54,9 +54,11 @@ import type { OpticalSystem } from "../src/trace/system";
  * curve is the readout and a coefficient is a fit a caller may take from it.
  *
  * **Every sample carries its own conditioning**, because a stage sweep stops
- * resolving before it stops returning a number. § 6bf.5 is the negative
- * control: on the 2× at 430 nm the axial response is a plateau, the parabola
- * still fits, and the readout refuses.
+ * resolving before it stops returning a number. § 6bf.5 is the negative control:
+ * on the 2× at 430 nm the axial response is a plateau, the parabola still fits,
+ * and the readout refuses — at every sweep step alike, since the figure is
+ * step-invariant to 0.08% there and 0.34% on a sharp sample, with one pinned
+ * exception where the local shape is not parabolic.
  *
  * External numbers: § 6bb.6's rendered focus sweep, through § 6be's
  * reproduction of it, and § 6be's own pinned surface.
@@ -152,10 +154,11 @@ function bestFocusWrittenOut(nm: number, h: number, about: number, step: number,
  *
  * Heights are the SAME on all three so the coefficients are comparable: a
  * coefficient read to each objective's own field edge would be three different
- * questions. The 2× and the 10× are swept at the design wavelength only, and
- * that is an economy and not a result — the 2× at 430 nm is § 6bf.5's plateau
- * and cannot be read there at all, and a second wavelength on the 10× would
- * repeat a shape the design wavelength already shows.
+ * questions. The 2× is swept at the design wavelength only, and that is not an
+ * economy — at 430 nm it is § 6bf.5's plateau and cannot be read there at all.
+ * The 10× gets both, because "the shape is the objective's" has to be told apart
+ * from "the shape is the wavelength's", and the 4×'s own two rows show the
+ * wavelength moving it.
  */
 const HEIGHTS = [0, 0.275, 0.55, 0.825, 1.1];
 
@@ -180,6 +183,7 @@ const worstPlateau = (surface: FocusSurface, i: number): number =>
 const SURFACE_4 = surfaceOf(SYSTEM, [430, DESIGN], false);
 const SURFACE_2 = surfaceOf(build(2, 0.1), [DESIGN], false);
 const SURFACE_10 = surfaceOf(build(10, 0.1), [DESIGN], true);
+const SURFACE_10_BLUE = surfaceOf(build(10, 0.1), [430], true);
 
 describe("§ 6bf — the focus surface, offered", () => {
   describe("§ 6bf.1 — the readout IS § 6be's estimator, bitwise", () => {
@@ -340,6 +344,25 @@ describe("§ 6bf — the focus surface, offered", () => {
       expect(Math.abs(twoCoeffs[1]!)).toBeGreaterThan(Math.abs(twoCoeffs[0]!));
       expect(Math.abs(twoCoeffs[2]!)).toBeLessThan(Math.abs(twoCoeffs[1]!));
     });
+
+    it("and the shape is the OBJECTIVE's, not the wavelength's — the 10× drifts at 430 nm too", () => {
+      // The 4×'s two rows show the wavelength moving the drift (6.75% → 12.54%),
+      // so a one-wavelength reading on the 10× could not tell "this objective
+      // has a shape" from "this wavelength has one". Both of the 10×'s rows
+      // drift, and both are several times the 4×'s at the SAME wavelength.
+      const tenBlue = coefficients(SURFACE_10_BLUE, 0);
+      expect(tenBlue[0]).toBeCloseTo(-0.162163, 5);
+      expect(tenBlue[3]).toBeCloseTo(-0.115082, 5);
+      expect(spread(tenBlue)).toBeCloseTo(0.409108, 4);
+      for (let k = 1; k < tenBlue.length; k++) {
+        expect(Math.abs(tenBlue[k]!)).toBeLessThan(Math.abs(tenBlue[k - 1]!));
+      }
+
+      const fourBlue = spread(coefficients(SURFACE_4, 0));
+      expect(fourBlue).toBeCloseTo(0.125386, 5);
+      expect(spread(tenBlue) / fourBlue).toBeGreaterThan(3);
+      expect(spread(coefficients(SURFACE_10, 0)) / spread(coefficients(SURFACE_4, 1))).toBeGreaterThan(7);
+    });
   });
 
   describe("§ 6bf.7 — the readout reports its own separability", () => {
@@ -384,6 +407,46 @@ describe("§ 6bf — the focus surface, offered", () => {
       expect(() =>
         renderedBestFocus(two, 430, 0.7, { ...SWEEP, maxPlateauDepths: 1 }),
       ).toThrow(/is a plateau/);
+    });
+
+    it("and the conditioning is a property of the OPTICS, not of the sweep grid", () => {
+      // The expression carries `stepMm`, so the obvious worry is that it reports
+      // the grid. It does not: the second difference goes as step², the square
+      // root turns that into 1/step, and the multiply cancels it — exactly, where
+      // the parabola is a good local fit. Measured over a 4× range of step:
+      const at = (system: OpticalSystem, nm: number, h: number, about: number, stepMm: number) =>
+        renderedBestFocus(system, nm, h, {
+          ...SWEEP,
+          aboutMm: about,
+          stepMm,
+          maxPlateauDepths: 1e9,
+        }).plateauDepths;
+      const STEPS = [0.0025, 0.005, 0.01];
+
+      // The plateau itself is the most invariant of all, at 0.08% — so § 6bf.5's
+      // refusal fires at every step, and is a statement about the 2× at 430 nm
+      // rather than about the grid it was read on.
+      const two = build(2, 0.1);
+      const plateau = STEPS.map((s) => at(two, 430, 0.7, 0.5036, s));
+      expect(spread(plateau)).toBeLessThan(0.001);
+      for (const p of plateau) expect(p).toBeGreaterThan(1);
+
+      // And a well-conditioned sample, to 0.34%.
+      const sharp = STEPS.map((s) => at(SYSTEM, DESIGN, 0, 0.0471, s));
+      expect(spread(sharp)).toBeLessThan(0.004);
+      for (const p of sharp) expect(p).toBeLessThan(0.35);
+
+      // The exception, pinned so it is not discovered later as a surprise: where
+      // the local shape is NOT parabolic the cancellation is not exact, and the
+      // 4× at 430 nm at the field edge moves 23% over the same three steps — 70×
+      // the sharp sample beside it. It
+      // is the sample that reads closest to the threshold, which is where an
+      // exception matters most — so the figure is a guide to a caller and not a
+      // quantity to do arithmetic on.
+      const ragged = STEPS.map((s) => at(SYSTEM, 430, 1.1, 0.1313, s));
+      expect(spread(ragged)).toBeCloseTo(0.234747, 5);
+      expect(spread(ragged)).toBeGreaterThan(50 * spread(sharp));
+      expect(Math.max(...ragged)).toBeLessThan(1);
     });
   });
 

@@ -99,10 +99,13 @@ export interface FocusSweepOptions {
   /** Doublings the coarse pass may spend before refusing. Default 4. */
   readonly maxWidenings?: number;
   /**
-   * Refuse a sample whose peak's 5%-fall half-width exceeds this many depths of
-   * focus. Required: the threshold is the readout's own resolution claim, and a
-   * default would make the refusal look like the engine's opinion rather than
-   * the caller's.
+   * Refuse a sample whose `plateauDepths` exceeds this. Required: the threshold
+   * is the readout's own resolution claim, and a default would make the refusal
+   * look like the engine's opinion rather than the caller's.
+   *
+   * It is a threshold on the OPTICS — see `plateauDepths` on why the sweep step
+   * cancels out of it. 1 refuses the 2×/0.10 at 430 nm and passes every other
+   * configuration § 6bf measured, whose samples read 0.32 to 0.90.
    */
   readonly maxPlateauDepths: number;
   /** Default `"none"` — bitwise the pre-§ 6bf path. */
@@ -128,6 +131,15 @@ export interface FocusSweepPoint {
    * Half-width (mm) over which the peak falls 5%, from the fitted parabola,
    * divided by the depth of focus. Under ~0.5 the vertex is a measurement;
    * approaching 1 the sweep is reading a plateau.
+   *
+   * **It is a property of the optics and not of the sweep grid**, though the
+   * expression carries `stepMm`: the second difference goes as step², the square
+   * root turns that into 1/step, and the multiply cancels it. § 6bf.5 measures
+   * the cancellation at 0.08% on the plateau it exists to catch and 0.34% on a
+   * sharp sample, over a 4× range of step — and pins the exception, a sample
+   * whose local shape is not parabolic, which moves 23%, seventy times the sharp
+   * sample beside it. So compare it against `maxPlateauDepths`; do not do
+   * arithmetic with it.
    */
   readonly plateauDepths: number;
   /** Whether the maximum was strictly inside the swept window. */

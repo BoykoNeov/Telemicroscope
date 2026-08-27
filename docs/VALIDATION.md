@@ -19874,8 +19874,11 @@ stronger way than it knew.
 | | the negative control on that: a scaled form demands the 10× sit at 2.5× the 4×. It is 1.749579× | ✅ |
 | | and the shape differs too — the 10× drifts 48.70% across the same field the 4× is flat to 6.75% over, monotonely at every height | ✅ |
 | | not the estimator giving up: the 10×'s sweeps are conditioned within 2.2% of the 4×'s own, 0.405839 against 0.397282 of a depth of focus | ✅ |
+| | and the shape is the OBJECTIVE's and not the wavelength's: the 10× drifts at 430 nm too, spread 40.91% against the 4×'s 12.54% at the same wavelength — both of its rows several times both of the 4×'s | ✅ |
 | **§ 6bf.5 — a plateau is REFUSED, not reported** | the 2×/0.10 at 430 nm and object height 0.7 mm: the parabola fits, and the readout throws | ✅ |
 | | and the same objective at the same height at its design wavelength reads a real vertex, under one depth of focus — so the refusal is about the configuration and not about the objective | ✅ |
+| | and the conditioning is the OPTICS' and not the grid's: over a 4× range of sweep step it moves 0.08% on the plateau itself and 0.34% on a sharp sample, so the refusal fires at every step alike | ✅ |
+| | the exception, pinned rather than left to be discovered: a sample whose local shape is not parabolic moves 23.47% over the same three steps — seventy times the sharp one, and still under the threshold | ✅ |
 | **§ 6bf.6 — a 10× renders only with a seeded bracket** | unseeded, the inverse chief-ray map refuses at object height 0.55 mm; seeded with the frame's own magnification the same sweep runs | ✅ |
 | | and the seed is opt-in because it is not free: where both paths work the table moves 3.9e-16 and a rendered pixel 1.6e-12, and § 6bb.1 compares bitwise | ✅ |
 | **§ 6bf.7 — the readout reports its own separability** | the interaction over the 4×'s grid is 2.152515e-3 mm, 4.980007e-2 of a depth of focus | ✅ |
@@ -19954,9 +19957,18 @@ The **shape** is per objective as well, which is the stronger half. The 10×'s
 coefficient drifts 48.70% across the field, monotonely at every height, where the
 4× is flat to 6.75% over the same heights. The obvious objection is that a longer
 sweep on a worse-corrected objective is just a worse-conditioned estimate, and
-§ 6bf.4's last rung answers it: the 10×'s sweeps are conditioned to 0.405839 of a
-depth of focus against the 4×'s own 0.397282, within 2.2%. The same estimator, at
-the same sharpness, reads a flat curve on one and a drifting one on the other.
+§ 6bf.4 answers it: the 10×'s sweeps are conditioned to 0.405839 of a depth of
+focus against the 4×'s own 0.397282, within 2.2%. The same estimator, at the same
+sharpness, reads a flat curve on one and a drifting one on the other.
+
+The second objection is that the shape might belong to the **wavelength** rather
+than to the objective, and the 4×'s own two rows are what raise it — 6.75% at the
+design wavelength against 12.54% at 430 nm, so the wavelength does move it. So
+the 10× is swept at both: 48.70% at the design wavelength and 40.91% at 430 nm,
+each several times the 4×'s figure at the *same* wavelength. Two rows against two
+rows is what makes this the objective's shape rather than a colour's. (The 2×
+gets one row, and that is not an economy — at 430 nm it is the plateau below and
+cannot be read there at all.)
 
 ### A sweep stops resolving before it stops returning a number
 
@@ -19975,6 +19987,18 @@ vertex read off a plateau. On the configurations that mean anything it sits
 between 0.32 and 0.90; on the 2× at 430 nm it does not, and the readout throws.
 The same objective at its design wavelength passes, which is what says the
 refusal is about a configuration and not about an objective.
+
+**And the figure is the optics' and not the grid's**, which is not obvious from
+the expression: it is `stepMm · sqrt(0.1/|curvature|)`, and the sweep step is
+right there in it. It cancels. The curvature is a second difference, so it goes
+as step²; the square root turns that into 1/step; the multiply removes it. The
+rung measures the cancellation rather than asserting it, over a fourfold range of
+step — 0.08% on the plateau it exists to catch, which is the case that had to
+hold, and 0.34% on a sharp sample. The exception is pinned beside them: where the
+local shape is not parabolic the cancellation is not exact, and the 4× at 430 nm
+at the field edge moves 23.47%, seventy times the sharp sample. So the figure is
+a threshold to compare against and not a quantity to do arithmetic on, and it is
+documented as one.
 
 This is the discriminator lesson of § 6be.2 turned into an interface: a residual
 at the resolution limit needs something that distinguishes it from no residual,
