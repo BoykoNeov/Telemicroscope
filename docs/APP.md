@@ -1523,7 +1523,7 @@ the point of § 6x rather than a caveat to it.
 | ~~Stained tissue / diatom fields~~ | ~~§ 6h's warped-grid rasterizer, not built.~~ **Unblocked at § 6n** — `rasterizeSpecimen` places an extended specimen through the traced map. ~~What remains is authoring a scene, which is content rather than a blocker.~~ **Authored, and now in colour**: `stage.ts` had both scenes from A7 and A9 made them spectral (`specimens.ts`). Nothing here is disqualified any more. |
 | ~~Depth-dependent spherical aberration in the z-slider~~ | ~~§ 6l — the physics is in § 6c/§ 6e but wiring focal depth into the stack is its own step.~~ ~~**Unblocked at § 6l**~~ — **built at D10.** A5 has a mount control and a depth control, `mountPupils` is its `DepthPupils` and `mountVolumeOptions` its options, and the stack is no longer symmetric about focus. Nothing here is disqualified any more. |
 | Confocal / deconvolution | the excitation path (§ 6j open) — a detection pinhole and an excitation PSF. |
-| ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. ~~Fluorescence colour is still open~~ — **unblocked at § 6ba**: `fluorescenceSpectralStack` renders a `SpectralEmitterDensity` one plane per wavelength and `colorImageFromStack` collapses it, with `channelBasis` giving a per-filter channel off the same exposure. Neither half is engine-blocked now; what is missing is a **panel**, and it is a Part Q variant rather than a new surface — the emitter page plus a label list (density + band) and a filter, at that page's measured cost times the wavelength count. |
+| ~~Polychromatic brightfield~~ / fluorescence colour | ~~§ 6f and § 6i both name it open. § 6j's band is emission-only. Scoped as § 6r in Part D.~~ **Brightfield colour unblocked at § 6r** — `brightfieldSpectralStack` runs the Abbe sum per wavelength and `colorImageFromStack` collapses it. ~~Fluorescence colour is still open~~ — **unblocked at § 6ba**: `fluorescenceSpectralStack` renders a `SpectralEmitterDensity` one plane per wavelength and `colorImageFromStack` collapses it, with `channelBasis` giving a per-filter channel off the same exposure. Neither half is engine-blocked now; what is missing is a **panel**, and it is a Part Q variant rather than a new surface — the emitter page plus a label list (density + band) and a filter, at that page's measured cost times the wavelength count. A **thick** preparation is unblocked too as of § 6bb — same page plus a slab list — and it costs the wavelength count times the slice count, with the honest warning § 6bb.6 supplies: the channels do not focus at the same stage position, so a focus control is per-exposure and not per-channel. |
 | ~~A pannable field of view in colour~~ | ~~§ 6o's pitch and guard band are pinned at one wavelength, and `halfExtentMm` is ∝ λ.~~ **Unblocked at § 6t** — the guard is cropped per plane on that plane's own grid, before the stack, so § 6o's measurement transplants by identity. Built at **A10**. |
 | A live "real field of view" brightfield frame | constraint 1. Not a UI problem and not solvable by resampling — and that stands. **What Part D adds is that it is reachable by tiling rather than by widening**, which is a different operation with its own error, now measured and composed: § 6m–§ 6o, compute-once, never live at a full field. § 6o pins the crop error of a tile to a closed form and § 6o.7 composes them. |
 
@@ -6224,9 +6224,13 @@ grid 512 reaches 4.2 s and is the one combination that is not.
 **A spectral emitter density**, which was § 6as's own first leftover. ~~The thing
 that actually blocks fluorescence colour~~ — **the engine side landed at § 6ba**
 (`imaging/emitter-spectrum`); what this page lacks is the label list and filter to
-drive it, not a capability underneath. **A volumetric one**: this module warps a plane, and an emitter
+drive it, not a capability underneath. ~~**A volumetric one**: this module warps a plane, and an emitter
 density through a focus stack needs the third dimension of the same Jacobian,
-which is not `(h/r)·(dh/dr)` and is not a scalar. **A photometric zero point**,
+which is not `(h/r)·(dh/dr)` and is not a scalar.~~ **Landed at § 6az** — and the
+prediction was wrong twice over: it **is** a scalar, `(1 + z·k)²`, so one table
+serves a whole volume. **§ 6bb** then gave it a spectrum
+(`fluorescenceSpectralVolume`), so a thick two-stain preparation is no longer
+engine-blocked either. **A photometric zero point**,
 unchanged and still § 3a's, so every number on the page is a ratio. And **the
 fourth cosine**, inherited verbatim from § 5v: the entrance pupil's projected
 area is applied by no rasterizer on either branch, it cancels in every comparison

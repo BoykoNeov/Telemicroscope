@@ -15,6 +15,7 @@ export * from "./fluorescence";
 export * from "./emitter-density";
 export * from "./emitter-volume";
 export * from "./emitter-spectrum";
+export * from "./spectral-volume";
 export * from "./emission";
 export * from "./volume";
 export * from "./depth-aberration";

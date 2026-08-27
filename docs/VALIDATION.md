@@ -110,6 +110,7 @@ whole ladder.
 | [6ay](#step-6ay--four-united-colours-one-telecentric-one) | The stop reads f·D and four united colours constrain only f: EFL(λ) turns three times, FFD(λ) never, and the quadruplet is telecentric ONCE, the doublet twice | `telecentric-quadruplet` |
 | [6az](#step-6az--the-volumetric-emitter-density) | The third Jacobian dimension IS a scalar: depth rescales the map by 1 + z/P, isotropically, so ONE table serves a volume — and the DIN objective is object-space telecentric TWICE | `emitter-volume` |
 | [6ba](#step-6ba--the-spectral-emitter-density) | ONE band collapses to ONE kernel and TWO need TWO — a MONOCHROME failure, not colour's; colour needs the planes apart even for one label, and that halo is AXIAL COLOUR, not diffraction | `emitter-spectrum` |
+| [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.88 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -18866,19 +18867,24 @@ refused rather than documented.
 ### Still open
 
 - ~~**A spectral emitter density**, the last of § 6as's three.~~ **Closed at
-  [§ 6ba](#step-6ba--the-spectral-emitter-density).** A spectral *volume* is this
-  step's rescale times that step's spectrum and is untouched by either: the two
-  are independent today, and nothing measures them together.
+  [§ 6ba](#step-6ba--the-spectral-emitter-density)**, and ~~the spectral *volume*
+  the two of them leave between them~~ **at
+  [§ 6bb](#step-6bb--the-spectral-volume)**, which finds the product is not the
+  larger half of what depth and colour do together: the channels focus 3.88
+  depths of focus apart and the perspective is 0.06% of the static
+  misregistration at 50 µm.
 - **A photometric zero point**, still § 3a's. Every number here is a ratio.
 - **The rate is paraxial.** With `rayAiming: "real"` the chief ray is solved onto
   the stop rather than aimed at the paraxial entrance pupil, so the same-line
   argument still holds exactly — a ray from depth still crosses the object plane
   somewhere, and the flat map still images that height — but the crossing is no
   longer `h/(1 + z·k)` to all orders. Nothing measures the departure.
-- **The rate is chromatic and nothing sweeps a stack across it.** § 6az.4 pins
-  the two crossings and the sign reversal on the *rate*; no rung renders the same
-  volume at wavelengths either side of a crossing and reads the zoom reversing in
-  the picture, which is what § 6an did for the sensor.
+- ~~**The rate is chromatic and nothing sweeps a stack across it.**~~ **Closed at
+  [§ 6bb.4](#step-6bb--the-spectral-volume)**, which reads the reversal off a
+  rendered image — negative at 430 and 656 nm, positive at 546 between the
+  crossings, and −2.9e−16 at both crossings themselves. It needs an ideal-pupil
+  control to do it: through the traced pupil the same measurement is four hundred
+  thousand times larger and is axial colour, not geometry.
 - **Depth-dependent pupils are not depth-dependent maps.** § 6l varies the
   *pupil* with depth and this step varies the *map*; a mount whose index is not
   the immersion's also bends the chief ray, so the rescale it produces is not
@@ -19127,11 +19133,13 @@ selects on.
 
 ### Still open
 
-- **A spectral VOLUME.** § 6az rescales the map with depth and this step varies
-  it with wavelength; the two are independent today. Both are chromatic — § 6az.4
-  found the depth rate has *two* telecentric zeros inside the band and reverses
-  sign between them — so a thick two-stain preparation is a volume whose
-  perspective differs per channel, and nothing measures the product.
+- ~~**A spectral VOLUME.**~~ **Closed at
+  [§ 6bb](#step-6bb--the-spectral-volume)**, and the prediction in this line is
+  the half of it that turned out to be small. The perspective does differ per
+  channel — and because a channel is a *band* averaged across § 6az.4's sign
+  reversal, it is not ordered by colour at all: the green channel is telecentric
+  where the blue and the red are not. What dominates instead is that the channels
+  **focus** at stage positions 3.88 depths of focus apart.
 - **A spectral MOSAIC**, § 6r's own deferral inherited unchanged: `halfExtentMm`
   is ∝ λ, so a mosaic's pitch and guard band would have to be fixed by one
   reference λ with every other λ cropped to it.
@@ -19146,6 +19154,173 @@ selects on.
   answer and is a readout, not physics; it would belong wherever the analyses do.
 - **A photometric zero point**, still § 3a's. Every number here is a ratio.
 - **The fourth cosine**, inherited verbatim from § 5v, § 6as and § 6az: the
+  entrance pupil's projected area is applied by no rasterizer on either branch, it
+  cancels in every comparison between them, and it belongs to the pupil layer.
+
+## Step 6bb — the spectral volume
+
+**§ 6az's rescale times § 6ba's spectrum, and both of them deferred it in the
+same words.** § 6az makes the object map move with depth; § 6ba makes the density
+read a wavelength; each closed with the line that the two are independent today
+and that a thick two-stain preparation is their product. It is their product, no
+optics arrive with this step, and what arrives instead is that **both factors are
+chromatic** — in two ways of completely different size and completely different
+shape.
+
+New: `imaging/spectral-volume` (`SpectralVolumeEmitterDensity`,
+`atVolumeEmissionWavelength`, `VolumeEmitterLabel`, `labelledVolumeEmitters`,
+`neutralVolumeEmitterDensity`, `focusDepthMm`, `formVolumePlane`,
+`fluorescenceSpectralVolume`), which is one frame, one radial table, one depth
+rate, one raster and one `renderVolume` per wavelength, stacked by § 6ba's own
+`stackEmitterPlanes` as **energy**.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6bb.1 — one wavelength of the driver IS the § 6az render** | bitwise, the largest pixel difference exactly 0, against the frame, table, rate, raster and render written out | ✅ |
+| ...and the NA it converts depth to waves with is TRACED per wavelength | 0.10001613548968476 at 546.074 nm, not the 0.1 the objective is named for | ✅ |
+| **§ 6bb.2 — a slab at focus is § 6ba's plane, times the thickness and the throughput** | ratio equals `formedSum` to 1e−14; 0.17484107 at 430 nm against 0.17599094 at 680 | ✅ |
+| ...and that factor is a COLOUR the plane path normalizes away | 0.658% across the band, which the on-axis amplitude squared reproduces to 4.4e−6 | ✅ |
+| **§ 6bb.3 — one volume, one rate per channel** | 6.77853e−5 /mm at 430 nm to a finite −0 at 587.5618; `maxStretchDeparture` 2.25951e−5 → exactly 0, 47.10× between the extremes | ✅ |
+| ...and another wavelength's rate is refused rather than zooming the stack backwards | § 6az's identity, reached through this driver | ✅ |
+| **§ 6bb.4 — the zoom reverses IN THE PICTURE**, which is § 6az's own deferral | −2.163917e−6 at 430 nm, **+7.891797e−8** at 546, −7.578683e−7 at 656; −2.9e−16 at BOTH crossings; the raster within 0.05% of −2·z·k | ✅ |
+| **§ 6bb.5 — the picture reads the perspective DILUTED, and chromatically** | 4.5582e−2 at 430 nm rising monotonically to 8.3631e−2 at 680 | ✅ |
+| ...and through the TRACED pupil the same measurement is 3.9e5× the perspective | 0.8483541 at 430 nm — axial colour, not geometry, which is why the crossing rung needs the ideal-pupil control | ✅ |
+| **§ 6bb.6 — the channels focus at different STAGE POSITIONS** | 0.213627 / 0.051049 / 0.046893 / 0.067222 mm at 430 / 546.074 / 587.5618 / 656.2725; 3.8775 depths of focus from the blue channel to the design wavelength | ✅ |
+| **§ 6bb.7 — and it is NOT the paraxial chromatic focal shift** | `focusDepthMm` 0.110213 mm at 430 and 0 at the design λ; the picture is 1.5129× that, because the ρ⁴ term of the traced wavefront falls 4.5960× across the band | ✅ |
+| **§ 6bb.8 — in focus at TWO wavelengths, telecentric at TWO, and one is shared** | 500.514925275 and 587.5618 against 530.567099263 and 587.5618; the two free roots 30.052174 nm apart | ✅ |
+| **§ 6bb.9 — the perspective is NOT ordered by colour: GREEN is the extreme** | 2.979390e−5 blue, 8.601662e−8 green (346.37× smaller), 8.132820e−6 red — the two channels furthest apart in colour are the two closest in perspective | ✅ |
+| **§ 6bb.10 — the depth-dependent misregistration is BOUNDED, and it is small** | Δk 2.166108e−5 /mm, so parity with § 6ba.9's static 0.180% only at 83.0984 mm of depth; 1.0831e−6 at a thick preparation's 50 µm | ✅ |
+| ...and a two-label volume still renders as two channels of one exposure | 9 planes on a 434.444 nm ruler, carrying rates of BOTH signs inside one exposure | ✅ |
+| **§ 6bb.11 — the haze is chromatic** | in-focus share 0.215686 at 430 nm against 0.333333 at 656, a factor 1.5455, each within one slice of 2·halfDepth/span | ✅ |
+| ...and the object-side NA is chromatic too, though only just | 0.26% across the band against the wavelength's own 53%; exactly 0.1 at the design λ | ✅ |
+| **§ 6bb.12 — refining z does not brighten** | emitted flux identical to 1e−12 over 3 → 24 slices, imaged flux to 1e−13; and the refusals | ✅ |
+
+### The perspective is not ordered by colour, and the middle channel is the extreme
+
+§ 6az.4 pinned that the depth rate has **two** object-space telecentric zeros
+inside the visible band and reverses sign between them. That was a statement
+about wavelengths. A *channel* is not a wavelength, it is a band, so what a
+channel sees is the band average of the rate — and averaging across a sign
+reversal does something no monochromatic intuition predicts:
+
+    433–500 nm (blue)    2.979390e−5 /mm
+    510–560 nm (green)   8.601662e−8 /mm    — 346× smaller: telecentric
+    600–667 nm (red)     8.132820e−6 /mm
+
+The green channel straddles the free crossing at 530.567099 nm, so its
+perspective **cancels against itself**: a green channel of a three-stain
+preparation has essentially no depth perspective at all while the blue and the
+red do. § 6bb.9 pins the consequence in the form that matters — **the two
+channels furthest apart in colour are the two closest in perspective**, and both
+are further from the one between them than from each other. "How far apart are
+these two dyes" therefore says nothing about whether their images of a thick
+specimen share a perspective; what decides it is which side of a crossing each
+band sits on.
+
+This is § 6ap's mechanism arriving in a place where it changes an answer rather
+than adding a second root. An achromatic element turns a quantity around inside
+the band; a band average integrates over the turn; and a quantity that is
+monotone in λ at every wavelength is **not** monotone in the channels built out
+of it.
+
+### The focus is the larger effect, and the catalogue number does not predict it
+
+A stack is rendered at one stage position — one specimen, one focus knob — so the
+objective's own axial colour decides which depth each channel is sharp at. That
+was already in the traced pupil, and § 6ba.5 named it as the cause of the
+blue-violet halo; what a *volume* adds is that it turns the wavefront into a
+**depth**. § 6bb.6 sweeps the stage and finds each channel's peak in a different
+place: 0.2136 mm at 430 nm against 0.0469 at the design wavelength, which is
+**3.88 depths of focus** apart. Beside that the perspective term is nothing, and
+§ 6bb.10 says so with a number rather than an adjective: the depth-dependent part
+of the two channels' misregistration reaches § 6ba.9's *static* 0.180% only at
+83 mm of specimen depth, and at a thick preparation's 50 µm it is 0.06% of it.
+One affine registration per channel is right for any specimen there is.
+
+**And the focus separation is not the paraxial chromatic focal shift.**
+`focusDepthMm` solves the conjugate in closed form — a paraxial trace is linear
+in its input state, so the object distance whose image lands on the plane is one
+division and not a bisection — and it puts 430 nm at 0.110213 mm, **51% short**
+of what the picture shows. The cause is measured rather than asserted: the ρ⁴
+term of the traced on-axis wavefront falls 4.60× across the band (1.9284 waves at
+430 nm to 0.4196 at 656), so each channel's best focus is balanced against its
+own spherical aberration and no single conjugate shift describes them all. A
+chromatic-focal-shift figure is a real quantity and it does not say where a
+channel focuses.
+
+### Two conditions, twice each, and only the engineered root is shared
+
+    in focus      500.514925 nm   and   587.5618 nm
+    telecentric   530.567099 nm   and   587.5618 nm
+
+Both quantities cross zero twice, for § 6ap's reason, and both cross at the
+design wavelength because both were engineered there — § 6v puts the stop at the
+back focal distance read at it and the conjugate is solved at it. The two *free*
+roots are 30.052174 nm apart and belong to nothing: they are where the doublet's
+own turn happens to put them, and there is no reason for a system to be in focus
+and telecentric at the same wavelength (§ 6bb.8).
+
+### The picture reads the perspective diluted, and the control is the ideal pupil
+
+§ 6az measured the rescale on the raster. § 6az's deferral asked for it in the
+picture, and the picture does not simply show it: convolution adds an
+out-of-focus spread to the mean image radius that the perspective must then be
+read against. § 6bb.5 measures the dilution and finds it **chromatic** — 4.56e−2
+at 430 nm rising monotonically to 8.36e−2 at 680, because the same depth is fewer
+waves of defocus in the red — so the channel whose perspective is largest is also
+the channel that hides it best.
+
+The rung that reads the *reversal* uses `idealPupil`, and that is not a
+convenience. Through the traced pupil the same ±z measurement returns **0.848**,
+four hundred thousand times the perspective, because the objective's focus is not
+where the stage is and the two depths are not equally blurred. The odd part of a
+quantity isolates the perspective only when the kernel is even in z, and only an
+aberration-free pupil makes it so. With that control in place the reversal reads
+cleanly: negative at 430 and 656 nm, **positive** at 546 between the crossings,
+and −2.9e−16 at both crossings themselves — f64 noise on a quantity that is
+2.2e−6 one crossing away.
+
+### The throughput the volume path carries and the plane path does not
+
+§ 6bb.2 was meant to be a seam check and turned up a difference worth naming.
+`renderVolume` weighs each slice by `formedSum`, the light the pupil actually
+transmitted, and `renderFluorescence` normalizes it away; they are two
+expressions of one convolution and only one of them carries the throughput. On a
+single plane that is a constant and invisible. On a **stack** it is a colour:
+0.658% across 430–680 nm, and the on-axis pupil amplitude squared reproduces it
+to 4.4e−6, so it is the objective's own Fresnel transmission and not the pupil
+grid's quantization. Neither path is wrong about a single image and they disagree
+about a spectrum, which is the same shape as § 6ba.3's resampler — an authoring
+decision that becomes a tint several modules downstream.
+
+It is also why **`patches` is not supported here**. Blending field-varying
+patches through a depth stack would need those two expressions reconciled, and a
+second expression that merely agreed numerically is what § 6ba refused to ship.
+Named rather than silently folded to one patch.
+
+### Still open
+
+- **A spectral MOSAIC**, § 6r's deferral inherited through § 6ba and now one
+  dimension larger: `halfExtentMm` is ∝ λ, so a mosaic's pitch and guard band
+  would have to be fixed by one reference λ with every other λ cropped to it.
+- **Field-varying pupils through a depth stack** — `patches`, above. It needs
+  `renderVolume`'s throughput weighting and `renderFluorescence`'s normalization
+  reconciled, which is a decision about which one is right and not a wiring job.
+- **Depth-dependent pupils are still not depth-dependent maps.** § 6l varies the
+  *pupil* with depth and this varies the *map* and the *defocus*; a mount whose
+  index is not the immersion's does all three at once and its rescale is not
+  `1 + z·k` at all. The coupling is unmeasured, and the wavelength is now a
+  third independent axis of it.
+- **The rate is paraxial**, § 6az's, unchanged: with `rayAiming: "real"` the
+  crossing is no longer `h/(1 + z·k)` to all orders and nothing measures the
+  departure.
+- **No excitation and therefore no differential bleaching**, § 6ba's structural
+  null: the emission filter blocks the excitation, so a preparation whose stains
+  want different lasers is outside this module.
+- **Crosstalk is measured and not corrected**, § 6ba's; linear unmixing is a
+  readout and belongs wherever the analyses do.
+- **A photometric zero point**, still § 3a's. Every number here is a ratio.
+- **The fourth cosine**, inherited verbatim from § 5v, § 6as, § 6az and § 6ba: the
   entrance pupil's projected area is applied by no rasterizer on either branch, it
   cancels in every comparison between them, and it belongs to the pupil layer.
 
