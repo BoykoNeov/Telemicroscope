@@ -421,3 +421,129 @@ export function separatedFocusMm(surface: FocusSurface, i: number, j: number): n
   }
   return colour + sum / surface.fieldDropMm.length;
 }
+
+/**
+ * The stage position the surface predicts at a wavelength and a field radius it
+ * was **not** swept at — bilinear in (λ, h²) over `separatedFocusMm`.
+ *
+ * This is the function a renderer's focus option is fed from, and it exists
+ * because a sweep grid is a dozen points and a render asks for an arbitrary one:
+ * `fluorescenceSpectralVolume` is handed quadrature nodes chosen by the band,
+ * and a tile's centre lands where the mosaic's pitch puts it, neither of which
+ * the sweep knew about.
+ *
+ * **It is an interpolation and not the fit § 6bf.3 declined.** That refusal was
+ * of a *coefficient* — one number claimed to be the field curve, which is wrong
+ * on two of the three objectives measured, by 11.1% on the ladder's own 4× at
+ * 430 nm and 48.7% on a 10×. A piecewise interpolation between adjacent measured
+ * samples has no order and no coefficient to be wrong about: it asserts only
+ * that the curve does not do something between two samples that it does not do
+ * at them, and it reproduces every sample it was built from exactly. Where the
+ * curve's shape is in doubt, the answer is a denser sweep, and this function's
+ * error is bounded by the sample spacing rather than by a form.
+ *
+ * **h² is the variable, and the choice is a real one.** The field term is even —
+ * its gradient vanishes on the axis exactly (§ 6be.4, § 6be.5) — so a straight
+ * line in `h` between the axis and the first swept height has the wrong slope at
+ * both ends, while a straight line in `h²` is exact for any quadratic and merely
+ * approximate for anything else. § 6bg.3 measures the difference against real
+ * sweeps at the midpoint of the first interval, at three wavelengths: the even
+ * variable lands 1.1e-5 to 1.21e-4 mm from the swept answer and the odd one
+ * 1.22e-3 to 1.35e-3 mm — 11× worse at worst and 123× at its best. The units
+ * that matter are § 6be.2's: 1.2e-3 mm is the floor of the estimator that
+ * measured the curve, so interpolating in h lands ON the floor, which is to say
+ * indistinguishable from not knowing the field curve at all, while h² lands an
+ * order under it.
+ *
+ * The advantage is a ratio and it shrinks outward — 2.6× to 10× at the midpoint
+ * of the outer interval, where the curve is no longer the quadratic § 6be read
+ * (§ 6bf.3) and the interval is twice as wide. Absolute error follows the sample
+ * SPACING, which is the honest way to state an interpolation's error and the
+ * reason this function has no other tolerance in it.
+ *
+ * **Bilinear over `separatedFocusMm`, and not two interpolations added.** The
+ * two are the same arithmetic — `separatedFocusMm` is a colour term plus a field
+ * term, and a bilinear over a separable grid separates — so the interpolation
+ * invents no coupling that the surface did not report. Writing it this way makes
+ * that a property of the code rather than a claim about it, and it is what lets
+ * § 6bg.2 pin every grid point **bitwise** against the value it interpolates.
+ *
+ * It refuses outside the swept box rather than extrapolating: past the reddest
+ * wavelength or the outermost height the curve is not measured, and § 6bf.3's
+ * whole finding is that its shape there is not derivable from its shape here.
+ */
+export function predictedFocusMm(
+  surface: FocusSurface,
+  wavelengthNm: number,
+  objectHeightMm: number,
+): number {
+  const ls = surface.wavelengthsNm;
+  const hs = surface.objectHeightsMm;
+  for (let i = 1; i < ls.length; i++) {
+    if (!(ls[i]! > ls[i - 1]!)) {
+      throw new Error(
+        `predictedFocusMm: the surface's wavelengths must ascend to be interpolated between, ` +
+          `got ${ls[i - 1]} then ${ls[i]} — sweep them in order`,
+      );
+    }
+  }
+  for (let j = 1; j < hs.length; j++) {
+    if (!(hs[j]! > hs[j - 1]!)) {
+      throw new Error(
+        `predictedFocusMm: the surface's object heights must ascend to be interpolated between, ` +
+          `got ${hs[j - 1]} then ${hs[j]}`,
+      );
+    }
+  }
+  if (!(objectHeightMm >= 0)) {
+    throw new Error(
+      `predictedFocusMm: the field term is a function of field RADIUS and the surface is swept ` +
+        `at radii, got ${objectHeightMm} mm — pass |h|`,
+    );
+  }
+  // Written as a negated inclusive test so that a NaN wavelength is refused
+  // here rather than propagating into an interpolation weight.
+  if (!(wavelengthNm >= ls[0]! && wavelengthNm <= ls[ls.length - 1]!)) {
+    throw new Error(
+      `predictedFocusMm: ${wavelengthNm} nm is outside the swept band ` +
+        `[${ls[0]}, ${ls[ls.length - 1]}] nm — the colour curve is not measured there, and ` +
+        `§ 6bf.3 is the argument that its shape does not extrapolate`,
+    );
+  }
+  if (objectHeightMm > hs[hs.length - 1]!) {
+    throw new Error(
+      `predictedFocusMm: object height ${objectHeightMm} mm is outside the swept field ` +
+        `[0, ${hs[hs.length - 1]}] mm — the field curve is not measured there`,
+    );
+  }
+
+  /** The lower index of the bracketing pair, and how far along it the query is. */
+  const bracket = (xs: readonly number[], x: number): { i: number; t: number } => {
+    if (xs.length === 1) return { i: 0, t: 0 };
+    let i = xs.length - 2;
+    for (let k = 0; k < xs.length - 1; k++) {
+      if (x <= xs[k + 1]!) {
+        i = k;
+        break;
+      }
+    }
+    // Exactly 0 at the lower node, which is what makes § 6bg.2 bitwise.
+    return { i, t: x === xs[i]! ? 0 : (x - xs[i]!) / (xs[i + 1]! - xs[i]!) };
+  };
+
+  const l = bracket(ls, wavelengthNm);
+  // Squared before bracketing, both sides: the even variable is the one the
+  // spacing has to be measured in as well as the one it is interpolated in.
+  const h = bracket(
+    hs.map((v) => v * v),
+    objectHeightMm * objectHeightMm,
+  );
+
+  const at = (i: number, j: number) => separatedFocusMm(surface, i, j);
+  if (l.t === 0 && h.t === 0) return at(l.i, h.i);
+  const i1 = Math.min(l.i + 1, ls.length - 1);
+  const j1 = Math.min(h.i + 1, hs.length - 1);
+  const lo = (1 - h.t) * at(l.i, h.i) + h.t * at(l.i, j1);
+  const hi = (1 - h.t) * at(i1, h.i) + h.t * at(i1, j1);
+  return (1 - l.t) * lo + l.t * hi;
+}

@@ -354,6 +354,47 @@ export interface FluorescenceVolumeOptions extends FieldPupilOptions {
    * own default focus, since they are already referred to this one.
    */
   readonly focusMm?: number;
+  /**
+   * A stage position **per channel** (object mm), overriding `focusMm`.
+   *
+   * § 6bf sweeps where each colour is sharpest and § 6bg is this, the renderer
+   * that accepts the answer. Supplied, it is called once per sample and its
+   * result goes to that sample's rasterizer in `focusMm`'s place; omitted, every
+   * expression below is the one that was there before it existed, so the
+   * uncorrected render is unchanged **bitwise** (§ 6bg.1).
+   *
+   * **A picture made this way is not one exposure, and the readout counts
+   * them.** A microscope has one stage, so two channels focused at two depths
+   * were acquired at two different times with the stage racked between — which
+   * is an ordinary acquisition (every slide scanner offers a per-channel z
+   * offset) and is emphatically not a snapshot: anything that moves or bleaches
+   * between exposures is registered wrong, and no amount of focus correction
+   * repairs it.
+   *
+   * That is why the honest argument here is a **step function over bands**, one
+   * value per filter, and not a smooth `λ → mm`. `samples` are quadrature nodes
+   * (see above), not channels: hand this a smooth curve and every node gets its
+   * own stage, which is `samples.length` exposures of a moving specimen and an
+   * acquisition nobody can perform. The engine does not choose the band edges —
+   * that is the caller's filter set — but `exposures` reports what was asked
+   * for, and § 6bg.7 pins a banded argument at 3 against a smooth one at 9.
+   *
+   * **It moves the perspective as well as the focus.** The rescale and the
+   * defocus both come off `depth − focusMm` (`rasterizeEmitterVolume`), so
+   * refocusing a channel re-refers its `1 + z·k` — and `k` is chromatic with a
+   * sign reversal inside the band (§ 6az.4, § 6bb.9). So the correction buys
+   * focus and spends inter-channel registration, and § 6bg.6 measures the price
+   * rather than assuming it small: at 1.0 mm of field the blue-against-red
+   * displacement grows **22.2%**, 1.4293e-3 mm on 6.4428e-3 mm.
+   *
+   * And the price is not the term that argument predicts. The perspective part
+   * is available in closed form — each channel's own rescale at its own stage —
+   * and it is 2.4e-5 mm, **1/59** of what was measured. The rest is the other
+   * mechanism: an off-axis PSF is not symmetric, so moving its defocus moves its
+   * centroid. A correction that buys focus at the field edge pays for it in the
+   * one place a two-stain overlay is measured.
+   */
+  readonly channelFocusMm?: (wavelengthNm: number) => number;
   /** Image-plane centre of the tile (mm). Wavelength-independent; default axis. */
   readonly centreMm?: { readonly x: number; readonly y: number };
   /**
@@ -391,6 +432,8 @@ export interface FormedVolumePlane {
   readonly image: FieldVolumeImage;
   /** The object-side NA the depth was converted to waves with. */
   readonly numericalAperture: number;
+  /** The stage this plane was rendered at — `channelFocusMm`'s, or the common one. */
+  readonly focusMm: number;
   readonly input: SpectralPlaneInput;
 }
 
@@ -398,6 +441,14 @@ export interface FormedVolumePlane {
 export interface VolumePlane extends StackedSpectralPlane {
   readonly frame: ObjectFieldFrame;
   readonly rescale: DepthRescale;
+  /**
+   * The stage position **this** channel was rendered at (object mm).
+   *
+   * Equal in every plane unless `channelFocusMm` was supplied, and the field
+   * that makes the composite auditable: a reader of one plane can see which
+   * exposure it belongs to without re-deriving it from the option.
+   */
+  readonly focusMm: number;
   /** `max |1 + z·k − 1|` over this channel's stack — the perspective it saw. */
   readonly maxStretchDeparture: number;
   /** This channel's in-focus share; chromatic, because the half depth is. */
@@ -427,8 +478,25 @@ export interface FluorescenceSpectralVolume extends FluorescenceSpectralStack {
   readonly planes: readonly VolumePlane[];
   /** Max over wavelengths — keyed on the bluest, worst-resolved plane. */
   readonly maxGridPhaseStepWaves: number;
-  /** The stage position every channel was rendered at. */
-  readonly focusMm: number;
+  /**
+   * The stage position every channel was rendered at — **`undefined` when they
+   * were not all rendered at one**.
+   *
+   * Deliberately not a representative value: under `channelFocusMm` there is no
+   * single stage this picture was taken at, and a number here would be a claim
+   * about an exposure that never happened. The per-channel figures are on
+   * `planes[i].focusMm`.
+   */
+  readonly focusMm: number | undefined;
+  /**
+   * How many separate exposures this picture is — distinct stage positions.
+   *
+   * 1 for every render before § 6bg and for every uncorrected one after it. Any
+   * larger number is a sequential acquisition and carries that acquisition's own
+   * failure mode, which no optics readout can see: the specimen has to hold
+   * still and hold its brightness between the exposures. See `channelFocusMm`.
+   */
+  readonly exposures: number;
 }
 
 /**
@@ -459,6 +527,17 @@ export function formVolumePlane(
       ...(options.aim === undefined ? {} : { aim: options.aim }),
     });
   const rescale = depthRescale(system, sample.nm);
+  // Resolved to `undefined` and not to a number when no correction was asked
+  // for, so the spread below is literally the expression that was there before
+  // `channelFocusMm` existed — § 6bg.1's bitwise rung is a property of this line.
+  const focusMm =
+    options.channelFocusMm === undefined ? options.focusMm : options.channelFocusMm(sample.nm);
+  if (focusMm !== undefined && !Number.isFinite(focusMm)) {
+    throw new Error(
+      `formVolumePlane: the stage position at ${sample.nm} nm is ${focusMm} — a focus ` +
+        `correction that does not return a number is not a stage a specimen can sit at`,
+    );
+  }
   const volume = rasterizeEmitterVolume(
     frame,
     atVolumeEmissionWavelength(density, sample.nm),
@@ -466,7 +545,7 @@ export function formVolumePlane(
       radialMap: table,
       rescale,
       slabs: options.slabs,
-      ...(options.focusMm === undefined ? {} : { focusMm: options.focusMm }),
+      ...(focusMm === undefined ? {} : { focusMm }),
       ...(options.aim === undefined ? {} : { aim: options.aim }),
     },
   );
@@ -499,6 +578,7 @@ export function formVolumePlane(
     volume,
     image,
     numericalAperture,
+    focusMm: focusMm ?? 0,
     input: {
       nm: sample.nm,
       weight: sample.weight * (options.filter?.(sample.nm) ?? 1),
@@ -537,6 +617,9 @@ export function fluorescenceSpectralVolume(
   });
 
   const stacked = stackEmitterPlanes(input, options.stack ?? {});
+  // Distinct stage positions, which is the count of exposures — two channels
+  // that happen to share a stage were acquired together and are one.
+  const stages = new Set(formed.map((p) => p.focusMm));
   let maxGridPhaseStepWaves = 0;
   for (const p of formed) {
     maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, p.image.maxGridPhaseStepWaves);
@@ -555,9 +638,11 @@ export function fluorescenceSpectralVolume(
         maxGridPhaseStepWaves: f.image.maxGridPhaseStepWaves,
         patches: f.image.patches,
         patchThroughput: f.image.patchThroughput,
+        focusMm: f.focusMm,
       };
     }),
     maxGridPhaseStepWaves,
-    focusMm: options.focusMm ?? 0,
+    focusMm: stages.size === 1 ? formed[0]!.focusMm : undefined,
+    exposures: stages.size,
   };
 }

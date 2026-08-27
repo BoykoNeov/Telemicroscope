@@ -21,5 +21,6 @@ export * from "./volume";
 export * from "./field-volume";
 export * from "./depth-aberration";
 export * from "./focus-surface";
+export * from "./focus-tiles";
 export * from "./camera";
 export * from "./exposure";

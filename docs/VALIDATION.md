@@ -115,6 +115,7 @@ whole ladder.
 | [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm varies 1.699e-2, and the one-pupil error changes SIGN with radius | `field-volume` |
 | [6be](#step-6be--the-third-axis) | The third axis — best focus SEPARATES into a colour curve plus a field curve (interaction 0.03 of a depth of focus), and the field term is EVEN, so § 6bb.6's on-axis 3.88 depths of focus is 5.79 over the square | `spectral-field-volume` |
 | [6bf](#step-6bf--the-focus-surface-offered) | The focus surface, offered — and a COEFFICIENT is not the field curve: § 6be's h² is the ladder's own 4× at its own wavelength read over its outer third, the edge coefficient goes as f^-0.60 across three objectives, and a sweep that reads a plateau is refused | `focus-surface` |
+| [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.88× the peak on the axis, 39.0% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -20044,10 +20045,14 @@ No pinned number moved, and § 6bf.1's bitwise rung is why none could have.
   *the* curve would be wrong on two of the three objectives measured here. An
   even-polynomial fit with a reported residual would still be useful, and is not
   built, because the honest fit's ORDER is itself per objective.
-- **Nothing corrects with the curve.** `separatedFocusMm` predicts a stage
+- ~~**Nothing corrects with the curve.** `separatedFocusMm` predicts a stage
   position; no renderer takes one per channel or per tile, and § 6be.7's finding
   that the tilt inside one frame is 0.409 of a depth of focus says a per-tile
-  correction is where this would first pay.
+  correction is where this would first pay.~~ **Closed by
+  [§ 6bg](#step-6bg--the-correction-applied)**, which takes a stage per channel
+  and per tile — and finds the correction is worth 5.88× the peak on the axis,
+  that `inFocusFraction` INVERTS under it, and that it costs 22.2% more channel
+  misregistration for a reason § 6bb.10's bound does not cover.
 - **The seeded table is not the default**, for the ulp § 6bf.6 measures. Wiring
   it in is a re-pin of § 6bb.1 and a handful of bitwise seams below it, and it
   would make every high-magnification objective renderable without an option.
@@ -20056,6 +20061,243 @@ No pinned number moved, and § 6bf.1's bitwise rung is why none could have.
   where the field lives**, **the shared-radius economy**, **the weight is still
   not an absolute throughput**, **the fourth cosine**, and **§ 3a's photometric
   zero point** — all six inherited verbatim from § 6be.
+
+## Step 6bg — the correction applied
+
+Source: `packages/core/src/imaging/focus-tiles.ts`,
+`packages/core/src/imaging/focus-surface.ts` (`predictedFocusMm`),
+`packages/core/src/imaging/spectral-volume.ts` (`channelFocusMm`) ·
+Tests: `packages/core/test/focus-correction.test.ts`
+
+§ 6bf built the readout and closed on the line this step exists to strike:
+"nothing corrects with the curve — `separatedFocusMm` predicts a stage position,
+no renderer takes one per channel or per tile, and § 6be.7's finding that the
+tilt inside one frame is 0.409 of a depth of focus says a per-tile correction is
+where this would first pay." Two renderers take one now, and the step's findings
+are all in what the correction turns out to cost.
+
+The wiring is again the small part. `fluorescenceSpectralVolume` gains
+`channelFocusMm`, a stage per channel; `focusCorrectedTiles` renders a list of
+tiles each at its own; `predictedFocusMm` reads a swept surface at a wavelength
+and a field radius it was not swept at. Both renders reduce to the pre-§ 6bg one
+**bitwise** when nothing is corrected (§ 6bg.1).
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bg.1 — the uncorrected render is unchanged, bitwise** | a constant per-channel stage against the scalar `focusMm`, `Object.is` on every pixel of every plane; and a one-tile series at a flat stage against the plain render, the same way | ✅ |
+| | omitting the option is the old default: stage 0, one exposure, every plane agreeing | ✅ |
+| **§ 6bg.2 — the prediction IS the surface it was built from** | `Object.is` against `separatedFocusMm` at all twelve swept points, and a bilinear over a separable grid separating — the interpolation invents no coupling the surface did not report | ✅ |
+| **§ 6bg.3 — h² is the interpolation variable, and the choice is a real one** | against real sweeps at the first interval's midpoint, three wavelengths: linear-in-h² is 1.1e-5 to 1.21e-4 mm out, linear-in-h 1.22e-3 to 1.35e-3 — 11× worse at worst, 123× at best, and ON § 6be.2's 1.2e-3 mm floor | ✅ |
+| **§ 6bg.4 — the correction pays, and by how much** | 430 nm on the axis: the probe renders **5.8834×** brighter at the swept stage than at the nominal one | ✅ |
+| | at the catalogued field edge the FIELD term alone — the axis's own correct stage against the edge's — is **1.3903×**, 39.0% of the peak | ✅ |
+| | and on the axis the field term is exactly nothing: the two stages are the same number and the two peaks are `Object.is`-equal, not merely close | ✅ |
+| | the uncorrected picture is **sharper at its edge than at its centre**, by 2.38×, so the recovery runs the other way: 5.88× on the axis against 2.13× at the edge | ✅ |
+| **§ 6bg.5 — the haze readout does NOT follow the correction** | `inFocusFraction` reads **0** on the 5.88×-brighter corrected render and **1** on the blurred one | ✅ |
+| **§ 6bg.6 — what the correction costs, and what that cost is NOT** | blue against red at 1.0 mm of field: the channels' displacement grows from 6.4428e-3 to 7.8721e-3 mm, **+22.2%** | ✅ |
+| | and it is not the perspective: that term is exactly 0 uncorrected and 2.4238e-5 mm corrected, **1/59** of what was measured | ✅ |
+| **§ 6bg.7 — a picture with two stages in it is two exposures** | a step function over three filters reads 3, the same band as a smooth curve reads 9, and `focusMm` is `undefined` in both rather than reporting one of them | ✅ |
+| **§ 6bg.8 — the tile series, and what no stage reaches** | three tiles × three channels = 9 exposures over 0.232192 mm of stage travel, each plane rendered at the stage its own tile and channel asked for | ✅ |
+| | the height a tile is corrected at is per wavelength: 2.503e-3 mm of object radius across the band at the outer tile, worth 3.3485e-4 mm of stage — under § 6be.2's floor, so it is bookkeeping and not a measurement | ✅ |
+| | across the tile it corrected, the surface still tilts 0.0137586 mm — **0.3183 of a depth of focus**, § 6be.7's quantity one tile further in, and a scalar stage does not reach it | ✅ |
+| **§ 6bg.9 — the refusals** | a stage outside the swept band or field, a negative radius, a tile whose own traced radius runs past the sweep, a non-finite stage, an empty tile list, an empty band, and a surface whose axes do not ascend | ✅ |
+
+### The correction pays, and the shape of the payoff is not the shape of the problem
+
+At 430 nm the ladder's 4×/0.10 renders its own probe **5.8834× brighter** on the
+axis at the stage § 6bf swept for it than at the nominal one. That is the whole
+of the colour term, and it is large because axial colour puts best focus 0.214 mm
+from nominal at the blue end (§ 6bb.6) against a 0.0432 mm depth of focus — five
+depths of focus of pure defocus, removed by moving one number.
+
+The field term is the smaller half and it is the half that needed a renderer per
+tile. Setting the stage correctly for 430 nm **on the axis** and then imaging the
+field edge leaves 1.3903× on the table — 39.0% of the peak — and that residue is
+exactly what no single stage position can remove, because it is a different
+number at every field radius.
+
+**The uncorrected picture is sharper at its edge than at its centre**, by 2.38×,
+which is the one figure here that says the correction is not a uniform
+improvement to a uniformly bad picture. Field curvature carries best focus back
+*toward* the nominal stage as the field radius grows — 0.2140 mm from nominal on
+the axis, 0.1315 mm at the edge — so an uncorrected blue frame is worst where it
+is usually assumed to be best, and the recovery the correction wins runs the
+other way: 5.88× on the axis against 2.13× at the edge.
+
+### The haze readout inverts, and a panel must not quote it
+
+`inFocusFraction` counts the share of image flux emitted within half a depth of
+focus of the stage. It is `renderFieldVolume`'s, it is § 6k.2's haze number, and
+it is measured about the **nominal** stage — `EmitterSlice.zMm` is already
+`depth − focusMm`, so "in focus" means "near the plane the stage is set to".
+
+Axial colour is precisely the statement that the nominal stage is not where the
+picture is sharp; § 6bb.7 pins the two apart by 50% on this objective. So the
+moment the stage is corrected, the specimen sits a whole chromatic shift away
+from the plane the readout measures about, and the readout reads **zero** — of
+the sharpest render in the file — while the blurred, uncorrected render reads
+**one**.
+
+This is not a defect in `inFocusFraction`: it answers the question it was built
+for, which is how much of a thick specimen's light comes from near the focal
+plane, and that question is about the *specimen's* distribution. It becomes a
+trap only when a correction moves the stage away from where the light is and a
+reader takes the number for a sharpness meter. § 6bg.5 pins the inversion so the
+trap is on the ladder rather than in a panel, and APP.md's haze row says so.
+
+### What the correction costs is registration — and not for the reason the ladder expected
+
+Refocusing a channel does not only change which depth is sharp. `focusMm` enters
+the **rasterizer**, and the rescale and the defocus both come off `depth −
+focusMm`, so a channel put at its own stage is re-referred through its own
+`1 + z·k` — and `k` is chromatic with a sign reversal inside the visible band
+(§ 6az.4, § 6bb.9). Per-channel focus therefore buys focus and spends
+inter-channel registration, and § 6bb.10's bound — the depth-dependent
+misregistration reaching parity with § 6ba.9's static 0.180% only at 83–86 mm of
+specimen depth — says the price should be nothing.
+
+It is not nothing. One structure under two labels at 1.0 mm of field, blue
+against red, moves from 6.4428e-3 mm apart to 7.8721e-3 mm apart when each
+channel is put at its own stage: **+22.2%**.
+
+And the mechanism is not the one the argument names. The perspective part is
+available in closed form — each channel's own rescale evaluated at its own stage,
+bluest against reddest, times the field radius and the magnification — and it is
+**exactly 0** uncorrected, because every plane is referred to the same stage, and
+**2.4238e-5 mm** corrected. That is **1/59** of the measured change, so 98% of
+the cost is something else: an off-axis PSF is not symmetric, and moving its
+defocus moves its centroid. § 6bb.10's bound was sound about the quantity it
+bounded and silent about the one that dominates here, which is why this rung
+computes the bound alongside the measurement instead of citing it.
+
+The practical reading is that a per-channel focus correction is not free for a
+two-stain overlay, and that the right order is correct-then-register rather than
+register-then-correct.
+
+### Two stages is two exposures, and the readout says the number
+
+A microscope has one stage. Two channels focused at two depths were acquired at
+two different times with the stage racked between them — an ordinary acquisition,
+and emphatically not a snapshot: anything that moves or bleaches between the
+exposures is registered wrong and no focus correction repairs it.
+
+`samples` are quadrature nodes and not channels, so the distinction has teeth.
+The honest argument to `channelFocusMm` is a **step function over bands**, one
+value per filter; hand it a smooth `λ → mm` and every node gets its own stage,
+which is nine visits of one specimen and an acquisition nobody can perform.
+§ 6bg.7 renders the same band both ways and reads **3** against **9**, and
+`FluorescenceSpectralVolume.focusMm` is `undefined` in both rather than reporting
+a representative value for an exposure that never happened.
+
+### Why the tile and not the patch, and why this is not a mosaic
+
+§ 6be.3 measures the best-focus spread over the catalogued field at 0.250229 mm
+against 0.017685 mm across a single frame (§ 6be.7) — **14× of the problem lives
+between tiles and 1× inside one**, because a frame is 0.103 mm of specimen
+against a field 2.2 mm across.
+
+The part inside a frame is not correctable even in principle. A frame is one
+exposure at one stage position, and `focusMm` is a scalar in the rasterizer
+because a stage is a scalar in the world. A patched render *carries* the in-frame
+tilt, which is how § 6be.7 measured it, but carrying is not removing and no patch
+count removes it. § 6bg.8 reads the residue off the surface instead of off patch
+columns and lands in the same place: **0.0137586 mm across the tile at 1.0 mm of
+field, 0.3183 of a depth of focus**, against § 6be.7's 0.409 one tile further
+out.
+
+**And this is not a mosaic.** `focusCorrectedTiles` renders a list and hands back
+a list: no guard band, no common ruler, no pitch. `mosaic-spectrum` does all of
+that on the brightfield branch, where a 2-D specimen map has no focus to correct,
+and the fluorescence branch still has no mosaic at all. The correction and the
+composition are separable exactly because the stage is a per-tile scalar, and
+this step takes the first without claiming the second.
+
+### The height a tile is corrected at is per wavelength
+
+A tile centre is an image-plane point and carries no wavelength; the object point
+it looks at does, because the inverse chief-ray map is traced per λ. So the stage
+callback is asked once per (tile, wavelength) with that channel's own object
+radius, read off the very frame the render will use.
+
+The size of it is worth stating because it argues against itself: at the outer
+tile the band spans **2.503e-3 mm** of object radius, and choosing one shared
+height for every channel would move the predicted stage by at most **3.3485e-4
+mm** — under § 6be.2's 1.2e-3 mm floor for the estimator that measured the curve
+in the first place. So this is bookkeeping done because it is free and correct,
+not a measurement anyone could confirm, and § 6bg.8 pins it below the floor
+rather than quoting it as an effect.
+
+It has one visible consequence, and § 6bg.9 pins it: a tile placed at the field
+edge of a surface swept to that same edge **refuses**, because the blue channel's
+own traced radius for that image point is 1.1029 mm and the sweep stopped at 1.1.
+The refusal names the height rather than extrapolating three microns, which is
+`predictedFocusMm`'s rule arriving where a caller meets it.
+
+### Why an interpolation is legal where § 6bf.3 refused a fit
+
+§ 6bf.3 declined to return a coefficient for the field curve, having measured it
+wrong by 11.1% on this objective at 430 nm and 48.7% on a 10×. `predictedFocusMm`
+interpolates between measured samples, which is a different object: it has no
+order and no coefficient to be wrong about, it reproduces every sample it was
+built from **bitwise** (§ 6bg.2), and its error follows the sample spacing rather
+than a form. Where the shape is in doubt the answer is a denser sweep.
+
+The one modelling choice left is the **variable**, and it is a real one. The
+field term is even, so a straight line in `h` has the wrong slope at both ends of
+the first interval. § 6bg.3 measures the difference against real sweeps at that
+interval's midpoint: linear-in-h² lands 1.1e-5 to 1.21e-4 mm from the swept
+answer and linear-in-h 1.22e-3 to 1.35e-3 mm — 11× worse at worst and 123× at
+best. The units that decide it are § 6be.2's: 1.2e-3 mm is the floor of the
+estimator that measured the curve, so interpolating in `h` lands **on** the
+floor, which is indistinguishable from not knowing the field curve at all, while
+h² lands an order under it. The advantage is a ratio and it shrinks outward —
+2.6× to 10× at the outer interval's midpoint, where the curve is no longer the
+quadratic § 6be read and the interval is twice as wide.
+
+### What this did to the prose already on the ladder
+
+No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have.
+
+- **§ 6bf's "nothing corrects with the curve"** is this step, and is struck above.
+- **`FluorescenceSpectralVolume.focusMm`** is now `number | undefined` — undefined
+  when the channels were not all rendered at one stage — and the type change was
+  taken deliberately so that `tsc` lists every site rather than letting a
+  representative number stand in for an exposure that never happened. It gained
+  `exposures` beside it, and `VolumePlane` gained its own `focusMm`.
+- **§ 6be.7's in-frame tilt** is reproduced from the other side, off the surface
+  rather than off patch columns, at 0.3183 of a depth of focus one tile inside
+  where § 6be.7 read 0.409.
+- **§ 6bb.10's misregistration bound** is not withdrawn — it bounds the
+  depth-dependent part and that part is 1/59 of what a per-channel correction
+  costs — but it is now qualified where it stands: it is silent about the
+  centroid of an aberrated PSF moving with its own defocus, which dominates.
+- **APP.md's fluorescence-colour and haze rows** said a focus control is
+  per-exposure and not per-channel. It can be per-channel now, at the price of
+  being several exposures, and the haze readout inverts under it.
+
+### Still open
+
+- **The readout has no fit**, inherited from § 6bf and unchanged: an
+  even-polynomial fit with a reported residual would still be useful and is still
+  not built, because the honest fit's order is per objective. § 6bg's
+  interpolation is not that fit and does not become one.
+- **The mosaic is still where the field lives.** This step corrects tile by tile
+  and does not compose them; a fluorescence mosaic — guard band, common ruler,
+  pitch — is still § 6r's machinery on a branch that does not have it, and
+  § 6be.8's `halfExtentMm ∝ λ` measurement is still the open half of it.
+- **Nothing measures the correction on a second objective.** § 6bf.4's whole
+  finding is that the curve is per objective in shape, and every number above is
+  the ladder's 4×/0.10. The correction's *machinery* is objective-independent by
+  construction — it consumes whatever surface it is handed — but the payoff
+  figures are this objective's and are labelled as such.
+- **The registration cost has no closed form.** § 6bg.6 measures it and
+  eliminates the perspective as its cause, but the centroid shift of an aberrated
+  PSF under defocus is not derived here, so a caller who wants to predict the
+  cost rather than measure it cannot.
+- **The seeded table is not the default**, **depth-dependent pupils are not
+  depth-dependent maps**, **the shared-radius economy**, **the weight is still
+  not an absolute throughput**, **the fourth cosine**, and **§ 3a's photometric
+  zero point** — all six inherited verbatim from § 6bf.
+
 
 ## Later rungs
 
