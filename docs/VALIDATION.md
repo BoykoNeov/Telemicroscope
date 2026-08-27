@@ -108,6 +108,7 @@ whole ladder.
 | [6aw](#step-6aw--the-quadruplets-budget-and-a-currency-with-a-kink) | Fourteen rows, nine bound by COLOUR — and the currency has a KINK, so a SMALLER probe is a worse budget: the solved radius is 0.00034%, 30× past precision | `tolerance-quadruplet` |
 | [6ax](#step-6ax--compensation-and-one-currency) | Perturb, RE-SOLVE, then charge: a melt 1000× past the frozen budget refits to 0.93, and on a real λ/14 target the tightest radius is 0.25% not 0.00034% — only centring is left | `tolerance-compensated` |
 | [6ay](#step-6ay--four-united-colours-one-telecentric-one) | The stop reads f·D and four united colours constrain only f: EFL(λ) turns three times, FFD(λ) never, and the quadruplet is telecentric ONCE, the doublet twice | `telecentric-quadruplet` |
+| [6az](#step-6az--the-volumetric-emitter-density) | The third Jacobian dimension IS a scalar: depth rescales the map by 1 + z/P, isotropically, so ONE table serves a volume — and the DIN objective is object-space telecentric TWICE | `emitter-volume` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -9439,6 +9440,18 @@ specimen **uniform in z** puts the same E on every plane, factors again, and
 collapses to a single convolution with Σ_z T(z)·h_z. That is `hazeKernel`, and a
 slice-by-slice render of a z-uniform volume equals it to 1e-12.
 
+**§ 6az.11 qualifies "uniform in z", and the qualification is telecentricity.**
+A specimen uniform in z is uniform in the *specimen*; what has to be uniform for
+this collapse is the **field on the grid**, and § 6az shows the map itself
+rescales with depth by `1 + z·k` unless the entrance pupil is at infinity. On the
+default objective at its design wavelength `k` is exactly 0 and the planes come
+out bitwise identical, so nothing here moves. Off that wavelength, or on a
+non-telecentric stop, a label with lateral structure puts a *different* field on
+every plane — 0.65 per pixel on a rescale of only 8.19e−3 — and the collapse does
+not apply. A laterally *uniform* label still collapses on any system, since its
+planes then differ by the scalar `(1 + z·k)²` alone, which is a weight
+`hazeKernel` already takes.
+
 **That rung is run on depth-*tapered* pupils, not on plain defocus, and the
 reason is that plain defocus would have made it vacuous.** Under pure defocus
 every slice has the same throughput, so two operators that each normalize by
@@ -17450,10 +17463,16 @@ and that is now written down where `RadialTabulation` is chosen.
   is, and § 6r's spectral stack is the shape the answer would take.
 - **A photometric zero point**, unchanged and still § 3a's. Every number here is
   a ratio.
-- **A volumetric emitter density.** This module warps a *plane*. `imaging/volume`
-  carries depth, and an emitter density through a focal series needs the third
-  dimension of the same Jacobian — which is not `(h/r)·(dh/dr)` and is not a
-  scalar.
+- ~~**A volumetric emitter density.**~~ **Closed at
+  [§ 6az](#step-6az--the-volumetric-emitter-density), and the prediction above is
+  wrong.** The third dimension **is** a scalar: depth rescales the map by
+  `1 + z·k` with `k` one over the object-to-entrance-pupil distance, so the area
+  element is this module's times `(1 + z·k)²` — isotropically, which is why
+  § 6as.2's ratio 3 survives it untouched. A chief ray from a depth is the *same
+  line* as one from the nominal plane at the rescaled height, so one `RadialMap`
+  serves a whole volume and § 6az traces nothing. What there is no third factor
+  *of* is the axial direction, because `EmitterSlice.zMm` is the specimen's own
+  coordinate and not an image-plane index.
 - **The fourth cosine**, inherited verbatim from § 5v: the entrance pupil's
   projected area is not applied by any rasterizer on either branch, it cancels in
   every comparison between them, and it belongs to the pupil layer where fixing
@@ -18632,6 +18651,236 @@ three were *explanations* attached to correct behaviour.
 - **Paraxial only**, as every rung on this branch has been since § 6aj. The
   condition is `u′ = C·y + D·u` at D = 0 on the tail's own matrix, so pupil
   aberration is not modelled and the count is a first-order count.
+
+## Step 6az — the volumetric emitter density
+
+**§ 6as's named deferral, closed — and the deferral's own prediction is what
+this step corrects.** § 6as warped a *plane*: an emitter is a density, so a
+pixel's value is the density times the object area that pixel covers, and that
+area is `det J = (h/r)·(dh/dr)`. Its "still open" list then named the volume and
+said what the answer would look like — *"the third dimension of the same
+Jacobian, which is not `(h/r)·(dh/dr)` and is **not a scalar**"*.
+
+It is a scalar. It is **one scalar per depth**, it multiplies § 6as's element
+whole, and it introduces no anisotropy of its own:
+
+    h_z(r) = h₀(r)·(1 + z·k)          det J_z = (h/r)·(dh/dr)·(1 + z·k)²
+
+with `k` one over the distance from the object plane to the entrance pupil. No
+optics arrive with this step and no ray is traced by it: what is new is that the
+map is **rescaled** rather than only evaluated, and the whole of the step is why
+that rescale is exact and what its one number turns out to be.
+
+New: `imaging/emitter-volume` (`VolumeEmitterDensity`, `DepthRescale`,
+`depthRescale`, `requireDepthRescaleMatches`, `EmitterSlabs`, `uniformSlabs`,
+`rasterizeEmitterVolume`, `RasterizedEmitterVolume`, `sphereEmitter`,
+`slabEmitter`, `gaussianBallEmitter`, `gaussianBallFlux`).
+
+### A chief ray from a depth is the SAME LINE, and that is the whole factorization
+
+A chief ray is the ray from the object point to the centre of the entrance
+pupil — `aimRay` constructs exactly that for a finite conjugate. Put the object
+plane at ζ = 0 and the entrance-pupil centre at ζ = P. The line from an object
+point (h, z) to (0, P) crosses the object plane at height `h·P/(P − z)`, so the
+ray from *depth z at height h* and the ray from *the nominal plane at that
+rescaled height* are not merely similar — they are one line, and a trace cannot
+tell them apart.
+
+That is why the step ships a multiply rather than a solver. **One `RadialMap`
+serves the whole volume**: there is no per-depth tabulation to build, to cache,
+or to get wrong, which is the opposite of what a deferral naming a third
+Jacobian dimension invites one to build. And because both factors of § 6as's
+element carry the same `(1 + z·k)`, **depth is isotropic** — § 6as.2's ratio 3
+is a statement about distortion and depth does not touch it.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **§ 6az.1 — a chief ray from a depth lands where the flat map's rescaled height lands** | 3 heights × 4 depths within 4 ulp; the two forms of one height are 1 ulp apart | ✅ |
+| ...and the identity is not vacuous, nor is zero depth a special case | 2.1–2.2e−2 of movement at 1 mm; depth 0 bitwise against the ordinary chief ray | ✅ |
+| **§ 6az.2 — zero depth collapses to § 6as value for value** | bitwise against `rasterizeEmitterDensity`; the slab thickness a bare factor at ×3.7 | ✅ |
+| **§ 6az.3 — the RATE, never the distance: the default system's own primary wavelength is a NaN** | `P = −∞` at 587.5618 makes `h·P/(P − z)` NaN; `k === 0`, `stretch === 1` at six depths | ✅ |
+| **§ 6az.4 — the objective is object-space telecentric TWICE, and § 6v placed only one** | 530.567099263 nm and 587.5618 nm; rate −1.72471e−6 at 557.4 nm between them, +6.77853e−5 at 430 | ✅ |
+| ...and the wrong wavelength's rate zooms the stack backwards, so it is refused | 546 nm against 656 nm: opposite sign, 9.01× | ✅ |
+| **§ 6az.5 — the stretch is isotropic, so § 6as.2's ratio 3 does not move** | 5.179e−9 at the frame edge, and the residual is the SUBTRACTION: halving r quarters the departure and the disagreement grows ×4.000 | ✅ |
+| **§ 6az.6 — the stop on the front vertex is the pinhole camera, and P is the object distance** | `entrance.z === 0`, `1/k === 45.7757694036543` mm exactly; 1685× the default's rate at 656 nm | ✅ |
+| **§ 6az.7 — the direction: deeper images SMALLER, ordered before it is measured** | 1.0446462 against the traced map's own first moment, 1.0446670 | ✅ |
+| **§ 6az.8 — NEGATIVE CONTROL: without the depth factor the flux is wrong by the mean stretch²** | +2.4951e−4 with it, −2.1140e−2 without, a factor of 84.7 | ✅ |
+| **§ 6az.9 — the axial rule is the midpoint rule's own order 2** | 1.9999999995 over four successive differences, with no edge to hide it | ✅ |
+| ...and a ball lands on (4/3)·π·R³, while its LATTICE residual gets no exponent | 3.6034e−4; averaged 8.941e−4 → 7.047e−4 → 2.750e−4, four placements spread 4.330× | ✅ |
+| **§ 6az.10 — a Gaussian ball has no edge, so only the span is left** | 2.697e−3 → 6.317e−5 → 5.695e−7 → 1.953e−9 over 1.5 → 3 axial waists | ✅ |
+| **§ 6az.11 — § 6k.6's z-uniform collapse is a TELECENTRIC statement** | planes bitwise identical at k = 0; 0.65 per pixel on an 8.19e−3 rescale, 80× | ✅ |
+| **§ 6az.12 — the volume images through the chain unchanged** | every slice's throughput 0.194580078125, identical to 1e−9 — § 6k.1 | ✅ |
+| **§ 6az.13 — refocusing re-rasterizes; the focal plane is exactly 1** | stretch 0 at focus, and the flux ratio is the area factor to 1e−12 | ✅ |
+| **§ 6az.14 — the refusals**: an infinite conjugate, a mismatched wavelength, a stack whose thicknesses do not match its depths, a slice at the pupil | engine identities | ✅ |
+
+### § 6az.3 — the rate, never the distance, and the trap is on the default path
+
+`P` is not a quantity that can be stored, and the reason is not an edge case
+reached by an unusual caller. § 6v's `"backFocal"` default puts the diaphragm at
+the group's back focal distance **read at the design wavelength**, so on the
+system every caller gets unasked the entrance pupil is at **exactly infinity at
+587.5618 nm** — and the form the
+deferral invites, `h·P/(P − z)`, is then `∞/∞`, which is **NaN**, at the primary
+wavelength of the default objective.
+
+`k = 1/P` is the quantity that behaves. It is a finite `−0` at the crossing,
+`1 + z·k` is then exactly 1, and the rescale is the identity **by arithmetic
+rather than by a branch** — no telecentric special case exists anywhere in the
+module. § 6az.3 pins the NaN against the finite value on the same system at the
+same wavelength, because a rung that only checked the finite case would have
+passed on a module that was broken by default.
+
+### § 6az.4 — telecentric twice, and § 6v placed only one of them
+
+The entrance pupil is the stop imaged through the glass in front of it, so where
+it lands is dispersive — and the objective is an **achromatic doublet**, so its
+back focal distance turns around inside the band and therefore meets the stop
+plane at *two* wavelengths. The rate on the default DIN 4×/0.10:
+
+| λ (nm) | rate `k` (per mm) | |
+|---|---|---|
+| 430 | +6.77853e−5 | |
+| 486.1327 | +1.35407e−5 | |
+| **530.567099** | **±0** | telecentric — the doublet's own turn |
+| 546.074 | −1.43906e−6 | |
+| 557.367 | −1.72471e−6 | the extremum between the two |
+| **587.5618** | **±0** | telecentric — § 6v put the stop here |
+| 656.2725 | +1.29652e−5 | |
+| 680 | +1.93607e−5 | |
+
+**Negative between the two crossings and positive outside them**, spanning a
+factor of 39.3 between its extremes. That is § 6ap's finding on the object side
+and in the depth direction — an achromatic element turns a distance around inside
+the band, so a condition that would hold once holds twice and the sense reverses
+between — and it arrived here without being looked for. **One crossing is
+engineering** — `stopDistanceMm = systemProperties(glass, designWavelengthNm).bfd`
+makes BFD(λ) meet the stop plane at that wavelength by construction — **and the
+other is free**, given by the doublet turning BFD(λ) around inside the band.
+Neither is a wavelength this module chose.
+
+It is also what makes the identity refusal load-bearing rather than tidy. § 6r
+renders one frame per wavelength; a rate read at 546 nm and used on a 656 nm
+frame does not merely mis-scale the stack, it zooms it the **wrong way** and by
+9.01×, with nothing downstream able to see it. That is § 6n.2's and § 6p's bug
+class with a sign on it, and `requireDepthRescaleMatches` says so in the message
+rather than in a comment.
+
+### § 6az.5 — the residual is the subtraction, and the proof is that it scales
+
+§ 6as.2's ratio is built from *departures* — how far each factor sits from their
+common axis limit — and at the frame edge those departures are 1e−8-sized. So a
+1e−16 rounding in the quotient becomes a 1e−8 rounding in the ratio, and the
+ratio at depth agrees with the flat one to 5.179e−9 rather than to f64.
+
+That could be a small anisotropy or it could be cancellation, and the rung
+decides it rather than asserting it: halve the radius, the departure falls ×4
+because it is quadratic in field, and the disagreement rises to 2.0716e−8 —
+**×4.000**. A physical anisotropy would not track the departure that way.
+Depth adds none: the stretch is a common factor of both terms and cancels out of
+the ratio exactly.
+
+### There is no axial Jacobian, and it is the API's own asymmetry that removes it
+
+A change of variables needs two coordinate systems. The lateral direction has
+them — the grid is an **image**-plane grid while the specimen is in object
+millimetres, so `dA_object/dA_image` is a real ratio. The axial direction does
+not: `EmitterSlice.zMm` has been documented in object-space millimetres since
+§ 6k, so the stack's third coordinate is the specimen's own and there is nothing
+to transform it from. A slab of thickness Δz holds `ρ·dA_object·Δz`, and that is
+the whole weight.
+
+The deferral predicted a third factor; the answer is that the third factor is
+not a Jacobian at all but a **slab thickness**, and what depth actually does is
+reach sideways into the lateral one. § 6az.8 measures that rather than arguing
+it — a uniform slab against `ρ·π·R²·T` in closed form, to +2.4951e−4, where
+dropping the depth factor costs −2.1140e−2.
+
+§ 6j's longitudinal magnification `m²·n/n′` would be the third factor if a caller
+wanted **image**-space voxels, which is what a deconvolved volume is. Nothing
+here does, and the 3×3 determinant is deliberately not built.
+
+### § 6az.11 — § 6k.6's collapse is a telecentric statement, and it fails by 65%
+
+§ 6k.6 pins that a specimen **uniform in z** factors: it puts the same field on
+every plane, so `Σ_z T(z)·(h_z ⊛ E) = (Σ_z T(z)·h_z) ⊛ E` and the whole stack
+collapses to one `hazeKernel`. That exception is exact and it is why "haze" has a
+kernel at all.
+
+It is exact **only when the map does not move with depth**. A z-uniform specimen
+is uniform in the *specimen*; on the grid, each plane samples it through its own
+rescaled map, so the planes are different samplings of the same label. § 6az.11
+measures both sides on one specimen: at k = 0 the planes are **bitwise
+identical**, and on the lever they differ by **0.65 per pixel** — on a rescale of
+only 8.19e−3, because a label with structure a few pixels across converts a
+0.8% shift of the map into an 80× larger change in what any one pixel sees.
+
+So § 6k.6's collapse is not disturbed, but its scope is now stated: it is a
+telecentric statement. A laterally *uniform* label still collapses on any system,
+since the planes then differ by the scalar `(1 + z·k)²` alone and that is a
+weight `hazeKernel` already takes. A label with structure does not.
+
+### § 6az.9 — two convergences, and only one of them separates
+
+The axial rule separates cleanly, because it can be given nothing else to do:
+a density smooth across the grid and **polynomial in depth** puts the same
+lateral sum on every slice, so what the slice count converges is the midpoint
+rule alone. Its successive differences fall at **1.9999999995**, which is the
+midpoint rule's order and a number from outside the engine.
+
+The lattice does not separate, and the rung says so instead of quoting an
+exponent. A ball's residual carries the axial rule's error as well as the
+lattice's, and refining one axis does not remove the other — at 24 slices the
+axial term dominated so completely that the residual read an apparent −0.34.
+What is claimed is what is measured: averaged over four sub-pixel placements the
+residual falls monotonically, 8.941e−4 → 7.047e−4 → 2.750e−4 over ×4 of grid.
+
+And the accident § 5v.5 refused to fit is measured here rather than inherited:
+four sub-pixel placements of the **same ball on the same grid** disagree with
+each other by up to **4.330×**, which is more than the whole ×4 refinement buys.
+§ 6as.4 had to average over sixteen offsets before a disc's exponent became a
+law; a ball is not given one.
+
+### Refocusing re-rasterizes, and the coupling is carried rather than remembered
+
+The rescale is measured from the plane the objective is focused on, because that
+is the plane `P` was measured to. `renderVolume` defocuses on
+`slice.zMm − focusMm`, and the perspective must come off the **same signed
+offset**: moving the stage moves every feature relative to the entrance pupil, so
+a focus series is a series of different rescales and not one volume viewed twice.
+
+So `rasterizeEmitterVolume` takes the focus, samples the density in the
+specimen's own coordinates, and emits slices whose `zMm` is the offset from the
+focal plane — the volume is already referred to focus and `renderVolume` takes it
+at its default `focusMm` of 0. There is then only one copy of the number and
+nothing to double-count. `RasterizedEmitterVolume.focusMm` carries what it was
+built at, on § 6l.9's argument that a coupling with no readout to catch it is
+refused rather than documented.
+
+### Still open
+
+- **A spectral emitter density**, unchanged from § 6as and now the last of its
+  three. `rasterizeEmitters` has no spectrum either and the emission band lives
+  in `imaging/emission`, so this is a seam that already works — it becomes a gap
+  the moment a specimen's *emission colour* varies with position, which is what a
+  two-stain preparation is.
+- **A photometric zero point**, still § 3a's. Every number here is a ratio.
+- **The rate is paraxial.** With `rayAiming: "real"` the chief ray is solved onto
+  the stop rather than aimed at the paraxial entrance pupil, so the same-line
+  argument still holds exactly — a ray from depth still crosses the object plane
+  somewhere, and the flat map still images that height — but the crossing is no
+  longer `h/(1 + z·k)` to all orders. Nothing measures the departure.
+- **The rate is chromatic and nothing sweeps a stack across it.** § 6az.4 pins
+  the two crossings and the sign reversal on the *rate*; no rung renders the same
+  volume at wavelengths either side of a crossing and reads the zoom reversing in
+  the picture, which is what § 6an did for the sensor.
+- **Depth-dependent pupils are not depth-dependent maps.** § 6l varies the
+  *pupil* with depth and this step varies the *map*; a mount whose index is not
+  the immersion's also bends the chief ray, so the rescale it produces is not
+  `1 + z·k` at all. `mountPupils` and `depthRescale` are independent today and
+  the coupling is unmeasured.
+- **The fourth cosine**, inherited verbatim from § 5v and § 6as: the entrance
+  pupil's projected area is applied by no rasterizer on either branch, it cancels
+  in every comparison between them, and it belongs to the pupil layer.
 
 ## Later rungs
 
