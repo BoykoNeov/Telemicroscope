@@ -212,6 +212,17 @@ export interface FieldVolumeOptions {
   readonly scale?: PupilScale;
   /** Called once per patch finished, for progress and cost accounting. */
   readonly onPatch?: (done: number, total: number) => void;
+  /**
+   * Called once per slice imaged, **within each patch** — so it fires
+   * `patches²` times for each slice index, not once.
+   *
+   * `renderVolume`'s callback with the outer loop this module added, and it
+   * reports the slice's own index rather than a running total so that at one
+   * patch it is `renderVolume`'s exactly. A caller wanting a single monotone
+   * progress count wants `onPatch`, which is the loop that actually bounds the
+   * cost (§ 6bd's header: `patches² × slices` convolutions).
+   */
+  readonly onSlice?: (done: number, total: number) => void;
 }
 
 export interface FieldVolumeImage {
@@ -384,6 +395,7 @@ export function renderFieldVolume(
         weightedEmittedFlux += flux;
         totalFlux += flux;
         if (Math.abs(volume.slices[s]!.zMm - focusMm) <= halfDepthMm) inFocusFlux += flux;
+        options.onSlice?.(s + 1, volume.slices.length);
       }
 
       patchThroughput.push(referenceSum);

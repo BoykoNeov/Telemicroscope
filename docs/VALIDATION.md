@@ -113,6 +113,7 @@ whole ladder.
 | [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.88 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
 | [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
 | [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm varies 1.699e-2, and the one-pupil error changes SIGN with radius | `field-volume` |
+| [6be](#step-6be--the-third-axis) | The third axis — best focus SEPARATES into a colour curve plus a field curve (interaction 0.03 of a depth of focus), and the field term is EVEN, so § 6bb.6's on-axis 3.88 depths of focus is 5.79 over the square | `spectral-field-volume` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -19639,10 +19640,12 @@ have. Three claims in prose did:
 
 ### Still open
 
-- **The third axis.** § 6bb runs a spectrum through a depth stack and this runs a
-  field through one; all three at once is its own step at `N_λ × patches² × N_z`
-  convolutions. Deferred rather than smuggled in, and `spectral-volume`'s line
-  now names it as scope.
+- ~~**The third axis.** § 6bb runs a spectrum through a depth stack and this
+  runs a field through one; all three at once is its own step at
+  `N_λ × patches² × N_z` convolutions.~~ **Closed by
+  [§ 6be](#step-6be--the-third-axis)**, which finds the best-focus surface
+  separates into a colour curve plus a field curve — and that the field term is
+  even, so § 6bb.6 read it at the one field position it is flat at.
 - **The shared-radius economy.** `imaging/render` caches PSF stacks on the patch
   radius, since a p×p grid has far fewer distinct radii than patches, and turns
   the reused kernel by the patch azimuth. Available here and not taken:
@@ -19653,6 +19656,182 @@ have. Three claims in prose did:
 - **The weight is still not an absolute throughput**, **the fourth cosine** is
   still nobody's, and **§ 3a's photometric zero point** is still open — all three
   inherited verbatim from § 6bc.
+
+## Step 6be — the third axis
+
+Source: `packages/core/src/imaging/spectral-volume.ts` ·
+Tests: `packages/core/test/spectral-field-volume.test.ts`
+
+§ 6bb runs a spectrum through a depth stack, § 6bd runs a field through one, and
+each closed naming the other's axis as the piece it did not have. This is the
+join. The wiring is the smallest part of it: `renderFieldVolume` already images a
+volume through a field-varying pupil, so the spectral driver simply runs on it,
+and § 6be.1 pins that at one patch the swap is **bitwise** — so every § 6bb pin
+stands untouched and the third axis costs nothing until it is asked for.
+
+What the third axis is *for* is not what the deferral expected. The deferral
+priced it as a coupling. It is a **separation**, and the separation is worth more
+than the coupling would have been.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6be.1 — the spectral driver on the field renderer is § 6bb, bitwise** | five wavelengths × two field radii: `Object.is` on every pixel against a hand-written `renderVolume`, and on every `sliceFlux`, on `inFocusFraction` and on `maxGridPhaseStepWaves` | ✅ |
+| | and it is not vacuous — the specimen sits at each tile's own object centre, after an axis-centred one made the off-axis frames two grids of zeros and the sibling rung reported no change and said so | ✅ |
+| | patches do change the picture, the driver carries `patches` and `patchThroughput` onto every plane, and `formVolumePlane` at N patches is `renderFieldVolume` at N patches bitwise | ✅ |
+| | and the refusals: a zero and a non-integer patch count | ✅ |
+| **§ 6be.2 — the best-focus surface SEPARATES into a colour term and a field term** | the interaction is −1.231174e-3, +1.136270e-3 and +7.506299e-4 mm at object heights 0.4, 0.8 and 1.1 — under 1.3e-3 mm, 0.5% of the spread and below 0.031 of a depth of focus | ✅ |
+| | and it is the estimator's FLOOR rather than a coupling: it **changes sign** between the first two heights, and the ordering of the three wavelengths' field shifts is a *different* one at each of the three heights | ✅ |
+| | the signature that decides it — the residual's absolute size is flat near 1.2e-3 mm while its relative size falls 1.124261e-1 → 3.766764e-2 → 2.331975e-2 as the shift it is read against grows | ✅ |
+| **§ 6be.3 — and the field adds half as much again to § 6bb.6's spread** | § 6bb.6's own on-axis figures first, reproduced by this file's estimator: 0.21400556 / 0.04709541 / 0.06736525 mm at 430 / 587.5618 / 656.2725 | ✅ |
+| | over the square the spread is 0.25022903 mm — **5.78924** depths of focus at 430 nm against § 6bb.6's 3.8775, a factor 1.49303 — and the extremes are the blue ON AXIS and the design wavelength at the EDGE, one corner from each axis | ✅ |
+| | and it decomposes exactly: colour 0.16691015 plus field 0.08331889 is the spread to twelve decimals, the field term 0.499184 of the colour one | ✅ |
+| **§ 6be.4 — the field term is EVEN, so the axis is its flat spot** | read as h² the two largest heights agree to 1.04% / 2.71% / 6.33%; read as h they disagree by 36.1% / 33.9% / 29.3% — the quadratic reading 34.6×, 12.5× and 4.63× the more constant | ✅ |
+| | one curve for every wavelength: the h² coefficient is −0.06823823 / −0.06885859 / −0.06728941 mm/mm², a spread of 2.3320% and so itself at § 6be.2's floor | ✅ |
+| **§ 6be.5 — the estimator's own zero, OFF the axis** | an aberration-free pupil returns −2.78226e-7, −2.79344e-7 and −2.80341e-7 mm at object heights 0, 0.8 and 1.1 — flat to 0.76%, where the traced pupil puts 0.131 mm | ✅ |
+| **§ 6be.6 — the amplitude half is a NULL: the field profile is achromatic** | the throughput profile normalized to each frame's own centre is the same at every wavelength to 5.3e-7, at radii 0–4 mm and at pupilSamples 24, 32 and 48 alike | ✅ |
+| | and it is a floor and not a staircase: 5.2556e-7 at 24 samples against 4.9530e-7 at 48, which does not fall | ✅ |
+| | while the one radius that reads a thousand times larger IS quantization: 4.8187e-3 → 2.6735e-3 → 1.1910e-3, a fall of 4.0459× as the lattice doubles | ✅ |
+| **§ 6be.7 — patches reach the focus tilt INSIDE a frame, and nothing past it** | across one frame at the field edge the three patch columns focus at 0.14096351 / 0.13149414 / 0.12327933 mm — a tilt of 0.01768418 mm, **0.409136** of a depth of focus | ✅ |
+| | and that is the limit of it: the frame is 0.10300 mm of specimen wide against a field 2.2 mm across, so § 6be.3's spread is a MOSAIC quantity | ✅ |
+| **§ 6be.8 — patch p is a DIFFERENT field point in every channel** | a frame's `halfExtentMm` is ∝ λ to twelve decimals — 0.205365407 mm at 430 nm against 0.313431789 at 656.2725, exactly the wavelength ratio | ✅ |
+| | so the red frame's outer patch column sits more than 0.03 mm further out in the field than the blue one's, and two channels' `patchThroughput` arrays are not elementwise comparable | ✅ |
+
+### The surface separates, and the residual is the estimator's floor
+
+A stack is rendered at one stage position, so where a channel is sharp is decided
+by its wavelength — § 6bb.6's finding — and, it turns out, by where in the field
+it is looking, by about half as much again. The question this step exists to
+answer is whether those two interact, because a focus correction that has to be a
+two-dimensional map is a very different object from one that is two curves.
+
+They do not. Sweeping the stage on a rendered ball at four object heights and
+three wavelengths, best focus is a colour term plus a field term and the
+interaction between them is under 0.0013 mm — 0.5% of the total spread, and 0.03
+of a depth of focus.
+
+**Bounding it is not enough, and § 6be.2 does not stop there.** A bound at the
+edge of what an estimator can resolve is a statement about the estimator until
+something distinguishes the two, and here three things do. The residual
+**changes sign** between the first two heights, which no monotone coupling does.
+The ordering of the three wavelengths' field shifts is a different permutation at
+each of the three heights — 587<656<430, then 430<587<656, then 656<430<587 —
+and a physical coupling does not reshuffle. And the residual's *absolute* size
+stays near 1.2e-3 mm at every height while its *relative* size falls by a factor
+of five, which is exactly a fixed floor divided by a signal that is growing. So
+the number to carry forward is an upper bound, and the shape to carry forward is
+that there is nothing under it.
+
+That is § 6bb.9's discipline — pin the ordering and the staircase, not the digits
+of a quantity that has none — applied to a null instead of to a cancellation.
+
+### The field term is even, which is why § 6bb.6 could not have seen it
+
+The field term goes as **h²**. Read as h² the coefficient is constant across the
+two largest heights to 1.04%, 2.71% and 6.33% at the three wavelengths; read as h
+the same numbers disagree by 36.1%, 33.9% and 29.3%. So the quadratic reading is
+between 4.63× and 34.6× the more constant, and the quantity is even in field
+height — its gradient vanishing at the axis exactly.
+
+Which means § 6bb.6 measured the focus at the one field position at which the
+field term is flat. That is the **third** time the ladder has read an even
+quantity at its own symmetry point: § 6bc measured the throughput's within-frame
+variation on the axis, § 6bd found it and said so, and this is the same shape
+again on a different quantity. § 6bb.6 is not wrong — its numbers are reproduced
+here to eight decimals before being taken anywhere new — it is *complete for the
+axis*, which is a different thing from complete.
+
+The evenness is also why the separation is legible: the field curve is **one
+curve for every wavelength**. Its h² coefficient is −0.06823823, −0.06885859 and
+−0.06728941 mm/mm² at 430, 587.5618 and 656.2725 nm, a spread of 2.33% — itself
+at the floor § 6be.2 measured, so there is no evidence the field curve is
+chromatic at all.
+
+### The estimator has a zero off the axis, and it is load-bearing
+
+`rasterizeEmitterVolume` runs on a radial map and a depth rescale that are
+**both** field-dependent. So a best focus that moved with object height could
+have belonged to the objective or to the rasterizer, and nothing in § 6be.3's
+numbers distinguishes them. § 6be.5 does: with an aberration-free pupil the
+answer must not move with height, and it does not — −2.78226e-7, −2.79344e-7 and
+−2.80341e-7 mm at heights 0, 0.8 and 1.1, flat to 0.76%, against the 0.131 mm the
+traced pupil puts at the outermost of them.
+
+Without that rung the whole step is a measurement of its own rasterizer. It is
+§ 6bb.6's own control taken off the axis, and § 6bb.4's discipline before it: a
+readout that cannot produce its own zero is not a readout.
+
+### The amplitude half is a null, so the third axis is about phase
+
+§ 6bd.6 split what patches buy into a phase half and an amplitude half and found
+the phase carries four fifths of it. § 6be.6 asks the chromatic version — is the
+*field profile* of what the pupil transmits different at different wavelengths? —
+and the answer is no, to 5.3e-7, at every radius inside the catalogued field.
+
+The rung is written to survive the obvious objection, because the first probe of
+it read 4.8e-3 at one radius and that would have been the headline. It is
+quantization: it falls 4.0459× as the pupil lattice doubles, while the 5.3e-7
+everywhere else does **not** fall — 5.2556e-7 at 24 samples against 4.9530e-7 at
+48. A staircase shrinks with the lattice and a floor does not, and both are
+pinned so that neither can later be read as the other.
+
+So everything chromatic about a patched frame is in the **wavefront**. That is
+§ 6bd.6's split one axis up, and it is what makes the focus result above the
+whole of the step rather than half of it.
+
+### What patches reach, and what they do not
+
+Field curvature is phase, so a patched frame carries its own focus tilt: across
+one frame at the edge of the catalogued field the three patch columns' best focus
+spans 0.01768418 mm, **0.409136 of a depth of focus** at 430 nm. A patched render
+has that, because each patch is imaged through its own traced pupil. So a frame
+is not isoplanatic in focus either, and at the field edge the departure is past
+the quarter-wave mark.
+
+What no patch count reaches is the rest. One frame is 0.10300 mm of specimen wide
+against a field 2.2 mm across, so § 6be.3's 0.25022903 mm is a **mosaic**
+quantity: it takes tiles across the field, not patches within a frame. § 6bd
+found the same shape one axis down — the frame is 44 µm wide, so the field case
+appears between tiles — and the honest reading of both is that "patched" and
+"across the field" are different scales that happen to share a mechanism.
+
+§ 6be.8 is the correctness hazard that falls out of it. A frame's extent is ∝ λ
+exactly — 0.205365407 mm at 430 nm against 0.313431789 at 656.2725, which is the
+wavelength ratio to twelve decimals — so the red frame is 1.526× the blue one
+about the same centre and **patch p is a different field point in every
+channel**. Comparing two channels' `patchThroughput` arrays elementwise compares
+two field positions and calls the difference a colour. § 6be.6 normalizes each
+profile to its own frame's centre first, which is what makes that null a
+statement about the optics rather than about two frames' sizes.
+
+### What this did to the prose already on the ladder
+
+No pinned number moved, and the bitwise rung is why nothing could have.
+
+- **§ 6bd's "the third axis" deferral** is this step, and is struck above.
+- **`spectral-volume.ts`'s header** said "`patches` is not supported" as a scope
+  line. It is supported; the header now carries the step instead.
+- **`field-volume.ts` gained `onSlice`**, so the driver's existing per-slice
+  progress callback survives the swap. § 6bd's file passes unchanged, which its
+  two bitwise reductions would have caught if it did not.
+
+### Still open
+
+- **Depth-dependent pupils are not depth-dependent maps.** § 6l varies the pupil
+  with depth, § 6az and § 6bb the map and the defocus; a mount whose index is not
+  the immersion's does all three, and its rescale is not `1 + z·k` at all. Now
+  with a wavelength and a field as further independent axes.
+- **A focus surface is measured here and not offered.** § 6be.2 says a correction
+  wants two one-dimensional curves; nothing in the engine returns them, and a
+  `focusSurface` readout that did would be the natural next rung. It is deferred
+  rather than half-built, because the curve that matters is per objective and the
+  ladder has one.
+- **The mosaic is still where the field lives.** § 6be.7 bounds what patches
+  reach at 0.409 of a depth of focus inside one frame; the other 0.25 mm needs
+  § 6r's mosaic, whose own `halfExtentMm` ∝ λ deferral § 6be.8 has now measured
+  and not closed.
+- **The shared-radius economy**, **the weight is still not an absolute
+  throughput**, **the fourth cosine**, and **§ 3a's photometric zero point** — all
+  four inherited verbatim from § 6bd.
 
 ## Later rungs
 
