@@ -6175,6 +6175,32 @@ still drawn for the two that do not, with the guard red beside it — A4’s hou
 rule, and the honest one here: a withheld picture would hide that the *other*
 canvas is unaffected.
 
+### § 6bc moved what two of these readouts mean
+
+Both panels that call `renderFluorescence` used to print a green "no light lost"
+tick, and it was the normalizer talking: the render divided each pupil's own
+transmission out before anyone summed the image, so `Σ image / Σ object` was 1
+by construction through an objective that passes a fifth of the light.
+
+Since § 6bc the render carries that weight, and three readouts follow it:
+
+- **`throughput`** — new, on both panels. `Σ image / Σ object`, which is now the
+  share of the specimen's light the objective actually delivered. On the DIN
+  4×/0.10 it is 0.176.
+- **`throughputSpan`** — new, on the emitter panel only. `max/min − 1` over the
+  patches' own weights: how much the transmission varies across the frame being
+  shown. It is ~1e−8 at this panel's 44 µm frame and exactly 0 at `patches` = 1,
+  which is the honest answer rather than a missing one — the field variation this
+  objective has appears between mosaic *tiles*, not inside one frame.
+- **`lightResidual`** — unchanged in spirit, requoted. It is measured against
+  `weightedEmittedFlux`, the flux the weights allow, so it is still an exact
+  identity to f64 and no longer checks the normalizer.
+
+**`peakDrop` is referred to `throughput`**, so it goes on meaning the blur. Taken
+against the raw image it would have read a 96% "drop" for a lens that is merely
+dim, which is the optics readout quietly turning into a second throughput
+readout — the failure this whole step is about, arriving in a panel.
+
 ### The number this part sends back: which lenses can carry the surface at all
 
 `rasterizeEmitterDensity` asks the map for `hypot(x, y)` at every pixel, so the

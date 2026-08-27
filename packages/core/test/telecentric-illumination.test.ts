@@ -325,8 +325,17 @@ describe("§ 6x.3 — a self-luminous specimen does not move, bit for bit", () =
     // null is a null and not a vacuous one.
     expect(Math.abs(traced(0.25, 0.25).illuminationOffset!.sx)).toBeGreaterThan(0);
 
-    const withOffset = renderFluorescence(emitters, traced, { patches: 2, pupilSamples: PS });
-    const without = renderFluorescence(emitters, stripped, { patches: 2, pupilSamples: PS });
+    const units = { kind: "transmitted" } as const;
+    const withOffset = renderFluorescence(emitters, traced, {
+      patches: 2,
+      pupilSamples: PS,
+      throughput: units,
+    });
+    const without = renderFluorescence(emitters, stripped, {
+      patches: 2,
+      pupilSamples: PS,
+      throughput: units,
+    });
     expect(withOffset.intensity).toEqual(without.intensity);
   });
 });

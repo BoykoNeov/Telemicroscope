@@ -11,7 +11,11 @@ import {
   gaussianEmitter,
   rasterizeEmitterDensity,
 } from "../src/imaging/emitter-density";
-import { rasterizeEmitters, renderFluorescence } from "../src/imaging/fluorescence";
+import {
+  pupilThroughput,
+  rasterizeEmitters,
+  renderFluorescence,
+} from "../src/imaging/fluorescence";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem } from "../src/trace/system";
 
@@ -470,7 +474,17 @@ describe("§ 6as — the extended fluorescent specimen", () => {
       { radialMap: map },
     );
     const pupils = tracedFieldPupils(SYSTEM, frame);
-    const formed = renderFluorescence(object, pupils, { pupilSamples: 32, scale: frame.scale });
+    // `patches` defaults to 1, so this frame is formed through the one pupil at
+    // its centre and that pupil is its own reference — § 6bc's legal use of
+    // `referenced`, and the units the rung below was measured in.
+    const formed = renderFluorescence(object, pupils, {
+      pupilSamples: 32,
+      scale: frame.scale,
+      throughput: {
+        kind: "referenced",
+        referenceSum: pupilThroughput(pupils(0.5, 0.5).pupil, { pupilSamples: 32, size }),
+      },
+    });
 
     expect(formed.size).toBe(size);
     // Incoherent imaging of a non-negative emitter field is non-negative, and

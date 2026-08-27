@@ -168,11 +168,83 @@ export interface IncoherentPsf {
    * § 6k stacks planes and immediately needs it back, since a kernel scaled to
    * sum 1 carries no record of how much light reached it. Reading the ratio of
    * two `values` arrays would report 1 whatever the pupils did.
+   *
+   * § 6bc finished the argument: "one plane" was never the condition, "one
+   * pupil" was. A patched field, a mosaic tile and a wavelength each build one
+   * frame out of several pupils, and § 6i's normalization is a measurement
+   * error in all three. `ThroughputUnits` is now a required option here.
    */
   readonly formedSum: number;
   /** Largest |Δphase| in waves between adjacent transmitting lattice samples. */
   readonly maxGridPhaseStepWaves: number;
   readonly pixelScaleMm?: number;
+}
+
+/**
+ * The units a formed intensity is quoted in — § 6bc's repair.
+ *
+ * A pupil hands the image two separable things: a normalized kernel, which is
+ * **where** the light lands, and `formedSum`, which is **how much** of it there
+ * is. Splitting them is right. Applying only the first is not physics but a
+ * choice of units, and it is invisible exactly as long as one pupil forms the
+ * whole frame. The moment a frame is built from several — a depth stack, a
+ * patched field, a mosaic tile, one plane per wavelength — the weight stops
+ * being a constant and dropping it is a measurement error.
+ *
+ * `renderVolume` has always carried it and this path always normalized it away
+ * (§ 6bb.2). This type is the reconciliation, and it is a required option so
+ * that the compiler names every caller that has to choose.
+ */
+export type ThroughputUnits =
+  /**
+   * Every contribution carries the light its own pupil transmitted. **The
+   * physics**, and the only legal answer when a picture is assembled from more
+   * than one pupil.
+   */
+  | { readonly kind: "transmitted" }
+  /**
+   * `transmitted`, then divided by one weight the caller names.
+   *
+   * A units choice, legal because it is applied **once per composition** rather
+   * than once per contribution. Pass the SAME `referenceSum` to every frame of
+   * a composition — the axial tile's, the design wavelength's — and every
+   * difference the weight carries survives it. Pass each frame its **own**
+   * weight and each frame normalizes to itself, which is the defect this type
+   * exists to remove wearing a different name: `volume.ts`'s
+   * `relativeThroughput` references its own stack's focal plane and must not be
+   * reused across stacks for exactly this reason.
+   *
+   * `pupilThroughput` supplies the number for a single-pupil frame, where it
+   * reproduces the pre-§ 6bc render bitwise.
+   */
+  | { readonly kind: "referenced"; readonly referenceSum: number };
+
+/** The per-contribution factor `units` asks for, given what this pupil passed. */
+function throughputWeight(units: ThroughputUnits, formedSum: number): number {
+  if (units.kind === "transmitted") return formedSum;
+  const ref = units.referenceSum;
+  if (!(ref > 0) || !Number.isFinite(ref)) {
+    throw new Error(
+      `throughput.referenceSum must be a positive finite weight, got ${ref} — it is the light ` +
+        `some reference pupil transmitted, from pupilThroughput or IncoherentPsf.formedSum`,
+    );
+  }
+  // Exactly 1 when the reference IS this pupil, so a single-pupil frame in its
+  // own units is bitwise the render this option replaced.
+  return formedSum / ref;
+}
+
+/**
+ * The light a pupil transmits on this lattice — `IncoherentPsf.formedSum`,
+ * named on its own because `ThroughputUnits` asks callers for it.
+ *
+ * Forms the kernel to get it rather than reading Σ|P|² through Parseval, and
+ * the reason is bitwise equality rather than cost: the two agree to f64 noise,
+ * and a reference that is *nearly* this pupil's weight leaves a factor that is
+ * nearly 1 in every pixel of an image that used to have none.
+ */
+export function pupilThroughput(pupil: PupilFunction, options: IncoherentPsfOptions): number {
+  return incoherentPsf(pupil, options).formedSum;
 }
 
 /**
@@ -306,9 +378,27 @@ export interface FluorescenceImage {
   readonly intensity: Float64Array;
   /** Lattice points the pupil transmitted, from the kernel. */
   readonly transmittingSamples: number;
+  /**
+   * What this pupil transmitted, before `throughput` was applied — the number
+   * another frame of the same composition passes as its `referenceSum`.
+   */
+  readonly formedSum: number;
   /** Largest |Δphase| in waves between adjacent transmitting lattice samples. */
   readonly maxGridPhaseStepWaves: number;
   readonly pixelScaleMm?: number;
+}
+
+export interface IncoherentImageOptions {
+  /** Frequency bins across the pupil DIAMETER — the scale, as in `abbeImage`. */
+  readonly pupilSamples: number;
+  /** Supply to get a physical `pixelScaleMm` back; omit for grid units. */
+  readonly scale?: PupilScale;
+  /**
+   * Required, and § 6bc's whole point: a formed image either carries the light
+   * its pupil passed or is quoted against a stated reference, and there is no
+   * third answer. See `ThroughputUnits`.
+   */
+  readonly throughput: ThroughputUnits;
 }
 
 /**
@@ -321,7 +411,7 @@ export interface FluorescenceImage {
 export function incoherentImage(
   object: EmitterField,
   pupil: PupilFunction,
-  options: { readonly pupilSamples: number; readonly scale?: PupilScale },
+  options: IncoherentImageOptions,
 ): FluorescenceImage {
   const n = object.size;
   requireGrid(n);
@@ -333,11 +423,19 @@ export function incoherentImage(
     size: n,
     ...(options.scale === undefined ? {} : { scale: options.scale }),
   });
+  const intensity = convolveCircular(object.values, kernel.values, n);
+  const weight = throughputWeight(options.throughput, kernel.formedSum);
+  // Skipped rather than multiplied through, so a frame quoted against its own
+  // pupil is bitwise what it was before the weight existed.
+  if (weight !== 1) {
+    for (let i = 0; i < n * n; i++) intensity[i] = intensity[i]! * weight;
+  }
   return {
     size: n,
     pupilSamples: options.pupilSamples,
-    intensity: convolveCircular(object.values, kernel.values, n),
+    intensity,
     transmittingSamples: kernel.transmittingSamples,
+    formedSum: kernel.formedSum,
     maxGridPhaseStepWaves: kernel.maxGridPhaseStepWaves,
     ...(kernel.pixelScaleMm === undefined ? {} : { pixelScaleMm: kernel.pixelScaleMm }),
   };
@@ -380,6 +478,13 @@ export interface FluorescenceFieldOptions {
   readonly scale?: PupilScale;
   /** Called once per patch imaged, for progress and cost accounting. */
   readonly onPatch?: (done: number, total: number) => void;
+  /**
+   * Required — see `ThroughputUnits`. `patches > 1` is the in-frame case the
+   * type was written for: each patch has its own pupil, so each patch has its
+   * own weight, and normalizing them separately renders a field that cannot
+   * fall off however hard the objective vignettes (§ 6bc.4).
+   */
+  readonly throughput: ThroughputUnits;
 }
 
 export interface FluorescenceFieldResult {
@@ -387,6 +492,24 @@ export interface FluorescenceFieldResult {
   readonly patches: number;
   readonly pupilSamples: number;
   readonly intensity: Float64Array;
+  /**
+   * What each patch's own pupil transmitted, in the order they were imaged
+   * (row-major over the patch grid). The field's throughput profile, and the
+   * reference a neighbouring tile or a neighbouring wavelength quotes against.
+   */
+  readonly patchThroughput: readonly number[];
+  /**
+   * The flux this render must hold: Σ over patches of the light that patch's
+   * window carried, each times the weight that patch was actually given.
+   *
+   * § 6i's conservation check, restated so that it survives the weight. Every
+   * kernel still sums to 1 and the windows still sum to 1, so `Σ intensity`
+   * equals this to f64 rounding — but "equals `Σ object`" was only ever true
+   * because the weight had been divided out, and a readout that reports light
+   * conserved through an objective that transmits a fifth of it is reporting
+   * the normalizer (§ 6bc.5, and § 6k.3's trap in a second place).
+   */
+  readonly weightedEmittedFlux: number;
   /** Max over patches — the grid's ability to carry the worst pupil it saw. */
   readonly maxGridPhaseStepWaves: number;
   readonly pixelScaleMm?: number;
@@ -420,6 +543,8 @@ export function renderFluorescence(
   requireGrid(n);
   const intensity = new Float64Array(n * n);
   const windowed = new Float64Array(n * n);
+  const patchThroughput: number[] = [];
+  let weightedEmittedFlux = 0;
   let maxGridPhaseStepWaves = 0;
   let done = 0;
 
@@ -438,12 +563,17 @@ export function renderFluorescence(
           windowed[y * n + x] = value * wx * wy;
         }
       }
+      let windowedFlux = 0;
+      for (let i = 0; i < n * n; i++) windowedFlux += windowed[i]!;
 
       const formed = incoherentImage({ size: n, values: windowed }, patch.pupil, {
         pupilSamples: options.pupilSamples,
+        throughput: options.throughput,
         ...(options.scale === undefined ? {} : { scale: options.scale }),
       });
       maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, formed.maxGridPhaseStepWaves);
+      patchThroughput.push(formed.formedSum);
+      weightedEmittedFlux += throughputWeight(options.throughput, formed.formedSum) * windowedFlux;
       for (let i = 0; i < n * n; i++) intensity[i] = intensity[i]! + formed.intensity[i]!;
       options.onPatch?.(++done, patches * patches);
     }
@@ -454,6 +584,8 @@ export function renderFluorescence(
     patches,
     pupilSamples: options.pupilSamples,
     intensity,
+    patchThroughput,
+    weightedEmittedFlux,
     maxGridPhaseStepWaves,
     ...(options.scale === undefined
       ? {}

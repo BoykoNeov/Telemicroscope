@@ -4,11 +4,14 @@ import {
   incoherentImage,
   incoherentPsf,
   latticeMatchedSource,
+  pupilThroughput,
   rasterizeEmitters,
   renderFluorescence,
   uniformEmitters,
   type EmitterField,
+  type ThroughputUnits,
 } from "../src/imaging/fluorescence";
+import type { PupilFunction } from "../src/wave/psf";
 import {
   abbeImage,
   cosineGratingObject,
@@ -62,6 +65,24 @@ const B = (2 * ID_CYCLES) / ID_PUPIL_SAMPLES;
 const ID_S = 25 / ID_PUPIL_SAMPLES;
 
 const CLEAR = idealPupil();
+
+/**
+ * § 6i's units, stated the way § 6bc requires.
+ *
+ * Every rung below that uses this forms its whole frame through ONE pupil, so
+ * that pupil is its own reference and the weight is exactly 1 — these images
+ * are bitwise the ones § 6i measured. The moment a frame is built from several
+ * pupils this is the wrong call, which is why it takes the pupil rather than
+ * defaulting to "whatever formed me".
+ */
+const ownUnits = (
+  pupil: PupilFunction,
+  pupilSamples: number,
+  size: number,
+): ThroughputUnits => ({
+  kind: "referenced",
+  referenceSum: pupilThroughput(pupil, { pupilSamples, size }),
+});
 
 /** Relative L∞ difference of two images, against the first's peak. */
 function maxRelative(a: Float64Array, b: Float64Array): number {
@@ -145,6 +166,7 @@ describe("§ 6i.1 — partial coherence becomes a convolution, and the convoluti
       const { image } = relativeAbbe(amplitude, matched, ID_PUPIL_SAMPLES);
       const fluorescence = incoherentImage(emittersFromAmplitude(amplitude), CLEAR, {
         pupilSamples: ID_PUPIL_SAMPLES,
+        throughput: ownUnits(CLEAR, ID_PUPIL_SAMPLES, ID_SIZE),
       });
       // Not "close": the same number. The bracket has become a function of
       // u₁ − u₂ alone, so the double sum factors into a transfer function.
@@ -159,7 +181,10 @@ describe("§ 6i.1 — partial coherence becomes a convolution, and the convoluti
     // and there is nothing left for m to enter.
     const ratios = [0.1, 0.5, 1].map((modulation) => {
       const emitters = cosineGratingEmitters({ size: ID_SIZE, cycles: ID_CYCLES, modulation });
-      const formed = incoherentImage(emitters, CLEAR, { pupilSamples: ID_PUPIL_SAMPLES });
+      const formed = incoherentImage(emitters, CLEAR, {
+        pupilSamples: ID_PUPIL_SAMPLES,
+        throughput: ownUnits(CLEAR, ID_PUPIL_SAMPLES, ID_SIZE),
+      });
       return contrastOf(formed.intensity, ID_SIZE) / modulation;
     });
     expect(ratios[1]! / ratios[0]!).toBeCloseTo(1, 12);
@@ -183,6 +208,7 @@ describe("§ 6i.1 — partial coherence becomes a convolution, and the convoluti
     // uniform emitter field images as itself whatever the aperture is.
     const fluorescent = incoherentImage(uniformEmitters(ID_SIZE), CLEAR, {
       pupilSamples: ID_PUPIL_SAMPLES,
+      throughput: ownUnits(CLEAR, ID_PUPIL_SAMPLES, ID_SIZE),
     });
     expect(fluorescent.intensity[0]!).toBeCloseTo(1, 12);
   });
@@ -194,6 +220,7 @@ describe("§ 6i.1 — partial coherence becomes a convolution, and the convoluti
     const amplitude = cosineGratingObject({ size: ID_SIZE, cycles: ID_CYCLES, modulation: 1 });
     const fluorescence = incoherentImage(emittersFromAmplitude(amplitude), CLEAR, {
       pupilSamples: ID_PUPIL_SAMPLES,
+      throughput: ownUnits(CLEAR, ID_PUPIL_SAMPLES, ID_SIZE),
     });
     for (const S of [0.5, 1]) {
       const { image } = relativeAbbe(
@@ -227,6 +254,7 @@ describe("§ 6i.2 — what an unmatched source lattice costs, measured", () => {
     const amplitude = cosineGratingObject({ size: ID_SIZE, cycles: ID_CYCLES, modulation: 0.5 });
     const fluorescence = incoherentImage(emittersFromAmplitude(amplitude), CLEAR, {
       pupilSamples: ID_PUPIL_SAMPLES,
+      throughput: ownUnits(CLEAR, ID_PUPIL_SAMPLES, ID_SIZE),
     });
     const residuals = [9, 17, 33, 65].map((samples) => {
       const { image } = relativeAbbe(amplitude, diskSource(ID_S, samples), ID_PUPIL_SAMPLES);
@@ -250,7 +278,10 @@ describe("§ 6i.3 — the transfer is a lattice point count, and it reaches ν =
   const transferAt = (cycles: number, pupilSamples = PUPIL_SAMPLES, size = SIZE): number => {
     const modulation = 0.5;
     const emitters = cosineGratingEmitters({ size, cycles, modulation });
-    const formed = incoherentImage(emitters, CLEAR, { pupilSamples });
+    const formed = incoherentImage(emitters, CLEAR, {
+      pupilSamples,
+      throughput: ownUnits(CLEAR, pupilSamples, size),
+    });
     return contrastOf(formed.intensity, size) / modulation;
   };
 
@@ -360,11 +391,13 @@ describe("§ 6i.4 — the window goes back on the input, and here that is exact"
     const one = renderFluorescence(EMITTERS, flatField(), {
       patches: 1,
       pupilSamples: PUPIL_SAMPLES,
+      throughput: { kind: "transmitted" },
     });
     for (const patches of [2, 4, 8]) {
       const many = renderFluorescence(EMITTERS, flatField(), {
         patches,
         pupilSamples: PUPIL_SAMPLES,
+        throughput: { kind: "transmitted" },
       });
       expect(maxRelative(one.intensity, many.intensity)).toBeLessThan(1e-12);
     }
@@ -381,6 +414,7 @@ describe("§ 6i.4 — the window goes back on the input, and here that is exact"
       const formed = renderFluorescence(EMITTERS, flatField(), {
         patches,
         pupilSamples: PUPIL_SAMPLES,
+        throughput: ownUnits(CLEAR, PUPIL_SAMPLES, SIZE),
       });
       expect(formed.intensity.reduce((a, b) => a + b, 0) / emitted).toBeCloseTo(1, 12);
     }
@@ -394,7 +428,11 @@ describe("§ 6i.4 — the window goes back on the input, and here that is exact"
     const varying = (u: number): PatchPupil => ({ pupil: defocusedPupil(0.1 + 0.8 * u) });
     const images = [1, 2, 4, 8, 16].map(
       (patches) =>
-        renderFluorescence(EMITTERS, varying, { patches, pupilSamples: PUPIL_SAMPLES }).intensity,
+        renderFluorescence(EMITTERS, varying, {
+          patches,
+          pupilSamples: PUPIL_SAMPLES,
+          throughput: { kind: "transmitted" },
+        }).intensity,
     );
     const steps = [1, 2, 3, 4].map((i) => maxRelative(images[i]!, images[i - 1]!));
     for (let i = 1; i < steps.length; i++) expect(steps[i]!).toBeLessThan(steps[i - 1]!);
@@ -492,7 +530,7 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     expect(Math.abs(telecentricRatio - 1)).toBeLessThan(Math.abs(peakAt(1, 1) / axis - 1));
   });
 
-  it("a bead field renders through the traced pupils and conserves its light", () => {
+  it("a bead field renders through the traced pupils, and holds the light they passed", () => {
     const system = din4x();
     const frame = frameOf(system);
     const r = frame.objectHalfExtentMm * 0.5;
@@ -508,8 +546,23 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
       patches: 2,
       pupilSamples: PUPIL_SAMPLES,
       scale: frame.scale,
+      throughput: { kind: "transmitted" },
     });
-    expect(formed.intensity.reduce((a, b) => a + b, 0) / emitted).toBeCloseTo(1, 12);
+    // § 6bc. This ratio read exactly 1 until the render stopped normalizing
+    // each patch's own weight away, and that 1 was arithmetic — § 6k.3's trap,
+    // arriving in the operator rather than in a readout. What the image holds is
+    // the emitted light times what the pupils transmitted, so it is bracketed by
+    // the patches' own weights and nowhere near 1.
+    const held = formed.intensity.reduce((a, b) => a + b, 0);
+    const lo = Math.min(...formed.patchThroughput);
+    const hi = Math.max(...formed.patchThroughput);
+    expect(hi).toBeGreaterThan(lo);
+    expect(held / emitted).toBeGreaterThanOrEqual(lo);
+    expect(held / emitted).toBeLessThanOrEqual(hi);
+    // The conservation that survives: the render invents and loses nothing
+    // against the flux those weights allow, which is § 6i's claim about the
+    // partition of unity with the units it was hiding put back.
+    expect(Math.abs(held / formed.weightedEmittedFlux - 1)).toBeLessThan(1e-12);
     expect(formed.pixelScaleMm).toBeCloseTo(frame.pixelScaleMm, 12);
   });
 });
@@ -550,7 +603,10 @@ describe("§ 6i.6 — the object brightfield structurally cannot see", () => {
     // linear in the label's modulation and lands on the closed form — four
     // orders of magnitude above what the unlabelled phase object showed.
     const labelled = cosineGratingEmitters({ size: SIZE, cycles: CYCLES, modulation: 0.5 });
-    const formed = incoherentImage(labelled, CLEAR, { pupilSamples: PUPIL_SAMPLES });
+    const formed = incoherentImage(labelled, CLEAR, {
+      pupilSamples: PUPIL_SAMPLES,
+      throughput: ownUnits(CLEAR, PUPIL_SAMPLES, SIZE),
+    });
     const contrast = contrastOf(formed.intensity, SIZE);
     expect(contrast / 0.5).toBeCloseTo(incoherentTransfer(NU), 2);
     expect(contrast).toBeGreaterThan(1e4 * brightfieldPhaseContrast(0.01));
@@ -559,6 +615,7 @@ describe("§ 6i.6 — the object brightfield structurally cannot see", () => {
   it("a uniformly fluorescing field images as itself — the negative control", () => {
     const formed = incoherentImage(uniformEmitters(SIZE, 3), CLEAR, {
       pupilSamples: PUPIL_SAMPLES,
+      throughput: ownUnits(CLEAR, PUPIL_SAMPLES, SIZE),
     });
     for (let i = 0; i < formed.intensity.length; i++) {
       expect(formed.intensity[i]!).toBeCloseTo(3, 12);

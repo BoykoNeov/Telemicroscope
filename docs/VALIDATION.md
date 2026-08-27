@@ -111,6 +111,7 @@ whole ladder.
 | [6az](#step-6az--the-volumetric-emitter-density) | The third Jacobian dimension IS a scalar: depth rescales the map by 1 + z/P, isotropically, so ONE table serves a volume — and the DIN objective is object-space telecentric TWICE | `emitter-volume` |
 | [6ba](#step-6ba--the-spectral-emitter-density) | ONE band collapses to ONE kernel and TWO need TWO — a MONOCHROME failure, not colour's; colour needs the planes apart even for one label, and that halo is AXIAL COLOUR, not diffraction | `emitter-spectrum` |
 | [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.88 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
+| [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -19319,16 +19320,22 @@ decision that becomes a tint several modules downstream.
 It is also why **`patches` is not supported here**. Blending field-varying
 patches through a depth stack would need those two expressions reconciled, and a
 second expression that merely agreed numerically is what § 6ba refused to ship.
-Named rather than silently folded to one patch.
+Named rather than silently folded to one patch — and
+[§ 6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) is the reconciliation
+it was named for. The seam above now reads **1** rather than `formedSum`, which
+is the whole of what that step did to this one.
 
 ### Still open
 
 - **A spectral MOSAIC**, § 6r's deferral inherited through § 6ba and now one
   dimension larger: `halfExtentMm` is ∝ λ, so a mosaic's pitch and guard band
   would have to be fixed by one reference λ with every other λ cropped to it.
-- **Field-varying pupils through a depth stack** — `patches`, above. It needs
-  `renderVolume`'s throughput weighting and `renderFluorescence`'s normalization
-  reconciled, which is a decision about which one is right and not a wiring job.
+- ~~**Field-varying pupils through a depth stack**~~ — the *decision* is made,
+  in [§ 6bc](#step-6bc--the-units-a-formed-image-is-quoted-in): the weighted
+  expression is the physics and the plane path now carries it too. What remains
+  is the wiring, which is a real step and not this one — `renderVolume` takes
+  `DepthPupils`, a pupil of the defocus alone, and a patched depth stack needs
+  it to read the field position as well and costs `patches²` times as much.
 - **Depth-dependent pupils are still not depth-dependent maps.** § 6l varies the
   *pupil* with depth and this varies the *map* and the *defocus*; a mount whose
   index is not the immersion's does all three at once and its rescale is not
@@ -19346,6 +19353,123 @@ Named rather than silently folded to one patch.
 - **The fourth cosine**, inherited verbatim from § 5v, § 6as, § 6az and § 6ba: the
   entrance pupil's projected area is applied by no rasterizer on either branch, it
   cancels in every comparison between them, and it belongs to the pupil layer.
+
+## Step 6bc — the units a formed image is quoted in
+
+Source: `packages/core/src/imaging/fluorescence.ts` ·
+Tests: `packages/core/test/throughput-units.test.ts`
+
+§ 6bb.2 was written as a seam check between two renderers and came back with a
+discrepancy instead. `renderVolume` weighs each slice by `formedSum`, the light
+its pupil actually transmitted; `renderFluorescence` divided the same factor
+out. Two expressions of one convolution, and only one of them carried the
+throughput — which is why field-varying patches could not be run through a depth
+stack, since there was no single answer to give them. This step is that
+decision.
+
+**The condition that decides it is not "one plane" — it is "one pupil".** The
+two expressions agree exactly while one pupil forms the whole frame, and
+disagree the moment a frame is built from several: a depth stack, a patched
+field, a mosaic tile, one plane per wavelength. A pupil hands the image two
+separable things, a kernel (where the light lands) and a total (how much of it
+there is). Splitting them is right; applying only the first is a choice of
+**units**, harmless while it is a constant and a measurement error as soon as it
+is not. The radiometry says the same in a line: irradiance from a plane goes as
+its radiance times the collected solid angle times the transmission, and defocus
+touches none of the three. So the weighted expression is the physics, and
+normalizing is legal exactly once per composition rather than once per
+contribution.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bc.1 — a frame in its own pupil's units is BITWISE the render that had no weight** | `Object.is` on every pixel against the pre-§ 6bc expression written out; and `transmitted` is that array times `formedSum`, bit for bit | ✅ |
+| | a reference that is not a positive finite weight is refused — 0, −1, NaN and ∞ | ✅ |
+| **§ 6bc.2 — the conservation § 6i measured was arithmetic** | with an aperture that varies across the field, held/emitted is bracketed by the patch weights and below 0.13, never the 1 § 6i.4 read; held equals the flux the weights allow to 1e−12 | ✅ |
+| | the bracket's width is the square of the radius ratio, within 3% at pupilSamples 24 and 0.3% at 96 — the residue is § 6as.4's lattice count of a disc | ✅ |
+| | and the axis it does NOT move on: 0.25 → 4 waves of defocus leave `formedSum` identical to 1e−14, which is § 6k.1 and the reason this survived from § 6i to § 6bb | ✅ |
+| **§ 6bc.3 — the objective's transmission spectrum reaches the COLOUR** | 1.00740 red end over blue end and monotone in λ across nine samples; an equal-energy emitter images at x 0.33384, y 0.33446 — 3.832e−4 and 3.659e−4 off where the same stack lands with the weight divided away | ✅ |
+| **§ 6bc.4 — the un-field-sized objective clips its own aperture, and it is a HARD clip** | 0.997728 / 0.941036 / 0.893415 of the axial weight at 2.25 / 4.5 / 6 mm, the transmitting count falling 441 → 394; the field-sized design holds the same sweep to 3.3e−5 with the count unchanged | ✅ |
+| | and the negative control: two tiles each quoted against their own pupil come back equal to 1e−12, so a 10.7% loss renders as a flat field | ✅ |
+
+### What shipped, and the trap it was designed against
+
+`ThroughputUnits`, a **required** option on `incoherentImage` and
+`renderFluorescence`, so the compiler names every caller that has to choose —
+`pinned-arithmetic`'s technique applied to a physics decision rather than to a
+field. `transmitted` is the physics. `referenced` divides by one weight **the
+caller supplies**.
+
+That the reference is supplied rather than discovered is the whole design. A
+`referenced` that defaulted to "whatever pupil formed me" would be the defect
+wearing a new name: every channel, every tile, every stack would normalize to
+itself and the difference being measured would divide itself out. `volume.ts`'s
+`relativeThroughput` is exactly that shape — it references its own stack's focal
+plane — and is safe only because it never leaves its stack. § 6bc.3 and § 6bc.4
+both carry the wrong reference as their negative control, and in both it deletes
+the effect *exactly* rather than approximately, which is what makes it a trap
+rather than a tolerance.
+
+`renderVolume` did not change. It always carried the weight and still does,
+unconditionally, because that is § 6k's physics rather than a knob.
+
+### The three sizes, and the one the deferral guessed wrong
+
+The deferral expected the field to be the large case, on the strength of § 6v.5's
+"11% of the pupil gone at 1 mm of field". Measured as a throughput on the frames
+this branch actually renders, the ordering is the other way round:
+
+- **Colour — 0.740%** over § 6bc.3's nine-sample band (§ 6bb.2's 0.658% is the
+  same quantity read between 430 and 680 nm), and it is the objective's own
+  Fresnel transmission. It reaches the *picture*: `colorImageFromStack`
+  renormalizes nothing, so it is a chromaticity and not merely a flux.
+- **Field — 0.227% inside the catalogued field, 10.7% outside it.** Not a Fresnel
+  loss but a hard aperture clip: the transmitting sample count itself falls,
+  441 → 394. It belongs to the glass sized for the axial beam alone, which
+  `microscope.ts` already names as § 6w's negative control — give the design a
+  field number and the same sweep holds to 3.3e−5.
+- **Depth — exactly zero**, § 6k.1, for as long as the pupils differ only by
+  defocus.
+
+A frame is 44 µm wide on this objective, so the field variation *within* one
+frame's patches is ~1e−8 and the effect only appears between mosaic **tiles**.
+That is why § 6bc.4 sweeps tile centres rather than patch indices, and it is a
+correction to the deferral's own framing rather than to any pinned number.
+
+### What this did to the rungs already on the ladder
+
+Three, and each one is the same lesson in a different module — a ratio between
+two normalized things reads 1 whatever the pupils did (§ 6k.3's trap):
+
+- **§ 6i.5** claimed a traced bead field "conserves its light" to 1e−12. It does
+  not: it holds 0.1757 of it, and the 1 was the normalizer. The rung now brackets
+  what is held by the patches' own weights and checks the conservation that
+  survives — against `weightedEmittedFlux`, the flux the weights allow.
+- **§ 6ba.4**'s lattice residual is the *rasterizer's*, and was read off the
+  formed image only because the kernel conserved. It is read off the object now
+  and its three pinned residuals are unchanged to every digit.
+- **§ 6bb.2**'s seam ratio was `formedSum`; it is **1**.
+
+The app's two fluorescence panels carried the same claim to the user — a green
+tick reading "no light lost" through an objective passing a fifth of it. They
+now report `throughput` beside a residual quoted against the weighted flux, and
+the emitter panel adds `throughputSpan`, how much the transmission varies across
+the frame it is showing.
+
+### Still open
+
+- **Field-varying pupils through a depth stack** — the wiring, now that the
+  physics is settled. `renderVolume` takes `DepthPupils`, a function of the
+  defocus alone; a patched depth stack needs the field position on the same
+  callback and costs `patches²` times as much per slice.
+- **The weight is not an absolute throughput.** It is Σ|P|² over a *normalized*
+  pupil, so at fixed `pupilSamples` a 0.10 and a 0.95 objective count the same
+  lattice points. It carries apodization and aperture clipping and it does not
+  carry the collected solid angle, the fourth cosine, or the M⁻² irradiance
+  scaling — correct as a ratio inside one system, wrong across two NAs. § 3a's
+  photometric zero point is where that gets fixed, and it is still open.
+- **The fourth cosine**, unchanged and inherited from § 5v, § 6as, § 6az, § 6ba
+  and § 6bb: no rasterizer applies the entrance pupil's projected area, it cancels
+  in every comparison here, and it belongs to the pupil layer.
 
 ## Later rungs
 

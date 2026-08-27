@@ -171,6 +171,18 @@ export interface FluorescenceReadout {
   readonly lightResidual: number | null;
 
   /**
+   * Σ image / Σ emitted — the share of the beads' light the objective put on
+   * the sensor.
+   *
+   * Since § 6bc. It was 1 by construction while the render divided the pupil's
+   * own transmission out of every patch, and `lightResidual` beside it is now
+   * quoted against the flux those weights allow rather than against the
+   * emitted flux, so the identity it checks is still exact and no longer
+   * checks the normalizer.
+   */
+  readonly throughput: number | null;
+
+  /**
    * Peak of the unit-sum incoherent PSF on axis and at the frame corner.
    *
    * The kernel has unit sum, so its peak is a Strehl-like readout, and § 6i.5's
@@ -286,10 +298,14 @@ export function renderFluorescenceScene(
     let emitted = 0;
     for (let i = 0; i < object.values.length; i++) emitted += object.values[i]!;
 
+    // § 6bc, as in `emitter.ts`: `patches` is a user control and each patch
+    // has its own pupil, so the light each one passes is a difference between
+    // them and never a constant.
     const out = renderFluorescence(object, tracedFieldPupils(system, frame), {
       pupilSamples: request.pupilSamples,
       patches: request.patches,
       scale: frame.scale,
+      throughput: { kind: "transmitted" },
     });
 
     let formed = 0;
@@ -333,7 +349,11 @@ export function renderFluorescenceScene(
         placed,
         requested: request.beadCount,
         densityPer100Um2: (100 * placed) / (objectSpanUm * objectSpanUm),
-        lightResidual: emitted > 0 ? Math.abs(formed - emitted) / emitted : null,
+        lightResidual:
+          out.weightedEmittedFlux > 0
+            ? Math.abs(formed - out.weightedEmittedFlux) / out.weightedEmittedFlux
+            : null,
+        throughput: emitted > 0 ? formed / emitted : null,
         axisKernelPeak: peakOf(axisKernel.values),
         cornerKernelPeak: peakOf(cornerKernel.values),
         transmittingSamples: axisKernel.transmittingSamples,
@@ -483,7 +503,13 @@ export function transferSweep(request: TransferRequest): TransferResult {
       // transfer walking 11.2% away from the weak-object limit at m = 1. E = 1 +
       // cos is non-negative, so it is a physical emitter density.
       const object = cosineGratingEmitters({ size: request.size, cycles: c, modulation: 1 });
-      const image = incoherentImage(object, pupil, { pupilSamples: request.pupilSamples });
+      // One pupil for every cycle of the sweep and a CONTRAST read off each,
+      // so the weight cancels — `transmitted` rather than a reference it would
+      // then divide straight back out.
+      const image = incoherentImage(object, pupil, {
+        pupilSamples: request.pupilSamples,
+        throughput: { kind: "transmitted" },
+      });
       const measured = imageHarmonic(image.intensity, request.size, c).contrast;
       const closed = incoherentTransfer(nu);
       if (nu < 1.9) worstResidual = Math.max(worstResidual, Math.abs(measured - closed));

@@ -200,17 +200,39 @@ export interface EmitterReadout {
   readonly detJCornerDeparture: number;
 
   /**
-   * |Σ image − Σ object| / Σ object, through `renderFluorescence` unchanged.
+   * |Σ image − the flux the weights allow| / that flux, through
+   * `renderFluorescence` unchanged.
    *
    * § 6as.7's point, and the branch's architectural one: the incoherent render,
    * the emission kernel and the mosaic were built before the extended emitter
    * and **none of them moves for one**. The kernel sums to 1 and circular
    * convolution is exact, so this is f64 rounding rather than a physical budget.
+   *
+   * Quoted against `weightedEmittedFlux` rather than against Σ object since
+   * § 6bc. It read against Σ object while the render normalized the pupil's own
+   * transmission away, and a panel that reports light conserved through an
+   * objective passing a fifth of it is reporting the normalizer. What the
+   * objective actually delivers is `throughput`, next to it.
    */
   readonly lightResidual: number;
   /**
+   * Σ image / Σ object — the share of the specimen's light this objective put
+   * on the sensor, which used to be 1 by construction (§ 6bc.5).
+   */
+  readonly throughput: number;
+  /**
+   * `max/min − 1` over the patches' own weights: how much the objective's
+   * transmission varies across THIS frame. Zero at `patches` = 1, where one
+   * pupil forms the whole picture and there is nothing to vary.
+   */
+  readonly throughputSpan: number;
+  /**
    * `1 − imagePeak/objectPeak` — the emitter blurred, and the only readout here
    * that is about the optics rather than about the rasterizer.
+   *
+   * Referred to `throughput` since § 6bc, so it keeps meaning the blur. The
+   * image now carries the light the pupils passed, and a peak ratio taken
+   * against it raw reports a 96% "drop" for an objective that is only dim.
    */
   readonly peakDrop: number;
 
@@ -403,10 +425,14 @@ export function renderEmitterScene(request: EmitterRequest): EmitterResult {
     const object = rasterizeEmitterDensity(frame, density, { radialMap: map });
 
     const fluxRasterized = totalOf(object.values);
+    // § 6bc: `patches` is a user control, so this frame may be built from as
+    // many pupils as the user asks for and each one transmits its own share.
+    // `transmitted` is the only reading that stays true across that knob.
     const out = renderFluorescence(object, tracedFieldPupils(system, frame), {
       pupilSamples: request.pupilSamples,
       patches: request.patches,
       scale: frame.scale,
+      throughput: { kind: "transmitted" },
     });
     const formed = totalOf(out.intensity);
 
@@ -443,8 +469,22 @@ export function renderEmitterScene(request: EmitterRequest): EmitterResult {
         detJAxis,
         detJAxisAgainstM2: Math.abs(detJAxis * m2 - 1),
         detJCornerDeparture: detJCorner / detJAxis - 1,
-        lightResidual: fluxRasterized > 0 ? Math.abs(formed - fluxRasterized) / fluxRasterized : 0,
-        peakDrop: 1 - peakOf(out.intensity) / peakOf(object.values),
+        lightResidual:
+          out.weightedEmittedFlux > 0
+            ? Math.abs(formed - out.weightedEmittedFlux) / out.weightedEmittedFlux
+            : 0,
+        throughput: fluxRasterized > 0 ? formed / fluxRasterized : 0,
+        throughputSpan:
+          Math.max(...out.patchThroughput) / Math.min(...out.patchThroughput) - 1,
+        // Referred to the throughput, so it stays a reading about the BLUR.
+        // Since § 6bc the image carries the light the pupils passed, and a peak
+        // ratio that did not divide it back out would report a 96% "drop" for
+        // an objective that is merely dim — the optics readout turned into a
+        // throughput readout, next to the one that already is.
+        peakDrop:
+          formed > 0
+            ? 1 - peakOf(out.intensity) / (formed / fluxRasterized) / peakOf(object.values)
+            : 0,
         cornerRadiusMm,
         fieldLimitMm,
         fieldHeadroom: headroom.fieldHeadroom,

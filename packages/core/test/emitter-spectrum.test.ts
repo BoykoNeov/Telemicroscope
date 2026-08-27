@@ -9,6 +9,7 @@ import {
 } from "../src/imaging/emitter-density";
 import {
   incoherentImage,
+  pupilThroughput,
   incoherentPsf,
   renderFluorescence,
 } from "../src/imaging/fluorescence";
@@ -193,7 +194,7 @@ describe("§ 6ba — the spectral emitter density", () => {
       const direct = renderFluorescence(
         rasterizeEmitterDensity(frame, disc, { radialMap: map }),
         tracedFieldPupils(SYSTEM, frame, {}),
-        { pupilSamples: PS, scale: frame.scale },
+        { pupilSamples: PS, scale: frame.scale, throughput: { kind: "transmitted" } },
       );
       expect(plane.frame.pixelScaleMm).toBe(frame.pixelScaleMm);
       for (let i = 0; i < direct.intensity.length; i++) {
@@ -325,15 +326,22 @@ describe("§ 6ba — the spectral emitter density", () => {
     const density = neutralEmitterDensity(discEmitter({ radiusMm: R, density: 1 }));
     const residuals = [430, 550, 680].map((nm) => {
       const plane = formEmitterPlane(SYSTEM, density, BASE, { nm, weight: 1 }, { x: 0, y: 0 });
-      // The kernel sums to 1, so the convolution hands the rasterizer's flux
-      // through unchanged — the image's total IS the object's, to f64.
       const frame = frameAt(nm);
       const map = radialMapCovering(SYSTEM, [frame], { nodes: NODES });
       const object = rasterizeEmitterDensity(frame, discEmitter({ radiusMm: R, density: 1 }), {
         radialMap: map,
       });
-      expect(total(plane.input.intensity) / total(object.values)).toBeCloseTo(1, 12);
-      return total(plane.input.intensity) / closed - 1;
+      // § 6bc: the kernel sums to 1, so the convolution hands the rasterizer's
+      // flux through times the light the pupil passed. That ratio IS the weight
+      // — it read 1 only while the render divided it away — and the residual
+      // this rung is about belongs to the raster, so it is read off the object.
+      const passed = pupilThroughput(tracedFieldPupils(SYSTEM, frame, {})(0.5, 0.5).pupil, {
+        pupilSamples: PS,
+        size: SIZE,
+      });
+      expect(total(plane.input.intensity) / total(object.values)).toBeCloseTo(passed, 12);
+      expect(passed).toBeLessThan(0.2);
+      return total(object.values) / closed - 1;
     });
     expect(residuals[0]!).toBeCloseTo(-7.821e-4, 6);
     expect(residuals[1]!).toBeCloseTo(5.903e-3, 6);
@@ -375,10 +383,15 @@ describe("§ 6ba — the spectral emitter density", () => {
           { radialMap: map },
         );
         const formed = ideal
-          ? incoherentImage(object, idealPupil(), { pupilSamples: PS, scale: frame.scale })
+          ? incoherentImage(object, idealPupil(), {
+              pupilSamples: PS,
+              scale: frame.scale,
+              throughput: { kind: "transmitted" },
+            })
           : renderFluorescence(object, tracedFieldPupils(SYSTEM, frame, {}), {
               pupilSamples: PS,
               scale: frame.scale,
+              throughput: { kind: "transmitted" },
             });
         return {
           nm: s.nm,

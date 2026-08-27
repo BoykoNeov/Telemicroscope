@@ -396,9 +396,15 @@ export function formEmitterPlane(
     radialMap: table,
     ...(options.aim === undefined ? {} : { aim: options.aim }),
   });
+  // Not an option, and § 6bc is the reason: this module's whole output is a
+  // stack of planes formed through a DIFFERENT pupil each, so the light each
+  // pupil transmitted is a difference between the planes and never a constant.
+  // Quoting each plane in its own units would divide the objective's own
+  // transmission spectrum out of the stack one plane at a time (§ 6bc.3).
   const formed = renderFluorescence(object, tracedFieldPupils(system, frame, options), {
     pupilSamples: options.pupilSamples,
     scale: frame.scale,
+    throughput: { kind: "transmitted" },
     ...(options.patches === undefined ? {} : { patches: options.patches }),
   });
   return {

@@ -351,9 +351,13 @@ describe("§ 6bb — the spectral volume", () => {
           scale: frame.scale,
         }).formedSum;
         const ratio = totalOf(plane.image.intensity) / (totalOf(flat.input.intensity) * thickness);
-        // `renderVolume` weighs each slice by what the pupil transmitted;
-        // `renderFluorescence` normalizes it away. Same convolution, one factor.
-        expect(Math.abs(ratio / formedSum - 1)).toBeLessThan(1e-14);
+        // § 6bc closed this. `renderVolume` weighs each slice by what the
+        // pupil transmitted and `renderFluorescence` now does too, so the two
+        // expressions of one convolution agree with no factor between them —
+        // where before § 6bc the same ratio came back `formedSum` (0.1748 at
+        // 430 nm), which is what made this seam check a deferral.
+        expect(Math.abs(ratio - 1)).toBeLessThan(1e-14);
+        expect(formedSum).toBeLessThan(0.2);
         ratios.set(nm, ratio);
         sums.set(nm, formedSum);
       }
