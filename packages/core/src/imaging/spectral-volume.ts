@@ -389,10 +389,13 @@ export interface FluorescenceVolumeOptions extends FieldPupilOptions {
    *
    * And the price is not the term that argument predicts. The perspective part
    * is available in closed form — each channel's own rescale at its own stage —
-   * and it is 2.4e-5 mm, **1/59** of what was measured. The rest is the other
-   * mechanism: an off-axis PSF is not symmetric, so moving its defocus moves its
-   * centroid. A correction that buys focus at the field edge pays for it in the
-   * one place a two-stain overlay is measured.
+   * and it is 2.4e-5 mm, **1/59** of what was measured. The rest is measured too,
+   * not inferred: move ONE channel's stage and watch that channel alone, and its
+   * centroid walks 1.281e-3 mm sideways at 1.0 mm of field against 1.179e-5 mm
+   * on the axis — 109× less, and 0.0035 of a pixel. A symmetric pupil's defocus
+   * cannot move a centroid and an asymmetric one's can, so what the correction
+   * spends is the off-axis PSF's own asymmetry, and a correction that buys focus
+   * at the field edge pays for it in the one place a two-stain overlay is read.
    */
   readonly channelFocusMm?: (wavelengthNm: number) => number;
   /** Image-plane centre of the tile (mm). Wavelength-independent; default axis. */

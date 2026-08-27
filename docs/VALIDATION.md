@@ -20095,6 +20095,7 @@ and a field radius it was not swept at. Both renders reduce to the pre-§ 6bg on
 | **§ 6bg.5 — the haze readout does NOT follow the correction** | `inFocusFraction` reads **0** on the 5.88×-brighter corrected render and **1** on the blurred one | ✅ |
 | **§ 6bg.6 — what the correction costs, and what that cost is NOT** | blue against red at 1.0 mm of field: the channels' displacement grows from 6.4428e-3 to 7.8721e-3 mm, **+22.2%** | ✅ |
 | | and it is not the perspective: that term is exactly 0 uncorrected and 2.4238e-5 mm corrected, **1/59** of what was measured | ✅ |
+| | the mechanism, measured: with ONE channel's stage moved, that channel's own centroid walks 1.281e-3 mm at 1.0 mm of field and 1.179e-5 mm on the axis — 109× less, 0.0035 of a pixel | ✅ |
 | **§ 6bg.7 — a picture with two stages in it is two exposures** | a step function over three filters reads 3, the same band as a smooth curve reads 9, and `focusMm` is `undefined` in both rather than reporting one of them | ✅ |
 | **§ 6bg.8 — the tile series, and what no stage reaches** | three tiles × three channels = 9 exposures over 0.232192 mm of stage travel, each plane rendered at the stage its own tile and channel asked for | ✅ |
 | | the height a tile is corrected at is per wavelength: 2.503e-3 mm of object radius across the band at the outer tile, worth 3.3485e-4 mm of stage — under § 6be.2's floor, so it is bookkeeping and not a measurement | ✅ |
@@ -20164,10 +20165,25 @@ available in closed form — each channel's own rescale evaluated at its own sta
 bluest against reddest, times the field radius and the magnification — and it is
 **exactly 0** uncorrected, because every plane is referred to the same stage, and
 **2.4238e-5 mm** corrected. That is **1/59** of the measured change, so 98% of
-the cost is something else: an off-axis PSF is not symmetric, and moving its
-defocus moves its centroid. § 6bb.10's bound was sound about the quantity it
+the cost is something else. § 6bb.10's bound was sound about the quantity it
 bounded and silent about the one that dominates here, which is why this rung
 computes the bound alongside the measurement instead of citing it.
+
+**And the something else is measured, not inferred.** A negative — "not the
+perspective" — is not a mechanism, so the rung goes on to isolate one. Move
+**one** channel's stage, leave the other where it was, and watch that channel
+alone: its own centroid walks **1.281e-3 mm** sideways at 1.0 mm of field and
+**1.179e-5 mm** on the axis, which on this frame's ruler is 0.385 of a pixel
+against 0.0035 of one — **109×**. The field is the discriminator, and it is the
+right one: a symmetric pupil's defocus cannot move a centroid at all, an
+asymmetric one's can, and any field-INDEPENDENT mechanism would have shown up on
+the axis too. The two channels' shifts also reconstruct the pair's own change
+exactly (1.4293e-3 mm), which they must, since the planes are rendered
+independently and a channel is a reweighting of them.
+
+What is still not here is a closed form for the size of it. The mechanism is
+identified and its field dependence is pinned; predicting the number without
+rendering is not offered, and the "Still open" list says so.
 
 The practical reading is that a per-channel focus correction is not free for a
 two-stain overlay, and that the right order is correct-then-register rather than
@@ -20289,10 +20305,11 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
   the ladder's 4×/0.10. The correction's *machinery* is objective-independent by
   construction — it consumes whatever surface it is handed — but the payoff
   figures are this objective's and are labelled as such.
-- **The registration cost has no closed form.** § 6bg.6 measures it and
-  eliminates the perspective as its cause, but the centroid shift of an aberrated
-  PSF under defocus is not derived here, so a caller who wants to predict the
-  cost rather than measure it cannot.
+- **The registration cost has no closed form.** § 6bg.6 measures it, eliminates
+  the perspective as its cause, and pins the surviving mechanism's field
+  dependence at 109× between the axis and 1.0 mm — but the size of an off-axis
+  PSF's centroid shift under defocus is not derived from the wavefront here, so a
+  caller who wants to predict the cost rather than render it cannot.
 - **The seeded table is not the default**, **depth-dependent pupils are not
   depth-dependent maps**, **the shared-radius economy**, **the weight is still
   not an absolute throughput**, **the fourth cosine**, and **§ 3a's photometric

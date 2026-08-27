@@ -64,8 +64,11 @@ import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/desi
  * Refocusing a channel re-refers its own `1 + z·k`, which is the coupling § 6bb
  * would have predicted — and that term is 1/59 of what is measured. The
  * blue-against-red displacement at 1.0 mm of field grows 22.2% when each channel
- * is put at its own stage, and the cause is the other one: an off-axis PSF is
- * not symmetric, so moving its defocus moves its centroid.
+ * is put at its own stage, and the cause is measured rather than inferred: with
+ * only ONE channel's stage moved, that channel's own centroid walks 1.281e-3 mm
+ * sideways at 1.0 mm of field and 1.179e-5 mm on the axis — 109× less, 0.0035 of
+ * a pixel. A symmetric pupil's defocus cannot move a centroid; an off-axis one's
+ * can, and does.
  *
  * External numbers: § 6bf's swept surface on the ladder's own 4×/0.10, § 6be.2's
  * 1.2e-3 mm estimator floor, § 6be.7's in-frame tilt, and § 6ba.9's channel
@@ -359,9 +362,10 @@ describe("§ 6bg — the correction applied", () => {
   });
 
   describe("§ 6bg.6 — what the correction costs, and what that cost is NOT", () => {
+    const blue = boxcarBand(466.6666666666667, 66.66666666666667);
+    const red = boxcarBand(628, 56);
+
     it("the channels' misregistration grows 22.2%, and the perspective is 1/59 of it", () => {
-      const blue = boxcarBand(466.6666666666667, 66.66666666666667);
-      const red = boxcarBand(628, 56);
       const centreMm = { x: imageRadiusForObjectHeight(SYSTEM, 1.0, 550), y: 0 };
       const located = focusCorrectedTiles(SYSTEM, () => 0, {
         size: SIZE,
@@ -449,6 +453,89 @@ describe("§ 6bg — the correction applied", () => {
       expect(perspective(flat)).toBe(0);
       expect(perspective(perChannel)).toBeCloseTo(2.4238e-5, 8);
       expect(perspective(perChannel) / cost).toBeLessThan(0.02);
+    });
+
+    it("and the mechanism is a centroid that moves with defocus only OFF the axis", () => {
+      // The negative above says what the price is not. This says what it is,
+      // and the discriminator is the field: a symmetric pupil's defocus cannot
+      // move a centroid, an asymmetric one's can. So move ONE channel's stage,
+      // leave the other where it was, and watch that channel alone.
+      const shifts = (nominalHeightMm: number): { blue: number; red: number } => {
+        const centreMm = { x: imageRadiusForObjectHeight(SYSTEM, nominalHeightMm, 550), y: 0 };
+        const located = focusCorrectedTiles(SYSTEM, () => 0, {
+          size: SIZE,
+          pupilSamples: PS,
+          samples: [{ nm: 550, weight: 1 }],
+          slabs: SLABS,
+          centresMm: [centreMm],
+          stageMm: () => 0,
+        });
+        const heightMm = located.tiles[0]!.objectHeightMm[0]!;
+        const spot = gaussianBallEmitter({
+          waistMm: 0.005,
+          axialWaistMm: 0.004,
+          peak: 1,
+          centreMm: { x: heightMm, y: 0, z: 0 },
+        });
+        const density = labelledVolumeEmitters([
+          { density: spot, band: blue },
+          { density: spot, band: red },
+        ]);
+        const samples = quadratureSamples({ fromNm: 433, toNm: 656, count: 9 });
+        const render = (channelFocusMm?: (nm: number) => number) =>
+          fluorescenceSpectralVolume(SYSTEM, density, {
+            size: SIZE,
+            pupilSamples: PS,
+            samples,
+            slabs: SLABS,
+            centreMm,
+            ...(channelFocusMm === undefined ? {} : { channelFocusMm }),
+          });
+        const centroidXOf = (
+          stack: ReturnType<typeof render>,
+          band: (nm: number) => number,
+        ): { x: number; pixelScaleMm: number } => {
+          const image = colorImageFromStack(stack, channelBasis(stack, band));
+          const n = image.width;
+          let sx = 0;
+          let sum = 0;
+          for (let y = 0; y < n; y++) {
+            for (let x = 0; x < n; x++) {
+              const v = image.xyz[(y * n + x) * 3 + 1]!;
+              sx += v * x;
+              sum += v;
+            }
+          }
+          return { x: sx / sum, pixelScaleMm: image.pixelScaleMm };
+        };
+        const flat = render();
+        const stage = (nm: number) => predictedFocusMm(SURFACE, nm, heightMm);
+        const blueMoved = render((nm) => (blue(nm) > 0 ? stage(nm) : 0));
+        const redMoved = render((nm) => (red(nm) > 0 ? stage(nm) : 0));
+        const scale = centroidXOf(flat, blue).pixelScaleMm;
+        return {
+          blue: (centroidXOf(blueMoved, blue).x - centroidXOf(flat, blue).x) * scale,
+          red: (centroidXOf(redMoved, red).x - centroidXOf(flat, red).x) * scale,
+        };
+      };
+
+      const field = shifts(1.0);
+      const axis = shifts(0);
+
+      // Off the axis one channel's own refocus walks its own image sideways.
+      expect(field.blue).toBeCloseTo(-1.28112e-3, 7);
+      expect(field.red).toBeCloseTo(1.48200e-4, 7);
+      // On the axis the same stage moves do essentially nothing — 1.18e-5 mm,
+      // which on this frame's ruler is 0.0035 of a pixel against 0.385 of one
+      // off the axis. A field-INDEPENDENT mechanism would show here too, and
+      // this is the rung that says none does.
+      expect(Math.abs(axis.blue)).toBeLessThan(1.2e-5);
+      expect(Math.abs(axis.red)).toBeLessThan(2e-6);
+      expect(Math.abs(field.blue) / Math.abs(axis.blue)).toBeGreaterThan(100);
+
+      // And the two shifts ARE the cost measured above: the channels are
+      // rendered independently, so what moved the pair is what moved each.
+      expect(field.red - field.blue).toBeCloseTo(1.4293e-3, 6);
     });
   });
 
