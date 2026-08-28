@@ -766,16 +766,30 @@ describe("§ 6bp.7 — the scanner is still never once better, and its MARGIN is
 });
 
 describe("§ 6bp.8 — what this step does not close", () => {
-  it("the escape's interaction cannot be formed, and it is not a flat field", () => {
+  it("the escape's quartet wants THREE frame sizes, where the branch's wants one", () => {
     // § 6bo's "Still open" says the three unre-measured interactions are "exactly
     // the rendered flat-field ones". Two are — the split on the axis and at the
     // edge, both closed above. The third is the guard-band escape, a
-    // double-extent volume render, and § 6bo built matched escapes only at 20×,
-    // so the 10× half of its quotient does not exist. Pinned as a statement
-    // about this file's own coverage: three flat-field readouts × two positions
-    // is six quantities, and none of them is an escape.
+    // double-extent volume render and not a flat field at all, and § 6bo built
+    // matched escapes only at 20×, so the 10× half of its quotient does not
+    // exist. What that would cost is arithmetic rather than an opinion, so it is
+    // measured here rather than asserted in prose: § 6bo's `escaped` derives its
+    // own frame from the sampling — `size = (ps / 32) · 128`, rendered at double
+    // extent — so a matched-field escape quartet is not one frame size but
+    // three, and § 6bo.6's ~1% size sensitivity would then need its own control
+    // ACROSS those three before any quotient off them meant anything.
+    const wide = (cell: Cell): number => 2 * ((PS[cell] / BRANCH.ps) * 128);
+    expect(wide("10/0.10")).toBe(256);
+    expect(wide("10/0.20")).toBe(512);
+    expect(wide("20/0.10")).toBe(128);
+    expect(wide("20/0.20")).toBe(256);
+    expect(new Set(CELLS.map(wide)).size).toBe(3);
+    // The branch's own path needs exactly one, which is why the escape has had a
+    // single control everywhere it has been read.
+    expect(new Set(CELLS.map(() => 2 * BRANCH.size)).size).toBe(1);
+    // And the three flat-field readouts carried here are none of them an escape:
+    // every one comes off `mosaic-flat-field`, which does not render a volume.
     const keys: Key[] = ["rendOverFree", "freeGain", "scannerVsRaw"];
-    expect(keys.length * 2).toBe(6);
     for (const k of keys) {
       expect(Number.isFinite(branchInteraction(k, "axis"))).toBe(true);
       expect(Number.isFinite(branchInteraction(k, "edge"))).toBe(true);

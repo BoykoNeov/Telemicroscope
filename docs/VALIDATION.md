@@ -22182,7 +22182,7 @@ travels and its size is not the optics'.
 | **§ 6bp.5 — the free-field gain's axial interaction crosses 1** | 0.234860 becomes 6.98 to 8.08, above 1 in every member; the carrying cell falls 281.595 → 9.709, a factor of 29.0 | ✅ |
 | **§ 6bp.6 — two readouts are refused, with their bands** | the edge gain spans >3× and straddles 1, the scanner spans 3.79× on the axis and straddles 1 at the edge; the split's band is under 0.61% and straddles nothing | ✅ |
 | **§ 6bp.7 — the scanner is still never once better, and its margin is sampling** | forty readings above 1, and one lens at one field reading 1.0916, 1.1736 and 1.0000 as the pixel count changes | ✅ |
-| **§ 6bp.8 — what is not closed** | the escape's interaction cannot be formed and is not a flat field; and a 4× frame still wants `pupilSamples` 12.8 | ✅ |
+| **§ 6bp.8 — what is not closed** | the escape's matched quartet wants **three** frame sizes (256, 512, 128, 256) where the branch's wants one, so § 6bo.6's size sensitivity would need its own control across them before a quotient meant anything — and it is not a flat field; a 4× frame still wants `pupilSamples` 12.8 | ✅ |
 
 ### Still open
 
