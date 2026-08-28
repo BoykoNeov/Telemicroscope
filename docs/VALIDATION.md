@@ -21416,6 +21416,15 @@ pins that 0.20 builds at both magnifications — and left the corner unbuilt, so
 it. They interact, on every readout carried through the square, by sizes that
 span a factor of fifty between readouts.
 
+**The other half of that quoted sentence is also wrong**, and neither § 6bl nor
+this step caught it: "at every magnification" was never measured.
+[§ 6bn.1](#step-6bn--the-second-interval) pins that the ceiling RISES with
+magnification — 0.15 at 2×, 0.20 at 4×, 0.22 at 10×, 0.25 at 20× and 40× — so a
+20×/0.25 builds and images, and every "still nothing on a high-NA objective"
+below is an inherited error rather than an engine limit. (`APP.md` had the
+consistent number all along, scoped correctly: `achromaticObjective`'s refusal
+for a **4×** N-BK7/F2 sits at NA 0.20427.)
+
 ### What a square buys that an L cannot
 
 With three points a lever's effect is one number with nothing to compare it
