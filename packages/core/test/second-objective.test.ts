@@ -203,16 +203,41 @@ const H20 = matched(FAST, ANCHOR);
  * an h² interpolation would be reading the interpolator.
  */
 const OUTER = 1.25;
-const SURF4 = focusSurface(FOUR, {
-  ...SWEEP,
-  wavelengthsNm: [430, DESIGN, RED],
-  objectHeightsMm: [0, H4 / 2, H4, OUTER * H4],
-});
-const SURF10 = focusSurface(TEN, {
-  ...SWEEP,
-  wavelengthsNm: [430, DESIGN, RED],
-  objectHeightsMm: [0, H10 / 2, H10, OUTER * H10],
-});
+
+/**
+ * Builds on FIRST READ and remembers the answer — `fourth-corner`'s `once`,
+ * same reasoning, same cost of a `()` at every read.
+ *
+ * The two focus surfaces below are twelve sweeps each and the eight `flatsOf`
+ * are eight mosaics, and as plain `const`s all of it was computed when the
+ * module was evaluated, so a `-t` rerun of one rung paid for the whole file
+ * first. `once` evaluates its argument at most once and every fixture here is a
+ * pure function of the lens and the options, so each rung reads what it read
+ * before. Measured on this file alone: **collect 51.1 s → 0.5 s**, the file's
+ * total 92.0 s → 93.3 s, inside this machine's run-to-run spread.
+ *
+ * § 6bk.3's `describe` body read both surfaces directly, and a `describe` body
+ * runs at COLLECT — so that block is wrapped too. A lazy fixture read from a
+ * suite body is not lazy.
+ */
+const once = <T>(make: () => T): (() => T) => {
+  let held: { readonly v: T } | undefined;
+  return () => (held ??= { v: make() }).v;
+};
+const SURF4 = once(() =>
+  focusSurface(FOUR, {
+    ...SWEEP,
+    wavelengthsNm: [430, DESIGN, RED],
+    objectHeightsMm: [0, H4 / 2, H4, OUTER * H4],
+  })
+);
+const SURF10 = once(() =>
+  focusSurface(TEN, {
+    ...SWEEP,
+    wavelengthsNm: [430, DESIGN, RED],
+    objectHeightsMm: [0, H10 / 2, H10, OUTER * H10],
+  })
+);
 
 /**
  * The fast lens's axial best focus at 430 nm, written out.
@@ -238,9 +263,9 @@ const AX20 = 0.2618676018;
  * itself is worth 0.16% on the axis and 0.02% at the edge, so anything above
  * about 0.2% is the lens.
  */
-const CORRECTED_4: TileStageMm = surfaceStage(SURF4);
-const CORRECTED_10: TileStageMm = surfaceStage(SURF10);
-const AXIAL_4: TileStageMm = () => SURF4.colourMm[0]!;
+const CORRECTED_4 = once((): TileStageMm => surfaceStage(SURF4()));
+const CORRECTED_10 = once((): TileStageMm => surfaceStage(SURF10()));
+const AXIAL_4: TileStageMm = () => SURF4().colourMm[0]!;
 const AXIAL_20: TileStageMm = () => AX20;
 
 function mosaicOptions(
@@ -354,14 +379,14 @@ function flatsOf(
   };
 }
 
-const F4_CORR_AXIS = flatsOf(FOUR, CORRECTED_4, AXIS);
-const F4_CORR_EDGE = flatsOf(FOUR, CORRECTED_4, EDGE);
-const F4_AX_AXIS = flatsOf(FOUR, AXIAL_4, AXIS);
-const F4_AX_EDGE = flatsOf(FOUR, AXIAL_4, EDGE);
-const F10_CORR_AXIS = flatsOf(TEN, CORRECTED_10, AXIS);
-const F10_CORR_EDGE = flatsOf(TEN, CORRECTED_10, EDGE);
-const F20_AX_AXIS = flatsOf(FAST, AXIAL_20, AXIS);
-const F20_AX_EDGE = flatsOf(FAST, AXIAL_20, EDGE);
+const F4_CORR_AXIS = once(() => flatsOf(FOUR, CORRECTED_4(), AXIS));
+const F4_CORR_EDGE = once(() => flatsOf(FOUR, CORRECTED_4(), EDGE));
+const F4_AX_AXIS = once(() => flatsOf(FOUR, AXIAL_4, AXIS));
+const F4_AX_EDGE = once(() => flatsOf(FOUR, AXIAL_4, EDGE));
+const F10_CORR_AXIS = once(() => flatsOf(TEN, CORRECTED_10(), AXIS));
+const F10_CORR_EDGE = once(() => flatsOf(TEN, CORRECTED_10(), EDGE));
+const F20_AX_AXIS = once(() => flatsOf(FAST, AXIAL_20, AXIS));
+const F20_AX_EDGE = once(() => flatsOf(FAST, AXIAL_20, EDGE));
 
 const spanOf = (xs: readonly number[]): number => Math.max(...xs) - Math.min(...xs);
 
@@ -374,7 +399,7 @@ describe("§ 6bk.1 — the seed reaches the render, and the control does not mov
     // the tiles out; the render builds its radial table in `spectral-volume`, which
     // had no way to be told. Unseeded that bracket opens at the IMAGE radius, which
     // is |M| object heights out and past where the 10×'s chief ray survives.
-    const options = mosaicOptions(CORRECTED_10, { centreMm: EDGE });
+    const options = mosaicOptions(CORRECTED_10(), { centreMm: EDGE });
     expect(() => fluorescenceMosaicGeometry(TEN, { ...options, radialMapSeed: "none" })).not.toThrow();
     expect(() =>
       renderFluorescenceMosaic(TEN, BLANK, { ...options, radialMapSeed: "none" }),
@@ -409,14 +434,14 @@ describe("§ 6bk.1 — the seed reaches the render, and the control does not mov
 
   it("and the fixture reproduces § 6bi and § 6bj on the control, so the lens is the only variable", () => {
     // Six digits against § 6bi.3's two spans and § 6bi.4's free-field gain…
-    expect(F4_CORR_EDGE.rendered).toBeCloseTo(1.387024e-2, 7);
-    expect(F4_CORR_EDGE.free).toBeCloseTo(1.183074e-2, 7);
-    expect(F4_CORR_EDGE.rendOverFree).toBeCloseTo(1.17239, 4);
-    expect(F4_CORR_AXIS.rendOverFree).toBeCloseTo(1193.3645, 3);
-    expect(F4_CORR_EDGE.freeGain).toBeCloseTo(121.25, 1);
-    expect(F4_CORR_AXIS.freeGain).toBeCloseTo(1.01788, 4);
+    expect(F4_CORR_EDGE().rendered).toBeCloseTo(1.387024e-2, 7);
+    expect(F4_CORR_EDGE().free).toBeCloseTo(1.183074e-2, 7);
+    expect(F4_CORR_EDGE().rendOverFree).toBeCloseTo(1.17239, 4);
+    expect(F4_CORR_AXIS().rendOverFree).toBeCloseTo(1193.3645, 3);
+    expect(F4_CORR_EDGE().freeGain).toBeCloseTo(121.25, 1);
+    expect(F4_CORR_AXIS().freeGain).toBeCloseTo(1.01788, 4);
     // …and § 6bi's headline that a scanner's own calibration makes it 11% WORSE.
-    expect(F4_CORR_EDGE.scannerVsRaw).toBeCloseTo(1.110077, 5);
+    expect(F4_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.110077, 5);
 
     // And § 6bj.5's registration figures, to every digit that step pinned.
     const field = mosaicSeamShiftMm(FOUR, mosaicOptions(AXIAL_4, { centreMm: EDGE }));
@@ -471,11 +496,14 @@ describe("§ 6bk.2 — the two levers are separable, and the depth of focus prov
 });
 
 describe("§ 6bk.3 — the RULER decides which focus term dominates", () => {
-  const colour4 = spanOf(SURF4.colourMm);
-  const colour10 = spanOf(SURF10.colourMm);
+  // Lazy for the same reason the module's fixtures are: a `describe` body runs
+  // at COLLECT, so reading the two surfaces here forced both sweeps on every run
+  // of this file, rung asked for or not.
+  const colour4 = once(() => spanOf(SURF4().colourMm));
+  const colour10 = once(() => spanOf(SURF10().colourMm));
   // Index 2 is the matched height itself — a swept NODE, not an interpolation.
-  const field4 = Math.abs(SURF4.fieldDropMm[0]![2]!);
-  const field10 = Math.abs(SURF10.fieldDropMm[0]![2]!);
+  const field4 = once(() => Math.abs(SURF4().fieldDropMm[0]![2]!));
+  const field10 = once(() => Math.abs(SURF10().fieldDropMm[0]![2]!));
 
   it("at a matched IMAGE RADIUS the two lenses agree to 1.15× and sit the same side of one", () => {
     // § 6be.1 split best focus into a colour term and a field term and § 6bj made
@@ -483,16 +511,16 @@ describe("§ 6bk.3 — the RULER decides which focus term dominates", () => {
     // zeroes the field term, so which is larger decides whether that trade is
     // worth taking. Read in the currency a mosaic is configured in, it is the
     // same answer on both lenses — colour dominates, by about two and a half.
-    expect(colour4).toBeCloseTo(0.16690632, 7);
-    expect(colour10).toBeCloseTo(0.05476748, 7);
-    expect(field4).toBeCloseTo(0.06679843, 7);
-    expect(field10).toBeCloseTo(0.02519870, 7);
+    expect(colour4()).toBeCloseTo(0.16690632, 7);
+    expect(colour10()).toBeCloseTo(0.05476748, 7);
+    expect(field4()).toBeCloseTo(0.06679843, 7);
+    expect(field10()).toBeCloseTo(0.02519870, 7);
 
-    expect(colour4 / field4).toBeCloseTo(2.498656, 5);
-    expect(colour10 / field10).toBeCloseTo(2.173425, 5);
-    expect(colour4 / field4 / (colour10 / field10)).toBeCloseTo(1.149640, 5);
-    expect(colour4 / field4).toBeGreaterThan(1);
-    expect(colour10 / field10).toBeGreaterThan(1);
+    expect(colour4() / field4()).toBeCloseTo(2.498656, 5);
+    expect(colour10() / field10()).toBeCloseTo(2.173425, 5);
+    expect(colour4() / field4() / (colour10() / field10())).toBeCloseTo(1.149640, 5);
+    expect(colour4() / field4()).toBeGreaterThan(1);
+    expect(colour10() / field10()).toBeGreaterThan(1);
   });
 
   it("and at a matched OBJECT HEIGHT they land 5.13× apart, on OPPOSITE sides of one", () => {
@@ -502,8 +530,8 @@ describe("§ 6bk.3 — the RULER decides which focus term dominates", () => {
     // on a focus surface: object millimetres are not a currency two objectives
     // share, and a mosaic conclusion quoted in them is a conclusion about one lens.
     // Each lens's own colour span over its own field drop at object height 1.1 mm.
-    const ratio4 = spanOf(SURF4.colourMm) / 0.0826799288;
-    const ratio10 = spanOf(SURF10.colourMm) / 0.139249;
+    const ratio4 = spanOf(SURF4().colourMm) / 0.0826799288;
+    const ratio10 = spanOf(SURF10().colourMm) / 0.139249;
     expect(ratio4).toBeCloseTo(2.018704, 5);
     expect(ratio10).toBeCloseTo(0.393306, 5);
     expect(ratio4 / ratio10).toBeCloseTo(5.132655, 4);
@@ -518,9 +546,9 @@ describe("§ 6bk.3 — the RULER decides which focus term dominates", () => {
     // 10× reads 3.03× the control's floor, and at a matched image radius it reads
     // 3.16× BETTER than it. One lens cannot be both, and the ruler is the only
     // thing that changed.
-    expect(SURF4.interactionMm).toBeCloseTo(6.368587e-3, 8);
-    expect(SURF10.interactionMm).toBeCloseTo(2.015989e-3, 8);
-    expect(SURF4.interactionMm / SURF10.interactionMm).toBeCloseTo(3.159043, 5);
+    expect(SURF4().interactionMm).toBeCloseTo(6.368587e-3, 8);
+    expect(SURF10().interactionMm).toBeCloseTo(2.015989e-3, 8);
+    expect(SURF4().interactionMm / SURF10().interactionMm).toBeCloseTo(3.159043, 5);
   });
 });
 
@@ -532,7 +560,7 @@ describe("§ 6bk.4 — the guard band is APERTURE's, and the prediction was back
     // but the out-of-focus content of the slab, and the SAME ±0.008 mm of
     // specimen is 0.37 depths of focus at NA 0.10 and 1.48 at NA 0.20. § 6bh
     // read this on one lens and could not have seen which of the two it was.
-    const slow = escaped(FOUR, 430, H4, EDGE, SURF4.colourMm[0]!);
+    const slow = escaped(FOUR, 430, H4, EDGE, SURF4().colourMm[0]!);
     const fast = escaped(FAST, 430, H20, EDGE, AX20);
     expect(slow).toBeCloseTo(0.05399968, 7);
     expect(fast).toBeCloseTo(0.64478925, 7);
@@ -547,8 +575,8 @@ describe("§ 6bk.4 — the guard band is APERTURE's, and the prediction was back
     // whole millimetre out and the 10× is 0.4 mm out, and field aberration is a
     // function of that. So the same currency that took the focus terms from 5.13×
     // to 1.15× leaves the escape 4.21× apart.
-    const four = escaped(FOUR, 430, H4, EDGE, predictedFocusMm(SURF4, 430, H4));
-    const ten = escaped(TEN, 430, H10, EDGE, predictedFocusMm(SURF10, 430, H10));
+    const four = escaped(FOUR, 430, H4, EDGE, predictedFocusMm(SURF4(), 430, H4));
+    const ten = escaped(TEN, 430, H10, EDGE, predictedFocusMm(SURF10(), 430, H10));
     expect(four).toBeCloseTo(0.09865512, 7);
     expect(ten).toBeCloseTo(0.02340965, 7);
     expect(four / ten).toBeCloseTo(4.214294, 5);
@@ -567,8 +595,8 @@ describe("§ 6bk.4 — the guard band is APERTURE's, and the prediction was back
     expect(nominal10).toBeCloseTo(0.02702152, 7);
     expect(nominal20).toBeCloseTo(0.76829831, 7);
 
-    const corrected4 = escaped(FOUR, 430, H4, EDGE, predictedFocusMm(SURF4, 430, H4));
-    const corrected10 = escaped(TEN, 430, H10, EDGE, predictedFocusMm(SURF10, 430, H10));
+    const corrected4 = escaped(FOUR, 430, H4, EDGE, predictedFocusMm(SURF4(), 430, H4));
+    const corrected10 = escaped(TEN, 430, H10, EDGE, predictedFocusMm(SURF10(), 430, H10));
     const corrected20 = escaped(FAST, 430, H20, EDGE, AX20);
     expect(nominal4 / corrected4).toBeCloseTo(3.139089, 5);
     expect(nominal10 / corrected10).toBeCloseTo(1.154290, 5);
@@ -589,10 +617,10 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // is what makes an aperture-lever number (measured at `axial`) comparable
     // with a magnification-lever number (measured at `corrected`). Everything
     // below moves by factors; the convention moves nothing by more than 0.2%.
-    expect(F4_AX_AXIS.rendOverFree / F4_CORR_AXIS.rendOverFree).toBeCloseTo(1.001597, 5);
-    expect(F4_AX_EDGE.rendOverFree / F4_CORR_EDGE.rendOverFree).toBeCloseTo(0.99978752, 7);
-    expect(Math.abs(F4_AX_AXIS.rendOverFree / F4_CORR_AXIS.rendOverFree - 1)).toBeLessThan(2e-3);
-    expect(Math.abs(F4_AX_EDGE.rendOverFree / F4_CORR_EDGE.rendOverFree - 1)).toBeLessThan(2e-3);
+    expect(F4_AX_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.001597, 5);
+    expect(F4_AX_EDGE().rendOverFree / F4_CORR_EDGE().rendOverFree).toBeCloseTo(0.99978752, 7);
+    expect(Math.abs(F4_AX_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree - 1)).toBeLessThan(2e-3);
+    expect(Math.abs(F4_AX_EDGE().rendOverFree / F4_CORR_EDGE().rendOverFree - 1)).toBeLessThan(2e-3);
   });
 
   it("on the axis the two flat fields differ 1195× at NA 0.10 and COINCIDE at NA 0.20", () => {
@@ -602,9 +630,9 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // aperture and the throughput is no longer flat near the axis at all: the two
     // fields land on top of each other, and the free one — which § 6bi called
     // exact for the pupil and useless on the axis — becomes the whole correction.
-    expect(F4_AX_AXIS.rendOverFree).toBeCloseTo(1195.2705, 3);
-    expect(F20_AX_AXIS.rendOverFree).toBeCloseTo(0.99932895, 7);
-    expect(F4_AX_AXIS.rendOverFree / F20_AX_AXIS.rendOverFree).toBeGreaterThan(1000);
+    expect(F4_AX_AXIS().rendOverFree).toBeCloseTo(1195.2705, 3);
+    expect(F20_AX_AXIS().rendOverFree).toBeCloseTo(0.99932895, 7);
+    expect(F4_AX_AXIS().rendOverFree / F20_AX_AXIS().rendOverFree).toBeGreaterThan(1000);
   });
 
   it("and at the edge it inverts — 1.17× at NA 0.10 against 64.70× at NA 0.20", () => {
@@ -612,18 +640,18 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // rather than a scaling: the slow lens's split is nearly all pupil at the
     // edge and nearly all rasterizer on the axis, and the fast lens is the other
     // way round in both places.
-    expect(F4_AX_EDGE.rendOverFree).toBeCloseTo(1.1721421, 6);
-    expect(F20_AX_EDGE.rendOverFree).toBeCloseTo(64.696246, 5);
-    expect(F20_AX_EDGE.rendOverFree / F4_AX_EDGE.rendOverFree).toBeCloseTo(55.194884, 5);
+    expect(F4_AX_EDGE().rendOverFree).toBeCloseTo(1.1721421, 6);
+    expect(F20_AX_EDGE().rendOverFree).toBeCloseTo(64.696246, 5);
+    expect(F20_AX_EDGE().rendOverFree / F4_AX_EDGE().rendOverFree).toBeCloseTo(55.194884, 5);
   });
 
   it("and MAGNIFICATION barely touches it — 1.136× across the 2.5×", () => {
     // Against the aperture's thousandfold, on the same readout at the same field
     // positions. This is what § 6bk.2's separation buys: the split is a property
     // of the aperture and not of the objective's power.
-    expect(F10_CORR_AXIS.rendOverFree).toBeCloseTo(1355.9474, 3);
-    expect(F10_CORR_AXIS.rendOverFree / F4_CORR_AXIS.rendOverFree).toBeCloseTo(1.136239, 5);
-    expect(F10_CORR_EDGE.rendOverFree).toBeCloseTo(1.1351098, 6);
+    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1355.9474, 3);
+    expect(F10_CORR_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.136239, 5);
+    expect(F10_CORR_EDGE().rendOverFree).toBeCloseTo(1.1351098, 6);
   });
 
   it("and the free field's axial and edge ROLES swap with aperture, 1.018/189 against 1395/1.021", () => {
@@ -631,13 +659,13 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // act on. On the control, a free flat field is worth nothing on the axis and
     // 189× at the edge, so § 6bi concluded a calibration is an edge-of-field
     // instrument. At twice the aperture that is exactly backwards.
-    expect(F4_AX_AXIS.freeGain).toBeCloseTo(1.0177396, 6);
-    expect(F4_AX_EDGE.freeGain).toBeCloseTo(188.90931, 4);
-    expect(F20_AX_AXIS.freeGain).toBeCloseTo(1395.4598, 3);
-    expect(F20_AX_EDGE.freeGain).toBeCloseTo(1.0211005, 6);
+    expect(F4_AX_AXIS().freeGain).toBeCloseTo(1.0177396, 6);
+    expect(F4_AX_EDGE().freeGain).toBeCloseTo(188.90931, 4);
+    expect(F20_AX_AXIS().freeGain).toBeCloseTo(1395.4598, 3);
+    expect(F20_AX_EDGE().freeGain).toBeCloseTo(1.0211005, 6);
     // Written as the crossing it is: each lens is useless where the other is best.
-    expect(F4_AX_EDGE.freeGain / F4_AX_AXIS.freeGain).toBeGreaterThan(100);
-    expect(F20_AX_AXIS.freeGain / F20_AX_EDGE.freeGain).toBeGreaterThan(100);
+    expect(F4_AX_EDGE().freeGain / F4_AX_AXIS().freeGain).toBeGreaterThan(100);
+    expect(F20_AX_AXIS().freeGain / F20_AX_EDGE().freeGain).toBeGreaterThan(100);
   });
 });
 
@@ -649,22 +677,22 @@ describe("§ 6bk.6 — the scanner verdict's SIGN travels and its size does not"
     // about the GEOMETRY and not the glass, so it should hold on any lens — and
     // it does, eight measurements, never once below one.
     const all = [
-      F4_CORR_AXIS,
-      F4_CORR_EDGE,
-      F4_AX_AXIS,
-      F4_AX_EDGE,
-      F10_CORR_AXIS,
-      F10_CORR_EDGE,
-      F20_AX_AXIS,
-      F20_AX_EDGE,
+      F4_CORR_AXIS(),
+      F4_CORR_EDGE(),
+      F4_AX_AXIS(),
+      F4_AX_EDGE(),
+      F10_CORR_AXIS(),
+      F10_CORR_EDGE(),
+      F20_AX_AXIS(),
+      F20_AX_EDGE(),
     ];
     for (const f of all) expect(f.scannerVsRaw).toBeGreaterThanOrEqual(1);
 
     // The size is another matter entirely: from doing nothing at all to 21% worse.
-    expect(F20_AX_AXIS.scannerVsRaw).toBeCloseTo(1.0000024, 6);
-    expect(F20_AX_EDGE.scannerVsRaw).toBeCloseTo(1.2090451, 6);
-    expect(F10_CORR_AXIS.scannerVsRaw).toBeCloseTo(1.1907442, 6);
-    expect(F10_CORR_EDGE.scannerVsRaw).toBeCloseTo(1.0820783, 6);
+    expect(F20_AX_AXIS().scannerVsRaw).toBeCloseTo(1.0000024, 6);
+    expect(F20_AX_EDGE().scannerVsRaw).toBeCloseTo(1.2090451, 6);
+    expect(F10_CORR_AXIS().scannerVsRaw).toBeCloseTo(1.1907442, 6);
+    expect(F10_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.0820783, 6);
     const sizes = all.map((f) => f.scannerVsRaw);
     expect(Math.max(...sizes) / Math.min(...sizes)).toBeCloseTo(1.2090422, 5);
   });
@@ -687,7 +715,7 @@ describe("§ 6bk.6 — the scanner verdict's SIGN travels and its size does not"
       };
     };
     const four = cost(FOUR, AXIAL_4);
-    const ten = cost(TEN, CORRECTED_10);
+    const ten = cost(TEN, CORRECTED_10());
     const fast = cost(FAST, AXIAL_20);
     expect(four.ratio).toBeCloseTo(95.712993, 4);
     expect(ten.ratio).toBeCloseTo(41.775694, 4);
@@ -712,7 +740,7 @@ describe("§ 6bk.7 — what is structural holds on every lens, and needs no numb
     // for every tile, and a per-tile repeating frame that is the same object
     // whichever way the mosaic was acquired — so they were never going to move,
     // and this is the rung that says so instead of eight that re-measure it.
-    const options = mosaicOptions(CORRECTED_10, { centreMm: EDGE, scan: "stage" });
+    const options = mosaicOptions(CORRECTED_10(), { centreMm: EDGE, scan: "stage" });
     const mosaic = renderFluorescenceMosaic(TEN, BLANK, options);
     const first = mosaic.tiles[0]!.focusMm;
     for (const tile of mosaic.tiles) {
@@ -728,7 +756,7 @@ describe("§ 6bk.7 — what is structural holds on every lens, and needs no numb
 
     // And the scanner calibration is bitwise the same array in both geometries.
     const field = scannerFlatField(
-      renderFluorescenceMosaic(TEN, BLANK, mosaicOptions(CORRECTED_10, { centreMm: EDGE })),
+      renderFluorescenceMosaic(TEN, BLANK, mosaicOptions(CORRECTED_10(), { centreMm: EDGE })),
     );
     const stage = scannerFlatField(mosaic);
     for (let p = 0; p < stage.planes.length; p++) {
@@ -819,6 +847,6 @@ describe("§ 6bk.8 — the refusals, and the one that did not name its own fix",
     const drops = forced.fieldDropMm[0]!;
     expect(drops[1]!).toBeGreaterThan(0);
     expect(drops[2]!).toBeLessThan(0);
-    expect(forced.interactionMm).toBeGreaterThan(20 * SURF4.interactionMm);
+    expect(forced.interactionMm).toBeGreaterThan(20 * SURF4().interactionMm);
   });
 });

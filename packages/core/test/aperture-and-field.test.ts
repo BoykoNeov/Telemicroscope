@@ -289,12 +289,34 @@ function escaped(
 // Fixtures. The ladder at the branch's own sampling, then the matched pairs.
 // ---------------------------------------------------------------------------
 
+/**
+ * Builds on FIRST READ and remembers the answer.
+ *
+ * Every fixture below is a sweep, a render or a render-free grid, and as plain
+ * `const`s the whole set was computed when the module was evaluated — which a
+ * run that then executes ONE rung paid in full. `once` evaluates its argument
+ * at most once, and every fixture below is a pure function of the lens and the
+ * options, so each rung reads exactly what it read before.
+ *
+ * Measured on this file alone, eager then lazy: **collect 41.1 s → 0.5 s**, the
+ * file's total 44.9 s → 45.6 s, which is inside this machine's run-to-run
+ * spread. Collect is the figure that repeats and the one that matters — it is
+ * what a `-t` rerun pays before the rung it asked for starts, and this file was
+ * 92% collect. Same change, same reasoning and the same `()`-at-every-read cost
+ * as `fourth-corner`, whose header carries the five-file total; `tsc` names any
+ * site missed.
+ */
+const once = <T>(make: () => T): (() => T) => {
+  let held: { readonly v: T } | undefined;
+  return () => (held ??= { v: make() }).v;
+};
+
 const LENS = new Map<number, OpticalSystem>(LADDER.map((na) => [na, build(20, na)]));
 const at = (na: number): OpticalSystem => LENS.get(na)!;
 
 /** The render-free ladder at the branch's own sampling, and at twice the pixels. */
-const LADDER_COST = LADDER.map((na) => cost(at(na)));
-const LADDER_COST_256 = LADDER.map((na) => cost(at(na), 256, PS));
+const LADDER_COST = once(() => LADDER.map((na) => cost(at(na))));
+const LADDER_COST_256 = once(() => LADDER.map((na) => cost(at(na), 256, PS)));
 
 /**
  * The matched-field pairs. `halfExtent ∝ pupilSamples / NA`, so doubling the
@@ -302,12 +324,12 @@ const LADDER_COST_256 = LADDER.map((na) => cost(at(na), 256, PS));
  * being that the TRACED aperture drifts from the design NA (§ 6bo.1 pins the
  * drift at 2.76% across the whole ladder).
  */
-const PAIR_MID = [cost(at(0.1), 128, 32), cost(at(0.2), 256, 64)] as const;
-const PAIR_SMALL = [cost(at(0.1), 64, 16), cost(at(0.2), 128, 32)] as const;
-const PAIR_BIG = [cost(at(0.1), 256, 64), cost(at(0.2), 512, 128)] as const;
+const PAIR_MID = once(() => [cost(at(0.1), 128, 32), cost(at(0.2), 256, 64)] as const);
+const PAIR_SMALL = once(() => [cost(at(0.1), 64, 16), cost(at(0.2), 128, 32)] as const);
+const PAIR_BIG = once(() => [cost(at(0.1), 256, 64), cost(at(0.2), 512, 128)] as const);
 
 /** The branch's own path: sampling held, so the field halves as the NA doubles. */
-const CONVENTION = [cost(at(0.1), 128, 32), cost(at(0.2), 128, 32)] as const;
+const CONVENTION = once(() => [cost(at(0.1), 128, 32), cost(at(0.2), 128, 32)] as const);
 
 /**
  * The MAGNIFICATION lever, the same way. `halfExtent ∝ M / NA` with NA held
@@ -317,11 +339,11 @@ const CONVENTION = [cost(at(0.1), 128, 32), cost(at(0.2), 128, 32)] as const;
 const TEN = build(10, 0.1);
 const FOUR = build(4, 0.1);
 /** Matched at 0.9353865752 mm — 10× needs four times the sampling area of 20×. */
-const MPAIR_BIG = [cost(TEN, 256, 64), cost(at(0.1), 128, 32)] as const;
+const MPAIR_BIG = once(() => [cost(TEN, 256, 64), cost(at(0.1), 128, 32)] as const);
 /** Matched at 0.4676932876 mm, the 10× frame's own field at the branch's sampling. */
-const MPAIR_SMALL = [cost(TEN, 128, 32), cost(at(0.1), 128, 16)] as const;
+const MPAIR_SMALL = once(() => [cost(TEN, 128, 32), cost(at(0.1), 128, 16)] as const);
 /** § 6bl.4's own path: sampling held, so the field grows in proportion to M. */
-const MCONVENTION = [cost(FOUR, 128, 32), cost(TEN, 128, 32), cost(at(0.1), 128, 32)] as const;
+const MCONVENTION = once(() => [cost(FOUR, 128, 32), cost(TEN, 128, 32), cost(at(0.1), 128, 32)] as const);
 
 /**
  * § 6bn's interaction quotient, re-measured at a MATCHED field.
@@ -333,18 +355,24 @@ const MCONVENTION = [cost(FOUR, 128, 32), cost(TEN, 128, 32), cost(at(0.1), 128,
  * residual remains.
  */
 const TEN_FAST = build(10, 0.2);
-const CELLS_BRANCH = {
-  slowLo: cost(TEN, 128, 32),
-  fastLo: cost(TEN_FAST, 128, 32),
-  slowHi: cost(at(0.1), 128, 32),
-  fastHi: cost(at(0.2), 128, 32),
-} as const;
-const CELLS_MATCHED = {
-  slowLo: cost(TEN, 128, 32),
-  fastLo: cost(TEN_FAST, 256, 64),
-  slowHi: cost(at(0.1), 128, 16),
-  fastHi: cost(at(0.2), 128, 32),
-} as const;
+const CELLS_BRANCH = once(
+  () =>
+    ({
+      slowLo: cost(TEN, 128, 32),
+      fastLo: cost(TEN_FAST, 128, 32),
+      slowHi: cost(at(0.1), 128, 32),
+      fastHi: cost(at(0.2), 128, 32),
+    }) as const,
+);
+const CELLS_MATCHED = once(
+  () =>
+    ({
+      slowLo: cost(TEN, 128, 32),
+      fastLo: cost(TEN_FAST, 256, 64),
+      slowHi: cost(at(0.1), 128, 16),
+      fastHi: cost(at(0.2), 128, 32),
+    }) as const,
+);
 
 /** § 6bm's and § 6bn's quotient, and its distance from 1 in either direction. */
 const interact = (slowLo: number, fastLo: number, slowHi: number, fastHi: number): number =>
@@ -352,38 +380,40 @@ const interact = (slowLo: number, fastLo: number, slowHi: number, fastHi: number
 const departure = (x: number): number => (x < 1 ? 1 / x : x);
 
 /** The plateau's four cells, the same two ways. Sweep sampling is 48, not 32. */
-const D_LO_SLOW = renderedBestFocus(TEN, 430, 0, sweep(128, 48)).plateauDepths;
-const D_LO_FAST = renderedBestFocus(TEN_FAST, 430, 0, sweep(128, 48)).plateauDepths;
-const D_LO_FAST_M = renderedBestFocus(TEN_FAST, 430, 0, sweep(256, 96)).plateauDepths;
-const D_HI_SLOW_M = renderedBestFocus(at(0.1), 430, 0, sweep(64, 24)).plateauDepths;
+const D_LO_SLOW = once(() => renderedBestFocus(TEN, 430, 0, sweep(128, 48)).plateauDepths);
+const D_LO_FAST = once(() => renderedBestFocus(TEN_FAST, 430, 0, sweep(128, 48)).plateauDepths);
+const D_LO_FAST_M = once(() => renderedBestFocus(TEN_FAST, 430, 0, sweep(256, 96)).plateauDepths);
+const D_HI_SLOW_M = once(() => renderedBestFocus(at(0.1), 430, 0, sweep(64, 24)).plateauDepths);
 
 /** The plateau ladder at the sweep's own sampling, then at matched fields. */
-const DEPTHS = LADDER.map(
-  (na) => renderedBestFocus(at(na), 430, 0, sweep(SIZE, SWEEP_PS)).plateauDepths,
+const DEPTHS = once(() =>
+  LADDER.map(
+    (na) => renderedBestFocus(at(na), 430, 0, sweep(SIZE, SWEEP_PS)).plateauDepths,
+  )
 );
-const P10_BIGFIELD = renderedBestFocus(at(0.1), 430, 0, sweep(SIZE, SWEEP_PS));
-const P20_BIGFIELD = renderedBestFocus(at(0.2), 430, 0, sweep(256, 96));
-const P10_SMALLFIELD = renderedBestFocus(at(0.1), 430, 0, sweep(64, 24));
+const P10_BIGFIELD = once(() => renderedBestFocus(at(0.1), 430, 0, sweep(SIZE, SWEEP_PS)));
+const P20_BIGFIELD = once(() => renderedBestFocus(at(0.2), 430, 0, sweep(256, 96)));
+const P10_SMALLFIELD = once(() => renderedBestFocus(at(0.1), 430, 0, sweep(64, 24)));
 /** Field alone, aperture held: 1.5× the field at NA 0.15 and nothing else moved. */
-const P15_WIDER = renderedBestFocus(at(0.15), 430, 0, sweep(256, 72));
+const P15_WIDER = once(() => renderedBestFocus(at(0.15), 430, 0, sweep(256, 72)));
 
 /** § 6bn's two axial stages, re-derived here so the escape has a common stage. */
-const STAGE_A = P10_BIGFIELD.focusMm;
-const STAGE_B = renderedBestFocus(at(0.2), 430, 0, sweep(SIZE, SWEEP_PS)).focusMm;
+const STAGE_A = once(() => P10_BIGFIELD().focusMm);
+const STAGE_B = once(() => renderedBestFocus(at(0.2), 430, 0, sweep(SIZE, SWEEP_PS)).focusMm);
 
 const H10 = objectHeightForImageRadius(at(0.1), ANCHOR, DESIGN, { magnification: magOf(at(0.1)) });
 const H20 = objectHeightForImageRadius(at(0.2), ANCHOR, DESIGN, { magnification: magOf(at(0.2)) });
 
-const E10_A = escaped(at(0.1), H10, STAGE_A);
-const E10_B = escaped(at(0.1), H10, STAGE_B);
-const E20_A = escaped(at(0.2), H20, STAGE_A);
-const E20_B = escaped(at(0.2), H20, STAGE_B);
+const E10_A = once(() => escaped(at(0.1), H10, STAGE_A()));
+const E10_B = once(() => escaped(at(0.1), H10, STAGE_B()));
+const E20_A = once(() => escaped(at(0.2), H20, STAGE_A()));
+const E20_B = once(() => escaped(at(0.2), H20, STAGE_B()));
 /** The same lens at a MATCHED field: twice the sampling, so the field is held. */
-const E20M_A = escaped(at(0.2), H20, STAGE_A, 64);
-const E20M_B = escaped(at(0.2), H20, STAGE_B, 64);
+const E20M_A = once(() => escaped(at(0.2), H20, STAGE_A(), 64));
+const E20M_B = once(() => escaped(at(0.2), H20, STAGE_B(), 64));
 /** The branch's FIELD at the matched pair's pixel count, isolating the latter. */
-const E20_A_FINE = escaped(at(0.2), H20, STAGE_A, 32, 256);
-const E10_A_FINE = escaped(at(0.1), H10, STAGE_A, 32, 256);
+const E20_A_FINE = once(() => escaped(at(0.2), H20, STAGE_A(), 32, 256));
+const E10_A_FINE = once(() => escaped(at(0.1), H10, STAGE_A(), 32, 256));
 
 describe("§ 6bo.1 — the frame's half-extent goes as M / NA, and no step has said so", () => {
   it("the tile's field of view shrinks 2.569× across a 2.5× aperture range", () => {
@@ -462,29 +492,29 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
     // It cancels only if the readout is multiplicatively separable in
     // (field, lever), and this one is not: three fields at ONE aperture span a
     // factor of eight, nowhere near a power law.
-    expect(CELLS_MATCHED.slowHi.ratio).toBeCloseTo(66.49910292400627, 8);
-    expect(PAIR_MID[0].ratio).toBeCloseTo(21.04598275534914, 8);
-    expect(PAIR_BIG[0].ratio).toBeCloseTo(8.201702356019862, 8);
-    expect(CELLS_MATCHED.slowHi.ratio / PAIR_BIG[0].ratio).toBeGreaterThan(8);
+    expect(CELLS_MATCHED().slowHi.ratio).toBeCloseTo(66.49910292400627, 8);
+    expect(PAIR_MID()[0].ratio).toBeCloseTo(21.04598275534914, 8);
+    expect(PAIR_BIG()[0].ratio).toBeCloseTo(8.201702356019862, 8);
+    expect(CELLS_MATCHED().slowHi.ratio / PAIR_BIG()[0].ratio).toBeGreaterThan(8);
   });
 
   it("and it does NOT cancel: § 6bn's cost interaction CROSSES 1 at a matched field", () => {
     // The branch's own four cells first, reproducing § 6bn's pinned costI to
     // seven digits — which is what makes the matched-field number comparable.
     const branch = interact(
-      CELLS_BRANCH.slowLo.ratio,
-      CELLS_BRANCH.fastLo.ratio,
-      CELLS_BRANCH.slowHi.ratio,
-      CELLS_BRANCH.fastHi.ratio,
+      CELLS_BRANCH().slowLo.ratio,
+      CELLS_BRANCH().fastLo.ratio,
+      CELLS_BRANCH().slowHi.ratio,
+      CELLS_BRANCH().fastHi.ratio,
     );
     expect(branch).toBeCloseTo(1.0416580962373136, 9);
     expect(branch).toBeCloseTo(1.0416581, 7); // § 6bn's costI
 
     const matched = interact(
-      CELLS_MATCHED.slowLo.ratio,
-      CELLS_MATCHED.fastLo.ratio,
-      CELLS_MATCHED.slowHi.ratio,
-      CELLS_MATCHED.fastHi.ratio,
+      CELLS_MATCHED().slowLo.ratio,
+      CELLS_MATCHED().fastLo.ratio,
+      CELLS_MATCHED().slowHi.ratio,
+      CELLS_MATCHED().fastHi.ratio,
     );
     expect(matched).toBeCloseTo(0.7948724057562382, 9);
 
@@ -496,16 +526,16 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
 
   it("and § 6bn's anisotropy interaction grows its distance from 1 by 11.7×", () => {
     const branch = interact(
-      CELLS_BRANCH.slowLo.aniso,
-      CELLS_BRANCH.fastLo.aniso,
-      CELLS_BRANCH.slowHi.aniso,
-      CELLS_BRANCH.fastHi.aniso,
+      CELLS_BRANCH().slowLo.aniso,
+      CELLS_BRANCH().fastLo.aniso,
+      CELLS_BRANCH().slowHi.aniso,
+      CELLS_BRANCH().fastHi.aniso,
     );
     const matched = interact(
-      CELLS_MATCHED.slowLo.aniso,
-      CELLS_MATCHED.fastLo.aniso,
-      CELLS_MATCHED.slowHi.aniso,
-      CELLS_MATCHED.fastHi.aniso,
+      CELLS_MATCHED().slowLo.aniso,
+      CELLS_MATCHED().fastLo.aniso,
+      CELLS_MATCHED().slowHi.aniso,
+      CELLS_MATCHED().fastHi.aniso,
     );
     expect(branch).toBeCloseTo(0.9772598554401308, 9);
     expect(departure(branch)).toBeCloseTo(1.0232693, 6); // § 6bn's anisoI
@@ -517,8 +547,8 @@ describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough
   });
 
   it("while the PLATEAU's interaction survives, to 0.89% — and § 6bo.5 says why", () => {
-    const branch = interact(D_LO_SLOW, D_LO_FAST, DEPTHS[0]!, DEPTHS[4]!);
-    const matched = interact(D_LO_SLOW, D_LO_FAST_M, D_HI_SLOW_M, DEPTHS[4]!);
+    const branch = interact(D_LO_SLOW(), D_LO_FAST(), DEPTHS()[0]!, DEPTHS()[4]!);
+    const matched = interact(D_LO_SLOW(), D_LO_FAST_M(), D_HI_SLOW_M(), DEPTHS()[4]!);
 
     expect(branch).toBeCloseTo(0.8614283392781017, 9);
     expect(branch).toBeCloseTo(0.8614284, 6); // § 6bn's plateauI
@@ -546,39 +576,39 @@ describe("§ 6bo.3 — at a matched field the registration cost's aperture depen
   });
 
   it("the branch's own path has the cost RISE 1.5997× as the aperture doubles", () => {
-    expect(CONVENTION[0].ratio).toBeCloseTo(21.04598275534914, 8);
-    expect(CONVENTION[1].ratio).toBeCloseTo(33.66819236863687, 8);
-    expect(CONVENTION[1].ratio / CONVENTION[0].ratio).toBeCloseTo(1.5997443673700444, 10);
+    expect(CONVENTION()[0].ratio).toBeCloseTo(21.04598275534914, 8);
+    expect(CONVENTION()[1].ratio).toBeCloseTo(33.66819236863687, 8);
+    expect(CONVENTION()[1].ratio / CONVENTION()[0].ratio).toBeCloseTo(1.5997443673700444, 10);
   });
 
   it("at a matched field it FALLS, at every one of three field sizes", () => {
-    expect(PAIR_MID[0].ratio).toBeCloseTo(21.04598275534914, 8);
-    expect(PAIR_MID[1].ratio).toBeCloseTo(13.680138591706793, 8);
-    expect(PAIR_MID[1].ratio / PAIR_MID[0].ratio).toBeCloseTo(0.6500118692832145, 10);
+    expect(PAIR_MID()[0].ratio).toBeCloseTo(21.04598275534914, 8);
+    expect(PAIR_MID()[1].ratio).toBeCloseTo(13.680138591706793, 8);
+    expect(PAIR_MID()[1].ratio / PAIR_MID()[0].ratio).toBeCloseTo(0.6500118692832145, 10);
 
-    expect(PAIR_SMALL[0].ratio).toBeCloseTo(68.7598964701302, 8);
-    expect(PAIR_SMALL[1].ratio).toBeCloseTo(33.66819236863687, 8);
-    expect(PAIR_SMALL[1].ratio / PAIR_SMALL[0].ratio).toBeCloseTo(0.48964867745638013, 10);
+    expect(PAIR_SMALL()[0].ratio).toBeCloseTo(68.7598964701302, 8);
+    expect(PAIR_SMALL()[1].ratio).toBeCloseTo(33.66819236863687, 8);
+    expect(PAIR_SMALL()[1].ratio / PAIR_SMALL()[0].ratio).toBeCloseTo(0.48964867745638013, 10);
 
-    expect(PAIR_BIG[0].ratio).toBeCloseTo(8.201702356019862, 8);
-    expect(PAIR_BIG[1].ratio).toBeCloseTo(5.85271602665838, 8);
-    expect(PAIR_BIG[1].ratio / PAIR_BIG[0].ratio).toBeCloseTo(0.7135977108901813, 10);
+    expect(PAIR_BIG()[0].ratio).toBeCloseTo(8.201702356019862, 8);
+    expect(PAIR_BIG()[1].ratio).toBeCloseTo(5.85271602665838, 8);
+    expect(PAIR_BIG()[1].ratio / PAIR_BIG()[0].ratio).toBeCloseTo(0.7135977108901813, 10);
 
     // The sign of the aperture dependence, which is the finding.
-    expect(CONVENTION[1].ratio / CONVENTION[0].ratio).toBeGreaterThan(1);
-    for (const [slow, fast] of [PAIR_MID, PAIR_SMALL, PAIR_BIG]) {
+    expect(CONVENTION()[1].ratio / CONVENTION()[0].ratio).toBeGreaterThan(1);
+    for (const [slow, fast] of [PAIR_MID(), PAIR_SMALL(), PAIR_BIG()]) {
       expect(fast.ratio / slow.ratio).toBeLessThan(1);
     }
   });
 
   it("the anisotropy reverses with it", () => {
-    expect(CONVENTION[1].aniso / CONVENTION[0].aniso).toBeCloseTo(1.9285987179870367, 10);
-    expect(PAIR_MID[1].aniso / PAIR_MID[0].aniso).toBeCloseTo(0.8730019926409518, 10);
-    expect(PAIR_SMALL[1].aniso / PAIR_SMALL[0].aniso).toBeCloseTo(0.6609140341298092, 10);
-    expect(PAIR_BIG[1].aniso / PAIR_BIG[0].aniso).toBeCloseTo(0.9513059295508095, 10);
+    expect(CONVENTION()[1].aniso / CONVENTION()[0].aniso).toBeCloseTo(1.9285987179870367, 10);
+    expect(PAIR_MID()[1].aniso / PAIR_MID()[0].aniso).toBeCloseTo(0.8730019926409518, 10);
+    expect(PAIR_SMALL()[1].aniso / PAIR_SMALL()[0].aniso).toBeCloseTo(0.6609140341298092, 10);
+    expect(PAIR_BIG()[1].aniso / PAIR_BIG()[0].aniso).toBeCloseTo(0.9513059295508095, 10);
 
-    expect(CONVENTION[1].aniso / CONVENTION[0].aniso).toBeGreaterThan(1);
-    for (const [slow, fast] of [PAIR_MID, PAIR_SMALL, PAIR_BIG]) {
+    expect(CONVENTION()[1].aniso / CONVENTION()[0].aniso).toBeGreaterThan(1);
+    for (const [slow, fast] of [PAIR_MID(), PAIR_SMALL(), PAIR_BIG()]) {
       expect(fast.aniso / slow.aniso).toBeLessThan(1);
     }
   });
@@ -587,22 +617,22 @@ describe("§ 6bo.3 — at a matched field the registration cost's aperture depen
     // A ratio can reverse on one term alone, so both are decomposed. On the
     // branch's path both terms fall and the denominator falls faster; at a
     // matched field the denominator RISES instead.
-    expect(CONVENTION[0].fieldMm / CONVENTION[1].fieldMm).toBeCloseTo(4.5610871847799785, 8);
-    expect(CONVENTION[0].scanMm / CONVENTION[1].scanMm).toBeCloseTo(2.85113501745178, 8);
+    expect(CONVENTION()[0].fieldMm / CONVENTION()[1].fieldMm).toBeCloseTo(4.5610871847799785, 8);
+    expect(CONVENTION()[0].scanMm / CONVENTION()[1].scanMm).toBeCloseTo(2.85113501745178, 8);
 
-    expect(PAIR_MID[1].fieldMm / PAIR_MID[0].fieldMm).toBeCloseTo(1.3649834994688737, 10);
-    expect(PAIR_SMALL[1].fieldMm / PAIR_SMALL[0].fieldMm).toBeCloseTo(2.4136942676554254, 10);
-    expect(PAIR_BIG[1].fieldMm / PAIR_BIG[0].fieldMm).toBeCloseTo(1.126990181627213, 10);
+    expect(PAIR_MID()[1].fieldMm / PAIR_MID()[0].fieldMm).toBeCloseTo(1.3649834994688737, 10);
+    expect(PAIR_SMALL()[1].fieldMm / PAIR_SMALL()[0].fieldMm).toBeCloseTo(2.4136942676554254, 10);
+    expect(PAIR_BIG()[1].fieldMm / PAIR_BIG()[0].fieldMm).toBeCloseTo(1.126990181627213, 10);
 
     // The field-scanned seam shift reverses direction between the two paths at
     // all three field sizes; the stage-scanned one does not have a consistent
     // direction at a matched field, so it is not what carries the finding.
-    expect(CONVENTION[1].fieldMm).toBeLessThan(CONVENTION[0].fieldMm);
-    for (const [slow, fast] of [PAIR_MID, PAIR_SMALL, PAIR_BIG]) {
+    expect(CONVENTION()[1].fieldMm).toBeLessThan(CONVENTION()[0].fieldMm);
+    for (const [slow, fast] of [PAIR_MID(), PAIR_SMALL(), PAIR_BIG()]) {
       expect(fast.fieldMm).toBeGreaterThan(slow.fieldMm);
     }
-    expect(PAIR_MID[1].scanMm).toBeLessThan(PAIR_MID[0].scanMm);
-    expect(PAIR_SMALL[1].scanMm).toBeGreaterThan(PAIR_SMALL[0].scanMm);
+    expect(PAIR_MID()[1].scanMm).toBeLessThan(PAIR_MID()[0].scanMm);
+    expect(PAIR_SMALL()[1].scanMm).toBeGreaterThan(PAIR_SMALL()[0].scanMm);
   });
 });
 
@@ -618,73 +648,73 @@ describe("§ 6bo.4 — the cost's MAGNIFICATION dependence reverses too, so § 6
     // § 6bm's COST_4 = 95.712993 and § 6bl's COST_10 = 41.775694, reproduced at
     // a stage of zero — which is what licenses reading them against the matched
     // pairs below, per § 6bn.1.
-    expect(MCONVENTION[0].ratio).toBeCloseTo(95.71299253925305, 8);
-    expect(MCONVENTION[1].ratio).toBeCloseTo(41.77569353925508, 8);
-    expect(MCONVENTION[2].ratio).toBeCloseTo(21.04598275534914, 8);
+    expect(MCONVENTION()[0].ratio).toBeCloseTo(95.71299253925305, 8);
+    expect(MCONVENTION()[1].ratio).toBeCloseTo(41.77569353925508, 8);
+    expect(MCONVENTION()[2].ratio).toBeCloseTo(21.04598275534914, 8);
 
     // Falling, and close enough to 1/M that § 6bl.4 fitted one.
-    expect(MCONVENTION[0].ratio / MCONVENTION[1].ratio).toBeCloseTo(2.2911167818031575, 9);
-    expect(MCONVENTION[1].ratio / MCONVENTION[2].ratio).toBeCloseTo(1.9849723353326034, 9);
+    expect(MCONVENTION()[0].ratio / MCONVENTION()[1].ratio).toBeCloseTo(2.2911167818031575, 9);
+    expect(MCONVENTION()[1].ratio / MCONVENTION()[2].ratio).toBeCloseTo(1.9849723353326034, 9);
   });
 
   it("at a matched field the cost RISES with magnification instead", () => {
-    expect(MPAIR_BIG[0].ratio).toBeCloseTo(16.967575811476543, 8);
-    expect(MPAIR_BIG[1].ratio).toBeCloseTo(21.04598275534914, 8);
-    expect(MPAIR_BIG[1].ratio / MPAIR_BIG[0].ratio).toBeCloseTo(1.2403647397357753, 9);
+    expect(MPAIR_BIG()[0].ratio).toBeCloseTo(16.967575811476543, 8);
+    expect(MPAIR_BIG()[1].ratio).toBeCloseTo(21.04598275534914, 8);
+    expect(MPAIR_BIG()[1].ratio / MPAIR_BIG()[0].ratio).toBeCloseTo(1.2403647397357753, 9);
 
-    expect(MPAIR_SMALL[0].ratio).toBeCloseTo(41.77569353925508, 8);
-    expect(MPAIR_SMALL[1].ratio).toBeCloseTo(66.49910292400627, 8);
-    expect(MPAIR_SMALL[1].ratio / MPAIR_SMALL[0].ratio).toBeCloseTo(1.5918132600604107, 9);
+    expect(MPAIR_SMALL()[0].ratio).toBeCloseTo(41.77569353925508, 8);
+    expect(MPAIR_SMALL()[1].ratio).toBeCloseTo(66.49910292400627, 8);
+    expect(MPAIR_SMALL()[1].ratio / MPAIR_SMALL()[0].ratio).toBeCloseTo(1.5918132600604107, 9);
 
     // The finding: the sign of the magnification dependence, at two fields.
-    expect(MCONVENTION[2].ratio / MCONVENTION[1].ratio).toBeLessThan(1);
-    expect(MPAIR_BIG[1].ratio / MPAIR_BIG[0].ratio).toBeGreaterThan(1);
-    expect(MPAIR_SMALL[1].ratio / MPAIR_SMALL[0].ratio).toBeGreaterThan(1);
+    expect(MCONVENTION()[2].ratio / MCONVENTION()[1].ratio).toBeLessThan(1);
+    expect(MPAIR_BIG()[1].ratio / MPAIR_BIG()[0].ratio).toBeGreaterThan(1);
+    expect(MPAIR_SMALL()[1].ratio / MPAIR_SMALL()[0].ratio).toBeGreaterThan(1);
   });
 
   it("because the field alone more than accounts for the whole 1/M fall", () => {
     // Doubling the field at a HELD magnification cuts the cost by 2.5-3.2×,
     // which is more than the 1.985× the branch's path shows across 10×→20×.
     // Magnification itself pushes the other way and partly cancels it.
-    expect(MPAIR_SMALL[1].ratio / MPAIR_BIG[1].ratio).toBeCloseTo(3.159705284235518, 9);
-    expect(MPAIR_SMALL[0].ratio / MPAIR_BIG[0].ratio).toBeCloseTo(2.4620896940975388, 9);
+    expect(MPAIR_SMALL()[1].ratio / MPAIR_BIG()[1].ratio).toBeCloseTo(3.159705284235518, 9);
+    expect(MPAIR_SMALL()[0].ratio / MPAIR_BIG()[0].ratio).toBeCloseTo(2.4620896940975388, 9);
 
     for (const fieldOnly of [
-      MPAIR_SMALL[1].ratio / MPAIR_BIG[1].ratio,
-      MPAIR_SMALL[0].ratio / MPAIR_BIG[0].ratio,
+      MPAIR_SMALL()[1].ratio / MPAIR_BIG()[1].ratio,
+      MPAIR_SMALL()[0].ratio / MPAIR_BIG()[0].ratio,
     ]) {
-      expect(fieldOnly).toBeGreaterThan(MCONVENTION[1].ratio / MCONVENTION[2].ratio);
+      expect(fieldOnly).toBeGreaterThan(MCONVENTION()[1].ratio / MCONVENTION()[2].ratio);
     }
   });
 
   it("and the anisotropy reverses on this lever too", () => {
-    expect(MCONVENTION[2].aniso / MCONVENTION[1].aniso).toBeCloseTo(0.5261098614857492, 9);
-    expect(MPAIR_BIG[1].aniso / MPAIR_BIG[0].aniso).toBeCloseTo(1.1613079070260086, 9);
-    expect(MPAIR_SMALL[1].aniso / MPAIR_SMALL[0].aniso).toBeCloseTo(1.4875212847709802, 9);
+    expect(MCONVENTION()[2].aniso / MCONVENTION()[1].aniso).toBeCloseTo(0.5261098614857492, 9);
+    expect(MPAIR_BIG()[1].aniso / MPAIR_BIG()[0].aniso).toBeCloseTo(1.1613079070260086, 9);
+    expect(MPAIR_SMALL()[1].aniso / MPAIR_SMALL()[0].aniso).toBeCloseTo(1.4875212847709802, 9);
 
-    expect(MCONVENTION[2].aniso / MCONVENTION[1].aniso).toBeLessThan(1);
-    expect(MPAIR_BIG[1].aniso / MPAIR_BIG[0].aniso).toBeGreaterThan(1);
-    expect(MPAIR_SMALL[1].aniso / MPAIR_SMALL[0].aniso).toBeGreaterThan(1);
+    expect(MCONVENTION()[2].aniso / MCONVENTION()[1].aniso).toBeLessThan(1);
+    expect(MPAIR_BIG()[1].aniso / MPAIR_BIG()[0].aniso).toBeGreaterThan(1);
+    expect(MPAIR_SMALL()[1].aniso / MPAIR_SMALL()[0].aniso).toBeGreaterThan(1);
   });
 });
 
 describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is real optics", () => {
   it("the seven-point ladder is monotone in aperture and brackets the threshold", () => {
-    expect(DEPTHS[0]).toBeCloseTo(0.37549919008843585, 9);
-    expect(DEPTHS[1]).toBeCloseTo(0.428382059451484, 9);
-    expect(DEPTHS[2]).toBeCloseTo(0.598546429418493, 9);
-    expect(DEPTHS[3]).toBeCloseTo(1.0738808825086936, 9);
-    expect(DEPTHS[4]).toBeCloseTo(1.2301646622060687, 9);
-    expect(DEPTHS[5]).toBeCloseTo(1.4396321362837097, 9);
-    expect(DEPTHS[6]).toBeCloseTo(1.5922927982930855, 9);
+    expect(DEPTHS()[0]).toBeCloseTo(0.37549919008843585, 9);
+    expect(DEPTHS()[1]).toBeCloseTo(0.428382059451484, 9);
+    expect(DEPTHS()[2]).toBeCloseTo(0.598546429418493, 9);
+    expect(DEPTHS()[3]).toBeCloseTo(1.0738808825086936, 9);
+    expect(DEPTHS()[4]).toBeCloseTo(1.2301646622060687, 9);
+    expect(DEPTHS()[5]).toBeCloseTo(1.4396321362837097, 9);
+    expect(DEPTHS()[6]).toBeCloseTo(1.5922927982930855, 9);
 
-    for (let i = 1; i < DEPTHS.length; i++) expect(DEPTHS[i]!).toBeGreaterThan(DEPTHS[i - 1]!);
+    for (let i = 1; i < DEPTHS().length; i++) expect(DEPTHS()[i]!).toBeGreaterThan(DEPTHS()[i - 1]!);
 
     // The threshold is 1 depth of focus. § 6bn knew only "all NA 0.10 pass, all
     // NA 0.20 refuse" — a whole factor of two. The crossing is between 0.15 and
     // 0.18, and this is the first bracket on it.
-    expect(DEPTHS[2]).toBeLessThan(1);
-    expect(DEPTHS[3]).toBeGreaterThan(1);
+    expect(DEPTHS()[2]).toBeLessThan(1);
+    expect(DEPTHS()[3]).toBeGreaterThan(1);
   });
 
   it("and the narrow threshold really is what reports it", () => {
@@ -703,23 +733,23 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
 
   it("doubling the FIELD alone moves the plateau by under 3%", () => {
     // Aperture held, field changed — the control the cost never had.
-    expect(P15_WIDER.plateauDepths / DEPTHS[2]!).toBeCloseTo(1.0032087294584346, 9);
-    expect(DEPTHS[0]! / P10_SMALLFIELD.plateauDepths).toBeCloseTo(0.9890281687802007, 9);
-    expect(DEPTHS[4]! / P20_BIGFIELD.plateauDepths).toBeCloseTo(1.0264180489929309, 9);
+    expect(P15_WIDER().plateauDepths / DEPTHS()[2]!).toBeCloseTo(1.0032087294584346, 9);
+    expect(DEPTHS()[0]! / P10_SMALLFIELD().plateauDepths).toBeCloseTo(0.9890281687802007, 9);
+    expect(DEPTHS()[4]! / P20_BIGFIELD().plateauDepths).toBeCloseTo(1.0264180489929309, 9);
 
     for (const r of [
-      P15_WIDER.plateauDepths / DEPTHS[2]!,
-      DEPTHS[0]! / P10_SMALLFIELD.plateauDepths,
-      DEPTHS[4]! / P20_BIGFIELD.plateauDepths,
+      P15_WIDER().plateauDepths / DEPTHS()[2]!,
+      DEPTHS()[0]! / P10_SMALLFIELD().plateauDepths,
+      DEPTHS()[4]! / P20_BIGFIELD().plateauDepths,
     ]) {
       expect(Math.abs(r - 1)).toBeLessThan(0.03);
     }
   });
 
   it("so the aperture's 3.2× rise survives however the field is handled", () => {
-    const convention = DEPTHS[4]! / DEPTHS[0]!;
-    const matchedBig = P20_BIGFIELD.plateauDepths / P10_BIGFIELD.plateauDepths;
-    const matchedSmall = DEPTHS[4]! / P10_SMALLFIELD.plateauDepths;
+    const convention = DEPTHS()[4]! / DEPTHS()[0]!;
+    const matchedBig = P20_BIGFIELD().plateauDepths / P10_BIGFIELD().plateauDepths;
+    const matchedSmall = DEPTHS()[4]! / P10_SMALLFIELD().plateauDepths;
 
     expect(convention).toBeCloseTo(3.2760780706779844, 9);
     expect(matchedBig).toBeCloseTo(3.191758050135912, 9);
@@ -737,13 +767,13 @@ describe("§ 6bo.5 — the plateau is field-free, so the refusal boundary is rea
 
 describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size", () => {
   it("the branch's path overstates the aperture's effect by 1.28×", () => {
-    expect(E20_A / E10_A).toBeCloseTo(17.728595484364245, 8);
-    expect(E20M_A / E10_A).toBeCloseTo(13.825737559547433, 8);
-    expect(E20_A / E20M_A).toBeCloseTo(1.2822893106430822, 9);
+    expect(E20_A() / E10_A()).toBeCloseTo(17.728595484364245, 8);
+    expect(E20M_A() / E10_A()).toBeCloseTo(13.825737559547433, 8);
+    expect(E20_A() / E20M_A()).toBeCloseTo(1.2822893106430822, 9);
 
-    expect(E20_B / E10_B).toBeCloseTo(16.472179594752625, 8);
-    expect(E20M_B / E10_B).toBeCloseTo(12.875925007744309, 8);
-    expect(E20_B / E20M_B).toBeCloseTo(1.2793006781916891, 9);
+    expect(E20_B() / E10_B()).toBeCloseTo(16.472179594752625, 8);
+    expect(E20M_B() / E10_B()).toBeCloseTo(12.875925007744309, 8);
+    expect(E20_B() / E20M_B()).toBeCloseTo(1.2793006781916891, 9);
   });
 
   it("and that 1.28× carries a pixel-count term, which is 0.6% and not 28%", () => {
@@ -751,19 +781,19 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // render has four times the pixels as well as the held field. Isolated —
     // same field, four times the pixels — the term is under 0.8%, so it is named
     // rather than left implied, and the inflation is 1.2902× once it is removed.
-    expect(E20_A_FINE / E20_A).toBeCloseTo(1.00614051868777, 9);
-    expect(E10_A_FINE / E10_A).toBeCloseTo(1.0077336276723095, 9);
-    expect(E20_A_FINE / E20M_A).toBeCloseTo(1.2901632321182137, 9);
-    for (const t of [E20_A_FINE / E20_A, E10_A_FINE / E10_A]) expect(Math.abs(t - 1)).toBeLessThan(0.008);
+    expect(E20_A_FINE() / E20_A()).toBeCloseTo(1.00614051868777, 9);
+    expect(E10_A_FINE() / E10_A()).toBeCloseTo(1.0077336276723095, 9);
+    expect(E20_A_FINE() / E20M_A()).toBeCloseTo(1.2901632321182137, 9);
+    for (const t of [E20_A_FINE() / E20_A(), E10_A_FINE() / E10_A()]) expect(Math.abs(t - 1)).toBeLessThan(0.008);
   });
 
   it("but the sign holds — unlike the two render-free readouts", () => {
-    for (const r of [E20_A / E10_A, E20M_A / E10_A, E20_B / E10_B, E20M_B / E10_B]) {
+    for (const r of [E20_A() / E10_A(), E20M_A() / E10_A(), E20_B() / E10_B(), E20M_B() / E10_B()]) {
       expect(r).toBeGreaterThan(10);
     }
     // Which is the whole point of measuring three families rather than one:
     // the same confound retracts a sign here and only a size there.
-    expect(PAIR_MID[1].ratio / PAIR_MID[0].ratio).toBeLessThan(1);
+    expect(PAIR_MID()[1].ratio / PAIR_MID()[0].ratio).toBeLessThan(1);
   });
 
   it("and the readout's own stage sensitivity is smaller than either, but not nil", () => {
@@ -771,16 +801,16 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     // axial stage. Two stages a sweep step apart move one lens by 0.41% and the
     // other by 6.7% — small against 13.8×, and the first bound anyone has put
     // on that convention.
-    expect(Math.abs(E10_B / E10_A - 1)).toBeLessThan(0.01);
-    expect(Math.abs(E20_B / E20_A - 1)).toBeLessThan(0.08);
-    expect(E10_A).toBeCloseTo(0.021959074296852288, 9);
-    expect(E20_A).toBeCloseTo(0.38930354541999446, 9);
+    expect(Math.abs(E10_B() / E10_A() - 1)).toBeLessThan(0.01);
+    expect(Math.abs(E20_B() / E20_A() - 1)).toBeLessThan(0.08);
+    expect(E10_A()).toBeCloseTo(0.021959074296852288, 9);
+    expect(E20_A()).toBeCloseTo(0.38930354541999446, 9);
   });
 });
 
 describe("§ 6bo.7 — two opposing dependences must produce a turn, and they do", () => {
   it("the cost turns over at NA 0.22 along the branch's own path", () => {
-    const ratios = LADDER_COST.map((c) => c.ratio);
+    const ratios = LADDER_COST().map((c) => c.ratio);
     expect(ratios[0]).toBeCloseTo(21.04598275534914, 8);
     expect(ratios[5]).toBeCloseTo(34.19944386048143, 8);
     expect(ratios[6]).toBeCloseTo(33.23082266581804, 8);
@@ -791,7 +821,7 @@ describe("§ 6bo.7 — two opposing dependences must produce a turn, and they do
   });
 
   it("the turn is not the sampling — it survives twice the pixels at the same field", () => {
-    const ratios = LADDER_COST_256.map((c) => c.ratio);
+    const ratios = LADDER_COST_256().map((c) => c.ratio);
     expect(ratios[0]).toBeCloseTo(20.811488144623066, 8);
     expect(ratios[5]).toBeCloseTo(33.829763897794614, 8);
     expect(ratios[6]).toBeCloseTo(32.87275841530211, 8);
@@ -801,17 +831,17 @@ describe("§ 6bo.7 — two opposing dependences must produce a turn, and they do
 
     // The fall at the turn is the same fraction at both pixel samplings, which
     // is what "the same field, sampled finer" ought to give.
-    expect(LADDER_COST[5]!.ratio / LADDER_COST[6]!.ratio).toBeCloseTo(1.0291482761171524, 8);
+    expect(LADDER_COST()[5]!.ratio / LADDER_COST()[6]!.ratio).toBeCloseTo(1.0291482761171524, 8);
     expect(ratios[5]! / ratios[6]!).toBeCloseTo(1.029112417960247, 8);
   });
 
   it("and the anisotropy does NOT turn, though the branch has carried them as a pair", () => {
-    const aniso = LADDER_COST.map((c) => c.aniso);
+    const aniso = LADDER_COST().map((c) => c.aniso);
     expect(aniso[0]).toBeCloseTo(8.874831016801972, 8);
     expect(aniso[6]).toBeCloseTo(21.40386197517023, 8);
     for (let i = 1; i < aniso.length; i++) expect(aniso[i]!).toBeGreaterThan(aniso[i - 1]!);
 
-    const aniso256 = LADDER_COST_256.map((c) => c.aniso);
+    const aniso256 = LADDER_COST_256().map((c) => c.aniso);
     for (let i = 1; i < aniso256.length; i++) expect(aniso256[i]!).toBeGreaterThan(aniso256[i - 1]!);
   });
 
@@ -822,8 +852,8 @@ describe("§ 6bo.7 — two opposing dependences must produce a turn, and they do
     // to turn over somewhere, and 0.22 is where. This is the closest thing to a
     // mechanism this branch has produced, and it is why the turn is not quoted
     // as a property of the aperture.
-    expect(PAIR_MID[1].ratio / PAIR_MID[0].ratio).toBeLessThan(1);
-    expect(PAIR_SMALL[0].ratio).toBeGreaterThan(PAIR_MID[0].ratio);
-    expect(PAIR_MID[0].ratio).toBeGreaterThan(PAIR_BIG[0].ratio);
+    expect(PAIR_MID()[1].ratio / PAIR_MID()[0].ratio).toBeLessThan(1);
+    expect(PAIR_SMALL()[0].ratio).toBeGreaterThan(PAIR_MID()[0].ratio);
+    expect(PAIR_MID()[0].ratio).toBeGreaterThan(PAIR_BIG()[0].ratio);
   });
 });

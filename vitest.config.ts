@@ -34,7 +34,37 @@ export default defineConfig({
      * starts failing on time should be repeated with
      * `TELEMICROSCOPE_TEST_PRIORITY=normal` before the failure is believed — if
      * it passes unniced, the finding is about load, not about physics.
+     *
+     * **Raised to 180 s when the mosaic branch's fixtures went lazy**, and the
+     * first thing to say is that 60 s was ALREADY marginal. On the run before
+     * that change the slowest rung was § 6bm.7's forced surface at **44.7 s**
+     * and § 6bl.5's refusing sweep at 33 s — 1.34× of headroom on the worst one,
+     * in a suite that already had load-dependent timeouts on record (see the
+     * hook in `vitest.setup.ts`). The refactor did not create that; it exposed it.
+     *
+     * What the refactor changed is WHERE the cost sits. Those five files built
+     * their sweeps and mosaics as module-level `const`s, so 181.8 s of it sat in
+     * COLLECT, which no per-test budget covers. Wrapped in `once` (see
+     * `fourth-corner.test.ts`) the same work lands inside whichever rung reads a
+     * fixture first — the same work, in a region that IS budgeted. Measured on a
+     * full run: the slowest rung is now **70 s**, § 6bm.1's borrowed-number rung,
+     * which is 30.3 s alone — a 2.3× load multiplier — and **eight** rungs across
+     * four files sit above 40 s. So the budget covers a band and not one outlier,
+     * and 180 s is 2.6× the measured maximum.
+     *
+     * Global rather than per-rung on purpose. `it()` takes its own timeout and
+     * the surgical fix looks tempting, but WHICH rung constructs a file's
+     * fixtures is a property of rung ORDER: insert a rung that reads a fixture
+     * earlier and the cost moves to it. Hand-placed budgets would have to be
+     * re-derived every time that happens, which is bookkeeping that goes stale
+     * silently. A global budget is invariant to the ordering.
+     *
+     * The same rule as every raise above applies: this is a budget, not a
+     * tolerance, and nothing about the physics moved — the numeric literals in
+     * all five files are identical, and in the same order, before and after.
+     * What is lost is detection speed on a genuine hang, and the 60 s figure was
+     * already not really providing that for a suite whose slowest file runs 80 s.
      */
-    testTimeout: 60_000,
+    testTimeout: 180_000,
   },
 });

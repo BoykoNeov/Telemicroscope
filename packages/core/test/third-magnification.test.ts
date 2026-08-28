@@ -208,18 +208,39 @@ const H2 = matched(TWO, ANCHOR);
  */
 const OUTER = 1.3;
 
-const SURF20 = focusSurface(TWENTY, {
-  ...SWEEP,
-  wavelengthsNm: [430, DESIGN, RED],
-  objectHeightsMm: [0, H20 / 2, H20, OUTER * H20],
-});
-const SURF40 = focusSurface(FORTY, {
-  ...SWEEP,
-  wavelengthsNm: [430, DESIGN, RED],
-  objectHeightsMm: [0, H40 / 2, H40, OUTER * H40],
-});
+/**
+ * Builds on FIRST READ and remembers the answer — `fourth-corner`'s `once`,
+ * same reasoning, same cost of a `()` at every read. `once` evaluates its
+ * argument at most once and every fixture below is a pure function of the lens
+ * and the options, so each rung reads what it read before; what changes is that
+ * a `-t` rerun of one rung no longer pays for the whole file's sweeps first.
+ *
+ * Measured on this file alone: **collect 44.7 s → 0.5 s**, the file's total
+ * 77.2 s → 77.3 s. § 6bl.4's and the colour-ratio `describe` bodies read the
+ * surfaces directly, and a `describe` body runs at COLLECT, so those are
+ * wrapped too — a lazy fixture read from a suite body is not lazy.
+ */
+const once = <T>(make: () => T): (() => T) => {
+  let held: { readonly v: T } | undefined;
+  return () => (held ??= { v: make() }).v;
+};
 
-const CORRECTED_20: TileStageMm = surfaceStage(SURF20);
+const SURF20 = once(() =>
+  focusSurface(TWENTY, {
+    ...SWEEP,
+    wavelengthsNm: [430, DESIGN, RED],
+    objectHeightsMm: [0, H20 / 2, H20, OUTER * H20],
+  })
+);
+const SURF40 = once(() =>
+  focusSurface(FORTY, {
+    ...SWEEP,
+    wavelengthsNm: [430, DESIGN, RED],
+    objectHeightsMm: [0, H40 / 2, H40, OUTER * H40],
+  })
+);
+
+const CORRECTED_20 = once((): TileStageMm => surfaceStage(SURF20()));
 
 /** § 6bk.3's readings on its two lenses, cited — see the header. */
 const RATIO_4 = 2.498656;
@@ -325,8 +346,8 @@ function escaped(
   return 1 - inner / all;
 }
 
-const F20_AXIS = flatsOf(TWENTY, CORRECTED_20, AXIS);
-const F20_EDGE = flatsOf(TWENTY, CORRECTED_20, EDGE);
+const F20_AXIS = once(() => flatsOf(TWENTY, CORRECTED_20(), AXIS));
+const F20_EDGE = once(() => flatsOf(TWENTY, CORRECTED_20(), EDGE));
 
 const spanOf = (xs: readonly number[]): number => Math.max(...xs) - Math.min(...xs);
 
@@ -363,32 +384,35 @@ describe("§ 6bl.1 — the matched ruler ties magnification to field height, and
     // The 20× certifies at the same `maxPlateauDepths: 1` the control passes and
     // the 4×/0.20 and the 2× refuse — so it is a full member of the family and
     // not a forced reading (§ 6bk.8's distinction, and § 6bl.5's).
-    expect(spanOf(SURF20.colourMm)).toBeCloseTo(0.02384236, 7);
-    expect(Math.abs(SURF20.fieldDropMm[0]![2]!)).toBeCloseTo(0.01240811, 7);
-    expect(SURF20.colourMm[0]!).toBeCloseTo(0.02687130, 7);
-    expect(SURF20.interactionMm).toBeCloseTo(1.89219442e-3, 9);
+    expect(spanOf(SURF20().colourMm)).toBeCloseTo(0.02384236, 7);
+    expect(Math.abs(SURF20().fieldDropMm[0]![2]!)).toBeCloseTo(0.01240811, 7);
+    expect(SURF20().colourMm[0]!).toBeCloseTo(0.02687130, 7);
+    expect(SURF20().interactionMm).toBeCloseTo(1.89219442e-3, 9);
   });
 });
 
 describe("§ 6bl.2 — four points, monotone, and never across one", () => {
-  const ratio20 = spanOf(SURF20.colourMm) / Math.abs(SURF20.fieldDropMm[0]![2]!);
-  const ratio40 = spanOf(SURF40.colourMm) / Math.abs(SURF40.fieldDropMm[0]![2]!);
+  // Lazy for the same reason the module's fixtures are: a `describe` body runs
+  // at COLLECT, so reading the two surfaces here forced both sweeps on every run
+  // of this file, rung asked for or not.
+  const ratio20 = once(() => spanOf(SURF20().colourMm) / Math.abs(SURF20().fieldDropMm[0]![2]!));
+  const ratio40 = once(() => spanOf(SURF40().colourMm) / Math.abs(SURF40().fieldDropMm[0]![2]!));
 
   it("colour over field reads 2.499, 2.173, 1.922, 1.808 across a 10× magnification range", () => {
     // § 6be.1 split best focus into a colour term and a field term; § 6bj built a
     // geometry on which of them dominates. § 6bk had two points and could say only
     // that they agreed to 1.15×. Four say the ratio moves, in one direction, and
     // stops short of the thing that would matter.
-    expect(ratio20).toBeCloseTo(1.921514, 5);
-    expect(ratio40).toBeCloseTo(1.807941, 5);
+    expect(ratio20()).toBeCloseTo(1.921514, 5);
+    expect(ratio40()).toBeCloseTo(1.807941, 5);
 
-    const series = [RATIO_4, RATIO_10, ratio20, ratio40];
+    const series = [RATIO_4, RATIO_10, ratio20(), ratio40()];
     for (let i = 1; i < series.length; i++) expect(series[i]!).toBeLessThan(series[i - 1]!);
     // And the step SHRINKS each time — it is flattening, not heading for a crossing.
     // `steps[0]` is arithmetic on two constants cited from § 6bk and pins nothing
     // this file computes; it is written out so the series can be read as a series.
     // `steps[1]` and `steps[2]` each have a measured operand and are real pins.
-    const steps = [1 - RATIO_10 / RATIO_4, 1 - ratio20 / RATIO_10, 1 - ratio40 / ratio20];
+    const steps = [1 - RATIO_10 / RATIO_4, 1 - ratio20() / RATIO_10, 1 - ratio40() / ratio20()];
     expect(steps[0]!).toBeCloseTo(0.13016238, 7);
     expect(steps[1]!).toBeCloseTo(0.11590498, 7);
     expect(steps[2]!).toBeCloseTo(0.05910622, 7);
@@ -399,8 +423,8 @@ describe("§ 6bl.2 — four points, monotone, and never across one", () => {
     // The sentence a caller acts on. A stage scan keeps the colour term and zeroes
     // the field term, so the trade is worth taking wherever colour dominates —
     // and it dominates on every lens this ladder has measured at NA 0.10.
-    for (const r of [RATIO_4, RATIO_10, ratio20, ratio40]) expect(r).toBeGreaterThan(1);
-    expect(Math.min(RATIO_4, RATIO_10, ratio20, ratio40)).toBeGreaterThan(1.5);
+    for (const r of [RATIO_4, RATIO_10, ratio20(), ratio40()]) expect(r).toBeGreaterThan(1);
+    expect(Math.min(RATIO_4, RATIO_10, ratio20(), ratio40())).toBeGreaterThan(1.5);
   });
 
   it("and the residual GROWS with the lever's range — 1.150×, 1.300×, 1.382×", () => {
@@ -409,12 +433,12 @@ describe("§ 6bl.2 — four points, monotone, and never across one", () => {
     // ratio (§ 6bk.3's matched-object-height reading spread 5.13× and straddled
     // one) and it does not collapse it.
     expect(RATIO_4 / RATIO_10).toBeCloseTo(1.149640, 5);
-    expect(RATIO_4 / ratio20).toBeCloseTo(1.30035779, 7);
-    expect(RATIO_4 / ratio40).toBeCloseTo(1.38204525, 7);
-    expect(RATIO_4 / ratio40).toBeGreaterThan(RATIO_4 / ratio20);
-    expect(RATIO_4 / ratio20).toBeGreaterThan(RATIO_4 / RATIO_10);
+    expect(RATIO_4 / ratio20()).toBeCloseTo(1.30035779, 7);
+    expect(RATIO_4 / ratio40()).toBeCloseTo(1.38204525, 7);
+    expect(RATIO_4 / ratio40()).toBeGreaterThan(RATIO_4 / ratio20());
+    expect(RATIO_4 / ratio20()).toBeGreaterThan(RATIO_4 / RATIO_10);
     // Still an order of magnitude tighter than the ruler § 6bk.3 rejected.
-    expect(RATIO_4 / ratio40).toBeLessThan(5.132655 / 2);
+    expect(RATIO_4 / ratio40()).toBeLessThan(5.132655 / 2);
   });
 });
 
@@ -460,13 +484,19 @@ describe("§ 6bl.3 — the mosaic outruns its swept field, and worse the higher 
 });
 
 describe("§ 6bl.4 — three points on one lever, and the registration cost has a shape", () => {
-  const field = mosaicSeamShiftMm(TWENTY, mosaicOptions(CORRECTED_20, { centreMm: EDGE }));
-  const scan = mosaicSeamShiftMm(
-    TWENTY,
-    mosaicOptions(CORRECTED_20, { centreMm: EDGE, scan: "stage" }),
-  );
-  const ratio20 = scan.mm / field.mm;
-  const aniso20 = scan.betweenRowsMm / scan.betweenColumnsMm;
+  // Lazy for the same reason the module's fixtures are: a `describe` body runs
+  // at COLLECT, so reading the corrected stage here forced its focus surface on
+  // every run of this file, rung asked for or not.
+  const seam = once(() => {
+    const field = mosaicSeamShiftMm(TWENTY, mosaicOptions(CORRECTED_20(), { centreMm: EDGE }));
+    const scan = mosaicSeamShiftMm(
+      TWENTY,
+      mosaicOptions(CORRECTED_20(), { centreMm: EDGE, scan: "stage" }),
+    );
+    return { ratio: scan.mm / field.mm, aniso: scan.betweenRowsMm / scan.betweenColumnsMm };
+  });
+  const ratio20 = () => seam().ratio;
+  const aniso20 = () => seam().aniso;
 
   it("§ 6bj's cost is 95.71, 41.78, 21.05 along the lever — 1/M to within 10%", () => {
     // § 6bj explained the cost structurally: a square stage lattice cannot abut a
@@ -481,32 +511,32 @@ describe("§ 6bl.4 — three points on one lever, and the registration cost has 
     // corrected. The stage convention moves where the focus sits and not where a
     // tile LANDS, and the seam shift is a lateral geometry — but the series is
     // stated as § 6bk published it rather than silently re-based.
-    expect(ratio20).toBeCloseTo(21.045983, 4);
+    expect(ratio20()).toBeCloseTo(21.045983, 4);
     // Arithmetic on two constants cited from § 6bk — written out so the lever's
     // first step can be read beside its second, not a pin on anything measured.
     expect(95.712993 / 41.775694).toBeCloseTo(2.291, 2);
     // This one has a measured operand, and is the step this file actually adds.
-    expect(41.775694 / ratio20).toBeCloseTo(1.985, 2);
+    expect(41.775694 / ratio20()).toBeCloseTo(1.985, 2);
 
     // Against the lever's own factors, 2.5 and 2.
     expect(Math.abs(95.712993 / 41.775694 / 2.5 - 1)).toBeLessThan(0.1);
-    expect(Math.abs(41.775694 / ratio20 / 2.0 - 1)).toBeLessThan(0.1);
+    expect(Math.abs(41.775694 / ratio20() / 2.0 - 1)).toBeLessThan(0.1);
     // The residual is a consistent EXCESS and not scatter — it is 1/M plus a bit,
     // at both steps and in the same direction, which is what makes it a law with
     // a stated error rather than three numbers that happen to descend.
-    expect(95.712993 * (4 / 20)).toBeLessThan(ratio20);
+    expect(95.712993 * (4 / 20)).toBeLessThan(ratio20());
     expect(95.712993 * (4 / 10)).toBeLessThan(41.775694);
   });
 
   it("and the anisotropy does the same, 40.75, 16.87, 8.87 — every lens pays more across", () => {
     // The direction is § 6bj's and it travels unchanged; only the size moves, and
     // it moves the same way as the cost itself.
-    expect(aniso20).toBeCloseTo(8.874831, 4);
+    expect(aniso20()).toBeCloseTo(8.874831, 4);
     // Cited-literal arithmetic again, then the measured step.
     expect(40.754313 / 16.868779).toBeCloseTo(2.416, 2);
-    expect(16.868779 / aniso20).toBeCloseTo(1.901, 2);
-    for (const a of [40.754313, 16.868779, aniso20]) expect(a).toBeGreaterThan(1);
-    for (const r of [95.712993, 41.775694, ratio20]) expect(r).toBeGreaterThan(1);
+    expect(16.868779 / aniso20()).toBeCloseTo(1.901, 2);
+    for (const a of [40.754313, 16.868779, aniso20()]) expect(a).toBeGreaterThan(1);
+    for (const r of [95.712993, 41.775694, ratio20()]) expect(r).toBeGreaterThan(1);
   });
 });
 
@@ -572,13 +602,13 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crosses b
     // reading and the two conventions are not the same number (§ 6bk.5's bridge
     // is what says how far apart). Comparing across them would be a 0.2% error
     // inside a 4.6% finding — small, and still the wrong comparison.
-    expect(F20_AXIS.freeGain).toBeCloseTo(0.97220158, 7);
-    expect(F20_AXIS.freeGain).toBeLessThan(1);
-    expect(1.01788 / F20_AXIS.freeGain).toBeCloseTo(1.046985, 5);
+    expect(F20_AXIS().freeGain).toBeCloseTo(0.97220158, 7);
+    expect(F20_AXIS().freeGain).toBeLessThan(1);
+    expect(1.01788 / F20_AXIS().freeGain).toBeCloseTo(1.046985, 5);
 
     // At the edge it still buys nearly everything, as on the control.
-    expect(F20_EDGE.freeGain).toBeCloseTo(193.71560, 4);
-    expect(F20_EDGE.freeGain / F20_AXIS.freeGain).toBeGreaterThan(100);
+    expect(F20_EDGE().freeGain).toBeCloseTo(193.71560, 4);
+    expect(F20_EDGE().freeGain / F20_AXIS().freeGain).toBeGreaterThan(100);
   });
 
   it("and § 6bk.5's 'magnification barely touches the split' holds across 5×, at 1.185×", () => {
@@ -586,14 +616,14 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crosses b
     // aperture's 1195×. Across twice the lever it is 1.185× — still nothing, and
     // now known to be SATURATING rather than merely small: 1.136× over the first
     // 2.5× and 1.043× more over the next 2×.
-    expect(F20_AXIS.rendOverFree).toBeCloseTo(1414.32847, 4);
-    expect(F20_AXIS.rendOverFree / 1193.3645).toBeCloseTo(1.185164, 5);
-    expect(F20_AXIS.rendOverFree / 1355.9474).toBeCloseTo(1.043055, 5);
-    expect(F20_AXIS.rendOverFree / 1193.3645).toBeLessThan(1195.2705 / 10);
+    expect(F20_AXIS().rendOverFree).toBeCloseTo(1414.32847, 4);
+    expect(F20_AXIS().rendOverFree / 1193.3645).toBeCloseTo(1.185164, 5);
+    expect(F20_AXIS().rendOverFree / 1355.9474).toBeCloseTo(1.043055, 5);
+    expect(F20_AXIS().rendOverFree / 1193.3645).toBeLessThan(1195.2705 / 10);
 
     // And at the edge the split is flat outright — the 10× and the 20× agree to 0.2%.
-    expect(F20_EDGE.rendOverFree).toBeCloseTo(1.1363943, 6);
-    expect(Math.abs(F20_EDGE.rendOverFree / 1.1351098 - 1)).toBeLessThan(2e-3);
+    expect(F20_EDGE().rendOverFree).toBeCloseTo(1.1363943, 6);
+    expect(Math.abs(F20_EDGE().rendOverFree / 1.1351098 - 1)).toBeLessThan(2e-3);
   });
 
   it("and § 6bk.6's scanner verdict is never once better on the third lens either", () => {
@@ -601,12 +631,12 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crosses b
     // scanner's repeating per-tile flat field is right for a stage scan and wrong
     // for a field-scanned mosaic, which is a statement about the GEOMETRY and not
     // the glass. Ten measurements over four lenses now, never once below one.
-    expect(F20_AXIS.scannerVsRaw).toBeCloseTo(1.2012641, 6);
-    expect(F20_EDGE.scannerVsRaw).toBeCloseTo(1.0914923, 6);
-    expect(F20_AXIS.scannerVsRaw).toBeGreaterThanOrEqual(1);
-    expect(F20_EDGE.scannerVsRaw).toBeGreaterThanOrEqual(1);
+    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.2012641, 6);
+    expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0914923, 6);
+    expect(F20_AXIS().scannerVsRaw).toBeGreaterThanOrEqual(1);
+    expect(F20_EDGE().scannerVsRaw).toBeGreaterThanOrEqual(1);
     // And still inside § 6bk.6's 1.209× ceiling, which four lenses have not passed.
-    expect(F20_AXIS.scannerVsRaw).toBeLessThan(1.2090451);
+    expect(F20_AXIS().scannerVsRaw).toBeLessThan(1.2090451);
   });
 
   it("and § 6bg's focus correction still helps on the third lens, as on every other", () => {
@@ -615,7 +645,7 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crosses b
     // nearly its best focus already, so it has the least to gain and gains the
     // least — 2.1%. The direction is what travels; the size never has.
     const nominal = escaped(TWENTY, 430, H20, EDGE, 0);
-    const corrected = escaped(TWENTY, 430, H20, EDGE, predictedFocusMm(SURF20, 430, H20));
+    const corrected = escaped(TWENTY, 430, H20, EDGE, predictedFocusMm(SURF20(), 430, H20));
     expect(nominal).toBeCloseTo(0.02255043, 7);
     expect(corrected).toBeCloseTo(0.02209087, 7);
     expect(nominal / corrected).toBeCloseTo(1.020803, 5);
