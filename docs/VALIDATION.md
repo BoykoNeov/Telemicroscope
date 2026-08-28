@@ -121,6 +121,7 @@ whole ladder.
 | [6bj](#step-6bj--the-stage-scanning-mosaic) | The other geometry: a stage scan collapses every field quantity to ONE constant the anchor chooses — focus step exactly 0, free flat field inert — and pays 95.7× the seam registration | `stage-mosaic` |
 | [6bk](#step-6bk--the-second-objective) | The RULER decides: in object mm two lenses disagree which focus term dominates (5.13x, either side of 1), in image radius they agree to 1.15x — and the seed reached one map caller of five | `second-objective` |
 | [6bl](#step-6bl--the-third-magnification) | Colour/field reads 2.499, 2.173, 1.922, 1.808 over 4×–40× — monotone, flattening, never across 1 — registration tracks 1/M to 10%, and a 20× mosaic outruns § 6bk's swept field | `third-magnification` |
+| [6bm](#step-6bm--the-fourth-corner) | The 10×/0.20 builds and its sweep refuses at 1.4413 depths: none of six readouts separates the two levers — 1.017× to 53.65× — and the free field's axial crossing lands on the first step | `fourth-corner` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -21209,10 +21210,15 @@ stated correctly; what none of them could say is how far it reached.
   not a coincidence of two. § 6bk.6's registration cost gained a shape it could
   not have had here — 95.71, 41.78, 21.05 track 1/M — and § 6bk's own fixture
   constant `OUTER = 1.25` turned out not to cover a 20× mosaic.
-- **The aperture lever is pulled at 4× and the magnification lever at NA 0.10**,
-  so the corner of the square — a fast 10× — is not measured and cannot be, this
-  solver's ceiling being 0.20 at every magnification. Whether the two levers
-  interact is therefore open by construction.
+- ~~**The aperture lever is pulled at 4× and the magnification lever at NA
+  0.10.**~~ **Measured at [§ 6bm](#step-6bm--the-fourth-corner)**, and the
+  "cannot be" was wrong — § 6bl caught that and § 6bm built the lens. The levers
+  do **not** separate: not one of six readouts carried through the square comes
+  back at 1, and § 6bk's own sharpest sentence, "magnification barely touches
+  the flat-field split", turns out to be a NA-0.10 sentence that fails 55.4× at
+  the edge of the field. § 6bk.2's separation of λ/NA² survives exactly as
+  measured; what does not survive is the reading that the *response* separates
+  with the unit.
 - **The fast lens has no field correction at all**, so every aperture-lever
   number is at a single axial stage. § 6bk.5's bridge bounds what that costs on
   the control at 0.16%, and nothing bounds it on a lens whose field curve the
@@ -21353,23 +21359,27 @@ a 1/M law with a stated 10% error.
 
 ### Still open
 
-- **The 1/M fit has three points and a residual nobody has explained.** The
-  excess over exact 1/M is about 9% at both steps and in the same direction,
-  which is what makes it a law with an error rather than three descending
-  numbers — but nothing here says what the extra tenth is, and a fourth point on
-  the same lever would cost a 40× mosaic this step deliberately did not build.
-- **Nothing measures the free field's axial crossing.** It is 1.0177× on the
-  control and 0.9722× at 20×, so it passes through 1 somewhere on the lever, and
-  the 10×'s axial gain — the one reading that would locate it — was never taken
-  by § 6bk and is not taken here.
-- **A 10×/0.20 is buildable and unmeasured, and § 6bk overstated this.** § 6bk
-  wrote that the corner of the square "is not measured and cannot be, this
-  solver's ceiling being 0.20 at every magnification" — but a ceiling of 0.20 is
-  a lens *at* 0.20, and § 6bk.8's own rung pins that 0.20 builds at both 4× and
-  10×. What cannot be built is a *fast* 10× at NA 0.25. So the corner is
-  available; what is unknown is whether it certifies a focus sweep, the 4×/0.20
-  having refused at 1.80466 depths. Until it is built, whether the two levers
-  interact stays open — by omission now rather than by construction.
+- **The 1/M fit has three points and a residual nobody has explained.**
+  **Partly answered at [§ 6bm](#step-6bm--the-fourth-corner)**: the residual is
+  not a constant of the readout but moves with the aperture, the same 4×→10×
+  step falling 8.36% short of exact 1/M at NA 0.10 and 17.14% short at NA 0.20.
+  So "about a tenth" is the slow lens's tenth and a caller on a faster lens
+  under-budgets it. What the extra tenth *is* remains unexplained, and § 6bm
+  fits nothing — it has one interval at each aperture.
+- ~~**Nothing measures the free field's axial crossing.**~~ **Measured at
+  [§ 6bm](#step-6bm--the-fourth-corner)**: the 10×'s corrected-stage gain is
+  0.9725286, below 1, so the crossing is on the lever's **first** step, between
+  4× and 10×. Where in that interval is still unlocated, and § 6bm declines the
+  tempting second sentence — the 10× and 20× agree to 3.4e-4, which is inside
+  the 2.6e-4 the stage convention alone is worth on that lens, so "it settles"
+  is a two-point trend inside its own error bars.
+- ~~**A 10×/0.20 is buildable and unmeasured.**~~ **Built at
+  [§ 6bm](#step-6bm--the-fourth-corner)**, and this bullet's own guess was the
+  right one twice over. It builds, and it does **not** certify a focus sweep:
+  it refuses as a plateau 1.4413 depths wide, so both NA 0.20 lenses on this
+  ladder refuse and § 6bj's colour-versus-field trade stays a NA-0.10 family.
+  What the corner did settle is the question the bullet said was open — the two
+  levers interact on every readout, by 1.017× up to 53.65× depending which.
 - **Still nothing on a high-NA objective**, this solver's ceiling being 0.20, and
   **nothing on an infinity-corrected one** — the whole mosaic branch is
   finite-conjugate. Both inherited from § 6bk.
@@ -21386,6 +21396,200 @@ a 1/M law with a stated 10% error.
   one direction**, **nothing anchors a stage scan off a symmetry axis**, and
   **the topography focus map has no caller** — all inherited from § 6bi, § 6bj
   and § 6bk.
+
+## Step 6bm — the fourth corner
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/fourth-corner.test.ts`
+
+§ 6bk pulled two levers off a 4×/0.10 control — magnification to 10×, aperture
+to 0.20 — and read every result off three points, which is an L and not a
+square. It closed by writing that the fourth corner "is not measured and cannot
+be, this solver's ceiling being 0.20 at every magnification". § 6bl corrected
+that sentence — a ceiling of 0.20 is a lens *at* 0.20, and § 6bk.8's own rung
+pins that 0.20 builds at both magnifications — and left the corner unbuilt, so
+**whether the two levers interact stayed open by omission**. This step builds
+it. They interact, on every readout carried through the square, by sizes that
+span a factor of fifty between readouts.
+
+### What a square buys that an L cannot
+
+With three points a lever's effect is one number with nothing to compare it
+against. With four, the aperture lever can be pulled at 4× and again at 10× and
+the two answers divided. That quotient is the whole question: **1 exactly if
+the levers separate, and its distance from 1 is the size of the interaction.**
+It is the same number computed the other way round, down the magnification
+lever, which is an arithmetic identity and is pinned as one — a quotient of
+quotients spanning two test files is exactly the shape a transcription error
+hides in.
+
+| Readout | Rendered? | Interaction |
+| --- | --- | --- |
+| seam anisotropy | no | **1.0166×** |
+| seam registration cost | no | **1.1061×** |
+| flat-field split, on the axis | yes | **1.1343×** |
+| guard-band escape | yes | **1.6826×** |
+| axial plateau width | yes | **1.8326×** |
+| flat-field split, at the edge | yes | **53.650×** |
+
+The two readouts computed with **no render at all** — both off
+`mosaicSeamShiftMm`, a model of the composition and not of the optics — are the
+two smallest. That is stated and it is **not** a mechanism this step isolates:
+1.106 against 1.134 is no gap, and six readouts across one square give one
+interaction number each and no functional form. Nothing here is fitted,
+extrapolated, or called multiplicative.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bm.1 — the corner builds, the ruler barely moves, and every borrowed number reproduces** | a 10×/0.20 builds at magnification −10.0000002, and doubling NA moves the matched object height **0.059% at 4× and 0.052% at 10×** — against § 6bl.1's 20.01× span, so the aperture lever carries no confound | ✅ |
+| | § 6bk's three measured cells come back unchanged — 0.869607, 1.804658, 0.054000, 0.644789, 95.712993, 132.89790, 40.754313, 81.766377, 1355.9474 and § 6bk.3's 2.173425 — which is what licenses every quotient below | ✅ |
+| | and the registration cost is **bitwise identical at three stages a millimetre apart**, `mosaicSeamShiftMm` doing no render — which licenses § 6bl.4's mixed-convention 1/M fit retroactively | ✅ |
+| **§ 6bm.2 — the corner refuses, and the plateau square says the levers interact** | the sweep refuses a plateau **1.4412949** depths wide against the 1 asked for, where its own NA 0.10 sibling is the narrowest of the four at **0.3789813** | ✅ |
+| | aperture costs **2.0753×** at 4× and **3.8031×** at 10× — an interaction of **1.8325811**, identical to 12 digits read down the other lever | ✅ |
+| | and the UNIT separates where the quantity measured in it does not: λ/NA² is the same at both magnifications to 1e-3 (§ 6bk.2), the plateau measured in it 1.83× apart | ✅ |
+| **§ 6bm.3 — the plateau is the lens's, and three artefacts are ruled out** | halving the probe's own axial thickness moves it **0.025%** (and 0.024% on the lens that does not refuse), halving the sweep step **0.041%** | ✅ |
+| | and doubling the rendered frame moves it **bitwise nothing** — `Object.is` on `focusMm`, 6.4e-15 on the plateau — so "defocused light leaves the frame" is not the mechanism, the readout being a peak and not a sum | ✅ |
+| **§ 6bm.4 — six readouts, six interactions, and an ordering that spans fifty** | none of the six separates; the two render-free ones are the two smallest and the largest is **29.275×** the next | ✅ |
+| | § 6bk.4's guard band survives in sign and not in size — twice the aperture leaks **11.941×** more at 4× and **20.092×** at 10× | ✅ |
+| | and § 6bk.5's "magnification barely touches the split" is a NA-0.10 sentence: on the axis the two apertures agree to **1.6e-4**, at the edge magnification moves it **1.032×** at NA 0.10 and **55.383×** at NA 0.20 | ✅ |
+| **§ 6bm.5 — § 6bl.4's residual is the aperture's, and the anisotropy is the cleanest cell** | the corner pays **64.157741×**, and the same 4×→10× step falls **8.355%** short of exact 1/M at NA 0.10 and **17.143%** at NA 0.20 | ✅ |
+| | § 6bj's structural finding holds in all four cells, and the anisotropy comes nearest to separating — the aperture doubles it **2.0063×** and **1.9735×**, agreeing to 1.66% | ✅ |
+| **§ 6bm.6 — the free field's axial crossing is between 4× and 10×** | the 10×'s corrected-stage gain is **0.9725286** against § 6bk.1's 1.01788 — below 1, so the crossing is on the lever's FIRST step | ✅ |
+| | and the convention this could have died on is measured on the same lens — 1.0002571 between axial and corrected, **180× smaller** than the crossing it is compared across, and below 1 in both | ✅ |
+| | what is NOT claimed: 1.01788, 0.9725286, 0.972202 is not "steps down once and settles" — the last gap is 3.4e-4 against a 2.6e-4 convention difference and an unmatched sweep extent | ✅ |
+| | § 6bk.5's aperture role-swap is the CONTROL's: at 10× the fast lens is 281.6× better on the axis **and** 18.5× better at the edge, a ratio of 15.2 where the swap needs 100 | ✅ |
+| | and a scanner's own flat field is never once better on a fourth lens — five more readings, all inside § 6bk.6's 1.2090451 ceiling | ✅ |
+| **§ 6bm.7 — the refusal, and the signature that justified it did not travel** | § 6bk.8's aperture ceiling still binds at 0.25, the corner is under it, and its vertex is threshold-invariant — `Object.is` at cap 2 and at 1e9 | ✅ |
+| | forced through, the corner's field drop is **monotone** where § 6bk.8's fast 4× changed SIGN — but its interaction term is **1.0078×** the field drop it is meant to be noise on, where § 6bl.1's 20× reads 0.152× | ✅ |
+
+### What the square says that the L could not
+
+§ 6bk.2 is the rung this step is in tension with, and the tension is the
+finding. It measured the depth of focus, λ/NA², and found it perfectly
+separable: no magnification in it at all, 1.00074× across a 2.5× change of M
+against 4.00819× across a 2× change of aperture. That is a true statement about
+the **unit**, and § 6bk drew from it that "the two levers are separable".
+
+They are not. The axial plateau **measured in that unit** interacts by 1.833×.
+The separability of a unit does not descend to the quantity expressed in it,
+and no amount of care with the L could have shown that, because the L has no
+cell in which to pull one lever twice.
+
+The same shape appears wherever the square is closed. § 6bk.4's guard band
+keeps its sign — twice the aperture leaks more past a tile's frame, not less,
+which was the finding and the surprise — and loses its size, 11.94× becoming
+20.09×. § 6bk.5's flat-field split keeps its axial verdict almost exactly
+(1.6e-4 between the two apertures on the axis) and loses its edge verdict
+completely.
+
+### The sentence that was right where it was measured
+
+§ 6bk.5's "MAGNIFICATION barely touches it — 1.136× across the 2.5×" is the
+step's most quotable line and the one the fourth corner most damages. On the
+axis it survives. One field position out, at the edge of the swept field,
+magnification moves the same readout **55.38×** once the aperture is doubled —
+fifty times the largest interaction anywhere else in the square.
+
+Nothing was wrong with § 6bk's measurement; what was wrong was the scope of the
+sentence drawn from it. A lever pulled at one setting of another lever
+describes that setting. This is the third time on this branch that a conclusion
+has needed its currency or its corner named — § 6bk.3's ruler, § 6bl.2's lever
+length, and now this — and it is the same failure each time: a reading quoted
+without the condition it was taken under.
+
+### The plateau, and why three sweeps were spent disproving things
+
+A plateau in an axial response is the exact shape a sampling floor makes, and
+the corner's is 15.5 µm against a probe 16 µm thick. Left as an assertion, the
+refusal would be indistinguishable from a fixture artefact, and § 6bk assigned
+its own sweep refusal no cause at all (§ 6bl says so). So three candidates are
+eliminated rather than argued: the probe's own depth (0.025%), the sweep step
+(0.041%), and the rendered frame.
+
+The third was this step's own first guess and it was wrong, which is why it is
+pinned rather than dropped. Defocused light leaving a fixed-pixel-count frame
+would narrow the axial response, and a frame covers less of the slide the
+higher the magnification — so "the plateau is the frame's" predicted exactly
+the sign observed, 37.6 µm at 4× falling to 16.4 µm at 10×. Four times the
+pixels reproduces the plateau **to the last bit**. The readout is a peak, not a
+sum over the frame, and the prediction was of a mechanism the readout cannot
+have.
+
+### Two gifts to earlier rungs, and one bill
+
+**§ 6bl.4's 1/M fit is licensed retroactively.** It quoted a 4× measured at an
+axial stage beside a 10× and a 20× measured at corrected stages — the mixing
+this branch's review has twice caught as a defect. It could not have mattered
+here, and not because the difference is small: `mosaicSeamShiftMm` does no
+render, a tile's geometry being a frame and an offset, and the focus stage
+enters neither. Three stages a millimetre apart give bitwise identical costs.
+
+**§ 6bl's unlocated crossing is bracketed.** The free flat field's axial gain
+is 1.01788 on the control and 0.972202 at 20×, so it passes through 1 somewhere
+and the 10× reading had never been taken. It is 0.9725286 — below 1 — so the
+crossing is on the lever's first step. What the step declines is the obvious
+next sentence: 0.9725286 and 0.972202 differ by 3.4e-4, this file's own
+measurement of the stage convention on that lens is 2.6e-4, and § 6bl's 20×
+surface was swept to `OUTER = 1.30` against the 1.25 used here. A two-point
+trend inside its own error bars is both traps this branch has caught at once,
+so the agreement is pinned as an agreement and nothing is read from it.
+
+**The bill.** § 6bl.4's budget — "95.7× divided by M, plus about a tenth" — is
+the slow lens's tenth. On the same 4×→10× step the departure from exact 1/M is
+8.36% at NA 0.10 and 17.14% at NA 0.20. A caller sizing a guard band on a
+faster lens from § 6bl.4's number under-budgets it. This is one interval at each
+aperture and no law at NA 0.20 is claimed — § 6bl fitted three points and this
+fits none.
+
+### The refusal whose justification did not travel
+
+§ 6bk.8 refused to raise `maxPlateauDepths` for the fast 4× and showed why: at
+cap 2 the field drop **changed sign** between two measured heights, an
+interaction term 22× the control's, "a curve that is not one". The corner does
+not do that. Forced through, its drops are monotone and negative at every
+height.
+
+That is uncomfortable and it is pinned. What the corner does instead is put
+§ 6be's interaction term — meant to be the estimator's noise — at 1.008× the
+field drop it is supposed to be noise on, where § 6bl.1's certified 20× reads
+0.152×. So the refusal is well founded on both lenses and by **different
+signatures**, which means § 6bk.8's justification is a reading about its own
+lens and not a general property of refused sweeps. No number is read off the
+forced surface here; it exists to characterise the refusal.
+
+### Still open
+
+- **The square has one cell per readout and therefore no functional form.**
+  Every interaction above is one number. Whether any of them is a smooth
+  function of either lever needs a third setting of the aperture, which this
+  solver's 0.20 ceiling does not offer, or a third magnification at NA 0.20 —
+  a 20×/0.20, which is buildable and was not built here.
+- **The plateau's mechanism is unnamed.** Three artefacts are eliminated and
+  nothing is put in their place. That the plateau in millimetres falls 2.30×
+  across a 2.5× magnification change at NA 0.10 and only 1.25× at NA 0.20 is
+  measured and unexplained.
+- **The corner has no focus surface**, so everything § 6bk.3 and § 6bl.2 read
+  off a colour-over-field ratio is unavailable at NA 0.20 at any magnification —
+  both fast lenses refuse. § 6bj's colour-versus-field trade is a NA-0.10
+  family, and this step cannot widen it.
+- **Where between 4× and 10× the free field's axial gain crosses 1** is
+  unlocated, and whether it flattens above 10× is below this fixture's
+  resolution.
+- **Still nothing on a high-NA objective**, this solver's ceiling being 0.20,
+  and **nothing on an infinity-corrected one** — inherited from § 6bk and § 6bl.
+- **The seed reaches one radial-map caller of several.** `emitter-spectrum`,
+  `brightfield-spectrum` and `mosaic-spectrum` build their own tables; a 10×
+  brightfield stack is still the next thing likely to refuse, and no step on
+  this branch has touched it.
+- **The blend has no window but the linear ramp**, **nothing corrects the map's
+  share of the flat field analytically**, **the guard band still has no closed
+  form**, **the readout has no fit**, **the seeded table is not the default**,
+  **depth-dependent pupils are not depth-dependent maps**, **the shared-radius
+  economy**, **the weight is still not an absolute throughput**, **the fourth
+  cosine**, **§ 3a's photometric zero point**, **the stage pitch is fitted along
+  one direction**, **nothing anchors a stage scan off a symmetry axis**, and
+  **the topography focus map has no caller** — all inherited from § 6bi, § 6bj,
+  § 6bk and § 6bl.
 
 ## Later rungs
 
