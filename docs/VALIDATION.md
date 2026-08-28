@@ -20307,11 +20307,15 @@ No pinned number moved, and § 6bg.1's two bitwise rungs are why none could have
   point emitter's light past its own frame against a corrected one's 1.87%. So
   "the correction and the composition are separable" is true of the arithmetic
   here and false of the cost. § 6be.8's `halfExtentMm ∝ λ` is closed with it.
-- **Nothing measures the correction on a second objective.** § 6bf.4's whole
-  finding is that the curve is per objective in shape, and every number above is
-  the ladder's 4×/0.10. The correction's *machinery* is objective-independent by
-  construction — it consumes whatever surface it is handed — but the payoff
-  figures are this objective's and are labelled as such.
+- ~~**Nothing measures the correction on a second objective.**~~ **Measured at
+  [§ 6bk](#step-6bk--the-second-objective).** The bullet's own claim survived: the
+  correction's *machinery* is objective-independent by construction — it consumes
+  whatever surface it is handed — and § 6bk.1 pins the 4× control bitwise
+  unchanged. What did not survive is the reading of § 6bg.4's guard band as a
+  λ/NA quantity: the escape is ordered by **aperture**, and the fast lens leaks
+  **11.94× more**, not less. The payoff figures above stay this objective's, and
+  § 6bf.4's per-objective *shape* is now measured on three lenses rather than
+  asserted from one.
 - **The registration cost has no closed form.** § 6bg.6 measures it, eliminates
   the perspective as its cause, and pins the surviving mechanism's field
   dependence at 109× between the axis and 1.0 mm — but the size of an off-axis
@@ -20504,9 +20508,14 @@ without knowing it was in a mosaic.
   coherent limit; the escape measured here is a rendered figure per
   configuration, ordered by a readout but not predicted by a formula. What the
   ordering buys is a *ranking*, not a size.
-- **Nothing measures the mosaic on a second objective**, inherited from § 6bg and
-  § 6bf.4 unchanged, and it bites harder here: the escape figures are the
-  4×/0.10's axial colour, and an apochromat's would be a different table.
+- ~~**Nothing measures the mosaic on a second objective**~~, inherited from § 6bg
+  and § 6bf.4 unchanged. **Measured at
+  [§ 6bk](#step-6bk--the-second-objective)**, which found the bullet had named the
+  wrong variable: the escape figures are the 4×/0.10's axial colour *and* its NA,
+  and the NA is the larger lever. The same ±0.008 mm slab is 0.37 depths of focus
+  deep at NA 0.10 and 1.48 at NA 0.20, and the leak grows 11.94× with it — so an
+  apochromat's would indeed be a different table, but a *faster* lens's is a
+  different table for a reason that has nothing to do with colour.
 - **The registration cost has no closed form**, **the readout has no fit**,
   **the seeded table is not the default**, **depth-dependent pupils are not
   depth-dependent maps**, **the shared-radius economy**, **the weight is still
@@ -20720,13 +20729,21 @@ in `keptPixels − 0`.
   field the rendered calibration catches beyond the free one could in principle be
   computed rather than acquired. What stops it is the paragraph above on blurring:
   the analytic profile is the unblurred one.
+- ~~**Nothing measures any of this on a second objective.**~~ **Measured at
+  [§ 6bk](#step-6bk--the-second-objective)**, and of the four steps on this branch
+  it is *this* one the second lens bounded hardest. The axial
+  rendered-versus-free split above is 1195× at NA 0.10 and **0.999329** at
+  NA 0.20 — on a fast lens the two calibrations coincide — and the free-field seam
+  gain runs the other way, 188.9 against 1.021. So § 6bi.3's verdict that the
+  rendered flat field carries the map's share is an **NA 0.10 statement**, not a
+  statement about flat fields. § 6bi.5's scanner verdict fared better: it travels
+  in *sign* and not in size, all eight readings ≥ 1, spread 1.0000024× to 1.209×.
 - **The guard band still has no closed form on this branch**, **the registration
   cost has no closed form**, **the readout has no fit**, **the seeded table is not
-  the default**, **nothing measures any of this on a second objective**,
-  **depth-dependent pupils are not depth-dependent maps**, **the shared-radius
-  economy**, **the weight is still not an absolute throughput**, **the fourth
-  cosine**, and **§ 3a's photometric zero point** — all inherited from § 6bh and
-  § 6bg.
+  the default**, **depth-dependent pupils are not depth-dependent maps**, **the
+  shared-radius economy**, **the weight is still not an absolute throughput**,
+  **the fourth cosine**, and **§ 3a's photometric zero point** — all inherited
+  from § 6bh and § 6bg.
 
 
 ## Step 6bj — the stage-scanning mosaic
