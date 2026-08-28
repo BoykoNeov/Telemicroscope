@@ -124,6 +124,7 @@ whole ladder.
 | [6bm](#step-6bm--the-fourth-corner) | The 10×/0.20 builds and its sweep refuses at 1.4413 depths: none of six readouts separates the two levers — 1.017× to 53.65× — and the free field's axial crossing lands on the first step | `fourth-corner` |
 | [6bn](#step-6bn--the-second-interval) | A 20×/0.20 gives each interaction a second interval: none of § 6bm's six is a slope — two REVERSE across 1, 53.65× at the edge becomes 1.009× — and the NA ceiling is a 4× reading | `second-interval` |
 | [6bo](#step-6bo--both-levers-were-two-levers) | A frame's field of view goes as M/NA, so both levers moved it too: at a matched field the cost reverses sign on each, § 6bl.4's 95.7/M budget was the frame, and 2 of § 6bn's 6 go with it | `aperture-and-field` |
+| [6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) | § 6bn.6's 2.7e-4 agreement was two frame sizes; matched, the split's interaction is understated 7–16×, the free field's axial one crosses 1, and two readouts refuse | `matched-flat-field` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -21671,7 +21672,7 @@ pair it was measured on.
 | | the fast series 1.804658, 1.4412949, 1.2301647 is monotone with the step shrinking — 1.2521×, 1.1716× — and § 6bl.2's precedent forbids extrapolating it to a crossing, so no magnification is named at which a fast lens would certify | ✅ |
 | | and the slow aperture **SATURATES** where the fast one has not: 2.2946× then 1.0093× at NA 0.10, against 1.2521× then 1.1716× at NA 0.20 — the first constraint this branch puts on § 6bm's unnamed mechanism | ✅ |
 | | and the guard-band escape — a different render, sharing no code path with the sweep — saturates identically: 2.4119× then **1.0196×** at NA 0.10, against 1.4334× then 1.2386× at NA 0.20, so the shape belongs to the lens family and not to either estimator | ✅ |
-| **§ 6bn.3 — six interactions get a second interval, and § 6bm.4's ordering does not survive it** | all six read 1.0063, 1.0086, 1.0233, 1.0417, 1.1609, 1.2148 — none separates, and the set spans **1.207×** where § 6bm's spanned 52.8× — but ~~these are the interactions~~ **two of them are the FIELD's, measured at [§ 6bo.2](#step-6bo--both-levers-were-two-levers)**: at a matched field the cost's 1.0417 becomes 0.7949 (crossing 1) and the anisotropy's 1.0233 becomes a 1.2719 departure, while the plateau's 1.1609 survives to 0.89% | ✅ |
+| **§ 6bn.3 — six interactions get a second interval, and § 6bm.4's ordering does not survive it** | all six read 1.0063, 1.0086, 1.0233, 1.0417, 1.1609, 1.2148 — none separates, and the set spans **1.207×** where § 6bm's spanned 52.8× — but ~~these are the interactions~~ **two of them are the FIELD's, measured at [§ 6bo.2](#step-6bo--both-levers-were-two-levers)**: at a matched field the cost's 1.0417 becomes 0.7949 (crossing 1) and the anisotropy's 1.0233 becomes a 1.2719 departure, while the plateau's 1.1609 survives to 0.89%; and the two SPLITS' 1.0063 and 1.0086 are understated rather than withdrawn — [§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) measures them at 1.0477 and 1.1377, ×7.4 and ×16.3 further from 1, with the sign unchanged | ✅ |
 | | § 6bm.4 asserted with `toBe` that the two render-free readouts were the two smallest; here **both flat-field splits come in below both of them**, the reverse grouping | ✅ |
 | | and § 6bm's own standard is applied to that: 1.0063 against 1.0086 is no gap either, so the claim is the GROUP changing sides and not the order | ✅ |
 | **§ 6bn.4 — two interactions reverse, and the largest one vanishes** | the plateau's is **0.8614284** and the escape's **0.8231651**, both below 1 where § 6bm's were 1.8326 and 1.6826 above it | ✅ |
@@ -21681,7 +21682,7 @@ pair it was measured on.
 | **§ 6bn.5 — the two readouts that continue, and they go opposite ways** | the registration cost's interaction shrinks 1.1061 → **1.0417**, toward separation; the anisotropy's grows 1.0166 → **1.0233**, away from it | ✅ |
 | | so § 6bl.4's "1/M plus about a tenth" is a **low-M tenth**: the 10×→20× step falls 0.751% short of exact 1/M at NA 0.10 and 4.721% at NA 0.20, against § 6bm.5's 8.355% and 17.143% — ~~a residual on a real law~~ **on one [§ 6bo.4](#step-6bo--both-levers-were-two-levers) withdraws** | ✅ |
 | | with the one thing that survives both intervals — the fast lens is always the further from 1/M | ✅ |
-| **§ 6bn.6 — the free field on a fifth and sixth lens, in ONE convention** | the axial free-field gain is **0.9720138** at 20× against § 6bm's axial 0.9722786 at 10× — same convention, agreeing to **2.7e-4**, both below 1 | ✅ |
+| **§ 6bn.6 — the free field on a fifth and sixth lens, in ONE convention** | the axial free-field gain is **0.9720138** at 20× against § 6bm's axial 0.9722786 at 10× — same convention, ~~agreeing to **2.7e-4**~~ **an agreement [§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) withdraws: the 20× frame is HALF the 10× one at that sampling, and held at one field the two disagree by 3.7% to 13.8% — 137× to 510× worse**, both below 1 and, at a matched field, further below it | ✅ |
 | | which retires the caveat § 6bm.6 had to attach: its decline is now about the readout's unmeasured reproducibility alone, not about a convention nobody had measured — and two points are still not a trend | ✅ |
 | | a scanner's own calibration is never once better on a fifth or sixth lens either — four more readings, all above 1 and all inside § 6bk.6's 1.2090451 | ✅ |
 | | and § 6bk.5's aperture role-swap is still the control's: the fast 20× splits axis from edge by **3.2223×** where a swap needs 100, against § 6bm.6's 15.216× | ✅ |
@@ -22010,16 +22011,22 @@ lever, and this file does not attribute it.
 
 ### Still open
 
-- **Nothing rendered has been re-measured at a matched field.** The flat-field
-  split, the free-field gain and the scanner comparison of § 6bk.5, § 6bm.6 and
-  § 6bn.6 are all quoted down the two-lever path. The escape was re-measured and
-  kept its sign while losing 22%; whether the flat-field readouts do the same,
-  or reverse like the geometric ones, is unmeasured and is the obvious next step.
-- **Three of § 6bn's six interactions are still unre-measured**, and they are
-  exactly the rendered flat-field ones. § 6bo.2 settled the other three — two
-  withdrawn, one confirmed — so a matched-field flat field would close § 6bn's
-  headline table rather than leaving it half-corrected. Their status now is
-  *unknown*, which is not the same as surviving.
+- ~~**Nothing rendered has been re-measured at a matched field.**~~ **Measured
+  at [§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field)**, and the answer is a
+  third outcome rather than either of the two on offer here: the split does not
+  reverse and is not untouched — it is **understated**, its interaction ×7.4 and
+  ×16.3 further from 1 at a matched field with the sign unchanged. The
+  free-field gain's axial interaction DOES cross 1. The gain at the edge and the
+  scanner comparison at both positions are **refused**: their spread across
+  matched-field samplings is as large as the effect.
+- ~~**Three of § 6bn's six interactions are still unre-measured**, and they are
+  exactly the rendered flat-field ones.~~ **One is, and the count and the
+  description were both wrong — corrected at [§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field).**
+  Two of the three are the split on the axis and at the edge, and that step
+  closes both. The third is the **guard-band escape**, which is a double-extent
+  volume render and not a flat field at all; forming its matched interaction
+  needs escapes at 10× beside § 6bo's two at 20×, which nothing has built. So
+  one of § 6bn's six is still open, not three.
 - **§ 6bn's FIRST interval cannot be re-measured at all.** Matching the 4× frame
   needs a non-integer `pupilSamples` at every power-of-two frame size, so
   § 6bn's "not one of the six is a slope" is neither confirmed nor refuted here
@@ -22060,6 +22067,148 @@ lever, and this file does not attribute it.
   one direction**, **nothing anchors a stage scan off a symmetry axis**, and
   **the topography focus map has no caller** — all inherited from § 6bi, § 6bj,
   § 6bk, § 6bl, § 6bm and § 6bn.
+
+## Step 6bp — the rendered flat field at a matched field
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/matched-flat-field.test.ts`
+
+§ 6bo established that this branch's two levers each move two things — at a
+fixed `pupilSamples` a tile's field of view goes as **M / NA** — and re-measured
+the render-free readouts at a matched field, where both reversed sign. It could
+not reach the three RENDERED flat-field readouts and closed with that as its
+largest open item. This is that step: § 6bk.5's **split** (the traced flat field's
+span over the free one's), § 6bm.6's and § 6bn.6's **free-field gain**, and
+§ 6bk.6's **scanner comparison**, each on the axis and at the field edge, on the
+four cells (10×, 20×) × (0.10, 0.20), at each lens's axial stage — which is
+§ 6bm's and § 6bn's convention, and § 6bp.1 pins that the branch column
+reproduces their published numbers before anything is compared to it.
+
+### The matched field is a FAMILY, and § 6bo pinned one member of it
+
+`pupilSamples` fixes the field and leaves `size` free — § 6bo.6 separates the two
+— so "at a matched field" names a family of quartets rather than a quartet. Four
+are carried, all at the same field and differing only in pixels per resolution
+cell: **Q128** (every cell at 128), **Q256** (every cell at 256), **Q6BO**
+(§ 6bo's own `CELLS_MATCHED`) and **Q4PX**, the one nobody has built — the only
+member that holds the pixel sampling as well as the field, which needs a 64-pixel
+frame on the slow 20×.
+
+Run § 6bo's own render-free registration cost through all four and its
+interaction reads **0.7948724, 0.7905319, 0.7874644, 0.7687374**: Q6BO reproduces
+§ 6bo.2's published value to the last digit it printed, and the family spans
+**3.4%** around it. So that seven-digit number is its *quartet's* and not the
+matched field's, and a matched-field figure has to carry its pixel sampling as
+well as its field. **The band across the family is this step's instrument**, and
+it is what lets two readouts be refused with a reason instead of left unknown.
+
+### The headline: § 6bn.6's agreement to 2.7e-4 was two frame sizes
+
+§ 6bm.6 read the axial free-field gain at 10× and § 6bn.6 at 20×, in one
+convention, and found **0.9722786 against 0.9720138 — agreeing to 2.7e-4**.
+§ 6bn.6 declined to call two points a trend, which was the right caution about
+the wrong risk: the 20× frame is *half* the 10× one at that sampling, so the two
+readings were taken over fields differing 2:1. Held at one field the 10× cell
+does not move — it **is** the branch's sampling — and the 20× goes to
+**0.9365730** at Q128 or **0.8377884** at Q4PX. The agreement becomes a
+disagreement of 3.7% to 13.8%, between **137× and 510× worse** than published.
+
+What that does not do is overturn the conclusion drawn from it. Both steps used
+the reading to say the free flat field has stopped helping on the axis by 20× and
+started hurting — below 1 — and at a matched field it sits *further* below 1, in
+every member of the family. **The finding strengthens; the number it was quoted
+to seven digits with does not survive.**
+
+| interaction | branch | matched, across the family | verdict |
+| --- | --- | --- | --- |
+| split, axis | 0.993701 | 0.951496 – 0.956497 | departure from 1 grows **×7.4** |
+| split, edge | 0.991476 | 0.877035 – 0.882268 | grows **×16.3** |
+| free gain, axis | 0.234860 | 6.980676 – 8.076977 | **CROSSES 1**, unanimously |
+| free gain, edge | 1.213022 | 0.327525 – 1.014993 | **REFUSED** — straddles 1 |
+| scanner, axis | 0.991687 | 0.224418 – 0.851354 | **REFUSED** — spans 3.79× |
+| scanner, edge | 0.990397 | 0.885293 – 1.040864 | **REFUSED** — straddles 1 |
+
+### A third outcome: understated rather than reversed
+
+§ 6bo found reversals and one survivor. The split is neither. Both columns sit
+below 1, so its interaction does not change sign — what changes is its size, by
+an order of magnitude. § 6bn.3 published these two as **1.0063** and **1.0086**,
+the two smallest of its six and the basis for a grouping claim; at a matched field
+they are **1.0477** and **1.1377**. The family spread is 0.53% on the axis and
+0.60% at the edge against moves of 3.9% and 11.5%, a margin of 7.4× and 19.3×, so
+the move is the field's and not the sampling's. § 6bn.3's grouping — that the two
+render-free readouts changed sides with the two splits — was read off numbers
+that are wrong by 7× and 16× in their distance from 1, and this step does not
+offer a replacement ordering: six readouts across one interval still give one
+number each.
+
+The free-field gain's axial interaction does reverse, and every member of the
+family agrees that it does: **0.2349 becomes between 6.98 and 8.08**. The cell
+carrying it is the fast 10×, whose axial gain falls from **281.595** to **9.709**
+— a factor of 29.0, the largest single matched-field move measured anywhere on
+this branch, against § 6bo's largest of 1.282×. The value is imprecise (the family
+spans 15.7%) and the verdict is not, which is exactly the distinction the refusals
+below turn on.
+
+### Two readouts are refused, and the refusal is a measurement
+
+The free-field gain at the EDGE reads 0.9809, 1.0150, 0.9984 and 0.3275 across the
+family — a span of more than 3× that straddles 1. The scanner comparison spans
+**3.79×** on the axis and straddles 1 at the edge. For all three, which side of 1
+the interaction falls on is a property of the pixel sampling and not of the
+optics, so no verdict is stated. That is not § 6bo's "unknown": the reason is
+measured and the band is published, and the same instrument applied to the split
+says the opposite — which is what makes these refusals about these readouts
+rather than about the method.
+
+### What survives, and the limit now attached to it
+
+§ 6bi found, and § 6bk.6, § 6bm.6 and § 6bn.6 each re-found on new lenses, that a
+real scanner's own per-tile flat field is **never once better** than leaving the
+seam alone. That sign survives the matched field: forty readings — four cells, two
+field positions, the branch and all four conventions — and not one below 1. What
+does not survive is the MARGIN. § 6bk.6 quoted the span as "1.000× to 1.209×" and
+treated it as the lens's; at the edge of the 20×/0.10 the same lens at the same
+field reads **1.0916 down the branch, 1.1736 at Q128 and 1.0000 at Q256**, a
+margin of 4e-5 arriving at nothing but a different pixel count. The warning
+travels and its size is not the optics'.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bp.1 — the branch column reproduces, and the matched field is a family** | nine flat-field numbers from § 6bm and § 6bn come back at their own stage, with § 6bm.7's `0.06447406` vertex; the four cells sit at one field to 12 digits within an aperture and § 6bo.1's 1.55% across; and § 6bo.2's `0.7948724` reproduces at Q6BO while the family spans 3.4% | ✅ |
+| **§ 6bp.2 — only two of the four cells move** | the control and the fast 20× are at the branch's sampling by construction and come back **bitwise** unchanged, so every quotient's whole change is carried by the other two | ✅ |
+| **§ 6bp.3 — the split is understated, not reversed** | both columns below 1; the departure from 1 grows ×7.4 on the axis and ×16.3 at the edge, separating from the family band by 7.4× and 19.3× | ✅ |
+| **§ 6bp.4 — § 6bn.6's 2.7e-4 was two frame sizes** | at one field the two axial gains disagree by 3.7% (Q128) or 13.8% (Q4PX), 137× to 510× worse — and the below-1 conclusion strengthens in all four conventions | ✅ |
+| **§ 6bp.5 — the free-field gain's axial interaction crosses 1** | 0.234860 becomes 6.98 to 8.08, above 1 in every member; the carrying cell falls 281.595 → 9.709, a factor of 29.0 | ✅ |
+| **§ 6bp.6 — two readouts are refused, with their bands** | the edge gain spans >3× and straddles 1, the scanner spans 3.79× on the axis and straddles 1 at the edge; the split's band is under 0.61% and straddles nothing | ✅ |
+| **§ 6bp.7 — the scanner is still never once better, and its margin is sampling** | forty readings above 1, and one lens at one field reading 1.0916, 1.1736 and 1.0000 as the pixel count changes | ✅ |
+| **§ 6bp.8 — what is not closed** | the escape's interaction cannot be formed and is not a flat field; and a 4× frame still wants `pupilSamples` 12.8 | ✅ |
+
+### Still open
+
+- **The guard-band escape's interaction is still unre-measured**, and § 6bo's
+  "Still open" misnames it: it called the three remaining interactions
+  "exactly the rendered flat-field ones", and the escape is a double-extent
+  volume render. Forming its matched quotient needs escapes at 10× to sit beside
+  § 6bo's two at 20×, which this step does not build. One of § 6bn's six is
+  therefore still open, not three.
+- **No verdict on the free-field gain at the edge, or on the scanner comparison
+  at either position.** The bands are published and the reason is measured; what
+  would settle them is a frame large enough that the sampling band falls below
+  the effect, which at Q4PX is already a 256-pixel tile on the fast 10×.
+- **A replacement ordering for § 6bn.3 is not offered.** Two of its six are now
+  known to be understated by 7× and 16× and two more were withdrawn at § 6bo.2,
+  but six readouts across one interval still give one number each and no shape.
+- **Only two cells move**, so no rung here may read a mechanism into which cell a
+  quotient's change came from — and § 6bn's first interval (4×→10×) is still
+  unreachable, matching a 4× frame wanting `pupilSamples` 12.8.
+- **The 1.55% traced-aperture residual is uncorrected**, inherited from § 6bo.1:
+  the two apertures' matched fields differ by that much, and no readout here was
+  sensitive enough for it to matter.
+- **Nothing on an infinity-corrected objective**, **the plateau's mechanism is
+  still unnamed**, **the seed reaches one radial-map caller of several**, **the
+  blend has no window but the linear ramp**, **the guard band still has no closed
+  form** — all inherited from § 6bi through § 6bo.
 
 ## Later rungs
 
