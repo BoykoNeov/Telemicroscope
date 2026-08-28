@@ -43,7 +43,7 @@ import type { OpticalSystem } from "../src/trace/system";
  * is measured twice: once down the branch's own path (`pupilSamples` held, so
  * the field moves with the lever), and once at a MATCHED field (`pupilSamples`
  * moved with the lever, so the field is held — to 1.55% on the aperture lever,
- * to thirteen digits on the magnification one). Four outcomes:
+ * to thirteen digits on the magnification one). The outcomes:
  *
  * | Readout | branch's path | matched field | verdict |
  * | --- | --- | --- | --- |
@@ -67,21 +67,32 @@ import type { OpticalSystem } from "../src/trace/system";
  * 1.2404× from 10× to 20×, where the fitted law has it fall 1.9850×. The 1/M was
  * the field growing as M. § 6bo.4 measures it; the fit is not re-offered here.
  *
- * **What is NOT retracted, and the rung that says so.** § 6bm's and § 6bn's
- * headline numbers are interaction QUOTIENTS — the aperture ratio at a high
- * magnification over the same ratio at a low one. § 6bo.2 measures that each
- * lever's field factor is PURE: the shrink per aperture doubling is
- * `2.031009601158958` at 4×, 10× and 20× alike, and the growth per magnification
- * step is exactly `M_hi / M_lo` at NA 0.10 and 0.20 alike, both to thirteen
- * significant digits, because `halfExtent ∝ M / NA` separates. A confound
- * identical in the numerator and denominator of a quotient cancels in it. That
- * is a narrower statement than "the earlier steps are fine": their interactions
- * are not artefacts of the field changing by DIFFERENT amounts at different
- * settings of the other lever. It does not say a common multiplicative confound
- * leaves a nonlinear readout alone, and the cost's field dependence is violently
- * nonlinear — 68.760, 21.046, 8.202 at one aperture over three fields. It is
- * also exactly why a single-lever LAW like § 6bl.4's does not survive while a
- * quotient of quotients does: only the quotient has something to cancel against.
+ * **The interaction quotients do not escape either, and § 6bo.2 measures which.**
+ * § 6bm's and § 6bn's headline numbers are QUOTIENTS — the aperture ratio at a
+ * high magnification over the same ratio at a low one — and each lever's field
+ * factor turns out to be PURE (the shrink per aperture doubling is
+ * `2.031009601158958` at 4×, 10× and 20× alike; the growth per magnification
+ * step is exactly `M_hi / M_lo` at both apertures), so the confound enters the
+ * numerator and the denominator as the same factor. It is tempting to conclude
+ * that it cancels. **It cancels only if the readout is multiplicatively separable
+ * in (field, lever), and measurement says it is not.** Re-computing § 6bn's own
+ * quotient from four cells at one field:
+ *
+ * | § 6bn's interaction, 10×→20× | branch's way | matched field | |
+ * | --- | --- | --- | --- |
+ * | registration cost | 1.0416581 | **0.7948724** | CROSSES 1 |
+ * | seam anisotropy | 0.9772599 | **0.7862301** | distance from 1 ×11.68 |
+ * | axial plateau | 0.8614283 | 0.8691012 | survives, 0.89% |
+ *
+ * The branch's-way column reproduces § 6bn's pinned `costI`, `anisoI` and
+ * `plateauI` to seven digits, which is what makes the other column comparable.
+ * So two of § 6bn's six interactions are field artefacts — one of them changing
+ * which side of 1 it falls on — and one is not. **The separation is not
+ * arbitrary: the survivor is the readout § 6bo.5 measures to be field-free.**
+ * Purity of the field factor is necessary and not sufficient; what decides an
+ * interaction's fate is whether the READOUT is field-sensitive. § 6bn's other
+ * three interactions are rendered flat-field quantities and are NOT re-measured
+ * here, so their status is unknown rather than confirmed.
  *
  * ## Where the reversal actually lives
  *
@@ -97,6 +108,12 @@ import type { OpticalSystem } from "../src/trace/system";
  * tried (rises 1.3650×, 2.4137×, 1.1270×); `scan.mm` has no consistent
  * direction at a matched field at all. So the ratio's reversal is carried by
  * the field-scanned seam shift, and that is what is claimed.
+ *
+ * § 6bn's first interval (4×→10×) cannot be re-measured this way at all —
+ * matching the 4× frame needs a non-integer `pupilSamples` at every power-of-two
+ * frame size — so § 6bn's "not one of the six is a slope" is neither confirmed
+ * nor refuted here. What is measured is that two of the numbers it compared were
+ * not the quantities it took them for.
  *
  * The magnification lever's matched pairs are the cleaner experiment of the
  * two: `halfExtent ∝ M / NA` with NA held means the sampling can be moved to
@@ -224,8 +241,15 @@ function cost(system: OpticalSystem, size = SIZE, ps = PS): Cost {
 
 /** § 6bk.4's escape readout — § 6bd.8's double-extent method, with the frame's
  *  sampling exposed so it can be taken at a matched field. */
-function escaped(system: OpticalSystem, objectHeightMm: number, focusMm: number, ps = PS): number {
-  const size = (ps / PS) * SIZE;
+function escaped(
+  system: OpticalSystem,
+  objectHeightMm: number,
+  focusMm: number,
+  ps = PS,
+  sizeOverride?: number,
+): number {
+  // `ps` sets the FIELD and `size` the pixels — § 6bo.6 separates the two.
+  const size = sizeOverride ?? (ps / PS) * SIZE;
   const source = labelledVolumeEmitters([
     {
       density: gaussianBallEmitter({
@@ -299,6 +323,40 @@ const MPAIR_SMALL = [cost(TEN, 128, 32), cost(at(0.1), 128, 16)] as const;
 /** § 6bl.4's own path: sampling held, so the field grows in proportion to M. */
 const MCONVENTION = [cost(FOUR, 128, 32), cost(TEN, 128, 32), cost(at(0.1), 128, 32)] as const;
 
+/**
+ * § 6bn's interaction quotient, re-measured at a MATCHED field.
+ *
+ * The four cells (10×, 20×) × (0.10, 0.20) can all be put at one field because
+ * `halfExtent ∝ M / NA` needs only `pupilSamples ∝ M / NA` to cancel: with the
+ * 10×/0.10 cell at 32, the others want 64, 16 and 32. Within each aperture the
+ * two fields then agree to twelve digits; across apertures the 1.55% traced
+ * residual remains.
+ */
+const TEN_FAST = build(10, 0.2);
+const CELLS_BRANCH = {
+  slowLo: cost(TEN, 128, 32),
+  fastLo: cost(TEN_FAST, 128, 32),
+  slowHi: cost(at(0.1), 128, 32),
+  fastHi: cost(at(0.2), 128, 32),
+} as const;
+const CELLS_MATCHED = {
+  slowLo: cost(TEN, 128, 32),
+  fastLo: cost(TEN_FAST, 256, 64),
+  slowHi: cost(at(0.1), 128, 16),
+  fastHi: cost(at(0.2), 128, 32),
+} as const;
+
+/** § 6bm's and § 6bn's quotient, and its distance from 1 in either direction. */
+const interact = (slowLo: number, fastLo: number, slowHi: number, fastHi: number): number =>
+  fastHi / slowHi / (fastLo / slowLo);
+const departure = (x: number): number => (x < 1 ? 1 / x : x);
+
+/** The plateau's four cells, the same two ways. Sweep sampling is 48, not 32. */
+const D_LO_SLOW = renderedBestFocus(TEN, 430, 0, sweep(128, 48)).plateauDepths;
+const D_LO_FAST = renderedBestFocus(TEN_FAST, 430, 0, sweep(128, 48)).plateauDepths;
+const D_LO_FAST_M = renderedBestFocus(TEN_FAST, 430, 0, sweep(256, 96)).plateauDepths;
+const D_HI_SLOW_M = renderedBestFocus(at(0.1), 430, 0, sweep(64, 24)).plateauDepths;
+
 /** The plateau ladder at the sweep's own sampling, then at matched fields. */
 const DEPTHS = LADDER.map(
   (na) => renderedBestFocus(at(na), 430, 0, sweep(SIZE, SWEEP_PS)).plateauDepths,
@@ -323,6 +381,9 @@ const E20_B = escaped(at(0.2), H20, STAGE_B);
 /** The same lens at a MATCHED field: twice the sampling, so the field is held. */
 const E20M_A = escaped(at(0.2), H20, STAGE_A, 64);
 const E20M_B = escaped(at(0.2), H20, STAGE_B, 64);
+/** The branch's FIELD at the matched pair's pixel count, isolating the latter. */
+const E20_A_FINE = escaped(at(0.2), H20, STAGE_A, 32, 256);
+const E10_A_FINE = escaped(at(0.1), H10, STAGE_A, 32, 256);
 
 describe("§ 6bo.1 — the frame's half-extent goes as M / NA, and no step has said so", () => {
   it("the tile's field of view shrinks 2.569× across a 2.5× aperture range", () => {
@@ -372,7 +433,7 @@ describe("§ 6bo.1 — the frame's half-extent goes as M / NA, and no step has s
   });
 });
 
-describe("§ 6bo.2 — each lever's field factor is pure, so it cancels in a quotient", () => {
+describe("§ 6bo.2 — each lever's field factor is pure, and that is NOT enough", () => {
   it("the field shrink per aperture doubling is magnification-free to 13 digits", () => {
     const r4 = extentOf(build(4, 0.1)) / extentOf(build(4, 0.2));
     const r10 = extentOf(build(10, 0.1)) / extentOf(build(10, 0.2));
@@ -382,43 +443,95 @@ describe("§ 6bo.2 — each lever's field factor is pure, so it cancels in a quo
     expect(r10).toBeCloseTo(2.031009601158958, 12);
     expect(r20).toBeCloseTo(2.031009601158958, 12);
 
-    // The spread across three magnifications, which is what has to be ~1 for a
-    // quotient's confound to cancel. `halfExtent ∝ M / NA` puts no M in the ratio.
     const spread = Math.max(r4, r10, r20) / Math.min(r4, r10, r20);
     expect(spread).toBeLessThan(1 + 1e-12);
   });
 
   it("and the field growth per magnification step is aperture-free, likewise", () => {
-    // The mirror image, and the same argument: no NA survives in the ratio.
     const slow = extentOf(at(0.1)) / extentOf(build(10, 0.1));
     const fast = extentOf(at(0.2)) / extentOf(build(10, 0.2));
     expect(slow).toBeCloseTo(2, 12);
     expect(fast).toBeCloseTo(2, 12);
-
-    const slow4 = extentOf(build(10, 0.1)) / extentOf(build(4, 0.1));
-    const fast4 = extentOf(build(10, 0.2)) / extentOf(build(4, 0.2));
-    expect(slow4).toBeCloseTo(2.5, 12);
-    expect(fast4).toBeCloseTo(2.5, 12);
-
-    // So an interaction quotient is protected against BOTH confounds, and a
-    // single-lever law against neither — which is the whole difference between
-    // § 6bm's and § 6bn's surviving numbers and § 6bl.4's budget.
     expect(Math.abs(slow / fast - 1)).toBeLessThan(1e-12);
-    expect(Math.abs(slow4 / fast4 - 1)).toBeLessThan(1e-12);
   });
 
-  it("which is a narrower claim than the earlier steps being unaffected", () => {
-    // What cancels is a confound that is IDENTICAL at both magnifications. It
-    // does not follow that a common multiplicative confound leaves a nonlinear
-    // readout alone, and the cost's field dependence is violently nonlinear:
-    // three fields at ONE aperture span a factor of eight.
-    const small = PAIR_SMALL[0].ratio;
-    const mid = PAIR_MID[0].ratio;
-    const big = PAIR_BIG[0].ratio;
-    expect(small).toBeCloseTo(68.7598964701302, 8);
-    expect(mid).toBeCloseTo(21.04598275534914, 8);
-    expect(big).toBeCloseTo(8.201702356019862, 8);
-    expect(small / big).toBeGreaterThan(8);
+  it("so a quotient's confound is a COMMON factor — which would cancel if the readout separated", () => {
+    // The tempting inference, stated so that the next rung can refute it: the
+    // field ratio is identical in the numerator and the denominator of § 6bm's
+    // and § 6bn's interaction quotient, so it looks like it must cancel.
+    // It cancels only if the readout is multiplicatively separable in
+    // (field, lever), and this one is not: three fields at ONE aperture span a
+    // factor of eight, nowhere near a power law.
+    expect(CELLS_MATCHED.slowHi.ratio).toBeCloseTo(66.49910292400627, 8);
+    expect(PAIR_MID[0].ratio).toBeCloseTo(21.04598275534914, 8);
+    expect(PAIR_BIG[0].ratio).toBeCloseTo(8.201702356019862, 8);
+    expect(CELLS_MATCHED.slowHi.ratio / PAIR_BIG[0].ratio).toBeGreaterThan(8);
+  });
+
+  it("and it does NOT cancel: § 6bn's cost interaction CROSSES 1 at a matched field", () => {
+    // The branch's own four cells first, reproducing § 6bn's pinned costI to
+    // seven digits — which is what makes the matched-field number comparable.
+    const branch = interact(
+      CELLS_BRANCH.slowLo.ratio,
+      CELLS_BRANCH.fastLo.ratio,
+      CELLS_BRANCH.slowHi.ratio,
+      CELLS_BRANCH.fastHi.ratio,
+    );
+    expect(branch).toBeCloseTo(1.0416580962373136, 9);
+    expect(branch).toBeCloseTo(1.0416581, 7); // § 6bn's costI
+
+    const matched = interact(
+      CELLS_MATCHED.slowLo.ratio,
+      CELLS_MATCHED.fastLo.ratio,
+      CELLS_MATCHED.slowHi.ratio,
+      CELLS_MATCHED.fastHi.ratio,
+    );
+    expect(matched).toBeCloseTo(0.7948724057562382, 9);
+
+    // Above 1 the branch's way, below it at a matched field.
+    expect(branch).toBeGreaterThan(1);
+    expect(matched).toBeLessThan(1);
+    expect(departure(matched)).toBeCloseTo(1.2580635492668844, 9);
+  });
+
+  it("and § 6bn's anisotropy interaction grows its distance from 1 by 11.7×", () => {
+    const branch = interact(
+      CELLS_BRANCH.slowLo.aniso,
+      CELLS_BRANCH.fastLo.aniso,
+      CELLS_BRANCH.slowHi.aniso,
+      CELLS_BRANCH.fastHi.aniso,
+    );
+    const matched = interact(
+      CELLS_MATCHED.slowLo.aniso,
+      CELLS_MATCHED.fastLo.aniso,
+      CELLS_MATCHED.slowHi.aniso,
+      CELLS_MATCHED.fastHi.aniso,
+    );
+    expect(branch).toBeCloseTo(0.9772598554401308, 9);
+    expect(departure(branch)).toBeCloseTo(1.0232693, 6); // § 6bn's anisoI
+    expect(matched).toBeCloseTo(0.7862300730210287, 9);
+
+    // No crossing here, but the interaction is not the same quantity either.
+    expect((departure(matched) - 1) / (departure(branch) - 1)).toBeCloseTo(11.684598548101404, 7);
+    expect((departure(matched) - 1) / (departure(branch) - 1)).toBeGreaterThan(11.6);
+  });
+
+  it("while the PLATEAU's interaction survives, to 0.89% — and § 6bo.5 says why", () => {
+    const branch = interact(D_LO_SLOW, D_LO_FAST, DEPTHS[0]!, DEPTHS[4]!);
+    const matched = interact(D_LO_SLOW, D_LO_FAST_M, D_HI_SLOW_M, DEPTHS[4]!);
+
+    expect(branch).toBeCloseTo(0.8614283392781017, 9);
+    expect(branch).toBeCloseTo(0.8614284, 6); // § 6bn's plateauI
+    expect(matched).toBeCloseTo(0.8691011729509641, 9);
+    expect(matched / branch).toBeCloseTo(1.0089071061665935, 8);
+
+    // The separation is not arbitrary: the plateau is the readout § 6bo.5
+    // measures to be field-independent to under 3%, and it is the one whose
+    // interaction survives. Purity of the field FACTOR is necessary; what
+    // decides the outcome is whether the READOUT is field-sensitive.
+    expect(Math.abs(matched / branch - 1)).toBeLessThan(0.01);
+    expect(matched).toBeLessThan(1);
+    expect(branch).toBeLessThan(1);
   });
 });
 
@@ -631,6 +744,17 @@ describe("§ 6bo.6 — the escape keeps its sign and loses a quarter of its size
     expect(E20_B / E10_B).toBeCloseTo(16.472179594752625, 8);
     expect(E20M_B / E10_B).toBeCloseTo(12.875925007744309, 8);
     expect(E20_B / E20M_B).toBeCloseTo(1.2793006781916891, 9);
+  });
+
+  it("and that 1.28× carries a pixel-count term, which is 0.6% and not 28%", () => {
+    // `escaped` derives its frame size from `pupilSamples`, so the matched-field
+    // render has four times the pixels as well as the held field. Isolated —
+    // same field, four times the pixels — the term is under 0.8%, so it is named
+    // rather than left implied, and the inflation is 1.2902× once it is removed.
+    expect(E20_A_FINE / E20_A).toBeCloseTo(1.00614051868777, 9);
+    expect(E10_A_FINE / E10_A).toBeCloseTo(1.0077336276723095, 9);
+    expect(E20_A_FINE / E20M_A).toBeCloseTo(1.2901632321182137, 9);
+    for (const t of [E20_A_FINE / E20_A, E10_A_FINE / E10_A]) expect(Math.abs(t - 1)).toBeLessThan(0.008);
   });
 
   it("but the sign holds — unlike the two render-free readouts", () => {

@@ -123,7 +123,7 @@ whole ladder.
 | [6bl](#step-6bl--the-third-magnification) | Colour/field reads 2.499, 2.173, 1.922, 1.808 over 4×–40× — monotone, flattening, never across 1 — registration tracks 1/M to 10%, and a 20× mosaic outruns § 6bk's swept field | `third-magnification` |
 | [6bm](#step-6bm--the-fourth-corner) | The 10×/0.20 builds and its sweep refuses at 1.4413 depths: none of six readouts separates the two levers — 1.017× to 53.65× — and the free field's axial crossing lands on the first step | `fourth-corner` |
 | [6bn](#step-6bn--the-second-interval) | A 20×/0.20 gives each interaction a second interval: none of § 6bm's six is a slope — two REVERSE across 1, 53.65× at the edge becomes 1.009× — and the NA ceiling is a 4× reading | `second-interval` |
-| [6bo](#step-6bo--both-levers-were-two-levers) | A frame's field of view goes as M/NA, so both levers moved it: at a matched field the cost REVERSES sign on each — § 6bl.4's 95.7/M budget was the frame — and the plateau is field-free | `aperture-and-field` |
+| [6bo](#step-6bo--both-levers-were-two-levers) | A frame's field of view goes as M/NA, so both levers moved it too: at a matched field the cost reverses sign on each, § 6bl.4's 95.7/M budget was the frame, and 2 of § 6bn's 6 go with it | `aperture-and-field` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -21644,6 +21644,16 @@ its first, and **not one of the six is a slope.**
 | axial plateau width | 1.8326× | **1.1609×** | REVERSED |
 | guard-band escape | 1.6826× | **1.2148×** | REVERSED |
 
+**Two of these six numbers are not what this step took them for.**
+[§ 6bo.2](#step-6bo--both-levers-were-two-levers) measures that a tile's field of
+view is ∝ M/NA, so both columns above were read over a frame that moved with the
+lever. Re-computed at a matched field the seam registration cost's interaction
+crosses 1 (1.0417 → 0.7949) and the seam anisotropy's grows its distance from 1
+by 11.68×; the axial plateau's survives to 0.89%, because the plateau is the one
+readout that is field-free. The first interval cannot be re-measured at all — the
+4× frame has no integer sampling that matches — so the "not a slope" conclusion
+below is neither confirmed nor refuted, and two of its six inputs are withdrawn.
+
 The last column is the step. Both reversals **cross 1** — the raw quotients are
 0.86143 and 0.82317 where § 6bm's were 1.83258 and 1.68264 — so the lever that
 amplified the other on the first interval damps it on the second. A quantity
@@ -21661,7 +21671,7 @@ pair it was measured on.
 | | the fast series 1.804658, 1.4412949, 1.2301647 is monotone with the step shrinking — 1.2521×, 1.1716× — and § 6bl.2's precedent forbids extrapolating it to a crossing, so no magnification is named at which a fast lens would certify | ✅ |
 | | and the slow aperture **SATURATES** where the fast one has not: 2.2946× then 1.0093× at NA 0.10, against 1.2521× then 1.1716× at NA 0.20 — the first constraint this branch puts on § 6bm's unnamed mechanism | ✅ |
 | | and the guard-band escape — a different render, sharing no code path with the sweep — saturates identically: 2.4119× then **1.0196×** at NA 0.10, against 1.4334× then 1.2386× at NA 0.20, so the shape belongs to the lens family and not to either estimator | ✅ |
-| **§ 6bn.3 — six interactions get a second interval, and § 6bm.4's ordering does not survive it** | all six read 1.0063, 1.0086, 1.0233, 1.0417, 1.1609, 1.2148 — none separates, and the set spans **1.207×** where § 6bm's spanned 52.8× | ✅ |
+| **§ 6bn.3 — six interactions get a second interval, and § 6bm.4's ordering does not survive it** | all six read 1.0063, 1.0086, 1.0233, 1.0417, 1.1609, 1.2148 — none separates, and the set spans **1.207×** where § 6bm's spanned 52.8× — but ~~these are the interactions~~ **two of them are the FIELD's, measured at [§ 6bo.2](#step-6bo--both-levers-were-two-levers)**: at a matched field the cost's 1.0417 becomes 0.7949 (crossing 1) and the anisotropy's 1.0233 becomes a 1.2719 departure, while the plateau's 1.1609 survives to 0.89% | ✅ |
 | | § 6bm.4 asserted with `toBe` that the two render-free readouts were the two smallest; here **both flat-field splits come in below both of them**, the reverse grouping | ✅ |
 | | and § 6bm's own standard is applied to that: 1.0063 against 1.0086 is no gap either, so the claim is the GROUP changing sides and not the order | ✅ |
 | **§ 6bn.4 — two interactions reverse, and the largest one vanishes** | the plateau's is **0.8614284** and the escape's **0.8231651**, both below 1 where § 6bm's were 1.8326 and 1.6826 above it | ✅ |
@@ -21864,6 +21874,11 @@ where the sampling moves with the lever and the field is held.
 | guard-band escape | rises 17.729× | rises 13.826× | sign holds, 1.282× inflated |
 | axial plateau width | rises 3.2761× | rises 3.1918× | untouched, 2.6% spread |
 
+The same treatment reaches § 6bn's interaction QUOTIENTS, which might have been
+expected to cancel the confound and do not: the cost's crosses 1 (1.0417 →
+0.7949) and the anisotropy's grows its distance from 1 by 11.68×, while the
+plateau's survives to 0.89%. § 6bo.2 has the argument and the measurement.
+
 The value of the step is that it **separates** these rather than issuing one
 retraction. The render-free geometric readouts were measuring the field of view
 and not the lever, on both levers. The rendered guard-band escape keeps its
@@ -21875,9 +21890,12 @@ to a few percent, which is what makes the refusal boundary real optics.
 | **§ 6bo.1 — the frame's half-extent goes as M / NA, and no step has said so** | across seven apertures at 20× it falls 0.9353865752 mm → 0.3640987306 mm, a **2.5690465×** shrink over a 2.5× aperture range, strictly monotone | ✅ |
 | | it is 1/NA only to **2.76%** — `halfExtent · NA` drifts monotonically down the ladder, the residual being that the TRACED aperture is not the design NA | ✅ |
 | | and the other half: the field GROWS with magnification in exact proportion, 0.18707732 / 0.46769329 / 0.93538658 at 4×, 10× and 20×, ratios `toBeCloseTo` 2.5 and 2 at 12 digits | ✅ |
-| **§ 6bo.2 — each lever's field factor is pure, so it cancels in a quotient** | the shrink per aperture doubling is **2.031009601158958** at 4×, 10× and 20× alike — a spread under 1e-12, because `halfExtent ∝ M / NA` leaves no M in the ratio | ✅ |
-| | and the growth per magnification step is exactly `M_hi / M_lo` at NA 0.10 and at NA 0.20 alike, likewise under 1e-12 | ✅ |
-| | so § 6bm's and § 6bn's interaction QUOTIENTS are not artefacts of the field moving by different amounts at different settings of the other lever — a narrower claim than "unaffected", since the cost's own field dependence is violently nonlinear: 68.760, 21.046, 8.202 at ONE aperture over three fields | ✅ |
+| **§ 6bo.2 — each lever's field factor is pure, and that is NOT enough** | the shrink per aperture doubling is **2.031009601158958** at 4×, 10× and 20× alike — a spread under 1e-12, because `halfExtent ∝ M / NA` leaves no M in the ratio | ✅ |
+| | and the growth per magnification step is exactly `M_hi / M_lo` at NA 0.10 and at NA 0.20 alike, likewise under 1e-12 — so the confound enters an interaction quotient's numerator and denominator as the SAME factor, which would cancel if the readout were multiplicatively separable in (field, lever) | ✅ |
+| | it is not separable — three fields at ONE aperture give 66.499, 21.046, 8.202, nowhere near a power law — and the quotient duly fails to cancel: § 6bn's cost interaction is **1.0416581** the branch's way and **0.7948724** at a matched field, **CROSSING 1** | ✅ |
+| | § 6bn's anisotropy interaction likewise: 0.9772599 → 0.7862301, its distance from 1 growing **11.6846×** without crossing | ✅ |
+| | while § 6bn's PLATEAU interaction survives — 0.8614283 → **0.8691012**, a move of 0.89% — and the separation is not arbitrary: the survivor is the one readout § 6bo.5 measures to be field-free | ✅ |
+| | with all three branch's-way values reproducing § 6bn's pinned `costI`, `anisoI` and `plateauI` to seven digits, which is what makes the matched column comparable | ✅ |
 | **§ 6bo.3 — at a matched field the cost's APERTURE dependence reverses** | doubling the sampling with the aperture holds the field to **1.55%**, the same residual at all three field sizes to 12 digits | ✅ |
 | | the branch's path has the cost RISE **1.5997444×**; at a matched field it FALLS, at every one of three fields — **0.6500119×**, **0.4896487×**, **0.7135977×** | ✅ |
 | | the anisotropy reverses with it: **1.9285987×** up against 0.8730020×, 0.6609140×, 0.9513059× | ✅ |
@@ -21893,6 +21911,7 @@ to a few percent, which is what makes the refusal boundary real optics.
 | | so the aperture's rise survives however the field is handled: 3.2760781×, 3.1917581×, 3.2401335× — a 2.64% spread, against a readout whose SIGN flipped under the same treatment | ✅ |
 | **§ 6bo.6 — the escape keeps its sign and loses a quarter of its size** | the branch's path overstates the aperture's effect by **1.2822893×** at one stage and 1.2793007× at another — 17.7285955× and 16.4721796× against matched-field 13.8257376× and 12.8759250× | ✅ |
 | | but the sign holds at all four readings, unlike the two render-free readouts — which is the point of measuring three families rather than one | ✅ |
+| | and that 1.28× carries a pixel-count term, because `escaped` derives its frame size from `pupilSamples` — isolated at a HELD field it is **1.0061405×** and **1.0077336×**, under 0.8%, so the inflation is **1.2901632×** once removed rather than 28% of something unseparated | ✅ |
 | | and the readout's own stage sensitivity is smaller than either: two stages a sweep step apart move the slow lens 0.41% and the fast one 6.7%, the first bound on a convention § 6bk.4, § 6bm and § 6bn all use | ✅ |
 | **§ 6bo.7 — two opposing dependences must produce a turn, and they do** | along the branch's own path the cost rises to NA **0.22** and then falls, 34.1994439 → 33.2308227 | ✅ |
 | | the turn is not the sampling: at twice the pixels over the same field it is still at 0.22, and the fall is the same fraction — **1.0291483×** against **1.0291124×** | ✅ |
@@ -21908,14 +21927,37 @@ matched ruler fixes **where** the readout is taken; the field of view fixes **ho
 much** is inside the frame it is taken from, and nothing on this branch had
 measured the second. A confound can be small in one and 2.03× in the other.
 
-The distinction is why § 6bo.2 is the load-bearing rung rather than a formality.
-Each lever's field factor turns out to be *pure* — the aperture's is the same at
-every magnification, the magnification's is the same at every aperture, both to
-thirteen digits — so a quotient of quotients cancels it and a single-lever law
-does not. That is the whole difference between § 6bm's and § 6bn's headline
-numbers, which survive, and § 6bl.4's budget, which does not. It is not a general
-licence: a common multiplicative confound does not leave a nonlinear readout
-alone, and this one is measured to be violently nonlinear.
+The distinction is why § 6bo.2 is the load-bearing rung rather than a formality
+— and why it ends where it does. Each lever's field factor is *pure*: the
+aperture's is the same at every magnification and the magnification's is the same
+at every aperture, both to thirteen digits, so the confound enters an interaction
+quotient's numerator and denominator as one and the same factor. **The obvious
+inference from that is wrong.** A common factor cancels only if the readout is
+multiplicatively separable in (field, lever), and this one is not — three fields
+at one aperture give 66.499, 21.046 and 8.202, which is nowhere near a power law.
+
+So § 6bo.2 measures the quotient rather than arguing about it, by putting all
+four of § 6bn's cells at one field:
+
+| § 6bn's interaction, 10×→20× | branch's way | matched field | |
+| --- | --- | --- | --- |
+| registration cost | 1.0416581 | **0.7948724** | CROSSES 1 |
+| seam anisotropy | 0.9772599 | **0.7862301** | distance from 1 ×11.68 |
+| axial plateau | 0.8614283 | 0.8691012 | survives, 0.89% |
+
+Two of § 6bn's six interactions are field artefacts, one of them changing which
+side of 1 it falls on; one is not. **The separation is not arbitrary — the
+survivor is the readout § 6bo.5 independently measures to be field-free.** So
+purity of the field factor is necessary and not sufficient, and what decides an
+interaction's fate is whether the READOUT is field-sensitive. § 6bn's remaining
+three interactions are rendered flat-field quantities, not re-measured here;
+their status is unknown rather than confirmed.
+
+§ 6bn's *first* interval, 4×→10×, cannot be re-measured this way at all —
+matching the 4× frame needs a non-integer `pupilSamples` at every power-of-two
+frame size — so § 6bn's "not one of the six is a slope" is neither confirmed nor
+refuted. What is established is that two of the numbers it compared were not the
+quantities it took them for.
 
 ### The bill § 6bl.4 sent, withdrawn
 
@@ -21973,6 +22015,17 @@ lever, and this file does not attribute it.
   § 6bn.6 are all quoted down the two-lever path. The escape was re-measured and
   kept its sign while losing 22%; whether the flat-field readouts do the same,
   or reverse like the geometric ones, is unmeasured and is the obvious next step.
+- **Three of § 6bn's six interactions are still unre-measured**, and they are
+  exactly the rendered flat-field ones. § 6bo.2 settled the other three — two
+  withdrawn, one confirmed — so a matched-field flat field would close § 6bn's
+  headline table rather than leaving it half-corrected. Their status now is
+  *unknown*, which is not the same as surviving.
+- **§ 6bn's FIRST interval cannot be re-measured at all.** Matching the 4× frame
+  needs a non-integer `pupilSamples` at every power-of-two frame size, so
+  § 6bn's "not one of the six is a slope" is neither confirmed nor refuted here
+  — two of its inputs are withdrawn and the comparison cannot be redone. A frame
+  size that is not a power of two, or a sampling that is not an integer, would
+  be an engine change and is not attempted.
 - **The aperture pairs carry a 1.55% field residual** that the magnification
   pairs do not, because the traced aperture drifts 2.76% from the design NA
   across the ladder. Nothing here corrects for it, and no readout was sensitive
