@@ -3,6 +3,8 @@ import {
   fluorescenceMosaicGeometry,
   renderFluorescenceMosaic,
   composeTileScalars,
+  composeTileFrame,
+  keptSpanOf,
   type FluorescenceMosaic,
   type FluorescenceMosaicGeometry,
   type FluorescenceMosaicOptions,
@@ -102,8 +104,32 @@ import type { SpectralVolumeEmitterDensity } from "./spectral-volume";
  * It qualifies § 6bg's prose rather than retracting it: "a stage racked between
  * tiles" is exactly a scanner's focus map, same corrector, one scalar stage per
  * tile. What differs is what drives it — field curvature here, specimen
- * topography and stage flatness there. A stage-scanning mosaic is a different
- * geometry and is left open.
+ * topography and stage flatness there.
+ *
+ * ## § 6bj — the other geometry, where every verdict above is reversed
+ *
+ * `scan: "stage"` builds the mosaic this section says is not being built, and
+ * the three functions below keep their code and swap their conclusions:
+ *
+ * - `throughputFlatField` goes **identically 1**. It is one scalar per tile off
+ *   `patchThroughput`, and a stage scan images every tile through the *same*
+ *   pupil, so every tile's scalar is the same number and normalising to unit
+ *   mean leaves 1 everywhere. The free field was 85% of the correction in
+ *   § 6bi.3; here it is 0% of it, and a blank slide stops being the expensive
+ *   option and becomes the only one.
+ * - `scannerFlatField` — the per-tile repeating frame that made § 6bi's mosaic
+ *   **11% worse** — becomes exact, and § 6bj.4 pins it *bitwise* against
+ *   `renderedFlatField` on the same blank, because a picture whose tiles are all
+ *   the same picture is a repeating frame by construction.
+ * - what is left to correct is the rasterizer's own Jacobian, and a stage scan
+ *   makes it *periodic*: § 6bi's mosaic samples one global even profile, this
+ *   one stamps the anchor tile's profile at every tile, so the seam carries the
+ *   whole within-tile span instead of the between-tile difference.
+ *
+ * The pattern is one sentence and it is the step's: a field scan spreads a
+ * field-dependent quantity across the picture, a stage scan collapses it to one
+ * constant chosen by the anchor. A correction built for a gradient is useless on
+ * a constant, and a correction built for a repeat is harmful on a gradient.
  */
 
 /** How a flat field was obtained — the two have different exactness (§ 6bi.4). */
@@ -225,6 +251,52 @@ export function throughputFlatField(mosaic: FluorescenceMosaic): MosaicFlatField
     }),
   );
   return normalise(planes, mosaic.composed.planes.map((p) => p.nm), "throughput");
+}
+
+/**
+ * The scanner's calibration: **one** tile's frame, repeated in every tile.
+ *
+ * What a real slide scanner acquires. It holds the optics still and moves the
+ * stage, so the vignetting, the Jacobian and everything else multiplicative
+ * repeat identically in every tile, and one blank frame divides the whole
+ * mosaic. Composed through `composeTileFrame`, so under an overlap the
+ * correction is ramped by the same weights the picture was.
+ *
+ * **Its verdict is the geometry's, not the function's**, which is why it is one
+ * function and not two:
+ *
+ * - under `scan: "stage"` it is exact, and § 6bj.4 pins it *bitwise* equal to
+ *   `renderedFlatField` on the same blank — the tiles really are one picture;
+ * - under `scan: "field"` it is **harmful**: the profile there is one global
+ *   even function of absolute field radius, so repeating one tile's frame
+ *   carries no between-tile information and stamps the chosen tile's own profile
+ *   on every tile. § 6bi.4 measures it making the seam 11.0% worse.
+ *
+ * `tileIndex` defaults to the middle tile of the grid, which is the anchor tile
+ * for an odd count and merely a tile next to it for an even one — under a stage
+ * scan every tile is the same picture, so the choice does not matter, and under
+ * a field scan it is the choice this function exists to warn about.
+ */
+export function scannerFlatField(mosaic: FluorescenceMosaic, tileIndex?: number): MosaicFlatField {
+  const { geometry, tiles } = mosaic;
+  const n = geometry.tilesPerAxis;
+  const middle = Math.floor(n / 2) * n + Math.floor(n / 2);
+  const index = tileIndex ?? middle;
+  if (!Number.isInteger(index) || index < 0 || index >= tiles.length) {
+    throw new Error(
+      `scannerFlatField: tile ${index} is not one of the ${tiles.length} tiles — a scanner's ` +
+        `calibration is one frame this mosaic actually acquired`,
+    );
+  }
+  const tile = tiles[index]!;
+  const planes = mosaic.composed.planes.map((_, p) =>
+    composeTileFrame(geometry, keptSpanOf(geometry, tile.volume.planes[p]!)),
+  );
+  return normalise(
+    planes,
+    mosaic.composed.planes.map((q) => q.nm),
+    "rendered",
+  );
 }
 
 /**

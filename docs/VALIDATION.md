@@ -118,6 +118,7 @@ whole ladder.
 | [6bg](#step-6bg--the-correction-applied) | The correction applied — a stage per channel and per tile: 5.88× the peak on the axis, 39.0% more at the edge, and `inFocusFraction` INVERTS, reading zero on the sharpest render | `focus-correction` |
 | [6bh](#step-6bh--the-fluorescence-mosaic) | The tiles composed — and the guard band is the CORRECTION's business: a nominal blue tile leaks 9.82% of a point's light past its own frame, a corrected one 1.87%, and 0.24 mm of specimen adds 0.26 | `fluorescence-mosaic` |
 | [6bi](#step-6bi--the-flat-field-and-the-blend) | The seam's biggest artifact is a brightness STAIRCASE § 6bh never measured — 5.29e-3 at 1 mm of field, 2783× the axis — and a scanner's per-tile flat field makes it 11% WORSE | `mosaic-flat-field` |
+| [6bj](#step-6bj--the-stage-scanning-mosaic) | The other geometry: a stage scan collapses every field quantity to ONE constant the anchor chooses — focus step exactly 0, free flat field inert — and pays 95.7× the seam registration | `stage-mosaic` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -20698,12 +20699,17 @@ in `keptPixels − 0`.
 
 ### Still open
 
-- **A stage-scanning mosaic.** The whole of § 6bi.4's second rung is about a
-  geometry this engine does not have: optics fixed, specimen translated, one part
-  of the field re-used for every tile. Under it the per-tile focus correction
-  would not be field curvature's at all — every tile centre would be the same
-  field height — and the flat field would be the per-tile frame a scanner really
-  calibrates. Both branches are physical and this engine builds one of them.
+- ~~**A stage-scanning mosaic.**~~ **Built at
+  [§ 6bj](#step-6bj--the-stage-scanning-mosaic)**, and both predictions in this
+  bullet were right — the per-tile focus correction is not field curvature's
+  (every tile asks for the same stage, `Object.is`-equal) and the flat field is
+  the per-tile frame a scanner really calibrates (bitwise the mosaic-wide one).
+  What the bullet did not predict is that the *free* field goes inert with them:
+  one pupil forms every tile, so `throughputFlatField` — 85% of the correction
+  here — is constant and buys nothing, and a blank slide stops being the
+  expensive option and becomes the only one. Nor did it price the trade: a stage
+  scan pays **95.7×** this mosaic's seam registration, because a square stage
+  lattice cannot abut a radial map in both directions at once.
 - **The blend has no window but the linear ramp.** A raised cosine is the usual
   choice and would be a partition of unity too; nothing here measures whether the
   kink at a band's edge is worth removing, and § 6bi.5's closed form is the linear
@@ -20720,6 +20726,238 @@ in `keptPixels − 0`.
   economy**, **the weight is still not an absolute throughput**, **the fourth
   cosine**, and **§ 3a's photometric zero point** — all inherited from § 6bh and
   § 6bg.
+
+
+## Step 6bj — the stage-scanning mosaic
+
+Source: `packages/core/src/imaging/fluorescence-mosaic.ts`,
+`packages/core/src/imaging/focus-tiles.ts`,
+`packages/core/src/imaging/mosaic-flat-field.ts` ·
+Tests: `packages/core/test/stage-mosaic.test.ts`
+
+§ 6bi's "Still open" list opens with this step: "the whole of § 6bi.4's second
+rung is about a geometry this engine does not have — optics fixed, specimen
+translated, one part of the field re-used for every tile. Both branches are
+physical and this engine builds one of them." It builds both now. `scan: "stage"`
+holds the tile at the anchor and moves the **slide**; `scan: "field"` is § 6bh's
+mosaic, is the default, and is unchanged bit for bit by the option existing.
+
+**They are opposites and not variants, and one sentence generates every rung
+below: a field scan spreads a field-dependent quantity across the picture as a
+gradient, and a stage scan collapses it to one constant chosen by the anchor.**
+Uniform is not the same as good. On the axis the constant a stage scan picks is
+the best value available anywhere in the mosaic; at the edge of the field it is a
+mediocre one applied everywhere, and nothing in the acquisition can improve it,
+because the anchor is the entire choice.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bj.1 — a field scan is § 6bi's mosaic, bit for bit** | `Object.is` on every pixel of the composed picture and of all nine tiles, with the option absent against `scan: "field"` written out | ✅ |
+| | and the specimen never moves, so the nine offsets are ONE shared object and the renderer hands `focusCorrectedTiles` the caller's own density by reference — `-0 + 0` is `+0`, so a wrapper adding zero is not the identity | ✅ |
+| **§ 6bj.2 — the stage pitch is the MAP's and not the ruler's** | `pitchPixels · objectPixelScaleMm` is a magnification; the traced object span across one pitch departs from it by **1.05e-6 on the axis and 5.130e-3 at 1 mm of field — 4879×** | ✅ |
+| | which is **0.4822 px per tile step**, so a three-tile mosaic laid out on the linear ruler ends a whole pixel out | ✅ |
+| | and **the slide really moves, in that direction and by that amount**: two balls one stage pitch apart on the slide land one PITCH apart in the picture, in tiles 1 and 2 and not 1 and 0 — the only rung here a dropped, mirrored or axis-swapped translation would fail | ✅ |
+| | and a one-tile stage scan is the plain render bitwise — its offset is exactly `{0, 0}`, as is the centre tile's of any odd mosaic | ✅ |
+| **§ 6bj.3 — the correction's FIELD term is gone and its COLOUR term is not** | the nine tiles' stages are `Object.is`-equal at 0.14544105218573664 mm, which is the field scan's own centre tile's, so the span is exactly 0 | ✅ |
+| | against a field scan racking 1.3583e-2 mm across the same nine tiles, whose outer seam step **reproduces § 6bh.5's 6.8737e-3 mm** and whose inner one is 5% smaller — a curve sampled, not a slope | ✅ |
+| | and it is a FIELD quantity: on the axis the same field scan racks **37.78× less** and the stage scan is exactly 0 there too | ✅ |
+| | what survives is § 6be.1's other term — `stageSpreadMm` 0.16654575766951885 mm of pure axial colour against the field scan's 0.18008961951932861, **1.0813×**, and `exposures` still 27 | ✅ |
+| **§ 6bj.4 — the flat field inverts: the free one goes flat, the scanner's becomes exact** | one pupil forms every tile, so the nine `patchThroughput` scalars are `Object.is`-equal, `throughputFlatField`'s span is **exactly 0** and its planes are 1 to 1.9e-12 — the mean's own summation error | ✅ |
+| | so dividing by it moves the seam by **6.6e-13 of itself**, where § 6bi.4's same division took 121× off a field scan's | ✅ |
+| | and `scannerFlatField` — the per-tile repeating frame that made § 6bi's mosaic 11.0% WORSE — is `Object.is`-equal to `renderedFlatField` here, and takes the seam to exactly 0 | ✅ |
+| | **and it is literally the same array in both geometries**: a field scan's scanner calibration is bitwise the stage scan's true one, so the verdict belongs to the geometry and not to the picture | ✅ |
+| | what is left is the map and not the glass: seam 6.9685e-4 against a field scan's 5.2943e-3, **7.597×**, and 10.07× on the axis | ✅ |
+| **§ 6bj.5 — the distortion becomes a SEAM, and it is anisotropic** | on the axis the two geometries are indistinguishable — 1.32e-4 px against 1.02e-4 — and both are isotropic to ten digits, the map being even there | ✅ |
+| | at 1 mm of field a field scan still abuts to 3.4370e-3 px and a stage scan is **0.32896 px out — 95.71×** | ✅ |
+| | and the disagreement is in the direction the pitch was not fitted to: **40.75×** more between rows than between columns, against a field scan's 1.399 | ✅ |
+| **§ 6bj.6 — the aberration is the anchor's, everywhere** | every tile reports `maxGridPhaseStepWaves` 0.3894777319272653, `Object.is`-equal to the field scan's centre tile's | ✅ |
+| | and uniform is not good: at the edge that constant is **1.85% worse than the field scan's best tile and 3.53% better than its worst**, while on the axis it IS the best tile — the anchor is the whole choice | ✅ |
+| **§ 6bj.7 — the economy a field scan could not have** | one field position is one frame: the nine tiles' `pixelScaleMm`, `halfExtentMm`, `centreObjectMm` and `patchThroughput` are `Object.is`-equal, where a field scan's differ by § 6m.4's ppm drift | ✅ |
+| **§ 6bj.8 — the refusals** | a scan that is neither geometry, the field scan's pitch drift asked of a stage scan, a seam shift with no seam or a probe line with no ends, offsets that do not match the centres, a calibration frame that is not a kept span, and a tile index that is not a tile | ✅ |
+
+### The one sentence, and why every rung below is it
+
+A field scan walks `centresMm` across the image plane, so tile k is formed at
+field radius r_k and every field-dependent quantity on this branch — the stage
+field curvature asks for, what the pupil transmits, how far the response reaches
+past a tile's own frame — takes a different value in each tile. A stage scan
+holds `centresMm` at the anchor and translates the specimen instead, so all of
+them take the *same* value: the anchor's.
+
+That is the whole step. The focus correction has nothing to correct because
+every tile is at one field height; the free flat field buys nothing because
+every tile is one pupil; the escape is the same in every tile because it is one
+kernel. Each is the same collapse read on a different quantity, and each is
+pinned separately because "the same collapse" is a claim about the engine and
+not an argument that can be asserted.
+
+**And one rung is not that sentence at all, which is why it is the important
+one.** Every collapse above is measured on a *uniform* specimen, because that is
+what makes a seam visible — and a uniform density is translation-invariant, so
+none of those rungs can tell a stage that moves the slide from one that does not
+move it, moves it backwards, or moves it along the wrong axis. § 6bj.2's third
+rung is the one that can: two emitters exactly one stage pitch apart on the slide
+must land one *pitch* apart in the picture, in tiles 1 and 2 and not in 1 and 0.
+`ObjectFieldFrame.centreObjectMm` already carries the warning this is guarding
+against, from a module below — "a mosaic mirrored about the axis, with every rung
+in § 6m still green" — and a step whose own prose cites § 6l's "an identity a
+caller can get wrong silently is refused, not documented" cannot leave its
+central convention to a comment.
+
+**And a constant is not automatically a good constant.** § 6bj.6 is the rung
+that says so out loud: at 1 mm of field the uniform `maxGridPhaseStepWaves` a
+stage scan delivers is 1.85% worse than the best tile a field scan has and 3.53%
+better than its worst, so what the geometry buys is *predictability*, and the
+quality is set by where the anchor was put. On the axis the same collapse is a
+gain everywhere, because there the anchor is the best position there is.
+
+### The pitch is a map, and the linear ruler is half a pixel out per tile
+
+A stage travel is an object-plane distance and the picture is laid out in image
+pixels, so something has to convert between them, and there are two candidates.
+`objectPixelScaleMm` is `pixelScaleMm / |M|` — a magnification, and the frame
+documents itself as "a useful ruler for sizing structure, not a map". The other
+is the traced chief-ray map, and what has to abut is the object distance between
+the object points the kept span's own two ends look at.
+
+They differ by the anchor's own distortion, and the difference is not academic:
+1.05 ppm on the axis and **0.513% at 1 mm of field**, a factor of 4879. In the
+units a stitching error is read in, that is 0.4822 px per tile step — so a
+three-tile mosaic laid out on the linear ruler finishes about a pixel out, and a
+larger one finishes proportionally worse. `stagePitchMm` is the traced one.
+
+This is § 6l's lesson arriving for the third time: the expensive part of a step
+is a *convention* rather than a formula, and a convention a caller can get wrong
+silently gets a name and a refusal rather than a paragraph.
+
+### The correction's field term is gone; its colour term is untouched
+
+§ 6be.1 measured best focus separating into a colour curve plus a field curve
+with an interaction under the estimator's floor. § 6bj is that separation cashed
+out as a choice of instrument: **the two acquisition geometries are the two
+terms, and choosing one chooses which of them a stage can reach.**
+
+Under a stage scan the nine tiles' stages are `Object.is`-equal — not close,
+equal — so § 6bh.5's seam focus step is exactly zero and § 6bg's per-tile
+correction has nothing left to do. The field scan's own spread over the same
+nine tiles is 1.3583e-2 mm, and its outer seam step reproduces § 6bh.5's
+6.8737e-3 mm exactly while its inner one is 5% smaller: the focus surface is
+curved across a tile, so a mosaic's steps sample a curve rather than measure a
+slope. On the axis that spread falls 37.78×, which is the same evenness § 6bd.3
+keeps returning to.
+
+What does **not** collapse is axial colour. `stageSpreadMm` is taken over tiles
+and channels together, so a stage scan's 0.16654575766951885 mm is the colour
+term alone, 92.5% of the field scan's 0.18008961951932861 — and `exposures`
+still reads 27. A stage scan is not one exposure; it is the same nine visits of
+the stage, three channels each, with the field curvature taken out of the
+*travel* and none of the colour.
+
+That also makes `TileStageQuery.offsetMm` load-bearing rather than decorative.
+Under a stage scan `centreMm` and `objectHeightMm` are the same numbers in every
+tile, so without the offset a focus map keyed on anything but `tileIndex` cannot
+be written — and a scanner's focus map is a function of where on the *slide* the
+stage is, which is exactly this coordinate. § 6bg's "same corrector, different
+driver — field curvature here, specimen topography there" is now something a
+caller can actually write down.
+
+### Two flat fields swap places, and it is literally the same array
+
+§ 6bi.3 found the free field carrying 85% of what a calibration removes. Here it
+carries none of it. One pupil forms every tile, so the nine `patchThroughput`
+scalars are `Object.is`-equal, `composeTileScalars` returns a constant, and
+normalising to unit mean leaves 1 — span **exactly** 0, values within 1.9e-12,
+which is the error in summing 66564 equal numbers and not a residual profile.
+Dividing the picture by it moves the seam by 6.6e-13 of itself. **The blank
+slide stops being the expensive option and becomes the only one.**
+
+And the correction § 6bi.4 measured making a field scan 11.0% *worse* — one
+calibration frame repeated in every tile, which is what a real scanner
+acquires — is exact here, `Object.is`-equal to the mosaic-wide `renderedFlatField`
+and taking the seam to exactly 0.
+
+The sharpest form of that is § 6bj.4's last rung: **it is the same array in both
+geometries.** `scannerFlatField` of the *field*-scanning mosaic is bitwise the
+stage-scanning one's true calibration. The picture a scanner acquires does not
+know which instrument it is in; what differs is whether the profile it carries
+repeats per tile, and that is the geometry's property and not the picture's.
+
+What is left to correct is the rasterizer's Jacobian and nothing of the glass —
+seam 6.9685e-4 against a field scan's 5.2943e-3 — which is § 6bi.3's axial swap
+becoming the whole story rather than a corner case.
+
+### What it costs is registration, and the cost is anisotropic
+
+Everything above is a gain. This is the bill.
+
+A field scan's tiles are adjacent windows on **one continuous traced map**, so
+two tiles sharing a seam agree about where a pixel is on the slide to within the
+parts-per-million ruler drift: 3.4370e-3 of a pixel at 1 mm of field. Its
+distortion is entirely real and is one smooth warp of the whole picture, with no
+seam anywhere in it.
+
+A stage scan repeats **one** tile's map at every tile, so the seam is where the
+map's period restarts, and it lands 0.32896 px out — **95.71×** worse, and a
+third of a pixel is visible. Worse, it cannot be tuned away by choosing a better
+pitch, because `stagePitchMm` is one scalar and a translation stage is a square
+lattice where the objective's map is radial. Fitted along the anchor's own row,
+column seams come out 40.75× better than row seams; fitted the other way it
+would trade them. § 6m.4's anisotropy, which had been a ppm-level curiosity about
+one frame's local scale, is what sets a stage scanner's stitching error.
+
+On the axis none of this happens — 1.32e-4 px against 1.02e-4, and the two
+directions agree to ten digits — because the map is even there and a square
+lattice and a radial map are the same lattice at the origin.
+
+### What this did to the prose already on the ladder
+
+- **§ 6bg's "there is no economy in it"** is false under this geometry, in every
+  clause it names: the pupil, the map and the raster are all shared, and § 6bj.7
+  pins the frames `Object.is`-equal across the nine tiles. `mosaicSeamShiftMm`
+  takes the economy rather than noting it — one trace for a stage scan's tiles,
+  nine for a field scan's. The renderer does **not**, deliberately: taking it
+  there would fork `focusCorrectedTiles` and cost the bitwise reduction that
+  § 6bh, § 6bi and § 6bj.1 are all built on.
+- **§ 6bi's "a real slide scanner's flat field makes it 11.0% worse"** stands
+  exactly as measured, and now has its other half. The number was never about
+  the calibration being bad; it was about the calibration being *for the other
+  instrument*.
+- **§ 6bg's "a stage racked between tiles is a scanner's focus map"** is fully
+  qualified now rather than partially. Under a field scan the driver is field
+  curvature; under a stage scan there is no field term at all and the driver can
+  only be the specimen's own topography — which is why `TileStageQuery` gained
+  `offsetMm` in the same change.
+- **`fluorescenceMosaicPitchDriftPx` refuses on a stage scan** rather than
+  returning the zero it would compute. Every tile reads one ruler, so the drift
+  is identically zero and says nothing; the quantity that replaces it lives on
+  the object side and the message names it.
+
+### Still open
+
+- **The stage pitch is fitted along one direction and the map is radial.** The
+  40.75× anisotropy is measured and not corrected. A per-axis pitch would trade
+  the two directions rather than fix them; what would actually fix it is a
+  non-uniform stage lattice, or resampling each tile through its own map before
+  composing — and the second is a resampler this branch does not have and § 6r
+  says is not the one already on the ladder.
+- **Nothing here anchors a stage scan anywhere but on a symmetry axis.** Both
+  fixtures put the anchor on +x, where the radial direction is a coordinate
+  direction. An anchor off both axes would make even the column seams a mixture,
+  and nothing measures it.
+- **A stage scan's guard band is the anchor's and has no closed form either.**
+  § 6bh's escape is now one number instead of nine, which makes it easier to
+  quote and no easier to predict.
+- **The topography focus map has the coordinate and no caller.** `offsetMm` makes
+  a slide-flatness map writable and nothing writes one, so the "different driver"
+  half of § 6bg's sentence is now buildable rather than built.
+- **Nothing measures any of this on a second objective**, inherited unchanged
+  from § 6bg, § 6bh and § 6bi, and it is now open across four steps.
+- **The blend has no window but the linear ramp**, **nothing corrects the map's
+  share of the flat field analytically**, **the registration cost has no closed
+  form**, **the readout has no fit**, **the seeded table is not the default**,
+  **depth-dependent pupils are not depth-dependent maps**, **the shared-radius
+  economy**, **the weight is still not an absolute throughput**, **the fourth
+  cosine**, and **§ 3a's photometric zero point** — all inherited from § 6bi.
 
 
 ## Later rungs

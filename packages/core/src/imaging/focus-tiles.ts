@@ -35,6 +35,15 @@ import {
  * patch count removes it. What a stage can do is be racked between tiles, which
  * is what a slide scanner's focus map is, and what this is.
  *
+ * § 6bj qualifies that sentence rather than retracting it. A scanner's focus map
+ * and this are the same corrector, and what drives them is not the same thing: a
+ * mosaic that walks the tile across the field racks the stage because best focus
+ * moves with field radius, while one that moves the SLIDE has every tile at one
+ * field position and therefore no field term at all — so its map can only be
+ * tracking the specimen's own topography. `TileStageQuery.offsetMm` is the
+ * coordinate that makes the second one writable, and `offsetsMm` is the option
+ * that builds it.
+ *
  * ## What this is NOT
  *
  * **It is not a mosaic.** It renders a list of tiles, each at its own predicted
@@ -64,6 +73,9 @@ import {
  * frame per plane, which is a trace against `patches² × slices` convolutions.
  */
 
+/** The stage at home — shared so an unmoved tile carries one object, not many. */
+const ORIGIN = { x: 0, y: 0 } as const;
+
 /** What the stage is being asked for. One call per tile per wavelength. */
 export interface TileStageQuery {
   /** Image-plane centre of the tile (mm) — the same one `centresMm` gave. */
@@ -73,6 +85,19 @@ export interface TileStageQuery {
    * channel's own traced map — see the header on why it is not one number.
    */
   readonly objectHeightMm: number;
+  /**
+   * How far the **specimen** was translated for this tile (object mm), `{0, 0}`
+   * unless the caller passed `offsetsMm`.
+   *
+   * Required rather than optional, and the reason is § 6bj. Under a
+   * stage-scanning mosaic every tile is imaged at the *same* field position, so
+   * `centreMm` and `objectHeightMm` are the same numbers in every tile and the
+   * only thing left to key a focus map on would be `tileIndex` — an index into
+   * an ordering this callback cannot see. A focus map that tracks the
+   * specimen's own topography, which is what a real scanner's is, is a function
+   * of **where on the slide** the stage is, and this is that coordinate.
+   */
+  readonly offsetMm: { readonly x: number; readonly y: number };
   readonly wavelengthNm: number;
   readonly tileIndex: number;
 }
@@ -103,6 +128,22 @@ export interface FocusCorrectedTilesOptions
   extends Omit<FluorescenceVolumeOptions, "centreMm" | "focusMm" | "channelFocusMm"> {
   /** Image-plane tile centres (mm), in the order they are to be rendered. */
   readonly centresMm: readonly { readonly x: number; readonly y: number }[];
+  /**
+   * How far to translate the **specimen** for each tile (object mm) — a stage.
+   *
+   * Omitted, the specimen does not move and every tile sees the same object
+   * through a different part of the field, which is what this function has
+   * always done. Supplied, tile k's density is read at `(x + dx, y + dy)`, so a
+   * caller can hold `centresMm` still and scan the stage instead — § 6bj's
+   * geometry, and the one a real slide scanner has.
+   *
+   * A tile whose offset is exactly `{0, 0}` — including every tile of a series
+   * that passed none — is handed the caller's own density **by reference** and
+   * not a wrapper that adds zero. That is what keeps a field scan bitwise
+   * (§ 6bj.1) and it is not pedantry: `-0 + 0` is `+0`, so a wrapper adding zero
+   * is not the identity on a density that reads the sign of its argument.
+   */
+  readonly offsetsMm?: readonly { readonly x: number; readonly y: number }[];
   /** Where the stage goes for each tile and each channel. */
   readonly stageMm: TileStageMm;
   /** Called once per tile finished. */
@@ -116,6 +157,8 @@ export interface FocusCorrectedTilesOptions
 export interface FocusCorrectedTile {
   readonly index: number;
   readonly centreMm: { readonly x: number; readonly y: number };
+  /** How far the specimen was translated for this tile (object mm). */
+  readonly offsetMm: { readonly x: number; readonly y: number };
   /** Object radius per channel, in `samples` order — λ-dependent, see the header. */
   readonly objectHeightMm: readonly number[];
   /** The stage each channel of this tile was rendered at (mm), in `samples` order. */
@@ -148,7 +191,11 @@ export interface FocusCorrectedTiles {
  * so a one-tile series at a flat stage is the plain render it always was
  * (§ 6bg.1, bitwise). The cost is that render's times the tile count and there
  * is no economy in it: the frames are at different field positions, so nothing
- * about the pupil, the map or the raster is shared. `renderSpectralMosaic` does
+ * about the pupil, the map or the raster is shared — unless `offsetsMm` is what
+ * moves between tiles, which holds the frames at ONE position and makes every
+ * clause of that sentence false (§ 6bj.7). The economy is still not taken here:
+ * taking it would fork this function, and the bitwise reductions § 6bh, § 6bi and
+ * § 6bj.1 all rest on it not being forked. `renderSpectralMosaic` does
  * have one — its radial tables span all its tiles at once — and it is the one
  * thing that could have been shared here too, which is noted rather than taken,
  * because a per-tile stage gives every tile a different raster anyway.
@@ -158,12 +205,18 @@ export function focusCorrectedTiles(
   density: SpectralVolumeEmitterDensity,
   options: FocusCorrectedTilesOptions,
 ): FocusCorrectedTiles {
-  const { centresMm, samples } = options;
+  const { centresMm, samples, offsetsMm } = options;
   if (centresMm.length === 0) {
     throw new Error("focusCorrectedTiles: no tiles to render");
   }
   if (samples.length === 0) {
     throw new Error("focusCorrectedTiles: no wavelengths");
+  }
+  if (offsetsMm !== undefined && offsetsMm.length !== centresMm.length) {
+    throw new Error(
+      `focusCorrectedTiles: ${centresMm.length} tile centres and ${offsetsMm.length} stage ` +
+        `offsets — a tile is one visit of the stage, so it has exactly one of each`,
+    );
   }
 
   const tiles: FocusCorrectedTile[] = [];
@@ -173,6 +226,14 @@ export function focusCorrectedTiles(
 
   for (let index = 0; index < centresMm.length; index++) {
     const centreMm = centresMm[index]!;
+    const offsetMm = offsetsMm?.[index] ?? ORIGIN;
+    // Exactly zero means the caller's own density, by reference — see
+    // `offsetsMm`. It is also the CENTRE tile of an odd stage scan, which is why
+    // that tile is the plain render bit for bit (§ 6bj.2).
+    const shifted: SpectralVolumeEmitterDensity =
+      offsetMm.x === 0 && offsetMm.y === 0
+        ? density
+        : (xMm, yMm, zMm, nm) => density(xMm + offsetMm.x, yMm + offsetMm.y, zMm, nm);
     const objectHeightMm: number[] = [];
     const focusMm: number[] = [];
     // Keyed by wavelength because that is all `channelFocusMm` is handed; the
@@ -184,6 +245,7 @@ export function focusCorrectedTiles(
       const height = Math.hypot(frame.centreObjectMm.x, frame.centreObjectMm.y);
       const stage = options.stageMm({
         centreMm,
+        offsetMm,
         objectHeightMm: height,
         wavelengthNm: sample.nm,
         tileIndex: index,
@@ -201,7 +263,7 @@ export function focusCorrectedTiles(
       if (stage > hi) hi = stage;
     }
 
-    const volume = fluorescenceSpectralVolume(system, density, {
+    const volume = fluorescenceSpectralVolume(system, shifted, {
       ...options,
       centreMm,
       channelFocusMm: (nm) => {
@@ -219,6 +281,7 @@ export function focusCorrectedTiles(
     tiles.push({
       index,
       centreMm,
+      offsetMm,
       objectHeightMm,
       focusMm,
       exposures: volume.exposures,
