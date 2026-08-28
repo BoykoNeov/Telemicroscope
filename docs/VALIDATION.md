@@ -122,7 +122,7 @@ whole ladder.
 | [6bk](#step-6bk--the-second-objective) | The RULER decides: in object mm two lenses disagree which focus term dominates (5.13x, either side of 1), in image radius they agree to 1.15x — and the seed reached one map caller of five | `second-objective` |
 | [6bl](#step-6bl--the-third-magnification) | Colour/field reads 2.499, 2.173, 1.922, 1.808 over 4×–40× — monotone, flattening, never across 1 — registration tracks 1/M to 10%, and a 20× mosaic outruns § 6bk's swept field | `third-magnification` |
 | [6bm](#step-6bm--the-fourth-corner) | The 10×/0.20 builds and its sweep refuses at 1.4413 depths: none of six readouts separates the two levers — 1.017× to 53.65× — and the free field's axial crossing lands on the first step | `fourth-corner` |
-| [6bn](#step-6bn--the-second-interval) | A 20×/0.20 gives each interaction a second interval: none of § 6bm's six is a slope — two REVERSE across 1, 53.65× at the edge becomes 1.009×, the plateau saturates in M only at NA 0.10 | `second-interval` |
+| [6bn](#step-6bn--the-second-interval) | A 20×/0.20 gives each interaction a second interval: none of § 6bm's six is a slope — two REVERSE across 1, 53.65× at the edge becomes 1.009× — and the NA ceiling is a 4× reading | `second-interval` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -21381,7 +21381,10 @@ a 1/M law with a stated 10% error.
   ladder refuse and § 6bj's colour-versus-field trade stays a NA-0.10 family.
   What the corner did settle is the question the bullet said was open — the two
   levers interact on every readout, by 1.017× up to 53.65× depending which.
-- **Still nothing on a high-NA objective**, this solver's ceiling being 0.20, and
+- **Still nothing on a high-NA objective**, ~~this solver's ceiling being
+  0.20~~ — **measured at [§ 6bn](#step-6bn--the-second-interval)**: the ceiling
+  is 0.20 at 4× only and rises to 0.25 by 20×, so a high-NA lens was available
+  all along, and
   **nothing on an infinity-corrected one** — the whole mosaic branch is
   finite-conjugate. Both inherited from § 6bk.
 - **The seed reaches one radial-map caller of several.** `emitter-spectrum`,
@@ -21579,8 +21582,10 @@ forced surface here; it exists to characterise the refusal.
 - **Where between 4× and 10× the free field's axial gain crosses 1** is
   unlocated, and whether it flattens above 10× is below this fixture's
   resolution.
-- **Still nothing on a high-NA objective**, this solver's ceiling being 0.20,
-  and **nothing on an infinity-corrected one** — inherited from § 6bk and § 6bl.
+- ~~**Still nothing on a high-NA objective**, this solver's ceiling being
+  0.20~~ — **the ceiling is a 4× number**, measured at
+  [§ 6bn](#step-6bn--the-second-interval); a 20×/0.25 builds and images. Still
+  **nothing on an infinity-corrected one** — inherited from § 6bk and § 6bl.
 - **The seed reaches one radial-map caller of several.** `emitter-spectrum`,
   `brightfield-spectrum` and `mosaic-spectrum` build their own tables; a 10×
   brightfield stack is still the next thing likely to refuse, and no step on
@@ -21629,9 +21634,11 @@ pair it was measured on.
 | **§ 6bn.1 — the fifth and sixth cells build, and the render-free grid is stage-free** | a 20×/0.20 builds at magnification −20.0000004, and doubling NA moves the matched object height **0.049%** — under § 6bm.1's 0.052% at 10× and 0.059% at 4×, so the aperture lever still carries no confound | ✅ |
 | | and the whole six-cell cost/anisotropy grid, computed at a stage of ZERO, reproduces numbers originally taken at **three different stage conventions** — § 6bk's and § 6bm's axial, § 6bl's corrected — which licenses every mixed citation below by construction | ✅ |
 | | with § 6bm.1's bitwise claim re-pinned on the sixth lens: `toBe` at three stages a millimetre apart | ✅ |
+| | and the aperture lever is **continuous, with a ceiling that RISES with magnification** — 0.12/0.15/0.18 build everywhere, and the highest that builds is 0.15 at 2×, **0.20 at 4×, 0.22 at 10×, 0.25 at 20× and 40×**, so § 6bk.8's "0.20 at every magnification" is a 4× reading; a 20×/0.25 images at −20.0000003 | ✅ |
 | **§ 6bn.2 — the third aperture pair refuses too, and the width narrows with shrinking steps** | the 20×/0.20 refuses at **1.2301647** depths and the 20×/0.10 passes at 0.37549919, so **three of three** NA 0.20 lenses refuse and every NA 0.10 lens above 2× passes | ✅ |
 | | the fast series 1.804658, 1.4412949, 1.2301647 is monotone with the step shrinking — 1.2521×, 1.1716× — and § 6bl.2's precedent forbids extrapolating it to a crossing, so no magnification is named at which a fast lens would certify | ✅ |
 | | and the slow aperture **SATURATES** where the fast one has not: 2.2946× then 1.0093× at NA 0.10, against 1.2521× then 1.1716× at NA 0.20 — the first constraint this branch puts on § 6bm's unnamed mechanism | ✅ |
+| | and the guard-band escape — a different render, sharing no code path with the sweep — saturates identically: 2.4119× then **1.0196×** at NA 0.10, against 1.4334× then 1.2386× at NA 0.20, so the shape belongs to the lens family and not to either estimator | ✅ |
 | **§ 6bn.3 — six interactions get a second interval, and § 6bm.4's ordering does not survive it** | all six read 1.0063, 1.0086, 1.0233, 1.0417, 1.1609, 1.2148 — none separates, and the set spans **1.207×** where § 6bm's spanned 52.8× | ✅ |
 | | § 6bm.4 asserted with `toBe` that the two render-free readouts were the two smallest; here **both flat-field splits come in below both of them**, the reverse grouping | ✅ |
 | | and § 6bm's own standard is applied to that: 1.0063 against 1.0086 is no gap either, so the claim is the GROUP changing sides and not the order | ✅ |
@@ -21693,6 +21700,35 @@ falls 1.2521× and then 1.1716×, still falling. So whatever sets the plateau
 at the fast one**, and a candidate mechanism now has something it must
 reproduce.
 
+It is not one estimator's quirk. The guard-band escape is a double-extent volume
+render and shares no code path with the axial peak search, and it does the same
+thing on the same interval at the same aperture: 2.4119× then **1.0196×** at
+NA 0.10, against 1.4334× then 1.2386× at NA 0.20. Two independent rendered
+readouts, one shape.
+
+### The ceiling three steps inherited is a 4× reading
+
+This step was about to record that its interactions are aperture *doublings*
+because the lever has only two settings. Probing that — one sub-second call,
+which is what the branch's own method note says to do before writing a claim
+about what builds — turned up something larger.
+
+§ 6bk.8 measured NA 0.25 refusing at 4× and at 10×, both correct, and drew from
+it that **"this solver's ceiling [is] 0.20 at every magnification"**. § 6bl,
+§ 6bm and this step's first draft all carried that sentence forward, and three
+steps in a row listed "still nothing on a high-NA objective" as though it were a
+property of the engine. The highest aperture that builds is **0.15 at 2×, 0.20
+at 4×, 0.22 at 10×, and 0.25 at 20× and 40×** — the ceiling rises with
+magnification and flattens by 20×, and the refusal is the same one throughout,
+the achromat's steepest surface going past hemispherical. A 20×/0.25 builds and
+images at −20.0000003.
+
+That is the third "cannot be built" this branch has had to withdraw, after
+§ 6bk's fourth corner and § 6bl's correction of it, and it is the same failure
+the rest of this step is about: a reading quoted without the condition it was
+taken under. § 6bn measures no lens above the old ceiling — it pins what exists
+so the next step starts from a measurement.
+
 ### The bill § 6bl.4 sent, re-read
 
 § 6bl.4 fitted three NA 0.10 points and offered a caller a budget: the seam
@@ -21732,9 +21768,13 @@ the axis interaction by about 1% of its distance from 1.
   Two intervals show that four of the six interactions change size and two
   change direction; nothing here fits a functional form, and § 6bl.2's refusal
   to extrapolate a flattening series governs every number above.
-- **The aperture lever still has exactly two settings**, this solver's ceiling
-  being 0.20, so every interaction on this branch is an aperture DOUBLING and no
-  intermediate NA has been measured.
+- **No intermediate aperture has been measured**, so every interaction on this
+  branch is an aperture DOUBLING — a choice, not a constraint: § 6bn.1 pins that
+  0.12, 0.15 and 0.18 all build at every magnification on the ladder.
+- **The lenses above the inherited ceiling are unmeasured.** A 20×/0.25 builds
+  and images at −20.0000003 and nothing has been read off it. That is the
+  cheapest genuinely new lens family this branch has had available, and three
+  steps carried "nothing on a high-NA objective" while it was buildable.
 - **The plateau's mechanism is still unnamed** — now with a saturation shape it
   has to reproduce, which is one constraint and not an explanation.
 - **All three NA 0.20 lenses refuse their sweep**, so everything § 6bk.3 and
@@ -21744,8 +21784,8 @@ the axis interaction by about 1% of its distance from 1.
 - **Whether the free field's axial gain flattens above 10×** is still below this
   fixture's resolution: 0.9722786 and 0.9720138 agree to 2.7e-4 and nothing pins
   the readout's own reproducibility, so the two-point decline stands.
-- **Still nothing on a high-NA objective** and **nothing on an
-  infinity-corrected one** — inherited from § 6bk, § 6bl and § 6bm.
+- **Nothing on an infinity-corrected objective** — inherited from § 6bk, § 6bl
+  and § 6bm.
 - **The seed reaches one radial-map caller of several.** `emitter-spectrum`,
   `brightfield-spectrum` and `mosaic-spectrum` build their own tables; a 10×
   brightfield stack is still the next thing likely to refuse, and no step on

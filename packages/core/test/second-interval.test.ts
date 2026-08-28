@@ -92,6 +92,34 @@ import type { OpticalSystem } from "../src/trace/system";
  * and has not saturated by 20× at the fast one**, which is the first statement on
  * this branch that a candidate mechanism has to satisfy.
  *
+ * And it is not one readout's quirk. The guard-band escape — a double-extent
+ * volume render, sharing no code path with the axial peak search — does the same
+ * thing on the same interval at the same aperture: 2.4119× then **1.0196×** at
+ * NA 0.10, against 1.4334× then 1.2386× at NA 0.20. Two independent rendered
+ * readouts, one shape, so the saturation belongs to the slow lens family rather
+ * than to either estimator.
+ *
+ * ## The aperture lever is continuous, and its ceiling is a 4× number
+ *
+ * This step was about to write that its interactions are aperture DOUBLINGS
+ * because the lever has only two settings. It has many: 0.12, 0.15 and 0.18 all
+ * build at 4×, 10× and 20×, and the doubling was a choice nobody had probed.
+ *
+ * Probing it turned up something larger. § 6bk.8 measured NA 0.25 refusing at 4×
+ * and at 10× and wrote **"this solver's ceiling being 0.20 at every
+ * magnification"**; § 6bl, § 6bm and this file's own first draft all inherited
+ * that sentence, and three steps in a row carried "still nothing on a high-NA
+ * objective" as though it were a limit of the engine. **The ceiling rises with
+ * magnification**: the highest aperture that builds is 0.15 at 2×, 0.20 at 4×,
+ * 0.22 at 10× and 0.25 at 20× and 40× (§ 6bn.1). A 20×/0.25 builds and images at
+ * magnification −20.0000003.
+ *
+ * § 6bk.8's own two readings are correct; it is the generalisation across
+ * magnification that was never measured — which is the third time on this branch
+ * that a "cannot be built" has had to be withdrawn, after § 6bk's fourth corner
+ * and § 6bl's correction of it. **This step does not measure the new lenses**; it
+ * pins what exists so the next one starts from a measurement.
+ *
  * ## A gift to § 6bm.6, for no runtime
  *
  * § 6bm.6 wanted to compare the free flat field's axial gain across the
@@ -356,6 +384,8 @@ const ANISO_4 = 40.754313;
 const ANISO_4F = 81.766377;
 const ANISO_10 = 16.868779;
 const ANISO_10F = 33.290128;
+const ESC_4 = 0.054;
+const ESC_4F = 0.644789;
 const ESC_10 = 0.02238865;
 const ESC_10F = 0.4498281;
 /** AXIAL stage, § 6bm's `F10_AXIS` — deliberately NOT § 6bk.5's corrected 1355.9474. */
@@ -421,6 +451,50 @@ describe("§ 6bn.1 — the fifth and sixth cells build, and the render-free grid
     // Smaller than both of § 6bm.1's, and in order.
     expect(ruler20 - 1).toBeLessThan(1.00051706 - 1);
     expect(1.00051706 - 1).toBeLessThan(1.00059197 - 1);
+  });
+
+  it("the aperture lever is CONTINUOUS, and the ceiling everyone inherited is a 4× number", () => {
+    // § 6bk wrote that a lens "cannot be" built and was wrong; § 6bl caught it
+    // and § 6bm built the lens. This step was about to repeat the species: that
+    // its interactions are aperture DOUBLINGS because the lever has only two
+    // settings. It has many — 0.12, 0.15 and 0.18 all build at every
+    // magnification on the ladder — and the doubling was a choice nobody probed.
+    for (const NA of [0.12, 0.15, 0.18]) {
+      for (const M of [4, 10, 20]) {
+        expect(() => build(M, NA)).not.toThrow();
+      }
+    }
+
+    // And the inherited ceiling is worse than unprobed, it is wrong. § 6bk.8
+    // measured NA 0.25 refusing at 4× and 10× and wrote "this solver's ceiling
+    // being 0.20 at every magnification"; § 6bl, § 6bm and this file's own first
+    // draft all inherited it. The ceiling RISES with magnification, and the
+    // refusal is the same one throughout — the achromat's steepest surface going
+    // past hemispherical.
+    const CEILING: readonly (readonly [number, number, number])[] = [
+      [2, 0.15, 0.18],
+      [4, 0.2, 0.22],
+      [10, 0.22, 0.25],
+      [20, 0.25, 0.28],
+      [40, 0.25, 0.28],
+    ];
+    for (const [M, highest, refused] of CEILING) {
+      expect(() => build(M, highest)).not.toThrow();
+      expect(() => build(M, refused)).toThrow(/APERTURE and not the glass pair/);
+    }
+    // Monotone non-decreasing in M, and flat by 20×.
+    const ceilings = CEILING.map(([, highest]) => highest);
+    for (let i = 1; i < ceilings.length; i++) {
+      expect(ceilings[i]!).toBeGreaterThanOrEqual(ceilings[i - 1]!);
+    }
+    expect(ceilings[3]!).toBe(ceilings[4]!);
+    // § 6bk.8's own two readings are the ones that hold: 0.25 refuses at 4× and
+    // 10×. It is the generalisation to "every magnification" that fails.
+    expect(() => build(4, 0.25)).toThrow(/APERTURE and not the glass pair/);
+    expect(() => build(10, 0.25)).toThrow(/APERTURE and not the glass pair/);
+    expect(() => build(20, 0.25)).not.toThrow();
+    // And the lens past the inherited ceiling images, at its stated magnification.
+    expect(magOf(build(20, 0.25))).toBeCloseTo(-20.0000003, 6);
   });
 
   it("six cells at ONE stage reproduce numbers taken at three different stage conventions", () => {
@@ -512,6 +586,31 @@ describe("§ 6bn.2 — the third aperture pair refuses too, and the width falls 
     expect(Math.abs(1.1716276 - 1)).toBeGreaterThan(15 * Math.abs(slowStep2 - 1));
     // And the aperture's own cost at 20× — 2.0753× at 4×, 3.8031× at 10× (§ 6bm.2).
     expect(P20F.plateauDepths / P20.plateauDepths).toBeCloseTo(3.2760781, 6);
+  });
+
+  it("and the guard-band escape saturates in exactly the same pattern — two readouts, not one", () => {
+    // The constraint above would be one rendered readout doing one thing, which
+    // is weak. A SECOND rendered readout, sharing no code path with the sweep —
+    // the escape is a double-extent volume render and the plateau is an axial
+    // peak search — does the same thing on the same interval at the same
+    // aperture: at NA 0.10 both fall hard and then go flat within 2%, and at
+    // NA 0.20 both are still falling at 20×. So the saturation is a property of
+    // the slow lens family and not of either estimator.
+    const escSlowStep1 = ESC_4 / ESC_10;
+    const escSlowStep2 = ESC_10 / E20;
+    const escFastStep1 = ESC_4F / ESC_10F;
+    const escFastStep2 = ESC_10F / E20F;
+    expect(escSlowStep1).toBeCloseTo(2.4119364, 6);
+    expect(escSlowStep2).toBeCloseTo(1.0195626, 6);
+    expect(escFastStep1).toBeCloseTo(1.4334120, 6);
+    expect(escFastStep2).toBeCloseTo(1.2385882, 6);
+    // Flat on the slow lens, still falling on the fast one — the plateau's shape.
+    expect(Math.abs(escSlowStep2 - 1)).toBeLessThan(0.02);
+    expect(Math.abs(escFastStep2 - 1)).toBeGreaterThan(10 * Math.abs(escSlowStep2 - 1));
+    // Both readouts collapse their step by more than an order of magnitude at
+    // NA 0.10 and by less than a factor of two at NA 0.20.
+    expect((escSlowStep1 - 1) / (escSlowStep2 - 1)).toBeGreaterThan(50);
+    expect((escFastStep1 - 1) / (escFastStep2 - 1)).toBeLessThan(2);
   });
 });
 
