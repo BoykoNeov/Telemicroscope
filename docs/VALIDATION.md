@@ -120,6 +120,7 @@ whole ladder.
 | [6bi](#step-6bi--the-flat-field-and-the-blend) | The seam's biggest artifact is a brightness STAIRCASE § 6bh never measured — 5.29e-3 at 1 mm of field, 2783× the axis — and a scanner's per-tile flat field makes it 11% WORSE | `mosaic-flat-field` |
 | [6bj](#step-6bj--the-stage-scanning-mosaic) | The other geometry: a stage scan collapses every field quantity to ONE constant the anchor chooses — focus step exactly 0, free flat field inert — and pays 95.7× the seam registration | `stage-mosaic` |
 | [6bk](#step-6bk--the-second-objective) | The RULER decides: in object mm two lenses disagree which focus term dominates (5.13x, either side of 1), in image radius they agree to 1.15x — and the seed reached one map caller of five | `second-objective` |
+| [6bl](#step-6bl--the-third-magnification) | Colour/field reads 2.499, 2.173, 1.922, 1.808 over 4×–40× — monotone, flattening, never across 1 — registration tracks 1/M to 10%, and a 20× mosaic outruns § 6bk's swept field | `third-magnification` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -21198,11 +21199,16 @@ stated correctly; what none of them could say is how far it reached.
 
 ### Still open
 
-- **Two lenses is not a family.** Every conclusion here is drawn from three
-  points, one per lever plus the control, and a lever pulled once cannot tell a
-  trend from a coincidence. The aperture's thousandfold reordering of the flat
-  field is large enough that its direction is not in doubt; the 1.15× agreement
-  of § 6bk.3 is small enough that a third magnification could move it.
+- ~~**Two lenses is not a family.**~~ **Measured at
+  [§ 6bl](#step-6bl--the-third-magnification)**, and the bullet's own worry was
+  the right one. The 1.15× agreement of § 6bk.3 did move: a third and fourth
+  magnification read 1.9215 and 1.8079, so the series is 2.4987, 2.1734, 1.9215,
+  1.8079 — monotone, flattening, and the residual grows with the lever's range
+  (1.1496× over 2.5×, 1.3820× over 10×). What survived is the part that mattered:
+  every one of the four sits above 1, so § 6bj's trade is a family statement and
+  not a coincidence of two. § 6bk.6's registration cost gained a shape it could
+  not have had here — 95.71, 41.78, 21.05 track 1/M — and § 6bk's own fixture
+  constant `OUTER = 1.25` turned out not to cover a 20× mosaic.
 - **The aperture lever is pulled at 4× and the magnification lever at NA 0.10**,
   so the corner of the square — a fast 10× — is not measured and cannot be, this
   solver's ceiling being 0.20 at every magnification. Whether the two levers
@@ -21227,6 +21233,159 @@ stated correctly; what none of them could say is how far it reached.
   point**, **the stage pitch is fitted along one direction**, **nothing anchors a
   stage scan off a symmetry axis**, and **the topography focus map has no
   caller** — all inherited from § 6bi and § 6bj.
+
+## Step 6bl — the third magnification
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/third-magnification.test.ts`
+
+§ 6bk pulled two levers off a 4×/0.10 control and closed with the complaint that
+**two lenses is not a family**: every conclusion rested on three points, one per
+lever plus the control, and a lever pulled once cannot tell a trend from a
+coincidence. This is the magnification lever pulled twice more — a 20×/0.10 as a
+full member and a 40×/0.10 for its focus surface alone — and once in the other
+direction to a 2×/0.10 that refuses.
+
+**Four points say something two could not: the currency narrows the verdict but
+does not collapse it, and the residual grows with the lever's range.** Colour
+over field reads 2.4987, 2.1734, 1.9215, 1.8079 at 4×, 10×, 20× and 40× — a
+strictly decreasing series whose step shrinks each time, and one that never
+crosses 1. So § 6bj's trade survives on every lens measured, which is the
+sentence a caller acts on; and § 6bk.3's 1.15× agreement, quoted alone, was
+quoting the shortest lever anyone had pulled.
+
+### The confound this step is built around
+
+Every reading here is at a matched image radius of 4 mm — the currency a mosaic
+is actually configured in, `centreMm` being an image coordinate, and the one
+§ 6bk.3 found collapses the focus terms. That currency has a consequence which
+has to be stated before any number is read: **matching the image radius forces
+the object height to scale as 1/M**, 1.9969 mm at 2× down to 0.0998 at 40×, a
+20.01× span of field position across the lever (§ 6bl.1). Magnification and
+field height are therefore perfectly tied in this fixture, and no rung here may
+name magnification as a *mechanism* on the strength of a reading taken in it.
+What the rungs claim is a trend **in that currency** — a claim about what a
+mosaic configured that way does. § 6bl.5 is the one rung that escapes the tie,
+by holding the object height fixed and moving only the lens.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bl.1 — the matched ruler ties magnification to field height, and says so** | a matched 4 mm image radius puts the 2× at 1.9969 object mm and the 40× at 0.0998 — 1/M to 0.3%, a **20.01×** span of field position across the lever | ✅ |
+| | and the third lens certifies at the same `maxPlateauDepths: 1` the control passes — colour 2.384236e-2, field 1.240811e-2, interaction 1.892194e-3 | ✅ |
+| **§ 6bl.2 — four points, monotone, and never across one** | colour over field reads **2.4987, 2.1734, 1.9215, 1.8079** at 4×, 10×, 20× and 40×, strictly decreasing, and the step SHRINKS each time — 13.016%, 11.590%, 5.911% | ✅ |
+| | every one of the four sits above 1, so § 6bj's trade — a stage scan keeps the colour term and zeroes the field term — is worth taking on all of them | ✅ |
+| | and the residual GROWS with the lever's range: **1.1496× over 2.5×, 1.3004× over 5×, 1.3820× over 10×**, against the 5.13× of the ruler § 6bk.3 rejected | ✅ |
+| **§ 6bl.3 — the mosaic outruns its own swept field** | the outermost tile sits at 1.0513×, 1.1321× and **1.2748×** the matched height, so § 6bk's `OUTER = 1.25` clears the first two and is SHORT at 20× | ✅ |
+| | because the pitch IS the image-side pixel scale — 0.201158, 0.502895, 1.005792 mm, linear in M to under 3 ppm — while the matched height goes as 1/M | ✅ |
+| **§ 6bl.4 — three points on one lever, and the registration cost has a shape** | § 6bj's cost is **95.713, 41.776, 21.046** along the lever and tracks 1/M to within 10%, with the excess in the same direction at both steps | ✅ |
+| | and the anisotropy does the same — 40.754, 16.869, 8.875 — every lens still paying more across the seam than along it | ✅ |
+| **§ 6bl.5 — the sweep's refusal is MAGNIFICATION's, and the confound is broken** | a 2×/0.10 refuses as a plateau **1.078594** depths of focus wide, at the control's own aperture | ✅ |
+| | and the 4× swept at the 2×'s OWN 1.9969 mm **passes** — same NA, same height, same probe, only M differs — its colour span still § 6bk.3's 0.16690632 | ✅ |
+| **§ 6bl.6 — the flat field on a third lens, and a gain that crosses below one** | the free field's axial gain is **0.972202 at 20×** against § 6bk.1's corrected-stage 1.01788 on the control — below 1, a correction that makes the seam worse | ✅ |
+| | § 6bk.5's "magnification barely touches the split" holds across 5× at **1.1852×** and is SATURATING — 1.1362× over the first 2.5×, 1.0431× over the next 2× | ✅ |
+| | the scanner verdict is never once better on a fourth lens either — 1.201264 and 1.091492, still inside § 6bk.6's 1.2090× ceiling | ✅ |
+| | and § 6bg's focus correction still helps, 1.020803× — the least of any lens, the 20×'s nominal stage being nearest its own best focus | ✅ |
+
+### What three points bought that two could not
+
+§ 6bj explained the registration cost structurally — a square stage lattice
+cannot abut a radial map in both directions at once, so a stage scan pays a
+seam error a field scan does not — and measured 95.7× on the control. § 6bk
+found 41.8× and 132.9× on its two lenses and could conclude only that "the
+number is the lens's", having no lever long enough to fit anything to. Three
+points on **one** lever, read at a matched image radius, fall on 1/M to within
+10% (§ 6bl.4), and the anisotropy follows. That is the difference between a
+warning and a budget: "somewhere between 42× and 133×" tells a caller nothing it
+can size a guard band with, and "95.7× divided by M, plus about a tenth" does.
+
+The same holds for the headline. Two points agreeing to 1.15× invite the reading
+that the currency collapses the quantity; four points show it narrowing it — from
+the 5.13× and sign flip of a matched object height down to 1.38× over a tenfold
+lever — without ever collapsing it, and without approaching the crossing that
+would matter. **Flattening is the part worth carrying forward**: the step falls
+13.0%, 11.6%, 5.9%, so extrapolating this series to a crossing is not supported.
+
+### The refusal, and where the confound broke
+
+A 2×/0.10 does not sweep. `renderedBestFocus` refuses it as a plateau 1.0786
+depths of focus wide against the 1 asked for — the same *shape* of refusal
+§ 6bk.8 pinned for the 4×/0.20 at 1.80466 depths, but at the control's own
+aperture, which the fast lens was not. **§ 6bk assigned the sweep refusal no
+cause**, and its "aperture binding" belongs to a different refusal entirely: the
+objective *solver* declining NA 0.25. So this is additive to that rung, not a
+correction of it.
+
+Read at a matched image radius the 2× is also two millimetres out in the field,
+so its refusal is confounded with field position by construction — which is
+exactly the error this branch exists to warn about. Sweeping the **control** at
+the 2×'s own 1.9969 mm breaks the tie: the 4× certifies there, with a colour
+span identical to § 6bk.3's to eight digits. Same aperture, same object height,
+same probe; only the magnification differs, and only one of them refuses.
+
+**That licenses exactly one sentence, and the step does not stretch it:** at a
+fixed object height and a fixed aperture, magnification alone flips the verdict.
+Whether the plateau widens *monotonically* as magnification falls is a trend
+drawn from two points, which is the inference § 6bl.2 declines to make from
+four, so it is not claimed. What is measured is that the estimator's floor is
+reached from **both** ends of this solver's usable range — too fast at 4×/0.20,
+too slow at 2×/0.10.
+
+### The fixture constant that did not travel
+
+§ 6bk sized its focus sweep's outer node at `OUTER = 1.25` and documented the
+reasoning: a 3-tile mosaic anchored at image radius 4 reaches 0.4% past the
+matched height on the 4× and 13.5% on the 10×, and `predictedFocusMm` refuses
+outside the swept field rather than extrapolating, so "1.25 clears both". At 20×
+the overshoot is **27.5%** and 1.25 does not clear it — a throw on the mosaic's
+own corner tiles, not a wrong number, and not one a reader would have predicted
+from that comment. The mechanism is squeezed from both ends at once (§ 6bl.3): a
+tile is a fixed pixel count on the **image**, so its pitch in image mm grows with
+M, while the height the anchor sits at falls as 1/M. Any later rung on a
+faster-magnifying lens has to size its sweep from the geometry rather than
+inherit a constant, and § 6bl uses 1.30.
+
+No pinned number of § 6bk's moved, and none could have: this step adds no engine
+code, and the 4× and 10× figures it quotes are **cited** from
+`second-objective.test.ts` rather than recomputed, that file being what guards
+them. What moved is the scope of two sentences — § 6bk.3's 1.15× is now known to
+be the shortest lever's reading, and § 6bk.6's "the number is the lens's" is now
+a 1/M law with a stated 10% error.
+
+### Still open
+
+- **The 1/M fit has three points and a residual nobody has explained.** The
+  excess over exact 1/M is about 9% at both steps and in the same direction,
+  which is what makes it a law with an error rather than three descending
+  numbers — but nothing here says what the extra tenth is, and a fourth point on
+  the same lever would cost a 40× mosaic this step deliberately did not build.
+- **Nothing measures the free field's axial crossing.** It is 1.0177× on the
+  control and 0.9722× at 20×, so it passes through 1 somewhere on the lever, and
+  the 10×'s axial gain — the one reading that would locate it — was never taken
+  by § 6bk and is not taken here.
+- **A 10×/0.20 is buildable and unmeasured, and § 6bk overstated this.** § 6bk
+  wrote that the corner of the square "is not measured and cannot be, this
+  solver's ceiling being 0.20 at every magnification" — but a ceiling of 0.20 is
+  a lens *at* 0.20, and § 6bk.8's own rung pins that 0.20 builds at both 4× and
+  10×. What cannot be built is a *fast* 10× at NA 0.25. So the corner is
+  available; what is unknown is whether it certifies a focus sweep, the 4×/0.20
+  having refused at 1.80466 depths. Until it is built, whether the two levers
+  interact stays open — by omission now rather than by construction.
+- **Still nothing on a high-NA objective**, this solver's ceiling being 0.20, and
+  **nothing on an infinity-corrected one** — the whole mosaic branch is
+  finite-conjugate. Both inherited from § 6bk.
+- **The seed reaches one radial-map caller of several.** `emitter-spectrum`,
+  `brightfield-spectrum` and `mosaic-spectrum` build their own tables and were
+  left alone at § 6bk; a 10× brightfield stack is still the next thing likely to
+  refuse, and this step did not touch it.
+- **The blend has no window but the linear ramp**, **nothing corrects the map's
+  share of the flat field analytically**, **the guard band still has no closed
+  form**, **the readout has no fit**, **the seeded table is not the default**,
+  **depth-dependent pupils are not depth-dependent maps**, **the shared-radius
+  economy**, **the weight is still not an absolute throughput**, **the fourth
+  cosine**, **§ 3a's photometric zero point**, **the stage pitch is fitted along
+  one direction**, **nothing anchors a stage scan off a symmetry axis**, and
+  **the topography focus map has no caller** — all inherited from § 6bi, § 6bj
+  and § 6bk.
 
 ## Later rungs
 
