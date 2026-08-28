@@ -2,7 +2,7 @@ import type { OpticalSystem } from "../trace/system";
 import { objectNumericalAperture } from "../pupil/microscope";
 import type { EmitterSlabs, VolumeEmitterDensity } from "./emitter-volume";
 import { imageRadiusForObjectHeight, objectFieldTile } from "./object-field";
-import { radialMapCovering } from "./radial-map";
+import { radialMapCovering, type RadialMapSeed } from "./radial-map";
 import { focusDepthMm, formVolumePlane, neutralVolumeEmitterDensity } from "./spectral-volume";
 
 /**
@@ -60,17 +60,6 @@ export type FocusProbe = (centreMm: {
   readonly z: number;
 }) => VolumeEmitterDensity;
 
-/**
- * How the inverse chief-ray map's bracket is opened — see `RadialMapOptions`.
- *
- * `"none"` is what every caller had before the option existed, and is bitwise
- * the § 6bb/§ 6be path. `"magnification"` seeds it with the frame's own on-axis
- * reading, which costs 3.9e-16 of the table and 1.6e-12 of a rendered pixel and
- * is the difference between a 10× rendering and a 10× THROWING: unseeded, the
- * bracket opens at the image radius, which is `M` object heights out and past
- * the field the chief ray survives.
- */
-export type RadialMapSeed = "none" | "magnification";
 
 export interface FocusSweepOptions {
   /** Frame size in pixels, a power of two. */

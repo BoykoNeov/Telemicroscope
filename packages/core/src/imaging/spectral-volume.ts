@@ -22,7 +22,7 @@ import {
   type FieldPupilOptions,
   type ObjectFieldFrame,
 } from "./object-field";
-import { radialMapCovering, type RadialMap } from "./radial-map";
+import { radialMapCovering, type RadialMap, type RadialMapSeed } from "./radial-map";
 import type { SpectralPlaneInput, StackedSpectralPlane } from "./spectral-stack";
 import { fieldDefocusing, renderFieldVolume, type FieldVolumeImage } from "./field-volume";
 
@@ -411,6 +411,18 @@ export interface FluorescenceVolumeOptions extends FieldPupilOptions {
   readonly refractiveIndex?: number;
   /** Intervals in each wavelength's tabulated radial map. Default 128. */
   readonly radialMapNodes?: number;
+  /**
+   * How the radial map's inverse bracket is opened. Default `"none"` — bitwise
+   * the pre-§ 6bk path on every objective where both work.
+   *
+   * § 6bf offered this on the focus SWEEP and nowhere else, which § 6bk found
+   * the hard way: `fluorescenceMosaicGeometry` seeds its own inversions and
+   * lays out a 10x mosaic happily, while the render that fills those tiles
+   * builds its table here, unseeded, and throws. A picture whose geometry
+   * computes and whose pixels refuse is the shape of a seed that reached one
+   * caller out of several.
+   */
+  readonly radialMapSeed?: RadialMapSeed;
   readonly stack?: StackEmitterOptions;
   /** Called once per wavelength finished. */
   readonly onWavelength?: (done: number, total: number, nm: number) => void;
@@ -523,11 +535,17 @@ export function formVolumePlane(
     centreMm,
     wavelengthNm: sample.nm,
   });
+  // The seed is the frame's OWN traced magnification, which is why it is taken
+  // here rather than asked of the caller: the frame exists by this line, and a
+  // caller passing a number would be passing the one this reads anyway.
   const table =
     radialMap ??
     radialMapCovering(system, [frame], {
       nodes: options.radialMapNodes ?? 128,
       ...(options.aim === undefined ? {} : { aim: options.aim }),
+      ...(options.radialMapSeed === "magnification"
+        ? { magnification: frame.magnification }
+        : {}),
     });
   const rescale = depthRescale(system, sample.nm);
   // Resolved to `undefined` and not to a number when no correction was asked

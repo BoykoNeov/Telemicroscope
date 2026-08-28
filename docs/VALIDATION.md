@@ -119,6 +119,7 @@ whole ladder.
 | [6bh](#step-6bh--the-fluorescence-mosaic) | The tiles composed — and the guard band is the CORRECTION's business: a nominal blue tile leaks 9.82% of a point's light past its own frame, a corrected one 1.87%, and 0.24 mm of specimen adds 0.26 | `fluorescence-mosaic` |
 | [6bi](#step-6bi--the-flat-field-and-the-blend) | The seam's biggest artifact is a brightness STAIRCASE § 6bh never measured — 5.29e-3 at 1 mm of field, 2783× the axis — and a scanner's per-tile flat field makes it 11% WORSE | `mosaic-flat-field` |
 | [6bj](#step-6bj--the-stage-scanning-mosaic) | The other geometry: a stage scan collapses every field quantity to ONE constant the anchor chooses — focus step exactly 0, free flat field inert — and pays 95.7× the seam registration | `stage-mosaic` |
+| [6bk](#step-6bk--the-second-objective) | The RULER decides: in object mm two lenses disagree which focus term dominates (5.13x, either side of 1), in image radius they agree to 1.15x — and the seed reached one map caller of five | `second-objective` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -20950,8 +20951,17 @@ lattice and a radial map are the same lattice at the origin.
 - **The topography focus map has the coordinate and no caller.** `offsetMm` makes
   a slide-flatness map writable and nothing writes one, so the "different driver"
   half of § 6bg's sentence is now buildable rather than built.
-- **Nothing measures any of this on a second objective**, inherited unchanged
-  from § 6bg, § 6bh and § 6bi, and it is now open across four steps.
+- ~~**Nothing measures any of this on a second objective.**~~ **Measured at
+  [§ 6bk](#step-6bk--the-second-objective)**, and the bullet was right that it was
+  the branch's oldest debt and wrong about what it would buy. It did not overturn
+  a conclusion: no pinned number moved. It bounded four of them — § 6bi's axial
+  flat-field verdict and § 6bj's colour-versus-field trade turn out to be an
+  NA 0.10 statement and a robust one respectively, and neither could have said so
+  from one lens. What the bullet could not predict is that the expensive part was
+  a **ruler**: two lenses read at a matched object height disagree 5.13× about
+  which focus term dominates and at a matched image radius agree to 1.15×, so the
+  question "does this travel" has no answer until the currency is fixed — and no
+  single currency serves every quantity.
 - **The blend has no window but the linear ramp**, **nothing corrects the map's
   share of the flat field analytically**, **the registration cost has no closed
   form**, **the readout has no fit**, **the seeded table is not the default**,
@@ -20959,6 +20969,247 @@ lattice and a radial map are the same lattice at the origin.
   economy**, **the weight is still not an absolute throughput**, **the fourth
   cosine**, and **§ 3a's photometric zero point** — all inherited from § 6bi.
 
+
+## Step 6bk — the second objective
+
+Source: `packages/core/src/imaging/spectral-volume.ts`,
+`packages/core/src/imaging/radial-map.ts`,
+`packages/core/src/imaging/object-field.ts` ·
+Tests: `packages/core/test/second-objective.test.ts`
+
+§ 6bg, § 6bh, § 6bi and § 6bj each closed with the same line in "Still open":
+nothing measures any of this on a second objective. Four steps of conclusions
+rested on one 4×/0.10. This is the second lens and the third, and the question is
+not whether sixteen numbers reproduce — it is which of them were about optics and
+which were about that fixture.
+
+**The answer is that the RULER decides more of it than the lens does, and that
+there is no single ruler.** Two lenses can be made to disagree about which term
+of best focus dominates — to land on opposite sides of one, 5.13× apart — purely
+by reading them at a matched object height instead of a matched image radius. In
+the currency a mosaic is actually configured in they agree to 1.15%. But the
+guard band, read in that same currency, does *not* collapse: it stays 4.21×
+apart, because matching the image radius matches what a tile **covers** and not
+where in the field it **sits**. Which ruler collapses a quantity is a property of
+the quantity.
+
+### Two levers, and one lens that does not exist
+
+`10×/0.10` moves the magnification and holds the aperture; `4×/0.20` moves the
+aperture and holds the magnification. § 6bk.2 is the proof the separation is
+real rather than asserted: the depth of focus is λ/NA² and carries no M, so it
+moves **0.074%** across a 2.5× magnification change and **4.008×** across a 2×
+aperture change. Anything that follows the first lever is magnification's;
+anything that follows the second is aperture's.
+
+A realistic 10×/0.25 is not available to pull the second lever at 10×:
+`finiteConjugateObjective` refuses it, and the refusal says the **aperture** is
+binding rather than the glass pair. The ceiling is 0.20 at 4× and at 10× alike —
+a small confirmation of § 6w's reading that an objective's glass is sized by NA
+and field and not by its power.
+
+### The defect this step found before it could measure anything
+
+§ 6bf added `radialMapSeed` to the focus **sweep** and to nothing else, and
+several places build a radial map. `fluorescenceMosaicGeometry` seeds its own
+inversions off the anchor frame's traced magnification, so it laid out a 10×
+mosaic at image radius 4 mm without complaint; `renderFluorescenceMosaic`, filling
+those very tiles, built its table in `spectral-volume` unseeded and **threw**. A
+picture whose geometry computes and whose pixels refuse.
+
+Unseeded the bracket opens at the image radius, which is |M| object heights out
+and past where a 10×'s chief ray survives — `radial-map.ts` had documented that
+mechanism the whole time, at the option that fixes it, which no render caller
+could reach. The seed is now on `FluorescenceSpectralVolumeOptions`, defaulting
+to `"none"`, and the type moved to `radial-map.ts` where it belongs: every caller
+that builds a map has the same bracket to open. § 6bk.1's second rung is the
+bitwise one — § 6bj.1's shape — because § 6bf.6 pins that a seeded table differs
+from an unseeded one in the mantissa, so the default has to stay off or every
+pinned number on the branch moves.
+
+The other half is the message. `objectHeightForImageRadius` refused the 10× at
+image radius 4 mm by reporting a dead chief ray, which sent a reader to look at
+the field stop; it now names the seed when the seed was absent. § 6l's lesson was
+that an identity a caller can get wrong silently is refused rather than
+documented. This one **was** refused and said the wrong thing about why, which is
+the same failure one step further on.
+
+| Rung | Pinned to | Status |
+| --- | --- | --- |
+| **§ 6bk.1 — the seed reaches the render, and the control does not move** | the same 10× options build a geometry and throw `/no object height reaches image radius/` from the render, and render once seeded | ✅ |
+| | and on the 4× the option is bitwise absent — `Object.is` on every pixel of every plane, `"none"` written out against omitted | ✅ |
+| | and the fixture reproduces § 6bi.3's two spans (1.387024e-2, 1.183074e-2), its 1193.36 axial rank, § 6bi.4's 121.25× and 11.0%-worse scanner verdict, and § 6bj.5's **95.7128×** and **40.7543×** — so the lens is the only variable below | ✅ |
+| **§ 6bk.2 — the two levers are separable, and the depth of focus proves it** | λ/NA² carries no M: **1.00074×** across a 2.5× magnification change against **4.00819×** across a 2× aperture change | ✅ |
+| | and a matched image radius matches what a tile COVERS — 9.35715e-2 against 9.35718e-2 object mm, the pixel scale being image-side and the span that over M | ✅ |
+| **§ 6bk.3 — the RULER decides which focus term dominates** | at a matched IMAGE RADIUS colour beats field on both lenses — **2.4987** and **2.1734**, 1.1496× apart and the same side of one | ✅ |
+| | at a matched OBJECT HEIGHT the same two lenses read **2.0187** and **0.3933** — **5.1327× apart, on opposite sides of one**, which would make § 6bj's whole trade lens-specific | ✅ |
+| | and § 6be's separability floor reverses with the ruler too, 3.03× worse at matched height against **3.159× better** at matched radius — one lens cannot be both, and only the ruler changed | ✅ |
+| **§ 6bk.4 — the guard band is the APERTURE's, and the prediction was backwards** | twice the aperture leaks **11.9406×** MORE past a tile's own frame (0.644789 against 0.054000), where λ/NA predicted less | ✅ |
+| | and it does NOT collapse at a matched image radius — **4.2143×** between the 4× and the 10× — which is where § 6bk.3's currency stops | ✅ |
+| | and § 6bg's correction still helps on every lens, 3.1391×, 1.1543× and 1.1916×, ordered by how far each nominal stage sat from best focus | ✅ |
+| **§ 6bk.5 — the flat field's two shares are the APERTURE's** | the stage convention is worth 1.0016× on the axis and 0.99979× at the edge — the bridge that makes the two levers commensurable | ✅ |
+| | on the axis the two fields differ **1195.27×** at NA 0.10 and **COINCIDE** at NA 0.20 (0.999329) | ✅ |
+| | at the edge it inverts — **1.17214×** against **64.6962×**, a 55.1949× reordering of the same readout | ✅ |
+| | and MAGNIFICATION barely touches it: **1.13624×** across the 2.5× | ✅ |
+| | and the free field's axial and edge ROLES swap — 1.01774 / 188.909 against **1395.46** / 1.02110 | ✅ |
+| **§ 6bk.6 — the scanner verdict's SIGN travels and its size does not** | eight measurements over three lenses and two field positions, every one at or above 1 — never once better | ✅ |
+| | and the size spans **1.0000024× to 1.20905×**, a 1.20904× range | ✅ |
+| | and § 6bj's registration cost is the lens's — **95.713×**, **41.776×**, **132.898×**, with the anisotropy 40.754, 16.869, 81.766 and every lens paying more across than along | ✅ |
+| **§ 6bk.7 — what is structural holds on every lens, and needs no numbers** | on the 10×, a stage scan's nine tiles' stages are `Object.is`-equal, the focus correction's field term is exactly 0 and its colour term is not | ✅ |
+| | and `scannerFlatField` is bitwise the same array in both geometries | ✅ |
+| **§ 6bk.8 — the refusals, and the one that did not name its own fix** | a 10×/0.25 and a 4×/0.25 both refuse with the APERTURE binding; 0.20 builds at both | ✅ |
+| | the unseeded inverse now names the seed (`/UNSEEDED/`, `/magnification/`), answers 0.39920498 when seeded, and still refuses an unreachable radius | ✅ |
+| | the fast lens's sweep refuses at the threshold the control passes — **1.80466** depths against **0.869607** — while in MILLIMETRES the ordering reverses, **1.94609e-2** against **3.75871e-2** | ✅ |
+| | and forcing the surface through yields a field drop that changes SIGN between its two heights, with a separability floor past 20× the control's | ✅ |
+
+### The currency, and where it stops
+
+§ 6w found that figures quoted in millimetres of field do not travel across
+magnification, and named the currency that does. § 6bk.3 finds the same thing on
+a focus surface and § 6bk.4 finds its limit, and the two together are the step.
+
+Best focus is a colour term plus a field term (§ 6be.1) and § 6bj built a whole
+geometry on the split: a stage scan reaches the colour term and zeroes the field
+term, so which is larger decides whether that trade is worth taking. Read at
+object height 1.1 mm — a modest field on the 4× and about 70% of the way to where
+the 10×'s chief ray dies — colour is 2.02× field on one lens and 0.393× on the
+other. That reading would make § 6bj's verdict a property of the objective.
+Read at a matched image radius, which is what `centreMm` actually is, they are
+2.499 and 2.173. **The flip was the ruler's, and § 6bj's trade is robust.**
+
+The discriminator is § 6be's interaction term, because it is the estimator's own
+floor and not a property of the optics: if the 10× were genuinely a
+field-dominated lens, its floor would degrade the same way. It moves the other
+way — 3.03× worse at a matched object height and **3.159× better** at a matched
+image radius. One lens cannot be both.
+
+**And a matched image radius is not a universal currency.** It matches what a
+tile covers, exactly: the frame is sized in pixels, the pixel scale is image-side,
+so the object span is that over M, and the 10×'s tile is 2.5× larger on the image
+and the same size on the slide to five digits (§ 6bk.2). What it does not match is
+where in the field the tile sits — 1.0 mm out on the 4× against 0.4 mm on the 10× —
+and field aberration is a function of exactly that. So the guard band stays 4.21×
+apart in the currency that took the focus terms from 5.13× to 1.15×. A mosaic
+number quoted with no lens and no ruler beside it means nothing, and there is no
+one ruler that makes it mean something.
+
+### The guard band was predicted wrong, and the error is the finding
+
+The escape past a tile-sized frame was predicted to be diffraction's: the blur
+goes as λ/NA, so a faster lens forms a tighter spot and should keep more of it
+inside. It leaks **11.94× more**.
+
+What escapes is the out-of-focus content of the slab, not the width of the
+diffraction pattern. The same ±0.008 mm of specimen is 0.37 depths of focus at
+NA 0.10 and 1.48 at NA 0.20, because the depth of focus went down as the square
+while the specimen did not move. **A faster objective wants a bigger guard band,
+not a smaller one** — the opposite of what § 6bh's reasoning suggests, and § 6bh
+could not have seen which of the two mechanisms it was measuring, having one lens.
+
+### § 6bi's axial verdict is an NA 0.10 statement, and it inverts
+
+§ 6bi.3's headline was that on the axis the rendered and free flat fields swap
+rank outright — 1193× — because the throughput is even in field radius (§ 6bd.3)
+and therefore flat there, while the rasterizer's Jacobian is not. § 6bi.4 drew
+the consequence a caller would act on: a free flat field buys nothing on the axis
+and 121× at the edge, so a calibration is an edge-of-field instrument.
+
+Double the aperture and it is exactly backwards. The throughput is no longer flat
+near the axis, the two fields land on top of each other there (0.999329, against
+1195.27 on the control), and the free field takes the axial seam down **1395×**
+while buying 1.02× at the edge. Each lens is useless where the other is best.
+The split is the aperture's throughout: magnification moves the same readout
+**1.136×** across a 2.5×, against the aperture's thousandfold.
+
+### What travelled
+
+Two things, and they are the two that were argued structurally rather than
+measured.
+
+**§ 6bi's scanner verdict.** A real slide scanner's per-tile repeating flat field
+makes a field-scanned mosaic worse, on all three lenses at both field positions,
+eight measurements without one exception — because the argument is about the
+geometry and not the glass: in a field scan each tile really was formed through a
+different pupil, and a repeating frame denies it. The size spans doing nothing at
+all to 21% worse. A warning that holds and a number that does not.
+
+**§ 6bj's structural pair**, folded into one rung rather than eight, because they
+follow from the code path: a stage scan holds one field position, so every tile
+asks for the same stage and the correction's field term is exactly zero, and the
+per-tile calibration is literally the same array in both geometries. Neither was
+ever going to move, and § 6bk.7 says so once.
+
+§ 6bj's registration cost travels as an *explanation* and not as a number — every
+lens pays, every lens pays more across the fitted direction than along it, and the
+size runs 41.8× to 132.9×.
+
+### The threshold that refused the fast lens was right
+
+`maxPlateauDepths` is a threshold on the optics expressed in depths of focus, and
+the depth of focus is λ/NA². So doubling the aperture divides the unit by four
+while the physical plateau does not shrink as fast, and the lens whose axial peak
+is **narrower in millimetres** than the control's (1.9461e-2 against 3.7587e-2) is
+the one refused. Both readings are true and the choice of unit is the whole
+disagreement, which is why § 6bk.8 pins both rather than tuning either.
+
+It would have been easy to read that as the threshold being wrong and raise it.
+Forcing the surface through at 2 is what says otherwise: the field drop **changes
+sign** between the two measured heights and the separability floor lands past 20×
+the control's, so § 6be's interaction term — meant to be the estimator's noise —
+becomes most of the signal. The refusal was the readout working. The fast lens
+therefore carries only the rungs that need no focus surface, at a stage pinned
+from its axial sweep, and the control is measured at **both** conventions so the
+two levers stay commensurable — which costs 0.16% on the axis and 0.02% at the
+edge, against effects of 55× and 1195×.
+
+### Cost
+
+The file is ~165 s: two focus surfaces and eight mosaic renders at module scope,
+plus a deliberately duplicated axial sweep for the provenance rung. That is the
+price of three objectives against four steps of prior conclusions, and it is
+spent once. No single rung is near the 60 s budget; the largest is 36 s.
+
+### What this did to the prose already on the ladder
+
+No pinned number moved — § 6bk.1's bitwise rung is why none could have, the seed
+defaulting to `"none"` everywhere it was added. What moved is the scope of four
+sentences: § 6bi.3's axial swap and § 6bi.4's "an edge-of-field instrument" are
+now NA 0.10 statements, § 6bh.4's escape ordering is now known to be aberration's
+and not diffraction's, and § 6bj's colour-versus-field trade is now known to be
+robust rather than lucky. Each of those was stated on one lens and each was
+stated correctly; what none of them could say is how far it reached.
+
+### Still open
+
+- **Two lenses is not a family.** Every conclusion here is drawn from three
+  points, one per lever plus the control, and a lever pulled once cannot tell a
+  trend from a coincidence. The aperture's thousandfold reordering of the flat
+  field is large enough that its direction is not in doubt; the 1.15× agreement
+  of § 6bk.3 is small enough that a third magnification could move it.
+- **The aperture lever is pulled at 4× and the magnification lever at NA 0.10**,
+  so the corner of the square — a fast 10× — is not measured and cannot be, this
+  solver's ceiling being 0.20 at every magnification. Whether the two levers
+  interact is therefore open by construction.
+- **The fast lens has no field correction at all**, so every aperture-lever
+  number is at a single axial stage. § 6bk.5's bridge bounds what that costs on
+  the control at 0.16%, and nothing bounds it on a lens whose field curve the
+  estimator refuses to certify.
+- **The seed reaches one radial-map caller of several.** `spectral-volume` was
+  threaded because it is what threw; `emitter-spectrum`, `brightfield-spectrum`
+  and `mosaic-spectrum` build their own tables and were left alone deliberately,
+  rather than fixed speculatively into bitwise-identity surfaces nothing measures.
+  A 10× brightfield stack is the next thing likely to refuse.
+- **Nothing here is on an infinity-corrected objective**, and the whole mosaic
+  branch is finite-conjugate.
+- **The blend has no window but the linear ramp**, **nothing corrects the map's
+  share of the flat field analytically**, **the registration cost has no closed
+  form**, **the guard band still has no closed form**, **the readout has no fit**,
+  **the seeded table is not the default**, **depth-dependent pupils are not
+  depth-dependent maps**, **the shared-radius economy**, **the weight is still
+  not an absolute throughput**, **the fourth cosine**, **§ 3a's photometric zero
+  point**, **the stage pitch is fitted along one direction**, **nothing anchors a
+  stage scan off a symmetry axis**, and **the topography focus map has no
+  caller** — all inherited from § 6bi and § 6bj.
 
 ## Later rungs
 

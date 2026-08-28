@@ -374,22 +374,33 @@ export function objectHeightForImageRadius(
   requireFinite(system, "objectHeightForImageRadius");
   if (!(radiusMm > 0)) return 0;
   const aim = options.aim ?? {};
+  const m = Math.abs(options.magnification ?? 0);
   // A chief ray that misses is reported against the radius that was ASKED for,
   // not against the probe height the bracket happened to be at — a caller
   // debugging a dead frame corner needs the frame coordinate, and the height is
   // an implementation detail of the search.
+  //
+  // Unseeded, it also names the seed. The bracket then opens at the image
+  // radius, which is |M| object heights out, so an objective past about 4x
+  // reports a dead chief ray at a field point it images perfectly well —
+  // § 6bk.8, where a 10x refused image radius 4 mm and rendered a mosaic
+  // centred on it in the same run. The old message pointed at vignetting and
+  // said nothing about the one option that fixes it.
   const radiusAt = (h: number): number => {
     try {
       return imageRadiusForObjectHeight(system, h, wavelengthNm, aim);
     } catch (cause) {
       throw new Error(
         `objectHeightForImageRadius: no object height reaches image radius ${radiusMm} mm — ` +
-          `the chief ray fails by object height ${h} mm (${(cause as Error).message})`,
+          `the chief ray fails by object height ${h} mm (${(cause as Error).message})` +
+          (m > 0
+            ? ""
+            : ` — and the bracket was opened UNSEEDED, at the image radius itself; pass ` +
+              `\`magnification\` to open it at radius/|M| instead`),
       );
     }
   };
 
-  const m = Math.abs(options.magnification ?? 0);
   let hi = m > 0 ? radiusMm / m : radiusMm;
   if (!(hi > 0) || !Number.isFinite(hi)) hi = radiusMm;
   let grown = 0;

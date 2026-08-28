@@ -152,6 +152,23 @@ export interface RadialMapOptions {
   readonly magnification?: number;
 }
 
+/**
+ * How a caller asks for `RadialMapOptions.magnification` to be filled in from
+ * the frame that is being rendered, without having to hold the frame itself.
+ *
+ * The type lives here rather than beside the first option that offered it
+ * (§ 6bf's focus sweep) because it is a property of the MAP: every caller that
+ * builds one has the same bracket to open and the same objective-dependent
+ * refusal to avoid. § 6bk found the seed had reached exactly one of the five
+ * call sites, so a 10x mosaic's GEOMETRY computed and its RENDER threw.
+ *
+ * `"none"` is what every caller had before the option existed and stays the
+ * default everywhere: § 6bf.6 pins that a seeded table differs from an unseeded
+ * one in the mantissa, so defaulting it on would move pinned numbers on every
+ * objective where both paths work.
+ */
+export type RadialMapSeed = "none" | "magnification";
+
 export interface RadialMap {
   readonly maxRadiusMm: number;
   readonly nodes: number;
