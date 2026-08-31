@@ -414,7 +414,11 @@ describe("§ 6bu.4 — two verdicts, two thresholds: they do not flip together",
     // Which is the whole reason the two failed at one rung and needs no shared
     // mechanism: both interactions converge toward 1 in this variable, and both
     // verdicts test position relative to 1, so any parameter that walks them
-    // there trips both nearby. The share at the two guards differs by 3.1%.
+    // there trips both nearby. The share at the two guards differs by 3.1% —
+    // which is this PAIR's spacing and not the thresholds' separation, a
+    // distinction § 6bu's own "Still open" list blurred: § 6bv.5 brackets the
+    // separation here at 0.78% to 2.34%, and finds it unresolvable at the
+    // first rung and wider than a whole cell at the last.
     expect(keptShare("s20", 4, { guardCells: 3 })).toBeCloseTo(0.90234375, 12);
     expect(keptShare("s20", 4, { guardCells: 4 })).toBeCloseTo(0.87109375, 12);
   });

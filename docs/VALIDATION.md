@@ -130,6 +130,7 @@ whole ladder.
 | [6bs](#step-6bs--the-six-in-one-table) | The six side by side: 1 reversed, 4 understated, 1 unchanged, none refused — but at THREE anchor fields, and the survivor's stated reason is withdrawn | `six-interactions` |
 | [6bt](#step-6bt--the-two-growth-measures-converted) | D−1 = (R−1)·β/(β−1) converts the two growth measures exactly, so the tally is measure-independent — while § 6bs.2's cut reads 6.6× on one and 4.98% on the other | `growth-measures` |
 | [6bu](#step-6bu--the-guards-share-not-the-anchor) | § 6bs.7's ladder holds the guard's PIXELS, so its SHARE sweeps 0.48 to 0.94 and carries both failed verdicts: at ONE anchor the guard alone spans the whole ladder, and share held, 8× of anchor is worth 3.64% the other way | `guard-share` |
+| [6bv](#step-6bv--the-threshold-is-not-a-share) | The threshold located to a quarter cell, the finest that exists — and it DRIFTS: 0.87 to 0.92 of kept share over 8x, growing 4.75-6.67x where § 6bu's two ladders demand 1x and 8x | `guard-threshold` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -22991,8 +22992,11 @@ hold both while `size` changes.
 The tempting next sentence is that one lever flips both verdicts together.
 § 6bu.4 refuses it: at 1.8708 mm with a guard of three cells the cost reads
 0.99768 — still crossing, verdict intact — while the anisotropy's growth is
-already 0.89843 and has inverted. Two readouts, two nearby but distinct
-thresholds, 3.1% of kept share apart.
+already 0.89843 and has inverted. Two readouts, two ~~nearby but distinct
+thresholds, 3.1% of kept share apart~~ **distinct thresholds whose separation
+here is 0.78% to 2.34% of kept share, the 3.1% being the spacing of these two
+guards and not of the thresholds — and which at the first rung cannot be
+separated at all ([§ 6bv.5](#step-6bv--the-threshold-is-not-a-share))**.
 
 The dissolution does not need them to share one. Both interactions converge
 monotonically toward 1 in this variable, and both verdicts are tests of where a
@@ -23057,7 +23061,7 @@ above stops at 9 mm against the same limit reached from the other direction.
 | **§ 6bu.1 — the anchor ladder holds the guard's PIXELS, so its SHARE sweeps** | `guardCells·size/pupilSamples` with `size/pupilSamples` held is 32 px on the slow 20× and 16 px on the other three at every rung; the kept share therefore runs 0.4844 → 0.9355 and 0.7344 → 0.9668, the discarded share falling by exactly 8× on all four | ✅ |
 | **§ 6bu.2 — at ONE anchor the guard alone spans the whole published ladder** | at 3.7415 mm, guards of 4/6/8/16/24/32/40 cells give 1.004804 … 0.652140 on the cost and 0.985310 … 0.712505 on the anisotropy, both strictly monotone; that covers § 6bs.7's four rungs on both readouts and overshoots the cost's low end by 21.9%, and every guard in it is ≥ the branch's four — while eight cells at the first rung is refused, the guard eating the tile | ✅ |
 | **§ 6bu.3 — so both of § 6bs.7's failed verdicts move with the guard, at a fixed anchor** | six cells at 3.7415 mm puts the cost at 0.992704, back below 1, and the anisotropy's growth at 1.009085, back above it — neither reading privileged over the other; and at the branch's own 0.4677 mm a half-cell guard fails both verdicts there too, quoted as the geometry-only extension it is | ✅ |
-| **§ 6bu.4 — two verdicts, two thresholds: they do not flip together** | at 1.8708 mm a guard of three has the cost at 0.997679, still crossing, while the anisotropy's growth is 0.898432 and has inverted; one cell further out both hold, at 0.986325 and 1.279006, so the two thresholds sit 3.1% of kept share apart | ✅ |
+| **§ 6bu.4 — two verdicts, two thresholds: they do not flip together** | at 1.8708 mm a guard of three has the cost at 0.997679, still crossing, while the anisotropy's growth is 0.898432 and has inverted; one cell further out both hold, at 0.986325 and 1.279006, so ~~the two thresholds sit 3.1% of kept share apart~~ **that PAIR spans both thresholds, whose own separation is 0.78% to 2.34% ([§ 6bv.5](#step-6bv--the-threshold-is-not-a-share))** | ✅ |
 | **§ 6bu.5 — hold the share instead, and the anchor is worth 3.64% over 8×** | `guardCells` scaled with the rung holds the share at 0.4844 → 0.4980, and then the cost runs 0.794872 → 0.765944, away from 1, against the published ladder's 26.4% toward it; the anisotropy 2.98% with no inversion; and matched shares at 0.4677 and 0.9354 mm agree to 0.59% where the ladder reports 18.3% | ✅ |
 | **§ 6bu.6 — the axis crossing lands at the same rung, and is refused as the cause** | the footprint first contains the axis at 3.7415 mm on all four cells, the leading tile's centre at −1.1253 … −1.3051 mm having cleared by 0.0436 … 0.2443 mm one rung below; not sufficient, since the held-share ladder crosses and reads 0.765944; not necessary, since a centre of 9 mm clears all four and still reads 1.009757 with growth 0.586804 | ✅ |
 | **§ 6bu.7 — 3.7415 mm is the last rung that EXISTS, not the last one chosen** | `k` 16 is refused by the chief ray — no object height reaches image radius 18.286 mm, vignetting at object height 1.833 mm — and a centre of 10 mm is refused the same way at 17.889 mm, which is why § 6bu.6's sweep stops at 9 | ✅ |
@@ -23077,14 +23081,165 @@ above stops at 9 mm against the same limit reached from the other direction.
   guard count held gives +26.4%, guard share held −3.64% — and that a choice
   between them is a choice, not a measurement. Anything built on "how this
   readout varies with the field" has to say which it holds.
-- **The threshold is bracketed, not located.** The cost crosses 1 between kept
+- ~~**The threshold is bracketed, not located.** The cost crosses 1 between kept
   shares of about 0.90 and 0.94 at every anchor measured, and the anisotropy
   inverts a little below that; neither is pinned to better than one guard cell,
   and whether the threshold drifts with the anchor in some regular way is
-  unmeasured. Four anchors is what the field limit allows.
+  unmeasured. Four anchors is what the field limit allows.~~ **Located to a
+  quarter cell — which is the finest guard that exists, not the finest this
+  branch tried — by [§ 6bv](#step-6bv--the-threshold-is-not-a-share), and two of
+  those three clauses are wrong. The band does NOT hold at every anchor: at
+  0.4677 mm the crossing is below 0.891. And the threshold DRIFTS, its guard
+  growing by a factor in [4.75, 6.67] over an 8× where a held share would demand
+  8× and a held pixel count 1× — so it is a third ladder, and neither of § 6bu's
+  two.**
 - **Inherited and untouched**: the plateau still cannot be moved to the common
   anchor without new sweeps, § 6bn's first interval is still unreachable, and
   § 6bs.6's two orderings still have no replacement.
+
+## Step 6bv — the threshold is not a share
+
+§ 6bu moved two of § 6bs.7's three misbehaviours off the anchor and onto the
+guard's share of the tile, and then described the lever it had found only
+halfway: "the cost crosses 1 between kept shares of about 0.90 and 0.94 at every
+anchor measured, and the anisotropy inverts a little below that; neither is
+pinned to better than one guard cell, and whether the threshold drifts with the
+anchor in some regular way is unmeasured." Three clauses. This step measures all
+three, and two of them come out otherwise.
+
+### A quarter cell, and nothing finer exists
+
+`mosaicGuardPixels` refuses a guard that is not a whole number of pixels rather
+than rounding it — `latticeMatchedSource`'s argument, that a rounded guard is a
+perfectly plausible mosaic whose seam error is not the one the caller asked for.
+Three of the four cells carry four pixels per resolution cell, so a quarter cell
+is the finest legal step; and § 6bs.7's ladder holds `size / pupilSamples`, so it
+is the finest step at **every** rung. What the rung changes is what a quarter
+cell is worth in § 6bu's ruler: the slow 20×'s kept share moves `0.03125 / k`,
+which is 3.1% at the first rung and 0.39% at the last.
+
+So "not pinned to better than one guard cell" was not a limit of § 6bu's effort;
+a quarter of a cell is the limit, it is arithmetic, and this step reaches it.
+
+### Both crossings, bracketed at all four anchors
+
+| crosses at | 0.4677 mm | 0.9354 mm | 1.8708 mm | 3.7415 mm |
+| --- | --- | --- | --- | --- |
+| cost, guard cells | (0.75, 1] | (1.5, 1.75] | (2.75, 3] | (4.75, 5] |
+| cost, kept share | 0.8594–0.8906 | 0.8828–0.8984 | 0.9023–0.9102 | 0.9199–0.9238 |
+| anisotropy, guard cells | (0.75, 1] | (1.5, 1.75] | (3.25, 3.5] | (5.75, 6] |
+| anisotropy, kept share | 0.8594–0.8906 | 0.8828–0.8984 | 0.8867–0.8945 | 0.9043–0.9082 |
+
+The cost's readings straddle 1 at each of those pairs and the readout is strictly
+monotone across the window either side, so the bracket is the crossing and not a
+sign change picked out of noise. The anisotropy's threshold is stated more
+sharply than "growth crosses 1": `anisoGrowth` divides by a constant built from
+the branch's own column, so growth = 1 is exactly the guard at which the
+quartet's anisotropy interaction **equals the branch's**, 0.9772598554705617,
+and the table's second pair straddles that fixed number.
+
+### It drifts — and § 6bu's band is wrong at the first rung
+
+The first bracket and the third are disjoint, and so are the third and the
+fourth. The drift is therefore larger than the quarter cell that limits it, and
+is not the resolution talking. (The first two overlap; nothing here separates
+them.)
+
+§ 6bu's "about 0.90 and 0.94 at every anchor" holds at the top two rungs and
+**fails at the first**, where the whole bracket is below 0.891. § 6bu had a
+two-sided bracket at one anchor only — its four cells and six at 3.7415 mm — and
+its one reading at 0.4677 mm (half a cell, share 0.921875, cost above 1) bounds
+that crossing from one side alone, which is consistent with a crossing anywhere
+below. The band was generalised from the single anchor that had one.
+
+Seeing the drift needs no interpolation at all. At 0.4677 mm a guard of 0.75
+cells keeps 0.890625 of the tile and reads **1.006221**, above 1; at 3.7415 mm
+§ 6bu.3's own six cells keep **more** of the tile, 0.904297, and read
+**0.992704**, below it. Keeping more is the direction that pushes the cost up,
+and it is the reading that came out lower. No single kept share is the threshold
+for both anchors.
+
+### Which refuses both of § 6bu's ladders
+
+The threshold's own guard grows from (0.75, 1] cells to (4.75, 5] over the same
+8× of anchor — a factor the brackets confine to **[4.75, 6.67]**. Holding the
+kept share would demand exactly 8× and holding the pixel count exactly 1×, and
+the measured interval contains neither. § 6bu found that its two candidate
+ladders disagree about the *sign* of the anchor's effect; the threshold locus is
+a third ladder lying between them, nearer the held-share one.
+
+The anisotropy's does not license the same sentence. Its guard grows over an
+interval of [5.75, 8], and 8 is **attained** at the upper end rather than
+excluded — so that readout excludes the held pixel count and says nothing either
+way about the held share. It is the weaker finding, and it is weaker because of
+where this grid happens to fall: a guard a quarter cell either side would settle
+it, and no such guard exists.
+
+### The two thresholds separate as the anchor grows
+
+§ 6bu.4 put them "3.1% of kept share apart". That is the spacing of the two
+guards it happened to read — three cells and four at 1.8708 mm — and not the
+separation of the thresholds, which at that same anchor is between 0.25 and 0.75
+of a cell, **0.78% to 2.34%** of kept share. The published number is an upper
+bound and overstates by up to 4×.
+
+Nor is the separation a constant. At 0.4677 mm both crossings fall in **one**
+quarter cell and this ladder cannot separate them at all; at 3.7415 mm they are
+at least three quarter cells apart and at most five. § 6bu.4's "two nearby but
+distinct thresholds" is a statement about the top rungs, and has no content at
+the bottom one.
+
+### Why the failure lands on the fourth rung
+
+§ 6bh.4 floors the guard at four resolution cells — that is what has to contain
+the PSF wrap. The threshold crosses that floor between the third rung (2.75 to 3
+cells) and the fourth (4.75 to 5). So at the first three rungs § 6bs.7's verdicts
+could only have been failed by a guard **below the floor**, a mosaic nobody could
+build; the fourth is the first rung at which the branch's own four cells already
+sit on the failing side. That is the whole of why 3.7415 mm is where both
+verdicts went — the same statement as § 6bu.3's, read from the threshold's side
+rather than from the guard's.
+
+It also puts a label on the table above: three of its four columns are
+geometry-only readings in § 6bu.3's sense. `mosaicSeamShiftMm` renders nothing,
+so a sub-floor guard has a number; the mosaic it describes would not contain a
+wrap. Only the fourth rung's threshold sits at a guard that could be built.
+
+### Four anchors, and now for a second reason
+
+§ 6bu.7 refused a *fifth* rung by the chief ray, and called four "what the field
+limit allows". There are no rungs **between** the four either: the frame must be
+a power of two, so `k` 3, 5, 6 and 7 are refused before a ray is traced. The
+crossings above are bracketed by the only anchors this family has, and the
+crossing of the buildable floor cannot be narrowed past "between the third rung
+and the fourth" by any measurement in this family.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bv.1 — a quarter cell is the finest guard that exists, at every rung** | an eighth of a cell is refused, not rounded — 0.5 px at size 1024 — while a quarter is legal at all four rungs because the ladder holds `size / pupilSamples`; so the ruler's resolution is `0.03125/k`, 3.1% of kept share at the first rung and 0.39% at the last, and the closed form `1 − g/8k − 1/64k` matches the geometry at every guard read | ✅ |
+| **§ 6bv.2 — both crossings bracketed to one quarter cell, at all four anchors** | the cost straddles 1 at (0.75, 1], (1.5, 1.75], (2.75, 3] and (4.75, 5] cells, strictly monotone across each window; the anisotropy straddles the BRANCH's own 0.97726 — which is what growth = 1 is, the divisor being constant — at (0.75, 1], (1.5, 1.75], (3.25, 3.5] and (5.75, 6] | ✅ |
+| **§ 6bv.3 — the threshold DRIFTS, and § 6bu's band fails at the first rung** | in kept share the four brackets are 0.8594–0.8906, 0.8828–0.8984, 0.9023–0.9102 and 0.9199–0.9238; first and third are disjoint and so are third and fourth, so the drift exceeds the resolution; and 0.75 cells at 0.4677 mm keeps LESS and reads 1.006221 where six cells at 3.7415 mm keeps more and reads 0.992704 | ✅ |
+| **§ 6bv.4 — the drift refuses BOTH of § 6bu's ladders** | the threshold guard grows by a factor the brackets confine to [4.75, 6.67] over 8× of anchor, where the held share demands 8× and the held pixel count 1×; the anisotropy's own interval is [5.75, 8], which excludes the pixel count and ATTAINS 8 rather than excluding it, so it says nothing either way about the held share | ✅ |
+| **§ 6bv.5 — the two thresholds separate as the anchor grows** | one quarter cell or less at 0.4677 mm, where this ladder cannot separate them at all, against three to five quarter cells at 3.7415 mm; and § 6bu.4's "3.1% of kept share" is its two guards' spacing, the separation there being 0.78% to 2.34% | ✅ |
+| **§ 6bv.6 — the fourth rung is where the threshold clears the buildable floor** | § 6bh.4's four cells are crossed between (2.75, 3] and (4.75, 5], so below the fourth rung the verdicts could only fail at a sub-floor guard; three of the four thresholds are geometry-only in § 6bu.3's sense, and the fourth is not | ✅ |
+| **§ 6bv.7 — four anchors, and now for a second reason** | `k` 3, 5, 6 and 7 are refused by the power-of-two frame before any ray is traced, so there is no rung BETWEEN the four either, and § 6bu.7's chief-ray limit is not the only one | ✅ |
+
+**Still open.**
+
+- **No drift LAW, only a bracket on it.** The threshold's guard grows by a factor
+  in [4.75, 6.67] over 8× of anchor and that refuses both constant candidates,
+  but four anchors — all the family has — cannot distinguish the forms that fit
+  inside the interval. Anything sharper needs an anchor family that is not this
+  one.
+- **The two thresholds' separation has a direction and no mechanism.** It grows
+  from unresolvable to more than a cell across the four rungs; why the anisotropy
+  should lag the cost, and by an amount that itself grows, is unmeasured. § 6bu's
+  "both converge toward 1, so both trip nearby" explains the coincidence and not
+  the gap.
+- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
+  unexplained curve, the plateau still cannot be moved to the common anchor
+  without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
+  two orderings still have no replacement.
 
 ## Later rungs
 
