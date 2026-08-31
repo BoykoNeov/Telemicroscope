@@ -298,10 +298,16 @@ describe("§ 6bu.1 — the anchor ladder holds the guard's PIXELS, so its SHARE 
       KS.slice(1).map((k) => keptShare("s10", k)),
     );
 
-    // The four start 1.79x apart in discarded share and end 1.94x apart — but
-    // what matters below is that every one of them moves, by 3.6x to 7.8x.
-    expect((1 - 0.484375) / (1 - 0.935546875)).toBeCloseTo(8.0, 9);
-    expect((1 - 0.734375) / (1 - 0.966796875)).toBeCloseTo(8.0, 9);
+    // The DISCARDED share falls by exactly 8x on all four, which is what the
+    // section claims and is not free: `kept = size − 2·guard − 2·cropped` with
+    // `cropped` a constant 1, so the −2 term has to cancel for the ratio to come
+    // out on the nose. It does at these sizes; asserted on every cell rather
+    // than on the two the prose happens to quote.
+    for (const c of CELLS) {
+      const first = keptShare(c, 1);
+      const last = keptShare(c, 8);
+      expect((1 - first) / (1 - last)).toBeCloseTo(8.0, 9);
+    }
   });
 });
 

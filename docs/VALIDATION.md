@@ -21902,8 +21902,8 @@ carry the readout across the threshold at the crossing itself.**
 | | and the other half: the field GROWS with magnification in exact proportion, 0.18707732 / 0.46769329 / 0.93538658 at 4×, 10× and 20×, ratios `toBeCloseTo` 2.5 and 2 at 12 digits | ✅ |
 | **§ 6bo.2 — each lever's field factor is pure, and that is NOT enough** | the shrink per aperture doubling is **2.031009601158958** at 4×, 10× and 20× alike — a spread under 1e-12, because `halfExtent ∝ M / NA` leaves no M in the ratio | ✅ |
 | | and the growth per magnification step is exactly `M_hi / M_lo` at NA 0.10 and at NA 0.20 alike, likewise under 1e-12 — so the confound enters an interaction quotient's numerator and denominator as the SAME factor, which would cancel if the readout were multiplicatively separable in (field, lever) | ✅ |
-| | it is not separable — three fields at ONE aperture give 66.499, 21.046, 8.202, nowhere near a power law — and the quotient duly fails to cancel: § 6bn's cost interaction is **1.0416581** the branch's way and **0.7948724** at a matched field, **CROSSING 1** — **at this anchor and the next two, and NOT at the widest: [§ 6bs.7](#step-6bs--the-six-in-one-table) reads 1.0048 at 3.7415 mm, where the crossing is gone** | ✅ |
-| | § 6bn's anisotropy interaction likewise: 0.9772599 → 0.7862301, its distance from 1 growing **11.6846×** without crossing — **a growth [§ 6bs.7](#step-6bs--the-six-in-one-table) walks across the anchor family, where it falls to 3.3069×, 1.2790× and then 0.6407×, INVERTING at the widest** | ✅ |
+| | it is not separable — three fields at ONE aperture give 66.499, 21.046, 8.202, nowhere near a power law — and the quotient duly fails to cancel: § 6bn's cost interaction is **1.0416581** the branch's way and **0.7948724** at a matched field, **CROSSING 1** — **at this anchor and the next two, and ~~NOT at the widest: [§ 6bs.7](#step-6bs--the-six-in-one-table) reads 1.0048 at 3.7415 mm, where the crossing is gone~~ — that reading is the GUARD SHARE's and not the anchor's: at the same 3.7415 mm a guard of six cells reads 0.992704 and the crossing is back ([§ 6bu](#step-6bu--the-guards-share-not-the-anchor))** | ✅ |
+| | § 6bn's anisotropy interaction likewise: 0.9772599 → 0.7862301, its distance from 1 growing **11.6846×** without crossing — **a growth ~~[§ 6bs.7](#step-6bs--the-six-in-one-table) walks across the anchor family, where it falls to 3.3069×, 1.2790× and then 0.6407×, INVERTING at the widest~~ — the inversion is the GUARD SHARE's: six cells at the same 3.7415 mm reads 1.009085 and it is not inverted ([§ 6bu](#step-6bu--the-guards-share-not-the-anchor))** | ✅ |
 | | while § 6bn's PLATEAU interaction survives — 0.8614283 → **0.8691012**, a move of 0.89% — and ~~the separation is not arbitrary: the survivor is the one readout § 6bo.5 measures to be field-free~~ **that reason is withdrawn at [§ 6bs.8](#step-6bs--the-six-in-one-table)**: § 6bq.7 measures NA 0.20, one of this interaction's own two apertures, moving 4.756% under a field change — 5.3× the margin it survived by. The two columns stand as measured; the account of why they agree does not | ✅ |
 | | with all three branch's-way values reproducing § 6bn's pinned `costI`, `anisoI` and `plateauI` to seven digits, which is what makes the matched column comparable | ✅ |
 | **§ 6bo.3 — at a matched field the cost's APERTURE dependence reverses** | doubling the sampling with the aperture holds the field to **1.55%**, the same residual at all three field sizes to 12 digits | ✅ |
@@ -22654,7 +22654,10 @@ open — now with a measured reason rather than a shrug.
 § 6br measured its anchor family for the escape and deliberately declined to
 generalise, having watched this branch state a narrow measurement as a general
 one twice. Generalising is cheap for the two render-free readouts, so § 6bs.7
-does it over the same extent ladder:
+does it over the same extent ladder — and [§ 6bu](#step-6bu--the-guards-share-not-the-anchor) then finds that this
+ladder is not the extent alone. The columns below are correct as measurements;
+read them as a function of the guard's SHARE of the tile, which they also sweep,
+and not of the anchor heading each one:
 
 | anchor (mm) | 0.4677 | 0.9354 | 1.8708 | 3.7415 |
 | --- | --- | --- | --- | --- |
