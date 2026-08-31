@@ -127,6 +127,8 @@ whole ladder.
 | [6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) | § 6bn.6's 2.7e-4 agreement was two frame sizes; matched, the split's interaction is understated 7–16×, the free field's axial one crosses 1, and two readouts refuse | `matched-flat-field` |
 | [6bq](#step-6bq--the-refusal-boundary-moves-with-magnification) | Plateau refusal crosses (0.15, 0.16] at 10× and (0.17, 0.19) at 20×, 0.18 the frame's; § 6bo.5's 3% field control missed the biggest movers | `refusal-boundary`, `refusal-frames` |
 | [6br](#step-6br--the-escapes-interaction-at-a-matched-field) | The last of § 6bn's six is UNDERSTATED 2.00×, not reversed; the two magnifications move opposite ways, and the anchor field nobody varied turns the quotient over | `escape-interaction` |
+| [6bs](#step-6bs--the-six-in-one-table) | The six side by side: 1 reversed, 4 understated, 1 unchanged, none refused — but at THREE anchor fields, and the survivor's stated reason is withdrawn | `six-interactions` |
+| [6bt](#step-6bt--the-two-growth-measures-converted) | D−1 = (R−1)·β/(β−1) converts the two growth measures exactly, so the tally is measure-independent — while § 6bs.2's cut reads 6.6× on one and 4.98% on the other | `growth-measures` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -22216,7 +22218,10 @@ travels and its size is not the optics'.
   ratio of departures, and the four understated readouts rank in opposite orders
   under them — the escape is the largest correction on one and the smallest on
   the other. Six readouts across one interval still give one number each and no
-  shape.
+  shape. **[§ 6bt.5](#step-6bt--the-two-growth-measures-converted) locates the
+  disagreement: the factor converting one measure into the other falls
+  monotonically where the effect rises, over comparable spreads, so the product
+  is forced into neither order.**
 - **Only two cells move**, so no rung here may read a mechanism into which cell a
   quotient's change came from — and § 6bn's first interval (4×→10×) is still
   unreachable, matching a 4× frame wanting `pupilSamples` 12.8.
@@ -22711,7 +22716,7 @@ third instance of the same error this step exists to document.
 | Rung | What it pins | |
 | --- | --- | --- |
 | **§ 6bs.1 — the six assemble, and the branch column is § 6bn.3's own list** | the render-free pair rebuilds to `1.0416581`/`0.9772599` and § 6bo.2's `0.7948724`/`0.7862301`, and all six branch departures are § 6bn.3's published 1.0063, 1.0086, 1.0233, 1.0417, 1.1609, 1.2148 | ✅ |
-| **§ 6bs.2 — the tally, computed: ONE reversed, FOUR understated, ONE unchanged, none refused** | the multiset asserted from the six pairs, with the cost the only crossing and the anisotropy explicitly not one; and the cut is a measured gap — 0.94× against a minimum of 6.19×, nothing between | ✅ |
+| **§ 6bs.2 — the tally, computed: ONE reversed, FOUR understated, ONE unchanged, none refused** | the multiset asserted from the six pairs, with the cost the only crossing and the anisotropy explicitly not one; and ~~the cut is a measured gap — 0.94× against a minimum of 6.19×, nothing between~~ **the cut is real but its SIZE is § 6bo's measure's, not the table's: [§ 6bt.3](#step-6bt--the-two-growth-measures-converted) reads the same cut as 0.9912 against 1.0405 — a margin of 4.98%, with a different row nearest it** | ✅ |
 | **§ 6bs.3 — three anchors, in the ratio 1 : 1.5 : 2** | 0.46769329, 0.70153993 and 0.93538658 mm; the plateau's 1.5× is its sweep's `pupilSamples` 48 against the mosaic readouts' 32, and its NA 0.20 cells carry § 6bo.1's 1.0155048 residual | ✅ |
 | **§ 6bs.4 — five of the six go onto ONE anchor and the tally does not move** | § 6br.6's second rung IS the other five's anchor; the escape reads 0.3596838 there, still understated, and the five-row table gives the same 1 / 4 — while the SIZE moves 14%, 2.0034× to 2.2886× | ✅ |
 | **§ 6bs.5 — all six below 1 at a matched field, five of six down the branch** | the correction makes the set unanimous, the cost being the only row that crosses; and the physical gloss is REFUSED — the cost's matched levers are 0.6370 and 0.5063, below 1, against 1.5358 and 1.5997 down the branch | ✅ |
@@ -22731,10 +22736,19 @@ third instance of the same error this step exists to document.
   one address, no account. Whether the two splits share it is unmeasured — they
   are rendered flat fields and cost renders, not the second this pair cost.
 - **A replacement ordering for § 6bn.3 is still not offered**, and § 6bs.6 is why
-  one is not available on the published numbers rather than why nobody tried.
+  one is not available on the published numbers rather than why nobody tried —
+  **[§ 6bt.1](#step-6bt--the-two-growth-measures-converted) makes that reason
+  algebraic rather than measured: the two measures differ by one factor of the
+  branch value, `β/(β − 1)`, which spans 28× across the four understated rows.
+  It is a conversion, not an ordering, and closes nothing.**
 - **The two growth measures are both still in use.** This step publishes both
   columns rather than picking one, because picking one would restate four earlier
-  steps' headline numbers in a measure they did not choose.
+  steps' headline numbers in a measure they did not choose — **and
+  [§ 6bt](#step-6bt--the-two-growth-measures-converted) supplies the exact
+  conversion between them, so the choice need not be made at all. The conversion
+  needs the branch value, which every originating step does quote beside its
+  growth figure; the one table that dropped it is § 6bs.6's own, and § 6bt.5's
+  carries it. No convention says it has to be there, which is why it went.**
 - **§ 6bn's first interval, 4× → 10×, is still unreachable**, for § 6bo.2's
   reason: matching a 4× frame wants a non-integer `pupilSamples` at every
   power-of-two size. So "not one of the six is a slope" remains neither confirmed
@@ -22743,6 +22757,158 @@ third instance of the same error this step exists to document.
   still unnamed**, **the seed reaches one radial-map caller of several**, **the
   blend has no window but the linear ramp**, **the guard band still has no closed
   form** — inherited from § 6bi onward.
+
+## Step 6bt — the two growth measures, converted
+
+[§ 6bs.6](#step-6bs--the-six-in-one-table) found that § 6bn's six interactions
+had been re-measured in **two different measures** of "how much did the
+matched-field correction move this quotient", and that the two rank the four
+understated readouts in opposite orders. It published both columns and picked
+neither, on the grounds that picking one would restate four earlier steps'
+headline numbers in a measure those steps did not choose. That reasoning holds,
+but what it left behind is worse than what it documented: two columns and no
+stated relation between them, so a reader holding
+[§ 6br](#step-6br--the-escapes-interaction-at-a-matched-field)'s **2.0034**
+cannot get [§ 6bo](#step-6bo--both-levers-were-two-levers)'s **6.674** out of
+it, and the two sentences read as though they were about one quantity.
+
+They are not, and the relation between them is exact. Write `b` and `m` for a
+readout's branch and matched-field quotients, and fold each to its departure
+from 1 the way every step on this branch does: `β = departure(b)` and
+`µ = departure(m)`, both ≥ 1. The two published measures are
+
+| | | |
+| --- | --- | --- |
+| **R** | `µ / β` | § 6br's — the ratio of the departures |
+| **D** | `(µ − 1) / (β − 1)` | § 6bo's and § 6bp's — the growth of the distance from 1 |
+
+and substituting `µ = Rβ` into D gives, in one line,
+
+> **D − 1 = (R − 1) · β / (β − 1)**
+
+So the two columns differ by a single factor `f = β / (β − 1)`, and `f` depends
+on the **branch value alone** — the matched column does not enter it. Either
+measure therefore converts into the other from § 6bn.3's own published list,
+with no re-measurement of anything. § 6bt.1 asserts the identity as a relative
+residual below 1e-12 on all six rows and below 1e-14 on the two rebuilt from
+source here, which is what distinguishes an algebraic identity from a numerical
+coincidence.
+
+### The verdicts are measure-independent; the confidence in them is not
+
+`β > 1` strictly whenever a quotient is not exactly 1, so `f > 0` and the
+identity carries the **sign** across unchanged: D > 1 exactly when R > 1. The
+1 / 4 / 1 tally is therefore not a fact about which measure § 6bs.2 happened to
+classify with. § 6bt.2 recomputes it with the classifier reading R and gets the
+same one reversed, four understated, one unchanged — row by row, not merely as a
+multiset — and checks the sign result on a 9 × 9 grid of synthetic pairs so the
+claim is visibly algebra rather than a property of these six.
+
+What does **not** carry across is how comfortable that classification looks.
+§ 6bs.2 backed its cut with a measured gap: "0.94× against a minimum of 6.19×,
+nothing between". Read in § 6br's measure the same cut is 0.9912 against 1.0405
+— still a gap, still with nothing in it, and a margin of **4.98%** where the
+other measure showed a factor of **6.6**, two orders of magnitude apart. The row
+on the far side of the cut is not even the same one:
+
+| | nearest row above the cut | the cut |
+| --- | --- | --- |
+| § 6bo's measure, D | registration cost, 6.194799 | **6.6163×** above the plateau's 0.936289 |
+| § 6br's measure, R | split, axis, 1.040529 | **1.049797×** above the plateau's 0.991172 |
+
+Which readout sits closest to the survivor is a fact about the measure, not
+about the optics. § 6bs.2's cut stands; the sentence justifying it may not be
+quoted in one measure alone, and § 6bt.3 pins both readings so it cannot be.
+
+### Why the orderings differ, stated only as far as it is measured
+
+Taking the four understated rows in § 6bn.3's own order, the two factors of the
+product run **opposite** ways:
+
+| understated readout | `f` | `R − 1` | product, `D − 1` |
+| --- | --- | --- | --- |
+| split, axis | 158.768 | 0.040529 | 6.434765 |
+| split, edge | 117.310 | 0.130486 | 15.307261 |
+| anisotropy | 43.975094 | 0.242969 | 10.684599 |
+| escape | 5.654997 | 1.003404 | 5.674246 |
+
+`f` falls monotonically where `R − 1` rises monotonically, and their spreads are
+**28.076×** and **24.758×** — within 13% of each other. A product of two factors
+whose spreads are comparable and whose orders are opposed is not forced into
+either one's order, and this one duly rises, falls and falls again. That is an
+observation about this table, not a mechanism: the anti-monotonicity of `f` and
+`R` across these particular four rows is measured at § 6bt.5 and **nothing here
+derives it**.
+
+The converse *is* derivable, and § 6bt.6 checks it where it can be checked.
+Where the branch value is held fixed, `f` is one number and D is a positive
+affine map of R, so the two measures must order identically. § 6bs.7's
+anisotropy anchor family is exactly that case — one branch quotient, four
+anchors — and it behaves as required: R runs 1.242969, 1.052460, 1.006344,
+0.991830 and crosses 1 between the same two anchors where D falls through 1.
+**§ 6bs.7's inversion at 3.7415 mm is therefore not an artifact of the measure** —
+one of the three unexplained misbehaviours at that anchor has at least been
+shown not to be a bookkeeping choice.
+
+### The precision the conversion factor earns
+
+`f` is `1 / (1 − b)` below 1 and `b / (b − 1)` above it, and both forms divide by
+a difference that cancels most of the input's significance. § 6bp.3 pinned the
+two rendered splits to 8 decimals, so their branch values carry 5e-9 against a
+`1 − b` of 6.3e-3 and 8.5e-3 — relative 7.9e-7 and 5.9e-7, which puts `f`'s
+uncertainty at 1.3e-4 and 6.9e-5. **Three decimals are earned and four are
+not**, and § 6bt.4 pins that by perturbing the constants by their own tolerance
+rather than by asserting a digit count. The four rows that are rebuilt here or
+carry full double precision lose nothing to the cancellation and are pinned six
+decimals harder. This is a bound on the *table*, not on the identity, which is
+algebra and holds at machine precision on whatever numbers it is handed.
+
+### The blind spot both measures share
+
+Both fold through `departure()`, which sends `x` and `1/x` to the same value, so
+**neither growth measure can see a crossing of 1**. The registration cost reads
+D = 6.195 and R = 1.208 — "understated" on both — and is classified REVERSED
+only because § 6bs.2's classifier asks about the crossing first, before either
+growth measure is consulted. § 6bt.7 pins that the crossing test is doing that
+work alone, and that the cost is the only one of the six that crosses.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bt.1 — the two measures differ by ONE factor, and it is the branch column's** | `D − 1 = (R − 1) · β/(β − 1)` as a relative residual below 1e-12 on all six rows and below 1e-14 on the two rebuilt from source; and `f` computed without the fold, from `b` alone, agrees to 9 decimals | ✅ |
+| **§ 6bt.2 — so the two measures can never disagree about the VERDICT** | `β > 1` strictly, so `f > 1` and the sign carries; § 6bs.2's tally recomputed with the classifier reading R is the same 1 / 4 / 1 row by row; and a 9 × 9 grid of pairs agrees on the sign in both directions, 35 each way with 11 ties | ✅ |
+| **§ 6bt.3 — but the COMFORT of § 6bs.2's cut is not measure-independent** | the cut survives with nothing in it under R too, at 0.991172 against 1.040529 — a margin of 4.980%, against the 6.6163× § 6bs.2 quoted — and the nearest row is the registration cost on one measure and the axis split on the other | ✅ |
+| **§ 6bt.4 — the conversion factor, at the precision each branch value earns** | 158.768, 117.310, 43.9750943, 25.0049376, 7.2164828, 5.6549974; and perturbing the two 8-decimal split constants by their own 5e-9 moves `f` by more than 5e-5 and less than 5e-4, which is what makes three decimals the earned count | ✅ |
+| **§ 6bt.5 — the factor and the effect run OPPOSITE ways across the four understated** | `f` strictly falling against `R − 1` strictly rising in § 6bn.3's order, spreads 28.0756× and 24.7577× within 13%, and the products 6.434765 / 15.307261 / 10.684599 / 5.674246 in no order at all | ✅ |
+| **§ 6bt.6 — where the branch value is HELD, the two measures agree on order** | § 6bs.7's anisotropy family shares one `f` to the last bit, so D is a positive affine map of R and the four anchors sort identically; R = 1.242969 / 1.052460 / 1.006344 / 0.991830 crosses 1 at the same anchor D does | ✅ |
+| **§ 6bt.7 — both measures are blind to a crossing of 1, so the classifier asks first** | `departure(x) = departure(1/x)` on three of the six's own values; the cost reads understated on both measures and is REVERSED, and it is the only one of the six that crosses | ✅ |
+
+### Still open
+
+- **This is not a replacement ordering for § 6bn.3**, and it must not be read as
+  one. § 6bp's open item asked for an ordering of the six by how much the
+  correction moved them; what § 6bt supplies is the exact conversion between the
+  two orderings already published, which upgrades § 6bs.6's reason from *measured*
+  to *algebraic* and closes nothing. Any such ordering is still a choice of how
+  heavily to weight each readout's own distance from 1 — `f` spans 28× across the
+  four understated rows — and this step does not make that choice.
+- **Nothing here says which measure a future step should report in.** Both remain
+  in use, and the consequence of § 6bt.1 is that it no longer matters — *provided
+  the branch value travels with the growth figure*, since without `b` the
+  conversion cannot be run. Every originating step does quote its pair (§ 6bo.2,
+  § 6bp's `0.993701` and `0.991476`, § 6br.3), so nothing published is stranded.
+  The one table that dropped the branch column is § 6bs.6's own comparison, which
+  is exactly the table the disagreement was noticed in, and § 6bt.5's carries `f`
+  and `R − 1` beside the product instead. No rule requires it, which is how it
+  went missing once already.
+- **The anti-monotonicity of `f` and `R − 1` is measured, not explained.** It is
+  what makes the two orderings disagree on these four rows, and there is no
+  reason on offer why a readout whose branch value sits close to 1 should be one
+  the correction moves little in ratio. A fifth and sixth understated readout
+  would test whether the pattern is real or is four points.
+- **§ 6bs's own open items are untouched**: the plateau still cannot be moved to
+  the common anchor without new sweeps, the anchor boundary at 3.7415 mm still
+  has no account — § 6bt.6 only shows that one of the three misbehaviours there
+  is not a measurement artifact — and § 6bn's first interval is still unreachable.
 
 ## Later rungs
 
