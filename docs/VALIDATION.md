@@ -22230,8 +22230,11 @@ what licenses quoting a boundary at a frame at all. They were one module until
 it was timed. The structural reason is solid — **one module is one worker and a
 worker cannot be split**, so 153 s of sweeps in one file is 153 s that only one
 of sixteen workers can retire, and it lands in the tail where nothing else can
-absorb it. Split, the two run together in **88 s of wall for 153 s of test
-time**, and their halves are 88 s and 65 s of CPU.
+absorb it. Split, the two run together in **88–98 s of wall for 153–163 s of test
+time, measured solo** across two runs, their halves roughly 88 s and 65 s of CPU.
+Solo is the qualifier that matters: in a three-file run under load
+`refusal-boundary` alone read 121 s, above both figures — which is the same
+disease this paragraph is correcting, so it is quoted here rather than hidden.
 
 **The suite-level benefit was NOT isolated, and an earlier draft of this
 paragraph overstated it.** It claimed the unsplit file took the suite from 178 s

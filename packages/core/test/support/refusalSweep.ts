@@ -19,8 +19,9 @@ import type { OpticalSystem } from "../../src/trace/system";
  * measured: one module is one worker and a worker cannot be split, so 153 s of
  * sweeps in a single module is 153 s only one of sixteen workers can retire, and
  * it sits in the tail where nothing else can absorb it. Split, the two run
- * together in 88 s of wall for the same 153 s of test time. Splitting costs the
- * fixtures both need — memoised per process, so the shared ones are built twice.
+ * together in 88-98 s of wall for 153-163 s of test time, measured SOLO — under
+ * load `refusal-boundary` alone has read 121 s. Splitting costs the fixtures both
+ * need — memoised per process, so the shared ones are built twice.
  *
  * That is the whole of the justification. An earlier version of this comment
  * also claimed the split moved the SUITE from 383 s back toward 178 s and its
