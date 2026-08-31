@@ -58,6 +58,13 @@ import type { EmitterSlabs } from "../src/imaging/emitter-volume";
  * disagree about the SIGN of the anchor's effect; the threshold locus is a third
  * ladder lying between them, nearer the held-share one.
  *
+ * § 6bw: it is not a ladder at all. The frame is not the anchor — `size` cancels
+ * out of the half extent exactly — and untying them gives anchors a sixteenth of
+ * a rung apart. The guard's share of the tile RISES to a single turn near
+ * k = 4.375 and falls back, ending level with where it started. Every ladder
+ * tried here was monotone; the endpoints of a hump say nothing about its middle,
+ * which is why this factor matched neither. See `guard-law.test.ts`.
+ *
  * ## The two thresholds separate as the anchor grows
  *
  * § 6bu.4 put them "3.1% of kept share apart". That number is the spacing of the
@@ -84,6 +91,11 @@ import type { EmitterSlabs } from "../src/imaging/emitter-volume";
  * four either: the frame must be a power of two, so `k` 3, 5, 6 and 7 are all
  * refused before any ray is traced, and the crossings above are bracketed by the
  * only anchors this family has.
+ *
+ * § 6bw: true of THIS family, for a reason that is the frame's and not the
+ * anchor's. The frame must be a power of two; `pupilSamples` need not be, and it
+ * is what the anchor is made of. Here the frame IS `Q6BO * k`, so `k` is forced
+ * — the conclusion stands where it was written and nowhere else.
  *
  * Every threshold below the branch's four cells is a geometry-only reading in
  * § 6bu.3's sense — `mosaicSeamShiftMm` renders nothing, so the number exists,
