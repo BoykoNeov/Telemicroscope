@@ -21899,9 +21899,9 @@ carry the readout across the threshold at the crossing itself.**
 | | and the other half: the field GROWS with magnification in exact proportion, 0.18707732 / 0.46769329 / 0.93538658 at 4×, 10× and 20×, ratios `toBeCloseTo` 2.5 and 2 at 12 digits | ✅ |
 | **§ 6bo.2 — each lever's field factor is pure, and that is NOT enough** | the shrink per aperture doubling is **2.031009601158958** at 4×, 10× and 20× alike — a spread under 1e-12, because `halfExtent ∝ M / NA` leaves no M in the ratio | ✅ |
 | | and the growth per magnification step is exactly `M_hi / M_lo` at NA 0.10 and at NA 0.20 alike, likewise under 1e-12 — so the confound enters an interaction quotient's numerator and denominator as the SAME factor, which would cancel if the readout were multiplicatively separable in (field, lever) | ✅ |
-| | it is not separable — three fields at ONE aperture give 66.499, 21.046, 8.202, nowhere near a power law — and the quotient duly fails to cancel: § 6bn's cost interaction is **1.0416581** the branch's way and **0.7948724** at a matched field, **CROSSING 1** | ✅ |
-| | § 6bn's anisotropy interaction likewise: 0.9772599 → 0.7862301, its distance from 1 growing **11.6846×** without crossing | ✅ |
-| | while § 6bn's PLATEAU interaction survives — 0.8614283 → **0.8691012**, a move of 0.89% — and the separation is not arbitrary: the survivor is the one readout § 6bo.5 measures to be field-free | ✅ |
+| | it is not separable — three fields at ONE aperture give 66.499, 21.046, 8.202, nowhere near a power law — and the quotient duly fails to cancel: § 6bn's cost interaction is **1.0416581** the branch's way and **0.7948724** at a matched field, **CROSSING 1** — **at this anchor and the next two, and NOT at the widest: [§ 6bs.7](#step-6bs--the-six-in-one-table) reads 1.0048 at 3.7415 mm, where the crossing is gone** | ✅ |
+| | § 6bn's anisotropy interaction likewise: 0.9772599 → 0.7862301, its distance from 1 growing **11.6846×** without crossing — **a growth [§ 6bs.7](#step-6bs--the-six-in-one-table) walks across the anchor family, where it falls to 3.3069×, 1.2790× and then 0.6407×, INVERTING at the widest** | ✅ |
+| | while § 6bn's PLATEAU interaction survives — 0.8614283 → **0.8691012**, a move of 0.89% — and ~~the separation is not arbitrary: the survivor is the one readout § 6bo.5 measures to be field-free~~ **that reason is withdrawn at [§ 6bs.8](#step-6bs--the-six-in-one-table)**: § 6bq.7 measures NA 0.20, one of this interaction's own two apertures, moving 4.756% under a field change — 5.3× the margin it survived by. The two columns stand as measured; the account of why they agree does not | ✅ |
 | | with all three branch's-way values reproducing § 6bn's pinned `costI`, `anisoI` and `plateauI` to seven digits, which is what makes the matched column comparable | ✅ |
 | **§ 6bo.3 — at a matched field the cost's APERTURE dependence reverses** | doubling the sampling with the aperture holds the field to **1.55%**, the same residual at all three field sizes to 12 digits | ✅ |
 | | the branch's path has the cost RISE **1.5997444×**; at a matched field it FALLS, at every one of three fields — **0.6500119×**, **0.4896487×**, **0.7135977×** | ✅ |
@@ -21953,10 +21953,14 @@ four of § 6bn's cells at one field:
 | axial plateau | 0.8614283 | 0.8691012 | survives, 0.89% |
 
 Two of § 6bn's six interactions are field artefacts, one of them changing which
-side of 1 it falls on; one is not. **The separation is not arbitrary — the
-survivor is the readout § 6bo.5 independently measures to be field-free.** So
-purity of the field factor is necessary and not sufficient, and what decides an
-interaction's fate is whether the READOUT is field-sensitive. § 6bn's remaining
+side of 1 it falls on; one is not. ~~**The separation is not arbitrary — the
+survivor is the readout § 6bo.5 independently measures to be field-free.**~~
+**That explanation is withdrawn at
+[§ 6bs.8](#step-6bs--the-six-in-one-table)**, § 6bq.7 having measured this
+readout at 4.756% under a field change at one of the interaction's own two
+apertures. The survival is a measurement and remains one; what it is NOT is
+explained. So purity of the field factor is necessary and not sufficient, and
+what decides an interaction's fate is not yet known. § 6bn's remaining
 three interactions are rendered flat-field quantities, not re-measured here;
 their status is unknown rather than confirmed.
 
@@ -22205,9 +22209,14 @@ travels and its size is not the optics'.
   at either position.** The bands are published and the reason is measured; what
   would settle them is a frame large enough that the sampling band falls below
   the effect, which at Q4PX is already a 256-pixel tile on the fast 10×.
-- **A replacement ordering for § 6bn.3 is not offered.** Two of its six are now
-  known to be understated by 7× and 16× and two more were withdrawn at § 6bo.2,
-  but six readouts across one interval still give one number each and no shape.
+- **A replacement ordering for § 6bn.3 is not offered** — **and
+  [§ 6bs.6](#step-6bs--the-six-in-one-table) measures why one cannot be, which
+  leaves this open with a reason rather than closing it**: the six were reported
+  in TWO growth measures, § 6bo's and § 6bp's distance-from-1 growth and § 6br's
+  ratio of departures, and the four understated readouts rank in opposite orders
+  under them — the escape is the largest correction on one and the smallest on
+  the other. Six readouts across one interval still give one number each and no
+  shape.
 - **Only two cells move**, so no rung here may read a mechanism into which cell a
   quotient's change came from — and § 6bn's first interval (4×→10×) is still
   unreachable, matching a 4× frame wanting `pupilSamples` 12.8.
@@ -22506,14 +22515,234 @@ disagreement at the seventh digit rather than papering over it. This is the trap
   (4× to 10×) cannot be re-measured for the reason § 6bo.2 gave — matching a 4×
   frame wants a non-integer `pupilSamples` at every power-of-two size — so
   § 6bn's "not one of the six is a slope" remains neither confirmed nor refuted.
-- **§ 6bn's six are now all re-measured, and nobody has written down what they
-  say together.** Two reversed (§ 6bo), two were understated and two refused
-  (§ 6bp and this step's predecessor), and this one is understated — but the six
-  do not share an anchor convention, and after § 6br.6 that is known to matter for
-  at least one of them.
+- ~~**§ 6bn's six are now all re-measured, and nobody has written down what
+  they say together.** Two reversed (§ 6bo), two were understated and two
+  refused (§ 6bp and this step's predecessor), and this one is understated~~ —
+  **written down at [§ 6bs](#step-6bs--the-six-in-one-table), and that tally is
+  wrong twice**: measured, it is **one reversed, four understated, one unchanged
+  and none refused**. The anisotropy never crossed 1 — § 6bo.2 says so in the
+  same sentence that reports it — and the two refusals belong to § 6bp's
+  free-field gain and scanner comparison, which are not among § 6bn's six. The
+  rest of this bullet stands and is § 6bs's subject: the six **do not share an
+  anchor convention** — § 6bs.3 measures three of them, in the ratio 1 : 1.5 : 2
+  — and § 6bs.7 carries the sensitivity to two more readouts, where it costs two
+  verdicts at the widest anchor.
 - **Nothing on an infinity-corrected objective**, **the seed reaches one
   radial-map caller of several**, **the blend has no window but the linear ramp**,
   **the guard band still has no closed form** — inherited from § 6bi onward.
+
+## Step 6bs — the six in one table
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/six-interactions.test.ts`
+
+[§ 6bn](#step-6bn--the-second-interval) gave six readouts a second magnification
+interval and published six interaction quotients.
+[§ 6bo](#step-6bo--both-levers-were-two-levers) found that a tile's field of view
+goes as M / NA, so all six had moved the field as well as the lever they named,
+and re-measurement at a matched field followed across three steps: § 6bo took the
+registration cost, the anisotropy and the plateau,
+[§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) the two splits,
+and [§ 6br](#step-6br--the-escapes-interaction-at-a-matched-field) the guard-band
+escape. Nobody put the six side by side. A caller asking **"which of these
+readings can I trust?"** has had to read five steps to find out, and § 6br closed
+by naming that as the gap.
+
+This step is the table. The two render-free interactions are **rebuilt from
+source** — § 6bo.2's `CELLS_MATCHED` is geometry and costs under a second — and
+the four that are sweeps or volume renders are cited at the digits their own
+steps pinned. The whole file runs in **1.2 s**, which is why the anchor
+experiment § 6br could only afford once is run here four more times.
+
+### The table
+
+| interaction | branch | matched | anchor (mm) | verdict |
+| --- | --- | --- | --- | --- |
+| split, axis | 0.993701 | 0.954996 | 0.4677 | understated |
+| split, edge | 0.991476 | 0.877035 | 0.4677 | understated |
+| anisotropy | 0.977260 | 0.786230 | 0.4677 | understated |
+| registration cost | 1.041658 | 0.794872 | 0.4677 | **REVERSED** |
+| plateau | 0.861428 | 0.869101 | 0.7015 | unchanged, 0.89% |
+| escape | 0.823165 | 0.410883 | 0.9354 | understated |
+
+**One reversed, four understated, one unchanged, none refused.** § 6br's own
+closing note summarised the six as "two reversed, two understated and two
+refused, and this one is understated" — seven items across six rows, and wrong
+twice. The anisotropy is not a reversal: § 6bo.2 reports it "without crossing" in
+the same sentence. And the two refusals are § 6bp's free-field gain at the edge
+and its scanner comparison, which are readouts § 6bp added and not members of
+§ 6bn's six. A prose tally is exactly what drifted, so § 6bs.2 computes the tally
+from the six pairs and asserts the multiset.
+
+The classification is a **measured gap and not a chosen threshold**: everything
+that moved, moved its distance from 1 by at least 6.19×; the one that did not
+moved 0.94×. Nothing sits in between.
+
+### What the six say together, and how far it can be pushed
+
+At a matched field **every one of the six falls below 1**. Down the branch's path
+five did and the registration cost did not, so the correction is what makes the
+set unanimous — no single step was in a position to see that.
+
+The statement is deliberately kept formal: *the aperture ratio at 20× is smaller
+than the aperture ratio at 10×, on all six readouts.* It is **not** glossed as
+"the aperture lever is weaker at 20×", and § 6bs.5 pins why not. The escape's two
+levers are 12.93 and 31.46, both above 1, where a smaller quotient is indeed a
+weaker effect. The registration cost's at the same matched field are **0.506 and
+0.637, both below 1** — where a smaller quotient is a *larger* effect in the
+other direction. The unanimity is a fact about the ratio and does not survive
+translation into a fact about the lever.
+
+### The six sit at THREE anchors
+
+"At a matched field" fixes the four cells' field *ratios* and leaves the common
+field free. § 6br.6 discovered that and measured what the choice costs on one
+readout. What no step checked is that the three re-measuring steps had each
+chosen differently:
+
+| anchor half-extent | whose | why |
+| --- | --- | --- |
+| **0.46769329 mm** | cost, anisotropy, both splits | `pupilSamples` 32 on the slow 10× |
+| **0.70153993 mm** | the plateau | its **sweep** samples at 48, not 32 |
+| **0.93538658 mm** | the escape | § 6br's `k` = 1, the branch's own field |
+
+A ratio of **1 : 1.5 : 2**, each figure being the quartet's NA 0.10 cells: as in
+§ 6bo.1 and § 6br.2, the NA 0.20 cells sit **1.0155048×** away, the traced
+aperture's own residual, identically in all three quartets. The plateau's anchor
+is not a choice anyone made — it falls out of `renderedBestFocus` sampling at 48
+where the mosaic readouts sample at 32, and `halfExtent ∝ pupilSamples · M / NA`
+does the rest. That is the same class of
+accident as § 6bn.6's agreement, which § 6bp.4 found was two frame sizes: a
+number nobody chose, doing work nobody attributed to it.
+
+**Five of the six go onto one anchor today.** § 6br.6's five-point curve already
+contains the escape at 0.46769329 mm, where it reads **0.3596838** rather than
+0.4108834 — a 14% move, and § 6br's understatement factor goes 2.0034× to
+2.2886×. The verdict does not change, so the five-row table at one anchor gives
+the same one reversed and four understated (§ 6bs.4). Only the plateau cannot be
+moved without new sweeps.
+
+### Two growth measures, and they rank the six oppositely
+
+§ 6bo and § 6bp reported how far a correction moved a quotient as the growth of
+its **distance from 1**. § 6br reported the **ratio of the departures**. Each step
+is internally consistent; the two numbers are not the same quantity, and the
+phrase "the departure from 1 growing 2.0034×" reads as if it were § 6bo's 11.68×
+and § 6bp's 7.4× and 16.3×.
+
+| understated readout | § 6br's measure | § 6bo/§ 6bp's measure |
+| --- | --- | --- |
+| split, axis | 1.0405 | 7.435 |
+| split, edge | 1.1305 | **16.307** |
+| anisotropy | 1.2430 | 11.685 |
+| escape | **2.0034** | 6.674 |
+
+**The orderings are opposite at both ends.** The escape is the largest correction
+on § 6br's measure and the smallest on § 6bo's; the edge split trades places with
+it. This is a comparability defect *between* steps, not an arithmetic error
+inside either, and it is why § 6bp's "no replacement ordering is offered" stays
+open — now with a measured reason rather than a shrug.
+
+### The anchor sensitivity is not the escape's alone, and it costs two verdicts
+
+§ 6br measured its anchor family for the escape and deliberately declined to
+generalise, having watched this branch state a narrow measurement as a general
+one twice. Generalising is cheap for the two render-free readouts, so § 6bs.7
+does it over the same extent ladder:
+
+| anchor (mm) | 0.4677 | 0.9354 | 1.8708 | 3.7415 |
+| --- | --- | --- | --- | --- |
+| registration cost | 0.794872 | 0.940425 | 0.986325 | **1.004804** |
+| anisotropy | 0.786230 | 0.928548 | 0.971099 | 0.985310 |
+| escape (§ 6br.6) | 0.359684 | 0.410883 | 0.310047 | 0.124982 |
+
+Both render-free curves are **monotone and rising** where the escape's is
+single-humped. Three readouts, three shapes — so the anchor is not a nuisance
+parameter with one behaviour, and no readout's sensitivity can be borrowed from
+another's.
+
+At the top of the ladder **two verdicts fail**:
+
+- The registration cost reads **1.0048** at 3.7415 mm, on the same side of 1 as
+  the branch's 1.0417. § 6bo.2's headline reversal is gone there.
+- The anisotropy's distance from 1 falls **below** the branch's — a growth of
+  **0.6407×**, having run 11.6846×, 3.3069× and 1.2790× at the three anchors
+  below. "Understated" becomes its opposite.
+
+Both hold at 0.4677, 0.9354 and 1.8708. That is the whole 2× spread of anchors
+the six are actually quoted at, plus a further 2× of headroom, which is what
+licenses the table above being read as a table. It is also the honest limit on
+it: **these verdicts hold for these lenses at a field within about 4× of the
+branch's own — they are not properties of the optics alone.**
+
+And the failures share an address. 3.7415 mm is where § 6br.6 found the escape
+falling by a factor of three for a reason it explicitly could not name — the
+saturation argument that covers its small-anchor end does not reach there. Three
+readouts misbehaving at one anchor, none of the three explained.
+
+The smallest of § 6br.6's five anchors, 0.2338 mm, is **refused rather than
+declined** for the render-free pair: `guardCells` is four resolution cells, that
+is `4 · size / pupilSamples` pixels per edge, so below `pupilSamples` 9 the guard
+eats the whole tile however `size` is chosen.
+
+### The survivor is the least secure row, not the most
+
+The plateau survives at 0.89%, and every other row moves at least 3.90%, so it
+stands alone by 4.37× before anything else is asked. § 6bo.2 gave the separation
+a reason — the survivor is "the one readout § 6bo.5 measures to be field-free" —
+and [§ 6bq.7](#step-6bq--the-refusal-boundary-moves-with-magnification) withdrew
+the premise: at a uniform 2× frame change the plateau moves 0.66% to 15.55%
+across seven apertures, and **NA 0.20, one of this interaction's own two, moves
+4.756%** — 5.3× the margin the quotient survived by.
+
+The verdict stands: two columns were measured and they agree to 0.89%. What no
+longer stands is the account of *why*. With field-insensitivity gone, the
+survival requires the two rows' field effects to cancel in the double ratio —
+which is precisely the argument § 6bo.2 retracted for the cost and § 6br.4
+retracted for the escape, on measurement both times.
+
+§ 6bs.8 also refuses the tempting next step. § 6bq.7 doubles **each lens's own
+frame**, so its NA 0.10 and NA 0.20 cells land on common fields a factor of
+2.0310 apart — a factor of two carrying § 6bo.1's 1.55% traced-aperture residual.
+Its quotient therefore mixes an anchor change with an aperture change and is
+**not** an anchor derivative of the interaction. Quoting it as one would be the
+third instance of the same error this step exists to document.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bs.1 — the six assemble, and the branch column is § 6bn.3's own list** | the render-free pair rebuilds to `1.0416581`/`0.9772599` and § 6bo.2's `0.7948724`/`0.7862301`, and all six branch departures are § 6bn.3's published 1.0063, 1.0086, 1.0233, 1.0417, 1.1609, 1.2148 | ✅ |
+| **§ 6bs.2 — the tally, computed: ONE reversed, FOUR understated, ONE unchanged, none refused** | the multiset asserted from the six pairs, with the cost the only crossing and the anisotropy explicitly not one; and the cut is a measured gap — 0.94× against a minimum of 6.19×, nothing between | ✅ |
+| **§ 6bs.3 — three anchors, in the ratio 1 : 1.5 : 2** | 0.46769329, 0.70153993 and 0.93538658 mm; the plateau's 1.5× is its sweep's `pupilSamples` 48 against the mosaic readouts' 32, and its NA 0.20 cells carry § 6bo.1's 1.0155048 residual | ✅ |
+| **§ 6bs.4 — five of the six go onto ONE anchor and the tally does not move** | § 6br.6's second rung IS the other five's anchor; the escape reads 0.3596838 there, still understated, and the five-row table gives the same 1 / 4 — while the SIZE moves 14%, 2.0034× to 2.2886× | ✅ |
+| **§ 6bs.5 — all six below 1 at a matched field, five of six down the branch** | the correction makes the set unanimous, the cost being the only row that crosses; and the physical gloss is REFUSED — the cost's matched levers are 0.6370 and 0.5063, below 1, against 1.5358 and 1.5997 down the branch | ✅ |
+| **§ 6bs.6 — two growth measures, two opposite orderings** | 1.0405/1.1305/1.2430/2.0034 against 7.435/16.307/11.685/6.674; the escape is last on one and first on the other, and the edge split trades ends with it | ✅ |
+| **§ 6bs.7 — the anchor sensitivity is not the escape's, and two verdicts fail at 3.74 mm** | cost 0.794872 → 1.004804 and anisotropy 0.786230 → 0.985310, both monotone against § 6br.6's single hump; the cost's crossing is gone at the widest and the anisotropy's growth inverts to 0.6407×, both holding at the three below; and 0.2338 mm is refused by the guard band | ✅ |
+| **§ 6bs.8 — the survivor's REASON is withdrawn, and its margin is the table's smallest** | 0.89% against a next-smallest 3.90%, 4.37× clear; § 6bq.7's NA 0.20 moves 4.756%, 5.34× the margin; and § 6bq.7's own cells sit 2.0310 apart in field, so it is not an anchor derivative of the quotient | ✅ |
+
+### Still open
+
+- **The common-anchor re-measurement is five rows of six.** The plateau's
+  quartet cannot be moved to 0.46769329 mm without new sweeps, and § 6bq.5's rule
+  applies when it is — a plateau compared across frames must have its VERTEX
+  checked first, which the 32-pixel frame failed.
+- **Two verdicts are anchor-conditional and nothing explains the boundary.** The
+  cost stops crossing and the anisotropy's understatement inverts at 3.7415 mm,
+  the same anchor at which § 6br.6's escape falls unexplained. Three readouts,
+  one address, no account. Whether the two splits share it is unmeasured — they
+  are rendered flat fields and cost renders, not the second this pair cost.
+- **A replacement ordering for § 6bn.3 is still not offered**, and § 6bs.6 is why
+  one is not available on the published numbers rather than why nobody tried.
+- **The two growth measures are both still in use.** This step publishes both
+  columns rather than picking one, because picking one would restate four earlier
+  steps' headline numbers in a measure they did not choose.
+- **§ 6bn's first interval, 4× → 10×, is still unreachable**, for § 6bo.2's
+  reason: matching a 4× frame wants a non-integer `pupilSamples` at every
+  power-of-two size. So "not one of the six is a slope" remains neither confirmed
+  nor refuted, and every verdict in this table is one interval wide.
+- **Nothing on an infinity-corrected objective**, **the plateau's mechanism is
+  still unnamed**, **the seed reaches one radial-map caller of several**, **the
+  blend has no window but the linear ramp**, **the guard band still has no closed
+  form** — inherited from § 6bi onward.
 
 ## Later rungs
 
