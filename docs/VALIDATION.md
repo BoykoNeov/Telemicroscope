@@ -125,6 +125,7 @@ whole ladder.
 | [6bn](#step-6bn--the-second-interval) | A 20×/0.20 gives each interaction a second interval: none of § 6bm's six is a slope — two REVERSE across 1, 53.65× at the edge becomes 1.009× — and the NA ceiling is a 4× reading | `second-interval` |
 | [6bo](#step-6bo--both-levers-were-two-levers) | A frame's field of view goes as M/NA, so both levers moved it too: at a matched field the cost reverses sign on each, § 6bl.4's 95.7/M budget was the frame, and 2 of § 6bn's 6 go with it | `aperture-and-field` |
 | [6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) | § 6bn.6's 2.7e-4 agreement was two frame sizes; matched, the split's interaction is understated 7–16×, the free field's axial one crosses 1, and two readouts refuse | `matched-flat-field` |
+| [6bq](#step-6bq--the-refusal-boundary-moves-with-magnification) | Plateau refusal crosses (0.15, 0.16] at 10× and (0.17, 0.19) at 20×, 0.18 the frame's; § 6bo.5's 3% field control missed the biggest movers | `refusal-boundary`, `refusal-frames` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -21884,7 +21885,11 @@ The value of the step is that it **separates** these rather than issuing one
 retraction. The render-free geometric readouts were measuring the field of view
 and not the lever, on both levers. The rendered guard-band escape keeps its
 direction and loses about a quarter of its size. The axial plateau is field-free
-to a few percent, which is what makes the refusal boundary real optics.
+to a few percent, which is what makes the refusal boundary real optics — **at the
+three apertures measured here.
+[§ 6bq.7](#step-6bq--the-refusal-boundary-moves-with-magnification) runs the same
+control at all seven and finds 9.36% at NA 0.18 and 15.55% at 0.22, enough to
+carry the readout across the threshold at the crossing itself.**
 
 | Rung | Pinned to | Status |
 | --- | --- | --- |
@@ -21906,9 +21911,9 @@ to a few percent, which is what makes the refusal boundary real optics.
 | | at a matched field the cost RISES with magnification instead: **1.2403647×** at 0.9353865752 mm and **1.5918133×** at 0.4676932876 mm | ✅ |
 | | because the field alone more than accounts for the fall — doubling it at a HELD magnification cuts the cost **3.1597053×** at 20× and **2.4620897×** at 10×, both larger than the 1.9849723× the fitted law shows | ✅ |
 | | and the anisotropy reverses on this lever too: 0.5261099× down against 1.1613079× and 1.4875213× up | ✅ |
-| **§ 6bo.5 — the plateau is field-free, so the refusal boundary is real optics** | seven apertures give a monotone depth ladder 0.37549919 … 1.59229280, and the threshold of 1 is crossed between **0.15 (0.59854643, passes)** and **0.18 (1.07388088, refuses)** — the first bracket on this branch, which knew only that all NA 0.10 pass and all NA 0.20 refuse | ✅ |
+| **§ 6bo.5 — the plateau is field-free, so the refusal boundary is real optics** | seven apertures give a ~~monotone~~ depth ladder 0.37549919 … 1.59229280 — **monotone at these steps and this frame only; [§ 6bq.4](#step-6bq--the-refusal-boundary-moves-with-magnification) inserts 0.19 at a matched field and the ladder inverts 0.13%** — and the threshold of 1 is crossed between **0.15 (0.59854643, passes)** and **0.18 (1.07388088, refuses)**, ~~the first bracket on this branch~~ **a bracket § 6bq.4 narrows to 0.17/0.18 and § 6bq.6 then REFUSES at 0.18**, which knew only that all NA 0.10 pass and all NA 0.20 refuse | ✅ |
 | | with the narrow threshold pinned as what reports it: 0.15 does not throw, 0.18 throws naming 1.0738 and "depths of focus" | ✅ |
-| | changing the FIELD alone moves the plateau **under 3%** — 1.0032087× at NA 0.15 over a 1.5× field, 0.9890282× at 0.10 and 1.0264180× at 0.20 over a 2× field | ✅ |
+| | changing the FIELD alone moves the plateau **under 3%** — 1.0032087× at NA 0.15 over a 1.5× field, 0.9890282× at 0.10 and 1.0264180× at 0.20 over a 2× field — **true of these three and not of the ladder: § 6bq.7 runs a uniform 2× at all seven and gets 0.66% to 15.55%, three above 3%, the two largest being the two apertures not sampled here** | ✅ |
 | | so the aperture's rise survives however the field is handled: 3.2760781×, 3.1917581×, 3.2401335× — a 2.64% spread, against a readout whose SIGN flipped under the same treatment | ✅ |
 | **§ 6bo.6 — the escape keeps its sign and loses a quarter of its size** | the branch's path overstates the aperture's effect by **1.2822893×** at one stage and 1.2793007× at another — 17.7285955× and 16.4721796× against matched-field 13.8257376× and 12.8759250× | ✅ |
 | | but the sign holds at all four readings, unlike the two render-free readouts — which is the point of measuring three families rather than one | ✅ |
@@ -22043,11 +22048,14 @@ lever, and this file does not attribute it.
 - **No matched-field measurement below 10× exists.** Matching the 4× frame needs
   a `pupilSamples` that is not an integer at any power-of-two frame size, so the
   magnification lever is pinned on one interval only.
-- **The refusal boundary is bracketed at 20× and nowhere else.** 0.15 passes and
-  0.18 refuses there; whether that boundary moves with magnification is
-  unmeasured, and § 6bn's ceiling table says the buildable range does.
-- **A 10×/0.22 is still unmeasured** — § 6bn's above-the-ceiling item is only
-  half closed, the 20×/0.25 half.
+- ~~**The refusal boundary is bracketed at 20× and nowhere else.**~~ **Closed at
+  [§ 6bq](#step-6bq--the-refusal-boundary-moves-with-magnification):** it moves,
+  in the same direction as § 6bn's buildable ceiling — the crossing is
+  (0.15, 0.16] at 10× and (0.17, 0.19) at 20×, and this step's own 0.15/0.18
+  bracket narrows to 0.17/0.18 at its frame, with NA 0.18 then **refused** as
+  frame-dependent.
+- ~~**A 10×/0.22 is still unmeasured**~~ — **closed at § 6bq.8**: it refuses, at
+  1.4594730 depths, beside the 20×/0.25's 1.5922928.
 - **All five lenses at NA ≥ 0.18 refuse their sweep**, so everything § 6bk.3 and
   § 6bl.2 read off a colour-over-field ratio remains unavailable there, and
   § 6bj's colour-versus-field trade is still a slow-lens family. § 6bn's "all
@@ -22209,6 +22217,153 @@ travels and its size is not the optics'.
   still unnamed**, **the seed reaches one radial-map caller of several**, **the
   blend has no window but the linear ramp**, **the guard band still has no closed
   form** — all inherited from § 6bi through § 6bo.
+
+## Step 6bq — the refusal boundary moves with magnification
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/refusal-boundary.test.ts`,
+`packages/core/test/refusal-frames.test.ts`
+
+Two files, one step. `refusal-boundary` measures where the boundary is and how
+it moves; `refusal-frames` measures what the frame does to the reading, which is
+what licenses quoting a boundary at a frame at all. They were one module until
+it was timed: 177 s of sweeps in one file is 177 s on one worker, a worker
+cannot be split, and against the other fifteen it ran at about two thirds speed
+— 273 s of wall clock nothing else could absorb, dropping the suite's
+parallelism from ~13× to ~9× and its runtime from 178 s to 383 s. Split, the
+halves are 88 s and 65 s, both under the suite's longest pre-existing file. No
+number changed; the shared sweep and its memo live in `support/refusalSweep.ts`.
+
+`renderedBestFocus` refuses a sweep whose axial response is a PLATEAU — whose
+peak falls 5% only after more than `maxPlateauDepths` depths of focus — instead
+of printing a vertex read off a flat curve. § 6bk through § 6bn knew only that
+every NA 0.10 lens passes and every NA 0.20 lens refuses, a whole factor of two,
+and [§ 6bo.5](#step-6bo--both-levers-were-two-levers) narrowed it at 20× to a
+crossing between **0.15 (0.5985, passes)** and **0.18 (1.0739, refuses)**. That
+bracket is three ladder steps wide, it was taken at one frame, and it exists at
+one magnification. This step gives it a second magnification, three inserted
+apertures and three frame sizes.
+
+### It rises with magnification, and so does the ceiling above it
+
+[§ 6bn.1](#step-6bn--the-second-interval) pinned that the highest aperture this
+solver builds RISES with magnification and left open whether the refusal boundary
+does the same. It does, and the two move together:
+
+| | buildable ceiling (§ 6bn.1) | refusal boundary (§ 6bq.6) |
+| --- | --- | --- |
+| 10× | 0.22 | crossing in **(0.15, 0.16]**, unanimous over three frames |
+| 20× | 0.25 | crossing in **(0.17, 0.19)**, with 0.18 **REFUSED** |
+
+The 10× bracket is one aperture step wide and holds over a 4× range of frame
+extent — the tightest on this branch. The 20× one is wider *because* NA 0.18 is
+refused: at that aperture which side of 1 the reading falls on is a property of
+the frame, and no verdict is stated. Both ceilings themselves refuse, which
+closes § 6bn's half-open above-the-ceiling item: the 10×/0.22 reads **1.4595**
+beside the 20×/0.25's **1.5923** (§ 6bq.8).
+
+### § 6bo.5's field control missed both apertures the field moves most
+
+§ 6bo.5 changed the field alone at NA 0.10, 0.15 and 0.20, found the plateau
+moving under 3%, and that is what licensed calling the boundary real optics. Its
+NA 0.10 reading reproduces here **to twelve digits**. The generalisation does
+not. Run at a uniform 2× field change across all seven apertures:
+
+| NA | 0.10 | 0.12 | 0.15 | 0.18 | 0.20 | 0.22 | 0.25 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| field moves the plateau by | 1.10% | 0.98% | 0.92% | **9.36%** | **4.76%** | **15.55%** | 0.66% |
+
+**Three of seven exceed 3%, and the two largest are the two § 6bo.5 did not
+sample** — ranked by distance from 1 its three sit at 2, 4 and 5 of 7, and 0.18
+and 0.22 are 6 and 7. Its own NA 0.20 came in at 2.64% because it halved the
+field where this doubles it; the dependence is not monotone (§ 6bq.7 measures a
+down-then-up across three frames at one aperture), so both readings are right and
+neither generalises. And the one that matters is at the crossing: **NA 0.18 at
+20× reads 0.9820 and passes at the smaller frame, 1.0739 and refuses at the
+larger.** So the boundary is real optics away from the crossing and is the
+frame's AT it, which is exactly where a caller wants to quote it.
+
+A finer ladder costs § 6bo.5 one more word. It pinned the seven-point ladder
+**monotone in aperture**, which it is at its own frame and its own steps; at a
+matched field with 0.19 inserted the ladder inverts — 1.175870 at 0.19 against
+1.174313 at 0.20, 0.13% the wrong way. Both refuse, so the inversion costs no
+verdict, only the ordering.
+
+### A matched field here is a POINT, not § 6bp's family
+
+[§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) found that
+`pupilSamples` fixes the field and leaves `size` free, so "at a matched field"
+named a FAMILY of quartets spanning 3.4%, and made the band across it the
+instrument that let two readouts be refused. This readout has no such band:
+doubling `size` at a held `pupilSamples` halves the pixel pitch, holds the field
+exactly, and reproduces the plateau **to twelve digits** on three lenses. The
+reason is a line of algebra in the source — `plateauDepths` is
+`stepMm · sqrt(0.1/|curvature|) / depthOfFocus` with `curvature` the ratio
+`(y₀ − 2y₁ + y₂)/y₁` of frame maxima, and the frame's extent is set by
+`pupilSamples` alone. Two readouts on one branch, one with a 3.4% sampling band
+and one with none, and either could have been told apart by reading the formula.
+
+**What the magnification lever moves is the image, not the normaliser.**
+`plateauDepths` divides by `λ/NA_object²`, and the traced object NA is
+magnification-free: at NA 0.15 the depth of focus is 0.019175532 mm at 10× and
+0.019170802 mm at 20×, agreeing to **2.5e-4**. So the whole 1.5364× gap between
+the two lenses at one field sits in the curvature, and the decomposition closes
+exactly — `sqrt(curvature ratio)` divided by the measured depths ratio equals the
+depth-of-focus ratio to the last bit (§ 6bq.3). § 6bo.3's rule, that a ratio is
+decomposed before it is interpreted, paid again.
+
+### A frame can find a different vertex, and one of ours does
+
+The 32-pixel frame is in the same family as the others — same pixel pitch, a
+quarter of the extent — and it is not usable. On the 10×/0.18 it returns a best
+focus of **0.1221 mm against 0.0584 mm and 0.0663 mm**, 2.09× and 1.84× away and
+outside the whole ±0.03 mm fine sweep either of the others ran: not a drift, a
+different maximum. Its ladder is non-monotone by **40%** where every larger
+frame's is monotone, and the 20× ladder at that frame jumps 1.86× over one
+aperture step and falls back over the next.
+
+So it is excluded, by measurement rather than by taste, and the rule it leaves
+behind is this branch's newest: **a plateau compared across frames must have its
+VERTEX checked first.** § 6bp's instruction to quote a matched-field number with
+its pixel sampling is necessary and not sufficient — a frame can agree on field
+and pitch and still be answering about a different peak. Every band in this step
+is therefore taken over `(64, 24)`, `(128, 48)` and `(256, 96)`, whose vertices
+agree to 2%.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bq.1 — the branch column reproduces, and the 10× ceiling is § 6bn.1's** | § 6bo.5's seven plateau depths come back to twelve digits at their own frame; 10×/0.22 builds and 10×/0.25 throws the aperture refusal | ✅ |
+| **§ 6bq.2 — no pixel-pitch family: a matched field here is a point** | doubling `size` at a held `pupilSamples` holds the field exactly and reproduces the plateau to twelve digits on three lenses, and to nine at the smaller frame — against § 6bp's 3.4% span | ✅ |
+| **§ 6bq.3 — the lever moves the image, not the normaliser** | the depth of focus is 0.019175532 mm at 10× against 0.019170802 mm at 20×, 2.5e-4 apart because the traced object NA is; and `sqrt(curvature ratio)` over the 1.5363593 depths ratio IS that 1.0002467, to the last bit | ✅ |
+| **§ 6bq.4 — a finer ladder narrows the bracket and breaks the ordering** | 0.16, 0.17 and 0.19 inserted cut the 20× bracket to one step, with a 0.107% shelf between 0.16 and 0.17; at a matched field 0.19 reads 1.175870 above 0.20's 1.174313, so § 6bo.5's monotone ladder is a coarse-step property; the 10× ladder's own eight are monotone | ✅ |
+| **§ 6bq.5 — the 32-pixel frame finds a different vertex** | 0.1221 mm against 0.0584 and 0.0663 on one lens, 2.0905× and 1.8399× and outside both fine sweeps; its ladder falls 1.4001× where the next frame up rises, and the 20× one jumps 1.8555×; the three frames kept agree on the vertex to 0.93% | ✅ |
+| **§ 6bq.6 — the boundary is bracketed at 10×, refused at 0.18 at 20×, and rises with M** | the three frames are one pitch and 2×/4× of extent; 10× gives 0.8167/0.9112/0.9344 at 0.15 and 1.0401/1.0020/1.0287 at 0.16, both unanimous with a 3.80% band; 20× gives 0.9820/1.0739/1.0733 at 0.18, straddling 1 across 9.36%; and at a matched field the slow lens is the wider plateau at every aperture above 0.10 | ✅ |
+| **§ 6bq.7 — § 6bo.5's control sampled the flat apertures** | its NA 0.10 reading reproduces to twelve digits; at a uniform 2× the seven move 0.66% to 15.55%, three above 3%, and ranked by distance from 1 the last two are 0.18 and 0.22 — the two it skipped; the field dependence itself runs down then up across three frames | ✅ |
+| **§ 6bq.8 — both ceilings refuse** | the highest aperture that builds at 10× reads 1.4594730 and the 20× one 1.5922928, closing § 6bn's half-open item; and with the real threshold restored the refusal names 1.0019 and "depths of focus" | ✅ |
+
+### Still open
+
+- **The 20× crossing is an interval with a refusal in it, not a point.** What
+  would settle NA 0.18 is a frame large enough that its 9.36% band falls under
+  the distance from 1, and the largest measured here — a 256-pixel tile at
+  `pupilSamples` 96 — costs 12 s on its own and did not deliver it.
+- **Two magnifications is not a law.** The boundary rises from (0.15, 0.16] to
+  (0.17, 0.19) across one interval, and § 6bn's warning that no interaction on
+  this branch has turned out to be a slope applies to this one too. 4× is
+  unreachable for the reason § 6bo.2 gave: matching its frame wants a
+  non-integer `pupilSamples` at every power-of-two size.
+- **Why the 32-pixel frame locks onto another maximum is not explained**, only
+  measured. The coarse pass widens until it brackets an interior maximum, and
+  which one it finds at a small extent is not pinned to anything.
+- **The plateau's mechanism is still unnamed**, now with three constraints:
+  § 6bn's saturation shape in M, § 6bo's near-field-independence away from the
+  crossing, and this step's 9–16% AT it.
+- **Nothing on an infinity-corrected objective**, **the seed reaches one
+  radial-map caller of several**, **the blend has no window but the linear ramp**,
+  **the guard band still has no closed form** — inherited from § 6bi onward.
+- The guard-band escape's interaction remains the last of § 6bn's six open, on
+  § 6bp.8's terms: its matched quartet wants three frame sizes where the branch's
+  wants one.
 
 ## Later rungs
 
