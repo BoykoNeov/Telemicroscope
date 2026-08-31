@@ -126,6 +126,7 @@ whole ladder.
 | [6bo](#step-6bo--both-levers-were-two-levers) | A frame's field of view goes as M/NA, so both levers moved it too: at a matched field the cost reverses sign on each, § 6bl.4's 95.7/M budget was the frame, and 2 of § 6bn's 6 go with it | `aperture-and-field` |
 | [6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) | § 6bn.6's 2.7e-4 agreement was two frame sizes; matched, the split's interaction is understated 7–16×, the free field's axial one crosses 1, and two readouts refuse | `matched-flat-field` |
 | [6bq](#step-6bq--the-refusal-boundary-moves-with-magnification) | Plateau refusal crosses (0.15, 0.16] at 10× and (0.17, 0.19) at 20×, 0.18 the frame's; § 6bo.5's 3% field control missed the biggest movers | `refusal-boundary`, `refusal-frames` |
+| [6br](#step-6br--the-escapes-interaction-at-a-matched-field) | The last of § 6bn's six is UNDERSTATED 2.00×, not reversed; the two magnifications move opposite ways, and the anchor field nobody varied turns the quotient over | `escape-interaction` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -22194,12 +22195,12 @@ travels and its size is not the optics'.
 
 ### Still open
 
-- **The guard-band escape's interaction is still unre-measured**, and § 6bo's
-  "Still open" misnames it: it called the three remaining interactions
-  "exactly the rendered flat-field ones", and the escape is a double-extent
-  volume render. Forming its matched quotient needs escapes at 10× to sit beside
-  § 6bo's two at 20×, which this step does not build. One of § 6bn's six is
-  therefore still open, not three.
+- ~~**The guard-band escape's interaction is still unre-measured**~~ — **closed at
+  [§ 6br](#step-6br--the-escapes-interaction-at-a-matched-field)**, which builds the 10× escapes this
+  step did not and forms the quotient: **understated 2.00×, sign held**, so
+  § 6bn's six are now all re-measured. § 6bo's "Still open" had misnamed it — it
+  called the three remaining interactions "exactly the rendered flat-field ones",
+  and the escape is a double-extent volume render, not a flat field.
 - **No verdict on the free-field gain at the edge, or on the scanner comparison
   at either position.** The bands are published and the reason is measured; what
   would settle them is a frame large enough that the sampling band falls below
@@ -22381,9 +22382,131 @@ agree to 2%.
 - **Nothing on an infinity-corrected objective**, **the seed reaches one
   radial-map caller of several**, **the blend has no window but the linear ramp**,
   **the guard band still has no closed form** — inherited from § 6bi onward.
-- The guard-band escape's interaction remains the last of § 6bn's six open, on
-  § 6bp.8's terms: its matched quartet wants three frame sizes where the branch's
-  wants one.
+- ~~The guard-band escape's interaction remains the last of § 6bn's six open~~ —
+  **closed at [§ 6br](#step-6br--the-escapes-interaction-at-a-matched-field): understated 2.00× with
+  its sign held, and § 6bp.8's three frame sizes are what it is built over.**
+
+## Step 6br — the escape's interaction, at a matched field
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/escape-interaction.test.ts`
+
+[§ 6bo](#step-6bo--both-levers-were-two-levers) found that a tile's field of view
+goes as M / NA, so every aperture and magnification reading from § 6bk through
+§ 6bn moved the frame it was taken over as well as the lever it named. That left
+six of § 6bn's interactions needing re-measurement at a matched field. § 6bo
+closed two, [§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) closed
+two more and corrected the count and the description of what remained, and this
+step closes the last: the **guard-band escape**, a double-extent volume render.
+
+Nothing had built the 10× half. § 6bo.6 re-measured the escape on the aperture
+lever at 20× only, and an interaction is a quotient of two aperture levers, so it
+could not be formed — § 6bn's own 0.8231651 used 10× cells **cited** from § 6bk
+and § 6bm at the branch's single sampling.
+
+### Understated, not reversed — and carried by two levers pointing opposite ways
+
+`halfExtent` goes as `pupilSamples · M / NA`, so a quartet at one field wants
+`pupilSamples` as `NA / M`: ratios 1 : 2 : 2 : 4, which is **three distinct frame
+sizes** where the branch's path uses one. § 6bp.8 named exactly that as the
+precondition, and § 6br.7 supplies it — at a held field a doubling of pixels moves
+every cell by under 0.8%.
+
+| | branch's path | matched field |
+| --- | --- | --- |
+| the escape's interaction | 0.8231653 | **0.4108834** |
+| aperture lever at 20× | 16.5389× | 12.9280× (**falls**) |
+| aperture lever at 10× | 20.0918× | 31.4640× (**rises**) |
+
+Both quotients sit below 1, so the sign holds and the verdict is § 6bp's third
+outcome: **understated**, its departure from 1 growing 2.0034×.
+
+The halving is not one lever giving way. The two magnifications move in
+**opposite directions** under the same correction, which is why no "the confound
+is a common factor, so it cancels in a quotient" argument could have arrived
+here. § 6bo.2 had to retract that argument once already; this is the second
+readout on which the measurement and the argument part company, and § 6br.4 pins
+the opposition as a sign test rather than as a pair of numbers to be eyeballed.
+
+### The anchor field is a free parameter, and no step had varied it
+
+"At a matched field" does not name one experiment. `pupilSamples` as `NA / M`
+fixes the four cells' *ratios* and leaves the overall scale free, so it names a
+family indexed by **which** common field is matched at. § 6bo and § 6bp each
+picked one — the branch's own largest field — without measuring what the choice
+costs. For this readout it costs a great deal:
+
+| anchor half-extent (mm) | 0.2338 | 0.4677 | 0.9354 | 1.8708 | 3.7415 |
+| --- | --- | --- | --- | --- | --- |
+| interaction | 0.2462866 | 0.3596838 | **0.4108834** | 0.3100469 | 0.1249815 |
+
+Single-humped over a 16× range of extent, peaking at the branch's own field and
+falling to about a third of that at either end. **It is a turn, not a band and
+not a slope** — and three anchors would have shown a rise with one outlier, which
+is what the first probe here did show before two more were added.
+
+The consequence is split. The **verdict survives every anchor**: all five are
+below 1 and all five below the branch's 0.8231653, so "understated, sign held" is
+unanimous over the whole family. The **size survives none**: the understatement
+runs 2.0034× to 6.5863×, a spread of 3.2876×, so the step publishes the curve and
+declines to quote a single matched number. That is a weaker refusal than
+§ 6bp.6's — there a band straddled 1 and took the verdict with it.
+
+Two guards on how far this reaches. It is measured **for the escape**; whether
+other readouts carry an anchor sensitivity is not measured here, and § 6bo.3 did
+vary the field size for the registration cost. This branch has twice stated a
+narrow measurement as a general one — § 6bk.8's aperture ceiling and § 6bo.5's
+field control — and § 6bq spent a commit withdrawing a claim of exactly that
+shape.
+
+And the two ends are not equally understood. The low end has a mechanism: the
+escape is a **fraction**, bounded above by 1, so as the frame shrinks every cell
+saturates toward 1 and every ratio is compressed toward it — at the smallest
+anchor the 20× column reads 0.2886 and 0.5232 and its lever has collapsed to
+1.8129×. The high end has none: there all four escapes are under 0.1, nothing is
+near the bound, and the quotient falls anyway.
+
+### A pinned constant, re-derived from the cells instead of the publication
+
+§ 6bn published the branch interaction as 0.8231651. Rebuilt from the exact cells
+it is **0.8231653** — agreeing to six digits and differing in the seventh, because
+§ 6bn formed it from its own rounded 0.02238865 and 0.4498281 rather than from the
+doubles. Both are pinned, each at the precision it earns, and § 6br.1 asserts the
+disagreement at the seventh digit rather than papering over it. This is the trap
+§ 6bp.8 recorded, and it cost this step a failing first run of its own.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6br.1 — the branch column reproduces, and § 6bn's number came from rounded cells** | § 6bk's and § 6bm's 10× escapes come back as 0.022388654298862054 and 0.4498281027627471, matching every digit § 6bn cited; the exact interaction is 0.8231652575877593, close to the published 0.8231651 at six digits and NOT at seven | ✅ |
+| **§ 6br.2 — the quartet sits at one field** | the magnification lever cancels to twelve digits on both rows; the aperture lever keeps § 6bo.1's traced-NA residual, 1.0155048 and identical at both magnifications, which is why § 6br.6 measures the cancellation instead of asserting it | ✅ |
+| **§ 6br.3 — understated, not reversed — the last of § 6bn's six closes** | 0.8231653 becomes 0.4108834, both below 1, the departure from 1 growing 2.0034038× | ✅ |
+| **§ 6br.4 — the halving is two levers moving OPPOSITE ways** | 16.5389× to 12.9280× at 20× against 20.0918× to 31.4640× at 10×, i.e. 0.7816771× down and 1.5660148× up, pinned as a sign test on the product of the two departures | ✅ |
+| **§ 6br.5 — the pixel-sampling band is 0.75%, so this readout is NOT refused** | the whole quartet moved one power of two in pixels gives 0.4098416 and 0.4129352 around 0.4108834 — against an effect of 2.0034×, and no member near 1, where § 6bp.6 refused two readouts whose band straddled it | ✅ |
+| **§ 6br.6 — the anchor field turns the quotient over** | five anchors over a 16× range give 0.2462866 / 0.3596838 / 0.4108834 / 0.3100469 / 0.1249815, rising then falling; every one below 1 and below the branch's value, while the understatement runs 2.0034038× to 6.5862966×, a spread of 3.2875532×; and the small-anchor end saturates as a bounded fraction must | ✅ |
+| **§ 6br.7 — § 6bp.8's precondition, across all three frame sizes** | a doubling of pixels at a HELD field moves the four cells 1.0077336, 1.0028639, 1.0038531 and 1.0015415, and a halving 0.9847798, 0.9942719, 0.9923297 and 0.9969162 — § 6bo.6 had bounded this on one cell at one magnification | ✅ |
+| **§ 6br.8 — the stage convention is bounded at 10× for the first time** | a sweep step off the axial stage moves the 10× cells 0.9990469 and 0.9914978, which with § 6bo.6's 20× bounds of 0.41% and 6.7% bounds at both magnifications a convention § 6bk.4, § 6bm, § 6bn and § 6bo all use unexamined | ✅ |
+
+### Still open
+
+- **The high-anchor fall has no account.** The low end is a saturation of a
+  bounded fraction and is pinned as such; at the large anchor every cell is under
+  0.1, nothing is near the bound, and the quotient falls by a factor of three
+  anyway. Measured, not explained.
+- **Whether any other readout shares the anchor sensitivity is unmeasured.** This
+  step deliberately does not generalise it, and the readouts § 6bo and § 6bp
+  re-measured were each taken at one anchor.
+- **The interaction is still one magnification interval.** § 6bn's first interval
+  (4× to 10×) cannot be re-measured for the reason § 6bo.2 gave — matching a 4×
+  frame wants a non-integer `pupilSamples` at every power-of-two size — so
+  § 6bn's "not one of the six is a slope" remains neither confirmed nor refuted.
+- **§ 6bn's six are now all re-measured, and nobody has written down what they
+  say together.** Two reversed (§ 6bo), two were understated and two refused
+  (§ 6bp and this step's predecessor), and this one is understated — but the six
+  do not share an anchor convention, and after § 6br.6 that is known to matter for
+  at least one of them.
+- **Nothing on an infinity-corrected objective**, **the seed reaches one
+  radial-map caller of several**, **the blend has no window but the linear ramp**,
+  **the guard band still has no closed form** — inherited from § 6bi onward.
 
 ## Later rungs
 
