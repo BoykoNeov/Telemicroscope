@@ -90,14 +90,21 @@ import type { EmitterSlabs } from "../src/imaging/emitter-volume";
  * and rising, where the escape's was single-humped. Three readouts, three
  * shapes.
  *
+ * **§ 6bu withdraws the reading of those two curves as anchor curves.** This
+ * ladder holds the guard's PIXEL count and so sweeps its SHARE of the tile from
+ * 0.4844 to 0.9355, and the share is the first-order lever: held, the same 8× of
+ * anchor moves the cost 3.64% and away from 1. The numbers below are unchanged;
+ * what they are a function of is not what this comment first said.
+ *
  * Two verdicts fail at the top of that ladder. At 3.74 mm the cost no longer
  * crosses 1, so § 6bo.2's headline reversal is gone; and the anisotropy's
  * distance from 1 has fallen BELOW the branch's, so "understated" becomes its
  * opposite. Both hold at 0.4677, 0.9354 and 1.8708 — through 4x the anchor the
  * six are quoted at and 2x past the widest of them — and both fail at 3.7415,
  * which is also where § 6br.6 found the escape falling for a reason it could not
- * name. Three readouts misbehaving at one anchor, and none of the three
- * explained.
+ * name. Three readouts misbehaving at one anchor — and § 6bu accounts for two
+ * of them, on the guard share rather than the anchor, leaving the escape's fall
+ * alone and as open as § 6br.6 left it.
  *
  * ## The survivor is the least secure row, not the most
  *

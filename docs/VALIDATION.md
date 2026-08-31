@@ -129,6 +129,7 @@ whole ladder.
 | [6br](#step-6br--the-escapes-interaction-at-a-matched-field) | The last of § 6bn's six is UNDERSTATED 2.00×, not reversed; the two magnifications move opposite ways, and the anchor field nobody varied turns the quotient over | `escape-interaction` |
 | [6bs](#step-6bs--the-six-in-one-table) | The six side by side: 1 reversed, 4 understated, 1 unchanged, none refused — but at THREE anchor fields, and the survivor's stated reason is withdrawn | `six-interactions` |
 | [6bt](#step-6bt--the-two-growth-measures-converted) | D−1 = (R−1)·β/(β−1) converts the two growth measures exactly, so the tally is measure-independent — while § 6bs.2's cut reads 6.6× on one and 4.98% on the other | `growth-measures` |
+| [6bu](#step-6bu--the-guards-share-not-the-anchor) | § 6bs.7's ladder holds the guard's PIXELS, so its SHARE sweeps 0.48 to 0.94 and carries both failed verdicts: at ONE anchor the guard alone spans the whole ladder, and share held, 8× of anchor is worth 3.64% the other way | `guard-share` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -22662,9 +22663,14 @@ does it over the same extent ladder:
 | escape (§ 6br.6) | 0.359684 | 0.410883 | 0.310047 | 0.124982 |
 
 Both render-free curves are **monotone and rising** where the escape's is
-single-humped. Three readouts, three shapes — so the anchor is not a nuisance
+single-humped. ~~Three readouts, three shapes — so the anchor is not a nuisance
 parameter with one behaviour, and no readout's sensitivity can be borrowed from
-another's.
+another's.~~ **Two of those three are not anchor curves at all: [§ 6bu](#step-6bu--the-guards-share-not-the-anchor)
+measures that this ladder holds the guard's PIXEL count and therefore sweeps its
+SHARE of the tile from 0.4844 to 0.9355, and that the share is the first-order
+lever — held, the same 8× of anchor moves the cost 3.64% and the wrong way.** The
+sentence that survives is the narrower one: no readout's sensitivity can be
+borrowed from another's.
 
 At the top of the ladder **two verdicts fail**:
 
@@ -22680,10 +22686,14 @@ licenses the table above being read as a table. It is also the honest limit on
 it: **these verdicts hold for these lenses at a field within about 4× of the
 branch's own — they are not properties of the optics alone.**
 
-And the failures share an address. 3.7415 mm is where § 6br.6 found the escape
+~~And the failures share an address. 3.7415 mm is where § 6br.6 found the escape
 falling by a factor of three for a reason it explicitly could not name — the
 saturation argument that covers its small-anchor end does not reach there. Three
-readouts misbehaving at one anchor, none of the three explained.
+readouts misbehaving at one anchor, none of the three explained.~~ **The address
+was shared by coincidence.** [§ 6bu](#step-6bu--the-guards-share-not-the-anchor) puts both of these two failures on the
+guard share rather than on the anchor — at 3.7415 mm a guard of six cells
+restores both — and cannot reach the escape, whose discarded annulus is half its
+rendered width at every rung by construction. One unexplained curve, not three.
 
 The smallest of § 6br.6's five anchors, 0.2338 mm, is **refused rather than
 declined** for the render-free pair: `guardCells` is four resolution cells, that
@@ -22721,7 +22731,7 @@ third instance of the same error this step exists to document.
 | **§ 6bs.4 — five of the six go onto ONE anchor and the tally does not move** | § 6br.6's second rung IS the other five's anchor; the escape reads 0.3596838 there, still understated, and the five-row table gives the same 1 / 4 — while the SIZE moves 14%, 2.0034× to 2.2886× | ✅ |
 | **§ 6bs.5 — all six below 1 at a matched field, five of six down the branch** | the correction makes the set unanimous, the cost being the only row that crosses; and the physical gloss is REFUSED — the cost's matched levers are 0.6370 and 0.5063, below 1, against 1.5358 and 1.5997 down the branch | ✅ |
 | **§ 6bs.6 — two growth measures, two opposite orderings** | 1.0405/1.1305/1.2430/2.0034 against 7.435/16.307/11.685/6.674; the escape is last on one and first on the other, and the edge split trades ends with it | ✅ |
-| **§ 6bs.7 — the anchor sensitivity is not the escape's, and two verdicts fail at 3.74 mm** | cost 0.794872 → 1.004804 and anisotropy 0.786230 → 0.985310, both monotone against § 6br.6's single hump; the cost's crossing is gone at the widest and the anisotropy's growth inverts to 0.6407×, both holding at the three below; and 0.2338 mm is refused by the guard band | ✅ |
+| **§ 6bs.7 — the anchor sensitivity is not the escape's, and two verdicts fail at 3.74 mm** | cost 0.794872 → 1.004804 and anisotropy 0.786230 → 0.985310, both monotone against § 6br.6's single hump; the cost's crossing is gone at the widest and the anisotropy's growth inverts to 0.6407×, both holding at the three below; and 0.2338 mm is refused by the guard band; and [§ 6bu](#step-6bu--the-guards-share-not-the-anchor) moves both failures off the anchor and onto the guard SHARE, which this ladder sweeps 0.4844 to 0.9355 while holding its pixel count | ✅ |
 | **§ 6bs.8 — the survivor's REASON is withdrawn, and its margin is the table's smallest** | 0.89% against a next-smallest 3.90%, 4.37× clear; § 6bq.7's NA 0.20 moves 4.756%, 5.34× the margin; and § 6bq.7's own cells sit 2.0310 apart in field, so it is not an anchor derivative of the quotient | ✅ |
 
 ### Still open
@@ -22906,9 +22916,172 @@ work alone, and that the cost is the only one of the six that crosses.
   the correction moves little in ratio. A fifth and sixth understated readout
   would test whether the pattern is real or is four points.
 - **§ 6bs's own open items are untouched**: the plateau still cannot be moved to
-  the common anchor without new sweeps, the anchor boundary at 3.7415 mm still
+  the common anchor without new sweeps, ~~the anchor boundary at 3.7415 mm still
   has no account — § 6bt.6 only shows that one of the three misbehaviours there
-  is not a measurement artifact — and § 6bn's first interval is still unreachable.
+  is not a measurement artifact~~ **and two of the three misbehaviours at
+  3.7415 mm are accounted for by [§ 6bu](#step-6bu--the-guards-share-not-the-anchor): their ladder sweeps the
+  guard's share of the tile, and the anchor is second-order — leaving only the
+  escape's fall unexplained there** — and § 6bn's first interval is still
+  unreachable.
+
+## Step 6bu — the guard's share, not the anchor
+
+§ 6bs.7 walked the registration cost and its anisotropy over four anchor fields,
+`size` and `pupilSamples` scaled together so the pixel pitch is held and the
+field extent is what moves. Both curves came out monotone and rising, and at the
+top rung two verdicts failed: the cost stopped crossing 1, so § 6bo.2's reversal
+was gone, and the anisotropy's distance from 1 fell below the branch's, so
+"understated" became its opposite. That rung, 3.7415 mm, is also where § 6br.6
+found the escape falling by a factor of three for a reason it could not name, and
+§ 6bs.7 published the coincidence as an open question — three readouts
+misbehaving at one anchor, none of the three explained.
+
+Two of the three are this step. They are not misbehaving at an anchor.
+
+### The ladder is not a one-parameter family
+
+`guardCells` is a count of RESOLUTION CELLS, and a cell is `size / pupilSamples`
+pixels. The ladder holds that ratio — that is what holding the pixel pitch means
+— so the guard is a constant number of PIXELS at every rung while the tile grows
+around it, and the share of each tile that survives it climbs:
+
+| kept share | 0.4677 mm | 0.9354 mm | 1.8708 mm | 3.7415 mm |
+| --- | --- | --- | --- | --- |
+| s20 (8 px per cell) | 0.4844 | 0.7422 | 0.8711 | 0.9355 |
+| s10, f20 (4 px) | 0.7344 | 0.8672 | 0.9336 | 0.9668 |
+| f10 (4 px) | 0.8672 | 0.9336 | 0.9668 | 0.9834 |
+
+The discarded share falls by exactly 8× on every cell, and the readout is a
+double ratio across these four. So the ladder moves two things, and § 6bu.2
+measures which one is doing the work: **at the single anchor 3.7415 mm, moving
+only the guard walks the cost from 1.00480 to 0.65214 and the anisotropy from
+0.98531 to 0.71250** — covering § 6bs.7's whole four-rung range on both readouts
+and overshooting its low end by 21.9%. Every guard in that sweep is at least the
+branch's own four cells; a larger guard discards more and contains more, so
+nothing in it is a mosaic that could not be built. The floor is real and is
+checked from the other side: eight cells at the first rung is refused outright,
+the guard eating the whole 128-pixel tile.
+
+### What that does to the two verdicts
+
+Both move with the guard at a FIXED anchor. At 3.7415 mm a guard of six cells
+puts the cost back below 1 at 0.99270 and the anisotropy's growth back above 1
+at 1.00908 — both verdicts as § 6bo.2 published them, at the anchor § 6bs.7 said
+they failed at.
+
+Neither reading is the true one. 1.00480 and 0.99270 are the same readout at the
+same anchor under two guards that are both legitimate. What the pair shows is
+that **the verdict is a property of the (anchor, guard share) pair and not of the
+anchor**, so § 6bs.7's ladder is not an anchor derivative of this readout — the
+same objection [§ 6bs.8](#step-6bs--the-six-in-one-table) raises against reading
+§ 6bq.7's quotient as one, reached the same way, by measurement rather than by
+argument.
+
+§ 6bs.7 is not thereby wrong about its own construction. `guardCells` in
+resolution cells is the physical variable — it is what has to contain the PSF
+wrap (§ 6bh.4) — and four was the right count. Holding it is the correct thing
+to hold; it is simply not the same as holding the geometry, and no ladder can
+hold both while `size` changes.
+
+### Two verdicts, two thresholds, and no shared mechanism needed
+
+The tempting next sentence is that one lever flips both verdicts together.
+§ 6bu.4 refuses it: at 1.8708 mm with a guard of three cells the cost reads
+0.99768 — still crossing, verdict intact — while the anisotropy's growth is
+already 0.89843 and has inverted. Two readouts, two nearby but distinct
+thresholds, 3.1% of kept share apart.
+
+The dissolution does not need them to share one. Both interactions converge
+monotonically toward 1 in this variable, and both verdicts are tests of where a
+number sits relative to 1 — a crossing for the cost, a distance for the
+anisotropy — so any parameter that walks both toward 1 must trip both in the same
+neighbourhood. That is nearly arithmetic, and it is the whole of why the two
+failures share a rung.
+
+### What the anchor is actually worth
+
+Hold the share instead — `guardCells` scaled with the rung, so the guard is a
+constant fraction rather than a constant pixel count — and walk the same 8×:
+
+| | 0.4677 mm | 0.9354 mm | 1.8708 mm | 3.7415 mm |
+| --- | --- | --- | --- | --- |
+| cost, share held | 0.794872 | 0.790197 | 0.781840 | 0.765944 |
+| cost, § 6bs.7's ladder | 0.794872 | 0.940425 | 0.986325 | **1.004804** |
+| anisotropy, share held | 0.786230 | 0.792297 | 0.801744 | 0.809617 |
+| anisotropy, § 6bs.7's | 0.786230 | 0.928548 | 0.971099 | **0.985310** |
+
+The cost moves **3.64% and away from 1** where the published ladder moves 26.4%
+toward it; the anisotropy 2.98%. Neither verdict fails anywhere on the held-share
+ladder. The first rung is common to both, being the one rung at which holding the
+count and holding the share are the same thing.
+
+Matched shares at different anchors read nearly the same: 0.7344 at 0.4677 mm
+gives 0.945995 and 0.7422 at 0.9354 mm gives 0.940425, agreeing to **0.59%**
+where § 6bs.7's ladder reports 18.3% between those same two rungs. The anchor is
+a second-order term in both readouts and the guard share is the first-order one,
+which is the reverse of how § 6bs.7's table reads.
+
+### The axis crossing, refused
+
+There is a second candidate at that rung, and it is a good-looking one. The
+mosaic's image-plane footprint first contains the optical axis at exactly the top
+rung, on all four cells at once: at 1.8708 mm the leading tile clears the axis by
+0.0436 to 0.2443 mm, and at 3.7415 mm that tile's own CENTRE has crossed to
+−1.1253 … −1.3051 mm. One anchor, four cells, a qualitative change in what the
+objective's radial map is being asked about.
+
+It is refused on both halves. **Not sufficient**: the held-share ladder crosses
+the axis just as hard at that rung, −1.4677 to −3.4124 mm, and reads 0.765944.
+**Not necessary**: moved out to a centre of 9 mm the footprint clears the axis on
+all four cells, by 0.9529 mm at the closest, and the cost still reads 1.009757
+with the anisotropy still inverted at 0.586804. A cause that is neither is not
+the cause.
+
+Nine millimetres and not a round eight because eight does not qualify — two of
+the four cells are still across the axis there, by 0.0441 and 0.0107 mm — and
+not ten, which the chief ray refuses. The one centre that clears all four is the
+last one that exists.
+
+### The ladder's top rung is the last that exists
+
+A fifth rung is not declined but refused: at `k` 16 no object height reaches the
+required image radius of 18.286 mm, the chief ray vignetting at an object height
+of 1.833 mm. § 6bs.7's four rungs are the whole family, and the centre sweep
+above stops at 9 mm against the same limit reached from the other direction.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bu.1 — the anchor ladder holds the guard's PIXELS, so its SHARE sweeps** | `guardCells·size/pupilSamples` with `size/pupilSamples` held is 32 px on the slow 20× and 16 px on the other three at every rung; the kept share therefore runs 0.4844 → 0.9355 and 0.7344 → 0.9668, the discarded share falling by exactly 8× on all four | ✅ |
+| **§ 6bu.2 — at ONE anchor the guard alone spans the whole published ladder** | at 3.7415 mm, guards of 4/6/8/16/24/32/40 cells give 1.004804 … 0.652140 on the cost and 0.985310 … 0.712505 on the anisotropy, both strictly monotone; that covers § 6bs.7's four rungs on both readouts and overshoots the cost's low end by 21.9%, and every guard in it is ≥ the branch's four — while eight cells at the first rung is refused, the guard eating the tile | ✅ |
+| **§ 6bu.3 — so both of § 6bs.7's failed verdicts move with the guard, at a fixed anchor** | six cells at 3.7415 mm puts the cost at 0.992704, back below 1, and the anisotropy's growth at 1.009085, back above it — neither reading privileged over the other; and at the branch's own 0.4677 mm a half-cell guard fails both verdicts there too, quoted as the geometry-only extension it is | ✅ |
+| **§ 6bu.4 — two verdicts, two thresholds: they do not flip together** | at 1.8708 mm a guard of three has the cost at 0.997679, still crossing, while the anisotropy's growth is 0.898432 and has inverted; one cell further out both hold, at 0.986325 and 1.279006, so the two thresholds sit 3.1% of kept share apart | ✅ |
+| **§ 6bu.5 — hold the share instead, and the anchor is worth 3.64% over 8×** | `guardCells` scaled with the rung holds the share at 0.4844 → 0.4980, and then the cost runs 0.794872 → 0.765944, away from 1, against the published ladder's 26.4% toward it; the anisotropy 2.98% with no inversion; and matched shares at 0.4677 and 0.9354 mm agree to 0.59% where the ladder reports 18.3% | ✅ |
+| **§ 6bu.6 — the axis crossing lands at the same rung, and is refused as the cause** | the footprint first contains the axis at 3.7415 mm on all four cells, the leading tile's centre at −1.1253 … −1.3051 mm having cleared by 0.0436 … 0.2443 mm one rung below; not sufficient, since the held-share ladder crosses and reads 0.765944; not necessary, since a centre of 9 mm clears all four and still reads 1.009757 with growth 0.586804 | ✅ |
+| **§ 6bu.7 — 3.7415 mm is the last rung that EXISTS, not the last one chosen** | `k` 16 is refused by the chief ray — no object height reaches image radius 18.286 mm, vignetting at object height 1.833 mm — and a centre of 10 mm is refused the same way at 17.889 mm, which is why § 6bu.6's sweep stops at 9 | ✅ |
+
+**Still open.**
+
+- **The escape is untouched, and this account cannot reach it.** § 6br.6's
+  readout has no guard share to sweep: it renders at twice its `size` and counts
+  the intensity outside the central `size` box, so its discarded annulus is half
+  the rendered width at every rung by construction. The third misbehaviour at
+  3.7415 mm stays exactly as open as § 6br.6 left it. What has changed is that it
+  is now alone: for the two readouts here the shared address was a coincidence,
+  and § 6bs.7's "three readouts misbehaving at one anchor" was two ladders'
+  arithmetic and one unexplained curve, not three of anything.
+- **No anchor derivative of this readout has been produced**, and this step does
+  not produce one. It shows the two obvious candidates disagree about the sign —
+  guard count held gives +26.4%, guard share held −3.64% — and that a choice
+  between them is a choice, not a measurement. Anything built on "how this
+  readout varies with the field" has to say which it holds.
+- **The threshold is bracketed, not located.** The cost crosses 1 between kept
+  shares of about 0.90 and 0.94 at every anchor measured, and the anisotropy
+  inverts a little below that; neither is pinned to better than one guard cell,
+  and whether the threshold drifts with the anchor in some regular way is
+  unmeasured. Four anchors is what the field limit allows.
+- **Inherited and untouched**: the plateau still cannot be moved to the common
+  anchor without new sweeps, § 6bn's first interval is still unreachable, and
+  § 6bs.6's two orderings still have no replacement.
 
 ## Later rungs
 
