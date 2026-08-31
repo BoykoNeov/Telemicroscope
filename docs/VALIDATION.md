@@ -23390,10 +23390,15 @@ mosaic's own offset across a 2.5× of it. It is NOT one half: 0.5115 is 2.3% fro
 
 **Still open.**
 
-- **No closed form for 0.5115.** The turn tracks the field offset across a 2.5×
-  of it, which makes it a property of the geometry rather than of this field
-  point, but the ratio itself is a measured number with nothing behind it yet.
-  It is not one half and it is not the kept share.
+- **No closed form for 0.5115, and 0.511–0.515 is a GRID-limited interval.**
+  The turn tracks the field offset across a 2.5× of it, which makes it a
+  property of the geometry rather than of this field point, but the ratio itself
+  is a measured number with nothing behind it yet. It is not one half and it is
+  not the kept share. And the three ratios agree inside 0.8% partly because the
+  ruler is coarse where the arm is short: a sixteenth of a rung is 2.9% of the
+  ratio at 2 mm against 1.1% at 5 mm, so the interval bounds the turn and does
+  NOT say the ratio is constant to 0.8%. The 2.3% gap to one half survives it;
+  a claim that the ratio drifts with the offset would not.
 - **The hump has a shape and no mechanism.** Why the guard's share of the tile
   should have a maximum at all — why more anchor helps up to a point and then
   stops helping — is unmeasured. § 6bw.7 says where the turn is and what moves

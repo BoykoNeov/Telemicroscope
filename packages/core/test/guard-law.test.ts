@@ -598,9 +598,10 @@ describe("§ 6bw.7 — the drift is a single hump, and it tracks the field", () 
         located(j, i, x);
         return guardShare(j, i);
       };
-      const step = x === 4 ? 1 : 1;
-      expect(at(jPeak)).toBeGreaterThan(at(jPeak - step));
-      expect(at(jPeak)).toBeGreaterThan(at(jPeak + step));
+      // Every offset's table is a 1/16 triple, so the neighbours are one `j`
+      // out at each of them.
+      expect(at(jPeak)).toBeGreaterThan(at(jPeak - 1));
+      expect(at(jPeak)).toBeGreaterThan(at(jPeak + 1));
       // The tile half extent at the peak, against the mosaic's own offset.
       const ratio = (HALF_AT_K1 * (jPeak / 16)) / x;
       expect(ratio).toBeGreaterThan(0.511);
