@@ -394,6 +394,33 @@ describe("§ 6br.6 — the ANCHOR field is a free parameter, and the quotient tu
     expect(Math.max(...factors) / Math.min(...factors)).toBeCloseTo(3.2875532432725083, 10);
   });
 
+  it("and the smallest anchor survives four times the pixels, though it sits at pupilSamples 8", () => {
+    // § 6bd.8 validated this readout at pupilSamples 16, 24 and 32. The 0.25x
+    // anchor's slow-20x cell is at 8, below anything this branch has measured,
+    // and it is the point that establishes the hump's low shoulder — so it is
+    // checked rather than caveated. § 6bq's lesson was that a frame can agree
+    // on field and pitch and still answer about something else.
+    const at = (mult: number): number =>
+      interact(
+        E("s10", 16, 64 * mult),
+        E("f10", 32, 128 * mult),
+        E("s20", 8, 32 * mult),
+        E("f20", 16, 64 * mult),
+      );
+
+    expect(at(1)).toBeCloseTo(0.24628656334098914, 12);
+    expect(at(2)).toBeCloseTo(0.24720679906865334, 12);
+    expect(at(4)).toBeCloseTo(0.24764524029156815, 12);
+
+    // 0.55% over a 4x pixel range, and converging — not an under-sampling
+    // artefact, against a shoulder-to-peak gap of 0.2463 against 0.4109.
+    for (const v of [at(2), at(4)]) expect(Math.abs(v / at(1) - 1)).toBeLessThan(0.0056);
+    expect(at(4)).toBeLessThan(interactionAt(1) * 0.7);
+
+    // And the field really is held: `pupilSamples` alone sets the extent.
+    expect(extentOf(LENS.s20, 128, 8)).toBeCloseTo(extentOf(LENS.s20, 32, 8), 12);
+  });
+
   it("and the small-anchor end has a mechanism: the escape is a fraction, so it saturates", () => {
     const q = QUARTET(0.25);
     // At the smallest anchor the 20x column is a third and a half escaped, and

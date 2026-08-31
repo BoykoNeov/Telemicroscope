@@ -22445,6 +22445,13 @@ falling to about a third of that at either end. **It is a turn, not a band and
 not a slope** — and three anchors would have shown a rise with one outlier, which
 is what the first probe here did show before two more were added.
 
+The low shoulder is the one point that needed defending. Its slow-20× cell sits
+at `pupilSamples` 8, below the 16, 24 and 32 § 6bd.8 validated this readout at,
+and § 6bq's own lesson is that a frame can agree on field and pitch and still
+answer about something else. Held field, four times the pixels: **0.2462866,
+0.2472068, 0.2476452** — 0.55% and converging, against a shoulder-to-peak gap of
+0.2463 against 0.4109. The point stands on measurement, not on tolerance.
+
 The consequence is split. The **verdict survives every anchor**: all five are
 below 1 and all five below the branch's 0.8231653, so "understated, sign held" is
 unanimous over the whole family. The **size survives none**: the understatement
@@ -22482,7 +22489,7 @@ disagreement at the seventh digit rather than papering over it. This is the trap
 | **§ 6br.3 — understated, not reversed — the last of § 6bn's six closes** | 0.8231653 becomes 0.4108834, both below 1, the departure from 1 growing 2.0034038× | ✅ |
 | **§ 6br.4 — the halving is two levers moving OPPOSITE ways** | 16.5389× to 12.9280× at 20× against 20.0918× to 31.4640× at 10×, i.e. 0.7816771× down and 1.5660148× up, pinned as a sign test on the product of the two departures | ✅ |
 | **§ 6br.5 — the pixel-sampling band is 0.75%, so this readout is NOT refused** | the whole quartet moved one power of two in pixels gives 0.4098416 and 0.4129352 around 0.4108834 — against an effect of 2.0034×, and no member near 1, where § 6bp.6 refused two readouts whose band straddled it | ✅ |
-| **§ 6br.6 — the anchor field turns the quotient over** | five anchors over a 16× range give 0.2462866 / 0.3596838 / 0.4108834 / 0.3100469 / 0.1249815, rising then falling; every one below 1 and below the branch's value, while the understatement runs 2.0034038× to 6.5862966×, a spread of 3.2875532×; and the small-anchor end saturates as a bounded fraction must | ✅ |
+| **§ 6br.6 — the anchor field turns the quotient over** | five anchors over a 16× range give 0.2462866 / 0.3596838 / 0.4108834 / 0.3100469 / 0.1249815, rising then falling; every one below 1 and below the branch's value, while the understatement runs 2.0034038× to 6.5862966×, a spread of 3.2875532×; the low shoulder survives 4× the pixels at `pupilSamples` 8 (0.55%, converging) where § 6bd.8 validated only 16 and up; and the small-anchor end saturates as a bounded fraction must | ✅ |
 | **§ 6br.7 — § 6bp.8's precondition, across all three frame sizes** | a doubling of pixels at a HELD field moves the four cells 1.0077336, 1.0028639, 1.0038531 and 1.0015415, and a halving 0.9847798, 0.9942719, 0.9923297 and 0.9969162 — § 6bo.6 had bounded this on one cell at one magnification | ✅ |
 | **§ 6br.8 — the stage convention is bounded at 10× for the first time** | a sweep step off the axial stage moves the 10× cells 0.9990469 and 0.9914978, which with § 6bo.6's 20× bounds of 0.41% and 6.7% bounds at both magnifications a convention § 6bk.4, § 6bm, § 6bn and § 6bo all use unexamined | ✅ |
 
