@@ -22227,12 +22227,29 @@ Tests: `packages/core/test/refusal-boundary.test.ts`,
 Two files, one step. `refusal-boundary` measures where the boundary is and how
 it moves; `refusal-frames` measures what the frame does to the reading, which is
 what licenses quoting a boundary at a frame at all. They were one module until
-it was timed: 177 s of sweeps in one file is 177 s on one worker, a worker
-cannot be split, and against the other fifteen it ran at about two thirds speed
-— 273 s of wall clock nothing else could absorb, dropping the suite's
-parallelism from ~13× to ~9× and its runtime from 178 s to 383 s. Split, the
-halves are 88 s and 65 s, both under the suite's longest pre-existing file. No
-number changed; the shared sweep and its memo live in `support/refusalSweep.ts`.
+it was timed. The structural reason is solid — **one module is one worker and a
+worker cannot be split**, so 153 s of sweeps in one file is 153 s that only one
+of sixteen workers can retire, and it lands in the tail where nothing else can
+absorb it. Split, the two run together in **88 s of wall for 153 s of test
+time**, and their halves are 88 s and 65 s of CPU.
+
+**The suite-level benefit was NOT isolated, and an earlier draft of this
+paragraph overstated it.** It claimed the unsplit file took the suite from 178 s
+to 383 s and its parallelism from ~13× to ~9×. Six full runs do not support that:
+parallelism came out ~9× in *both* states (unsplit 9.1×/9.0×/9.6× at 427/383/402
+s; split 9.7×/8.5×/8.5× at 341/450/473 s), and the spread within one
+configuration exceeds the difference between them. Those runs were mutually
+contended; a later solo run reached 12.4×, so the machine's ceiling is intact and
+it was the *measurement* that was noisy, not the parallelism. The split is kept
+for the reason above and for the conceptual line, not on a suite-level number
+this branch has not earned. No number in the step changed; the shared sweep and
+its memo live in `support/refusalSweep.ts`.
+
+Two cautions this cost, for anyone timing the suite again: a run with a cold
+transform cache is not comparable to a warm one (664 s of transform against 62 s
+on the same suite), and `--exclude` on the vitest command line replaces the
+config's excludes rather than adding to them, which breaks module resolution and
+fails thirteen files that pass normally.
 
 `renderedBestFocus` refuses a sweep whose axial response is a PLATEAU — whose
 peak falls 5% only after more than `maxPlateauDepths` depths of focus — instead

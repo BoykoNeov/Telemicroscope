@@ -16,12 +16,17 @@ import type { OpticalSystem } from "../../src/trace/system";
  * magnification; `refusal-frames.test.ts` asks what the FRAME does to
  * the reading, which is what says whether a boundary quoted at one frame means
  * anything. They are one step, § 6bq, and they were one file until it was
- * measured: 177 s of sweeps in a single module is 177 s on a single worker, and
- * a worker cannot be split. Against the other fifteen it ran at about two thirds
- * speed, so it took 273 s of wall clock that nothing else could absorb, and the
- * suite's parallelism fell from about 13× to 9×. Splitting the rungs across two
- * modules costs the fixtures that both need — they are memoised per process, so
- * the shared ones are built twice — and buys back the tail.
+ * measured: one module is one worker and a worker cannot be split, so 153 s of
+ * sweeps in a single module is 153 s only one of sixteen workers can retire, and
+ * it sits in the tail where nothing else can absorb it. Split, the two run
+ * together in 88 s of wall for the same 153 s of test time. Splitting costs the
+ * fixtures both need — memoised per process, so the shared ones are built twice.
+ *
+ * That is the whole of the justification. An earlier version of this comment
+ * also claimed the split moved the SUITE from 383 s back toward 178 s and its
+ * parallelism from 9× to 13×; six full runs did not support it (≈9× in both
+ * states, with more spread within a configuration than between them) and the
+ * claim is withdrawn — see § 6bq in docs/VALIDATION.md.
  *
  * Nothing here changes a number. The split line is conceptual as well as
  * cheap, which is why it is this one and not a cut through the ladders.
