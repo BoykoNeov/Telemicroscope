@@ -132,6 +132,7 @@ whole ladder.
 | [6bu](#step-6bu--the-guards-share-not-the-anchor) | § 6bs.7's ladder holds the guard's PIXELS, so its SHARE sweeps 0.48 to 0.94 and carries both failed verdicts: at ONE anchor the guard alone spans the whole ladder, and share held, 8× of anchor is worth 3.64% the other way | `guard-share` |
 | [6bv](#step-6bv--the-threshold-is-not-a-share) | The threshold located to a quarter cell, the finest that exists — and it DRIFTS: 0.87 to 0.92 of kept share over 8x, growing 4.75-6.67x where § 6bu's two ladders demand 1x and 8x | `guard-threshold` |
 | [6bw](#step-6bw--the-drift-is-a-hump) | The frame is not the anchor: untied, the threshold is exact and dense — and NOT monotone. The guard's share rises 8.6% to a turn near k=4.4, then falls back level, which is why no ladder fitted | `guard-law` |
+| [6bx](#step-6bx--the-cost-does-not-hump) | § 6bw's hump is the anisotropy's: at 4 mm the cost falls monotonically at three probe counts, turning only in its SLOPE — and jumps UP past a tile/offset ratio of 1.8 that 4 mm cannot reach | `cost-law` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -23403,15 +23404,264 @@ mosaic's own offset across a 2.5× of it. It is NOT one half: 0.5115 is 2.3% fro
   should have a maximum at all — why more anchor helps up to a point and then
   stops helping — is unmeasured. § 6bw.7 says where the turn is and what moves
   it, not what makes it turn.
-- **The COST threshold is not refined here.** § 6bw.4 shows why: its readout is
+- **The COST threshold is not refined here.** § 6bw.4 shows why: ~~its readout is
   quantised by the along-seam probe grid at 3.8e-4, so the same treatment would
-  locate a threshold of the 17-probe reading rather than of the seam. Whether
-  the cost's own drift is the same hump is untested.
+  locate a threshold of the 17-probe reading rather than of the seam.~~
+  **That 3.8e-4 belongs to a 128-pixel frame, where `along`’s rounding is
+  coarse; at 2²⁶ what survives is finite seam sampling, one-signed and 4.7×
+  below the smallest step it must resolve ([§ 6bx](#step-6bx--the-cost-does-not-hump)).** Whether
+  the cost's own drift is the same hump is untested. **It is not: the cost
+  falls monotonically at 4 mm and turns only in its slope, so the hump is the
+  anisotropy’s alone ([§ 6bx](#step-6bx--the-cost-does-not-hump)).**
 - **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
-  unexplained curve, the two thresholds' separation still has a direction and no
-  mechanism, the plateau still cannot be moved to the common anchor without new
+  unexplained curve, ~~the two thresholds' separation still has a direction and
+  no mechanism~~ **the separation is the difference of two laws now measured
+  separately, and needs no mechanism of its own ([§ 6bx](#step-6bx--the-cost-does-not-hump))**,
+  the plateau still cannot be moved to the common anchor without new
   sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's two
   orderings still have no replacement.
+
+## Step 6bx — the cost does not hump
+
+§ 6bw found the anisotropy threshold's drift to be a single smooth hump and left
+the cost alone, with a reason: "its readout is quantised by the along-seam probe
+grid at 3.8e-4, so the same treatment would locate a threshold of the 17-probe
+reading rather than of the seam."
+
+The conclusion was right — the cost was untested — and the reason was wrong. That
+3.8e-4 was measured at a frame of 128 pixels, where one pixel is a 128th of the
+tile and the rounding in `along(p) = round((composed − 1)p/(probes − 1))` is
+coarse. On § 6bw's own crop-free frame of 2²⁶ that rounding is one part in 2²⁶,
+and what is left is not rounding at all but genuine finite sampling of the seam.
+It does not vanish, and it does not have to: the whole question is settled by
+measuring at three probe counts rather than by bounding one.
+
+### Only one of the two factors can move
+
+`costI` is `interact` over four cells of `stage.mm / field.mm`, and `interact` is
+multiplicative, so it factorises exactly into the stage interact over the field
+interact — agreeing to 2.2 × 10⁻¹⁶ at every point tried, which is an identity and
+not a coincidence. § 6bw.4 already proved the stage factor EXACT: its worst sits
+at the corner `{x: 0, y: pitch}`, and `along(0) = 0` puts that corner on every
+probe grid there is. Extended here to 257 and 513 probes, in all four cells, the
+anisotropy is still the same double.
+
+So the whole of the cost's probe dependence lives in the field factor.
+
+### Why bisecting it is legal
+
+The cost's denominator is a MAX over a discrete probe set, so it is only
+piecewise-smooth in the guard: a kink is possible wherever the argmax jumps from
+one probe to another, and a bisection across a kink returns *a* crossing rather
+than *the* threshold. Walked over 201 consecutive lattice steps at three anchors
+the value never kinks — zero breaks in strict decrease. The worst's pixel
+coordinate does slide from step to step, giving as many distinct argmax sets as
+there are steps, but that is true of every window walked at every offset,
+including the ones where nothing else is unusual, so it is the kink count and not
+the set count that carries the licence.
+
+### The result: at 4 mm the cost falls, and it never turns
+
+Crop-free, frame 2²⁶, bisected to the 2⁻²⁴ guard lattice. The guard's share of
+the tile at the threshold is `2·guardAt(j,i)/j = i/2²³`, independent of the
+anchor, so the whole law is carried by the located integer alone.
+
+| k | 1 | 2 | 3 | 4 | 4.375 | 5 | 6 | 7 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| cost, probes 17 | .08821893 | .08553183 | .08302844 | .08065450 | .07978857 | .07836747 | .07613468 | .07393098 | .07173669 |
+| cost, probes 257 | .08819544 | .08547080 | .08293152 | .08052802 | .07965291 | .07821846 | .07596946 | .07375479 | .07155383 |
+| § 6bw's anisotropy | .08882380 | .0927361 | .0952452 | .0963953 | **.09649312** | .0962760 | .0950153 | .0927703 | .08971536 |
+
+Strictly decreasing at every step, at probes 17, at probes 65 and at probes 257
+alike, and it goes on decreasing from k = 0.25 to k = 13.25 — every anchor this
+offset can reach. End to end the eight rungs lose 18.7% at 17 probes and 18.9% at
+257, where the anisotropy's whole hump is 8.6% and returns to within 1% of where
+it started. k = 4.375, the anisotropy's own peak, is unremarkable here: it sits on
+the smooth fall like every other rung.
+
+**So § 6bw's hump is not a property of "the threshold". It belongs to the
+anisotropy alone**, and the two readouts have qualitatively different laws.
+
+The ceiling is the lens's and not this step's. k = 13.25 traces; k = 13.5 is the
+first chief-ray refusal — `objectHeightForImageRadius: no object height reaches
+image radius 17.6015 mm` — which is § 6bu.7's own limit. (A separate and purely
+NUMERICAL refusal exists where `2²⁶/ps` is inexact: k = 12.25 reports a guard of
+999999.9999999999 pixels. That is the lattice, not the optics, and the two must
+not be conflated.)
+
+### The frame has converged; the probe grid has not, and it need not
+
+Bisected at frames 2²², 2²⁴ and 2²⁶ on the same lattice, the located integer is
+bit-identical at k = 1 and k = 8 alike. The real one-pixel crop's residual is
+already below the lattice at 2²², matching § 6bw.6 for the anisotropy.
+
+The probe grid is the other story, and it is the one § 6bw guessed at. The probe
+counts sample nested SUPERSETS of seam positions — 17 ⊂ 33 ⊂ 65 ⊂ 129 ⊂ 257 — so
+each refinement can only find a worse field maximum, each cell's ratio can only
+fall, and the threshold can only move DOWN. That is a proof about the SIGN and it
+is all it is. Whether a given refinement moves the answer at all depends on
+whether its new points beat the incumbent worst case: 17 and 33 agree, 65 and 129
+agree at the nine anchors above, and neither agreement is a law — 65 and 129
+differ at k = 13, and they differ at 2 mm off axis. **Nothing here has saturated.**
+
+513 probes then reproduce the 257 reading exactly at k = 1 and at k = 4. So did
+129 reproduce 65 before 257 moved both, which is precisely why that is a bound
+and not a proof — the honest statement is the one-signed bound below, and the
+measurement of the fall at three separate probe counts above.
+
+What is true is the bound, and it is one-signed by the nesting:
+
+| | worst 17 → 257 shift | as a fraction of the located value |
+| --- | --- | --- |
+| across the nine anchors | 1534 | 2.6 × 10⁻³ |
+
+Against that, the SMALLEST step between adjacent anchors in the table is 7264 —
+4.7 times the largest movement any probe refinement produces, and that is the
+comparison that binds, because what is being claimed is the sign of each step.
+End to end the signal beats the residual by 73×. The monotone fall is not
+inferred from the bound in any case; it is measured three times over.
+
+### The slope turns where the value does not
+
+Uniform unit-k steps in the located integer:
+
+| k step | 1→2 | 2→3 | 3→4 | 4→5 | 5→6 | 6→7 | **7→8** | 8→9 | 9→10 | 10→12 | 12→13 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Δi, probes 65 | −22790 | −21239 | −20110 | −19336 | −18838 | −18559 | **−18452** | −18484 | −18629 | −19034 | **−7481** |
+| Δi, probes 257 | −22856 | −21301 | −20162 | −19374 | −18866 | −18578 | **−18463** | −18490 | −18630 | −19030 | **−8229** |
+
+The fall decelerates to a minimum in magnitude, re-accelerates, and then — in the
+last rung this offset can reach — decelerates by a factor of 2.3 to 2.5. So both
+readouts have structure over this range, and it is structure of a different
+ORDER: the anisotropy turns in its VALUE (a maximum, k ≈ 4.4), the cost in its
+SLOPE. Neither is monotone in the way § 6bu's and § 6bv's ladders assumed, and
+they are not non-monotone in the same way either.
+
+**The minimum is the 7→8 step, and it is bracketed to a rung rather than
+located.** Two probe counts an order of magnitude apart agree on which step is
+the smallest, which is the pin: the residual drifts by about 300 across the
+range, far more than the 27 that separates the 7→8 step from the 8→9 one, but it
+drifts SMOOTHLY and so nearly cancels in the differences. The final deceleration
+is real at both probe counts and its size is not pinned — k = 13 is where the
+probe sensitivity is worst, 1064 against ~320 elsewhere.
+
+### The two thresholds cross, at § 6bv's first rung
+
+Both located on the same crop-free lattice at the same anchors, in guard share:
+
+| k | 0.25 | 0.5 | 0.75 | 0.8125 | 0.875 | 1 |
+| --- | --- | --- | --- | --- | --- | --- |
+| cost, probes 65 | .09039056 | .08964455 | .08891475 | .08873463 | .08855557 | .08820033 |
+| anisotropy | .08497107 | .08634162 | .08762622 | .08793378 | .08823597 | .08882380 |
+| cost − aniso | +.0054195 | +.0033029 | +.0012885 | +.0008008 | +.0003196 | **−.0006235** |
+
+The anisotropy row is re-bisected here on § 6bx's own lattice and reproduces
+§ 6bw's published table to the last bit at k = 1, so these are commensurable
+readings of one rig and not one rig's opinion of another's. The gap closes
+monotonically and changes sign between k = 0.875 and k = 1. What is MEASURED is
+that bracket, on the same 1/16 grid as everything else here; interpolation puts
+the crossing near k = 0.917 and that is not a measurement. The bracket is not the
+probe grid's either — only the cost moves with the probe count at all, and at 257
+probes the sign change still straddles the same pair.
+
+§ 6bv.5 reported the two thresholds "one quarter cell or less apart at 0.4677 mm,
+where this ladder cannot separate them at all". 0.4677 mm is k = 1. They are
+inseparable there because they CROSS within a tenth of a rung of it — a genuine
+intersection, not a resolution limit. § 6bv's own ladder family says the same:
+§ 6bw.5's anisotropy against this step's cost is 0.8996716 against 0.8992100 at
+k = 1 — 0.05% apart, then 6.7%, 17.5% and 23.8% at k = 2, 4 and 8, read as
+aniso/cost − 1 so that they are the same convention as the table above.
+
+### So the separation is not a phenomenon in its own right
+
+§ 6bv left the two thresholds' separation with "a direction and no mechanism".
+With both located crop-free the ratio anisotropy/cost runs
+
+| k | 1 | 2 | 3 | 4 | 4.375 | 5 | 6 | 7 | 8 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| aniso / cost, probes 65 | 1.00707 | 1.08484 | 1.14820 | 1.19665 | 1.21100 | 1.23038 | 1.25014 | **1.25720** | 1.25315 |
+
+On the 17-probe cost it runs 1.00685 → 1.25482 → 1.25062 and turns between the
+same two rungs, which is the form `cost-law` pins. It starts at 1 because the two
+curves cross just below k = 1; it grows because
+one rises while the other falls; and it turns over near k = 7 because by then the
+anisotropy is past its own maximum and falling faster than the cost. Every
+feature the separation has is inherited from one of the two laws. It is the
+difference of two things now measured separately, and there is nothing else in it.
+
+### § 6bv's own ladder, confirmed and located
+
+The same treatment on § 6bs.7's family — crop = 1, frame `Q6BO·k`, blown up 2²⁰
+holding each cell's share — gives the cost's analogue of § 6bw.5:
+
+| k | 1 | 2 | 4 | 8 |
+| --- | --- | --- | --- | --- |
+| g* (cells) | 0.8992099761962891 | 1.5676569938659668 | 2.7867050170898438 | 4.807748317718506 |
+| § 6bv.2's bracket | (0.75, 1] | (1.5, 1.75] | (2.75, 3] | (4.75, 5] |
+
+All four inside. § 6bv is confirmed and not corrected, exactly as § 6bw.5 found
+for the anisotropy, and the ladder's own growth — 5.3466 over 8× of anchor — sits
+inside § 6bv.4's published bracket [4.75, 6.67] and is now a number rather than
+an interval.
+
+### The window, and what sits just outside it
+
+Every "never turns" above is a statement about 4 mm off axis, and that offset
+cannot see the whole curve. § 6bw.7 found the anisotropy's own turn tracking the
+tile half extent as a fraction of the field offset rather than the anchor. Read
+the cost in that same variable and the picture changes: at 2 mm and at 3 mm the
+located threshold stops falling and JUMPS UP, at the same ratio at both offsets.
+
+| offset | ratio 1.40 | 1.56 | 1.64 | 1.70 | 1.72 | 1.75 | 1.79 | 1.81 | 1.87 | 2.03 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2 mm | | | 488216 | 486643 | | 485678 | | **490080** | **716088** | |
+| 3 mm | 511287 | 500524 | | | 497015 | | 494231 | | **710144** | **1256455** |
+
+The onset is bracketed at (1.754, 1.812) at 2 mm and at (1.793, 1.871) at 3 mm —
+overlapping — and at a ratio of 1.871 the two offsets locate 716088 and 710144,
+0.8% apart, having fallen to a fifth of that a rung earlier. **4 mm tops out at a
+ratio of 1.550**, at the chief-ray refusal above; 5 mm cannot get past 1.03
+before the same refusal. So the monotone fall is a property of the window this
+offset can reach, and the reason nothing turns at 4 mm is that the design runs
+out of field before the feature arrives.
+
+This is a threshold and not a readout artifact. The § 6bx.2 licence check was
+re-run at 2 mm — across a coarse walk spanning the flat stretch AND the cliff,
+and in a fine window around the crossing — with zero breaks in strict decrease,
+against a 4 mm control behaving identically. The cost is still monotone in the
+guard there; it is the threshold's dependence on the anchor that breaks.
+
+No mechanism is offered. Which of the four cells or which probe supplies the jump
+is unmeasured, and so is whether the ratio 1.8 is the same 0.5115 of § 6bw.7 seen
+in another guise.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bx.1 — the cost is two interacts, and only one of them moves** | `costI` equals the stage interact over the field interact to 2.2e-16, an identity because `interact` is multiplicative; § 6bw.4's stage factor is bit-identical at 17, 65, 129, 257 and 513 probes in all four cells, so every bit of probe dependence sits in the field factor | ✅ |
+| **§ 6bx.2 — the bisection is licensed, at 4 mm and at 2 mm alike** | the denominator is a max over a discrete probe set, so kinks are possible; 201 consecutive lattice steps give zero breaks in strict decrease, and the many distinct argmax sets are the worst's coordinate sliding, which a 4 mm control shows happens wherever nothing is unusual | ✅ |
+| **§ 6bx.3 — at 4 mm the cost falls monotonically, at three probe counts** | .08821893 → .07173669 over k = 1…8 at 17 probes and .08819544 → .07155383 at 257, strictly decreasing at every step of both and on down to k = 13.25; an 18.7% fall where § 6bw's hump is 8.6% and level at its ends, and k = 4.375 is unremarkable on it | ✅ |
+| **§ 6bx.4 — the frame converged, the probe grid did not, and it need not** | frames 2^22, 2^24, 2^26 give the same integer; the probe counts nest, so shifts are one-signed, and the worst 17 → 257 shift is 1534 (2.6e-3) against a smallest adjacent step of 7264 — 4.7×, and 73× end to end. 65 ≡ 129 is not a law: it fails at k = 13 and at 2 mm | ✅ |
+| **§ 6bx.5 — the cost turns in its slope where the anisotropy turns in its value** | Δi per unit k shrinks to a minimum at the 7→8 step, re-accelerates to 10→12, then decelerates 2.3–2.5× at 12→13; probes 65 and 257 agree on which step is least, which brackets the turn to a rung — the residual drifts 300 but drifts smoothly, and 27 separates the two candidate steps | ✅ |
+| **§ 6bx.6 — the two thresholds cross, at § 6bv's own first rung** | cost − anisotropy closes monotonically from +.0054195 at k = 0.25 and changes sign between k = 0.875 and k = 1, which is § 6bv.5's 0.4677 mm — so "cannot separate them at all" was an intersection and not a resolution limit; only the cost moves with probes, and at 257 the same pair straddles | ✅ |
+| **§ 6bx.7 — the separation is the difference of two laws and nothing else** | aniso/cost runs 1.00707 → 1.25720 and turns near k = 7: it starts at 1 because the curves cross, grows because one rises while the other falls, and turns because the anisotropy passes its own maximum — so § 6bv's "direction with no mechanism" needed no mechanism of its own | ✅ |
+| **§ 6bx.8 — the fall is monotone inside a window, and 4 mm cannot see its edge** | in tile half extent over field offset the threshold jumps UP at 2 mm and at 3 mm, onsets bracketing (1.754, 1.812) and (1.793, 1.871), locating 716088 and 710144 at a ratio of 1.871 — 0.8% apart — where 4 mm tops out at 1.550 and 5 mm at 1.03; licence-checked at 2 mm, mechanism unknown | ✅ |
+
+**Still open.**
+
+- **§ 6bx.8's jump has no mechanism, and it is the obvious next step.** Which cell
+  or which probe supplies it is unmeasured; so is whether the onset ratio near
+  1.8 is § 6bw.7's 0.5115 in another guise, or a second number. The two offsets
+  agree to 0.8% at a shared ratio and that is the whole of what is known.
+- **The anisotropy has not been read in the same window.** § 6bw stopped at 4 mm
+  too, so whether its hump also has an edge past a ratio of 1.8 is untested, and
+  until it is, "the two laws are qualitatively different" is a statement about
+  the reachable window and not about the two laws.
+- **The cost's minimum-slope step is bracketed and not located**, and no closed
+  form is offered for it any more than for § 6bw.7's turn.
+- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
+  unexplained curve, the plateau still cannot be moved to the common anchor
+  without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
+  two orderings still have no replacement.
 
 ## Later rungs
 
