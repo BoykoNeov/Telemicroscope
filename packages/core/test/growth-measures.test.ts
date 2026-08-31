@@ -314,8 +314,13 @@ describe("§ 6bt.2 — so the two measures can never disagree about the VERDICT"
   it("beta > 1 strictly, so the factor is positive and the sign carries across", () => {
     for (const r of rows()) {
       expect(departure(r.branch)).toBeGreaterThan(1);
+      // f > 0 is the whole of the sign argument. f > 1 is a strictly stronger
+      // fact, also free from beta > 1, and it buys something separate: D always
+      // reports the LARGER move of the two, by exactly this factor.
+      expect(conversion(r.branch)).toBeGreaterThan(0);
       expect(conversion(r.branch)).toBeGreaterThan(1);
       expect(Math.sign(distanceGrowth(r) - 1)).toBe(Math.sign(departureRatio(r) - 1));
+      expect(Math.abs(distanceGrowth(r) - 1)).toBeGreaterThan(Math.abs(departureRatio(r) - 1));
     }
   });
 
@@ -417,8 +422,17 @@ describe("§ 6bt.4 — the conversion factor, at the precision each branch value
 
 describe("§ 6bt.5 — the factor and the effect run OPPOSITE ways across the four understated", () => {
   it("f falls where R - 1 rises, in § 6bn.3's own order", () => {
-    const four = rows().filter((r) => verdictOf(r) === "understated");
+    // § 6bn.3 printed its six ascending by departure from 1, so the order is
+    // RECOVERED from the branch column rather than taken from how `rows()`
+    // happens to list them — otherwise the monotonicity below would only
+    // restate the array literal.
+    const four = rows()
+      .filter((r) => verdictOf(r) === "understated")
+      .sort((a, b) => departure(a.branch) - departure(b.branch));
     expect(four.map((r) => r.name)).toEqual(["split, axis", "split, edge", "anisotropy", "escape"]);
+    expect(four.map((r) => Number(departure(r.branch).toFixed(4)))).toEqual([
+      1.0063, 1.0086, 1.0233, 1.2148,
+    ]);
     const f = four.map((r) => conversion(r.branch));
     const e = four.map((r) => departureRatio(r) - 1);
     for (let i = 1; i < four.length; i++) {
@@ -428,7 +442,9 @@ describe("§ 6bt.5 — the factor and the effect run OPPOSITE ways across the fo
   });
 
   it("their spreads are within 13%, so the product is not forced into either order", () => {
-    const four = rows().filter((r) => verdictOf(r) === "understated");
+    const four = rows()
+      .filter((r) => verdictOf(r) === "understated")
+      .sort((a, b) => departure(a.branch) - departure(b.branch));
     const f = four.map((r) => conversion(r.branch));
     const e = four.map((r) => departureRatio(r) - 1);
     const fSpread = Math.max(...f) / Math.min(...f);
@@ -465,8 +481,11 @@ describe("§ 6bt.6 — where the branch value is HELD, the two measures must agr
   it("§ 6bs.7's anisotropy family is ONE branch quotient over four anchors", () => {
     const four = family();
     const f = conversion(four[0]!.branch);
+    // The shared `f` is a CONSTRUCTION, not a measurement — § 6bs.7 varies the
+    // anchor of the matched column only, so one branch value serves all four.
+    // What is measured is the consequence: D is a positive affine map of R.
     for (const r of four) {
-      expect(conversion(r.branch)).toBe(f);
+      expect(r.branch).toBe(four[0]!.branch);
       expect(distanceGrowth(r) - 1).toBeCloseTo((departureRatio(r) - 1) * f, 9);
     }
     const byD = [...four].sort((a, b) => distanceGrowth(a) - distanceGrowth(b));
