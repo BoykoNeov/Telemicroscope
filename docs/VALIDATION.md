@@ -137,6 +137,7 @@ whole ladder.
 | [6bz](#step-6bz--the-hump-is-a-shoulder) | A STAGE-only readout never met the cost's chief-ray window: read to a ratio of 7.34 the threshold bottoms at 2.076 then climbs 13×, so § 6bw's hump is a 59% shoulder, and two offsets collapse to 0.4% | ✅ |
 | [6ca](#step-6ca--the-separation-is-one-slope) | The branches START together, so the 3× is two slopes: the field factor is axis-blind and the stage factor 2.3× steeper on columns, a constant of the mosaic and of the ratio. Past § 6bz's turn they cross | ✅ |
 | [6cb](#step-6cb--the-turn-is-a-fixed-point) | The hump's turn is where the READOUT's ratio-derivative vanishes, entering at the aperture lever where no cell turns; 0.5115 has no closed form because it is a curve meeting a moving curve | ✅ |
+| [6cc](#step-6cc--the-escape-runs-dry) | § 6br.6's unexplained high-anchor fall: read at ONE pupil sampling it is stronger, 3.81×, and both SLOW cells simply run out of light outside the box and turn while the fast ones fall on | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -22492,8 +22493,11 @@ And the two ends are not equally understood. The low end has a mechanism: the
 escape is a **fraction**, bounded above by 1, so as the frame shrinks every cell
 saturates toward 1 and every ratio is compressed toward it — at the smallest
 anchor the 20× column reads 0.2886 and 0.5232 and its lever has collapsed to
-1.8129×. The high end has none: there all four escapes are under 0.1, nothing is
-near the bound, and the quotient falls anyway.
+1.8129×. ~~The high end has none: there all four escapes are under 0.1, nothing is
+near the bound, and the quotient falls anyway.~~ **The high end is the same
+argument at the LOWER bound: the two slow cells have nothing left outside the box
+and stop moving while the two fast ones go on falling
+([§ 6cc.3](#step-6cc--the-escape-runs-dry)).**
 
 ### A pinned constant, re-derived from the cells instead of the publication
 
@@ -22517,10 +22521,14 @@ disagreement at the seventh digit rather than papering over it. This is the trap
 
 ### Still open
 
-- **The high-anchor fall has no account.** The low end is a saturation of a
+- ~~**The high-anchor fall has no account.** The low end is a saturation of a
   bounded fraction and is pinned as such; at the large anchor every cell is under
   0.1, nothing is near the bound, and the quotient falls by a factor of three
-  anyway. Measured, not explained.
+  anyway. Measured, not explained.~~ **It is the same saturation at the other
+  bound: both SLOW cells have no light left outside the box by the third anchor
+  and turn, while both fast ones fall on, so the 20× lever collapses 20.86 → 4.70
+  where the 10× gives up a third. The bound that binds is 0, not 1
+  ([§ 6cc](#step-6cc--the-escape-runs-dry)).**
 - **Whether any other readout shares the anchor sensitivity is unmeasured.** This
   step deliberately does not generalise it, and the readouts § 6bo and § 6bp
   re-measured were each taken at one anchor.
@@ -22703,7 +22711,10 @@ readouts misbehaving at one anchor, none of the three explained.~~ **The address
 was shared by coincidence.** [§ 6bu](#step-6bu--the-guards-share-not-the-anchor) puts both of these two failures on the
 guard share rather than on the anchor — at 3.7415 mm a guard of six cells
 restores both — and cannot reach the escape, whose discarded annulus is half its
-rendered width at every rung by construction. One unexplained curve, not three.
+rendered width at every rung by construction. One curve of its own, not three —
+and that one is the escape running out of light outside its box
+([§ 6cc](#step-6cc--the-escape-runs-dry)), so it is no longer unexplained
+either.
 
 The smallest of § 6br.6's five anchors, 0.2338 mm, is **refused rather than
 declined** for the render-free pair: `guardCells` is four resolution cells, that
@@ -23077,11 +23088,13 @@ above stops at 9 mm against the same limit reached from the other direction.
 - **The escape is untouched, and this account cannot reach it.** § 6br.6's
   readout has no guard share to sweep: it renders at twice its `size` and counts
   the intensity outside the central `size` box, so its discarded annulus is half
-  the rendered width at every rung by construction. The third misbehaviour at
-  3.7415 mm stays exactly as open as § 6br.6 left it. What has changed is that it
+  the rendered width at every rung by construction. ~~The third misbehaviour at
+  3.7415 mm stays exactly as open as § 6br.6 left it.~~ **It is the two slow
+  cells running out of light outside the box
+  ([§ 6cc.3](#step-6cc--the-escape-runs-dry)).** What has changed is that it
   is now alone: for the two readouts here the shared address was a coincidence,
   and § 6bs.7's "three readouts misbehaving at one anchor" was two ladders'
-  arithmetic and one unexplained curve, not three of anything.
+  arithmetic and one curve of its own, not three of anything.
 - **No anchor derivative of this readout has been produced**, and this step does
   not produce one. It shows the two obvious candidates disagree about the sign —
   guard count held gives +26.4%, guard share held −3.64% — and that a choice
@@ -23247,8 +23260,9 @@ and the fourth" by any measurement in this family.
   should lag the cost, and by an amount that itself grows, is unmeasured. § 6bu's
   "both converge toward 1, so both trip nearby" explains the coincidence and not
   the gap.
-- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
-  unexplained curve, the plateau still cannot be moved to the common anchor
+- **Inherited and untouched**: ~~the escape's fall at 3.7415 mm is still the one
+  unexplained curve~~ **(it is the slow cells running dry —
+  [§ 6cc](#step-6cc--the-escape-runs-dry))**, the plateau still cannot be moved to the common anchor
   without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
   two orderings still have no replacement.
 
@@ -23437,8 +23451,9 @@ mosaic's own offset across a 2.5× of it. It is NOT one half: 0.5115 is 2.3% fro
   the cost's own drift is the same hump is untested. **It is not: the cost
   falls monotonically at 4 mm and turns only in its slope, so the hump is the
   anisotropy’s alone ([§ 6bx](#step-6bx--the-cost-does-not-hump)).**
-- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
-  unexplained curve, ~~the two thresholds' separation still has a direction and
+- **Inherited and untouched**: ~~the escape's fall at 3.7415 mm is still the one
+  unexplained curve~~ **(it is the slow cells running dry —
+  [§ 6cc](#step-6cc--the-escape-runs-dry))**, ~~the two thresholds' separation still has a direction and
   no mechanism~~ **the separation is the difference of two laws now measured
   separately, and needs no mechanism of its own ([§ 6bx](#step-6bx--the-cost-does-not-hump))**,
   the plateau still cannot be moved to the common anchor without new
@@ -23704,8 +23719,9 @@ similar threshold curves meeting a moving locus ([§ 6by](#step-6by--the-jump-is
   shoulder ([§ 6bz](#step-6bz--the-hump-is-a-shoulder)).**
 - **The cost's minimum-slope step is bracketed and not located**, and no closed
   form is offered for it any more than for § 6bw.7's turn.
-- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
-  unexplained curve, the plateau still cannot be moved to the common anchor
+- **Inherited and untouched**: ~~the escape's fall at 3.7415 mm is still the one
+  unexplained curve~~ **(it is the slow cells running dry —
+  [§ 6cc](#step-6cc--the-escape-runs-dry))**, the plateau still cannot be moved to the common anchor
   without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
   two orderings still have no replacement.
 
@@ -23928,8 +23944,9 @@ of different order, and the coincidence § 6bx.8 wondered about is not available
   aperture lever; and 0.5115 is an intersection of two curves, which is why no
   closed form was available to dispose of
   ([§ 6cb](#step-6cb--the-turn-is-a-fixed-point)).**
-- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
-  unexplained curve, the plateau still cannot be moved to the common anchor
+- **Inherited and untouched**: ~~the escape's fall at 3.7415 mm is still the one
+  unexplained curve~~ **(it is the slow cells running dry —
+  [§ 6cc](#step-6cc--the-escape-runs-dry))**, the plateau still cannot be moved to the common anchor
   without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
   two orderings still have no replacement.
 
@@ -24130,8 +24147,9 @@ admit every fourth, every second and every point respectively — which is § 6b
   tile is the seam a mosaic would have is not something this ladder has asked.
 - **Inherited and untouched**: ~~the two branches' 3× separation still has no
   mechanism~~ **(it is one slope, and there is no three —
-  [§ 6ca](#step-6ca--the-separation-is-one-slope))**, the escape's fall at
-  3.7415 mm is still the one unexplained curve,
+  [§ 6ca](#step-6ca--the-separation-is-one-slope))**, ~~the escape's fall at
+  3.7415 mm is still the one unexplained curve~~ **(the slow cells run dry —
+  [§ 6cc](#step-6cc--the-escape-runs-dry))**,
   the plateau still cannot be moved to the common anchor without new sweeps,
   § 6bn's first interval is still unreachable, and § 6bs.6's two orderings still
   have no replacement.
@@ -24258,8 +24276,10 @@ argument, on the cost this time rather than on the anisotropy.
   anisotropies turn at. Whether that is one event or two is unmeasured, and the
   four cells disagree by 53% at the step itself where they agree to 1% either
   side — which is a warning that the step is not resolved.
-- **Inherited and untouched**: § 6bw.7's peak still has no mechanism, the
-  escape's fall at 3.7415 mm is still the one unexplained curve, the plateau
+- **Inherited and untouched**: ~~§ 6bw.7's peak still has no mechanism~~ **(it is
+  a fixed point — [§ 6cb](#step-6cb--the-turn-is-a-fixed-point))**, ~~the
+  escape's fall at 3.7415 mm is still the one unexplained curve~~ **(the slow
+  cells run dry — [§ 6cc](#step-6cc--the-escape-runs-dry))**, the plateau
   still cannot be moved to the common anchor without new sweeps, § 6bn's first
   interval is still unreachable, and § 6bs.6's two orderings still have no
   replacement.
@@ -24368,10 +24388,117 @@ second time it is the mechanism rather than the symptom.
 - **The locus itself has no account.** § 6cb.1 measures where `∂I/∂r = 0` sits at
   five guards and says nothing about why it moves the way it does, which is the
   same shape as § 6by.3's unexplained guard dependence.
-- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
-  unexplained curve, the plateau still cannot be moved to the common anchor
+- **Inherited and untouched**: ~~the escape's fall at 3.7415 mm is still the one
+  unexplained curve~~ **(it is the slow cells running dry —
+  [§ 6cc](#step-6cc--the-escape-runs-dry))**, the plateau still cannot be moved to the common anchor
   without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
   two orderings still have no replacement.
+
+## Step 6cc — the escape runs dry
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/escape-window.test.ts`
+
+§ 6br.6 left the oldest open bullet on this branch, and nine steps have carried
+it forward without touching it: "**The high-anchor fall has no account.** The low
+end is a saturation of a bounded fraction and is pinned as such; at the large
+anchor every cell is under 0.1, nothing is near the bound, and the quotient falls
+by a factor of three anyway. Measured, not explained."
+
+### The anchor moves two things, and only one of them is the field
+
+`escaped` renders at a `size` and a `pupilSamples`, and the anchor scales both.
+But `halfExtentMm` goes as `pupilSamples` and nothing else — that is § 6bw.2,
+found on the other half of this ladder — so **the anchor's field IS its pupil
+sampling**. One knob with two effects, and no choice of frame separates them:
+§ 6br.5 moved the quartet a power of two in pixels and § 6br.7 doubled them at a
+held field, and both of those hold `pupilSamples` still.
+
+They separate the other way round. The pixel scale is `ps/size`, which this
+ladder holds fixed, so every smaller anchor's field is a **centred sub-box of the
+largest anchor's own render**, at the largest anchor's sampling. Reading the four
+boxes of one render is the anchor ladder with the sampling held still — and the
+largest box of that render is the published top anchor itself, so the reading is
+anchored to § 6br.6's own number rather than to a reimplementation of it.
+
+### The fall is the window's, and it is stronger than published
+
+| box | k = 1 | k = 2 | k = 3 | k = 4 |
+| --- | --- | --- | --- | --- |
+| one sampling | 0.4764788 | 0.3726088 | 0.2582668 | **0.1249815** |
+| the ladder's own | 0.4108834 | 0.3100469 | — | **0.1249815** |
+
+Monotone, and **3.81×** end to end where the published curve falls 3.29× over
+the same span. So the fall is not the sampling's doing — it survives the sampling
+being held — and the sampling has been **masking a third of it**: at the k = 1
+box the fine-sampled reading is 16% higher than the ladder's own.
+
+Every cell reads lower at the finer pupil (0.578 of it on the slow 20×, 0.551 on
+the fast 10×), which is a much larger movement than § 6br.5's 0.75% pixel band.
+That band is not wrong; it is a band in the other knob.
+
+### The mechanism is the mirror of the low end's
+
+§ 6br.6 explained its low shoulder by the escape being a fraction bounded above
+by 1, saturating as the frame shrinks. The high end is the same argument at the
+other bound. Held at one sampling:
+
+| box | k = 1 | k = 2 | k = 3 | k = 4 |
+| --- | --- | --- | --- | --- |
+| slow 20× | 0.012696 | 0.006479 | **0.005154** | 0.005292 |
+| slow 10× | 0.006076 | 0.003205 | **0.002558** | 0.002644 |
+| fast 20× | 0.186001 | 0.135174 | 0.070075 | 0.024846 |
+| fast 10× | 0.186819 | 0.179495 | 0.134659 | 0.099348 |
+
+**Both slow cells bottom out at the third box and TURN.** They have no light left
+outside it, so a bigger box has nothing to collect and the reading stops moving.
+Both fast cells are still falling hard at the last box, having had a fifth and a
+tenth of their light outside the box two boxes earlier.
+
+A quotient whose denominator has stopped moving cannot hold still. The 20×
+aperture lever collapses **20.86 → 4.70** while the 10× gives up a third,
+55.99 → 37.57, and that difference is the fall. Nothing is near 1 and § 6br.6 was
+right that its own argument did not apply; the bound that binds here is 0.
+
+### Which is what the four energy profiles look like
+
+The fraction of each cell's rendered energy inside a given radius:
+
+| radius (mm) | 0.19 | 0.37 | 0.75 | 1.85 | 2.6 |
+| --- | --- | --- | --- | --- | --- |
+| slow 20× | 0.9098 | 0.9687 | 0.9851 | 0.9947 | 0.9971 |
+| slow 10× | 0.9684 | 0.9849 | 0.9926 | 0.9974 | 0.9985 |
+| fast 20× | 0.5163 | 0.6406 | 0.7936 | 0.9752 | 0.9959 |
+| fast 10× | 0.4703 | 0.5641 | 0.6900 | 0.9007 | 0.9627 |
+
+Both fast cells sit below both slow ones at every radius, so the ordering is the
+APERTURE's and not the magnification's. A slow objective at this field height
+puts its light in a spot and a fast one spreads it, and only the spread has
+anywhere left to go when the box grows. That is the whole asymmetry, and the fall
+is what a ratio of ratios does when two of its four terms have run out.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cc.0 — one render is the whole anchor ladder at one sampling** | `halfExtentMm` goes as `pupilSamples` alone (§ 6bw.2) so the anchor's field IS its sampling, and the held pixel scale makes every smaller anchor a centred sub-box of the largest render; the largest box reproduces § 6br.6's own 0.1249815 to eleven digits, so the sub-box readings hang off the published number | ✅ |
+| **§ 6cc.1 — held at one sampling the fall is still there, and stronger** | 0.4764788 → 0.3726088 → 0.2582668 → 0.1249815, monotone and 3.81× end to end against the published 3.29% over the same four anchors — so the anchor's other effect was masking a third of the fall rather than causing it | ✅ |
+| **§ 6cc.2 — and the sampling pushes the other way** | the same physical box at four times the pupil samples reads 0.4764788 against the ladder's 0.4108834, 16% higher, with every cell lower at the finer pupil (0.578 on the slow 20×, 0.551 on the fast 10×) — an experiment the ladder cannot do by choosing a frame, and one § 6br.5's 0.75% pixel band does not cover | ✅ |
+| **§ 6cc.3 — the mechanism: the slow cells run out of light to lose** | both slow escapes fall, bottom at the third box and TURN (0.005154 → 0.005292 and 0.002558 → 0.002644) while both fast ones fall on to 0.024846 and 0.099348, so the 20× aperture lever collapses 20.86 → 4.70 where the 10× gives up a third — § 6br.6's saturation argument at the OTHER bound | ✅ |
+| **§ 6cc.4 — which is what the four energy profiles look like** | inside three quarters of a millimetre the slow cells hold 98.5% and 99.3% of their energy and the fast ones 79.4% and 69.0%, and both fast cells sit below both slow ones at every radius read — the ordering is the aperture's, not the magnification's | ✅ |
+
+**Still open.**
+
+- **The two effects are separated but not both explained.** § 6cc.2 measures the
+  pupil sampling moving every cell by 40-45% at a held field and says nothing
+  about why a coarser pupil puts light outside the box. That is a sampling
+  question rather than an optical one, and this step does not ask it.
+- **§ 6br.6's curve is still the ladder's, confound and all.** Its five published
+  numbers move two things at once, and this step does not republish them — the
+  verdict § 6br.3 drew from them is unaffected, since every anchor is below 1 on
+  either reading, but the SIZE was already refused as unquotable and now there is
+  a second reason.
+- **Inherited and untouched**: the plateau still cannot be moved to the common
+  anchor without new sweeps, § 6bn's first interval is still unreachable, and
+  § 6bs.6's two orderings still have no replacement.
 
 ## Later rungs
 
