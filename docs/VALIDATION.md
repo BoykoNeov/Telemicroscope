@@ -141,6 +141,7 @@ whole ladder.
 | [6cd](#step-6cd--the-seam-is-one-corner) | § 6cb.3's turn: the seam's worst probe is one corner, so the anisotropy is a closed form in one variable, and a lever is that one curve read at two points — the aperture does not turn it, the guard does, by the sign of σ − 1 | ✅ |
 | [6ce](#step-6ce--the-bend-is-one-algebraic-number) | § 6cd's curve is two polynomials, the map dividing out because both seams vanish with it: −0.6149 is −5/8 plus one map coefficient, the bend a sextic's only positive root, 61.7-not-67 a small denominator | ✅ |
 | [6cf](#step-6cf--the-guard-constant-is-two-log-slopes) | § 6ca's constant is Lc/Lr, the two seams' log slopes not their ratio: 2 at zero tile, cols second order in it and rows first; a minimum at a sextic root, and the collapse is § 6cd's edge | ✅ |
+| [6cg](#step-6cg--the-maps-ba-is-a-change-of-variable) | § 6ce's `b/a` is `2a` plus one lens ratio, the two a change of variable: the map is three factors of one chief ray, and `b/(3a²) = 2/3 + B/(3A²)` is exactly 1/2 for a perfect lens | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -24795,10 +24796,15 @@ for, and it is the whole of the 5-step gap between 66.3 and 61.7.
 
 **Still open.**
 
-- **Why the map's own `b/a` is what it is.** § 6ce.2 reduces every cell-to-cell
+- ~~**Why the map's own `b/a` is what it is.** § 6ce.2 reduces every cell-to-cell
   difference on this branch to one number read off the radial function, which is
   progress of the same kind § 6cd made — but that number is now the unexplained
-  thing, and it is an objective-design question rather than a mosaic one.
+  thing, and it is an objective-design question rather than a mosaic one.~~
+  **It is `2a + (B/A)/P₀²`, in which the factor of two is the change of variable
+  from the objective's pupil coordinate to the image radius and carries no lens
+  at all; what is left of the question is why the sine offence `s₀` and the
+  pupil walk `p₀` are what they are
+  ([§ 6cg](#step-6cg--the-maps-ba-is-a-change-of-variable)).**
 - **§ 6bz.4's per-cell turn is still bounded, not explained.** It lives past
   w = 1, where the worst probe leaves the corner, so nothing here touches it:
   Φ₀ is monotone and has no minimum out to 2.2.
@@ -24943,9 +24949,143 @@ per-cell turns sit past.
   is where the worst probe leaves the corner; it does not say what the seam
   becomes past that. So § 6bz.4's per-cell turn near w = 1.46 and § 6ca's own
   branch inversion are both attributed to one event whose own form is unwritten.
-- **Inherited from § 6ce and untouched**: why the map's own `b/a` is what it is,
+- ~~**Inherited from § 6ce and untouched**: why the map's own `b/a` is what it is,
   which is still the one unexplained number on this branch and an
-  objective-design question rather than a mosaic one.
+  objective-design question rather than a mosaic one.~~ **Reduced to `2a` plus
+  one lens ratio, the two being a change of variable; the objective-design
+  question that remains is one level down, at `s₀` and `p₀`
+  ([§ 6cg](#step-6cg--the-maps-ba-is-a-change-of-variable)).**
+- **Inherited and untouched**: the plateau still cannot be moved to the common
+  anchor without new sweeps, § 6bn's first interval is still unreachable,
+  § 6bs.6's two orderings still have no replacement, and why a coarser pupil
+  puts light outside the box (§ 6cc.2) is still a sampling question nobody has
+  asked.
+
+## Step 6cg — the map's b/a is a change of variable
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/map-coefficient.test.ts`
+
+§ 6ce closed with one bullet and § 6cf inherited it unchanged: "**Why the map's
+own `b/a` is what it is.** § 6ce.2 reduces every cell-to-cell difference on this
+branch to one number read off the radial function … but that number is now the
+unexplained thing, and it is an objective-design question rather than a mosaic
+one." It reduces one level further here, and like § 6cf it costs no sweep: the
+same chief ray § 6cd already traces, read for its DIRECTION and its axis
+crossing rather than only for where it lands.
+
+### The map is three factors of one ray, and the identity is exact
+
+`objectHeightForImageRadius` bisects the traced chief ray, so the map IS that
+ray. In image space the ray is straight, so it has an axis crossing and an
+angle, and
+
+    t = P(y)·tan θ′,     P(y) = imagePlaneZ − z₀(y)
+
+exactly. Writing `f` for the pencil's own focal length `lim y/sin θ′` and
+`S(y) = y/(f·sin θ′)` for its offence against the sine condition,
+
+    m(t)/m(0) = [P₀/P(y)] · S(y) · cos θ′
+
+with nothing dropped — 6.7 × 10⁻¹⁶ worst over four radii and eight cells
+(§ 6cg.0), which is three ulp of a product of three doubles and not a tolerance.
+`P₀` is not an imaged distance: § 6ae made the diaphragm the LAST surface of the
+prescription, so the exit pupil is the stop itself at unit magnification, and
+`P₀` is the mechanical diaphragm-to-image distance — 149.996 to 153.896 mm
+across the family.
+
+### In the objective's own pupil coordinate no free length is left
+
+Both lens factors are functions of `v = y/f`, and `sin θ′ = v/S`, so
+
+    m/m(0) = (P₀/P)·S·√(1 − v²/S²)
+
+With `S = 1 + s₀v² + s₁v⁴` and `P/P₀ = 1 + p₀v² + p₁v⁴` this is `1 + Av² + Bv⁴`,
+and `v = (t/P₀)·(m/m(0))` carries it back to the image radius:
+
+    a = A/P₀²,           A = s₀ − p₀ − 1/2
+    b = (2A² + B)/P₀⁴,   B = p₀² − p₁ + s₁ + s₀/2 − 1/8 − p₀s₀ + p₀/2
+
+So `a` is two traced numbers and one universal −1/2, and it reproduces the
+traced map to **5 × 10⁻¹⁰** on all eight cells (§ 6cg.1). The −1/2 is `cos θ′`
+alone: at `s₀ = p₀ = 0` it is `a = −1/(2P₀²)` exactly. And it is the SMALLEST of
+the three shares — 17% to 31%, against 42% to 80% for the offence and the rest
+for the pupil's own walk — which is why reading the map as a pure cosine law
+fails by 9% to 45%, and why the length that law implies, 62 to 84 mm, is nowhere
+near the 150 mm the diaphragm actually stands at.
+
+### So `b/a` is `2a` plus one ratio, and the 2 is the change of variable's
+
+    b/a = 2a + (B/A)/P₀²
+
+The leading term is `a` doubled. `A` is of course the lens, and so is `a`; what
+the change of variable fixes is the COEFFICIENT on `A²` — carrying `v` back to
+`t` through `v² = (t/P₀)²(1 + 2Av²)` contributes exactly `2A²` to the `t⁴` term
+and never `1.5A²` or `3A²`, whatever the prescription. Everything else the lens
+contributes past `a` itself is the single ratio `B/A` (§ 6cg.2). In § 6ce's own
+currency,
+
+    b/(3a²) = 2/3 + B/(3A²)
+
+whose perfect-lens value is **exactly 1/2**: at `s₀ = s₁ = p₀ = p₁ = 0` the two
+coefficients are `A = −1/2` and `B = −1/8`, and `2/3 − 1/6 = 1/2` — the `3` in
+the cosine's own `b = 3/(8P₀⁴)` being `2A² + B` at that particular `A`, not a
+universal number. The eight
+cells read 0.5244 to 1.1954 and straddle it, `B` changing sign inside the family
+(§ 6cg.3). That straddle is why no single law in `a` can hold: `b/a = (3/2)a`,
+which is what a pure cosine map would give, is the `B = 0` line, and the cells
+sit either side of it — 9% out at the slow 20× and 45% at the fast 4×.
+
+### Which closes back onto the branch
+
+§ 6ce's use of the number is `ε = (b/a)cx²`, so
+
+    ε = 2a·cx² + (B/A)·(cx/P₀)²
+
+and `c2 = −5/8 − 3ε` lands on § 6cd.2's four measured coefficients inside
+**4 × 10⁻⁴** — the bound § 6ce's own fit meets, with no fitted `b` anywhere in
+it (§ 6cg.4). The second term is 6.8% to 17.8% of the first, and its sign is not
+the aperture's: `B/A` rises monotonically with the magnification at each aperture
+and crosses zero INSIDE the family — the slow cells between 4× and 10×, the fast
+ones between 10× and 20×. So the fast 10× is the one branch cell whose correction
+opposes the other three, and what the aperture sets is where the crossing falls,
+not which side of it a cell lands on.
+
+### One window, said out loud
+
+`a` and `b` here are Taylor coefficients on a THREE-point window at t = 1, 2, 4,
+because `s₀, s₁, p₀, p₁` are four numbers and a two-point fit yields two.
+§ 6ce's incumbent `mapCoefficients(c, 2, 4)` is a two-point read of the same
+quantities, and the two differ by 3 × 10⁻⁶ on `a` and by **0.24% to 0.44%** on
+`b/a` (§ 6cg.5). Neither is wrong. A `b/a` quoted to eight digits in one section
+against the other would be, so the size of it is pinned here rather than left as
+a discrepancy for a reader to find four sections apart.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cg.0 — the map is three factors of one chief ray, exactly** | `m(t)/m(0) = [P₀/P(y)]·S(y)·cos θ′` with `t = P(y)·tan θ′` holds to 6.7e-16 over four radii and eight cells — three ulp, not a tolerance — the worst being the SMALLEST radius where the lens factors cancel against 1; and the exit pupil is the stop itself, so `P₀` is the diaphragm's mechanical distance, 149.996 to 153.896 mm | ✅ |
+| **§ 6cg.1 — so `a` is two traced numbers and one universal −1/2** | `a = (s₀ − p₀ − 1/2)/P₀²` reproduces the traced map to 5e-10 on all eight cells, the −1/2 being `cos θ′` alone and giving `−1/(2P₀²)` at a lens with no offence and no pupil walk; it is the smallest of the three shares at 17–31%, against 42–80% for the sine offence, which is why a pure cosine reading fails by 9–45% | ✅ |
+| **§ 6cg.2 — and `b/a` is `2a` plus one lens ratio** | `b = (2A² + B)/P₀⁴` to 3.1e-6, so `b/a = 2a + (B/A)/P₀²`; `A` is the lens, but the COEFFICIENT 2 on `A²` is the change of variable `v² = (t/P₀)²(1 + 2Av²)` and is 2 whatever the prescription; `2a` alone is 8% to 27% from what each branch cell reads, so `B/A` is not droppable | ✅ |
+| **§ 6cg.3 — whose perfect-lens value is exactly 1/2** | `b/(3a²) = 2/3 + B/(3A²)` at every cell to 1e-5, and at `s = p = 0` the coefficients are `A = −1/2`, `B = −1/8` and the value is 1/2 by substitution, no limit taken; the eight cells run 0.5244 to 1.1954 and the four branch cells 0.5480 to 0.7250, `B` changing sign inside the family | ✅ |
+| **§ 6cg.4 — which closes back onto § 6cd.2's four coefficients** | `ε = 2a·cx² + (B/A)(cx/P₀)²` gives `c2 = −5/8 − 3ε` inside 4e-4 of § 6cd.2's measured −0.61491, −0.61612, −0.61538, −0.61686 — § 6ce's own bound, from a form with no fitted `b` in it; the second term is 6.8–17.8% of the first, and `B/A` rises with M at each aperture and crosses zero between 4× and 20× | ✅ |
+| **§ 6cg.5 — and the window it is read on, against § 6ce's** | three points at t = 1, 2, 4 because `s₀, s₁, p₀, p₁` are four numbers; against § 6ce's `mapCoefficients(c, 2, 4)` the same quantities differ by under 4e-6 on `a` and by 0.2409% to 0.4404% on `b/a`, the slow cells the wider pair — pinned so the two sections' digits can be compared | ✅ |
+
+**Still open.**
+
+- **Why `s₀` and `p₀` are what they are.** This step reduces `b/a` to the
+  offence against the sine condition and the pupil's own walk, plus geometry
+  that carries no lens — it does not derive either number. `s₀` runs −0.703 to
+  −2.279 and `p₀` 0.682 to 0.101 across the family, both monotone in the
+  magnification and both moved by the aperture, with no law offered for either.
+  That is the bending solve, one level below the mosaic, and it is where this
+  branch's remaining cell-to-cell difference now sits.
+- **Nothing here touches the FIELD scan's seam** — § 6cf's own first bullet,
+  unchanged: § 6ca.1's "the field factor is axis-blind" still rests on an
+  argument about frames, because § 6cd's corner form is a stage-scan object and
+  there is no field-scan counterpart to differentiate.
+- **The domain edge is still located and not derived**, so § 6bz.4's per-cell
+  turn near w = 1.46 and § 6ca's branch inversion remain one event whose own
+  form is unwritten.
 - **Inherited and untouched**: the plateau still cannot be moved to the common
   anchor without new sweeps, § 6bn's first interval is still unreachable,
   § 6bs.6's two orderings still have no replacement, and why a coarser pupil
