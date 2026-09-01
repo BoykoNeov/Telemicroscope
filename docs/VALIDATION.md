@@ -138,6 +138,7 @@ whole ladder.
 | [6ca](#step-6ca--the-separation-is-one-slope) | The branches START together, so the 3× is two slopes: the field factor is axis-blind and the stage factor 2.3× steeper on columns, a constant of the mosaic and of the ratio. Past § 6bz's turn they cross | ✅ |
 | [6cb](#step-6cb--the-turn-is-a-fixed-point) | The hump's turn is where the READOUT's ratio-derivative vanishes, entering at the aperture lever where no cell turns; 0.5115 is no tile proportion — it is a curve meeting a moving curve | ✅ |
 | [6cc](#step-6cc--the-escape-runs-dry) | § 6br.6's unexplained high-anchor fall: read at ONE pupil sampling it is stronger, 3.81×, and both SLOW cells simply run out of light outside the box and turn while the fast ones fall on | ✅ |
+| [6cd](#step-6cd--the-seam-is-one-corner) | § 6cb.3's turn: the seam's worst probe is one corner, so the anisotropy is a closed form in one variable, and a lever is that one curve read at two points — the aperture does not turn it, the guard does, by the sign of σ − 1 | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -24141,7 +24142,10 @@ admit every fourth, every second and every point respectively — which is § 6b
   proportion ([§ 6cb](#step-6cb--the-turn-is-a-fixed-point)).**
 - **Why a single cell's anisotropy turns is unmeasured.** § 6bz.4 pushes the
   question one level down, from the interact to the cell, and stops there. That
-  is progress of the same kind § 6by made and not an explanation.
+  is progress of the same kind § 6by made and not an explanation. **It is now
+  bounded rather than answered: the turn sits past the tile half extent at which
+  the seam's worst probe leaves the corner, so it belongs to the probe walk and
+  not to the map ([§ 6cd.1](#step-6cd--the-seam-is-one-corner)).**
 - **The far end is read on a tile that is mostly guard.** At a ratio of 7.338 the
   guard eats 79.9% of the tile, and whether a seam measured across a fifth of a
   tile is the seam a mosaic would have is not something this ladder has asked.
@@ -24327,7 +24331,10 @@ threshold curve crosses that moving locus. **The number is a fixed point of two
 curves, not a proportion of the tile** — which is why "it is not one half and it
 is not the kept share" kept coming back with nothing to put in their place. No
 expression in the tile's own lengths was ever going to produce it, because it is
-not a length divided by a length; it is an intersection.
+not a length divided by a length; it is an intersection. That is about 0.5115
+and not about the locus, which does have a closed form
+([§ 6cd.4](#step-6cd--the-seam-is-one-corner)) — one that moves with the guard,
+exactly as the table above shows it doing.
 
 This is the third time this ladder has met a moving locus — § 6by.3's handover
 and § 6bz.4's minimum are the others — and the third time the answer to "what is
@@ -24380,14 +24387,15 @@ second time it is the mechanism rather than the symptom.
 
 **Still open.**
 
-- **Why an aperture lever turns is unmeasured.** § 6cb.3 puts the turn one level
-  down, at fast-over-slow inside one magnification, and stops there — the same
-  place § 6bz.4 and § 6ca stop, one level below whatever they explain. Three
-  steps have now pushed a mechanism down a level and none has reached the
-  bottom.
-- **The locus itself has no account.** § 6cb.1 measures where `∂I/∂r = 0` sits at
-  five guards and says nothing about why it moves the way it does, which is the
-  same shape as § 6by.3's unexplained guard dependence.
+- ~~**Why an aperture lever turns is unmeasured.** § 6cb.3 puts the turn one
+  level down, at fast-over-slow inside one magnification, and stops there.~~
+  **The lever is one closed-form curve read at two points a fixed factor apart,
+  and the sign of that factor less 1 — which the GUARD sets, not the aperture —
+  says maximum or minimum ([§ 6cd](#step-6cd--the-seam-is-one-corner)).**
+- ~~**The locus itself has no account.** § 6cb.1 measures where `∂I/∂r = 0` sits
+  at five guards and says nothing about why it moves the way it does.~~ **It is
+  a four-point stationarity of that same curve, and it predicts all five of
+  § 6cb.1's located anchors ([§ 6cd.4](#step-6cd--the-seam-is-one-corner)).**
 - **Inherited and untouched**: ~~the escape's fall at 3.7415 mm is still the one
   unexplained curve~~ **(it is the slow cells running dry —
   [§ 6cc](#step-6cc--the-escape-runs-dry))**, the plateau still cannot be moved to the common anchor
@@ -24521,6 +24529,144 @@ is what a ratio of ratios does when two of its four terms have run out.
 - **Inherited and untouched**: the plateau still cannot be moved to the common
   anchor without new sweeps, § 6bn's first interval is still unreachable, and
   § 6bs.6's two orderings still have no replacement.
+
+## Step 6cd — the seam is one corner
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/anisotropy-corner.test.ts`
+
+§ 6cb.3 put the hump's turn one level below the interact — at the aperture
+lever, fast over slow inside one magnification — and stopped there, leaving two
+bullets standing: **why an aperture lever turns is unmeasured**, and **the locus
+itself has no account**. They close together, because they are one object read
+twice.
+
+### The worst probe is the corner, so the seam has a closed form
+
+`mosaicSeamShiftMm` walks 65 points along each seam and keeps the worst. Under a
+stage scan the walk is decoration: the worst is the FIRST probe, the picture's
+own corner, on both axes at every anchor and every cell read here. That is not
+an argument about probe density — the corner's own value is computed directly
+below and it EQUALS the live maximum to 1e-13, and doubling the probe count
+twice over changes nothing to the last bit.
+
+Write the corner's offset as ξ, the kept half tile in object mm. Every tile
+shares the anchor's frame, so the two tiles at a seam look at image points
+exactly a pitch apart, the pitch is exactly 2ξ, and the stage's own span is
+`R(cx + ξ) − R(cx − ξ)`. The column seam then steps from `cx − ξ` to `cx + ξ` at
+height `−ξ`, and the row seam from `+ξ` to `−ξ` at `cx − ξ` — whose two probes
+sit at the SAME radius, so a radial map scales them by the same factor and the
+row seam has no x-component at all. Both reduce to four evaluations of the map's
+radial function `R`, with `m(t) = R(t)/t`:
+
+    rows = |2ξ·m(rQ) − R(P) + R(Q)|
+    cols = hypot(P·(m(rP) − m(P)) − Q·(m(rQ) − m(Q)), ξ·(m(rP) − m(rQ)))
+
+`P = cx + ξ`, `Q = cx − ξ`, `rP = hypot(P, ξ)`, `rQ = hypot(Q, ξ)`. This is not a
+model of the seam. It is the seam, and it wants no mosaic and no render.
+
+### So the anisotropy is one curve of one variable
+
+Nothing in it depends on the anchor, the guard, the wavelength or the frame
+except through ξ. On **w = ξ/cx** — the kept half tile over the field offset —
+the anisotropy is Φ(w), and the guard enters ONLY by changing w, checked against
+the live seam at guards two orders apart.
+
+Its small-w behaviour is geometry and not optics. The row seam is first order in
+the tile and carries the map's distortion; the column seam is second order and
+carries the same distortion at the corner's own offset; the map cancels out of
+the ratio, leaving
+
+    A·w = 1 + w − 0.6149·w² + …
+
+whose first two terms are exactly `(cx + ξ)/ξ` for every cell. Four cells whose
+dimensionless distortion spreads **1.43×** agree at a matched w to **1.1e-5** at
+w = 0.1 and are still inside 1e-3 at w = 0.99, first differing at order w² and
+by a third of a percent of that coefficient. That is the reason under
+§ 6ca.2's observation that "the radial map's own shape divides out of the
+quotient": it divides out of the anisotropy itself, before any quotient is
+taken. And it is why no CELL turns — Φ is monotone.
+
+### And a lever is that curve read at two points
+
+A lever is Φ(w_f)/Φ(w_s), and its two arguments are in fixed proportion:
+
+    σ = ρ · f_f/f_s
+
+where ρ = 0.9847244 is the fast cell's resolution cell over the slow one's — the
+departure from an exact inverse-NA halving, and the only optics in it — and f is
+the cell's kept fraction, which the GUARD sets, the fast cell's finer pupil
+sampling costing it less of the tile at the same guard in cells. A quotient of
+one curve at two points a fixed factor apart is stationary where the curve's log
+slope reads the same at w and σw, and **whether that is a maximum or a minimum
+is the sign of σ − 1.**
+
+So the aperture is not what turns. At § 6cb's own guard σ is 1.0096834 and
+1.0373080, both above 1, and both levers hold a maximum — at anchors 61.7 and
+67.8, which are § 6cb.3's located 62 and 68. At a guard of 10⁴ both σ are BELOW
+1 and both levers hold a **minimum** instead. And the flip is at the crossing
+rather than near it: σ passes 1 at 520540 for the 10× lever and at 260270 for
+the 20×, and the extremum changes kind across exactly those two guards.
+
+### Which is also § 6cb.1's locus
+
+The interact is four cells, so its own best anchor is where a four-point
+combination of Φ is stationary. Solving that — no mosaic, no render, no
+threshold walk — against the five guards § 6cb.1 read it at:
+
+| guard | 10⁴ | 10⁵ | 4 × 10⁵ | 809443 | 2 × 10⁶ |
+| --- | --- | --- | --- | --- | --- |
+| § 6cb.1 located | 40 | 60 | 66 | 70 | 86 |
+| predicted | 40.04 | 60.56 | 65.88 | 70.36 | 85.37 |
+
+every one inside the step-2 grid the ladder located them on. The same
+calculation with ONE curve for all four cells — pure geometry, the cells' own
+maps thrown away — is 58% out at the smallest guard and 0.3% at the largest,
+monotonically, because the guard is what spreads the four kept fractions:
+geometry takes the locus over as the guard grows, and the cells' own maps decide
+it when the guard is small. 0.5115 itself is untouched — it is still where the
+threshold curve crosses this locus, and an intersection is not a tile length.
+
+### The form has an edge, and § 6bz's turn is past it
+
+It is exact while w < 1 and breaks the moment the kept tile reaches the optical
+axis: at w = 1 the row seam's probe pair lands ON the axis, where `Q = 0`. Past
+that the live maximum leaves the corner and is strictly larger — 5.3e-5 at
+w = 1.018, 4.8e-3 at 1.120, 3.5e-2 at 1.324, one-signed throughout — which is
+§ 6bz.5's lost probe-exactness given a location. § 6bz.4's four per-cell turns
+sit near w = 1.46, outside this domain, and Φ has no minimum out to w = 2.2, so
+they belong to the moved argmax and are NOT explained here.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cd.0 — the seam is one corner, and the corner is four map evaluations** | under a stage scan the worst probe is the first one, the picture's own corner, on both axes; the closed form in `R` at four radii equals the live `mosaicSeamShiftMm` to 1e-13 at guards from 10⁴ to 2 × 10⁶, and 65, 129 and 257 probes agree to the last bit — the row seam having no x-component at all, its two probes sharing a radius | ✅ |
+| **§ 6cd.1 — and it is exact until the kept tile reaches the axis** | bit-exact at w = 0.988 and departing one-signed above w = 1, by 5.3e-5 at 1.018, 4.8e-3 at 1.120 and 3.5e-2 at 1.324, which is § 6bz.5's lost probe-exactness located; § 6bz.4's own turns sit near w = 1.46, past the edge, and Φ has no minimum out to 2.2 | ✅ |
+| **§ 6cd.2 — so the anisotropy is one curve of one variable** | `A·w = 1 + w − 0.6149w² + …` on the kept half tile over the field offset, the first two orders being `(cx + ξ)/ξ` for every cell; four cells whose distortion spreads 1.43× agree at a matched w to 1.1e-5 at 0.1 and 1e-3 at 0.99, first differing at w² by 0.32% — the map dividing out of the anisotropy itself, which is what § 6ca.2 saw in a quotient | ✅ |
+| **§ 6cd.3 — a lever is that curve read at two points, so the aperture does not turn it** | the two arguments are in fixed proportion σ = ρ·f_f/f_s, ρ = 0.9847244 optical and f_f/f_s the guard's; at 809443 σ is 1.0097 and 1.0373 and both levers are maxima at anchors 61.7 and 67.8 (§ 6cb.3 located 62 and 68), at 10⁴ both σ are below 1 and both are MINIMA, and the kind changes across the guards where σ passes 1 — 520540 and 260270 | ✅ |
+| **§ 6cd.4 — and § 6cb.1's locus is the same curve at four points** | the interact's best anchor solves a four-point stationarity of Φ: 40.04, 60.56, 65.88, 70.36 and 85.37 against § 6cb.1's located 40, 60, 66, 70 and 86, all inside its step-2 grid and wanting no render; on one curve for all four cells it is 58% out at 10⁴ and 0.3% at 2 × 10⁶, monotone, so the guard hands the locus from the maps to the geometry | ✅ |
+
+**Still open.**
+
+- **Why Φ bends where it does is not derived.** The closed form says what the
+  anisotropy is at any w and every turn on this branch follows from it, but the
+  shape of Φ's own log slope — which is what puts the 10× lever at 61.7 rather
+  than at 67 — is measured and not solved. That is one level below where § 6cb
+  stopped, and it is the first version of this question that has a closed-form
+  object to ask it OF rather than a sweep.
+- **§ 6bz.4's per-cell turn is bounded, not explained.** It lives past w = 1,
+  where the worst probe leaves the corner, so it belongs to the probe walk's
+  maximum rather than to the map. Sharper than § 6bz.4's own statement, and
+  still not a mechanism.
+- **Four cells and one field offset.** Everything here is at cx = 4 mm with
+  § 6bo's four shapes. That one cell's anisotropy is a function of w alone is
+  exact — it is the closed form — but the SIZE of the four cells' departure from
+  a single curve, 1.1e-5 to 1e-3, is measured rather than bounded, and nothing
+  has been read at a second offset.
+- **Inherited and untouched**: the plateau still cannot be moved to the common
+  anchor without new sweeps, § 6bn's first interval is still unreachable,
+  § 6bs.6's two orderings still have no replacement, and why a coarser pupil
+  puts light outside the box (§ 6cc.2) is still a sampling question nobody has
+  asked.
 
 ## Later rungs
 
