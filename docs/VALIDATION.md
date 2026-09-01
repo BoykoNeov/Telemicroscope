@@ -144,6 +144,7 @@ whole ladder.
 | [6cg](#step-6cg--the-maps-ba-is-a-change-of-variable) | § 6ce's `b/a` is `2a` plus one lens ratio, the two a change of variable: the map is three factors of one chief ray, and `b/(3a²) = 2/3 + B/(3A²)` is exactly 1/2 for a perfect lens | ✅ |
 | [6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums) | § 6cg's two traced numbers are the PUPIL imaging's own aberrations: `p₀` is its ΣS_I to 1.3e-8 on eighteen cells, `s₀ − p₀` its ΣS_II to 4e-3, and the walk cancels from `a` | ✅ |
 | [6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature) | The seam is the scale's second difference, so both axes are second order in the tile, the stage's first and second: √2 anisotropic, guard sensitivity 1 and never past 1.03665 | ✅ |
+| [6cj](#step-6cj--the-field-seams-edge-is-the-maps-distortion) | § 6ci's `(cx/R)²` edge is the radial map's own distortion acting as a local Jacobian: coefficient `D`, radius 89 mm and not the scale's 150 | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -25359,8 +25360,10 @@ mosaic every rung on this branch is measured on is the furthest from it
 
 The map divides out, as it does on the stage branch (§ 6cd.2): the
 pure-geometry curve, with no map evaluated at all, is inside 5 × 10⁻⁵ of the
-traced one. What is left against the LIVE seam is the `r⁴` the quadratic
-dropped, and it is `(cx/R)²` — four times bigger for twice the field offset,
+traced one. ~~What is left against the LIVE seam is the `r⁴` the quadratic
+dropped, and it is `(cx/R)²`~~ — **§ 6cj: what is left is the MAP, whose own
+quadratic has a radius of 89 mm where the scale's `R` is 150, and the
+truncation is 2% of it** — four times bigger for twice the field offset,
 1 × 10⁻⁴ at cx = 0.5 mm and 2.8 × 10⁻² at 16 mm — while saying nothing about
 `w`, the form still holding to 2 × 10⁻³ at w = 9.5. **This form's domain is a
 small field offset, not a small tile**, which is the opposite of § 6cd.1's edge.
@@ -25389,9 +25392,11 @@ axis-dependent, anywhere in the domain.**
 At § 6ca's own anchor the live four-cell field interact reads **0.714483** on
 rows and **0.733180** on columns — § 6ca.1's published 0.7145 and 0.7332 — a
 ratio of **1.026168**. The closed form composed the same way OVERSHOOTS both
-slopes by half a percent, 0.6% on rows and 0.9% on columns, which is the
-`(cx/R)²` above plus the map; the RATIO, which is the load-bearing number, it
-gets to 1.029043. Pointwise `A(w)` at the four cells' own `w` reads 1.0284.
+slopes by half a percent, 0.6% on rows and 0.9% on columns, ~~which is the
+`(cx/R)²` above plus the map~~ — **which is the map alone, and § 6cj.3 takes
+them to 0.051% and 0.028% with it in front of them**; the RATIO, which is the
+load-bearing number, it gets to 1.029043. Pointwise `A(w)` at the four cells'
+own `w` reads 1.0284.
 
 The `w²` prefactor does **not** cancel out of the interact, though it looks as
 if it should: each cell's guard SHARE is `2·guardCells/pupilSamples`, so the
@@ -25408,9 +25413,9 @@ one § 6ca gave.
 | **§ 6ci.0 — the field seam is three pixel scales and four map evaluations** | with no overlap the pitch is the kept span, so the two tiles read one composed pixel at rendered offsets ±U and their frames differ only in `pixelScaleMm`: `U(s_a+s_b−2s_r)` along the seam and `(i−size/2)(s_a−s_b)` across it, the ANCHOR's own scale in every seam — live to 1e-11 over 36 configurations (4 cells, 3 anchors, 3 guards) and both branches of each, and the ±U form is 198% out at a guard-sized overlap where the general one is still exact | ✅ |
 | **§ 6ci.1 — and a frame's scale is one traced number per field radius** | the exit pupil radius is field-invariant to the last bit, so the scale IS `referenceRadius` and a function of RADIUS not position — (3,4) and (5,0) agree bitwise in all four cells — and § 6m.3's `hypot(R_axis, r)` carries it to 4.3e-11 at 0.5 mm, departing one-signed as the fourth power to 7.6e-6 at 12 mm | ✅ |
 | **§ 6ci.2 — so both field seams are second order in the kept tile** | each mismatch carries `w²`, one power from the `U` in front and one from the `ξ` inside, so both guard log slopes start at 2 where the stage's start at 1 and 2 (§ 6cf.2) — `Lr = (15w²+15w+4)/(5w²+6w+2)` and `Lc = (15w²+10w+2)/(5w²+4w+1)`, live to 5e-4 at cx = 2 | ✅ |
-| **§ 6ci.3 — the seam is NOT axis-blind: it is √2 out at three tiles** | `Φ_h(0) = 2h/√((2h−1)²+1)` — √2 at three tiles, 4/√10 at five, 6/√26 at seven — the row pair sitting one pitch further out in the field, exact at every tile count and inside 2e-3 of live; the map divides out to 5e-5 and what is left is `(cx/R)²`, quadrupling with the offset and flat in `w` out to 9.5 | ✅ |
+| **§ 6ci.3 — the seam is NOT axis-blind: it is √2 out at three tiles** | `Φ_h(0) = 2h/√((2h−1)²+1)` — √2 at three tiles, 4/√10 at five, 6/√26 at seven — the row pair sitting one pitch further out in the field, exact at every tile count and inside 2e-3 of live; the map divides out to 5e-5 and what is left is ~~`(cx/R)²`~~ **the map itself (§ 6cj)**, quadrupling with the offset and flat in `w` out to 9.5 | ✅ |
 | **§ 6ci.4 — so the axis constant is exactly 1 at zero tile, and bounded** | `A − 1 = w(5w²+5w+1)/(75w⁴+135w³+95w²+31w+4)`, 1 at zero tile against the stage's 2, with a maximum at the only positive root of `375w⁶+750w⁵+425w⁴−40w³−120w²−40w−4`, w = 0.50914397778078 where A = 1.0366475533 — all four cells' live maxima on the anchor nearest it — and the peak FALLS with the mosaic, 3.665% at three tiles to 0.32% at thirty-three | ✅ |
-| **§ 6ci.5 — which is what § 6ca.1's 2.6% is, and what it is not** | live 0.714483 and 0.733180 at § 6ca's own anchor, its published 0.7145 and 0.7332, ratio 1.026168 against the composed form's 1.029043 — the form overshooting each slope by 0.6% and 0.9% on `(cx/R)²` — while the SEAM there is 1.1148, 11% and not 2.6%: the blindness is the derivative's and never the seam's | ✅ |
+| **§ 6ci.5 — which is what § 6ca.1's 2.6% is, and what it is not** | live 0.714483 and 0.733180 at § 6ca's own anchor, its published 0.7145 and 0.7332, ratio 1.026168 against the composed form's 1.029043 — the form overshooting each slope by 0.6% and 0.9% on ~~`(cx/R)²`~~ **the map (§ 6cj.3)** — while the SEAM there is 1.1148, 11% and not 2.6%: the blindness is the derivative's and never the seam's | ✅ |
 
 **Still open.**
 
@@ -25419,10 +25424,138 @@ one § 6ca gave.
   `2·guardCells/pupilSamples` and the four pupil samplings differ. That is
   § 6bo's shape choice reaching into a quantity nothing designed it for, and the
   0.6% the composed form overshoots by is where it shows.
-- **The `(cx/R)²` edge is located and not derived.** § 6ci.3 says the form wants
-  a small field offset and measures the departure quadrupling with it; it does
-  not say what the seam becomes at a field offset where `r⁴` is the leading
-  term, which is where a real slide scanner's outer tiles sit.
+- ~~**The `(cx/R)²` edge is located and not derived.**~~ **Closed at § 6cj**, and
+  it is neither `cx/R` nor a truncation: it is the radial map's own distortion,
+  acting on the seam as a local Jacobian, with a radius of 89 to 107 mm.
+- **Inherited and untouched**: § 6ch's coma residue still changes sign near
+  NA 0.21 with no form, the bending solve under `s₀`/`p₀` is still
+  `achromaticObjective`'s question, § 6bz.4's per-cell turn and § 6ca's branch
+  inversion are still one event whose form is unwritten, the plateau still
+  cannot be moved to the common anchor without new sweeps, § 6bn's first
+  interval is still unreachable, § 6bs.6's two orderings still have no
+  replacement, and why a coarser pupil puts light outside the box (§ 6cc.2) is
+  still a sampling question nobody has asked.
+
+## Step 6cj — the field seam's edge is the map's distortion
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/field-seam-map.test.ts`
+
+§ 6ci.3 measured a departure from its own pure-geometry anisotropy, found it
+four times bigger for twice the field offset, named it `(cx/R)²` and blamed the
+`r⁴` its quadratic pixel scale had dropped. The measurement is right and the
+name is wrong twice over: **the scale is not what is missing, and `R` is not the
+radius.** § 6ci's own error ladder had already said the first half — it put the
+map's omission at 1e-4 and the scale's truncation at 5e-6 at one anchor — but
+that ladder swapped one thing per rung, so nothing in it separated the two.
+
+### The scale is not what is missing
+
+Scale model in {traced, hypot, quadratic} against map in {on, off}, at a kept
+tile held at `w = 0.0849` while the offset walks 1 → 12 mm, is a 2 × 3 grid
+rather than a ladder. With the map on, the CRUDEST scale model reads the live
+anisotropy to **1e-4** at every offset. With it off, the EXACT traced scale is
+**1.5e-2** out at twelve millimetres — and within 4% of what the quadratic one
+is. Swapping the scale changes nothing; dropping the map is the whole gap
+(§ 6cj.0).
+
+The truncation's own correction is derivable, and it carries a power of the tile
+that the gap does not. Against § 6ci.2's quadratic pairs the exact-sphere ones
+depart by `a²w²/2` — four times bigger for twice the offset, which is the law
+§ 6ci matched, and four times SMALLER for half the tile, which the gap is not.
+At § 6cj.0's own anchor that is **2.6e-6 against 1.7e-3**.
+
+### What a map does to a seam is one Jacobian
+
+A radial map takes a small displacement to `h'(r)` along the radius and `h(r)/r`
+across it. Replace the map by those two numbers and the seam does not move
+— **1e-8 over every offset and tile** — so the map's whole contribution to a
+seam is its local stretch. A seam is 1e-5 of its own field radius, which is why
+the linearisation costs the square of that and nothing more (§ 6cj.1).
+
+That is also why it does not divide out here, where § 6cd.2 and § 6ci.3 found
+that it does on axis: **the two branches present different shares of themselves
+to the radial stretch.** The row seam's mismatch is 99% tangential and the
+column seam's is a third radial — 0.0130 against 0.3445 — so only one of them
+is charged for the radial direction. The corners are nameable rather than
+searched for: the column seam's worst probe sits at `cx(1 + w, −3w)` with its
+mismatch along `(1 + 3w, 1 + w)`, the row seam's at `cx(1 + w, −w)` along
+`(w, 2 + 3w)`, and those read the live radii to a part in 400.
+
+And the map RANKS the two corners the geometry ties. § 6ci recorded the row
+branch switching between two corners of one tile "as the tile grows" and had no
+reason for it; the reason is that without the map there is nothing to choose
+between them — they are one hypot apart in sign only — and with it the inner
+one wins, because this map's stretch falls with radius.
+
+### And the coefficient is the map's own quadratic, not the scale's radius
+
+`h(r) = (r/M)(1 + D r² + …)`, and ONE `D` fits both stretches: the tangential
+one is `1 + D r²` and the radial one `1 + 3 D r²`, so a mismatch with a radial
+share `c²` is stretched by `1 + D r² (1 + 2c²)`. Reading `D` off the ratio and
+off the stretch itself gives the same number to three digits in all four cells.
+
+**Its radius `1/√|D|` is 89 to 107 mm, and § 6ci's `R` is 150 to 152.** They are
+not the same number and do not sort the same way: the map's follows NA (89.3 and
+91.2 at 0.1, 103.1 and 106.8 at 0.2) where the scale's follows neither NA nor
+magnification. Naming the edge `(cx/R)²` understates its coefficient by 2.8.
+
+At the named corners the geometry factor is **exactly 1** where the tile
+vanishes — the row seam is purely tangential, the column seam at 45° to its own
+radius, and the two stretches differ by exactly one power of the radial one —
+so the anisotropy's correction is `D·cx²` and nothing else. Live it measures 0.86
+to 1.19 of that rather than 1, because the worst probe is the map's choice and
+not the geometry's: as the tile shrinks the walk flattens and the maximum
+wanders. The bound is what is load-bearing (§ 6cj.2).
+
+### Which is § 6ci.5's half percent
+
+§ 6ci.5 composed its closed form the way § 6ca composed the live one, overshot
+both guard slopes — 0.6% on rows, 0.9% on columns — and blamed "the `(cx/R)²`
+truncation plus the map". Put the stretch in front of the pure-geometry seam,
+which needs `D` and no trace at all, and the overshoot goes to **0.051% and
+0.028%**: the ratio, which is the load-bearing number, moves from 1.029041 to
+**1.025934** against live's 1.026170, having been 0.28% out and being 0.023%
+out (§ 6cj.3). The stretch has to RANK the corners to do it — reusing the
+geometry's own winner is eight times worse, because on the row branch it is the
+wrong corner.
+
+### And § 6ci.4's ceiling survives, one-sidedly
+
+The stretch depends on the tile through the corner radii, so it feeds the guard
+slopes, and § 6ci.4's 3.665% ceiling was not automatically safe. Walked out into
+the field the live peak **falls**: 1.0365853 at two millimetres, 1.0357103 at
+four, 1.0339935 at seven, against the ceiling's 1.0366475. The map only ever
+lowers it.
+
+It cannot be walked much further, and that is a statement about the objective
+rather than about the seam. § 6ci.4's peak sits at `w* = 0.509`, where a
+three-tile mosaic's outer corner is 2.53 field offsets out, and this objective's
+chief ray stops reaching past an image radius of about 17.4 mm — so **past
+6.9 mm off axis the peak is unreachable**, the seam having no value at all
+there. The ceiling leaves the domain before it is ever in danger (§ 6cj.4).
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cj.0 — the scale is not what § 6ci.3's edge is missing** | scale model in {traced, hypot, quadratic} × map in {on, off} at a kept tile held fixed while the offset walks 1 → 12 mm: with the map on the crudest scale reads live to 1e-4, with it off the exact traced scale is 1.5e-2 out and within 4% of the crudest — and the truncation's own derived correction is `a²w²/2`, which is 2.6e-6 where the gap is 1.7e-3 and, unlike the gap, four times smaller for half the tile | ✅ |
+| **§ 6cj.1 — what the map does to a seam is its local Jacobian** | `h'(r)` along the radius and `h(r)/r` across it reproduce the mapped seam to 1e-8 at every offset and tile; the row seam is 99% tangential and the column seam a third radial (0.0130 against 0.3445) at corners the algebra names to a part in 400, which is why the map does not divide out off axis — and it RANKS the two corners the geometry ties, which is § 6ci's unexplained switch | ✅ |
+| **§ 6cj.2 — and its coefficient is the map's quadratic, not the scale's radius** | one `D` fits the tangential stretch `1 + D r²` and the radial `1 + 3 D r²` in all four cells, and `1/√|D|` is 89.3 to 106.8 mm following NA where the scale's `R` is 150.1 to 151.9 following neither — so the correction is `D·cx²`, exactly 1 at the named corners as the tile vanishes and 0.86 to 1.19 live, where § 6ci.3's name understates it by 2.8 | ✅ |
+| **§ 6cj.3 — which is § 6ci.5's half percent** | the stretch in front of the pure-geometry seam takes § 6ci.5's 0.6% and 0.9% overshoots to 0.051% and 0.028% and its ratio from 1.029041 to 1.025934 against live's 1.026170, needing `D` and no trace — and it must rank the corners to do it, the geometry's own winner being eight times worse | ✅ |
+| **§ 6cj.4 — and § 6ci.4's ceiling survives, one-sidedly** | the live peak FALLS into the field — 1.0365853 at 2 mm, 1.0357103 at 4, 1.0339935 at 7, all under 1.0366475 — and the peak's own `w* = 0.509` puts a three-tile mosaic's corner 2.53 offsets out, so past 6.9 mm this objective's chief ray cannot reach it and the ceiling leaves the domain before it is in danger | ✅ |
+
+**Still open.**
+
+- **Why the guard's two ends are not one tile is still unmeasured** — § 6ci's
+  first bullet, untouched: the `w²` survives the four-cell interact only because
+  each cell's guard share is `2·guardCells/pupilSamples`. What § 6cj.3 removes is
+  the map's half of that overshoot, not § 6bo's shape choice.
+- **`D` is a traced readout and not yet a Seidel sum.** § 6ch built the machinery
+  that would name it — distortion is ΣS_V, and the reversed prescription is the
+  one configuration `seidelSums` computes it for — but this step reads `D` off
+  the map rather than deriving it, so the edge's SIZE is still measured.
+- **The corner ranking is a max over 65 probes, not a rule.** § 6cj.1 explains
+  which corner wins and why, but the wandering maximum at a small tile is
+  described rather than bounded, and it is the whole of the 0.86 to 1.19.
 - **Inherited and untouched**: § 6ch's coma residue still changes sign near
   NA 0.21 with no form, the bending solve under `s₀`/`p₀` is still
   `achromaticObjective`'s question, § 6bz.4's per-cell turn and § 6ca's branch

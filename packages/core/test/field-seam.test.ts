@@ -396,8 +396,9 @@ describe("§ 6ci.2 — so both field seams are second order in the kept tile", (
     expect(s.lc).toBeGreaterThan(2);
     expect(s.lc).toBeLessThan(2.011);
     // And they are the two rational functions, to a part in a thousand — the
-    // gap being § 6ci.3's own (cx/R)^2, which is at its largest out here at
-    // sixteen millimetres off axis and is 3.4e-4 of it at two.
+    // gap being § 6ci.3's own edge, which is at its largest out here at sixteen
+    // millimetres off axis and is 3.4e-4 of it at two. § 6cj names that edge:
+    // it is the radial MAP's distortion, not this curve's own truncation.
     expect(Math.abs(s.lr / LR(s.w) - 1)).toBeLessThan(1e-3);
     expect(Math.abs(s.lc / LC(s.w) - 1)).toBeLessThan(1e-3);
     const near = logSlopes("s10", 16, 2);
@@ -437,10 +438,15 @@ describe("§ 6ci.3 — the seam's anisotropy is a curve of w and the mosaic's si
     }
   }, 600000);
 
-  it("and the curve's departure is the scale's own r^4, quadrupling with cx", () => {
-    // The pure-geometry curve truncates sqrt(1 + r^2/R^2) at r^2, so its error
-    // is (cx/R)^2 — four times bigger for twice the field offset, and it says
-    // nothing about w: at w = 9.5 the form is still inside 3e-3.
+  it("and the curve's departure quadruples with cx and says nothing about w", () => {
+    // Four times bigger for twice the field offset, and nothing about the tile:
+    // at w = 9.5 the form is still inside 3e-3.
+    //
+    // This rung read that as the pure-geometry curve truncating
+    // sqrt(1 + r^2/R^2) at r^2, and it is not: § 6cj swaps the scale model and
+    // the map independently and puts the truncation at 2% of the gap. What is
+    // left is the radial map's own distortion, whose radius is 89 mm and not
+    // this R — the measurement below stands, its name did not.
     const at = (cx: number, j: number): number => {
       const l = live("s20", j, 65536, cx);
       return Math.abs(l.rows / l.cols / PHI(1, l.w) - 1);
@@ -552,8 +558,9 @@ describe("§ 6ci.5 — which is what § 6ca.1's 2.6% is, and what it is not", ()
     expect(rows.live).toBeCloseTo(0.714483, 5);
     expect(cols.live).toBeCloseTo(0.733180, 5);
     // The closed form composed the same way OVERSHOOTS both by half a percent —
-    // the (cx/R)^2 truncation of § 6ci.3 plus the map — and gets the RATIO,
-    // which is the load-bearing number, to three parts in a thousand.
+    // the map's own stretch, and not the truncation this rung first blamed
+    // (§ 6cj.3 takes the two to 0.051% and 0.028% with it) — and gets the
+    // RATIO, which is the load-bearing number, to three parts in a thousand.
     expect(rows.form / rows.live - 1).toBeCloseTo(0.0060, 3);
     expect(cols.form / cols.live - 1).toBeCloseTo(0.0088, 3);
     expect(cols.live / rows.live).toBeCloseTo(1.026168, 5);
