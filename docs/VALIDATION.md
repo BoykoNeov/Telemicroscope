@@ -25363,7 +25363,7 @@ pure-geometry curve, with no map evaluated at all, is inside 5 × 10⁻⁵ of th
 traced one. ~~What is left against the LIVE seam is the `r⁴` the quadratic
 dropped, and it is `(cx/R)²`~~ — **§ 6cj: what is left is the MAP, whose own
 quadratic has a radius of 89 mm where the scale's `R` is 150, and the
-truncation is 2% of it** — four times bigger for twice the field offset,
+truncation is 2 to 4% of it** — four times bigger for twice the field offset,
 1 × 10⁻⁴ at cx = 0.5 mm and 2.8 × 10⁻² at 16 mm — while saying nothing about
 `w`, the form still holding to 2 × 10⁻³ at w = 9.5. **This form's domain is a
 small field offset, not a small tile**, which is the opposite of § 6cd.1's edge.

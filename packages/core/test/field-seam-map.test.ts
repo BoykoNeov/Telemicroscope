@@ -20,7 +20,7 @@ import type { EmitterSlabs } from "../src/imaging/emitter-volume";
  * already said so: it put the map's omission at 1e-4 and the truncation at
  * 5e-6 at the same anchor. This step swaps the two independently.
  *
- * ## The scale's truncation is 2% of it, and it is the map that is left
+ * ## The scale's truncation is a few percent of it, and the map is what is left
  *
  * Scale model in {traced, hypot, quadratic} against map in {on, off}, at a
  * MATCHED kept tile across the offset, is a 2x3 grid where § 6ci's ladder was
@@ -318,7 +318,7 @@ const WALK = [
 
 const interact = (v: readonly number[]): number => v[3]! / v[2]! / (v[1]! / v[0]!);
 
-describe("§ 6cj.0 — the edge is the map's, and the scale's truncation is 2% of it", () => {
+describe("§ 6cj.0 — the edge is the map's, and the scale's truncation is 2 to 4% of it", () => {
   it("reads live to 1e-4 with the crudest scale and 1.5e-2 with no map", () => {
     // The 2x3 grid at a MATCHED kept tile: w is 0.0849 at every offset, so
     // nothing here moves but the field. § 6ci's own ladder swapped one thing
