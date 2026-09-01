@@ -146,6 +146,7 @@ whole ladder.
 | [6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature) | The seam is the scale's second difference, so both axes are second order in the tile, the stage's first and second: √2 anisotropic, guard sensitivity 1 and never past 1.03665 | ✅ |
 | [6cj](#step-6cj--the-field-seams-edge-is-the-maps-distortion) | § 6ci's `(cx/R)²` edge is the radial map's own distortion acting as a local Jacobian: coefficient `D`, radius 89 mm and not the scale's 150 | ✅ |
 | [6ck](#step-6ck--the-maps-coefficient-is-one-seidel-sum) | § 6cj's `D` is ΣS_V of the reversed prescription READ at one millimetre: the reading is `a + (2b − a²)r²` and 3e-4 low, and the radius follows NA because the normaliser is the aperture, not the surfaces | ✅ |
+| [6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic) | § 6ca.1's 0.7145/0.7332 is not an interaction: a matched field forces the guard share to be M/NA and the tile subtracts it, so 0.537 is four integers and balancing the share leaves 3.3e-4 | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -25402,7 +25403,10 @@ own `w` reads 1.0284.
 The `w²` prefactor does **not** cancel out of the interact, though it looks as
 if it should: each cell's guard SHARE is `2·guardCells/pupilSamples`, so the
 four cells' tiles do not shrink by the same factor and the four `w²` do not
-subtract away. Shapes alone give 0.18, not 0.71.
+subtract away. Shapes alone give 0.18, not 0.71 — **0.1814947 and 0.2023679,
+pinned at [§ 6cl.2](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic),
+where the prefactor's own 0.5372639930331878 turns out to be four integers and
+neither half survives a balanced share.**
 
 **And the seam at that same anchor is 11% anisotropic** — 1.1148, not 1.026.
 Those are the two numbers § 6ca.1's sentence runs together. "Axis-blind" is
@@ -25416,15 +25420,16 @@ one § 6ca gave.
 | **§ 6ci.2 — so both field seams are second order in the kept tile** | each mismatch carries `w²`, one power from the `U` in front and one from the `ξ` inside, so both guard log slopes start at 2 where the stage's start at 1 and 2 (§ 6cf.2) — `Lr = (15w²+15w+4)/(5w²+6w+2)` and `Lc = (15w²+10w+2)/(5w²+4w+1)`, live to 5e-4 at cx = 2 | ✅ |
 | **§ 6ci.3 — the seam is NOT axis-blind: it is √2 out at three tiles** | `Φ_h(0) = 2h/√((2h−1)²+1)` — √2 at three tiles, 4/√10 at five, 6/√26 at seven — the row pair sitting one pitch further out in the field, exact at every tile count and inside 2e-3 of live; the map divides out to 5e-5 and what is left is ~~`(cx/R)²`~~ **the map itself (§ 6cj)**, quadrupling with the offset and flat in `w` out to 9.5 | ✅ |
 | **§ 6ci.4 — so the axis constant is exactly 1 at zero tile, and bounded** | `A − 1 = w(5w²+5w+1)/(75w⁴+135w³+95w²+31w+4)`, 1 at zero tile against the stage's 2, with a maximum at the only positive root of `375w⁶+750w⁵+425w⁴−40w³−120w²−40w−4`, w = 0.50914397778078 where A = 1.0366475533 — all four cells' live maxima on the anchor nearest it — and the peak FALLS with the mosaic, 3.665% at three tiles to 0.32% at thirty-three | ✅ |
-| **§ 6ci.5 — which is what § 6ca.1's 2.6% is, and what it is not** | live 0.714483 and 0.733180 at § 6ca's own anchor, its published 0.7145 and 0.7332, ratio 1.026168 against the composed form's 1.029043 — the form overshooting each slope by 0.6% and 0.9% on ~~`(cx/R)²`~~ **the map (§ 6cj.3)** — while the SEAM there is 1.1148, 11% and not 2.6%: the blindness is the derivative's and never the seam's | ✅ |
+| **§ 6ci.5 — which is what § 6ca.1's 2.6% is, and what it is not** | live 0.714483 and 0.733180 at § 6ca's own anchor, its published 0.7145 and 0.7332, ratio 1.026168 against the composed form's 1.029043 — the form overshooting each slope by 0.6% and 0.9% on ~~`(cx/R)²`~~ **the map (§ 6cj.3)** — while the SEAM there is 1.1148, 11% and not 2.6%: the blindness is the derivative's and never the seam's — and ~~the 2.6% is an optical interaction at all~~, [§ 6cl.3](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic) taking both slopes to 3e-4 on a balanced guard | ✅ |
 
 **Still open.**
 
-- **Why the guard's two ends are not one tile is unmeasured.** The `w²` survives
-  the four-cell interact only because each cell's guard share is
-  `2·guardCells/pupilSamples` and the four pupil samplings differ. That is
-  § 6bo's shape choice reaching into a quantity nothing designed it for, and the
-  0.6% the composed form overshoots by is where it shows.
+- ~~**Why the guard's two ends are not one tile is unmeasured.**~~ **Closed at
+  [§ 6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic)**,
+  and it is not ~~§ 6bo's shape choice reaching into a quantity nothing designed
+  it for~~: a matched field FORCES `pupilSamples ∝ NA/M`, so the guard's share of
+  a tile is `(M/NA)/K` and no matched-field cell set can balance it. Nor is it a
+  detail of the prefactor — balance the share and both slopes fall to 3e-4.
 - ~~**The `(cx/R)²` edge is located and not derived.**~~ **Closed at § 6cj**, and
   it is neither `cx/R` nor a truncation: it is the radial map's own distortion,
   acting on the seam as a local Jacobian, with a radius of 89 to 107 mm.
@@ -25546,10 +25551,11 @@ there. The ceiling leaves the domain before it is ever in danger (§ 6cj.4).
 
 **Still open.**
 
-- **Why the guard's two ends are not one tile is still unmeasured** — § 6ci's
-  first bullet, untouched: the `w²` survives the four-cell interact only because
-  each cell's guard share is `2·guardCells/pupilSamples`. What § 6cj.3 removes is
-  the map's half of that overshoot, not § 6bo's shape choice.
+- ~~**Why the guard's two ends are not one tile is still unmeasured**~~ — § 6ci's
+  first bullet, untouched here and **closed at
+  [§ 6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic)**:
+  the share is `(M/NA)/K` because a matched field forces it, and what § 6cj.3
+  removes is the map's half of the overshoot, not the guard's.
 - ~~**`D` is a traced readout and not yet a Seidel sum.**~~ **Closed at § 6ck**,
   and it corrected this step's own reading on the way: § 6cj reads `D` at one
   millimetre, which returns `a + (2b − a²)r²` and is 3e-4 below the coefficient
@@ -25663,12 +25669,149 @@ and always will; the closed form's one free number no longer does.
 - **The coefficient is monochromatic.** Everything above is at the ruler's
   430 nm, because that is the wavelength the mosaic maps in. ΣS_V is a function
   of index, so the map's quadratic has a dispersion nobody has asked for.
-- **Why the guard's two ends are not one tile is still unmeasured** — § 6ci's
-  first bullet, untouched by § 6cj and by this: the `w²` survives the four-cell
-  interact only because each cell's guard share is `2·guardCells/pupilSamples`.
+- ~~**Why the guard's two ends are not one tile is still unmeasured**~~ — § 6ci's
+  first bullet, untouched by § 6cj and by this and **closed at
+  [§ 6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic)**:
+  a matched field forces the share, and 0.537 of § 6ca.1's 0.7145 is arithmetic.
 - **The corner ranking is a max over 65 probes, not a rule.** § 6cj.1 explains
   which corner wins and why, but the wandering maximum at a small tile is
   described rather than bounded, and it is the whole of its 0.86 to 1.19.
+- **Inherited and untouched**: § 6ch's coma residue still changes sign near
+  NA 0.21 with no form, the bending solve under `s₀`/`p₀` is still
+  `achromaticObjective`'s question, § 6bz.4's per-cell turn and § 6ca's branch
+  inversion are still one event whose form is unwritten, the plateau still
+  cannot be moved to the common anchor without new sweeps, § 6bn's first
+  interval is still unreachable, § 6bs.6's two orderings still have no
+  replacement, and why a coarser pupil puts light outside the box (§ 6cc.2) is
+  still a sampling question nobody has asked.
+
+## Step 6cl — the guard sensitivity is the matched field's own arithmetic
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/field-seam-guard.test.ts`
+
+§ 6ci.5 noticed that the `w²` in front of each field seam does not cancel out of
+a four-cell contrast the way it looks as though it should, gave the reason as
+"each cell's guard SHARE is `2·guardCells/pupilSamples`", and left it at
+§ 6bo's shape choice reaching into a quantity nothing designed it for. Both
+halves of that are wrong. It is not a choice — a matched field forces it — and
+it is not a detail of the prefactor: **it is the whole of § 6ca.1's number.**
+
+### A matched field forces the guard's share to be M / NA
+
+§ 6bo.1's frame has object half-extent `pupilSamples·λ/(4·NA/M)`, so holding the
+field across a 2×2 of magnification and aperture means `pupilSamples ∝ NA/M`.
+That is not a property of § 6bo's four shapes; it is what a matched field IS.
+And a guard is a count of resolution CELLS, because the wrap it exists to
+contain is measured in them (§ 6bh.4). Put the two together and the fraction of
+a tile the guard eats is
+
+    2·guardCells/pupilSamples  =  guardCells · (M/NA) / K
+
+with `K` the matched field's own constant. On § 6bo's shapes that holds bitwise
+— `16/ps0` IS `(M/NA)/200`, in all four cells, and again in the 4×/10× set
+(§ 6cl.0). **The confound § 6bo took out of the field comes back in through the
+guard**, and no matched-field cell set can avoid it. § 6bu found the same
+quantity doing the work on the render branch's anchor ladder; this is it on the
+seam's.
+
+### And a subtraction is what carries it through the contrast
+
+The interact is a log-contrast, so it annihilates anything additive in `ln M`
+and `ln NA`. `ln(share)` IS additive in them — `Σσ ln a = 0` to the last bit —
+so a seam that depended on the guard as a POWER of its share would cancel
+exactly and the sensitivity would be zero.
+
+It does not depend on it that way. The guard is SUBTRACTED from the tile,
+`U = size/2 − cropped − guard`, so `ln(seam)` responds linearly in the share,
+and a linear contrast of a product is `(ΔM)·Δ(1/NA)/K` — **−0.25** on these four
+cells, and zero only if a lever does not move at all. That is the answer to the
+question § 6ci asked, and it is arithmetic rather than optics.
+
+So the prefactor's whole contribution to the published secant is four shares,
+two guard ends and one cropped pixel,
+
+    P = 2·Σσ ln( (1 − ε − a_c·x_hi)/(1 − ε − a_c·x_lo) ) / (x_hi − x_lo)
+      = 0.5372639930331878
+
+with no lens, no anchor and no sampling rung in it: the traced `w` reproduce it
+to 1 × 10⁻¹³ at nine rung/anchor pairs (§ 6cl.1). Per unit of the reference
+cell's own share it has a closed floor in the two levers' ratios,
+**`2(m−1)(n−1)/n`** — exactly 1 for this double-and-double 2×2 and 1.5 for the
+4×/10× step, against measured 1.0745 and 1.5506, the excess being the finite
+guard's own `κ`. It is **0.747 and 0.726** of § 6ca.1's own two numbers, and
+between 0.688 and 0.857 of them across eight rungs and anchors.
+
+### The 0.18 is the same imbalance, not a second mechanism
+
+§ 6ci wrote "shapes alone give 0.18, not 0.71" and pinned nothing. The 0.18 is
+real — **0.1814947** on rows and **0.2023679** on columns, adding to the
+composed form § 6ci.5 knew only through its 0.6% and 0.9% overshoot of live
+(§ 6cl.2). But it is not a separate thing from the prefactor. **At a vanishing
+guard it is zero too**: with nothing taken, `w` is a function of the aperture
+alone, the four tiles pair up by it, and the contrast of any function of them is
+5 × 10⁻⁷. Both halves of the split are made by the guard's imbalance, and
+neither exists without it.
+
+What the remainder does carry is the whole axis difference, because `P` has no
+branch — it is one number for both seams. So § 6ca.1's 2.6%, and the ceiling
+§ 6ci.4 proved for it, live entirely inside the 0.18 and the 0.20. Their ratio
+tracks the seam's own anisotropy at these anchors without being it — 1.1150
+against 1.1148 here, inside 0.6% at all three — and the two part company as the
+tile vanishes, 4/3 against √2.
+
+### Balance the share and the sensitivity goes
+
+Hold the guard in PIXELS instead of cells, leave the matched field alone, and
+every tile loses the same fraction of itself. `P` is then exactly zero by
+construction and the shapes follow it down to 6 × 10⁻⁸. The live interact's
+guard sensitivity falls from **0.714483 and 0.733180 to 3.28 × 10⁻⁴ and
+3.77 × 10⁻⁴** — a factor of 2180 — and the 4×/10× factorial's from 0.4135 and
+0.4240 to 4.04 × 10⁻⁴ and 4.67 × 10⁻⁴ (§ 6cl.3). What is left grows with the
+anchor, 3.05 × 10⁻⁴ at 1 mm to 3.71 × 10⁻⁴ at 4 mm, which is the map's signature
+(§ 6cj) and not the guard's.
+
+That counterfactual is a measurement and not a proposal. Equal pixels is a
+different physical guard in every cell — a factor of four across these four and
+five across the 4×/10× set — and the guard is counted in cells precisely because
+that is the unit the wrap it has to contain is measured in. **This is not a flaw
+in § 6bo's shapes. It is what a matched field costs**, and every field interact
+on this branch has paid it (§ 6cl.4).
+
+### And the published number is a secant, not a slope
+
+`dln(seam)/dshare` is `−L(w)·a_c/κ_c` per cell with `L` § 6ci.2's rational, and
+across § 6ca's own two guard ends that derivative moves **14%**, 0.6729 to
+0.7672 on rows. Evaluated at the geometric mean of the two ends it lands within
+**5.4 × 10⁻⁴** of the secant, on both branches and at all three anchors
+(§ 6cl.5) — three orders below the thing this step is about, which is why
+§ 6ca.1's secant was never the problem with § 6ca.1's number.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cl.0 — the guard's share of a tile is `(M/NA)/K`, and a matched field puts it there** | `16/ps0` is bitwise `(M/NA)/200` in all four of § 6bo's shapes and all four of the 4×/10× set; the contrast of the share is `(ΔM)·Δ(1/NA)/K`, −0.25 and −0.15, while the contrast of its LOGARITHM is exactly 0; and the guard in pixels does not move with the sampling rung | ✅ |
+| **§ 6cl.1 — so the interact's guard slope has a floor that is four integers** | `P = 0.5372639930331878` from the four shares, the two guard ends and one cropped pixel, reproduced from the traced `w` to 1e-13 at nine rung/anchor pairs; per unit reference share it is `2(m−1)(n−1)/n` — 1 and 1.5 against measured 1.0745 and 1.5506 — and 0.688 to 0.857 of the published slope | ✅ |
+| **§ 6cl.2 — and § 6ci's unpinned 0.18 is the same imbalance** | 0.1814947 and 0.2023679, adding to § 6ci.5's composed 0.7187587 and 0.7396319; both halves fall to 5e-7 at a vanishing guard, where `w` is the aperture's alone and the four tiles pair up; and the whole axis difference is here, `P` having no branch | ✅ |
+| **§ 6cl.3 — balance the share and it falls three orders** | the guard held in pixels with the matched field untouched takes 0.714483/0.733180 to 3.28e-4/3.77e-4 and the 4×/10× set's 0.4135/0.4240 to 4.04e-4/4.67e-4, `P` exactly zero and the shapes at 6e-8; the residue grows 3.05e-4 → 3.71e-4 with the anchor, which is the map's | ✅ |
+| **§ 6cl.4 — but the share cannot be balanced** | equal pixels is four different physical guards, a factor of 4 here and 5 on the 4×/10× set, where a guard is counted in cells because the wrap it contains is; and the floor is zero only where a lever does not move | ✅ |
+| **§ 6cl.5 — and the published number is a secant** | `−L(w)·a/κ` moves 14% across § 6ca's guard ends, 0.6729 to 0.7672 on rows, and at the geometric mean of them sits 5.4e-4 from the secant, on both branches at three anchors | ✅ |
+
+**Still open.**
+
+- **The STAGE interact's guard sensitivity has not been asked the same
+  question.** § 6ca.1's 0.2637 and 0.6132 are read over the same four cells and
+  the same guard secant, and the stage seam is first and second order in the
+  tile where the field's is second and second (§ 6cf.2) — so the arithmetic
+  above applies to it with a different power in front, and nothing here or there
+  has subtracted it. This is the cheapest open item on the branch.
+- **What a field interact would say with the arithmetic out is unwritten.** The
+  3.3 × 10⁻⁴ left after balancing is a map residue, not an interaction, and no
+  rung says what an interaction between the two levers would look like once its
+  design floor is removed.
+- **Inherited from § 6ck**: `b` is still not a Seidel sum and the ladder has no
+  rung for fifth-order distortion; the map's coefficient is still monochromatic
+  at the ruler's 430 nm; and § 6cj's corner ranking is still a max over 65 probes
+  rather than a rule.
 - **Inherited and untouched**: § 6ch's coma residue still changes sign near
   NA 0.21 with no form, the bending solve under `s₀`/`p₀` is still
   `achromaticObjective`'s question, § 6bz.4's per-cell turn and § 6ca's branch
