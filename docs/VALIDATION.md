@@ -25295,8 +25295,9 @@ a **second** difference of the scale and a **first** — with the anchor's own
 frame entering every seam in the picture, which is why it is a three-point
 combination and not a curvature of the adjacent pair. Both points then go
 through the radial map, and that is the seam: it equals the live
-`betweenRowsMm` and `betweenColumnsMm` to **1e-11** across four cells, three
-anchors and three guards, 72 readings (§ 6ci.0).
+`betweenRowsMm` and `betweenColumnsMm` to **1e-11** across 36 configurations
+— four cells, three anchors, three guards — and both branches of each
+(§ 6ci.0).
 
 The `±U` is the no-overlap case and it is where the form ends. With an overlap
 the near offset is `U − overlap` and the anchor's weight `2U − overlap`; a
@@ -25404,7 +25405,7 @@ one § 6ca gave.
 
 | Rung | What it pins | |
 | --- | --- | --- |
-| **§ 6ci.0 — the field seam is three pixel scales and four map evaluations** | with no overlap the pitch is the kept span, so the two tiles read one composed pixel at rendered offsets ±U and their frames differ only in `pixelScaleMm`: `U(s_a+s_b−2s_r)` along the seam and `(i−size/2)(s_a−s_b)` across it, the ANCHOR's own scale in every seam — live to 1e-11 at 4 cells, 3 anchors and 3 guards, 72 readings, and the ±U form is 198% out at a guard-sized overlap where the general one is still exact | ✅ |
+| **§ 6ci.0 — the field seam is three pixel scales and four map evaluations** | with no overlap the pitch is the kept span, so the two tiles read one composed pixel at rendered offsets ±U and their frames differ only in `pixelScaleMm`: `U(s_a+s_b−2s_r)` along the seam and `(i−size/2)(s_a−s_b)` across it, the ANCHOR's own scale in every seam — live to 1e-11 over 36 configurations (4 cells, 3 anchors, 3 guards) and both branches of each, and the ±U form is 198% out at a guard-sized overlap where the general one is still exact | ✅ |
 | **§ 6ci.1 — and a frame's scale is one traced number per field radius** | the exit pupil radius is field-invariant to the last bit, so the scale IS `referenceRadius` and a function of RADIUS not position — (3,4) and (5,0) agree bitwise in all four cells — and § 6m.3's `hypot(R_axis, r)` carries it to 4.3e-11 at 0.5 mm, departing one-signed as the fourth power to 7.6e-6 at 12 mm | ✅ |
 | **§ 6ci.2 — so both field seams are second order in the kept tile** | each mismatch carries `w²`, one power from the `U` in front and one from the `ξ` inside, so both guard log slopes start at 2 where the stage's start at 1 and 2 (§ 6cf.2) — `Lr = (15w²+15w+4)/(5w²+6w+2)` and `Lc = (15w²+10w+2)/(5w²+4w+1)`, live to 5e-4 at cx = 2 | ✅ |
 | **§ 6ci.3 — the seam is NOT axis-blind: it is √2 out at three tiles** | `Φ_h(0) = 2h/√((2h−1)²+1)` — √2 at three tiles, 4/√10 at five, 6/√26 at seven — the row pair sitting one pitch further out in the field, exact at every tile count and inside 2e-3 of live; the map divides out to 5e-5 and what is left is `(cx/R)²`, quadrupling with the offset and flat in `w` out to 9.5 | ✅ |
