@@ -136,6 +136,7 @@ whole ladder.
 | [6by](#step-6by--the-jump-is-a-handover) | § 6bx.8's jump is a HANDOVER: `mm` maxes over two axes, each smooth, 2% apart, swapping where § 6bw's anisotropy passes 1 — past 4 mm's cost reach, so its fall is one branch's | `seam-branch-handover` |
 | [6bz](#step-6bz--the-hump-is-a-shoulder) | A STAGE-only readout never met the cost's chief-ray window: read to a ratio of 7.34 the threshold bottoms at 2.076 then climbs 13×, so § 6bw's hump is a 59% shoulder, and two offsets collapse to 0.4% | ✅ |
 | [6ca](#step-6ca--the-separation-is-one-slope) | The branches START together, so the 3× is two slopes: the field factor is axis-blind and the stage factor 2.3× steeper on columns, a constant of the mosaic and of the ratio. Past § 6bz's turn they cross | ✅ |
+| [6cb](#step-6cb--the-turn-is-a-fixed-point) | The hump's turn is where the READOUT's ratio-derivative vanishes, entering at the aperture lever where no cell turns; 0.5115 has no closed form because it is a curve meeting a moving curve | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -23396,28 +23397,37 @@ mosaic's own offset across a 2.5× of it. It is NOT one half: 0.5115 is 2.3% fro
 | **§ 6bw.4 — the stage scan is exact, the field scan owns the residual** | one frame puts the stage worst at the corner `{0, pitch}`, giving 0.00013069279220897373 at four frames and six probe counts alike, while the field worst sits at `{234, 114}` and `probes` moves the cost by 3.8e-4 against the frame's 2.4e-5 — so § 6bv.4's ranking inverts; the exactness is the CORNER's, and where the worst leaves it the anisotropy moves with the probe count too ([§ 6bz.5](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
 | **§ 6bw.5 — located to 2^-22, and the crossing is the only one** | 0.8996715545654297, 1.672701120376587, 3.275391101837158, 5.952120304107666, each inside § 6bv's own bracket, and the readout falls strictly from a guard of 2^-20 of a cell to one eating 95% of the tile — where § 6bv.2 could only claim monotonicity inside a four-point window; that strict fall is this anchor's, and past a ratio of 2.05 the readout rises with the guard instead ([§ 6bz.0](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
 | **§ 6bw.6 — the frame is a power of two; the anchor is not the frame** | `pupilSamples` 17, 18, 20, 48, 80 and 112 all trace, so § 6bv.7's reason does not survive untying the frame, though its conclusion holds where `base·k` IS the frame; the real one-pixel crop in a 2^26 frame reproduces the crop-free threshold to the last bit | ✅ |
-| **§ 6bw.7 — the drift is a hump, and it tracks the field** | the guard's share of the tile rises 0.08882 → 0.09649 near k = 4.375 and falls to 0.08972, one smooth maximum, ends level to 1%; k = 4 sits a seventh of a percent off the turn, and the turn moves with the field offset at 0.511–0.515 of it over a 2.5× — which is not 0.5; the maximum is one of two turns and the level ends are the window's ([§ 6bz.1](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
+| **§ 6bw.7 — the drift is a hump, and it tracks the field** | the guard's share of the tile rises 0.08882 → 0.09649 near k = 4.375 and falls to 0.08972, one smooth maximum, ends level to 1%; k = 4 sits a seventh of a percent off the turn, and the turn moves with the field offset at 0.511–0.515 of it over a 2.5× — which is not 0.5; the maximum is one of two turns and the level ends are the window's ([§ 6bz.1](#step-6bz--the-hump-is-a-shoulder)), and the turn itself is where the readout's ratio-derivative vanishes ([§ 6cb](#step-6cb--the-turn-is-a-fixed-point)) | ✅ |
 
 **Still open.**
 
-- **No closed form for 0.5115, and 0.511–0.515 is a GRID-limited interval.**
+- ~~**No closed form for 0.5115, and 0.511–0.515 is a GRID-limited interval.**
   The turn tracks the field offset across a 2.5× of it, which makes it a
   property of the geometry rather than of this field point, but the ratio itself
   is a measured number with nothing behind it yet. It is not one half and it is
-  not the kept share. ~~And the three ratios agree inside 0.8% partly because the
+  not the kept share. And the three ratios agree inside 0.8% partly because the
   ruler is coarse where the arm is short: a sixteenth of a rung is 2.9% of the
   ratio at 2 mm against 1.1% at 5 mm, so the interval bounds the turn and does
   NOT say the ratio is constant to 0.8%. The 2.3% gap to one half survives it;
-  a claim that the ratio drifts with the offset would not.~~ **Located instead of
-  bracketed, the ratio IS the variable: matched anchors at 2 mm and 4 mm put the
-  threshold in the same place to 5.4e-4 at the peak's own neighbouring anchor and
-  to under 3.8e-3 out to a ratio of 3.27 ([§ 6bz.2](#step-6bz--the-hump-is-a-shoulder)).
-  The 2.3% gap to one half survives that too, and the closed form is still
-  missing.**
-- **The hump has a shape and no mechanism.** Why the guard's share of the tile
+  a claim that the ratio drifts with the offset would not.~~ **Three things
+  replace this bullet. The ratio IS the variable: matched anchors at 2 mm and
+  4 mm put the threshold in one place to 5.4e-4 at the peak's own neighbouring
+  anchor and to under 3.8e-3 out to a ratio of 3.27
+  ([§ 6bz.2](#step-6bz--the-hump-is-a-shoulder)). The interval is no longer
+  grid-limited: located on one ratio grid the two offsets peak at the SAME
+  anchor and refine to 0.5123 and 0.5145, inside the published 0.511–0.515
+  ([§ 6cb.2](#step-6cb--the-turn-is-a-fixed-point)). And there could not have
+  been a closed form: the number is where the threshold curve crosses the moving
+  `∂I/∂r = 0` locus, an intersection rather than a length over a length
+  ([§ 6cb.1](#step-6cb--the-turn-is-a-fixed-point)). The 2.3% gap to one half
+  survives all three.**
+- ~~**The hump has a shape and no mechanism.** Why the guard's share of the tile
   should have a maximum at all — why more anchor helps up to a point and then
   stops helping — is unmeasured. § 6bw.7 says where the turn is and what moves
-  it, not what makes it turn.
+  it, not what makes it turn.~~ **The threshold turns exactly where the readout's
+  own ratio-derivative vanishes — one fact, not two — and that enters at the
+  aperture lever, which turns at 0.4532 at 10× and 0.4971 at 20× where no single
+  cell turns at all ([§ 6cb](#step-6cb--the-turn-is-a-fixed-point)).**
 - **The COST threshold is not refined here.** § 6bw.4 shows why: ~~its readout is
   quantised by the along-seam probe grid at 3.8e-4, so the same treatment would
   locate a threshold of the 17-probe reading rather than of the seam.~~
@@ -23912,8 +23922,12 @@ of different order, and the coincidence § 6bx.8 wondered about is not available
   different" remains a statement about the reachable window.~~ **Read to 7.34: a
   stage-only readout never met § 6bu.7's refusal. The threshold bottoms at a
   ratio of 2.076 and climbs 13× ([§ 6bz](#step-6bz--the-hump-is-a-shoulder)).**
-- **§ 6bw.7's hump still has no mechanism**, and neither does the 0.5115 it
-  turns at. § 6by disposes of the identification, not of the number.
+- ~~**§ 6bw.7's hump still has no mechanism**, and neither does the 0.5115 it
+  turns at. § 6by disposes of the identification, not of the number.~~ **The hump
+  turns where the readout's own ratio-derivative vanishes, entering at the
+  aperture lever; and 0.5115 is an intersection of two curves, which is why no
+  closed form was available to dispose of
+  ([§ 6cb](#step-6cb--the-turn-is-a-fixed-point)).**
 - **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
   unexplained curve, the plateau still cannot be moved to the common anchor
   without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
@@ -24101,11 +24115,13 @@ admit every fourth, every second and every point respectively — which is § 6b
 
 **Still open.**
 
-- **The minimum has a mechanism and the PEAK still does not.** § 6bz.4 says what
+- ~~**The minimum has a mechanism and the PEAK still does not.** § 6bz.4 says what
   turns the curve up at a ratio of 2.08 — four per-cell turns arriving out of
   step — and says nothing about why the guard's share should have a maximum at
-  0.5115 in the first place. § 6bw's own bullet stands untouched, and the number
-  still has no closed form.
+  0.5115 in the first place.~~ **The peak is where the readout's own
+  ratio-derivative vanishes, entering at the aperture lever; and 0.5115 has no
+  closed form because it is an intersection of two curves rather than a
+  proportion ([§ 6cb](#step-6cb--the-turn-is-a-fixed-point)).**
 - **Why a single cell's anisotropy turns is unmeasured.** § 6bz.4 pushes the
   question one level down, from the interact to the cell, and stops there. That
   is progress of the same kind § 6by made and not an explanation.
@@ -24247,6 +24263,115 @@ argument, on the cost this time rather than on the anisotropy.
   still cannot be moved to the common anchor without new sweeps, § 6bn's first
   interval is still unreachable, and § 6bs.6's two orderings still have no
   replacement.
+
+## Step 6cb — the turn is a fixed point
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/anisotropy-turn.test.ts`
+
+§ 6bw.7 left two bullets that survived § 6bx, § 6by and § 6bz untouched: "**The
+hump has a shape and no mechanism.** Why the guard's share of the tile should
+have a maximum at all — why more anchor helps up to a point and then stops
+helping — is unmeasured", and "**No closed form for 0.5115.** It is not one half
+and it is not the kept share."
+
+Both are answered here, and the second is answered by saying what kind of number
+it is rather than by producing an expression for it.
+
+### The turn of the threshold is the turn of the readout
+
+The threshold `i*(r)` is defined by `I(i*, r) = B`, so
+
+    d(i*)/dr = −(∂I/∂r) / (∂I/∂i)
+
+and `∂I/∂i` is negative throughout this window — that is § 6bw.5. **So the
+threshold turns exactly where the interact, read at a HELD guard, stops rising
+with the ratio.** There is nothing else it could be doing. "Why more anchor helps
+up to a point and then stops helping" is "why the readout is largest at some
+ratio", one question and not two.
+
+And the two halves close on each other numerically. At a guard of 809443 the
+interact's best anchor over the ladder is k = 4.375; the located threshold at
+k = 4.375 is 809443. The peak is the fixed point of that pair.
+
+### Which is why no closed form fell out
+
+The locus `∂I/∂r = 0` is not a ratio. Read at five guards spanning the range:
+
+| guard | 10⁴ | 10⁵ | 4 × 10⁵ | 809443 | 2 × 10⁶ |
+| --- | --- | --- | --- | --- | --- |
+| the interact's best ratio | 0.2924 | 0.4386 | 0.4825 | **0.5117** | 0.6287 |
+
+A factor of **2.15** across the guard range, and 0.5115 is simply where the
+threshold curve crosses that moving locus. **The number is a fixed point of two
+curves, not a proportion of the tile** — which is why "it is not one half and it
+is not the kept share" kept coming back with nothing to put in their place. No
+expression in the tile's own lengths was ever going to produce it, because it is
+not a length divided by a length; it is an intersection.
+
+This is the third time this ladder has met a moving locus — § 6by.3's handover
+and § 6bz.4's minimum are the others — and the third time the answer to "what is
+this constant" has been "it is where a curve meets a curve".
+
+### But the crossing is a constant of the design, and now it is measured as one
+
+That is a statement about what KIND of number it is and not a refusal of the
+number. Located on one ratio grid at two offsets — `AT2[j]` and `AT4[2j]` being
+one ratio (§ 6bz.2) — the peak is the same anchor on both:
+
+| ratio | 0.4532 | 0.4825 | **0.5116** | 0.5409 | 0.5700 |
+| --- | --- | --- | --- | --- | --- |
+| 2 mm | 807607 | 808604 | **808941** | 808636 | 807705 |
+| 4 mm | 808017 | 809060 | **809443** | 809182 | 808294 |
+
+No fitting needed to see it, which is what § 6bw.7's coarser grid could not
+manage. Refined by a parabola through the peak and its neighbours the two sit
+**0.43% apart** — 0.5145 at 4 mm against 0.5123 at 2 mm — both inside § 6bw.7's
+own 0.511–0.515, which is confirmed rather than corrected.
+
+### And the turn enters one level below the interact
+
+Not in a cell. At the peak's own guard every cell's anisotropy falls
+monotonically with the ratio, by a fifth across the five anchors above and by
+half over the wider sweep, with no turn anywhere in any of them.
+
+It enters at the **aperture lever** — fast over slow at one magnification:
+
+| at guard 809443 | ratio 0.4532 | 0.4825 | 0.5117 | 0.5410 | 0.5702 |
+| --- | --- | --- | --- | --- | --- |
+| 10× lever `f10/s10` | **0.9917263** | 0.9917213 | 0.9917077 | 0.9916860 | 0.9916563 |
+| 20× lever `f20/s20` | 0.9691303 | **0.9691576** | 0.9691562 | 0.9691269 | 0.9690707 |
+| the interact | 0.9772155 | 0.9772480 | **0.9772599** | 0.9772518 | 0.9772244 |
+
+On the finer step-2 grid the 10× lever's own best ratio is 0.4532 and the 20×'s
+is 0.4971 — the five anchors above only bracket the latter — and the interact,
+their quotient, turns at 0.5117, past both. Two humps whose peaks
+are 10% apart in ratio leave a quotient with a turn of its own instead of
+cancelling; had they turned together the interact would have no hump at all.
+That is § 6by.2's out-of-step shape for the third time on this ladder, and the
+second time it is the mechanism rather than the symptom.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cb.0 — the threshold turns where the readout's ratio-derivative vanishes** | `I(i*, r) = B` gives `d(i*)/dr = −(∂I/∂r)/(∂I/∂i)` with `∂I/∂i < 0` (§ 6bw.5), so the two turns are one fact; and it closes numerically — at a guard of 809443 the interact's best anchor is k = 4.375 and the located threshold at k = 4.375 is 809443, the peak being that pair's fixed point | ✅ |
+| **§ 6cb.1 — the locus is not a ratio, which is why no closed form fell out** | the interact's best ratio runs 0.2924 at a guard of 10⁴, 0.4386 at 10⁵, 0.4825 at 4e5, 0.5117 at 809443 and 0.6287 at 2e6 — a factor of 2.15 — so 0.5115 is where the threshold curve crosses a moving locus, an intersection rather than a length over a length, and no expression in the tile could have produced it | ✅ |
+| **§ 6cb.2 — the crossing is nonetheless a constant of the design** | on one ratio grid 2 mm and 4 mm peak at the SAME anchor (808941 and 809443, each above both neighbours), and refined by a parabola they sit 0.43% apart at 0.5123 and 0.5145 — inside § 6bw.7's own 0.511–0.515, confirming a bracketed interval with located values | ✅ |
+| **§ 6cb.3 — the turn enters at the aperture lever, not at a cell** | at the peak's guard every cell falls monotonically with the ratio and none turns, while the 10× lever turns at 0.4532 and the 20× at 0.4971 — 10% apart — and the interact, their quotient, turns at 0.5117 past both; had they turned together there would be no hump | ✅ |
+
+**Still open.**
+
+- **Why an aperture lever turns is unmeasured.** § 6cb.3 puts the turn one level
+  down, at fast-over-slow inside one magnification, and stops there — the same
+  place § 6bz.4 and § 6ca stop, one level below whatever they explain. Three
+  steps have now pushed a mechanism down a level and none has reached the
+  bottom.
+- **The locus itself has no account.** § 6cb.1 measures where `∂I/∂r = 0` sits at
+  five guards and says nothing about why it moves the way it does, which is the
+  same shape as § 6by.3's unexplained guard dependence.
+- **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
+  unexplained curve, the plateau still cannot be moved to the common anchor
+  without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
+  two orderings still have no replacement.
 
 ## Later rungs
 
