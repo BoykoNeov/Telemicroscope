@@ -136,7 +136,7 @@ whole ladder.
 | [6by](#step-6by--the-jump-is-a-handover) | § 6bx.8's jump is a HANDOVER: `mm` maxes over two axes, each smooth, 2% apart, swapping where § 6bw's anisotropy passes 1 — past 4 mm's cost reach, so its fall is one branch's | `seam-branch-handover` |
 | [6bz](#step-6bz--the-hump-is-a-shoulder) | A STAGE-only readout never met the cost's chief-ray window: read to a ratio of 7.34 the threshold bottoms at 2.076 then climbs 13×, so § 6bw's hump is a 59% shoulder, and two offsets collapse to 0.4% | ✅ |
 | [6ca](#step-6ca--the-separation-is-one-slope) | The branches START together, so the 3× is two slopes: the field factor is axis-blind and the stage factor 2.3× steeper on columns, a constant of the mosaic and of the ratio. Past § 6bz's turn they cross | ✅ |
-| [6cb](#step-6cb--the-turn-is-a-fixed-point) | The hump's turn is where the READOUT's ratio-derivative vanishes, entering at the aperture lever where no cell turns; 0.5115 has no closed form because it is a curve meeting a moving curve | ✅ |
+| [6cb](#step-6cb--the-turn-is-a-fixed-point) | The hump's turn is where the READOUT's ratio-derivative vanishes, entering at the aperture lever where no cell turns; 0.5115 is no tile proportion — it is a curve meeting a moving curve | ✅ |
 | [6cc](#step-6cc--the-escape-runs-dry) | § 6br.6's unexplained high-anchor fall: read at ONE pupil sampling it is stronger, 3.81×, and both SLOW cells simply run out of light outside the box and turn while the fast ones fall on | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
@@ -23942,7 +23942,7 @@ of different order, and the coincidence § 6bx.8 wondered about is not available
   turns at. § 6by disposes of the identification, not of the number.~~ **The hump
   turns where the readout's own ratio-derivative vanishes, entering at the
   aperture lever; and 0.5115 is an intersection of two curves, which is why no
-  closed form was available to dispose of
+  proportion of the tile was ever going to be it
   ([§ 6cb](#step-6cb--the-turn-is-a-fixed-point)).**
 - **Inherited and untouched**: ~~the escape's fall at 3.7415 mm is still the one
   unexplained curve~~ **(it is the slow cells running dry —
@@ -24429,13 +24429,16 @@ anchored to § 6br.6's own number rather than to a reimplementation of it.
 | the ladder's own | 0.4108834 | 0.3100469 | — | **0.1249815** |
 
 Monotone, and **3.81×** end to end where the published curve falls 3.29× over
-the same span. So the fall is not the sampling's doing — it survives the sampling
-being held — and the sampling has been **masking a third of it**: at the k = 1
-box the fine-sampled reading is 16% higher than the ladder's own.
+the same span — the ladder has no k = 3, so this is the same range read
+differently and not four shared anchors. So the fall is not the sampling's doing
+— it survives the sampling being held — and the sampling has been **masking 16%
+of it**: at the k = 1 box the fine-sampled reading is 16% higher than the
+ladder's own.
 
-Every cell reads lower at the finer pupil (0.578 of it on the slow 20×, 0.551 on
-the fast 10×), which is a much larger movement than § 6br.5's 0.75% pixel band.
-That band is not wrong; it is a band in the other knob.
+Every cell reads lower at the finer pupil — 0.578 of it on the slow 20×, 0.564
+on the slow 10×, 0.655 on the fast 20× and 0.551 on the fast 10×, a 34% to 45%
+movement — which is far larger than § 6br.5's 0.75% pixel band. That band is not
+wrong; it is a band in the other knob.
 
 ### The mechanism is the mirror of the low end's
 
@@ -24460,6 +24463,24 @@ aperture lever collapses **20.86 → 4.70** while the 10× gives up a third,
 55.99 → 37.57, and that difference is the fall. Nothing is near 1 and § 6br.6 was
 right that its own argument did not apply; the bound that binds here is 0.
 
+### And the floor is the light's, not the grid's
+
+That floor sits in the outermost annulus of an FFT-based render, which is exactly
+where a wraparound residual would sit and exactly the signature one would leave.
+So it is checked rather than asserted. Doubling `size` at a HELD `pupilSamples`
+halves the pixel scale at the same physical extent — an edge artefact moves, a
+real tail does not — and at the top anchor:
+
+| at k = 4 | slow 20× | slow 10× | fast 20× |
+| --- | --- | --- | --- |
+| pixel scale halved | **+0.195%** | **+0.097%** | +0.182% |
+
+Against the 2.68% turn it would have to explain, fourteen times too small. And
+the control settles it: the fast 20×, which has not floored, moves by the same
+0.18%, so the residual is the render's own and has nothing to do with which cells
+run dry. § 6br.7 measured this movement at the branch's own anchor; the claim
+lives at the top one, so it is measured there.
+
 ### Which is what the four energy profiles look like
 
 The fraction of each cell's rendered energy inside a given radius:
@@ -24480,15 +24501,16 @@ is what a ratio of ratios does when two of its four terms have run out.
 | Rung | What it pins | |
 | --- | --- | --- |
 | **§ 6cc.0 — one render is the whole anchor ladder at one sampling** | `halfExtentMm` goes as `pupilSamples` alone (§ 6bw.2) so the anchor's field IS its sampling, and the held pixel scale makes every smaller anchor a centred sub-box of the largest render; the largest box reproduces § 6br.6's own 0.1249815 to eleven digits, so the sub-box readings hang off the published number | ✅ |
-| **§ 6cc.1 — held at one sampling the fall is still there, and stronger** | 0.4764788 → 0.3726088 → 0.2582668 → 0.1249815, monotone and 3.81× end to end against the published 3.29% over the same four anchors — so the anchor's other effect was masking a third of the fall rather than causing it | ✅ |
-| **§ 6cc.2 — and the sampling pushes the other way** | the same physical box at four times the pupil samples reads 0.4764788 against the ladder's 0.4108834, 16% higher, with every cell lower at the finer pupil (0.578 on the slow 20×, 0.551 on the fast 10×) — an experiment the ladder cannot do by choosing a frame, and one § 6br.5's 0.75% pixel band does not cover | ✅ |
+| **§ 6cc.1 — held at one sampling the fall is still there, and stronger** | 0.4764788 → 0.3726088 → 0.2582668 → 0.1249815, monotone and 3.81× end to end against the published 3.29× over the same range — so the anchor's other effect was masking 16% of the fall rather than causing it | ✅ |
+| **§ 6cc.2 — and the sampling pushes the other way** | the same physical box at four times the pupil samples reads 0.4764788 against the ladder's 0.4108834, 16% higher, with every cell lower at the finer pupil, 34% to 45% (0.578, 0.564, 0.655 and 0.551) — an experiment the ladder cannot do by choosing a frame, and one § 6br.5's 0.75% pixel band does not cover | ✅ |
 | **§ 6cc.3 — the mechanism: the slow cells run out of light to lose** | both slow escapes fall, bottom at the third box and TURN (0.005154 → 0.005292 and 0.002558 → 0.002644) while both fast ones fall on to 0.024846 and 0.099348, so the 20× aperture lever collapses 20.86 → 4.70 where the 10× gives up a third — § 6br.6's saturation argument at the OTHER bound | ✅ |
+| **§ 6cc.5 — and the floor is the light's, not the grid's** | halving the pixel scale at a held field at the TOP anchor moves the slow 20×'s floor 0.195% and the slow 10×'s 0.097%, against the 2.68% turn an edge residual would have to explain; and the fast 20×, which has not floored, moves the same 0.182% — so the residual is the render's and not the floor's | ✅ |
 | **§ 6cc.4 — which is what the four energy profiles look like** | inside three quarters of a millimetre the slow cells hold 98.5% and 99.3% of their energy and the fast ones 79.4% and 69.0%, and both fast cells sit below both slow ones at every radius read — the ordering is the aperture's, not the magnification's | ✅ |
 
 **Still open.**
 
 - **The two effects are separated but not both explained.** § 6cc.2 measures the
-  pupil sampling moving every cell by 40-45% at a held field and says nothing
+  pupil sampling moving every cell by 34-45% at a held field and says nothing
   about why a coarser pupil puts light outside the box. That is a sampling
   question rather than an optical one, and this step does not ask it.
 - **§ 6br.6's curve is still the ladder's, confound and all.** Its five published

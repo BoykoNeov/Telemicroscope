@@ -39,7 +39,10 @@ import type { OpticalSystem } from "../src/trace/system";
  * 3.29× over the same four (§ 6cc.1). So the fall is not a sampling artefact,
  * and the sampling has been masking a third of it: at the k = 1 box the
  * fine-sampled reading is 0.4764788 against the ladder's own 0.4108834, 16%
- * higher (§ 6cc.2).
+ * higher (§ 6cc.2). And the floor is the light's and not the grid's: halving the
+ * pixel scale at the top anchor's own field moves it 0.19%, fourteen times less
+ * than the turn it would have to explain, and moves a cell that has NOT floored
+ * by the same 0.18% (§ 6cc.5).
  *
  * ## And the mechanism is the mirror of the low end's
  *
@@ -338,5 +341,35 @@ describe("§ 6cc.4 — which is what the four energy profiles look like", () => 
         Math.min(at("s20", mm), at("s10", mm)),
       );
     }
+  });
+});
+
+describe("§ 6cc.5 — and the floor is the light's, not the grid's", () => {
+  it("survives halving the pixel scale at the top anchor's own field", () => {
+    // The floor sits in the outermost annulus of an FFT-based render, which is
+    // exactly where a wraparound residual would sit — and it would produce this
+    // same signature. Doubling `size` at a HELD `pupilSamples` halves the pixel
+    // scale at the same physical extent, so an edge artefact moves and a real
+    // tail does not. § 6br.7 ran this at the branch's own anchor; the claim
+    // lives at the top one, so it is run there.
+    const at = (cell: Cell, size: number): number => {
+      const p = plane(cell, K1[cell][0] * 4, size);
+      return escapeOf(p.v, p.n, size);
+    };
+    const floored = at("s20", K1.s20[1] * 8) / at("s20", K1.s20[1] * 4);
+    expect(floored).toBeCloseTo(1.001947, 6);
+    // 0.19% against the 2.68% turn it would have to explain — fourteen times
+    // too small — so the slow cells really have run out of light.
+    const turn = 0.005291531 / 0.005153548;
+    expect(turn - 1).toBeCloseTo(0.026774, 6);
+    expect(turn - 1).toBeGreaterThan(13 * (floored - 1));
+    // And the control settles it: a cell that has NOT floored moves by the same
+    // 0.18%, so this residual is the render's own and has nothing to do with
+    // which cells run dry. (The slow 10x moves 0.10%, measured by this step's
+    // probes and not re-run here — a 4096-pixel render for a third instance of
+    // a number two cells already make.)
+    const free = at("f20", K1.f20[1] * 8) / at("f20", K1.f20[1] * 4);
+    expect(free).toBeCloseTo(1.001821, 6);
+    expect(Math.abs(free / floored - 1)).toBeLessThan(2e-4);
   });
 });
