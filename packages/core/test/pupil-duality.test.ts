@@ -57,11 +57,12 @@ import { seidelSums } from "../src/analysis/seidel";
  *
  * ## What the two coefficients are
  *
- *     p₀       =  S_I^dual · f² · f_d² / (2·P_ref)          exact, 1.3e-8
+ *     p₀       =  S_I^dual · f² · f_d² / (2·P_ref)          1.3e-8
  *     s₀ − p₀  = −S_II^dual · f² / (2·H)                    4.2e-4 … 4.4e-3
  *
  * The first is the plainest defect there is — the pupil imaging's third-order
- * SPHERICAL aberration — and it holds to a few parts in 10⁹ on twenty cells.
+ * SPHERICAL aberration — and it holds to a few parts in 10⁹ on eighteen cells:
+ * the family's eight, and ten more chosen to overlap none of them.
  * The second is its COMA, by Abbe's theorem that an offence against the sine
  * condition IS a coma; § 6cg's factorisation into `S` and `P` is Conrady's OSC,
  * which is why the walk appears in it at all.
@@ -356,22 +357,28 @@ describe("§ 6ch.2 — `p₀` IS the pupil imaging's third-order spherical aberr
   it("and it survives an aperture scan the family does not cover", () => {
     let worst = 0;
     let n = 0;
-    for (const M of [10, 20]) {
-      for (const NA of [0.05, 0.075, 0.1, 0.15, 0.2]) {
+    // Deliberately DISJOINT from the family's own NA 0.1 and 0.2, so the count
+    // is ten more cells and not six more and four again.
+    for (const [M, NAs] of [
+      [10, [0.05, 0.075, 0.125, 0.15, 0.175]],
+      [20, [0.05, 0.075, 0.125, 0.175, 0.25]],
+    ] as const) {
+      for (const NA of NAs) {
         const r = read(M, NA, true, SMALL);
         worst = Math.max(worst, Math.abs(r.p0 / p0OfSums(r) - 1));
         n++;
       }
     }
-    // Ten more cells over a 4× in aperture, where `p₀` itself moves by 3×.
+    // Ten more cells, spanning a 5× in aperture the family does not reach.
     expect(n).toBe(10);
     expect(worst).toBeLessThan(1e-8);
   });
 
   it("and it resolves finely enough to reject a length that LOOKS the same", () => {
-    // `mu·P_ref` is the same focal length by the argument of § 6ch.0 — the same
-    // magnification against the plane the telecentric ray crosses — and the two
-    // agree to 7.5e-6. Substituting it degrades the identity by three orders,
+    // `mu·P_ref` is what § 6ch.0's argument reaches for — the same magnification
+    // against the plane the telecentric ray crosses — and it lands within 7.5e-6
+    // of `f_d` without being it. Substituting it degrades the identity by three
+    // orders,
     // from 1.3e-8 to 1.5e-5. A fit could not tell them apart; this is why the
     // claim is that the sums ARE the coefficient and not that they model it.
     let worst = 0;

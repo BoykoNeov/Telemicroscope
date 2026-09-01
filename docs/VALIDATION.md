@@ -142,7 +142,7 @@ whole ladder.
 | [6ce](#step-6ce--the-bend-is-one-algebraic-number) | § 6cd's curve is two polynomials, the map dividing out because both seams vanish with it: −0.6149 is −5/8 plus one map coefficient, the bend a sextic's only positive root, 61.7-not-67 a small denominator | ✅ |
 | [6cf](#step-6cf--the-guard-constant-is-two-log-slopes) | § 6ca's constant is Lc/Lr, the two seams' log slopes not their ratio: 2 at zero tile, cols second order in it and rows first; a minimum at a sextic root, and the collapse is § 6cd's edge | ✅ |
 | [6cg](#step-6cg--the-maps-ba-is-a-change-of-variable) | § 6ce's `b/a` is `2a` plus one lens ratio, the two a change of variable: the map is three factors of one chief ray, and `b/(3a²) = 2/3 + B/(3A²)` is exactly 1/2 for a perfect lens | ✅ |
-| [6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums) | § 6cg's two traced numbers are the PUPIL imaging's own aberrations: `p₀` is its ΣS_I to 1.3e-8 on twenty cells, `s₀ − p₀` its ΣS_II to 4e-3, and the walk cancels out of `a` | ✅ |
+| [6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums) | § 6cg's two traced numbers are the PUPIL imaging's own aberrations: `p₀` is its ΣS_I to 1.3e-8 on eighteen cells, `s₀ − p₀` its ΣS_II to 4e-3, and the walk cancels from `a` | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -25169,13 +25169,15 @@ agreement:
 
     p₀ = ΣS_I^dual · f² · f_d² / (2·P_ref)      1.3e-8 worst, eight cells
 
-with ten more cells over a 4× in aperture — where `p₀` itself moves by 3× —
-holding to 1e-8 (§ 6ch.2). The left side is a traced ray's axis crossing and the
+with ten more cells, chosen to overlap none of the family's, spanning a 5× in
+aperture and holding to 1e-8 (§ 6ch.2) — eighteen in all. The left side is a traced ray's axis crossing and the
 right is a sum over surfaces; nothing was solved to make them meet. It also
 **resolves finely enough to reject a length that looks the same**: `mu·P_ref` is
-the same focal length by the argument two paragraphs up and agrees with `f_d` to
-7.5e-6, and substituting it degrades the identity by three orders, to 1.5e-5. A
-fit could not tell those apart.
+what the argument two paragraphs up reaches for, and it lands within 7.5e-6 of
+`f_d` without being it — substituting it degrades the identity by three orders,
+to 1.5e-5. The trace discriminates where the argument does not, so it is the
+dual's own paraxial focal length that the identity is written in. A fit could
+not tell those apart.
 
 The ray matters and the section says which. § 6cg's `p₀` is read on the ray
 aimed through the diaphragm; the identity is the **telecentric** ray's, and the
@@ -25217,7 +25219,7 @@ nothing fitted (§ 6ch.4).
 | --- | --- | --- |
 | **§ 6ch.0 — the objective is not quite telecentric, and by how much** | the diaphragm misses the back focal plane by 0.0968 mm on the 4× and 0.0093 on the 40×, read as a paraxial crossing and as a traced ray's own reference plane to 1e-6 mm; the entrance pupil is a finite 14.7 m to 1.48 m and DOWNSTREAM, so the dual's object is virtual; and `f/f_d` equals `P₀/P_ref` to 7.5e-6 | ✅ |
 | **§ 6ch.1 — the map's `a` is the objective's third-order distortion** | reversed, the diaphragm is the first surface and ΣS_V is computable: `[ΣS_V/(2u′)]/mu·(f/f_d)²` reproduces § 6cg's three-point `a` to 7.3e-6 on all eight cells, against 1.5e-3 without the two focal lengths — and that raw miss is `2(f/f_d − 1)` to under 1e-6 | ✅ |
-| **§ 6ch.2 — `p₀` IS the dual system's third-order spherical aberration** | `p₀ = ΣS_I^dual·f²·f_d²/(2P_ref)` to 1.3e-8 on eight cells and 1e-8 on ten more spanning a 4× in aperture, a traced axis crossing against a sum over surfaces with nothing solved to meet; swapping `f_d` for the 7.5e-6-distant `mu·P_ref` costs three orders, so a fit could not tell them apart | ✅ |
+| **§ 6ch.2 — `p₀` IS the dual system's third-order spherical aberration** | `p₀ = ΣS_I^dual·f²·f_d²/(2P_ref)` to 1.3e-8 on eight cells and 1e-8 on ten more that overlap none of them and span a 5× in aperture, a traced axis crossing against a sum over surfaces with nothing solved to meet; swapping `f_d` for the 7.5e-6-distant `mu·P_ref` costs three orders | ✅ |
 | **§ 6ch.3 — and `s₀ − p₀` is its third-order coma** | `−ΣS_II^dual·f²/(2H)` to 4.2e-4…4.1e-3 — Abbe's theorem, with the walk inside the offence because § 6cg's two factors are Conrady's OSC; the residue is no power of `f/f_d` (25× the step), is flat under window shrink to 1%, and falls monotonically across an aperture scan, changing sign near NA 0.21 | ✅ |
 | **§ 6ch.4 — so `A` is one dual sum and the universal −1/2** | the walk enters only through `s₀ − p₀`, so it cancels out of `a` entirely and § 6cg could pin `a` without knowing either input; the coma carries 1.5–2.4 against the −1/2, leaving it 17–31% of `A` — § 6cg.1's share from the design side — and the four branch cells' `a` returns from the sums alone to 4e-3 | ✅ |
 
