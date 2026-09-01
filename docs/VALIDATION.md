@@ -135,6 +135,7 @@ whole ladder.
 | [6bx](#step-6bx--the-cost-does-not-hump) | § 6bw's hump is the anisotropy's: at 4 mm the cost falls monotonically at three probe counts, turning only in its SLOPE — and jumps UP at a LOCUS near tile/offset 1.8 that 4 mm cannot reach | `cost-law` |
 | [6by](#step-6by--the-jump-is-a-handover) | § 6bx.8's jump is a HANDOVER: `mm` maxes over two axes, each smooth, 2% apart, swapping where § 6bw's anisotropy passes 1 — past 4 mm's cost reach, so its fall is one branch's | `seam-branch-handover` |
 | [6bz](#step-6bz--the-hump-is-a-shoulder) | A STAGE-only readout never met the cost's chief-ray window: read to a ratio of 7.34 the threshold bottoms at 2.076 then climbs 13×, so § 6bw's hump is a 59% shoulder, and two offsets collapse to 0.4% | ✅ |
+| [6ca](#step-6ca--the-separation-is-one-slope) | The branches START together, so the 3× is two slopes: the field factor is axis-blind and the stage factor 2.3× steeper on columns, a constant of the mosaic and of the ratio. Past § 6bz's turn they cross | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -23824,7 +23825,10 @@ Located on § 6bx's own 2⁻²⁴ lattice at 2 mm, 65 probes:
 The row branch goes on drifting by 1.6% end to end — it is § 6bx.3's own falling
 law, still falling — while the reading built on the max rises **132.8%** over the
 same six anchors. The column branch is a different curve altogether: three times
-higher, and rising where the row branch falls.
+higher, and rising where the row branch falls — **both statements about these
+anchors. The two curves start together at zero guard and separate at rates whose
+ratio moves with the field; past a ratio of 2 the row branch climbs 6.2× and the
+two cross ([§ 6ca](#step-6ca--the-separation-is-one-slope)).**
 
 ### Why 4 mm never turns, which is § 6bx.3's window
 
@@ -23886,18 +23890,22 @@ of different order, and the coincidence § 6bx.8 wondered about is not available
 | **§ 6by.1 — two smooth branches, 2% apart, and the max hands over** | the row interact's spread over k = 7.125…8.75 is 0.085% including its own outlier, the column interact rises monotonically 0.13%, and the gap is 1.98% — 23× the larger spread; `mm` is one bit for bit, then the other, and in between neither: at 3 mm it reads 1.0476162 against a row branch of 1.0476254, below both | ✅ |
 | **§ 6by.2 — the handover is where § 6bw's anisotropy passes through one** | `mm` stops reading rows and starts reading columns exactly at `betweenRowsMm = betweenColumnsMm`, cell by cell, at (7.625, 7.75] for the 10× pair and (7.75, 7.875] for the 20× pair; a crossing is continuous in a cell, and the interact shows it only because the 20× pair cross two steps apart where the 10× pair cross together | ✅ |
 | **§ 6by.3 — the locus moves with the guard, so 1.8 is not a constant** | the slow 20×'s crossing sits at k ∈ (7.5, 7.5625] at a guard of 100000, (7.8125, 7.875] at 490080 and (8.0625, 8.125] at 716088 — 1.754 to 1.900 in § 6bx.8's own ratio, a 7.5% spread — and none at all below k = 8.5 at 2000000, so the two offsets' agreement at 1.871 is two similar curves meeting a moving locus | ✅ |
-| **§ 6by.4 — each branch's threshold is smooth; the jump is the handover** | on rows alone 486643 → 478948 over k = 7.25…8.25, 1.6% end to end and still § 6bx.3's falling law; on columns alone 1428323 → 1498204, three times higher and rising; and what `mm` reads goes 486643 → 1133020, +132.8% over the same anchors, arriving at neither branch | ✅ |
+| **§ 6by.4 — each branch's threshold is smooth; the jump is the handover** | on rows alone 486643 → 478948 over k = 7.25…8.25, 1.6% end to end and still § 6bx.3's falling law; on columns alone 1428323 → 1498204, three times higher and rising; and what `mm` reads goes 486643 → 1133020, +132.8% over the same anchors, arriving at neither branch — both branch laws being this window's, since past a ratio of 2 the row branch climbs 6.2× and the two cross ([§ 6ca.6](#step-6ca--the-separation-is-one-slope)) | ✅ |
 | **§ 6by.5 — at 4 mm nothing hands over, and that is § 6bx.3's window** | the anisotropy runs 2.1269 at k = 8 to 1.2460 at k = 13.25 and never reaches one before § 6bu.7's chief-ray refusal at k = 13.5, so `mm` equals `betweenRowsMm` in all four cells throughout and the threshold is the row branch's outright (515374 against 1509914 on columns); 5 mm tops out at 3.89 — the refusal being the COST's, and a stage-only readout at 4 mm does cross one, at the same ratio 2 mm crosses at ([§ 6bz.7](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
 | **§ 6by.6 — the stage factor is exact where its worst sits on a corner** | at 4 mm k = 12 every worst has an along-seam coordinate of 0 and the interact is bit-identical at 17, 65 and 257 probes; at k = 13.25 the worst is interior and it is not (1.0482585 / 1.0475624 / 1.0476581), and the same at 2 mm either side of the handover — which narrows § 6bx.1's prose and gives § 6bx.5's "1064 against ~320 at k = 13" its cause | ✅ |
 | **§ 6by.7 — and the onset is not § 6bw.7's 0.5115 in another guise** | both are the slow 20×'s half extent over the offset, agreeing to 0.06% as frames; 1/0.5115 = 1.955 sits above both onset brackets; and the settling refusal is that the onset is not a number — 0.5115 is where the anisotropy's threshold turns, this is where its value passes one, on a locus that moves 7.5% with the guard | ✅ |
 
 **Still open.**
 
-- **The two-branch structure is a mechanism for the jump and not for either
+- ~~**The two-branch structure is a mechanism for the jump and not for either
   branch.** Why the column-axis threshold should sit three times above the
-  row-axis one, and why one rises where the other falls, is unmeasured. So is
-  what sets the anchor at which the anisotropy reaches one — § 6by.3 shows it
-  moves with the guard and does not say what it tracks.
+  row-axis one, and why one rises where the other falls, is unmeasured.~~ **The
+  branches start together, so it is a slope: the field factor is axis-blind and
+  the stage factor is 2.3× steeper on columns, which nearly cancels it. Three is
+  a window's number and the branches cross ([§ 6ca](#step-6ca--the-separation-is-one-slope)).**
+  So is what sets the anchor at which the anisotropy reaches one — § 6by.3 shows
+  it moves with the guard and does not say what it tracks, though at a held
+  guard it is the ratio's ([§ 6bz.7](#step-6bz--the-hump-is-a-shoulder)).
 - ~~**The anisotropy still has not been read past a ratio of 1.55.** § 6bw stopped
   at 4 mm and so did § 6bx; § 6by only reads the anisotropy's VALUE out there,
   not its own threshold. Until that is done, "the two laws are qualitatively
@@ -24104,11 +24112,141 @@ admit every fourth, every second and every point respectively — which is § 6b
 - **The far end is read on a tile that is mostly guard.** At a ratio of 7.338 the
   guard eats 79.9% of the tile, and whether a seam measured across a fifth of a
   tile is the seam a mosaic would have is not something this ladder has asked.
-- **Inherited and untouched**: the two branches' 3× separation still has no
-  mechanism, the escape's fall at 3.7415 mm is still the one unexplained curve,
+- **Inherited and untouched**: ~~the two branches' 3× separation still has no
+  mechanism~~ **(it is one slope, and there is no three —
+  [§ 6ca](#step-6ca--the-separation-is-one-slope))**, the escape's fall at
+  3.7415 mm is still the one unexplained curve,
   the plateau still cannot be moved to the common anchor without new sweeps,
   § 6bn's first interval is still unreachable, and § 6bs.6's two orderings still
   have no replacement.
+
+## Step 6ca — the separation is one slope
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/branch-separation.test.ts`
+
+§ 6by closed with this: "**The two-branch structure is a mechanism for the jump
+and not for either branch.** Why the column-axis threshold should sit three
+times above the row-axis one, and why one rises where the other falls, is
+unmeasured."
+
+There is no three to explain. The two branches **start at the same value** and
+separate at different rates, the rates differ in one factor of the two the cost
+is built from, and the number that separates them moves with the ratio until it
+passes through 1 and the branches cross.
+
+### They start together, so it is a slope and not a gap
+
+At a guard of 2⁻²⁰ of a cell the row cost reads **1.025839** and the column cost
+**1.025932** — 9 × 10⁻⁵ apart, and the two factors agree separately to the same
+figure. At every anchor tried. So nothing distinguishes the branches at zero
+guard, the thresholds are in inverse proportion to two slopes, and the question
+is which slope.
+
+### The field factor cannot tell the axes apart; the stage factor can
+
+§ 6bx.1 factorises the cost exactly into the stage interact over the field
+interact. Per unit of the guard's share of the tile, at a ratio of 1.871:
+
+| | rows | columns | apart |
+| --- | --- | --- | --- |
+| field interact | 0.7145 | 0.7332 | 2.6% |
+| stage interact | 0.2637 | 0.6132 | **133%** |
+| cost = stage − field | **−0.4508** | **−0.1200** | 3.76× |
+
+A field scan gives every tile its own frame, so its seam is a ruler mismatch
+that does not care which way the two tiles are adjacent. A stage scan repeats
+one map, so its seam is the map's own period restarting — and a square lattice
+against a radial map is anisotropic by construction (§ 6bj.5). The branch
+difference is entirely there, which is § 6by.1's split seen in the derivative
+rather than in the values.
+
+**And that makes the separation a near-cancellation.** The column branch's stage
+factor rises at 0.613 against a field factor rising at 0.733, so the difference
+is a small number produced by two large ones; the row branch's rises at 0.264
+against 0.714 and no cancellation happens. That is the whole of the "3×".
+
+### The axis constant is the mosaic's, and it is the ratio's
+
+The 2.33 above is the same in all four cells:
+
+| at 2 mm | slow 10× | fast 10× | slow 20× | fast 20× | spread |
+| --- | --- | --- | --- | --- | --- |
+| ratio 0.935 | 1.8223 | 1.8192 | 1.8203 | 1.8225 | 0.2% |
+| ratio 1.696 | 2.2775 | 2.2684 | 2.2706 | 2.2739 | 0.4% |
+| ratio 2.923 | 0.8493 | 0.8471 | 0.8438 | 0.8445 | 0.7% |
+
+Across a 2× of magnification and a 2× of aperture. The map's own shape divides
+out of the quotient, so this is a property of a square stage lattice meeting a
+radial map at a given tile size and offset, and no cell's optics enter it.
+
+It is also a function of the tile half extent over the field offset, on
+§ 6bz.2's own test: matched anchors at 2 mm and 4 mm give 1.72618 against
+1.72614 at a ratio of 0.585 and 1.82105 against 1.82279 at 0.935.
+
+### Which disposes of the 3× and of the opposite drifts
+
+The constant GROWS with the ratio — 1.727 at 0.468, 1.821 at 0.935, 2.201 at
+1.403, 2.320 at 1.871 — so the column branch's cancellation tightens as the
+anchor grows and its threshold rises, while the row branch has no cancellation
+to tighten and its threshold falls. **§ 6by's "one rises where the other falls"
+is one quantity moving**, and 4.3% down against 8.0% up over the same three
+anchors is its two ends.
+
+And the separation is not three anywhere in particular. Located at 2 mm:
+
+| ratio | 1.403 | 1.696 | 1.871 | 1.988 | 2.046 | 2.105 | 2.222 | 2.573 | 2.923 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| rows | 501061 | 486643 | 479700 | 479661 | 490426 | 617446 | 1064019 | 2162216 | 2992641 |
+| columns | 1386681 | 1428323 | 1467459 | 1498204 | 1514811 | 1532181 | 1569054 | 1694388 | 1837540 |
+| apart | 2.77 | 2.94 | 3.06 | 3.12 | 3.09 | 2.48 | 1.47 | **0.78** | **0.61** |
+
+It runs from 2.77 to 3.12 and then **inverts**. Past § 6bz's own turn the row
+branch's falling law ends: it bottoms at a ratio of 1.988 and climbs **6.2×**
+while the column branch drifts up 22%, and the two cross between 2.22 and 2.57.
+By 2.92 the row branch sits 63% ABOVE the column branch it was a third of.
+
+So § 6bx.3's monotone fall and § 6by.4's "the row branch goes on drifting by
+1.6%" are that window's, exactly as § 6bz found for the anisotropy — and it is
+the same turn, at the same ratio, in a readout built from the same per-cell
+quantity.
+
+### The row branch's cost stops falling with the guard at all
+
+The mechanism of that climb, and a licence check with it. At a ratio of 2.222
+the row branch's stage slope has passed its field slope — 0.875 against 0.723 —
+so the row cost **rises** with the guard, by 1.5% over the middle of the legal
+range, and collapses only at the end. Walked coarsely it still changes sign
+exactly once, which is what a bisection needs and all it needs: § 6bz.0's
+argument, on the cost this time rather than on the anisotropy.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6ca.0 — the branches start together, so the separation is a slope** | at a guard of 2⁻²⁰ of a cell the row cost is 1.025839 and the column cost 1.025932, 9e-5 apart, with the stage and field factors agreeing separately to the same figure, at k = 4, 7.25 and 12.5 alike — so the located thresholds are in inverse proportion to two rates and nothing else | ✅ |
+| **§ 6ca.1 — the field factor is axis-blind and the whole difference is the stage factor's** | per unit guard share at a ratio of 1.871 the field interact rises 0.7145 on rows against 0.7332 on columns, 2.6% apart, where the stage interact rises 0.2637 against 0.6132 — 133% — so the column cost falls slowly because 0.613 against 0.733 nearly cancels and the row's, 0.264 against 0.714, does not | ✅ |
+| **§ 6ca.2 — the axis constant is the mosaic's geometry, not any cell's optics** | the column-over-row guard sensitivity agrees across all four cells to under 1% at three anchors — 1.82 at a ratio of 0.935, 2.27 at 1.696, 0.85 at 2.923 — across a 2× of magnification and a 2× of aperture, the radial map's own shape dividing out of the quotient | ✅ |
+| **§ 6ca.3 — and it is a function of the ratio** | matched anchors at 2 mm and 4 mm give the same axis constant to 1e-4 at a ratio of 0.585 and 1.1e-3 at 0.935, which is [§ 6bz.2](#step-6bz--the-hump-is-a-shoulder)'s collapse on a quantity § 6bz never read | ✅ |
+| **§ 6ca.4 — so the separation is a near-cancellation, and 3.76 to first order** | equal intercepts and slopes of −0.4508 against −0.1200 predict a threshold ratio of 3.758; located, 479661 against 1498204 is 3.1235, the estimate overshooting 23% because the column branch runs three times further in the guard and neither factor is straight over that run | ✅ |
+| **§ 6ca.5 — the opposite drifts are the axis constant growing** | it rises 1.8211 at a ratio of 0.935 to 2.3204 at 1.871, tightening the column branch's cancellation and loosening nothing on the row branch — so over the same three anchors the row threshold falls 4.3% and the column threshold rises 8.0%, one quantity and not two laws | ✅ |
+| **§ 6ca.6 — and there is no 3×: past § 6bz's turn the branches cross** | the separation runs 2.77 at a ratio of 1.403 to 3.12 at 1.988 and then inverts — rows climbs 6.2× from its floor while columns drifts 22%, rows is below at 2.222 and 63% above at 2.923 — so § 6bx.3's fall and § 6by.4's drift are the window's; and at 2.222 the row cost RISES with the guard (stage 0.875 against field 0.723) and still crosses once | ✅ |
+
+**Still open.**
+
+- **Why the stage seam is more guard-sensitive on one axis than the other is
+  not derived.** § 6ca.2 says the number belongs to the mosaic's geometry rather
+  than to any cell, and § 6ca.3 says it depends on the ratio and nothing else.
+  It does not say what function of the ratio, and no closed form is offered —
+  the same place § 6bz.4 stopped, one level down.
+- **The axis constant's own turn is not located.** It rises smoothly to 2.39 and
+  then falls below 1 within one anchor step, at the ratio § 6bz's per-cell
+  anisotropies turn at. Whether that is one event or two is unmeasured, and the
+  four cells disagree by 53% at the step itself where they agree to 1% either
+  side — which is a warning that the step is not resolved.
+- **Inherited and untouched**: § 6bw.7's peak still has no mechanism, the
+  escape's fall at 3.7415 mm is still the one unexplained curve, the plateau
+  still cannot be moved to the common anchor without new sweeps, § 6bn's first
+  interval is still unreachable, and § 6bs.6's two orderings still have no
+  replacement.
 
 ## Later rungs
 
