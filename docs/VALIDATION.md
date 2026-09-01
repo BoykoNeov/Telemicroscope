@@ -139,6 +139,7 @@ whole ladder.
 | [6cb](#step-6cb--the-turn-is-a-fixed-point) | The hump's turn is where the READOUT's ratio-derivative vanishes, entering at the aperture lever where no cell turns; 0.5115 is no tile proportion — it is a curve meeting a moving curve | ✅ |
 | [6cc](#step-6cc--the-escape-runs-dry) | § 6br.6's unexplained high-anchor fall: read at ONE pupil sampling it is stronger, 3.81×, and both SLOW cells simply run out of light outside the box and turn while the fast ones fall on | ✅ |
 | [6cd](#step-6cd--the-seam-is-one-corner) | § 6cb.3's turn: the seam's worst probe is one corner, so the anisotropy is a closed form in one variable, and a lever is that one curve read at two points — the aperture does not turn it, the guard does, by the sign of σ − 1 | ✅ |
+| [6ce](#step-6ce--the-bend-is-one-algebraic-number) | § 6cd's curve is two polynomials, the map dividing out because both seams vanish with it: −0.6149 is −5/8 plus one map coefficient, the bend a sextic's only positive root, 61.7-not-67 a small denominator | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -24647,21 +24648,148 @@ they belong to the moved argmax and are NOT explained here.
 
 **Still open.**
 
-- **Why Φ bends where it does is not derived.** The closed form says what the
+- ~~**Why Φ bends where it does is not derived.** The closed form says what the
   anisotropy is at any w and every turn on this branch follows from it, but the
   shape of Φ's own log slope — which is what puts the 10× lever at 61.7 rather
-  than at 67 — is measured and not solved. That is one level below where § 6cb
-  stopped, and it is the first version of this question that has a closed-form
-  object to ask it OF rather than a sweep.
+  than at 67 — is measured and not solved.~~ **Φ is a ratio of two polynomials
+  once the map's leading order is divided out, its log slope turns at the only
+  positive root of an integer sextic, and 61.7-not-67 is that root's vanishing
+  denominator ([§ 6ce](#step-6ce--the-bend-is-one-algebraic-number)).**
 - **§ 6bz.4's per-cell turn is bounded, not explained.** It lives past w = 1,
   where the worst probe leaves the corner, so it belongs to the probe walk's
   maximum rather than to the map. Sharper than § 6bz.4's own statement, and
   still not a mechanism.
-- **Four cells and one field offset.** Everything here is at cx = 4 mm with
-  § 6bo's four shapes. That one cell's anisotropy is a function of w alone is
-  exact — it is the closed form — but the SIZE of the four cells' departure from
-  a single curve, 1.1e-5 to 1e-3, is measured rather than bounded, and nothing
-  has been read at a second offset.
+- **Four cells and ~~one field offset~~ one objective family.** Everything here
+  is at cx = 4 mm with § 6bo's four shapes. That one cell's anisotropy is a
+  function of w alone is exact — it is the closed form — but the SIZE of the
+  four cells' departure from a single curve, 1.1e-5 to 1e-3, is measured rather
+  than bounded. **Both close at
+  [§ 6ce](#step-6ce--the-bend-is-one-algebraic-number): the departure is one map
+  coefficient times one shape, and the curve is read at cx = 0.5, 1, 2 and 4.**
+- **Inherited and untouched**: the plateau still cannot be moved to the common
+  anchor without new sweeps, § 6bn's first interval is still unreachable,
+  § 6bs.6's two orderings still have no replacement, and why a coarser pupil
+  puts light outside the box (§ 6cc.2) is still a sampling question nobody has
+  asked.
+
+## Step 6ce — the bend is one algebraic number
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/anisotropy-bend.test.ts`
+
+§ 6cd closed the seam into four evaluations of the map's radial function and
+left a bullet standing: **why Φ bends where it does is not derived.** The closed
+form said what the anisotropy is at any w, but the shape of its own log slope —
+which is what puts the 10× lever at 61.7 rather than at 67 — was measured and
+not solved. It is solved here, and the reason it can be is that Φ is an
+**elementary** function: a ratio of two polynomials with no lens anywhere in it.
+
+### Both seams vanish with the distortion, so the map divides out
+
+Write the map as `R(t) = µ·t·(1 + a·t² + b·t⁴ + …)` — a radial map is odd, so
+that is the general form, and µ is the plate scale. At `a = 0` both of § 6cd's
+seams are identically zero: with `R` a pure scaling the two tiles at a seam are
+a pitch apart in object space as well as in image space, and there is nothing
+left to misalign. So both seams are FIRST order in `a`, µ divides out of each,
+and `a` divides out of their ratio:
+
+    rows → 2·a·µ·ξ·(2cx² + 2cx·ξ − ξ²)     (up to sign: rows is an
+    cols → 2·a·µ·ξ²·hypot(ξ, 2cx)            absolute value, and a < 0 here)
+
+which on § 6cd's own `w = ξ/cx` leaves
+
+    Φ₀(w) = (2 + 2w − w²) / (w·√(w² + 4))
+
+Against the traced seam this is 4.1e-8 at w = 0.002, 9.7e-5 at 0.1 and 5.4e-3 at
+0.99, one-signed at every w and every cell. § 6cd.2 had already found the four
+cells collapsing onto one curve; what is new is that the curve is *this*, that
+it needs no ray trace, and that the two seams can be checked apart — the row
+seam growing like `w·(2 + 2w − w²)` and the column seam like `w²·hypot(w, 2)`,
+each read against the same cell so that cell's own `a` cancels. The extra power
+of w in the column seam is the whole anisotropy.
+
+**And there is no cx in it.** Everything from § 6bn to § 6cd sat at a field
+offset of 4 mm, and nothing said whether the curve belonged to the offset or to
+the tile. Φ₀ answers it: the offset only rescales w. Read at cx = 0.5, 1, 2 and
+4 the departure from Φ₀ holds its `cx²` law across a 64× span to under 3%, and
+at cx = 1 mm it is inside 6e-5 at w = 0.3, where cx = 4 mm reads 7.8e-4
+(§ 6ce.1). That bound is the one w and not the domain — the same cx² law
+puts cx = 1 mm at 3.4e-4 by w = 0.99.
+
+### So −0.6149 is −5/8, and the rest is the map's SECOND coefficient
+
+`Φ₀·w = 1 + w − (5/8)w² − (1/8)w³ + …` exactly. § 6cd.2 measured −0.6149…−0.6169
+and could say only that the cells "first differ at order w²". They differ by
+`b`. At first order in `ε = (b/a)·cx²` the entire departure from Φ₀ is
+
+    Φ/Φ₀ − 1 = ε·[ Br(w)/Nr(w) − D(w)/(w² + 4) ]
+    Nr = 2 + 2w − w²,  Br = 4 + 4w + 2w² + 8w³ − 3w⁴,  D = 8 + 22w² + 3w⁴
+
+whose small-w limit is −3εw², so `c2 = −5/8 − 3ε` (§ 6ce.2). Fitting `a` and `b`
+from the MAP — no seam, no mosaic — puts all four of § 6cd.2's coefficients
+inside 4e-4, the leftover being the map's own sixth order; and that one number
+per cell, times that one shape, reproduces the measured residual to 1.2% across
+a 20× span in w and a 64× span in cx². The 0.32% spread § 6cd.2 saw at order w²
+is a 13% spread in `b/a` across the 10× pair and 17% across the 20×, and the
+growth of the residual with the field is `ε` carrying cx².
+
+### And the bend is where the log slope turns
+
+`L = dlnΦ₀/dlnw` is elementary too, and it does **not** fall monotonically. It
+starts at exactly −1 — the `1/w` in Φ₀ — rises, and comes back down through
+exactly −6/5 at w = 1. That rise is the bend. Differentiating and clearing the
+two denominators leaves integer coefficients:
+
+    w⁶ + 8w⁵ − 10w⁴ + 32w³ + 32w² + 80w − 32 = 0
+
+with one positive real root, **w\* = 0.33945277306050325**, where L = −0.8530763
+(§ 6ce.3). No lens, guard, wavelength or frame enters it. The traced cells carry
+the `ε` correction and so sit 1.4e-3 to 1.8e-3 above L there, which is far too
+little to move the turn out of a window of ±0.08 — so w\* is the bend for the
+seams and not only for the polynomial.
+
+### Which is why the levers sit where they sit
+
+§ 6cd.3's lever is stationary where L reads equal at w and σ·w. A function that
+takes one value twice has turned in between, so **the lever's two reading points
+straddle the bend**: 0.3378 and 0.3411 for the 10× lever, 0.3332 and 0.3457 for
+the 20×, around 0.33945. Solving that as a ROOT rather than searching for an
+extremum returns § 6cd.3's own anchors — 61.683 and 67.792 against its located
+61.68 and 67.79, and 67.21 and 69.84 for its one-curve reading — with no ternary
+walk anywhere (§ 6ce.4).
+
+And "61.7 rather than 67" is a small denominator at that bend. The geometric
+part of the condition is `L(σw) − L(w)`, which vanishes identically at w\*, so
+the cells' own departures — a log-slope gap of 1.7e-4 — are divided by something
+of order σ − 1 that is itself going to zero. The two gaps are nearly equal,
+1.68e-4 against 1.44e-4; the two denominators are not, 3.36e-5 against 1.23e-4,
+a factor 3.66, near the 3.85 between the two σ − 1. So the anchor moves by
+−4.66 steps at the 10× lever and −1.15 at the 20×, which one linear term puts at
+−5.01 and −1.17. **The lever with the LESS aperture leverage is the one the maps
+move furthest** — which is the ordering § 6cd.3 recorded and could not account
+for, and it is the whole of the 5-step gap between 66.3 and 61.7.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6ce.0 — the anisotropy is elementary, and the map cancels because both seams are first order in it** | `Φ₀ = (2 + 2w − w²)/(w·√(w²+4))` matches the traced seam to 4.1e-8 at w = 0.002, 9.7e-5 at 0.1 and 5.4e-3 at 0.99, one-signed on all four cells; the two seams check apart, as `w(2 + 2w − w²)` and `w²·hypot(w,2)`, to 1.3e-2 at w = 0.9 | ✅ |
+| **§ 6ce.1 — so it is the same curve at every field offset** | the departure from Φ₀ holds its `cx²` law to 3% across cx = 0.5, 1, 2 and 4, and at cx = 1 mm the closed form is inside 6e-5 at w = 0.3 — the branch's first reading anywhere but 4 mm, and the answer to whether the curve was the offset's or the tile's | ✅ |
+| **§ 6ce.2 — and −0.6149 is −5/8 plus the map's second coefficient** | `Φ₀·w = 1 + w − (5/8)w² − (1/8)w³`, the residual after both terms being 11/128·w⁴; `c2 = −5/8 − 3ε` with `ε = (b/a)cx²` fitted from the map alone lands on all four of § 6cd.2's coefficients inside 4e-4, and one ε times one shape holds the whole residual to 1.2% over 20× in w and 64× in cx² | ✅ |
+| **§ 6ce.3 — the bend is one algebraic number** | the log slope is −1 at the origin and −6/5 at w = 1 and rises to −0.8530763 in between, its only turn on (0, 2.2); clearing denominators gives `w⁶ + 8w⁵ − 10w⁴ + 32w³ + 32w² + 80w − 32`, one positive real root, w\* = 0.33945277306050325, and each traced cell turns inside ±0.08 of it | ✅ |
+| **§ 6ce.4 — so every anchor on this branch is a root of that slope** | the levers' two reading points straddle w\* — 0.3378/0.3411 and 0.3332/0.3457 — and rooting `L_f(σw) = L_s(w)` returns § 6cd.3's 61.68, 67.79, 67.21 and 69.84 with no extremum search; the shift off geometry is a 1.7e-4 gap over a (σ−1)-sized denominator, −4.66 steps at 10× against −1.15 at 20× | ✅ |
+
+**Still open.**
+
+- **Why the map's own `b/a` is what it is.** § 6ce.2 reduces every cell-to-cell
+  difference on this branch to one number read off the radial function, which is
+  progress of the same kind § 6cd made — but that number is now the unexplained
+  thing, and it is an objective-design question rather than a mosaic one.
+- **§ 6bz.4's per-cell turn is still bounded, not explained.** It lives past
+  w = 1, where the worst probe leaves the corner, so nothing here touches it:
+  Φ₀ is monotone and has no minimum out to 2.2.
+- **§ 6ca's guard-sensitivity constant still has no closed form.** It is a
+  different quantity from the anisotropy — a column-over-row quotient of GUARD
+  responses — and its own turn is still unlocated. Differentiating Φ₀ in the
+  guard is now the obvious way at it, and it wants no new sweep.
 - **Inherited and untouched**: the plateau still cannot be moved to the common
   anchor without new sweeps, § 6bn's first interval is still unreachable,
   § 6bs.6's two orderings still have no replacement, and why a coarser pupil
