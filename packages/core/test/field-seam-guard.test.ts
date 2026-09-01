@@ -63,8 +63,9 @@ import type { EmitterSlabs } from "../src/imaging/emitter-volume";
  * the guard in PIXELS, keep the matched field — and the whole thing goes: the
  * live interact's guard sensitivity falls from 0.714483/0.733180 to
  * 3.28e-4/3.77e-4, a factor of 2180, with the prefactor exactly zero and the
- * shapes at 6e-8 (§ 6cl.3). What is left grows with the anchor, which is the
- * map's signature and not the guard's.
+ * shapes at 6e-8 (§ 6cl.3). What is left rises with the anchor and is unnamed:
+ * it is not the map's quadratic, which quadruples per doubling of the offset
+ * where this moves 22%.
  *
  * But the share cannot be balanced. Equal pixels is a different physical guard
  * in every cell — a factor of four across these four — and the guard is a count
@@ -439,10 +440,12 @@ describe("§ 6cl.3 — balance the share and the whole sensitivity goes", () => 
     expect(b.ends.map((p) => p[1]!.guardPixels)).toEqual([1048576, 1048576, 1048576, 1048576]);
   }, 900000);
 
-  it("leaves a residue that grows with the anchor, which is the map's and not the guard's", () => {
+  it("leaves a residue that rises with the anchor and is not the map's quadratic", () => {
     // P and S are both zero here, so the closed form predicts nothing at all
-    // and what live reads is the one thing the form drops. § 6cj measured that
-    // the map's departure grows with the field offset, and this does.
+    // and what live reads is the only term the split does not account for.
+    // What it is NOT is § 6cj's map: that departure quadruples for every
+    // doubling of the offset, 16x across 1 mm to 4 mm, where this moves 22%.
+    // Monotone is what is measured; the name is left open.
     const r = [1, 2, 4].map((cx) => at(Q6BO, 128, cx, true));
     expect(r[0]!.liveRows).toBeCloseTo(0.00030508, 7);
     expect(r[1]!.liveRows).toBeCloseTo(0.00032768, 7);
@@ -451,6 +454,9 @@ describe("§ 6cl.3 — balance the share and the whole sensitivity goes", () => 
     expect(r[1]!.liveRows).toBeLessThan(r[2]!.liveRows);
     expect(r[0]!.liveCols).toBeLessThan(r[1]!.liveCols);
     expect(r[1]!.liveCols).toBeLessThan(r[2]!.liveCols);
+    // 1 mm to 4 mm moves it 22%, not the 16x a quadratic in the offset would.
+    expect(r[2]!.liveRows / r[0]!.liveRows).toBeCloseTo(1.2158, 3);
+    expect(r[2]!.liveRows / r[0]!.liveRows).toBeLessThan(2);
   }, 900000);
 
   it("does the same to the 4x/10x factorial, whose floor is half again as big", () => {

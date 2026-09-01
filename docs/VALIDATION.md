@@ -25767,9 +25767,13 @@ every tile loses the same fraction of itself. `P` is then exactly zero by
 construction and the shapes follow it down to 6 × 10⁻⁸. The live interact's
 guard sensitivity falls from **0.714483 and 0.733180 to 3.28 × 10⁻⁴ and
 3.77 × 10⁻⁴** — a factor of 2180 — and the 4×/10× factorial's from 0.4135 and
-0.4240 to 4.04 × 10⁻⁴ and 4.67 × 10⁻⁴ (§ 6cl.3). What is left grows with the
-anchor, 3.05 × 10⁻⁴ at 1 mm to 3.71 × 10⁻⁴ at 4 mm, which is the map's signature
-(§ 6cj) and not the guard's.
+0.4240 to 4.04 × 10⁻⁴ and 4.67 × 10⁻⁴ (§ 6cl.3). What is left rises
+monotonically with the anchor, 3.05 × 10⁻⁴ at 1 mm to 3.71 × 10⁻⁴ at 4 mm, and
+it is the only term the split does not account for — `P` and both shape
+contrasts being zero there. **It is not named.** § 6cj's map departure
+quadruples for every doubling of the offset, which is 16× across this range
+where the residue moves 22%, so whatever is left is not simply the map's
+quadratic.
 
 That counterfactual is a measurement and not a proposal. Equal pixels is a
 different physical guard in every cell — a factor of four across these four and
@@ -25792,7 +25796,7 @@ across § 6ca's own two guard ends that derivative moves **14%**, 0.6729 to
 | **§ 6cl.0 — the guard's share of a tile is `(M/NA)/K`, and a matched field puts it there** | `16/ps0` is bitwise `(M/NA)/200` in all four of § 6bo's shapes and all four of the 4×/10× set; the contrast of the share is `(ΔM)·Δ(1/NA)/K`, −0.25 and −0.15, while the contrast of its LOGARITHM is exactly 0; and the guard in pixels does not move with the sampling rung | ✅ |
 | **§ 6cl.1 — so the interact's guard slope has a floor that is four integers** | `P = 0.5372639930331878` from the four shares, the two guard ends and one cropped pixel, reproduced from the traced `w` to 1e-13 at nine rung/anchor pairs; per unit reference share it is `2(m−1)(n−1)/n` — 1 and 1.5 against measured 1.0745 and 1.5506 — and 0.688 to 0.857 of the published slope | ✅ |
 | **§ 6cl.2 — and § 6ci's unpinned 0.18 is the same imbalance** | 0.1814947 and 0.2023679, adding to § 6ci.5's composed 0.7187587 and 0.7396319; both halves fall to 5e-7 at a vanishing guard, where `w` is the aperture's alone and the four tiles pair up; and the whole axis difference is here, `P` having no branch | ✅ |
-| **§ 6cl.3 — balance the share and it falls three orders** | the guard held in pixels with the matched field untouched takes 0.714483/0.733180 to 3.28e-4/3.77e-4 and the 4×/10× set's 0.4135/0.4240 to 4.04e-4/4.67e-4, `P` exactly zero and the shapes at 6e-8; the residue grows 3.05e-4 → 3.71e-4 with the anchor, which is the map's | ✅ |
+| **§ 6cl.3 — balance the share and it falls three orders** | the guard held in pixels with the matched field untouched takes 0.714483/0.733180 to 3.28e-4/3.77e-4 and the 4×/10× set's 0.4135/0.4240 to 4.04e-4/4.67e-4, `P` exactly zero and the shapes at 6e-8; the residue rises monotonically 3.05e-4 → 3.71e-4 with the anchor, 22% where § 6cj's map quadruples per doubling, so it is unnamed | ✅ |
 | **§ 6cl.4 — but the share cannot be balanced** | equal pixels is four different physical guards, a factor of 4 here and 5 on the 4×/10× set, where a guard is counted in cells because the wrap it contains is; and the floor is zero only where a lever does not move | ✅ |
 | **§ 6cl.5 — and the published number is a secant** | `−L(w)·a/κ` moves 14% across § 6ca's guard ends, 0.6729 to 0.7672 on rows, and at the geometric mean of them sits 5.4e-4 from the secant, on both branches at three anchors | ✅ |
 
@@ -25804,10 +25808,13 @@ across § 6ca's own two guard ends that derivative moves **14%**, 0.6729 to
   tile where the field's is second and second (§ 6cf.2) — so the arithmetic
   above applies to it with a different power in front, and nothing here or there
   has subtracted it. This is the cheapest open item on the branch.
-- **What a field interact would say with the arithmetic out is unwritten.** The
-  3.3 × 10⁻⁴ left after balancing is a map residue, not an interaction, and no
-  rung says what an interaction between the two levers would look like once its
-  design floor is removed.
+- **What the balanced guard leaves is unnamed.** With `P` and both shape
+  contrasts exactly zero, the 3.3 × 10⁻⁴ that live still reads is the only thing
+  the split does not account for, and it is not the map's quadratic: it moves
+  22% over an offset range § 6cj's departure moves 16× over. Nor does any rung
+  say what an interaction between the two levers would look like once its design
+  floor is out — that number is three orders below the floor and nothing has
+  asked whether it is an interaction at all.
 - **Inherited from § 6ck**: `b` is still not a Seidel sum and the ladder has no
   rung for fifth-order distortion; the map's coefficient is still monochromatic
   at the ruler's 430 nm; and § 6cj's corner ranking is still a max over 65 probes
