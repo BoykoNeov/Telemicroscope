@@ -142,6 +142,7 @@ whole ladder.
 | [6ce](#step-6ce--the-bend-is-one-algebraic-number) | § 6cd's curve is two polynomials, the map dividing out because both seams vanish with it: −0.6149 is −5/8 plus one map coefficient, the bend a sextic's only positive root, 61.7-not-67 a small denominator | ✅ |
 | [6cf](#step-6cf--the-guard-constant-is-two-log-slopes) | § 6ca's constant is Lc/Lr, the two seams' log slopes not their ratio: 2 at zero tile, cols second order in it and rows first; a minimum at a sextic root, and the collapse is § 6cd's edge | ✅ |
 | [6cg](#step-6cg--the-maps-ba-is-a-change-of-variable) | § 6ce's `b/a` is `2a` plus one lens ratio, the two a change of variable: the map is three factors of one chief ray, and `b/(3a²) = 2/3 + B/(3A²)` is exactly 1/2 for a perfect lens | ✅ |
+| [6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums) | § 6cg's two traced numbers are the PUPIL imaging's own aberrations: `p₀` is its ΣS_I to 1.3e-8 on twenty cells, `s₀ − p₀` its ΣS_II to 4e-3, and the walk cancels out of `a` | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -24802,9 +24803,11 @@ for, and it is the whole of the 5-step gap between 66.3 and 61.7.
   thing, and it is an objective-design question rather than a mosaic one.~~
   **It is `2a + (B/A)/P₀²`, in which the factor of two is the change of variable
   from the objective's pupil coordinate to the image radius and carries no lens
-  at all; what is left of the question is why the sine offence `s₀` and the
-  pupil walk `p₀` are what they are
-  ([§ 6cg](#step-6cg--the-maps-ba-is-a-change-of-variable)).**
+  at all
+  ([§ 6cg](#step-6cg--the-maps-ba-is-a-change-of-variable)); and the sine offence
+  `s₀` and the pupil walk `p₀` it left behind are the PUPIL imaging's own ΣS_II
+  and ΣS_I ([§ 6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums)), so what
+  survives is that coma's residue and the bending solve underneath it.**
 - **§ 6bz.4's per-cell turn is still bounded, not explained.** It lives past
   w = 1, where the worst probe leaves the corner, so nothing here touches it:
   Φ₀ is monotone and has no minimum out to 2.2.
@@ -24954,7 +24957,9 @@ per-cell turns sit past.
   objective-design question rather than a mosaic one.~~ **Reduced to `2a` plus
   one lens ratio, the two being a change of variable; the objective-design
   question that remains is one level down, at `s₀` and `p₀`
-  ([§ 6cg](#step-6cg--the-maps-ba-is-a-change-of-variable)).**
+  ([§ 6cg](#step-6cg--the-maps-ba-is-a-change-of-variable)) — and those two are
+  the dual system's own spherical aberration and coma
+  ([§ 6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums)).**
 - **Inherited and untouched**: the plateau still cannot be moved to the common
   anchor without new sweeps, § 6bn's first interval is still unreachable,
   § 6bs.6's two orderings still have no replacement, and why a coarser pupil
@@ -25072,13 +25077,13 @@ a discrepancy for a reader to find four sections apart.
 
 **Still open.**
 
-- **Why `s₀` and `p₀` are what they are.** This step reduces `b/a` to the
-  offence against the sine condition and the pupil's own walk, plus geometry
-  that carries no lens — it does not derive either number. `s₀` runs −0.703 to
-  −2.279 and `p₀` 0.682 to 0.101 across the family, both monotone in the
-  magnification and both moved by the aperture, with no law offered for either.
-  That is the bending solve, one level below the mosaic, and it is where this
-  branch's remaining cell-to-cell difference now sits.
+- ~~**Why `s₀` and `p₀` are what they are.**~~ **Answered**
+  ([§ 6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums)): both are third-order
+  aberrations of the PUPIL imaging — `p₀` its ΣS_I to 1.3e-8, `s₀ − p₀` its ΣS_II
+  to 4e-3 — and the walk cancels out of `a` entirely. What survives is smaller and
+  is § 6ch's own: the coma's residue changes sign near NA 0.21 and has no form,
+  and why the solved bending produces those sums rather than others is a question
+  about `achromaticObjective` and no longer about the map.
 - **Nothing here touches the FIELD scan's seam** — § 6cf's own first bullet,
   unchanged: § 6ca.1's "the field factor is axis-blind" still rests on an
   argument about frames, because § 6cd's corner form is a stage-scan object and
@@ -25091,6 +25096,153 @@ a discrepancy for a reader to find four sections apart.
   § 6bs.6's two orderings still have no replacement, and why a coarser pupil
   puts light outside the box (§ 6cc.2) is still a sampling question nobody has
   asked.
+
+## Step 6ch — the sine offence and the pupil walk are two Seidel sums
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/pupil-duality.test.ts`
+
+§ 6cg closed on one bullet: "**Why `s₀` and `p₀` are what they are.** This step
+reduces `b/a` to the offence against the sine condition and the pupil's own
+walk … it does not derive either number. That is the bending solve, one level
+below the mosaic, and it is where this branch's remaining cell-to-cell
+difference now sits." Both numbers turn out to be ordinary third-order
+aberrations of a system that was there all along, and reaching them costs no
+sweep: the same chief ray, plus two rearrangements of the prescription the
+engine already knows how to read.
+
+### Swap the marginal ray and the chief ray, and a second system appears
+
+The classical duality. Alongside the system that images the SPECIMEN there is
+one that images the PUPIL — its object is the entrance pupil, its stop is the
+object plane, and, the part that earns its keep here, **its marginal ray is the
+original chief ray**. Everything § 6cg reads off that ray is therefore an
+ordinary aberration of the dual system, and `analysis/seidel` computes it with
+no new engine code: the dual prescription is the objective's with a dummy flat
+air surface at the specimen plane carrying the stop. A flat with no index change
+across it contributes nothing to any sum — it is there to BE the stop, which is
+the one thing `seidelSums` needs at surface 0.
+
+That construction reaches a number the forward sums cannot. `seidelSums` refuses
+a stop anywhere but the first surface — it carries no stop-shift equations, and
+says so — while § 6ae put this objective's diaphragm on the BACK focal plane. So
+the objective's own ΣS_V is out of reach in the forward direction, and both
+routes below get at it anyway: **reversed**, the diaphragm becomes the first
+surface (§ 6ch.1); **dualised**, the specimen plane does (§ 6ch.2, § 6ch.3).
+
+### The objective is not quite telecentric, and that is worth a whole factor
+
+A stop exactly on the back focal plane puts the entrance pupil at infinity. This
+one misses by **0.0968 mm** on the 4× and 0.0093 mm on the 40× — under a part in
+1500 either way — which puts the entrance pupil at 14.7 m rather than at
+infinity, and a part in 1500 is 0.26% once a fourth power gets hold of it. A
+first pass at this section spent itself on exactly that. Two focal lengths have
+to be kept apart:
+
+    f    = mu·P₀      the coordinate § 6cg's v = y/f is written in
+    f_d               the DUAL system's own paraxial focal length
+
+`f` measures `mu` against the diaphragm; the telecentric ray crosses the axis
+`miss` further on, so `f/f_d` is `P₀/P_ref` — and that reads the same to 7.5e-6
+off two disjoint machineries, one a traced ray extrapolated to zero field and
+one a paraxial trace of the dual (§ 6ch.0). The ratio runs 5.7e-5 to 7.7e-4
+across the family, and collapsing the pair into a single `f⁴` costs exactly
+`2(f/f_d − 1)`. Like § 6cg's `2`, the pair is a units statement carrying no lens.
+
+### The map's `a` is the objective's own third-order distortion
+
+Reverse the prescription and the diaphragm leads, which is the one configuration
+whose ΣS_V `seidelSums` will compute. The reversed objective images the image
+plane onto the specimen, so its distortion IS the map `objectHeightForImageRadius`
+measures — not an analogue of it. Against § 6cg's own three-point `a`:
+
+    a = [ΣS_V/(2u′)] / mu · (f/f_d)²      to 7.3e-6 on all eight cells
+
+and without the two focal lengths it is out by 1.5e-3, which is `2(f/f_d − 1)`
+to four figures (§ 6ch.1). The correction is two orders of the discrepancy, not
+a polish on it.
+
+### `p₀` IS the pupil imaging's third-order spherical aberration
+
+The plainest defect there is, and the statement is an identity rather than an
+agreement:
+
+    p₀ = ΣS_I^dual · f² · f_d² / (2·P_ref)      1.3e-8 worst, eight cells
+
+with ten more cells over a 4× in aperture — where `p₀` itself moves by 3× —
+holding to 1e-8 (§ 6ch.2). The left side is a traced ray's axis crossing and the
+right is a sum over surfaces; nothing was solved to make them meet. It also
+**resolves finely enough to reject a length that looks the same**: `mu·P_ref` is
+the same focal length by the argument two paragraphs up and agrees with `f_d` to
+7.5e-6, and substituting it degrades the identity by three orders, to 1.5e-5. A
+fit could not tell those apart.
+
+The ray matters and the section says which. § 6cg's `p₀` is read on the ray
+aimed through the diaphragm; the identity is the **telecentric** ray's, and the
+two differ by 1.2e-4 to 1.1e-2 — the design's departure from the placement § 6ae
+asked for, and nothing else.
+
+### and `s₀ − p₀` is its third-order COMA
+
+    s₀ − p₀ = −ΣS_II^dual · f² / (2·H)      4.2e-4 to 4.1e-3, eight cells
+
+which is Abbe's theorem: an offence against the sine condition IS a coma. The
+reason the pupil's WALK appears inside an offence at all is Conrady's form of
+it, which reads the ray's axis crossing as well as its angle — exactly § 6cg's
+two factors, which is why they arrive as a difference.
+
+**The residue is the design's, and it is not a units factor.** No power of
+`f/f_d` fixes it: stepping `f²` → `f·f_d` → `f_d²` moves the residual by 1.1e-4
+a step on the 40×, against a 3.2e-3 gap. It does not shrink with the window
+either, to within 1%, which a fifth-order term in the dual's own aperture would
+— the dual's FIELD is the direct system's NA, and that is held fixed while `v`
+goes to zero. Across an aperture scan it falls monotonically from 4.2e-3 at
+NA 0.05 and **changes sign near NA 0.21** (§ 6ch.3). A sign change inside a
+family is what says this is a real term of the design and not a misstatement:
+no scaling error crosses zero.
+
+### So `A` is one dual sum and the universal −1/2, and the walk cancels
+
+    A = s₀ − p₀ − 1/2 = −ΣS_II^dual·f²/(2H) − 1/2
+
+The walk enters `A` **only** through that difference, and the difference is the
+coma — so `a` never needed `p₀` as a separate number, which is why § 6cg could
+pin `a` without knowing what either of its two traced inputs was. The coma half
+carries 1.5 to 2.4 against the −1/2, leaving the geometric term 17% to 31% of
+`A`: § 6cg.1's own share, arrived at from the design side rather than from the
+trace. The four branch cells' `a` comes back from the sums alone to 4e-3, with
+nothing fitted (§ 6ch.4).
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6ch.0 — the objective is not quite telecentric, and by how much** | the diaphragm misses the back focal plane by 0.0968 mm on the 4× and 0.0093 on the 40×, read as a paraxial crossing and as a traced ray's own reference plane to 1e-6 mm; the entrance pupil is a finite 14.7 m to 1.48 m and DOWNSTREAM, so the dual's object is virtual; and `f/f_d` equals `P₀/P_ref` to 7.5e-6 | ✅ |
+| **§ 6ch.1 — the map's `a` is the objective's third-order distortion** | reversed, the diaphragm is the first surface and ΣS_V is computable: `[ΣS_V/(2u′)]/mu·(f/f_d)²` reproduces § 6cg's three-point `a` to 7.3e-6 on all eight cells, against 1.5e-3 without the two focal lengths — and that raw miss is `2(f/f_d − 1)` to under 1e-6 | ✅ |
+| **§ 6ch.2 — `p₀` IS the dual system's third-order spherical aberration** | `p₀ = ΣS_I^dual·f²·f_d²/(2P_ref)` to 1.3e-8 on eight cells and 1e-8 on ten more spanning a 4× in aperture, a traced axis crossing against a sum over surfaces with nothing solved to meet; swapping `f_d` for the 7.5e-6-distant `mu·P_ref` costs three orders, so a fit could not tell them apart | ✅ |
+| **§ 6ch.3 — and `s₀ − p₀` is its third-order coma** | `−ΣS_II^dual·f²/(2H)` to 4.2e-4…4.1e-3 — Abbe's theorem, with the walk inside the offence because § 6cg's two factors are Conrady's OSC; the residue is no power of `f/f_d` (25× the step), is flat under window shrink to 1%, and falls monotonically across an aperture scan, changing sign near NA 0.21 | ✅ |
+| **§ 6ch.4 — so `A` is one dual sum and the universal −1/2** | the walk enters only through `s₀ − p₀`, so it cancels out of `a` entirely and § 6cg could pin `a` without knowing either input; the coma carries 1.5–2.4 against the −1/2, leaving it 17–31% of `A` — § 6cg.1's share from the design side — and the four branch cells' `a` returns from the sums alone to 4e-3 | ✅ |
+
+**Still open.**
+
+- **The coma's residue is named, not explained.** § 6ch.3 shows it is neither a
+  units factor nor a fifth-order term in the dual's aperture, and that it changes
+  sign near NA 0.21 — which locates it in the design without deriving it. It is
+  this section's `B/A`: the one number left on the branch that a Seidel sum does
+  not deliver.
+- **The bending solve itself is untouched.** `s₀` and `p₀` are now ΣS_II and
+  ΣS_I of the dual, but WHY the achromat's solved shape produces those sums,
+  rather than others, is a question about `achromaticObjective`'s bending and not
+  about the map. This step moves the boundary one level; it does not remove it.
+- **Nothing here touches the FIELD scan's seam** — § 6cg's second bullet,
+  unchanged and now the cheapest open mosaic item: § 6ca.1's "the field factor is
+  axis-blind" still rests on an argument about frames, and closing it costs new
+  traced runs rather than a rearranged prescription.
+- **The domain edge is still located and not derived**, so § 6bz.4's per-cell
+  turn near w = 1.46 and § 6ca's branch inversion remain one event whose own form
+  is unwritten.
+- **Inherited and untouched**: the plateau still cannot be moved to the common
+  anchor without new sweeps, § 6bn's first interval is still unreachable,
+  § 6bs.6's two orderings still have no replacement, and why a coarser pupil puts
+  light outside the box (§ 6cc.2) is still a sampling question nobody has asked.
 
 ## Later rungs
 
