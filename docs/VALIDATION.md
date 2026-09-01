@@ -140,6 +140,7 @@ whole ladder.
 | [6cc](#step-6cc--the-escape-runs-dry) | § 6br.6's unexplained high-anchor fall: read at ONE pupil sampling it is stronger, 3.81×, and both SLOW cells simply run out of light outside the box and turn while the fast ones fall on | ✅ |
 | [6cd](#step-6cd--the-seam-is-one-corner) | § 6cb.3's turn: the seam's worst probe is one corner, so the anisotropy is a closed form in one variable, and a lever is that one curve read at two points — the aperture does not turn it, the guard does, by the sign of σ − 1 | ✅ |
 | [6ce](#step-6ce--the-bend-is-one-algebraic-number) | § 6cd's curve is two polynomials, the map dividing out because both seams vanish with it: −0.6149 is −5/8 plus one map coefficient, the bend a sextic's only positive root, 61.7-not-67 a small denominator | ✅ |
+| [6cf](#step-6cf--the-guard-constant-is-two-log-slopes) | § 6ca's constant is Lc/Lr, the two seams' log slopes not their ratio: 2 at zero tile, cols second order in it and rows first; a minimum at a sextic root, and the collapse is § 6cd's edge | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -24232,6 +24233,13 @@ to tighten and its threshold falls. **§ 6by's "one rises where the other falls"
 is one quantity moving**, and 4.3% down against 8.0% up over the same three
 anchors is its two ends.
 
+(Over these anchors it does. It is not monotone, and 0.468 is on the wrong side
+of the turn to see it: the constant falls to a minimum at this table's 0.5156.
+The next anchor up is 0.585, and § 6ca.3 below reads **1.72618** there — BELOW
+the 1.727 quoted here, four paragraphs earlier, as the start of the rise. The
+counter-example was already in this step
+— [§ 6cf](#step-6cf--the-guard-constant-is-two-log-slopes).)
+
 And the separation is not three anywhere in particular. Located at 2 mm:
 
 | ratio | 1.403 | 1.696 | 1.871 | 1.988 | 2.046 | 2.105 | 2.222 | 2.573 | 2.923 |
@@ -24271,16 +24279,24 @@ argument, on the cost this time rather than on the anisotropy.
 
 **Still open.**
 
-- **Why the stage seam is more guard-sensitive on one axis than the other is
+- ~~**Why the stage seam is more guard-sensitive on one axis than the other is
   not derived.** § 6ca.2 says the number belongs to the mosaic's geometry rather
   than to any cell, and § 6ca.3 says it depends on the ratio and nothing else.
   It does not say what function of the ratio, and no closed form is offered —
-  the same place § 6bz.4 stopped, one level down.
-- **The axis constant's own turn is not located.** It rises smoothly to 2.39 and
+  the same place § 6bz.4 stopped, one level down.~~ **It is one power of the
+  tile: the row seam is first order in the kept tile and the column seam second,
+  so the constant is the quotient of the two seams' log slopes, `Lc/Lr`, and it
+  is exactly 2 where the tile vanishes
+  ([§ 6cf](#step-6cf--the-guard-constant-is-two-log-slopes)).**
+- ~~**The axis constant's own turn is not located.** It rises smoothly to 2.39 and
   then falls below 1 within one anchor step, at the ratio § 6bz's per-cell
   anisotropies turn at. Whether that is one event or two is unmeasured, and the
   four cells disagree by 53% at the step itself where they agree to 1% either
-  side — which is a warning that the step is not resolved.
+  side — which is a warning that the step is not resolved.~~ **There are two
+  turns and § 6ca saw neither of them properly: a MINIMUM at a sextic's only
+  positive root, inside the domain and between § 6ca's own two lowest anchors,
+  and the collapse, which is ONE event and is § 6cd.1's domain edge rather than
+  a feature of the constant ([§ 6cf](#step-6cf--the-guard-constant-is-two-log-slopes)).**
 - **Inherited and untouched**: ~~§ 6bw.7's peak still has no mechanism~~ **(it is
   a fixed point — [§ 6cb](#step-6cb--the-turn-is-a-fixed-point))**, ~~the
   escape's fall at 3.7415 mm is still the one unexplained curve~~ **(the slow
@@ -24786,10 +24802,150 @@ for, and it is the whole of the 5-step gap between 66.3 and 61.7.
 - **§ 6bz.4's per-cell turn is still bounded, not explained.** It lives past
   w = 1, where the worst probe leaves the corner, so nothing here touches it:
   Φ₀ is monotone and has no minimum out to 2.2.
-- **§ 6ca's guard-sensitivity constant still has no closed form.** It is a
+- ~~**§ 6ca's guard-sensitivity constant still has no closed form.** It is a
   different quantity from the anisotropy — a column-over-row quotient of GUARD
   responses — and its own turn is still unlocated. Differentiating Φ₀ in the
-  guard is now the obvious way at it, and it wants no new sweep.
+  guard is now the obvious way at it, and it wants no new sweep.~~ **It is
+  `Lc/Lr`, the two seams' log slopes taken apart rather than divided, and getting
+  it cost no sweep at all
+  ([§ 6cf](#step-6cf--the-guard-constant-is-two-log-slopes)).**
+- **Inherited and untouched**: the plateau still cannot be moved to the common
+  anchor without new sweeps, § 6bn's first interval is still unreachable,
+  § 6bs.6's two orderings still have no replacement, and why a coarser pupil
+  puts light outside the box (§ 6cc.2) is still a sampling question nobody has
+  asked.
+
+## Step 6cf — the guard constant is two log slopes
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/guard-constant.test.ts`
+
+§ 6ca closed with two bullets nothing since has touched: "**Why the stage seam
+is more guard-sensitive on one axis than the other is not derived.** § 6ca.2
+says the number belongs to the mosaic's geometry rather than to any cell, and
+§ 6ca.3 says it depends on the ratio and nothing else. It does not say what
+function of the ratio, and no closed form is offered", and "**The axis
+constant's own turn is not located.**"
+
+The first is one line of calculus on § 6ce's own result, with no new sweep. The
+second closes the other way round from how § 6ca framed it: the constant has a
+turn § 6ca never saw, inside the domain, and the collapse § 6ca did see is
+outside it.
+
+### The guard moves one variable, so a guard sensitivity is a log slope
+
+§ 6cd.1: the stage seam depends on the anchor, the guard, the wavelength and the
+frame **only** through `w = ξ/cx`, the kept half tile over the field offset. So
+"how fast does the seam move when the guard moves" is `dln(seam)/dln(w)` and
+nothing else — and § 6ce already has both seams, `rows ∝ w(2 + 2w − w²)` and
+`cols ∝ w²√(w² + 4)`. Differentiate each in place of dividing them:
+
+    Lr(w) = (2 + 4w − 3w²) / (2 + 2w − w²)
+    Lc(w) = (3w² + 8) / (w² + 4)
+
+and `Lr − Lc` is § 6ce's own `L0` term for term (§ 6cf.0) — the same two
+polynomials, taken apart instead of together. § 6ca's axis constant, which is
+the column seam's guard sensitivity over the row seam's, is their quotient:
+
+    A(w) = Lc/Lr = (3w² + 8)(2 + 2w − w²) / [(w² + 4)(2 + 4w − 3w²)]
+
+No lens, no guard, no wavelength, no frame. That is § 6ca.2's "the map's own
+shape divides out of the quotient" and § 6ca.3's "it is a function of the ratio"
+as consequences rather than as observations, and against the live
+`mosaicSeamShiftMm` it holds to **1.7 × 10⁻³** across eight anchors and four
+cells (§ 6cf.1), returning § 6ca.2's own published 1.8211 at j = 64.
+
+§ 6ca.1's "2.33" and § 6ca.2's "2.32" are also not two facts. The four-cell
+interact is a signed sum of four log seams, and `Lr` and `Lc` carry no cell in
+them, so each cell's own guard-to-`w` factor is common to both axes and cancels
+out of the quotient. Measured at an in-domain anchor the two readings agree to
+1.3% — the gap being that § 6ca.1's is a slope per unit guard SHARE across a
+wide interval, where the four cells' different kept fractions no longer cancel
+the curvature.
+
+### And the mechanism is one power of the tile
+
+`Lr(0) = 1` and `Lc(0) = 2`. The row seam is **first** order in the kept tile
+and the column seam is **second** (§ 6ce), so at a small tile the guard moves
+the column seam exactly twice as fast, and § 6ca's undecided "why one axis and
+not the other" is that one power. Everything else on the curve is shape:
+
+    A(w) = 2 − 2w + (25/4)w² − (61/4)w³ + (635/16)w⁴ − …    (§ 6cf.2)
+
+### The constant has a minimum, and § 6ca stepped over it
+
+§ 6ca recorded that "the constant GROWS with the ratio". It does not, below one
+point: `A` falls from 2, turns, and climbs back. The turn is where the two log
+slopes' own log slopes agree, `Lc'/Lc = Lr'/Lr`, which clears to
+
+    3w⁶ + 24w⁵ − 26w⁴ + 80w³ + 40w² + 144w − 64 = 0
+
+with one positive real root, **w = 0.37736072206222404**, where A = 1.7242148
+(§ 6cf.3). It is **not** § 6ce's bend at 0.33945: that root is where the
+DIFFERENCE `Lr − Lc` is stationary and this is where the QUOTIENT is, and a
+curve's difference and its quotient turn in different places.
+
+§ 6ca's own two lowest anchors sit either side of it, and § 6ca published a
+value at each — **1.727** at its ratio 0.468, in the very paragraph that says the
+constant GROWS with the ratio, and **1.72618** at 0.585, four paragraphs later in
+§ 6ca.3's two-offset collapse check. **They go down**, on a curve that is 2.7%
+higher at w = 0.2 below the minimum and 6.9% higher at w = 0.7 above it. The step
+that recorded the rise had already printed the counter-example. All four cells'
+live minima land on the same anchor, j = 36, the anchors either side of it
+bracket the root, and the two means read 1.7267 and 1.72618.
+
+`A` then comes back through exactly 2 — its own zero-tile value — because
+
+    A − 2 = w(3w³ − 2w² + 18w − 16) / [(w² + 4)(2 + 4w − 3w²)]
+
+and that cubic has one positive root, **w = 0.8642856628747042**, inside the
+domain. Every cell crosses 2 live within one anchor of it (§ 6cf.4); the offset
+is each cell's own guard interval, and the closed-form secant moves with it.
+
+### Which leaves § 6ca's collapse where § 6cd.1 said it would be
+
+Two things have to be said before § 6ca's own anchors can be read against this.
+
+**A unit.** § 6ca's quoted "ratio" is `objectFieldTile`'s half extent at the
+DESIGN wavelength over the field offset; the seam lives on the mosaic's RULER
+tile at 430 nm, and `halfExtentMm` is ∝ λ to 8 × 10⁻¹¹. So every ratio § 6ca
+quotes is **1.36642×** this `w`, and what is left between them is two cropped
+pixels and the near-zero guard itself, both nameable to the pixel (§ 6cf.5).
+§ 6ca's anchors look further out than they are.
+
+**A domain.** Only § 6ca's two lowest anchors are inside § 6cd.1's `w < 1`. Past
+it the form degrades exactly as § 6cd.1 says it must — 26% out at w = 1.24 — and
+its extrapolation has a pole where `Lr` vanishes, at `(2 + √10)/3 = 1.7207592`,
+which is the row seam's own maximum. **That pole is not offered as § 6ca's
+collapse.** The form is already a quarter wrong at w = 1.24, well below it, and
+past it the form is negative where the live constant is still positive — 0.85 at
+§ 6ca's ratio of 2.923. § 6ca's "whether that is one event or two" answers
+**one**, and the event is § 6cd.1's domain edge, the same edge § 6bz.4's
+per-cell turns sit past.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cf.0 — the two seams' guard sensitivities are two rational functions** | the traced corner form's log slopes match `Lr = (2+4w−3w²)/(2+2w−w²)` and `Lc = (3w²+8)/(w²+4)` at four cells and five w, one-signed and carrying cx² — 2.2e-5 at a field offset of 0.5 against 1.5e-3 at 4 — and `Lr − Lc` is § 6ce's own `L0` to 1e-14, so this is that step's curve taken apart and not a new one | ✅ |
+| **§ 6cf.1 — so § 6ca's axis constant is their quotient** | the live mosaic's column-over-row guard response agrees with the secant of `Lc/Lr` to 1.7e-3 at eight anchors and four cells, returning § 6ca.2's own 1.8211 at j = 64, with no lens, guard, wavelength or frame in the form; and § 6ca.1's four-cell stage slope is the same number to 1.3%, not a second finding | ✅ |
+| **§ 6cf.2 — and at zero tile it is exactly 2, one power of the tile apart** | `Lr(0) = 1` and `Lc(0) = 2` because the row seam is first order in the kept tile and the column seam second, so `A = 2 − 2w + (25/4)w² − (61/4)w³ + (635/16)w⁴`, which the traced seams carry to 1e-5 at w = 0.05 — above it the four-term series runs out, below it the seam's own cancellation does | ✅ |
+| **§ 6cf.3 — the constant is not monotone: it has a minimum** | one positive root of `3w⁶+24w⁵−26w⁴+80w³+40w²+144w−64`, at w = 0.37736072206222404 where A = 1.7242148 — not § 6ce's bend at 0.33945, that being where the difference turns and this where the quotient does; all four cells turn at j = 36 live, and § 6ca's two lowest anchors straddle it — its own published 1.727 at a ratio of 0.468 and 1.72618 at 0.585 go DOWN | ✅ |
+| **§ 6cf.4 — and it returns to exactly 2 at a cubic's root** | `A − 2 = w(3w³−2w²+18w−16)` over the two denominators, one positive root at w = 0.8642856628747042 and inside the domain, and every cell crosses 2 live within one anchor of it — the offset being each cell's own guard interval, which the closed-form secant moves with | ✅ |
+| **§ 6cf.5 — and § 6ca's collapse is § 6cd.1's edge, not this form's pole** | § 6ca's quoted ratio is the DESIGN-wavelength tile and this `w` the 430 nm one, so it reads 1.36642× too large; past w = 1 it runs 26% out at 1.24 and turns negative at `(2+√10)/3 = 1.7207592`, staying negative where the live constant is still positive — so the pole is arithmetic and the edge is the event | ✅ |
+
+**Still open.**
+
+- **Nothing here touches the FIELD scan's seam.** § 6ca.1's "the field factor is
+  axis-blind" — 2.6% apart on the axes against the stage factor's 133% — still
+  rests on § 6ca's argument about frames rather than on a formula, because
+  § 6cd's corner form is a stage-scan object and there is no field-scan
+  counterpart to differentiate.
+- **The domain edge is located and not derived.** § 6cf.5 says § 6ca's collapse
+  is where the worst probe leaves the corner; it does not say what the seam
+  becomes past that. So § 6bz.4's per-cell turn near w = 1.46 and § 6ca's own
+  branch inversion are both attributed to one event whose own form is unwritten.
+- **Inherited from § 6ce and untouched**: why the map's own `b/a` is what it is,
+  which is still the one unexplained number on this branch and an
+  objective-design question rather than a mosaic one.
 - **Inherited and untouched**: the plateau still cannot be moved to the common
   anchor without new sweeps, § 6bn's first interval is still unreachable,
   § 6bs.6's two orderings still have no replacement, and why a coarser pupil
