@@ -145,6 +145,7 @@ whole ladder.
 | [6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums) | § 6cg's two traced numbers are the PUPIL imaging's own aberrations: `p₀` is its ΣS_I to 1.3e-8 on eighteen cells, `s₀ − p₀` its ΣS_II to 4e-3, and the walk cancels from `a` | ✅ |
 | [6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature) | The seam is the scale's second difference, so both axes are second order in the tile, the stage's first and second: √2 anisotropic, guard sensitivity 1 and never past 1.03665 | ✅ |
 | [6cj](#step-6cj--the-field-seams-edge-is-the-maps-distortion) | § 6ci's `(cx/R)²` edge is the radial map's own distortion acting as a local Jacobian: coefficient `D`, radius 89 mm and not the scale's 150 | ✅ |
+| [6ck](#step-6ck--the-maps-coefficient-is-one-seidel-sum) | § 6cj's `D` is ΣS_V of the reversed prescription READ at one millimetre: the reading is `a + (2b − a²)r²` and 3e-4 low, and the radius follows NA because the normaliser is the aperture, not the surfaces | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -25549,13 +25550,125 @@ there. The ceiling leaves the domain before it is ever in danger (§ 6cj.4).
   first bullet, untouched: the `w²` survives the four-cell interact only because
   each cell's guard share is `2·guardCells/pupilSamples`. What § 6cj.3 removes is
   the map's half of that overshoot, not § 6bo's shape choice.
-- **`D` is a traced readout and not yet a Seidel sum.** § 6ch built the machinery
-  that would name it — distortion is ΣS_V, and the reversed prescription is the
-  one configuration `seidelSums` computes it for — but this step reads `D` off
-  the map rather than deriving it, so the edge's SIZE is still measured.
+- ~~**`D` is a traced readout and not yet a Seidel sum.**~~ **Closed at § 6ck**,
+  and it corrected this step's own reading on the way: § 6cj reads `D` at one
+  millimetre, which returns `a + (2b − a²)r²` and is 3e-4 below the coefficient
+  third-order theory names. The edge's size is now prescription data.
 - **The corner ranking is a max over 65 probes, not a rule.** § 6cj.1 explains
   which corner wins and why, but the wandering maximum at a small tile is
   described rather than bounded, and it is the whole of the 0.86 to 1.19.
+- **Inherited and untouched**: § 6ch's coma residue still changes sign near
+  NA 0.21 with no form, the bending solve under `s₀`/`p₀` is still
+  `achromaticObjective`'s question, § 6bz.4's per-cell turn and § 6ca's branch
+  inversion are still one event whose form is unwritten, the plateau still
+  cannot be moved to the common anchor without new sweeps, § 6bn's first
+  interval is still unreachable, § 6bs.6's two orderings still have no
+  replacement, and why a coarser pupil puts light outside the box (§ 6cc.2) is
+  still a sampling question nobody has asked.
+
+## Step 6ck — the map's coefficient is one Seidel sum
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/field-seam-seidel.test.ts`
+
+§ 6cj closed on "`D` is a traced readout and not yet a Seidel sum", and the
+machinery to name it was already built: distortion is ΣS_V, which § 6ac pinned
+as an identity on a spherical refractor, and § 6ch.1 found the one
+configuration `seidelSums` will compute it in for THIS objective — reversed, so
+that the diaphragm leads. Running that here is not the finding. **The finding
+is that § 6cj's `D` is not the coefficient it was taken for**, and that the
+difference between them is derivable rather than noise.
+
+### A coefficient read at a radius is not the coefficient
+
+`mapQuadratic` takes `κ(r) = r·h′(r)/h(r)` at one radius and reports
+`(κ − 1)/2r²`. Written out against the map's own series
+`h/r = mu(1 + a r² + b r⁴ + …)`, that quantity is
+
+    D_read(r) = a + (2b − a²) r² + O(r⁴)
+
+and not `a`. At § 6cj's own one millimetre it is **3e-4 low** — 2.57e-4 on the
+20×/0.2 cell to 3.11e-4 on the 10×/0.1 — which is the whole of the distance
+between § 6cj's pinned −1.203087e-4 and third-order theory's −1.2034555e-4
+(§ 6ck.0). The two-term correction holds to 2e-6 out to two millimetres and
+loses an order of magnitude by four, where the `r⁶` term arrives (§ 6ck.1).
+
+A quarter of the offset is the `a²` any linearisation carries and the rest is
+the map's own quartic, so this is a property of the map and not of the reading's
+step size. The 2e-6 floor is the central difference's own: its step is `r·1e-5`
+and so shrinks with the radius it is measuring, which is why the half-millimetre
+reading is the worst of the three rather than the best.
+
+It does not reach the radius § 6cj quotes in prose — 89.3, 91.2, 103.1 and
+106.8 mm either way. It reaches the two decimals its table quotes, where every
+cell loses one in the last digit and the 20×/0.2 loses two: **89.32 to 106.81
+for the coefficient against 89.33 to 106.82 for the reading.**
+
+### And the coefficient is § 6ch.1's, under another name
+
+§ 6ch.1 fitted this map's quadratic against `[ΣS_V/(2u′)]/mu · (f/f_d)²` and
+pinned it to 7.3e-6 on eight cells; § 6cj read `D` off the same function at a
+different magnification seed. **They are one number and not two close ones.**
+`objectHeightForImageRadius` bisects to mantissa exhaustion, so four seeds — the
+ruler frame's, ±M and 1.5M — give a bitwise identical fit on three cells of four
+and agree to 5e-12 on the fourth (§ 6ck.2). That is § 6m.2's seed-independence
+at the one place where the path is long enough for the last two digits to
+notice. A seed far enough out does not answer differently: it fails to bracket
+and refuses, naming the image radius that was asked for (§ 6bk.8's message).
+
+So § 6ck.0 is not a second pinning of § 6ch.1's identity. It is what that
+identity says about the number § 6cj actually pinned.
+
+### Why the radius follows NA and not magnification
+
+§ 6cj measured that `1/√|D|` sorts by NA and by nothing else, and had no reason
+for it. The Seidel form is a sum over a normaliser, and the normaliser is where
+the reason is (§ 6ck.3):
+
+- **NA doubles at fixed magnification.** ΣS_V grows ×1.48 — but `u′`, the
+  reversed prescription's own marginal slope, is the aperture and is the stop
+  radius to a percent, and it doubles. So `D` FALLS, to ×0.73.
+- **Magnification doubles at fixed NA.** ΣS_V halves, `mu` halves with it, and
+  `u′` does not move at all. The two halvings cancel to within 4 and 7%.
+
+The NA dependence is therefore the aperture in the denominator and not the
+surfaces rebalancing. They do rebalance — the doublet's middle surface cancels
+0.41 of the sum at NA 0.1 and 0.60 at 0.2 — but that is a tenth inside a factor
+of 1.48, against a factor of 2.03 in the normaliser. The reversed diaphragm
+itself contributes nothing: a flat at the stop has no power and no `A`.
+
+### So § 6cj.3's coefficient stops needing a trace
+
+Substitute the prescription-only coefficient into § 6cj.3 and the load-bearing
+slope ratio moves by **1e-6**, from 1.0259336 to 1.0259326 — three orders below
+the 2.3e-4 either of them stands from live's 1.0261696 (§ 6ck.4). Said honestly
+it is not an improvement: § 6cj's reading being 3e-4 low happened to sit 0.4%
+nearer live, and the derived one sits 0.4% further. **What this rung removes is
+a dependency, not an error.** The comparison against a live mosaic still traces
+and always will; the closed form's one free number no longer does.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6ck.0 — § 6cj's `D` is the Seidel coefficient READ at a radius** | the fitted quadratic is `[ΣS_V/(2u′)]/mu · (f/f_d)²` to 6e-6 on all four cells at the ruler's own 430 nm, and § 6cj's reading at one millimetre sits 2.57e-4 to 3.11e-4 below it — the pinned −1.203087e-4 against the derived −1.2034555e-4 | ✅ |
+| **§ 6ck.1 — and the gap is the map's own quartic** | `D_read(r) = a + (2b − a²)r²` to 2e-6 out to two millimetres and an order worse by four, where the `r⁶` term arrives; `a²` is a quarter of the offset and the quartic the rest, and `2b` opposing `a` is why every cell reads LOW | ✅ |
+| **§ 6ck.2 — the coefficient does not depend on the seed, so it is § 6ch.1's** | four magnification seeds — the ruler frame's, ±M, 1.5M — give a bitwise identical fit on three cells and 5e-12 on the fourth, and a seed far enough out refuses to bracket rather than answering differently | ✅ |
+| **§ 6ck.3 — the radius follows NA because the normaliser is the aperture** | NA doubling grows ΣS_V ×1.48 and `u′` ×2.03, so `D` falls ×0.73; magnification doubling halves ΣS_V and `mu` together and cancels to 4–7%; the doublet's middle surface deepens −0.41 to −0.60, a tenth inside the 1.48 | ✅ |
+| **§ 6ck.4 — so § 6cj.3's coefficient needs no trace** | the prescription-only `D` moves the slope ratio 1.0259336 → 1.0259326, 1e-6 against the 2.3e-4 either stands from live's 1.0261696 — and 0.4% the wrong way, so what is removed is a dependency and not an error | ✅ |
+
+**Still open.**
+
+- **`b` is not a Seidel sum.** The quartic that makes § 6cj's reading 3e-4 low is
+  fifth-order distortion, which `seidelSums` does not compute and this ladder has
+  no rung for. It is measured here and named nowhere.
+- **The coefficient is monochromatic.** Everything above is at the ruler's
+  430 nm, because that is the wavelength the mosaic maps in. ΣS_V is a function
+  of index, so the map's quadratic has a dispersion nobody has asked for.
+- **Why the guard's two ends are not one tile is still unmeasured** — § 6ci's
+  first bullet, untouched by § 6cj and by this: the `w²` survives the four-cell
+  interact only because each cell's guard share is `2·guardCells/pupilSamples`.
+- **The corner ranking is a max over 65 probes, not a rule.** § 6cj.1 explains
+  which corner wins and why, but the wandering maximum at a small tile is
+  described rather than bounded, and it is the whole of its 0.86 to 1.19.
 - **Inherited and untouched**: § 6ch's coma residue still changes sign near
   NA 0.21 with no form, the bending solve under `s₀`/`p₀` is still
   `achromaticObjective`'s question, § 6bz.4's per-cell turn and § 6ca's branch
