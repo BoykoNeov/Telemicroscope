@@ -323,10 +323,14 @@ describe("§ 6cd.1 — and it is exact until the kept tile reaches the axis", ()
     // this curve has no minimum there — it is still falling at w = 2.2. So the
     // per-cell turn is a property of the moved argmax, not of the map, and it is
     // NOT explained by anything here.
+    // Explicit steps rather than an accumulating loop: the point of the rung is
+    // that the far end IS covered, and a float that drifts to 2.0999… would
+    // leave the last tenth unread while the text quotes 2.2.
+    const PAST = [1.05, 1.2, 1.35, 1.5, 1.65, 1.8, 1.95, 2.05, 2.2];
     for (const c of CELLS) {
-      // From just past the axis, where `Q = cx - xi` is zero and `m(Q)` is not
-      // a number, out to the far end of the sweep.
-      for (let w = 1.05; w <= 2.0; w += 0.15) expect(PHI(c, w + 0.15)).toBeLessThan(PHI(c, w));
+      for (let n = 1; n < PAST.length; n++) {
+        expect(PHI(c, PAST[n]!)).toBeLessThan(PHI(c, PAST[n - 1]!));
+      }
     }
   });
 });
@@ -375,6 +379,11 @@ describe("§ 6cd.2 — so the anisotropy is one curve of one variable", () => {
       [0.99, 1.0e-3],
     ] as const) {
       for (const c of CELLS) expect(Math.abs(PHI(c, w) / PHI("s10", w) - 1)).toBeLessThan(bound);
+    }
+    // And it is monotone across the whole domain the closed form owns, which is
+    // where "no cell turns" is used: a single falling curve has no turn to give.
+    for (const c of CELLS) {
+      for (let n = 2; n <= 19; n++) expect(PHI(c, n * 0.05)).toBeLessThan(PHI(c, (n - 1) * 0.05));
     }
     // Ordered, and not noise: every other cell reads BELOW the slow 10× and the
     // gap grows with w, which is the aperture arriving at order w².
