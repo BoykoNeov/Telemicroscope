@@ -131,9 +131,10 @@ whole ladder.
 | [6bt](#step-6bt--the-two-growth-measures-converted) | D−1 = (R−1)·β/(β−1) converts the two growth measures exactly, so the tally is measure-independent — while § 6bs.2's cut reads 6.6× on one and 4.98% on the other | `growth-measures` |
 | [6bu](#step-6bu--the-guards-share-not-the-anchor) | § 6bs.7's ladder holds the guard's PIXELS, so its SHARE sweeps 0.48 to 0.94 and carries both failed verdicts: at ONE anchor the guard alone spans the whole ladder, and share held, 8× of anchor is worth 3.64% the other way | `guard-share` |
 | [6bv](#step-6bv--the-threshold-is-not-a-share) | The threshold located to a quarter cell, the finest that exists — and it DRIFTS: 0.87 to 0.92 of kept share over 8x, growing 4.75-6.67x where § 6bu's two ladders demand 1x and 8x | `guard-threshold` |
-| [6bw](#step-6bw--the-drift-is-a-hump) | The frame is not the anchor: untied, the threshold is exact and dense — and NOT monotone. The guard's share rises 8.6% to a turn near k=4.4, then falls back level, which is why no ladder fitted | `guard-law` |
+| [6bw](#step-6bw--the-drift-is-a-hump) | The frame is not the anchor: untied, the threshold is exact and dense — and NOT monotone. The guard's share rises 8.6% to a turn near k=4.4 and falls back level inside this window | `guard-law` |
 | [6bx](#step-6bx--the-cost-does-not-hump) | § 6bw's hump is the anisotropy's: at 4 mm the cost falls monotonically at three probe counts, turning only in its SLOPE — and jumps UP at a LOCUS near tile/offset 1.8 that 4 mm cannot reach | `cost-law` |
-| [6by](#step-6by--the-jump-is-a-handover) | § 6bx.8's jump is a HANDOVER: `mm` maxes over two axes, each smooth, 2% apart, swapping where § 6bw's anisotropy passes 1 — which 4 mm never reaches, so its fall is one branch's | `seam-branch-handover` |
+| [6by](#step-6by--the-jump-is-a-handover) | § 6bx.8's jump is a HANDOVER: `mm` maxes over two axes, each smooth, 2% apart, swapping where § 6bw's anisotropy passes 1 — past 4 mm's cost reach, so its fall is one branch's | `seam-branch-handover` |
+| [6bz](#step-6bz--the-hump-is-a-shoulder) | A STAGE-only readout never met the cost's chief-ray window: read to a ratio of 7.34 the threshold bottoms at 2.076 then climbs 13×, so § 6bw's hump is a 59% shoulder, and two offsets collapse to 0.4% | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -23332,7 +23333,10 @@ And the crossing is the only one. § 6bv.2 asserted monotonicity inside a
 four-point window, which is what makes a straddling pair a crossing rather than a
 sign change. Here the whole legal range is walked, from a guard of 2⁻²⁰ of a cell
 to one that eats 95% of the tile, and the readout is strictly decreasing
-throughout.
+throughout — **at this anchor. Past a tile half extent of about 2.05 of the field
+offset it is not: the readout RISES with the guard over most of the range and
+falls through the branch value only at the end. The crossing stays unique, which
+is what a bisection needs ([§ 6bz](#step-6bz--the-hump-is-a-shoulder)).**
 
 Note what a refined threshold is a threshold OF. Holding a cell's share while the
 frame grows needs the guard to rise by `1/(2·pixels per cell)`, which is a
@@ -23366,7 +23370,10 @@ sixteenth of a rung apart:
 | guard share | 0.08882 | 0.09274 | 0.09525 | 0.09640 | **0.09649** | 0.09628 | 0.09502 | 0.09277 | 0.08972 |
 
 It rises, turns, and falls. A single smooth maximum near k = 4.375, 8.6% above
-the first rung, and the two ENDS land level to 1%.
+the first rung, and the two ENDS land level to 1% — **both of them inside this
+window. Carried out to a ratio of 7.34 the curve falls on to a minimum at 2.076
+and then climbs 13×, so this maximum is a shoulder and the level ends are where
+the ladder stopped ([§ 6bz](#step-6bz--the-hump-is-a-shoulder)).**
 
 That is the whole of why nothing fitted. Every ladder § 6bu and § 6bv tried was
 monotone, and the thing is not monotone. The endpoint growth § 6bv measured sat
@@ -23385,10 +23392,10 @@ mosaic's own offset across a 2.5× of it. It is NOT one half: 0.5115 is 2.3% fro
 | **§ 6bw.1 — § 6bv's own brackets refuse every affine law, not two points** | `g(4) − g(1) = 3B` puts the slope in (0.5833, 0.75) and `g(8) − g(4) = 4B` puts it in (0.4375, 0.5625) — disjoint, gap 0.0208, and the anisotropy's brackets do it too; the located thresholds then miss the best straight line by 0.05 and 0.21 of a cell where the ruler under them is 2e-7 | ✅ |
 | **§ 6bw.2 — the anchor is `pupilSamples`, and the frame cancels out of it** | `halfExtentMm = (size/2)·λR/(n·size·Δpupil)` loses `size` exactly, so the slow 20× reads 0.46769328761900353 at frames 128, 256, 512 and 1024 as the same double, and doubling the pupil count doubles it — § 6bs.7's ladder moved two free knobs as one | ✅ |
 | **§ 6bw.3 — the frame reaches the seam only through the kept share** | dividing `(cropped + guard + x − col·pitch − size/2)` by `size` gives `(1 − share)/2`, `share` and `x/size`, and the across-seam probe is `seam·share`, so only the along-seam `round((composed − 1)p/(probes − 1))` survives; matched shares give matched readouts across a 16× of frame, bit-identical in the anisotropy | ✅ |
-| **§ 6bw.4 — the stage scan is exact, the field scan owns the residual** | one frame puts the stage worst at the corner `{0, pitch}`, giving 0.00013069279220897373 at four frames and six probe counts alike, while the field worst sits at `{234, 114}` and `probes` moves the cost by 3.8e-4 against the frame's 2.4e-5 — so § 6bv.4's ranking inverts | ✅ |
-| **§ 6bw.5 — located to 2^-22, and the crossing is the only one** | 0.8996715545654297, 1.672701120376587, 3.275391101837158, 5.952120304107666, each inside § 6bv's own bracket, and the readout falls strictly from a guard of 2^-20 of a cell to one eating 95% of the tile — where § 6bv.2 could only claim monotonicity inside a four-point window | ✅ |
+| **§ 6bw.4 — the stage scan is exact, the field scan owns the residual** | one frame puts the stage worst at the corner `{0, pitch}`, giving 0.00013069279220897373 at four frames and six probe counts alike, while the field worst sits at `{234, 114}` and `probes` moves the cost by 3.8e-4 against the frame's 2.4e-5 — so § 6bv.4's ranking inverts; the exactness is the CORNER's, and where the worst leaves it the anisotropy moves with the probe count too ([§ 6bz.5](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
+| **§ 6bw.5 — located to 2^-22, and the crossing is the only one** | 0.8996715545654297, 1.672701120376587, 3.275391101837158, 5.952120304107666, each inside § 6bv's own bracket, and the readout falls strictly from a guard of 2^-20 of a cell to one eating 95% of the tile — where § 6bv.2 could only claim monotonicity inside a four-point window; that strict fall is this anchor's, and past a ratio of 2.05 the readout rises with the guard instead ([§ 6bz.0](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
 | **§ 6bw.6 — the frame is a power of two; the anchor is not the frame** | `pupilSamples` 17, 18, 20, 48, 80 and 112 all trace, so § 6bv.7's reason does not survive untying the frame, though its conclusion holds where `base·k` IS the frame; the real one-pixel crop in a 2^26 frame reproduces the crop-free threshold to the last bit | ✅ |
-| **§ 6bw.7 — the drift is a hump, and it tracks the field** | the guard's share of the tile rises 0.08882 → 0.09649 near k = 4.375 and falls to 0.08972, one smooth maximum, ends level to 1%; k = 4 sits a seventh of a percent off the turn, and the turn moves with the field offset at 0.511–0.515 of it over a 2.5× — which is not 0.5 | ✅ |
+| **§ 6bw.7 — the drift is a hump, and it tracks the field** | the guard's share of the tile rises 0.08882 → 0.09649 near k = 4.375 and falls to 0.08972, one smooth maximum, ends level to 1%; k = 4 sits a seventh of a percent off the turn, and the turn moves with the field offset at 0.511–0.515 of it over a 2.5× — which is not 0.5; the maximum is one of two turns and the level ends are the window's ([§ 6bz.1](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
 
 **Still open.**
 
@@ -23396,11 +23403,16 @@ mosaic's own offset across a 2.5× of it. It is NOT one half: 0.5115 is 2.3% fro
   The turn tracks the field offset across a 2.5× of it, which makes it a
   property of the geometry rather than of this field point, but the ratio itself
   is a measured number with nothing behind it yet. It is not one half and it is
-  not the kept share. And the three ratios agree inside 0.8% partly because the
+  not the kept share. ~~And the three ratios agree inside 0.8% partly because the
   ruler is coarse where the arm is short: a sixteenth of a rung is 2.9% of the
   ratio at 2 mm against 1.1% at 5 mm, so the interval bounds the turn and does
   NOT say the ratio is constant to 0.8%. The 2.3% gap to one half survives it;
-  a claim that the ratio drifts with the offset would not.
+  a claim that the ratio drifts with the offset would not.~~ **Located instead of
+  bracketed, the ratio IS the variable: matched anchors at 2 mm and 4 mm put the
+  threshold in the same place to 5.4e-4 at the peak's own neighbouring anchor and
+  to under 3.8e-3 out to a ratio of 3.27 ([§ 6bz.2](#step-6bz--the-hump-is-a-shoulder)).
+  The 2.3% gap to one half survives that too, and the closed form is still
+  missing.**
 - **The hump has a shape and no mechanism.** Why the guard's share of the tile
   should have a maximum at all — why more anchor helps up to a point and then
   stops helping — is unmeasured. § 6bw.7 says where the turn is and what moves
@@ -23485,7 +23497,11 @@ it started. k = 4.375, the anisotropy's own peak, is unremarkable here: it sits 
 the smooth fall like every other rung.
 
 **So § 6bw's hump is not a property of "the threshold". It belongs to the
-anisotropy alone**, and the two readouts have qualitatively different laws.
+anisotropy alone**, and the two readouts have qualitatively different laws
+**inside this window. Outside it both turn up, within 13% of each other in ratio,
+at two landmarks of one per-cell curve — where it passes one and where it turns
+([§ 6bz.7](#step-6bz--the-hump-is-a-shoulder)) — which neither confirms the
+sentence nor refutes it.**
 
 The ceiling is the lens's and not this step's. k = 13.25 traces; k = 13.5 is the
 first chief-ray refusal — `objectHeightForImageRadius: no object height reaches
@@ -23652,7 +23668,7 @@ similar threshold curves meeting a moving locus ([§ 6by](#step-6by--the-jump-is
 | --- | --- | --- |
 | **§ 6bx.1 — the cost is two interacts, and only one of them moves** | `costI` equals the stage interact over the field interact to 2.2e-16, an identity because `interact` is multiplicative; § 6bw.4's stage factor is bit-identical at 17, 65, 129, 257 and 513 probes in all four cells, so every bit of probe dependence sits in the field factor **where the stage worst sits on a CORNER — which is where this row's test pins it, and not in general ([§ 6by](#step-6by--the-jump-is-a-handover))** | ✅ |
 | **§ 6bx.2 — the bisection is licensed, at 4 mm and at 2 mm alike** | the denominator is a max over a discrete probe set, so kinks are possible; 201 consecutive lattice steps give zero breaks in strict decrease, and the many distinct argmax sets are the worst's coordinate sliding, which a 4 mm control shows happens wherever nothing is unusual | ✅ |
-| **§ 6bx.3 — at 4 mm the cost falls monotonically, at three probe counts** | .08821893 → .07173669 over k = 1…8 at 17 probes and .08819544 → .07155383 at 257, strictly decreasing at every step of both and on down to k = 13.25; an 18.7% fall where § 6bw's hump is 8.6% and level at its ends, and k = 4.375 is unremarkable on it | ✅ |
+| **§ 6bx.3 — at 4 mm the cost falls monotonically, at three probe counts** | .08821893 → .07173669 over k = 1…8 at 17 probes and .08819544 → .07155383 at 257, strictly decreasing at every step of both and on down to k = 13.25; an 18.7% fall where § 6bw's hump is 8.6% and level at its ends — level inside the window, the anisotropy's own span being 13× ([§ 6bz.1](#step-6bz--the-hump-is-a-shoulder)) — and k = 4.375 is unremarkable on it | ✅ |
 | **§ 6bx.4 — the frame converged, the probe grid did not, and it need not** | frames 2^22, 2^24, 2^26 give the same integer; the probe counts nest, so shifts are one-signed, and the worst 17 → 257 shift is 1534 (2.6e-3) against a smallest adjacent step of 7264 — 4.7×, and 73× end to end. 65 ≡ 129 is not a law: it fails at k = 13 and at 2 mm | ✅ |
 | **§ 6bx.5 — the cost turns in its slope where the anisotropy turns in its value** | Δi per unit k shrinks to a minimum at the 7→8 step, re-accelerates to 10→12, then decelerates 2.3–2.5× at 12→13; probes 65 and 257 agree on which step is least, which brackets the turn to a rung — the residual drifts 300 but drifts smoothly, and 27 separates the two candidate steps | ✅ |
 | **§ 6bx.6 — the two thresholds cross, at § 6bv's own first rung** | cost − anisotropy closes monotonically from +.0054195 at k = 0.25 and changes sign between k = 0.875 and k = 1, which is § 6bv.5's 0.4677 mm — so "cannot separate them at all" was an intersection and not a resolution limit; only the cost moves with probes, and at 257 the same pair straddles | ✅ |
@@ -23668,10 +23684,13 @@ similar threshold curves meeting a moving locus ([§ 6by](#step-6by--the-jump-is
   known.~~ **It is a handover between the two axes `mm` takes a max over, at the
   anchor where § 6bw's anisotropy passes one; the onset is a locus that moves
   with the guard rather than a ratio, and 0.5115 is refused ([§ 6by](#step-6by--the-jump-is-a-handover)).**
-- **The anisotropy has not been read in the same window.** § 6bw stopped at 4 mm
+- ~~**The anisotropy has not been read in the same window.** § 6bw stopped at 4 mm
   too, so whether its hump also has an edge past a ratio of 1.8 is untested, and
   until it is, "the two laws are qualitatively different" is a statement about
-  the reachable window and not about the two laws.
+  the reachable window and not about the two laws.~~ **The window was the COST's:
+  the anisotropy is stage-only, so it reads to a ratio of 7.34. It has an edge —
+  a minimum at 2.076 and a 13× climb after it, on which § 6bw's hump is a 59%
+  shoulder ([§ 6bz](#step-6bz--the-hump-is-a-shoulder)).**
 - **The cost's minimum-slope step is bracketed and not located**, and no closed
   form is offered for it any more than for § 6bw.7's turn.
 - **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
@@ -23868,7 +23887,7 @@ of different order, and the coincidence § 6bx.8 wondered about is not available
 | **§ 6by.2 — the handover is where § 6bw's anisotropy passes through one** | `mm` stops reading rows and starts reading columns exactly at `betweenRowsMm = betweenColumnsMm`, cell by cell, at (7.625, 7.75] for the 10× pair and (7.75, 7.875] for the 20× pair; a crossing is continuous in a cell, and the interact shows it only because the 20× pair cross two steps apart where the 10× pair cross together | ✅ |
 | **§ 6by.3 — the locus moves with the guard, so 1.8 is not a constant** | the slow 20×'s crossing sits at k ∈ (7.5, 7.5625] at a guard of 100000, (7.8125, 7.875] at 490080 and (8.0625, 8.125] at 716088 — 1.754 to 1.900 in § 6bx.8's own ratio, a 7.5% spread — and none at all below k = 8.5 at 2000000, so the two offsets' agreement at 1.871 is two similar curves meeting a moving locus | ✅ |
 | **§ 6by.4 — each branch's threshold is smooth; the jump is the handover** | on rows alone 486643 → 478948 over k = 7.25…8.25, 1.6% end to end and still § 6bx.3's falling law; on columns alone 1428323 → 1498204, three times higher and rising; and what `mm` reads goes 486643 → 1133020, +132.8% over the same anchors, arriving at neither branch | ✅ |
-| **§ 6by.5 — at 4 mm nothing hands over, and that is § 6bx.3's window** | the anisotropy runs 2.1269 at k = 8 to 1.2460 at k = 13.25 and never reaches one before § 6bu.7's chief-ray refusal at k = 13.5, so `mm` equals `betweenRowsMm` in all four cells throughout and the threshold is the row branch's outright (515374 against 1509914 on columns); 5 mm tops out at 3.89 | ✅ |
+| **§ 6by.5 — at 4 mm nothing hands over, and that is § 6bx.3's window** | the anisotropy runs 2.1269 at k = 8 to 1.2460 at k = 13.25 and never reaches one before § 6bu.7's chief-ray refusal at k = 13.5, so `mm` equals `betweenRowsMm` in all four cells throughout and the threshold is the row branch's outright (515374 against 1509914 on columns); 5 mm tops out at 3.89 — the refusal being the COST's, and a stage-only readout at 4 mm does cross one, at the same ratio 2 mm crosses at ([§ 6bz.7](#step-6bz--the-hump-is-a-shoulder)) | ✅ |
 | **§ 6by.6 — the stage factor is exact where its worst sits on a corner** | at 4 mm k = 12 every worst has an along-seam coordinate of 0 and the interact is bit-identical at 17, 65 and 257 probes; at k = 13.25 the worst is interior and it is not (1.0482585 / 1.0475624 / 1.0476581), and the same at 2 mm either side of the handover — which narrows § 6bx.1's prose and gives § 6bx.5's "1064 against ~320 at k = 13" its cause | ✅ |
 | **§ 6by.7 — and the onset is not § 6bw.7's 0.5115 in another guise** | both are the slow 20×'s half extent over the offset, agreeing to 0.06% as frames; 1/0.5115 = 1.955 sits above both onset brackets; and the settling refusal is that the onset is not a number — 0.5115 is where the anisotropy's threshold turns, this is where its value passes one, on a locus that moves 7.5% with the guard | ✅ |
 
@@ -23879,16 +23898,217 @@ of different order, and the coincidence § 6bx.8 wondered about is not available
   row-axis one, and why one rises where the other falls, is unmeasured. So is
   what sets the anchor at which the anisotropy reaches one — § 6by.3 shows it
   moves with the guard and does not say what it tracks.
-- **The anisotropy still has not been read past a ratio of 1.55.** § 6bw stopped
+- ~~**The anisotropy still has not been read past a ratio of 1.55.** § 6bw stopped
   at 4 mm and so did § 6bx; § 6by only reads the anisotropy's VALUE out there,
   not its own threshold. Until that is done, "the two laws are qualitatively
-  different" remains a statement about the reachable window.
+  different" remains a statement about the reachable window.~~ **Read to 7.34: a
+  stage-only readout never met § 6bu.7's refusal. The threshold bottoms at a
+  ratio of 2.076 and climbs 13× ([§ 6bz](#step-6bz--the-hump-is-a-shoulder)).**
 - **§ 6bw.7's hump still has no mechanism**, and neither does the 0.5115 it
   turns at. § 6by disposes of the identification, not of the number.
 - **Inherited and untouched**: the escape's fall at 3.7415 mm is still the one
   unexplained curve, the plateau still cannot be moved to the common anchor
   without new sweeps, § 6bn's first interval is still unreachable, and § 6bs.6's
   two orderings still have no replacement.
+
+## Step 6bz — the hump is a shoulder
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/anisotropy-window.test.ts`
+
+§ 6bx and § 6by closed with the same bullet twice over: "the anisotropy has
+still not been read past a ratio of 1.55. § 6bw stopped at 4 mm and so did
+§ 6bx; § 6by only reads the anisotropy's VALUE out there, not its own threshold.
+Until that is done, 'the two laws are qualitatively different' remains a
+statement about the reachable window."
+
+**The window was the COST's, and it never bound this readout.** § 6bu.7's
+chief-ray refusal stops 4 mm at k = 13.25 because a FIELD scan puts a separate
+frame at every tile centre and the outermost of them runs out of objective. A
+stage scan has ONE frame, at the anchor's own centre — § 6bj.7's economy, taken
+in the source — and the anisotropy is a stage-only readout. It traces to k = 28
+at 4 mm and to k = 31.375 at 2 mm, which is a ratio of 3.275 and of 7.338. There
+was nothing to build and nothing to wait for.
+
+### The gate: still one crossing, and no longer a monotone one
+
+The bisection is re-licensed before anything is read, because the regime is not
+§ 6bw's. Walked over the whole legal range `[1, 8·10⁶]` with both bracket ends
+asserted, the readout crosses the branch value **exactly once at every anchor at
+both offsets** — and above a ratio of about 2.05 it is **not monotone**: it
+RISES with the guard over most of the range and falls through the branch value
+only at the far end. On a coarse 87-point walk the count of non-decreasing steps
+goes 0 at a ratio of 1.871 and 67 of 87 at 2.047.
+
+So § 6bw.5's "strictly decreasing throughout" is that anchor's, and what carries
+a bisection is the crossing count rather than the ordering. This is § 6by.0's
+argument in a second place, and it is the same conclusion: a shape a bisection
+does not care about costs it nothing.
+
+### Read out there, § 6bw's hump is a shoulder
+
+The threshold, located on § 6bx's own 2⁻²⁴ lattice at 65 probes, in the guard's
+own share of the tile:
+
+| ratio | 0.234 | **0.512** | 0.936 | 1.404 | 1.871 | 2.047 | **2.076** | 2.105 | 2.339 | 3.275 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| share, 4 mm | 0.09274 | **0.09649** | 0.08972 | 0.07283 | 0.06533 | 0.06354 | **0.06061** | 0.07263 | 0.17910 | 0.45450 |
+
+and on out at 2 mm, which reaches twice the ratio:
+
+| ratio | 3.742 | 4.677 | 5.145 | 6.081 | 7.338 |
+| --- | --- | --- | --- | --- | --- |
+| share, 2 mm | 0.54002 | 0.65267 | 0.69165 | 0.74875 | 0.79881 |
+
+§ 6bw's own two anchors come back unchanged — 777926 at k = 2 and 752587 at
+k = 8 — so this is that curve continued and not another one. Continued, it has a
+sharp **minimum** at a ratio of 2.076 and then climbs by a factor of **13.18**.
+
+That is what the hump is. From the minimum to § 6bw.7's peak is 59%; from the
+minimum to the far end is 1218%. **§ 6bw's hump is a shoulder on the front of a
+curve that spans 13×**, and its "the two ENDS land level to 1%" is a fact about
+where the ladder stopped — the two ends of a window, not of a law.
+
+### The ratio is the variable, and now that is measured
+
+§ 6bw.7 declined to claim it, in terms: "the three ratios agree inside 0.8%
+partly because the ruler is coarse where the arm is short — a sixteenth of a
+rung is 2.9% of the ratio at 2 mm against 1.1% at 5 mm — so the interval bounds
+the turn and does NOT say the ratio is constant to 0.8%."
+
+Located rather than bracketed, it does. The half extent goes as the anchor
+exactly (§ 6bw.2), so an anchor `j` at 2 mm and `2j` at 4 mm sit at one ratio, to
+the 2.7 × 10⁻⁴ the half extent creeps with field position (§ 6by.7):
+
+| ratio | 0.234 | 0.468 | 0.935 | 1.403 | 1.871 | 3.274 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2 mm | 777825 | 808189 | 751833 | 611601 | 550015 | 3827159 |
+| 4 mm | 777926 | 808622 | 752587 | 610978 | 547993 | 3812602 |
+| apart | 1.3e-4 | 5.4e-4 | 1.0e-3 | 1.0e-3 | 3.7e-3 | 3.8e-3 |
+
+Across a range over which the threshold itself moves by a factor of 1.5 and then
+of 7. The pair at 0.468 is the one § 6bw.7's own turn stands on: it is the
+anchor next to the peak, and the two offsets put it in the same place to five
+parts in ten thousand.
+
+**The one place it fails is the turn.** 2 mm bottoms out at a ratio of 2.046 and
+4 mm has not bottomed there — its own minimum is 0.8% further along in ratio —
+and the V is steep enough that a shift that small is a **3.6%** disagreement in
+the located value. Which is a statement about the minimum's location, not about
+the collapse: one anchor either side of it the two offsets are back inside 0.5%.
+
+### The far climb saturates against the guard's own bound
+
+At a ratio of 4.677 the guard is eating 65.3% of the tile and at 7.338 it is
+eating 79.9%. A share cannot pass 1, and the climb is already flattening into
+that ceiling: past the minimum the first 122% of ratio buys 764% of threshold
+and the next 57% buys 22% — sixteen times less per unit of ratio. So the far end of this curve is a bounded quantity
+running out of room, which is the mechanism § 6br.6 gave its own low shoulder
+and the reverse of the one it could not give its high one.
+
+It is also a warning about what is being read out there. A readout taken on a
+tile that is four fifths guard is a readout of a very small tile, and nothing
+here says the seam it measures is the seam a mosaic would have.
+
+### The turn is four per-cell turns that do not coincide
+
+At the minimum's own guard, each cell's own anisotropy falls with the ratio and
+**turns back up** — and the four turn at four different ratios:
+
+| at guard 508520 | ratio 2.032 | 2.047 | **2.062** | 2.076 | **2.091** | 2.105 | 2.120 | **2.135** |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| slow 10× | 0.850324 | 0.842234 | **0.843966** | 0.849973 | 0.855886 | 0.861707 | 0.867439 | 0.873082 |
+| fast 10× | 0.849565 | 0.841480 | **0.844231** | 0.850231 | 0.856139 | 0.861955 | 0.867681 | 0.873318 |
+| fast 20× | 0.866672 | 0.858489 | 0.850429 | 0.842454 | **0.843161** | 0.849085 | 0.854919 | 0.860664 |
+| slow 20× | 0.886661 | 0.878259 | 0.869945 | 0.861809 | 0.853850 | 0.845973 | 0.840815 | **0.846682** |
+
+The 10× pair turns between 2.047 and 2.062, the fast 20× between 2.076 and
+2.091, the slow 20× between 2.120 and 2.135. The interact turns as they pass
+through one by one, which is exactly § 6by.2's shape: what shows in a quotient of
+quotients is the four cells being out of step, never one of them acting alone.
+
+The 10× pair's own lever `f10/s10` steps through 1 there — 0.999105 at 2.047
+against 1.000314 at 2.062 — and that is where the located threshold drops 4.6%
+into its floor. And as in § 6by.3 the locus moves with the guard: at a guard of
+300000 the same lever has already crossed by a ratio of 2.032, where at 508520 it
+has not. **So there is no constant ratio to quote for this turn either**, any
+more than there was for § 6bx.8's 1.8 — which is also why the two offsets put the
+minimum in slightly different places above.
+
+### The handover locus is the ratio's too, and 4 mm does hand over
+
+§ 6by.5 measured "at 4 mm nothing hands over" and read it as § 6bx.3's window.
+For the cost that is right and it is the whole of that step's point. For the
+per-cell anisotropy it is a reading limit and not a fact about 4 mm: carried
+past k = 13.25, at a held guard of 490080 every cell at 4 mm is above one at a
+ratio of 1.784 and below it at 1.915.
+
+And it is the same ratio at 2 mm. Matched anchors straddle each 10× cell's
+crossing identically — above one at 1.783, below at 1.813, at both offsets — and
+the slow 20×'s two brackets are adjacent rather than identical, one anchor step
+apart. § 6by.3 found this locus moving 7.5% with the GUARD; held there, it does
+not move with the offset at all. It is the ratio's, like everything else here.
+
+Which puts the two readouts' turns on **one curve**. The per-cell
+rows-over-columns passes one near a ratio of 1.8 — that is § 6by's handover, and
+the cost's jump — and turns back up near 2.08, which is § 6bz.4 and the
+anisotropy's minimum. Two landmarks on the same quantity, 13% apart in ratio,
+each driving a different readout. Whether "the two laws are qualitatively
+different" survives that is not settled here: what is settled is that the two
+turns are not independent phenomena and not the same one either.
+
+### What this narrows in § 6bw, and what it leaves alone
+
+Two of § 6bw's statements are its own anchors' and are marked as such in place:
+§ 6bw.5's strict decrease across the legal range, and § 6bw.4's probe-exactness.
+The second is the sharper one. § 6bw.4's argument is that the stage worst sits at
+the corner `{0, pitch}`, which `along(0) = 0` puts on every probe grid there is —
+and § 6by.6 had already found the worst leaving that corner. At the turn it has
+left, and the located threshold moves with the probe count: **518268 at 17
+probes, 533023 at 65 and 534912 at 257**, 2.8% and then 0.35%, converging and not
+converged. Away from the turn it is tight again — 4.4 × 10⁻⁵ between 65 and 257
+at a ratio of 3.74 — and below it § 6bw's own anchors are bit-identical at 17,
+65 and 257 as § 6bw.4 says they are.
+
+So the V's floor is known to a few tenths of a percent and no better, which is
+the same order as the 2 mm / 4 mm disagreement at that anchor and is part of it.
+Everything away from the turn is a hundred times tighter than the effects it is
+being read for.
+
+The frame is not implicated anywhere: at 2²⁴, 2²⁵ and 2²⁶ the threshold above the
+turn is 1502376, 1502378 and 1502379, two parts in a million, on lattices that
+admit every fourth, every second and every point respectively — which is § 6bw.5's
+"the frame is not the finest guard, it is the finest RULER" read from the far end.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6bz.0 — the gate: one crossing, and monotonicity is lost** | over the whole legal range at anchors from a ratio of 0.94 to 7.34 at two offsets there is exactly one crossing of the branch value, both bracket ends asserted — but above a ratio of ~2.05 the readout RISES with the guard, 67 non-decreasing steps of 87 against 0 below, so § 6bw.5's strict decrease is its own anchor's and the crossing count is what licenses the bisection | ✅ |
+| **§ 6bz.1 — the anisotropy is a stage-only readout, so the cost's window never bound it** | one frame at the anchor's own centre reaches k = 28 at 4 mm and k = 31.375 at 2 mm where § 6bu.7's chief-ray refusal stops a field scan at 13.25; § 6bw's 777926 and 752587 come back unchanged, and continued the curve falls to a minimum at a ratio of 2.076 and climbs 13.18× — the hump is a 59% shoulder on it | ✅ |
+| **§ 6bz.2 — the ratio IS the variable, to 0.4%, except at the turn** | matched anchors `j` at 2 mm and `2j` at 4 mm agree to 1.3e-4 at a ratio of 0.234, 5.4e-4 at 0.468 — the anchor § 6bw.7's peak stands on — and under 3.8e-3 out to 3.27, where the threshold itself moves 1.5× and then 7×; at the minimum they differ 3.6%, because its own ratio moves 0.8% with the offset | ✅ |
+| **§ 6bz.3 — the far climb saturates against the guard's own bound** | the located share reaches 0.65267 at a ratio of 4.677 and 0.79881 at 7.338, and the climb flattens into the ceiling at 1: past the minimum 122% of ratio buys 764% of threshold and the next 57% buys 22%, sixteen times less per unit of ratio — § 6br.6's low-shoulder mechanism, at the other end | ✅ |
+| **§ 6bz.4 — the turn is four per-cell turns that do not coincide** | at the minimum's guard each cell's rows-over-columns turns back up, the 10× pair between ratios 2.047 and 2.062, the fast 20× between 2.076 and 2.091 and the slow 20× between 2.120 and 2.135; the 10× lever steps through 1 (0.999105 → 1.000314) where the threshold drops 4.6% into its floor, and that locus moves with the guard | ✅ |
+| **§ 6bz.5 — probe-exactness is lost at the turn, and only there** | the located value is 518268 at 17 probes, 533023 at 65 and 534912 at 257 — 2.8% then 0.35%, converging and not converged — where § 6bw's own anchors are bit-identical at all three and a ratio of 3.74 moves 4.4e-5; so § 6bw.4's exactness is the corner's, and the V's floor is known to tenths of a percent | ✅ |
+| **§ 6bz.7 — the handover locus is the ratio's, and 4 mm hands over past the cost's window** | at a held guard every cell at 4 mm is above one at a ratio of 1.784 and below at 1.915, and matched anchors straddle the 10× crossings identically at 2 mm and 4 mm (the slow 20×'s brackets adjacent, one step apart) — so § 6by.3's guard-moving locus does not move with the offset, and § 6by.5's "nothing hands over at 4 mm" is the COST's reach | ✅ |
+| **§ 6bz.6 — the frame has converged above the turn as below it** | 1502376 at 2²⁴, 1502378 at 2²⁵ and 1502379 at 2²⁶, two parts in a million, on lattices admitting every fourth, every second and every guard point — the coarsening being § 6bw.5's own "the frame is the finest ruler" seen from the far end | ✅ |
+
+**Still open.**
+
+- **The minimum has a mechanism and the PEAK still does not.** § 6bz.4 says what
+  turns the curve up at a ratio of 2.08 — four per-cell turns arriving out of
+  step — and says nothing about why the guard's share should have a maximum at
+  0.5115 in the first place. § 6bw's own bullet stands untouched, and the number
+  still has no closed form.
+- **Why a single cell's anisotropy turns is unmeasured.** § 6bz.4 pushes the
+  question one level down, from the interact to the cell, and stops there. That
+  is progress of the same kind § 6by made and not an explanation.
+- **The far end is read on a tile that is mostly guard.** At a ratio of 7.338 the
+  guard eats 79.9% of the tile, and whether a seam measured across a fifth of a
+  tile is the seam a mosaic would have is not something this ladder has asked.
+- **Inherited and untouched**: the two branches' 3× separation still has no
+  mechanism, the escape's fall at 3.7415 mm is still the one unexplained curve,
+  the plateau still cannot be moved to the common anchor without new sweeps,
+  § 6bn's first interval is still unreachable, and § 6bs.6's two orderings still
+  have no replacement.
 
 ## Later rungs
 
