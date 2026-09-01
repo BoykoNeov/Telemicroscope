@@ -198,6 +198,7 @@ const located = (b: Branch, j: number, i: number, x = 2): void => {
 const ROWS: Record<number, number> = {
   96: 501061,
   116: 486643,
+  128: 479700,
   136: 479661,
   144: 617446,
   152: 1064019,
@@ -207,6 +208,7 @@ const ROWS: Record<number, number> = {
 const COLS: Record<number, number> = {
   96: 1386681,
   116: 1428323,
+  128: 1467459,
   136: 1498204,
   144: 1532181,
   152: 1569054,
@@ -305,14 +307,15 @@ describe("§ 6ca.4 — so the separation is a near-cancellation, to first order"
     // crossings in the inverse proportion: 3.76 predicted.
     const predicted = (stageR - fieldR) / (stageC - fieldC);
     expect(predicted).toBeCloseTo(3.758, 3);
-    // Located, they are 3.06 apart. The first-order estimate overshoots by 23%
-    // because the column branch has to run three times further in the guard to
-    // reach its crossing, and neither factor is straight over that run — which
-    // is a statement about the estimate, not about the mechanism.
-    located("rows", 136, ROWS[136]!);
-    located("columns", 136, COLS[136]!);
-    expect(COLS[136]! / ROWS[136]!).toBeCloseTo(3.1235, 4);
-    expect(predicted / (COLS[136]! / ROWS[136]!)).toBeLessThan(1.25);
+    // Located at the SAME anchor the slopes were read at, they are 3.06 apart.
+    // The first-order estimate overshoots by 23% because the column branch has
+    // to run three times further in the guard to reach its crossing, and neither
+    // factor is straight over that run — which is a statement about the
+    // estimate, not about the mechanism.
+    located("rows", j, ROWS[j]!);
+    located("columns", j, COLS[j]!);
+    expect(COLS[j]! / ROWS[j]!).toBeCloseTo(3.0591, 4);
+    expect(predicted / (COLS[j]! / ROWS[j]!)).toBeCloseTo(1.2284, 4);
   });
 });
 
