@@ -143,6 +143,7 @@ whole ladder.
 | [6cf](#step-6cf--the-guard-constant-is-two-log-slopes) | § 6ca's constant is Lc/Lr, the two seams' log slopes not their ratio: 2 at zero tile, cols second order in it and rows first; a minimum at a sextic root, and the collapse is § 6cd's edge | ✅ |
 | [6cg](#step-6cg--the-maps-ba-is-a-change-of-variable) | § 6ce's `b/a` is `2a` plus one lens ratio, the two a change of variable: the map is three factors of one chief ray, and `b/(3a²) = 2/3 + B/(3A²)` is exactly 1/2 for a perfect lens | ✅ |
 | [6ch](#step-6ch--the-sine-offence-and-the-pupil-walk-are-two-seidel-sums) | § 6cg's two traced numbers are the PUPIL imaging's own aberrations: `p₀` is its ΣS_I to 1.3e-8 on eighteen cells, `s₀ − p₀` its ΣS_II to 4e-3, and the walk cancels from `a` | ✅ |
+| [6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature) | The seam is the scale's second difference, so both axes are second order in the tile, the stage's first and second: √2 anisotropic, guard sensitivity 1 and never past 1.03665 | ✅ |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -24196,9 +24197,15 @@ interact. Per unit of the guard's share of the tile, at a ratio of 1.871:
 | stage interact | 0.2637 | 0.6132 | **133%** |
 | cost = stage − field | **−0.4508** | **−0.1200** | 3.76× |
 
-A field scan gives every tile its own frame, so its seam is a ruler mismatch
-that does not care which way the two tiles are adjacent. A stage scan repeats
-one map, so its seam is the map's own period restarting — and a square lattice
+~~A field scan gives every tile its own frame, so its seam is a ruler mismatch
+that does not care which way the two tiles are adjacent.~~ **It cares: the
+seam is √2 anisotropic at zero tile and 11% here, and what is axis-blind is
+the guard SLOPE — because both field seams are second order in the kept tile
+where the stage's are first and second, which also bounds this 2.6% by
+3.665%
+([§ 6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature)).**
+
+A stage scan repeats one map, so its seam is the map's own period restarting — and a square lattice
 against a radial map is anisotropic by construction (§ 6bj.5). The branch
 difference is entirely there, which is § 6by.1's split seen in the derivative
 rather than in the values.
@@ -24943,11 +24950,14 @@ per-cell turns sit past.
 
 **Still open.**
 
-- **Nothing here touches the FIELD scan's seam.** § 6ca.1's "the field factor is
+- ~~**Nothing here touches the FIELD scan's seam.** § 6ca.1's "the field factor is
   axis-blind" — 2.6% apart on the axes against the stage factor's 133% — still
   rests on § 6ca's argument about frames rather than on a formula, because
   § 6cd's corner form is a stage-scan object and there is no field-scan
-  counterpart to differentiate.
+  counterpart to differentiate.~~ **It is: both field seams are SECOND order in the
+  kept tile, so the field's axis constant is exactly 1 where the tile
+  vanishes against the stage's 2, and its maximum anywhere is 1.0366476
+  ([§ 6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature)).**
 - **The domain edge is located and not derived.** § 6cf.5 says § 6ca's collapse
   is where the worst probe leaves the corner; it does not say what the seam
   becomes past that. So § 6bz.4's per-cell turn near w = 1.46 and § 6ca's own
@@ -25084,10 +25094,13 @@ a discrepancy for a reader to find four sections apart.
   is § 6ch's own: the coma's residue changes sign near NA 0.21 and has no form,
   and why the solved bending produces those sums rather than others is a question
   about `achromaticObjective` and no longer about the map.
-- **Nothing here touches the FIELD scan's seam** — § 6cf's own first bullet,
+- ~~**Nothing here touches the FIELD scan's seam** — § 6cf's own first bullet,
   unchanged: § 6ca.1's "the field factor is axis-blind" still rests on an
   argument about frames, because § 6cd's corner form is a stage-scan object and
-  there is no field-scan counterpart to differentiate.
+  there is no field-scan counterpart to differentiate.~~ **It is: both field seams are SECOND order in the
+  kept tile, so the field's axis constant is exactly 1 where the tile
+  vanishes against the stage's 2, and its maximum anywhere is 1.0366476
+  ([§ 6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature)).**
 - **The domain edge is still located and not derived**, so § 6bz.4's per-cell
   turn near w = 1.46 and § 6ca's branch inversion remain one event whose own
   form is unwritten.
@@ -25234,10 +25247,13 @@ nothing fitted (§ 6ch.4).
   ΣS_I of the dual, but WHY the achromat's solved shape produces those sums,
   rather than others, is a question about `achromaticObjective`'s bending and not
   about the map. This step moves the boundary one level; it does not remove it.
-- **Nothing here touches the FIELD scan's seam** — § 6cg's second bullet,
+- ~~**Nothing here touches the FIELD scan's seam** — § 6cg's second bullet,
   unchanged and now the cheapest open mosaic item: § 6ca.1's "the field factor is
   axis-blind" still rests on an argument about frames, and closing it costs new
-  traced runs rather than a rearranged prescription.
+  traced runs rather than a rearranged prescription.~~ **It is: both field seams are SECOND order in the
+  kept tile, so the field's axis constant is exactly 1 where the tile
+  vanishes against the stage's 2, and its maximum anywhere is 1.0366476
+  ([§ 6ci](#step-6ci--the-field-seam-is-the-rulers-own-curvature)).**
 - **The domain edge is still located and not derived**, so § 6bz.4's per-cell
   turn near w = 1.46 and § 6ca's branch inversion remain one event whose own form
   is unwritten.
@@ -25245,6 +25261,175 @@ nothing fitted (§ 6ch.4).
   anchor without new sweeps, § 6bn's first interval is still unreachable,
   § 6bs.6's two orderings still have no replacement, and why a coarser pupil puts
   light outside the box (§ 6cc.2) is still a sampling question nobody has asked.
+
+## Step 6ci — the field seam is the ruler's own curvature
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/field-seam.test.ts`
+
+§ 6ca.1 read the field interact's guard sensitivity on each axis — 0.7145
+against 0.7332 — and called the 2.6% between them nothing. What stood under
+that was one sentence: "**A field scan gives every tile its own frame, so its
+seam is a ruler mismatch that does not care which way the two tiles are
+adjacent.**" Three steps restated the gap after it — § 6cf's first
+bullet, § 6cg's second, § 6ch's third — because § 6cd's corner form is a
+stage-scan object and there was no field-scan counterpart to differentiate.
+
+There is one. It is simpler than the stage's, it needs no mosaic and no render,
+and it says the sentence is **wrong** and the conclusion **right** — for a
+different reason, and with a ceiling on it.
+
+### The seam is three pixel scales
+
+With no overlap the pitch is the kept span, so `pitchPixels = keptPixels = 2U`
+with `U = size/2 − cropped − guard`. The two tiles at a seam are therefore asked
+about the same composed pixel at rendered offsets **`+U` and `−U`** — and their
+two frames differ in exactly one number. The magnification is the on-axis
+reading every tile shares; the centres differ by exactly the pitch, which is
+`2U` times the ANCHOR's scale. Only `pixelScaleMm` moves. So on the image plane
+
+    along the seam's own axis:  U · (s_a + s_b − 2 s_r)
+    across it:                  (i − size/2) · (s_a − s_b)
+
+a **second** difference of the scale and a **first** — with the anchor's own
+frame entering every seam in the picture, which is why it is a three-point
+combination and not a curvature of the adjacent pair. Both points then go
+through the radial map, and that is the seam: it equals the live
+`betweenRowsMm` and `betweenColumnsMm` to **1e-11** across four cells, three
+anchors and three guards, 72 readings (§ 6ci.0).
+
+The `±U` is the no-overlap case and it is where the form ends. With an overlap
+the near offset is `U − overlap` and the anchor's weight `2U − overlap`; a
+guard-sized overlap of 65536 px puts the `±U` form **198%** out where the
+general one is still exact. § 6bh's own mosaics have no overlap, which is why
+the second difference is clean.
+
+The worst probe is the picture's outer corner, as it is on the stage branch
+(§ 6cd.0) — always the same one on columns in all 80 readings, and on rows
+always the outermost COLUMN, switching between two corners of that one tile as
+the tile grows. The two carry the same magnitude, because they differ only in
+the sign of the across term inside a hypot; **which of them wins is the map's
+doing**, the two probes sitting at different field radii.
+
+### And a frame's scale is one traced number per field radius
+
+`pixelScaleMm` is `λ · referenceRadius / (n · size · Δpupil)`, so it moves with
+field only through `referenceRadius / exitRadius` — and **the exit radius does
+not move at all.** It is the same number at every field angle, to the last bit.
+So the scale IS the reference sphere, it is a function of the tile centre's
+RADIUS rather than of its position — (3, 4) mm and (5, 0) mm are one reading
+bitwise — and § 6m.3's `hypot(R_axis, r)` carries it to **4.3 × 10⁻¹¹** half a
+millimetre off axis, departing one-signed as the FOURTH power: sixteen times
+bigger for twice the field, out to 7.6 × 10⁻⁶ at 12 mm (§ 6ci.1).
+
+That is what makes the seam a geometry problem. Write `s(r) = s₀(1 + r²/2R²)`,
+put the worst probe at the outer corner, and with `h = (tiles−1)/2`,
+`q = 4h² − 2h + 1` and `w = ξ/cx` the two mismatches are, in one common unit,
+
+    columns: ( (2h−1) + q·w ,  1 + (2h−1)·w )      rows: ( 2h + q·w ,  (2h−1)·w )
+
+### Which makes both field seams SECOND order in the kept tile
+
+Both carry `w²` — one power from the `U` in front and one from the `ξ` inside —
+so both guard log slopes start at **2**. The stage's start at **1 and 2**
+(§ 6cf.2, cited rather than remeasured). **That one power is the whole
+difference between the two geometries**, and it is the reason under § 6ca.1's
+observation: the field axes cannot differ at leading order in the guard because
+neither of them has a first-order term to differ in, where the stage's row seam
+does and its column seam does not.
+
+At three tiles, in the form § 6cf writes the stage's:
+
+    Lr = (15w² + 15w + 4)/(5w² + 6w + 2)      Lc = (15w² + 10w + 2)/(5w² + 4w + 1)
+
+### The seam is not axis-blind — it is √2 out, and that is the mosaic's size
+
+The anisotropy is a curve of `w` alone,
+
+    Φ_h(w) = hypot(2h + q·w, (2h−1)w) / hypot((2h−1) + q·w, 1 + (2h−1)w)
+
+and at zero tile `Φ_h(0) = 2h/√((2h−1)² + 1)`: **√2 at three tiles**, 4/√10 at
+five, 6/√26 at seven, falling to 1 only as the mosaic grows. The row seam's pair
+sits one whole pitch further out in the field than the column seam's does, and
+a scale that rises with radius charges it for that. § 6ca's "does not care which
+way the two tiles are adjacent" is the LARGE-mosaic limit, and the three-tile
+mosaic every rung on this branch is measured on is the furthest from it
+(§ 6ci.3).
+
+The map divides out, as it does on the stage branch (§ 6cd.2): the
+pure-geometry curve, with no map evaluated at all, is inside 5 × 10⁻⁵ of the
+traced one. What is left against the LIVE seam is the `r⁴` the quadratic
+dropped, and it is `(cx/R)²` — four times bigger for twice the field offset,
+1 × 10⁻⁴ at cx = 0.5 mm and 2.8 × 10⁻² at 16 mm — while saying nothing about
+`w`, the form still holding to 2 × 10⁻³ at w = 9.5. **This form's domain is a
+small field offset, not a small tile**, which is the opposite of § 6cd.1's edge.
+
+### So the axis constant is 1 at zero tile, and it has a ceiling
+
+    A(w) = Lc/Lr,    A − 1 = w(5w² + 5w + 1)/(75w⁴ + 135w³ + 95w² + 31w + 4)
+
+exactly **1** where the tile vanishes, against the stage constant's exactly
+**2** (§ 6cf.2). It rises from 1, turns, and falls back — the turn is where the
+two log slopes' own log slopes agree, which clears to
+
+    375w⁶ + 750w⁵ + 425w⁴ − 40w³ − 120w² − 40w − 4 = 0
+
+with one positive real root, **w = 0.50914397778078**, where
+**A = 1.0366475533** (§ 6ci.4). All four cells' live maxima sit on the anchor
+nearest it and read that value to 1e-4.
+
+And three tiles is the worst mosaic there is: the peak falls as the mosaic
+grows — 3.665% at three tiles, 2.44% at five, 1.68% at seven, 0.32% at
+thirty-three. **No field-scan mosaic's guard sensitivity is more than 3.665%
+axis-dependent, anywhere in the domain.**
+
+### Which is what § 6ca.1's 2.6% is, and what it is not
+
+At § 6ca's own anchor the live four-cell field interact reads **0.714483** on
+rows and **0.733180** on columns — § 6ca.1's published 0.7145 and 0.7332 — a
+ratio of **1.026168**. The closed form composed the same way OVERSHOOTS both
+slopes by half a percent, 0.6% on rows and 0.9% on columns, which is the
+`(cx/R)²` above plus the map; the RATIO, which is the load-bearing number, it
+gets to 1.029043. Pointwise `A(w)` at the four cells' own `w` reads 1.0284.
+
+The `w²` prefactor does **not** cancel out of the interact, though it looks as
+if it should: each cell's guard SHARE is `2·guardCells/pupilSamples`, so the
+four cells' tiles do not shrink by the same factor and the four `w²` do not
+subtract away. Shapes alone give 0.18, not 0.71.
+
+**And the seam at that same anchor is 11% anisotropic** — 1.1148, not 1.026.
+Those are the two numbers § 6ca.1's sentence runs together. "Axis-blind" is
+true of the guard DERIVATIVE and false of the seam, and the reason is not the
+one § 6ca gave.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6ci.0 — the field seam is three pixel scales and four map evaluations** | with no overlap the pitch is the kept span, so the two tiles read one composed pixel at rendered offsets ±U and their frames differ only in `pixelScaleMm`: `U(s_a+s_b−2s_r)` along the seam and `(i−size/2)(s_a−s_b)` across it, the ANCHOR's own scale in every seam — live to 1e-11 at 4 cells, 3 anchors and 3 guards, 72 readings, and the ±U form is 198% out at a guard-sized overlap where the general one is still exact | ✅ |
+| **§ 6ci.1 — and a frame's scale is one traced number per field radius** | the exit pupil radius is field-invariant to the last bit, so the scale IS `referenceRadius` and a function of RADIUS not position — (3,4) and (5,0) agree bitwise in all four cells — and § 6m.3's `hypot(R_axis, r)` carries it to 4.3e-11 at 0.5 mm, departing one-signed as the fourth power to 7.6e-6 at 12 mm | ✅ |
+| **§ 6ci.2 — so both field seams are second order in the kept tile** | each mismatch carries `w²`, one power from the `U` in front and one from the `ξ` inside, so both guard log slopes start at 2 where the stage's start at 1 and 2 (§ 6cf.2) — `Lr = (15w²+15w+4)/(5w²+6w+2)` and `Lc = (15w²+10w+2)/(5w²+4w+1)`, live to 5e-4 at cx = 2 | ✅ |
+| **§ 6ci.3 — the seam is NOT axis-blind: it is √2 out at three tiles** | `Φ_h(0) = 2h/√((2h−1)²+1)` — √2 at three tiles, 4/√10 at five, 6/√26 at seven — the row pair sitting one pitch further out in the field, exact at every tile count and inside 2e-3 of live; the map divides out to 5e-5 and what is left is `(cx/R)²`, quadrupling with the offset and flat in `w` out to 9.5 | ✅ |
+| **§ 6ci.4 — so the axis constant is exactly 1 at zero tile, and bounded** | `A − 1 = w(5w²+5w+1)/(75w⁴+135w³+95w²+31w+4)`, 1 at zero tile against the stage's 2, with a maximum at the only positive root of `375w⁶+750w⁵+425w⁴−40w³−120w²−40w−4`, w = 0.50914397778078 where A = 1.0366475533 — all four cells' live maxima on the anchor nearest it — and the peak FALLS with the mosaic, 3.665% at three tiles to 0.32% at thirty-three | ✅ |
+| **§ 6ci.5 — which is what § 6ca.1's 2.6% is, and what it is not** | live 0.714483 and 0.733180 at § 6ca's own anchor, its published 0.7145 and 0.7332, ratio 1.026168 against the composed form's 1.029043 — the form overshooting each slope by 0.6% and 0.9% on `(cx/R)²` — while the SEAM there is 1.1148, 11% and not 2.6%: the blindness is the derivative's and never the seam's | ✅ |
+
+**Still open.**
+
+- **Why the guard's two ends are not one tile is unmeasured.** The `w²` survives
+  the four-cell interact only because each cell's guard share is
+  `2·guardCells/pupilSamples` and the four pupil samplings differ. That is
+  § 6bo's shape choice reaching into a quantity nothing designed it for, and the
+  0.6% the composed form overshoots by is where it shows.
+- **The `(cx/R)²` edge is located and not derived.** § 6ci.3 says the form wants
+  a small field offset and measures the departure quadrupling with it; it does
+  not say what the seam becomes at a field offset where `r⁴` is the leading
+  term, which is where a real slide scanner's outer tiles sit.
+- **Inherited and untouched**: § 6ch's coma residue still changes sign near
+  NA 0.21 with no form, the bending solve under `s₀`/`p₀` is still
+  `achromaticObjective`'s question, § 6bz.4's per-cell turn and § 6ca's branch
+  inversion are still one event whose form is unwritten, the plateau still
+  cannot be moved to the common anchor without new sweeps, § 6bn's first
+  interval is still unreachable, § 6bs.6's two orderings still have no
+  replacement, and why a coarser pupil puts light outside the box (§ 6cc.2) is
+  still a sampling question nobody has asked.
 
 ## Later rungs
 
