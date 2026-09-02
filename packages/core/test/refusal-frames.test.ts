@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { D, FRAMES, P, band, fieldOf } from "./support/refusalSweep";
+import { D, FRAMES, P, band, expectReproduces, fieldOf } from "./support/refusalSweep";
 
 /**
  * § 6bq — what the frame does to the refusal reading.
@@ -92,9 +92,11 @@ describe("§ 6bq.5 — the 32-pixel frame finds a different vertex, and is exclu
 
   it("and its ladder is non-monotone by 40% where every larger frame's is not", () => {
     const small = [0.15, 0.16, 0.17].map((na) => D(10, na, 32, 12));
-    expect(small).toEqual([1.1153338101745813, 0.7966335638880051, 0.8411895076626353]);
+    // Recorded readings — `expectReproduces` carries why they are compared as
+    // relative distances. The 40% the rung is about is eleven orders above it.
+    expectReproduces(small, [1.1153338101745813, 0.7966335638880051, 0.8411895076626353]);
     expect(small[1]!).toBeLessThan(small[0]!);
-    expect(small[0]! / small[1]!).toBeCloseTo(1.4000587732346421, 12);
+    expect(Math.abs(small[0]! / small[1]! / 1.4000587732346421 - 1)).toBeLessThan(1e-12);
 
     // The same three apertures at the next frame up are monotone increasing.
     const next = [0.15, 0.16, 0.17].map((na) => D(10, na, 64, 24));

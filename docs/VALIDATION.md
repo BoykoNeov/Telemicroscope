@@ -1437,12 +1437,13 @@ that would make the headline chromatic rung true by construction.
 
 ### 1.8.2 — why the two Coddington tolerances differ by seven orders of magnitude
 
-The shape is pinned to 1e-7 and the aberration at that shape to 1e-15, and that
+The shape is pinned to 1e-7 and the aberration at that shape to 1e-14, and that
 is the honest way round rather than a hedge. Near a minimum the merit is
 quadratic, m(q) ≈ m\* + ½m″(q−q\*)², so an optimiser that resolves the merit to a
 relative ε resolves q only to √(2ε·m\* / m″). The square root is the shape of a
 minimum, not a weakness of this implementation, and the step pins it twice:
-measured 2.2·10⁻⁸ in q against 4.4·10⁻¹⁶ in W₀₄₀ on the optical fixture, and —
+measured 2.2·10⁻⁸ in q against 4.4·10⁻¹⁶ in W₀₄₀ on the optical fixture (asserted at
+1e-14, since `pow` and `sqrt` set the last two digits and not this engine), and —
 on the weighted-mean rung, where every quantity is exact algebra — a merit right
 to all 17 digits with the location out at 3·10⁻¹⁰.
 
@@ -26055,6 +26056,45 @@ seconds) and it is app and imaging wiring, listed as such in
 - New engine capability ⇒ new rung(s) in the same PR.
 - Never loosen a tolerance to make a test pass — investigate; tolerances
   document the physics, not the implementation's mood.
+- **A recorded reading is compared relatively, never bit-for-bit.** IEEE 754
+  fixes the four operations and `sqrt`; it does not fix `exp`, `sin`, `pow` or
+  `log`, so two conforming machines can return readings that differ in the last
+  few bits, and every number this ladder records is the end of a chain of traces
+  and transforms full of those calls. `golden.ts` has always said this about the
+  image gate — "the last bit of a Float64 sum is not guaranteed identical across
+  platforms" — and the numeric rungs now say it too: a recorded reading is
+  asserted as |actual/recorded − 1| under a bound, and the bound is set by what
+  the reading is, not by any observed miss. Three cases, and they are the whole
+  rule:
+  - **Well-conditioned reading** — a ratio of order 1 that cancels nothing:
+    a part in 10¹². Every effect these rungs are about is percents.
+  - **A residue of cancellation** — an axial quantity the symmetry sends to
+    zero, a share going as the square of a near-zero separation: a cancellation
+    to N figures hands back only the other sixteen, so the bound is set from N.
+    A quantity DERIVED from a residue (a ratio that divides by one) is never
+    pinned tighter than the residue itself.
+  - **An optimiser's output** — no tighter than the rule that stopped it.
+    `stepTolerance` is 1e-14 relative, so 1e-13 is the floor for a converged
+    run; a run that stops on its iteration cap is a point on a trajectory
+    rather than a fixed point and gets six figures, not sixteen.
+
+  And under all three: **a bound is never tighter than the rounding of the
+  literal it compares against.** A reading quoted to seven figures carries ±3e-7
+  of its own last digit, so a 1e-8 bound on it is unmeetable on any machine —
+  not a platform question at all. Where a rung wants more, the literal has to
+  carry more digits; where it does not, the literal's own quantization IS the
+  floor.
+
+  What stays exact, and must: integers (step and evaluation counts — a merit
+  that moved would change these long before it changed a quoted digit),
+  strings, values exact by construction, and same-process identities where two
+  code paths run the same operations on the same libm. Those are `toBe`, and
+  turning them into tolerances would be the regression this rule exists to
+  prevent.
+- Nothing here is a licence to widen. A bound derived from conditioning is a
+  statement about what the number is; a bound derived from a failure is the
+  thing the rule above forbids. If a rung misses by orders rather than by ulps,
+  that is a finding, and it goes to `docs/OPEN-PROBLEMS.md`.
 - A step whose *Source* line reads "measurement only — no engine change" opens
   with the hypothesis it tests and the number that would refute it. A chain of
   such steps ends when the residue it chases falls below the branch's own floor,

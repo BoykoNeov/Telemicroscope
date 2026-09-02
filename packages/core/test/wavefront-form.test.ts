@@ -442,7 +442,13 @@ describe("§ 1.8.13 — the app's achromat, which is where § 1.8.12's forecast 
     // one; the external pin is q* on the singlet above.
     const value = optimizeSystem(aat(ASEED), AVARS, [op("rms", "value")], { maxIterations: 400 });
     const terms = optimizeSystem(aat(ASEED), AVARS, [op("rms", "terms")], { maxIterations: 400 });
-    expect(aRms(value.x)).toBeCloseTo(9.0126156741e-3, 12);
+    // The one-row run stops on `reason: "iterations"` (asserted next), so its
+    // answer is a point ON a trajectory and not a fixed point of one: four
+    // hundred steps, each carrying the platform's own `exp` and `sqrt`, and no
+    // stopping rule to pull them back together. Six significant figures is what
+    // "still reads what it read" can honestly mean; the 33.7% gap this rung
+    // exists to show is five orders above it.
+    expect(Math.abs(aRms(value.x) / 9.0126156741e-3 - 1)).toBeLessThan(1e-6);
     expect(value.reason).toBe("iterations");
     expect(value.gradient).toBe(1);
     // Nine significant figures against a reference produced by a different

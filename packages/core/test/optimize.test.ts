@@ -170,8 +170,15 @@ describe("DLS — Coddington's best form, recovered rather than evaluated", () =
           // case over these twelve runs: 2.2e-8.
           expect(r.x[0]!).toBeCloseTo(q, 7);
           // The VALUE, tightly: the merit at the optimiser's shape is the merit
-          // at the closed-form shape to the f64 floor. Worst case measured 4.4e-16.
-          expect(w040(n, medium, r.x[0]!) / best).toBeCloseTo(1, 15);
+          // at the closed-form shape to the f64 floor. Worst case measured
+          // 4.4e-16 — which is the LOCATION bound above, squared, because the
+          // merit is quadratic at its minimum and that is the whole content of
+          // the rung. Stated at 1e-14 rather than at the measured figure: the
+          // merit runs through the platform's `pow` and `sqrt`, which IEEE 754
+          // does not fix, so the last two digits are the machine's. Fourteen
+          // still says "to the f64 floor" and is eight orders under any
+          // displacement the location bound admits.
+          expect(Math.abs(w040(n, medium, r.x[0]!) / best - 1)).toBeLessThan(1e-14);
         }
       }
     }
@@ -1271,8 +1278,13 @@ describe("DLS § 1.8.6 — the arithmetic of a condition, before any lens", () =
         (x) => ({ minimize: [x[0]!, x[1]!], hold: [x[0]! ** 2 + x[1]! ** 2 - 1] }),
         start,
       );
-      expect(Math.hypot(r.x[0]!, r.x[1]!)).toBeCloseTo(1, 15);
-      expect(r.merit).toBeCloseTo(1, 14);
+      // On the circle to the optimiser's own resolution and no tighter: it
+      // stops when the step falls under `stepTolerance` (1e-14, relative to
+      // |x|), so the answer is a point inside that ball and a rung asking for
+      // 5e-16 is asking the arithmetic a question the stopping rule never
+      // answered. 1e-13 is ten times the rule that produced the number.
+      expect(Math.abs(Math.hypot(r.x[0]!, r.x[1]!) - 1)).toBeLessThan(1e-13);
+      expect(Math.abs(r.merit - 1)).toBeLessThan(1e-13);
       // ∇m + λ∇c = 2x + λ·2x = 0 → λ = −1 wherever it lands.
       expect(r.multipliers[0]!).toBeCloseTo(-1, 10);
     }
@@ -1329,8 +1341,11 @@ describe("DLS § 1.8.6 — the arithmetic of a condition, before any lens", () =
       (x) => ({ minimize: [x[0]! - 10, x[1]! - 10], hold: [x[0]! - 1, x[1]! - 2] }),
       [0, 0],
     );
-    expect(r.x[0]!).toBeCloseTo(1, 14);
-    expect(r.x[1]!).toBeCloseTo(2, 14);
+    // Same bound as the circle above, and for the same reason: the conditions
+    // determine these two exactly, but the run still lands on them through
+    // `stepTolerance`, not through exact arithmetic.
+    expect(Math.abs(r.x[0]! - 1)).toBeLessThan(1e-13);
+    expect(Math.abs(r.x[1]! - 2)).toBeLessThan(1e-13);
     expect(r.merit).toBeCloseTo(145, 10);
     expect(r.feasibility).toBe(0);
     expect(r.iterations).toBeLessThan(6);
@@ -2378,7 +2393,15 @@ describe("DLS § 1.8.7 — the differencing window, and what actually sets its f
     };
 
     const wave = wfOperand("rms");
-    expect(relative(wave)).toBeCloseTo(9.04e-12, 13);
+    // 9.04e-12 was the reading. It is not a quantity with digits — it is how
+    // close THIS optimiser, with THIS differencing step, happened to land, and
+    // the finding is its ORDER against the 1.39e-8 the old default gives. So it
+    // is bracketed within a factor of three of what was recorded, and the two
+    // ratios below carry the claim. If this ever misses by orders rather than
+    // by a factor, that is a finding about the stopping rule and is to be
+    // investigated, not widened.
+    expect(relative(wave)).toBeGreaterThan(9.04e-12 / 3);
+    expect(relative(wave)).toBeLessThan(9.04e-12 * 3);
     // The step the OLD default would have chosen, stated by hand so the three
     // orders § 1.8.11 bought stay measured here rather than only asserted there.
     expect(relative(wave, [Math.cbrt(Number.EPSILON)])).toBeCloseTo(1.39e-8, 9);

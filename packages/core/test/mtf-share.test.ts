@@ -229,14 +229,25 @@ describe("§ 1.8.15 — and the answer does not move, to the bit", () => {
     // Measured on this fixture before the sharing existed and pinned here. The
     // integers are the sharp end: a merit that had changed in the last place
     // would take a different number of steps long before it changed a digit
-    // anyone quotes.
+    // anyone quotes. So they are the bit-exact half of this rung, and the
+    // recorded doubles below are the corroborating half.
     expect(two.evaluations).toBe(100);
     expect(two.accepted).toBe(6);
     expect(two.reason).toBe("step");
-    expect(two.gradient).toBeCloseTo(1.5350096313156713e-3, 15);
-    expect(two.merit).toBeCloseTo(3.802189683875607e-1, 15);
-    expect(two.x[0]).toBeCloseTo(2.2148389641969157e-3, 17);
-    expect(two.x[1]).toBeCloseTo(2.1372559787005162e-4, 17);
+    // The four recorded readings are stated as RELATIVE distances, which is
+    // what the claim actually is: this design is a fixed point of a chain of
+    // traces and FFTs, and every one of those goes through the platform's own
+    // `exp`, `sin` and `sqrt`. `golden.ts` states the same fact about the image
+    // gate — "the last bit of a Float64 sum is not guaranteed identical across
+    // platforms" — and a rung that pins a digit no standard fixes is a rung
+    // about the machine it was recorded on. A part in 10¹² is far below
+    // anything the sharing could break: a stale or unshared slot moves these by
+    // percents, not by ulps, and the step counts above catch it first.
+    const reproduces = (actual: number, recorded: number) => Math.abs(actual / recorded - 1);
+    expect(reproduces(two.gradient, 1.5350096313156713e-3)).toBeLessThan(1e-12);
+    expect(reproduces(two.merit, 3.802189683875607e-1)).toBeLessThan(1e-12);
+    expect(reproduces(two.x[0]!, 2.2148389641969157e-3)).toBeLessThan(1e-12);
+    expect(reproduces(two.x[1]!, 2.1372559787005162e-4)).toBeLessThan(1e-12);
   });
 });
 

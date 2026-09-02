@@ -1,3 +1,4 @@
+import { expect } from "vitest";
 import {
   renderedBestFocus,
   type FocusProbe,
@@ -113,4 +114,40 @@ export const band = (xs: readonly number[]): readonly [number, number] => [
 export const straddlesOne = (xs: readonly number[]): boolean => {
   const [lo, hi] = band(xs);
   return lo < 1 && hi > 1;
+};
+
+/**
+ * How a *recorded* ladder is compared: relative distance, not `toEqual`.
+ *
+ * Every reading in this branch is the end of a chain of ray traces and FFTs,
+ * and each of those runs through the platform's own `exp`, `sin` and `sqrt`.
+ * Those are not fixed by IEEE 754 — only the four arithmetic operations and
+ * `sqrt` are — so two conforming machines may hand back readings that differ in
+ * the last few bits. `golden.ts` already states this about the image gate ("the
+ * last bit of a Float64 sum is not guaranteed identical across platforms"); a
+ * `toEqual` on an array of Float64s is the same claim made where it is not
+ * true, and it pins the machine the numbers were recorded on rather than the
+ * engine.
+ *
+ * A part in 10¹² is the honest statement for these ladders: they are ratios of
+ * order 1 that cancel nothing, so twelve figures is well inside what the
+ * arithmetic supports, while every effect the rungs are about — a 40%
+ * non-monotonicity, a 3.8% band, which side of 1 a reading falls — is orders
+ * above it. A reading that had genuinely moved would move by percents.
+ *
+ * This is not a loosened tolerance. The rung never measured the last bit; it
+ * only said so.
+ */
+export const REPRODUCES = 1e-12;
+
+/** Assert a ladder reproduces its recorded readings, elementwise and relatively. */
+export const expectReproduces = (
+  actual: readonly number[],
+  recorded: readonly number[],
+  tolerance = REPRODUCES,
+): void => {
+  expect(actual).toHaveLength(recorded.length);
+  for (let i = 0; i < recorded.length; i++) {
+    expect(Math.abs(actual[i]! / recorded[i]! - 1)).toBeLessThan(tolerance);
+  }
 };

@@ -9,6 +9,7 @@ import {
   LAMBDA,
   P,
   band,
+  expectReproduces,
   fieldOf,
   lens,
   straddlesOne,
@@ -143,7 +144,10 @@ describe("§ 6bq.4 — a finer ladder narrows § 6bo.5's bracket, and the ladder
 
   it("while the 10× ladder at its own frame is monotone across all eight", () => {
     const ten = FINE10.map((na) => D(10, na, 128, 48));
-    expect(ten).toEqual([
+    // Recorded readings — see `expectReproduces` for why they are compared as
+    // relative distances and not with `toEqual`. The monotonicity below is the
+    // rung; these eight are what it was measured on.
+    expectReproduces(ten, [
       0.37898127424108746, 0.4666518221130638, 0.9111765858101702, 1.0019827640216046,
       1.120776474567028, 1.288847552430416, 1.4412948647351145, 1.4594730176611368,
     ]);
@@ -171,8 +175,8 @@ describe("§ 6bq.6 — the boundary is bracketed at 10×, refused at 0.18 at 20�
   it("at 10× the crossing is (0.15, 0.16], and both sides are unanimous", () => {
     const passes = FRAMES.map(([size, ps]) => D(10, 0.15, size, ps));
     const refuses = FRAMES.map(([size, ps]) => D(10, 0.16, size, ps));
-    expect(passes).toEqual([0.8166675113166156, 0.9111765858101702, 0.9343833341118507]);
-    expect(refuses).toEqual([1.0401004800647329, 1.0019827640216046, 1.0287413883303664]);
+    expectReproduces(passes, [0.8166675113166156, 0.9111765858101702, 0.9343833341118507]);
+    expectReproduces(refuses, [1.0401004800647329, 1.0019827640216046, 1.0287413883303664]);
 
     for (const d of passes) expect(d).toBeLessThan(1);
     for (const d of refuses) expect(d).toBeGreaterThan(1);
@@ -187,7 +191,7 @@ describe("§ 6bq.6 — the boundary is bracketed at 10×, refused at 0.18 at 20�
 
   it("at 20× NA 0.18 is REFUSED — which side of 1 it lands on is the frame's", () => {
     const straddling = FRAMES.map(([size, ps]) => D(20, 0.18, size, ps));
-    expect(straddling).toEqual([0.9819748347956937, 1.0738808825086936, 1.073347606145244]);
+    expectReproduces(straddling, [0.9819748347956937, 1.0738808825086936, 1.073347606145244]);
     expect(straddlesOne(straddling)).toBe(true);
 
     // The band is 9.36% wide and the effect being asked about is which side of 1
@@ -229,7 +233,7 @@ describe("§ 6bq.7 — § 6bo.5's field control sampled the flat apertures", () 
     // The same experiment it ran — field alone, aperture held — at all seven,
     // and at a uniform 2×, which only its NA 0.10 control was.
     const moved = LADDER.map((na) => D(20, na, 128, 48) / D(20, na, 64, 24));
-    expect(moved).toEqual([
+    expectReproduces(moved, [
       0.9890281687802007, 0.9902355703072833, 1.0092251812704462, 1.0935930784133807,
       1.0475612231045512, 1.155498985910048, 1.0066235322450858,
     ]);

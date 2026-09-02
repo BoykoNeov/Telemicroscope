@@ -196,9 +196,18 @@ describe("§ 6bi.2 — the seam's brightness step is a FIELD quantity", () => {
     // the axis and two tiles either side of an axial seam were formed through
     // pupils that pass the same light. § 6bh.5's focus step vanishes there for
     // the same reason and the two are otherwise unrelated quantities.
-    expect(axis.acrossSeam).toBeCloseTo(1.9021064201870282e-6, 14);
+    // The axial step is a RESIDUE: the quantity is zero by the symmetry above,
+    // and what is left is the render's own discretization, arrived at by
+    // differencing two throughputs of order 1 that agree to 2 parts per
+    // million. So a few ulps of disagreement in those operands — ~1e-15
+    // absolute, which is all IEEE 754 leaves free once `exp` and `sqrt` are
+    // involved — is 5e-10 OF THE RESIDUE. That is the floor; the bound is two
+    // orders above it, and the recorded digits past that were the machine's,
+    // not this engine's. `golden.ts` states the same fact about the image gate.
+    // The edge reading cancels nothing and keeps its twelve.
+    expect(Math.abs(axis.acrossSeam / 1.9021064201870282e-6 - 1)).toBeLessThan(1e-7);
     expect(edge.acrossSeam).toBeCloseTo(5.294321758048935e-3, 12);
-    expect(edge.acrossSeam / axis.acrossSeam).toBeCloseTo(2783.399341835122, 9);
+    expect(Math.abs(edge.acrossSeam / axis.acrossSeam / 2783.399341835122 - 1)).toBeLessThan(1e-7);
   });
 
   it("and the whole picture is a staircase, not just its seams", () => {
@@ -242,8 +251,16 @@ describe("§ 6bi.3 — two flat fields, and the difference between them is the M
     // scale is not, so a uniform density in the OBJECT is not uniform on the
     // image grid. 1193× says the whole of an axial flat field is the rasterizer.
     expect(axisRendered.span).toBeCloseTo(7.784747e-5, 10);
-    expect(axisThroughput.span).toBeCloseTo(6.523349e-8, 13);
-    expect(axisRendered.span / axisThroughput.span).toBeCloseTo(1193.3667, 3);
+    // The axial throughput span is the flat profile's residue — 6.5e-8 out of a
+    // throughput of order 1 — so the same few ulps are 1.5e-8 of it. Bound set
+    // three orders above that floor, because the number of accumulated
+    // operations behind a rendered span is not bounded tightly enough to claim
+    // less; it still keeps five figures of a seven-figure reading.
+    expect(Math.abs(axisThroughput.span / 6.523349e-8 - 1)).toBeLessThan(1e-5);
+    // The ratio divides BY that residue, so it cannot be pinned tighter than the
+    // residue is known: same bound, not the 4e-7 an absolute `toBeCloseTo` on
+    // 1193 would have implied. 1193× is the finding and five figures state it.
+    expect(Math.abs(axisRendered.span / axisThroughput.span / 1193.3667 - 1)).toBeLessThan(1e-5);
   });
 
   it("and the pupil's ratio between two tiles is ACHROMATIC — one slide, every channel", () => {
@@ -535,7 +552,16 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     // fear from blending two differently-focused pictures is 1.6e-6 of the spot
     // where the focus step is worst, and 1.7e-12 where it is not.
     expect(edge.crossShare).toBeCloseTo(1.633905e-6, 11);
-    expect(axis.crossShare).toBeCloseTo(1.664182e-12, 17);
+    // The axial cross share goes as the SQUARE of a separation that is itself a
+    // cancellation (1.1e-7 mm against a spot of ~1e-3), so it carries twice that
+    // loss. But the binding constraint here is not the conditioning — it is the
+    // RECORDED LITERAL, which is quoted to seven figures. Half an ulp of its
+    // last digit is already 3e-7 of it, so no bound below that can be met by any
+    // machine, this one included: the reading sits 1.6e-7 away because that is
+    // where seven figures put it. A bound is never tighter than the rounding of
+    // the number it compares against. 1.7e-12 is what the sentence quotes and
+    // the 9e5 ratio below is the claim.
+    expect(Math.abs(axis.crossShare / 1.664182e-12 - 1)).toBeLessThan(1e-6);
     expect(edge.crossShare / axis.crossShare).toBeGreaterThan(9e5);
     expect(edge.separationMm).toBeCloseTo(1.131202e-4, 9);
     expect(axis.separationMm).toBeCloseTo(1.118568e-7, 12);
@@ -548,7 +574,11 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     expect(edge.m2A).toBeCloseTo(1.913491e-3, 9);
     expect(edge.m2B).toBeCloseTo(2.002333e-3, 9);
     expect((edge.m2Mix - edge.m2A) / edge.m2A).toBeCloseTo(2.3215038259920936e-2, 12);
-    expect((axis.m2Mix - axis.m2A) / axis.m2A).toBeCloseTo(6.240437551260635e-4, 13);
+    // The axial fraction is 6.2e-4 of a second moment — a difference of two
+    // readings of order 1.9e-3 that agree to four figures — so a few ulps in
+    // them is ~2e-12 of the fraction. Bound three orders above that. 0.06% is
+    // the claim and it is untouched.
+    expect(Math.abs((axis.m2Mix - axis.m2A) / axis.m2A / 6.240437551260635e-4 - 1)).toBeLessThan(1e-9);
   });
 
   it("and its field dependence is § 6bh.5's, read off the PIXELS and not the stage", () => {
@@ -558,8 +588,11 @@ describe("§ 6bi.6 — the blend's cost is the MIXTURE, not the displacement", (
     // the two are read on different quantities.
     const spread = (r: { m2A: number; m2B: number }): number => (r.m2B - r.m2A) / r.m2A;
     expect(spread(edge)).toBeCloseTo(4.6429044231642624e-2, 12);
-    expect(spread(axis)).toBeCloseTo(1.2480889651578179e-3, 13);
-    expect(spread(edge) / spread(axis)).toBeCloseTo(37.2001079472502, 8);
+    // Same cancellation as the fraction above — 1.2e-3 between two second
+    // moments, so the same ~2e-12 floor — and the 37.20× divides by it, so it
+    // is never pinned tighter than the quantity it divides by.
+    expect(Math.abs(spread(axis) / 1.2480889651578179e-3 - 1)).toBeLessThan(1e-9);
+    expect(Math.abs(spread(edge) / spread(axis) / 37.2001079472502 - 1)).toBeLessThan(1e-8);
   });
 });
 

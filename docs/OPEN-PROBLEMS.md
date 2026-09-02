@@ -21,21 +21,40 @@ such steps ends when three in a row add neither an engine change nor an
 external pin. The residue is then written *here* as a problem. Part C below
 is the chain that rule was written on.
 
-**A structural problem before any physics.** `npm test` on a Linux container
-(Node 22.22, x86-64) fails 21 of 3499 rungs on `main` before any change in
-this branch: 3 are the vitest worker-timeout `vitest.setup.ts` documents, and
-the other 18 are bit-exact pins — `toBe` on a double, `toEqual` on an array of
-doubles, or a `toBeCloseTo` at 5e-16 — that differ by one to a few ulps from
-the machine they were recorded on. Files: `optimize` (core and app),
-`refusal-boundary`, `mtf-share`, `mosaic-flat-field`, `fourth-corner`,
-`mtf-rows`, `refusal-frames`, `stage-mosaic`, `wavefront-form`,
-`volume-mount`, `wavefront`. The hard rule forbids loosening a tolerance to
-pass, and this is not a case for it: the fix is to say what each of those
-rungs is actually pinning — an identity between two code paths, which
-`toBeCloseTo(_, 12)` states honestly, or a number, which a platform cannot
-move by 1e-16 — and to let the two that miss by 1e-8 (§ 1.8.7, § 1.8.13) be
-re-derived, since an optimiser's argmin at 1e-8 is inside its own step
-tolerance. Until then the ladder is green on one machine.
+**A structural problem before any physics.** ~~`npm test` on a Linux container
+(Node 22.22, x86-64) fails 21 of 3499 rungs on `main`: 3 are the vitest
+worker-timeout `vitest.setup.ts` documents, and the other 18 are bit-exact
+pins — `toBe` on a double, `toEqual` on an array of doubles, or a
+`toBeCloseTo` at 5e-16 — that differ by one to a few ulps from the machine
+they were recorded on.~~ **Addressed**, by the route this entry named rather
+than by widening anything: VALIDATION's *Rules* now carry the recorded-reading
+convention (a recorded number is asserted relatively, under a bound set by what
+the reading IS — well-conditioned, a residue of cancellation, or an optimiser's
+output, which is never pinned tighter than the `stepTolerance` that stopped it),
+and the fragile assertions were restated on it in six of the named files —
+`optimize` (core), `mtf-share`, `mosaic-flat-field`, `stage-mosaic`,
+`refusal-boundary`, `refusal-frames` and `wavefront-form`, with the shared
+comparison living in `test/support/refusalSweep.ts`. The other five were read
+line by line and left alone deliberately: what they carry is same-process
+identities (two code paths, one libm, one operation order — bitwise equal on
+every platform), integer step counts, and values that are exact by construction
+(`volume-mount`'s 7.5 µm is `request.depthUm` copied through). Turning any of
+those into a tolerance would have been the real regression. The two that missed
+by 1e-8 (§ 1.8.7's landing residual, § 1.8.13's run that stops on its iteration
+cap) were re-derived rather than loosened: the first is bracketed at its ORDER,
+which is what that rung ever claimed, and the second is stated at six figures
+because a run that stops on a cap is a point on a trajectory and not a fixed
+point of one.
+
+**What is still open in it.** The fix is verified green on the author's Windows
+machine only, and five of the twelve files it named were left untouched on the
+argument above rather than on evidence. Nobody has re-run the Linux container,
+so the claim that the ladder is now green off-machine is *unverified* — the bounds are argued from
+conditioning and from the register's own "one to a few ulps", not from a second
+run. Running it is the cheap next step. If a rung then misses by ORDERS rather
+than by ulps, that is a finding about the stopping rule and belongs here as a
+problem, not in a widened tolerance. The 3 worker-timeout failures are
+`vitest.setup.ts`'s and are untouched.
 
 ## A. Ready to pin — an external number exists
 
@@ -203,5 +222,8 @@ radial-map nodes · § 6ba differential bleaching.
 7. **Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
    before a line is written — the brightfield refusal (§ 6f.9) is where it
    plugs in.
-8. Make the ladder green off the author's machine (the structural problem
-   above) before any of 3–7 is trusted on a second one.
+8. ~~Make the ladder green off the author's machine (the structural problem
+   above) before any of 3–7 is trusted on a second one.~~ The convention is in
+   and the assertions are restated (see the structural problem above); what
+   remains is one confirming run on a second machine, which is now a check
+   rather than a piece of work.

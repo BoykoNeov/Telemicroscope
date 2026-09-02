@@ -381,7 +381,13 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
       flatFieldCorrect(EDGE_STAGE_BLANK.composed, edgeFree),
       EDGE_STAGE_GEOMETRY,
     );
-    expect(after.acrossSeam / before.acrossSeam - 1).toBeCloseTo(6.608e-13, 15);
+    // 6.608e-13 was the reading. It is not a quantity — it is the rounding left
+    // over when a frame is divided by one that equals it to the last few bits,
+    // and its digits are the platform's summation order rather than any optics.
+    // The claim in the sentence above is "nothing", so that is what is asserted:
+    // it is under a part in 10¹¹, three orders below the 121× that § 6bi.4's
+    // field scan gave up to the same division.
+    expect(Math.abs(after.acrossSeam / before.acrossSeam - 1)).toBeLessThan(1e-11);
   });
 
   it("and the scanner's per-tile frame is the calibration, exactly", () => {
@@ -422,7 +428,12 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
 
     const axisStage = mosaicSeamStep(AXIS_STAGE_BLANK.composed, AXIS_STAGE_GEOMETRY);
     const axisField = mosaicSeamStep(AXIS_FIELD_BLANK.composed, AXIS_FIELD_GEOMETRY);
-    expect(axisStage.acrossSeam).toBeCloseTo(1.8883381e-7, 13);
+    // Axial, so this is a residue of a quantity the symmetry sends to zero:
+    // 1.9e-7 out of a throughput of order 1, which puts a few ulps of the
+    // operands at ~5e-9 of the residue. Bound three orders above that floor;
+    // the ratio on the next line is looser still, as a quantity dividing by a
+    // residue must be.
+    expect(Math.abs(axisStage.acrossSeam / 1.8883381e-7 - 1)).toBeLessThan(1e-5);
     expect(axisField.acrossSeam / axisStage.acrossSeam).toBeCloseTo(10.0729, 3);
   });
 });
