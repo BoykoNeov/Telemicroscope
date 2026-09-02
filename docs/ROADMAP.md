@@ -1,5 +1,14 @@
 # Roadmap
 
+**Where the project is (2026-09-02).** Steps 1–7 below are closed, and step 6
+alone runs to ninety lettered sub-steps. The open scientific items — what is
+deferred, what is blocked on data, what would pin each, and which of the
+ladder's own chains has stopped producing engine changes — now live in one
+place, [`docs/OPEN-PROBLEMS.md`](OPEN-PROBLEMS.md), rather than scattered across
+a hundred *Still open* paragraphs in VALIDATION.md. Read that register before
+choosing the next step; its *Suggested order* is the plan, and step 8 below is
+its first entry, landed.
+
 ## Build order
 
 1. **Core skeleton + validation harness** ✅

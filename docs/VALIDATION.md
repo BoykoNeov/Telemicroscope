@@ -26055,6 +26055,12 @@ seconds) and it is app and imaging wiring, listed as such in
 - New engine capability ⇒ new rung(s) in the same PR.
 - Never loosen a tolerance to make a test pass — investigate; tolerances
   document the physics, not the implementation's mood.
+- A step whose *Source* line reads "measurement only — no engine change" opens
+  with the hypothesis it tests and the number that would refute it. A chain of
+  such steps ends when the residue it chases falls below the branch's own floor,
+  or when three in a row have added neither an engine change nor an external
+  pin — what is left is then written into `docs/OPEN-PROBLEMS.md` as a problem,
+  not extended as a step. § 6bk–§ 6cl is the chain this rule was written on.
 - A row in the table above is for a numbered step; a sub-step folds into its
   parent's row. What is charged is the MEAN row, so a row at or under the
   average costs nothing and a fat one pays only its overrun — see

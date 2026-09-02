@@ -12,7 +12,9 @@ image looks the way it does.
 
 ## Status
 
-Step 6 of the build order — the **microscope branch**.
+Steps 1–7 of the build order are closed; step 8, the **light budget**, is
+open and has its first rung. `docs/OPEN-PROBLEMS.md` is the register of what
+is still open and the suggested order for it.
 
 Steps 1–4 are complete and validated: geometry and materials, exact + paraxial
 tracing, pupils and OPD, the wave layer (PSF/MTF, Zernike, polychromatic
@@ -27,11 +29,15 @@ exact tracers reported side by side (APP.md Part E). What is still open here is
 the scenes (star/planet/lunar): their engine step landed as § 5v, and what
 remains is a panel and the content itself.
 
-Both microscope architectures now trace: infinity-corrected (§ 6a) and the
-classic 160 mm DIN (§ 6b). Open in this step: the `160/0.17` coverslip,
-composing an eyepiece onto the intermediate image, and immersion wiring.
-Step 7 (the teaching layer that links each image artifact to the plot
-explaining it) has not started.
+Both microscope architectures trace and image: infinity-corrected (§ 6a) and
+the classic 160 mm DIN (§ 6b), with the `160/0.17` coverslip (§ 6c), oil
+immersion (§ 6e), brightfield under a real condenser (§ 6f), fluorescence in
+three dimensions and in colour (§ 6i–§ 6l, § 6ba–§ 6bb), an eyepiece on the
+intermediate image (§ 6q), telecentric objectives (§ 6u–§ 6x) and a pannable,
+colour mosaic stage (§ 6m–§ 6t, § 6bh–§ 6bj). Step 7's teaching layer, the
+collimation scenarios and the design mode (solves and damped least squares)
+are all on screen. Step 8 opened with the photon zero point and shot noise
+(§ 8a); the image formed inside a medium is pinned (§ 2g).
 
 There is a working UI in `packages/app` — deliberately ugly, correct physics.
 
@@ -41,6 +47,7 @@ There is a working UI in `packages/app` — deliberately ugly, correct physics.
 docs/ARCHITECTURE.md   engine design, module map, conventions, key decisions
 docs/ROADMAP.md        build order, v1 feature cut, v2+
 docs/VALIDATION.md     the textbook-physics test ladder — index at the top
+docs/OPEN-PROBLEMS.md  what is still open, what would pin it, and in what order
 packages/core          pure-TypeScript physics core (no DOM), unit-tested
 packages/app           the browser UI (React + render workers), port 5187
 scripts/               dev tooling (dev-server port ownership)

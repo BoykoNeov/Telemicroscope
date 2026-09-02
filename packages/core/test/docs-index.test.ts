@@ -65,6 +65,9 @@ import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const VALIDATION = join(HERE, "..", "..", "..", "docs", "VALIDATION.md");
+/** The register of open items. It cites the ladder by anchor, never by line
+ *  number, and this file is what keeps those anchors honest as headings move. */
+const OPEN_PROBLEMS = join(HERE, "..", "..", "..", "docs", "OPEN-PROBLEMS.md");
 
 /** The heading the table lives under. Rows are measured in CHARACTERS, which
  *  is what "an index row is one line" is about — an em dash is one column and
@@ -145,15 +148,33 @@ describe("VALIDATION.md's summary table stays an index", () => {
     expect(stray).toEqual([]);
   });
 
+  const headings = new Set(
+    lines.filter((l) => /^#{2,4} /.test(l)).map((l) => slug(l.replace(/^#+ /, "").trim())),
+  );
+
   it("links only to headings that exist", () => {
-    const headings = new Set(
-      lines
-        .filter((l) => /^#{2,4} /.test(l))
-        .map((l) => slug(l.replace(/^#+ /, "").trim())),
-    );
     const broken = [...doc.matchAll(/\]\(#([^)\s]+)\)/g)]
       .map((m) => m[1]!)
       .filter((anchor) => !headings.has(anchor));
     expect([...new Set(broken)]).toEqual([]);
+  });
+
+  it("OPEN-PROBLEMS.md cites the ladder by anchors that exist, and by § labels that are steps", () => {
+    const register = readFileSync(OPEN_PROBLEMS, "utf8");
+    const broken = [...register.matchAll(/\]\(VALIDATION\.md#([^)\s]+)\)/g)]
+      .map((m) => m[1]!)
+      .filter((anchor) => !headings.has(anchor));
+    expect([...new Set(broken)]).toEqual([]);
+    // A "§ 6cl" in the register must be a step the ladder has a heading for;
+    // a sub-step label ("§ 6cl.3") is checked on its parent. Steps are named
+    // "## Step X — …", so the label is the second word of some heading.
+    const steps = new Set(
+      lines
+        .map((l) => /^## Step (\S+) /.exec(l)?.[1])
+        .filter((label): label is string => label !== undefined),
+    );
+    const cited = [...register.matchAll(/§ (\d+(?:\.\d+)?[a-z]*)(?:\.\d+)?\b/g)].map((m) => m[1]!);
+    const unknown = cited.filter((label) => !steps.has(label));
+    expect([...new Set(unknown)]).toEqual([]);
   });
 });

@@ -10,9 +10,13 @@ read its "ladder at a glance" index first and then only the step you need.
 yet, what each panel would cost (measured), and which are blocked on an engine
 step rather than on wiring. Read it before adding anything to `packages/app`.
 
-`VALIDATION.md` (620 KB) and `APP.md` (280 KB) are past the point of being read
-whole — together they are larger than a context window. Grep the headings, then
+`VALIDATION.md` (1.8 MB) and `APP.md` (440 KB) are past the point of being read
+whole — together they are several context windows. Grep the headings, then
 read the line range. Only `ARCHITECTURE.md` is sized to be read end to end.
+`docs/OPEN-PROBLEMS.md` is the register of what is still open — every deferral,
+what would pin it, and the chain the stop rule was written on — and is the
+place to start when choosing the next step; ROADMAP's *Where the project is*
+paragraph points at it.
 
 ## Hard rules
 
@@ -24,6 +28,13 @@ read the line range. Only `ARCHITECTURE.md` is sized to be read end to end.
   external numbers (textbook/closed-form/published design), added in the same
   change and recorded in `docs/VALIDATION.md`.
 - Never loosen a test tolerance to make it pass — investigate.
+- A measurement-only step (`Source: measurement only — no engine change`)
+  opens with the hypothesis it tests and the number that would refute it. A
+  chain of such steps ends when three in a row add neither an engine change
+  nor an external pin; what is left goes into `docs/OPEN-PROBLEMS.md` as a
+  problem, not onto the ladder as a step.
+- When a step closes an item recorded as open elsewhere, strike it through in
+  place and link the closing step; then update `docs/OPEN-PROBLEMS.md`.
 - An index row is one line, and a row is for a numbered STEP — a sub-step folds
   into its parent's row. A step's reasoning lives under that step's own
   heading, never restated in the summary table — an index that costs as much
