@@ -26,3 +26,4 @@ export * from "./fluorescence-mosaic";
 export * from "./mosaic-flat-field";
 export * from "./camera";
 export * from "./exposure";
+export * from "./noise";

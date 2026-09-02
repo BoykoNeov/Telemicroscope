@@ -56,3 +56,96 @@ export function mulberry32(seed: number): Rng {
   };
   return { next, nextGaussian };
 }
+
+/**
+ * ln(k!) for a non-negative integer, to f64 accuracy at every k.
+ *
+ * Below 20 it is the product, summed as logs so it cannot overflow; from 20
+ * up it is Stirling's series through the 1/k⁵ term, whose next term is
+ * 1/(1680·k⁷) < 2·10⁻¹² — below f64's resolution of ln(20!) ≈ 42. Kept
+ * private: it exists for `poisson` and is not a Γ function.
+ */
+function logFactorial(k: number): number {
+  if (k < 20) {
+    let acc = 0;
+    for (let i = 2; i <= k; i++) acc += Math.log(i);
+    return acc;
+  }
+  const k2 = k * k;
+  return (
+    (k + 0.5) * Math.log(k) -
+    k +
+    0.5 * Math.log(2 * Math.PI) +
+    1 / (12 * k) -
+    1 / (360 * k * k2) +
+    1 / (1260 * k * k2 * k2)
+  );
+}
+
+/**
+ * Where the Poisson sampler switches algorithm. Knuth's product of uniforms
+ * costs one uniform per unit of mean and its threshold e^(−μ) underflows
+ * long before this; the transformed rejection above it is constant-cost.
+ * Both are exact samplers, so the seam is a cost decision and not a
+ * distributional one — VALIDATION § 8a.4 measures both sides of it.
+ */
+export const POISSON_KNUTH_LIMIT = 30;
+
+/**
+ * One draw from a Poisson distribution of the given mean.
+ *
+ * The one random draw a camera makes: photon arrivals are Poisson, so a pixel
+ * that expects μ photons records this many, and the shot noise every real
+ * image carries is nothing but this draw applied per pixel (`imaging/noise`).
+ *
+ * Two exact samplers, chosen by the mean:
+ *
+ *  - **μ < 30 — Knuth.** Multiply uniforms until the product falls below
+ *    e^(−μ); the count of factors, less one, is Poisson(μ). Exact, and costs
+ *    ~μ uniforms.
+ *  - **μ ≥ 30 — PTRS** (Hörmann 1993, "The transformed rejection method for
+ *    generating Poisson random variables"). A rejection sampler under a
+ *    transformed hat with acceptance above 0.9 for all large μ; exact, and
+ *    constant cost. The constants are the published ones and the same ones
+ *    NumPy ships. The squeeze (`us ≥ 0.07 && v ≤ vr`) accepts most draws
+ *    without evaluating the log-factorial; the rest go through the exact test.
+ *
+ * A mean of exactly zero returns zero without touching the generator, so a
+ * dark pixel costs nothing and consumes no stream.
+ */
+export function poisson(mean: number, rng: Rng): number {
+  if (!(mean >= 0) || !Number.isFinite(mean)) {
+    throw new Error(`Poisson mean must be finite and non-negative, got ${mean}`);
+  }
+  if (mean === 0) return 0;
+  if (mean < POISSON_KNUTH_LIMIT) {
+    const limit = Math.exp(-mean);
+    let k = 0;
+    let product = 1;
+    do {
+      k++;
+      product *= rng.next();
+    } while (product > limit);
+    return k - 1;
+  }
+  const sqrtMean = Math.sqrt(mean);
+  const logMean = Math.log(mean);
+  const b = 0.931 + 2.53 * sqrtMean;
+  const a = -0.059 + 0.02483 * b;
+  const invAlpha = 1.1239 + 1.1328 / (b - 3.4);
+  const vr = 0.9277 - 3.6224 / (b - 2);
+  for (;;) {
+    const u = rng.next() - 0.5;
+    const v = rng.next();
+    const us = 0.5 - Math.abs(u);
+    const k = Math.floor(((2 * a) / us + b) * u + mean + 0.43);
+    if (us >= 0.07 && v <= vr) return k;
+    if (k < 0 || (us < 0.013 && v > us)) continue;
+    if (
+      Math.log(v) + Math.log(invAlpha) - Math.log(a / (us * us) + b) <=
+      -mean + k * logMean - logFactorial(k)
+    ) {
+      return k;
+    }
+  }
+}

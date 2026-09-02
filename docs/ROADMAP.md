@@ -355,9 +355,13 @@
    diagonal wall being 0.346° at f/10, and the refusal boundary now lands on
    § 2f's closed form to 4e-6.
    *Camera mode — relative exposure:* ✅ (§ 5s). `imaging/exposure`, pinned as
-   ratios because the absolute photon zero point is § 3a's deferral. **Shot noise
+   ratios because the absolute photon zero point is § 3a's deferral. ~~**Shot noise
    stays deferred** — it is a draw from an absolute photon count, which needs
-   that zero point.
+   that zero point.~~ **The zero point landed as § 8a** (step 8 below) and the
+   draw with it: `collectedPhotonRate` is § 5s's grasp times the AB zero point,
+   and `imaging/noise` is the Poisson draw. What is still not done is the
+   *frame* — the hero image with its noise in it — which is wiring and is
+   step 8's next item.
    *Still to come here — the transcribed patent members.* Commercial eyepiece and
    objective prescriptions are trade secrets, but **patents are public and contain
    full prescription tables** — the supply route for the wide-field members
@@ -532,8 +536,11 @@
    the wiring exists (`psf.ts` divides by `nImage`, read from the exit pupil's
    own index) and an oil-immersion microscope never exercises it, because the
    **oil is in object space** — where it enters through NA, which is carried —
-   while the tube lens forms the image in air. A non-unit image-space index
-   stays unpinned only because no system in the ladder has one.
+   while the tube lens forms the image in air. ~~A non-unit image-space index
+   stays unpinned only because no system in the ladder has one.~~ **It has one
+   now — § 2g**, the Cartesian ellipsoid, a single k = −1/n² surface whose image
+   sits in glass by construction; the wiring is pinned to the Airy ring in the
+   medium, 1/n the size the air formula gives.
    *Prerequisite:* **module composition** ✅ — landed as § 5l with the eyepiece
    library; this step consumes it unchanged. Design in ARCHITECTURE § Data model.
    *Architecture + the first objective:* ✅ `designs/microscope` (§ 6a). The chain
@@ -1750,6 +1757,29 @@
      branch's own run-to-run spread is larger than that — but that at weight 1
      the array being discarded is an FFT the criterion has just ruled is aliasing
      rather than diffraction.
+
+8. **The light budget** ← *opened 2026-09-02; the first step whose every
+   number is absolute.* Everything before it was a ratio: a blackbody
+   normalized to peak at 1, an exposure that was a cone over a cone, a noise
+   draw that could not be made because there was nothing to draw from.
+   *The zero point:* ✅ **§ 8a** — `photometry/magnitude`. AB = 0 is 3631 Jy by
+   definition (Oke & Gunn 1983), so the pin that reaches outside the engine is
+   Vega: the textbook 1000 photons·s⁻¹·cm⁻²·Å⁻¹ for a V = 0 star comes out at
+   996, inside the published 0.02 mag AB−Vega offset. The result worth carrying
+   is that **a band's photon count is a closed form in the magnitude alone**,
+   (f_ν/h)·ln(λ₂/λ₁), for any spectral shape — so no quadrature over a blackbody
+   decides how bright a star is, only where its photons fall.
+   *The draw:* ✅ **§ 8a** — `math/random`'s `poisson` (Knuth below 30, Hörmann's
+   PTRS above, both exact) and `imaging/noise`'s `shotNoise`, pinned as
+   variance = mean at six means across the seam and √N on a flat field.
+   *A magnitude through a pupil:* ✅ **§ 8a.6** — `collectedPhotonRate`, § 5s's
+   traced grasp times the zero point, with § 5s.5's refusals intact: a pupil
+   that is not an area has no photon rate.
+   *Next here, in order:* the **sky** in mag·arcsec⁻² through § 5r's plate
+   scale (a closed form, no new physics); the **noisy hero frame** (imaging and
+   app wiring on the route written on `imaging/noise`); the **limiting
+   magnitude** that falls out of the two. Extinction, filter curves and quantum
+   efficiency are declared multipliers and arrive as data, not as physics.
 
 ## v1 cut (both branches shipped)
 

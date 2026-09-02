@@ -28,6 +28,7 @@ whole ladder.
 | [2d](#step-2d--geometric-branch--blend-band) | Ray-histogram PSF, energy matched to the diffraction branch, smooth blend | `geometric` |
 | [2e](#step-2e--polychromatic-stacking) | Stacking on a common *physical* grid, not bin-for-bin | `polychromatic` |
 | [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
+| [2g](#step-2g--the-image-formed-in-a-medium-the-cartesian-ellipsoid) | The image-space index, exercised: a k = −1/n² surface is stigmatic to 1e-11 waves at NA 0.45, and its Airy ring in glass is 1/n the air formula's | `immersed-image` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -147,6 +148,7 @@ whole ladder.
 | [6cj](#step-6cj--the-field-seams-edge-is-the-maps-distortion) | § 6ci's `(cx/R)²` edge is the radial map's own distortion acting as a local Jacobian: coefficient `D`, radius 89 mm and not the scale's 150 | ✅ |
 | [6ck](#step-6ck--the-maps-coefficient-is-one-seidel-sum) | § 6cj's `D` is ΣS_V of the reversed prescription READ at one millimetre: the reading is `a + (2b − a²)r²` and 3e-4 low, and the radius follows NA because the normaliser is the aperture, not the surfaces | ✅ |
 | [6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic) | § 6ca.1's 0.7145/0.7332 is not an interaction: a matched field forces the guard share to be M/NA and the tile subtracts it, so 0.537 is four integers and balancing the share leaves 3.3e-4 | ✅ |
+| [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -3630,13 +3632,17 @@ the same pixel and leave the ring as deep as a monochromatic one.
   aperture, at which point the forced equality is *honestly* true by the
   spider's own argument and `blendPsf`'s arithmetic never changes. What had to
   be re-derived was the *evidence*, not the code — see § 2f.
-- **Immersion.** The dispersive media themselves are now **sourced and pinned**
+- ~~**Immersion.** The dispersive media themselves are now **sourced and pinned**
   (step 1 table: Daimon-Masumura water, Cargille Type B oil, Schott D263
   coverslip), closing the ROADMAP step-6 *data* prerequisite. What remains is the
   *wiring*: `pixelScaleMm` carries an image-space index factor that is identity
   for every system validated here, and the microscope branch's Abbe rung is what
   will pin it once an immersion objective places one of these media in image
-  space.
+  space.~~ **Closed at [§ 2g](#step-2g--the-image-formed-in-a-medium-the-cartesian-ellipsoid)**,
+  and not by the route this bullet named: no immersion objective ever put a
+  medium in image space (§ 6a explains why — the oil is in *object* space), so
+  the pin is a surface with a closed form instead, the Cartesian ellipsoid, whose
+  image sits in glass by construction.
 
 ## Step 2f — trace-level (partial) vignetting
 
@@ -3740,6 +3746,68 @@ handled by the same edge-averaging every other aperture edge gets, and carries
 the same O(Δ²) floor (§ 2b). Any loss counts — a stop, a TIR, a miss — because
 all three mean "no light here", which is what a pupil amplitude of zero says.
 
+## Step 2g — the image formed in a medium: the Cartesian ellipsoid
+
+Source: no engine change — a fixture the ladder did not have ·
+Tests: `packages/core/test/immersed-image.test.ts`
+
+Every system on the ladder before this one forms its image in air. § 2f and
+§ 6a both recorded the consequence: `imagePixelScaleMm` divides by the exit
+pupil's index, that factor had been the identity for every rung, and so the one
+place the image-space index enters the wave layer was wired and never
+exercised. The oil objective did not exercise it either, for the reason ROADMAP
+gives — the oil is in *object* space, where it enters through NA, while the
+tube lens forms the image in air. What was missing was a system whose image
+sits inside glass, held to a closed form.
+
+### The fixture is exact to all orders, which is what makes it a pin
+
+A single refracting surface between air and index n images a collimated beam
+to a perfect point when it is the Cartesian oval for that conjugate: an
+ellipsoid of eccentricity e = 1/n (Descartes), which in the engine's conic
+convention is **k = −1/n²**. The stigmatic point is the ellipse's far focus,
+a·(1 + e) from the vertex; with the vertex radius R = a·(1 − e²) that is
+R/(1 − e) = **n·R/(n − 1)**, the paraxial image distance of the surface, so the
+exact and the paraxial focus coincide at every aperture. Nothing in it is third
+order — Snell's law and a conic section — which puts it in the same class as
+§ 6c's plate: no truncation, no reference design, no other program.
+
+The image-space NA the fixture is sized to is n·h/f′ with f′ = n·R/(n − 1), so
+h = NA′·R/(n − 1). On N-BK7 at the d line (n = 1.5168, R = 20 mm) NA′ 0.45 is
+h = 17.41 mm, inside the ellipse's 26.60 mm semi-minor axis, and the traced
+marginal ray reads n·sin u′ = 0.4983 — a fast fixture, not a paraxial one
+wearing the label.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2g.1 — the paraxial image is n·R/(n − 1), and the exit pupil's index is n** | 58.699688 mm at the d line, to 1e-9; `pupils().exit.n` reads 1.5168 | ✅ |
+| **§ 2g.2 — the k = −1/n² surface is stigmatic at NA 0.45** | traced OPD over 313 rays: 8.4e-12 waves RMS and 2.4e-11 P–V against a 1e-5 bound; the spot at the far focus is 1.8e-15 mm RMS; the wavefront focus solve's shift from paraxial is exactly 0 | ✅ |
+| ...NEGATIVE CONTROL: the sphere of the same R is 330.7 waves RMS at that aperture | k = 0 | ✅ |
+| **§ 2g.3 — the Airy pattern inside the glass is 1.22·λ/(2·n·sin u′)** | 83.8% inside the first ring: 0.84698, 0.84235, 0.84022 at N = 64/128/256, Richardson 0.83808 — § 2b's sequence bit for bit, on a scale 1/n as long; the ring's error falls 13.2% → 0.96% from pad 4 to 16 | ✅ |
+| ...NEGATIVE CONTROL: the AIR formula's ring is 1.496× the measured one — the index, to 1.4% | 0.61·λ/sin u′ against 0.61·λ/(n·sin u′) | ✅ |
+
+### What the negative control's 1.4% is, so it is not read as a miss
+
+The air ring over the measured ring reads 1.4960 against n = 1.5168. Both parts
+of the gap are already on the ladder: the first-minimum measurement at pad 16
+is 0.96% high, inside § 2b's own 1.5% limit and shrinking with sampling, and
+n·sin u′ read off the traced marginal ray is 0.1004 against the paraxial 0.1
+the fixture was sized to — 0.42% of sine-condition departure. The alternative
+the control excludes, a pixel scale that forgot the index, is 34% away, so the
+rung's 2.5% band separates the two by a factor of ten.
+
+### What is not pinned to an external number
+
+The encircled-energy sequence is *identical* to § 2b's, and that is the finding
+rather than a weakness: the pupil is a disc in both, so the transform is the
+same array, and the whole content of this step is the **scale** it is drawn at.
+Dispersion is not in it — the ellipse is stigmatic at the wavelength its
+eccentricity was cut for and merely a conic at any other — so the step is
+monochromatic at the d line by construction, not by choice. What it does not
+reach is an immersed image plane *behind an objective*, where the index would
+enter twice (§ 6e's front, and a back the ladder still has no design for); that
+is a design, and it is listed in `docs/OPEN-PROBLEMS.md`.
+
 ## Step 3a — the standard observer and thermal sources
 
 The layer that makes the hero image *visible*. Purple fringing is not new
@@ -3806,11 +3874,15 @@ tolerance is 10⁻³ — set by the standard's own four-decimal matrices, which 
 not exact inverses and put white itself 5·10⁻⁵ above 1.
 
 ### Not yet pinned
-- **Star magnitude → photon flux.** Deliberately absent rather than
+- ~~**Star magnitude → photon flux.** Deliberately absent rather than
   approximated: zero points, band passes and aperture area are a separate
   calculation, and an unpinned plausible number in front of the user is worse
   than none. `blackbodySpectrum` is normalized to peak at 1 and is *relative*
-  shape only.
+  shape only.~~ **Closed at
+  [§ 8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes)**, on
+  the AB definition rather than a Vega table, and `blackbodySpectrum` stays
+  relative: § 8a's `photonSamples` takes it as a *shape* and puts the level in
+  from the magnitude.
 
 ## Step 3b — the hero image: colour out of chromatic aberration
 
@@ -6185,8 +6257,11 @@ made about them are that one column is FLAT and the other is not, and that a
 refusal fires at six wavelengths rather than one. The sign fix is a definition
 (an NA is n·sin u, a magnitude), not a measurement.
 
-Shot noise remains the named deferral: it is a draw from an absolute photon
-count, and there is no honest count until the § 3a zero point lands.
+~~Shot noise remains the named deferral: it is a draw from an absolute photon
+count, and there is no honest count until the § 3a zero point lands.~~ **Landed
+at [§ 8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes)**:
+the count is `collectedPhotonRate`, § 5s's own `pointSourceCollection` times the
+zero point, and the draw is `imaging/noise`.
 
 ### Still open — the audit this step did and did not act on
 
@@ -6963,13 +7038,17 @@ explicitly because § 1's D263 commit had to fix exactly this class of thing
   conjugate pair, so it is mostly a question of which orientation the § 6a.1
   argument picks for it. Listed here because it is the item most likely to be
   silently dropped.
-- **`pixelScaleMm`'s image-space index.** The ROADMAP § 1 note lists this as the
+- ~~**`pixelScaleMm`'s image-space index.** The ROADMAP § 1 note lists this as the
   immersion wiring left over. It is **not** what this step pins and no rung here
   pretends to: an infinity-corrected microscope forms its final image in **air**,
   so n_image = 1. The oil enters through Snell at the first surface, through OPD
   (path = n × length), and chromatically through its dispersion — i.e. through
   **NA**, not through the image grid. The wiring rung stays open for a
-  configuration whose image is itself immersed.
+  configuration whose image is itself immersed.~~ **Closed at
+  [§ 2g](#step-2g--the-image-formed-in-a-medium-the-cartesian-ellipsoid)** — the
+  configuration is a single k = −1/n² surface, not a microscope; the diagnosis
+  above (the index enters through NA, never through the grid, on every
+  microscope in the ladder) stands.
 - ~~**`objectNA`'s aperture seed is wrong at high NA.**~~ ✅ **closed at § 1.5.1**,
   and the diagnosis here was right in every part except which unit would close
   it. `resolveStopRadius`'s `objectNA` branch computed
@@ -25828,6 +25907,100 @@ across § 6ca's own two guard ends that derivative moves **14%**, 0.6729 to
   replacement, and why a coarser pupil puts light outside the box (§ 6cc.2) is
   still a sampling question nobody has asked.
 
+## Step 8a — the photon zero point, and the one draw a camera makes
+
+Source: `photometry/magnitude.ts`, `math/random.ts` (`poisson`),
+`imaging/noise.ts`, `imaging/exposure.ts` (`collectedPhotonRate`) ·
+Tests: `packages/core/test/photon-zero-point.test.ts`
+
+Three named deferrals close here and they were one deferral: § 3a's
+"star magnitude → photon flux", § 5s's exposure that stopped at a ratio, and
+ROADMAP's shot noise that "stays deferred — a draw from an absolute photon
+count". Nothing absolute could be shown until a magnitude was a rate. This is
+the first step whose every number is absolute, and it opens ROADMAP's step 8.
+
+### The zero point is a definition, and the rung that reaches outside is Vega
+
+The AB system (Oke & Gunn 1983) defines m_AB = 0 as f_ν = 3631 Jy at every
+frequency. There is no table in that; it can be checked against nothing because
+it *is* the definition, and it is the one the engine carries for exactly that
+reason (the Vega system is a measured spectrum of one star, and its colour
+terms are a table the hard rule forbids transcribing). What can be checked is
+what it implies. Every observing handbook says a V = 0 star delivers about
+1000 photons·s⁻¹·cm⁻²·Å⁻¹ near 550 nm, from Bessell's (1998) Vega zero point
+f_λ = 3.63·10⁻⁹ erg·s⁻¹·cm⁻²·Å⁻¹; the AB definition has to reproduce that to
+within the published AB−Vega offset in V, 0.02 mag (Blanton & Roweis 2007).
+It reads **996.34**, 0.4% under, and Bessell's f_λ sits between AB's values at
+545 nm (3.665·10⁻⁹) and 550 nm (3.599·10⁻⁹), within 0.02 mag of either.
+
+### The band's photon count is a closed form, and the spectral shape cancels
+
+A photon carries hc/λ and f_λ = f_ν·c/λ², so the photon rate per wavelength is
+f_ν/(h·λ) and the count through a top-hat band is (1/h)∫ f_ν dλ/λ. The
+broadband AB magnitude of a *non-flat* spectrum through a photon-counting
+bandpass (Fukugita et al. 1996) is defined with the same dλ/λ weight, so the
+same integral appears in the magnitude and in the count, and eliminating it:
+
+    N = (3631 Jy / h) · 10^(−0.4·m_AB) · ln(λ₂/λ₁)        photons·s⁻¹·m⁻²
+
+for **any** spectral shape. The shape decides where the photons fall across
+the band and nothing about how many there are — which is why `photonSamples`
+takes `blackbodySpectrum` as a shape and never asks it for a level, and why no
+quadrature over a blackbody is needed to say how bright a star is. Over
+500–600 nm at m_AB = 0 that is 9.991·10⁹ photons·s⁻¹·m⁻², and a 9600 K and a
+3600 K star at that magnitude split it oppositely (the hot star's nine weights
+fall 1.206·10⁹ → 1.014·10⁹ across the band, the cool star's rise
+8.20·10⁸ → 1.40·10⁹) and sum to the same number to twelve digits.
+
+### The draw
+
+Photon arrivals are Poisson, so shot noise is Poisson(μ) per pixel with no
+parameter, and its law is that the variance equals the mean. `poisson` is two
+exact samplers — Knuth's product of uniforms below a mean of 30, Hörmann's
+(1993) transformed rejection above it, the published constants — and the law
+is pinned at six means straddling that seam and two decades either side, at
+five standard errors of 10⁵ draws, so any seed passes and the seed is a
+reproducibility device rather than a tuned number. On a rendered flat field it
+is the √N signal-to-noise: four times the light is twice the SNR, to 1%.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 8a.1 — m_AB = 0 is 3631 Jy; five magnitudes are 100×, one is 10^0.4** | Oke & Gunn 1983; Pogson 1856 | ✅ |
+| **§ 8a.2 — a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm, inside 0.02 mag of the textbook 1000** | Bessell 1998 Vega zero point; Blanton & Roweis 2007 offset | ✅ |
+| ...and Bessell's f_λ = 3.631·10⁻⁹ is bracketed by AB's 545 and 550 nm values | f_λ = f_ν·c/λ² | ✅ |
+| **§ 8a.3 — N = (f_ν/h)·ln(λ₂/λ₁): 9.991·10⁹ over 500–600 nm, and a quadrature of ṅ(λ) agrees to 1e-7** | closed form | ✅ |
+| ...a 9600 K and a 3600 K star at one magnitude deliver the same count, distributed oppositely | the dλ/λ weight is common to magnitude and count | ✅ |
+| ...the AB reference itself gives weights ∝ ln(λ_{i+1}/λ_i), to 1e-6 | f_ν flat ⇒ ṅ ∝ 1/λ | ✅ |
+| **§ 8a.4 — Poisson: mean = μ and variance = μ at μ = 0.5, 7, 29.9, 30.1, 250, 5000; P(0) = e^(−μ)** | Poisson's law, five standard errors of 10⁵ draws | ✅ |
+| **§ 8a.5 — shot noise on a flat field: SNR = √N, four times the light is twice the SNR to 1%** | Poisson statistics | ✅ |
+| § 8a.6 — m_AB = 0 through the hero refractor's 10 mm pupil is 7.847·10⁵ photons/s over 500–600 nm | *bookkeeping*: π·r² on a front stop, as § 5s.3 | ✅ |
+
+### What is not pinned to an external number
+
+§ 8a.6 is bookkeeping in § 5s.3's exact sense: the hero's stop is its front
+surface, so the pupil is the declared one and the multiplication is checkable
+by hand. What is new there is only that it is the engine's first absolute
+count. Atmospheric extinction, a filter curve that is not a top hat, and the
+detector's quantum efficiency are multipliers a caller applies and none is
+modelled; the Vega colour terms stay out. The draw is a primitive on a
+`Float64Array` of expectations, not yet a noisy hero frame: the route from a
+`SpectralStack` to an expectation is written on `imaging/noise` (intensity over
+the PSF's `energy`, times the sample's photon weight, times the grasp, times
+seconds) and it is app and imaging wiring, listed as such in
+`docs/OPEN-PROBLEMS.md` with the sky background that has to arrive beside it.
+
+**Still open.**
+
+- **The sky.** A background in mag·arcsec⁻² is this zero point times a pixel's
+  solid angle, which § 5r's plate scale already carries — a closed form with
+  no new physics, and the thing a limiting-magnitude readout needs.
+- **The noisy frame**, per the route above, and the limiting magnitude that
+  falls out of it once the sky is there.
+- **A pupil that is not an area** refuses here exactly as at § 5s.5, so the
+  telecentric microscope objectives have no photon rate; a fluorophore's
+  brightness is a different zero point (molecular brightness × excitation
+  irradiance) and stays where § 6i left it.
+
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
@@ -25840,8 +26013,12 @@ across § 6ca's own two guard ends that derivative moves **14%**, 0.6729 to
   ray analog and never will — and it needs rays that start at a transmittance
   rather than at a field point, which `exitBundle` does not do. § 6f.9 pins the
   verdict that refuses in the meantime.
-- Photometry: star magnitude → photon flux through aperture vs published
-  zero points.
+- ~~Photometry: star magnitude → photon flux through aperture vs published
+  zero points.~~ **Claimed at
+  [§ 8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes)**, and
+  the "published zero point" turned out to be the wrong thing to want: the AB
+  zero point is a *definition* (3631 Jy), the Vega one a measured spectrum, and
+  the rung that reaches outside the engine is the 0.02 mag between them.
 - ~~**§ 6r — polychromatic brightfield.**~~ **Claimed**, and with it the whole
   Part D line: [§ 6m](#step-6m--the-off-axis-frame),
   [§ 6n](#step-6n--the-warped-grid-rasterizer),

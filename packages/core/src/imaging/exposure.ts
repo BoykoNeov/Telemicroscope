@@ -4,6 +4,7 @@ import { OpticalSystem } from "../trace/system";
 import { traceRay } from "../trace/sequential";
 import { marginalRay } from "../pupil/aiming";
 import { pupils } from "../pupil/pupils";
+import { PassBand, photonFluxAB } from "../photometry/magnitude";
 
 /**
  * Camera mode, part 2: relative exposure.
@@ -150,4 +151,32 @@ export function pointSourceCollection(system: OpticalSystem, wavelengthNm: numbe
  */
 export function exposureScale(illuminance: number, exposure: CameraExposure): number {
   return illuminance * exposure.seconds * (exposure.gain ?? 1);
+}
+
+/**
+ * Photons per second a point source of AB magnitude `magnitudeAB` delivers
+ * through the system's ENTRANCE PUPIL, in a top-hat band.
+ *
+ * The first absolute number in this module, and it is two validated things
+ * multiplied: the photon flux of the magnitude (`photonFluxAB`, § 8a — a
+ * closed form on the AB definition) and the traced entrance-pupil area
+ * (`pointSourceCollection`, § 5s — with all of its refusals, which apply here
+ * unchanged: a pupil that is not an area has no photon rate either). Nothing
+ * about the optics' transmission is in it: what the pupil admits and what the
+ * image receives differ by the Fresnel losses the PSF already carries as its
+ * `energy`, so the number to draw shot noise from is this rate times the
+ * exposure times each pixel's share of that energy (`imaging/noise`).
+ *
+ * `wavelengthNm` is the wavelength the pupil is READ at, not a bandpass — a
+ * pupil's radius is (weakly) chromatic through the surfaces in front of the
+ * stop, and the caller says which colour's pupil is the area.
+ */
+export function collectedPhotonRate(
+  system: OpticalSystem,
+  wavelengthNm: number,
+  magnitudeAB: number,
+  band: PassBand,
+): number {
+  const areaMm2 = pointSourceCollection(system, wavelengthNm);
+  return photonFluxAB(magnitudeAB, band) * areaMm2 * 1e-6;
 }
