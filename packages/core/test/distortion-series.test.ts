@@ -440,23 +440,35 @@ describe("§ 6cn.5 — on § 6ck's objective, and what its `b` turns out to be",
       // fifth-order distortion — the coefficient and the reading are two
       // different quantities, which is the reverse of § 6ck.0's finding about
       // `a` and the same lesson.
+      //
+      // The residue inside this 0.2 — 3.0e-2 on the 10x/0.1, 1.7e-4 on the
+      // 10x/0.2 — is the same reading plane § 6co attributes the cube's shift
+      // to. Read at the specimen plane the trace gives the real-aimed quartic
+      // to 2.6e-6 (§ 6co.1), so `B` here is the glass's quartic seen from the
+      // module's own conjugate and not from the mosaic's image plane.
       expect(Math.abs(B / bReal! - 1)).toBeLessThan(0.2);
     }
   });
 
-  it("and the aiming that rewrites the quartic barely moves the cube", () => {
+  it("and the aiming that rewrites the quartic moves the cube by the DEFOCUS", () => {
     for (const c of CELLS) {
       const [aParaxial] = mapSeries(c, LENS);
       const [aReal] = mapSeries(c, REAL);
       const shift = Math.abs(aReal! / aParaxial! - 1);
-      // Measured between 3.6e-4 and 2.9e-3 across the four cells. The claim is
-      // the SEPARATION and not either number: the quartic moves by more than a
-      // factor (above), the cube by parts in a thousand. Why the cube moves at
-      // all is unattributed — it is not the aiming solve's tolerance, which is
-      // 1e-12 of the stop radius — so the bounds are wide on both sides and
-      // this rung is not a pin on the shift's size.
-      expect(shift).toBeGreaterThan(5e-5);
-      expect(shift).toBeLessThan(0.05);
+      // 3.62e-4 to 2.86e-3 across the four cells, and the separation is the
+      // claim: the quartic moves by more than a factor (above), the cube by
+      // parts in a thousand.
+      //
+      // § 6co attributes the cube's share, which this rung recorded as
+      // unexplained: it is not the ray at all. The module reports the map
+      // between the reversed system's own paraxial CONJUGATE planes, these
+      // objectives are focused 2.3% to 4.2% away from that conjugate, and the
+      // same exact trace read at the specimen plane instead lands on the
+      // real-aimed cube to 8e-11. The shift is proportional to the defocus and
+      // vanishes with it (§ 6co.2), so the bounds here are now the measured
+      // range rather than a shrug.
+      expect(shift).toBeGreaterThan(3e-4);
+      expect(shift).toBeLessThan(3.5e-3);
     }
   });
 });

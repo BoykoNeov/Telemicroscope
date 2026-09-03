@@ -175,7 +175,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     statistic into a physical one. What it unblocks is a *blur* the ray branch
     can be pinned on, and not only a centroid.
 
-15. **The distortion map has two chief rays, and the ladder traced the other
+15. ~~**The distortion map has two chief rays, and the ladder traced the other
     one.** Found at § 6cn while closing 6. `pupil/aiming`'s `chiefRay` targets
     `pupil.entrance.z` — the PARAXIAL entrance pupil — and solves the ray onto
     the actual stop only when a system asks for real ray aiming, which none of
@@ -199,7 +199,26 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     as § 6ch.1's `(f/f_d)²`, and nobody has separated the reversal's residue
     from the aiming's. *Candidate:* trace the forward microscope's chief ray
     under both aiming modes at one field point and read where each crosses the
-    diaphragm — one number decides whether the 3e-3 is the ray or the plane.
+    diaphragm — one number decides whether the 3e-3 is the ray or the plane.~~
+
+    ✅ **CLOSED at [§ 6co](VALIDATION.md#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray).**
+    The candidate above is not what decided it — it could not have. Real aiming
+    drives the chief ray's stop miss to 1e-12 of the stop radius *by
+    construction*, so reading the crossing reports the solver, not the map. The
+    **refocus sweep** decided it. `distortionSeries` reports the map between the
+    reversed system's own paraxial CONJUGATE planes; these objectives are focused
+    2.3% to 4.2% away from that conjugate, so the plane it reads at misses the
+    specimen by 2.0e-3 to 3.3e-2 mm, and the object-space chief ray's long lever
+    (2.9–6.0 m) turns that into exactly the offset measured between the two maps
+    (`dz/L` = 5.5437e-6 against 5.5436e-6). Read the SAME exact trace at the
+    specimen plane and the fitted cube lands on the real-aimed one to 8e-11 and
+    the quartic to 2.6e-6. Walk the image plane to the paraxial conjugate and the
+    shift is proportional to the defocus and gone at it, while the QUARTIC's
+    discrepancy survives — so the cube was the plane, the quartic is the ray, and
+    § 6cn.5's finding stands. The engine's answer to "which ray is the chief ray"
+    is unchanged: the stop-centre ray, which `rayAiming: "real"` gives, and which
+    an independent machinery now agrees with to 8e-11 once read at the right
+    plane. The 1.4e-8 that made the two look like one is the fit's floor.
 
 ## B. Blocked on data, not on code
 
@@ -250,7 +269,9 @@ step:
   keeps the quartic from masquerading as the cube). It pinned outside the fixture
   and then said something about the fixture: **§ 6ck's fitted `b` was the chief
   ray's AIMING**, +2.5983e-8 against the computed −9.3888e-10, and real ray
-  aiming moves the fit onto the coefficient. What it left open is below (item 15).
+  aiming moves the fit onto the coefficient. What it left open (item 15) is now
+  closed at [§ 6co](VALIDATION.md#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray):
+  the cube's unexplained 2.9e-3 was the plane the module reads at, not the ray.
 - **A frame that is not a power of two.** § 6bo: § 6bn's first interval
   (4× → 10×) "wants a non-integer `pupilSamples` at every power-of-two size"
   and "would be an engine change". Without it, whether any of the six

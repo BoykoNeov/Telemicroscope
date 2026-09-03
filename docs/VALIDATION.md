@@ -150,6 +150,7 @@ whole ladder.
 | [6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic) | § 6ca.1's 0.7145/0.7332 is not an interaction: a matched field forces the guard share to be M/NA and the tile subtracts it, so 0.537 is four integers and balancing the share leaves 3.3e-4 | ✅ |
 | [6cm](#step-6cm--the-stop-shift-becomes-the-engines) | The chief ray through a displaced stop is a linear solve, not a search: Welford's S_II*, S_III*, S_V* over 13× in E, S_I and S_IV invariant to the BIT, § 6ae's −70.7001 the engine's | ✅ |
 | [6cn](#step-6cn--the-maps-quartic-computed-rather-than-fitted) | A chief-ray trace carried in power series, not Buchdahl transcribed: two closed forms to 5e-14, ΣS_V its cube — and § 6ck's fitted `b` is the ray AIMING, +2.6e-8 vs −9.4e-10 | ✅ |
+| [6co](#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray) | § 6cn.5's unexplained 2.9e-3 is the PLANE: the module reads at its own conjugate, these sit 2.3–4.2% off theirs, and the shift is linear in that defocus and zero at it | ✅ |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 
@@ -26351,13 +26352,16 @@ construction the real ray misses by an amount that is itself an aberration.
 Re-measure the same map, with the same fit, on the same systems with
 `rayAiming: "real"` and the fitted quartic lands on the module's: −9.1066e-10
 against −9.3888e-10 on the 10×/0.1, and 1.7e-4 and 6.6e-4 away on the two fast
-cells (§ 6cn.5).
+cells (§ 6cn.5). The 3% left over on that first cell is the reading plane and
+not the glass — § 6co reads the same trace at the specimen plane and gets the
+fitted −9.1066e-10 back to 2.6e-6, so −9.3888e-10 is this quartic seen from the
+module's own conjugate.
 
 So § 6ck's "measured here and named nowhere" closes twice over: the quartic now
 has a name and a prescription-only value, and the number § 6ck was calling `b`
 was a reading of the aiming approximation.
 
-**What is not explained is the cube.** The same switch moves it by 3.6e-4 to
+~~**What is not explained is the cube.** The same switch moves it by 3.6e-4 to
 2.9e-3 — a separation worth stating (the quartic moves by a factor and a sign,
 the cube by parts in a thousand) but not a mechanism. It cannot be the aiming
 solve's own tolerance, which is 1e-12 of the stop radius. And it sits awkwardly
@@ -26367,7 +26371,15 @@ beside the rest of this step: if the module's ray IS the stop-centre ray, and
 aiming does, and it agrees five orders worse. Something separates the reversed
 objective from the forward microscope at the 1e-6 level — the same size as
 § 6ch.1's `(f/f_d)²` and as the 5e-6 magnification residue below — and nobody
-has taken it apart. That is register item 15, not a result.
+has taken it apart. That is register item 15, not a result.~~ ✅ **closed at
+[§ 6co](#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray)** —
+it is not the ray. The module reports the map between the reversed system's own
+paraxial CONJUGATE planes, and these objectives are focused 2.3% to 4.2% away
+from that conjugate, so the plane it reads at misses the specimen by up to
+0.033 mm. The same exact trace read at the specimen plane gives the real-aimed
+cube to 8e-11; the shift is proportional to the defocus and vanishes at it. The
+paragraph's own instinct — that real aiming should agree BETTER — was right, and
+the number it was compared against was the one at the wrong plane.
 
 That is not a defect in the mosaic. Paraxial aiming is what every rung from
 § 6bk onward has traced with, the frames it produces are the frames the ladder
@@ -26398,14 +26410,141 @@ than to the glass.
   root of the intersection and the unfolded −z convention, an asphere a
   different sag — and neither is pinned, so neither is offered. Every reflector
   on this ladder is therefore outside this module.
-- **The reversal is not exact.** The reversed objective's magnification differs
+- ~~**The reversal is not exact.** The reversed objective's magnification differs
   from the forward traced map's by 5e-6 to 9e-7 across the four cells, which is
   the same size as § 6ch.1's `(f/f_d)²` and is why the cube pins at 1.4e-8 and
   not at the trace's own 5e-12. Whether that residue is the image plane, the
-  reversal, or the aiming again is unmeasured.
+  reversal, or the aiming again is unmeasured.~~ ✅ **measured at
+  [§ 6co](#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray)**
+  — it is **the image plane**, and the reversal itself is exact. The residue is
+  `dz/L`, the reading plane's offset over the object-space chief ray's lever:
+  3.3408e-2/6026.4 = 5.5437e-6 against 5.5436e-6 measured on the 10×/0.1, and
+  the same on the other three. The 1.4e-8 the cube pins at is separately shown
+  to be the FIT's floor rather than a residue (§ 6co.3).
 - **`b` inherits § 6ck's monochromatic bullet.** Everything here is at the
   ruler's 430 nm for the objective cells, and the quartic is a function of index
   exactly as the cube is.
+
+## Step 6co — the map's cube moved by the reading plane, not by the ray
+
+`Source: measurement only — no engine change.`
+
+**The hypothesis.** § 6cn.5 measured what switching `rayAiming` to `"real"` does
+to § 6ck's fitted map: the quartic lands on the module's computed one, and the
+cube moves by 3.6e-4 to 2.9e-3. It recorded the second as unexplained, and said
+why it was awkward — "if the module's ray IS the stop-centre ray, and § 6cn.5
+shows it reproducing the exact trace on the reversed prescription to 5e-12, then
+real aiming should agree with it BETTER at third order than paraxial aiming
+does, and it agrees five orders worse." The hypothesis tested here is that the
+2.9e-3 is **the plane the module reads its answer at, and not the ray it
+traces**: `distortionSeries` reports the map between the reversed system's own
+paraxial CONJUGATE planes, while the forward map is measured between the
+specimen and the system's DECLARED image plane, and these objectives are focused
+2.3% to 4.2% away from that conjugate.
+
+**The number that would refute it.** Take the same exact reversed trace the
+module is already pinned against and read it at the true specimen plane instead
+of at the module's. If the shift belongs to the ray, moving the reading plane
+cannot touch it and the fitted cube stays 2.9e-3 away from the real-aimed one.
+
+### The register's own candidate could not have decided it
+
+Item 15 proposed tracing the chief ray under both aiming modes and reading where
+each crosses the diaphragm. That measurement is a tautology and the step opens by
+saying so: `solveOntoStop` drives the chief ray's stop miss to 1e-12 of the stop
+radius **by construction**, so "real aiming lands on the stop centre" reports the
+solver, not the map. It is measured anyway (§ 6co.0), because the other half is
+the scale everything below is read against: aimed at the paraxial entrance pupil
+instead, the chief ray misses the diaphragm centre by 6.5e-6 to 1.55e-5 mm.
+
+Three other candidates die first, and cheaply. The pupil geometry is bitwise
+identical under the two aiming modes, so nothing upstream is contaminated. The
+magnification the fit normalises by is **bitwise equal** between them — the
+aiming error is third order in field and the probe is at 1e-5 mm — so the shift
+is not the `mu` probe. And it is stable to five figures as that probe sweeps
+1e-6 to 1e-4, and to seven figures as the fit radii sweep 32:1, so it is not the
+fit's conditioning either.
+
+### The plane is 0.033 mm away, and that is the whole of it
+
+The reversed system's paraxial image plane does not land on the specimen. It
+misses by 2.0e-3 to 3.3e-2 mm across the four cells, for a reason that is visible
+without tracing anything: the objective's declared image distance is not the
+paraxial conjugate of its declared object distance — 150.263 declared against
+153.664 conjugate on the 10×/0.1, a 2.3% defocus, and 4.2% on the 20×/0.1.
+
+The object-space chief ray leans on a long lever — the entrance pupil is 2.9 to
+6.0 metres away — so a plane displaced by `dz` changes the height read there by
+`dz/L` per unit height. On the 10×/0.1 that is 3.3408e-2/6026.4 = **5.5437e-6**,
+and the constant relative offset measured between the module's map and the
+forward one is **5.5436e-6** (§ 6co.1). Four cells, four levers, four agreements
+to 1e-4.
+
+That constant part is absorbed by the fit's own magnification. What is not
+absorbed is its field dependence, and that is the shift: read the same exact
+trace at the **specimen** plane and the fitted cube lands on the real-aimed one
+to **8e-11**, and the quartic to 2.6e-6. Read it at the **module's** plane and it
+is the module's series (1.5e-8) and the PARAXIAL-aimed cube (1e-9) instead. One
+trace, one fit, two planes, both numbers § 6cn.5 could not separate.
+
+### The refocus sweep, which makes it a mechanism rather than an attribution
+
+Walking the declared image plane to the paraxial conjugate in quarters, with the
+glass and the specimen and the fit held fixed, the shift is **proportional to the
+defocus**: `(a_par/a_real − 1)/(dz/L)` is 517.0, 479.7, 550.1 and 529.9 on the
+four cells, each flat to 1e-3 over a 4:1 range of defocus. At the conjugate it is
+gone — the two aiming modes agree to 8.7e-10 and the module to 1.5e-8.
+
+That zero is the physical content. Where the object plane images, every ray from
+an object point lands on one image point, so WHICH chief ray was picked cannot
+move the map at leading order; defocus, and the angular difference between the
+two rays becomes a transverse one proportional to the defocus. The module's own
+error is the same defocus seen from the object side. The two errors § 6cn.5 could
+not tell apart were never two: `a_par/A − 1` is −1.38e-8 at every point of the
+sweep, and § 6co.3 shows that number is the **fit's** floor and not a residue —
+shrink the fit radii 4× and it degrades to −2.1e-7, taking the same value on all
+four cells, while the physical shift does not move in the seventh digit.
+
+### What this does and does not overturn
+
+§ 6cn.5's finding about the quartic **stands, and the sweep sharpens it**: at the
+paraxial conjugate, where the cube's discrepancy is gone, the paraxially fitted
+quartic is still +2.358e-8 against −8.327e-10. It does not scale with the
+defocus, because it is not the defocus. The two halves separate cleanly — **the
+cube was the plane, the quartic is the ray.**
+
+What changes is a reading. § 6cn.5's "the cube lands and needs no correction"
+compared the module's `A` against the map as § 6ck measured it, with rays aimed
+at the paraxial entrance pupil, and got 1.4e-8. That agreement is now understood
+to be between two carriers of the same defocus error rather than evidence that
+the module reproduces the mosaic's map: against the real-aimed map the module is
+2.87e-3 away, all of it the plane. The same correction applies to the quartic's
+own quoted value — `B` = −9.3888e-10 is the glass's quartic read at the module's
+conjugate; at the specimen plane it is −9.1066e-10.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6co.0 — the candidate the register named** | real aiming's chief ray is on the stop centre to 1e-11 mm BY CONSTRUCTION, so it decides nothing; the paraxial one misses by 6.5e-6 to 1.55e-5 mm, which is the scale the rest is read against | ✅ |
+| **§ 6co.1 — the module's plane is not the specimen's** | 2.0e-3 to 3.3e-2 mm off, from a 2.3–4.2% defocus; `dz/L` IS the offset between the maps to 1e-4; the same trace read at the specimen plane gives the real-aimed cube to 8e-11 and quartic to 2.6e-6, at the module's plane the paraxial-aimed cube to 1e-9 | ✅ |
+| **§ 6co.2 — the refocus sweep** | the shift is proportional to the defocus — 517.0/479.7/550.1/529.9, flat to 1e-3 over 4:1 — and vanishes at the paraxial conjugate, where the two aimings agree to 8.7e-10; the QUARTIC survives it, still a factor away | ✅ |
+| **§ 6co.3 — which number is a floor** | `a_par` against the module degrades 15× as the fit radii shrink 4× and takes the same value on all four cells, so the 1.4e-8 is the fit's resolution; the physical shift is unmoved in the seventh digit | ✅ |
+
+**Still open.**
+
+- **The object-side/image-side identity is measured, not derived.** The module's
+  error is a defocus times a lean read at the object, the aiming's is a defocus
+  times an angle read at the image, and the two agree to the fit's floor over a
+  4:1 defocus range on four cells. That they must cancel exactly — the
+  longitudinal-magnification bookkeeping between `dz`/`L` and the image-side
+  pair — is not written down here, and this step claims only what it measured.
+- **`distortionSeries` still reports at its own conjugate.** A caller who wants
+  the map at a named plane re-derives it from the exact trace, as this step does.
+  An option naming the reading distance from the last vertex would remove that,
+  and would be pinnable in closed form on § 6cn.0's single refractor, whose image
+  space is a straight run — but it is a convenience, not a capability the chain
+  above needs, and it is not taken here.
+- **One wavelength.** Everything is at the ruler's 430 nm, inheriting § 6ck's
+  monochromatic bullet exactly as § 6cn does.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

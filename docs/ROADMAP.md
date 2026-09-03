@@ -15,9 +15,13 @@ deflects rays by the screen's gradient, pinned to Fried's G-tilt coefficient
 stop-shift equations, at § 6cm. Fifth-order distortion (C) landed at § 6cn —
 the map's quartic is now computed from the prescription rather than fitted, and
 the fit it replaces turned out to be measuring the tracer's chief-ray aiming.
-The next unstruck entry is Hopkins' TCC (D), with the register's items 14 (the
-ray blur's missing inner scale) and 15 (which ray the engine should mean by "the
-chief ray") opened alongside it.
+§ 6co then closed the one thing § 6cn left unexplained, and register item 15
+with it: the 2.9e-3 the cube moved by was the PLANE the series module reads its
+answer at, not the ray it traces — these objectives sit 2.3% to 4.2% off their
+paraxial conjugate, the shift is proportional to that defocus and vanishes at
+it, and the quartic's discrepancy survives the refocus, so the cube was the
+plane and the quartic is the ray. The next unstruck entry is Hopkins' TCC (D),
+with the register's item 14 (the ray blur's missing inner scale) still open.
 
 ## Build order
 
