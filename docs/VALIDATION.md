@@ -25975,6 +25975,11 @@ is the √N signal-to-noise: four times the light is twice the SNR, to 1%.
 | **§ 8a.4 — Poisson: mean = μ and variance = μ at μ = 0.5, 7, 29.9, 30.1, 250, 5000; P(0) = e^(−μ)** | Poisson's law, five standard errors of 10⁵ draws | ✅ |
 | **§ 8a.5 — shot noise on a flat field: SNR = √N, four times the light is twice the SNR to 1%** | Poisson statistics | ✅ |
 | § 8a.6 — m_AB = 0 through the hero refractor's 10 mm pupil is 7.847·10⁵ photons/s over 500–600 nm | *bookkeeping*: π·r² on a front stop, as § 5s.3 | ✅ |
+| **§ 8a.7 — the photon denominator is the CLEAR aperture: the Newtonian's secondary costs 1 − ε² on it and NOTHING on the plane's own energy** | 1 − ε² = 0.977387, measured 0.977462 | ✅ |
+| **§ 8a.8 — an absolute frame: m = 10 admits 240.8519 photons/s through the hero pupil over 400–700 nm** | § 8a.6 × ln(700/400)/ln(600/500) = 3.069389 | ✅ |
+| § 8a.9 — the draw restores the render exactly when divided back, in intensity and in colour, and counts to √N | same-process identity; Poisson | ✅ |
+| § 8a.10 — a magnitude quoted over a different band from the render's refuses, as does a pupil that is not an area | § 5s.5, propagated | ✅ |
+| **§ 8a.11 — a finding: a PSF conserves energy to the bit and `spectralStack`'s resampling of it does not (+0.3% to +3.0%), while `truncatedFraction` reports 0** | Σ intensity ≡ energy | ⚠️ open |
 
 ### What is not pinned to an external number
 
@@ -25983,20 +25988,85 @@ surface, so the pupil is the declared one and the multiplication is checkable
 by hand. What is new there is only that it is the engine's first absolute
 count. Atmospheric extinction, a filter curve that is not a top hat, and the
 detector's quantum efficiency are multipliers a caller applies and none is
-modelled; the Vega colour terms stay out. The draw is a primitive on a
-`Float64Array` of expectations, not yet a noisy hero frame: the route from a
-`SpectralStack` to an expectation is written on `imaging/noise` (intensity over
-the PSF's `energy`, times the sample's photon weight, times the grasp, times
-seconds) and it is app and imaging wiring, listed as such in
-`docs/OPEN-PROBLEMS.md` with the sky background that has to arrive beside it.
+modelled; the Vega colour terms stay out. ~~The draw is a primitive on a
+`Float64Array` of expectations, not yet a noisy hero frame~~ — closed below.
+
+### § 8a.7–§ 8a.11 — walking the route, and the one thing wrong with it
+
+The route this step wrote on `imaging/noise` — intensity over the PSF's
+`energy`, times the sample's photon weight, times the grasp, times seconds —
+is right in every factor but the first, and the error is invisible in the
+picture. `Psf.energy` is the light that got THROUGH the pupil, with the
+obstruction, the spider and the Fresnel loss already subtracted, and
+`Σ intensity ≡ energy` by construction. The photons arrive through
+`pointSourceCollection`, which is π·r² of the whole entrance-pupil circle and
+cannot see a secondary mirror, because the obstruction is a `PsfOptions` field
+and never reaches the prescription. Divide by the pupil's own energy and those
+two normalizations cancel the obstruction twice over: the full circle's photons
+are spread across the survivors, and **a 200 mm Newtonian records exactly what
+a 200 mm clear aperture would**. Measured, that is the tell — Σ(intensity)/energy
+is 1.0029 with the secondary in and 1.0030 with it out, the same number.
+
+The correction invents no factor. `wave/psf`'s new `clearApertureEnergy` reads
+the same grid with nothing in the way (Σ⟨A²⟩ of a unit disc, edge cells and
+all), and dividing by *that* leaves every loss where it belongs:
+`energy / clearApertureEnergy` is the pupil's throughput, 0.977462 for that
+Newtonian against the closed form 1 − ε² = 0.977387, and 0.898–0.904 across the
+band for the uncoated achromat, which is its Fresnel loss and nothing else. A
+spider, a vignetted rim and an apodized edge arrive the same way, because it is
+one quadrature on one grid rather than a formula for how much of the aperture is
+open. Reading the analytic (π/4)·pupilSamples² instead would put the edge cells'
+quadrature error into the throughput, where it would look like lost light; it is
+recorded as what the grid converges TO (3216.75 against 3216.99 at 64 samples,
+12868.25 against 12867.96 at 128) and never used as the denominator.
+
+The rest of the route is arithmetic and is pinned as such. `photonSamples`
+normalizes its shares to the closed-form total exactly, so a frame's admitted
+count is § 8a.3's number times the traced area times the time with no quadrature
+error in between — 240.8519 photons·s⁻¹ for m = 10 through the hero's 10 mm
+pupil over 400–700 nm, which is § 8a.6's 7.847·10⁵ times ln(700/400)/ln(600/500)
+= 3.069389 and a factor 10⁻⁴, checkable by hand at every step. The draw is one
+`shotNoise` per wavelength plane off one generator, so a frame is reproducible
+from its seed and a plane is not reproducible on its own; per-plane rather than
+on the summed image costs nothing statistically, since a sum of independent
+Poissons is Poisson of the sum, and what it adds is colour noise — which is a
+model of a detector that counts each bin separately, and not a Bayer mosaic.
+Dividing the counts back by their own scale restores the render to a part in
+10¹², in intensity and in the colour it collapses to, which is what lets the
+existing energy-weighted observer be used unchanged: **the noisy frame is the
+clean frame plus Poisson noise and nothing else.**
+
+**§ 8a.11 is a finding rather than a rung, and it is about the resampler.** A
+raw PSF conserves to the bit — Σ intensity/energy is 1.00000000000 — and the
+planes `spectralStack` builds out of them do not: the hero's come back between
+**+0.3% and +3.0%** heavy, non-monotone in the resampling ratio (2.24% at
+430 nm, 3.02% at 490, 0.29% at 550, 1.85% at 610, 0.50% at 670), which is the
+rings aliasing against the grid rather than a scale error. Nothing upstream
+reports it: `truncatedFraction` is exactly 0 on these frames, because it counts
+light that fell OFF the grid and this light did not. It is reported through
+`PhotonExpectation.deliveredFraction` and never divided out, and it is why
+§ 8a.7's obstruction rung is pinned at 1e-3 on the resampled light while the
+same reading on the pupil grid agrees to 7.6e-5 — the excess is not common-mode
+between two frames whose PSFs differ, measured at −1.6e-3 to +4.1e-4 across five
+planes. It goes to `docs/OPEN-PROBLEMS.md` as an open item; it predates this
+step and touches every polychromatic render, not only the photon count.
+
+The app wiring is C4's camera panel, and it adds no rung: a star's AB magnitude
+is a slider, the sensor's own per-wavelength images are rebinned before the draw
+(photons are counted where pixels are, and drawing on the diffraction grid then
+rebinning would average the grain down by the footprint), and the panel's finding
+is that **doubling the exposure doubles the photons while doubling the gain does
+not** — the two sliders brighten the picture identically and only one of them
+quiets it.
 
 **Still open.**
 
 - **The sky.** A background in mag·arcsec⁻² is this zero point times a pixel's
   solid angle, which § 5r's plate scale already carries — a closed form with
   no new physics, and the thing a limiting-magnitude readout needs.
-- **The noisy frame**, per the route above, and the limiting magnitude that
-  falls out of it once the sky is there.
+- ~~**The noisy frame**, per the route above~~ — landed at § 8a.7–§ 8a.11,
+  with the denominator corrected. The **limiting magnitude** still waits on the
+  sky, and so does every exposure-time question the panel cannot answer.
 - **A pupil that is not an area** refuses here exactly as at § 5s.5, so the
   telecentric microscope objectives have no photon rate; a fluorophore's
   brightness is a different zero point (molecular brightness × excitation

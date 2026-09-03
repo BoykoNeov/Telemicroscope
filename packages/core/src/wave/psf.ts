@@ -545,6 +545,62 @@ export function transmittedEnergy(
 }
 
 /**
+ * Transmitted energy of the same grid with **nothing in the way** — Σ⟨A²⟩ of a
+ * unit disc of amplitude 1, sampled exactly as `transmittedEnergy` samples a
+ * real pupil.
+ *
+ * ## What it is for, and why `energy` cannot do the job
+ *
+ * `Psf.energy` is the light that got THROUGH: the obstruction, the spider and
+ * the Fresnel apodization are all already subtracted from it, and
+ * `Σ intensity === energy` by construction. That makes it the right
+ * denominator for every question of the form "what fraction of the light that
+ * arrived landed here" — `encircledEnergy` divides by it for exactly that
+ * reason — and the wrong one for a photon COUNT.
+ *
+ * The photon count comes in through `imaging/exposure`'s
+ * `pointSourceCollection`, which is π·r² of the entrance pupil: the full
+ * circle, with no knowledge that a secondary mirror sits in the middle of it
+ * (the obstruction is a `PsfOptions` field and never reaches the prescription).
+ * Divide the image by the obstructed pupil's own energy and the two normalizations
+ * cancel the obstruction *twice over*: the full circle's photons get spread
+ * across the survivors, and a 200 mm Newtonian records exactly what a 200 mm
+ * clear aperture would. Measured on the § 8a fixture, Σ(intensity)/energy comes
+ * back at 1.0029 with the secondary in and 1.0030 with it out — the same
+ * number, which is the tell.
+ *
+ * Dividing by the CLEAR aperture instead leaves every loss where it belongs and
+ * invents no factor to do it: `energy / clearApertureEnergy` is the pupil's
+ * throughput, and it is 0.9774617 for that Newtonian against the closed form
+ * 1 − ε² = 0.9773871 (ε = 0.150376), and 0.898–0.904 across the band for the
+ * uncoated achromat, which is its Fresnel loss and nothing else. A spider, a
+ * vignetted rim and an apodized edge all arrive the same way, because the
+ * quadrature is the same quadrature — this is the disc the *aperture* is, not a
+ * formula for how much of it is open.
+ *
+ * ## Why it is a grid quantity and not (π/4)·pupilSamples²
+ *
+ * It converges to that — 3216.75 against 3216.99 at 64 samples, 12868.25
+ * against 12867.96 at 128, a relative 7.5·10⁻⁵ and 2.3·10⁻⁵ — but the analytic
+ * value is not what the numerator was computed on. Using it would put the
+ * quadrature error of the edge cells into the throughput, where it would read
+ * as a real loss of light; reading the same grid means the discretization
+ * divides out and what is left is the aperture.
+ */
+export function clearApertureEnergy(
+  pupilSamples: number,
+  size: number,
+  edgeSamples: number = DEFAULT_EDGE_SAMPLES,
+): number {
+  return transmittedEnergy(
+    { amplitude: (px, py) => (px * px + py * py <= 1 ? 1 : 0), phaseWaves: () => 0 },
+    pupilSamples,
+    size,
+    edgeSamples,
+  );
+}
+
+/**
  * Transform a pupil function into a PSF.
  *
  * The pupil is embedded in the centre of an `n`×`n` array with `pupilSamples`

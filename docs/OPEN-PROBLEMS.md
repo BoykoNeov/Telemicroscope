@@ -72,10 +72,14 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    of m mag·arcsec⁻² is § 8a's rate times a pixel's solid angle, which § 5r's
    plate scale carries — closed form, no new physics. Unblocks the noisy hero
    frame and every exposure-time question the camera panel cannot answer.
-4. **The noisy frame.** Wiring on the route written on `imaging/noise`:
+4. ~~**The noisy frame.** Wiring on the route written on `imaging/noise`:
    per-wavelength intensity over the PSF's `energy`, times `photonSamples`'
-   weight, times grasp, times seconds, then the draw, then XYZ. No rung of its
-   own beyond a golden; the physics is § 8a's.
+   weight, times grasp, times seconds, then the draw, then XYZ.~~
+   **Closed at [§ 8a.7–§ 8a.11](VALIDATION.md#-8a7-8a11--walking-the-route-and-the-one-thing-wrong-with-it)**,
+   and it was not only wiring: dividing by the PSF's own `energy` normalizes the
+   obstruction away, so the denominator is the CLEAR aperture on the same grid
+   (`clearApertureEnergy`) and the pin is 1 − ε². The pupil's throughput is now a
+   reading rather than a cancellation.
 5. **Seeing's geometric-branch analog** — rays deflected by ∇φ so a seeing
    blur survives the fidelity fallback. § 5d's deferral, restated at § 6f and
    *Later rungs*; the ladder names no pin. *Candidate:* the angle-of-arrival
@@ -108,6 +112,17 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     (§ 6e's front and a back) does not exist on the ladder.
 12. **Which way an aberration-free band moves the Airy core.** § 6j names
     "an analytic band-integrated Airy" as the resampler-free check.
+13. **The spectral stack's resampling moves energy, and nothing reports it.**
+    Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
+    the planes `spectralStack` resamples onto the common grid come back +0.3%
+    to +3.0% heavy, non-monotone in the resampling ratio, while
+    `truncatedFraction` reads exactly 0 because the light did not leave the
+    grid. Pin: **Σ intensity ≡ energy**, the identity `psf.ts` already states
+    and the raw transform already meets — no external number needed, and no
+    new physics. It predates the photon count and biases every polychromatic
+    render's brightness and, since it is per-plane, its colour by ~2%. What it
+    unblocks is every absolute reading downstream, § 8a.7's obstruction pin
+    among them (1e-3 on the resampled light against 7.6e-5 on the pupil grid).
 
 ## B. Blocked on data, not on code
 
@@ -211,8 +226,11 @@ radial-map nodes · § 6ba differential bleaching.
 
 1. ~~§ 8a — the zero point and the draw.~~ ✅
 2. ~~§ 2g — the image in a medium.~~ ✅
-3. **The sky and the noisy frame** (A3, A4): closes step 8's headline with
-   no new physics, and gives the camera panel its first absolute readout.
+3. ~~The sky and **the noisy frame** (A3, A4)~~ — the noisy frame is in
+   (§ 8a.7–§ 8a.11); **the sky** (A3) is what is left of this entry, and it is
+   still the cheapest thing on the board. The camera panel now has absolute
+   photon counts and cannot answer one exposure-time question without it.
+   A13 came out of A4 and is the other half of what walking that route found.
 4. **Stop-shift equations** (A7): a named pin, an engine change, retires a
    control.
 5. **Seeing's ray analog** (A5): the oldest deferral on the telescope branch,

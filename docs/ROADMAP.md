@@ -1784,11 +1784,18 @@ its first entry, landed.
    *A magnitude through a pupil:* ✅ **§ 8a.6** — `collectedPhotonRate`, § 5s's
    traced grasp times the zero point, with § 5s.5's refusals intact: a pupil
    that is not an area has no photon rate.
+   *The noisy frame:* ✅ **§ 8a.7–§ 8a.11** — `imaging/noise`'s `expectedPhotons`
+   / `drawPhotonFrame`, drawn per wavelength plane on the sensor's own pixels and
+   divided back so the colour path is unchanged, wired into the camera panel with
+   a magnitude slider. It was not only wiring: the route as written divided by the
+   PSF's own `energy`, which normalizes an obstruction away, so the denominator is
+   now the **clear aperture on the same grid** and the pin is 1 − ε². Walking it
+   also found that `spectralStack`'s resampling moves energy by up to 3% with
+   nothing reporting it (§ 8a.11 → OPEN-PROBLEMS A13).
    *Next here, in order:* the **sky** in mag·arcsec⁻² through § 5r's plate
-   scale (a closed form, no new physics); the **noisy hero frame** (imaging and
-   app wiring on the route written on `imaging/noise`); the **limiting
-   magnitude** that falls out of the two. Extinction, filter curves and quantum
-   efficiency are declared multipliers and arrive as data, not as physics.
+   scale (a closed form, no new physics), and the **limiting magnitude** that
+   falls out of it. Extinction, filter curves and quantum efficiency are declared
+   multipliers and arrive as data, not as physics.
 
 ## v1 cut (both branches shipped)
 
