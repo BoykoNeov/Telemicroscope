@@ -2080,7 +2080,7 @@ NA 0.27 the buildable range starts at 43×, and a grey line labelled "the floor"
 sitting at 4.14 would have been this panel's own refusal rule broken by its own
 plot.
 
-### C4. The sensor, and the critical pitch that is per wavelength — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **pair**
+### C4. The sensor, and the critical pitch that is per wavelength — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **pair** — *extended at § 8a with an absolute photon count and shot noise*
 
 `camera.ts` + `panels/camera.tsx` + `camera.worker.ts` + `test/camera.test.ts`.
 `core/imaging/camera` (§ 5r) and `core/imaging/exposure` (§ 5s) had existed since
@@ -2120,6 +2120,24 @@ aperture (1074.81 / 1069.78 / 1073.73 at f/10·D10, f/5·D20, f/10·D20 — 0.5%
 a 2× aperture *and* a 2× focal length). Light grasp is not in the picture until it
 is put there. A10's rule travels with it: **a factor is exactly what a picture
 cannot show the size of**, so the rungs pin the numbers and never the shade.
+
+**Extended when § 8a landed the zero point, and the extension changes what the
+shade rule applies to.** The scalar above is still arbitrary and the picture's
+brightness still cannot show its own size — but the star now has an **AB
+magnitude**, so the frame has an absolute number of photons in it, and the
+**shot noise** drawn from that count is the one thing on this panel a reader can
+watch get better or worse without being told what to compare it against. The
+draw happens on the sensor's own per-wavelength images rather than on the
+diffraction grid, because photons are counted where pixels are: the rebin sums,
+so drawing first would average the grain down by the footprint² and report a
+sensor quieter than Poisson allows. The panel's new finding is a slider pair
+that used to be interchangeable — **doubling the exposure doubles the photons
+and doubling the gain does not**, so the two brighten the picture identically
+and only one of them quiets it. Engine side this cost a correction rather than
+wiring (§ 8a.7: the PSF's own `energy` normalizes an obstruction away, so the
+photon denominator is the clear aperture) and turned up a resampler finding
+(§ 8a.11, now OPEN-PROBLEMS A13). No ladder rung was added for the panel;
+`test/camera.test.ts` pins the four things the *surface* claims.
 
 Which of § 5s's two laws drives it is a distinction the panel has to make out
 loud. The picture is a **point** source, so its brightness rides on D², which

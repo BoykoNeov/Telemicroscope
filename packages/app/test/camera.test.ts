@@ -3,6 +3,7 @@ import {
   APERTURE_RANGE,
   CAMERA_OPTICS,
   FOCUS_NM,
+  MAGNITUDE_RANGE,
   MIN_SENSOR_COLS,
   PITCH_SLIDER_MAX_UM,
   buildCameraSystem,
@@ -22,6 +23,8 @@ import {
   sineDeparture,
   stackWavelengthsNm,
   type CameraOptic,
+  type CameraRequest,
+  type CameraResult,
   type CameraSpec,
 } from "../src/camera";
 import { systemProperties } from "@telemicroscope/core/trace";
@@ -203,7 +206,7 @@ describe("the rebin: what the sensor does to the light", () => {
   });
 
   it("gains less than footprint² on a star, and the gap is the PSF core", () => {
-    const result = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1 });
+    const result = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
     expect(result.refusal).toBeUndefined();
     expect(result.flatFieldPeakRatio).toBeCloseTo(1, 12);
     // Both halves matter: the star gains, and it gains less than the flat field.
@@ -212,7 +215,7 @@ describe("the rebin: what the sensor does to the light", () => {
   });
 
   it("conserves energy but for the edge sliver `floor` drops", () => {
-    const result = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1 });
+    const result = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
     expect(result.energyRatio).toBeLessThanOrEqual(1);
     expect(result.energyRatio).toBeGreaterThan(0.9999);
     // The loss is geometric and reported, not swallowed — `coveredFraction` is
@@ -229,7 +232,7 @@ describe("the rebin: what the sensor does to the light", () => {
     const even: number[] = [];
     const odd: number[] = [];
     for (const pitchUm of [13, 13.5, 14, 15, 17, 18, 19, 20]) {
-      const r = renderCamera({ ...spec("achromat"), pitchUm, seconds: 1, gain: 1 });
+      const r = renderCamera({ ...spec("achromat"), pitchUm, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
       if (r.refusal) continue;
       expect(r.axisOnPixelCentre).toBe(r.sensorCols % 2 === 0);
       (r.axisOnPixelCentre ? even : odd).push(r.starPeakRatio);
@@ -240,14 +243,14 @@ describe("the rebin: what the sensor does to the light", () => {
     // than a trend in pitch: the pitches interleave and the values do not.
     expect(Math.min(...even)).toBeGreaterThan(3 * Math.max(...odd));
     // …while the flat field is immune to the same swing.
-    const flat = renderCamera({ ...spec("achromat"), pitchUm: 13, seconds: 1, gain: 1 });
-    const flatOdd = renderCamera({ ...spec("achromat"), pitchUm: 13.5, seconds: 1, gain: 1 });
+    const flat = renderCamera({ ...spec("achromat"), pitchUm: 13, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
+    const flatOdd = renderCamera({ ...spec("achromat"), pitchUm: 13.5, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
     expect(flat.flatFieldPeakRatio).toBeCloseTo(1, 12);
     expect(flatOdd.flatFieldPeakRatio).toBeCloseTo(1, 12);
   });
 
   it("refuses a pitch that records too few columns rather than drawing it", () => {
-    const result = renderCamera({ ...spec("achromat"), pitchUm: 60, seconds: 1, gain: 1 });
+    const result = renderCamera({ ...spec("achromat"), pitchUm: 60, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
     expect(result.refusal).toBeDefined();
     expect(result.sensorCols).toBe(0);
     expect(result.refusal).toContain(String(MIN_SENSOR_COLS));
@@ -267,6 +270,7 @@ describe("the rebin: what the sensor does to the light", () => {
       pitchUm: PITCH_SLIDER_MAX_UM,
       seconds: 1,
       gain: 1,
+      magnitudeAB: MAGNITUDE_RANGE.preset,
     });
     expect(atSliderMax.refusal).toBeDefined();
   });
@@ -284,6 +288,7 @@ describe("§ 3b's guards are on screen, because both bite inside the sliders", (
       pitchUm: 3.76,
       seconds: 1,
       gain: 1,
+      magnitudeAB: MAGNITUDE_RANGE.preset,
     });
     expect(fast.truncatedFraction).toBeGreaterThan(0.01);
   });
@@ -298,12 +303,13 @@ describe("§ 3b's guards are on screen, because both bite inside the sliders", (
       pitchUm: 3.76,
       seconds: 1,
       gain: 1,
+      magnitudeAB: MAGNITUDE_RANGE.preset,
     });
     expect(fast.geometricWeight).toBeCloseTo(1, 6);
 
     // …while the panel's default configuration is clean on both, so the guards
     // are informative rather than permanently red.
-    const nominal = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1 });
+    const nominal = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
     expect(nominal.truncatedFraction).toBe(0);
     expect(nominal.geometricWeight).toBeLessThan(1e-3);
   });
@@ -315,8 +321,8 @@ describe("the exposure convention, which is this panel's and not the app's", () 
     // conserves energy. The pin is that the exposure depends on the REQUEST and
     // not on the image — so it is unchanged by anything that only moves light
     // around inside the frame.
-    const a = renderCamera({ ...spec("achromat"), pitchUm: 2.4, seconds: 1, gain: 1 });
-    const b = renderCamera({ ...spec("achromat"), pitchUm: 9, seconds: 1, gain: 1 });
+    const a = renderCamera({ ...spec("achromat"), pitchUm: 2.4, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
+    const b = renderCamera({ ...spec("achromat"), pitchUm: 9, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
     expect(a.displayExposure).toBe(b.displayExposure);
     // …and the pitch genuinely changed what the sensor recorded.
     expect(a.starPeakRatio).not.toBeCloseTo(b.starPeakRatio, 3);
@@ -332,7 +338,7 @@ describe("the exposure convention, which is this panel's and not the app's", () 
       const system = buildCameraSystem(s);
       return {
         apertureMm,
-        exposure: displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 1, gain: 1 }),
+        exposure: displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset }),
       };
     });
     // Exposure is exactly D²: doubling the aperture is four stops of light grasp.
@@ -343,9 +349,9 @@ describe("the exposure convention, which is this panel's and not the app's", () 
   it("makes time and gain interchangeable, as stops are", () => {
     const s = spec("achromat");
     const system = buildCameraSystem(s);
-    const base = displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 1, gain: 1 });
-    const twiceTime = displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 2, gain: 1 });
-    const twiceGain = displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 1, gain: 2 });
+    const base = displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
+    const twiceTime = displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 2, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
+    const twiceGain = displayExposureOf(system, { ...s, pitchUm: 3.76, seconds: 1, gain: 2, magnitudeAB: MAGNITUDE_RANGE.preset });
     expect(twiceTime).toBeCloseTo(2 * base, 12);
     expect(twiceGain).toBeCloseTo(twiceTime, 12);
   });
@@ -356,7 +362,7 @@ describe("the exposure convention, which is this panel's and not the app's", () 
     const s32 = spec("achromat", { pupilSamples: 32 });
     const s128 = spec("achromat", { pupilSamples: 128 });
     const peakish = (sp: CameraSpec) =>
-      displayExposureOf(buildCameraSystem(sp), { ...sp, pitchUm: 3.76, seconds: 1, gain: 1 }) *
+      displayExposureOf(buildCameraSystem(sp), { ...sp, pitchUm: 3.76, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset }) *
       sp.pupilSamples ** 2;
     // The raw image scales as ps², and the exposure divides it out, so their
     // product is the same physical scalar at every sampling.
@@ -489,5 +495,132 @@ describe("the FOV floor is the image plane, and the distortion is what is left",
     // format — the formats differ in how many pixels they have, not in scale.
     const scales = new Set(rows.map((r) => r.arcsecPerPixel));
     expect(scales.size).toBe(1);
+  });
+});
+
+/**
+ * The photon frame, and what the PANEL claims about it that no rung states.
+ *
+ * The physics is § 8a's and § 8a.7–§ 8a.11's, called from the app — C4's own
+ * boundary, so no ladder rung is added here. What is pinned below is the four
+ * things this surface asserts by drawing them: that the count is absolute and
+ * moves with the star and the aperture the way the two laws say, that GAIN is
+ * not in it while exposure is, that a seed is an observation, and that the grain
+ * gets finer as the count rises.
+ */
+describe("§ 8a on the panel: an absolute frame, and the grain that rides on it", () => {
+  const frame = (over: Partial<CameraRequest> = {}) =>
+    renderCamera({
+      ...spec("achromat"),
+      pitchUm: 3.76,
+      seconds: 1,
+      gain: 1,
+      magnitudeAB: MAGNITUDE_RANGE.preset,
+      ...over,
+    });
+
+  it("the count is absolute: five magnitudes is a hundredfold, and 2× aperture is 4×", () => {
+    const six = frame();
+    const eleven = frame({ magnitudeAB: 11 });
+    expect(six.framePhotons / eleven.framePhotons).toBeCloseTo(100, 6);
+
+    // Light grasp ∝ D² at a fixed focal ratio, arriving on a photon count
+    // rather than on a display scalar. § 5s calls the law a consistency check
+    // with a front stop, and that is still what it is — what is new is that the
+    // number it multiplies is now photons.
+    const wide = frame({ apertureMm: 20 });
+    expect(wide.admittedPhotons / six.admittedPhotons).toBeCloseTo(4, 6);
+  });
+
+  it("HEADLINE: doubling the exposure doubles the photons, doubling the gain does not", () => {
+    // The panel's own finding, and the reason the two sliders now do visibly
+    // different things. Both brighten the picture by the same factor —
+    // `displayExposure` is illuminance × time × gain — but only one of them
+    // collects any light, so only one quiets the grain.
+    const base = frame();
+    const longer = frame({ seconds: 2 });
+    const louder = frame({ gain: 2 });
+    expect(longer.framePhotons / base.framePhotons).toBeCloseTo(2, 9);
+    expect(louder.framePhotons).toBe(base.framePhotons);
+    expect(longer.displayExposure / base.displayExposure).toBeCloseTo(2, 12);
+    expect(louder.displayExposure / base.displayExposure).toBeCloseTo(2, 12);
+  });
+
+  it("what the sensor receives is below what the pupil admits, and it is a reading", () => {
+    const base = frame();
+    expect(base.admittedPhotons).toBeGreaterThan(base.framePhotons);
+    expect(base.deliveredFraction).toBeGreaterThan(0.5);
+    expect(base.deliveredFraction).toBeLessThan(1);
+    // The sensor covers less than the whole diffraction frame, so its share is
+    // below the pupil's throughput and not equal to it.
+    expect(base.deliveredFraction).toBeLessThan(0.95);
+    expect(base.peakPixelPhotons).toBeGreaterThan(0);
+    expect(base.peakPixelPhotons).toBeLessThan(base.framePhotons);
+  });
+
+  it("a seed is an observation: none without one, the same one twice, a different one apart", () => {
+    expect(frame().noisyRgba).toBeUndefined();
+    const a = frame({ noiseSeed: 1 }).noisyRgba!;
+    const b = frame({ noiseSeed: 1 }).noisyRgba!;
+    const c = frame({ noiseSeed: 2 }).noisyRgba!;
+    expect(a).toBeDefined();
+    expect(Array.from(a)).toEqual(Array.from(b));
+    expect(Array.from(a)).not.toEqual(Array.from(c));
+    // Same frame as the clean one it is a draw of — a noisy picture on a
+    // different grid would be a different picture.
+    expect(a.length).toBe(frame({ noiseSeed: 1 }).sensorRgba.length);
+  });
+
+  it("the drawn frame IS a draw of the frame beside it: at a bright enough star they coincide", () => {
+    // The noisy picture is built by rebinning each wavelength plane to the
+    // sensor and collapsing to colour after; the clean one rebins the colour
+    // image. Both steps are linear in intensity, so the two orders are the same
+    // picture — and this is the end-to-end check of that, rather than an
+    // argument about it. Shot noise is the only difference between the two
+    // frames, so as the count rises the drawn frame has to converge on the
+    // clean one byte for byte; if the orders disagreed, a systematic gap would
+    // survive at any brightness.
+    //
+    // The display exposure does not depend on the magnitude, so both frames are
+    // the same brightness at every star — only the grain moves.
+    const bright = frame({ magnitudeAB: -1, seconds: 4, noiseSeed: 7 });
+    const worst = (f: CameraResult): number => {
+      let peak = 0;
+      for (let i = 0; i < f.sensorRgba.length; i++) {
+        peak = Math.max(peak, Math.abs(f.noisyRgba![i]! - f.sensorRgba[i]!));
+      }
+      return peak;
+    };
+    // 3 of 255 at m = −1 over 4 s, against 255 — full scale — at m = 11 over 1 s.
+    // The residue is not a failure to converge: it is the DARK corners, where a
+    // bright star still leaves only a few photons per pixel and the sRGB curve
+    // magnifies a one-photon difference into a byte. Where the light is, the two
+    // frames are the same bytes.
+    expect(worst(bright)).toBeLessThanOrEqual(4);
+    // …and the same reading at a faint star saturates the scale, so the bound
+    // above is convergence and not a frame that never had noise in it.
+    expect(worst(frame({ magnitudeAB: 11, seconds: 1, noiseSeed: 7 }))).toBeGreaterThan(200);
+
+  });
+
+  it("and the grain gets finer as the count rises — √N, on the picture itself", () => {
+    // The one claim a reader can check by looking. Measured as the RMS
+    // departure of the drawn frame from the clean one, in display bytes, so it
+    // is the thing on screen rather than an internal array.
+    const grain = (magnitudeAB: number): number => {
+      const f = frame({ magnitudeAB, noiseSeed: 4 });
+      const clean = f.sensorRgba;
+      const drawn = f.noisyRgba!;
+      let acc = 0;
+      for (let i = 0; i < clean.length; i++) {
+        const d = drawn[i]! - clean[i]!;
+        acc += d * d;
+      }
+      return Math.sqrt(acc / clean.length);
+    };
+    const faint = grain(11);
+    const bright = grain(6);
+    expect(faint).toBeGreaterThan(bright);
+    expect(bright).toBeGreaterThan(0);
   });
 });

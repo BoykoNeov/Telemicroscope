@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLatestFromWorker } from "../hooks";
 import { Plot } from "../plot";
-import { Choice, Guard, Slider, thresholdLevel, type GuardLevel } from "../ui";
+import { Choice, Guard, Slider, num, thresholdLevel, type GuardLevel } from "../ui";
 import { createCameraWorker } from "../workers";
 import {
   APERTURE_RANGE,
   CAMERA_OPTICS,
   FOCUS_NM,
+  MAGNITUDE_RANGE,
   MIN_SENSOR_COLS,
   OPTIC_LABELS,
   OPTIC_NOTES,
@@ -87,6 +88,7 @@ function pct(value: number, digits = 3): string {
 function Pictures({ request }: { request: CameraRequest }) {
   const nativeRef = useRef<HTMLCanvasElement>(null);
   const sensorRef = useRef<HTMLCanvasElement>(null);
+  const noisyRef = useRef<HTMLCanvasElement>(null);
   const { result, pending } = useLatestFromWorker<CameraRequest, CameraResult>(
     createCameraWorker,
     request,
@@ -111,6 +113,7 @@ function Pictures({ request }: { request: CameraRequest }) {
     };
     paint(nativeRef.current, result.nativeRgba, result.nativeSize);
     paint(sensorRef.current, result.sensorRgba, result.sensorCols);
+    if (result.noisyRgba) paint(noisyRef.current, result.noisyRgba, result.sensorCols);
   }, [result]);
 
   const box = 280;
@@ -155,6 +158,17 @@ function Pictures({ request }: { request: CameraRequest }) {
             {request.pitchUm.toFixed(2)} µm
           </figcaption>
         </figure>
+        {result?.noisyRgba && !result.refusal && (
+          <figure style={{ margin: 0 }}>
+            <canvas
+              ref={noisyRef}
+              style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
+            />
+            <figcaption style={{ fontFamily: "monospace", fontSize: 11, color: "#666" }}>
+              one exposure of it — {num(result.framePhotons, 4)} photons, drawn
+            </figcaption>
+          </figure>
+        )}
       </div>
       {result && <FrameGuards result={result} />}
       {result && !result.refusal && <PictureReadouts result={result} />}
@@ -255,7 +269,20 @@ function ExposureReadouts({ result }: { result: CameraResult }) {
     <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
       <div>
         display exposure <strong>{result.displayExposure.toExponential(4)}</strong> — fixed, and the
-        same scalar on both frames
+        same scalar on every frame
+      </div>
+      <div>
+        the frame&rsquo;s photons: pupil admits{" "}
+        <strong>{result.admittedPhotons.toExponential(4)}</strong>, sensor receives{" "}
+        <strong>{result.framePhotons.toExponential(4)}</strong> ({pct(result.deliveredFraction, 2)}),
+        brightest pixel <strong>{num(result.peakPixelPhotons, 4)}</strong> ·{" "}
+        <span style={{ color: "#666" }}>
+          § 8a&rsquo;s zero point, so these are absolute counts and not a ratio. The delivered
+          fraction is a reading and not a target: the pupil&rsquo;s real losses are in it, and so is
+          the stack resampler&rsquo;s ±3% (§ 8a.11). Gain is <em>not</em> in it — an ISO-like
+          amplification multiplies the picture and removes no grain, while doubling the exposure
+          brightens it <em>and</em> quiets it as √t.
+        </span>
       </div>
       <div>
         light grasp π·r² = <strong>{result.lightGrasp.toFixed(3)}</strong> mm² ·{" "}
@@ -282,13 +309,18 @@ export function CameraPanel() {
   const [pitchUm, setPitchUm] = useState(3.76);
   const [seconds, setSeconds] = useState(1);
   const [gain, setGain] = useState(1);
+  const [magnitudeAB, setMagnitudeAB] = useState<number>(MAGNITUDE_RANGE.preset);
+  // `undefined` is the noiseless frame; a number is one exposure of it. Kept as
+  // the seed rather than a boolean so "another exposure" is a control the reader
+  // has, and so an unrelated slider does not reshuffle the grain.
+  const [noiseSeed, setNoiseSeed] = useState<number | undefined>(1);
 
   const set = <K extends keyof CameraSpec>(key: K, value: CameraSpec[K]) =>
     setSpec((s) => ({ ...s, [key]: value }));
 
   const request = useMemo<CameraRequest>(
-    () => ({ ...spec, pitchUm, seconds, gain }),
-    [spec, pitchUm, seconds, gain],
+    () => ({ ...spec, pitchUm, seconds, gain, magnitudeAB, ...(noiseSeed === undefined ? {} : { noiseSeed }) }),
+    [spec, pitchUm, seconds, gain, magnitudeAB, noiseSeed],
   );
 
   // Everything below is chief rays and array arithmetic — no transform — so it
@@ -434,6 +466,31 @@ export function CameraPanel() {
           value={spec.pupilSamples}
           onChange={(v) => set("pupilSamples", v)}
         />
+        <Slider
+          label={`star m_AB ${magnitudeAB.toFixed(1)}`}
+          min={MAGNITUDE_RANGE.min}
+          max={MAGNITUDE_RANGE.max}
+          step={MAGNITUDE_RANGE.step}
+          value={magnitudeAB}
+          onChange={setMagnitudeAB}
+        />
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <label style={{ fontFamily: "monospace", fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={noiseSeed !== undefined}
+              onChange={(e) => setNoiseSeed(e.target.checked ? 1 : undefined)}
+            />{" "}
+            shot noise
+          </label>
+          <button
+            disabled={noiseSeed === undefined}
+            onClick={() => setNoiseSeed((s) => (s === undefined ? 1 : s + 1))}
+            style={{ fontFamily: "monospace", fontSize: 12, padding: "2px 8px", cursor: "pointer" }}
+          >
+            another exposure {noiseSeed === undefined ? "" : `(seed ${noiseSeed})`}
+          </button>
+        </div>
       </div>
 
       <p style={{ fontFamily: "monospace", fontSize: 12, color: "#666", maxWidth: 900, margin: 0 }}>

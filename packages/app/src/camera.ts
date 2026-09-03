@@ -1,11 +1,21 @@
 import { newtonian, refractorPair } from "@telemicroscope/core/designs";
 import { bestFocus, withFocus } from "@telemicroscope/core/analysis";
 import { systemProperties, type OpticalSystem } from "@telemicroscope/core/trace";
-import { blackbodySpectrum, spectralSamples } from "@telemicroscope/core/photometry";
-import { spectralStack } from "@telemicroscope/core/wave";
+import {
+  VISIBLE_MAX_NM,
+  VISIBLE_MIN_NM,
+  blackbodySpectrum,
+  photonSamples,
+  spectralSamples,
+} from "@telemicroscope/core/photometry";
+import { clearApertureEnergy, spectralStack, type SpectralStack } from "@telemicroscope/core/wave";
+import { mulberry32 } from "@telemicroscope/core/math";
 import {
   colorImageFromStack,
   criticalPitchMm,
+  drawPhotonFrame,
+  expectedPhotons,
+  intensityFromPhotons,
   exposureScale,
   extendedSourceIlluminance,
   fieldOfView,
@@ -18,6 +28,7 @@ import {
   samplingRegime,
   toSrgbBytes,
   type ColorImage,
+  type PhotonExpectation,
   type SamplingRegime,
   type Sensor,
 } from "@telemicroscope/core/imaging";
@@ -640,6 +651,123 @@ export function describeFormats(
 }
 
 /* ------------------------------------------------------------------ *
+ * The photon frame — § 8a's zero point arriving on this panel
+ * ------------------------------------------------------------------ */
+
+/**
+ * A star this panel can put an absolute number of photons behind, and the one
+ * control that makes `DISPLAY_EXPOSURE_UNIT` no longer the whole story.
+ *
+ * When this file was written the header said the display scalar was arbitrary
+ * "because § 3a's magnitude → photon-flux zero point is deliberately absent".
+ * § 8a landed it, so the picture's SHADE is still that arbitrary scalar — a
+ * factor is exactly what a picture cannot show the size of, which is A10's
+ * conclusion and it has not changed — but the *grain* is not. The number of
+ * photons a frame collects is now a physical fact about the star, the aperture
+ * and the time, and shot noise is the one thing on this panel that a reader can
+ * see get better or worse without being told what to compare it to.
+ *
+ * Six is the naked-eye limit and the default for that reason: through this
+ * panel's reference 10 mm aperture in a second it is a frame with visible
+ * grain, and the sliders reach both a clean frame and a frame that is mostly
+ * noise without leaving the range a real observer would use.
+ */
+export const MAGNITUDE_RANGE = { min: -1, max: 15, step: 0.5, preset: 6 } as const;
+
+/**
+ * The band the frame's photons are counted over, and it is not a filter.
+ *
+ * `buildCameraSystem` samples the source with `spectralSamples`' default band,
+ * so the magnitude has to be quoted over the SAME band or the count delivers one
+ * band's photons into another band's image — `expectedPhotons` refuses the
+ * mismatch rather than rendering it (§ 8a.10). A real V or g filter is a curve
+ * and a multiplier, which § 8a leaves as declared data rather than physics.
+ */
+const PHOTON_BAND = { fromNm: VISIBLE_MIN_NM, toNm: VISIBLE_MAX_NM };
+
+/**
+ * The sensor's own per-wavelength images — the rebin, done one plane at a time
+ * instead of once on the colour.
+ *
+ * `resampleToSensor` rebins the XYZ image and is what the clean picture uses.
+ * Both are linear in intensity so the two orders commute, and the app rung
+ * checks it end to end rather than by argument: at a bright enough star the
+ * drawn frame converges on the clean one byte for byte (3 of 255 at m = −1 over
+ * 4 s, against full scale at m = 11), which a pair of frames built by two
+ * disagreeing orders could not do at any brightness. What the per-plane version
+ * buys is a photon count at the place photons are actually counted. Drawing on
+ * the native diffraction grid and
+ * rebinning afterwards would be a different frame: the rebin sums, so it would
+ * average the grain down by the footprint and report a sensor quieter than
+ * Poisson allows.
+ */
+function sensorPlanes(
+  stack: SpectralStack,
+  cols: number,
+  pitchMm: number,
+): Float64Array[] {
+  return stack.planes.map((plane) =>
+    resampleGridToSensor(plane.intensity, stack.size, stack.size, stack.pixelScaleMm, {
+      pixelPitchMm: pitchMm,
+      cols,
+      rows: cols,
+    }),
+  );
+}
+
+/**
+ * What the sensor expects to count, and — when a seed is given — one draw of it.
+ *
+ * **Gain is deliberately not in the count.** It is an ISO-like amplification of
+ * what was already recorded, so it multiplies the display and cannot touch the
+ * statistics: raising gain brightens this frame without removing one grain from
+ * it, while raising the exposure brightens it AND quiets it as √t. Those two
+ * sliders sit next to each other on this panel and now do visibly different
+ * things, which is the clearest statement of shot noise the surface can make.
+ */
+function photonFrameOf(
+  request: CameraRequest,
+  stack: SpectralStack,
+  planes: Float64Array[],
+  lightGrasp: number,
+): {
+  readonly expectation: PhotonExpectation;
+  readonly noisy?: Float64Array[];
+} {
+  const expectation = expectedPhotons({
+    planes: planes.map((intensity) => ({ intensity })),
+    samples: stack.samples,
+    photons: photonSamples(
+      blackbodySpectrum(request.sourceTemperatureK),
+      request.magnitudeAB,
+      PHOTON_BAND,
+      { count: request.wavelengths },
+    ),
+    clearEnergy: clearApertureEnergy(request.pupilSamples, stack.size),
+    collectingAreaMm2: lightGrasp,
+    seconds: request.seconds,
+  });
+  if (request.noiseSeed === undefined) return { expectation };
+  return {
+    expectation,
+    noisy: intensityFromPhotons(drawPhotonFrame(expectation, mulberry32(request.noiseSeed)), expectation),
+  };
+}
+
+/** Peak expected count in any one sensor pixel, summed across the planes. */
+function peakPixelPhotons(expectation: PhotonExpectation): number {
+  const first = expectation.planes[0];
+  if (!first) return 0;
+  let peak = 0;
+  for (let i = 0; i < first.length; i++) {
+    let acc = 0;
+    for (const plane of expectation.planes) acc += plane[i]!;
+    if (acc > peak) peak = acc;
+  }
+  return peak;
+}
+
+/* ------------------------------------------------------------------ *
  * The picture
  * ------------------------------------------------------------------ */
 
@@ -648,6 +776,17 @@ export interface CameraRequest extends CameraSpec {
   readonly pitchUm: number;
   readonly seconds: number;
   readonly gain: number;
+  /** The star's AB magnitude, over the render's own band (`PHOTON_BAND`). */
+  readonly magnitudeAB: number;
+  /**
+   * Seed for the shot-noise draw, or `undefined` for the noiseless frame.
+   *
+   * A seed rather than a boolean because a frame is an observation: two seeds
+   * are two exposures of the same star, and re-rendering the same seed after
+   * moving an unrelated slider has to give the same grain, or the panel would
+   * be showing noise where it means to show a change.
+   */
+  readonly noiseSeed?: number;
 }
 
 export interface CameraResult {
@@ -701,6 +840,16 @@ export interface CameraResult {
   /** § 3b's guard, unchanged: light that left the grid wrapped rather than vanished. */
   readonly truncatedFraction: number;
   readonly geometricWeight: number;
+  /** § 8a's frame: photons the entrance pupil admits over this exposure. */
+  readonly admittedPhotons: number;
+  /** …and what the sensor's own pixels receive of them. */
+  readonly framePhotons: number;
+  /** framePhotons / admittedPhotons — throughput, truncation and § 8a.11, as one reading. */
+  readonly deliveredFraction: number;
+  /** Expected count in the brightest sensor pixel — where the grain is finest. */
+  readonly peakPixelPhotons: number;
+  /** One Poisson draw of the recorded frame. Present only when a seed was given. */
+  readonly noisyRgba?: Uint8ClampedArray;
   /** Set when the pitch records fewer than `MIN_SENSOR_COLS` columns. */
   readonly refusal?: string;
 }
@@ -798,6 +947,13 @@ export function renderCamera(request: CameraRequest): CameraResult {
       energyRatio: Number.NaN,
       coveredFraction: 0,
       clippedFraction: 0,
+      // No sensor, so no photon frame: the count is what PIXELS receive, and
+      // this branch has none. Reported as zero rather than as the native
+      // frame's count, which would be a number for a picture nobody is shown.
+      admittedPhotons: 0,
+      framePhotons: 0,
+      deliveredFraction: Number.NaN,
+      peakPixelPhotons: Number.NaN,
       elapsedMs: performance.now() - started,
       refusal: `a ${request.pitchUm.toFixed(2)} µm pitch records ${cols} column${cols === 1 ? "" : "s"} of this ${(spanMm * 1000).toFixed(1)} µm frame — under the ${MIN_SENSOR_COLS} this panel will draw. Raise pupil samples to widen the frame, or lower the pitch.`,
     };
@@ -806,6 +962,22 @@ export function renderCamera(request: CameraRequest): CameraResult {
   const sensor: Sensor = { pixelPitchMm: pitchMm, cols, rows: cols };
   const recorded = resampleToSensor(native, sensor);
   const sensorRgba = toSrgbBytes(recorded, { exposure: displayExposure });
+
+  const planes = sensorPlanes(stack, cols, pitchMm);
+  const { expectation, noisy } = photonFrameOf(request, stack, planes, lightGrasp);
+  const admittedPhotons = expectation.admitted.reduce((a, b) => a + b, 0);
+  const noisyRgba =
+    noisy === undefined
+      ? undefined
+      : toSrgbBytes(
+          colorImageFromStack({
+            size: cols,
+            pixelScaleMm: pitchMm,
+            planes: noisy.map((intensity) => ({ intensity })),
+            samples: stack.samples,
+          }),
+          { exposure: displayExposure },
+        );
 
   let clipped = 0;
   for (let i = 0; i < cols * cols; i++) {
@@ -822,6 +994,11 @@ export function renderCamera(request: CameraRequest): CameraResult {
     energyRatio: integratedXyz(recorded).y / integratedXyz(native).y,
     coveredFraction: (cols * pitchMm) / spanMm,
     clippedFraction: clipped / (cols * cols),
+    admittedPhotons,
+    framePhotons: expectation.totalPhotons,
+    deliveredFraction: expectation.deliveredFraction,
+    peakPixelPhotons: peakPixelPhotons(expectation),
+    ...(noisyRgba === undefined ? {} : { noisyRgba }),
     elapsedMs: performance.now() - started,
   };
 }
