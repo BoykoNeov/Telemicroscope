@@ -35,7 +35,7 @@ whole ladder.
 | [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
 | [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
 | [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
-| [5d](#step-5d--atmospheric-seeing-the-one-random-draw-in-the-image) | Kolmogorov D_φ(r), Fried's long-exposure OTF, r₀ not aperture; **5d.1** the ensemble as an API; **5d.2** rays deflected by ∇φ, G-tilt 0.170 not 0.182 | `seeing` |
+| [5d](#step-5d--atmospheric-seeing-the-one-random-draw-in-the-image) | Kolmogorov D_φ(r), Fried's long-exposure OTF, r₀ not aperture; **5d.1** the ensemble as an API; **5d.2** rays deflected by ∇φ, G-tilt 0.170 not 0.182; **5d.3** Tatarski's inner scale, a blur that converges | `seeing` |
 | [5e](#step-5e--the-classical-cassegrain-preset) | Classical Cassegrain geometry, on axis, coma | `cassegrain` |
 | [5f](#step-5f--the-ritchey-chrétien-preset) | Ritchey-Chrétien aplanatism — the coma null | `ritchey` |
 | [5g](#step-5g--the-schmidt-camera-preset) | Schmidt camera, corrector plate, off axis | `schmidt` |
@@ -60,13 +60,13 @@ whole ladder.
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
-| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; the finding that an input-side partition of unity multiplies the interference by C = Σ√(w₁w₂); and the field-varying brightfield render built on it, `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
+| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; an input-side partition of unity multiplying the interference by C = Σ√(w₁w₂); and the field-varying brightfield render built on it, `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus is a pure PHASE, so a plane's flux is exactly invariant with depth and the haze cannot be focused away — and the missing cone is that same constant transformed | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — and the headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water, the fifth geometric ceiling in this branch | `depth-aberration` |
-| [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling and not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and the finding that an off-axis tile is ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
+| [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and an off-axis tile ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
 | [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so a traced pupil is evaluated once instead of once per direction — cached ≡ uncached bit for bit, the saving pinned as an exact integer rather than a wall clock, and commensurability shown to be accuracy-neutral | `commensurate` |
@@ -85,7 +85,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the columns are declined | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — a lattice masked to radius S frees the slider and the cache's gaps become a divisibility law; then eight sub-clauses on a phase object's harmonics in the readout | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — masking the lattice to radius S frees the slider and turns its gaps into a divisibility law; then eight sub-clauses on a phase object's harmonics | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | Four sections' shared deferral closed: S_III/S_IV against a closed form carrying NO shape factor, the traced foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false | `mtf-sections` |
 | [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop whose radius carries no conjugate — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
@@ -4983,10 +4983,15 @@ Measured, the per-ray rms grows by 1.247× for a 4× refinement against a
 predicted 4^(1/6) = 1.2599, while the aperture average does not move at all,
 because averaging over the pupil is exactly what kills the frequencies driving
 the divergence. So the honest claim about this branch is *not* that the blur is
-right: the blur's fine structure is set by the screen's grid and has no
+right: ~~the blur's fine structure is set by the screen's grid and has no
 grid-independent limit, which is why nothing in this file pins it and why
-`screenTiltWaves` says so in its own doc. What is right — and what Fried's angle
-of arrival is a statement about — is where the light's centre of mass goes.
+`screenTiltWaves` says so in its own doc.~~ ✅ **closed at
+[§ 5d.3](#-5d3--the-inner-scale-and-the-blur-that-finally-has-a-limit)** — the
+divergence was the model missing a bottom, not a fact about screens. Tatarski's
+inner scale damps Φ by exp(−f²/f_m²) and the same 4× refinement that multiplies
+the Kolmogorov blur by 1.2628 multiplies the damped one by 0.9855. What is right
+— and what Fried's angle of arrival is a statement about — is where the light's
+centre of mass goes, and § 5d.3.5 pins that it stays there.
 
 **The pipeline is pinned in two steps, scale first.** A pure ramp is the ε = 0
 case: a screen tilted a waves per pupil radius must move the image by exactly
@@ -5042,6 +5047,91 @@ silently turns into speckle when the atmosphere widens the blur. The screen's
 gradient is added to the traced one for *sizing only* and is never folded into
 `opdSampling`, because the fidelity criterion has to stay the number the switch
 was decided on.
+
+### § 5d.3 — the inner scale, and the blur that finally has a limit
+
+§ 5d.2's own finding was a refusal: "the blur's fine structure is set by the
+screen's grid and has no grid-independent limit." A single ray's deflection
+variance is ∫f³Φ(f)df, and Kolmogorov's Φ ∝ f^(−11/3) makes that diverge as
+f_max^(1/3) — refine the screen and every ray bends more, forever, measured
+there as 1.25× for a 4× refinement against a predicted 4^(1/6). Only the
+aperture-AVERAGED tilt, the one Fried's angle of arrival is about, converged, so
+that is the only one the ladder pinned. Register item 14 was that gap.
+
+**The divergence was never physics; the model was missing a bottom.** Real air
+has one. Below the **inner scale** l₀ — millimetres, where viscosity beats
+inertia — the cascade stops, and Tatarski's spectrum writes that in as a
+Gaussian roll-off, Φ ∝ f^(−11/3)·exp(−f²/f_m²) with **f_m = 5.92/(2π·l₀)**.
+`SeeingSpec` grew an `innerScaleMm`, and the moment then has a closed form:
+
+    ∫₀^∞ f³ · c·f^(−11/3) · e^(−f²/f_m²) df = c · f_m^(1/3) · Γ(1/6) / 2
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 5d.3.0 — Γ(1/6) and the moment** | both gammas by the ladder's own quadrature under t = u⁶, which removes the corner entirely; the pin on the pair is Euler's reflection formula Γ(1/6)Γ(5/6) = π/sin(π/6) = 2π, met to 3.3e-16, and the damped moment's closed form to 1e-11 at three cutoffs | ✅ |
+| **§ 5d.3.1 — an absent inner scale is the old screen** | omitted, `undefined` and 0 are bitwise one screen; a screen with one differs in >99% of its samples | ✅ |
+| **§ 5d.3.2 — the divergence, and its absence** | over the SAME 4× refinement, same seeds and same reader: Kolmogorov 1.2628 against 4^(1/6) = 1.2599, Tatarski **0.9855** | ✅ |
+| **§ 5d.3.3 — the converged blur, bracketed** | between the whole-spectrum closed form and the same less the sub-grid band — 0.89 to 0.98 of the former against a floor of 0.77, on three screen geometries | ✅ |
+| **§ 5d.3.4 — the l₀ scaling** | halving l₀ multiplies the rms by 1.1452 and 1.1423, above the infinite-band 2^(1/6) = 1.1225 and below the no-subharmonic 1.1988, and the direction is predicted rather than observed | ✅ |
+| **§ 5d.3.5 — the aperture average, and the refusals** | Fried's statistic moves by under 5%, inside the ensemble's spread; a grid whose Nyquist is under 2·f_m throws and names the samples that work; a negative l₀ throws | ✅ |
+
+**Γ(1/6) is computed, not quoted, and the substitution is why that is cheap.**
+The hard rule exists because a transcribed constant is checked against nothing,
+and a gamma integral looks like exactly the sort of thing one writes down from
+memory. Under t = u⁶ it stops being awkward: Γ(z) = ∫₀^∞ 6·u^(6z−1)·e^(−u⁶) du,
+so Γ(1/6) is ∫6·e^(−u⁶) and Γ(5/6) is ∫6u⁴·e^(−u⁶), both smooth to the origin
+with the u^(−5/6) corner gone. Two independent quadratures then check each other
+against a closed form that came from a *relation* — the reflection formula —
+rather than from recall. The same substitution smooths the moment itself: f = u³
+turns ∫f^(−2/3)e^(−f²/f_m²)df into ∫3·e^(−u⁶/f_m²)du, which is how § 5d.3.3's
+bracket is evaluated without a special function anywhere in the repo.
+
+**A finite screen carries a band, so the pin is a bracket and not a trend.**
+The FFT grid runs from 1/L to Nyquist and three subharmonic levels reach to
+1/(27L) with nine modes apiece rather than a full spectral density. For THIS
+moment the sub-grid band is not a detail — ∫₀^(1/L) f^(−2/3)df is about 40% of
+the whole integral — so the measurement cannot be expected to sit on the closed
+form, and because the subharmonic patch is an approximation rather than a
+truncation it need not sit monotonically below it either. Measured, it does not:
+0.919, 0.894, 0.982 of the closed form at three screen geometries. That rules
+out § 5d.2's trend argument, which is available only when the error has a sign.
+
+What is exactly computable instead is a **bracket** — the closed form above, the
+same closed form less the sub-grid band below — with no free parameter in
+either, and the measurement inside it every time. The same bracket then predicts
+the l₀ scaling and predicts its *direction*: over the whole spectrum the ratio
+is a clean 2^(1/6) with Γ(1/6) and c cancelling, and the measured ratio must
+EXCEED it, because the band the screen misses is very nearly the same absolute
+amount at both cutoffs and subtracting a common amount from both terms of a
+ratio above one raises it. Measured 1.1452 and 1.1423, between 1.1225 and
+1.1988.
+
+**The rung that closes item 14 needs none of that arithmetic.** Over the same 4×
+refinement, on the same seeds, through the same reader, the Kolmogorov screen's
+per-ray rms grows by 1.2628 and the Tatarski screen's by 0.9855. The blur is a
+property of the sky now and not of the sampling.
+
+**What was checked because it must NOT move.** The aperture-averaged tilt lives
+at frequencies of order 1/D and the cutoff is at 9.4/D, so damping the top of
+the spectrum has to leave Fried's coefficient alone; if it moved, the roll-off
+would be eating low frequencies and the implementation would be wrong. It moves
+by 1.2% and 1.4% at two grids, inside the ±14% the ensemble's own spread allows
+at this screen count, so the rung is a bound and not a measurement of zero.
+
+**Still open.**
+
+- **A screen can only impose an inner scale it resolves**, and that is a real
+  cost rather than a refusal to be argued away: a millimetre l₀ on a 200 mm
+  aperture needs 1024 samples to clear the cutoff by the factor § 5d.3.2's
+  reading depends on. The rungs here use a 50 mm aperture for that reason. A
+  screen generated on a coarser grid throws and names the samples that work.
+- **The outer scale is still infinite.** Von Kármán's `(f² + 1/L₀²)^(−11/6)`
+  is the other end of the same correction and would give § 5d.2's own trend
+  rung — the 0.60 → 0.80 → 0.96 deficit — a physical stopping point instead of
+  a screen-size artefact. Not taken here: the divergence was at the top.
+- **The blur is pinned as a statistic, not as an image.** § 5d.2's pipeline
+  rungs run at weight 0 for the reason given there, and nothing yet asserts what
+  a converged blur does to a rendered PSF's width.
 
 ## Step 5e — the classical Cassegrain preset
 

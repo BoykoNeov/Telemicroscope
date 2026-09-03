@@ -161,7 +161,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     unblocks is every absolute reading downstream, § 8a.7's obstruction pin
     among them (1e-3 on the resampled light against 7.6e-5 on the pupil grid).
 
-14. **The ray branch's seeing blur has no grid-independent limit.** Found at
+14. ~~**The ray branch's seeing blur has no grid-independent limit.** Found at
     § 5d.2 while closing A5: a single ray's deflection variance is ∫f³Φ(f)df
     over the screen's resolved band, which diverges at the high-frequency end,
     so the per-ray rms grows as (screen samples)^(1/6) — measured 1.247× for a
@@ -173,7 +173,21 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     the spectrum by exp(−f²/f_m²) with f_m = 5.92/(2π·l₀) and l₀ of order
     millimetres, which makes the integral converge and turns the divergent
     statistic into a physical one. What it unblocks is a *blur* the ray branch
-    can be pinned on, and not only a centroid.
+    can be pinned on, and not only a centroid.~~
+
+    ✅ **CLOSED at [§ 5d.3](VALIDATION.md#-5d3--the-inner-scale-and-the-blur-that-finally-has-a-limit).**
+    The candidate was right and is now the engine: `SeeingSpec` takes an
+    `innerScaleMm`, and Tatarski's `exp(−f²/f_m²)` with `f_m = 5.92/(2π·l₀)`
+    damps the spectrum where the moment diverged. Over the same 4× refinement,
+    the same seeds and the same reader, the Kolmogorov per-ray rms grows by
+    1.2628 (against 4^(1/6) = 1.2599) and the damped one by **0.9855**. The
+    converged value is bracketed by its own closed form — `c·f_m^(1/3)·Γ(1/6)/2`
+    above, the same less the sub-grid band below — with Γ(1/6) computed by the
+    ladder's own quadrature and pinned by Euler's reflection formula rather than
+    quoted. Fried's aperture-averaged coefficient does not move, which is the
+    thing that had to stay still. What the step did NOT take is the other end of
+    the same correction: the outer scale is still infinite, so § 5d.2's
+    0.60 → 0.80 → 0.96 trend still has no physical stopping point.
 
 15. ~~**The distortion map has two chief rays, and the ladder traced the other
     one.** Found at § 6cn while closing 6. `pupil/aiming`'s `chiefRay` targets

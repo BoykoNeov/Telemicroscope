@@ -20,8 +20,13 @@ with it: the 2.9e-3 the cube moved by was the PLANE the series module reads its
 answer at, not the ray it traces — these objectives sit 2.3% to 4.2% off their
 paraxial conjugate, the shift is proportional to that defocus and vanishes at
 it, and the quartic's discrepancy survives the refocus, so the cube was the
-plane and the quartic is the ray. The next unstruck entry is Hopkins' TCC (D),
-with the register's item 14 (the ray blur's missing inner scale) still open.
+plane and the quartic is the ray. § 5d.3 then closed register item 14, the last thing
+§ 5d.2 left open: the ray branch's seeing blur had no grid-independent limit
+because the Kolmogorov spectrum has no smallest eddy, and Tatarski's inner scale
+gives it one — the same 4× refinement that multiplied the blur by 1.26 now
+multiplies it by 0.99, and the converged value is bracketed by a closed form
+whose Γ(1/6) is computed rather than quoted. The next unstruck entry is
+Hopkins' TCC (D).
 
 ## Build order
 

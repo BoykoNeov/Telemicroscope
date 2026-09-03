@@ -95,6 +95,25 @@ export interface SeeingSpec {
   readonly subharmonics?: number;
   /** RNG seed — the same seed gives the same screen. Default 1. */
   readonly seed?: number;
+  /**
+   * Turbulence inner scale l₀, mm — the smallest eddy, below which viscosity
+   * smooths the air out. Omitted or 0 means pure Kolmogorov, which has no
+   * smallest scale at all and is what every screen before § 5d.3 was.
+   *
+   * It exists because one statistic of a Kolmogorov screen does not converge.
+   * A single ray's deflection variance is ∫f³Φ(f)df, and with Φ ∝ f^(−11/3)
+   * that diverges as f_max^(1/3): refine the grid and every ray bends more,
+   * without bound (§ 5d.2's own finding, and the reason nothing pins the ray
+   * branch's blur). Real air has a bottom — l₀ is millimetres — and Tatarski's
+   * spectrum puts it in as a Gaussian roll-off, `exp(−f²/f_m²)` with
+   * `f_m = 5.92/(2π·l₀)`. The integral then converges, and the blur becomes a
+   * property of the sky rather than of the screen's sampling.
+   *
+   * The aperture-AVERAGED tilt Fried's angle of arrival pins is untouched by
+   * it: that statistic lives at frequencies of order 1/D, and l₀ is four orders
+   * below. § 5d.3 pins both halves of that sentence.
+   */
+  readonly innerScaleMm?: number;
 }
 
 /**
@@ -118,6 +137,13 @@ export interface PhaseScreen {
   /** Fried parameter r₀ at `refWavelengthNm`, mm. */
   readonly friedParamMm: number;
   readonly refWavelengthNm: number;
+  /**
+   * The inner scale this screen was built with, mm, or `undefined` for a pure
+   * Kolmogorov screen. Not optional on purpose: a reader that cares whether the
+   * high-frequency end is damped should have to say so, and the type is what
+   * lists the places a screen is constructed.
+   */
+  readonly innerScaleMm: number | undefined;
 }
 
 /**
@@ -135,9 +161,41 @@ export interface PhaseScreen {
  */
 export const KOLMOGOROV_PSD_COEFF = 0.023;
 
-/** Kolmogorov phase power spectrum coefficient: Φ(f) = c·f^(−11/3), c below. */
-function psdCoeff(r0: number): number {
-  return KOLMOGOROV_PSD_COEFF * Math.pow(r0, -5 / 3);
+/**
+ * Tatarski's inner-scale constant: the spectral cutoff is `f_m = 5.92/(2π·l₀)`.
+ *
+ * Exported for the same reason `KOLMOGOROV_PSD_COEFF` is — the closed form for
+ * the converged deflection variance is evaluated at `f_m`, so a rung predicting
+ * it has to use the constant the generator actually used rather than a rounded
+ * one from a paper. 5.92 is the standard value: it is where the Kolmogorov
+ * spectrum's Gaussian correction is conventionally placed relative to l₀.
+ */
+export const TATARSKI_INNER_SCALE_FACTOR = 5.92;
+
+/**
+ * The phase PSD the screen is coloured with, as a function of cyclic frequency.
+ *
+ * Pure Kolmogorov is `c·f^(−11/3)`; with an inner scale it gains Tatarski's
+ * `exp(−f²/f_m²)`. Built once and handed to both the FFT band and the
+ * subharmonics so there is exactly one spectrum in the file — at subharmonic
+ * frequencies the damping is 1 to every digit, but a second copy of a spectrum
+ * is how the two drift apart later.
+ *
+ * The undamped branch is written as the same expression it always was, not as
+ * `psd(f) * 1`: every screen with no inner scale must stay bitwise what it was,
+ * and floating-point multiplication by one is only free if you never reassociate
+ * around it.
+ */
+function phasePsd(r0: number, innerScale: number): (f: number) => number {
+  const c = KOLMOGOROV_PSD_COEFF * Math.pow(r0, -5 / 3);
+  if (!(innerScale > 0)) return (f) => c * Math.pow(f, -11 / 3);
+  const fm = TATARSKI_INNER_SCALE_FACTOR / (2 * Math.PI * innerScale);
+  return (f) => c * Math.pow(f, -11 / 3) * Math.exp(-(f * f) / (fm * fm));
+}
+
+/** Tatarski's cutoff frequency for an inner scale, in the same length units. */
+export function innerScaleCutoff(innerScale: number): number {
+  return TATARSKI_INNER_SCALE_FACTOR / (2 * Math.PI * innerScale);
 }
 
 /**
@@ -164,7 +222,30 @@ export function kolmogorovScreen(spec: SeeingSpec): PhaseScreen {
   const r0 = spec.friedParamMm / spec.apertureDiameterMm; // r₀ in D units
   const L = oversize;
   const df = 1 / L; // cyclic frequency spacing, 1/D
-  const c = psdCoeff(r0);
+  const innerScale = (spec.innerScaleMm ?? 0) / spec.apertureDiameterMm; // l₀ in D units
+  if (spec.innerScaleMm !== undefined && !(spec.innerScaleMm >= 0)) {
+    throw new Error(`innerScaleMm must be ≥ 0, got ${spec.innerScaleMm}`);
+  }
+  if (innerScale > 0) {
+    // The grid can only impose an inner scale it resolves. If the Nyquist
+    // frequency is below the cutoff, the spectrum is truncated by the SAMPLING
+    // before Tatarski's roll-off touches it, and the caller would get a screen
+    // that has no inner scale in it while believing otherwise — the exact
+    // confusion § 5d.2's divergence is about. Refused, with the grid that works.
+    const fm = innerScaleCutoff(innerScale);
+    const fMax = N / (2 * L);
+    if (!(fMax >= 2 * fm)) {
+      const needed = Math.pow(2, Math.ceil(Math.log2(4 * fm * L)));
+      throw new Error(
+        `kolmogorovScreen: an inner scale of ${spec.innerScaleMm} mm puts Tatarski's cutoff at ` +
+          `${fm.toFixed(3)} cycles per aperture diameter, and this grid's Nyquist is ` +
+          `${fMax.toFixed(3)} — the sampling would truncate the spectrum before the inner scale ` +
+          `did, so the screen would not carry one. Use screenSamples ≥ ${needed}, a smaller ` +
+          `oversize, or a larger inner scale.`,
+      );
+    }
+  }
+  const psd = phasePsd(r0, innerScale);
 
   // High-frequency part: colour white noise by √Φ and inverse-transform.
   const re = new Float64Array(N * N);
@@ -175,7 +256,7 @@ export function kolmogorovScreen(spec: SeeingSpec): PhaseScreen {
       const fx = (kx < N / 2 ? kx : kx - N) * df;
       const f = Math.hypot(fx, fy);
       // DC (f = 0) → 0: piston has no meaning, and Φ diverges there anyway.
-      const amp = f === 0 ? 0 : Math.sqrt(c * Math.pow(f, -11 / 3)) * df;
+      const amp = f === 0 ? 0 : Math.sqrt(psd(f)) * df;
       const idx = ky * N + kx;
       re[idx] = rng.nextGaussian() * amp;
       im[idx] = rng.nextGaussian() * amp;
@@ -188,7 +269,7 @@ export function kolmogorovScreen(spec: SeeingSpec): PhaseScreen {
   for (let i = 0; i < N * N; i++) phaseRad[i] = re[i]! * (N * N);
 
   if (subharmonics > 0) {
-    addSubharmonics(phaseRad, N, L, c, subharmonics, rng);
+    addSubharmonics(phaseRad, N, L, psd, subharmonics, rng);
   }
 
   // Radians at ref λ → optical path in mm: OPD = φ·λ_ref/(2π).
@@ -204,6 +285,7 @@ export function kolmogorovScreen(spec: SeeingSpec): PhaseScreen {
     opdMm,
     friedParamMm: spec.friedParamMm,
     refWavelengthNm,
+    innerScaleMm: innerScale > 0 ? spec.innerScaleMm : undefined,
   };
 }
 
@@ -220,7 +302,7 @@ function addSubharmonics(
   phaseRad: Float64Array,
   N: number,
   L: number,
-  c: number,
+  psd: (f: number) => number,
   levels: number,
   rng: Rng,
 ): void {
@@ -234,7 +316,7 @@ function addSubharmonics(
         if (sx === 0 && sy === 0) continue; // piston
         const fx = sx * df;
         const f = Math.hypot(fx, fy);
-        const amp = Math.sqrt(c * Math.pow(f, -11 / 3)) * df;
+        const amp = Math.sqrt(psd(f)) * df;
         const cr = rng.nextGaussian() * amp;
         const ci = rng.nextGaussian() * amp;
         // Re{ (cr + i·ci)·exp(i·2π·f·x) } = cr·cos − ci·sin, summed over the grid.
@@ -337,11 +419,17 @@ export interface ScreenTilt {
  *
  * The bilinear surface's gradient is piecewise: continuous ACROSS a cell in the
  * transverse direction and stepped along it, which is the honest resolution of a
- * gridded random field rather than a defect to smooth away. What that grid costs
- * is § 5d.2's real finding — the per-ray deflection variance has no
- * grid-independent limit (∫f³Φ(f)df diverges at high frequency), so the blur
- * this produces grows as the screen sampling^(1/6) while the aperture-averaged
- * tilt, which is what Fried's angle-of-arrival pins, does not move at all.
+ * gridded random field rather than a defect to smooth away.
+ *
+ * **Whether the blur this produces has a limit is a property of the SCREEN, not
+ * of this reader.** On a pure Kolmogorov screen it does not: ∫f³Φ(f)df diverges
+ * at high frequency, so the per-ray deflection grows as the screen
+ * sampling^(1/6) while the aperture-averaged tilt Fried's angle-of-arrival pins
+ * does not move at all — § 5d.2's finding, and the reason nothing pinned the
+ * blur. Give the screen an `innerScaleMm` and the moment converges; § 5d.3 pins
+ * that the same 4× refinement then moves the per-ray rms by 0.99 instead of
+ * 1.26, and that this reader converges on a band-limited field rather than
+ * adding a grid dependence of its own.
  */
 export function screenTiltWaves(
   screen: PhaseScreen,

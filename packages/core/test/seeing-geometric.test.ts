@@ -477,6 +477,7 @@ function rampScreen(wavesPerRadius: number, wavelengthNm: number, N = 64, oversi
     opdMm,
     friedParamMm: 1,
     refWavelengthNm: 500,
+    innerScaleMm: undefined,
   };
 }
 
@@ -489,6 +490,7 @@ function flatScreen(N = 64, oversize = 2): PhaseScreen {
     opdMm: new Float64Array(N * N),
     friedParamMm: 1,
     refWavelengthNm: 500,
+    innerScaleMm: undefined,
   };
 }
 
