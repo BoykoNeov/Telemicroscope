@@ -149,6 +149,7 @@ whole ladder.
 | [6ck](#step-6ck--the-maps-coefficient-is-one-seidel-sum) | § 6cj's `D` is ΣS_V of the reversed prescription READ at one millimetre: the reading is `a + (2b − a²)r²` and 3e-4 low, and the radius follows NA because the normaliser is the aperture, not the surfaces | ✅ |
 | [6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic) | § 6ca.1's 0.7145/0.7332 is not an interaction: a matched field forces the guard share to be M/NA and the tile subtracts it, so 0.537 is four integers and balancing the share leaves 3.3e-4 | ✅ |
 | [6cm](#step-6cm--the-stop-shift-becomes-the-engines) | The chief ray through a displaced stop is a linear solve, not a search: Welford's S_II*, S_III*, S_V* over 13× in E, S_I and S_IV invariant to the BIT, § 6ae's −70.7001 the engine's | ✅ |
+| [6cn](#step-6cn--the-maps-quartic-computed-rather-than-fitted) | A chief-ray trace carried in power series, not Buchdahl transcribed: two closed forms to 5e-14, ΣS_V its cube — and § 6ck's fitted `b` is the ray AIMING, +2.6e-8 vs −9.4e-10 | ✅ |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 
@@ -25923,9 +25924,12 @@ and always will; the closed form's one free number no longer does.
 
 **Still open.**
 
-- **`b` is not a Seidel sum.** The quartic that makes § 6cj's reading 3e-4 low is
-  fifth-order distortion, which `seidelSums` does not compute and this ladder has
-  no rung for. It is measured here and named nowhere.
+- ~~**`b` is not a Seidel sum**~~ — **named and computed at
+  [§ 6cn](#step-6cn--the-maps-quartic-computed-rather-than-fitted)**, though not
+  as a sum over surfaces: an exact chief-ray trace carried in truncated power
+  series hands the quartic over at machine precision. And the number measured
+  here was not it — the fitted +2.5983e-8 against the computed −9.3888e-10 is the
+  chief ray's AIMING, and real ray aiming moves the fit onto the coefficient.
 - **The coefficient is monochromatic.** Everything above is at the ruler's
   430 nm, because that is the wavelength the mosaic maps in. ΣS_V is a function
   of index, so the map's quadratic has a dispersion nobody has asked for.
@@ -26228,6 +26232,180 @@ one is a limitation:
 | ...and a stop PAST focus, where the marginal ray arrives inverted | the height that fills a 25 mm stop diverges at the 2090 mm focus and comes back down the far side, is positive on both sides because an aperture is a radius, and Welford still holds there with E crossed from −0.129 to +3.57 | ✅ |
 | **§ 6cm.3 — what is still refused** | no stop with a field angle; α exactly 0 at an infinite conjugate (a mirror with a power-of-two curvature, so the zero is exact) while the same placement computes at a finite one; an aperture given twice or not at all | ✅ |
 | **§ 6cm.4 — nothing moved that was not asked to** | 161 configurations recorded from the pre-§ 6cm engine at full precision — mirrors, thin and thick lenses across seven shapes and two indices, doublets at five wavelengths, both conjugates, with and without distortion — reproduced to the bit | ✅ |
+
+## Step 6cn — the map's quartic, computed rather than fitted
+
+Source: `analysis/distortion.ts` ·
+Tests: `packages/core/test/distortion-series.test.ts`
+
+§ 6ck closed on "**`b` is not a Seidel sum.** The quartic that makes § 6cj's
+reading 3e-4 low is fifth-order distortion, which `seidelSums` does not compute
+and this ladder has no rung for. It is measured here and named nowhere." This
+names it. And having named it, the measurement turns out to have been of
+something else — which is the finding, and it is § 6ck.0's own lesson arriving a
+second time from the other side.
+
+### Fifth-order distortion without transcribing fifth-order theory
+
+The textbook route to `b` is Buchdahl's coefficients, and that is exactly the
+object the hard rule is about: a long algebraic set whose transcription can be
+checked against nothing but itself. § 5d.2 has already paid once for a register
+naming an external number wrongly.
+
+Nothing is transcribed here. Distortion is a property of the CHIEF ray alone —
+field⁵ with no aperture in it — and with the stop at surface 0 the chief ray is
+not solved for at all: it is the ray from the field point through surface 0's
+vertex, which is where the stop's centre is. So the whole map is one exact ray
+trace, and an exact ray trace is a quadratic for the sphere and a square root
+for Snell. Run that arithmetic on truncated power series in the field parameter
+instead of on numbers and the coefficients come out at machine precision — no
+step size, no fit, no differencing floor. It is the same physics
+`trace/sequential` runs, differentiated by carrying the terms along.
+
+That makes `analysis/distortion` a SECOND tracer, and the duplication is the
+point rather than a cost paid by accident: the rungs below compare it against
+`trace/sequential` on the identical prescription, and two machineries sharing no
+line agreeing to the last bits is evidence, where a wrapper agreeing with itself
+would be none.
+
+### The single surface, where the answer has no curvature in it
+
+The chief ray meets surface 0 at its vertex, where the normal IS the axis, so it
+refracts as though at a plane — `sin θ′ = (n/n′)·sin θ`, exactly — and then runs
+straight to the image plane. With ν = n/n′ and t = tan θ that is closed at every
+order:
+
+    r/r_par = [1 + (1 − ν²)·t²]^(−1/2)
+
+**and the radius is not in it.** A single spherical surface stopped at its own
+vertex distorts by an amount fixed by the two indices and the field angle;
+bending it moves the image and changes the magnification by more than a factor
+of two while leaving the cube and the quartic identical to the last bit
+(§ 6cn.0). The expansion gives A = −(1 − ν²)/2 and B = (3/8)(1 − ν²)², so
+**B = (3/2)·A²** — which is a trap, because it is a property of this one object
+and not of distortion.
+
+### So the plate is the anchor that discriminates
+
+§ 6cn.0's B is (3/2)A² and § 6cn.2's concentric system is zero on both, so
+between them an implementation that computed the quartic AS (3/2)A² would pass
+unseen. A plane-parallel plate with the stop on its front face refuses that: the
+same vertex refraction, then a straight run of `d` through the glass, then an
+exit parallel to the entry and displaced. The two pieces do not share a
+denominator, so with K = −dν/s the glass's share of the conjugate,
+
+    r/r_par = 1 − K(1 − ν²)t²/2 + K(3/8)(1 − ν²)²t⁴        B/A² = 3/(2K)
+
+— a ratio the caller sets by choosing the thickness. It is **−11.25** at 20 mm
+of n = 1.5 on a 100 mm conjugate and **−127.5** at 5 mm of n = 1.7 on 250, and
+the module reproduces both to 5e-14 (§ 6cn.1). Neither is 3/2, and neither is
+even the right sign.
+
+### And the two controls that cost nothing
+
+A **concentric** system — every surface centred on the stop's vertex — is a zero
+at every order, because the chief ray meets each surface along its own normal
+and is never deviated. The marginal ray still is, so there is a real image to
+measure against: what vanishes is the distortion and not the system, and it
+vanishes to 8e-21 against the 1e-4 a real objective carries (§ 6cn.2). The
+**even coefficients** vanish too, on every system here — the map is odd by the
+system's rotational symmetry, and nothing in the series arithmetic knows that,
+so their size is a free check that the trace did not lose a symmetry it should
+have kept.
+
+Then the cube, which is not a new claim but the OTHER machinery's:
+`seidelSums`' ΣS_V/(2n′u′) is the series' own ε³ coefficient to 1e-12 on a
+three-glass doublet at two conjugates (§ 6cn.3). The two share the prescription
+and nothing else.
+
+### On § 6ck's objective, the cube lands and needs no correction
+
+The reversed objective's map IS § 6ck's map — its object is the image plane and
+its image is the specimen — so its forward coefficients are `mu`, `a` and `b`
+directly, with no conversion in between. Against the exact tracer on that same
+four-surface prescription the series holds to 5e-12 at one millimetre and loses
+exactly an order of magnitude and a half per doubling: **65× and 64×**, which is
+2⁶ twice over. What is left over is the r⁶ term and demonstrably nothing else
+(§ 6cn.5).
+
+Against § 6ck's own fitted map the cube agrees to **1.4e-8 on all four cells** —
+two orders better than the 6e-6 § 6ck.0 reached — and it does so with **no
+`(f/f_d)²` factor at all**. Applying that factor costs four orders (2.4e-4 to
+5.4e-4). Whatever § 6ch.1 needed it for, it belongs to the Seidel arithmetic and
+not to the map.
+
+### But the quartic § 6ck measured is the chief ray's AIMING
+
+The fitted quartic is not this one, and not by a little: **+2.5983e-8 against
+−9.3888e-10** on the 10×/0.1 cell — the wrong sign and twenty-seven times the
+size — with the other three cells between 0.73 and 1.14 of a factor away.
+
+The reason is one line of `pupil/aiming`: `chiefRay` targets `pupil.entrance.z`,
+the PARAXIAL entrance pupil, and only solves the ray onto the stop when a system
+asks for real ray aiming. This objective's stop is a back-focal-plane diaphragm
+appended as its LAST surface — pinned in § 6cn.5 rather than assumed, because it
+is what makes reversing it put the stop at surface 0 and therefore what makes
+the module's vertex ray and real aiming's solved ray the same ray. The entrance
+pupil is then that diaphragm imaged back through all four surfaces, a
+construction the real ray misses by an amount that is itself an aberration.
+Re-measure the same map, with the same fit, on the same systems with
+`rayAiming: "real"` and the fitted quartic lands on the module's: −9.1066e-10
+against −9.3888e-10 on the 10×/0.1, and 1.7e-4 and 6.6e-4 away on the two fast
+cells (§ 6cn.5).
+
+So § 6ck's "measured here and named nowhere" closes twice over: the quartic now
+has a name and a prescription-only value, and the number § 6ck was calling `b`
+was a reading of the aiming approximation.
+
+**What is not explained is the cube.** The same switch moves it by 3.6e-4 to
+2.9e-3 — a separation worth stating (the quartic moves by a factor and a sign,
+the cube by parts in a thousand) but not a mechanism. It cannot be the aiming
+solve's own tolerance, which is 1e-12 of the stop radius. And it sits awkwardly
+beside the rest of this step: if the module's ray IS the stop-centre ray, and
+§ 6cn.5 shows it reproducing the exact trace on the reversed prescription to
+5e-12, then real aiming should agree with it BETTER at third order than paraxial
+aiming does, and it agrees five orders worse. Something separates the reversed
+objective from the forward microscope at the 1e-6 level — the same size as
+§ 6ch.1's `(f/f_d)²` and as the 5e-6 magnification residue below — and nobody
+has taken it apart. That is register item 15, not a result.
+
+That is not a defect in the mosaic. Paraxial aiming is what every rung from
+§ 6bk onward has traced with, the frames it produces are the frames the ladder
+pinned, and a 2e-4 term at one millimetre is far inside anything § 6cj's edge
+argument turns on. What changes is what may be *said* about it: § 6cj's `D` is
+the map's third-order coefficient read at a radius (§ 6ck.0), and the r² part of
+that reading, `2b − a²`, carries a `b` belonging to the tracer's aiming rather
+than to the glass.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cn.0 — a single spherical refractor stopped at its own vertex** | the closed form `[1 + (1 − ν²)t²]^(−1/2)`, cube AND quartic, to 4e-16 at five curvatures including a plane, two indices and two conjugates; the distortion is curvature-free while the magnification moves by 2× | ✅ |
+| **§ 6cn.1 — the plane-parallel plate, which separates the quartic from the cube** | `B/A² = 3/(2K)` to 5e-14 at three thickness/conjugate pairs — −11.25 and −127.5, neither of them the single surface's 3/2 nor even its sign, so `(3/2)A²` cannot masquerade as the quartic | ✅ |
+| **§ 6cn.2 — a concentric system is a zero at every order** | surfaces centred on the stop leave the map exactly linear: cube 8e-21 and quartic 2.5e-25 against a real objective's 1e-4, at both conjugates and at infinity, while the magnification stays finite; the even coefficients vanish to 1e-14 unprompted | ✅ |
+| **§ 6cn.3 — the cube is ΣS_V, from a machinery sharing no line** | `seidelSums`' S_V/(2n′u′) is the series' ε³ term to 1e-12 on a three-glass doublet at two conjugates, and the whole series reproduces the exact trace at 1.3e-15, losing 64× per doubling | ✅ |
+| **§ 6cn.4 — the refusals** | a stop that is not surface 0, a conic, a mirror, a negative conjugate — each named for the thing it would otherwise need pinned | ✅ |
+| **§ 6cn.5 — § 6ck's objective: the cube lands, the quartic was never the glass** | the stop IS the last surface, so reversing it is legal; 5e-12 against the exact trace on four cells at 65×/64× per doubling; `a` to 1.4e-8 with NO `(f/f_d)²`; `b` +2.5983e-8 fitted against −9.3888e-10 computed, and real aiming moves the fit onto it | ✅ |
+
+**Still open.**
+
+- **The stop must be surface 0.** § 6cm lifted the same restriction for the
+  third-order sums, where the launch that reaches a displaced stop is a
+  two-unknown LINEAR problem. At fifth order it is not linear, and the implicit
+  solve for it is a second thing to pin rather than a free generalisation. A
+  system whose stop is elsewhere is reversed until it leads, which is § 6ch.1's
+  route already.
+- **Mirrors and aspheres throw.** Both are tractable — a mirror needs the other
+  root of the intersection and the unfolded −z convention, an asphere a
+  different sag — and neither is pinned, so neither is offered. Every reflector
+  on this ladder is therefore outside this module.
+- **The reversal is not exact.** The reversed objective's magnification differs
+  from the forward traced map's by 5e-6 to 9e-7 across the four cells, which is
+  the same size as § 6ch.1's `(f/f_d)²` and is why the cube pins at 1.4e-8 and
+  not at the trace's own 5e-12. Whether that residue is the image plane, the
+  reversal, or the aiming again is unmeasured.
+- **`b` inherits § 6ck's monochromatic bullet.** Everything here is at the
+  ruler's 430 nm for the objective cells, and the quartic is a function of index
+  exactly as the cube is.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

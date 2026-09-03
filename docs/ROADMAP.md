@@ -12,9 +12,12 @@ the noisy frame (§ 8a.7–§ 8a.11), and the sky with the limiting magnitude
 (§ 8b). Seeing's ray analog (A5) landed at § 5d.2 — the geometric branch now
 deflects rays by the screen's gradient, pinned to Fried's G-tilt coefficient
 0.170 rather than the Z-tilt 0.182 the register had named — and A7, the
-stop-shift equations, at § 6cm. The next unstruck entry is fifth-order
-distortion (C), with the register's new item 14 (the ray blur's missing inner
-scale) opened by § 5d.2 alongside it.
+stop-shift equations, at § 6cm. Fifth-order distortion (C) landed at § 6cn —
+the map's quartic is now computed from the prescription rather than fitted, and
+the fit it replaces turned out to be measuring the tracer's chief-ray aiming.
+The next unstruck entry is Hopkins' TCC (D), with the register's items 14 (the
+ray blur's missing inner scale) and 15 (which ray the engine should mean by "the
+chief ray") opened alongside it.
 
 ## Build order
 

@@ -175,6 +175,32 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     statistic into a physical one. What it unblocks is a *blur* the ray branch
     can be pinned on, and not only a centroid.
 
+15. **The distortion map has two chief rays, and the ladder traced the other
+    one.** Found at § 6cn while closing 6. `pupil/aiming`'s `chiefRay` targets
+    `pupil.entrance.z` — the PARAXIAL entrance pupil — and solves the ray onto
+    the actual stop only when a system asks for real ray aiming, which none of
+    the mosaic rungs does. On § 6ck's objective, whose diaphragm is the last
+    surface, the two rays give the same third-order coefficient to 1.4e-8 and
+    quartics that differ by a factor of twenty-seven and a sign. Everything
+    § 6bk onward traced is self-consistent and the frames are the frames the
+    ladder pinned; what is unpinned is **which of the two the engine should
+    mean by "the chief ray"**, and what switching costs. *Candidate:* measure
+    the same mosaic rungs under `rayAiming: "real"` and see whether anything
+    load-bearing moves — the cube shifted 3.6e-4 to 2.9e-3 across four cells,
+    which is inside every tolerance on the chain and outside none of the
+    readings quoted to five figures. **And that 3e-3 is itself unexplained**,
+    which is the sharper half of this item: § 6cn's series reproduces the exact
+    trace on the reversed prescription to 5e-12, so if its ray is the
+    stop-centre ray then real aiming should agree with it BETTER at third order
+    than paraxial aiming does — and it agrees five orders worse. It is not the
+    aiming solve's tolerance, which is 1e-12 of the stop radius. Something
+    separates the reversed objective from the forward microscope at the 1e-6
+    level: § 6cn's reversal is only good to 5e-6 in magnification, the same size
+    as § 6ch.1's `(f/f_d)²`, and nobody has separated the reversal's residue
+    from the aiming's. *Candidate:* trace the forward microscope's chief ray
+    under both aiming modes at one field point and read where each crosses the
+    diaphragm — one number decides whether the 3e-3 is the ray or the plane.
+
 ## B. Blocked on data, not on code
 
 The hard rule forbids transcribing from memory, so these wait for a sourced
@@ -214,10 +240,17 @@ step:
 
 **Worth a step, because it is an engine change or a real rung**
 
-- **Fifth-order distortion.** § 6ck: the map's `b` "is measured here and named
-  nowhere"; `seidelSums` stops at third order. A fifth-order rung is an
-  engine capability with textbook forms behind it (Buchdahl), and it is the
-  one thing on the chain that would pin something outside the fixture.
+- ~~**Fifth-order distortion.**~~ ✅ — landed at
+  [§ 6cn](VALIDATION.md#step-6cn--the-maps-quartic-computed-rather-than-fitted),
+  and NOT by transcribing Buchdahl: distortion is a chief-ray property, and with
+  the stop at surface 0 the chief ray is the vertex ray, so an exact trace
+  carried in truncated power series hands the quartic over at machine precision.
+  Two closed forms pin it (a single spherical surface stopped at its own vertex,
+  whose distortion has no curvature in it; a plate, whose `B/A² = 3/(2K)` is what
+  keeps the quartic from masquerading as the cube). It pinned outside the fixture
+  and then said something about the fixture: **§ 6ck's fitted `b` was the chief
+  ray's AIMING**, +2.5983e-8 against the computed −9.3888e-10, and real ray
+  aiming moves the fit onto the coefficient. What it left open is below (item 15).
 - **A frame that is not a power of two.** § 6bo: § 6bn's first interval
   (4× → 10×) "wants a non-integer `pupilSamples` at every power-of-two size"
   and "would be an engine change". Without it, whether any of the six
@@ -290,8 +323,10 @@ radial-map nodes · § 6ba differential bleaching.
    with the register's own coefficient corrected (G-tilt 0.170, not Z-tilt
    0.182) and one new item (14) opened by what the per-ray statistic turned out
    to do.
-6. **Fifth-order distortion** (C): the only thing on the mosaic chain that
-   pins outside the fixture.
+6. ~~**Fifth-order distortion** (C): the only thing on the mosaic chain that
+   pins outside the fixture.~~ ✅ — landed at § 6cn. It pinned outside the
+   fixture and then corrected the fixture's own reading: the quartic § 6ck
+   measured was the tracer's chief-ray aiming, not the glass. One new item (15).
 7. **Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
    before a line is written — the brightfield refusal (§ 6f.9) is where it
    plugs in.
