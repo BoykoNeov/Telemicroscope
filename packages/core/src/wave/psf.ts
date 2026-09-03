@@ -802,9 +802,10 @@ export interface SystemPsfOptions extends PsfOptions {
   /**
    * An atmospheric phase screen to add onto the pupil (see `wave/seeing`).
    *
-   * Composed as pure phase, and in this FFT branch ONLY: the geometric fallback
-   * has no wavefront to add it to, so a system aberrated enough to trip the
-   * fidelity switch correctly shows no seeing (docs/VALIDATION § 5d). One screen
+   * Composed as pure phase here. The geometric fallback has no wavefront to add
+   * it to and reads the same screen's GRADIENT instead, deflecting each ray by
+   * it — so a system aberrated enough to trip the fidelity switch still shows
+   * seeing (docs/VALIDATION § 5d.2, which closed § 5d's deferral). One screen
    * is reused across every wavelength a polychromatic stack asks for — it is
    * stored as OPD, so a bluer colour sees proportionally more waves of the same
    * bumps, which is the r₀ ∝ λ^(6/5) scaling for free. Because the screen adds

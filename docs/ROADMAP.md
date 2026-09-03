@@ -9,8 +9,12 @@ a hundred *Still open* paragraphs in VALIDATION.md. Read that register before
 choosing the next step; its *Suggested order* is the plan. **Step 8 is its first
 three entries and all three are landed** — the zero point and the draw (§ 8a),
 the noisy frame (§ 8a.7–§ 8a.11), and the sky with the limiting magnitude
-(§ 8b). The register's next unstruck entry is seeing's ray analog (A5) — A7, the
-stop-shift equations, landed at § 6cm.
+(§ 8b). Seeing's ray analog (A5) landed at § 5d.2 — the geometric branch now
+deflects rays by the screen's gradient, pinned to Fried's G-tilt coefficient
+0.170 rather than the Z-tilt 0.182 the register had named — and A7, the
+stop-shift equations, at § 6cm. The next unstruck entry is fifth-order
+distortion (C), with the register's new item 14 (the ray blur's missing inner
+scale) opened by § 5d.2 alongside it.
 
 ## Build order
 

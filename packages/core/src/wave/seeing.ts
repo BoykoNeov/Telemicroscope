@@ -57,19 +57,28 @@ import type { PupilFunction } from "./psf";
  * discretisation error, corrected where it bites and documented where it does
  * not.
  *
- * ## What is deferred, and why it is honest to defer it
+ * ## Both branches, and what only one of them can say
  *
- * The screen is **pure phase**, so it lives only in the FFT PSF branch — the
- * geometric ray-histogram branch has no phase and so shows no seeing (the
- * analogous move, deflecting each ray by ∇φ, is a separate capability, the way
- * the spider's spike is an FFT-branch phenomenon and its shadow a geometric
- * one; see docs/VALIDATION § 5d). This matters only when the *system's own*
- * aberration is bad enough to trip the fidelity fallback; a well-corrected
- * telescope on axis, which is where seeing is actually watched, stays on the
- * FFT branch and images correctly. What must not slip through is a screen the
- * FFT grid cannot resolve — the fidelity criterion is measured on the raw traced
- * samples and is blind to the screen — so a caller checks `maxGridPhaseStepWaves`
- * on the final pupil instead.
+ * The screen used to live in the FFT branch alone, because a ray histogram has
+ * no phase to add a pure-phase screen to. It has a **slope**, though, and that
+ * is the deferral § 5d recorded and § 5d.2 closed: `screenTiltWaves` reads the
+ * gradient of the very surface `screenPhaseWaves` interpolates, and
+ * `geometricPsf` deflects each ray by it, so a seeing blur now survives the
+ * fidelity fallback instead of vanishing at the moment the system's own
+ * aberration takes the image over.
+ *
+ * The two branches are not equally capable of it, and the difference is
+ * physics rather than plumbing. The **aperture-averaged** tilt — the image's
+ * centroid wander, Fried's angle of arrival — converges, and on a pure tilt the
+ * two branches land within 0.7% of each other. The per-ray deflection does NOT:
+ * ∫f³Φ(f)df diverges at high frequency, so the width of the geometric blur is
+ * set by the screen's own cell size and grows as (screen samples)^(1/6)
+ * forever. Seeing survives the fallback as tilt with a grid-set fine structure,
+ * which is the honest answer and is what § 5d.2 measures rather than hides.
+ *
+ * What must not slip through is a screen the FFT grid cannot resolve — the
+ * fidelity criterion is measured on the raw traced samples and is blind to the
+ * screen — so a caller checks `maxGridPhaseStepWaves` on the final pupil instead.
  */
 export interface SeeingSpec {
   /** Fried parameter r₀ at `refWavelengthNm`, in mm (an entrance-pupil length). */
@@ -111,9 +120,24 @@ export interface PhaseScreen {
   readonly refWavelengthNm: number;
 }
 
+/**
+ * The Kolmogorov phase PSD's leading constant, Φ(f) = C·r₀^(−5/3)·f^(−11/3),
+ * with f a CYCLIC spatial frequency.
+ *
+ * Exported because it is not decoration: every second moment of a screen — the
+ * structure function § 5d pins, the angle-of-arrival variance § 5d.2 pins — is
+ * linear in it, so a rung that predicts one of those has to evaluate its closed
+ * form at the constant the generator actually used rather than at the one the
+ * literature quotes. The two differ: the exact value is 0.022896 (equivalently
+ * 0.490 against an ANGULAR frequency κ = 2πf), and 0.023 is the rounded form
+ * this generator was written on, 0.46% high. That 0.46% rides every variance
+ * here, and § 5d.2's tilt rungs are tight enough to see it.
+ */
+export const KOLMOGOROV_PSD_COEFF = 0.023;
+
 /** Kolmogorov phase power spectrum coefficient: Φ(f) = c·f^(−11/3), c below. */
 function psdCoeff(r0: number): number {
-  return 0.023 * Math.pow(r0, -5 / 3);
+  return KOLMOGOROV_PSD_COEFF * Math.pow(r0, -5 / 3);
 }
 
 /**
@@ -248,23 +272,14 @@ export function screenPhaseWaves(
 ): (px: number, py: number) => number {
   const N = screen.samples;
   const lambdaMm = wavelengthNm * 1e-6;
-  // Normalized pupil (radius 1) spans ± (apertureDiameter/2) mm, i.e. a fraction
-  // (D/2)/L of the screen half-width; in grid cells that is a half-span of
-  // (N/2)·(D/L). With L = oversize·D this is N/(2·oversize).
-  const halfSpanCells = ((screen.apertureDiameterMm / 2) / screen.physicalSizeMm) * N;
+  const halfSpanCells = pupilHalfSpanCells(screen);
   const opd = screen.opdMm;
   return (px, py) => {
     // Grid coordinates: centre at N/2, pupil edge at N/2 ± halfSpanCells.
     const gx = N / 2 + px * halfSpanCells;
     const gy = N / 2 + py * halfSpanCells;
-    let x0 = Math.floor(gx);
-    let y0 = Math.floor(gy);
-    // Clamp so the +1 neighbour is always in range; the pupil is well inside the
-    // screen for oversize > 1, so this only guards the exact edge.
-    if (x0 < 0) x0 = 0;
-    if (y0 < 0) y0 = 0;
-    if (x0 > N - 2) x0 = N - 2;
-    if (y0 > N - 2) y0 = N - 2;
+    const x0 = clampCell(Math.floor(gx), N);
+    const y0 = clampCell(Math.floor(gy), N);
     const tx = gx - x0;
     const ty = gy - y0;
     const i00 = y0 * N + x0;
@@ -276,6 +291,84 @@ export function screenPhaseWaves(
     const bot = v01 + (v11 - v01) * tx;
     const opdMm = top + (bot - top) * ty;
     return opdMm / lambdaMm;
+  };
+}
+
+/**
+ * Half-span of the pupil on the screen grid, in cells.
+ *
+ * Normalized pupil (radius 1) spans ± (apertureDiameter/2) mm, i.e. a fraction
+ * (D/2)/L of the screen half-width; in grid cells that is a half-span of
+ * (N/2)·(D/L). With L = oversize·D this is N/(2·oversize).
+ */
+function pupilHalfSpanCells(screen: PhaseScreen): number {
+  return ((screen.apertureDiameterMm / 2) / screen.physicalSizeMm) * screen.samples;
+}
+
+/**
+ * Clamp a cell index so the +1 neighbour is always in range; the pupil is well
+ * inside the screen for oversize > 1, so this only guards the exact edge.
+ */
+function clampCell(i: number, N: number): number {
+  if (i < 0) return 0;
+  if (i > N - 2) return N - 2;
+  return i;
+}
+
+/** Wavefront slope at a pupil point, in waves per unit normalized pupil RADIUS. */
+export interface ScreenTilt {
+  readonly dx: number;
+  readonly dy: number;
+}
+
+/**
+ * Sample the screen's **slope** — the ray-deflecting half of the same field.
+ *
+ * A ray does not see the wavefront, it sees the wavefront's gradient: a bundle
+ * crossing a pupil where the optical path is tilted comes out tilted, by
+ * −∇W/n′, and that is the geometric analog § 5d named and deferred. This is the
+ * reader that produces it, and the one thing it must not be is an independent
+ * second opinion about the screen — so it is the **analytic derivative of the
+ * exact bilinear surface `screenPhaseWaves` interpolates**, not a finite
+ * difference of grid nodes and not a smoother resampling. The FFT branch and the
+ * ray branch then read one field two ways, and a pure tilt reaches the image
+ * plane by the same amount down either (§ 5d.2's ε = 0 rung is exactly that
+ * statement).
+ *
+ * The bilinear surface's gradient is piecewise: continuous ACROSS a cell in the
+ * transverse direction and stepped along it, which is the honest resolution of a
+ * gridded random field rather than a defect to smooth away. What that grid costs
+ * is § 5d.2's real finding — the per-ray deflection variance has no
+ * grid-independent limit (∫f³Φ(f)df diverges at high frequency), so the blur
+ * this produces grows as the screen sampling^(1/6) while the aperture-averaged
+ * tilt, which is what Fried's angle-of-arrival pins, does not move at all.
+ */
+export function screenTiltWaves(
+  screen: PhaseScreen,
+  wavelengthNm: number,
+): (px: number, py: number) => ScreenTilt {
+  const N = screen.samples;
+  const lambdaMm = wavelengthNm * 1e-6;
+  const halfSpanCells = pupilHalfSpanCells(screen);
+  const opd = screen.opdMm;
+  // d(waves)/d(px) = d(mm)/d(cell) · d(cell)/d(px) / λ.
+  const perCellToPerRadius = halfSpanCells / lambdaMm;
+  return (px, py) => {
+    const gx = N / 2 + px * halfSpanCells;
+    const gy = N / 2 + py * halfSpanCells;
+    const x0 = clampCell(Math.floor(gx), N);
+    const y0 = clampCell(Math.floor(gy), N);
+    const tx = gx - x0;
+    const ty = gy - y0;
+    const i00 = y0 * N + x0;
+    const v00 = opd[i00]!;
+    const v10 = opd[i00 + 1]!;
+    const v01 = opd[i00 + N]!;
+    const v11 = opd[i00 + N + 1]!;
+    // ∂/∂gx of v00(1−tx)(1−ty) + v10·tx(1−ty) + v01(1−tx)ty + v11·tx·ty.
+    const dgx = (v10 - v00) * (1 - ty) + (v11 - v01) * ty;
+    const dgy = (v01 - v00) * (1 - tx) + (v11 - v10) * tx;
+    return { dx: dgx * perCellToPerRadius, dy: dgy * perCellToPerRadius };
   };
 }
 

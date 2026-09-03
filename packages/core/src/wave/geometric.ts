@@ -17,6 +17,7 @@ import {
   transmittedEnergy,
 } from "./psf";
 import { opdSampling, phaseStepPerSample, PHASE_STEP_LIMIT } from "./fidelity";
+import { screenTiltWaves, type PhaseScreen } from "./seeing";
 
 /**
  * The geometric PSF, and the switch between it and the diffraction PSF.
@@ -58,6 +59,20 @@ export interface GeometricPsfOptions extends PsfOptions {
   readonly traceSamples?: number;
   readonly zernikeTerms?: number;
   readonly aim?: AimOptions;
+  /**
+   * An atmospheric phase screen (see `wave/seeing`), applied here as the ray
+   * deflection it is rather than as the phase this branch cannot hold.
+   *
+   * The same field the FFT branch adds to the pupil, read through its gradient
+   * instead of its value: a ray crossing the pupil where the optical path is
+   * tilted leaves tilted, and lands displaced. § 5d deferred this and § 5d.2
+   * built it, so `adaptivePsf({seeing})` now carries the atmosphere across the
+   * whole fidelity band instead of losing it exactly where the system's own
+   * aberration takes over.
+   *
+   * REFUSED when the exit pupil is at infinity — see `rayDeflectionScaleMm`.
+   */
+  readonly seeing?: PhaseScreen;
 }
 
 /** Mean rays per blur-disc pixel the default ray grid aims for (≈1/CV²). */
@@ -97,6 +112,87 @@ export function defaultRayGrid(
   const grid = Math.ceil(2 * blurRadiusPx * Math.sqrt(TARGET_RAYS_PER_BLUR_PIXEL));
   // Odd, so the pupil grid keeps its centre ray.
   return Math.min(RAY_GRID_MAX, Math.max(RAY_GRID_MIN, grid)) | 1;
+}
+
+/**
+ * Largest screen slope over a pupil-full of points, waves per unit radius.
+ *
+ * A coarse max on the TRACE grid, and it under-reads the bilinear surface's true
+ * maximum by however much falls between its samples. That is the right amount of
+ * effort: the number is only ever a ray BUDGET, so under-reading it costs some
+ * histogram density and over-reading it costs trace time, and neither is a
+ * physical claim. Nothing downstream of `rayGrid` sees it.
+ */
+function maxTiltWavesPerRadius(
+  tilt: (px: number, py: number) => { readonly dx: number; readonly dy: number },
+  points: readonly { readonly px: number; readonly py: number }[],
+): number {
+  let max = 0;
+  for (const p of points) {
+    const g = tilt(p.px, p.py);
+    const m = Math.hypot(g.dx, g.dy);
+    if (m > max) max = m;
+  }
+  return max;
+}
+
+/**
+ * Image-plane millimetres a ray moves per wave of pupil slope, signed.
+ *
+ * The transverse ray aberration, and nothing more exotic: an extra optical path
+ * W (mm) laid across the exit pupil coordinate x lands its ray at
+ *
+ *     Δx = +(R / n′) · ∂W/∂x
+ *
+ * with R the reference-sphere radius — exit pupil to image — and n′ the image
+ * index. A slope quoted the way `screenTiltWaves` quotes it, in WAVES per unit
+ * NORMALIZED pupil radius, converts by W = λ·φ and x = px·r_exit, which gives
+ * the single factor returned here.
+ *
+ * **The plus sign is the one thing here worth an anchor**, because the textbook
+ * form of this relation is written with a minus and the difference is which way
+ * its W points. The anchor is a prism: a wedge thicker at +x delays the light
+ * there, and a prism deviates its beam toward the BASE — toward +x. So a
+ * positive gradient of extra optical path moves the image the same way, and this
+ * engine's OPD is signed as extra optical path (`opdMap` records
+ * `opl − opl_chief`), which makes the sign positive here. Measured both ways
+ * round before it was written: on a paraboloid off axis (image-space index −1)
+ * and on an achromat off axis (+1), the traced ray centroid lands on the same
+ * side as `+R/|n′|` times the traced wavefront's own mean gradient — and the FFT
+ * branch puts its coma on the same side as the rays do (§ 5d.2). |n′| rather
+ * than the signed index, for the same reason `imagePixelScaleMm` takes it: the
+ * mirror convention's sign lives in the fold, not in the ruler.
+ *
+ * **It is written in millimetres on purpose.** Cancelling it against
+ * `imagePixelScaleMm` gives the much shorter Δx = +2·padFactor·φ′ PIXELS — the
+ * same identity `defaultRayGrid` above is built on — and writing THAT here would
+ * put `padFactor` and `pupilSamples` inside a physics term, which is the
+ * duplicated-ruler mistake § 6aj.6 had to repair one floor up in this same
+ * function. So the deflection is computed from the pupil's own geometry and the
+ * pixel identity is asserted as a rung instead of assumed (§ 5d.2).
+ *
+ * An exit pupil at INFINITY is refused rather than answered. The mm form needs a
+ * finite r_exit; the telecentric spelling would have to come through
+ * `slopeRadius`, as `imagePixelScaleMm`'s own infinite branch does, and no
+ * atmosphere has ever been asked for through an image-space telecentric
+ * objective. Refusing keeps that from silently reading as a zero deflection —
+ * a screen quietly doing nothing is the failure mode worth throwing over.
+ */
+export function rayDeflectionScaleMm(
+  referenceRadius: number,
+  exitRadius: number,
+  nImage: number,
+  wavelengthNm: number,
+): number {
+  if (!Number.isFinite(exitRadius)) {
+    throw new Error(
+      "geometricPsf cannot deflect rays by a phase screen through an exit pupil at infinity: " +
+        "the transverse ray aberration needs a finite exit-pupil radius, and this system carries " +
+        "a slope aperture instead (PupilPlane's radius-XOR-slope invariant)",
+    );
+  }
+  const lambdaMm = wavelengthNm * 1e-6;
+  return (lambdaMm * referenceRadius) / (Math.abs(nImage) * exitRadius);
 }
 
 /**
@@ -161,11 +257,35 @@ export function geometricPsf(
     pupilSamples,
   );
 
+  // The atmosphere, as the deflection a ray histogram can actually carry. The
+  // screen is the same object the FFT branch composes onto the pupil, read
+  // through its gradient instead of its value (§ 5d.2).
+  const tilt = options.seeing ? screenTiltWaves(options.seeing, wavelengthNm) : null;
+  const tiltToMm =
+    tilt === null
+      ? 0
+      : rayDeflectionScaleMm(
+          map.referenceRadius,
+          map.pupil.exit.radius,
+          map.pupil.exit.n,
+          wavelengthNm,
+        );
+
   // Measured before the bundle is traced, because the blur it reports is what
   // sizes the bundle. This is the same number the fidelity switch runs on.
   const sampling = opdSampling(map, fit);
+  // Sizing only, and deliberately NOT folded into `sampling`: the fidelity
+  // criterion is screen-blind by design (§ 5d), and the number this branch
+  // reports has to stay the one the switch was decided on. But the ray COUNT is
+  // a different question — it is "how many rays does this blur need", and a
+  // screen that widens the blur and does not widen the grid quietly turns the
+  // histogram into speckle. The two gradients are summed rather than added in
+  // quadrature because they can line up, and this is a bound on the blur radius.
+  const screenGradient =
+    tilt === null ? 0 : maxTiltWavesPerRadius(tilt, pupilGrid(options.traceSamples ?? 21));
   const rayGrid =
-    options.rayGrid ?? defaultRayGrid(sampling.maxGradientWavesPerRadius, padFactor, size);
+    options.rayGrid ??
+    defaultRayGrid(sampling.maxGradientWavesPerRadius + screenGradient, padFactor, size);
 
   const bundle = exitBundle(system, fieldValue, wavelengthNm, pupilGrid(rayGrid), options.aim ?? {});
   const planeZ = imagePlaneZ(asCompiled(system.prescription), system);
@@ -190,8 +310,18 @@ export function geometricPsf(
     if (spiderTest !== null && spiderTest(r.px, r.py)) continue;
     const { origin: o, dir: d } = r.ray;
     const t = (planeZ - o.z) / d.z;
-    const x = o.x + d.x * t - map.imagePoint.x;
-    const y = o.y + d.y * t - map.imagePoint.y;
+    let x = o.x + d.x * t - map.imagePoint.x;
+    let y = o.y + d.y * t - map.imagePoint.y;
+    if (tilt !== null) {
+      // Applied at the image plane, not by re-aiming the ray into the system.
+      // That is the SAME approximation the FFT branch already makes — the
+      // screen belongs at the entrance pupil and its phase is added at the exit
+      // one — and § 5d owns it. Giving one branch a better treatment than the
+      // other would make them disagree for a reason that is not physics.
+      const g = tilt(r.px, r.py);
+      x += tiltToMm * g.dx;
+      y += tiltToMm * g.dy;
+    }
     const ix = Math.round(half + x / pixelScaleMm);
     const iy = Math.round(half + y / pixelScaleMm);
     if (ix < 0 || ix >= size || iy < 0 || iy >= size) continue;
@@ -323,12 +453,15 @@ export function adaptivePsf(
   const step = phaseStepPerSample(pupil.sampling, pupilSamples);
   const weight = geometricWeight(step);
 
-  // `psfFromSystemPupil` reads `options.seeing` and adds the screen;
-  // `geometricPsf` is handed the same options and ignores it — a ray histogram
-  // has no phase to add it to. So seeing rides the diffraction branch alone and
-  // fades out with it as the system's own aberration takes over (§ 5d). At
-  // weight 1 there is no diffraction branch left to carry it, which is that
-  // fade reaching its end rather than a case this skip introduced.
+  // `psfFromSystemPupil` reads `options.seeing` and adds the screen as phase;
+  // `geometricPsf` is handed the same options and reads the same screen as a ray
+  // deflection (§ 5d.2). Both branches therefore carry the atmosphere, so the
+  // blend below mixes two images of the SAME sky and weight 1 shows seeing
+  // rather than losing it — which is what § 5d deferred and what a user dragging
+  // a defocus slider under a fixed atmosphere would otherwise watch evaporate.
+  // The two are not the same picture: the FFT branch has the speckle, the ray
+  // branch has a blur whose fine structure the screen's grid sets. They agree on
+  // the centroid, which is the part Fried's angle of arrival pins.
   if (weight === 1) {
     // The geometric branch traces and fits its own OPD map, so the pupil work
     // above is repeated inside it. Measured at 2.0 ms against the branch's own

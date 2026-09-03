@@ -35,7 +35,7 @@ whole ladder.
 | [4a](#step-4a--folded-chains-the-frame-follows-the-beam-and-maps-back) | Reflection primitive, folded ≡ unfolded authoring, mapping back | `fold` |
 | [4b](#step-4b--the-newtonian-preset) | Newtonian geometry, on-axis quality, coma | `newtonian` |
 | [5c](#step-5c--the-spider-diffraction-spikes-from-the-vanes) | Spikes ⊥ each vane; 4 vanes → 4 arms, 3 vanes → 6 | `psf` |
-| [5d](#step-5d--atmospheric-seeing-the-one-random-draw-in-the-image) | Kolmogorov D_φ(r), Fried's long-exposure OTF, r₀ not aperture; **5d.1** the ensemble promoted out of the test file and run on a traced system | `seeing` |
+| [5d](#step-5d--atmospheric-seeing-the-one-random-draw-in-the-image) | Kolmogorov D_φ(r), Fried's long-exposure OTF, r₀ not aperture; **5d.1** the ensemble as an API; **5d.2** rays deflected by ∇φ, G-tilt 0.170 not 0.182 | `seeing` |
 | [5e](#step-5e--the-classical-cassegrain-preset) | Classical Cassegrain geometry, on axis, coma | `cassegrain` |
 | [5f](#step-5f--the-ritchey-chrétien-preset) | Ritchey-Chrétien aplanatism — the coma null | `ritchey` |
 | [5g](#step-5g--the-schmidt-camera-preset) | Schmidt camera, corrector plate, off axis | `schmidt` |
@@ -4773,21 +4773,29 @@ of the mean moved 16% between 30 and 60 screens at D/r₀ = 10 — so the ensemb
 size is set by measured convergence, not guessed, and the tolerances were fixed
 only after checking N = 80 against N = 160.
 
-**The geometric branch is deferred, and honestly.** A phase screen has no
+~~**The geometric branch is deferred, and honestly.** A phase screen has no
 amplitude mask, so — unlike the spider, whose shadow carried into the ray
 histogram — seeing has no geometric counterpart here: the ray-drop's analog
 would be deflecting each ray by ∇φ, a separate capability. This matters only
 when the *system's own* aberration is bad enough to trip the fidelity fallback;
 a well-corrected telescope on axis, which is where seeing is actually watched,
-stays on the FFT branch and images correctly. The trap the deferral must not
+stays on the FFT branch and images correctly.~~
+**Closed at [§ 5d.2](#-5d2--seeings-ray-analog-the-deflection-the-histogram-carries)**,
+and the escape clause is the part that did not survive. The analog was indeed a
+separate capability and is now `screenTiltWaves`; but "this matters only when the
+system's own aberration is bad" understates who meets it, because the *user* is
+the one dragging a defocus slider, and past the switch the sky used to
+evaporate. The rest of this paragraph stands, and § 5d.2 re-asserts it on the
+branch that replaced the deferral. The trap the deferral must not
 spring is a screen the FFT grid cannot resolve — and the fidelity criterion is
 measured on the raw traced samples, so it is *blind to the screen*. That is why
 a rung asserts `maxGridPhaseStepWaves < ½` on the final pupil directly: it is
 the only thing that catches an under-resolved screen, and it holds even under
-strong seeing (0.19–0.23 waves at D/r₀ = 4–8). The pairing to state is the
+strong seeing (0.19–0.23 waves at D/r₀ = 4–8). ~~The pairing to state is the
 spider's, one branch further: **the spider's spike is an FFT phenomenon and its
 shadow a geometric one; seeing is an FFT phenomenon whose geometric analog is
-not yet built** — named, not overlooked.
+not yet built** — named, not overlooked.~~ The pairing is now complete on both
+sides: the spike and the shadow, the speckle and the deflection.
 
 **The screen is now wired into the pipeline, at plumbing scope.** A `seeing`
 screen on `SystemPsfOptions` is composed in `psf()` as the last wrapper on the
@@ -4877,6 +4885,161 @@ Cost is unchanged and irreducible: the low-order wander converges as 1/√N, so
 from § 5d's own convergence warning seen again here: two 30-screen means land at
 12.5 and 13.5 px where 120 screens gives 15.5, so the mean is still *climbing* at
 30 — a cheap ensemble is biased narrow rather than merely noisy.
+
+### § 5d.2 — seeing's ray analog: the deflection the histogram carries
+
+The other half of § 5d's "named next", and the oldest deferral on the telescope
+branch. The atmosphere was built as pure phase, which the FFT branch adds to the
+pupil and the ray branch had nothing to do with — so the moment a system's own
+aberration tripped the fidelity fallback, the sky evaporated. That is now built:
+`screenTiltWaves` reads the same screen's **gradient**, `rayDeflectionScaleMm`
+turns waves-per-pupil-radius into millimetres at the image plane, and
+`geometricPsf({seeing})` displaces every ray by it. `adaptivePsf` therefore
+blends two images of the *same* sky at every point of the band instead of losing
+one of them at the top.
+
+**The register asked for the wrong coefficient, and that is this step's first
+finding.** `OPEN-PROBLEMS` A5 named Fried's angle-of-arrival variance
+σ² = 0.182·λ²·D^(−1/3)·r₀^(−5/3) as the pin. Two quantities go by "tilt" in this
+literature and they differ by 7%: **Z-tilt** is the least-squares plane through
+the wavefront — the Zernike tip coefficient, what a Shack–Hartmann centroid or a
+tip-tilt mirror tracks — and its coefficient is 0.182; **G-tilt** is the
+aperture-*averaged* wavefront gradient, and its coefficient is 0.170. A ray
+histogram's centre of mass is the second one, necessarily and by arithmetic:
+averaging each ray's deflection over the pupil *is* averaging the gradient over
+the pupil. So 0.170 is what this step is pinned against, 0.182 is asserted
+alongside it as the other reading of the very same screens, and A5 is struck
+with the correction rather than with a claim that its number was met.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The two Weber–Schafheitlin moments, ∫u^(−8/3)J₁² and ∫u^(−14/3)J₂², by in-repo quadrature | Watson's closed form (1.3e-6, 3.3e-8) | ✅ |
+| The tip variance the same chain gives is 0.4489 (D/r₀)^(5/3) | Noll 1976 table 1: 1.0299 − 0.582 (0.22%) | ✅ |
+| **G-tilt = 0.16980 and Z-tilt = 0.18192 at the exact PSD constant** | the published 0.170 / 0.182 | ✅ |
+| The generator's rounded 0.023 is 1.0045597× the exact 0.022896, and every variance rides it | arithmetic on `KOLMOGOROV_PSD_COEFF` | ✅ |
+| Z/G = 1.0713773, and is independent of the PSD constant | both coefficients linear in c | ✅ |
+| Same D/r₀, different aperture: the OPD field and the waves-per-radius tilt are **bitwise identical** | scale-free construction ⇒ D^(−1/3) exact | ✅ |
+| Halving r₀ multiplies the whole field by 2^(5/6) to 1e-7 | scale-free construction ⇒ r₀^(−5/3) exact | ✅ |
+| **The 200-screen ensemble's centroid wander is 0.96 of 0.170·λ²·D^(−1/3)·r₀^(−5/3)** | Fried 1965, G-tilt | ✅ |
+| The same screens read as a plane give Z/G = 1.09 against a predicted 1.0714 | the 7% above, measured | ✅ |
+| The deficit closes monotonically with screen size: 0.60 → 0.80 → 0.96 | finite-outer-scale truncation, as a trend | ✅ |
+| **A single ray's deflection rms grows 1.247× for a 4× finer screen** | ∫f³Φ(f)df diverges: 4^(1/6) = 1.2599 | ✅ |
+| `rayDeflectionScaleMm` ÷ `imagePixelScaleMm` = 2·padFactor exactly, over three pupils and three grids | the identity `defaultRayGrid` is written on | ✅ |
+| A pure tilt of a waves/radius lands the histogram on exactly 2·padFactor·a px, and the FFT within 0.7% | ε = 0 closed form | ✅ |
+| 24 Kolmogorov screens: histogram centroid = 2·padFactor·⟨∂φ/∂px⟩, worst 0.19 px, slope 0.999 | the reader, through the whole pipeline | ✅ |
+| A flat screen is bitwise nothing, ray count included | no-op control | ✅ |
+| An exit pupil at infinity throws rather than deflecting by zero | refusal | ✅ |
+| **At weight 1 the atmosphere is in the image** — L1 1.34 at D/r₀ = 4, 1.41 at 8, of a possible 2 | the deferral itself | ✅ |
+| A flat screen at weight 1 changes exactly nothing, and no screen moves the switch | negative control | ✅ |
+
+**The coefficients are re-derived, not quoted, and that is what catches the
+0.46%.** Both fall out of the generator's own PSD, Φ(f) = c·r₀^(−5/3)·f^(−11/3),
+through a single Bessel moment each — J₁ because a circular aperture's averaging
+kernel is 2J₁(πDf)/(πDf), J₂ because a least-squares plane weights by an extra
+radius. Quoting 0.170 from a paper would have hidden the last link: the
+prediction has to be evaluated at **the constant this generator actually uses**,
+the rounded 0.023, which is 0.46% above the exact 0.022896 (equivalently 0.490
+against an angular κ). Every variance in the file rides that 0.46%, so
+`KOLMOGOROV_PSD_COEFF` is now exported and the premium is asserted rather than
+absorbed into a tolerance. The quadrature is the ladder's own `adaptiveIntegral`
+under the substitution u = t³ — without it the integrand's u^(−2/3) corner at the
+origin bisects forever — and it reproduces Watson's closed forms to 1.3e-6 and
+3.3e-8. Noll's independently tabulated 1.0299 − 0.582 is the cross-check on the
+whole chain, and agrees to 0.22%.
+
+**Two of A5's three factors are identities, not measurements, and pinning them
+as identities is cheaper and stronger.** The screen generator is scale-free — it
+builds in aperture-diameter units and only D/r₀ enters — so two screens at the
+same D/r₀ and different D come out **bitwise identical in OPD**, and the tilt in
+waves per pupil radius is bitwise identical too; the arrival *angle*, which is
+that tilt times λ/(D/2), is then exactly ∝ 1/D, which at fixed D/r₀ is exactly
+λ²·D^(−1/3)·r₀^(−5/3). Halving r₀ multiplies the field by 2^(5/6) to 1e-7 (not
+bitwise only because r₀^(−5/6) is computed rather than multiplied in), so the
+r₀^(−5/3) of the variance is exact as well. A 300-screen ensemble could only
+have recovered either scaling to a few percent. The ensemble is therefore spent
+entirely on the one thing it alone can settle — the **coefficient** — and the
+saving is what pays for the trend rung below.
+
+**The measured coefficient is 4% low, and the trend is what earns the band.** A
+finite screen truncates the largest turbulent scales and a finite grid the
+smallest, and both losses take tilt power away; neither can add any, so the
+ratio approaches 1 from below and never crosses it. Watching it close is the
+argument: 0.60 of the closed form on a screen twice the aperture at 128 samples,
+0.80 at four times, 0.96 at sixteen times and 256 samples. A 200-screen block
+has about 0.025 of seed-to-seed spread (0.9306, 0.9597, 0.9783 at three seeds),
+so the band is several σ wide and the residual 4% is a bias, not noise. This is
+§ 5d's own tolerance argument one branch further — there the few-percent
+effective-r₀ inflation was earned by showing it was a single r₀ shift and not a
+shape error; here the deficit is earned by showing it shrinks when the cause is
+removed.
+
+**The finding worth the step: one statistic converges and the other has no
+limit.** The same screens carry the variance of a *single* ray's deflection,
+which is ∫f³Φ(f)df over the resolved band — and that diverges at the
+high-frequency end. Refine the screen and every ray bends more, without bound.
+Measured, the per-ray rms grows by 1.247× for a 4× refinement against a
+predicted 4^(1/6) = 1.2599, while the aperture average does not move at all,
+because averaging over the pupil is exactly what kills the frequencies driving
+the divergence. So the honest claim about this branch is *not* that the blur is
+right: the blur's fine structure is set by the screen's grid and has no
+grid-independent limit, which is why nothing in this file pins it and why
+`screenTiltWaves` says so in its own doc. What is right — and what Fried's angle
+of arrival is a statement about — is where the light's centre of mass goes.
+
+**The pipeline is pinned in two steps, scale first.** A pure ramp is the ε = 0
+case: a screen tilted a waves per pupil radius must move the image by exactly
+2·padFactor·a pixels, which is the same identity `defaultRayGrid` sizes the ray
+bundle with. On a stigmatic paraboloid every ray takes the same deflection into
+the same bin, so the histogram's centroid *is* that identity, exact to 1e-9, and
+the FFT branch lands within 0.7% of it. The identity is also asserted one floor
+down, as `rayDeflectionScaleMm ÷ imagePixelScaleMm = 2·padFactor` over three
+pupils and three grids with λ, R, r_exit and n′ all cancelling — because the
+mistake § 6aj.6 had to repair in this same function was a second copy of a
+ruler, and the repair is worth nothing if the new deflection quietly grows a
+third. Then 24 real Kolmogorov screens go through the whole of `geometricPsf`
+and reproduce 2·padFactor·⟨∂φ/∂px⟩ screen by screen — worst case 0.19 px against
+shifts of tens of pixels, regression slope 0.999 — which is what makes the
+ensemble rungs above statements about the *image* and not about a reader.
+
+**The sign was settled empirically, and it is positive.** The first
+implementation had Δx = −(R/n′)·∂W/∂x, from an eikonal written with φ = −kW; a
+ramp probe put the FFT branch at +2.71 px against a −2.72 px prediction. The
+diagnosis came from measuring the traced OPD's own mean gradient against the ray
+centroid on both a paraboloid (n′ = −1) and an achromat (n′ = +1): both give
++R/|n′|. Extra optical path tilts a ray toward the longer side — a prism deviates
+toward its base — and |n′| rather than the signed index because the direction is
+set by the gradient, not by which side of a mirror the light is travelling on.
+The rung that would have caught it is the ramp's, which is why it is here.
+
+**Why the weight-1 rung is qualitative, and why that is not a retreat.** At
+weight 1 the centroid is not a usable statistic, for a reason that is structural
+rather than incidental: the criterion that trips the fallback is a phase step
+over ½ wave per pupil sample, and the blur radius that implies is 2·step
+half-grids, so a weight-1 blur *always* overruns the diffraction-sized frame and
+its centre of mass is set by where the frame cuts rather than by where the rays
+went (measured: the paired agreement that holds to 0.19 px at weight 0 collapses
+to a regression slope of 0.09). The quantitative pin therefore lives at weight
+0, on a stigmatic mirror where the screen is the only thing bending anything.
+What the weight-1 rung asserts is the deferral's actual content: **the image is
+no longer the same image.** Before this change, `adaptivePsf` at weight 1 with a
+screen and without returned byte-identical arrays — the FFT branch was off and it
+was the only branch that had ever heard of a screen. Now they differ by 1.34 of
+a possible 2 at D/r₀ = 4 and 1.41 at 8, and a flat screen still differs by
+exactly 0. The switch itself is untouched: `phaseStepWaves` is measured on the
+raw traced samples and stays screen-blind by design, which the rung asserts
+directly.
+
+**What it costs.** The file runs ~35 s, which puts it alongside § 5d as one of
+the heaviest in the suite, and the shape of the bill is the same: 200-screen
+ensembles at 256 samples, held in a lazy fixture so the three rungs that read the
+shipping ensemble generate it once. There is a second, quieter cost in the engine
+— a screen's *maximum* gradient is the divergent statistic, so `defaultRayGrid`
+sizes the bundle from it and a strong screen can drive the ray count to its
+`RAY_GRID_MAX` cap. That is deliberate: the alternative is a histogram that
+silently turns into speckle when the atmosphere widens the blur. The screen's
+gradient is added to the traced one for *sizing only* and is never folded into
+`opdSampling`, because the fidelity criterion has to stay the number the switch
+was decided on.
 
 ## Step 5e — the classical Cassegrain preset
 
@@ -8578,11 +8741,14 @@ will belong to and the gratings never did.
 - **The geometric PSF branch still has no notion of coherence** — only the
   detection landed (§ 6f.9), not the capability, and there is no capability to
   land: a ray histogram has no phase to interfere with. Everything here lives in
-  the FFT branch, exactly as § 5d's seeing screen does. The nearest geometric
-  analog is a different physical effect, refraction of rays through the
-  *specimen's* ∇φ — which is phase-object visibility in the geometric limit
-  (transport-of-intensity), not partial coherence — and it is the same shape of
-  deferral as the seeing ∇φ ray-tilt, recorded beside it under "Later rungs".
+  the FFT branch, exactly as § 5d's seeing screen did until § 5d.2 gave that one
+  a ray analog. The nearest geometric analog here is a different physical
+  effect, refraction of rays through the *specimen's* ∇φ — which is phase-object
+  visibility in the geometric limit (transport-of-intensity), not partial
+  coherence — and it *was* the same shape of deferral as the seeing ∇φ ray-tilt,
+  recorded beside it under "Later rungs". The pair has now split: the seeing
+  analog is built, this one is not, and the difference is that it needs rays
+  which start at a transmittance rather than at a field point.
 - ~~**The verdict has no caller yet.**~~ **Closed at § 6g.3.** `renderBrightfield`
   consults `brightfieldFidelity` once per patch and reports the WORST verdict,
   so one corner that has left the coherent sum's regime is not averaged away by
@@ -18366,7 +18532,7 @@ and the allowance lands on the far side of it by construction.
 | ...and the triplet at the SAME geometry is seven and four, by 33× to 2169× | so the gap is tenfold against the triplet, not thousandfold — most of § 6au's 3.6–26× is its focal ratio | ✅ |
 | **§ 6aw.4 — the allowance must be SOLVED, and a smaller probe makes it worse** | extrapolation 0.89–1.83× the solved value on curvatures and 2.69–2.79× on thicknesses from a 1e−5 probe; **2.27–3.39× from a 1e−8 one** | ✅ |
 | ...and the linearity diagnostic is what says so, on nine rows of nine | 0.842 to 1.984, not one inside 3%, where the same allocation on the triplet is inside 0.5% on all seven | ✅ |
-| ...and the solve reproduces the extrapolation where the currency IS linear | all seven triplet rows within 0.6%, which is what pins a bisection that has no external number | ✅ |
+| ...and the solve reproduces the extrapolation where the currency IS linear | all seven triplet rows within 0.7%, which is what pins a bisection that has no external number | ✅ |
 | **§ 6aw.5 — the fourteen rows cancel to 0.4472 of their RSS**, and the ratio does not move | three scales two decades apart, 293 points retained and none dropped at any of them | ✅ |
 | ...and § 6au's 0.763 is a fact about f/6: the same triplet at f/25 gives 0.0130 | 59× on one lens; the COLOUR factor is the one that belongs to a lens — 0.3780 at both ratios against 0.3874 here | ✅ |
 | **§ 6aw.6 — the drawing: 3.374e−6 of radius and 3.32 arcmin of wedge** | tightest at the second cement joint; centring 72.5 / 22.2 / 14.2 / 512.4 / 29.4 µm, or 7.51 / 5.58 / 3.32 / 58.18 / 5.00 arcmin | ✅ |
@@ -26395,8 +26561,10 @@ frame exactly as into the star's, unreported by anything but `deliveredFraction`
 ## Later rungs
 
 - Published achromat/apochromat prescriptions reproduce catalogued EFL/BFD.
-- Seeing's geometric-branch analog: rays deflected by ∇φ, so a seeing blur
-  survives the fidelity fallback (the § 5d deferral).
+- ~~Seeing's geometric-branch analog: rays deflected by ∇φ, so a seeing blur
+  survives the fidelity fallback (the § 5d deferral).~~ **Closed at
+  [§ 5d.2](#-5d2--seeings-ray-analog-the-deflection-the-histogram-carries)**,
+  pinned to the G-tilt 0.170 rather than the Z-tilt 0.182 the register named.
 - Brightfield's geometric-branch analog, which is the same ∇φ one surface
   further in: rays refracted by the *specimen's* phase gradient, so a defocused
   phase object shows contrast on the ray branch too. That is

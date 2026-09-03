@@ -93,12 +93,28 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    which IEEE does not fix, so a bit-exact image of a draw differs by whole
    photon counts between machines. Statistical and convergence gates replace it
    — see the step.
-5. **Seeing's geometric-branch analog** — rays deflected by ∇φ so a seeing
+5. ~~**Seeing's geometric-branch analog** — rays deflected by ∇φ so a seeing
    blur survives the fidelity fallback. § 5d's deferral, restated at § 6f and
    *Later rungs*; the ladder names no pin. *Candidate:* the angle-of-arrival
    variance of a Kolmogorov screen, σ² = 0.182·λ²·D^(−1/3)·r₀^(−5/3) (Fried
    1965), which the ray deflections' centroid wander must reproduce over the
-   same ensemble § 5d already averages.
+   same ensemble § 5d already averages.~~
+   **Closed at [§ 5d.2](VALIDATION.md#-5d2--seeings-ray-analog-the-deflection-the-histogram-carries)**,
+   and the candidate named the wrong half of a 7% split. 0.182 is the
+   **Z-tilt** — the least-squares plane through the wavefront, what a
+   Shack–Hartmann centroid or a tip-tilt mirror tracks. A ray bundle's centroid
+   is the **G-tilt**, the aperture-averaged gradient, coefficient **0.170**:
+   averaging each ray's deflection over the pupil is the same arithmetic as
+   averaging the gradient over it, so there was never a choice about which one
+   this branch computes. Both are re-derived from the generator's own PSD
+   rather than quoted, which is what exposed the last link — the generator's
+   rounded PSD constant puts every variance 0.46% above the exact one — and
+   cross-checked against Noll 1976. The entry was also wrong that the ensemble
+   is the instrument: the generator is scale-free, so D^(−1/3) and r₀^(−5/3)
+   are **bitwise identities** of the construction, and averaging was needed
+   only for the coefficient, which lands at 0.96 of the closed form with the 4%
+   deficit shown closing as the screen grows. What the step found on the way is
+   now item 14 below.
 6. **Transport of intensity** — brightfield's geometric analog, "rays
    refracted by the specimen's phase gradient" (§ 6f.9, *Later rungs*). Needs
    rays that start at a transmittance, which `exitBundle` does not do. The
@@ -144,6 +160,20 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     render's brightness and, since it is per-plane, its colour by ~2%. What it
     unblocks is every absolute reading downstream, § 8a.7's obstruction pin
     among them (1e-3 on the resampled light against 7.6e-5 on the pupil grid).
+
+14. **The ray branch's seeing blur has no grid-independent limit.** Found at
+    § 5d.2 while closing A5: a single ray's deflection variance is ∫f³Φ(f)df
+    over the screen's resolved band, which diverges at the high-frequency end,
+    so the per-ray rms grows as (screen samples)^(1/6) — measured 1.247× for a
+    4× refinement against a predicted 1.2599 — while the aperture-averaged
+    centroid that Fried's angle of arrival pins does not move at all. Only the
+    centroid is therefore pinned, and the blur's fine structure is a property
+    of the screen grid rather than of the sky. *Candidate:* real turbulence is
+    not scale-free at the bottom either — the **Tatarski inner scale** damps
+    the spectrum by exp(−f²/f_m²) with f_m = 5.92/(2π·l₀) and l₀ of order
+    millimetres, which makes the integral converge and turns the divergent
+    statistic into a physical one. What it unblocks is a *blur* the ray branch
+    can be pinned on, and not only a centroid.
 
 ## B. Blocked on data, not on code
 
@@ -255,8 +285,11 @@ radial-map nodes · § 6ba differential bleaching.
 4. ~~**Stop-shift equations** (A7): a named pin, an engine change, retires a
    control.~~ ✅ — landed at § 6cm. Two of the three: the pin and the engine
    change. The control stays, for a reason that predates the deferral.
-5. **Seeing's ray analog** (A5): the oldest deferral on the telescope branch,
-   and the one a user drags a slider across.
+5. ~~**Seeing's ray analog** (A5): the oldest deferral on the telescope
+   branch, and the one a user drags a slider across.~~ ✅ — landed at § 5d.2,
+   with the register's own coefficient corrected (G-tilt 0.170, not Z-tilt
+   0.182) and one new item (14) opened by what the per-ray statistic turned out
+   to do.
 6. **Fifth-order distortion** (C): the only thing on the mosaic chain that
    pins outside the fixture.
 7. **Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
