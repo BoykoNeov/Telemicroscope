@@ -68,10 +68,19 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    immersion objective places one of these media in image space".~~
    **Closed at [§ 2g](VALIDATION.md#step-2g--the-image-formed-in-a-medium-the-cartesian-ellipsoid)**
    with a Cartesian ellipsoid, not an objective.
-3. **The sky, and the limiting magnitude.** Opened by § 8a. Pin: a background
+3. ~~**The sky, and the limiting magnitude.** Opened by § 8a. Pin: a background
    of m mag·arcsec⁻² is § 8a's rate times a pixel's solid angle, which § 5r's
    plate scale carries — closed form, no new physics. Unblocks the noisy hero
-   frame and every exposure-time question the camera panel cannot answer.
+   frame and every exposure-time question the camera panel cannot answer.~~
+   **Closed at [§ 8b](VALIDATION.md#step-8b--the-sky-and-the-magnitude-it-hides)**,
+   and the entry's "no new physics" was half right. The rate is unchanged, but
+   the pixel's solid angle times the pupil area is an **étendue**, and § 5s's
+   extended-source law spells the same étendue a second way out of the traced
+   marginal ray: the two differ by the sine condition and by nothing else,
+   which is `(1 + 1/(16F²))²` in closed form on a paraboloid (1e-12) and a
+   reading of the other sign on glass. The external pins are that closed form
+   and the CCD equation's two regime slopes, 1.5051 and 0.7526 mag per 4×
+   exposure.
 4. ~~**The noisy frame.** Wiring on the route written on `imaging/noise`:
    per-wavelength intensity over the PSF's `energy`, times `photonSamples`'
    weight, times grasp, times seconds, then the draw, then XYZ.~~
@@ -230,11 +239,11 @@ radial-map nodes · § 6ba differential bleaching.
 
 1. ~~§ 8a — the zero point and the draw.~~ ✅
 2. ~~§ 2g — the image in a medium.~~ ✅
-3. ~~The sky and **the noisy frame** (A3, A4)~~ — the noisy frame is in
-   (§ 8a.7–§ 8a.11); **the sky** (A3) is what is left of this entry, and it is
-   still the cheapest thing on the board. The camera panel now has absolute
-   photon counts and cannot answer one exposure-time question without it.
-   A13 came out of A4 and is the other half of what walking that route found.
+3. ~~The sky and **the noisy frame** (A3, A4)~~ ✅ — the noisy frame at
+   § 8a.7–§ 8a.11, the sky and the limiting magnitude at § 8b. A13 came out of
+   A4, is the other half of what walking that route found, and is untouched by
+   § 8b: the resampling excess rides the sky's frame exactly as it rides the
+   star's.
 4. **Stop-shift equations** (A7): a named pin, an engine change, retires a
    control.
 5. **Seeing's ray analog** (A5): the oldest deferral on the telescope branch,

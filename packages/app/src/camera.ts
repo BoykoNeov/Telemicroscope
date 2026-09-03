@@ -4,6 +4,7 @@ import { systemProperties, type OpticalSystem } from "@telemicroscope/core/trace
 import {
   VISIBLE_MAX_NM,
   VISIBLE_MIN_NM,
+  abReferenceSpectrum,
   blackbodySpectrum,
   photonSamples,
   spectralSamples,
@@ -21,12 +22,18 @@ import {
   fieldOfView,
   imageSpaceMarginalSin,
   integratedXyz,
+  limitingMagnitude,
   plateScale,
   pointSourceCollection,
   resampleGridToSensor,
   resampleToSensor,
   samplingRegime,
+  signalToNoise,
+  skyPerPixelTotal,
+  skyPhotonsPerPixel,
+  skyPhotonsPerPixelFromCone,
   toSrgbBytes,
+  withSkyBackground,
   type ColorImage,
   type PhotonExpectation,
   type SamplingRegime,
@@ -67,16 +74,23 @@ import {
  *
  * ## Which of the two exposure laws drives the picture, and which is the pin
  *
- * They are different laws and this panel can only draw one of them. The picture
- * is a **star** — a point source — whose brightness rides on light grasp ∝ D²,
- * and § 5s labels that a *consistency check, not a pin*, because with a front
- * stop the entrance-pupil radius is the declared aperture and π·r² recovers D²
- * by construction. The **validated, trace-emergent** law is the extended-source
- * 1/F², measured here at 4.037 for f/10 → f/5 against the paraxial 4, the excess
- * being the faster stop's larger sine-condition departure. This panel has no
- * extended source in it, so that number is *printed beside the picture* rather
- * than drawn through it. Asserting the 1/F² law on an object it does not apply
- * to would be the fake the hard rules forbid.
+ * They are different laws and this panel could once draw only one of them. The
+ * picture is a **star** — a point source — whose brightness rides on light grasp
+ * ∝ D², and § 5s labels that a *consistency check, not a pin*, because with a
+ * front stop the entrance-pupil radius is the declared aperture and π·r²
+ * recovers D² by construction. The **validated, trace-emergent** law is the
+ * extended-source 1/F², measured here at 4.037 for f/10 → f/5 against the
+ * paraxial 4, the excess being the faster stop's larger sine-condition
+ * departure.
+ *
+ * **§ 8b gave the panel the extended source it did not have, and it is the
+ * sky.** A background of so many mag·arcsec⁻² lights every pixel through
+ * Ω_pixel·A_pupil, which is the same étendue as A_pixel·π·sin²u′ — so the 1/F²
+ * law is now *drawn through* the picture rather than printed beside it: halving
+ * the focal ratio quadruples the pedestal, and doubling the aperture at fixed
+ * focal ratio quadruples the star while leaving the pedestal exactly where it
+ * was. That contrast is the one thing on this panel a reader can see without
+ * being told what to compare it to, and it needs no golden to be honest.
  *
  * ## Why the display exposure divides by `pupilSamples²`
  *
@@ -686,6 +700,97 @@ export const MAGNITUDE_RANGE = { min: -1, max: 15, step: 0.5, preset: 6 } as con
 const PHOTON_BAND = { fromNm: VISIBLE_MIN_NM, toNm: VISIBLE_MAX_NM };
 
 /**
+ * The sky slider, in mag·arcsec⁻², and every value on it is a real place.
+ *
+ * 22 is a dark site, 21 a rural one, 19 a suburb and 17 a city centre — the
+ * Bortle scale's own span, and the range is that rather than a round number
+ * because the point of the control is that a reader recognises where they are on
+ * it. 16 is brighter than any real sky and exists so the swamped regime of
+ * § 8b.5 is reachable by dragging rather than only describable.
+ *
+ * 21.8 is the preset for the same reason 6 is the star's: it is the number every
+ * handbook quotes for a good dark site, so the panel opens somewhere real.
+ */
+export const SKY_RANGE = { min: 16, max: 23, step: 0.1, preset: 21.8 } as const;
+
+/**
+ * The signal-to-noise a detection is declared at. Five is the convention every
+ * observing handbook uses, and it is a convention rather than a law — § 8b.5
+ * pins that both regime slopes are independent of it, so nothing here rests on
+ * the choice.
+ */
+export const DETECTION_SNR = 5;
+
+export interface MeasuringAperture {
+  /** Radius on the sensor (mm) — the traced Airy radius, floored at one pixel. */
+  readonly radiusMm: number;
+  /** Pixels inside it. Counted, not computed from πr². */
+  readonly pixels: number;
+  /** Fraction of the star's expected photons that land inside it. Measured. */
+  readonly enclosedFraction: number;
+  /** Those photons, summed over the planes. */
+  readonly sourcePhotons: number;
+}
+
+/**
+ * The aperture the limiting magnitude is quoted in — measured off the frame,
+ * with one convention, named here because it is one.
+ *
+ * A limiting magnitude is meaningless without saying over how many pixels the
+ * source is summed: n·B is the background term and n IS the aperture. The pixel
+ * count and the fraction of the star's light inside it both come off this frame,
+ * so neither is a constant and both move with pitch, aperture and optic. What
+ * has to be decided is the radius, and it is the **traced Airy radius**
+ * (1.22·λ / 2·sin u′ at `FOCUS_NM`) rather than a multiple of a FWHM, because
+ * the Airy radius is a number this engine computes from a ray and a FWHM would
+ * be a fit. A real photometric aperture is typically 1–1.5× the seeing FWHM and
+ * so wider; a wider aperture admits more sky, so this is the optimistic end —
+ * consistent with every other number here being photon-limited.
+ *
+ * Floored at one pixel, because at a coarse pitch the Airy disc is smaller than
+ * a pixel and an aperture of zero pixels has no photometry in it (A3's rule).
+ *
+ * The centre is the axis, at `cols/2` in `overlapWeights`' own convention —
+ * pixel j spans [(j − cols/2 − ½), (j − cols/2 + ½)]·pitch — so an odd column
+ * count puts the axis on a seam and the disc straddles it, exactly as
+ * `axisOnPixelCentre` describes.
+ *
+ * **It is handed the SOURCE's expectation, not the frame's.** Recovering the
+ * star by subtracting the pedestal back off the observed frame would be a
+ * cancellation, and worst exactly where the sky matters: at 16 mag·arcsec⁻² the
+ * two agree to five figures, so the enclosed fraction — a number this panel
+ * prints — would lose most of its precision precisely when a reader is looking
+ * at it. The pre-sky expectation is already in hand, so nothing has to be
+ * recovered.
+ */
+function measuringAperture(
+  expectation: PhotonExpectation,
+  cols: number,
+  pitchMm: number,
+  airyRadiusMm: number,
+): MeasuringAperture {
+  const radiusMm = Math.max(pitchMm, airyRadiusMm);
+  const radiusPx = radiusMm / pitchMm;
+  let pixels = 0;
+  let inside = 0;
+  for (let y = 0; y < cols; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (Math.hypot(x - cols / 2 + 0.5, y - cols / 2 + 0.5) > radiusPx) continue;
+      pixels += 1;
+      for (let p = 0; p < expectation.planes.length; p++) {
+        inside += expectation.planes[p]![y * cols + x]!;
+      }
+    }
+  }
+  return {
+    radiusMm,
+    pixels: Math.max(1, pixels),
+    enclosedFraction: expectation.totalPhotons > 0 ? inside / expectation.totalPhotons : 0,
+    sourcePhotons: inside,
+  };
+}
+
+/**
  * The sensor's own per-wavelength images — the rebin, done one plane at a time
  * instead of once on the colour.
  *
@@ -727,14 +832,29 @@ function sensorPlanes(
  */
 function photonFrameOf(
   request: CameraRequest,
+  system: OpticalSystem,
   stack: SpectralStack,
   planes: Float64Array[],
   lightGrasp: number,
+  pitchMm: number,
 ): {
   readonly expectation: PhotonExpectation;
-  readonly noisy?: Float64Array[];
+  /**
+   * The star's expectation with no background in it.
+   *
+   * Kept and handed out rather than recovered by subtracting the pedestal back
+   * off `expectation`: at a bright sky and a faint star those two agree to five
+   * figures, so the difference would throw away most of the precision of the one
+   * number the aperture readout is made of.
+   */
+  readonly source: PhotonExpectation;
+  /** The frame as an OBSERVATION: sky in it, drawn if a seed was given. */
+  readonly observed?: Float64Array[];
+  readonly skyPerPixel: number;
+  /** The same background off § 5s's traced cone — § 8b.3's second spelling. */
+  readonly skyPerPixelFromCone: number;
 } {
-  const expectation = expectedPhotons({
+  const source = expectedPhotons({
     planes: planes.map((intensity) => ({ intensity })),
     samples: stack.samples,
     photons: photonSamples(
@@ -747,10 +867,58 @@ function photonFrameOf(
     collectingAreaMm2: lightGrasp,
     seconds: request.seconds,
   });
-  if (request.noiseSeed === undefined) return { expectation };
+  if (request.skyMagnitudeAB === undefined) {
+    if (request.noiseSeed === undefined) {
+      return { expectation: source, source, skyPerPixel: 0, skyPerPixelFromCone: 0 };
+    }
+    return {
+      expectation: source,
+      source,
+      observed: intensityFromPhotons(drawPhotonFrame(source, mulberry32(request.noiseSeed)), source),
+      skyPerPixel: 0,
+      skyPerPixelFromCone: 0,
+    };
+  }
+
+  // The sky's shape is the AB reference's own and NOT the star's blackbody
+  // (§ 8b): borrowing `sourceTemperatureK` would make the background's colour a
+  // function of the star's temperature slider, which is wrong and invisible.
+  const skyWeights = photonSamples(abReferenceSpectrum, request.skyMagnitudeAB, PHOTON_BAND, {
+    count: request.wavelengths,
+  });
+  // The pupil's own throughput, per plane — § 8a.7's ratio, and the sky pays it
+  // exactly as the star does. Chromatic, because Fresnel is: this is what tints
+  // the background through the glass rather than only dimming it.
+  const clearEnergy = clearApertureEnergy(request.pupilSamples, stack.size);
+  const throughput = stack.planes.map((plane) => plane.energy / clearEnergy);
+  const sky = skyPhotonsPerPixel(skyWeights, {
+    arcsecPerPixel: plateScale(system, { pixelPitchMm: pitchMm, cols: 1, rows: 1 }, FOCUS_NM)
+      .arcsecPerPixel,
+    pixelPitchMm: pitchMm,
+    collectingAreaMm2: lightGrasp,
+    throughput,
+    seconds: request.seconds,
+  });
+  const cone = skyPhotonsPerPixelFromCone(skyWeights, {
+    pixelPitchMm: pitchMm,
+    illuminance: extendedSourceIlluminance(system, FOCUS_NM),
+    throughput,
+    seconds: request.seconds,
+  });
+  const expectation = withSkyBackground(source, sky, pitchMm);
+  const counts =
+    request.noiseSeed === undefined
+      ? expectation.planes
+      : drawPhotonFrame(expectation, mulberry32(request.noiseSeed));
   return {
     expectation,
-    noisy: intensityFromPhotons(drawPhotonFrame(expectation, mulberry32(request.noiseSeed)), expectation),
+    source,
+    // Present even with no seed: the sky is light, and hiding it until someone
+    // ticks "shot noise" would make a physical background look like a property
+    // of the draw.
+    observed: intensityFromPhotons(counts, expectation),
+    skyPerPixel: skyPerPixelTotal(sky),
+    skyPerPixelFromCone: skyPerPixelTotal(cone),
   };
 }
 
@@ -778,6 +946,15 @@ export interface CameraRequest extends CameraSpec {
   readonly gain: number;
   /** The star's AB magnitude, over the render's own band (`PHOTON_BAND`). */
   readonly magnitudeAB: number;
+  /**
+   * Sky surface brightness in mag·arcsec⁻², or `undefined` for no sky at all.
+   *
+   * Absent rather than "very faint" for the same reason `noiseSeed` is absent
+   * rather than zero: a frame with no background is a different object from one
+   * with a faint background, it is what every rung before § 8b was measured on,
+   * and it is the control the panel needs to show what the sky costs.
+   */
+  readonly skyMagnitudeAB?: number;
   /**
    * Seed for the shot-noise draw, or `undefined` for the noiseless frame.
    *
@@ -834,7 +1011,7 @@ export interface CameraResult {
   readonly displayExposure: number;
   /** § 5s's D², labelled a consistency check by § 5s itself. */
   readonly lightGrasp: number;
-  /** § 5s's pinned law, π·sin²u′ — printed, not drawn: there is no extended source here. */
+  /** § 5s's pinned law, π·sin²u′ — drawn since § 8b put an extended source (the sky) in the frame. */
   readonly extendedIlluminance: number;
   readonly elapsedMs: number;
   /** § 3b's guard, unchanged: light that left the grid wrapped rather than vanished. */
@@ -848,8 +1025,30 @@ export interface CameraResult {
   readonly deliveredFraction: number;
   /** Expected count in the brightest sensor pixel — where the grain is finest. */
   readonly peakPixelPhotons: number;
-  /** One Poisson draw of the recorded frame. Present only when a seed was given. */
-  readonly noisyRgba?: Uint8ClampedArray;
+  /** § 8b: sky photons one sensor pixel expects, B·Ω·A·t. Zero with no sky. */
+  readonly skyPhotonsPerPixel: number;
+  /** The same off § 5s's traced cone — the second spelling of one étendue. */
+  readonly skyPhotonsPerPixelFromCone: number;
+  /**
+   * plate-scale ÷ cone. § 8b.3's reading: it is the paraxial image-space sine
+   * over the traced one, squared, and NOT 1 — 0.9966 on the f/10 achromat.
+   */
+  readonly skyEtendueRatio: number;
+  /** Sky photons over the whole frame, as a fraction of everything in it. */
+  readonly skyFraction: number;
+  /** Pixels in the measuring aperture, and how much of the star is inside it. */
+  readonly aperturePixels: number;
+  readonly apertureRadiusMm: number;
+  readonly enclosedFraction: number;
+  /** The star's own photon-limited SNR in that aperture, N/√(N + nB). */
+  readonly starSnr: number;
+  /** The faintest AB magnitude this configuration reaches at SNR 5. */
+  readonly limitingMagnitudeAB: number;
+  /**
+   * The frame as an OBSERVATION — the sky in it, and one Poisson draw of the
+   * whole thing when a seed was given. Absent only when there is neither.
+   */
+  readonly observedRgba?: Uint8ClampedArray;
   /** Set when the pitch records fewer than `MIN_SENSOR_COLS` columns. */
   readonly refusal?: string;
 }
@@ -954,6 +1153,15 @@ export function renderCamera(request: CameraRequest): CameraResult {
       framePhotons: 0,
       deliveredFraction: Number.NaN,
       peakPixelPhotons: Number.NaN,
+      skyPhotonsPerPixel: 0,
+      skyPhotonsPerPixelFromCone: 0,
+      skyEtendueRatio: Number.NaN,
+      skyFraction: Number.NaN,
+      aperturePixels: 0,
+      apertureRadiusMm: Number.NaN,
+      enclosedFraction: Number.NaN,
+      starSnr: Number.NaN,
+      limitingMagnitudeAB: Number.NaN,
       elapsedMs: performance.now() - started,
       refusal: `a ${request.pitchUm.toFixed(2)} µm pitch records ${cols} column${cols === 1 ? "" : "s"} of this ${(spanMm * 1000).toFixed(1)} µm frame — under the ${MIN_SENSOR_COLS} this panel will draw. Raise pupil samples to widen the frame, or lower the pitch.`,
     };
@@ -964,20 +1172,45 @@ export function renderCamera(request: CameraRequest): CameraResult {
   const sensorRgba = toSrgbBytes(recorded, { exposure: displayExposure });
 
   const planes = sensorPlanes(stack, cols, pitchMm);
-  const { expectation, noisy } = photonFrameOf(request, stack, planes, lightGrasp);
+  const { expectation, source, observed, skyPerPixel, skyPerPixelFromCone } = photonFrameOf(
+    request,
+    system,
+    stack,
+    planes,
+    lightGrasp,
+    pitchMm,
+  );
   const admittedPhotons = expectation.admitted.reduce((a, b) => a + b, 0);
-  const noisyRgba =
-    noisy === undefined
+  const observedRgba =
+    observed === undefined
       ? undefined
       : toSrgbBytes(
           colorImageFromStack({
             size: cols,
             pixelScaleMm: pitchMm,
-            planes: noisy.map((intensity) => ({ intensity })),
+            planes: observed.map((intensity) => ({ intensity })),
             samples: stack.samples,
           }),
           { exposure: displayExposure },
         );
+
+  // The photometry: an aperture measured off this frame, then § 8b.5's
+  // inversion. `zeroMagnitudePhotons` is what an m = 0 star would put INSIDE
+  // that aperture — the measured enclosed count scaled back up the magnitude
+  // scale — so the pupil's throughput, the resampler and the enclosed fraction
+  // are all already in it, which is what that argument's docstring asks for.
+  const airyRadiusMm = (1.22 * FOCUS_NM * 1e-6) / (2 * imageSpaceMarginalSin(system, FOCUS_NM));
+  const aperture = measuringAperture(source, cols, pitchMm, airyRadiusMm);
+  const starSnr = signalToNoise(aperture.sourcePhotons, skyPerPixel, aperture.pixels);
+  const limit =
+    aperture.sourcePhotons > 0
+      ? limitingMagnitude({
+          snr: DETECTION_SNR,
+          skyPhotonsPerPixelTotal: skyPerPixel,
+          pixels: aperture.pixels,
+          zeroMagnitudePhotons: aperture.sourcePhotons * Math.pow(10, 0.4 * request.magnitudeAB),
+        }).magnitudeAB
+      : Number.NaN;
 
   let clipped = 0;
   for (let i = 0; i < cols * cols; i++) {
@@ -998,7 +1231,19 @@ export function renderCamera(request: CameraRequest): CameraResult {
     framePhotons: expectation.totalPhotons,
     deliveredFraction: expectation.deliveredFraction,
     peakPixelPhotons: peakPixelPhotons(expectation),
-    ...(noisyRgba === undefined ? {} : { noisyRgba }),
+    skyPhotonsPerPixel: skyPerPixel,
+    skyPhotonsPerPixelFromCone: skyPerPixelFromCone,
+    skyEtendueRatio: skyPerPixelFromCone > 0 ? skyPerPixel / skyPerPixelFromCone : Number.NaN,
+    skyFraction:
+      expectation.skyPhotons + expectation.totalPhotons > 0
+        ? expectation.skyPhotons / (expectation.skyPhotons + expectation.totalPhotons)
+        : 0,
+    aperturePixels: aperture.pixels,
+    apertureRadiusMm: aperture.radiusMm,
+    enclosedFraction: aperture.enclosedFraction,
+    starSnr,
+    limitingMagnitudeAB: limit,
+    ...(observedRgba === undefined ? {} : { observedRgba }),
     elapsedMs: performance.now() - started,
   };
 }

@@ -149,6 +149,7 @@ whole ladder.
 | [6ck](#step-6ck--the-maps-coefficient-is-one-seidel-sum) | § 6cj's `D` is ΣS_V of the reversed prescription READ at one millimetre: the reading is `a + (2b − a²)r²` and 3e-4 low, and the radius follows NA because the normaliser is the aperture, not the surfaces | ✅ |
 | [6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic) | § 6ca.1's 0.7145/0.7332 is not an interaction: a matched field forces the guard share to be M/NA and the tile subtracts it, so 0.537 is four integers and balancing the share leaves 3.3e-4 | ✅ |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
+| [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -26074,16 +26075,168 @@ quiets it.
 
 **Still open.**
 
-- **The sky.** A background in mag·arcsec⁻² is this zero point times a pixel's
+- ~~**The sky.** A background in mag·arcsec⁻² is this zero point times a pixel's
   solid angle, which § 5r's plate scale already carries — a closed form with
-  no new physics, and the thing a limiting-magnitude readout needs.
+  no new physics, and the thing a limiting-magnitude readout needs.~~
+  **Closed at [§ 8b](#step-8b--the-sky-and-the-magnitude-it-hides)**, and
+  "no new physics" was half right: the rate is unchanged, but the pixel's solid
+  angle times the pupil is an **étendue**, which can be spelled a second way out
+  of § 5s's traced cone — and the two spellings differ by the sine condition,
+  which is a closed form on a paraboloid and a reading on glass.
 - ~~**The noisy frame**, per the route above~~ — landed at § 8a.7–§ 8a.11,
-  with the denominator corrected. The **limiting magnitude** still waits on the
-  sky, and so does every exposure-time question the panel cannot answer.
+  with the denominator corrected. ~~The **limiting magnitude** still waits on the
+  sky, and so does every exposure-time question the panel cannot answer.~~
+  Both landed with the sky at § 8b, on Howell's CCD equation inverted.
 - **A pupil that is not an area** refuses here exactly as at § 5s.5, so the
   telecentric microscope objectives have no photon rate; a fluorophore's
   brightness is a different zero point (molecular brightness × excitation
   irradiance) and stays where § 6i left it.
+
+## Step 8b — the sky, and the magnitude it hides
+
+Source: `photometry/magnitude.ts` (`abReferenceSpectrum`,
+`surfaceBrightnessPhotonFlux`), `imaging/noise.ts` (`skyPhotonsPerPixel`,
+`skyPhotonsPerPixelFromCone`, `withSkyBackground`, `signalToNoise`,
+`limitingMagnitude`) ·
+Tests: `packages/core/test/sky-background.test.ts`
+
+§ 8a made a star an absolute count. What was still missing before a frame is an
+observation is what the star is seen **against**: a background is not a nuisance
+term, it is the quantity that decides how faint an instrument can go, and every
+exposure-time question the camera panel could not answer was waiting on it.
+Closes OPEN-PROBLEMS A3.
+
+### The rate is not new; the étendue is
+
+A surface brightness is a magnitude per unit solid angle, so § 8a's closed form
+(f_ν/h)·ln(λ₂/λ₁) applies to it **with no change at all** and comes back per
+arcsec². `surfaceBrightnessPhotonFlux` is `photonFluxAB` and the rung asserts
+that they are the same number, so an edit to one has to move the other; what the
+separate name buys is that the units of the ANSWER differ, and a rate per arcsec²
+handed to something expecting a total is a silent error of ~10¹⁰ on a pixel.
+
+What is new is the product that turns that rate into photons on a pixel, and it
+is where a claim can be checked, because it can be written two ways out of two
+independently validated readings:
+
+    N_sky = B · Ω_pixel · A_pupil · τ · t      (§ 5r's plate scale, § 5s's grasp)
+          = B · A_pixel · π·sin²u′ · τ · t     (§ 5s's extended-source law)
+
+The second carries the **traced** marginal ray and the first does not, so the two
+differ by the sine condition and by nothing else. On a paraboloid that difference
+is a closed form: a marginal ray at height h strikes the mirror at sag h²/(4f),
+and with a = h/f = 1/(2F) the radicand under sin u′ is exactly (1 + a²/4)², so
+sin u′ = a/(1 + a²/4) and the two spellings differ by **(1 + 1/(16F²))²** with no
+free parameter — 1.00500625 at f/5 and 1.0012503906 at f/10, both reproduced to
+1e-12. A conic is the right instrument for it for § 3b's reason: a mirror has no
+refractive index, so nothing about glass is in the number. On the achromat the
+same ratio is a *reading* and has the other sign — 0.99659 at f/10 and 0.98593 at
+f/5, the faster stop's larger sine offence, which is § 5s's own finding arriving
+on the background. The general form holds on every system tried: the gap is the
+paraxial image-space sine over the traced one, squared, to 1e-12.
+
+### The sky pays the pupil's losses, exactly as the star does
+
+τ is the pupil's own throughput at that wavelength, `plane.energy` over
+`clearApertureEnergy`, and it is **required in both spellings**. It is not a
+declared multiplier of extinction's or quantum efficiency's kind: those are data,
+this is traced, and § 8a.7 is the rung that exists to insist on it. Without it a
+Newtonian's secondary would block 2.26% of the star and **none** of the sky, and
+an uncoated achromat's four surfaces would cost the star a tenth of its light and
+the background nothing — § 8b contradicting § 8a.7 in the same engine. Measured:
+the secondary costs the background **1 − ε² to 1e-4**, on both spellings, the
+same closed form § 8a.7 pins for the star; the achromat's Fresnel loss comes back
+at 0.85–0.95 and is **chromatic**, so the background is tinted by the glass
+rather than only dimmed. It is the PUPIL's throughput and not `deliveredFraction`
+— that reading also carries light that fell off the grid, and a uniform
+background has none: a pixel loses to its neighbours exactly what it gains from
+them, so a flat field convolved with a normalized PSF is the same flat field.
+Only a star's image has an edge to fall off. τ is common to both spellings and to
+every ratio in the rungs below, which is why they run at a unit throughput — that
+isolates the étendue rather than hiding the factor.
+
+### The headline: aperture buys stars and buys no sky
+
+Ω ∝ (p/f)² and A ∝ D², so the sky on a pixel goes as p²·D²/f² = **p²/F²** and
+does not depend on the aperture at all, while a star's photons go as D². A
+400 mm paraboloid at f/5 against a 200 mm at f/5 collects **4.000000000000×**
+the star and **1.000000000000×** the sky per pixel — bit-identical, on both
+spellings, because a conic scales exactly. Two nominally f/5 achromats of
+different size move by 0.6% instead, the thicknesses not scaling with the
+curvatures, and that gap is the control saying the mirror's exactness belongs to
+the conic and not to the arithmetic. This is also where § 5s's 1/F² law stops
+being *printed beside* a picture and starts being drawn through one: halving the
+focal ratio is exactly 4× the sky on a pixel, and the sky is the extended source
+the camera panel never had.
+
+### The limiting magnitude is the CCD equation, inverted
+
+SNR = N/√(N + n·B) (Howell, *Handbook of CCD Astronomy*) with every detector term
+zero, so this is the **photon-limited** signal-to-noise and an upper bound on any
+real sensor's. Inverting for N at fixed SNR is a quadratic whose positive root is
+½·(S² + √(S⁴ + 4·S²·n·B)), and the two regimes are exact textbook numbers:
+with no sky N = S² is constant so the limit deepens as t and four times the
+exposure buys **2.5·log₁₀4 = 1.5051 mag**; swamped by sky N → S·√(nB) grows as
+√t so the same four times buys **2.5·log₁₀2 = 0.7526 mag**, half the depth for
+the same four times the time. Both are independent of n, of B and of the zero
+point, which is what makes them a pin rather than a fit — and every exposure in
+between is bracketed by them, measured across three backgrounds, three aperture
+sizes and three thresholds.
+
+| Rung | What it pins | |
+|---|---|---|
+| § 8b.1 — a surface brightness is § 8a's closed form read per arcsec²; per deg² is 17.7815 mag brighter | 2.5·log₁₀(3600²); Pogson | ✅ |
+| ...the sky's shape is the AB reference's own, so its bins are exactly ln(λ_{i+1}/λ_i) | § 8a.3's identity, now load-bearing | ✅ |
+| § 8b.2 — B·Ω·A·τ·t on a pixel: 0.4911 photons·s⁻¹ at the pupil for a 5 µm pixel, a 10 mm f/10 aperture and a 21.8 sky | *bookkeeping*: checkable by hand | ✅ |
+| **...and the background pays the pupil's losses: a Newtonian's secondary costs it 1 − ε² to 1e-4, an achromat's four surfaces 10% and chromatically** | § 8a.7's factor, on the sky | ✅ |
+| **§ 8b.3 — HEADLINE: the two étendue spellings differ by the sine condition, and on a paraboloid that is (1 + 1/(16F²))² exactly** | sin u′ = a/(1 + a²/4) off a parabola; 1e-12 | ✅ |
+| ...on an achromat it is a reading instead, and of the other sign: 0.99659 at f/10, 0.98593 at f/5 | § 5s's sine offence | ✅ |
+| **§ 8b.4 — HEADLINE: twice the mirror at one focal ratio is 4.000000000000× the star and 1.000000000000× the sky** | Ω·A is invariant; a conic scales exactly | ✅ |
+| ...halving the focal ratio is exactly 4× the sky on a pixel — § 5s's 1/F², drawn rather than printed | § 5s | ✅ |
+| **§ 8b.5 — the limit deepens 1.5051 mag per 4× exposure with no sky and 0.7526 swamped by it, and is always between** | Howell's CCD equation; 2.5·log₁₀4, 2.5·log₁₀2 | ✅ |
+| § 8b.6 — the pedestal's displayed colour is the sky's own to 8.4e-5 in xy, falling as the square of the bin count | the two weightings differ by exactly λ | ✅ |
+| § 8b.7 — a background is flat, the source's own readings do not move, and the drawn scatter is N/√(N + nB) | Poisson variances add; 5 SE of 2000 draws | ✅ |
+| § 8b.8 — a background counted on one pixel and added to another refuses, as does a pupil that is not an area | § 8a.10's guard shape; § 5s.5 | ✅ |
+
+### The one that was nearly a caveat
+
+`intensityFromPhotons` divides plane p by the **source's** photon scale, so a
+background built from the sky's own spectrum is divided by the star's weights and
+then collapsed against the star's *energy* weights — which looks like a units
+artifact whose displayed hue is neither the sky's nor the star's. It is not. Both
+weightings are of one spectrum and they differ by exactly a factor λ, because a
+photon carries hc/λ, so the star's shape cancels and what reaches the observer is
+the sky's energy per bin. That is precisely the hc/λ conversion
+`intensityFromPhotons`' docstring declines to apply explicitly, arriving for free
+because the two weightings were built from one spectrum. It is exact only for
+narrow bins — each weighting picks its own mean wavelength inside a bin — and the
+residual is a chromaticity distance of 8.4e-5 at nine wavelengths, two orders
+inside any just-noticeable difference, falling as 7.4e-4 / 2.7e-4 / 8.4e-5 /
+3.0e-5 / 7.1e-6 / 1.8e-6 at 3 / 5 / 9 / 15 / 31 / 61 wavelengths. Each step is
+(count ratio)² to within 2%: the midpoint rule's own order, which is what
+identifies the residual as the bins rather than as a missing factor. A missing
+factor would not converge at all.
+
+### What is not pinned to an external number
+
+§ 8b.2 is bookkeeping in § 5s.3's sense — every factor is checkable by hand — and
+21.8 mag·arcsec⁻² is an **input, not a pin**: it is the textbook dark-site figure,
+but it measures the Earth's atmosphere rather than an optical system, so every
+rung is stated as a ratio, a closed form or an identity that changing it cannot
+move. A real sky is airglow lines, scattered moonlight and zodiacal light — data,
+and a table the hard rule keeps out — so the shape is the AB reference's own
+(flat in f_ν), which is the choice with nothing measured in it. Read noise, dark
+current and the variance of a background *estimate* are detector terms and are
+absent; not modelling them is not an approximation of them. The measuring
+aperture's pixel count and the star's enclosed fraction are the caller's, and the
+regime slopes are pinned to hold for **any** value of both, so no convention
+about them can be load-bearing.
+
+**Still open.** The sky is a number a user types, not a model of one; extinction,
+filter curves and quantum efficiency remain declared multipliers (§ 8a's
+position, unchanged); and § 8a.11's resampling excess is carried into the sky's
+frame exactly as into the star's, unreported by anything but `deliveredFraction`
+(OPEN-PROBLEMS A13).
 
 ## Later rungs
 

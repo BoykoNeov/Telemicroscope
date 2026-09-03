@@ -128,6 +128,46 @@ export function photonFluxAB(magnitudeAB: number, band: PassBand): number {
   return (fluxDensityAB(magnitudeAB) / PLANCK_H_J_S) * Math.log(band.toNm / band.fromNm);
 }
 
+/**
+ * The AB reference's OWN spectral shape, per unit wavelength: f_λ ∝ 1/λ².
+ *
+ * Flat in f_ν is what m_AB = 0 means at every frequency, so this is the shape
+ * with no table in it — the same status the zero point has. It is the default
+ * shape for a **sky background**, and the reason is that the alternative is
+ * worse rather than that this one is right: a real night sky is airglow lines
+ * plus scattered moonlight plus zodiacal light, which is data, and borrowing
+ * the *star's* blackbody would make the background's colour a function of the
+ * star's temperature slider — wrong, and invisible in the picture.
+ *
+ * Handed to `photonSamples` it gives each bin exactly `ln(λ_{i+1}/λ_i)` of the
+ * band's photons, which is the dλ/λ measure the whole module runs on; § 8a.3
+ * pins that to 1e-6, so this shape arrives with its own consistency check.
+ */
+export function abReferenceSpectrum(nm: number): number {
+  if (!(nm > 0)) throw new Error(`wavelength must be positive, got ${nm}`);
+  return 1 / (nm * nm);
+}
+
+/**
+ * Photons·s⁻¹·m⁻²·**arcsec⁻²** from a surface brightness in mag·arcsec⁻² —
+ * the sky, in the same closed form a star gets.
+ *
+ * There is no new arithmetic here and that IS the content: a surface brightness
+ * is a magnitude per unit solid angle, so `photonFluxAB`'s
+ * (f_ν/h)·ln(λ₂/λ₁) applies to it unchanged and comes back per unit solid
+ * angle too. What the separate name buys is that the units of the ANSWER are
+ * different, and a rate per arcsec² handed to something expecting a total is a
+ * silent error of ~10¹⁰ on a pixel — so the two are not interchangeable at a
+ * call site even though they are the same multiplication.
+ *
+ * Turning it into photons on a pixel is `imaging/noise`'s `skyPhotonsPerPixel`:
+ * this rate times the pixel's solid angle times the collecting area times the
+ * time. That product is an étendue, and § 8b measures it two ways.
+ */
+export function surfaceBrightnessPhotonFlux(surfaceBrightnessAB: number, band: PassBand): number {
+  return photonFluxAB(surfaceBrightnessAB, band);
+}
+
 export interface PhotonSamplingOptions {
   /** Number of wavelengths. Default 9 (ARCHITECTURE's 7–15 band). */
   readonly count?: number;

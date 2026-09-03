@@ -2080,7 +2080,7 @@ NA 0.27 the buildable range starts at 43×, and a grey line labelled "the floor"
 sitting at 4.14 would have been this panel's own refusal rule broken by its own
 plot.
 
-### C4. The sensor, and the critical pitch that is per wavelength — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **pair** — *extended at § 8a with an absolute photon count and shot noise*
+### C4. The sensor, and the critical pitch that is per wavelength — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **pair** — *extended at § 8a with an absolute photon count and shot noise, and at § 8b with the sky and a limiting magnitude*
 
 `camera.ts` + `panels/camera.tsx` + `camera.worker.ts` + `test/camera.test.ts`.
 `core/imaging/camera` (§ 5r) and `core/imaging/exposure` (§ 5s) had existed since
@@ -2144,8 +2144,10 @@ loud. The picture is a **point** source, so its brightness rides on D², which
 § 5s itself labels *a consistency check, not a pin*. The validated,
 trace-emergent law is the extended-source 1/F² — measured here at **4.037** for
 f/10 → f/5 against the paraxial 4, the excess being the faster stop's
-sine-condition departure — and this panel has no extended source in it, so that
-number is printed beside the picture rather than drawn through it.
+sine-condition departure — and ~~this panel has no extended source in it, so that
+number is printed beside the picture rather than drawn through it~~. **§ 8b gave
+it one**: the sky is an extended source, so the law is now drawn through the
+picture — see the § 8b paragraph at the end of this section.
 
 **Nine findings, four of which were wrong predictions first**, and four of the
 nine only exist because the panel was driven or reviewed rather than reasoned
@@ -2286,6 +2288,40 @@ sees the formula. It is the second defect of exactly this shape after A6's
 collapsing focus bracket (§ 1.6.1), which is now a pattern worth naming: **the
 rungs run on the unfolded achromat, and a bracket that assumes its field passes
 unnoticed until something folded arrives.**
+
+**Extended again at § 8b: the sky, and the extended source this panel never
+had.** One checkbox, one slider (16–23 mag·arcsec⁻², Bortle's own span, preset
+21.8) and three readouts. The wiring is small and one line of this file's own
+prose had to be retracted with it: the section above, and `camera.ts`'s header,
+said the 1/F² extended-source law is *printed beside the picture rather than
+drawn through it*, "this panel has no extended source in it". **The sky is that
+extended source**, so the law is now drawn: halving the focal ratio quadruples
+the background on a pixel (measured 4.0235, the excess being the achromat's EFL
+against its nominal focal length), while doubling the aperture at a fixed focal
+ratio quadruples the star and moves the background by **0.3%** — the panel's
+sharpest single statement, and one a reader checks by looking at two frames
+rather than by reading a number.
+
+Three things in it are worth recording as decisions rather than as wiring, and
+the first was caught in review rather than written. **The background pays the
+pupil's throughput**, per plane, as `plane.energy / clearApertureEnergy`. The
+first version did not, which would have meant the Newtonian's secondary blocking
+2.26% of the star and none of the sky — the panel contradicting § 8a.7 while
+displaying both readings side by side. It is pinned at § 8b.2 and it is
+chromatic, so the sky is tinted by the glass rather than only dimmed. The other
+two: **the étendue is printed twice**, once through § 5r's plate scale and once through
+§ 5s's traced cone, and the two do not agree — 0.99659 on the reference lens,
+which is the sine condition and not rounding (§ 8b.3). Printing one would have
+been a number; printing both is the reading. And **the aperture the limiting
+magnitude is quoted in is measured off the frame** — the pixel count and the
+enclosed fraction both, at the traced Airy radius floored at one pixel — because
+n is the background term's own multiplier and a constant there would have been an
+unnamed convention doing physics. What it buys: both of § 8b.5's regimes are
+reachable on the slider, 1.404 mag per 4× exposure at 23 mag·arcsec⁻² against
+0.838 at 17, neither at its asymptote and both inside the bracket. The third
+frame is now present whenever there is a sky **or** a seed, because hiding a
+physical background until someone ticks "shot noise" would make it look like a
+property of the draw.
 
 ### C5. The eye takes the aperture, and the apparent field belongs to the eyepiece — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **pair**
 

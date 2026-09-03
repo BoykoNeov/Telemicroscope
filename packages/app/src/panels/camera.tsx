@@ -12,6 +12,7 @@ import {
   OPTIC_LABELS,
   OPTIC_NOTES,
   PITCH_SLIDER_MAX_UM,
+  SKY_RANGE,
   buildCameraSystem,
   chromaticDeparturePoints,
   chromaticPitchSpread,
@@ -78,6 +79,23 @@ function pct(value: number, digits = 3): string {
 }
 
 /**
+ * Where a surface brightness puts you, in words rather than in a number.
+ *
+ * The bands are the Bortle scale's, which is an observer's descriptive scale and
+ * not a measurement — so it labels the slider and enters no calculation. A
+ * reader who knows what their own sky looks like can find it here; nothing on
+ * the panel changes if these words are wrong.
+ */
+function skyLabel(magnitude: number): string {
+  if (magnitude >= 21.9) return "pristine";
+  if (magnitude >= 21.3) return "dark site";
+  if (magnitude >= 20.4) return "rural";
+  if (magnitude >= 19.1) return "suburban";
+  if (magnitude >= 18) return "city edge";
+  return "inner city";
+}
+
+/**
  * The picture: the continuous optical image, and the same light rebinned.
  *
  * Both are drawn at the **same** exposure, which is the whole point — the sensor
@@ -88,7 +106,7 @@ function pct(value: number, digits = 3): string {
 function Pictures({ request }: { request: CameraRequest }) {
   const nativeRef = useRef<HTMLCanvasElement>(null);
   const sensorRef = useRef<HTMLCanvasElement>(null);
-  const noisyRef = useRef<HTMLCanvasElement>(null);
+  const observedRef = useRef<HTMLCanvasElement>(null);
   const { result, pending } = useLatestFromWorker<CameraRequest, CameraResult>(
     createCameraWorker,
     request,
@@ -113,7 +131,7 @@ function Pictures({ request }: { request: CameraRequest }) {
     };
     paint(nativeRef.current, result.nativeRgba, result.nativeSize);
     paint(sensorRef.current, result.sensorRgba, result.sensorCols);
-    if (result.noisyRgba) paint(noisyRef.current, result.noisyRgba, result.sensorCols);
+    if (result.observedRgba) paint(observedRef.current, result.observedRgba, result.sensorCols);
   }, [result]);
 
   const box = 280;
@@ -158,14 +176,19 @@ function Pictures({ request }: { request: CameraRequest }) {
             {request.pitchUm.toFixed(2)} µm
           </figcaption>
         </figure>
-        {result?.noisyRgba && !result.refusal && (
+        {result?.observedRgba && !result.refusal && (
           <figure style={{ margin: 0 }}>
             <canvas
-              ref={noisyRef}
+              ref={observedRef}
               style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
             />
             <figcaption style={{ fontFamily: "monospace", fontSize: 11, color: "#666" }}>
-              one exposure of it — {num(result.framePhotons, 4)} photons, drawn
+              {request.noiseSeed === undefined ? "the same frame on the sky" : "one exposure of it"} —{" "}
+              {num(result.framePhotons, 4)} from the star
+              {result.skyPhotonsPerPixel > 0
+                ? `, ${num(result.skyPhotonsPerPixel, 3)}/px of sky`
+                : ""}
+              {request.noiseSeed === undefined ? "" : ", drawn"}
             </figcaption>
           </figure>
         )}
@@ -274,8 +297,7 @@ function ExposureReadouts({ result }: { result: CameraResult }) {
       <div>
         the frame&rsquo;s photons over 400–700 nm: pupil admits{" "}
         <strong>{result.admittedPhotons.toExponential(4)}</strong>, sensor receives{" "}
-        <strong>{result.framePhotons.toExponential(4)}</strong> ({pct(result.deliveredFraction, 2)}),
-        brightest pixel <strong>{num(result.peakPixelPhotons, 4)}</strong> ·{" "}
+        <strong>{result.framePhotons.toExponential(4)}</strong> ({pct(result.deliveredFraction, 2)}) ·{" "}
         <span style={{ color: "#666" }}>
           § 8a&rsquo;s zero point, so these are absolute counts and not a ratio. The delivered
           fraction is a reading and not a target: the pupil&rsquo;s real losses are in it, and so is
@@ -296,11 +318,67 @@ function ExposureReadouts({ result }: { result: CameraResult }) {
         <strong>{result.extendedIlluminance.toExponential(6)}</strong> ·{" "}
         <span style={{ color: "#666" }}>
           § 5s&rsquo;s <em>pinned</em>, trace-emergent law — f/10 → f/5 measures 4.037 against the
-          paraxial 4, the excess being the faster stop&rsquo;s sine-condition departure. Printed and
-          not drawn: this picture is a point source, and the 1/F² law is about extended ones.
+          paraxial 4, the excess being the faster stop&rsquo;s sine-condition departure. Until § 8b
+          this was printed and not drawn, the picture being a point source; the sky is the extended
+          source it was waiting for.
         </span>
       </div>
+      <SkyReadouts result={result} />
     </div>
+  );
+}
+
+/** § 8b — the background, and the depth it decides. */
+function SkyReadouts({ result }: { result: CameraResult }) {
+  // A refused pitch has no pixels, so it has no photometry — A3's rule, and the
+  // reason this is a branch rather than a NaN in a sentence.
+  if (!Number.isFinite(result.peakPixelPhotons)) {
+    return (
+      <div style={{ color: "#666" }}>
+        no sensor, so no background and no limiting magnitude — a count per pixel needs a pixel
+      </div>
+    );
+  }
+  if (!(result.skyPhotonsPerPixel > 0)) {
+    return (
+      <div style={{ color: "#666" }}>
+        brightest pixel {num(result.peakPixelPhotons, 4)} photons, all of it the star — no sky, which
+        is what every rung before § 8b was measured on and is not a place
+      </div>
+    );
+  }
+  return (
+    <>
+      <div>
+        sky <strong>{num(result.skyPhotonsPerPixel, 4)}</strong> photons per pixel — B·Ω·A·τ·t, and{" "}
+        <strong>{num(result.skyPhotonsPerPixelFromCone, 4)}</strong> off the traced cone (ratio{" "}
+        <strong>{result.skyEtendueRatio.toFixed(6)}</strong>) ·{" "}
+        <span style={{ color: "#666" }}>
+          § 8b.3: one étendue, two spellings — a pixel&rsquo;s solid angle times the pupil, or the
+          pixel&rsquo;s own area times § 5s&rsquo;s traced cone. They differ by the sine condition
+          and by nothing else, which is why the ratio is not 1. Doubling the aperture at this focal
+          ratio quadruples the star and leaves both of these exactly where they are.
+        </span>
+      </div>
+      <div>
+        brightest pixel <strong>{num(result.peakPixelPhotons, 4)}</strong> photons, of which{" "}
+        <strong>{num(result.skyPhotonsPerPixel, 3)}</strong> is sky — the sky is{" "}
+        <strong>{pct(result.skyFraction, 1)}</strong> of the frame; star SNR{" "}
+        <strong>{num(result.starSnr, 4)}</strong> in{" "}
+        <strong>{result.aperturePixels}</strong> px (r ={" "}
+        {(result.apertureRadiusMm * 1000).toFixed(2)} µm, {pct(result.enclosedFraction, 1)} of the
+        star inside)
+      </div>
+      <div>
+        limiting magnitude at SNR 5: <strong>m_AB {result.limitingMagnitudeAB.toFixed(2)}</strong> ·{" "}
+        <span style={{ color: "#666" }}>
+          Howell&rsquo;s CCD equation inverted (§ 8b.5), photon-limited: no read noise, no dark
+          current, and an aperture the width of the Airy disc rather than of a real seeing profile,
+          so it is the optimistic end. Four times the exposure buys 1.5051 mag with no sky and
+          0.7526 once the sky dominates — drag the two sliders and watch which one you are in.
+        </span>
+      </div>
+    </>
   );
 }
 
@@ -314,13 +392,25 @@ export function CameraPanel() {
   // the seed rather than a boolean so "another exposure" is a control the reader
   // has, and so an unrelated slider does not reshuffle the grain.
   const [noiseSeed, setNoiseSeed] = useState<number | undefined>(1);
+  // `undefined` is no sky at all — the control every rung before § 8b was
+  // measured against, and the thing the slider has to be able to return to if
+  // "what the sky costs" is to be a comparison rather than an assertion.
+  const [skyMagnitudeAB, setSkyMagnitudeAB] = useState<number | undefined>(SKY_RANGE.preset);
 
   const set = <K extends keyof CameraSpec>(key: K, value: CameraSpec[K]) =>
     setSpec((s) => ({ ...s, [key]: value }));
 
   const request = useMemo<CameraRequest>(
-    () => ({ ...spec, pitchUm, seconds, gain, magnitudeAB, ...(noiseSeed === undefined ? {} : { noiseSeed }) }),
-    [spec, pitchUm, seconds, gain, magnitudeAB, noiseSeed],
+    () => ({
+      ...spec,
+      pitchUm,
+      seconds,
+      gain,
+      magnitudeAB,
+      ...(noiseSeed === undefined ? {} : { noiseSeed }),
+      ...(skyMagnitudeAB === undefined ? {} : { skyMagnitudeAB }),
+    }),
+    [spec, pitchUm, seconds, gain, magnitudeAB, noiseSeed, skyMagnitudeAB],
   );
 
   // Everything below is chief rays and array arithmetic — no transform — so it
@@ -479,6 +569,32 @@ export function CameraPanel() {
           value={magnitudeAB}
           onChange={setMagnitudeAB}
         />
+        {/* § 8b. Off is a real setting and not a disabled slider: a frame with
+            no background is a different object from one with a faint one, and
+            the whole claim — that aperture buys stars and not sky — is a
+            comparison the reader has to be able to make. */}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <label style={{ fontFamily: "monospace", fontSize: 12 }}>
+            <input
+              type="checkbox"
+              checked={skyMagnitudeAB !== undefined}
+              onChange={(e) => setSkyMagnitudeAB(e.target.checked ? SKY_RANGE.preset : undefined)}
+            />{" "}
+            sky
+          </label>
+          {skyMagnitudeAB !== undefined && (
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <Slider
+                label={`sky ${skyMagnitudeAB.toFixed(1)} mag·arcsec⁻² (${skyLabel(skyMagnitudeAB)})`}
+                min={SKY_RANGE.min}
+                max={SKY_RANGE.max}
+                step={SKY_RANGE.step}
+                value={skyMagnitudeAB}
+                onChange={setSkyMagnitudeAB}
+              />
+            </div>
+          )}
+        </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <label style={{ fontFamily: "monospace", fontSize: 12 }}>
             <input

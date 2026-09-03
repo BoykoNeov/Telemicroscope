@@ -6,6 +6,7 @@ import {
   MAGNITUDE_RANGE,
   MIN_SENSOR_COLS,
   PITCH_SLIDER_MAX_UM,
+  SKY_RANGE,
   buildCameraSystem,
   chromaticDeparturePoints,
   chromaticPitchSpread,
@@ -559,10 +560,10 @@ describe("§ 8a on the panel: an absolute frame, and the grain that rides on it"
   });
 
   it("a seed is an observation: none without one, the same one twice, a different one apart", () => {
-    expect(frame().noisyRgba).toBeUndefined();
-    const a = frame({ noiseSeed: 1 }).noisyRgba!;
-    const b = frame({ noiseSeed: 1 }).noisyRgba!;
-    const c = frame({ noiseSeed: 2 }).noisyRgba!;
+    expect(frame().observedRgba).toBeUndefined();
+    const a = frame({ noiseSeed: 1 }).observedRgba!;
+    const b = frame({ noiseSeed: 1 }).observedRgba!;
+    const c = frame({ noiseSeed: 2 }).observedRgba!;
     expect(a).toBeDefined();
     expect(Array.from(a)).toEqual(Array.from(b));
     expect(Array.from(a)).not.toEqual(Array.from(c));
@@ -587,7 +588,7 @@ describe("§ 8a on the panel: an absolute frame, and the grain that rides on it"
     const worst = (f: CameraResult): number => {
       let peak = 0;
       for (let i = 0; i < f.sensorRgba.length; i++) {
-        peak = Math.max(peak, Math.abs(f.noisyRgba![i]! - f.sensorRgba[i]!));
+        peak = Math.max(peak, Math.abs(f.observedRgba![i]! - f.sensorRgba[i]!));
       }
       return peak;
     };
@@ -610,7 +611,7 @@ describe("§ 8a on the panel: an absolute frame, and the grain that rides on it"
     const grain = (magnitudeAB: number): number => {
       const f = frame({ magnitudeAB, noiseSeed: 4 });
       const clean = f.sensorRgba;
-      const drawn = f.noisyRgba!;
+      const drawn = f.observedRgba!;
       let acc = 0;
       for (let i = 0; i < clean.length; i++) {
         const d = drawn[i]! - clean[i]!;
@@ -622,5 +623,148 @@ describe("§ 8a on the panel: an absolute frame, and the grain that rides on it"
     const bright = grain(6);
     expect(faint).toBeGreaterThan(bright);
     expect(bright).toBeGreaterThan(0);
+  });
+});
+
+describe("§ 8b on the panel: the sky, and the depth it decides", () => {
+  const frame = (over: Partial<CameraRequest> = {}) =>
+    renderCamera({
+      ...spec("achromat"),
+      pitchUm: 3.76,
+      seconds: 1,
+      gain: 1,
+      magnitudeAB: MAGNITUDE_RANGE.preset,
+      ...over,
+    });
+  const dark = (over: Partial<CameraRequest> = {}) =>
+    frame({ skyMagnitudeAB: SKY_RANGE.preset, ...over });
+
+  it("no sky is a setting, and it is the frame every earlier rung was measured on", () => {
+    // The control the panel needs, and the reason `skyMagnitudeAB` is absent
+    // rather than very faint. Adding a background must not touch one number
+    // that belongs to the star: the pupil admits the same photons, the sensor
+    // receives the same photons, and `deliveredFraction` — a reading of what
+    // the PUPIL did to the star's light — is bit-identical.
+    const none = frame();
+    const sky = dark();
+    expect(none.skyPhotonsPerPixel).toBe(0);
+    expect(sky.skyPhotonsPerPixel).toBeGreaterThan(0);
+    expect(sky.framePhotons).toBe(none.framePhotons);
+    expect(sky.admittedPhotons).toBe(none.admittedPhotons);
+    expect(sky.deliveredFraction).toBe(none.deliveredFraction);
+    // …and what it does touch, it touches by exactly the background: the
+    // brightest pixel gains the pedestal and nothing else.
+    expect(sky.peakPixelPhotons - none.peakPixelPhotons).toBeCloseTo(sky.skyPhotonsPerPixel, 12);
+  });
+
+  it("the frame with a sky exists without a seed — a background is not a property of the draw", () => {
+    // Hiding the sky until someone ticks "shot noise" would make a physical
+    // background look like a consequence of drawing one, which is the opposite
+    // of what the panel is for.
+    expect(frame().observedRgba).toBeUndefined();
+    expect(dark().observedRgba).toBeDefined();
+    expect(dark({ noiseSeed: 3 }).observedRgba).toBeDefined();
+    expect(Array.from(dark().observedRgba!)).not.toEqual(
+      Array.from(dark({ noiseSeed: 3 }).observedRgba!),
+    );
+  });
+
+  it("HEADLINE: doubling the aperture is 4× the star and 0.3% of a change in the sky", () => {
+    // § 8b.4 on the panel, and the reason the frames beside each other are worth
+    // looking at. The pupil area quadruples and the plate scale halves, so the
+    // étendue on a pixel is unmoved — 0.29% here rather than the mirror's exact
+    // zero, because two achromats of different size are not similar figures
+    // (§ 8b.4's own control).
+    const ten = dark();
+    const twenty = dark({ apertureMm: 20 });
+    expect(twenty.admittedPhotons / ten.admittedPhotons).toBeCloseTo(4, 6);
+    expect(Math.abs(twenty.skyPhotonsPerPixel / ten.skyPhotonsPerPixel - 1)).toBeLessThan(0.01);
+    // And the depth that buys: 1.34 mag, below the 1.5051 a dark sky would give,
+    // because part of the noise this star is fighting did not shrink with it.
+    const bought = twenty.limitingMagnitudeAB - ten.limitingMagnitudeAB;
+    expect(bought).toBeGreaterThan(1.3);
+    expect(bought).toBeLessThan(2.5 * Math.log10(4));
+  });
+
+  it("halving the focal ratio quadruples the sky on a pixel — § 5s's 1/F², drawn at last", () => {
+    // The extended-source law this panel could only print until there was an
+    // extended source in it. 4.0235 rather than 4 exactly: the achromat's
+    // paraxial EFL is not its nominal focal length, and the two lenses' EFL
+    // errors differ (§ 8b.3's reading, the same 0.3%).
+    const slow = dark();
+    const fast = dark({ focalRatio: 5 });
+    expect(fast.skyPhotonsPerPixel / slow.skyPhotonsPerPixel).toBeCloseTo(4.0235, 3);
+    // The star is unmoved by it — same aperture, same photons — so a faster
+    // system is worse for this picture and better for a nebula, which is the
+    // whole trade the two exposure laws describe.
+    expect(fast.admittedPhotons).toBeCloseTo(slow.admittedPhotons, 6);
+    expect(fast.limitingMagnitudeAB).toBeLessThan(slow.limitingMagnitudeAB);
+  });
+
+  it("the panel prints the étendue twice, and the two readings do not agree — that is § 8b.3", () => {
+    // Not a discrepancy and not rounding: the plate-scale route carries the
+    // paraxial EFL and the cone route the traced marginal ray, so the gap is the
+    // sine condition. 0.99659 on this lens — the same number § 8b.3 measures on
+    // the same prescription — and below 1 because it is glass.
+    const sky = dark();
+    expect(sky.skyEtendueRatio).toBeCloseTo(0.9965886, 6);
+    expect(sky.skyEtendueRatio).not.toBe(1);
+    expect(sky.skyEtendueRatio).toBeLessThan(1);
+    expect(dark({ focalRatio: 5 }).skyEtendueRatio).toBeLessThan(sky.skyEtendueRatio);
+  });
+
+  it("HEADLINE: both of § 8b.5's regimes are reachable by dragging one slider", () => {
+    // The claim the readout makes, as a measurement on the panel's own range.
+    // At 23 mag·arcsec⁻² the star's own photons dominate and four times the
+    // exposure buys 1.404 mag, near the source-limited 1.5051; at 17 the sky
+    // dominates and the same four times buys 0.838, near the swamped 0.7526.
+    // Neither reaches its asymptote, which is right — an asymptote is not a
+    // setting — and both sit strictly inside the bracket § 8b.5 pins.
+    const gain = (skyMagnitudeAB: number) =>
+      frame({ skyMagnitudeAB, seconds: 4 }).limitingMagnitudeAB -
+      frame({ skyMagnitudeAB, seconds: 1 }).limitingMagnitudeAB;
+    const darkGain = gain(23);
+    const brightGain = gain(17);
+    expect(darkGain).toBeCloseTo(1.4040, 3);
+    expect(brightGain).toBeCloseTo(0.8378, 3);
+    expect(brightGain).toBeLessThan(darkGain);
+    for (const g of [darkGain, brightGain]) {
+      expect.soft(g).toBeGreaterThan(2.5 * Math.log10(2));
+      expect.soft(g).toBeLessThan(2.5 * Math.log10(4));
+    }
+  });
+
+  it("the aperture is measured off the frame, and a brighter sky costs magnitudes", () => {
+    // Neither the pixel count nor the enclosed fraction is a constant: both are
+    // read off this frame at this pitch, and the radius is the traced Airy
+    // radius rather than a chosen multiple of a width.
+    const sky = dark();
+    expect(sky.aperturePixels).toBe(12);
+    expect(sky.enclosedFraction).toBeGreaterThan(0.7);
+    expect(sky.enclosedFraction).toBeLessThan(1);
+    expect(sky.apertureRadiusMm * 1000).toBeCloseTo(6.678, 2);
+    // A coarser pixel is fewer pixels in the same disc, and the aperture floors
+    // at one rather than at zero.
+    expect(dark({ pitchUm: 9 }).aperturePixels).toBeLessThan(sky.aperturePixels);
+    expect(dark({ pitchUm: 9 }).aperturePixels).toBeGreaterThanOrEqual(1);
+    // And the depth falls monotonically as the sky brightens, from a dark site
+    // to a city centre, over the slider's own range.
+    const limits = [23, 21.8, 20, 18, 16].map(
+      (m) => frame({ skyMagnitudeAB: m }).limitingMagnitudeAB,
+    );
+    for (let i = 1; i < limits.length; i++) expect(limits[i]!).toBeLessThan(limits[i - 1]!);
+    expect(frame().limitingMagnitudeAB).toBeGreaterThan(limits[0]!);
+  });
+
+  it("a refused pitch has no photometry rather than a plausible number", () => {
+    // A3's rule, carried onto the new readouts: with no sensor there are no
+    // pixels to put a background on, so the aperture is empty and the limit is
+    // refused instead of being computed from a frame nobody is shown.
+    const refused = dark({ pitchUm: 60 });
+    expect(refused.refusal).toBeDefined();
+    expect(refused.skyPhotonsPerPixel).toBe(0);
+    expect(refused.aperturePixels).toBe(0);
+    expect(Number.isNaN(refused.limitingMagnitudeAB)).toBe(true);
+    expect(Number.isNaN(refused.starSnr)).toBe(true);
   });
 });

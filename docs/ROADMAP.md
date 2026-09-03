@@ -1,13 +1,15 @@
 # Roadmap
 
-**Where the project is (2026-09-02).** Steps 1–7 below are closed, and step 6
+**Where the project is (2026-09-03).** Steps 1–7 below are closed, and step 6
 alone runs to ninety lettered sub-steps. The open scientific items — what is
 deferred, what is blocked on data, what would pin each, and which of the
 ladder's own chains has stopped producing engine changes — now live in one
 place, [`docs/OPEN-PROBLEMS.md`](OPEN-PROBLEMS.md), rather than scattered across
 a hundred *Still open* paragraphs in VALIDATION.md. Read that register before
-choosing the next step; its *Suggested order* is the plan, and step 8 below is
-its first entry, landed.
+choosing the next step; its *Suggested order* is the plan. **Step 8 is its first
+three entries and all three are landed** — the zero point and the draw (§ 8a),
+the noisy frame (§ 8a.7–§ 8a.11), and the sky with the limiting magnitude
+(§ 8b). The register's next unstruck entry is the stop-shift equations (A7).
 
 ## Build order
 
@@ -1792,10 +1794,22 @@ its first entry, landed.
    now the **clear aperture on the same grid** and the pin is 1 − ε². Walking it
    also found that `spectralStack`'s resampling moves energy by up to 3% with
    nothing reporting it (§ 8a.11 → OPEN-PROBLEMS A13).
-   *Next here, in order:* the **sky** in mag·arcsec⁻² through § 5r's plate
-   scale (a closed form, no new physics), and the **limiting magnitude** that
-   falls out of it. Extinction, filter curves and quantum efficiency are declared
-   multipliers and arrive as data, not as physics.
+   *The sky, and the limit:* ✅ **§ 8b** — `skyPhotonsPerPixel` and
+   `limitingMagnitude`. A surface brightness is § 8a's closed form read per
+   arcsec², so the rate was free; what was not free is the **étendue** that puts
+   it on a pixel, Ω_pixel·A_pupil, because § 5s's extended-source law spells the
+   same product a second way off the traced marginal ray. The two differ by the
+   sine condition and by nothing else — `(1 + 1/(16F²))²` in closed form on a
+   paraboloid, to 1e-12, and a reading of the opposite sign on glass. The result
+   worth carrying is that the sky on a pixel goes as **p²/F² and not with
+   aperture at all**: twice the mirror at one focal ratio is 4.000000000000× the
+   star and 1.000000000000× the sky, bit-identical, which is why aperture buys
+   faint stars and speed buys nebulae. The limiting magnitude is Howell's CCD
+   equation inverted, and its two regimes are exact: 4× the exposure buys
+   1.5051 mag with no sky and 0.7526 mag swamped by it.
+   *Next here:* the sky is a number the user types rather than a model of one.
+   Extinction, filter curves and quantum efficiency are declared multipliers and
+   arrive as data, not as physics.
 
 ## v1 cut (both branches shipped)
 
