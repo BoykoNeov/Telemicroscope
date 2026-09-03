@@ -325,6 +325,45 @@ describe("§ 6cm.2 — the sag readout inherits the lifted restriction", () => {
     expect(check.s2).toBe(solved.s2);
   });
 
+  it("and it survives a stop PAST focus, where the marginal ray arrives inverted", () => {
+    // The scan above puts every diaphragm ahead of the marginal focus, so the
+    // trial trace that converts a stop radius into a first-surface height comes
+    // back positive every time and the absolute value in `seidelSums` does
+    // nothing. This doublet focuses about 2090 mm behind its last vertex; a
+    // diaphragm at 4000 mm is past that, and the marginal ray reaches it having
+    // already crossed the axis — the case the absolute value is for.
+    //
+    // That the crossing really happens is visible in the height needed to fill a
+    // 25 mm stop: it diverges at focus and comes back down the far side. A ray
+    // that merely converged more slowly would be monotone.
+    const heightFor = (d: number) =>
+      seidelSums(withDiaphragmAt(d), LAM, { marginalRadiusAtStopMm: 25, fieldAngleRad: THETA })
+        .marginalHeightMm;
+    expect(heightFor(2100)).toBeGreaterThan(10 * heightFor(140));
+    expect(heightFor(4000)).toBeLessThan(heightFor(2100) / 100);
+
+    // And the aperture is a RADIUS, so the height that fills it is positive on
+    // both sides of focus. Signed, this would come back negative and the sums
+    // odd in the marginal height — S_II, S_V — would quietly change sign.
+    expect(heightFor(4000)).toBeGreaterThan(0);
+    expect(heightFor(6000)).toBeGreaterThan(0);
+
+    // Welford holds there too, and E has crossed with the ray: it is −0.129 at
+    // 140 mm and +3.57 at 4000 mm, so this is not the scan re-run at a fourth
+    // point on the same side.
+    const unshifted = seidelSums(DOUBLET, LAM, { ...APERTURE, fieldAngleRad: THETA });
+    const shifted = seidelSums(withDiaphragmAt(4000), LAM, { ...APERTURE, fieldAngleRad: THETA });
+    const E = (shifted.surfaces[0]!.ab - unshifted.surfaces[0]!.ab) / unshifted.surfaces[0]!.a;
+    expect(E).toBeGreaterThan(3);
+    const p5 =
+      unshifted.s5! +
+      E * (3 * unshifted.s3 + unshifted.s4) +
+      3 * E * E * unshifted.s2 +
+      E * E * E * unshifted.s1;
+    expect(Math.abs(shifted.s5! / p5 - 1)).toBeLessThan(1e-13);
+    expect(Math.abs(shifted.s2 / (unshifted.s2 + E * unshifted.s1) - 1)).toBeLessThan(1e-13);
+  });
+
   it("with the stop AT surface 0 the two spellings are the same number, bit for bit", () => {
     const byHeight = seidelSums(DOUBLET, LAM, { marginalHeightMm: 25, fieldAngleRad: THETA });
     const byStop = seidelSums(DOUBLET, LAM, { marginalRadiusAtStopMm: 25, fieldAngleRad: THETA });

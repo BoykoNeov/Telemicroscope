@@ -37,6 +37,18 @@ import type { Prescription } from "../src/trace/prescription";
  *
  * If this rung ever fails, the question is not what tolerance would let it pass.
  * It is which expression moved.
+ *
+ * ## The fixture's provenance IS the rung, so: do not regenerate it
+ *
+ * `seidel-pre-6cm.json` was produced by `analysis/seidel` **as it stood at commit
+ * `8e7f0b0`**, the last state of that file before § 6cm touched it, driven by the
+ * `cases()` generator below. The generator lives here so the numbers can be
+ * *re-derived* — but re-deriving them against the CURRENT engine and overwriting
+ * the file turns this rung into a tautology that passes forever and checks
+ * nothing. That is the one way to break it that leaves it green. If a later step
+ * deliberately changes a Seidel number, the fixture is not what to edit: record
+ * the new value where the change is argued, and say here which case moved and
+ * why.
  */
 
 const FIXTURE = JSON.parse(
