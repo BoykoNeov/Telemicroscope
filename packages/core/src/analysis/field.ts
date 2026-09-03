@@ -171,11 +171,21 @@ export interface ThirdOrderSags {
  * from the Petzval surface three times as far as the sagittal one, on the same
  * side, because x_t − x_p = 3(x_s − x_p) identically.
  *
- * Infinite conjugate only, and the stop must be at the first surface (which
- * `seidelSums` enforces for every off-axis sum). A finite conjugate would need
- * the chief-ray slope-vs-object-height convention of § 6b applied to H as well,
- * and § 6h already traces the finite-conjugate field map — so rather than carry
- * an untested second convention, this throws.
+ * Infinite conjugate only. A finite conjugate would need the chief-ray
+ * slope-vs-object-height convention of § 6b applied to H as well, and § 6h
+ * already traces the finite-conjugate field map — so rather than carry an
+ * untested second convention, this throws.
+ *
+ * **The stop may sit anywhere** since § 6cm; before it, this refused any
+ * placement but the first surface. The aperture is handed to `seidelSums` as a
+ * radius AT THE STOP rather than a height at surface 0, and that is not a
+ * spelling preference: `pupils()` numbers surfaces on its own compilation of the
+ * prescription and `seidelSums` on `unfoldedTwin`'s, so passing a height would
+ * be pairing a radius measured at one index with a chief ray solved at another.
+ * They agree today, and nothing here would notice the day they stopped. For the
+ * same reason the image-space marginal ray below is launched from the height the
+ * sums actually used, not from the stop radius — off surface 0 those differ, and
+ * u′ is the factor that turns a sum into a length.
  */
 export function thirdOrderSags(
   system: OpticalSystem,
@@ -189,18 +199,15 @@ export function thirdOrderSags(
   }
   const c = axialTwin(asCompiled(system.prescription));
   const pu = pupils(system, wavelengthNm);
-  if (pu.stopIndex !== 0) {
-    throw new Error("thirdOrderSags: the off-axis sums need the stop at the first surface");
-  }
 
   const sums = seidelSums(system.prescription, wavelengthNm, {
-    marginalHeightMm: pu.stopRadius,
+    marginalRadiusAtStopMm: pu.stopRadius,
     fieldAngleRad: (fieldValueDeg * Math.PI) / 180,
   });
 
   // The same marginal ray the sums were built with, carried to image space, so
   // the length conversion cannot be quoted at a different aperture than the sums.
-  let st: PlaneRay = { y: pu.stopRadius, u: 0, n: c.indices(wavelengthNm)[0]! };
+  let st: PlaneRay = { y: sums.marginalHeightMm, u: 0, n: c.indices(wavelengthNm)[0]! };
   for (let i = 0; i < c.surfaces.length; i++) {
     st = paraxialRefract(c, i, wavelengthNm, st);
     if (i < c.surfaces.length - 1) st = paraxialTransfer(st, c.surfaces[i]!.thickness);
@@ -256,7 +263,7 @@ export function thirdOrderDistortionMm(
   const sags = thirdOrderSags(system, fieldValueDeg, wavelengthNm);
   const pu = pupils(system, wavelengthNm);
   const sums = seidelSums(system.prescription, wavelengthNm, {
-    marginalHeightMm: pu.stopRadius,
+    marginalRadiusAtStopMm: pu.stopRadius,
     fieldAngleRad: (fieldValueDeg * Math.PI) / 180,
     distortion: true,
   });

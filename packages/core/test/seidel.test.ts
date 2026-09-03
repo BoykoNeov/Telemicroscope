@@ -331,16 +331,26 @@ describe("Seidel sums refuse what they cannot compute", () => {
     expect(() => seidelSums(asphere, 550, { marginalHeightMm: 100 })).toThrow(/spherical surfaces only/);
   });
 
-  it("rejects an off-axis request when the stop is not the first surface", () => {
+  it("~~rejects an off-axis request when the stop is not the first surface~~ — answers it (§ 6cm)", () => {
     const p: Prescription = {
       surfaces: [
         { kind: "refract", curvature: 1 / 500, semiAperture: 50, thickness: 5, medium: "N-BK7" },
         { kind: "refract", curvature: 0, semiAperture: 50, thickness: 1000, medium: "AIR", isStop: true },
       ],
     };
-    expect(() => seidelSums(p, 550, { marginalHeightMm: 50, fieldAngleRad: 0.01 })).toThrow(/stop at the first surface/);
-    // On axis it is fine: no chief ray is involved.
-    expect(seidelSums(p, 550, { marginalHeightMm: 50 }).s1).toBeGreaterThan(0);
+    // This threw until § 6cm, and the refusal was the scope note rather than a
+    // hard problem: the stop is the flat a metre behind the lens, and the chief
+    // ray through its centre is a two-unknown linear solve. The rungs for what
+    // the answer has to satisfy are in test/stop-shift.ts; what is left here is
+    // that the request is no longer refused, and that lifting it moved nothing
+    // on axis.
+    const axial = seidelSums(p, 550, { marginalHeightMm: 50 });
+    const off = seidelSums(p, 550, { marginalHeightMm: 50, fieldAngleRad: 0.01 });
+    expect(axial.s1).toBeGreaterThan(0);
+    expect(off.chiefHeightMm).not.toBe(0);
+    expect(Number.isFinite(off.s3)).toBe(true);
+    // S_I carries no chief ray, so it is the same number to the bit either way.
+    expect(off.s1).toBe(axial.s1);
   });
 
   it("rejects a non-positive marginal height", () => {

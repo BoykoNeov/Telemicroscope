@@ -105,10 +105,18 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    ladder names no pin. *Candidate:* the weak-phase defocus transfer,
    contrast ∝ sin(π·λ·z·ν²) (Teague 1983), on § 6f.5's own phase grating that
    brightfield cannot see in focus.
-7. **Stop-shift equations in `seidelSums`.** § 6ac names the pin — "the
+7. ~~**Stop-shift equations in `seidelSums`.** § 6ac names the pin — "the
    published stop-shift equations would lift" the stop-in-contact zero — and
    § 6ai keeps the `"rim"` control alive only because they are absent.
-   Unblocks the distortion anchor at a real stop and retires a control.
+   Unblocks the distortion anchor at a real stop and retires a control.~~
+   **Closed at [§ 6cm](VALIDATION.md#step-6cm--the-stop-shift-becomes-the-engines)**,
+   and the entry was right about the pin and wrong about the control. The chief ray through a displaced stop is
+   a two-unknown linear solve, not a search, so the refusal was protecting an
+   unwritten problem rather than a hard one; the non-zero distortion anchor is the
+   shipped telecentric objective's −70.7001, which the engine now returns when
+   asked. But `"rim"` is NOT retired: § 6ai's own reasoning is that removing it
+   relocates a lens into a hand-built fixture instead of deleting one, and that
+   argument never depended on the equations being absent.
 8. **Astigmatism and field curvature on conics.** Every reflector preset
    (§ 4b, § 5e, § 5f, § 5i) and the Lister (§ 6d) say "what is missing is the
    external number, not the measurement", since `seidelSums` refuses conics.
@@ -244,8 +252,9 @@ radial-map nodes · § 6ba differential bleaching.
    A4, is the other half of what walking that route found, and is untouched by
    § 8b: the resampling excess rides the sky's frame exactly as it rides the
    star's.
-4. **Stop-shift equations** (A7): a named pin, an engine change, retires a
-   control.
+4. ~~**Stop-shift equations** (A7): a named pin, an engine change, retires a
+   control.~~ ✅ — landed at § 6cm. Two of the three: the pin and the engine
+   change. The control stays, for a reason that predates the deferral.
 5. **Seeing's ray analog** (A5): the oldest deferral on the telescope branch,
    and the one a user drags a slider across.
 6. **Fifth-order distortion** (C): the only thing on the mosaic chain that

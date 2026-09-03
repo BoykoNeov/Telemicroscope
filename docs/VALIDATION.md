@@ -148,6 +148,7 @@ whole ladder.
 | [6cj](#step-6cj--the-field-seams-edge-is-the-maps-distortion) | § 6ci's `(cx/R)²` edge is the radial map's own distortion acting as a local Jacobian: coefficient `D`, radius 89 mm and not the scale's 150 | ✅ |
 | [6ck](#step-6ck--the-maps-coefficient-is-one-seidel-sum) | § 6cj's `D` is ΣS_V of the reversed prescription READ at one millimetre: the reading is `a + (2b − a²)r²` and 3e-4 low, and the radius follows NA because the normaliser is the aperture, not the surfaces | ✅ |
 | [6cl](#step-6cl--the-guard-sensitivity-is-the-matched-fields-own-arithmetic) | § 6ca.1's 0.7145/0.7332 is not an interaction: a matched field forces the guard share to be M/NA and the tile subtracts it, so 0.537 is four integers and balancing the share leaves 3.3e-4 | ✅ |
+| [6cm](#step-6cm--the-stop-shift-becomes-the-engines) | The chief ray through a displaced stop is a linear solve, not a search: Welford's S_II*, S_III*, S_V* over 13× in E, S_I and S_IV invariant to the BIT, § 6ae's −70.7001 the engine's | ✅ |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 
@@ -11857,8 +11858,11 @@ that shifted — § 6d.4's bisected reach, by 0.5%.
 reasons. The section's claim is about the FORM, one cemented doublet against two,
 so holding the stop fixed is what isolates it; moving both at once would report
 the sum of a form change and a stop change. And third-order S_II is derived with
-the stop at the first surface — `seidelSums` refuses any other placement — so the
-§ 6d.2 control has no telecentric spelling at all. Against the telecentric
+the stop at the first surface — `seidelSums` ~~refuses any other placement~~ *refused
+any other placement until [§ 6cm](#step-6cm--the-stop-shift-becomes-the-engines)* — so at the time the § 6d.2 control had
+no telecentric spelling at all. The first reason is the one that survives § 6cm: a
+comparison about the FORM has to hold the stop still whatever the engine can now
+compute. Against the telecentric
 single doublet the same comparison reads 6.07× where the controlled one reads
 past 15×, and that number is recorded here rather than substituted there.
 
@@ -14356,7 +14360,7 @@ so the closed form and the trace can disagree. They agree to 0.04% and 0.09%.
 | Distortion is **barrel**, cubic — ×4.00 per doubling — and matches S_V/(2n′u′) | 1e-6 at 0.05°, disjoint machinery | ✅ |
 | The paraxial reference IS f·tanθ for a stop at the front vertex | 1e-9, construction check | ✅ |
 | **The wrong plane is 13× the signal and nearly flat where physics is steep** | the refused alternative, measured | ✅ |
-| A finite conjugate and a displaced stop are refused, not approximated | § 6h owns the finite branch | ✅ |
+| A finite conjugate is refused, not approximated ~~and a displaced stop~~ — lifted at [§ 6cm](#step-6cm--the-stop-shift-becomes-the-engines) | § 6h owns the finite branch | ✅ |
 
 ### The anchor is shape-independent, and that is what makes it sharp
 
@@ -14421,12 +14425,16 @@ against the convention rather than a free parameter.
 
 ### Not yet pinned
 
-- **The stop shift.** Every off-axis sum here needs the stop at the first surface,
+- ~~**The stop shift.** Every off-axis sum here needs the stop at the first surface,
   inherited from `seidelSums`' chief-ray shortcut. The published stop-shift
   equations would lift that, and they are what a *non-zero* external distortion
   anchor needs: the only closed form reachable now is the stop-in-contact zero.
   The traced achromat's distortion is therefore pinned against its own S_V and
-  against a power law, not against a textbook number for a displaced stop.
+  against a power law, not against a textbook number for a displaced stop.~~
+  **Landed at [§ 6cm](#step-6cm--the-stop-shift-becomes-the-engines)**, and the entry's own prediction is what came
+  true: with the equations in, the non-zero external anchor is the shipped
+  telecentric objective's −70.7001, which the engine now returns when asked
+  rather than the test assembling it.
 - **The 0/0 at A = 0.** A surface the marginal ray crosses undeviated makes the
   classical S_V term 0/0 — the numerator vanishes identically there, shown in the
   module header — and the reversed plano-convex singlet is not an exotic system to
@@ -15529,8 +15537,12 @@ and § 6ai.4 is the correction.
     through the shipped constructor. That is more lens to maintain, not less.
 
   Revisit only if `seidelSums` grows a stop shift of its own, or if a later step
-  genuinely finds itself maintaining two lenses. Until then the control is not a
-  leftover and the cost is the measurement.
+  genuinely finds itself maintaining two lenses. **The first trigger has now
+  fired** — [§ 6cm](#step-6cm--the-stop-shift-becomes-the-engines) grew it — and the answer does not change, for the
+  reason already given two paragraphs up: retiring `"rim"` would relocate a lens
+  into a hand-built fixture rather than remove one. What § 6cm does change is that
+  the control is now a *measured* negative control instead of the only spelling
+  the engine could evaluate, which is what makes it worth keeping.
 - ~~**`pointSourceCollection` still reads `entrance.radius`**~~ — **landed at
   [§ 5s.5](#step-5s--camera-mode-relative-exposure)**, along with the same
   `editor.ts` readout one section over: the app's pupil panel printed
@@ -25220,10 +25232,11 @@ air surface at the specimen plane carrying the stop. A flat with no index change
 across it contributes nothing to any sum — it is there to BE the stop, which is
 the one thing `seidelSums` needs at surface 0.
 
-That construction reaches a number the forward sums cannot. `seidelSums` refuses
+That construction reaches a number the forward sums cannot. `seidelSums` ~~refuses
 a stop anywhere but the first surface — it carries no stop-shift equations, and
-says so — while § 6ae put this objective's diaphragm on the BACK focal plane. So
-the objective's own ΣS_V is out of reach in the forward direction, and both
+says so~~ *refused a stop anywhere but the first surface, until [§ 6cm](#step-6cm--the-stop-shift-becomes-the-engines)*
+— while § 6ae put this objective's diaphragm on the BACK focal plane. So at the
+time the objective's own ΣS_V was out of reach in the forward direction, and both
 routes below get at it anyway: **reversed**, the diaphragm becomes the first
 surface (§ 6ch.1); **dualised**, the specimen plane does (§ 6ch.2, § 6ch.3).
 
@@ -25908,6 +25921,146 @@ across § 6ca's own two guard ends that derivative moves **14%**, 0.6729 to
   interval is still unreachable, § 6bs.6's two orderings still have no
   replacement, and why a coarser pupil puts light outside the box (§ 6cc.2) is
   still a sampling question nobody has asked.
+
+## Step 6cm — the stop shift becomes the engine's
+
+Source: engine change — `analysis/seidel` solves the chief ray for a stop
+anywhere in the chain, and `analysis/field` inherits it ·
+Tests: `packages/core/test/stop-shift.test.ts`, `packages/core/test/seidel.test.ts`
+
+`seidelSums` computed every off-axis sum for exactly one stop position — the
+first surface, where the chief ray is (ȳ = 0, ū = θ) and there is nothing to
+solve — and threw for any other. The module said so out loud, which is the right
+way to carry a restriction. But this one was load-bearing in a way a scope note
+does not convey: **§ 6ae and § 6ai could not ask the engine about the lens the
+project ships.** `finiteConjugateObjective`'s default puts its diaphragm on the
+back focal plane, so both steps wrote Welford's stop-shift polynomial out by hand
+in the test, evaluated it on the `"rim"` member, and compared the answer to a
+traced ray. The number was right. The engine had no part in producing it, and
+§ 6ch had to reach the same objective's ΣS_V by reversing the prescription and
+by dualising it — two constructions whose whole purpose was to get some surface
+that was already the stop into position 0.
+
+### The refusal was not protecting a hard problem
+
+The paraxial recursion is **linear in the launch**. So the chief-ray height at
+surface k is
+
+    ȳ_k = α·ȳ₀ + β·ū₀        α = ȳ_k of the launch (1, 0)
+                             β = ȳ_k of the launch (0, 1)
+
+and two trial traces give α and β outright. Requiring ȳ_k = 0 at the stop then
+leaves one equation in one unknown and it is solved in closed form — no search,
+no pupil imaged into object space, no iteration to converge or fail to. What the
+refusal was protecting was an unwritten problem, not a hard one.
+
+The two conjugates part company only in what is held fixed while the stop moves.
+At infinity the field IS the angle, so ū₀ = θ and ȳ₀ = −β·θ/α. At a finite
+object the field is an **object height** η = −θ·s — the reading `seidelSums`
+already documented for its stop-at-0 case — and it is η that must be held,
+because holding the slope instead would move the field point every time the
+diaphragm moved. That gives ū₀ = −α·η/(α·s + β) and ȳ₀ = η + ū₀·s.
+
+The stop-at-0 case is this same algebra evaluated, not a second rule: α = 1 and
+β = 0 give back ū₀ = θ and ȳ₀ = 0 on both branches. It is still written out
+separately, and the reason is arithmetic rather than physics — `(θ·s)/s` is not
+`θ` in f64, so routing the finite-conjugate case through the general formula
+would have moved twenty-eight existing call sites in the last two digits. **A
+full-precision baseline of 161 configurations, dumped before the change and
+re-run after it, comes back bit-identical**, which is the claim `toBeCloseTo`
+could never have made.
+
+### Two spellings of the aperture, because two modules number surfaces differently
+
+`analysis/field` reads its pupil radius off `pupils()`, which compiles the
+prescription by its own route; `seidelSums` finds the stop on `unfoldedTwin`'s
+list. Both indices are the same today and nothing would have noticed the day
+they were not — while the stop had to be surface 0 the question could not arise,
+and lifting that is exactly what makes it arise. So the aperture may now be
+stated as `marginalRadiusAtStopMm` instead of a height at surface 0, and the
+scaling happens inside `seidelSums` against its own list and its own index. It
+is one trial trace, the scale is exactly 1 when the stop is surface 0, and the
+class of error where a radius measured at one index meets a chief ray solved at
+another is gone rather than guarded.
+
+### What a scan pins that one placement cannot
+
+Welford's equations (Welford, *Aberrations of Optical Systems*, ch. 8) are
+
+    S_I*   = S_I                          S_IV*  = S_IV
+    S_II*  = S_II + E·S_I
+    S_III* = S_III + 2E·S_II + E²·S_I
+    S_V*   = S_V + E(3·S_III + S_IV) + 3E²·S_II + E³·S_I
+
+with E = Δ(Ā/A). They are **linear, quadratic and cubic in E**, so a single stop
+position tests one point on each and would pass for an implementation with the
+coefficients wrong and the argument small. The primary rung is therefore a scan:
+a thick cemented doublet with all five sums non-zero, a flat air diaphragm moved
+through four planes behind it, E ranging over a factor of thirteen. The
+diaphragm's own contribution is an exact zero on all five terms — no curvature,
+no index change — so the two members differ by the chief ray and nothing else,
+which is what makes this a stop shift rather than a comparison of two lenses.
+
+Three things fall out that the fixed stop could not reach:
+
+- **E really is one number.** Every text asserts the eccentricity is the same at
+  every surface and this repo had no way to check it. `SeidelSurfaceTerms` now
+  reports A and Ā, so it is measured surface by surface, to 1e-13.
+- **E has a second, independent spelling**, and it is the physical content of the
+  shift: the new chief ray is the old one plus E times the MARGINAL ray, so E is
+  also Δȳ/y. At the first surface that is the solved chief height over the
+  marginal height — different quantities entirely, agreeing to 1e-14.
+- **S_I and S_IV are invariant to the BIT, not to a tolerance.** The engine
+  satisfies the two trivial equations of the set by arithmetic it never performs:
+  neither sum carries the chief ray, the marginal ray genuinely did not move, and
+  the diaphragm contributes nothing. That is the strongest form the claim has.
+
+### The headline is a lens that ships, and it closes § 6ae's loop
+
+`finiteConjugateObjective` builds the same glass twice. Surface for surface the
+`"rim"` and `"backFocal"` prescriptions are identical — same curvatures, same
+semi-apertures, same media, and the same air-equivalent object distance to the
+last digit; the only differences are which surface carries `isStop` and a
+trailing gap that reaches the diaphragm. That premise is checked rather than
+assumed, because if the placement re-solved the design this would be two lenses
+and not one stop shift.
+
+Asked directly, the engine returns **−70.700115** for the distortion lever, and
+Welford applied by hand to the rim member returns the same number to 4e-16, at
+three field heights. § 6ai's traced skew ray still reads −70.7169 — 0.024% away,
+the fifth-order residue, unmoved by the engine learning to compute the
+third-order side itself.
+
+The solve also gets a check that does not go through the sums at all. A stop on
+the rear focal plane puts the entrance pupil at infinity, so the object-space
+chief ray is parallel to the axis: **ū₀ = 0 and ȳ₀ = η, exactly**, signed zero
+and all. That is *why* § 6ae could write E = η/h by hand, and it is now a
+property of the solve rather than an assumption standing behind it.
+
+### What is still refused, and one of the three is real
+
+`thirdOrderSags` and `thirdOrderDistortionMm` lose the placement restriction they
+only ever had because `seidelSums` did. Three refusals remain, and only the middle
+one is a limitation:
+
+- **No stop flagged at all**, with a field angle. There is no chief ray without
+  one. On axis it is still fine, because there is no chief ray to want.
+- **The entrance pupil at infinity while the object is too** — α exactly 0, the
+  stop on the rear focal plane of everything ahead of it, at an infinite
+  conjugate. Then no finite ȳ₀ exists and the parametrisation by field angle has
+  genuinely run out. At a finite conjugate the same placement is merely
+  telecentric and computes fine, which is the § 6ai objective.
+- **The aperture stated twice or not at all.** A guard, not a limit.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cm.0 — Welford's S_II*, S_III* and S_V* across a 13× range of E** | four diaphragm planes on a doublet with all five sums live, each equation to 1e-13; and S_I, S_IV bit-identical at every placement, the diaphragm's own five terms exact zeros | ✅ |
+| ...and E is ONE number, measured two ways | Δ(Ā/A) equal across every surface to 1e-13, and equal to the launch's own Δȳ/y to 1e-14, at all four placements | ✅ |
+| **§ 6cm.1 — the shipped telecentric objective, asked directly** | `"rim"` and `"backFocal"` are the same glass surface for surface; the engine's own −70.700115 matches hand-Welford to 4e-16 and is field-free to 1e-12; § 6ai's traced −70.7169 is 3e-4 away | ✅ |
+| ...and the solve says telecentric without being told | ū₀ = 0 and ȳ₀ = η exactly on the back-focal member, which is what makes § 6ae's E = η/h right; engine E matches it to 1e-14 | ✅ |
+| **§ 6cm.2 — the sag readout inherits it, and fills the STOP** | `thirdOrderSags` takes a displaced stop and stays 3:1 on x_t − x_p; a radius at a stop 140 mm behind the glass is 5%+ from the first-surface height, and with the stop AT surface 0 the two spellings agree bit for bit | ✅ |
+| **§ 6cm.3 — what is still refused** | no stop with a field angle; α exactly 0 at an infinite conjugate (a mirror with a power-of-two curvature, so the zero is exact) while the same placement computes at a finite one; an aperture given twice or not at all | ✅ |
+| **§ 6cm.4 — nothing moved that was not asked to** | 161 configurations recorded from the pre-§ 6cm engine at full precision — mirrors, thin and thick lenses across seven shapes and two indices, doublets at five wavelengths, both conjugates, with and without distortion — reproduced to the bit | ✅ |
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

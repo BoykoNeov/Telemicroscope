@@ -9,7 +9,8 @@ a hundred *Still open* paragraphs in VALIDATION.md. Read that register before
 choosing the next step; its *Suggested order* is the plan. **Step 8 is its first
 three entries and all three are landed** — the zero point and the draw (§ 8a),
 the noisy frame (§ 8a.7–§ 8a.11), and the sky with the limiting magnitude
-(§ 8b). The register's next unstruck entry is the stop-shift equations (A7).
+(§ 8b). The register's next unstruck entry is seeing's ray analog (A5) — A7, the
+stop-shift equations, landed at § 6cm.
 
 ## Build order
 

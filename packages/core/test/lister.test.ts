@@ -84,9 +84,12 @@ const lister = (NA: number, over: Partial<Parameters<typeof listerObjective>[0]>
  * same comparison reads against the telecentric objective, so the number is
  * measured rather than hidden; what belongs here is the controlled one.
  *
- * It is also what `seidelSums` can compute at all: third-order S_II is derived
- * with the stop at the first surface and refuses any other placement, so the
- * § 6d.2 control below has no telecentric spelling.
+ * It was also, until § 6cm, what `seidelSums` could compute at all: third-order
+ * S_II is derived with the stop at the first surface, and any other placement was
+ * refused, so the § 6d.2 control below had no telecentric spelling. § 6cm solves
+ * the chief ray for a stop anywhere, which removes that second reason and leaves
+ * the first one — a comparison about the FORM has to hold the stop still — doing
+ * the work on its own.
  */
 const single = (NA: number) =>
   microscopeObjective({ magnification: 40, numericalAperture: NA, stopPlacement: "rim" });
