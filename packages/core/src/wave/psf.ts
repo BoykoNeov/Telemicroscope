@@ -586,18 +586,33 @@ export function transmittedEnergy(
  * quadrature error of the edge cells into the throughput, where it would read
  * as a real loss of light; reading the same grid means the discretization
  * divides out and what is left is the aperture.
+ *
+ * Memoised because it is a pure function of the GRID and of nothing else — no
+ * system, no wavelength, no field — so a panel that recomputes it on every
+ * slider tick would re-sample a `size`² lattice and allocate two Float64Arrays
+ * of it (≈2 MB at 128 pupil samples) to arrive at the number it already had.
+ * The key is the whole argument list, so a caller who changes the edge
+ * refinement gets its own entry rather than the previous one.
  */
+const CLEAR_APERTURE_ENERGY = new Map<string, number>();
+
 export function clearApertureEnergy(
   pupilSamples: number,
   size: number,
   edgeSamples: number = DEFAULT_EDGE_SAMPLES,
 ): number {
-  return transmittedEnergy(
-    { amplitude: (px, py) => (px * px + py * py <= 1 ? 1 : 0), phaseWaves: () => 0 },
-    pupilSamples,
-    size,
-    edgeSamples,
-  );
+  const key = `${pupilSamples}|${size}|${edgeSamples}`;
+  let cached = CLEAR_APERTURE_ENERGY.get(key);
+  if (cached === undefined) {
+    cached = transmittedEnergy(
+      { amplitude: (px, py) => (px * px + py * py <= 1 ? 1 : 0), phaseWaves: () => 0 },
+      pupilSamples,
+      size,
+      edgeSamples,
+    );
+    CLEAR_APERTURE_ENERGY.set(key, cached);
+  }
+  return cached;
 }
 
 /**

@@ -79,7 +79,11 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    and it was not only wiring: dividing by the PSF's own `energy` normalizes the
    obstruction away, so the denominator is the CLEAR aperture on the same grid
    (`clearApertureEnergy`) and the pin is 1 − ε². The pupil's throughput is now a
-   reading rather than a cancellation.
+   reading rather than a cancellation. **The golden this entry asked for does not
+   exist and should not**: the Poisson sampler runs through `log` and `exp`,
+   which IEEE does not fix, so a bit-exact image of a draw differs by whole
+   photon counts between machines. Statistical and convergence gates replace it
+   — see the step.
 5. **Seeing's geometric-branch analog** — rays deflected by ∇φ so a seeing
    blur survives the fidelity fallback. § 5d's deferral, restated at § 6f and
    *Later rungs*; the ladder names no pin. *Candidate:* the angle-of-arrival

@@ -627,8 +627,11 @@ describe("§ 8a.11 — a finding: the stack's resampler moves energy and nothing
     // that the energy moved at all. It is reported through `deliveredFraction`
     // and never divided out; the register carries it as an open item.
     //
-    // If the first expectation below starts failing, the resampler was fixed —
-    // update this rung and OPEN-PROBLEMS rather than widening anything.
+    // The assertion that fires when the resampler is FIXED is the
+    // `worst > 1e-3` one at the bottom, not the raw-PSF identity above it — if
+    // that one starts failing, update this rung and OPEN-PROBLEMS A13 rather
+    // than widening anything. The raw-PSF identity failing would mean the
+    // transform itself broke, which is a different and worse thing.
     const hero = renderHero(heroPair().achromat);
     const raw = psf(hero.system, 0, FOCUS_NM, PSF_OPTIONS);
     expect(Math.abs(sumOf(raw.intensity) / raw.energy - 1)).toBeLessThan(1e-12);

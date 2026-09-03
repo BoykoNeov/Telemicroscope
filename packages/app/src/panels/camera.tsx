@@ -272,7 +272,7 @@ function ExposureReadouts({ result }: { result: CameraResult }) {
         same scalar on every frame
       </div>
       <div>
-        the frame&rsquo;s photons: pupil admits{" "}
+        the frame&rsquo;s photons over 400–700 nm: pupil admits{" "}
         <strong>{result.admittedPhotons.toExponential(4)}</strong>, sensor receives{" "}
         <strong>{result.framePhotons.toExponential(4)}</strong> ({pct(result.deliveredFraction, 2)}),
         brightest pixel <strong>{num(result.peakPixelPhotons, 4)}</strong> ·{" "}
@@ -466,8 +466,13 @@ export function CameraPanel() {
           value={spec.pupilSamples}
           onChange={(v) => set("pupilSamples", v)}
         />
+        {/* The band is on the label because m_AB over 400–700 nm is NOT m_V:
+            the closed form's whole band dependence is ln(λ₂/λ₁), so this band is
+            1.2 mag wider than V and a reader who assumed otherwise would be off
+            by that much. `expectedPhotons` refuses a band mismatch for the same
+            reason — it is the plausible-looking error. */}
         <Slider
-          label={`star m_AB ${magnitudeAB.toFixed(1)}`}
+          label={`star m_AB ${magnitudeAB.toFixed(1)} over 400–700 nm`}
           min={MAGNITUDE_RANGE.min}
           max={MAGNITUDE_RANGE.max}
           step={MAGNITUDE_RANGE.step}

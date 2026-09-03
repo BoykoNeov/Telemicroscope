@@ -26051,6 +26051,19 @@ between two frames whose PSFs differ, measured at −1.6e-3 to +4.1e-4 across fi
 planes. It goes to `docs/OPEN-PROBLEMS.md` as an open item; it predates this
 step and touches every polychromatic render, not only the photon count.
 
+**There is no golden image of a drawn frame, and the absence is deliberate.**
+A4 asked for one — "no rung of its own beyond a golden" — and a golden is the
+wrong gate for this particular output. `poisson` runs through `Math.log` below
+its seam and `Math.exp` above it, and IEEE 754 fixes neither, so two conforming
+machines draw *different integers* from the same seed: a bit-exact PNG would
+differ by whole photon counts, visibly, not in the last bit. That is exactly the
+fragility the recorded-reading convention was written against, one step further
+along. What replaces it is a statistical gate on the frame (the count to √N, and
+the draw restoring the render when divided back) and, on the app side, a
+convergence gate: at a bright enough star the drawn frame agrees with the clean
+one byte for byte, which is a golden's real question — *is this a draw of the
+picture beside it* — asked in a form a second machine can answer.
+
 The app wiring is C4's camera panel, and it adds no rung: a star's AB magnitude
 is a slider, the sensor's own per-wavelength images are rebinned before the draw
 (photons are counted where pixels are, and drawing on the diffraction grid then
