@@ -152,6 +152,7 @@ whole ladder.
 | [6cn](#step-6cn--the-maps-quartic-computed-rather-than-fitted) | A chief-ray trace carried in power series, not Buchdahl transcribed: two closed forms to 5e-14, ΣS_V its cube — and § 6ck's fitted `b` is the ray AIMING, +2.6e-8 vs −9.4e-10 | ✅ |
 | [6co](#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray) | § 6cn.5's unexplained 2.9e-3 is the PLANE: the module reads at its own conjugate, these sit 2.3–4.2% off theirs, and the shift is linear in that defocus and zero at it | ✅ |
 | [6cp](#step-6cp--the-stage-seams-guard-sensitivity-one-power-down) | § 6ca.1's other pair is § 6cl's four integers one power down — P/2 on rows, P on columns, so the cost's column branch cancels them exactly — and § 6ca read its pair past § 6cd.1's edge | ✅ |
+| [6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed) | A non-integer `pupilSamples` is not an engine change: § 6bn's first interval crosses 1 at a matched field, 1.1061 → 0.9500, and its "opposite ways" was the frame | ✅ |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -22026,9 +22027,12 @@ view is ∝ M/NA, so both columns above were read over a frame that moved with t
 lever. Re-computed at a matched field the seam registration cost's interaction
 crosses 1 (1.0417 → 0.7949) and the seam anisotropy's grows its distance from 1
 by 11.68×; the axial plateau's survives to 0.89%, because the plateau is the one
-readout that is field-free. The first interval cannot be re-measured at all — the
-4× frame has no integer sampling that matches — so the "not a slope" conclusion
-below is neither confirmed nor refuted, and two of its six inputs are withdrawn.
+readout that is field-free. ~~The first interval cannot be re-measured at all — the
+4× frame has no integer sampling that matches~~ — **it can, at [§ 6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed):
+a non-integer sampling is not an engine change and the 10× frame wants no
+fractional one at all. The cost's first-interval interaction crosses 1 the same
+way, 1.1061 → 0.9500** — so the "not a slope" conclusion below has two of its
+six inputs withdrawn and replaced rather than left unmeasurable.
 
 The last column is the step. Both reversals **cross 1** — the raw quotients are
 0.86143 and 0.82317 where § 6bm's were 1.83258 and 1.68264 — so the lever that
@@ -22054,7 +22058,7 @@ pair it was measured on.
 | | § 6bm's headline 53.65× at the edge becomes 1.0086× — its distance from 1 falls **6124×** — and the axis reading collapses the same way, 21.2× | ✅ |
 | | § 6bk.4's guard-band finding survives its third pair in sign and not in size: twice the aperture leaks **16.539×** more at 20×, against 11.941× and 20.092× | ✅ |
 | | and § 6bm.2's arithmetic identity holds on the second interval too — the same interaction read down the other lever, to 12 digits, on two readouts | ✅ |
-| **§ 6bn.5 — the two readouts that continue, and they go opposite ways** | the registration cost's interaction shrinks 1.1061 → **1.0417**, toward separation; the anisotropy's grows 1.0166 → **1.0233**, away from it | ✅ |
+| **§ 6bn.5 — the two readouts that continue, and ~~they go opposite ways~~ they do not** | the registration cost's interaction shrinks 1.1061 → **1.0417**, toward separation; the anisotropy's grows 1.0166 → **1.0233**, away from it — **read at ONE field they go the SAME way, both below 1 and both growing their departure, 0.9500 → 0.7949 and 0.8766 → 0.7862 ([§ 6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed)): the opposition was the frame** | ✅ |
 | | so § 6bl.4's "1/M plus about a tenth" is a **low-M tenth**: the 10×→20× step falls 0.751% short of exact 1/M at NA 0.10 and 4.721% at NA 0.20, against § 6bm.5's 8.355% and 17.143% — ~~a residual on a real law~~ **on one [§ 6bo.4](#step-6bo--both-levers-were-two-levers) withdraws** | ✅ |
 | | with the one thing that survives both intervals — the fast lens is always the further from 1/M | ✅ |
 | **§ 6bn.6 — the free field on a fifth and sixth lens, in ONE convention** | the axial free-field gain is **0.9720138** at 20× against § 6bm's axial 0.9722786 at 10× — same convention, ~~agreeing to **2.7e-4**~~ **an agreement [§ 6bp](#step-6bp--the-rendered-flat-field-at-a-matched-field) withdraws: the 20× frame is HALF the 10× one at that sampling, and held at one field the two disagree by 3.7% to 13.8% — 137× to 510× worse**, both below 1 and, at a matched field, further below it | ✅ |
@@ -22410,12 +22414,18 @@ lever, and this file does not attribute it.
   volume render and not a flat field at all; forming its matched interaction
   needs escapes at 10× beside § 6bo's two at 20×, which nothing has built. So
   one of § 6bn's six is still open, not three.
-- **§ 6bn's FIRST interval cannot be re-measured at all.** Matching the 4× frame
+- ~~**§ 6bn's FIRST interval cannot be re-measured at all.** Matching the 4× frame
   needs a non-integer `pupilSamples` at every power-of-two frame size, so
   § 6bn's "not one of the six is a slope" is neither confirmed nor refuted here
   — two of its inputs are withdrawn and the comparison cannot be redone. A frame
   size that is not a power of two, or a sampling that is not an integer, would
-  be an engine change and is not attempted.
+  be an engine change and is not attempted.~~ **Closed at [§ 6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed)**, and
+  the last sentence was the error. `objectFieldFrame` wants `pupilSamples > 0`
+  and nothing else — the power-of-two rule belongs to the source LATTICES this
+  branch never touches — so the frame at 12.8 samples is a frame, exact in the
+  twelfth digit and smooth through every integer. Nor was the 4× frame the only
+  member: at the 10× frame the quartet is all integers. Both give a cost
+  interaction below 1 where the branch's path has 1.1061.
 - **The aperture pairs carry a 1.55% field residual** that the magnification
   pairs do not, because the traced aperture drifts 2.76% from the design NA
   across the ladder. Nothing here corrects for it, and no readout was sensitive
@@ -22423,9 +22433,9 @@ lever, and this file does not attribute it.
 - **The plateau's mechanism is still unnamed** — now with two constraints rather
   than one: § 6bn's saturation shape in magnification, and this step's
   field-independence to under 3%.
-- **No matched-field measurement below 10× exists.** Matching the 4× frame needs
+- ~~**No matched-field measurement below 10× exists.** Matching the 4× frame needs
   a `pupilSamples` that is not an integer at any power-of-two frame size, so the
-  magnification lever is pinned on one interval only.
+  magnification lever is pinned on one interval only.~~ **Closed at [§ 6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed)** — the lever now has both intervals, on two members of § 6bp.0's family.
 - ~~**The refusal boundary is bracketed at 20× and nowhere else.**~~ **Closed at
   [§ 6bq](#step-6bq--the-refusal-boundary-moves-with-magnification):** it moves,
   in the same direction as § 6bn's buildable ceiling — the crossing is
@@ -26783,6 +26793,138 @@ counted in cells because the wrap it exists to contain is.
   turn and § 6ca's branch inversion as one unwritten event, § 6ch's coma residue
   changing sign near NA 0.21, the plateau's mechanism, § 6bs.6's two orderings,
   and why a coarser pupil puts light outside the box (§ 6cc.2).
+
+## Step 6cq — the first interval, and the engine change that was not needed
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/fractional-sampling.test.ts`
+
+§ 6bo re-measured this branch's render-free readouts at a matched field and
+found both reversing sign. It could not reach § 6bn's FIRST interval, and it
+said why twice — once in its own body and once as a *Still open* item:
+
+> § 6bn's *first* interval, 4×→10×, cannot be re-measured this way at all —
+> matching the 4× frame needs a non-integer `pupilSamples` at every power-of-two
+> frame size … A frame size that is not a power of two, or a sampling that is
+> not an integer, would be an engine change and is not attempted.
+
+**The hypothesis.** The second sentence is false, which makes the first moot: a
+non-integer `pupilSamples` is not an engine change, it is a frame this engine
+already forms, and § 6bn's first interval can be re-measured today. **What would
+refute it** is a discontinuity — a readout that treats an integer sampling as
+special, or a quantity that stops obeying its own closed form between two
+integers.
+
+### The refusal was never there
+
+`objectFieldFrame` requires `pupilSamples > 0` and nothing else. The
+power-of-two requirement that does exist lives in `illumination/source` and
+`imaging/condenser-field`, where a source **lattice** has to be commensurate
+with the pupil's frequency grid — and no readout on this branch touches either.
+What `pupilSamples` sets here is the frame's field of view, through
+`imagePixelScaleMm`, and that is a scaling with no integer in it: the object
+half-extent stays exactly `pupilSamples·λ/(4·NA)` at every sampling tried,
+integer and fractional alike, to the same relative offset in the twelfth digit
+(§ 6cq.0). The 10× cell at **12.8** samples has the 4× cell's own frame to a
+part in 10¹³.
+
+And a fractional sampling cannot smuggle in a rounded guard, because
+`mosaicGuardPixels` **refuses** a guard that is not a whole number of pixels
+rather than rounding it — its own comment gives the reason, that a rounded guard
+"produces a perfectly plausible mosaic whose seam error is not the one the
+caller asked for". So the one artefact a fractional sampling might have
+introduced is one the engine already declines to produce, and it is checked here
+by asking for it and being refused.
+
+### And nothing distinguishes an integer
+
+Two readouts, chosen because they fail differently (§ 6cq.1). The render-free
+seam is smooth through `pupilSamples = 16`: strictly rising, with second
+differences that drift 7% across a window straddling the integer and take their
+extreme values at the two ENDS rather than at 16.
+
+The rendered plateau is the one that could plausibly care, being a three-point
+second difference of a rendered peak — § 6bf.5 already measures it moving 0.34%
+over a 4× change of sweep step. On a **pinned** sweep grid, so the coarse pass
+cannot land differently at different samplings and contribute scatter of its
+own, it scatters **0.98%** across `pupilSamples` 44…52. The grid is then the
+obvious confound in the other direction — the vertex moves 7.0·10⁻⁴ mm across the
+ladder, 0.14 of a sweep step, so a pinned centre is off-centre by a different
+amount at each sampling — and it is checked rather than argued: run free, with
+the coarse pass choosing its own centre at every point, the two grids rank the
+ladder **identically**, and the vertex is interior at every point of both. The nine integers in
+that ladder run through the whole ranking: one holds the top place, three are in
+the bottom five, and the bottom itself is a fraction. The integer and fractional
+group means sit **0.11%** apart against a **0.27%** scatter inside each — the
+separation to be found is less than half the noise either group already carries.
+
+### So § 6bn's first interval, twice, and both members agree
+
+Matched at the 4× frame — the member § 6bo named — wants `pupilSamples` of 12.8
+and 25.6, and lands the guard whole at § 6bo's own frame size and `guardCells`
+(§ 6cq.2). Matched at the **10×** frame wants no fractional sampling at all,
+only a guard of five cells rather than four so that 80 divides a power of two
+(§ 6cq.3). That second member is worth stating plainly: **"at a matched field"
+names a family (§ 6bp.0), and § 6bo's deferral had fixed on its one awkward
+member** — § 6cl's own `STEP_4_10` is this quartet, built for a different
+purpose and never read for this one.
+
+The branch's path reproduces § 6bn's published pair first, because nothing else
+is comparable unless it does: **1.1060587** for the cost against its 1.1061, and
+1.0166 for the anisotropy's departure. At a matched field the cost interaction
+**crosses 1** — 0.9500 at the 10× frame, 0.6837 at the 4× frame — and the
+anisotropy's departure grows, to 0.8766 and 0.6299. That the two members differ
+from each other is § 6bo.2's non-separability and not a discrepancy: one field is
+2.5× the other, and the readout is nowhere near a power law in the field. And
+the reversal is carried by the same term § 6bo.3 found it in on the aperture
+lever — the field-scanned seam, whose own interact goes from 0.9924 down the
+branch's path to 2.6250 at a matched field.
+
+### Which withdraws § 6bn.5
+
+§ 6bn.5's one surviving cross-interval statement was that the two readouts go
+opposite ways: "the registration cost's interaction shrinks 1.1061 → 1.0417,
+toward separation; the anisotropy's grows 1.0166 → 1.0233, away from it." Read
+at ONE field they do not. Both sit below 1 on both intervals and both grow their
+departure — cost **0.9500 → 0.7949**, anisotropy **0.8766 → 0.7862** (§ 6cq.4).
+The opposition was the frame, exactly as § 6bo found for the values it was built
+from.
+
+Two intervals is still not a law, and § 6bl.2's refusal to extrapolate a short
+series governs here as everywhere on this branch. What is retired is one
+published claim and one "cannot be measured", not the caution around them.
+
+**And this is the third measurement-only step in a row on this chain** (§ 6co,
+§ 6cp, § 6cq), none of which added an engine change or an external pin. The stop
+rule in *Rules* therefore applies: what these three leave goes to
+`docs/OPEN-PROBLEMS.md` as problems, and not onto the ladder as a fourth step.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cq.0 — a non-integer `pupilSamples` is not an engine change** | `objectFieldFrame` wants only `> 0`; the object half-extent holds `ps·λ/(4·NA)` to one relative offset across nine samplings to 1e-12, the 10× cell at 12.8 has the 4× cell's frame to 1e-13, and § 6bo.3's 1.55% aperture residual is unmoved — while `mosaicGuardPixels` refuses a fractional guard rather than rounding it, asked for and refused here | ✅ |
+| **§ 6cq.1 — and nothing distinguishes an integer** | the render-free seam rises strictly through ps = 16 with second differences drifting 7% and extreme at the window's ENDS; the rendered plateau scatters 0.98% over ps 44…52 with the nine integers through the whole ranking, means 0.11% apart against 0.27% within each — and a pinned and a free sweep grid rank it identically, the vertex interior at every point of both | ✅ |
+| **§ 6cq.2 — so § 6bn's first interval, at the 4× frame § 6bo named** | the branch's path reproduces § 6bn's 1.1060587 and 1.0166 with the four fields in exact proportion M/NA; matched at the 4× frame on samplings of 12.8 and 25.6 the cost crosses 1 to 0.6836976 and the anisotropy to 0.6299086, the field-scanned term going 0.9924 → 2.6250 | ✅ |
+| **§ 6cq.3 — and the 4× frame was never the only member** | matched at the 10× frame instead — ps 80/160/32/64, all integers, at a five-cell guard — the cost is 0.9499626 and the anisotropy 0.8765701, both below 1; the two members differ because the readout is not separable in (field, lever), which is § 6bo.2 | ✅ |
+| **§ 6cq.4 — which withdraws § 6bn.5's "they go opposite ways"** | at one field both interactions are below 1 on both intervals and both grow their departure — 0.9500 → 0.7949 and 0.8766 → 0.7862 — where the branch's path has the cost's shrinking toward 1 (1.1061 → 1.0417) while the anisotropy's grows; § 6bo's own second-interval 0.7948724 and 0.7862301 are reproduced in this harness | ✅ |
+
+**Still open.**
+
+- **The other four of § 6bn's six are not re-measured on the first interval.**
+  The two flat-field splits and the free-field gain would need § 6bp's rendered
+  fixtures at 4×, and the guard-band escape needs escapes at 4× beside § 6bo's
+  at 20×. Nothing here builds either, so § 6bn's "not one of the six is a slope"
+  is narrowed rather than settled: two of its six now have a matched-field
+  reading on both intervals, and four still have one on neither.
+- **Why the plateau scatters a percent in the sampling at all is unnamed.** It
+  is not the coarse pass — the grid is pinned — and it is not integrality. It is
+  larger than the 0.34% § 6bf.5 measured over a 4× change of sweep step, on a
+  lever § 6bf never varied, and nothing here separates a genuine dependence of
+  the readout on the frame from the parabola fit's own conditioning.
+- **The two matched members disagree by 39% and only the reason is known.**
+  § 6bo.2 says a readout not separable in (field, lever) must give a different
+  interaction at a different field, so 0.6837 against 0.9500 is expected — but
+  which field a caller should read the interaction AT has no answer on this
+  branch, and adding a member does not give it one.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

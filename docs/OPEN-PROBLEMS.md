@@ -271,7 +271,7 @@ number and land the day one arrives.
 - The DIN optical tube length digit (§ 6b) — a datasheet, and it moves labels
   only.
 
-## C. The fluorescence-mosaic chain, § 6bk → § 6cp
+## C. The fluorescence-mosaic chain, § 6bk → § 6cq
 
 Twenty-eight steps: twenty-one carry *Source: measurement only — no engine
 change*, six more (§ 6bt–§ 6by) name no source at all, and one (§ 6bk) is an
@@ -289,6 +289,40 @@ That is a result — the number was never optics — and it is also where the
 stop rule applies. What the chain leaves, sorted by whether it is worth a
 step:
 
+**The stop rule has now fired a second time, and this entry says so.** All three
+items below were named here as worth a step and all three landed — § 6cn
+(engine change), then § 6cp and § 6cq. But § 6co, § 6cp and § 6cq are three
+measurement-only steps in a row with neither an engine change nor an external
+pin between them, which is exactly the count the rule stops at. So nothing below
+returns to the ladder as a fourth step. What the last three left is recorded here, as
+problems:
+
+- **Four of § 6bn's six interactions still have a matched-field reading on
+  neither interval** — the two flat-field splits, the free-field gain and the
+  guard-band escape. § 6bp reached three of them on the SECOND interval only;
+  the first would want § 6bp's rendered fixtures at 4× and escapes at 4× beside
+  § 6bo's at 20×. Until then § 6bn's "not one of the six is a slope" is
+  narrowed by § 6cq and not settled. This is the one item here that a step
+  could still close, and it is rendered fixtures rather than a new idea.
+- **Which field a matched-field interaction should be read AT has no answer.**
+  § 6bo.2 proved the readout is not separable in (field, lever), so the two
+  members § 6cq measures must disagree — 0.6837 against 0.9500 — and adding a
+  third member would not choose between them. Every interaction quoted on this
+  branch therefore carries an unstated field, which is the same disease § 6bn
+  diagnosed as "a reading quoted without the condition it was taken under", one
+  level up.
+- **The balanced guard's residue is unnamed on both seams, and the two have
+  opposite signs** — § 6cl's +3.3·10⁻⁴ on the field seam against § 6cp's
+  −2.5·10⁻⁵ and −4.6·10⁻⁵ on the stage seam. Nothing varies anything that would
+  separate them.
+- **Why the rendered plateau scatters 0.98% in the sampling** (§ 6cq.1). Not the
+  coarse pass, which is pinned, and not integrality; larger than the 0.34%
+  § 6bf.5 measured over a 4× change of sweep step, on a lever § 6bf never varied.
+- **The stage form's row split changes sign near w ≈ 1.05** (§ 6cp.4), a little
+  past § 6cd.1's edge at 1, and whether the offset is the map's `ε` or the moved
+  argmax is unmeasured — the same unwritten form § 6cd, § 6ce and § 6cf all
+  stopped at.
+
 **Worth a step, because it is an engine change or a real rung**
 
 - ~~**Fifth-order distortion.**~~ ✅ — landed at
@@ -304,10 +338,28 @@ step:
   aiming moves the fit onto the coefficient. What it left open (item 15) is now
   closed at [§ 6co](VALIDATION.md#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray):
   the cube's unexplained 2.9e-3 was the plane the module reads at, not the ray.
-- **A frame that is not a power of two.** § 6bo: § 6bn's first interval
+- ~~**A frame that is not a power of two.** § 6bo: § 6bn's first interval
   (4× → 10×) "wants a non-integer `pupilSamples` at every power-of-two size"
   and "would be an engine change". Without it, whether any of the six
-  interactions is a slope is neither confirmed nor refuted.
+  interactions is a slope is neither confirmed nor refuted.~~
+
+  ✅ **CLOSED at [§ 6cq](VALIDATION.md#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed) — and NOT by making the engine change.** There was none to
+  make. `objectFieldFrame` requires `pupilSamples > 0` and nothing else; the
+  power-of-two rule belongs to the source LATTICES in `illumination/source` and
+  `imaging/condenser-field`, which no readout on this branch touches. A frame at
+  12.8 samples holds `ps·λ/(4·NA)` to the twelfth digit, carries the 4× cell's
+  own field to a part in 10¹³, and is smooth through every integer — checked on
+  the seam and on the rendered plateau, whose 0.98% scatter over ps 44–52 puts
+  the nine integers through the whole ranking. **And the 4× frame was never the
+  only member**: "at a matched field" names a family (§ 6bp.0), and at the 10×
+  frame the quartet is all integers — § 6cl's own `STEP_4_10`, built for the
+  guard split and never read for this. So § 6bn's first interval is measured:
+  the cost interaction crosses 1, 1.1061 → 0.9500 at the 10× frame and 0.6837 at
+  the 4×, and the anisotropy's departure grows. **§ 6bn.5's "they go opposite
+  ways" is withdrawn** — at one field both readouts sit below 1 on both intervals
+  and both grow their departure. What is NOT settled is "not one of the six is a
+  slope": four of the six still have a matched-field reading on neither interval,
+  which is item 16 below.
 - ~~**The stage interact's guard sensitivity**, asked § 6cl's question — "the
   cheapest open item on the branch", one file, and it either closes § 6ca.1's
   second pair the same way or shows the field seam and the stage seam differ.~~
@@ -409,6 +461,12 @@ radial-map nodes · § 6ba differential bleaching.
    but a conserving resampler is cheap to write badly, so the step is pinned to
    closed forms with no engine in them as well. It also came in FASTER than what
    it replaced, and cost two things that are recorded rather than absorbed.
+7½. ~~The two cheapest items on the mosaic chain (Part C).~~ ✅ — the stage
+   interact's guard sensitivity at § 6cp and § 6bn's first interval at § 6cq.
+   Neither needed an engine change, and the second found that the deferral
+   blocking it was simply wrong: a non-integer `pupilSamples` is a frame this
+   engine already forms. **The chain's stop rule has now fired a second time** —
+   Part C lists what the last three steps left, as problems rather than steps.
 8. **Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
    before a line is written — the brightfield refusal (§ 6f.9) is where it
    plugs in.
