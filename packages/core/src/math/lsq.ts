@@ -297,3 +297,264 @@ export function singularSystem(a: Float64Array, rows: number, cols: number): Sin
   }
   return { values: sortedValues, right: sortedRight };
 }
+/**
+ * A complex matrix's singular values, with both sets of singular vectors.
+ *
+ * **Indexing is COLUMN-major throughout, which is not the convention
+ * `SingularSystem` above uses** — deliberately, and the reason is in
+ * `complexSingularSystem`'s note on layout. Component i of the vector belonging
+ * to `values[j]` is at `j*rows + i` (left) or `j*cols + i` (right).
+ */
+export interface ComplexSingularSystem {
+  /** σ₁ ≥ σ₂ ≥ … ≥ σ_cols ≥ 0. */
+  readonly values: Float64Array;
+  /**
+   * The left singular vectors, `rows × cols` column-major — **these are the
+   * caller's own input arrays**, normalized in place, not copies.
+   *
+   * There are `cols` of them and they span a `cols`-dimensional subspace of the
+   * `rows`-dimensional space, so they satisfy Uᴴ·U = I_cols and **not** U·Uᴴ =
+   * I_rows. That is not a shortfall: for the Gram matrix A·Aᴴ these diagonalize,
+   * the rank is at most `cols`, so there is no more of the space to reach.
+   */
+  readonly leftRe: Float64Array;
+  readonly leftIm: Float64Array;
+  /** The right singular vectors, `cols × cols` column-major. Unitary. */
+  readonly rightRe: Float64Array;
+  readonly rightIm: Float64Array;
+  /** Sweeps actually taken — 30 means it hit the backstop without converging. */
+  readonly sweeps: number;
+}
+
+/**
+ * Permute columns of a column-major complex matrix in place: new column j takes
+ * old column `order[j]`.
+ *
+ * In place, and following cycles rather than copying to a second buffer,
+ * because the matrix this is written for is the condenser factor and the whole
+ * point of the factor is that `rows × cols` is the largest thing allocated.
+ */
+function permuteColumns(
+  re: Float64Array,
+  im: Float64Array,
+  rows: number,
+  cols: number,
+  order: Int32Array,
+): void {
+  const done = new Uint8Array(cols);
+  const holdRe = new Float64Array(rows);
+  const holdIm = new Float64Array(rows);
+  for (let start = 0; start < cols; start++) {
+    if (done[start] === 1 || order[start] === start) {
+      done[start] = 1;
+      continue;
+    }
+    // Each slot in the cycle is READ (as the source for the previous slot)
+    // exactly before it is written, so only the cycle's first column needs
+    // holding aside.
+    const s0 = start * rows;
+    for (let i = 0; i < rows; i++) {
+      holdRe[i] = re[s0 + i]!;
+      holdIm[i] = im[s0 + i]!;
+    }
+    let j = start;
+    for (;;) {
+      done[j] = 1;
+      const src = order[j]!;
+      const dst = j * rows;
+      if (src === start) {
+        for (let i = 0; i < rows; i++) {
+          re[dst + i] = holdRe[i]!;
+          im[dst + i] = holdIm[i]!;
+        }
+        break;
+      }
+      const from = src * rows;
+      for (let i = 0; i < rows; i++) {
+        re[dst + i] = re[from + i]!;
+        im[dst + i] = im[from + i]!;
+      }
+      j = src;
+    }
+  }
+}
+
+/**
+ * Singular values of a dense COMPLEX `rows × cols` matrix by one-sided Jacobi,
+ * with both sets of singular vectors. `re` and `im` are **column-major** and are
+ * DESTROYED — they come back holding U, normalized in place.
+ *
+ * The complex sibling of `singularSystem`, and it exists for one caller and one
+ * reason. Hopkins' kernel (`illumination/hopkins`) is built as Σ_s w_s·a_s·a_sᴴ
+ * over the condenser — that is A·Aᴴ with A's column s the shifted pupil scaled
+ * by √w_s — so the kernel's eigenvectors are **this** A's left singular vectors
+ * and its eigenvalues are σ². The decomposition never needs a Hermitian
+ * eigensolver and never needs the kernel itself: A is `rows × cols` where the
+ * kernel is `rows × rows`, and `cols` is the number of illumination directions,
+ * which does not grow when the pupil is sampled more finely.
+ *
+ * One-sided Jacobi, for the reason the real version gives and more sharply
+ * here: it computes every σ to high *relative* accuracy including the small
+ * ones, and the small ones are the entire question its caller asks — which
+ * coherent systems can be dropped, and what dropping them costs. A method that
+ * returns the small σ as roundoff-of-the-large cannot answer that at all.
+ *
+ * **Layout is column-major, unlike `singularSystem`.** The algorithm's inner
+ * loops walk two whole columns at a time; row-major would stride them by `cols`
+ * across every row, which is the strided gather § 8c measured at 5× on a hot
+ * kernel. The one caller builds its factor in this layout to suit.
+ *
+ * The complex step, and the only real addition over the real version: a real
+ * plane rotation can annihilate only the real part of the overlap γ = a_pᴴ·a_q.
+ * So column q is first phase-rotated by e^(−i·arg γ), which makes the overlap
+ * real and positive without changing either column's length, and the real
+ * rotation then applies unchanged. Both operations are unitary and both are
+ * accumulated into V.
+ *
+ * A zero column is left alone: it is already orthogonal to everything and its σ
+ * is exactly 0, as is its left vector — there is no direction to report.
+ *
+ * With `rows` < `cols` the surplus σ are 0 by rank rather than by rounding, and
+ * Jacobi leaves them at the square root of nothing rather than at 0; a caller
+ * that cares must zero them itself, exactly as `analysis/optimize` does for the
+ * real version. The caller this was written for has `rows` > `cols`.
+ */
+export function complexSingularSystem(
+  re: Float64Array,
+  im: Float64Array,
+  rows: number,
+  cols: number,
+): ComplexSingularSystem {
+  if (!(rows > 0) || !(cols > 0) || !Number.isInteger(rows) || !Number.isInteger(cols)) {
+    throw new Error(`complexSingularSystem: rows and cols must be positive integers, got ${rows}×${cols}`);
+  }
+  if (re.length < rows * cols || im.length < rows * cols) {
+    throw new Error(
+      `complexSingularSystem: a ${rows}×${cols} matrix needs ${rows * cols} elements per part, ` +
+        `got ${re.length} and ${im.length}`,
+    );
+  }
+
+  const rightRe = new Float64Array(cols * cols);
+  const rightIm = new Float64Array(cols * cols);
+  for (let j = 0; j < cols; j++) rightRe[j * cols + j] = 1;
+
+  // 30 sweeps is a backstop, not a schedule — the same one the real version
+  // carries, for the same reason. `sweeps` is reported so that a caller can see
+  // it was never reached.
+  let sweeps = 0;
+  for (let sweep = 0; sweep < 30; sweep++) {
+    sweeps = sweep + 1;
+    let off = 0;
+    for (let p = 0; p < cols - 1; p++) {
+      const pOff = p * rows;
+      for (let q = p + 1; q < cols; q++) {
+        const qOff = q * rows;
+        let alpha = 0;
+        let beta = 0;
+        let gr = 0;
+        let gi = 0;
+        for (let i = 0; i < rows; i++) {
+          const pr = re[pOff + i]!;
+          const pi = im[pOff + i]!;
+          const qr = re[qOff + i]!;
+          const qi = im[qOff + i]!;
+          alpha += pr * pr + pi * pi;
+          beta += qr * qr + qi * qi;
+          // γ = a_pᴴ·a_q = Σ conj(a_p)·a_q.
+          gr += pr * qr + pi * qi;
+          gi += pr * qi - pi * qr;
+        }
+        if (alpha === 0 || beta === 0) continue;
+        const gmag = Math.hypot(gr, gi);
+        if (gmag === 0) continue;
+        // The relative test, as in the real version: rotate while the columns'
+        // overlap is above the rounding of their own lengths. This is what "to
+        // high relative accuracy" costs and buys.
+        if (gmag <= Number.EPSILON * Math.sqrt(alpha * beta)) continue;
+        off++;
+
+        // ---- Phase, so the overlap becomes real and positive: a_q ← a_q·e^(−iθ),
+        // where γ = |γ|·(cph + i·sph). Lengths are untouched, so alpha and beta
+        // computed above stay valid for the rotation below.
+        const cph = gr / gmag;
+        const sph = gi / gmag;
+        for (let i = 0; i < rows; i++) {
+          const qr = re[qOff + i]!;
+          const qi = im[qOff + i]!;
+          re[qOff + i] = qr * cph + qi * sph;
+          im[qOff + i] = qi * cph - qr * sph;
+        }
+        const vqOff = q * cols;
+        for (let i = 0; i < cols; i++) {
+          const vr = rightRe[vqOff + i]!;
+          const vi = rightIm[vqOff + i]!;
+          rightRe[vqOff + i] = vr * cph + vi * sph;
+          rightIm[vqOff + i] = vi * cph - vr * sph;
+        }
+
+        // ---- The real rotation, now annihilating an overlap of |γ|.
+        const zeta = (beta - alpha) / (2 * gmag);
+        const t = (zeta >= 0 ? 1 : -1) / (Math.abs(zeta) + Math.sqrt(1 + zeta * zeta));
+        const c = 1 / Math.sqrt(1 + t * t);
+        const s = c * t;
+        for (let i = 0; i < rows; i++) {
+          const pr = re[pOff + i]!;
+          const pi = im[pOff + i]!;
+          const qr = re[qOff + i]!;
+          const qi = im[qOff + i]!;
+          re[pOff + i] = c * pr - s * qr;
+          im[pOff + i] = c * pi - s * qi;
+          re[qOff + i] = s * pr + c * qr;
+          im[qOff + i] = s * pi + c * qi;
+        }
+        const vpOff = p * cols;
+        for (let i = 0; i < cols; i++) {
+          const vpr = rightRe[vpOff + i]!;
+          const vpi = rightIm[vpOff + i]!;
+          const vqr = rightRe[vqOff + i]!;
+          const vqi = rightIm[vqOff + i]!;
+          rightRe[vpOff + i] = c * vpr - s * vqr;
+          rightIm[vpOff + i] = c * vpi - s * vqi;
+          rightRe[vqOff + i] = s * vpr + c * vqr;
+          rightIm[vqOff + i] = s * vpi + c * vqi;
+        }
+      }
+    }
+    if (off === 0) break;
+  }
+
+  const norms = new Float64Array(cols);
+  for (let j = 0; j < cols; j++) {
+    const jOff = j * rows;
+    let s2 = 0;
+    for (let i = 0; i < rows; i++) s2 += re[jOff + i]! * re[jOff + i]! + im[jOff + i]! * im[jOff + i]!;
+    norms[j] = Math.sqrt(s2);
+  }
+
+  // Descending, with both sets of vectors carried along.
+  const order = Int32Array.from(
+    Array.from({ length: cols }, (_, j) => j).sort((x, y) => norms[y]! - norms[x]!),
+  );
+  const values = new Float64Array(cols);
+  for (let j = 0; j < cols; j++) values[j] = norms[order[j]!]!;
+  permuteColumns(re, im, rows, cols, order);
+  permuteColumns(rightRe, rightIm, cols, cols, order);
+
+  for (let j = 0; j < cols; j++) {
+    const jOff = j * rows;
+    const sv = values[j]!;
+    if (sv === 0) {
+      re.fill(0, jOff, jOff + rows);
+      im.fill(0, jOff, jOff + rows);
+      continue;
+    }
+    const inv = 1 / sv;
+    for (let i = 0; i < rows; i++) {
+      re[jOff + i] = re[jOff + i]! * inv;
+      im[jOff + i] = im[jOff + i]! * inv;
+    }
+  }
+
+  return { values, leftRe: re, leftIm: im, rightRe, rightIm, sweeps };
+}

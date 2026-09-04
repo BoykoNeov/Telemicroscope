@@ -154,6 +154,7 @@ whole ladder.
 | [6cp](#step-6cp--the-stage-seams-guard-sensitivity-one-power-down) | § 6ca.1's other pair is § 6cl's four integers one power down — P/2 on rows, P on columns, so the cost's column branch cancels them exactly — and § 6ca read its pair past § 6cd.1's edge | ✅ |
 | [6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed) | A non-integer `pupilSamples` is not an engine change: § 6bn's first interval crosses 1 at a matched field, 1.1061 → 0.9500, and its "opposite ways" was the frame | ✅ |
 | [6cr](#step-6cr--hopkins-kernel-and-the-specimen-taken-out-of-the-sum) | The TCC: exactly Hermitian, PSD, and Abbe's image to 1e-15. A three-disc closed form pins it off the diagonal; § 6f's two curves are one complex number | `hopkins` |
+| [6cs](#step-6cs--the-coherent-systems-and-the-factor-that-was-already-there) | TCC = A·Aᴴ, so its modes are A's left singular vectors: a complex one-sided Jacobi, not a Hermitian eigensolver. Removing its phase step fails 6 of 12 rungs | `complex-svd` |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -27230,6 +27231,98 @@ quietly cut to fit reads as a smaller aperture.
   the weakness is not a shared error but a **resolution**: the grid agrees to
   4–5 places where the degenerate reductions agree to 12, so a systematic offset
   smaller than the count's own boundary noise would not be seen.
+
+## Step 6cs — the coherent systems, and the factor that was already there
+
+Source: `math/lsq.ts` (`complexSingularSystem`) ·
+Tests: `packages/core/test/complex-svd.test.ts`
+
+The register's entry 9, and it opens by correcting the entry. It says the
+decomposition is blocked on a **complex Hermitian eigensolver**. It is not, and
+the reason is visible in § 6cr's own accumulation loop rather than in any new
+mathematics: `transmissionCrossCoefficients` reads the pupil once per
+illumination direction, keeps the transmitting samples, and then sums
+
+    TCC = Σ_s w_s · a_s · a_sᴴ
+
+which is **A·Aᴴ** with A's column s the shifted pupil scaled by √w_s. The
+factorization is built in pass one and thrown away at the end of it. A Gram
+matrix's eigenvectors are its factor's **left singular vectors** and its
+eigenvalues are σ², so what the decomposition needs is a complex SVD of A, not
+an eigensolver on the kernel.
+
+That is not a smaller version of the same job, it is a different-shaped one.
+`math/lsq`'s `singularSystem` is one-sided Jacobi, which orthogonalizes
+**columns** — and A's columns are the illumination directions, of which there
+are 177, against the kernel's 437 rows at `pupilSamples` 16 and 1757 at 32. The
+direction count does not grow when the pupil is sampled more finely. A two-sided
+Hermitian Jacobi on the kernel would cost M³ per sweep where this costs P²M/2,
+and the ratio at `pupilSamples` 32 is two orders of magnitude. The remaining
+work is a **complex extension of a function that already exists**, which is
+what this sub-step is; § 6cs.2 builds the factor and the modes on top of it.
+
+Two consequences fall out of the shape before any measurement:
+
+- **The left vectors satisfy Uᴴ·U = I_P and not U·Uᴴ = I_M.** There are P of
+  them in an M-dimensional space. That is not a shortfall — rank(A·Aᴴ) ≤ P, so
+  there is no more of the space to reach — but a rung written the other way
+  fails and reads as a broken solver.
+- **σ² cannot be negative.** A Hermitian eigensolver run on a positive
+  semi-definite matrix returns the near-null directions as small negative
+  eigenvalues and leaves the caller to decide whether to clamp them. Squared
+  singular values are non-negative by construction, so the decision does not
+  arise and the truncation rungs of § 6cs.2 are exact rather than tolerant.
+
+### 6cs.1 — the phase a real rotation cannot reach
+
+One-sided Jacobi orthogonalizes a pair of columns by the plane rotation that
+annihilates their overlap γ = a_pᴴ·a_q. Over the reals that is the whole
+algorithm. Over the complexes a real rotation can annihilate only **Re γ**: the
+rotated overlap is cs(α−β) + (c²−s²)·γ when γ is real, and when it is not, the
+imaginary part passes through untouched whatever c and s are chosen. The
+addition is one step, before the rotation rather than inside it — column q is
+phase-rotated by e^(−i·arg γ), which makes the overlap real and positive and
+changes neither column's length, so α and β computed before it stay valid. Both
+operations are unitary and both accumulate into V.
+
+Layout is **column-major, unlike `singularSystem`'s row-major**, and that is a
+deliberate inconsistency inside one file rather than an oversight. The inner
+loops walk two whole columns; row-major would stride them by `cols` across 1757
+rows, which is the strided gather § 8c measured at 5× on a hot kernel. § 6cs.2's
+factor is built in this layout to suit, and the interface says the index
+arithmetic in both directions so the two conventions cannot be confused.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A complex circulant's σ are the moduli of the DFT of its first column | 6 exact values, 13 places | ✅ |
+| Two columns give the 2×2 Hermitian Gram's eigenvalues, with Im γ ≥ 0.1·\|γ\| | (α+β)/2 ± √(((α−β)/2)² + \|γ\|²), 12 places | ✅ |
+| σ₂ recovered when σ₂/σ₁ is **below f64 epsilon** | λ₂ = (αβ − \|γ\|²)/λ₁, 1e-12 relative | ✅ |
+| A unitary matrix (the DFT over √n) has every σ exactly 1 | 14 places | ✅ |
+| A rank-3 factor has exactly cols − 3 singular values at roundoff | < 1e-13·σ₁ | ✅ |
+| Uᴴ·U = I_cols; V unitary; U·Σ·Vᴴ rebuilds the input; Σσ² = ‖A‖²_F | 13 places, 1e-14 | ✅ |
+| A real matrix gives `singularSystem`'s own σ | 12 places | ✅ |
+
+The third rung is the one the algorithm was chosen for and the reason the
+sub-step is not a formality. Two columns whose norms differ by 10¹⁶ put σ₂/σ₁
+below 2.2·10⁻¹⁶, where anything that forms a Gram matrix or a normal equation
+returns σ₂ as roundoff of σ₁ — which is to say returns nothing. The closed form
+stays trustworthy exactly there: λ₁·λ₂ is det(Gram) = αβ − |γ|², and with the
+columns nowhere near parallel that difference does not cancel (measured at 0.75
+against αβ = 1), so λ₂ = det/λ₁ is exact to rounding where the quadratic's own
+minus branch would not be. Truncating a coherent-mode expansion is a question
+about the small values and nothing else, so a solver that cannot see them cannot
+be used for it — the argument `lsq.ts`'s header already makes for the real
+version, made sharper by the caller.
+
+**The phase step is load-bearing, and that is measured rather than argued.**
+Replacing e^(−i·arg γ) with 1 and re-running fails **6 of the 12 rungs**: the
+circulant, the 2×2 Gram, the rank-3 count, the orthonormality, the small σ, and
+— unexpectedly — the agreement with the real solver, because a real γ can still
+be *negative* and dropping the phase then rotates the wrong way. Two rungs
+survive the mutation and are recorded as invariants rather than as pins: Σσ² is
+unchanged by any column operation, and U·Σ·Vᴴ rebuilds the input because V
+accumulates the same wrong rotation the columns did. A test that cannot fail is
+not evidence, and knowing which two those are is worth more than the count.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 
