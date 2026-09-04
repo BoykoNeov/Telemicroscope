@@ -36,8 +36,21 @@ recorded as needing an engine change: there was none to make — a non-integer
 `pupilSamples` is a frame this engine already forms — and the interval crosses 1
 at a matched field just as the second one does, withdrawing § 6bn.5. **Those two
 are the third measurement-only step in a row with § 6co, so the chain's stop rule
-has fired a second time**; what is left is in the register as problems. The next
-unstruck entry is Hopkins' TCC (D).
+has fired a second time**; what is left is in the register as problems. The
+register's next entry, **Hopkins' TCC, is landed at § 6cr** — Abbe's sum with the
+source integral done first, so the specimen leaves the expensive half: the kernel
+is exactly Hermitian and positive semi-definite by construction, reproduces
+`abbeImage` to 1e-15 off ONE transform instead of 177, and is pinned off its
+diagonal by a **three**-disc closed form the engine did not have. Two things came
+out of it that neither transfer curve could say. § 6f's absorption and phase
+transfers are the real and imaginary parts of **one** complex number, so the
+phase null stops being a cancellation and becomes a symmetry — and a purely ODD
+pupil nulls the phase transfer for a different reason again, hiding a third of
+the kernel from both readouts. Phase contrast and DIC stay v2: § 6cr builds the
+object they act on, not them. What it opens is its own memory — 2.9 MB at
+pupilSamples 16 and 48.4 MB at 32, the fourth power — which makes the
+sum-of-coherent-systems decomposition the next entry, blocked on a complex
+Hermitian eigensolver `math/lsq` does not have.
 
 ## Build order
 
@@ -1000,8 +1013,9 @@ unstruck entry is Hopkins' TCC (D).
    illumination directions, each images coherently, and their intensities add.
    An illumination direction turns out to be a **translated `PupilFunction`**, so
    it arrives the same way the spider and the seeing screen did and the transform
-   never learns its name. Hopkins' TCC stays a v2 item and is not needed for any
-   of this. **Both ends of the curve are exact, and the middle is a law:** S → 0
+   never learns its name. ~~Hopkins' TCC stays a v2 item~~ — **built at § 6cr**,
+   and it was indeed not needed for any of this: the two sums agree to 1e-15,
+   which is how § 6cr is pinned. **Both ends of the curve are exact, and the middle is a law:** S → 0
    gives a flat plateau and a cliff at NA/λ; S ≥ 1 reproduces § 2b's own
    `diffractionLimitedMtf` (no second number minted) and opening further changes
    nothing; in between, the cutoff is **bisected off the sum** and comes back at
@@ -1072,7 +1086,11 @@ unstruck entry is Hopkins' TCC (D).
    cost `render.ts` objects to — and that is recorded rather than dressed up.
    **§ 6f.9's verdict finally has a caller:** the worst patch rules, since a
    frame is not honest in the places where it happens to be. **Open:** the limit
-   the interior converges to (Hopkins' TCC would give one, and is v2).
+   the interior converges to — and ~~Hopkins' TCC would give one, and is v2~~ is
+   **corrected** by § 6cr rather than closed by it. The kernel is built, and it is
+   isoplanatic exactly as `abbeImage` is: one pupil, one patch. A non-isoplanatic
+   kernel has four arguments and is not this one, so the interior is still a
+   sequence.
    *Object-space field mapping for a finite conjugate:* ✅ `imaging/object-field`
    (§ 6h). The wiring to a traced system, and the seam § 6g.3 named: the frame
    position → image mm → **object height** → traced pupil, inverted numerically
@@ -1994,7 +2012,8 @@ or name a route that did not resolve.
 
 ## v2+
 
-- Rigorous partial coherence (Hopkins TCC) → phase contrast, DIC.
+- ~~Rigorous partial coherence (Hopkins TCC)~~ ✅ **§ 6cr** → phase contrast, DIC
+  (both still v2: the kernel is what they act on, not them).
 - Non-sequential engine: ghosts, internal reflections, stray light (the
   architecture commitments keep this a new scheduler, not a rewrite).
 - Thin-film coatings, polarization physics.
@@ -2165,6 +2184,7 @@ or name a route that did not resolve.
   asserts the (NA_obj + NA_cond) law instead of producing it, and the hard rule
   forbids that. Abbe source-point summation gives the law and the nonlinearity
   for the cost of one transform per illumination direction, which turned out to
-  be affordable. Hopkins' TCC stays a v2 item, but for *phase contrast and DIC*,
-  not for brightfield. Fluorescence and telescopes remain exactly incoherent by
+  be affordable. ~~Hopkins' TCC stays a v2 item, but for *phase contrast and DIC*,
+  not for brightfield.~~ — **the TCC itself landed at § 6cr**; phase contrast and
+  DIC are what stay v2. Fluorescence and telescopes remain exactly incoherent by
   nature.

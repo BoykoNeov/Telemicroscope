@@ -3819,7 +3819,11 @@ could have held.
   hidden. A field diaphragm and a real photometric budget are their own step, and
   the honest note stays on screen until then.
 - **Confocal, deconvolution, DIC, phase contrast.** Unchanged: § 6j's excitation
-  path and v2's Hopkins TCC.
+  path and ~~v2's Hopkins TCC~~ — the kernel landed at § 6cr, but DIC and phase
+  contrast did not, and neither has a panel to gain from it yet. What § 6cr does
+  put within reach of a panel is the **complex** weak-object transfer function:
+  § 6f's absorption and phase curves are its real and imaginary parts, so the two
+  plots A2 would draw separately are one curve in the plane. Not priced.
 
 ### Order
 

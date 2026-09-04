@@ -399,14 +399,32 @@ and a number that would refute it.
 
 ## D. Partial coherence — v2, and why it has no ray analog
 
-- **Hopkins' TCC → phase contrast and DIC.** § 6f, § 6p: "both are v2, and
-  the annular source is already here waiting" (`latticeAnnularSource`,
-  § 6ab.19, unwired). The one v2 item with a textbook behind it (Hopkins
-  1953; Born & Wolf, ch. 10) and the one that changes what the microscope
-  branch *is*.
-- The non-isoplanatic partially coherent image's limit (§ 6g), coherence off
-  axis and polychromatic coherence (§ 6g, § 6t), critical illumination and a
-  non-uniform source (§ 6f, § 6x, § 6ag, § 6ah): all downstream of the TCC.
+- ~~**Hopkins' TCC**~~ ✅ **built at § 6cr** — the kernel, exactly Hermitian and
+  positive semi-definite, giving `abbeImage`'s own image to 1e-15 off one
+  transform instead of 177, with a **three**-disc closed form pinning it off the
+  diagonal and § 6f's two transfer curves turning out to be the real and
+  imaginary parts of one complex number. **→ phase contrast and DIC are still
+  v2:** § 6cr builds the object they act on, not them — a phase plate in the
+  pupil and a sheared pair are unbuilt, and the annular source
+  (`latticeAnnularSource`, § 6ab.19) is still unwired.
+- **The sum-of-coherent-systems decomposition** — opened by § 6cr and the reason
+  it measured its own memory. The kernel is M × M complex over the M lattice bins
+  the shifted pupil reaches, M ≈ (π/4)(1+S)²·pupilSamples², so it is **2.9 MB at
+  pupilSamples 16 and 48.4 MB at 32** — the fourth power, measured. Being
+  Hermitian and PSD it is a sum of coherent systems. **What is free is only a
+  bound, and it is not the payoff:** TCC = AᴴA over the condenser, so the rank is
+  at most the contributing-point count — untruncated, the decomposition is 177
+  coherent systems, exactly `abbeImage`'s own cost. The whole win is in the
+  truncation, so the step's question is *how few eigenvalues suffice and what
+  dropping the rest costs*. Blocked on a **complex Hermitian eigensolver**:
+  `math/lsq`'s `singularSystem` is one-sided Jacobi on a REAL matrix. Until it
+  exists, `hopkinsImage` has no caller — wiring it into `renderBrightfield` costs
+  patches² × M².
+- The non-isoplanatic partially coherent image's limit (§ 6g) is **narrowed and
+  not closed** by § 6cr: the kernel is isoplanatic, exactly as `abbeImage` is, and
+  a non-isoplanatic one has four arguments. Coherence off axis and polychromatic
+  coherence (§ 6g, § 6t), critical illumination and a non-uniform source (§ 6f,
+  § 6x, § 6ag, § 6ah): none of them moved.
 - The geometric PSF branch has no coherence and never will (§ 6f.9): not a
   problem, a fact, and the reason brightfield rules rather than blends.
 
@@ -467,11 +485,22 @@ radial-map nodes · § 6ba differential bleaching.
    blocking it was simply wrong: a non-integer `pupilSamples` is a frame this
    engine already forms. **The chain's stop rule has now fired a second time** —
    Part C lists what the last three steps left, as problems rather than steps.
-8. **Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
+8. ~~**Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
    before a line is written — the brightfield refusal (§ 6f.9) is where it
-   plugs in.
-9. ~~Make the ladder green off the author's machine (the structural problem
-   above) before any of 3–8 is trusted on a second one.~~ The convention is in
-   and the assertions are restated (see the structural problem above); what
-   remains is one confirming run on a second machine, which is now a check
-   rather than a piece of work.
+   plugs in.~~ ✅ — landed at § 6cr. ARCHITECTURE was written first, as the entry asked.
+   § 6f.9 needed nothing: `brightfieldFidelity` rules on a traced pupil's own
+   sampling and cannot tell which sum consumed it, and the refusal it encodes
+   survives — a TCC is built out of coherent fields and a ray histogram has none.
+   What the plug-in point cost instead was the *grid* guard, which moved into
+   `illumination/lattice.ts` so both sums report one number. Two things it did not
+   deliver and one it opened: phase contrast and DIC stay v2, the non-isoplanatic
+   limit stays open because the kernel is isoplanatic, and the memory cost
+   (48.4 MB at pupilSamples 32) opens the decomposition as the next step.
+9. **The sum-of-coherent-systems decomposition** (D): what § 6cr's fourth-power
+   memory points at, and the step that gives `hopkinsImage` a caller. Needs a
+   complex Hermitian eigensolver, which is its own rung set.
+10. ~~Make the ladder green off the author's machine (the structural problem
+    above) before any of 3–9 is trusted on a second one.~~ The convention is in
+    and the assertions are restated (see the structural problem above); what
+    remains is one confirming run on a second machine, which is now a check
+    rather than a piece of work.

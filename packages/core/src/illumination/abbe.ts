@@ -1,6 +1,7 @@
 import { besselJ } from "../math/bessel";
 import { fft1d, fft2d, fftShift2d, isPowerOfTwo, shiftedRowBand } from "../math/fft";
 import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
+import { LatticePhaseGuard, shiftedPupilBox } from "./lattice";
 import type { CondenserSource } from "./source";
 
 /**
@@ -480,35 +481,19 @@ export function abbeImage(
   const workIm = new Float64Array(n * n);
   let contributingPoints = 0;
   // The lattice guard rides along inside the loop below rather than in a second
-  // pass: `pupil.phaseWaves` may re-trace rays, so asking it again per
-  // neighbour pair would be the expensive way to learn the same number. One
-  // row of previous-row phases plus the previous column is all the state a
-  // 4-neighbour difference needs.
-  const rowPhase = new Float64Array(n);
-  const rowIn = new Uint8Array(n);
-  let maxGridPhaseStepWaves = 0;
+  // pass, and it lives in `lattice.ts` because `hopkins.ts` reads the same
+  // samples and must report the same number.
+  const guard = new LatticePhaseGuard(n);
 
   for (const s of source.points) {
     workRe.fill(0);
     workIm.fill(0);
     // The shifted pupil is supported on |u + s| <= 1, so only that box needs
     // visiting — which also keeps a pupil function that re-traces rays from
-    // being asked about frequencies it could never transmit.
-    const ixLo = Math.ceil(half + (-1 - s.sx) / step);
-    const ixHi = Math.floor(half + (1 - s.sx) / step);
-    const iyLo = Math.ceil(half + (-1 - s.sy) / step);
-    const iyHi = Math.floor(half + (1 - s.sy) / step);
-    // Clamping instead would truncate the pupil silently, and a truncated
-    // pupil looks exactly like a smaller aperture — a coverage cap that would
-    // read as physics. It throws.
-    if (ixLo < 0 || iyLo < 0 || ixHi > n - 1 || iyHi > n - 1) {
-      const reach = Math.max(Math.abs(s.sx), Math.abs(s.sy));
-      throw new Error(
-        `abbeImage: the pupil shifted to (${s.sx.toFixed(3)}, ${s.sy.toFixed(3)}) runs off a ` +
-          `${n}-bin frequency grid at pupilSamples ${pupilSamples} — raise size to at least ` +
-          `${Math.ceil(pupilSamples * (1 + reach)) + 2}, or lower pupilSamples`,
-      );
-    }
+    // being asked about frequencies it could never transmit. It throws rather
+    // than clamping; see `shiftedPupilBox`.
+    const box = shiftedPupilBox("abbeImage", n, pupilSamples, s.sx, s.sy);
+    const { ixLo, ixHi, iyLo, iyHi } = box;
 
     // Where this direction's samples land on the shared lattice, when there is
     // one. `baseX` turns a grid index straight into a cache column, so the loop
@@ -546,12 +531,11 @@ export function abbeImage(
     // clipped by the aperture leaves whole rows of the box blocked.
     let firstRow = -1;
     let lastRow = -1;
-    rowIn.fill(0, ixLo, ixHi + 1);
+    guard.beginPoint(box);
     for (let iy = iyLo; iy <= iyHi; iy++) {
       const py = (iy - half) * step + s.sy;
       const cacheRow = cache === undefined ? 0 : (iy + baseY) * cache.width + baseX;
-      let prevIn = false;
-      let prevPhase = 0;
+      guard.beginRow();
       for (let ix = ixLo; ix <= ixHi; ix++) {
         const px = (ix - half) * step + s.sx;
         let a: number;
@@ -562,26 +546,11 @@ export function abbeImage(
           a = cache.amplitude[cacheRow + ix]!;
         }
         if (a <= 0) {
-          // A blocked sample breaks the chain in both directions: a step across
-          // the aperture rim is not a wavefront step, and counting it would make
-          // an obstruction look like an unresolved wavefront.
-          prevIn = false;
-          rowIn[ix] = 0;
+          guard.block(ix);
           continue;
         }
         const w = cache === undefined ? pupil.phaseWaves(px, py) : cache.phaseWaves[cacheRow + ix]!;
-        if (prevIn) {
-          const d = Math.abs(w - prevPhase);
-          if (d > maxGridPhaseStepWaves) maxGridPhaseStepWaves = d;
-        }
-        if (rowIn[ix] === 1) {
-          const d = Math.abs(w - rowPhase[ix]!);
-          if (d > maxGridPhaseStepWaves) maxGridPhaseStepWaves = d;
-        }
-        prevIn = true;
-        prevPhase = w;
-        rowIn[ix] = 1;
-        rowPhase[ix] = w;
+        guard.transmit(ix, w);
         const ang = 2 * Math.PI * w;
         const pr = a * Math.cos(ang);
         const pi = a * Math.sin(ang);
@@ -614,7 +583,7 @@ export function abbeImage(
     pupilSamples,
     intensity,
     contributingPoints,
-    maxGridPhaseStepWaves,
+    maxGridPhaseStepWaves: guard.max,
     pupilEvaluations,
     ...(options.scale === undefined
       ? {}

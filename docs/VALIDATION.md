@@ -153,6 +153,7 @@ whole ladder.
 | [6co](#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray) | § 6cn.5's unexplained 2.9e-3 is the PLANE: the module reads at its own conjugate, these sit 2.3–4.2% off theirs, and the shift is linear in that defocus and zero at it | ✅ |
 | [6cp](#step-6cp--the-stage-seams-guard-sensitivity-one-power-down) | § 6ca.1's other pair is § 6cl's four integers one power down — P/2 on rows, P on columns, so the cost's column branch cancels them exactly — and § 6ca read its pair past § 6cd.1's edge | ✅ |
 | [6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed) | A non-integer `pupilSamples` is not an engine change: § 6bn's first interval crosses 1 at a matched field, 1.1061 → 0.9500, and its "opposite ways" was the frame | ✅ |
+| [6cr](#step-6cr--hopkins-kernel-and-the-specimen-taken-out-of-the-sum) | The TCC: exactly Hermitian, PSD, and Abbe's image to 1e-15. A three-disc closed form pins it off the diagonal; § 6f's two curves are one complex number | `hopkins` |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -26925,6 +26926,303 @@ rule in *Rules* therefore applies: what these three leave goes to
   interaction at a different field, so 0.6837 against 0.9500 is expected — but
   which field a caller should read the interaction AT has no answer on this
   branch, and adding a member does not give it one.
+
+## Step 6cr — Hopkins' kernel, and the specimen taken out of the sum
+
+Source: `illumination/hopkins.ts` (new), `illumination/lattice.ts` (the box and
+the grid guard, extracted from `abbe.ts` so both sums read one copy),
+`illumination/transfer.ts` (`Complex` and `pupilPhasor` exported) ·
+Tests: `packages/core/test/hopkins.test.ts`
+
+This is the register's item 8, and the only v2 item with a textbook behind it
+(Hopkins 1953; Born & Wolf ch. 10). § 6f built the condenser as a set of
+directions and summed images over it. That sum has the object inside it, so it
+is redone in full for every specimen and one inverse transform is paid per
+direction. Expanding the modulus and doing the **source** sum first instead
+leaves the object outside:
+
+    TCC(u₁, u₂) = Σ_s w_s · P(u₁+s) · P̄(u₂+s)
+    Î(Δ)        = Σ_u  Õ(u+Δ) · Ō(u) · TCC(u+Δ, u)
+
+Nothing is approximated — it is the same finite sum reassociated — so the
+headline rung is not a tolerance but an identity, and the interesting content is
+what the reassociation makes *visible*. Three things, none of which § 6f could
+state: the kernel is a Gram matrix over the condenser, so it is Hermitian and
+positive semi-definite by construction rather than by measurement; its
+off-diagonal has a closed form nothing before this step could pin, because it
+takes **three** discs and § 6f's whole transfer curve takes two; and § 6f's two
+separate transfer curves — how much of a weak absorber survives, and how much of
+a weak phase object does — turn out to be the real and imaginary parts of one
+complex number, so the phase null stops being a cancellation and becomes a
+symmetry.
+
+**The pupil the kernel is built from is `abbeImage`'s pupil, sampled on
+`abbeImage`'s lattice.** The box arithmetic and § 6f.9's grid guard moved into
+`illumination/lattice.ts` and both callers use them, so the two sums cannot drift
+about which samples exist — the § 3c lesson, applied where it would otherwise be
+re-learned. § 6f.9's *verdict* needs nothing: `brightfieldFidelity` rules on a
+traced pupil's own sampling and does not know which sum consumed it, and the
+refusal it encodes is untouched, because a TCC is built out of coherent fields
+and a ray histogram still has none.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Every entry is its transpose's exact conjugate; the diagonal is exactly real and strictly positive | `toBe`, over all 505² entries | ✅ |
+| v*Tv ≥ 0 for twenty random complex vectors — it is a Gram matrix over the source | ‖Av‖² ≥ 0, and measured ≥ 0 | ✅ |
+| An entry read off the lattice is the direct sum evaluated at that frequency | 14 places | ✅ |
+
+### 6cr.1 — Hermitian by construction, and what that cost
+
+The kernel is exactly Hermitian, not Hermitian to roundoff, and the difference is
+one line of the accumulation. Folding the source weight into one factor first —
+`ar = pr[i]·w`, then `ar·br + ai·bi` — reassociates entry (i, j) differently from
+entry (j, i) and leaves them 2.8·10⁻¹⁶ apart. Multiplying by the weight **last**,
+`w·(ar·br + ai·bi)`, makes the two accumulate term for term the same products:
+IEEE multiplication commutes, and a subtraction is its own transpose's exact
+negative, so the imaginary halves are exact negatives and the diagonal's is
+exactly ±0. The price is one extra multiply per entry per part.
+
+That is worth naming because the alternative was a tolerance, and a tolerance
+here would have hidden the very failure the property exists to catch: a kernel
+that had lost its Hermiticity would still image, and the image would still look
+like an image — `HopkinsImage.imaginaryResidual` is reported for the same reason,
+and runs at 10⁻¹⁶ to 10⁻¹⁸ against a real part of order 1.
+
+### 6cr.2 — three discs, in closed form
+
+§ 6f's transfer curve is the normalized area where the source disc and the pupil
+displaced by ν overlap — two discs, and `circleOverlapArea`. A cross-coefficient
+at two *different* frequencies is the area where the source disc and **both**
+displaced pupils overlap:
+
+    TCC(u₁, u₂) = area( disc(0,S) ∩ disc(−u₁,1) ∩ disc(−u₂,1) ) / (π·S²)
+
+so it needs a three-disc intersection, which nothing in the engine had. It is
+derived here rather than transcribed. The region is an intersection of convex
+sets, hence convex, hence a curvilinear polygon: its corners are the pairwise
+circle crossings that survive the third disc, and its area is the straight
+polygon on those corners plus the circular segments its arcs cut off.
+
+Two things about that construction are not obvious and both were found by the
+rungs rather than by reasoning. **It is not a triangle.** A pair contributes 0,
+1 or *two* corners — two when the third disc does not reach that pair's lens — so
+the polygon can have four sides, and the first version assumed three and refused
+a configuration that occurs. **And the bounding arc is not always the minor
+one.** r²(θ − sin θ)/2 with θ = 2·asin(L/2r) is the minor segment, and the
+boundary arc is the major one whenever the region holds more than half of one
+disc. Picking the arc whose midpoint lies inside every disc is necessary and
+*not sufficient*: when two corners sit close together the major arc's midpoint is
+nearly the antipode and lies comfortably inside the region too. The second test
+is convexity — the boundary bulges away from the interior, so the arc's midpoint
+is on the far side of the chord from the corners' centroid.
+
+(§ 6f's tables call its two-disc formula "the three-circle closed form", meaning
+the three diffracted *orders* it came from. This one really is three circles. The
+names are not the same claim, and the code says so where it could be confused.)
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| u₁ = u₂, or one disc swallowed, or a lens inside the third, or any disjoint pair | `circleOverlapArea` and πr², 12 places | ✅ |
+| Independent of the order the three discs are given in, over six permutations | exact symmetry, 12 places | ✅ |
+| A plain triangle, a **major** bounding arc (91% of the smallest disc), and a four-cornered case | a 1500² brute-force count, 4 places | ✅ |
+| 150 random configurations, none of them refused by the construction | a 300² count, < 1e-3 absolute | ✅ |
+| Its u₂ = 0 slice is `weakObjectTransferDisk` and its diagonal is `circleOverlapArea`, at three S × four ν | § 6f's own closed form, 12 places | ✅ |
+| The measured sum converges on it off the diagonal: 5.4·10⁻² at N = 8 → 1.7·10⁻⁴ at N = 256 | exponent 1.66, § 6f.2's rim effect | ✅ |
+| …and keeps falling at every doubling, rather than settling on a floor | monotone over four samplings | ✅ |
+
+The convergence is § 6f.2's, not a new law: the error is a rim effect, so it
+falls faster than the O(1/N) a discontinuous integrand guarantees and is not
+monotone doubling by doubling. What the rung adds is that it does not stop —
+which is what says the closed form is the sum's limit and not merely close to it.
+
+### 6cr.3 — the two sums are one sum
+
+Four fixtures, chosen so that a conjugation error cannot hide: a real absorption
+grating through a real pupil leaves every product real, so the set also carries a
+phase grating through a quarter wave of defocus, broadband noise through a
+comatic pupil, and broadband noise through a phase ripple at the lattice period —
+§ 6f.9's hardest case for the guard. All four agree with `abbeImage` at f64
+roundoff, and the two report the same guard number and the same contributing-point
+count because they read the pupil through the same code.
+
+**The disagreement is roundoff and not truncation, and the grid says which.** An
+aliasing or windowing error shrinks as the grid grows; this one does not move
+across grids of 32, 64 and 128 bins.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Hopkins ≡ Abbe on all four fixtures | < 1e-13 relative (measured 1–6·10⁻¹⁵) | ✅ |
+| The image of a Hermitian kernel is real: the transform's imaginary part | < 1e-14 (measured ~1e-16) | ✅ |
+| `maxGridPhaseStepWaves` and `contributingPoints` are the same numbers | `toBe`, one lattice, one guard | ✅ |
+| The error does not fall with the grid — 32 → 128 bins within a factor of 10 | the signature of an exact reassociation | ✅ |
+
+**And the beat aliases exactly twice.** The kernel is non-zero only where the two
+shifted pupils overlap, so its support in the difference is the pupil's own
+autocorrelation: ±`pupilSamples` bins, closing where the two discs go tangent.
+`abbeImage` demands only n ≥ pupilSamples·(1 + S), so for S < 1 the grid is
+narrower than 2·pupilSamples + 1 and the outermost entries land **on** the
+Nyquist bin, which is its own alias. Measured: 2 of 147 873 non-zero entries, at
+|Δ| = pupilSamples exactly, each worth exactly one source point's weight — the
+single lattice direction with both orders on the rim. Double the grid and there
+are none.
+
+It is two entries out of a hundred and fifty thousand and it is **not**
+negligible: dropping them instead of folding them lifts the disagreement with
+`abbeImage` from 4·10⁻¹⁵ to 2·10⁻⁸, seven orders. `abbeImage` squares its fields
+on the same finite grid and aliases identically, so folding is the agreement
+rather than an approximation.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| 2 wrapping entries of 147 873, at \|Δ\| = pupilSamples, each one source weight | tangency, `toBe` and 15 places | ✅ |
+| Twice the grid, and none | the Nyquist bin, not the kernel's shape | ✅ |
+| Dropping them costs 2·10⁻⁸ against 4·10⁻¹⁵ — a factor above 10⁶ | the modulo is load-bearing | ✅ |
+
+### 6cr.4 — two transfer curves are one complex number
+
+`transfer.ts` reports two moduli, and § 6f.5 explained the second by a
+cancellation: a weak phase object's two sidebands enter with opposite signs, so
+for a real pupil they are equal and the phase transfer is identically zero. The
+kernel says the same thing one level up. Substituting s → −s under a
+centro-symmetric source, for a pupil **even** in u,
+
+    TCC(0, −ν) = conj( TCC(ν, 0) )
+
+so `weakObjectTransfer` is |Re TCC(ν,0)|/TCC(0,0) and `weakPhaseTransfer` is
+|Im TCC(ν,0)|/TCC(0,0). One complex number — the weak-object transfer function —
+and the null is that a real pupil has a real TCC(ν, 0). Defocus makes the pupil
+complex and the imaginary part appears: 0.23 at a quarter wave. That single
+number is what a phase plate or a sheared pair is designed to rotate, which is
+why the register put phase contrast and DIC behind this step.
+
+**An ODD pupil nulls the phase transfer too, for a different reason, and that is
+where the kernel starts carrying more than the two curves do.** A purely odd
+wavefront gives P(−u) = conj(P(u)), and s → −s then maps TCC(0, −ν) onto
+TCC(ν, 0) *itself* rather than onto its conjugate. The two are equal, so
+`weakPhaseTransfer` is zero — with the pupil nowhere near real. The kernel is not
+zero: at 0.3 waves of coma its imaginary part is 0.36 at ν = 0.4, a third of the
+signal, and both § 6f readouts are blind to it. `weakObjectTransfer` is then the
+**modulus** of the kernel slice (0.946) and not its real part (0.876), so the two
+decompositions genuinely differ.
+
+This does not contradict § 6ab.16's "realness is the precondition a real lens
+fails, and evenness is not". That measured a *traced* comatic pupil, which is odd
+plus a great deal else; the fixture here is odd and nothing else, which is what
+isolates the parity.
+
+**And it does not explain § 6ab.16 either, which is worth pinning because the
+inference is inviting and wrong.** "An odd wavefront transfers no phase" reads
+like a mechanism for § 6ab.16's symmetrization leaving its number unchanged —
+drop the odd part, drop nothing. The transfer is **not linear in the wavefront**,
+so that does not follow, and it is false here: a quarter wave of defocus alone
+reads 0.2313 at ν = 0.4, the odd coma alone reads 1.1·10⁻¹⁶, and the two together
+read **0.2205** — 4.7% below the even part's own figure. A term that contributes
+nothing by itself still changes what the others do. § 6ab.16's result stands on
+its own measurement, and this one does not stand under it.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| An odd wavefront alone: < 1e-15 at two ν | the parity, exactly | ✅ |
+| Even + odd is **not** even's reading: 0.2313 → 0.2205, and 0.2366 → 0.2235 | the transfer is not linear in W | ✅ |
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| `weakObjectTransfer` and `weakPhaseTransfer` rebuilt **bit for bit** from two kernel entries, over three pupils × three ν | `toBe` | ✅ |
+| An even pupil: TCC(0,−ν) = conj TCC(ν,0), and the two curves are \|Re\| and \|Im\| | 15 places | ✅ |
+| A real pupil's TCC(ν,0) has imaginary part exactly zero; a quarter wave of defocus puts it above 0.1 | `toBe(0)`, then the sum | ✅ |
+| An odd pupil: phase transfer < 1e-15 while \|Im TCC\| > 0.3, and the absorber curve is the modulus | the parity, not the realness | ✅ |
+
+### 6cr.5 — the two limits, as properties of the kernel
+
+§ 6f pinned both ends of the transfer curve. The kernel has the same two ends and
+they are statements about a matrix rather than about a curve, which is the form
+the decomposition in the next step will need.
+
+**Coherent.** One direction leaves TCC(u₁,u₂) = P(u₁)·P̄(u₂), an outer product:
+rank one, so every 2×2 minor vanishes. Defocus is needed for the claim to have
+content — an unaberrated pupil's kernel is all ones, which is rank one for a
+duller reason.
+
+**Incoherent.** Once the source covers every shifted pupil the kernel depends on
+u₁ − u₂ alone. On a lattice source that is not a limit but an identity —
+translating both frequencies by a lattice step permutes the same terms — and it
+holds bit for bit. The difference-only kernel is then § 2b's own
+`diffractionLimitedMtf`, so no second number is minted here either.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A coherent source: every 2×2 minor of a defocused kernel vanishes | rank one, < 1e-14 | ✅ |
+| A wide source: TCC(u₁+t, u₂+t) = TCC(u₁,u₂) for a lattice step t | `toBe`, exactly | ✅ |
+| …and that kernel, normalized, is `diffractionLimitedMtf` | § 2b, 2 places at N = 257 | ✅ |
+
+### 6cr.6 — what it costs, and what the cost points at
+
+`abbeImage` pays one inverse transform per contributing direction, **per
+object**. `hopkinsImage` pays one, and the kernel it reads is a property of the
+pupil and the condenser alone. On the fixture here that integer is 177, and it is
+stated as an integer rather than as a clock, the way § 6p's saving was. The
+bilinear pass in between is what the object's own spectrum touches: a three-line
+grating reaches under a thousand kernel entries, broadband noise reaches better
+than 70% of all of them.
+
+**The kernel is M × M complex over the M lattice bins the shifted pupil can
+reach, and M ≈ (π/4)·(1 + S)²·pupilSamples² — so memory is the FOURTH power of
+the pupil sampling.** Measured: 437 bins and 2.9 MB at pupilSamples 16, 1781 bins
+and 48.4 MB at 32, a factor of 16.6 for a factor of 2. That is the number that
+decides what comes next, so it is reported on the kernel (`entries`, `bytes`)
+rather than left to be discovered, and the builder **throws** past an explicit
+entry cap rather than allocating — for `abbeImage`'s own reason, that a kernel
+quietly cut to fit reads as a smaller aperture.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| 177 transforms per object against 1, and the same `pupilEvaluations` | § 6p's integer, not a clock | ✅ |
+| A three-line object touches < 1000 entries; broadband touches > 70% of M² | the bilinear pass is the object's spectrum | ✅ |
+| M = 437 and 1781 at pupilSamples 16 and 32, within 10% of (π/4)(1+S)²·ps² | a lattice count of a disc | ✅ |
+| 2.9 MB → 48.4 MB, a factor of 16.6 for a doubling | the fourth power, measured | ✅ |
+| Past the cap it throws, naming the decomposition; and a grid too small throws through `abbeImage`'s own guard | no silent caps | ✅ |
+
+**Still open.**
+
+- **The decomposition, and it is the whole reason the cost was measured** — but
+  its payoff is a question and not a result, and saying otherwise here would
+  pre-write the next step's conclusion. The kernel is Hermitian and positive
+  semi-definite, so it *is* a sum of coherent systems. What follows for free is
+  only a bound, and the bound is not encouraging: TCC = AᴴA over the condenser, so
+  its **rank is at most `contributingPoints`** — the untruncated decomposition is
+  exactly 177 coherent systems, which is exactly `abbeImage`'s own cost. The
+  entire win is in the truncation. So the next step's question is *how few
+  eigenvalues suffice and what dropping the rest costs*, which is a measurement
+  with a refutable number rather than a speed claim. It needs a **complex
+  Hermitian eigensolver**, which `math/lsq` does not have — `singularSystem` is
+  one-sided Jacobi on a REAL matrix — so it is its own step with its own rungs.
+  Recorded in `docs/OPEN-PROBLEMS.md`.
+- **Phase contrast and DIC are still v2.** This step builds the object they act
+  on, not them: phase contrast needs a phase plate in the pupil and DIC a sheared
+  pair, and the annular source (`latticeAnnularSource`, § 6ab.19) is still
+  unwired. What has changed is that the thing they modify now exists and is
+  measurable — the weak-object transfer function, complex, at any pupil.
+- **The kernel is isoplanatic, exactly as `abbeImage` is.** One pupil, one patch.
+  So § 6g.3's open item is narrowed rather than closed: the limit its interior
+  converges to still has no closed form, because a non-isoplanatic kernel has
+  four arguments and is not this one. `renderBrightfield` is unchanged and still
+  calls `abbeImage` per patch.
+- **No caller in `imaging/`.** `hopkinsImage` images through a kernel and nothing
+  in the engine asks it to yet. Wiring it into `renderBrightfield` means a kernel
+  per patch, which is exactly where the fourth power bites — patches² × M² — so
+  the wiring waits on the decomposition rather than on the wiring.
+- **Every pupil here is a fixture.** `idealPupil`, defocus, a purely odd coma and
+  a ripple: all analytic. The kernel takes any `PupilFunction`, so a traced
+  objective's kernel is one call away, but nothing here measures one, and the
+  three-disc closed form only describes the unaberrated case anyway.
+- **The three-disc area is pinned against a brute-force count, not a table.**
+  Published closed forms for this area exist and none is transcribed here; what
+  is pinned is the construction against 153 independent grid counts and against
+  `circleOverlapArea` in every degenerate direction. The two share essentially no
+  machinery — a point-in-disc count and a curvilinear-polygon decomposition — so
+  the weakness is not a shared error but a **resolution**: the grid agrees to
+  4–5 places where the degenerate reductions agree to 12, so a systematic offset
+  smaller than the count's own boundary noise would not be seen.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

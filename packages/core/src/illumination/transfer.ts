@@ -203,9 +203,22 @@ export function weakObjectTransferDisk(coherenceParameter: number, nu: number): 
   return circleOverlapArea(nu, S, 1) / (Math.PI * S * S);
 }
 
-interface Complex {
+/** A complex number as a mutable pair — written into, never allocated per sample. */
+export interface Complex {
   re: number;
   im: number;
+}
+
+/**
+ * The pupil as one complex number: A·exp(2πi·W).
+ *
+ * Exported because `hopkins.ts` builds the same products out of the same
+ * phasors, and two spellings of "the pupil at this point" is exactly the drift
+ * `spiderObscures` exists to prevent. Blocked samples short-circuit before the
+ * trigonometry — a traced pupil charges for `phaseWaves` too.
+ */
+export function pupilPhasor(p: PupilFunction, px: number, py: number, out: Complex): void {
+  evalPupil(p, px, py, out);
 }
 
 function evalPupil(p: PupilFunction, px: number, py: number, out: Complex): void {
@@ -220,7 +233,18 @@ function evalPupil(p: PupilFunction, px: number, py: number, out: Complex): void
   out.im = a * Math.sin(ang);
 }
 
-/** The three pupil sums every readout in this file is built from. */
+/**
+ * The three pupil sums every readout in this file is built from — and, named
+ * the other way round, four slices of Hopkins' transmission cross-coefficient
+ * (`hopkins.ts`, § 6cr): `zero` is TCC(0,0), `plus` is TCC(ν,0), `minus` is
+ * TCC(0,−ν) and `cross` is TCC(ν,−ν).
+ *
+ * They stay fused here rather than becoming four calls to the general kernel,
+ * because this form reads the pupil at **three** points per direction and pays
+ * for four products, where four independent kernel evaluations would read it at
+ * eight. Pupil evaluations are the currency § 6f prices. The identity is pinned
+ * instead of assumed (§ 6cr).
+ */
 interface OrderSums {
   /** Σ w·|P(s)|² — the undiffracted light, and the image's mean. */
   readonly zero: number;

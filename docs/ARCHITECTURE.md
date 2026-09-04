@@ -136,7 +136,8 @@ core/pupil       aperture stop → entrance/exit pupil, chief ray, ray aiming,
                  OPD                                              [step 1.5]
 core/wave        OPD → Zernike fit, PSF (FFT + geometric), MTF     [step 2]
 core/illumination condenser as a set of directions, Abbe source-point
-                 summation, partially coherent transfer            [step 6]
+                 summation, partially coherent transfer, and Hopkins'
+                 transmission cross-coefficient                    [step 6]
 core/photometry  spectra, sources (star magnitudes, lamps, fluorophores),
                  detector & eye models, noise                      [step 3+]
 core/imaging     scene model, field-patch convolution, resampling  [step 3+]
@@ -370,9 +371,52 @@ promised was withdrawn rather than built — it would have been a fiction, and
 the no-faked-physics rule forbids it. What ships is **Abbe source-point
 summation** (`core/illumination`): the condenser is a set of illumination
 directions, each images coherently as a translated `PupilFunction`, and their
-intensities add. Hopkins' TCC — needed for DIC, not for this — plus phase
-contrast are v2. Fluorescence is genuinely incoherent, so it is exact in this
+intensities add. Fluorescence is genuinely incoherent, so it is exact in this
 framework already.
+
+**Hopkins' TCC is the same sum with the order of summation exchanged** (§ 6cr).
+Abbe sums over source points and must redo that sum for every object; Hopkins
+does the source integral first, over *pairs* of object frequencies:
+
+    TCC(u₁, u₂) = Σ_s w_s · P(u₁+s) · P̄(u₂+s)
+    Î(Δ)        = Σ_u  Õ(u+Δ) · Ō(u) · TCC(u+Δ, u)
+
+The kernel depends on the objective's pupil and the condenser and **not on the
+specimen**, so it is built once and each further object costs one bilinear pass
+and one transform. The two forms are the same physics and are pinned against
+each other rather than one being trusted, exactly as `abbe` and `transfer`
+already are. What the kernel adds beyond speed is the **complex** weak-object
+transfer function: for a pupil even in u under a centro-symmetric source,
+TCC(0, −ν) = conj(TCC(ν, 0)), so the absorption transfer and the phase transfer
+§ 6f measures separately are the real and imaginary parts of one number. That is
+the object phase contrast and DIC are designed against, and both remain v2 —
+phase contrast needs a phase plate in the pupil, DIC a sheared pair.
+
+Three commitments, decided here rather than discovered:
+
+- **The kernel is isoplanatic**, exactly as `abbeImage` is: one pupil, one
+  patch. `renderBrightfield`'s field decomposition sits above it unchanged, and
+  the limit that decomposition's interior converges to is still not a closed
+  form — a non-isoplanatic kernel has four arguments and is not this one.
+- **Memory grows as the fourth power of the pupil sampling**, and that is the
+  whole reason a sum-of-coherent-systems decomposition exists. The kernel is
+  M × M complex over the M frequency bins the shifted pupil can reach, and
+  M ≈ (π/4)·(1 + S)²·pupilSamples². So the builder takes an explicit entry cap
+  and **throws** rather than allocating past it — a truncated kernel would read
+  as a smaller aperture, which is § 6f.3's refusal applied one level up.
+  Eigendecomposing the Hermitian kernel is the next step, and it needs a complex
+  Hermitian eigensolver `math/lsq` does not have. Note what that step must
+  measure rather than assume: the kernel is a Gram matrix over the condenser, so
+  its rank is at most the number of illumination directions and the untruncated
+  decomposition costs exactly what Abbe's sum costs. The saving is entirely in
+  the truncation.
+- **The fidelity story does not change.** The kernel reads the pupil on exactly
+  the lattices the Abbe sum reads it on — one offset sub-lattice per illumination
+  direction — so § 6f.9's grid guard travels with the kernel and is the same
+  number, computed by the same code. `brightfieldFidelity`, which rules on a
+  traced pupil's own sampling and knows nothing about which sum consumed it,
+  needs no change. And there is still no second branch to fall back to: a TCC is
+  built out of coherent fields, and a ray histogram has none.
 
 **This is the one place the fidelity switch has no second branch.** A PSF can
 cross-fade to a ray histogram because both branches compute the same intensity;
