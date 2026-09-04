@@ -398,18 +398,20 @@ Three commitments, decided here rather than discovered:
   patch. `renderBrightfield`'s field decomposition sits above it unchanged, and
   the limit that decomposition's interior converges to is still not a closed
   form — a non-isoplanatic kernel has four arguments and is not this one.
-- **Memory grows as the fourth power of the pupil sampling**, and that is the
-  whole reason a sum-of-coherent-systems decomposition exists. The kernel is
-  M × M complex over the M frequency bins the shifted pupil can reach, and
-  M ≈ (π/4)·(1 + S)²·pupilSamples². So the builder takes an explicit entry cap
-  and **throws** rather than allocating past it — a truncated kernel would read
-  as a smaller aperture, which is § 6f.3's refusal applied one level up.
-  Eigendecomposing the Hermitian kernel is the next step, and it needs a complex
-  Hermitian eigensolver `math/lsq` does not have. Note what that step must
-  measure rather than assume: the kernel is a Gram matrix over the condenser, so
-  its rank is at most the number of illumination directions and the untruncated
-  decomposition costs exactly what Abbe's sum costs. The saving is entirely in
-  the truncation.
+- **Memory grows as the fourth power of the pupil sampling, and the fix is not
+  to build the kernel.** It is M × M complex over the M frequency bins the
+  shifted pupil can reach, M ≈ (π/4)·(1 + S)²·pupilSamples², so the builder takes
+  an explicit entry cap and **throws** rather than allocating past it — a
+  truncated kernel would read as a smaller aperture, which is § 6f.3's refusal
+  applied one level up. But the kernel is a Gram matrix over the condenser and
+  the factor is already built on the way to it: TCC = A·Aᴴ with A's column the
+  shifted pupil, so **A is M × P where P is the direction count, which does not
+  grow with the pupil sampling at all**. `condenserFactor` returns it,
+  `coherentSystems` takes its left singular vectors — the kernel's eigenvectors,
+  with λ = σ² — and the M × M array is never allocated. That is a complex SVD,
+  not the Hermitian eigensolver this paragraph once said was needed
+  (§ 6cs.1–§ 6cs.2). Truncating the mode list is a **separate** and lossy
+  question, measured in § 6cs.4 and not the reason any of this exists.
 - **The fidelity story does not change.** The kernel reads the pupil on exactly
   the lattices the Abbe sum reads it on — one offset sub-lattice per illumination
   direction — so § 6f.9's grid guard travels with the kernel and is the same

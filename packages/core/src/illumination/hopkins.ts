@@ -1,4 +1,5 @@
 import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
+import { complexSingularSystem } from "../math/lsq";
 import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
 import type { ObjectField } from "./abbe";
 import { LatticePhaseGuard, shiftedPupilBox } from "./lattice";
@@ -320,6 +321,194 @@ export function transmissionCrossCoefficientDisk(
 }
 
 /** How the kernel is sampled, and how large it is allowed to get. */
+export interface CondenserFactorOptions {
+  /** Frequency bins across the pupil DIAMETER — the scale, as in `wave/psf`. */
+  readonly pupilSamples: number;
+  /** Object grid the factor will image on; the same `size` an `ObjectField` has. */
+  readonly size: number;
+  /** Name to blame in a box error — the public entry point the caller used. */
+  readonly who?: string;
+}
+
+/**
+ * The condenser factor: one column per illumination direction, holding the
+ * shifted pupil where it transmits.
+ *
+ * **This is the thing Hopkins' kernel is built out of, and § 6cs is the step
+ * that stopped throwing it away.** Pass one of `transmissionCrossCoefficients`
+ * always built it; pass two consumed it into an M×M outer-product sum and let
+ * it fall out of scope. Written down, it says what the kernel is: with A's
+ * column s the shifted pupil scaled by √w_s,
+ *
+ *     TCC = Σ_s w_s · a_s · a_sᴴ = A·Aᴴ
+ *
+ * so the kernel is a Gram matrix — which § 6cr already knew, and used only to
+ * argue that it is Hermitian and positive semi-definite. The factor makes the
+ * stronger use available: **the kernel's eigenvectors are A's left singular
+ * vectors and its eigenvalues are σ²**, so the coherent-mode decomposition needs
+ * a complex SVD of an M×P matrix and not an eigensolver on an M×M one, and the
+ * M×M array need never be allocated at all. See § 6cs and `math/lsq`'s
+ * `complexSingularSystem`.
+ *
+ * ## The weight is NOT folded in
+ *
+ * Columns are stored **unweighted**, with `weights` alongside. That is not
+ * tidiness: § 6cr.1's exact Hermiticity depends on the source weight
+ * multiplying LAST, so that entry (i, j) accumulates term for term the exact
+ * conjugate of (j, i). Scaling each column by √w here would reassociate the
+ * product and cost the `toBe`. `coherentSystems` applies √w when it densifies,
+ * where nothing is claiming exactness about a transpose.
+ *
+ * ## Storage
+ *
+ * Sparse by column, because a direction's shifted pupil transmits over its own
+ * box and nowhere else: `offsets[p]`…`offsets[p+1]` are column p's entries,
+ * `slots[i]` says which support bin entry i sits on. Densified to M×P only
+ * where the solver needs it.
+ */
+export interface CondenserFactor {
+  readonly size: number;
+  readonly pupilSamples: number;
+  readonly coherenceParameter: number;
+  /** Centred lattice bins (iy·size + ix) some direction transmits on, ascending. */
+  readonly bins: Int32Array;
+  /** Lattice bin → index into `bins`, or −1. Length size². */
+  readonly slotOf: Int32Array;
+  /** `bins.length` — the kernel's M, and the factor's row count. */
+  readonly support: number;
+  /** Directions that transmitted anything — the factor's column count, and P. */
+  readonly columns: number;
+  /** Column p's entries are `offsets[p]`…`offsets[p+1]`. Length `columns + 1`. */
+  readonly offsets: Int32Array;
+  /** Support slot of each stored entry. */
+  readonly slots: Int32Array;
+  /** The pupil there, UNWEIGHTED — see the note above on why. */
+  readonly re: Float64Array;
+  readonly im: Float64Array;
+  /** Each column's source weight. Length `columns`. */
+  readonly weights: Float64Array;
+  /** Stored entries, summed over columns. */
+  readonly entries: number;
+  /** What the sparse form occupies. */
+  readonly bytes: number;
+  /** What the dense M×P complex form would occupy — what the solver allocates. */
+  readonly denseBytes: number;
+  /** Same as `columns`; the name `Tcc` reports it under. */
+  readonly contributingPoints: number;
+  readonly pupilEvaluations: number;
+  /** § 6f.9's grid guard, measured by `lattice.ts` as both sums measure it. */
+  readonly maxGridPhaseStepWaves: number;
+}
+
+/**
+ * Read the pupil once on every illumination direction's own sub-lattice, and
+ * keep what transmits.
+ *
+ * A traced `PupilFunction` re-traces rays on every call, so the samples are kept
+ * rather than recomputed — the consumers visit each of them many times.
+ */
+export function condenserFactor(
+  pupil: PupilFunction,
+  source: CondenserSource,
+  options: CondenserFactorOptions,
+): CondenserFactor {
+  const who = options.who ?? "condenserFactor";
+  const n = options.size;
+  if (!isPowerOfTwo(n)) {
+    throw new Error(`${who}: grid size must be a power of two, got ${n}`);
+  }
+  const pupilSamples = options.pupilSamples;
+  if (!(pupilSamples > 0)) {
+    throw new Error(`pupilSamples must be positive, got ${pupilSamples}`);
+  }
+
+  const half = n / 2;
+  const step = 2 / pupilSamples;
+  const guard = new LatticePhaseGuard(n);
+
+  const seen = new Uint8Array(n * n);
+  const offsetList: number[] = [0];
+  const binList: number[] = [];
+  const reList: number[] = [];
+  const imList: number[] = [];
+  const weightList: number[] = [];
+  let pupilEvaluations = 0;
+
+  for (const s of source.points) {
+    const box = shiftedPupilBox(who, n, pupilSamples, s.sx, s.sy);
+    guard.beginPoint(box);
+    let count = 0;
+    for (let iy = box.iyLo; iy <= box.iyHi; iy++) {
+      const py = (iy - half) * step + s.sy;
+      guard.beginRow();
+      for (let ix = box.ixLo; ix <= box.ixHi; ix++) {
+        const px = (ix - half) * step + s.sx;
+        const a = pupil.amplitude(px, py);
+        pupilEvaluations++;
+        if (a <= 0) {
+          guard.block(ix);
+          continue;
+        }
+        const w = pupil.phaseWaves(px, py);
+        guard.transmit(ix, w);
+        const ang = 2 * Math.PI * w;
+        const bin = iy * n + ix;
+        binList.push(bin);
+        reList.push(a * Math.cos(ang));
+        imList.push(a * Math.sin(ang));
+        count++;
+        seen[bin] = 1;
+      }
+    }
+    // A direction that transmits nothing is not a column of zeros, it is not a
+    // column: it pushed no entries, so there is nothing to unwind.
+    if (count === 0) continue;
+    offsetList.push(binList.length);
+    weightList.push(s.weight);
+  }
+
+  const bins: number[] = [];
+  const slotOf = new Int32Array(n * n).fill(-1);
+  for (let bin = 0; bin < n * n; bin++) {
+    if (seen[bin] === 1) {
+      slotOf[bin] = bins.length;
+      bins.push(bin);
+    }
+  }
+  const support = bins.length;
+  const entries = binList.length;
+  const slots = new Int32Array(entries);
+  for (let i = 0; i < entries; i++) slots[i] = slotOf[binList[i]!]!;
+
+  const re = Float64Array.from(reList);
+  const im = Float64Array.from(imList);
+  const offsets = Int32Array.from(offsetList);
+  const weights = Float64Array.from(weightList);
+  const columns = weights.length;
+
+  return {
+    size: n,
+    pupilSamples,
+    coherenceParameter: source.coherenceParameter,
+    bins: Int32Array.from(bins),
+    slotOf,
+    support,
+    columns,
+    offsets,
+    slots,
+    re,
+    im,
+    weights,
+    entries,
+    bytes:
+      re.byteLength + im.byteLength + slots.byteLength + offsets.byteLength + weights.byteLength,
+    denseBytes: support * columns * 16,
+    contributingPoints: columns,
+    pupilEvaluations,
+    maxGridPhaseStepWaves: guard.max,
+  };
+}
+
 export interface TccOptions {
   /** Frequency bins across the pupil DIAMETER — the scale, as in `wave/psf`. */
   readonly pupilSamples: number;
@@ -386,110 +575,53 @@ export function transmissionCrossCoefficients(
   source: CondenserSource,
   options: TccOptions,
 ): Tcc {
-  const n = options.size;
-  if (!isPowerOfTwo(n)) {
-    throw new Error(`transmissionCrossCoefficients: grid size must be a power of two, got ${n}`);
-  }
-  const pupilSamples = options.pupilSamples;
-  if (!(pupilSamples > 0)) {
-    throw new Error(`pupilSamples must be positive, got ${pupilSamples}`);
-  }
   const maxEntries = options.maxEntries ?? 4_000_000;
   if (!(maxEntries > 0)) throw new Error(`maxEntries must be positive, got ${maxEntries}`);
 
-  const half = n / 2;
-  const step = 2 / pupilSamples;
-  const guard = new LatticePhaseGuard(n);
-  const phasor: Complex = { re: 0, im: 0 };
-
-  // Pass one: read the pupil, once, on every direction's own sub-lattice. The
-  // transmitting samples are kept rather than recomputed, because a traced
-  // `PupilFunction` re-traces rays on every call and pass two visits each of
-  // them (transmitting bins) times.
-  const seen = new Uint8Array(n * n);
-  const pointBins: Int32Array[] = [];
-  const pointRe: Float64Array[] = [];
-  const pointIm: Float64Array[] = [];
-  const pointWeight: number[] = [];
-  const binBuf = new Int32Array(n * n);
-  const reBuf = new Float64Array(n * n);
-  const imBuf = new Float64Array(n * n);
-  let pupilEvaluations = 0;
-
-  for (const s of source.points) {
-    const box = shiftedPupilBox("transmissionCrossCoefficients", n, pupilSamples, s.sx, s.sy);
-    guard.beginPoint(box);
-    let count = 0;
-    for (let iy = box.iyLo; iy <= box.iyHi; iy++) {
-      const py = (iy - half) * step + s.sy;
-      guard.beginRow();
-      for (let ix = box.ixLo; ix <= box.ixHi; ix++) {
-        const px = (ix - half) * step + s.sx;
-        const a = pupil.amplitude(px, py);
-        pupilEvaluations++;
-        if (a <= 0) {
-          guard.block(ix);
-          continue;
-        }
-        const w = pupil.phaseWaves(px, py);
-        guard.transmit(ix, w);
-        const ang = 2 * Math.PI * w;
-        const bin = iy * n + ix;
-        binBuf[count] = bin;
-        reBuf[count] = a * Math.cos(ang);
-        imBuf[count] = a * Math.sin(ang);
-        count++;
-        seen[bin] = 1;
-      }
-    }
-    if (count === 0) continue;
-    pointBins.push(binBuf.slice(0, count));
-    pointRe.push(reBuf.slice(0, count));
-    pointIm.push(imBuf.slice(0, count));
-    pointWeight.push(s.weight);
-  }
-
-  const bins: number[] = [];
-  const slotOf = new Int32Array(n * n).fill(-1);
-  for (let bin = 0; bin < n * n; bin++) {
-    if (seen[bin] === 1) {
-      slotOf[bin] = bins.length;
-      bins.push(bin);
-    }
-  }
-  const support = bins.length;
+  // Pass one is `condenserFactor`, which every consumer of this kernel now
+  // shares — the § 3c lesson, applied where it would otherwise be re-learned.
+  const factor = condenserFactor(pupil, source, {
+    pupilSamples: options.pupilSamples,
+    size: options.size,
+    who: "transmissionCrossCoefficients",
+  });
+  const support = factor.support;
   const entries = support * support;
   if (entries > maxEntries) {
     throw new Error(
       `transmissionCrossCoefficients: the kernel over ${support} lattice bins needs ` +
         `${entries} entries (${Math.round((entries * 16) / 1048576)} MB), past the ` +
-        `${maxEntries} cap — lower pupilSamples, or wait for the coherent-mode ` +
-        "decomposition, which is what this cap exists to point at",
+        `${maxEntries} cap — lower pupilSamples, or take the coherent-mode ` +
+        "decomposition (`coherentSystems`), which is what this cap exists to point at " +
+        "and which never allocates this array",
     );
   }
 
-  // Pass two: Σ_s w·P(u₁+s)·conj(P(u₂+s)), one rank-one update per direction.
+  // Pass two: Σ_s w·P(u₁+s)·conj(P(u₂+s)), one rank-one update per column.
   const re = new Float64Array(entries);
   const im = new Float64Array(entries);
-  for (let p = 0; p < pointBins.length; p++) {
-    const pb = pointBins[p]!;
-    const pr = pointRe[p]!;
-    const pi = pointIm[p]!;
-    const w = pointWeight[p]!;
-    for (let i = 0; i < pb.length; i++) {
-      const rowSlot = slotOf[pb[i]!]! * support;
-      const ar = pr[i]!;
-      const ai = pi[i]!;
-      for (let j = 0; j < pb.length; j++) {
-        const br = pr[j]!;
-        const bi = pi[j]!;
-        const k = rowSlot + slotOf[pb[j]!]!;
+  const fr = factor.re;
+  const fi = factor.im;
+  const slots = factor.slots;
+  for (let p = 0; p < factor.columns; p++) {
+    const lo = factor.offsets[p]!;
+    const hi = factor.offsets[p + 1]!;
+    const w = factor.weights[p]!;
+    for (let i = lo; i < hi; i++) {
+      const rowSlot = slots[i]! * support;
+      const ar = fr[i]!;
+      const ai = fi[i]!;
+      for (let j = lo; j < hi; j++) {
+        const br = fr[j]!;
+        const bi = fi[j]!;
+        const k = rowSlot + slots[j]!;
         // The weight multiplies LAST, and that is what makes the kernel exactly
         // Hermitian rather than Hermitian to roundoff. Products commute in IEEE
         // and a subtraction is its transpose's exact negative, so entry (j,i)
         // accumulates term for term the conjugate of (i,j) — folding w into one
         // factor first would reassociate the two halves differently and cost the
-        // `toBe` (§ 6cr.1).
+        // `toBe` (§ 6cr.1). It is also why `condenserFactor` stores its columns
+        // unweighted (§ 6cs.2).
         re[k] = re[k]! + w * (ar * br + ai * bi);
         im[k] = im[k]! + w * (ai * br - ar * bi);
       }
@@ -497,19 +629,19 @@ export function transmissionCrossCoefficients(
   }
 
   return {
-    size: n,
-    pupilSamples,
-    coherenceParameter: source.coherenceParameter,
-    bins: Int32Array.from(bins),
-    slotOf,
+    size: factor.size,
+    pupilSamples: factor.pupilSamples,
+    coherenceParameter: factor.coherenceParameter,
+    bins: factor.bins,
+    slotOf: factor.slotOf,
     re,
     im,
     support,
     entries,
     bytes: re.byteLength + im.byteLength,
-    contributingPoints: pointBins.length,
-    pupilEvaluations,
-    maxGridPhaseStepWaves: guard.max,
+    contributingPoints: factor.contributingPoints,
+    pupilEvaluations: factor.pupilEvaluations,
+    maxGridPhaseStepWaves: factor.maxGridPhaseStepWaves,
   };
 }
 
@@ -644,6 +776,264 @@ export function hopkinsImage(
     ...(options.scale === undefined
       ? {}
       : { pixelScaleMm: imagePixelScaleMm(options.scale, n, tcc.pupilSamples) }),
+  };
+}
+
+export interface CoherentSystemsOptions {
+  /**
+   * Keep modes until this fraction of Σλ is captured. 1 (the default) keeps
+   * every mode the factor has and approximates nothing.
+   *
+   * Cumulative λ rather than a threshold on λ_j itself, because Σλ is the
+   * kernel's trace — the light the instrument transmits at all — so the fraction
+   * is a physical quantity and not a knob. `capturedFraction` reports what was
+   * actually reached.
+   */
+  readonly capture?: number;
+  /** A hard cap on the mode count, applied after `capture`. */
+  readonly maxModes?: number;
+}
+
+/**
+ * The kernel as a sum of coherent systems: TCC = Σ_j λ_j · φ_j · φ_jᴴ.
+ *
+ * The eigendecomposition of Hopkins' kernel, obtained without ever forming it —
+ * `condenserFactor`'s A has the same left singular vectors, and λ_j = σ_j².
+ */
+export interface CoherentSystems {
+  readonly size: number;
+  readonly pupilSamples: number;
+  readonly coherenceParameter: number;
+  readonly bins: Int32Array;
+  readonly slotOf: Int32Array;
+  readonly support: number;
+  /** Modes kept — `available`, unless `capture` or `maxModes` cut it. */
+  readonly modes: number;
+  /**
+   * Modes the factor has at all: min(support, columns). The kernel is a Gram
+   * matrix over the condenser, so its rank cannot exceed the direction count —
+   * and on a coarse grid it cannot exceed the support either.
+   */
+  readonly available: number;
+  /** λ_j = σ_j², descending. Length `modes`, and every entry ≥ 0 by construction. */
+  readonly weights: Float64Array;
+  /** φ_j over the support, column-major `support × modes`: φ_j(b) at `j*support + b`. */
+  readonly re: Float64Array;
+  readonly im: Float64Array;
+  /** Σλ over every available mode — the kernel's trace, whatever `modes` is. */
+  readonly totalWeight: number;
+  /** Σλ over the kept modes, over `totalWeight`. 1 when nothing was dropped. */
+  readonly capturedFraction: number;
+  /** What the kept modes occupy, against the kernel's own `bytes`. */
+  readonly bytes: number;
+  /** Sweeps the solver took; 30 would mean it hit its backstop. */
+  readonly sweeps: number;
+}
+
+/**
+ * Decompose the kernel into coherent systems, from the factor and never from
+ * the kernel.
+ *
+ * The densification is where √w is applied — `condenserFactor` stores columns
+ * unweighted so that `transmissionCrossCoefficients` keeps its exact
+ * Hermiticity, and nothing here claims exactness about a transpose.
+ *
+ * The largest array this touches is `support × columns` complex. At
+ * `pupilSamples` 32 that is 4.75 MB where the kernel is 47.1 MB, and the ratio
+ * is support/columns — which grows as the square of the pupil sampling, because
+ * the direction count does not grow with it at all.
+ */
+export function coherentSystems(
+  factor: CondenserFactor,
+  options: CoherentSystemsOptions = {},
+): CoherentSystems {
+  const capture = options.capture ?? 1;
+  if (!(capture > 0) || capture > 1) {
+    throw new Error(`coherentSystems: capture must be in (0, 1], got ${capture}`);
+  }
+  if (options.maxModes !== undefined && !(options.maxModes >= 1)) {
+    throw new Error(`coherentSystems: maxModes must be at least 1, got ${options.maxModes}`);
+  }
+
+  const m = factor.support;
+  const p = factor.columns;
+  const dense = m * p;
+  const re = new Float64Array(dense);
+  const im = new Float64Array(dense);
+  for (let c = 0; c < p; c++) {
+    const lo = factor.offsets[c]!;
+    const hi = factor.offsets[c + 1]!;
+    const rootW = Math.sqrt(factor.weights[c]!);
+    const col = c * m;
+    for (let i = lo; i < hi; i++) {
+      const slot = factor.slots[i]!;
+      re[col + slot] = factor.re[i]! * rootW;
+      im[col + slot] = factor.im[i]! * rootW;
+    }
+  }
+
+  const svd = complexSingularSystem(re, im, m, p);
+
+  // With fewer rows than columns the surplus σ are 0 by RANK rather than by
+  // rounding, and Jacobi leaves them at the square root of nothing instead of at
+  // 0 — the same correction `analysis/optimize` makes for the real solver. A
+  // coarse grid reaches this: at pupilSamples 8 the support is 109 bins under
+  // 177 directions.
+  const available = Math.min(m, p);
+  const lambda = new Float64Array(available);
+  let total = 0;
+  for (let j = 0; j < available; j++) {
+    lambda[j] = svd.values[j]! * svd.values[j]!;
+    total += lambda[j]!;
+  }
+
+  let modes = available;
+  if (capture < 1 && total > 0) {
+    let running = 0;
+    modes = available;
+    for (let j = 0; j < available; j++) {
+      running += lambda[j]!;
+      if (running >= capture * total) {
+        modes = j + 1;
+        break;
+      }
+    }
+  }
+  if (options.maxModes !== undefined) modes = Math.min(modes, options.maxModes);
+
+  const weights = lambda.slice(0, modes);
+  let kept = 0;
+  for (let j = 0; j < modes; j++) kept += weights[j]!;
+
+  const modeRe = svd.leftRe.slice(0, modes * m);
+  const modeIm = svd.leftIm.slice(0, modes * m);
+
+  return {
+    size: factor.size,
+    pupilSamples: factor.pupilSamples,
+    coherenceParameter: factor.coherenceParameter,
+    bins: factor.bins,
+    slotOf: factor.slotOf,
+    support: m,
+    modes,
+    available,
+    weights,
+    re: modeRe,
+    im: modeIm,
+    totalWeight: total,
+    capturedFraction: total > 0 ? kept / total : 1,
+    bytes: modeRe.byteLength + modeIm.byteLength + weights.byteLength,
+    sweeps: svd.sweeps,
+  };
+}
+
+export interface SocsImage {
+  readonly size: number;
+  readonly pupilSamples: number;
+  /** Intensity, in the object's own coordinates (NOT fftshifted). */
+  readonly intensity: Float64Array;
+  /** Modes actually summed. */
+  readonly modes: number;
+  /** Σλ over those modes, over the kernel's trace. */
+  readonly capturedFraction: number;
+  /** Inverse transforms taken — one per mode, against `hopkinsImage`'s one. */
+  readonly transforms: number;
+  readonly pixelScaleMm?: number;
+}
+
+/**
+ * Image an object as a sum of coherent systems: I = Σ_j λ_j · |F⁻¹{Õ·φ_j}|².
+ *
+ * Substituting TCC(u₁,u₂) = Σ_j λ_j·φ_j(u₁)·conj(φ_j(u₂)) into Hopkins' bilinear
+ * form turns the double sum over frequency pairs into an autocorrelation per
+ * mode, and an autocorrelation is a modulus after transforming. So each mode is
+ * an ordinary coherent image and the partially coherent one is their weighted
+ * sum — which is what "sum of coherent systems" means, and why the kernel's
+ * being positive semi-definite is what makes it possible at all.
+ *
+ * **Truncation is one-signed.** Every λ_j ≥ 0 and every |·|² ≥ 0, so dropping
+ * modes can only ever remove a non-negative quantity from every pixel: a
+ * truncated image is **≤ the full image at every point, exactly**, never noisy
+ * around it. It is therefore uniformly dimmer, and any comparison that
+ * normalizes by peak or by total energy hides the very error it is measuring.
+ *
+ * Cost is one inverse transform per mode against `hopkinsImage`'s one, plus the
+ * support-sized product and an n² accumulate each. Whether that wins is a
+ * measurement and not an inequality: `hopkinsImage` skips zero object-spectrum
+ * bins, so its bilinear pass is far below support² on a sparse specimen and near
+ * it on a dense one, while this cost does not move at all. § 6cs.4 measures both.
+ */
+export function socsImage(
+  object: ObjectField,
+  systems: CoherentSystems,
+  options: { readonly modes?: number; readonly scale?: PupilScale } = {},
+): SocsImage {
+  const n = systems.size;
+  if (object.size !== n) {
+    throw new Error(
+      `socsImage: the object is ${object.size} bins across and the modes were built for ${n}`,
+    );
+  }
+  if (object.re.length !== n * n || object.im.length !== n * n) {
+    throw new Error(`socsImage: object arrays must hold ${n * n} elements`);
+  }
+  const modes = Math.min(options.modes ?? systems.modes, systems.modes);
+  if (!(modes >= 1)) throw new Error(`socsImage: modes must be at least 1, got ${modes}`);
+
+  // Centred spectrum, exactly as `hopkinsImage` and `abbeImage` form it.
+  const specRe = Float64Array.from(object.re);
+  const specIm = Float64Array.from(object.im);
+  fft2d(specRe, specIm, n);
+  fftShift2d(specRe, n);
+  fftShift2d(specIm, n);
+
+  const support = systems.support;
+  const bins = systems.bins;
+  const intensity = new Float64Array(n * n);
+  const gRe = new Float64Array(n * n);
+  const gIm = new Float64Array(n * n);
+  // No normalization factor here, which is worth stating because `hopkinsImage`
+  // carries one: `fft2d`'s inverse already divides by n per pass, so it returns
+  // F⁻¹ itself and the formula is exactly I = Σ λⱼ·|F⁻¹{Õ·φⱼ}|² with nothing
+  // left over. Why Hopkins' form needs a further 1/n² and this one does not is
+  // not worked out here; what is checked is the answer, against `hopkinsImage`
+  // AND `abbeImage`, on a sparse-spectrum object and a dense one (§ 6cs.4).
+
+  let kept = 0;
+  for (let j = 0; j < modes; j++) {
+    const lambda = systems.weights[j]!;
+    kept += lambda;
+    gRe.fill(0);
+    gIm.fill(0);
+    const col = j * support;
+    for (let b = 0; b < support; b++) {
+      const bin = bins[b]!;
+      const or_ = specRe[bin]!;
+      const oi = specIm[bin]!;
+      if (or_ === 0 && oi === 0) continue;
+      const pr = systems.re[col + b]!;
+      const pi = systems.im[col + b]!;
+      gRe[bin] = or_ * pr - oi * pi;
+      gIm[bin] = or_ * pi + oi * pr;
+    }
+    fftShift2d(gRe, n);
+    fftShift2d(gIm, n);
+    fft2d(gRe, gIm, n, true);
+    for (let i = 0; i < n * n; i++) {
+      intensity[i] = intensity[i]! + lambda * (gRe[i]! * gRe[i]! + gIm[i]! * gIm[i]!);
+    }
+  }
+
+  return {
+    size: n,
+    pupilSamples: systems.pupilSamples,
+    intensity,
+    modes,
+    capturedFraction: systems.totalWeight > 0 ? kept / systems.totalWeight : 1,
+    transforms: modes,
+    ...(options.scale === undefined
+      ? {}
+      : { pixelScaleMm: imagePixelScaleMm(options.scale, n, systems.pupilSamples) }),
   };
 }
 

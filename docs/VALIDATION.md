@@ -154,7 +154,7 @@ whole ladder.
 | [6cp](#step-6cp--the-stage-seams-guard-sensitivity-one-power-down) | § 6ca.1's other pair is § 6cl's four integers one power down — P/2 on rows, P on columns, so the cost's column branch cancels them exactly — and § 6ca read its pair past § 6cd.1's edge | ✅ |
 | [6cq](#step-6cq--the-first-interval-and-the-engine-change-that-was-not-needed) | A non-integer `pupilSamples` is not an engine change: § 6bn's first interval crosses 1 at a matched field, 1.1061 → 0.9500, and its "opposite ways" was the frame | ✅ |
 | [6cr](#step-6cr--hopkins-kernel-and-the-specimen-taken-out-of-the-sum) | The TCC: exactly Hermitian, PSD, and Abbe's image to 1e-15. A three-disc closed form pins it off the diagonal; § 6f's two curves are one complex number | `hopkins` |
-| [6cs](#step-6cs--the-coherent-systems-and-the-factor-that-was-already-there) | TCC = A·Aᴴ, so its modes are A's left singular vectors: a complex one-sided Jacobi, not a Hermitian eigensolver. Removing its phase step fails 6 of 12 rungs | `complex-svd` |
+| [6cs](#step-6cs--the-coherent-systems-and-the-factor-that-was-already-there) | TCC = A·Aᴴ: the modes are a discarded factor's singular vectors, so 47.1 MB becomes 4.75 MB with nothing dropped. Truncation is lossy: 99% needs 48 of 69 | `coherent-systems` |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -27323,6 +27323,148 @@ survive the mutation and are recorded as invariants rather than as pins: Σσ² 
 unchanged by any column operation, and U·Σ·Vᴴ rebuilds the input because V
 accumulates the same wrong rotation the columns did. A test that cannot fail is
 not evidence, and knowing which two those are is worth more than the count.
+
+### 6cs.2 — the factor, and the array that is never built
+
+`condenserFactor` is § 6cr's pass one, given a name and a return value. Nothing
+about the arithmetic moved: `transmissionCrossCoefficients` now calls it and
+does pass two, in the same order over the same entries, and **all 27 of § 6cr's
+rungs pass unchanged** — including the exact-Hermitian `toBe` over all 505²
+entries, which is the assertion that would notice a reassociation before
+anything else did.
+
+Keeping that exactness decided the storage. Columns are held **unweighted**,
+with the source weights alongside, because § 6cr.1's exact Hermiticity depends
+on the weight multiplying LAST; scaling each column by √w in the factor would
+reassociate the product and cost the `toBe`. `coherentSystems` applies √w when
+it densifies, where nothing is claiming exactness about a transpose.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The factor's support, columns, pupil reads and grid guard are the kernel's own | `toBe`, four counters | ✅ |
+| § 6cr's 27 rungs after the extraction | unchanged, incl. the 505² `toBe` | ✅ |
+| The kernel is support², the factor support × columns, and columns does not move | 437/1757 rows against 177 columns | ✅ |
+
+**The memory the register opened this step for is gone, and no approximation was
+involved.** The kernel is M × M and the factor M × P where P is the direction
+count, and P does not grow when the pupil is sampled more finely:
+
+| pupilSamples | support M | columns P | kernel | factor | saving |
+|---|---|---|---|---|---|
+| 16 | 437 | 177 | 2.91 MB | 1.18 MB | 2.47× |
+| 32 | 1757 | 177 | 47.10 MB | 4.75 MB | 9.92× |
+
+The saving is M/P, so **doubling the pupil sampling quadruples it** — measured at
+4.02, which is the other half of § 6cr.6's fourth power. § 6cr.6 read that fourth
+power off the kernel and called it the reason for a decomposition. It is really
+the reason for a *factorization*; the decomposition is a further and separate
+question, and § 6cs.4 finds it does not answer the same one.
+
+### 6cs.3 — the modes, and the two ranks
+
+Σλ = trace(TCC) and Σλ² = ‖TCC‖²_F are free, exact, and between them catch
+almost anything a solver can get wrong; both are pinned against the kernel
+§ 6cr already builds. **Every λ is ≥ 0 by construction and not by tolerance** —
+they are squared singular values, so the near-null directions cannot come back
+negative and there is no clamp to decide about, which is what the factor route
+buys over an eigensolver on the kernel.
+
+The rank has **two** bounds and which one binds depends on the grid, so both are
+pinned rather than the one that happened to be in front of us:
+
+- at `pupilSamples` 8 the **support** binds — 109 lattice bins under 177
+  directions — and `available` is 109;
+- at `pupilSamples` 16 the **direction count** binds — 177 under 437 bins — and
+  `available` is 177, which is the Gram bound the register predicted.
+
+The core identities are pinned in **both** regimes. Running them only at
+`pupilSamples` 8 would have pinned the decomposition exclusively where the grid
+cripples it, which is not the case the step exists for.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| Σλ = trace and Σλ² = ‖TCC‖²_F, in both rank regimes | 12 and 11 places | ✅ |
+| Every λ ≥ 0, descending | `toBeGreaterThanOrEqual(0)`, no tolerance | ✅ |
+| TCC·φ_j = λ_j·φ_j; modes orthonormal; Σλφφᴴ rebuilds the kernel | 1e-10, 1e-12 | ✅ |
+| One direction is exactly one system, λ₁ the transmitting-bin count | rank 1, modulus 1/√M to 12 places | ✅ |
+| Two directions are exactly two, λ from the 2×2 Gram | (α+β)/2 ± √(((α−β)/2)² + \|γ\|²), 8 places | ✅ |
+| The shared-bin count against the two discs' overlap area | `circleOverlapArea`, < 1% at three samplings | ✅ |
+
+**The two-direction rung had to be moved off the axis, and that is a finding.**
+A pair placed symmetrically at ±s makes the overlap γ **real** whatever phase the
+pupil carries: the two samples of an even wavefront differ by a phase odd in the
+lattice coordinate, and the shared region is symmetric, so the imaginary part
+cancels term for term — measured at 5.4·10⁻¹⁷, which is zero. The rung would have
+passed while exercising none of § 6cs.1's phase rotation on optical data. An
+asymmetric pair makes γ genuinely complex and the rung discriminates.
+
+The shared-bin count is the file's only number from outside the engine, and it
+converges on the area two shifted unit discs share — **but not monotonically,
+and asserting that it did was wrong.** Counting lattice cells inside a region is
+the Gauss circle problem: the error is set by the cells the boundary crosses and
+which way each lands changes as the grid re-registers against the arc, so a finer
+grid can be locally worse. Measured, it is:
+
+| pupilSamples | shared bins | area | against 1.95984 |
+|---|---|---|---|
+| 16 | 125 | 1.95313 | −0.343% |
+| 32 | 501 | 1.95703 | −0.144% |
+| 64 | 2013 | 1.96582 | **+0.305%** |
+
+What is pinnable is the bound that produces that behaviour — the error cannot
+exceed the region's perimeter times the cell width — plus 1% at every sampling.
+The bound alone is 32% at 16 bins, so both are needed and neither is the other.
+
+### 6cs.4 — what truncation buys, and what it does not
+
+Substituting TCC = Σ_j λ_j·φ_j·φ_jᴴ into Hopkins' bilinear form turns the double
+sum over frequency pairs into one autocorrelation per mode, and an
+autocorrelation is a modulus after transforming: I = Σ_j λ_j·|F⁻¹{Õ·φ_j}|². Each
+mode is an ordinary coherent image and the partially coherent one is their
+weighted sum, which is what the name means and why the kernel's being positive
+semi-definite is what makes it possible at all. Untruncated it is `hopkinsImage`
+and `abbeImage` alike to 1e-12, on a sparse-spectrum object and a dense one.
+
+**Truncation is one-signed, exactly.** Every λ ≥ 0 and every modulus ≥ 0, so
+dropping modes removes a non-negative quantity from every pixel: a truncated
+image is ≤ the full one at every point and monotone in the mode count, a bias
+rather than noise. The trap sits right next to it — the truncated image is
+uniformly *dimmer*, so normalizing either image by peak or by total energy hides
+the error being measured. Everything below is unnormalized.
+
+**And the decay is slow.** 69 modes at `pupilSamples` 16, S = 0.5, 9 condenser
+samples, defocus 0.3λ:
+
+| modes kept | light captured | error, dense object | error, grating |
+|---|---|---|---|
+| 1 | 58.84% | 3.5·10⁻² | 4.6·10⁻² |
+| 7 | 90% | — | — |
+| 8 | 91.82% | 2.5·10⁻³ | 1.6·10⁻³ |
+| 16 | 95.51% | 5.8·10⁻⁴ | 1.4·10⁻⁴ |
+| 32 | 97.82% | 2.7·10⁻⁴ | 3.3·10⁻⁵ |
+| 48 | 99% | — | — |
+| 69 | 100% | 0 | 0 |
+
+**90% of the transmitted light is 7 modes of 69; 99% is 48 of 69.** The register
+opened this step expecting truncation to be the payoff. It is not: it is a lossy
+trade whose price rises steeply once a fraction of a percent matters, and the
+memory question it was supposed to answer was already answered in § 6cs.2 by the
+factor, with nothing dropped at all. § 6cr's own lesson — do not let a doc
+pre-write the next step's conclusion — applied to the register's sentence as much
+as to anything, and this is the half it got wrong.
+
+`capture` is therefore the API's truncation rule and it is stated in the physical
+quantity: the fraction of the kernel's trace — the light the instrument transmits
+at all — that the kept modes carry, with the reached fraction reported back.
+
+One thing this step does **not** answer. `hopkinsImage` skips zero object-spectrum
+bins, so its bilinear pass moves with the specimen — 475 terms on a grating
+against 147 873 on noise, a factor of 311 on one kernel — while the coherent sum
+takes one transform per mode whatever the object is. Those are the two counters,
+and they are in different units: `kernelTerms` counts bilinear terms and
+`transforms` counts inverse FFTs. **Dividing them would be a flop estimate
+dressed as a reading**, so which sum is faster is left as a wall-time question
+for whoever needs the answer, and `renderBrightfield` stays on the Abbe sum.
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

@@ -407,19 +407,30 @@ and a number that would refute it.
   v2:** § 6cr builds the object they act on, not them — a phase plate in the
   pupil and a sheared pair are unbuilt, and the annular source
   (`latticeAnnularSource`, § 6ab.19) is still unwired.
-- **The sum-of-coherent-systems decomposition** — opened by § 6cr and the reason
-  it measured its own memory. The kernel is M × M complex over the M lattice bins
-  the shifted pupil reaches, M ≈ (π/4)(1+S)²·pupilSamples², so it is **2.9 MB at
-  pupilSamples 16 and 48.4 MB at 32** — the fourth power, measured. Being
-  Hermitian and PSD it is a sum of coherent systems. **What is free is only a
-  bound, and it is not the payoff:** TCC = AᴴA over the condenser, so the rank is
-  at most the contributing-point count — untruncated, the decomposition is 177
-  coherent systems, exactly `abbeImage`'s own cost. The whole win is in the
-  truncation, so the step's question is *how few eigenvalues suffice and what
-  dropping the rest costs*. Blocked on a **complex Hermitian eigensolver**:
-  `math/lsq`'s `singularSystem` is one-sided Jacobi on a REAL matrix. Until it
-  exists, `hopkinsImage` has no caller — wiring it into `renderBrightfield` costs
-  patches² × M².
+- ~~**The sum-of-coherent-systems decomposition**~~ ✅ **built at § 6cs**, and it
+  closed the memory question by a route the entry did not anticipate. The entry
+  said the step was blocked on a **complex Hermitian eigensolver**. It was not:
+  § 6cr's own pass one already builds A with TCC = A·Aᴴ and throws it away, so
+  the modes are that factor's left singular vectors and λ = σ² — a complex SVD of
+  an M × P matrix, where P is the direction count and does not grow with the
+  pupil sampling. `complexSingularSystem` (§ 6cs.1) is the existing one-sided
+  Jacobi plus a phase rotation, not a new solver.
+  **The memory is fixed by the factorization alone, with nothing dropped**:
+  47.1 MB → 4.75 MB at `pupilSamples` 32, and the ratio quadruples each time the
+  sampling doubles (§ 6cs.2). **Two things the entry got wrong.** Its cost
+  comparison was against `abbeImage`, but `hopkinsImage` already costs one
+  transform, so the untruncated decomposition is *slower* than what exists and
+  better only in memory. And "the whole win is in the truncation" is false in
+  both directions: the win that mattered is not in the truncation at all, and the
+  truncation is a lossy trade rather than a free one — 90% of the transmitted
+  light is 7 modes of 69, but **99% is 48 of 69** (§ 6cs.4).
+  **Still open, and now sharper:** whether the coherent sum beats Hopkins' in
+  *wall time*. § 6cs.4 declines to answer it, because `kernelTerms` and
+  `transforms` are different units and dividing them is a flop estimate dressed
+  as a reading — what is measured is that Hopkins' work moves 311× with the
+  specimen (475 terms on a grating, 147 873 on noise) and the coherent sum's does
+  not move at all. `renderBrightfield` therefore stays on the Abbe sum, and
+  wiring either one into it is a step nobody has costed.
 - The non-isoplanatic partially coherent image's limit (§ 6g) is **narrowed and
   not closed** by § 6cr: the kernel is isoplanatic, exactly as `abbeImage` is, and
   a non-isoplanatic one has four arguments. Coherence off axis and polychromatic
@@ -496,9 +507,17 @@ radial-map nodes · § 6ba differential bleaching.
    deliver and one it opened: phase contrast and DIC stay v2, the non-isoplanatic
    limit stays open because the kernel is isoplanatic, and the memory cost
    (48.4 MB at pupilSamples 32) opens the decomposition as the next step.
-9. **The sum-of-coherent-systems decomposition** (D): what § 6cr's fourth-power
+9. ~~**The sum-of-coherent-systems decomposition** (D): what § 6cr's fourth-power
    memory points at, and the step that gives `hopkinsImage` a caller. Needs a
-   complex Hermitian eigensolver, which is its own rung set.
+   complex Hermitian eigensolver, which is its own rung set.~~ ✅ — landed at
+   § 6cs, and the eigensolver was **not needed**: the kernel is A·Aᴴ and § 6cr
+   already built A, so a complex SVD of the factor does it. The fourth-power
+   memory is gone with nothing approximated (47.1 MB → 4.75 MB at pupilSamples
+   32). Neither of the entry's other two predictions held: the untruncated
+   decomposition is slower than `hopkinsImage` rather than equal to `abbeImage`,
+   and truncation is lossy — 99% of the light needs 48 of 69 modes.
+   `hopkinsImage` still has no caller in `renderBrightfield`, and what would
+   settle that is a wall-time measurement nobody has taken.
 10. ~~Make the ladder green off the author's machine (the structural problem
     above) before any of 3–9 is trusted on a second one.~~ The convention is in
     and the assertions are restated (see the structural problem above); what
