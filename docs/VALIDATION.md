@@ -151,6 +151,7 @@ whole ladder.
 | [6cm](#step-6cm--the-stop-shift-becomes-the-engines) | The chief ray through a displaced stop is a linear solve, not a search: Welford's S_II*, S_III*, S_V* over 13× in E, S_I and S_IV invariant to the BIT, § 6ae's −70.7001 the engine's | ✅ |
 | [6cn](#step-6cn--the-maps-quartic-computed-rather-than-fitted) | A chief-ray trace carried in power series, not Buchdahl transcribed: two closed forms to 5e-14, ΣS_V its cube — and § 6ck's fitted `b` is the ray AIMING, +2.6e-8 vs −9.4e-10 | ✅ |
 | [6co](#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray) | § 6cn.5's unexplained 2.9e-3 is the PLANE: the module reads at its own conjugate, these sit 2.3–4.2% off theirs, and the shift is linear in that defocus and zero at it | ✅ |
+| [6cp](#step-6cp--the-stage-seams-guard-sensitivity-one-power-down) | § 6ca.1's other pair is § 6cl's four integers one power down — P/2 on rows, P on columns, so the cost's column branch cancels them exactly — and § 6ca read its pair past § 6cd.1's edge | ✅ |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
 | [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
@@ -26158,12 +26159,20 @@ across § 6ca's own two guard ends that derivative moves **14%**, 0.6729 to
 
 **Still open.**
 
-- **The STAGE interact's guard sensitivity has not been asked the same
+- ~~**The STAGE interact's guard sensitivity has not been asked the same
   question.** § 6ca.1's 0.2637 and 0.6132 are read over the same four cells and
   the same guard secant, and the stage seam is first and second order in the
   tile where the field's is second and second (§ 6cf.2) — so the arithmetic
   above applies to it with a different power in front, and nothing here or there
-  has subtracted it. This is the cheapest open item on the branch.
+  has subtracted it. This is the cheapest open item on the branch.~~
+  **Closed at [§ 6cp](#step-6cp--the-stage-seams-guard-sensitivity-one-power-down)**,
+  and "a different power in front" was right twice over. The stage split is
+  `P/2 + shape` on rows and `P + shape` on columns with the SAME four integers
+  — both scans read one kept tile, bitwise — so on the registration COST the
+  prefactor cancels identically on the column branch and leaves `−P/2`, 86% of
+  the row branch, on the other. What the sentence did not anticipate is that the
+  two seams also part company: the stage form has § 6cd.1's edge and the field
+  form has none, and § 6ca.1's own pair is read at w = 1.3692, past it.
 - **What the balanced guard leaves is unnamed.** With `P` and both shape
   contrasts exactly zero, the 3.3 × 10⁻⁴ that live still reads is the only thing
   the split does not account for, and it is not the map's quadratic: it moves
@@ -26636,6 +26645,144 @@ conjugate; at the specimen plane it is −9.1066e-10.
   above needs, and it is not taken here.
 - **One wavelength.** Everything is at the ruler's 430 nm, inheriting § 6ck's
   monochromatic bullet exactly as § 6cn does.
+
+## Step 6cp — the stage seam's guard sensitivity, one power down
+
+Source: measurement only — no engine change ·
+Tests: `packages/core/test/stage-seam-guard.test.ts`
+
+§ 6cl closed by naming the cheapest thing left on this branch and not doing it:
+"**The STAGE interact's guard sensitivity has not been asked the same
+question.** § 6ca.1's 0.2637 and 0.6132 are read over the same four cells and
+the same guard secant, and the stage seam is first and second order in the tile
+where the field's is second and second — so the arithmetic above applies to it
+with a different power in front, and nothing here or there has subtracted it."
+
+**The hypothesis**, and it is § 6cl's own with one power changed: the stage
+interact's guard secant is `P/2 + shape` on rows and `P + shape` on columns,
+with `P` the SAME four integers § 6cl measured. **What would refute it** is the
+split's residual — a stage branch landing more than about a percent off would
+mean the axis difference carries something the matched field's arithmetic does
+not explain, a map coefficient moving with the guard being the obvious
+candidate, and that would be a finding about the seam rather than about the
+design.
+
+It does not. The register asked whether this "closes § 6ca.1's second pair the
+same way or shows the field seam and the stage seam differ". The answer is
+**both**, and the second half is where the step earns its place.
+
+### One prefactor, because both scans read one kept tile
+
+`fluorescenceMosaicGeometry` is computed before anything knows which seam is
+coming, so the kept half tile `w` is the same object under a field scan and a
+stage scan — equal to the **bit**, not to a tolerance, and so are the crop and
+the guard (§ 6cp.0). The four-integer prefactor is therefore not two numbers
+that happen to agree; it is one number read twice, and § 6cl.1's arithmetic —
+four shares, two guard ends, one cropped pixel, no lens anywhere — reproduces
+it from the stage scan's own geometry at five anchors to 1e-13.
+
+### The split is P/2 and P, and that one power is the whole of § 6ca.1's 133%
+
+§ 6ce.0: `rows ∝ w·(2 + 2w − w²)` and `cols ∝ w²·hypot(w, 2)`. One power of the
+kept tile against two, so the prefactor contributes half as much to one branch
+as to the other, and nothing is fitted — the shapes are the closed forms and the
+prefactor is the integers. Live, inside § 6cd.1's domain, the split reproduces
+both stage slopes to **0.17%** at w = 0.34 and 0.80% at 0.68, and does it again
+on the 4×/10× factorial whose floor is half again as big (§ 6cp.1). Per unit of
+the reference cell's own share the row branch's floor is `(m−1)(n−1)/n` — half
+of § 6cl.1's — exactly 0.5 for a double-and-double 2×2 and 0.75 for the 4×/10×
+step.
+
+So the two prefactors stand in the ratio **2**, exactly and by construction, and
+the live axis constant reads 1.7278 at w = 0.34 and 1.8097 at 0.68 (§ 6cp.2).
+That is § 6cf.2's `Lc(0)/Lr(0)` — the same one power of the tile — arriving in
+the four-cell **interact** rather than in a single cell's log slope, which is
+what § 6ca.1's number actually is. The field interact's two branches differ by
+under 3.7% at the same anchors, because neither of them has a first-order term
+to differ in.
+
+### And on the COST the prefactor cancels IDENTICALLY on one branch
+
+The registration cost is the stage interact over the field interact, so its
+guard slope is the difference of the two. On **columns** both seams are second
+order in the tile and both scans read one `w`, so `2·ln w` subtracts term for
+term: the column cost slope carries **no prefactor at all**, bitwise, and is two
+closed-form shapes and nothing else. On **rows** the stage seam has one power
+against the field's two, so `−P/2` survives — and it is **86%** of the whole row
+cost slope at w = 0.34, 74% at 0.68 (§ 6cp.3).
+
+§ 6ca.4 read the separation as "a small number produced by two large ones" and
+predicted the threshold ratio from it. The two large ones are the same four
+integers; on one branch they cancel exactly and on the other half of them
+survives, which is the mechanism under that sentence rather than a restatement
+of it.
+
+What the pure-shape prediction then misses is nameable too. With the prefactor
+gone the column cost slope is two closed forms, so its residual against live is
+the whole of what those forms leave out — § 6ce.2's `ε = (b/a)·cx²`, the radial
+map's second coefficient. It is therefore a statement about the field offset and
+not about the tile, and it **quadruples with the offset at one tile**: 0.581% at
+cx = 2 mm against 2.276% at 4 mm, w = 0.685 in both, a ratio of 3.92 against the
+law's 4.
+
+### Where the two geometries part company: the edge is the ROW branch's alone
+
+§ 6cd.1: the stage corner form is exact only while the kept tile has not reached
+the axis, `w < 1`, because at w = 1 the row seam's probe pair lands ON the axis
+and the column seam's does not. The field form has no edge in `w` at all —
+"this form's domain is a small field offset, not a small tile" (§ 6ci.3).
+
+Walked through it, that asymmetry is the split's (§ 6cp.4). The column half
+stays inside **1.1%** out to w = 1.71, monotone at each field offset; the row
+half runs 0.17% → 0.80% → 1.38%, changes sign near w ≈ 1.05, and reaches
+**−9.9%** at 1.20, **−24.7%** at 1.37 and −80% at 1.54.
+
+**Which locates § 6ca.1's own published pair outside the domain.** Its 0.2637
+and 0.6132 are read at j = 128 and a 2 mm anchor, and that is **w = 1.3692** —
+§ 6ca's own quoted "ratio 1.871" divided by § 6cf.5's 1.36642 unit correction,
+to five figures, which is an independent confirmation of that correction on a
+quantity § 6cf never read. So the published axis difference is a reading past
+the edge: its column half is still good to 0.54%, its row half is a quarter away
+from the form, and the in-domain axis constant is **1.73 to 1.95** rather than
+2.33.
+
+### And it is the design, not the optics
+
+Hold the guard in PIXELS rather than in resolution cells, leave the matched
+field untouched, and the stage interact's guard sensitivity falls by **12657×**
+and **11806×** — further than the field's 2180× — with `P` at 7e-15 and both
+shapes at 6e-8 (§ 6cp.5). The cost's two branches go with it, from −0.311 and
+−0.104 to −1.5e-4 and −1.8e-4, which is § 6ca's entire separation. As at § 6cl.4
+the counterfactual is a measurement and not a proposal: equal pixels is four
+different physical guards, a factor of four across these cells, and a guard is
+counted in cells because the wrap it exists to contain is.
+
+| Rung | What it pins | |
+| --- | --- | --- |
+| **§ 6cp.0 — one prefactor, because both scans read one kept tile** | `w`, the guard and the crop are bitwise equal under a field scan and a stage scan at three lenses and three offsets, so `P` is one number read twice — `P − P_field` exactly 0, and § 6cl.1's four-integer arithmetic reproduces the stage scan's own reading to 1e-13 at five anchors and on both factorials | ✅ |
+| **§ 6cp.1 — so the stage split is P/2 on rows and P on columns** | one power of the kept tile against two (§ 6ce.0): the split reproduces both live stage slopes to 0.17% at w = 0.34 and under 0.9% across the domain, and again on the 4×/10× set; per unit reference share the row floor is `(m−1)(n−1)/n`, 0.5 and 0.75, half of § 6cl.1's | ✅ |
+| **§ 6cp.2 — and that one power IS § 6ca.1's 133%** | the two prefactors are in the ratio 2 exactly, and the live axis constant reads 1.7278 at w = 0.34 and 1.8097 at 0.68 — § 6cf.2's `Lc(0)/Lr(0)` on the four-cell interact — where the field interact's own two branches differ by under 3.7% at the same anchors | ✅ |
+| **§ 6cp.3 — so on the COST the prefactor cancels identically on columns** | both column seams are second order in the tile and both scans read one `w`, so the column cost slope is pure shape with a bitwise-zero prefactor (−0.10388 live against −0.10474 predicted), while the row's keeps `−P/2` — 86% of it at w = 0.34 and 74% at 0.68 | ✅ |
+| **...and what the shapes then miss is § 6ce.2's map, carrying cx²** | the column cost residual is 0.581% at a 2 mm anchor against 2.276% at 4 mm with the tile held at w = 0.685, a ratio of 3.92 against the `(b/a)cx²` law's 4 | ✅ |
+| **§ 6cp.4 — and the form's edge is the ROW branch's alone** | walked from w = 0.17 to 1.71 the column split stays inside 1.1% and monotone per offset, where the row split changes sign near 1.05 and runs −9.9%, −24.7%, −80%; § 6ca.1's own pair sits at w = 1.3692, which is its quoted 1.871 over § 6cf.5's 1.36642 to five figures, so the in-domain axis constant is 1.73–1.95 and not 2.33 | ✅ |
+| **§ 6cp.5 — balance the share and both stage branches go** | the guard held in pixels with the matched field untouched takes 0.3143/0.5431 to −2.48e-5/−4.60e-5, 12657× and 11806× against the field's 2180×, with `P` under 1e-13 and both shapes under 1e-6; the cost's two branches fall to 1.5e-4 and 1.8e-4, and the price is four different physical guards | ✅ |
+
+**Still open.**
+
+- **What the balanced guard leaves is still unnamed, and now on two seams.**
+  § 6cl.3's 3.3e-4 residue has a stage counterpart — −2.5e-5 and −4.6e-5, an
+  order smaller and of the OTHER SIGN where the field's is positive. Nothing
+  says what either is, and the sign difference is a new fact about them rather
+  than a lead: no rung here varies anything that would separate the two.
+- **The row split's sign change near w ≈ 1.05 is bracketed, not located.**
+  § 6cd.1 says the worst probe leaves the corner at w = 1; the split's residual
+  crosses zero a little above that, and whether the offset is the map's `ε` or
+  the moved argmax is unmeasured. It is the same unwritten form § 6cd, § 6ce and
+  § 6cf all stopped at, seen once more.
+- **Inherited and untouched**: § 6cl's unnamed 3.3e-4 itself, § 6bz.4's per-cell
+  turn and § 6ca's branch inversion as one unwritten event, § 6ch's coma residue
+  changing sign near NA 0.21, the plateau's mechanism, § 6bs.6's two orderings,
+  and why a coarser pupil puts light outside the box (§ 6cc.2).
 
 ## Step 8a — the photon zero point, and the one draw a camera makes
 

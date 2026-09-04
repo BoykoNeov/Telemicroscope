@@ -271,7 +271,7 @@ number and land the day one arrives.
 - The DIN optical tube length digit (§ 6b) — a datasheet, and it moves labels
   only.
 
-## C. The fluorescence-mosaic chain, § 6bk → § 6cl
+## C. The fluorescence-mosaic chain, § 6bk → § 6cp
 
 Twenty-eight steps: twenty-one carry *Source: measurement only — no engine
 change*, six more (§ 6bt–§ 6by) name no source at all, and one (§ 6bk) is an
@@ -308,9 +308,32 @@ step:
   (4× → 10×) "wants a non-integer `pupilSamples` at every power-of-two size"
   and "would be an engine change". Without it, whether any of the six
   interactions is a slope is neither confirmed nor refuted.
-- **The stage interact's guard sensitivity**, asked § 6cl's question — "the
+- ~~**The stage interact's guard sensitivity**, asked § 6cl's question — "the
   cheapest open item on the branch", one file, and it either closes § 6ca.1's
-  second pair the same way or shows the field seam and the stage seam differ.
+  second pair the same way or shows the field seam and the stage seam differ.~~
+
+  ✅ **CLOSED at [§ 6cp](VALIDATION.md#step-6cp--the-stage-seams-guard-sensitivity-one-power-down),
+  and the answer is BOTH.** Same way: the stage split is the same four integers
+  with one power off — `P/2` on rows against `P` on columns, because the stage
+  row seam is first order in the kept tile where every other seam on the branch
+  is second — reproducing both live slopes to 0.17% at the smallest tile. What
+  that buys is the registration cost: on COLUMNS both seams are second order and
+  both scans read one kept tile bitwise, so the prefactor cancels **identically**
+  and the column cost slope is pure shape; on ROWS `−P/2` survives and is 86% of
+  the whole slope. § 6ca.4's "small number produced by two large ones" is two
+  branches of one cancellation, and balancing the share takes the stage
+  sensitivity down by 12657× against the field's 2180×. Differ: **§ 6cd.1's edge at
+  `w = 1` is the ROW branch's alone** — the column split holds to 1.1% out to
+  w = 1.71, monotone per offset, where the row split changes sign near 1.05 and
+  runs to −80%. That asymmetry is the new thing, and § 6cf could not have said
+  it because it never split the interact into prefactor and shape; the field
+  form has no edge in `w` at all. What follows from it is that § 6ca.1's own
+  0.2637 and 0.6132, read at w = 1.3692, have a good column half and a row half
+  a quarter away from the form — so the in-domain axis constant is 1.73–1.95 and
+  not 2.33. (That the anchor is past the edge is § 6cf.5's finding, not this
+  one; what is new is which half of the pair pays for it. The w confirms
+  § 6cf.5's 1.36642 unit correction to five figures on a quantity it never
+  read.)
 
 **Parked, by the stop rule** — the residue and the forms nobody wrote:
 § 6cl's unnamed 3.3·10⁻⁴; § 6bz.4's per-cell turn and § 6ca's branch

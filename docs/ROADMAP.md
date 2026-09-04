@@ -25,8 +25,13 @@ plane and the quartic is the ray. § 5d.3 then closed register item 14, the last
 because the Kolmogorov spectrum has no smallest eddy, and Tatarski's inner scale
 gives it one — the same 4× refinement that multiplied the blur by 1.26 now
 multiplies it by 0.99, and the converged value is bracketed by a closed form
-whose Γ(1/6) is computed rather than quoted. The next unstruck entry is
-Hopkins' TCC (D).
+whose Γ(1/6) is computed rather than quoted. § 6cp then asked § 6cl's question
+of the stage seam and got the same four integers back one power down — so on the
+registration cost the prefactor cancels EXACTLY on one branch and half of it
+survives on the other, which is the mechanism under § 6ca's "separation"; and
+§ 6ca's own published pair turns out to have been read past the domain edge the
+stage form has and the field form does not, where it is the ROW half that pays.
+The next unstruck entry is Hopkins' TCC (D).
 
 ## Build order
 
