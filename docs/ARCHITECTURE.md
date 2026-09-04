@@ -82,6 +82,24 @@ the fine FFT grid**, and generate the atmosphere screen directly at fine
 resolution. Consequence for the wave-layer API: OPD is exposed as *a fitted
 basis plus a sampler*, never as a fixed-size array.
 
+**One piece of engine state is not re-entrant, and it is deliberate.**
+`wave/polychromatic`'s resampler (§ 8c) keeps its first pass's scratch buffer in
+a module-level variable rather than allocating one per call. A render resamples
+one plane per wavelength per frame and a mosaic does that per tile, so the
+allocation dominated everything else — the suite's slowest rung ran 4× longer
+with a per-call scratch than with a reused one, against arithmetic that is only
+2× a bilinear tap's. It is safe because `resample` is entered once at a time:
+no recursion, no `await` inside it, and one thread per process.
+
+**That is an invariant, not an accident, and the failure mode if it is broken is
+silent.** Two calls interleaved on one thread would overwrite each other's
+scratch and return *wrong pixel values* rather than throwing. So the day the
+per-wavelength loop in `spectralStack` becomes a `Promise.all`, or planes are
+rendered on a worker pool sharing one module instance, the buffer has to become
+per-call or per-worker first. Nothing else in the engine holds mutable state
+across calls; this is the exception and it is written down here so that the
+constraint lives somewhere a caller would look.
+
 ## Non-sequential future-proofing (three commitments)
 
 Ghost reflections and stray light need a different *scheduler*, not different

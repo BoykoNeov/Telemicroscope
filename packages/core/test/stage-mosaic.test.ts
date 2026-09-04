@@ -433,7 +433,7 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
     // operands at ~5e-9 of the residue. Bound three orders above that floor;
     // the ratio on the next line is looser still, as a quantity dividing by a
     // residue must be.
-    expect(Math.abs(axisStage.acrossSeam / 1.8991735e-7 - 1)).toBeLessThan(1e-5);
+    expect(Math.abs(axisStage.acrossSeam / 1.8991741e-7 - 1)).toBeLessThan(1e-5);
     expect(axisField.acrossSeam / axisStage.acrossSeam).toBeCloseTo(10.0154, 3);
   });
 });

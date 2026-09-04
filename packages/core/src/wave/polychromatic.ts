@@ -484,6 +484,12 @@ export function spectralStack(
 
   const meanWavelengthNm = samples.reduce((acc, w) => acc + w.nm * w.weight, 0) / totalWeight;
 
+  // Sequential on purpose, and not only because `adaptivePsf` is synchronous:
+  // the resampler below keeps ONE scratch buffer between calls (§ 8c, and
+  // ARCHITECTURE's precision section), so two of these running interleaved would
+  // overwrite each other's first pass and return wrong pixels rather than
+  // throwing. Parallelising this loop means giving `resample` a per-call or
+  // per-worker buffer first.
   const each = samples.map((w) => ({
     sample: w,
     weight: w.weight / totalWeight,
