@@ -117,14 +117,15 @@ export interface PhotonExpectation {
    * the grid, as one number.
    *
    * **It is a reading and not a target, and it is not 1 even for a clear
-   * aperture.** Three things are in it and only the first is optics: the pupil's
+   * aperture.** Two things are in it and only the first is optics: the pupil's
    * real losses (obstruction, spider, Fresnel — 0.977 for a Newtonian, ~0.90 for
-   * an uncoated achromat), light that fell off the grid
-   * (`SpectralStack.truncatedFraction` upstream), and the stack's own resampling
-   * error, which on the § 8a fixture runs +0.3% to +3.0% per plane and which
-   * nothing upstream reports (§ 8a.9). Reported rather than divided out, per
-   * `truncatedFraction`'s own rule: a renormalized frame would hide all three
-   * under a plausible number.
+   * an uncoated achromat) and light that fell off the grid
+   * (`SpectralStack.truncatedFraction` upstream). There was a third — the
+   * stack's own resampling error, +0.3% to +3.0% per plane and reported by
+   * nothing — and § 8c removed it: the resampler now conserves, so what is left
+   * is a loss rather than a mixture of a loss and a gain. Reported rather than
+   * divided out, per `truncatedFraction`'s own rule: a renormalized frame would
+   * hide both under a plausible number.
    */
   readonly deliveredFraction: number;
   /**
@@ -382,9 +383,11 @@ function checkSkyWeights(
   }
   for (let i = 0; i < throughput.length; i++) {
     const t = throughput[i]!;
-    // Not bounded above by 1: `spectralStack`'s resampling can hand back a plane
-    // up to 3% heavy (§ 8a.11), and clamping that would hide the open problem
-    // rather than report it.
+    // Positive and finite is the whole requirement. It was once not bounded above
+    // by 1 either — `spectralStack`'s resampling could hand back a plane 3% heavy
+    // (§ 8a.11) — which § 8c fixed at the source; the check stays as it is
+    // because a throughput is a positive number and this is not the place to
+    // re-derive where it came from.
     if (!(t > 0) || !Number.isFinite(t)) {
       throw new Error(
         `the pupil's throughput at ${photons[i]!.nm} nm must be positive and finite, got ${t} — a ` +

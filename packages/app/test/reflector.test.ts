@@ -46,7 +46,7 @@ import {
  * rather than a design property.
  *
  * The fourth is that the corrector's excess over that floor tracks its own A₄,
- * approaching a square law as the plate weakens.
+ * climbing toward a square law as the plate weakens, and stopping below it.
  *
  * The fifth arrived with the two pupil masks and is the panel's largest single
  * finding: **the field at which a minimum diagonal stops passing the chief ray**.
@@ -260,11 +260,18 @@ describe("the corrector's dispersion tracks its own figure", () => {
   it("approaches a square law in A₄ as the plate weakens", () => {
     // A₄ ∝ F₁⁻³, so steepening the primary strengthens the figure fast. The
     // excess over the all-mirror floor (the Cassegrain on the SAME layout, which
-    // is the only honest subtraction available) grows as A₄^p with p → 2 from
-    // below: measured 2.07 over F₁ 3.5→4, 1.92 over 3→3.5, and 1.45 over
-    // 2.5→3 where the excess is 0.64 Airy radii and the small-aberration form
-    // has plainly saturated. The rung pins the ordering and the top pair, not a
-    // single exponent, because the saturation is real physics and not noise.
+    // is the only honest subtraction available) grows as A₄^p with p climbing
+    // toward 2 from below as the plate weakens: measured 1.40 over F₁ 2.5→3,
+    // where the excess is 0.62 Airy radii and the small-aberration form has
+    // plainly saturated, and 1.90 over 3→3.5.
+    //
+    // The weakest pair, 3.5→4, is the least robust of the three and is bounded
+    // rather than pinned. Its excess is 0.046 Airy radii — a difference between
+    // two readings that are each a small fraction of an Airy radius — so it
+    // carries the whole conditioning of the subtraction: § 8c's resampler moved
+    // it from 2.07 to 1.82 while moving the 3→3.5 pair by 0.008. What survives
+    // that is the climb and the middle exponent, and this rung now says so
+    // rather than asserting a monotone ordering the top pair cannot carry.
     const at = (primaryFocalRatio: number) => {
       const spec = { ...SPEC, primaryFocalRatio };
       const a4 = Math.abs(describeReflector("sct", spec).correctorA4!);
@@ -274,13 +281,20 @@ describe("the corrector's dispersion tracks its own figure", () => {
     const weak = at(4);
     const mid = at(3.5);
     const strong = at(3);
+    const strongest = at(2.5);
     expect(weak.excess).toBeGreaterThan(0);
     expect(mid.excess).toBeGreaterThan(weak.excess);
     expect(strong.excess).toBeGreaterThan(mid.excess);
+    expect(strongest.excess).toBeGreaterThan(strong.excess);
     const power = (a: { a4: number; excess: number }, b: { a4: number; excess: number }) =>
       Math.log(a.excess / b.excess) / Math.log(a.a4 / b.a4);
-    expect(power(mid, weak)).toBeCloseTo(2.07, 1);
-    expect(power(strong, mid)).toBeCloseTo(1.92, 1);
+    expect(power(strongest, strong)).toBeCloseTo(1.40, 1);
+    expect(power(strong, mid)).toBeCloseTo(1.90, 1);
+    // The climb, which is the claim: saturated at the strong end, near 2 at the
+    // weak end, and below 2 everywhere.
+    expect(power(strongest, strong)).toBeLessThan(power(strong, mid));
+    expect(power(mid, weak)).toBeGreaterThan(1.6);
+    expect(power(mid, weak)).toBeLessThan(2);
   });
 });
 

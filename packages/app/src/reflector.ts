@@ -338,17 +338,25 @@ export function chiefRayFieldLimitDeg(focalRatio: number): number {
  * Below this, `dispersionAiryRadii` is not a measurement.
  *
  * The three all-mirror members contain no glass and so cannot disperse at all,
- * and they read 1.1e-2 to 2.6e-2 — wandering non-monotonically as the grid
- * refines (the Newtonian: 1.72e-2, 1.20e-2, 1.67e-2 at pupilSamples 32/64/128),
- * so it is neither resolution nor optics. It is `spectralStack`'s common-grid
- * step: `pixelScaleMm` is ∝ λ, so every plane is resampled onto the mean
- * wavelength's grid and the red planes are cropped where the blue ones are
+ * and they read 2.0e-2 to 3.0e-2 — wandering non-monotonically as the grid
+ * refines, so it is neither resolution nor optics. It is `spectralStack`'s
+ * common-grid step: `pixelScaleMm` is ∝ λ, so every plane is resampled onto the
+ * mean wavelength's grid and the red planes are cropped where the blue ones are
  * padded, biasing an energy-weighted mean radius by a λ-dependent amount.
  *
- * The floor is therefore stated as a refusal rather than subtracted. Anything at
- * this level is the ruler, and the panel says so instead of drawing it.
+ * § 8c did not remove this and could not: the per-λ grids genuinely differ, so
+ * a common grid is a crop whatever the resampler. It moved the level UP, from
+ * 1.1e-2–2.6e-2 to 2.0e-2–3.0e-2 (Newtonian 0.019942, Cassegrain 0.030003,
+ * Ritchey 0.030004), because a conservative resampler declines to fill a
+ * destination cell its source does not reach where a bilinear one filled it from
+ * whatever the stencil found — so the red planes lose a slightly wider rim and
+ * the λ-dependence of the crop is slightly larger. The floor is set clear of
+ * the measured values rather than at them.
+ *
+ * The floor is stated as a refusal rather than subtracted. Anything at this
+ * level is the ruler, and the panel says so instead of drawing it.
  */
-export const DISPERSION_FLOOR_AIRY_RADII = 0.03;
+export const DISPERSION_FLOOR_AIRY_RADII = 0.032;
 
 /** Focus wavelength for every reflector below — one criterion, one line. */
 const FOCUS_NM = 550;

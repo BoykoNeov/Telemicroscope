@@ -183,12 +183,15 @@ describe("§ 6j.2 — one physical grid, because the pixel scale is ∝ λ", () 
       pupilSamples: PUPIL_SAMPLES,
     });
     expect(stacked.values.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
-    // Zero here, and that is a measurement rather than a guarantee: these
-    // kernels are compact and stay on the grid across a 200 nm band. The field
-    // exists so a caller who pushes the band or shrinks the grid until they do
-    // not is told, instead of receiving a renormalized image that is quietly
-    // missing light — `wave/polychromatic`'s `truncatedFraction`, for its reason.
-    expect(stacked.truncatedFraction).toBeLessThan(1e-9);
+    // 2.0e-3, and it used to read below 1e-9. Neither number is the light this
+    // band loses: the old one was the bilinear resampler's excess cancelling the
+    // loss inside the clamp (§ 8a.11, closed at § 8c), and the new one is the
+    // rim of destination cells a 200 nm band puts PARTLY outside the widest
+    // component's own grid, which the conservative resampler declines to fill
+    // from a source that does not reach them. The kernel is renormalized after
+    // this, so what the field buys is that the loss is stated instead of being
+    // quietly absorbed — which is what the field is for.
+    expect(stacked.truncatedFraction).toBeCloseTo(2.045e-3, 5);
   });
 
   it("with the scale held fixed, band width does NOTHING — so λ enters only there", () => {

@@ -602,12 +602,12 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crosses b
     // reading and the two conventions are not the same number (§ 6bk.5's bridge
     // is what says how far apart). Comparing across them would be a 0.2% error
     // inside a 4.6% finding — small, and still the wrong comparison.
-    expect(F20_AXIS().freeGain).toBeCloseTo(0.97220158, 7);
+    expect(F20_AXIS().freeGain).toBeCloseTo(0.97220944, 7);
     expect(F20_AXIS().freeGain).toBeLessThan(1);
-    expect(1.01788 / F20_AXIS().freeGain).toBeCloseTo(1.046985, 5);
+    expect(1.01788 / F20_AXIS().freeGain).toBeCloseTo(1.046976, 5);
 
     // At the edge it still buys nearly everything, as on the control.
-    expect(F20_EDGE().freeGain).toBeCloseTo(193.71560, 4);
+    expect(F20_EDGE().freeGain).toBeCloseTo(193.720140, 4);
     expect(F20_EDGE().freeGain / F20_AXIS().freeGain).toBeGreaterThan(100);
   });
 
@@ -616,9 +616,9 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crosses b
     // aperture's 1195×. Across twice the lever it is 1.185× — still nothing, and
     // now known to be SATURATING rather than merely small: 1.136× over the first
     // 2.5× and 1.043× more over the next 2×.
-    expect(F20_AXIS().rendOverFree).toBeCloseTo(1414.32847, 4);
-    expect(F20_AXIS().rendOverFree / 1193.3645).toBeCloseTo(1.185164, 5);
-    expect(F20_AXIS().rendOverFree / 1355.9474).toBeCloseTo(1.043055, 5);
+    expect(F20_AXIS().rendOverFree).toBeCloseTo(1414.31669, 4);
+    expect(F20_AXIS().rendOverFree / 1193.3645).toBeCloseTo(1.185151, 5);
+    expect(F20_AXIS().rendOverFree / 1355.9474).toBeCloseTo(1.043047, 5);
     expect(F20_AXIS().rendOverFree / 1193.3645).toBeLessThan(1195.2705 / 10);
 
     // And at the edge the split is flat outright — the 10× and the 20× agree to 0.2%.
@@ -631,7 +631,7 @@ describe("§ 6bl.6 — the flat field on a third lens, and a gain that crosses b
     // scanner's repeating per-tile flat field is right for a stage scan and wrong
     // for a field-scanned mosaic, which is a statement about the GEOMETRY and not
     // the glass. Ten measurements over four lenses now, never once below one.
-    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.2012641, 6);
+    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.2023671, 6);
     expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0914923, 6);
     expect(F20_AXIS().scannerVsRaw).toBeGreaterThanOrEqual(1);
     expect(F20_EDGE().scannerVsRaw).toBeGreaterThanOrEqual(1);

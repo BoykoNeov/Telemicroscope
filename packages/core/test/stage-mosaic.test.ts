@@ -417,14 +417,14 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
   it("and what is left to correct is 7.6× smaller than a field scan's, and is the map", () => {
     const stage = mosaicSeamStep(EDGE_STAGE_BLANK.composed, EDGE_STAGE_GEOMETRY);
     const field = mosaicSeamStep(EDGE_FIELD_BLANK.composed, EDGE_FIELD_GEOMETRY);
-    expect(stage.acrossSeam).toBeCloseTo(6.9685061e-4, 10);
+    expect(stage.acrossSeam).toBeCloseTo(6.9688142e-4, 10);
     expect(field.acrossSeam).toBeCloseTo(5.2943218e-3, 9);
-    expect(field.acrossSeam / stage.acrossSeam).toBeCloseTo(7.59745, 4);
+    expect(field.acrossSeam / stage.acrossSeam).toBeCloseTo(7.59716, 4);
     // The residue is the rasterizer's Jacobian and nothing of the glass, which
     // is why § 6bi.3's axial swap is the whole picture here: 1.387e-2 for a
     // field scan against 7.013e-4, and the free field reaches none of it.
-    expect(edgeRendered.span).toBeCloseTo(7.0130639e-4, 10);
-    expect(renderedFlatField(SYSTEM, BLANK, EDGE_FIELD).span).toBeCloseTo(1.3870242e-2, 9);
+    expect(edgeRendered.span).toBeCloseTo(7.0133699e-4, 10);
+    expect(renderedFlatField(SYSTEM, BLANK, EDGE_FIELD).span).toBeCloseTo(1.3870254e-2, 9);
 
     const axisStage = mosaicSeamStep(AXIS_STAGE_BLANK.composed, AXIS_STAGE_GEOMETRY);
     const axisField = mosaicSeamStep(AXIS_FIELD_BLANK.composed, AXIS_FIELD_GEOMETRY);
@@ -433,8 +433,8 @@ describe("§ 6bj.4 — the flat field inverts: the free one goes flat, the scann
     // operands at ~5e-9 of the residue. Bound three orders above that floor;
     // the ratio on the next line is looser still, as a quantity dividing by a
     // residue must be.
-    expect(Math.abs(axisStage.acrossSeam / 1.8883381e-7 - 1)).toBeLessThan(1e-5);
-    expect(axisField.acrossSeam / axisStage.acrossSeam).toBeCloseTo(10.0729, 3);
+    expect(Math.abs(axisStage.acrossSeam / 1.8991735e-7 - 1)).toBeLessThan(1e-5);
+    expect(axisField.acrossSeam / axisStage.acrossSeam).toBeCloseTo(10.0154, 3);
   });
 });
 

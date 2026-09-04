@@ -311,7 +311,12 @@ describe("§ 3b's guards are on screen, because both bite inside the sliders", (
     // …while the panel's default configuration is clean on both, so the guards
     // are informative rather than permanently red.
     const nominal = renderCamera({ ...spec("achromat"), pitchUm: 3.76, seconds: 1, gain: 1, magnitudeAB: MAGNITUDE_RANGE.preset });
-    expect(nominal.truncatedFraction).toBe(0);
+    // 2.3e-4 rather than the exactly-0 this read before § 8c. That zero was the
+    // old resampler's excess filling the clamp, not a frame with nothing off the
+    // edge; what is here now is the red planes' skirts, honestly counted. Bounded
+    // rather than pinned, because it is a truncation and the point of the rung is
+    // that the guard is not red.
+    expect(nominal.truncatedFraction).toBeLessThan(1e-3);
     expect(nominal.geometricWeight).toBeLessThan(1e-3);
   });
 });
@@ -654,7 +659,14 @@ describe("§ 8b on the panel: the sky, and the depth it decides", () => {
     expect(sky.deliveredFraction).toBe(none.deliveredFraction);
     // …and what it does touch, it touches by exactly the background: the
     // brightest pixel gains the pedestal and nothing else.
-    expect(sky.peakPixelPhotons - none.peakPixelPhotons).toBeCloseTo(sky.skyPhotonsPerPixel, 12);
+    // A difference of two counts of order 10⁵ against a pedestal of order 1, so
+    // what is left after the cancellation is ulps of the LARGE number and an
+    // absolute bound on the small one is a bound on the wrong quantity. Stated
+    // relative to what cancels, per the recorded-reading convention.
+    expect(
+      Math.abs(sky.peakPixelPhotons - none.peakPixelPhotons - sky.skyPhotonsPerPixel) /
+        none.peakPixelPhotons,
+    ).toBeLessThan(1e-15);
   });
 
   it("the frame with a sky exists without a seed — a background is not a property of the draw", () => {

@@ -303,8 +303,8 @@ describe("§ 6ba — the spectral emitter density", () => {
     // wavelength, so this integrates 3.80e-4 redder in x and 3.71e-4 in y than
     // the same render with the weight divided away. Still white to three
     // decimals, which is all this rung ever claimed of it.
-    expect(right.x).toBeCloseTo(0.335980, 5);
-    expect(right.y).toBeCloseTo(0.338171, 5);
+    expect(right.x).toBeCloseTo(0.335951, 5);
+    expect(right.y).toBeCloseTo(0.338178, 5);
     expect(wrong.x).toBeGreaterThan(right.x + 0.02);
     expect(wrong.y).toBeGreaterThan(right.y);
   });
@@ -418,7 +418,7 @@ describe("§ 6ba — the spectral emitter density", () => {
     //
     // They are not the same white, and since § 6bc that is a measurement rather
     // than a rounding. The traced stack carries the objective's transmission,
-    // which rises with wavelength, so it integrates 3.9e-3 redder in x than the
+    // which rises with wavelength, so it integrates 3.6e-3 redder in x than the
     // ideal pupil's — whose weight is the same at every wavelength and so
     // cancels exactly. The mechanism is § 6bc.3's, read here on a second scene.
     const tracedWhite = integratedChromaticity(traced);
@@ -427,11 +427,11 @@ describe("§ 6ba — the spectral emitter density", () => {
       expect(w.x).toBeCloseTo(0.3335, 2);
       expect(w.y).toBeCloseTo(0.3341, 2);
     }
-    expect(idealWhite.x).toBeCloseTo(0.332093, 5);
-    expect(idealWhite.y).toBeCloseTo(0.332604, 5);
-    expect(tracedWhite.x).toBeCloseTo(0.335980, 5);
-    expect(tracedWhite.y).toBeCloseTo(0.338171, 5);
-    expect(tracedWhite.x - idealWhite.x).toBeGreaterThan(3.8e-3);
+    expect(idealWhite.x).toBeCloseTo(0.332394, 5);
+    expect(idealWhite.y).toBeCloseTo(0.333152, 5);
+    expect(tracedWhite.x).toBeCloseTo(0.3359510, 5);
+    expect(tracedWhite.y).toBeCloseTo(0.338178, 5);
+    expect(tracedWhite.x - idealWhite.x).toBeGreaterThan(3.5e-3);
 
     const tracedCore = pixelChromaticity(traced, c, c);
     const tracedSkirt = pixelChromaticity(traced, c + 24, c);
@@ -439,8 +439,8 @@ describe("§ 6ba — the spectral emitter density", () => {
     // — § 6bc's tilt is a property of the stack and not of where in it you look.
     expect(tracedCore.x).toBeCloseTo(0.410663, 5);
     expect(tracedCore.y).toBeCloseTo(0.442636, 5);
-    expect(tracedSkirt.x).toBeCloseTo(0.228763, 5);
-    expect(tracedSkirt.y).toBeCloseTo(0.182984, 5);
+    expect(tracedSkirt.x).toBeCloseTo(0.228726, 5);
+    expect(tracedSkirt.y).toBeCloseTo(0.182834, 5);
 
     const idealCore = pixelChromaticity(ideal, c, c);
     const idealSkirt = pixelChromaticity(ideal, c + 24, c);
@@ -723,16 +723,16 @@ describe("§ 6ba — the spectral emitter density", () => {
 
     const fields = [0.2, 0.4, 0.8];
     const measured = fields.map(displacement);
-    expect(measured[0]!.px).toBeCloseTo(0.11493, 4);
-    expect(measured[1]!.px).toBeCloseTo(0.23004, 4);
-    expect(measured[2]!.px).toBeCloseTo(0.46229, 4);
+    expect(measured[0]!.px).toBeCloseTo(0.11499, 4);
+    expect(measured[1]!.px).toBeCloseTo(0.23016, 4);
+    expect(measured[2]!.px).toBeCloseTo(0.46254, 4);
 
     // Displacement over field height — the fractional magnification difference
     // between the two channels. Constant is the whole claim.
     const fractional = measured.map((m, i) => m.mm / fields[i]!);
     for (const f of fractional) expect(f).toBeCloseTo(1.79e-3, 4);
     expect(Math.max(...fractional) / Math.min(...fractional) - 1).toBeLessThan(6e-3);
-    expect(measured[2]!.mm * 1000).toBeCloseTo(1.4374, 3);
+    expect(measured[2]!.mm * 1000).toBeCloseTo(1.4382, 3);
   });
 
   /**

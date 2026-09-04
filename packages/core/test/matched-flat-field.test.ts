@@ -54,7 +54,7 @@ import type { OpticalSystem } from "../src/trace/system";
  * ## The headline: § 6bn.6's agreement to 2.7e-4 was the two frames' sizes
  *
  * § 6bm.6 read the axial free-field gain at 10× and § 6bn.6 at 20×, in one
- * convention, and found **0.9722786 against 0.9720138 — agreeing to 2.7e-4**.
+ * convention, and found **0.9722866 against 0.9720138 — agreeing to 2.7e-4**.
  * § 6bn.6 was careful not to call two points a trend and it was right to be, but
  * the caution was about the wrong risk. The 20× frame is **half** the 10× one at
  * the same sampling, so the two readings were taken over fields differing 2:1.
@@ -103,7 +103,7 @@ import type { OpticalSystem } from "../src/trace/system";
  * | split, edge | 0.991476 | 0.877035 – 0.882268 | grows **×16.3** |
  * | free gain, axis | 0.234860 | 6.980676 – 8.076977 | **CROSSES 1**, in all four |
  * | free gain, edge | 1.213022 | 0.327525 – 1.014993 | **REFUSED** — straddles 1 |
- * | scanner, axis | 0.991687 | 0.224418 – 0.851354 | **REFUSED** — spans 3.79× |
+ * | scanner, axis | 0.991687 | 0.214456 – 0.851601 | **REFUSED** — spans 3.97× |
  * | scanner, edge | 0.990397 | 0.885293 – 1.040864 | **REFUSED** — straddles 1 |
  *
  * - **The split is the solid one.** Its family spread is 0.53% on the axis and
@@ -159,8 +159,8 @@ import type { OpticalSystem } from "../src/trace/system";
  * `pupilSamples` at every power-of-two size.
  *
  * External numbers, cited and reproduced as the license (§ 6bp.1): § 6bm.6's
- * 1355.9999 and 0.9722786; § 6bn.6's 1414.4784, 1.03602668, 1.13666851,
- * 1.15943644 and 0.97201382; § 6bn.3's 1.13546654 and 1.16816836 and its
+ * 1355.9886 and 0.9722866; § 6bn.6's 1414.4666, 1.03602668, 1.13666851,
+ * 1.15943368 and 0.97202182; § 6bn.3's 1.13546786 and 1.16817043 and its
  * 1.0416581 / 0.9772599 render-free interactions; § 6bm.7's 0.06447406 axial
  * vertex; § 6bo.2's 0.7948724 and 0.7862301; § 6bo.1's 2.031009601158958 field
  * factor and its 1.55% traced-aperture residual.
@@ -420,17 +420,17 @@ const extentOf = (system: OpticalSystem, size: number, ps: number): number =>
 
 // --- § 6bm's and § 6bn's published readings, cited -------------------------
 /** § 6bm.6's axial-stage split and free-field gain on the 10×/0.10. */
-const ROF_AXIS_10 = 1355.9999;
-const FREE_AXIS_10 = 0.9722786;
+const ROF_AXIS_10 = 1355.9886;
+const FREE_AXIS_10 = 0.9722866;
 /** § 6bn.3's edge splits, 10×/0.10 and 10×/0.20. */
-const ROF_EDGE_10 = 1.13546654;
-const ROF_EDGE_10F = 1.16816836;
+const ROF_EDGE_10 = 1.13546786;
+const ROF_EDGE_10F = 1.16817043;
 /** § 6bn.6's four readings on the two 20× lenses. */
-const ROF_AXIS_20 = 1414.4784;
+const ROF_AXIS_20 = 1414.4666;
 const ROF_AXIS_20F = 1.03602668;
 const ROF_EDGE_20 = 1.13666851;
-const ROF_EDGE_20F = 1.15943644;
-const FREE_AXIS_20 = 0.97201382;
+const ROF_EDGE_20F = 1.15943368;
+const FREE_AXIS_20 = 0.97202182;
 /** § 6bm.7's axial vertex on the fast 10×. */
 const AXC_10F = 0.06447406;
 /** § 6bn.3's two render-free interactions, and § 6bo.2's matched ones. */
@@ -566,17 +566,17 @@ describe("§ 6bp.3 — the split does not reverse; its interaction was understat
   it("the axial interaction goes 1.0063 to 1.0477, and the family agrees to 0.52%", () => {
     const branch = branchInteraction("rendOverFree", "axis");
     const family = across("rendOverFree", "axis");
-    expect(branch).toBeCloseTo(0.993701489, 8);
+    expect(branch).toBeCloseTo(0.993701619, 8);
     // § 6bn.3 published this as a departure of 1.0063.
     expect(departure(branch)).toBeCloseTo(1.006339, 5);
-    expect(family[0]!).toBeCloseTo(0.954456224, 8);
-    expect(family[1]!).toBeCloseTo(0.956497258, 8);
-    expect(family[2]!).toBeCloseTo(0.954996037, 8);
-    expect(family[3]!).toBeCloseTo(0.951496335, 8);
+    expect(family[0]!).toBeCloseTo(0.954581514, 8);
+    expect(family[1]!).toBeCloseTo(0.956524906, 8);
+    expect(family[2]!).toBeCloseTo(0.955128007, 8);
+    expect(family[3]!).toBeCloseTo(0.951498073, 8);
     // No reversal: both columns below 1. What changes is the size.
     expect(branch).toBeLessThan(1);
     for (const f of family) expect(f).toBeLessThan(1);
-    expect(departure(family[2]!)).toBeCloseTo(1.047124, 5);
+    expect(departure(family[2]!)).toBeCloseTo(1.046980, 5);
     expect(departure(family[2]!) - 1).toBeGreaterThan(7 * (departure(branch) - 1));
     // Separable: the family spread is 0.53% against a 3.9% move.
     expect(spanOf(family)).toBeLessThan(1.0053);
@@ -586,12 +586,12 @@ describe("§ 6bp.3 — the split does not reverse; its interaction was understat
   it("the edge interaction goes 1.0086 to 1.1377, and separates by 21×", () => {
     const branch = branchInteraction("rendOverFree", "edge");
     const family = across("rendOverFree", "edge");
-    expect(branch).toBeCloseTo(0.991475571, 8);
+    expect(branch).toBeCloseTo(0.991472611, 8);
     expect(departure(branch)).toBeCloseTo(1.008598, 5);
-    expect(family[0]!).toBeCloseTo(0.878933974, 8);
-    expect(family[1]!).toBeCloseTo(0.877215717, 8);
-    expect(family[2]!).toBeCloseTo(0.877035074, 8);
-    expect(family[3]!).toBeCloseTo(0.882267817, 8);
+    expect(family[0]!).toBeCloseTo(0.878932564, 8);
+    expect(family[1]!).toBeCloseTo(0.877214553, 8);
+    expect(family[2]!).toBeCloseTo(0.877035095, 8);
+    expect(family[3]!).toBeCloseTo(0.882270313, 8);
     for (const f of family) expect(f).toBeLessThan(1);
     expect(departure(family[2]!)).toBeCloseTo(1.140206, 5);
     // Fifteen times the branch's distance from 1, and the family spans 0.60%
@@ -603,20 +603,20 @@ describe("§ 6bp.3 — the split does not reverse; its interaction was understat
 
   it("and the cells behind it, which move in the same direction at both positions", () => {
     // The two moving cells, so the quotient is not the only evidence.
-    expect(branchCell("10/0.20", "axis").rendOverFree).toBeCloseTo(0.99948971, 7);
-    expect(matchedCell(Q128, "10/0.20", "axis").rendOverFree).toBeCloseTo(0.98955800, 7);
-    expect(branchCell("20/0.10", "axis").rendOverFree).toBeCloseTo(1414.47843, 4);
-    expect(matchedCell(Q128, "20/0.10", "axis").rendOverFree).toBeCloseTo(1487.41901, 4);
-    expect(branchCell("10/0.20", "edge").rendOverFree).toBeCloseTo(1.16816836, 7);
-    expect(matchedCell(Q128, "10/0.20", "edge").rendOverFree).toBeCloseTo(1.27141078, 7);
+    expect(branchCell("10/0.20", "axis").rendOverFree).toBeCloseTo(0.99948959, 7);
+    expect(matchedCell(Q128, "10/0.20", "axis").rendOverFree).toBeCloseTo(0.9895548600, 7);
+    expect(branchCell("20/0.10", "axis").rendOverFree).toBeCloseTo(1414.46664, 4);
+    expect(matchedCell(Q128, "20/0.10", "axis").rendOverFree).toBeCloseTo(1487.21613, 4);
+    expect(branchCell("10/0.20", "edge").rendOverFree).toBeCloseTo(1.16817043, 7);
+    expect(matchedCell(Q128, "10/0.20", "edge").rendOverFree).toBeCloseTo(1.27141071, 7);
     expect(branchCell("20/0.10", "edge").rendOverFree).toBeCloseTo(1.13666851, 7);
-    expect(matchedCell(Q128, "20/0.10", "edge").rendOverFree).toBeCloseTo(1.17809183, 7);
+    expect(matchedCell(Q128, "20/0.10", "edge").rendOverFree).toBeCloseTo(1.17809236, 7);
   });
 });
 
 describe("§ 6bp.4 — § 6bn.6's agreement to 2.7e-4 was the two frames' sizes", () => {
   it("held at one field the two axial gains disagree by 3.7%, not 2.7e-4", () => {
-    // § 6bm.6 read 0.9722786 at 10× and § 6bn.6 read 0.9720138 at 20×, same
+    // § 6bm.6 read 0.9722866 at 10× and § 6bn.6 read 0.9720138 at 20×, same
     // convention, and published the agreement. The 20× frame is half the 10×
     // one at that sampling, so the two were read over fields differing 2:1.
     const ten = branchCell("10/0.10", "axis").freeGain;
@@ -629,13 +629,13 @@ describe("§ 6bp.4 — § 6bn.6's agreement to 2.7e-4 was the two frames' sizes"
     expect(matchedCell(Q128, "10/0.10", "axis").freeGain).toBe(ten);
     const twenty128 = matchedCell(Q128, "20/0.10", "axis").freeGain;
     const twenty4px = matchedCell(Q4PX, "20/0.10", "axis").freeGain;
-    expect(twenty128).toBeCloseTo(0.93657295, 7);
-    expect(twenty4px).toBeCloseTo(0.83778838, 7);
+    expect(twenty128).toBeCloseTo(0.93644413, 7);
+    expect(twenty4px).toBeCloseTo(0.83366468, 7);
 
     const gap128 = Math.abs(twenty128 / ten - 1);
     const gap4px = Math.abs(twenty4px / ten - 1);
-    expect(gap128).toBeCloseTo(0.03669, 4);
-    expect(gap4px).toBeCloseTo(0.13830, 4);
+    expect(gap128).toBeCloseTo(0.03686, 4);
+    expect(gap4px).toBeCloseTo(0.142570, 4);
     // Between 137× and 510× worse than the agreement published.
     const published = Math.abs(twentyBranch / ten - 1);
     expect(gap128 / published).toBeGreaterThan(130);
@@ -662,15 +662,15 @@ describe("§ 6bp.5 — the free-field gain's axial interaction CROSSES 1, in all
     const family = across("freeGain", "axis");
     expect(branch).toBeCloseTo(0.234859964, 8);
     expect(branch).toBeLessThan(1);
-    expect(family[0]!).toBeCloseTo(7.069328017, 7);
-    expect(family[1]!).toBeCloseTo(6.980676007, 7);
-    expect(family[2]!).toBeCloseTo(7.225062060, 7);
-    expect(family[3]!).toBeCloseTo(8.076977291, 7);
+    expect(family[0]!).toBeCloseTo(7.070390040, 7);
+    expect(family[1]!).toBeCloseTo(6.981120151, 7);
+    expect(family[2]!).toBeCloseTo(7.226349880, 7);
+    expect(family[3]!).toBeCloseTo(8.117259984, 7);
     for (const f of family) expect(f).toBeGreaterThan(1);
     // The family spans 15.7% and the crossing does not depend on which member —
     // an imprecise value and a determined verdict, which is the distinction
     // § 6bp.6 turns on.
-    expect(spanOf(family)).toBeCloseTo(1.157, 3);
+    expect(spanOf(family)).toBeCloseTo(1.1627, 3);
     expect(Math.min(...family)).toBeGreaterThan(6);
   });
 
@@ -679,8 +679,8 @@ describe("§ 6bp.5 — the free-field gain's axial interaction CROSSES 1, in all
     // § 6bo's biggest was the escape's 1.282× inflation.
     const b = branchCell("10/0.20", "axis").freeGain;
     const m = matchedCell(Q128, "10/0.20", "axis").freeGain;
-    expect(b).toBeCloseTo(281.595246, 5);
-    expect(m).toBeCloseTo(9.709279453, 7);
+    expect(b).toBeCloseTo(281.595260, 5);
+    expect(m).toBeCloseTo(9.709236848, 7);
     expect(b / m).toBeCloseTo(29.0, 1);
     // Still above 1 in both: on the axis a free flat field helps this lens
     // enormously either way, and it is the SIZE that was the frame's.
@@ -691,10 +691,10 @@ describe("§ 6bp.5 — the free-field gain's axial interaction CROSSES 1, in all
 describe("§ 6bp.6 — two readouts are REFUSED, and the refusal is a measurement", () => {
   it("the free-field gain at the EDGE straddles 1 across the family", () => {
     const family = across("freeGain", "edge");
-    expect(family[0]!).toBeCloseTo(0.980884694, 8);
-    expect(family[1]!).toBeCloseTo(1.014993365, 8);
-    expect(family[2]!).toBeCloseTo(0.998382767, 8);
-    expect(family[3]!).toBeCloseTo(0.327524605, 8);
+    expect(family[0]!).toBeCloseTo(0.982337765, 8);
+    expect(family[1]!).toBeCloseTo(1.015633356, 8);
+    expect(family[2]!).toBeCloseTo(0.999869744, 8);
+    expect(family[3]!).toBeCloseTo(0.322418467, 8);
     // Which side of 1 it falls on is the pixel sampling's, so this step states
     // no verdict on it. That is not the same as § 6bo's "unknown": the reason is
     // measured and the band is published.
@@ -705,17 +705,17 @@ describe("§ 6bp.6 — two readouts are REFUSED, and the refusal is a measuremen
   it("the scanner comparison is not measurable at this frame, at either position", () => {
     const axis = across("scannerVsRaw", "axis");
     const edge = across("scannerVsRaw", "edge");
-    expect(axis[0]!).toBeCloseTo(0.684556658, 8);
-    expect(axis[1]!).toBeCloseTo(0.851354499, 8);
-    expect(axis[2]!).toBeCloseTo(0.684913609, 8);
-    expect(axis[3]!).toBeCloseTo(0.224417675, 8);
-    expect(edge[0]!).toBeCloseTo(0.886281685, 8);
-    expect(edge[1]!).toBeCloseTo(1.040863900, 8);
-    expect(edge[2]!).toBeCloseTo(0.885293418, 8);
-    expect(edge[3]!).toBeCloseTo(0.892082300, 8);
-    // On the axis the family spans 3.79× — larger than the branch-to-matched
+    expect(axis[0]!).toBeCloseTo(0.686367219, 8);
+    expect(axis[1]!).toBeCloseTo(0.851600755, 8);
+    expect(axis[2]!).toBeCloseTo(0.686724943, 8);
+    expect(axis[3]!).toBeCloseTo(0.214456248, 8);
+    expect(edge[0]!).toBeCloseTo(0.886284700, 8);
+    expect(edge[1]!).toBeCloseTo(1.04086833500, 8);
+    expect(edge[2]!).toBeCloseTo(0.885293755, 8);
+    expect(edge[3]!).toBeCloseTo(0.89208347900, 8);
+    // On the axis the family spans 3.97× — larger than the branch-to-matched
     // move it would be used to claim. At the edge it straddles 1.
-    expect(spanOf(axis)).toBeCloseTo(3.794, 3);
+    expect(spanOf(axis)).toBeCloseTo(3.971, 3);
     expect(straddlesOne(edge)).toBe(true);
   });
 
@@ -757,9 +757,9 @@ describe("§ 6bp.7 — the scanner is still never once better, and its MARGIN is
     const branch = branchCell("20/0.10", "edge").scannerVsRaw;
     const q128 = matchedCell(Q128, "20/0.10", "edge").scannerVsRaw;
     const q256 = matchedCell(Q256, "20/0.10", "edge").scannerVsRaw;
-    expect(branch).toBeCloseTo(1.09162325, 7);
-    expect(q128).toBeCloseTo(1.17363814, 7);
-    expect(q256).toBeCloseTo(1.00003989, 7);
+    expect(branch).toBeCloseTo(1.09162471, 7);
+    expect(q128).toBeCloseTo(1.17364365, 7);
+    expect(q256).toBeCloseTo(1.00003997, 7);
     expect(q256 - 1).toBeLessThan(1e-4);
     expect(q128 - 1).toBeGreaterThan(1000 * (q256 - 1));
   });

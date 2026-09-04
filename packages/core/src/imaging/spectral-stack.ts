@@ -199,15 +199,20 @@ export function stackSpectralPlanes(
   const pixelScaleMm = ruler.pixelScaleMm;
 
   // Whether a destination can be sourced at all, checked once against the
-  // WIDEST stencil reach rather than discovered as zeros in the output. k ≤ 1
-  // for every plane by the choice above, so this is a statement about the crop.
+  // WIDEST reach rather than discovered as zeros in the output. k ≤ 1 for every
+  // plane by the choice above, so this is a statement about the crop. Since
+  // § 8c the resampler needs slightly LESS margin than this — a destination cell
+  // of width k ≤ 1 centred inside the source is covered where a bilinear stencil
+  // still wanted `x0 + 1` — so the guard is conservative rather than exact, and
+  // is left where it is: one pixel of crop is cheap and a wavelength-dependent
+  // black border is not.
   const reach = size / 2;
   const hi = srcSize / 2 + (reach - 1);
   const lo = srcSize / 2 - reach;
   if (lo < 0 || hi + 1 > srcSize - 1) {
     throw new Error(
       `${who}: a common grid of ${size} px reaches outside a ${srcSize} px ` +
-        `source — the bilinear stencil needs one pixel beyond the last destination, so the ` +
+        `source — one pixel of margin is kept beyond the last destination, so the ` +
         `common grid must be at most ${srcSize - 2} px. Raising it would fill the border with ` +
         `zeros, which is a wavelength-dependent black frame and reads as a coloured vignette`,
     );

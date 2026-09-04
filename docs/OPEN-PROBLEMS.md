@@ -149,17 +149,35 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     (§ 6e's front and a back) does not exist on the ladder.
 12. **Which way an aberration-free band moves the Airy core.** § 6j names
     "an analytic band-integrated Airy" as the resampler-free check.
-13. **The spectral stack's resampling moves energy, and nothing reports it.**
+13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
     the planes `spectralStack` resamples onto the common grid come back +0.3%
     to +3.0% heavy, non-monotone in the resampling ratio, while
     `truncatedFraction` reads exactly 0 because the light did not leave the
     grid. Pin: **Σ intensity ≡ energy**, the identity `psf.ts` already states
     and the raw transform already meets — no external number needed, and no
-    new physics. It predates the photon count and biases every polychromatic
-    render's brightness and, since it is per-plane, its colour by ~2%. What it
-    unblocks is every absolute reading downstream, § 8a.7's obstruction pin
-    among them (1e-3 on the resampled light against 7.6e-5 on the pupil grid).
+    new physics.~~
+
+    ✅ **CLOSED at [§ 8c](VALIDATION.md#step-8c--the-resampler-that-conserves).**
+    "No new physics" was right and "no external number needed" was only half
+    right. The identity is the pin for the BUG, but a resampler that conserves
+    is cheap to write badly — a plain area average conserves exactly and is
+    three to four times WORSE than the bilinear it replaces — so the step is
+    pinned to closed forms with no engine in them as well: a uniform field, a
+    Gaussian's 2πσ², and a tone whose interval average is analytic, on which
+    the new scheme beats bilinear at every period and both ratios. The cause was
+    a quadrature and not the optics: bilinear at a destination centre times k² is
+    a one-point rule, and § 8c.3 reproduces the whole failure on an Airy pattern
+    written straight onto a grid (+4.0e-2 to +1.0e-1). What replaced it is a
+    conservative regrid of a minmod-limited reconstruction — limited because the
+    unlimited slope puts negative cells in the ring troughs, which `imaging/noise`
+    refuses. § 8a.7's obstruction reading tightened from −4.3e-4 to 1.2e-5, past
+    the pupil grid's own 7.6e-5, which is the prediction the change had to meet.
+    Two costs are recorded rather than absorbed: a destination cell the source
+    does not completely cover is left at zero, so a rim of light at k > 1 is now
+    REPORTED (§ 6j.2 goes from <1e-9 to 2.0e-3) rather than placed
+    approximately; and the scheme is separable, so an on-axis PSF is its own
+    transpose to one 8-bit level rather than to zero.
 
 14. ~~**The ray branch's seeing blur has no grid-independent limit.** Found at
     § 5d.2 while closing A5: a single ray's deflection variance is ∫f³Φ(f)df
@@ -347,9 +365,9 @@ radial-map nodes · § 6ba differential bleaching.
 2. ~~§ 2g — the image in a medium.~~ ✅
 3. ~~The sky and **the noisy frame** (A3, A4)~~ ✅ — the noisy frame at
    § 8a.7–§ 8a.11, the sky and the limiting magnitude at § 8b. A13 came out of
-   A4, is the other half of what walking that route found, and is untouched by
-   § 8b: the resampling excess rides the sky's frame exactly as it rides the
-   star's.
+   A4, is the other half of what walking that route found, and was untouched by
+   § 8b — the resampling excess rode the sky's frame exactly as it rode the
+   star's. **Closed at § 8c** (item 13 below).
 4. ~~**Stop-shift equations** (A7): a named pin, an engine change, retires a
    control.~~ ✅ — landed at § 6cm. Two of the three: the pin and the engine
    change. The control stays, for a reason that predates the deferral.
@@ -362,11 +380,17 @@ radial-map nodes · § 6ba differential bleaching.
    pins outside the fixture.~~ ✅ — landed at § 6cn. It pinned outside the
    fixture and then corrected the fixture's own reading: the quartic § 6ck
    measured was the tracer's chief-ray aiming, not the glass. One new item (15).
-7. **Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
+7. ~~**The stack's resampling moves energy** (item 13): no external number
+   needed, and it sits under every absolute reading downstream.~~ ✅ — landed at
+   § 8c. "No external number needed" was half right: the identity pins the bug,
+   but a conserving resampler is cheap to write badly, so the step is pinned to
+   closed forms with no engine in them as well. It also came in FASTER than what
+   it replaced, and cost two things that are recorded rather than absorbed.
+8. **Hopkins' TCC** (D): the v2 step, scoped as an engine step in ARCHITECTURE
    before a line is written — the brightfield refusal (§ 6f.9) is where it
    plugs in.
-8. ~~Make the ladder green off the author's machine (the structural problem
-   above) before any of 3–7 is trusted on a second one.~~ The convention is in
+9. ~~Make the ladder green off the author's machine (the structural problem
+   above) before any of 3–8 is trusted on a second one.~~ The convention is in
    and the assertions are restated (see the structural problem above); what
    remains is one confirming run on a second machine, which is now a check
    rather than a piece of work.

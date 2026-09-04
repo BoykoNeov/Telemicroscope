@@ -430,11 +430,11 @@ describe("§ 6bg — the correction applied", () => {
 
       const before = displacement(flat);
       const after = displacement(perChannel);
-      expect(before).toBeCloseTo(6.4428e-3, 6);
-      expect(after).toBeCloseTo(7.8721e-3, 6);
+      expect(before).toBeCloseTo(6.432977e-3, 6);
+      expect(after).toBeCloseTo(7.874418e-3, 6);
       const cost = after - before;
-      expect(cost).toBeCloseTo(1.4293e-3, 6);
-      expect(cost / before).toBeCloseTo(0.2218, 3);
+      expect(cost).toBeCloseTo(1.441445e-3, 6);
+      expect(cost / before).toBeCloseTo(0.2241, 3);
 
       // The coupling § 6bb would have predicted, in closed form: each channel's
       // own `1 + z·k` evaluated at its own stage, bluest against reddest. It is
@@ -523,8 +523,8 @@ describe("§ 6bg — the correction applied", () => {
       const axis = shifts(0);
 
       // Off the axis one channel's own refocus walks its own image sideways.
-      expect(field.blue).toBeCloseTo(-1.28112e-3, 7);
-      expect(field.red).toBeCloseTo(1.48200e-4, 7);
+      expect(field.blue).toBeCloseTo(-1.293057e-3, 7);
+      expect(field.red).toBeCloseTo(1.483935e-4, 7);
       // On the axis the same stage moves do essentially nothing — 1.18e-5 mm,
       // which on this frame's ruler is 0.0035 of a pixel against 0.385 of one
       // off the axis. A field-INDEPENDENT mechanism would show here too, and
@@ -535,7 +535,7 @@ describe("§ 6bg — the correction applied", () => {
 
       // And the two shifts ARE the cost measured above: the channels are
       // rendered independently, so what moved the pair is what moved each.
-      expect(field.red - field.blue).toBeCloseTo(1.4293e-3, 6);
+      expect(field.red - field.blue).toBeCloseTo(1.441445e-3, 6);
     });
   });
 

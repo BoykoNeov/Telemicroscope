@@ -613,33 +613,31 @@ describe("§ 8a.10 — what the route refuses", () => {
   });
 });
 
-describe("§ 8a.11 — a finding: the stack's resampler moves energy and nothing reports it", () => {
-  it("a PSF conserves exactly, and the stack it goes into does not", () => {
+describe("§ 8a.11 — a finding, now closed: the stack's resampler moved energy and nothing reported it", () => {
+  it("a PSF conserves exactly, and so now does the stack it goes into", () => {
     // Σ intensity === energy is `psf.ts`'s "by construction", and it holds to
-    // the bit on the raw transform. `spectralStack` then resamples every plane
-    // onto the mean wavelength's grid with a k² Jacobian, and that step is
-    // energy-correct only to first order on a function with rings in it: the
-    // hero's planes come back between +0.3% and +3.0% heavy, non-monotone in
-    // |k − 1| — it is the rings aliasing against the grid, not a scale error.
+    // the bit on the raw transform. `spectralStack` resamples every plane onto
+    // the mean wavelength's grid, and that step USED to be energy-correct only
+    // to first order: bilinear interpolation at each destination centre times
+    // k² is a one-point quadrature of an integral, and on a function with rings
+    // in it the hero's planes came back between +0.3% and +3.0% heavy,
+    // non-monotone in |k − 1| — the rings aliasing against the grid rather than
+    // a scale error. `truncatedFraction` could not see it: that field reports
+    // light that fell OFF the grid, and the excess pushed `placed` past `energy`
+    // so its `Math.max(0, …)` clamp read exactly 0.
     //
-    // `truncatedFraction` does not see it. That field reports light that fell
-    // OFF the grid and is exactly 0 here, so a caller reading it has no signal
-    // that the energy moved at all. It is reported through `deliveredFraction`
-    // and never divided out; the register carries it as an open item.
-    //
-    // The assertion that fires when the resampler is FIXED is the
-    // `worst > 1e-3` one at the bottom, not the raw-PSF identity above it — if
-    // that one starts failing, update this rung and OPEN-PROBLEMS A13 rather
-    // than widening anything. The raw-PSF identity failing would mean the
-    // transform itself broke, which is a different and worse thing.
+    // Closed at § 8c with a conservative resampler. This rung is kept where the
+    // finding was made and states the negative: no plane gains light, and the
+    // deficit that remains is the reddest planes' skirts leaving a grid chosen
+    // for the mean wavelength. § 8c carries the rest.
     const hero = renderHero(heroPair().achromat);
     const raw = psf(hero.system, 0, FOCUS_NM, PSF_OPTIONS);
     expect(Math.abs(sumOf(raw.intensity) / raw.energy - 1)).toBeLessThan(1e-12);
 
-    expect(hero.stack.truncatedFraction).toBe(0);
     const departures = hero.stack.planes.map((p) => sumOf(p.intensity) / p.energy - 1);
+    for (const d of departures) expect(d).toBeLessThanOrEqual(0);
     const worst = Math.max(...departures.map(Math.abs));
-    expect(worst).toBeGreaterThan(1e-3);
-    expect(worst).toBeLessThan(0.05);
+    expect(worst).toBeLessThan(1e-3);
+    expect(hero.stack.truncatedFraction).toBeGreaterThan(0);
   });
 });

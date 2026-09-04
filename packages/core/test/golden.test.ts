@@ -227,19 +227,30 @@ describe("the gate detects the defects the goldens exist for", () => {
     // The blind spot, measured and stated rather than assumed away.
     //
     // An on-axis PSF of a rotationally symmetric system **is its own
-    // transpose**: swapping the axes of `star-singlet` returns the identical
-    // image, max Δ 0 — so a transposed FFT grid or a swapped pair of OPD axes
-    // is *invisible* to both hero goldens, and would be invisible to any number
-    // of further on-axis ones. The defect is real, § 3c's kernel-axis rung was
-    // written for it, and the picture that catches it is the star field, whose
-    // six stars are deliberately not symmetric under the swap: max 255, mean
-    // 3.2, half the frame.
+    // transpose**: swapping the axes of `star-singlet` returns the same image to
+    // within one 8-bit level — so a transposed FFT grid or a swapped pair of OPD
+    // axes is *invisible* to both hero goldens, and would be invisible to any
+    // number of further on-axis ones. The defect is real, § 3c's kernel-axis rung
+    // was written for it, and the picture that catches it is the star field,
+    // whose six stars are deliberately not symmetric under the swap: max 255,
+    // mean 3.2, half the frame.
     //
     // Which is the argument for the field golden existing at all, in one
     // measurement: it is not a third pretty picture, it covers a defect class
     // the other two structurally cannot.
+    //
+    // The 1 rather than 0 is § 8c's, and is worth stating rather than rounding
+    // away. The conservative resampler runs one axis and then the other, and its
+    // slope limiter is taken on the already-resampled intermediate, so the
+    // operator is not bit-symmetric under a transpose the way the single fused
+    // bilinear expression it replaced happened to be. It is a last-bit
+    // asymmetry that reaches one level of an 8-bit render, and the claim this
+    // rung actually makes — that the gate does NOT reject a transposed hero — is
+    // asserted directly below rather than through a proxy for it.
     const hero = committed("star-singlet");
-    expect(diffRgba(hero.rgba, transposeRgba(hero.rgba, hero.width)).maxChannelDelta).toBe(0);
+    const heroSwap = diffRgba(hero.rgba, transposeRgba(hero.rgba, hero.width));
+    expect(heroSwap.maxChannelDelta).toBeLessThanOrEqual(1);
+    expect(gateRejects(hero.rgba, transposeRgba(hero.rgba, hero.width))).toBe(false);
 
     const field = committed("star-field");
     expect(gateRejects(field.rgba, transposeRgba(field.rgba, field.width))).toBe(true);

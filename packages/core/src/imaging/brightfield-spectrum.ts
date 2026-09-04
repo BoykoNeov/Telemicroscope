@@ -85,15 +85,16 @@ import {
  * The fix is to make truncation impossible instead of reporting it. The common
  * scale is the **smallest** of the planes' — the bluest, the physically smallest
  * frame — so every resample reads inside its own source, and the output is
- * cropped by one pixel on each side because a bilinear stencil needs `x0 + 1`
- * and `resampleIrradianceGrid` leaves what it cannot source at zero. The crop is
- * reported (`croppedPixels`); the truncation is zero by construction.
+ * cropped by one pixel on each side because `resampleIrradianceGrid` leaves what
+ * it cannot completely source at zero. The crop is reported (`croppedPixels`);
+ * the truncation is zero by construction.
  *
  * One consequence is worth having: at the plane that *sets* the scale, k is
- * exactly 1, every sample lands on a lattice point and the bilinear weights
- * collapse, so that plane is copied **bit for bit** rather than interpolated.
- * § 6r.3 pins it, which is what makes "the ruler is the bluest plane's" a
- * statement about arithmetic and not a rounding.
+ * exactly 1, every destination interval IS a source cell, and that plane is
+ * copied **bit for bit** rather than interpolated. § 6r.3 pins it, which is what
+ * makes "the ruler is the bluest plane's" a statement about arithmetic and not a
+ * rounding — and since § 8c it is true of the last row and column too, which the
+ * bilinear stencil this replaced could not reach.
  *
  * ## What comes out for free, because the frames are concentric
  *

@@ -127,28 +127,32 @@ export interface PolychromaticPsf extends Psf {
 }
 
 /**
- * Resample a PSF onto a grid of a different pixel scale, bilinearly.
+ * Resample a PSF onto a grid of a different pixel scale, conservatively.
  *
- * The Jacobian `k²` is what makes this energy-correct: `intensity` holds
- * energy per pixel, so an output pixel covering k² times the area of a source
- * pixel holds k² times the energy.
+ * `intensity` holds energy per pixel, so this integrates the source's irradiance
+ * over each destination pixel rather than sampling it at the centre: the energy
+ * is carried across exactly. `resample` below says why the difference is
+ * percent-sized on a function with rings in it.
  */
 export function resamplePsf(p: Psf, targetPixelScaleMm: number, size = p.size): Float64Array {
   return resampleEnergyGrid(p.intensity, p.size, p.pixelScaleMm, targetPixelScaleMm, size);
 }
 
 /**
- * Resample an **energy-per-pixel** grid onto a different pixel scale, bilinearly.
+ * Resample an **energy-per-pixel** grid onto a different pixel scale — the
+ * destination pixel's INTEGRAL of the source.
  *
  * Exported because `imaging/emission` stacks a band of incoherent PSFs and hits
  * exactly the failure this module exists to prevent — pixelScaleMm is ∝ λ, so a
  * bin-for-bin sum silently rescales each component instead of stacking it. One
  * resampler, so the two paths cannot drift.
  *
- * The `k²` here is the whole difference from `resampleIrradianceGrid` below, and
- * which one a caller wants is set by what its array holds, not by taste. See
- * that function for the witness that tells them apart — and note that it is
- * **not energy**.
+ * The Jacobian is no longer a factor applied on top; it is what integrating
+ * rather than averaging MEANS. That is the whole difference from
+ * `resampleIrradianceGrid` below, which averages, and the two therefore still
+ * differ by exactly `k²` cell for cell. Which one a caller wants is set by what
+ * its array holds, not by taste. See that function for the witness that tells
+ * them apart — and note that it is **not energy**.
  */
 export function resampleEnergyGrid(
   src: Float64Array,
@@ -162,12 +166,12 @@ export function resampleEnergyGrid(
 
 /**
  * Resample an **irradiance** grid — a value *per unit area* — onto a different
- * pixel scale, bilinearly and with no Jacobian.
+ * pixel scale: the destination pixel's AVERAGE of the source, not its integral.
  *
  * `illumination/abbe`'s image is this one, and it is a different physical
  * quantity from a PSF's `intensity` even though both are `Float64Array` of
  * squared moduli. A PSF holds the energy landing in each pixel: change the pixel
- * size and each one holds more, so the Jacobian is mandatory. An Abbe image
+ * size and each one holds more, so the integral is mandatory. An Abbe image
  * holds the irradiance *at* a point — a uniform specimen images to exactly 1
  * whatever the grid is, which § 6r measured rather than derived — so it is a
  * point property, and warping it is pure coordinate substitution. Applying `k²`
@@ -191,14 +195,80 @@ export function resampleIrradianceGrid(
 }
 
 /**
- * The one implementation both siblings share.
+ * The one implementation both siblings share: conservative regridding of a
+ * slope-limited reconstruction.
  *
- * Destinations whose bilinear stencil leaves the source grid are left at zero
- * rather than clamped — a clamped edge would extend the outermost row outward
- * and invent structure. That drops the **last** row and column even at k = 1,
- * because the stencil needs `x0 + 1`, and a caller stacking extended images has
- * to keep its common grid strictly inside the source for that reason
- * (`imaging/brightfield-spectrum` does, and says so).
+ * ## Why not the bilinear one this replaced
+ *
+ * The obvious resampler interpolates the source bilinearly at each destination
+ * CENTRE and multiplies by `k²`. That is a one-point quadrature of the integral
+ * the operation actually is, and on a function with rings in it the destination
+ * lattice beats against the ring structure instead of averaging over it:
+ * § 8a.11 measured the hero's planes coming back **+0.3% to +3.0% heavy**,
+ * non-monotone in `k`, while `truncatedFraction` read exactly 0 because no light
+ * had left the grid. Σ intensity ≡ energy is `psf.ts`'s "by construction" and
+ * the raw transform meets it to the bit; a resampler that breaks it biases every
+ * polychromatic render's brightness and, being per-plane, its colour.
+ *
+ * ## What replaces it
+ *
+ * Source cell `i` covers `[i − ½, i + ½]` and holds `src[i]` as its MEAN.
+ * Across it the source is reconstructed as a straight line through that mean,
+ * `src[i] + si(ξ − i)`. Destination cell `x` covers `[c − k/2, c + k/2]` about
+ * its own centre and takes that reconstruction's integral over the overlap.
+ * Destination cells tile the line exactly — width `k`, pitch `k`, no gaps and no
+ * overlaps — so each source cell's content is PARTITIONED among them and none is
+ * created: the total can only fall, and only by what the destination grid does
+ * not cover, which is what `truncatedFraction` is for.
+ *
+ * ## The slope is limited, and that is what makes it safe
+ *
+ * `si` is the **minmod** of the two one-sided differences: the smaller of them
+ * when they agree in sign, and zero at a turning point. An unlimited slope (the
+ * centred difference) is more accurate on a smooth field and puts NEGATIVE cells
+ * in the trough between Airy rings — twenty of them on a ringed spot at k = 0.8
+ * — which `imaging/noise` refuses outright. Minmod cannot: `|si|` never exceeds
+ * the smaller one-sided difference, and one of those two is always at most
+ * `src[i]` itself on non-negative data, so the reconstruction stays at or above
+ * half the cell mean everywhere. Measured across the same sweep: zero negative
+ * cells at every `k`.
+ *
+ * ## What it is worth, against the bilinear it replaced
+ *
+ * Not a trade — better on every axis measured. On a band-limited tone the rms
+ * departure from the true field is 6.9e-4 against bilinear's 1.9e-3 at 32 px per
+ * period, 1.7e-2 against 3.1e-2 at 8, and 3.6e-2 against 1.17e-1 at 4. On a
+ * ringed spot the total lands within 1.8e-3 of exact at every `k` and bilinear
+ * within 4.0e-2 to 1.0e-1. And where a plain area average (the piecewise-CONSTANT
+ * version of this same scheme) would have been three to four times WORSE than
+ * bilinear pointwise, the limited slope is what buys conservation without paying
+ * for it in resolution.
+ *
+ * ## Three properties the callers depend on
+ *
+ * The weights are **separable** — the scale change is isotropic and both grids
+ * are centred the same way — so this is two one-dimensional passes over one
+ * geometry table, one carrying each cell's mean and one its slope.
+ *
+ * When `k` is exactly 1 and the grid centres differ by a whole number of pixels,
+ * every destination interval IS a source cell; a straight line integrated over
+ * its own cell returns that cell's mean whatever its slope, so the mean's weight
+ * is exactly 1, the slope's is exactly 0, and the array is copied **bit for
+ * bit**. `imaging/spectral-stack`'s ruler plane (§ 6r.3) and `imaging/emission`'s
+ * already-on-the-grid component both need that, and the bilinear version could
+ * give it to neither because its stencil dropped the last row and column.
+ *
+ * The overlap lengths are computed **relative to the first source cell** rather
+ * than in grid coordinates. `Math.floor` puts `i0` within half a cell of the
+ * interval's start, so `a − i0` is exact, and every length below is then a
+ * difference of numbers of order 1 instead of order `srcSize` — worth about a
+ * factor of thirty on a 128 px grid, which is the difference between a flat
+ * field reproducing to 3e-16 and to 3e-14.
+ *
+ * Destinations not COMPLETELY covered by the source are left at zero rather than
+ * partly filled. A partly-filled cell would read low and invent an edge the
+ * optics do not have, and `resampleIrradianceGrid`'s "a uniform specimen images
+ * to exactly 1" has to hold on every cell this writes, not on most of them.
  */
 function resample(
   src: Float64Array,
@@ -213,27 +283,182 @@ function resample(
   const cs = srcSize / 2;
   const co = size / 2;
   const n = srcSize;
-  const gain = jacobian ? k * k : 1;
 
-  for (let y = 0; y < size; y++) {
-    const sy = cs + (y - co) * k;
-    const y0 = Math.floor(sy);
-    const fy = sy - y0;
-    for (let x = 0; x < size; x++) {
-      const sx = cs + (x - co) * k;
-      const x0 = Math.floor(sx);
-      const fx = sx - x0;
-      if (x0 < 0 || y0 < 0 || x0 + 1 >= n || y0 + 1 >= n) continue;
-      const i00 = src[y0 * n + x0]!;
-      const i10 = src[y0 * n + x0 + 1]!;
-      const i01 = src[(y0 + 1) * n + x0]!;
-      const i11 = src[(y0 + 1) * n + x0 + 1]!;
-      const top = i00 * (1 - fx) + i10 * fx;
-      const bottom = i01 * (1 - fx) + i11 * fx;
-      out[y * size + x] = (top * (1 - fy) + bottom * fy) * gain;
+  // The geometry, once, for both axes: same `k`, same centring, so the overlap a
+  // destination row has with a source row is the one the matching column has
+  // with the matching column. `mean[t]` is the length of that overlap — what
+  // multiplies the source cell's mean — and `tilt[t]` is the same interval's
+  // first moment about the cell centre, what multiplies its slope. A destination
+  // interval of length `k` reaches at most ⌈k⌉ + 1 cells and never more.
+  const half = k / 2;
+  const stride = Math.floor(k) + 2;
+  const first = new Int32Array(size);
+  const span = new Int32Array(size);
+  const mean = new Float64Array(size * stride);
+  const tilt = new Float64Array(size * stride);
+  // Destination centres are monotonic in `x`, so the ones completely inside the
+  // source are a contiguous run — found once here rather than tested per element
+  // in the passes below. Everything outside it stays zero.
+  let xLo = size;
+  let xHi = -1;
+  for (let x = 0; x < size; x++) {
+    const c = cs + (x - co) * k;
+    const a = c - half;
+    const b = c + half;
+    // Not completely inside the source: left at zero, and its whole row and
+    // column with it.
+    if (!(a >= -0.5 && b <= n - 0.5)) continue;
+    if (x < xLo) xLo = x;
+    xHi = x;
+    const i0 = Math.floor(a + 0.5);
+    const i1 = Math.min(n - 1, Math.floor(b + 0.5));
+    // `i0` is within half a cell of `a`, so this subtraction is exact and the
+    // lengths below are differences of numbers of order 1. See the header.
+    const da = a - i0;
+    const db = da + k;
+    first[x] = i0;
+    span[x] = i1 - i0 + 1;
+    for (let j = 0; j <= i1 - i0; j++) {
+      const lo = da > j - 0.5 ? da : j - 0.5;
+      const hi = db < j + 0.5 ? db : j + 0.5;
+      if (hi <= lo) continue;
+      const u = hi - j;
+      const v = lo - j;
+      mean[x * stride + j] = hi - lo;
+      // Exactly 0 on a cell the destination covers whole, where u = ½ and
+      // v = −½ — which is what makes k = 1 a bit-for-bit copy.
+      tilt[x * stride + j] = (u * u - v * v) / 2;
     }
   }
+
+  if (xHi < xLo) return out;
+
+  // Both passes run x-innermost so every read walks memory forwards: pass one
+  // resamples each source ROW along x into a full-height scratch, pass two
+  // resamples that scratch along y a source row at a time, accumulating into the
+  // destinations. Gathering pass two's columns instead — the obvious way to
+  // write it, one destination at a time — strides the scratch by a whole row per
+  // element and costs a cache miss on each; it measured about five times slower
+  // over the suite, on identical arithmetic.
+  //
+  // Both also keep ONE source line's slopes rather than recomputing them per
+  // destination. Neighbouring destinations overlap, so the source index walks
+  // 0,1, 1,2, 2,3 — every repeat is consecutive, and a one-entry memo catches
+  // all of them and halves the limiter's work.
+  //
+  // A cell whose overlap carries neither weight is skipped, which is what keeps
+  // k = 1 a bit-for-bit copy: the single covering cell contributes `v * 1`, and
+  // the neighbour that touches it with zero length contributes nothing at all
+  // rather than `v * 0`. The slope is zero at either end of a line, where a cell
+  // has only one neighbour.
+  // Pass two reads scratch rows `first[xLo] .. first[xHi] + span - 1`, and one
+  // either side of those for the slopes. Building the whole source height
+  // instead is wasted work whenever the destination grid is smaller than the
+  // source, which is every cropped frame `imaging/spectral-stack` asks for.
+  const jLo = Math.max(0, first[xLo]! - 1);
+  const jHi = Math.min(n - 1, first[xHi]! + span[xHi]! - 1 + 1);
+  const tmp = scratch((jHi - jLo + 1) * size);
+  for (let y = jLo; y <= jHi; y++) {
+    const rs = y * n;
+    const rt = (y - jLo) * size;
+    let memoI = -1;
+    let memoS = 0;
+    for (let x = xLo; x <= xHi; x++) {
+      const sp = span[x]!;
+      const i0 = first[x]!;
+      const w = x * stride;
+      let acc = 0;
+      for (let t = 0; t < sp; t++) {
+        const m = mean[w + t]!;
+        const q = tilt[w + t]!;
+        if (m === 0 && q === 0) continue;
+        const i = i0 + t;
+        const v = src[rs + i]!;
+        if (i !== memoI) {
+          memoI = i;
+          memoS = i > 0 && i < n - 1 ? minmod(v - src[rs + i - 1]!, src[rs + i + 1]! - v) : 0;
+        }
+        acc += v * m + memoS * q;
+      }
+      tmp[rt + x] = acc;
+    }
+  }
+  const slope = new Float64Array(size);
+  let slopeJ = -1;
+  for (let y = xLo; y <= xHi; y++) {
+    const sp = span[y]!;
+    const j0 = first[y]!;
+    const w = y * stride;
+    const ro = y * size;
+    for (let t = 0; t < sp; t++) {
+      const m = mean[w + t]!;
+      const q = tilt[w + t]!;
+      if (m === 0 && q === 0) continue;
+      const j = j0 + t;
+      const rj = (j - jLo) * size;
+      if (q === 0) {
+        // A whole-cell overlap: the slope cannot reach the answer, so it is not
+        // worth a line of it. This is every cell at k = 1.
+        for (let x = xLo; x <= xHi; x++) out[ro + x] = out[ro + x]! + tmp[rj + x]! * m;
+        continue;
+      }
+      if (j !== slopeJ) {
+        slopeJ = j;
+        if (j > jLo && j < jHi) {
+          const rp = rj - size;
+          const rn = rj + size;
+          for (let x = xLo; x <= xHi; x++) {
+            const v = tmp[rj + x]!;
+            slope[x] = minmod(v - tmp[rp + x]!, tmp[rn + x]! - v);
+          }
+        } else {
+          slope.fill(0, xLo, xHi + 1);
+        }
+      }
+      for (let x = xLo; x <= xHi; x++) {
+        out[ro + x] = out[ro + x]! + tmp[rj + x]! * m + slope[x]! * q;
+      }
+    }
+  }
+
+  // The integral is what the two passes already computed; the average is that
+  // over the destination cell's own area. `k === 1` leaves the copy bit for bit
+  // on both branches, because the divisor is then exactly 1.
+  if (!jacobian) {
+    const inv = 1 / (k * k);
+    for (let i = 0; i < out.length; i++) out[i] = out[i]! * inv;
+  }
   return out;
+}
+
+/**
+ * The scratch `resample` puts its first pass in, grown as needed and kept
+ * between calls.
+ *
+ * A render resamples one plane per wavelength per frame and a mosaic does that
+ * per tile, so a fresh `Float64Array` per call is megabytes of garbage a second
+ * — it measured as most of the cost, well above the arithmetic. `resample` is
+ * never re-entered (no recursion, no await, one thread per vitest worker), and
+ * it writes every element it later reads, so nothing carries between calls but
+ * the allocation.
+ */
+let scratchBuffer = new Float64Array(0);
+
+function scratch(length: number): Float64Array {
+  if (scratchBuffer.length < length) scratchBuffer = new Float64Array(length);
+  return scratchBuffer;
+}
+
+/**
+ * The smaller of two differences when they agree in sign, and zero otherwise.
+ *
+ * Van Leer's limiter, and here it is a non-negativity guarantee rather than a
+ * taste in reconstructions: see `resample` above.
+ */
+function minmod(a: number, b: number): number {
+  if (a > 0) return b > 0 ? (a < b ? a : b) : 0;
+  if (a < 0) return b < 0 ? (a > b ? a : b) : 0;
+  return 0;
 }
 
 /**

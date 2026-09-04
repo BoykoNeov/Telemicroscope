@@ -127,7 +127,7 @@ import type { OpticalSystem } from "../src/trace/system";
  * stage and § 6bl.6's 20× (0.972202) was corrected stage with a different sweep
  * extent, and the two differed by less than the convention gap between them. The
  * axial-stage readings **are** comparable — § 6bm pinned 0.9722786 at 10× and
- * this file measures 0.9720138 at 20×, same convention, agreeing to 2.7e-4
+ * this file measures 0.9720218 at 20×, same convention, agreeing to 2.7e-4
  * (§ 6bn.6). What it still does not do is call two points a trend: there is no
  * handle on this readout's own reproducibility, which is exactly why § 6bm
  * declined and why § 6bn declines with better numbers.
@@ -641,8 +641,8 @@ describe("§ 6bn.3 — six interactions get a second interval, and § 6bm.4's or
     // Every one would be 1 if the levers acted independently on THIS interval,
     // and none of them is — but the whole set now spans 1.006 to 1.215 where the
     // first interval spanned 1.017 to 53.65.
-    expect(departure(flatAxisI())).toBeCloseTo(1.0063384, 6);
-    expect(departure(flatEdgeI())).toBeCloseTo(1.0085977, 6);
+    expect(departure(flatAxisI())).toBeCloseTo(1.0063300, 6);
+    expect(departure(flatEdgeI())).toBeCloseTo(1.0086001, 6);
     expect(departure(anisoI())).toBeCloseTo(1.0232693, 6);
     expect(departure(costI())).toBeCloseTo(1.0416581, 6);
     expect(departure(plateauI())).toBeCloseTo(1.1608626, 6);
@@ -717,14 +717,14 @@ describe("§ 6bn.4 — two interactions reverse, and the largest one vanishes", 
     // square was said to span fifty. On the next interval the same construction
     // gives 1.0086. The 53.65 belongs to the 4×→10× step and to nothing else.
     expect(F20_EDGE().rendOverFree).toBeCloseTo(1.13666851, 7);
-    expect(F20F_EDGE().rendOverFree).toBeCloseTo(1.15943644, 7);
+    expect(F20F_EDGE().rendOverFree).toBeCloseTo(1.15943368, 7);
     expect(ROF_EDGE_10F / F20F_EDGE().rendOverFree).toBeCloseTo(1.00752, 4);
     expect(ROF_EDGE_10 / F20_EDGE().rendOverFree).toBeCloseTo(0.99894, 4);
     // Its distance from 1 falls by more than three orders of magnitude.
     expect((I1_EDGE - 1) / (departure(flatEdgeI()) - 1)).toBeGreaterThan(5000);
 
     // The axis reading collapses the same way, from 1.1343× to 1.0063×.
-    expect(F20_AXIS().rendOverFree).toBeCloseTo(1414.4784, 3);
+    expect(F20_AXIS().rendOverFree).toBeCloseTo(1414.4666, 3);
     expect(F20F_AXIS().rendOverFree).toBeCloseTo(1.03602668, 7);
     expect((I1_AXIS - 1) / (departure(flatAxisI()) - 1)).toBeGreaterThan(20);
   });
@@ -789,15 +789,15 @@ describe("§ 6bn.6 — the free field on a fifth and sixth lens, in ONE conventi
     // corrected stage swept to OUTER = 1.25 and the other to 1.30, and the two
     // readings differed by less than the convention gap between them, so it
     // pinned the agreement and read nothing from it. The AXIAL readings are
-    // directly comparable — § 6bm pinned 0.9722786 at 10×, this is 0.9720138 at
+    // directly comparable — § 6bm pinned 0.9722866 at 10×, this is 0.9720218 at
     // 20×, the same convention on the same readout — and they agree to 2.7e-4.
     //
     // What this still does NOT do is call two points a trend. There is no handle
     // on this readout's own reproducibility, which is why § 6bm declined; the
     // improvement is that the DECLINE is now about reproducibility alone and not
     // about a convention nobody had measured.
-    expect(F20_AXIS().freeGain).toBeCloseTo(0.97201382, 7);
-    expect(F20_AXIS().freeGain / FREE_AXIS_10).toBeCloseTo(0.99972767, 7);
+    expect(F20_AXIS().freeGain).toBeCloseTo(0.97202182, 7);
+    expect(F20_AXIS().freeGain / FREE_AXIS_10).toBeCloseTo(0.99973590, 7);
     expect(F20_AXIS().freeGain).toBeLessThan(1);
     expect(FREE_AXIS_10).toBeLessThan(1);
     // § 6bl.6's corrected-stage 0.972202 on the same lens, for the size of the gap.
@@ -812,8 +812,8 @@ describe("§ 6bn.6 — the free field on a fifth and sixth lens, in ONE conventi
       expect(f.scannerVsRaw).toBeGreaterThan(1);
       expect(f.scannerVsRaw).toBeLessThan(SCANNER_CEILING);
     }
-    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.2026527, 6);
-    expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0916232, 6);
+    expect(F20_AXIS().scannerVsRaw).toBeCloseTo(1.2037625, 6);
+    expect(F20_EDGE().scannerVsRaw).toBeCloseTo(1.0916247, 6);
     expect(F20F_AXIS().scannerVsRaw).toBeCloseTo(1.0001726, 6);
     expect(F20F_EDGE().scannerVsRaw).toBeCloseTo(1.0607808, 6);
   });

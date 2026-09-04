@@ -103,7 +103,7 @@ import type { OpticalSystem } from "../src/trace/system";
  *   (§ 6bk.6). A warning that holds and a number that does not.
  * - **§ 6bi's axial verdict does not travel, and inverts.** "The free flat field
  *   buys nothing on the axis and 121× at the edge" is an NA 0.10 statement: at
- *   NA 0.20 it buys **1395×** on the axis and nothing at the edge (§ 6bk.5).
+ *   NA 0.20 it buys **1394×** on the axis and nothing at the edge (§ 6bk.5).
  * - **The pupil-versus-rasterizer split is the APERTURE's**, 1195× against 0.999×
  *   on the axis, and barely magnification's at all — 1.136× across the 2.5×
  *   (§ 6bk.5).
@@ -437,8 +437,8 @@ describe("§ 6bk.1 — the seed reaches the render, and the control does not mov
     expect(F4_CORR_EDGE().rendered).toBeCloseTo(1.387024e-2, 7);
     expect(F4_CORR_EDGE().free).toBeCloseTo(1.183074e-2, 7);
     expect(F4_CORR_EDGE().rendOverFree).toBeCloseTo(1.17239, 4);
-    expect(F4_CORR_AXIS().rendOverFree).toBeCloseTo(1193.3645, 3);
-    expect(F4_CORR_EDGE().freeGain).toBeCloseTo(121.25, 1);
+    expect(F4_CORR_AXIS().rendOverFree).toBeCloseTo(1193.3549, 3);
+    expect(F4_CORR_EDGE().freeGain).toBeCloseTo(121.14, 1);
     expect(F4_CORR_AXIS().freeGain).toBeCloseTo(1.01788, 4);
     // …and § 6bi's headline that a scanner's own calibration makes it 11% WORSE.
     expect(F4_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.110077, 5);
@@ -630,8 +630,8 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // aperture and the throughput is no longer flat near the axis at all: the two
     // fields land on top of each other, and the free one — which § 6bi called
     // exact for the pupil and useless on the axis — becomes the whole correction.
-    expect(F4_AX_AXIS().rendOverFree).toBeCloseTo(1195.2705, 3);
-    expect(F20_AX_AXIS().rendOverFree).toBeCloseTo(0.99932895, 7);
+    expect(F4_AX_AXIS().rendOverFree).toBeCloseTo(1195.2602, 3);
+    expect(F20_AX_AXIS().rendOverFree).toBeCloseTo(0.99932926, 7);
     expect(F4_AX_AXIS().rendOverFree / F20_AX_AXIS().rendOverFree).toBeGreaterThan(1000);
   });
 
@@ -640,29 +640,29 @@ describe("§ 6bk.5 — the flat field's two shares are the APERTURE's, and § 6b
     // rather than a scaling: the slow lens's split is nearly all pupil at the
     // edge and nearly all rasterizer on the axis, and the fast lens is the other
     // way round in both places.
-    expect(F4_AX_EDGE().rendOverFree).toBeCloseTo(1.1721421, 6);
-    expect(F20_AX_EDGE().rendOverFree).toBeCloseTo(64.696246, 5);
-    expect(F20_AX_EDGE().rendOverFree / F4_AX_EDGE().rendOverFree).toBeCloseTo(55.194884, 5);
+    expect(F4_AX_EDGE().rendOverFree).toBeCloseTo(1.1721432, 6);
+    expect(F20_AX_EDGE().rendOverFree).toBeCloseTo(64.702667, 5);
+    expect(F20_AX_EDGE().rendOverFree / F4_AX_EDGE().rendOverFree).toBeCloseTo(55.200311, 5);
   });
 
   it("and MAGNIFICATION barely touches it — 1.136× across the 2.5×", () => {
     // Against the aperture's thousandfold, on the same readout at the same field
     // positions. This is what § 6bk.2's separation buys: the split is a property
     // of the aperture and not of the objective's power.
-    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1355.9474, 3);
+    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1355.9362, 3);
     expect(F10_CORR_AXIS().rendOverFree / F4_CORR_AXIS().rendOverFree).toBeCloseTo(1.136239, 5);
     expect(F10_CORR_EDGE().rendOverFree).toBeCloseTo(1.1351098, 6);
   });
 
-  it("and the free field's axial and edge ROLES swap with aperture, 1.018/189 against 1395/1.021", () => {
+  it("and the free field's axial and edge ROLES swap with aperture, 1.018/189 against 1394/1.021", () => {
     // The most quotable consequence, because it is the sentence a caller would
     // act on. On the control, a free flat field is worth nothing on the axis and
     // 189× at the edge, so § 6bi concluded a calibration is an edge-of-field
     // instrument. At twice the aperture that is exactly backwards.
     expect(F4_AX_AXIS().freeGain).toBeCloseTo(1.0177396, 6);
-    expect(F4_AX_EDGE().freeGain).toBeCloseTo(188.90931, 4);
-    expect(F20_AX_AXIS().freeGain).toBeCloseTo(1395.4598, 3);
-    expect(F20_AX_EDGE().freeGain).toBeCloseTo(1.0211005, 6);
+    expect(F4_AX_EDGE().freeGain).toBeCloseTo(188.63416, 4);
+    expect(F20_AX_AXIS().freeGain).toBeCloseTo(1394.1918, 3);
+    expect(F20_AX_EDGE().freeGain).toBeCloseTo(1.0210966, 6);
     // Written as the crossing it is: each lens is useless where the other is best.
     expect(F4_AX_EDGE().freeGain / F4_AX_AXIS().freeGain).toBeGreaterThan(100);
     expect(F20_AX_AXIS().freeGain / F20_AX_EDGE().freeGain).toBeGreaterThan(100);
@@ -690,8 +690,8 @@ describe("§ 6bk.6 — the scanner verdict's SIGN travels and its size does not"
 
     // The size is another matter entirely: from doing nothing at all to 21% worse.
     expect(F20_AX_AXIS().scannerVsRaw).toBeCloseTo(1.0000024, 6);
-    expect(F20_AX_EDGE().scannerVsRaw).toBeCloseTo(1.2090451, 6);
-    expect(F10_CORR_AXIS().scannerVsRaw).toBeCloseTo(1.1907442, 6);
+    expect(F20_AX_EDGE().scannerVsRaw).toBeCloseTo(1.2090415, 6);
+    expect(F10_CORR_AXIS().scannerVsRaw).toBeCloseTo(1.1917905, 6);
     expect(F10_CORR_EDGE().scannerVsRaw).toBeCloseTo(1.0820783, 6);
     const sizes = all.map((f) => f.scannerVsRaw);
     expect(Math.max(...sizes) / Math.min(...sizes)).toBeCloseTo(1.2090422, 5);

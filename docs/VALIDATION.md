@@ -153,6 +153,7 @@ whole ladder.
 | [6co](#step-6co--the-maps-cube-moved-by-the-reading-plane-not-by-the-ray) | § 6cn.5's unexplained 2.9e-3 is the PLANE: the module reads at its own conjugate, these sit 2.3–4.2% off theirs, and the shift is linear in that defocus and zero at it | ✅ |
 | [8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes) | AB = 0 is 3631 Jy: a 0-mag star is 996 photons·s⁻¹·cm⁻²·Å⁻¹ at 550 nm (textbook 1000), a band's count is (f_ν/h)·ln(λ₂/λ₁) for any spectrum, shot noise is Poisson | `photon-zero-point` |
 | [8b](#step-8b--the-sky-and-the-magnitude-it-hides) | The sky per pixel is B·Ω·A·t: twice the mirror at one focal ratio is 4× the star and 1.000000000000× the sky, and the limit deepens 1.5051 mag per 4× exposure, 0.7526 swamped | `sky-background` |
+| [8c](#step-8c--the-resampler-that-conserves) | Bilinear × k² is a one-point quadrature: the stack ran +0.3–3.0% heavy with `truncatedFraction` at 0. A conservative minmod regrid conserves AND beats it on accuracy | `resample-conservation` |
 
 Two sections close the file: [Later rungs](#later-rungs), the pins that are
 named but not yet made, and [Rules](#rules), the discipline every rung is held
@@ -26707,7 +26708,7 @@ is the √N signal-to-noise: four times the light is twice the SNR, to 1%.
 | **§ 8a.8 — an absolute frame: m = 10 admits 240.8519 photons/s through the hero pupil over 400–700 nm** | § 8a.6 × ln(700/400)/ln(600/500) = 3.069389 | ✅ |
 | § 8a.9 — the draw restores the render exactly when divided back, in intensity and in colour, and counts to √N | same-process identity; Poisson | ✅ |
 | § 8a.10 — a magnitude quoted over a different band from the render's refuses, as does a pupil that is not an area | § 5s.5, propagated | ✅ |
-| **§ 8a.11 — a finding: a PSF conserves energy to the bit and `spectralStack`'s resampling of it does not (+0.3% to +3.0%), while `truncatedFraction` reports 0** | Σ intensity ≡ energy | ⚠️ open |
+| ~~**§ 8a.11 — a finding: a PSF conserves energy to the bit and `spectralStack`'s resampling of it does not (+0.3% to +3.0%), while `truncatedFraction` reports 0**~~ **closed at [§ 8c](#step-8c--the-resampler-that-conserves)** | Σ intensity ≡ energy | ✅ |
 
 ### What is not pinned to an external number
 
@@ -26733,7 +26734,9 @@ and never reaches the prescription. Divide by the pupil's own energy and those
 two normalizations cancel the obstruction twice over: the full circle's photons
 are spread across the survivors, and **a 200 mm Newtonian records exactly what
 a 200 mm clear aperture would**. Measured, that is the tell — Σ(intensity)/energy
-is 1.0029 with the secondary in and 1.0030 with it out, the same number.
+is the same number either way: 1.0029 in and 1.0030 out when this was written,
+0.99969 and 0.99975 since § 8c put the resampler right, and the point is that
+the secondary moves neither of them.
 
 The correction invents no factor. `wave/psf`'s new `clearApertureEnergy` reads
 the same grid with nothing in the way (Σ⟨A²⟩ of a unit disc, edge cells and
@@ -26764,7 +26767,12 @@ Dividing the counts back by their own scale restores the render to a part in
 existing energy-weighted observer be used unchanged: **the noisy frame is the
 clean frame plus Poisson noise and nothing else.**
 
-**§ 8a.11 is a finding rather than a rung, and it is about the resampler.** A
+**§ 8a.11 was a finding rather than a rung, and it is about the resampler.**
+It is **closed at [§ 8c](#step-8c--the-resampler-that-conserves)**, which
+replaced the bilinear quadrature below with a conservative regrid; what that step
+did NOT change is the sentence's first half, and the reading it names is now
+2.25098e-4 of light leaving the grid rather than 0.3% to 3.0% arriving from
+nowhere. The finding as it stood: a
 raw PSF conserves to the bit — Σ intensity/energy is 1.00000000000 — and the
 planes `spectralStack` builds out of them do not: the hero's come back between
 **+0.3% and +3.0%** heavy, non-monotone in the resampling ratio (2.24% at
@@ -26961,9 +26969,160 @@ about them can be load-bearing.
 
 **Still open.** The sky is a number a user types, not a model of one; extinction,
 filter curves and quantum efficiency remain declared multipliers (§ 8a's
-position, unchanged); and § 8a.11's resampling excess is carried into the sky's
-frame exactly as into the star's, unreported by anything but `deliveredFraction`
-(OPEN-PROBLEMS A13).
+position, unchanged); and ~~§ 8a.11's resampling excess is carried into the sky's
+frame exactly as into the star's, unreported by anything but
+`deliveredFraction`~~ — that one is **closed at
+[§ 8c](#step-8c--the-resampler-that-conserves)**, and what the sky's frame now
+carries is the same truncation the star's does, reported.
+
+## Step 8c — the resampler that conserves
+
+*Source: an engine change, closing register item A13.*
+
+§ 8a.11 recorded a finding rather than a rung. `psf.ts` states
+`Σ intensity ≡ energy` as a construction and the raw transform meets it to the
+bit; the planes `spectralStack` builds out of those PSFs did not. The hero's came
+back **+0.3% to +3.0% heavy**, non-monotone in the resampling ratio, while
+`truncatedFraction` read **exactly 0**. Nothing external is needed to call that
+wrong — the identity the engine already asserts is the pin — and nothing
+upstream reported it: the excess pushed `placed` past `energy`, so the field's
+own `Math.max(0, …)` clamp swallowed it. It predates the photon count, it biases
+every polychromatic render's brightness, and because it is per-plane it biases
+the render's colour by about 2%.
+
+### The cause is a quadrature, and it is visible with no optics at all
+
+`pixelScaleMm` is ∝ λ, so every wavelength's PSF arrives on a grid of a
+different physical size and has to be put on a common one. The resampler
+interpolated bilinearly at each destination *centre* and multiplied by `k²`.
+That is a one-point rule for an integral. On a smooth function it is second
+order and the error is invisible; on a function with **rings** in it the
+destination lattice beats against the ring structure instead of averaging over
+it, and the error is neither small nor monotone in `k`.
+
+§ 8c.3 reproduces the whole failure on an Airy pattern written straight onto a
+grid — no system, no trace, no wavelengths: **+4.0e-2 to +1.0e-1** across the
+ratios the stack uses, larger than the hero's because the pattern is sampled
+harder. That is what makes it arithmetic rather than physics, and it is why the
+fix is a resampler and not a normalization.
+
+### What replaced it
+
+Conservative regridding of a slope-limited reconstruction. Source cell `i`
+covers `[i − ½, i + ½]` and holds `src[i]` as its **mean**; across that cell the
+source is reconstructed as a straight line through the mean; destination cell
+`x` covers `[c − k/2, c + k/2]` and takes that reconstruction's integral over
+the overlap. Destination cells tile the line exactly — width `k`, pitch `k`, no
+gaps and no overlaps — so a source cell's content is *partitioned* among them
+and none is created. The total can only fall, and only by what the destination
+grid does not cover, which is what `truncatedFraction` exists to say.
+
+The Jacobian stops being a factor applied on top and becomes what integrating
+rather than averaging *means*. `resampleEnergyGrid` returns the destination
+cell's integral and `resampleIrradianceGrid` its average, so the two still
+differ by exactly `k²` cell for cell (§ 8c.1) — § 6r's distinction survives
+intact, and it survives as one computation and a division rather than as two
+schemes that could drift.
+
+### The slope is limited, and that is a guarantee rather than a preference
+
+`s_i` is the **minmod** of the two one-sided differences: the smaller when they
+agree in sign, zero at a turning point. The unlimited centred difference is more
+accurate on a smooth field, is exactly as conserving, and would let the whole
+operator be precomputed as a linear filter — and it puts **twenty negative
+cells** in the troughs between Airy rings at k = 0.8, which `imaging/noise`
+refuses outright. Minmod cannot: `|s_i|` never exceeds the smaller one-sided
+difference, and on non-negative data one of those two is always at most `src[i]`
+itself, so the reconstruction stays at or above half the cell mean. § 8c.4
+measures zero negative cells at every ratio.
+
+The piecewise-**constant** version — the same scheme with no slope at all, which
+is what "area averaging" usually means — conserves just as exactly and is
+**three to four times worse than the bilinear it replaces**, pointwise, even
+measured against cell-average truth. Conservation on its own is cheap and can be
+bought by throwing the picture away. The limited slope is what buys it without
+paying in resolution, and § 8c.5 is the rung that says so.
+
+### What it is worth, measured against closed forms rather than against itself
+
+Three of the rungs are about a quantity conservation cannot reach — how close
+the values are to a **known** field:
+
+- a uniform field comes back at exactly 1 on the irradiance branch and exactly
+  `k²` on the energy branch, to 1e-15, at every ratio;
+- a Gaussian's grid sum is 2πσ² (Poisson summation makes the sampled sum equal
+  the integral to exp(−2π²σ²), which is f64 zero at σ = 6), and the resampled
+  total stays there to 1e-13 across k = 0.8–1.3;
+- a separable tone whose average over any interval is a closed form: the rms
+  departure from the true field is **6.9e-4 against bilinear's 1.9e-3** at 32 px
+  per period, **1.7e-2 against 3.1e-2** at 8, and **3.6e-2 against 1.17e-1** at
+  4.
+
+### Two things it costs, both stated rather than absorbed
+
+**A destination cell the source does not completely cover is left at zero**,
+not partly filled. A partly-filled cell reads low and invents an edge the optics
+do not have, and `resampleIrradianceGrid`'s "a uniform specimen images to exactly
+1" has to hold on every cell it writes rather than on most of them. The price is
+that a rim of real light at k > 1 is now *reported* through `truncatedFraction`
+instead of being placed approximately: § 6j.2's 200 nm emission band goes from
+below 1e-9 to 2.0e-3, and the app's `DISPERSION_FLOOR_AIRY_RADII` rises from
+0.03 to 0.032 for the same reason — a common grid is a crop whatever the
+resampler, and no resampler removes it.
+
+**The operator is no longer bit-symmetric under a transpose.** It runs one axis
+and then the other, and the limiter is taken on the already-resampled
+intermediate, so an on-axis PSF is its own transpose to one 8-bit level rather
+than to zero. The single fused bilinear expression happened to be exactly
+symmetric; dimensional splitting with a non-linear limiter cannot be. The golden
+rung that used this as a proxy now asserts the claim it was a proxy for — that
+the gate does not reject a transposed hero — directly.
+
+### The prediction that could have failed
+
+§ 8a.7 pinned the Newtonian's secondary at 1 − ε² on the **resampled** light to
+1e-3 and on the pupil grid to 7.6e-5, and named the gap as § 8a.11's excess,
+which is not common-mode between two frames whose PSFs differ. If the excess
+were not the cause, removing it would have left the gap where it was. It goes to
+**1.2e-5** — past the pupil grid's own reading, because what remains is a
+truncation the two frames share. The pupil-grid number is unmoved at 7.6e-5, as
+it must be: no resampler is in it.
+
+### It is also faster, which was not the point
+
+The scheme does about twice the arithmetic of a bilinear tap and allocates
+nothing: the first pass writes only the scratch rows the second reads, into a
+buffer kept between calls. A render resamples one plane per wavelength per frame
+and a mosaic does that per tile, so the megabytes-per-second of garbage the
+obvious implementation makes dominate everything else — the suite's slowest
+mosaic rung ran 60 s before this step, 267 s with a per-call scratch, and **34 s**
+once the scratch was reused.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 8c.1 — a uniform field is a uniform field at every ratio** | irradiance exactly 1 and energy exactly k² to 1e-15 across k = 0.8–1.3, and the two branches differ by exactly k² cell for cell | ✅ |
+| **§ 8c.2 — k = 1 on aligned centres is a copy, bit for bit** | max |Δ| exactly 0 over the whole grid; the scheme replaced missed 2N − 1 pixels of it, dropping the last row and column | ✅ |
+| **§ 8c.3 — HEADLINE: an Airy pattern's total does not move** | 2πσ² for a Gaussian to 1e-13 across the sweep; on rings the new total is ≤ 0 and under 2e-3 where bilinear's best ratio is above 2e-2 | ✅ |
+| **§ 8c.4 — the limiter is a non-negativity guarantee** | zero negative cells at every ratio on a ringed spot, where the unlimited centred slope gives twenty | ✅ |
+| **§ 8c.5 — HEADLINE: accuracy, not only conservation** | rms against a closed-form tone beats bilinear at 32, 8 and 4 px per period and both ratios; minmod's known first-order cost at a smooth extremum is stated | ✅ |
+| **§ 8c.6 — HEADLINE: no plane gains light, and the clamp is inert** | every hero plane's Σ/energy ≤ 1 and within 1e-3; `truncatedFraction` is 2.25098e-4 and equals the weighted deficit to 1e-15 | ✅ |
+| ...and § 8a.7's obstruction reading tightens from −4.3e-4 to 1.2e-5 | the prediction the change had to meet | ✅ |
+
+### Not yet pinned
+
+The reconstruction is second order away from turning points and first order at
+them, which is minmod's known price and is why the one comparison against
+cell-average truth that bilinear wins is the smoothest field at k > 1. A
+limiter that is second order at smooth extrema (MC, superbee, or a
+positivity-preserving parabolic reconstruction) would remove that and has no
+rung here, because nothing yet measured needs it. What would decide it is a
+rung on a *smooth* extended field where the ~1e-3 difference is load-bearing;
+every current caller either carries rings, where minmod already wins, or is
+renormalized afterwards.
+
+The scheme is separable and therefore not transpose-symmetric to the bit, as
+above. A symmetrized version costs a second pass in the other order and buys
+one 8-bit level; it is not obviously worth it and is not done.
 
 ## Later rungs
 

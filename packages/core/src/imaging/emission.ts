@@ -216,12 +216,14 @@ export function emissionKernel(
     // is done centred and shifted back once at the end.
     const centred = Float64Array.from(kernel.values);
     fftShift2d(centred, size);
-    // A component already on the common grid is left alone. That is not an
-    // optimization — `resampleEnergyGrid` drops destinations sourced from the last row
-    // and column, so passing an exactly-matching grid through it would lose
-    // 2.6e-4 of the light and, after renormalization, move the peak by the same
-    // amount. A one-line band must be the monochromatic kernel EXACTLY, or every
-    // broadband number is measured against a moving zero (§ 6j.1).
+    // A component already on the common grid is left alone. Since § 8c that is an
+    // optimization and no longer a correction: the conservative resampler copies
+    // an exactly-matching grid bit for bit, last row and column included, where
+    // the bilinear one dropped them and lost 2.6e-4 of the light — which, after
+    // renormalization, moved the peak by the same amount. The skip stays because
+    // the comparison below is a TOLERANCE and this path must be exact: a
+    // one-line band must be the monochromatic kernel EXACTLY, or every broadband
+    // number is measured against a moving zero (§ 6j.1).
     // Compared within f64 rounding rather than bit-exactly: the target is a
     // WEIGHTED MEAN, so a component that is the mean can miss it by an ulp and
     // whether it does depends on summation order. A bit-exact test would make

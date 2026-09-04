@@ -116,7 +116,7 @@ import type { OpticalSystem } from "../src/trace/system";
  *   with no render in it. The convention could not have mattered.
  * - **§ 6bl's unlocated crossing is bracketed.** The free field's axial gain is
  *   1.01788 on the control and 0.972202 at 20×, so it passes through 1 somewhere;
- *   the 10× reading was never taken. It is 0.9725286, so **the crossing is
+ *   the 10× reading was never taken. It is 0.9725363, so **the crossing is
  *   between 4× and 10×** (§ 6bm.6). Where in that interval stays unlocated, and
  *   the step does NOT claim the series then flattens — see the rung.
  * - The bill: § 6bl.4's registration cost "goes as 95.7 over M, plus about a
@@ -493,7 +493,7 @@ describe("§ 6bm.1 — the corner builds, the ruler barely moves, and every borr
     expect(C4().aniso).toBeCloseTo(ANISO_4, 4);
     expect(CF().aniso).toBeCloseTo(ANISO_F, 4);
 
-    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1355.9474, 3);
+    expect(F10_CORR_AXIS().rendOverFree).toBeCloseTo(1355.9362, 3);
     expect(spanOf(SURF10().colourMm) / Math.abs(SURF10().fieldDropMm[0]![2]!)).toBeCloseTo(2.173425, 5);
   });
 
@@ -650,10 +650,10 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
 
     expect(departure(anisoI)).toBeCloseTo(1.0166451, 6);
     expect(departure(costI)).toBeCloseTo(1.1060587, 6);
-    expect(departure(flatAxisI)).toBeCloseTo(1.1342887, 6);
+    expect(departure(flatAxisI)).toBeCloseTo(1.1342794, 6);
     expect(departure(escI)).toBeCloseTo(1.6826431, 5);
     expect(departure(plateauI)).toBeCloseTo(1.8325811, 6);
-    expect(departure(flatEdgeI)).toBeCloseTo(53.6497518, 5);
+    expect(departure(flatEdgeI)).toBeCloseTo(53.6497192, 5);
 
     // Not one of the six separates.
     for (const i of [anisoI, costI, flatAxisI, escI, plateauI, flatEdgeI]) {
@@ -691,14 +691,14 @@ describe("§ 6bm.4 — six readouts, six interactions, and an ordering that span
     // 0.99933 and 0.99949, and those two agree to 1.6e-4. At the EDGE it does
     // not. At NA 0.10 magnification moves the edge split 1.032×, and at NA 0.20
     // it moves the same readout 55.38× — the largest reading in this square.
-    expect(F10_AXIS().rendOverFree).toBeCloseTo(1355.9999, 3);
-    expect(FC_AXIS().rendOverFree).toBeCloseTo(0.99948971, 7);
-    expect(FC_AXIS().rendOverFree / ROF_AXIS_F).toBeCloseTo(1.00016087, 7);
+    expect(F10_AXIS().rendOverFree).toBeCloseTo(1355.9886, 3);
+    expect(FC_AXIS().rendOverFree).toBeCloseTo(0.99948959, 7);
+    expect(FC_AXIS().rendOverFree / ROF_AXIS_F).toBeCloseTo(1.00016075, 7);
 
-    expect(F10_EDGE().rendOverFree).toBeCloseTo(1.13546654, 7);
-    expect(FC_EDGE().rendOverFree).toBeCloseTo(1.16816836, 7);
+    expect(F10_EDGE().rendOverFree).toBeCloseTo(1.13546786, 7);
+    expect(FC_EDGE().rendOverFree).toBeCloseTo(1.16817043, 7);
     expect(ROF_EDGE_4 / F10_EDGE().rendOverFree).toBeCloseTo(1.0323, 4);
-    expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeCloseTo(55.382638, 4);
+    expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeCloseTo(55.382540, 4);
     expect(ROF_EDGE_F / FC_EDGE().rendOverFree).toBeGreaterThan(
       50 * (ROF_EDGE_4 / F10_EDGE().rendOverFree),
     );
@@ -750,10 +750,10 @@ describe("§ 6bm.6 — the free field's axial crossing is between 4× and 10×",
     // the control and 0.972202 at 20× — one side of 1 and the other — and the 10×
     // reading, the one that brackets it, had never been taken. Below 1 means a
     // calibration that makes the seam worse than leaving it alone.
-    expect(F10_CORR_AXIS().freeGain).toBeCloseTo(0.9725286, 6);
+    expect(F10_CORR_AXIS().freeGain).toBeCloseTo(0.9725363, 6);
     expect(FREE_AXIS_4).toBeGreaterThan(1);
     expect(F10_CORR_AXIS().freeGain).toBeLessThan(1);
-    expect(FREE_AXIS_4 / F10_CORR_AXIS().freeGain).toBeCloseTo(1.0466325, 6);
+    expect(FREE_AXIS_4 / F10_CORR_AXIS().freeGain).toBeCloseTo(1.0466242, 6);
   });
 
   it("and the convention this comparison could have died on is worth 0.026%, measured on this lens", () => {
@@ -762,8 +762,8 @@ describe("§ 6bm.6 — the free field's axial crossing is between 4× and 10×",
     // across the two conventions would be a convention difference wearing a
     // physics result's clothes. Here both are measured on the 10× itself, and the
     // convention is worth 2.6e-4 against the crossing's 4.7e-2: 180× smaller.
-    expect(F10_AXIS().freeGain).toBeCloseTo(0.9722786, 6);
-    expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain).toBeCloseTo(1.0002571, 7);
+    expect(F10_AXIS().freeGain).toBeCloseTo(0.9722866, 6);
+    expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain).toBeCloseTo(1.00025672, 7);
     expect(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain - 1).toBeLessThan(
       0.01 * (FREE_AXIS_4 / F10_CORR_AXIS().freeGain - 1),
     );
@@ -772,14 +772,14 @@ describe("§ 6bm.6 — the free field's axial crossing is between 4× and 10×",
   });
 
   it("what is NOT claimed: that the series then flattens", () => {
-    // 1.01788, 0.9725286, 0.972202 invites "it steps down once and settles". The
+    // 1.01788, 0.9725363, 0.972202 invites "it steps down once and settles". The
     // 10×-to-20× gap is 3.4e-4, and this file's own measurement of the stage
     // convention on the 10× is 2.6e-4, while § 6bl's 20× surface was swept to
     // OUTER = 1.30 against the 1.25 used here — an unquantified third difference.
     // A two-point trend inside its own error bars is both traps this branch has
     // caught in review at once, so the agreement is pinned as an agreement and
     // nothing is inferred from it.
-    expect(F10_CORR_AXIS().freeGain / FREE_AXIS_20).toBeCloseTo(1.00033595, 7);
+    expect(F10_CORR_AXIS().freeGain / FREE_AXIS_20).toBeCloseTo(1.00034381, 7);
     expect(Math.abs(F10_CORR_AXIS().freeGain / FREE_AXIS_20 - 1)).toBeLessThan(
       2 * Math.abs(F10_CORR_AXIS().freeGain / F10_AXIS().freeGain - 1),
     );
@@ -793,9 +793,9 @@ describe("§ 6bm.6 — the free field's axial crossing is between 4× and 10×",
     // 281× better on the axis AND 18.5× better at the edge: it helps everywhere,
     // and only its margin varies. So the swap is a reading about the 4×.
     expect(FC_AXIS().freeGain).toBeCloseTo(281.59525, 4);
-    expect(FC_EDGE().freeGain).toBeCloseTo(18.506792, 5);
-    expect(F10_EDGE().freeGain).toBeCloseTo(229.85896, 4);
-    expect(FC_AXIS().freeGain / FC_EDGE().freeGain).toBeCloseTo(15.215778, 5);
+    expect(FC_EDGE().freeGain).toBeCloseTo(18.506257, 5);
+    expect(F10_EDGE().freeGain).toBeCloseTo(229.85876, 4);
+    expect(FC_AXIS().freeGain / FC_EDGE().freeGain).toBeCloseTo(15.216219, 5);
     expect(FC_AXIS().freeGain / FC_EDGE().freeGain).toBeLessThan(100);
     // Where the slow 10×'s own ratio, § 6bk.5's shape, clears 100.
     expect(F10_EDGE().freeGain / F10_AXIS().freeGain).toBeGreaterThan(100);
@@ -811,9 +811,9 @@ describe("§ 6bm.6 — the free field's axial crossing is between 4× and 10×",
       expect(f.scannerVsRaw).toBeGreaterThanOrEqual(1);
       expect(f.scannerVsRaw).toBeLessThanOrEqual(1.2090451);
     }
-    expect(F10_AXIS().scannerVsRaw).toBeCloseTo(1.1924926, 6);
+    expect(F10_AXIS().scannerVsRaw).toBeCloseTo(1.1935458, 6);
     expect(FC_AXIS().scannerVsRaw).toBeCloseTo(1.0000363, 6);
-    expect(FC_EDGE().scannerVsRaw).toBeCloseTo(1.0615632, 6);
+    expect(FC_EDGE().scannerVsRaw).toBeCloseTo(1.0615913, 6);
   });
 });
 

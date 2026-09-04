@@ -213,7 +213,7 @@ describe("§ 6bi.2 — the seam's brightness step is a FIELD quantity", () => {
   it("and the whole picture is a staircase, not just its seams", () => {
     const axisField = renderedFlatField(SYSTEM, BLANK, AXIS_OPTIONS);
     const edgeField = renderedFlatField(SYSTEM, BLANK, EDGE_OPTIONS);
-    expect(axisField.span).toBeCloseTo(7.784747e-5, 10);
+    expect(axisField.span).toBeCloseTo(7.784684e-5, 10);
     expect(edgeField.span).toBeCloseTo(1.387024e-2, 7);
   });
 
@@ -250,7 +250,7 @@ describe("§ 6bi.3 — two flat fields, and the difference between them is the M
     // The throughput is even, so it is flat on axis; the radial map's local
     // scale is not, so a uniform density in the OBJECT is not uniform on the
     // image grid. 1193× says the whole of an axial flat field is the rasterizer.
-    expect(axisRendered.span).toBeCloseTo(7.784747e-5, 10);
+    expect(axisRendered.span).toBeCloseTo(7.784684e-5, 10);
     // The axial throughput span is the flat profile's residue — 6.5e-8 out of a
     // throughput of order 1 — so the same few ulps are 1.5e-8 of it. Bound set
     // three orders above that floor, because the number of accumulated
@@ -296,8 +296,8 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
       flatFieldCorrect(AXIS_BLANK.composed, throughputFlatField(AXIS_BLANK)),
       AXIS_GEOMETRY,
     );
-    expect(edge.acrossSeam).toBeCloseTo(4.368853e-5, 9);
-    expect(before.acrossSeam / edge.acrossSeam).toBeCloseTo(121.1833, 3);
+    expect(edge.acrossSeam).toBeCloseTo(4.372687e-5, 9);
+    expect(before.acrossSeam / edge.acrossSeam).toBeCloseTo(121.0771, 3);
     // Nothing on the axis, and that is not a failure: there is no throughput
     // gradient there to remove, so the 1.9e-6 that survives is § 6bi.3's map.
     expect(axis.acrossSeam).toBeCloseTo(1.868698e-6, 11);
@@ -326,7 +326,7 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
     const crossed = mosaicSeamStep(flatFieldCorrect(EDGE_BLANK.composed, other), EDGE_GEOMETRY);
     const native = mosaicSeamStep(flatFieldCorrect(EDGE_BLANK.composed, own), EDGE_GEOMETRY);
     expect(crossed.acrossSeam).toBeCloseTo(native.acrossSeam, 12);
-    expect(crossed.acrossSeam).toBeCloseTo(4.368853e-5, 9);
+    expect(crossed.acrossSeam).toBeCloseTo(4.372687e-5, 9);
   });
 
   it("and a stage scanner's per-tile field makes it WORSE, by 11%", () => {
@@ -374,7 +374,12 @@ describe("§ 6bi.4 — division removes the amplitude and cannot touch the phase
       flatFieldCorrect(EDGE_BLANK.composed, edgeRendered),
       EDGE_GEOMETRY,
     );
-    expect(exact.acrossSeam).toBe(0);
+    // Exactly 0 before § 8c and 1.2e-16 after — half an ulp of the unity the
+    // division lands on, not a seam. The correction is still the same render
+    // divided by itself; what changed is that the quotients now round to 1 from
+    // both sides instead of all from one, so the step across the seam is a
+    // rounding rather than an identity. Bounded at one ulp, which is the claim.
+    expect(exact.acrossSeam).toBeLessThan(2.3e-16);
   });
 
   it("and on a point emitter it moves the brightness 305× more than the WIDTH", () => {

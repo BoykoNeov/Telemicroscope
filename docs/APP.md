@@ -2136,7 +2136,9 @@ and doubling the gain does not**, so the two brighten the picture identically
 and only one of them quiets it. Engine side this cost a correction rather than
 wiring (§ 8a.7: the PSF's own `energy` normalizes an obstruction away, so the
 photon denominator is the clear aperture) and turned up a resampler finding
-(§ 8a.11, now OPEN-PROBLEMS A13). No ladder rung was added for the panel;
+(§ 8a.11, register A13, ~~open~~ **closed at § 8c**: the stack now conserves, and
+the panel's truncation readout says 2.3e-4 where it used to say a clamped zero).
+No ladder rung was added for the panel;
 `test/camera.test.ts` pins the four things the *surface* claims.
 
 Which of § 5s's two laws drives it is a distinction the panel has to make out

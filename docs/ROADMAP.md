@@ -1809,8 +1809,10 @@ Hopkins' TCC (D).
    a magnitude slider. It was not only wiring: the route as written divided by the
    PSF's own `energy`, which normalizes an obstruction away, so the denominator is
    now the **clear aperture on the same grid** and the pin is 1 − ε². Walking it
-   also found that `spectralStack`'s resampling moves energy by up to 3% with
-   nothing reporting it (§ 8a.11 → OPEN-PROBLEMS A13).
+   also found that `spectralStack`'s resampling moved energy by up to 3% with
+   nothing reporting it (§ 8a.11 → OPEN-PROBLEMS A13), ~~which is open~~ —
+   **closed at § 8c**, where a conservative minmod regrid replaced the bilinear
+   quadrature and beat it on accuracy as well as conserving.
    *The sky, and the limit:* ✅ **§ 8b** — `skyPhotonsPerPixel` and
    `limitingMagnitude`. A surface brightness is § 8a's closed form read per
    arcsec², so the rate was free; what was not free is the **étendue** that puts
