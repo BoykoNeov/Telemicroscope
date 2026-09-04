@@ -8876,8 +8876,11 @@ will belong to and the gratings never did.
   1e-4 absolute in a two-point cross-term energy — invisible against an image,
   and percent-level only when divided by a near-vanishing autocorrelation. It
   does not shrink with `pupilSamples`.
-- **Phase contrast and DIC** need a phase plate in the pupil and Hopkins' TCC
-  respectively; both are v2, and the annular source is already here waiting.
+- **Phase contrast and DIC** need a phase plate in the pupil and ~~Hopkins'
+  TCC~~ respectively; **the TCC landed at § 6cr** and both are still v2, because
+  the kernel is the object they act on and not them — and it has no caller of its
+  own until the sum-of-coherent-systems decomposition exists. The annular source
+  is still here waiting.
 - **Off-axis.** One field point, on axis, like the rest of § 6.
 
 ## Step 6g — the coherence width, and what a field decomposition may window
@@ -9133,9 +9136,13 @@ the convergence measurement on a traced one and finds a different rate.
 - **What the output-side scheme costs where the pupil DOES vary**, as a
   *number* rather than as a rate. § 6g.3 measures the patch-count convergence and
   pins its ratio; nothing pins the limit it converges to, because there is no
-  closed form for a non-isoplanatic partially coherent image and Hopkins' TCC —
-  which would give one — is a v2 item. The edge patches are exact and the
-  interior is a sequence.
+  closed form for a non-isoplanatic partially coherent image and ~~Hopkins' TCC —
+  which would give one — is a v2 item~~. **§ 6cr built the TCC, and it does not
+  give one** — that kernel is isoplanatic exactly as `abbeImage` is, one pupil and
+  one patch, so it is the thing being decomposed rather than a closed form for
+  the decomposition. A non-isoplanatic kernel carries four arguments and is a
+  different object. The edge patches are exact and the interior is still a
+  sequence.
 - ~~**The bridge to a traced system.**~~ **Closed at § 6h.** Every § 6g.3
   field-varying rung still uses a labelled fixture, so nothing *here* is a claim
   about a real objective's field curvature — § 6h is where a traced one is
