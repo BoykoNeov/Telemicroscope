@@ -89,7 +89,7 @@ function Frame({
         ref={canvas}
         style={{ width: 240, height: 240, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, marginTop: 6, maxWidth: 240 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 6, maxWidth: 240 }}>
         {caption}
       </figcaption>
     </figure>
@@ -155,7 +155,7 @@ export function SeeingPanel() {
       </div>
 
       {result && !("size" in result) && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", maxWidth: 700 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 700 }}>
           the {result.stage} refused ({result.source}): {result.error}
         </p>
       )}
@@ -205,7 +205,7 @@ export function SeeingPanel() {
                 FWHM {r.cleanFwhmPx.toFixed(2)} px = <strong>{r.cleanFwhmArcsec.toFixed(3)}″</strong>{" "}
                 · Strehl {r.cleanStrehl.toFixed(4)}
                 <br />
-                <span style={{ color: "#777" }}>
+                <span style={{ color: "var(--ink-4)" }}>
                   the Airy FWHM 1.029·λ/D is {r.diffractionFwhmArcsec.toFixed(3)}″ — the estimator
                   reads a few percent narrow on a 4-pixel feature
                 </span>
@@ -213,7 +213,7 @@ export function SeeingPanel() {
             }
           />
 
-          <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.8, maxWidth: 420 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 420 }}>
             <div>
               D/r₀ <strong>{r.dOverR0.toFixed(2)}</strong> · {r.elapsedMs.toFixed(0)} ms
             </div>
@@ -222,7 +222,7 @@ export function SeeingPanel() {
               0.98·λ/r₀ = {r.friedFwhmArcsec.toFixed(4)}″ (
               {(100 * (r.meanFwhmArcsec / r.friedFwhmArcsec - 1)).toFixed(1)}%)
             </div>
-            <div style={{ color: r.seeingLimited ? "#777" : "#a60" }}>
+            <div style={{ color: r.seeingLimited ? "var(--ink-4)" : "var(--warn)" }}>
               seeing-limited above {r.seeingLimitedAboveMm.toFixed(1)} mm of aperture —{" "}
               {r.seeingLimited
                 ? "this telescope is past it, so 0.98·λ/r₀ is the answer"
@@ -234,7 +234,7 @@ export function SeeingPanel() {
                 {r.transferDepartsAtNu === null ? "— (not inside the band)" : r.transferDepartsAtNu.toFixed(4)}
               </strong>
             </div>
-            <div style={{ color: "#777" }}>
+            <div style={{ color: "var(--ink-4)" }}>
               that is the ensemble&rsquo;s own noise floor, not the sky — it moves outward as the
               screen count grows
             </div>
@@ -262,7 +262,7 @@ export function SeeingPanel() {
           <h2 style={{ fontSize: 16, marginTop: 36 }}>
             The atmospheric transfer function, and where the measurement stops being one
           </h2>
-          <p style={{ maxWidth: 700, color: "#444" }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
             Long-exposure MTF divided by the same instrument&rsquo;s diffraction MTF, bin for bin,
             against Fried&rsquo;s exp(−3.44·(ν·D/r₀)^(5/3)) — <strong>evaluated, not fitted</strong>.
             Nothing about the atmosphere is put into the curve: the screens are Kolmogorov draws, the
@@ -274,13 +274,13 @@ export function SeeingPanel() {
               series={[
                 {
                   label: "measured (long exposure / diffraction)",
-                  color: "#06a",
+                  color: "var(--accent)",
                   dots: true,
                   points: r.transfer.map((p) => [p.nu, p.measured] as const),
                 },
                 {
                   label: "Fried exp(−3.44·(ν·D/r₀)^5/3)",
-                  color: "#c60",
+                  color: "var(--warn-strong)",
                   dash: [4, 3],
                   points: r.transfer.map((p) => [p.nu, p.fried] as const),
                 },
@@ -288,7 +288,7 @@ export function SeeingPanel() {
               markers={
                 r.transferDepartsAtNu === null
                   ? []
-                  : [{ x: r.transferDepartsAtNu, color: "#c00", label: "noise floor" }]
+                  : [{ x: r.transferDepartsAtNu, color: "var(--bad)", label: "noise floor" }]
               }
               xLabel="ν = f / cutoff"
               yLabel="atmospheric modulation"
@@ -302,7 +302,7 @@ export function SeeingPanel() {
               series={[
                 {
                   label: "r₀_eff / r₀ recovered per frequency",
-                  color: "#06a",
+                  color: "var(--accent)",
                   dots: true,
                   points: r.transfer
                     .filter((p) => p.effectiveFriedRatio !== null)
@@ -310,7 +310,7 @@ export function SeeingPanel() {
                 },
                 {
                   label: "1 — a pure r₀ shift would be flat here",
-                  color: "#999",
+                  color: "var(--ink-5)",
                   dash: [3, 3],
                   points: [
                     [0, 1],
@@ -321,7 +321,7 @@ export function SeeingPanel() {
               markers={
                 r.transferDepartsAtNu === null
                   ? []
-                  : [{ x: r.transferDepartsAtNu, color: "#c00", label: "noise floor" }]
+                  : [{ x: r.transferDepartsAtNu, color: "var(--bad)", label: "noise floor" }]
               }
               xLabel="ν = f / cutoff"
               yLabel="r₀_eff / r₀"
@@ -332,7 +332,7 @@ export function SeeingPanel() {
             />
           </div>
 
-          <p style={{ maxWidth: 700, fontSize: 13, color: "#666", marginTop: 12 }}>
+          <p style={{ maxWidth: 700, fontSize: 13, color: "var(--ink-3)", marginTop: 12 }}>
             The right-hand plot is § 5d&rsquo;s discriminator, and it is the reason that
             section&rsquo;s tolerance is earned rather than asserted. A finite screen truncates the
             largest turbulent scales, so the generator comes out a few percent mild — and if that
@@ -346,7 +346,7 @@ export function SeeingPanel() {
           <h2 style={{ fontSize: 16, marginTop: 36 }}>
             0.98·λ/r₀ is an answer only where the telescope is seeing-limited
           </h2>
-          <p style={{ maxWidth: 700, color: "#444" }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
             The headline number every observer quotes is a statement about the atmosphere and says
             nothing about the aperture, which is fine until the aperture is small enough that its own
             Airy disc is the wider of the two. Those are equal at 1.029·λ/D = 0.98·λ/r₀, i.e. at{" "}
@@ -357,7 +357,7 @@ export function SeeingPanel() {
             1.22·λ/D is the first <em>zero&rsquo;s radius</em> — 19% larger, and printed here as a
             FWHM at first, beside a measured one, after an equals sign that was wrong by 35%.
           </p>
-          <p style={{ maxWidth: 700, color: "#444" }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
             Drag the aperture below the crossover and the measured disc does <strong>not</strong>{" "}
             settle onto the diffraction limit — it comes out wider than <em>either</em> single-cause
             width, because two comparable widths convolve. That is a stronger statement than
@@ -366,7 +366,7 @@ export function SeeingPanel() {
             Fried and about a third wider than its own atmosphere-free disc, and stays under their
             sum.
           </p>
-          <p style={{ maxWidth: 700, fontSize: 13, color: "#666" }}>
+          <p style={{ maxWidth: 700, fontSize: 13, color: "var(--ink-3)" }}>
             And the instrument&rsquo;s own quality is in the number too, which the two optics make
             visible. On the same sky at D/r₀ = 4 the <strong>Newtonian</strong> — a paraboloid,
             perfect on axis — measures within about 2% of 0.98·λ/r₀, while a 200 mm f/8{" "}

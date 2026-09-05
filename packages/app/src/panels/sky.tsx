@@ -194,14 +194,14 @@ export function SkyPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>A disc, not a point</h1>
-      <p style={{ maxWidth: 680, color: "#444" }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)" }}>
         Every other telescope surface in this app images a <strong>star</strong>, because a star has
         no angular size and its whole light lands at one image point. This one images a{" "}
         <strong>disc</strong>: light per unit solid angle of sky, turned into flux per pixel by
         differentiating the same chief-ray map the engine already traces. Nothing downstream knows
         the difference — the scene drops into the same field renderer the star panels use.
       </p>
-      <p style={{ maxWidth: 680, color: "#a60", fontSize: 13 }}>
+      <p style={{ maxWidth: 680, color: "var(--warn)", fontSize: 13 }}>
         The disc is <strong>synthetic</strong>. No real body&rsquo;s angular size is claimed here and
         no published limb-darkening coefficient is transcribed: those are measured data this repo
         has not sourced, and the rule that keeps patent prescriptions out of the glass catalogue
@@ -298,14 +298,14 @@ export function SkyPanel() {
               style={{
                 width: 380,
                 height: 380,
-                background: refusal ? "#faf6f6" : "#000",
-                border: refusal ? "1px solid #c00" : "none",
+                background: refusal ? "var(--bad-tint)" : "#000",
+                border: refusal ? "1px solid var(--bad)" : "none",
               }}
             />
           )}
-          <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+          <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
             {refusal ? (
-              <span style={{ color: "#c00" }}>
+              <span style={{ color: "var(--bad)" }}>
                 <strong>{refusalVoice(refusal.source, "this frame")}</strong> ({refusal.stage})
                 <br />
                 {refusal.error}
@@ -318,7 +318,7 @@ export function SkyPanel() {
                 {rendered.discDiameterPx.toFixed(1)} px
                 <br />
                 {refining ? (
-                  <span style={{ color: "#a60" }}>
+                  <span style={{ color: "var(--warn)" }}>
                     refining {rendered.patches}×{rendered.patches} → {rendered.finestPatches}×
                     {rendered.finestPatches}…
                   </span>
@@ -384,7 +384,7 @@ export function SkyPanel() {
       </div>
 
       <h2 style={{ fontSize: 17, marginTop: 36 }}>The limb, measured against the law it was given</h2>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         The dashed line is the function handed to the rasterizer — <code>1 − u(1 − √(1 − s²))</code>,
         with a hard edge at the limb. The solid line is what came back out of the telescope. They
         part in exactly one place and for exactly one reason: the optics has a point-spread function,
@@ -397,18 +397,18 @@ export function SkyPanel() {
           series={[
             {
               label: "measured",
-              color: "#06a",
+              color: "var(--accent)",
               points: rendered.profile.map((p) => [p.s, p.measured] as const),
               dots: true,
             },
             {
               label: "the authored law",
-              color: "#c00",
+              color: "var(--bad)",
               dash: [4, 3],
               points: rendered.profile.map((p) => [p.s, p.law] as const),
             },
           ]}
-          markers={[{ x: 1, color: "#999", label: "the limb" }]}
+          markers={[{ x: 1, color: "var(--ink-5)", label: "the limb" }]}
           xLabel="radius / disc radius"
           yLabel="brightness, centre = 1"
           xMin={0}
@@ -420,7 +420,7 @@ export function SkyPanel() {
       )}
 
       <h2 style={{ fontSize: 17, marginTop: 36 }}>How much sky fits, and what decides it</h2>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         A Newtonian&rsquo;s frame does not run out of light gradually — it stops. Past a certain
         field the chief ray misses the diagonal, and since that ray defines both the image point and
         the reference sphere, the rasterizer refuses rather than degrading. The wall below is{" "}
@@ -436,7 +436,7 @@ export function SkyPanel() {
         )}
         . Aperture cancels: the same curve serves a 60 mm and a 400 mm.
       </p>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         Then move the <strong>focuser height</strong>. It is a mechanical number — tube radius plus
         focuser plus eyepiece back focus — and <code>newtonian</code> says in its own header that it
         moves no optical surface. It sizes the diagonal, and the diagonal is what the frame runs
@@ -448,14 +448,14 @@ export function SkyPanel() {
           series={[
             {
               label: `${OPTIC_LABELS[optic]} — measured`,
-              color: "#06a",
+              color: "var(--accent)",
               points: drawn.map((p) => [p.focalRatio, p.wallDeg] as const),
               dots: true,
             },
           ]}
           markers={[
-            { x: focalRatio, color: "#999", label: "you are here" },
-            { y: corner, color: "#c00", label: "this frame's corner" },
+            { x: focalRatio, color: "var(--ink-5)", label: "you are here" },
+            { y: corner, color: "var(--bad)", label: "this frame's corner" },
           ]}
           xLabel="focal ratio"
           yLabel="largest field the chief ray reaches (°)"
@@ -467,7 +467,7 @@ export function SkyPanel() {
         />
       )}
       {wall.result !== null && drawn.length === 0 && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#3a7" }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ok)" }}>
           no wall below {WALL_SWEEP_CEILING_DEG}° at any focal ratio swept — which is an absence
           inside this range, not the absence of a wall.
         </p>

@@ -384,14 +384,14 @@ export function StagePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The stage: a field of view is reached by tiling</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         Drag the picture. Each tile is a whole brightfield render — its own traced pupils, its own
         warped grid, its own Abbe sum over the condenser — and they are laid side by side with
         nothing blended and nothing resampled. A microscope frame in this engine spans{" "}
         <strong>pupilSamples resolution cells and no more</strong> (§ 6h.2), so this is the only way
         the view gets wider: not a bigger frame, more frames.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         A tile is identified by its <strong>index from the axis</strong>, never by where you have
         panned to — § 6o.8 pins that it is bit for bit the tile a whole mosaic composes, and measures
         what the alternative costs: re-anchoring on the viewport moves the grid 16 px a third of a
@@ -422,7 +422,7 @@ export function StagePanel() {
         />
         <Choice label={`display zoom ${zoom}×`} options={[1, 2, 3]} value={zoom} onChange={setZoom} />
       </div>
-      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 12 }}>
@@ -476,18 +476,18 @@ export function StagePanel() {
               width: view * zoom,
               height: view * zoom,
               imageRendering: "pixelated",
-              background: "#111",
+              background: "var(--ink)",
               cursor: drag.current ? "grabbing" : "grab",
               touchAction: "none",
             }}
           />
-          <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, marginTop: 4 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 4 }}>
             {progress.total > progress.done ? (
               <span>
                 {progress.done}/{progress.total} tiles · {(progress.elapsedMs / 1000).toFixed(1)} s
               </span>
             ) : (
-              <span style={{ color: "#777" }}>
+              <span style={{ color: "var(--ink-4)" }}>
                 {/* The zero case is the panel's own cache claim, and it has to be
                     reachable: gated on the batch total instead, it never fires
                     after the first render and the claim has no readout. */}
@@ -500,24 +500,24 @@ export function StagePanel() {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#777" }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)" }}>
             {view}² plane pixels — {TILES_ACROSS}×{TILES_ACROSS} tiles, whatever the guard and the
             sampling do to how much specimen that is
           </div>
         </div>
 
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, maxWidth: 400 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 400 }}>
           {info === null ? (
             <span>tracing the anchor…</span>
           ) : !info.ok ? (
-            <span style={{ color: "#c00" }}>{refusalVoice(info.source, "this stage")}: {info.error}</span>
+            <span style={{ color: "var(--bad)" }}>{refusalVoice(info.source, "this stage")}: {info.error}</span>
           ) : (
             <>
               <strong>{spanUm.toFixed(1)} µm</strong> of specimen on screen —{" "}
               <strong>{(100 * fieldFraction).toFixed(1)}%</strong> of the{" "}
               {info.info.fieldMm.toFixed(2)} mm this objective would really show
               <br />
-              <span style={{ color: "#777" }}>
+              <span style={{ color: "var(--ink-4)" }}>
                 field = {FIELD_NUMBER_MM} mm field number ÷ {info.info.magnification.toFixed(1)}×, a
                 stated convention and not a traced number — and the same number the infinity
                 doublets&rsquo; glass is sized to pass (§ 6w), so this caption and the objective in
@@ -548,7 +548,7 @@ export function StagePanel() {
                 <strong>the crop</strong>: guard {guardCells} cells · S{" "}
                 {coherenceParameter.toFixed(4)} · {info.info.sourcePoints} directions
                 <br />
-                <span style={{ color: "#777" }}>
+                <span style={{ color: "var(--ink-4)" }}>
                   all three, because § 6o measured that the guard alone does not decide it: a
                   coherent source falls as guard^(−1/2) and a filled condenser beats that by a
                   factor that doubles with the guard. No bound is printed — the partially coherent
@@ -566,7 +566,7 @@ export function StagePanel() {
                     .join(" · ")}{" "}
                   cells
                   <br />
-                  <span style={{ color: "#777" }}>
+                  <span style={{ color: "var(--ink-4)" }}>
                     the {guardCells} cells asked for are what the <em>ruler</em> plane gets (plus the
                     1 px stack crop); every redder plane&rsquo;s kept span is strictly interior to
                     what it rendered, so it is guarded further for free — § 6t.3. The blue end sets
@@ -592,7 +592,7 @@ export function StagePanel() {
         </div>
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>In colour (§ 6t)</strong>, a tile is one Abbe sum per wavelength, each on its own
         frame at its own λ, and the planes are stacked on the bluest one&rsquo;s ruler. The guard is
         cropped <em>first, per plane, on that plane&rsquo;s own grid</em> — which is the whole design
@@ -604,7 +604,7 @@ export function StagePanel() {
         the stack&rsquo;s own crop — so the whole lattice moves when this is switched, which is why
         the cache is thrown away with it.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>Colour costs a sampling, not just a wavelength count</strong>, and driving this
         panel is what found it. At <strong>pupil samples 32</strong> the picture is drawn and the
         fidelity readout says <em>no-honest-image at 450 nm</em> — § 6r.7&rsquo;s blue plane, which
@@ -615,7 +615,7 @@ export function StagePanel() {
         which is the trade this control now offers rather than hides. The grey stage rules{" "}
         <em>valid</em> at 32, because the d line is not the blue end.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         Mid-grey is intensity 1 — a <em>clear field</em> — and white is {WHITE_INTENSITY}× it,
         linearly. In colour the same reference is the <em>lamp&rsquo;s own</em> XYZ at that
         intensity: a clear field is 1 in every plane, so the exposure is a property of the lamp and
@@ -629,7 +629,7 @@ export function StagePanel() {
         <code>abbeImage</code> normalizes the source weights to Σ = 1, a clear field is 1 whatever
         the condenser does, so the whole plane can share one white.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         There is no live full-field drag and there will not be: D0.1 measured a 4×&rsquo;s real
         5 mm field at ~181 tiles, which is tens of minutes even across workers. What is live is the
         tile you are looking at — the queue is ordered by distance from the centre of the viewport,

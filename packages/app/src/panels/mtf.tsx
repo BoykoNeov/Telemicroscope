@@ -55,10 +55,10 @@ export function MtfPanel() {
     c.nu.map((v, i) => [v, values[i]!] as const);
 
   const series: PlotSeries[] = [
-    { label: "perfect", color: "#999", points: pairs(c.perfect), dash: [5, 4] },
-    { label: "radial average", color: "#c8a", points: pairs(c.radial), width: 1 },
-    { label: "tangential", color: "#c0392b", points: pairs(c.tangential), width: 2 },
-    { label: "sagittal", color: "#2b7", points: pairs(c.sagittal), width: 2 },
+    { label: "perfect", color: "var(--ink-5)", points: pairs(c.perfect), dash: [5, 4] },
+    { label: "radial average", color: "var(--pink)", points: pairs(c.radial), width: 1 },
+    { label: "tangential", color: "var(--red)", points: pairs(c.tangential), width: 2 },
+    { label: "sagittal", color: "var(--green)", points: pairs(c.sagittal), width: 2 },
   ];
 
   const truncated = result.transmittedCutoffFraction < 0.97;
@@ -67,7 +67,7 @@ export function MtfPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The optical MTF, and how many of them there are</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         A spot diagram says how big the blur is and a wavefront readout says what shape it is.
         Neither answers the question a lens is actually bought for — <em>can it separate these two
         things</em> — and that is what a modulation transfer function is: the contrast that survives,
@@ -122,13 +122,13 @@ export function MtfPanel() {
           yMax={1.02}
           width={560}
         />
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
-          <div style={{ color: "#666", marginBottom: 4 }}>what the four curves are</div>
-          <div style={{ color: "#c0392b" }}>tangential — bars across the field radius</div>
-          <div style={{ color: "#2b7" }}>sagittal — bars along it</div>
-          <div style={{ color: "#c8a" }}>the azimuthal average of the whole array</div>
-          <div style={{ color: "#999" }}>the closed form for this aperture</div>
-          <div style={{ marginTop: 12, color: "#666" }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
+          <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>what the four curves are</div>
+          <div style={{ color: "var(--red)" }}>tangential — bars across the field radius</div>
+          <div style={{ color: "var(--green)" }}>sagittal — bars along it</div>
+          <div style={{ color: "var(--pink)" }}>the azimuthal average of the whole array</div>
+          <div style={{ color: "var(--ink-5)" }}>the closed form for this aperture</div>
+          <div style={{ marginTop: 12, color: "var(--ink-3)" }}>
             {onAxis
               ? "On axis the pupil is round, so the two sections are the same curve — the split below is the f64 floor, not a lens."
               : "Off axis the blur has a direction, so contrast depends on which way the bars run."}
@@ -163,7 +163,7 @@ export function MtfPanel() {
       <h2 style={{ fontSize: 16, marginTop: 28 }}>
         The cutoff is two numbers, and only one of them is on the axis above
       </h2>
-      <p style={{ maxWidth: 640, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)", fontSize: 14 }}>
         The engine reports 2·NA/λ, computed from the exit pupil radius — the cutoff of the aperture
         the system was <em>asked</em> for. Where the curve actually reaches its floor is the cutoff
         of the aperture that <em>transmitted</em>. Those are the same number only when every ray gets
@@ -192,7 +192,7 @@ export function MtfPanel() {
         <Fact label="Strehl" value={result.strehl.toFixed(4)} note="peak over diffraction-limited peak, same field and wavelength" />
       </div>
       {truncated && (
-        <p style={{ maxWidth: 640, color: "#b8860b", fontSize: 13, marginTop: 8 }}>
+        <p style={{ maxWidth: 640, color: "var(--warn)", fontSize: 13, marginTop: 8 }}>
           This lens is transmitting {(result.tracedRadiusFraction * 100).toFixed(0)}% of its stated
           radius, so it is really an f/
           {(focalLengthMm / (apertureMm * result.tracedRadiusFraction)).toFixed(1)} lens wearing an

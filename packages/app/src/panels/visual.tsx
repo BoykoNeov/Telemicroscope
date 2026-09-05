@@ -102,7 +102,7 @@ function RetinaCanvas({ request }: { request: RetinaRequest }) {
 
   if (result && !("size" in result)) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", maxWidth: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
         the {result.stage} refused ({result.source}): {result.error}
       </p>
     );
@@ -115,7 +115,7 @@ function RetinaCanvas({ request }: { request: RetinaRequest }) {
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, marginTop: 6 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 6 }}>
         {image ? (
           <>
             effective aperture <strong>{image.effectiveApertureMm.toFixed(2)} mm</strong>{" "}
@@ -127,7 +127,7 @@ function RetinaCanvas({ request }: { request: RetinaRequest }) {
             Strehl at the retina <strong>{image.strehl.toFixed(6)}</strong> ·{" "}
             {image.elapsedMs.toFixed(0)} ms
             <br />
-            <span style={{ color: "#777" }}>
+            <span style={{ color: "var(--ink-4)" }}>
               best focus sits {((image.bestFocusMm - image.retinaMm) * 1000).toFixed(2)} µm{" "}
               {image.bestFocusMm > image.retinaMm ? "behind" : "in front of"} the retina, which is{" "}
               {image.retinaMm.toFixed(4)} mm from the cornea
@@ -184,10 +184,10 @@ function CeilingBlock({ request }: { request: CeilingRequest }) {
     createVisualCeilingWorker,
     request,
   );
-  if (!result) return <p style={{ fontFamily: "monospace", fontSize: 12 }}>bisecting the glass…</p>;
+  if (!result) return <p style={{ fontFamily: "var(--mono)", fontSize: 12 }}>bisecting the glass…</p>;
 
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, opacity: pending ? 0.55 : 1 }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, opacity: pending ? 0.55 : 1 }}>
       {result.clearApertureMm === null ? (
         <>
           no clear-aperture wall below{" "}
@@ -210,7 +210,7 @@ function CeilingBlock({ request }: { request: CeilingRequest }) {
             ? "—"
             : `${result.geometricFieldOfViewDeg.toFixed(3)}°`}
           <br />
-          <span style={{ color: "#777" }}>
+          <span style={{ color: "var(--ink-4)" }}>
             distortion inflates it by{" "}
             {result.inflation === null ? "—" : `${(100 * result.inflation).toFixed(2)}%`} ·{" "}
             {result.elapsedMs.toFixed(0)} ms
@@ -303,7 +303,7 @@ export function VisualPanel() {
         />
       </div>
 
-      <p style={{ maxWidth: 700, fontSize: 13, color: "#666", marginTop: 10 }}>
+      <p style={{ maxWidth: 700, fontSize: 13, color: "var(--ink-3)", marginTop: 10 }}>
         {OBJECTIVE_NOTES[objective]}
         {objective === "cassegrain" && (
           <>
@@ -315,7 +315,7 @@ export function VisualPanel() {
       </p>
 
       {!result.ok && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", maxWidth: 700 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 700 }}>
           the {result.stage} refused ({result.source}): {result.error}
         </p>
       )}
@@ -324,7 +324,7 @@ export function VisualPanel() {
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", marginTop: 16 }}>
           <RetinaCanvas request={retina} />
 
-          <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.8 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8 }}>
             <div>
               objective f <strong>{readout.objectiveFocalLengthMm.toFixed(1)} mm</strong>
               {readout.obstruction > 0 && <> · ε {readout.obstruction.toFixed(4)}</>}
@@ -344,12 +344,12 @@ export function VisualPanel() {
             <div style={{ marginTop: 10 }}>
               effective aperture <strong>{readout.effectiveApertureMm.toFixed(3)} mm</strong> —{" "}
               {readout.irisLimited ? (
-                <span style={{ color: "#a60" }}>the iris has taken the stop</span>
+                <span style={{ color: "var(--warn)" }}>the iris has taken the stop</span>
               ) : (
                 <span>the objective still holds it</span>
               )}
             </div>
-            <div style={{ color: "#777" }}>
+            <div style={{ color: "var(--ink-4)" }}>
               the knee is at an eye pupil of {readout.irisKneeMm.toFixed(3)} mm, which IS the exit
               pupil — equivalently |M| = D/d_eye
             </div>
@@ -367,13 +367,13 @@ export function VisualPanel() {
               {readout.frontRimIsFieldStop ? (
                 <>distortion inflates it {(100 * readout.fieldInflation).toFixed(2)}%</>
               ) : (
-                <span style={{ color: "#a60" }}>
+                <span style={{ color: "var(--warn)" }}>
                   {(100 * readout.fieldInflation).toFixed(2)}%, and that is NOT distortion — the
                   formula is being applied to a surface that is not the stop
                 </span>
               )}
             </div>
-            <div style={{ color: "#777" }}>
+            <div style={{ color: "var(--ink-4)" }}>
               built at {readout.elapsedMs.toFixed(1)} ms on the main thread
             </div>
           </div>
@@ -385,7 +385,7 @@ export function VisualPanel() {
           <h2 style={{ fontSize: 16, marginTop: 36 }}>
             The eye takes the aperture, and the collapse is exact
           </h2>
-          <p style={{ maxWidth: 700, color: "#444" }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
             The telescope compresses the objective&rsquo;s beam to D/|M|. While the observer&rsquo;s
             iris is wider than that, the objective is still the stop and all of the aperture reaches
             the retina; below it the iris <em>becomes</em> the stop and what reaches the retina
@@ -399,13 +399,13 @@ export function VisualPanel() {
               series={[
                 {
                   label: "effective aperture, off the traced entrance pupil",
-                  color: "#06a",
+                  color: "var(--accent)",
                   dots: true,
                   points: readout.apertureCurve.map((p) => [p.eyePupilMm, p.effectiveApertureMm] as const),
                 },
                 {
                   label: "min(D, d_eye·|M|) — § 5q's closed form",
-                  color: "#c60",
+                  color: "var(--warn-strong)",
                   dash: [4, 3],
                   points: readout.apertureCurve.map((p) => [p.eyePupilMm, p.closedFormMm] as const),
                 },
@@ -413,10 +413,10 @@ export function VisualPanel() {
               markers={[
                 {
                   x: readout.irisKneeMm,
-                  color: "#c00",
+                  color: "var(--bad)",
                   label: `knee = exit pupil ${readout.irisKneeMm.toFixed(2)} mm`,
                 },
-                { x: readout.eyePupilMm, color: "#3a7", label: "this eye" },
+                { x: readout.eyePupilMm, color: "var(--ok)", label: "this eye" },
               ]}
               xLabel="eye pupil (mm)"
               yLabel="aperture reaching the retina (mm)"
@@ -430,7 +430,7 @@ export function VisualPanel() {
               series={[
                 {
                   label: "θ_out/(|M|·θ) − 1, the real chief ray",
-                  color: "#06a",
+                  color: "var(--accent)",
                   dots: true,
                   points: readout.distortionCurve.map((p) => [p.fieldDeg, p.departure] as const),
                 },
@@ -438,7 +438,7 @@ export function VisualPanel() {
               markers={[
                 {
                   x: readout.fieldWallDeg,
-                  color: "#c00",
+                  color: "var(--bad)",
                   label: `wall ${readout.fieldWallDeg.toFixed(3)}°`,
                 },
               ]}
@@ -457,7 +457,7 @@ export function VisualPanel() {
           <h2 style={{ fontSize: 16, marginTop: 36 }}>
             The apparent field belongs to the eyepiece, and what caps it is a doublet
           </h2>
-          <p style={{ maxWidth: 700, color: "#444" }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
             Move the aperture and the focal-ratio sliders and the <em>wall</em> moves — it is
             atan(r_e/f_o), so a longer objective passes less sky — while the{" "}
             <strong>apparent</strong> field barely does: the two changes cancel, because the field
@@ -466,13 +466,13 @@ export function VisualPanel() {
             which is why catalogues print it on the eyepiece and not on the telescope.
           </p>
           <CeilingBlock request={ceiling} />
-          <p style={{ maxWidth: 700, fontSize: 13, color: "#666", marginTop: 10 }}>
+          <p style={{ maxWidth: 700, fontSize: 13, color: "var(--ink-3)", marginTop: 10 }}>
             The catalogue formula 2·atan(r/f_e) has no trace in it, and on a{" "}
             <strong>Plössl</strong> it is wrong in a direction: the real chief ray leaves steeper
             than |M|·θ, so the field an observer actually gets is <em>larger</em>. That is the
             pincushion the plot above draws, evaluated at the edge instead of near the axis.
           </p>
-          <p style={{ maxWidth: 700, fontSize: 13, color: "#666" }}>
+          <p style={{ maxWidth: 700, fontSize: 13, color: "var(--ink-3)" }}>
             On a <strong>Huygens</strong> the same comparison reads the other way, and it is not
             distortion changing sign — it is the formula being pointed at the wrong glass. The wall
             lands 38% <em>short</em> of atan(r_e/f_o), which says the chief ray is dying somewhere
@@ -487,7 +487,7 @@ export function VisualPanel() {
           {readout.foldedObjectiveRefusal && (
             <>
               <h2 style={{ fontSize: 16, marginTop: 36 }}>The objective that is not offered</h2>
-              <p style={{ maxWidth: 700, color: "#444" }}>
+              <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
                 A Newtonian is the reflector an observer is most likely to own and it is{" "}
                 <strong>absent from the selector</strong>, because building this panel is what found
                 out why. It is the repo&rsquo;s only <code>folded</code> prescription;{" "}
@@ -500,11 +500,11 @@ export function VisualPanel() {
               </p>
               <p
                 style={{
-                  fontFamily: "monospace",
+                  fontFamily: "var(--mono)",
                   fontSize: 12,
-                  color: "#c00",
+                  color: "var(--bad)",
                   maxWidth: 700,
-                  background: "#fff6f6",
+                  background: "var(--bad-tint)",
                   padding: "8px 10px",
                 }}
               >
@@ -516,7 +516,7 @@ export function VisualPanel() {
           <h2 style={{ fontSize: 16, marginTop: 36 }}>
             Accommodation is not zero, and its sign belongs to the eyepiece
           </h2>
-          <p style={{ maxWidth: 700, color: "#444" }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
             The afocal solve is paraxially exact, so the <em>paraxial</em> image sits on the retina
             by construction and every micron of the offset beside the picture is the composed
             chain&rsquo;s spherical aberration. Which chain: the eye is a Cartesian ellipsoid and
@@ -527,7 +527,7 @@ export function VisualPanel() {
             objective&rsquo;s own fifth-order residual and the eyepiece&rsquo;s oppose. That
             crossing is inside this panel&rsquo;s sliders.
           </p>
-          <p style={{ maxWidth: 700, fontSize: 13, color: "#666" }}>
+          <p style={{ maxWidth: 700, fontSize: 13, color: "var(--ink-3)" }}>
             The guard turns red on a <em>negative</em> demand rather than on a large one, and that
             is the physics rather than a convention: a relaxed eye is at its minimum power and can
             only add. A chain whose best focus lands in front of the retina is asking it to
@@ -535,7 +535,7 @@ export function VisualPanel() {
             telescope conjugate. The Huygens does this at every focal length these sliders reach —
             and its retinal Strehl says what it costs.
           </p>
-          <p style={{ maxWidth: 700, fontSize: 13, color: "#666" }}>
+          <p style={{ maxWidth: 700, fontSize: 13, color: "var(--ink-3)" }}>
             A diopter is also the wrong unit for how much it <em>hurts</em>, and the panel shows
             both so the difference is visible. The demand is a length; the damage is a wave count
             over the beam that actually fills the eye. A short eyepiece hands the iris a narrow exit

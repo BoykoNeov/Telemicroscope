@@ -30,7 +30,7 @@ export function Choice<T extends string | number>(props: {
   format?: (value: T) => string;
 }) {
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12 }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
       {props.label}
       <br />
       {props.options.map((option) => (
@@ -38,13 +38,13 @@ export function Choice<T extends string | number>(props: {
           key={option}
           onClick={() => props.onChange(option)}
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 12,
             marginRight: 4,
             padding: "2px 8px",
-            border: option === props.value ? "1px solid #333" : "1px solid #ccc",
-            background: option === props.value ? "#333" : "#fff",
-            color: option === props.value ? "#fff" : "#333",
+            border: option === props.value ? "1px solid var(--ink)" : "1px solid var(--line)",
+            background: option === props.value ? "var(--ink)" : "var(--bg)",
+            color: option === props.value ? "var(--bg)" : "var(--ink)",
             cursor: "pointer",
           }}
         >
@@ -74,7 +74,7 @@ export function Toggles<T extends string>(props: {
   note?: (value: T) => string | undefined;
 }) {
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12 }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
       {props.label}
       <br />
       {props.options.map((option) => {
@@ -86,14 +86,14 @@ export function Toggles<T extends string>(props: {
             onClick={() => props.onToggle(option)}
             title={note}
             style={{
-              fontFamily: "monospace",
+              fontFamily: "var(--mono)",
               fontSize: 12,
               marginRight: 4,
               marginBottom: 4,
               padding: "2px 8px",
-              border: on ? "1px solid #333" : "1px solid #ccc",
-              background: on ? "#333" : "#fff",
-              color: on ? "#fff" : "#333",
+              border: on ? "1px solid var(--ink)" : "1px solid var(--line)",
+              background: on ? "var(--ink)" : "var(--bg)",
+              color: on ? "var(--bg)" : "var(--ink)",
               cursor: "pointer",
             }}
           >
@@ -117,9 +117,9 @@ export function Toggles<T extends string>(props: {
 export type GuardLevel = "ok" | "warn" | "bad";
 
 export const GUARD_COLOR: Record<GuardLevel, string> = {
-  ok: "#3a7",
-  warn: "#a60",
-  bad: "#c00",
+  ok: "var(--ok)",
+  warn: "var(--warn)",
+  bad: "var(--bad)",
 };
 
 /** § 6f.9's `BrightfieldVerdict`, in this file's three colours. */
@@ -157,14 +157,14 @@ export function Guard(props: {
   detail?: string;
 }) {
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
       <span style={{ color: GUARD_COLOR[props.level] }}>
         {props.label} <strong>{props.value}</strong>
       </span>
       {props.detail !== undefined && (
         <>
           <br />
-          <span style={{ color: "#777" }}>{props.detail}</span>
+          <span style={{ color: "var(--ink-4)" }}>{props.detail}</span>
         </>
       )}
     </div>
@@ -203,7 +203,7 @@ export function NumberField(props: {
   return (
     <label
       style={{
-        fontFamily: "monospace",
+        fontFamily: "var(--mono)",
         fontSize: 12,
         opacity: props.disabled ? 0.35 : 1,
         display: "block",
@@ -226,11 +226,11 @@ export function NumberField(props: {
           if (event.target.value.trim() !== "" && !Number.isNaN(next)) props.onChange(next);
         }}
         style={{
-          fontFamily: "monospace",
+          fontFamily: "var(--mono)",
           fontSize: 12,
           width: props.width ?? 90,
           padding: "2px 4px",
-          border: `1px solid ${bad ? "#c00" : "#ccc"}`,
+          border: `1px solid ${bad ? "var(--bad)" : "var(--line)"}`,
         }}
       />
     </label>
@@ -250,7 +250,7 @@ export function Fieldset(props: { children: React.ReactNode; title: string }) {
   return (
     <fieldset
       style={{
-        border: "1px solid #ddd",
+        border: "1px solid var(--line)",
         padding: "8px 12px 12px",
         marginBottom: 12,
         display: "flex",
@@ -259,7 +259,7 @@ export function Fieldset(props: { children: React.ReactNode; title: string }) {
         alignItems: "flex-start",
       }}
     >
-      <legend style={{ fontFamily: "monospace", fontSize: 11, color: "#777" }}>{props.title}</legend>
+      <legend style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)" }}>{props.title}</legend>
       {props.children}
     </fieldset>
   );
@@ -267,14 +267,14 @@ export function Fieldset(props: { children: React.ReactNode; title: string }) {
 
 export function Fact(props: { label: string; value: string; note?: string }) {
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, minWidth: 190 }}>
-      <span style={{ color: "#777" }}>{props.label}</span>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12, minWidth: 190 }}>
+      <span style={{ color: "var(--ink-4)" }}>{props.label}</span>
       <br />
       <strong>{props.value}</strong>
       {props.note && (
         <>
           <br />
-          <span style={{ color: "#999", fontSize: 11 }}>{props.note}</span>
+          <span style={{ color: "var(--ink-5)", fontSize: 11 }}>{props.note}</span>
         </>
       )}
     </div>
@@ -298,7 +298,7 @@ export function Slider(props: {
   onChange: (value: number) => void;
 }) {
   return (
-    <label style={{ fontFamily: "monospace", fontSize: 12 }}>
+    <label style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
       {props.label}
       <br />
       <input
@@ -337,7 +337,7 @@ export function ObjectiveLine(props: {
       {props.note === null ? (
         <>
           {" — "}
-          <span style={{ color: "#a60" }}>
+          <span style={{ color: "var(--warn)" }}>
             your own build. Nothing in this app has measured it, so the numbers quoted in the prose
             on this page are about the ten bench rows and not about this lens. The readouts and
             plots are live and are about this one.

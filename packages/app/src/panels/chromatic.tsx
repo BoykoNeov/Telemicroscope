@@ -28,7 +28,7 @@ const APERTURE = { min: 4, max: 20, step: 1 };
 const STEP_NM = [20, 10, 5] as const;
 const PUPIL = [17, 21, 33] as const;
 
-const LENS_COLOR = { singlet: "#c0392b", achromat: "#2b5fd9" } as const;
+const LENS_COLOR = { singlet: "var(--red)", achromat: "#2b5fd9" } as const;
 
 export function ChromaticPanel({ link, linkBroken }: PanelProps) {
   const [aperture, setAperture] = useState(link?.apertureMm ?? 10);
@@ -76,13 +76,13 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
     <>
       <h1 style={{ fontSize: 20 }}>Where each colour focuses, and what it costs</h1>
       {linkBroken && (
-        <p style={{ color: "#c00", fontFamily: "monospace", fontSize: 12 }}>
+        <p style={{ color: "var(--bad)", fontFamily: "var(--mono)", fontSize: 12 }}>
           The link that opened this page did not decode, so these are the panel&rsquo;s own
           defaults and <strong>not</strong> the image you came from. Set the aperture yourself, or
           go back and click the artifact again.
         </p>
       )}
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The violet halo around the singlet&rsquo;s star is not &ldquo;the blue focuses somewhere
         else&rdquo;. It is <em>the blue focuses somewhere else <strong>and the sensor is not
         there</strong></em>, and it takes both plots to say so. Above: where each wavelength&rsquo;s
@@ -110,15 +110,15 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
 
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
         <div>
-          <h2 style={{ fontSize: 14, fontFamily: "monospace", margin: "0 0 4px" }}>
+          <h2 style={{ fontSize: 14, fontFamily: "var(--mono)", margin: "0 0 4px" }}>
             the cause — where the colour focuses
           </h2>
           <Plot
             series={shiftSeries}
             markers={[
-              { y: 0, color: "#333", label: "the plane the picture is on" },
-              { x: CROSSING_LINES.F, color: "#bbb", label: "F" },
-              { x: CROSSING_LINES.C, color: "#bbb", label: "C" },
+              { y: 0, color: "var(--ink)", label: "the plane the picture is on" },
+              { x: CROSSING_LINES.F, color: "var(--ink-5)", label: "F" },
+              { x: CROSSING_LINES.C, color: "var(--ink-5)", label: "C" },
             ]}
             xLabel="wavelength (nm)"
             yLabel="focus, from the picture's plane (mm)"
@@ -129,14 +129,14 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
           />
         </div>
         <div>
-          <h2 style={{ fontSize: 14, fontFamily: "monospace", margin: "0 0 4px" }}>
+          <h2 style={{ fontSize: 14, fontFamily: "var(--mono)", margin: "0 0 4px" }}>
             the effect — the blur there, traced
           </h2>
           <Plot
             series={spotSeries}
             markers={[
-              { y: result.airyRadiusMm * 1000, color: "#3a7", label: "Airy radius" },
-              { x: FOCUS_NM, color: "#bbb", label: "focused at" },
+              { y: result.airyRadiusMm * 1000, color: "var(--ok)", label: "Airy radius" },
+              { x: FOCUS_NM, color: "var(--ink-5)", label: "focused at" },
             ]}
             xLabel="wavelength (nm)"
             yLabel="RMS spot radius (µm)"
@@ -181,13 +181,13 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>Three things in these curves</h2>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         <strong>The singlet&rsquo;s curve never turns.</strong> Focus marches steadily from the
         violet end to the red — 2.8 mm across this band at any aperture, because where a colour
         focuses is a property of the glass and not of how much of it you let through. Every colour
         but one is out of focus, and the one is a knife edge.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         <strong>The achromat&rsquo;s curve has a bottom.</strong> It comes down from the violet,
         turns near 540 nm, and climbs again into the red — so for most of the band there are{" "}
         <em>two</em> wavelengths sharing one focus, one either side of the turn. That is the whole
@@ -198,7 +198,7 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
         catalogue&rsquo;s Abbe numbers in the thin-lens sense, and what this app traces is the real
         thick lens.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         <strong>And the curve does not cross zero where you would bet it does.</strong> The picture
         is focused at {FOCUS_NM} nm, so the natural guess is that the {FOCUS_NM} nm point sits on the
         black line. It does not — it is{" "}
@@ -210,7 +210,7 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
         same millimetres — and it is why the lower plot&rsquo;s minimum is not zero either.
       </p>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         No web worker on this route. The sweep is {Math.round((BAND_NM.max - BAND_NM.min) / stepNm) + 1}{" "}
         first-order solves and the same number of traced spots per lens, and it lands in{" "}
         <strong>{result.elapsedMs.toFixed(0)} ms</strong> in the built app — see the ray fan panel

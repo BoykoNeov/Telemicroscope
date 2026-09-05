@@ -131,14 +131,14 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
         }}
       />
       <figcaption
-        style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 360 }}
+        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 360 }}
       >
         {result === null ? (
           <span>summing over the condenser…</span>
         ) : !result.ok ? (
           // The engine's own words: § 6b's and § 6d's design ceilings, or
           // `abbeImage`'s frequency-grid wall, which names the size that fixes it.
-          <span style={{ color: "#c00" }}>{refusalVoice(result.source, "this render")}: {result.error}</span>
+          <span style={{ color: "var(--bad)" }}>{refusalVoice(result.source, "this render")}: {result.error}</span>
         ) : (
           <>
             <strong>ν = {readout!.nu.toFixed(4)}</strong> · period{" "}
@@ -148,7 +148,7 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
             <strong>{admits ? readout!.cutoff.toFixed(4) : "none"}</strong> (textbook{" "}
             {readout!.textbookCutoff.toFixed(3)})
             <br />
-            <span style={{ color: !admits ? "#a60" : past ? "#c00" : "#3a7" }}>
+            <span style={{ color: !admits ? "var(--warn)" : past ? "var(--bad)" : "var(--ok)" }}>
               {!admits
                 ? "no illumination direction enters the pupil — there is no cutoff to be inside of"
                 : past
@@ -222,14 +222,14 @@ function CutoffPlot({
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
         bisecting the cutoff…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -242,27 +242,27 @@ function CutoffPlot({
         series={[
           {
             label: "textbook 1 + S",
-            color: "#06a",
+            color: "var(--accent)",
             points: p.map((q) => [q.coherenceParameter, q.textbook] as const),
             dash: [5, 4],
           },
           {
             label: "lattice reach",
-            color: "#a60",
+            color: "var(--warn)",
             points: p.map((q) => [q.coherenceParameter, q.lattice] as const),
             width: 2.4,
           },
           {
             label: "measured",
-            color: "#111",
+            color: "var(--ink)",
             points: p.map((q) => [q.coherenceParameter, q.measured] as const),
             dots: true,
             width: 1.2,
           },
         ]}
         markers={[
-          { x: coherenceParameter, color: "#c00", label: `S ${coherenceParameter.toFixed(2)}` },
-          { y: nu, color: "#3a7", label: `object ν ${nu.toFixed(3)}` },
+          { x: coherenceParameter, color: "var(--bad)", label: `S ${coherenceParameter.toFixed(2)}` },
+          { y: nu, color: "var(--ok)", label: `object ν ${nu.toFixed(3)}` },
         ]}
         xLabel="coherence parameter S = NA_cond / NA_obj"
         yLabel="cutoff frequency ν, in NA/λ"
@@ -271,7 +271,7 @@ function CutoffPlot({
         yMin={0.9}
         yMax={2.1}
       />
-      <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", width: 420, marginTop: 4 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
         worst |measured − lattice| = {sweep.sweep.worstResidual.toExponential(1)} over{" "}
         {p.length} points · {sweep.sweep.elapsedMs.toFixed(0)} ms. Where the two markers cross the
         curve is where the grating appears in the picture.
@@ -364,7 +364,7 @@ export function BrightfieldPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Brightfield: the condenser is not a brightness control</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         A cosine absorption grating on the specimen, imaged through one of the bench&rsquo;s
         objectives by summing over the directions the condenser lights it from.{" "}
         <strong>S</strong> is that condenser&rsquo;s aperture as a fraction of the
@@ -372,7 +372,7 @@ export function BrightfieldPanel() {
         how fine the grating is, in units of NA/λ where 1 is the coherent limit and 2 is the
         incoherent one.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The experiment: push ν past 1 and the grating dies, then open S and watch it come back. It
         reappears exactly where the marker crosses the curve, because both come from the same sum —
         d = λ/(NA_obj + NA_cond), not written down but <em>measured</em>, by bisecting for the last
@@ -380,7 +380,7 @@ export function BrightfieldPanel() {
         resolution and buys back full contrast everywhere below ν = 1; that trade is what the dial
         is for.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The third curve is the one worth the panel. The measured cutoff does not land on the
         textbook line — it lands on the <strong>lattice reach</strong>, the outermost illumination
         direction the sampled condenser actually holds and the pupil actually admits. The residual
@@ -391,7 +391,7 @@ export function BrightfieldPanel() {
         <strong>lattice step</strong>, or more <strong>source samples</strong> — and watch the two
         close.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         <strong>Two condensers, and the difference between them is why one is fast.</strong> The{" "}
         <strong>pupil-matched</strong> one puts its directions on the objective&rsquo;s own
         frequency lattice: opening S admits more of them and <em>moves none of the ones already
@@ -403,14 +403,14 @@ export function BrightfieldPanel() {
         moves every direction it has and nothing can be reused. That is the whole trade, and it is
         physics rather than bookkeeping.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The saving is the <em>tracing</em>, so it is worth nothing on an <strong>ideal</strong>
         pupil — there the transforms are the whole bill and twice the directions cost twice as much
         (163 ms against 90). Switch the pupil to ideal and the pupil-matched condenser is the slower
         of the two, which is not a contradiction: it is the same measurement saying that what was
         removed was never the arithmetic.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         One consequence to watch, because the <strong>ms</strong> under the picture will show it. A
         lattice step is a fixed <em>angular density</em>, so a pupil-matched condenser&rsquo;s
         direction count follows the aperture&rsquo;s area — 49 directions at S = 0.25, 197 at 0.5,
@@ -422,7 +422,7 @@ export function BrightfieldPanel() {
         diaphragm opens, it just stops saying so. Raise the <strong>lattice step</strong> to trade it
         back.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         It also decides what each can show. Past S = 1 the continuum says opening further changes
         nothing; on an <strong>independent</strong> lattice the outermost points march out of the
         pupil entirely and the measured cutoff steps back <em>down</em>, which is sampling and not
@@ -483,7 +483,7 @@ export function BrightfieldPanel() {
         )}
       </div>
       {condenserKind === "pupil-matched" && (
-        <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
           {liveSteps.length === 0 ? (
             <span style={{ color: GUARD_COLOR.warn }}>
               at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} no lattice step disagrees with
@@ -491,7 +491,7 @@ export function BrightfieldPanel() {
               the gap is provably empty rather than hard to find. Move the grating by one cycle.
             </span>
           ) : (
-            <span style={{ color: "#777" }}>
+            <span style={{ color: "var(--ink-4)" }}>
               at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} the textbook and the lattice
               disagree about this grating only at step {liveSteps.join("×, ")}× — at the others
               (cycles − pupilSamples/2) divides exactly and the two agree at every S.
@@ -499,7 +499,7 @@ export function BrightfieldPanel() {
           )}
         </div>
       )}
-      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
@@ -531,7 +531,7 @@ export function BrightfieldPanel() {
         />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         Mid-grey is the frame&rsquo;s own mean and white is {WHITE_OVER_MEAN}× it, linearly —
         nothing is stretched. One thing the model does not show: the source weights sum to 1, so
         closing the diaphragm costs no <em>light</em> here where a real one goes dim. What it costs
@@ -542,7 +542,7 @@ export function BrightfieldPanel() {
         <strong>2ν</strong> is a frequency no linear imager could put there from a single-frequency
         object: it is partial coherence&rsquo;s nonlinearity, as a reading rather than an assertion.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         The fidelity line has <em>three</em> states and the middle one is not a shade of green. A
         traced pupil carries the sampling of the trace behind it, so it can be ruled{" "}
         <span style={{ color: GUARD_COLOR.ok }}>valid</span> or{" "}

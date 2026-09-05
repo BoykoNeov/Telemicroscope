@@ -3,6 +3,7 @@ import { Plot, type PlotSeries } from "../plot";
 import { spotMatrix, SPOT_LINES, type SpotCell } from "../spot";
 import { Choice, Fact, Guard, Slider, thresholdLevel } from "../ui";
 import type { LensKind } from "../render";
+import { resolveColor, useThemeVersion } from "../theme";
 
 /**
  * The spot diagram — ROADMAP's v1 analyses line, and the only entry on it that
@@ -64,6 +65,7 @@ function SpotCanvas({
   airyUm: number;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const theme = useThemeVersion();
 
   useEffect(() => {
     const element = canvas.current;
@@ -82,7 +84,7 @@ function SpotCanvas({
     const cx = CELL / 2;
     const cy = CELL / 2;
 
-    c.strokeStyle = "#ddd";
+    c.strokeStyle = resolveColor(element, "var(--line)");
     c.lineWidth = 1;
     c.strokeRect(0.5, 0.5, CELL - 1, CELL - 1);
     c.beginPath();
@@ -92,7 +94,7 @@ function SpotCanvas({
     c.lineTo(CELL - 2, cy);
     c.stroke();
 
-    c.strokeStyle = "#bbb";
+    c.strokeStyle = resolveColor(element, "var(--ink-5)");
     c.setLineDash([3, 3]);
     c.beginPath();
     c.arc(cx, cy, airyUm * s, 0, 2 * Math.PI);
@@ -106,7 +108,7 @@ function SpotCanvas({
         c.fillRect(cx + x * s - 0.5, cy - y * s - 0.5, 1.2, 1.2);
       }
     }
-  }, [cell, boundUm, airyUm]);
+  }, [cell, boundUm, airyUm, theme]);
 
   return <canvas ref={canvas} style={{ width: CELL, height: CELL, display: "block" }} />;
 }
@@ -146,7 +148,7 @@ export function SpotPanel() {
   // as the grid above it, evaluated on the same five planes.
   const focusSeries: PlotSeries[] = result.rows.map((row, i) => ({
     label: `${row.fieldDeg.toFixed(2)}°`,
-    color: ["#111", "#2b7", "#c08a00", "#c0392b"][i] ?? "#666",
+    color: ["var(--ink)", "var(--green)", "#c08a00", "var(--red)"][i] ?? "var(--ink-3)",
     points: row.cells.map((c) => [c.rayleigh, c.rmsRadiusMm * 1000] as const),
     dots: true,
   }));
@@ -154,14 +156,14 @@ export function SpotPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Where a pupil-full of rays lands</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         A spot diagram is the most direct picture in optics: trace a grid of rays through the pupil,
         mark where each one crosses a plane, and that is the drawing. Every dot below is one traced
         ray. Down the page the field angle grows; across the page the plane moves through focus. The
         dashed circle is the <strong>Airy radius</strong> — diffraction&rsquo;s own scale, the same in
         every cell.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The grid is a grid because the two axes are not independent: an off-axis bundle focuses on a
         different plane from the axial one, so each row has its own best plane and it is not the
         middle column. On this achromat that drift runs from +0.06 columns on axis to −0.44 at 1.2°,
@@ -194,14 +196,14 @@ export function SpotPanel() {
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ borderCollapse: "collapse", fontFamily: "monospace", fontSize: 11 }}>
+        <table style={{ borderCollapse: "collapse", fontFamily: "var(--mono)", fontSize: 11 }}>
           <thead>
             <tr>
               <th />
               {columns.map((n) => (
-                <th key={n} style={{ padding: "0 0 4px", fontWeight: 400, color: "#666" }}>
+                <th key={n} style={{ padding: "0 0 4px", fontWeight: 400, color: "var(--ink-3)" }}>
                   {n > 0 ? `+${n}` : n} × λ/2NA²
-                  <div style={{ color: "#999" }}>
+                  <div style={{ color: "var(--ink-5)" }}>
                     {(n * result.rayleighMm * 1000).toFixed(0)} µm
                   </div>
                 </th>
@@ -216,16 +218,16 @@ export function SpotPanel() {
                     padding: "0 8px 0 0",
                     textAlign: "right",
                     fontWeight: 400,
-                    color: "#666",
+                    color: "var(--ink-3)",
                     whiteSpace: "nowrap",
                   }}
                 >
                   {row.fieldDeg.toFixed(2)}°
-                  <div style={{ color: "#999" }}>{row.rmsOverAiry.toFixed(2)} × Airy</div>
+                  <div style={{ color: "var(--ink-5)" }}>{row.rmsOverAiry.toFixed(2)} × Airy</div>
                   {/* This row's own best plane, which is what drifts. The grid
                       cannot show the drift — it is a fraction of one column —
                       so the row states it and the curve below draws it. */}
-                  <div style={{ color: "#999" }}>
+                  <div style={{ color: "var(--ink-5)" }}>
                     best {row.spotFocusRayleigh >= 0 ? "+" : ""}
                     {row.spotFocusRayleigh.toFixed(2)}
                   </div>
@@ -240,7 +242,7 @@ export function SpotPanel() {
           </tbody>
         </table>
       </div>
-      <p style={{ fontFamily: "monospace", fontSize: 11, color: "#666", marginTop: 4 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)", marginTop: 4 }}>
         {SPOT_LINES.map((l) => (
           <span key={l.nm} style={{ marginRight: 12 }}>
             <span
@@ -256,7 +258,7 @@ export function SpotPanel() {
             {l.name}
           </span>
         ))}
-        <span style={{ color: "#999" }}>
+        <span style={{ color: "var(--ink-5)" }}>
           · box ±{result.boundUm.toFixed(1)} µm, shared by every cell · Airy radius{" "}
           {airyUm.toFixed(2)} µm · &ldquo;best&rdquo; on each row is that field&rsquo;s own
           minimum-spot plane, in columns
@@ -266,7 +268,7 @@ export function SpotPanel() {
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginTop: 20, alignItems: "flex-start" }}>
         <Plot
           series={focusSeries}
-          markers={[{ y: airyUm, color: "#bbb", label: "Airy radius" }]}
+          markers={[{ y: airyUm, color: "var(--ink-5)", label: "Airy radius" }]}
           xLabel="defocus (λ/2NA² — one quarter wave at the rim)"
           yLabel="RMS spot radius (µm)"
           xMin={columns[0]!}
@@ -318,7 +320,7 @@ export function SpotPanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>A spot diagram lies about a good lens, not a bad one</h2>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The intuition runs the wrong way round. A spot diagram is a drawing of ray landings and
         nothing else, so it is at its most honest when the lens is <em>poor</em> — when the rays are
         scattered over an area far bigger than the diffraction disc, the scatter essentially{" "}
@@ -327,7 +329,7 @@ export function SpotPanel() {
         real image is a disc a hundred times wider that no ray in this picture knows about. The ratio
         beside each row is there so that cell cannot be misread.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The comparison is worth making because the app has a <em>second</em> switch that sounds like
         it should answer the same question and does not. The renderer chooses between a diffraction
         PSF and a ray-histogram PSF on a criterion in <code>wave/fidelity</code>, and that criterion
@@ -343,21 +345,21 @@ export function SpotPanel() {
       </p>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>What the curve underneath is, and what it is not</h2>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The through-focus curve is a parabola, exactly, and not approximately: every ray leaving the
         last surface is a straight line, so its distance from the centroid is linear in the plane
         position and the mean square of it is a quadratic. That is why the engine solves best focus
         in closed form instead of searching, and why the column grid was free — five planes cost five
         intersections, not five traces.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         So the curve&rsquo;s minimum and the engine&rsquo;s closed form agree, and that agreement is{" "}
         <em>not</em> evidence of anything: it is the same algebra applied to the same rays, and it
         would agree if both were wrong together. It is worth pinning as an identity — a change that
         breaks one side and not the other is a real bug — but this page does not present it as two
         methods confirming each other, because it is one method drawn twice.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The number that <em>is</em> a measurement is the gap above: the image plane comes from
         minimum RMS <strong>wavefront</strong> and this curve minimises RMS <strong>spot</strong>,
         and on the achromat at f/10 those disagree by −6.8 µm on axis. It is quoted at 550 nm, the
@@ -369,7 +371,7 @@ export function SpotPanel() {
       </p>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>No web worker, and the honest version of why</h2>
-      <p style={{ maxWidth: 640, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 640, fontSize: 13, color: "var(--ink-3)" }}>
         Every tracing panel in this app posts its work to a worker; the ray fan is the one exception,
         and it justified itself at <strong>6–19 ms</strong>. This route is the second exception and it
         is <em>not</em> as comfortable, so it says so rather than borrowing that sentence. Measured in
@@ -378,7 +380,7 @@ export function SpotPanel() {
         three wavelengths across four fields, four more for the measurement grid — and the five
         columns are free, being intersections of rays already traced.
       </p>
-      <p style={{ maxWidth: 640, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 640, fontSize: 13, color: "var(--ink-3)" }}>
         At 34 ms a slider still tracks the thumb; at the <strong>31-ray</strong> setting it visibly
         does not, and the number above understates that, because it times the <em>tracing</em> and
         the densest grid also asks the canvas for 42,300 individual dots. That is the honest state of

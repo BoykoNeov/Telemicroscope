@@ -104,16 +104,16 @@ function ColourFrame({
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption
-        style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 320 }}
+        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 320 }}
       >
         <strong>{title}</strong>
         <br />
-        <span style={{ color: "#666" }}>{note}</span>
+        <span style={{ color: "var(--ink-3)" }}>{note}</span>
         <br />
         hue spread <strong>{spread.toExponential(3)}</strong> worst pixel ·{" "}
         {meanSpread.toExponential(3)} mean
         <br />
-        <span style={{ color: proof ? "#06a" : "#111" }}>
+        <span style={{ color: proof ? "var(--accent)" : "var(--ink)" }}>
           {proof
             ? "zero by construction — one hue times a scalar cannot vary"
             : "measured, on this specimen through this objective"}
@@ -126,9 +126,9 @@ function ColourFrame({
 /** The per-wavelength table — § 6r.7 is a statement about a plane, not a frame. */
 function PlaneTable({ readout }: { readout: SectionReadout }) {
   return (
-    <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+    <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
       <thead>
-        <tr style={{ borderBottom: "1px solid #ccc", textAlign: "left" }}>
+        <tr style={{ borderBottom: "1px solid var(--line)", textAlign: "left" }}>
           <th style={{ padding: "2px 10px 2px 0" }}>λ (nm)</th>
           <th style={{ padding: "2px 10px 2px 0" }}>weight</th>
           <th style={{ padding: "2px 10px 2px 0" }}>ruler ratio</th>
@@ -138,7 +138,7 @@ function PlaneTable({ readout }: { readout: SectionReadout }) {
       </thead>
       <tbody>
         {readout.planes.map((plane) => (
-          <tr key={plane.nm} style={{ borderBottom: "1px solid #f0f0f0" }}>
+          <tr key={plane.nm} style={{ borderBottom: "1px solid var(--bg-2)" }}>
             <td style={{ padding: "2px 10px 2px 0" }}>
               {plane.nm.toFixed(1)}
               {plane.resampleRatio === 1 ? " ← ruler" : ""}
@@ -209,21 +209,21 @@ export function SectionPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>A stained section, and the cheap way to fake one</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Every other microscope surface here is grey. This one runs the Abbe sum{" "}
         <strong>once per wavelength</strong> — each on its own frame, through its own traced pupil,
         because a frame&rsquo;s width goes as λ and the images have to be brought onto one ruler
         before they can be added — and integrates colour against the CIE observer while the
         wavelengths are still separate.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Beside it is the implementation that is always tempting: sum the wavelengths into one grey
         image first, then multiply by the lamp&rsquo;s colour. It looks like a stained section. It
         cannot be one — every pixel of it is the same hue at a different brightness, so the number
         under it is <strong>zero because of what it is</strong>, not because the sum came out small.
         The number on the left is a measurement of the same frame. That pair is the whole panel.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The picker separates the two ways an image can have colour. The ruled grid and the diatoms
         contain <em>no wavelength at all</em> — whatever hue survives in their images is the
         objective&rsquo;s own dispersion, which is § 3b&rsquo;s purple fringing arriving in the
@@ -231,7 +231,7 @@ export function SectionPanel() {
         bands. Watch the two numbers under the left image: a fringe moves the <em>worst pixel</em>{" "}
         and a stain moves the <em>frame&rsquo;s mean</em> off the lamp&rsquo;s white.
       </p>
-      <p style={{ maxWidth: 640, color: "#666", fontSize: 13 }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-3)", fontSize: 13 }}>
         The two dyes are <strong>invented</strong> — two Gaussian absorption bands with round
         numbers, composing by Beer–Lambert. Real dye spectra are measured data this repo does not
         have, and § 6r lists a rung against a published stain&rsquo;s transmittance as open, so
@@ -263,7 +263,7 @@ export function SectionPanel() {
         />
         <Choice label="lamp" options={LAMPS} value={lamp} onChange={setLamp} format={(l) => LAMP_LABEL[l]} />
       </div>
-      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
@@ -282,13 +282,13 @@ export function SectionPanel() {
           would be the panel promising a render the engine refuses.
         */}
         {!gridHoldsPupil ? (
-          <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", maxWidth: 320 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 320 }}>
             no condenser fits: a pupil of {pupilSamples} bins needs a grid of at least{" "}
             {pupilSamples + 2}, and this one is {size}. Not even the coherent limit renders —
             raise the grid.
           </p>
         ) : maxS < S_STEP ? (
-          <p style={{ fontFamily: "monospace", fontSize: 12, color: "#a60", maxWidth: 320 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--warn)", maxWidth: 320 }}>
             condenser S = 0 — this grid has no room for a pupil shifted at all, so the coherent
             limit is the only condenser it admits. Raise the grid to open it.
           </p>
@@ -304,16 +304,16 @@ export function SectionPanel() {
         )}
       </div>
 
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#666", maxWidth: 660 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 660 }}>
         {entry.note}
       </p>
 
       {result === null ? (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777" }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
           summing over the condenser, once per wavelength…
         </p>
       ) : !result.ok ? (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", maxWidth: 660 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 660 }}>
           {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       ) : (
@@ -339,13 +339,13 @@ export function SectionPanel() {
             />
           </div>
 
-          <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, maxWidth: 660 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 660 }}>
             frame mean ({readout!.meanChromaticity.x.toFixed(4)},{" "}
             {readout!.meanChromaticity.y.toFixed(4)}) · lamp white (
             {readout!.lampChromaticity.x.toFixed(4)}, {readout!.lampChromaticity.y.toFixed(4)}) ·{" "}
             <strong>{readout!.meanFromLamp.toFixed(4)}</strong> apart
             <br />
-            <span style={{ color: "#666" }}>
+            <span style={{ color: "var(--ink-3)" }}>
               {entry.neutral
                 ? "a neutral specimen removes no colour on average, so this distance is the cast the OPTICS left"
                 : "a stain fills the frame, so this distance is the dye — a fleck would move the spread and not the mean"}
@@ -365,7 +365,7 @@ export function SectionPanel() {
               detail={readout!.verdictReason}
             />
             {readout!.verdict === "no-honest-image" && pupilSamples < 64 ? (
-              <p style={{ color: "#c00", maxWidth: 640 }}>
+              <p style={{ color: "var(--bad)", maxWidth: 640 }}>
                 § 6r.7, on screen: the blue end is the worst-resolved plane by 2.56× where λ alone
                 would give 1.22, so it is the first to run out of pupil lattice. Raising{" "}
                 <strong>pupil samples</strong> to 64 clears it — and costs about 17×, because the
@@ -380,7 +380,7 @@ export function SectionPanel() {
         </div>
       )}
 
-      <p style={{ maxWidth: 660, color: "#444", marginTop: 16 }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)", marginTop: 16 }}>
         Two things this panel does not do. There is no polychromatic{" "}
         <strong>mosaic</strong> — the useful span of a tile is ∝ λ, so § 6o&rsquo;s pitch and guard
         band would each need one reference wavelength chosen, and that is an engine step rather

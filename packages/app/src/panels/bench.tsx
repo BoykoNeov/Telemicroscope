@@ -51,11 +51,11 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
   }, [pupilSamples, size]);
 
   const cell: React.CSSProperties = { padding: "3px 6px", textAlign: "right", whiteSpace: "nowrap" };
-  const head: React.CSSProperties = { ...cell, borderBottom: "1px solid #ccc", color: "#444" };
+  const head: React.CSSProperties = { ...cell, borderBottom: "1px solid var(--line)", color: "var(--ink-2)" };
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
         <thead>
           <tr>
             <th style={{ ...head, textAlign: "left" }}>objective</th>
@@ -78,20 +78,20 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
             const na = entry.nominalNA;
             const m = entry.nominalMagnification;
             return (
-              <tr key={entry.kind} style={{ borderBottom: "1px solid #eee" }}>
+              <tr key={entry.kind} style={{ borderBottom: "1px solid var(--line-2)" }}>
                 <td style={{ ...cell, textAlign: "left" }}>
                   <strong>{entry.label}</strong>
                   <br />
-                  <span style={{ color: "#777", fontSize: 11 }}>{entry.note}</span>
+                  <span style={{ color: "var(--ink-4)", fontSize: 11 }}>{entry.note}</span>
                 </td>
                 {!row ? (
-                  <td style={{ ...cell, color: "#999" }} colSpan={11}>
+                  <td style={{ ...cell, color: "var(--ink-5)" }} colSpan={11}>
                     tracing…
                   </td>
                 ) : !row.ok ? (
                   // The engine's own message, in full. It carries the measured
                   // ceiling; a "not available" would carry nothing.
-                  <td style={{ ...cell, textAlign: "left", color: "#c00", whiteSpace: "normal" }} colSpan={11}>
+                  <td style={{ ...cell, textAlign: "left", color: "var(--bad)", whiteSpace: "normal" }} colSpan={11}>
                     {refusalVoice(row.source, "this design")}: {row.error}
                   </td>
                 ) : (
@@ -99,14 +99,14 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
                     <td style={cell}>
                       {row.readout.tracedNA.toFixed(4)}
                       <br />
-                      <span style={{ color: "#777" }}>
+                      <span style={{ color: "var(--ink-4)" }}>
                         {relative(row.readout.tracedNA, na)}
                       </span>
                     </td>
                     <td style={cell}>
                       {row.readout.tracedMagnification.toFixed(2)}
                       <br />
-                      <span style={{ color: "#777" }}>
+                      <span style={{ color: "var(--ink-4)" }}>
                         {relative(Math.abs(row.readout.tracedMagnification), m)}
                       </span>
                     </td>
@@ -115,14 +115,14 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
                     <td style={cell}>{row.readout.objectPixelNm.toFixed(1)} nm</td>
                     <td style={cell}>{row.readout.imagePixelUm.toFixed(3)} µm</td>
                     <td style={cell}>{row.readout.abbeResolutionNm.toFixed(0)} nm</td>
-                    <td style={{ ...cell, color: row.readout.axisRmsWaves > MARECHAL_WAVES ? "#c00" : "#3a7" }}>
+                    <td style={{ ...cell, color: row.readout.axisRmsWaves > MARECHAL_WAVES ? "var(--bad)" : "var(--ok)" }}>
                       {row.readout.axisRmsWaves.toFixed(4)}
                     </td>
-                    <td style={{ ...cell, color: row.readout.cornerRmsWaves > MARECHAL_WAVES ? "#c00" : "#3a7" }}>
+                    <td style={{ ...cell, color: row.readout.cornerRmsWaves > MARECHAL_WAVES ? "var(--bad)" : "var(--ok)" }}>
                       {row.readout.cornerRmsWaves.toFixed(4)}
                     </td>
                     <td style={cell}>{row.readout.scaleDriftPixel.toExponential(1)}</td>
-                    <td style={{ ...cell, color: row.readout.cornerLost > 0 ? "#a60" : "#777" }}>
+                    <td style={{ ...cell, color: row.readout.cornerLost > 0 ? "var(--warn)" : "var(--ink-4)" }}>
                       {row.readout.cornerLost}
                     </td>
                   </>
@@ -132,17 +132,17 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
           })}
         </tbody>
       </table>
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777" }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
         {rows ? `${elapsedMs.toFixed(0)} ms for the whole catalogue` : "tracing the catalogue…"} ·
         λ = {LAMBDA_NM} nm · drift is what one common ruler costs across the frame · lost is rays
         vignetted at the corner
       </p>
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", maxWidth: 720 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 720 }}>
         σ is the RMS wavefront <em>as traced</em>, about its own mean at each system&rsquo;s own
         image plane — no best-focus solve, because that is the wavefront a render will actually see.
         The comparison against Maréchal&rsquo;s λ/14 = {MARECHAL_WAVES.toFixed(4)} waves is therefore
-        one-sided: a balanced σ can only be smaller, so <span style={{ color: "#3a7" }}>green</span>{" "}
-        means genuinely diffraction-limited and <span style={{ color: "#c00" }}>red</span> means
+        one-sided: a balanced σ can only be smaller, so <span style={{ color: "var(--ok)" }}>green</span>{" "}
+        means genuinely diffraction-limited and <span style={{ color: "var(--bad)" }}>red</span> means
         &ldquo;not at this focus&rdquo;, not &ldquo;not correctable&rdquo;.
       </p>
     </div>
@@ -173,7 +173,7 @@ export function BenchPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The microscope bench: what a frame actually covers</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The microscope branch&rsquo;s objectives, every one of them traced. This is not a picture and
         not a view through an eyepiece — it is the <strong>substrate</strong> the pictures will sit
         on, and the number it exists to say out loud is the <strong>crop</strong>: how much specimen
@@ -181,7 +181,7 @@ export function BenchPanel() {
         cells and no more, because the illumination sum&rsquo;s grid <em>is</em> its frequency
         lattice — so unlike the star field, it cannot be widened by choosing a coarser pixel.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The <strong>cells</strong> column is that claim, checked: crop ÷ λ/(2·NA), which lands on the
         pupil-sample count to within a percent for every dry objective here. The two immersion rows
         come in ~2.5× under it, and the panel does not paper over the gap — the frame&rsquo;s extent
@@ -190,7 +190,7 @@ export function BenchPanel() {
         here, not a derivation; recovering the closed form is a physics question, and this panel adds
         no physics.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Read the three <strong>NA 0.10</strong> rows together: 4×, 10× and 20× cover an{" "}
         <em>identical</em> 93.5 µm while their image pixels scale exactly with magnification.
         Reaching for a stronger objective does not widen or narrow the crop — only NA moves it, and
@@ -216,7 +216,7 @@ export function BenchPanel() {
 
       <MicroscopeTable pupilSamples={pupilSamples} size={size} />
 
-      <p style={{ marginTop: 16, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 16, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         Move the grid and watch the crop <em>not</em> change: that is the constraint stated as an
         experiment. Move the pupil samples and it scales exactly, which is the only lever there is.
         A row that carries an error instead of numbers is a design the engine will not build — the

@@ -79,17 +79,17 @@ export function CurvaturePanel() {
   const measured = { width: 1.4, dots: true } as const;
 
   const surfaces: PlotSeries[] = [
-    { label: "third-order tangential", color: "#e8a29a", points: at((v) => v.thirdOrderTangentialMm), ...predicted },
+    { label: "third-order tangential", color: "var(--red-3)", points: at((v) => v.thirdOrderTangentialMm), ...predicted },
     { label: "third-order sagittal", color: "#9ad9bd", points: at((v) => v.thirdOrderSagittalMm), ...predicted },
-    { label: "Petzval", color: "#06c", points: at((v) => v.petzvalMm), dash: [2, 3], width: 1.4 },
-    { label: "medial", color: "#999", points: at((v) => v.medialSagMm), width: 1 },
-    { label: "tangential (traced)", color: "#c0392b", points: at((v) => v.tangentialSagMm), ...measured },
-    { label: "sagittal (traced)", color: "#2b7", points: at((v) => v.sagittalSagMm), ...measured },
+    { label: "Petzval", color: "var(--accent-2)", points: at((v) => v.petzvalMm), dash: [2, 3], width: 1.4 },
+    { label: "medial", color: "var(--ink-5)", points: at((v) => v.medialSagMm), width: 1 },
+    { label: "tangential (traced)", color: "var(--red)", points: at((v) => v.tangentialSagMm), ...measured },
+    { label: "sagittal (traced)", color: "var(--green)", points: at((v) => v.sagittalSagMm), ...measured },
   ];
 
   const distortion: PlotSeries[] = [
-    { label: "third-order S_V cubic", color: "#bbb", points: at((v) => v.thirdOrderDistortionPpm), ...predicted },
-    { label: "traced chief ray", color: "#c0392b", points: at((v) => v.distortionPpm), ...measured },
+    { label: "third-order S_V cubic", color: "var(--ink-5)", points: at((v) => v.thirdOrderDistortionPpm), ...predicted },
+    { label: "traced chief ray", color: "var(--red)", points: at((v) => v.distortionPpm), ...measured },
   ];
 
   const sagFloor = Math.min(...s.map((v) => v.tangentialSagMm)) * 1.08;
@@ -104,7 +104,7 @@ export function CurvaturePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Where the flat detector goes, when the image is not flat</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         Every other analysis on this site asks about one point in the field. This one asks the
         question a <em>sensor</em> asks. An off-axis pencil has no single focus: the fan in the plane
         containing the axis and the field point comes to a line focus at one distance, the fan at
@@ -152,7 +152,7 @@ export function CurvaturePanel() {
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
         <Plot
           series={surfaces}
-          markers={[{ y: result.flatPlaneMm, color: "#a60", label: "a flat sensor here" }]}
+          markers={[{ y: result.flatPlaneMm, color: "var(--warn)", label: "a flat sensor here" }]}
           xLabel="field angle (degrees off axis)"
           yLabel="sag from the on-axis focus (mm)"
           xMin={0}
@@ -162,18 +162,18 @@ export function CurvaturePanel() {
           width={560}
           height={320}
         />
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
-          <div style={{ color: "#666", marginBottom: 4 }}>reading the plot</div>
-          <div style={{ color: "#c0392b" }}>tangential — the fan in the field&rsquo;s own plane</div>
-          <div style={{ color: "#2b7" }}>sagittal — the fan at right angles to it</div>
-          <div style={{ color: "#999" }}>medial — halfway, where the blur is roundest</div>
-          <div style={{ color: "#06c" }}>Petzval — where both would lie with astigmatism nulled</div>
-          <div style={{ marginTop: 12, color: "#666" }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
+          <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>reading the plot</div>
+          <div style={{ color: "var(--red)" }}>tangential — the fan in the field&rsquo;s own plane</div>
+          <div style={{ color: "var(--green)" }}>sagittal — the fan at right angles to it</div>
+          <div style={{ color: "var(--ink-5)" }}>medial — halfway, where the blur is roundest</div>
+          <div style={{ color: "var(--accent-2)" }}>Petzval — where both would lie with astigmatism nulled</div>
+          <div style={{ marginTop: 12, color: "var(--ink-3)" }}>
             Everything is negative: both surfaces bend <em>toward</em> the lens, inside the on-axis
             focus. The tangential one is always the further of the two, and by a factor the third
             order fixes at exactly 3 — see below.
           </div>
-          <div style={{ marginTop: 12, color: "#666" }}>
+          <div style={{ marginTop: 12, color: "var(--ink-3)" }}>
             Each pale dashed curve is a prediction and the solid line on top of it is the trace. They
             are drawn fat-under-thin on purpose: they agree to about a part in a thousand, so drawn
             the other way round this plot would show three curves where the legend lists five, and a
@@ -185,7 +185,7 @@ export function CurvaturePanel() {
       <h2 style={{ fontSize: 16, marginTop: 28 }}>
         The {lens} {flatter ? "has the flatter field" : "did not flatten the field"}
       </h2>
-      <p style={{ maxWidth: 660, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14 }}>
         The achromat is this app&rsquo;s whole demonstration: it fixes the singlet&rsquo;s colour and
         its spherical aberration. Against this aberration it does nothing. The Petzval surface is the
         part of the curvature no balancing can move — it is a sum of element powers over their
@@ -241,7 +241,7 @@ export function CurvaturePanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 28 }}>Distortion, and the plane it has to be read at</h2>
-      <p style={{ maxWidth: 660, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14 }}>
         Distortion is the chief ray landing somewhere other than where the paraxial image height says
         it should — the one term in the transverse expansion with no pupil coordinate in it, so it
         moves the image point instead of blurring it. On a two-element lens with the stop at the front
@@ -281,7 +281,7 @@ export function CurvaturePanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 28 }}>What has an aperture in it, and what does not</h2>
-      <p style={{ maxWidth: 660, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14 }}>
         The dashed surfaces have no aperture in them at all — they are ratios of Seidel sums to
         n′u′², and it cancels — and neither does the traced distortion, which is a chief ray. The
         traced surfaces do: they are where a real fan&rsquo;s spot is smallest. How much they move

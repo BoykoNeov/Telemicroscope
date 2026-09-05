@@ -94,20 +94,20 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
     <>
       <h1 style={{ fontSize: 20 }}>Where each ray in the pupil lands</h1>
       {linkBroken && (
-        <p style={{ color: "#c00", fontFamily: "monospace", fontSize: 12 }}>
+        <p style={{ color: "var(--bad)", fontFamily: "var(--mono)", fontSize: 12 }}>
           The link that opened this page did not decode, so these are the panel&rsquo;s own
           defaults and <strong>not</strong> the image you came from. Set the lens, aperture and
           field yourself, or go back and click the artifact again.
         </p>
       )}
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         A ray fan is the one picture in this app where an aberration is laid out against the thing
         that <em>causes</em> it — position in the pupil — instead of summed over the pupil the way a
         spot, a PSF or an image is. Each curve is one wavelength: the horizontal axis is where the
         ray entered the pupil, from one rim (−1) through the centre to the other (+1), and the
         vertical axis is how far it missed the chief ray at the image plane.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Read it by symmetry. <strong>Defocus</strong> is a straight line. <strong>Spherical
         aberration</strong> is a cubic and it is <em>odd</em> — the ray from +ρ and the ray from −ρ
         miss by the same amount in opposite directions, so they still straddle a centre.{" "}
@@ -140,14 +140,14 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
 
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
         <div>
-          <h2 style={{ fontSize: 14, fontFamily: "monospace", margin: "0 0 4px" }}>
+          <h2 style={{ fontSize: 14, fontFamily: "var(--mono)", margin: "0 0 4px" }}>
             tangential — the plane the field lies in
           </h2>
           <Plot
             series={series("tangential")}
             markers={[
-              { y: airy, color: "#bbb", label: "Airy radius" },
-              { y: -airy, color: "#bbb" },
+              { y: airy, color: "var(--ink-5)", label: "Airy radius" },
+              { y: -airy, color: "var(--ink-5)" },
             ]}
             xLabel="pupil coordinate ρ"
             yLabel="miss from chief ray (µm)"
@@ -158,14 +158,14 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
           />
         </div>
         <div>
-          <h2 style={{ fontSize: 14, fontFamily: "monospace", margin: "0 0 4px" }}>
+          <h2 style={{ fontSize: 14, fontFamily: "var(--mono)", margin: "0 0 4px" }}>
             sagittal — the plane across it
           </h2>
           <Plot
             series={series("sagittal")}
             markers={[
-              { y: airy, color: "#bbb", label: "Airy radius" },
-              { y: -airy, color: "#bbb" },
+              { y: airy, color: "var(--ink-5)", label: "Airy radius" },
+              { y: -airy, color: "var(--ink-5)" },
             ]}
             xLabel="pupil coordinate ρ"
             yLabel="miss from chief ray (µm)"
@@ -178,7 +178,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
       </div>
 
       {fieldDeg === 0 && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#a60", maxWidth: 640 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--warn)", maxWidth: 640 }}>
           You are on the axis, so the even half below is a floor and not a measurement — an axially
           symmetric lens has no coma there, and a fan that looks empty of it is the panel working.
           Walk the field slider out to see the quantity this page is about.
@@ -215,7 +215,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>What the two plots say together</h2>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Put the field slider at zero. The tangential fan becomes an odd curve through the origin and
         the even number above collapses by eleven orders, to about 1e-13 µm. An axially symmetric
         lens cannot tell +ρ from −ρ on its own axis, so coma there is not a small quantity, it is an
@@ -226,7 +226,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         <em>is</em> exact — the rim pair, ±1 — the cancellation is bitwise. What is left in the curve is the odd
         cubic: spherical aberration, 0.66 µm on the achromat at f/10 against an Airy radius of 7.17.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Now walk the field out. The even half appears and grows in proportion to the field angle —
         7.67 µm at 1.13° on the achromat at f/10, which is 1.07 Airy radii and therefore a comet you
         can see rather than a coefficient. The <strong>sagittal</strong> fan stays even-free at every
@@ -234,7 +234,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         half of the shape: a comatic star is stretched along the direction it sits from the axis and
         not across it.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The sign is worth reading rather than assuming. On this achromat the even half is{" "}
         <strong>negative</strong> at the rim, meaning both rim rays land on the side of the chief ray
         nearer the axis — so the tail points <strong>inward</strong>, toward the middle of the frame.
@@ -242,7 +242,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         the star field&rsquo;s own note.
       </p>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         No web worker on this route, which every other tracing panel uses. The reason is the elapsed
         number above: a fan is a few dozen traced rays and lands in{" "}
         <strong>{result.elapsedMs.toFixed(0)} ms</strong>, where the cost of posting the job to a
@@ -270,7 +270,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
           the other artifact: where each colour focuses →
         </a>
       </p>
-      <p style={{ fontSize: 12, color: "#999", fontFamily: "monospace", maxWidth: 640 }}>
+      <p style={{ fontSize: 12, color: "var(--ink-5)", fontFamily: "var(--mono)", maxWidth: 640 }}>
         wavelengths drawn: {FAN_LINES.map((l) => `${l.name} ${l.nm.toFixed(1)} nm`).join(" · ")}
       </p>
     </>

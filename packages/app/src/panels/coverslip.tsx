@@ -120,14 +120,14 @@ function ThicknessPlot({
   const series: PlotSeries[] = [
     {
       label: "refocused — the objective moves",
-      color: "#111",
+      color: "var(--ink)",
       points: share(p, (q) => q.thicknessMm, (q) => q.refocused),
       dots: true,
       width: 2,
     },
     {
       label: "film pinned — image side only",
-      color: "#c00",
+      color: "var(--bad)",
       points: share(p, (q) => q.thicknessMm, (q) => q.pinned),
       dash: [5, 4],
     },
@@ -137,12 +137,12 @@ function ThicknessPlot({
   // slider's own rule is left unlabelled because the control above already
   // reads it out. Both wall names are short for the same reason.
   const markers: PlotMarker[] = [
-    { y: 1, color: "#a60", label: "Maréchal λ/14" },
-    { x: thicknessMm, color: "#06a" },
-    { x: sweep.filmWallThicknessMm, color: "#777", label: "film out" },
+    { y: 1, color: "var(--warn)", label: "Maréchal λ/14" },
+    { x: thicknessMm, color: "var(--accent)" },
+    { x: sweep.filmWallThicknessMm, color: "var(--ink-4)", label: "film out" },
   ];
   if (sweep.rayWall) {
-    markers.push({ x: sweep.rayWall.thicknessMm, color: "#777", label: "rays stop" });
+    markers.push({ x: sweep.rayWall.thicknessMm, color: "var(--ink-4)", label: "rays stop" });
   }
   return (
     <Plot
@@ -176,13 +176,13 @@ function AperturePlot({
   const hi = Math.max(...predicted.map(([, y]) => y));
   const pad = 0.1 * (hi - lo);
   const markers: PlotMarker[] = [
-    { y: numericalAperture, color: "#a60", label: `engraved ${numericalAperture.toFixed(2)}` },
-    { x: thicknessMm, color: "#06a" },
+    { y: numericalAperture, color: "var(--warn)", label: `engraved ${numericalAperture.toFixed(2)}` },
+    { x: thicknessMm, color: "var(--accent)" },
   ];
   if (sweep.rayWall) {
     markers.push({
       y: sweep.rayWall.deliveredNa,
-      color: "#c00",
+      color: "var(--bad)",
       label: `wall ${sweep.rayWall.deliveredNa.toFixed(4)}`,
     });
   }
@@ -191,12 +191,12 @@ function AperturePlot({
       series={[
         {
           label: "n_slip·h/√(t²+h²) — closed form",
-          color: "#06a",
+          color: "var(--accent)",
           points: predicted,
           dash: [5, 4],
           width: 2.4,
         },
-        { label: "traced", color: "#111", points: traced, dots: true, width: 1.2 },
+        { label: "traced", color: "var(--ink)", points: traced, dots: true, width: 1.2 },
       ]}
       markers={markers}
       xLabel="cover slip thickness (mm)"
@@ -217,21 +217,21 @@ function IndexPlot({ sweep, deltaN }: { sweep: IndexSweep; deltaN: number }) {
       series={[
         {
           label: "refocused for the apparent-distance change",
-          color: "#111",
+          color: "var(--ink)",
           points: share(p, (q) => q.deltaN, (q) => q.refocused),
           dots: true,
           width: 2,
         },
         {
           label: "film pinned (§ 6e.5's own rung)",
-          color: "#c00",
+          color: "var(--bad)",
           points: share(p, (q) => q.deltaN, (q) => q.pinned),
           dash: [5, 4],
         },
       ]}
       markers={[
-        { y: 1, color: "#a60", label: "Maréchal λ/14" },
-        { x: deltaN, color: "#06a", label: `Δn ${deltaN >= 0 ? "+" : ""}${deltaN.toFixed(4)}` },
+        { y: 1, color: "var(--warn)", label: "Maréchal λ/14" },
+        { x: deltaN, color: "var(--accent)", label: `Δn ${deltaN >= 0 ? "+" : ""}${deltaN.toFixed(4)}` },
       ]}
       xLabel={`slip index − ${SLIP_INDEX.toFixed(4)} (D263 at the d line)`}
       yLabel="σ, in Maréchal budgets (λ/14)"
@@ -258,20 +258,20 @@ function DryTolerancePlot() {
       series={[
         {
           label: "Rayleigh λ/4 on W₀₄₀",
-          color: "#111",
+          color: "var(--ink)",
           points: curve.map((q) => [q.numericalAperture, Math.log10(q.quarterWaveUm)] as const),
           dots: true,
           width: 2,
         },
         {
           label: "Maréchal on the balanced residual",
-          color: "#06a",
+          color: "var(--accent)",
           points: curve.map((q) => [q.numericalAperture, Math.log10(q.marechalUm)] as const),
           dash: [5, 4],
         },
       ]}
       markers={[
-        { y: Math.log10(NOMINAL_SLIP_MM * 1000), color: "#a60", label: "a whole 0.17 mm slip" },
+        { y: Math.log10(NOMINAL_SLIP_MM * 1000), color: "var(--warn)", label: "a whole 0.17 mm slip" },
       ]}
       xLabel="dry objective NA"
       yLabel="log₁₀ of the slip error the budget allows (µm)"
@@ -329,7 +329,7 @@ export function CoverslipPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The coverslip: a plate the objective does not control</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The <strong>0.17</strong> in <code>160/0.17</code>. A cover glass has no power and no
         first-order effect on anything, and it is still engraved on every objective, because a
         plate in a steeply convergent beam carries spherical aberration — and the beam between a
@@ -340,7 +340,7 @@ export function CoverslipPanel() {
         performance depend on a piece of glass it does not contain, which is what this panel
         measures.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         <strong>The modelling choice decides every number here, so it is a control.</strong> A real
         immersion objective is focused by <em>moving it</em>, which changes the thickness of the oil
         film — the film IS the focus knob. Refocusing on the image side alone, with the film pinned,
@@ -395,7 +395,7 @@ export function CoverslipPanel() {
           marginBottom: 20,
         }}
       >
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, width: 420 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 420 }}>
           {readout === null ? (
             <span>tracing the slip…</span>
           ) : (
@@ -426,7 +426,7 @@ export function CoverslipPanel() {
                 }
                 detail={`closed form ${readout.predictedNa.toFixed(5)} · engraved ${numericalAperture.toFixed(2)} — a thinner slip delivers MORE aperture`}
               />
-              <span style={{ color: "#777" }}>
+              <span style={{ color: "var(--ink-4)" }}>
                 the oil layer&rsquo;s own W₀₄₀ is {readout.oilW040Waves.toFixed(4)} waves — negative,
                 because the oil (n {OIL_INDEX.toFixed(4)}) is rarer than the glass either side of it
                 <br />
@@ -435,7 +435,7 @@ export function CoverslipPanel() {
             </>
           )}
         </div>
-        <div style={{ maxWidth: 640, fontSize: 13, color: "#666" }}>
+        <div style={{ maxWidth: 640, fontSize: 13, color: "var(--ink-3)" }}>
           <p style={{ marginTop: 0 }}>
             <strong>Thickness costs no aberration at all.</strong> The slip and the objective&rsquo;s
             front element are both D263, so the layer&rsquo;s (n² − n_out²) factor is identically
@@ -456,7 +456,7 @@ export function CoverslipPanel() {
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ opacity: sweep.pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}>
           {sweep.result === null ? (
-            <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+            <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
               sweeping the No. 1.5 band…
             </p>
           ) : (
@@ -464,9 +464,9 @@ export function CoverslipPanel() {
               <ThicknessPlot sweep={sweep.result} thicknessMm={thicknessMm} />
               <p
                 style={{
-                  fontFamily: "monospace",
+                  fontFamily: "var(--mono)",
                   fontSize: 11,
-                  color: "#777",
+                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -491,9 +491,9 @@ export function CoverslipPanel() {
               />
               <p
                 style={{
-                  fontFamily: "monospace",
+                  fontFamily: "var(--mono)",
                   fontSize: 11,
-                  color: "#777",
+                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -518,7 +518,7 @@ export function CoverslipPanel() {
       >
         <div style={{ opacity: index.pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}>
           {index.result === null ? (
-            <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+            <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
               sweeping the slip&rsquo;s index…
             </p>
           ) : (
@@ -526,9 +526,9 @@ export function CoverslipPanel() {
               <IndexPlot sweep={index.result} deltaN={deltaN} />
               <p
                 style={{
-                  fontFamily: "monospace",
+                  fontFamily: "var(--mono)",
                   fontSize: 11,
-                  color: "#777",
+                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -544,9 +544,9 @@ export function CoverslipPanel() {
           <DryTolerancePlot />
           <p
             style={{
-              fontFamily: "monospace",
+              fontFamily: "var(--mono)",
               fontSize: 11,
-              color: "#777",
+              color: "var(--ink-4)",
               width: 420,
               marginTop: 4,
             }}
@@ -557,7 +557,7 @@ export function CoverslipPanel() {
         </div>
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         <strong>Both ends of the band are geometric, and neither is aberration.</strong> Thin the
         slip and the delivered aperture climbs into § 6e.4&rsquo;s own ceiling: the tracer starts
         losing rays, and every σ over an incomplete pupil is{" "}
@@ -569,7 +569,7 @@ export function CoverslipPanel() {
         rather than an aberration, after § 6b&rsquo;s f/4.1, § 6d&rsquo;s NA 0.343, § 6e.4&rsquo;s
         NA 1.411 and § 6q&rsquo;s 0.88·f_e.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         <strong>The σ minimum is not at the nominal slip</strong>, and the third readout says why.
         The oil is the only mismatched layer in the stack, and it is <em>rarer</em> than the glass
         either side of it, so its W₀₄₀ is negative — the opposite sign to the Lister residual behind
@@ -581,7 +581,7 @@ export function CoverslipPanel() {
         recommendation: § 6e.5 records the same kind of gain in the placement solve and deliberately
         does not act on it, because moving it re-solves every number in the design.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         The dry curve on the right is the reason none of this matters at 4×. The tolerance runs as
         1/NA⁴, from <strong>31 mm</strong> at NA 0.10 — 180× a whole cover slip, so a 4×/0.10 cannot
         tell whether one is there — to <strong>3.9 µm</strong> at NA 0.95, where a dry objective is

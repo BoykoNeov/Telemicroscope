@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
-import { PANELS, resolveHash } from "./panels/registry";
+import { Suspense, useEffect, useState } from "react";
+import { PANELS, PANEL_GROUPS, resolveHash } from "./panels/registry";
+import { cycleTheme, themeChoice, useThemeVersion } from "./theme";
 
 /**
- * The shell: a nav row and one panel. Nothing else lives here.
+ * The shell: a header with the nav, and one panel. Nothing else lives here.
  *
  * The page used to be a single scroll holding every surface and every control
  * group at once, which stopped scaling at four panels — see `panels/registry.ts`
@@ -18,9 +19,15 @@ import { PANELS, resolveHash } from "./panels/registry";
  * trees — which is also what terminates the outgoing panel's workers, and what
  * makes a second link to the same route re-seed rather than land on a panel
  * still showing the first one's numbers.
+ *
+ * The nav is three rows, one per engine branch, because thirty-one entries in
+ * one wrapped row had no order a reader could see. The registry's array order
+ * is unchanged — it is what `panelFor` falls back on and what the tests read —
+ * and the rows are a *view* of it, filtered by `group`.
  */
 export default function App() {
   const [hash, setHash] = useState(() => window.location.hash);
+  const theme = useThemeVersion();
 
   useEffect(() => {
     const onHashChange = () => setHash(window.location.hash);
@@ -31,48 +38,58 @@ export default function App() {
   const { panel, link, linkBroken, query } = resolveHash(hash);
   const { Component } = panel;
 
+  useEffect(() => {
+    document.title = `${panel.label} — Telemicroscope`;
+  }, [panel.label]);
+
+  const choice = themeChoice();
+  const themeLabel = choice === "system" ? "theme: auto" : `theme: ${choice}`;
+
   return (
     // Wider than the 900 the two-panel layout needed: the microscope table has
     // eleven columns and every one of them is a number the panel exists to show.
     // The prose keeps its own 640 maxWidth, so only the table gets the room.
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: 24, maxWidth: 1240 }}>
-      <nav
-        style={{
-          display: "flex",
-          gap: 8,
-          flexWrap: "wrap",
-          alignItems: "baseline",
-          borderBottom: "1px solid #ddd",
-          paddingBottom: 10,
-          marginBottom: 18,
-        }}
-      >
-        <span style={{ fontFamily: "monospace", fontSize: 12, color: "#777", marginRight: 8 }}>
-          telemicroscope
-        </span>
-        {PANELS.map((entry) => (
-          <a
-            key={entry.id}
-            href={`#${entry.id}`}
-            style={{
-              fontFamily: "monospace",
-              fontSize: 12,
-              padding: "3px 10px",
-              textDecoration: "none",
-              border: entry.id === panel.id ? "1px solid #333" : "1px solid #ccc",
-              background: entry.id === panel.id ? "#333" : "#fff",
-              color: entry.id === panel.id ? "#fff" : "#333",
-            }}
+    <main className="shell">
+      <header className="shell-header">
+        <div className="shell-title-row">
+          <span className="shell-title">
+            <strong>telemicroscope</strong> · a physics-based telescope and microscope bench
+          </span>
+          <button
+            type="button"
+            className="theme-toggle"
+            onClick={cycleTheme}
+            title="auto follows the OS; click to cycle auto → dark → light"
+            aria-label={`${themeLabel}, currently ${theme.split(":")[1]}`}
           >
-            {entry.label}
-          </a>
-        ))}
-      </nav>
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", marginTop: 0 }}>
-        {panel.blurb}
-      </p>
+            {themeLabel}
+          </button>
+        </div>
+        <nav className="shell-nav" aria-label="surfaces">
+          {PANEL_GROUPS.map((group) => (
+            <div className="nav-group" key={group.id}>
+              <span className="nav-group-label">{group.label}</span>
+              {PANELS.filter((entry) => entry.group === group.id).map((entry) => (
+                <a
+                  key={entry.id}
+                  href={`#/${entry.id}`}
+                  className="nav-link"
+                  aria-current={entry.id === panel.id ? "page" : undefined}
+                >
+                  {entry.label}
+                </a>
+              ))}
+            </div>
+          ))}
+        </nav>
+      </header>
+      <p className="shell-blurb">{panel.blurb}</p>
 
-      <Component key={`${panel.id}?${query}`} link={link} linkBroken={linkBroken} />
+      <div className="panel-fade" key={`${panel.id}?${query}`}>
+        <Suspense fallback={<div className="panel-loading">loading {panel.label}…</div>}>
+          <Component link={link} linkBroken={linkBroken} />
+        </Suspense>
+      </div>
     </main>
   );
 }

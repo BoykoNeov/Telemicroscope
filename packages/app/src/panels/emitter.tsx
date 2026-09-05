@@ -95,7 +95,7 @@ function EmitterCanvas({
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption
-        style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 320 }}
+        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 320 }}
       >
         {caption}
       </figcaption>
@@ -113,9 +113,9 @@ function EmitterCanvas({
 function ErrorRows({ readout }: { readout: EmitterReadout }) {
   const clipped = readout.reachUm > readout.frameHalfUm;
   return (
-    <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+    <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
       <thead>
-        <tr style={{ color: "#777", textAlign: "left" }}>
+        <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
           <th style={{ padding: "3px 14px 3px 0" }}>departure</th>
           <th style={{ padding: "3px 14px 3px 0" }}>measured</th>
           <th style={{ padding: "3px 14px 3px 0" }}>what it is</th>
@@ -133,22 +133,22 @@ function ErrorRows({ readout }: { readout: EmitterReadout }) {
           >
             {readout.fluxResidual.toExponential(3)}
           </td>
-          <td style={{ padding: "3px 14px 3px 0", color: "#777" }}>
+          <td style={{ padding: "3px 14px 3px 0", color: "var(--ink-4)" }}>
             {clipped
               ? "the frame, not the sampling — see the reach below"
               : "point sampling — the same on every objective"}
           </td>
-          <td style={{ padding: "3px 0", color: "#3a7" }}>yes — and not monotonically</td>
+          <td style={{ padding: "3px 0", color: "var(--ok)" }}>yes — and not monotonically</td>
         </tr>
         <tr>
           <td style={{ padding: "3px 14px 3px 0" }}>without the area element</td>
           <td style={{ padding: "3px 14px 3px 0" }}>
             {readout.jacobianWorth.toExponential(4)}
           </td>
-          <td style={{ padding: "3px 14px 3px 0", color: "#777" }}>
+          <td style={{ padding: "3px 14px 3px 0", color: "var(--ink-4)" }}>
             the distortion — § 6as.5&rsquo;s negative control, and it is this lens&rsquo;s
           </td>
-          <td style={{ padding: "3px 0", color: "#a60" }}>no — nine figures flat</td>
+          <td style={{ padding: "3px 0", color: "var(--warn)" }}>no — nine figures flat</td>
         </tr>
       </tbody>
     </table>
@@ -193,7 +193,7 @@ export function EmitterPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The extended emitter: a source with a size</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The fluorescence panel images <em>points</em> — beads, each one placed through its own
         traced chief ray. This one images an <strong>emitter density</strong>: power per unit area
         of specimen, spread over a patch with a real size. That sounds like a small step and it is
@@ -201,14 +201,14 @@ export function EmitterPanel() {
         <strong>A density has to be transformed, not just relocated.</strong> Warping one without
         the area element moves flux between pixels — light appears where the lens did not put it.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The area element is a single number per pixel, and the axial symmetry is why: a pixel at
         image radius <em>r</em> looks at object height <em>h</em>, and covers{" "}
         <code>(h/r)·(dh/dr)</code> of specimen per unit of image. On the axis both factors go to the
         same limit, so it is <strong>1/M²</strong> exactly — the objective&rsquo;s own nameplate
         magnification, a number from outside this engine, and the first thing printed below.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         <strong>Two departures are on screen, and they are orthogonal.</strong> A density&rsquo;s
         total flux has a closed form — <code>π·r²</code> for a disc, <code>π·w²/2</code> for a
         Gaussian — that no optic can touch, so the rasterized total can be weighed against it. That
@@ -265,7 +265,7 @@ export function EmitterPanel() {
           format={(v) => `×${v}`}
         />
       </div>
-      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
@@ -289,13 +289,13 @@ export function EmitterPanel() {
 
       {result !== null && !result.ok && (
         <div
-          style={{ fontFamily: "monospace", fontSize: 12, maxWidth: 700, marginBottom: 16 }}
+          style={{ fontFamily: "var(--mono)", fontSize: 12, maxWidth: 700, marginBottom: 16 }}
         >
           <p style={{ color: GUARD_COLOR.bad }}>
             {refusalVoice(result.source, "this render")}: {result.error}
           </p>
           {result.headroom !== null && (
-            <p style={{ color: "#777" }}>
+            <p style={{ color: "var(--ink-4)" }}>
               The frame&rsquo;s corner is{" "}
               <strong>{result.headroom.cornerRadiusMm.toFixed(4)} mm</strong> from the axis and this
               objective&rsquo;s chief ray reaches{" "}
@@ -337,7 +337,7 @@ export function EmitterPanel() {
                 the emitter is <strong>{readout.emitterPixels.toFixed(1)}</strong> object pixels
                 across its {shape === "disc" ? "radius" : "waist"}
                 <br />
-                <span style={{ color: clipped ? GUARD_COLOR.warn : "#777" }}>
+                <span style={{ color: clipped ? GUARD_COLOR.warn : "var(--ink-4)" }}>
                   reaches {readout.reachUm.toFixed(1)} µm of a {readout.frameHalfUm.toFixed(1)} µm
                   half frame
                   {clipped ? " — clipped" : ""}
@@ -360,7 +360,7 @@ export function EmitterPanel() {
                 peak fell <strong>{(readout.peakDrop * 100).toFixed(2)}%</strong> — the only number
                 here about the optics
                 <br />
-                <span style={{ color: "#3a7" }}>
+                <span style={{ color: "var(--ok)" }}>
                   light conserved to {readout.lightResidual.toExponential(2)}
                 </span>
                 <br />
@@ -408,7 +408,7 @@ export function EmitterPanel() {
         </div>
       )}
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The area element on the axis is the objective&rsquo;s nameplate.</strong> Not
         approximately — the two factors of <code>(h/r)·(dh/dr)</code> go to the same limit there, so
         it is <code>(dh/dr)²</code> exactly, and what is left over is how far the <em>traced</em>{" "}
@@ -416,7 +416,7 @@ export function EmitterPanel() {
         twice the 1.6e−8 by which the traced M misses 4.000000: the Jacobian is right to the
         precision the magnification is known, not to its own.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>
           One of the two numbers is arithmetic and the other is the lens, and that split is what
           driving this panel showed.
@@ -436,7 +436,7 @@ export function EmitterPanel() {
         a Gaussian holds it flat to <strong>nine significant figures</strong> over that same ×4 of
         grid.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>
           Two of those five rows form a picture the grid step guard rejects, and the guard is the
           only thing on this page that says so.
@@ -453,7 +453,7 @@ export function EmitterPanel() {
         three</strong>, and the guard turns red rather than the canvas being withheld — the numbers
         the panel is actually about are on the other canvas and stay true.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The negative control is small, and that is the finding rather than a let-off.</strong>{" "}
         Across those five rows, throwing the area element away costs between{" "}
         <strong>4.4e−9</strong> and <strong>2.7e−5</strong> of the flux, and{" "}
@@ -465,7 +465,7 @@ export function EmitterPanel() {
         <em>the ordering holds on all five and the factor belongs to each design</em>, which is the
         same caution the tolerance sheet ends on: what travels is the direction, not the number.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>Whether this surface runs at all is a ratio, not a magnification.</strong> The
         rasterizer asks the map for every pixel&rsquo;s radius, so the table must cover the
         frame&rsquo;s <em>diagonal</em>; against that stands the largest image radius the
@@ -479,7 +479,7 @@ export function EmitterPanel() {
         oil at NA 1.25 — never reach 1 at any crop offered here, and the 40×/0.40 Lister does not
         build at all, for a reason that is about its own form and predates this panel.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>What stays out.</strong> No spectrum: an emitter&rsquo;s <em>colour</em> does not
         vary with position here, which is what a two-stain preparation would need. No depth: this
         module warps a plane, and an emitter density through a focus stack needs the third dimension

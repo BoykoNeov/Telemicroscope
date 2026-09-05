@@ -114,12 +114,12 @@ function EmptyMagnificationPlot({
       ] as const,
   );
   const magnifications = sweep.points.map((p) => p.magnification);
-  const markers: PlotMarker[] = [{ y: 1, color: "#a60", label: "the crossover" }];
+  const markers: PlotMarker[] = [{ y: 1, color: "var(--warn)", label: "the crossover" }];
   if (readout) {
     markers.push(
-      { x: readout.usefulMagnification.min, color: "#777", label: "500·NA" },
-      { x: readout.usefulMagnification.max, color: "#777", label: "1000·NA" },
-      { x: Math.abs(readout.visualMagnification), color: "#06a" },
+      { x: readout.usefulMagnification.min, color: "var(--ink-4)", label: "500·NA" },
+      { x: readout.usefulMagnification.max, color: "var(--ink-4)", label: "1000·NA" },
+      { x: Math.abs(readout.visualMagnification), color: "var(--accent)" },
     );
   }
   return (
@@ -127,7 +127,7 @@ function EmptyMagnificationPlot({
       series={[
         {
           label: "|M|·p / (2·NA·D), p = min(exit pupil, iris)",
-          color: "#111",
+          color: "var(--ink)",
           points,
           dots: true,
           width: 2,
@@ -158,21 +158,21 @@ function ExitPupilPlot({
   const series: PlotSeries[] = [
     {
       label: "the stop imaged through the eyepiece (paraxial)",
-      color: "#111",
+      color: "var(--ink)",
       points: sweep.points.map((p) => [p.magnification, p.exitPupilDiameterMm] as const),
       dots: true,
       width: 2,
     },
     {
       label: "D·NA_paraxial / |M| — the invariant's own NA",
-      color: "#06a",
+      color: "var(--accent)",
       points: sweep.points.map((p) => [p.magnification, p.lagrangeParaxialMm] as const),
       dash: [6, 4],
       width: 2.4,
     },
     {
       label: "D·NA_engraved / |M| — the textbook 500·NA/M",
-      color: "#c00",
+      color: "var(--bad)",
       points: sweep.points.map((p) => [p.magnification, p.lagrangeEngravedMm] as const),
       dash: [2, 3],
       width: 1.6,
@@ -183,9 +183,9 @@ function ExitPupilPlot({
     ...sweep.points.map((p) => Math.max(p.exitPupilDiameterMm, p.lagrangeParaxialMm)),
   );
   const markers: PlotMarker[] = [
-    { y: eyePupilMm, color: "#a60", label: `the iris, ${eyePupilMm.toFixed(1)} mm` },
+    { y: eyePupilMm, color: "var(--warn)", label: `the iris, ${eyePupilMm.toFixed(1)} mm` },
   ];
-  if (readout) markers.push({ x: Math.abs(readout.visualMagnification), color: "#06a" });
+  if (readout) markers.push({ x: Math.abs(readout.visualMagnification), color: "var(--accent)" });
   return (
     <Plot
       series={series}
@@ -210,23 +210,23 @@ function PlacementPlot({ readout }: { readout: InstrumentReadout }) {
       series={[
         {
           label: "traced vergence of the exit beam",
-          color: "#111",
+          color: "var(--ink)",
           points: inside.map((p) => [p.deltaMm, p.diopters] as const),
           dots: true,
           width: 2,
         },
         {
           label: "1000·Δ/f_e² — the thin-lens form, as a label",
-          color: "#06a",
+          color: "var(--accent)",
           points: readout.gapCurve.map((p) => [p.deltaMm, p.newtonDiopters] as const),
           dash: [6, 4],
         },
       ]}
       markers={[
-        { y: NOTICEABLE_DIOPTERS, color: "#a60", label: "a quarter diopter" },
-        { y: -NOTICEABLE_DIOPTERS, color: "#a60" },
-        { x: readout.bandPlusMm, color: "#777" },
-        { x: readout.bandMinusMm, color: "#777" },
+        { y: NOTICEABLE_DIOPTERS, color: "var(--warn)", label: "a quarter diopter" },
+        { y: -NOTICEABLE_DIOPTERS, color: "var(--warn)" },
+        { x: readout.bandPlusMm, color: "var(--ink-4)" },
+        { x: readout.bandMinusMm, color: "var(--ink-4)" },
       ]}
       xLabel="eyepiece displacement from its solved position (mm)"
       yLabel="exit vergence (diopters) — + converges, − diverges"
@@ -243,13 +243,13 @@ function EyeReliefPlot({ sweep, readout }: { sweep: Sweep; readout: InstrumentRe
   const magnifications = sweep.points.map((p) => p.magnification);
   const reliefs = sweep.points.map((p) => p.eyeReliefMm);
   const markers: PlotMarker[] = [];
-  if (readout) markers.push({ x: Math.abs(readout.visualMagnification), color: "#06a" });
+  if (readout) markers.push({ x: Math.abs(readout.visualMagnification), color: "var(--accent)" });
   return (
     <Plot
       series={[
         {
           label: "eye lens vertex → exit pupil (mm)",
-          color: "#111",
+          color: "var(--ink)",
           points: sweep.points.map((p) => [p.magnification, p.eyeReliefMm] as const),
           dots: true,
           width: 2,
@@ -350,7 +350,7 @@ export function EyepiecePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The eyepiece: the chain ends at an eye, not at an image</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         Every other microscope surface in this app ends at a plane where an image is formed. A
         microscope you <em>look through</em> does not: the eyepiece collimates the intermediate
         image, so the instrument hands the observer a parallel beam and the last lens in the chain
@@ -360,7 +360,7 @@ export function EyepiecePanel() {
         front of it. <code>collimatingGap</code> is that solve, and it is affine in the gap, so it
         is exact rather than iterative.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         <strong>Nothing here is rendered, and that is the physics rather than a shortfall.</strong>{" "}
         There is no image plane behind an afocal exit — the retinal PSF is § 6q&rsquo;s own open
         item. What the step produced is a null (the exit beam is flat to f64 noise) and two
@@ -425,7 +425,7 @@ export function EyepiecePanel() {
       </div>
 
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, width: 440 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 440 }}>
           {!instrument.ok ? (
             <Guard
               label={`the ${instrument.stage} refused:`}
@@ -521,7 +521,7 @@ export function EyepiecePanel() {
                     : `Push it ${Math.abs(readout!.poleDeltaMm).toFixed(3)} mm closer and the vergence changes sign through a pole; past that is the far branch, where the telescope's gap lives.`
                 }`}
               />
-              <span style={{ color: "#777" }}>
+              <span style={{ color: "var(--ink-4)" }}>
                 {readout!.elapsedMs.toFixed(1)} ms on the main thread · gap {readout!.gapMm.toFixed(3)} mm,
                 intermediate image {readout!.intermediateImageDistanceMm.toFixed(3)} mm, eyepiece FFD{" "}
                 {readout!.eyepieceFrontFocalDistanceMm.toFixed(3)} mm
@@ -529,7 +529,7 @@ export function EyepiecePanel() {
             </>
           )}
         </div>
-        <div style={{ maxWidth: 620, fontSize: 13, color: "#666" }}>
+        <div style={{ maxWidth: 620, fontSize: 13, color: "var(--ink-3)" }}>
           <p style={{ marginTop: 0 }}>
             <strong>The negative control is the whole argument, and it is recomputed here</strong>{" "}
             rather than quoted: the same objective and the same eyepiece, separated by the gap{" "}
@@ -569,7 +569,7 @@ export function EyepiecePanel() {
         }}
       >
         {sweep.result === null || sweep.result.points.length === 0 ? (
-          <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
             solving {SWEEP_POINTS} eyepieces…
           </p>
         ) : (
@@ -583,9 +583,9 @@ export function EyepiecePanel() {
               />
               <p
                 style={{
-                  fontFamily: "monospace",
+                  fontFamily: "var(--mono)",
                   fontSize: 11,
-                  color: "#777",
+                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -601,9 +601,9 @@ export function EyepiecePanel() {
               <ExitPupilPlot sweep={sweep.result} eyePupilMm={eyePupilMm} readout={readout} />
               <p
                 style={{
-                  fontFamily: "monospace",
+                  fontFamily: "var(--mono)",
                   fontSize: 11,
-                  color: "#777",
+                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -632,9 +632,9 @@ export function EyepiecePanel() {
             <PlacementPlot readout={readout} />
             <p
               style={{
-                fontFamily: "monospace",
+                fontFamily: "var(--mono)",
                 fontSize: 11,
-                color: "#777",
+                color: "var(--ink-4)",
                 width: 420,
                 marginTop: 4,
               }}
@@ -654,9 +654,9 @@ export function EyepiecePanel() {
             <EyeReliefPlot sweep={sweep.result} readout={readout} />
             <p
               style={{
-                fontFamily: "monospace",
+                fontFamily: "var(--mono)",
                 fontSize: 11,
-                color: "#777",
+                color: "var(--ink-4)",
                 width: 420,
                 marginTop: 4,
               }}
@@ -669,7 +669,7 @@ export function EyepiecePanel() {
         )}
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The field number is a real aperture, and it walks into § 5j&rsquo;s wall.</strong> A
         field stop of FN millimetres needs FN millimetres of glass behind it, and a computed Plössl
         stops admitting glass at a definite fraction of its own focal length — the readout above
@@ -688,7 +688,7 @@ export function EyepiecePanel() {
         <strong>It is the Plössl&rsquo;s wall rather than the eyepiece&rsquo;s:</strong> switch forms
         and it disappears, because a Huygens has no cemented doublet to fail.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The Huygens is worth switching to.</strong> It collimates as exactly as the Plössl
         does, and its front focal distance is <em>negative</em> — the plane it collimates lies{" "}
         <em>inside</em> the eyepiece, between the two singlets, which is where a Huygens&rsquo; field
@@ -697,7 +697,7 @@ export function EyepiecePanel() {
         correct statement about the form rather than a limitation of the code. Turn the field stop
         off and it composes, magnifies and collimates like any other eyepiece.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The near point is a convention about human eyes, not optics.</strong> Every
         magnification on this page is a ratio against whichever value that control is set to;
         changing it scales M exactly and moves no ray at all — the same split this engine makes for

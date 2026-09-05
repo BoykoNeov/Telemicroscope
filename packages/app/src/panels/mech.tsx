@@ -79,13 +79,13 @@ function CrossingLine({ label, crossing, colour }: {
   colour: string;
 }) {
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
       <span style={{ color: colour }}>{label} </span>
       <strong>
         {crossing.focalRatio === null ? "—" : `f/${crossing.focalRatio.toFixed(3)}`}
       </strong>
       {crossing.reason !== undefined && (
-        <span style={{ color: "#777" }}> · {crossing.reason}</span>
+        <span style={{ color: "var(--ink-4)" }}> · {crossing.reason}</span>
       )}
     </div>
   );
@@ -109,28 +109,28 @@ function TravelPlot({
   const series: PlotSeries[] = [
     {
       label: "traced budget — the glass hands travel back",
-      color: "#111",
+      color: "var(--ink)",
       points: sweep.map((p) => [p.prismGlassMm, p.requiredTravelMm] as const),
       width: 2,
       dots: true,
     },
     {
       label: "glass counted as air — the spreadsheet",
-      color: "#c00",
+      color: "var(--bad)",
       points: sweep.map((p) => [p.prismGlassMm, p.naiveRequiredTravelMm] as const),
       dash: [5, 4],
     },
   ];
   const markers: PlotMarker[] = [
-    { y: focuser.outwardTravelMm, color: "#a60", label: "racked out" },
-    { y: -focuser.inwardTravelMm, color: "#a60", label: "racked in" },
+    { y: focuser.outwardTravelMm, color: "var(--warn)", label: "racked out" },
+    { y: -focuser.inwardTravelMm, color: "var(--warn)", label: "racked in" },
   ];
   // "You are here" only when the chain really is somewhere on this axis. A
   // mirror diagonal is x = 0 exactly; a chain with NO diagonal is 110 mm shorter
   // than every point on the curve, so marking it at 0 would point at a train the
   // readouts above are not describing.
   if (spec.diagonal !== "none") {
-    markers.push({ x: spec.diagonal === "prism" ? spec.prismGlassMm : 0, color: "#06a" });
+    markers.push({ x: spec.diagonal === "prism" ? spec.prismGlassMm : 0, color: "var(--accent)" });
   }
   return (
     <Plot
@@ -160,19 +160,19 @@ function SigmaPlot({ sweep, glassMm }: { sweep: OpticsSweep; glassMm: number }) 
     if (p.glassed.ok) glassed.push([p.focalRatio, logBudgets(p.glassed.sigmaWaves)]);
     if (glassMm > 0) plate.push([p.focalRatio, logBudgets(p.closedPlateWaves)]);
   }
-  const markers: PlotMarker[] = [{ y: 0, color: "#a60", label: "Maréchal λ/14" }];
+  const markers: PlotMarker[] = [{ y: 0, color: "var(--warn)", label: "Maréchal λ/14" }];
   if (sweep.glassedMarechal.focalRatio !== null) {
-    markers.push({ x: sweep.glassedMarechal.focalRatio, color: "#111" });
+    markers.push({ x: sweep.glassedMarechal.focalRatio, color: "var(--ink)" });
   }
   if (sweep.plateRayleigh.focalRatio !== null) {
-    markers.push({ x: sweep.plateRayleigh.focalRatio, color: "#777", label: "§ 5u's f/5.315" });
+    markers.push({ x: sweep.plateRayleigh.focalRatio, color: "var(--ink-4)", label: "§ 5u's f/5.315" });
   }
   return (
     <Plot
       series={[
-        { label: "doublet + the chain's glass", color: "#111", points: glassed, width: 2, dots: true },
-        { label: "the doublet alone", color: "#06a", points: bare, dash: [5, 4], width: 1.6 },
-        { label: "the plate alone, closed form", color: "#3a7", points: plate, width: 1.6 },
+        { label: "doublet + the chain's glass", color: "var(--ink)", points: glassed, width: 2, dots: true },
+        { label: "the doublet alone", color: "var(--accent)", points: bare, dash: [5, 4], width: 1.6 },
+        { label: "the plate alone, closed form", color: "var(--ok)", points: plate, width: 1.6 },
       ]}
       markers={markers}
       xLabel="focal ratio of the doublet the glass sits in"
@@ -208,19 +208,19 @@ function RatioPlot({ sweep }: { sweep: OpticsSweep }) {
       series={[
         {
           label: "traced (glassed − bare) ÷ W₀₄₀/(6√5)",
-          color: "#111",
+          color: "var(--ink)",
           points: measured,
           width: 2,
           dots: true,
         },
         {
           label: "the exact plate form ÷ the third-order one",
-          color: "#3a7",
+          color: "var(--ok)",
           points: exact,
           dash: [5, 4],
         },
       ]}
-      markers={[{ y: 1, color: "#a60", label: "the closed form" }]}
+      markers={[{ y: 1, color: "var(--warn)", label: "the closed form" }]}
       xLabel="focal ratio"
       yLabel="measured ÷ closed form"
       xMin={MIN_RATIO}
@@ -238,7 +238,7 @@ function ColourPlot({
   readout: ReturnType<typeof colourReadout>;
 }) {
   const series: PlotSeries[] = [];
-  const colours = ["#111", "#a0a"];
+  const colours = ["var(--ink)", "var(--purple)"];
   const ys: number[] = [];
   readout.curves.forEach((curve, i) => {
     if (!curve.ok) return;
@@ -268,8 +268,8 @@ function ColourPlot({
       // own line's height, so two would overprint. The unlabelled one is the
       // axis zero, which the y label already says each curve is drawn against.
       markers={[
-        { y: 0, color: "#777" },
-        { y: readout.depthOfFocusMm, color: "#a60", label: "one Rayleigh depth of focus" },
+        { y: 0, color: "var(--ink-4)" },
+        { y: readout.depthOfFocusMm, color: "var(--warn)", label: "one Rayleigh depth of focus" },
       ]}
       xLabel="wavelength (nm) — F line at the left, C at the right"
       yLabel="focus (mm) vs the d line"
@@ -296,21 +296,21 @@ function MountPlot({ sweep }: { sweep: MountSweep }) {
     // Named for what it IS rather than for what binds, because above ~NA 0.22 it
     // binds nothing: a grey rule labelled "the floor" at 4.14 while the buildable
     // range starts at 43 would be this panel's own refusal rule, broken.
-    { x: sweep.thinLensFloor, color: "#777", label: "thin-lens floor" },
+    { x: sweep.thinLensFloor, color: "var(--ink-4)", label: "thin-lens floor" },
   ];
   if (sweep.measuredFloor !== null) {
-    markers.push({ x: sweep.measuredFloor, color: "#c00" });
+    markers.push({ x: sweep.measuredFloor, color: "var(--bad)" });
   }
   if (sweep.doubletFloor !== null) {
-    markers.push({ x: sweep.doubletFloor, color: "#a0a", label: "no doublet below" });
+    markers.push({ x: sweep.doubletFloor, color: "var(--purple)", label: "no doublet below" });
   }
   return (
     <Plot
       series={[
-        { label: "barrel — shoulder to first vertex", color: "#111", points: barrel, width: 2, dots: true },
+        { label: "barrel — shoulder to first vertex", color: "var(--ink)", points: barrel, width: 2, dots: true },
         {
           label: "working distance — first vertex to specimen",
-          color: "#06a",
+          color: "var(--accent)",
           points: objectDistance,
           dash: [5, 4],
         },
@@ -406,7 +406,7 @@ export function MechPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The mechanical train: a length that is not its own cost</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         A 2″ prism star diagonal occupies about 110 mm of light path, of which about 40 mm is
         glass. Mechanically it consumes all 110. Optically the glass pushes the focal plane back
         by t(1−1/n), so the chain behind it gets <strong>13.63 mm</strong> of that back — a third
@@ -414,7 +414,7 @@ export function MechPanel() {
         A parts-list budget that counts glass as air is wrong by exactly Σtᵢ(1−1/nᵢ), and always
         in the direction that says a train will not reach focus when it will.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         <strong>The mech layer never applies that formula to an image.</strong>{" "}
         <code>withGlassPath</code> splices plane surfaces into the prescription and the tracer
         finds the focus, which is what makes the closed form a <em>test</em> rather than a
@@ -476,7 +476,7 @@ export function MechPanel() {
       </div>
 
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, width: 420 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 420 }}>
           <Guard
             label="does it reach focus?"
             value={readout.reaches ? "yes" : "no"}
@@ -499,14 +499,14 @@ export function MechPanel() {
             level="ok"
             detail={`${readout.glassThicknessMm.toFixed(1)} mm of N-BK7 in a ${readout.mechanicalLengthMm.toFixed(1)} mm chain — the naive sum is wrong by ${(readout.naiveErrorFraction * 100).toFixed(2)}% of the whole chain's length`}
           />
-          <span style={{ color: "#777" }}>
+          <span style={{ color: "var(--ink-4)" }}>
             mechanically {readout.mechanicalLengthMm.toFixed(2)} mm · honestly{" "}
             {readout.consumedMm.toFixed(2)} mm out of back focus · margin {fmt(readout.marginMm)} mm
           </span>
         </div>
         <TravelPlot spec={spec} focuser={focuser} />
       </div>
-      <p style={{ maxWidth: 880, fontSize: 13, color: "#666", marginTop: 4 }}>
+      <p style={{ maxWidth: 880, fontSize: 13, color: "var(--ink-3)", marginTop: 4 }}>
         <strong>The red line is flat, and that is the whole layer in one picture.</strong> Filling
         a fixed-length diagonal with more glass does not change what it <em>occupies</em>, so a
         budget made of lengths cannot see this axis at all, while the honest one slopes at
@@ -514,7 +514,7 @@ export function MechPanel() {
         together; only this one separates them. The x = 0 end is not a fiction — a diagonal with
         no glass in it is a mirror diagonal, and it is built as one.
       </p>
-      <p style={{ maxWidth: 880, fontSize: 13, color: "#666", marginTop: 8 }}>
+      <p style={{ maxWidth: 880, fontSize: 13, color: "var(--ink-3)", marginTop: 8 }}>
         <strong>And the honest line leaves the focuser at both ends</strong>, which is not something
         the budget arithmetic suggests. Too little glass and the train wants to rack further{" "}
         <em>in</em> than the drawtube goes; too much and it wants more <em>out</em>-travel than
@@ -562,7 +562,7 @@ export function MechPanel() {
         }}
       >
         {optics.result === null ? (
-          <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
             tracing the doublet twice at every focal ratio…
           </p>
         ) : (
@@ -573,22 +573,22 @@ export function MechPanel() {
                 <CrossingLine
                   label="the plate alone, Rayleigh λ/4 on the peak:"
                   crossing={optics.result.plateRayleigh}
-                  colour="#3a7"
+                  colour="var(--ok)"
                 />
                 <CrossingLine
                   label="the same plate, Maréchal λ/14 on σ:"
                   crossing={optics.result.plateMarechal}
-                  colour="#3a7"
+                  colour="var(--ok)"
                 />
                 <CrossingLine
                   label="the doublet alone, traced:"
                   crossing={optics.result.bareMarechal}
-                  colour="#06a"
+                  colour="var(--accent)"
                 />
                 <CrossingLine
                   label="the doublet with the glass in it, traced:"
                   crossing={optics.result.glassedMarechal}
-                  colour="#111"
+                  colour="var(--ink)"
                 />
               </div>
             </div>
@@ -605,7 +605,7 @@ export function MechPanel() {
                   level={nullDifference !== null && nullDifference < 1e-8 ? "ok" : "warn"}
                   detail={`the same glass at a ${optics.result.positionNull.nearGapMm.toFixed(0)} mm and a ${optics.result.positionNull.farGapMm.toFixed(0)} mm gap, at f/${optics.result.positionNull.focalRatio.toFixed(1)} — § 5u.2's identity, measured rather than assumed`}
                 />
-                <span style={{ fontFamily: "monospace", fontSize: 11, color: "#777" }}>
+                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)" }}>
                   {optics.result.elapsedMs.toFixed(0)} ms
                 </span>
               </div>
@@ -614,7 +614,7 @@ export function MechPanel() {
         )}
       </div>
 
-      <p style={{ maxWidth: 880, fontSize: 13, color: "#666", marginTop: 8 }}>
+      <p style={{ maxWidth: 880, fontSize: 13, color: "var(--ink-3)", marginTop: 8 }}>
         <strong>
           § 5u.6&rsquo;s f/5.315 is a statement about the plate in isolation, and no real refractor
           reaches it first.
@@ -630,7 +630,7 @@ export function MechPanel() {
         own residual and the two add. That is the opposite of § 6e.4&rsquo;s immersion oil, which is
         rarer than the glass either side of it and therefore <em>helps</em>.
       </p>
-      <p style={{ maxWidth: 880, fontSize: 13, color: "#666", marginTop: 8 }}>
+      <p style={{ maxWidth: 880, fontSize: 13, color: "var(--ink-3)", marginTop: 8 }}>
         <strong>The right-hand plot is why § 5u.6 was closed form only.</strong> The traced
         difference reproduces W₀₄₀/(6√5) to about ±1% — but the residual never converges to one,
         and it is not physics: it is the <em>pupil lattice&rsquo;s own quadrature</em>. Move the
@@ -650,7 +650,7 @@ export function MechPanel() {
       </h2>
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
         <ColourPlot readout={colour} />
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, width: 420 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 420 }}>
           {colour.curves.map((curve) =>
             curve.ok ? (
               <Guard
@@ -670,13 +670,13 @@ export function MechPanel() {
               />
             ),
           )}
-          <span style={{ color: "#777" }}>
+          <span style={{ color: "var(--ink-4)" }}>
             one depth of focus is 2λ(f/#)² = {(colour.depthOfFocusMm * 1000).toFixed(1)} µm ·{" "}
             {colour.elapsedMs.toFixed(1)} ms
           </span>
         </div>
       </div>
-      <p style={{ maxWidth: 880, fontSize: 13, color: "#666", marginTop: 4 }}>
+      <p style={{ maxWidth: 880, fontSize: 13, color: "var(--ink-3)", marginTop: 4 }}>
         t(1−1/n) grows with n, so a plate pushes <strong>blue further back</strong> — the opposite
         of what a positive element does, and that half is a law. The tempting next sentence is not.
         &ldquo;A glass diagonal is a colour compensator&rdquo; needs the lens&rsquo;s F−C spread to
@@ -720,13 +720,13 @@ export function MechPanel() {
         }}
       >
         {mount.result === null ? (
-          <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
             solving an objective at every magnification…
           </p>
         ) : (
           <>
             <MountPlot sweep={mount.result} />
-            <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, width: 420 }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 420 }}>
               <Guard
                 label="thin-lens floor, before any glass:"
                 value={`${mount.result.thinLensFloor.toFixed(4)}×`}
@@ -755,7 +755,7 @@ export function MechPanel() {
                   detail="below this the glass pair admits no lens at this aperture — a different refusal on the same axis"
                 />
               )}
-              <span style={{ color: "#777" }}>
+              <span style={{ color: "var(--ink-4)" }}>
                 {mount.result.elapsedMs.toFixed(0)} ms ·{" "}
                 {mount.result.points.filter((p) => p.verdict === "fits").length} of{" "}
                 {mount.result.points.length} swept magnifications fit the standard
@@ -764,7 +764,7 @@ export function MechPanel() {
           </>
         )}
       </div>
-      <p style={{ maxWidth: 880, fontSize: 13, color: "#666", marginTop: 4 }}>
+      <p style={{ maxWidth: 880, fontSize: 13, color: "var(--ink-3)", marginTop: 4 }}>
         <strong>The barrel is what makes a turret work, and it is not a constant.</strong> Every
         objective must put its specimen the same distance below the shoulder whatever its
         magnification, and the optics are already solved — so the mount absorbs the difference: a
@@ -774,7 +774,7 @@ export function MechPanel() {
         doublet: a mechanical standard reaching back into an optical design and demanding a front
         group closer than a single group can be.
       </p>
-      <p style={{ maxWidth: 880, fontSize: 13, color: "#666", marginTop: 8 }}>
+      <p style={{ maxWidth: 880, fontSize: 13, color: "var(--ink-3)", marginTop: 8 }}>
         <strong>
           The ceiling is not the constant the ladder quoted — it is a function of the aperture the
           ladder defaulted.

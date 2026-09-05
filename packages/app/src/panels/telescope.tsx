@@ -97,7 +97,7 @@ function StarCanvas({ request }: { request: RenderRequest }) {
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
         {result ? (
           <>
             <strong>{request.lens}</strong> · f/{result.fNumber.toFixed(1)}
@@ -117,7 +117,7 @@ function StarCanvas({ request }: { request: RenderRequest }) {
             {request.seeingDOverR0 > 0 && (
               <>
                 <br />
-                <span style={{ color: "#06a" }}>
+                <span style={{ color: "var(--accent)" }}>
                   atmosphere D/r₀ {request.seeingDOverR0.toFixed(1)} — one short-exposure
                   realization (a speckle, not the long-exposure disc)
                 </span>
@@ -126,7 +126,7 @@ function StarCanvas({ request }: { request: RenderRequest }) {
                     fires: the fixed 256²/oversize-4 screen keeps the step well under
                     ½ at every dial value, so the honest thing is to display where it
                     actually sits (engine number, red only if it ever crosses). */}
-                <span style={{ color: result.seeingPhaseStepWaves >= 0.5 ? "#c00" : "#3a7" }}>
+                <span style={{ color: result.seeingPhaseStepWaves >= 0.5 ? "var(--bad)" : "var(--ok)" }}>
                   screen {result.seeingPhaseStepWaves >= 0.5 ? "UNDER-RESOLVED" : "resolved"} on the
                   FFT grid: {result.seeingPhaseStepWaves.toFixed(2)} waves/sample (limit ½)
                 </span>
@@ -135,7 +135,7 @@ function StarCanvas({ request }: { request: RenderRequest }) {
             {result.geometricWeight > 0 && (
               <>
                 <br />
-                <span style={{ color: "#a60" }}>
+                <span style={{ color: "var(--warn)" }}>
                   geometric branch {(result.geometricWeight * 100).toFixed(0)}% — the wavefront
                   aliases on this pupil grid
                 </span>
@@ -144,7 +144,7 @@ function StarCanvas({ request }: { request: RenderRequest }) {
             {result.truncatedFraction > 0.01 && (
               <>
                 <br />
-                <strong style={{ color: "#c00" }}>
+                <strong style={{ color: "var(--bad)" }}>
                   {(result.truncatedFraction * 100).toFixed(0)}% of the light fell off the grid —
                   this image is not trustworthy. Raise pupil samples or stop down.
                 </strong>
@@ -240,15 +240,15 @@ function FieldCanvas({ request }: { request: FieldRequest }) {
           );
         })}
       </div>
-      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
         {result ? (
           <>
             <strong>{request.lens}</strong> field · f/{result.fNumber.toFixed(1)} ·{" "}
             {result.starCount} stars ·{" "}
-            <span style={{ color: "#777" }}>click a star for its ray fan</span>
+            <span style={{ color: "var(--ink-4)" }}>click a star for its ray fan</span>
             <br />
             {refining ? (
-              <span style={{ color: "#a60" }}>
+              <span style={{ color: "var(--warn)" }}>
                 refining {result.patches}×{result.patches} → {result.finestPatches}×
                 {result.finestPatches}…
               </span>
@@ -327,7 +327,7 @@ export function TelescopePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>One star, two lenses</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Same star, same aperture, same focus criterion, <strong>same exposure</strong>. The only
         difference is the glass: an equiconvex N-BK7 singlet against an N-BK7/F2 achromat whose
         powers are computed from the catalogue&rsquo;s own Abbe numbers. The violet halo is not
@@ -382,13 +382,13 @@ export function TelescopePanel() {
         <StarCanvas request={achromat} />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         Open the aperture and the singlet&rsquo;s halo grows as f·NA²; cool the source and the
         fringe reddens because the spectrum moved, not because anything was recoloured. Each panel
         traces in its own worker — the elapsed time is real, and it is why the panel dims while it
         catches up.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         The <strong>seeing</strong> dial stamps an atmospheric phase screen — one Kolmogorov draw,
         scaled to the aperture — onto both star panels. It is a single short exposure, so what you
         see is a speckle, not the fuzzy long-exposure disc (that is an ensemble average, the next
@@ -397,7 +397,7 @@ export function TelescopePanel() {
       </p>
 
       <h1 style={{ fontSize: 20, marginTop: 40 }}>The same star, across the field</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Twenty-five <em>identical</em> stars imaged through the achromat at once. The only thing
         that changes star to star is where it sits in the field, so every difference in the picture
         is the optics: a tight disk on axis, and a coma tail that lengthens with field angle. The
@@ -405,7 +405,7 @@ export function TelescopePanel() {
         shift-invariant blur could not show this. <strong>Click any star</strong> to open its ray
         fan, at that star&rsquo;s own field angle and this panel&rsquo;s aperture.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         This paragraph used to end &ldquo;<s>points radially outward</s>&rdquo;, and building the
         ray fan is what caught it. On this achromat the tails point <strong>inward</strong>, toward
         the middle of the frame. Three measurements say so and none of them is this sentence: the
@@ -420,7 +420,7 @@ export function TelescopePanel() {
         <FieldCanvas request={field} />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         The blocky first frame is a coarse patch grid; it sharpens in place as finer grids finish,
         so the cost of a field-varying PSF stays visible without leaving the panel blank. Widen the
         aperture to grow the coma, or move to the corners of the frame to watch it lengthen.

@@ -70,9 +70,9 @@ function ReflectorTable({
   onSelect: (kind: ReflectorKind) => void;
 }) {
   return (
-    <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+    <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
       <thead>
-        <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
+        <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
           <th style={{ padding: "4px 10px 4px 0" }}>design</th>
           <th style={{ padding: "4px 10px 4px 0" }}>f (mm)</th>
           <th style={{ padding: "4px 10px 4px 0" }}>ε</th>
@@ -89,15 +89,15 @@ function ReflectorTable({
             key={row.kind}
             onClick={() => !row.error && onSelect(row.kind)}
             style={{
-              borderBottom: "1px solid #eee",
+              borderBottom: "1px solid var(--line-2)",
               cursor: row.error ? "default" : "pointer",
-              background: row.kind === selected ? "#f1f1f1" : undefined,
-              color: row.error ? "#c00" : undefined,
+              background: row.kind === selected ? "var(--bg-2)" : undefined,
+              color: row.error ? "var(--bad)" : undefined,
             }}
           >
             <td style={{ padding: "4px 10px 4px 0" }}>
               {row.kind === selected ? <strong>{row.label}</strong> : row.label}
-              {row.folded && <span style={{ color: "#777" }}> ·folded</span>}
+              {row.folded && <span style={{ color: "var(--ink-4)" }}> ·folded</span>}
             </td>
             {row.error ? (
               <td colSpan={7} style={{ padding: "4px 0" }}>
@@ -115,7 +115,7 @@ function ReflectorTable({
                 <td style={{ padding: "4px 10px 4px 0" }}>
                   {row.correctorA4 === undefined ? "—" : row.correctorA4.toExponential(3)}
                 </td>
-                <td style={{ padding: "4px 0", color: "#666" }}>{row.note}</td>
+                <td style={{ padding: "4px 0", color: "var(--ink-3)" }}>{row.note}</td>
               </>
             )}
           </tr>
@@ -174,7 +174,7 @@ function StarCanvas({ request }: { request: ReflectorRequest }) {
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, marginTop: 6 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 6 }}>
         {result ? (
           <>
             f/{result.fNumber.toFixed(1)} · f {result.focalLengthMm.toFixed(0)} mm · Airy radius{" "}
@@ -194,12 +194,12 @@ function StarCanvas({ request }: { request: ReflectorRequest }) {
               </>
             )}
             <br />
-            <span style={{ color: "#777" }}>
+            <span style={{ color: "var(--ink-4)" }}>
               raw fringe measure {result.fringeAiryRadii.toFixed(3)} Airy radii — see the note
               below; it is not chromatism
             </span>
             <br />
-            <span style={{ color: dispersed ? "#a60" : "#777" }}>
+            <span style={{ color: dispersed ? "var(--warn)" : "var(--ink-4)" }}>
               per-λ normalized: {result.dispersionAiryRadii.toExponential(2)}{" "}
               {dispersed ? "— the corrector disperses" : "— at the ruler's floor, not measured"}
             </span>
@@ -271,7 +271,7 @@ function VignettePlot({ request }: { request: VignetteRequest }) {
     createReflectorVignetteWorker,
     request,
   );
-  if (!result) return <p style={{ fontFamily: "monospace", fontSize: 12 }}>sweeping…</p>;
+  if (!result) return <p style={{ fontFamily: "var(--mono)", fontSize: 12 }}>sweeping…</p>;
 
   const closed = chiefRayFieldLimitDeg(request.spec.focalRatio);
   const last = result.points[result.points.length - 1]!;
@@ -281,13 +281,13 @@ function VignettePlot({ request }: { request: VignetteRequest }) {
         series={[
           {
             label: "FFT mask (masked pupil area)",
-            color: "#06a",
+            color: "var(--accent)",
             points: result.points.map((p) => [p.fieldDeg, p.fftFraction] as const),
             dots: true,
           },
           {
             label: "ray survivors (no mask, no FFT)",
-            color: "#c60",
+            color: "var(--warn-strong)",
             dash: [4, 3],
             points: result.points.map((p) => [p.fieldDeg, p.rayFraction] as const),
           },
@@ -295,7 +295,7 @@ function VignettePlot({ request }: { request: VignetteRequest }) {
         markers={[
           {
             x: result.chiefRayLimitDeg,
-            color: "#c00",
+            color: "var(--bad)",
             label: `chief ray dies ${result.chiefRayLimitDeg.toFixed(3)}°`,
           },
         ]}
@@ -307,11 +307,11 @@ function VignettePlot({ request }: { request: VignetteRequest }) {
         yMax={1.05}
         width={460}
       />
-      <figcaption style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
         {result.elapsedMs.toFixed(0)} ms · throughput 1 → {last.fftFraction.toFixed(3)} out to{" "}
         {last.fieldDeg.toFixed(3)}°
         <br />
-        <span style={{ color: "#777" }}>
+        <span style={{ color: "var(--ink-4)" }}>
           the two routes never part by more than {result.maxDisagreement.toExponential(2)}, and the
           gap grows with the clipping rather than sitting flat
         </span>
@@ -402,7 +402,7 @@ export function ReflectorPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Six reflectors, from three numbers</h1>
-      <p style={{ maxWidth: 680, color: "#444" }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)" }}>
         Every radius, conic, separation and obstruction below is <em>derived</em> — nothing is
         transcribed from a design table, because for these forms there is nothing to transcribe. Two
         of the three numbers are shared by all six; the third, the primary&rsquo;s own focal ratio,
@@ -449,7 +449,7 @@ export function ReflectorPanel() {
       <h1 style={{ fontSize: 20, marginTop: 36 }}>
         {selected?.error ? "Newtonian" : (selected?.label ?? "Newtonian")}, on axis
       </h1>
-      <p style={{ maxWidth: 680, color: "#444" }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)" }}>
         Click a row to trace it. Three of these six are <strong>perfect</strong> on axis — a
         paraboloid images an infinitely distant axial point with zero aberration, and the confocal
         Cassegrain and the Ritchey-Chrétien are exactly stigmatic — so the Strehl reads 1 and what
@@ -505,7 +505,7 @@ export function ReflectorPanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 36 }}>The spikes are not drawn</h2>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         A vane is an opaque bar, the transform of a bar is a streak <em>perpendicular</em> to it, and
         the FFT produces the streak for the same reason it produces the Airy rings — so four vanes
         give a four-arm cross on the axes while three, which cannot pair into diameters, give a
@@ -515,7 +515,7 @@ export function ReflectorPanel() {
         the FFT amplitude is what the geometric branch drops rays on, which is why the two branches
         cannot disagree about where the vanes are.
       </p>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         The guard beside the picture is the honest part, and it is a measurement rather than a
         warning. A streak&rsquo;s first dark point sits at <code>padFactor/widthFraction</code>{" "}
         pixels — no aperture and no focal length in it — so a fat 1/8 vane puts it 32 px out and a{" "}
@@ -528,7 +528,7 @@ export function ReflectorPanel() {
       <h2 style={{ fontSize: 16, marginTop: 36 }}>
         The diagonal clips off axis, and then it stops passing the chief ray
       </h2>
-      <p style={{ maxWidth: 680, color: "#444" }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)" }}>
         There is <strong>no vignetting control</strong> on this panel, and that is § 2f&rsquo;s
         design rather than an omission: <code>psf()</code> builds a vignette mask by itself and only
         when the trace has already lost rays, so the criterion <em>is</em> the trace. A minimum
@@ -541,7 +541,7 @@ export function ReflectorPanel() {
         <VignettePlot request={vignette} />
       </div>
 
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666", marginTop: 16 }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)", marginTop: 16 }}>
         The red rule is a <strong>wall</strong>, not the end of a slider. The chief ray defines both
         the image point and the reference sphere, so when it misses the diagonal the engine has no
         wavefront to be right or wrong about and <code>opdMap</code> refuses outright. That happens
@@ -552,7 +552,7 @@ export function ReflectorPanel() {
         1.3347, and like the last of those it is one line of geometry rather than an aberration
         budget: at the wall the wavefront is an ordinary number and the rays simply stop existing.
       </p>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         It closes as <strong>1/F²</strong> — 2.681° at f/4 against 0.147° at f/15, with the local
         power running 2.34, 2.20 then 2.11 as F grows, approaching 2 from above because the exact form
         carries an extra (F − k). Which runs <em>opposite</em> to the coma § 4b pins at θ·D/(32F²): a
@@ -565,7 +565,7 @@ export function ReflectorPanel() {
       <h2 style={{ fontSize: 16, marginTop: 36 }}>
         The Newtonian&rsquo;s obstruction contains no aperture
       </h2>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         Working § 4b&rsquo;s diagonal sizing through by hand, D cancels:{" "}
         <code>ε = (k/F) / (1 − 1/(16·F²))</code> with k = {NEWTONIAN_FOCUS_OFFSET_FRACTION} the
         default focus offset as a fraction of the aperture. At f/{focalRatio.toFixed(1)} that is{" "}
@@ -573,7 +573,7 @@ export function ReflectorPanel() {
         <strong>{num(newt?.obstruction, 6)}</strong> — the app deriving what the engine computed,
         not quoting it. Move the aperture slider and neither number changes.
       </p>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         So a Newtonian&rsquo;s obstruction is a <strong>mechanical</strong> convention divided by the
         focal ratio — where the focal plane has to sit off the axis — and not an optical choice at
         all. The Cassegrain family&rsquo;s ε = s₁/f₁ is the opposite: it falls out of the
@@ -588,7 +588,7 @@ export function ReflectorPanel() {
       <h2 style={{ fontSize: 16, marginTop: 28 }}>
         The fringe number is not a chromatism measure, and a mirror proves it
       </h2>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         The star panel reports a chromatic spread in Airy radii, and reading it here found it is not
         what it looks like: a Newtonian, which contains <em>no glass</em>, reads about 0.36 Airy
         radii of &ldquo;fringing&rdquo;. The denominator is one Airy radius — the focus
@@ -597,7 +597,7 @@ export function ReflectorPanel() {
         and an achromat share the floor and it cancels in the comparison; as an absolute number it
         does not, and a panel with no second lens beside it is what exposes that.
       </p>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         Dividing each plane by <em>its own</em> Airy radius removes λ, and then the three all-mirror
         members read {DISPERSION_FLOOR_AIRY_RADII.toFixed(2)}-ish and below while the two
         corrector-bearing ones climb clear of it. That residue is the <em>ruler</em>, not the
@@ -613,7 +613,7 @@ export function ReflectorPanel() {
         control is the ruler reacting to a different picture — still not dispersion, because neither
         system has an index anywhere in it.
       </p>
-      <p style={{ maxWidth: 680, fontSize: 13, color: "#666" }}>
+      <p style={{ maxWidth: 680, fontSize: 13, color: "var(--ink-3)" }}>
         What is left above the floor tracks the corrector&rsquo;s own figure. Sweeping the primary
         from f/4 to f/2.5 strengthens A₄ by 4.7× and the excess grows as roughly{" "}
         <strong>A₄²</strong> — an implied power of 2.07, 1.92 then 1.45 as the plate steepens and

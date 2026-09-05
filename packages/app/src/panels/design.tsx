@@ -193,7 +193,7 @@ export function DesignPanel() {
       <>
         <h1 style={{ fontSize: 20 }}>Design mode: what does this number have to be?</h1>
         <Controls spec={spec} pickSeed={pickSeed} pickOption={pickOption} patch={patch} />
-        <p style={{ color: "#c00", maxWidth: 640, fontFamily: "monospace", fontSize: 13 }}>
+        <p style={{ color: "var(--bad)", maxWidth: 640, fontFamily: "var(--mono)", fontSize: 13 }}>
           {refusalVoice(result.source, "this question")}: {result.error}
         </p>
       </>
@@ -219,7 +219,7 @@ export function DesignPanel() {
 
   const rootMarkers: PlotMarker[] = (solved?.roots ?? []).map((r) => ({
     x: r.x,
-    color: "#2b7",
+    color: "var(--green)",
     label: "root",
   }));
 
@@ -228,7 +228,7 @@ export function DesignPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Design mode: what does this number have to be?</h1>
-      <p style={{ maxWidth: 680, color: "#444" }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)" }}>
         Every other page here takes a lens and says what it does. This one runs the other way. Name a
         first-order property you want and one number the design is allowed to move, and the engine
         returns the value that number has to take — a <em>root</em>, not a minimum, which is why it
@@ -239,18 +239,18 @@ export function DesignPanel() {
       </p>
 
       <Controls spec={spec} pickSeed={pickSeed} pickOption={pickOption} patch={patch} />
-      <p style={{ maxWidth: 680, color: "#666", fontSize: 13, marginTop: -4 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-3)", fontSize: 13, marginTop: -4 }}>
         <strong>{seed.label}</strong> — {seed.note}
       </p>
 
       {solved ? (
         <div
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 15,
             padding: "10px 14px",
-            border: "1px solid #ddd",
-            background: "#fafafa",
+            border: "1px solid var(--line)",
+            background: "var(--bg-2)",
             display: "inline-block",
             marginBottom: 14,
           }}
@@ -258,12 +258,12 @@ export function DesignPanel() {
           {option.label} ={" "}
           <strong style={{ fontSize: 18 }}>{solved.x.toPrecision(10)}</strong> {option.unit}
           {isCurvature && (
-            <span style={{ color: "#666" }}>
+            <span style={{ color: "var(--ink-3)" }}>
               {"  →  R = "}
               {solved.roots.find((r) => r.x === solved.x)?.radiusMm?.toFixed(4) ?? "—"} mm
             </span>
           )}
-          <div style={{ fontSize: 12, color: "#777", marginTop: 4 }}>
+          <div style={{ fontSize: 12, color: "var(--ink-4)", marginTop: 4 }}>
             was {solved.valueFrom.toPrecision(9)} {option.unit} — the solve returns the value, it
             does not hand back a lens
           </div>
@@ -271,17 +271,17 @@ export function DesignPanel() {
       ) : (
         <div
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 13,
             padding: "10px 14px",
-            border: "1px solid #c00",
-            color: "#c00",
+            border: "1px solid var(--bad)",
+            color: "var(--bad)",
             maxWidth: 680,
             marginBottom: 14,
           }}
         >
           {refusalVoice(refusal!.source, "this target")}: {refusal!.error}
-          <div style={{ color: "#777", marginTop: 6 }}>
+          <div style={{ color: "var(--ink-4)", marginTop: 6 }}>
             A refusal here is a reading, not an error page — and the plots below still draw, because
             the picture is what says whether the target is out of the variable&rsquo;s range or the
             interval was in the wrong place.
@@ -294,11 +294,11 @@ export function DesignPanel() {
           series={seriesFrom(
             branches,
             (p) => p.solved,
-            "#c0392b",
+            "var(--red)",
             spec.target.kind === "efl" ? "power, 1/f" : "back focal distance",
           )}
           markers={[
-            { y: solvedTarget, color: "#888", label: "target" },
+            { y: solvedTarget, color: "var(--ink-4)", label: "target" },
             ...rootMarkers,
           ]}
           xLabel={`${option.label} (${option.unit})`}
@@ -310,10 +310,10 @@ export function DesignPanel() {
           width={430}
         />
         <Plot
-          series={seriesFrom(branches, (p) => p.eflMm, "#36c", "focal length")}
+          series={seriesFrom(branches, (p) => p.eflMm, "var(--blue)", "focal length")}
           markers={
             spec.target.kind === "efl"
-              ? [{ y: spec.target.value, color: "#888", label: "target" }, ...rootMarkers]
+              ? [{ y: spec.target.value, color: "var(--ink-4)", label: "target" }, ...rootMarkers]
               : rootMarkers
           }
           xLabel={`${option.label} (${option.unit})`}
@@ -325,7 +325,7 @@ export function DesignPanel() {
           width={430}
         />
       </div>
-      <p style={{ maxWidth: 880, color: "#666", fontSize: 13 }}>
+      <p style={{ maxWidth: 880, color: "var(--ink-3)", fontSize: 13 }}>
         The same solve in two currencies. The left plot is what the solver actually roots on — for a
         focal-length target that is the <em>power</em>, 1/f, which is a straight line in any single
         curvature or thickness. The right plot is the focal length you asked for, and it is where a
@@ -337,7 +337,7 @@ export function DesignPanel() {
       </p>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>Exact — and the exactness is in the power</h2>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         The paraxial system matrix is a product of refraction and translation factors, so it is
         affine in any one curvature or any one thickness — and so is the power. Brent&rsquo;s first
         interpolation step lands on the root of a straight line exactly. What you can read below is
@@ -396,7 +396,7 @@ export function DesignPanel() {
       <h2 style={{ fontSize: 16, marginTop: 24 }}>
         One root — unless two numbers move together
       </h2>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         The solver reports <em>every</em> root in the interval, so that a target reachable two ways
         is never silently resolved one way. Through a single prescription number it never has to:
         the power is affine in it and the back focal distance is a ratio of two affine functions, so
@@ -406,9 +406,9 @@ export function DesignPanel() {
         the power becomes a parabola with a vertex, so there is a shortest achievable focal length
         and two ways to reach anything longer.
       </p>
-      <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ color: "#777", textAlign: "left" }}>
+          <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
             <th style={CELL}>root</th>
             <th style={CELL}>{option.unit}</th>
             {isCurvature && <th style={CELL}>R (mm)</th>}
@@ -419,14 +419,14 @@ export function DesignPanel() {
         </thead>
         <tbody>
           {(solved?.roots ?? []).map((r, i) => (
-            <tr key={r.x} style={{ background: solved && r.x === solved.x ? "#eef7ee" : undefined }}>
+            <tr key={r.x} style={{ background: solved && r.x === solved.x ? "var(--ok-tint)" : undefined }}>
               <td style={CELL}>{i + 1}</td>
               <td style={CELL}>{r.x.toPrecision(9)}</td>
               {isCurvature && <td style={CELL}>{r.radiusMm === null ? "—" : r.radiusMm.toPrecision(8)}</td>}
               <td style={CELL}>{r.eflMm.toPrecision(9)}</td>
               <td style={CELL}>{r.bfdMm.toPrecision(9)}</td>
               {isCurvature && (
-                <td style={{ ...CELL, color: (r.rimRatio ?? 9) < 1 ? "#c00" : "#333" }}>
+                <td style={{ ...CELL, color: (r.rimRatio ?? 9) < 1 ? "var(--bad)" : "var(--ink)" }}>
                   {r.rimRatio === null ? "—" : r.rimRatio.toFixed(3)}
                 </td>
               )}
@@ -442,7 +442,7 @@ export function DesignPanel() {
         </tbody>
       </table>
       {solved !== null && solved.roots.length > 1 && (
-        <p style={{ maxWidth: 680, color: "#444", fontSize: 13 }}>
+        <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 13 }}>
           Two lenses, one focal length — and their back focal distances are{" "}
           <strong>equal and opposite</strong>, which is not a coincidence and is worth the algebra:
           BFD = f(1 − (d/n)(n−1)c), the two roots are symmetric about the parabola&rsquo;s vertex
@@ -476,16 +476,16 @@ export function DesignPanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>The solve holds at exactly one wavelength</h2>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         Every index in the chain is dispersive, so &ldquo;make the focal length 510 mm&rdquo; is a
         different equation at F than at C. The answer is a design value at the line it was solved on
         and nowhere else — and how far the other lines miss by is the lens&rsquo;s colour correction,
         measured rather than claimed.
       </p>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+        <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
           <thead>
-            <tr style={{ color: "#777", textAlign: "left" }}>
+            <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
               <th style={CELL}>line</th>
               <th style={CELL}>EFL (mm)</th>
               <th style={CELL}>BFD (mm)</th>
@@ -493,7 +493,7 @@ export function DesignPanel() {
           </thead>
           <tbody>
             {(solved?.lines ?? []).map((l) => (
-              <tr key={l.nm} style={{ background: l.nm === spec.wavelengthNm ? "#eef7ee" : undefined }}>
+              <tr key={l.nm} style={{ background: l.nm === spec.wavelengthNm ? "var(--ok-tint)" : undefined }}>
                 <td style={CELL}>{l.name}</td>
                 <td style={CELL}>{l.eflMm.toFixed(4)}</td>
                 <td style={CELL}>{l.bfdMm.toFixed(4)}</td>
@@ -531,7 +531,7 @@ export function DesignPanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>A number, not a lens</h2>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         The solver answers the question it was asked. Whether the answer is a piece of glass is a
         question nothing in the solve asks — so the two cheapest ways to notice are here, computed
         from the prescription&rsquo;s own numbers rather than from anything the solve returned.
@@ -573,7 +573,7 @@ export function DesignPanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>Where this system goes afocal</h2>
-      <p style={{ maxWidth: 680, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 680, color: "var(--ink-2)", fontSize: 14 }}>
         &ldquo;Which value makes the power zero?&rdquo; is an ordinary design question with an exact
         answer, and it is the one question this solver cannot return. The engine has no first-order
         properties for an afocal chain, so it throws — and the module treats a throw as a{" "}
@@ -624,7 +624,7 @@ export function DesignPanel() {
   );
 }
 
-const CELL = { padding: "2px 10px 2px 0", borderBottom: "1px solid #eee" } as const;
+const CELL = { padding: "2px 10px 2px 0", borderBottom: "1px solid var(--line-2)" } as const;
 
 function Controls(props: {
   spec: DesignSpec;
@@ -697,7 +697,7 @@ function Controls(props: {
         />
       </Fieldset>
       {!seed.intervalsAreFixtures && (
-        <p style={{ maxWidth: 680, color: "#999", fontSize: 12, marginTop: -6 }}>
+        <p style={{ maxWidth: 680, color: "var(--ink-5)", fontSize: 12, marginTop: -6 }}>
           This seed&rsquo;s interval is <em>this panel&rsquo;s</em> guess — three times the value the
           design already has, either side of it — and not a physical statement. The two fixtures
           borrowed from the validation ladder carry that step&rsquo;s own intervals instead.

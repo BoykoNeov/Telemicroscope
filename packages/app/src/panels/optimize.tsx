@@ -192,7 +192,7 @@ export function OptimizePanel() {
       <>
         <Heading />
         {controls}
-        <p style={{ color: "#c00", maxWidth: 640, fontFamily: "monospace", fontSize: 13 }}>
+        <p style={{ color: "var(--bad)", maxWidth: 640, fontFamily: "var(--mono)", fontSize: 13 }}>
           {refusalVoice(result.source, "this merit")}: {result.error}
         </p>
       </>
@@ -203,7 +203,7 @@ export function OptimizePanel() {
   const meritSeries: PlotSeries[] = [
     {
       label: "merit",
-      color: "#c0392b",
+      color: "var(--red)",
       width: 1.8,
       dots: trail.length <= 48,
       points: trail.map((p) => [p.work, logOf(p.merit)] as const),
@@ -224,7 +224,7 @@ export function OptimizePanel() {
   return (
     <>
       <Heading />
-      <p style={{ maxWidth: 700, color: "#444" }}>
+      <p style={{ maxWidth: 700, color: "var(--ink-2)" }}>
         Part M asks what one number has to be, and there is an answer. This asks for several things
         at once with fewer freedoms than wishes, and what comes back is a <em>compromise</em> — so
         the leftover error is part of the answer rather than a diagnostic. The box below prints why
@@ -234,17 +234,17 @@ export function OptimizePanel() {
       </p>
 
       {controls}
-      <p style={{ maxWidth: 700, color: "#666", fontSize: 13, marginTop: -4 }}>
+      <p style={{ maxWidth: 700, color: "var(--ink-3)", fontSize: 13, marginTop: -4 }}>
         <strong>{seed.label}</strong> — {seed.note}
       </p>
 
       <div
         style={{
-          fontFamily: "monospace",
+          fontFamily: "var(--mono)",
           fontSize: 13,
           padding: "10px 14px",
-          border: "1px solid #ddd",
-          background: "#fafafa",
+          border: "1px solid var(--line)",
+          background: "var(--bg-2)",
           display: "inline-block",
           minWidth: 520,
           marginBottom: 14,
@@ -253,17 +253,17 @@ export function OptimizePanel() {
         {result.from.map((v, i) => (
           <div key={i} style={{ fontSize: 15 }}>
             {result.variables[i]!.label}{" "}
-            <span style={{ color: "#999" }}>{v.toPrecision(9)} →</span>{" "}
+            <span style={{ color: "var(--ink-5)" }}>{v.toPrecision(9)} →</span>{" "}
             <strong>{result.to[i]!.toPrecision(10)}</strong>{" "}
-            <span style={{ color: "#999" }}>{result.variables[i]!.unit}</span>
+            <span style={{ color: "var(--ink-5)" }}>{result.variables[i]!.unit}</span>
           </div>
         ))}
-        <div style={{ marginTop: 8, color: "#555" }}>
+        <div style={{ marginTop: 8, color: "var(--ink-3)" }}>
           stopped because:{" "}
-          <strong style={{ color: result.reason === "iterations" ? "#c60" : "#333" }}>
+          <strong style={{ color: result.reason === "iterations" ? "var(--warn-strong)" : "var(--ink)" }}>
             {result.reason}
           </strong>
-          <div style={{ fontSize: 11, color: "#888", maxWidth: 520 }}>
+          <div style={{ fontSize: 11, color: "var(--ink-4)", maxWidth: 520 }}>
             {REASON_GLOSS[result.reason]}
           </div>
         </div>
@@ -285,7 +285,7 @@ export function OptimizePanel() {
           ))}
         </div>
         {result.traced !== null && (
-          <div style={{ marginTop: 8, color: "#555", fontSize: 12 }}>
+          <div style={{ marginTop: 8, color: "var(--ink-3)", fontSize: 12 }}>
             traced: {tracedLabel(result.traced.reading)} over {result.traced.grid} points across the
             pupil{result.traced.reading === "wavefront" ? `, ${result.traced.terms} Noll terms` : ""}, at{" "}
             {result.traced.fieldDeg}°, weight {result.traced.weight} — {num(result.elapsedMs, 0)} ms for
@@ -293,14 +293,14 @@ export function OptimizePanel() {
           </div>
         )}
         {result.builtIsAfocal && (
-          <div style={{ color: "#c00", marginTop: 8 }}>
+          <div style={{ color: "var(--bad)", marginTop: 8 }}>
             The lens this answer names is afocal: it has no focal length at all.
           </div>
         )}
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 4 }}>What these variables can do</h2>
-      <p style={{ maxWidth: 700, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 700, color: "var(--ink-2)", fontSize: 14 }}>
         Read before the run, off the same Jacobian the run differences: how hard the merit
         responds to each number you freed, and whether what you freed contains a combination it
         cannot see. Two variables that do nearly the same thing do not break an optimisation — the
@@ -389,9 +389,9 @@ export function OptimizePanel() {
               />
             )}
           </div>
-          <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+          <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ color: "#777", textAlign: "left" }}>
+              <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
                 <th style={CELL}>freed</th>
                 <th style={CELL}>the merit responds</th>
                 <th style={CELL}>share of the direction it can least see</th>
@@ -401,7 +401,7 @@ export function OptimizePanel() {
               {result.variables.map((v, i) => (
                 <tr key={v.id}>
                   <td style={CELL}>{v.label}</td>
-                  <td style={{ ...CELL, color: geometry.response[i] === 0 ? "#c00" : "#333" }}>
+                  <td style={{ ...CELL, color: geometry.response[i] === 0 ? "var(--bad)" : "var(--ink)" }}>
                     {geometry.response[i]!.toExponential(3)} per {v.unit}
                   </td>
                   <td style={CELL}>{(geometry.weakest[i]! ** 2 * 100).toFixed(1)}%</td>
@@ -409,7 +409,7 @@ export function OptimizePanel() {
               ))}
             </tbody>
           </table>
-          <p style={{ maxWidth: 880, color: "#666", fontSize: 13 }}>
+          <p style={{ maxWidth: 880, color: "var(--ink-3)", fontSize: 13 }}>
             The last column is the combination the merit responds to least, written as each
             variable&rsquo;s share of it. It says how that combination is spread across what you
             freed, <em>not</em> whether the merit can see it: on the two-curvature seeds it sits
@@ -452,7 +452,7 @@ export function OptimizePanel() {
           width={430}
         />
       </div>
-      <p style={{ maxWidth: 880, color: "#666", fontSize: 13 }}>
+      <p style={{ maxWidth: 880, color: "var(--ink-3)", fontSize: 13 }}>
         Both curves are drawn by running the optimiser again with its iteration cap set to 1, 2,
         3 … The algorithm is deterministic, so a capped run <em>is</em> the longer run&rsquo;s prefix
         — this panel&rsquo;s test pins that on every field the result carries, not just on the
@@ -475,15 +475,15 @@ export function OptimizePanel() {
       {single !== null && single.withheld === null && (
         <>
           <h2 style={{ fontSize: 16, marginTop: 24 }}>One number against two, on the same lens</h2>
-          <p style={{ maxWidth: 700, color: "#444", fontSize: 14 }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-2)", fontSize: 14 }}>
             Part M measured that retargeting this achromat through a single curvature hits the focal
             length exactly and spends the colour correction the lens exists for. Both sides are
             recomputed here rather than quoted, so they cannot drift apart: the same target, the same
             lens, one freedom against two.
           </p>
-          <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+          <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ color: "#777", textAlign: "left" }}>
+              <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
                 <th style={CELL}>solve</th>
                 <th style={CELL}>focal length (mm)</th>
                 <th style={CELL}>F − C spread (mm)</th>
@@ -501,7 +501,7 @@ export function OptimizePanel() {
                 <td style={CELL}>one variable ({single.label})</td>
                 <td style={CELL}>{single.refused ?? single.eflMm.toPrecision(10)}</td>
                 <td style={CELL}>{single.spreadMm.toExponential(4)}</td>
-                <td style={{ ...CELL, color: "#c00" }}>{num(Math.abs(single.spreadRatio), 2)}×</td>
+                <td style={{ ...CELL, color: "var(--bad)" }}>{num(Math.abs(single.spreadRatio), 2)}×</td>
               </tr>
               <tr>
                 <td style={CELL}>
@@ -509,13 +509,13 @@ export function OptimizePanel() {
                 </td>
                 <td style={CELL}>{num(result.wishes[0]?.value ?? Number.NaN, 6)}</td>
                 <td style={CELL}>{result.spreadAfterMm.toExponential(4)}</td>
-                <td style={{ ...CELL, color: "#2b7" }}>
+                <td style={{ ...CELL, color: "var(--green)" }}>
                   {num(Math.abs(result.spreadAfterMm / result.spreadBeforeMm), 2)}×
                 </td>
               </tr>
             </tbody>
           </table>
-          <p style={{ maxWidth: 700, color: "#666", fontSize: 13 }}>
+          <p style={{ maxWidth: 700, color: "var(--ink-3)", fontSize: 13 }}>
             The two-variable answer is better corrected than the lens it started from, and that is
             worth saying out loud: it is the numerical power split that VALIDATION § 5j.2
             deliberately <em>refused</em> to build. Solving the split until a thick doublet united F
@@ -578,7 +578,7 @@ export function OptimizePanel() {
       )}
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>The basin, which is all a descent can report</h2>
-      <p style={{ maxWidth: 700, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 700, color: "var(--ink-2)", fontSize: 14 }}>
         Part M&rsquo;s solver scans an interval and reports <em>every</em> root in it. A descent
         method cannot: it reports where it rolled to from where it started. So this panel starts a
         second run {Math.round(basin.offset * 100)}% away from the design and says whether the two
@@ -600,9 +600,9 @@ export function OptimizePanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>The lens this answer names</h2>
-      <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ color: "#777", textAlign: "left" }}>
+          <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
             <th style={CELL}>line</th>
             <th style={CELL}>EFL (mm)</th>
             <th style={CELL}>BFD (mm)</th>
@@ -618,7 +618,7 @@ export function OptimizePanel() {
           ))}
         </tbody>
       </table>
-      <p style={{ maxWidth: 700, color: "#999", fontSize: 12 }}>
+      <p style={{ maxWidth: 700, color: "var(--ink-5)", fontSize: 12 }}>
         The solve holds at one line — d, {num(OPTIMIZE_LINES[1]!.nm, 1)} nm — and the other two are
         what the glasses do with it. A colour wish is the only thing here that makes them agree.
       </p>
@@ -656,7 +656,7 @@ export function OptimizePanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>What this does not do</h2>
-      <ul style={{ maxWidth: 700, color: "#444", fontSize: 14, lineHeight: 1.6 }}>
+      <ul style={{ maxWidth: 700, color: "var(--ink-2)", fontSize: 14, lineHeight: 1.6 }}>
         <li>
           <strong>The traced wish is here, behind a button, and that button is the design.</strong>{" "}
           This bullet used to say the panel had no traced targets at all, and both halves of what
@@ -702,10 +702,10 @@ export function OptimizePanel() {
   );
 }
 
-const WISH_COLORS = ["#36c", "#c0392b", "#2b7", "#c60"] as const;
+const WISH_COLORS = ["var(--blue)", "var(--red)", "var(--green)", "var(--warn-strong)"] as const;
 /** The two surfaces the classical split names, in the order the closed form gives them. */
 const SPLIT_FACES = ["crown front curvature", "flint back curvature"] as const;
-const CELL = { padding: "2px 10px 2px 0", borderBottom: "1px solid #eee" } as const;
+const CELL = { padding: "2px 10px 2px 0", borderBottom: "1px solid var(--line-2)" } as const;
 
 function Heading() {
   return (
@@ -748,7 +748,7 @@ function Controls(props: {
           format={(id) => seed.menu.find((c) => c.id === id)!.label}
           note={(id) => `${seed.menu.find((c) => c.id === id)!.unit} — click to free or hold it`}
         />
-        <p style={{ maxWidth: 420, color: "#999", fontSize: 11, margin: "4px 0 0" }}>
+        <p style={{ maxWidth: 420, color: "var(--ink-5)", fontSize: 11, margin: "4px 0 0" }}>
           Which numbers the optimiser is allowed to change. More freedom is not
           automatically better: free more of them than there are wishes and part of what
           you freed cannot be seen at all, and two that do nearly the same thing make a
@@ -775,7 +775,7 @@ function Controls(props: {
             />
           </div>
         ))}
-        <p style={{ maxWidth: 420, color: "#999", fontSize: 11, margin: "4px 0 0" }}>
+        <p style={{ maxWidth: 420, color: "var(--ink-5)", fontSize: 11, margin: "4px 0 0" }}>
           The merit is the sum of the squared weighted misses, so a weight is an exchange rate
           between quantities in different units — how many millimetres of focus one diopter is worth.
           Nothing physical fixes it. Where every wish can be granted at once, as on the thin doublet,
@@ -851,8 +851,8 @@ function Controls(props: {
                       padding: "6px 14px",
                       fontSize: 13,
                       cursor: props.pending ? "wait" : "pointer",
-                      border: "1px solid #888",
-                      background: props.stale || !props.hasAnswer ? "#ffd" : "#f4f4f4",
+                      border: "1px solid var(--ink-4)",
+                      background: props.stale || !props.hasAnswer ? "var(--warn-tint)" : "var(--bg-2)",
                     }}
                   >
                     {props.pending
@@ -864,7 +864,7 @@ function Controls(props: {
                           : "trace it"}
                   </button>
                 </div>
-                <p style={{ maxWidth: 460, color: props.stale ? "#c60" : "#999", fontSize: 11, margin: "4px 0 0" }}>
+                <p style={{ maxWidth: 460, color: props.stale ? "var(--warn-strong)" : "var(--ink-5)", fontSize: 11, margin: "4px 0 0" }}>
                   {props.pending
                     ? "running off the main thread — the page stays live, and the answer below is still the paraxial one."
                     : props.stale
@@ -877,7 +877,7 @@ function Controls(props: {
             )}
           </>
         )}
-        <p style={{ maxWidth: 460, color: "#999", fontSize: 11, margin: "4px 0 0" }}>
+        <p style={{ maxWidth: 460, color: "var(--ink-5)", fontSize: 11, margin: "4px 0 0" }}>
           Two readings, out of the five the engine offers, and the cut is one rule measured on
           this lens over this menu: <em>offered only where it is bounded and single-basin over
           every number the seed lets you free</em> — and that list includes the distance to the
@@ -897,7 +897,7 @@ function Controls(props: {
           onChange={(currency) => patch({ currency })}
           format={(c) => (c === "power" ? "power, 1/f" : "focal length, f")}
         />
-        <p style={{ maxWidth: 420, color: "#999", fontSize: 11, margin: "4px 0 0" }}>
+        <p style={{ maxWidth: 420, color: "var(--ink-5)", fontSize: 11, margin: "4px 0 0" }}>
           The same wish, in two units. It changes the answer on every seed here — in millimetres a
           focal-length miss is a million times larger than the same miss in diopters, so it swamps
           whatever else the merit wanted, and where the target is on the far side of an afocal

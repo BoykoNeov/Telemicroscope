@@ -149,14 +149,14 @@ function TransferPlot({ request }: { request: TransferRequest }) {
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
         imaging a grating at every frequency…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -170,25 +170,25 @@ function TransferPlot({ request }: { request: TransferRequest }) {
         series={[
           {
             label: "brightfield, diaphragm shut",
-            color: "#06a",
+            color: "var(--accent)",
             points: p.map((q) => [q.nu, q.brightfieldCoherent] as const),
             dash: [5, 4],
           },
           {
             label: "ideal pupil (closed form)",
-            color: "#a60",
+            color: "var(--warn)",
             points: p.map((q) => [q.nu, q.closed] as const),
             width: 2.4,
           },
           {
             label: "measured, this objective",
-            color: "#111",
+            color: "var(--ink)",
             points: p.map((q) => [q.nu, q.measured] as const),
             dots: true,
             width: 1.2,
           },
         ]}
-        markers={[{ x: 2, color: "#3a7", label: "ν = 2" }]}
+        markers={[{ x: 2, color: "var(--ok)", label: "ν = 2" }]}
         xLabel="spatial frequency ν, in NA/λ"
         yLabel="transfer T (image contrast = m · T)"
         xMin={0}
@@ -196,7 +196,7 @@ function TransferPlot({ request }: { request: TransferRequest }) {
         yMin={-0.05}
         yMax={1.15}
       />
-      <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", width: 420, marginTop: 4 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
         {sweep.sweep.rendered} of {sweep.sweep.available} frequencies rendered ·{" "}
         {sweep.sweep.elapsedMs.toFixed(0)} ms · worst |measured − closed| below ν = 1.9 ={" "}
         <strong>{sweep.sweep.worstResidual.toExponential(3)}</strong>. That residual holds two
@@ -282,7 +282,7 @@ export function FluorescencePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Fluorescence beads: a specimen that emits</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         A field of sub-resolution fluorescent beads on the specimen, imaged through one of the
         bench&rsquo;s objectives. <strong>Nothing here is drawn.</strong> Each bead is a point
         emitter placed through its own <em>traced chief ray</em>, so the objective&rsquo;s
@@ -291,7 +291,7 @@ export function FluorescencePanel() {
         kernel as there are beads — which is exactly why a bead slide is what a real lab images to
         measure a PSF.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         <strong>Every bead emits the same power.</strong> That is not a simplification, it is the
         measurement: with the specimen carrying no brightness variation of its own, any difference
         between two blobs is the <em>optics</em>. Random fluxes would look more like a photograph
@@ -299,7 +299,7 @@ export function FluorescencePanel() {
         canvas before trusting your eye on it — below three pixels per resolution cell the
         rasterizer&rsquo;s sub-pixel splat outweighs the optics, and the panel says so.)
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         <strong>There is no condenser in this instrument at all</strong>, and that is the contrast
         with the brightfield panel that this surface exists to show. A fluorophore absorbs a photon
         and emits a new one with no phase memory of the exciting field or of its neighbours, so the
@@ -308,7 +308,7 @@ export function FluorescencePanel() {
         with the diaphragm shut; the plot beside the picture measures fluorescence arriving at ν = 2
         with no condenser to open. Same axis, same units, three panels apart.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         What is deliberately absent: <strong>no background, no noise, no haze</strong>. Shot noise,
         photobleaching and quantum yield are all blocked on an absolute photon count, and
         out-of-focus haze is a z-stack — the next surface, not this one. A cosmetic floor would make
@@ -356,7 +356,7 @@ export function FluorescencePanel() {
           format={(v) => `×${v}`}
         />
       </div>
-      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
@@ -379,7 +379,7 @@ export function FluorescencePanel() {
       </div>
 
       {result !== null && !result.ok && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
           {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       )}
@@ -403,7 +403,7 @@ export function FluorescencePanel() {
           >
             <BeadCanvas readout={readout} stretch={stretch} />
             <figcaption
-              style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 380 }}
+              style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 380 }}
             >
               <strong>{readout.objectSpanUm.toFixed(2)} µm</strong> of specimen across the frame ·
               NA {readout.tracedNA.toFixed(4)}
@@ -430,7 +430,7 @@ export function FluorescencePanel() {
               {pixelsPerCell < PIXELS_PER_CELL_FLOOR && (
                 <>
                   <br />
-                  <span style={{ color: "#777" }}>
+                  <span style={{ color: "var(--ink-4)" }}>
                     — at this sampling the bilinear splat moves a bead&rsquo;s peak by ~19% depending
                     where in a pixel it fell, which is larger than the corner-to-axis drop below.
                     Compare blobs by eye only above ~4.
@@ -447,7 +447,7 @@ export function FluorescencePanel() {
                   it as 0 would report a perfect identity for an empty frame
                 </span>
               ) : (
-                <span style={{ color: "#3a7" }}>
+                <span style={{ color: "var(--ok)" }}>
                   light conserved to {readout.lightResidual.toExponential(2)}
                 </span>
               )}
@@ -468,20 +468,20 @@ export function FluorescencePanel() {
       {readout !== null && (
         <div
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 12,
             lineHeight: 1.7,
-            color: "#555",
+            color: "var(--ink-3)",
             marginTop: 16,
             maxWidth: 660,
             opacity: pending ? 0.55 : 1,
             transition: "opacity 120ms ease-out",
           }}
         >
-          <span style={{ color: "#999" }}>{objective.label}, as traced just now —</span> kernel peak
+          <span style={{ color: "var(--ink-5)" }}>{objective.label}, as traced just now —</span> kernel peak
           on axis <strong>{readout.axisKernelPeak.toFixed(6)}</strong> · at the frame corner{" "}
           <strong>{readout.cornerKernelPeak.toFixed(6)}</strong> ·{" "}
-          <span style={{ color: cornerDrop > 0 ? "#a60" : "#06a" }}>
+          <span style={{ color: cornerDrop > 0 ? "var(--warn)" : "var(--accent)" }}>
             {cornerDrop > 0 ? "drop" : "gain"} {Math.abs(cornerDrop * 100).toFixed(3)}%
           </span>
           <br />
@@ -493,7 +493,7 @@ export function FluorescencePanel() {
         </div>
       )}
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The kernel peak is a Strehl-like readout</strong>, because the kernel is normalized
         to unit sum: light the aberration moves out of the core has to go somewhere, so a lower peak
         at the same total is a worse image. § 6i.5 measured the corner&rsquo;s traced pupil giving a
@@ -509,7 +509,7 @@ export function FluorescencePanel() {
         re-traced on every change, which is why this panel prints the number rather than the moral —
         and why an objective you built gets an answer here rather than a shrug.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The crop moves the corner, too.</strong> Raising pupil samples widens the frame —{" "}
         <em>on the DIN 4×</em>, 93.5 µm at 32, 187.1 at 64, 374.2 at 128 — so the
         &ldquo;corner&rdquo; walks further off axis and the drop grows with it: 0.659% → 2.38% →
@@ -520,7 +520,7 @@ export function FluorescencePanel() {
         aberration rather than as a number: the frame spans <code>pupilSamples</code> resolution
         cells and there is no resampling trick to widen it.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>Light conserved</strong> is § 6i.4&rsquo;s identity, live: the kernel sums to 1 and
         the patch windows sum to 1, so neither the optics nor the patch decomposition may invent or
         lose a photon, and circular convolution makes that exact rather than edge-limited — light
@@ -531,7 +531,7 @@ export function FluorescencePanel() {
         off the grid are dropped, and counting those as lost photons would print a conservation
         failure that is nothing of the kind. How many landed is the line above it.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The transfer plot has no factor of two in it</strong>, and the brightfield panel
         does. That is not an inconsistency: a brightfield specimen modulates an <em>amplitude</em>,
         t = 1 + m·cos, and squaring it puts 2·m·T into the image. A fluorescent specimen emits, so

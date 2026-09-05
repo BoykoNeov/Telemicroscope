@@ -247,22 +247,22 @@ export function CollimationPanel() {
 
           <Plot
             series={[
-              { label: "aligned", color: "#4a90d9", points: result.aligned.points },
-              { label: "misaligned", color: "#d95f4a", points: result.misaligned.points, dots: true },
+              { label: "aligned", color: "var(--blue-2)", points: result.aligned.points },
+              { label: "misaligned", color: "var(--red-2)", points: result.misaligned.points, dots: true },
               {
                 label: "misaligned, old aiming",
-                color: "#888",
+                color: "var(--ink-4)",
                 points: result.misalignedParaxial.points,
                 dash: [4, 4],
               },
             ]}
             markers={[
-              { y: 0, color: "#bbb" },
+              { y: 0, color: "var(--ink-5)" },
               // Only the moved one is labelled: when the misalignment is small
               // the two rules sit within a few pixels and two labels overlap
               // into an unreadable smear — which the first draft did.
-              { x: result.aligned.nodeFieldDeg, color: "#4a90d9" },
-              { x: result.misaligned.nodeFieldDeg, color: "#d95f4a", label: "node" },
+              { x: result.aligned.nodeFieldDeg, color: "var(--blue-2)" },
+              { x: result.misaligned.nodeFieldDeg, color: "var(--red-2)", label: "node" },
             ]}
             xLabel="field angle (degrees)"
             yLabel="coma (waves, balanced fit)"

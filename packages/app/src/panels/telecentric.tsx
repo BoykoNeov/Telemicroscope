@@ -97,7 +97,7 @@ export function TelecentricPanel() {
     ? [
         {
           label: "FFD(λ)",
-          color: "#c0392b",
+          color: "var(--red)",
           points: result.curve.map(([nm, mm]) => [nm, mm] as const),
           width: 1.6,
         },
@@ -105,14 +105,14 @@ export function TelecentricPanel() {
     : [];
   const markers: PlotMarker[] = result.ok
     ? [
-        { y: result.stopToVertexMm, color: "#06c", label: "the stop is here" },
+        { y: result.stopToVertexMm, color: "var(--accent-2)", label: "the stop is here" },
         // A touched pole gets a word and a crossed one does not: on the triplet
         // there are three of the latter and labelling each would print three
         // copies of the same noun across a 560 px plot.
         ...result.crossings.map((c): PlotMarker =>
           c.order === "double"
-            ? { x: c.nm, color: "#a60", label: "touched" }
-            : { x: c.nm, color: "#2b7" },
+            ? { x: c.nm, color: "var(--warn)", label: "touched" }
+            : { x: c.nm, color: "var(--green)" },
         ),
       ]
     : [];
@@ -124,7 +124,7 @@ export function TelecentricPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The stop that is a millimetre</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         A machine-vision telecentric lens is not made telecentric by its glass. It is made
         telecentric by <em>where the aperture stop sits</em>: put the stop on the tail group&rsquo;s
         front focal plane and every chief ray leaves the last surface parallel to the axis, the exit
@@ -132,7 +132,7 @@ export function TelecentricPanel() {
         is a distance, and the distance is wavelength-dependent — so a stop at one fixed gap is at a
         front focal point only at the colours where the curve below comes back to the line.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         This is the first surface in this app for <code>designs/telecentric</code>, which shipped
         with the engine and had no caller anywhere. The lens and the placement are two controls
         rather than one list, because they are two independent choices: the glass decides how many
@@ -148,7 +148,7 @@ export function TelecentricPanel() {
           format={(id) => tailOf(id).label}
         />
       </Fieldset>
-      <div style={{ fontFamily: "monospace", fontSize: 12, color: "#777", margin: "-6px 0 12px" }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", margin: "-6px 0 12px" }}>
         {chosen.note}
       </div>
 
@@ -177,7 +177,7 @@ export function TelecentricPanel() {
       </Fieldset>
 
       {!result.ok && (
-        <p style={{ maxWidth: 660, color: "#c0392b", fontFamily: "monospace", fontSize: 12 }}>
+        <p style={{ maxWidth: 660, color: "var(--red)", fontFamily: "var(--mono)", fontSize: 12 }}>
           {refusalVoice(result.source, "this placement")}: {result.error}
         </p>
       )}
@@ -197,13 +197,13 @@ export function TelecentricPanel() {
               width={560}
               height={320}
             />
-            <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
-              <div style={{ color: "#666", marginBottom: 4 }}>reading the plot</div>
-              <div style={{ color: "#c0392b" }}>FFD(λ) — where the stop would have to be, per colour</div>
-              <div style={{ color: "#06c" }}>the horizontal line — where the stop actually is</div>
-              <div style={{ color: "#2b7" }}>green rule — a crossing: the pole is passed through</div>
-              <div style={{ color: "#a60" }}>amber rule — a turn placement: the pole is touched</div>
-              <div style={{ marginTop: 12, color: "#666" }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
+              <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>reading the plot</div>
+              <div style={{ color: "var(--red)" }}>FFD(λ) — where the stop would have to be, per colour</div>
+              <div style={{ color: "var(--accent-2)" }}>the horizontal line — where the stop actually is</div>
+              <div style={{ color: "var(--green)" }}>green rule — a crossing: the pole is passed through</div>
+              <div style={{ color: "var(--warn)" }}>amber rule — a turn placement: the pole is touched</div>
+              <div style={{ marginTop: 12, color: "var(--ink-3)" }}>
                 Count the meetings. A curve with <strong>{result.turns.length}</strong>{" "}
                 {result.turns.length === 1 ? "turn" : "turns"} inside the band can meet a horizontal
                 line at most <strong>{result.crossingBound}</strong>{" "}
@@ -257,7 +257,7 @@ export function TelecentricPanel() {
               nothing: a paragraph about how the digits below were measured, with
               no digits below it, describes a table that is not there. */}
           {result.crossings.length > 0 && (
-            <p style={{ maxWidth: 660, color: "#444", fontSize: 14 }}>
+            <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14 }}>
               Every digit below is measured. Three different things limit how well a wavelength here
               can be known, and the coarsest of them wins: how far five brackets of the same search
               disagreed, what a double can carry when the curve crosses this shallowly, and — where
@@ -266,9 +266,9 @@ export function TelecentricPanel() {
               lens.
             </p>
           )}
-          <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+          <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ color: "#777", textAlign: "left" }}>
+              <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
                 <th style={{ padding: "2px 16px 2px 0" }}>wavelength (nm)</th>
                 <th style={{ padding: "2px 16px 2px 0" }}>± (nm)</th>
                 <th style={{ padding: "2px 16px 2px 0" }}>limited by</th>
@@ -279,14 +279,14 @@ export function TelecentricPanel() {
               {result.crossings.map((c) => (
                 <tr key={c.nm}>
                   <td style={{ padding: "2px 16px 2px 0" }}>{c.text}</td>
-                  <td style={{ padding: "2px 16px 2px 0", color: "#777" }}>
+                  <td style={{ padding: "2px 16px 2px 0", color: "var(--ink-4)" }}>
                     {c.uncertaintyNm.toExponential(1)}
                   </td>
-                  <td style={{ padding: "2px 16px 2px 0", color: "#777" }}>{c.limitedBy}</td>
+                  <td style={{ padding: "2px 16px 2px 0", color: "var(--ink-4)" }}>{c.limitedBy}</td>
                   <td
                     style={{
                       padding: "2px 16px 2px 0",
-                      color: c.order === "double" ? "#a60" : "#2b7",
+                      color: c.order === "double" ? "var(--warn)" : "var(--green)",
                     }}
                   >
                     {c.order === "double" ? "touched (double)" : "crossed (simple)"}
@@ -295,7 +295,7 @@ export function TelecentricPanel() {
               ))}
               {result.crossings.length === 0 && (
                 <tr>
-                  <td colSpan={4} style={{ padding: "2px 0", color: "#777" }}>
+                  <td colSpan={4} style={{ padding: "2px 0", color: "var(--ink-4)" }}>
                     none — this stop is at a front focal point nowhere in the band. That is a
                     finding, not a refusal: the gap is a perfectly buildable one, and no colour
                     reaches it.
@@ -304,7 +304,7 @@ export function TelecentricPanel() {
               )}
             </tbody>
           </table>
-          <div style={{ fontFamily: "monospace", fontSize: 11, color: "#999", marginTop: 6 }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-5)", marginTop: 6 }}>
             {Array.from(new Set(result.crossings.map((c) => c.limitedBy))).map((limit) => (
               <div key={limit}>
                 {limit} — {LIMIT_NOTE[limit]}
@@ -314,7 +314,7 @@ export function TelecentricPanel() {
 
           {result.crossings.some((c) => c.order === "double") &&
             result.crossings.some((c) => c.order === "simple") && (
-              <p style={{ maxWidth: 660, color: "#444", fontSize: 14, marginTop: 12 }}>
+              <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14, marginTop: 12 }}>
                 <strong>The band still reverses.</strong> A stop at a turn touches that pole rather
                 than passing through it, so the defocus does not change direction there — and on a
                 tail whose curve turns twice it comes back down to the same level further red, where
@@ -326,7 +326,7 @@ export function TelecentricPanel() {
           {result.turns.length > 0 && (
             <>
               <h2 style={{ fontSize: 16, marginTop: 28 }}>Where the curve turns</h2>
-              <p style={{ maxWidth: 660, color: "#444", fontSize: 14 }}>
+              <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14 }}>
                 These bound the count above, and they are known far less precisely than the
                 crossings are — four orders less. Locating a smooth extremum is a{" "}
                 <em>square-root-of-epsilon</em> business: near a turn the curve is flat, so
@@ -352,7 +352,7 @@ export function TelecentricPanel() {
             result.designWavelengthFloorNm !== undefined && (
               <>
                 <h2 style={{ fontSize: 16, marginTop: 28 }}>The check the placement gives for free</h2>
-                <p style={{ maxWidth: 660, color: "#444", fontSize: 14 }}>
+                <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14 }}>
                   The stop went to FFD(λ₀), so λ₀ <em>is</em> a root of &ldquo;FFD(λ) minus the
                   placement&rdquo; by construction. It has to come back as one of the crossings, and
                   how far off it comes back is a measured error against a known answer rather than an
@@ -386,20 +386,20 @@ export function TelecentricPanel() {
 
       <h2 style={{ fontSize: 16, marginTop: 28 }}>Every tail, not the one that makes the point</h2>
       {bandTooWide !== undefined && (
-        <p style={{ maxWidth: 660, color: "#c0392b", fontFamily: "monospace", fontSize: 12 }}>
+        <p style={{ maxWidth: 660, color: "var(--red)", fontFamily: "var(--mono)", fontSize: 12 }}>
           {refusalVoice("app", "this band")}: {bandTooWide}
         </p>
       )}
-      <p style={{ maxWidth: 660, color: "#444", fontSize: 14 }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14 }}>
         Each rung that built this capability ran on a single lens, and each of them hid something the
         next one found — a page about how many colours a stop can serve, showing one lens, would be
         repeating that. So all four run on every frame. The bound column is the arithmetic; the
         crossings column is what the lens actually does, and the two are not the same number on the
         last row.
       </p>
-      <table style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse" }}>
+      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
         <thead>
-          <tr style={{ color: "#777", textAlign: "left" }}>
+          <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
             <th style={{ padding: "2px 16px 2px 0" }}>tail</th>
             <th style={{ padding: "2px 16px 2px 0" }}>turns</th>
             <th style={{ padding: "2px 16px 2px 0" }}>crossings</th>
@@ -409,17 +409,17 @@ export function TelecentricPanel() {
         </thead>
         <tbody>
           {survey.map((row) => (
-            <tr key={row.tail} style={{ background: row.tail === tail ? "#f4f4f4" : undefined }}>
+            <tr key={row.tail} style={{ background: row.tail === tail ? "var(--bg-2)" : undefined }}>
               <td style={{ padding: "2px 16px 2px 0" }}>{row.label}</td>
               <td style={{ padding: "2px 16px 2px 0" }}>{row.turns}</td>
               <td style={{ padding: "2px 16px 2px 0" }}>{row.crossings}</td>
               <td
-                style={{ padding: "2px 16px 2px 0", color: row.boundReached ? "#333" : "#a60" }}
+                style={{ padding: "2px 16px 2px 0", color: row.boundReached ? "var(--ink)" : "var(--warn)" }}
               >
                 {row.bound}
                 {row.boundReached ? "" : " (not reached)"}
               </td>
-              <td style={{ padding: "2px 16px 2px 0", color: row.turnPlacement.ok ? "#333" : "#c0392b" }}>
+              <td style={{ padding: "2px 16px 2px 0", color: row.turnPlacement.ok ? "var(--ink)" : "var(--red)" }}>
                 {row.turnPlacement.ok
                   ? `${(Math.abs(row.turnPlacement.gapMm) * 1000).toFixed(2)} µm away — ${row.turnPlacement.orders.join(", ")}`
                   : `${refusalVoice(row.turnPlacement.source, "it")}: ${row.turnPlacement.error.replace(/^telecentricStop: /, "")}`}
@@ -428,7 +428,7 @@ export function TelecentricPanel() {
           ))}
         </tbody>
       </table>
-      <p style={{ maxWidth: 660, color: "#444", fontSize: 14, marginTop: 12 }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)", fontSize: 14, marginTop: 12 }}>
         The refusal in the last column is the engine&rsquo;s own sentence, and it is worth reading:
         the singlet has no turn to place at because its front focal distance is{" "}
         <em>monotone across the visible</em>. That is a fact about the glass, not about the request,
@@ -437,7 +437,7 @@ export function TelecentricPanel() {
         millimetre can serve.
       </p>
       {result.ok && (
-        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#999", marginTop: 12 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-5)", marginTop: 12 }}>
           {result.elapsedMs.toFixed(1)} ms for this placement, inline — no worker. The four-row
           survey above is recomputed on every frame rather than quoted.
         </p>

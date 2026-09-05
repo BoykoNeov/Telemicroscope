@@ -290,8 +290,8 @@ export function TolerancePanel() {
   const pastWall = wall !== undefined && apertureMm > wall;
 
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6 }}>
-      <p style={{ maxWidth: 760, color: "#444" }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+      <p style={{ maxWidth: 760, color: "var(--ink-2)" }}>
         Every slider is a manufacturing error, scaled so that <strong>±1</strong> is the drift
         that spends the whole Maréchal budget (σ = λ/14) on its own — measured for this lens,
         not chosen. The two numbers below the bars are the point of the panel:{" "}
@@ -339,13 +339,13 @@ export function TolerancePanel() {
             key={name}
             onClick={() => setRows(preset)}
             style={{
-              fontFamily: "monospace",
+              fontFamily: "var(--mono)",
               fontSize: 12,
               marginRight: 4,
               padding: "2px 8px",
-              border: "1px solid #ccc",
-              background: "#fff",
-              color: "#333",
+              border: "1px solid var(--line)",
+              background: "var(--bg)",
+              color: "var(--ink)",
               cursor: "pointer",
             }}
           >
@@ -380,7 +380,7 @@ export function TolerancePanel() {
 
       <table style={{ marginTop: 14, borderCollapse: "collapse", fontSize: 11 }}>
         <thead>
-          <tr style={{ textAlign: "left", color: "#555" }}>
+          <tr style={{ textAlign: "left", color: "var(--ink-3)" }}>
             <th style={{ paddingRight: 10 }}>surface</th>
             <th style={{ paddingRight: 10 }}>parameter</th>
             <th style={{ paddingRight: 10 }}>drift</th>
@@ -401,7 +401,7 @@ export function TolerancePanel() {
             const readout = result?.rows[i];
             const unit = TARGET_UNIT[row.target];
             return (
-              <tr key={i} style={{ borderTop: "1px solid #eee" }}>
+              <tr key={i} style={{ borderTop: "1px solid var(--line-2)" }}>
                 <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
                   <Choice
                     label=""
@@ -441,7 +441,7 @@ export function TolerancePanel() {
                       {readout.radiusChangeMm !== undefined && (
                         <>
                           <br />
-                          <span style={{ color: "#777" }}>
+                          <span style={{ color: "var(--ink-4)" }}>
                             R {readout.radiusMm!.toFixed(2)} → {(readout.radiusMm! + readout.radiusChangeMm).toFixed(2)} mm
                           </span>
                         </>
@@ -449,7 +449,7 @@ export function TolerancePanel() {
                       {row.target === "curvature" && readout.radiusChangeMm === undefined && (
                         <>
                           <br />
-                          <span style={{ color: "#777" }}>flat surface — no radius to quote</span>
+                          <span style={{ color: "var(--ink-4)" }}>flat surface — no radius to quote</span>
                         </>
                       )}
                     </>
@@ -469,7 +469,7 @@ export function TolerancePanel() {
                     <>
                       {fmt(result!.refocus ? readout.sigmaWaves : readout.sigmaBeforeFocusWaves, 5)}
                       <br />
-                      <span style={{ color: "#777" }}>
+                      <span style={{ color: "var(--ink-4)" }}>
                         {fmt(result!.refocus ? readout.physicalRefocusWaves : readout.sigmaWaves, 5)}
                       </span>
                     </>
@@ -493,7 +493,7 @@ export function TolerancePanel() {
                           display: "inline-block",
                           height: 9,
                           width: `${Math.round(readout.varianceShare * 140)}px`,
-                          background: "#468",
+                          background: "var(--blue)",
                           verticalAlign: "middle",
                           marginRight: 6,
                         }}
@@ -509,7 +509,7 @@ export function TolerancePanel() {
       </table>
 
       {/* The refusals and the scaling checks, per row, under the table they belong to. */}
-      <div style={{ marginTop: 6, color: "#777", fontSize: 11 }}>
+      <div style={{ marginTop: 6, color: "var(--ink-4)", fontSize: 11 }}>
         {rows.map((row, i) => {
           const scale = scales[i];
           if (!scale) return null;
@@ -532,7 +532,7 @@ export function TolerancePanel() {
           }
           const off = Math.abs(scale.nonlinearity - 1);
           return (
-            <div key={i} style={{ color: off > 0.1 ? GUARD_COLOR.warn : "#777" }}>
+            <div key={i} style={{ color: off > 0.1 ? GUARD_COLOR.warn : "var(--ink-4)" }}>
               {name}: ±1 = {fmt(scale.fullScaleDelta, 5)} {TARGET_UNIT[row.target]}, σ there ={" "}
               {scale.sigmaAtFullScale.toFixed(5)} waves. Linear extrapolation from the coefficient{" "}
               would have said {fmt(MARECHAL_WAVES / scale.coefficientWavesPerUnit, 5)} —{" "}
@@ -563,7 +563,7 @@ export function TolerancePanel() {
                   </div>
                 </div>
               </div>
-              <div style={{ color: "#777", marginTop: 4, maxWidth: 540 }}>
+              <div style={{ color: "var(--ink-4)", marginTop: 4, maxWidth: 540 }}>
                 One exposure for both frames, taken from the nominal (Y ={" "}
                 {result.exposureReferenceY.toExponential(3)}, white = peak ÷ {whiteDivisor}).
                 Exposing each on its own total would re-brighten the degradation into
@@ -606,7 +606,7 @@ export function TolerancePanel() {
                 </div>
                 )}
                 {result.rssWaves > 0 && result.independenceRatio < 0.5 && (
-                  <div style={{ color: "#777", marginTop: 4, maxWidth: 380 }}>
+                  <div style={{ color: "var(--ink-4)", marginTop: 4, maxWidth: 380 }}>
                     But the cancellation is in the <em>projected</em> currency, and a real
                     focuser does not get it. The projection removes ρ² by least squares on one
                     reference plane — which is what makes the RSS exact — while the instrument
@@ -626,7 +626,7 @@ export function TolerancePanel() {
                   {result.strehlRatioMeaningful ? (
                     <>
                       <strong>{result.strehlRatio.toFixed(5)}</strong>{" "}
-                      <span style={{ color: "#777" }}>(real PSF, perturbed ÷ nominal)</span>
+                      <span style={{ color: "var(--ink-4)" }}>(real PSF, perturbed ÷ nominal)</span>
                     </>
                   ) : (
                     <span style={{ color: GUARD_COLOR.bad }}>
@@ -647,7 +647,7 @@ export function TolerancePanel() {
                       color:
                         Math.abs(result.strehlRatio / result.strehlMarechal - 1) > 0.1
                           ? GUARD_COLOR.warn
-                          : "#777",
+                          : "var(--ink-4)",
                     }}
                   >
                     measured ÷ predicted ={" "}
@@ -663,7 +663,7 @@ export function TolerancePanel() {
                     ratio is refused, or the panel invites a reader to watch a
                     number that is not on the page. */}
                 {!result.strehlRatioMeaningful ? (
-                  <div style={{ color: "#777", marginTop: 4, maxWidth: 380 }}>
+                  <div style={{ color: "var(--ink-4)", marginTop: 4, maxWidth: 380 }}>
                     The budget above is still a wavefront and still means what it says — a
                     delta σ does not need the nominal to be any good. What is unavailable is
                     the *image* comparison, because this lens is not forming one: the
@@ -671,7 +671,7 @@ export function TolerancePanel() {
                     off the grid.
                   </div>
                 ) : (
-                <div style={{ color: "#777", marginTop: 4, maxWidth: 380 }}>
+                <div style={{ color: "var(--ink-4)", marginTop: 4, maxWidth: 380 }}>
                   {result.refocus
                     ? "A σ has no sign and an image does. § 5t pins every external rung on a " +
                       "PERFECT nominal; this one is a real doublet with its own spherical " +
@@ -691,20 +691,20 @@ export function TolerancePanel() {
               series={[
                 {
                   label: "rss — √(Σσᵢ²), the independent-modes estimate",
-                  color: "#c60",
+                  color: "var(--warn-strong)",
                   points: result.sweep.map((s) => [s.k, s.rssWaves] as const),
                   dash: [5, 4],
                 },
                 {
                   label: "combined — one trace",
-                  color: "#248",
+                  color: "var(--blue)",
                   points: result.sweep.map((s) => [s.k, s.combinedWaves] as const),
                   dots: true,
                 },
               ]}
               markers={[
-                { x: 1, color: "#999", label: "sliders" },
-                { y: MARECHAL_WAVES, color: "#a60", label: "λ/14" },
+                { x: 1, color: "var(--ink-5)", label: "sliders" },
+                { y: MARECHAL_WAVES, color: "var(--warn)", label: "λ/14" },
               ]}
               xLabel="k — every slider scaled by this"
               yLabel="σ waves"
@@ -750,7 +750,7 @@ export function TolerancePanel() {
                   : "every σ above is over the whole pupil"
               }
             />
-            <div style={{ color: "#777" }}>
+            <div style={{ color: "var(--ink-4)" }}>
               {result.elapsedMs.toFixed(0)} ms{job.pending ? " — recomputing" : ""}
               {fresh && ` · scaling ${fresh.elapsedMs.toFixed(0)} ms`}
               <br />

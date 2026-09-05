@@ -96,7 +96,7 @@ function SpreadLine({ spread }: { spread: PhaseFrame["secondHarmonicSpread"] }) 
   // and printing "(1.00×)" from a single number would read as agreement.
   if (spread.readings.length === 1) {
     return (
-      <span style={{ color: "#777" }}>
+      <span style={{ color: "var(--ink-4)" }}>
         &nbsp;&nbsp;
         {spread.skipped.length === 0
           ? "source samples do not enter: one illumination direction"
@@ -109,7 +109,7 @@ function SpreadLine({ spread }: { spread: PhaseFrame["secondHarmonicSpread"] }) 
   // count and a spacing are different things and this line is the one place the
   // number is shown without its units.
   return (
-    <span style={{ color: "#777" }}>
+    <span style={{ color: "var(--ink-4)" }}>
       &nbsp;&nbsp;across{" "}
       {spread.kind === "spacing" ? "condenser lattice spacing" : "source samples"}{" "}
       {spread.readings.map((r) => r.option).join("/")}:{" "}
@@ -197,7 +197,7 @@ function CarryingLine({ support }: { support: HarmonicSupport }) {
       {support.apertureFraction > 0 && (
         <>
           {" "}
-          <span style={{ color: "#777" }}>
+          <span style={{ color: "var(--ink-4)" }}>
             (×{(support.latticeWeight / support.apertureFraction).toFixed(2)} of the set, not of the
             contrast)
           </span>
@@ -246,9 +246,9 @@ function HarmonicTable({
   defocusWaves: number;
 }) {
   return (
-    <table style={{ borderCollapse: "collapse", fontFamily: "monospace", fontSize: 11 }}>
+    <table style={{ borderCollapse: "collapse", fontFamily: "var(--mono)", fontSize: 11 }}>
       <thead>
-        <tr style={{ color: "#777", textAlign: "left" }}>
+        <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
           <th style={{ paddingRight: 8, fontWeight: "normal" }}>h</th>
           <th style={{ paddingRight: 8, fontWeight: "normal" }}>hν</th>
           <th style={{ paddingRight: 8, fontWeight: "normal" }}>contrast</th>
@@ -274,13 +274,13 @@ function HarmonicTable({
           return (
             <tr key={reading.harmonic}>
               <td style={{ paddingRight: 8 }}>{reading.harmonic}</td>
-              <td style={{ paddingRight: 8, color: "#777" }}>
+              <td style={{ paddingRight: 8, color: "var(--ink-4)" }}>
                 {(row?.frequency ?? 0).toFixed(3)}
               </td>
-              <td style={{ paddingRight: 8, color: isNull ? GUARD_COLOR.ok : "#111" }}>
+              <td style={{ paddingRight: 8, color: isNull ? GUARD_COLOR.ok : "var(--ink)" }}>
                 {reading.contrast.toExponential(2)}
               </td>
-              <td style={{ color: "#777" }}>
+              <td style={{ color: "var(--ink-4)" }}>
                 {note.kind === "unsupported" ? (
                   // The gate's own words, hover for the full sentence — a zero
                   // with no direction behind it is not the same claim as a zero
@@ -297,7 +297,7 @@ function HarmonicTable({
                     complex
                   </span>
                 ) : note.kind === "closed-form" ? (
-                  <span style={{ color: "#06a" }}>
+                  <span style={{ color: "var(--accent)" }}>
                     2&middot;J{reading.harmonic / 2}(&phi;)&sup2; residual{" "}
                     <strong>{note.residual.toExponential(1)}</strong>
                   </span>
@@ -365,19 +365,19 @@ function Frame({
 
   return (
     <figure style={{ margin: 0 }}>
-      <figcaption style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 4 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 4 }}>
         <strong>{title}</strong>
         <br />
-        <span style={{ color: "#777" }}>{note}</span>
+        <span style={{ color: "var(--ink-4)" }}>{note}</span>
       </figcaption>
       <canvas
         ref={canvas}
         style={{ width: 300, height: 300, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption
-        style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 300 }}
+        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 300 }}
       >
-        <span style={{ color: nulled ? GUARD_COLOR.ok : "#111" }}>
+        <span style={{ color: nulled ? GUARD_COLOR.ok : "var(--ink)" }}>
           contrast at ν <strong>{frame.contrast.toExponential(3)}</strong>
         </span>
         <br />
@@ -398,7 +398,7 @@ function Frame({
         <br />
         mean {frame.meanIntensity.toExponential(4)}
         <br />
-        <span style={{ color: "#777" }}>
+        <span style={{ color: "var(--ink-4)" }}>
           weak-phase 2φT = {frame.weakPrediction.toExponential(3)}
           {phi > 0 && frame.weakPrediction > 1e-9 && (
             <>
@@ -413,12 +413,12 @@ function Frame({
         </span>
         <br />
         {frame.besselCheck === null ? (
-          <span style={{ color: "#777" }}>
+          <span style={{ color: "var(--ink-4)" }}>
             no closed form here — it needs the ±1 orders through the pupil and ±2 outside it, from
             every direction, and an unaberrated pupil or an on-axis source
           </span>
         ) : (
-          <span style={{ color: "#06a" }}>
+          <span style={{ color: "var(--accent)" }}>
             2ν · mean = {frame.besselCheck.measured.toFixed(9)}
             <br />
             2·J₁(φ)² &nbsp;&nbsp; = {frame.besselCheck.closed.toFixed(9)}
@@ -471,14 +471,14 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
         summing the orders…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
         the engine refuses this source: {sweep.error}
       </p>
     );
@@ -494,10 +494,10 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
   if (!(sweep.sweep.directBeam > 0)) {
     return (
       <div style={{ width: 420 }}>
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.warn }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.warn }}>
           no transfer curve exists here.
         </p>
-        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", lineHeight: 1.7 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.7 }}>
           Every transfer in <code>illumination/transfer</code> is a ratio to the undiffracted
           energy Σw·|P(s)|², and darkfield puts that at exactly <strong>0</strong> — the annulus
           lies wholly outside the pupil, so no illuminating beam enters it. The engine guards the
@@ -522,24 +522,24 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
         series={[
           {
             label: "absorption, in focus",
-            color: "#06a",
+            color: "var(--accent)",
             points: p.map((q) => [q.nu, q.absorption] as const),
             dash: [5, 4],
           },
           {
             label: `phase, defocused ${request.defocusWaves.toFixed(2)}λ`,
-            color: "#a60",
+            color: "var(--warn)",
             points: p.map((q) => [q.nu, q.phaseDefocused] as const),
             width: 2.4,
           },
           {
             label: "phase, in focus",
-            color: "#111",
+            color: "var(--ink)",
             points: p.map((q) => [q.nu, q.phaseFocused] as const),
             width: 2.6,
           },
         ]}
-        markers={[{ x: nu, color: "#3a7", label: `object ν ${nu.toFixed(3)}` }]}
+        markers={[{ x: nu, color: "var(--ok)", label: `object ν ${nu.toFixed(3)}` }]}
         xLabel="spatial frequency ν, in NA/λ"
         yLabel="transfer T (image contrast = 2·φ·T)"
         xMin={0}
@@ -555,7 +555,7 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
         yMin={-0.06}
         yMax={1.15}
       />
-      <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", width: 420, marginTop: 4 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
         max in-focus phase transfer over {p.length} frequencies ={" "}
         <strong>{sweep.sweep.worstNull.toExponential(3)}</strong> · {sweep.sweep.elapsedMs.toFixed(0)}{" "}
         ms. The flat line on the axis is the whole panel; the dashed one is what the same instrument
@@ -670,7 +670,7 @@ export function PhasePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The phase null: why unstained cells are invisible</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         A specimen that absorbs nothing. <strong>|t| = 1 everywhere</strong> — a photographic plate
         at the object plane would see a blank sheet, and so does a brightfield microscope: the two
         sidebands a phase grating diffracts arrive in quadrature with the direct beam and 180° apart
@@ -679,7 +679,7 @@ export function PhasePanel() {
         <strong>null</strong> — so the picture alone could not tell it from a broken render, and the
         curve beside it is not decoration.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         Everything here runs on an <strong>ideal pupil</strong>, never a traced objective, and that
         is the stronger version rather than the cheaper one: the null&rsquo;s precondition is a real
         (unaberrated) pupil, so a traced objective&rsquo;s residual turns an exact zero into a small
@@ -687,7 +687,7 @@ export function PhasePanel() {
         and no honest µm scale — the panel works in ν and grid units throughout. Break the pupil
         instead, deliberately, with the <strong>defocus</strong> slider, and watch the null lift.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         <strong>The canvas is not blank, and that is the finding.</strong>{" "}
         <code>phaseGratingObject</code> carries every Bessel order the grid can hold, not the
         weak-object truncation — so squaring it leaves the ν bin (the 0×±1 beat) cancelled and the{" "}
@@ -696,7 +696,7 @@ export function PhasePanel() {
         structure at twice the frequency of the object that made it, while the transfer at the
         object&rsquo;s own frequency sits on the axis. Both numbers are under each canvas.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         Two controls exist to <em>fail</em> to break it. <strong>φ</strong> is not a brightness dial:
         the textbook statement is about a weak phase object, and measured, the ν bin stays at f64
         noise out to φ = 3 radians, where the object is nothing like weak. <strong>Darkfield</strong>{" "}
@@ -753,7 +753,7 @@ export function PhasePanel() {
         )}
       </div>
       {illumination === "darkfield" && !darkfieldFits && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.warn, maxWidth: 660 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.warn, maxWidth: 660 }}>
           darkfield is unavailable at pupil samples {pupilSamples} on a {size}² grid: the{" "}
           {DARKFIELD_INNER}–{DARKFIELD_OUTER} annulus reaches past |s| ={" "}
           {gridReach(size, pupilSamples).toFixed(3)}, which is all the frequency grid has, and{" "}
@@ -801,7 +801,7 @@ export function PhasePanel() {
       </div>
 
       {result !== null && !result.ok && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
           the engine refuses this render: {result.error}
         </p>
       )}
@@ -844,12 +844,12 @@ export function PhasePanel() {
       {readout !== null && (
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", marginTop: 16 }}>
           <div>
-            <div style={{ fontFamily: "monospace", fontSize: 12, color: "#777" }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
               defocused frame&rsquo;s guards
             </div>
             <GuardBlock frame={readout.defocused} />
           </div>
-          <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, color: "#555" }}>
+          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, color: "var(--ink-3)" }}>
             {readout.sourcePoints} illumination direction
             {readout.sourcePoints === 1 ? "" : "s"} · {readout.defocused.contributingPoints}{" "}
             contributed
@@ -863,7 +863,7 @@ export function PhasePanel() {
             <br />
             orders on the grid |m| &le; {readout.truncation.maxOrder} · light not on it{" "}
             <strong
-              style={{ color: readout.truncation.droppedEnergy > 0.01 ? "#a33" : "inherit" }}
+              style={{ color: readout.truncation.droppedEnergy > 0.01 ? "var(--bad)" : "inherit" }}
             >
               {(100 * readout.truncation.droppedEnergy).toPrecision(3)}%
             </strong>
@@ -873,7 +873,7 @@ export function PhasePanel() {
         </div>
       )}
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The closed form under the canvases</strong> appears only where it applies:
         wherever <em>every</em> illuminated direction puts orders ±1 through the pupil and ±2
         outside it, so the +1×−1 beat is the only pair two apart in the image. There the
@@ -901,7 +901,7 @@ export function PhasePanel() {
         to refuse ν = 1 on a rim artifact that vanished when the object was rebuilt from its
         spectrum. Both readings are now taken wherever the order geometry says they mean something.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>And the sharpest thing the defocus slider does</strong> is inside that same regime:
         drag it and <code>2ν · mean</code> does not move — not approximately, but in every printed
         digit — while the contrast at ν runs from 0 to 0.74 and back. Defocus is a pure phase, and
@@ -909,7 +909,7 @@ export function PhasePanel() {
         phase difference at all, while the 0×±1 beat that makes ν picks up sin(2π·w₂₀·ν²). One
         slider, two terms in one image, and only one of them is listening.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>&ldquo;Every Bessel order&rdquo; is a promise a finite grid cannot keep</strong>, and
         the readout says which ones it kept. A grating&rsquo;s orders run to infinity; the grid holds
         the ones with |m|·cycles inside it, which at 13 cycles on 128 bins is |m| &le; 4. The rest
@@ -929,7 +929,7 @@ export function PhasePanel() {
         object is not quite a pure phase object, so at that corner &ldquo;absorbs nothing&rdquo; is
         the thing that has stopped being true, not the null.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         Both canvases share <strong>one</strong> grey scale — white is {WHITE_OVER_MEAN}× the
         in-focus frame&rsquo;s mean — because the panel is a comparison and two independently
         normalized pictures would rescale against each other. That fixes the pair against itself

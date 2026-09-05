@@ -159,14 +159,14 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
         building the focus stacks through this objective…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -199,13 +199,13 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           series={[
             {
               label: "sinc²(π·w₂₀), closed form",
-              color: "#a60",
+              color: "var(--warn)",
               points: closed,
               width: 2.4,
             },
             {
               label: "measured, this objective",
-              color: "#111",
+              color: "var(--ink)",
               points: measured,
               width: 1.3,
             },
@@ -215,9 +215,9 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             // say "the worst plane is at 2 waves" for a slab whose worst plane
             // is at 6, which is a wrong number rather than a missing one.
             ...(Math.abs(markWaves) <= 2
-              ? [{ x: markWaves, color: "#06a", label: "worst plane" } as const]
+              ? [{ x: markWaves, color: "var(--accent)", label: "worst plane" } as const]
               : []),
-            { y: 8 / (Math.PI * Math.PI), color: "#3a7", label: "8/π² at ¼ wave" },
+            { y: 8 / (Math.PI * Math.PI), color: "var(--ok)", label: "8/π² at ¼ wave" },
           ]}
           xLabel="defocus w₂₀, waves at the pupil rim"
           yLabel="on-axis intensity ÷ its value at w₂₀ = 0"
@@ -226,13 +226,13 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           yMin={-0.05}
           yMax={Math.max(1.15, r.sweep.peakRatio * 1.08)}
         />
-        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", width: 420, marginTop: 4 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
           Exactly <strong>zero at every integer wave</strong> — all of the light in the rings, and
           the plane&rsquo;s total unmoved. An ideal pupil reproduces the closed form to 7.6e-3 at{" "}
           {AXIAL_PUPIL_SAMPLES} bins across the pupil and 2.0e-3 at 64, so a gap much larger than
           that is this objective.
           <br />
-          <span style={{ color: r.sweep.peakRatio > 1.01 ? "#a60" : "#3a7" }}>
+          <span style={{ color: r.sweep.peakRatio > 1.01 ? "var(--warn)" : "var(--ok)" }}>
             the axial peak sits at w₂₀ = <strong>{r.sweep.peakWaves.toFixed(3)}</strong> waves
             {r.sweep.peakAtEdge && " (at the sweep's edge — a bound, not a value)"}, where the
             response is <strong>{r.sweep.peakRatio.toFixed(3)}×</strong> its value at the plane the
@@ -267,7 +267,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             </span>
           )}
           <br />
-          <span style={{ color: r.mountMatched ? "#3a7" : "#a60" }}>
+          <span style={{ color: r.mountMatched ? "var(--ok)" : "var(--warn)" }}>
             <strong>±1 wave: </strong>
             {asym.asymmetry === null ? (
               <>
@@ -305,7 +305,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
         <Plot
           series={r.cones.map((c, i) => ({
             label: c.nu === 0 ? "ν = 0 — the cone" : `ν = ${c.nu}`,
-            color: ["#c00", "#06a", "#111", "#a60"][i] ?? "#666",
+            color: ["var(--bad)", "var(--accent)", "var(--ink)", "var(--warn)"][i] ?? "var(--ink-3)",
             points: c.cyclesPerWave.map((mu, j) => [mu, c.magnitude[j]!] as const),
             width: c.nu === 0 ? 2.4 : 1.4,
             // ν = 1.5 dashed: it shares its support edge with ν = 0.5, so the
@@ -314,8 +314,8 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             ...(i === 3 ? { dash: [5, 4] } : {}),
           }))}
           markers={[
-            { x: 1, color: "#3a7", label: "μ = ν(2−ν)" },
-            { x: 0.75, color: "#3a7" },
+            { x: 1, color: "var(--ok)", label: "μ = ν(2−ν)" },
+            { x: 0.75, color: "var(--ok)" },
           ]}
           xLabel="axial frequency μ, cycles per wave of defocus"
           yLabel="|axial transfer| ÷ its own peak"
@@ -328,9 +328,9 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             is invalid nesting that React unmounts the subtree over. */}
         <div
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 11,
-            color: "#777",
+            color: "var(--ink-4)",
             width: 420,
             marginTop: 4,
             lineHeight: 1.5,
@@ -381,7 +381,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
               <br />
             </>
           )}
-          <span style={{ color: "#777" }}>
+          <span style={{ color: "var(--ink-4)" }}>
             the stack spans <strong>{r.coneWindowWaves}</strong> waves at {CONE_PUPIL_SAMPLES}{" "}
             bins — {r.coneTopDepthUm.toFixed(2)}–{r.coneBottomDepthUm.toFixed(2)} µm of specimen,
             anchored at the depth control so no slice sits above the slip where there is no mount to
@@ -429,14 +429,14 @@ function DepthPlot({ request }: { request: DepthRequest }) {
 
   if (depth === null) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#777", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
         bisecting the depth budget on this objective&rsquo;s own Strehl…
       </p>
     );
   }
   if (!depth.ok) {
     return (
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#c00", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
         {refusalVoice(depth.source, "this objective")}: {depth.error}
       </p>
     );
@@ -445,12 +445,12 @@ function DepthPlot({ request }: { request: DepthRequest }) {
   const d = depth.readout;
   const span = d.curve[d.curve.length - 1]!.depthUm;
   const markers = [
-    { y: 0.8, color: "#3a7", label: "Maréchal, Strehl 0.8" },
+    { y: 0.8, color: "var(--ok)", label: "Maréchal, Strehl 0.8" },
     ...(d.bisectedIdealUm !== null && d.bisectedIdealUm <= span
-      ? [{ x: d.bisectedIdealUm, color: "#c00", label: "bisected" } as const]
+      ? [{ x: d.bisectedIdealUm, color: "var(--bad)", label: "bisected" } as const]
       : []),
     ...(d.quotedMarechalUm !== null && d.quotedMarechalUm <= span
-      ? [{ x: d.quotedMarechalUm, color: "#06a", label: "quoted budget" } as const]
+      ? [{ x: d.quotedMarechalUm, color: "var(--accent)", label: "quoted budget" } as const]
       : []),
   ];
 
@@ -460,14 +460,14 @@ function DepthPlot({ request }: { request: DepthRequest }) {
         series={[
           {
             label: `the depth's own cost — ideal pupil at NA ${d.deliveredNA.toFixed(4)}`,
-            color: "#111",
+            color: "var(--ink)",
             points: d.curve.map((p) => [p.depthUm, p.ideal] as const),
             width: 2.4,
             dots: true,
           },
           {
             label: "this objective, traced",
-            color: "#a60",
+            color: "var(--warn)",
             points: d.curve.map((p) => [p.depthUm, p.traced] as const),
             width: 1.4,
             dash: [5, 4],
@@ -484,9 +484,9 @@ function DepthPlot({ request }: { request: DepthRequest }) {
       />
       <div
         style={{
-          fontFamily: "monospace",
+          fontFamily: "var(--mono)",
           fontSize: 11,
-          color: "#777",
+          color: "var(--ink-4)",
           width: 420,
           marginTop: 4,
           lineHeight: 1.5,
@@ -528,7 +528,7 @@ function DepthPlot({ request }: { request: DepthRequest }) {
           <>
             <br />
             <span
-              style={{ color: d.overReport > 1.5 * d.marechalFloor ? GUARD_COLOR.warn : "#3a7" }}
+              style={{ color: d.overReport > 1.5 * d.marechalFloor ? GUARD_COLOR.warn : "var(--ok)" }}
             >
               the quoted budget over-reports by <strong>{d.overReport.toFixed(2)}×</strong>
             </span>{" "}
@@ -615,14 +615,14 @@ export function VolumePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Out-of-focus haze: the specimen stops being a plane</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The same fluorescent beads as the previous panel, now scattered through a <em>slab</em> —
         one bead field per plane, the planes stepping by exactly one depth of focus. Move the focus
         slider and the objective picks a different plane out of the stack. Everything else you can
         see is <strong>haze</strong>: light from the planes that are not in focus, spread into a
         background that carries no detail.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         <strong>A defocus is a pure phase.</strong> It changes no amplitude anywhere in the pupil,
         so the pupil&rsquo;s transmitted energy does not move, so — by Parseval, through the
         engine&rsquo;s own transform — neither does the kernel&rsquo;s total. Every plane of the
@@ -632,7 +632,7 @@ export function VolumePanel() {
         in-focus fraction and the image&rsquo;s total light do not move in any printed digit while
         you drag the focus.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The right-hand plot is that same fact transformed along the depth axis. A constant sequence
         has a transform that is zero everywhere but DC, so the widefield instrument carries{" "}
         <strong>no axial information at all</strong> about how bright the specimen is — the{" "}
@@ -680,7 +680,7 @@ export function VolumePanel() {
           format={(v) => `×${v}`}
         />
       </div>
-      <div style={{ fontFamily: "monospace", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
@@ -736,7 +736,7 @@ export function VolumePanel() {
       </div>
 
       {result !== null && !result.ok && (
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
           {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       )}
@@ -748,7 +748,7 @@ export function VolumePanel() {
           >
             <StackCanvas readout={readout} stretch={stretch} />
             <figcaption
-              style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, maxWidth: 340 }}
+              style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 340 }}
             >
               <strong>{readout.objectSpanUm.toFixed(2)} µm</strong> across ×{" "}
               <strong>{readout.slabThicknessUm.toFixed(2)} µm</strong> deep, its top face{" "}
@@ -757,7 +757,7 @@ export function VolumePanel() {
               {readout.mountMedium} ({readout.mountIndex.toFixed(4)})
               <br />
               <span
-                style={{ color: readout.deliveredNA < readout.tracedNA ? GUARD_COLOR.warn : "#3a7" }}
+                style={{ color: readout.deliveredNA < readout.tracedNA ? GUARD_COLOR.warn : "var(--ok)" }}
               >
                 delivered NA <strong>{readout.deliveredNA.toFixed(4)}</strong>
                 {readout.deliveredNA < readout.tracedNA
@@ -770,7 +770,7 @@ export function VolumePanel() {
               the step in waves does not
               <br />
               focused {readout.focusDepthUm.toFixed(3)} µm down, which costs{" "}
-              <span style={{ color: readout.mountMatched ? "#3a7" : "#a60" }}>
+              <span style={{ color: readout.mountMatched ? "var(--ok)" : "var(--warn)" }}>
                 <strong>{readout.focusDepthWaves.toFixed(4)}</strong> waves
               </span>{" "}
               at {WAVEFRONT_RHO.toFixed(2)} of the delivered rim
@@ -805,7 +805,7 @@ export function VolumePanel() {
                   initialization, which is the value that would mean it holds exactly
                 </span>
               ) : (
-                <span style={{ color: "#3a7" }}>{readout.throughputDrift.toExponential(2)}</span>
+                <span style={{ color: "var(--ok)" }}>{readout.throughputDrift.toExponential(2)}</span>
               )}
               <br />
               {readout.inFocusFraction === null || readout.emittedInFocusShare === null ? (
@@ -817,13 +817,13 @@ export function VolumePanel() {
                 <>
                   in focus <strong>{readout.inFocusFraction.toFixed(9)}</strong>
                   <br />
-                  <span style={{ color: "#3a7" }}>
+                  <span style={{ color: "var(--ok)" }}>
                     = the specimen&rsquo;s own emitted share{" "}
                     {readout.emittedInFocusShare.toFixed(9)} to{" "}
                     {Math.abs(readout.inFocusFraction - readout.emittedInFocusShare).toExponential(1)}
                   </span>
                   <br />
-                  <span style={{ color: "#777" }}>
+                  <span style={{ color: "var(--ink-4)" }}>
                     equal-flux ideal 1/{planes} = {readout.equalFluxIdeal.toFixed(6)}
                   </span>
                 </>
@@ -844,7 +844,7 @@ export function VolumePanel() {
         <DepthPlot request={depthRequest} />
       </div>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The in-focus fraction is the specimen&rsquo;s, not the instrument&rsquo;s.</strong>{" "}
         Because every plane delivers its whole flux, the image&rsquo;s in-focus share is exactly the
         share of the emitters that lie within half a depth of focus — the two agree to ~1e-16 above,
@@ -856,7 +856,7 @@ export function VolumePanel() {
         light and <em>not</em> from the kernels&rsquo; own totals, which are normalized to 1 and
         would report the identity by arithmetic — the trap `formedSum` exists to avoid.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The frame has a depth as well as a width, and the depth runs out faster.</strong> The
         lateral crop falls as 1/NA (§ 6h) and the depth of focus falls as n/NA², so the slab a panel
         can hold shrinks the harder of the two: <em>on the bench&rsquo;s rows</em>, at 4×/0.10 nine
@@ -867,7 +867,7 @@ export function VolumePanel() {
         alone&rdquo; with the axial direction added, and it is why the immersion rows are where a
         z-stack means something.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>
           Where the axial peak sits is a reading of A1&rsquo;s σ — with the mount matched.
         </strong>{" "}
@@ -893,7 +893,7 @@ export function VolumePanel() {
         rather than compared to a table it is not in. A1&rsquo;s wording was right and this is the
         number behind it.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>What the guard turning red looks like.</strong> A pupil sampled on a lattice has a{" "}
         <em>periodic</em> kernel, so once a badly defocused plane&rsquo;s PSF is wider than one
         period its tails fold back in and the frame fills with a false uniform glow. The number
@@ -905,7 +905,7 @@ export function VolumePanel() {
         slab gets thick. Focusing at an <em>end</em> of the stack doubles the worst plane&rsquo;s
         defocus, so the guard moves while you drag the focus even though the physics does not.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The specimen is mounted in something, and that is where the depth goes.</strong>{" "}
         Focusing d below the slip drags the cone through d of a medium the objective was not
         corrected for, and adds spherical aberration <em>that grows with d</em> — the dominant real
@@ -920,7 +920,7 @@ export function VolumePanel() {
         <strong>depth is unbounded</strong>: every mismatched mount has a depth past which no
         objective is diffraction-limited, which is the third plot.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The wall in the delivered NA is not aberration at all.</strong> A ray inside the
         specimen carries q = n_s·sinθ_s, strictly below n_s, so <em>no ray of higher invariant ever
         leaves it</em> — an objective engraved 1.40 collects at most 1.3334 from a water mount
@@ -932,7 +932,7 @@ export function VolumePanel() {
         that do not exist. The same asymmetry is what lets the pupil <em>mask</em> use that number —
         a mask&rsquo;s boundary is one lattice point of measure zero.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>Two questions, and the panel asks both rather than blurring them.</strong> &ldquo;A
         pupil that varies with depth&rdquo; means two physically different things. Each plane of a
         thick specimen sits at its own depth and looks through its own thickness of mount — that is
@@ -943,7 +943,7 @@ export function VolumePanel() {
         is that <em>refocusing buys back the paraxial half and no more</em>: best focus moves, the
         response stops being even in the defocus, and the peak never comes back to where it was.
       </p>
-      <p style={{ marginTop: 8, fontSize: 13, color: "#666", maxWidth: 660 }}>
+      <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>One thing is still deliberately absent.</strong> There is no{" "}
         <em>field decomposition</em>: `renderVolume` takes one pupil keyed on depth, not one keyed
         on position, so the whole frame is imaged through the on-axis traced pupil and the previous

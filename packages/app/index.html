@@ -3,7 +3,20 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
     <title>Telemicroscope — the bench</title>
+    <!--
+      Stamp the stored theme before any stylesheet or script loads, so a reader
+      who chose dark never sees a white frame while the bundle arrives. The key
+      and the two values are `theme.ts`'s; this is the one place they are
+      repeated, because that module cannot run before it has been fetched.
+    -->
+    <script>
+      try {
+        var t = localStorage.getItem("telemicroscope.theme");
+        if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

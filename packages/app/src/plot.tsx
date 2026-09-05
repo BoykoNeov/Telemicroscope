@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { resolveColor, useThemeVersion } from "./theme";
 
 /**
  * A minimal axes-and-lines canvas — APP.md's structural item 5.
@@ -71,6 +72,9 @@ export function Plot(props: PlotProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const width = props.width ?? 420;
   const height = props.height ?? 280;
+  // A canvas cannot read a CSS variable, so the theme is a dependency of the
+  // draw: switching palettes redraws the axes in the new greys (see `theme.ts`).
+  const theme = useThemeVersion();
 
   useEffect(() => {
     const element = canvas.current;
@@ -80,9 +84,10 @@ export function Plot(props: PlotProps) {
     element.height = Math.round(height * dpr);
     const c = element.getContext("2d");
     if (!c) return;
+    const paint = (color: string) => resolveColor(element, color);
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     c.clearRect(0, 0, width, height);
-    c.font = "11px monospace";
+    c.font = `11px ${getComputedStyle(element).getPropertyValue("--mono").trim() || "monospace"}`;
     c.textBaseline = "middle";
 
     const plotW = width - PAD.left - PAD.right;
@@ -91,8 +96,8 @@ export function Plot(props: PlotProps) {
     const sy = (y: number) => PAD.top + plotH - ((y - props.yMin) / (props.yMax - props.yMin)) * plotH;
 
     // Grid and ticks first, so every line sits on top of them.
-    c.strokeStyle = "#eee";
-    c.fillStyle = "#777";
+    c.strokeStyle = paint("var(--line-2)");
+    c.fillStyle = paint("var(--ink-4)");
     c.lineWidth = 1;
     c.textAlign = "right";
     for (const t of ticks(props.yMin, props.yMax)) {
@@ -113,10 +118,10 @@ export function Plot(props: PlotProps) {
       c.fillText(String(t), x, PAD.top + plotH + 12);
     }
 
-    c.strokeStyle = "#999";
+    c.strokeStyle = paint("var(--ink-5)");
     c.strokeRect(PAD.left + 0.5, PAD.top + 0.5, plotW, plotH);
 
-    c.fillStyle = "#444";
+    c.fillStyle = paint("var(--ink-2)");
     c.fillText(props.xLabel, PAD.left + plotW / 2, height - 8);
     c.save();
     c.translate(11, PAD.top + plotH / 2);
@@ -127,7 +132,7 @@ export function Plot(props: PlotProps) {
     // Markers under the data: they say where to look, they are not the data.
     for (const m of props.markers ?? []) {
       c.save();
-      c.strokeStyle = m.color;
+      c.strokeStyle = paint(m.color);
       c.setLineDash([3, 3]);
       c.lineWidth = 1;
       c.beginPath();
@@ -143,7 +148,7 @@ export function Plot(props: PlotProps) {
       }
       c.stroke();
       if (m.label) {
-        c.fillStyle = m.color;
+        c.fillStyle = paint(m.color);
         c.setLineDash([]);
         if (m.x !== undefined) {
           c.textAlign = "left";
@@ -162,7 +167,7 @@ export function Plot(props: PlotProps) {
     c.clip();
     for (const s of props.series) {
       if (s.points.length === 0) continue;
-      c.strokeStyle = s.color;
+      c.strokeStyle = paint(s.color);
       c.lineWidth = s.width ?? 1.6;
       c.setLineDash(s.dash ? [...s.dash] : []);
       c.beginPath();
@@ -172,7 +177,7 @@ export function Plot(props: PlotProps) {
       });
       c.stroke();
       if (s.dots) {
-        c.fillStyle = s.color;
+        c.fillStyle = paint(s.color);
         c.setLineDash([]);
         for (const [x, y] of s.points) {
           c.beginPath();
@@ -182,12 +187,12 @@ export function Plot(props: PlotProps) {
       }
     }
     c.restore();
-  }, [props, width, height]);
+  }, [props, width, height, theme]);
 
   return (
     <figure style={{ margin: 0 }}>
       <canvas ref={canvas} style={{ width, height }} />
-      <figcaption style={{ fontFamily: "monospace", fontSize: 11, lineHeight: 1.7 }}>
+      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, lineHeight: 1.7 }}>
         {props.series.map((s) => (
           <span key={s.label} style={{ marginRight: 12, whiteSpace: "nowrap" }}>
             <span

@@ -143,7 +143,7 @@ function Pictures({ request }: { request: CameraRequest }) {
             ref={nativeRef}
             style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
           />
-          <figcaption style={{ fontFamily: "monospace", fontSize: 11, color: "#666" }}>
+          <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)" }}>
             the optical image — {result?.nativeSize ?? "…"} px at{" "}
             {result ? (result.nativePixelScaleMm * 1000).toFixed(4) : "…"} µm
           </figcaption>
@@ -154,9 +154,9 @@ function Pictures({ request }: { request: CameraRequest }) {
               style={{
                 width: box,
                 height: box,
-                border: "1px solid #c00",
-                color: "#c00",
-                fontFamily: "monospace",
+                border: "1px solid var(--bad)",
+                color: "var(--bad)",
+                fontFamily: "var(--mono)",
                 fontSize: 12,
                 padding: 12,
                 boxSizing: "border-box",
@@ -171,7 +171,7 @@ function Pictures({ request }: { request: CameraRequest }) {
               style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
             />
           )}
-          <figcaption style={{ fontFamily: "monospace", fontSize: 11, color: "#666" }}>
+          <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)" }}>
             what the sensor records — {result?.sensorCols ?? "…"} px at{" "}
             {request.pitchUm.toFixed(2)} µm
           </figcaption>
@@ -182,7 +182,7 @@ function Pictures({ request }: { request: CameraRequest }) {
               ref={observedRef}
               style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
             />
-            <figcaption style={{ fontFamily: "monospace", fontSize: 11, color: "#666" }}>
+            <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)" }}>
               {request.noiseSeed === undefined ? "the same frame on the sky" : "one exposure of it"} —{" "}
               {num(result.framePhotons, 4)} from the star
               {result.skyPhotonsPerPixel > 0
@@ -252,13 +252,13 @@ function FrameGuards({ result }: { result: CameraResult }) {
 function PictureReadouts({ result }: { result: CameraResult }) {
   const fp2 = result.footprint * result.footprint;
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
       <div>
         footprint <strong>{result.footprint.toFixed(3)}</strong> native px · covers{" "}
         {pct(result.coveredFraction, 4)} of the frame · energy kept{" "}
         <strong>{result.energyRatio.toFixed(9)}</strong>
       </div>
-      <div style={{ color: "#666" }}>
+      <div style={{ color: "var(--ink-3)" }}>
         the shortfall is `cols = floor(span/pitch)` dropping an edge sliver, not the rebin —
         which conserves by construction
       </div>
@@ -267,11 +267,11 @@ function PictureReadouts({ result }: { result: CameraResult }) {
         — exact — against this star&rsquo;s <strong>{result.starPeakRatio.toFixed(4)}</strong> of{" "}
         {fp2.toFixed(2)}
       </div>
-      <div style={{ color: "#666" }}>
+      <div style={{ color: "var(--ink-3)" }}>
         a pixel integrating a peak collects less than one integrating a plateau, so the deficit is
         the PSF core and not the rebin. The flat field is the control that separates them.
       </div>
-      <div style={{ color: result.axisOnPixelCentre ? "#666" : "#a60" }}>
+      <div style={{ color: result.axisOnPixelCentre ? "var(--ink-3)" : "var(--warn)" }}>
         the axis lands {result.axisOnPixelCentre ? "on a pixel centre" : "on the seam between two pixels"} (
         {result.sensorCols} columns, {result.axisOnPixelCentre ? "even" : "odd"}) — sample-at-centre,
         so the peak gain swings ~3.7× on this parity as the pitch walks. It is not a smooth function
@@ -289,7 +289,7 @@ function PictureReadouts({ result }: { result: CameraResult }) {
 /** § 5s, and which of its two laws is a pin. */
 function ExposureReadouts({ result }: { result: CameraResult }) {
   return (
-    <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
+    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
       <div>
         display exposure <strong>{result.displayExposure.toExponential(4)}</strong> — fixed, and the
         same scalar on every frame
@@ -298,7 +298,7 @@ function ExposureReadouts({ result }: { result: CameraResult }) {
         the frame&rsquo;s photons over 400–700 nm: pupil admits{" "}
         <strong>{result.admittedPhotons.toExponential(4)}</strong>, sensor receives{" "}
         <strong>{result.framePhotons.toExponential(4)}</strong> ({pct(result.deliveredFraction, 2)}) ·{" "}
-        <span style={{ color: "#666" }}>
+        <span style={{ color: "var(--ink-3)" }}>
           § 8a&rsquo;s zero point, so these are absolute counts and not a ratio. The delivered
           fraction is a reading and not a target: the pupil&rsquo;s real losses are in it, and so is
           the stack resampler&rsquo;s ±3% (§ 8a.11). Gain is <em>not</em> in it — an ISO-like
@@ -308,7 +308,7 @@ function ExposureReadouts({ result }: { result: CameraResult }) {
       </div>
       <div>
         light grasp π·r² = <strong>{result.lightGrasp.toFixed(3)}</strong> mm² ·{" "}
-        <span style={{ color: "#666" }}>
+        <span style={{ color: "var(--ink-3)" }}>
           ∝ D², which § 5s labels a <em>consistency check, not a pin</em>: with a front stop the
           entrance pupil is the declared aperture and π·r² recovers D² by construction
         </span>
@@ -316,7 +316,7 @@ function ExposureReadouts({ result }: { result: CameraResult }) {
       <div>
         extended-source illuminance π·sin²u′ ={" "}
         <strong>{result.extendedIlluminance.toExponential(6)}</strong> ·{" "}
-        <span style={{ color: "#666" }}>
+        <span style={{ color: "var(--ink-3)" }}>
           § 5s&rsquo;s <em>pinned</em>, trace-emergent law — f/10 → f/5 measures 4.037 against the
           paraxial 4, the excess being the faster stop&rsquo;s sine-condition departure. Until § 8b
           this was printed and not drawn, the picture being a point source; the sky is the extended
@@ -334,14 +334,14 @@ function SkyReadouts({ result }: { result: CameraResult }) {
   // reason this is a branch rather than a NaN in a sentence.
   if (!Number.isFinite(result.peakPixelPhotons)) {
     return (
-      <div style={{ color: "#666" }}>
+      <div style={{ color: "var(--ink-3)" }}>
         no sensor, so no background and no limiting magnitude — a count per pixel needs a pixel
       </div>
     );
   }
   if (!(result.skyPhotonsPerPixel > 0)) {
     return (
-      <div style={{ color: "#666" }}>
+      <div style={{ color: "var(--ink-3)" }}>
         brightest pixel {num(result.peakPixelPhotons, 4)} photons, all of it the star — no sky, which
         is what every rung before § 8b was measured on and is not a place
       </div>
@@ -353,7 +353,7 @@ function SkyReadouts({ result }: { result: CameraResult }) {
         sky <strong>{num(result.skyPhotonsPerPixel, 4)}</strong> photons per pixel — B·Ω·A·τ·t, and{" "}
         <strong>{num(result.skyPhotonsPerPixelFromCone, 4)}</strong> off the traced cone (ratio{" "}
         <strong>{result.skyEtendueRatio.toFixed(6)}</strong>) ·{" "}
-        <span style={{ color: "#666" }}>
+        <span style={{ color: "var(--ink-3)" }}>
           § 8b.3: one étendue, two spellings — a pixel&rsquo;s solid angle times the pupil, or the
           pixel&rsquo;s own area times § 5s&rsquo;s traced cone. They differ by the sine condition
           and by nothing else, which is why the ratio is not 1. Doubling the aperture at this focal
@@ -371,7 +371,7 @@ function SkyReadouts({ result }: { result: CameraResult }) {
       </div>
       <div>
         limiting magnitude at SNR 5: <strong>m_AB {result.limitingMagnitudeAB.toFixed(2)}</strong> ·{" "}
-        <span style={{ color: "#666" }}>
+        <span style={{ color: "var(--ink-3)" }}>
           Howell&rsquo;s CCD equation inverted (§ 8b.5), photon-limited: no read noise, no dark
           current, and an aperture the width of the Airy disc rather than of a real seeing profile,
           so it is the optimistic end. Four times the exposure buys 1.5051 mag with no sky and
@@ -574,7 +574,7 @@ export function CameraPanel() {
             the whole claim — that aperture buys stars and not sky — is a
             comparison the reader has to be able to make. */}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontFamily: "monospace", fontSize: 12 }}>
+          <label style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
             <input
               type="checkbox"
               checked={skyMagnitudeAB !== undefined}
@@ -596,7 +596,7 @@ export function CameraPanel() {
           )}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontFamily: "monospace", fontSize: 12 }}>
+          <label style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
             <input
               type="checkbox"
               checked={noiseSeed !== undefined}
@@ -607,14 +607,14 @@ export function CameraPanel() {
           <button
             disabled={noiseSeed === undefined}
             onClick={() => setNoiseSeed((s) => (s === undefined ? 1 : s + 1))}
-            style={{ fontFamily: "monospace", fontSize: 12, padding: "2px 8px", cursor: "pointer" }}
+            style={{ fontFamily: "var(--mono)", fontSize: 12, padding: "2px 8px", cursor: "pointer" }}
           >
             another exposure {noiseSeed === undefined ? "" : `(seed ${noiseSeed})`}
           </button>
         </div>
       </div>
 
-      <p style={{ fontFamily: "monospace", fontSize: 12, color: "#666", maxWidth: 900, margin: 0 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900, margin: 0 }}>
         {OPTIC_NOTES[spec.optic]}. Apertures are per optic and deliberately do not share a range —
         `refractorPair` is a toy lens whose halo must stay on an FFT grid, and a 6 mm Newtonian is
         not a thing. What makes the three comparable is that the sampling question turns on focal
@@ -622,14 +622,14 @@ export function CameraPanel() {
       </p>
 
       <section>
-        <h3 style={{ fontFamily: "monospace", fontSize: 13, margin: "0 0 8px" }}>
+        <h3 style={{ fontFamily: "var(--mono)", fontSize: 13, margin: "0 0 8px" }}>
           the sensor, and the light it actually records
         </h3>
         <Pictures request={request} />
       </section>
 
       <section>
-        <h3 style={{ fontFamily: "monospace", fontSize: 13, margin: "0 0 8px" }}>
+        <h3 style={{ fontFamily: "var(--mono)", fontSize: 13, margin: "0 0 8px" }}>
           one sensor, three verdicts — the critical pitch is per wavelength
         </h3>
         <Guard
@@ -646,12 +646,12 @@ export function CameraPanel() {
             if (target !== undefined) setPitchUm(Number((target * 1000).toFixed(2)));
           }}
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 12,
             margin: "6px 0",
             padding: "3px 10px",
-            border: "1px solid #333",
-            background: "#fff",
+            border: "1px solid var(--ink)",
+            background: "var(--bg)",
             cursor: "pointer",
           }}
         >
@@ -659,10 +659,10 @@ export function CameraPanel() {
           {((criticalPitchAt(geometry.rows, 550) ?? 0) * 1000).toFixed(2)} µm
         </button>
         <table
-          style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse", marginTop: 8 }}
+          style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse", marginTop: 8 }}
         >
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
+            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
               <th style={{ padding: "4px 12px 4px 0" }}>λ (nm)</th>
               <th style={{ padding: "4px 12px 4px 0" }}>traced NA</th>
               <th style={{ padding: "4px 12px 4px 0" }}>λ/(4·NA) (µm)</th>
@@ -671,7 +671,7 @@ export function CameraPanel() {
           </thead>
           <tbody>
             {geometry.rows.map((row) => (
-              <tr key={row.nm} style={{ borderBottom: "1px solid #eee" }}>
+              <tr key={row.nm} style={{ borderBottom: "1px solid var(--line-2)" }}>
                 <td style={{ padding: "4px 12px 4px 0" }}>{row.nm.toFixed(1)}</td>
                 <td style={{ padding: "4px 12px 4px 0" }}>{row.tracedNa.toFixed(7)}</td>
                 <td style={{ padding: "4px 12px 4px 0" }}>
@@ -682,10 +682,10 @@ export function CameraPanel() {
                     padding: "4px 0",
                     color:
                       row.regime === "critical"
-                        ? "#3a7"
+                        ? "var(--ok)"
                         : row.regime === "oversampled"
-                          ? "#a60"
-                          : "#c00",
+                          ? "var(--warn)"
+                          : "var(--bad)",
                   }}
                 >
                   {row.regime}
@@ -694,7 +694,7 @@ export function CameraPanel() {
             ))}
           </tbody>
         </table>
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#666", maxWidth: 900 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
           `criticalPitchMm` ∝ λ, so the band is a {geometry.spread.lambdaRatio.toFixed(3)}× spread
           against `samplingRegime`&rsquo;s 2% tolerance: at the pitch that is exactly critical at
           550 nm the blue plane is undersampled and the red is oversampled, on one sensor. The NA is
@@ -706,17 +706,17 @@ export function CameraPanel() {
       </section>
 
       <section>
-        <h3 style={{ fontFamily: "monospace", fontSize: 13, margin: "0 0 8px" }}>
+        <h3 style={{ fontFamily: "var(--mono)", fontSize: 13, margin: "0 0 8px" }}>
           …and how far the band spreads is the lens&rsquo;s chromatic correction
         </h3>
         <Plot
           series={contest.map((c, i) => ({
             label: `${OPTIC_LABELS[c.optic]} — ${(c.spread.departure * 100).toFixed(3)}% at the red end`,
-            color: ["#c33", "#36c", "#3a7"][i]!,
+            color: ["var(--bad)", "var(--blue)", "var(--ok)"][i]!,
             points: c.departure.map((d) => [d.nm, d.departure * 100] as const),
             dots: true,
           }))}
-          markers={[{ y: 0, color: "#999", label: "λ/(4·NA) with λ alone moving" }]}
+          markers={[{ y: 0, color: "var(--ink-5)", label: "λ/(4·NA) with λ alone moving" }]}
           xLabel="wavelength (nm)"
           yLabel="departure from proportional-in-λ (%)"
           xMin={Math.min(...geometry.rows.map((r) => r.nm)) - 20}
@@ -725,7 +725,7 @@ export function CameraPanel() {
           yMax={Math.max(0.3, ...contest.flatMap((c) => c.departure.map((d) => d.departure * 100))) * 1.2}
           width={460}
         />
-        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 900, margin: "2px 0 0" }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 900, margin: "2px 0 0" }}>
           Plotted as the <em>departure</em> rather than as the pitch itself: the three raw curves
           differ by under 3% over the band and land on top of each other, so the picture would say
           only that λ/(4·NA) is linear in λ while the table beside it carried the whole finding.
@@ -733,10 +733,10 @@ export function CameraPanel() {
           lens.
         </p>
         <table
-          style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse", marginTop: 4 }}
+          style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse", marginTop: 4 }}
         >
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
+            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
               <th style={{ padding: "4px 12px 4px 0" }}>optic</th>
               <th style={{ padding: "4px 12px 4px 0" }}>critical ratio across the band</th>
               <th style={{ padding: "4px 12px 4px 0" }}>λ ratio</th>
@@ -745,7 +745,7 @@ export function CameraPanel() {
           </thead>
           <tbody>
             {contest.map((c) => (
-              <tr key={c.optic} style={{ borderBottom: "1px solid #eee" }}>
+              <tr key={c.optic} style={{ borderBottom: "1px solid var(--line-2)" }}>
                 <td style={{ padding: "4px 12px 4px 0" }}>{OPTIC_LABELS[c.optic]}</td>
                 <td style={{ padding: "4px 12px 4px 0" }}>{c.spread.ratio.toFixed(9)}</td>
                 <td style={{ padding: "4px 12px 4px 0" }}>{c.spread.lambdaRatio.toFixed(9)}</td>
@@ -756,7 +756,7 @@ export function CameraPanel() {
             ))}
           </tbody>
         </table>
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#666", maxWidth: 900 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
           The critical pitch is <em>not</em> λ/(4·NA) with λ alone moving — the traced NA moves too.
           A singlet&rsquo;s falls monotonically and its spread runs <strong>wider</strong> than the
           wavelength ratio; an achromat&rsquo;s peaks mid-band at the crossing, so its spread runs
@@ -768,14 +768,14 @@ export function CameraPanel() {
       </section>
 
       <section>
-        <h3 style={{ fontFamily: "monospace", fontSize: 13, margin: "0 0 8px" }}>
+        <h3 style={{ fontFamily: "var(--mono)", fontSize: 13, margin: "0 0 8px" }}>
           the pixel is a box integrator — measured, not drawn
         </h3>
         <Plot
           series={[
             {
               label: "measured through resampleGridToSensor",
-              color: "#36c",
+              color: "var(--blue)",
               points: mtf.points
                 .filter((p) => p.fractionOfNyquist < 1)
                 .map((p) => [p.fractionOfNyquist, p.measured] as const),
@@ -783,7 +783,7 @@ export function CameraPanel() {
             },
             {
               label: "|sinc(π·f·pitch)| — reference only",
-              color: "#c33",
+              color: "var(--bad)",
               dash: [4, 3],
               points: mtf.points
                 .filter((p) => p.fractionOfNyquist < 1)
@@ -791,7 +791,7 @@ export function CameraPanel() {
             },
             {
               label: "above Nyquist, plotted where it folds to",
-              color: "#a60",
+              color: "var(--warn)",
               points: mtf.points
                 .filter((p) => p.aliasedToCyclesPerMm !== undefined)
                 .map(
@@ -816,17 +816,17 @@ export function CameraPanel() {
           level="warn"
           detail={mtf.refusedAtNyquist}
         />
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, marginTop: 6 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, marginTop: 6 }}>
           largest departure from the closed form below Nyquist:{" "}
           <strong>{mtf.maxRelativeDeparture.toExponential(3)}</strong>
-          <div style={{ color: "#666" }}>
+          <div style={{ color: "var(--ink-3)" }}>
             …and it belongs to the <em>target&rsquo;s</em> staircase, not the detector. Refining the
             source subdivision at fixed frequency:{" "}
             {refinement.map((r) => `${r.subdivision}:${r.ratio.toFixed(6)}`).join("  ")} — error
             falling ×4.00 per doubling, which is the midpoint rule&rsquo;s own second order. A
             detector effect would not move with the target&rsquo;s sampling at all.
           </div>
-          <div style={{ color: "#666" }}>
+          <div style={{ color: "var(--ink-3)" }}>
             The orange series is the same measurement above Nyquist, drawn at the frequency it folds
             to: projecting at f and at |1/p − f| returns the <strong>bit-identical</strong> number,
             because on the sampled grid those two frequencies are one frequency. That is the
@@ -836,13 +836,13 @@ export function CameraPanel() {
       </section>
 
       <section>
-        <h3 style={{ fontFamily: "monospace", fontSize: 13, margin: "0 0 8px" }}>
+        <h3 style={{ fontFamily: "var(--mono)", fontSize: 13, margin: "0 0 8px" }}>
           plate scale, field of view, and the floor that is not distortion
         </h3>
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7 }}>
           plate scale <strong>{geometry.formats[0]?.arcsecPerPixel.toFixed(4) ?? "—"}</strong> ″/px
           at {FOCUS_NM} nm ·{" "}
-          <span style={{ color: "#666" }}>
+          <span style={{ color: "var(--ink-3)" }}>
             this is a per-wavelength number too — it runs off `systemProperties(λ).efl`, moving
             0.12% across the band on the achromat and non-monotonically, the same crossing. A panel
             printing one plate scale is picking a wavelength, so this one says which.
@@ -858,10 +858,10 @@ export function CameraPanel() {
           </div>
         </div>
         <table
-          style={{ fontFamily: "monospace", fontSize: 12, borderCollapse: "collapse", marginTop: 8 }}
+          style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse", marginTop: 8 }}
         >
           <thead>
-            <tr style={{ textAlign: "left", borderBottom: "1px solid #ccc" }}>
+            <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
               <th style={{ padding: "4px 12px 4px 0" }}>format</th>
               <th style={{ padding: "4px 12px 4px 0" }}>pixels</th>
               <th style={{ padding: "4px 12px 4px 0" }}>FOV w × h (°)</th>
@@ -873,7 +873,7 @@ export function CameraPanel() {
             {geometry.formats.map((row) => (
               <tr
                 key={row.key}
-                style={{ borderBottom: "1px solid #eee", color: row.error ? "#c00" : undefined }}
+                style={{ borderBottom: "1px solid var(--line-2)", color: row.error ? "var(--bad)" : undefined }}
               >
                 <td style={{ padding: "4px 12px 4px 0" }}>{row.label}</td>
                 <td style={{ padding: "4px 12px 4px 0" }}>
@@ -902,7 +902,7 @@ export function CameraPanel() {
             ))}
           </tbody>
         </table>
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#666", maxWidth: 900 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
           The obvious readout — traced FOV against the paraxial 2·atan(½w/EFL) — has a{" "}
           <strong>floor</strong> in it, 0.0212% on the f/10 achromat and still there at 0.029° of
           field where distortion is identically zero. Calling that &ldquo;distortion&rdquo; would be
@@ -914,7 +914,7 @@ export function CameraPanel() {
           fractional form. The paraboloid is the control: its focus offset is 2e-5 µm and its
           distortion is <strong>0 to f64</strong>, so both floors vanish together.
         </p>
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#666", maxWidth: 900 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
           A refused row is § 2f&rsquo;s wall, and it is real: past a certain field a Newtonian&rsquo;s
           diagonal stops passing the chief ray, so the sensor corner has no image point rather than a
           bad one. Driving this panel is what found that `fieldOfView`&rsquo;s bracket started

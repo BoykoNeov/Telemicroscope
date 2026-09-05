@@ -99,8 +99,8 @@ const PUPIL_SAMPLES = [11, 21, 31] as const;
 const SWEEP_SCALES = [1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1, 1] as const;
 
 const LENS_COLOR: Record<SheetLens, string> = {
-  apochromat: "#4a9eff",
-  achromat: "#ff9c4a",
+  apochromat: "var(--blue-2)",
+  achromat: "var(--orange)",
 };
 
 const VERDICT_LEVEL: Record<SheetRow["verdict"], GuardLevel> = {
@@ -180,7 +180,7 @@ export function BudgetPanel() {
 
   return (
     <div style={{ opacity: pending ? 0.55 : 1, transition: "opacity 120ms" }}>
-      <p style={{ fontFamily: "monospace", fontSize: 12, maxWidth: 860, lineHeight: 1.7 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, maxWidth: 860, lineHeight: 1.7 }}>
         Every number a shop would have to hold, priced in <strong>both</strong> of
         § 6au&apos;s currencies — the blur a focuser cannot remove, and the colour a
         cemented objective was bought to not have — and quoted from whichever one
@@ -288,14 +288,14 @@ export function BudgetPanel() {
         <Fieldset title="the sheet">
           <table
             style={{
-              fontFamily: "monospace",
+              fontFamily: "var(--mono)",
               fontSize: 12,
               borderCollapse: "collapse",
               lineHeight: 1.6,
             }}
           >
             <thead>
-              <tr style={{ color: "#999", textAlign: "right" }}>
+              <tr style={{ color: "var(--ink-5)", textAlign: "right" }}>
                 <th style={{ textAlign: "left", paddingRight: 16 }}>row</th>
                 <th style={{ paddingRight: 16 }}>colour ÷ target</th>
                 <th style={{ paddingRight: 16 }}>blur ÷ target</th>
@@ -311,10 +311,10 @@ export function BudgetPanel() {
               {sheet.rows.map((row) => (
                 <tr key={row.label} style={{ textAlign: "right" }}>
                   <td style={{ textAlign: "left", paddingRight: 16 }}>{row.label}</td>
-                  <td style={{ paddingRight: 16, color: row.binds === "colour" ? undefined : "#999" }}>
+                  <td style={{ paddingRight: 16, color: row.binds === "colour" ? undefined : "var(--ink-5)" }}>
                     {row.colourPerUnit === 0 ? "0" : num(row.colourPerUnit, 4)}
                   </td>
-                  <td style={{ paddingRight: 16, color: row.binds === "blur" ? undefined : "#999" }}>
+                  <td style={{ paddingRight: 16, color: row.binds === "blur" ? undefined : "var(--ink-5)" }}>
                     {num(row.blurPerUnit, 4)}
                   </td>
                   <td style={{ paddingRight: 16 }}>{row.binds}</td>
@@ -330,13 +330,13 @@ export function BudgetPanel() {
                   </td>
                   <td style={{ textAlign: "left", color: GUARD_COLOR[VERDICT_LEVEL[row.verdict]] }}>
                     {row.verdict === "ok" ? "a tolerance" : row.verdict}
-                    {row.note !== "" && <span style={{ color: "#777" }}> — {row.note}</span>}
+                    {row.note !== "" && <span style={{ color: "var(--ink-4)" }}> — {row.note}</span>}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <p style={{ fontFamily: "monospace", fontSize: 12, color: "#999", maxWidth: 860, lineHeight: 1.7 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-5)", maxWidth: 860, lineHeight: 1.7 }}>
             A cemented block of <em>n</em> surfaces carries 3<em>n</em>−1 numbers and not
             4<em>n</em>−1: wedge is not a row beside centring, it is the{" "}
             <strong>same freedom in another unit</strong>. Tilting a sphere about its vertex by α
@@ -351,10 +351,10 @@ export function BudgetPanel() {
         <Plot
           series={series}
           markers={[
-            { y: 1, color: "#666", label: "rows independent" },
+            { y: 1, color: "var(--ink-3)", label: "rows independent" },
             // The slider's own position, unlabelled: at its default it sits ON
             // the right-hand axis, and a label there is drawn off the plot.
-            { x: scaleExponent, color: "#bbb" },
+            { x: scaleExponent, color: "var(--ink-5)" },
           ]}
           xLabel="budget, log₁₀ of the target"
           yLabel="every row at once ÷ their RSS"
@@ -365,7 +365,7 @@ export function BudgetPanel() {
           width={720}
           height={280}
         />
-        <p style={{ fontFamily: "monospace", fontSize: 12, color: "#999", maxWidth: 860, lineHeight: 1.7 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-5)", maxWidth: 860, lineHeight: 1.7 }}>
           Solid with dots is the lens the table above describes; dashed is the other one, drawn
           for comparison and nothing else. Both curves are flat over the first three decades —
           which is what says the factor is a property of the lens rather than of the budget it

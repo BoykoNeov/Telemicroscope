@@ -1,36 +1,5 @@
-import type { ComponentType } from "react";
+import { lazy, type ComponentType } from "react";
 import { decodeLink, type TeachingLink } from "../teaching";
-import { BenchPanel } from "./bench";
-import { BudgetPanel } from "./budget";
-import { ChromaticPanel } from "./chromatic";
-import { BrightfieldPanel } from "./brightfield";
-import { BuilderPanel } from "./builder";
-import { CameraPanel } from "./camera";
-import { CollimationPanel } from "./collimation";
-import { CoverslipPanel } from "./coverslip";
-import { CurvaturePanel } from "./curvature";
-import { DesignPanel } from "./design";
-import { EditorPanel } from "./editor";
-import { EmitterPanel } from "./emitter";
-import { EyepiecePanel } from "./eyepiece";
-import { FluorescencePanel } from "./fluorescence";
-import { MechPanel } from "./mech";
-import { PhasePanel } from "./phase";
-import { RayFanPanel } from "./rayfan";
-import { ReflectorPanel } from "./reflector";
-import { SectionPanel } from "./section";
-import { SeeingPanel } from "./seeing";
-import { SkyPanel } from "./sky";
-import { SpotPanel } from "./spot";
-import { StagePanel } from "./stage";
-import { TelecentricPanel } from "./telecentric";
-import { TelescopePanel } from "./telescope";
-import { TolerancePanel } from "./tolerance";
-import { WavefrontPanel } from "./wavefront";
-import { MtfPanel } from "./mtf";
-import { OptimizePanel } from "./optimize";
-import { VisualPanel } from "./visual";
-import { VolumePanel } from "./volume";
 
 /**
  * The panels, in reading order, and the routing table is exactly this list.
@@ -54,15 +23,41 @@ import { VolumePanel } from "./volume";
  * link is a route *plus a query* (`#/rayfan?v=1&lens=achromat&…`), and the panel
  * it lands on seeds itself from what the query says. See `resolveHash` below for
  * the bug that shape walked into.
+ *
+ * ## Every component is lazy — APP.md's structural item 6
+ *
+ * Thirty-one panels each import their own adapter, and an adapter imports the
+ * engine, so one eager registry pulled every adapter into the entry chunk: the
+ * production bundle was 840 KB of JavaScript before a single route had painted,
+ * of which the route on screen needed a fraction. `lazy(() => import(...))`
+ * makes each panel its own chunk that Vite emits beside its worker, loaded on
+ * the first visit and cached after. The shell shows `panel-loading` for the
+ * few milliseconds the chunk takes on a warm cache; nothing about a panel's own
+ * behaviour changes, because the shell already keyed and remounted it per route.
+ *
+ * The `.then(m => ({ default: m.X }))` shape is because the panels export a
+ * named component and `lazy` wants a default; it is written out rather than
+ * hidden behind a helper so a search for `BenchPanel` still lands here.
  */
+export type PanelGroup = "telescope" | "microscope" | "design";
+
 export type Panel = {
   readonly id: string;
   /** How the nav reads. Short — it sits in a row. */
   readonly label: string;
   /** One line under the nav, saying what the surface is for. */
   readonly blurb: string;
+  /** Which row of the nav it sits on: the branch of the engine it draws. */
+  readonly group: PanelGroup;
   readonly Component: ComponentType<PanelProps>;
 };
+
+/** The nav's rows, in the order they appear, with the word each row wears. */
+export const PANEL_GROUPS: readonly { readonly id: PanelGroup; readonly label: string }[] = [
+  { id: "telescope", label: "telescope" },
+  { id: "microscope", label: "microscope" },
+  { id: "design", label: "design & tolerance" },
+];
 
 /**
  * What a panel is handed. Every panel may ignore it — a component declaring no
@@ -84,187 +79,218 @@ export const PANELS: readonly Panel[] = [
     id: "telescope",
     label: "star & field",
     blurb: "roadmap step 4 — chromatic fringing, and a field-varying PSF across 25 stars",
-    Component: TelescopePanel,
+    group: "telescope",
+    Component: lazy(() => import("./telescope").then((m) => ({ default: m.TelescopePanel }))),
   },
   {
     id: "rayfan",
     label: "the ray fan",
     blurb: "APP.md Part H — where each ray in the pupil lands, and the half of the fan coma adds",
-    Component: RayFanPanel,
+    group: "telescope",
+    Component: lazy(() => import("./rayfan").then((m) => ({ default: m.RayFanPanel }))),
   },
   {
     id: "chromatic",
     label: "chromatic focus",
     blurb: "APP.md Part H — where each colour focuses, and what it costs at the one plane the image has",
-    Component: ChromaticPanel,
+    group: "telescope",
+    Component: lazy(() => import("./chromatic").then((m) => ({ default: m.ChromaticPanel }))),
   },
   {
     id: "spot",
     label: "the spot diagram",
     blurb: "ROADMAP v1 — where a pupil-full of rays lands, and the lens a spot diagram lies about",
-    Component: SpotPanel,
+    group: "telescope",
+    Component: lazy(() => import("./spot").then((m) => ({ default: m.SpotPanel }))),
   },
   {
     id: "sky",
     label: "a disc, not a point",
     blurb: "APP.md C7 — a source with an angular size, and the diagonal that decides how much sky fits",
-    Component: SkyPanel,
+    group: "telescope",
+    Component: lazy(() => import("./sky").then((m) => ({ default: m.SkyPanel }))),
   },
   {
     id: "wavefront",
     label: "the wavefront",
     blurb: "ROADMAP v1 — the Zernike terms, and which RMS the Strehl formula actually wants",
-    Component: WavefrontPanel,
+    group: "telescope",
+    Component: lazy(() => import("./wavefront").then((m) => ({ default: m.WavefrontPanel }))),
   },
   {
     id: "mtf",
     label: "the MTF",
     blurb: "ROADMAP v1 — the contrast that survives, and the cutoff of an aperture that did not transmit",
-    Component: MtfPanel,
+    group: "telescope",
+    Component: lazy(() => import("./mtf").then((m) => ({ default: m.MtfPanel }))),
   },
   {
     id: "curvature",
     label: "the curved field",
     blurb: "ROADMAP v1 — the two surfaces a flat sensor sits between, and the one the achromat did not flatten",
-    Component: CurvaturePanel,
+    group: "telescope",
+    Component: lazy(() => import("./curvature").then((m) => ({ default: m.CurvaturePanel }))),
   },
   {
     id: "reflector",
     label: "the reflectors",
     blurb: "APP.md Part C — six presets from three numbers, and an obstruction the trace never sees",
-    Component: ReflectorPanel,
+    group: "telescope",
+    Component: lazy(() => import("./reflector").then((m) => ({ default: m.ReflectorPanel }))),
   },
   {
     id: "camera",
     label: "the sensor",
     blurb: "APP.md C4 — a pixel that integrates, and a critical pitch that is per wavelength",
-    Component: CameraPanel,
+    group: "telescope",
+    Component: lazy(() => import("./camera").then((m) => ({ default: m.CameraPanel }))),
   },
   {
     id: "visual",
     label: "visual mode",
     blurb: "APP.md C5 — the eye takes the aperture, and the apparent field belongs to the eyepiece",
-    Component: VisualPanel,
+    group: "telescope",
+    Component: lazy(() => import("./visual").then((m) => ({ default: m.VisualPanel }))),
   },
   {
     id: "seeing",
     label: "long exposure",
     blurb: "APP.md C6 — one screen is a speckle pattern, and only the mean is the seeing disc",
-    Component: SeeingPanel,
+    group: "telescope",
+    Component: lazy(() => import("./seeing").then((m) => ({ default: m.SeeingPanel }))),
   },
   {
     id: "train",
     label: "the mechanical train",
     blurb: "APP.md C3 — a part's length and its optical cost are different numbers",
-    Component: MechPanel,
+    group: "telescope",
+    Component: lazy(() => import("./mech").then((m) => ({ default: m.MechPanel }))),
   },
   {
     id: "bench",
     label: "microscope bench",
     blurb: "APP.md A1 — every objective traced, and the crop a frame actually covers",
-    Component: BenchPanel,
+    group: "microscope",
+    Component: lazy(() => import("./bench").then((m) => ({ default: m.BenchPanel }))),
   },
   {
     id: "editor",
     label: "the bench editor",
     blurb: "ROADMAP v1 — the surface list itself, and the order the aperture says is really there",
-    Component: EditorPanel,
+    group: "microscope",
+    Component: lazy(() => import("./editor").then((m) => ({ default: m.EditorPanel }))),
   },
   {
     id: "telecentric",
     label: "the telecentric stop",
     blurb: "VALIDATION § 6ar — the stop is a millimetre, and how many colours one millimetre can serve",
-    Component: TelecentricPanel,
+    group: "microscope",
+    Component: lazy(() => import("./telecentric").then((m) => ({ default: m.TelecentricPanel }))),
   },
   {
     id: "design",
     label: "the solve",
     blurb: "ROADMAP v2+ — design mode's first half: what a number has to be, and the pole that is not a root",
-    Component: DesignPanel,
+    group: "design",
+    Component: lazy(() => import("./design").then((m) => ({ default: m.DesignPanel }))),
   },
   {
     id: "optimize",
     label: "the compromise",
     blurb: "ROADMAP v2+ — design mode's second half: several wishes at once, and the leftover that is part of the answer",
-    Component: OptimizePanel,
+    group: "design",
+    Component: lazy(() => import("./optimize").then((m) => ({ default: m.OptimizePanel }))),
   },
   {
     id: "builder",
     label: "the builder",
     blurb: "APP.md D8 — the parameters the catalogue defaulted, and a wall measured for what you built",
-    Component: BuilderPanel,
+    group: "microscope",
+    Component: lazy(() => import("./builder").then((m) => ({ default: m.BuilderPanel }))),
   },
   {
     id: "brightfield",
     label: "brightfield",
     blurb: "APP.md A2 — the condenser, the Abbe sum, and where the cutoff really lands",
-    Component: BrightfieldPanel,
+    group: "microscope",
+    Component: lazy(() => import("./brightfield").then((m) => ({ default: m.BrightfieldPanel }))),
   },
   {
     id: "phase",
     label: "the phase null",
     blurb: "APP.md A3 — a specimen that absorbs nothing, and the term that survives it",
-    Component: PhasePanel,
+    group: "microscope",
+    Component: lazy(() => import("./phase").then((m) => ({ default: m.PhasePanel }))),
   },
   {
     id: "fluorescence",
     label: "fluorescence beads",
     blurb: "APP.md A4 — a specimen that emits, and the cutoff reached with no condenser",
-    Component: FluorescencePanel,
+    group: "microscope",
+    Component: lazy(() => import("./fluorescence").then((m) => ({ default: m.FluorescencePanel }))),
   },
   {
     id: "emitter",
     label: "a source with a size",
     blurb: "APP.md Part Q — a density, not a point, and the one error the grid cannot refine away",
-    Component: EmitterPanel,
+    group: "microscope",
+    Component: lazy(() => import("./emitter").then((m) => ({ default: m.EmitterPanel }))),
   },
   {
     id: "stage",
     label: "the stage",
     blurb: "APP.md A7 — a field of view reached by tiling, and a tile that knows its own index",
-    Component: StagePanel,
+    group: "microscope",
+    Component: lazy(() => import("./stage").then((m) => ({ default: m.StagePanel }))),
   },
   {
     id: "section",
     label: "the section, in colour",
     blurb: "APP.md A9 — colour integrated per wavelength, beside the tint that cannot be a stain",
-    Component: SectionPanel,
+    group: "microscope",
+    Component: lazy(() => import("./section").then((m) => ({ default: m.SectionPanel }))),
   },
   {
     id: "coverslip",
     label: "the cover slip",
     blurb: "APP.md A6 — a plate the objective does not control, and two walls that are not aberration",
-    Component: CoverslipPanel,
+    group: "microscope",
+    Component: lazy(() => import("./coverslip").then((m) => ({ default: m.CoverslipPanel }))),
   },
   {
     id: "eyepiece",
     label: "the eyepiece",
     blurb: "APP.md D6 — the chain ends at an eye, and which NA the exit pupil's law takes",
-    Component: EyepiecePanel,
+    group: "microscope",
+    Component: lazy(() => import("./eyepiece").then((m) => ({ default: m.EyepiecePanel }))),
   },
   {
     id: "collimation",
     label: "collimation",
     blurb: "ROADMAP step 7 — the coma node an element knocked out of line takes with it",
-    Component: CollimationPanel,
+    group: "telescope",
+    Component: lazy(() => import("./collimation").then((m) => ({ default: m.CollimationPanel }))),
   },
   {
     id: "tolerance",
     label: "tolerances",
     blurb: "APP.md Part B — a slider per manufacturing error, and the budget that is not a bound",
-    Component: TolerancePanel,
+    group: "design",
+    Component: lazy(() => import("./tolerance").then((m) => ({ default: m.TolerancePanel }))),
   },
   {
     id: "budget",
     label: "the tolerance sheet",
     blurb: "APP.md Part P — every number a shop holds, in two currencies, and the lens whose rows reinforce",
-    Component: BudgetPanel,
+    group: "design",
+    Component: lazy(() => import("./budget").then((m) => ({ default: m.BudgetPanel }))),
   },
   {
     id: "volume",
     label: "haze & the focus stack",
     blurb: "APP.md A5 — every plane delivers its whole flux, and the missing cone that follows",
-    Component: VolumePanel,
+    group: "microscope",
+    Component: lazy(() => import("./volume").then((m) => ({ default: m.VolumePanel }))),
   },
 ];
 

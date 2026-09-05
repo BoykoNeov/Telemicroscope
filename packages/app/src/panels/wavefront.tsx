@@ -55,7 +55,7 @@ export function WavefrontPanel() {
   const drawn = result.terms.filter((t) => t.j >= 2 && Math.abs(t.waves) > TERM_FLOOR_WAVES);
   const stems: PlotSeries[] = drawn.map((t) => ({
     label: `j${t.j}`,
-    color: t.j === 4 ? "#2b7" : t.j <= 3 ? "#999" : "#c0392b",
+    color: t.j === 4 ? "var(--green)" : t.j <= 3 ? "var(--ink-5)" : "var(--red)",
     points: [
       [t.j, 0],
       [t.j, t.waves],
@@ -76,7 +76,7 @@ export function WavefrontPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The wavefront, broken into named aberrations</h1>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         Trace the optical path difference across the pupil and fit it to the Zernike basis, and every
         aberration in the lens becomes one number with a name. The basis is orthonormal, so a
         coefficient <em>is</em> that aberration&rsquo;s own share of the RMS error — the terms add in
@@ -116,7 +116,7 @@ export function WavefrontPanel() {
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
         <Plot
           series={stems}
-          markers={[{ y: 0, color: "#999" }]}
+          markers={[{ y: 0, color: "var(--ink-5)" }]}
           xLabel="Noll index j  (green = defocus, grey = tilt, red = aberration)"
           yLabel="coefficient (waves)"
           xMin={1}
@@ -125,11 +125,11 @@ export function WavefrontPanel() {
           yMax={bound}
           width={520}
         />
-        <div style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1.7 }}>
-          <div style={{ color: "#666", marginBottom: 4 }}>largest terms, piston and tilt aside</div>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7 }}>
+          <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>largest terms, piston and tilt aside</div>
           {biggest.map((t) => (
             <div key={t.j}>
-              <span style={{ color: "#999" }}>j{String(t.j).padStart(2)}</span>{" "}
+              <span style={{ color: "var(--ink-5)" }}>j{String(t.j).padStart(2)}</span>{" "}
               {t.name === "" ? `n=${t.n} m=${t.m}` : t.name}{" "}
               {/* Exponential under 1e-4: four decimals turns a real 8e-5 term
                   into "-0.0000", which reads as a zero the fit did not find. */}
@@ -140,7 +140,7 @@ export function WavefrontPanel() {
               λ
             </div>
           ))}
-          {biggest.length === 0 && <div style={{ color: "#3a7" }}>nothing above the floor</div>}
+          {biggest.length === 0 && <div style={{ color: "var(--ok)" }}>nothing above the floor</div>}
         </div>
       </div>
 
@@ -209,14 +209,14 @@ export function WavefrontPanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>Which σ you pick decides whether the answer is right</h2>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The Maréchal approximation, Strehl ≈ exp(−(2πσ)²), is the most quoted formula in optical
         tolerancing, and it takes an RMS wavefront error as its input without saying{" "}
         <em>which one</em>. This engine offers two and the right answer is a third. Feeding it each
         in turn and comparing against the transform — different physics, different code, so this is a
         real check and not an algebraic identity — settles it:
       </p>
-      <ul style={{ maxWidth: 640, color: "#444" }}>
+      <ul style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         <li>
           <strong>Piston and tilt out, defocus kept</strong> is correct. On the achromat at f/10 on
           axis it predicts <strong>0.9962</strong> against a traced <strong>0.9962</strong>.
@@ -235,7 +235,7 @@ export function WavefrontPanel() {
           refocused&rdquo;, and the PSF is at the plane the image actually has.
         </li>
       </ul>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         And where even the correct σ runs out is the classical validity limit, measured here rather
         than recited: four digits of agreement below about <strong>0.05 λ</strong>, 32% out at 0.20 λ,
         and at 0.93 λ — the singlet wide open — the formula returns{" "}
@@ -245,7 +245,7 @@ export function WavefrontPanel() {
       </p>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>What the basis could not represent</h2>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         The residual is the part of the traced wavefront the fitted terms cannot express, and it
         matters because the PSF is built from the <em>fit</em> and not from the trace. On these
         lenses it is tiny — 5e-7 λ on the achromat at f/10 — and the reason is stated in the
@@ -254,7 +254,7 @@ export function WavefrontPanel() {
         residual that climbs is the signal that the wavefront being transformed has stopped being the
         wavefront that was traced, which is why it is a guard here and not a footnote.
       </p>
-      <p style={{ maxWidth: 640, color: "#444" }}>
+      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
         One thing to know before reading a small stem as physics. Put the singlet on axis, where an
         axially symmetric lens can only have the rotationally symmetric terms, and the others do not
         come back as zero — they come back around <strong>1e-7 λ</strong>. That is the fit leaking
@@ -265,7 +265,7 @@ export function WavefrontPanel() {
         above — but it is why this page does not invite you to read the bottom of the spectrum.
       </p>
 
-      <p style={{ marginTop: 24, fontSize: 13, color: "#666", maxWidth: 640 }}>
+      <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 640 }}>
         No web worker on this route. One traced pupil and one transform —{" "}
         <strong>{result.elapsedMs.toFixed(0)} ms</strong> — which is the ray fan&rsquo;s bracket
         rather than the spot grid&rsquo;s, because this page traces one field where that one traces

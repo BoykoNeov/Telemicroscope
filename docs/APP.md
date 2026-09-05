@@ -6411,6 +6411,30 @@ Structural work implied by the above, independent of which surfaces land:
    because a smoothed curve through measured points is a drawing of a claim
    rather than the claim.
 
+6. **Lazy routes, and one stylesheet of tokens.** ✅ **landed** — see
+   `docs/UI-PLAN.md` for what is still open. Two things, one change, both
+   measured. *Routes:* the registry imported every panel eagerly, and a panel
+   imports its adapter, which imports the engine — so the production entry
+   chunk carried all thirty-one surfaces and weighed **840 KB** before the
+   first route painted. Every `Component` is now `lazy(() => import(...))`
+   and Vite emits one chunk per panel beside its worker: the entry is
+   **160 KB** (52 KB gzipped) and a route costs its own 6–63 KB on first
+   visit. Nothing about a panel changed, because the shell already keyed and
+   remounted it per route. *Tokens:* ~800 hex literals across the panels came
+   from a palette of a dozen greys and six semantic colours, and there was no
+   way to have a second theme without touching every file. They are now
+   `var(--…)` tokens defined once in `src/styles.css`, light and dark, with
+   the guard colours (`--ok`, `--warn`, `--bad`) the same three tokens on
+   every surface — which is item 4's rule made a property of one file. A
+   canvas cannot read a variable through `strokeStyle`, so `plot.tsx` and the
+   spot cells resolve theirs through `resolveColor` in `theme.ts` and redraw
+   on a theme change; the raster pictures stay on black in both themes,
+   because an image plane is not UI. `test/theme.test.ts` pins the seam:
+   every token a source file names is defined, every light token is redefined
+   in both dark blocks, and no hex literal has crept back into a panel. The
+   nav is three rows, one per engine branch, which is the registry's `group`
+   field and not a reordering — `PANELS` is unchanged in order and content.
+
 Note that `@telemicroscope/core/illumination` is already in the package's
 `exports` map, so no packaging work is needed for the brightfield surfaces.
 

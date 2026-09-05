@@ -56,9 +56,9 @@ import type { ApertureSpec } from "@telemicroscope/core/trace";
  */
 
 const cell: React.CSSProperties = { padding: "2px 5px", textAlign: "right", whiteSpace: "nowrap" };
-const head: React.CSSProperties = { ...cell, borderBottom: "1px solid #ccc", color: "#444", fontWeight: 400 };
-const mono: React.CSSProperties = { fontFamily: "monospace", fontSize: 12 };
-const note: React.CSSProperties = { ...mono, color: "#777", maxWidth: 640, margin: "4px 0 0" };
+const head: React.CSSProperties = { ...cell, borderBottom: "1px solid var(--line)", color: "var(--ink-2)", fontWeight: 400 };
+const mono: React.CSSProperties = { fontFamily: "var(--mono)", fontSize: 12 };
+const note: React.CSSProperties = { ...mono, color: "var(--ink-4)", maxWidth: 640, margin: "4px 0 0" };
 
 /** A small square button — the row actions, which are all one glyph. */
 function Tiny(props: { onClick: () => void; title: string; children: React.ReactNode; disabled?: boolean }) {
@@ -71,9 +71,9 @@ function Tiny(props: { onClick: () => void; title: string; children: React.React
         ...mono,
         width: 22,
         padding: "1px 0",
-        border: "1px solid #ccc",
-        background: "#fff",
-        color: props.disabled ? "#ccc" : "#333",
+        border: "1px solid var(--line)",
+        background: "var(--bg)",
+        color: props.disabled ? "var(--line)" : "var(--ink)",
         cursor: props.disabled ? "default" : "pointer",
       }}
     >
@@ -89,8 +89,8 @@ function SectionRefusal({ section }: { section: Section<unknown> }) {
     <div
       style={{
         ...mono,
-        border: `1px solid ${section.source === "engine" ? "#c00" : "#a60"}`,
-        color: section.source === "engine" ? "#c00" : "#a60",
+        border: `1px solid ${section.source === "engine" ? "var(--bad)" : "var(--warn)"}`,
+        color: section.source === "engine" ? "var(--bad)" : "var(--warn)",
         padding: "6px 10px",
         maxWidth: 720,
         marginBottom: 12,
@@ -155,14 +155,14 @@ export function EditorPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The bench: the surface list, and both tracers on it</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         Every other panel here shows what a <em>design</em> does. This is the{" "}
         <strong>prescription</strong> underneath one — the ordered surface list that both branches
         share, with a row per surface and nothing solved for you. The builder next door edits the
         arguments a constructor is called with; here the surfaces <em>are</em> the input, which is
         the layer under every picture in this app.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The subject is the gap between the two tracers running on the same rows. Paraxial says where
         the image is; exact says where the light goes. The seeds open on that gap already: the two
         refractors carry a last thickness of <strong>500 mm</strong> because{" "}
@@ -172,7 +172,7 @@ export function EditorPanel() {
         <strong>still 95 µm short of it</strong>, which is the spherical aberration that a first-order
         engine cannot see and a designer cannot remove by refocusing.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The panel&rsquo;s own finding is the <strong>order</strong> readout. Halve the stop and the
         on-axis spot falls by 2<sup>p</sup>, where p is the lowest aberration order that has{" "}
         <em>not</em> been corrected — so the exponent measures a design&rsquo;s correction state
@@ -196,8 +196,8 @@ export function EditorPanel() {
                 ...mono,
                 fontSize: 11,
                 padding: "2px 6px",
-                border: s.id === seedId ? "1px solid #333" : "1px solid #ccc",
-                background: "#fff",
+                border: s.id === seedId ? "1px solid var(--ink)" : "1px solid var(--line)",
+                background: "var(--bg)",
                 cursor: "pointer",
               }}
             >
@@ -226,17 +226,17 @@ export function EditorPanel() {
           </thead>
           <tbody>
             {draft.surfaces.map((s, i) => (
-              <tr key={i} style={{ borderBottom: "1px solid #eee" }}>
-                <td style={{ ...cell, textAlign: "left", color: "#777" }}>{i}</td>
+              <tr key={i} style={{ borderBottom: "1px solid var(--line-2)" }}>
+                <td style={{ ...cell, textAlign: "left", color: "var(--ink-4)" }}>{i}</td>
                 <td style={cell}>
                   <button
                     onClick={() => setSurface(i, { kind: s.kind === "refract" ? "reflect" : "refract" })}
                     style={{
                       ...mono,
                       padding: "2px 6px",
-                      border: "1px solid #ccc",
-                      background: s.kind === "reflect" ? "#333" : "#fff",
-                      color: s.kind === "reflect" ? "#fff" : "#333",
+                      border: "1px solid var(--line)",
+                      background: s.kind === "reflect" ? "var(--ink)" : "var(--bg)",
+                      color: s.kind === "reflect" ? "var(--bg)" : "var(--ink)",
                       cursor: "pointer",
                     }}
                   >
@@ -289,7 +289,7 @@ export function EditorPanel() {
                     onChange={() => setStop(i)}
                   />
                 </td>
-                <td style={{ ...cell, color: "#777" }}>
+                <td style={{ ...cell, color: "var(--ink-4)" }}>
                   {result.ok && result.exact.ok ? num(result.exact.vertexZsMm[i] ?? NaN, 3) : "—"}
                 </td>
                 <td style={cell}>
@@ -405,9 +405,9 @@ export function EditorPanel() {
             ...mono,
             fontSize: 13,
             padding: "6px 16px",
-            border: "1px solid #333",
-            background: solvable ? "#333" : "#eee",
-            color: solvable ? "#fff" : "#999",
+            border: "1px solid var(--ink)",
+            background: solvable ? "var(--ink)" : "var(--line-2)",
+            color: solvable ? "var(--bg)" : "var(--ink-5)",
             cursor: solvable ? "pointer" : "default",
           }}
         >
@@ -415,11 +415,11 @@ export function EditorPanel() {
         </button>
         <button
           onClick={() => setDraft(seed.draft)}
-          style={{ ...mono, fontSize: 13, padding: "6px 16px", border: "1px solid #ccc", background: "#fff", cursor: "pointer" }}
+          style={{ ...mono, fontSize: 13, padding: "6px 16px", border: "1px solid var(--line)", background: "var(--bg)", cursor: "pointer" }}
         >
           reset to {seed.label}
         </button>
-        <span style={{ ...mono, color: "#777" }}>
+        <span style={{ ...mono, color: "var(--ink-4)" }}>
           {result.ok
             ? `${result.elapsedMs.toFixed(1)} ms · ${result.surfaceCount} surfaces · every keystroke re-traces`
             : "not traced"}
@@ -431,8 +431,8 @@ export function EditorPanel() {
           style={{
             ...mono,
             fontSize: 13,
-            border: `1px solid ${result.source === "engine" ? "#c00" : "#a60"}`,
-            color: result.source === "engine" ? "#c00" : "#a60",
+            border: `1px solid ${result.source === "engine" ? "var(--bad)" : "var(--warn)"}`,
+            color: result.source === "engine" ? "var(--bad)" : "var(--warn)",
             padding: 12,
             maxWidth: 720,
           }}
@@ -578,7 +578,7 @@ export function EditorPanel() {
                       <td style={cell}>{num(f.geoRadiusMm * 1000, 3)} µm</td>
                       <td style={cell}>{num(f.bestFocusOffsetMm, 4)} mm</td>
                       <td style={cell}>{num(f.bestRmsRadiusMm * 1000, 3)} µm</td>
-                      <td style={{ ...cell, color: f.lost > 0 ? "#a60" : "#777" }}>
+                      <td style={{ ...cell, color: f.lost > 0 ? "var(--warn)" : "var(--ink-4)" }}>
                         {f.lost}/{f.lost + f.traced}
                       </td>
                     </tr>
@@ -629,7 +629,7 @@ export function EditorPanel() {
                 </thead>
                 <tbody>
                   <tr>
-                    <td style={{ ...cell, textAlign: "left", color: "#777" }}>on-axis RMS at focus</td>
+                    <td style={{ ...cell, textAlign: "left", color: "var(--ink-4)" }}>on-axis RMS at focus</td>
                     {result.order.steps.map((s) => (
                       <td key={s.stopFraction} style={cell}>
                         {s.rmsRadiusMm.toExponential(2)}
@@ -637,7 +637,7 @@ export function EditorPanel() {
                     ))}
                   </tr>
                   <tr>
-                    <td style={{ ...cell, textAlign: "left", color: "#777" }}>implied order</td>
+                    <td style={{ ...cell, textAlign: "left", color: "var(--ink-4)" }}>implied order</td>
                     <td style={cell}>—</td>
                     {result.order.slopes.map((s, i) => (
                       <td key={i} style={cell}>
@@ -655,14 +655,14 @@ export function EditorPanel() {
             </>
           )}
 
-          <p style={{ marginTop: 16, fontSize: 13, color: "#666", maxWidth: 680 }}>
+          <p style={{ marginTop: 16, fontSize: 13, color: "var(--ink-3)", maxWidth: 680 }}>
             Nothing here is new physics, and no engine capability was added:{" "}
             <code>systemProperties</code>, <code>pupils</code>, <code>exitBundle</code>,{" "}
             <code>bestSpotZ</code> and <code>seidelSums</code> have been in the engine since steps
             1–2. What did not exist was a way to reach <code>Prescription</code> itself — every
             other surface in this app reaches designs, which are the things that <em>produce</em> one.
           </p>
-          <p style={{ fontSize: 13, color: "#666", maxWidth: 680 }}>
+          <p style={{ fontSize: 13, color: "var(--ink-3)", maxWidth: 680 }}>
             <strong>What this form does not edit, said out loud.</strong> <code>SurfaceSpec</code>{" "}
             also carries tilt, decenter and a reflectance override, and <code>Prescription</code>{" "}
             carries <code>mirrorFrames</code>. This table is <strong>unfolded and axial</strong>: a

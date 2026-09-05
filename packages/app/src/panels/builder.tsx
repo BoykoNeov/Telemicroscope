@@ -229,7 +229,7 @@ export function BuilderPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The microscope builder: compose one, and walk into the walls</h1>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The bench traces ten objectives. Those ten were never the design space — they were ten
         constructor calls with <em>two</em> arguments each and everything else defaulted. This is
         the same engine with the parameters that decide what the design <em>is</em> put on a form:
@@ -239,7 +239,7 @@ export function BuilderPanel() {
         glass margins, meniscus gap and thickness factors, the front-image factor, the oil film,
         and λ, which every microscope readout in this app fixes at the d line.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         Its best feature was already built. The engine <strong>refuses</strong> designs that do not
         exist, and refuses them in its own words — the cemented doublet when its two
         spherical-aberration-null bendings stop being two, the aplanat when the joint root is gone,
@@ -249,7 +249,7 @@ export function BuilderPanel() {
         the doublet solve differently and the design it used to refuse now builds. Here you choose
         an aperture and find out, against the engine as it is today.
       </p>
-      <p style={{ maxWidth: 660, color: "#444" }}>
+      <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         And the walls turn out <strong>not to be constants</strong>, which is the thing only a
         builder can show. The Lister&rsquo;s refusal already says so in its own text — it names
         § 6d&rsquo;s NA 0.343 <em>or</em> &ldquo;this split/separation/orientation admits none&rdquo;
@@ -272,11 +272,11 @@ export function BuilderPanel() {
                 setSubmitted(e.spec);
               }}
               style={{
-                fontFamily: "monospace",
+                fontFamily: "var(--mono)",
                 fontSize: 11,
                 padding: "2px 6px",
-                border: "1px solid #ccc",
-                background: "#fff",
+                border: "1px solid var(--line)",
+                background: "var(--bg)",
                 cursor: "pointer",
               }}
             >
@@ -304,7 +304,7 @@ export function BuilderPanel() {
           }
         />
         {spec.form !== "doublet" && (
-          <p style={{ fontFamily: "monospace", fontSize: 11, color: "#a60", maxWidth: 320, margin: 0 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--warn)", maxWidth: 320, margin: 0 }}>
             the Lister and oil forms are infinity-space designs, so the architecture follows the form.
             A finite-conjugate Lister is a <em>named open item</em> in the ROADMAP (§ 6d) — there is no
             engine call to refuse, which is why this sentence is the app&rsquo;s and not the
@@ -337,14 +337,14 @@ export function BuilderPanel() {
           disabled={!live.fieldNumber}
           onChange={(v) => set("fieldNumberMm", v)}
         />
-        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 300, margin: 0 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 300, margin: 0 }}>
           the tube length and the objective&rsquo;s own <code>tubeFocalLengthMm</code> are one control:
           a magnification quoted against one tube and formed by another is a mislabelled lens, not a
           design. The infinity space changes no first-order property — that is why it exists, and it
           is a rung of its own.
         </p>
         {live.fieldNumber && (
-          <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 300, margin: 0 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 300, margin: 0 }}>
             the field number sizes the <em>glass</em> and not the aperture (§ 6w): a telecentric
             bundle from the field edge arrives centred on <code>FN/2M</code>, so the element is
             <code> f·NA + FN/2M</code>. Set it to 0 and the objective is § 6v&rsquo;s — sized to its
@@ -393,14 +393,14 @@ export function BuilderPanel() {
               onChange={(v) => set("rearGroupOrientation", v)}
               format={(v) => (v === "flintFirst" ? "flint first" : "crown first")}
             />
-            <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 280, margin: 0 }}>
+            <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 280, margin: 0 }}>
               these two are here because the aplanat&rsquo;s refusal names them — &ldquo;or this
               split/separation/<em>orientation</em> admits none&rdquo;. A panel that quoted that
               while defaulting the parameter would name a cause you could not check.
             </p>
           </>
         ) : (
-          <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 280, margin: 0 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 280, margin: 0 }}>
             orientation is the finite-conjugate doublet&rsquo;s turn-around (§ 6b); the
             infinity-corrected doublet is authored specimen-side first and has no such choice.
           </p>
@@ -438,7 +438,7 @@ export function BuilderPanel() {
             })
           }
         />
-        <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 340, margin: 0 }}>
+        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 340, margin: 0 }}>
           {live.coverslip === "corrected-for" &&
             "corrected FOR: § 6c re-solves the bending to ΣS_I = −(the plate's), so the lens alone is deliberately aberrated and the pair is stigmatic."}
           {live.coverslip === "looked-through" &&
@@ -474,7 +474,7 @@ export function BuilderPanel() {
           onChange={(v) => set("immersionMedium", v)}
         />
         {live.listerGroups && (
-          <p style={{ fontFamily: "monospace", fontSize: 11, color: "#777", maxWidth: 300, margin: 0 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 300, margin: 0 }}>
             the split and the separation are <em>stated</em>, not solved — § 6d&rsquo;s solve holds
             across k ∈ [0.3, 0.8], which is what makes the aplanat a property of the form rather than
             of a lucky pick. Move them and watch ΣS_I and ΣS_II stay at zero.
@@ -487,18 +487,18 @@ export function BuilderPanel() {
           onClick={() => setSubmitted(spec)}
           disabled={!dirty}
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 13,
             padding: "6px 16px",
-            border: "1px solid #333",
-            background: dirty ? "#333" : "#eee",
-            color: dirty ? "#fff" : "#999",
+            border: "1px solid var(--ink)",
+            background: dirty ? "var(--ink)" : "var(--line-2)",
+            color: dirty ? "var(--bg)" : "var(--ink-5)",
             cursor: dirty ? "pointer" : "default",
           }}
         >
           build it
         </button>
-        <span style={{ fontFamily: "monospace", fontSize: 12, color: "#777" }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
           {dirty
             ? "the form has moved — nothing recomputes until you press it"
             : result
@@ -518,12 +518,12 @@ export function BuilderPanel() {
           // would put a refusal on every picture panel a reader then opened.
           disabled={!result?.ok}
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 13,
             padding: "6px 16px",
-            border: "1px solid #333",
-            background: result?.ok ? "#fff" : "#eee",
-            color: result?.ok ? "#333" : "#999",
+            border: "1px solid var(--ink)",
+            background: result?.ok ? "var(--bg)" : "var(--line-2)",
+            color: result?.ok ? "var(--ink)" : "var(--ink-5)",
             cursor: result?.ok ? "pointer" : "default",
           }}
         >
@@ -536,19 +536,19 @@ export function BuilderPanel() {
               setSaved(null);
             }}
             style={{
-              fontFamily: "monospace",
+              fontFamily: "var(--mono)",
               fontSize: 12,
               padding: "6px 12px",
-              border: "1px solid #ccc",
-              background: "#fff",
-              color: "#777",
+              border: "1px solid var(--line)",
+              background: "var(--bg)",
+              color: "var(--ink-4)",
               cursor: "pointer",
             }}
           >
             forget it
           </button>
         )}
-        <span style={{ fontFamily: "monospace", fontSize: 12, color: storageRefused ? "#c00" : "#777" }}>
+        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: storageRefused ? "var(--bad)" : "var(--ink-4)" }}>
           {storageRefused
             ? "this browser refused to store it — the picture panels will show the bench's ten rows only"
             : saved
@@ -560,10 +560,10 @@ export function BuilderPanel() {
       {result && !result.ok && (
         <div
           style={{
-            fontFamily: "monospace",
+            fontFamily: "var(--mono)",
             fontSize: 13,
-            border: `1px solid ${result.source === "engine" ? "#c00" : "#a60"}`,
-            color: result.source === "engine" ? "#c00" : "#a60",
+            border: `1px solid ${result.source === "engine" ? "var(--bad)" : "var(--warn)"}`,
+            color: result.source === "engine" ? "var(--bad)" : "var(--warn)",
             padding: 12,
             maxWidth: 720,
             marginBottom: 16,
@@ -577,7 +577,7 @@ export function BuilderPanel() {
           <br />
           {result.error}
           <br />
-          <span style={{ color: "#777", fontSize: 11 }}>
+          <span style={{ color: "var(--ink-4)", fontSize: 11 }}>
             {result.source === "engine"
               ? "that message carries a measured number — it is a finding in the validation ladder, not a validation error."
               : "no engine call exists for this combination, so there is no exception to quote. This sentence is the app's."}
@@ -651,7 +651,7 @@ export function BuilderPanel() {
         </>
       )}
 
-      <p style={{ marginTop: 16, fontSize: 13, color: "#666", maxWidth: 680 }}>
+      <p style={{ marginTop: 16, fontSize: 13, color: "var(--ink-3)", maxWidth: 680 }}>
         The frame numbers are the bench&rsquo;s, unchanged and from the same function — at{" "}
         {PUPIL_SAMPLES} pupil samples on a {GRID}² grid, λ = {LAMBDA_NM} nm. The crop still spans{" "}
         <code>pupil samples</code> resolution cells whatever is built here, because that is § 6h and
@@ -659,7 +659,7 @@ export function BuilderPanel() {
         engine actually <em>solved</em> — the specimen plane, the working ratio, the Lister&rsquo;s two
         bendings, the dome radius that was computed rather than chosen.
       </p>
-      <p style={{ fontSize: 13, color: "#666", maxWidth: 680 }}>
+      <p style={{ fontSize: 13, color: "var(--ink-3)", maxWidth: 680 }}>
         Nothing here is new physics. Every constructor has been in <code>designs/</code> since
         § 6a–§ 6e with these parameters; the catalogue simply never passed them. The ten preset
         buttons above are those rows re-expressed as points in this space — they rebuild the bench&rsquo;s
