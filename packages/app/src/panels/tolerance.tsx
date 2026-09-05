@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { PerturbTarget } from "@telemicroscope/core/analysis";
 import { useLatestFromWorker } from "../hooks";
-import { Plot } from "../plot";
+import { Plot, type PlotMarker, type PlotSeries } from "../plot";
 import {
   MARECHAL_WAVES,
   TARGET_UNIT,
@@ -282,6 +282,43 @@ export function TolerancePanel() {
   // reads as "these tolerances cost nothing" rather than as "not measured yet".
   const result =
     fresh && job.result?.scaleSignature === scaleSignature(scales) ? job.result : null;
+
+  /**
+   * The k-sweep, built once per worker reply — UI-PLAN § 1.
+   *
+   * This panel has no slider, but it has a table of editable rows, and every
+   * keystroke in it re-renders the whole panel while the worker is still
+   * answering the previous edit. Without this the sweep repainted on each one,
+   * drawing the same two curves. `result` is the worker's own object, so it is
+   * the whole dependency; the two rules are constants and are built once.
+   */
+  const sweepSeries = useMemo<PlotSeries[]>(
+    () =>
+      result
+        ? [
+            {
+              label: "rss — √(Σσᵢ²), the independent-modes estimate",
+              color: "var(--warn-strong)",
+              points: result.sweep.map((s) => [s.k, s.rssWaves] as const),
+              dash: [5, 4],
+            },
+            {
+              label: "combined — one trace",
+              color: "var(--blue)",
+              points: result.sweep.map((s) => [s.k, s.combinedWaves] as const),
+              dots: true,
+            },
+          ]
+        : [],
+    [result],
+  );
+  const sweepMarkers = useMemo<PlotMarker[]>(
+    () => [
+      { x: 1, color: "var(--ink-5)", label: "sliders" },
+      { y: MARECHAL_WAVES, color: "var(--warn)", label: "λ/14" },
+    ],
+    [],
+  );
 
   const setRow = (index: number, patch: Partial<Row>) =>
     setRows((current) => current.map((r, i) => (i === index ? { ...r, ...patch } : r)));
@@ -688,24 +725,8 @@ export function TolerancePanel() {
             </div>
 
             <Plot
-              series={[
-                {
-                  label: "rss — √(Σσᵢ²), the independent-modes estimate",
-                  color: "var(--warn-strong)",
-                  points: result.sweep.map((s) => [s.k, s.rssWaves] as const),
-                  dash: [5, 4],
-                },
-                {
-                  label: "combined — one trace",
-                  color: "var(--blue)",
-                  points: result.sweep.map((s) => [s.k, s.combinedWaves] as const),
-                  dots: true,
-                },
-              ]}
-              markers={[
-                { x: 1, color: "var(--ink-5)", label: "sliders" },
-                { y: MARECHAL_WAVES, color: "var(--warn)", label: "λ/14" },
-              ]}
+              series={sweepSeries}
+              markers={sweepMarkers}
               xLabel="k — every slider scaled by this"
               yLabel="σ waves"
               xMin={0}

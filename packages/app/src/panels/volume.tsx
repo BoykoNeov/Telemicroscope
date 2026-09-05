@@ -4,7 +4,7 @@ import { objectiveOf, objectiveOptions, type ObjectiveId } from "../objective";
 import { readSavedBuild } from "../saved";
 import { useLatestFromWorker } from "../hooks";
 import { MICROSCOPE_CATALOG, MARECHAL_WAVES, entryOf, type MicroscopeKind } from "../microscope";
-import { Plot } from "../plot";
+import { Plot, type PlotMarker, type PlotSeries } from "../plot";
 import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, thresholdLevel } from "../ui";
 import {
   axialSincSq,
@@ -157,6 +157,73 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
   );
   const sweep = pending ? null : result;
 
+  /**
+   * The two plots' arrays, built once per worker reply — UI-PLAN § 1.
+   *
+   * They are hoisted above the refusal returns below because a hook cannot run
+   * after a conditional return, so they are written against a readout that may
+   * not exist yet: `ready` is the same object as `r` below whenever anything is
+   * drawn at all. The defocus rule is the exception that tracks a control — it
+   * takes `markWaves`, so that plot does repaint while the slider moves, which
+   * is the point of the rule.
+   */
+  const ready = sweep !== null && sweep.ok ? sweep.readout : null;
+  const axialSeries = useMemo<PlotSeries[]>(
+    () =>
+      ready === null
+        ? []
+        : [
+            {
+              label: "sinc²(π·w₂₀), closed form",
+              color: "var(--warn)",
+              points: ready.sweep.waves.map((w) => [w, axialSincSq(w)] as const),
+              width: 2.4,
+            },
+            {
+              label: "measured, this objective",
+              color: "var(--ink)",
+              points: ready.sweep.waves.map((w, i) => [w, ready.sweep.measured[i]!] as const),
+              width: 1.3,
+            },
+          ],
+    [ready],
+  );
+  const axialMarkers = useMemo<PlotMarker[]>(
+    () => [
+      // Only when it is on the axis. A marker clamped to the edge would
+      // say "the worst plane is at 2 waves" for a slab whose worst plane
+      // is at 6, which is a wrong number rather than a missing one.
+      ...(Math.abs(markWaves) <= 2
+        ? [{ x: markWaves, color: "var(--accent)", label: "worst plane" } as const]
+        : []),
+      { y: 8 / (Math.PI * Math.PI), color: "var(--ok)", label: "8/π² at ¼ wave" },
+    ],
+    [markWaves],
+  );
+  const coneSeries = useMemo<PlotSeries[]>(
+    () =>
+      ready === null
+        ? []
+        : ready.cones.map((c, i) => ({
+            label: c.nu === 0 ? "ν = 0 — the cone" : `ν = ${c.nu}`,
+            color: ["var(--bad)", "var(--accent)", "var(--ink)", "var(--warn)"][i] ?? "var(--ink-3)",
+            points: c.cyclesPerWave.map((mu, j) => [mu, c.magnitude[j]!] as const),
+            width: c.nu === 0 ? 2.4 : 1.4,
+            // ν = 1.5 dashed: it shares its support edge with ν = 0.5, so the
+            // two curves land on the same marker and would otherwise be read as
+            // one line reaching further than it does.
+            ...(i === 3 ? { dash: [5, 4] } : {}),
+          })),
+    [ready],
+  );
+  const coneMarkers = useMemo<PlotMarker[]>(
+    () => [
+      { x: 1, color: "var(--ok)", label: "μ = ν(2−ν)" },
+      { x: 0.75, color: "var(--ok)" },
+    ],
+    [],
+  );
+
   if (sweep === null) {
     return (
       <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
@@ -174,8 +241,6 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
 
   const r = sweep.readout;
   const asym = r.sweep;
-  const closed = r.sweep.waves.map((w) => [w, axialSincSq(w)] as const);
-  const measured = r.sweep.waves.map((w, i) => [w, r.sweep.measured[i]!] as const);
   const cone = r.cones.find((c) => c.nu === 0)!;
   const sigmaShare = r.axisRmsWaves > 0 ? r.sweep.defocusSigmaWaves / r.axisRmsWaves : Number.NaN;
   /**
@@ -196,29 +261,8 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
     <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
       <div>
         <Plot
-          series={[
-            {
-              label: "sinc²(π·w₂₀), closed form",
-              color: "var(--warn)",
-              points: closed,
-              width: 2.4,
-            },
-            {
-              label: "measured, this objective",
-              color: "var(--ink)",
-              points: measured,
-              width: 1.3,
-            },
-          ]}
-          markers={[
-            // Only when it is on the axis. A marker clamped to the edge would
-            // say "the worst plane is at 2 waves" for a slab whose worst plane
-            // is at 6, which is a wrong number rather than a missing one.
-            ...(Math.abs(markWaves) <= 2
-              ? [{ x: markWaves, color: "var(--accent)", label: "worst plane" } as const]
-              : []),
-            { y: 8 / (Math.PI * Math.PI), color: "var(--ok)", label: "8/π² at ¼ wave" },
-          ]}
+          series={axialSeries}
+          markers={axialMarkers}
           xLabel="defocus w₂₀, waves at the pupil rim"
           yLabel="on-axis intensity ÷ its value at w₂₀ = 0"
           xMin={-2}
@@ -303,20 +347,8 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
 
       <div>
         <Plot
-          series={r.cones.map((c, i) => ({
-            label: c.nu === 0 ? "ν = 0 — the cone" : `ν = ${c.nu}`,
-            color: ["var(--bad)", "var(--accent)", "var(--ink)", "var(--warn)"][i] ?? "var(--ink-3)",
-            points: c.cyclesPerWave.map((mu, j) => [mu, c.magnitude[j]!] as const),
-            width: c.nu === 0 ? 2.4 : 1.4,
-            // ν = 1.5 dashed: it shares its support edge with ν = 0.5, so the
-            // two curves land on the same marker and would otherwise be read as
-            // one line reaching further than it does.
-            ...(i === 3 ? { dash: [5, 4] } : {}),
-          }))}
-          markers={[
-            { x: 1, color: "var(--ok)", label: "μ = ν(2−ν)" },
-            { x: 0.75, color: "var(--ok)" },
-          ]}
+          series={coneSeries}
+          markers={coneMarkers}
           xLabel="axial frequency μ, cycles per wave of defocus"
           yLabel="|axial transfer| ÷ its own peak"
           xMin={0}
@@ -427,6 +459,47 @@ function DepthPlot({ request }: { request: DepthRequest }) {
   );
   const depth = pending ? null : result;
 
+  // Hoisted above the refusal returns for the same reason as `AxialPlots`.
+  // Nothing on this plot tracks a control: both curves and all three rules are
+  // the bisected readout alone (UI-PLAN § 1).
+  const readout = depth !== null && depth.ok ? depth.readout : null;
+  const depthSeries = useMemo<PlotSeries[]>(
+    () =>
+      readout === null
+        ? []
+        : [
+            {
+              label: `the depth's own cost — ideal pupil at NA ${readout.deliveredNA.toFixed(4)}`,
+              color: "var(--ink)",
+              points: readout.curve.map((p) => [p.depthUm, p.ideal] as const),
+              width: 2.4,
+              dots: true,
+            },
+            {
+              label: "this objective, traced",
+              color: "var(--warn)",
+              points: readout.curve.map((p) => [p.depthUm, p.traced] as const),
+              width: 1.4,
+              dash: [5, 4],
+              dots: true,
+            },
+          ],
+    [readout],
+  );
+  const depthMarkers = useMemo<PlotMarker[]>(() => {
+    if (readout === null) return [];
+    const end = readout.curve[readout.curve.length - 1]!.depthUm;
+    return [
+      { y: 0.8, color: "var(--ok)", label: "Maréchal, Strehl 0.8" },
+      ...(readout.bisectedIdealUm !== null && readout.bisectedIdealUm <= end
+        ? [{ x: readout.bisectedIdealUm, color: "var(--bad)", label: "bisected" } as const]
+        : []),
+      ...(readout.quotedMarechalUm !== null && readout.quotedMarechalUm <= end
+        ? [{ x: readout.quotedMarechalUm, color: "var(--accent)", label: "quoted budget" } as const]
+        : []),
+    ];
+  }, [readout]);
+
   if (depth === null) {
     return (
       <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
@@ -444,37 +517,12 @@ function DepthPlot({ request }: { request: DepthRequest }) {
 
   const d = depth.readout;
   const span = d.curve[d.curve.length - 1]!.depthUm;
-  const markers = [
-    { y: 0.8, color: "var(--ok)", label: "Maréchal, Strehl 0.8" },
-    ...(d.bisectedIdealUm !== null && d.bisectedIdealUm <= span
-      ? [{ x: d.bisectedIdealUm, color: "var(--bad)", label: "bisected" } as const]
-      : []),
-    ...(d.quotedMarechalUm !== null && d.quotedMarechalUm <= span
-      ? [{ x: d.quotedMarechalUm, color: "var(--accent)", label: "quoted budget" } as const]
-      : []),
-  ];
 
   return (
     <div>
       <Plot
-        series={[
-          {
-            label: `the depth's own cost — ideal pupil at NA ${d.deliveredNA.toFixed(4)}`,
-            color: "var(--ink)",
-            points: d.curve.map((p) => [p.depthUm, p.ideal] as const),
-            width: 2.4,
-            dots: true,
-          },
-          {
-            label: "this objective, traced",
-            color: "var(--warn)",
-            points: d.curve.map((p) => [p.depthUm, p.traced] as const),
-            width: 1.4,
-            dash: [5, 4],
-            dots: true,
-          },
-        ]}
-        markers={markers}
+        series={depthSeries}
+        markers={depthMarkers}
         xLabel="depth below the coverslip, µm"
         yLabel="peak at best focus ÷ its value at zero depth"
         xMin={0}

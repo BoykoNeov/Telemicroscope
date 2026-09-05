@@ -103,35 +103,44 @@ function TravelPlot({
     () => travelSweep(spec, focuser, TRAVEL_POINTS),
     [spec, focuser],
   );
-  const ys = sweep.flatMap((p) => [p.requiredTravelMm, p.naiveRequiredTravelMm]);
-  const lo = Math.min(...ys, -focuser.inwardTravelMm) - 6;
-  const hi = Math.max(...ys, focuser.outwardTravelMm) + 6;
-  const series: PlotSeries[] = [
-    {
-      label: "traced budget — the glass hands travel back",
-      color: "var(--ink)",
-      points: sweep.map((p) => [p.prismGlassMm, p.requiredTravelMm] as const),
-      width: 2,
-      dots: true,
-    },
-    {
-      label: "glass counted as air — the spreadsheet",
-      color: "var(--bad)",
-      points: sweep.map((p) => [p.prismGlassMm, p.naiveRequiredTravelMm] as const),
-      dash: [5, 4],
-    },
-  ];
-  const markers: PlotMarker[] = [
-    { y: focuser.outwardTravelMm, color: "var(--warn)", label: "racked out" },
-    { y: -focuser.inwardTravelMm, color: "var(--warn)", label: "racked in" },
-  ];
-  // "You are here" only when the chain really is somewhere on this axis. A
-  // mirror diagonal is x = 0 exactly; a chain with NO diagonal is 110 mm shorter
-  // than every point on the curve, so marking it at 0 would point at a train the
-  // readouts above are not describing.
-  if (spec.diagonal !== "none") {
-    markers.push({ x: spec.diagonal === "prism" ? spec.prismGlassMm : 0, color: "var(--accent)" });
-  }
+  // The curves and their window are the sweep and the focuser's own travel;
+  // the rules are the focuser and where the chain sits (UI-PLAN § 1).
+  const { series, lo, hi } = useMemo(() => {
+    const ys = sweep.flatMap((p) => [p.requiredTravelMm, p.naiveRequiredTravelMm]);
+    return {
+      series: [
+        {
+          label: "traced budget — the glass hands travel back",
+          color: "var(--ink)",
+          points: sweep.map((p) => [p.prismGlassMm, p.requiredTravelMm] as const),
+          width: 2,
+          dots: true,
+        },
+        {
+          label: "glass counted as air — the spreadsheet",
+          color: "var(--bad)",
+          points: sweep.map((p) => [p.prismGlassMm, p.naiveRequiredTravelMm] as const),
+          dash: [5, 4],
+        },
+      ] as PlotSeries[],
+      lo: Math.min(...ys, -focuser.inwardTravelMm) - 6,
+      hi: Math.max(...ys, focuser.outwardTravelMm) + 6,
+    };
+  }, [sweep, focuser]);
+  const markers = useMemo<PlotMarker[]>(() => {
+    const out: PlotMarker[] = [
+      { y: focuser.outwardTravelMm, color: "var(--warn)", label: "racked out" },
+      { y: -focuser.inwardTravelMm, color: "var(--warn)", label: "racked in" },
+    ];
+    // "You are here" only when the chain really is somewhere on this axis. A
+    // mirror diagonal is x = 0 exactly; a chain with NO diagonal is 110 mm shorter
+    // than every point on the curve, so marking it at 0 would point at a train the
+    // readouts above are not describing.
+    if (spec.diagonal !== "none") {
+      out.push({ x: spec.diagonal === "prism" ? spec.prismGlassMm : 0, color: "var(--accent)" });
+    }
+    return out;
+  }, [focuser, spec]);
   return (
     <Plot
       series={series}
@@ -150,30 +159,38 @@ function TravelPlot({
 
 /** σ against focal ratio, with and without the glass, in Maréchal budgets. */
 function SigmaPlot({ sweep, glassMm }: { sweep: OpticsSweep; glassMm: number }) {
-  const logBudgets = (waves: number): number =>
-    Math.log10(Math.max(budgetShare(waves), 10 ** LOG_SIGMA_MIN));
-  const bare: (readonly [number, number])[] = [];
-  const glassed: (readonly [number, number])[] = [];
-  const plate: (readonly [number, number])[] = [];
-  for (const p of sweep.points) {
-    if (p.bare.ok) bare.push([p.focalRatio, logBudgets(p.bare.sigmaWaves)]);
-    if (p.glassed.ok) glassed.push([p.focalRatio, logBudgets(p.glassed.sigmaWaves)]);
-    if (glassMm > 0) plate.push([p.focalRatio, logBudgets(p.closedPlateWaves)]);
-  }
-  const markers: PlotMarker[] = [{ y: 0, color: "var(--warn)", label: "Maréchal λ/14" }];
-  if (sweep.glassedMarechal.focalRatio !== null) {
-    markers.push({ x: sweep.glassedMarechal.focalRatio, color: "var(--ink)" });
-  }
-  if (sweep.plateRayleigh.focalRatio !== null) {
-    markers.push({ x: sweep.plateRayleigh.focalRatio, color: "var(--ink-4)", label: "§ 5u's f/5.315" });
-  }
+  // The plate curve is drawn only when there IS glass, so `glassMm` is an input
+  // of the series as well as the sweep.
+  const series = useMemo<PlotSeries[]>(() => {
+    const logBudgets = (waves: number): number =>
+      Math.log10(Math.max(budgetShare(waves), 10 ** LOG_SIGMA_MIN));
+    const bare: (readonly [number, number])[] = [];
+    const glassed: (readonly [number, number])[] = [];
+    const plate: (readonly [number, number])[] = [];
+    for (const p of sweep.points) {
+      if (p.bare.ok) bare.push([p.focalRatio, logBudgets(p.bare.sigmaWaves)]);
+      if (p.glassed.ok) glassed.push([p.focalRatio, logBudgets(p.glassed.sigmaWaves)]);
+      if (glassMm > 0) plate.push([p.focalRatio, logBudgets(p.closedPlateWaves)]);
+    }
+    return [
+      { label: "doublet + the chain's glass", color: "var(--ink)", points: glassed, width: 2, dots: true },
+      { label: "the doublet alone", color: "var(--accent)", points: bare, dash: [5, 4], width: 1.6 },
+      { label: "the plate alone, closed form", color: "var(--ok)", points: plate, width: 1.6 },
+    ];
+  }, [sweep, glassMm]);
+  const markers = useMemo<PlotMarker[]>(() => {
+    const out: PlotMarker[] = [{ y: 0, color: "var(--warn)", label: "Maréchal λ/14" }];
+    if (sweep.glassedMarechal.focalRatio !== null) {
+      out.push({ x: sweep.glassedMarechal.focalRatio, color: "var(--ink)" });
+    }
+    if (sweep.plateRayleigh.focalRatio !== null) {
+      out.push({ x: sweep.plateRayleigh.focalRatio, color: "var(--ink-4)", label: "§ 5u's f/5.315" });
+    }
+    return out;
+  }, [sweep]);
   return (
     <Plot
-      series={[
-        { label: "doublet + the chain's glass", color: "var(--ink)", points: glassed, width: 2, dots: true },
-        { label: "the doublet alone", color: "var(--accent)", points: bare, dash: [5, 4], width: 1.6 },
-        { label: "the plate alone, closed form", color: "var(--ok)", points: plate, width: 1.6 },
-      ]}
+      series={series}
       markers={markers}
       xLabel="focal ratio of the doublet the glass sits in"
       yLabel="log₁₀ σ, in Maréchal budgets"
@@ -193,19 +210,18 @@ function SigmaPlot({ sweep, glassMm }: { sweep: OpticsSweep; glassMm: number }) 
  * larger than the departure it would have to resolve.
  */
 function RatioPlot({ sweep }: { sweep: OpticsSweep }) {
-  const measured: (readonly [number, number])[] = [];
-  const exact: (readonly [number, number])[] = [];
-  for (const p of sweep.points) {
-    if (p.measuredPlateWaves !== null && p.closedPlateWaves > 0) {
-      measured.push([p.focalRatio, p.measuredPlateWaves / p.closedPlateWaves]);
+  const { series, hi } = useMemo(() => {
+    const measured: (readonly [number, number])[] = [];
+    const exact: (readonly [number, number])[] = [];
+    for (const p of sweep.points) {
+      if (p.measuredPlateWaves !== null && p.closedPlateWaves > 0) {
+        measured.push([p.focalRatio, p.measuredPlateWaves / p.closedPlateWaves]);
+      }
+      exact.push([p.focalRatio, p.exactOverThird]);
     }
-    exact.push([p.focalRatio, p.exactOverThird]);
-  }
-  const ys = [...measured, ...exact].map(([, y]) => y);
-  const hi = Math.max(1.02, ...ys) + 0.01;
-  return (
-    <Plot
-      series={[
+    const ys = [...measured, ...exact].map(([, y]) => y);
+    return {
+      series: [
         {
           label: "traced (glassed − bare) ÷ W₀₄₀/(6√5)",
           color: "var(--ink)",
@@ -219,8 +235,18 @@ function RatioPlot({ sweep }: { sweep: OpticsSweep }) {
           points: exact,
           dash: [5, 4],
         },
-      ]}
-      markers={[{ y: 1, color: "var(--warn)", label: "the closed form" }]}
+      ] as PlotSeries[],
+      hi: Math.max(1.02, ...ys) + 0.01,
+    };
+  }, [sweep]);
+  const markers = useMemo<PlotMarker[]>(
+    () => [{ y: 1, color: "var(--warn)", label: "the closed form" }],
+    [],
+  );
+  return (
+    <Plot
+      series={series}
+      markers={markers}
       xLabel="focal ratio"
       yLabel="measured ÷ closed form"
       xMin={MIN_RATIO}
@@ -237,29 +263,38 @@ function ColourPlot({
 }: {
   readout: ReturnType<typeof colourReadout>;
 }) {
-  const series: PlotSeries[] = [];
-  const colours = ["var(--ink)", "var(--purple)"];
-  const ys: number[] = [];
-  readout.curves.forEach((curve, i) => {
-    if (!curve.ok) return;
-    for (const p of curve.points) ys.push(p.bareMm, p.glassedMm);
-    series.push({
-      label: `${curve.label} — bare`,
-      color: colours[i]!,
-      points: curve.points.map((p) => [p.wavelengthNm, p.bareMm] as const),
-      dash: [5, 4],
+  const { series, lo, hi, pad } = useMemo(() => {
+    const out: PlotSeries[] = [];
+    const colours = ["var(--ink)", "var(--purple)"];
+    const ys: number[] = [];
+    readout.curves.forEach((curve, i) => {
+      if (!curve.ok) return;
+      for (const p of curve.points) ys.push(p.bareMm, p.glassedMm);
+      out.push({
+        label: `${curve.label} — bare`,
+        color: colours[i]!,
+        points: curve.points.map((p) => [p.wavelengthNm, p.bareMm] as const),
+        dash: [5, 4],
+      });
+      out.push({
+        label: `${curve.label} — with the glass`,
+        color: colours[i]!,
+        points: curve.points.map((p) => [p.wavelengthNm, p.glassedMm] as const),
+        width: 2,
+        dots: true,
+      });
     });
-    series.push({
-      label: `${curve.label} — with the glass`,
-      color: colours[i]!,
-      points: curve.points.map((p) => [p.wavelengthNm, p.glassedMm] as const),
-      width: 2,
-      dots: true,
-    });
-  });
-  const lo = Math.min(0, ...ys);
-  const hi = Math.max(0, ...ys);
-  const pad = 0.12 * (hi - lo || 1);
+    const low = Math.min(0, ...ys);
+    const high = Math.max(0, ...ys);
+    return { series: out, lo: low, hi: high, pad: 0.12 * (high - low || 1) };
+  }, [readout]);
+  const markers = useMemo<PlotMarker[]>(
+    () => [
+      { y: 0, color: "var(--ink-4)" },
+      { y: readout.depthOfFocusMm, color: "var(--warn)", label: "one Rayleigh depth of focus" },
+    ],
+    [readout],
+  );
   return (
     <Plot
       series={series}
@@ -267,10 +302,7 @@ function ColourPlot({
       // 29 µm on a 0.7 mm axis — and `Plot` writes every horizontal label at its
       // own line's height, so two would overprint. The unlabelled one is the
       // axis zero, which the y label already says each curve is drawn against.
-      markers={[
-        { y: 0, color: "var(--ink-4)" },
-        { y: readout.depthOfFocusMm, color: "var(--warn)", label: "one Rayleigh depth of focus" },
-      ]}
+      markers={markers}
       xLabel="wavelength (nm) — F line at the left, C at the right"
       yLabel="focus (mm) vs the d line"
       xMin={480}
@@ -283,38 +315,44 @@ function ColourPlot({
 
 /** Barrel length against magnification, and the two walls under it. */
 function MountPlot({ sweep }: { sweep: MountSweep }) {
-  const fits = sweep.points.filter((p) => p.verdict === "fits");
-  const barrel = fits.map((p) => [p.magnification, p.barrelMm!] as const);
-  const objectDistance = sweep.points
-    .filter((p) => p.objectDistanceMm !== null)
-    .map((p) => [p.magnification, p.objectDistanceMm!] as const);
+  const series = useMemo<PlotSeries[]>(() => {
+    const fits = sweep.points.filter((p) => p.verdict === "fits");
+    const barrel = fits.map((p) => [p.magnification, p.barrelMm!] as const);
+    const objectDistance = sweep.points
+      .filter((p) => p.objectDistanceMm !== null)
+      .map((p) => [p.magnification, p.objectDistanceMm!] as const);
+    return [
+      { label: "barrel — shoulder to first vertex", color: "var(--ink)", points: barrel, width: 2, dots: true },
+      {
+        label: "working distance — first vertex to specimen",
+        color: "var(--accent)",
+        points: objectDistance,
+        dash: [5, 4],
+      },
+    ];
+  }, [sweep]);
   // The two floors are 2% apart on a 0–60 axis, so they are one line to look at
   // and the readout beside the plot is what separates them — only the outer one
   // is named, A6's rule for rules that land on top of each other. The doublet
   // wall, when it exists at all, is nowhere near either and keeps its label.
-  const markers: PlotMarker[] = [
-    // Named for what it IS rather than for what binds, because above ~NA 0.22 it
-    // binds nothing: a grey rule labelled "the floor" at 4.14 while the buildable
-    // range starts at 43 would be this panel's own refusal rule, broken.
-    { x: sweep.thinLensFloor, color: "var(--ink-4)", label: "thin-lens floor" },
-  ];
-  if (sweep.measuredFloor !== null) {
-    markers.push({ x: sweep.measuredFloor, color: "var(--bad)" });
-  }
-  if (sweep.doubletFloor !== null) {
-    markers.push({ x: sweep.doubletFloor, color: "var(--purple)", label: "no doublet below" });
-  }
+  const markers = useMemo<PlotMarker[]>(() => {
+    const out: PlotMarker[] = [
+      // Named for what it IS rather than for what binds, because above ~NA 0.22 it
+      // binds nothing: a grey rule labelled "the floor" at 4.14 while the buildable
+      // range starts at 43 would be this panel's own refusal rule, broken.
+      { x: sweep.thinLensFloor, color: "var(--ink-4)", label: "thin-lens floor" },
+    ];
+    if (sweep.measuredFloor !== null) {
+      out.push({ x: sweep.measuredFloor, color: "var(--bad)" });
+    }
+    if (sweep.doubletFloor !== null) {
+      out.push({ x: sweep.doubletFloor, color: "var(--purple)", label: "no doublet below" });
+    }
+    return out;
+  }, [sweep]);
   return (
     <Plot
-      series={[
-        { label: "barrel — shoulder to first vertex", color: "var(--ink)", points: barrel, width: 2, dots: true },
-        {
-          label: "working distance — first vertex to specimen",
-          color: "var(--accent)",
-          points: objectDistance,
-          dash: [5, 4],
-        },
-      ]}
+      series={series}
       markers={markers}
       xLabel="magnification against a 150 mm optical tube"
       yLabel="mm below the shoulder"

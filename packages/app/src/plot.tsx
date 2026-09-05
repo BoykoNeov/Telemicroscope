@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useRef } from "react";
 import { resolveColor, useThemeVersion } from "./theme";
 
 /**
@@ -68,7 +68,7 @@ function ticks(min: number, max: number, target = 5): number[] {
   return out;
 }
 
-export function Plot(props: PlotProps) {
+function PlotCanvas(props: PlotProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const width = props.width ?? 420;
   const height = props.height ?? 280;
@@ -211,3 +211,14 @@ export function Plot(props: PlotProps) {
     </figure>
   );
 }
+
+/**
+ * Memoized on a shallow compare of `props` — UI-PLAN step 1.
+ *
+ * The draw is an effect keyed on the whole `props` object, and JSX builds a
+ * fresh one every render, so without this every render of a panel repainted
+ * every plot on it. Shallow compare only pays once the caller stops rebuilding
+ * `series` and `markers` inline, which is the other half of the step: a panel
+ * that hands over a fresh array each render defeats this by construction.
+ */
+export const Plot = memo(PlotCanvas);

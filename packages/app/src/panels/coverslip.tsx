@@ -116,34 +116,43 @@ function ThicknessPlot({
   sweep: SlipSweep;
   thicknessMm: number;
 }) {
-  const p = sweep.points;
-  const series: PlotSeries[] = [
-    {
-      label: "refocused — the objective moves",
-      color: "var(--ink)",
-      points: share(p, (q) => q.thicknessMm, (q) => q.refocused),
-      dots: true,
-      width: 2,
-    },
-    {
-      label: "film pinned — image side only",
-      color: "var(--bad)",
-      points: share(p, (q) => q.thicknessMm, (q) => q.pinned),
-      dash: [5, 4],
-    },
-  ];
+  // The curves are the sweep and nothing else — the slider below moves a rule,
+  // not a line, so dragging it must not rebuild these (UI-PLAN § 1).
+  const series = useMemo<PlotSeries[]>(() => {
+    const p = sweep.points;
+    return [
+      {
+        label: "refocused — the objective moves",
+        color: "var(--ink)",
+        points: share(p, (q) => q.thicknessMm, (q) => q.refocused),
+        dots: true,
+        width: 2,
+      },
+      {
+        label: "film pinned — image side only",
+        color: "var(--bad)",
+        points: share(p, (q) => q.thicknessMm, (q) => q.pinned),
+        dash: [5, 4],
+      },
+    ];
+  }, [sweep]);
   // Three vertical rules within 30 µm of each other, and `Plot` writes every
   // label at the same height — so only the two walls are named, and the
   // slider's own rule is left unlabelled because the control above already
   // reads it out. Both wall names are short for the same reason.
-  const markers: PlotMarker[] = [
-    { y: 1, color: "var(--warn)", label: "Maréchal λ/14" },
-    { x: thicknessMm, color: "var(--accent)" },
-    { x: sweep.filmWallThicknessMm, color: "var(--ink-4)", label: "film out" },
-  ];
-  if (sweep.rayWall) {
-    markers.push({ x: sweep.rayWall.thicknessMm, color: "var(--ink-4)", label: "rays stop" });
-  }
+  // The rules DO track the slider, so `thicknessMm` is one of their inputs and
+  // this plot redraws mid-drag on purpose: the rule moved.
+  const markers = useMemo<PlotMarker[]>(() => {
+    const out: PlotMarker[] = [
+      { y: 1, color: "var(--warn)", label: "Maréchal λ/14" },
+      { x: thicknessMm, color: "var(--accent)" },
+      { x: sweep.filmWallThicknessMm, color: "var(--ink-4)", label: "film out" },
+    ];
+    if (sweep.rayWall) {
+      out.push({ x: sweep.rayWall.thicknessMm, color: "var(--ink-4)", label: "rays stop" });
+    }
+    return out;
+  }, [sweep, thicknessMm]);
   return (
     <Plot
       series={series}
@@ -168,27 +177,16 @@ function AperturePlot({
   numericalAperture: number;
   thicknessMm: number;
 }) {
-  const p = sweep.points;
-  const traced: (readonly [number, number])[] = [];
-  for (const q of p) if (q.deliveredNa !== null) traced.push([q.thicknessMm, q.deliveredNa]);
-  const predicted = p.map((q) => [q.thicknessMm, q.predictedNa] as const);
-  const lo = Math.min(...predicted.map(([, y]) => y));
-  const hi = Math.max(...predicted.map(([, y]) => y));
-  const pad = 0.1 * (hi - lo);
-  const markers: PlotMarker[] = [
-    { y: numericalAperture, color: "var(--warn)", label: `engraved ${numericalAperture.toFixed(2)}` },
-    { x: thicknessMm, color: "var(--accent)" },
-  ];
-  if (sweep.rayWall) {
-    markers.push({
-      y: sweep.rayWall.deliveredNa,
-      color: "var(--bad)",
-      label: `wall ${sweep.rayWall.deliveredNa.toFixed(4)}`,
-    });
-  }
-  return (
-    <Plot
-      series={[
+  // The two curves and the window they need are one function of the sweep.
+  const { series, lo, hi, pad } = useMemo(() => {
+    const p = sweep.points;
+    const traced: (readonly [number, number])[] = [];
+    for (const q of p) if (q.deliveredNa !== null) traced.push([q.thicknessMm, q.deliveredNa]);
+    const predicted = p.map((q) => [q.thicknessMm, q.predictedNa] as const);
+    const low = Math.min(...predicted.map(([, y]) => y));
+    const high = Math.max(...predicted.map(([, y]) => y));
+    return {
+      series: [
         {
           label: "n_slip·h/√(t²+h²) — closed form",
           color: "var(--accent)",
@@ -197,7 +195,29 @@ function AperturePlot({
           width: 2.4,
         },
         { label: "traced", color: "var(--ink)", points: traced, dots: true, width: 1.2 },
-      ]}
+      ] as PlotSeries[],
+      lo: low,
+      hi: high,
+      pad: 0.1 * (high - low),
+    };
+  }, [sweep]);
+  const markers = useMemo<PlotMarker[]>(() => {
+    const out: PlotMarker[] = [
+      { y: numericalAperture, color: "var(--warn)", label: `engraved ${numericalAperture.toFixed(2)}` },
+      { x: thicknessMm, color: "var(--accent)" },
+    ];
+    if (sweep.rayWall) {
+      out.push({
+        y: sweep.rayWall.deliveredNa,
+        color: "var(--bad)",
+        label: `wall ${sweep.rayWall.deliveredNa.toFixed(4)}`,
+      });
+    }
+    return out;
+  }, [sweep, numericalAperture, thicknessMm]);
+  return (
+    <Plot
+      series={series}
       markers={markers}
       xLabel="cover slip thickness (mm)"
       yLabel="delivered NA = n·sin u at the specimen"
@@ -211,28 +231,35 @@ function AperturePlot({
 
 /** σ against the slip's index — the axis no refocus reaches. */
 function IndexPlot({ sweep, deltaN }: { sweep: IndexSweep; deltaN: number }) {
-  const p = sweep.points;
+  const series = useMemo<PlotSeries[]>(() => {
+    const p = sweep.points;
+    return [
+      {
+        label: "refocused for the apparent-distance change",
+        color: "var(--ink)",
+        points: share(p, (q) => q.deltaN, (q) => q.refocused),
+        dots: true,
+        width: 2,
+      },
+      {
+        label: "film pinned (§ 6e.5's own rung)",
+        color: "var(--bad)",
+        points: share(p, (q) => q.deltaN, (q) => q.pinned),
+        dash: [5, 4],
+      },
+    ];
+  }, [sweep]);
+  const markers = useMemo<PlotMarker[]>(
+    () => [
+      { y: 1, color: "var(--warn)", label: "Maréchal λ/14" },
+      { x: deltaN, color: "var(--accent)", label: `Δn ${deltaN >= 0 ? "+" : ""}${deltaN.toFixed(4)}` },
+    ],
+    [deltaN],
+  );
   return (
     <Plot
-      series={[
-        {
-          label: "refocused for the apparent-distance change",
-          color: "var(--ink)",
-          points: share(p, (q) => q.deltaN, (q) => q.refocused),
-          dots: true,
-          width: 2,
-        },
-        {
-          label: "film pinned (§ 6e.5's own rung)",
-          color: "var(--bad)",
-          points: share(p, (q) => q.deltaN, (q) => q.pinned),
-          dash: [5, 4],
-        },
-      ]}
-      markers={[
-        { y: 1, color: "var(--warn)", label: "Maréchal λ/14" },
-        { x: deltaN, color: "var(--accent)", label: `Δn ${deltaN >= 0 ? "+" : ""}${deltaN.toFixed(4)}` },
-      ]}
+      series={series}
+      markers={markers}
       xLabel={`slip index − ${SLIP_INDEX.toFixed(4)} (D263 at the d line)`}
       yLabel="σ, in Maréchal budgets (λ/14)"
       xMin={-MAX_DELTA_N}
@@ -253,26 +280,34 @@ function IndexPlot({ sweep, deltaN }: { sweep: IndexSweep; deltaN: number }) {
  */
 function DryTolerancePlot() {
   const curve = useMemo(() => dryToleranceCurve(DRY_APERTURES), []);
+  // Nothing on this plot moves: the closed form has no control at all, so both
+  // arrays are built once for the life of the panel.
+  const series = useMemo<PlotSeries[]>(
+    () => [
+      {
+        label: "Rayleigh λ/4 on W₀₄₀",
+        color: "var(--ink)",
+        points: curve.map((q) => [q.numericalAperture, Math.log10(q.quarterWaveUm)] as const),
+        dots: true,
+        width: 2,
+      },
+      {
+        label: "Maréchal on the balanced residual",
+        color: "var(--accent)",
+        points: curve.map((q) => [q.numericalAperture, Math.log10(q.marechalUm)] as const),
+        dash: [5, 4],
+      },
+    ],
+    [curve],
+  );
+  const markers = useMemo<PlotMarker[]>(
+    () => [{ y: Math.log10(NOMINAL_SLIP_MM * 1000), color: "var(--warn)", label: "a whole 0.17 mm slip" }],
+    [],
+  );
   return (
     <Plot
-      series={[
-        {
-          label: "Rayleigh λ/4 on W₀₄₀",
-          color: "var(--ink)",
-          points: curve.map((q) => [q.numericalAperture, Math.log10(q.quarterWaveUm)] as const),
-          dots: true,
-          width: 2,
-        },
-        {
-          label: "Maréchal on the balanced residual",
-          color: "var(--accent)",
-          points: curve.map((q) => [q.numericalAperture, Math.log10(q.marechalUm)] as const),
-          dash: [5, 4],
-        },
-      ]}
-      markers={[
-        { y: Math.log10(NOMINAL_SLIP_MM * 1000), color: "var(--warn)", label: "a whole 0.17 mm slip" },
-      ]}
+      series={series}
+      markers={markers}
       xLabel="dry objective NA"
       yLabel="log₁₀ of the slip error the budget allows (µm)"
       xMin={0}

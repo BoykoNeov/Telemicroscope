@@ -50,16 +50,19 @@ export function MtfPanel() {
     [lens, focalLengthMm, apertureMm, fieldDeg, wavelengthNm, traceSamples],
   );
 
-  const c = result.curves;
-  const pairs = (values: readonly number[]) =>
-    c.nu.map((v, i) => [v, values[i]!] as const);
-
-  const series: PlotSeries[] = [
-    { label: "perfect", color: "var(--ink-5)", points: pairs(c.perfect), dash: [5, 4] },
-    { label: "radial average", color: "var(--pink)", points: pairs(c.radial), width: 1 },
-    { label: "tangential", color: "var(--red)", points: pairs(c.tangential), width: 2 },
-    { label: "sagittal", color: "var(--green)", points: pairs(c.sagittal), width: 2 },
-  ];
+  // Built once per traced result, not once per render: `Plot` compares props
+  // shallowly, and a fresh array every render would defeat that (UI-PLAN § 1).
+  const series = useMemo<PlotSeries[]>(() => {
+    const c = result.curves;
+    const pairs = (values: readonly number[]) =>
+      c.nu.map((v, i) => [v, values[i]!] as const);
+    return [
+      { label: "perfect", color: "var(--ink-5)", points: pairs(c.perfect), dash: [5, 4] },
+      { label: "radial average", color: "var(--pink)", points: pairs(c.radial), width: 1 },
+      { label: "tangential", color: "var(--red)", points: pairs(c.tangential), width: 2 },
+      { label: "sagittal", color: "var(--green)", points: pairs(c.sagittal), width: 2 },
+    ];
+  }, [result]);
 
   const truncated = result.transmittedCutoffFraction < 0.97;
   const onAxis = fieldDeg === 0;

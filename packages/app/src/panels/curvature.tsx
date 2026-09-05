@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plot, type PlotSeries } from "../plot";
+import { Plot, type PlotMarker, type PlotSeries } from "../plot";
 import { fieldCurvature, CURVATURE_LINES } from "../curvature";
 import { Choice, Fact, Guard, Slider, thresholdLevel } from "../ui";
 import type { LensKind } from "../render";
@@ -78,19 +78,34 @@ export function CurvaturePanel() {
   const predicted = { width: 2.8, dash: [5, 4] } as const;
   const measured = { width: 1.4, dots: true } as const;
 
-  const surfaces: PlotSeries[] = [
-    { label: "third-order tangential", color: "var(--red-3)", points: at((v) => v.thirdOrderTangentialMm), ...predicted },
-    { label: "third-order sagittal", color: "#9ad9bd", points: at((v) => v.thirdOrderSagittalMm), ...predicted },
-    { label: "Petzval", color: "var(--accent-2)", points: at((v) => v.petzvalMm), dash: [2, 3], width: 1.4 },
-    { label: "medial", color: "var(--ink-5)", points: at((v) => v.medialSagMm), width: 1 },
-    { label: "tangential (traced)", color: "var(--red)", points: at((v) => v.tangentialSagMm), ...measured },
-    { label: "sagittal (traced)", color: "var(--green)", points: at((v) => v.sagittalSagMm), ...measured },
-  ];
+  // Both arrays and the sensor rule are functions of `result` alone, so they are
+  // built once per trace rather than once per render — `Plot` compares its props
+  // shallowly and a fresh array would defeat that (UI-PLAN § 1). `at` closes over
+  // `s`, which is `result.samples`, so [result] lists every input.
+  const surfaces = useMemo<PlotSeries[]>(
+    () => [
+      { label: "third-order tangential", color: "var(--red-3)", points: at((v) => v.thirdOrderTangentialMm), ...predicted },
+      { label: "third-order sagittal", color: "#9ad9bd", points: at((v) => v.thirdOrderSagittalMm), ...predicted },
+      { label: "Petzval", color: "var(--accent-2)", points: at((v) => v.petzvalMm), dash: [2, 3], width: 1.4 },
+      { label: "medial", color: "var(--ink-5)", points: at((v) => v.medialSagMm), width: 1 },
+      { label: "tangential (traced)", color: "var(--red)", points: at((v) => v.tangentialSagMm), ...measured },
+      { label: "sagittal (traced)", color: "var(--green)", points: at((v) => v.sagittalSagMm), ...measured },
+    ],
+    [result],
+  );
 
-  const distortion: PlotSeries[] = [
-    { label: "third-order S_V cubic", color: "var(--ink-5)", points: at((v) => v.thirdOrderDistortionPpm), ...predicted },
-    { label: "traced chief ray", color: "var(--red)", points: at((v) => v.distortionPpm), ...measured },
-  ];
+  const flatSensor = useMemo<PlotMarker[]>(
+    () => [{ y: result.flatPlaneMm, color: "var(--warn)", label: "a flat sensor here" }],
+    [result],
+  );
+
+  const distortion = useMemo<PlotSeries[]>(
+    () => [
+      { label: "third-order S_V cubic", color: "var(--ink-5)", points: at((v) => v.thirdOrderDistortionPpm), ...predicted },
+      { label: "traced chief ray", color: "var(--red)", points: at((v) => v.distortionPpm), ...measured },
+    ],
+    [result],
+  );
 
   const sagFloor = Math.min(...s.map((v) => v.tangentialSagMm)) * 1.08;
   const sagCeiling = Math.max(0, ...s.map((v) => v.sagittalSagMm));
@@ -152,7 +167,7 @@ export function CurvaturePanel() {
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
         <Plot
           series={surfaces}
-          markers={[{ y: result.flatPlaneMm, color: "var(--warn)", label: "a flat sensor here" }]}
+          markers={flatSensor}
           xLabel="field angle (degrees off axis)"
           yLabel="sag from the on-axis focus (mm)"
           xMin={0}

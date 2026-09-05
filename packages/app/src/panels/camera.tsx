@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLatestFromWorker } from "../hooks";
-import { Plot } from "../plot";
+import { Plot, type PlotMarker, type PlotSeries } from "../plot";
 import { Choice, Guard, Slider, num, thresholdLevel, type GuardLevel } from "../ui";
 import { createCameraWorker } from "../workers";
 import {
@@ -476,6 +476,60 @@ export function CameraPanel() {
   );
 
   const mtf = useMemo(() => detectorMtfSweep(pitchUm / 1000), [pitchUm]);
+
+  /**
+   * The two plots' arrays, built once per measurement rather than once per
+   * render — UI-PLAN § 1.
+   *
+   * Seven sliders sit above these, and only two of them (the pitch, and the
+   * spec behind the contest) reach either plot. Without this, dragging the
+   * exposure or the sky magnitude — which do not enter these curves at all —
+   * rebuilt both arrays and repainted both canvases on every tick.
+   */
+  const contestSeries = useMemo<PlotSeries[]>(
+    () =>
+      contest.map((c, i) => ({
+        label: `${OPTIC_LABELS[c.optic]} — ${(c.spread.departure * 100).toFixed(3)}% at the red end`,
+        color: ["var(--bad)", "var(--blue)", "var(--ok)"][i]!,
+        points: c.departure.map((d) => [d.nm, d.departure * 100] as const),
+        dots: true,
+      })),
+    [contest],
+  );
+  const contestMarkers = useMemo<PlotMarker[]>(
+    () => [{ y: 0, color: "var(--ink-5)", label: "λ/(4·NA) with λ alone moving" }],
+    [],
+  );
+  const detectorSeries = useMemo<PlotSeries[]>(
+    () => [
+      {
+        label: "measured through resampleGridToSensor",
+        color: "var(--blue)",
+        points: mtf.points
+          .filter((p) => p.fractionOfNyquist < 1)
+          .map((p) => [p.fractionOfNyquist, p.measured] as const),
+        dots: true,
+      },
+      {
+        label: "|sinc(π·f·pitch)| — reference only",
+        color: "var(--bad)",
+        dash: [4, 3],
+        points: mtf.points
+          .filter((p) => p.fractionOfNyquist < 1)
+          .map((p) => [p.fractionOfNyquist, p.sinc] as const),
+      },
+      {
+        label: "above Nyquist, plotted where it folds to",
+        color: "var(--warn)",
+        points: mtf.points
+          .filter((p) => p.aliasedToCyclesPerMm !== undefined)
+          .map((p) => [p.aliasedToCyclesPerMm! / mtf.nyquistCyclesPerMm, p.measured] as const)
+          .sort((a, b) => a[0] - b[0]),
+        dots: true,
+      },
+    ],
+    [mtf],
+  );
   const refinement = useMemo(() => mtfQuadratureRefinement(pitchUm / 1000), [pitchUm]);
 
   const range = APERTURE_RANGE[spec.optic];
@@ -710,13 +764,8 @@ export function CameraPanel() {
           …and how far the band spreads is the lens&rsquo;s chromatic correction
         </h3>
         <Plot
-          series={contest.map((c, i) => ({
-            label: `${OPTIC_LABELS[c.optic]} — ${(c.spread.departure * 100).toFixed(3)}% at the red end`,
-            color: ["var(--bad)", "var(--blue)", "var(--ok)"][i]!,
-            points: c.departure.map((d) => [d.nm, d.departure * 100] as const),
-            dots: true,
-          }))}
-          markers={[{ y: 0, color: "var(--ink-5)", label: "λ/(4·NA) with λ alone moving" }]}
+          series={contestSeries}
+          markers={contestMarkers}
           xLabel="wavelength (nm)"
           yLabel="departure from proportional-in-λ (%)"
           xMin={Math.min(...geometry.rows.map((r) => r.nm)) - 20}
@@ -772,36 +821,7 @@ export function CameraPanel() {
           the pixel is a box integrator — measured, not drawn
         </h3>
         <Plot
-          series={[
-            {
-              label: "measured through resampleGridToSensor",
-              color: "var(--blue)",
-              points: mtf.points
-                .filter((p) => p.fractionOfNyquist < 1)
-                .map((p) => [p.fractionOfNyquist, p.measured] as const),
-              dots: true,
-            },
-            {
-              label: "|sinc(π·f·pitch)| — reference only",
-              color: "var(--bad)",
-              dash: [4, 3],
-              points: mtf.points
-                .filter((p) => p.fractionOfNyquist < 1)
-                .map((p) => [p.fractionOfNyquist, p.sinc] as const),
-            },
-            {
-              label: "above Nyquist, plotted where it folds to",
-              color: "var(--warn)",
-              points: mtf.points
-                .filter((p) => p.aliasedToCyclesPerMm !== undefined)
-                .map(
-                  (p) =>
-                    [p.aliasedToCyclesPerMm! / mtf.nyquistCyclesPerMm, p.measured] as const,
-                )
-                .sort((a, b) => a[0] - b[0]),
-              dots: true,
-            },
-          ]}
+          series={detectorSeries}
           xLabel="target frequency / sensor Nyquist"
           yLabel="modulation"
           xMin={0}

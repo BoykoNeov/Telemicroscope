@@ -16,6 +16,11 @@ order unless a step says otherwise; each is one commit.
 
 For context, so the steps below do not re-do it:
 
+- **Memoized plots (step 1).** `plot.tsx` exports `Plot` as `memo(PlotCanvas)`
+  and the seven panels named in step 1 build their `series` in a `useMemo`
+  keyed on the engine result. Markers are keyed on *their* inputs, which for a
+  "you are here" rule includes the control it tracks — see step 1's landing
+  note for why that is the rule and not a compromise.
 - **Design tokens.** `packages/app/src/styles.css` defines every colour as a
   CSS variable, once for light on `:root` and once for dark in two blocks
   (`prefers-color-scheme` and explicit `data-theme="dark"`). The panels name
@@ -45,7 +50,49 @@ The token names and what each is for:
 | `--green`, `--red`, `--red-2`, `--red-3`, `--orange`, `--purple`, `--pink` | plot series |
 | `--mono`, `--sans` | font stacks |
 
-## Step 1 — `React.memo` on `Plot`, and stable series in the panels that drag
+## Step 1 — `React.memo` on `Plot`, and stable series in the panels that drag ✅
+
+**Landed 2026-09-05**, in all seven named panels. What it cost and what it
+bought, counted as *canvases repainted per tick of a control*, read off the
+dependency lists rather than from a profiler:
+
+| panel | control moved | before | after |
+| --- | --- | --- | --- |
+| `camera` | exposure, gain, magnitude, sky | 2 | 0 |
+| `camera` | pixel pitch | 2 | 1 |
+| `coverslip` | slip thickness | 4 | 2 |
+| `coverslip` | slip index | 4 | 1 |
+| `mech` | back focus / travel | 5 | 1 |
+| `volume` | worst-plane mark | 3 | 1 |
+| `tolerance` | a row edit, worker still busy | 1 | 0 |
+| `mtf`, `curvature` | any | 1, 2 | 1, 2 |
+
+The last row is the honest one: on those two panels **every** control is an
+input to the curves, so a tick that changes the curves must redraw them and
+the memo buys nothing on a drag. It is still right to have — it stops an
+unrelated re-render (a `pending` flag, a parent's state) repainting a canvas
+whose data did not move — but this step's gain is concentrated in the panels
+whose sliders move a *rule* rather than a *line*.
+
+**Markers were the one place the step as written would have been wrong.** Taken
+literally — "keyed on the engine result, NOT on the slider state" — a
+slider-tracking rule would freeze mid-drag and point at a thickness the reader
+had already left. So `series` is keyed on the result and `markers` on their own
+inputs, which for those rules *includes* the control. The consequence is
+deliberate: a plot carrying a tracking rule still repaints while its slider
+moves, because the rule moved.
+
+Two panels needed their arrays hoisted **above** a refusal return
+(`volume.tsx`'s `AxialPlots` and `DepthPlot`), since a hook cannot run after a
+conditional return. They are written against a readout that may still be
+`null`, and return an empty array when it is — the refusal message below is
+unchanged and still what renders.
+
+Left as it was, deliberately: `plot.tsx`'s effect still keys on the whole
+`props` object. Once `memo` gates the re-render there is nothing left for a
+finer dependency list to catch, and splitting it is a change this step did not
+ask for.
+
 
 **Why.** `Plot` redraws its canvas in an effect keyed on `props`, and every
 panel builds `series` arrays inline, so every render of a panel — including
