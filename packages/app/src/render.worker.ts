@@ -1,4 +1,5 @@
 import { renderStar, type RenderDone, type RenderJob } from "./render";
+import { postTransferring } from "./transfer";
 
 /**
  * The optical pipeline, moved off the main thread.
@@ -15,10 +16,10 @@ import { renderStar, type RenderDone, type RenderJob } from "./render";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<RenderJob>) => void) | null;
-  postMessage: (message: RenderDone) => void;
+  postMessage: (message: RenderDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderStar(request) });
+  postTransferring(ctx, { seq, result: renderStar(request) });
 };

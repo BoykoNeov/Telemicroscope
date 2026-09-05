@@ -3,6 +3,7 @@ import {
   type BrightfieldDone,
   type BrightfieldJob,
 } from "./brightfield";
+import { postTransferring } from "./transfer";
 
 /**
  * The brightfield render, moved off the main thread.
@@ -18,10 +19,10 @@ import {
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<BrightfieldJob>) => void) | null;
-  postMessage: (message: BrightfieldDone) => void;
+  postMessage: (message: BrightfieldDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderBrightfieldScene(request) });
+  postTransferring(ctx, { seq, result: renderBrightfieldScene(request) });
 };

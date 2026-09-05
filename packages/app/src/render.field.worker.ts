@@ -1,4 +1,5 @@
 import { renderFieldScene, type FieldFrame, type FieldJob } from "./render";
+import { postTransferring } from "./transfer";
 
 /**
  * The multi-star field render, moved off the main thread.
@@ -15,12 +16,12 @@ import { renderFieldScene, type FieldFrame, type FieldJob } from "./render";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<FieldJob>) => void) | null;
-  postMessage: (message: FieldFrame) => void;
+  postMessage: (message: FieldFrame, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
   renderFieldScene(request, (result, done) => {
-    ctx.postMessage({ seq, result, done });
+    postTransferring(ctx, { seq, result, done });
   });
 };

@@ -3,6 +3,7 @@ import {
   type FluorescenceDone,
   type FluorescenceJob,
 } from "./fluorescence";
+import { postTransferring } from "./transfer";
 
 /**
  * The bead field, moved off the main thread.
@@ -19,10 +20,10 @@ import {
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<FluorescenceJob>) => void) | null;
-  postMessage: (message: FluorescenceDone) => void;
+  postMessage: (message: FluorescenceDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderFluorescenceScene(request) });
+  postTransferring(ctx, { seq, result: renderFluorescenceScene(request) });
 };

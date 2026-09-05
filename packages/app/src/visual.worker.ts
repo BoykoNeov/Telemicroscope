@@ -1,4 +1,5 @@
 import { renderRetina, type RetinaDone, type RetinaJob } from "./visual";
+import { postTransferring } from "./transfer";
 
 /**
  * C5's retinal image — the trace and the focus solve.
@@ -14,10 +15,10 @@ import { renderRetina, type RetinaDone, type RetinaJob } from "./visual";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<RetinaJob>) => void) | null;
-  postMessage: (message: RetinaDone) => void;
+  postMessage: (message: RetinaDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderRetina(request) });
+  postTransferring(ctx, { seq, result: renderRetina(request) });
 };

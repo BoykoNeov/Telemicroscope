@@ -1,4 +1,5 @@
 import { renderCamera, type CameraDone, type CameraJob } from "./camera";
+import { postTransferring } from "./transfer";
 
 /**
  * One star through one sensor, off the main thread.
@@ -27,10 +28,10 @@ import { renderCamera, type CameraDone, type CameraJob } from "./camera";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<CameraJob>) => void) | null;
-  postMessage: (message: CameraDone) => void;
+  postMessage: (message: CameraDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderCamera(request) });
+  postTransferring(ctx, { seq, result: renderCamera(request) });
 };

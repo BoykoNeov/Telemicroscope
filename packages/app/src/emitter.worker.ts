@@ -1,4 +1,5 @@
 import { renderEmitterScene, type EmitterDone, type EmitterJob } from "./emitter";
+import { postTransferring } from "./transfer";
 
 /**
  * The extended emitter, moved off the main thread.
@@ -19,10 +20,10 @@ import { renderEmitterScene, type EmitterDone, type EmitterJob } from "./emitter
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<EmitterJob>) => void) | null;
-  postMessage: (message: EmitterDone) => void;
+  postMessage: (message: EmitterDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderEmitterScene(request) });
+  postTransferring(ctx, { seq, result: renderEmitterScene(request) });
 };

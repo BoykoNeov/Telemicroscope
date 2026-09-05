@@ -1,4 +1,5 @@
 import { renderSky, type SkyFrame, type SkyJob } from "./sky";
+import { postTransferring } from "./transfer";
 
 /**
  * The sky render, moved off the main thread.
@@ -18,7 +19,7 @@ import { renderSky, type SkyFrame, type SkyJob } from "./sky";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<SkyJob>) => void) | null;
-  postMessage: (message: SkyFrame) => void;
+  postMessage: (message: SkyFrame, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
@@ -26,7 +27,7 @@ ctx.onmessage = (event) => {
   const out = renderSky(request, (result, done) => {
     // The finest level is posted below with the refusal path, so that a frame
     // and a refusal leave here through exactly one statement.
-    if (!done) ctx.postMessage({ seq, result, done: false });
+    if (!done) postTransferring(ctx, { seq, result, done: false });
   });
-  ctx.postMessage({ seq, result: out, done: true });
+  postTransferring(ctx, { seq, result: out, done: true });
 };

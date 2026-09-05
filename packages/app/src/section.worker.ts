@@ -1,4 +1,5 @@
 import { renderSection, type SectionDone, type SectionJob } from "./section";
+import { postTransferring } from "./transfer";
 
 /**
  * The polychromatic render, moved off the main thread.
@@ -19,10 +20,10 @@ import { renderSection, type SectionDone, type SectionJob } from "./section";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<SectionJob>) => void) | null;
-  postMessage: (message: SectionDone) => void;
+  postMessage: (message: SectionDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderSection(request) });
+  postTransferring(ctx, { seq, result: renderSection(request) });
 };

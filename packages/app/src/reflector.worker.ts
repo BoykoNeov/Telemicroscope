@@ -1,4 +1,5 @@
 import { renderReflector, type ReflectorDone, type ReflectorJob } from "./reflector";
+import { postTransferring } from "./transfer";
 
 /**
  * One reflector's star image, off the main thread.
@@ -17,10 +18,10 @@ import { renderReflector, type ReflectorDone, type ReflectorJob } from "./reflec
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<ReflectorJob>) => void) | null;
-  postMessage: (message: ReflectorDone) => void;
+  postMessage: (message: ReflectorDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderReflector(request) });
+  postTransferring(ctx, { seq, result: renderReflector(request) });
 };

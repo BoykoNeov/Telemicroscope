@@ -1,4 +1,5 @@
 import { runTolerance, type ToleranceDone, type ToleranceJob } from "./tolerance";
+import { postTransferring } from "./transfer";
 
 /**
  * Part B's whole job: the budget, the rss-against-combined sweep, both Strehls
@@ -16,10 +17,10 @@ import { runTolerance, type ToleranceDone, type ToleranceJob } from "./tolerance
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<ToleranceJob>) => void) | null;
-  postMessage: (message: ToleranceDone) => void;
+  postMessage: (message: ToleranceDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: runTolerance(request) });
+  postTransferring(ctx, { seq, result: runTolerance(request) });
 };

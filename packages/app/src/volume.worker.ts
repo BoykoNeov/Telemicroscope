@@ -1,4 +1,5 @@
 import { renderVolumeScene, type VolumeDone, type VolumeJob } from "./volume";
+import { postTransferring } from "./transfer";
 
 /**
  * The focus stack, moved off the main thread.
@@ -14,10 +15,10 @@ import { renderVolumeScene, type VolumeDone, type VolumeJob } from "./volume";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<VolumeJob>) => void) | null;
-  postMessage: (message: VolumeDone) => void;
+  postMessage: (message: VolumeDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderVolumeScene(request) });
+  postTransferring(ctx, { seq, result: renderVolumeScene(request) });
 };

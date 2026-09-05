@@ -1,4 +1,5 @@
 import { renderSeeing, type SeeingDone, type SeeingJob } from "./seeing";
+import { postTransferring } from "./transfer";
 
 /**
  * C6's long exposure — the heaviest single job in the app, and the only one that
@@ -13,10 +14,10 @@ import { renderSeeing, type SeeingDone, type SeeingJob } from "./seeing";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<SeeingJob>) => void) | null;
-  postMessage: (message: SeeingDone) => void;
+  postMessage: (message: SeeingDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderSeeing(request) });
+  postTransferring(ctx, { seq, result: renderSeeing(request) });
 };

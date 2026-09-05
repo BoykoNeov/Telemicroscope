@@ -1,4 +1,5 @@
 import { renderStageTile, type StageTileDone, type StageTileJob } from "./stage";
+import { postTransferring } from "./transfer";
 
 /**
  * One tile of the stage, off the main thread — and unlike every other worker in
@@ -18,10 +19,10 @@ import { renderStageTile, type StageTileDone, type StageTileJob } from "./stage"
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<StageTileJob>) => void) | null;
-  postMessage: (message: StageTileDone) => void;
+  postMessage: (message: StageTileDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderStageTile(request) });
+  postTransferring(ctx, { seq, result: renderStageTile(request) });
 };

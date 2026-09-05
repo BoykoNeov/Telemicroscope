@@ -141,7 +141,107 @@ count; note the before/after in the commit message instead.
 **Must not change.** Series contents. A `useMemo` whose dependency list omits
 something the series reads will show stale curves — list every input.
 
-## Step 2 — transfer the picture buffers out of the workers
+## Step 2 — transfer the picture buffers out of the workers ✅
+
+**Landed 2026-09-06.** Fifteen of the thirty-two workers now post with a transfer
+list; the other seventeen answer with numbers and have nothing to hand over.
+
+**The step as written would have taken the smaller half.** `[result.rgba.buffer]`
+at each call site is right only where the result is one flat object with one
+picture in it, and most are not: `brightfield`, `fluorescence`, `volume`,
+`section` and `stage` answer with a `{ ok: true, readout } | Refused` union where
+the buffer exists on one arm only; `camera` has three buffers and the third is
+optional; `phase` carries an array of frames with one image each. Each of those
+needs a type guard before it can name a buffer. Worse, a list written from the
+panel's point of view names what the panel *paints* — and `RenderResult` and
+`ReflectorResult` also carry the `ColorImage` the picture was encoded from,
+whose `xyz` is a `Float64Array` **six times larger than the RGBA beside it**.
+That is the largest buffer in the app and the first draft of this step missed it.
+
+So the list is built by a walk instead: `src/transfer.ts` collects every distinct
+`ArrayBuffer` reachable from the message, and `postTransferring(ctx, message)`
+derives it from the message being sent in one expression, so the two cannot drift
+apart. Distinctness matters — `postMessage` throws `DataCloneError` on a list
+naming one buffer twice.
+
+**What was handed over, measured in the running app** — bytes per reply, which is
+the arithmetic the saving is made of. Each of these was structured-cloned on the
+way out of the worker and is not any more; the second copy the step's *Why*
+counts, the panel's own on arrival, is untouched here and is now step 9:
+
+| panel | worker | what moves | per reply |
+| --- | --- | --- | --- |
+| star & field | `render.worker` | rgba + the `ColorImage` it was encoded from | 256 kB + 1 536 kB |
+| star & field | `render.field.worker` | rgba, one per refinement level | 256 kB |
+| the reflectors | `reflector.worker` | rgba + `ColorImage` | 256 kB + 1 536 kB |
+| a source with a size | `emitter.worker` | object + image intensity, f64 | 2 × 512 kB |
+| fluorescence beads | `fluorescence.worker` | intensity, f64 | 512 kB |
+| the sensor | `camera.worker` | native + sensor + observed | 256 + 33 + 33 kB |
+| visual mode | `visual.worker` | rgba | 256 kB |
+| long exposure | `seeing.worker` | mean + draw + clean | 3 × 64 kB |
+| the phase null | `phase.worker` | one rgba per defocus frame | 2 × 64 kB |
+| tolerances | `tolerance.worker` | nominal + perturbed | 2 × 64 kB |
+| haze & the focus stack | `volume.worker` | intensity, f64 | 128 kB |
+| a disc, not a point | `sky.worker` | rgba, one per refinement level | 64 kB |
+| brightfield | `brightfield.worker` | rgba | 64 kB |
+| the section, in colour | `section.worker` | spectral + tinted | 2 × 15 kB |
+| the stage | `stage.worker` | rgba, one per tile | 9 kB × 36 per viewport |
+
+The two refining renders and the stage are where this compounds: a star field
+posts one 256 kB frame per level, and a stage viewport 36 tiles.
+
+**The check the step proposed cannot see this, and neither can `npm test`.**
+"Every panel still paints" is true whether the buffers moved or were copied — a
+transfer list the browser ignores costs nothing and errors nowhere. And
+`packages/app/test` constructs no `Worker` at all, so vitest never reaches the
+seam. The only proof is worker-side: a transferred `ArrayBuffer` is **detached**,
+so its `byteLength` is 0 immediately after the post. Instrumented to log
+`before -> after` and driven in a headless Chrome over the debugging protocol,
+every one of 120 posts across all fifteen panels read `262144 -> 0`, `65536 -> 0`,
+`9216 -> 0` and so on: **no post where a buffer survived the call**. The
+instrumentation was then removed.
+
+Two things about that drive are worth keeping, since the later steps will want
+it. Worker targets advertise a `webSocketDebuggerUrl` that accepts a socket and
+then answers nothing — the direct route is a dead end, and auto-attach on the
+*page* session is the one that works. And auto-attach only reports targets
+created **after** it is armed, so each route needs a real document reload; a
+hash-only navigate keeps the document, and the panel that was up carries on
+answering into the next route's window with its posts counted against the wrong
+panel. Blank the page between routes.
+
+What survives in the repo is `packages/app/test/transfer.test.ts`. It pins the
+list against every shape above, and — the part that matters most — it pins that
+the list reaches `postMessage`, with a stub. `transfer?: Transferable[]` is
+*optional* in each worker's narrowed type, so dropping the second argument
+compiles, passes every other expectation and paints every panel. That is this
+step being silently undone, and it is the one failure a test runner can catch.
+
+**The stage's cached repaint was exercised, not just reasoned about.** It is the
+one consumer that re-reads a worker's buffer more than once — `stage.tsx`'s
+`paint()` copies every cached tile on every pan — so it is where a detached
+buffer would show. A drag across the viewport reported *"0 tiles — the cache
+served this pan whole"*: every pixel came from tiles transferred earlier, the
+picture changed, and nothing threw.
+
+**Not measured, deliberately:** the step asked for `elapsedMs` before and after
+on the star panel. That number prices the worker's own tracing and the transfer
+happens after `renderStar` has returned, so it cannot move for a reason this step
+caused — reading it would be a guard against breaking the physics, not a measure
+of the saving. The saving is on the main thread, and the honest form of it is the
+byte arithmetic above.
+
+**One gap is written down rather than closed:** the walk uses `Object.values`, so
+a buffer held inside a `Map` or a `Set` would be missed even though both clone.
+No result posts one. It is recorded in `transfer.ts` because the symptom would be
+a silent copy rather than a crash.
+
+The panel-side `new Uint8ClampedArray(result.rgba)` copy stays, as the step said
+— but the step's reason for keeping it argues the other way: *"after a transfer
+the buffer is plain"* is precisely why the copy is no longer needed. It is now
+step 9, because its verification surface is every canvas rather than every
+worker.
+
 
 **Why.** Every worker posts `{ seq, result }` where `result.rgba` is a
 `Uint8ClampedArray` over a 256²×4 or larger buffer. `postMessage` without a
@@ -275,6 +375,34 @@ clicking. A segmented control with three labelled options says what it is.
 **Change.** Replace the button in `App.tsx` with three `nav-link`-styled
 buttons (`auto` / `light` / `dark`), `aria-pressed` on the active one, calling
 `setThemeChoice`. Keep `cycleTheme` exported for keyboard use if wanted.
+
+## Step 9 — drop the panel-side copy of a transferred buffer
+
+**Why.** Opened by step 2, whose own instruction to keep the copy carries the
+argument against it. Every panel that paints does
+`context.putImageData(new ImageData(new Uint8ClampedArray(result.rgba), size, size), …)`.
+The copy exists because `ImageData` refuses a view over a `SharedArrayBuffer` —
+but a buffer that arrived by transfer is a plain `ArrayBuffer`, so
+`new ImageData(result.rgba, size, size)` is already legal for every one of them.
+That is the second of the two copies step 2's *Why* counted, and step 2 removed
+only the first. It is worst on `panels/stage.tsx`, which copies **every cached
+tile on every pan** rather than once per reply.
+
+**Change.** In each panel that paints a worker result, drop the
+`new Uint8ClampedArray(...)` and pass `result.rgba` to `ImageData` directly. ONE
+PANEL PER COMMIT. Where the array is built on the main thread instead — the
+`toGrey(...)` calls in `panels/emitter.tsx` and `panels/fluorescence.tsx` — the
+copy is already redundant for a different reason and goes the same way.
+
+**Check.** Screenshot the panel before and after at the same route; they must
+match to the pixel. Then the case the copy was hiding: paint the same result
+twice (`stage.tsx`'s pan, `telescope.tsx`'s hotspot overlay) and confirm the
+second paint is identical to the first — `putImageData` reads the buffer, it does
+not consume it, but that is the assumption being cashed in.
+
+**Must not change.** A panel that MUTATES the pixels it received before painting
+them, if one exists — search for a write into `result.rgba` — must keep its copy,
+since the buffer is now the only one there is.
 
 ## Out of scope, and why
 

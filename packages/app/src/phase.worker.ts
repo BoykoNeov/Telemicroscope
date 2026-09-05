@@ -1,4 +1,5 @@
 import { renderPhaseScene, type PhaseDone, type PhaseJob } from "./phase";
+import { postTransferring } from "./transfer";
 
 /**
  * The phase-null pair, moved off the main thread.
@@ -14,10 +15,10 @@ import { renderPhaseScene, type PhaseDone, type PhaseJob } from "./phase";
  */
 const ctx = self as unknown as {
   onmessage: ((event: MessageEvent<PhaseJob>) => void) | null;
-  postMessage: (message: PhaseDone) => void;
+  postMessage: (message: PhaseDone, transfer?: Transferable[]) => void;
 };
 
 ctx.onmessage = (event) => {
   const { seq, request } = event.data;
-  ctx.postMessage({ seq, result: renderPhaseScene(request) });
+  postTransferring(ctx, { seq, result: renderPhaseScene(request) });
 };
