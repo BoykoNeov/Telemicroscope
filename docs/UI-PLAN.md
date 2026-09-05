@@ -88,6 +88,28 @@ conditional return. They are written against a readout that may still be
 `null`, and return an empty array when it is — the refusal message below is
 unchanged and still what renders.
 
+**The table above was then confirmed in the browser**, against the running app
+rather than against the dependency lists it was first read off. Method, worth
+reusing for the later steps: wrap `CanvasRenderingContext2D.prototype.clearRect`
+so each canvas counts its own repaints — every `Plot` draw begins with exactly
+one full-canvas clear — then move one control by one step and read the counter.
+Every row reproduced: `camera`'s exposure, gain, magnitude and sky each cost 0
+and its pitch 1; `coverslip` 2 on thickness and 1 on index; `train` 1 on the
+focuser; `volume` 1, on the axial plot alone.
+
+`tolerance` needed a second discriminator, because its worker answers in about a
+second and a reply landing inside the sample window is a *legitimate* repaint,
+not a wasted one. Comparing `toDataURL()` across each edit separates them: every
+repaint that occurred changed the pixels, and the edits with no reply in flight
+cost 0. So the panel now has no wasted redraws at all, which is the stronger
+claim the row was standing in for.
+
+All seven panels render, and the console is clean of React errors — in
+particular no "rendered more hooks than during the previous render", which is
+the failure the `volume.tsx` hoisting could have introduced. That panel's
+refusal path is exercised on every load, since the plots only appear once the
+focus-stack workers reply.
+
 Left as it was, deliberately: `plot.tsx`'s effect still keys on the whole
 `props` object. Once `memo` gates the re-render there is nothing left for a
 finer dependency list to catch, and splitting it is a change this step did not
