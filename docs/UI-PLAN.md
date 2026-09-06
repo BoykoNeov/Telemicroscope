@@ -394,10 +394,11 @@ that surfaces as a panel stuck on "tracing…", not as a build error).
 | before | 98 | 2 876 049 B | 1 984 566 B |
 | after | 98 | 2 875 493 B | 1 984 005 B |
 
-556 bytes, 0.02%. Not a shared chunk — the IIFE wrapper. 561 bytes across 32
-workers is 17.5 bytes each, which is `(function(){` plus `})();`, and the
-emitted `stage.worker-*.js` now opens on `function Kt(t){` where before it
-opened on the wrapper.
+556 bytes, 0.02%. Not a shared chunk — the IIFE wrapper. The workers give up
+561 and the total only 556 because the non-worker chunks grew a few bytes as
+their hashes changed. 561 across 32 workers is 17.5 bytes each, which is
+`(function(){` plus `})();`, and the emitted `stage.worker-*.js` now opens on
+`function Kt(t){` where before it opened on the wrapper.
 
 **Why it cannot work, and it is not CDN hashing.** The original text guessed
 that a null result would mean "the workers are already deduplicated by content
@@ -522,13 +523,18 @@ since the buffer is now the only one there is.
 - **Any change to what a panel computes or shows.** That is a panel step in
   APP.md, with its own section.
 - **Restructuring the workers so they share one engine copy.** Left open by
-  step 4, which measured the cheap route and found it does nothing. 1.98 MB of
-  `dist/`'s 2.88 MB is `packages/core` bundled thirty-two times, and only a
+  step 4, which measured the cheap route and found it does nothing. Only a
   build that puts the workers in a common chunk graph — declared
   `build.rollupOptions.input` entries, or workers that pull the engine off the
-  main graph — would collapse it. Both cost the `new Worker(new URL(...))`
+  main graph — would share anything. Both cost the `new Worker(new URL(...))`
   literal convention `src/workers.ts` has a header defending, which trades a
-  runtime 404 for a build-time guarantee. Not obviously wrong to spend, but it
-  is a decision about the worker convention and not a performance tweak, so it
-  wants asking rather than doing. What it buys is smaller than it looks: the
-  thirty-two chunks are lazy, and a session loads two or three.
+  runtime 404 for a build-time guarantee, so this is a decision about that
+  convention and not a performance tweak: it wants asking rather than doing.
+  **Bound the prize before paying that.** The 32 bundles are 1.98 MB of
+  `dist/`'s 2.88 MB, but that is not 32 copies of one engine — each worker
+  imports a different slice of `packages/core` and Rollup tree-shakes it, so
+  what dedup can recover is the *intersection*, and the intersection is a
+  subset of the smallest bundle. The smallest is `mech.parfocal.worker` at
+  19 449 B, so the ceiling is 31 × that ≈ **589 kB**, a fifth of `dist/` and
+  not the two thirds the raw worker total suggests. Then discount it again:
+  the chunks are lazy, and a session loads two or three.
