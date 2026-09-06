@@ -336,14 +336,14 @@ export function BuilderPanel() {
           disabled={!live.fieldNumber}
           onChange={(v) => set("fieldNumberMm", v)}
         />
-        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 300, margin: 0 }}>
+        <p className="readout-note" style={{ maxWidth: 300, margin: 0 }}>
           the tube length and the objective&rsquo;s own <code>tubeFocalLengthMm</code> are one control:
           a magnification quoted against one tube and formed by another is a mislabelled lens, not a
           design. The infinity space changes no first-order property — that is why it exists, and it
           is a rung of its own.
         </p>
         {live.fieldNumber && (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 300, margin: 0 }}>
+          <p className="readout-note" style={{ maxWidth: 300, margin: 0 }}>
             the field number sizes the <em>glass</em> and not the aperture (§ 6w): a telecentric
             bundle from the field edge arrives centred on <code>FN/2M</code>, so the element is
             <code> f·NA + FN/2M</code>. Set it to 0 and the objective is § 6v&rsquo;s — sized to its
@@ -392,14 +392,14 @@ export function BuilderPanel() {
               onChange={(v) => set("rearGroupOrientation", v)}
               format={(v) => (v === "flintFirst" ? "flint first" : "crown first")}
             />
-            <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 280, margin: 0 }}>
+            <p className="readout-note" style={{ maxWidth: 280, margin: 0 }}>
               these two are here because the aplanat&rsquo;s refusal names them — &ldquo;or this
               split/separation/<em>orientation</em> admits none&rdquo;. A panel that quoted that
               while defaulting the parameter would name a cause you could not check.
             </p>
           </>
         ) : (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 280, margin: 0 }}>
+          <p className="readout-note" style={{ maxWidth: 280, margin: 0 }}>
             orientation is the finite-conjugate doublet&rsquo;s turn-around (§ 6b); the
             infinity-corrected doublet is authored specimen-side first and has no such choice.
           </p>
@@ -437,7 +437,7 @@ export function BuilderPanel() {
             })
           }
         />
-        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 340, margin: 0 }}>
+        <p className="readout-note" style={{ maxWidth: 340, margin: 0 }}>
           {live.coverslip === "corrected-for" &&
             "corrected FOR: § 6c re-solves the bending to ΣS_I = −(the plate's), so the lens alone is deliberately aberrated and the pair is stigmatic."}
           {live.coverslip === "looked-through" &&
@@ -473,7 +473,7 @@ export function BuilderPanel() {
           onChange={(v) => set("immersionMedium", v)}
         />
         {live.listerGroups && (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 300, margin: 0 }}>
+          <p className="readout-note" style={{ maxWidth: 300, margin: 0 }}>
             the split and the separation are <em>stated</em>, not solved — § 6d&rsquo;s solve holds
             across k ∈ [0.3, 0.8], which is what makes the aplanat a property of the form rather than
             of a lucky pick. Move them and watch ΣS_I and ΣS_II stay at zero.

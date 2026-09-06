@@ -173,7 +173,7 @@ export function BenchPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The microscope bench: what a frame actually covers</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The microscope branch&rsquo;s objectives, every one of them traced. This is not a picture and
         not a view through an eyepiece — it is the <strong>substrate</strong> the pictures will sit
         on, and the number it exists to say out loud is the <strong>crop</strong>: how much specimen
@@ -181,7 +181,7 @@ export function BenchPanel() {
         cells and no more, because the illumination sum&rsquo;s grid <em>is</em> its frequency
         lattice — so unlike the star field, it cannot be widened by choosing a coarser pixel.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The <strong>cells</strong> column is that claim, checked: crop ÷ λ/(2·NA), which lands on the
         pupil-sample count to within a percent for every dry objective here. The two immersion rows
         come in ~2.5× under it, and the panel does not paper over the gap — the frame&rsquo;s extent
@@ -190,7 +190,7 @@ export function BenchPanel() {
         here, not a derivation; recovering the closed form is a physics question, and this panel adds
         no physics.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Read the three <strong>NA 0.10</strong> rows together: 4×, 10× and 20× cover an{" "}
         <em>identical</em> 93.5 µm while their image pixels scale exactly with magnification.
         Reaching for a stronger objective does not widen or narrow the crop — only NA moves it, and

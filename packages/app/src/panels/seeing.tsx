@@ -89,7 +89,7 @@ function Frame({
         ref={canvas}
         style={{ width: 240, height: 240, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 6, maxWidth: 240 }}>
+      <figcaption className="readout" style={{ marginTop: 6, maxWidth: 240 }}>
         {caption}
       </figcaption>
     </figure>

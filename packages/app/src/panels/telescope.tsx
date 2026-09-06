@@ -97,7 +97,7 @@ function StarCanvas({ request }: { request: RenderRequest }) {
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+      <figcaption className="readout">
         {result ? (
           <>
             <strong>{request.lens}</strong> · f/{result.fNumber.toFixed(1)}
@@ -240,7 +240,7 @@ function FieldCanvas({ request }: { request: FieldRequest }) {
           );
         })}
       </div>
-      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+      <figcaption className="readout">
         {result ? (
           <>
             <strong>{request.lens}</strong> field · f/{result.fNumber.toFixed(1)} ·{" "}
@@ -327,7 +327,7 @@ export function TelescopePanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>One star, two lenses</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Same star, same aperture, same focus criterion, <strong>same exposure</strong>. The only
         difference is the glass: an equiconvex N-BK7 singlet against an N-BK7/F2 achromat whose
         powers are computed from the catalogue&rsquo;s own Abbe numbers. The violet halo is not
@@ -397,7 +397,7 @@ export function TelescopePanel() {
       </p>
 
       <h1 style={{ fontSize: 20, marginTop: 40 }}>The same star, across the field</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Twenty-five <em>identical</em> stars imaged through the achromat at once. The only thing
         that changes star to star is where it sits in the field, so every difference in the picture
         is the optics: a tight disk on axis, and a coma tail that lengthens with field angle. The
@@ -405,7 +405,7 @@ export function TelescopePanel() {
         shift-invariant blur could not show this. <strong>Click any star</strong> to open its ray
         fan, at that star&rsquo;s own field angle and this panel&rsquo;s aperture.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         This paragraph used to end &ldquo;<s>points radially outward</s>&rdquo;, and building the
         ray fan is what caught it. On this achromat the tails point <strong>inward</strong>, toward
         the middle of the frame. Three measurements say so and none of them is this sentence: the

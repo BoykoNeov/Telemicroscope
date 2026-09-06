@@ -174,7 +174,7 @@ function StarCanvas({ request }: { request: ReflectorRequest }) {
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 6 }}>
+      <figcaption className="readout" style={{ marginTop: 6 }}>
         {result ? (
           <>
             f/{result.fNumber.toFixed(1)} · f {result.focalLengthMm.toFixed(0)} mm · Airy radius{" "}
@@ -307,7 +307,7 @@ function VignettePlot({ request }: { request: VignetteRequest }) {
         yMax={1.05}
         width={460}
       />
-      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+      <figcaption className="readout">
         {result.elapsedMs.toFixed(0)} ms · throughput 1 → {last.fftFraction.toFixed(3)} out to{" "}
         {last.fieldDeg.toFixed(3)}°
         <br />

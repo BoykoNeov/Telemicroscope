@@ -374,9 +374,7 @@ function Frame({
         ref={canvas}
         style={{ width: 300, height: 300, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption
-        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 300 }}
-      >
+      <figcaption className="readout" style={{ maxWidth: 300 }}>
         <span style={{ color: nulled ? GUARD_COLOR.ok : "var(--ink)" }}>
           contrast at ν <strong>{frame.contrast.toExponential(3)}</strong>
         </span>
@@ -497,7 +495,7 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
         <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.warn }}>
           no transfer curve exists here.
         </p>
-        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", lineHeight: 1.7 }}>
+        <p className="readout-note" style={{ lineHeight: 1.7 }}>
           Every transfer in <code>illumination/transfer</code> is a ratio to the undiffracted
           energy Σw·|P(s)|², and darkfield puts that at exactly <strong>0</strong> — the annulus
           lies wholly outside the pupil, so no illuminating beam enters it. The engine guards the
@@ -555,7 +553,7 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
         yMin={-0.06}
         yMax={1.15}
       />
-      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
+      <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
         max in-focus phase transfer over {p.length} frequencies ={" "}
         <strong>{sweep.sweep.worstNull.toExponential(3)}</strong> · {sweep.sweep.elapsedMs.toFixed(0)}{" "}
         ms. The flat line on the axis is the whole panel; the dashed one is what the same instrument
@@ -849,7 +847,7 @@ export function PhasePanel() {
             </div>
             <GuardBlock frame={readout.defocused} />
           </div>
-          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, color: "var(--ink-3)" }}>
+          <div className="readout" style={{ color: "var(--ink-3)" }}>
             {readout.sourcePoints} illumination direction
             {readout.sourcePoints === 1 ? "" : "s"} · {readout.defocused.contributingPoints}{" "}
             contributed

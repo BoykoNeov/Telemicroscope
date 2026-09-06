@@ -100,14 +100,14 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
           field yourself, or go back and click the artifact again.
         </p>
       )}
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         A ray fan is the one picture in this app where an aberration is laid out against the thing
         that <em>causes</em> it — position in the pupil — instead of summed over the pupil the way a
         spot, a PSF or an image is. Each curve is one wavelength: the horizontal axis is where the
         ray entered the pupil, from one rim (−1) through the centre to the other (+1), and the
         vertical axis is how far it missed the chief ray at the image plane.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Read it by symmetry. <strong>Defocus</strong> is a straight line. <strong>Spherical
         aberration</strong> is a cubic and it is <em>odd</em> — the ray from +ρ and the ray from −ρ
         miss by the same amount in opposite directions, so they still straddle a centre.{" "}
@@ -215,7 +215,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>What the two plots say together</h2>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Put the field slider at zero. The tangential fan becomes an odd curve through the origin and
         the even number above collapses by eleven orders, to about 1e-13 µm. An axially symmetric
         lens cannot tell +ρ from −ρ on its own axis, so coma there is not a small quantity, it is an
@@ -226,7 +226,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         <em>is</em> exact — the rim pair, ±1 — the cancellation is bitwise. What is left in the curve is the odd
         cubic: spherical aberration, 0.66 µm on the achromat at f/10 against an Airy radius of 7.17.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Now walk the field out. The even half appears and grows in proportion to the field angle —
         7.67 µm at 1.13° on the achromat at f/10, which is 1.07 Airy radii and therefore a comet you
         can see rather than a coefficient. The <strong>sagittal</strong> fan stays even-free at every
@@ -234,7 +234,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
         half of the shape: a comatic star is stretched along the direction it sits from the axis and
         not across it.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The sign is worth reading rather than assuming. On this achromat the even half is{" "}
         <strong>negative</strong> at the rim, meaning both rim rays land on the side of the chief ray
         nearer the axis — so the tail points <strong>inward</strong>, toward the middle of the frame.

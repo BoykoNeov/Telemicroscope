@@ -196,7 +196,7 @@ function TransferPlot({ request }: { request: TransferRequest }) {
         yMin={-0.05}
         yMax={1.15}
       />
-      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
+      <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
         {sweep.sweep.rendered} of {sweep.sweep.available} frequencies rendered ·{" "}
         {sweep.sweep.elapsedMs.toFixed(0)} ms · worst |measured − closed| below ν = 1.9 ={" "}
         <strong>{sweep.sweep.worstResidual.toExponential(3)}</strong>. That residual holds two
@@ -402,9 +402,7 @@ export function FluorescencePanel() {
             }}
           >
             <BeadCanvas readout={readout} stretch={stretch} />
-            <figcaption
-              style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 380 }}
-            >
+            <figcaption className="readout" style={{ maxWidth: 380 }}>
               <strong>{readout.objectSpanUm.toFixed(2)} µm</strong> of specimen across the frame ·
               NA {readout.tracedNA.toFixed(4)}
               <br />

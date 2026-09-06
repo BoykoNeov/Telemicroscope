@@ -156,14 +156,14 @@ export function SpotPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Where a pupil-full of rays lands</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         A spot diagram is the most direct picture in optics: trace a grid of rays through the pupil,
         mark where each one crosses a plane, and that is the drawing. Every dot below is one traced
         ray. Down the page the field angle grows; across the page the plane moves through focus. The
         dashed circle is the <strong>Airy radius</strong> — diffraction&rsquo;s own scale, the same in
         every cell.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The grid is a grid because the two axes are not independent: an off-axis bundle focuses on a
         different plane from the axial one, so each row has its own best plane and it is not the
         middle column. On this achromat that drift runs from +0.06 columns on axis to −0.44 at 1.2°,
@@ -320,7 +320,7 @@ export function SpotPanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>A spot diagram lies about a good lens, not a bad one</h2>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The intuition runs the wrong way round. A spot diagram is a drawing of ray landings and
         nothing else, so it is at its most honest when the lens is <em>poor</em> — when the rays are
         scattered over an area far bigger than the diffraction disc, the scatter essentially{" "}
@@ -329,7 +329,7 @@ export function SpotPanel() {
         real image is a disc a hundred times wider that no ray in this picture knows about. The ratio
         beside each row is there so that cell cannot be misread.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The comparison is worth making because the app has a <em>second</em> switch that sounds like
         it should answer the same question and does not. The renderer chooses between a diffraction
         PSF and a ray-histogram PSF on a criterion in <code>wave/fidelity</code>, and that criterion
@@ -345,21 +345,21 @@ export function SpotPanel() {
       </p>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>What the curve underneath is, and what it is not</h2>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The through-focus curve is a parabola, exactly, and not approximately: every ray leaving the
         last surface is a straight line, so its distance from the centroid is linear in the plane
         position and the mean square of it is a quadratic. That is why the engine solves best focus
         in closed form instead of searching, and why the column grid was free — five planes cost five
         intersections, not five traces.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         So the curve&rsquo;s minimum and the engine&rsquo;s closed form agree, and that agreement is{" "}
         <em>not</em> evidence of anything: it is the same algebra applied to the same rays, and it
         would agree if both were wrong together. It is worth pinning as an identity — a change that
         breaks one side and not the other is a real bug — but this page does not present it as two
         methods confirming each other, because it is one method drawn twice.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The number that <em>is</em> a measurement is the gap above: the image plane comes from
         minimum RMS <strong>wavefront</strong> and this curve minimises RMS <strong>spot</strong>,
         and on the achromat at f/10 those disagree by −6.8 µm on axis. It is quoted at 550 nm, the

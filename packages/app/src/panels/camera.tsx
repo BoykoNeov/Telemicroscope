@@ -151,16 +151,14 @@ function Pictures({ request }: { request: CameraRequest }) {
         <figure style={{ margin: 0 }}>
           {result?.refusal ? (
             <div
+              className="readout"
               style={{
                 width: box,
                 height: box,
                 border: "1px solid var(--bad)",
                 color: "var(--bad)",
-                fontFamily: "var(--mono)",
-                fontSize: 12,
                 padding: 12,
                 boxSizing: "border-box",
-                lineHeight: 1.6,
               }}
             >
               refused — {result.refusal}
@@ -770,7 +768,7 @@ export function CameraPanel() {
           yMax={Math.max(0.3, ...contest.flatMap((c) => c.departure.map((d) => d.departure * 100))) * 1.2}
           width={460}
         />
-        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", maxWidth: 900, margin: "2px 0 0" }}>
+        <p className="readout-note" style={{ maxWidth: 900, margin: "2px 0 0" }}>
           Plotted as the <em>departure</em> rather than as the pitch itself: the three raw curves
           differ by under 3% over the band and land on top of each other, so the picture would say
           only that λ/(4·NA) is linear in λ while the table beside it carried the whole finding.

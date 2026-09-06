@@ -115,7 +115,7 @@ function RetinaCanvas({ request }: { request: RetinaRequest }) {
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 6 }}>
+      <figcaption className="readout" style={{ marginTop: 6 }}>
         {image ? (
           <>
             effective aperture <strong>{image.effectiveApertureMm.toFixed(2)} mm</strong>{" "}

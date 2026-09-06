@@ -270,7 +270,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           yMin={-0.05}
           yMax={Math.max(1.15, r.sweep.peakRatio * 1.08)}
         />
-        <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
+        <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
           Exactly <strong>zero at every integer wave</strong> — all of the light in the rings, and
           the plane&rsquo;s total unmoved. An ideal pupil reproduces the closed form to 7.6e-3 at{" "}
           {AXIAL_PUPIL_SAMPLES} bins across the pupil and 2.0e-3 at 64, so a gap much larger than
@@ -359,10 +359,8 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
         {/* A div rather than a p: `Guard` renders a block, and a div inside a p
             is invalid nesting that React unmounts the subtree over. */}
         <div
+          className="readout-note"
           style={{
-            fontFamily: "var(--mono)",
-            fontSize: 11,
-            color: "var(--ink-4)",
             width: 420,
             marginTop: 4,
             lineHeight: 1.5,
@@ -531,10 +529,8 @@ function DepthPlot({ request }: { request: DepthRequest }) {
         yMax={1.1}
       />
       <div
+        className="readout-note"
         style={{
-          fontFamily: "var(--mono)",
-          fontSize: 11,
-          color: "var(--ink-4)",
           width: 420,
           marginTop: 4,
           lineHeight: 1.5,
@@ -795,9 +791,7 @@ export function VolumePanel() {
             style={{ margin: 0, opacity: pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}
           >
             <StackCanvas readout={readout} stretch={stretch} />
-            <figcaption
-              style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 340 }}
-            >
+            <figcaption className="readout" style={{ maxWidth: 340 }}>
               <strong>{readout.objectSpanUm.toFixed(2)} µm</strong> across ×{" "}
               <strong>{readout.slabThicknessUm.toFixed(2)} µm</strong> deep, its top face{" "}
               {readout.slabDepthUm.toFixed(2)} µm down · NA {readout.tracedNA.toFixed(4)} engraved

@@ -481,7 +481,7 @@ export function StagePanel() {
               touchAction: "none",
             }}
           />
-          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, marginTop: 4 }}>
+          <div className="readout" style={{ marginTop: 4 }}>
             {progress.total > progress.done ? (
               <span>
                 {progress.done}/{progress.total} tiles · {(progress.elapsedMs / 1000).toFixed(1)} s
@@ -500,7 +500,7 @@ export function StagePanel() {
               </span>
             )}
           </div>
-          <div style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)" }}>
+          <div className="readout-note">
             {view}² plane pixels — {TILES_ACROSS}×{TILES_ACROSS} tiles, whatever the guard and the
             sampling do to how much specimen that is
           </div>

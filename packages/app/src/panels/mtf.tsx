@@ -70,7 +70,7 @@ export function MtfPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The optical MTF, and how many of them there are</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         A spot diagram says how big the blur is and a wavefront readout says what shape it is.
         Neither answers the question a lens is actually bought for — <em>can it separate these two
         things</em> — and that is what a modulation transfer function is: the contrast that survives,
@@ -166,7 +166,7 @@ export function MtfPanel() {
       <h2 style={{ fontSize: 16, marginTop: 28 }}>
         The cutoff is two numbers, and only one of them is on the axis above
       </h2>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)", fontSize: 14 }}>
+      <p className="prose" style={{ fontSize: 14 }}>
         The engine reports 2·NA/λ, computed from the exit pupil radius — the cutoff of the aperture
         the system was <em>asked</em> for. Where the curve actually reaches its floor is the cutoff
         of the aperture that <em>transmitted</em>. Those are the same number only when every ray gets

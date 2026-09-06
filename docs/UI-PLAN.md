@@ -425,7 +425,7 @@ this one. Recorded under *Out of scope* below rather than left as a pointer;
 what shipped, so the bytes served are the ones already in use. The note in
 `vite.config.ts` carries the warning forward.
 
-## Step 5 — shared readout classes instead of 185 inline `fontFamily` styles — in progress
+## Step 5 — shared readout classes instead of 185 inline `fontFamily` styles ✅
 
 **Why.** Every readout in the app is `style={{ fontFamily: "var(--mono)", fontSize: 12, ... }}`
 written out by hand, ~185 times. It works, and it is the reason a change of
@@ -573,6 +573,123 @@ three of its properties inline. It says nothing about a site missing one of
 them, which is why the eligibility rule above is read literally.
 `npm run typecheck` and `npm test` pass.
 
+### 5c — the 86 panel sites, in one sweep ✅ 2026-09-06
+
+**The counts, measured rather than estimated.** 86 sites across 24 panel files:
+18 `.readout`, 24 `.readout-note`, 44 `.prose`. 5a's census ran low on all
+three (~12 / ~23 / 43), and the `.prose` one is the interesting miss: 43 was a
+count of `<p>`, and `panels/wavefront.tsx:219` is a `<ul>` carrying the same
+object. 43 + 1 reconciles it, and reading the shape rather than the tag is what
+found it. The `.readout` class now appears 19 times, the nineteenth being
+`ui.tsx`'s `Guard`, which landed with 5a.
+
+**One commit, not fourteen, and why that is not a corner cut.** The plan says
+ONE PANEL PER COMMIT. This landed as a single sweep on instruction, and the
+constraint that rule exists to protect — CLAUDE.md's "every commit typechecks
+and passes `npm test` on its own" — is met by the sweep as much as by fourteen
+commits, because the edit is mechanical and the check below is per-site rather
+than per-panel. The per-panel commit buys a bisect point; what it was really
+buying here was a place to eyeball a screenshot, and 5b already established
+that screenshot cannot be taken.
+
+**What stands in for the check the plan asks for.** 5b's landing note explains
+why the before/after screenshot is unrunnable — every panel prints its own
+elapsed trace time, so two runs of the *same* tree differ in the pixels, and
+producing a "before" means stashing `ui.tsx`, which cold-caches all 31 panel
+transforms. So the substitute is a proof per site rather than a sample of
+routes, and it is three assertions inside the transform plus one re-run:
+
+1. **No spread in an eligible object.** A `...mono` could re-supply exactly the
+   properties being deleted, and then the deletion is not a no-op. `editor.tsx`
+   is known from 5b to spread that way. The transform hard-fails on any `...`
+   entry in an object it is about to edit; none fired.
+2. **The removed set is exactly the class's set, at the class's values** —
+   asserted property by property at every one of the 86 sites, which is the
+   eligibility rule of 5a restated as a runtime check rather than trusted to
+   the matcher that selected the site.
+3. **No `style={{}}` survives.** 51 of the 86 lose every property they had. An
+   empty style object typechecks and renders perfectly, so neither `tsc` nor
+   the panel tests would have said a word about a left-behind one.
+
+Then the census that selected the sites is re-run over the result: it must
+report **zero** eligible sites remaining, which is both the completeness check
+(nothing was skipped) and the idempotency one (nothing was half-converted). It
+does. `npm run typecheck` passes.
+
+`npm test` needs a sentence rather than a tick. The full run reported four
+failures, all four in `packages/core`, which imports nothing from
+`packages/app` and cannot see a `className`. All four are the load-dependent
+kind this repo already documents: § 6bl.2, § 6bk.1 and § 6bm.1 hit the 180 s
+budget `vitest.config.ts` sets, and `mtf-share`'s § 1.8.15 read its wall-time
+split at 0.593 against a 0.55 bound. Re-run per file they pass — 60 rungs and 11.
+The full run was also launched with the *coordinator* process at below-normal
+priority, which `vitest.setup.ts` names as the way to manufacture precisely that
+`onTaskUpdate` timeout; that is a fact about how the run was started, not about
+the tree. The re-runs follow `vitest.config.ts`'s own instruction: repeat a
+time-based failure at `TELEMICROSCOPE_TEST_PRIORITY=normal` before believing it.
+
+**And the cascade question, which the assertions do not answer.** Those three
+checks say the deleted properties equal the class's. What they cannot say is
+whether the class then *wins* — an inline style beats everything, a class does
+not. 5b answered this for its own five element types by reading the whole
+stylesheet; the tags that took a class here are `p` (63), `figcaption` (13),
+`div` (8), `span` and `ul`, and the answer is the same and shorter. The only
+selectors in `styles.css` that match any of them are `p { margin }` and
+`figcaption { color: var(--ink-2) }`, both specificity 0,0,1 and both beaten by
+a class; `p`'s margin is not a property any of the three classes sets, and
+`figcaption`'s colour survives because `.readout` sets no colour — which is
+also why the one `.readout` site that wants `--ink-3` still says so inline.
+Every other class rule in the file belongs to the shell, the nav or the error
+boundary and is applied by name to elements a panel does not own, and neither
+media query touches a font, a colour or a width. No site has a second class,
+and none had a `className` before this step.
+
+**The one thing that check is blind to, done by hand.** The census parses
+`style={{ … }}` literals only, so its "zero remaining" is a claim about
+literals and would say nothing about a `style={head}` — a reference to a const,
+which is exactly how 5b's `editor.tsx` case escaped a script and had to be done
+by eye. There are eight such consts: `cell` and `head` in `panels/bench.tsx` and
+`panels/editor.tsx`, `CELL` in `panels/design.tsx` and `panels/optimize.tsx`, and
+`mono` and the `note` that spreads it in `panels/editor.tsx`. Between them they
+are reached at 99 tags, and five further inline objects are built by spreading
+`mono` or `note`. Every one was read, and **none of them is eligible**:
+
+- the six table-cell consts carry padding, alignment and a border rule and,
+  since 5b took the fonts out of them, no font at all — `head` does say
+  `color: var(--ink-2)`, but without a `maxWidth` it is not a `.prose`;
+- `mono` is `{ fontFamily: "var(--mono)", fontSize: 12 }` — the bare shape with
+  no leading, which is precisely the family no class in this step covers;
+- `note` is `{ ...mono, color: "var(--ink-4)", maxWidth: 640, margin }`, which
+  misses `.readout-note` on size (12, not 11) and `.prose` on colour;
+- the five spreads add a `--bad`/`--warn` border colour, a `fontSize: 13` or a
+  `maxWidth` to those two, and none of them lands on a class either.
+
+So the 86 is the whole of it, and the consts are left alone on their own merit:
+`editor.tsx`'s `head`, used at seventeen tags, already says a shape once rather
+than writing it out per site, which is the thing this step is for.
+
+**The one site where the rule and the intuition disagree.** `panels/camera.tsx`'s
+refusal box — the bordered red square drawn where the sensor picture would be —
+is mono/12/1.6 with five other properties, so under the literal rule it is a
+`.readout` and it took the class. It does not read like one: it is a failure
+notice, not a readout. It was converted anyway, because 5a's whole landing note
+is an instruction to apply the rule literally, the computed style is identical
+either way, and curating these by meaning is a different step with a different
+argument behind it. Six tags that had been wrapped across three lines only
+because their style object was long were re-joined into one line, the same tidy
+5b did.
+
+**What stayed inline, so the next reader does not go looking.** Every property
+the class does not set: `maxWidth` / `width` / `marginTop` / `margin` on 31 of
+the sites, `lineHeight: 1.7` on one `.readout-note` and `1.5` on two more (both
+overriding what they inherit, not what the class sets), `fontSize: 14` on one
+`.prose`, `color: var(--ink-3)` on one `.readout`, and the refusal box's six.
+
+**What step 5 does not reach, now written as its own step.** 110 inline mono
+sites remain, in 29 files, and step 10 below is what to do about them. 5a named
+this family and deferred it; closing step 5 is the moment that stops being a
+note inside a landed sub-step and becomes a step of its own.
+
 ## Step 6 — canvases that fit the viewport
 
 **Why.** Every picture is a fixed CSS size (`width: 320, height: 320`), so on a
@@ -639,6 +756,49 @@ not consume it, but that is the assumption being cashed in.
 **Must not change.** A panel that MUTATES the pixels it received before painting
 them, if one exists — search for a write into `result.rgba` — must keep its copy,
 since the buffer is now the only one there is.
+
+## Step 10 — choose the leading of the bare mono readouts
+
+**Why.** Step 5 named three shapes and reached 86 sites; it deliberately did
+not reach the largest family of all. 110 inline `fontFamily: "var(--mono)"`
+sites remain across 29 files — 111 occurrences in the app, of which exactly one,
+`panels/editor.tsx`'s `mono`, is already a const rather than a site — and they
+split by size and leading like this:
+
+| size | leading | sites |
+| --- | --- | --- |
+| 12 | inherited 1.5 | 65 |
+| 12 | 1.7 | 17 |
+| 13 | inherited 1.5 | 10 |
+| 11 | inherited 1.5 | 7 |
+| 12 | 1.8 | 5 |
+| 14 | inherited 1.5 | 4 |
+| 11 | 1.7 | 1 |
+| 15 | inherited 1.5 | 1 |
+
+The 65 are one shape written 65 times and they are *not* a `.readout`: that
+class says 1.6 and these inherit 1.5, so classing them would move every one of
+them by a pixel of leading. That is why step 5 left them — not because the
+duplication is acceptable, but because a class that fits the majority chooses
+the minority's leading by accident. Step 5 was required not to move a pixel;
+this step is the one that is allowed to, on purpose.
+
+**Change.** Decide, once, what leading a 12 px mono readout has, and say it in
+`styles.css`. Then the 65 take that class and the 22 that name 1.7 or 1.8
+either join them or keep their own value inline with a reason beside it. The
+same question is open for the 13 px and 11 px sites, which are fewer and can
+follow whatever the 12 px answer turns out to be.
+
+**Check.** Not a screenshot, and not per site — this step *changes* pixels,
+which is the point. What must hold instead is that the change is the one
+intended: every site that moves moves from 1.5 to the chosen value and nothing
+else about it changes, and the count that moves equals the count in the table
+above. `npm run typecheck` and `npm test`.
+
+**Must not change.** The three classes step 5 landed. A site already carrying
+`.readout` is settled at 1.6 and is not re-opened here; if the answer to this
+step is a different number, changing `.readout` too is a third decision and
+wants its own line in this file.
 
 ## Out of scope, and why
 

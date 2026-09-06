@@ -94,9 +94,7 @@ function EmitterCanvas({
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption
-        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 320 }}
-      >
+      <figcaption className="readout" style={{ maxWidth: 320 }}>
         {caption}
       </figcaption>
     </figure>

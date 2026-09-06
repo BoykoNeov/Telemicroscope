@@ -130,9 +130,7 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
           display: result?.ok === false ? "none" : "block",
         }}
       />
-      <figcaption
-        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 360 }}
-      >
+      <figcaption className="readout" style={{ maxWidth: 360 }}>
         {result === null ? (
           <span>summing over the condenser…</span>
         ) : !result.ok ? (
@@ -271,7 +269,7 @@ function CutoffPlot({
         yMin={0.9}
         yMax={2.1}
       />
-      <p style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)", width: 420, marginTop: 4 }}>
+      <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
         worst |measured − lattice| = {sweep.sweep.worstResidual.toExponential(1)} over{" "}
         {p.length} points · {sweep.sweep.elapsedMs.toFixed(0)} ms. Where the two markers cross the
         curve is where the grating appears in the picture.
@@ -364,7 +362,7 @@ export function BrightfieldPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>Brightfield: the condenser is not a brightness control</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         A cosine absorption grating on the specimen, imaged through one of the bench&rsquo;s
         objectives by summing over the directions the condenser lights it from.{" "}
         <strong>S</strong> is that condenser&rsquo;s aperture as a fraction of the
@@ -372,7 +370,7 @@ export function BrightfieldPanel() {
         how fine the grating is, in units of NA/λ where 1 is the coherent limit and 2 is the
         incoherent one.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The experiment: push ν past 1 and the grating dies, then open S and watch it come back. It
         reappears exactly where the marker crosses the curve, because both come from the same sum —
         d = λ/(NA_obj + NA_cond), not written down but <em>measured</em>, by bisecting for the last
@@ -380,7 +378,7 @@ export function BrightfieldPanel() {
         resolution and buys back full contrast everywhere below ν = 1; that trade is what the dial
         is for.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The third curve is the one worth the panel. The measured cutoff does not land on the
         textbook line — it lands on the <strong>lattice reach</strong>, the outermost illumination
         direction the sampled condenser actually holds and the pupil actually admits. The residual
@@ -391,7 +389,7 @@ export function BrightfieldPanel() {
         <strong>lattice step</strong>, or more <strong>source samples</strong> — and watch the two
         close.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         <strong>Two condensers, and the difference between them is why one is fast.</strong> The{" "}
         <strong>pupil-matched</strong> one puts its directions on the objective&rsquo;s own
         frequency lattice: opening S admits more of them and <em>moves none of the ones already
@@ -403,14 +401,14 @@ export function BrightfieldPanel() {
         moves every direction it has and nothing can be reused. That is the whole trade, and it is
         physics rather than bookkeeping.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The saving is the <em>tracing</em>, so it is worth nothing on an <strong>ideal</strong>
         pupil — there the transforms are the whole bill and twice the directions cost twice as much
         (163 ms against 90). Switch the pupil to ideal and the pupil-matched condenser is the slower
         of the two, which is not a contradiction: it is the same measurement saying that what was
         removed was never the arithmetic.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         One consequence to watch, because the <strong>ms</strong> under the picture will show it. A
         lattice step is a fixed <em>angular density</em>, so a pupil-matched condenser&rsquo;s
         direction count follows the aperture&rsquo;s area — 49 directions at S = 0.25, 197 at 0.5,
@@ -422,7 +420,7 @@ export function BrightfieldPanel() {
         diaphragm opens, it just stops saying so. Raise the <strong>lattice step</strong> to trade it
         back.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         It also decides what each can show. Past S = 1 the continuum says opening further changes
         nothing; on an <strong>independent</strong> lattice the outermost points march out of the
         pupil entirely and the measured cutoff steps back <em>down</em>, which is sampling and not

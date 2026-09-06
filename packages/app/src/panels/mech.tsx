@@ -79,7 +79,7 @@ function CrossingLine({ label, crossing, colour }: {
   colour: string;
 }) {
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+    <div className="readout">
       <span style={{ color: colour }}>{label} </span>
       <strong>
         {crossing.focalRatio === null ? "—" : `f/${crossing.focalRatio.toFixed(3)}`}
@@ -444,7 +444,7 @@ export function MechPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The mechanical train: a length that is not its own cost</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         A 2″ prism star diagonal occupies about 110 mm of light path, of which about 40 mm is
         glass. Mechanically it consumes all 110. Optically the glass pushes the focal plane back
         by t(1−1/n), so the chain behind it gets <strong>13.63 mm</strong> of that back — a third
@@ -452,7 +452,7 @@ export function MechPanel() {
         A parts-list budget that counts glass as air is wrong by exactly Σtᵢ(1−1/nᵢ), and always
         in the direction that says a train will not reach focus when it will.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         <strong>The mech layer never applies that formula to an image.</strong>{" "}
         <code>withGlassPath</code> splices plane surfaces into the prescription and the tracer
         finds the focus, which is what makes the closed form a <em>test</em> rather than a
@@ -643,7 +643,7 @@ export function MechPanel() {
                   level={nullDifference !== null && nullDifference < 1e-8 ? "ok" : "warn"}
                   detail={`the same glass at a ${optics.result.positionNull.nearGapMm.toFixed(0)} mm and a ${optics.result.positionNull.farGapMm.toFixed(0)} mm gap, at f/${optics.result.positionNull.focalRatio.toFixed(1)} — § 5u.2's identity, measured rather than assumed`}
                 />
-                <span style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)" }}>
+                <span className="readout-note">
                   {optics.result.elapsedMs.toFixed(0)} ms
                 </span>
               </div>

@@ -82,7 +82,7 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
           go back and click the artifact again.
         </p>
       )}
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The violet halo around the singlet&rsquo;s star is not &ldquo;the blue focuses somewhere
         else&rdquo;. It is <em>the blue focuses somewhere else <strong>and the sensor is not
         there</strong></em>, and it takes both plots to say so. Above: where each wavelength&rsquo;s
@@ -181,13 +181,13 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 32 }}>Three things in these curves</h2>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         <strong>The singlet&rsquo;s curve never turns.</strong> Focus marches steadily from the
         violet end to the red — 2.8 mm across this band at any aperture, because where a colour
         focuses is a property of the glass and not of how much of it you let through. Every colour
         but one is out of focus, and the one is a knife edge.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         <strong>The achromat&rsquo;s curve has a bottom.</strong> It comes down from the violet,
         turns near 540 nm, and climbs again into the red — so for most of the band there are{" "}
         <em>two</em> wavelengths sharing one focus, one either side of the turn. That is the whole
@@ -198,7 +198,7 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
         catalogue&rsquo;s Abbe numbers in the thin-lens sense, and what this app traces is the real
         thick lens.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         <strong>And the curve does not cross zero where you would bet it does.</strong> The picture
         is focused at {FOCUS_NM} nm, so the natural guess is that the {FOCUS_NM} nm point sits on the
         black line. It does not — it is{" "}

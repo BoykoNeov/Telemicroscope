@@ -103,9 +103,7 @@ function ColourFrame({
         ref={canvas}
         style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
       />
-      <figcaption
-        style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6, maxWidth: 320 }}
-      >
+      <figcaption className="readout" style={{ maxWidth: 320 }}>
         <strong>{title}</strong>
         <br />
         <span style={{ color: "var(--ink-3)" }}>{note}</span>
@@ -209,21 +207,21 @@ export function SectionPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>A stained section, and the cheap way to fake one</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Every other microscope surface here is grey. This one runs the Abbe sum{" "}
         <strong>once per wavelength</strong> — each on its own frame, through its own traced pupil,
         because a frame&rsquo;s width goes as λ and the images have to be brought onto one ruler
         before they can be added — and integrates colour against the CIE observer while the
         wavelengths are still separate.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         Beside it is the implementation that is always tempting: sum the wavelengths into one grey
         image first, then multiply by the lamp&rsquo;s colour. It looks like a stained section. It
         cannot be one — every pixel of it is the same hue at a different brightness, so the number
         under it is <strong>zero because of what it is</strong>, not because the sum came out small.
         The number on the left is a measurement of the same frame. That pair is the whole panel.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The picker separates the two ways an image can have colour. The ruled grid and the diatoms
         contain <em>no wavelength at all</em> — whatever hue survives in their images is the
         objective&rsquo;s own dispersion, which is § 3b&rsquo;s purple fringing arriving in the

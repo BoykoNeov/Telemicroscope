@@ -327,7 +327,7 @@ export function TolerancePanel() {
   const pastWall = wall !== undefined && apertureMm > wall;
 
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+    <div className="readout">
       <p style={{ maxWidth: 760, color: "var(--ink-2)" }}>
         Every slider is a manufacturing error, scaled so that <strong>±1</strong> is the drift
         that spends the whole Maréchal budget (σ = λ/14) on its own — measured for this lens,

@@ -364,7 +364,7 @@ export function CoverslipPanel() {
   return (
     <>
       <h1 style={{ fontSize: 20 }}>The coverslip: a plate the objective does not control</h1>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         The <strong>0.17</strong> in <code>160/0.17</code>. A cover glass has no power and no
         first-order effect on anything, and it is still engraved on every objective, because a
         plate in a steeply convergent beam carries spherical aberration — and the beam between a
@@ -375,7 +375,7 @@ export function CoverslipPanel() {
         performance depend on a piece of glass it does not contain, which is what this panel
         measures.
       </p>
-      <p style={{ maxWidth: 640, color: "var(--ink-2)" }}>
+      <p className="prose">
         <strong>The modelling choice decides every number here, so it is a control.</strong> A real
         immersion objective is focused by <em>moving it</em>, which changes the thickness of the oil
         film — the film IS the focus knob. Refocusing on the image side alone, with the film pinned,
@@ -498,10 +498,8 @@ export function CoverslipPanel() {
             <>
               <ThicknessPlot sweep={sweep.result} thicknessMm={thicknessMm} />
               <p
+                className="readout-note"
                 style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 11,
-                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -525,10 +523,8 @@ export function CoverslipPanel() {
                 thicknessMm={thicknessMm}
               />
               <p
+                className="readout-note"
                 style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 11,
-                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -560,10 +556,8 @@ export function CoverslipPanel() {
             <>
               <IndexPlot sweep={index.result} deltaN={deltaN} />
               <p
+                className="readout-note"
                 style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 11,
-                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -578,10 +572,8 @@ export function CoverslipPanel() {
         <div>
           <DryTolerancePlot />
           <p
+            className="readout-note"
             style={{
-              fontFamily: "var(--mono)",
-              fontSize: 11,
-              color: "var(--ink-4)",
               width: 420,
               marginTop: 4,
             }}

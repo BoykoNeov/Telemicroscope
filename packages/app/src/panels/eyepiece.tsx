@@ -582,10 +582,8 @@ export function EyepiecePanel() {
                 readout={readout}
               />
               <p
+                className="readout-note"
                 style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 11,
-                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -600,10 +598,8 @@ export function EyepiecePanel() {
             <div>
               <ExitPupilPlot sweep={sweep.result} eyePupilMm={eyePupilMm} readout={readout} />
               <p
+                className="readout-note"
                 style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 11,
-                  color: "var(--ink-4)",
                   width: 420,
                   marginTop: 4,
                 }}
@@ -631,10 +627,8 @@ export function EyepiecePanel() {
           <div>
             <PlacementPlot readout={readout} />
             <p
+              className="readout-note"
               style={{
-                fontFamily: "var(--mono)",
-                fontSize: 11,
-                color: "var(--ink-4)",
                 width: 420,
                 marginTop: 4,
               }}
@@ -653,10 +647,8 @@ export function EyepiecePanel() {
           <div style={{ opacity: sweep.pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}>
             <EyeReliefPlot sweep={sweep.result} readout={readout} />
             <p
+              className="readout-note"
               style={{
-                fontFamily: "var(--mono)",
-                fontSize: 11,
-                color: "var(--ink-4)",
                 width: 420,
                 marginTop: 4,
               }}

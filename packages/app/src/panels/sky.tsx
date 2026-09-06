@@ -303,7 +303,7 @@ export function SkyPanel() {
               }}
             />
           )}
-          <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+          <figcaption className="readout">
             {refusal ? (
               <span style={{ color: "var(--bad)" }}>
                 <strong>{refusalVoice(refusal.source, "this frame")}</strong> ({refusal.stage})
