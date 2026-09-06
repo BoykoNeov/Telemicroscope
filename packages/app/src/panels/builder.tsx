@@ -19,6 +19,7 @@ import {
 import { Choice, Fact, Fieldset, Guard, NumberField, num, thresholdLevel } from "../ui";
 import { clearSavedBuild, readSavedBuild, writeSavedBuild } from "../saved";
 import { customLabel } from "../objective";
+import { LayoutCanvas } from "../drawing";
 
 /**
  * The microscope builder — APP.md's D8.
@@ -52,6 +53,18 @@ import { customLabel } from "../objective";
  * That is a form-submit cost, so this panel submits: nothing recomputes while a
  * control moves. Every other microscope panel here re-renders on drag and pays
  * for backpressure to do it; this one buys the same honesty by not dragging.
+ *
+ * ## The drawing — APP.md § E3, on D8
+ *
+ * The bench editor draws the prescription it edits; this panel draws the one
+ * it solved. `describeBuild` hands back the section (`layout.ts`) of the very
+ * system the frame was read off, fanned on axis and at the frame's corner —
+ * the object height `cornerRmsWaves` was traced at, so the red rays and the
+ * corner σ beside them are about the same point on the specimen. There is no
+ * table here to pair with, so hovering a surface prints what it is instead:
+ * its radius, rim, vertex and the medium behind it, from the drawing's own
+ * numbers. Keyed on the submitted result like everything else below the
+ * button; nothing redraws while the form moves.
  */
 
 const PUPIL_SAMPLES = 32;
@@ -186,6 +199,9 @@ export function BuilderPanel() {
   const [storageRefused, setStorageRefused] = useState(false);
   const [result, setResult] = useState<BuildDescription | null>(null);
   const [elapsedMs, setElapsedMs] = useState(0);
+  const [trueScale, setTrueScale] = useState(false);
+  /** The surface the pointer is on in the drawing, or none. */
+  const [hover, setHover] = useState<number | null>(null);
 
   const set = <K extends keyof BuildSpec>(key: K, value: BuildSpec[K]) =>
     setSpec((s) => ({ ...s, [key]: value }));
@@ -616,6 +632,67 @@ export function BuilderPanel() {
           </div>
 
           <h2 style={{ fontSize: 15, marginBottom: 4 }}>the lens this solved to</h2>
+          {result.layout !== null && (
+            <div style={{ marginBottom: 14 }}>
+              <LayoutCanvas
+                layout={result.layout}
+                trueScale={trueScale}
+                highlight={hover}
+                onHover={setHover}
+              />
+              <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginTop: 6 }}>
+                <p className="readout-note" style={{ margin: 0, maxWidth: 520, lineHeight: 1.5 }}>
+                  the section in the x–z plane, from the trace itself: every surface is its own sag
+                  curve, every ray its hit points joined up, at the d line. {result.layout.rays.length / 2}{" "}
+                  rays per field — <span style={{ color: "var(--blue)" }}>on axis</span> and{" "}
+                  <span style={{ color: "var(--red)" }}>
+                    at the frame&rsquo;s corner, {num(result.readout.cornerObjectHeightMm * 1000, 1)} µm
+                    off it on the specimen
+                  </span>
+                  , which is where the corner σ above was traced; a ray drawn in{" "}
+                  <span style={{ color: "var(--warn)" }}>amber</span> was lost, and its cross sits on
+                  the surface that lost it.{" "}
+                  {result.layout.lost > 0 ? (
+                    <strong>
+                      {result.layout.lost}/{result.layout.traced} lost.
+                    </strong>
+                  ) : (
+                    `${result.layout.traced}/${result.layout.traced} reach the image.`
+                  )}{" "}
+                  {result.layout.surfaces.some((s) => s.unbounded) && (
+                    <>
+                      A surface with no rim is drawn to the largest one that has one; the tracer
+                      treats it as unbounded.{" "}
+                    </>
+                  )}
+                  {result.layout.raysRefusal !== null && (
+                    <span style={{ color: "var(--warn)" }}>
+                      no rays — the engine says: {result.layout.raysRefusal}
+                    </span>
+                  )}
+                  <span style={{ color: "var(--ink-5)" }}>{result.layout.elapsedMs.toFixed(1)} ms</span>
+                </p>
+                <Choice
+                  label="scale"
+                  options={["fit", "true"] as const}
+                  value={trueScale ? "true" : "fit"}
+                  onChange={(v) => setTrueScale(v === "true")}
+                  format={(v) => (v === "fit" ? "fit the box" : "1 : 1")}
+                />
+              </div>
+              <p className="readout-note" style={{ margin: "4px 0 0", minHeight: "1.5em" }}>
+                {(() => {
+                  const s = hover === null ? undefined : result.layout.surfaces[hover];
+                  if (!s) return "point at a surface to read what it is — this form has no table";
+                  const shape = s.kind === "reflect" ? "mirror" : "refracting surface";
+                  const radius = Number.isFinite(s.radiusMm) ? `R ${num(s.radiusMm, 4)} mm` : "plane";
+                  const after = s.mediumAfter === null ? "" : `, then ${s.mediumAfter}`;
+                  const rim = s.unbounded ? "no rim" : `semi-⌀ ${num(s.semiApertureMm, 4)} mm`;
+                  return `surface ${s.index}: ${shape}, ${radius}, ${rim}, vertex z ${num(s.vertexZMm, 4)} mm${after}${s.isStop ? " — the stop" : ""}`;
+                })()}
+              </p>
+            </div>
+          )}
           <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginBottom: 16 }}>
             <ObjectiveFacts objective={result.objective} />
           </div>

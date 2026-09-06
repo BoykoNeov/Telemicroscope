@@ -3688,6 +3688,30 @@ they refuse for reasons that never enter this path. The panel's own structure is
 what makes that liveable — it is a form submit, not a keystroke — but a 1.15 s
 button is a different thing from a 140 ms one and this row should say so.
 
+**It draws the lens it solved (2026-09-06).** § E3's section, on this panel:
+`describeBuild` hands back the layout of the very system the frame was read
+off, so the picture and the readout cannot be of two builds. The off-axis fan
+is aimed at the frame corner's own object height — `FrameReadout` now says what
+that height is, `cornerObjectHeightMm`, the field value the corner σ was traced
+at — so the red rays and the corner σ above them are about one point on the
+specimen, and the caption prints it in µm. This form has no table to pair the
+drawing with, so hovering a surface prints what it is instead: radius, rim,
+vertex z and the medium behind it, from `LayoutSurface`'s own numbers
+(`radiusMm` was added for that — the editor's table never needed it, the
+builder does). The specimen is in the picture, being a few millimetres before
+a 160 mm train; the slip is its two planes with D263 between them; the oil
+form's fluid is a body in the immersion tint. That form was also the first to
+draw an object-space body at all, and it showed the shape was wrong: from the
+padded frame edge at canvas height it was a wedge that dwarfed the objective,
+and it is now a slab from where the rays start, as tall as the first rim. Keyed
+on the submitted result like everything under the button, so nothing redraws
+while the form moves. The DIN 4×/0.15 preset draws four of its corner rays in
+amber, lost on the telecentric stop — the same vignetting the corner guard
+counts, now visible as where.
+`builder.test.ts` pins the drawing to the numbers beside it: the specimen plane
+at the printed object distance, the image plane at the printed image distance,
+the corner field at the crop's half-diagonal to under a percent.
+
 ### D10. A5's z-slider through a real mount — *app wiring only* — **pair** — ✅ **landed**
 
 A5 gained a **mount** control (`matched` / water / immersion-oil / air) and a
@@ -4167,7 +4191,9 @@ the light is travelling −z after an odd number of mirrors.
 Cost: seven rays per field, two fields, one `pupils` call — under a millisecond
 beside the readout's 2–4 ms, so it re-traces on every keystroke like the rest
 of the panel. The canvas is the first in the app to follow its container's
-width (UI-PLAN step 6's direction), clamped to 320–760 px.
+width (UI-PLAN step 6's direction), clamped to 320–760 px. The builder (D8)
+draws the same section of the lens it solved, fanned at the frame's corner;
+its paragraph *It draws the lens it solved* says what differs there.
 
 ---
 

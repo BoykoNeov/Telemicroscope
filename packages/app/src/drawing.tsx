@@ -127,14 +127,23 @@ function LayoutCanvasInner(props: LayoutCanvasProps) {
     const fit = fitLayout(layout, boxW, boxH, trueScale === true);
     const sz = (z: number) => PAD.left + fit.zOrigin + z * fit.zScale;
     const sx = (x: number) => PAD.top + fit.xOrigin - x * fit.xScale;
-    const leftEdge = layout.zRangeMm[0];
-
     const surfaces = layout.surfaces;
     const n = surfaces.length;
 
-    /** A surface's profile as canvas points, or a vertical line at a frame edge. */
+    /**
+     * A surface's profile as section points, or a vertical at a frame edge.
+     * The object-space body (a specimen mounted in glass, an immersion film
+     * before the dome) is a slab: it starts where the rays do — the object
+     * plane when that is in the picture, else the frame's edge — and stands
+     * as tall as the first surface's rim, not the canvas. The builder's oil
+     * form was the first to draw one and showed why: from the padded edge at
+     * full height it was a wedge that dwarfed the objective.
+     */
     const edge = (index: number): readonly (readonly [number, number])[] => {
-      if (index < 0) return [[leftEdge, layout.xRangeMm[0]], [leftEdge, layout.xRangeMm[1]]];
+      if (index < 0) {
+        const rim = surfaces[0]?.semiApertureMm ?? layout.xRangeMm[1];
+        return [[layout.startZMm, -rim], [layout.startZMm, rim]];
+      }
       if (index >= n) return [[layout.imagePlaneZMm, layout.xRangeMm[0]], [layout.imagePlaneZMm, layout.xRangeMm[1]]];
       return surfaces[index]!.profile;
     };

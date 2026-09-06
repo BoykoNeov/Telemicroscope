@@ -42,7 +42,10 @@ For context, so the steps below do not re-do it:
   stop, traced rays to the image plane — above its table, with hover pairing
   the two. APP.md § E3 says what it draws and what it states about itself. Its
   canvas already follows the container's width (a `ResizeObserver` on the
-  `<figure>`, clamped to 320–760), which is step 6's shape for `Plot`.
+  `<figure>`, clamped to 320–760), which is step 6's shape for `Plot`. The
+  builder (`#/builder`) draws the same section of the lens it solved, fanned at
+  the frame's corner, with a hover readout in place of a table (APP.md § D8,
+  *It draws the lens it solved*).
 
 The token names and what each is for:
 

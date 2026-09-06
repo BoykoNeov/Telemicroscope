@@ -327,3 +327,100 @@ describe("Part F — an imaging adapter hands back a refusal rather than throwin
     expect(result.readout.rgba.length).toBe(4 * BASE.size * BASE.size);
   });
 });
+
+/**
+ * D8 draws the lens it solved — § E3's section, on the builder.
+ *
+ * The drawing's own assembly is pinned in `layout.test.ts`; what this block
+ * pins is that the builder's picture is OF the numbers beside it. The specimen
+ * plane in the drawing is the one the facts print, the image plane is the
+ * image distance the facts print, and the red fan is aimed at the very object
+ * height the corner σ was traced at — none of which the drawing could get wrong
+ * on its own while every other test stayed green.
+ */
+describe("D8 — the builder draws the lens it solved, and it is the lens the numbers describe", () => {
+  const REQUEST = { pupilSamples: 32, size: 64 };
+
+  it("the DIN 4×/0.10: specimen, image and corner field in the drawing are the readout's", () => {
+    const result = describeBuild(DEFAULT_SPEC, REQUEST);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const layout = result.layout;
+    expect(layout).not.toBeNull();
+    if (layout === null) return;
+
+    // One surface drawn per surface built — no symbol stands in for a list.
+    const built = buildMicroscope(DEFAULT_SPEC).system;
+    expect(layout.surfaces.length).toBe(built.prescription.surfaces.length);
+
+    // The specimen is in the picture (a few mm before a 160 mm train), at the
+    // object distance the facts print; the image plane is the image distance
+    // the facts print, from the last vertex.
+    expect(layout.objectShown).toBe(true);
+    expect(layout.objectZMm).not.toBeNull();
+    expect(layout.objectZMm!).toBeCloseTo(-result.objectDistanceMm, 9);
+    const lastVertex = Math.max(...layout.surfaces.map((s) => s.vertexZMm));
+    expect(layout.imagePlaneZMm - lastVertex).toBeCloseTo(result.imageDistanceMm, 9);
+
+    // The off-axis fan is at the corner's own object height — the field value
+    // `cornerRmsWaves` was traced at — and that height is the half-diagonal of
+    // the crop on the specimen to well under a percent, this frame being far
+    // too small for a 4× to distort.
+    expect(layout.fields).toEqual([0, result.readout.cornerObjectHeightMm]);
+    const halfDiagonalMm = (result.readout.objectSpanUm / 1000 / 2) * Math.SQRT2;
+    expect(result.readout.cornerObjectHeightMm / halfDiagonalMm).toBeCloseTo(1, 2);
+
+    // Fourteen rays, every on-axis one reaching the image plane.
+    expect(layout.traced).toBe(14);
+    const axial = layout.rays.filter((r) => r.field === 0);
+    expect(axial.length).toBe(7);
+    for (const ray of axial) {
+      expect(ray.lostAt).toBeNull();
+      expect(ray.points[ray.points.length - 1]![0]).toBe(layout.imagePlaneZMm);
+    }
+  });
+
+  it("the DIN doublet corrected FOR a slip draws the slip: one more plane, with the specimen inside D263", () => {
+    // The engine's slip is ONE surface, glass into air (`coverslipSurface`): the
+    // specimen sits against the slip's underside, so object space IS the slip
+    // glass and the drawing's D263 body runs from the frame's edge to surface 0.
+    const bare = describeBuild(DEFAULT_SPEC, REQUEST);
+    const slipped = describeBuild(
+      { ...DEFAULT_SPEC, coverslip: { kind: "slip", thicknessMm: 0.17, medium: "D263" } },
+      REQUEST,
+    );
+    expect(bare.ok && slipped.ok).toBe(true);
+    if (!bare.ok || !slipped.ok || bare.layout === null || slipped.layout === null) return;
+    const planes = (l: NonNullable<typeof bare.layout>) =>
+      l.surfaces.filter((s) => !Number.isFinite(s.radiusMm)).length;
+    expect(planes(slipped.layout)).toBe(planes(bare.layout) + 1);
+    expect(bare.layout.bodies.some((b) => b.medium === "D263")).toBe(false);
+    expect(slipped.layout.bodies.some((b) => b.medium === "D263" && b.from === -1 && b.to === 0)).toBe(true);
+    expect(slipped.layout.surfaces[0]!.radiusMm).toBe(Infinity);
+  });
+
+  it("the oil form: the immersion fluid is a body in the drawing, tinted apart from the glass", () => {
+    const result = describeBuild(oilSpec(1.25), REQUEST);
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.layout === null) return;
+    expect(result.layout.bodies.some((b) => b.medium === "IMMERSION-OIL")).toBe(true);
+    expect(result.layout.objectShown).toBe(true);
+  });
+
+  it("the Lister aplanat: every surface drawn, and its picture costs under the frame", () => {
+    const result = describeBuild(listerSpec(10, 0.25), REQUEST);
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.layout === null) return;
+    expect(result.layout.surfaces.filter((s) => s.kind === "refract").length).toBe(
+      buildMicroscope(listerSpec(10, 0.25)).system.prescription.surfaces.length,
+    );
+    expect(result.layout.elapsedMs).toBeLessThan(result.readout.elapsedMs);
+  });
+
+  it("a refused build has no drawing — the refusal is the whole result", () => {
+    const result = describeBuild({ ...DEFAULT_SPEC, numericalAperture: 3 }, REQUEST);
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect("layout" in result).toBe(false);
+  });
+});

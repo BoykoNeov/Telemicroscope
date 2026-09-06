@@ -285,3 +285,16 @@ describe("the labels", () => {
     expect(staggered([], 14)).toEqual([]);
   });
 });
+
+describe("the section's surfaces say what they are", () => {
+  it("carry the radius the draft was written in, and Infinity for a plane, on every seed", () => {
+    for (const { draft } of benchSeeds()) {
+      const layout = describeLayout(toSystem(draft), { raysAcross: RAYS });
+      draft.surfaces.forEach((s, i) => {
+        const drawn = layout.surfaces[i]!;
+        if (Number.isFinite(s.radiusMm)) expect(drawn.radiusMm / s.radiusMm).toBeCloseTo(1, 12);
+        else expect(drawn.radiusMm).toBe(Infinity);
+      });
+    }
+  });
+});

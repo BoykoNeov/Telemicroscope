@@ -57,6 +57,8 @@ export interface LayoutSurface {
   readonly index: number;
   readonly kind: "refract" | "reflect";
   readonly vertexZMm: number;
+  /** 1/curvature, `Infinity` for a plane — so a caller with no table can still say what a surface is. */
+  readonly radiusMm: number;
   /** The height the profile is drawn to. Finite even when the spec is not. */
   readonly semiApertureMm: number;
   /** True when the spec says `Infinity` and the height above is borrowed. */
@@ -172,6 +174,7 @@ export function describeLayout(system: OpticalSystem, options: LayoutOptions = {
       index,
       kind: s.kind,
       vertexZMm: s.vertexZ,
+      radiusMm: s.geometry.curvature === 0 ? Infinity : 1 / s.geometry.curvature,
       semiApertureMm,
       unbounded,
       isStop: s.isStop,

@@ -21,6 +21,7 @@ import {
   type ObjectiveNumbers,
 } from "./builder";
 import { refused, type Refused } from "./refusal";
+import { describeLayout, type LayoutReadout } from "./layout";
 
 /**
  * The microscope substrate, as pure functions — APP.md's A1.
@@ -333,6 +334,14 @@ export interface FrameReadout {
    */
   readonly axisRmsWaves: number;
   readonly cornerRmsWaves: number;
+  /**
+   * The object height (mm) the frame's corner looks at — on the traced map, so
+   * it carries the distortion `objectSpanUm/2·√2` would not. It is the field
+   * value `cornerRmsWaves` and `cornerLost` were traced at, and the one D8's
+   * section drawing fans its off-axis rays at, so the picture and the numbers
+   * beside it are about the same point on the specimen.
+   */
+  readonly cornerObjectHeightMm: number;
   readonly elapsedMs: number;
 }
 
@@ -394,6 +403,7 @@ export function describeSystem(
         cornerLost: corner.lost,
         axisRmsWaves: axis.rmsWaves,
         cornerRmsWaves: corner.rmsWaves,
+        cornerObjectHeightMm: corner.objectHeightMm,
         elapsedMs: performance.now() - started,
       },
     };
@@ -452,8 +462,18 @@ export type BuildDescription =
        * See `measureApertureWall` for why it is measured and not quoted.
        */
       readonly wall: ApertureWall | null;
+      /**
+       * The section — § E3's drawing of the very system the readout was taken
+       * off, fanned on axis and at the frame's corner. `null` only if the
+       * drawing's own assembly threw, which a system that just framed should
+       * not do; the build is not refused over its picture.
+       */
+      readonly layout: LayoutReadout | null;
     }
   | Refused;
+
+/** Rays across the pupil per field in D8's drawing — E3's seven, for the same picture. */
+const LAYOUT_RAYS = 7;
 
 export function describeBuild(
   spec: BuildSpec,
@@ -472,9 +492,22 @@ export function describeBuild(
   }
   const frame = describeSystem(() => made.system, request);
   if (!frame.ok) return frame;
+  // Inside the clock: fourteen rays and a `pupils` call, under a millisecond
+  // beside the frame's ~40 ms, and part of what the submit shows.
+  let layout: LayoutReadout | null = null;
+  try {
+    layout = describeLayout(made.system, {
+      fields: [0, frame.readout.cornerObjectHeightMm],
+      raysAcross: LAYOUT_RAYS,
+      wavelengthNm: LAMBDA_NM,
+    });
+  } catch {
+    layout = null;
+  }
   return {
     ok: true,
     readout: { ...frame.readout, elapsedMs: performance.now() - started },
+    layout,
     objective: made.objective,
     nominalMagnification: made.chain.nominalMagnification,
     objectDistanceMm: made.chain.objectDistanceMm,
