@@ -141,7 +141,8 @@ function Pictures({ request }: { request: CameraRequest }) {
         <figure style={{ margin: 0 }}>
           <canvas
             ref={nativeRef}
-            style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
+            className="raster"
+            style={{ width: box, imageRendering: "pixelated", background: "#000" }}
           />
           <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)" }}>
             the optical image — {result?.nativeSize ?? "…"} px at{" "}
@@ -166,7 +167,8 @@ function Pictures({ request }: { request: CameraRequest }) {
           ) : (
             <canvas
               ref={sensorRef}
-              style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
+              className="raster"
+            style={{ width: box, imageRendering: "pixelated", background: "#000" }}
             />
           )}
           <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)" }}>
@@ -178,7 +180,8 @@ function Pictures({ request }: { request: CameraRequest }) {
           <figure style={{ margin: 0 }}>
             <canvas
               ref={observedRef}
-              style={{ width: box, height: box, imageRendering: "pixelated", background: "#000" }}
+              className="raster"
+            style={{ width: box, imageRendering: "pixelated", background: "#000" }}
             />
             <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-3)" }}>
               {request.noiseSeed === undefined ? "the same frame on the sky" : "one exposure of it"} —{" "}

@@ -372,7 +372,8 @@ function Frame({
       </figcaption>
       <canvas
         ref={canvas}
-        style={{ width: 300, height: 300, imageRendering: "pixelated", background: "#000" }}
+        className="raster"
+        style={{ width: 300, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption className="readout" style={{ maxWidth: 300 }}>
         <span style={{ color: nulled ? GUARD_COLOR.ok : "var(--ink)" }}>
@@ -469,14 +470,14 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
         summing the orders…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
         the engine refuses this source: {sweep.error}
       </p>
     );
@@ -491,7 +492,7 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
   // plainly false about an image that visibly has contrast.
   if (!(sweep.sweep.directBeam > 0)) {
     return (
-      <div style={{ width: 420 }}>
+      <div style={{ maxWidth: 420 }}>
         <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.warn }}>
           no transfer curve exists here.
         </p>
@@ -553,7 +554,7 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
         yMin={-0.06}
         yMax={1.15}
       />
-      <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
+      <p className="readout-note" style={{ maxWidth: 420, marginTop: 4 }}>
         max in-focus phase transfer over {p.length} frequencies ={" "}
         <strong>{sweep.sweep.worstNull.toExponential(3)}</strong> · {sweep.sweep.elapsedMs.toFixed(0)}{" "}
         ms. The flat line on the axis is the whole panel; the dashed one is what the same instrument

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLatestFromWorker, useRenderedField } from "../hooks";
 import { Slider } from "../ui";
 import { linkHref, type TeachingLink } from "../teaching";
@@ -95,7 +95,8 @@ function StarCanvas({ request }: { request: RenderRequest }) {
     >
       <canvas
         ref={canvas}
-        style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
+        className="raster"
+        style={{ width: 320, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption className="readout">
         {result ? (
@@ -181,11 +182,30 @@ function StarCanvas({ request }: { request: RenderRequest }) {
  * the measurement lives.
  */
 const HOTSPOT_PX = 26;
+/** The field's CSS size on a wide page; a narrow column shrinks it (`.raster`). */
+const FIELD_PX = 420;
 
 function FieldCanvas({ request }: { request: FieldRequest }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const { result, refining } = useRenderedField(request);
-  const displayPx = 420;
+  // The hotspots are placed in CSS pixels over a canvas whose CSS size is no
+  // longer a constant — UI-PLAN step 6 — so the scale they need is read off the
+  // rendered canvas and followed when it changes. `useLayoutEffect` so the first
+  // paint already carries the measured size rather than the constant for a frame.
+  const [displayPx, setDisplayPx] = useState(FIELD_PX);
+  useLayoutEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const measure = () => {
+      const w = element.getBoundingClientRect().width;
+      if (w > 0) setDisplayPx(w);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!result) return;
@@ -201,12 +221,12 @@ function FieldCanvas({ request }: { request: FieldRequest }) {
 
   return (
     <figure style={{ margin: 0 }}>
-      <div style={{ position: "relative", width: displayPx, height: displayPx }}>
+      <div style={{ position: "relative", width: `min(${FIELD_PX}px, 100%)` }}>
         <canvas
           ref={canvas}
+          className="raster"
           style={{
-            width: displayPx,
-            height: displayPx,
+            width: FIELD_PX,
             imageRendering: "pixelated",
             background: "#000",
             display: "block",

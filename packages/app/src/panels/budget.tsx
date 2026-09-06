@@ -286,49 +286,51 @@ export function BudgetPanel() {
 
       {sheet !== null && (
         <Fieldset title="the sheet">
-          <table style={{ lineHeight: 1.6 }}>
-            <thead>
-              <tr style={{ color: "var(--ink-5)", textAlign: "right" }}>
-                <th style={{ textAlign: "left", paddingRight: 16 }}>row</th>
-                <th style={{ paddingRight: 16 }}>colour ÷ target</th>
-                <th style={{ paddingRight: 16 }}>blur ÷ target</th>
-                <th style={{ paddingRight: 16 }}>binds</th>
-                <th style={{ paddingRight: 16 }}>by</th>
-                <th style={{ paddingRight: 16 }}>allowed</th>
-                <th style={{ paddingRight: 16 }}>as wedge</th>
-                <th style={{ paddingRight: 16 }}>lin</th>
-                <th style={{ textAlign: "left" }}>reading</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sheet.rows.map((row) => (
-                <tr key={row.label} style={{ textAlign: "right" }}>
-                  <td style={{ textAlign: "left", paddingRight: 16 }}>{row.label}</td>
-                  <td style={{ paddingRight: 16, color: row.binds === "colour" ? undefined : "var(--ink-5)" }}>
-                    {row.colourPerUnit === 0 ? "0" : num(row.colourPerUnit, 4)}
-                  </td>
-                  <td style={{ paddingRight: 16, color: row.binds === "blur" ? undefined : "var(--ink-5)" }}>
-                    {num(row.blurPerUnit, 4)}
-                  </td>
-                  <td style={{ paddingRight: 16 }}>{row.binds}</td>
-                  <td style={{ paddingRight: 16 }}>
-                    {Number.isFinite(row.bindsBy) ? `${num(row.bindsBy, 3)}×` : "only"}
-                  </td>
-                  <td style={{ paddingRight: 16 }}>{quote(row)}</td>
-                  <td style={{ paddingRight: 16 }}>
-                    {row.wedgeArcmin === null ? "—" : `${num(row.wedgeArcmin, 3)}′`}
-                  </td>
-                  <td style={{ paddingRight: 16 }}>
-                    {Number.isNaN(row.linearity) ? "—" : num(row.linearity, 3)}
-                  </td>
-                  <td style={{ textAlign: "left", color: GUARD_COLOR[VERDICT_LEVEL[row.verdict]] }}>
-                    {row.verdict === "ok" ? "a tolerance" : row.verdict}
-                    {row.note !== "" && <span style={{ color: "var(--ink-4)" }}> — {row.note}</span>}
-                  </td>
+          <div className="scroll-x">
+            <table style={{ lineHeight: 1.6 }}>
+              <thead>
+                <tr style={{ color: "var(--ink-5)", textAlign: "right" }}>
+                  <th style={{ textAlign: "left", paddingRight: 16 }}>row</th>
+                  <th style={{ paddingRight: 16 }}>colour ÷ target</th>
+                  <th style={{ paddingRight: 16 }}>blur ÷ target</th>
+                  <th style={{ paddingRight: 16 }}>binds</th>
+                  <th style={{ paddingRight: 16 }}>by</th>
+                  <th style={{ paddingRight: 16 }}>allowed</th>
+                  <th style={{ paddingRight: 16 }}>as wedge</th>
+                  <th style={{ paddingRight: 16 }}>lin</th>
+                  <th style={{ textAlign: "left" }}>reading</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sheet.rows.map((row) => (
+                  <tr key={row.label} style={{ textAlign: "right" }}>
+                    <td style={{ textAlign: "left", paddingRight: 16 }}>{row.label}</td>
+                    <td style={{ paddingRight: 16, color: row.binds === "colour" ? undefined : "var(--ink-5)" }}>
+                      {row.colourPerUnit === 0 ? "0" : num(row.colourPerUnit, 4)}
+                    </td>
+                    <td style={{ paddingRight: 16, color: row.binds === "blur" ? undefined : "var(--ink-5)" }}>
+                      {num(row.blurPerUnit, 4)}
+                    </td>
+                    <td style={{ paddingRight: 16 }}>{row.binds}</td>
+                    <td style={{ paddingRight: 16 }}>
+                      {Number.isFinite(row.bindsBy) ? `${num(row.bindsBy, 3)}×` : "only"}
+                    </td>
+                    <td style={{ paddingRight: 16 }}>{quote(row)}</td>
+                    <td style={{ paddingRight: 16 }}>
+                      {row.wedgeArcmin === null ? "—" : `${num(row.wedgeArcmin, 3)}′`}
+                    </td>
+                    <td style={{ paddingRight: 16 }}>
+                      {Number.isNaN(row.linearity) ? "—" : num(row.linearity, 3)}
+                    </td>
+                    <td style={{ textAlign: "left", color: GUARD_COLOR[VERDICT_LEVEL[row.verdict]] }}>
+                      {row.verdict === "ok" ? "a tolerance" : row.verdict}
+                      {row.note !== "" && <span style={{ color: "var(--ink-4)" }}> — {row.note}</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-5)", maxWidth: 860, lineHeight: 1.7 }}>
             A cemented block of <em>n</em> surfaces carries 3<em>n</em>−1 numbers and not
             4<em>n</em>−1: wedge is not a row beside centring, it is the{" "}

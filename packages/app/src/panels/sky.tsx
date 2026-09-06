@@ -119,7 +119,8 @@ function SkyCanvas({ result }: { result: SkyResult }) {
   return (
     <canvas
       ref={canvas}
-      style={{ width: 380, height: 380, imageRendering: "pixelated", background: "#000" }}
+      className="raster"
+      style={{ width: 380, imageRendering: "pixelated", background: "#000" }}
     />
   );
 }
@@ -295,9 +296,12 @@ export function SkyPanel() {
             <SkyCanvas result={rendered} />
           ) : (
             <div
+              className="raster"
               style={{
-                width: 380,
-                height: 380,
+                // A div, not a canvas: a percentage max-width cannot shrink a
+                // block's min-content the way it shrinks a replaced element's,
+                // so the ceiling has to be in the width itself.
+                width: "min(380px, 100%)",
                 background: refusal ? "var(--bad-tint)" : "#000",
                 border: refusal ? "1px solid var(--bad)" : "none",
               }}

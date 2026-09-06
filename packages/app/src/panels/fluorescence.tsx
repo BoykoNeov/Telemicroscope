@@ -104,9 +104,9 @@ function BeadCanvas({
   return (
     <canvas
       ref={canvas}
+      className="raster"
       style={{
         width: 380,
-        height: 380,
         imageRendering: "pixelated",
         background: "#000",
       }}
@@ -149,14 +149,14 @@ function TransferPlot({ request }: { request: TransferRequest }) {
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
         imaging a grating at every frequency…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -196,7 +196,7 @@ function TransferPlot({ request }: { request: TransferRequest }) {
         yMin={-0.05}
         yMax={1.15}
       />
-      <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
+      <p className="readout-note" style={{ maxWidth: 420, marginTop: 4 }}>
         {sweep.sweep.rendered} of {sweep.sweep.available} frequencies rendered ·{" "}
         {sweep.sweep.elapsedMs.toFixed(0)} ms · worst |measured − closed| below ν = 1.9 ={" "}
         <strong>{sweep.sweep.worstResidual.toExponential(3)}</strong>. That residual holds two

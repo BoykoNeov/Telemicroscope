@@ -185,7 +185,8 @@ function StarCanvas({ rgba, size }: { rgba: Uint8ClampedArray; size: number }) {
   return (
     <canvas
       ref={canvas}
-      style={{ width: 260, height: 260, imageRendering: "pixelated", background: "#000" }}
+      className="raster"
+      style={{ width: 260, imageRendering: "pixelated", background: "#000" }}
     />
   );
 }
@@ -413,135 +414,137 @@ export function TolerancePanel() {
         </div>
       )}
 
-      <table style={{ marginTop: 14, fontSize: 11 }}>
-        <thead>
-          <tr style={{ textAlign: "left", color: "var(--ink-3)" }}>
-            <th style={{ paddingRight: 10 }}>surface</th>
-            <th style={{ paddingRight: 10 }}>parameter</th>
-            <th style={{ paddingRight: 10 }}>drift</th>
-            <th style={{ paddingRight: 10 }}>value</th>
-            <th style={{ paddingRight: 10 }}>
-              {(result?.refocus ?? refocus)
-                ? "σ waves — projected / real focuser"
-                : "σ waves — before the focuser / projected"}
-            </th>
-            <th style={{ paddingRight: 10 }}>focuser buys</th>
-            <th style={{ paddingRight: 10 }}>boresight</th>
-            <th>share of variance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => {
-            const scale = scales[i];
-            const readout = result?.rows[i];
-            const unit = TARGET_UNIT[row.target];
-            return (
-              <tr key={i} style={{ borderTop: "1px solid var(--line-2)" }}>
-                <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
-                  <Choice
-                    label=""
-                    options={Array.from({ length: surfaceCount }, (_, s) => s)}
-                    value={Math.min(row.surface, lastSurface)}
-                    onChange={(surface) => setRow(i, { surface })}
-                  />
-                </td>
-                <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
-                  <Choice
-                    label=""
-                    options={TARGETS}
-                    value={row.target}
-                    onChange={(target) => setRow(i, { target })}
-                    format={(t) => TARGET_LABEL[t]}
-                  />
-                </td>
-                <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
-                  <input
-                    type="range"
-                    min={-2}
-                    max={2}
-                    step={0.02}
-                    value={row.fraction}
-                    disabled={scale?.inert !== undefined}
-                    onChange={(e) => setRow(i, { fraction: Number(e.target.value) })}
-                  />
-                  <br />
-                  {row.fraction.toFixed(2)} × budget
-                </td>
-                <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
-                  {scale?.inert ? (
-                    <span style={{ color: GUARD_COLOR.bad }}>refused</span>
-                  ) : readout ? (
-                    <>
-                      {fmt(readout.delta, 5)} {unit}
-                      {readout.radiusChangeMm !== undefined && (
-                        <>
-                          <br />
-                          <span style={{ color: "var(--ink-4)" }}>
-                            R {readout.radiusMm!.toFixed(2)} → {(readout.radiusMm! + readout.radiusChangeMm).toFixed(2)} mm
-                          </span>
-                        </>
-                      )}
-                      {row.target === "curvature" && readout.radiusChangeMm === undefined && (
-                        <>
-                          <br />
-                          <span style={{ color: "var(--ink-4)" }}>flat surface — no radius to quote</span>
-                        </>
-                      )}
-                    </>
-                  ) : (
-                    "…"
-                  )}
-                </td>
-                <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
-                  {scale?.inert ? (
-                    "—"
-                  ) : readout ? (
-                    // The compensator control decides which σ describes the
-                    // picture, so it decides which σ is the primary reading. Off,
-                    // that is the un-compensated one — printing the projected
-                    // currency large beside an un-refocused star would label the
-                    // image with a number that has the defocus removed from it.
-                    <>
-                      {fmt(result!.refocus ? readout.sigmaWaves : readout.sigmaBeforeFocusWaves, 5)}
-                      <br />
-                      <span style={{ color: "var(--ink-4)" }}>
-                        {fmt(result!.refocus ? readout.physicalRefocusWaves : readout.sigmaWaves, 5)}
-                      </span>
-                    </>
-                  ) : (
-                    "…"
-                  )}
-                </td>
-                <td style={{ paddingRight: 10 }}>
-                  {scale?.inert || !readout || readout.sigmaWaves === 0
-                    ? "—"
-                    : `${readout.focusGain.toFixed(2)}×`}
-                </td>
-                <td style={{ paddingRight: 10 }}>
-                  {readout && readout.boresightRad > 0 ? `${(readout.boresightRad * 1e6).toFixed(1)} µrad` : "—"}
-                </td>
-                <td style={{ minWidth: 170 }}>
-                  {readout && readout.varianceShare > 0 && (
-                    <>
-                      <span
-                        style={{
-                          display: "inline-block",
-                          height: 9,
-                          width: `${Math.round(readout.varianceShare * 140)}px`,
-                          background: "var(--blue)",
-                          verticalAlign: "middle",
-                          marginRight: 6,
-                        }}
-                      />
-                      {(readout.varianceShare * 100).toFixed(1)}%
-                    </>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="scroll-x">
+        <table style={{ marginTop: 14, fontSize: 11 }}>
+          <thead>
+            <tr style={{ textAlign: "left", color: "var(--ink-3)" }}>
+              <th style={{ paddingRight: 10 }}>surface</th>
+              <th style={{ paddingRight: 10 }}>parameter</th>
+              <th style={{ paddingRight: 10 }}>drift</th>
+              <th style={{ paddingRight: 10 }}>value</th>
+              <th style={{ paddingRight: 10 }}>
+                {(result?.refocus ?? refocus)
+                  ? "σ waves — projected / real focuser"
+                  : "σ waves — before the focuser / projected"}
+              </th>
+              <th style={{ paddingRight: 10 }}>focuser buys</th>
+              <th style={{ paddingRight: 10 }}>boresight</th>
+              <th>share of variance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => {
+              const scale = scales[i];
+              const readout = result?.rows[i];
+              const unit = TARGET_UNIT[row.target];
+              return (
+                <tr key={i} style={{ borderTop: "1px solid var(--line-2)" }}>
+                  <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
+                    <Choice
+                      label=""
+                      options={Array.from({ length: surfaceCount }, (_, s) => s)}
+                      value={Math.min(row.surface, lastSurface)}
+                      onChange={(surface) => setRow(i, { surface })}
+                    />
+                  </td>
+                  <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
+                    <Choice
+                      label=""
+                      options={TARGETS}
+                      value={row.target}
+                      onChange={(target) => setRow(i, { target })}
+                      format={(t) => TARGET_LABEL[t]}
+                    />
+                  </td>
+                  <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
+                    <input
+                      type="range"
+                      min={-2}
+                      max={2}
+                      step={0.02}
+                      value={row.fraction}
+                      disabled={scale?.inert !== undefined}
+                      onChange={(e) => setRow(i, { fraction: Number(e.target.value) })}
+                    />
+                    <br />
+                    {row.fraction.toFixed(2)} × budget
+                  </td>
+                  <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
+                    {scale?.inert ? (
+                      <span style={{ color: GUARD_COLOR.bad }}>refused</span>
+                    ) : readout ? (
+                      <>
+                        {fmt(readout.delta, 5)} {unit}
+                        {readout.radiusChangeMm !== undefined && (
+                          <>
+                            <br />
+                            <span style={{ color: "var(--ink-4)" }}>
+                              R {readout.radiusMm!.toFixed(2)} → {(readout.radiusMm! + readout.radiusChangeMm).toFixed(2)} mm
+                            </span>
+                          </>
+                        )}
+                        {row.target === "curvature" && readout.radiusChangeMm === undefined && (
+                          <>
+                            <br />
+                            <span style={{ color: "var(--ink-4)" }}>flat surface — no radius to quote</span>
+                          </>
+                        )}
+                      </>
+                    ) : (
+                      "…"
+                    )}
+                  </td>
+                  <td style={{ paddingRight: 10, whiteSpace: "nowrap" }}>
+                    {scale?.inert ? (
+                      "—"
+                    ) : readout ? (
+                      // The compensator control decides which σ describes the
+                      // picture, so it decides which σ is the primary reading. Off,
+                      // that is the un-compensated one — printing the projected
+                      // currency large beside an un-refocused star would label the
+                      // image with a number that has the defocus removed from it.
+                      <>
+                        {fmt(result!.refocus ? readout.sigmaWaves : readout.sigmaBeforeFocusWaves, 5)}
+                        <br />
+                        <span style={{ color: "var(--ink-4)" }}>
+                          {fmt(result!.refocus ? readout.physicalRefocusWaves : readout.sigmaWaves, 5)}
+                        </span>
+                      </>
+                    ) : (
+                      "…"
+                    )}
+                  </td>
+                  <td style={{ paddingRight: 10 }}>
+                    {scale?.inert || !readout || readout.sigmaWaves === 0
+                      ? "—"
+                      : `${readout.focusGain.toFixed(2)}×`}
+                  </td>
+                  <td style={{ paddingRight: 10 }}>
+                    {readout && readout.boresightRad > 0 ? `${(readout.boresightRad * 1e6).toFixed(1)} µrad` : "—"}
+                  </td>
+                  <td style={{ minWidth: 170 }}>
+                    {readout && readout.varianceShare > 0 && (
+                      <>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            height: 9,
+                            width: `${Math.round(readout.varianceShare * 140)}px`,
+                            background: "var(--blue)",
+                            verticalAlign: "middle",
+                            marginRight: 6,
+                          }}
+                        />
+                        {(readout.varianceShare * 100).toFixed(1)}%
+                      </>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
 
       {/* The refusals and the scaling checks, per row, under the table they belong to. */}
       <div style={{ marginTop: 6, color: "var(--ink-4)", fontSize: 11 }}>

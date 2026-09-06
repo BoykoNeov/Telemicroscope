@@ -514,7 +514,7 @@ export function MechPanel() {
       </div>
 
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 420 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 420 }}>
           <Guard
             label="does it reach focus?"
             value={readout.reaches ? "yes" : "no"}
@@ -600,14 +600,14 @@ export function MechPanel() {
         }}
       >
         {optics.result === null ? (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
             tracing the doublet twice at every focal ratio…
           </p>
         ) : (
           <>
             <div>
               <SigmaPlot sweep={optics.result} glassMm={glassMm} />
-              <div style={{ width: 420, marginTop: 6 }}>
+              <div style={{ maxWidth: 420, marginTop: 6 }}>
                 <CrossingLine
                   label="the plate alone, Rayleigh λ/4 on the peak:"
                   crossing={optics.result.plateRayleigh}
@@ -632,7 +632,7 @@ export function MechPanel() {
             </div>
             <div>
               <RatioPlot sweep={optics.result} />
-              <div style={{ width: 420, marginTop: 6 }}>
+              <div style={{ maxWidth: 420, marginTop: 6 }}>
                 <Guard
                   label="the glass does not care where it sits:"
                   value={
@@ -688,7 +688,7 @@ export function MechPanel() {
       </h2>
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
         <ColourPlot readout={colour} />
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 420 }}>
+        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 420 }}>
           {colour.curves.map((curve) =>
             curve.ok ? (
               <Guard
@@ -758,13 +758,13 @@ export function MechPanel() {
         }}
       >
         {mount.result === null ? (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
             solving an objective at every magnification…
           </p>
         ) : (
           <>
             <MountPlot sweep={mount.result} />
-            <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 420 }}>
+            <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 420 }}>
               <Guard
                 label="thin-lens floor, before any glass:"
                 value={`${mount.result.thinLensFloor.toFixed(4)}×`}

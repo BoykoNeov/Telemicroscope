@@ -87,7 +87,8 @@ function Frame({
     <figure style={{ margin: 0 }}>
       <canvas
         ref={canvas}
-        style={{ width: 240, height: 240, imageRendering: "pixelated", background: "#000" }}
+        className="raster"
+        style={{ width: 240, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption className="readout" style={{ marginTop: 6, maxWidth: 240 }}>
         {caption}

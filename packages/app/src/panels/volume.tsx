@@ -138,7 +138,8 @@ function StackCanvas({ readout, stretch }: { readout: VolumeReadout; stretch: nu
   return (
     <canvas
       ref={canvas}
-      style={{ width: 340, height: 340, imageRendering: "pixelated", background: "#000" }}
+      className="raster"
+      style={{ width: 340, imageRendering: "pixelated", background: "#000" }}
     />
   );
 }
@@ -226,14 +227,14 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
         building the focus stacks through this objective…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -270,7 +271,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           yMin={-0.05}
           yMax={Math.max(1.15, r.sweep.peakRatio * 1.08)}
         />
-        <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
+        <p className="readout-note" style={{ maxWidth: 420, marginTop: 4 }}>
           Exactly <strong>zero at every integer wave</strong> — all of the light in the rings, and
           the plane&rsquo;s total unmoved. An ideal pupil reproduces the closed form to 7.6e-3 at{" "}
           {AXIAL_PUPIL_SAMPLES} bins across the pupil and 2.0e-3 at 64, so a gap much larger than
@@ -361,7 +362,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
         <div
           className="readout-note"
           style={{
-            width: 420,
+            maxWidth: 420,
             marginTop: 4,
             lineHeight: 1.5,
           }}
@@ -500,14 +501,14 @@ function DepthPlot({ request }: { request: DepthRequest }) {
 
   if (depth === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
         bisecting the depth budget on this objective&rsquo;s own Strehl…
       </p>
     );
   }
   if (!depth.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(depth.source, "this objective")}: {depth.error}
       </p>
     );
@@ -531,7 +532,7 @@ function DepthPlot({ request }: { request: DepthRequest }) {
       <div
         className="readout-note"
         style={{
-          width: 420,
+          maxWidth: 420,
           marginTop: 4,
           lineHeight: 1.5,
         }}

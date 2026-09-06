@@ -357,8 +357,10 @@ export function StagePanel() {
   }, [progress, pan, useful, view]);
 
   // Drag to pan — the viewport's centre moves against the pointer, and the delta
-  // is divided by the display zoom because the zoom is a property of the screen
-  // and not of the picture.
+  // is divided by the display scale because the scale is a property of the
+  // screen and not of the picture. That scale is `zoom` on a wide page and less
+  // in a column narrower than the picture (`.raster`, UI-PLAN step 6), so it is
+  // read off the canvas rather than off the control.
   const drag = useRef<{ x: number; y: number } | null>(null);
   const onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
     drag.current = { x: event.clientX, y: event.clientY };
@@ -367,8 +369,9 @@ export function StagePanel() {
   const onPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     const from = drag.current;
     if (!from) return;
-    const dx = Math.round((event.clientX - from.x) / zoom);
-    const dy = Math.round((event.clientY - from.y) / zoom);
+    const scale = event.currentTarget.getBoundingClientRect().width / view;
+    const dx = Math.round((event.clientX - from.x) / scale);
+    const dy = Math.round((event.clientY - from.y) / scale);
     if (dx === 0 && dy === 0) return;
     drag.current = { x: event.clientX, y: event.clientY };
     setPan((p) => ({ x: p.x - dx, y: p.y - dy }));
@@ -472,9 +475,9 @@ export function StagePanel() {
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerUp}
+            className="raster"
             style={{
               width: view * zoom,
-              height: view * zoom,
               imageRendering: "pixelated",
               background: "var(--ink)",
               cursor: drag.current ? "grabbing" : "grab",

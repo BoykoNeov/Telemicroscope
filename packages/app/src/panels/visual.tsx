@@ -113,7 +113,8 @@ function RetinaCanvas({ request }: { request: RetinaRequest }) {
     <figure style={{ margin: 0, opacity: pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}>
       <canvas
         ref={canvas}
-        style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
+        className="raster"
+        style={{ width: 320, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption className="readout" style={{ marginTop: 6 }}>
         {image ? (

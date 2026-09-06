@@ -1,4 +1,4 @@
-import { memo, useEffect, useRef } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { resolveColor, useThemeVersion } from "./theme";
 
 /**
@@ -48,6 +48,8 @@ export interface PlotProps {
 }
 
 const PAD = { left: 46, right: 12, top: 12, bottom: 34 };
+/** Narrower than this and the tick labels collide; below it the canvas scales instead. */
+const MIN_WIDTH = 280;
 
 /** 1, 2, 2.5 or 5 × 10ⁿ — the step a reader can do arithmetic on. */
 function niceStep(span: number, target: number): number {
@@ -70,8 +72,33 @@ function ticks(min: number, max: number, target = 5): number[] {
 
 function PlotCanvas(props: PlotProps) {
   const canvas = useRef<HTMLCanvasElement>(null);
-  const width = props.width ?? 420;
+  const requested = props.width ?? 420;
   const height = props.height ?? 280;
+  // The requested width is a ceiling — UI-PLAN step 6. The canvas takes the
+  // column (`width: 100%`) up to that ceiling (`maxWidth: requested`), so what
+  // it actually gets is read back off the element and the plot is drawn at THAT
+  // size rather than scaled into it. Clamped at `MIN_WIDTH` so a very narrow
+  // column scales the picture instead of making the axes unreadable. The
+  // percentage is on `width`, not `maxWidth`: a replaced element's percentage
+  // WIDTH contributes nothing to its container's minimum size, but a percentage
+  // max-width over a fixed width is honoured in a direct flex item and ignored
+  // one nesting deeper (Chrome, `panels/volume.tsx`'s rows), where the fixed
+  // width became the floor and the page scrolled sideways.
+  const [available, setAvailable] = useState(requested);
+  useLayoutEffect(() => {
+    const element = canvas.current;
+    if (!element) return;
+    const measure = () => {
+      const w = element.getBoundingClientRect().width;
+      if (w > 0) setAvailable(w);
+    };
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const width = Math.max(MIN_WIDTH, Math.min(requested, Math.floor(available)));
   // A canvas cannot read a CSS variable, so the theme is a dependency of the
   // draw: switching palettes redraws the axes in the new greys (see `theme.ts`).
   const theme = useThemeVersion();
@@ -191,10 +218,14 @@ function PlotCanvas(props: PlotProps) {
 
   return (
     <figure style={{ margin: 0 }}>
-      <canvas ref={canvas} style={{ width, height }} />
+      <canvas ref={canvas} style={{ width: "100%", maxWidth: requested, height }} />
       <figcaption style={{ fontFamily: "var(--mono)", fontSize: 11, lineHeight: 1.7 }}>
+        {/* Each entry is an inline-block, not a nowrap span: it still moves to the
+            next line as a unit when it fits there, but a label longer than the
+            column wraps inside itself instead of holding the figure open (a nowrap
+            label is a hard floor under the width the canvas can shrink to). */}
         {props.series.map((s) => (
-          <span key={s.label} style={{ marginRight: 12, whiteSpace: "nowrap" }}>
+          <span key={s.label} style={{ marginRight: 12, display: "inline-block" }}>
             <span
               style={{
                 display: "inline-block",

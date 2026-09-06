@@ -320,6 +320,21 @@ figcaption {
   max-width: 100%;
 }
 
+/*
+ * A picture canvas is drawn at a fixed CSS size — 320 px is the house size —
+ * and that size is a ceiling, not a rule: in a column narrower than the
+ * picture it shrinks to the column and stays square, so a narrow window
+ * scrolls down and never sideways (UI-PLAN step 6). The site keeps its own
+ * `width`; this supplies the two things every site said the same way and the
+ * one it never said. `aspect-ratio` rather than the bitmap's own ratio because
+ * an unpainted canvas is 300 × 150 and would reserve half the height.
+ */
+.raster {
+  max-width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+}
+
 /* -------------------------------------------------------------- readouts */
 
 /*

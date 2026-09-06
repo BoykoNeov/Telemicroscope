@@ -122,9 +122,9 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
     >
       <canvas
         ref={canvas}
+        className="raster"
         style={{
           width: 360,
-          height: 360,
           imageRendering: "pixelated",
           background: "#000",
           display: result?.ok === false ? "none" : "block",
@@ -220,14 +220,14 @@ function CutoffPlot({
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
         bisecting the cutoff…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", width: 420 }}>
+      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -269,7 +269,7 @@ function CutoffPlot({
         yMin={0.9}
         yMax={2.1}
       />
-      <p className="readout-note" style={{ width: 420, marginTop: 4 }}>
+      <p className="readout-note" style={{ maxWidth: 420, marginTop: 4 }}>
         worst |measured − lattice| = {sweep.sweep.worstResidual.toExponential(1)} over{" "}
         {p.length} points · {sweep.sweep.elapsedMs.toFixed(0)} ms. Where the two markers cross the
         curve is where the grating appears in the picture.

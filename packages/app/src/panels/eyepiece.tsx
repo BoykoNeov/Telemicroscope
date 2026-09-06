@@ -569,7 +569,7 @@ export function EyepiecePanel() {
         }}
       >
         {sweep.result === null || sweep.result.points.length === 0 ? (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", width: 420 }}>
+          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
             solving {SWEEP_POINTS} eyepieces…
           </p>
         ) : (
@@ -584,7 +584,7 @@ export function EyepiecePanel() {
               <p
                 className="readout-note"
                 style={{
-                  width: 420,
+                  maxWidth: 420,
                   marginTop: 4,
                 }}
               >
@@ -600,7 +600,7 @@ export function EyepiecePanel() {
               <p
                 className="readout-note"
                 style={{
-                  width: 420,
+                  maxWidth: 420,
                   marginTop: 4,
                 }}
               >
@@ -629,7 +629,7 @@ export function EyepiecePanel() {
             <p
               className="readout-note"
               style={{
-                width: 420,
+                maxWidth: 420,
                 marginTop: 4,
               }}
             >
@@ -649,7 +649,7 @@ export function EyepiecePanel() {
             <p
               className="readout-note"
               style={{
-                width: 420,
+                maxWidth: 420,
                 marginTop: 4,
               }}
             >

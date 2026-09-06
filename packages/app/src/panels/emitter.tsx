@@ -92,7 +92,8 @@ function EmitterCanvas({
     <figure style={{ margin: 0 }}>
       <canvas
         ref={canvas}
-        style={{ width: 320, height: 320, imageRendering: "pixelated", background: "#000" }}
+        className="raster"
+        style={{ width: 320, imageRendering: "pixelated", background: "#000" }}
       />
       <figcaption className="readout" style={{ maxWidth: 320 }}>
         {caption}

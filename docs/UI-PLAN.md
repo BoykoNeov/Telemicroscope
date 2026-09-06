@@ -702,7 +702,7 @@ sites remain, in 29 files, and step 10 below is what to do about them. 5a named
 this family and deferred it; closing step 5 is the moment that stops being a
 note inside a landed sub-step and becomes a step of its own.
 
-## Step 6 — canvases that fit the viewport
+## Step 6 — canvases that fit the viewport ✅ 2026-09-06
 
 **Why.** Every picture is a fixed CSS size (`width: 320, height: 320`), so on a
 narrow window the page scrolls sideways.
@@ -718,6 +718,86 @@ rather than the constant.
 **Check.** Resize the window to 600 px wide: no horizontal scrollbar on the
 page (tables inside `.scroll-x` / `overflowX: auto` may scroll on their own).
 The star-field hotspots still sit on the stars.
+
+**What landed.** One class, `.raster` in `styles.css` (`max-width: 100%;
+height: auto; aspect-ratio: 1`), on the 17 picture canvases across 14 panels
+plus `panels/sky.tsx`'s placeholder box; each site keeps its own `width` and
+drops the `height` it was repeating. `Plot` reads its own CSS width back through
+a `ResizeObserver` and draws at that width, clamped to `[280, requested]`.
+`panels/telescope.tsx`'s field canvas does the same for the hotspot scale, so
+the overlay follows the canvas instead of a constant. `panels/tolerance.tsx`'s
+drift table, the one table wider than 600 px, went inside a `.scroll-x`.
+
+**Three floors the plan did not predict, all found by measuring.** Each is a
+place where the column *could not* shrink, and each is a CSS intrinsic-sizing
+rule rather than a typo:
+
+1. **A fixed-width text note beside a plot** — `<p style={{ width: 420 }}>`,
+   36 sites in seven panels (`brightfield`, `phase`, `fluorescence`,
+   `coverslip`, `eyepiece`, `volume`, `mech`). A block's `width` is its
+   min-content, so the note held its flex item at 420 and the plot beside it
+   never got the chance to shrink. Every one is now `maxWidth: 420`, which
+   renders identically in a wide column (the notes are longer than 420 px of
+   text, so the box was 420 either way) and lets a narrow one wrap.
+2. **A `div` wearing `.raster`** — `sky.tsx`'s pre-first-frame placeholder and
+   `telescope.tsx`'s hotspot wrapper. A percentage `max-width` shrinks a
+   *replaced* element's minimum size but not a block's, so both take
+   `width: min(Npx, 100%)` instead, which is what the plan's *Change* line
+   said and the reason it said it.
+3. **`Plot`'s own canvas, one nesting deeper.** `width: 420; max-width: 100%`
+   shrank in every panel where the figure is a direct flex item, and did not
+   shrink in `volume.tsx`, whose rows sit one flex box further down — there
+   Chrome took the fixed width as the floor and the page scrolled. The canvas
+   is now `width: 100%; max-width: 420px`: a replaced element's percentage
+   *width* contributes nothing to a minimum, and the absolute `max-width`
+   keeps the wide-column size exactly what it was. The legend entries under it
+   were `white-space: nowrap` spans, which is a second floor of the same kind
+   (a long series label is a fixed width); they are `inline-block` now, so an
+   entry still moves to the next line whole but wraps inside itself when it is
+   wider than the column.
+
+**The check, run three times, against a production build.** Driver at
+`M:\claud_projects\temp\step6-verify\drive.mjs` (a headless Chrome of its own
+against `vite preview` of the tree, `preview.mjs` beside it; `probe.mjs` is the
+one-route DOM probe that found each floor). Every one of the 31 routes at
+600 px and again at 400 px, reading `scrollWidth > clientWidth` on the document
+and listing any element past the viewport that is not inside its own scroller;
+then `#/telescope` at 1280, 600 and 400 px, mapping each hotspot's centre into
+the canvas bitmap and reading the brightest pixel in a 7×7 window there.
+
+- **600 px: 31 of 31 routes, no horizontal overflow.** That is the plan's
+  number, and the first run had one failure at it — `tolerance`'s table — which
+  is the `.scroll-x` above.
+- **400 px: every canvas fits.** 25 routes clean. The five that still overflow
+  are not canvases: four tables with no `.scroll-x` (`reflector`, `editor`,
+  `telecentric`, `design`) and `optimize`'s fixed-width result rows. They are
+  below the plan's width and outside this step's subject, and are left as the
+  next thing to do if 400 px ever becomes a target.
+- **Hotspots: 25 of 25 on a star at all three widths**, peak 255 under every
+  hotspot against a frame median of 0 and a control window 40 bitmap px to the
+  side reading ≤ 33. At 400 px the field canvas is 357 px, not 420, so the
+  scaled case is the one being exercised, not the constant.
+
+The first sweep ran against a stale build the previous session had left
+serving on 5187 (a `preview` server reads its `dist` from disk, so a rebuild is
+picked up without a restart — but only after the rebuild). Trust a sweep only
+after the served `index-*.js` hash matches the one `vite build` just printed.
+
+`npm test`, the same sentence as 5c's. The full run: 3796 of 3805 pass, nine
+fail, all nine in `packages/core`, which imports nothing from `packages/app`
+and renders no canvas. Eight are the 180 s budget (§ 6bo.2, § 6l.4, § 6b.5.4,
+§ 6bm.1, § 6bk.1 twice, § 6bl.1, § 6bl.2) and one is `mtf-share`'s § 1.8.15
+wall-time split at 0.609 against its 0.55 bound — a ratio of two durations,
+which load moves and a `className` cannot. Re-run per `vitest.config.ts`'s own
+instruction, the seven files alone at `TELEMICROSCOPE_TEST_PRIORITY=normal`:
+165 of 165 pass in 215 s. That run still printed five `Timeout calling
+"onTaskUpdate"` errors, the worker-side stall `vitest.setup.ts` describes, with
+no test attached to any of them.
+
+**What this step does not change.** `imageRendering: pixelated` and every
+site's own `width` stay; no pixel moves in a column wider than the picture.
+Plot heights are still fixed (280), so a shrunk plot is shorter in aspect, not
+scaled — the axes are redrawn at the real width rather than squeezed.
 
 ## Step 7 — prefetch the neighbouring routes
 
