@@ -273,7 +273,89 @@ module-level typed array in the adapter) must NOT transfer it — a transferred
 buffer is detached and the next job would write into nothing. `stage.worker.ts`
 keeps a tile cache on the panel side; check `stage.ts` before touching it.
 
-## Step 3 — an error boundary around the panel
+## Step 3 — an error boundary around the panel ✅
+
+**Landed 2026-09-06.** `packages/app/src/panels/boundary.tsx`, wrapped around
+the `Suspense` in `App.tsx` and keyed on the route.
+
+**The step's own check cannot fail.** "Confirm the nav survives" is satisfied by
+a boundary that catches and latches forever — the nav is *there*, and every
+link in it does nothing, because the boundary goes on rendering the old message
+for whatever route resolves next. That is a worse failure than the blank page it
+replaces: a blank page reads as a crash, a dead nav reads as the app. So the
+check that discriminates is the *second* click: throw, then click a **different**
+panel and confirm that panel actually paints.
+
+Which it does, because the boundary sits inside the keyed wrapper and carries the
+same key itself. `routeKey` is now one named expression used twice, since the
+fade wrapper and the boundary have to reset on exactly the same event and two
+copies of a template literal is how they would stop doing so.
+
+**What it catches, which is narrower than "a panel that throws".** React's
+boundaries see render and the lifecycle beneath them. That is the panel's own
+render, and a `lazy()` chunk that rejects. It does **not** see a throw inside a
+worker's `onmessage`, inside a `.then`, or inside an event handler — and the
+physics of every panel here runs in a worker whose reply lands in a callback, so
+most of the code in `packages/app` is outside this net. Nothing regressed there
+(an unhandled rejection was never blanking the page), but nothing was gained
+either. A throw in `App`'s own render — hash resolution, the registry, the nav
+— is above the boundary and still takes the page.
+
+**Measured in a headless Chrome**, because `npm test` renders no React at all.
+A temporary `throw` behind a `?boom=1` query in `spot.tsx` for the render case,
+and CDP `Network.setBlockedURLs` for the download case. Read off the live DOM —
+nav links present, and what the panel slot holds.
+
+Say exactly what the second half measured, because step 4 changes it: this ran
+against the **dev server**, where a panel is an individually served ES module
+(`/src/panels/telecentric.tsx`), so what was blocked is that URL and not a built
+chunk. A production `dist/` chunk fails through the same path — a rejected
+dynamic import, re-thrown by `Suspense` — with a different URL in the message.
+That is the mechanism, not a second observation.
+
+| what was done | nav links | panel slot |
+| --- | --- | --- |
+| `#/spot?boom=1`, panel throws in render | 31 | the boundary's message |
+| clicked nav → `#/rayfan` (no reload) | 31 | the ray fan, 7 controls, 2 canvases |
+| clicked nav → `#/spot`, no query | 31 | the spot diagram, 8 controls, 21 canvases |
+| `#/telecentric`, its module blocked | 31 | *"Failed to fetch dynamically imported module"* |
+| unblocked, clicked away and back | 31 | **still the error** |
+| unblocked, full reload | 31 | the telecentric stop, 10 controls, 1 canvas |
+
+**The counterfactual was run, not assumed.** With the `<PanelBoundary>` wrapper
+deleted from `App.tsx` and nothing else changed, the same `?boom=1` route reports
+**0 nav links** and the document's static `<title>` — React 18 unmounted the
+whole tree, which is the failure this step exists to remove. A check that only
+ever asserts the good state cannot tell a working boundary from an app that
+never threw.
+
+**One finding the step did not anticipate, and it is now in the UI text.** React
+18's `lazy` caches the *rejection*: remounting the component re-throws the same
+error rather than re-attempting the import. Rows five and six above are that —
+unblocking the URL and clicking back still shows the error, and only a document
+reload recovers. So the boundary's second line tells the reader to reload if the
+panel could not be downloaded, which is a fact about React rather than a hedge.
+
+**Two departures from the step as written.** The colour is a `.panel-error` class
+in `styles.css`, not an inline style — step 5 is about deleting inline style
+objects and this step should not add one. And the state is a boxed
+`{ cause } | null` rather than the thrown value: `throw` takes `null`, and a
+panel that threw it would render its children, throw again, and loop.
+
+**What the repo keeps.** `packages/app/test/boundary.test.ts` pins the wiring by
+reading `App.tsx`, for the same reason `transfer.test.ts` does: deleting the
+wrapper compiles, typechecks, passes every other test in that directory, and
+paints all thirty-one panels — the only symptom is a white page on the day
+something throws. It pins that the boundary opens before the `Suspense`, and that
+both it and the fade wrapper are keyed on `routeKey`. It also pins `errorMessage`
+against the values `throw` can carry, since a boundary that prints `undefined`
+where the explanation goes is a second failure on top of the first. It cannot
+render anything, and does not pretend to.
+
+**Left as it is, on purpose:** `shell-blurb` sits above the boundary, so a panel
+that threw still has its one-line description over the error. That reads as the
+header naming where you are rather than as a stale claim, and moving it inside
+would put the route's name inside the thing that failed.
 
 **Why.** A panel that throws during render blanks the whole page, nav
 included, and the only way back is editing the URL. With lazy routes there is

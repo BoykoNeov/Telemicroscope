@@ -434,6 +434,32 @@ figcaption {
   padding: 24px 0;
 }
 
+/*
+ * What the error boundary shows in place of a panel that threw. Deliberately
+ * the `panel-loading` shape — same mono, same size, same top padding — because
+ * it stands in the same slot and a reader should recognise it as "the panel
+ * area is saying something", not as a new kind of surface. The colour is what
+ * differs, and it is `--bad` for the reason the tokens exist: the red already
+ * means "the engine says do not trust this" everywhere else.
+ */
+.panel-error {
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 24px 0;
+  max-width: 640px;
+}
+
+.panel-error-line {
+  margin: 0;
+  color: var(--bad);
+}
+
+.panel-error-note {
+  margin: 8px 0 0;
+  color: var(--ink-4);
+  line-height: 1.5;
+}
+
 .panel-fade {
   animation: panel-fade-in 140ms ease-out;
 }
