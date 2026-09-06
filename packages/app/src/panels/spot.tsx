@@ -196,7 +196,7 @@ export function SpotPanel() {
       </div>
 
       <div style={{ overflowX: "auto" }}>
-        <table style={{ borderCollapse: "collapse", fontFamily: "var(--mono)", fontSize: 11 }}>
+        <table style={{ fontSize: 11 }}>
           <thead>
             <tr>
               <th />

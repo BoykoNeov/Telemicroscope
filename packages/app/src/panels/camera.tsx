@@ -661,7 +661,7 @@ export function CameraPanel() {
           <button
             disabled={noiseSeed === undefined}
             onClick={() => setNoiseSeed((s) => (s === undefined ? 1 : s + 1))}
-            style={{ fontFamily: "var(--mono)", fontSize: 12, padding: "2px 8px", cursor: "pointer" }}
+            style={{ padding: "2px 8px", cursor: "pointer" }}
           >
             another exposure {noiseSeed === undefined ? "" : `(seed ${noiseSeed})`}
           </button>
@@ -700,8 +700,6 @@ export function CameraPanel() {
             if (target !== undefined) setPitchUm(Number((target * 1000).toFixed(2)));
           }}
           style={{
-            fontFamily: "var(--mono)",
-            fontSize: 12,
             margin: "6px 0",
             padding: "3px 10px",
             border: "1px solid var(--ink)",
@@ -712,9 +710,7 @@ export function CameraPanel() {
           snap the pitch to critical at 550 nm →{" "}
           {((criticalPitchAt(geometry.rows, 550) ?? 0) * 1000).toFixed(2)} µm
         </button>
-        <table
-          style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse", marginTop: 8 }}
-        >
+        <table style={{ marginTop: 8 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
               <th style={{ padding: "4px 12px 4px 0" }}>λ (nm)</th>
@@ -781,9 +777,7 @@ export function CameraPanel() {
           Zero at the blue end is the normalization, not a measurement — the shape after it is the
           lens.
         </p>
-        <table
-          style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse", marginTop: 4 }}
-        >
+        <table style={{ marginTop: 4 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
               <th style={{ padding: "4px 12px 4px 0" }}>optic</th>
@@ -877,9 +871,7 @@ export function CameraPanel() {
             from the paraxial focal plane
           </div>
         </div>
-        <table
-          style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse", marginTop: 8 }}
-        >
+        <table style={{ marginTop: 8 }}>
           <thead>
             <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
               <th style={{ padding: "4px 12px 4px 0" }}>format</th>

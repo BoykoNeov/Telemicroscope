@@ -113,7 +113,7 @@ function EmitterCanvas({
 function ErrorRows({ readout }: { readout: EmitterReadout }) {
   const clipped = readout.reachUm > readout.frameHalfUm;
   return (
-    <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+    <table>
       <thead>
         <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
           <th style={{ padding: "3px 14px 3px 0" }}>departure</th>

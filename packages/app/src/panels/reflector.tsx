@@ -70,7 +70,7 @@ function ReflectorTable({
   onSelect: (kind: ReflectorKind) => void;
 }) {
   return (
-    <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+    <table>
       <thead>
         <tr style={{ textAlign: "left", borderBottom: "1px solid var(--line)" }}>
           <th style={{ padding: "4px 10px 4px 0" }}>design</th>

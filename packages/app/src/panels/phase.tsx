@@ -246,7 +246,7 @@ function HarmonicTable({
   defocusWaves: number;
 }) {
   return (
-    <table style={{ borderCollapse: "collapse", fontFamily: "var(--mono)", fontSize: 11 }}>
+    <table style={{ fontSize: 11 }}>
       <thead>
         <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
           <th style={{ paddingRight: 8, fontWeight: "normal" }}>h</th>

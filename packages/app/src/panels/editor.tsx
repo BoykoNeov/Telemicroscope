@@ -68,7 +68,6 @@ function Tiny(props: { onClick: () => void; title: string; children: React.React
       title={props.title}
       disabled={props.disabled}
       style={{
-        ...mono,
         width: 22,
         padding: "1px 0",
         border: "1px solid var(--line)",
@@ -193,7 +192,6 @@ export function EditorPanel() {
                 setSeedId(s.id);
               }}
               style={{
-                ...mono,
                 fontSize: 11,
                 padding: "2px 6px",
                 border: s.id === seedId ? "1px solid var(--ink)" : "1px solid var(--line)",
@@ -209,7 +207,7 @@ export function EditorPanel() {
       </Fieldset>
 
       <div style={{ overflowX: "auto", marginBottom: 12 }}>
-        <table style={{ ...mono, borderCollapse: "collapse" }}>
+        <table>
           <thead>
             <tr>
               <th style={{ ...head, textAlign: "left" }}>#</th>
@@ -232,7 +230,6 @@ export function EditorPanel() {
                   <button
                     onClick={() => setSurface(i, { kind: s.kind === "refract" ? "reflect" : "refract" })}
                     style={{
-                      ...mono,
                       padding: "2px 6px",
                       border: "1px solid var(--line)",
                       background: s.kind === "reflect" ? "var(--ink)" : "var(--bg)",
@@ -272,7 +269,7 @@ export function EditorPanel() {
                     value={s.medium}
                     disabled={s.kind === "reflect"}
                     onChange={(e) => setSurface(i, { medium: e.target.value })}
-                    style={{ ...mono, opacity: s.kind === "reflect" ? 0.35 : 1 }}
+                    style={{ opacity: s.kind === "reflect" ? 0.35 : 1 }}
                   >
                     {CATALOG_MEDIA.map((m) => (
                       <option key={m} value={m}>
@@ -334,7 +331,6 @@ export function EditorPanel() {
           <select
             value={draft.objectMedium}
             onChange={(e) => setDraft((d) => ({ ...d, objectMedium: e.target.value }))}
-            style={mono}
           >
             {CATALOG_MEDIA.map((m) => (
               <option key={m} value={m}>
@@ -402,7 +398,6 @@ export function EditorPanel() {
           disabled={!solvable}
           title={solvable ? "" : "there is no paraxial focus to solve to — see the refusal below"}
           style={{
-            ...mono,
             fontSize: 13,
             padding: "6px 16px",
             border: "1px solid var(--ink)",
@@ -415,7 +410,7 @@ export function EditorPanel() {
         </button>
         <button
           onClick={() => setDraft(seed.draft)}
-          style={{ ...mono, fontSize: 13, padding: "6px 16px", border: "1px solid var(--line)", background: "var(--bg)", cursor: "pointer" }}
+          style={{ fontSize: 13, padding: "6px 16px", border: "1px solid var(--line)", background: "var(--bg)", cursor: "pointer" }}
         >
           reset to {seed.label}
         </button>
@@ -456,7 +451,7 @@ export function EditorPanel() {
           <SectionRefusal section={result.paraxial} />
           {result.paraxial.ok && (
             <>
-              <table style={{ ...mono, borderCollapse: "collapse", marginBottom: 8 }}>
+              <table style={{ marginBottom: 8 }}>
                 <thead>
                   <tr>
                     <th style={{ ...head, textAlign: "left" }}>line</th>
@@ -556,7 +551,7 @@ export function EditorPanel() {
           <SectionRefusal section={result.exact} />
           {result.exact.ok && (
             <>
-              <table style={{ ...mono, borderCollapse: "collapse", marginBottom: 8 }}>
+              <table style={{ marginBottom: 8 }}>
                 <thead>
                   <tr>
                     <th style={{ ...head, textAlign: "left" }}>field</th>
@@ -616,7 +611,7 @@ export function EditorPanel() {
           <SectionRefusal section={result.order} />
           {result.order.ok && (
             <>
-              <table style={{ ...mono, borderCollapse: "collapse", marginBottom: 8 }}>
+              <table style={{ marginBottom: 8 }}>
                 <thead>
                   <tr>
                     <th style={{ ...head, textAlign: "left" }}>stop</th>

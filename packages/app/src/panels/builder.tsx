@@ -272,7 +272,6 @@ export function BuilderPanel() {
                 setSubmitted(e.spec);
               }}
               style={{
-                fontFamily: "var(--mono)",
                 fontSize: 11,
                 padding: "2px 6px",
                 border: "1px solid var(--line)",
@@ -487,7 +486,6 @@ export function BuilderPanel() {
           onClick={() => setSubmitted(spec)}
           disabled={!dirty}
           style={{
-            fontFamily: "var(--mono)",
             fontSize: 13,
             padding: "6px 16px",
             border: "1px solid var(--ink)",
@@ -518,7 +516,6 @@ export function BuilderPanel() {
           // would put a refusal on every picture panel a reader then opened.
           disabled={!result?.ok}
           style={{
-            fontFamily: "var(--mono)",
             fontSize: 13,
             padding: "6px 16px",
             border: "1px solid var(--ink)",
@@ -536,8 +533,6 @@ export function BuilderPanel() {
               setSaved(null);
             }}
             style={{
-              fontFamily: "var(--mono)",
-              fontSize: 12,
               padding: "6px 12px",
               border: "1px solid var(--line)",
               background: "var(--bg)",

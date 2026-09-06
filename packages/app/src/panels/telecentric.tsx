@@ -266,7 +266,7 @@ export function TelecentricPanel() {
               lens.
             </p>
           )}
-          <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+          <table>
             <thead>
               <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
                 <th style={{ padding: "2px 16px 2px 0" }}>wavelength (nm)</th>
@@ -397,7 +397,7 @@ export function TelecentricPanel() {
         crossings column is what the lens actually does, and the two are not the same number on the
         last row.
       </p>
-      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+      <table>
         <thead>
           <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
             <th style={{ padding: "2px 16px 2px 0" }}>tail</th>

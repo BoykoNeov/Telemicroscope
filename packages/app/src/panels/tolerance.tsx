@@ -376,8 +376,6 @@ export function TolerancePanel() {
             key={name}
             onClick={() => setRows(preset)}
             style={{
-              fontFamily: "var(--mono)",
-              fontSize: 12,
               marginRight: 4,
               padding: "2px 8px",
               border: "1px solid var(--line)",
@@ -415,7 +413,7 @@ export function TolerancePanel() {
         </div>
       )}
 
-      <table style={{ marginTop: 14, borderCollapse: "collapse", fontSize: 11 }}>
+      <table style={{ marginTop: 14, fontSize: 11 }}>
         <thead>
           <tr style={{ textAlign: "left", color: "var(--ink-3)" }}>
             <th style={{ paddingRight: 10 }}>surface</th>

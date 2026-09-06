@@ -406,7 +406,7 @@ export function DesignPanel() {
         the power becomes a parabola with a vertex, so there is a shortest achievable focal length
         and two ways to reach anything longer.
       </p>
-      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+      <table>
         <thead>
           <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
             <th style={CELL}>root</th>
@@ -483,7 +483,7 @@ export function DesignPanel() {
         measured rather than claimed.
       </p>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+        <table>
           <thead>
             <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
               <th style={CELL}>line</th>

@@ -481,10 +481,11 @@ class to fit the majority would be choosing their leading by accident instead of
 on purpose. Leave them inline. Deciding what those should be is a step of its
 own, not a thing a panel commit gets to improvise.
 
-### 5b — the inline styles the stylesheet already says
+### 5b — the inline styles the stylesheet already says ✓ 2026-09-06
 
-`ui.tsx`'s share of this landed with 5a; the panel files are a commit of their
-own. Found while doing 5a, and a different mechanism from the rest of step 5: some
+`ui.tsx`'s share landed with 5a; the 14 panel files followed in one commit — 75
+properties, none of them replaced by anything. Found while doing 5a, and a
+different mechanism from the rest of step 5: some
 inline objects restate, property for property, what a base element rule in
 `styles.css` already sets. Those are **deleted**, not classed — the cascade is
 already the shared definition, and adding a `className` beside it would be a
@@ -521,6 +522,14 @@ change the cursor on a disabled one. So the rule for 5b is not "delete what the
 base rule already says" but the narrower "delete what the base rule already says
 **and no state rule ever overrides**" — which, in this stylesheet, is the font
 properties and `border-collapse`, and nothing else.
+
+**Two things the script could not do, done by hand.** `editor.tsx`'s second
+`<select>` carries `style={mono}` — a reference, not a `{{ }}` literal, so the
+parser skips it; `select` is mono/12px in the stylesheet and `mono` is exactly
+those two, so the attribute goes. The `<label>` wrapping it keeps its copy,
+because the `label` rule sets only a colour. And four tags in `camera.tsx` and
+`budget.tsx` were wrapped across lines only because their style object used to
+be long; with three properties gone they read better as one line again.
 
 **Check for 5a and 5b — and why it is not a screenshot.** The plan's check as
 written cannot be run: every panel prints its own elapsed trace time, so two

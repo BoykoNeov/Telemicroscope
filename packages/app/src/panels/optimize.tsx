@@ -389,7 +389,7 @@ export function OptimizePanel() {
               />
             )}
           </div>
-          <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+          <table>
             <thead>
               <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
                 <th style={CELL}>freed</th>
@@ -481,7 +481,7 @@ export function OptimizePanel() {
             recomputed here rather than quoted, so they cannot drift apart: the same target, the same
             lens, one freedom against two.
           </p>
-          <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+          <table>
             <thead>
               <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
                 <th style={CELL}>solve</th>
@@ -600,7 +600,7 @@ export function OptimizePanel() {
       </div>
 
       <h2 style={{ fontSize: 16, marginTop: 24 }}>The lens this answer names</h2>
-      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+      <table>
         <thead>
           <tr style={{ color: "var(--ink-4)", textAlign: "left" }}>
             <th style={CELL}>line</th>

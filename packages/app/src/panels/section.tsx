@@ -126,7 +126,7 @@ function ColourFrame({
 /** The per-wavelength table — § 6r.7 is a statement about a plane, not a frame. */
 function PlaneTable({ readout }: { readout: SectionReadout }) {
   return (
-    <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+    <table>
       <thead>
         <tr style={{ borderBottom: "1px solid var(--line)", textAlign: "left" }}>
           <th style={{ padding: "2px 10px 2px 0" }}>λ (nm)</th>

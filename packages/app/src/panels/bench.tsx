@@ -55,7 +55,7 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <table style={{ fontFamily: "var(--mono)", fontSize: 12, borderCollapse: "collapse" }}>
+      <table>
         <thead>
           <tr>
             <th style={{ ...head, textAlign: "left" }}>objective</th>

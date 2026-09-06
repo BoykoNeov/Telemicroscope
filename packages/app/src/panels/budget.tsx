@@ -286,14 +286,7 @@ export function BudgetPanel() {
 
       {sheet !== null && (
         <Fieldset title="the sheet">
-          <table
-            style={{
-              fontFamily: "var(--mono)",
-              fontSize: 12,
-              borderCollapse: "collapse",
-              lineHeight: 1.6,
-            }}
-          >
+          <table style={{ lineHeight: 1.6 }}>
             <thead>
               <tr style={{ color: "var(--ink-5)", textAlign: "right" }}>
                 <th style={{ textAlign: "left", paddingRight: 16 }}>row</th>
