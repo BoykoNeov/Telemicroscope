@@ -101,6 +101,36 @@ describe("the design tokens", () => {
   });
 });
 
+/**
+ * The theme control (UI-PLAN step 8) is three buttons, one per state, with
+ * `aria-pressed` on the current one — not a button that cycles. `npm test`
+ * renders no React, so this pins the source: the three choices in reading
+ * order, the pressed attribute computed from the choice, each click setting its
+ * own state, and no cycling helper left for a later hand to wire back in.
+ */
+describe("the theme control", () => {
+  const app = readFileSync(join(SRC, "App.tsx"), "utf8");
+  const theme = readFileSync(join(SRC, "theme.ts"), "utf8");
+
+  it("offers the three states, auto first, each setting itself", () => {
+    const choices = [...app.matchAll(/\{ choice: "(\w+)", label: "(\w+)"/g)].map((m) => [m[1], m[2]]);
+    expect(choices).toEqual([
+      ["system", "auto"],
+      ["light", "light"],
+      ["dark", "dark"],
+    ]);
+    expect(app).toContain('aria-pressed={option.choice === choice}');
+    expect(app).toContain("onClick={() => setThemeChoice(option.choice)}");
+    expect(theme).not.toContain("cycleTheme");
+  });
+
+  it("is styled as the nav links are, pressed and hovered", () => {
+    expect(css).toContain('.nav-link[aria-pressed="true"]');
+    expect(css).toContain('button.nav-link[aria-pressed="true"]:hover');
+    expect(css).not.toContain(".theme-toggle");
+  });
+});
+
 describe("the nav groups", () => {
   it("cover every panel, and every group has at least one panel", () => {
     const ids = new Set(PANEL_GROUPS.map((g) => g.id));

@@ -63,11 +63,6 @@ export function resolvedTheme(): "light" | "dark" {
     : "light";
 }
 
-/** The next state on the toggle: system → dark → light → system. */
-export function cycleTheme(): void {
-  setThemeChoice(choice === "system" ? "dark" : choice === "dark" ? "light" : "system");
-}
-
 // Stamp the stored choice before the first paint, and follow the OS while the
 // choice is "system" — a canvas drawn in light greys on a page that just went
 // dark is a plot nobody can read.

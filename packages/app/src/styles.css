@@ -18,7 +18,7 @@
  * black canvas in both themes: it is an image plane, not UI.
  *
  * Three theme states: system (nothing on `<html>`), or an explicit
- * `data-theme="light"|"dark"` set by the header toggle (`theme.ts`).
+ * `data-theme="light"|"dark"` set by the header's theme control (`theme.ts`).
  */
 
 :root {
@@ -457,7 +457,8 @@ figcaption {
   color: var(--ink);
 }
 
-.nav-link[aria-current="page"] {
+.nav-link[aria-current="page"],
+.nav-link[aria-pressed="true"] {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--bg);
@@ -470,12 +471,33 @@ figcaption {
   margin: 0 0 4px;
 }
 
-.theme-toggle {
-  font-family: var(--mono);
-  font-size: 11px;
-  padding: 2px 8px;
-  color: var(--ink-3);
-  border-radius: 999px;
+/*
+ * The theme control: three buttons in the nav-link shape, because they are the
+ * same kind of thing — one of a small set of states, the current one inverted.
+ * `aria-pressed` is to a button what `aria-current` is to a link, so the two
+ * share the inverted rule above. The `button.nav-link` rules exist because the
+ * bare `button` rules under "controls" outrank `.nav-link:hover` — an element
+ * plus two pseudo-classes beats a class plus one — and would paint the pressed
+ * option's hover in the pale fill. Written at a specificity of their own, and
+ * pressed after hover, so the inverted state survives the pointer.
+ */
+.theme-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+button.nav-link:hover:not(:disabled) {
+  background: var(--bg-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+button.nav-link[aria-pressed="true"]:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
 }
 
 .panel-loading {

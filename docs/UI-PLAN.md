@@ -36,7 +36,8 @@ For context, so the steps below do not re-do it:
   `lazy(() => import(...))`. Entry chunk 840 KB → 160 KB; each panel is its own
   chunk beside its worker. `App.tsx` has a `Suspense` fallback.
 - **Shell.** `App.tsx` renders a sticky header, a nav in three rows (one per
-  `group` in the registry), a theme toggle, and sets `document.title` per route.
+  `group` in the registry), a three-way theme control (step 8), and sets
+  `document.title` per route.
 - **The section drawing (2026-09-06).** `src/layout.ts` + `src/drawing.tsx`:
   the bench editor draws the prescription it edits — sag profiles, glass, the
   stop, traced rays to the image plane — above its table, with hover pairing
@@ -888,7 +889,7 @@ milliseconds, not worth a third handler. The `Suspense` fallback and the error
 boundary are unchanged; a chunk that fails to download still lands in
 `panel-error` with its URL, whether the hover or the click asked for it.
 
-## Step 8 — the three-way theme control
+## Step 8 — the three-way theme control ✅ 2026-09-07
 
 **Why.** The toggle cycles auto → dark → light, which is discoverable only by
 clicking. A segmented control with three labelled options says what it is.
@@ -896,6 +897,49 @@ clicking. A segmented control with three labelled options says what it is.
 **Change.** Replace the button in `App.tsx` with three `nav-link`-styled
 buttons (`auto` / `light` / `dark`), `aria-pressed` on the active one, calling
 `setThemeChoice`. Keep `cycleTheme` exported for keyboard use if wanted.
+
+**What landed.** `App.tsx`: a `role="group"` labelled *theme* holding the three
+buttons from one `THEME_OPTIONS` list, auto first; `aria-pressed` is computed
+from `themeChoice()`, each click calls `setThemeChoice` with its own state, and
+the group's `aria-label` carries what is painting right now — under auto on a
+dark OS the labels alone cannot say "dark". `cycleTheme` is deleted rather than
+kept: three tab stops reach any state in one Tab and one Space, which is more
+than a cycling key offered, and a helper nothing calls is a helper a later hand
+wires back in. `styles.css`: the `.theme-toggle` rule goes; the inverted rule
+now reads `.nav-link[aria-current="page"], .nav-link[aria-pressed="true"]`, and
+two `button.nav-link` rules restate the hover and the pressed-under-hover look —
+needed because the bare `button:hover:not(:disabled)` rule under *controls*
+outranks `.nav-link:hover` (an element plus two pseudo-classes against a class
+plus one) and would have painted the pressed option's hover in the pale fill.
+`test/theme.test.ts` pins the three choices in order, the pressed attribute, the
+per-button `setThemeChoice`, the absence of `cycleTheme`, and the two selectors.
+
+**Checked in a headless Chrome of its own** against the production build
+(`M:\claud_projects\temp\step8-verify\drive.mjs`; `report.json` and five header
+screenshots beside it), on `#/rayfan`, fresh profile:
+
+| action | pressed | `data-theme` | stored | pressed button paints |
+| --- | --- | --- | --- | --- |
+| fresh profile (OS dark) | auto | none | none | `--ink` on `--bg` |
+| click *light* | light | `light` | `light` | inverted |
+| hover the pressed one | light | — | — | still inverted |
+| hover an unpressed one | light | — | — | that one `--bg-2`, border `--line` |
+| click *dark* | dark | `dark` | `dark` | inverted, dark palette |
+| focus *auto*, Tab, Space | light | `light` | `light` | inverted |
+| click *auto* | auto | none | removed | — |
+| choose dark, reload | dark | `dark` | `dark` | stamped before React |
+
+`npm run typecheck` passes; `theme.test.ts`, `prefetch.test.ts` and
+`boundary.test.ts` — the three that read `App.tsx` — 20 of 20. `npm test`, run
+plainly this time (step 7's note says what the other way costs): 3806 of 3813
+in 15.6 minutes, seven fail, all the 180 s budget in six `packages/core` files
+(§ 6ai.6, § 6b.5.4, § 6bk.1, § 6bk.8, § 6bl.2, § 6bm.1, § 6bo.2 — step 6's list
+again, near enough). The six files alone: 137 of 137 in 260 s, with four of the
+`onTaskUpdate` stalls `vitest.setup.ts` describes and no test attached to any.
+
+**What this step does not do.** No shortcut key, no `prefers-contrast`, and no
+per-panel theme; the control is the shell's and the panels re-style themselves
+through the tokens as before.
 
 ## Step 9 — drop the panel-side copy of a transferred buffer
 

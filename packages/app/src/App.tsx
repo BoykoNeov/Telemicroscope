@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { PanelBoundary } from "./panels/boundary";
 import { PANELS, PANEL_GROUPS, resolveHash, type Panel } from "./panels/registry";
-import { cycleTheme, themeChoice, useThemeVersion } from "./theme";
+import { setThemeChoice, themeChoice, useThemeVersion, type ThemeChoice } from "./theme";
 
 /**
  * The shell: a header with the nav, and one panel. Nothing else lives here.
@@ -37,7 +37,20 @@ import { cycleTheme, themeChoice, useThemeVersion } from "./theme";
  * before the click, which is the round trip a lazy route otherwise spends after
  * it. `registry.ts` says how a chunk fetched that way then paints without the
  * `panel-loading` frame `lazy` alone would show.
+ *
+ * The theme control is three buttons — auto, light, dark — not one that cycles
+ * (UI-PLAN step 8). A cycling button says only where it is; which states exist,
+ * and that "auto" is a state and not the absence of one, was discoverable by
+ * clicking. Three labelled options with `aria-pressed` on the current one say
+ * it, and each is a tab stop, so the keyboard reaches any state in one press.
  */
+
+/** The three states in the order they read: the OS's choice first, then the two overrides. */
+const THEME_OPTIONS: readonly { choice: ThemeChoice; label: string; title: string }[] = [
+  { choice: "system", label: "auto", title: "follow the OS" },
+  { choice: "light", label: "light", title: "light, whatever the OS says" },
+  { choice: "dark", label: "dark", title: "dark, whatever the OS says" },
+];
 
 /**
  * Warm a route ahead of the click. A prefetch is speculative, so its failure is
@@ -77,7 +90,10 @@ export default function App() {
   }, [panel.label]);
 
   const choice = themeChoice();
-  const themeLabel = choice === "system" ? "theme: auto" : `theme: ${choice}`;
+  // What is painting right now — "dark" under auto on a dark OS — which the
+  // three labels cannot say on their own. `theme` is also the subscription that
+  // re-renders this shell when the choice or the OS changes.
+  const painting = theme.split(":")[1];
 
   return (
     // Wider than the 900 the two-panel layout needed: the microscope table has
@@ -89,15 +105,21 @@ export default function App() {
           <span className="shell-title">
             <strong>telemicroscope</strong> · a physics-based telescope and microscope bench
           </span>
-          <button
-            type="button"
-            className="theme-toggle"
-            onClick={cycleTheme}
-            title="auto follows the OS; click to cycle auto → dark → light"
-            aria-label={`${themeLabel}, currently ${theme.split(":")[1]}`}
-          >
-            {themeLabel}
-          </button>
+          <div className="theme-control" role="group" aria-label={`theme, currently ${painting}`}>
+            <span className="nav-group-label">theme</span>
+            {THEME_OPTIONS.map((option) => (
+              <button
+                key={option.choice}
+                type="button"
+                className="nav-link"
+                aria-pressed={option.choice === choice}
+                title={option.title}
+                onClick={() => setThemeChoice(option.choice)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
         <nav className="shell-nav" aria-label="surfaces">
           {PANEL_GROUPS.map((group) => (
