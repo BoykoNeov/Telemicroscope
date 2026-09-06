@@ -9,10 +9,13 @@ import {
   describeBench,
   objectSinU,
   solveParaxialFocus,
+  toSystem,
   type BenchDraft,
   type BenchSurface,
   type Section,
 } from "../editor";
+import { describeLayout } from "../layout";
+import { LayoutCanvas, type LayoutMark } from "../drawing";
 import { Choice, Fact, Fieldset, Guard, NumberField, num, type GuardLevel } from "../ui";
 import type { ApertureSpec } from "@telemicroscope/core/trace";
 
@@ -53,6 +56,15 @@ import type { ApertureSpec } from "@telemicroscope/core/trace";
  * edit.) D8 submits because a build is 50 ms of solving; this recomputes on
  * every keystroke because a trace is cheap and a table you have to press a
  * button to see the effect of is not an editor.
+ *
+ * ## The drawing — APP.md § E3
+ *
+ * The section sits above the table: `layout.ts` computes the profiles, the
+ * glass and seven rays per field from the same system the readout traces, and
+ * `drawing.tsx` paints them. The two are one list seen twice, so hovering a
+ * surface in either lights it in the other (`hover` below is the one state
+ * both read). The drawing keys on the draft like the readout does; the focus
+ * marks key on the readout, because they are its numbers.
  */
 
 const cell: React.CSSProperties = { padding: "2px 5px", textAlign: "right", whiteSpace: "nowrap" };
@@ -102,6 +114,21 @@ function SectionRefusal({ section }: { section: Section<unknown> }) {
   );
 }
 
+/** Rays across the pupil per field in the drawing: odd, so the chief ray is one of them. */
+const LAYOUT_RAYS = 7;
+
+/**
+ * What *add a lens element* appends: a BK7 biconvex of R = ±100, which at
+ * 25 mm semi-aperture is an f/2 element that visibly bends the fan. The gap in
+ * front of it is a fifth of the remaining image distance, and it never takes
+ * more of that distance than there is.
+ */
+const ELEMENT_FRONT: BenchSurface = { ...BLANK_SURFACE, radiusMm: 100, thicknessMm: 5, medium: "N-BK7" };
+const ELEMENT_BACK: BenchSurface = { ...BLANK_SURFACE, radiusMm: -100, thicknessMm: 0, medium: "AIR" };
+const ELEMENT_GAP_FRACTION = 0.2;
+const ELEMENT_GAP_MM = 10;
+const ELEMENT_THICKNESS_MM = 5;
+
 const APERTURE_KINDS = ["EPD", "fNumber", "objectNA", "imageNA", "stopRadius"] as const;
 
 const APERTURE_LABEL: Record<ApertureSpec["kind"], string> = {
@@ -116,8 +143,37 @@ export function EditorPanel() {
   const seeds = useMemo(() => benchSeeds(), []);
   const [draft, setDraft] = useState<BenchDraft>(DEFAULT_DRAFT);
   const [seedId, setSeedId] = useState(seeds[0]!.id);
+  const [trueScale, setTrueScale] = useState(false);
+  /** The surface the pointer is on — in the drawing or in the table, one state. */
+  const [hover, setHover] = useState<number | null>(null);
 
   const result = useMemo(() => describeBench(draft), [draft]);
+
+  // The drawing keys on the draft, like the readout: a keystroke re-traces
+  // seven rays per field, which is cheaper than the readout's own sweep. A
+  // draft the app refuses to hand over (R = 0, no rows) has no picture, and the
+  // refusal below the table is what explains why.
+  const layout = useMemo(() => {
+    try {
+      return describeLayout(toSystem(draft), { fields: [0, draft.fieldValue], raysAcross: LAYOUT_RAYS });
+    } catch {
+      return null;
+    }
+  }, [draft]);
+
+  // Where the two tracers put the focus, as dashed verticals — keyed on the
+  // readout rather than the draft, so the marks move only when the numbers do.
+  const marks = useMemo((): readonly LayoutMark[] => {
+    if (!result.ok || !result.exact.ok) return [];
+    const last = result.exact.lastVertexZMm;
+    const out: LayoutMark[] = [
+      { zMm: last + result.exact.fields[0]!.bestFocusOffsetMm, label: "best focus", color: "var(--ink-4)" },
+    ];
+    if (result.paraxial.ok) {
+      out.push({ zMm: last + result.paraxial.imageOffsetMm, label: "paraxial", color: "var(--ink-5)" });
+    }
+    return out;
+  }, [result]);
 
   const setSurface = (i: number, next: Partial<BenchSurface>) =>
     setDraft((d) => ({
@@ -139,6 +195,38 @@ export function EditorPanel() {
   const removeAt = (i: number) =>
     setDraft((d) => ({ ...d, surfaces: d.surfaces.filter((_, j) => j !== i) }));
 
+  // A whole element rather than a plane: two surfaces with glass between them,
+  // appended in front of the image. The last row's thickness is the image
+  // distance, so it moves to the new last row and the old one gets an air gap —
+  // otherwise "add a lens" would silently drop the image plane onto the lens.
+  const appendElement = () =>
+    setDraft((d) => {
+      const last = d.surfaces[d.surfaces.length - 1];
+      if (last === undefined) return { ...d, surfaces: [ELEMENT_FRONT, ELEMENT_BACK] };
+      const rim = Number.isFinite(last.semiApertureMm) ? last.semiApertureMm : BLANK_SURFACE.semiApertureMm;
+      // Which way the light is going at the end of the list — after an odd
+      // number of mirrors it is −z, and the radii flip with it so the element
+      // is still convex toward the light.
+      const sign = last.thicknessMm < 0 ? -1 : 1;
+      const total = Math.abs(last.thicknessMm);
+      const gap = total > 0 ? ELEMENT_GAP_FRACTION * total : ELEMENT_GAP_MM;
+      const thick = Math.min(ELEMENT_THICKNESS_MM, gap);
+      return {
+        ...d,
+        surfaces: [
+          ...d.surfaces.slice(0, -1),
+          { ...last, thicknessMm: sign * gap },
+          { ...ELEMENT_FRONT, semiApertureMm: rim, radiusMm: sign * ELEMENT_FRONT.radiusMm, thicknessMm: sign * thick },
+          {
+            ...ELEMENT_BACK,
+            semiApertureMm: rim,
+            radiusMm: sign * ELEMENT_BACK.radiusMm,
+            thicknessMm: total > 0 ? last.thicknessMm - sign * (gap + thick) : 0,
+          },
+        ],
+      };
+    });
+
   const swap = (i: number, j: number) =>
     setDraft((d) => {
       const surfaces = [...d.surfaces];
@@ -159,7 +247,10 @@ export function EditorPanel() {
         <strong>prescription</strong> underneath one — the ordered surface list that both branches
         share, with a row per surface and nothing solved for you. The builder next door edits the
         arguments a constructor is called with; here the surfaces <em>are</em> the input, which is
-        the layer under every picture in this app.
+        the layer under every picture in this app. The section above the table is that list drawn
+        from the trace itself — each surface its own sag curve, each ray its hit points — so a
+        thickness that puts a vertex inside the element before it, or a rim a fan does not clear,
+        is visible before it is a number.
       </p>
       <p style={{ maxWidth: 660, color: "var(--ink-2)" }}>
         The subject is the gap between the two tracers running on the same rows. Paraxial says where
@@ -206,6 +297,61 @@ export function EditorPanel() {
         <p style={{ ...note, maxWidth: 420 }}>{seed.note}</p>
       </Fieldset>
 
+      {layout !== null && (
+        <div style={{ marginBottom: 14 }}>
+          <LayoutCanvas
+            layout={layout}
+            marks={marks}
+            trueScale={trueScale}
+            highlight={hover}
+            onHover={setHover}
+          />
+          <div style={{ display: "flex", gap: 16, alignItems: "flex-start", flexWrap: "wrap", marginTop: 6 }}>
+            <p className="readout-note" style={{ margin: 0, maxWidth: 520, lineHeight: 1.5 }}>
+              the section in the x–z plane, from the trace itself: every surface is its own sag curve,
+              every ray its hit points joined up, at the d line. {LAYOUT_RAYS} rays per field —{" "}
+              <span style={{ color: "var(--blue)" }}>on axis</span> and{" "}
+              <span style={{ color: "var(--red)" }}>
+                {draft.fieldValue}
+                {draft.conjugate.kind === "infinite" ? "°" : " mm"} off it
+              </span>
+              ; a ray drawn in <span style={{ color: "var(--warn)" }}>amber</span> was lost, and its
+              cross sits on the surface that lost it.{" "}
+              {layout.lost > 0 ? (
+                <strong>
+                  {layout.lost}/{layout.traced} lost.
+                </strong>
+              ) : (
+                `${layout.traced}/${layout.traced} reach the image.`
+              )}{" "}
+              {layout.objectZMm !== null && !layout.objectShown && (
+                <>
+                  The object at z = {num(layout.objectZMm, 1)} is off the left edge — further from the
+                  first vertex than the whole train is long — so its rays arrive from the frame.{" "}
+                </>
+              )}
+              {layout.surfaces.some((s) => s.unbounded) && (
+                <>
+                  A surface with no rim is drawn to the largest one that has one; the tracer treats it
+                  as unbounded.{" "}
+                </>
+              )}
+              {layout.raysRefusal !== null && (
+                <span style={{ color: "var(--warn)" }}>no rays — the engine says: {layout.raysRefusal}</span>
+              )}
+              <span style={{ color: "var(--ink-5)" }}>{layout.elapsedMs.toFixed(1)} ms</span>
+            </p>
+            <Choice
+              label="scale"
+              options={["fit", "true"] as const}
+              value={trueScale ? "true" : "fit"}
+              onChange={(v) => setTrueScale(v === "true")}
+              format={(v) => (v === "fit" ? "fit the box" : "1 : 1")}
+            />
+          </div>
+        </div>
+      )}
+
       <div style={{ overflowX: "auto", marginBottom: 12 }}>
         <table>
           <thead>
@@ -224,8 +370,16 @@ export function EditorPanel() {
           </thead>
           <tbody>
             {draft.surfaces.map((s, i) => (
-              <tr key={i} style={{ borderBottom: "1px solid var(--line-2)" }}>
-                <td style={{ ...cell, textAlign: "left", color: "var(--ink-4)" }}>{i}</td>
+              <tr
+                key={i}
+                onMouseEnter={() => setHover(i)}
+                onMouseLeave={() => setHover(null)}
+                style={{
+                  borderBottom: "1px solid var(--line-2)",
+                  background: hover === i ? "var(--bg-2)" : undefined,
+                }}
+              >
+                <td style={{ ...cell, textAlign: "left", color: hover === i ? "var(--accent)" : "var(--ink-4)" }}>{i}</td>
                 <td style={cell}>
                   <button
                     onClick={() => setSurface(i, { kind: s.kind === "refract" ? "reflect" : "refract" })}
@@ -407,6 +561,13 @@ export function EditorPanel() {
           }}
         >
           solve focus
+        </button>
+        <button
+          onClick={appendElement}
+          title="append a BK7 biconvex element in front of the image plane, keeping the image where it is"
+          style={{ fontSize: 13, padding: "6px 16px", border: "1px solid var(--line)", background: "var(--bg)", cursor: "pointer" }}
+        >
+          + lens element
         </button>
         <button
           onClick={() => setDraft(seed.draft)}

@@ -37,6 +37,12 @@ For context, so the steps below do not re-do it:
   chunk beside its worker. `App.tsx` has a `Suspense` fallback.
 - **Shell.** `App.tsx` renders a sticky header, a nav in three rows (one per
   `group` in the registry), a theme toggle, and sets `document.title` per route.
+- **The section drawing (2026-09-06).** `src/layout.ts` + `src/drawing.tsx`:
+  the bench editor draws the prescription it edits — sag profiles, glass, the
+  stop, traced rays to the image plane — above its table, with hover pairing
+  the two. APP.md § E3 says what it draws and what it states about itself. Its
+  canvas already follows the container's width (a `ResizeObserver` on the
+  `<figure>`, clamped to 320–760), which is step 6's shape for `Plot`.
 
 The token names and what each is for:
 

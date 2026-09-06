@@ -70,6 +70,7 @@ sufficient alone.
 | D10 | `#/volume` | A5's z-slider through a real mount — no new route |
 | Part E | `#/editor` | the surface list itself, on a form |
 | E2 | `#/editor` | § 6ar's triplet as a fifth seed — no new route |
+| E3 | `#/editor` | the section drawing above the table — no new route |
 | Part F | — | no route of its own: it changed which value every imaging panel carries |
 | Part G | `#/collimation` | the coma node a knocked element takes with it |
 | Part H | `#/rayfan`, `#/chromatic` | the two plots a teaching link lands on |
@@ -4112,6 +4113,61 @@ One behavioural change came with it: the field now accepts **±Infinity**, becau
 a plane is R = ∞ and an unbounded rim is `semiAperture: Infinity` — both values
 the schema means rather than overflow, and `String(Infinity)` is what the field
 already showed.
+
+### E3 — the section drawing — ✅ **landed** — *app wiring only* — **a picture of the prescription**
+
+Every picture in this app was of the *image* a design forms; the surface list
+itself — the thing this form exists to compose — was a table of numbers, and
+a reader who typed a thickness that put a vertex inside the element before it
+found out from the vertex-z column, or from a spot that went wrong, or not at
+all. The editor now draws the section above the table: `src/layout.ts` is the
+adapter (numbers in, numbers out, no DOM), `src/drawing.tsx` the canvas, and
+`test/layout.test.ts` pins the assembly.
+
+**What is drawn is the trace, not a symbol for it.** Each surface is its own
+`sag` sampled across its clear semi-aperture, so a sphere is the arc
+R(1 − √(1 − r²/R²)) and the Cassegrain's primary is r²/2R exactly, both pinned
+against the closed form. A glass gap is the polygon between the two profiles
+that bound it, tinted by whether it is glass or an immersion fluid. The rays are
+`traceRay`'s own hit points joined by straight lines — seven across the pupil
+per field, at the d line, on axis in blue and at the form's field value in red —
+extended to the image plane after the last surface. A ray the tracer lost is
+drawn as far as it got, in amber, with a cross on the surface that lost it,
+which is where a reader composing a lens wants to look. The stop is two bars
+outside the rim of the flagged surface; the exact best focus and the paraxial
+focus are dashed verticals beside the image plane, so the gap that is the
+panel's subject is visible as a gap.
+
+**Two things it says about itself, because the alternative is a picture that
+lies quietly.** A telescope objective is a 50 mm disc at the end of 500 mm of
+air, so the default fits each axis to the box separately and prints the
+vertical stretch beside the scale bar (*heights ×3.4*); a *1 : 1* choice turns
+that off. And an unbounded semi-aperture has no rim to draw to, so it is drawn
+to the largest finite one in the list and the caption says so. Neither is an
+engine number; both are the drawing's own decisions, stated.
+
+**What the seeds showed on the first render.** The achromat at 0.25° loses one
+of its fourteen rays — the rim ray on the side the field tilts toward reaches
+surface 0 a few microns outside a semi-aperture sized exactly to the pupil,
+because the tracer's rim is inclusive to 1e−12 and not to a sag's worth of tilt.
+That ray is drawn lost at surface 0 and the test pins it, since it is the trace
+being right rather than the drawing being wrong. And a finite object is in the
+frame only when it sits within one system-length of the first vertex: the DIN
+objective's specimen is, § 6ar's triplet's 453 mm object is not, and the caption
+says which.
+
+**The composition aid is the pairing.** The drawing and the table are two views
+of one list, so pointing at a surface in either lights it in the other — the
+profile in the accent colour, the row shaded. And *+ lens element* appends a
+whole BK7 biconvex in front of the image rather than a plane, keeping the image
+where it was: the last row's thickness is the image distance, so it moves to
+the new last row and the old one takes an air gap, with the radii flipped when
+the light is travelling −z after an odd number of mirrors.
+
+Cost: seven rays per field, two fields, one `pupils` call — under a millisecond
+beside the readout's 2–4 ms, so it re-traces on every keystroke like the rest
+of the panel. The canvas is the first in the app to follow its container's
+width (UI-PLAN step 6's direction), clamped to 320–760 px.
 
 ---
 
