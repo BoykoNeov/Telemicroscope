@@ -571,7 +571,9 @@ one shape this argument does *not* license: it covers deleting a property that
 the cascade already sets, and adding `.readout` to a site that already had all
 three of its properties inline. It says nothing about a site missing one of
 them, which is why the eligibility rule above is read literally.
-`npm run typecheck` and `npm test` pass.
+`npm run typecheck` passes, and `npm test` with the caveat 5c records below —
+this suite has four load-dependent `packages/core` rungs, and an unqualified
+tick here would be claiming something a full run on this machine does not show.
 
 ### 5c — the 86 panel sites, in one sweep ✅ 2026-09-06
 
@@ -654,9 +656,10 @@ by eye. There are eight such consts: `cell` and `head` in `panels/bench.tsx` and
 are reached at 99 tags, and five further inline objects are built by spreading
 `mono` or `note`. Every one was read, and **none of them is eligible**:
 
-- the six table-cell consts carry padding, alignment and a border rule and,
-  since 5b took the fonts out of them, no font at all — `head` does say
-  `color: var(--ink-2)`, but without a `maxWidth` it is not a `.prose`;
+- the six table-cell consts (`cell`, `head`, `CELL`) carry padding, alignment
+  and a border rule and, since 5b took the fonts out of them, no font at all —
+  `head` does say `color: var(--ink-2)`, but without a `maxWidth` it is not a
+  `.prose`;
 - `mono` is `{ fontFamily: "var(--mono)", fontSize: 12 }` — the bare shape with
   no leading, which is precisely the family no class in this step covers;
 - `note` is `{ ...mono, color: "var(--ink-4)", maxWidth: 640, margin }`, which
