@@ -370,32 +370,59 @@ style, in `var(--bad)`, with the nav still above it. Wrap the `<Suspense>` in
 **Check.** Temporarily throw from a panel's render, confirm the nav survives,
 remove the throw. Typecheck.
 
-## Step 4 — share the engine between the worker chunks
+## Step 4 — share the engine between the worker chunks ✅ measured: no-op, reverted
 
-**Why.** `dist/` is ~2.7 MB because thirty-three workers each bundle their own
-copy of `packages/core`. Vite can emit shared chunks between ES-format workers.
+**Tried 2026-09-06, measured, and reverted.** The premise was wrong, so the
+step buys nothing; what follows is the number and the mechanism, so it is not
+tried again.
 
-**Change.** In `packages/app/vite.config.ts`:
+**Why it was proposed.** `dist/` is 2.88 MB and the thirty-two workers are
+1.98 MB of it — 69%, because each one bundles its own copy of `packages/core`.
+The hope was that Vite would emit one shared engine chunk between ES-format
+workers, since the `iife` default cannot import and so cannot share.
 
-```ts
-export default defineConfig({
-  plugins: [react()],
-  worker: { format: "es" },
-});
-```
+**What was changed.** `worker: { format: "es" }` in
+`packages/app/vite.config.ts`, and nothing else. Every one of the thirty-two
+factories in `src/workers.ts` already passes `{ type: "module" }` (checked
+before the flip — a classic worker handed an ES module fails at parse time, and
+that surfaces as a panel stuck on "tracing…", not as a build error).
 
-Run `npm run build --workspace @telemicroscope/app` and compare the total of
-`dist/assets` before and after (`ls -l dist/assets | awk '{s+=$5} END {print s}'`).
-If the total does not fall, the workers are already deduplicated by content
-hashing at the CDN level and this step is a no-op: revert and record the number
-here.
+**What it measured.** Vite 7.3.6, clean `dist/` both times:
 
-**Check.** Open every panel in the dev server after the change (the worker
-format affects dev too). A worker that fails to load shows as a panel that
-never leaves "tracing…"; the browser console names the 404.
+| | files | total | 32 worker bundles |
+| --- | --- | --- | --- |
+| before | 98 | 2 876 049 B | 1 984 566 B |
+| after | 98 | 2 875 493 B | 1 984 005 B |
 
-**Must not change.** The `new Worker(new URL("./x.worker.ts", import.meta.url), { type: "module" })`
-literals in `src/workers.ts` — the file's header says why they must stay there.
+556 bytes, 0.02%. Not a shared chunk — the IIFE wrapper. 561 bytes across 32
+workers is 17.5 bytes each, which is `(function(){` plus `})();`, and the
+emitted `stage.worker-*.js` now opens on `function Kt(t){` where before it
+opened on the wrapper.
+
+**Why it cannot work, and it is not CDN hashing.** The original text guessed
+that a null result would mean "the workers are already deduplicated by content
+hashing at the CDN level". That explanation is impossible: the measurement is
+`ls -l` on local bytes, and no CDN behaviour reaches it. The real reason is
+that Vite compiles each `new Worker(new URL(...))` entry in its **own Rollup
+pass**. `format: "es"` lifts the syntax restriction on splitting *within* one
+worker, but there is no chunk graph spanning the thirty-two workers for a
+shared engine copy to live in. The check is direct: after the flip the worker
+bundles contain **zero** `import` statements — each is still closed over its
+own engine.
+
+**What would actually be needed, and why it is not done here.** Only a
+restructure that gives the workers a common build: hand-declared
+`build.rollupOptions.input` entries, or workers that pull the engine from the
+main graph. Both destroy the `new Worker(new URL("./x.worker.ts",
+import.meta.url), { type: "module" })` literal convention that `src/workers.ts`
+exists to protect — its header says why — and both are a different step from
+this one. Recorded under *Out of scope* below rather than left as a pointer;
+`docs/OPEN-PROBLEMS.md` is not its home, that register being scoped to what the
+**engine** has left open and keyed by `§` labels this has none of.
+
+**The runtime check was not needed** and was not run: the config is back to
+what shipped, so the bytes served are the ones already in use. The note in
+`vite.config.ts` carries the warning forward.
 
 ## Step 5 — shared readout classes instead of 185 inline `fontFamily` styles
 
@@ -494,3 +521,14 @@ since the buffer is now the only one there is.
   points is a drawing of a claim rather than the claim.
 - **Any change to what a panel computes or shows.** That is a panel step in
   APP.md, with its own section.
+- **Restructuring the workers so they share one engine copy.** Left open by
+  step 4, which measured the cheap route and found it does nothing. 1.98 MB of
+  `dist/`'s 2.88 MB is `packages/core` bundled thirty-two times, and only a
+  build that puts the workers in a common chunk graph — declared
+  `build.rollupOptions.input` entries, or workers that pull the engine off the
+  main graph — would collapse it. Both cost the `new Worker(new URL(...))`
+  literal convention `src/workers.ts` has a header defending, which trades a
+  runtime 404 for a build-time guarantee. Not obviously wrong to spend, but it
+  is a decision about the worker convention and not a performance tweak, so it
+  wants asking rather than doing. What it buys is smaller than it looks: the
+  thirty-two chunks are lazy, and a session loads two or three.
