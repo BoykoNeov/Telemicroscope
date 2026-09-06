@@ -425,7 +425,7 @@ this one. Recorded under *Out of scope* below rather than left as a pointer;
 what shipped, so the bytes served are the ones already in use. The note in
 `vite.config.ts` carries the warning forward.
 
-## Step 5 — shared readout classes instead of 185 inline `fontFamily` styles
+## Step 5 — shared readout classes instead of 185 inline `fontFamily` styles — in progress
 
 **Why.** Every readout in the app is `style={{ fontFamily: "var(--mono)", fontSize: 12, ... }}`
 written out by hand, ~185 times. It works, and it is the reason a change of
@@ -446,6 +446,123 @@ are used everywhere. Do not touch a panel's `Plot` colours or its canvases.
 
 **Check.** Screenshot the panel before and after at the same route; they must
 match to the pixel apart from anti-aliasing. `npm run typecheck`.
+
+### 5a — the classes, and `ui.tsx` ✅ 2026-09-06
+
+The three classes are in `styles.css` with the eligibility rule written above
+them, and `ui.tsx` is converted. What the doing of it settled, for the panel
+commits that follow:
+
+**Read the eligibility rule literally, because it is narrower than it looks.**
+A site takes a class when EVERY property the class sets is already present with
+the class's value; extras stay inline beside the `className`. You cannot keep
+the ABSENCE of a property inline — so a bare `{ fontFamily, fontSize: 12 }` is
+**not** a `.readout`, because `.readout` also says `line-height: 1.6` and the
+bare site inherits the base 1.5. Applying it would move the leading, and this
+step is required not to move a pixel.
+
+**The census, so no panel commit has to re-derive it.** 182 inline `fontFamily`
+sites in 91 distinct shapes. Under the rule above the three classes reach:
+
+| class | eligible sites | the shape |
+| --- | --- | --- |
+| `.readout` | ~12 | the ones that already say `lineHeight: 1.6` |
+| `.readout-note` | ~23 | mono/11/`--ink-4`, mostly `width: 420, marginTop: 4` |
+| `.prose` | 43 | `<p style={{ maxWidth: 640, color: "var(--ink-2)" }}>` |
+
+`.prose` sets no font, so it is not among the 182 at all and was found
+separately — it is nonetheless the largest single group in the step.
+
+**The gap this leaves, named rather than papered over.** The biggest family is
+the bare `{ fontFamily: "var(--mono)", fontSize: 12 }` and its variants, and
+**no class in this step covers it.** That is deliberate: the sites differ only
+in leading (inherited 1.5 here, 1.6/1.7/1.8 elsewhere), and inventing a 1.5
+class to fit the majority would be choosing their leading by accident instead of
+on purpose. Leave them inline. Deciding what those should be is a step of its
+own, not a thing a panel commit gets to improvise.
+
+### 5b — the inline styles the stylesheet already says
+
+`ui.tsx`'s share of this landed with 5a; the panel files are a commit of their
+own. Found while doing 5a, and a different mechanism from the rest of step 5: some
+inline objects restate, property for property, what a base element rule in
+`styles.css` already sets. Those are **deleted**, not classed — the cascade is
+already the shared definition, and adding a `className` beside it would be a
+second name for the same thing.
+
+Confirmed by reading every site rather than by pattern-replacing, because the
+claim is per-site. `M:/claud_projects/temp/step5-verify/census.py` prints the
+style object belonging to each `<button>`, `<input>`, `<select>`, `<table>` and
+`<legend>` in the app, and that is where these counts come from: four of the
+table sites and two of the button sites spread their attributes over several
+lines, so a line-wise grep undercounts them.
+
+- `table` — base is `border-collapse: collapse; font-family: var(--mono);
+  font-size: 12px`. 22 sites. 19 say exactly that and lose all three
+  properties, keeping whatever else they carry (`marginTop`, `marginBottom`,
+  `lineHeight`) inline. `panels/phase.tsx:249` and `panels/spot.tsx:199` are
+  `fontSize: 11` and **keep the size**, losing the other two.
+  `panels/tolerance.tsx:418` never set a family and loses only `borderCollapse`.
+- `button` — base is mono/12px. 12 sites carry a font, four of them through
+  `editor.tsx`'s `...mono` spread. Six lose both properties; six lose only the
+  family, because their size is deliberately 11 or 13.
+- `input[type="text"]` and `select` — base is mono/12px. `ui.tsx`'s
+  `NumberField` field and `editor.tsx`'s two `<select>`s lose both.
+- `legend` — base is mono/11px/`--ink-4`, which is the whole of `Fieldset`'s
+  inline object; the `style` attribute goes entirely.
+
+**What must not be deleted, though it does match the base rule.** A button's
+inline `background`, `border` and `cursor` frequently restate `button` word for
+word — and they are load-bearing exactly because they do. They are what stops
+`button:hover:not(:disabled)` (which changes background and border colour) and
+`button:disabled` (which sets `cursor: default`) from ever applying to that
+button. Deleting them would hand those buttons a hover they have never had and
+change the cursor on a disabled one. So the rule for 5b is not "delete what the
+base rule already says" but the narrower "delete what the base rule already says
+**and no state rule ever overrides**" — which, in this stylesheet, is the font
+properties and `border-collapse`, and nothing else.
+
+**Check for 5a and 5b — and why it is not a screenshot.** The plan's check as
+written cannot be run: every panel prints its own elapsed trace time, so two
+runs of the *same* tree differ in the pixels. The substitute tried first was
+worse. It walked the routes in a headless Chrome and dumped `getComputedStyle`
+for every element, on the theory that resolved values are deterministic where
+pixels are not; it never completed a single before/after pair. The reason is
+worth writing down, because it would sink any future attempt at the same shape:
+producing the "before" means stashing `ui.tsx`, which every one of the 31 panels
+imports, so the dev server's transform cache is cold for all of them. One panel
+alone takes 6 s to transform, its import graph much longer, and the route sits
+on its `loading…` fallback until the driver gives up. The check was measuring
+the harness, not the change.
+
+What these edits claim is static anyway, and one file decides it. An inline
+style beats a stylesheet rule, so deleting an inline property that equals the
+base rule is a no-op *unless* a more specific rule was being blocked by it. So
+the only question is: does any other selector in `styles.css` match a touched
+element and set one of the removed properties to a different value? It is the
+app's only stylesheet, imported once in `main.tsx`, so reading it whole answers
+that for every route at once — which the five-route sample never did. The answer
+is no:
+
+- a `button` is matched by `button` (mono/12px — the removed values), by
+  `:hover` / `:disabled` / `:focus-visible` (background, cursor, outline, no
+  font), and by nothing else. `.theme-toggle` is the shell's own button and
+  carries its own class.
+- an `input[type="number"]` is matched by the mono/12px control rule and by
+  `:focus-visible`; `input[type="range"]` does not match it.
+- a `legend` is matched by `legend` alone — there is no `fieldset legend`.
+- a `table` is matched by `table` alone. `.scroll-x` is the wrapper div and sets
+  only `overflow-x` / `max-width`; `th` sets weight and colour, not size.
+- `Guard`'s div takes `.readout`, specificity 0,1,0, and no other rule in the
+  file sets a font on it.
+
+Neither media query sets a font property — they move `.shell` padding and switch
+off transitions — so nothing was hiding at a narrow viewport either. Note the
+one shape this argument does *not* license: it covers deleting a property that
+the cascade already sets, and adding `.readout` to a site that already had all
+three of its properties inline. It says nothing about a site missing one of
+them, which is why the eligibility rule above is read literally.
+`npm run typecheck` and `npm test` pass.
 
 ## Step 6 — canvases that fit the viewport
 

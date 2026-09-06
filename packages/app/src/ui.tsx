@@ -38,8 +38,6 @@ export function Choice<T extends string | number>(props: {
           key={option}
           onClick={() => props.onChange(option)}
           style={{
-            fontFamily: "var(--mono)",
-            fontSize: 12,
             marginRight: 4,
             padding: "2px 8px",
             border: option === props.value ? "1px solid var(--ink)" : "1px solid var(--line)",
@@ -86,8 +84,6 @@ export function Toggles<T extends string>(props: {
             onClick={() => props.onToggle(option)}
             title={note}
             style={{
-              fontFamily: "var(--mono)",
-              fontSize: 12,
               marginRight: 4,
               marginBottom: 4,
               padding: "2px 8px",
@@ -157,7 +153,7 @@ export function Guard(props: {
   detail?: string;
 }) {
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 }}>
+    <div className="readout">
       <span style={{ color: GUARD_COLOR[props.level] }}>
         {props.label} <strong>{props.value}</strong>
       </span>
@@ -226,8 +222,6 @@ export function NumberField(props: {
           if (event.target.value.trim() !== "" && !Number.isNaN(next)) props.onChange(next);
         }}
         style={{
-          fontFamily: "var(--mono)",
-          fontSize: 12,
           width: props.width ?? 90,
           padding: "2px 4px",
           border: `1px solid ${bad ? "var(--bad)" : "var(--line)"}`,
@@ -259,7 +253,7 @@ export function Fieldset(props: { children: React.ReactNode; title: string }) {
         alignItems: "flex-start",
       }}
     >
-      <legend style={{ fontFamily: "var(--mono)", fontSize: 11, color: "var(--ink-4)" }}>{props.title}</legend>
+      <legend>{props.title}</legend>
       {props.children}
     </fieldset>
   );

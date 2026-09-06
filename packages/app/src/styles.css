@@ -320,6 +320,42 @@ figcaption {
   max-width: 100%;
 }
 
+/* -------------------------------------------------------------- readouts */
+
+/*
+ * The three shapes a panel's own text takes, named once instead of written out
+ * per site. Before this, every readout carried its own
+ * `style={{ fontFamily: "var(--mono)", fontSize: 12, ... }}` — ~185 of them —
+ * which worked, and made a change of size or leading a thirty-file edit.
+ *
+ * Applied under one rule, and it is narrower than it looks: a site takes the
+ * class only when EVERY property the class sets is already there with the
+ * class's value. Extra properties (`minWidth`, `marginTop`) stay inline beside
+ * the `className`; the absence of one cannot. So a bare
+ * `{ fontFamily, fontSize: 12 }` is NOT a `.readout` — it inherits the base
+ * 1.5 leading and the class would move it to 1.6. That is a pixel change, and
+ * this refactor is required not to make one. There is deliberately no 1.5
+ * variant: inventing a class to fit the majority would be choosing the leading
+ * for them by accident rather than on purpose.
+ */
+
+.readout {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.readout-note {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+.prose {
+  max-width: 640px;
+  color: var(--ink-2);
+}
+
 /* ------------------------------------------------------------------ shell */
 
 .shell {
