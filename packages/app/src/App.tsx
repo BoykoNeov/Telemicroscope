@@ -1,6 +1,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { PanelBoundary } from "./panels/boundary";
-import { PANELS, PANEL_GROUPS, resolveHash } from "./panels/registry";
+import { PANELS, PANEL_GROUPS, resolveHash, type Panel } from "./panels/registry";
 import { cycleTheme, themeChoice, useThemeVersion } from "./theme";
 
 /**
@@ -31,7 +31,25 @@ import { cycleTheme, themeChoice, useThemeVersion } from "./theme";
  * one wrapped row had no order a reader could see. The registry's array order
  * is unchanged — it is what `panelFor` falls back on and what the tests read —
  * and the rows are a *view* of it, filtered by `group`.
+ *
+ * Each nav link fetches its route's chunk on `mouseenter` and on `focus`
+ * (UI-PLAN step 7): the pointer reaches a link some hundreds of milliseconds
+ * before the click, which is the round trip a lazy route otherwise spends after
+ * it. `registry.ts` says how a chunk fetched that way then paints without the
+ * `panel-loading` frame `lazy` alone would show.
  */
+
+/**
+ * Warm a route ahead of the click. A prefetch is speculative, so its failure is
+ * not reported here: if the chunk will not download, the click that follows
+ * renders through `lazy`, meets the same memoised rejection, and the error
+ * boundary prints it with the URL that failed. Reporting it twice would put an
+ * unhandled-rejection line in the console for a route the reader never opened.
+ */
+function warm(entry: Panel): void {
+  entry.load().catch(() => {});
+}
+
 export default function App() {
   const [hash, setHash] = useState(() => window.location.hash);
   const theme = useThemeVersion();
@@ -91,6 +109,8 @@ export default function App() {
                   href={`#/${entry.id}`}
                   className="nav-link"
                   aria-current={entry.id === panel.id ? "page" : undefined}
+                  onMouseEnter={() => warm(entry)}
+                  onFocus={() => warm(entry)}
                 >
                   {entry.label}
                 </a>

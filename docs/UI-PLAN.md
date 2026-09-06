@@ -799,7 +799,7 @@ site's own `width` stay; no pixel moves in a column wider than the picture.
 Plot heights are still fixed (280), so a shrunk plot is shorter in aspect, not
 scaled — the axes are redrawn at the real width rather than squeezed.
 
-## Step 7 — prefetch the neighbouring routes
+## Step 7 — prefetch the neighbouring routes ✅ 2026-09-06
 
 **Why.** A lazy route costs one network round trip on first visit. The nav is
 a reading order, so the next entry is the likely next click.
@@ -811,6 +811,82 @@ and build `Component` from `load` so there is one thunk per panel, not two.
 
 **Check.** Network tab: hovering a nav entry fetches its chunk; clicking it
 then paints without a "loading…" flash.
+
+**What landed.** `panels/registry.ts`: every entry carries `load` beside
+`Component`, both from one `lazyPanel(...)` call around the same import thunk,
+so the hover and the click share one in-flight promise; the 31 entries read
+`...lazyPanel(() => import("./x").then(…))` and a search for `BenchPanel` still
+lands there. `App.tsx`: each nav link calls `warm(entry)` on `mouseenter` and
+`focus` — `load()` with the rejection swallowed, because a chunk that will not
+download is met again by the click, where the error boundary prints it with
+its URL. `test/prefetch.test.ts` pins six things: one import per entry; the
+fallback while the chunk is in flight; a loaded panel rendering with **no**
+fallback under `renderToString`; a memoised rejection; a loader on every
+registry entry; the two handlers in `App.tsx`.
+
+**What the plan did not predict: fetching early is half of it.** React's
+`lazy` initialises from its thunk on its own first render, not from a promise
+the entry already holds, so the first mount after a hover hands it a settled
+promise it has never seen, and `Suspense` commits `panel-loading` for the one
+task it takes to notice. Measured, with that path disabled in a one-line
+variant build: hover fetched the chunk, the module was evaluated before the
+click, and the click still put the loading node into the DOM for **36 ms** —
+two frames. So `lazyPanel` keeps the resolved component beside the promise and
+renders it directly when a mount finds it there, decided **once per mount** in
+a `useState` initialiser: a panel that mounted through `lazy` keeps rendering
+through `lazy`, since switching element types on a later re-render (a theme
+change) would remount it and terminate its workers mid-trace. A *revisit* was
+never the problem — `lazy` remembers a resolved module on the component
+itself, and the pre-step tree shows no loading node on a warm revisit either.
+
+**The check, run against three production builds in a headless Chrome of its
+own.** Driver at `M:\claud_projects\temp\step7-verify\drive.mjs`
+(`preview.mjs` and `build-both.ps1` beside it; `report.json`, `lazyonly.json`
+and `damage.json` are the three runs). A fresh profile per run, so the cache is
+cold; a `MutationObserver` installed before each navigation records every
+`panel-loading` node entering or leaving the DOM, which is stricter than a
+screenshot — a fallback React committed counts even if the browser never
+painted it. The star field is left to finish refining before the first hover.
+An earlier run hovered while it was still tracing, and the click showed the
+fallback for 2 s with the chunk already downloaded: Chrome runs input ahead of
+module evaluation, so the click beat the evaluation and mounted through
+`lazy`. That is an ordering, not a bug — and it is why a hover during the
+reader's idle moment is the one worth buying.
+
+| build | hover | focus | click after hover | cold, no hover | warm revisit |
+| --- | --- | --- | --- | --- | --- |
+| this tree | fetches, 9 ms; evaluated at 77 ms | fetches, 1 ms | no loading node | 430 ms | none |
+| `lazy` only, direct path off | fetches | fetches | **36 ms** of loading node | 560 ms | none |
+| before the step | nothing; the click fetches | nothing | 471 ms | 48 ms | none |
+
+The cold-route numbers are the download: the same 9 KB chunk from the same
+preview server took 391 ms in one run and 6 ms in another, and the loading node
+left the DOM within 5 ms of the module being evaluated each time. That spread
+is this machine's disk, and it is the plan's point restated — the only cost a
+lazy route has is the fetch, and the hover moves it off the click.
+
+`npm run typecheck` passes. `npm test`, the same sentence as 5c's and 6's,
+with a cause this time. The full run: 3791 of 3811 pass, twenty fail, all in
+eleven files, and `prefetch.test.ts` passes in 665 ms. Nineteen are the 180 s
+budget (§ 6ai.4, § 6ai.6, § 6b.5.4, § 6bk.1 twice, § 6bl.1, § 6bl.2, § 6bl.5,
+§ 6bm.1, § 6bo.2, § 6bp.1, § 6bp.3 twice, § 6bq.1, § 6bq.2, § 6bq.4, § 6bq.5,
+§ 6cc.0, § 6cc.5) and one is `telecentric.test.ts`'s "costs a frame rather than
+a job" at 1 911 ms against its 1 500 ms wall-clock bound. The cause: that run
+was launched through `Start-Process` at `BelowNormal`, which nices vitest's
+*coordinator* along with the workers — exactly what `vitest.setup.ts` argues
+against, and it took 54 minutes instead of the usual handful. A rerun of the
+eleven files the same way failed seven of them. The seven files run plainly,
+`npx vitest run <files>`: 6 of 7 pass, every timeout gone, and the one left is
+the same wall-clock bound at 2 219 ms beside six physics files; that file alone,
+20 of 20 in 50 s, the bound met at 318 ms. Nothing here touched `packages/core`.
+
+**What this step does not do.** No idle-time prefetch of the entry after the
+current one: hover is a stronger signal, and a chunk fetched for a link the
+reader never reaches is bandwidth spent on a guess. A touch screen gets no
+prefetch — there is no hover, and a tap's `touchstart`-to-click gap is tens of
+milliseconds, not worth a third handler. The `Suspense` fallback and the error
+boundary are unchanged; a chunk that fails to download still lands in
+`panel-error` with its URL, whether the hover or the click asked for it.
 
 ## Step 8 — the three-way theme control
 
