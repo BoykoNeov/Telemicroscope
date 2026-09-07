@@ -292,7 +292,7 @@ export interface SamplingSpread {
 export interface PhaseFrame {
   readonly defocusWaves: number;
   /** Greyscale, RGBA, `size`×`size`. */
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   /** Modulation at the grating's own bin — the null, when in focus. */
   readonly contrast: number;
   /** Modulation at 2ν — the second-order term, which is not null. */
@@ -1016,7 +1016,7 @@ export interface HarmonicReading {
  * quietly rescale them against each other — worst for darkfield, whose mean is
  * ~50× below brightfield's and whose whole content is that it is dark.
  */
-function toGrey(intensity: Float64Array, size: number, white: number): Uint8ClampedArray {
+function toGrey(intensity: Float64Array, size: number, white: number): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   for (let i = 0; i < size * size; i++) {
     const v = Math.round((255 * intensity[i]!) / white);

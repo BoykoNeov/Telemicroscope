@@ -1079,6 +1079,7 @@ only its own route.
 | 9k | `volume.tsx` | its own `toGrey` — the third main-thread case | `#/volume` ✅ |
 | 9l | `telescope.tsx` | `RenderResult.rgba` and `FieldResult.rgba`, two sites | `#/telescope` ✅ |
 | 9m | `camera.tsx` | `nativeRgba`, `sensorRgba`, optional `observedRgba` | `#/camera` ✅ |
+| 9n | `phase.tsx` | `PhaseFrame.rgba` — an element type — and its `toGrey` | `#/phase` ✅ |
 
 ## Step 10 — choose the leading of the bare mono readouts
 

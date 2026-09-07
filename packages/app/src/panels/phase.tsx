@@ -356,9 +356,7 @@ function Frame({
     element.height = size;
     const context = element.getContext("2d");
     if (!context) return;
-    // Copy: the buffer arrived by structured clone and `ImageData` takes
-    // ownership of what it is given.
-    context.putImageData(new ImageData(new Uint8ClampedArray(frame.rgba), size, size), 0, 0);
+    context.putImageData(new ImageData(frame.rgba, size, size), 0, 0);
   }, [frame, size]);
 
   const nulled = frame.contrast < 1e-9;
