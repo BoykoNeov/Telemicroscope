@@ -150,14 +150,7 @@ function StarCanvas({ request }: { request: ReflectorRequest }) {
     element.height = result.size;
     const context = element.getContext("2d");
     if (!context) return;
-    // Copied into a fresh array: `ImageData` needs a plain ArrayBuffer backing,
-    // and the engine's arrays are declared over ArrayBufferLike so they can
-    // cross the worker boundary this result just came through.
-    context.putImageData(
-      new ImageData(new Uint8ClampedArray(result.rgba), result.size, result.size),
-      0,
-      0,
-    );
+    context.putImageData(new ImageData(result.rgba, result.size, result.size), 0, 0);
   }, [result]);
 
   const coreLoss = result ? 1 - result.coreEnergy / result.clearCoreEnergy : 0;

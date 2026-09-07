@@ -425,7 +425,7 @@ export interface ReflectorRequest {
 }
 
 export interface ReflectorResult {
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   readonly image: ColorImage;
   readonly pixelScaleMm: number;
