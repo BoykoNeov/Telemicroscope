@@ -81,11 +81,10 @@ function EmitterCanvas({
     element.height = size;
     const context = element.getContext("2d");
     if (!context) return;
-    // Copied into a fresh buffer, for `BeadCanvas`'s reason: `ImageData` takes
-    // ownership of what it is given, and these grids arrived by structured clone
-    // and are remapped every time the stretch moves.
-    const pixels = new Uint8ClampedArray(toGrey(values, size, white));
-    context.putImageData(new ImageData(pixels, size, size), 0, 0);
+    // `toGrey` allocates the array this paints, on every stretch — `BeadCanvas`'s
+    // case, and the same answer: nothing to copy away from. See `transfer.ts`.
+    const rgba = toGrey(values, size, white);
+    context.putImageData(new ImageData(rgba, size, size), 0, 0);
   }, [values, size, white]);
 
   return (

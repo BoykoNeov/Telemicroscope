@@ -1066,6 +1066,7 @@ only its own route.
 | 9g | `sky.tsx` | `SkyResult.rgba` — and the comment defending the copy | `#/sky` ✅ |
 | 9h | `reflector.tsx` | `ReflectorResult.rgba`, and its copy comment | `#/reflector` ✅ |
 | 9i | `fluorescence.tsx` | its exported `toGrey` — the main-thread case | `#/fluorescence` ✅ |
+| 9j | `emitter.tsx` | nothing — 9i's `toGrey` is the one it imports | `#/emitter` ✅ |
 
 ## Step 10 — choose the leading of the bare mono readouts
 
