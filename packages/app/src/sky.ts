@@ -231,7 +231,7 @@ export interface WallPoint {
 
 export interface SkyResult {
   readonly ok: true;
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   readonly pixelScaleMm: number;
 

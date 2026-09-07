@@ -1063,6 +1063,7 @@ only its own route.
 | 9d | `seeing.tsx` | `meanRgba`, `drawRgba`, `cleanRgba`, its `toGrey`, the prop | `#/seeing` ✅ |
 | 9e | `visual.tsx` | `VisualImage.rgba`, its `toGrey` | `#/visual` ✅ |
 | 9f | `tolerance.tsx` | `rgbaNominal`, `rgbaPerturbed`, `StarCanvas`'s prop | `#/tolerance` ✅ |
+| 9g | `sky.tsx` | `SkyResult.rgba` — and the comment defending the copy | `#/sky` ✅ |
 
 ## Step 10 — choose the leading of the bare mono readouts
 
