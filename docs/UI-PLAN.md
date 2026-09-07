@@ -1048,6 +1048,15 @@ canvas. Two rules it enforces that a screenshot would not:
   uniform is reported as `NO-PAINT`, not as a match — a canvas fed from an empty
   placeholder (`camera.ts`'s `sensorRgba: new Uint8ClampedArray(0)`) or belonging
   to a refused design is stable and identical whatever the buffer did.
+- **A refining panel has to be waited out, not merely waited for.** 9l's field
+  canvas differed — and the difference was in the harness: `useRenderedField`
+  answers one job with a sequence of ever-finer frames, and a level that takes
+  longer to compute than the stability window looks exactly like a finished
+  picture. The baseline had been caught mid-refinement. The panel says which
+  state it is in (`refining n×n → m×m`, `tracing…`), so the settle asks it, and
+  the baseline re-measured that way matches. **A stable picture is not a
+  finished one**, and this is the second time in this step that the cheap
+  version of "settled" was the thing that was wrong.
 - **The sweep says which chunk it loaded.** A panel-only rebuild leaves the entry
   hash alone, so "the served `index-*.js` is the new one" cannot tell a fresh
   `dist` from a stale one here; the panel's own hashed chunk name can.
@@ -1068,6 +1077,7 @@ only its own route.
 | 9i | `fluorescence.tsx` | its exported `toGrey` — the main-thread case | `#/fluorescence` ✅ |
 | 9j | `emitter.tsx` | nothing — 9i's `toGrey` is the one it imports | `#/emitter` ✅ |
 | 9k | `volume.tsx` | its own `toGrey` — the third main-thread case | `#/volume` ✅ |
+| 9l | `telescope.tsx` | `RenderResult.rgba` and `FieldResult.rgba`, two sites | `#/telescope` ✅ |
 
 ## Step 10 — choose the leading of the bare mono readouts
 

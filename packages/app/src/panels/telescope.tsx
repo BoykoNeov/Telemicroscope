@@ -65,11 +65,7 @@ function StarCanvas({ request }: { request: RenderRequest }) {
     element.height = result.size;
     const context = element.getContext("2d");
     if (!context) return;
-    // Copied into a fresh array: `ImageData` requires a plain ArrayBuffer
-    // backing, and the engine's typed arrays are declared over ArrayBufferLike
-    // so that they can cross the worker boundary this result just came through.
-    const pixels = new Uint8ClampedArray(result.rgba);
-    context.putImageData(new ImageData(pixels, result.size, result.size), 0, 0);
+    context.putImageData(new ImageData(result.rgba, result.size, result.size), 0, 0);
   }, [result]);
 
   const hue = result ? hueProfile(result.image) : [];
@@ -215,8 +211,7 @@ function FieldCanvas({ request }: { request: FieldRequest }) {
     element.height = result.size;
     const context = element.getContext("2d");
     if (!context) return;
-    const pixels = new Uint8ClampedArray(result.rgba);
-    context.putImageData(new ImageData(pixels, result.size, result.size), 0, 0);
+    context.putImageData(new ImageData(result.rgba, result.size, result.size), 0, 0);
   }, [result]);
 
   return (

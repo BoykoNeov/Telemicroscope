@@ -47,7 +47,7 @@ export interface RenderRequest {
 }
 
 export interface RenderResult {
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   readonly pixelScaleMm: number;
   readonly image: ColorImage;
@@ -223,7 +223,7 @@ export interface FieldRequest {
 }
 
 export interface FieldResult {
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   readonly pixelScaleMm: number;
   /** Patch grid of THIS frame — coarser than `finestPatches` while refining. */
