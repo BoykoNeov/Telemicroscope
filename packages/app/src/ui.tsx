@@ -30,7 +30,7 @@ export function Choice<T extends string | number>(props: {
   format?: (value: T) => string;
 }) {
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
+    <div className="readout">
       {props.label}
       <br />
       {props.options.map((option) => (
@@ -72,7 +72,7 @@ export function Toggles<T extends string>(props: {
   note?: (value: T) => string | undefined;
 }) {
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
+    <div className="readout">
       {props.label}
       <br />
       {props.options.map((option) => {
@@ -198,9 +198,8 @@ export function NumberField(props: {
   const bad = draft.trim() === "" || Number.isNaN(parsed);
   return (
     <label
+      className="readout"
       style={{
-        fontFamily: "var(--mono)",
-        fontSize: 12,
         opacity: props.disabled ? 0.35 : 1,
         display: "block",
       }}
@@ -261,7 +260,7 @@ export function Fieldset(props: { children: React.ReactNode; title: string }) {
 
 export function Fact(props: { label: string; value: string; note?: string }) {
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12, minWidth: 190 }}>
+    <div className="readout" style={{ minWidth: 190 }}>
       <span style={{ color: "var(--ink-4)" }}>{props.label}</span>
       <br />
       <strong>{props.value}</strong>
@@ -292,7 +291,7 @@ export function Slider(props: {
   onChange: (value: number) => void;
 }) {
   return (
-    <label style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
+    <label className="readout">
       {props.label}
       <br />
       <input

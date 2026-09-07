@@ -69,7 +69,10 @@ import type { ApertureSpec } from "@telemicroscope/core/trace";
 
 const cell: React.CSSProperties = { padding: "2px 5px", textAlign: "right", whiteSpace: "nowrap" };
 const head: React.CSSProperties = { ...cell, borderBottom: "1px solid var(--line)", color: "var(--ink-2)", fontWeight: 400 };
-const mono: React.CSSProperties = { fontFamily: "var(--mono)", fontSize: 12 };
+// The one 12 px mono readout that cannot take `.readout`: it is spread into
+// `note` and into five style objects, so it has to stay a value. It carries
+// the class's leading by hand instead — see the `.readout` note in styles.css.
+const mono: React.CSSProperties = { fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.6 };
 const note: React.CSSProperties = { ...mono, color: "var(--ink-4)", maxWidth: 640, margin: "4px 0 0" };
 
 /** A small square button — the row actions, which are all one glyph. */

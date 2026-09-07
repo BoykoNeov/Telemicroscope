@@ -125,7 +125,7 @@ export function MtfPanel() {
           yMax={1.02}
           width={560}
         />
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
+        <div className="readout" style={{ maxWidth: 320 }}>
           <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>what the four curves are</div>
           <div style={{ color: "var(--red)" }}>tangential — bars across the field radius</div>
           <div style={{ color: "var(--green)" }}>sagittal — bars along it</div>

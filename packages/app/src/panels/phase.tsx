@@ -363,7 +363,7 @@ function Frame({
 
   return (
     <figure style={{ margin: 0 }}>
-      <figcaption style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 4 }}>
+      <figcaption className="readout" style={{ marginBottom: 4 }}>
         <strong>{title}</strong>
         <br />
         <span style={{ color: "var(--ink-4)" }}>{note}</span>
@@ -468,14 +468,14 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
         summing the orders…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--bad)", maxWidth: 420 }}>
         the engine refuses this source: {sweep.error}
       </p>
     );
@@ -491,7 +491,7 @@ function TransferPlot({ request, nu }: { request: SweepRequest; nu: number }) {
   if (!(sweep.sweep.directBeam > 0)) {
     return (
       <div style={{ maxWidth: 420 }}>
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.warn }}>
+        <p className="readout" style={{ color: GUARD_COLOR.warn }}>
           no transfer curve exists here.
         </p>
         <p className="readout-note" style={{ lineHeight: 1.7 }}>
@@ -750,7 +750,7 @@ export function PhasePanel() {
         )}
       </div>
       {illumination === "darkfield" && !darkfieldFits && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.warn, maxWidth: 660 }}>
+        <p className="readout" style={{ color: GUARD_COLOR.warn, maxWidth: 660 }}>
           darkfield is unavailable at pupil samples {pupilSamples} on a {size}² grid: the{" "}
           {DARKFIELD_INNER}–{DARKFIELD_OUTER} annulus reaches past |s| ={" "}
           {gridReach(size, pupilSamples).toFixed(3)}, which is all the frequency grid has, and{" "}
@@ -798,7 +798,7 @@ export function PhasePanel() {
       </div>
 
       {result !== null && !result.ok && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
+        <p className="readout" style={{ color: GUARD_COLOR.bad, maxWidth: 660 }}>
           the engine refuses this render: {result.error}
         </p>
       )}
@@ -841,7 +841,7 @@ export function PhasePanel() {
       {readout !== null && (
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", marginTop: 16 }}>
           <div>
-            <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
+            <div className="readout" style={{ color: "var(--ink-4)" }}>
               defocused frame&rsquo;s guards
             </div>
             <GuardBlock frame={readout.defocused} />

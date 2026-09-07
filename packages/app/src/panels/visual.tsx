@@ -102,7 +102,7 @@ function RetinaCanvas({ request }: { request: RetinaRequest }) {
 
   if (result && !("size" in result)) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--bad)", maxWidth: 420 }}>
         the {result.stage} refused ({result.source}): {result.error}
       </p>
     );
@@ -185,10 +185,10 @@ function CeilingBlock({ request }: { request: CeilingRequest }) {
     createVisualCeilingWorker,
     request,
   );
-  if (!result) return <p style={{ fontFamily: "var(--mono)", fontSize: 12 }}>bisecting the glass…</p>;
+  if (!result) return <p className="readout">bisecting the glass…</p>;
 
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, opacity: pending ? 0.55 : 1 }}>
+    <div className="readout" style={{ opacity: pending ? 0.55 : 1 }}>
       {result.clearApertureMm === null ? (
         <>
           no clear-aperture wall below{" "}
@@ -316,7 +316,7 @@ export function VisualPanel() {
       </p>
 
       {!result.ok && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 700 }}>
+        <p className="readout" style={{ color: "var(--bad)", maxWidth: 700 }}>
           the {result.stage} refused ({result.source}): {result.error}
         </p>
       )}
@@ -325,7 +325,7 @@ export function VisualPanel() {
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", marginTop: 16 }}>
           <RetinaCanvas request={retina} />
 
-          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8 }}>
+          <div className="readout">
             <div>
               objective f <strong>{readout.objectiveFocalLengthMm.toFixed(1)} mm</strong>
               {readout.obstruction > 0 && <> · ε {readout.obstruction.toFixed(4)}</>}
@@ -500,9 +500,8 @@ export function VisualPanel() {
                 (§ 5l.1), and this cell prints whatever the engine says today:
               </p>
               <p
+                className="readout"
                 style={{
-                  fontFamily: "var(--mono)",
-                  fontSize: 12,
                   color: "var(--bad)",
                   maxWidth: 700,
                   background: "var(--bad-tint)",

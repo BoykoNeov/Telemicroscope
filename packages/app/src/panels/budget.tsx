@@ -180,7 +180,7 @@ export function BudgetPanel() {
 
   return (
     <div style={{ opacity: pending ? 0.55 : 1, transition: "opacity 120ms" }}>
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, maxWidth: 860, lineHeight: 1.7 }}>
+      <p className="readout" style={{ maxWidth: 860 }}>
         Every number a shop would have to hold, priced in <strong>both</strong> of
         § 6au&apos;s currencies — the blur a focuser cannot remove, and the colour a
         cemented objective was bought to not have — and quoted from whichever one
@@ -331,7 +331,7 @@ export function BudgetPanel() {
               </tbody>
             </table>
           </div>
-          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-5)", maxWidth: 860, lineHeight: 1.7 }}>
+          <p className="readout" style={{ color: "var(--ink-5)", maxWidth: 860 }}>
             A cemented block of <em>n</em> surfaces carries 3<em>n</em>−1 numbers and not
             4<em>n</em>−1: wedge is not a row beside centring, it is the{" "}
             <strong>same freedom in another unit</strong>. Tilting a sphere about its vertex by α
@@ -360,7 +360,7 @@ export function BudgetPanel() {
           width={720}
           height={280}
         />
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-5)", maxWidth: 860, lineHeight: 1.7 }}>
+        <p className="readout" style={{ color: "var(--ink-5)", maxWidth: 860 }}>
           Solid with dots is the lens the table above describes; dashed is the other one, drawn
           for comparison and nothing else. Both curves are flat over the first three decades —
           which is what says the factor is a property of the lens rather than of the budget it

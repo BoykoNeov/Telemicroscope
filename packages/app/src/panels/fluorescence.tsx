@@ -149,14 +149,14 @@ function TransferPlot({ request }: { request: TransferRequest }) {
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
         imaging a grating at every frequency…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -356,7 +356,7 @@ export function FluorescencePanel() {
           format={(v) => `×${v}`}
         />
       </div>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
@@ -379,7 +379,7 @@ export function FluorescencePanel() {
       </div>
 
       {result !== null && !result.ok && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
+        <p className="readout" style={{ color: GUARD_COLOR.bad, maxWidth: 660 }}>
           {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       )}
@@ -465,10 +465,8 @@ export function FluorescencePanel() {
 
       {readout !== null && (
         <div
+          className="readout"
           style={{
-            fontFamily: "var(--mono)",
-            fontSize: 12,
-            lineHeight: 1.7,
             color: "var(--ink-3)",
             marginTop: 16,
             maxWidth: 660,

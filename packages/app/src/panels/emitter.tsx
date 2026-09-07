@@ -263,7 +263,7 @@ export function EmitterPanel() {
           format={(v) => `×${v}`}
         />
       </div>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
@@ -287,7 +287,8 @@ export function EmitterPanel() {
 
       {result !== null && !result.ok && (
         <div
-          style={{ fontFamily: "var(--mono)", fontSize: 12, maxWidth: 700, marginBottom: 16 }}
+          className="readout"
+          style={{ maxWidth: 700, marginBottom: 16 }}
         >
           <p style={{ color: GUARD_COLOR.bad }}>
             {refusalVoice(result.source, "this render")}: {result.error}

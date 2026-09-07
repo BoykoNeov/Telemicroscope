@@ -512,7 +512,7 @@ export function BuilderPanel() {
         >
           build it
         </button>
-        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
+        <span className="readout" style={{ color: "var(--ink-4)" }}>
           {dirty
             ? "the form has moved — nothing recomputes until you press it"
             : result
@@ -559,7 +559,7 @@ export function BuilderPanel() {
             forget it
           </button>
         )}
-        <span style={{ fontFamily: "var(--mono)", fontSize: 12, color: storageRefused ? "var(--bad)" : "var(--ink-4)" }}>
+        <span className="readout" style={{ color: storageRefused ? "var(--bad)" : "var(--ink-4)" }}>
           {storageRefused
             ? "this browser refused to store it — the picture panels will show the bench's ten rows only"
             : saved

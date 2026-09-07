@@ -430,7 +430,7 @@ export function CoverslipPanel() {
           marginBottom: 20,
         }}
       >
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 420 }}>
+        <div className="readout" style={{ maxWidth: 420 }}>
           {readout === null ? (
             <span>tracing the slip…</span>
           ) : (
@@ -491,7 +491,7 @@ export function CoverslipPanel() {
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ opacity: sweep.pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}>
           {sweep.result === null ? (
-            <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+            <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
               sweeping the No. 1.5 band…
             </p>
           ) : (
@@ -549,7 +549,7 @@ export function CoverslipPanel() {
       >
         <div style={{ opacity: index.pending ? 0.55 : 1, transition: "opacity 120ms ease-out" }}>
           {index.result === null ? (
-            <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+            <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
               sweeping the slip&rsquo;s index…
             </p>
           ) : (

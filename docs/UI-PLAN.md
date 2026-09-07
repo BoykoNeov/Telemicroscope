@@ -488,8 +488,11 @@ the bare `{ fontFamily: "var(--mono)", fontSize: 12 }` and its variants, and
 **no class in this step covers it.** That is deliberate: the sites differ only
 in leading (inherited 1.5 here, 1.6/1.7/1.8 elsewhere), and inventing a 1.5
 class to fit the majority would be choosing their leading by accident instead of
-on purpose. Leave them inline. Deciding what those should be is a step of its
-own, not a thing a panel commit gets to improvise.
+on purpose. ~~Leave them inline. Deciding what those should be is a step of its
+own, not a thing a panel commit gets to improvise.~~ **Closed at step 10**: the
+answer was 1.6, and it needed no new class — `.readout` was already saying it.
+The eligibility rule above is 5a's, and step 10 is the step that was allowed to
+change it; read it as history, not as the current rule.
 
 ### 5b — the inline styles the stylesheet already says ✓ 2026-09-06
 
@@ -701,7 +704,9 @@ overriding what they inherit, not what the class sets), `fontSize: 14` on one
 **What step 5 does not reach, now written as its own step.** 110 inline mono
 sites remain, in 29 files, and step 10 below is what to do about them. 5a named
 this family and deferred it; closing step 5 is the moment that stops being a
-note inside a landed sub-step and becomes a step of its own.
+note inside a landed sub-step and becomes a step of its own. ~~110 remain.~~
+**Step 10 took 87 of them**; the 24 left are the sizes that had no question —
+see step 10.
 
 ## Step 6 — canvases that fit the viewport ✅ 2026-09-06
 
@@ -1093,7 +1098,7 @@ are declared over `ArrayBufferLike`); only the third was true, and it was a fact
 about a declaration rather than about a buffer, which is why the fix was to
 change the declaration.
 
-## Step 10 — choose the leading of the bare mono readouts
+## Step 10 — choose the leading of the bare mono readouts ✅ 2026-09-07
 
 **Why.** Step 5 named three shapes and reached 86 sites; it deliberately did
 not reach the largest family of all. 110 inline `fontFamily: "var(--mono)"`
@@ -1135,6 +1140,92 @@ above. `npm run typecheck` and `npm test`.
 `.readout` is settled at 1.6 and is not re-opened here; if the answer to this
 step is a different number, changing `.readout` too is a third decision and
 wants its own line in this file.
+
+### 10 — what was decided, and what it cost
+
+**The answer is 1.6, and it was forced rather than chosen.** The must-not-change
+line above is what settles it. Run the four candidates against the one question
+that matters — *does the app end with a single leading for 12 px mono?* — and
+three of them fail on the same ground: 1.5, 1.7 and 1.8 each need a new class
+standing beside `.readout`'s 1.6, which is two answers for one size, which is
+the accident this step exists to stop. Only 1.6 leaves one answer. **So the
+step added no CSS at all** — the class was already there, saying the right
+number, waiting for the sites. What it changed in `styles.css` is the comment
+above it, which had been arguing the opposite rule (*"a bare
+`{ fontFamily, fontSize: 12 }` is NOT a `.readout` … this refactor is required
+not to make [a pixel change]"*) and would otherwise have been left contradicting
+the file it sits in.
+
+**The 22 joined, and they were drift rather than intent.** Two findings, either
+of which would have been enough. The same shape appears at both leadings inside
+one panel — `mech.tsx` writes a `maxWidth: 420` block at 1.7 on line 517 and
+another at the inherited 1.5 on line 603; `coverslip.tsx` does the same at 433
+and 494. And mech's three 1.7 wrappers **never reached what they were written
+around**: each wraps a stack of `<Guard>`s, `Guard` renders
+`<div className="readout">`, and a child that sets its own leading does not
+inherit its parent's — so the 1.7 had been governing one trailing grey `<span>`
+and nothing else since the day `.readout` landed. A value that does not do what
+its author meant is not a reason to keep it.
+
+**87 sites, and the arithmetic is the table's.** 65 from the inherited 1.5, 17
+from 1.7, 5 from 1.8, in 25 files. Two things the count depends on were checked
+rather than assumed. First, *inherited 1.5 really is 1.5*: a bare site nested
+inside a 1.7 wrapper would be moving from 1.7, not from 1.5, so every mono site
+in the app was tested for an ancestor that sets a leading, and none has one.
+Second, *nothing was matched by shape alone*: five of the 65 write the
+properties in a different order (`{ color, fontFamily, fontSize }`,
+`{ maxWidth, color, fontFamily, fontSize }`), which a regex sweep would have
+missed, so the sites were found by matching the enclosing object literal's
+braces and the three properties were deleted from it by name.
+
+**The one site that could not take the class.** `panels/editor.tsx`'s `mono` is
+a `React.CSSProperties` const spread into `note` and five style objects, so
+there is no tag to hang a `className` on. It carries `lineHeight: 1.6` by hand,
+with a comment saying why — otherwise the editor would have been the one panel
+whose readouts had quietly stayed at 1.5.
+
+**The control wrappers moved too, on purpose.** `ui.tsx`'s five sites are not
+paragraphs — they are the `<div>`/`<label>` around a button row, a range input,
+a text field and `Fact`'s label/value stack, and between them they render on
+every route in the app. They took the class anyway: `Fact` and `Guard` are
+readouts by name and one of them was already `.readout`, and holding the other
+four out would have re-created the two-answers problem at a smaller scale with
+no better reason than "a label is not a readout". In the two that wrap a form
+control the change is invisible in any case — the line box there is set by the
+input's own height (~24 px), not by 12 px × 1.6 = 19.2 px.
+
+**What was deliberately left, with the reason.** The 24 remaining inline mono
+sites are the sizes that had no question to settle:
+
+| size | sites | why it was left |
+| --- | --- | --- |
+| 13 | 10 | inherited 1.5, nothing dissenting — one answer already; and they are two shapes (five camera subheadings, four refusal boxes), not a readout family |
+| 11 | 7 | cannot follow 12 px without reopening `.readout-note` — 28 uses, on the must-not-change list; and each of the seven sets a colour of its own, so none is eligible for it regardless |
+| 14 | 4 | inherited 1.5, and four sites in two files is not a family |
+| 15 | 1 | one site |
+| 12 | 1 | `editor.tsx`'s const, above — at 1.6 |
+| 11 @ 1.7 | 1 | `plot.tsx:222`, the app's only dissenter at 11 px; moving it is an 11 px decision, and 11 px is blocked |
+
+**Check, as the step asked.** Not a screenshot: this step changes pixels by
+intent, so a picture that matched would have meant it had failed. What was
+verified instead is that the change is exactly the one described — the census
+that produced the table above was re-run afterwards and reports 111 mono
+occurrences down to 24, with the four remaining families exactly as tabulated;
+the 87 moved split 65/17/5, which is the table read back; the diff is 94
+insertions against 97 deletions across 25 files, every changed line having
+gained a `className` and lost only `fontFamily`, `fontSize` and a `lineHeight`
+of 1.7 or 1.8. `npm run typecheck` and `npm test` are green. No test in
+`packages/app/test/` asserts on inline styles, so none needed updating —
+checked rather than assumed, since a step-5-shaped refactor in a repo that pins
+things is exactly where such an assertion would live.
+
+**One thing this cost, recorded rather than absorbed.** The repo is checked out
+with `core.autocrlf=true`, so working-tree files are CRLF while the blobs are
+LF. A codemod that reads a file, splices it, and writes it back will insert
+bare LFs into a CRLF file, and git stops normalising a file whose endings are
+mixed — which surfaces as *the whole file rewritten* in the diff, three times
+over before it was understood. Any future sweep over these files must normalise
+to LF on the way in and put the file's own ending back on the way out.
 
 ## Out of scope, and why
 

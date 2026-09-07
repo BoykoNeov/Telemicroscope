@@ -177,7 +177,7 @@ export function CurvaturePanel() {
           width={560}
           height={320}
         />
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
+        <div className="readout" style={{ maxWidth: 320 }}>
           <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>reading the plot</div>
           <div style={{ color: "var(--red)" }}>tangential — the fan in the field&rsquo;s own plane</div>
           <div style={{ color: "var(--green)" }}>sagittal — the fan at right angles to it</div>

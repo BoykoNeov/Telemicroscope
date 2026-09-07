@@ -148,7 +148,7 @@ export function TelecentricPanel() {
           format={(id) => tailOf(id).label}
         />
       </Fieldset>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", margin: "-6px 0 12px" }}>
+      <div className="readout" style={{ color: "var(--ink-4)", margin: "-6px 0 12px" }}>
         {chosen.note}
       </div>
 
@@ -177,7 +177,7 @@ export function TelecentricPanel() {
       </Fieldset>
 
       {!result.ok && (
-        <p style={{ maxWidth: 660, color: "var(--red)", fontFamily: "var(--mono)", fontSize: 12 }}>
+        <p className="readout" style={{ maxWidth: 660, color: "var(--red)" }}>
           {refusalVoice(result.source, "this placement")}: {result.error}
         </p>
       )}
@@ -197,7 +197,7 @@ export function TelecentricPanel() {
               width={560}
               height={320}
             />
-            <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 320 }}>
+            <div className="readout" style={{ maxWidth: 320 }}>
               <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>reading the plot</div>
               <div style={{ color: "var(--red)" }}>FFD(λ) — where the stop would have to be, per colour</div>
               <div style={{ color: "var(--accent-2)" }}>the horizontal line — where the stop actually is</div>
@@ -386,7 +386,7 @@ export function TelecentricPanel() {
 
       <h2 style={{ fontSize: 16, marginTop: 28 }}>Every tail, not the one that makes the point</h2>
       {bandTooWide !== undefined && (
-        <p style={{ maxWidth: 660, color: "var(--red)", fontFamily: "var(--mono)", fontSize: 12 }}>
+        <p className="readout" style={{ maxWidth: 660, color: "var(--red)" }}>
           {refusalVoice("app", "this band")}: {bandTooWide}
         </p>
       )}

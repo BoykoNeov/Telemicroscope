@@ -228,14 +228,14 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
         building the focus stacks through this objective…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -502,14 +502,14 @@ function DepthPlot({ request }: { request: DepthRequest }) {
 
   if (depth === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
         bisecting the depth budget on this objective&rsquo;s own Strehl…
       </p>
     );
   }
   if (!depth.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(depth.source, "this objective")}: {depth.error}
       </p>
     );
@@ -726,7 +726,7 @@ export function VolumePanel() {
           format={(v) => `×${v}`}
         />
       </div>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>
@@ -782,7 +782,7 @@ export function VolumePanel() {
       </div>
 
       {result !== null && !result.ok && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: GUARD_COLOR.bad, maxWidth: 660 }}>
+        <p className="readout" style={{ color: GUARD_COLOR.bad, maxWidth: 660 }}>
           {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       )}

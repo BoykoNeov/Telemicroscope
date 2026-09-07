@@ -125,7 +125,7 @@ export function WavefrontPanel() {
           yMax={bound}
           width={520}
         />
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7 }}>
+        <div className="readout">
           <div style={{ color: "var(--ink-3)", marginBottom: 4 }}>largest terms, piston and tilt aside</div>
           {biggest.map((t) => (
             <div key={t.j}>

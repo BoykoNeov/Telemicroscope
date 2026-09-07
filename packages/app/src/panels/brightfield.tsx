@@ -220,14 +220,14 @@ function CutoffPlot({
 
   if (sweep === null) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
         bisecting the cutoff…
       </p>
     );
   }
   if (!sweep.ok) {
     return (
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 420 }}>
+      <p className="readout" style={{ color: "var(--bad)", maxWidth: 420 }}>
         {refusalVoice(sweep.source, "this objective")}: {sweep.error}
       </p>
     );
@@ -481,7 +481,7 @@ export function BrightfieldPanel() {
         )}
       </div>
       {condenserKind === "pupil-matched" && (
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+        <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
           {liveSteps.length === 0 ? (
             <span style={{ color: GUARD_COLOR.warn }}>
               at ν = {frequencyOf(cycles, pupilSamples).toFixed(4)} no lattice step disagrees with
@@ -497,7 +497,7 @@ export function BrightfieldPanel() {
           )}
         </div>
       )}
-      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 20 }}>

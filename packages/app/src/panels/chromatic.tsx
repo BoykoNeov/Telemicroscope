@@ -76,7 +76,7 @@ export function ChromaticPanel({ link, linkBroken }: PanelProps) {
     <>
       <h1 style={{ fontSize: 20 }}>Where each colour focuses, and what it costs</h1>
       {linkBroken && (
-        <p style={{ color: "var(--bad)", fontFamily: "var(--mono)", fontSize: 12 }}>
+        <p className="readout" style={{ color: "var(--bad)" }}>
           The link that opened this page did not decode, so these are the panel&rsquo;s own
           defaults and <strong>not</strong> the image you came from. Set the aperture yourself, or
           go back and click the artifact again.

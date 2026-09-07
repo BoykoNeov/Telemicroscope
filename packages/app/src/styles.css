@@ -343,15 +343,28 @@ figcaption {
  * `style={{ fontFamily: "var(--mono)", fontSize: 12, ... }}` — ~185 of them —
  * which worked, and made a change of size or leading a thirty-file edit.
  *
- * Applied under one rule, and it is narrower than it looks: a site takes the
- * class only when EVERY property the class sets is already there with the
- * class's value. Extra properties (`minWidth`, `marginTop`) stay inline beside
- * the `className`; the absence of one cannot. So a bare
- * `{ fontFamily, fontSize: 12 }` is NOT a `.readout` — it inherits the base
- * 1.5 leading and the class would move it to 1.6. That is a pixel change, and
- * this refactor is required not to make one. There is deliberately no 1.5
- * variant: inventing a class to fit the majority would be choosing the leading
- * for them by accident rather than on purpose.
+ * Extra properties (`minWidth`, `marginTop`) stay inline beside the
+ * `className`; the class carries only what every site that takes it shares.
+ *
+ * **A 12 px mono readout leads at 1.6, and that is now the whole answer.**
+ * Step 5 could not say this: it was a refactor forbidden to move a pixel, so
+ * it could only class the sites already at 1.6 and had to leave 87 others
+ * spread across 1.5 (65, by inheriting), 1.7 (17) and 1.8 (5). Step 10 was the
+ * step allowed to move them, and it did — all 87 take this class. 1.6 was not
+ * chosen from the four by taste; it is the only one that leaves the size with
+ * a single answer, because `.readout` already said it and reopening a landed
+ * class is a different decision than this one.
+ *
+ * The 1.7s and 1.8s were drift, not intent, and two things showed it: the
+ * same shape appears at 1.5 and at 1.7 within one panel (`mech.tsx`,
+ * `coverslip.tsx`), and mech's three 1.7 wrappers never reached the `<Guard>`
+ * rows they were written around — a Guard is itself a `.readout` and was
+ * overriding them at 1.6 the whole time.
+ *
+ * The other sizes were left alone because none of them has a question: 13 px,
+ * 14 px and 15 px are at the inherited 1.5 with nothing dissenting, and 11 px
+ * cannot follow 12 px without reopening `.readout-note` below — see its own
+ * note.
  */
 
 .readout {
@@ -360,6 +373,14 @@ figcaption {
   line-height: 1.6;
 }
 
+/*
+ * 11 px states no leading, so it inherits the base 1.5 — and so do the seven
+ * bare 11 px sites the panels still carry, which is one answer already. Giving
+ * it 1.6 to match `.readout` would put two leadings on 11 px, the very thing
+ * step 10 closed at 12 px; and those seven could not take this class anyway,
+ * because each sets a colour of its own and this one says `--ink-4`. The one
+ * dissenter in the app is `plot.tsx`'s 11 px at 1.7.
+ */
 .readout-note {
   font-family: var(--mono);
   font-size: 11px;

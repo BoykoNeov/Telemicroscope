@@ -425,7 +425,7 @@ export function StagePanel() {
         />
         <Choice label={`display zoom ${zoom}×`} options={[1, 2, 3]} value={zoom} onChange={setZoom} />
       </div>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 12 }}>
@@ -509,7 +509,7 @@ export function StagePanel() {
           </div>
         </div>
 
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 400 }}>
+        <div className="readout" style={{ maxWidth: 400 }}>
           {info === null ? (
             <span>tracing the anchor…</span>
           ) : !info.ok ? (

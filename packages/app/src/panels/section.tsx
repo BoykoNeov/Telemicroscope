@@ -262,7 +262,7 @@ export function SectionPanel() {
         />
         <Choice label="lamp" options={LAMPS} value={lamp} onChange={setLamp} format={(l) => LAMP_LABEL[l]} />
       </div>
-      <div style={{ fontFamily: "var(--mono)", fontSize: 12, marginBottom: 12, maxWidth: 720 }}>
+      <div className="readout" style={{ marginBottom: 12, maxWidth: 720 }}>
         <ObjectiveLine label={objective.label} note={objective.note} />
       </div>
       <div style={{ display: "flex", gap: 24, flexWrap: "wrap", marginBottom: 16 }}>
@@ -281,13 +281,13 @@ export function SectionPanel() {
           would be the panel promising a render the engine refuses.
         */}
         {!gridHoldsPupil ? (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 320 }}>
+          <p className="readout" style={{ color: "var(--bad)", maxWidth: 320 }}>
             no condenser fits: a pupil of {pupilSamples} bins needs a grid of at least{" "}
             {pupilSamples + 2}, and this one is {size}. Not even the coherent limit renders —
             raise the grid.
           </p>
         ) : maxS < S_STEP ? (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--warn)", maxWidth: 320 }}>
+          <p className="readout" style={{ color: "var(--warn)", maxWidth: 320 }}>
             condenser S = 0 — this grid has no room for a pupil shifted at all, so the coherent
             limit is the only condenser it admits. Raise the grid to open it.
           </p>
@@ -303,16 +303,16 @@ export function SectionPanel() {
         )}
       </div>
 
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 660 }}>
+      <p className="readout" style={{ color: "var(--ink-3)", maxWidth: 660 }}>
         {entry.note}
       </p>
 
       {result === null ? (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
+        <p className="readout" style={{ color: "var(--ink-4)" }}>
           summing over the condenser, once per wavelength…
         </p>
       ) : !result.ok ? (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 660 }}>
+        <p className="readout" style={{ color: "var(--bad)", maxWidth: 660 }}>
           {refusalVoice(result.source, "this render")}: {result.error}
         </p>
       ) : (
@@ -338,7 +338,7 @@ export function SectionPanel() {
             />
           </div>
 
-          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, maxWidth: 660 }}>
+          <div className="readout" style={{ maxWidth: 660 }}>
             frame mean ({readout!.meanChromaticity.x.toFixed(4)},{" "}
             {readout!.meanChromaticity.y.toFixed(4)}) · lamp white (
             {readout!.lampChromaticity.x.toFixed(4)}, {readout!.lampChromaticity.y.toFixed(4)}) ·{" "}

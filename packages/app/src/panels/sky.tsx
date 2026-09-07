@@ -464,7 +464,7 @@ export function SkyPanel() {
         />
       )}
       {wall.result !== null && drawn.length === 0 && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ok)" }}>
+        <p className="readout" style={{ color: "var(--ok)" }}>
           no wall below {WALL_SWEEP_CEILING_DEG}° at any focal ratio swept — which is an absence
           inside this range, not the absence of a wall.
         </p>

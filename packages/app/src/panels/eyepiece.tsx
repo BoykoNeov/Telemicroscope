@@ -425,7 +425,7 @@ export function EyepiecePanel() {
       </div>
 
       <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-start" }}>
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, width: 440 }}>
+        <div className="readout" style={{ width: 440 }}>
           {!instrument.ok ? (
             <Guard
               label={`the ${instrument.stage} refused:`}
@@ -569,7 +569,7 @@ export function EyepiecePanel() {
         }}
       >
         {sweep.result === null || sweep.result.points.length === 0 ? (
-          <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 420 }}>
+          <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 420 }}>
             solving {SWEEP_POINTS} eyepieces…
           </p>
         ) : (

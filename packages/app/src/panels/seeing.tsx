@@ -156,7 +156,7 @@ export function SeeingPanel() {
       </div>
 
       {result && !("size" in result) && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--bad)", maxWidth: 700 }}>
+        <p className="readout" style={{ color: "var(--bad)", maxWidth: 700 }}>
           the {result.stage} refused ({result.source}): {result.error}
         </p>
       )}
@@ -214,7 +214,7 @@ export function SeeingPanel() {
             }
           />
 
-          <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.8, maxWidth: 420 }}>
+          <div className="readout" style={{ maxWidth: 420 }}>
             <div>
               D/r₀ <strong>{r.dOverR0.toFixed(2)}</strong> · {r.elapsedMs.toFixed(0)} ms
             </div>

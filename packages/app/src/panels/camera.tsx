@@ -250,7 +250,7 @@ function FrameGuards({ result }: { result: CameraResult }) {
 function PictureReadouts({ result }: { result: CameraResult }) {
   const fp2 = result.footprint * result.footprint;
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
+    <div className="readout" style={{ marginTop: 8 }}>
       <div>
         footprint <strong>{result.footprint.toFixed(3)}</strong> native px · covers{" "}
         {pct(result.coveredFraction, 4)} of the frame · energy kept{" "}
@@ -287,7 +287,7 @@ function PictureReadouts({ result }: { result: CameraResult }) {
 /** § 5s, and which of its two laws is a pin. */
 function ExposureReadouts({ result }: { result: CameraResult }) {
   return (
-    <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, marginTop: 8 }}>
+    <div className="readout" style={{ marginTop: 8 }}>
       <div>
         display exposure <strong>{result.displayExposure.toExponential(4)}</strong> — fixed, and the
         same scalar on every frame
@@ -626,7 +626,7 @@ export function CameraPanel() {
             the whole claim — that aperture buys stars and not sky — is a
             comparison the reader has to be able to make. */}
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
+          <label className="readout">
             <input
               type="checkbox"
               checked={skyMagnitudeAB !== undefined}
@@ -648,7 +648,7 @@ export function CameraPanel() {
           )}
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          <label style={{ fontFamily: "var(--mono)", fontSize: 12 }}>
+          <label className="readout">
             <input
               type="checkbox"
               checked={noiseSeed !== undefined}
@@ -666,7 +666,7 @@ export function CameraPanel() {
         </div>
       </div>
 
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900, margin: 0 }}>
+      <p className="readout" style={{ color: "var(--ink-3)", maxWidth: 900, margin: 0 }}>
         {OPTIC_NOTES[spec.optic]}. Apertures are per optic and deliberately do not share a range —
         `refractorPair` is a toy lens whose halo must stay on an FFT grid, and a 6 mm Newtonian is
         not a thing. What makes the three comparable is that the sampling question turns on focal
@@ -742,7 +742,7 @@ export function CameraPanel() {
             ))}
           </tbody>
         </table>
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
+        <p className="readout" style={{ color: "var(--ink-3)", maxWidth: 900 }}>
           `criticalPitchMm` ∝ λ, so the band is a {geometry.spread.lambdaRatio.toFixed(3)}× spread
           against `samplingRegime`&rsquo;s 2% tolerance: at the pitch that is exactly critical at
           550 nm the blue plane is undersampled and the red is oversampled, on one sensor. The NA is
@@ -797,7 +797,7 @@ export function CameraPanel() {
             ))}
           </tbody>
         </table>
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
+        <p className="readout" style={{ color: "var(--ink-3)", maxWidth: 900 }}>
           The critical pitch is <em>not</em> λ/(4·NA) with λ alone moving — the traced NA moves too.
           A singlet&rsquo;s falls monotonically and its spread runs <strong>wider</strong> than the
           wavelength ratio; an achromat&rsquo;s peaks mid-band at the crossing, so its spread runs
@@ -828,7 +828,7 @@ export function CameraPanel() {
           level="warn"
           detail={mtf.refusedAtNyquist}
         />
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7, marginTop: 6 }}>
+        <div className="readout" style={{ marginTop: 6 }}>
           largest departure from the closed form below Nyquist:{" "}
           <strong>{mtf.maxRelativeDeparture.toExponential(3)}</strong>
           <div style={{ color: "var(--ink-3)" }}>
@@ -851,7 +851,7 @@ export function CameraPanel() {
         <h3 style={{ fontFamily: "var(--mono)", fontSize: 13, margin: "0 0 8px" }}>
           plate scale, field of view, and the floor that is not distortion
         </h3>
-        <div style={{ fontFamily: "var(--mono)", fontSize: 12, lineHeight: 1.7 }}>
+        <div className="readout">
           plate scale <strong>{geometry.formats[0]?.arcsecPerPixel.toFixed(4) ?? "—"}</strong> ″/px
           at {FOCUS_NM} nm ·{" "}
           <span style={{ color: "var(--ink-3)" }}>
@@ -912,7 +912,7 @@ export function CameraPanel() {
             ))}
           </tbody>
         </table>
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
+        <p className="readout" style={{ color: "var(--ink-3)", maxWidth: 900 }}>
           The obvious readout — traced FOV against the paraxial 2·atan(½w/EFL) — has a{" "}
           <strong>floor</strong> in it, 0.0212% on the f/10 achromat and still there at 0.029° of
           field where distortion is identically zero. Calling that &ldquo;distortion&rdquo; would be
@@ -924,7 +924,7 @@ export function CameraPanel() {
           fractional form. The paraboloid is the control: its focus offset is 2e-5 µm and its
           distortion is <strong>0 to f64</strong>, so both floors vanish together.
         </p>
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-3)", maxWidth: 900 }}>
+        <p className="readout" style={{ color: "var(--ink-3)", maxWidth: 900 }}>
           A refused row is § 2f&rsquo;s wall, and it is real: past a certain field a Newtonian&rsquo;s
           diagonal stops passing the chief ray, so the sensor corner has no image point rather than a
           bad one. Driving this panel is what found that `fieldOfView`&rsquo;s bracket started

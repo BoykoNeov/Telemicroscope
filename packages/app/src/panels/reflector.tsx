@@ -265,7 +265,7 @@ function VignettePlot({ request }: { request: VignetteRequest }) {
     createReflectorVignetteWorker,
     request,
   );
-  if (!result) return <p style={{ fontFamily: "var(--mono)", fontSize: 12 }}>sweeping…</p>;
+  if (!result) return <p className="readout">sweeping…</p>;
 
   const closed = chiefRayFieldLimitDeg(request.spec.focalRatio);
   const last = result.points[result.points.length - 1]!;

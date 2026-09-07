@@ -94,7 +94,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
     <>
       <h1 style={{ fontSize: 20 }}>Where each ray in the pupil lands</h1>
       {linkBroken && (
-        <p style={{ color: "var(--bad)", fontFamily: "var(--mono)", fontSize: 12 }}>
+        <p className="readout" style={{ color: "var(--bad)" }}>
           The link that opened this page did not decode, so these are the panel&rsquo;s own
           defaults and <strong>not</strong> the image you came from. Set the lens, aperture and
           field yourself, or go back and click the artifact again.
@@ -178,7 +178,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
       </div>
 
       {fieldDeg === 0 && (
-        <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--warn)", maxWidth: 640 }}>
+        <p className="readout" style={{ color: "var(--warn)", maxWidth: 640 }}>
           You are on the axis, so the even half below is a floor and not a measurement — an axially
           symmetric lens has no coma there, and a fan that looks empty of it is the panel working.
           Walk the field slider out to see the quantity this page is about.
@@ -270,7 +270,7 @@ export function RayFanPanel({ link, linkBroken }: PanelProps) {
           the other artifact: where each colour focuses →
         </a>
       </p>
-      <p style={{ fontSize: 12, color: "var(--ink-5)", fontFamily: "var(--mono)", maxWidth: 640 }}>
+      <p className="readout" style={{ color: "var(--ink-5)", maxWidth: 640 }}>
         wavelengths drawn: {FAN_LINES.map((l) => `${l.name} ${l.nm.toFixed(1)} nm`).join(" · ")}
       </p>
     </>

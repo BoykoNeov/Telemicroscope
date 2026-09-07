@@ -132,12 +132,12 @@ function MicroscopeTable({ pupilSamples, size }: { pupilSamples: number; size: n
           })}
         </tbody>
       </table>
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)" }}>
+      <p className="readout" style={{ color: "var(--ink-4)" }}>
         {rows ? `${elapsedMs.toFixed(0)} ms for the whole catalogue` : "tracing the catalogue…"} ·
         λ = {LAMBDA_NM} nm · drift is what one common ruler costs across the frame · lost is rays
         vignetted at the corner
       </p>
-      <p style={{ fontFamily: "var(--mono)", fontSize: 12, color: "var(--ink-4)", maxWidth: 720 }}>
+      <p className="readout" style={{ color: "var(--ink-4)", maxWidth: 720 }}>
         σ is the RMS wavefront <em>as traced</em>, about its own mean at each system&rsquo;s own
         image plane — no best-focus solve, because that is the wavefront a render will actually see.
         The comparison against Maréchal&rsquo;s λ/14 = {MARECHAL_WAVES.toFixed(4)} waves is therefore
