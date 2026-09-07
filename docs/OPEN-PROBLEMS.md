@@ -372,9 +372,23 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     Until it is decided, `packages/app` cannot show the exact cap on its WATER and
     AIR rows even though the engine can now render it: the panel's fields are
     absent *together* so that a caption cannot describe one wavefront beside a
-    picture drawn on another (item 16). **What would refute** the ½ is a measured
-    lit-rim ratio away from 2 on any truncating row — § 6l.10 pins it at exactly 2
-    for the phase, so the risk is in the band's definition, not in the wavefront.
+    picture drawn on another (item 16).
+
+    **The wavefront half of this is settled and there is nothing left to measure
+    in it**: § 6l.10 pins the lit-rim ratio at exactly 2, `toBe`, at every s — so
+    the old "what would refute it" (a measured ratio away from 2) is already
+    closed by the step that opened this entry, and a reader looking for an
+    experiment here will not find one. **What is open is a choice**: which rim the
+    band is quoted at. Quoting the lit rim makes (1 + cos α)/2 exactly ½ on every
+    truncating mount and makes every band on the ladder incomparable with it;
+    quoting the nominal rim keeps them comparable and defines the band where there
+    is no light. **What would refute the ½** is therefore not a measurement of the
+    wavefront but a demonstration that the lit-rim convention breaks something the
+    nominal one holds — flux, the § 6k.1 invariance, or a rung's reading — which
+    is a thing to derive rather than to run. A step that closes this closes it by
+    argument and a renaming, and its cost is in the readings it would have to
+    restate, not in what it would have to trace. Also `depthOfFocusMm`'s own doc
+    comment now says this at the function, so a caller meets it there.
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
     the planes `spectralStack` resamples onto the common grid come back +0.3%

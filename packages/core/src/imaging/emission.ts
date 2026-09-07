@@ -308,6 +308,18 @@ export function tracedEmissionPupils(
  * object side, air on the image side of every system in the ladder. Getting it
  * wrong is a factor of 1.515 at NA 1.40, which is exactly the size of thing that
  * reads as a finding.
+ *
+ * **"The rim" here is the NOMINAL rim ρ = 1, and a truncating mount has no light
+ * there** — open register item 18, and worth knowing at this function rather than
+ * only in the register. § 6l.10 lets a specimen mounted in something rarer than
+ * the immersion render on the exact cap, so an oil 1.40 over water is now an
+ * ordinary thing to ask this about; it will answer, with a quarter wave measured
+ * at ρ = 1 while the light stops at ρ = 0.9533. That is not wrong — it is the
+ * paraboloid's band, which is what this function has always returned — but it is
+ * a band nothing is quoted at. Unguarded deliberately: every rung above sits at
+ * NA 0.17 or below where it is the right number to three decimals, and § 6l.10's
+ * own stack uses it for a step SIZE rather than a physical claim. The refusal
+ * belongs to `exactDepthFactor`, which cannot answer at all there and says so.
  */
 export function depthOfFocusMm(
   wavelengthNm: number,
