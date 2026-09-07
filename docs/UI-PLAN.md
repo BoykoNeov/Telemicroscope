@@ -941,7 +941,7 @@ again, near enough). The six files alone: 137 of 137 in 260 s, with four of the
 per-panel theme; the control is the shell's and the panels re-style themselves
 through the tokens as before.
 
-## Step 9 — drop the panel-side copy of a transferred buffer
+## Step 9 — drop the panel-side copy of a transferred buffer ✅ 2026-09-07
 
 **Why.** Opened by step 2, whose own instruction to keep the copy carries the
 argument against it. Every panel that paints does
@@ -1080,6 +1080,18 @@ only its own route.
 | 9l | `telescope.tsx` | `RenderResult.rgba` and `FieldResult.rgba`, two sites | `#/telescope` ✅ |
 | 9m | `camera.tsx` | `nativeRgba`, `sensorRgba`, optional `observedRgba` | `#/camera` ✅ |
 | 9n | `phase.tsx` | `PhaseFrame.rgba` — an element type — and its `toGrey` | `#/phase` ✅ |
+
+**The step, closed.** Fifteen paint sites in fourteen panels; no
+`new Uint8ClampedArray` remains anywhere under `panels/`, and no
+`ArrayBufferLike` comment remains to defend one. Checked whole at the end
+rather than only panel by panel: the build of the tree as it stood before any
+of it, and the build after all of it, swept over all fourteen routes with the
+settled detector — **forty painted canvases, every one identical**. The four
+comments that had defended the copy said three different things between them
+(`ImageData` takes ownership; the buffer arrived by structured clone; the arrays
+are declared over `ArrayBufferLike`); only the third was true, and it was a fact
+about a declaration rather than about a buffer, which is why the fix was to
+change the declaration.
 
 ## Step 10 — choose the leading of the bare mono readouts
 
