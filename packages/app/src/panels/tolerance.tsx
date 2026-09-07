@@ -169,7 +169,7 @@ const NO_SCALES: readonly RowScale[] = [];
 /** Where the FFT grid stops holding the star. `render.ts`'s own guard. */
 const TRUNCATION_LIMIT = 1e-3;
 
-function StarCanvas({ rgba, size }: { rgba: Uint8ClampedArray; size: number }) {
+function StarCanvas({ rgba, size }: { rgba: Uint8ClampedArray<ArrayBuffer>; size: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const element = canvas.current;
@@ -180,7 +180,7 @@ function StarCanvas({ rgba, size }: { rgba: Uint8ClampedArray; size: number }) {
     if (!context) return;
     // A fresh buffer: `ImageData` takes ownership, and this one arrived by
     // structured clone and is repainted whenever the job answers.
-    context.putImageData(new ImageData(new Uint8ClampedArray(rgba), size, size), 0, 0);
+    context.putImageData(new ImageData(rgba, size, size), 0, 0);
   }, [rgba, size]);
   return (
     <canvas

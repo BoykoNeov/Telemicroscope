@@ -420,8 +420,8 @@ export interface ToleranceResult {
    */
   readonly strehlRatioMeaningful: boolean;
   readonly sweep: readonly SweepPoint[];
-  readonly rgbaNominal: Uint8ClampedArray;
-  readonly rgbaPerturbed: Uint8ClampedArray;
+  readonly rgbaNominal: Uint8ClampedArray<ArrayBuffer>;
+  readonly rgbaPerturbed: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   readonly pixelScaleMm: number;
   /** The XYZ-Y both frames were divided by — one reference, printed. */
