@@ -33,6 +33,21 @@
  * that exist, `stage.ts`'s `SYSTEMS` and `GEOMETRIES`, hold no typed array that
  * reaches a result), and no worker reads its result after posting it. A worker
  * that grows either habit must stop using this.
+ *
+ * **Why the results declare `Uint8ClampedArray<ArrayBuffer>` rather than the
+ * bare name.** Since TypeScript 5.7 a typed array is generic over its buffer,
+ * and the bare `Uint8ClampedArray` means `Uint8ClampedArray<ArrayBufferLike>` —
+ * which admits a `SharedArrayBuffer`, which `ImageData` refuses. A panel holding
+ * one of those had to copy it into a fresh array before it could paint it, and
+ * four of them carried a comment saying exactly that.
+ *
+ * The copy was buying a type, not a buffer. Every RGBA array in this app is
+ * allocated by a `new Uint8ClampedArray(...)` in the worker and then transferred
+ * — transfer detaches the worker's view and hands the same plain `ArrayBuffer`
+ * to the main thread — and nothing here allocates a `SharedArrayBuffer` at all
+ * (the walk below names the shared kind only in order to skip it). So the narrow
+ * type is the true one, and saying it at the declaration is what lets the paint
+ * sites drop the copy. UI-PLAN's step 9.
  */
 
 /** Anything that owns a `postMessage` willing to take a transfer list. */

@@ -948,16 +948,27 @@ argument against it. Every panel that paints does
 `context.putImageData(new ImageData(new Uint8ClampedArray(result.rgba), size, size), …)`.
 The copy exists because `ImageData` refuses a view over a `SharedArrayBuffer` —
 but a buffer that arrived by transfer is a plain `ArrayBuffer`, so
-`new ImageData(result.rgba, size, size)` is already legal for every one of them.
-That is the second of the two copies step 2's *Why* counted, and step 2 removed
-only the first. It is worst on `panels/stage.tsx`, which copies **every cached
-tile on every pan** rather than once per reply.
+~~`new ImageData(result.rgba, size, size)` is already legal for every one of
+them~~ **it is legal at run time and rejected at compile time, which 9a found
+and which the *Change* below now says how to fix.** That is the second of the
+two copies step 2's *Why* counted, and step 2 removed only the first. It is
+worst on `panels/stage.tsx`, which copies **every cached tile on every pan**
+rather than once per reply.
 
 **Change.** In each panel that paints a worker result, drop the
 `new Uint8ClampedArray(...)` and pass `result.rgba` to `ImageData` directly. ONE
 PANEL PER COMMIT. Where the array is built on the main thread instead — the
-`toGrey(...)` calls in `panels/emitter.tsx` and `panels/fluorescence.tsx` — the
+`toGrey(...)` calls in `panels/emitter.tsx`, `panels/fluorescence.tsx` and
+`panels/volume.tsx` — the
 copy is already redundant for a different reason and goes the same way.
+
+**And narrow the declaration the buffer came through**, or the paint site will
+not compile: since TypeScript 5.7 a typed array is generic over its buffer, and
+a bare `Uint8ClampedArray` means `Uint8ClampedArray<ArrayBufferLike>`, which
+admits the `SharedArrayBuffer` that `ImageData` refuses. Say
+`Uint8ClampedArray<ArrayBuffer>` on the result field **and on whatever produced
+it** — never a cast at the paint site. 9a's landing note has the reasoning and
+the list of producers.
 
 **Check.** Screenshot the panel before and after at the same route; they must
 match to the pixel. Then the case the copy was hiding: paint the same result
@@ -967,7 +978,61 @@ not consume it, but that is the assumption being cashed in.
 
 **Must not change.** A panel that MUTATES the pixels it received before painting
 them, if one exists — search for a write into `result.rgba` — must keep its copy,
-since the buffer is now the only one there is.
+since the buffer is now the only one there is. **None does.**
+`pixels[`, `pixels.set(`, `.fill(` and `rgba[` across `panels/` return nothing,
+and the search has to be run on the LOCAL name — six panels bind the copy to a
+`pixels` const first, so a search for `result.rgba` alone finds nothing and
+proves nothing. `panels/telescope.tsx`, the one the clause was written for,
+draws its hotspots as positioned DOM over the canvas and not into the array.
+
+### 9a — the stage ✅ 2026-09-07
+
+`panels/stage.tsx`'s one site, and the three declarations behind it. What the
+doing of it settled, for the thirteen panel commits that follow:
+
+**The copy was buying a type, not a buffer.** Deleting it alone does not
+compile — `error TS2769 … Type 'SharedArrayBuffer' is not assignable to type
+'ArrayBuffer'`. The repo asks for `typescript@^5.5.0` and resolves **5.9.3**,
+where a typed array is generic over its buffer, so the bare `Uint8ClampedArray`
+every result declares is `Uint8ClampedArray<ArrayBufferLike>` and `ImageData`
+takes only the plain kind. `new Uint8ClampedArray(...)` always produces the
+plain kind, so the copy was laundering the type; four panels
+(`camera.tsx:128`, `reflector.tsx:154`, `sky.tsx:111`, `telescope.tsx:69`) had
+already written a comment saying exactly that, and it was correct.
+
+**Narrow at the producer, never cast at the paint site.** A transferred buffer
+really is a plain `ArrayBuffer` — transfer detaches the worker's view and hands
+the same memory over — and nothing in this app allocates a `SharedArrayBuffer`
+at all, so the narrow type is the *true* one and a cast would be hiding a fact
+rather than stating it. The paragraph making that argument is in `transfer.ts`,
+once, rather than at fifteen declarations. For the stage that was three
+annotations — `StageTileReadout.rgba`, `toGrey`, `toColour` — plus one in the
+engine: `core`'s `toSrgbBytes` allocates its own array and had simply
+under-declared the return, which every colour panel downstream will want too.
+`ArrayBuffer` is an ES type, not a DOM one, so this does not put DOM in `core`.
+
+**How it was checked, and why not with a screenshot.** The canvas is read
+directly — `getImageData` over the whole surface, hashed in the page — which is
+the pixel evidence without a screenshot's clipping or device-pixel-ratio to
+argue about, and the same read counts the `#111` ground a painted tile would
+have covered, so a consumed buffer shows up as a number rather than as something
+someone has to notice. Two builds served in turn on the guarded port (the served
+entry hash checked against the build log each time), and the hash was taken only
+once the tile counter had stopped — three workers paint progressively, so a hash
+taken at a wall-clock offset differs run to run with no code change at all.
+
+| | before | after |
+| --- | --- | --- |
+| first paint | `baf222f4` | `baf222f4` |
+| panned away | `32bc5c3f` | `32bc5c3f` |
+| panned back, cached tiles repainted | `baf222f4` | `baf222f4` |
+
+The third row is the assumption being cashed in: `putImageData` reads the buffer
+and does not consume it, so a tile painted once, panned away from and panned
+back to is bit for bit the tile it was. Harness at
+`W:/temp/claude/telemicroscope-step9/` — `preview.mjs` serves a named `dist`
+on the guarded port, `drive.mjs <tag>` does the run. It imports `vite` by
+absolute file URL: a script outside the repo cannot resolve a bare specifier.
 
 ## Step 10 — choose the leading of the bare mono readouts
 

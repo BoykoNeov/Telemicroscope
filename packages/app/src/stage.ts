@@ -296,7 +296,7 @@ export interface StageTileReadout {
   readonly col: number;
   readonly row: number;
   /** Greyscale RGBA of the KEPT span, `size`×`size`. */
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   /** Object-plane centre of this tile (mm) — where on the specimen you are. */
   readonly objectCentreMm: { readonly x: number; readonly y: number };
@@ -333,7 +333,7 @@ export interface StageTileDone {
  * source weights to Σ = 1, so a clear field is intensity 1 whatever the
  * condenser does, and that is an absolute reference the whole plane can share.
  */
-function toGrey(intensity: Float64Array, size: number): Uint8ClampedArray {
+function toGrey(intensity: Float64Array, size: number): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   for (let i = 0; i < size * size; i++) {
     const v = Math.round((255 * intensity[i]!) / WHITE_INTENSITY);
@@ -384,7 +384,7 @@ export function clearFieldExposure(samples: readonly WavelengthSample[]): number
   return white.y > 0 ? 1 / (WHITE_INTENSITY * white.y) : 1;
 }
 
-function toColour(stack: BrightfieldSpectralStack): Uint8ClampedArray {
+function toColour(stack: BrightfieldSpectralStack): Uint8ClampedArray<ArrayBuffer> {
   return toSrgbBytes(colorImageFromStack(stack), {
     exposure: clearFieldExposure(stack.samples),
   });

@@ -176,7 +176,7 @@ export function StagePanel() {
     const top = pan.y - view / 2;
     for (const tile of tiles.current.values()) {
       context.putImageData(
-        new ImageData(new Uint8ClampedArray(tile.rgba), tile.size, tile.size),
+        new ImageData(tile.rgba, tile.size, tile.size),
         tile.col * useful - left,
         tile.row * useful - top,
       );

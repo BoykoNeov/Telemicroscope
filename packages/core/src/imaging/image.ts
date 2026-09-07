@@ -266,7 +266,10 @@ export function autoExposure(image: ColorImage, quantile = 0.999): number {
  *
  * The only place gamma is applied, and the only place values are clamped.
  */
-export function toSrgbBytes(image: ColorImage, options: SrgbOptions = {}): Uint8ClampedArray {
+export function toSrgbBytes(
+  image: ColorImage,
+  options: SrgbOptions = {},
+): Uint8ClampedArray<ArrayBuffer> {
   const exposure = options.exposure ?? 1;
   const gains =
     options.whitePoint === undefined ? { r: 1, g: 1, b: 1 } : whiteBalanceGains(options.whitePoint);
