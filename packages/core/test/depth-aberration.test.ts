@@ -14,6 +14,7 @@ import {
   mountAperture,
   mountDefocusWaves,
   mountPupils,
+  mountSinAlpha,
   mountVolumeOptions,
   mountWavefrontWaves,
   withMountAberration,
@@ -24,13 +25,19 @@ import {
   axialTransfer,
   defocusing,
   depthKernels,
+  ewaldConeEdge,
+  exactDepthFactor,
+  objectDefocusing,
   objectSinAlpha,
   renderVolume,
   withDefocus,
   withObjectDefocus,
 } from "../src/imaging/volume";
 import { incoherentPsf, uniformEmitters } from "../src/imaging/fluorescence";
+import { depthOfFocusMm } from "../src/imaging/emission";
+import { fieldDefocusing } from "../src/imaging/field-volume";
 import { idealPupil } from "../src/illumination/transfer";
+import type { PupilFunction } from "../src/wave/psf";
 import { getMedium } from "../src/materials/catalog";
 
 /**
@@ -616,5 +623,327 @@ describe("§ 6l.9 — the coupling that has no readout to catch it is REFUSED, n
     }
     // And the in-focus plane is genuinely the one the spec focused on.
     expect(image.sliceFlux.length).toBe(3);
+  });
+});
+
+/**
+ * § 6l.10 — the mount that has no aperture angle, and the radius that is not one
+ * expression.
+ *
+ * The register's item 17, opened while closing 16. § 6k.9 threaded § 6k.8's
+ * exact depth cap through `mountPupils` and derived its aperture angle with
+ * `objectSinAlpha`, which refuses NA ≥ n. That refusal named two mistakes it was
+ * catching — an image-side NA paired with an object-side index, and a dry
+ * objective engraved 1.2 — and a **third** case exists that is not a mistake at
+ * all: a specimen mounted in something rarer than the immersion. An oil 1.40
+ * over water is 1.05 and over air is 1.40, both ship in the app, and neither
+ * could have the exact cap.
+ *
+ * The physics is that s ≥ 1 stops being an angle's sine. Inside the specimen
+ * s²ρ² = (NA·ρ/n_s)² = sin²θ_s, and § 6l.3's wall has already zeroed the
+ * amplitude beyond ρ = n_s/NA — so the radicand is a real cos θ_s everywhere
+ * light exists, and s is a scale factor whose *product with ρ* is the sine. The
+ * guard therefore belongs on the composition rather than on the number, and
+ * `mountSinAlpha` is where it goes: it holds both indices, so it can ask the
+ * question `objectSinAlpha` structurally cannot — whether the objective's own
+ * medium carries the cone the mount is truncating.
+ *
+ * **The register predicted the pin and got it wrong in a way worth keeping.** It
+ * said the wall and the branch point were "the same division of the same two
+ * doubles". They are not. § 6l.3 tests ρ² ≥ (n_s/NA)² and the exact phase's
+ * radicand ran out at ρ² ≥ 1/(NA/n_s)²; those are different roundings of one
+ * radius, they disagree by up to 4 ulp, and on the shipped oil-over-water row the
+ * outermost lit sample landed **exactly** on disc = 0 and took the paraboloid
+ * fallback — a factor of two wrong, on lit light. So the step's answer is not a
+ * more carefully spelled radius. It is that the phase needs **no** radius:
+ * √max(disc, 0) is the exact cap's own continuous limit, and the two-expression
+ * boundary is deleted rather than aligned.
+ *
+ * What it does NOT unblock is the band. `exactDepthFactor` and `ewaldConeEdge`
+ * both evaluate the cap AT ρ = 1, and on a truncating mount that rim is dark;
+ * they keep refusing s ≥ 1. The lit rim is a different rim, and a band defined
+ * there is a convention this ladder does not have.
+ */
+describe("§ 6l.10 — a mount rarer than the immersion, and the branch radius that is not the wall", () => {
+  const OIL_WATER = mount(1.4);
+  const S = mountSinAlpha(OIL_WATER);
+  const ulpsApart = (a: number, b: number): number => {
+    const f = new Float64Array([a, b]);
+    const u = new BigUint64Array(f.buffer);
+    return Number(u[0]! - u[1]!);
+  };
+  const nextDown = (x: number): number => {
+    const f = new Float64Array([x]);
+    const u = new BigUint64Array(f.buffer);
+    u[0] = u[0]! - 1n;
+    return f[0]!;
+  };
+
+  it("admits sin α ≥ 1 exactly where the immersion carries the cone, and nowhere else", () => {
+    // The number itself is above 1 and is NOT an aperture angle: it is NA/n_s
+    // with n_s the mount, and the app ships this row.
+    expect(S).toBe(1.4 / N_WATER);
+    expect(S).toBeGreaterThan(1);
+
+    // Where `objectSinAlpha` is defined the two are the SAME division of the
+    // same two doubles — one spelling of NA/n survives in the engine.
+    expect(mountSinAlpha(mount(1.2))).toBe(objectSinAlpha(1.2, N_WATER));
+
+    // And `objectSinAlpha` is untouched: it still refuses the pairing it always
+    // refused, which is what keeps `renderVolume`'s bare-pupil arm and
+    // `exactDepthOfFocusMm` safe — neither has a mount to truncate anything.
+    expect(() => objectSinAlpha(1.4, N_WATER)).toThrow(/index above it/);
+
+    // The discriminator is the IMMERSION, which is the whole reason this needed
+    // a second conversion rather than a widened guard. A dry objective engraved
+    // 1.2 has no medium to carry it and is still the error § 6k.9 named.
+    const dry = { ...OIL_WATER, immersionIndex: 1, mountIndex: 1 };
+    expect(() => mountSinAlpha({ ...dry, numericalAperture: 1.2 })).toThrow(/can carry/);
+    // Nor may the immersion merely equal the NA: sin θ_i = 1 is grazing, the
+    // same supremum-not-maximum § 6l.3 pins at the mount's own wall.
+    expect(() => mountSinAlpha({ ...OIL_WATER, immersionIndex: 1.4 })).toThrow(/can carry/);
+  });
+
+  it("and every door that hands over an UNTRUNCATED pupil still refuses it", () => {
+    // The claim "the guard moved onto the composition" is only worth anything if
+    // the compositions that do NOT truncate kept theirs, so this pins the call
+    // graph rather than asserting it. `withObjectDefocus` has exactly two direct
+    // callers: `mountPupils`, which wraps the pupil in § 6l.3's wall first, and
+    // `objectDefocusing`, which is handed a bare pupil and truncates nothing.
+    // The refusal § 6k.9 put on the primitive now sits on the second one, so
+    // nothing that was a throw before this step is a silent render after it.
+    expect(() => objectDefocusing(idealPupil(), S)).toThrow(/must lie in \[0, 1\)/);
+    expect(() => objectDefocusing(idealPupil(), 1)).toThrow(/must lie in \[0, 1\)/);
+    // `fieldDefocusing` routes through it, so § 6bd's patches are covered by the
+    // same one guard rather than by a second copy of it.
+    expect(() => fieldDefocusing(() => ({ pupil: idealPupil() }), S)(0, 0)).toThrow(
+      /must lie in \[0, 1\)/,
+    );
+    // And the legitimate door is open: the same s, through the composition that
+    // applies the wall, builds pupils without complaint.
+    expect(typeof mountPupils(idealPupil(), OIL_WATER, S)).toBe("function");
+
+    // The primitive itself now takes it — it is the composition's contract, and
+    // `mountPupils` is what satisfies it.
+    expect(Number.isFinite(withObjectDefocus(idealPupil(), 1, S).phaseWaves(0.5, 0))).toBe(true);
+    expect(() => withObjectDefocus(idealPupil(), 1, Infinity)).toThrow(/finite/);
+    expect(() => withObjectDefocus(idealPupil(), 1, -0.1)).toThrow(/non-negative/);
+  });
+
+  it("falsifies the register: the two radii agree by luck on the shipped rows, not by identity", () => {
+    // § 6l.3's wall as the amplitude tests it, against § 6k.8's radicand as the
+    // phase used to. One radius, two spellings: (n_s/NA)² and 1/(NA/n_s)².
+    const radii = (na: number, ns: number) => {
+      const wall = (Math.min(na, ns) / na) ** 2;
+      return { wall, branch: 1 / (na / ns) ** 2 };
+    };
+    // The register said "the same division of the same two doubles". On the row
+    // it was looking at — the app's oil 1.40 over water — that is TRUE, and it is
+    // luck rather than algebra: three roundings on each side happen to land on
+    // one double at this index.
+    const shipped = radii(1.4, N_WATER);
+    expect(ulpsApart(shipped.wall, shipped.branch)).toBe(0);
+    // One row over it is already not true, and there it falls the SAFE way — the
+    // wall inside the branch, so every lit sample had a real radicand.
+    expect(ulpsApart(radii(1.4, 1).wall, radii(1.4, 1).branch)).toBe(-1);
+
+    // Elsewhere it falls the wrong way — the wall one ulp OUTSIDE the branch, so
+    // lit samples exist past the radicand's own zero. Ordinary objectives over
+    // ordinary mounts, all four of them.
+    for (const [na, ns] of [
+      [1.2, 1],
+      [1.45, 1],
+      [1.49, 1],
+      [1.49, 1.47],
+    ] as [number, number][]) {
+      const { wall, branch } = radii(na, ns);
+      expect(ulpsApart(wall, branch)).toBe(1);
+    }
+
+    // But the ulp gap is a PROXY and not the predicate, which is the same lesson
+    // one level down: what the old rule actually tested was `1 − s²ρ² <= 0`, and
+    // THAT expression rounds too. Of the four above it fires on three — an oil
+    // 1.45 or 1.49 over air, a 1.49 over glycerol — where the outermost lit
+    // sample the truncation can produce came back on the PARABOLOID: half the
+    // phase, on light that is there. On the fourth it does not. Spelled `s*s`
+    // rather than `(na/ns)**2` because `s*s` is what the phase computes, and the
+    // whole rung is about expressions that are one number in algebra and two in
+    // f64.
+    const firesOn = (na: number, ns: number): boolean => {
+      const s = na / ns;
+      return 1 - s * s * nextDown(radii(na, ns).wall) <= 0;
+    };
+    expect(firesOn(1.45, 1)).toBe(true);
+    expect(firesOn(1.49, 1)).toBe(true);
+    expect(firesOn(1.49, 1.47)).toBe(true);
+    expect(firesOn(1.2, 1)).toBe(false);
+
+    // And on BOTH rows the app actually ships, it never fired — which is the
+    // honest size of the defect. The register's claim was true where it looked,
+    // and the two rows it was written about were safe. What is not safe is the
+    // claim: a boundary that has to agree with another boundary computed from
+    // different doubles will disagree somewhere, and the step's answer is that
+    // there is now no second boundary to disagree with.
+    expect(firesOn(1.4, N_WATER)).toBe(false);
+    expect(firesOn(1.4, 1)).toBe(false);
+  });
+
+  it("so the phase needs no radius at all: the clamp is the cap's own limit", () => {
+    // At s·ρ = 1 the radicand is exactly 0, 1 + 0 is exactly 1, and 2wρ²/1 is
+    // exactly twice wρ². Bitwise, at every s, and it is the one clean identity
+    // item 17 promised — the exact wavefront's outermost value is double the
+    // paraboloid's, not asymptotically but exactly.
+    const w = 2.5;
+    for (const [s, rho] of [
+      [S, 0.96],
+      [1, 1],
+      [1.05, 0.96],
+      [1.4, 0.99],
+      [2, 0.6],
+    ] as [number, number][]) {
+      // ρ at or past the branch, which is where the truncated pupil's own rim
+      // is. `rho*rho` need not reproduce 1/s² after a round trip through a
+      // square root, so the point is chosen rather than solved for, and the
+      // paraboloid is read from the engine at that same point rather than
+      // recomputed here.
+      expect(rho * rho).toBeGreaterThanOrEqual(1 / (s * s));
+      const exact = withObjectDefocus(idealPupil(), w, s).phaseWaves(rho, 0);
+      const para = withDefocus(idealPupil(), w).phaseWaves(rho, 0);
+      expect(exact).toBe(2 * para);
+    }
+
+    // It is a LIMIT and not a step: just inside the branch the ratio is below 2
+    // and climbing, so the clamp continues the curve rather than replacing it.
+    // (The old branch did replace it — with wρ², i.e. a ratio of 1.)
+    const ratioAt = (s: number, rho: number) =>
+      withObjectDefocus(idealPupil(), w, s).phaseWaves(rho, 0) /
+      withDefocus(idealPupil(), w).phaseWaves(rho, 0);
+    let previous = 0;
+    for (const rho of [0.5, 0.8, 0.94, 0.952, 0.9533]) {
+      const r = ratioAt(S, rho);
+      expect(r).toBeGreaterThan(previous);
+      expect(r).toBeLessThan(2);
+      previous = r;
+    }
+    // 1.9807 at ρ = 0.9533, a whisker inside the branch at 0.95334523 — climbing
+    // to 2 and reaching it only there.
+    expect(previous).toBeGreaterThan(1.98);
+
+    // And nothing an existing rung ever saw moved. At s < 1 every value inside
+    // the unit disc is BITWISE what the branched form gave, and s = 0 is still
+    // bitwise `withDefocus` — which is what let § 6k.9 route call sites through
+    // the aperture-aware form with their readings intact.
+    const branched = (w: number, s2: number, rho2: number): number => {
+      const disc = 1 - s2 * rho2;
+      return disc <= 0 ? w * rho2 : (w * 2 * rho2) / (1 + Math.sqrt(disc));
+    };
+    for (const s of [0, 0.05, 0.5, objectSinAlpha(1.4, N_OIL), 0.99]) {
+      const p = withObjectDefocus(idealPupil(), 3.7, s);
+      for (let i = 0; i <= 512; i++) {
+        const rho = i / 512;
+        expect(p.phaseWaves(rho, 0)).toBe(branched(3.7, s * s, rho * rho));
+      }
+    }
+    expect(withObjectDefocus(idealPupil(), 3.7, 0).phaseWaves(0.31, 0.47)).toBe(
+      withDefocus(idealPupil(), 3.7).phaseWaves(0.31, 0.47),
+    );
+  });
+
+  it("and the value beyond the wall is never read — measured, not asserted", () => {
+    // The fallback's safety is a COMPOSITION invariant now (`mountPupils` puts
+    // the truncation inside the defocus), so it is pinned the only way that
+    // means anything: two different finite phases beyond the wall must give a
+    // bitwise-identical image, because the amplitude multiplying them is zero.
+    const spec = mount(1.4, 0.02);
+    const engine = mountPupils(idealPupil(), spec, S)(1.3);
+    const wall = (mountAperture(spec) / spec.numericalAperture) ** 2;
+    const withJunk = (junk: number) => ({
+      amplitude: (px: number, py: number) => engine.amplitude(px, py),
+      phaseWaves: (px: number, py: number) =>
+        px * px + py * py >= wall ? junk : engine.phaseWaves(px, py),
+    });
+    const image = (p: PupilFunction) =>
+      incoherentPsf(p, { size: SIZE, pupilSamples: PUPIL_SAMPLES }).values;
+    const base = image(engine);
+    for (const junk of [0, 0.37, -7.1, 1e6]) {
+      const other = image(withJunk(junk));
+      for (let i = 0; i < base.length; i++) expect(other[i]!).toBe(base[i]!);
+    }
+  });
+
+  it("buys the biggest picture change on the ladder, and it is biggest where the mount is mildest", () => {
+    // The point of the step. A water mount under an oil 1.40 now renders on the
+    // exact cap; before, it could only have the paraboloid, because deriving the
+    // angle threw. The stack is § 6k.9's own — five planes stepping one depth of
+    // focus, one bead — so the number is directly comparable to its 0.2893 for a
+    // MATCHED oil 1.40, and it is larger: **0.4113 of peak**, the largest such
+    // difference on the ladder.
+    //
+    // Larger is what the wavefront says it should be, and it is worth spelling
+    // out because the intuition runs the other way — a truncated pupil is a
+    // SMALLER pupil. At the lit rim s·ρ = 1 exactly, so the exact phase there is
+    // twice the paraboloid's; in matched oil the rim only reaches s = 0.9226 and
+    // the factor is 1.4429. At half a wave of defocus that is 0.4544 waves of
+    // disagreement against 0.2215 — the truncation costs radius and buys angle,
+    // and the angle wins.
+    const values = new Float64Array(SIZE * SIZE);
+    values[0] = 1;
+    const bead = { size: SIZE, values };
+    const dof = depthOfFocusMm(LAMBDA, 1.4, N_WATER);
+    const worstAtDepth = (depthMm: number): { worst: number; peak: number } => {
+      const spec = mount(1.4, depthMm);
+      const volume = {
+        size: SIZE,
+        slices: [-2, -1, 0, 1, 2].map((k) => ({ zMm: depthMm + k * dof, field: bead })),
+      };
+      const render = (sinAlpha: number) =>
+        renderVolume(
+          volume,
+          mountPupils(idealPupil(), spec, sinAlpha),
+          mountVolumeOptions(spec, { pupilSamples: PUPIL_SAMPLES }),
+        );
+      const para = render(0);
+      const exact = render(mountSinAlpha(spec));
+      let peak = 0;
+      let worst = 0;
+      for (let i = 0; i < para.intensity.length; i++) {
+        peak = Math.max(peak, para.intensity[i]!);
+        worst = Math.max(worst, Math.abs(exact.intensity[i]! - para.intensity[i]!));
+      }
+      return { worst, peak };
+    };
+    const atSlip = worstAtDepth(0);
+    expect(atSlip.worst / atSlip.peak).toBeCloseTo(0.4113, 4);
+
+    // And the second half of the reading, which is the one a microscopist would
+    // want: the correction is largest exactly where the mount's own spherical
+    // aberration is smallest, and the two hand off. By 10 µm down, § 6l's
+    // aberration has taken 3.6× off the peak and the choice of depth wavefront
+    // is worth 2.4% of what is left. So this matters at the top of a specimen and
+    // is swamped at the bottom — the opposite shape from § 6k.9's matched case,
+    // where nothing swamps it because there is no mount.
+    const deep = worstAtDepth(0.01);
+    expect(deep.worst / deep.peak).toBeCloseTo(0.0244, 4);
+    expect(atSlip.peak / deep.peak).toBeCloseTo(3.6088, 4);
+    // Monotone in between, so the hand-off is a trend and not two points.
+    const mid = worstAtDepth(0.002);
+    expect(mid.worst / mid.peak).toBeLessThan(atSlip.worst / atSlip.peak);
+    expect(mid.worst / mid.peak).toBeGreaterThan(deep.worst / deep.peak);
+  });
+
+  it("but not the band: the objects that read the cap AT ρ = 1 still refuse", () => {
+    // Pinned so a later reader cannot mistake it for an oversight. Both of these
+    // evaluate √(1 − s²) — the cap at the NOMINAL rim — and on a truncating mount
+    // that rim is dark, so there is no number for them to return. The lit rim is
+    // a different rim, and a depth of focus defined there is a convention this
+    // ladder does not have; § 6l.10 deliberately does not invent one.
+    expect(() => exactDepthFactor(S)).toThrow(/sin α/);
+    expect(() => ewaldConeEdge(1, S)).toThrow(/sin α/);
+    // Which is also why `renderVolume` keeps reporting no exact band here: the
+    // phase is now right and the band is still absent, and those are two
+    // different questions rather than one half-finished one.
+    const spec = mount(1.4);
+    const options = mountVolumeOptions(spec, { pupilSamples: PUPIL_SAMPLES });
+    expect(options.numericalAperture / options.refractiveIndex!).toBeGreaterThan(1);
   });
 });

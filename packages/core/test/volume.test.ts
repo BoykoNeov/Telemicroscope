@@ -787,8 +787,13 @@ describe("§ 6k.8 — the exact cap, and the paraboloid that osculates it", () =
       }
     }
     expect(() => ewaldConeEdge(-1, 0.5)).toThrow(/non-negative/);
+    // § 6l.10 moved the s ≥ 1 refusal off `withObjectDefocus` and onto the
+    // conversions, and this is the rung that says which side of that line
+    // `ewaldConeEdge` fell on. It evaluates √(1 − s²) — the cap AT ρ = 1, the
+    // nominal rim — so it is a ρ = 1 object like `exactDepthFactor`, and on a
+    // mount that truncates, that rim is dark. Its guard stays.
     expect(() => ewaldConeEdge(1, 1)).toThrow(/sin α/);
-    expect(() => withObjectDefocus(idealPupil(), 1, 1.2)).toThrow(/sin α/);
+    expect(() => ewaldConeEdge(1, 1.05)).toThrow(/sin α/);
   });
 
   it("TWO ratios, not one: 1/cos α at the axis is a LIMIT, and the peak grows by less", () => {

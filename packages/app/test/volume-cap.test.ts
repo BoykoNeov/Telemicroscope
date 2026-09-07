@@ -241,6 +241,15 @@ describe("§ 6k.9 in the app — the two mounts that cannot have it, and the rad
     // `toBe` and not a tolerance: min(NA, n)/NA and n/NA are the same division of
     // the same two doubles once the min has chosen n, so this is an identity of
     // the arithmetic and not an agreement of two derivations.
+    //
+    // **§ 6l.10 found the limit of that sentence, and it is the squaring.** This
+    // identity is real in the RADIUS and both engine sites work in radius², where
+    // (n/NA)² and 1/(NA/n)² are different roundings that disagree by an ulp in
+    // either direction — on an oil 1.45 or 1.49 over air the old radicand test
+    // fired on a lit sample. So "defined exactly where light exists" was true of
+    // the algebra and not of the arithmetic, which is why § 6l.10's answer is to
+    // delete the second boundary rather than to align it. What is pinned below
+    // still holds and is still worth holding; it is just not the whole claim.
     const system = oilSystem();
     const na = objectNumericalAperture(system, LAMBDA_NM);
     for (const choice of ["WATER", "AIR"] as MountChoice[]) {

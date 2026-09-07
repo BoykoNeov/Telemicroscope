@@ -144,6 +144,38 @@ export const mountAperture = (spec: MountSpec): number =>
   deliveredNaIntoMount(spec.numericalAperture, spec.mountIndex);
 
 /**
+ * The aperture angle § 6k.8's exact depth cap needs **for a mount**, NA/n_s —
+ * which may be ≥ 1, and § 6l.10 is why that is not the error it looks like.
+ *
+ * `objectSinAlpha` refuses NA ≥ n and is right to: on a bare pupil, light
+ * reaches ρ = 1 and s ≥ 1 asks for the cosine of an angle that does not exist.
+ * It cannot tell that case from this one, and the reason is structural rather
+ * than a missed condition — **the discriminator is the immersion index, and
+ * `objectSinAlpha` is not given one.** A dry objective engraved 1.2 and an oil
+ * 1.40 over water both read NA/n_s ≥ 1; what separates them is whether the
+ * objective's *own* medium can carry the cone. Here it must (NA < n_i), and then
+ * a rarer mount does not extinguish the cone, it **truncates** it: no ray of
+ * invariant above n_s leaves the specimen (§ 6l.3), so the pupil beyond
+ * ρ = n_s/NA is dark and s²ρ² never exceeds 1 anywhere light exists.
+ *
+ * This is therefore the one place in the engine that may hand `withObjectDefocus`
+ * an s ≥ 1, and it is safe because a `MountSpec` cannot be turned into pupils
+ * except through `mountPupils`, which applies the truncation inside the phase.
+ * The division is `objectSinAlpha`'s own — the same two doubles in the same
+ * order — so where both are defined they agree bitwise and there is still one
+ * spelling of NA/n in the engine.
+ */
+export function mountSinAlpha(spec: MountSpec): number {
+  checkSpec(spec);
+  if (!(spec.numericalAperture < spec.immersionIndex)) {
+    throw new Error(
+      `mountSinAlpha: NA ${spec.numericalAperture} is not a cone the immersion ${spec.immersionIndex} can carry — a mount can only truncate a cone the objective's own medium already delivers`,
+    );
+  }
+  return spec.numericalAperture / spec.mountIndex;
+}
+
+/**
  * The wavefront a focal depth costs, in **waves**, at normalized pupil radius ρ.
  *
  * `stackWavefrontErrorMm` with one layer, converted by the wavelength — referenced
@@ -321,12 +353,21 @@ export function withMountAberration(
  * `defocusing(withMountAberration(pupil, spec, depthMm))`.
  *
  * `sinAlpha` is § 6k.8's aperture angle for the *defocus* half, and the mount
- * implies its own: `objectSinAlpha(spec.numericalAperture, spec.mountIndex)`,
- * the medium the depth is measured in. It defaults to 0 — the paraboloid — and
- * that default is free rather than merely cheap: `withObjectDefocus` at zero
+ * implies its own: **`mountSinAlpha(spec)`**, the medium the depth is measured
+ * in. § 6k.9 spelled that `objectSinAlpha(spec.numericalAperture,
+ * spec.mountIndex)` and thereby had no answer for a mount rarer than the
+ * immersion, which is two of the app's four shipped rows; § 6l.10 replaced it
+ * with the spec-level conversion that does. It defaults to 0 — the paraboloid —
+ * and that default is free rather than merely cheap: `withObjectDefocus` at zero
  * aperture is **bitwise** `withDefocus`, so a call site routed through here and
  * left at the default cannot drift (§ 6k.9). The aberration half is unaffected
  * either way; a mount's spherical aberration is not a defocus.
+ *
+ * **The order of the composition is load-bearing at s ≥ 1** (§ 6l.10). The
+ * truncation is applied *inside* the defocus, so the phase only ever multiplies
+ * an amplitude the wall has already zeroed past ρ = n_s/NA. That is what makes
+ * an s ≥ 1 legitimate here and nowhere else, and it is a property of this
+ * function rather than of `withObjectDefocus`.
  */
 export function mountPupils(
   pupil: PupilFunction,

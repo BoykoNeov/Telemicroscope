@@ -60,13 +60,13 @@ whole ladder.
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as its exact ends; the (NA_obj+NA_cond) cutoff; the weak-phase null; coherence is a verdict, not a blend; **6f.10** the specimen's ∇φ bends rays — χ/sin χ of the null | `illumination` `transport` |
-| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; an input-side partition of unity multiplying the interference by C = Σ√(w₁w₂); and the field-varying brightfield render on it, `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
+| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; an input-side partition of unity multiplying the interference by C = Σ√(w₁w₂); and the field-varying render on it | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice, **6k.9** chosen from NA/n, band ×0.693 | `volume` |
-| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics — and its headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water | `depth-aberration` |
-| [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and an off-axis tile ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
+| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so no new physics — and its headline is not an aberration: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water; **6l.10** a rarer mount takes sin α ≥ 1 and the exact cap, 0.4113 of peak | `depth-aberration` |
+| [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature ×4.000 per doubling — and an off-axis tile ANISOTROPIC in § 6h.1's ratio 3 | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
 | [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so a traced pupil is evaluated once instead of once per direction — cached ≡ uncached bit for bit, the saving an exact integer not a wall clock, and commensurability accuracy-neutral | `commensurate` |
@@ -10592,6 +10592,13 @@ and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
 | `mountVolumeOptions` emits the four coupled numbers and refuses each override, while letting an explicit `undefined` through | engine identity | ✅ |
 | Quoting the budget AT the mount's ceiling is refused — the cap is a supremum, not a maximum | sinθ_s < 1 strictly | ✅ |
 | A matched mount reproduces § 6k's `defocusing` **bit for bit** | identity rung | ✅ |
+| **6l.10** `mountSinAlpha` admits sin α ≥ 1 where NA < n_i, refuses otherwise; agrees with `objectSinAlpha` bitwise where both are defined | ray invariant q < n_s (§ 6l.3) | ✅ |
+| **6l.10** The guard moved rather than lifted: `objectDefocusing` and `fieldDefocusing` still refuse s ≥ 1 on an untruncated pupil, `mountPupils` accepts it | call graph, pinned not asserted | ✅ |
+| **6l.10** The wall and the branch are one radius and two roundings: ±1 ulp in radius², and the old rule fired on a lit sample at 1.45/air, 1.49/air, 1.49/glycerol | f64 identity, falsifies the register's | ✅ |
+| **6l.10** √max(disc,0): bitwise `withDefocus` at s = 0, bitwise unchanged inside the unit disc at s < 1, and exactly 2× the paraboloid at s·ρ = 1 | closed form, `toBe` | ✅ |
+| **6l.10** Four different finite phases beyond the wall give a bitwise-identical image | § 6l.3's amplitude is zero there | ✅ |
+| **6l.10** Exact cap vs paraboloid on a water mount: 0.4113 of peak at the slip against § 6k.9's 0.2893 matched, decaying to 0.0244 at 10 µm as the peak falls 3.61× | § 6k.9's stack, measured | ✅ |
+| **6l.10** `exactDepthFactor` and `ewaldConeEdge` still refuse s ≥ 1 — they read the cap at the NOMINAL rim, which a truncating mount leaves dark | supremum, not maximum | ✅ |
 
 ### 6l.1 — the literature quotes it in a different reference, and the natural check reads backwards
 
@@ -10801,6 +10808,102 @@ The identity rung closes it: a **matched** mount reproduces § 6k's own
 survives this step unaltered. And a whole volume renders through the new pupils
 with each slice aberrated for its own depth, its planes still delivering equal
 flux — § 6k.2 again, through machinery that could have broken it.
+
+### 6l.10 — the mount that has no aperture angle, and the radius that is not one expression
+
+*Source: engine change — `withObjectDefocus`'s guard and its branch
+(`imaging/volume`), `mountSinAlpha` and `mountPupils`' composition
+(`imaging/depth-aberration`).*
+
+The register's item 17, opened while closing 16 and closed here. § 6k.9 threaded
+§ 6k.8's exact depth cap through `mountPupils` and derived the aperture angle
+with `objectSinAlpha`, which refuses NA ≥ n. It named the two mistakes that
+refusal catches — an image-side NA paired with an object-side index, and a dry
+objective engraved 1.2 — and a **third** case exists that is not a mistake:
+a specimen mounted in something **rarer than the immersion**. An oil 1.40 over
+water is 1.05 and over air is 1.40, both ship in the app, and neither could have
+the exact cap at all.
+
+**s ≥ 1 stops being an angle's sine, and that is the whole physics.** Inside the
+specimen s²ρ² = (NA·ρ/n_s)² = sin²θ_s, and § 6l.3's wall has already zeroed the
+amplitude beyond ρ = n_s/NA — so the radicand is a real cos θ_s *everywhere light
+exists*, and s is a scale factor whose **product with ρ** is the sine. The guard
+therefore belongs on the composition rather than on the number — and "onto the
+composition" is a place and not a promise. `withObjectDefocus` has exactly **two**
+direct callers, which is what makes the move possible: `mountPupils` wraps the
+pupil in § 6l.3's wall before defocusing it, and `objectDefocusing` is handed a
+bare pupil and truncates nothing. § 6k.9's sin α < 1 refusal moves from the
+primitive to the **second** of those, so it still covers `fieldDefocusing` and
+`renderVolume`'s bare-pupil arm, which both route through it. Nothing that threw
+before this step renders silently after it, and the rung pins each door rather
+than asserting the call graph — because the alternative was a contract stated in
+a comment, which is how a guard becomes a silent paraboloid over a lit annulus.
+
+`mountSinAlpha` is the other half, and the reason it has to be a second
+conversion rather than a widened guard is structural: **the discriminator is the immersion index, and
+`objectSinAlpha` is not given one.** A dry 1.2 and an oil 1.40 over water both
+read NA/n_s ≥ 1; what separates them is whether the objective's own medium
+carries the cone the mount then truncates. `objectSinAlpha` is left exactly as it
+was, which is what keeps `renderVolume`'s bare-pupil arm and `exactDepthOfFocusMm`
+safe — neither has a mount to truncate anything, and a widened guard there would
+have rendered the paraboloid over a lit annulus and turned a throw into a NaN.
+
+**The register named the pin and the pin was not there.** It said the wall and
+the branch point were "the same division of the same two doubles". § 6l.3 tests
+ρ² ≥ (n_s/NA)² and the old radicand test was ρ² ≥ 1/(NA/n_s)²; the identity is
+real in the **radius** and both sites work in **radius²**, where three roundings
+on each side disagree by an ulp in either direction. On an oil 1.45 or 1.49 over
+air, and a 1.49 over glycerol, the wall falls outside the branch and the
+outermost lit sample the truncation can produce came back on the **paraboloid** —
+half the phase, on light that is there. And the ulp gap is only a proxy: the
+predicate that actually fired is the rounding of `1 − s²ρ²`, a third expression,
+which is why one of the four pairs with the gap does not fire. Neither row the
+app ships is affected, which is the honest size of the defect — the claim was
+true where it was looked at.
+
+**So the answer is not a more carefully spelled radius; the phase needs none.**
+√max(disc, 0) is the exact cap's own continuous limit, the second boundary is
+deleted rather than aligned, and what is left is one expression that is right on
+the closed lit set and finite past it. Three properties survive by construction
+and are pinned: at s = 0 it is still **bitwise** `withDefocus`, at s < 1 every
+value inside the unit disc is **bitwise** what the branched form gave (so no
+existing rung's reading moves), and at s·ρ = 1 the radicand is exactly 0, 1 + 0
+is exactly 1, and the phase is exactly **twice** the paraboloid's — the one clean
+identity item 17 promised, `toBe` rather than asymptotic, and a limit the curve
+climbs to rather than a step it jumps. The old branch replaced it with a ratio of
+1 instead.
+
+**The value beyond the wall is measured to be unread rather than asserted to
+be.** Its safety is now a *composition* invariant — `mountPupils` applies the
+truncation inside the defocus — so the rung is the only one that means anything:
+four different finite phases past the wall give a **bitwise-identical** image,
+because the amplitude multiplying them is zero.
+
+**What it buys is the largest picture change on the ladder**, and it is largest
+where the mount is mildest. On § 6k.9's own stack — five planes stepping one
+depth of focus, one bead — a water mount under an oil 1.40 at the coverslip
+differs by **0.4113 of peak**, against § 6k.9's 0.2893 for a *matched* oil 1.40.
+Larger, which runs against the intuition that a truncated pupil is a smaller one:
+at the lit rim s·ρ = 1 **exactly**, so the factor there is 2, where matched oil
+only reaches s = 0.9226 and a factor of 1.4429 — 0.4544 waves of disagreement
+against 0.2215 at half a wave of defocus. The truncation costs radius and buys
+angle, and the angle wins. Then § 6l's own aberration takes over: 0.4113 at the
+slip, 0.1391 at 2 µm, **0.0244 at 10 µm**, by which depth the spherical
+aberration has taken 3.61× off the peak. The choice of depth wavefront matters at
+the top of a specimen and is swamped at the bottom — the opposite shape from
+§ 6k.9's matched case, where there is no mount to swamp it.
+
+**What it does not do is the band, and that is a refusal rather than an
+omission.** `exactDepthFactor` and `ewaldConeEdge` both evaluate the cap at the
+**nominal** rim ρ = 1, and on a truncating mount that rim is dark; both keep
+refusing s ≥ 1, and the rung pins that they do. The lit rim is a different rim,
+and a depth of focus defined there is a convention this ladder does not have —
+so `packages/app` deliberately does not move either. Wiring the picture alone
+would put `capSinAlpha` and `exactDepthOfFocusUm` on opposite sides of the same
+`null`, and the panel's caption invariant is that they are absent *together*,
+which exists precisely so a caption cannot describe one wavefront beside a
+picture drawn on another. That is item 16's lesson, and it is not unlearned here.
+
 
 ### Not yet pinned
 - ~~**Off axis.**~~ ✅ **Closed at § 6y**, and the reason recorded here had

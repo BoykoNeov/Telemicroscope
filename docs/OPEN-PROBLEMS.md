@@ -279,8 +279,8 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     turned out not to exist (§ 6cs, § 6cq, § 6f.10, § 6k.8); this is the mirror —
     an unnamed one that does.
 
-17. **`objectSinAlpha` refuses a mount rarer than the immersion, and § 6l.3 says
-    the pupil there is simply dark.** Found at APP.md's *the picture chooses its depth wavefront* while closing 16.
+17. ~~**`objectSinAlpha` refuses a mount rarer than the immersion, and § 6l.3 says
+    the pupil there is simply dark.**~~ Found at APP.md's *the picture chooses its depth wavefront* while closing 16.
     § 6k.9 guards sin α = NA/n < 1 because sin α ≥ 1 is not a cone a medium can
     carry, and it named the two mistakes it was catching: an image-side aperture
     paired with an object-side index, and a dry objective engraved 1.2. A
@@ -319,6 +319,62 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     rims, two bands, and every reading the ladder has was taken where the two
     coincide — the same shape of problem item 16 just closed, one level down, and
     the relaxation has to decide it before it can quote a number at all.
+
+    ✅ **CLOSED at [§ 6l.10](VALIDATION.md#6l10--the-mount-that-has-no-aperture-angle-and-the-radius-that-is-not-one-expression)**, and the
+    prediction it was built on was wrong in the place that mattered.
+
+    **The engine change landed as described**: `mountSinAlpha` admits sin α ≥ 1,
+    a mount rarer than the immersion gets the exact cap, and it is the **largest
+    picture change on the ladder** — 0.4113 of peak at the coverslip against
+    § 6k.9's 0.2893 for a *matched* oil 1.40. Larger, against the intuition that
+    a truncated pupil is a smaller one, because the lit rim sits at s·ρ = 1 where
+    the cap is exactly twice the paraboloid. It decays to 0.0244 by 10 µm as
+    § 6l's own aberration takes 3.61× off the peak: the correction matters at the
+    top of a specimen and is swamped at the bottom.
+
+    **But "the same division of the same two doubles" was not true.** The identity
+    is real in the RADIUS and both engine sites work in radius², where the two
+    spellings disagree by an ulp in either direction — and on an oil 1.45 or 1.49
+    over air, or a 1.49 over glycerol, the outermost lit sample came back on the
+    paraboloid, half the phase, on light that is there. The ulp gap is not even
+    the predicate; the rounding of `1 − s²ρ²` is a third expression. So the step's
+    answer is not a more careful radius but **no radius**: √max(disc, 0) is the
+    cap's own continuous limit and the second boundary is deleted. The free pin
+    survived in better form — at s·ρ = 1 the phase is exactly **2×** the
+    paraboloid's, `toBe` rather than asymptotic.
+
+    **Two things it deliberately did not do**, both for item 16's reason. The
+    guard was NOT widened on `objectSinAlpha`: the discriminator is the immersion
+    index and that function is not given one, so a widened guard would have
+    rendered the paraboloid over a lit annulus in `renderVolume`'s bare-pupil arm
+    and turned a throw into a NaN in `exactDepthOfFocusMm`. And `packages/app` did
+    not move: the picture is now available to those two rows but the band is not,
+    and wiring one without the other breaks the panel's caption invariant. That
+    residue is **item 18**.
+
+18. **Every depth-of-focus reading is taken at a rim that a truncating mount
+    leaves dark.** Opened at § 6l.10 as the half of item 17 that did not close.
+    `depthOfFocusMm` and `exactDepthFactor` both define the band at the **nominal**
+    pupil rim ρ = 1, and on an oil 1.40 over water the light stops at ρ = 0.9533.
+    So the phase is now exact on that mount and the band is still absent: § 6l.10
+    pins that `exactDepthFactor` and `ewaldConeEdge` keep refusing sin α ≥ 1
+    rather than returning a number for a rim with nothing at it.
+
+    What a step would have to decide, and it is a **convention** and not a
+    measurement — which is why it is here and not on the ladder. A band at the lit
+    rim would make (1 + cos α)/2 exactly **½** on *every* truncating mount, water
+    and air alike, since cos of the angle there is exactly 0. That is a clean
+    number, and it is not comparable with any band the ladder already has: every
+    existing reading was taken where the two rims coincide. Quoting it beside
+    § 6k.9's 0.693 would be two criteria wearing one name, which is exactly what
+    § 6k.9 refused to do to § 6k.2.
+
+    Until it is decided, `packages/app` cannot show the exact cap on its WATER and
+    AIR rows even though the engine can now render it: the panel's fields are
+    absent *together* so that a caption cannot describe one wavefront beside a
+    picture drawn on another (item 16). **What would refute** the ½ is a measured
+    lit-rim ratio away from 2 on any truncating row — § 6l.10 pins it at exactly 2
+    for the phase, so the risk is in the band's definition, not in the wavefront.
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
     the planes `spectralStack` resamples onto the common grid come back +0.3%
@@ -721,7 +777,15 @@ radial-map nodes · § 6ba differential bleaching.
     stay on the paraboloid for measured reasons, and a caption whose real risk
     was two numbers that agree. And the entry's own "an APP.md costing rather
     than an engine one" is falsified, which is **item 17**.
-13. **The mount that has no aperture angle** (item 17): an engine change with a
+13. ~~**The mount that has no aperture angle** (item 17): an engine change with a
     pin that is an identity of two forms the engine already has, and the widest
     unblock left on the microscope branch — the exact cap on every mount, and the
-    limit where the in-focus band halves.
+    limit where the in-focus band halves.~~ ✅ — landed at § 6l.10. The engine
+    change is in and buys the ladder's largest picture change (0.4113 of peak at
+    the slip). The "identity of two forms" was not one: it holds in the radius and
+    breaks in the radius², so the fix was to delete the second boundary rather
+    than align it. The band did not follow, and that is **item 18**.
+14. **The band at a rim that is dark** (item 18): the residue of 17, and the one
+    entry left whose blocker is a *convention* rather than a measurement — every
+    depth-of-focus reading the ladder has is taken at the nominal rim ρ = 1, and a
+    truncating mount has no light there. It is item 16's shape one level down.

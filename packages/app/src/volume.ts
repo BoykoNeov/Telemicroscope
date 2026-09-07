@@ -355,11 +355,21 @@ export function mountSpecFor(
  * carry, and an oil 1.40 over a WATER or an AIR mount is exactly that pairing —
  * 1.05 and 1.40. § 6l.3 says the same thing from the other side: no ray of
  * invariant above n_s leaves the specimen, so the pupil beyond ρ = n_s/NA is
- * **dark**, and the phase there is never read. The two statements are the same
- * radius, which is why relaxing the guard is a real engine step with a real pin
- * behind it and not a widened bound — and until it is taken, those two rows keep
- * the paraboloid and the panel says so rather than quietly rendering one
- * wavefront under a caption describing another.
+ * **dark**, and the phase there is never read.
+ *
+ * **§ 6l.10 has since taken that engine step, and this module deliberately has
+ * not moved with it.** `mountSinAlpha` now hands the exact cap to a mount rarer
+ * than the immersion — it is the largest picture change on the ladder, 0.4113 of
+ * peak at the coverslip — so the *wavefront* half of this `null` is no longer a
+ * refusal the engine is making. The *band* half still is: `exactDepthFactor` and
+ * `exactInFocusFraction` read the cap at the nominal rim ρ = 1, and on a
+ * truncating mount that rim is dark, so there is no number for them. Wiring the
+ * picture alone would put `capSinAlpha` and `exactDepthOfFocusUm` on opposite
+ * sides of the same `null` — the panel's caption invariant is that they are
+ * absent *together*, which exists precisely so a caption cannot describe one
+ * wavefront beside a picture drawn on another. That is item 16's lesson and it
+ * is not being unlearned here. So these two rows keep the paraboloid until a
+ * lit-rim band convention exists, and the panel says so.
  */
 export function exactCapSinAlpha(mount: ResolvedMount, numericalAperture: number): number | null {
   // The engine's own test, asked of the engine's own quotient rather than of NA

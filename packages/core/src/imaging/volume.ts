@@ -257,14 +257,54 @@ export function defocusing(pupil: PupilFunction): DepthPupils {
  * side and 0.024 on the camera side, so the two exact phases are different
  * wavefronts. This function takes the side the depth is measured in — the
  * specimen's — because that is where a depth is a depth.
+ *
+ * ## sin α ≥ 1 is admitted, and it is not an aperture angle when it is (§ 6l.10)
+ *
+ * § 6k.9 refused it, and `objectSinAlpha` still does. What that refusal was
+ * right about is a *bare* pupil: light exists out to ρ = 1 there, s ≥ 1 makes
+ * s²ρ² exceed 1 somewhere lit, and no medium carries such a cone. What it missed
+ * is the mount. A specimen in something **rarer than the immersion** — an oil
+ * 1.40 over water is s = 1.05, over air 1.40, and both ship in the app — is not
+ * that error: § 6l.3's wall has already zeroed the amplitude beyond ρ = n_s/NA,
+ * so s²ρ² = (NA·ρ/n_s)² = sin²θ_s ≤ 1 **everywhere light exists**, and the
+ * radicand is a real cos θ_s there. s ≥ 1 stops being an angle's sine and
+ * becomes a scale factor whose product with ρ is one.
+ *
+ * So the guard moves off `sinAlpha` and onto the **composition**: a caller
+ * passing s ≥ 1 must hand in a pupil already truncated at ρ ≤ 1/s. That is not a
+ * documented hope — it is where the guard was *moved to*, and this primitive has
+ * exactly two direct callers to move it between. `mountPupils` wraps the pupil in
+ * § 6l.3's wall before defocusing it and may pass `mountSinAlpha`'s s ≥ 1;
+ * `objectDefocusing` is handed a bare pupil, truncates nothing, and **keeps
+ * § 6k.9's sin α < 1 refusal** — which covers `fieldDefocusing` and
+ * `renderVolume`'s bare-pupil arm, both of which route through it. So no door
+ * that hands over an untruncated pupil got looser, and § 6l.10 pins each of them
+ * rather than asserting the call graph.
+ *
+ * **And the branch that used to sit here is gone rather than moved.** § 6l.3's
+ * wall tests ρ² ≥ (n_s/NA)² and the old radicand test was ρ² ≥ 1/(NA/n_s)²;
+ * those are different roundings of one radius and they disagree by an ulp in
+ * either direction. Where the wall lands outside the branch — an oil 1.45 or
+ * 1.49 over air, a 1.49 over glycerol — the outermost lit sample took the
+ * fallback: the paraboloid, a factor of two wrong, on lit light. (Neither row
+ * the app ships is one of those, which is the honest size of it.) Restating the
+ * radius more carefully only shrinks that set, and the rounding of `1 − s²ρ²`
+ * is a third expression to disagree with the other two. Clamping the radicand
+ * removes all of it: √max(disc, 0) is the exact phase's own continuous limit, it
+ * needs no radius at all, and past the branch it is 2wρ² rather than the
+ * paraboloid's wρ² — which is what the exact wavefront actually tends to.
+ * Inside the unit disc at s < 1 every value is **bitwise** what it was, and at
+ * s = 0 it is still bitwise `withDefocus`, because √1 and √max(1,0) are one
+ * number. The value beyond the wall is still never read, and § 6l.10 measures
+ * that rather than asserting it.
  */
 export function withObjectDefocus(
   pupil: PupilFunction,
   waves: number,
   sinAlpha: number,
 ): PupilFunction {
-  if (!(sinAlpha >= 0 && sinAlpha < 1)) {
-    throw new Error(`withObjectDefocus: sin α must lie in [0, 1), got ${sinAlpha}`);
+  if (!(sinAlpha >= 0 && sinAlpha < Infinity)) {
+    throw new Error(`withObjectDefocus: sin α must be finite and non-negative, got ${sinAlpha}`);
   }
   if (waves === 0) return pupil;
   const s2 = sinAlpha * sinAlpha;
@@ -272,19 +312,43 @@ export function withObjectDefocus(
     amplitude: (px, py) => pupil.amplitude(px, py),
     phaseWaves: (px, py) => {
       const rho2 = px * px + py * py;
-      // Outside the unit disc the radicand goes negative and the phase is
-      // meaningless; the amplitude is zero there, so the value is never read for
-      // anything, and returning the paraboloid keeps it finite for a caller that
-      // samples the pupil box rather than the disc.
-      const disc = 1 - s2 * rho2;
-      if (disc <= 0) return pupil.phaseWaves(px, py) + waves * rho2;
-      return pupil.phaseWaves(px, py) + (waves * 2 * rho2) / (1 + Math.sqrt(disc));
+      // Beyond s·ρ = 1 there is no cos θ, and — see the header — there is also no
+      // light: the clamp is what makes the phase the exact one's continuous limit
+      // on the closed lit set instead of two expressions meeting at a radius each
+      // spells differently.
+      return (
+        pupil.phaseWaves(px, py) +
+        (waves * 2 * rho2) / (1 + Math.sqrt(Math.max(1 - s2 * rho2, 0)))
+      );
     },
   };
 }
 
-/** `defocusing`, on the exact cap — one pupil, defocused at a real aperture angle. */
+/**
+ * `defocusing`, on the exact cap — one pupil, defocused at a real aperture angle.
+ *
+ * **This is where § 6k.9's sin α < 1 guard lives now** (§ 6l.10), and putting it
+ * here rather than on `withObjectDefocus` is the whole of what "the guard moves
+ * onto the composition" means. There are exactly two direct callers of the
+ * primitive: `mountPupils`, which wraps the pupil in § 6l.3's wall *before*
+ * defocusing it, and this one, which is handed a bare pupil and truncates
+ * nothing. So this door's ρ genuinely reaches 1, s·ρ must not exceed it, and an
+ * s ≥ 1 here is the error § 6k.9 named — including through `fieldDefocusing`,
+ * which routes here, and `renderVolume`'s bare-pupil arm, which reaches it
+ * through `objectSinAlpha` and is therefore guarded twice.
+ *
+ * A mount rarer than the immersion is not this door: it goes through
+ * `mountPupils` with `mountSinAlpha`, where the truncation is part of the
+ * composition. Told apart by what the two functions *are* — one takes a pupil
+ * and promises nothing about its support, the other takes a `MountSpec` and
+ * applies the wall — rather than by a flag a caller could set wrong.
+ */
 export function objectDefocusing(pupil: PupilFunction, sinAlpha: number): DepthPupils {
+  if (!(sinAlpha >= 0 && sinAlpha < 1)) {
+    throw new Error(
+      `objectDefocusing: sin α must lie in [0, 1), got ${sinAlpha} — this pupil is not truncated, so light reaches ρ = 1 and there is no cos θ there. A mount rarer than the immersion goes through mountPupils (§ 6l.10)`,
+    );
+  }
   return (waves) => withObjectDefocus(pupil, waves, sinAlpha);
 }
 
