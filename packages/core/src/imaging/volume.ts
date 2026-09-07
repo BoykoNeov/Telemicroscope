@@ -288,6 +288,58 @@ export function objectDefocusing(pupil: PupilFunction, sinAlpha: number): DepthP
   return (waves) => withObjectDefocus(pupil, waves, sinAlpha);
 }
 
+/**
+ * The object-side aperture angle's sine, NA/n — the one number `withObjectDefocus`
+ * needs and the one an objective already knows (§ 6k.9).
+ *
+ * § 6k.8 left the cap unreachable except by a caller who computed this itself:
+ * `renderVolume` was handed a `DepthPupils` and had no say in which depth phase
+ * was inside it, though it holds the NA and the index the whole time. This is the
+ * conversion that closes that gap, and it is deliberately a named function rather
+ * than a division at each site, because the *side* is the whole content of it —
+ * NA and n must describe the medium the depth is measured in (§ 6k.7's condition),
+ * and a division spelled inline is where that pairing gets separated.
+ *
+ * NA ≥ n is refused rather than clamped: sin α ≥ 1 is not a cone the medium can
+ * carry, and it is what an image-side NA paired with an object-side index looks
+ * like. A dry objective quoted at NA 1.2 is the same error and the same refusal.
+ */
+export function objectSinAlpha(numericalAperture: number, refractiveIndex = 1): number {
+  if (!(numericalAperture > 0)) {
+    throw new Error(`objectSinAlpha: NA must be positive, got ${numericalAperture}`);
+  }
+  if (!(refractiveIndex > 0)) {
+    throw new Error(`objectSinAlpha: refractive index must be positive, got ${refractiveIndex}`);
+  }
+  const s = numericalAperture / refractiveIndex;
+  if (!(s < 1)) {
+    throw new Error(
+      `objectSinAlpha: NA ${numericalAperture} needs an index above it, got ${refractiveIndex}`,
+    );
+  }
+  return s;
+}
+
+/**
+ * The factor the exact cap costs a quarter-wave depth budget: (1 + cos α)/2.
+ *
+ * The rim phase per wave of `defocusWaves` is 2/(1 + cos α) — `withObjectDefocus`
+ * at ρ = 1 — so the depth that spends a quarter wave at the rim is smaller by the
+ * reciprocal. One wavefront statement read two ways, which is why this is the
+ * same expression and not a second derivation: the band and the phase cannot
+ * disagree by construction.
+ *
+ * At s = 0 it is exactly 1 rather than nearly 1 — √1 is exact, and (1+1)/2 is
+ * exact — so a depth of focus routed through it at zero aperture is bitwise the
+ * paraboloid's, the same property `withObjectDefocus` has.
+ */
+export function exactDepthFactor(sinAlpha: number): number {
+  if (!(sinAlpha >= 0 && sinAlpha < 1)) {
+    throw new Error(`exactDepthFactor: sin α must lie in [0, 1), got ${sinAlpha}`);
+  }
+  return (1 + Math.sqrt(1 - sinAlpha * sinAlpha)) / 2;
+}
+
 export interface DepthKernel extends IncoherentPsf {
   readonly defocusWaves: number;
   /**
@@ -440,6 +492,23 @@ export interface VolumeImage {
    * refocusing moves which emitters are counted without changing the arithmetic.
    */
   readonly inFocusFraction: number;
+  /**
+   * The same share, counted over the **exact** cap's quarter-wave band (§ 6k.9).
+   *
+   * `inFocusFraction` counts ±½·n·λ/NA², which is the depth at which the
+   * *paraboloid* reaches a quarter wave at the rim. The exact wavefront reaches
+   * it sooner, by `exactDepthFactor` — (1 + cos α)/2, 0.693 for an oil 1.40 —
+   * so a high-aperture widefield has less genuinely-in-focus light than § 6k.2's
+   * band counted. Reported beside the older number rather than replacing it:
+   * both are quarter-wave bands, they differ only in which wavefront spends the
+   * quarter wave, and every reading already recorded is the first one's.
+   *
+   * **Absent when NA ≥ n**, which is not a cone the medium can carry: there is
+   * no aperture angle to take a cosine of, so there is no exact band either.
+   * The paraboloid accepts such a pairing without noticing, which is one more
+   * thing it hides.
+   */
+  readonly exactInFocusFraction?: number;
   /** Max over slices — the grid's ability to carry the worst kernel it saw. */
   readonly maxGridPhaseStepWaves: number;
   readonly pixelScaleMm?: number;
@@ -450,10 +519,20 @@ export interface VolumeImage {
  *
  * The header says why this cannot be a single transform the way § 6j's band can,
  * and `hazeKernel` is the one case where it can.
+ *
+ * **`pupils` may be a bare `PupilFunction`, and that is the engine choosing the
+ * depth phase** (§ 6k.9). A `DepthPupils` callback carries its own — `defocusing`
+ * puts § 6k.4's paraboloid in it, `objectDefocusing` § 6k.8's exact cap — and
+ * this function held the NA, the index and the wavelength the whole time without
+ * a say in it. Handed the pupil alone it applies the **exact** cap at the
+ * objective's own sin α = NA/n, because that is the wavefront a depth actually
+ * costs and there is no longer a reason to prefer its osculating paraboloid.
+ * A callback is still the way to vary anything else with depth (§ 6l's mount,
+ * § 6bd's field), and one supplied is used exactly as before.
  */
 export function renderVolume(
   volume: EmitterVolume,
-  pupils: DepthPupils,
+  pupils: DepthPupils | PupilFunction,
   options: VolumeImageOptions,
 ): VolumeImage {
   const n = volume.size;
@@ -464,11 +543,28 @@ export function renderVolume(
   const halfDepthMm =
     (nMedium * options.wavelengthNm * 1e-6) /
     (2 * options.numericalAperture * options.numericalAperture);
+  // A pupil is an object and a `DepthPupils` is a function, so the two arms are
+  // told apart by what they ARE and not by a flag the caller could set wrong.
+  // The bare-pupil arm derives sin α here, which is also where a non-physical
+  // NA/index pairing is refused — the engine cannot choose a cap the medium
+  // cannot carry.
+  const depthPupils: DepthPupils =
+    typeof pupils === "function"
+      ? pupils
+      : objectDefocusing(pupils, objectSinAlpha(options.numericalAperture, nMedium));
+  // The exact band is reported for a supplied callback too: it is a property of
+  // the objective, not of who built the pupils. The comparison, not a validator,
+  // is what decides: a pairing with no aperture angle in it (NA ≥ n, and the
+  // Infinity a zero index would give before `defocusWaves` refuses it) fails
+  // `< 1` and simply has no exact band.
+  const sinAlpha = options.numericalAperture / nMedium;
+  const exactHalfDepthMm = sinAlpha < 1 ? halfDepthMm * exactDepthFactor(sinAlpha) : undefined;
 
   const intensity = new Float64Array(n * n);
   const sliceFlux: number[] = [];
   let maxGridPhaseStepWaves = 0;
   let inFocusFlux = 0;
+  let exactInFocusFlux = 0;
   let totalFlux = 0;
 
   for (let s = 0; s < volume.slices.length; s++) {
@@ -481,7 +577,7 @@ export function renderVolume(
     }
     const offsetMm = slice.zMm - focusMm;
     const waves = defocusWaves(offsetMm, options.numericalAperture, options.wavelengthNm, nMedium);
-    const kernel = incoherentPsf(pupils(waves), {
+    const kernel = incoherentPsf(depthPupils(waves), {
       pupilSamples: options.pupilSamples,
       size: n,
       ...(options.scale === undefined ? {} : { scale: options.scale }),
@@ -502,6 +598,9 @@ export function renderVolume(
     sliceFlux.push(flux);
     totalFlux += flux;
     if (Math.abs(offsetMm) <= halfDepthMm) inFocusFlux += flux;
+    if (exactHalfDepthMm !== undefined && Math.abs(offsetMm) <= exactHalfDepthMm) {
+      exactInFocusFlux += flux;
+    }
     options.onSlice?.(s + 1, volume.slices.length);
   }
 
@@ -516,6 +615,9 @@ export function renderVolume(
     intensity,
     sliceFlux,
     inFocusFraction: totalFlux > 0 ? inFocusFlux / totalFlux : 0,
+    ...(exactHalfDepthMm === undefined
+      ? {}
+      : { exactInFocusFraction: totalFlux > 0 ? exactInFocusFlux / totalFlux : 0 }),
     maxGridPhaseStepWaves,
     ...(pixelScaleMm === undefined ? {} : { pixelScaleMm }),
   };

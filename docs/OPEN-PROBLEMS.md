@@ -225,8 +225,13 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    — s = NA/n is 0.9191 on the specimen side of a shipped 100×/1.40 and 0.014439
    on the camera side, so the two exact wavefronts differ by more than a third of
    a wave per wave of defocus. What is left open is the aplanatic amplitude
-   apodization (an amplitude, so it would break § 6k.1) and the fact that nothing
-   yet CHOOSES the cap: `renderVolume` takes whatever pupils it is handed.
+   apodization (an amplitude, so it would break § 6k.1); ~~and the fact that nothing
+   yet CHOOSES the cap: `renderVolume` takes whatever pupils it is handed.~~
+   **Closed at [§ 6k.9](VALIDATION.md#-6k9--the-engine-chooses-the-cap-and-the-band-it-counts-as-focus)**,
+   which found the wiring to be the smaller half: the paraboloid was also setting
+   the **band** `inFocusFraction` counts as focus, and the exact one is
+   (1 + cos α)/2 of it — 295 nm against 426 on an oil 1.40, so § 6k.2's reading of
+   how much light is in focus was 44% generous. It leaves item 16.
 10. **A depth-varying phase stack's support boundary.** § 6l: "a different
     closed form" from § 6k's.
 11. **An immersed image plane behind an objective.** Opened by § 2g, which
@@ -234,6 +239,16 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     (§ 6e's front and a back) does not exist on the ladder.
 12. **Which way an aberration-free band moves the Airy core.** § 6j names
     "an analytic band-integrated Airy" as the resampler-free check.
+16. **The exact band is reported and never defaulted**, and `packages/app` still
+    asks for the paraboloid. § 6k.9: `inFocusFraction` still means the
+    paraboloid's quarter wave beside the exact `exactInFocusFraction`, because
+    defaulting it would rewrite readings on rungs that have nothing to do with
+    that step; the app's one `renderVolume` call builds `defocusing`, and moving
+    it is an APP.md costing rather than an engine one. Both renderers report the
+    exact band, and every other user of a quarter-wave depth of focus in the
+    engine sits at NA 0.17 or below where the two agree to 0.7%, so what is left
+    is a decision rather than a measurement: which reading the ladder's older
+    rungs are entitled to keep. No external number would settle it.
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
     the planes `spectralStack` resamples onto the common grid come back +0.3%
@@ -615,6 +630,13 @@ radial-map nodes · § 6ba differential bleaching.
     § 6f.10, and the blocker the entry named (rays that start at a transmittance)
     was the fourth in a row not to exist. What it leaves is the traced launch and
     the source it cannot carry.
+11½. ~~**The cap nothing chose** (item 9's residue): the one loose end § 6k.8
+    left with an engine change in it.~~ ✅ — landed at § 6k.9. The wiring was
+    two lines; what it cost was the **band**, which was the paraboloid's quarter
+    wave everywhere and is 31% shorter on the exact wavefront. The default
+    aperture is 0 and `withObjectDefocus` at 0 is `withDefocus` bitwise, so two
+    call sites moved onto the aperture-aware form with every reading intact by
+    construction. One new item (16), and no external number in it.
 11. ~~Make the ladder green off the author's machine (the structural problem
     above) before any of 3–9 is trusted on a second one.~~ The convention is in
     and the assertions are restated (see the structural problem above); what

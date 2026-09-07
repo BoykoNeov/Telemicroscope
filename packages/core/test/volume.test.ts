@@ -6,9 +6,11 @@ import {
   defocusing,
   depthKernels,
   ewaldConeEdge,
+  exactDepthFactor,
   hazeKernel,
   missingConeEdge,
   objectDefocusing,
+  objectSinAlpha,
   renderVolume,
   withDefocus,
   withObjectDefocus,
@@ -17,7 +19,7 @@ import {
 } from "../src/imaging/volume";
 import { incoherentPsf, uniformEmitters, type EmitterField } from "../src/imaging/fluorescence";
 import { fft2d } from "../src/math/fft";
-import { depthOfFocusMm } from "../src/imaging/emission";
+import { depthOfFocusMm, exactDepthOfFocusMm } from "../src/imaging/emission";
 import { idealPupil } from "../src/illumination/transfer";
 import {
   finiteConjugateMicroscope,
@@ -1045,6 +1047,222 @@ describe("§ 6k.8 — the exact cap, and the paraboloid that osculates it", () =
     const pupil = idealPupil();
     expect(withObjectDefocus(pupil, 0, S_OIL)).toBe(pupil);
     expect(objectDefocusing(pupil, S_OIL)(0)).toBe(pupil);
+  });
+});
+
+/**
+ * § 6k.9 — the engine chooses the cap, and the band it counts as focus.
+ *
+ * § 6k.8 wrote the exact depth phase and left it unreachable: `renderVolume` is
+ * handed a `DepthPupils` with the choice already sealed inside it, while holding
+ * the NA, the index and the wavelength the whole time. So a caller got the cap
+ * only by computing sin α itself and remembering which side it belongs to, and
+ * the one place that knows the aperture had no say. This step wires the choice
+ * to the objective's own NA, and the wiring turns out to be the smaller half.
+ *
+ * The larger half is that the paraboloid was setting more than the wavefront.
+ * `inFocusFraction` counts the light inside ±½·n·λ/NA², which is where the
+ * PARABOLOID spends a quarter wave at the rim. The exact wavefront spends it
+ * sooner — by exactly the reciprocal of its steeper rim, (1 + cos α)/2 — so on
+ * an oil 1.40 the band that deserves the name is **295 nm and not 426**, and
+ * § 6k.2's reading of how much light is genuinely in focus was 44% generous. One
+ * criterion on two wavefronts, not a second criterion: the factor is the same
+ * expression as the phase, so the band and the wavefront cannot drift apart.
+ *
+ * Nothing already recorded moves, and that is a measurement rather than a hope.
+ * The exact band is reported BESIDE the old one instead of replacing it, and at
+ * the aperture every rung above was taken at — NA 0.10 — the two pictures differ
+ * by 2.2e-3 of peak and the two bands by 0.25%. At NA 1.40 in oil the same
+ * comparison is 0.289 of peak. The paraboloid is not a small error that was
+ * tolerable; it is an error that is invisible at low aperture and a third of the
+ * picture at high, which is the shape § 6k.8 found in the phase and this step
+ * finds again in everything the phase feeds.
+ */
+describe("§ 6k.9 — the engine chooses the cap, and the band it counts as focus", () => {
+  const N_OIL = getMedium(IMMERSION_MEDIUM).n(LAMBDA);
+  const S_OIL = objectSinAlpha(1.4, N_OIL);
+  const OIL = {
+    pupilSamples: PUPIL_SAMPLES,
+    numericalAperture: 1.4,
+    wavelengthNm: LAMBDA,
+    refractiveIndex: N_OIL,
+  };
+  const AIR = { pupilSamples: PUPIL_SAMPLES, numericalAperture: 0.1, wavelengthNm: LAMBDA };
+  /** One emitter, so the two kernels have something to disagree about. A uniform
+   *  field cannot see this at all: every kernel here sums to 1 and a constant
+   *  convolved with any of them is the same constant, which is worth saying
+   *  because § 6k.2's own slab is exactly that specimen. */
+  const bead = (): EmitterField => {
+    const values = new Float64Array(SIZE * SIZE);
+    values[0] = 1;
+    return { size: SIZE, values };
+  };
+  const stackOf = (stepMm: number, field: EmitterField): EmitterSlice[] =>
+    [-2, -1, 0, 1, 2].map((k) => ({ zMm: k * stepMm, field }));
+
+  it("sin α is NA/n, and an aperture the medium cannot carry is refused rather than clamped", () => {
+    expect(objectSinAlpha(1.4, N_OIL)).toBe(1.4 / N_OIL);
+    expect(objectSinAlpha(0.1)).toBe(0.1);
+    // NA ≥ n is what an image-side NA paired with an object-side index looks
+    // like, and what a dry objective engraved 1.2 looks like. Clamping it to 1
+    // would return a number for a cone that does not exist.
+    expect(() => objectSinAlpha(1.4)).toThrow(/index above it/);
+    expect(() => objectSinAlpha(1.4, 1.4)).toThrow(/index above it/);
+    expect(() => objectSinAlpha(0, 1.5)).toThrow(/NA/);
+    expect(() => objectSinAlpha(0.5, 0)).toThrow(/refractive index/);
+    expect(() => exactDepthFactor(1)).toThrow(/sin α/);
+  });
+
+  it("the band and the rim phase are ONE statement: (1+cos α)/2 is the reciprocal of the other", () => {
+    // `exactDepthFactor` is not a second derivation of the quarter-wave depth —
+    // it is the reciprocal of `withObjectDefocus`'s own rim value per wave of
+    // `defocusWaves`, which is what makes it impossible for the band and the
+    // wavefront to disagree. Checked as an identity at five apertures, including
+    // the s = 0 member where it is exact rather than close.
+    const rim = (s: number): number => withObjectDefocus(idealPupil(), 1, s).phaseWaves(1, 0);
+    expect(exactDepthFactor(0) * rim(0)).toBe(1);
+    for (const s of [0.05, 0.5, S_OIL, 0.99]) {
+      expect(exactDepthFactor(s) * rim(s)).toBeCloseTo(1, 15);
+    }
+    // § 6k.8 records the oil 1.40's rim as 1.4429 waves per wave of defocus.
+    // The band is that number upside down, which is the cross-pin: two rungs on
+    // one closed form rather than two measurements that happen to agree.
+    expect(1 / exactDepthFactor(S_OIL)).toBeCloseTo(1.4429, 4);
+    expect(exactDepthFactor(S_OIL)).toBeCloseTo(0.69303, 5);
+    expect(exactDepthFactor(objectSinAlpha(0.1))).toBeCloseTo(0.997494, 6);
+  });
+
+  it("so the exact depth of focus is the paraboloid's shrunk by it, bitwise so at a vanishing aperture", () => {
+    // Routed through `depthOfFocusMm` rather than respelled, so there is one
+    // spelling of n·λ/NA² in the engine and this cannot drift from it.
+    expect(exactDepthOfFocusMm(LAMBDA, 1.4, N_OIL)).toBe(
+      depthOfFocusMm(LAMBDA, 1.4, N_OIL) * exactDepthFactor(S_OIL),
+    );
+    // 426 nm against 295 — the number a microscopist would call the depth of
+    // field of an oil 1.40, and it is 31% shorter than the ladder has said.
+    expect(depthOfFocusMm(LAMBDA, 1.4, N_OIL) * 1e6).toBeCloseTo(425.87, 2);
+    expect(exactDepthOfFocusMm(LAMBDA, 1.4, N_OIL) * 1e6).toBeCloseTo(295.14, 2);
+    // At a vanishing aperture the factor is 1 and not nearly 1: √1 is exact and
+    // so is (1+1)/2, so the whole product is the paraboloid's own bits. The
+    // low-aperture ladder is this step's own s → 0 member, by construction.
+    expect(exactDepthFactor(0)).toBe(1);
+    expect(exactDepthOfFocusMm(LAMBDA, 1e-8)).toBe(depthOfFocusMm(LAMBDA, 1e-8));
+  });
+
+  it("a bare pupil IS the engine choosing: the render is `objectDefocusing` at NA/n, to the bit", () => {
+    const volume = { size: SIZE, slices: stackOf(depthOfFocusMm(LAMBDA, 1.4, N_OIL), bead()) };
+    const chosen = renderVolume(volume, idealPupil(), OIL);
+    const asked = renderVolume(volume, objectDefocusing(idealPupil(), S_OIL), OIL);
+    for (let i = 0; i < chosen.intensity.length; i++) {
+      expect(Object.is(chosen.intensity[i], asked.intensity[i])).toBe(true);
+    }
+    expect(chosen.maxGridPhaseStepWaves).toBe(asked.maxGridPhaseStepWaves);
+    // And it is a different picture from the paraboloid's, by a third of the
+    // peak — the phase difference § 6k.8 measured, arriving in an image.
+    const paraboloid = renderVolume(volume, defocusing(idealPupil()), OIL);
+    expect(worstRelative(chosen.intensity, paraboloid.intensity)).toBeCloseTo(0.2893, 4);
+    // § 6k.8's third appearance of 1/cos α, now on the renderer's own guard: the
+    // exact rim is steeper, so the same stack puts more phase between adjacent
+    // pupil samples. A caller who switches has to refine the pupil, and the
+    // readout that says so is the one `incoherentPsf` has always reported.
+    expect(chosen.maxGridPhaseStepWaves / paraboloid.maxGridPhaseStepWaves).toBeCloseTo(2.2519, 4);
+    // The engine cannot choose a cap the medium cannot carry, and says so at the
+    // one place that knows: a bare pupil with no index behind an oil NA.
+    expect(() =>
+      renderVolume(volume, idealPupil(), {
+        pupilSamples: PUPIL_SAMPLES,
+        numericalAperture: 1.4,
+        wavelengthNm: LAMBDA,
+      }),
+    ).toThrow(/index above it/);
+  });
+
+  it("and at the aperture the ladder was measured at, the choice barely shows", () => {
+    const volume = { size: SIZE, slices: stackOf(depthOfFocusMm(LAMBDA, 0.1), bead()) };
+    const chosen = renderVolume(volume, idealPupil(), AIR);
+    const paraboloid = renderVolume(volume, defocusing(idealPupil()), AIR);
+    // 2.2e-3 of peak, and stated as a measurement rather than as "negligible":
+    // it is not zero, and the reason no rung above moves is that every one of
+    // them supplies its own `defocusing` and gets exactly what it always got.
+    expect(worstRelative(chosen.intensity, paraboloid.intensity)).toBeCloseTo(2.2468e-3, 6);
+  });
+
+  it("§ 6k.2 keeps its statement and gains a band: the exact one is 69.3% of the depth it counted", () => {
+    // A slab sampled far more finely than either band, so the count is a
+    // measurement of the band rather than of the sampling. Slices sit at
+    // half-integer steps so that neither band's edge lands on one: an equality
+    // case decided by the last bit of a division is not a physical statement.
+    const halfMm = depthOfFocusMm(LAMBDA, 1.4, N_OIL) / 2;
+    const slab = uniformEmitters(SIZE, 1);
+    const zsOf = (per: number): number[] =>
+      Array.from({ length: 6 * per }, (_, i) => (i - 3 * per + 0.5) * (halfMm / per));
+    const inBand = (zs: readonly number[], half: number): number =>
+      zs.filter((z) => Math.abs(z) <= half).length;
+    const factor = exactDepthFactor(S_OIL);
+    for (const per of [8, 32, 128]) {
+      const zs = zsOf(per);
+      const image = renderVolume(
+        { size: SIZE, slices: zs.map((zMm) => ({ zMm, field: slab })) },
+        idealPupil(),
+        { ...OIL, pupilSamples: 8 },
+      );
+      // Both bands read back as the exported closed forms — which is the pin on
+      // `renderVolume`'s own inline half-depth, spelled independently here.
+      expect(image.inFocusFraction).toBeCloseTo(inBand(zs, halfMm) / zs.length, 12);
+      expect(image.exactInFocusFraction!).toBeCloseTo(
+        inBand(zs, exactDepthOfFocusMm(LAMBDA, 1.4, N_OIL) / 2) / zs.length,
+        12,
+      );
+      // And the ratio is the band ratio, to the slab's own quantum: one slice in
+      // a half-band of `per`, so a count can be off by at most that.
+      expect(Math.abs(image.exactInFocusFraction! / image.inFocusFraction - factor)).toBeLessThan(
+        1 / per,
+      );
+    }
+    // The STATEMENT survives untouched: both bands are instrument-side constants,
+    // so refocusing still moves which emitters are counted and nothing else.
+    const zs = zsOf(32);
+    const at = (focusMm: number) =>
+      renderVolume({ size: SIZE, slices: zs.map((zMm) => ({ zMm, field: slab })) }, idealPupil(), {
+        ...OIL,
+        pupilSamples: 8,
+        focusMm,
+      });
+    const home = at(0);
+    for (const shift of [halfMm, -2 * halfMm]) {
+      expect(at(shift).inFocusFraction).toBeCloseTo(home.inFocusFraction, 12);
+      expect(at(shift).exactInFocusFraction!).toBeCloseTo(home.exactInFocusFraction!, 12);
+    }
+    // At NA 0.10 the two bands are 0.25% apart, which is why § 6k.2's own 1/3,
+    // 1/9 and 1/27 are the same numbers under either of them.
+    const airHalf = depthOfFocusMm(LAMBDA, 0.1) / 2;
+    const airSlab = renderVolume(
+      {
+        size: SIZE,
+        slices: [-1, 0, 1].map((k) => ({ zMm: k * 2 * airHalf, field: slab })),
+      },
+      idealPupil(),
+      AIR,
+    );
+    expect(airSlab.inFocusFraction).toBeCloseTo(1 / 3, 12);
+    expect(airSlab.exactInFocusFraction!).toBeCloseTo(1 / 3, 12);
+  });
+
+  it("a pairing with no aperture angle in it has no exact band, and the paraboloid never noticed", () => {
+    // NA 1.40 with the index left at 1 is not a cone: sin α ≥ 1. The paraboloid
+    // accepts it and returns a depth of focus for it, which is the older band's
+    // real weakness — it is a quadratic in ρ and has no aperture angle to be
+    // wrong about. So the field is absent rather than wrong, and the render it
+    // came from is otherwise unchanged.
+    const volume = { size: SIZE, slices: stackOf(depthOfFocusMm(LAMBDA, 1.4), bead()) };
+    const image = renderVolume(volume, defocusing(idealPupil()), {
+      pupilSamples: PUPIL_SAMPLES,
+      numericalAperture: 1.4,
+      wavelengthNm: LAMBDA,
+    });
+    expect(image.exactInFocusFraction).toBeUndefined();
+    expect(image.inFocusFraction).toBeGreaterThan(0);
+    expect(Object.prototype.hasOwnProperty.call(image, "exactInFocusFraction")).toBe(false);
   });
 });
 

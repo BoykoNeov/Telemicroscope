@@ -249,6 +249,18 @@ lands would mean rewriting every analysis signature.
   wavefront is not — a shipped 100×/1.40 reads s = 0.9191 on the specimen side
   and 0.0144 on the camera side. A caller passes the side the depth is measured
   in, which is the specimen's.
+- **A depth of focus is the PARABOLOID's quarter wave unless it says exact.**
+  `depthOfFocusMm` and `renderVolume`'s `inFocusFraction` are ±½·n·λ/NA² and
+  always were; `exactDepthOfFocusMm` and `exactInFocusFraction` are the same
+  criterion on the exact cap, shorter by (1 + cos α)/2 — 30.7% on an oil 1.40,
+  0.25% at NA 0.10 (§ 6k.9). Both are reported, by `renderVolume` and
+  `renderFieldVolume` alike, so a reading can say which wavefront it was taken
+  under; the older name is not redefined, because every number the ladder
+  recorded before § 6k.9 was taken under the first one.
+- **Handed a bare pupil, `renderVolume` chooses the exact cap** at the
+  objective's own NA/n; handed a `DepthPupils` callback it applies nothing and
+  the callback's own depth phase stands. That is the only place in the engine
+  that chooses, and it refuses NA ≥ n rather than clamping it.
 
 ### Tilt / decenter semantics (decided; commitment #3 depends on it)
 

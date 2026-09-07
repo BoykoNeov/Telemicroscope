@@ -4,7 +4,12 @@ import {
   type PlaneLayer,
 } from "../designs/coverslip";
 import type { PupilFunction } from "../wave/psf";
-import { defocusWaves, withDefocus, type DepthPupils, type VolumeImageOptions } from "./volume";
+import {
+  defocusWaves,
+  withObjectDefocus,
+  type DepthPupils,
+  type VolumeImageOptions,
+} from "./volume";
 
 /**
  * Depth-dependent spherical aberration — § 6k's named deferral, and the last
@@ -314,15 +319,27 @@ export function withMountAberration(
  * For the other question — one emitter at a fixed depth, the focus swept through
  * it — compose the two primitives instead:
  * `defocusing(withMountAberration(pupil, spec, depthMm))`.
+ *
+ * `sinAlpha` is § 6k.8's aperture angle for the *defocus* half, and the mount
+ * implies its own: `objectSinAlpha(spec.numericalAperture, spec.mountIndex)`,
+ * the medium the depth is measured in. It defaults to 0 — the paraboloid — and
+ * that default is free rather than merely cheap: `withObjectDefocus` at zero
+ * aperture is **bitwise** `withDefocus`, so a call site routed through here and
+ * left at the default cannot drift (§ 6k.9). The aberration half is unaffected
+ * either way; a mount's spherical aberration is not a defocus.
  */
-export function mountPupils(pupil: PupilFunction, spec: MountSpec): DepthPupils {
+export function mountPupils(
+  pupil: PupilFunction,
+  spec: MountSpec,
+  sinAlpha = 0,
+): DepthPupils {
   checkSpec(spec);
   const perWave =
     (2 * spec.mountIndex * spec.wavelengthNm * 1e-6) /
     (spec.numericalAperture * spec.numericalAperture);
   return (waves) => {
     const depthMm = spec.focusDepthMm + waves * perWave;
-    return withDefocus(withMountAberration(pupil, spec, depthMm), waves);
+    return withObjectDefocus(withMountAberration(pupil, spec, depthMm), waves, sinAlpha);
   };
 }
 

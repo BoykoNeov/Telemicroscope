@@ -2,7 +2,13 @@ import { imagePixelScaleMm, type PupilScale } from "../wave/psf";
 import { incoherentImage, type EmitterField } from "./fluorescence";
 import type { PatchPupil } from "./brightfield";
 import { patchWeight } from "./render";
-import { defocusing, defocusWaves, type DepthPupils, type EmitterVolume } from "./volume";
+import {
+  defocusWaves,
+  exactDepthFactor,
+  objectDefocusing,
+  type DepthPupils,
+  type EmitterVolume,
+} from "./volume";
 
 /**
  * The field and the depth on one callback — § 6k's stack through § 6i's patches.
@@ -174,11 +180,20 @@ export type FieldDepthPupils = (u: number, v: number) => DepthPupils;
  * wiring this step was deferred for. A mount whose index is not the immersion's
  * wants `mountPupils` in place of `defocusing` and is § 6l's business, not this
  * function's.
+ *
+ * `sinAlpha` selects § 6k.8's exact depth phase over the paraboloid, and is the
+ * objective's own NA/n — `objectSinAlpha`. It defaults to 0, which is the
+ * paraboloid **bitwise** rather than approximately (§ 6k.9), so a caller who
+ * does not pass it gets exactly what this function returned before. The aperture
+ * angle is a property of the objective and not of the field point, so it is one
+ * argument here rather than one per patch: § 6bd's patches vary the *pupil*
+ * across the field, and every one of them sits behind the same cone.
  */
 export function fieldDefocusing(
   pupilAt: (u: number, v: number) => PatchPupil,
+  sinAlpha = 0,
 ): FieldDepthPupils {
-  return (u, v) => defocusing(pupilAt(u, v).pupil);
+  return (u, v) => objectDefocusing(pupilAt(u, v).pupil, sinAlpha);
 }
 
 /**
@@ -267,6 +282,22 @@ export interface FieldVolumeImage {
    */
   readonly inFocusFraction: number;
   /**
+   * The same share over the **exact** cap's quarter-wave band (§ 6k.9).
+   *
+   * `inFocusFraction` counts the depth at which the PARABOLOID spends a quarter
+   * wave at the rim; the exact wavefront spends it sooner, by (1 + cos α)/2.
+   * Carried here as well as on `VolumeImage` for a reason this module makes
+   * sharp: `fieldDefocusing` now takes the aperture, so a caller can render
+   * every patch on the exact wavefront, and reading that render's haze against
+   * the paraboloid's band would put back exactly the mismatch § 6k.9 removed.
+   * Both bands are field-independent, so § 6bd.7's condition on § 6k.2 — the
+   * throughput cancels only if the specimen separates — applies to this number
+   * in the same words.
+   *
+   * **Absent when NA ≥ n**, which is not a cone the medium can carry.
+   */
+  readonly exactInFocusFraction?: number;
+  /**
    * Max over every patch and slice — the grid's ability to carry the worst
    * kernel it saw, and by § 6bd.8 the frame's ability to contain it: past ½ a
    * wave the kernel is wrapping, and in this module it wraps into a patch with a
@@ -331,6 +362,10 @@ export function renderFieldVolume(
   const halfDepthMm =
     (nMedium * options.wavelengthNm * 1e-6) /
     (2 * options.numericalAperture * options.numericalAperture);
+  // § 6k.9's band, on the same terms `renderVolume` reports it: a pairing with
+  // no aperture angle in it (NA ≥ n) fails the comparison and has no exact band.
+  const sinAlpha = options.numericalAperture / nMedium;
+  const exactHalfDepthMm = sinAlpha < 1 ? halfDepthMm * exactDepthFactor(sinAlpha) : undefined;
 
   // Precomputed rather than recomputed per patch: the defocus a slice sits at is
   // a property of the stack, not of the field position, and `renderVolume`
@@ -352,6 +387,7 @@ export function renderFieldVolume(
   let weightedEmittedFlux = 0;
   let maxGridPhaseStepWaves = 0;
   let inFocusFlux = 0;
+  let exactInFocusFlux = 0;
   let totalFlux = 0;
   let done = 0;
 
@@ -394,7 +430,11 @@ export function renderFieldVolume(
         sliceFlux[s] = sliceFlux[s]! + flux;
         weightedEmittedFlux += flux;
         totalFlux += flux;
-        if (Math.abs(volume.slices[s]!.zMm - focusMm) <= halfDepthMm) inFocusFlux += flux;
+        const offsetMm = Math.abs(volume.slices[s]!.zMm - focusMm);
+        if (offsetMm <= halfDepthMm) inFocusFlux += flux;
+        if (exactHalfDepthMm !== undefined && offsetMm <= exactHalfDepthMm) {
+          exactInFocusFlux += flux;
+        }
         options.onSlice?.(s + 1, volume.slices.length);
       }
 
@@ -416,6 +456,9 @@ export function renderFieldVolume(
     patchThroughput,
     weightedEmittedFlux,
     inFocusFraction: totalFlux > 0 ? inFocusFlux / totalFlux : 0,
+    ...(exactHalfDepthMm === undefined
+      ? {}
+      : { exactInFocusFraction: totalFlux > 0 ? exactInFocusFlux / totalFlux : 0 }),
     maxGridPhaseStepWaves,
     ...(pixelScaleMm === undefined ? {} : { pixelScaleMm }),
   };

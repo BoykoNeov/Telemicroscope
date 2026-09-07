@@ -11,6 +11,7 @@ import type { OpticalSystem } from "../trace/system";
 import { bestFocus } from "../analysis/focus";
 import { tracedPupil, type FieldPupilOptions } from "./object-field";
 import { incoherentPsf, type IncoherentPsf } from "./fluorescence";
+import { exactDepthFactor, objectSinAlpha } from "./volume";
 
 /**
  * The Stokes shift, and the band the image is actually formed in.
@@ -317,6 +318,40 @@ export function depthOfFocusMm(
     throw new Error(`depthOfFocusMm: NA must be positive, got ${numericalAperture}`);
   }
   return (refractiveIndex * wavelengthNm * 1e-6) / (numericalAperture * numericalAperture);
+}
+
+/**
+ * The same quarter-wave depth of focus, on the **exact** wavefront (§ 6k.9).
+ *
+ *     DOF_exact = (n·λ / NA²) · (1 + cos α)/2,      sin α = NA/n
+ *
+ * `depthOfFocusMm` above is derived from § 1.5's paraboloid, W = ½·δ·NA²·ρ².
+ * § 6k.8 replaced that with the cap of the Ewald sphere the depth phase actually
+ * is, whose rim phase is 2/(1 + cos α) times steeper — so the depth that spends
+ * a quarter wave at the rim is shorter by the reciprocal. It is one criterion on
+ * two wavefronts rather than a second criterion, which is why the factor is
+ * `exactDepthFactor` itself and not a fit to it: the band and the phase cannot
+ * drift apart.
+ *
+ * The difference is 0.25% at NA 0.10 and **30.7%** on an oil 1.40, so it is
+ * negligible exactly where the ladder's older readings were taken and large
+ * exactly where a high-aperture microscope works. `renderVolume` reports the
+ * share of light inside both bands (`exactInFocusFraction` beside
+ * `inFocusFraction`) rather than moving the older number onto this one.
+ *
+ * `refractiveIndex` is the medium the cone is IN, as above — and here it is
+ * load-bearing rather than a scale factor: NA ≥ n is refused, because sin α ≥ 1
+ * is not an aperture angle.
+ */
+export function exactDepthOfFocusMm(
+  wavelengthNm: number,
+  numericalAperture: number,
+  refractiveIndex = 1,
+): number {
+  return (
+    depthOfFocusMm(wavelengthNm, numericalAperture, refractiveIndex) *
+    exactDepthFactor(objectSinAlpha(numericalAperture, refractiveIndex))
+  );
 }
 
 /**

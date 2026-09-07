@@ -24,8 +24,10 @@ import {
   axialTransfer,
   defocusing,
   depthKernels,
+  objectSinAlpha,
   renderVolume,
   withDefocus,
+  withObjectDefocus,
 } from "../src/imaging/volume";
 import { incoherentPsf, uniformEmitters } from "../src/imaging/fluorescence";
 import { idealPupil } from "../src/illumination/transfer";
@@ -555,6 +557,43 @@ describe("§ 6l.9 — the coupling that has no readout to catch it is REFUSED, n
       expect(a.formedSum).toBe(b.formedSum);
       for (let i = 0; i < a.values.length; i++) expect(a.values[i]).toBe(b.values[i]!);
     }
+  });
+
+  it("§ 6k.9 — the aperture argument selects the exact cap, and its default is free", () => {
+    // § 6k.9 wires § 6k.8's exact depth phase to the objective's own NA/n, and
+    // `mountPupils` builds a depth phase of its own, so it takes the aperture
+    // too. Two things are pinned. The DEFAULT is the paraboloid bitwise — the
+    // rung above already shows a matched mount reproducing § 6k's `defocusing`
+    // through the new spelling — and the aperture, when given, reaches only the
+    // defocus half: a mount's spherical aberration is not a defocus, and the two
+    // halves compose here exactly as they did.
+    //
+    // The mount's own sin alpha is NA/n_s, the medium the DEPTH is measured in,
+    // which is the same pairing `mountVolumeOptions` emits for the renderer.
+    const spec = mount(1.2, 0.01);
+    const s = objectSinAlpha(spec.numericalAperture, spec.mountIndex);
+    const plain = mountPupils(idealPupil(), spec);
+    const capped = mountPupils(idealPupil(), spec, s);
+    for (const depthMm of [0.01, 0.02, 0.035]) {
+      const waves = mountDefocusWaves(spec, depthMm);
+      const aberrated = withMountAberration(idealPupil(), spec, depthMm);
+      for (const rho of [0.2, 0.6, 1]) {
+        expect(plain(waves).phaseWaves(rho, 0)).toBe(
+          withDefocus(aberrated, waves).phaseWaves(rho, 0),
+        );
+        expect(capped(waves).phaseWaves(rho, 0)).toBe(
+          withObjectDefocus(aberrated, waves, s).phaseWaves(rho, 0),
+        );
+      }
+    }
+    // And the two are genuinely different pupils at this aperture: 1.2 into
+    // water is sin alpha 0.90, so the rim carries 1.391 waves per wave of depth
+    // where the paraboloid says 1 — the mismatch this module exists for is not
+    // the only thing a deep mount gets wrong.
+    const waves = mountDefocusWaves(spec, 0.02);
+    expect(capped(waves).phaseWaves(1, 0)).not.toBe(plain(waves).phaseWaves(1, 0));
+    const rim = (s2: number) => withObjectDefocus(idealPupil(), 1, s2).phaseWaves(1, 0);
+    expect(rim(s)).toBeCloseTo(1.3910, 4);
   });
 
   it("and a whole volume renders through it, each slice aberrated for its own depth", () => {

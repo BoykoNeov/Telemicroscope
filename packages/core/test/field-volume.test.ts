@@ -1,6 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { incoherentPsf, renderFluorescence } from "../src/imaging/fluorescence";
-import { defocusing, renderVolume, withDefocus } from "../src/imaging/volume";
+import {
+  defocusing,
+  objectDefocusing,
+  objectSinAlpha,
+  renderVolume,
+  withDefocus,
+  withObjectDefocus,
+} from "../src/imaging/volume";
 import {
   containedDefocusWaves,
   fieldDefocusing,
@@ -537,5 +544,117 @@ describe("§ 6bd.8 — the lattice's Nyquist and the frame's containment are one
     expect(shallow.maxGridPhaseStepWaves).toBeLessThan(0.1);
     expect(containedDefocusWaves(PS)).toBe(3);
     expect(() => containedDefocusWaves(0)).toThrow(/positive/);
+  });
+});
+
+/**
+ * § 6k.9 — the aperture angle reaches the patched renderer.
+ *
+ * § 6k.9 wires § 6k.8's exact depth phase to the objective's own NA/n, and this
+ * module is one of the two places that built the phase itself. The aperture is a
+ * property of the objective and not of the field point, so it is one argument
+ * for the whole field rather than one per patch — § 6bd's patches vary the pupil
+ * ACROSS the field and all of them sit behind the same cone.
+ *
+ * The default is the interesting half: it is the paraboloid **bitwise**, not
+ * approximately, because `withObjectDefocus` at zero aperture differs from
+ * `withDefocus` by a multiplication and a division by two and binary scaling is
+ * exact. So every rung above keeps its reading by construction rather than by
+ * re-measurement, and the routing costs nothing to leave unused.
+ */
+describe("§ 6k.9 — the aperture angle reaches the patched renderer", () => {
+  const frame = tileAt(4.5);
+  const pupils = tracedFieldPupils(SYSTEM, frame);
+  const S = objectSinAlpha(NA);
+
+  it("its default is what this function always returned, bit for bit", () => {
+    for (const [u, v] of [
+      [0.5, 0.5],
+      [0.125, 0.875],
+    ] as const) {
+      const built = fieldDefocusing(pupils)(u, v);
+      const pupil = pupils(u, v).pupil;
+      for (const waves of [0, 0.4, 2.5]) {
+        for (const rho of [0.13, 0.5, 1]) {
+          expect(built(waves).phaseWaves(rho, 0)).toBe(
+            withDefocus(pupil, waves).phaseWaves(rho, 0),
+          );
+          expect(built(waves).amplitude(rho, 0)).toBe(pupil.amplitude(rho, 0));
+        }
+      }
+    }
+  });
+
+  it("and given the objective's own sin α it is the exact cap, at every patch alike", () => {
+    const capped = fieldDefocusing(pupils, S);
+    for (const [u, v] of [
+      [0.5, 0.5],
+      [0.125, 0.875],
+    ] as const) {
+      const pupil = pupils(u, v).pupil;
+      for (const waves of [0.4, 2.5]) {
+        for (const rho of [0.13, 0.5, 1]) {
+          expect(capped(u, v)(waves).phaseWaves(rho, 0)).toBe(
+            withObjectDefocus(pupil, waves, S).phaseWaves(rho, 0),
+          );
+        }
+      }
+    }
+    // A 4x/0.10 is where the cap hides: the rim moves by 0.25% of the defocus,
+    // which is the same 1/cos alpha that is a third of the picture at NA 1.40.
+    const rim = (s: number) => withObjectDefocus(idealPupil(), 1, s).phaseWaves(1, 0);
+    expect(rim(S) - 1).toBeCloseTo(2.5126e-3, 7);
+  });
+
+  it("and the patched renderer counts BOTH bands, so the haze is read on the wavefront it was formed with", () => {
+    // The trap this closes: `fieldDefocusing` now takes the aperture, so a
+    // caller can render every patch on the exact wavefront — and reading that
+    // render's haze against the paraboloid's band would put back exactly the
+    // mismatch § 6k.9 removes, one module over.
+    //
+    // The two bands are 0.25% apart at 0.10, so the slab is built to fall in
+    // between them: two slices at 0.999 of the paraboloid's half-depth are
+    // inside it and OUTSIDE the exact one, which no coarser stack could show.
+    const halfMm = (LAMBDA * 1e-6) / (2 * NA * NA);
+    const level = 1 / (SIZE * SIZE);
+    const field = { size: SIZE, values: new Float64Array(SIZE * SIZE).fill(level) };
+    const volume: EmitterVolume = {
+      size: SIZE,
+      slices: [0, 0.99, -0.99, 0.999, -0.999].map((k) => ({ zMm: k * halfMm, field })),
+    };
+    const image = renderFieldVolume(volume, fieldDefocusing(pupils, S), { ...OPT, patches: 2 });
+    // Every plane delivers its whole flux (§ 6k.1), so the fractions are counts:
+    // five slices inside the paraboloid's band and three inside the exact one.
+    expect(image.inFocusFraction).toBeCloseTo(1, 12);
+    expect(image.exactInFocusFraction!).toBeCloseTo(3 / 5, 12);
+    // And it is the same band `renderVolume` reports, patch count aside.
+    const plain = renderVolume(volume, objectDefocusing(idealPupil(), S), {
+      pupilSamples: PS,
+      numericalAperture: NA,
+      wavelengthNm: LAMBDA,
+    });
+    expect(plain.exactInFocusFraction!).toBeCloseTo(image.exactInFocusFraction!, 12);
+  });
+
+  it("a pairing with no aperture angle in it has no exact band, on either renderer", () => {
+    // NA ≥ n is the case nothing else in the pipeline refuses: `defocusWaves`
+    // takes the two numbers separately and a paraboloid has no aperture angle to
+    // be wrong about, so the render goes through and only the exact band is
+    // missing — absent rather than wrong, on both renderers alike.
+    const field = { size: SIZE, values: new Float64Array(SIZE * SIZE).fill(1) };
+    const volume: EmitterVolume = { size: SIZE, slices: [{ zMm: 0, field }] };
+    const opts = { pupilSamples: PS, numericalAperture: NA, wavelengthNm: LAMBDA };
+    const bad = { numericalAperture: 1.4 };
+    const patched = renderFieldVolume(volume, fieldDefocusing(pupils), { ...OPT, ...bad });
+    const plain = renderVolume(volume, defocusing(idealPupil()), { ...opts, ...bad });
+    expect(patched.exactInFocusFraction).toBeUndefined();
+    expect(plain.exactInFocusFraction).toBeUndefined();
+    expect(plain.inFocusFraction).toBeGreaterThan(0);
+    expect(patched.inFocusFraction).toBeGreaterThan(0);
+    // A zero index never reaches the band at all: `defocusWaves` refuses it
+    // first, which is where that error belongs.
+    expect(() =>
+      renderVolume(volume, defocusing(idealPupil()), { ...opts, refractiveIndex: 0 }),
+    ).toThrow(/refractive index must be positive/);
   });
 });

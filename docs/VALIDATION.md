@@ -60,16 +60,16 @@ whole ladder.
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
 | [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as its exact ends; the (NA_obj+NA_cond) cutoff; the weak-phase null; coherence is a verdict, not a blend; **6f.10** the specimen's ∇φ bends rays — χ/sin χ of the null | `illumination` `transport` |
-| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; an input-side partition of unity multiplying the interference by C = Σ√(w₁w₂); and the field-varying brightfield render built on it, `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
+| [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; an input-side partition of unity multiplying the interference by C = Σ√(w₁w₂); and the field-varying brightfield render on it, `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
-| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice | `volume` |
+| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice, **6k.9** chosen from NA/n, band ×0.693 | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics — and its headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and an off-axis tile ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
-| [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so a traced pupil is evaluated once instead of once per direction — cached ≡ uncached bit for bit, the saving pinned as an exact integer rather than a wall clock, and commensurability shown to be accuracy-neutral | `commensurate` |
+| [6p](#step-6p--the-commensurate-condenser-and-the-cached-pupil) | The condenser's lattice stepped by a whole multiple of the PUPIL's own frequency step, so a traced pupil is evaluated once instead of once per direction — cached ≡ uncached bit for bit, the saving an exact integer not a wall clock, and commensurability accuracy-neutral | `commensurate` |
 
 | [6q](#step-6q--the-eyepiece-on-the-intermediate-image) | The eyepiece placed at last, and why the finite-object solve is an engine step: a gap solved from a collimated input leaves 70.5 diopters of vergence on a microscope — with the two object NAs exactly tan u and sin u, so the textbook 500·NA/M misses by 61% at NA 1.40 | `visual-microscope` |
 | [6r](#step-6r--polychromatic-brightfield) | Colour at last, and the RULER that is the whole difficulty: the Abbe sum per wavelength, each on its own frame, stacked on one grid — the Abbe image shown by measurement to be an irradiance and not energy per pixel, so the resampler carries no Jacobian, and the blue plane worst-resolved by 2.56× | `brightfield-spectrum` |
@@ -10430,12 +10430,124 @@ and that is a statement about the problem rather than about this engine.
 is applied to the pupil the caller supplies, so an **aplanatic amplitude
 apodization** — the √cos θ a high-aperture objective also carries — is not in it;
 that is an amplitude and would break § 6k.1's flux invariance, which is the whole
-reason it is a separate question rather than part of this one. And nothing in the
-engine yet *chooses* `withObjectDefocus` over `withDefocus`: `renderVolume` takes
-whatever `DepthPupils` it is handed, so a caller rendering a high-aperture volume
-gets the cap only by asking for it. Wiring the choice to the objective's own NA is
-a step nobody has costed, and it would want § 6k.2's in-focus fraction re-measured
-under it.
+reason it is a separate question rather than part of this one. ~~And nothing in
+the engine yet *chooses* `withObjectDefocus` over `withDefocus`: `renderVolume`
+takes whatever `DepthPupils` it is handed, so a caller rendering a high-aperture
+volume gets the cap only by asking for it. Wiring the choice to the objective's
+own NA is a step nobody has costed, and it would want § 6k.2's in-focus fraction
+re-measured under it.~~ **Closed at [§ 6k.9](#-6k9--the-engine-chooses-the-cap-and-the-band-it-counts-as-focus)**,
+which wired the choice and found that the paraboloid had been setting more than
+the wavefront: the in-focus band was its quarter wave too, and it is 31% too
+long at NA 1.40.
+
+### § 6k.9 — the engine chooses the cap, and the band it counts as focus
+
+*Source: engine change — `objectSinAlpha`, `exactDepthFactor`, `renderVolume`'s
+bare-pupil arm and `exactInFocusFraction` in `imaging/volume`;
+`exactDepthOfFocusMm` in `imaging/emission`; the aperture threaded through
+`mountPupils` (`imaging/depth-aberration`) and `fieldDefocusing`
+(`imaging/field-volume`).*
+
+§ 6k.8 wrote the exact depth phase and left it out of reach. `renderVolume` is
+handed a `DepthPupils` with the choice already sealed inside it, while holding
+the NA, the index and the wavelength the whole time, so the cap was available
+only to a caller who computed sin α itself and remembered which side of the
+objective it belongs to. This step gives the renderer the say: **passed a bare
+`PupilFunction` instead of a callback it applies the exact cap at the objective's
+own sin α = NA/n**, and a supplied callback is used exactly as before. The two
+arms are told apart by what they *are* — a pupil is an object and a `DepthPupils`
+is a function — rather than by a flag a caller could set wrong.
+
+**The wiring is the smaller half.** The larger one is that the paraboloid was
+setting more than the wavefront. `inFocusFraction` — § 6k.2's number, and the
+haze statement the whole step exists for — counts the light inside
+±½·n·λ/NA², which is the depth at which the **paraboloid** spends a quarter wave
+at the rim. The exact wavefront spends it sooner, by exactly the reciprocal of
+its steeper rim:
+
+    DOF_exact = (n·λ/NA²) · (1 + cos α)/2,      sin α = NA/n
+
+On an oil 1.40 at 550 nm that is **295.14 nm against 425.87** — the band that
+deserves the name is 69.30% of the one the ladder has been quoting, and § 6k.2's
+reading of how much light is genuinely in focus was 44% generous. It is one
+criterion on two wavefronts and not a second criterion, which is why
+`exactDepthFactor` **is** the reciprocal of `withObjectDefocus`'s own rim value
+rather than a fit to it: the band and the phase cannot drift apart, and the rung
+checks the product against 1 at five apertures. Its reciprocal 1.4429 is § 6k.8's
+recorded rim factor, so the two rungs stand on one closed form instead of on two
+measurements that happen to agree.
+
+**Nothing already recorded moves, and that is measured rather than hoped.** The
+exact band is reported *beside* the old one (`exactInFocusFraction` beside
+`inFocusFraction`) instead of replacing it, and every existing caller supplies
+its own `defocusing` and gets what it always got. At NA 0.10 — the aperture every
+rung above was taken at — the two pictures of a bead stack differ by **2.2468e-3
+of peak** and the two bands by 0.25%; at NA 1.40 in oil the same comparison is
+**0.2893 of peak**. The paraboloid is not a small error that was tolerable: it is
+invisible at low aperture and a third of the picture at high, which is the shape
+§ 6k.8 found in the phase, arriving in everything the phase feeds. § 6k.8's third
+appearance of 1/cos α arrives with it — the exact rim is steeper, so the same
+stack puts **2.2519×** the phase between adjacent pupil samples, and a caller who
+switches has to refine the pupil. The readout that says so is the one
+`incoherentPsf` has reported since § 6i.
+
+**§ 6k.2 keeps its statement and gains a band.** Refocusing still moves which
+emitters are counted and nothing else — both bands are instrument-side constants,
+and the fraction is unchanged to 1e-12 under either — so haze is still a property
+of how much specimen there is. What changes is how deep "in focus" reaches. On a
+slab sampled 8, 32 and 128 slices to the half-band, each fraction reads back as
+its own exported closed form to 1e-12 (which is the pin on the renderer's inline
+half-depth), and their ratio converges on (1 + cos α)/2 to the slab's own
+quantum. The slices sit at half-integer steps so that neither band's edge lands
+on one: an equality case decided by the last bit of a division is not a physical
+statement, and a rung that depends on it is a rung that travels badly.
+
+**Two smaller findings, both about the routing rather than the optics.** The
+default aperture is 0, and at 0 `withObjectDefocus` is `withDefocus` **bitwise**
+— 2wρ²/(1+1) and wρ² differ by a multiplication and a division by two, and binary
+scaling is exact — so `mountPupils` and `fieldDefocusing` could be moved onto the
+aperture-aware form with their existing readings intact by construction rather
+than by re-measurement. § 6l's own matched-mount identity rung, which reproduces
+§ 6k's `defocusing` bit for bit, passes through the new spelling unchanged. And
+the aperture belongs to the objective rather than to the field point, so
+`fieldDefocusing` takes one for the whole field: § 6bd's patches vary the pupil
+*across* the field and every one of them sits behind the same cone. **The patched
+renderer carries the band too**, and that is not symmetry for its own sake: with
+the aperture threaded through `fieldDefocusing`, a caller can render every patch
+on the exact wavefront, and reading that render's haze against the paraboloid's
+band would put the mismatch this step removes straight back one module over. The
+rung builds a slab that falls between the two bands — at NA 0.10 they are 0.25%
+apart, so slices at 0.999 of the paraboloid's half-depth are inside it and outside
+the exact one — and reads 1 against 3/5.
+
+**Every other user of a quarter-wave depth of focus was surveyed rather than
+assumed.** `depthOfFocusMm` is a *criterion* elsewhere in the engine and the app
+— § 6j.3's traced quarter wave, § 6j.4's Stokes-shift cost, `focus-surface`'s
+plateau depths and coarse step, the app's curvature and mechanical readouts — and
+none of them moves, because every one is taken at NA 0.17 or below, where
+(1 + cos α)/2 is 0.993 or nearer 1. The correction is real only where a
+microscope is immersed, which is the same statement as the 2.2e-3 against 0.2893
+above and is why it could sit unnoticed for eight sub-steps.
+
+**What it refuses.** NA ≥ n is not a cone the medium can carry, and
+`objectSinAlpha` throws rather than clamping — it is what an image-side NA paired
+with an object-side index looks like, and what a dry objective engraved 1.2 looks
+like. A render given such a pairing keeps its paraboloid band and reports **no**
+exact one (the field is absent, not wrong), which is the older band's real
+weakness stated as an API: a quadratic in ρ has no aperture angle in it and so
+cannot be wrong about one.
+
+**What it leaves.** The aplanatic amplitude apodization stays out for § 6k.8's
+reason — it is an amplitude, and it would break § 6k.1. `packages/app` still asks
+for the paraboloid: its one `renderVolume` call builds `defocusing`, and moving it
+is an app change with APP.md's costing behind it rather than an engine one — the
+band it displays is therefore the paraboloid's, on an app whose microscope
+presets include an oil 1.40. And
+the exact band is *reported*, never *defaulted* — `inFocusFraction` still means
+the paraboloid's quarter wave, because moving it would rewrite readings on rungs
+that have nothing to do with this step. Which of the two a caller should believe
+is not in doubt; which one the ladder's older numbers were taken under is the
+reason both are on the result.
 
 
 ## Step 6l — depth-dependent spherical aberration

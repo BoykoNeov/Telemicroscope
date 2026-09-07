@@ -103,6 +103,23 @@ since s = NA/n is 0.9191 on the specimen side of a shipped 100×/1.40 and 0.0144
 the camera side — the same waves, two wavefronts a third of a wave apart, with the
 paraboloid the thing that hid the difference.
 
+**The one loose end that step left is closed at § 6k.9**, and the wiring turned
+out to be the smaller half of it. `renderVolume` now takes a bare pupil and
+applies the exact cap at the objective's own sin α = NA/n — it held the NA, the
+index and the wavelength the whole time and had no say in which depth phase was
+sealed inside the callback it was handed. The larger half is that the paraboloid
+was setting more than the wavefront: `inFocusFraction`, § 6k.2's haze number,
+counts the light inside the depth at which the **paraboloid** spends a quarter
+wave, and the exact wavefront spends it sooner by exactly the reciprocal of its
+steeper rim. On an oil 1.40 the band that deserves the name is **295 nm against
+426**, so how much light is genuinely in focus had been read 44% generously. Both
+bands are now reported and neither is redefined, because every reading the ladder
+has was taken under the first — and at NA 0.10, where they were taken, the two
+pictures differ by 2.2e-3 of peak. § 6k.2 keeps its statement (refocusing still
+moves which emitters are counted and nothing else) and gains a band. What it
+leaves is item 16: the exact band is reported, never defaulted, and the app still
+asks for the paraboloid.
+
 ## Build order
 
 1. **Core skeleton + validation harness** ✅
