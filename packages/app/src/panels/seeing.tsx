@@ -69,7 +69,7 @@ function Frame({
   size,
   caption,
 }: {
-  rgba: Uint8ClampedArray;
+  rgba: Uint8ClampedArray<ArrayBuffer>;
   size: number;
   caption: React.ReactNode;
 }) {
@@ -81,7 +81,7 @@ function Frame({
     element.height = size;
     const context = element.getContext("2d");
     if (!context) return;
-    context.putImageData(new ImageData(new Uint8ClampedArray(rgba), size, size), 0, 0);
+    context.putImageData(new ImageData(rgba, size, size), 0, 0);
   }, [rgba, size]);
   return (
     <figure style={{ margin: 0 }}>

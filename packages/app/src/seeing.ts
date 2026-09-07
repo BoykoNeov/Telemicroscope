@@ -103,11 +103,11 @@ export interface TransferPoint {
 
 export interface SeeingResult {
   /** The ensemble mean — the seeing disc. */
-  readonly meanRgba: Uint8ClampedArray;
+  readonly meanRgba: Uint8ClampedArray<ArrayBuffer>;
   /** One screen at the same seed — a speckle pattern. */
-  readonly drawRgba: Uint8ClampedArray;
+  readonly drawRgba: Uint8ClampedArray<ArrayBuffer>;
   /** The same instrument with no atmosphere at all. */
-  readonly cleanRgba: Uint8ClampedArray;
+  readonly cleanRgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   readonly pixelScaleMm: number;
 
@@ -355,7 +355,7 @@ function peakOf(values: Float64Array): number {
  * shade only has to make the *shape* legible. Which it does, and the shapes are
  * the argument: speckle, disc, rings.
  */
-function toGrey(intensity: Float64Array, size: number, white: number): Uint8ClampedArray {
+function toGrey(intensity: Float64Array, size: number, white: number): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   for (let i = 0; i < size * size; i++) {
     const v = Math.round((255 * intensity[i]!) / white);
