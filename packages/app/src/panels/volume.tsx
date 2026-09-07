@@ -18,6 +18,7 @@ import {
   type AxialResult,
   type DepthRequest,
   type DepthResult,
+  type DepthWavefront,
   type MountChoice,
   type VolumeReadout,
   type VolumeRequest,
@@ -622,6 +623,11 @@ export function VolumePanel() {
   // and the interesting configuration is one click away.
   const [mount, setMount] = useState<MountChoice>("matched");
   const [depthUm, setDepthUm] = useState(0);
+  // The exact cap by default (§ 6k.9), with the paraboloid one click away —
+  // the change is a third of the peak at an immersion aperture and two parts per
+  // thousand at the objective this panel opens on, and neither of those is
+  // visible without the other picture to put beside it.
+  const [depthWavefront, setDepthWavefront] = useState<DepthWavefront>("exact");
 
   // A4's floor: `incoherentPsf` refuses to truncate a pupil that does not fit
   // the grid, so the grid follows the pupil. Derived, never written back.
@@ -633,8 +639,30 @@ export function VolumePanel() {
   const focusPlane = Math.max(-halfPlanes, Math.min(halfPlanes, focusRaw));
 
   const request = useMemo<VolumeRequest>(
-    () => ({ spec, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm }),
-    [spec, pupilSamples, size, planes, focusPlane, beadsPerPlane, seed, mount, depthUm],
+    () => ({
+      spec,
+      pupilSamples,
+      size,
+      planes,
+      focusPlane,
+      beadsPerPlane,
+      seed,
+      mount,
+      depthUm,
+      depthWavefront,
+    }),
+    [
+      spec,
+      pupilSamples,
+      size,
+      planes,
+      focusPlane,
+      beadsPerPlane,
+      seed,
+      mount,
+      depthUm,
+      depthWavefront,
+    ],
   );
   const axialRequest = useMemo<AxialRequest>(
     () => ({ spec, mount, depthUm }),
@@ -779,6 +807,19 @@ export function VolumePanel() {
           onChange={setMount}
           format={(m) => (m === "matched" ? "matched" : m.toLowerCase())}
         />
+        <Choice
+          label={
+            readout === null || readout.capSinAlpha === null
+              ? "depth wavefront — no aperture angle on this mount, so the paraboloid is the only one"
+              : `depth wavefront — ${
+                  readout.depthWavefront === "exact" ? "n·δ·cosθ, exact" : "the quadratic that osculates it"
+                }`
+          }
+          options={["exact", "paraboloid"] as const}
+          value={depthWavefront}
+          onChange={setDepthWavefront}
+          format={(w) => (w === "exact" ? "exact cap" : "paraboloid")}
+        />
       </div>
 
       {result !== null && !result.ok && (
@@ -812,6 +853,37 @@ export function VolumePanel() {
               depth of focus {readout.depthOfFocusUm.toFixed(3)} µm = one plane step = half a wave —
               measured in the <em>mount</em>, so this step in µm moves with the mount control while
               the step in waves does not
+              <br />
+              {readout.capSinAlpha === null || readout.exactDepthOfFocusUm === null ? (
+                <span style={{ color: GUARD_COLOR.warn }}>
+                  drawn on the <strong>paraboloid</strong>, and not by choice — this mount is rarer
+                  than the immersion, so NA {readout.tracedNA.toFixed(2)} over n{" "}
+                  {readout.mountIndex.toFixed(4)} is no cone the medium can carry and the engine
+                  refuses an aperture angle for it. The rim beyond ρ ={" "}
+                  {(readout.mountIndex / readout.tracedNA).toFixed(4)} is dark anyway, which is the
+                  same radius the exact phase runs out at — but the engine does not yet say so
+                </span>
+              ) : (
+                <>
+                  drawn on the{" "}
+                  <strong>
+                    {readout.depthWavefront === "exact" ? "exact cap" : "osculating paraboloid"}
+                  </strong>
+                  , sin α = {readout.capSinAlpha.toFixed(6)}
+                  {readout.depthWavefront === "exact"
+                    ? " — a depth costs n·δ·cosθ and the pupil coordinate is that direction, so this is the wavefront with no expansion in it"
+                    : " — the quadratic that osculates the cap at the axis, which is what every reading on this panel was taken over before"}
+                  <br />
+                  <span style={{ color: "var(--ink-4)" }}>
+                    the exact band is{" "}
+                    <strong>{(readout.exactDepthOfFocusUm * 1000).toFixed(1)} nm</strong> against the
+                    paraboloid&rsquo;s {(readout.depthOfFocusUm * 1000).toFixed(1)} —{" "}
+                    {((readout.exactDepthOfFocusUm / readout.depthOfFocusUm) * 100).toFixed(2)}% of
+                    it, which is (1 + cos α)/2 — and it is quoted either way, because the band
+                    belongs to the objective and the mount rather than to this render
+                  </span>
+                </>
+              )}
               <br />
               focused {readout.focusDepthUm.toFixed(3)} µm down, which costs{" "}
               <span style={{ color: readout.mountMatched ? "var(--ok)" : "var(--warn)" }}>
@@ -870,6 +942,23 @@ export function VolumePanel() {
                   <span style={{ color: "var(--ink-4)" }}>
                     equal-flux ideal 1/{planes} = {readout.equalFluxIdeal.toFixed(6)}
                   </span>
+                  {readout.exactInFocusFraction !== null && (
+                    <>
+                      <br />
+                      <span style={{ color: "var(--ink-4)" }}>
+                        over the exact band <strong>{readout.exactInFocusFraction.toFixed(9)}</strong>{" "}
+                        — the same number, and that is the band and not the light: the slab steps by
+                        one <em>paraboloid</em> depth of focus, so the focused plane sits at zero and
+                        its neighbours a whole step away. A window{" "}
+                        {readout.exactDepthOfFocusUm === null
+                          ? ""
+                          : `${(100 - (readout.exactDepthOfFocusUm / readout.depthOfFocusUm) * 100).toFixed(1)}% `}
+                        narrower still catches that one plane and still misses those two. Separating
+                        them needs a slab stepped finer than the window, which costs this panel its
+                        one-plane-per-window rule
+                      </span>
+                    </>
+                  )}
                 </>
               )}
               <br />

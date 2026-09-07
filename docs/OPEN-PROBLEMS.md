@@ -239,7 +239,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     (§ 6e's front and a back) does not exist on the ladder.
 12. **Which way an aberration-free band moves the Airy core.** § 6j names
     "an analytic band-integrated Airy" as the resampler-free check.
-16. **The exact band is reported and never defaulted**, and `packages/app` still
+16. ~~**The exact band is reported and never defaulted**, and `packages/app` still
     asks for the paraboloid. § 6k.9: `inFocusFraction` still means the
     paraboloid's quarter wave beside the exact `exactInFocusFraction`, because
     defaulting it would rewrite readings on rungs that have nothing to do with
@@ -248,7 +248,77 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     exact band, and every other user of a quarter-wave depth of focus in the
     engine sits at NA 0.17 or below where the two agree to 0.7%, so what is left
     is a decision rather than a measurement: which reading the ladder's older
-    rungs are entitled to keep. No external number would settle it.
+    rungs are entitled to keep. No external number would settle it.~~
+
+    ✅ **CLOSED at [APP.md — the picture chooses its depth wavefront](APP.md#the-picture-chooses-its-depth-wavefront)**,
+    in its two halves and by two different kinds of answer.
+
+    **The default half closes as a recorded decision and no code**, which is what
+    the entry itself said it was: `inFocusFraction` keeps the paraboloid's band,
+    `exactInFocusFraction` is the one to believe, and every other user of a
+    quarter-wave depth of focus in the engine sits at NA 0.17 or below where the
+    two agree to 0.7%. Moving the default would rewrite pinned numbers on rungs
+    that have nothing to do with § 6k.9, which is the thing the hard rules forbid;
+    reporting both is what a reading taken under one convention and superseded by
+    another actually looks like.
+
+    **The app half closes as work**, and it cost more than the entry priced. The
+    picture is on the exact cap, and the two are **0.36 of peak apart** on the
+    shipped oil 100×/1.40 — measured, converged, and *under*-reported by a tenth
+    at the panel's own default pupil, which is why the panel's grid guard is left
+    to fire rather than the default raised. It costs no time (one square root
+    against a multiply) and the sampling cost is bracketed by 1/cos α rather than
+    recorded. Two of the panel's four surfaces deliberately stay on the paraboloid
+    with a measured number behind each refusal. And the two in-focus fractions
+    read **equal** on every setting the panel can reach — the band moved, the
+    light in it did not — so the step's real risk was the caption rather than the
+    code.
+
+    **The entry's own sentence "moving it is an APP.md costing rather than an
+    engine one" is false**, and that is item 17. Four named blockers in a row
+    turned out not to exist (§ 6cs, § 6cq, § 6f.10, § 6k.8); this is the mirror —
+    an unnamed one that does.
+
+17. **`objectSinAlpha` refuses a mount rarer than the immersion, and § 6l.3 says
+    the pupil there is simply dark.** Found at APP.md's *the picture chooses its depth wavefront* while closing 16.
+    § 6k.9 guards sin α = NA/n < 1 because sin α ≥ 1 is not a cone a medium can
+    carry, and it named the two mistakes it was catching: an image-side aperture
+    paired with an object-side index, and a dry objective engraved 1.2. A
+    specimen mounted in something rarer than the immersion is a **third** case
+    the text never considered and is not a mistake at all — an oil 1.40 over
+    water is 1.05 and over air is 1.40, both shipped in the app, and the second
+    is what the app's own code calls "the sharpest demonstration" of the wall.
+    So two of four mount rows cannot have the exact depth phase.
+
+    Pin: **the wall and the branch point are the same radius**, and it needs no
+    external number because it is an identity of the two engine forms. § 6l.3
+    zeroes the amplitude beyond ρ = min(NA, n_s)/NA; § 6k.8's radicand
+    1 − s²ρ² runs out at ρ = 1/s = n/NA. Once the `min` has chosen n those are
+    the same division of the same two doubles, which the app test already pins
+    with `toBe` — so the exact phase is defined **exactly** where light exists and
+    undefined exactly where none does, and `withObjectDefocus`'s existing
+    disc ≤ 0 fallback already covers the rest. What a rung would have to add is
+    the measurement that fallback's value is never read: two different finite
+    values there must give a bitwise-identical image, because the amplitude
+    multiplying them is zero.
+
+    What it unblocks, stated as the hypothesis a step would test rather than as a
+    result — *candidate*, in this file's sense, and derived here rather than
+    measured anywhere. Because the wall and the branch point are the same radius,
+    a truncating mount puts the **lit rim exactly at s·ρ = 1**: cos of the angle
+    there is exactly 0, so the exact phase at the outermost lit sample is exactly
+    **twice** the paraboloid's at that same radius and (1 + cos α)/2 is exactly
+    **½** — not asymptotically, and not more so for a thinner mount, but ½ for
+    every mount that truncates at all, water and air alike. **What would refute
+    it** is a measured lit-rim ratio away from 2 on any truncating row.
+
+    **And it is a prediction about a band convention that does not yet exist**,
+    which is why it cannot be quoted as the answer today: `depthOfFocusMm` and
+    `exactDepthFactor` both define the band at the **nominal** rim ρ = 1, and on a
+    truncating mount that rim is dark. The ½ above is at the **lit** rim. Two
+    rims, two bands, and every reading the ladder has was taken where the two
+    coincide — the same shape of problem item 16 just closed, one level down, and
+    the relaxation has to decide it before it can quote a number at all.
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
     the planes `spectralStack` resamples onto the common grid come back +0.3%
@@ -642,3 +712,16 @@ radial-map nodes · § 6ba differential bleaching.
     and the assertions are restated (see the structural problem above); what
     remains is one confirming run on a second machine, which is now a check
     rather than a piece of work.
+12. ~~**The band nothing displayed** (item 16): the app half of § 6k.9, and the
+    only entry left with a *decision* rather than a measurement in it.~~ ✅ —
+    landed at APP.md's *the picture chooses its depth wavefront*, in two halves and by two kinds of answer. The
+    decision half closes as a decision and no code, which is what the entry said
+    it was. The app half cost more than the entry priced — 0.36 of peak on the
+    shipped oil 1.40, a grid guard deliberately left to fire, two surfaces that
+    stay on the paraboloid for measured reasons, and a caption whose real risk
+    was two numbers that agree. And the entry's own "an APP.md costing rather
+    than an engine one" is falsified, which is **item 17**.
+13. **The mount that has no aperture angle** (item 17): an engine change with a
+    pin that is an identity of two forms the engine already has, and the widest
+    unblock left on the microscope branch — the exact cap on every mount, and the
+    limit where the in-focus band halves.

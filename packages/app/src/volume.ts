@@ -4,6 +4,7 @@ import {
   defocusing,
   depthKernels,
   depthOfFocusMm,
+  exactDepthOfFocusMm,
   fieldPupilAt,
   incoherentPsf,
   missingConeEdge,
@@ -12,6 +13,7 @@ import {
   mountPupils,
   mountVolumeOptions,
   mountWavefrontWaves,
+  objectSinAlpha,
   rasterizeEmitters,
   renderVolume,
   withDefocus,
@@ -72,6 +74,44 @@ import { refused, type Refused } from "./refusal";
  * the operator, stated rather than worked around: § 6k is about the depth axis,
  * and mixing a field decomposition into it would put two approximations in one
  * picture with no way to tell which moved.
+ *
+ * ## Which depth wavefront the picture is drawn on — § 6k.9
+ *
+ * A defocus δ shifts every plane-wave component of an emitter's field by
+ * n·δ·cosθ, and the pupil coordinate **is** that component's direction. So the
+ * depth phase is exact with no expansion in it, and `withDefocus`'s quadratic is
+ * the paraboloid osculating that cap at the axis. § 6k.9 gave the choice to the
+ * caller and defaulted it to the paraboloid, so this module drew the osculating
+ * approximation for as long as it has existed — never wrongly, since it never
+ * claimed otherwise, but never by decision either. **The picture is now on the
+ * exact cap** wherever the engine can carry it (`exactCapSinAlpha`), and this is
+ * not a refinement in the last digit: measured on the shipped oil 100×/1.40 at a
+ * matched mount, the two pictures differ by **0.36 of peak**, converged. At the
+ * panel's default 20×/0.10 they differ by 2.7e-3, which is the same fact seen
+ * where nobody would have found it.
+ *
+ * **Two things move with it and two deliberately do not.** The picture moves, and
+ * the worst-slice spill readout moves because it reports the kernel the picture
+ * was actually made of. The **axial response** stays on the paraboloid because
+ * its reference curve *is* the paraboloid's own closed form, sinc²(π·w₂₀) — put
+ * the exact cap under it and the engine departs from its control for a reason
+ * that has nothing to do with the mount the plot exists to show. The **cone
+ * stack** behind the missing-cone edge stays for a measured reason rather than an
+ * argued one: § 6k.8 read the lattice's odd bins at 4e-15 under the paraboloid
+ * and 0.56 under the cap, so the comb that reading depends on is the
+ * paraboloid's.
+ *
+ * **What the exact cap costs is sampling, and only sampling.** It is not slower —
+ * one square root against the multiply it replaces, measured at or below the
+ * paraboloid's time at every pupil size. But its rim is steeper by 1/cos α, so
+ * the same stack puts about **2.2×** the phase between adjacent pupil samples
+ * (§ 6k.8's third appearance of that factor, arriving as a sampling cost), and on
+ * the oil rows at 32 bins that crosses the panel's own grid-step guard. The guard
+ * is left to fire: at 32 bins the difference between the two pictures reads 0.31
+ * against the 0.36 it converges to, so the coarse grid **under-reports the very
+ * thing the change is for**, and a warning that says "refine the pupil" is the
+ * true statement. Raising the default instead would have hidden a real cost
+ * behind a wider crop.
  *
  * ## The mount — § 6l, and the stack stops being symmetric
  *
@@ -296,6 +336,44 @@ export function mountSpecFor(
   };
 }
 
+/**
+ * The aperture angle the **exact** depth cap needs, or `null` where the engine
+ * has no answer — § 6k.9 reaching the app.
+ *
+ * § 6k.8 wrote the depth phase a defocus really costs: n·δ·cosθ on every
+ * plane-wave component, where `withDefocus`'s paraboloid is the quadratic that
+ * osculates it. § 6k.9 gave `renderVolume` the say and threaded the angle
+ * through `mountPupils`, whose default is 0 — which is `withDefocus` **bitwise**,
+ * so this module has been drawing the osculating paraboloid ever since without
+ * ever choosing it. It chooses now, and the choice is one number: sin α = NA/n,
+ * with n the medium the **depths** are measured in, which here is the mount and
+ * never the immersion (§ 6k.7's condition, and the same n that makes a depth of
+ * focus move with the mount control two lines up).
+ *
+ * **`null` is not a fallback, it is the engine's own refusal shown through.**
+ * `objectSinAlpha` guards NA < n because sin α ≥ 1 is not a cone a medium can
+ * carry, and an oil 1.40 over a WATER or an AIR mount is exactly that pairing —
+ * 1.05 and 1.40. § 6l.3 says the same thing from the other side: no ray of
+ * invariant above n_s leaves the specimen, so the pupil beyond ρ = n_s/NA is
+ * **dark**, and the phase there is never read. The two statements are the same
+ * radius, which is why relaxing the guard is a real engine step with a real pin
+ * behind it and not a widened bound — and until it is taken, those two rows keep
+ * the paraboloid and the panel says so rather than quietly rendering one
+ * wavefront under a caption describing another.
+ */
+export function exactCapSinAlpha(mount: ResolvedMount, numericalAperture: number): number | null {
+  // The engine's own test, asked of the engine's own quotient rather than of NA
+  // and n separately. `objectSinAlpha` refuses `!(NA/n < 1)`, and NA < n does
+  // **not** imply NA/n < 1 once that division rounds — a quotient inside half an
+  // ulp of 1 comes back as exactly 1 from a numerator strictly below its
+  // denominator. Predicting a refusal with a different comparison than the one
+  // that raises it is how a `null` becomes a throw in the single case nobody
+  // will ever construct, so the prediction is spelled as the thing it predicts.
+  return numericalAperture / mount.index < 1
+    ? objectSinAlpha(numericalAperture, mount.index)
+    : null;
+}
+
 export interface VolumeRequest {
   readonly spec: BuildSpec;
   /** Frequency bins across the pupil diameter — also the crop, in cells (§ 6h). */
@@ -326,7 +404,27 @@ export interface VolumeRequest {
    * clamp has to hide it.
    */
   readonly depthUm: number;
+  /**
+   * Which depth wavefront to draw the picture on. Defaults to the exact cap.
+   *
+   * A control rather than a constant, and for a reason the rest of this panel
+   * shares: the change from the paraboloid to the cap is **invisible on screen
+   * unless you can see both**. It moves a third of the peak on an oil 1.40 and
+   * two parts per thousand on the objective the panel opens with, and a reader
+   * who cannot flip between them has to take both of those on trust. It is also
+   * the only honest way to caption the two in-focus fractions, which agree.
+   *
+   * `"paraboloid"` is not a degraded mode, which is why it is offered without
+   * apology: it is the wavefront every reading on this panel was taken over
+   * before § 6k.9, it is the one whose closed form the axial plots below are
+   * still drawn against, and at sin α 0 it is `withDefocus` **bitwise** rather
+   * than nearly. What it is not is the wavefront a depth actually costs.
+   */
+  readonly depthWavefront?: DepthWavefront;
 }
+
+/** Which of § 6k.8's two wavefronts a render used. */
+export type DepthWavefront = "exact" | "paraboloid";
 
 export interface VolumeReadout {
   readonly size: number;
@@ -351,6 +449,35 @@ export interface VolumeReadout {
   /** The AXIAL crop: planes × depth of focus (µm). Its neglected companion. */
   readonly slabThicknessUm: number;
   readonly depthOfFocusUm: number;
+  /**
+   * The **exact** cap's aperture angle, and the quarter-wave band it earns —
+   * `null` together, on the one condition `exactCapSinAlpha` states.
+   *
+   * `depthOfFocusUm` above is the depth at which the *paraboloid* spends a
+   * quarter wave at the rim; the exact wavefront spends it sooner, by
+   * (1 + cos α)/2. That factor is the reciprocal of the exact rim's own phase
+   * and not a second criterion, so the band and the wavefront cannot drift
+   * apart — which is why one `null` decides both fields and why they are not
+   * two independent readings the caption would have to reconcile.
+   *
+   * Kept **beside** `depthOfFocusUm` rather than replacing it, for the reason
+   * § 6k.9 gives and this panel makes visible: the paraboloid's band is still
+   * what steps the slab and what `inFocusFraction` counts, so the two would
+   * disagree about the same word if only one were shown.
+   */
+  readonly capSinAlpha: number | null;
+  readonly exactDepthOfFocusUm: number | null;
+  /**
+   * Which wavefront the picture above was actually drawn on.
+   *
+   * Reported separately from the two fields above, and the split is the point:
+   * the band is a property of the **objective and its mount**, so it is quoted
+   * whenever one exists, while this is a property of **this render**. A reader
+   * who asked for the paraboloid still gets told what the exact band would be,
+   * and a reader whose mount has no exact band gets told the picture is the
+   * paraboloid's without that reading as a choice somebody made.
+   */
+  readonly depthWavefront: DepthWavefront;
   readonly objectPixelNm: number;
   readonly tracedNA: number;
   /**
@@ -409,6 +536,30 @@ export interface VolumeReadout {
   readonly inFocusFraction: number | null;
   readonly emittedInFocusShare: number | null;
   readonly equalFluxIdeal: number;
+
+  /**
+   * The same share counted over the **exact** band, and it is equal to the one
+   * above on every setting this panel can reach — deliberately, and worth
+   * printing for exactly that reason.
+   *
+   * The slab steps by one *paraboloid* depth of focus and so does the focus, so
+   * the focused plane sits at offset 0 and its neighbours at ±1 DOF. The exact
+   * half-band is (1 + cos α)/2 of the paraboloid's 0.5 DOF — narrower, and still
+   * far wider than the 0 the focused plane sits at. So the narrower window
+   * catches the same single plane, and the two fractions agree to ~1e-15 however
+   * far apart the two **bands** are. How far apart is a per-row number and not a
+   * constant — 30% on the oil 100×/1.40, 0.25% on the 20×/0.10 this panel opens
+   * on — which is why the caption interpolates it rather than naming one.
+   *
+   * That is not a null result and the caption must not let it read as one: it is
+   * the difference between a band and what happens to be inside it. § 6k.9's own
+   * rung had to build a slab at 0.999 of the paraboloid's half-depth to make the
+   * two fractions read 1 against 3/5 — a slab this panel cannot construct
+   * without giving up the one-plane-per-window invariant its haze claim rests
+   * on. The honest reading is therefore both bands in nanometres, both fractions,
+   * and the sentence that says why the second pair matches.
+   */
+  readonly exactInFocusFraction: number | null;
 
   /**
    * Worst drift of (slice flux ÷ slice emitted) across the planes that emitted.
@@ -564,6 +715,22 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
     // the focused plane is `focusPlane` planes past the middle one.
     const focusDepthMm = slabDepthMm + (request.focusPlane + (request.planes - 1) / 2) * dofMm;
     const spec = mountSpecFor(mount, tracedNA, focusDepthMm);
+    // Which depth wavefront the picture is drawn on — see `exactCapSinAlpha`.
+    // `dofMm` above is deliberately NOT re-derived from it: the plane step is the
+    // panel's stepping invariant and `mountPupils`' own waves ↔ millimetres map,
+    // both of which live in `defocusWaves`' coordinate rather than in the
+    // wavefront that coordinate scales. Changing the cap changes where the light
+    // goes, never what a wave of defocus means (§ 6k.9).
+    const capSinAlpha = exactCapSinAlpha(mount, tracedNA);
+    // Two ways to end up on the paraboloid and they are not the same fact: a
+    // reader asked for it, or the engine has no aperture angle to offer. The
+    // readout keeps them apart, so `?? 0` here is the union of both and the
+    // caption never has to guess which one it is looking at.
+    const drawn: DepthWavefront =
+      capSinAlpha !== null && (request.depthWavefront ?? "exact") === "exact"
+        ? "exact"
+        : "paraboloid";
+    const pupils = mountPupils(axis.pupil, spec, drawn === "exact" ? capSinAlpha! : 0);
 
     const slices = beadSlices(
       system,
@@ -587,7 +754,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
     // slice for the wrong depth and looks entirely normal doing it.
     const image = renderVolume(
       { size: request.size, slices },
-      mountPupils(axis.pupil, spec),
+      pupils,
       mountVolumeOptions(spec, {
         pupilSamples: request.pupilSamples,
         scale: frame.scale,
@@ -627,16 +794,17 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
     // transform, and it is the concrete symptom the guard beside it predicts.
     //
     // The defocus comes from `mountDefocusWaves` rather than from the map written
-    // out here, and the kernel from `mountPupils` rather than from a bare
-    // `withDefocus`: both are the § 6l.9 coupling, and a spill measured on an
-    // unaberrated kernel printed beside an aberrated picture would be a reading
-    // of a frame nobody is looking at.
+    // out here, and the kernel from `pupils` — the very object the picture was
+    // rendered through, so it carries the mount AND the cap the render chose and
+    // cannot fall behind either: both are the § 6l.9 coupling, and a spill
+    // measured on an unaberrated kernel printed beside an aberrated picture
+    // would be a reading of a frame nobody is looking at.
     let worstSlice = slices[0]!;
     for (const s of slices) {
       if (Math.abs(s.zMm - focusDepthMm) > Math.abs(worstSlice.zMm - focusDepthMm)) worstSlice = s;
     }
     const worstSliceWaves = mountDefocusWaves(spec, worstSlice.zMm);
-    const worstKernel = incoherentPsf(mountPupils(axis.pupil, spec)(worstSliceWaves), {
+    const worstKernel = incoherentPsf(pupils(worstSliceWaves), {
       pupilSamples: request.pupilSamples,
       size: request.size,
     });
@@ -658,6 +826,12 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
         objectSpanUm,
         slabThicknessUm: request.planes * dofMm * 1000,
         depthOfFocusUm: dofMm * 1000,
+        capSinAlpha,
+        depthWavefront: drawn,
+        exactDepthOfFocusUm:
+          capSinAlpha === null
+            ? null
+            : exactDepthOfFocusMm(LAMBDA_NM, tracedNA, mount.index) * 1000,
         objectPixelNm: frame.objectPixelScaleMm * 1e6,
         tracedNA,
         deliveredNA: mountAperture(spec),
@@ -677,6 +851,14 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
         inFocusFraction: emittedTotal > 0 ? image.inFocusFraction : null,
         emittedInFocusShare: emittedTotal > 0 ? emittedInFocus / emittedTotal : null,
         equalFluxIdeal: 1 / request.planes,
+        // Two guards, not one, and they refuse for different reasons: an empty
+        // frame has no ratio to report (A3's rule, as for the line above), and a
+        // pairing with no aperture angle in it has no exact band to report the
+        // ratio OVER. `renderVolume` leaves the field off in the second case
+        // rather than guarding a 0, so `?? null` here is reading its absence and
+        // not defaulting its value.
+        exactInFocusFraction:
+          emittedTotal > 0 ? (image.exactInFocusFraction ?? null) : null,
         throughputDrift,
         totalLight,
         worstSliceOutsideFraction: outsideInscribedCircle(worstKernel.values, request.size),

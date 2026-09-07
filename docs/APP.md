@@ -1276,6 +1276,112 @@ which is exact only for a z-uniform specimen — a bead field is not one, and
 § 6k's and § 6l's, called from the app — though D10 did add the branch's first
 **app** test file, for the wiring rather than the physics. See D10.
 
+#### The picture chooses its depth wavefront
+
+*App wiring only, on A5's own `#/volume` route — no new section key and no new
+row in the table above, because nothing new reached a screen that A5's row does
+not already name.*
+
+The register's item 16, and the register was wrong about it in one word. § 6k.8
+wrote the depth phase a defocus really costs — n·δ·cosθ on every plane-wave
+component, with `withDefocus`'s quadratic the paraboloid osculating it at the
+axis — and § 6k.9 gave the caller the say and defaulted it to 0, which is the
+paraboloid **bitwise**. So this panel drew the osculating approximation for its
+whole life: never wrongly, since it never claimed otherwise, but never by
+decision either. It decides now.
+
+**The costing, measured before any panel code was written.** The picture at the
+shipped oil 100×/1.40, matched mount, against the same scene on the paraboloid:
+
+| pupil bins | grid step, paraboloid → exact | ratio | picture difference |
+|---|---|---|---|
+| 32 (the panel's default) | 0.2511 → 0.5461 ✗ over the 0.5 guard | 2.175 | 0.3075 |
+| 48 | 0.1706 → 0.3836 ✓ | 2.248 | 0.3464 |
+| 64 | 0.1291 → 0.2958 ✓ | 2.291 | 0.3550 |
+| 96 | 0.0869 → 0.2031 ✓ | 2.337 | 0.3590 |
+
+Three readings, and the middle one is the reason this was not a two-line change.
+
+**It costs no time.** The exact form is at or below the paraboloid's wall clock
+at every pupil size — one square root against the multiply it replaces — so
+there is no new cost class here and § 2's costing table is untouched.
+
+**It costs sampling, and the guard is left to fire.** The exact rim is steeper by
+1/cos α, so the same stack puts about 2.2× the phase between adjacent pupil
+samples, and on the oil rows at 32 bins that crosses this panel's own
+`GRID_STEP_LIMIT`. The tempting fix is to raise the default; the measurement says
+not to. The difference between the two pictures **grows** as the pupil refines —
+0.31 at 32 bins against 0.36 converged — so the coarse grid is under-reporting
+the very thing the change is for, and a warning that says *refine the pupil* is
+the true statement. Raising the default would have hidden a real cost behind a
+wider crop. The ratio is bracketed by a closed form rather than recorded: it is
+1/√(1 − s²ρ̄²) at whatever ρ̄ the outermost lit pair of samples straddles, so it
+is strictly below 1/cos α = 2.5372 and climbs toward it, which is § 6k.8's third
+appearance of that factor arriving as a sampling cost.
+
+**One clause so the guard is not over-attributed.** It already fires on the
+mismatched rows *without* the cap — an oil 1.40 over air reads 0.7709 waves per
+sample on the paraboloid — because a mount's own spherical aberration is steeper
+at the rim than a defocus is. The cap adds a second way to cross the same line;
+it did not introduce the line, and on the matched oil row (0.2511 against 0.5461)
+the crossing is the cap's alone.
+
+**Two surfaces move and two deliberately do not**, and each *no* has a number
+behind it rather than an omission. The picture moves, and the worst-slice spill
+readout moves because it reports the kernel the picture was actually made of. The
+**axial response** stays on the paraboloid because its reference curve *is* the
+paraboloid's closed form, sinc²(π·w₂₀) — put the cap under it and the engine
+departs from its own control for a reason that has nothing to do with the mount
+the plot exists to show. The **cone stack** behind the missing-cone edge stays for
+a measured reason: § 6k.8 read the lattice's odd bins at 4e-15 under the
+paraboloid and 0.56 under the cap, so the comb that reading depends on is the
+paraboloid's.
+
+**A control, not a constant**, which is this doc's *pair a picture with the thing
+that explains it* rule biting in an unusual place. The change is **invisible on
+screen unless you can see both**: a third of the peak at an immersion aperture and
+2.7e-3 at the 20×/0.10 the panel opens on, neither of which a reader can check
+against a picture they no longer have. So `depthWavefront` is a two-way control
+defaulting to the exact cap, and `"paraboloid"` is offered without apology — it is
+what every earlier reading here was taken over and what the plots below are still
+drawn against.
+
+**The one thing a caption could have got wrong, and nearly did.** Both in-focus
+fractions are reported and they are **equal on every setting this panel can
+reach**. That is the band moving and not the light in it: the slab steps by one
+*paraboloid* depth of focus and so does the focus, so the focused plane sits at
+offset 0 and its neighbours a whole step away, and a window 30% narrower catches
+the same one plane and misses the same two. § 6k.9's own rung had to build a slab
+at 0.999 of the paraboloid's half-depth to read 1 against 3/5 — a slab this panel
+cannot construct without giving up the one-plane-per-window invariant its haze
+claim rests on. Printed without that sentence the pair would read as *the
+correction does not matter*, which is the opposite of the finding, so the test
+pins the band **ordering** rather than the coincidence.
+
+**What it could not do, and the register said it could.** Item 16 reads "moving it
+is an APP.md costing rather than an engine one," and that is falsified: two of the
+panel's four mount choices cannot take the exact cap at all. An oil 1.40 over a
+water or an air mount is NA ≥ n, which `objectSinAlpha` refuses because sin α ≥ 1
+is not a cone a medium can carry — 1.05 and 1.40. The refusal was written against
+two *mistakes* (an image-side aperture paired with an object-side index; a dry
+objective engraved 1.2) and a rarer mount is a third case the text never
+considered. Those two rows keep the paraboloid and the panel says so in the
+engine's own terms rather than quietly drawing one wavefront under a caption
+describing another. What makes it worth an engine step rather than a shrug is
+recorded in the app test as an identity: § 6l.3's wall (the pupil beyond
+ρ = min(NA, n_s)/NA is **dark**, because no ray of higher invariant leaves the
+specimen) and § 6k.8's branch radius (1 − s²ρ² runs out at ρ = 1/s = n/NA) are the
+**same expression** — pinned with `toBe`, since once the `min` has chosen n they
+are the same division of the same two doubles. Two modules, eight sub-steps apart,
+one radius. The relaxation is OPEN-PROBLEMS' new item 17.
+
+**No engine capability was added, so no validation rung was**, for the third time
+on this branch. `packages/app/test/volume-cap.test.ts` pins the wiring, and its
+three failure modes are worth naming because none would show in a screenshot:
+silence (the aperture argument defaults to 0 and a panel that forgets it neither
+throws nor warns), the wrong index (sin α needs the **mount's**, and the
+immersion's is in scope at all times and 12% away), and the caption above.
+
 ### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**
 
 Sliders for slip thickness and index against σ, on the 100×/1.40 oil. The

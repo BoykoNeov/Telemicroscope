@@ -118,7 +118,26 @@ has was taken under the first — and at NA 0.10, where they were taken, the two
 pictures differ by 2.2e-3 of peak. § 6k.2 keeps its statement (refocusing still
 moves which emitters are counted and nothing else) and gains a band. What it
 leaves is item 16: the exact band is reported, never defaulted, and the app still
-asks for the paraboloid.
+asks for the paraboloid. **Item 16 is now closed, on APP.md's side**, and in two
+halves. The default half closes as a recorded decision and no code, which is what
+the entry said it was — `inFocusFraction` keeps the paraboloid's band, the exact
+one is the number to believe, and every other user of a quarter-wave depth of
+focus in the engine sits at NA 0.17 or below where the two agree to 0.7%. The app
+half cost more than the entry priced: the picture is on the exact cap and the two
+are **0.36 of peak apart** on the shipped oil 1.40, the panel's grid guard is
+deliberately left to fire at its coarse default because the difference *grows*
+with refinement, two of the panel's four depth surfaces stay on the paraboloid for
+measured reasons, and the two in-focus fractions read equal on every setting the
+panel can reach — the band moved, the light in it did not. And the entry's own
+"an APP.md costing rather than an engine one" is **false**, which is the register's
+new item 17: `objectSinAlpha` refuses a mount rarer than the immersion, so two of
+the panel's four mount rows cannot take the exact cap at all. The pin for
+relaxing it is an identity of two forms the engine already has — § 6l.3's dark rim
+at ρ = min(NA, n_s)/NA and § 6k.8's branch radius at ρ = n/NA are the same
+expression — and what that identity predicts is sharper than "the cap matters
+more there": a truncating mount puts the lit rim exactly at the branch point, so
+the exact band is exactly HALF the paraboloid's, for every such mount rather than
+asymptotically. It is the next entry.
 
 ## Build order
 
