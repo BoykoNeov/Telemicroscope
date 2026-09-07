@@ -67,7 +67,21 @@ transcribe (a paraboloid nulls ΣS_I; a prolate ellipsoid's own geometry gives t
 conic that does the same at a finite conjugate; a mirror stopped at itself has a
 flat sagittal field; a Schmidt's film former has radius f), the traced focal
 surfaces meet it to 0.1% at f/16, and the 1.5% gap at f/4 is shown to be the
-aperture's own fifth order rather than absorbed by a tolerance.
+aperture's own fifth order rather than absorbed by a tolerance. **The
+register's last entry with an engine change in it, transport of intensity, is
+landed at § 6f.10** — and its named blocker turned out not to exist, as
+§ 6cs's and § 6cq's had. It did not need "rays that start at a transmittance": the ray
+answer to a phase object is the closed-form map x′ = x + δ·∇φ, so the branch
+pushes the specimen's flux along it and differentiates it too, and 1 − δ∇²φ falls
+out of expanding 1/|det J| rather than being asserted. Against the engine's own
+Abbe sum the ratio is **χ/sin χ** across a defocus sweep, which is what "the
+geometric limit of that" looks like as a measurement rather than a claim. Two
+things came with it that neither transfer curve could say: the fold is at
+**2·φ₁·χ = 1**, so ray optics stops having one answer exactly where believing it
+would have meant believing in 100% modulation; and § 6f.5's in-focus null comes
+back by a *different mechanism* — not two sidebands cancelling, but no lever, so
+nothing moves. It is a separate capability and not a fallback: the branch is
+source-blind and cannot be otherwise, so § 6f.9's cliff stands.
 
 ## Build order
 

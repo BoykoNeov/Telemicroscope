@@ -136,8 +136,9 @@ core/pupil       aperture stop → entrance/exit pupil, chief ray, ray aiming,
                  OPD                                              [step 1.5]
 core/wave        OPD → Zernike fit, PSF (FFT + geometric), MTF     [step 2]
 core/illumination condenser as a set of directions, Abbe source-point
-                 summation, partially coherent transfer, and Hopkins'
-                 transmission cross-coefficient                    [step 6]
+                 summation, partially coherent transfer, Hopkins'
+                 transmission cross-coefficient, and the geometric
+                 transport of intensity beside them                [step 6]
 core/photometry  spectra, sources (star magnitudes, lamps, fluorophores),
                  detector & eye models, noise                      [step 3+]
 core/imaging     scene model, field-patch convolution, resampling  [step 3+]
@@ -428,6 +429,18 @@ same traced-sample criterion `adaptivePsf` switches on and refuses at any
 geometric share above zero, and reports `unknown` rather than `valid` when no
 traced sampling is available at all. Where the PSF ramps, this is a cliff, and
 that asymmetry is the deferral itself (docs/VALIDATION § 6f.9).
+
+**And the module that looks like the missing branch is not it.**
+`illumination/transport` (§ 6f.10) moves rays by the *specimen's* own ∇φ, which
+gives a defocused phase object contrast with no interference anywhere in it —
+transport of intensity, pinned at χ/sin χ of the Abbe sum's own answer over a
+defocus sweep. That is a **different physical effect**, not a degraded spelling
+of this one, and two properties say so rather than a paragraph: it carries no
+source at all, because a ray has no direction a deposition could be weighted by,
+and it leaves a pure absorber untouched at every defocus, because the equation
+it computes has no term without a ∇φ in it. So it sits *beside* brightfield
+rather than under it. Nothing consults it when the coherent sum refuses; the
+cliff above is unchanged.
 
 ## Out of scope until explicitly scheduled
 

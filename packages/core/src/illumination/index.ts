@@ -4,4 +4,5 @@ export * from "./coherence";
 export * from "./lattice";
 export * from "./transfer";
 export * from "./hopkins";
+export * from "./transport";
 export * from "./fidelity";

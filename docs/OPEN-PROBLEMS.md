@@ -115,12 +115,44 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    only for the coefficient, which lands at 0.96 of the closed form with the 4%
    deficit shown closing as the screen grows. What the step found on the way is
    now item 14 below.
-6. **Transport of intensity** — brightfield's geometric analog, "rays
+6. ~~**Transport of intensity** — brightfield's geometric analog, "rays
    refracted by the specimen's phase gradient" (§ 6f.9, *Later rungs*). Needs
    rays that start at a transmittance, which `exitBundle` does not do. The
    ladder names no pin. *Candidate:* the weak-phase defocus transfer,
    contrast ∝ sin(π·λ·z·ν²) (Teague 1983), on § 6f.5's own phase grating that
-   brightfield cannot see in focus.
+   brightfield cannot see in focus.~~
+
+   ✅ **CLOSED at [§ 6f.10](VALIDATION.md#6f10--transport-of-intensity-the-rays-the-specimens-own-phase-bends).**
+   The candidate was right about the pin and the fixture, and **the entry's own
+   blocker was wrong again** — § 6cs's eigensolver and § 6cq's engine change went
+   the same way. Rays that start at a transmittance are not needed: the ray answer
+   is the closed-form map x′ = x + δ·∇φ(x), so there is no bundle to trace, no
+   aim to solve and no Monte Carlo. `illumination/transport` pushes the object's
+   flux along that map (conservative to 1e-13, and it survives rays crossing) and
+   differentiates it as well (I/|det J|, which is where the Laplacian in Teague's
+   equation comes FROM — the trace of a Hessian falling out of a determinant,
+   rather than an equation discretized).
+
+   **What it is pinned on.** The whole units bridge first, on its own, as
+   δ = −4·w₂₀·padFactor²/π against λz/(2π·Δx²) rebuilt from a physical pupil —
+   and the DEFOCUS sign, which no convention in the engine fixed, measured off
+   `abbeImage` rather than derived. Then the closed form: the de-windowed
+   contrast is 2·φ₁·2π·w₂₀·ν², and against the engine's own wave branch the ratio
+   is **χ/sin χ** across a defocus sweep, which is the statement "this is the
+   geometric limit of that" as a measurement. Two things came out that neither
+   the entry nor § 6f.5 could say. The fold is at **2·φ₁·χ = 1** — ray optics
+   stops having one answer exactly where believing it would have meant believing
+   in 100% modulation — and § 6f.5's in-focus null is reproduced by a *different
+   mechanism*: not two sidebands cancelling, but no lever, so nothing moves.
+
+   **What is left, named rather than folded in.** The branch is **source-blind**
+   and honestly cannot be otherwise: opening the condenser damps the wave answer
+   1.9% by S = 0.6 and this one does not move, because a ray carries no direction
+   to weight a deposition by. § 6f.9's cliff is therefore untouched — this is a
+   separate capability, not a fallback under `brightfieldFidelity`. And the
+   *traced* version is unbuilt: the objective's own aberration between the
+   specimen and the plane, which is what `exitBundle` would actually have been
+   for. Nothing has asked for it yet.
 7. ~~**Stop-shift equations in `seidelSums`.** § 6ac names the pin — "the
    published stop-shift equations would lift" the stop-in-contact zero — and
    § 6ai keeps the `"rim"` control alive only because they are absent.
@@ -549,6 +581,11 @@ radial-map nodes · § 6ba differential bleaching.
     pins are a paraboloid, an ellipsoid, a bare mirror's flat sagittal field and
     a Schmidt's film former. What it leaves is one external number still named:
     the two-mirror astigmatism ratio is computable but is a consistency check.
+10¾. ~~**Transport of intensity** (A6): the last entry in A with an engine
+    change in it, and the one a defocus slider would show.~~ ✅ — landed at
+    § 6f.10, and the blocker the entry named (rays that start at a transmittance)
+    was the fourth in a row not to exist. What it leaves is the traced launch and
+    the source it cannot carry.
 11. ~~Make the ladder green off the author's machine (the structural problem
     above) before any of 3–9 is trusted on a second one.~~ The convention is in
     and the assertions are restated (see the structural problem above); what

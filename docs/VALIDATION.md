@@ -59,7 +59,7 @@ whole ladder.
 | [6c](#step-6c--the-coverslip-and-what-mismatching-it-costs) | The plate solved to ALL orders; the slip-corrected objective; mismatch | `coverslip` |
 | [6d](#step-6d--the-lister-the-first-aplanat-and-the-ceiling-of-two-doublets) | Aplanatic sphere (exact, all orders); ΣS_I and ΣS_II nulled together; coma NA³ → NA^5.2 | `lister` |
 | [6e](#step-6e--oil-immersion-the-plane-stack-exactly) | The N-layer immersion stack solved to ALL orders; the matched-stack identity; the aplanatic front (dome + menisci); a diffraction-limited 100×/1.40 oil objective; the slip tolerance, and why the delivered NA depends on the slip | `immersion` |
-| [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as the two exact ends; the (NA_obj + NA_cond) cutoff measured; the weak-phase null; the coherence deferral made detectable — a verdict, not a blend, and the sum's own lattice guard | `illumination` |
+| [6f](#step-6f--brightfield-the-condenser-and-partial-coherence) | Abbe source-point summation; the coherent plateau and the incoherent identity as its exact ends; the (NA_obj+NA_cond) cutoff; the weak-phase null; coherence is a verdict, not a blend; **6f.10** the specimen's ∇φ bends rays — χ/sin χ of the null | `illumination` `transport` |
 | [6g](#step-6g--the-coherence-width-and-what-a-field-decomposition-may-window) | van Cittert–Zernike from the condenser's own sampling; μ shown to be what the Abbe image contains; an input-side partition of unity multiplying the interference by C = Σ√(w₁w₂); and the field-varying brightfield render built on it, `brightfieldFidelity`'s first caller | `coherence` `math` `brightfield` |
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
@@ -8989,19 +8989,263 @@ grids, the grating contrast is identical **to nine places**. So every other
 statement about *broadband* objects: the class the scenes (diatoms, tissue)
 will belong to and the gratings never did.
 
+### 6f.10 — transport of intensity: the rays the specimen's own phase bends
+
+§ 6f.9 split one deferral into two and built neither. The half it kept is the
+one it could not build — a ray histogram has no phase, so brightfield's coherent
+sum has no geometric fallback and never will. **The other half is this**, and it
+is not that fallback: a phase object is invisible in focus and visible out of it
+(§ 6f.5), and in the geometric limit that visibility is refraction rather than
+interference. Rays crossing a region where the optical path is tilted leave
+tilted, a defocused plane is a lever arm, and the pile-up is the contrast. That
+is Teague's transport-of-intensity equation,
+
+    ∂I/∂z = −(λ/2π)·∇·(I·∇φ)
+
+and `illumination/transport` computes it by moving the rays rather than by
+discretizing it — the divergence is what the moving *does*.
+
+**The blocker the register named was not the blocker, for the fourth entry
+running.** `OPEN-PROBLEMS.md` A6 said this "needs rays that start at a
+transmittance, which `exitBundle` does not do". It needs no bundle at all. The
+ray answer is the map x′ = x + δ·∇φ(x), and the image is that map's push-forward
+of the object's intensity: analytic, deterministic, no aim to solve and no Monte
+Carlo. What `exitBundle` would add is the objective's aberration between the
+specimen and the plane, which is a different rung and is still open.
+
+#### The bridge, before any physics
+
+The external form is written in millimetres and cycles per millimetre; this
+branch lives in `abbeImage`'s units — ν where 1 is the coherent cutoff, defocus
+as w₂₀ waves at the pupil rim, position in object pixels. Getting that wrong
+would have surfaced as a contrast ratio of two and been hunted for in the ray
+launch, where it would not have been. So it is pinned first and on its own.
+
+A ray leaving a thin phase screen is deflected by the gradient of the optical
+path it crossed, so over a propagation z it moves (λz/2π)·∂φ/∂x — in pixels of
+side Δx, the single number δ = λz/(2π·Δx²). Both halves are then engine
+quantities rather than free ones: § 6f.8's frequency bridge forces
+Δx = λ/(2·NA·padFactor), and `defocusedPupil(w₂₀)`'s pupil phase 2π·w₂₀·ν² is a
+free-space z = 2λ·w₂₀/NA² wearing the pupil's clothes. Substituting both leaves
+λ and NA nowhere:
+
+    δ = −4·w₂₀·padFactor²/π
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| δ is λz/(2π·Δx²) rebuilt from a physical `PupilScale`, at three scales × three defocuses | closed form through `imagePixelScaleMm` and `defocusPropagationMm`, 1e-12 | ✅ |
+| ...and the pixel that bridge needs is λ/(2·NA·padFactor) | § 6f.8's own ν → f, read backwards, 1e-15 | ✅ |
+| δ is a function of `padFactor` alone: 64/16 and 128/32 give it bit for bit, and doubling padFactor quadruples it | the closed form's own shape | ✅ |
+| In focus it is exactly zero | `toBe(-0)` | ✅ |
+
+**The sign is measured, not argued, because two of them are independent.** The
+DEFLECTION's sign has an anchor — a prism deviates its beam toward the base, so
+a positive gradient of extra optical path moves the ray the same way, exactly as
+`rayDeflectionScaleMm` records one surface further out. The DEFOCUS's sign has
+none: nothing in this file's conventions says whether `defocusedPupil(+w₂₀)` is
+the plane before the focus or after it. So it was read off the engine's own wave
+branch instead. An `abbeImage` of a φ = 0.02 grating at ν = 0.25 through
+`defocusedPupil(+0.05)` under one on-axis source point comes back **darker where
+φ is largest** — 0.999215 against 1.000786 at the trough, matching
+1 − 2φ·sin(2π·w₂₀·ν²) to six figures. A φ peaked in the middle is a converging
+lens, so light gathers at that peak *downstream* of it; a plane that reads dark
+there is on the other side, and positive w₂₀ is therefore a negative
+propagation. That is the minus above.
+
+#### In focus, nothing moves — which is § 6f.5's null by a different mechanism
+
+§ 6f.5's null is a **cancellation**: two sidebands 180° apart, equal for a real
+pupil, subtracting to zero. This one is not a cancellation at all. With no lever
+there is no displacement, so the image is the object's own intensity and there
+was never anything to cancel. Two mechanisms, one hard zero — the same shape of
+finding § 6cr made when its two transfer curves turned out to be the real and
+imaginary parts of one complex number.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| At w₂₀ = 0 the image is the object's own intensity, bit for bit, for a phase grating and for an absorber | `toBe`, every pixel | ✅ |
+| ...and the displacement is `toBe(0)`, not merely small | the map, not a tolerance | ✅ |
+| The Jacobian is the identity: `det J` is `toBe(1)` at every sample | I + δ·H(φ) with δ = 0 | ✅ |
+
+#### A pure absorber never defocuses here, and that is the branch's honest edge
+
+The equation above has **no term without a ∇φ in it**. A specimen that only
+absorbs makes parallel rays, parallel rays go straight, and this branch returns
+a defocused absorber unchanged. What really happens to one is a defocus blur,
+which is diffraction, which is the other branch's whole job (§ 6f.9). Stated as
+a rung so it cannot later be mistaken for a defect.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A cosine ABSORPTION grating comes back unchanged at w₂₀ = 0.3, −1.5 and 8 | the object's own intensity, 1e-12 | ✅ |
+| ...because its phase gradient is machine zero rather than small | < 1e-15, from `phaseDerivatives` | ✅ |
+
+The phase is never unwrapped, because it is never formed: with u = ln t the
+derivatives are ∂φ = Im(∂t/t) and ∂²φ = Im(∂²t/t − (∂t/t)²), so the complex
+field's own spectral derivatives are all that is needed and the branch cut never
+enters.
+
+#### The contrast, against a closed form with no engine in it
+
+For a weak phase grating the geometric answer is 2·φ₁·χ with χ = 2π·w₂₀·ν² —
+the argument of the sine the wave branch computes. Two things sit between the
+measurement and that number, and both are pinned rather than tolerated.
+
+**The deposition window.** A ray is a point and the image is a grid, so a ray
+landing between two cells is shared between them by area — a convolution with a
+one-pixel triangle, transfer sinc²(π·ν/(2·padFactor)), which is 0.99679 here. It
+is IN the answer, it is what "the rays, on this grid" means, and it is divided
+out by a closed form rather than absorbed into a tolerance.
+
+**The ray count.** `raysPerPixel` subdivides the specimen by zero-padding its
+spectrum — the exact band-limited interpolation of its own samples. A half-cell
+shift rides along with that padding and had to be corrected as a phase ramp:
+plain padding puts a cell's m sub-samples at j, j+1/m … j+(m−1)/m, whose centre
+is (m−1)/(2m) *past* the cell they belong to, which is a rigid translation
+approaching half a pixel — it reads as a contrast error at every frequency and
+does **not** shrink with m. Measured before it was written, because the first
+version of this module had it.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| The de-windowed contrast is 2·φ₁·2π·w₂₀·ν² | closed form, to 1e-4 at 16 rays per pixel | ✅ |
+| ...with the residual **6.275e-6** stated rather than absorbed | recorded relatively, 1e-4 | ✅ |
+| The RAW ratio is that window, which is why it is divided out | sinc²(π·ν/(2·padFactor)) = 0.99679136 | ✅ |
+| It converges at **second order** in the ray count: 4.017e-4 → 1.004e-4 → 2.510e-5 → 6.275e-6 | the ratio is 4.00084, 4.00021, 4.00005, and its own departure from 4 quarters too | ✅ |
+| At **one** ray per cell the window appears SQUARED — the specimen is sampled through the same triangle it is deposited by | the window twice, 1e-4, which is why that step of the sequence changes sign | ✅ |
+| Energy is conserved at every ray count and every defocus | Σ I ≡ the object's, 1e-13 | ✅ |
+| The Jacobian's own density agrees with the push and with the closed form | 1e-5, differing by the push's 16-ray residual and nothing else | ✅ |
+
+That last rung is what makes the Laplacian a **derivation** rather than a
+quotation. The map's Jacobian is J = I + δ·H(φ); a patch of area A goes to one
+of area A·|det J|; so expanding
+
+    det J = 1 + δ·(φ_xx + φ_yy) + δ²·(φ_xx·φ_yy − φ_xy²)
+    1/det J = 1 − δ·∇²φ + O(δ²)
+
+puts ∇²φ there as the **trace of a Hessian falling out of a determinant** —
+nobody wrote it down. The same shape of derivation § 5j.3 used to get ΔS_IV = 0
+out of an expansion instead of asserting it.
+
+#### Against the engine's own wave branch: the gap is χ/sin χ
+
+First the wave side is pinned to the external form, so what follows compares two
+pinned things rather than two computations. Under one on-axis source point
+`weakPhaseTransfer(defocusedPupil(w₂₀), coherentSource(), ν)` collapses
+algebraically to |sin χ|, and the engine returns it to f64.
+
+Then the headline. Over a defocus sweep the ray branch's contrast divided by
+`abbeImage`'s is **χ/sin χ** — not approximately, and with no fitted constant.
+
+| w₂₀ | χ | ray/wave | χ/sin χ |
+|---|---|---|---|
+| 0.05 | 0.0196 | 1.000089 | 1.000064 |
+| 0.2 | 0.0785 | 1.001044 | 1.001029 |
+| 0.5 | 0.1963 | 1.006428 | 1.006455 |
+| 1 | 0.3927 | 1.026087 | 1.026172 |
+| 2 | 0.7854 | 1.110823 | 1.110721 |
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| `weakPhaseTransfer` at S → 0 is the external sine, at three defocuses | closed form, 1e-14 | ✅ |
+| The ray branch is χ/sin χ times the Abbe sum, over χ = 0.0196 to 0.785 | closed form, 1e-3 | ✅ |
+| ...whose leading term is χ²/6 | the series, measured at two χ | ✅ |
+| `maxDefocusPhaseRadians` reports χ over the frequencies the OBJECT carries, not at one ν | 4·χ(ν) on a grating whose second harmonic is the last over the floor, 1e-12 | ✅ |
+
+**Sign and antisymmetry**, which a transfer magnitude cannot see:
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A phase maximum images DARK at positive w₂₀ on BOTH branches, and bright at the trough | signed intensities, not moduli | ✅ |
+| Over- and under-focus are exact negatives: (I₊ − 1) + (I₋ − 1) = 0 | 1e-13, every pixel — the identity two-plane phase retrieval rests on | ✅ |
+
+**And what it cannot do, measured rather than conceded.** Opening the condenser
+damps the wave branch — contrast falls to 0.99524 of coherent at S = 0.3 and
+0.98099 at S = 0.6 — and the ray branch does not move, because a ray carries no
+direction the deposition could be weighted by. There is nowhere to put a source
+in it. That is § 6f.9's sentence arriving in a second place: coherence has no
+ray analog, and this branch is a *different physical effect* that happens to
+answer the same question in the small-χ corner.
+
+#### The caustic: where ray optics stops having one answer
+
+det J ≤ 0 is a fold — two rays have crossed, so there is no longer one object
+point per image point and the density is not a function. On a grating that
+threshold reduces to something with no grid in it at all:
+
+    |δ|·φ₁·(2πf)² = 4π·|w₂₀|·φ₁·ν² = 2·φ₁·χ
+
+so **the map folds exactly where the branch's own first-order contrast would
+have reached 1**. That is the sharpest statement of the limit available: it
+fails precisely where believing it would have meant believing in 100%
+modulation.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| `minDeterminant` is **1 − w₂₀/w_fold**, an identity rather than a bound, at six points from 0.9× to 2× | closed form, 1e-12 | ✅ |
+| ...and w_fold = 1/(4π·φ₁·ν²) satisfies 2·φ₁·χ = 1 | 1e-14 | ✅ |
+| The `caustic` flag flips exactly at 1× | boolean, at 0.99× and 1.01× | ✅ |
+| The PUSH survives the fold — rays cross, their flux adds, every pixel stays finite and the energy is unchanged | 1e-12 at 0.99×, 1× and 2× | ✅ |
+
+Which is why both spellings are here. The push is conservative and survives
+crossing; the density is exact and diverges. Neither is the other's
+approximation.
+
+#### The other axis, and the cross term
+
+Every rung above runs on a grating along **x**, so every bin carrying energy has
+k_y = 0 — which leaves the y half of the sub-sampling ramp, the y half of the
+gradient, and `det J`'s shear term entirely unexercised. That is precisely where
+the centring bug this module already had would have hidden a second time: it
+produced a *converges, but to the wrong number* signature that took a sweep to
+read, and an asymmetric ramp would produce it again on one axis only.
+
+The grating turned through 90° costs one rung and catches the class at once — an
+asymmetric ramp, a swapped ∂x/∂y and a row-versus-column slip are each a visible
+failure of a transpose identity that owes nothing to any closed form.
+
+A grating along **neither** axis then puts a real number in φ_xy, and the fold
+identity survives it for a reason worth stating: for any SINGLE spatial
+frequency the Hessian is rank one, so φ_xx·φ_yy − φ_xy² vanishes identically and
+`det J` keeps its 1 + δ·∇²φ form with ν² = ν_x² + ν_y². A φ_xy computed wrongly
+would not cancel — so this is a check ON the cross term precisely because its
+answer is that the cross term contributes nothing.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| A grating along y transports to the exact transpose of the same grating along x, at 1 and 4 rays per pixel | transpose identity, 1e-13, every pixel | ✅ |
+| ...and so does its Jacobian determinant | the same, 1e-13 | ✅ |
+| A diagonal (2, 2) grating's φ_xy peaks at φ₁·(2π·c/size)²·… — a real cross term, not a token non-zero | closed form, 1e-12 | ✅ |
+| ...and `minDet` is still **1 − w₂₀/w_fold** with ν² = ν_x² + ν_y², at three points across the fold | closed form, 1e-12, the rank-one cancellation carrying it | ✅ |
+| ...and the push through that fold conserves and stays finite | 1e-12 | ✅ |
+
+#### Which phase grating, measured rather than assumed
+
+`phaseGratingObject` synthesizes from a Bessel spectrum it has to cut to the
+grid; `pointwisePhaseGratingObject` writes exp(iφ) at every sample and is not
+band-limited at all. Differentiating the first could have put the truncation
+into the gradient and made a discrepancy look like physics — § 6f.9's ripple is
+the same shape of trap. On this fixture it does not bite: at φ₁ = 3 the cut
+order is 15 and the dropped energy 1.5e-21, and the two objects transport to the
+same image within 3.6e-11. Worth a number rather than a sentence, because the
+number is what a finer grating would move.
+
 ### Not yet pinned
 
 - **The geometric PSF branch still has no notion of coherence** — only the
   detection landed (§ 6f.9), not the capability, and there is no capability to
-  land: a ray histogram has no phase to interfere with. Everything here lives in
-  the FFT branch, exactly as § 5d's seeing screen did until § 5d.2 gave that one
-  a ray analog. The nearest geometric analog here is a different physical
-  effect, refraction of rays through the *specimen's* ∇φ — which is phase-object
-  visibility in the geometric limit (transport-of-intensity), not partial
-  coherence — and it *was* the same shape of deferral as the seeing ∇φ ray-tilt,
-  recorded beside it under "Later rungs". The pair has now split: the seeing
-  analog is built, this one is not, and the difference is that it needs rays
-  which start at a transmittance rather than at a field point.
+  land: a ray histogram has no phase to interfere with. That half of the deferral
+  is permanent and is not a gap. ~~The nearest geometric analog here is a
+  different physical effect, refraction of rays through the *specimen's* ∇φ —
+  transport-of-intensity — and it needs rays which start at a transmittance
+  rather than at a field point.~~ **Built at
+  [§ 6f.10](#6f10--transport-of-intensity-the-rays-the-specimens-own-phase-bends)**, and the
+  transmittance-launched rays were not needed: the map x′ = x + δ·∇φ is the ray
+  answer in closed form, so there is no bundle to trace. It is pinned to χ/sin χ
+  off `abbeImage` and to a fold at 2·φ₁·χ = 1. What it does NOT carry is the
+  source — a ray has no direction to weight the deposition by — so the two
+  branches answer the same question only in the small-χ corner, and § 6f.9's
+  cliff is untouched.
 - ~~**The verdict has no caller yet.**~~ **Closed at § 6g.3.** `renderBrightfield`
   consults `brightfieldFidelity` once per patch and reports the WORST verdict,
   so one corner that has left the coherent sum's regime is not averaged away by
@@ -28123,13 +28367,14 @@ one 8-bit level; it is not obviously worth it and is not done.
   survives the fidelity fallback (the § 5d deferral).~~ **Closed at
   [§ 5d.2](#-5d2--seeings-ray-analog-the-deflection-the-histogram-carries)**,
   pinned to the G-tilt 0.170 rather than the Z-tilt 0.182 the register named.
-- Brightfield's geometric-branch analog, which is the same ∇φ one surface
+- ~~Brightfield's geometric-branch analog, which is the same ∇φ one surface
   further in: rays refracted by the *specimen's* phase gradient, so a defocused
-  phase object shows contrast on the ray branch too. That is
-  transport-of-intensity, not partial coherence — the coherence itself has no
-  ray analog and never will — and it needs rays that start at a transmittance
-  rather than at a field point, which `exitBundle` does not do. § 6f.9 pins the
-  verdict that refuses in the meantime.
+  phase object shows contrast on the ray branch too.~~ **Closed at
+  [§ 6f.10](#6f10--transport-of-intensity-the-rays-the-specimens-own-phase-bends)**,
+  and the `exitBundle` this entry named as the blocker was not needed — the
+  deflection map is analytic. What is left of it is the *traced* version: the
+  objective's own aberration between the specimen and the plane, which no rung
+  has asked for yet.
 - ~~Photometry: star magnitude → photon flux through aperture vs published
   zero points.~~ **Claimed at
   [§ 8a](#step-8a--the-photon-zero-point-and-the-one-draw-a-camera-makes)**, and
