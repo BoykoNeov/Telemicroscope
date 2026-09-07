@@ -81,7 +81,27 @@ things came with it that neither transfer curve could say: the fold is at
 would have meant believing in 100% modulation; and § 6f.5's in-focus null comes
 back by a *different mechanism* — not two sidebands cancelling, but no lever, so
 nothing moves. It is a separate capability and not a fallback: the branch is
-source-blind and cannot be otherwise, so § 6f.9's cliff stands.
+source-blind and cannot be otherwise, so § 6f.9's cliff stands. **The register's
+item 9, the exact Ewald cap, is landed at § 6k.8** — and its named blocker was the
+fifth in a row not to exist. § 6k derived the whole 3-D transfer boundary from a
+paraboloid and recorded that the exact cap departs from it by 2.6× at NA 1.40,
+wanting "a wavefront traced through a defocused object plane" to measure it. There
+is nothing to trace: a depth shifts every plane-wave component of the emitter's
+field by n·δ·cosθ, and the pupil coordinate IS that direction, so the phase is
+exact in both depth and angle and rationalizes to a form whose s = 0 value is
+**bitwise** the paraboloid it replaces. The entry's 2.6× turned out to be one of
+two numbers — it is the slope where the boundary is a tangent and nothing can be
+measured, while at the pupil edge, where a widefield microscope actually sections,
+the cap grows by 1.4429. What the step takes from § 6k.4 is three things and all
+three are the paraboloid's rather than the optics': the lattice period P(ν) and
+its comb (odd bins 4e-15 under the paraboloid, 0.56 under the cap), the 2% envelope
+threshold that sat on that comb, and the stack settings themselves (2.18 waves per
+grid step against 0.97 — 1/cos α arriving a third time, as a sampling cost). The
+headline is that **§ 6k.7 keeps its statement and gains a condition**: its
+conjugate invariance is of one NUMBER and not of the wavefront that number scales,
+since s = NA/n is 0.9191 on the specimen side of a shipped 100×/1.40 and 0.0144 on
+the camera side — the same waves, two wavefronts a third of a wave apart, with the
+paraboloid the thing that hid the difference.
 
 ## Build order
 

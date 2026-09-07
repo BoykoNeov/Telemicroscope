@@ -241,6 +241,14 @@ lands would mean rewriting every analysis signature.
   Sellmeier formulas). Energy dimensionless (relative) until photometry lands.
 - Paraxial engine uses the standard mirror convention n′ = −n with signed
   thicknesses.
+- **Depth phase takes the OBJECT side's aperture angle.** `withDefocus` is the
+  paraboloid ½·δ·NA²·ρ² and carries no angle at all; `withObjectDefocus` is the
+  exact cap, and needs s = sin α = NA/n as a separate argument because **s does
+  not share `defocusWaves`' conjugate invariance** (§ 6k.7, conditioned at
+  § 6k.8). The number of waves is the same on both sides of an objective; the
+  wavefront is not — a shipped 100×/1.40 reads s = 0.9191 on the specimen side
+  and 0.0144 on the camera side. A caller passes the side the depth is measured
+  in, which is the specimen's.
 
 ### Tilt / decenter semantics (decided; commitment #3 depends on it)
 

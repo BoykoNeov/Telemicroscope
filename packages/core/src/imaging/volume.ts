@@ -223,6 +223,71 @@ export function defocusing(pupil: PupilFunction): DepthPupils {
   return (waves) => withDefocus(pupil, waves);
 }
 
+/**
+ * The **exact** depth phase — the Ewald sphere's cap, where `withDefocus` uses
+ * the paraboloid osculating it (§ 6k.8).
+ *
+ * A depth δ in a medium of index n shifts every plane-wave component of the
+ * emitter's field by n·δ·cosθ of optical path, and the pupil coordinate IS that
+ * component's direction: ρ = sinθ/sinα by the sine condition. So the phase is
+ * exact in both δ and θ, with no expansion anywhere in it —
+ *
+ *     W(ρ) = (n·δ/λ)·(1 − √(1 − s²ρ²)) waves,      s = sinα = NA/n
+ *
+ * which in this module's own coordinate w = δ·NA²/(2nλ) (`defocusWaves`) is
+ * (2w/s²)·(1 − √(1 − s²ρ²)). **That form is not the form to compute with**: it
+ * is 0/0 as s → 0 and loses four digits to cancellation well before it gets
+ * there (0.75007 for 0.75000 at s = 1e-6). Rationalized it is
+ *
+ *     W(ρ) = w · 2ρ² / (1 + √(1 − s²ρ²))
+ *
+ * — the same number, with no cancellation, and at `sinAlpha` 0 it is **bitwise**
+ * `withDefocus`'s w·ρ² rather than approximately it. The paraboloid is not a
+ * separate branch here; it is this expression at zero aperture angle.
+ *
+ * Still a pure phase, so § 6k.1's flux invariance and § 6k.3's empty cone are
+ * untouched: what the aperture angle moves is where the light goes, never how
+ * much of it there is.
+ *
+ * `sinAlpha` is the **object-side** aperture angle's sine, NA/n, and that choice
+ * is the step's headline. § 6k.7 pins that `defocusWaves` reads the same on both
+ * sides of the objective — but that invariance is the *paraboloid's*, not the
+ * depth's: it turns on M² cancelling NA² and n cancelling n′, and s survives
+ * that cancellation as itself. A 100×/1.40 in oil has s = 0.924 on the specimen
+ * side and 0.024 on the camera side, so the two exact phases are different
+ * wavefronts. This function takes the side the depth is measured in — the
+ * specimen's — because that is where a depth is a depth.
+ */
+export function withObjectDefocus(
+  pupil: PupilFunction,
+  waves: number,
+  sinAlpha: number,
+): PupilFunction {
+  if (!(sinAlpha >= 0 && sinAlpha < 1)) {
+    throw new Error(`withObjectDefocus: sin α must lie in [0, 1), got ${sinAlpha}`);
+  }
+  if (waves === 0) return pupil;
+  const s2 = sinAlpha * sinAlpha;
+  return {
+    amplitude: (px, py) => pupil.amplitude(px, py),
+    phaseWaves: (px, py) => {
+      const rho2 = px * px + py * py;
+      // Outside the unit disc the radicand goes negative and the phase is
+      // meaningless; the amplitude is zero there, so the value is never read for
+      // anything, and returning the paraboloid keeps it finite for a caller that
+      // samples the pupil box rather than the disc.
+      const disc = 1 - s2 * rho2;
+      if (disc <= 0) return pupil.phaseWaves(px, py) + waves * rho2;
+      return pupil.phaseWaves(px, py) + (waves * 2 * rho2) / (1 + Math.sqrt(disc));
+    },
+  };
+}
+
+/** `defocusing`, on the exact cap — one pupil, defocused at a real aperture angle. */
+export function objectDefocusing(pupil: PupilFunction, sinAlpha: number): DepthPupils {
+  return (waves) => withObjectDefocus(pupil, waves, sinAlpha);
+}
+
 export interface DepthKernel extends IncoherentPsf {
   readonly defocusWaves: number;
   /**
@@ -591,6 +656,42 @@ export function axialSpectrum(transfer: AxialTransfer): AxialSpectrum {
 export function missingConeEdge(nu: number): number {
   if (!(nu >= 0)) throw new Error(`missingConeEdge: ν must be non-negative, got ${nu}`);
   return nu >= 2 ? 0 : nu * (2 - nu);
+}
+
+/**
+ * The same boundary on the **exact cap** — `missingConeEdge` with the aperture
+ * angle put back (§ 6k.8).
+ *
+ *     μ_max(ν) = 2·(1 − (1−ν)²) / ( √(1 − s²(1−ν)²) + √(1 − s²) )
+ *
+ * The derivation is one line longer than § 6k.4's. `withObjectDefocus` makes the
+ * depth phase (2/s²)(1 − √(1 − s²ρ²)) per wave of w, so the axial frequency a
+ * pair of pupil points separated by ν contributes is the difference of that at
+ * the two radii, and the largest one puts the outer point on the rim (ρ₁ = 1)
+ * and the inner as far in as the separation allows (ρ₂ = |1 − ν|) — that pair is
+ * the maximum because ρ/√(1 − s²ρ²) is increasing, so the difference grows all
+ * the way to the edge. Written as above it has no cancellation in it, and
+ * `sinAlpha` 0 gives back ν(2 − ν) rather than approaching it — to a couple of
+ * ulp, the two spellings being one real number that f64 rounds differently.
+ *
+ * Three things the paraboloid's law keeps: it closes at ν = 0 (the missing cone
+ * is a fact about the axis, not about the aperture) and at the ν = 2 lateral
+ * cutoff, and it is exactly symmetric about the pupil edge, since ν enters only
+ * through (1 − ν)². What changes is scale, and by a *different factor at each
+ * frequency*: the slope at the origin grows by 1/cos α — 2.6166× at NA 1.40 in
+ * oil, which is § 6k's recorded 2.6× — while the peak at ν = 1 grows only
+ * 1.4470×. So a high-aperture objective sections better than the paraboloid says
+ * everywhere, and most where it sections worst.
+ */
+export function ewaldConeEdge(nu: number, sinAlpha: number): number {
+  if (!(nu >= 0)) throw new Error(`ewaldConeEdge: ν must be non-negative, got ${nu}`);
+  if (!(sinAlpha >= 0 && sinAlpha < 1)) {
+    throw new Error(`ewaldConeEdge: sin α must lie in [0, 1), got ${sinAlpha}`);
+  }
+  if (nu >= 2) return 0;
+  const a = 1 - nu;
+  const s2 = sinAlpha * sinAlpha;
+  return (2 * (1 - a * a)) / (Math.sqrt(1 - s2 * a * a) + Math.sqrt(1 - s2));
 }
 
 /**

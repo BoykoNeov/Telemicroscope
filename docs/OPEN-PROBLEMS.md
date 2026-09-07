@@ -195,9 +195,38 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    but is a consistency check — so this item closes as a **capability**
    (`thirdOrderSags` returns both focal surfaces for every reflecting preset) with
    that one external number still named and unclaimed.
-9. **The exact Ewald cap against the quadratic wavefront** (2.6× at NA 1.40).
+9. ~~**The exact Ewald cap against the quadratic wavefront** (2.6× at NA 1.40).
    § 6k names the pin: "a wavefront traced through a defocused *object*
-   plane".
+   plane".~~
+
+   ✅ **CLOSED at [§ 6k.8](VALIDATION.md#-6k8--the-exact-cap-and-the-paraboloid-that-osculates-it),
+   and the named pin is the fifth blocker in a row not to exist.** The depth phase
+   is n·δ·cosθ on every plane-wave component of the emitter's own field, and the
+   pupil coordinate IS that direction — so there is nothing to trace, and the
+   entry's *2.6× was one of two numbers*. It is the slope at ν → 0, where the
+   boundary is a tangent and nothing can be measured; at the pupil edge, which is
+   where a widefield microscope actually sections, the cap grows by **1.4429**.
+   Quoting the 2.6 as the curve would overstate it by 80% at that frequency.
+
+   **The trace was attempted rather than argued away**, and what it found is
+   recorded: an OPD map references its sphere to the chief ray's crossing, so on
+   an aberrated system the moved sphere couples to the transverse ray error at
+   first order (1–3% residual on a reversed 100×/1.40, ρ-dependent and not
+   vanishing with the shift). A fixture that isolated the cap by tracing would
+   have to be stigmatic at both conjugates — Herschel beside Abbe — which cannot
+   hold away from unit magnification. So no cheap fixture exists, and that is a
+   property of the problem.
+
+   **What it took from § 6k.4 is three things, all the paraboloid's**: the lattice
+   period P(ν) (the comb is gone — odd bins 4e-15 under the paraboloid, 0.56
+   under the cap), the 2% envelope threshold with it, and the stack settings
+   themselves (2.18 waves per grid step against 0.97). And **§ 6k.7 gains a
+   condition**: its conjugate invariance is of one NUMBER, not of the wavefront
+   — s = NA/n is 0.9191 on the specimen side of a shipped 100×/1.40 and 0.014439
+   on the camera side, so the two exact wavefronts differ by more than a third of
+   a wave per wave of defocus. What is left open is the aplanatic amplitude
+   apodization (an amplitude, so it would break § 6k.1) and the fact that nothing
+   yet CHOOSES the cap: `renderVolume` takes whatever pupils it is handed.
 10. **A depth-varying phase stack's support boundary.** § 6l: "a different
     closed form" from § 6k's.
 11. **An immersed image plane behind an objective.** Opened by § 2g, which

@@ -64,7 +64,7 @@ whole ladder.
 | [6h](#step-6h--object-space-field-mapping-for-a-finite-conjugate) | The traced chief ray inverted to an object height, carrying distortion (cubic, ×8.00 per doubling); the frame's extent set by pupilSamples and not by the grid, its 2.7% gap from the NA form shown to BE the objective's aplanatism; and the finding that the frame is NOT isoplanatic | `object-field` |
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
-| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus is a pure PHASE, so a plane's flux is exactly invariant with depth and the haze cannot be focused away — and the missing cone is that same constant transformed | `volume` |
+| [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice | `volume` |
 | [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics — and its headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and an off-axis tile ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
@@ -10298,17 +10298,145 @@ in a third place.
   kernel can resolve is undersampled in z exactly as a grid can be in x, but the
   criterion is § 6f.9's shape of problem and wants its own rung. What is reported
   meanwhile is § 6i's per-slice `maxGridPhaseStepWaves`.
-- **The exact Ewald cap, and how far the quadratic wavefront is from it.** The
+- ~~**The exact Ewald cap, and how far the quadratic wavefront is from it.** The
   boundary above is derived from W = ½·δ·NA²·ρ², a *paraboloid*. The exact cap of
   the Ewald sphere gives a cone slope of tan α where the quadratic form gives
   sin α — they agree paraxially and diverge by 1/cos α, which is 2.6× at
   NA 1.40 in oil. The engine forms images in image space, where NA′ is 0.024 even
   for a 100×/1.40 and the quadratic form is excellent, so the departure lives
   entirely in the object-side z mapping. Measuring it wants a wavefront traced
-  through a defocused *object* plane rather than a shifted image plane.
+  through a defocused *object* plane rather than a shifted image plane.~~
+  **Closed at [§ 6k.8](#-6k8--the-exact-cap-and-the-paraboloid-that-osculates-it)**,
+  and the trace it asked for is not what closed it — that step records why no
+  cheap fixture for one exists.
 - **Signal-to-haze against specimen thickness**, and the bead-in-a-slab scene
   that would show it. It is a consequence of § 6k.1 and § 6k.2 rather than an
   independent pin, and it wants scenes the branch has not built.
+
+### § 6k.8 — the exact cap, and the paraboloid that osculates it
+
+*Source: engine change — `withObjectDefocus`, `objectDefocusing`, `ewaldConeEdge`
+in `imaging/volume`.*
+
+§ 6k.4 derives the whole 3-D boundary from W = ½·δ·NA²·ρ², a **paraboloid**, and
+the register carried the gap as item 9: the exact surface is a cap of the Ewald
+sphere, the two part company by 1/cos α, and "2.6× at NA 1.40 in oil" was
+recorded without a form to compute it from. This step writes the form, puts it in
+the engine, and finds that the paraboloid was hiding three separate things rather
+than one.
+
+**The form, in one line of angular spectrum.** An emitter at depth δ shifts every
+plane-wave component of its own field by n·δ·cosθ of optical path, and the pupil
+coordinate IS that component's direction by the sine condition. So
+
+    W(ρ) = (n·δ/λ)·(1 − √(1 − s²ρ²)) waves,      s = sin α = NA/n
+
+with no expansion in either δ or θ. In this module's own coordinate
+w = δ·NA²/(2nλ) that is (2w/s²)·(1 − √(1 − s²ρ²)) — **and that spelling cannot be
+computed**. It is 0/0 at s = 0 and has already lost four digits to cancellation
+at s = 1e-6 (0.75007 where the answer is 0.75000), which is worth a rung because
+it is exactly the form an entry in the register looks like. Rationalized,
+
+    W(ρ) = w · 2ρ² / (1 + √(1 − s²ρ²))
+
+is the same number with nothing to cancel, and at s = 0 it is **bitwise**
+`withDefocus`'s w·ρ² — the multiplication and division by 2 are exact in binary.
+The paraboloid is not a limit of this step's form; it is a value of it.
+
+**The boundary, and the two ratios it has.** The widest axial frequency a pair of
+pupil points ν apart can carry puts the outer point on the rim and the inner as
+far in as the separation allows, because ρ/√(1 − s²ρ²) increases all the way to
+the edge:
+
+    μ_max(ν) = 2·(1 − (1−ν)²) / ( √(1 − s²(1−ν)²) + √(1 − s²) )
+
+which gives back ν(2 − ν) at s = 0 to a couple of ulp (the two spellings are one
+real number f64 rounds differently), and is confirmed against a direct
+maximization over the overlap — on the axis to 1e-8 at four apertures including
+s = 0.99, and off it never better, which is the half of the derivation a 1-D
+search would have assumed. **The shape survives the cap entirely**: ν enters only
+through (1 − ν)², so the boundary still closes at ν = 0 and at the ν = 2 cutoff
+and is still exactly symmetric about the pupil edge. § 6k.4's "sections best at
+mid frequencies and not at all at low ones" is untouched.
+
+What moves is scale, **and by a different factor at each frequency** — which is
+the first correction this step makes to the register. 2.6× is the slope at
+ν → 0, where the boundary is a tangent and no measurement can stand; the peak at
+the pupil edge grows by **1.4429**, and quoting the 2.6 as the whole curve would
+overstate the cap by 80% at the frequency a microscope actually sections at. Both
+numbers are the engine's own immersion oil at 550 nm (n = 1.51766, so
+1/cos α = 2.5903) rather than a transcribed index.
+
+**Three things withdrawn from § 6k.4, and all three are the paraboloid's rather
+than the lattice's or the optics'.**
+
+1. **The lattice period is gone.** § 6k.4 pins P(ν) = pupilSamples/(4·ν) as "a
+   property of the lattice rather than of the optics". Half of that is now
+   withdrawn: it is a property of the lattice *and* of the paraboloid, which is
+   linear in the lattice coordinate and so makes every phase difference
+   commensurate. The cap is not, and the same probes that repeat to 1e-12 under
+   the paraboloid come back at 0.014, 0.074 and −15.0 under it. In the spectrum
+   the comb goes with it — odd bins 4e-15 of peak under the paraboloid, 0.56
+   under the cap — which makes the cap's spectrum the **cleaner** of the two to
+   read, not the harder.
+2. **The 2% envelope threshold does not carry over**, and the reason is (1): the
+   comb made half of § 6k.4's bins exactly zero, so the leakage floor a threshold
+   sits on there is not the same object. Ported anyway it reads up to 1.1 bins off
+   the law, which would be an argument about an estimator rather than a statement
+   about optics. So this step brackets the boundary instead of locating it —
+   beyond it the spectrum is at the leakage floor (< 2.5e-2 of peak) and inside it
+   there is real transfer (> 0.4) — and pins the boundary itself where there is no
+   window and no threshold at all: a maximization over the **engine's own sampled
+   pupil**, whose extremal pair are both lattice points when ν = 2b/ps, matching
+   `ewaldConeEdge` to 1e-12 at two samplings × four apertures × four frequencies.
+3. **§ 6k.4's own stack cannot carry the cap**, and the third appearance of
+   1/cos α is why. The rim phase slope is 1/cos α steeper, so the exact pupil puts
+   that much more phase between adjacent samples: at § 6k.4's settings
+   `maxGridPhaseStepWaves` is **2.18 waves against the paraboloid's 0.97** — the
+   paraboloid fits the grid and the cap does not — and the ratio climbs toward
+   2.5903 as the pupil refines (2.25 at 32 samples, 2.48 at 128). Every stack in
+   this step is therefore built at 128 samples with the guard read before any
+   spectrum is believed, which is the discipline § 6k.4's own comb rung asks for.
+
+**The headline: § 6k.7 keeps its statement and gains a condition.** § 6k.7 pins
+that `defocusWaves` reads the same on both sides of the objective — M² cancels
+NA² and n cancels n′ — and every word of it survives. But that is an invariance of
+**one number**, not of the wavefront that number scales, and **s does not
+cancel**: it is NA/n on the side it is measured. On the shipped 100×/1.40 the
+engine reads s = 0.9191 on the specimen side and 0.014439 on the camera side, a
+factor of 64, and the exact rim phase is **1.4346** waves per wave of defocus on
+one and **1.0000521** on the other. So "shift the specimen by δ" and "shift the
+camera by the conjugate δ′" are the same number of waves and two different
+wavefronts that differ by more than a third of a wave, and the paraboloid is
+exactly what hides the difference. That is also why § 6k's deferral was right that
+"the departure lives entirely in the object-side z mapping" — and why
+`withObjectDefocus` takes the **object-side** sin α, the side a depth is a depth.
+
+**The blocker it named did not exist, and this is the fifth in a row** (§ 6cq,
+§ 6cs, § 5j.3, § 6f.10). "A wavefront traced through a defocused *object* plane"
+is not needed, because the answer is a closed form. It was nonetheless attempted
+rather than argued away, and what the attempt found is worth recording: an OPD map
+references its sphere to where the CHIEF ray crosses the image plane and aims rays
+at the paraxial entrance pupil, so on a system carrying real aberration the moved
+sphere couples to the transverse ray error at first order. A reversed 100×/1.40
+(0.85 waves rms) leaves a residual of 1–3% that is ρ-dependent and does **not**
+vanish with the shift — the objective's aberration, not the cap. A fixture that
+isolated the cap by tracing would have to be stigmatic at both the nominal and the
+displaced conjugate, which is Herschel's condition beside Abbe's, and the two
+cannot hold together away from unit magnification. So there is no cheap fixture,
+and that is a statement about the problem rather than about this engine.
+
+**What it leaves.** Two things, both named rather than folded in. The exact form
+is applied to the pupil the caller supplies, so an **aplanatic amplitude
+apodization** — the √cos θ a high-aperture objective also carries — is not in it;
+that is an amplitude and would break § 6k.1's flux invariance, which is the whole
+reason it is a separate question rather than part of this one. And nothing in the
+engine yet *chooses* `withObjectDefocus` over `withDefocus`: `renderVolume` takes
+whatever `DepthPupils` it is handed, so a caller rendering a high-aperture volume
+gets the cap only by asking for it. Wiring the choice to the objective's own NA is
+a step nobody has costed, and it would want § 6k.2's in-focus fraction re-measured
+under it.
+
 
 ## Step 6l — depth-dependent spherical aberration
 

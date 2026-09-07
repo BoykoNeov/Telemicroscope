@@ -5,10 +5,13 @@ import {
   defocusWaves,
   defocusing,
   depthKernels,
+  ewaldConeEdge,
   hazeKernel,
   missingConeEdge,
+  objectDefocusing,
   renderVolume,
   withDefocus,
+  withObjectDefocus,
   type DepthPupils,
   type EmitterSlice,
 } from "../src/imaging/volume";
@@ -16,7 +19,14 @@ import { incoherentPsf, uniformEmitters, type EmitterField } from "../src/imagin
 import { fft2d } from "../src/math/fft";
 import { depthOfFocusMm } from "../src/imaging/emission";
 import { idealPupil } from "../src/illumination/transfer";
-import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
+import {
+  finiteConjugateMicroscope,
+  finiteConjugateObjective,
+  infinityCorrectedMicroscope,
+  tubeLens,
+} from "../src/designs/microscope";
+import { IMMERSION_MEDIUM, oilImmersionObjective } from "../src/designs/immersion";
+import { getMedium } from "../src/materials/catalog";
 import {
   imageNumericalAperture,
   objectNumericalAperture,
@@ -617,6 +627,424 @@ describe("§ 6k.7 — depth in waves, and the conjugate it is measured in", () =
   it("zero defocus returns the pupil itself, so a focused stack costs nothing extra", () => {
     const pupil = idealPupil();
     expect(withDefocus(pupil, 0)).toBe(pupil);
+  });
+});
+
+/**
+ * § 6k.8 — the exact cap, and the paraboloid that osculates it.
+ *
+ * § 6k's own last deferral, and the register's item 9: everything above is
+ * derived from W = ½·δ·NA²·ρ², a **paraboloid**, where the depth phase is
+ * exactly a cap of the Ewald sphere. The two osculate at the axis and part
+ * company by 1/cos α, which the register recorded as 2.6× at NA 1.40 in oil
+ * without a form to compute it from.
+ *
+ * The form is one line of angular spectrum. An emitter at depth δ shifts every
+ * plane-wave component of its own field by n·δ·cosθ of optical path, and the
+ * pupil coordinate IS that component's direction by the sine condition, so
+ *
+ *     W(ρ) = (n·δ/λ)(1 − √(1 − s²ρ²)) waves,     s = sinα = NA/n
+ *
+ * with no expansion in either δ or θ. Everything below follows from it, and the
+ * paraboloid is not a separate case: it is this expression at s = 0, **bitwise**.
+ *
+ * The blocker § 6k named — "a wavefront traced through a defocused *object*
+ * plane" — is the fifth in a row not to exist, and this one is worth being
+ * precise about because it was attempted rather than argued away. An OPD map
+ * references its sphere to where the CHIEF ray crosses the image plane and aims
+ * rays at the paraxial entrance pupil, so on a system with real aberration the
+ * moved sphere couples to the transverse ray error at first order: a reversed
+ * 100×/1.40 (0.85 waves rms) gives a residual of 1–3% that is ρ-dependent and
+ * does NOT vanish with the shift, which is the objective's aberration and not
+ * the cap. The exact form is a statement about plane-wave DIRECTION, and a
+ * fixture that isolates it would have to be stigmatic at both the nominal and
+ * the displaced conjugate — Herschel's condition, which cannot hold beside the
+ * sine condition away from unit magnification. So no cheap fixture exists, and
+ * the pins here are closed-form-to-closed-form and engine-measured instead.
+ */
+describe("§ 6k.8 — the exact cap, and the paraboloid that osculates it", () => {
+  /** The engine's own immersion oil, so no index is transcribed. */
+  const N_OIL = getMedium(IMMERSION_MEDIUM).n(LAMBDA);
+  const S_OIL = 1.4 / N_OIL;
+  const COS_ALPHA = Math.sqrt(1 - S_OIL * S_OIL);
+
+  it("at zero aperture angle it IS § 6k.4's paraboloid — a value of this form, not a limit of it", () => {
+    // The rationalized form carries s = 0 as an ordinary number rather than as a
+    // branch, so the existing law and the existing pupil are this step's own
+    // s = 0 members and every rung above keeps its reading by construction. How
+    // exactly they are the same differs between the two, and both halves are
+    // stated rather than the friendlier one being generalized.
+    //
+    // The PHASE is **bitwise**, and provably so rather than by luck: 2wρ²/(1+1)
+    // and wρ² differ by a multiplication and a division by 2, and scaling by a
+    // power of two is exact in binary, so the single rounding lands identically.
+    // The EDGE LAW is not — 2(1−a²)/(1+1) and ν(2−ν) are one real number written
+    // two ways, and f64 rounds the two spellings differently at some ν:
+    // 0.18999999999999995 against 0.19 at ν = 0.1, which is two ulp. So that half
+    // reduces to a couple of ulp rather than to the bit, which is said here
+    // rather than dodged by testing only friendly frequencies.
+    const pupil = idealPupil();
+    for (const rho of [0.1, 0.37, 0.5, 0.75, 1]) {
+      expect(withObjectDefocus(pupil, 1.7, 0).phaseWaves(rho, 0)).toBe(
+        withDefocus(pupil, 1.7).phaseWaves(rho, 0),
+      );
+    }
+    for (const nu of [0.1, 0.25, 0.4, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 1.9]) {
+      const exact = ewaldConeEdge(nu, 0);
+      const paraboloid = missingConeEdge(nu);
+      expect(Math.abs(exact - paraboloid)).toBeLessThanOrEqual(2 * Number.EPSILON * paraboloid);
+    }
+  });
+
+  it("and the form the register would have written cannot be computed at all", () => {
+    // (2/s²)·[√(1−s²(1−ν)²) − √(1−s²)] is the same number on paper and a
+    // difference of two nearly equal roots divided by a vanishing s² in f64. At
+    // s = 1e-6 it has already lost four digits, and at s = 0 it is 0/0 — so the
+    // rationalization is load-bearing rather than tidy, which is worth a rung
+    // because the naive form is what an entry in the register looks like.
+    const naive = (nu: number, s: number) =>
+      (2 / (s * s)) * (Math.sqrt(1 - s * s * (1 - nu) ** 2) - Math.sqrt(1 - s * s));
+    expect(naive(0.5, 1e-6) / missingConeEdge(0.5) - 1).toBeGreaterThan(1e-5);
+    expect(Number.isNaN(naive(0.5, 0))).toBe(true);
+    // The shipped form is exact where the naive one is wrong, and agrees with it
+    // where f64 lets the naive one be right.
+    expect(ewaldConeEdge(0.5, 1e-6)).toBeCloseTo(missingConeEdge(0.5), 12);
+    for (const s of [0.5, 0.75, 0.9]) {
+      expect(ewaldConeEdge(0.5, s) / naive(0.5, s)).toBeCloseTo(1, 12);
+    }
+  });
+
+  it("the boundary is the cap's own widest chord — maximized directly, no engine in it", () => {
+    // ewaldConeEdge claims the widest axial frequency a pair of pupil points can
+    // contribute sits at ρ₁ = 1 and ρ₂ = |1−ν|. Here that maximum is searched
+    // for instead: over the whole overlap of the two displaced discs, in two
+    // dimensions, with the closed form used only to compare against. The 2-D
+    // scan also confirms the maximum lies ON the axis, which the derivation
+    // asserts and a 1-D search would assume.
+    const phase = (rho: number, s: number) => (2 * rho * rho) / (1 + Math.sqrt(1 - s * s * rho * rho));
+    /** Widest chord over the overlap, restricted to |y| > `minY`. */
+    const brute = (nu: number, s: number, n: number, minY: number) => {
+      let best = 0;
+      for (let i = 0; i <= n; i++) {
+        const x = -1 + (2 * i) / n;
+        for (let j = 0; j <= n / 2; j++) {
+          const y = (2 * j) / n;
+          if (y <= minY) continue;
+          const r1 = Math.hypot(x + nu / 2, y);
+          const r2 = Math.hypot(x - nu / 2, y);
+          if (r1 > 1 || r2 > 1) continue;
+          best = Math.max(best, Math.abs(phase(r2, s) - phase(r1, s)));
+        }
+      }
+      return best;
+    };
+    // On the axis, finely: the maximum sits AT the rim, so a scan converges at
+    // O(1/n) rather than O(1/n²) and the resolution has to be spent there.
+    const online = (nu: number, s: number, n: number) => {
+      let best = 0;
+      for (let i = 0; i <= n; i++) {
+        const x = -1 + (2 * i) / n;
+        const r1 = Math.abs(x + nu / 2);
+        const r2 = Math.abs(x - nu / 2);
+        if (r1 > 1 || r2 > 1) continue;
+        best = Math.max(best, Math.abs(phase(r2, s) - phase(r1, s)));
+      }
+      return best;
+    };
+    for (const s of [0.05, 0.5, S_OIL, 0.99]) {
+      for (const nu of [0.25, 0.5, 1, 1.5]) {
+        expect(online(nu, s, 200_000) / ewaldConeEdge(nu, s)).toBeCloseTo(1, 8);
+        // …and off the axis it is never better, which is the half of the
+        // derivation a 1-D search would have assumed rather than shown.
+        expect(brute(nu, s, 400, 0.05) / online(nu, s, 200_000)).toBeLessThan(1);
+      }
+    }
+  });
+
+  it("it keeps the shape and loses the scale: closed at both ends, symmetric, higher throughout", () => {
+    for (const s of [0, 0.5, S_OIL, 0.99]) {
+      expect(ewaldConeEdge(0, s)).toBe(0);
+      expect(ewaldConeEdge(2, s)).toBe(0);
+      expect(ewaldConeEdge(2.5, s)).toBe(0);
+      // ν enters only through (1−ν)², so the symmetry about the pupil edge is
+      // exact at every aperture — § 6k.4's "sections best at mid frequencies"
+      // survives the cap untouched.
+      for (const d of [0.25, 0.5, 0.75]) {
+        expect(ewaldConeEdge(1 - d, s)).toBeCloseTo(ewaldConeEdge(1 + d, s), 15);
+      }
+      // Never below the paraboloid, anywhere — strictly above it once there is
+      // an aperture angle at all, and equal to it when there is not.
+      for (const nu of [0.1, 0.5, 1, 1.5, 1.9]) {
+        if (s === 0) {
+          expect(Math.abs(ewaldConeEdge(nu, s) - missingConeEdge(nu))).toBeLessThanOrEqual(
+            2 * Number.EPSILON * missingConeEdge(nu),
+          );
+        } else {
+          expect(ewaldConeEdge(nu, s)).toBeGreaterThan(missingConeEdge(nu));
+        }
+      }
+    }
+    expect(() => ewaldConeEdge(-1, 0.5)).toThrow(/non-negative/);
+    expect(() => ewaldConeEdge(1, 1)).toThrow(/sin α/);
+    expect(() => withObjectDefocus(idealPupil(), 1, 1.2)).toThrow(/sin α/);
+  });
+
+  it("TWO ratios, not one: 1/cos α at the axis is a LIMIT, and the peak grows by less", () => {
+    // The register recorded one number — "2.6× at NA 1.40 in oil" — and it is
+    // the slope at ν → 0, where the boundary is a tangent and no measurement can
+    // stand. What the engine can see is the peak, and that grows by a different
+    // factor. Quoting the 2.6 as though it were the whole curve would overstate
+    // the cap by 80% at the frequency a microscope actually sections at.
+    const slopeRatio = (nu: number) => ewaldConeEdge(nu, S_OIL) / missingConeEdge(nu);
+    expect(1 / COS_ALPHA).toBeCloseTo(2.5903, 4);
+    expect(slopeRatio(1e-9)).toBeCloseTo(1 / COS_ALPHA, 6);
+    // Monotone climb toward it as the frequency falls — the shape of the limit.
+    const climb = [1, 0.5, 0.25, 0.125, 0.0625, 0.01].map(slopeRatio);
+    for (let i = 1; i < climb.length; i++) expect(climb[i]!).toBeGreaterThan(climb[i - 1]!);
+    expect(climb[climb.length - 1]!).toBeLessThan(1 / COS_ALPHA);
+    // The peak, which is what § 6k.4 measures: (2/s²)(1 − cos α).
+    expect(ewaldConeEdge(1, S_OIL)).toBeCloseTo((2 * (1 - COS_ALPHA)) / (S_OIL * S_OIL), 14);
+    expect(ewaldConeEdge(1, S_OIL)).toBeCloseTo(1.4429, 4);
+  });
+
+  it("maximized over the engine's OWN sampled pupil, at four apertures — no window, no threshold", () => {
+    // The sharpest engine-side pin available, and it is threshold-free. What the
+    // axial transform can carry at lateral bin b is the largest phase slope
+    // between two pupil samples b apart, and both members of the extremal pair —
+    // the rim and the point |1−ν| in from it — are lattice points when ν = 2b/ps.
+    // So the engine's sampled pupil reaches the continuum boundary EXACTLY,
+    // rather than approaching it, and `ewaldConeEdge` is checked against a
+    // maximization over the same lattice the kernels are built on.
+    const phase = (rho2: number, s: number) => (2 * rho2) / (1 + Math.sqrt(1 - s * s * rho2));
+    const latticeEdge = (ps: number, bin: number, s: number) => {
+      const step = 2 / ps;
+      const half = Math.ceil(1 / step);
+      let best = 0;
+      for (let iy = -half; iy <= half; iy++) {
+        const y = iy * step;
+        for (let ix = -half; ix <= half; ix++) {
+          const x1 = ix * step;
+          const x2 = (ix + bin) * step;
+          const r1 = x1 * x1 + y * y;
+          const r2 = x2 * x2 + y * y;
+          if (r1 > 1 || r2 > 1) continue;
+          best = Math.max(best, Math.abs(phase(r2, s) - phase(r1, s)));
+        }
+      }
+      return best;
+    };
+    for (const ps of [64, 128]) {
+      for (const s of [0, 0.5, 0.75, S_OIL]) {
+        for (const bin of [ps / 8, ps / 4, ps / 2, (3 * ps) / 4]) {
+          expect(latticeEdge(ps, bin, s) / ewaldConeEdge((2 * bin) / ps, s)).toBeCloseTo(1, 12);
+        }
+      }
+    }
+  });
+
+  it("and the stacks themselves have no support past it, at four apertures", () => {
+    // § 6k.4 locates its edge by a 2% threshold on the envelope. **That threshold
+    // does not carry over**, and the reason is the rung below: the paraboloid's
+    // comb makes half of its bins exactly zero, so the leakage floor a threshold
+    // sits on there is not the same object as the cap's. Ported anyway it reads
+    // up to 1.1 bins off, which would be a tolerance argument about an estimator
+    // rather than a statement about optics.
+    //
+    // So the boundary is bracketed instead of located, which is what "the 3-D OTF
+    // has no support past it" actually says: beyond the law the spectrum is at
+    // the leakage floor, and inside it there is real transfer. Two orders of
+    // magnitude separate them, and no threshold chooses that.
+    const size = 256;
+    const ps = 128;
+    const step = 0.25;
+    const stack = Array.from({ length: 64 }, (_, i) => -8 + i * step);
+    const binWidth = 1 / (step * stack.length);
+    for (const s of [0, 0.5, 0.75, S_OIL]) {
+      const kernels = depthKernels(
+        s === 0 ? defocusing(idealPupil()) : objectDefocusing(idealPupil(), s),
+        stack,
+        { size, pupilSamples: ps },
+      );
+      let guard = 0;
+      for (const k of kernels) guard = Math.max(guard, k.maxGridPhaseStepWaves);
+      // Read BEFORE any spectrum is believed — see the sampling rung below.
+      expect(guard).toBeLessThan(0.63);
+      for (const bin of [16, 32, 64, 96]) {
+        const nu = (2 * bin) / ps;
+        const law = ewaldConeEdge(nu, s);
+        const spectrum = axialSpectrum(axialTransfer(kernels, bin));
+        let peak = 0;
+        for (const m of spectrum.magnitude) peak = Math.max(peak, m);
+        let outside = 0;
+        let inside = 0;
+        for (let b = 0; b < spectrum.magnitude.length; b++) {
+          const f = spectrum.cyclesPerWave[b]!;
+          const rel = spectrum.magnitude[b]! / peak;
+          if (f > law + binWidth) outside = Math.max(outside, rel);
+          if (f > 0.5 * law && f < law - binWidth) inside = Math.max(inside, rel);
+        }
+        // The law MOVES with the aperture — at ν = 1 it runs 1.0000 → 1.0718 →
+        // 1.2038 → 1.4429 across these four — so a boundary that was really
+        // ν(2−ν) would put a third of the cap's support outside this bracket.
+        expect(outside).toBeLessThan(0.025);
+        expect(inside).toBeGreaterThan(0.4);
+      }
+    }
+  });
+
+  it("the cap costs 1/cos α in pupil SAMPLING too, which is why § 6k.4's stack cannot carry it", () => {
+    // The same ratio a third time, and this one is a property of the grid rather
+    // than of the transfer: the phase slope at the rim is 2w/cos α where the
+    // paraboloid's is 2w, so the exact pupil puts 1/cos α more phase between
+    // adjacent samples. At § 6k.4's own settings that is 2.18 waves against 0.97
+    // — the paraboloid fits and the cap does not — and the ratio climbs toward
+    // 2.5903 as the pupil refines, which is what makes it the same number.
+    const stack = Array.from({ length: 64 }, (_, i) => -8 + i * 0.25);
+    const guardOf = (pupils: DepthPupils, size: number, pupilSamples: number) => {
+      let guard = 0;
+      for (const k of depthKernels(pupils, stack, { size, pupilSamples })) {
+        guard = Math.max(guard, k.maxGridPhaseStepWaves);
+      }
+      return guard;
+    };
+    const flat64 = guardOf(defocusing(idealPupil()), SIZE, PUPIL_SAMPLES);
+    const cap64 = guardOf(objectDefocusing(idealPupil(), S_OIL), SIZE, PUPIL_SAMPLES);
+    expect(flat64).toBeLessThan(1);
+    expect(cap64).toBeGreaterThan(2);
+    const flat128 = guardOf(defocusing(idealPupil()), 256, 128);
+    const cap128 = guardOf(objectDefocusing(idealPupil(), S_OIL), 256, 128);
+    const ratio = cap128 / flat128;
+    // Both below the closed form and converging to it from below, since the
+    // outermost sample pair straddles the rim rather than sitting on it.
+    expect(cap64 / flat64).toBeLessThan(ratio);
+    expect(ratio).toBeLessThan(1 / COS_ALPHA);
+    expect(ratio).toBeGreaterThan(0.95 / COS_ALPHA);
+  });
+
+  it("the defocus axis loses its lattice period — § 6k.4's comb is the paraboloid's", () => {
+    // § 6k.4 pins P(ν) = pupilSamples/(4·ν) and calls it a property of the
+    // lattice rather than of the optics. Half of that is now withdrawn: it is a
+    // property of the lattice AND of the paraboloid, which is linear in the
+    // lattice coordinate and so makes every phase difference commensurate. The
+    // cap is not linear in it, and the periodicity does not survive — the same
+    // probes that repeat to 1e-12 under the paraboloid come back at 0.01, 0.07
+    // and −15 under the cap.
+    const ps = 32;
+    const period = ps / 4;
+    const probes = [0, 0.25, 0.5];
+    const at = (pupils: DepthPupils) =>
+      axialTransfer(
+        depthKernels(pupils, [...probes, ...probes.map((w) => w + period)], {
+          size: 256,
+          pupilSamples: ps,
+        }),
+        ps / 2,
+      );
+    const flat = at(defocusing(idealPupil()));
+    const cap = at(objectDefocusing(idealPupil(), S_OIL));
+    let worst = 0;
+    for (let i = 0; i < probes.length; i++) {
+      expect(flat.re[i + probes.length]! / flat.re[i]!).toBeCloseTo(1, 12);
+      worst = Math.max(worst, Math.abs(cap.re[i + probes.length]! / cap.re[i]! - 1));
+    }
+    expect(worst).toBeGreaterThan(0.9);
+
+    // Which is visible in the spectrum, and makes the cap's measurement the
+    // CLEANER of the two: § 6k.4's ±8-wave window is two periods at ν = 1 under
+    // the paraboloid, so its odd bins are empty and the curve it draws is a
+    // picket fence. The same window under the cap fills them.
+    const oddPeak = (pupils: DepthPupils) => {
+      const sp = axialSpectrum(
+        axialTransfer(
+          depthKernels(
+            pupils,
+            Array.from({ length: 64 }, (_, i) => -8 + i * 0.25),
+            { size: 256, pupilSamples: ps },
+          ),
+          ps / 2,
+        ),
+      );
+      let peak = 0;
+      for (const m of sp.magnitude) peak = Math.max(peak, m);
+      let odd = 0;
+      for (let b = 1; b < sp.magnitude.length; b += 2) odd = Math.max(odd, sp.magnitude[b]! / peak);
+      return odd;
+    };
+    expect(oddPeak(defocusing(idealPupil()))).toBeLessThan(1e-12);
+    expect(oddPeak(objectDefocusing(idealPupil(), S_OIL))).toBeGreaterThan(0.5);
+  });
+
+  it("§ 6k.7 keeps its statement and gains a condition: the invariance is the PARABOLOID's", () => {
+    // § 6k.7 pins that `defocusWaves` reads the same on both sides of the
+    // objective — M² cancels NA² and n cancels n′ — and concludes that a caller
+    // may author a depth in object-space millimetres while the engine defocuses
+    // the image-side pupil. Every word of that survives, and it is a statement
+    // about ONE NUMBER rather than about the wavefront that number scales.
+    //
+    // s does not cancel. It is NA/n on the side it is measured, and the two
+    // sides of a 100×/1.40 are not remotely the same aperture: the exact phase
+    // at the rim is 43% above the paraboloid on the specimen side and 0.005%
+    // above it on the camera side. So "shift the specimen by δ" and "shift the
+    // camera by the conjugate δ′" are the same number of waves and different
+    // wavefronts, and the paraboloid is exactly what hides the difference.
+    const system = infinityCorrectedMicroscope({
+      objective: oilImmersionObjective({
+        magnification: 100,
+        numericalAperture: 1.4,
+        tubeFocalLengthMm: 200,
+      }),
+      tubeLens: tubeLens({ focalLengthMm: 200 }),
+      objectHeightsMm: [0, 0.002],
+    }).system;
+    const nObject = getMedium(system.prescription.objectMedium ?? "AIR").n(LAMBDA);
+    const lastMedium = system.prescription.surfaces[system.prescription.surfaces.length - 1]!.medium;
+    const nImage = getMedium(lastMedium ?? "AIR").n(LAMBDA);
+    const sObject = objectNumericalAperture(system, LAMBDA) / nObject;
+    const sImage = imageNumericalAperture(system, LAMBDA) / nImage;
+    expect(sObject).toBeCloseTo(0.9191, 3);
+    expect(sImage).toBeCloseTo(0.014439, 5);
+    expect(sObject / sImage).toBeGreaterThan(60);
+
+    const pupil = idealPupil();
+    const rim = (s: number) => withObjectDefocus(pupil, 1, s).phaseWaves(1, 0);
+    expect(withDefocus(pupil, 1).phaseWaves(1, 0)).toBe(1);
+    expect(rim(sObject)).toBeCloseTo(1.4346, 4);
+    expect(rim(sImage)).toBeCloseTo(1.0000521, 7);
+    // The two exact wavefronts differ from each other by more than a third of a
+    // wave per wave of defocus, which is what § 6k.7's invariance does not say.
+    expect(rim(sObject) - rim(sImage)).toBeGreaterThan(0.43);
+  });
+
+  it("still a pure phase, so § 6k.1's flux invariance and § 6k.3's empty cone survive it", () => {
+    // The cap changes where the light goes and not how much of it there is, so
+    // the two results the whole step rests on are untouched at any aperture —
+    // and they have to be checked rather than assumed, because a wavefront that
+    // outran the grid could lose light without any amplitude changing.
+    const stack = [-4, -2, 0, 2, 4];
+    const kernels = depthKernels(objectDefocusing(idealPupil(), S_OIL), stack, {
+      size: 256,
+      pupilSamples: 128,
+    });
+    for (const k of kernels) expect(k.relativeThroughput).toBeCloseTo(1, 12);
+    const spectrum = axialSpectrum(
+      axialTransfer(
+        depthKernels(
+          objectDefocusing(idealPupil(), S_OIL),
+          Array.from({ length: 32 }, (_, i) => -4 + i * 0.25),
+          { size: 256, pupilSamples: 128 },
+        ),
+        0,
+      ),
+    );
+    for (let b = 1; b < spectrum.magnitude.length; b++) {
+      expect(spectrum.magnitude[b]! / spectrum.magnitude[0]!).toBeLessThan(1e-12);
+    }
+  });
+
+  it("zero defocus returns the pupil itself here too", () => {
+    const pupil = idealPupil();
+    expect(withObjectDefocus(pupil, 0, S_OIL)).toBe(pupil);
+    expect(objectDefocusing(pupil, S_OIL)(0)).toBe(pupil);
   });
 });
 
