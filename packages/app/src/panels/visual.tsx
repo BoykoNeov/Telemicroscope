@@ -97,7 +97,7 @@ function RetinaCanvas({ request }: { request: RetinaRequest }) {
     element.height = image.size;
     const context = element.getContext("2d");
     if (!context) return;
-    context.putImageData(new ImageData(new Uint8ClampedArray(image.rgba), image.size, image.size), 0, 0);
+    context.putImageData(new ImageData(image.rgba, image.size, image.size), 0, 0);
   }, [image]);
 
   if (result && !("size" in result)) {

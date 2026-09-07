@@ -1061,6 +1061,7 @@ only its own route.
 | 9b | `brightfield.tsx` | `BrightfieldReadout.rgba`, its `toGrey` | `#/brightfield` ✅ |
 | 9c | `section.tsx` | `rgbaSpectral`, `rgbaTinted`, `expose`, the panel's own prop | `#/section` ✅ |
 | 9d | `seeing.tsx` | `meanRgba`, `drawRgba`, `cleanRgba`, its `toGrey`, the prop | `#/seeing` ✅ |
+| 9e | `visual.tsx` | `VisualImage.rgba`, its `toGrey` | `#/visual` ✅ |
 
 ## Step 10 — choose the leading of the bare mono readouts
 

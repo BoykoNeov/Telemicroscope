@@ -461,7 +461,7 @@ export interface RetinaRequest extends VisualSpec {
 }
 
 export interface RetinaResult {
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   /** Millimetres per pixel ON THE RETINA. */
   readonly pixelScaleMm: number;
@@ -590,7 +590,7 @@ export function renderRetina(request: RetinaRequest): RetinaResult | Refusal {
  * iris closes the same light spreads over a wider disc and the peak falls, and
  * that dimming is the collapse rather than a display artifact.
  */
-function toGrey(intensity: Float64Array, size: number, white: number): Uint8ClampedArray {
+function toGrey(intensity: Float64Array, size: number, white: number): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   for (let i = 0; i < size * size; i++) {
     const v = Math.round((255 * intensity[i]!) / white);
