@@ -94,11 +94,11 @@ function BeadCanvas({
     element.height = readout.size;
     const context = element.getContext("2d");
     if (!context) return;
-    // Copied into a fresh buffer: `ImageData` takes ownership of what it is
-    // given, and the intensity grid it was mapped from arrived by structured
-    // clone and is remapped every time the stretch moves.
-    const pixels = new Uint8ClampedArray(toGrey(readout.intensity, readout.size, white));
-    context.putImageData(new ImageData(pixels, readout.size, readout.size), 0, 0);
+    // `toGrey` allocates the array this paints, on every stretch — there is
+    // nothing here to copy AWAY from, and `ImageData` does not take ownership of
+    // what it is given in the first place. See `transfer.ts`.
+    const rgba = toGrey(readout.intensity, readout.size, white);
+    context.putImageData(new ImageData(rgba, readout.size, readout.size), 0, 0);
   }, [readout, white]);
 
   return (
