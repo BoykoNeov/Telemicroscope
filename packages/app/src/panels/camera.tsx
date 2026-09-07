@@ -116,7 +116,7 @@ function Pictures({ request }: { request: CameraRequest }) {
     if (!result) return;
     const paint = (
       element: HTMLCanvasElement | null,
-      rgba: Uint8ClampedArray,
+      rgba: Uint8ClampedArray<ArrayBuffer>,
       size: number,
     ): void => {
       if (!element || size === 0) return;
@@ -124,10 +124,7 @@ function Pictures({ request }: { request: CameraRequest }) {
       element.height = size;
       const context = element.getContext("2d");
       if (!context) return;
-      // Copied into a fresh array: `ImageData` needs a plain ArrayBuffer backing
-      // and the engine's arrays are declared over ArrayBufferLike so they can
-      // cross the worker boundary this result just came through.
-      context.putImageData(new ImageData(new Uint8ClampedArray(rgba), size, size), 0, 0);
+      context.putImageData(new ImageData(rgba, size, size), 0, 0);
     };
     paint(nativeRef.current, result.nativeRgba, result.nativeSize);
     paint(sensorRef.current, result.sensorRgba, result.sensorCols);

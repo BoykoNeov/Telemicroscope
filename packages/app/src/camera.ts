@@ -968,11 +968,11 @@ export interface CameraRequest extends CameraSpec {
 
 export interface CameraResult {
   /** The continuous optical image, on the diffraction grid. */
-  readonly nativeRgba: Uint8ClampedArray;
+  readonly nativeRgba: Uint8ClampedArray<ArrayBuffer>;
   readonly nativeSize: number;
   readonly nativePixelScaleMm: number;
   /** What the sensor records — the same light, rebinned by area. */
-  readonly sensorRgba: Uint8ClampedArray;
+  readonly sensorRgba: Uint8ClampedArray<ArrayBuffer>;
   readonly sensorCols: number;
   readonly pitchMm: number;
   /** Sensor pitch in native pixels. The peak gain is footprint² on a FLAT field. */
@@ -1048,7 +1048,7 @@ export interface CameraResult {
    * The frame as an OBSERVATION — the sky in it, and one Poisson draw of the
    * whole thing when a seed was given. Absent only when there is neither.
    */
-  readonly observedRgba?: Uint8ClampedArray;
+  readonly observedRgba?: Uint8ClampedArray<ArrayBuffer>;
   /** Set when the pitch records fewer than `MIN_SENSOR_COLS` columns. */
   readonly refusal?: string;
 }

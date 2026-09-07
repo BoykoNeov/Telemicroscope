@@ -1078,6 +1078,7 @@ only its own route.
 | 9j | `emitter.tsx` | nothing — 9i's `toGrey` is the one it imports | `#/emitter` ✅ |
 | 9k | `volume.tsx` | its own `toGrey` — the third main-thread case | `#/volume` ✅ |
 | 9l | `telescope.tsx` | `RenderResult.rgba` and `FieldResult.rgba`, two sites | `#/telescope` ✅ |
+| 9m | `camera.tsx` | `nativeRgba`, `sensorRgba`, optional `observedRgba` | `#/camera` ✅ |
 
 ## Step 10 — choose the leading of the bare mono readouts
 
