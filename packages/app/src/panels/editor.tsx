@@ -589,7 +589,11 @@ export function EditorPanel() {
         <div
           style={{
             ...mono,
+            // The one spread that changes the size, so it restates the leading:
+            // `mono` carries step 10's 12 px answer (1.6), and 13 px was left at
+            // the inherited 1.5. Without this the size would have moved too.
             fontSize: 13,
+            lineHeight: 1.5,
             border: `1px solid ${result.source === "engine" ? "var(--bad)" : "var(--warn)"}`,
             color: result.source === "engine" ? "var(--bad)" : "var(--warn)",
             padding: 12,

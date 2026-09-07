@@ -1184,6 +1184,17 @@ there is no tag to hang a `className` on. It carries `lineHeight: 1.6` by hand,
 with a comment saying why — otherwise the editor would have been the one panel
 whose readouts had quietly stayed at 1.5.
 
+That const is also the one place this step could move a size it had not
+decided, and nearly did. Four of the five spreads keep `mono`'s 12 px, but the
+fifth — the section-refusal box at `editor.tsx:591` — overrides it to
+`fontSize: 13`, so putting a leading on the const put 1.6 on a **13 px** site.
+Nothing in the census could see it: a spread contains no
+`fontFamily: "var(--mono)"` for the search to match, so that site was never
+among the 10 counted at 13 px. It now restates `lineHeight: 1.5` beside its
+`fontSize: 13`, which is the general rule this leaves behind — **a spread of
+`mono` that changes the size must restate the leading**, because the const's
+leading belongs to 12 px.
+
 **The control wrappers moved too, on purpose.** `ui.tsx`'s five sites are not
 paragraphs — they are the `<div>`/`<label>` around a button row, a range input,
 a text field and `Fact`'s label/value stack, and between them they render on
@@ -1199,7 +1210,7 @@ sites are the sizes that had no question to settle:
 
 | size | sites | why it was left |
 | --- | --- | --- |
-| 13 | 10 | inherited 1.5, nothing dissenting — one answer already; and they are two shapes (five camera subheadings, four refusal boxes), not a readout family |
+| 13 | 10 | inherited 1.5, nothing dissenting — one answer already; and they are two shapes (five camera subheadings, four refusal boxes), not a readout family. An eleventh, `editor.tsx:591`, reaches 13 px by spreading `mono` and now restates 1.5 to stay there |
 | 11 | 7 | cannot follow 12 px without reopening `.readout-note` — 28 uses, on the must-not-change list; and each of the seven sets a colour of its own, so none is eligible for it regardless |
 | 14 | 4 | inherited 1.5, and four sites in two files is not a family |
 | 15 | 1 | one site |
@@ -1218,6 +1229,27 @@ of 1.7 or 1.8. `npm run typecheck` and `npm test` are green. No test in
 `packages/app/test/` asserts on inline styles, so none needed updating —
 checked rather than assumed, since a step-5-shaped refactor in a repo that pins
 things is exactly where such an assertion would live.
+
+**And two checks the source diff cannot make, because the change moved these
+sites into a cascade they were not in before.** An inline `fontFamily` and
+`fontSize` cannot be outranked; a class can, and `line-height` inherits, so
+reading the diff proves the source changed as intended and not that the
+*rendered* leading did.
+
+- **Nothing outranks `.readout`.** It is one class, and the only multi-part
+  selector in the whole stylesheet is `.shell-title strong` — every other rule
+  is a bare element or a single class. A bare-element rule loses to a class
+  whatever the source order, and an equal-specificity class rule can only reach
+  an element that carries that class, which none of the 87 does: the sweep
+  refused to touch a tag that already had a `className`. So all 87 really are
+  at 1.6 and the count is not an overstatement.
+- **Nothing inherited 1.6 by accident.** `.prose` sets neither size nor
+  leading and `.readout-note` sets no leading, so either one nested inside a
+  converted element would have moved from 1.5 to 1.6 uncounted — as would a
+  bare inline mono site at another size. All 106 `.readout` elements were
+  walked for their contents: **zero** such descendants. (The walk is real, not
+  a dead scan — the same pass extracts 106 element bodies, the largest 21 655
+  characters, and finds 81 nested `<span>`s in them.)
 
 **One thing this cost, recorded rather than absorbed.** The repo is checked out
 with `core.autocrlf=true`, so working-tree files are CRLF while the blobs are
