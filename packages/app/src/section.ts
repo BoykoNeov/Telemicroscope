@@ -101,9 +101,9 @@ export interface PlaneReadout {
 
 export interface SectionReadout {
   /** The honest path: colour integrated per wavelength. RGBA, `size`×`size`. */
-  readonly rgbaSpectral: Uint8ClampedArray;
+  readonly rgbaSpectral: Uint8ClampedArray<ArrayBuffer>;
   /** The negative control: one grey image, tinted. Same size, same exposure rule. */
-  readonly rgbaTinted: Uint8ClampedArray;
+  readonly rgbaTinted: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   /**
    * Largest chromaticity distance from the frame's own mean, over the interior.
@@ -392,7 +392,7 @@ const WHITE_OVER_MEAN = 2;
  * the spectral image is the observer's integral. Sharing an exposure would put a
  * brightness difference on screen and let a reader read it as a colour one.
  */
-function expose(image: ColorImage, pixels: number): Uint8ClampedArray {
+function expose(image: ColorImage, pixels: number): Uint8ClampedArray<ArrayBuffer> {
   const meanY = integratedXyz(image).y / pixels;
   return toSrgbBytes(image, { exposure: meanY > 0 ? 1 / (WHITE_OVER_MEAN * meanY) : 1 });
 }

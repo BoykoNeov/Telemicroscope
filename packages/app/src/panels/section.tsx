@@ -74,7 +74,7 @@ function ColourFrame({
   meanSpread,
   proof,
 }: {
-  rgba: Uint8ClampedArray;
+  rgba: Uint8ClampedArray<ArrayBuffer>;
   size: number;
   title: string;
   note: string;
@@ -94,7 +94,7 @@ function ColourFrame({
     if (!context) return;
     // A fresh buffer: `ImageData` takes ownership of what it is given, and this
     // one arrived by structured clone from the worker.
-    context.putImageData(new ImageData(new Uint8ClampedArray(rgba), size, size), 0, 0);
+    context.putImageData(new ImageData(rgba, size, size), 0, 0);
   }, [rgba, size]);
 
   return (

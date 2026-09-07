@@ -1059,6 +1059,7 @@ only its own route.
 | commit | panel | narrowed with it | route |
 | --- | --- | --- | --- |
 | 9b | `brightfield.tsx` | `BrightfieldReadout.rgba`, its `toGrey` | `#/brightfield` ✅ |
+| 9c | `section.tsx` | `rgbaSpectral`, `rgbaTinted`, `expose`, the panel's own prop | `#/section` ✅ |
 
 ## Step 10 — choose the leading of the bare mono readouts
 
