@@ -106,8 +106,8 @@ function BrightfieldCanvas({ request }: { request: BrightfieldRequest }) {
     element.height = result.readout.size;
     const context = element.getContext("2d");
     if (!context) return;
-    const pixels = new Uint8ClampedArray(result.readout.rgba);
-    context.putImageData(new ImageData(pixels, result.readout.size, result.readout.size), 0, 0);
+    const { rgba, size } = result.readout;
+    context.putImageData(new ImageData(rgba, size, size), 0, 0);
   }, [result]);
 
   const readout = result?.ok ? result.readout : null;

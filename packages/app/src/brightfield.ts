@@ -147,7 +147,7 @@ export interface BrightfieldRequest {
 
 export interface BrightfieldReadout {
   /** Greyscale image, RGBA, `size`×`size`. */
-  readonly rgba: Uint8ClampedArray;
+  readonly rgba: Uint8ClampedArray<ArrayBuffer>;
   readonly size: number;
   /** ν = 2·cycles/pupilSamples, in units of NA/λ. 1 is coherent, 2 incoherent. */
   readonly nu: number;
@@ -335,7 +335,7 @@ export function directionCount(
 export { latticeCutoffGapExists };
 
 /** Greyscale, mid-grey at the frame's own mean. Linear; nothing is stretched. */
-function toGrey(intensity: Float64Array, size: number, mean: number): Uint8ClampedArray {
+function toGrey(intensity: Float64Array, size: number, mean: number): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   const white = mean > 0 ? WHITE_OVER_MEAN * mean : 1;
   for (let i = 0; i < size * size; i++) {

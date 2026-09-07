@@ -1034,6 +1034,32 @@ back to is bit for bit the tile it was. Harness at
 on the guarded port, `drive.mjs <tag>` does the run. It imports `vite` by
 absolute file URL: a script outside the repo cannot resolve a bare specifier.
 
+### 9b–9n — the panels after the stage
+
+One commit each, the same shape as 9a: drop the copy, narrow the declarations
+behind it, and check that route's canvases against a build of the tree as it
+stood before the step. The harness generalises 9a's: `sweep.mjs <tag> <route>…`
+hashes `getImageData` over **every** canvas on the page once the picture has
+stopped changing, and `cmp.mjs <base> <tag>` compares two sweeps canvas by
+canvas. Two rules it enforces that a screenshot would not:
+
+- **A route is evidence only if something was painted.** Every canvas also
+  reports whether it is one flat colour, and a route whose canvases are all
+  uniform is reported as `NO-PAINT`, not as a match — a canvas fed from an empty
+  placeholder (`camera.ts`'s `sensorRgba: new Uint8ClampedArray(0)`) or belonging
+  to a refused design is stable and identical whatever the buffer did.
+- **The sweep says which chunk it loaded.** A panel-only rebuild leaves the entry
+  hash alone, so "the served `index-*.js` is the new one" cannot tell a fresh
+  `dist` from a stale one here; the panel's own hashed chunk name can.
+
+The baseline is one immutable build of HEAD-after-9a in `dist-base`, swept once
+for all thirteen routes; each panel commit rebuilds `dist-after` and re-sweeps
+only its own route.
+
+| commit | panel | narrowed with it | route |
+| --- | --- | --- | --- |
+| 9b | `brightfield.tsx` | `BrightfieldReadout.rgba`, its `toGrey` | `#/brightfield` ✅ |
+
 ## Step 10 — choose the leading of the bare mono readouts
 
 **Why.** Step 5 named three shapes and reached 86 sites; it deliberately did
