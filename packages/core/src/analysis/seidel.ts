@@ -1,5 +1,5 @@
 import { getMedium } from "../materials/catalog";
-import { Prescription, unfoldedTwin } from "../trace/prescription";
+import { Prescription, isFolded, unfoldedTwin } from "../trace/prescription";
 
 /**
  * Third-order (Seidel) aberration sums S_I (spherical) and S_II (coma), from the
@@ -90,13 +90,71 @@ import { Prescription, unfoldedTwin } from "../trace/prescription";
  *
  * whose p = −1 case is the classical best-form minimum already pinned above.
  *
+ * ## The aspheric figure's own third-order set (§ 5j.3)
+ *
+ * A conic or an even asphere departs from the base SPHERE of the same vertex
+ * curvature by a quartic. Expand both sags: a conic is
+ * c·r²/2 + (1+K)·c³·r⁴/8 + …, a sphere the same with K = 0, so the departure is
+ *
+ *     Δz(r) = a₄·r⁴          a₄ = K·c³/8 + A₄
+ *
+ * with A₄ the first even-asphere coefficient. A₆ and beyond start at r⁶ and
+ * carry no third-order term at all, so they are *ignored* rather than refused —
+ * the same way third-order theory ignores every other sixth-order quantity.
+ *
+ * That departure is a phase plate sitting on the surface, and a plate's whole
+ * aberration set follows from one expansion rather than from five formulas. A
+ * ray of the pencil from a field point crosses the surface at
+ *
+ *     x = ρ·y·cos θ + η·ȳ        y_transverse = ρ·y·sin θ
+ *
+ * — the marginal ray height y scaled by the normalised pupil radius ρ, plus the
+ * chief ray height ȳ scaled by the normalised field η — so with ΔW = C·r⁴,
+ *
+ *     r⁴ = ρ⁴y⁴ + 4ρ³y³ȳ·η cos θ + 2ρ²y²η²ȳ² + 4ρ²y²ȳ²η²cos²θ
+ *          + 4ρ y ȳ³η³cos θ + η⁴ȳ⁴
+ *
+ * Matching that term by term against the wavefront expansion the sums are
+ * defined by — (S_I/8)ρ⁴ + (S_II/2)ρ³η cos θ + (S_III/2)η²ρ²cos²θ +
+ * ((S_III+S_IV)/4)η²ρ² + (S_V/2)η³ρ cos θ — gives the whole set at once:
+ *
+ *     ΔS_I = 8C·y⁴      ΔS_II = 8C·y³ȳ      ΔS_III = 8C·y²ȳ²
+ *     ΔS_IV = 0         ΔS_V  = 8C·y ȳ³
+ *
+ * **ΔS_IV = 0 is derived, not assumed.** The ρ²η² terms split into a cos²θ half
+ * and a constant half; the cos²θ half fixes ΔS_III = 8C·y²ȳ², and the constant
+ * half then reads (ΔS_III + ΔS_IV)/4 = 2C·y²ȳ², which forces ΔS_IV to vanish.
+ * That is the Petzval sum's own statement — field curvature is fixed by the
+ * powers and the glasses — falling out of an expansion that was not told it.
+ *
+ * The one constant, C, is fixed by an external number rather than by a sign
+ * convention argued in prose: **a paraboloid images a collimated beam
+ * stigmatically**, so a single mirror at K = −1 must return ΣS_I = 0 exactly.
+ * With C = (n′ − n)·a₄ it does, at every radius and aperture, to the f64 floor
+ * (`test/seidel.test.ts`). Note the sign: the wavefront measure the sums are
+ * built on runs *opposite* to optical path length — the paraboloid's rim is the
+ * shallower surface, so it LENGTHENS the rim path by 2Δz while REMOVING the
+ * sphere's positive W₀₄₀ — and pinning C on the paraboloid is what fixes that
+ * rather than leaving it to a comment.
+ *
+ * Everything else the aspheric set says is then a consequence, and each is its
+ * own rung: S_I is exactly linear in K (§ 5i states this and nothing could
+ * check it before); every field term carries ȳ, so **a conic figured at the
+ * stop changes spherical aberration and nothing else**, which is why a
+ * paraboloid's coma is a sphere's; and a mirror's Petzval sum is the same
+ * number to the bit whatever its conic.
+ *
  * SCOPE, deliberately narrow — this module does one job for one caller:
  *
- *  - **Spherical surfaces only.** A conic or an even asphere adds its own
- *    third-order term, which is a *different* closed form; rather than carry an
- *    unpinned one, a non-zero conic or asphere throws. (The aspheric presets do
- *    not need this module: §§ 5g–5i figure their correctors from the sag
- *    difference directly.)
+ *  - ~~**Spherical surfaces only.**~~ Lifted at § 5j.3 — see *The aspheric
+ *    figure's own third-order set* below. What is still refused is a FOLDED
+ *    chain carrying even-asphere coefficients past a mirror: `unfoldedTwin`
+ *    flips a surface's curvature by the mirror parity and leaves its A₄ alone,
+ *    so the sag of the unfolded twin would be right in its conic part and wrong
+ *    in its polynomial one. Nothing in the catalogue is shaped that way — every
+ *    aspheric preset is authored unfolded — so this is a refusal rather than a
+ *    fix to shared trace-layer code that no rung exercises. A wrong sign there
+ *    would be silent; a throw is not.
  *  - **Every off-axis sum needs a stop surface**, and since § 6cm that stop may
  *    sit anywhere in the chain. At surface 0 the chief ray is simply (ȳ = 0,
  *    ū = θ) and nothing is solved. Anywhere else it is the ray that reaches the
@@ -282,6 +340,8 @@ interface SeidelStep {
   readonly phi: number;
   /** Gap to the next vertex. */
   readonly thickness: number;
+  /** r⁴ departure from the base sphere, K·c³/8 + A₄. Zero on a sphere. */
+  readonly a4: number;
 }
 
 export function seidelSums(
@@ -289,6 +349,21 @@ export function seidelSums(
   wavelengthNm: number,
   opts: SeidelOptions,
 ): SeidelResult {
+  // Checked on the input, before unfolding, because it is the unfolding that
+  // loses the sign: `unfoldedTwin` flips curvature by the mirror parity and
+  // leaves the even-asphere coefficients alone. See the header's scope note.
+  if (isFolded(prescriptionIn)) {
+    let pastMirror = false;
+    for (const s of prescriptionIn.surfaces) {
+      if (pastMirror && (s.asphereCoeffs?.length ?? 0) > 0) {
+        throw new Error(
+          "seidelSums: a folded chain's even-asphere coefficients past a mirror have no defined " +
+            "sign in the unfolded twin — author that chain unfolded",
+        );
+      }
+      if (s.kind === "reflect") pastMirror = true;
+    }
+  }
   const prescription = unfoldedTwin(prescriptionIn);
   const { marginalRadiusAtStopMm, fieldAngleRad = 0, objectDistanceMm, distortion = false } = opts;
   if ((opts.marginalHeightMm === undefined) === (marginalRadiusAtStopMm === undefined)) {
@@ -307,9 +382,6 @@ export function seidelSums(
   {
     let n = objectIndex;
     for (const s of prescription.surfaces) {
-      if ((s.conic ?? 0) !== 0 || (s.asphereCoeffs?.length ?? 0) > 0) {
-        throw new Error("seidelSums: spherical surfaces only (a conic/asphere adds an uncomputed term)");
-      }
       let n2: number;
       if (s.kind === "reflect") {
         n2 = -n;
@@ -317,7 +389,14 @@ export function seidelSums(
         if (!s.medium) throw new Error("seidelSums: refract surface needs a medium");
         n2 = Math.sign(n) * getMedium(s.medium).n(wavelengthNm);
       }
-      steps.push({ n, n2, c: s.curvature, phi: s.curvature * (n2 - n), thickness: s.thickness });
+      const c = s.curvature;
+      const k = s.conic ?? 0;
+      // The quartic departure from the base sphere. `c` is the UNFOLDED
+      // curvature, so K·c³ already carries the mirror parity the sag does:
+      // flipping c flips the whole sag term by term, which is exactly why the
+      // conic constant itself is parity-invariant and A₄ is not.
+      const a4 = (k * c * c * c) / 8 + (s.asphereCoeffs?.[0] ?? 0);
+      steps.push({ n, n2, c, phi: c * (n2 - n), thickness: s.thickness, a4 });
       n = n2;
     }
   }
@@ -428,10 +507,25 @@ export function seidelSums(
     const ub2 = (n * ub - yb * phi) / n2;
     const dun = u2 / n2 - u / n;
 
-    const termS1 = -A * A * y * dun;
-    const termS2 = -A * Ab * y * dun;
-    const termS3 = -Ab * Ab * y * dun;
+    let termS1 = -A * A * y * dun;
+    let termS2 = -A * Ab * y * dun;
+    const sphericalS3 = -Ab * Ab * y * dun;
+    let termS3 = sphericalS3;
     const termS4 = -lagrangeInvariant * lagrangeInvariant * c * (1 / n2 - 1 / n);
+
+    // The figure's own set, added on top of the base sphere's. Guarded on a4 so
+    // a spherical surface takes the identical expression it always did, to the
+    // bit — `x + 0` is not `x` when x is −0, and the sums carry signed zeros.
+    let asphericS5 = 0;
+    if (st.a4 !== 0) {
+      const cAsph = 8 * (n2 - n) * st.a4;
+      const yy = y * y;
+      termS1 += cAsph * yy * yy;
+      termS2 += cAsph * yy * y * yb;
+      termS3 += cAsph * yy * yb * yb;
+      asphericS5 = cAsph * y * yb * yb * yb;
+    }
+
     let termS5: number | undefined;
     if (distortion) {
       if (A === 0) {
@@ -440,7 +534,10 @@ export function seidelSums(
             "undeviated (A = 0) — the classical S_V term is 0/0 there",
         );
       }
-      termS5 = (Ab / A) * (termS3 + termS4);
+      // Ā/A multiplies the BASE SPHERE's S_III, not the total: the figure's own
+      // S_V is 8C·yȳ³, which is its S_III times ȳ/y and not times Ā/A. The two
+      // contributions are separate plates and each keeps its own structure.
+      termS5 = (Ab / A) * (sphericalS3 + termS4) + asphericS5;
       s5 += termS5;
     }
     surfaces.push({

@@ -384,8 +384,9 @@ export interface OrderStep {
  * spherical, 5 when the third has been nulled. The exponent is therefore a
  * *measurement of the design's correction state* that needs no Seidel formula —
  * and the two routes are independent, which is what makes them worth showing
- * together. `seidelSums` refuses conics outright; this works on anything that
- * traces.
+ * together. This works on anything that traces, including the systems
+ * `seidelSums` used to refuse — conics and aspheres, which it computes since
+ * § 5j.3.
  */
 export interface OrderReadout {
   readonly steps: readonly OrderStep[];

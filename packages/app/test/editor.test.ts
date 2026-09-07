@@ -315,8 +315,9 @@ describe("the order of the surviving aberration, read off the aperture", () => {
   /**
    * Halving the stop divides the on-axis residual by 2^p, and p is the lowest
    * order that has NOT been corrected. This is the panel's headline and it is
-   * independent of `seidelSums` — which is the point: the sum refuses conics and
-   * this does not, and where both work they have to agree about the same lens.
+   * independent of `seidelSums`, and where both work they have to agree about the
+   * same lens. The sum used to refuse a conic, which made the independence vivid;
+   * since § 5j.3 it does not, and the Cassegrain is now a case where both run.
    */
   it("measures 3 for a plain singlet and 5 for the objective whose third order is nulled", () => {
     const singlet = describeBench(solveParaxialFocus(seedById("singlet")));
@@ -349,8 +350,14 @@ describe("the order of the surviving aberration, read off the aperture", () => {
     // rounding: a slope taken through it would be a number about nothing.
     expect(result.order.noiseFloor).toBe(true);
     expect(result.order.steps[0]!.rmsRadiusMm).toBeLessThan(1e-9);
-    // …and the Seidel route does not even run, because a conic is outside it.
-    expect(result.seidel.ok).toBe(false);
+    // …and the Seidel route, which used to decline a conic outright, now says
+    // WHY the residual is noise: § 5j.3 gave the sums the conic's own term, so
+    // the confocal pair's ΣS_I comes back at zero on this same seed. Two routes,
+    // one claim about the same two mirrors — and the SECTIONING is still the
+    // point, because one of them declines to take a slope while the other
+    // returns a number.
+    if (!result.seidel.ok) throw new Error(result.seidel.error);
+    expect(Math.abs(result.seidel.s1Mm)).toBeLessThan(1e-9);
   });
 });
 

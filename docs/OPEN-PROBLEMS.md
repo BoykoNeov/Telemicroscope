@@ -133,12 +133,36 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    asked. But `"rim"` is NOT retired: § 6ai's own reasoning is that removing it
    relocates a lens into a hand-built fixture instead of deleting one, and that
    argument never depended on the equations being absent.
-8. **Astigmatism and field curvature on conics.** Every reflector preset
+8. ~~**Astigmatism and field curvature on conics.** Every reflector preset
    (§ 4b, § 5e, § 5f, § 5i) and the Lister (§ 6d) say "what is missing is the
    external number, not the measurement", since `seidelSums` refuses conics.
    *Candidate:* the classical two-mirror field aberrations in Schroeder
-   (*Astronomical Optics*, ch. 6), which are closed forms in the conic
-   constants and the magnification.
+   (*Astronomical Optics*, ch. 6).~~
+
+   ✅ **CLOSED at [§ 5j.3](VALIDATION.md#5j3--the-conics-own-third-order-term-and-the-reflectors-field)** — and the candidate was not needed. The
+   refusal was not "a different closed form": a conic's departure from the base
+   sphere is a quartic, a quartic sag is a phase plate on the surface, and one
+   expansion of (ρy cosθ + ηȳ)⁴ hands over the whole third-order set as one
+   constant times powers of the two ray heights. **ΔS_IV = 0 falls out of that
+   expansion** rather than being asserted, through the same S_III/(S_III + S_IV)
+   split `analysis/field` already uses — so the derivation carries its own check.
+   The pins are closed forms with no engine in them and no book to transcribe: a
+   paraboloid nulls ΣS_I at every radius and aperture (which is what fixes the
+   one constant's SIGN, and the first derivation of it was wrong); a prolate
+   ellipsoid's own geometry gives K = −e², which is the module's ΣS_I = 0 root to
+   1e-12 and stigmatic to all orders in the trace; a mirror stopped at itself has
+   a **flat sagittal field** because S_III + S_IV carries a factor (n + n′); a
+   Schmidt camera's film former has radius f, and its residual coma and
+   astigmatism are the corrector's own glass path in closed form.
+
+   **Three things the entry got wrong.** The Lister was never blocked on this —
+   § 6d is a FINITE conjugate, and `thirdOrderSags` refuses one for § 6b's
+   chief-ray convention, which is untouched. § 5h (the Schmidt-Cassegrain) was
+   blocked and is not listed. And Schroeder's two-mirror forms are still what
+   would pin the RC-vs-Cassegrain astigmatism *ratio*, which is computable now
+   but is a consistency check — so this item closes as a **capability**
+   (`thirdOrderSags` returns both focal surfaces for every reflecting preset) with
+   that one external number still named and unclaimed.
 9. **The exact Ewald cap against the quadratic wavefront** (2.6× at NA 1.40).
    § 6k names the pin: "a wavefront traced through a defocused *object*
    plane".
@@ -518,7 +542,14 @@ radial-map nodes · § 6ba differential bleaching.
    and truncation is lossy — 99% of the light needs 48 of 69 modes.
    `hopkinsImage` still has no caller in `renderBrightfield`, and what would
    settle that is a wall-time measurement nobody has taken.
-10. ~~Make the ladder green off the author's machine (the structural problem
+10½. ~~**Astigmatism and field curvature on conics** (A8): an engine change,
+    and the widest unblock left — five presets carry the same deferral.~~ ✅ —
+    landed at § 5j.3, and the register's candidate (Schroeder's two-mirror forms)
+    was not needed: the refusal was one constant, derivable in a page, and the
+    pins are a paraboloid, an ellipsoid, a bare mirror's flat sagittal field and
+    a Schmidt's film former. What it leaves is one external number still named:
+    the two-mirror astigmatism ratio is computable but is a consistency check.
+11. ~~Make the ladder green off the author's machine (the structural problem
     above) before any of 3–9 is trusted on a second one.~~ The convention is in
     and the assertions are restated (see the structural problem above); what
     remains is one confirming run on a second machine, which is now a check

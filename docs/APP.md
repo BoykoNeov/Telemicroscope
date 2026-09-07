@@ -3980,13 +3980,16 @@ fifth arrived later and is E2 below).
   measured; and the **DIN 4×/0.10 objective reads 5.20 → 5.05 → 5.01**, which is
   § 6b's ΣS_I = 0 confirmed by a route that never computes S_I. The two routes
   are printed side by side and neither is converted into the other.
-- **The Seidel route refuses where the aperture route does not.** `seidelSums`
-  declines a conic outright ("spherical surfaces only — a conic/asphere adds an
-  uncomputed term"), so the Cassegrain has no third-order column at all. That is
-  why the readout is **sectioned**: each of paraxial / pupil / exact / Seidel /
-  order is its own numbers or its own refusal, because they fail independently
-  and each failure is informative. An afocal chain has no EFL and still has a
-  spot; a conic has no S_I and still has an order.
+- ~~**The Seidel route refuses where the aperture route does not.** `seidelSums`
+  declines a conic outright, so the Cassegrain has no third-order column at
+  all.~~ **Not since § 5j.3**, which gave the sums the conic's own third-order
+  term: the Cassegrain now has a third-order column, and it reads ΣS_I = 0 — the
+  same claim the aperture route makes by refusing to take a slope through float
+  noise, from machinery that shares no line with it. The **sectioning** survives
+  the reason that motivated it, and on this very seed: each of paraxial / pupil /
+  exact / Seidel / order is still its own numbers or its own refusal, because
+  they fail independently. An afocal chain has no EFL and still has a spot; a
+  stigmatic design has no order and still has an S_I.
 - **The aperture route needs its own honesty guard.** On the Cassegrain the
   full-aperture residual is 4.5e-14 mm — stigmatic on axis by construction
   (§ 5e) — so the exponent through those points would be the shape of the

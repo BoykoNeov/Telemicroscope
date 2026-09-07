@@ -98,6 +98,151 @@ describe("Seidel S_I — the spherical mirror anchor (scale)", () => {
   });
 });
 
+/** The same mirror with a figure on it: conic K, still concave toward +z. */
+const conicMirror = (R: number, K: number, D: number): Prescription => ({
+  surfaces: [
+    { kind: "reflect", curvature: -1 / R, conic: K, semiAperture: D / 2, thickness: -R / 2, isStop: true },
+  ],
+});
+
+describe("§ 5j.3 — the conic's own third-order term", () => {
+  it("W₀₄₀ = h⁴(1 + K)/(4R³): the sphere's anchor times the conic's own factor", () => {
+    // The sphere's h⁴/(4R³) (above) is the K = 0 member of one closed form. The
+    // (1 + K) is the same factor that appears in a conic's sag — the quartic
+    // departure from the base sphere is K·c³·r⁴/8, and the sphere's own quartic
+    // is c³r⁴/8 — so this row pins the new term's SIGN and SCALE against a
+    // number the module already reproduces, at four conics and three fixtures.
+    for (const [R, h] of [[1600, 100], [800, 50], [2000, 25]] as const) {
+      for (const K of [0, -0.5, -1, -2, 1] as const) {
+        const sum = seidelSums(conicMirror(R, K, 2 * h), 550, { marginalHeightMm: h });
+        expect(sum.w040).toBeCloseTo((h ** 4 * (1 + K)) / (4 * R ** 3), 15);
+      }
+    }
+  });
+
+  it("is EXACTLY linear in K — § 5i's published claim, checkable for the first time", () => {
+    // "Third-order spherical aberration is exactly linear in each mirror's
+    // conic" is what § 5i's two-mirror corrector formula rests on, and until the
+    // module took a conic nothing could check it. A straight line has no second
+    // difference: three equally spaced conics must satisfy s1(K−δ) − 2s1(K) +
+    // s1(K+δ) = 0, and it comes out at the f64 floor rather than at a tolerance.
+    const scale = Math.abs(seidelSums(conicMirror(1600, 0, 200), 550, { marginalHeightMm: 100 }).s1);
+    const at = (K: number): number =>
+      seidelSums(conicMirror(1600, K, 200), 550, { marginalHeightMm: 100 }).s1;
+    for (const [K, d] of [[-1, 0.25], [-4, 1], [0, 2]] as const) {
+      const second = at(K - d) - 2 * at(K) + at(K + d);
+      expect(Math.abs(second)).toBeLessThan(1e-14 * scale);
+    }
+  });
+
+  it("THE PIN: a paraboloid images a collimated beam stigmatically, so ΣS_I = 0", () => {
+    // This is what fixes the constant in front of the whole aspheric set, and
+    // it is external to every convention in this module: a parabola's focus is
+    // a focus, at any radius and any aperture. The cancellation is between two
+    // separately-built expressions, so it lands at the f64 floor rather than at
+    // exact zero — 15 orders below the sphere it cancels.
+    for (const [R, h] of [[1600, 100], [800, 50], [2000, 25], [400, 100]] as const) {
+      const sphere = seidelSums(conicMirror(R, 0, 2 * h), 550, { marginalHeightMm: h });
+      const parabola = seidelSums(conicMirror(R, -1, 2 * h), 550, { marginalHeightMm: h });
+      expect(Math.abs(parabola.s1)).toBeLessThan(1e-15 * Math.abs(sphere.s1));
+      expect(Math.abs(sphere.s1)).toBeGreaterThan(0);
+    }
+  });
+
+  it("a conic figured AT THE STOP moves S_I and nothing else, to the bit", () => {
+    // Every aspheric field term carries the chief ray height ȳ, which is 0 at
+    // the stop — so the whole set collapses to ΔS_I there. That is why a
+    // paraboloid's coma is a sphere's, and it is the negative control on the new
+    // code: S_II, S_III and S_IV must be the IDENTICAL doubles at every conic.
+    const off = { marginalHeightMm: 100, fieldAngleRad: 0.005 };
+    const base = seidelSums(conicMirror(1600, 0, 200), 550, off);
+    for (const K of [-1, -2, -0.3, 3] as const) {
+      const figured = seidelSums(conicMirror(1600, K, 200), 550, off);
+      expect(figured.s2).toBe(base.s2);
+      expect(figured.s3).toBe(base.s3);
+      expect(figured.s4).toBe(base.s4);
+      expect(figured.s1).not.toBe(base.s1);
+    }
+  });
+
+  it("and the sagittal field of a mirror stopped at itself is FLAT, at every conic", () => {
+    // S_III + S_IV = n²ū²y²c(n′ − n)(n + n′)/(n·n′²) for a single surface with
+    // the stop on it, collimated in (a finite conjugate puts (u + y·c) where
+    // the y·c is and keeps the same factor), and a mirror is n′ = −n, so the
+    // bracket vanishes identically. `thirdOrderSags` turns that into x_s = 0: the sagittal focal
+    // surface of a bare mirror IS the paraxial focal plane, however it is
+    // figured. It cancels between two expressions, so it is a floor and not a
+    // zero — quoted against S_IV, the larger of the two.
+    for (const K of [0, -1, -2] as const) {
+      const s = seidelSums(conicMirror(1600, K, 200), 550, {
+        marginalHeightMm: 100,
+        fieldAngleRad: 0.005,
+      });
+      expect(Math.abs(s.s3 + s.s4)).toBeLessThan(1e-15 * Math.abs(s.s4));
+      expect(Math.abs(s.s4)).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("§ 5j.3 — the ellipsoid, where the conic and a finite conjugate meet", () => {
+  // A prolate spheroid reflects one focus onto the other, exactly. Written from
+  // the ELLIPSE rather than from any aberration formula: semi-major
+  // a = (s + s′)/2, half focal separation c = (s′ − s)/2, so e = (s′ − s)/(s′ + s)
+  // and the vertex radius is b²/a = a(1 − e²) = 2ss′/(s + s′). The conic
+  // constant of an ellipse is −e². Nothing below is third-order theory; that is
+  // the point — the module has to land on it.
+  const S = 600;
+  const SP = 1200;
+  const E = (SP - S) / (SP + S);
+  const R = (2 * S * SP) / (S + SP);
+  const K_ELLIPSE = -(E * E);
+  const H = 100;
+
+  const mirror = (K: number): Prescription => ({
+    surfaces: [
+      { kind: "reflect", curvature: -1 / R, conic: K, semiAperture: H, thickness: -SP, isStop: true },
+    ],
+  });
+
+  it("the geometry is the ellipse's own: e = 1/3, R = 800, K = −1/9", () => {
+    expect(E).toBeCloseTo(1 / 3, 15);
+    expect(R).toBeCloseTo(800, 12);
+    expect(K_ELLIPSE).toBeCloseTo(-1 / 9, 15);
+    // And the mirror equation the same radius satisfies, from the other side.
+    expect(1 / S + 1 / SP).toBeCloseTo(2 / R, 15);
+  });
+
+  it("the module's S_I = 0 root lands on the ellipse's own conic", () => {
+    const at = (K: number): number =>
+      seidelSums(mirror(K), 550, { marginalHeightMm: H, objectDistanceMm: S }).s1;
+    // Linear in K, so the root is one division — no search, and no fit.
+    const a = at(0);
+    const b = at(-1);
+    // s1(K) = a + (a − b)·K, since b is its value at K = −1.
+    const root = a / (b - a);
+    expect(root).toBeCloseTo(K_ELLIPSE, 12);
+    expect(Math.abs(at(K_ELLIPSE))).toBeLessThan(1e-15 * Math.abs(a));
+  });
+
+  it("and the trace agrees to ALL orders, where third-order theory only says the third", () => {
+    const system = (K: number): OpticalSystem => ({
+      prescription: mirror(K),
+      aperture: { kind: "stopRadius", value: H },
+      field: { kind: "objectHeight", values: [0] },
+      wavelengths: [{ nm: 550, weight: 1 }],
+      conjugate: { kind: "finite", distance: S },
+    });
+    const map = opdMap(system(K_ELLIPSE), 0, 550, pupilGrid(21));
+    expect(map.lost).toBe(0);
+    expect(map.rmsWaves).toBeLessThan(1e-5);
+
+    // NEGATIVE CONTROL: the sphere of the same vertex radius, same aperture.
+    const sphere = opdMap(system(0), 0, 550, pupilGrid(21));
+    expect(sphere.lost).toBe(0);
+    expect(sphere.rmsWaves).toBeGreaterThan(1);
+  });
+});
+
 describe("Seidel S_I — the thin-lens closed form (shape)", () => {
   const f = 1000;
   const D = 100;
@@ -317,18 +462,50 @@ describe("Seidel S_I — the trace confirms the closed form", () => {
 });
 
 describe("Seidel sums refuse what they cannot compute", () => {
-  it("rejects conics and aspheres rather than silently dropping their term", () => {
+  it("~~rejects conics and aspheres~~ — computes them (§ 5j.3)", () => {
+    // The refusal was the scope note rather than a hard problem: a quartic
+    // departure from the base sphere is a phase plate on the surface, and its
+    // whole third-order set is one constant times powers of the two ray
+    // heights. The rungs for what the answer has to satisfy are in the § 5j.3
+    // blocks below and in `conic-field.test.ts`; what is left here is that the
+    // request is no longer refused and that both shapes now return numbers.
     const conic: Prescription = {
       surfaces: [{ kind: "reflect", curvature: -1 / 1600, conic: -1, semiAperture: 100, thickness: -800 }],
     };
-    expect(() => seidelSums(conic, 550, { marginalHeightMm: 100 })).toThrow(/spherical surfaces only/);
+    expect(Number.isFinite(seidelSums(conic, 550, { marginalHeightMm: 100 }).s1)).toBe(true);
     const asphere: Prescription = {
       surfaces: [
         { kind: "refract", curvature: 0, asphereCoeffs: [1e-12], semiAperture: 100, thickness: 10, medium: "N-BK7" },
         { kind: "refract", curvature: 0, semiAperture: 100, thickness: 100, medium: "AIR" },
       ],
     };
-    expect(() => seidelSums(asphere, 550, { marginalHeightMm: 100 })).toThrow(/spherical surfaces only/);
+    expect(Number.isFinite(seidelSums(asphere, 550, { marginalHeightMm: 100 }).s1)).toBe(true);
+  });
+
+  it("still rejects a FOLDED chain's asphere past a mirror, whose unfolded sign is undefined", () => {
+    // `unfoldedTwin` flips curvature by the mirror parity and leaves A₄ alone,
+    // so the twin's sag would be right in its conic part and wrong in its
+    // polynomial one. Nothing in the catalogue is shaped this way; the throw is
+    // what keeps that from being discovered as a wrong number.
+    const folded: Prescription = {
+      mirrorFrames: "folded",
+      surfaces: [
+        { kind: "reflect", curvature: -1 / 1600, conic: -1, semiAperture: 100, thickness: 800 },
+        { kind: "refract", curvature: 0, asphereCoeffs: [1e-12], semiAperture: 20, thickness: 5, medium: "N-BK7" },
+        { kind: "refract", curvature: 0, semiAperture: 20, thickness: 100, medium: "AIR" },
+      ],
+    };
+    expect(() => seidelSums(folded, 550, { marginalHeightMm: 100 })).toThrow(/folded chain/);
+    // A conic past the same mirror is fine: the conic constant is
+    // parity-invariant, because flipping c flips the whole sag term by term.
+    const foldedConic: Prescription = {
+      mirrorFrames: "folded",
+      surfaces: [
+        { kind: "reflect", curvature: -1 / 1600, conic: -1, semiAperture: 100, thickness: 800 },
+        { kind: "reflect", curvature: 0, semiAperture: 20, thickness: 100 },
+      ],
+    };
+    expect(Number.isFinite(seidelSums(foldedConic, 550, { marginalHeightMm: 100 }).s1)).toBe(true);
   });
 
   it("~~rejects an off-axis request when the stop is not the first surface~~ — answers it (§ 6cm)", () => {

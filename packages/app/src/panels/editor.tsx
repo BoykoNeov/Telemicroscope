@@ -44,9 +44,10 @@ import type { ApertureSpec } from "@telemicroscope/core/trace";
  * Closing the stop by half divides the on-axis residual by 2^p, and p is the
  * lowest aberration order that has NOT been corrected. So the exponent is a
  * *measurement of a design's correction state* that needs no Seidel formula at
- * all — and unlike `seidelSums`, which refuses a conic outright, it works on
- * anything that traces. The singlet reads 3.00, the DIN objective 5.01, and the
- * second is § 6b's ΣS_I = 0 confirmed by a route that never computes S_I.
+ * all, and it works on anything that traces. The singlet reads 3.00, the DIN
+ * objective 5.01, and the second is § 6b's ΣS_I = 0 confirmed by a route that
+ * never computes S_I. The Cassegrain used to be the case where only this route
+ * ran, `seidelSums` refusing a conic; since § 5j.3 both run there and agree.
  *
  * ## Cost, and why this one is live
  *
@@ -272,8 +273,9 @@ export function EditorPanel() {
         without computing a single Seidel term. The BK7 singlet reads <strong>3.00</strong>; the DIN
         4×/0.10 objective reads <strong>5.01</strong>, because § 6b solved its third order to zero
         and the fifth is what is left. Those are two independent routes to the same claim about the
-        same lens, and the panel prints both — including where the Seidel route{" "}
-        <em>refuses</em>, since a conic is outside it and the Cassegrain has two.
+        same lens, and the panel prints both. The Cassegrain is where they used to part
+        company — the Seidel route <em>refused</em> a conic — and since § 5j.3 it computes
+        one, so both now say ΣS<sub>I</sub> = 0 about the same two mirrors.
       </p>
 
       <Fieldset title="a design the engine built, as rows — load one and edit nothing to check the form against it">

@@ -1,6 +1,6 @@
 # Roadmap
 
-**Where the project is (2026-09-03).** Steps 1–7 below are closed, and step 6
+**Where the project is (2026-09-07).** Steps 1–7 below are closed, and step 6
 alone runs to ninety lettered sub-steps. The open scientific items — what is
 deferred, what is blocked on data, what would pin each, and which of the
 ladder's own chains has stopped producing engine changes — now live in one
@@ -49,8 +49,25 @@ pupil nulls the phase transfer for a different reason again, hiding a third of
 the kernel from both readouts. Phase contrast and DIC stay v2: § 6cr builds the
 object they act on, not them. What it opens is its own memory — 2.9 MB at
 pupilSamples 16 and 48.4 MB at 32, the fourth power — which makes the
-sum-of-coherent-systems decomposition the next entry, blocked on a complex
-Hermitian eigensolver `math/lsq` does not have.
+sum-of-coherent-systems decomposition the next entry — **landed at § 6cs**, and
+the eigensolver that entry called a blocker was **not needed**: the kernel is
+A·Aᴴ and § 6cr already builds A, so the modes are that discarded factor's
+singular vectors and a complex SVD does it. 47.1 MB becomes 4.75 MB with nothing
+dropped; truncation turns out to be lossy (99% of the light is 48 of 69 modes),
+and `hopkinsImage` still has no caller in `renderBrightfield` because nobody has
+measured the wall time. **The register's next entry after that, astigmatism and
+field curvature on conics, is landed at § 5j.3.** `seidelSums` refused a conic
+outright, and five reflecting presets carried the same deferral because of it —
+astigmatism and field curvature *present in the trace and unpinned*. The refusal
+was one constant rather than a different closed form: a conic's departure from
+its base sphere is a quartic, a quartic sag is a phase plate on the surface, and
+one expansion hands over the whole third-order set — with ΔS_IV = 0 falling out
+of it rather than being asserted. It is pinned on closed forms with no book to
+transcribe (a paraboloid nulls ΣS_I; a prolate ellipsoid's own geometry gives the
+conic that does the same at a finite conjugate; a mirror stopped at itself has a
+flat sagittal field; a Schmidt's film former has radius f), the traced focal
+surfaces meet it to 0.1% at f/16, and the 1.5% gap at f/4 is shown to be the
+aperture's own fifth order rather than absorbed by a tolerance.
 
 ## Build order
 

@@ -41,7 +41,7 @@ whole ladder.
 | [5g](#step-5g--the-schmidt-camera-preset) | Schmidt camera, corrector plate, off axis | `schmidt` |
 | [5h](#step-5h--the-schmidt-cassegrain-preset) | Schmidt-Cassegrain geometry and spherochromatism | `schmidt-cassegrain` |
 | [5i](#step-5i--the-all-spherical-commercial-sct-preset) | All-spherical commercial SCT and its spherochromatism | `sct` |
-| [5j](#step-5j--third-order-sums-and-the-achromatic-doublet-preset) | `analysis/seidel` closed forms; the achromatic doublet objective | `seidel` `achromat` |
+| [5j](#step-5j--third-order-sums-and-the-achromatic-doublet-preset) | `analysis/seidel` closed forms; the achromatic doublet objective; **5j.3** a conic is one constant: a paraboloid nulls ΣS_I, a mirror's sagittal field is flat | `seidel` `achromat` `conic-field` |
 | [5k](#step-5k--the-ed-fluorite-refractor) | CaF₂ anomalous partial dispersion — what ED buys and costs | `ed-refractor` |
 | [5l](#step-5l--module-composition-and-afocal-telescope-evaluation) | The splice; thin-lens Keplerian closed forms; **5l.1** the on-axis splice that silently swallowed a folded module | `afocal` |
 | [5m](#step-5m--the-computed-plössl-eyepiece) | Plössl computed from two achromatic doublets | `eyepiece` |
@@ -65,7 +65,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | Defocus is a pure PHASE, so a plane's flux is exactly invariant with depth and the haze cannot be focused away — and the missing cone is that same constant transformed | `volume` |
-| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics and its content is what the reuse costs — and the headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water, the fifth geometric ceiling in this branch | `depth-aberration` |
+| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so the step adds no physics — and its headline is not an aberration at all: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not by widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature at ×4.000 per doubling — and an off-axis tile ANISOTROPIC in the ratio 3 that § 6h.1's cubic implies | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
@@ -85,7 +85,7 @@ whole ladder.
 | [6y](#step-6y--the-plane-stack-off-axis) | A slab is symmetric about its NORMAL, so off axis its quartic sits on a displaced disc: the classical plate set 1:4:4:2:4, a crescent instead of an annulus, and coma over spherical = 4·q_c/NA with no glass in it | `oblique-slab` |
 | [6z](#step-6z--the-infinity-corrected-objectives-coverslip) | § 6c's last deferral: the slip is the one thing in the branch that does NOT scale with the objective, so its price is linear in M where § 6w's was magnification-free — plus a shipped telecentric aperture that assumed the object and the stop share a medium, and delivered NA 0.152 for 0.10 | `infinity-coverslip` |
 | [6aa](#step-6aa--the-transform-of-a-row-nobody-wrote) | Every caller fills a box and transforms a grid, so 95 of 128 rows were a transform of zeros: skipping them is bit-for-bit, the band is RECORDED as the caller writes rather than derived from bounds it believes, and the columns are declined | `row-band` |
-| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — masking the lattice to radius S frees the slider and turns its gaps into a divisibility law; then eight sub-clauses on a phase object's harmonics | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
+| [6ab](#step-6ab--the-commensurate-condenser-at-an-s-on-no-lattice) | § 6p's cache needed the DIRECTIONS, never S — masking the lattice to radius S frees the slider and turns its gaps into a divisibility law; then a phase object's harmonics | `lattice-disk`, `phase`, `harmonic-support`, `phase-grating-spectrum`, `harmonic-carrying-area`, `harmonic-parity`, `traced-parity` |
 | [6ac](#step-6ac--the-two-focal-surfaces-and-distortion) | Four sections' shared deferral closed: S_III/S_IV against a closed form carrying NO shape factor, the traced foci reproducing it to 0.04%/0.09% over 128× of field, tangential 2.9948× as far from Petzval as sagittal, barrel distortion cubic and matching S_V/(2n′u′) from disjoint machinery | `field-curvature` |
 | [6ad](#step-6ad--the-two-mtf-sections-and-the-cutoff-of-an-aperture-that-did-not-transmit) | The split `wave/mtf` promised when field curvature arrived: direction pinned by three machineries agreeing (rays 1.848, PSF 1.390, MTF 1.48×) and by a stop-at-CoC mirror that is 0.75 waves out and still splits by 1e-4 — plus the header sentence that was false | `mtf-sections` |
 | [6ae](#step-6ae--the-din-objectives-own-stop) | § 6v's, § 6w's and § 6x's shared deferral: the DIN takes a back focal stop whose radius carries no conjugate — and third order says the shift costs no coma where the trace moves 71% | `telecentric-din` |
@@ -4599,14 +4599,18 @@ rung in `sequential.test.ts`.
 - **Off-axis vignetting by the diagonal.** The sizing rungs are on axis. A field
   ray walks across the diagonal, and with `fullyIlluminatedFieldMm` = 0 it will
   start to clip — which is the correct physics but is pinned by nothing.
-- **Astigmatism and field curvature** are present in the trace and unpinned;
-  coma dominates a Newtonian but it is not the only off-axis term.
-  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion) closes this on a
-  spherical refractor and **cannot** close it here: its closed-form half runs
-  through `seidelSums`, which refuses a conic outright, so a paraboloid has no
-  third-order cross-check to be measured against. What § 6ac does add is the
-  traced readout — both focal surfaces of this mirror are now one call away, and
-  what is missing is the external number, not the measurement.
+- ~~**Astigmatism and field curvature** are present in the trace and unpinned;
+  coma dominates a Newtonian but it is not the only off-axis term. § 6ac's
+  closed-form half runs through `seidelSums`, which refuses a conic outright, so
+  a paraboloid has no third-order cross-check to be measured against. What is
+  missing is the external number, not the measurement.~~
+  **Closed at [§ 5j.3](#5j3--the-conics-own-third-order-term-and-the-reflectors-field)**, and the refusal was one constant rather
+  than "a different closed form". The bare paraboloid is now the fixture the
+  whole closure is read on: its sagittal field is FLAT and its tangential surface
+  sits twice as far the other side of focus as Petzval does, both exactly, and
+  the traced surfaces reproduce that to 0.1% at f/16. The 1.5% gap at f/4 is the
+  aperture's own fifth order, shown by scaling rather than absorbed by a
+  tolerance.
 
 ## Step 5c — the spider: diffraction spikes from the vanes
 
@@ -5243,11 +5247,14 @@ paraboloid would have hidden it, rather than absorbed into a loose band.
   circular clear aperture is sized to the on-axis beam, so off-axis vignetting by
   the secondary is exercised by nothing yet — the same status the Newtonian's
   diagonal has.
-- **Astigmatism and field curvature** are present in the trace and unpinned;
-  coma dominates a classical Cassegrain off axis but it is not the only term, and
-  the field curvature of a Cassegrain is strong.
-  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion)'s traced readout
-  reaches this system; its third-order anchor does not, the mirrors being conics.
+- ~~**Astigmatism and field curvature** are present in the trace and unpinned;
+  the field curvature of a Cassegrain is strong. § 6ac's traced readout reaches
+  this system; its third-order anchor does not, the mirrors being conics.~~
+  **Closed at [§ 5j.3](#5j3--the-conics-own-third-order-term-and-the-reflectors-field)** — the anchor reaches it now, and on the way it
+  says something about the preset's own conics: the confocal pair nulls ΣS_I to
+  the f64 floor, measured by a paraxial recursion that shares no line with the
+  formula that chose them, while ΣS_II stands — which is the coma this step's
+  whole ladder is about.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian. Belongs with the step-5
   app work.
@@ -5347,13 +5354,18 @@ where the Cassegrain had them.
 - **The secondary is circular and on-axis**, as the Cassegrain's is: an offset or
   tilt (misalignment tolerancing) is expressible but unpinned, and off-axis
   vignetting by the secondary is exercised by nothing yet.
-- **Astigmatism and field curvature** are present in the trace and, beyond the
-  "not nulled" negative control above, unpinned to an external number — the RC's
-  field curvature is strong and dominates its usable field once coma is gone.
-  Same split as the Cassegrain after
-  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion): measurable now,
-  still without a closed form to be measured against, because the surfaces are
-  conics.
+- **Astigmatism and field curvature.** ~~Unpinned to an external number, because
+  the surfaces are conics and § 6ac's closed-form half refuses one.~~ The
+  refusal is gone ([§ 5j.3](#5j3--the-conics-own-third-order-term-and-the-reflectors-field)), and half of this entry closes with it:
+  **the aplanatism is now confirmed by third-order theory** — the RC's conics
+  null ΣS_I *and* ΣS_II together, from the published formula on one side and a
+  paraxial recursion on the other. The other half does not close. That the RC's
+  astigmatism is 1.05–1.3× the classical Cassegrain's is now computable but is a
+  **consistency check**, both numbers coming from one module; the external
+  closed form (Schroeder's two-mirror field aberrations) is still what would pin
+  it. What the check does add is that § 5f's traced 1.1–1.2× is a third-order
+  fact rather than a fifth-order accident, and that the two designs' Petzval sums
+  are the identical double — a conic has no power in it.
 - **App wiring.** The engine preset exists and is pinned; the app still renders
   only the refractor path, as it does for the Newtonian and Cassegrain.
 
@@ -5559,12 +5571,16 @@ holds it to `lost === 0`.
   the trace but unpinned (the stop-at-corrector budget is neither the
   Cassegrain's nor a clean closed form). The SCT is a compromise between the
   Schmidt's wide field and the Cassegrain's compactness, not an anastigmat.
-  [§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion) does not change this
-  one at all, and the corrector fails its preconditions twice over: it is an
-  asphere, which `seidelSums` refuses, and it is a FLAT in a collimated beam,
-  which is precisely the A = 0 surface that makes the classical distortion term
-  0/0. The stop being surface 0 — it is, the corrector sits at the primary's
-  centre of curvature — is the one precondition this system does meet.
+  ~~§ 6ac does not change this one at all, and the corrector fails its
+  preconditions twice over: it is an asphere, which `seidelSums` refuses, and it
+  is a FLAT in a collimated beam, which is precisely the A = 0 surface that makes
+  the classical distortion term 0/0.~~ **One of the two is gone** ([§ 5j.3](#5j3--the-conics-own-third-order-term-and-the-reflectors-field)):
+  the asphere is computed, so both focal surfaces of this system now have their
+  third-order partner. The A = 0 refusal survives and is unchanged — but it only
+  ever bound S_V, so it never bound the field curvature this entry is about.
+  What stays open is the entry's first sentence: the stop-at-corrector budget is
+  still neither the Cassegrain's nor a clean closed form, so the numbers are
+  computable and not yet pinned to anything outside the engine.
 - **Off-axis vignetting is a sizing artifact here, not physics.** The mirrors are
   sized for the on-axis beam only, exactly as the Cassegrain/RC secondary is, so
   an off-axis pupil clips — measured ~9% at 0.3° — and it clips at *both* mirrors,
@@ -5678,9 +5694,11 @@ third-order line" signature § 5g/5h show.
 astigmatism vanish, the two-mirror SCT's corrector is at the *primary's* centre of
 curvature only; the secondary sees the field asymmetrically, so third-order coma
 and astigmatism remain — the off-axis softness commercial SCTs are known for.
-Those terms are traced but unpinned, exactly as for the Schmidt-Cassegrain, and
-off-axis pupils vignette as a sizing artifact (both mirrors sized for the on-axis
-beam), the shared two-mirror deferral recorded at § 5h. Every rung here runs on
+Those terms are traced and — since [§ 5j.3](#5j3--the-conics-own-third-order-term-and-the-reflectors-field) lifted the module's
+conic/asphere refusal — computable in third order too, though still without an
+external closed form of their own; the shared two-mirror deferral recorded at
+§ 5h says what is left. Off-axis pupils vignette as a sizing artifact (both
+mirrors sized for the on-axis beam). Every rung here runs on
 axis, `lost === 0`.
 
 ## Step 5j — third-order sums, and the achromatic doublet preset
@@ -5688,7 +5706,9 @@ axis, `lost === 0`.
 The refractor preset, and the first preset that is a **lens**. It arrives in two
 halves, in that order and in one change: a third-order (Seidel) sum module pinned
 against external closed forms, and the cemented achromatic doublet that is
-*solved* with it.
+*solved* with it. A third half arrived later: § 5j.3 lifts the module's
+spherical-surfaces-only scope, which is what five reflecting presets had been
+waiting on to have their field aberrations pinned rather than merely traced.
 
 ### 5j.1 — `analysis/seidel`: the closed form, pinned before anything uses it
 
@@ -5800,6 +5820,142 @@ Spherochromatism (the bending is solved at one wavelength) is present in the tra
 and unpinned here. The secondary spectrum is a property of the glass pair that no
 bending can touch — beating it needs an anomalous-partial-dispersion glass, which
 is § 5k.
+
+### 5j.3 — the conic's own third-order term, and the reflectors' field
+
+The half of § 5j.1 that was deliberately left out. `seidelSums` refused a conic
+or an asphere outright — "a different closed form" — and five presets closed on
+the same sentence because of it: astigmatism and field curvature are *present in
+the trace and unpinned* ([§ 4b](#step-4b--the-newtonian-preset),
+[§ 5e](#step-5e--the-classical-cassegrain-preset),
+[§ 5f](#step-5f--the-ritchey-chrétien-preset),
+[§ 5i](#step-5i--the-all-spherical-commercial-sct-preset)), since
+[§ 6ac](#step-6ac--the-two-focal-surfaces-and-distortion)'s closed-form half runs
+through this module. § 6ac put it plainly: *what is missing is the external
+number, not the measurement.*
+
+**It was one constant, not a different closed form.** A conic or an even asphere
+departs from the base sphere of the same vertex curvature by a quartic —
+Δz = a₄·r⁴ with a₄ = K·c³/8 + A₄ — and a quartic sag is a phase plate sitting on
+the surface. Write ΔW = C·r⁴ at the crossing height x = ρ·y·cos θ + η·ȳ and
+expand once; matching term by term against the wavefront expansion the sums are
+*defined* by hands over the whole set:
+
+    ΔS_I = 8C·y⁴   ΔS_II = 8C·y³ȳ   ΔS_III = 8C·y²ȳ²   ΔS_IV = 0   ΔS_V = 8C·yȳ³
+
+**ΔS_IV = 0 is derived rather than asserted**, and that is the internal check the
+step did not have to arrange. The ρ²η² terms of r⁴ split into a cos²θ half and a
+constant half. The cos²θ half fixes ΔS_III; the constant half then reads
+(ΔS_III + ΔS_IV)/4 and forces ΔS_IV to vanish. Petzval's own statement — field
+curvature is fixed by the powers and the glasses, and a figure has no power in it
+— falls out of an expansion that was never told it, through the same
+S_III/(S_III + S_IV) split `analysis/field` already uses to place the two focal
+surfaces.
+
+| Rung | Pinned to | Status |
+|---|---|---|
+| **W₀₄₀ = h⁴(1 + K)/(4R³)** — the sphere's own anchor times the conic's factor, at five conics × three fixtures | § 5g's sag-difference figure, extended | ✅ |
+| **A paraboloid nulls ΣS_I to the f64 floor**, at every radius and aperture | a parabola's focus is a focus | ✅ |
+| ΣS_I is EXACTLY linear in K — the second difference at the f64 floor | § 5i's published claim, checkable for the first time | ✅ |
+| A conic figured AT THE STOP leaves S_II, S_III, S_IV the identical doubles | every aspheric field term carries ȳ | ✅ |
+| **The ellipsoid**: K = −e² from the ellipse's geometry is the module's ΣS_I = 0 root, to 1e-12 | a prolate spheroid images focus to focus | ✅ |
+| …and the trace agrees to ALL orders there (1e-5 waves), where the sphere is aberrated by waves | exact trace, negative control | ✅ |
+| **A mirror stopped at itself has a FLAT sagittal field**, at every conic; x_t = −2·x_p | S_III + S_IV ∝ (n + n′) with the stop on the surface, and a mirror is n′ = −n | ✅ |
+| **The Petzval radius of a single mirror is f**, curving toward it | closed form; the Schmidt's own film former | ✅ |
+| **The Schmidt camera nulls coma and astigmatism**, the residual being the plate's glass path: ΣS_II = −2h³Ā/R², ΣS_III = 2h²Ā²/R with Ā = θ·t(n − 1)/(nR) | closed form, to 14–16 digits | ✅ |
+| …so both vanish with the plate: 16× in coma and 256× in astigmatism per 16× of thickness, Petzval unmoved to the bit | the same closed form's powers | ✅ |
+| **The classical Cassegrain's confocal conics null ΣS_I**; the RC's null ΣS_I *and* ΣS_II | the presets' published conic formulas, checked by machinery sharing no line | ✅ |
+| Neither pair moves the Petzval sum (identical doubles), and both leave astigmatism standing | consistency check — labelled as one, below | ✅ |
+| **THE DEFERRAL: the traced tangential surface reproduces the closed form to 0.1% at f/16** | § 6ac's `fieldSurfaces` against `thirdOrderSags` | ✅ |
+| …and the 1.5% gap at f/4 is the APERTURE's: constant to 0.1% across an 8× field range, ×¼ per halving of aperture | fifth-order η²ρ⁴, the term third-order theory drops | ✅ |
+| Refuses a FOLDED chain's asphere past a mirror, whose unfolded sign is undefined | scope, stated not silently approximated | ✅ |
+
+**The paraboloid is the pin, and it had to be, because the sign could not be
+argued.** The aspheric constant C has the same magnitude either way round; what
+fixes it is that the wavefront measure these sums are built on runs *opposite* to
+optical path length. The paraboloid's rim is the shallower surface, so it
+LENGTHENS the rim path by 2Δz while REMOVING the sphere's positive W₀₄₀. Rather
+than settle that in prose, C is pinned on a statement no convention can bend — a
+parabola images a collimated beam stigmatically, so K = −1 must return exactly
+zero at every radius and every aperture. The derivation's first sign was wrong,
+and this rung is what said so, before anything was built on it.
+
+**The ellipsoid is the rung where the conic and a finite conjugate meet, and
+nothing in it is third-order theory.** The fixture is written from the ellipse:
+semi-major a = (s + s′)/2, half focal separation (s′ − s)/2, so
+e = (s′ − s)/(s′ + s), vertex radius b²/a = 2ss′/(s + s′), and the conic constant
+of an ellipse is −e². The module is then asked where its ΣS_I vanishes — one
+division, since it is linear in K — and the root lands on −e² to 1e-12. The trace
+confirms it to all orders (1e-5 waves at s = 600, s′ = 1200, h = 100) while the
+sphere of the same vertex radius is aberrated by waves. Third-order theory
+locating an all-orders stigmatic surface is the coincidence § 2g's Cartesian
+ellipsoid turns on, arriving here from the reflecting side.
+
+**The Schmidt's anastigmatism is not approximate, and the departure from it is a
+closed form rather than a tolerance.** With the stop at the mirror's centre of
+curvature the chief ray would strike the mirror normally and be undeviated —
+Ā = 0, and every off-axis sum with it. What breaks that is the corrector's own
+glass path: a flat of thickness t displaces the chief ray by t(1 − 1/n), so
+Ā = θ·t(n − 1)/(nR) exactly, the two flats contributing nothing (no power, so
+Δ(u/n) = 0 on a collimated marginal ray) and the plate's r⁴ figure contributing
+to S_I alone (ȳ = 0 at the stop). Coma is linear in the plate thickness and
+astigmatism quadratic — powers a fudge factor cannot have — and the design's
+famous curved focal surface survives at radius f, the bare mirror's Petzval
+number arriving through a three-surface prescription with a corrector on the
+front.
+
+**One row here is a consistency check and is labelled as one.** That the RC's
+astigmatism is 1.05–1.3× the classical Cassegrain's comes from this module on
+both sides, so a structural error would be copied into both and pass — the same
+honesty § 5f applies to its own conic-value row. What it *does* say independently
+is that § 5f's traced 1.1–1.2× is a third-order fact rather than a fifth-order
+accident, and that the two designs' Petzval sums are the identical double,
+because a conic has no power in it.
+
+**What the traced comparison found is that the gap is the aperture's, not the
+field's.** The closed-form sags carry no aperture at all — x_t = θ²R/2 — so the
+1.5% by which the traced tangential surface at f/4 exceeds them is the trace
+carrying a term the theory omits. Two readings identify it rather than one
+tolerance absorbing it: at fixed aperture the excess is the same fraction at
+every field over an 8× range (0.11% of drift), and it falls 4× for every halving
+of the aperture. That is η²ρ⁴ — oblique spherical aberration, fifth order — and
+at f/16 the two machineries agree to 0.1%. The bare paraboloid is the fixture
+that makes this readable at all: it is stigmatic on axis, so the best-spot
+reference `fieldSurfaces` subtracts IS the paraxial plane, and none of § 6ac's
+reference-offset hazard is in the room.
+
+**The traced sagittal sag is that same fifth-order term, standing on a surface
+the theory predicts FLAT.** Zero is the strongest possible prediction and the
+weakest possible thing to test against, so what is asserted is the residue's
+shape: it grows 4× per doubling of field and shrinks 4× per halving of the
+aperture — θ²h², the same term again — and at f/4 it is 0.2% of the tangential
+sag. "The sagittal field of a mirror is flat" is thereby a statement about the
+mirror rather than about how hard anyone looked.
+
+### Not yet pinned
+- **A₆ and beyond are ignored, not refused.** They start at r⁶ and carry no
+  third-order term, which is the same reason third-order theory drops every other
+  sixth-order quantity — but it does mean the module will now accept a figure
+  whose higher-order part it silently does not use. No preset in the catalogue
+  carries one (`schmidt`, `schmidt-cassegrain` and `sct` are A₄ alone), so
+  nothing is being approximated today.
+- **`unfoldedTwin`'s asphere branch is the unwritten half.** It flips a surface's
+  curvature by the mirror parity and leaves the even-asphere coefficients alone,
+  so past the first mirror of a folded chain an A₄ would arrive with the wrong
+  sign. `reversePrescription`'s own doc states the correct rule (sag → −sag term
+  by term), so the fix is citable rather than invented — but it is shared
+  trace-layer code that no rung exercises, so this step **refuses** rather than
+  fixes it: a folded chain with an asphere past a mirror throws. The conic
+  constant needs nothing, being parity-invariant.
+- **The two-mirror field aberrations have no external closed form here.** The
+  astigmatism row is a consistency check, and Schroeder's closed forms in the
+  conic constants and the magnification would make it a pin. What has landed is
+  the *capability*: `thirdOrderSags` now returns both focal surfaces for every
+  reflecting preset, which is what the five deferrals were waiting on.
+- **The Lister was never blocked on this.** § 6d is a finite conjugate, and
+  `thirdOrderSags` refuses one for a different reason — § 6b's chief-ray
+  slope-vs-object-height convention, untested there. That refusal is untouched,
+  and the register's item said conics where it meant conjugates.
 
 ## Step 5k — the ED (fluorite) refractor
 
@@ -14597,7 +14753,10 @@ introduced.
 
 Four separate sections of this file have carried the same sentence —
 "astigmatism and field curvature are present in the trace and unpinned" — and
-the reason it kept being true is that nothing was missing from the *engine*. An
+the reason it kept being true is that nothing was missing from the *engine*.
+(This step closes it for the refractors; the four reflecting ones kept it a while
+longer, for a reason that was in this step's own machinery — `seidelSums` refused
+a conic — and they close at [§ 5j.3](#5j3--the-conics-own-third-order-term-and-the-reflectors-field).) An
 off-axis pencil has never had one focus: the fan in the plane containing the axis
 and the field point comes to a line focus at one z, the fan at right angles to it
 at another, and `spotAt`, `bestFocus` and `opdMap` have all been quietly
@@ -14714,7 +14873,11 @@ against the convention rather than a free parameter.
   min-RMS-spot plane over both transverse axes. The classical sagittal focus is
   the y-crossing of the sagittal fan alone, and the two part company only at
   higher order — bounded here by the 0.04% agreement with the closed form, but not
-  separately measured.
+  separately measured. [§ 5j.3](#5j3--the-conics-own-third-order-term-and-the-reflectors-field) reads it in the one place where the
+  closed form is exactly ZERO (a mirror stopped at itself has a flat sagittal
+  field), so the whole reading there is residue: it comes out θ²h², growing with
+  field and shrinking with aperture, which is the fifth order rather than the
+  criterion. Still not a separate measurement of the criterion itself.
 - **Astigmatism off the d line, and the medial surface as a focus criterion.**
   Everything is at one wavelength, and `medialZ` is reported but nothing measures
   that it is where a real detector wants to sit.
