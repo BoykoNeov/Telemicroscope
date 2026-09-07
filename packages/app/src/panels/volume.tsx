@@ -131,8 +131,9 @@ function StackCanvas({ readout, stretch }: { readout: VolumeReadout; stretch: nu
     element.height = readout.size;
     const context = element.getContext("2d");
     if (!context) return;
-    const pixels = new Uint8ClampedArray(toGrey(readout.intensity, readout.size, white));
-    context.putImageData(new ImageData(pixels, readout.size, readout.size), 0, 0);
+    // `toGrey` allocates the array this paints, on every stretch — 9i's case.
+    const rgba = toGrey(readout.intensity, readout.size, white);
+    context.putImageData(new ImageData(rgba, readout.size, readout.size), 0, 0);
   }, [readout, white]);
 
   return (

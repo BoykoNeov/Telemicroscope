@@ -706,7 +706,7 @@ export function toGrey(
   intensity: Float64Array,
   size: number,
   white: number,
-): Uint8ClampedArray {
+): Uint8ClampedArray<ArrayBuffer> {
   const rgba = new Uint8ClampedArray(size * size * 4);
   const scale = white > 0 ? 255 / white : 0;
   for (let i = 0; i < size * size; i++) {
