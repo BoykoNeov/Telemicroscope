@@ -1503,6 +1503,103 @@ matched rows keep the "(1 + cos α)/2" wording, the phrase reads "44.9% narrower
 pass is also where the grid-step table above came from — it was written the wrong
 way round first, from the rim argument, and the browser is what said so.
 
+#### The cone panel checks a law again
+
+*App wiring on the same `#/volume` route — no new section key, no new row, and no
+validation rung: `mountConeEdge` is § 6l.12's and nothing in `packages/core`
+moved. D10's own precedent, and item 16's.*
+
+Register item 19, and it opened as a costing: the panel drew its cone from
+`mountPupils`' paraboloid default, compared the measured support edges against the
+defocus-only ν·(2 − ν), and then explained in prose that a mount *loses* the
+support law — which § 6l.12 had just shown to be false. Correcting it needed the
+exact cap and "a finer pupil than the panel pays for today". Four changes, and
+the third is what made the second affordable:
+
+- **The stack is built at the exact cap**, and the aperture angle handed to the
+  pupils is the same expression handed to the law (`mountSinAlpha(coneSpec)`).
+  `mountConeEdge` refuses any other angle on a `!==` between doubles, inside the
+  job's own try/catch, so two spellings that agree today would be a **blank
+  panel** the day they stop rather than a wrong number.
+- **The pupil is 128 bins on a 256 grid and the stack steps 1/8 of a wave** —
+  § 6l.12's own sampling, arrived at from measurements rather than copied. Both
+  were necessary: at 64 bins the 1.40 row fails its own grid guard on *every*
+  mount including matched (0.586 waves per sample), so there would have been no
+  row left to check; and at a 1/4-wave step the axial Nyquist is 2 cycles per wave
+  and several unresolved rows report exactly **2.000**, a reading pinned to the
+  sampling. The step also moves a reading that is *not* unresolved — the 1.25 in
+  water at the coverslip passes the guard at 0.460 and reads 1.91 bins from the
+  law at 1/4 of a wave, **0.91** at 1/8.
+- **Two exact memos this job never had.** `axialResponse` was evaluating two pure
+  pupils on the same lattice once per kernel — the cone stack's traced pupil 64
+  times, and the axial sweep's aberrated one **129** times. `memoizedPupil` is the
+  cache the depth job has used since D10 and it applies unchanged. It is the whole
+  cost story: without it the new sampling measures 835–1202 ms.
+- **`conePeriodWaves` is gone**, and with it a sentence rather than a field. The
+  lattice period P(ν) = pupilSamples/(4ν) is the *paraboloid's* — the phase
+  4·w·ν·k/pupilSamples is linear in the lattice index, which is what makes the
+  sequence repeat — and the exact cap's profile has incommensurate pair
+  differences and no period at all. The window is still 8 waves and now for two
+  measured reasons: from below its bin, 1/8 cycles per wave, is what holds the two
+  laws apart on screen (they differ by about 2 bins), and from above the window
+  *is* what the grid guard has to carry, since the outermost slice is the
+  worst-defocused member.
+
+**The verdict is read off a number the reader can already see.** A law describes
+the continuous pupil and this stack is point-sampled, so the comparison is a check
+only where the lattice carried the phase — and that is the panel's existing grid
+guard at the same 0.5 every other surface here uses. Measured over the eight
+catalogue rows that build (the Lister 40×/0.40 refuses to build at all, which is
+`listerObjective`'s own ceiling and predates this), four mounts and four depths:
+**every** stack under 0.5 lands within one axial bin of `mountConeEdge` — 96 of
+96, worst 0.92 — and every stack over it scatters **1.9 to 28** bins. So the panel
+says *check* where it can and names the guard number where it cannot, and it never
+says a mount defeated the law.
+
+**The split is not about mounts, which is the same class of error item 19 existed
+to fix.** The DIN 4×/0.15 and 4×/0.20 fail the guard on a **matched** mount —
+0.767 and 5.151 waves per sample — out of their own spherical aberration, with no
+mismatch anywhere. Writing the amber branch as "through a mount" would have been
+the old mistake in a new place.
+
+**And a truncating mount is not a harder case of the same thing.** Where § 6l.3's
+wall leaves the pupil dark, the depth wavefront's cos θ_s goes to zero exactly
+there, so its slope diverges and the sampled phase step falls as **√bins** instead
+of 1/bins. Measured at 32 / 64 / 128 / 256 bins on the 1.40 at 10 µm: the matched
+row reads 0.787 / 0.412 / 0.211 / 0.107 (a clean halving), the air row 6.315 /
+5.262 / 4.132 / 2.930. Reaching 0.5 on the second would need thousands of bins, so
+no affordable pupil resolves it and none ever will — which is a finding about the
+sampled representation, not a budget. It is left open in the register rather than
+worked around.
+
+**What is asserted, and what is only recorded.** § 6l.12's caution applies here
+and was re-measured per row: a 2% threshold on a leaked window moves a whole bin
+when a magnitude moves a few percent, so what decides whether an edge may be a
+rung is not how close it lands but how far its crossing sits from a bin boundary.
+On the 1.25 matched and in oil the edge bin clears the threshold by 3.3–4.8× and
+the bin above sits at 0.55–0.84 of it — the nearest flip is **+19%**, an order of
+magnitude past the hazard — and those are the rungs. Everywhere else it is thin
+and the numbers are recorded here instead: the 1.40 matched has a bin sitting
+**exactly on** the threshold at ν = 1.5 (×1.00), the 1.40 in oil clears by ×1.13,
+and the DIN 4×/0.10 and Lister 40×/0.20 clear by ×1.30 and ×1.11 at ν = 0.5 —
+which is also where their 0.98 and 0.92 bins come from.
+
+**Cost, measured, and it goes the two ways.** In node under `vite-node`, best of
+five in one process across five configurations: **339–596 → 503–660 ms**. Four
+times the pupil and twice the slices for about a quarter more. In the **browser**
+it is *faster than it was* — 881 / 821 / 651 → **687 / 727 / 611 ms** on the 1.25
+matched, in water and in air, read off the panel's own elapsed readout through a
+headless driver — because the memos are worth more in Chrome than in node, and the
+work that got cheaper is the work that was repeating itself. A4's ~2.3× browser
+penalty no longer describes this job.
+
+**And the captions were driven, for D10's reason.** The suite builds no `Worker`
+and renders no panel, so all three branches of the rewritten note were read out of
+a headless browser: the *check* wording on the matched row at 0.1/0.2/0.1 bins,
+the same wording in water at 0.9/0.8/0.9 with the law moved to 1.273 against the
+defocus-only 1.000, and the amber branch in air quoting 1.730 waves per sample.
+Console clean on all three.
+
 ### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**
 
 Sliders for slip thickness and index against σ, on the 100×/1.40 oil. The
@@ -3986,19 +4083,13 @@ are corrections to this section as it was written.
   failure, and says which. § 6l.6 pinned half of this pair; the other half only
   appears when something draws the edges beside it.
 
-  **Superseded in the engine, and still shipped here — § 6l.12.** There IS a law
-  for a depth-varying stack, and it is not a different closed form: the stack's
-  phase is exactly linear in its own coordinate anyway, and the per-wave profile
-  collapses to § 6k.8's law at the **immersion's** aperture angle over the
-  **mount's** rim (`mountConeEdge`). Two things this panel would need to say so,
-  and it has neither yet: the cone stack built at the exact cap rather than
-  `mountPupils`' paraboloid default, and a pupil fine enough to resolve the edge —
-  at 64 bins three of the four shipped mounts step over a wave between neighbours
-  and read their leakage floor, which is where the 10 bins came from. So the
-  paragraph above is now two faults on one number rather than one, and the panel's
-  prose asserts something the engine has falsified. That is the register's **item
-  19**, together with `conePeriodWaves`, which is the paraboloid lattice's period
-  and has no meaning for a profile whose pair differences are incommensurate.
+  ~~**Superseded in the engine, and still shipped here — § 6l.12.**~~ ✅ **Landed,
+  and the paragraph above is retired.** § 6l.12 gave the depth-varying stack its
+  own closed form — § 6k.8's boundary at the **immersion's** aperture angle over
+  the **mount's** rim, `mountConeEdge` — and the panel now draws against it. What
+  the entry priced as two faults on one number turned out to be two changes and a
+  discovery, and the discovery is what made them affordable. See *the cone panel
+  checks a law again* below.
 - **A rule neither § 6l nor § 6k had reason to state: no plane may sit above the
   coverslip.** The volume's z origin is the slip's underside, and a plane at
   negative z crosses only what the objective was corrected for — so its aberration

@@ -201,38 +201,109 @@ describe("D10 — the two questions, and what each one keeps", () => {
     ).toBeCloseTo(nWater / dry.readout.objectMediumIndex, 12);
   });
 
-  it("keeps the missing cone EMPTY through a mount, and departs from the DEFOCUS-ONLY law", () => {
-    // § 6l.6 exactly, and the split is the content. The ν = 0 null needs only an
-    // amplitude that does not move with depth, and depth-dependent SA is a pure
-    // phase — so it survives. The support boundary ν·(2 − ν) needed the stack to
-    // be a DEFOCUS family, and it is not one any more — so it does not. A panel
-    // that coloured the second one red would be reporting a broken rung where
-    // there is a measurement.
-    //
-    // **The departure now has a law under it, and this rung no longer claims
-    // otherwise (§ 6l.12).** A depth-varying stack's boundary IS a closed form —
-    // `mountConeEdge`, § 6k.8's law at the immersion's aperture angle over the
-    // mount's rim — so what is asserted below is a CHARACTERIZATION of what this
-    // panel currently does and not a statement about the optics: it builds its
-    // cone from `mountPupils`' paraboloid default, for which no closed form
-    // exists, and compares against a defocus-only law that was never this
-    // stack's. Two things stand between the panel and the right law, and both are
-    // register item 19: the exact cap, and a pupil fine enough to resolve it — at
-    // this panel's 64 bins three of its four mounts step over a wave between
-    // neighbours and read their leakage floor.
-    const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "WATER", depthUm: 10 });
+  it("keeps the missing cone EMPTY through a mount, and checks the edge against the MOUNT's law", () => {
+    // § 6l.6 and § 6l.12, and the pair is the content. The ν = 0 null needs only
+    // an amplitude that does not move with depth, and depth-dependent SA is a
+    // pure phase — so it survives. The support boundary survives too, which is
+    // what this panel used to deny: it drew the departure from the defocus-only
+    // ν·(2 − ν) and called it a measurement, because it built its cone from
+    // `mountPupils`' paraboloid default and had no other law to compare against.
+    // § 6l.12 supplied one — `mountConeEdge`, § 6k.8's boundary at the
+    // immersion's aperture angle over the mount's rim — and item 19 is this
+    // panel arriving at it: the exact cap, and 128 bins so the lattice carries
+    // the stack it is measuring.
+    const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "IMMERSION-OIL", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);
     expect(wet.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
-    const moved = wet.readout.cones.filter((c) => c.nu > 0 && c.edgeBins > 1);
-    expect(moved.length).toBeGreaterThan(0);
+    // The lattice carries this stack, which is what makes the next line a check
+    // rather than a reading — see the guard rung below.
+    expect(wet.readout.stackGridPhaseStepWaves).toBeLessThan(0.5);
+    for (const c of wet.readout.cones.filter((c) => c.nu > 0)) {
+      expect(c.edgeBins).toBeLessThanOrEqual(1.001);
+      // And it is the mount's law that it lands on, not the one it used to be
+      // drawn against: the same three readings miss ν·(2 − ν) by a clear 2 bins.
+      expect(c.edgeBinsDefocus).toBeGreaterThanOrEqual(2);
+    }
 
-    // And both come back when the mount does.
+    // The matched mount is the same assertion and the wiring proof at once. On
+    // the paraboloid default this row read the defocus-only law exactly (0.750,
+    // 1.000, 0.750, at 0.00 bins); at the exact cap the edge moves UP two bins
+    // onto `mountConeEdge`. So a stack still built on the default would fail
+    // here rather than quietly agree — which matters, because the two spellings
+    // of the aperture angle agreeing is precisely what cannot be assumed.
     const dry = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "matched", depthUm: 10 });
     if (!dry.ok) throw new Error(dry.error);
     expect(dry.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
     for (const c of dry.readout.cones.filter((c) => c.nu > 0)) {
       expect(c.edgeBins).toBeLessThanOrEqual(1.001);
+      expect(c.edgeBinsDefocus).toBeGreaterThanOrEqual(2);
     }
+
+    // § 6l.12's headline, as a `toBe` rather than as a sentence: the mount's index
+    // cancels out of the boundary completely, and the mount survives only at the
+    // **rim**. These two rows are different mounts — the objective's own D263 and
+    // an immersion oil — and neither truncates, so the rim is 1 for both and the
+    // law is bitwise the same law at the immersion's angle. Nothing about the
+    // mount is in it. `toBe` and not agreement, because equal-up-to-a-tolerance
+    // is exactly what a law that quietly carried n_mount would also look like.
+    for (let i = 0; i < dry.readout.cones.length; i++) {
+      expect(wet.readout.cones[i]!.edgeLaw).toBe(dry.readout.cones[i]!.edgeLaw);
+    }
+    expect(dry.readout.mountIndex).not.toBe(wet.readout.mountIndex);
+  });
+
+  /**
+   * Why these two rows and not the catalogue — the same reason § 6l.12 recorded
+   * its three edges instead of asserting them.
+   *
+   * A 2% threshold on a leaked window is a reading that can move a whole bin when
+   * a magnitude moves a few percent, which a different f64 summation order
+   * supplies. So what decides whether an edge may be *asserted* is not how close
+   * it lands but how far its crossing sits from a bin boundary, and that was
+   * measured per row: on the 1.25 matched and in oil the edge bin clears the
+   * threshold by 3.3–4.8× and the bin above it sits at 0.55–0.84 of it, so the
+   * nearest flip is **+19%** — an order of magnitude past the hazard. Everywhere
+   * else it is thin: the 1.40 matched has a bin sitting exactly ON the threshold
+   * at ν = 1.5 (×1.00), the 1.40 in oil clears by ×1.13, and the DIN 4×/0.10 and
+   * Lister 40×/0.20 clear by ×1.30 and ×1.11 at ν = 0.5 — which is also where
+   * their 0.98 and 0.92 bins come from. Those rows are recorded in APP.md's D10
+   * and are not rungs.
+   */
+  it("makes the grid guard the condition for calling the edge a check at all", () => {
+    // A truncating mount is not a harder case of the same thing — it is a
+    // different one. § 6l.3's wall leaves the pupil dark past NA/n_mount, and the
+    // depth wavefront's cos θ_s goes to zero exactly there, so its slope diverges
+    // and the sampled phase step falls as √bins instead of 1/bins. Measured on
+    // this row: 6.315 / 5.262 / 4.132 / 2.930 waves per sample at 32 / 64 / 128 /
+    // 256 bins, against 0.787 / 0.412 / 0.211 / 0.107 on the matched 1.25. So no
+    // affordable pupil resolves it, and the panel must say so rather than compare
+    // a number it cannot trust — which is what the guard is for.
+    const air = axialResponse({ spec: entryOf("oil-100x-140").spec, mount: "AIR", depthUm: 10 });
+    if (!air.ok) throw new Error(air.error);
+    expect(air.readout.stackGridPhaseStepWaves).toBeGreaterThan(1);
+    // The null does not need the lattice to carry the phase — it needs only an
+    // amplitude that does not move with depth — so it survives even here, which
+    // is what says the guard is about the boundary and not about the whole plot.
+    expect(air.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
+
+    // And the same objective on its own immersion is the other side of the split,
+    // by two orders of magnitude in the guard rather than by a hair.
+    const oil = axialResponse({ spec: entryOf("oil-100x-140").spec, mount: "matched", depthUm: 10 });
+    if (!oil.ok) throw new Error(oil.error);
+    expect(oil.readout.stackGridPhaseStepWaves).toBeLessThan(0.5);
+    expect(air.readout.stackGridPhaseStepWaves / oil.readout.stackGridPhaseStepWaves).toBeGreaterThan(10);
+
+    // The other half of the rung above: where a mount DOES truncate, the rim is
+    // the one place its index reaches the boundary, so the law itself moves. The
+    // air row's cone is cut at NA 1.0 of the objective's 1.40 and its edge law
+    // falls below the matched row's at every frequency — including to a hard zero
+    // at ν = 1.5, where 2·ρ_rim is already behind the frequency being asked
+    // about. That the panel still prints a number there, and calls it neither a
+    // check nor a departure, is the guard's doing and not the law's.
+    for (let i = 1; i < air.readout.cones.length; i++) {
+      expect(air.readout.cones[i]!.edgeLaw).toBeLessThan(oil.readout.cones[i]!.edgeLaw);
+    }
+    expect(air.readout.cones[air.readout.cones.length - 1]!.edgeLaw).toBe(0);
   });
 
   it("separates the mount's asymmetry from the objective's own residual defocus", () => {

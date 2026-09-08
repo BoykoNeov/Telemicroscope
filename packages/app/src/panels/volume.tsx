@@ -263,6 +263,17 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
   const r = sweep.readout;
   const asym = r.sweep;
   const cone = r.cones.find((c) => c.nu === 0)!;
+  /**
+   * Whether the support edges below are a check or the lattice's own reading.
+   *
+   * The panel's existing grid guard, at the threshold every other surface here
+   * uses, and nothing else: § 6l.12 gives the stack a closed-form boundary, but a
+   * law describes the continuous pupil and this stack is point-sampled. Measured
+   * across the catalogue the guard is exactly the condition — see
+   * `axialResponse`'s header — so the verdict is read off a number the reader can
+   * already see rather than off a rule invented for this paragraph.
+   */
+  const coneResolved = r.stackGridPhaseStepWaves < GRID_STEP_LIMIT;
   const sigmaShare = r.axisRmsWaves > 0 ? r.sweep.defocusSigmaWaves / r.axisRmsWaves : Number.NaN;
   /**
    * Whether the peak's offset may be read as a share of A1's traced σ — and it
@@ -396,8 +407,10 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           depth, so the one thing that would fill the cone — an amplitude that moves with z — is
           still absent. It needs only a pupil whose amplitude does not vary with depth.
           <br />
-          support edges, measured against ν·(2 − ν), in axial bins — § 6k.4 pins them to within
-          one, because a finite stack leaks its own window across a sharp boundary:
+          support edges, measured against <strong>this stack&rsquo;s own law</strong> — § 6k.8&rsquo;s
+          boundary at the immersion&rsquo;s aperture angle over the mount&rsquo;s rim (§ 6l.12) — in
+          axial bins, § 6k.4 pinning them to within one because a finite stack leaks its own window
+          across a sharp boundary:
           <br />
           {r.cones
             .filter((c) => c.nu > 0)
@@ -406,7 +419,7 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
                 ν {c.nu} → {c.edgeMeasured.toFixed(3)} vs {c.edgeLaw.toFixed(3)}{" "}
                 <span
                   style={{
-                    color: r.mountMatched
+                    color: coneResolved
                       ? GUARD_COLOR[c.edgeBins <= 1.001 ? "ok" : "bad"]
                       : GUARD_COLOR.warn,
                   }}
@@ -416,19 +429,39 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
               </span>
             ))}
           <br />
+          {coneResolved ? (
+            <>
+              A <em>check</em>, and it is the grid guard below that says so: under{" "}
+              {GRID_STEP_LIMIT} waves per sample the lattice carries this stack, and measured over
+              the eight catalogue rows that build — four mounts, four depths —{" "}
+              <strong>every</strong> stack that passes it lands within one bin of this law (96 of
+              96, worst 0.92) while every stack that fails it scatters 1.9 to 28 bins.
+            </>
+          ) : (
+            <span style={{ color: GUARD_COLOR.warn }}>
+              Amber because the pupil is <em>not carried</em> at this sampling —{" "}
+              {r.stackGridPhaseStepWaves.toFixed(3)} waves per sample against the{" "}
+              {GRID_STEP_LIMIT} the lattice needs, read at the stack&rsquo;s worst-defocused member.
+              Those edges are the lattice&rsquo;s reading and not this stack&rsquo;s boundary, so
+              they are neither a check nor a departure. It is not the mount that decides this: the
+              DIN 4×/0.20 fails the same guard on a <em>matched</em> mount, out of its own spherical
+              aberration, and a mount that truncates fails it at any affordable pupil — the depth
+              wavefront has a square-root cusp where § 6l.3&rsquo;s wall leaves it, so the step
+              falls as √bins there and as 1/bins everywhere else.
+            </span>
+          )}
+          <br />
           {!r.mountMatched && (
             <>
-              <span style={{ color: GUARD_COLOR.warn }}>
-                Through a mismatched mount those numbers stop being a check and become a{" "}
-                <em>measurement</em>, which is why they are amber rather than red.
-              </span>{" "}
-              ν·(2 − ν) is a <strong>defocus-only</strong> law: it is derived from a stack whose
-              members differ by nothing but w₂₀, and here they differ by their own depth&rsquo;s
-              spherical aberration as well. So the two halves of § 6k.4 come apart, and the split is
-              exactly § 6l.6&rsquo;s: the ν = 0 <em>null</em> survives, because it needs only an
-              amplitude that does not move with depth — while the support <em>boundary</em> does
-              not, because it needed the family to be a defocus family. Set the mount back to
-              matched and both return.
+              What the mount <em>does</em> move is the law itself, and that is the finding this plot
+              is for: a <strong>defocus-only</strong> ν·(2 − ν) — derived from a stack whose members
+              differ by nothing but w₂₀ — would put the edge at{" "}
+              {r.cones.find((c) => c.nu === 1)?.edgeLawDefocus.toFixed(3)} at ν = 1, and this
+              stack&rsquo;s members differ by their own depth&rsquo;s spherical aberration as well,
+              which moves it to {r.cones.find((c) => c.nu === 1)?.edgeLaw.toFixed(3)}. § 6l.6 pinned
+              that the ν = 0 <em>null</em> survives a mount; § 6l.12 pinned that the{" "}
+              <em>boundary</em> survives it too, at a different index — the stack is a defocus family
+              after all, in the immersion rather than in the mount.
               <br />
             </>
           )}
@@ -436,11 +469,10 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             the stack spans <strong>{r.coneWindowWaves}</strong> waves at {CONE_PUPIL_SAMPLES}{" "}
             bins — {r.coneTopDepthUm.toFixed(2)}–{r.coneBottomDepthUm.toFixed(2)} µm of specimen,
             anchored at the depth control so no slice sits above the slip where there is no mount to
-            look through — against a lattice period of{" "}
-            <strong>{r.conePeriodWaves.toFixed(2)}</strong> at the highest ν drawn — the sampled
-            pupil makes the axial transfer <em>exactly</em> periodic in w₂₀ with period
-            pupilSamples/(4ν), so a longer window would draw a comb of the lattice instead of the
-            transfer.
+            look through. The window is bounded from both sides: its bin, 1/{r.coneWindowWaves}{" "}
+            cycles per wave, is what holds the two laws apart on screen — they differ by about two
+            bins — while the window itself is what the grid guard has to carry, since the outermost
+            slice is the worst-defocused one.
           </span>
           <br />
           <Guard

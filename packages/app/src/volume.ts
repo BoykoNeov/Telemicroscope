@@ -9,8 +9,10 @@ import {
   incoherentPsf,
   missingConeEdge,
   mountAperture,
+  mountConeEdge,
   mountDefocusWaves,
   mountPupils,
+  mountSinAlpha,
   mountVolumeOptions,
   mountWavefrontWaves,
   rasterizeEmitters,
@@ -205,11 +207,52 @@ export const WAVEFRONT_RHO = 0.99;
  * on screen is an equality rather than a rounding. Measured: all three edges land
  * on their law to 0.00 bins, and the second difference of the curve falls from
  * 1.375 at § 6k.4's sampling to 0.086.
+ *
+ * ## And that period stopped existing when the stack moved to the exact cap
+ *
+ * The derivation above is the **paraboloid's**: the phase 4·w·ν·k/`pupilSamples`
+ * is linear in the lattice index k, which is what makes the sequence repeat. The
+ * exact cap's per-wave profile is (2/s²)·(1 − √(1 − s²ρ²)) (§ 6k.8, at the
+ * immersion's angle by § 6l.12), whose pair differences are incommensurate — so
+ * there is no period, no comb, and no bound of this kind to respect. The field
+ * that used to report P(ν) is gone with it: it was the lattice's number for a
+ * stack this panel no longer builds.
+ *
+ * **The window is still 8 waves, and now for two measured reasons.** From below,
+ * the bin it gives — 1/8 cycles per wave — is what separates the two laws on
+ * screen: `mountConeEdge` and the defocus-only ν·(2 − ν) differ by 0.26 cycles
+ * per wave on this panel's own rows, which is 2 bins, so a shorter window merges
+ * the finding into its own resolution. From above, the window IS what the grid
+ * guard has to carry — the outermost slice is the worst-defocused member, and the
+ * step below is read there — so doubling it doubles the guard.
+ *
+ * ## Why the pupil is 128 bins and the step is 1/8 of a wave
+ *
+ * Both are § 6l.12's own sampling, and both were measured rather than copied.
+ *
+ * The **pupil** is what decides whether the panel may check anything at all: over
+ * the eight catalogue rows that build, four mounts and four depths, every stack
+ * whose `maxGridPhaseStepWaves` stays under 0.5 lands within one axial bin of
+ * `mountConeEdge` (96 of 96, worst 0.92) and every stack that fails it scatters
+ * 1.9 to 28 bins. At 64 bins the 1.40 row fails that guard on **every** mount
+ * including matched (0.586 waves per sample), so the panel would have had no row
+ * left to check. It costs nothing extra, because the base pupil is memoized (see
+ * `memoizedPupil`, and the cone stack's use of it below): 128 bins with the memo
+ * is 273 ms against 217 ms for 64 bins without it, where the arithmetic alone
+ * would have been 4×.
+ *
+ * The **step** sets the axial spectrum's Nyquist, 1/(2·step). At 1/4 of a wave
+ * that is 2 cycles per wave, and measured, several unresolved rows report exactly
+ * 2.000 — a reading pinned to the sampling rather than to the optics. It also
+ * moves a reading that is not unresolved: the 1.25 in water at the coverslip
+ * passes the guard at 0.460 and reads 1.91 bins from the law at 1/4 of a wave,
+ * 0.91 at 1/8. So the rule above is a statement about **this** sampling and not
+ * about the guard alone.
  */
-export const CONE_PUPIL_SAMPLES = 64;
-export const CONE_SIZE = 128;
+export const CONE_PUPIL_SAMPLES = 128;
+export const CONE_SIZE = 256;
 export const CONE_HALF_WAVES = 4;
-const CONE_STEP = 0.25;
+const CONE_STEP = 0.125;
 const CONE_STACK = Array.from(
   { length: Math.round((2 * CONE_HALF_WAVES) / CONE_STEP) },
   (_, i) => -CONE_HALF_WAVES + i * CONE_STEP,
@@ -937,12 +980,31 @@ export interface ConeCurve {
   readonly cyclesPerWave: readonly number[];
   /** Magnitude, each curve normalized to its OWN peak — see `axialResponse`. */
   readonly magnitude: readonly number[];
-  /** ν·(2 − ν), the closed-form support boundary. */
+  /**
+   * `mountConeEdge` — this stack's own closed-form support boundary (§ 6l.12).
+   *
+   * **Not ν·(2 − ν) any more, and that is the whole of item 19.** The old law is
+   * the defocus-only one, derived from a stack whose members differ by nothing
+   * but w₂₀; a `mountPupils` stack's members differ by their own depth's
+   * spherical aberration as well, and this panel used to draw the departure and
+   * call it a measurement. § 6l.12 showed the departure has a law under it: the
+   * per-wave profile collapses to § 6k.8's exact-cap defocus at the
+   * **immersion's** aperture angle over the **mount's** rim, so the boundary is
+   * the same closed form at a different index and the panel is checking again
+   * rather than reporting.
+   *
+   * `edgeLawDefocus` is kept beside it because the *difference* between the two
+   * is what the plot is for — see there.
+   */
   readonly edgeLaw: number;
+  /** ν·(2 − ν), the defocus-only law — drawn to be departed from, not checked. */
+  readonly edgeLawDefocus: number;
   /** Where the measured magnitude last exceeds 2% of its peak. */
   readonly edgeMeasured: number;
   /**
-   * |measured − law| in axial bins, which is the unit the comparison lives in.
+   * |measured − `edgeLaw`| in axial bins, which is the unit the comparison lives
+   * in — and it is only a *check* where `stackGridPhaseStepWaves` says the pupil
+   * was carried. See `axialResponse`.
    *
    * § 6k.4 pins the edge to **within one bin** and says why the tolerance is not
    * free: a finite stack convolves the sharp support boundary with its own
@@ -952,6 +1014,8 @@ export interface ConeCurve {
    * spherical, is one bin wide at ν = 0.5.
    */
   readonly edgeBins: number;
+  /** |measured − ν·(2 − ν)| in bins: what the panel used to call the departure. */
+  readonly edgeBinsDefocus: number;
   /** Worst non-DC bin ÷ DC bin. At ν = 0 this is the missing cone itself. */
   readonly worstNonDc: number;
 }
@@ -1064,14 +1128,19 @@ export interface AxialReadout {
    * whether the frame it is drawing is honest, this one whether the pupil is
    * carried at the stack's worst-defocused member. They are shown separately for
    * the same reason A3 keeps its plot's ν sampling apart from its image's pupil
-   * sampling. Note that the window is set by the period law above and not by this
-   * guard — § 6k.4's ±8 at 32 bins would read 1.10 here, and it is the comb
-   * rather than the phase step that rules the window out.
+   * sampling.
+   *
+   * **Since item 19 it also decides what the edges below mean.** Under 0.5 the
+   * lattice carries the stack and `edgeBins` is a check against `mountConeEdge`
+   * at § 6k.4's one bin; over it the stack is not the one the law describes and
+   * the edge is the lattice's reading. Measured over the catalogue, that split is
+   * exact — see `axialResponse`. It is the panel's own guard doing this and not a
+   * new judgement: the same number, at the same 0.5, that every other surface
+   * here prints.
    */
   readonly stackGridPhaseStepWaves: number;
-  /** The window the cone stack spans, and the period that bounded it. */
+  /** The window the cone stack spans. Bounded from both sides — see the header. */
   readonly coneWindowWaves: number;
-  readonly conePeriodWaves: number;
   readonly elapsedMs: number;
 }
 
@@ -1102,8 +1171,6 @@ export interface AxialDone {
 
 /** ν = 2·bin/pupilSamples — `illumination/transfer`'s own frequency scale. */
 const CONE_BINS = [0, CONE_PUPIL_SAMPLES / 4, CONE_PUPIL_SAMPLES / 2, (3 * CONE_PUPIL_SAMPLES) / 4];
-/** The highest ν drawn, which is what bounds the window through P = ps/(4ν). */
-const CONE_TOP_NU = (2 * CONE_BINS[CONE_BINS.length - 1]!) / CONE_PUPIL_SAMPLES;
 
 /**
  * The two curves — the axial response, and the missing cone.
@@ -1123,9 +1190,39 @@ const CONE_TOP_NU = (2 * CONE_BINS[CONE_BINS.length - 1]!) / CONE_PUPIL_SAMPLES;
  *
  * The two halves run at **different samplings**, each derived from what it needs:
  * the response wants w₂₀ resolution and is indifferent to the grid, the cone
- * wants a lattice period longer than its window. Measured at 518–545 ms for the
- * whole job under `vite-node` across the catalogue, and ~1.2 s in the browser —
- * A4's ~2.3× again, and well past what a `setTimeout` deferral would cover.
+ * wants a pupil its own grid guard will pass (see the constants' header).
+ *
+ * ## What the edges below mean, and the number that decides it
+ *
+ * § 6l.12 gives this stack a closed-form support boundary — `mountConeEdge` — so
+ * `edgeBins` is a comparison against a law rather than a measurement of a
+ * departure. But a law describes the continuous pupil and this stack is point
+ * sampled, so the comparison is only a **check** where the lattice carried the
+ * phase, and that condition is `stackGridPhaseStepWaves` against the same 0.5
+ * every other surface here uses.
+ *
+ * Measured, and it is why the verdict is read off that guard rather than off a
+ * rule written for the occasion: over the eight catalogue rows that build, four
+ * mounts and four depths, **every** stack under 0.5 lands within one axial bin of
+ * `mountConeEdge` — 96 of 96, worst 0.92 — and every stack over it scatters 1.9
+ * to 28 bins. The split is not about mounts: the DIN 4×/0.20 fails the guard on a
+ * *matched* mount out of its own spherical aberration, and a mount that truncates
+ * fails it at any pupil worth paying for.
+ *
+ * **Cost, and the two memos that paid for it.** Under `vite-node`, best of five
+ * in one process over five configurations spanning both immersion rows and a dry
+ * one: **503–660 ms**, against **339–596 ms** for the same five before item 19.
+ * Four times the pupil and twice the slices for about a quarter more, and the
+ * reason is that this function was evaluating two pure pupils on the same lattice
+ * once per kernel — without the memos the same work measures 835–1202 ms.
+ *
+ * In the browser it is **faster than it was**, which is not a rounding of the
+ * above and is worth the sentence: 881 / 821 / 651 ms before against 687 / 727 /
+ * 611 ms after, on the 1.25 matched, in water and in air, read off this readout's
+ * own `elapsedMs` through the panel. A4's ~2.3× browser penalty is not what it
+ * used to be here because the memos are worth more in Chrome than in node — the
+ * job that got cheaper is the one that was repeating itself. Still well past what
+ * a `setTimeout` deferral would cover, so it stays in its worker.
  */
 export function axialResponse(request: AxialRequest): AxialResult {
   const started = performance.now();
@@ -1143,7 +1240,10 @@ export function axialResponse(request: AxialRequest): AxialResult {
     // The focus is what sweeps, so the spec's own focus depth is the slip: the
     // emitter's depth enters through `withMountAberration` and nothing else.
     const spec = mountSpecFor(mount, tracedNA, 0);
-    const fixedDepth = withMountAberration(axis.pupil, spec, depthMm);
+    // Memoized for the cone stack's reason one screen down, and it pays more
+    // here: this sweep is 129 kernels over ONE aberrated pupil, so every lattice
+    // point is asked 129 times for an answer that cannot have changed.
+    const fixedDepth = memoizedPupil(withMountAberration(axis.pupil, spec, depthMm));
     const dofMm = depthOfFocusMm(LAMBDA_NM, tracedNA, mount.index);
 
     const steps = Math.round((2 * RESPONSE_HALF_WAVES) / RESPONSE_STEP);
@@ -1204,7 +1304,39 @@ export function axialResponse(request: AxialRequest): AxialResult {
     // by inverting `mountPupils`' own map by hand — which is the coupling § 6l.9
     // exists to keep out of a caller.
     const coneSpec = mountSpecFor(mount, tracedNA, depthMm + CONE_HALF_WAVES * 4 * dofMm);
-    const kernels = depthKernels(mountPupils(conePupil, coneSpec), CONE_STACK, {
+    // **The exact cap, and the angle comes from the spec rather than from beside
+    // it** (item 19). `mountPupils` defaults its aperture angle to 0 — the
+    // osculating paraboloid — and this stack ran there for as long as it has
+    // existed, which is half of why the panel was comparing against a law that
+    // was never its own. `mountConeEdge` refuses any angle but the spec's, on a
+    // `!==` between doubles, so the angle handed to the pupils and the angle
+    // handed to the law are the SAME expression: two spellings that agree today
+    // would be a blank panel the day they stop.
+    //
+    // `exactCapSinAlpha` is still what says whether the exact stack exists at
+    // all — a different refusal, about the immersion rather than about the
+    // lattice. It is a `can't-happen` here, and that was enumerated rather than
+    // argued: it returns `null` only on `tracedNA >= mount.immersionIndex`, and
+    // `immersionIndex` is the objective's OWN medium, so the mount control
+    // cannot reach it. All 36 combinations the panel offers — nine catalogue
+    // rows that build, times four mounts — return a cap. (The tenth,
+    // `lister-40x-040`, is refused a whole system earlier by `listerObjective`
+    // and never arrives.) A throw and not a drawn state for exactly that
+    // reason: were a future row to make it reachable, a blank panel with this
+    // sentence in the console is the honest outcome, and a rendered "no
+    // boundary here" would be a place to leave it unreachable-and-untested.
+    if (exactCapSinAlpha(mount, tracedNA) === null) {
+      throw new Error(
+        `axialResponse: no exact depth cap for NA ${tracedNA} in ${mount.immersionName} — the cone stack has no closed support boundary on the paraboloid (§ 6l.12), so it would be drawn against a law that is not its own`,
+      );
+    }
+    const coneSinAlpha = mountSinAlpha(coneSpec);
+    // Memoized because the stack asks the SAME lattice points of the same traced
+    // pupil once per wave, and there are 64 waves: an exact cache of a pure
+    // function, the one `mountDepthCurve` already uses. It is what pays for the
+    // finer pupil — 128 bins memoized costs less than 4× of 64 bins raw, and the
+    // guard needs 128 (see the constants' header).
+    const kernels = depthKernels(mountPupils(memoizedPupil(conePupil), coneSpec, coneSinAlpha), CONE_STACK, {
       pupilSamples: CONE_PUPIL_SAMPLES,
       size: CONE_SIZE,
     });
@@ -1231,13 +1363,17 @@ export function axialResponse(request: AxialRequest): AxialResult {
         if (b > 0) worstNonDc = Math.max(worstNonDc, spectrum.magnitude[b]! / spectrum.magnitude[0]!);
       }
       const binWidth = 1 / (CONE_STEP * CONE_STACK.length);
+      const law = mountConeEdge(coneSpec, nu, coneSinAlpha);
+      const lawDefocus = missingConeEdge(nu);
       return {
         nu,
         cyclesPerWave: Array.from(spectrum.cyclesPerWave),
         magnitude: Array.from(spectrum.magnitude, (m) => (peak > 0 ? m / peak : 0)),
-        edgeLaw: missingConeEdge(nu),
+        edgeLaw: law,
+        edgeLawDefocus: lawDefocus,
         edgeMeasured,
-        edgeBins: Math.abs(edgeMeasured - missingConeEdge(nu)) / binWidth,
+        edgeBins: Math.abs(edgeMeasured - law) / binWidth,
+        edgeBinsDefocus: Math.abs(edgeMeasured - lawDefocus) / binWidth,
         worstNonDc,
       };
     });
@@ -1277,7 +1413,6 @@ export function axialResponse(request: AxialRequest): AxialResult {
         throughputDrift,
         stackGridPhaseStepWaves,
         coneWindowWaves: 2 * CONE_HALF_WAVES,
-        conePeriodWaves: CONE_PUPIL_SAMPLES / (4 * CONE_TOP_NU),
         elapsedMs: performance.now() - started,
       },
     };

@@ -423,7 +423,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     *longer* than the paraboloid's, which falsified every "% shorter" sentence in
     the engine and the app. `packages/app`'s WATER and AIR rows now carry the cap
     and the band together.
-19. **`packages/app`'s D10 asserts a boundary § 6l.12 falsified.** The cone panel
+19. ~~**`packages/app`'s D10 asserts a boundary § 6l.12 falsified.** The cone panel
     builds its stack from `mountPupils`' paraboloid default and compares the
     measured edge against ν·(2 − ν), then explains in prose that a mount *loses*
     the support law. It does not: § 6l.12 has the law. Pin: the panel's own edges
@@ -436,7 +436,31 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     where it now says *measurement*. **Trim before writing:** § 6l.12 left the
     index's mean row at 249.986 against `docs-index.test.ts`' cap of 250, so
     whichever step writes this one has 0.014 characters of headroom and must
-    shorten an existing row before it adds its own.
+    shorten an existing row before it adds its own.~~ ✅ **Closed at APP.md's
+    *the cone panel checks a law again*.** No rung and no core change, so the
+    trim warning never bound. The entry's "a finer pupil than the panel pays for"
+    was the thing it got wrong: the job was evaluating two pure pupils on the same
+    lattice once per kernel — the sweep's 129 times — so `memoizedPupil` bought
+    four times the pupil and twice the slices for a quarter more in node and for
+    *less* in the browser. What it did not anticipate is that a law needs a
+    condition: the panel's own grid guard, at the same 0.5 every other surface
+    uses, turns out to be exactly it — 96 of 96 stacks under it land within one
+    axial bin, every stack over it scatters 1.9 to 28. One new item (20).
+
+20. **A mount that truncates has no sampled pupil that carries its depth phase.**
+    Found while closing 19. Past § 6l.3's wall cos θ_s → 0, so the depth
+    wavefront's slope diverges there and the sampled phase step falls as **√bins**
+    rather than 1/bins: measured 6.315 / 5.262 / 4.132 / 2.930 waves per sample at
+    32 / 64 / 128 / 256 bins on the 1.40 over air, against 0.787 / 0.412 / 0.211 /
+    0.107 on the same objective matched. Reaching the half-wave the lattice needs
+    would take thousands of bins, so the panel reports those rows as unresolved
+    and `mountConeEdge` goes unchecked on exactly the mounts it was written for.
+    No external number: this is about the representation, not the optics. *Candidate:*
+    a pupil quadrature that integrates the cusp analytically — the square-root edge
+    is the one term whose integral is elementary — which would be an engine change
+    in `incoherentPsf`'s sampling and is its own rung set. Unblocks: a truncating
+    mount's support boundary being a check rather than a refusal, and with it the
+    only rows on which § 6l.12's rim argument has visible consequences.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -870,9 +894,17 @@ radial-map nodes · § 6ba differential bleaching.
     this step to fall to being read rather than to being measured. What it opened
     is **item 19**, the app half.
 
-16. **The off-machine run** (the structural problem at the top): one confirming
-    run of the ladder on a second machine, now a check rather than a piece of
+16. ~~**The off-machine run** ... Then **item 19** (an app costing, and the only
+    entry left with a falsified claim shipped in it), and Part A's items 11 and
+    12.~~ **Item 19 is closed** (APP.md, *the cone panel checks a law again*): the
+    panel checks `mountConeEdge` where its own grid guard says the lattice carried
+    the stack, and names the guard where it did not. The doc now ships nothing the
+    engine has falsified.
+
+17. **The off-machine run** (the structural problem at the top): one confirming
+    run of the ladder on a second machine, still a check rather than a piece of
     work — though not the cheap command this file called it, since the Linux
-    subsystem on the author's box has no Node installed. Then **item 19** (an app
-    costing, and the only entry left with a falsified claim shipped in it), and
-    Part A's items 11 and 12, neither of which has an external number named yet.
+    subsystem on the author's box has no Node installed. Then **item 20** (19's
+    residue, and the first entry in a while whose blocker is the *representation*
+    rather than a missing number), and Part A's items 11 and 12, neither of which
+    has an external number named yet.

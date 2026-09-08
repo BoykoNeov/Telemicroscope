@@ -164,10 +164,17 @@ It cost the boundary functions their assumption that the angle and the rim are
 one argument, and it found that the collapse belongs to the exact defocus half
 alone — on the paraboloid default the profile turns over inside the rim and the
 maximiser goes interior, so there is no closed form and `mountConeEdge` refuses
-rather than approximates. The app still draws the old law, deliberately: at 64
-pupil bins three of its four mounts cannot resolve the new one. What is left in
-the register is the confirming run on a second machine, **item 19** (that app
-half), and Part A's items 11 and 12.
+rather than approximates. ~~The app still draws the old law, deliberately: at 64
+pupil bins three of its four mounts cannot resolve the new one.~~ ✅ **the app
+draws the new one since item 19**, and the sentence was wrong about why: the
+gate is not the mount but the panel's own phase-step guard, which two *dry*
+rows fail on a **matched** mount out of their own spherical aberration. At 128
+bins and a 1/8-wave axial step the panel checks `mountConeEdge` to within one
+axial bin wherever that guard passes, and says so in amber where it does not.
+What is left in the register is the confirming run on a second machine, **item
+20** (a truncating mount's depth phase has no sampled pupil that carries it —
+§ 6l.3's wall puts a square-root cusp in the wavefront, so the phase step falls
+as √bins there and 1/bins everywhere else), and Part A's items 11 and 12.
 
 ## Build order
 
