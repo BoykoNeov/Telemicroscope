@@ -11127,7 +11127,18 @@ and 1.125** cycles per wave at ν = 0.5, 1.0 and 1.5, against a law of **1.0146,
 and for its own reason, a finite stack leaking its window across a sharp edge —
 and **2 to 3 bins** away from the defocus-only 0.75, 1.00, 0.75. The reading is
 not symmetric about ν = 1 while the law it lands on is; that asymmetry is the
-window's leak and is why the tolerance is a bin rather than a bit.
+window's leak.
+
+The three edges are **recorded in the rung and not asserted**, and the reason is
+measured rather than assumed: the 2% crossing sits within a few percent of a bin
+boundary at all three frequencies — the first bin *below* threshold reads 0.925
+and 0.981 of it at ν = 0.5 and ν = 1, and the edge bin itself clears it by only
+15% at ν = 1.5. A 2% difference in a single magnitude, which a different f64
+summation order in the transform supplies, moves a reading a whole bin. Each such
+flip still lands inside the one-bin claim (0.88, 0.79 and 0.12 bins from the
+law), so the finding survives a machine change and only the transcript would not.
+That margin, not the leak alone, is why the tolerance is a bin rather than a bit:
+at 64 slices the 2% protocol is near its own resolution.
 
 **The sampling is not a detail here, and it is what the coarser windows get
 wrong.** The pupil must be fine enough that the stack's worst-defocused member

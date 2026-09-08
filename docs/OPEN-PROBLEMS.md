@@ -433,7 +433,10 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     the "10 axial bins" came from. `conePeriodWaves` goes with it: it is the
     paraboloid lattice's period, and the exact profile has none, so that field is
     meaningless rather than merely different. Unblocks: the panel saying *check*
-    where it now says *measurement*.
+    where it now says *measurement*. **Trim before writing:** § 6l.12 left the
+    index's mean row at 249.986 against `docs-index.test.ts`' cap of 250, so
+    whichever step writes this one has 0.014 characters of headroom and must
+    shorten an existing row before it adds its own.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

@@ -1426,6 +1426,13 @@ describe("§ 6l.12 — a depth-varying stack's support boundary", () => {
     // § 6l.11 bought the s >= 1 branch a form that never divides by s. Routing it
     // through the rim would form 1/s to say the rim, so it is left alone and the
     // two spellings are pinned to agree instead of asserted to be identical.
+    //
+    // 13 digits, not the 14 its siblings use, and NOT a loosened tolerance: the
+    // two spellings reassociate the same real number's square-root sum, so they
+    // differ by accumulated f64 rounding of about 1e-15 per operation. The worst
+    // observed disagreement over this sweep is 9.1e-15. It is a difference of
+    // spelling, not of physics, and 14 digits (5e-15) would be pinning the
+    // rounding order rather than the value.
     for (const s of [1.0503, 1.2, 1.5, 2]) {
       for (const nu of [0.1, 0.5, 1, 1.5, 1.9]) {
         const own = ewaldConeEdge(nu, s);
@@ -1524,10 +1531,20 @@ describe("§ 6l.12 — a depth-varying stack's support boundary", () => {
         `nu = ${nu} against the defocus-only law`,
       ).toBeGreaterThanOrEqual(2);
     }
-    // The edges themselves, recorded: 1.000, 1.250, 1.125 against a law of
-    // 1.0146, 1.2762, 1.0146 and a defocus-only 0.75, 1.00, 0.75 — so the reading
-    // is not symmetric about ν = 1 while the law it lands on is, which is the
-    // window's own leak and the reason the tolerance is a bin rather than a bit.
-    expect(measured).toEqual([1, 1.25, 1.125]);
+    // The edges themselves, recorded rather than asserted: 1.000, 1.250, 1.125
+    // against a law of 1.0146, 1.2762, 1.0146 and a defocus-only 0.75, 1.00,
+    // 0.75 — so the reading is not symmetric about ν = 1 while the law it lands
+    // on is, which is the window's own leak.
+    //
+    // A comment and not a `toEqual`, on measurement: the 2% crossing sits close
+    // to a bin boundary at all three frequencies. The first bin BELOW threshold
+    // reads 0.925 and 0.981 of it at ν = 0.5 and ν = 1, and the edge bin itself
+    // reads only 1.151 of it at ν = 1.5. A 2% difference in one magnitude — a
+    // different f64 summation order in the transform is enough — moves a reading
+    // by a whole bin. Every such flip still lands inside the assertion above
+    // (0.88, 0.79 and 0.12 bins from the law), so the claim survives and only the
+    // transcript would not. That margin is the real reason the tolerance here is
+    // a bin rather than a bit: at 64 slices the protocol is near its own
+    // resolution, not merely leaking.
   });
 });
