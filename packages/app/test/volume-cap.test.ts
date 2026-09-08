@@ -223,19 +223,24 @@ describe("§ 6l.11 in the app — the two mounts that could not have it, and the
       expect(r.capSinAlpha!).toBeGreaterThan(1);
       expect(r.capSinAlpha!).toBe(r.tracedNA / r.mountIndex);
       // The headline, and it is NA-free: the band is λ/2n, so it does not depend
-      // on the traced aperture at all — 206.0 nm out of water, 275.0 out of air.
+      // on the traced aperture at all — 220.3 nm out of water and 293.8 nm out of
+      // air at this app's own λ, and the SAME two on an objective engraved 1.49.
       // The outermost ray the specimen delivers is grazing and a wider pupil adds
       // none, which is why a number that used to scale as 1/NA² has stopped.
-      expect(r.exactDepthOfFocusUm!).toBeCloseTo(LAMBDA_NM * 1e-3 / (2 * r.mountIndex), 12);
+      // Written against `LAMBDA_NM` rather than as those digits, because this
+      // panel is not the ladder's 550 and a transcribed number would not say so.
+      expect(r.exactDepthOfFocusUm!).toBeCloseTo((LAMBDA_NM * 1e-3) / (2 * r.mountIndex), 12);
       // And the picture is no longer the paraboloid's: this is § 6l.10's change
-      // arriving on screen, the largest one the ladder has.
+      // arriving on screen. Not its 0.4113, which was measured at the coverslip —
+      // this scene is focused four plane steps in, where § 6l's own aberration
+      // has already taken part of the difference back (§ 6l.10's hand-off).
       const para = paraboloidRender(OIL, 32, mount);
       expect(gapOverPeak(r.intensity, para.intensity, para.peak)).toBeGreaterThan(0.05);
     }
-    // Water and air read 206.0 and 275.0 nm against paraboloid bands that differ
-    // by more than that, so the percentages are NOT ordered the way the shortening
-    // sentence assumed: 55% on water, 98% on air. The second is 1.4²/2 and an
-    // arithmetic coincidence rather than a small correction.
+    // The two bands stand against paraboloid bands that differ by more than they
+    // do, so the percentages are NOT ordered the way the shortening sentence
+    // assumed: 55% on water, 98% on air. The second is 1.4²/2 and an arithmetic
+    // coincidence rather than a small correction.
     const water = readout(base(OIL, 32, "WATER"));
     const air = readout(base(OIL, 32, "AIR"));
     // Against the closed form first, so the percentages below are a reading of

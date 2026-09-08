@@ -1060,7 +1060,9 @@ describe("§ 6l.11 — the band at the rim the light reaches", () => {
     expect(water[0]! * 1e6).toBeCloseTo(206.04, 2);
     // Air, where the same statement reads λ/2 because the mount is n = 1.
     expect(exactDepthOfFocusMm(LAMBDA, 1.4, AIR) * 1e6).toBeCloseTo(275.0, 1);
-    // Against the paraboloid's nominal-rim band: 55.01% on water, 98.00% on air.
+    // Against the paraboloid's nominal-rim band, at THIS file's λ = 550: 55.01%
+    // on water — a wavelength-dependent number, since the two bands scale
+    // differently — and 98.00% on air, which is 1.4²/2 and depends on nothing.
     // The second is 1.4²/2 and not a small correction — the two agree by
     // arithmetic accident, which is exactly the shape a caption gets wrong.
     expect(

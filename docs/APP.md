@@ -1451,16 +1451,57 @@ control and the mount is a control, and the two together are what reach it.
 **No new app cost, and no new worker.** Nothing extra is computed: `renderVolume`
 already returned the band, and what reached the app is one option
 `mountVolumeOptions` now emits — that the pupil is truncated where § 6l.3's wall
-says it is. The two rows' render time is unchanged. What did move is the grid
-step on those rows, which the panel's existing guard already prices: the exact
-cap's rim is steeper than the paraboloid's, and the caption's grid-step readout
-is the place a reader sees it.
+says it is. Render time on the two rows is unchanged (69–116 ms at 32 bins).
+
+**The grid guard, driven and read rather than argued.** The entry above records
+the matched row going 0.2511 → 0.5461 waves/sample and the guard being left to
+fire deliberately. The obvious sentence for the new rows — *the exact cap's rim
+is steeper, so the step goes up* — is **false**, and only driving the panel says
+so. Measured at 32 bins, focused four plane steps in:
+
+| mount | grid step, paraboloid | exact | guard (0.5) |
+|---|---|---|---|
+| matched | 0.2511 | 0.5461 | fires on the exact only |
+| WATER | 1.2475 | **1.1299** | fires on both, and the cap LOWERS it |
+| AIR | — | 0.6663 | fires |
+
+Two things follow, and the second was measured per slice rather than reasoned
+from the rim. The warning on those rows is **not** something the exact cap
+introduced: the truncating mounts were already over the guard on the paraboloid,
+because at 1.60 µm down § 6l's own spherical aberration is −0.744 waves at 0.99
+of the delivered rim, and that is what the lattice is struggling with. And the
+reason the cap *lowers* the maximum is that it moves **which slice is worst** to
+the other end of the stack. The step at each of the nine planes, water mount,
+1.599 µm down, 32 bins:
+
+| w (waves) | −2.0 | −1.0 | 0 | +1.0 | +2.0 |
+|---|---|---|---|---|---|
+| paraboloid | 0.2266 | 0.4701 | 0.7292 | 0.9882 | **1.2473** |
+| exact cap | **1.1297** | 0.9294 | 0.7292 | 0.5289 | 0.3429 |
+
+Both read 0.7292 at w = 0, which is the mount with no defocus in it and is the
+same pupil either way. Away from focus they run in **opposite directions**: the
+exact defocus opposes the mount's aberration on the slices below focus and adds
+to it above, and the paraboloid does the reverse. So the reported maximum is
+1.2473 at +2 waves on one wavefront and 1.1297 at −2 on the other — two different
+slices, and the "steeper rim, bigger step" sentence is about the defocus alone
+and does not survive being added to a mount. It is the third time on this branch
+that a number predicted from one term has been decided by another.
 
 **A rung was added this time**, unlike the three app entries before it: the band
 convention is an engine change and is § 6l.11. What
 `packages/app/test/volume-cap.test.ts` pins is only the wiring — that both rows
 answer, that the aperture angle is `toBe` the same division the engine makes, and
 that the band is NA-free — with the closed forms living on the ladder.
+
+**And the captions were driven, because no test can read one.** The suite builds
+no `Worker` and never renders a `figcaption`, so the three edited strings and the
+new band-width phrase were checked in a headless browser on all four mount rows:
+the lit-rim clause appears on WATER and AIR and on neither of the other two, the
+matched rows keep the "(1 + cos α)/2" wording, the phrase reads "44.9% narrower",
+"2.0% narrower" and "30.3% narrower" respectively, and the console is clean. That
+pass is also where the grid-step table above came from — it was written the wrong
+way round first, from the rim argument, and the browser is what said so.
 
 ### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**
 

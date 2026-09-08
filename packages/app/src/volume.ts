@@ -371,9 +371,11 @@ export function mountSpecFor(
  * panel's absent-together invariant is kept by there being nothing absent.
  *
  * On a truncating mount the band the caption then quotes is λ/(2·n_mount) with no
- * NA in it — 206.0 nm out of water, 275.0 nm out of air — and it is not always
- * shorter than the paraboloid's: WATER reads 55.01% of it and AIR 98.00%, the
- * second being 1.4²/2 and not a small correction.
+ * NA in it — at this module's own `LAMBDA_NM`, 220.3 nm out of water and 293.8 nm
+ * out of air — and it is not always shorter than the paraboloid's: WATER reads
+ * 55.12% of it and AIR 98.00%. Only the second of those two percentages is a
+ * wavelength-free number: it is 1.4²/2 with the mount's index exactly 1, and it
+ * is an arithmetic coincidence rather than a small correction.
  */
 export function exactCapSinAlpha(mount: ResolvedMount, numericalAperture: number): number | null {
   // Spelled as `mountSinAlpha` spells it, for the same reason the old quotient
@@ -475,7 +477,7 @@ export interface VolumeReadout {
    * **It is not always the shorter band.** (1 + cos α)/2 holds while the mount
    * carries the pupil; past that the band is λ/(2·n_mount) with no NA in it, and
    * measured against a `depthOfFocusUm` that keeps shrinking as 1/NA² it reads
-   * 55.01% on WATER, 98.00% on AIR, and would exceed 100% on an objective
+   * 55.12% on WATER, 98.00% on AIR, and would exceed 100% on an objective
    * engraved past 1.4142 in air. The caption states the percentage rather than a
    * direction for that reason.
    *
