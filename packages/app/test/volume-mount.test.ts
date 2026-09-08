@@ -201,13 +201,25 @@ describe("D10 — the two questions, and what each one keeps", () => {
     ).toBeCloseTo(nWater / dry.readout.objectMediumIndex, 12);
   });
 
-  it("keeps the missing cone EMPTY through a mount, and loses the support LAW", () => {
+  it("keeps the missing cone EMPTY through a mount, and departs from the DEFOCUS-ONLY law", () => {
     // § 6l.6 exactly, and the split is the content. The ν = 0 null needs only an
     // amplitude that does not move with depth, and depth-dependent SA is a pure
     // phase — so it survives. The support boundary ν·(2 − ν) needed the stack to
     // be a DEFOCUS family, and it is not one any more — so it does not. A panel
     // that coloured the second one red would be reporting a broken rung where
     // there is a measurement.
+    //
+    // **The departure now has a law under it, and this rung no longer claims
+    // otherwise (§ 6l.12).** A depth-varying stack's boundary IS a closed form —
+    // `mountConeEdge`, § 6k.8's law at the immersion's aperture angle over the
+    // mount's rim — so what is asserted below is a CHARACTERIZATION of what this
+    // panel currently does and not a statement about the optics: it builds its
+    // cone from `mountPupils`' paraboloid default, for which no closed form
+    // exists, and compares against a defocus-only law that was never this
+    // stack's. Two things stand between the panel and the right law, and both are
+    // register item 19: the exact cap, and a pupil fine enough to resolve it — at
+    // this panel's 64 bins three of its four mounts step over a wave between
+    // neighbours and read their leakage floor.
     const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "WATER", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);
     expect(wet.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);

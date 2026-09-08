@@ -65,7 +65,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice, **6k.9** chosen from NA/n, band ×0.693 | `volume` |
-| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack — no new physics, and the headline is no aberration: no ray of invariant above n_s leaves it, an oil 1.40 delivering 1.3347 into water; **6l.10** a rarer mount takes sin α ≥ 1 and the cap, 0.4113 of peak; **6l.11** its band at the lit rim, λ/2n | `depth-aberration` |
+| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack — no new physics, and no ray above n_s leaves the specimen: an oil 1.40 delivers 1.3347 into water; **6l.10** a rarer mount takes the cap, 0.4113 of peak; **6l.11** its band at the lit rim, λ/2n; **6l.12** its cone edge the immersion's angle over that rim | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature ×4.000 per doubling — and an off-axis tile ANISOTROPIC in § 6h.1's ratio 3 | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
@@ -10605,6 +10605,11 @@ and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
 | **6l.11** `ewaldConeEdge` on a truncating mount against a brute-force maximum over lit pairs: peak 2/s² = 1.8177 at ν = 1/s, cutoff at the DELIVERED 2/s, still closed at ν = 0 | search over pairs, 1e-12 | ✅ |
 | **6l.11** The band is a promise, not an inspection: an untruncated pupil at s ≥ 1 still has no `exactInFocusFraction`, and `mountVolumeOptions` refuses a caller's flag | § 6k.9's refusal kept where it was right | ✅ |
 | **6l.11** Setting the promise moves no light: same picture, `sliceFlux` and grid step bitwise, so § 6k.1 cannot notice a counting window | identity rung | ✅ |
+| **6l.12** One wave of a `mountPupils` stack is EXACTLY an ideal defocus in the immersion — the mount's index cancels out of the per-wave profile, 1e-12 on four mounts | § 6l.1's identity, read off the engine's pupils | ✅ |
+| **6l.12** So the cone edge is `ewaldConeEdge`'s law at NA/n_i over the mount's rim — against a brute force over lit pairs with no closed form in it | search over pairs, 1e-8 | ✅ |
+| **6l.12** `ewaldConeEdge` bitwise its old self after delegating to the rim form; matched reduces to § 6k.8 by `toBe`; the s ≥ 1 spelling kept apart and agreeing to 1e-13 | `toBe`, not agreement | ✅ |
+| **6l.12** The paraboloid default has NO closed boundary: its profile turns over at ρ = 0.9935 / 0.8874 / 0.6885 and the maximising pair goes interior — refused, not approximated | monotonicity, measured | ✅ |
+| **6l.12** MEASURED: the 2% edge at 1.000 / 1.250 / 1.125 against 1.0146 / 1.2762 / 1.0146 — inside one axial bin, and 2–3 bins off ν·(2 − ν) | § 6k.4's protocol | ✅ |
 
 ### 6l.1 — the literature quotes it in a different reference, and the natural check reads backwards
 
@@ -11017,6 +11022,137 @@ builder yet, so the two renderers answer by one rule and only one of them can
 reach the new arm.
 
 
+### § 6l.12 — the boundary of a stack whose phase moves with depth
+
+§ 6k.4 derives the 3-D OTF's axial support boundary ν·(2 − ν), § 6k.8 puts the
+aperture angle back into it, and § 6l.6 measured that a mount takes half of the
+pair apart: the ν = 0 null survives a depth-varying pupil, the boundary does not.
+APP.md's D10 drew the two edges beside each other and coloured the departure
+amber — a measurement rather than a failure — and the register wrote the residue
+down as item 10: *"a support boundary derived for a stack with a depth-varying
+phase, which is a different closed form"*.
+
+**It is not a different closed form. It is the same one at a different index**,
+and the register's own sentence is the third deferral in this step to be
+falsified by looking at it (§ 6l.10's identity, § 6l.11's ½, and now this).
+
+#### What the derivation actually needs, and why a mount does not break it
+
+§ 6k.4 needs exactly one property: the pupil phase must be **linear in the
+coordinate the stack is transformed over**, so that the transform maps each pair
+of pupil points onto a single axial frequency and the support is the *range* of
+that map. A depth-varying stack looks like it cannot have it — every slice
+carries its own depth's spherical aberration, and a family whose members differ
+by an aberration is not a defocus family. It has it anyway, and exactly, for two
+reasons already on this step's own ladder: the depth aberration is **a bare
+factor in d** (§ 6l.2, pinned to 1e-14 at every aperture), and `mountPupils`
+inverts an **affine** map from waves to depth (§ 6l.9). So
+
+    Ψ(ρ; w) = d₀·A(ρ)  +  w·[ Φ_defocus(ρ) + c·A(ρ) ],    c = 2·n_s·λ/NA²
+
+where A is the wavefront per unit depth and d₀ the focus. The first term does not
+depend on w. Under the overlap integral a constant pupil phase is a unimodular
+factor: it changes the transfer's **values** at every frequency and cannot change
+which frequencies are non-zero. So the boundary is § 6k.4's maximum taken over
+the new per-wave profile Φ_eff = Φ_defocus + c·A, and nothing else about the
+derivation moves.
+
+#### And the profile collapses — to the immersion's, not the mount's
+
+Substitute § 6l.1's identity (the literature's depth OPD is the stack's wavefront
+plus an exact refocus and a piston, δ = d·(n_i − n_s)/n_s) into that bracket. The
+mount's index cancels out **completely**: the n_s of the defocus half and the n_s
+inside A meet the n_s in c, and what is left is § 6k.8's exact-cap defocus profile
+read at the **immersion's** aperture angle,
+
+    Φ_eff(ρ) = (2/s_i²)·(1 − √(1 − s_i²ρ²)),    s_i = NA/n_i
+
+pinned off `mountPupils`' own pupils — a difference of `phaseWaves` at two stack
+coordinates — against `withObjectDefocus` at that angle, to **1e-12 relative** on
+a matched mount, a water mount at NA 1.25, a truncating water mount at NA 1.40
+and an air mount at NA 1.30. Read off the engine rather than off the formula
+deliberately: the depth-per-wave inversion, the index the geometry is measured in
+and the composition order are then all inside the assertion.
+
+Said without the algebra: **stepping a `mountPupils` stack by one wave is exactly
+an ideal defocus in the immersion**, and § 6l.5's focus-knob scaling is the whole
+of what the depth aberration does to the family. The mount survives in one place
+only — the **rim**, `mountAperture`/NA, the radius past which § 6l.3's wall leaves
+the pupil dark.
+
+#### The rim had to become an argument
+
+Every boundary in `imaging/volume` maximises the same difference, and the
+maximising pair puts its outer point at the rim and its inner point as far in as
+the separation allows, because ρ/√(1 − s²ρ²) is increasing. So all of them are
+
+    μ_max(ν) = 2·(ρ_e² − a²) / ( √(1 − s²a²) + √(1 − s²ρ_e²) ),   a = |ρ_e − ν|
+
+zero at ν ≥ 2ρ_e — and until now the angle and the rim were never independent:
+`missingConeEdge` is s = 0 with ρ_e = 1, `ewaldConeEdge` is ρ_e = min(1, 1/s).
+This step is the first case where they come from **different media**, so
+`ewaldConeEdgeAtRim` takes both and `mountConeEdge` supplies NA/n_i and
+`mountAperture`/NA. `ewaldConeEdge`'s s < 1 branch now delegates and is
+**bitwise** what it was — ρ_e² is exactly 1, so `re2 − a·a` is `1 − a·a` and
+`s2·re2` is `s2` — pinned by `toBe` over 400 frequencies at seven apertures. Its
+s ≥ 1 branch is deliberately **not** delegated: routing it through the rim would
+form 1/s, which is the one thing § 6l.11 spelled that branch to avoid, so the two
+are pinned to agree to 1e-13 instead of asserted identical. A matched mount comes
+out as `ewaldConeEdge` at `objectSinAlpha` bitwise, which is the reduction that
+says nothing was invented.
+
+#### The collapse belongs to the exact defocus half, and only to it
+
+`mountPupils` defaults `sinAlpha` to 0 — the paraboloid — and **the app runs it
+there**. That profile is ρ² + Φ(s_i) − Φ(s_mount), and it is not monotone in ρ: it
+turns over inside the rim on all three mismatched mounts here (at ρ = 0.9935,
+0.8874 and 0.6885 for water at NA 1.25, water at NA 1.40 and air at NA 1.30). The
+maximising pair therefore leaves the edge, the step every boundary in the module
+is built on stops being available, and there is no closed form to return.
+
+`mountConeEdge` cannot see which stack it is being asked about — `sinAlpha` is a
+`mountPupils` argument, not a `MountSpec` field — so it is **told**, and refuses
+anything but the spec's own angle, naming the interior maximiser when the
+argument is the default. That is § 6l.9's discipline on a coupling of exactly the
+same shape: wrong silently, with no readout to catch it.
+
+#### Measured, on the engine's own kernels
+
+§ 6k.4's protocol — a 2% threshold on the axial spectrum of a stacked-kernel
+transfer — repeated on a `mountPupils` stack at the exact cap: 64 slices of 0.125
+waves about a focus set so the shallowest slice is 5% of the half-window inside
+the specimen, at 128 pupil bins on a 256 grid. The edges land at **1.000, 1.250
+and 1.125** cycles per wave at ν = 0.5, 1.0 and 1.5, against a law of **1.0146,
+1.2762 and 1.0146** — within **one axial bin**, which is § 6k.4's own tolerance
+and for its own reason, a finite stack leaking its window across a sharp edge —
+and **2 to 3 bins** away from the defocus-only 0.75, 1.00, 0.75. The reading is
+not symmetric about ν = 1 while the law it lands on is; that asymmetry is the
+window's leak and is why the tolerance is a bin rather than a bit.
+
+**The sampling is not a detail here, and it is what the coarser windows get
+wrong.** The pupil must be fine enough that the stack's worst-defocused member
+steps under half a wave between neighbours: this window measures 0.342, and at 64
+bins the same rows read 0.65 to 1.77 and return their leakage floor instead of
+their edge — at the extreme, an air mount reads the Nyquist frequency, which is
+where D10's "up to 10 axial bins" came from. So D10's departure had two causes
+stacked on one number: a law that was wrong for the stack, and a pupil too coarse
+to resolve the right one.
+
+**What it leaves.** Three things, and the first is an app change rather than
+physics. `packages/app`'s D10 still builds its cone from the paraboloid default
+and compares it against ν·(2 − ν), so the panel now asserts something this step
+falsifies — that the boundary is lost through a mount; correcting it needs the
+exact cap *and* a finer pupil than the panel currently pays for, and its
+`conePeriodWaves` readout is the paraboloid lattice's period and has no meaning
+for a profile whose pair differences are incommensurate. That is **item 19**. The
+static term d₀·A(ρ) moves the transfer's values near the edge and is not measured
+here — it is what makes a 2% threshold read short, and separating it from the
+window's own leak is a different measurement. And the derivation puts the rim at a
+*radius*, which is only available on axis: `withMountAberration` off axis truncates
+in the invariant plane and loses a crescent rather than an annulus (§ 6y), so a
+chief-ray version of this boundary is its own problem and not a parameter here.
+
+
 ### Not yet pinned
 - ~~**Off axis.**~~ ✅ **Closed at § 6y**, and the reason recorded here had
   expired before it was written: "the object-space ray aiming that would express
@@ -11037,7 +11173,7 @@ reach the new arm.
 - **TIRF and the evanescent side of the wall.** 6l.3 stops at "the rays do not
   exist". What happens beyond n_s is a real imaging modality and it is not
   geometric optics.
-- **Where § 6k.4's support edge goes under a mount, and it is not where 6l.6
+- ~~**Where § 6k.4's support edge goes under a mount, and it is not where 6l.6
   might suggest.** 6l.6 pins that the missing cone stays **empty** — the ν = 0
   null needs only an amplitude that does not move with depth, and the SA is a
   pure phase. It says nothing about the support *boundary* ν·(2 − ν), and the
@@ -11049,7 +11185,14 @@ reach the new arm.
   at a 2% threshold on a leaked window, so it is reported as a departure and not
   as a number; what it would take to pin is a support boundary derived for a
   stack with a depth-varying phase, which is a different closed form and not
-  this step's.
+  this step's.~~ ✅ **Closed at § 6l.12**, and "a different closed form" is what
+  was wrong with it: the stack's phase is exactly linear in its own coordinate
+  anyway — the depth aberration is a bare factor in d and the waves-to-depth map
+  is affine — and the per-wave profile then collapses to § 6k.8's own law at the
+  **immersion's** aperture angle over the **mount's** rim. The 10 bins were two
+  faults stacked on one number: a law that was wrong for the stack, and a pupil
+  too coarse to resolve the right one. What the closure does leave is the app
+  half, which is item 19 in the register.
 - **Whether a plane may sit above the coverslip.** Not a gap in the physics —
   the answer is plainly zero, since such a plane's light crosses only what the
   objective was corrected for — but nothing here refuses a negative depth, and

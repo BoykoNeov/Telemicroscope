@@ -232,8 +232,21 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
    the **band** `inFocusFraction` counts as focus, and the exact one is
    (1 + cos α)/2 of it — 295 nm against 426 on an oil 1.40, so § 6k.2's reading of
    how much light is in focus was 44% generous. It leaves item 16.
-10. **A depth-varying phase stack's support boundary.** § 6l: "a different
-    closed form" from § 6k's.
+10. ~~**A depth-varying phase stack's support boundary.** § 6l: "a different
+    closed form" from § 6k's.~~ ✅ — landed at § 6l.12, and the entry's own words
+    were the error. There is no different closed form: the stack's phase is
+    exactly linear in the coordinate it is transformed over anyway (the depth
+    aberration is a bare factor in d, the waves-to-depth map is affine), so
+    § 6k.4's derivation survives whole and only the per-wave profile changes — and
+    that profile collapses to § 6k.8's law at the **immersion's** aperture angle
+    over the **mount's** rim. One wave of the stack is exactly an ideal defocus in
+    the immersion, which makes § 6l.5's focus-knob scaling the whole of what a
+    depth costs the family. Two things it cost that the entry did not price: the
+    angle and the rim had to stop being one argument (`ewaldConeEdgeAtRim`, with
+    both older boundaries as cases of it), and the collapse belongs to the exact
+    defocus half only — the paraboloid default's profile turns over inside the rim,
+    so its maximiser is interior and `mountConeEdge` refuses it rather than
+    approximating. The app half is **item 19**.
 11. **An immersed image plane behind an objective.** Opened by § 2g, which
     pinned the index on a single surface; a design where it enters twice
     (§ 6e's front and a back) does not exist on the ladder.
@@ -410,6 +423,18 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     *longer* than the paraboloid's, which falsified every "% shorter" sentence in
     the engine and the app. `packages/app`'s WATER and AIR rows now carry the cap
     and the band together.
+19. **`packages/app`'s D10 asserts a boundary § 6l.12 falsified.** The cone panel
+    builds its stack from `mountPupils`' paraboloid default and compares the
+    measured edge against ν·(2 − ν), then explains in prose that a mount *loses*
+    the support law. It does not: § 6l.12 has the law. Pin: the panel's own edges
+    against `mountConeEdge`, which needs the exact cap **and** a finer pupil than
+    the panel pays for today — at 64 bins three of the four shipped mounts step
+    over a wave between neighbours and read their leakage floor, which is where
+    the "10 axial bins" came from. `conePeriodWaves` goes with it: it is the
+    paraboloid lattice's period, and the exact profile has none, so that field is
+    meaningless rather than merely different. Unblocks: the panel saying *check*
+    where it now says *measurement*.
+
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
     the planes `spectralStack` resamples onto the common grid come back +0.3%
@@ -833,8 +858,18 @@ radial-map nodes · § 6ba differential bleaching.
     per side with the NA cancelled out. One thing it falsified along the way: the
     exact band is not always the shorter one, crossing at s² = 2.
 
-15. **The off-machine run** (the structural problem at the top): one confirming
+15. ~~**A depth-varying phase stack's support boundary** (item 10): the widest of
+    the three A items left, and the one sitting under every axial reading a mount
+    touches.~~ ✅ — landed at § 6l.12, and it needed no external number at all:
+    the boundary reduces to § 6k.8's own law at the immersion's angle, so the pin
+    is that reduction plus a brute force over lit pairs. The entry's "a different
+    closed form" is the thing that turned out to be false — the third deferral on
+    this step to fall to being read rather than to being measured. What it opened
+    is **item 19**, the app half.
+
+16. **The off-machine run** (the structural problem at the top): one confirming
     run of the ladder on a second machine, now a check rather than a piece of
     work — though not the cheap command this file called it, since the Linux
-    subsystem on the author's box has no Node installed. Then Part A's items 10,
-    11 and 12, none of which has an external number named yet.
+    subsystem on the author's box has no Node installed. Then **item 19** (an app
+    costing, and the only entry left with a falsified claim shipped in it), and
+    Part A's items 11 and 12, neither of which has an external number named yet.

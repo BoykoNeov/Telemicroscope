@@ -12,6 +12,7 @@ import {
 } from "../src/designs/coverslip";
 import {
   mountAperture,
+  mountConeEdge,
   mountDefocusWaves,
   mountPupils,
   mountSinAlpha,
@@ -26,7 +27,9 @@ import {
   defocusing,
   depthKernels,
   ewaldConeEdge,
+  ewaldConeEdgeAtRim,
   exactDepthFactor,
+  missingConeEdge,
   objectDefocusing,
   objectSinAlpha,
   renderVolume,
@@ -1216,5 +1219,315 @@ describe("§ 6l.11 — the band at the rim the light reaches", () => {
     for (let i = 0; i < withBand.intensity.length; i++) {
       expect(withBand.intensity[i]!).toBe(without.intensity[i]!);
     }
+  });
+});
+
+/**
+ * § 6l.12 — the boundary of a stack whose phase moves with depth.
+ *
+ * § 6k.4 derives the 3-D OTF's axial support boundary from a stack whose members
+ * differ by nothing but w₂₀, and § 6l.6 measured that a mount takes half of that
+ * pair away: the ν = 0 null survives, the boundary does not. The register wrote
+ * the residue down as "a different closed form", and the app draws the two edges
+ * beside each other with the departure marked amber.
+ *
+ * **It is not a different closed form. It is the same one at a different index.**
+ *
+ * § 6k.4's derivation needs exactly one property — the pupil phase must be linear
+ * in the coordinate the stack is transformed over — and a depth-varying stack has
+ * it, because the depth aberration is a bare factor in d (§ 6l.2) and
+ * `mountPupils` inverts an affine map from waves to depth:
+ *
+ *     Ψ(ρ; w) = d₀·A(ρ) + w·[ Φ_defocus(ρ) + c·A(ρ) ]
+ *
+ * The first term is constant across the stack and unimodular under the overlap
+ * integral, so it moves the transfer's values and cannot move its support. And
+ * the bracket collapses: put § 6l.1's identity into it and the mount's index
+ * cancels out completely, leaving § 6k.8's exact-cap defocus profile read at the
+ * IMMERSION's aperture angle. Stepping the stack by one wave is exactly an ideal
+ * defocus in the immersion, and § 6l.5's focus-knob scaling is the whole of what
+ * the depth aberration does to the family.
+ *
+ * So the boundary is `ewaldConeEdge`'s law at s = NA/n_i over the rim
+ * `mountAperture`/NA — the angle from the immersion, the radius from the mount.
+ * The two had never been apart before, which is the only reason a new function
+ * exists: `ewaldConeEdgeAtRim` is the master form and both older boundaries are
+ * cases of it.
+ *
+ * **The collapse is a property of the exact defocus half, and nothing else.**
+ * `mountPupils` defaults `sinAlpha` to 0 and the app runs it there; that profile
+ * is ρ² + Φ(s_i) − Φ(s_mount), which turns over inside the rim on three of the
+ * four mounts swept here, so the maximising pair goes interior and there is no
+ * closed form to return. `mountConeEdge` is told which stack it is describing
+ * and refuses the rest — § 6l.9's discipline on a coupling of the same shape.
+ */
+describe("§ 6l.12 — a depth-varying stack's support boundary", () => {
+  const S125 = mountSinAlpha(mount(1.25));
+
+  /** The mounts the rungs sweep: matched, untruncated, truncating, and air. */
+  const SPECS: readonly (readonly [string, MountSpec])[] = [
+    ["matched oil", { ...mount(1.2), mountIndex: N_OIL }],
+    ["water, untruncated", mount(1.25)],
+    ["water, truncating", mount(1.4)],
+    ["air", { ...mount(1.3), mountIndex: 1 }],
+  ];
+
+  /** Depth in mm per wave of the stack coordinate — the engine's own map,
+   *  inverted through `mountDefocusWaves` rather than rewritten. */
+  const perWaveMm = (spec: MountSpec) => 1 / mountDefocusWaves({ ...spec, focusDepthMm: 0 }, 1);
+
+  /** Φ_eff, read off the engine's pupils: the phase one wave of the stack
+   *  coordinate adds. Nothing here knows the closed form. */
+  const effectiveProfile = (spec: MountSpec, sinAlpha: number) => {
+    const pupils = mountPupils(idealPupil(), spec, sinAlpha);
+    const p0 = pupils(0);
+    const p1 = pupils(1);
+    return (px: number, py: number) => p1.phaseWaves(px, py) - p0.phaseWaves(px, py);
+  };
+
+  it("adds, per wave of the stack, exactly an ideal defocus IN THE IMMERSION", () => {
+    // The step's whole content, and it is read off `mountPupils` itself rather
+    // than off the formula — so the depth-per-wave inversion, the index the
+    // geometry is measured in and the composition order are all inside the
+    // assertion. The reference is `withObjectDefocus` at the immersion's angle,
+    // which is a function this test shares no code with.
+    for (const [name, spec] of SPECS) {
+      const got = effectiveProfile(spec, mountSinAlpha(spec));
+      const want = withObjectDefocus(
+        idealPupil(),
+        1,
+        spec.numericalAperture / spec.immersionIndex,
+      );
+      const rim = mountAperture(spec) / spec.numericalAperture;
+      for (let i = 1; i <= 40; i++) {
+        const rho = (rim * i) / 41;
+        const w = want.phaseWaves(rho, 0);
+        expect(Math.abs(got(rho, 0) - w) / Math.abs(w), `${name} at rho = ${rho}`).toBeLessThan(
+          1e-12,
+        );
+      }
+    }
+  });
+
+  it("so the boundary is the immersion's angle over the mount's rim, against a brute-force maximum", () => {
+    // § 6l.11's precedent: the pin is a search over lit pupil pairs with no
+    // closed form in it. Searched in the PAIR's own coordinates — the two radii —
+    // because which (r₁, r₂) a disc can hold at separation ν is plane geometry
+    // and not optics: |r₁ − r₂| ≤ ν ≤ r₁ + r₂, with each radius lit. Nothing here
+    // knows that the maximum sits at the rim, which is the one thing the
+    // derivation asserts; a search in the pupil's own (u, v) does worse than it
+    // looks, because ν = 0 is a LOCAL MINIMUM across the pair while the pair is
+    // interior and only becomes the maximum once r₁ is against the wall.
+    for (const [name, spec] of SPECS) {
+      const sinAlpha = mountSinAlpha(spec);
+      const phi = effectiveProfile(spec, sinAlpha);
+      const lit = mountPupils(idealPupil(), spec, sinAlpha)(0).amplitude;
+      const value = (r1: number, r2: number, nu: number): number => {
+        if (!(lit(r1, 0) > 0) || !(lit(r2, 0) > 0)) return -Infinity;
+        if (Math.abs(r1 - r2) > nu || r1 + r2 < nu) return -Infinity;
+        return Math.abs(phi(r1, 0) - phi(r2, 0));
+      };
+      // One radial lattice, wide enough to run past any rim the engine lights.
+      const M = 1200;
+      const cache = new Float64Array(M + 1);
+      const litAt = new Uint8Array(M + 1);
+      for (let i = 0; i <= M; i++) {
+        const r = (2 * i) / M;
+        litAt[i] = lit(r, 0) > 0 ? 1 : 0;
+        cache[i] = litAt[i] ? phi(r, 0) : 0;
+      }
+      for (const nu of [0.25, 0.75, 1.3]) {
+        let best = -Infinity;
+        let b1 = 0;
+        let b2 = 0;
+        for (let i = 0; i <= M; i++) {
+          if (!litAt[i]) continue;
+          const r1 = (2 * i) / M;
+          for (let j = 0; j <= M; j++) {
+            if (!litAt[j]) continue;
+            const r2 = (2 * j) / M;
+            if (Math.abs(r1 - r2) > nu || r1 + r2 < nu) continue;
+            const d = Math.abs(cache[i]! - cache[j]!);
+            if (d > best) {
+              best = d;
+              b1 = r1;
+              b2 = r2;
+            }
+          }
+        }
+        // A compass in (r₁, r₂), walking into whichever corner of the feasible
+        // region the maximum is in. Two properties of that region shape it. The
+        // rim is OPEN — `mountAperture` is a supremum and not a maximum
+        // (§ 6l.3) — so the step keeps its size while it is still climbing and
+        // halves only when every direction fails. And the corner is where the
+        // rim meets |r₁ − r₂| = ν, so the only feasible way out of it is
+        // DIAGONAL: an axis move alone breaks the separation and stalls the
+        // search a few parts in 10⁵ short, which is close enough to look like
+        // agreement and is not.
+        let span = 2 / M;
+        for (let k = 0; k < 400 && span > 1e-16; k++) {
+          let moved = false;
+          for (const [d1, d2] of [
+            [span, 0],
+            [-span, 0],
+            [0, span],
+            [0, -span],
+            [span, span],
+            [-span, -span],
+            [span, -span],
+            [-span, span],
+          ]) {
+            const v = value(b1 + d1!, b2 + d2!, nu);
+            if (v > best) {
+              best = v;
+              b1 += d1!;
+              b2 += d2!;
+              moved = true;
+            }
+          }
+          if (!moved) span *= 0.5;
+        }
+        expect(best / mountConeEdge(spec, nu, sinAlpha), `${name} at nu = ${nu}`).toBeCloseTo(1, 8);
+      }
+    }
+  });
+
+  it("and a matched mount is § 6k.8's law to the BIT — the rim is the objective's own", () => {
+    // The reduction that says nothing was invented: with n_s = n_i the rim is
+    // mountAperture/NA = 1 exactly and the angle is the same division, so the
+    // delegation lands on the same two doubles in the same order.
+    const matched: MountSpec = { ...mount(1.2), mountIndex: N_OIL };
+    for (const nu of [0, 0.3, 1, 1.7, 2, 2.5]) {
+      expect(mountConeEdge(matched, nu, mountSinAlpha(matched))).toBe(
+        ewaldConeEdge(nu, objectSinAlpha(1.2, N_OIL)),
+      );
+    }
+  });
+
+  it("leaves every reading `ewaldConeEdge` has recorded bitwise where it was", () => {
+    // The rim form is `ewaldConeEdge`'s s < 1 branch with rho_e = 1 substituted,
+    // and rho_e squared is exactly 1: `re2 - a*a` is `1 - a*a`, `s2*re2` is `s2`,
+    // and the sqrt-max guards are inert while s < 1. So this is `toBe` and not
+    // agreement.
+    const oldEdge = (nu: number, s: number): number => {
+      if (nu >= 2) return 0;
+      const a = 1 - nu;
+      return (2 * (1 - a * a)) / (Math.sqrt(1 - s * s * a * a) + Math.sqrt(1 - s * s));
+    };
+    for (const s of [0, 0.1, 0.5, 0.825, 0.9365, 0.99, 0.999999]) {
+      for (let i = 0; i <= 400; i++) {
+        const nu = i / 100;
+        expect(ewaldConeEdge(nu, s)).toBe(nu >= 2 ? 0 : oldEdge(nu, s));
+      }
+    }
+  });
+
+  it("and the truncating branch keeps its own spelling, one real number rounded twice", () => {
+    // § 6l.11 bought the s >= 1 branch a form that never divides by s. Routing it
+    // through the rim would form 1/s to say the rim, so it is left alone and the
+    // two spellings are pinned to agree instead of asserted to be identical.
+    for (const s of [1.0503, 1.2, 1.5, 2]) {
+      for (const nu of [0.1, 0.5, 1, 1.5, 1.9]) {
+        const own = ewaldConeEdge(nu, s);
+        const viaRim = ewaldConeEdgeAtRim(nu, s, 1 / s);
+        if (own === 0) expect(viaRim).toBe(0);
+        else expect(viaRim / own).toBeCloseTo(1, 13);
+      }
+    }
+  });
+
+  it("refuses a rim past the aperture's own cap, where there are no pairs to maximise over", () => {
+    expect(() => ewaldConeEdgeAtRim(0.5, 1.2, 1)).toThrow(/past the aperture/);
+    expect(() => ewaldConeEdgeAtRim(0.5, 0.9, 0)).toThrow(/positive radius/);
+    // Exactly at the cap is the truncating mount, and it computes.
+    expect(ewaldConeEdgeAtRim(0.5, 1.2, 1 / 1.2)).toBeGreaterThan(0);
+  });
+
+  it("has no closed form for the paraboloid default, because the profile turns over inside the rim", () => {
+    // The reason `mountConeEdge` is TOLD the aperture angle. With the defocus
+    // half left at `mountPupils`' default the effective profile is
+    // rho^2 + Phi(s_i) - Phi(s_mount), whose slope goes negative before the rim
+    // on every mismatched mount here — so the maximising pair leaves the edge and
+    // the "outer point at the rim" step every boundary in this module is built on
+    // stops being available.
+    const turns: string[] = [];
+    for (const [name, spec] of SPECS) {
+      const phi = effectiveProfile(spec, 0);
+      const rim = mountAperture(spec) / spec.numericalAperture;
+      let previous = -Infinity;
+      let turned = false;
+      for (let i = 0; i <= 2000; i++) {
+        const value = phi((rim * i) / 2000, 0);
+        if (value < previous) turned = true;
+        previous = value;
+      }
+      if (turned) turns.push(name);
+    }
+    expect(turns).toEqual(["water, untruncated", "water, truncating", "air"]);
+
+    const spec = mount(1.25);
+    expect(() => mountConeEdge(spec, 1, 0)).toThrow(/paraboloid default has no closed boundary/);
+    expect(() => mountConeEdge(spec, 1, 0.5)).toThrow(/aperture angle/);
+    expect(mountConeEdge(spec, 1, S125)).toBeGreaterThan(0);
+  });
+
+  it("MEASURED: the 2% support edge lands on the new law, and 2 bins off the defocus-only one", () => {
+    // § 6k.4's own protocol, on a window this profile can carry: the pupil is
+    // sampled finely enough that the stack's worst member steps under half a wave
+    // between neighbours, which is what the app's own grid guard asks for and
+    // what a coarser window does not have.
+    const PUPIL = 128;
+    const GRID = 256;
+    const HALF = 4;
+    const SLICES = 64;
+    const step = (2 * HALF) / SLICES;
+    const stack = Array.from({ length: SLICES }, (_, i) => -HALF + i * step);
+    const binWidth = 1 / (step * SLICES);
+
+    const spec = mount(1.25, HALF * perWaveMm(mount(1.25)) * 1.05);
+    // Every slice sits below the slip: the shallowest is 5% of the half-window
+    // inside the specimen. § 6l's own open list names that rule and D10 met it by
+    // placing a slab; a stack straddling the slip would be handed the mismatch of
+    // the wrong sign, since the layer is linear in depth and does not stop at 0.
+    expect(spec.focusDepthMm - HALF * perWaveMm(spec)).toBeGreaterThan(0);
+
+    const kernels = depthKernels(mountPupils(idealPupil(), spec, S125), stack, {
+      size: GRID,
+      pupilSamples: PUPIL,
+    });
+    let gridStep = 0;
+    for (const k of kernels) gridStep = Math.max(gridStep, k.maxGridPhaseStepWaves);
+    expect(gridStep).toBeLessThan(0.5);
+
+    const measured: number[] = [];
+    for (const bin of [PUPIL / 4, PUPIL / 2, (3 * PUPIL) / 4]) {
+      const nu = (2 * bin) / PUPIL;
+      const spectrum = axialSpectrum(axialTransfer(kernels, bin));
+      let peak = 0;
+      for (const m of spectrum.magnitude) peak = Math.max(peak, m);
+      let edge = 0;
+      for (let b = 0; b < spectrum.magnitude.length; b++) {
+        if (spectrum.magnitude[b]! > 0.02 * peak) edge = spectrum.cyclesPerWave[b]!;
+      }
+      measured.push(edge);
+      // Within one axial bin of the new law, which is the tolerance § 6k.4 states
+      // for the same reason: a finite stack leaks its window across a sharp edge.
+      expect(
+        Math.abs(edge - mountConeEdge(spec, nu, S125)) / binWidth,
+        `nu = ${nu} against the mount's law`,
+      ).toBeLessThanOrEqual(1);
+      // And the defocus-only law is outside that, which is what makes this a
+      // finding rather than a restatement — the departure § 6l.6 reported has a
+      // law under it.
+      expect(
+        Math.abs(edge - missingConeEdge(nu)) / binWidth,
+        `nu = ${nu} against the defocus-only law`,
+      ).toBeGreaterThanOrEqual(2);
+    }
+    // The edges themselves, recorded: 1.000, 1.250, 1.125 against a law of
+    // 1.0146, 1.2762, 1.0146 and a defocus-only 0.75, 1.00, 0.75 — so the reading
+    // is not symmetric about ν = 1 while the law it lands on is, which is the
+    // window's own leak and the reason the tolerance is a bin rather than a bit.
+    expect(measured).toEqual([1, 1.25, 1.125]);
   });
 });

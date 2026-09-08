@@ -6,6 +6,7 @@ import {
 import type { PupilFunction } from "../wave/psf";
 import {
   defocusWaves,
+  ewaldConeEdgeAtRim,
   withObjectDefocus,
   type DepthPupils,
   type VolumeImageOptions,
@@ -382,6 +383,81 @@ export function mountPupils(
     const depthMm = spec.focusDepthMm + waves * perWave;
     return withObjectDefocus(withMountAberration(pupil, spec, depthMm), waves, sinAlpha);
   };
+}
+
+/**
+ * The 3-D OTF's axial support boundary for a `mountPupils` stack (§ 6l.12), in
+ * cycles per wave of the defocus the stack is indexed by.
+ *
+ * ## Why there is a closed form at all
+ *
+ * § 6k.4's derivation needs one thing: the pupil phase must be **linear in the
+ * stack coordinate**, so that transforming over it maps each pair of pupil points
+ * onto a single axial frequency. A depth-varying stack looks like it cannot be —
+ * every slice carries its own depth's spherical aberration, which is what the
+ * register called "a different closed form". It is linear anyway, and exactly:
+ * the depth aberration is a bare factor in d (§ 6l.2) and `mountPupils` inverts
+ * an affine map from waves to depth, so
+ *
+ *     Ψ(ρ; w) = d₀·A(ρ)  +  w·[ Φ_defocus(ρ) + c·A(ρ) ],    c = 2·n_s·λ/NA²
+ *
+ * with the first term constant across the stack. A constant pupil phase is a
+ * unimodular factor under the overlap integral: it moves the transfer's *values*
+ * and cannot move its support. So the boundary is the old maximum taken over the
+ * new per-wave profile Φ_eff = Φ_defocus + c·A.
+ *
+ * ## And the profile collapses
+ *
+ * Substituting § 6l.1's identity — the literature's depth OPD is the stack's
+ * wavefront plus an exact refocus and a piston — the mount's index cancels out
+ * of Φ_eff **completely**, and what is left is § 6k.8's exact-cap defocus profile
+ * read at the *immersion's* aperture angle:
+ *
+ *     Φ_eff(ρ) = (2/s_i²)·(1 − √(1 − s_i²ρ²)),    s_i = NA/n_i
+ *
+ * to f64 at every aperture and every mount. Said without the algebra: stepping a
+ * `mountPupils` stack by one wave is **exactly an ideal defocus in the
+ * immersion** of the knob travel that wave corresponds to, and the depth-varying
+ * spherical aberration is entirely accounted for by § 6l.5's focus-knob scaling.
+ * The mount survives in one place only — the **rim**, `mountAperture`/NA, the
+ * radius past which § 6l.3's wall leaves the pupil dark.
+ *
+ * So it is not a different closed form. It is the same one, at the immersion's
+ * angle over the mount's rim, which is why `ewaldConeEdgeAtRim` had to take the
+ * two apart.
+ *
+ * ## Why the aperture angle is an argument and not read off the spec
+ *
+ * The collapse is a property of the **exact** defocus half. `mountPupils`
+ * defaults `sinAlpha` to 0 — the paraboloid — and there Φ_eff is
+ * ρ² + Φ(s_i) − Φ(s_mount), which is not monotone in ρ on three of the four
+ * mounts the app ships: the profile turns over near the rim, the maximising pair
+ * leaves the edge, and there is no closed form to return. This function cannot
+ * see which stack it is being asked about, so it is told, and refuses the rest —
+ * § 6l.9's discipline, on a coupling with the same shape and no readout to catch
+ * it either.
+ *
+ * `nu` is in pupil-radius units of the objective's own NA, `ewaldConeEdge`'s
+ * scale, so the delivered cutoff at 2·`mountAperture`/NA is inside ν = 2 rather
+ * than at it.
+ *
+ * Axial only: the derivation puts the rim at a radius, and `withMountAberration`
+ * off axis has a rim in the invariant plane instead (a crescent, not a disc), so
+ * a chief-ray version of this is its own problem and not a parameter here.
+ */
+export function mountConeEdge(spec: MountSpec, nu: number, sinAlpha: number): number {
+  checkSpec(spec);
+  const own = mountSinAlpha(spec);
+  if (sinAlpha !== own) {
+    throw new Error(
+      `mountConeEdge: the boundary belongs to the stack's own aperture angle ${own}, got ${sinAlpha}` +
+        (sinAlpha === 0
+          ? " — mountPupils' paraboloid default has no closed boundary, because its effective profile turns over inside the rim and the maximising pair is interior"
+          : ""),
+    );
+  }
+  const na = spec.numericalAperture;
+  return ewaldConeEdgeAtRim(nu, na / spec.immersionIndex, mountAperture(spec) / na);
 }
 
 /**

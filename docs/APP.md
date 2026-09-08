@@ -3985,6 +3985,20 @@ are corrections to this section as it was written.
   bins**. So the panel shows those amber as a measurement rather than red as a
   failure, and says which. § 6l.6 pinned half of this pair; the other half only
   appears when something draws the edges beside it.
+
+  **Superseded in the engine, and still shipped here — § 6l.12.** There IS a law
+  for a depth-varying stack, and it is not a different closed form: the stack's
+  phase is exactly linear in its own coordinate anyway, and the per-wave profile
+  collapses to § 6k.8's law at the **immersion's** aperture angle over the
+  **mount's** rim (`mountConeEdge`). Two things this panel would need to say so,
+  and it has neither yet: the cone stack built at the exact cap rather than
+  `mountPupils`' paraboloid default, and a pupil fine enough to resolve the edge —
+  at 64 bins three of the four shipped mounts step over a wave between neighbours
+  and read their leakage floor, which is where the 10 bins came from. So the
+  paragraph above is now two faults on one number rather than one, and the panel's
+  prose asserts something the engine has falsified. That is the register's **item
+  19**, together with `conePeriodWaves`, which is the paraboloid lattice's period
+  and has no meaning for a profile whose pair differences are incommensurate.
 - **A rule neither § 6l nor § 6k had reason to state: no plane may sit above the
   coverslip.** The volume's z origin is the slip's underside, and a plane at
   negative z crosses only what the objective was corrected for — so its aberration

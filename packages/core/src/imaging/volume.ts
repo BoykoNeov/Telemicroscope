@@ -909,6 +909,56 @@ export function missingConeEdge(nu: number): number {
 }
 
 /**
+ * The support boundary with the **rim as its own argument** (§ 6l.12).
+ *
+ *     μ_max(ν) = 2·(ρ_e² − a²) / ( √(1 − s²a²) + √(1 − s²ρ_e²) ),   a = |ρ_e − ν|
+ *
+ * and zero at ν ≥ 2ρ_e. Every boundary in this module is a case of it: the pair
+ * that maximises the axial frequency puts its outer point at the rim and its
+ * inner point as far in as the separation allows, because ρ/√(1 − s²ρ²) is
+ * increasing — so the law is a *difference of the defocus profile at two radii*,
+ * and the only things that enter are the profile's aperture angle and the radius
+ * the pupil stops at. `missingConeEdge` is s = 0, ρ_e = 1; `ewaldConeEdge` is
+ * ρ_e = min(1, 1/s); and § 6l.12's depth-varying stack is the case where the two
+ * come from **different media** — the angle from the immersion, the rim from the
+ * mount — which is why the rim had to stop being implied by the angle.
+ *
+ * Written as the difference of squares over the sum of roots, so there is no
+ * cancellation anywhere: at s → 0 it is exactly ρ_e² − a², and near ν = 0 the
+ * numerator is small because the pair is short rather than because two nearly
+ * equal roots were subtracted.
+ *
+ * The √max guards are § 6l.10's spelling and are not decoration here: s·ρ_e = 1
+ * is *reachable* — it is exactly the truncating mount, where the lit rim sits at
+ * cos θ = 0 — and the product rounds either side of 1.
+ */
+export function ewaldConeEdgeAtRim(nu: number, sinAlpha: number, rhoRim: number): number {
+  if (!(nu >= 0)) throw new Error(`ewaldConeEdgeAtRim: ν must be non-negative, got ${nu}`);
+  if (!(sinAlpha >= 0 && sinAlpha < Infinity)) {
+    throw new Error(`ewaldConeEdgeAtRim: sin α must be finite and non-negative, got ${sinAlpha}`);
+  }
+  if (!(rhoRim > 0 && rhoRim < Infinity)) {
+    throw new Error(`ewaldConeEdgeAtRim: the rim must be a positive radius, got ${rhoRim}`);
+  }
+  if (sinAlpha * rhoRim > 1) {
+    // Not a rounding guard — a real refusal. Past sin θ = 1 the profile has no
+    // rays under it, so a rim quoted there is a radius the light never reaches
+    // and the maximum would be taken over pairs that do not exist (§ 6l.3).
+    throw new Error(
+      `ewaldConeEdgeAtRim: a rim of ${rhoRim} at sin α ${sinAlpha} is past the aperture's own cap — the pupil is dark there`,
+    );
+  }
+  if (nu >= 2 * rhoRim) return 0;
+  const s2 = sinAlpha * sinAlpha;
+  const re2 = rhoRim * rhoRim;
+  const a = Math.abs(rhoRim - nu);
+  return (
+    (2 * (re2 - a * a)) /
+    (Math.sqrt(Math.max(1 - s2 * a * a, 0)) + Math.sqrt(Math.max(1 - s2 * re2, 0)))
+  );
+}
+
+/**
  * The same boundary on the **exact cap** — `missingConeEdge` with the aperture
  * angle put back (§ 6k.8).
  *
@@ -965,11 +1015,11 @@ export function ewaldConeEdge(nu: number, sinAlpha: number): number {
   // √(1 − s²) is exactly zero, and the missing cone closes at ν = 0 rather than
   // going missing there. Below 1 the denominator is positive and every value is
   // bitwise what it was.
-  if (sinAlpha < 1) {
-    if (nu >= 2) return 0;
-    const a = 1 - nu;
-    return (2 * (1 - a * a)) / (Math.sqrt(1 - s2 * a * a) + Math.sqrt(1 - s2));
-  }
+  //
+  // Delegated to the rim form at ρ_e = 1 (§ 6l.12), which is bitwise this branch
+  // as it stood: ρ_e² is exactly 1, so `re2 − a·a` is `1 − a·a` and `s2·re2` is
+  // `s2`, and the √max guards are inert while s < 1 and a ≤ 1.
+  if (sinAlpha < 1) return ewaldConeEdgeAtRim(nu, sinAlpha, 1);
   // ν ≥ 2/s, spelled as the product so the cutoff test and the phase argument
   // round the same way — and so neither of them forms 1/s.
   if (sinAlpha * nu >= 2) return 0;

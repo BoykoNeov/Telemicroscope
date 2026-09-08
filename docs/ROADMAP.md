@@ -150,9 +150,24 @@ What the lit rim really buys is a saturation nobody predicted: past the wall the
 depth of focus is **λ/2n with the NA cancelled out**, so an oil engraved 1.40,
 1.45 or 1.49 gets the same band out of the same water, and the exact band is not
 even always the shorter one — it crosses the paraboloid's at sin α² = 2. All four
-of the panel's mount rows now carry the cap and the band together. What is left in
-the register is the confirming run on a second machine and Part A's items 10, 11
-and 12.
+of the panel's mount rows now carry the cap and the band together.
+
+**§ 6l.12** then closed item 10, the widest of the three A items left, and the
+entry's own words were what was wrong with it. A stack whose blur changes with
+depth does not need "a different closed form" for where its axial transfer stops:
+its phase is exactly linear in the coordinate it is transformed over anyway, so
+§ 6k.4's derivation survives whole, and the per-wave profile collapses to
+§ 6k.8's own law read at the **immersion's** aperture angle over the **mount's**
+rim. One wave of the stack is exactly an ideal defocus in the immersion, which
+makes § 6l.5's focus-knob scaling the whole of what a depth does to the family.
+It cost the boundary functions their assumption that the angle and the rim are
+one argument, and it found that the collapse belongs to the exact defocus half
+alone — on the paraboloid default the profile turns over inside the rim and the
+maximiser goes interior, so there is no closed form and `mountConeEdge` refuses
+rather than approximates. The app still draws the old law, deliberately: at 64
+pupil bins three of its four mounts cannot resolve the new one. What is left in
+the register is the confirming run on a second machine, **item 19** (that app
+half), and Part A's items 11 and 12.
 
 ## Build order
 
