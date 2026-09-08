@@ -13,7 +13,6 @@ import {
   mountPupils,
   mountVolumeOptions,
   mountWavefrontWaves,
-  objectSinAlpha,
   rasterizeEmitters,
   renderVolume,
   withDefocus,
@@ -350,38 +349,39 @@ export function mountSpecFor(
  * never the immersion (§ 6k.7's condition, and the same n that makes a depth of
  * focus move with the mount control two lines up).
  *
- * **`null` is not a fallback, it is the engine's own refusal shown through.**
- * `objectSinAlpha` guards NA < n because sin α ≥ 1 is not a cone a medium can
- * carry, and an oil 1.40 over a WATER or an AIR mount is exactly that pairing —
- * 1.05 and 1.40. § 6l.3 says the same thing from the other side: no ray of
- * invariant above n_s leaves the specimen, so the pupil beyond ρ = n_s/NA is
- * **dark**, and the phase there is never read.
+ * **`null` is not a fallback, it is the engine's own refusal shown through**, and
+ * since § 6l.11 it is a refusal about the **immersion** rather than about the
+ * mount. It used to be `objectSinAlpha`'s NA < n, which made an oil 1.40 over a
+ * WATER or an AIR mount — 1.05 and 1.40 — a pairing with no answer; § 6l.10 gave
+ * the wavefront one and § 6l.11 gave the band one, so both of those rows now
+ * carry a number. What is still refused is `mountSinAlpha`'s question, which the
+ * mount cannot ask of itself: whether the objective's **own** medium carries the
+ * cone the mount is truncating. An NA above its own immersion index is an
+ * objective that was never made, so on the four rows this panel ships the `null`
+ * is unreachable — it is kept because the refusal is the engine's and the app
+ * does not get to decide it has stopped existing.
  *
- * **§ 6l.10 has since taken that engine step, and this module deliberately has
- * not moved with it.** `mountSinAlpha` now hands the exact cap to a mount rarer
- * than the immersion — it is the largest picture change on the ladder, 0.4113 of
- * peak at the coverslip — so the *wavefront* half of this `null` is no longer a
- * refusal the engine is making. The *band* half still is: `exactDepthFactor` and
- * `exactInFocusFraction` read the cap at the nominal rim ρ = 1, and on a
- * truncating mount that rim is dark, so there is no number for them. Wiring the
- * picture alone would put `capSinAlpha` and `exactDepthOfFocusUm` on opposite
- * sides of the same `null` — the panel's caption invariant is that they are
- * absent *together*, which exists precisely so a caption cannot describe one
- * wavefront beside a picture drawn on another. That is item 16's lesson and it
- * is not being unlearned here. So these two rows keep the paraboloid until a
- * lit-rim band convention exists, and the panel says so.
+ * **The two halves land together, which is what item 16 asked for.** § 6l.10 put
+ * the exact cap on a mount rarer than the immersion — the largest picture change
+ * on the ladder, 0.4113 of peak at the coverslip — and left `exactDepthFactor`
+ * reading the nominal rim ρ = 1 that such a mount leaves dark, so wiring the
+ * picture alone would have put `capSinAlpha` and `exactDepthOfFocusUm` on
+ * opposite sides of one `null`. § 6l.11 moved that rim to min(1, 1/s), so the
+ * caption and the picture describe the same wavefront on every row and the
+ * panel's absent-together invariant is kept by there being nothing absent.
+ *
+ * On a truncating mount the band the caption then quotes is λ/(2·n_mount) with no
+ * NA in it — 206.0 nm out of water, 275.0 nm out of air — and it is not always
+ * shorter than the paraboloid's: WATER reads 55.01% of it and AIR 98.00%, the
+ * second being 1.4²/2 and not a small correction.
  */
 export function exactCapSinAlpha(mount: ResolvedMount, numericalAperture: number): number | null {
-  // The engine's own test, asked of the engine's own quotient rather than of NA
-  // and n separately. `objectSinAlpha` refuses `!(NA/n < 1)`, and NA < n does
-  // **not** imply NA/n < 1 once that division rounds — a quotient inside half an
-  // ulp of 1 comes back as exactly 1 from a numerator strictly below its
-  // denominator. Predicting a refusal with a different comparison than the one
-  // that raises it is how a `null` becomes a throw in the single case nobody
-  // will ever construct, so the prediction is spelled as the thing it predicts.
-  return numericalAperture / mount.index < 1
-    ? objectSinAlpha(numericalAperture, mount.index)
-    : null;
+  // Spelled as `mountSinAlpha` spells it, for the same reason the old quotient
+  // test was spelled as `objectSinAlpha` spelled it: a prediction made with a
+  // different comparison than the one that raises is how a `null` becomes a
+  // throw. That reason now points at a comparison of two indices rather than at
+  // a rounded quotient, because the guard moved with § 6l.10.
+  return numericalAperture < mount.immersionIndex ? numericalAperture / mount.index : null;
 }
 
 export interface VolumeRequest {
@@ -464,11 +464,20 @@ export interface VolumeReadout {
    * `null` together, on the one condition `exactCapSinAlpha` states.
    *
    * `depthOfFocusUm` above is the depth at which the *paraboloid* spends a
-   * quarter wave at the rim; the exact wavefront spends it sooner, by
-   * (1 + cos α)/2. That factor is the reciprocal of the exact rim's own phase
-   * and not a second criterion, so the band and the wavefront cannot drift
-   * apart — which is why one `null` decides both fields and why they are not
-   * two independent readings the caption would have to reconcile.
+   * quarter wave at the **nominal** rim ρ = 1. The exact wavefront spends it at
+   * the rim the light reaches, min(1, 1/s), which is the same rim wherever the
+   * mount carries the whole pupil and the delivered one where it does not
+   * (§ 6l.11). That factor is the reciprocal of the exact rim's own phase and not
+   * a second criterion, so the band and the wavefront cannot drift apart — which
+   * is why one `null` decides both fields and why they are not two independent
+   * readings the caption would have to reconcile.
+   *
+   * **It is not always the shorter band.** (1 + cos α)/2 holds while the mount
+   * carries the pupil; past that the band is λ/(2·n_mount) with no NA in it, and
+   * measured against a `depthOfFocusUm` that keeps shrinking as 1/NA² it reads
+   * 55.01% on WATER, 98.00% on AIR, and would exceed 100% on an objective
+   * engraved past 1.4142 in air. The caption states the percentage rather than a
+   * direction for that reason.
    *
    * Kept **beside** `depthOfFocusUm` rather than replacing it, for the reason
    * § 6k.9 gives and this panel makes visible: the paraboloid's band is still
@@ -484,8 +493,10 @@ export interface VolumeReadout {
    * the band is a property of the **objective and its mount**, so it is quoted
    * whenever one exists, while this is a property of **this render**. A reader
    * who asked for the paraboloid still gets told what the exact band would be,
-   * and a reader whose mount has no exact band gets told the picture is the
-   * paraboloid's without that reading as a choice somebody made.
+   * and — before § 6l.11 gave every shipped row a band — a reader whose mount had
+   * none got told the picture was the paraboloid's without that reading as a
+   * choice somebody made. The second case is now unreachable and the split is
+   * kept anyway: the two facts were never the same one.
    */
   readonly depthWavefront: DepthWavefront;
   readonly objectPixelNm: number;
@@ -554,12 +565,15 @@ export interface VolumeReadout {
    *
    * The slab steps by one *paraboloid* depth of focus and so does the focus, so
    * the focused plane sits at offset 0 and its neighbours at ±1 DOF. The exact
-   * half-band is (1 + cos α)/2 of the paraboloid's 0.5 DOF — narrower, and still
-   * far wider than the 0 the focused plane sits at. So the narrower window
-   * catches the same single plane, and the two fractions agree to ~1e-15 however
-   * far apart the two **bands** are. How far apart is a per-row number and not a
-   * constant — 30% on the oil 100×/1.40, 0.25% on the 20×/0.10 this panel opens
-   * on — which is why the caption interpolates it rather than naming one.
+   * half-band is `exactDepthFactor` times the paraboloid's 0.5 DOF, and that
+   * factor is never below ½ (its minimum, at s = 1) and never above 1 on a row
+   * this panel can build — so the window is between 0.25 and 0.5 DOF wide,
+   * comfortably clear of the 0 the focused plane sits at and comfortably short of
+   * the 1 its neighbours sit at. The two fractions therefore agree to ~1e-15
+   * however far apart the two **bands** are. How far apart is a per-row number
+   * and not a constant — 30% on the oil 100×/1.40 matched, 45% on the same
+   * objective over water, 0.25% on the 20×/0.10 this panel opens on — which is
+   * why the caption interpolates it rather than naming one.
    *
    * That is not a null result and the caption must not let it read as one: it is
    * the difference between a band and what happens to be inside it. § 6k.9's own
@@ -866,7 +880,10 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
         // pairing with no aperture angle in it has no exact band to report the
         // ratio OVER. `renderVolume` leaves the field off in the second case
         // rather than guarding a 0, so `?? null` here is reading its absence and
-        // not defaulting its value.
+        // not defaulting its value. Since § 6l.11 the second case is one the
+        // panel cannot construct — a truncating mount has a band at its lit rim,
+        // and `mountVolumeOptions` carries the promise that says so — but the
+        // absence is still read rather than assumed away.
         exactInFocusFraction:
           emittedTotal > 0 ? (image.exactInFocusFraction ?? null) : null,
         throughputDrift,

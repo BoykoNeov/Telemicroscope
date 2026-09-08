@@ -385,23 +385,77 @@ export function objectSinAlpha(numericalAperture: number, refractiveIndex = 1): 
 }
 
 /**
- * The factor the exact cap costs a quarter-wave depth budget: (1 + cos α)/2.
+ * The factor the exact cap costs a quarter-wave depth budget, read at the rim
+ * the light actually reaches (§ 6l.11).
  *
- * The rim phase per wave of `defocusWaves` is 2/(1 + cos α) — `withObjectDefocus`
- * at ρ = 1 — so the depth that spends a quarter wave at the rim is smaller by the
- * reciprocal. One wavefront statement read two ways, which is why this is the
- * same expression and not a second derivation: the band and the phase cannot
- * disagree by construction.
+ *     f(s) = (1 + √max(1 − s², 0)) · max(1, s²) / 2
+ *
+ * Below s = 1 that is (1 + cos α)/2 and nothing else: `max(1, s²)` is exactly 1
+ * there and a double times 1 is itself, so every band the ladder has recorded is
+ * **bitwise** what it was. The second factor exists for the mount § 6l.10
+ * admitted and is inert everywhere else.
+ *
+ * ## Which rim, and why it is min(1, 1/s)
+ *
+ * The rim phase per wave of `defocusWaves` is 2/(1 + cos θ) at the rim's own
+ * angle — `withObjectDefocus` read there — so the depth that spends a quarter
+ * wave is smaller by the reciprocal. One wavefront statement read two ways,
+ * which is why this is the same expression and not a second derivation: the band
+ * and the phase cannot disagree by construction.
+ *
+ * The quarter-wave criterion is a peak-to-valley across the **aperture**, and on
+ * a mount rarer than the immersion the aperture stops at ρ = n_s/NA = 1/s
+ * (§ 6l.3's wall). Beyond it the pupil is dark, so a criterion evaluated there is
+ * evaluated on light that does not exist. The rim is therefore ρ_e = min(1, 1/s):
+ * the nominal rim wherever the mount carries the whole pupil — which is every
+ * rung taken before § 6l.10, and why nothing moves — and the lit rim exactly
+ * where the two stop coinciding. It is one convention, not two, and the ladder's
+ * older readings are inside it rather than beside it.
+ *
+ * ## The lit rim's ½ is a ratio to a different reference, and is not this number
+ *
+ * At the lit rim cos θ is exactly 0, so the exact wavefront is exactly **twice**
+ * the paraboloid there — § 6l.10 pins that ratio `toBe` 2 at every s. Against a
+ * paraboloid measured at the SAME rim the factor would then be ½ on every
+ * truncating mount, water and air alike. That is not what this returns, because
+ * it multiplies `depthOfFocusMm` — n·λ/NA², the paraboloid at the NOMINAL rim —
+ * and against that reference the factor is s²/2. Shipping the ½ would make the
+ * band wrong by a factor of s², which is two criteria wearing one name and is
+ * what § 6k.9 refused to do to § 6k.2.
+ *
+ * In millimetres the s ≥ 1 branch says it better: the half-depth is λ/(4·n_s) and
+ * **the NA has cancelled out**. Once the mount truncates, more aperture buys no
+ * further axial confinement, because the outermost ray the specimen delivers is
+ * already grazing. An oil 1.40 gets 206.0 nm of full band out of water and
+ * 275.0 nm out of air at λ = 550, and an oil engraved 1.45 gets the same two.
+ *
+ * So f is **not** monotone, and "the exact band is shorter" stops being true: it
+ * falls to its minimum ½ at s = 1 and climbs back, passing 1 at s² = 2. An oil
+ * 1.40 over air is 0.98 — a coincidence of 1.4² / 2 and not a small correction —
+ * and an oil 1.45 over air is 1.051, a band LONGER than the paraboloid's. What
+ * climbs is the reference: the paraboloid's band keeps shrinking as 1/NA² after
+ * the exact one has stopped.
  *
  * At s = 0 it is exactly 1 rather than nearly 1 — √1 is exact, and (1+1)/2 is
  * exact — so a depth of focus routed through it at zero aperture is bitwise the
  * paraboloid's, the same property `withObjectDefocus` has.
+ *
+ * **s ≥ 1 is a number here and a promise at the composition**, which is § 6l.10's
+ * rule and not a new one: this is the right band only if something truncates the
+ * pupil at ρ = 1/s. A mount rarer than the immersion is that; a dry objective
+ * engraved 1.2 is not, and `objectDefocusing` still refuses to defocus its bare
+ * pupil at all.
  */
 export function exactDepthFactor(sinAlpha: number): number {
-  if (!(sinAlpha >= 0 && sinAlpha < 1)) {
-    throw new Error(`exactDepthFactor: sin α must lie in [0, 1), got ${sinAlpha}`);
+  if (!(sinAlpha >= 0 && sinAlpha < Infinity)) {
+    throw new Error(`exactDepthFactor: sin α must be finite and non-negative, got ${sinAlpha}`);
   }
-  return (1 + Math.sqrt(1 - sinAlpha * sinAlpha)) / 2;
+  const s2 = sinAlpha * sinAlpha;
+  // Never 1/s: that quotient's rounding comes back out of the square root at
+  // ~1e-8 rather than at an ulp, which is § 6l.10's third-expression lesson.
+  // `max(1, s²)` is exactly 1 below the wall, so the s < 1 arithmetic is
+  // untouched rather than merely equal.
+  return ((1 + Math.sqrt(Math.max(1 - s2, 0))) * Math.max(1, s2)) / 2;
 }
 
 export interface DepthKernel extends IncoherentPsf {
@@ -535,6 +589,25 @@ export interface VolumeImageOptions {
   readonly refractiveIndex?: number;
   /** Which depth the objective is focused on (object mm). Defaults to 0. */
   readonly focusMm?: number;
+  /**
+   * The pupils handed in stop at ρ = n/NA — § 6l.3's wall, promised rather than
+   * inspected (§ 6l.11).
+   *
+   * It changes exactly one thing and only where NA ≥ n: whether there is an
+   * `exactInFocusFraction`. Below the wall the lit rim and the nominal rim are
+   * the same rim and this is inert; at or above it the band is the lit rim's,
+   * which is the right band **only** if the pupil really is dark past 1/s. An
+   * untruncated pupil at NA ≥ n is not a mount, it is the pairing § 6k.9 refused,
+   * and it keeps having no exact band.
+   *
+   * `mountVolumeOptions` sets it, from the same spec `mountPupils` truncates
+   * from, and is the only thing that should: this is the § 6l.10 guard one level
+   * out — the promise is made by the function that applies the wall, not by a
+   * flag a bare caller could set wrong. `MountVolumeOptions` therefore removes it
+   * from what a caller may supply, and `mountVolumeOptions` refuses it at runtime
+   * as it refuses the other coupled four.
+   */
+  readonly pupilTruncatedAtMount?: boolean;
   /** Supply to get a physical `pixelScaleMm` back; omit for grid units. */
   readonly scale?: PupilScale;
   /** Called once per slice imaged, for progress and cost accounting. */
@@ -567,10 +640,17 @@ export interface VolumeImage {
    * both are quarter-wave bands, they differ only in which wavefront spends the
    * quarter wave, and every reading already recorded is the first one's.
    *
-   * **Absent when NA ≥ n**, which is not a cone the medium can carry: there is
-   * no aperture angle to take a cosine of, so there is no exact band either.
-   * The paraboloid accepts such a pairing without noticing, which is one more
-   * thing it hides.
+   * **Present on a truncating mount too, since § 6l.11**: NA ≥ n used to mean
+   * "no aperture angle, so no band", and it now means the band is read at the rim
+   * the light reaches, ρ = n/NA, where it is λ/(4n) per side whatever the NA. It
+   * is still the same criterion as `inFocusFraction`'s, on the same wavefront the
+   * picture is drawn on.
+   *
+   * **Absent** for a non-finite NA/n — the Infinity a zero index gives, before
+   * `defocusWaves` refuses it — and absent at NA ≥ n without
+   * `pupilTruncatedAtMount`, which is the pairing § 6k.9 refused rather than a
+   * mount: there the paraboloid still renders and still has no aperture angle to
+   * be wrong about, which is the older band's real weakness and is unchanged.
    */
   readonly exactInFocusFraction?: number;
   /** Max over slices — the grid's ability to carry the worst kernel it saw. */
@@ -617,12 +697,16 @@ export function renderVolume(
       ? pupils
       : objectDefocusing(pupils, objectSinAlpha(options.numericalAperture, nMedium));
   // The exact band is reported for a supplied callback too: it is a property of
-  // the objective, not of who built the pupils. The comparison, not a validator,
-  // is what decides: a pairing with no aperture angle in it (NA ≥ n, and the
-  // Infinity a zero index would give before `defocusWaves` refuses it) fails
-  // `< 1` and simply has no exact band.
+  // the objective, not of who built the pupils. Since § 6l.11 that includes the
+  // truncating mount, where the band is the LIT rim's — but only on the promise
+  // that the pupil is dark past 1/s, because an untruncated pupil at NA ≥ n is
+  // the pairing § 6k.9 refused rather than a mount. The bare-pupil arm above
+  // cannot reach NA ≥ n at all (`objectSinAlpha` refuses first), so this reads as
+  // the callback arm's version of the same guard.
   const sinAlpha = options.numericalAperture / nMedium;
-  const exactHalfDepthMm = sinAlpha < 1 ? halfDepthMm * exactDepthFactor(sinAlpha) : undefined;
+  const exactBand =
+    sinAlpha < 1 || (options.pupilTruncatedAtMount === true && sinAlpha < Infinity);
+  const exactHalfDepthMm = exactBand ? halfDepthMm * exactDepthFactor(sinAlpha) : undefined;
 
   const intensity = new Float64Array(n * n);
   const sliceFlux: number[] = [];
@@ -848,16 +932,49 @@ export function missingConeEdge(nu: number): number {
  * oil, which is § 6k's recorded 2.6× — while the peak at ν = 1 grows only
  * 1.4470×. So a high-aperture objective sections better than the paraboloid says
  * everywhere, and most where it sections worst.
+ *
+ * ## The truncating mount: the same maximum, taken over the pupil that is lit
+ *
+ * `exactDepthFactor`'s rim moves to ρ_e = min(1, 1/s) and so does this one's
+ * (§ 6l.11) — it is the same derivation with the outer point of the pair put
+ * where the light stops rather than where the glass stops. With ρ_e = 1/s the
+ * outer point sits at cos θ = 0 and the whole expression collapses:
+ *
+ *     μ_max(ν) = (2/s²) · √(1 − (1 − s·ν)²),      s ≥ 1
+ *
+ * and the lateral cutoff comes in with it, at ν = 2ρ_e = 2/s rather than at 2 —
+ * which is the delivered NA and not the engraved one, the same loss § 6l.3's wall
+ * puts in the picture. The peak is 2/s² at ν = 1/s, so on an oil 1.40 over water
+ * the axial band at the delivered rim is 1.817 against the matched row's 1.443:
+ * a truncated pupil sections *better per unit of lateral frequency* over a
+ * *narrower* range of them, which is the missing cone reshaped rather than
+ * filled — it still closes at ν = 0.
+ *
+ * The two branches are one function of ρ_e and are written apart only to keep
+ * 1/s out of the arithmetic: below the wall every value is bitwise what it was,
+ * and at s = 1 the two spellings are one real number that f64 rounds twice.
  */
 export function ewaldConeEdge(nu: number, sinAlpha: number): number {
   if (!(nu >= 0)) throw new Error(`ewaldConeEdge: ν must be non-negative, got ${nu}`);
-  if (!(sinAlpha >= 0 && sinAlpha < 1)) {
-    throw new Error(`ewaldConeEdge: sin α must lie in [0, 1), got ${sinAlpha}`);
+  if (!(sinAlpha >= 0 && sinAlpha < Infinity)) {
+    throw new Error(`ewaldConeEdge: sin α must be finite and non-negative, got ${sinAlpha}`);
   }
-  if (nu >= 2) return 0;
-  const a = 1 - nu;
   const s2 = sinAlpha * sinAlpha;
-  return (2 * (1 - a * a)) / (Math.sqrt(1 - s2 * a * a) + Math.sqrt(1 - s2));
+  // s = 1 is the truncating branch and not this one, though both rims are ρ = 1
+  // there and the two spellings agree to an ulp: this one is 0/0 at ν = 0 when
+  // √(1 − s²) is exactly zero, and the missing cone closes at ν = 0 rather than
+  // going missing there. Below 1 the denominator is positive and every value is
+  // bitwise what it was.
+  if (sinAlpha < 1) {
+    if (nu >= 2) return 0;
+    const a = 1 - nu;
+    return (2 * (1 - a * a)) / (Math.sqrt(1 - s2 * a * a) + Math.sqrt(1 - s2));
+  }
+  // ν ≥ 2/s, spelled as the product so the cutoff test and the phase argument
+  // round the same way — and so neither of them forms 1/s.
+  if (sinAlpha * nu >= 2) return 0;
+  const b = 1 - sinAlpha * nu;
+  return (2 / s2) * Math.sqrt(Math.max(1 - b * b, 0));
 }
 
 /**

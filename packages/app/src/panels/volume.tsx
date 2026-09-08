@@ -101,6 +101,24 @@ const GRID_STEP_LIMIT = 0.5;
 const formatRatio = (value: number): string =>
   value >= 1 ? `${value.toFixed(2)}× brighter` : `${(1 / value).toFixed(2)}× dimmer`;
 
+/**
+ * The exact band against the paraboloid's, worded to the sign of the difference.
+ *
+ * `formatRatio`'s problem one field down: "N% narrower" was written when the
+ * exact band was always the shorter one, and § 6l.11 ended that. Past the wall
+ * the band is λ/2n with the NA cancelled out while the paraboloid's keeps
+ * shrinking as 1/NA², so the ratio bottoms out at ½ (at sin α = 1) and climbs
+ * back through 1 at sin α² = 2 — reachable on an objective engraved past 1.4142
+ * over air. The equal case is spelled as its own phrase rather than as 0.0%.
+ */
+const bandWidthPhrase = (exactUm: number, paraboloidUm: number): string => {
+  const pct = (exactUm / paraboloidUm) * 100;
+  if (pct === 100) return "of exactly that width";
+  return pct < 100
+    ? `${(100 - pct).toFixed(1)}% narrower`
+    : `${(pct - 100).toFixed(1)}% wider`;
+};
+
 /** Below this the bilinear splat outweighs the optics — A4's measured floor. */
 const PIXELS_PER_CELL_FLOOR = 3;
 
@@ -810,7 +828,7 @@ export function VolumePanel() {
         <Choice
           label={
             readout === null || readout.capSinAlpha === null
-              ? "depth wavefront — no aperture angle on this mount, so the paraboloid is the only one"
+              ? "depth wavefront — this NA is not below the medium the objective was corrected for, so there is no cone to truncate and the paraboloid is the only one"
               : `depth wavefront — ${
                   readout.depthWavefront === "exact" ? "n·δ·cosθ, exact" : "the quadratic that osculates it"
                 }`
@@ -856,12 +874,13 @@ export function VolumePanel() {
               <br />
               {readout.capSinAlpha === null || readout.exactDepthOfFocusUm === null ? (
                 <span style={{ color: GUARD_COLOR.warn }}>
-                  drawn on the <strong>paraboloid</strong>, and not by choice — this mount is rarer
-                  than the immersion, so NA {readout.tracedNA.toFixed(2)} over n{" "}
-                  {readout.mountIndex.toFixed(4)} is no cone the medium can carry and the engine
-                  refuses an aperture angle for it. The rim beyond ρ ={" "}
-                  {(readout.mountIndex / readout.tracedNA).toFixed(4)} is dark anyway, which is the
-                  same radius the exact phase runs out at — but the engine does not yet say so
+                  drawn on the <strong>paraboloid</strong>, and not by choice — NA{" "}
+                  {readout.tracedNA.toFixed(2)} is not below the {readout.objectMedium} (
+                  {readout.objectMediumIndex.toFixed(4)}) this objective was corrected for, so there
+                  is no cone for the mount to truncate and the engine refuses an aperture angle. A
+                  mount rarer than the immersion is <em>not</em> this case: it has had the exact cap
+                  since § 6l.10 and its band since § 6l.11, both read at the lit rim ρ ={" "}
+                  {(readout.mountIndex / readout.tracedNA).toFixed(4)}
                 </span>
               ) : (
                 <>
@@ -879,8 +898,12 @@ export function VolumePanel() {
                     <strong>{(readout.exactDepthOfFocusUm * 1000).toFixed(1)} nm</strong> against the
                     paraboloid&rsquo;s {(readout.depthOfFocusUm * 1000).toFixed(1)} —{" "}
                     {((readout.exactDepthOfFocusUm / readout.depthOfFocusUm) * 100).toFixed(2)}% of
-                    it, which is (1 + cos α)/2 — and it is quoted either way, because the band
-                    belongs to the objective and the mount rather than to this render
+                    it
+                    {readout.deliveredNA < readout.tracedNA
+                      ? " — read at the lit rim, where cos θ is 0, so it is λ/2n with the NA cancelled out: this mount would give the same band to a wider objective"
+                      : ", which is (1 + cos α)/2"}{" "}
+                    — and it is quoted either way, because the band belongs to the objective and the
+                    mount rather than to this render
                   </span>
                 </>
               )}
@@ -951,9 +974,9 @@ export function VolumePanel() {
                         one <em>paraboloid</em> depth of focus, so the focused plane sits at zero and
                         its neighbours a whole step away. A window{" "}
                         {readout.exactDepthOfFocusUm === null
-                          ? ""
-                          : `${(100 - (readout.exactDepthOfFocusUm / readout.depthOfFocusUm) * 100).toFixed(1)}% `}
-                        narrower still catches that one plane and still misses those two. Separating
+                          ? "of a different width"
+                          : bandWidthPhrase(readout.exactDepthOfFocusUm, readout.depthOfFocusUm)}{" "}
+                        still catches that one plane and still misses those two. Separating
                         them needs a slab stepped finer than the window, which costs this panel its
                         one-plane-per-window rule
                       </span>

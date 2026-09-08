@@ -787,13 +787,18 @@ describe("§ 6k.8 — the exact cap, and the paraboloid that osculates it", () =
       }
     }
     expect(() => ewaldConeEdge(-1, 0.5)).toThrow(/non-negative/);
-    // § 6l.10 moved the s ≥ 1 refusal off `withObjectDefocus` and onto the
+    // ~~§ 6l.10 moved the s ≥ 1 refusal off `withObjectDefocus` and onto the
     // conversions, and this is the rung that says which side of that line
     // `ewaldConeEdge` fell on. It evaluates √(1 − s²) — the cap AT ρ = 1, the
     // nominal rim — so it is a ρ = 1 object like `exactDepthFactor`, and on a
-    // mount that truncates, that rim is dark. Its guard stays.
-    expect(() => ewaldConeEdge(1, 1)).toThrow(/sin α/);
-    expect(() => ewaldConeEdge(1, 1.05)).toThrow(/sin α/);
+    // mount that truncates, that rim is dark. Its guard stays.~~ § 6l.11 moved
+    // the rim instead: min(1, 1/s) is the nominal rim below the wall and the lit
+    // one above it, so the refusal is gone and only a non-finite s is left.
+    expect(ewaldConeEdge(1, 1)).toBe(2);
+    expect(ewaldConeEdge(1, 1.05)).toBeGreaterThan(0);
+    expect(() => ewaldConeEdge(1, Infinity)).toThrow(/sin α/);
+    expect(() => ewaldConeEdge(1, NaN)).toThrow(/sin α/);
+    expect(() => ewaldConeEdge(1, -0.5)).toThrow(/sin α/);
   });
 
   it("TWO ratios, not one: 1/cos α at the axis is a LIMIT, and the peak grows by less", () => {
@@ -1115,7 +1120,15 @@ describe("§ 6k.9 — the engine chooses the cap, and the band it counts as focu
     expect(() => objectSinAlpha(1.4, 1.4)).toThrow(/index above it/);
     expect(() => objectSinAlpha(0, 1.5)).toThrow(/NA/);
     expect(() => objectSinAlpha(0.5, 0)).toThrow(/refractive index/);
-    expect(() => exactDepthFactor(1)).toThrow(/sin α/);
+    // `objectSinAlpha` keeps that refusal because it is the BARE pupil's
+    // conversion — § 6l.10's rule, and `objectDefocusing` is the door it guards.
+    // ~~`exactDepthFactor` refuses the same s~~: since § 6l.11 it reads the rim
+    // the light reaches instead, so it answers at s ≥ 1 and refuses only what is
+    // not a number at all.
+    expect(exactDepthFactor(1)).toBe(0.5);
+    expect(() => exactDepthFactor(Infinity)).toThrow(/sin α/);
+    expect(() => exactDepthFactor(NaN)).toThrow(/sin α/);
+    expect(() => exactDepthFactor(-1e-300)).toThrow(/sin α/);
   });
 
   it("the band and the rim phase are ONE statement: (1+cos α)/2 is the reciprocal of the other", () => {
@@ -1258,7 +1271,10 @@ describe("§ 6k.9 — the engine chooses the cap, and the band it counts as focu
     // accepts it and returns a depth of focus for it, which is the older band's
     // real weakness — it is a quadratic in ρ and has no aperture angle to be
     // wrong about. So the field is absent rather than wrong, and the render it
-    // came from is otherwise unchanged.
+    // came from is otherwise unchanged. § 6l.11 did not loosen this: a mount
+    // rarer than the immersion gets a band at its LIT rim, on the promise
+    // `mountVolumeOptions` carries that the pupil is truncated there. This pupil
+    // is not, so the refusal stands exactly where § 6k.9 put it.
     const volume = { size: SIZE, slices: stackOf(depthOfFocusMm(LAMBDA, 1.4), bead()) };
     const image = renderVolume(volume, defocusing(idealPupil()), {
       pupilSamples: PUPIL_SAMPLES,

@@ -204,29 +204,61 @@ describe("§ 6k.9 in the app — the band, and the light that happens to be in i
   });
 });
 
-describe("§ 6k.9 in the app — the two mounts that cannot have it, and the radius that says why", () => {
-  it("shows the engine's refusal rather than defaulting past it", () => {
-    // An oil 1.40 over water or air is NA ≥ n, which `objectSinAlpha` refuses:
-    // sin α ≥ 1 is not a cone a medium can carry. The panel renders anyway — on
-    // the paraboloid — and every exact-cap field is null TOGETHER, so a caption
-    // cannot print one of them beside a picture drawn without the others.
+describe("§ 6l.11 in the app — the two mounts that could not have it, and the rim that gave it", () => {
+  it("~~shows the engine's refusal rather than defaulting past it~~ — both rows now carry the cap", () => {
+    // What this rung pinned: an oil 1.40 over water or air is NA ≥ n, which
+    // `objectSinAlpha` refused, so every exact-cap field was null TOGETHER and
+    // the picture stayed on the paraboloid. § 6l.10 gave those rows the exact
+    // phase and § 6l.11 the band at the rim their light actually reaches, so the
+    // absent-together invariant is now kept by nothing being absent — which is
+    // the whole of what register item 18 was blocking.
     for (const mount of ["WATER", "AIR"] as MountChoice[]) {
       const r = readout(base(OIL, 32, mount));
-      expect(r.capSinAlpha).toBeNull();
-      expect(r.exactDepthOfFocusUm).toBeNull();
-      expect(r.exactInFocusFraction).toBeNull();
-      // Still a picture, and still the paraboloid's: identical to the render this
-      // module made before the change, which is `withObjectDefocus` at 0 being
-      // `withDefocus` bitwise.
+      expect(r.capSinAlpha).not.toBeNull();
+      expect(r.exactDepthOfFocusUm).not.toBeNull();
+      expect(r.exactInFocusFraction).not.toBeNull();
+      expect(r.depthWavefront).toBe("exact");
+      // sin α is above 1 here and is not an aperture angle: it is NA/n_s, and
+      // 1/s is where the pupil goes dark (§ 6l.10).
+      expect(r.capSinAlpha!).toBeGreaterThan(1);
+      expect(r.capSinAlpha!).toBe(r.tracedNA / r.mountIndex);
+      // The headline, and it is NA-free: the band is λ/2n, so it does not depend
+      // on the traced aperture at all — 206.0 nm out of water, 275.0 out of air.
+      // The outermost ray the specimen delivers is grazing and a wider pupil adds
+      // none, which is why a number that used to scale as 1/NA² has stopped.
+      expect(r.exactDepthOfFocusUm!).toBeCloseTo(LAMBDA_NM * 1e-3 / (2 * r.mountIndex), 12);
+      // And the picture is no longer the paraboloid's: this is § 6l.10's change
+      // arriving on screen, the largest one the ladder has.
       const para = paraboloidRender(OIL, 32, mount);
-      for (let i = 0; i < r.intensity.length; i += 977) {
-        expect(r.intensity[i]!).toBe(para.intensity[i]!);
-      }
+      expect(gapOverPeak(r.intensity, para.intensity, para.peak)).toBeGreaterThan(0.05);
     }
+    // Water and air read 206.0 and 275.0 nm against paraboloid bands that differ
+    // by more than that, so the percentages are NOT ordered the way the shortening
+    // sentence assumed: 55% on water, 98% on air. The second is 1.4²/2 and an
+    // arithmetic coincidence rather than a small correction.
+    const water = readout(base(OIL, 32, "WATER"));
+    const air = readout(base(OIL, 32, "AIR"));
+    // Against the closed form first, so the percentages below are a reading of
+    // the identity rather than two numbers that happen to agree.
+    for (const r of [water, air]) {
+      expect(r.exactDepthOfFocusUm! / r.depthOfFocusUm).toBeCloseTo(
+        (r.capSinAlpha! * r.capSinAlpha!) / 2,
+        12,
+      );
+    }
+    expect(water.exactDepthOfFocusUm! / water.depthOfFocusUm).toBeCloseTo(0.5512, 4);
+    // Air's mount index is exactly 1, so this one is 1.4²/2 and nothing else —
+    // and 98% is what an arithmetic coincidence looks like beside a band that
+    // changed by a factor of two in the wavefront it is read on.
+    expect(air.exactDepthOfFocusUm! / air.depthOfFocusUm).toBeCloseTo(0.98, 6);
+    expect(air.exactDepthOfFocusUm!).toBeGreaterThan(water.exactDepthOfFocusUm!);
     // And the helper is the one place that decides, so it says the same thing.
+    // What it still refuses is the immersion-side question a mount cannot ask of
+    // itself — an NA at or above the medium the objective was corrected for.
     const system = oilSystem();
-    expect(exactCapSinAlpha(resolveMount(system, "WATER"), 1.4)).toBeNull();
+    expect(exactCapSinAlpha(resolveMount(system, "WATER"), 1.4)).not.toBeNull();
     expect(exactCapSinAlpha(resolveMount(system, "matched"), 1.4)).not.toBeNull();
+    expect(exactCapSinAlpha(resolveMount(system, "WATER"), 99)).toBeNull();
   });
 
   it("puts the mount's dark rim at exactly the cap's own branch radius", () => {

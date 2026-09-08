@@ -223,6 +223,14 @@ export interface FieldVolumeOptions {
   readonly refractiveIndex?: number;
   /** Which depth the objective is focused on (object mm). Defaults to 0. */
   readonly focusMm?: number;
+  /**
+   * `VolumeImageOptions.pupilTruncatedAtMount`, on the same terms and for the
+   * same one effect — whether NA ≥ n has an exact band (§ 6l.11). Carried here so
+   * the two renderers answer that question by the same rule; nothing in the
+   * engine sets it on this side yet, because § 6bd's field pupils have no mount
+   * builder to emit it from.
+   */
+  readonly pupilTruncatedAtMount?: boolean;
   /** Supply to get a physical `pixelScaleMm` back; omit for grid units. */
   readonly scale?: PupilScale;
   /** Called once per patch finished, for progress and cost accounting. */
@@ -294,7 +302,9 @@ export interface FieldVolumeImage {
    * throughput cancels only if the specimen separates — applies to this number
    * in the same words.
    *
-   * **Absent when NA ≥ n**, which is not a cone the medium can carry.
+   * **Present on a truncating mount too, since § 6l.11** — NA ≥ n reads the band
+   * at the lit rim rather than having none, on `pupilTruncatedAtMount`'s promise.
+   * Absent without it, and for a non-finite NA/n.
    */
   readonly exactInFocusFraction?: number;
   /**
@@ -362,10 +372,13 @@ export function renderFieldVolume(
   const halfDepthMm =
     (nMedium * options.wavelengthNm * 1e-6) /
     (2 * options.numericalAperture * options.numericalAperture);
-  // § 6k.9's band, on the same terms `renderVolume` reports it: a pairing with
-  // no aperture angle in it (NA ≥ n) fails the comparison and has no exact band.
+  // § 6k.9's band, on the same terms `renderVolume` reports it — including
+  // § 6l.11's: NA ≥ n is the truncating mount's band at its own lit rim, and only
+  // on the promise that the pupil is truncated there.
   const sinAlpha = options.numericalAperture / nMedium;
-  const exactHalfDepthMm = sinAlpha < 1 ? halfDepthMm * exactDepthFactor(sinAlpha) : undefined;
+  const exactBand =
+    sinAlpha < 1 || (options.pupilTruncatedAtMount === true && sinAlpha < Infinity);
+  const exactHalfDepthMm = exactBand ? halfDepthMm * exactDepthFactor(sinAlpha) : undefined;
 
   // Precomputed rather than recomputed per patch: the defocus a slice sits at is
   // a property of the stack, not of the field position, and `renderVolume`

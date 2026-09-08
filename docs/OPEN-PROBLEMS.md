@@ -352,8 +352,9 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     and wiring one without the other breaks the panel's caption invariant. That
     residue is **item 18**.
 
-18. **Every depth-of-focus reading is taken at a rim that a truncating mount
-    leaves dark.** Opened at § 6l.10 as the half of item 17 that did not close.
+18. ~~**Every depth-of-focus reading is taken at a rim that a truncating mount
+    leaves dark.**~~ **Closed at [§ 6l.11](VALIDATION.md#6l11--the-band-at-the-rim-the-light-reaches).**
+    Opened at § 6l.10 as the half of item 17 that did not close.
     `depthOfFocusMm` and `exactDepthFactor` both define the band at the **nominal**
     pupil rim ρ = 1, and on an oil 1.40 over water the light stops at ρ = 0.9533.
     So the phase is now exact on that mount and the band is still absent: § 6l.10
@@ -389,6 +390,26 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     argument and a renaming, and its cost is in the readings it would have to
     restate, not in what it would have to trace. Also `depthOfFocusMm`'s own doc
     comment now says this at the function, so a caller meets it there.
+
+    **How it closed, and the entry was wrong about the shape of the answer in two
+    ways.** The choice went to the lit rim, written as **ρ_e = min(1, 1/s)** — and
+    that min is what dissolved the entry's own objection. The two rims coincide
+    everywhere a reading was ever taken, so nothing on the ladder is incomparable
+    with anything and **no reading was restated**: § 6l.11 pins the factor bitwise
+    against its old spelling at 4000 apertures below the wall. The cost the entry
+    priced — "the readings it would have to restate" — was zero.
+
+    The second error is the ½ itself. It is a ratio to a paraboloid measured at
+    the *same* lit rim; `exactDepthFactor` multiplies the paraboloid at the
+    **nominal** rim, and against that reference the factor is **s²/2**. Quoting
+    the ½ would have shipped a band wrong by a factor of s². What the lit rim
+    actually buys is a saturation the entry never names: past the wall the
+    half-band is **λ/(4·n_s)** with the NA cancelled out, so an oil engraved 1.40,
+    1.45 or 1.49 gets the same 206.04 nm out of water. And f is not monotone — it
+    bottoms at ½ and crosses 1 at s² = 2, so an oil 1.45 over air has a band
+    *longer* than the paraboloid's, which falsified every "% shorter" sentence in
+    the engine and the app. `packages/app`'s WATER and AIR rows now carry the cap
+    and the band together.
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
     the planes `spectralStack` resamples onto the common grid come back +0.3%
@@ -799,7 +820,21 @@ radial-map nodes · § 6ba differential bleaching.
     the slip). The "identity of two forms" was not one: it holds in the radius and
     breaks in the radius², so the fix was to delete the second boundary rather
     than align it. The band did not follow, and that is **item 18**.
-14. **The band at a rim that is dark** (item 18): the residue of 17, and the one
+14. ~~**The band at a rim that is dark** (item 18): the residue of 17, and the one
     entry left whose blocker is a *convention* rather than a measurement — every
     depth-of-focus reading the ladder has is taken at the nominal rim ρ = 1, and a
-    truncating mount has no light there. It is item 16's shape one level down.
+    truncating mount has no light there. It is item 16's shape one level down.~~ ✅
+    — landed at § 6l.11, and the convention cost nothing it was priced at. Writing
+    the rim as min(1, 1/s) makes the lit-rim band an *extension* rather than a
+    rival: the two rims coincide on every reading the ladder has, so nothing was
+    restated and the factor is bitwise its old self below the wall. The entry's ½
+    was a ratio to the wrong reference — s²/2 is what the engine's own band
+    multiplies — and what the lit rim really buys is a **saturation**: λ/(4·n_s)
+    per side with the NA cancelled out. One thing it falsified along the way: the
+    exact band is not always the shorter one, crossing at s² = 2.
+
+15. **The off-machine run** (the structural problem at the top): one confirming
+    run of the ladder on a second machine, now a check rather than a piece of
+    work — though not the cheap command this file called it, since the Linux
+    subsystem on the author's box has no Node installed. Then Part A's items 10,
+    11 and 12, none of which has an external number named yet.

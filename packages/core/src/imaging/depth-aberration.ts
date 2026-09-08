@@ -395,7 +395,7 @@ export function mountPupils(
  */
 export type MountVolumeOptions = Omit<
   VolumeImageOptions,
-  "numericalAperture" | "wavelengthNm" | "refractiveIndex" | "focusMm"
+  "numericalAperture" | "wavelengthNm" | "refractiveIndex" | "focusMm" | "pupilTruncatedAtMount"
 >;
 
 export function mountVolumeOptions(
@@ -403,7 +403,13 @@ export function mountVolumeOptions(
   rest: MountVolumeOptions,
 ): VolumeImageOptions {
   checkSpec(spec);
-  for (const key of ["numericalAperture", "wavelengthNm", "refractiveIndex", "focusMm"]) {
+  for (const key of [
+    "numericalAperture",
+    "wavelengthNm",
+    "refractiveIndex",
+    "focusMm",
+    "pupilTruncatedAtMount",
+  ]) {
     // An explicit `undefined` is let through rather than refused: three of the
     // four are optional on `VolumeImageOptions`, so an options object that was
     // destructured and respread legitimately carries the key unset — and the
@@ -425,6 +431,12 @@ export function mountVolumeOptions(
     // The geometry is in the MOUNT: W = ½·δ·NA²/n, and δ is measured there.
     refractiveIndex: spec.mountIndex,
     focusMm: spec.focusDepthMm,
+    // § 6l.11's promise, and it is emitted from the same spec `withMountAberration`
+    // reads the wall out of — so the flag and the truncation cannot be set apart.
+    // Always present rather than only when it truncates: `mountAperture` is the
+    // engine's own answer to that question, and a `false` says the wall was
+    // considered where an absent key would say nobody looked.
+    pupilTruncatedAtMount: mountAperture(spec) < spec.numericalAperture,
   };
 }
 

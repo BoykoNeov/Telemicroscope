@@ -137,7 +137,22 @@ at ρ = min(NA, n_s)/NA and § 6k.8's branch radius at ρ = n/NA are the same
 expression — and what that identity predicts is sharper than "the cap matters
 more there": a truncating mount puts the lit rim exactly at the branch point, so
 the exact band is exactly HALF the paraboloid's, for every such mount rather than
-asymptotically. It is the next entry.
+asymptotically.
+
+**Item 17 landed at § 6l.10 and its residue, item 18, at § 6l.11**, and the
+prediction above was wrong in both halves. The identity holds in the radius and
+**breaks in the radius²**, where both engine sites work — so the fix was to delete
+the second boundary rather than align it, and the phase now needs no radius at
+all. And the "exactly HALF" is a ratio to a paraboloid measured at the *same* lit
+rim; the engine's band multiplies the paraboloid at the **nominal** rim, where the
+factor is s²/2 — quoting the ½ would have shipped a band wrong by a factor of s².
+What the lit rim really buys is a saturation nobody predicted: past the wall the
+depth of focus is **λ/2n with the NA cancelled out**, so an oil engraved 1.40,
+1.45 or 1.49 gets the same band out of the same water, and the exact band is not
+even always the shorter one — it crosses the paraboloid's at sin α² = 2. All four
+of the panel's mount rows now carry the cap and the band together. What is left in
+the register is the confirming run on a second machine and Part A's items 10, 11
+and 12.
 
 ## Build order
 

@@ -65,7 +65,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice, **6k.9** chosen from NA/n, band ×0.693 | `volume` |
-| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack, so no new physics — and its headline is not an aberration: no ray of invariant above n_s leaves the specimen, so an oil 1.40 delivers exactly 1.3347 into water; **6l.10** a rarer mount takes sin α ≥ 1 and the exact cap, 0.4113 of peak | `depth-aberration` |
+| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack — no new physics, and the headline is no aberration: no ray of invariant above n_s leaves it, an oil 1.40 delivering 1.3347 into water; **6l.10** a rarer mount takes sin α ≥ 1 and the cap, 0.4113 of peak; **6l.11** its band at the lit rim, λ/2n | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature ×4.000 per doubling — and an off-axis tile ANISOTROPIC in § 6h.1's ratio 3 | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
@@ -10598,7 +10598,13 @@ and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
 | **6l.10** √max(disc,0): bitwise `withDefocus` at s = 0, bitwise unchanged inside the unit disc at s < 1, and exactly 2× the paraboloid at s·ρ = 1 | closed form, `toBe` | ✅ |
 | **6l.10** Four different finite phases beyond the wall give a bitwise-identical image | § 6l.3's amplitude is zero there | ✅ |
 | **6l.10** Exact cap vs paraboloid on a water mount: 0.4113 of peak at the slip against § 6k.9's 0.2893 matched, decaying to 0.0244 at 10 µm as the peak falls 3.61× | § 6k.9's stack, measured | ✅ |
-| **6l.10** `exactDepthFactor` and `ewaldConeEdge` still refuse s ≥ 1 — they read the cap at the NOMINAL rim, which a truncating mount leaves dark | supremum, not maximum | ✅ |
+| **6l.10** ~~`exactDepthFactor` and `ewaldConeEdge` still refuse s ≥ 1 — they read the cap at the NOMINAL rim, which a truncating mount leaves dark~~ closed at § 6l.11 | supremum, not maximum | ✅ |
+| **6l.11** The rim is ρ_e = min(1, 1/s): `exactDepthFactor` bitwise the old form at 4000 apertures below 1, `ewaldConeEdge` bitwise at five | `toBe`, not agreement | ✅ |
+| **6l.11** Past the wall the half-band is λ/4n_s with NA cancelled — 206.04 nm out of water for an objective engraved 1.40, 1.45 or 1.49 alike | closed form, NA-free | ✅ |
+| **6l.11** The factor is (1+cos α)/2 below the wall and s²/2 above it, minimum exactly ½ at s = 1, crossing 1 at s² = 2 — so the exact band is LONGER on an oil 1.45 over air | monotone either side, bracketed | ✅ |
+| **6l.11** `ewaldConeEdge` on a truncating mount against a brute-force maximum over lit pairs: peak 2/s² = 1.8177 at ν = 1/s, cutoff at the DELIVERED 2/s, still closed at ν = 0 | search over pairs, 1e-12 | ✅ |
+| **6l.11** The band is a promise, not an inspection: an untruncated pupil at s ≥ 1 still has no `exactInFocusFraction`, and `mountVolumeOptions` refuses a caller's flag | § 6k.9's refusal kept where it was right | ✅ |
+| **6l.11** Setting the promise moves no light: same picture, `sliceFlux` and grid step bitwise, so § 6k.1 cannot notice a counting window | identity rung | ✅ |
 
 ### 6l.1 — the literature quotes it in a different reference, and the natural check reads backwards
 
@@ -10893,7 +10899,7 @@ aberration has taken 3.61× off the peak. The choice of depth wavefront matters 
 the top of a specimen and is swamped at the bottom — the opposite shape from
 § 6k.9's matched case, where there is no mount to swamp it.
 
-**What it does not do is the band, and that is a refusal rather than an
+~~**What it does not do is the band, and that is a refusal rather than an
 omission.** `exactDepthFactor` and `ewaldConeEdge` both evaluate the cap at the
 **nominal** rim ρ = 1, and on a truncating mount that rim is dark; both keep
 refusing s ≥ 1, and the rung pins that they do. The lit rim is a different rim,
@@ -10902,7 +10908,113 @@ so `packages/app` deliberately does not move either. Wiring the picture alone
 would put `capSinAlpha` and `exactDepthOfFocusUm` on opposite sides of the same
 `null`, and the panel's caption invariant is that they are absent *together*,
 which exists precisely so a caption cannot describe one wavefront beside a
-picture drawn on another. That is item 16's lesson, and it is not unlearned here.
+picture drawn on another. That is item 16's lesson, and it is not unlearned
+here.~~ **Closed at [§ 6l.11](#6l11--the-band-at-the-rim-the-light-reaches)**,
+which took the convention rather than inventing a second criterion: the rim
+becomes min(1, 1/s), which is ρ = 1 wherever the mount carries the pupil, so the
+readings above are inside the new rule rather than beside it.
+
+
+### 6l.11 — the band at the rim the light reaches
+
+*Source: engine change — `exactDepthFactor` and `ewaldConeEdge`
+(`imaging/volume`), `exactDepthOfFocusMm` (`imaging/emission`), and the
+`pupilTruncatedAtMount` promise `mountVolumeOptions` emits
+(`imaging/depth-aberration`).*
+
+The register's item 18, opened by § 6l.10 as the half of 17 that did not close,
+and the only entry left whose blocker was a **convention** rather than a
+measurement — the register said as much, and said that what would refute it is
+an argument rather than a run. § 6l.10 gave a mount rarer than the immersion the
+exact depth phase and left every depth-of-focus reading on the ladder defined at
+the **nominal** pupil rim ρ = 1, which such a mount leaves dark. The phase was
+right and the band was absent, and `packages/app` could show neither because
+showing one without the other is what item 16 forbade.
+
+**The convention, and why it is an extension rather than a second criterion.**
+The quarter-wave criterion is a peak-to-valley across the **aperture**, and
+§ 6l.3's wall is where the aperture stops: ρ_e = min(1, 1/s). Below the wall
+that is ρ = 1, so every band the ladder has recorded is *inside* the new rule
+rather than beside it — pinned as **bitwise**, at 4000 apertures for the factor
+and five for the cone edge, rather than as agreement. Above the wall the two
+rims part and the light's own rim is the one with light at it. The register's
+worry that a lit-rim band would make every existing reading incomparable turns
+on quoting the ½ as though it were the same object; it dissolves the moment the
+rim is written as a min, because the two rims coincide everywhere a reading was
+taken. It is one convention, and it has one closed form:
+
+    f(s) = (1 + √max(1 − s², 0)) · max(1, s²) / 2
+
+with exactly one of the two factors ever differing from 1.
+
+**The physics is a saturation, and it is what the entry was actually about.**
+Past the wall cos θ at the lit rim is exactly 0, so the half-band is
+
+    λ / (4·n_s),      with the NA cancelled out
+
+— 206.04 nm of full band out of water and 275.0 nm out of air at λ = 550, and an
+objective engraved 1.45 or 1.49 gets the same two numbers as one engraved 1.40.
+Once the mount truncates, more aperture buys no further axial confinement,
+because the outermost ray the specimen delivers is already grazing. That is the
+statement the app's WATER and AIR rows were missing, and it is a stronger one
+than the entry predicted.
+
+**The register's "exactly ½" is a ratio to a different reference, and shipping
+it would have been wrong by s².** § 6l.10 pins the exact cap at s·ρ = 1 as
+exactly twice the paraboloid, so against a paraboloid measured at the *same* lit
+rim the band is exactly half — the clean number the entry named. But
+`exactDepthFactor` multiplies `depthOfFocusMm`, which is n·λ/NA², the paraboloid
+at the **nominal** rim; against that reference the factor is s²/2. Two criteria
+wearing one name is exactly what § 6k.9 refused to do to § 6k.2, and it would
+have put the band out by a factor of s² — 1.10 on the shipped water row and 1.96
+on the air one. The rung pins both spellings and the ρ_e² that converts them.
+
+**So "the exact band is shorter" stops being true, which is the finding nobody
+asked for.** f falls to a minimum of exactly ½ at s = 1 and **climbs back**,
+crossing 1 at s² = 2: an oil 1.45 over air has a band 5.1% LONGER than the
+paraboloid's. Nothing about the wavefront changed there — the reference kept
+shrinking as 1/NA² after the band had stopped. Every "% shorter" sentence in the
+engine and the app is now a "%", with the direction read off the value, and the
+shipped air row's 98.00% is 1.4²/2 rather than a small correction.
+
+**The missing cone's boundary moves with the same rim.** `ewaldConeEdge` is the
+same maximum over pupil pairs with the outer point put where the light stops, and
+past the wall it collapses to (2/s²)·√(1 − (1 − s·ν)²): peak 2/s² = 1.8177 on the
+water row against the matched row's 1.4429, and the lateral cutoff comes in with
+the rim, at the **delivered** 2/s rather than at 2. A truncated pupil sections
+better per unit of lateral frequency over fewer of them — the missing cone
+reshaped rather than filled, and it still closes at ν = 0. Checked against a
+brute-force maximum over lit pairs rather than against a rearrangement of itself.
+
+**What is not loosened is the refusal § 6k.9 was right about.** An untruncated
+pupil at s ≥ 1 is still the pairing that has no band, so the promise is carried
+as an option — `pupilTruncatedAtMount`, emitted by `mountVolumeOptions` from the
+same spec `withMountAberration` reads the wall out of, removed from what a caller
+may supply, and refused at runtime like the other four coupled numbers. That is
+§ 6l.10's "the guard belongs on the composition" one level out: the function that
+applies the wall is the one that says the wall is there. `objectSinAlpha` keeps
+its own refusal untouched, because it converts for a **bare** pupil.
+
+**Two things the entry called arguments, checked anyway because they were
+cheap.** The band is a counting window over slices and touches no amplitude and
+no phase, so § 6k.1's flux invariance cannot notice it — pinned by rendering the
+same volume with and without the promise and finding the picture, every
+`sliceFlux` and the grid step **bitwise** identical, with only the reported
+fraction appearing. And the lit rim is a supremum rather than a maximum, exactly
+as ρ = 1 always was on a continuous pupil: the criterion is a peak-to-valley over
+the lit set, and its supremum is the value at the closure. The engine's wall is a
+hard step with no Fresnel taper, so the band is consistent with the model it
+renders; a grazing-incidence transmission that actually goes to zero belongs to
+§ 6k.8's deferred aplanatic apodization and is named there.
+
+**What it leaves.** The band on a truncating mount is now NA-free, which makes
+`depthOfFocusMm` and `exactDepthOfFocusMm` differ by *which rim* as well as by
+which wavefront — `depthOfFocusMm` keeps the nominal rim deliberately, because it
+is the plane step every panel and stack is built on and moving it would restate
+readings that have nothing to do with a mount. And `renderFieldVolume` carries
+the same option with nothing to set it: § 6bd's field pupils have no mount
+builder yet, so the two renderers answer by one rule and only one of them can
+reach the new arm.
 
 
 ### Not yet pinned

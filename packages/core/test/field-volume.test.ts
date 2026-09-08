@@ -640,7 +640,9 @@ describe("§ 6k.9 — the aperture angle reaches the patched renderer", () => {
     // NA ≥ n is the case nothing else in the pipeline refuses: `defocusWaves`
     // takes the two numbers separately and a paraboloid has no aperture angle to
     // be wrong about, so the render goes through and only the exact band is
-    // missing — absent rather than wrong, on both renderers alike.
+    // missing — absent rather than wrong, on both renderers alike. Unchanged by
+    // § 6l.11, which gives a band at the LIT rim only on the promise that the
+    // pupil is truncated there; neither of these two is.
     const field = { size: SIZE, values: new Float64Array(SIZE * SIZE).fill(1) };
     const volume: EmitterVolume = { size: SIZE, slices: [{ zMm: 0, field }] };
     const opts = { pupilSamples: PS, numericalAperture: NA, wavelengthNm: LAMBDA };

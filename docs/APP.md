@@ -1373,7 +1373,10 @@ recorded in the app test as an identity: § 6l.3's wall (the pupil beyond
 specimen) and § 6k.8's branch radius (1 − s²ρ² runs out at ρ = 1/s = n/NA) are the
 **same expression** — pinned with `toBe`, since once the `min` has chosen n they
 are the same division of the same two doubles. Two modules, eight sub-steps apart,
-one radius. The relaxation is OPEN-PROBLEMS' new item 17.
+one radius. The relaxation is OPEN-PROBLEMS' new item 17. **Both have since
+landed** — the phase at § 6l.10, the band at § 6l.11 — so "those two rows keep
+the paraboloid" is history as of the entry below, and the `toBe` identity above
+is history too: § 6l.10 found it holds in the radius and breaks in the radius².
 
 **No engine capability was added, so no validation rung was**, for the third time
 on this branch. `packages/app/test/volume-cap.test.ts` pins the wiring, and its
@@ -1381,6 +1384,83 @@ three failure modes are worth naming because none would show in a screenshot:
 silence (the aperture argument defaults to 0 and a panel that forgets it neither
 throws nor warns), the wrong index (sin α needs the **mount's**, and the
 immersion's is in scope at all times and 12% away), and the caption above.
+
+#### The two rows that kept the paraboloid, and the rim that gave them the cap
+
+*App wiring on the same `#/volume` route — no new section key, no new row. What
+changed is which two of the four mount choices can answer, and it is § 6l.11's
+convention arriving rather than a panel decision.*
+
+The entry above ends by recording what it could **not** do: an oil 1.40 over a
+water or an air mount is NA ≥ n, so those two rows kept the osculating paraboloid
+and the panel said so in the engine's own terms. § 6l.10 gave them the exact
+phase and § 6l.11 the band, and both rows now carry both. The panel's caption
+invariant is unchanged and is now kept by there being nothing absent: the
+aperture angle and the band are still one `null` apart, and that `null` has moved
+onto a question a mount cannot ask of itself — whether the NA is below the medium
+the **objective** was corrected for, which no objective that was ever made fails.
+It is kept as unreachable rather than deleted, because the refusal is the
+engine's and the app does not get to decide it has stopped existing.
+
+**What a reader sees change.** The WATER and AIR pictures move onto the exact
+cap. At the panel's default scene — 32 bins, nine planes, focused four plane
+steps into the slab, so 1.60 µm down — they differ from the paraboloid's by
+**0.166** and **0.174** of peak, against **0.3075** on the matched row measured
+in the entry above. That ordering is the *opposite* of § 6l.10's, which read
+0.4113 on water against 0.2893 matched, and the two do not disagree: § 6l.10
+measured at the coverslip, where the truncated rows are the bigger change because
+the lit rim sits at s·ρ = 1 exactly and the factor there is 2 rather than matched
+oil's 1.4429. By 2 µm down § 6l's *own* spherical aberration has taken over
+(0.1391), and by 10 µm the wavefront choice is worth 0.0244. The panel opens 1.60
+µm in, which is on that hand-off — so what a reader sees is the middle of a curve
+the ladder measured at both ends, and the `depthWavefront` control now has
+something to flip on all four rows instead of two.
+
+**And the caption gained a number it could not have said before**, which is the
+part worth reading twice. At the app's own λ = 587.5618 nm, traced NA 1.4:
+
+| mount | delivered NA | exact band | paraboloid's | ratio |
+|---|---|---|---|---|
+| matched (D263, 1.5233) | 1.4000 | 318.3 nm | 456.7 nm | 69.71% |
+| IMMERSION-OIL (1.5151) | 1.4000 | 313.9 nm | 454.2 nm | 69.12% |
+| WATER (1.3334) | 1.3334 | 220.3 nm | 399.7 nm | 55.12% |
+| AIR (1.0000) | 1.0000 | 293.8 nm | 299.8 nm | 98.00% |
+
+Two things in that table are not what the panel would have predicted. The
+**bottom two bands do not contain the NA at all** — past the wall the band is
+λ/2n, so an objective engraved 1.45 or 1.49 reads the same 220.3 nm out of the
+same water. Once the mount truncates, more aperture buys no further axial
+confinement, because the outermost ray the specimen delivers is already grazing.
+And the **air row's 98.00% is 1.4²/2**, an arithmetic coincidence rather than a
+small correction: it sits beside a wavefront that changed by a factor of two at
+the rim and a picture that moved 0.174 of peak. A caption that printed "2%
+shorter" there would be reporting the *reference's* own shrinkage as though it
+were the finding — this doc's recorded failure mode of **two numbers that agree**,
+which item 16 met once already in the two in-focus fractions.
+
+**One sentence in the app had to be rewritten rather than extended.** The band
+readout said "N% narrower", which was true while the exact band was always the
+shorter one. It is not: the ratio bottoms out at exactly ½ where the mount just
+truncates and climbs back, crossing 1 at sin α² = 2 — so an objective engraved
+past 1.4142 over air would have a band **longer** than the paraboloid's. The
+phrase is now chosen from the sign of the difference (`bandWidthPhrase`), and all
+four shipped rows sit on the same side of it; the row that would cross is one the
+catalogue does not carry. Worth having right anyway, because the objective is a
+control and the mount is a control, and the two together are what reach it.
+
+**No new app cost, and no new worker.** Nothing extra is computed: `renderVolume`
+already returned the band, and what reached the app is one option
+`mountVolumeOptions` now emits — that the pupil is truncated where § 6l.3's wall
+says it is. The two rows' render time is unchanged. What did move is the grid
+step on those rows, which the panel's existing guard already prices: the exact
+cap's rim is steeper than the paraboloid's, and the caption's grid-step readout
+is the place a reader sees it.
+
+**A rung was added this time**, unlike the three app entries before it: the band
+convention is an engine change and is § 6l.11. What
+`packages/app/test/volume-cap.test.ts` pins is only the wiring — that both rows
+answer, that the aperture angle is `toBe` the same division the engine makes, and
+that the band is NA-free — with the closed forms living on the ladder.
 
 ### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**
 

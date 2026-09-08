@@ -34,7 +34,7 @@ import {
   withObjectDefocus,
 } from "../src/imaging/volume";
 import { incoherentPsf, uniformEmitters } from "../src/imaging/fluorescence";
-import { depthOfFocusMm } from "../src/imaging/emission";
+import { depthOfFocusMm, exactDepthOfFocusMm } from "../src/imaging/emission";
 import { fieldDefocusing } from "../src/imaging/field-volume";
 import { idealPupil } from "../src/illumination/transfer";
 import type { PupilFunction } from "../src/wave/psf";
@@ -659,10 +659,10 @@ describe("§ 6l.9 — the coupling that has no readout to catch it is REFUSED, n
  * √max(disc, 0) is the exact cap's own continuous limit, and the two-expression
  * boundary is deleted rather than aligned.
  *
- * What it does NOT unblock is the band. `exactDepthFactor` and `ewaldConeEdge`
+ * ~~What it does NOT unblock is the band. `exactDepthFactor` and `ewaldConeEdge`
  * both evaluate the cap AT ρ = 1, and on a truncating mount that rim is dark;
  * they keep refusing s ≥ 1. The lit rim is a different rim, and a band defined
- * there is a convention this ladder does not have.
+ * there is a convention this ladder does not have.~~ **§ 6l.11 has it**, below.
  */
 describe("§ 6l.10 — a mount rarer than the immersion, and the branch radius that is not the wall", () => {
   const OIL_WATER = mount(1.4);
@@ -931,19 +931,288 @@ describe("§ 6l.10 — a mount rarer than the immersion, and the branch radius t
     expect(mid.worst / mid.peak).toBeGreaterThan(deep.worst / deep.peak);
   });
 
-  it("but not the band: the objects that read the cap AT ρ = 1 still refuse", () => {
-    // Pinned so a later reader cannot mistake it for an oversight. Both of these
-    // evaluate √(1 − s²) — the cap at the NOMINAL rim — and on a truncating mount
-    // that rim is dark, so there is no number for them to return. The lit rim is
-    // a different rim, and a depth of focus defined there is a convention this
-    // ladder does not have; § 6l.10 deliberately does not invent one.
-    expect(() => exactDepthFactor(S)).toThrow(/sin α/);
-    expect(() => ewaldConeEdge(1, S)).toThrow(/sin α/);
-    // Which is also why `renderVolume` keeps reporting no exact band here: the
-    // phase is now right and the band is still absent, and those are two
-    // different questions rather than one half-finished one.
+  it("~~but not the band: the objects that read the cap AT ρ = 1 still refuse~~ — closed at § 6l.11", () => {
+    // What this rung pinned, kept so the closure is visible: both of these
+    // evaluated √(1 − s²), the cap at the NOMINAL rim, and on a truncating mount
+    // that rim is dark — so § 6l.10 left them refusing rather than inventing a
+    // convention. § 6l.11 moved the rim to min(1, 1/s) instead, which is the same
+    // rim wherever the mount carries the pupil, and both now answer.
+    expect(exactDepthFactor(S)).toBeCloseTo((S * S) / 2, 15);
+    expect(ewaldConeEdge(1 / S, S)).toBeCloseTo(2 / (S * S), 15);
+    // And `renderVolume` reports the band here, on the promise the options carry.
     const spec = mount(1.4);
     const options = mountVolumeOptions(spec, { pupilSamples: PUPIL_SAMPLES });
     expect(options.numericalAperture / options.refractiveIndex!).toBeGreaterThan(1);
+    expect(options.pupilTruncatedAtMount).toBe(true);
+  });
+});
+
+/**
+ * § 6l.11 — the band at the rim the light reaches.
+ *
+ * The register's item 18, opened by § 6l.10 as the half of 17 that did not
+ * close, and the only entry on it whose blocker was a **convention** rather than
+ * a measurement. § 6l.10 gave a mount rarer than the immersion the exact depth
+ * phase and left every depth-of-focus reading defined at the NOMINAL pupil rim
+ * ρ = 1 — which such a mount leaves dark. So the phase was right and the band
+ * was absent, and the app could not show one beside the other.
+ *
+ * **The convention, and why it is an extension and not a second criterion.** The
+ * quarter-wave criterion is a peak-to-valley over the APERTURE, and § 6l.3's
+ * wall is where the aperture stops: ρ_e = min(1, 1/s). Below the wall that is
+ * ρ = 1 and every band the ladder has recorded is inside the new rule rather
+ * than beside it — the rungs here pin that as **bitwise**, not as agreement.
+ * Above it the two rims part, and the reading becomes
+ *
+ *     half-band = λ / (4·n_s),      independent of NA
+ *
+ * because the outermost ray the specimen delivers is grazing, cos θ is exactly
+ * 0, and a wider pupil adds none. That saturation is the physics of the step;
+ * the register's "exactly ½" is a *ratio* to a paraboloid measured at the same
+ * lit rim, and is NOT what `exactDepthFactor` returns. That function multiplies
+ * `depthOfFocusMm` — the paraboloid at the nominal rim — so against it the
+ * factor is s²/2. Returning the ½ would put the band out by a factor of s², which
+ * is the "two criteria wearing one name" § 6k.9 refused to do to § 6k.2.
+ *
+ * **So "the exact band is shorter" stops being true.** f(s) falls to its minimum
+ * ½ at s = 1 and climbs back, crossing 1 at s² = 2 — an oil 1.45 over air has a
+ * LONGER exact band than the paraboloid's. Nothing about the wavefront changed
+ * there; the reference kept shrinking as 1/NA² after the band had stopped.
+ *
+ * **What refutes it is an argument, not a run** (the register said so). Two are
+ * checked here rather than asserted: the band is a counting window over slices
+ * and touches no amplitude or phase, so § 6k.1's flux invariance is untouched —
+ * pinned by rendering the same volume with and without the promise and comparing
+ * the pictures bitwise; and the promise is a promise, so an untruncated pupil at
+ * s ≥ 1 still has no exact band, which keeps § 6k.9's refusal alive where it was
+ * right.
+ */
+describe("§ 6l.11 — the band at the rim the light reaches", () => {
+  const S = mountSinAlpha(mount(1.4));
+  const AIR = 1;
+  const airMount = (numericalAperture: number, focusDepthMm = 0): MountSpec => ({
+    mountIndex: AIR,
+    immersionIndex: N_OIL,
+    numericalAperture,
+    wavelengthNm: LAMBDA,
+    focusDepthMm,
+  });
+
+  it("below the wall it is the old function to the BIT, at both objects that read a rim", () => {
+    // The whole convention rests on this: the ladder's readings are inside the
+    // new rule, so nothing is restated. `max(1, s²)` is exactly 1 there and a
+    // double times 1 is itself, which is why this is bitwise rather than close.
+    const oldFactor = (s: number): number => (1 + Math.sqrt(1 - s * s)) / 2;
+    const oldEdge = (nu: number, s: number): number => {
+      if (nu >= 2) return 0;
+      const a = 1 - nu;
+      return (2 * (1 - a * a)) / (Math.sqrt(1 - s * s * a * a) + Math.sqrt(1 - s * s));
+    };
+    for (let i = 0; i < 4000; i++) {
+      const s = i / 4000;
+      expect(exactDepthFactor(s)).toBe(oldFactor(s));
+    }
+    for (const s of [0, 1e-9, 0.1, 1.4 / N_OIL, 0.99]) {
+      for (let i = 0; i <= 500; i++) {
+        const nu = (i * 2.5) / 500;
+        expect(ewaldConeEdge(nu, s)).toBe(oldEdge(nu, s));
+      }
+    }
+    // The recorded matched-oil readings, unmoved: § 6k.9's band and § 6k.8's peak.
+    expect(exactDepthFactor(1.4 / N_OIL)).toBeCloseTo(0.69303, 5);
+    expect(ewaldConeEdge(1, 1.4 / N_OIL)).toBeCloseTo(1.4429, 4);
+  });
+
+  it("at the wall the factor is exactly ½, and that is a MINIMUM and not a floor", () => {
+    // s = 1 is where the two rims coincide for the last time, and both spellings
+    // of the cap give (1 + 0)/2 there. Exactly, because √0 is exact.
+    expect(exactDepthFactor(1)).toBe(0.5);
+    // Falling below it, climbing above it. Not monotone, which is the clause
+    // every "% shorter" sentence in the engine and the app had to be rewritten
+    // for.
+    for (let i = 1; i < 200; i++) {
+      const s = i / 200;
+      expect(exactDepthFactor(s)).toBeGreaterThan(exactDepthFactor(s + 1 / 200));
+    }
+    for (let i = 200; i < 400; i++) {
+      const s = i / 200;
+      expect(exactDepthFactor(s)).toBeLessThan(exactDepthFactor(s + 1 / 200));
+    }
+    // And it crosses 1 at s² = 2 — no f64 s squares to exactly 2, so the crossing
+    // is bracketed by the two doubles either side of √2 rather than named.
+    const nextDown = (x: number): number => {
+      const f = new Float64Array([x]);
+      const u = new BigUint64Array(f.buffer);
+      u[0] = u[0]! - 1n;
+      return f[0]!;
+    };
+    expect(exactDepthFactor(nextDown(Math.SQRT2))).toBeLessThan(1);
+    expect(exactDepthFactor(Math.SQRT2)).toBeGreaterThan(1);
+  });
+
+  it("past the wall the NA cancels: the band is λ/2n, the same for every objective", () => {
+    // The headline. Three objectives that all over-fill a water mount get the
+    // SAME depth of focus out of it, because each one's outermost delivered ray
+    // is grazing and the extra aperture is dark.
+    const water = [1.4, 1.45, 1.49].map((na) => exactDepthOfFocusMm(LAMBDA, na, N_WATER));
+    for (const d of water) expect(d / water[0]!).toBeCloseTo(1, 15);
+    expect(water[0]! / ((LAMBDA * 1e-6) / (2 * N_WATER))).toBeCloseTo(1, 15);
+    expect(water[0]! * 1e6).toBeCloseTo(206.04, 2);
+    // Air, where the same statement reads λ/2 because the mount is n = 1.
+    expect(exactDepthOfFocusMm(LAMBDA, 1.4, AIR) * 1e6).toBeCloseTo(275.0, 1);
+    // Against the paraboloid's nominal-rim band: 55.01% on water, 98.00% on air.
+    // The second is 1.4²/2 and not a small correction — the two agree by
+    // arithmetic accident, which is exactly the shape a caption gets wrong.
+    expect(
+      exactDepthOfFocusMm(LAMBDA, 1.4, N_WATER) / depthOfFocusMm(LAMBDA, 1.4, N_WATER),
+    ).toBeCloseTo(0.550135, 6);
+    expect(exactDepthOfFocusMm(LAMBDA, 1.4, AIR) / depthOfFocusMm(LAMBDA, 1.4, AIR)).toBeCloseTo(
+      0.98,
+      12,
+    );
+    // An oil 1.45 over air is past the crossing: the exact band is the LONGER one.
+    expect(
+      exactDepthOfFocusMm(LAMBDA, 1.45, AIR) / depthOfFocusMm(LAMBDA, 1.45, AIR),
+    ).toBeGreaterThan(1);
+    // The index is now this function's own to refuse — `objectSinAlpha` used to
+    // do it on the way past and no longer runs.
+    expect(() => exactDepthOfFocusMm(LAMBDA, 1.4, 0)).toThrow(/refractive index/);
+    expect(() => exactDepthOfFocusMm(LAMBDA, 0, 1.5)).toThrow(/NA/);
+  });
+
+  it("the factor IS the lit rim's phase upside down, which is where the ½ comes from", () => {
+    // One statement read two ways, as § 6k.9 built it — now at ρ_e instead of at
+    // ρ = 1. § 6l.10 pins the exact cap at s·ρ = 1 as exactly twice the
+    // paraboloid; the band at that rim is therefore exactly half the paraboloid's
+    // band AT THAT RIM, and s²/2 of the paraboloid's band at the nominal one.
+    const rhoE = N_WATER / 1.4;
+    const perWave = withObjectDefocus(idealPupil(), 1, S).phaseWaves(rhoE, 0);
+    const paraPerWave = withDefocus(idealPupil(), 1).phaseWaves(rhoE, 0);
+    expect(perWave / paraPerWave).toBeCloseTo(2, 14);
+    // The quarter-wave depth is the reciprocal of the rim phase, so the ratio the
+    // register named is ½ — and the ratio to `depthOfFocusMm`, which is quoted at
+    // ρ = 1, is that same ½ divided by ρ_e². Both spellings, one number.
+    expect(0.5 / (rhoE * rhoE) / exactDepthFactor(S)).toBeCloseTo(1, 14);
+    expect(exactDepthFactor(S)).toBeCloseTo((S * S) / 2, 15);
+  });
+
+  it("the missing cone's boundary moves with the same rim, and a brute force agrees", () => {
+    // `ewaldConeEdge` is the same maximum over pupil pairs with the outer point
+    // put where the light stops. Checked against a search over lit pairs rather
+    // than against a rearrangement of itself.
+    const g = (rho: number): number =>
+      (2 * rho * rho) / (1 + Math.sqrt(Math.max(1 - S * S * rho * rho, 0)));
+    const brute = (nu: number, m = 200_000): number => {
+      const rhoE = N_WATER / 1.4;
+      let best = 0;
+      for (let i = 0; i <= m; i++) {
+        const r1 = (i / m) * rhoE;
+        const r2 = r1 - nu;
+        if (Math.abs(r2) > rhoE) continue;
+        best = Math.max(best, g(r1) - g(Math.abs(r2)));
+      }
+      return best;
+    };
+    for (const nu of [0.2, 0.6, 1.5]) {
+      expect(ewaldConeEdge(nu, S) / brute(nu)).toBeCloseTo(1, 12);
+    }
+    // The peak is 2/s² at ν = 1/s, and the lateral cutoff came in with the rim:
+    // 2/s is the DELIVERED aperture, not the engraved one. So a truncated pupil
+    // sections better per unit of lateral frequency over fewer of them.
+    expect(ewaldConeEdge(1 / S, S)).toBeCloseTo(2 / (S * S), 15);
+    expect(ewaldConeEdge(1 / S, S)).toBeCloseTo(1.8177, 4);
+    expect(1 / S).toBeCloseTo(mountAperture(mount(1.4)) / 1.4, 15);
+    expect(ewaldConeEdge(2 / S, S)).toBe(0);
+    expect(ewaldConeEdge(2.5 / S, S)).toBe(0);
+    // Still closed on the axis: the missing cone is a fact about the axis and not
+    // about the aperture, and it survives the truncation as it survived the cap.
+    expect(ewaldConeEdge(0, S)).toBe(0);
+    // s = 1 takes the truncating spelling because the other one is 0/0 at ν = 0
+    // there — and away from the axis the two agree to an ulp, which is the only
+    // thing that makes the choice free.
+    expect(ewaldConeEdge(0, 1)).toBe(0);
+    for (const nu of [0.3, 1, 1.7]) {
+      const a = 1 - nu;
+      expect(ewaldConeEdge(nu, 1) / (2 * Math.sqrt(1 - a * a))).toBeCloseTo(1, 15);
+    }
+  });
+
+  it("the band is a promise about the pupil, and an untruncated one at s ≥ 1 still has none", () => {
+    // § 6k.9's refusal was right about a bare pupil and is kept exactly there.
+    // `renderVolume` cannot inspect a callback, so the promise rides on the
+    // options — emitted by `mountVolumeOptions` from the same spec the wall comes
+    // out of, and refused from a caller like the other four coupled numbers.
+    const slab = {
+      size: SIZE,
+      slices: [0, 1, 2].map((k) => ({
+        zMm: k * depthOfFocusMm(LAMBDA, 1.4, N_WATER),
+        field: uniformEmitters(SIZE, 1 / (SIZE * SIZE)),
+      })),
+    };
+    const bare = renderVolume(slab, defocusing(idealPupil()), {
+      pupilSamples: PUPIL_SAMPLES,
+      numericalAperture: 1.4,
+      wavelengthNm: LAMBDA,
+      refractiveIndex: N_WATER,
+    });
+    expect(bare.exactInFocusFraction).toBeUndefined();
+    expect(Object.prototype.hasOwnProperty.call(bare, "exactInFocusFraction")).toBe(false);
+    expect(bare.inFocusFraction).toBeGreaterThan(0);
+
+    const spec = mount(1.4);
+    const mounted = renderVolume(
+      slab,
+      mountPupils(idealPupil(), spec, mountSinAlpha(spec)),
+      mountVolumeOptions(spec, { pupilSamples: PUPIL_SAMPLES }),
+    );
+    expect(mounted.exactInFocusFraction).not.toBeUndefined();
+    // The window is 103 nm either side and the planes step 375 nm, so it catches
+    // the same single plane the paraboloid's does — the two fractions agree, and
+    // that is the band and not the light (§ 6k.9's own reading of the same fact).
+    expect(mounted.exactInFocusFraction!).toBeCloseTo(mounted.inFocusFraction, 15);
+    // An air mount is the same statement one index further out.
+    const air = airMount(1.4);
+    expect(mountVolumeOptions(air, { pupilSamples: PUPIL_SAMPLES }).pupilTruncatedAtMount).toBe(
+      true,
+    );
+    // A matched mount truncates nothing and says so — `false` rather than absent,
+    // because the wall was asked about.
+    const matched: MountSpec = { ...spec, mountIndex: N_OIL };
+    expect(mountVolumeOptions(matched, { pupilSamples: PUPIL_SAMPLES }).pupilTruncatedAtMount).toBe(
+      false,
+    );
+    expect(() =>
+      mountVolumeOptions(spec, {
+        pupilSamples: PUPIL_SAMPLES,
+        pupilTruncatedAtMount: true,
+      } as never),
+    ).toThrow(/pupilTruncatedAtMount/);
+  });
+
+  it("and it is only a counting window: the picture and every flux are bitwise unmoved", () => {
+    // The argument the register asked for instead of a measurement, measured
+    // anyway because it is cheap: the band decides which slices are COUNTED and
+    // touches no amplitude and no phase, so § 6k.1's invariance cannot notice it.
+    const spec = mount(1.4);
+    const slab = {
+      size: SIZE,
+      slices: [-1, 0, 1].map((k) => ({
+        zMm: k * depthOfFocusMm(LAMBDA, 1.4, N_WATER),
+        field: uniformEmitters(SIZE, 1 / (SIZE * SIZE)),
+      })),
+    };
+    const pupils = mountPupils(idealPupil(), spec, mountSinAlpha(spec));
+    const opts = mountVolumeOptions(spec, { pupilSamples: PUPIL_SAMPLES });
+    const withBand = renderVolume(slab, pupils, opts);
+    const without = renderVolume(slab, pupils, { ...opts, pupilTruncatedAtMount: false });
+    expect(without.exactInFocusFraction).toBeUndefined();
+    expect(withBand.inFocusFraction).toBe(without.inFocusFraction);
+    expect(withBand.maxGridPhaseStepWaves).toBe(without.maxGridPhaseStepWaves);
+    for (let i = 0; i < withBand.sliceFlux.length; i++) {
+      expect(withBand.sliceFlux[i]!).toBe(without.sliceFlux[i]!);
+    }
+    for (let i = 0; i < withBand.intensity.length; i++) {
+      expect(withBand.intensity[i]!).toBe(without.intensity[i]!);
+    }
   });
 });

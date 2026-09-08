@@ -11,7 +11,7 @@ import type { OpticalSystem } from "../trace/system";
 import { bestFocus } from "../analysis/focus";
 import { tracedPupil, type FieldPupilOptions } from "./object-field";
 import { incoherentPsf, type IncoherentPsf } from "./fluorescence";
-import { exactDepthFactor, objectSinAlpha } from "./volume";
+import { exactDepthFactor } from "./volume";
 
 /**
  * The Stokes shift, and the band the image is actually formed in.
@@ -310,16 +310,22 @@ export function tracedEmissionPupils(
  * reads as a finding.
  *
  * **"The rim" here is the NOMINAL rim ρ = 1, and a truncating mount has no light
- * there** — open register item 18, and worth knowing at this function rather than
- * only in the register. § 6l.10 lets a specimen mounted in something rarer than
- * the immersion render on the exact cap, so an oil 1.40 over water is now an
- * ordinary thing to ask this about; it will answer, with a quarter wave measured
- * at ρ = 1 while the light stops at ρ = 0.9533. That is not wrong — it is the
- * paraboloid's band, which is what this function has always returned — but it is
- * a band nothing is quoted at. Unguarded deliberately: every rung above sits at
- * NA 0.17 or below where it is the right number to three decimals, and § 6l.10's
- * own stack uses it for a step SIZE rather than a physical claim. The refusal
- * belongs to `exactDepthFactor`, which cannot answer at all there and says so.
+ * there** — worth knowing at this function rather than only in the register.
+ * § 6l.10 lets a specimen mounted in something rarer than the immersion render on
+ * the exact cap, so an oil 1.40 over water is an ordinary thing to ask this
+ * about; it answers with a quarter wave measured at ρ = 1 while the light stops
+ * at ρ = 0.9533. That is not wrong — it is the paraboloid's band, which is what
+ * this function has always returned — but it is a band nothing is quoted at.
+ * Unguarded deliberately: every rung above sits at NA 0.17 or below where it is
+ * the right number to three decimals, and § 6l.10's own stack uses it for a step
+ * SIZE rather than a physical claim.
+ *
+ * `exactDepthOfFocusMm` is where the lit rim is honoured: § 6l.11 moved the rim
+ * to min(1, 1/s) there, so the two functions now differ by which rim as well as
+ * by which wavefront, and on a truncating mount the exact one has dropped the NA
+ * entirely. This one keeps the nominal rim on purpose — it is the paraboloid's
+ * band, the plane step every panel and stack is built on, and moving it would
+ * restate readings that have nothing to do with a mount.
  */
 export function depthOfFocusMm(
   wavelengthNm: number,
@@ -351,18 +357,40 @@ export function depthOfFocusMm(
  * share of light inside both bands (`exactInFocusFraction` beside
  * `inFocusFraction`) rather than moving the older number onto this one.
  *
- * `refractiveIndex` is the medium the cone is IN, as above — and here it is
- * load-bearing rather than a scale factor: NA ≥ n is refused, because sin α ≥ 1
- * is not an aperture angle.
+ * **NA ≥ n is a mount and not an error, since § 6l.11.** `exactDepthFactor` reads
+ * the cap at ρ_e = min(1, 1/s), so above the wall this returns λ/(2·n) — a full
+ * band with **no NA in it**, 206.0 nm out of water and 275.0 nm out of air at
+ * λ = 550, because the outermost ray the specimen delivers is already grazing and
+ * a wider pupil adds none. The formula above therefore holds as written only
+ * below the wall; at and past it, cos α is 0 and the (1 + cos α)/2 has become
+ * s²/2 against `depthOfFocusMm`'s unchanged nominal-rim reference. That also
+ * means the exact band is not always the shorter one: it crosses at s² = 2, so
+ * an oil 1.45 over air reads 105.1% of the paraboloid's.
+ *
+ * `refractiveIndex` is the medium the cone is IN, as above. What it no longer
+ * does is refuse: the pairing that used to be rejected here is a real mount, and
+ * the promise that something truncates the pupil at ρ = 1/s lives at the
+ * composition (§ 6l.10) rather than at a formula that composes nothing. A dry
+ * objective engraved 1.2 will get a number out of this, and `objectDefocusing`
+ * will still refuse to defocus its pupil.
  */
 export function exactDepthOfFocusMm(
   wavelengthNm: number,
   numericalAperture: number,
   refractiveIndex = 1,
 ): number {
+  // The index is a scale factor to `depthOfFocusMm` and a divisor here, so this
+  // is the function that has to refuse a non-positive one — `objectSinAlpha` used
+  // to do it on the way past, and it no longer runs: the quotient is spelled here
+  // because that function refuses the mount this now serves.
+  if (!(refractiveIndex > 0)) {
+    throw new Error(
+      `exactDepthOfFocusMm: refractive index must be positive, got ${refractiveIndex}`,
+    );
+  }
   return (
     depthOfFocusMm(wavelengthNm, numericalAperture, refractiveIndex) *
-    exactDepthFactor(objectSinAlpha(numericalAperture, refractiveIndex))
+    exactDepthFactor(numericalAperture / refractiveIndex)
   );
 }
 
