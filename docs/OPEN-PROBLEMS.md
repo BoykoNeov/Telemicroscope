@@ -482,8 +482,9 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     carries up to 2.5× the unphased rim's error. The candidate was right in kind
     and wrong in place. Averaging the *slice's* pupil breaks § 6l.6's flux and
     § 6l.12's linearity; averaging only the stack's constant term d₀·A, once at
-    the focus depth, keeps both by construction and cuts the excess 55–63% at
-    2 µm. The integral is a 16×16 midpoint rule pinned to the elementary one, not
+    the focus depth, keeps both by construction and cuts the excess 52–63% at
+    2 µm — on the exact cap, where the defocused slices gain too; on the
+    paraboloid a shared factor makes them worse, so it is not attached there. The integral is a 16×16 midpoint rule pinned to the elementary one, not
     an analytic kernel. **What it leaves:** the light the cusp sends past the
     frame is real and needs a wider frame, not a better sampler; and the
     half-wave guard still cannot see a cusp between the last lattice point and

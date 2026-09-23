@@ -383,8 +383,15 @@ export function mountPupils(
     (2 * spec.mountIndex * spec.wavelengthNm * 1e-6) /
     (spec.numericalAperture * spec.numericalAperture);
   // Built ONCE, at the focus depth, and shared by every slice — § 6l.14's whole
-  // design. See `mountCellQuadrature`.
-  const own = mountCellQuadrature(spec);
+  // design. See `mountCellQuadrature`. Only on the EXACT cap: there the slice's
+  // cusp is d₀·A and nothing else, because the exact defocus carries the rest of
+  // it (§ 6l.12's collapse). On the paraboloid the slice keeps (d − d₀)·A of cusp
+  // that no shared factor can hold, and the factor built at d₀ over-corrects it —
+  // measured 2.7× WORSE than point sampling at 2 µm of air, four waves out. So
+  // the paraboloid is point-sampled, as it always was.
+  const exactCap =
+    spec.numericalAperture < spec.immersionIndex && sinAlpha === mountSinAlpha(spec);
+  const own = exactCap ? mountCellQuadrature(spec) : undefined;
   return (waves) => {
     const depthMm = spec.focusDepthMm + waves * perWave;
     const slice = withObjectDefocus(withMountAberration(pupil, spec, depthMm), waves, sinAlpha);
@@ -446,8 +453,10 @@ export function cellMeanPhasor(
  * ## Why this term and no other
  *
  * A `mountPupils` slice's phase is d₀·A(ρ) + w·Φ_eff(ρ) (§ 6l.12). The square-root
- * cusp at § 6l.3's wall lives in A, and Φ_eff is smooth wherever light is (it is
- * § 6k.8's cap at the immersion's s_i < 1). Point-sampling d₀·A misses the light
+ * cusp at § 6l.3's wall lives in A, and — **on the exact cap only** — Φ_eff is
+ * smooth wherever light is (it is § 6k.8's cap at the immersion's s_i < 1). On
+ * the paraboloid Φ_eff keeps c·A's cusp, so `mountPupils` attaches this to the
+ * exact-cap stack and nothing else. Point-sampling d₀·A misses the light
  * the cusp sends far off axis, and it wraps back into the frame: 6–16% of the
  * kernel on an oil 1.40 over air at 1–5 µm and 32 bins, measured against a pupil
  * sampled eight times finer, with the half-wave guard reading 0.34–0.42 on the

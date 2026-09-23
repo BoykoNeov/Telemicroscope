@@ -10618,7 +10618,8 @@ and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
 | **6l.14** A √-edge's cell mean against its elementary integral: 2.3e-2 at k = 16, ×9.99 better at k = 64 — order ≥ 3/2 | ∫u·e^{iαu}du, closed form | ✅ |
 | **6l.14** Matched mount and depth 0: no quadrature, and the kernel with it on is the point-sampled kernel bitwise | identity rung | ✅ |
 | **6l.14** At 1 µm of air the half-wave guard reads 0.37–0.45 (green) on four samplings while the kernel carries up to 2.5× the unphased rim's error | eight-times-finer pupil, same pitch | ✅ |
-| **6l.14** At 2 µm the cell quadrature cuts that excess by 55–63% at every sampling swept; at 1 µm the sweep's sum halves | same reference, floor removed | ✅ |
+| **6l.14** At 2 µm the cell quadrature cuts that excess by 52–63% at every sampling swept; at 1 µm the sweep's sum halves | same reference, floor removed | ✅ |
+| **6l.14** …and on every defocused slice swept (w = −4…4, 1 and 2 µm): exact cap only — on the paraboloid a shared factor is 2.7× worse, so none is attached | same reference, per slice | ✅ |
 | **6l.14** A shared factor keeps the stack's flux to 1e-13 and its corrected cells fixed; averaging each slice's whole pupil moves a slice's flux by 0.236 | § 6l.6, with its negative control | ✅ |
 | **6l.14** § 6l.13's law holds with the quadrature on: ≤ 3.3e-4 of peak past law + 3 bins | § 6l.12's law, tapered | ✅ |
 
@@ -11345,13 +11346,33 @@ and is 9.99× better at k = 64 — order ≥ 3/2, which is what a midpoint rule 
 square-root endpoint must give. That 2.3% is the price of k = 16, stated.
 
 On the same stack the quadrature cuts the excess at 2 µm from 0.133 / 0.126 /
-0.112 / 0.085 to 0.059 / 0.047 / 0.041 / 0.041 — onto the unphased rim within a
-factor 1.6. At 1 µm the sweep's sum halves, 0.308 → 0.152. **Not everywhere
+0.112 / 0.085 to 0.059 / 0.047 / 0.041 / 0.041 — cuts of 52–63%, onto the
+unphased rim within a factor 1.66. At 1 µm the sweep's sum halves, 0.308 → 0.152. **Not everywhere
 better**: at 40 bins, unswept, the wall lands where point sampling was already
 near the floor (0.047) and the quadrature reads 0.050. With it on, a
 7-slice truncating stack keeps every slice's flux to 1e-13 and corrects the same
-72 cells in each, and § 6l.13's tapered read still finds ≤ 3.3e-4 of the peak
+cells in each, and § 6l.13's tapered read still finds ≤ 3.3e-4 of the peak
 past law + 3 bins.
+
+**Defocused slices, and the cap it needs.** The factor corrects d₀·A and
+multiplies the point sample of w·Φ_eff, which is exact only while w·Φ_eff barely
+moves across a rim cell (about 0.12·|w| waves per cell at 32 bins). Measured on
+the exact-cap stack at 1 and 2 µm, 32 and 64 bins, w = −4…4, the quadrature beats
+point sampling on all 24 slices — at 2 µm and 32 bins 0.261 → 0.162, 0.207 →
+0.071, 0.182 → 0.050, 0.116 → 0.058, 0.110 → 0.073, 0.151 → 0.093; the closest is
+1 µm at w = 4, 0.096 → 0.091. **On the paraboloid it is the other way round**: its
+Φ_eff keeps c·A's cusp, a slice's cusp is (d₀ + w·c)·A, and a factor built at d₀
+over-corrects the part that moves — up to 2.7× worse (0.072 → 0.193 at 2 µm,
+w = −4). So `mountPupils` attaches the quadrature to the exact-cap stack only, and
+the paraboloid is point-sampled as before. The app draws on the exact cap by
+default; its paraboloid option is unchanged.
+
+**What the flux now means.** On a corrected pupil `formedSum` counts the light
+that survives the cell mean, and a cell whose phasors cancel passes less. So it
+still does not move along a stack, but it does move with the focus depth and
+with `pupilSamples`: the picture's total light on a truncating mount now shifts a
+little as the focus slider moves, where it used to be invariant. The in-focus
+fraction is untouched — every slice of one stack scales by the same factor.
 
 **What it does not fix.** The light the cusp sends past the frame is really
 there — up to 29% of the kernel at 5 µm of air and 24 bins — and on a periodic

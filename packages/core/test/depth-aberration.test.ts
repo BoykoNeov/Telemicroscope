@@ -1731,8 +1731,12 @@ describe("§ 6l.14 — the cusp's kernels, averaged over the cell and not over t
     return l1 - (1 - inside);
   };
 
-  const readings = (spec: MountSpec, pupilSamples: number) => {
-    const pupil = mountPupils(idealPupil(), spec)(0);
+  /** A slice of the exact-cap stack — the only composition § 6l.14 corrects. */
+  const slice = (spec: MountSpec, waves = 0) =>
+    mountPupils(idealPupil(), spec, mountSinAlpha(spec))(waves);
+
+  const readings = (spec: MountSpec, pupilSamples: number, waves = 0) => {
+    const pupil = slice(spec, waves);
     const fine = incoherentPsf(pupil, { size: S * REF, pupilSamples: REF * pupilSamples }).values;
     const point = incoherentPsf(pupil, { size: S, pupilSamples });
     const quad = incoherentPsf(pupil, { size: S, pupilSamples, cellQuadrature: true });
@@ -1776,14 +1780,24 @@ describe("§ 6l.14 — the cusp's kernels, averaged over the cell and not over t
   it("is absent — and the kernel bitwise the point-sampled one — for a matched mount and at depth 0", () => {
     expect(mountCellQuadrature({ ...mount(1.2), mountIndex: N_OIL, focusDepthMm: 0.01 })).toBeUndefined();
     expect(mountCellQuadrature(AIR(0))).toBeUndefined();
-    const pupil = mountPupils(idealPupil(), AIR(0))(0);
+    const pupil = slice(AIR(0));
     const point = incoherentPsf(pupil, { size: S, pupilSamples: 32 });
     const quad = incoherentPsf(pupil, { size: S, pupilSamples: 32, cellQuadrature: true });
     expect(quad.quadratureCells).toBe(0);
     expect(Array.from(quad.values)).toEqual(Array.from(point.values));
     // And off by default: the option absent is the kernel § 6l.13 recorded.
-    const deep = mountPupils(idealPupil(), AIR(0.002))(0);
+    const deep = slice(AIR(0.002));
     expect(incoherentPsf(deep, { size: S, pupilSamples: 32 }).quadratureCells).toBeUndefined();
+  });
+
+  it("is attached to the exact cap only — the paraboloid keeps a cusp no shared factor holds", () => {
+    // On the paraboloid a slice's cusp is (d₀ + w·c)·A, and the w·c part moves
+    // along the stack; a factor built at d₀ over-corrects it. Measured 2.7× WORSE
+    // than point sampling at 2 µm of air, four waves out — so none is attached.
+    const spec = AIR(0.002);
+    const parab = mountPupils(idealPupil(), spec)(2);
+    expect(parab.cellQuadrature).toBeUndefined();
+    expect(slice(spec, 2).cellQuadrature).toBeDefined();
   });
 
   const SWEEP = [24, 32, 48, 64];
@@ -1807,8 +1821,8 @@ describe("§ 6l.14 — the cusp's kernels, averaged over the cell and not over t
 
   it("takes the cusp's excess out of the kernel over the sweep", () => {
     // Excess over the floor, point → quadrature, at 2 µm: 0.133 → 0.059,
-    // 0.126 → 0.047, 0.112 → 0.041, 0.085 → 0.041 — onto the unphased rim's own
-    // 0.040 / 0.044 / 0.031 / 0.025 within a factor 1.6. At 1 µm the sweep's sum
+    // 0.126 → 0.047, 0.112 → 0.041, 0.085 → 0.041 — cuts of 52–63%, onto the
+    // unphased rim's own 0.040 / 0.044 / 0.031 / 0.025 within a factor 1.66. At 1 µm the sweep's sum
     // halves (0.308 → 0.152). Not everywhere better: at 40 bins, unswept, the wall
     // lands where point sampling already sat near the floor (0.047) and the
     // quadrature reads 0.050 — recorded in § 6l.14, not hidden by the sweep.
@@ -1825,6 +1839,22 @@ describe("§ 6l.14 — the cusp's kernels, averaged over the cell and not over t
       quad += r.quad;
     }
     expect(quad / point).toBeLessThan(0.7);
+  });
+
+  it("helps the DEFOCUSED slices too, on every one swept — the picture is mostly those", () => {
+    // The factor corrects d₀·A and multiplies the point sample of w·Φ_eff, which
+    // is exact only where w·Φ_eff barely moves across a rim cell (≈ 0.12·|w|
+    // waves per cell at 32 bins). Measured excess point → quadrature at 2 µm,
+    // 32 bins: 0.261→0.162, 0.207→0.071, 0.182→0.050, 0.116→0.058, 0.110→0.073,
+    // 0.151→0.093 for w = −4…4; at 1 µm the worst is w = 4, 0.096→0.091.
+    let worst = 0;
+    for (const depthMm of [0.001, 0.002]) {
+      for (const w of [-4, -2, -1, 1, 2, 4]) {
+        const r = readings(AIR(depthMm), 32, w);
+        worst = Math.max(worst, r.quad / r.point);
+      }
+    }
+    expect(worst).toBeLessThan(1);
   });
 
   const STACK = [-3, -2, -1, 0, 1, 2, 3];

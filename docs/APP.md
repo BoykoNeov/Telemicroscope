@@ -1682,7 +1682,17 @@ them read green: at 1 µm of air the guard reads 0.37–0.45 on four samplings a
 the kernel carries up to 2.5× the error of the same rim with no phase. The
 picture now forms every slice with `cellQuadrature: true`, which averages the
 mount's cusp over each lattice cell once per stack, at the focus depth. It is
-inert on a matched mount and at depth 0, so those pictures are unchanged.
+inert on a matched mount, or where the focus depth itself is 0 — which the depth
+slider at 0 is NOT, since the focus sits (focusPlane + (planes − 1)/2)·DOF below
+the slab's face; a truncating mount's picture changes there too. It is applied on
+the exact cap only: on the paraboloid option a shared factor measured up to 2.7×
+worse than point sampling, so that option is drawn exactly as before.
+
+One reading moves because of it: the picture's **total light** on a truncating
+mount now shifts slightly with the focus slider — a cell whose phasors cancel
+passes less, and which cells those are is set by the focus depth. The in-focus
+fraction and the throughput drift do not move, since every slice of a stack
+shares the factor.
 
 **What changed on the panel:** the grid guard's detail now says how many rim
 cells were averaged. The guard's number itself still reads the point samples,
@@ -1694,10 +1704,18 @@ shared by every slice cannot move.
 **Cost in time:** a 5-slice air stack goes from 4–14 ms to 37–83 ms (best of
 five, node, 32 and 64 bins on a 128 grid), against the panel's 130–700 ms job.
 
-**Not yet driven in a browser.** The two app rungs pin the wiring — the memo
-forwards the quadrature, and the picture corrects cells on air and none on a
-matched mount with its flux drift under 1e-12 — but the caption has not been
-looked at.
+**Driven in a headless browser**, on the oil 100×/1.40 at the panel's defaults
+(32 bins, slider at 0):
+
+- In air the guard reads **0.6663 waves / sample** in red, and its detail says
+  2.8% of the worst plane's light is outside the inscribed circle and **56 cells
+  at the mount's rim are averaged** — the case the section warned of: red guard,
+  rim already corrected, the detail saying which.
+- Matched, the guard reads 0.5461 and the detail carries no averaging clause.
+
+Console clean on both. The two app rungs pin the same wiring without a browser:
+the memo forwards the quadrature, and the picture corrects cells on air and none
+on a matched mount, its flux drift under 1e-12.
 
 ### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**
 
