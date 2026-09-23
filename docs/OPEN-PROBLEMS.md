@@ -262,9 +262,10 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     2v·J₀ = J₁, 0.565 of the dark ring) and falls from there to the ring. The check
     did not need a band-integrated Airy *image*: the readouts are linear in the
     kernel, so `bandCore` reads each component at its own scale, and
-    `kernelDiscEnergy` integrates the band-limited kernel over a disc exactly. The
-    peak-pixel fall § 6j.2 saw is the resampler's: 0.9985 stacked against 1.0005
-    read. What it leaves: at the ladder's 64/32 the lattice's error is the size of
+    `kernelDiscEnergy` integrates the band-limited kernel over a disc exactly.
+    Today's stacking still costs a 20 nm band's peak (0.9985 stacked against 1.0005
+    read), which fits § 6j.2's fall; § 6j.2 ran on the resampler § 8c replaced, so
+    it fits and does not explain. What it leaves: at the ladder's 64/32 the lattice's error is the size of
     the effect at the two flips, so the engine resolves them only at 256/128.
 16. ~~**The exact band is reported and never defaulted**, and `packages/app` still
     asks for the paraboloid. § 6k.9: `inFocusFraction` still means the

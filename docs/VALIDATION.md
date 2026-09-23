@@ -9938,7 +9938,8 @@ to the kernel.
 | …and converges on the boxcar's 1/(1 − (W/2λ̄)²) at the midpoint rule's 1/count² | closed form | ✅ |
 | **Energy inside a radius rises inside v* = 2.1659 and falls from there to the ring** | 2v·J₀ = J₁; closed form, 3.5% | ✅ |
 | At the flips 64/32 errs by the effect's size (wrong sign at the ring); 256/128 resolves them | measurement | ✅ |
-| § 6j.2's peak-pixel fall is the resampler's: 0.9985 stacked against 1.0005 read | measurement | ✅ |
+| Stacking costs a 20 nm band's peak 0.9985 against 1.0005 read, growing ~linearly with width | measurement | ✅ |
+| The disc readout refuses a kernel whose spectrum wraps its frame (pupilSamples > N/2) | 64/48 vs 128/48: 2.9e-2 | ✅ |
 
 ### 6j.1 — the band's weights are the source's, and they enter exactly once
 
@@ -10061,7 +10062,7 @@ gives −0.298 mm on the same system).
 Where § 6j.2 could not show broadening, an objective that focuses the colours in
 different planes does: a 160 nm band empties the core relative to a 10 nm one on
 the traced DIN 4×. **Both sides are resampled and both use the same sample
-count**, so the resampler's bilinear smoothing is present on each and cancels —
+count**, so the resampler's own smoothing is present on each and cancels —
 comparing against an unresampled single line would have measured that smoothing
 and called it secondary spectrum.
 
@@ -10077,9 +10078,10 @@ the exit pupil's own dispersion.
 
 **Hypothesis.** An aberration-free band concentrates the centre and does not
 blur it: the band's centre density is λ̄²·Σw/λ² of the line's, which is above 1
-for any band, and § 6j.2's peak-pixel fall was the resampler. **What would
-refute it:** a centre ratio read without resampling that falls below 1, or that
-misses λ̄²·Σw/λ² by more than rounding.
+for any band. **What would refute it:** a centre ratio read without resampling
+that falls below 1, or that misses λ̄²·Σw/λ² by more than rounding. Whether
+§ 6j.2's fall was its resampler is NOT in the hypothesis: that resampler is gone
+(§ 8c), so no number taken today could refute it.
 
 **The readout that does not resample.** A readout is linear in the kernel, so
 the band's value is the weighted sum of each component's value read at its own
@@ -10090,7 +10092,11 @@ could not make. The kernel is band-limited, though — its transform is the pupi
 lattice's autocorrelation, zero past `pupilSamples` bins — so it has one
 continuous interpolant, and that interpolant's disc integral is exact bin by bin:
 E(R) = (1/N²)·Σ Ĥ(f)·R·J₁(2π|f|R)/|f|. `kernelDiscEnergy` computes it and
-`bandCore` sums it over the band. Neither calls the resampler.
+`bandCore` sums it over the band. Neither calls the resampler. "One
+interpolant" needs the autocorrelation to fit the frame's Nyquist box,
+pupilSamples ≤ N/2. `incoherentPsf` forms kernels up to N − 2, and past N/2 the
+spectrum wraps (64/48 misses 128/48 by 2.9e-2), so the readout refuses those
+kernels. The ladder's 64/32 sits exactly on the boundary.
 
 **It has no grid of its own**, which is what makes it a fair judge. Doubling the
 image grid at the same lattice (64/32 against 128/32) changes the disc energy by
@@ -10125,12 +10131,15 @@ tolerated away: at 256/128 both flips read the closed form's sign. So v* is
 pinned from the closed form, and the engine is asserted only where its margin
 covers the lattice's error.
 
-**§ 6j.2's fall was the resampler.** Read without resampling, a 20 nm band's
-centre is 1.000472 of the line's, above 1 as Jensen requires. Stacked by
-`emissionKernel`, the same band's peak reads 0.998453. The conservative
-resampler's cell averaging costs to first order in |k − 1| while the physical
-gain is second order, so it wins at small widths. That is why the old sweep fell
-before it rose.
+**Stacking still costs the peak, and at small widths more than the band
+gains.** Read without resampling, a 20 nm band's centre is 1.000472 of the
+line's, above 1 as Jensen requires. Stacked by `emissionKernel`, the same band's
+peak reads 0.998453. The stacking's share, 1 − stacked/read, grows close to
+linearly with width: 2.0e-3 at 20 nm, 2.68e-2 at 200 nm, 13.3× for 10× the
+width. The physical gain grows 72× over the same range, as the width squared.
+That fits § 6j.2's fall before the rise. It does not explain it, because § 6j.2
+ran on the bilinear resampler § 8c replaced, and that fall is not reproduced
+today.
 
 ### Not yet pinned
 - ~~**Which way an aberration-free band moves the core.** See § 6j.2 — two readouts

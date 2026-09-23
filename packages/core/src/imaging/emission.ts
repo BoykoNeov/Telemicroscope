@@ -94,9 +94,10 @@ import { exactDepthFactor } from "./volume";
  * and the grid sits at the weighted mean), and the energy inside a fixed
  * physical radius rises inside v* = 2.1659 (0.3447·λ̄/NA, the root of
  * 2v·J₀ = J₁) and falls from there to the first dark ring, to second order in
- * the band's width. The peak pixel's fall that § 6j.2 saw at small widths is the
- * resampler's: a 20 nm band's stacked peak reads 0.9985 of the line's where the
- * band's own reads 1.0005.
+ * the band's width. Stacking still costs the peak something, and at small widths
+ * more than the physics gains: a 20 nm band's stacked peak reads 0.9985 of the
+ * line's where the band's own reads 1.0005. That fits § 6j.2's fall, but it is
+ * not that fall — § 6j.2 ran on the bilinear resampler § 8c replaced.
  *
  * ## The band's weights are the SOURCE's, and they may be applied exactly once
  *
@@ -306,6 +307,12 @@ export function emissionKernel(
  * number — pinned. What is left is the lattice's own error, which is the
  * pupil's and converges with `pupilSamples`.
  *
+ * "One interpolant" holds only while the autocorrelation fits the frame's
+ * Nyquist box, pupilSamples ≤ N/2. `incoherentPsf` forms kernels up to N − 2,
+ * and past N/2 the spectrum wraps: 64/48 misses 128/48 by 2.9e-2 where 64/32
+ * matches 128/32 to 1e-15. So that is refused too. The ladder's 64/32 sits
+ * exactly on the boundary.
+ *
  * The interpolant is periodic, so a disc wider than half the frame would meet
  * its own neighbour and is refused. The Bessel argument reaches 2π·R·
  * pupilSamples/N, and `besselJ1` refuses past its series limit rather than this
@@ -313,6 +320,12 @@ export function emissionKernel(
  */
 export function kernelDiscEnergy(kernel: IncoherentPsf, radiiPx: readonly number[]): number[] {
   const n = kernel.size;
+  if (kernel.pupilSamples > n / 2) {
+    throw new Error(
+      `kernelDiscEnergy: a ${kernel.pupilSamples}-bin pupil's autocorrelation wraps a ` +
+        `${n}-bin frame — the kernel is aliased; raise size to at least ${2 * kernel.pupilSamples}`,
+    );
+  }
   for (const r of radiiPx) {
     if (!(r >= 0) || r > n / 2) {
       throw new Error(

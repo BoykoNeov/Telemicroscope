@@ -375,7 +375,7 @@ describe("§ 6j.5 — a traced objective through a real band", () => {
     // components and the core genuinely empties.
     //
     // Both bands are compared through the SAME number of samples and both are
-    // resampled, so the resampler's own bilinear smoothing is present on both
+    // resampled, so the resampler's own smoothing is present on both
     // sides and cancels. Comparing against an unresampled single line would have
     // measured that smoothing and called it secondary spectrum.
     const system = din4x();
@@ -477,6 +477,11 @@ describe("§ 6j.6 — which way an aberration-free band moves the core, read wit
     for (let i = 0; i < vs.length; i++) expect(Math.abs(a[i]! - b[i]!)).toBeLessThan(1e-13);
     // A disc past half the period would meet its own neighbour.
     expect(() => kernelDiscEnergy(coarse, [33])).toThrow(/does not fit/);
+    // And the identity holds only while the autocorrelation fits the frame:
+    // `incoherentPsf` forms a 48-bin pupil on 64 bins, but its spectrum wraps
+    // (64/48 misses 128/48 by 2.9e-2), so the readout refuses it.
+    const wrapped = incoherentPsf(idealPupil(), { size: 64, pupilSamples: 48, scale: scaleOf(LAMBDA) });
+    expect(() => kernelDiscEnergy(wrapped, [1])).toThrow(/aliased/);
   });
 
   it("a line's disc energy is Rayleigh's 1 − J₀² − J₁², converging with the lattice", () => {
@@ -588,23 +593,38 @@ describe("§ 6j.6 — which way an aberration-free band moves the core, read wit
     }
   });
 
-  it("the peak pixel's fall at small widths is the resampler's, not the band's", () => {
-    // § 6j.2's peak pixel fell before it rose. Read without resampling, a 20 nm
-    // band's centre is ABOVE the line's, as Jensen says it must be; stacked onto
-    // one grid, the same band reads below it — the conservative resampler's cell
-    // averaging, first order in |k − 1|, against a physical gain that is second.
-    const samples = emissionSamples(boxcarBand(LAMBDA, 20), { count: 41, fromNm: 450, toNm: 650 });
+  it("stacking costs the peak more than a narrow band gains — and the cost grows with width", () => {
+    // Read without resampling, a 20 nm band's centre is ABOVE the line's, as
+    // Jensen says it must be; stacked onto one grid by today's conservative
+    // resampler, the same band reads below it. That fits § 6j.2's fall but is
+    // not it: § 6j.2 ran on the bilinear resampler § 8c replaced, and its
+    // "40 nm" band was a line. So what is pinned is today's resampler.
     const mono = incoherentPsf(idealPupil(), {
       size: SIZE,
       pupilSamples: PUPIL_SAMPLES,
       scale: scaleOf(LAMBDA),
     });
-    const stacked = emissionKernel(pupils, samples, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
     const opts = { size: SIZE, pupilSamples: PUPIL_SAMPLES, radiiMm: [] };
-    const read =
-      bandCore(pupils, samples, opts).centreDensityPerMm2 /
-      bandCore(pupils, line, opts).centreDensityPerMm2;
-    expect(read).toBeCloseTo(1.000472, 6);
-    expect(stacked.values[0]! / mono.values[0]!).toBeCloseTo(0.998453, 6);
+    const lineCentre = bandCore(pupils, line, opts).centreDensityPerMm2;
+    const at = (width: number) => {
+      const samples = boxcar(width, 41);
+      const stacked = emissionKernel(pupils, samples, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
+      const read = bandCore(pupils, samples, opts).centreDensityPerMm2 / lineCentre;
+      return { read, stacked: stacked.values[0]! / mono.values[0]! };
+    };
+    const narrow = at(20);
+    expect(narrow.read).toBeCloseTo(1.000472, 6);
+    expect(narrow.stacked).toBeCloseTo(0.998453, 6);
+    // The stacking's share of the peak, 1 − stacked/read, grows close to
+    // linearly: 2.0e-3 at 20 nm to 2.68e-2 at 200 — 13.3× for 10× the width,
+    // where the physical gain grows as the width squared (read − 1: 72×).
+    const cost = [20, 40, 100, 200].map((w) => {
+      const r = at(w);
+      return 1 - r.stacked / r.read;
+    });
+    for (let i = 1; i < cost.length; i++) expect(cost[i]!).toBeGreaterThan(cost[i - 1]!);
+    expect(cost[0]!).toBeCloseTo(2.019e-3, 5);
+    expect(cost[3]! / cost[0]!).toBeCloseTo(13.3, 1);
+    expect((at(200).read - 1) / (narrow.read - 1)).toBeCloseTo(72.4, 1);
   });
 });
