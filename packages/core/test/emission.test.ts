@@ -1,12 +1,16 @@
 import { describe, it, expect } from "vitest";
 import {
+  bandCore,
   boxcarBand,
   chromaticFocusShiftMm,
   depthOfFocusMm,
   emissionKernel,
   emissionSamples,
+  kernelDiscEnergy,
   tracedEmissionPupils,
 } from "../src/imaging/emission";
+import { besselJ, besselJ1 } from "../src/math/bessel";
+import type { WavelengthSample } from "../src/trace/system";
 import { incoherentPsf } from "../src/imaging/fluorescence";
 import { idealPupil } from "../src/illumination/transfer";
 import {
@@ -232,6 +236,12 @@ describe("§ 6j.2 — one physical grid, because the pixel scale is ∝ λ", () 
     // direction "the band blurring" would be picking the metric that flattered
     // the claim. § 6j.5 measures blur where an objective supplies it, comparing
     // two bands that are BOTH resampled so the smoothing cancels.
+    //
+    // Settled at § 6j.6, below, by reading the band WITHOUT resampling it — and
+    // the answer is a map of signs, so the refusal to pick one was right. Two
+    // things about this rung's own inputs it found: "bilinear" predates § 8c's
+    // conservative resampler, and with 9 samples over 450–650 the 40 nm band
+    // carries weight at 550 nm only, so it is a line.
     const kernels = [40, 100, 200].map((width) =>
       emissionKernel(idealPupils(scaleOf), band(width), {
         size: SIZE,
@@ -410,5 +420,191 @@ describe("§ 6j.5 — a traced objective through a real band", () => {
     // within the exit pupil's own dispersion, which is the honest statement.
     expect(at(600) / at(500)).toBeCloseTo(600 / 500, 3);
     expect(Math.abs(at(600) / at(500) / 1.2 - 1)).toBeLessThan(2e-4);
+  });
+});
+
+describe("§ 6j.6 — which way an aberration-free band moves the core, read without resampling", () => {
+  // The fixture's pupil: exitRadius/referenceRadius = 0.05, so the Airy
+  // argument is v = 2π·NA·r/λ with NA = 0.05, and at 64/32 one pixel is
+  // v = π/2 at the line.
+  const NA = 0.05;
+  const mmAt = (v: number, nm = LAMBDA) => (v * nm * 1e-6) / (2 * Math.PI * NA);
+  const line = [{ nm: LAMBDA, weight: 1 }];
+  const pupils = idealPupils(scaleOf);
+  /** Rayleigh's encircled energy of the Airy pattern — Born & Wolf § 8.5.2. */
+  const airyEnergy = (v: number) => 1 - besselJ(0, v) ** 2 - besselJ1(v) ** 2;
+  /** The closed-form band: every component's Airy, read at one physical radius. */
+  const airyBandExcess = (samples: readonly WavelengthSample[], v: number) => {
+    const mean = samples.reduce((a, s) => a + s.weight * s.nm, 0);
+    return samples.reduce((a, s) => a + s.weight * airyEnergy((v * mean) / s.nm), 0) - airyEnergy(v);
+  };
+  const boxcar = (width: number, count: number) =>
+    emissionSamples(boxcarBand(LAMBDA, width), { count, fromNm: 450, toNm: 650 });
+  /** Band minus line, at each v, both read by `bandCore`. */
+  const engineExcess = (
+    samples: readonly WavelengthSample[],
+    vs: readonly number[],
+    pupilSamples = PUPIL_SAMPLES,
+  ) => {
+    const opts = { size: 2 * pupilSamples, pupilSamples, radiiMm: vs.map((v) => mmAt(v)) };
+    const band = bandCore(pupils, samples, opts);
+    const mono = bandCore(pupils, line, opts);
+    return band.encircledEnergy.map((e, i) => e - mono.encircledEnergy[i]!);
+  };
+  /** The second-order flip: where d/dv(v²·E′) = 4v·J₀J₁ − 2J₁² changes sign first. */
+  const vStar = (() => {
+    let lo = 1.5;
+    let hi = 2.4;
+    const g = (v: number) => 2 * v * besselJ(0, v) - besselJ1(v);
+    for (let k = 0; k < 80; k++) {
+      const mid = (lo + hi) / 2;
+      if (g(lo) * g(mid) <= 0) hi = mid;
+      else lo = mid;
+    }
+    return lo;
+  })();
+
+  it("the disc readout has no grid of its own: a finer image grid returns the same light", () => {
+    // Counting pixels inside a radius is a step function of the radius, which is
+    // why § 6j.2 could not compare components at one physical radius. The kernel
+    // is band-limited, so its interpolant is unique and its disc integral exact:
+    // quadrupling the image samples at the same lattice changes nothing.
+    const vs = [1, 2, 3.8317, 5, 7];
+    const coarse = incoherentPsf(idealPupil(), { size: 64, pupilSamples: 32, scale: scaleOf(LAMBDA) });
+    const fine = incoherentPsf(idealPupil(), { size: 128, pupilSamples: 32, scale: scaleOf(LAMBDA) });
+    const a = kernelDiscEnergy(coarse, vs.map((v) => mmAt(v) / coarse.pixelScaleMm!));
+    const b = kernelDiscEnergy(fine, vs.map((v) => mmAt(v) / fine.pixelScaleMm!));
+    for (let i = 0; i < vs.length; i++) expect(Math.abs(a[i]! - b[i]!)).toBeLessThan(1e-13);
+    // A disc past half the period would meet its own neighbour.
+    expect(() => kernelDiscEnergy(coarse, [33])).toThrow(/does not fit/);
+  });
+
+  it("a line's disc energy is Rayleigh's 1 − J₀² − J₁², converging with the lattice", () => {
+    const vs = [1, 2, 3.8317, 5, 7];
+    const errorsAt = (pupilSamples: number) => {
+      const k = incoherentPsf(idealPupil(), {
+        size: 2 * pupilSamples,
+        pupilSamples,
+        scale: scaleOf(LAMBDA),
+      });
+      return kernelDiscEnergy(k, vs.map((v) => mmAt(v) / k.pixelScaleMm!)).map(
+        (e, i) => e - airyEnergy(vs[i]!),
+      );
+    };
+    const e32 = errorsAt(32);
+    const e64 = errorsAt(64);
+    const e128 = errorsAt(128);
+    // The lattice's own error — the pupil's disc drawn on a grid — and nothing
+    // else: 1.75e-3 → 4.8e-4 → 2.3e-4 at v = 1, and inside 4e-4 everywhere at 128.
+    for (const e of e32) expect(Math.abs(e)).toBeLessThan(3.1e-3);
+    expect(e32[0]!).toBeCloseTo(-1.747e-3, 5);
+    expect(Math.abs(e64[0]!)).toBeLessThan(Math.abs(e32[0]!) / 3);
+    expect(Math.abs(e128[0]!)).toBeLessThan(Math.abs(e64[0]!));
+    for (const e of e128) expect(Math.abs(e)).toBeLessThan(4e-4);
+  });
+
+  it("the band's centre density is λ̄²·Σw/λ² of the line's — an identity, above 1 for ANY band", () => {
+    // An identity through § 6j.2's isolation rung: in index space every
+    // component is the same array, so its centre over its own cell's area goes
+    // as 1/λ². Jensen does the rest — 1/λ² is convex and the grid sits at the
+    // weighted mean — so no band, symmetric or not, can lower it.
+    const lopsided = emissionSamples((nm) => (nm >= 500 && nm <= 640 ? (nm < 560 ? 3 : 1) : 0), {
+      count: 21,
+      fromNm: 450,
+      toNm: 650,
+    });
+    const at = (s: readonly WavelengthSample[]) =>
+      bandCore(pupils, s, { size: SIZE, pupilSamples: PUPIL_SAMPLES, radiiMm: [] });
+    for (const samples of [boxcar(60, 21), boxcar(100, 21), boxcar(200, 21), lopsided]) {
+      const band = at(samples);
+      const mono = at([{ nm: band.meanWavelengthNm, weight: 1 }]);
+      const mean = band.meanWavelengthNm;
+      const jensen = samples.reduce((a, s) => a + (s.weight * mean * mean) / (s.nm * s.nm), 0);
+      expect(band.centreDensityPerMm2 / mono.centreDensityPerMm2).toBeCloseTo(jensen, 12);
+      expect(jensen).toBeGreaterThan(1);
+    }
+  });
+
+  it("…and converges on the continuous boxcar's 1/(1 − (W/2λ̄)²) as the midpoint rule does", () => {
+    // ∫ dλ/λ² over a boxcar of width W, divided by W, is 1/(λ₁λ₂) — so the
+    // continuous band's peak is λ̄²/((λ̄ − W/2)(λ̄ + W/2)). The band's edges sit on
+    // the sampled range's, so the only error is the midpoint rule's, 1/count².
+    const continuous = 1 / (1 - (200 / (2 * LAMBDA)) ** 2);
+    const ratio = (count: number) => {
+      const band = bandCore(pupils, boxcar(200, count), {
+        size: SIZE,
+        pupilSamples: PUPIL_SAMPLES,
+        radiiMm: [],
+      });
+      const mono = bandCore(pupils, line, { size: SIZE, pupilSamples: PUPIL_SAMPLES, radiiMm: [] });
+      return band.centreDensityPerMm2 / mono.centreDensityPerMm2;
+    };
+    const e41 = continuous - ratio(41);
+    const e81 = continuous - ratio(81);
+    expect(e41 / e81).toBeGreaterThan(3.5);
+    expect(e41 / e81).toBeLessThan(4.5);
+    expect(Math.abs(e81) / continuous).toBeLessThan(1e-5);
+  });
+
+  it("the energy inside a radius rises inside v* = 2.1659 and falls from there to the ring", () => {
+    // To second order in the width, the band's excess is ½·Var(λ)·d²E/dλ², and
+    // d²E/dλ² has the sign of d/dv(v²·E′) = 4v·J₀J₁ − 2J₁², with E′ = 2J₁²/v.
+    // Its first root is where 2v·J₀ = J₁ — before J₀'s own zero at 2.4048, so
+    // the flip is inside the core, at 0.565 of the first dark ring's radius.
+    expect(vStar).toBeCloseTo(2.16587, 5);
+    expect(vStar / (2 * Math.PI)).toBeCloseTo(0.34471, 5);
+    // Asserted only at radii whose margin to a flip is larger than the lattice's
+    // error at 64/32, which is the ladder's sampling: rising, falling, rising.
+    const rising = [0.5, 1, 1.5, 4.71];
+    const falling = [2.6, 3.0, 3.4];
+    for (const samples of [boxcar(100, 21), boxcar(200, 21)]) {
+      const vs = [...rising, ...falling];
+      const engine = engineExcess(samples, vs);
+      vs.forEach((v, i) => {
+        const closed = airyBandExcess(samples, v);
+        expect(Math.sign(engine[i]!)).toBe(rising.includes(v) ? 1 : -1);
+        expect(Math.sign(closed)).toBe(Math.sign(engine[i]!));
+        expect(Math.abs(engine[i]! / closed - 1)).toBeLessThan(0.035);
+      });
+    }
+  });
+
+  it("at the flips the lattice's error is the size of the effect — a converged one resolves them", () => {
+    // 64/32 reads the wrong SIGN at the first dark ring for a 100 nm band: the
+    // effect there is 3.7e-5 and the lattice's error in a difference of two
+    // readings is of that order. Recorded, not asserted around.
+    const flips = [vStar, 3.8317];
+    const samples = boxcar(100, 21);
+    const coarse = engineExcess(samples, flips);
+    expect(Math.sign(coarse[1]!)).toBe(-Math.sign(airyBandExcess(samples, 3.8317)));
+    for (let i = 0; i < flips.length; i++) {
+      expect(Math.abs(coarse[i]! - airyBandExcess(samples, flips[i]!))).toBeLessThan(7e-5);
+    }
+    // At 256/128 the lattice's error has shrunk below the effect and both flips
+    // read the closed form's sign.
+    const fine = engineExcess(samples, flips, 128);
+    for (let i = 0; i < flips.length; i++) {
+      expect(Math.sign(fine[i]!)).toBe(Math.sign(airyBandExcess(samples, flips[i]!)));
+    }
+  });
+
+  it("the peak pixel's fall at small widths is the resampler's, not the band's", () => {
+    // § 6j.2's peak pixel fell before it rose. Read without resampling, a 20 nm
+    // band's centre is ABOVE the line's, as Jensen says it must be; stacked onto
+    // one grid, the same band reads below it — the conservative resampler's cell
+    // averaging, first order in |k − 1|, against a physical gain that is second.
+    const samples = emissionSamples(boxcarBand(LAMBDA, 20), { count: 41, fromNm: 450, toNm: 650 });
+    const mono = incoherentPsf(idealPupil(), {
+      size: SIZE,
+      pupilSamples: PUPIL_SAMPLES,
+      scale: scaleOf(LAMBDA),
+    });
+    const stacked = emissionKernel(pupils, samples, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
+    const opts = { size: SIZE, pupilSamples: PUPIL_SAMPLES, radiiMm: [] };
+    const read =
+      bandCore(pupils, samples, opts).centreDensityPerMm2 /
+      bandCore(pupils, line, opts).centreDensityPerMm2;
+    expect(read).toBeCloseTo(1.000472, 6);
+    expect(stacked.values[0]! / mono.values[0]!).toBeCloseTo(0.998453, 6);
   });
 });

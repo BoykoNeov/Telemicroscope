@@ -179,7 +179,10 @@ including the truncating mounts item 20 said could never be checked. What is
 the drawn blurs' values wrong while the half-wave guard read green, and a cell
 quadrature of the stack's constant term — built once at the focus depth, so the
 stack keeps its flux and its linearity — takes most of it out; the picture uses
-it. What is left in the register is Part A's items 11 and 12.
+it. **§ 6j.6 closed Part A's item 12**: read without resampling, an
+aberration-free band raises the centre for any band, and the energy inside a
+radius changes sign at v* = 2.1659. What is left in the register is Part A's
+item 11.
 
 ## Build order
 

@@ -252,8 +252,20 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
 11. **An immersed image plane behind an objective.** Opened by § 2g, which
     pinned the index on a single surface; a design where it enters twice
     (§ 6e's front and a back) does not exist on the ladder.
-12. **Which way an aberration-free band moves the Airy core.** § 6j names
-    "an analytic band-integrated Airy" as the resampler-free check.
+12. ~~**Which way an aberration-free band moves the Airy core.** § 6j names
+    "an analytic band-integrated Airy" as the resampler-free check.~~
+
+    ✅ **CLOSED at [§ 6j.6](VALIDATION.md#6j6--which-way-an-aberration-free-band-moves-the-core)**,
+    and the answer is a map of signs rather than a direction. The centre density
+    rises by λ̄²·Σw/λ² for any band (Jensen, since the grid sits at the weighted
+    mean). The energy inside a fixed radius rises inside v* = 2.1659 (the root of
+    2v·J₀ = J₁, 0.565 of the dark ring) and falls from there to the ring. The check
+    did not need a band-integrated Airy *image*: the readouts are linear in the
+    kernel, so `bandCore` reads each component at its own scale, and
+    `kernelDiscEnergy` integrates the band-limited kernel over a disc exactly. The
+    peak-pixel fall § 6j.2 saw is the resampler's: 0.9985 stacked against 1.0005
+    read. What it leaves: at the ladder's 64/32 the lattice's error is the size of
+    the effect at the two flips, so the engine resolves them only at 256/128.
 16. ~~**The exact band is reported and never defaulted**, and `packages/app` still
     asks for the paraboloid. § 6k.9: `inFocusFraction` still means the
     paraboloid's quarter wave beside the exact `exactInFocusFraction`, because
@@ -941,3 +953,10 @@ radial-map nodes · § 6ba differential bleaching.
     [§ 6l.13](VALIDATION.md#6l13--the-edge-read-through-a-taper)** — the
     cone panel's misses were its window's leak, not the rim's cusp, and a tapered
     edge is a check at any grid step. **Closed at [§ 6l.14](VALIDATION.md#6l14--the-cusp-averaged-over-the-cell-and-not-over-the-stack)**: the cusp's effect on the drawn blurs' values was real, the guard was blind to it, and a cell quadrature of the stack's constant term takes most of it out.
+
+18. ~~**Part A's item 12** — which way an aberration-free band moves the core.~~ ✅
+    — landed at [§ 6j.6](VALIDATION.md#6j6--which-way-an-aberration-free-band-moves-the-core)
+    with an engine readout (`kernelDiscEnergy`, `bandCore`) pinned to Rayleigh's
+    encircled energy. The centre rises for any band; the energy inside a radius
+    changes sign at v* = 2.1659. What is left in Part A is **item 11**, which still
+    has no external number named.

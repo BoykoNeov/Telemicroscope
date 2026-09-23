@@ -5,7 +5,8 @@ import {
   type SpectralSamplingOptions,
 } from "../photometry/spectrum";
 import { resampleEnergyGrid } from "../wave/polychromatic";
-import { fftShift2d } from "../math/fft";
+import { fft2d, fftShift2d } from "../math/fft";
+import { besselJ1 } from "../math/bessel";
 import type { WavelengthSample } from "../trace/system";
 import type { OpticalSystem } from "../trace/system";
 import { bestFocus } from "../analysis/focus";
@@ -84,6 +85,18 @@ import { exactDepthFactor } from "./volume";
  * happened to fall. Blur needs an objective that focuses the colours in
  * different planes, and § 6j.5 measures it on one, comparing two bands that are
  * both resampled so the resampler's own smoothing cancels.
+ *
+ * **§ 6j.6 settled the direction, and it is a map of signs rather than one
+ * sign.** `bandCore` reads the band without resampling anything — the readouts
+ * are linear in the kernel, so each component is read at its own scale and the
+ * readings are weighted — and the closed form it is held to is the Airy
+ * pattern's. The centre density rises by λ̄²·Σw/λ² for ANY band (1/λ² is convex
+ * and the grid sits at the weighted mean), and the energy inside a fixed
+ * physical radius rises inside v* = 2.1659 (0.3447·λ̄/NA, the root of
+ * 2v·J₀ = J₁) and falls from there to the first dark ring, to second order in
+ * the band's width. The peak pixel's fall that § 6j.2 saw at small widths is the
+ * resampler's: a 20 nm band's stacked peak reads 0.9985 of the line's where the
+ * band's own reads 1.0005.
  *
  * ## The band's weights are the SOURCE's, and they may be applied exactly once
  *
@@ -271,6 +284,129 @@ export function emissionKernel(
     samples: samples.map((s) => ({ nm: s.nm, weight: s.weight / total })),
     meanWavelengthNm,
     truncatedFraction,
+  };
+}
+
+/**
+ * Light inside discs about a kernel's origin, read off the band-limited kernel
+ * rather than off its samples (§ 6j.6).
+ *
+ * Counting the samples inside a radius is a step function of the radius — a
+ * pixel is in or out — so two kernels on different grids cannot be compared at
+ * one physical radius that way, and that is the comparison a band is made of.
+ * The kernel is band-limited, though: its transform is the pupil lattice's
+ * autocorrelation, zero past `pupilSamples` bins. So it has ONE continuous
+ * interpolant, and the disc integral of that is exact in closed form, bin by
+ * bin:
+ *
+ *     E(R) = (1/N²) · Σ_f Ĥ(f) · R·J₁(2π|f|R) / |f|,     πR² at f = 0
+ *
+ * with R in pixels and f in cycles per pixel. Nothing is resampled and nothing
+ * is counted, so a finer image grid at the same `pupilSamples` returns the same
+ * number — pinned. What is left is the lattice's own error, which is the
+ * pupil's and converges with `pupilSamples`.
+ *
+ * The interpolant is periodic, so a disc wider than half the frame would meet
+ * its own neighbour and is refused. The Bessel argument reaches 2π·R·
+ * pupilSamples/N, and `besselJ1` refuses past its series limit rather than this
+ * function guessing a smaller one.
+ */
+export function kernelDiscEnergy(kernel: IncoherentPsf, radiiPx: readonly number[]): number[] {
+  const n = kernel.size;
+  for (const r of radiiPx) {
+    if (!(r >= 0) || r > n / 2) {
+      throw new Error(
+        `kernelDiscEnergy: a disc of radius ${r} px does not fit half of a ${n}-bin period`,
+      );
+    }
+  }
+  const re = Float64Array.from(kernel.values);
+  const im = new Float64Array(n * n);
+  fft2d(re, im, n);
+  // The autocorrelation of a lattice spanning pupilSamples bins across its
+  // diameter reaches pupilSamples bins and no further. Bins past it hold
+  // rounding, and visiting them would only hand the Bessel series arguments it
+  // was never needed at.
+  const cut = kernel.pupilSamples / n;
+  const out = new Array<number>(radiiPx.length).fill(0);
+  for (let j = 0; j < n; j++) {
+    const fy = (j <= n / 2 ? j : j - n) / n;
+    for (let i = 0; i < n; i++) {
+      const fx = (i <= n / 2 ? i : i - n) / n;
+      const f = Math.hypot(fx, fy);
+      if (f > cut * (1 + 1e-12)) continue;
+      const h = re[j * n + i]!;
+      for (let k = 0; k < radiiPx.length; k++) {
+        const r = radiiPx[k]!;
+        const disc = f === 0 ? Math.PI * r * r : (r * besselJ1(2 * Math.PI * f * r)) / f;
+        out[k] = out[k]! + h * disc;
+      }
+    }
+  }
+  return out.map((e) => e / (n * n));
+}
+
+export interface BandCore {
+  /** The samples read, weights normalized to sum 1. */
+  readonly samples: readonly WavelengthSample[];
+  /** Weighted-mean wavelength (nm) — the grid `emissionKernel` would stack on. */
+  readonly meanWavelengthNm: number;
+  /** Σ w·h_λ(0)/a_λ²: the band's density at the centre, per mm², for unit power. */
+  readonly centreDensityPerMm2: number;
+  /** Σ w·E_λ(R/a_λ) at each of `radiiMm`, as fractions of the light. */
+  readonly encircledEnergy: readonly number[];
+}
+
+/**
+ * The band's core, read without resampling anything (§ 6j.6).
+ *
+ * `emissionKernel` has to put every component on one grid because a caller
+ * convolves with the result. A READOUT does not: the centre density and the
+ * energy inside a radius are linear in the kernel, so the band's value is the
+ * weighted sum of each component's value read at its own scale. That is the
+ * comparison § 6j.2 could not make — its readouts were taken after resampling,
+ * so the resampler's own smoothing sat inside every number — and the one the
+ * Airy pattern's closed form can be held to.
+ */
+export function bandCore(
+  pupils: EmissionPupils,
+  samples: readonly WavelengthSample[],
+  options: {
+    readonly size: number;
+    readonly pupilSamples: number;
+    readonly radiiMm: readonly number[];
+  },
+): BandCore {
+  if (samples.length === 0) throw new Error("bandCore: no wavelength samples");
+  const { size, pupilSamples, radiiMm } = options;
+  const total = samples.reduce((a, s) => a + s.weight, 0);
+  if (!(total > 0)) throw new Error("bandCore: sample weights must sum to a positive number");
+  const meanWavelengthNm = samples.reduce((a, s) => a + (s.weight / total) * s.nm, 0);
+
+  let centreDensityPerMm2 = 0;
+  const encircledEnergy = new Array<number>(radiiMm.length).fill(0);
+  for (const sample of samples) {
+    const w = sample.weight / total;
+    if (w === 0) continue;
+    const { pupil, scale } = pupils(sample.nm);
+    const kernel = incoherentPsf(pupil, { size, pupilSamples, scale });
+    const a = kernel.pixelScaleMm!;
+    // The kernel is normalized to sum 1 and in DC-at-0 layout, so index 0 IS the
+    // centre and a sample over its cell's area is a density for unit power.
+    centreDensityPerMm2 += (w * kernel.values[0]!) / (a * a);
+    const energies = kernelDiscEnergy(
+      kernel,
+      radiiMm.map((r) => r / a),
+    );
+    for (let k = 0; k < energies.length; k++) {
+      encircledEnergy[k] = encircledEnergy[k]! + w * energies[k]!;
+    }
+  }
+  return {
+    samples: samples.map((s) => ({ nm: s.nm, weight: s.weight / total })),
+    meanWavelengthNm,
+    centreDensityPerMm2,
+    encircledEnergy,
   };
 }
 

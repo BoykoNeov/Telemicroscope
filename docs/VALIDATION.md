@@ -9932,6 +9932,13 @@ to the kernel.
 | Swapping the endpoints negates the shift; a zero interval gives exactly 0 | negative control | ✅ |
 | A wide band is broader than a narrow one where the objective is chromatic | convergence, both sides resampled | ✅ |
 | The kernel's scale follows λ_em to within the exit pupil's own dispersion (1.4e-4) | measurement | ✅ |
+| **A disc readout with no grid of its own** — 64/32 and 128/32 agree | identity, 1e-13 | ✅ |
+| A line's disc energy is 1 − J₀² − J₁², converging with the lattice | Rayleigh, Born & Wolf § 8.5.2 | ✅ |
+| **A band's centre density is λ̄²·Σw/λ² of the line's — above 1 for any band** | Jensen; identity, 1e-12 | ✅ |
+| …and converges on the boxcar's 1/(1 − (W/2λ̄)²) at the midpoint rule's 1/count² | closed form | ✅ |
+| **Energy inside a radius rises inside v* = 2.1659 and falls from there to the ring** | 2v·J₀ = J₁; closed form, 3.5% | ✅ |
+| At the flips 64/32 errs by the effect's size (wrong sign at the ring); 256/128 resolves them | measurement | ✅ |
+| § 6j.2's peak-pixel fall is the resampler's: 0.9985 stacked against 1.0005 read | measurement | ✅ |
 
 ### 6j.1 — the band's weights are the source's, and they enter exactly once
 
@@ -9997,6 +10004,16 @@ all, exactly, so λ enters an aberration-free kernel through the scale and throu
 nothing else. The direction is left unpinned rather than settled by choosing the
 metric that flattered the claim.
 
+**Settled at [§ 6j.6](#6j6--which-way-an-aberration-free-band-moves-the-core),
+and the refusal was right:** the answer is a map of signs, not one sign. Two
+things about this paragraph's own inputs that step found. The sweep quoted above
+and the "bilinear smoothing" both predate § 8c's conservative resampler, and
+today's resampler does not reproduce them — its dip is 0.3% at most, and a
+200 nm band's stacked peak now reads +0.63% on the line's — so they stand as
+history.
+And with 9 samples over 450–650 nm the rung's "40 nm" band carries weight at
+550 nm only: it is a line.
+
 ### 6j.3 — the depth of focus, derived rather than transcribed
 
     DOF = n·λ / NA²
@@ -10054,10 +10071,74 @@ proportionality, and the residual is physics rather than slop: `pixelScaleMm` is
 itself chromatic. So the honest statement is that the scale follows λ_em to within
 the exit pupil's own dispersion.
 
+### 6j.6 — which way an aberration-free band moves the core
+
+*Closes § 6j's first "not yet pinned" item and register item 12 (Part A).*
+
+**Hypothesis.** An aberration-free band concentrates the centre and does not
+blur it: the band's centre density is λ̄²·Σw/λ² of the line's, which is above 1
+for any band, and § 6j.2's peak-pixel fall was the resampler. **What would
+refute it:** a centre ratio read without resampling that falls below 1, or that
+misses λ̄²·Σw/λ² by more than rounding.
+
+**The readout that does not resample.** A readout is linear in the kernel, so
+the band's value is the weighted sum of each component's value read at its own
+scale — nothing has to share a grid. The centre is the kernel's index 0 over its
+own cell's area. The energy inside a physical radius is harder, because counting
+pixels inside a radius is a step function of it: that is the comparison § 6j.2
+could not make. The kernel is band-limited, though — its transform is the pupil
+lattice's autocorrelation, zero past `pupilSamples` bins — so it has one
+continuous interpolant, and that interpolant's disc integral is exact bin by bin:
+E(R) = (1/N²)·Σ Ĥ(f)·R·J₁(2π|f|R)/|f|. `kernelDiscEnergy` computes it and
+`bandCore` sums it over the band. Neither calls the resampler.
+
+**It has no grid of its own**, which is what makes it a fair judge. Doubling the
+image grid at the same lattice (64/32 against 128/32) changes the disc energy by
+under 1e-13. Against Rayleigh's closed form 1 − J₀² − J₁² for a line, what is
+left is the lattice's error, the pupil's disc drawn on a grid: −1.75e-3 at v = 1
+at 64/32, then 4.8e-4 and 2.3e-4 at 128 and 256 lattice points, and inside 4e-4
+at every radius tested at the finest.
+
+**The centre rises, and it is an identity.** In index space every component is
+the same array (§ 6j.2's isolation), so the centre over its cell's area goes as
+1/λ², and the band's ratio is λ̄²·Σw/λ² to 1e-12. 1/λ² is convex and the common
+grid sits at the weighted mean, so by Jensen no band can lower it. A lopsided
+band (3:1 weights either side of 560 nm) is pinned as well as the boxcars. For a
+continuous boxcar the ratio is 1/(1 − (W/2λ̄)²), since ∫dλ/λ² over the band is
+1/(λ₁λ₂). The sampled band converges on it at the midpoint rule's rate: the
+error falls by 3.5–4.5× from 41 samples to 81, and ends under 1e-5.
+
+**The energy inside a radius has no single direction.** To second order in the
+width, the band's excess is ½·Var(λ)·d²E/dλ², and with E′ = 2J₁²/v the sign of
+d²E/dλ² is that of 4v·J₀J₁ − 2J₁². Its first root is where 2v·J₀ = J₁: v* =
+2.16587, or 0.3447·λ̄/NA — before J₀'s own zero, so at 0.565 of the first dark
+ring's radius. Inside v* a band gains light and between v* and the ring it loses
+it; past the ring the sign alternates ring by ring. The engine agrees at every
+radius with margin, for 100 nm and 200 nm bands: rising at v = 0.5, 1, 1.5 and
+4.71, falling at 2.6, 3.0 and 3.4, within 3.5% of the closed form's size.
+
+**At the flips the ladder's sampling cannot say.** Near v* and the ring the
+effect is 2e-5 to 4e-5 for a 100 nm band, the same size as the lattice's error in
+a difference of two readings. At 64/32 the engine reads the wrong sign at the
+ring (−2.6e-5 where the closed form says +3.7e-5). This is recorded rather than
+tolerated away: at 256/128 both flips read the closed form's sign. So v* is
+pinned from the closed form, and the engine is asserted only where its margin
+covers the lattice's error.
+
+**§ 6j.2's fall was the resampler.** Read without resampling, a 20 nm band's
+centre is 1.000472 of the line's, above 1 as Jensen requires. Stacked by
+`emissionKernel`, the same band's peak reads 0.998453. The conservative
+resampler's cell averaging costs to first order in |k − 1| while the physical
+gain is second order, so it wins at small widths. That is why the old sweep fell
+before it rose.
+
 ### Not yet pinned
-- **Which way an aberration-free band moves the core.** See § 6j.2 — two readouts
+- ~~**Which way an aberration-free band moves the core.** See § 6j.2 — two readouts
   disagree and both are entangled with the resampler's smoothing. Settling it
-  wants a resampler-free comparison, e.g. an analytic band-integrated Airy.
+  wants a resampler-free comparison, e.g. an analytic band-integrated Airy.~~
+  **Closed at [§ 6j.6](#6j6--which-way-an-aberration-free-band-moves-the-core)**:
+  the centre rises for any band, and the energy inside a radius rises inside
+  v* = 2.1659 and falls from there to the ring.
 - **The excitation path.** The imaging side is complete without it, but the
   *illumination* side is not modelled at all: epi-illumination through the
   objective, the dichroic, and whether the excitation is uniform over the field.
