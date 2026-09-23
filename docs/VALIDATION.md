@@ -65,7 +65,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice, **6k.9** chosen from NA/n, band ×0.693 | `volume` |
-| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack — no new physics, and no ray above n_s leaves the specimen: an oil 1.40 delivers 1.3347 into water; **6l.10** a rarer mount takes the cap, 0.4113 of peak; **6l.11** its band at the lit rim, λ/2n; **6l.12** its cone edge the immersion's angle over that rim | `depth-aberration` |
+| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack; no ray above n_s leaves the specimen (1.40 delivers 1.3347 into water); **6l.10** a rarer mount takes the cap; **6l.11** its band at the lit rim, λ/2n; **6l.12** its cone edge the immersion's angle over that rim; **6l.13** read tapered, at any grid step | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature ×4.000 per doubling — and an off-axis tile ANISOTROPIC in § 6h.1's ratio 3 | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
@@ -10610,6 +10610,11 @@ and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
 | **6l.12** `ewaldConeEdge` bitwise its old self after delegating to the rim form; matched reduces to § 6k.8 by `toBe`; the s ≥ 1 spelling kept apart and agreeing to 1e-13 | `toBe`, not agreement | ✅ |
 | **6l.12** The paraboloid default has NO closed boundary: its profile turns over at ρ = 0.9935 / 0.8874 / 0.6885 and the maximising pair goes interior — refused, not approximated | monotonicity, measured | ✅ |
 | **6l.12** MEASURED: the 2% edge at 1.000 / 1.250 / 1.125 against 1.0146 / 1.2762 / 1.0146 — inside one axial bin, and 2–3 bins off ν·(2 − ν) | § 6k.4's protocol | ✅ |
+| **6l.13** `axialSpectrum`'s default is the untapered transform, element for element | identity rung | ✅ |
+| **6l.13** Blackman on an on-bin tone: 1, 0.25/0.42, 0.04/0.42 either side, < 1e-13 beyond | periodic three-term window's DFT, closed form | ✅ |
+| **6l.13** …and off-bin, nothing ≥ 3 bins from the tone above −58 dB, the worst just under it | Harris (1978), Table 1 | ✅ |
+| **6l.13** An oil 1.40 over air at 5.65 and 3.67 waves per sample: tapered, ≤ 8.1e-4 of peak past law + 3 bins; untapered, 2.0–5.2% — item 20's hypothesis refuted | § 6l.12's law, one-sided | ✅ |
+| **6l.13** Past the delivered cutoff the transfer is < 1e-12 of DC at every slice — no edge to read | ν ≥ 2·ρ_rim, pair count | ✅ |
 
 ### 6l.1 — the literature quotes it in a different reference, and the natural check reads backwards
 
@@ -11144,7 +11149,7 @@ at 64 slices the 2% protocol is near its own resolution.
 wrong.** The pupil must be fine enough that the stack's worst-defocused member
 steps under half a wave between neighbours: this window measures 0.342, and at 64
 bins the same rows read 0.65 to 1.77 and return their leakage floor instead of
-their edge — at the extreme, an air mount reads the Nyquist frequency, which is
+their edge (the floor is the untapered window's, not the lattice's — § 6l.13) — at the extreme, an air mount reads the Nyquist frequency, which is
 where D10's "up to 10 axial bins" came from. So D10's departure had two causes
 stacked on one number: a law that was wrong for the stack, and a pupil too coarse
 to resolve the right one.
@@ -11155,13 +11160,113 @@ and compares it against ν·(2 − ν), so the panel now asserts something this 
 falsifies — that the boundary is lost through a mount; correcting it needs the
 exact cap *and* a finer pupil than the panel currently pays for, and its
 `conePeriodWaves` readout is the paraboloid lattice's period and has no meaning
-for a profile whose pair differences are incommensurate. That is **item 19**. The
+for a profile whose pair differences are incommensurate. That is **item 19**. ~~The
 static term d₀·A(ρ) moves the transfer's values near the edge and is not measured
 here — it is what makes a 2% threshold read short, and separating it from the
-window's own leak is a different measurement. And the derivation puts the rim at a
+window's own leak is a different measurement.~~ Separated at
+[§ 6l.13](#6l13--the-edge-read-through-a-taper): the leak past the law is the
+untapered window's, and a tapered reading short of the law is allowed, because
+the law is a ceiling. And the derivation puts the rim at a
 *radius*, which is only available on axis: `withMountAberration` off axis truncates
 in the invariant plane and loses a crescent rather than an annulus (§ 6y), so a
 chief-ray version of this boundary is its own problem and not a parameter here.
+
+### 6l.13 — the edge read through a taper
+
+**The hypothesis, and the number that would refute it.** Register item 20 said a
+truncating mount has no sampled pupil that carries its depth phase: past § 6l.3's
+wall cos θ_s → 0, the depth wavefront's slope diverges, the sampled phase step
+falls only as √bins, and so `mountConeEdge` "goes unchecked on exactly the mounts
+it was written for". It proposed a rim quadrature in `incoherentPsf`. The claim
+is refuted if, with the stack's window leak taken out, a truncating stack at a
+phase step far over half a wave shows no content past `mountConeEdge`.
+
+**Refuted, at 15 waves per sample.** The reason is § 6l.12's own structure, and
+it holds on the lattice exactly as in the continuum. The stack's phase is
+d₀·A(ρ) + w·Φ_eff(ρ). The cusp is in A, and d₀·A does not change from slice to
+slice. So each pair of lattice points still contributes at the single axial
+frequency Φ_eff(a) − Φ_eff(b), and that never exceeds the law. However badly the
+lattice samples d₀·A, it cannot put a pair past the boundary.
+
+What it *can* do is make the transfer at a lateral frequency very different at
+the stack's two ends — about 80× between the first and last slice at ν = 0.5 on
+an ideal 1.40 over air. An
+untapered transform treats that difference as a jump, and a jump leaks a floor
+that falls only as 1/bin. On that stack the floor sits at 1–5% of the peak, and
+the 2% threshold reads the floor. That is where the panel's 7 to 28 bins came
+from. So the grid guard item 19 read its verdict from was measuring aberration,
+and aberration is what makes the ends differ; the lattice was never the cause.
+
+#### The engine change: `axialSpectrum` takes a window
+
+`window: "blackman"` tapers the stack with the periodic three-term Blackman
+window (a₀ = 0.42, a₁ = 0.5, a₂ = 0.08) before the transform, and divides by the
+coherent gain a₀ so a flat stack's DC bin is unchanged. Its first null is at 3
+bins and its highest sidelobe is −58 dB (Harris 1978, Table 1) — 1.24e-3 of a
+component, well under 2%. Hann was measured and rejected: its first sidelobe is
+−31.5 dB, 2.7%, which is itself over the threshold. The default stays the
+untapered transform, element for element, because every reading from § 6k.4 to
+§ 6l.12 was taken there.
+
+The taper is for reading an **edge** and nothing else. The ν = 0 null is a claim
+about the untapered transform — a flat stack reads zero off DC only through hard
+ends — and through Blackman it reads 0.595 and 0.095 of DC at bins 1 and 2.
+
+#### The rungs
+
+Blackman's closed form on a pure tone: on a bin, the five non-zero bins
+1, a₁/2a₀, a₂/2a₀ and nothing else to 1e-13. Off a bin, swept over a hundred
+offsets, nothing 3 or more bins from the tone rises above −58 dB, and the worst
+reading lands just under it, so the sidelobe is really at the quoted level.
+
+The physics rung is item 20's own stack, an oil 1.40 over air at 10 µm. At 32 and
+128 pupil bins the grid step is 5.65 and 3.67 waves per sample. Read through the
+taper, nothing past law + 3 bins exceeds **8.1e-4** of the peak at ν = 0.25, 0.5
+and 1, which is 25× under 2%. Read untapered, the same stacks put **2.0–5.2%**
+there — the negative control. At ν = 1.5 the frequency is past the delivered
+cutoff 2/1.4, so no two lit lattice points are that far apart. The transfer there
+is under 1e-12 of DC at every slice, and a 2% edge read there is rounding noise
+divided by itself — which is what the panel had been printing.
+
+#### Over the catalogue — the app's own table
+
+Rebuilt from item 19's own configuration: traced pupils, 128 bins on a 256 grid,
+the 9 rows that build × 4 mounts × 4 depths × 3 lateral frequencies. All 144 rebuilt
+stacks reproduce the panel's untapered edge and law exactly.
+
+- **Past the law.** Of 428 curves inside the cutoff, the worst tapered content
+  past law + 3 bins is **1.9e-3** of the peak (the 1.25 in air at 10 µm,
+  ν = 1), ×10.6 under the threshold. That includes stacks at 15 waves per sample.
+- **Where the edge sits.** The tapered edge sits at most +1.96 bins past the law,
+  inside the taper's own lobe.
+- **Below the law.** It sits as far as **−4.2 bins** below the law, including on
+  mounts that do not truncate at all (the 1.25 in water at 25 µm, where water's
+  1.333 still carries the objective's whole cone). That is not a miss. The law is a ceiling — no pair past it — and never
+  promised 2% of the peak right at it. Item 19's two-sided "within one bin"
+  asked for something the law does not say.
+
+So the check becomes **one-sided**. An edge passes if it reads no more than the
+taper's main lobe, 3 bins, past the law. The 3 is the window's own first null,
+not a tolerance chosen to make rows pass.
+
+#### What the taper costs
+
+The main lobe is wider than a bin, and on this window the two laws are about
+2 bins apart. So the tapered check confirms `mountConeEdge` as a ceiling, but it
+cannot on its own tell it from the defocus-only ν·(2 − ν) everywhere. The 1.25's
+reading sits exactly 3.0 bins past the defocus-only law, which is exactly the
+allowance, so on that row it does not rule the defocus-only law out. The 1.40's
+sits 4.0 bins past it, which does.
+
+What does separate the two laws is § 6l.12's own untapered rung, on a stack
+whose ends agree. A 16-wave window would halve the bin, and 3 bins would then
+be 0.19 cycles per wave against the laws' 0.26 apart. That doubles the job and is
+not taken here.
+
+**What it leaves.** The cusp is still real. It still breaks the half-wave rule
+for the kernels' *values* on a truncating mount: each drawn blur is point-sampled
+through a phase that jumps several waves between samples at the rim. That is
+item 20 as it now stands, narrowed rather than struck.
 
 
 ### Not yet pinned

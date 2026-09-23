@@ -22,6 +22,7 @@ import {
   type MountSpec,
 } from "../src/imaging/depth-aberration";
 import {
+  AXIAL_WINDOW_MAIN_LOBE_BINS,
   axialSpectrum,
   axialTransfer,
   defocusing,
@@ -1546,5 +1547,154 @@ describe("§ 6l.12 — a depth-varying stack's support boundary", () => {
     // transcript would not. That margin is the real reason the tolerance here is
     // a bin rather than a bit: at 64 slices the protocol is near its own
     // resolution, not merely leaking.
+  });
+});
+
+describe("§ 6l.13 — the edge is read through a taper, and the rim's cusp never blocked it", () => {
+  const HALF = 4;
+  const SLICES = 64;
+  const STEP = (2 * HALF) / SLICES;
+  const STACK = Array.from({ length: SLICES }, (_, i) => -HALF + i * STEP);
+  const BIN = 1 / (STEP * SLICES);
+
+  /** A pure axial tone of `cycles` bins over the stack, as a transfer. */
+  const tone = (cycles: number) => {
+    const re = new Float64Array(SLICES);
+    const im = new Float64Array(SLICES);
+    for (let i = 0; i < SLICES; i++) {
+      re[i] = Math.cos((2 * Math.PI * cycles * i) / SLICES);
+      im[i] = Math.sin((2 * Math.PI * cycles * i) / SLICES);
+    }
+    return { defocusWaves: STACK, lateralBin: 0, re, im };
+  };
+
+  it("leaves the default the transform it always was", () => {
+    // Every reading § 6k.4 through § 6l.12 recorded was taken untapered, so the
+    // option must not move one of them: the explicit rectangular window and the
+    // default are the same arrays, element for element.
+    const t = tone(7.3);
+    const bare = axialSpectrum(t);
+    const rect = axialSpectrum(t, { window: "rectangular" });
+    expect(Array.from(rect.magnitude)).toEqual(Array.from(bare.magnitude));
+    expect(Array.from(rect.cyclesPerWave)).toEqual(Array.from(bare.cyclesPerWave));
+    expect(AXIAL_WINDOW_MAIN_LOBE_BINS.blackman).toBe(3);
+  });
+
+  it("reads a tone through Blackman's own closed form: a₁/2a₀ and a₂/2a₀ beside it, zero beyond", () => {
+    // The periodic three-term window's DFT has exactly five non-zero bins about
+    // an on-bin tone: a₀ at it, a₁/2 either side, a₂/2 two out. Divided by the
+    // coherent gain a₀ = 0.42 the tone keeps its untapered height, step·N.
+    const k = 10;
+    const { magnitude } = axialSpectrum(tone(k), { window: "blackman" });
+    const height = STEP * SLICES;
+    expect(magnitude[k]! / height).toBeCloseTo(1, 13);
+    expect(magnitude[k - 1]! / height).toBeCloseTo(0.25 / 0.42, 13);
+    expect(magnitude[k + 1]! / height).toBeCloseTo(0.25 / 0.42, 13);
+    expect(magnitude[k - 2]! / height).toBeCloseTo(0.04 / 0.42, 13);
+    expect(magnitude[k + 2]! / height).toBeCloseTo(0.04 / 0.42, 13);
+    for (let b = 0; b < magnitude.length; b++) {
+      if (Math.abs(b - k) > 2) expect(magnitude[b]! / height).toBeLessThan(1e-13);
+    }
+  });
+
+  it("leaks at most −58 dB past its main lobe, wherever the tone falls between bins", () => {
+    // Harris (1978), Table 1: the Blackman window's highest sidelobe is −58 dB
+    // and its main lobe reaches its first null at 3 bins. Swept over the tone's
+    // offset from a bin, nothing 3 or more bins from the tone exceeds that, and
+    // the worst reading lands just under it — the sidelobe is really there, at
+    // the level quoted, rather than the bound being loose.
+    const ceiling = 10 ** (-58 / 20);
+    let worst = 0;
+    for (let j = 0; j < 100; j++) {
+      const f = 10 + j / 100;
+      const { magnitude } = axialSpectrum(tone(f), { window: "blackman" });
+      for (let b = 0; b < magnitude.length; b++) {
+        if (Math.abs(b - f) >= AXIAL_WINDOW_MAIN_LOBE_BINS.blackman) {
+          worst = Math.max(worst, magnitude[b]! / (STEP * SLICES));
+        }
+      }
+    }
+    expect(worst).toBeLessThan(ceiling);
+    expect(worst).toBeGreaterThan(10 ** (-59 / 20));
+  });
+
+  /**
+   * The stack item 20 said no affordable pupil could check: an oil 1.40 over air,
+   * where § 6l.3's wall leaves the pupil dark at ρ = 1/1.4 and the depth
+   * wavefront's slope diverges there.
+   */
+  const airStack = (pupilSamples: number) => {
+    const spec: MountSpec = { ...mount(1.4), mountIndex: 1 };
+    const perWave = 1 / mountDefocusWaves({ ...spec, focusDepthMm: 0 }, 1);
+    const deep = { ...spec, focusDepthMm: 0.01 + HALF * perWave };
+    const s = mountSinAlpha(deep);
+    const kernels = depthKernels(mountPupils(idealPupil(), deep, s), STACK, {
+      pupilSamples,
+      size: 2 * pupilSamples,
+    });
+    let gridStep = 0;
+    for (const k of kernels) gridStep = Math.max(gridStep, k.maxGridPhaseStepWaves);
+    return { spec: deep, s, kernels, gridStep };
+  };
+
+  /** Largest magnitude beyond law + `lobe` bins, as a fraction of the peak. */
+  const pastLaw = (magnitude: Float64Array, law: number, lobe: number): number => {
+    let peak = 0;
+    for (const m of magnitude) peak = Math.max(peak, m);
+    let worst = 0;
+    for (let b = 0; b < magnitude.length; b++) {
+      if (b * BIN > law + lobe * BIN) worst = Math.max(worst, magnitude[b]! / peak);
+    }
+    return worst;
+  };
+
+  it("finds nothing past the law on a truncating mount, at a grid step item 20 called unresolvable", () => {
+    // The hypothesis item 20 recorded: past the wall the sampled phase step falls
+    // only as √bins, so the lattice cannot carry the stack and its support edge
+    // is not a check. Refuted if, with the window's leak taken out, content above
+    // `mountConeEdge` survives on this stack.
+    //
+    // It does not, and the reason is structural rather than lucky: Ψ(ρ; w) is
+    // d₀·A(ρ) + w·Φ_eff(ρ) on the LATTICE exactly as in the continuum (§ 6l.12),
+    // and the cusp lives in d₀·A — constant across the stack — so each pair of
+    // lattice points still contributes at the single frequency Φ_eff(a) −
+    // Φ_eff(b), which never exceeds the law. However badly the lattice samples
+    // d₀·A, it cannot put a pair above the boundary. What it CAN do is make the
+    // transfer differ a lot between the stack's two ends, and a hard-ended window
+    // turns that difference into a flat floor.
+    for (const pupilSamples of [32, 128]) {
+      const { spec, s, kernels, gridStep } = airStack(pupilSamples);
+      // 5.65 and 3.67 waves per sample — seven times the 0.5 the old verdict keyed
+      // on and more, falling as √bins exactly as item 20 recorded.
+      expect(gridStep).toBeGreaterThan(3);
+      let rectWorst = 0;
+      for (const nu of [0.25, 0.5, 1]) {
+        const bin = Math.round((nu * pupilSamples) / 2);
+        const t = axialTransfer(kernels, bin);
+        const law = mountConeEdge(spec, (2 * bin) / pupilSamples, s);
+        const tapered = pastLaw(axialSpectrum(t, { window: "blackman" }).magnitude, law, 3);
+        // Measured at most 8.1e-4 of the peak over both samplings and all three
+        // frequencies — 25× under the threshold, so the claim is not near its edge.
+        expect(tapered, `ν ${nu} at ${pupilSamples} bins, Blackman`).toBeLessThan(0.02);
+        rectWorst = Math.max(rectWorst, pastLaw(axialSpectrum(t).magnitude, law, 3));
+      }
+      // The negative control: the same stacks read untapered put 4.6–5.2% of
+      // their peak beyond law + 3 bins (2.0–5.2% per frequency), which is how the
+      // panel's edge landed 7–28 bins high on this mount.
+      expect(rectWorst, `${pupilSamples} bins, untapered`).toBeGreaterThan(0.02);
+    }
+  });
+
+  it("has no transfer at all past the delivered cutoff, so there is no edge there to read", () => {
+    // ν = 1.5 is past 2·ρ_rim = 2/1.4 on this mount: no two lit lattice points are
+    // that far apart, so the transfer is zero at every slice and a 2% edge "read"
+    // there is a reading of rounding noise normalised to itself.
+    const { spec, s, kernels } = airStack(128);
+    expect(mountConeEdge(spec, 1.5, s)).toBe(0);
+    const dc = axialTransfer(kernels, 0);
+    const past = axialTransfer(kernels, 96);
+    for (let i = 0; i < SLICES; i++) {
+      expect(Math.hypot(past.re[i]!, past.im[i]!) / Math.hypot(dc.re[i]!, dc.im[i]!)).toBeLessThan(1e-12);
+    }
   });
 });

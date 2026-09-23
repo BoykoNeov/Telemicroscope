@@ -168,13 +168,17 @@ rather than approximates. ~~The app still draws the old law, deliberately: at 64
 pupil bins three of its four mounts cannot resolve the new one.~~ ✅ **the app
 draws the new one since item 19**, and the sentence was wrong about why: the
 gate is not the mount but the panel's own phase-step guard, which two *dry*
-rows fail on a **matched** mount out of their own spherical aberration. At 128
+rows fail on a **matched** mount out of their own spherical aberration. ~~At 128
 bins and a 1/8-wave axial step the panel checks `mountConeEdge` to within one
-axial bin wherever that guard passes, and says so in amber where it does not.
-What is left in the register is the confirming run on a second machine, **item
-20** (a truncating mount's depth phase has no sampled pupil that carries it —
-§ 6l.3's wall puts a square-root cusp in the wavefront, so the phase step falls
-as √bins there and 1/bins everywhere else), and Part A's items 11 and 12.
+axial bin wherever that guard passes, and says so in amber where it does not.~~
+**§ 6l.13 moved the gate again, and off the guard entirely**: the misses were
+the untapered window's leak, so the panel reads its edge through a Blackman
+taper and checks `mountConeEdge` one-sided on every row, at any grid step —
+including the truncating mounts item 20 said could never be checked. What is
+left in the register is the confirming run on a second machine, the narrowed
+remainder of **item 20** (the rim's square-root cusp still breaks the half-wave
+rule for the drawn blurs' values, with no reading that needs them yet), and
+Part A's items 11 and 12.
 
 ## Build order
 

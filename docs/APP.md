@@ -1545,16 +1545,20 @@ the third is what made the second affordable:
   *is* what the grid guard has to carry, since the outermost slice is the
   worst-defocused member.
 
-**The verdict is read off a number the reader can already see.** A law describes
+~~**The verdict is read off a number the reader can already see.** A law describes
 the continuous pupil and this stack is point-sampled, so the comparison is a check
 only where the lattice carried the phase — and that is the panel's existing grid
-guard at the same 0.5 every other surface here uses. Measured over the eight
+guard at the same 0.5 every other surface here uses.~~ Measured over the eight
 catalogue rows that build (the Lister 40×/0.40 refuses to build at all, which is
 `listerObjective`'s own ceiling and predates this), four mounts and four depths:
 **every** stack under 0.5 lands within one axial bin of `mountConeEdge` — 96 of
-96, worst 0.92 — and every stack over it scatters **1.9 to 28** bins. So the panel
+96, worst 0.92 — and every stack over it scatters **1.9 to 28** bins. ~~So the panel
 says *check* where it can and names the guard number where it cannot, and it never
-says a mount defeated the law.
+says a mount defeated the law.~~ **The split was real and its cause was not the
+lattice** — see [*the edge is read through a taper*](#the-edge-is-read-through-a-taper)
+below. The stacks that fail the guard are the aberrated ones, whose transfer
+differs most between the stack's two ends, and the untapered window turns that
+difference into a floor over 2%.
 
 **The split is not about mounts, which is the same class of error item 19 existed
 to fix.** The DIN 4×/0.15 and 4×/0.20 fail the guard on a **matched** mount —
@@ -1569,8 +1573,10 @@ of 1/bins. Measured at 32 / 64 / 128 / 256 bins on the 1.40 at 10 µm: the match
 row reads 0.787 / 0.412 / 0.211 / 0.107 (a clean halving), the air row 6.315 /
 5.262 / 4.132 / 2.930. Reaching 0.5 on the second would need thousands of bins, so
 no affordable pupil resolves it and none ever will — which is a finding about the
-sampled representation, not a budget. It is left open in the register rather than
-worked around.
+sampled representation, not a budget. ~~It is left open in the register rather than
+worked around.~~ It does not block the edge check (§ 6l.13): the cusp is in the
+part of the phase that stays the same from slice to slice, so it cannot put
+content past the law.
 
 **What is asserted, and what is only recorded.** § 6l.12's caution applies here
 and was re-measured per row: a 2% threshold on a leaked window moves a whole bin
@@ -1598,6 +1604,70 @@ and renders no panel, so all three branches of the rewritten note were read out 
 a headless browser: the *check* wording on the matched row at 0.1/0.2/0.1 bins,
 the same wording in water at 0.9/0.8/0.9 with the law moved to 1.273 against the
 defocus-only 1.000, and the amber branch in air quoting 1.730 waves per sample.
+Console clean on all three.
+
+#### The edge is read through a taper
+
+*App wiring on the same `#/volume` route, plus one engine option it needed —
+`axialSpectrum`'s `window`, validated at
+[§ 6l.13](VALIDATION.md#6l13--the-edge-read-through-a-taper). Register item 20's
+headline, refuted.*
+
+Item 20 said a truncating mount could never be checked, because § 6l.3's wall
+puts a square-root cusp in the depth wavefront and no affordable pupil carries
+it. The check was never blocked by that. The cusp sits in the part of the phase
+that does not change from slice to slice, so it cannot put content past the law.
+What it does is make the transfer very different at the stack's two ends, and the
+untapered transform turns that difference into a flat floor of 1–5% of the peak.
+The 2% edge read that floor, 7 to 28 bins past the law. The grid guard lined up
+with the misses only because the stacks that fail it are the aberrated ones.
+
+**What changed on the panel:**
+
+- **The edge is read through a Blackman taper.** Its highest sidelobe is −58 dB,
+  1.24e-3 of a component. Hann was rejected: its first sidelobe is 2.7%, over the
+  threshold.
+- **The drawn curves stay untapered.** The ν = 0 null is a claim about the hard
+  ends — through the taper a flat stack reads 0.595 of DC one bin out.
+- **The check is one-sided.** The law is a ceiling, so an edge passes if it reads
+  no more than the taper's main lobe, 3 bins, past the law — the window's own
+  first null. It may read anywhere below the law, and the catalogue goes as far
+  as −4.2 bins on mounts that do not truncate.
+- **A frequency past the delivered cutoff says "no transfer".** There, 2·ρ_rim is
+  behind the frequency, the transfer is zero at every slice, and the panel was
+  printing an edge of rounding noise and drawing it as a curve. The curve is no
+  longer drawn.
+- **The grid guard stays on screen** and now says what it governs: whether the
+  drawn curves' values are the pupil's, not the edge check.
+
+**Measured over the catalogue** — the 9 rows that build, 4 mounts, 4 depths,
+3 frequencies. Rebuilt outside the panel, the 144 stacks reproduce its old edges
+and laws exactly. Of the 428 curves inside the cutoff, the worst tapered content
+past law + 3 bins is **1.9e-3** of the peak (the 1.25 in air at 10 µm, ν = 1),
+×10.6 under the threshold. That includes stacks at 15 waves per sample. The
+highest tapered reading is +1.96 bins.
+
+**What it costs.** The taper's lobe (3 bins) is wider than the gap between this
+stack's law and the defocus-only ν·(2 − ν) (about 2 bins). So the panel confirms
+its law as a ceiling, but cannot always rule the other one out by itself. The
+1.25 reads exactly 3.0 bins past ν·(2 − ν), so there it cannot; the 1.40 reads
+4.0, so there it can. The caption says so. A 16-wave window would close the gap
+at twice the job; not taken.
+
+**Cost in time: none measurable.** The taper adds three 64-point transforms per
+job. Best of five in node across five configurations, alternated with the
+previous commit on the same machine: old 522–3081 ms, new 551–1250 ms, both
+dominated by load from other work on the machine.
+
+**Driven in a headless browser**, because the suite renders no panel:
+
+- The 1.25 matched reads +0.9 / +0.8 / +0.9 as a check.
+- The 1.40 in air — the row that used to be amber — reads −0.3 / +1.0 as a
+  check, and "past the delivered cutoff, no transfer" at ν = 1.5, with that curve
+  gone from the plot.
+- The DIN 4×/0.20 matched, at 5.15 waves per sample, reads −1.1 / −0.1 / −0.1
+  as a check.
+
 Console clean on all three.
 
 ### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**

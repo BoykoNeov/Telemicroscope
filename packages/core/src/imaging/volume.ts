@@ -841,6 +841,38 @@ export interface AxialSpectrum {
 }
 
 /**
+ * The taper a stack is read through before its axial transform (§ 6l.13).
+ *
+ * `"rectangular"` is no taper — the stack's own hard ends, and the default,
+ * because every reading § 6k.4 through § 6l.12 recorded was taken there.
+ *
+ * `"blackman"` is the classic three-term window, a₀ = 0.42, a₁ = 0.5, a₂ = 0.08,
+ * in its periodic form (the DFT-even one, w(i) over i/N rather than i/(N − 1)):
+ * main lobe out to its first null at **3 bins**, highest sidelobe **−58.1 dB**
+ * (Harris 1978, Table 1). That pair is why it is here. A hard-ended stack whose
+ * transfer differs at its two ends leaks a floor that decays only as 1/bin, and
+ * measured on a truncating mount that floor sits at 1–5% of the peak — above the
+ * 2% threshold the support edge is read at, so the edge reads the floor. Hann
+ * would not do: its first sidelobe is −31.5 dB, 2.7% of a component, which is
+ * itself over that threshold.
+ */
+export type AxialWindow = "rectangular" | "blackman";
+
+/**
+ * How far past a sharp spectral edge a window's own main lobe carries content, in
+ * bins — its first null. Beyond it everything a component leaks is sidelobe, at
+ * most 1.24e-3 of that component for Blackman.
+ */
+export const AXIAL_WINDOW_MAIN_LOBE_BINS: Readonly<Record<AxialWindow, number>> = {
+  rectangular: 1,
+  blackman: 3,
+};
+
+export interface AxialSpectrumOptions {
+  readonly window?: AxialWindow;
+}
+
+/**
  * Transform a focus stack's transfer along the depth axis — the 3-D OTF, one
  * lateral frequency at a time.
  *
@@ -852,8 +884,18 @@ export interface AxialSpectrum {
  * Bins run 0 … N/2 (the real half), since the magnitude is symmetric. The DFT is
  * scaled by the sample step so the result is a Riemann sum over depth and does
  * not change with how finely the stack was sampled.
+ *
+ * `window` tapers the stack first (§ 6l.13). A tapered spectrum is divided by the
+ * window's coherent gain — its mean, 0.42 for Blackman — so a flat stack's DC bin
+ * reads what it reads untapered. What a taper cannot keep is the ν = 0 null: a
+ * constant stack transforms to exactly zero off DC only through the hard ends,
+ * and through Blackman's it carries 0.595 and 0.095 of DC at bins 1 and 2. So the
+ * missing cone is read untapered, and the taper is for reading an EDGE.
  */
-export function axialSpectrum(transfer: AxialTransfer): AxialSpectrum {
+export function axialSpectrum(
+  transfer: AxialTransfer,
+  options: AxialSpectrumOptions = {},
+): AxialSpectrum {
   const m = transfer.re.length;
   if (m < 2) throw new Error("axialSpectrum: a spectrum needs at least two slices");
   const step = transfer.defocusWaves[1]! - transfer.defocusWaves[0]!;
@@ -870,6 +912,27 @@ export function axialSpectrum(transfer: AxialTransfer): AxialSpectrum {
     }
   }
 
+  const window = options.window ?? "rectangular";
+  // The untapered sequence is used as it stands rather than multiplied by ones,
+  // so the default is the transform it always was and not merely equal to it.
+  let seqRe: ArrayLike<number> = transfer.re;
+  let seqIm: ArrayLike<number> = transfer.im;
+  if (window === "blackman") {
+    const tapRe = new Float64Array(m);
+    const tapIm = new Float64Array(m);
+    for (let i = 0; i < m; i++) {
+      const w =
+        (0.42 - 0.5 * Math.cos((2 * Math.PI * i) / m) + 0.08 * Math.cos((4 * Math.PI * i) / m)) /
+        0.42;
+      tapRe[i] = transfer.re[i]! * w;
+      tapIm[i] = transfer.im[i]! * w;
+    }
+    seqRe = tapRe;
+    seqIm = tapIm;
+  } else if (window !== "rectangular") {
+    throw new Error(`axialSpectrum: unknown window ${String(window)}`);
+  }
+
   const bins = Math.floor(m / 2) + 1;
   const cyclesPerWave = new Float64Array(bins);
   const magnitude = new Float64Array(bins);
@@ -881,8 +944,8 @@ export function axialSpectrum(transfer: AxialTransfer): AxialSpectrum {
       const ang = (-2 * Math.PI * b * i) / m;
       const c = Math.cos(ang);
       const s = Math.sin(ang);
-      re += transfer.re[i]! * c - transfer.im[i]! * s;
-      im += transfer.re[i]! * s + transfer.im[i]! * c;
+      re += seqRe[i]! * c - seqIm[i]! * s;
+      im += seqRe[i]! * s + seqIm[i]! * c;
     }
     cyclesPerWave[b] = b / span;
     magnitude[b] = Math.hypot(re, im) * Math.abs(step);

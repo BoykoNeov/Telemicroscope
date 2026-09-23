@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   axialResponse,
+  CONE_EDGE_ALLOWANCE_BINS,
   depthStrehl,
   MARECHAL_FLOOR,
   memoizedPupil,
@@ -210,19 +211,23 @@ describe("D10 — the two questions, and what each one keeps", () => {
     // `mountPupils`' paraboloid default and had no other law to compare against.
     // § 6l.12 supplied one — `mountConeEdge`, § 6k.8's boundary at the
     // immersion's aperture angle over the mount's rim — and item 19 is this
-    // panel arriving at it: the exact cap, and 128 bins so the lattice carries
-    // the stack it is measuring.
+    // panel arriving at it, at the exact cap. § 6l.13 is how it reads the edge:
+    // through a Blackman taper, one-sided, allowed the taper's 3-bin main lobe.
     const wet = axialResponse({ spec: entryOf("oil-100x-125").spec, mount: "IMMERSION-OIL", depthUm: 10 });
     if (!wet.ok) throw new Error(wet.error);
     expect(wet.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
-    // The lattice carries this stack, which is what makes the next line a check
-    // rather than a reading — see the guard rung below.
-    expect(wet.readout.stackGridPhaseStepWaves).toBeLessThan(0.5);
     for (const c of wet.readout.cones.filter((c) => c.nu > 0)) {
-      expect(c.edgeBins).toBeLessThanOrEqual(1.001);
-      // And it is the mount's law that it lands on, not the one it used to be
-      // drawn against: the same three readings miss ν·(2 − ν) by a clear 2 bins.
-      expect(c.edgeBinsDefocus).toBeGreaterThanOrEqual(2);
+      expect(c.supported).toBe(true);
+      // +0.91, +0.82, +0.91 measured, inside the main lobe with two bins to
+      // spare. No lower bound: the law is a ceiling, and a one-bin flip of the 2%
+      // crossing (§ 6l.12's hazard) moves these readings to just under it.
+      expect(c.edgeOverBins).toBeLessThanOrEqual(CONE_EDGE_ALLOWANCE_BINS);
+      // The reading sits 3.0 bins past the defocus-only ν·(2 − ν). That is where
+      // the mount's law puts it, and it is recorded rather than read as a
+      // refutation: 3 bins is exactly the allowance, so on this row the tapered
+      // check alone cannot rule the defocus-only law out. § 6l.12's untapered rung
+      // on a well-conditioned stack is what does (§ 6l.13, what the taper costs).
+      expect(c.edgeOverBinsDefocus).toBeGreaterThanOrEqual(2);
     }
 
     // The matched mount is the same assertion and the wiring proof at once. On
@@ -235,8 +240,8 @@ describe("D10 — the two questions, and what each one keeps", () => {
     if (!dry.ok) throw new Error(dry.error);
     expect(dry.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
     for (const c of dry.readout.cones.filter((c) => c.nu > 0)) {
-      expect(c.edgeBins).toBeLessThanOrEqual(1.001);
-      expect(c.edgeBinsDefocus).toBeGreaterThanOrEqual(2);
+      expect(c.edgeOverBins).toBeLessThanOrEqual(CONE_EDGE_ALLOWANCE_BINS);
+      expect(c.edgeOverBinsDefocus).toBeGreaterThanOrEqual(2);
     }
 
     // § 6l.12's headline, as a `toBe` rather than as a sentence: the mount's index
@@ -253,53 +258,50 @@ describe("D10 — the two questions, and what each one keeps", () => {
   });
 
   /**
-   * Why these two rows and not the catalogue — the same reason § 6l.12 recorded
-   * its three edges instead of asserting them.
-   *
-   * A 2% threshold on a leaked window is a reading that can move a whole bin when
-   * a magnitude moves a few percent, which a different f64 summation order
-   * supplies. So what decides whether an edge may be *asserted* is not how close
-   * it lands but how far its crossing sits from a bin boundary, and that was
-   * measured per row: on the 1.25 matched and in oil the edge bin clears the
-   * threshold by 3.3–4.8× and the bin above it sits at 0.55–0.84 of it, so the
-   * nearest flip is **+19%** — an order of magnitude past the hazard. Everywhere
-   * else it is thin: the 1.40 matched has a bin sitting exactly ON the threshold
-   * at ν = 1.5 (×1.00), the 1.40 in oil clears by ×1.13, and the DIN 4×/0.10 and
-   * Lister 40×/0.20 clear by ×1.30 and ×1.11 at ν = 0.5 — which is also where
-   * their 0.98 and 0.92 bins come from. Those rows are recorded in APP.md's D10
-   * and are not rungs.
+   * Why these rows and not the catalogue — the same reason § 6l.12 recorded its
+   * three edges instead of asserting them: a 2% crossing can move a whole bin
+   * when one magnitude moves a few percent. The one-sided check has at least two
+   * bins of room on every row asserted here (worst +1.01 against 3), so a flip
+   * cannot turn it; the catalogue-wide margin is recorded in APP.md's D10.
    */
-  it("makes the grid guard the condition for calling the edge a check at all", () => {
-    // A truncating mount is not a harder case of the same thing — it is a
-    // different one. § 6l.3's wall leaves the pupil dark past NA/n_mount, and the
-    // depth wavefront's cos θ_s goes to zero exactly there, so its slope diverges
-    // and the sampled phase step falls as √bins instead of 1/bins. Measured on
-    // this row: 6.315 / 5.262 / 4.132 / 2.930 waves per sample at 32 / 64 / 128 /
-    // 256 bins, against 0.787 / 0.412 / 0.211 / 0.107 on the matched 1.25. So no
-    // affordable pupil resolves it, and the panel must say so rather than compare
-    // a number it cannot trust — which is what the guard is for.
+  it("checks the edge at ANY grid step — the guard governs the drawn values, not the check", () => {
+    // Item 19 made the grid guard the condition for calling the edge a check, on a
+    // measured split: under 0.5 waves per sample every stack within a bin of the
+    // law, over it 1.9 to 28 bins. § 6l.13 found the split was the untapered
+    // window's leak and not the lattice. This row is the one item 20 said no
+    // affordable pupil could check — § 6l.3's wall puts a square-root cusp in the
+    // depth wavefront, so the step falls as √bins — and through the taper it is a
+    // check like any other.
     const air = axialResponse({ spec: entryOf("oil-100x-140").spec, mount: "AIR", depthUm: 10 });
     if (!air.ok) throw new Error(air.error);
     expect(air.readout.stackGridPhaseStepWaves).toBeGreaterThan(1);
-    // The null does not need the lattice to carry the phase — it needs only an
-    // amplitude that does not move with depth — so it survives even here, which
-    // is what says the guard is about the boundary and not about the whole plot.
     expect(air.readout.cones[0]!.worstNonDc).toBeLessThan(1e-12);
+    for (const c of air.readout.cones.filter((c) => c.nu > 0 && c.supported)) {
+      // −0.28 and +1.01 measured at ν = 0.5 and 1.
+      expect(c.edgeOverBins).toBeLessThanOrEqual(CONE_EDGE_ALLOWANCE_BINS);
+    }
 
-    // And the same objective on its own immersion is the other side of the split,
-    // by two orders of magnitude in the guard rather than by a hair.
+    // And a guard failure with no mount in it at all: the DIN 4×/0.20 carries 5.15
+    // waves per sample out of its own spherical aberration, and its edges read
+    // −1.08, −0.08, −0.08 — under the law, which a ceiling allows.
+    const din = axialResponse({ spec: entryOf("din-4x-020").spec, mount: "matched", depthUm: 10 });
+    if (!din.ok) throw new Error(din.error);
+    expect(din.readout.stackGridPhaseStepWaves).toBeGreaterThan(1);
+    for (const c of din.readout.cones.filter((c) => c.nu > 0)) {
+      expect(c.edgeOverBins).toBeLessThanOrEqual(CONE_EDGE_ALLOWANCE_BINS);
+    }
+
     const oil = axialResponse({ spec: entryOf("oil-100x-140").spec, mount: "matched", depthUm: 10 });
     if (!oil.ok) throw new Error(oil.error);
-    expect(oil.readout.stackGridPhaseStepWaves).toBeLessThan(0.5);
-    expect(air.readout.stackGridPhaseStepWaves / oil.readout.stackGridPhaseStepWaves).toBeGreaterThan(10);
 
-    // The other half of the rung above: where a mount DOES truncate, the rim is
-    // the one place its index reaches the boundary, so the law itself moves. The
-    // air row's cone is cut at NA 1.0 of the objective's 1.40 and its edge law
-    // falls below the matched row's at every frequency — including to a hard zero
-    // at ν = 1.5, where 2·ρ_rim is already behind the frequency being asked
-    // about. That the panel still prints a number there, and calls it neither a
-    // check nor a departure, is the guard's doing and not the law's.
+    // Where a mount DOES truncate, the rim is the one place its index reaches the
+    // boundary, so the law itself moves. The air row's cone is cut at NA 1.0 of
+    // the objective's 1.40 and its edge law falls below the matched row's at every
+    // frequency — including to a hard zero at ν = 1.5, where 2·ρ_rim is already
+    // behind the frequency being asked about. There is no transfer there to read
+    // (§ 6l.13), and the panel says so rather than printing an edge of noise.
+    expect(air.readout.cones[air.readout.cones.length - 1]!.supported).toBe(false);
+    expect(air.readout.cones[air.readout.cones.length - 1]!.edgeOverBins).toBeNull();
     for (let i = 1; i < air.readout.cones.length; i++) {
       expect(air.readout.cones[i]!.edgeLaw).toBeLessThan(oil.readout.cones[i]!.edgeLaw);
     }

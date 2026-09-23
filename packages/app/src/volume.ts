@@ -1,4 +1,5 @@
 import {
+  AXIAL_WINDOW_MAIN_LOBE_BINS,
   axialSpectrum,
   axialTransfer,
   defocusing,
@@ -230,13 +231,14 @@ export const WAVEFRONT_RHO = 0.99;
  *
  * Both are § 6l.12's own sampling, and both were measured rather than copied.
  *
- * The **pupil** is what decides whether the panel may check anything at all: over
- * the eight catalogue rows that build, four mounts and four depths, every stack
- * whose `maxGridPhaseStepWaves` stays under 0.5 lands within one axial bin of
- * `mountConeEdge` (96 of 96, worst 0.92) and every stack that fails it scatters
- * 1.9 to 28 bins. At 64 bins the 1.40 row fails that guard on **every** mount
- * including matched (0.586 waves per sample), so the panel would have had no row
- * left to check. It costs nothing extra, because the base pupil is memoized (see
+ * The **pupil** was chosen by item 19 as what decides whether the panel may check
+ * anything at all — every stack under 0.5 waves per sample within a bin of
+ * `mountConeEdge`, every stack over it scattering 1.9 to 28 bins, and at 64 bins
+ * the 1.40 row over 0.5 on every mount (0.586 matched). § 6l.13 overturned the
+ * reason and not the number: the scatter was the untapered window's floor, and a
+ * tapered edge respects the law at 32 bins and 5.6 waves per sample. 128 stays
+ * because the guard still governs the kernels' VALUES, which is what is drawn.
+ * It costs nothing extra, because the base pupil is memoized (see
  * `memoizedPupil`, and the cone stack's use of it below): 128 bins with the memo
  * is 273 ms against 217 ms for 64 bins without it, where the arithmetic alone
  * would have been 4×.
@@ -246,13 +248,17 @@ export const WAVEFRONT_RHO = 0.99;
  * 2.000 — a reading pinned to the sampling rather than to the optics. It also
  * moves a reading that is not unresolved: the 1.25 in water at the coverslip
  * passes the guard at 0.460 and reads 1.91 bins from the law at 1/4 of a wave,
- * 0.91 at 1/8. So the rule above is a statement about **this** sampling and not
- * about the guard alone.
+ * 0.91 at 1/8 — both readings untapered, the protocol item 19 used.
  */
 export const CONE_PUPIL_SAMPLES = 128;
 export const CONE_SIZE = 256;
 export const CONE_HALF_WAVES = 4;
 const CONE_STEP = 0.125;
+/**
+ * How far past `mountConeEdge` a tapered edge may read and still be a pass: the
+ * Blackman window's own first null, not a tolerance chosen here (§ 6l.13).
+ */
+export const CONE_EDGE_ALLOWANCE_BINS = AXIAL_WINDOW_MAIN_LOBE_BINS.blackman;
 const CONE_STACK = Array.from(
   { length: Math.round((2 * CONE_HALF_WAVES) / CONE_STEP) },
   (_, i) => -CONE_HALF_WAVES + i * CONE_STEP,
@@ -999,23 +1005,41 @@ export interface ConeCurve {
   readonly edgeLaw: number;
   /** ν·(2 − ν), the defocus-only law — drawn to be departed from, not checked. */
   readonly edgeLawDefocus: number;
-  /** Where the measured magnitude last exceeds 2% of its peak. */
+  /**
+   * Where the magnitude last exceeds 2% of its peak, **read through a Blackman
+   * taper** (§ 6l.13) — not off `magnitude`, which is the untapered transform
+   * and is what is drawn.
+   *
+   * The two are kept apart on purpose. The drawn curve has to be untapered,
+   * because the ν = 0 null is a statement about the hard-ended transform: a flat
+   * stack reads zero off DC only through those ends, and through a taper it
+   * carries 0.595 of DC at the next bin. The edge has to be tapered, because the
+   * hard ends leak a floor of 1–5% of the peak wherever the transfer differs
+   * between the stack's two ends — above the 2% the edge is read at — and the
+   * edge then reads the floor, 7 to 28 bins past the law.
+   */
   readonly edgeMeasured: number;
   /**
-   * |measured − `edgeLaw`| in axial bins, which is the unit the comparison lives
-   * in — and it is only a *check* where `stackGridPhaseStepWaves` says the pupil
-   * was carried. See `axialResponse`.
+   * (measured − `edgeLaw`) in axial bins, **signed**: positive is content past
+   * the law. `null` where `supported` is false — there is nothing to measure.
    *
-   * § 6k.4 pins the edge to **within one bin** and says why the tolerance is not
-   * free: a finite stack convolves the sharp support boundary with its own
-   * window transform, so the edge leaks. Printing the raw pair alone makes a
-   * one-bin agreement read as a miss — the well-corrected rows land on their law
-   * exactly at this sampling and the DIN 4×/0.10, carrying 0.14 waves of
-   * spherical, is one bin wide at ν = 0.5.
+   * The law is a ceiling and only a ceiling: § 6l.12 says no pair of pupil
+   * points reaches past it, not that 2% of the peak sits right at it. So the
+   * check is one-sided — `edgeOverBins` ≤ the taper's main lobe, 3 bins, which
+   * is the window's first null and not a tolerance chosen here — and a reading
+   * below the law is not a miss. Measured over the catalogue, readings fall as
+   * far as 4 bins short on mounts that do not truncate at all.
    */
-  readonly edgeBins: number;
-  /** |measured − ν·(2 − ν)| in bins: what the panel used to call the departure. */
-  readonly edgeBinsDefocus: number;
+  readonly edgeOverBins: number | null;
+  /**
+   * Whether this lateral frequency is inside the delivered pupil's cutoff,
+   * ν < 2·`mountAperture`/NA. Past it no two lit lattice points are that far
+   * apart, the transfer is zero at every slice (§ 6l.13, to 1e-12 of DC), and a
+   * 2% edge would be rounding noise normalised to itself.
+   */
+  readonly supported: boolean;
+  /** (measured − ν·(2 − ν)) in bins, signed: the departure from the defocus-only law. */
+  readonly edgeOverBinsDefocus: number;
   /** Worst non-DC bin ÷ DC bin. At ν = 0 this is the missing cone itself. */
   readonly worstNonDc: number;
 }
@@ -1130,13 +1154,14 @@ export interface AxialReadout {
    * the same reason A3 keeps its plot's ν sampling apart from its image's pupil
    * sampling.
    *
-   * **Since item 19 it also decides what the edges below mean.** Under 0.5 the
-   * lattice carries the stack and `edgeBins` is a check against `mountConeEdge`
-   * at § 6k.4's one bin; over it the stack is not the one the law describes and
-   * the edge is the lattice's reading. Measured over the catalogue, that split is
-   * exact — see `axialResponse`. It is the panel's own guard doing this and not a
-   * new judgement: the same number, at the same 0.5, that every other surface
-   * here prints.
+   * **It does not decide what the edges below mean**, and item 19 said it did.
+   * The split item 19 measured — every stack under 0.5 within a bin of the law,
+   * every stack over it scattering — was real and was not caused by the lattice:
+   * the stacks that fail this guard are the heavily aberrated ones, and those are
+   * the ones whose transfer differs most between the stack's two ends, which is
+   * what an untapered window turns into a floor. Read through a taper the edge
+   * respects the law at 22 waves per sample (§ 6l.13). What this number still
+   * governs is the kernels' VALUES — whether each drawn blur is the pupil's.
    */
   readonly stackGridPhaseStepWaves: number;
   /** The window the cone stack spans. Bounded from both sides — see the header. */
@@ -1192,22 +1217,25 @@ const CONE_BINS = [0, CONE_PUPIL_SAMPLES / 4, CONE_PUPIL_SAMPLES / 2, (3 * CONE_
  * the response wants w₂₀ resolution and is indifferent to the grid, the cone
  * wants a pupil its own grid guard will pass (see the constants' header).
  *
- * ## What the edges below mean, and the number that decides it
+ * ## What the edges below mean (§ 6l.13)
  *
- * § 6l.12 gives this stack a closed-form support boundary — `mountConeEdge` — so
- * `edgeBins` is a comparison against a law rather than a measurement of a
- * departure. But a law describes the continuous pupil and this stack is point
- * sampled, so the comparison is only a **check** where the lattice carried the
- * phase, and that condition is `stackGridPhaseStepWaves` against the same 0.5
- * every other surface here uses.
+ * § 6l.12 gives this stack a closed-form support boundary — `mountConeEdge` — and
+ * the boundary is a **ceiling**: no pair of pupil points contributes past it.
+ * That holds on the lattice exactly as in the continuum, whatever the grid step,
+ * because the stack's phase is d₀·A(ρ) + w·Φ_eff(ρ) and only Φ_eff moves with w.
+ * So every supported edge is a check, and the check is one-sided: read through a
+ * Blackman taper, the edge may sit up to the taper's main lobe (3 bins) past the
+ * law and anywhere below it.
  *
- * Measured, and it is why the verdict is read off that guard rather than off a
- * rule written for the occasion: over the eight catalogue rows that build, four
- * mounts and four depths, **every** stack under 0.5 lands within one axial bin of
- * `mountConeEdge` — 96 of 96, worst 0.92 — and every stack over it scatters 1.9
- * to 28 bins. The split is not about mounts: the DIN 4×/0.20 fails the guard on a
- * *matched* mount out of its own spherical aberration, and a mount that truncates
- * fails it at any pupil worth paying for.
+ * Item 19 read the verdict off the grid guard instead, on a measured split —
+ * every stack under 0.5 within a bin, every stack over it scattering 1.9 to 28
+ * bins. The split was real and its cause was not the lattice: the untapered
+ * window leaks a floor of 1–5% of the peak wherever the transfer differs between
+ * the stack's two ends, and the stacks that fail the guard are the aberrated ones
+ * where it does. Over the catalogue — 9 rows that build, 4 mounts, 4 depths, 3
+ * frequencies — the tapered reading puts at most **1.9e-3** of the peak past
+ * law + 3 bins, ×10.6 under the threshold, including on stacks at 15 waves per
+ * sample.
  *
  * **Cost, and the two memos that paid for it.** Under `vite-node`, best of five
  * in one process over five configurations spanning both immersion rows and a dry
@@ -1349,22 +1377,32 @@ export function axialResponse(request: AxialRequest): AxialResult {
 
     const cones: ConeCurve[] = CONE_BINS.map((bin) => {
       const nu = (2 * bin) / CONE_PUPIL_SAMPLES;
-      const spectrum = axialSpectrum(axialTransfer(kernels, bin));
+      const transfer = axialTransfer(kernels, bin);
+      // Untapered: what is drawn, and what the ν = 0 null is read off.
+      const spectrum = axialSpectrum(transfer);
       let peak = 0;
       for (const m of spectrum.magnitude) peak = Math.max(peak, m);
-      let edgeMeasured = 0;
       let worstNonDc = 0;
-      for (let b = 0; b < spectrum.magnitude.length; b++) {
-        // 2% of the peak, which is what the finite window costs: a truncated
-        // stack convolves the sharp support edge with the window's own
-        // transform and leaks past it. § 6k.4 states the same threshold for the
-        // same reason rather than tightening it and reading one bin high.
-        if (spectrum.magnitude[b]! > 0.02 * peak) edgeMeasured = spectrum.cyclesPerWave[b]!;
-        if (b > 0) worstNonDc = Math.max(worstNonDc, spectrum.magnitude[b]! / spectrum.magnitude[0]!);
+      for (let b = 1; b < spectrum.magnitude.length; b++) {
+        worstNonDc = Math.max(worstNonDc, spectrum.magnitude[b]! / spectrum.magnitude[0]!);
+      }
+      // Tapered: what the edge is read off (§ 6l.13). 2% of the peak is § 6k.4's
+      // threshold, kept; what changed is that Blackman's sidelobes, at most
+      // 1.24e-3 of a component, sit well under it where the hard ends' 1/bin
+      // floor did not.
+      const tapered = axialSpectrum(transfer, { window: "blackman" });
+      let taperedPeak = 0;
+      for (const m of tapered.magnitude) taperedPeak = Math.max(taperedPeak, m);
+      let edgeMeasured = 0;
+      for (let b = 0; b < tapered.magnitude.length; b++) {
+        if (tapered.magnitude[b]! > 0.02 * taperedPeak) edgeMeasured = tapered.cyclesPerWave[b]!;
       }
       const binWidth = 1 / (CONE_STEP * CONE_STACK.length);
       const law = mountConeEdge(coneSpec, nu, coneSinAlpha);
       const lawDefocus = missingConeEdge(nu);
+      // `mountConeEdge`'s own zero condition, ν ≥ 2·ρ_rim, spelled from the same
+      // two numbers it reads.
+      const supported = nu < 2 * (mountAperture(coneSpec) / coneSpec.numericalAperture);
       return {
         nu,
         cyclesPerWave: Array.from(spectrum.cyclesPerWave),
@@ -1372,8 +1410,9 @@ export function axialResponse(request: AxialRequest): AxialResult {
         edgeLaw: law,
         edgeLawDefocus: lawDefocus,
         edgeMeasured,
-        edgeBins: Math.abs(edgeMeasured - law) / binWidth,
-        edgeBinsDefocus: Math.abs(edgeMeasured - lawDefocus) / binWidth,
+        edgeOverBins: supported ? (edgeMeasured - law) / binWidth : null,
+        supported,
+        edgeOverBinsDefocus: (edgeMeasured - lawDefocus) / binWidth,
         worstNonDc,
       };
     });

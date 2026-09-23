@@ -9,6 +9,7 @@ import { Choice, Guard, GUARD_COLOR, ObjectiveLine, Slider, thresholdLevel } fro
 import {
   axialSincSq,
   AXIAL_PUPIL_SAMPLES,
+  CONE_EDGE_ALLOWANCE_BINS,
   CONE_PUPIL_SAMPLES,
   ASYMMETRY_FLOOR,
   MOUNT_MEDIA,
@@ -225,16 +226,22 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
     () =>
       ready === null
         ? []
-        : ready.cones.map((c, i) => ({
-            label: c.nu === 0 ? "ν = 0 — the cone" : `ν = ${c.nu}`,
-            color: ["var(--bad)", "var(--accent)", "var(--ink)", "var(--warn)"][i] ?? "var(--ink-3)",
-            points: c.cyclesPerWave.map((mu, j) => [mu, c.magnitude[j]!] as const),
-            width: c.nu === 0 ? 2.4 : 1.4,
-            // ν = 1.5 dashed: it shares its support edge with ν = 0.5, so the
-            // two curves land on the same marker and would otherwise be read as
-            // one line reaching further than it does.
-            ...(i === 3 ? { dash: [5, 4] } : {}),
-          })),
+        : ready.cones
+            .map((c, i) => ({ c, i }))
+            // Past the delivered cutoff the transfer is zero at every slice
+            // (§ 6l.13), and normalising it to its own peak draws rounding noise
+            // as a smooth curve. The caption names the frequency instead.
+            .filter(({ c }) => c.supported)
+            .map(({ c, i }) => ({
+              label: c.nu === 0 ? "ν = 0 — the cone" : `ν = ${c.nu}`,
+              color: ["var(--bad)", "var(--accent)", "var(--ink)", "var(--warn)"][i] ?? "var(--ink-3)",
+              points: c.cyclesPerWave.map((mu, j) => [mu, c.magnitude[j]!] as const),
+              width: c.nu === 0 ? 2.4 : 1.4,
+              // ν = 1.5 dashed: it shares its support edge with ν = 0.5, so the
+              // two curves land on the same marker and would otherwise be read as
+              // one line reaching further than it does.
+              ...(i === 3 ? { dash: [5, 4] } : {}),
+            })),
     [ready],
   );
   const coneMarkers = useMemo<PlotMarker[]>(
@@ -264,16 +271,17 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
   const asym = r.sweep;
   const cone = r.cones.find((c) => c.nu === 0)!;
   /**
-   * Whether the support edges below are a check or the lattice's own reading.
-   *
-   * The panel's existing grid guard, at the threshold every other surface here
-   * uses, and nothing else: § 6l.12 gives the stack a closed-form boundary, but a
-   * law describes the continuous pupil and this stack is point-sampled. Measured
-   * across the catalogue the guard is exactly the condition — see
-   * `axialResponse`'s header — so the verdict is read off a number the reader can
-   * already see rather than off a rule invented for this paragraph.
+   * Every supported edge is a check (§ 6l.13): the law is a ceiling on the
+   * lattice at any grid step, so the verdict is one-sided — past it by more than
+   * the taper's main lobe fails, anywhere below it passes. Item 19 read this off
+   * the grid guard instead; the split it measured was the untapered window's
+   * floor, not the lattice. See `axialResponse`'s header.
    */
-  const coneResolved = r.stackGridPhaseStepWaves < GRID_STEP_LIMIT;
+  // ν = 0 is the cone itself and has no edge to judge: its law is 0 and a
+  // tapered flat stack reads exactly the taper's own spread, +2 bins.
+  const coneFails = r.cones.some(
+    (c) => c.nu > 0 && c.edgeOverBins !== null && c.edgeOverBins > CONE_EDGE_ALLOWANCE_BINS,
+  );
   const sigmaShare = r.axisRmsWaves > 0 ? r.sweep.defocusSigmaWaves / r.axisRmsWaves : Number.NaN;
   /**
    * Whether the peak's offset may be read as a share of A1's traced σ — and it
@@ -407,48 +415,51 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
           depth, so the one thing that would fill the cone — an amplitude that moves with z — is
           still absent. It needs only a pupil whose amplitude does not vary with depth.
           <br />
-          support edges, measured against <strong>this stack&rsquo;s own law</strong> — § 6k.8&rsquo;s
-          boundary at the immersion&rsquo;s aperture angle over the mount&rsquo;s rim (§ 6l.12) — in
-          axial bins, § 6k.4 pinning them to within one because a finite stack leaks its own window
-          across a sharp boundary:
+          support edges, read through a Blackman taper and checked against{" "}
+          <strong>this stack&rsquo;s own law</strong> — § 6k.8&rsquo;s boundary at the
+          immersion&rsquo;s aperture angle over the mount&rsquo;s rim (§ 6l.12) — as axial bins
+          past it:
           <br />
           {r.cones
             .filter((c) => c.nu > 0)
             .map((c) => (
               <span key={c.nu} style={{ marginRight: 10, whiteSpace: "nowrap" }}>
-                ν {c.nu} → {c.edgeMeasured.toFixed(3)} vs {c.edgeLaw.toFixed(3)}{" "}
-                <span
-                  style={{
-                    color: coneResolved
-                      ? GUARD_COLOR[c.edgeBins <= 1.001 ? "ok" : "bad"]
-                      : GUARD_COLOR.warn,
-                  }}
-                >
-                  ({c.edgeBins.toFixed(1)})
-                </span>
+                {c.edgeOverBins === null ? (
+                  <span style={{ color: "var(--ink-4)" }}>
+                    ν {c.nu} → past the delivered cutoff, no transfer
+                  </span>
+                ) : (
+                  <>
+                    ν {c.nu} → {c.edgeMeasured.toFixed(3)} vs {c.edgeLaw.toFixed(3)}{" "}
+                    <span
+                      style={{
+                        color:
+                          GUARD_COLOR[c.edgeOverBins <= CONE_EDGE_ALLOWANCE_BINS ? "ok" : "bad"],
+                      }}
+                    >
+                      ({c.edgeOverBins >= 0 ? "+" : ""}
+                      {c.edgeOverBins.toFixed(1)})
+                    </span>
+                  </>
+                )}
               </span>
             ))}
           <br />
-          {coneResolved ? (
-            <>
-              A <em>check</em>, and it is the grid guard below that says so: under{" "}
-              {GRID_STEP_LIMIT} waves per sample the lattice carries this stack, and measured over
-              the eight catalogue rows that build — four mounts, four depths —{" "}
-              <strong>every</strong> stack that passes it lands within one bin of this law (96 of
-              96, worst 0.92) while every stack that fails it scatters 1.9 to 28 bins.
-            </>
-          ) : (
-            <span style={{ color: GUARD_COLOR.warn }}>
-              Amber because the pupil is <em>not carried</em> at this sampling —{" "}
-              {r.stackGridPhaseStepWaves.toFixed(3)} waves per sample against the{" "}
-              {GRID_STEP_LIMIT} the lattice needs, read at the stack&rsquo;s worst-defocused member.
-              Those edges are the lattice&rsquo;s reading and not this stack&rsquo;s boundary, so
-              they are neither a check nor a departure. It is not the mount that decides this: the
-              DIN 4×/0.20 fails the same guard on a <em>matched</em> mount, out of its own spherical
-              aberration, and a mount that truncates fails it at any affordable pupil — the depth
-              wavefront has a square-root cusp where § 6l.3&rsquo;s wall leaves it, so the step
-              falls as √bins there and as 1/bins everywhere else.
+          {coneFails ? (
+            <span style={{ color: GUARD_COLOR.bad }}>
+              Content past the law by more than the taper&rsquo;s own main lobe — which the law says
+              no pair of pupil points can put there. Over the catalogue that has not been seen.
             </span>
+          ) : (
+            <>
+              A <em>check</em>, and a one-sided one: the law is a <em>ceiling</em> — no pair of
+              pupil points reaches past it — so an edge may read up to the taper&rsquo;s main lobe,{" "}
+              {CONE_EDGE_ALLOWANCE_BINS} bins, above it and anywhere below. It holds at any grid
+              step, because only the defocus half of this stack&rsquo;s phase moves between slices
+              (§ 6l.13). The drawn curves are the untapered transform: its hard ends leak a floor of
+              1–5% of the peak wherever the transfer differs between the stack&rsquo;s two ends, and
+              an edge read off them lands on that floor instead of on the boundary.
+            </>
           )}
           <br />
           {!r.mountMatched && (
@@ -471,15 +482,17 @@ function AxialPlots({ request, markWaves }: { request: AxialRequest; markWaves: 
             anchored at the depth control so no slice sits above the slip where there is no mount to
             look through. The window is bounded from both sides: its bin, 1/{r.coneWindowWaves}{" "}
             cycles per wave, is what holds the two laws apart on screen — they differ by about two
-            bins — while the window itself is what the grid guard has to carry, since the outermost
-            slice is the worst-defocused one.
+            bins, which is narrower than the taper&rsquo;s three-bin lobe, so the edge check confirms
+            this stack&rsquo;s law as a ceiling but cannot by itself rule the defocus-only one out on
+            every row (§ 6l.13) — while the window itself is what the grid guard has to carry, since
+            the outermost slice is the worst-defocused one.
           </span>
           <br />
           <Guard
             label="cone stack grid step"
             value={`${r.stackGridPhaseStepWaves.toFixed(4)} waves / sample`}
             level={thresholdLevel(r.stackGridPhaseStepWaves, GRID_STEP_LIMIT)}
-            detail="a different quantity from the picture's guard: that one is about the frame being drawn, this one about the pupil at the stack's worst-defocused member."
+            detail="a different quantity from the picture's guard: that one is about the frame being drawn, this one about the pupil at the stack's worst-defocused member — whether the drawn curves' values are the pupil's. It does not decide the edge check above (§ 6l.13)."
           />
           throughput drift over the stack {r.throughputDrift.toExponential(2)} ·{" "}
           {r.elapsedMs.toFixed(0)} ms

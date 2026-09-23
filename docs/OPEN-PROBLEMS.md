@@ -453,14 +453,25 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     rather than 1/bins: measured 6.315 / 5.262 / 4.132 / 2.930 waves per sample at
     32 / 64 / 128 / 256 bins on the 1.40 over air, against 0.787 / 0.412 / 0.211 /
     0.107 on the same objective matched. Reaching the half-wave the lattice needs
-    would take thousands of bins, so the panel reports those rows as unresolved
-    and `mountConeEdge` goes unchecked on exactly the mounts it was written for.
-    No external number: this is about the representation, not the optics. *Candidate:*
-    a pupil quadrature that integrates the cusp analytically — the square-root edge
-    is the one term whose integral is elementary — which would be an engine change
-    in `incoherentPsf`'s sampling and is its own rung set. Unblocks: a truncating
-    mount's support boundary being a check rather than a refusal, and with it the
-    only rows on which § 6l.12's rim argument has visible consequences.
+    would take thousands of bins. ~~So the panel reports those rows as unresolved
+    and `mountConeEdge` goes unchecked on exactly the mounts it was written for.~~
+    **Refuted at [§ 6l.13](VALIDATION.md#6l13--the-edge-read-through-a-taper)**:
+    the cusp is in the part of the phase that does not move with depth, so no
+    lattice pair reaches past the law at any grid step. The misses were the
+    untapered window's leak, and read through a Blackman taper every supported
+    edge in the catalogue is a check, at up to 15 waves per sample. ~~Unblocks: a
+    truncating mount's support boundary being a check rather than a refusal.~~
+    Done without the quadrature.
+
+    **What is still open** is narrower: the drawn kernels' *values*. Each blur on
+    a truncating mount is point-sampled through a phase that jumps several waves
+    between samples at the rim, so it breaks the half-wave rule the rest of the
+    engine keeps. No external number: this is about the representation, not the
+    optics. *Candidate:* a pupil quadrature that integrates the cusp analytically
+    — the square-root edge is the one term whose integral is elementary — as an
+    engine change in `incoherentPsf`'s sampling, with its own rung set. It would
+    need a reading that depends on the values and not on the support to be worth
+    it; the cone panel's check no longer is one.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -904,7 +915,11 @@ radial-map nodes · § 6ba differential bleaching.
 17. **The off-machine run** (the structural problem at the top): one confirming
     run of the ladder on a second machine, still a check rather than a piece of
     work — though not the cheap command this file called it, since the Linux
-    subsystem on the author's box has no Node installed. Then **item 20** (19's
+    subsystem on the author's box has no Node installed. Then ~~**item 20** (19's
     residue, and the first entry in a while whose blocker is the *representation*
-    rather than a missing number), and Part A's items 11 and 12, neither of which
-    has an external number named yet.
+    rather than a missing number)~~, and Part A's items 11 and 12, neither of which
+    has an external number named yet. **Item 20's headline was refuted at
+    [§ 6l.13](VALIDATION.md#6l13--the-edge-read-through-a-taper)** — the
+    cone panel's misses were its window's leak, not the rim's cusp, and a tapered
+    edge is a check at any grid step. What stays open is the cusp's effect on the
+    drawn blurs' values, and it has no reading that needs it yet.
