@@ -678,6 +678,13 @@ export interface VolumeReadout {
 
   /** The guard: `abbeImage`'s DFT-lattice criterion, worst over the slices. */
   readonly maxGridPhaseStepWaves: number;
+  /**
+   * Lattice cells whose sample § 6l.14's cell quadrature replaced — the mount's
+   * cusp, averaged rather than point-sampled. 0 on a matched mount or at depth 0.
+   * The grid-step guard above still reads the POINT samples, so a truncating
+   * mount can read amber there with these cells already corrected.
+   */
+  readonly quadratureCells: number;
   /** RMS OPD on axis, straight from the trace — A1's convention, no focus solve. */
   readonly axisRmsWaves: number;
   readonly elapsedMs: number;
@@ -833,6 +840,9 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
       mountVolumeOptions(spec, {
         pupilSamples: request.pupilSamples,
         scale: frame.scale,
+        // § 6l.14: the mount's cusp averaged over each lattice cell, once per
+        // stack at the focus depth. Inert on a matched mount and at depth 0.
+        cellQuadrature: true,
       }),
     );
 
@@ -882,6 +892,7 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
     const worstKernel = incoherentPsf(pupils(worstSliceWaves), {
       pupilSamples: request.pupilSamples,
       size: request.size,
+      cellQuadrature: true,
     });
 
     const rhoDelivered = mountAperture(spec) / tracedNA;
@@ -942,6 +953,9 @@ export function renderVolumeScene(request: VolumeRequest): VolumeResult {
         worstSliceOutsideFraction: outsideInscribedCircle(worstKernel.values, request.size),
         worstSliceWaves,
         maxGridPhaseStepWaves: image.maxGridPhaseStepWaves,
+        // One number for the whole stack: the factor is the focus depth's, so
+        // every slice corrects the same cells (§ 6l.14).
+        quadratureCells: worstKernel.quadratureCells ?? 0,
         axisRmsWaves: axis.rmsWaves,
         elapsedMs: performance.now() - started,
       },
@@ -1635,7 +1649,13 @@ export function memoizedPupil(pupil: PupilFunction): PupilFunction {
       return value;
     };
   };
-  return { amplitude: cache(pupil.amplitude), phaseWaves: cache(pupil.phaseWaves) };
+  // A cell quadrature is forwarded, not memoized here: it memoizes itself per
+  // lattice step, and dropping it would silently turn § 6l.14 off (a rung pins it).
+  return {
+    amplitude: cache(pupil.amplitude),
+    phaseWaves: cache(pupil.phaseWaves),
+    ...(pupil.cellQuadrature === undefined ? {} : { cellQuadrature: pupil.cellQuadrature }),
+  };
 }
 
 /**

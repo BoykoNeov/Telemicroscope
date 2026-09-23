@@ -144,6 +144,14 @@ export interface IncoherentPsfOptions {
   readonly size: number;
   /** Supply to get a physical `pixelScaleMm` back; omit for grid units. */
   readonly scale?: PupilScale;
+  /**
+   * Apply the pupil's own `cellQuadrature`, if it has one (§ 6l.14). Off by
+   * default, and a pupil without one is point-sampled either way, so every kernel
+   * formed before § 6l.14 is bitwise what it was. The lattice step handed to the
+   * pupil is this call's own 2/pupilSamples — never a second number a caller
+   * could get wrong.
+   */
+  readonly cellQuadrature?: boolean;
 }
 
 export interface IncoherentPsf {
@@ -177,6 +185,13 @@ export interface IncoherentPsf {
   readonly formedSum: number;
   /** Largest |Δphase| in waves between adjacent transmitting lattice samples. */
   readonly maxGridPhaseStepWaves: number;
+  /**
+   * Lattice points whose sample the pupil's cell quadrature replaced (§ 6l.14).
+   * Present only when `cellQuadrature` was asked for; 0 then means the pupil had
+   * nothing to correct. `maxGridPhaseStepWaves` still reads the POINT samples'
+   * phase, so it keeps meaning what every recorded reading of it meant.
+   */
+  readonly quadratureCells?: number;
   readonly pixelScaleMm?: number;
 }
 
@@ -291,6 +306,11 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   // what the pupil put in it, which for an obstructed aperture is less.
   let firstRow = -1;
   let lastRow = -1;
+  const cell =
+    options.cellQuadrature === true && pupil.cellQuadrature !== undefined
+      ? pupil.cellQuadrature(step)
+      : undefined;
+  let quadratureCells = 0;
 
   for (let iy = lo; iy <= hi; iy++) {
     const py = (iy - half) * step;
@@ -321,12 +341,23 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
       rowIn[ix] = 1;
       rowPhase[ix] = w;
       const ang = 2 * Math.PI * w;
-      re[iy * n + ix] = a * Math.cos(ang);
-      im[iy * n + ix] = a * Math.sin(ang);
+      const f = cell?.(px, py);
+      if (f === undefined) {
+        re[iy * n + ix] = a * Math.cos(ang);
+        im[iy * n + ix] = a * Math.sin(ang);
+      } else {
+        const c = Math.cos(ang);
+        const s = Math.sin(ang);
+        re[iy * n + ix] = a * (c * f[0] - s * f[1]);
+        im[iy * n + ix] = a * (c * f[1] + s * f[0]);
+        quadratureCells++;
+      }
       if (firstRow < 0) firstRow = iy;
       lastRow = iy;
       transmittingSamples++;
-      energy += a * a;
+      // |P|² at this point, so Parseval still ties `energy` to `formedSum`: a cell
+      // whose phasors partly cancel really does transmit less.
+      energy += f === undefined ? a * a : a * a * (f[0] * f[0] + f[1] * f[1]);
     }
   }
 
@@ -365,6 +396,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
     energy,
     formedSum: sum,
     maxGridPhaseStepWaves,
+    ...(options.cellQuadrature === true ? { quadratureCells } : {}),
     ...(options.scale === undefined
       ? {}
       : { pixelScaleMm: imagePixelScaleMm(options.scale, n, pupilSamples) }),

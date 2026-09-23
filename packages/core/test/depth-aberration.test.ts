@@ -11,7 +11,10 @@ import {
   stackWavefrontErrorMm,
 } from "../src/designs/coverslip";
 import {
+  CELL_SUBSAMPLES,
+  cellMeanPhasor,
   mountAperture,
+  mountCellQuadrature,
   mountConeEdge,
   mountDefocusWaves,
   mountPupils,
@@ -1695,6 +1698,211 @@ describe("§ 6l.13 — the edge is read through a taper, and the rim's cusp neve
     const past = axialTransfer(kernels, 96);
     for (let i = 0; i < SLICES; i++) {
       expect(Math.hypot(past.re[i]!, past.im[i]!) / Math.hypot(dc.re[i]!, dc.im[i]!)).toBeLessThan(1e-12);
+    }
+  });
+});
+
+describe("§ 6l.14 — the cusp's kernels, averaged over the cell and not over the stack", () => {
+  const AIR = (depthMm: number): MountSpec => ({ ...mount(1.4), mountIndex: 1, focusDepthMm: depthMm });
+  const S = 128;
+  const REF = 8;
+
+  /**
+   * A coarse kernel's error against one formed from a pupil sampled REF times
+   * finer at the same pixel pitch, less the floor no sampler on the coarse frame
+   * can go below: the coarse kernel sums to 1 inside the frame and the true one
+   * puts only 1 − outside there, so L1 + outside ≥ 2·outside identically.
+   */
+  const excess = (coarse: Float64Array, fine: Float64Array): number => {
+    const SR = S * REF;
+    let inside = 0;
+    let l1 = 0;
+    for (let y = 0; y < S; y++) {
+      const dy = y < S / 2 ? y : y - S;
+      const ry = dy < 0 ? dy + SR : dy;
+      for (let x = 0; x < S; x++) {
+        const dx = x < S / 2 ? x : x - S;
+        const rx = dx < 0 ? dx + SR : dx;
+        const v = fine[ry * SR + rx]!;
+        inside += v;
+        l1 += Math.abs(coarse[y * S + x]! - v);
+      }
+    }
+    return l1 - (1 - inside);
+  };
+
+  const readings = (spec: MountSpec, pupilSamples: number) => {
+    const pupil = mountPupils(idealPupil(), spec)(0);
+    const fine = incoherentPsf(pupil, { size: S * REF, pupilSamples: REF * pupilSamples }).values;
+    const point = incoherentPsf(pupil, { size: S, pupilSamples });
+    const quad = incoherentPsf(pupil, { size: S, pupilSamples, cellQuadrature: true });
+    return {
+      step: point.maxGridPhaseStepWaves,
+      cells: quad.quadratureCells!,
+      point: excess(point.values, fine),
+      quad: excess(quad.values, fine),
+    };
+  };
+
+  it("integrates a square-root edge to the elementary closed form, converging as k^-3/2", () => {
+    // The cusp's own shape: phase β·√ε waves at distance ε from the wall, over a
+    // cell of width h whose far side IS the wall. With u = √ε the cell mean is
+    //   (2/h)·∫₀^√h u·e^{iαu} du = (2/h)·[e^{iαU}(1/α² − iU/α) − 1/α²],  α = 2πβ
+    // — the one term of the depth wavefront whose integral is elementary.
+    const h = 1 / 16;
+    const beta = 12; // three waves across the cell
+    const alpha = 2 * Math.PI * beta;
+    const U = Math.sqrt(h);
+    const c = Math.cos(alpha * U);
+    const sn = Math.sin(alpha * U);
+    // e^{iαU}·(1/α² − iU/α) = (c + i·s)(1/α² − i·U/α)
+    const re = (2 / h) * (c / alpha ** 2 + (sn * U) / alpha - 1 / alpha ** 2);
+    const im = (2 / h) * (sn / alpha ** 2 - (c * U) / alpha);
+    const wall = h / 2;
+    const phase = (x: number) => beta * Math.sqrt(wall - x);
+    const error = (k: number) => {
+      const m = cellMeanPhasor((x) => phase(x), () => true, 0, 0, h, k);
+      return Math.hypot(m.re - re, m.im - im);
+    };
+    // Midpoint on a √ singularity is order 3/2, so ×4 in k must buy at least ×8.
+    // Measured ×9.99 (2.34e-2 → 2.34e-3): the engine's default k = 16 leaves 2.3%
+    // of a unit phasor on a cell that spans three waves, which is the price of
+    // the rule and is stated rather than tuned away.
+    expect(CELL_SUBSAMPLES).toBe(16);
+    expect(error(16) / error(64)).toBeGreaterThan(8);
+    expect(error(CELL_SUBSAMPLES)).toBeLessThan(0.03);
+  });
+
+  it("is absent — and the kernel bitwise the point-sampled one — for a matched mount and at depth 0", () => {
+    expect(mountCellQuadrature({ ...mount(1.2), mountIndex: N_OIL, focusDepthMm: 0.01 })).toBeUndefined();
+    expect(mountCellQuadrature(AIR(0))).toBeUndefined();
+    const pupil = mountPupils(idealPupil(), AIR(0))(0);
+    const point = incoherentPsf(pupil, { size: S, pupilSamples: 32 });
+    const quad = incoherentPsf(pupil, { size: S, pupilSamples: 32, cellQuadrature: true });
+    expect(quad.quadratureCells).toBe(0);
+    expect(Array.from(quad.values)).toEqual(Array.from(point.values));
+    // And off by default: the option absent is the kernel § 6l.13 recorded.
+    const deep = mountPupils(idealPupil(), AIR(0.002))(0);
+    expect(incoherentPsf(deep, { size: S, pupilSamples: 32 }).quadratureCells).toBeUndefined();
+  });
+
+  const SWEEP = [24, 32, 48, 64];
+
+  it("finds the half-wave guard green on kernels it has not resolved", () => {
+    // The hypothesis this step opened with: a cusp's error in the kernel VALUES is
+    // not read by the largest lattice phase step. Refuted if, wherever that guard
+    // passes, the point-sampled kernel sits within the same-rim floor's own
+    // spread. At 1 µm of air the guard reads 0.45 / 0.43 / 0.39 / 0.37 — green on
+    // every sampling — while the kernel's excess is 0.085 / 0.109 / 0.069 / 0.045
+    // against the unphased rim's 0.040 / 0.044 / 0.031 / 0.025: 2.5× at worst.
+    let worstRatio = 0;
+    for (const n of SWEEP) {
+      const r = readings(AIR(0.001), n);
+      const rim = readings(AIR(0), n);
+      expect(r.step, `${n} bins`).toBeLessThan(0.5);
+      worstRatio = Math.max(worstRatio, r.point / rim.point);
+    }
+    expect(worstRatio).toBeGreaterThan(2);
+  });
+
+  it("takes the cusp's excess out of the kernel over the sweep", () => {
+    // Excess over the floor, point → quadrature, at 2 µm: 0.133 → 0.059,
+    // 0.126 → 0.047, 0.112 → 0.041, 0.085 → 0.041 — onto the unphased rim's own
+    // 0.040 / 0.044 / 0.031 / 0.025 within a factor 1.6. At 1 µm the sweep's sum
+    // halves (0.308 → 0.152). Not everywhere better: at 40 bins, unswept, the wall
+    // lands where point sampling already sat near the floor (0.047) and the
+    // quadrature reads 0.050 — recorded in § 6l.14, not hidden by the sweep.
+    for (const n of SWEEP) {
+      const r = readings(AIR(0.002), n);
+      expect(r.cells, `${n} bins`).toBeGreaterThan(0);
+      expect(r.quad / r.point, `2 µm, ${n} bins`).toBeLessThan(0.6);
+    }
+    let point = 0;
+    let quad = 0;
+    for (const n of SWEEP) {
+      const r = readings(AIR(0.001), n);
+      point += r.point;
+      quad += r.quad;
+    }
+    expect(quad / point).toBeLessThan(0.7);
+  });
+
+  const STACK = [-3, -2, -1, 0, 1, 2, 3];
+
+  it("keeps the stack's flux exact and its cell choice fixed, because the factor is the focus depth's", () => {
+    const spec = AIR(0.002);
+    const kernels = depthKernels(mountPupils(idealPupil(), spec, mountSinAlpha(spec)), STACK, {
+      pupilSamples: 32,
+      size: S,
+      cellQuadrature: true,
+    });
+    for (const k of kernels) {
+      expect(Math.abs(k.relativeThroughput - 1), `${k.defocusWaves} waves`).toBeLessThan(1e-13);
+      expect(k.quadratureCells).toBe(kernels[0]!.quadratureCells);
+    }
+    expect(kernels[0]!.quadratureCells).toBeGreaterThan(0);
+  });
+
+  it("NEGATIVE CONTROL: averaging each slice's whole pupil breaks that flux", () => {
+    // What the split is FOR. The mean of exp(2πi·(d₀A + wΦ)) has a magnitude that
+    // moves with w, which is a depth-varying amplitude — § 6k.3's negative control
+    // arriving by quadrature.
+    const spec = AIR(0.002);
+    const step = 2 / 32;
+    const naive = (waves: number) => {
+      const slice = mountPupils(idealPupil(), spec, mountSinAlpha(spec))(waves);
+      const lit = (x: number, y: number) => slice.amplitude(x, y) > 0;
+      const at = (px: number, py: number) => cellMeanPhasor(slice.phaseWaves, lit, px, py, step);
+      return {
+        amplitude: (px: number, py: number) => {
+          const a = slice.amplitude(px, py);
+          if (a <= 0) return a;
+          const m = at(px, py);
+          return a * Math.hypot(m.re, m.im);
+        },
+        phaseWaves: (px: number, py: number) => {
+          const m = at(px, py);
+          return Math.atan2(m.im, m.re) / (2 * Math.PI);
+        },
+      };
+    };
+    const kernels = depthKernels(naive, STACK, { pupilSamples: 32, size: S });
+    let worst = 0;
+    for (const k of kernels) worst = Math.max(worst, Math.abs(k.relativeThroughput - 1));
+    // Measured 0.236 — the throughput of one slice moves by a quarter.
+    expect(worst).toBeGreaterThan(1e-3);
+  });
+
+  it("leaves § 6l.13's law standing on a truncating stack with the quadrature on", () => {
+    // § 6l.12's derivation needs a phase linear in the stack coordinate; a factor
+    // shared by every slice keeps it so. Read through the taper as § 6l.13 reads,
+    // nothing past law + 3 bins reaches 2% of the peak — measured 3.3e-4 at worst.
+    const HALF = 4;
+    const SLICES = 64;
+    const STEP = (2 * HALF) / SLICES;
+    const stack = Array.from({ length: SLICES }, (_, i) => -HALF + i * STEP);
+    const BIN = 1 / (STEP * SLICES);
+    const base = AIR(0);
+    const perWave = 1 / mountDefocusWaves({ ...base, focusDepthMm: 0 }, 1);
+    const deep = { ...base, focusDepthMm: 0.01 + HALF * perWave };
+    const s = mountSinAlpha(deep);
+    const kernels = depthKernels(mountPupils(idealPupil(), deep, s), stack, {
+      pupilSamples: 32,
+      size: 64,
+      cellQuadrature: true,
+    });
+    expect(kernels[0]!.quadratureCells).toBeGreaterThan(0);
+    for (const nu of [0.25, 0.5, 1]) {
+      const bin = Math.round((nu * 32) / 2);
+      const { magnitude } = axialSpectrum(axialTransfer(kernels, bin), { window: "blackman" });
+      const law = mountConeEdge(deep, (2 * bin) / 32, s);
+      let peak = 0;
+      for (const m of magnitude) peak = Math.max(peak, m);
+      let worst = 0;
+      for (let b = 0; b < magnitude.length; b++) {
+        if (b * BIN > law + 3 * BIN) worst = Math.max(worst, magnitude[b]! / peak);
+      }
+      expect(worst, `ν ${nu}`).toBeLessThan(0.02);
     }
   });
 });

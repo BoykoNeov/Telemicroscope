@@ -65,7 +65,7 @@ whole ladder.
 | [6i](#step-6i--fluorescence-the-specimen-that-emits) | The Abbe sum shown to BECOME a convolution, exactly and at any modulation, once the source lattice steps by the pupil's own frequency step | `fluorescence` |
 | [6j](#step-6j--the-stokes-shift-and-the-band-the-image-is-formed-in) | A 20 nm Stokes shift costs 0.32 depths of focus on a 4×/0.10 and 3.77 on a 100×/1.40, and scale diversity alone is not blur | `emission` |
 | [6k](#step-6k--out-of-focus-haze-and-the-missing-cone) | A defocus is a pure PHASE: flux invariant with depth, the haze unfocusable, the missing cone that constant transformed; **6k.8** the exact Ewald cap, 1/cos α thrice, **6k.9** chosen from NA/n, band ×0.693 | `volume` |
-| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more layer on § 6e.1's stack; no ray above n_s leaves the specimen (1.40 delivers 1.3347 into water); **6l.10** a rarer mount takes the cap; **6l.11** its band at the lit rim, λ/2n; **6l.12** its cone edge the immersion's angle over that rim; **6l.13** read tapered, at any grid step | `depth-aberration` |
+| [6l](#step-6l--depth-dependent-spherical-aberration) | A focal depth is one more § 6e.1 layer; no ray above n_s leaves the specimen (1.40 → 1.3347 in water); **6l.10** a rarer mount takes the cap; **6l.11** its band at the lit rim, λ/2n; **6l.12** its cone edge the immersion's angle over that rim; **6l.13** read tapered; **6l.14** the cusp cell-averaged | `depth-aberration` |
 | [6m](#step-6m--the-off-axis-frame) | A field is reached by tiling, not widening: a tile at the origin bitwise identical to the frame, registration pinned in the LAST BIT, the reference sphere as hypot(R_axis, r), the ruler's trade in closed form, field curvature ×4.000 per doubling — and an off-axis tile ANISOTROPIC in § 6h.1's ratio 3 | `object-field` |
 | [6n](#step-6n--the-warped-grid-rasterizer) | § 6h's named deferral: the grid itself warped, a `Specimen` callback evaluated at the object point each pixel really looks at — so the warp happens in the ARGUMENT and nothing is resampled — with a straight object line shown to bow at ×2.00 per doubling, the map's own curvature, and the sign pinned as barrel | `specimen` |
 | [6o](#step-6o--the-mosaic-and-its-guard-band) | Tiles composed into one image, each cropped to its useful span, with the guard band that crop needs measured against a CLOSED FORM — the coherent tail integral, which a filled condenser beats by a factor that doubles with the guard — and a tile rendered alone shown to be the tile the mosaic composes bit for bit | `mosaic` |
@@ -10615,6 +10615,12 @@ and `mountDepthTolerance` in `designs/coverslip`; `imaging/depth-aberration`
 | **6l.13** …and off-bin, nothing ≥ 3 bins from the tone above −58 dB, the worst just under it | Harris (1978), Table 1 | ✅ |
 | **6l.13** An oil 1.40 over air at 5.65 and 3.67 waves per sample: tapered, ≤ 8.1e-4 of peak past law + 3 bins; untapered, 2.0–5.2% — item 20's hypothesis refuted | § 6l.12's law, one-sided | ✅ |
 | **6l.13** Past the delivered cutoff the transfer is < 1e-12 of DC at every slice — no edge to read | ν ≥ 2·ρ_rim, pair count | ✅ |
+| **6l.14** A √-edge's cell mean against its elementary integral: 2.3e-2 at k = 16, ×9.99 better at k = 64 — order ≥ 3/2 | ∫u·e^{iαu}du, closed form | ✅ |
+| **6l.14** Matched mount and depth 0: no quadrature, and the kernel with it on is the point-sampled kernel bitwise | identity rung | ✅ |
+| **6l.14** At 1 µm of air the half-wave guard reads 0.37–0.45 (green) on four samplings while the kernel carries up to 2.5× the unphased rim's error | eight-times-finer pupil, same pitch | ✅ |
+| **6l.14** At 2 µm the cell quadrature cuts that excess by 55–63% at every sampling swept; at 1 µm the sweep's sum halves | same reference, floor removed | ✅ |
+| **6l.14** A shared factor keeps the stack's flux to 1e-13 and its corrected cells fixed; averaging each slice's whole pupil moves a slice's flux by 0.236 | § 6l.6, with its negative control | ✅ |
+| **6l.14** § 6l.13's law holds with the quadrature on: ≤ 3.3e-4 of peak past law + 3 bins | § 6l.12's law, tapered | ✅ |
 
 ### 6l.1 — the literature quotes it in a different reference, and the natural check reads backwards
 
@@ -11263,11 +11269,102 @@ whose ends agree. A 16-wave window would halve the bin, and 3 bins would then
 be 0.19 cycles per wave against the laws' 0.26 apart. That doubles the job and is
 not taken here.
 
-**What it leaves.** The cusp is still real. It still breaks the half-wave rule
+~~**What it leaves.** The cusp is still real. It still breaks the half-wave rule
 for the kernels' *values* on a truncating mount: each drawn blur is point-sampled
 through a phase that jumps several waves between samples at the rim. That is
-item 20 as it now stands, narrowed rather than struck.
+item 20 as it now stands, narrowed rather than struck.~~ ✅ **Closed at
+[§ 6l.14](#6l14--the-cusp-averaged-over-the-cell-and-not-over-the-stack)**: the
+values were wrong, the guard was blind to it, and a cell quadrature of the
+stack's constant term takes most of it out.
 
+
+### 6l.14 — the cusp averaged over the cell, and not over the stack
+
+**The hypothesis, and the number that would refute it.** § 6l.13 left item 20 as
+the kernels' *values*: each blur on a truncating mount is point-sampled through
+a phase that jumps several waves between samples at the rim. The claim tested
+here is that the error this puts in a kernel is **not** read by the largest
+lattice phase step, the guard every panel shows. It is refuted if, wherever that
+guard passes, the point-sampled kernel sits within the error the same rim has
+with no phase at all.
+
+**The measure.** A coarse kernel is compared with one formed from a pupil
+sampled eight times finer at the same pixel pitch, so its frame is eight times
+wider (sixteen times was checked once and moved the readings by about 1%). Part
+of the difference is a floor that no sampler on the coarse frame can go below:
+the coarse kernel sums to 1 inside the frame, the true one puts only
+1 − outside there, so L1 + outside ≥ 2·outside identically. Every number below
+is the **excess over that floor**. (An earlier reading in this session compared
+against the floor itself and concluded the rim quadrature "barely helps" — it was
+the identity, not a measurement.)
+
+**Confirmed.** On an oil 1.40 over air at 1 µm, the guard reads 0.45 / 0.43 /
+0.39 / 0.37 at 24 / 32 / 48 / 64 bins — green on all four — while the kernel's
+excess is 0.085 / 0.109 / 0.069 / 0.045 against the unphased rim's 0.040 /
+0.044 / 0.031 / 0.025, up to 2.5×. The guard is blind for a geometric reason:
+the steepest part of the cusp lies between the outermost lit lattice point and
+the wall, and no *pair* of lattice points ever straddles it. That is also why the
+guard's reading jumps with where the wall lands (0.31 at 40 bins, 0.45 at 24).
+
+#### The engine change: a cell quadrature of the stack's constant term
+
+`PupilFunction` gains an optional `cellQuadrature`. `incoherentPsf` hands it the
+lattice's OWN step (never a number the caller supplies — § 6l.9's coupling) and
+multiplies each sample by the factor it returns, when asked to by its new
+`cellQuadrature` option. Off by default, and a pupil without one is sampled as
+it always was, so every kernel before this step is bitwise unchanged.
+
+`mountPupils` supplies it, built **once per stack at the focus depth**. By
+§ 6l.12 a slice's phase is d₀·A(ρ) + w·Φ_eff(ρ); the cusp lives only in A, and
+Φ_eff is smooth wherever light is. So the factor replaces the point sample of
+d₀·A with its mean over the cell, by a 16×16 midpoint rule over the cell's LIT
+part — the amplitude stays point-sampled, `incoherentPsf`'s and `abbeImage`'s
+convention — and only in cells that need it: where d₀·A spans more than half a
+wave across the cell, or where the cell straddles the wall, tested on the wall's
+own `rhoMax2`.
+
+**Why the split is the design and not a detail.** Averaging each slice's whole
+pupil was tried first (it is the obvious fix) and it breaks the stack three
+ways: a cell mean's magnitude that moves with w is a depth-varying amplitude,
+which is § 6k.3's negative control; the mean of an exponential of a sum is not
+linear in w, which § 6l.12's derivation needs; and a per-slice choice of cells
+flips along the stack. The rung measures the first — a slice's flux moves by
+0.236. A factor shared by every slice does none of that, by construction, and it
+also left well-resolved stacks alone where whole-pupil averaging did not (a
+matched pupil at 1.5 and 3 waves of defocus got *worse*, 4.5% → 5.6% and 9.4% →
+12.6%).
+
+#### The rungs
+
+The quadrature itself is pinned to the one term of the depth wavefront whose
+integral is elementary. A phase β·√ε at distance ε from the wall, over a cell
+whose far side is the wall, has the cell mean
+(2/h)·[e^{iαU}(1/α² − iU/α) − 1/α²] with u = √ε, U = √h, α = 2πβ. At three
+waves across the cell the midpoint rule reads 2.3e-2 of a unit phasor at k = 16
+and is 9.99× better at k = 64 — order ≥ 3/2, which is what a midpoint rule on a
+square-root endpoint must give. That 2.3% is the price of k = 16, stated.
+
+On the same stack the quadrature cuts the excess at 2 µm from 0.133 / 0.126 /
+0.112 / 0.085 to 0.059 / 0.047 / 0.041 / 0.041 — onto the unphased rim within a
+factor 1.6. At 1 µm the sweep's sum halves, 0.308 → 0.152. **Not everywhere
+better**: at 40 bins, unswept, the wall lands where point sampling was already
+near the floor (0.047) and the quadrature reads 0.050. With it on, a
+7-slice truncating stack keeps every slice's flux to 1e-13 and corrects the same
+72 cells in each, and § 6l.13's tapered read still finds ≤ 3.3e-4 of the peak
+past law + 3 bins.
+
+**What it does not fix.** The light the cusp sends past the frame is really
+there — up to 29% of the kernel at 5 µm of air and 24 bins — and on a periodic
+lattice it can only be removed by a wider frame, which is `pupilSamples`. The
+quadrature stops it being *mis-sampled*; it cannot make the frame hold it. The
+half-wave guard still reads the point samples, so it keeps meaning what every
+recorded reading of it meant, and a truncating mount can read amber with its rim
+cells already corrected — the panel now says how many.
+
+**The app.** The thick-specimen picture turns it on (`renderVolumeScene`), and
+reports the corrected cells beside the grid guard. `memoizedPupil` forwards a
+quadrature, and an app rung pins that it does. The cone panel is left
+point-sampled: it reads a support edge, which a shared factor cannot move.
 
 ### Not yet pinned
 - ~~**Off axis.**~~ ✅ **Closed at § 6y**, and the reason recorded here had

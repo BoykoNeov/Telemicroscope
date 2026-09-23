@@ -1034,7 +1034,7 @@ export function VolumePanel() {
                 label="grid step"
                 value={`${readout.maxGridPhaseStepWaves.toFixed(4)} waves / sample`}
                 level={thresholdLevel(readout.maxGridPhaseStepWaves, GRID_STEP_LIMIT)}
-                detail={`worst plane is ${worstPlaneWaves.toFixed(2)} waves out; its kernel puts ${(readout.worstSliceOutsideFraction * 100).toFixed(1)}% of its light outside the frame's inscribed circle`}
+                detail={`worst plane is ${worstPlaneWaves.toFixed(2)} waves out; its kernel puts ${(readout.worstSliceOutsideFraction * 100).toFixed(1)}% of its light outside the frame's inscribed circle${readout.quadratureCells > 0 ? `; ${readout.quadratureCells} cells at the mount's rim are averaged over the cell rather than point-sampled (§ 6l.14)` : ""}`}
               />
               σ {readout.axisRmsWaves.toFixed(5)} waves on axis, as traced (λ/14 ={" "}
               {MARECHAL_WAVES.toFixed(5)}) · {readout.elapsedMs.toFixed(0)} ms

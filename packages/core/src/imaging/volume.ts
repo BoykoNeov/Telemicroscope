@@ -1,5 +1,5 @@
 import { fft2d, isPowerOfTwo } from "../math/fft";
-import { imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
+import { carryCellQuadrature, imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
 import { incoherentPsf, type EmitterField, type IncoherentPsf } from "./fluorescence";
 
 /**
@@ -202,6 +202,7 @@ export function withDefocus(pupil: PupilFunction, waves: number): PupilFunction 
   return {
     amplitude: (px, py) => pupil.amplitude(px, py),
     phaseWaves: (px, py) => pupil.phaseWaves(px, py) + waves * (px * px + py * py),
+    ...carryCellQuadrature(pupil),
   };
 }
 
@@ -321,6 +322,7 @@ export function withObjectDefocus(
         (waves * 2 * rho2) / (1 + Math.sqrt(Math.max(1 - s2 * rho2, 0)))
       );
     },
+    ...carryCellQuadrature(pupil),
   };
 }
 
@@ -477,6 +479,8 @@ export interface DepthKernelOptions {
   readonly size: number;
   /** Supply to get a physical `pixelScaleMm` back; omit for grid units. */
   readonly scale?: PupilScale;
+  /** Passed to every slice's `incoherentPsf` — § 6l.14, off by default. */
+  readonly cellQuadrature?: boolean;
 }
 
 /**
@@ -499,6 +503,7 @@ export function depthKernels(
       pupilSamples: options.pupilSamples,
       size: options.size,
       ...(options.scale === undefined ? {} : { scale: options.scale }),
+      ...(options.cellQuadrature === undefined ? {} : { cellQuadrature: options.cellQuadrature }),
     }),
   }));
   // The reference is the least-defocused member rather than index 0, so a stack
@@ -610,6 +615,8 @@ export interface VolumeImageOptions {
   readonly pupilTruncatedAtMount?: boolean;
   /** Supply to get a physical `pixelScaleMm` back; omit for grid units. */
   readonly scale?: PupilScale;
+  /** Passed to every slice's `incoherentPsf` — § 6l.14, off by default. */
+  readonly cellQuadrature?: boolean;
   /** Called once per slice imaged, for progress and cost accounting. */
   readonly onSlice?: (done: number, total: number) => void;
 }
@@ -729,6 +736,7 @@ export function renderVolume(
       pupilSamples: options.pupilSamples,
       size: n,
       ...(options.scale === undefined ? {} : { scale: options.scale }),
+      ...(options.cellQuadrature === undefined ? {} : { cellQuadrature: options.cellQuadrature }),
     });
     maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, kernel.maxGridPhaseStepWaves);
 

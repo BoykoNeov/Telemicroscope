@@ -175,10 +175,11 @@ axial bin wherever that guard passes, and says so in amber where it does not.~~
 the untapered window's leak, so the panel reads its edge through a Blackman
 taper and checks `mountConeEdge` one-sided on every row, at any grid step —
 including the truncating mounts item 20 said could never be checked. What is
-left in the register is the confirming run on a second machine, the narrowed
-remainder of **item 20** (the rim's square-root cusp still breaks the half-wave
-rule for the drawn blurs' values, with no reading that needs them yet), and
-Part A's items 11 and 12.
+**§ 6l.14 closed item 20's remainder**: the rim's square-root cusp did put
+the drawn blurs' values wrong while the half-wave guard read green, and a cell
+quadrature of the stack's constant term — built once at the focus depth, so the
+stack keeps its flux and its linearity — takes most of it out; the picture uses
+it. What is left in the register is Part A's items 11 and 12.
 
 ## Build order
 

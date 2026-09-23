@@ -1670,6 +1670,35 @@ dominated by load from other work on the machine.
 
 Console clean on all three.
 
+#### The picture's rim cells are averaged, not point-sampled
+
+*App wiring on the same `#/volume` route, plus the engine change it needed —
+`mountPupils`' cell quadrature, validated at
+[§ 6l.14](VALIDATION.md#6l14--the-cusp-averaged-over-the-cell-and-not-over-the-stack).
+Register item 20's remainder, closed.*
+
+The drawn blurs on a truncating mount were wrong while the grid guard beside
+them read green: at 1 µm of air the guard reads 0.37–0.45 on four samplings and
+the kernel carries up to 2.5× the error of the same rim with no phase. The
+picture now forms every slice with `cellQuadrature: true`, which averages the
+mount's cusp over each lattice cell once per stack, at the focus depth. It is
+inert on a matched mount and at depth 0, so those pictures are unchanged.
+
+**What changed on the panel:** the grid guard's detail now says how many rim
+cells were averaged. The guard's number itself still reads the point samples,
+so it keeps meaning what it meant, and a truncating mount can read amber with
+its rim already corrected — the detail says so rather than the colour changing.
+The cone panel is left point-sampled: it reads a support edge, which a factor
+shared by every slice cannot move.
+
+**Cost in time:** a 5-slice air stack goes from 4–14 ms to 37–83 ms (best of
+five, node, 32 and 64 bins on a 128 grid), against the panel's 130–700 ms job.
+
+**Not yet driven in a browser.** The two app rungs pin the wiring — the memo
+forwards the quadrature, and the picture corrects cells on air and none on a
+matched mount with its flux drift under 1e-12 — but the caption has not been
+looked at.
+
 ### A6. Coverslip mismatch and the slip tolerance — ✅ **landed** — *app wiring only, plus one engine fix it forced* — **plot**
 
 Sliders for slip thickness and index against σ, on the 100×/1.40 oil. The

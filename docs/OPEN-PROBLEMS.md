@@ -51,9 +51,11 @@ machine only, and five of the twelve files it named were left untouched on the
 argument above rather than on evidence. Nobody has re-run the Linux container,
 so the claim that the ladder is now green off-machine is *unverified* — the bounds are argued from
 conditioning and from the register's own "one to a few ulps", not from a second
-run. Running it is the cheap next step. If a rung then misses by ORDERS rather
-than by ulps, that is a finding about the stopping rule and belongs here as a
-problem, not in a widened tolerance. The 3 worker-timeout failures are
+run. **Retired by the author (2026-09-23): no second machine will run it**, so
+this stays an unverified claim rather than a queued step, and it is not
+suggested again. Should a second run ever happen anyway, a rung that misses by
+ORDERS rather than by ulps is a finding about the stopping rule and belongs here
+as a problem, not in a widened tolerance. The 3 worker-timeout failures are
 `vitest.setup.ts`'s and are untouched.
 
 ## A. Ready to pin — an external number exists
@@ -463,7 +465,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     truncating mount's support boundary being a check rather than a refusal.~~
     Done without the quadrature.
 
-    **What is still open** is narrower: the drawn kernels' *values*. Each blur on
+    ~~**What is still open** is narrower: the drawn kernels' *values*. Each blur on
     a truncating mount is point-sampled through a phase that jumps several waves
     between samples at the rim, so it breaks the half-wave rule the rest of the
     engine keeps. No external number: this is about the representation, not the
@@ -471,7 +473,22 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     — the square-root edge is the one term whose integral is elementary — as an
     engine change in `incoherentPsf`'s sampling, with its own rung set. It would
     need a reading that depends on the values and not on the support to be worth
-    it; the cone panel's check no longer is one.
+    it; the cone panel's check no longer is one.~~
+
+    ✅ **CLOSED at [§ 6l.14](VALIDATION.md#6l14--the-cusp-averaged-over-the-cell-and-not-over-the-stack).**
+    The reading that depends on the values is the thick-specimen picture itself,
+    and the values were wrong by more than the guard beside it admitted: at 1 µm
+    of air the half-wave guard is green on every sampling while the kernel
+    carries up to 2.5× the unphased rim's error. The candidate was right in kind
+    and wrong in place. Averaging the *slice's* pupil breaks § 6l.6's flux and
+    § 6l.12's linearity; averaging only the stack's constant term d₀·A, once at
+    the focus depth, keeps both by construction and cuts the excess 55–63% at
+    2 µm. The integral is a 16×16 midpoint rule pinned to the elementary one, not
+    an analytic kernel. **What it leaves:** the light the cusp sends past the
+    frame is real and needs a wider frame, not a better sampler; and the
+    half-wave guard still cannot see a cusp between the last lattice point and
+    the wall — the panel reports the corrected cells rather than changing what
+    the guard means. Neither has a reading that needs more yet.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -912,14 +929,14 @@ radial-map nodes · § 6ba differential bleaching.
     the stack, and names the guard where it did not. The doc now ships nothing the
     engine has falsified.
 
-17. **The off-machine run** (the structural problem at the top): one confirming
+17. ~~**The off-machine run** (the structural problem at the top): one confirming
     run of the ladder on a second machine, still a check rather than a piece of
     work — though not the cheap command this file called it, since the Linux
-    subsystem on the author's box has no Node installed. Then ~~**item 20** (19's
+    subsystem on the author's box has no Node installed.~~ **Retired by the
+    author** — not done, and not queued: no second machine will run it. Then ~~**item 20** (19's
     residue, and the first entry in a while whose blocker is the *representation*
     rather than a missing number)~~, and Part A's items 11 and 12, neither of which
     has an external number named yet. **Item 20's headline was refuted at
     [§ 6l.13](VALIDATION.md#6l13--the-edge-read-through-a-taper)** — the
     cone panel's misses were its window's leak, not the rim's cusp, and a tapered
-    edge is a check at any grid step. What stays open is the cusp's effect on the
-    drawn blurs' values, and it has no reading that needs it yet.
+    edge is a check at any grid step. **Closed at [§ 6l.14](VALIDATION.md#6l14--the-cusp-averaged-over-the-cell-and-not-over-the-stack)**: the cusp's effect on the drawn blurs' values was real, the guard was blind to it, and a cell quadrature of the stack's constant term takes most of it out.

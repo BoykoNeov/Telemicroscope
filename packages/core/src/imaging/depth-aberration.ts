@@ -3,7 +3,8 @@ import {
   stackWavefrontErrorMm,
   type PlaneLayer,
 } from "../designs/coverslip";
-import type { PupilFunction } from "../wave/psf";
+import { carryCellQuadrature, type CellQuadrature, type PupilFunction } from "../wave/psf";
+import { PHASE_STEP_LIMIT } from "../wave/fidelity";
 import {
   defocusWaves,
   ewaldConeEdgeAtRim,
@@ -320,6 +321,7 @@ export function withMountAberration(
       phaseWaves: (px, py) =>
         pupil.phaseWaves(px, py) +
         (matchedOff ? 0 : mountWavefrontWavesVector(spec, depthMm, px, py, chief)),
+      ...carryCellQuadrature(pupil),
     };
   }
   const ceiling = mountAperture(spec);
@@ -333,6 +335,7 @@ export function withMountAberration(
       truncates && px * px + py * py >= rhoMax2 ? 0 : pupil.amplitude(px, py),
     phaseWaves: (px, py) =>
       pupil.phaseWaves(px, py) + (matched ? 0 : mountWavefrontWaves(spec, depthMm, Math.hypot(px, py))),
+    ...carryCellQuadrature(pupil),
   };
 }
 
@@ -379,9 +382,162 @@ export function mountPupils(
   const perWave =
     (2 * spec.mountIndex * spec.wavelengthNm * 1e-6) /
     (spec.numericalAperture * spec.numericalAperture);
+  // Built ONCE, at the focus depth, and shared by every slice — § 6l.14's whole
+  // design. See `mountCellQuadrature`.
+  const own = mountCellQuadrature(spec);
   return (waves) => {
     const depthMm = spec.focusDepthMm + waves * perWave;
-    return withObjectDefocus(withMountAberration(pupil, spec, depthMm), waves, sinAlpha);
+    const slice = withObjectDefocus(withMountAberration(pupil, spec, depthMm), waves, sinAlpha);
+    if (own === undefined) return slice;
+    return {
+      amplitude: slice.amplitude,
+      phaseWaves: slice.phaseWaves,
+      cellQuadrature: productCellQuadrature(slice.cellQuadrature, own),
+    };
+  };
+}
+
+/** Sub-samples per side of a lattice cell in § 6l.14's cell mean. */
+export const CELL_SUBSAMPLES = 16;
+
+/**
+ * The mean of exp(2πi·phase) over the lit part of the square lattice cell of
+ * side `step` centred on (px, py), by a k×k midpoint rule — § 6l.14's quadrature.
+ *
+ * Returns the sum's real and imaginary parts divided by the LIT count, and that
+ * count. Dividing by the lit count rather than by k² is the choice that leaves
+ * the aperture's edge a point-sampled edge (`incoherentPsf`'s convention, and
+ * `abbeImage`'s): only the phase is averaged, never the amplitude.
+ */
+export function cellMeanPhasor(
+  phase: (px: number, py: number) => number,
+  lit: (px: number, py: number) => boolean,
+  px: number,
+  py: number,
+  step: number,
+  k = CELL_SUBSAMPLES,
+): { readonly re: number; readonly im: number; readonly lit: number; readonly span: number } {
+  let re = 0;
+  let im = 0;
+  let count = 0;
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (let j = 0; j < k; j++) {
+    const y = py + ((j + 0.5) / k - 0.5) * step;
+    for (let i = 0; i < k; i++) {
+      const x = px + ((i + 0.5) / k - 0.5) * step;
+      if (!lit(x, y)) continue;
+      const w = phase(x, y);
+      if (w < lo) lo = w;
+      if (w > hi) hi = w;
+      re += Math.cos(2 * Math.PI * w);
+      im += Math.sin(2 * Math.PI * w);
+      count++;
+    }
+  }
+  return count === 0
+    ? { re: 0, im: 0, lit: 0, span: 0 }
+    : { re: re / count, im: im / count, lit: count, span: hi - lo };
+}
+
+/**
+ * § 6l.14 — the cell quadrature of a mount stack's **constant** term, d₀·A(ρ).
+ *
+ * ## Why this term and no other
+ *
+ * A `mountPupils` slice's phase is d₀·A(ρ) + w·Φ_eff(ρ) (§ 6l.12). The square-root
+ * cusp at § 6l.3's wall lives in A, and Φ_eff is smooth wherever light is (it is
+ * § 6k.8's cap at the immersion's s_i < 1). Point-sampling d₀·A misses the light
+ * the cusp sends far off axis, and it wraps back into the frame: 6–16% of the
+ * kernel on an oil 1.40 over air at 1–5 µm and 32 bins, measured against a pupil
+ * sampled eight times finer, with the half-wave guard reading 0.34–0.42 on the
+ * shallow end — green.
+ *
+ * Averaging the WHOLE slice pupil per cell fixes those kernels and breaks the
+ * stack three ways — a magnitude that moves with w is a depth-varying amplitude
+ * (§ 6k.3's negative control), the mean of a sum's exponential is not linear in
+ * w (§ 6l.12's derivation), and a per-slice cell choice flips along the stack.
+ * Averaging only d₀·A does none of that: it is one complex number per lattice
+ * point, the SAME for every slice, so § 6l.6's flux invariance, § 6k.3's null and
+ * § 6l.12's boundary hold by construction rather than by measurement.
+ *
+ * ## Which cells
+ *
+ * Those where point sampling of d₀·A is not sound: the term spans more than half
+ * a wave across the cell (the lattice's own criterion, `PHASE_STEP_LIMIT`), or
+ * the cell straddles the wall — tested on the wall's own `rhoMax2`, not probed —
+ * where the steepest part of the cusp sits between the last lit lattice point
+ * and the wall and no pair of lattice points ever sees it. Every other cell is
+ * point-sampled, bitwise, so a well-resolved stack is untouched.
+ *
+ * Undefined — nothing to correct — for a matched mount and at depth 0.
+ */
+export function mountCellQuadrature(
+  spec: MountSpec,
+  k = CELL_SUBSAMPLES,
+): CellQuadrature | undefined {
+  checkSpec(spec);
+  const d0 = spec.focusDepthMm;
+  if (d0 === 0 || spec.mountIndex === spec.immersionIndex) return undefined;
+  const na = spec.numericalAperture;
+  const ceiling = mountAperture(spec);
+  const truncates = ceiling < na;
+  // `withMountAberration`'s own expression for the wall, so the two agree bitwise
+  // about which sub-sample is lit.
+  const rhoMax2 = (ceiling / na) ** 2;
+  const lit = (x: number, y: number) => {
+    const r2 = x * x + y * y;
+    return r2 <= 1 && !(truncates && r2 >= rhoMax2);
+  };
+  const term = (x: number, y: number) => mountWavefrontWaves(spec, d0, Math.hypot(x, y));
+  const byStep = new Map<number, Map<string, readonly [number, number] | undefined>>();
+  return (step) => {
+    let cache = byStep.get(step);
+    if (cache === undefined) {
+      cache = new Map();
+      byStep.set(step, cache);
+    }
+    const memo = cache;
+    const h = step / 2;
+    return (px, py) => {
+      const key = `${px},${py}`;
+      if (memo.has(key)) return memo.get(key);
+      const nx = Math.max(Math.abs(px) - h, 0);
+      const ny = Math.max(Math.abs(py) - h, 0);
+      const fx = Math.abs(px) + h;
+      const fy = Math.abs(py) + h;
+      const straddles = truncates && nx * nx + ny * ny < rhoMax2 && fx * fx + fy * fy >= rhoMax2;
+      let value: readonly [number, number] | undefined;
+      const mean = cellMeanPhasor(term, lit, px, py, step, k);
+      if (mean.lit > 0 && (straddles || mean.span > PHASE_STEP_LIMIT)) {
+        // The factor that turns the point sample of d₀·A into its cell mean.
+        const a = -2 * Math.PI * term(px, py);
+        const c = Math.cos(a);
+        const s = Math.sin(a);
+        value = [mean.re * c - mean.im * s, mean.re * s + mean.im * c];
+      }
+      memo.set(key, value);
+      return value;
+    };
+  };
+}
+
+/** Two cell quadratures multiplied, either of them possibly absent. */
+function productCellQuadrature(
+  a: CellQuadrature | undefined,
+  b: CellQuadrature,
+): CellQuadrature {
+  if (a === undefined) return b;
+  return (step) => {
+    const fa = a(step);
+    const fb = b(step);
+    return (px, py) => {
+      const x = fa(px, py);
+      const y = fb(px, py);
+      if (x === undefined) return y;
+      if (y === undefined) return x;
+      return [x[0] * y[0] - x[1] * y[1], x[0] * y[1] + x[1] * y[0]];
+    };
   };
 }
 

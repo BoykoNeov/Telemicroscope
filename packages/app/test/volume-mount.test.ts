@@ -415,3 +415,23 @@ describe("D10 — the memo is exact", () => {
     }
   });
 });
+
+describe("§ 6l.14 — the panel's picture carries the cell quadrature", () => {
+  it("forwards a pupil's cell quadrature through the memo, untouched", () => {
+    // Dropping it would switch § 6l.14 off silently — the kernel would still form.
+    const cellQuadrature = () => () => undefined;
+    const memo = memoizedPupil({ amplitude: () => 1, phaseWaves: () => 0, cellQuadrature });
+    expect(memo.cellQuadrature).toBe(cellQuadrature);
+    expect(memoizedPupil({ amplitude: () => 1, phaseWaves: () => 0 }).cellQuadrature).toBeUndefined();
+  });
+
+  it("corrects rim cells on a truncating mount below the slip, and none on a matched one", () => {
+    const air = renderVolumeScene({ ...base, mount: "AIR", depthUm: 2 });
+    const matched = renderVolumeScene({ ...base, mount: "matched", depthUm: 2 });
+    if (!air.ok || !matched.ok) throw new Error("a scene refused");
+    expect(air.readout.quadratureCells).toBeGreaterThan(0);
+    expect(matched.readout.quadratureCells).toBe(0);
+    // § 6l.6 survives it: a shared factor per stack moves no slice's flux.
+    expect(air.readout.throughputDrift!).toBeLessThan(1e-12);
+  });
+});

@@ -66,7 +66,31 @@ export interface PupilFunction {
   readonly amplitude: (px: number, py: number) => number;
   /** Wavefront error in waves. Only meaningful where amplitude > 0. */
   readonly phaseWaves: (px: number, py: number) => number;
+  /**
+   * An optional per-cell correction for a lattice that point-sampling cannot
+   * carry (§ 6l.14). Handed the lattice's OWN step by the sampler — never by the
+   * caller — it returns a function giving, at a lattice point, the complex factor
+   * that turns the point sample of one term of the phase into that term's mean
+   * over the point's cell; `undefined` where the point sample stands.
+   *
+   * Opt-in twice: a pupil that has none is sampled as it always was, and a
+   * sampler that is not asked to (`incoherentPsf`'s `cellQuadrature`) ignores it.
+   * A wrapper that adds phase or amplitude forwards it unchanged, because the
+   * factor is a ratio for the term it names and not for the phase around it.
+   */
+  readonly cellQuadrature?: CellQuadrature;
 }
+
+/** See `PupilFunction.cellQuadrature`. `[re, im]`, or undefined for 1. */
+export type CellQuadrature = (
+  step: number,
+) => (px: number, py: number) => readonly [number, number] | undefined;
+
+/** Forward `inner`'s cell quadrature onto a wrapper, if it has one. */
+export const carryCellQuadrature = (
+  inner: PupilFunction,
+): { readonly cellQuadrature?: CellQuadrature } =>
+  inner.cellQuadrature === undefined ? {} : { cellQuadrature: inner.cellQuadrature };
 
 /**
  * A spider: the vanes that hold a secondary mirror, and the source of a
