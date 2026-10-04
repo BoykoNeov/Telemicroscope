@@ -10,9 +10,8 @@ read its "ladder at a glance" index first and then only the step you need.
 yet, what each panel would cost (measured), and which are blocked on an engine
 step rather than on wiring. Read it before adding anything to `packages/app`.
 
-`VALIDATION.md` (1.8 MB) and `APP.md` (440 KB) are past the point of being read
-whole — together they are several context windows. Grep the headings, then
-read the line range. Only `ARCHITECTURE.md` is sized to be read end to end.
+`VALIDATION.md` and `APP.md` are too large to read whole — grep the headings,
+then read the line range. Only `ARCHITECTURE.md` is sized to be read end to end.
 `docs/OPEN-PROBLEMS.md` is the register of what is still open — every deferral,
 what would pin it, and the chain the stop rule was written on — and is the
 place to start when choosing the next step; ROADMAP's *Where the project is*
