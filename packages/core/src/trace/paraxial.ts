@@ -116,10 +116,12 @@ export interface SystemProperties {
  * n′·u′ = −y·Φ. So the EFL is −y/(n′·u′) and the back focal DISTANCE, which is a
  * length along the axis, is −y/u′. The two agree in air and nowhere else; until
  * § 2h this returned −y/u′ for both, which was the image-side focal distance
- * n′/Φ wearing the EFL's name, and every system it had ever been asked about
- * formed its image in air. § 2h's Cartesian back is the first that does not:
- * F = 200 mm read as 303.36 in N-BK7 and 324.01 in F2, and f_tube/f_obj then
- * claims a 152× and a 162× for an objective whose traced magnification is 100.
+ * n′/Φ wearing the EFL's name. One earlier rung did ask about an image in a
+ * medium — § 6aj.4, in water — and it pinned that meaning bitwise rather than
+ * catching it; it is restated on the focal distance. § 2h is where the name
+ * cost something: F = 200 mm read as 303.36 in N-BK7 and 324.01 in F2, and
+ * f_tube/f_obj then claims a 152× and a 162× for an objective whose traced
+ * magnification is 100.
  *
  * |n′| rather than n′: after an odd count of mirrors the engine's index is
  * negative (n′ = −n), and the EFL's sign there is the convention every

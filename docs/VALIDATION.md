@@ -3865,8 +3865,11 @@ finite step; DOF′/DOF = (n′/n)·M² from DOF = n·λ/NA² on each side.
 ### What the hypothesis found: the EFL was the focal distance
 
 `systemProperties` returned −y/u′ as the EFL, the image-side focal **distance**
-n′/Φ. In air the two are one number and every system it had been asked about
-images in air, so no rung could see it. Behind the Cartesian back f_tube/f_obj
+n′/Φ. In air the two are one number. One rung did ask about an image in a medium
+— [§ 6aj](#step-6aj--image-space-telecentricity-the-exit-pupils-slope)'s
+§ 6aj.4, in water — and it **pinned** the old meaning, `toBe(stopRadius/efl)`, instead
+of catching it; it is restated on the focal distance n′·EFL, to 4 ulp because
+that is now a product. Behind the Cartesian back f_tube/f_obj
 would have claimed a 152× and a 162× for an objective the trace measures at 100.
 The fix reads the reduced slope, −y/(|n′|·u′); |n′| keeps the mirror sign
 convention, and in air the product is u′ to the bit, so no reading moves. The two
@@ -17251,6 +17254,7 @@ of § 6u.1's field-independence.
 | ...magnification = det/D, so it is never 0 and diverges only where the slope takes over | matrix algebra | ✅ |
 | **§ 6aj.4 — `imageNA` resolves through the slope where it returned NaN** | limit of the finite branch, 12 digits | ✅ |
 | ...and in water n′·sin u′ comes back the NA, where reading the slope as the NA misses by 25% | Abbe's n·sin u | ✅ |
+| ...its slope against stopRadius/efl was `toBe` while `efl` meant n′/Φ; since [§ 2h](#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once) it is stopRadius/(n′·EFL), to 4 ulp | restated, not loosened | ✅ |
 | **§ 6aj.5 — an exit pupil ON the image plane is a FIELD stop: refuse, don't answer 0** | conjugacy | ✅ |
 | § 6aj.6 — the nine readers, measured rather than listed | audit — *not repaired* | ✅ |
 

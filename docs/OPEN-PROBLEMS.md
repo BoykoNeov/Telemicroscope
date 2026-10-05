@@ -260,8 +260,9 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     (n′/n)·m₁·m₂, holding to 3e-13 where M² and (n/n′)·M² are 6.3% and 13% off; a
     magnification blind to the back's glass; the sine condition with an index at
     each end; one ruler in either glass. What it found was an engine defect —
-    `systemProperties.efl` was the focal distance n′/Φ, not 1/Φ, invisible while
-    every image was in air. What it opened is **items 21 and 22**.
+    `systemProperties.efl` was the focal distance n′/Φ, not 1/Φ — and the one
+    earlier rung with an image in a medium (§ 6aj.4, water) had pinned that
+    meaning rather than caught it. What it opened is **items 21 and 22**.
 12. ~~**Which way an aberration-free band moves the Airy core.** § 6j names
     "an analytic band-integrated Airy" as the resampler-free check.~~
 
@@ -522,10 +523,12 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     0.61·λ/NA′ through any tube lens, air included. The dry 4×/0.10 is 1.1% off
     the same way, which is § 2b's "paraxial identification" at the aperture it
     was made for. **Pin:** the Airy ring, 0.61·λ/NA′ with NA′ the traced cone (§ 2b's
-    closed form, the external number), on the oil objective. **What a fix moves:**
-    every PSF drawn through `map.pupil.exit` on an oil objective — three core test
-    files draw them (`emission`, `volume`, `brightfield-spectrum`), and the app's
-    builder can hand one to any image panel. Close to E's "the aim is paraxial"
+    closed form, the external number), on the oil objective. **What a fix may
+    move — candidates, not a count:** any PSF whose scale is built from
+    `map.pupil.exit` on an oil objective. Three core test files both build an
+    oil objective and draw PSFs (`emission`, `volume`, `brightfield-spectrum`),
+    and the app's builder can hand one to an image panel; whether each actually
+    takes this ruler is for the fixing step to measure. Close to E's "the aim is paraxial"
     (§ 6u, § 6ak, § 6ay) but not the same: that is where a ray lands in the pupil,
     and this is what one pupil unit is worth in the image.
 22. **Image irradiance in a medium.** Found at § 2h. `extendedSourceIlluminance`
@@ -996,5 +999,6 @@ radial-map nodes · § 6ba differential bleaching.
 19. ~~**Part A's item 11** — an immersed image plane behind an objective.~~ ✅ —
     landed at [§ 2h](VALIDATION.md#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once):
     the two-index laws hold, and the EFL did not — it was the focal distance. Then
-    **item 21**, the oil objective's PSF ruler, which has its pin named and moves
-    every oil PSF the ladder draws; item 22 waits for a caller.
+    **item 21**, the oil objective's PSF ruler, which has its pin named and may
+    move oil PSF readings — how many is the fixing step's to count; item 22 waits
+    for a caller.

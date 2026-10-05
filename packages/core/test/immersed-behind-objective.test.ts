@@ -47,7 +47,8 @@ import { psf, radialProfile, type Psf } from "../src/wave/psf";
  *
  * What it found is the step's engine change: `systemProperties.efl` returned
  * −y/u′, the image-side focal DISTANCE n′/Φ, under the EFL's name. In air the
- * two are one number, and every system ever asked was in air.
+ * two are one number. The one earlier rung with an image in a medium, § 6aj.4 in
+ * water, pinned that meaning bitwise instead of catching it, and is restated.
  *
  * ## The two-index laws, derived here rather than cited
  *
