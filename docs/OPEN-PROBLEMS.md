@@ -543,22 +543,35 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     1.002 of Airy at pad 32 against the independently traced NA′ (0.57 before), and a defocus lands on Hamilton's
     n·δ·(1 − cos θ) to 0.5% where the aim layout missed by 27%. The pin held, and
     was not enough by itself, which is why § 2i.3 exists. **What it leaves:** the
-    default (item 24), apodization (item 23), and the seeing screen and the
-    condenser offset still read at the aim (§ 2i).
+    default (item 24), ~~apodization (item 23)~~ (closed at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced)), and the
+    seeing screen and the condenser offset still read at the aim (§ 2i).
 22. **Image irradiance in a medium.** Found at § 2h. `extendedSourceIlluminance`
     returns π·sin²u′; with the source in index n and the image in n′ the radiance
     that is conserved is L/n², so E′ carries (n′/n)² on top. Its docstring says
     "in air" and every caller is a telescope, so nothing is wrong today. *Candidate
     pin:* the flux through the § 2h fixture, πL·sin²u·dA in the object against
     E′·dA′ in the glass.
-23. **An emitter's apodization through an aplanat.** Found at § 2i. The exit layout's
+23. ~~**An emitter's apodization through an aplanat.** Found at § 2i. The exit layout's
     pupil is uniform in amplitude, the convention every caller-built pupil has. A
     point that radiates equal power per solid angle does not arrive that way: the
     sine condition hands it to the exit pupil as irradiance ∝ 1/cos θ, θ in the
     specimen — 1.75× at the rim of the oil 1.25's cone. *Candidate pin:* the
     encircled energy of a 1/√cos θ-apodized pupil, which has a closed-form
     quadrature, against the transform of the same pupil; the ray branch must take
-    the same weights. Unblocks an absolute high-NA fluorescence PSF and its Strehl.
+    the same weights. Unblocks an absolute high-NA fluorescence PSF and its Strehl.~~
+
+    ✅ **CLOSED at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced).** It was not an emitter's question
+    alone: a telescope asked it first, through § 2f's off-axis mirror segment
+    (item 24 below). The exit pupil's amplitude is now the ray tubes' traced
+    irradiance, source power per aim area over the exit Jacobian, and a finite
+    conjugate's source is the caller's to name — an emitter's 1/cos θ, or a
+    transmitted field's cos θ, which the brightfield chain asks for. The candidate
+    pin held (the oil ring at 0.99982 of the apodized quadrature's zero), but the
+    oil objective is aplanatic only to 0.54% in its sine, which moves its
+    irradiance 2.9%; the closed forms are pinned on a paraboloid (Richards and Wolf)
+    and a focus-to-focus ellipsoid instead. **What it leaves:** intensity at a high
+    image-side NA (a/cos θ′, not this layout's power per exit area), relative
+    illumination (flat in field by convention), and a Lambertian source.
 24. **The default pupil layout is known to be wrong off the paraxial regime.** Found
     at § 2i. `PupilLayout` defaults to `"aim"`, whose ruler is the paraxial exit
     pupil's: 1.759× off on the oil 100×, and 0.2–1.2% off on the DIN dry
@@ -571,17 +584,23 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     other 68 are in the same chain and untraced. So flipping the default is not a
     restatement: the seam chain's field-scan term has to be re-derived from the
     pupil's traced shape first. **The other 50 move only with the layout**, and
-    they are not all its distortion: § 2f's vesica-area pin degrades from inside
+    they are not all its distortion: ~~§ 2f's vesica-area pin degrades from inside
     2e-4 to 5.4e-4 (the fitted inverse at a vignetted edge — trace the vignette
-    boundary instead); `extended`'s pupil energy stops being flat in field
-    (2.1e-3 — the off-axis rim's foreshortening, which is physics until shown
-    otherwise and changes brightness across a frame); § 1.8.14's contrast merit
+    boundary instead)~~ — the inverse was exact; the mirror is an off-axis segment
+    and the uniform irradiance miscounted it, **closed at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced)**,
+    where the vesica converges to 8.5e-6; `extended`'s pupil energy stops being flat in field
+    (~~2.1e-3 — the off-axis rim's foreshortening, which is physics until shown
+    otherwise and changes brightness across a frame~~ 2.4e-4 since § 2j, whose units
+    are the aim layout's; the aim layout reads 7.7e-7 and the rest is untraced); § 1.8.14's contrast merit
     moves up to 7× and the optimiser lands elsewhere; brightfield and tile
     readings move 5–13% (`illumination`, `object-field`, `condenser-source`);
     and the exit layout costs 35% more traces (`mtf-share`: 272 against 202),
-    enough to time out one 10× mosaic render at 180 s. *Route:* one numbered step
+    enough to time out one 10× mosaic render at 180 s — and § 2j adds 124 traces
+    per pupil to the map's 317 (441 where it vignettes), not yet measured against
+    that render. The brightfield chain's three callers already name a transmitted
+    field (§ 2j), so a brightfield flip moves its rim by cos θ, not 1/cos θ. *Route:* one numbered step
     per chain, each flipping its own callers to `"exit"` and restating what moved,
-    the vignetted edge and the cost first, the seam chain last.
+    ~~the vignetted edge and~~ the cost first, the seam chain last.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1046,8 +1065,10 @@ radial-map nodes · § 6ba differential bleaching.
     the two-index laws hold, and the EFL did not — it was the focal distance. Then
     ~~**item 21**, the oil objective's PSF ruler~~ — closed at
     [§ 2i](VALIDATION.md#step-2i--the-pupil-laid-out-where-its-rays-went) as the opt-in exit layout; item 22 waits
-    for a caller.
+    for a caller. ~~Item 23~~, the emitter's apodization, closed at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced)
+    with a transmitted field's beside it.
 
 20. **Part A's item 24** — flip the default layout, one chain at a time. The
     counts are in the entry; the seam chain's field-scan term goes last, because
-    it vanishes rather than moves.
+    it vanishes rather than moves. ~~The vignetted edge~~ went at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced)
+    and was not an edge: the cost is first now.

@@ -375,7 +375,8 @@ export function renderBrightfieldScene(request: BrightfieldRequest): Brightfield
     });
     const source = sourceFor(request.condenser, request.coherenceParameter, request.pupilSamples);
     const pupils =
-      request.pupil === "traced" ? tracedFieldPupils(system, frame) : idealPatch;
+      // A transmitted field, not an emitter (§ 2j) — on the aim layout the two are one.
+      request.pupil === "traced" ? tracedFieldPupils(system, frame, { source: "field" }) : idealPatch;
 
     const out = renderBrightfield(object, pupils, source, {
       pupilSamples: request.pupilSamples,

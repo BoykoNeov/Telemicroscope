@@ -1,9 +1,9 @@
 import { asCompiled } from "../trace/compile";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
-import { exitCoordinate, opdMap, type ExitFrame } from "../pupil/opd";
+import { opdMap } from "../pupil/opd";
 import { imagePlaneZ } from "../pupil/pupils";
-import { exitBundle, type ExitRay } from "../analysis/spot";
+import { exitBundle } from "../analysis/spot";
 import {
   Psf,
   PsfOptions,
@@ -18,6 +18,7 @@ import {
 } from "./psf";
 import { phaseStepPerSample, PHASE_STEP_LIMIT } from "./fidelity";
 import { screenTiltWaves, type PhaseScreen } from "./seeing";
+import type { PupilSource } from "./exit-density";
 
 /**
  * The geometric PSF, and the switch between it and the diffraction PSF.
@@ -75,6 +76,8 @@ export interface GeometricPsfOptions extends PsfOptions {
   readonly seeing?: PhaseScreen;
   /** The FFT branch's `PupilLayout`, so the two branches lay out one pupil. */
   readonly layout?: PupilLayout;
+  /** The FFT branch's `PupilSource`, so the two branches carry one irradiance. */
+  readonly source?: PupilSource;
 }
 
 /** Mean rays per blur-disc pixel the default ray grid aims for (≈1/CV²). */
@@ -198,73 +201,6 @@ export function rayDeflectionScaleMm(
 }
 
 /**
- * Each bundle ray's share of the exit pupil: the area its aim-grid cell covers
- * in the exit coordinate, |∂e/∂px × ∂e/∂py|, read off its grid neighbours.
- *
- * On the exit layout the FFT branch's amplitude is uniform in the exit
- * coordinate (§ 2i), so a ray
- * histogram that counted every aimed ray alike would put the light where the AIM
- * is dense — on § 6e's oil objective the outer zone of the aim is squeezed into
- * a thin rim of the exit cone, and a bare count overweights it there. Where the
- * map is linear every cell has one area, which the normalization to `energy`
- * divides out, and the histogram is the count it always was.
- *
- * Central differences where both neighbours survived, one-sided where one did; a
- * ray with neither in some direction takes the mean of those that could be read.
- */
-function exitCellAreas(
-  rays: readonly ExitRay[],
-  n: number,
-  frame: ExitFrame,
-  apertureSine: number,
-): Float64Array {
-  const index = new Int32Array(n * n).fill(-1);
-  const ex = new Float64Array(rays.length);
-  const ey = new Float64Array(rays.length);
-  const toIndex = (p: number): number => Math.round(((p + 1) * (n - 1)) / 2);
-  for (let k = 0; k < rays.length; k++) {
-    const r = rays[k]!;
-    const at = exitCoordinate(frame, r.ray);
-    // A ray past the sphere is past the image: it carries no cell of the pupil.
-    if (at === null) continue;
-    ex[k] = at[0] / apertureSine;
-    ey[k] = at[1] / apertureSine;
-    index[toIndex(r.px) * n + toIndex(r.py)] = k;
-  }
-  const at = (i: number, j: number): number =>
-    i < 0 || j < 0 || i >= n || j >= n ? -1 : index[i * n + j]!;
-  const h = n === 1 ? 1 : 2 / (n - 1);
-  // d/dpx along i, d/dpy along j: [dex, dey] or null.
-  const derivative = (i: number, j: number, di: number, dj: number): [number, number] | null => {
-    const k = at(i, j);
-    const plus = at(i + di, j + dj);
-    const minus = at(i - di, j - dj);
-    if (plus >= 0 && minus >= 0) return [(ex[plus]! - ex[minus]!) / (2 * h), (ey[plus]! - ey[minus]!) / (2 * h)];
-    if (plus >= 0) return [(ex[plus]! - ex[k]!) / h, (ey[plus]! - ey[k]!) / h];
-    if (minus >= 0) return [(ex[k]! - ex[minus]!) / h, (ey[k]! - ey[minus]!) / h];
-    return null;
-  };
-  const area = new Float64Array(rays.length).fill(NaN);
-  let sum = 0;
-  let count = 0;
-  for (let k = 0; k < rays.length; k++) {
-    const i = toIndex(rays[k]!.px);
-    const j = toIndex(rays[k]!.py);
-    if (at(i, j) !== k) continue;
-    const u = derivative(i, j, 1, 0);
-    const v = derivative(i, j, 0, 1);
-    if (u === null || v === null) continue;
-    const a = Math.abs(u[0] * v[1] - u[1] * v[0]);
-    area[k] = a;
-    sum += a;
-    count++;
-  }
-  const mean = count > 0 ? sum / count : 1;
-  for (let k = 0; k < area.length; k++) if (Number.isNaN(area[k]!)) area[k] = mean;
-  return area;
-}
-
-/**
  * PSF by ray histogram: trace a dense pupil, bin where the rays land.
  *
  * Binning is on the SAME grid the FFT branch uses — same size, same
@@ -336,12 +272,11 @@ export function geometricPsf(
 
   const bundle = exitBundle(system, fieldValue, wavelengthNm, pupilGrid(rayGrid), options.aim ?? {});
   const planeZ = imagePlaneZ(asCompiled(system.prescription), system);
-  // Uniform on the aim layout, whose pupil is uniform in the aim; the exit
-  // layout's is uniform in the exit coordinate, and the rays carry its cells.
-  const cellArea =
-    laid.apertureSine === undefined
-      ? new Float64Array(bundle.rays.length).fill(1)
-      : exitCellAreas(bundle.rays, rayGrid, map, laid.apertureSine);
+  // Uniform on the aim layout, whose pupil is uniform in the aim. On the exit
+  // layout each ray carries the source power of its aim cell (§ 2j): it lands
+  // where it lands, so the exit cell's area — the Jacobian the FFT branch's
+  // irradiance needs — never enters, and the two branches agree by two routes.
+  const density = laid.density;
 
   const obstruction = options.obstruction ?? 0;
   const ob2 = obstruction * obstruction;
@@ -379,10 +314,7 @@ export function geometricPsf(
     const ix = Math.round(half + x / pixelScaleMm);
     const iy = Math.round(half + y / pixelScaleMm);
     if (ix < 0 || ix >= size || iy < 0 || iy >= size) continue;
-    // A ray carries the light of its cell of the EXIT pupil, where the FFT
-    // branch's amplitude is uniform — not of its cell of the aim, which is what
-    // a bare count would weight it by (§ 2i).
-    const w = r.throughput * cellArea[k]!;
+    const w = density === undefined ? r.throughput : r.throughput * density.sourceWeight(r.px, r.py, r.launchDir);
     intensity[iy * size + ix] = intensity[iy * size + ix]! + w;
     binned += w;
   }

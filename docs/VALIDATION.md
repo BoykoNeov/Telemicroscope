@@ -31,6 +31,7 @@ whole ladder.
 | [2g](#step-2g--the-image-formed-in-a-medium-the-cartesian-ellipsoid) | The image-space index, exercised: a k = −1/n² surface is stigmatic to 1e-11 waves at NA 0.45, and its Airy ring in glass is 1/n the air formula's | `immersed-image` |
 | [2h](#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once) | Both indices away from 1: Δz′/Δz = (n′/n)·m₁m₂ to 1e-9, M blind to the back's glass; `systemProperties.efl` was n′/Φ, now 1/Φ | `immersed-behind-objective` |
 | [2i](#step-2i--the-pupil-laid-out-where-its-rays-went) | A traced sample sits where its ray crossed the reference sphere, not where it was aimed: oil 100× ring 0.57 → Airy, Hamilton's defocus to 0.5% (aimed: 27%); opt-in | `exit-coordinate` |
+| [2j](#step-2j--the-exit-pupils-irradiance-traced) | The exit layout's amplitude is the ray tubes' irradiance, source power over exit area: Richards–Wolf on a paraboloid, an ellipsoid's foci, emitter vs field (1/cos θ, cos θ); § 2f's vesica converges | `exit-density` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -3686,6 +3687,7 @@ branch's normalization target, so both branches see one aperture.
 | **Newtonian: on axis the diagonal loses ZERO of 17661/31413 rays** | § 4b diagonal sizing | ✅ |
 | Newtonian: throughput falls monotonically with field (0.9958 → 0.9530) | vignetting | ✅ |
 | **Newtonian: FFT mask and ray-survivor fraction agree to 1.2e-4** | cross-branch | ✅ |
+| **On the exit layout ([§ 2j](#step-2j--the-exit-pupils-irradiance-traced)): the vesica again, −7.6e-5 → 8.5e-6** | closed form | ✅ |
 
 ### The pinnable geometry is on-axis, not the cat's eye
 
@@ -3923,12 +3925,12 @@ radius, not 25%).
 | Rung | What it pins | |
 |---|---|---|
 | **§ 2i.1 — the ruler is the traced cone** | the scale's sine IS the rim's sphere crossing; r/R over it is 1.759 on the oil (1.766 on the direction), 1.0079 on the dry 4× | ✅ |
-| **§ 2i.2 — the oil ring, absolute** | aberration-free, 1.0084 then 1.0020 of 1.2197·λ/(2·NA′) at pad 16 and 32 — the finder's bias, halving with the pixel. NA′ is the independently traced rim DIRECTION: the scale's own sine would cancel against the ruler, and the two differ by 0.38% here | ✅ |
+| **§ 2i.2 — the oil ring, absolute** | ~~aberration-free, 1.0084 then 1.0020 of 1.2197·λ/(2·NA′)~~ restated at [§ 2j](#step-2j--the-exit-pupils-irradiance-traced) on the apodized pupil: 1.0037 then 0.99982 of an emitter's 1.1788·λ/(2·NA′), 0.99992 of a field's 1.2638, at pad 16 and 32 — the finder's bias, halving with the pixel. NA′ is the independently traced rim DIRECTION: the scale's own sine would cancel against the ruler, and the two differ by 0.38% here | ✅ |
 | ...NEGATIVE CONTROL: the paraxial ruler | 0.570 of it | ✅ |
 | ...the traced rim on the axis | a circle to 1e-12, whatever the mapping | ✅ |
 | **§ 2i.3 — Hamilton's defocus inside the pupil** | δ = 0.2 µm: worst miss 4.6e-3 of a 0.212-wave peak at six exit radii to 0.95 | ✅ |
 | ...NEGATIVE CONTROL: the same traces laid where they were aimed | 0.268 of the peak | ✅ |
-| **§ 2i.4 — the ray histogram shares the layout** | 20 mm behind focus, 0.2531 of the energy inside half the disc's radius, against r² = 0.25; the count alone, 0.098 | ✅ |
+| **§ 2i.4 — the ray histogram shares the layout** | 20 mm behind focus, ~~0.2531 of the energy inside half the disc's radius, against r² = 0.25~~ restated at [§ 2j](#step-2j--the-exit-pupils-irradiance-traced): 0.2063 against an emitter's 0.2055, 0.2974 against a field's 0.2970; the count alone, 0.098 | ✅ |
 | **§ 2i.5 — where the map is linear, nothing moves but its distortion** | dry 4× Strehl 0.92907 → 0.92945; the oil's 0.9087 → 0.9299 | ✅ |
 | **§ 2h.5, restated on this layout** | the two backs' rulers agree to 1.9e-5 (oil) and 7.1e-5 (dry), each its own traced rim — § 2h.4's 2e-5; the dry ring, aberration-free, 1.0062, bound tightened 1.5% → 1% | ✅ |
 
@@ -3966,14 +3968,18 @@ points and a circle to rounding on the axis. The fitted inverse is kept for the
 masks that belong to the ENTRANCE pupil — obstruction, vanes, vignetting — which
 only the telescopes carry, where the map is the identity to its distortion.
 
-**Amplitude is uniform in the exit coordinate.** It is the convention every
+~~**Amplitude is uniform in the exit coordinate.**~~ **Reversed at [§ 2j](#step-2j--the-exit-pupils-irradiance-traced)**:
+the amplitude is the ray tubes' traced irradiance, and the paragraph below is
+what this step believed. It is the convention every
 caller-built pupil already has (`idealPupil`; `depth-aberration`'s ρ = q/NA), and
 the one that leaves Airy's ring where Airy put it. A conserving resample would
 bring in the area Jacobian and, here, a strongly brightened rim — a real effect
 of a real emitter, but a different one with its own closed form: register
 item 23.
 
-**The ray branch is weighted, or the two branches disagree.** `geometricPsf` on
+**The ray branch is weighted, or the two branches disagree.** (At
+[§ 2j](#step-2j--the-exit-pupils-irradiance-traced) by the source's power per aim cell instead, which needs no
+Jacobian at all.) `geometricPsf` on
 this layout weights each ray by the exit-pupil area of its aim cell, read off its
 grid neighbours. Where the map is linear every cell has one area and the
 normalization divides it out; on the oil objective a bare count piles light into
@@ -3997,7 +4003,8 @@ depend on the field; the field's effect is in the pupil's traced shape, which a
 geometry-only seam reading does not see. The other 68 sit in the same seam and
 mosaic chain and are not yet each traced. The 50 that move only with the layout
 are not all the pupil's distortion — a vignetted closed form degrades 2.7×
-through the fitted inverse, an off-axis pupil's energy stops being flat in
+~~through the fitted inverse~~ (the inverse is exact there to 1e-15: it was the
+uniform irradiance, [§ 2j](#step-2j--the-exit-pupils-irradiance-traced)), an off-axis pupil's energy stops being flat in
 field, the contrast merit's optimum moves, and the layout costs 35% more traces
 — and register item 24 lists them.
 
@@ -4009,12 +4016,115 @@ moved with them.
 ### What it leaves
 
 - **The default** — register item 24.
-- **Apodization** — register item 23.
+- ~~**Apodization** — register item 23.~~ Closed at [§ 2j](#step-2j--the-exit-pupils-irradiance-traced).
 - **The seeing screen** is added at the exit coordinate in the FFT branch and
   read as a tilt at the aim in the ray branch; the two are one to a telescope's
   pupil distortion, which is where every screen in the ladder is used.
 - **The condenser's offset** (§ 6x) is still read off the aimer, in the aim's
   coordinate, while the condenser disc is laid with the objective's pupil.
+
+## Step 2j — the exit pupil's irradiance, traced
+
+Source: engine change — `exitDensity` and `PupilSource` on the exit layout; `geometricPsf` weights by source power
+· Tests: `packages/core/test/exit-density.test.ts`, `vignetting.test.ts` (the vesica on the exit layout), `exit-coordinate.test.ts` (§ 2i.2 and § 2i.4 restated)
+
+Register item 24 listed § 2f's vesica among the readings the exit layout moved,
+5.4e-4 against the aim layout's 7.1e-5, and blamed the fitted inverse that sends
+an exit point back to the aim. The inverse is exact on that mirror to 1e-15. The
+cause is the mirror: in the local coordinate chain the clip's 6 mm decenter
+carries the paraboloid with it, so § 2f's "on-axis" focusing element is an
+off-axis segment, and a segment maps the pupil unevenly onto the exit cone. § 2i
+kept the amplitude uniform in the exit coordinate, so the energy it counted was
+the vesica's exit-cone area — 6.2e-4 over the entrance's, measured cell by cell
+in 2D, and the error GREW with the grid (6.3e-4 at 256). Moving the mirror back on
+axis collapsed it. That is register item 23's question asked by a telescope: the
+amplitude a transform needs is the irradiance the rays deliver, not a constant.
+
+**Hypothesis.** A ray aimed at a carries its source's power per aim area S(a) and
+delivers it to the exit cell it lands in, so the exit pupil's irradiance is
+|P|² = S/|∂e/∂a|. At an infinite conjugate S is a plane wave's, uniform under the
+paraxial aim. At a finite one it is the object's: an isotropic **emitter** carries
+1/cos θ per direction-cosine area (Weyl), a thin object's transmitted **field**
+carries cos θ (a plane-wave component's flux through the object plane), which per
+aim area under the paraxial aim is |d_z|³ and |d_z|⁵. **Refuted by** any of: a
+fast paraboloid off Richards and Wolf's 2/(1 + cos θ′) by more than the lattice's
+differencing; a focus-to-focus ellipsoid off (r₂/r₁)²/cos β (×cos²α for a field);
+the transform's pupil and the ray histogram disagreeing about the oil 100×'s light
+inside half its radius by more than the histogram's pixel edge; one irradiance
+drawn two ways when the same light is aimed two ways.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2j.1 — a paraboloid, Richards and Wolf** | f/0.67, rim θ′ = 41°: 1/(cos⁴(θ′/2)·cos θ′), 1.72 at the rim, to 1.5e-5 at the lattice and 1.5e-4 through the fit | ✅ |
+| **§ 2j.2 — an ellipsoid, focus to focus** | a = 100, ε = ½: (r₂/r₁)²/cos β to 6.1e-5 for the emitter (rim 0.837) and ×cos²α for the field (rim 0.511) | ✅ |
+| **§ 2j.3 — the two branches** | oil 100×: light inside half the exit radius, Jacobian 0.20665 vs rays 0.20625 (emitter), 0.29809 vs 0.29741 (field) | ✅ |
+| **§ 2j.4 — the light's, not the aim's** | a singlet, stop 20 mm behind, 5°: real and paraxial aims land 1.3e-2 apart, the irradiance is 4.8% lopsided, and they draw it alike to 3.6e-5 | ✅ |
+| **§ 2f, on the exit layout** | the vesica −7.6e-5 → 8.5e-6 at 128 → 256, inside the aim layout's own bounds; the open mirror's energy is the aim layout's to 5.4e-5 | ✅ |
+| ...NEGATIVE CONTROL: § 2i's uniform irradiance | 5.4e-4, then 6.3e-4 | ✅ |
+| **§ 2i.2 and § 2i.4, restated** | the oil ring on an emitter's apodized pupil, 0.99982 of the quadrature's 1.1788·λ/(2·NA′) (Airy's 1.2197 is 3.5% out); inside half the disc 0.2063 vs 0.2055 (emitter), 0.2974 vs 0.2970 (field), § 2i's 0.25 refused | ✅ |
+
+The oil objective pins the two microscope sources only to its own sine-condition
+residue: e/sin α drifts 0.54% across the pupil, so its irradiance departs from an
+aplanat's 1/cos α by 2.9% at the rim, the same for both sources. That is why the
+closed forms are pinned on mirrors that are exact — and why § 2i.4's restated
+band is 5e-3, the histogram's pixel edge with that residue on top.
+
+### How it is built
+
+`exitDensity` traces a lattice of 21 across the diameter through the chain with
+every rim removed, out to two nodes past the stop's rim, and differences the exit
+coordinate at h and 2h, Richardson-combined to fourth order. At second order the
+oil's cubic map read its area 2% wrong at the centre; at fourth the paraboloid is
+right to 9e-6 at ρ = 0.7. Removing every rim makes the density the map's analytic
+continuation: a clipped system and its open twin share one, which is what lets
+the vesica divide them. Where the map is that lattice and lost nothing, its own
+samples are the in-disc nodes, and the cost is 124 traces on its 317; otherwise
+441. √|P|² is fitted over the nodes' exit coordinates at 45 terms, and multiplies
+the throughput's amplitude in `pupilFunctionFromOpd`.
+
+The ray branch needs no Jacobian: a ray lands where it lands, so `geometricPsf`
+weights each one by S at its own launch (`ExitRay.launchDir`), and § 2i's
+exit-cell areas are gone. That makes § 2j.3 a cross-check rather than a
+restatement — the two branches share the trace and nothing after it.
+
+Three choices had a plausible wrong answer.
+
+**The source is the caller's to name.** A finite conjugate's pupil depends on the
+object. An emitter brightens the oil's rim 1.75× and a field darkens it to 0.57×,
+a factor of three apart in |P|². `PupilSource` defaults to `"emitter"`, which is
+what a PSF is; the three brightfield call sites (`brightfield-spectrum`,
+`mosaic`, the app's brightfield panel) ask for `"field"`. `tracedFieldPupils`
+itself does not default either way, because the fluorescence renders call it too.
+
+**The units are the aim layout's.** S is divided by the chief ray's S, and
+nothing else, so Σ|P|² is ∫S/S₀ dA_aim — π for a plane wave, the energy the aim
+layout has always reported. Normalizing |P|² to 1 at the chief ray instead would
+carry the chief's local magnification into every energy. On the hero achromat
+the energy's drift from 0° to 2° on the exit layout falls from § 2i's 2.1e-3 to
+2.4e-4; the aim layout reads 7.7e-7, and what is left is not yet traced.
+
+**Real aiming reads S off the solved targets.** Under `rayAiming: "real"` a pupil
+coordinate is a point on the STOP, and the entrance-pupil target it solved to is
+not linear in it: S carries |∂q/∂a|, differenced on the same lattice and fitted
+for the ray branch. § 2j.4 is the rung: the irradiance is a property of the light
+and must not move when the aim is parametrized differently.
+
+### What it leaves
+
+- **Intensity is not irradiance at high image-side NA.** The Debye integrand is
+  a/cos θ′ where |a|² is power per sphere area; this layout's |P|² is power per
+  exit-coordinate area, which is the right weight for energy and leaves the
+  intensity near focus low by √cos θ′ off axis in the pupil. Every microscope in
+  the ladder images at NA′ ≤ 0.02, where that is 1e-4; § 2g's ellipsoid in glass and
+  the fast mirrors are where it would show.
+- **Relative illumination is not taken.** Each field is normalized at its own
+  chief ray, so the energy stays flat in field by convention, as on the aim
+  layout; the cos⁴-type falloff belongs to `extended`'s Jacobian (§ 5v).
+- **A Lambertian source**, cos θ per solid angle, is a third `PupilSource` the
+  engine does not offer.
+- **The default** — register item 24, which this step moves: the vignetted edge
+  is not a fitted-inverse problem, and the brightfield chain already names its
+  source.
 
 ## Step 3a — the standard observer and thermal sources
 

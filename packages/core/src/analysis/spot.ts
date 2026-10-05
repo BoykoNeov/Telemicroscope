@@ -1,3 +1,4 @@
+import { Vec3 } from "../math/vec3";
 import { Ray } from "../trace/ray";
 import { traceRay } from "../trace/sequential";
 import { asCompiled } from "../trace/compile";
@@ -30,6 +31,8 @@ import { PupilPoint, AimOptions, aimRay } from "../pupil/aiming";
 export interface ExitRay extends PupilPoint {
   readonly ray: Ray;
   readonly throughput: number;
+  /** The launch's direction in object space — what an emitter's power per ray depends on (§ 2j). */
+  readonly launchDir: Vec3;
 }
 
 export interface ExitBundle {
@@ -61,7 +64,13 @@ export function exitBundle(
       lost++;
       continue;
     }
-    rays.push({ px: p.px, py: p.py, ray: toImageSpace(c, res.ray), throughput: res.throughput });
+    rays.push({
+      px: p.px,
+      py: p.py,
+      ray: toImageSpace(c, res.ray),
+      throughput: res.throughput,
+      launchDir: input.dir,
+    });
   }
 
   return { rays, lost, pupil, wavelengthNm, fieldValue };

@@ -5,6 +5,7 @@ import { OpdMap, OpdSample, exitApertureSine, exitRim, opdMap, vignetteMask } fr
 import { MAX_ZERNIKE_TERMS, ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
 import { OpdSampling, opdSampling } from "./fidelity";
 import { withPhaseScreen, type PhaseScreen } from "./seeing";
+import { exitDensity, type ExitDensity, type PupilSource } from "./exit-density";
 
 /**
  * Point spread function — where the diffraction lives.
@@ -384,6 +385,12 @@ export function pupilFunctionFromOpd(
      * Omitted, the two coordinates are one.
      */
     aimAt?: (px: number, py: number) => readonly [number, number];
+    /**
+     * The exit pupil's irradiance as an amplitude factor — `exitDensity`
+     * (§ 2j). Multiplies the throughput's. Omitted, the pupil is uniform in its
+     * coordinate, which is right on the aim layout.
+     */
+    apodization?: (px: number, py: number) => number;
   } = {},
 ): PupilFunction {
   const obstruction = options.obstruction ?? 0;
@@ -415,6 +422,7 @@ export function pupilFunctionFromOpd(
   const support = options.support;
   const aimAt = options.aimAt;
   const masked = ob2 > 0 || spiderTest !== null || vignetteTest !== null;
+  const apodization = options.apodization;
   return {
     amplitude: (px, py) => {
       if (support === undefined && aimAt === undefined) {
@@ -433,10 +441,10 @@ export function pupilFunctionFromOpd(
           if (vignetteTest !== null && vignetteTest(ax, ay)) return 0;
         }
       }
-      if (amplitudeSampler === null) return constantAmplitude;
       // A fit can dip below zero in a corner it was never constrained in;
       // amplitude cannot.
-      return Math.max(0, amplitudeSampler(px, py));
+      const a = amplitudeSampler === null ? constantAmplitude : Math.max(0, amplitudeSampler(px, py));
+      return apodization === undefined ? a : a * apodization(px, py);
     },
     phaseWaves: phase,
   };
@@ -892,16 +900,19 @@ export interface SystemPsfOptions extends PsfOptions {
   readonly seeing?: PhaseScreen;
   /** Where the traced samples sit in the transform's pupil — see `PupilLayout`. */
   readonly layout?: PupilLayout;
+  /** What fills a finite-conjugate pupil on the exit layout — see `PupilSource`. Default `"emitter"`. */
+  readonly source?: PupilSource;
 }
 
 /**
  * Where a traced pupil's samples sit in the transform — § 2i.
  *
  * `"exit"` lays each sample where its ray WENT, at its reference-sphere
- * crossing over the traced rim's, and reads the ruler off that rim: the pupil
- * the Debye integral asks for (`exitCoordinatePupil`). `"aim"` lays it where it
- * was AIMED and reads the ruler off the paraxial exit pupil, which is the same
- * thing only where the aim maps linearly onto the exit cone.
+ * crossing over the traced rim's, reads the ruler off that rim and carries the
+ * exit pupil's traced irradiance (§ 2j): the pupil the Debye integral asks for
+ * (`exitCoordinatePupil`). `"aim"` lays it where it was AIMED, uniform there,
+ * and reads the ruler off the paraxial exit pupil, which is the same thing only
+ * where the aim maps linearly onto the exit cone.
  *
  * **The default is `"aim"`, and it is known to be wrong off that regime** —
  * 1.759× in the ruler on § 6e's oil 100×/1.25, and 0.2–1.2% on the DIN dry
@@ -928,6 +939,8 @@ export interface LaidPupil {
   readonly laidMap: OpdMap;
   /** The signed sine that normalizes `exitX/exitY` — `undefined` on the aim layout. */
   readonly apertureSine: number | undefined;
+  /** The exit pupil's traced irradiance (§ 2j) — `undefined` on the aim layout. */
+  readonly density: ExitDensity | undefined;
 }
 
 /** What `laidPupil` and `exitCoordinatePupil` take besides the system and map. */
@@ -936,6 +949,12 @@ export interface LaidPupilOptions {
   readonly obstruction?: number;
   readonly spider?: SpiderSpec;
   readonly aim?: AimOptions;
+  /**
+   * What fills a finite-conjugate pupil, on the exit layout — see `PupilSource`.
+   * Default `"emitter"`: a point-spread function is a point's. The brightfield
+   * chain images a transmitted field and asks for `"field"`.
+   */
+  readonly source?: PupilSource;
 }
 
 /**
@@ -974,6 +993,7 @@ export function laidPupil(
     },
     laidMap: map,
     apertureSine: undefined,
+    density: undefined,
   };
 }
 
@@ -994,19 +1014,19 @@ export function laidPupil(
  * 72% of the way out, and placing it at 50% bends every wavefront the transform
  * sees while the ruler, read off the paraxial pupil, is 1.766× wrong.
  *
- * **Amplitude is uniform in this coordinate** — the convention every caller-built
- * pupil (`idealPupil`, `depth-aberration`'s ρ = q/NA) already has, and the one
- * a ray histogram must share (`geometricPsf` weights by the map's Jacobian for
- * exactly that). A real emitter's apodization is a separate physical question
- * with its own closed form and is not taken here (register item 23).
+ * **The amplitude is the traced irradiance's** (`exitDensity`, § 2j): a ray
+ * tube carries its source's power from the aim to wherever it lands, so |P|² is
+ * S/|∂e/∂a|, and what fills the pupil at a finite conjugate is the caller's to
+ * say (`PupilSource`). § 2i kept it uniform in this coordinate, the convention
+ * caller-built pupils have; through § 2f's off-axis mirror segment that miscounted
+ * the vesica by 6e-4 and grew with the grid.
  *
  * The EDGE is the traced rim (`exitRim`), interpolated in angle — on the axis of
  * a symmetric system a circle to rounding, whatever the mapping. The masks that
  * belong to the entrance pupil — obstruction, vanes, vignetting — are tested
  * where a fitted inverse sends the point back to the aim; that fit is only
- * built when one of them is present. It is not exact at the edge: § 2f's
- * vesica-area pin reads 5.4e-4 through it against 2e-4 on the aim layout, which
- * is register item 24's to repair before a vignetted chain flips.
+ * built when one of them is present. On § 2f's mirror it is exact to 1e-15 — the
+ * 5.4e-4 § 2i blamed on it was the uniform irradiance (§ 2j).
  */
 export function exitCoordinatePupil(
   system: OpticalSystem,
@@ -1030,6 +1050,10 @@ export function exitCoordinatePupil(
       : undefined;
   const masked = (options.obstruction ?? 0) > 0 || options.spider !== undefined || vignette !== undefined;
   const aimAt = masked ? inverseExitMap(map.samples, exitSamples) : undefined;
+  const density = exitDensity(system, map, sigma, {
+    aim,
+    ...(options.source === undefined ? {} : { source: options.source }),
+  });
 
   const pupil = pupilFunctionFromOpd(exitMap, fit, {
     ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
@@ -1037,6 +1061,7 @@ export function exitCoordinatePupil(
     ...(vignette === undefined ? {} : { vignette }),
     support,
     ...(aimAt === undefined ? {} : { aimAt }),
+    apodization: density.amplitude,
   });
   return {
     pupil,
@@ -1052,6 +1077,7 @@ export function exitCoordinatePupil(
     },
     laidMap: exitMap,
     apertureSine: sigma,
+    density,
   };
 }
 

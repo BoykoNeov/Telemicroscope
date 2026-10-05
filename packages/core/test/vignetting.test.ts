@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { OpticalSystem } from "../src/trace/system";
 import { Prescription } from "../src/trace/prescription";
 import { LINE_D } from "../src/materials/dispersion";
-import { psf } from "../src/wave/psf";
+import { psf, psfFromPupilFunction, systemPupil, laidPupil } from "../src/wave/psf";
+import { opdMap } from "../src/pupil/opd";
 import { geometricPsf, adaptivePsf } from "../src/wave/geometric";
 import { exitBundle } from "../src/analysis/spot";
 import { pupilGrid } from "../src/pupil/aiming";
@@ -29,6 +30,13 @@ import { newtonian } from "../src/designs/newtonian";
  * vesica) whose area is a textbook closed form. That isolates the new physics
  * (a NON-centered mask) from folding and off-axis tracing, which the Newtonian
  * rung then layers back on as the physical demonstration.
+ *
+ * The mirror is NOT on axis, though this header said so until § 2j. In the
+ * local coordinate chain (ARCHITECTURE § Tilt / decenter) the clip's decenter
+ * carries every surface after it, so the paraboloid sits 6 mm off: an off-axis
+ * segment. It still focuses axis-parallel light perfectly, so the vesica is
+ * still the exact transmitted fraction — and the segment maps the pupil
+ * unevenly onto the exit cone, which is what made it § 2j's energy pin.
  */
 
 const R_STOP = 10; // stop / entrance-pupil radius, mm
@@ -68,8 +76,9 @@ function clippedMirror(clipRadius: number): OpticalSystem {
         thickness: 20,
         medium: "AIR",
       },
-      // Perfect on-axis focusing element: a paraboloid images the axial point
-      // with zero aberration, so the transmitted energy is all that is in play.
+      // A paraboloid images axis-parallel light with zero aberration, so the
+      // transmitted energy is all that is in play. Decentered with the clip, by
+      // the local chain: an off-axis segment (§ 2j).
       { kind: "reflect", curvature: 1 / MIRROR_R, conic: -1, semiAperture: 30, thickness: MIRROR_R / 2 },
     ],
   };
@@ -118,6 +127,40 @@ describe("trace-level (partial) vignetting", () => {
     // And it is resolved, not arrived at by cancellation: refining the pupil
     // grid moves the answer TOWARD the closed form (4× here).
     expect(Math.abs(f256 - EXACT)).toBeLessThan(Math.abs(f128 - EXACT));
+  });
+
+  it("§ 2j: on the exit layout too — the off-axis segment's uneven map conserves the light", () => {
+    // § 2i's exit layout kept the amplitude uniform in the exit coordinate, and
+    // through this segment that read 5.4e-4 then 6.3e-4: an error that GREW with
+    // the grid, because it was the exit-cone area of the vesica and not a
+    // discretization. § 2j's irradiance S/|∂e/∂a| puts the aim's area back.
+    const clip = clippedMirror(CLIP_A);
+    const full = clippedMirror(Infinity);
+    const g128 = { pupilSamples: 128, layout: "exit" } as const;
+    const g256 = { pupilSamples: 256, layout: "exit" } as const;
+    const f128 = psf(clip, 0, LINE_D, g128).energy / psf(full, 0, LINE_D, g128).energy;
+    const f256 = psf(clip, 0, LINE_D, g256).energy / psf(full, 0, LINE_D, g256).energy;
+    // −7.6e-5 then 8.5e-6: the aim layout's bounds, and converging as it does.
+    expect(Math.abs(f128 - EXACT)).toBeLessThan(2e-4);
+    expect(Math.abs(f256 - EXACT)).toBeLessThan(5e-5);
+    expect(Math.abs(f256 - EXACT)).toBeLessThan(Math.abs(f128 - EXACT));
+    // The open mirror's energy is the aim layout's: the units § 2j chose.
+    expect(Math.abs(psf(full, 0, LINE_D, g256).energy / psf(full, 0, LINE_D, { pupilSamples: 256 }).energy - 1)).toBeLessThan(1e-4);
+
+    // NEGATIVE CONTROL: § 2i's uniform irradiance, the traced one divided back out.
+    const uniform = (s: typeof clip) => {
+      const sp = systemPupil(s, 0, LINE_D, g128);
+      const d = laidPupil(s, opdMap(s, 0, LINE_D, pupilGrid(21)), g128).density!;
+      const pupil = {
+        amplitude: (x: number, y: number) => {
+          const a = sp.pupil.amplitude(x, y);
+          return a === 0 ? 0 : a / d.amplitude(x, y);
+        },
+        phaseWaves: sp.pupil.phaseWaves,
+      };
+      return psfFromPupilFunction(pupil, sp.scale, 0, g128).energy;
+    };
+    expect(uniform(clip) / uniform(full) - EXACT).toBeGreaterThan(5e-4);
   });
 
   it("geometric ray-survivor fraction hits the SAME closed form", () => {

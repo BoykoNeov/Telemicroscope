@@ -1,5 +1,6 @@
 import { type ZernikeFit } from "../wave/zernike";
 import { type OpdSampling } from "../wave/fidelity";
+import { type PupilSource } from "../wave/exit-density";
 import {
   imagePixelScaleMm,
   laidPupil,
@@ -284,6 +285,12 @@ export interface FieldPupilOptions {
   readonly spider?: SpiderSpec;
   /** `psf()`'s `PupilLayout`; the frame's ruler follows it. Default `"aim"`. */
   readonly layout?: PupilLayout;
+  /**
+   * What fills the pupil on the exit layout — `PupilSource` (§ 2j). Default
+   * `"emitter"`; a brightfield render images a transmitted field and asks for
+   * `"field"`.
+   */
+  readonly source?: PupilSource;
 }
 
 export interface ObjectFieldOptions extends FieldPupilOptions {

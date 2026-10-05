@@ -469,7 +469,9 @@ export function renderMosaicTile(
     ...(radialMap === undefined ? {} : { radialMap }),
   };
   const object = rasterizeSpecimen(system, frame, specimen, rasterOptions);
-  const formed = renderBrightfield(object, tracedFieldPupils(system, frame, options), source, {
+  // A brightfield specimen transmits a field: its pupil carries cos θ, not an
+  // emitter's 1/cos θ (§ 2j).
+  const formed = renderBrightfield(object, tracedFieldPupils(system, frame, { ...options, source: "field" }), source, {
     pupilSamples: options.pupilSamples,
     scale: frame.scale,
     ...(options.patches === undefined ? {} : { patches: options.patches }),
