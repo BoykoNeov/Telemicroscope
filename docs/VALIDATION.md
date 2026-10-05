@@ -33,7 +33,7 @@ whole ladder.
 | [2i](#step-2i--the-pupil-laid-out-where-its-rays-went) | A traced sample sits where its ray crossed the reference sphere, not where it was aimed: oil 100× ring 0.57 → Airy, Hamilton's defocus to 0.5% (aimed: 27%); opt-in | `exit-coordinate` |
 | [2j](#step-2j--the-exit-pupils-irradiance-traced) | The exit layout's amplitude is the ray tubes' irradiance, source power over exit area: Richards–Wolf on a paraboloid, an ellipsoid's foci, emitter vs field (1/cos θ, cos θ); § 2f's vesica converges | `exit-density` |
 | [2k](#step-2k--the-exit-layouts-cost-one-basis-per-point) | The exit layout's cost was the Zernike basis recomputed per term, not traces: hoisted and shared per point, to the bit; a 10× tile 10.7 s → 1.8 s, 1.14× the aim layout's | `exit-cost` |
-| [2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light) | The exit layout's 2.4e-4 energy drift in field is the grid counting an outline that changes shape; grid-free it is the aim layout's 7.6e-7 | `exit-field-energy` |
+| [2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light) | The exit layout's 2.4e-4 energy drift in field is the grid counting an outline that changes shape; grid-free it is the aim layout's 7.7e-7 | `exit-field-energy` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4251,7 +4251,7 @@ the drift reads **2.45e-4, 1.26e-5, −4.81e-5** at 64, 128 and 256 pupil sample
 it grew on the last step. A lattice count's error does that; it is why the
 criterion was the wrong one, and the rungs below settle it instead: two with no
 grid in them, and one showing the grid's number belongs to the edge's sub-sample
-lattice alone. The band RMS over 44 grids from 48 to 400 samples falls 3.1e-4 →
+lattice alone. The band RMS over 45 grids from 48 to 400 samples falls 3.1e-4 →
 6.2e-5 → 4.5e-5 → 2.2e-5, but that statistic was chosen after the data and is
 recorded, not asserted.
 
@@ -4291,7 +4291,10 @@ for a 720-gon by shoelace, at every field including the axis) appears on neither
 - **The aim layout's 7.7e-7 is a real field dependence** whose cause is not traced;
   § 5v.1 and `imaging/extended` called it the lattice and now say otherwise. The
   paraboloid's residual was not re-measured.
-- **The flip** — register item 24. This step flips no caller.
+- **The flip** — register item 24. This step flips no caller, and `extended` is not
+  cleared by it: § 5v.6 (a density's flux converges) and § 5v.7 (the point-source
+  limit) also move under the exit layout and are unread — the edge count may be
+  theirs too, which is not measured.
 
 ## Step 3a — the standard observer and thermal sources
 

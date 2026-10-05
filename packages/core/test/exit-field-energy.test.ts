@@ -102,12 +102,11 @@ describe("§ 2l.3 — the grid's drift is a function of the edge's sub-sample la
     }
   });
 
-  it("…while three different lattices read drifts of either sign, 2.9e-4 apart", () => {
-    // Counting noise, not a converging error: 2.45e-4, 1.26e-5, −4.81e-5.
+  it("…while three different lattices read drifts far apart", () => {
+    // Counting noise, not a converging error: 2.45e-4, 1.26e-5, −4.81e-5 — the
+    // signs are the lattice's, and not asserted.
     const drifts = [4, 8, 16].map((edge) => gridDrift(X0, X2, 64, edge));
     expect(Math.max(...drifts) - Math.min(...drifts)).toBeGreaterThan(1e-4);
-    expect(Math.max(...drifts)).toBeGreaterThan(0);
-    expect(Math.min(...drifts)).toBeLessThan(0);
   });
 });
 

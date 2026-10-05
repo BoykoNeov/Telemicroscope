@@ -1100,5 +1100,6 @@ radial-map nodes · § 6ba differential bleaching.
     and was not an edge; ~~the cost~~ went at [§ 2k](VALIDATION.md#step-2k--the-exit-layouts-cost-one-basis-per-point) and was not traces;
     ~~`extended`'s energy drift~~ went at [§ 2l](VALIDATION.md#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light)
     and was not the light (item 25 is the grid's). The first chain to flip is the
-    telescope's, and its other moved readings — the golden stars, seeing, the
-    sky, the photon zero point, the reflector and visual panels — are unread.
+    telescope's, and its other moved readings — `extended`'s § 5v.6 and § 5v.7,
+    the golden stars, seeing, the sky, the photon zero point, the reflector and
+    visual panels — are unread.
