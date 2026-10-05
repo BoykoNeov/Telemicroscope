@@ -76,6 +76,7 @@ const scaleAt = (nm: number): PupilScale => ({
   wavelengthNm: nm,
   nImage: 1,
   slopeRadius: undefined,
+  apertureSine: undefined,
 });
 
 const SIZE = 32;

@@ -1,13 +1,14 @@
-import { fitZernike, type ZernikeFit } from "../wave/zernike";
-import { opdSampling, type OpdSampling } from "../wave/fidelity";
+import { type ZernikeFit } from "../wave/zernike";
+import { type OpdSampling } from "../wave/fidelity";
 import {
   imagePixelScaleMm,
-  pupilFunctionFromOpd,
+  laidPupil,
   type PupilFunction,
+  type PupilLayout,
   type PupilScale,
   type SpiderSpec,
 } from "../wave/psf";
-import { opdMap, vignetteMask } from "../pupil/opd";
+import { exitApertureSine, opdMap } from "../pupil/opd";
 import { aimRay, pupilGrid, type AimOptions } from "../pupil/aiming";
 import { pupils } from "../pupil/pupils";
 import { isPowerOfTwo } from "../math/fft";
@@ -281,6 +282,8 @@ export interface FieldPupilOptions {
   readonly obstruction?: number;
   /** Spider vanes, passed through to the pupil. */
   readonly spider?: SpiderSpec;
+  /** `psf()`'s `PupilLayout`; the frame's ruler follows it. Default `"aim"`. */
+  readonly layout?: PupilLayout;
 }
 
 export interface ObjectFieldOptions extends FieldPupilOptions {
@@ -487,6 +490,10 @@ function buildFrame(
     wavelengthNm,
     nImage: map.pupil.exit.n,
     slopeRadius: map.pupil.exit.slopeRadius,
+    // On the exit layout, read on the axis whatever the centre, as every traced
+    // pupil's is (§ 2i): the frame and the tiles laid on it share one ruler.
+    apertureSine:
+      options.layout === "exit" ? Math.abs(exitApertureSine(system, wavelengthNm, aim)) : undefined,
   };
   const pixelScaleMm = imagePixelScaleMm(scale, size, pupilSamples);
   const halfExtentMm = (size / 2) * pixelScaleMm;
@@ -654,31 +661,20 @@ export function tracedPupil(
 ): TracedPupil {
   const aim = options.aim ?? {};
   const map = opdMap(system, fieldValue, wavelengthNm, pupilGrid(options.traceSamples ?? 21), aim);
-  const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
-  // Only when the trace already shows loss — see the header's cost cliff.
-  const vignette =
-    map.lost > 0 ? vignetteMask(system, map.pupil, fieldValue, wavelengthNm, aim) : undefined;
-  const pupil = pupilFunctionFromOpd(map, fit, {
-    ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
-    ...(options.spider === undefined ? {} : { spider: options.spider }),
-    ...(vignette === undefined ? {} : { vignette }),
-  });
+  // `psf()`'s own construction (§ 2i), so a brightfield tile and a PSF of one
+  // field point are one pupil. The vignette mask is still built only when the
+  // trace already shows loss — see the header's cost cliff.
+  const laid = laidPupil(system, map, { ...options, aim });
   return {
-    pupil,
-    sampling: opdSampling(map, fit),
-    scale: {
-      referenceRadius: map.referenceRadius,
-      exitRadius: map.pupil.exit.radius,
-      wavelengthNm,
-      nImage: map.pupil.exit.n,
-      slopeRadius: map.pupil.exit.slopeRadius,
-    },
+    pupil: laid.pupil,
+    sampling: laid.sampling,
+    scale: laid.scale,
     referenceRadius: map.referenceRadius,
     exitRadius: map.pupil.exit.radius,
     slopeRadius: map.pupil.exit.slopeRadius,
     lost: map.lost,
     rmsWaves: map.rmsWaves,
-    fit,
+    fit: laid.fit,
   };
 }
 

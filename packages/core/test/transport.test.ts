@@ -108,14 +108,15 @@ describe("§ 6f.10.1 — the bridge into this branch's units", () => {
    */
   it("is λz/(2π·Δx²) built out of a physical pupil, at every scale", () => {
     const scales: readonly PupilScale[] = [
-      { referenceRadius: 160, exitRadius: 16, wavelengthNm: 550, nImage: 1, slopeRadius: undefined },
-      { referenceRadius: 40, exitRadius: 18, wavelengthNm: 486, nImage: 1, slopeRadius: undefined },
+      { referenceRadius: 160, exitRadius: 16, wavelengthNm: 550, nImage: 1, slopeRadius: undefined, apertureSine: undefined },
+      { referenceRadius: 40, exitRadius: 18, wavelengthNm: 486, nImage: 1, slopeRadius: undefined, apertureSine: undefined },
       {
         referenceRadius: 25,
         exitRadius: 9,
         wavelengthNm: 632.8,
         nImage: 1.515,
         slopeRadius: undefined,
+        apertureSine: undefined,
       },
     ];
     for (const scale of scales) {

@@ -276,10 +276,12 @@ describe("§ 2h.5 — the Airy ring in the glass is 0.61·λ/NA′, whatever the
   const ringsBehind = (objective: InfinityCorrectedObjective) =>
     GLASSES.map((g) => {
       const s = scope(objective, g).system;
-      const p = psf(s, 0, L, { pupilSamples: 64, padFactor: 16 });
+      // On the exit layout since § 2i, whose ruler is the traced cone.
+      const p = psf(s, 0, L, { layout: "exit", pupilSamples: 64, padFactor: 16, keepDiffractionLimited: true });
       return {
         pixelScaleMm: p.pixelScaleMm,
         measuredMm: firstMinimumPixels(p) * p.pixelScaleMm,
+        flatMm: firstMinimumPixels({ ...p, intensity: p.diffractionLimitedIntensity! }) * p.pixelScaleMm,
         expectedMm: (0.61 * L * 1e-6) / imageNumericalAperture(s, L),
         sinU: imageSpaceMarginalSin(s, L),
       };
@@ -291,31 +293,34 @@ describe("§ 2h.5 — the Airy ring in the glass is 0.61·λ/NA′, whatever the
     // which knows the back's glass. A scale that forgot n′ would move by 1.068.
     const [bk7, f2] = ringsBehind(oil());
     expect(f2!.sinU / bk7!.sinU).toBeLessThan(0.94);
-    expect(Math.abs(f2!.pixelScaleMm / bk7!.pixelScaleMm - 1)).toBeLessThan(1e-12);
-    // The RULER agrees to the last bit and the RING to 9.5e-8: the two
-    // ellipsoids are stigmatic for a plane wave and the objective does not quite
-    // hand them one, so they carry its residual differently — 4e-6 of the RMS
-    // apart. Bounded at 1e-6, against the 6.8% a scale without n′ would move.
-    expect(Math.abs(f2!.measuredMm / bk7!.measuredMm - 1)).toBeLessThan(1e-6);
-    // The ring's ABSOLUTE size is not asserted here, and the reason is recorded
-    // rather than tolerated: on this objective it reads 0.566 of 0.61·λ/NA′ through
-    // ANY back, air included, because the ruler takes the paraxial pupil's n·tan θ
-    // for the slip's n·sin θ — 1.766× at 55°. That is the specimen side's index
-    // and not this step's; docs/OPEN-PROBLEMS.md carries it.
+    // The RULER is each back's traced rim (§ 2i), and the two ellipsoids are
+    // stigmatic for a plane wave the objective does not quite hand them — their
+    // traced sines differ by § 2h.4's 2e-5. So the rulers agree to that, where
+    // the paraxial one agreed to the bit; against the 6.8% a scale without n′
+    // would move, either is one ruler.
+    expect(Math.abs(f2!.pixelScaleMm / bk7!.pixelScaleMm - 1)).toBeLessThan(5e-5);
+    expect(Math.abs(f2!.measuredMm / bk7!.measuredMm - 1)).toBeLessThan(5e-5);
+    // The ring's ABSOLUTE size on this objective is § 2i.2's rung: it read 0.566
+    // of 0.61·λ/NA′ here until the ruler stopped taking the paraxial pupil's
+    // n·tan θ for the slip's n·sin θ (register item 21).
   }, 180_000);
 
   it("behind the dry 4×, the ring is 0.61·λ/NA′ in either glass, and the air formula is n′ too large", () => {
-    // § 2b's and § 2g's aperture regime, NA′ 0.025, where the paraxial pupil IS
-    // the traced cone to 1.1%.
+    // § 2b's and § 2g's aperture regime, NA′ 0.025. Read on the aberration-free
+    // ring of this traced pupil: the aberrated one sits 2.1% wide here — the
+    // objective's own 0.04 waves and the finder's bias, which the paraxial ruler's
+    // −1.1% used to half cancel into a reading of 0.988 (§ 2i).
     const rings = ringsBehind(dry());
-    for (const r of rings) expect(Math.abs(r.measuredMm / r.expectedMm - 1)).toBeLessThan(0.015);
-    // 5.6e-8 apart, for the reason the oil column gives.
-    expect(Math.abs(rings[1]!.measuredMm / rings[0]!.measuredMm - 1)).toBeLessThan(1e-6);
+    // 1.0062 in both: the finder's bias at pad 16, inside the 1.5% this rung
+    // used to need.
+    for (const r of rings) expect(Math.abs(r.flatMm / r.expectedMm - 1)).toBeLessThan(0.01);
+    // 7.1e-5 apart, for the reason the oil column gives: each back's own traced rim.
+    expect(Math.abs(rings[1]!.measuredMm / rings[0]!.measuredMm - 1)).toBeLessThan(2e-4);
     GLASSES.forEach((g, i) => {
       // NEGATIVE CONTROL: 0.61·λ/sin u′, the index left out.
       const airMm = (0.61 * L * 1e-6) / rings[i]!.sinU;
-      expect(airMm / rings[i]!.measuredMm / index(g)).toBeGreaterThan(0.985);
-      expect(airMm / rings[i]!.measuredMm / index(g)).toBeLessThan(1.015);
+      expect(airMm / rings[i]!.flatMm / index(g)).toBeGreaterThan(0.985);
+      expect(airMm / rings[i]!.flatMm / index(g)).toBeLessThan(1.015);
     });
   }, 180_000);
 });

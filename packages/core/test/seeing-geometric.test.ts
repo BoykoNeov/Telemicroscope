@@ -531,6 +531,7 @@ describe("the deflection reaches the image plane at the right scale", () => {
           wavelengthNm,
           nImage,
           slopeRadius: undefined,
+          apertureSine: undefined,
         };
         const perPixel =
           rayDeflectionScaleMm(referenceRadius, exitRadius, nImage, wavelengthNm) /

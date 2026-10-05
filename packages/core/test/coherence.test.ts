@@ -35,6 +35,7 @@ const SCALE: PupilScale = {
   wavelengthNm: 550,
   nImage: 1,
   slopeRadius: undefined,
+  apertureSine: undefined,
 };
 const NA = (SCALE.nImage * SCALE.exitRadius) / SCALE.referenceRadius; // 0.25
 

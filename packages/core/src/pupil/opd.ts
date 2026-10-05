@@ -1,7 +1,7 @@
-import { Vec3, vec3, sub, dot, length } from "../math/vec3";
+import { Vec3, vec3, sub, dot, length, add, scale } from "../math/vec3";
 import { Ray } from "../trace/ray";
 import { traceRay } from "../trace/sequential";
-import { asCompiled } from "../trace/compile";
+import { CompiledSystem, asCompiled, compile } from "../trace/compile";
 import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { PupilGeometry, pupils, imagePlaneZ } from "./pupils";
@@ -34,6 +34,16 @@ export interface OpdSample extends PupilPoint {
   readonly waves: number;
   /** Surviving energy fraction along this ray (Fresnel + coatings). */
   readonly throughput: number;
+  /**
+   * Where this ray actually lands in the pupil the TRANSFORM needs — see
+   * `exitCoordinate`: its crossing of the reference sphere less the chief ray's,
+   * over the sphere's radius. Unnormalized: a sine, not a pupil fraction.
+   * `(px, py)` is where the ray was AIMED; this is where it went, and on an
+   * aperture far from paraxial the two are not proportional (§ 2i). See
+   * `exitApertureSine` for the number that normalizes it.
+   */
+  readonly exitX: number;
+  readonly exitY: number;
 }
 
 export interface OpdMap {
@@ -45,6 +55,12 @@ export interface OpdMap {
   readonly lost: number;
   /** Chief-ray image point, in unfolded image-space coordinates. */
   readonly imagePoint: Vec3;
+  /** The chief ray's unit exit direction, in the same coordinates. */
+  readonly chiefDirection: Vec3;
+  /** Where the chief ray crosses the reference sphere. */
+  readonly chiefSpherePoint: Vec3;
+  /** The exit pupil is at infinity, and `referenceRadius` a stand-in. */
+  readonly exitAtInfinity: boolean;
   readonly referenceRadius: number;
   readonly pupil: PupilGeometry;
   /** RMS OPD in waves about its own mean (piston removed). */
@@ -107,14 +123,53 @@ function pathToSphere(
   centre: Vec3,
   radius: number,
   nImage: number,
-): { opl: number; throughput: number } | null {
+): { opl: number; throughput: number; exit: Ray } | null {
   const c = asCompiled(system.prescription);
   const res = traceRay(system.prescription, ray);
   if (res.status !== "ok" || !res.ray) return null;
   const exit = toImageSpace(c, res.ray);
   const t = intersectSphere(exit.origin, exit.dir, centre, radius);
   if (t === null) return null;
-  return { opl: res.opl + Math.abs(nImage) * t, throughput: res.throughput };
+  return { opl: res.opl + Math.abs(nImage) * t, throughput: res.throughput, exit };
+}
+
+const unit = (d: Vec3): Vec3 => {
+  const n = length(d);
+  return vec3(d.x / n, d.y / n, d.z / n);
+};
+
+/** What `exitCoordinate` needs of a map: its reference sphere and chief ray. */
+export type ExitFrame = Pick<
+  OpdMap,
+  "imagePoint" | "referenceRadius" | "chiefDirection" | "chiefSpherePoint" | "exitAtInfinity"
+>;
+
+/**
+ * A traced exit ray's coordinate in the pupil the transform needs (§ 2i): where
+ * it crosses the reference sphere, less where the chief ray does, over the
+ * sphere's radius — transverse x and y, unnormalized. `null` if it misses the
+ * sphere.
+ *
+ * The SPHERE point and not the ray's direction, which is the same number for a
+ * perfect wavefront and not for an aberrated one: a ray's direction carries its
+ * own transverse aberration over R, and on a strongly undercorrected objective
+ * (the DIN 10×/0.2 among them) the rim rays' directions fold back toward the
+ * axis while their sphere crossings march on outward. The aberration belongs in
+ * the phase, which is where the sphere point leaves it.
+ *
+ * With the exit pupil at INFINITY the radius is a stand-in (`opdMap`'s unit
+ * sphere), and the coordinate is the direction less the chief's, negated to the
+ * sphere point's sign — the sphere point's own limit as R grows.
+ */
+export function exitCoordinate(frame: ExitFrame, exit: Ray): readonly [number, number] | null {
+  const d = unit(exit.dir);
+  const cd = frame.chiefDirection;
+  if (frame.exitAtInfinity) return [-(d.x - cd.x), -(d.y - cd.y)];
+  const t = intersectSphere(exit.origin, d, frame.imagePoint, frame.referenceRadius);
+  if (t === null) return null;
+  const q = frame.chiefSpherePoint;
+  const r = frame.referenceRadius;
+  return [(exit.origin.x + d.x * t - q.x) / r, (exit.origin.y + d.y * t - q.y) / r];
 }
 
 export function opdMap(
@@ -145,6 +200,15 @@ export function opdMap(
 
   const chiefPath = pathToSphere(system, chief, imagePoint, referenceRadius, nImage);
   if (!chiefPath) throw new Error("chief ray does not reach the reference sphere");
+  const cd = unit(chiefPath.exit.dir);
+  const tc = intersectSphere(chiefPath.exit.origin, cd, imagePoint, referenceRadius)!;
+  const frame: ExitFrame = {
+    imagePoint,
+    referenceRadius,
+    chiefDirection: cd,
+    chiefSpherePoint: add(chiefPath.exit.origin, scale(cd, tc)),
+    exitAtInfinity: !Number.isFinite(pupil.exit.z),
+  };
 
   const samples: OpdSample[] = [];
   let lost = 0;
@@ -157,11 +221,14 @@ export function opdMap(
       lost++;
       continue;
     }
+    const [exitX, exitY] = exitCoordinate(frame, got.exit) ?? [NaN, NaN];
     samples.push({
       px: p.px,
       py: p.py,
       waves: (got.opl - chiefPath.opl) * mmToWaves,
       throughput: got.throughput,
+      exitX,
+      exitY,
     });
   }
 
@@ -178,6 +245,9 @@ export function opdMap(
     samples,
     lost,
     imagePoint,
+    chiefDirection: cd,
+    chiefSpherePoint: frame.chiefSpherePoint,
+    exitAtInfinity: frame.exitAtInfinity,
     referenceRadius,
     pupil,
     rmsWaves,
@@ -217,4 +287,203 @@ export function vignetteMask(
     const ray = aimRay(system, pupil, fieldValue, { px, py }, wavelengthNm, options);
     return traceRay(system.prescription, ray).status !== "ok";
   };
+}
+
+const STOP_ONLY = new WeakMap<CompiledSystem, Map<number, CompiledSystem>>();
+
+/**
+ * The chain with every rim removed BUT the stop's. The rim readers ask where the
+ * stop's own edge is, so the stop has to stay: removing it too (aiming's
+ * `unclipped`, which is right for a solve) reads an edge the stop blocks — the
+ * DIN 10×/0.2's ρ = 1 ray is stopped AT the stop, and an edge read past it put
+ * the light where none goes.
+ */
+function stopOnly(c: CompiledSystem, stopIndex: number): CompiledSystem {
+  let perStop = STOP_ONLY.get(c);
+  if (!perStop) STOP_ONLY.set(c, (perStop = new Map()));
+  let u = perStop.get(stopIndex);
+  if (!u) {
+    u = compile({
+      ...c.prescription,
+      surfaces: c.prescription.surfaces.map((s, i) =>
+        i === stopIndex ? s : { ...s, semiAperture: Infinity },
+      ),
+    });
+    perStop.set(stopIndex, u);
+  }
+  return u;
+}
+
+/**
+ * A ray's exit coordinate, traced with every rim but the stop's removed: where
+ * the aim sends it, whether or not a downstream aperture would have stopped it.
+ * Vignetting is the vignette mask's question; these readers ask only where the
+ * stop's own rim is. `null` where the stop blocks the ray or the ray does not
+ * exist at all — misses a surface or turns back.
+ */
+function unclippedExitCoordinate(
+  system: OpticalSystem,
+  frame: ExitFrame,
+  pupil: PupilGeometry,
+  fieldValue: number,
+  point: PupilPoint,
+  wavelengthNm: number,
+  options: AimOptions,
+): readonly [number, number] | null {
+  const c = asCompiled(system.prescription);
+  let res;
+  try {
+    res = traceRay(
+      stopOnly(c, pupil.stopIndex),
+      aimRay(system, pupil, fieldValue, point, wavelengthNm, options),
+    );
+  } catch {
+    // Real aiming refuses a stop point no launch reaches: the same verdict.
+    return null;
+  }
+  if (res.status !== "ok" || !res.ray) return null;
+  return exitCoordinate(frame, toImageSpace(c, res.ray));
+}
+
+/** Bisection steps for the reachable edge: 2⁻⁴⁰ of the pupil radius. */
+const EDGE_STEPS = 40;
+
+/**
+ * The farthest ray out along the direction (cx, cy) of the aim that exists —
+ * the stop's rim where it is reachable, and otherwise the edge of the light,
+ * found by bisection on the aim radius. § 6ad's telescope is the case: its stop
+ * reaches past what the lens can pass, and its pupil transmits only to ρ = 0.728
+ * on the axis, so a rim ray at ρ = 1 is not a ray at all.
+ */
+function reachableExit(
+  system: OpticalSystem,
+  frame: ExitFrame,
+  pupil: PupilGeometry,
+  fieldValue: number,
+  cx: number,
+  cy: number,
+  wavelengthNm: number,
+  options: AimOptions,
+): { readonly at: readonly [number, number]; readonly rho: number } {
+  const at = (rho: number) =>
+    unclippedExitCoordinate(
+      system,
+      frame,
+      pupil,
+      fieldValue,
+      { px: rho * cx, py: rho * cy },
+      wavelengthNm,
+      options,
+    );
+  const rim = at(1);
+  if (rim !== null) return { at: rim, rho: 1 };
+  let lo = 0;
+  let hi = 1;
+  let best = at(0);
+  if (best === null) {
+    throw new Error(`exit coordinate: the chief ray at field ${fieldValue} does not leave the system`);
+  }
+  for (let i = 0; i < EDGE_STEPS; i++) {
+    const mid = 0.5 * (lo + hi);
+    const d = at(mid);
+    if (d === null) hi = mid;
+    else {
+      lo = mid;
+      best = d;
+    }
+  }
+  return { at: best, rho: lo };
+}
+
+/**
+ * The traced image-space aperture SINE — the number that turns a ray's
+ * `exitX/exitY` into the transform's pupil coordinate (§ 2i).
+ *
+ * Read on the axis (field 0), on the rim ray aimed at (1, 0), as its
+ * `exitCoordinate` on the axial map's sphere, and signed so that ray reads +1. On the axis because the
+ * transform's ruler must be one number for every field a frame stacks (a ruler
+ * per field would put each patch on its own grid); on the rim because that is
+ * where the aperture is; signed because a beam that diverges out of the last
+ * surface would otherwise mirror the pupil, and the transform's orientation
+ * has always been the aim's.
+ *
+ * It is the paraxial exit pupil's r/R wherever the pupil maps linearly onto the
+ * exit cone, and it is NOT that number on an aperture where it does not: on
+ * § 6e's oil 100×/1.25 the aim is uniform in tan θ and the cone in sin θ, and
+ * r/R reads 1.766× too wide (item 21 of the register).
+ *
+ * Where the rim ray does not exist (§ 6ad), the sine is the secant through the
+ * farthest one that does, e(ρ*)/ρ*: the edge of the light then lands at ρ* in
+ * the transform, where the aim layout put it.
+ */
+const APERTURE_SINE = new WeakMap<CompiledSystem, Map<string, number>>();
+
+export function exitApertureSine(
+  system: OpticalSystem,
+  wavelengthNm: number,
+  options: AimOptions = {},
+): number {
+  // A property of the system, the wavelength and the aim — not of the field —
+  // and every pupil of a frame asks for it, so it is read once per key.
+  const c = asCompiled(system.prescription);
+  const conj = system.conjugate;
+  const key = `${wavelengthNm}|${conj.kind}|${conj.kind === "finite" ? conj.distance : ""}|${system.rayAiming ?? ""}|${options.launchZ ?? ""}`;
+  let perSystem = APERTURE_SINE.get(c);
+  if (!perSystem) APERTURE_SINE.set(c, (perSystem = new Map()));
+  const known = perSystem.get(key);
+  if (known !== undefined) return known;
+  const s = readApertureSine(system, wavelengthNm, options);
+  perSystem.set(key, s);
+  return s;
+}
+
+function readApertureSine(system: OpticalSystem, wavelengthNm: number, options: AimOptions): number {
+  // The axial map's own sphere: the chief ray and nothing else.
+  const axial = opdMap(system, 0, wavelengthNm, [], options);
+  // Where the rim is not a ray, the farthest one that is, read as a secant:
+  // the light's edge then sits at its own aim radius, as it always did.
+  const rim = reachableExit(system, axial, axial.pupil, 0, 1, 0, wavelengthNm, options);
+  const s = rim.at[0] / rim.rho;
+  if (!(Math.abs(s) > 0)) {
+    throw new Error("exit coordinate: the axial rim ray leaves parallel to the chief ray — no aperture");
+  }
+  return s;
+}
+
+/** Rays around the stop's rim `exitRim` traces. Linear in angle between them. */
+export const RIM_RAYS = 32;
+
+/**
+ * The stop's rim as the transform sees it: `RIM_RAYS` rays aimed at the unit
+ * circle at this field, each turned into `exitX/exitY` against `map`'s chief ray.
+ *
+ * The aperture's edge, traced rather than assumed. A pupil that maps linearly
+ * onto the exit cone keeps a circular rim; one that does not still keeps a
+ * closed curve around the chief ray, and on the axis of a symmetric system it is
+ * a circle again whatever the mapping — so the edge never depends on how well a
+ * fit can invert the map, which on the oil objective is only to 3e-3 (§ 2i).
+ */
+export function exitRim(
+  system: OpticalSystem,
+  map: OpdMap,
+  options: AimOptions = {},
+): readonly PupilPoint[] {
+  const out: PupilPoint[] = [];
+  for (let k = 0; k < RIM_RAYS; k++) {
+    const a = (2 * Math.PI * k) / RIM_RAYS;
+    // Off axis a rim ray can fail to exist where the axial one does; the edge of
+    // the light along that azimuth is then the farthest ray that does.
+    const [x, y] = reachableExit(
+      system,
+      map,
+      map.pupil,
+      map.fieldValue,
+      Math.cos(a),
+      Math.sin(a),
+      map.wavelengthNm,
+      options,
+    ).at;
+    out.push({ px: x, py: y });
+  }
+  return out;
 }

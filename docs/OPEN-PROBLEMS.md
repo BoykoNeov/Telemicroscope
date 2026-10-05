@@ -515,7 +515,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     the wall — the panel reports the corrected cells rather than changing what
     the guard means. Neither has a reading that needs more yet.
 
-21. **The PSF's ruler on a high-NA objective is the paraxial pupil's.** Found at
+21. ~~**The PSF's ruler on a high-NA objective is the paraxial pupil's.** Found at
     § 2h. `imagePixelScaleMm` takes the aperture as the paraxial exit pupil's
     r/R, and on § 6e's oil 100×/1.25 that is the paraxial object NA over |M| —
     n·tan θ where the slip carries n·sin θ — so the scale's NA′ is 0.02188 against
@@ -530,13 +530,48 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     and the app's builder can hand one to an image panel; whether each actually
     takes this ruler is for the fixing step to measure. Close to E's "the aim is paraxial"
     (§ 6u, § 6ak, § 6ay) but not the same: that is where a ray lands in the pupil,
-    and this is what one pupil unit is worth in the image.
+    and this is what one pupil unit is worth in the image.~~
+
+    ✅ **CLOSED at [§ 2i](VALIDATION.md#step-2i--the-pupil-laid-out-where-its-rays-went), as an opt-in.** The
+    framing was too narrow: the ruler was the visible half of a LAYOUT error. Every
+    traced sample sat where it was aimed, and the transform needs it where it went
+    — a ray aimed half-way out on this objective leaves 72% of the way out — so a
+    ruler fixed alone would have drawn the aberration-free ring right by
+    construction and left every defocused oil PSF bent. The `"exit"` layout places
+    each sample at its reference-sphere crossing over the traced rim's, takes the
+    edge from the traced rim and weights the ray branch to match; the ring reads
+    1.006 of Airy at pad 32 (0.57 before), and a defocus lands on Hamilton's
+    n·δ·(1 − cos θ) to 0.5% where the aim layout missed by 27%. The pin held, and
+    was not enough by itself, which is why § 2i.3 exists. **What it leaves:** the
+    default (item 24), apodization (item 23), and the seeing screen and the
+    condenser offset still read at the aim (§ 2i).
 22. **Image irradiance in a medium.** Found at § 2h. `extendedSourceIlluminance`
     returns π·sin²u′; with the source in index n and the image in n′ the radiance
     that is conserved is L/n², so E′ carries (n′/n)² on top. Its docstring says
     "in air" and every caller is a telescope, so nothing is wrong today. *Candidate
     pin:* the flux through the § 2h fixture, πL·sin²u·dA in the object against
     E′·dA′ in the glass.
+23. **An emitter's apodization through an aplanat.** Found at § 2i. The exit layout's
+    pupil is uniform in amplitude, the convention every caller-built pupil has. A
+    point that radiates equal power per solid angle does not arrive that way: the
+    sine condition hands it to the exit pupil as irradiance ∝ 1/cos θ, θ in the
+    specimen — 1.75× at the rim of the oil 1.25's cone. *Candidate pin:* the
+    encircled energy of a 1/√cos θ-apodized pupil, which has a closed-form
+    quadrature, against the transform of the same pupil; the ray branch must take
+    the same weights. Unblocks an absolute high-NA fluorescence PSF and its Strehl.
+24. **The default pupil layout is known to be wrong off the paraxial regime.** Found
+    at § 2i. `PupilLayout` defaults to `"aim"`, whose ruler is the paraxial exit
+    pupil's: 1.759× off on the oil 100×, and 0.2–1.2% off on the DIN dry
+    objectives (4×/0.10 1.0075, 10×/0.2 0.9882, 20×/0.18 1.0074). Switched on as
+    the default the exit layout moves **467 readings in 70 files**, and 417 of
+    them move with the ruler alone — almost all the § 6bk → § 6cq mosaic and seam
+    chain, the telecentric scene and `aperture-and-field`. **69 of them go to NaN
+    or ∞:** the one traced is § 6bo's registration cost, whose field-scanned seam
+    shift was the per-tile ruler's drift and is exactly 0 on an axial ruler; the
+    other 68 are in the same chain and untraced. So flipping the default is not a
+    restatement: the seam chain's field-scan term has to be re-derived from the
+    pupil's traced shape first. *Route:* one numbered step per chain, each flipping
+    its own callers to `"exit"` and restating what moved, the seam chain last.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -999,6 +1034,10 @@ radial-map nodes · § 6ba differential bleaching.
 19. ~~**Part A's item 11** — an immersed image plane behind an objective.~~ ✅ —
     landed at [§ 2h](VALIDATION.md#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once):
     the two-index laws hold, and the EFL did not — it was the focal distance. Then
-    **item 21**, the oil objective's PSF ruler, which has its pin named and may
-    move oil PSF readings — how many is the fixing step's to count; item 22 waits
+    ~~**item 21**, the oil objective's PSF ruler~~ — closed at
+    [§ 2i](VALIDATION.md#step-2i--the-pupil-laid-out-where-its-rays-went) as the opt-in exit layout; item 22 waits
     for a caller.
+
+20. **Part A's item 24** — flip the default layout, one chain at a time. The
+    counts are in the entry; the seam chain's field-scan term goes last, because
+    it vanishes rather than moves.

@@ -30,6 +30,7 @@ whole ladder.
 | [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
 | [2g](#step-2g--the-image-formed-in-a-medium-the-cartesian-ellipsoid) | The image-space index, exercised: a k = −1/n² surface is stigmatic to 1e-11 waves at NA 0.45, and its Airy ring in glass is 1/n the air formula's | `immersed-image` |
 | [2h](#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once) | Both indices away from 1: Δz′/Δz = (n′/n)·m₁m₂ to 1e-9, M blind to the back's glass; `systemProperties.efl` was n′/Φ, now 1/Φ | `immersed-behind-objective` |
+| [2i](#step-2i--the-pupil-laid-out-where-its-rays-went) | A traced sample sits where its ray crossed the reference sphere, not where it was aimed: oil 100× ring 0.57 → Airy, Hamilton's defocus to 0.5% (aimed: 27%); opt-in | `exit-coordinate` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -3889,6 +3890,125 @@ dry column, as § 2b and § 2g stand theirs at NA 0.1, and the oil objective's r
 is a register item rather than a tolerance. So is image irradiance:
 `extendedSourceIlluminance` returns π·sin²u′, and an image in glass carries
 (n′/n)² on top — its docstring already says "in air", so it is not wrong today.
+
+## Step 2i — the pupil laid out where its rays went
+
+Source: engine change — `PupilLayout` `"exit"` (`exitCoordinatePupil`, `exitCoordinate`, `PupilScale.apertureSine`), opt-in
+· Tests: `packages/core/test/exit-coordinate.test.ts`
+
+Register item 21 named a wrong RULER on § 6e's oil 100×/1.25: the pixel scale
+read the paraxial exit pupil's r/R, n·tan θ where the cone carries n·sin θ,
+1.766× too wide. Measuring it showed the ruler was the visible half. The
+transform that makes a PSF is the Debye integral, a sum over the exit pupil, and
+the engine laid every traced sample where it was AIMED. This objective's stop is
+a plane face, so the aim is uniform in tan θ while an aplanat hands sin θ to the
+image: a ray aimed half-way out leaves 72% of the way out (0.7155). A ruler fixed
+alone would have drawn the aberration-free ring right *by construction* and left
+every defocused or aberrated oil PSF bent inside. So the fix is the layout, and
+the ruler falls out of it.
+
+**Hypothesis.** Each traced sample, placed at its own reference-sphere crossing
+over the radius relative to the chief ray's, normalized by the traced rim's, with
+the edge read off the traced rim and the amplitude uniform in that coordinate, is
+the pupil the Debye integral asks for. **Refuted by** any of: the aberration-free
+ring away from Airy's 1.2197·λ/(2·NA′) by more than the ring finder's own bias
+(the old ruler: 0.57); a defocus inside the pupil away from Hamilton's
+n·δ·(1 − cos θ) at each ray's own exit coordinate by more than the fits'
+residuals (the aim layout: 27% of the peak); a ray histogram of an image-side
+defocus that is not a uniform disc (an unweighted count: 9.8% inside half the
+radius, not 25%).
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2i.1 — the ruler is the traced cone** | the scale's sine IS the rim's sphere crossing; r/R over it is 1.759 on the oil (1.766 on the direction), 1.0079 on the dry 4× | ✅ |
+| **§ 2i.2 — the oil ring, absolute** | aberration-free, 1.0122 then 1.0058 of 1.2197·λ/(2·NA′) at pad 16 and 32 — the finder's bias, halving with the pixel | ✅ |
+| ...NEGATIVE CONTROL: the paraxial ruler | 0.572 of it | ✅ |
+| ...the traced rim on the axis | a circle to 1e-12, whatever the mapping | ✅ |
+| **§ 2i.3 — Hamilton's defocus inside the pupil** | δ = 0.2 µm: worst miss 4.6e-3 of a 0.212-wave peak at six exit radii to 0.95 | ✅ |
+| ...NEGATIVE CONTROL: the same traces laid where they were aimed | 0.268 of the peak | ✅ |
+| **§ 2i.4 — the ray histogram shares the layout** | 20 mm behind focus, 0.2531 of the energy inside half the disc's radius, against r² = 0.25; the count alone, 0.098 | ✅ |
+| **§ 2i.5 — where the map is linear, nothing moves but its distortion** | dry 4× Strehl 0.92907 → 0.92945; the oil's 0.9087 → 0.9299 | ✅ |
+| **§ 2h.5, restated on this layout** | the two backs' rulers agree to 1.9e-5 (oil) and 7.1e-5 (dry), each its own traced rim — § 2h.4's 2e-5; the dry ring, aberration-free, 1.0062, bound tightened 1.5% → 1% | ✅ |
+
+### How it is built
+
+`opdMap` records, per sample, where the ray went: `exitX/exitY`, its crossing of
+the reference sphere less the chief ray's, over the radius (`exitCoordinate`).
+The sphere point and not the ray's direction: the two are one number for a
+perfect wavefront, and on an aberrated one the direction carries the ray's own
+transverse aberration — the first version used it, and on the DIN 10×/0.2, whose
+rim rays are strongly undercorrected, the directions folded back toward the axis
+and read the ruler 2× wrong. The aberration belongs in the phase. With the exit
+pupil at infinity the coordinate is the direction, the sphere point's limit.
+
+`exitApertureSine` reads the normalizing number on the AXIS, from the rim ray
+aimed at (1, 0), signed so that ray reads +1 and memoized per system, λ and aim:
+on the axis so every field a frame stacks shares one ruler. Where the rim ray is
+not a ray — § 6ad's telescope transmits only to ρ = 0.728 — it is the secant
+through the farthest one that is, found by bisection, so the light's edge lands
+where the aim layout put it. Both readers trace with every rim removed BUT the
+stop's: the first version removed the stop too and read an edge the stop blocks.
+
+`exitCoordinatePupil` lays the map out: samples at (exitX, exitY)/σ, the phase
+fitted there, the edge the traced rim (`exitRim`, 32 rays interpolated in
+angle), and `imagePixelScaleMm` reads σ through λ·N/(2·n′·size·σ) whenever a
+scale carries it. `laidPupil` is the one entry `systemPupil`, `geometricPsf` and
+`tracedPupil` share, in either layout.
+
+Three choices had a plausible wrong answer.
+
+**The edge is traced, not inverted.** A Zernike fit of the aim coordinate over the
+exit one is good only to 1.0e-2 at 28 terms and 2.6e-3 at 45 on the oil, and an
+edge at that error is a ring at that error. The traced rim is exact at its 32
+points and a circle to rounding on the axis. The fitted inverse is kept for the
+masks that belong to the ENTRANCE pupil — obstruction, vanes, vignetting — which
+only the telescopes carry, where the map is the identity to its distortion.
+
+**Amplitude is uniform in the exit coordinate.** It is the convention every
+caller-built pupil already has (`idealPupil`; `depth-aberration`'s ρ = q/NA), and
+the one that leaves Airy's ring where Airy put it. A conserving resample would
+bring in the area Jacobian and, here, a strongly brightened rim — a real effect
+of a real emitter, but a different one with its own closed form: register
+item 23.
+
+**The ray branch is weighted, or the two branches disagree.** `geometricPsf` on
+this layout weights each ray by the exit-pupil area of its aim cell, read off its
+grid neighbours. Where the map is linear every cell has one area and the
+normalization divides it out; on the oil objective a bare count piles light into
+the rim, where the aim's outer zone is squeezed.
+
+### Why it is opt-in, and what the default costs
+
+The layout is right on every traced pupil and wrong to switch on everywhere in
+one commit. The ruler error is not the oil's alone: on the DIN dry objectives the
+mosaic chain is built on, r/R and the traced cone differ by 0.2–1.4%, and
+switched on as the default it moved 467 pinned readings in 70
+files — every one of them a number recorded on the old ruler. Read with
+the ruler alone switched (the aim layout on the traced sine), 417 of the 467
+move and 2 more do; only 50 need the layout as well. So the blast radius is the
+ruler's, and 69 of those readings go to NaN or ∞. The one traced through is
+§ 6bo's registration cost, scan/field: its field-scanned seam shift is exactly 0
+(2.3e-6 mm before), because that shift WAS the per-tile ruler's drift with the
+field's own reference radius, and the traced ruler is read once on the axis —
+correctly, since the image-plane scale per unit of exit direction does not
+depend on the field; the field's effect is in the pupil's traced shape, which a
+geometry-only seam reading does not see. The other 68 sit in the same seam and
+mosaic chain and are not yet each traced.
+
+So `PupilLayout` defaults to `"aim"`, which is known to be wrong off the
+paraxial regime, and register item 24 carries the flip chain by chain. The
+oil's absolute ring and its interior are pinned here on `"exit"`, and § 2h.5
+moved with them.
+
+### What it leaves
+
+- **The default** — register item 24.
+- **Apodization** — register item 23.
+- **The seeing screen** is added at the exit coordinate in the FFT branch and
+  read as a tilt at the aim in the ray branch; the two are one to a telescope's
+  pupil distortion, which is where every screen in the ladder is used.
+- **The condenser's offset** (§ 6x) is still read off the aimer, in the aim's
+  coordinate, while the condenser disc is laid with the objective's pupil.
 
 ## Step 3a — the standard observer and thermal sources
 

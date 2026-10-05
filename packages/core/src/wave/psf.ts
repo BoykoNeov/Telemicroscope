@@ -1,8 +1,8 @@
 import { fft2d, fftShift2d, isPowerOfTwo } from "../math/fft";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, pupilGrid } from "../pupil/aiming";
-import { OpdMap, OpdSample, opdMap, vignetteMask } from "../pupil/opd";
-import { ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
+import { OpdMap, OpdSample, exitApertureSine, exitRim, opdMap, vignetteMask } from "../pupil/opd";
+import { MAX_ZERNIKE_TERMS, ZernikeFit, fitZernike, wavefrontSampler } from "./zernike";
 import { OpdSampling, opdSampling } from "./fidelity";
 import { withPhaseScreen, type PhaseScreen } from "./seeing";
 
@@ -179,6 +179,18 @@ export interface PupilScale {
    * refuses the fourth quadrant rather than answering through it.
    */
   readonly slopeRadius: number | undefined;
+  /**
+   * The TRACED image-space aperture sine (`exitApertureSine`, unsigned) — set
+   * when the pupil this scale belongs to is laid out in the exit coordinate, as
+   * every traced pupil is since § 2i; `undefined` for a pupil a caller laid out
+   * itself, whose ruler is the r/R it was handed.
+   *
+   * When set it IS the ruler and the radii are not read: the transform's pupil
+   * coordinate is the direction sine over this number, so one pupil unit is
+   * worth exactly this much sine and nothing about where the paraxial exit pupil
+   * sits enters. REQUIRED KEY, OPTIONAL VALUE, for `slopeRadius`'s reason.
+   */
+  readonly apertureSine: number | undefined;
 }
 
 /**
@@ -220,9 +232,23 @@ export interface PupilScale {
  * `psf.ts`'s old guard and § 6aj.5's are the same discipline — the silent zero
  * is the failure, and a throw is the repair for anyone who reaches here without
  * the slope.
+ *
+ * ## The traced aperture, and why it outranks both radii (§ 2i)
+ *
+ * A traced pupil is laid out by where its rays GO — each sample at its exit
+ * direction sine over the traced rim's — so the ruler is the cancelled form with
+ * that sine in it, Δx = λ·N / (2·n′·size·σ). Both radii above are paraxial: they
+ * agree with σ only where the aim's coordinate maps linearly onto the exit cone,
+ * and § 6e's oil objective is where it does not — r/R reads n·tan θ where the
+ * cone carries n·sin θ, 1.766× too wide.
  */
 export function imagePixelScaleMm(scale: PupilScale, size: number, pupilSamples: number): number {
   const lambdaMm = scale.wavelengthNm * 1e-6;
+  if (scale.apertureSine !== undefined) {
+    return Math.abs(
+      (lambdaMm * pupilSamples) / (2 * Math.abs(scale.nImage) * size * scale.apertureSine),
+    );
+  }
   if (!Number.isFinite(scale.exitRadius)) {
     if (scale.slopeRadius === undefined) {
       throw new Error(
@@ -345,6 +371,19 @@ export function pupilFunctionFromOpd(
      * branch, so both branches see one aperture (`vignetteMask`, § 2f).
      */
     vignette?: (px: number, py: number) => boolean;
+    /**
+     * The aperture's edge, when the map is laid out in a coordinate the stop is
+     * not a unit disc in — `exitCoordinatePupil`'s traced rim (§ 2i). Omitted, the
+     * edge is the unit circle, as it always was.
+     */
+    support?: (px: number, py: number) => boolean;
+    /**
+     * From the map's coordinate back to the AIM's, for the three masks that are
+     * properties of the entrance pupil rather than of the exit cone: the
+     * obstruction, the vanes and the vignette re-trace all name aim coordinates.
+     * Omitted, the two coordinates are one.
+     */
+    aimAt?: (px: number, py: number) => readonly [number, number];
   } = {},
 ): PupilFunction {
   const obstruction = options.obstruction ?? 0;
@@ -373,14 +412,27 @@ export function pupilFunctionFromOpd(
   const amplitudeSampler = amplitudeFit === null ? null : wavefrontSampler(amplitudeFit);
 
   const ob2 = obstruction * obstruction;
+  const support = options.support;
+  const aimAt = options.aimAt;
+  const masked = ob2 > 0 || spiderTest !== null || vignetteTest !== null;
   return {
     amplitude: (px, py) => {
-      const r2 = px * px + py * py;
-      if (r2 > 1 || r2 < ob2) return 0;
-      if (spiderTest !== null && spiderTest(px, py)) return 0;
-      // Last, and only inside the disc: the vignette test re-traces a ray, so
-      // the cheap analytic rejections above run first.
-      if (vignetteTest !== null && vignetteTest(px, py)) return 0;
+      if (support === undefined && aimAt === undefined) {
+        const r2 = px * px + py * py;
+        if (r2 > 1 || r2 < ob2) return 0;
+        if (spiderTest !== null && spiderTest(px, py)) return 0;
+        // Last, and only inside the disc: the vignette test re-traces a ray, so
+        // the cheap analytic rejections above run first.
+        if (vignetteTest !== null && vignetteTest(px, py)) return 0;
+      } else {
+        if (support === undefined ? px * px + py * py > 1 : !support(px, py)) return 0;
+        if (masked) {
+          const [ax, ay] = aimAt === undefined ? [px, py] : aimAt(px, py);
+          if (ax * ax + ay * ay < ob2) return 0;
+          if (spiderTest !== null && spiderTest(ax, ay)) return 0;
+          if (vignetteTest !== null && vignetteTest(ax, ay)) return 0;
+        }
+      }
       if (amplitudeSampler === null) return constantAmplitude;
       // A fit can dip below zero in a corner it was never constrained in;
       // amplitude cannot.
@@ -838,6 +890,229 @@ export interface SystemPsfOptions extends PsfOptions {
    * the fidelity criterion runs on the screen-blind traced samples.
    */
   readonly seeing?: PhaseScreen;
+  /** Where the traced samples sit in the transform's pupil — see `PupilLayout`. */
+  readonly layout?: PupilLayout;
+}
+
+/**
+ * Where a traced pupil's samples sit in the transform — § 2i.
+ *
+ * `"exit"` lays each sample where its ray WENT, at its reference-sphere
+ * crossing over the traced rim's, and reads the ruler off that rim: the pupil
+ * the Debye integral asks for (`exitCoordinatePupil`). `"aim"` lays it where it
+ * was AIMED and reads the ruler off the paraxial exit pupil, which is the same
+ * thing only where the aim maps linearly onto the exit cone.
+ *
+ * **The default is `"aim"`, and it is known to be wrong off that regime** —
+ * 1.759× in the ruler on § 6e's oil 100×/1.25, and 0.2–1.2% on the DIN dry
+ * objectives the mosaic chain is built on (register item 24). It stays the
+ * default for one reason: every reading pinned on a traced microscope pupil
+ * moves with it, and the chains are flipped one numbered step at a time rather
+ * than restated in one commit. A caller that needs a high-NA pupil right asks
+ * for `"exit"`.
+ */
+export type PupilLayout = "aim" | "exit";
+
+/**
+ * A traced pupil laid out for the transform — the one definition `systemPupil`,
+ * `geometricPsf` and `tracedPupil` share, in either `PupilLayout`.
+ */
+export interface LaidPupil {
+  readonly pupil: PupilFunction;
+  /** The phase's Zernike fit, in the layout's coordinate. */
+  readonly fit: ZernikeFit;
+  /** The fidelity signal, read on the samples where they sit. */
+  readonly sampling: OpdSampling;
+  readonly scale: PupilScale;
+  /** `map` with each sample at its layout coordinate; `waves` untouched. */
+  readonly laidMap: OpdMap;
+  /** The signed sine that normalizes `exitX/exitY` — `undefined` on the aim layout. */
+  readonly apertureSine: number | undefined;
+}
+
+/** What `laidPupil` and `exitCoordinatePupil` take besides the system and map. */
+export interface LaidPupilOptions {
+  readonly zernikeTerms?: number;
+  readonly obstruction?: number;
+  readonly spider?: SpiderSpec;
+  readonly aim?: AimOptions;
+}
+
+/**
+ * Lay a traced map out for the transform, in the layout asked for (default
+ * `"aim"` — see `PupilLayout` for why, and what it costs).
+ */
+export function laidPupil(
+  system: OpticalSystem,
+  map: OpdMap,
+  options: LaidPupilOptions & { readonly layout?: PupilLayout } = {},
+): LaidPupil {
+  if (options.layout === "exit") return exitCoordinatePupil(system, map, options);
+  const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
+  // Only build the mask when the trace already shows loss: an unvignetted
+  // system never pays for the per-point re-trace (§ 2f).
+  const vignette =
+    map.lost > 0
+      ? vignetteMask(system, map.pupil, map.fieldValue, map.wavelengthNm, options.aim ?? {})
+      : undefined;
+  const pupil = pupilFunctionFromOpd(map, fit, {
+    ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
+    ...(options.spider === undefined ? {} : { spider: options.spider }),
+    ...(vignette === undefined ? {} : { vignette }),
+  });
+  return {
+    pupil,
+    fit,
+    sampling: opdSampling(map, fit),
+    scale: {
+      referenceRadius: map.referenceRadius,
+      exitRadius: map.pupil.exit.radius,
+      wavelengthNm: map.wavelengthNm,
+      nImage: map.pupil.exit.n,
+      slopeRadius: map.pupil.exit.slopeRadius,
+      apertureSine: undefined,
+    },
+    laidMap: map,
+    apertureSine: undefined,
+  };
+}
+
+/**
+ * Lay a traced map out in the coordinate the transform needs (§ 2i).
+ *
+ * The aim decides which rays exist; it does not decide where they belong in the
+ * pupil. The transform is a sum over image-space DIRECTION — the Debye integral
+ * the FFT discretizes — so a sample belongs at its reference-sphere crossing
+ * over the radius (the direction sine for a perfect wavefront, and the one of
+ * the two that does not fold with the aberration), relative to the chief ray,
+ * over the traced rim's (`exitCoordinate`). Wherever the aim maps linearly onto
+ * the exit cone that is the aim's own coordinate to the pupil's distortion, and
+ * nothing a telescope shows moves by more than that. On § 6e's oil objective the
+ * aim is uniform in tan θ and the cone in sin θ: a ray aimed half-way out leaves
+ * 72% of the way out, and placing it at 50% bends every wavefront the transform
+ * sees while the ruler, read off the paraxial pupil, is 1.766× wrong.
+ *
+ * **Amplitude is uniform in this coordinate** — the convention every caller-built
+ * pupil (`idealPupil`, `depth-aberration`'s ρ = q/NA) already has, and the one
+ * a ray histogram must share (`geometricPsf` weights by the map's Jacobian for
+ * exactly that). A real emitter's apodization is a separate physical question
+ * with its own closed form and is not taken here (register item 23).
+ *
+ * The EDGE is the traced rim (`exitRim`), interpolated in angle — on the axis of
+ * a symmetric system a circle to rounding, whatever the mapping. The masks that
+ * belong to the entrance pupil — obstruction, vanes, vignetting — are tested
+ * where a fitted inverse sends the point back to the aim; that fit is only
+ * built when one of them is present, and on the telescopes that carry them the
+ * map is the identity to its distortion.
+ */
+export function exitCoordinatePupil(
+  system: OpticalSystem,
+  map: OpdMap,
+  options: LaidPupilOptions = {},
+): LaidPupil {
+  const aim = options.aim ?? {};
+  const sigma = exitApertureSine(system, map.wavelengthNm, aim);
+  const exitSamples: OpdSample[] = map.samples.map((s) => ({
+    ...s,
+    px: s.exitX / sigma,
+    py: s.exitY / sigma,
+  }));
+  const exitMap: OpdMap = { ...map, samples: exitSamples };
+  const fit = fitZernike(exitSamples, options.zernikeTerms ?? 28);
+  const support = rimSupport(exitRim(system, map, aim), sigma);
+
+  const vignette =
+    map.lost > 0
+      ? vignetteMask(system, map.pupil, map.fieldValue, map.wavelengthNm, aim)
+      : undefined;
+  const masked = (options.obstruction ?? 0) > 0 || options.spider !== undefined || vignette !== undefined;
+  const aimAt = masked ? inverseExitMap(map.samples, exitSamples) : undefined;
+
+  const pupil = pupilFunctionFromOpd(exitMap, fit, {
+    ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
+    ...(options.spider === undefined ? {} : { spider: options.spider }),
+    ...(vignette === undefined ? {} : { vignette }),
+    support,
+    ...(aimAt === undefined ? {} : { aimAt }),
+  });
+  return {
+    pupil,
+    fit,
+    sampling: opdSampling(exitMap, fit),
+    scale: {
+      referenceRadius: map.referenceRadius,
+      exitRadius: map.pupil.exit.radius,
+      wavelengthNm: map.wavelengthNm,
+      nImage: map.pupil.exit.n,
+      slopeRadius: map.pupil.exit.slopeRadius,
+      apertureSine: Math.abs(sigma),
+    },
+    laidMap: exitMap,
+    apertureSine: sigma,
+  };
+}
+
+/**
+ * Inside the traced rim? The rim is a closed curve around the chief ray (the
+ * origin), sampled at `RIM_RAYS` angles; its radius is interpolated linearly in
+ * angle, which is exact for a circle and good to the curve's own curvature
+ * otherwise.
+ */
+function rimSupport(
+  rim: readonly { readonly px: number; readonly py: number }[],
+  sigma: number,
+): (px: number, py: number) => boolean {
+  const pts = rim
+    .map((p) => {
+      const x = p.px / sigma;
+      const y = p.py / sigma;
+      return { a: Math.atan2(y, x), r: Math.hypot(x, y) };
+    })
+    .sort((u, v) => u.a - v.a);
+  const n = pts.length;
+  const angles = Float64Array.from(pts, (p) => p.a);
+  const radii = Float64Array.from(pts, (p) => p.r);
+  return (px, py) => {
+    const r = Math.hypot(px, py);
+    if (r === 0) return true;
+    const a = Math.atan2(py, px);
+    // First rim angle above a; the one before it (wrapping) brackets it.
+    let lo = 0;
+    let hi = n;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (angles[mid]! <= a) lo = mid + 1;
+      else hi = mid;
+    }
+    const j = lo % n;
+    const i = (lo - 1 + n) % n;
+    let span = angles[j]! - angles[i]!;
+    let at = a - angles[i]!;
+    if (span <= 0) span += 2 * Math.PI;
+    if (at < 0) at += 2 * Math.PI;
+    const edge = radii[i]! + ((radii[j]! - radii[i]!) * at) / span;
+    return r <= edge;
+  };
+}
+
+/**
+ * The exit coordinate back to the aim's, as a Zernike fit of each aim component
+ * over the samples — for the entrance-pupil masks only. Fitted at the most terms
+ * the sample count supports, up to `MAX_ZERNIKE_TERMS`.
+ */
+function inverseExitMap(
+  aimSamples: readonly OpdSample[],
+  exitSamples: readonly OpdSample[],
+): (px: number, py: number) => readonly [number, number] {
+  const inside = exitSamples.filter((s) => s.px * s.px + s.py * s.py <= 1 + 1e-9).length;
+  const terms = [MAX_ZERNIKE_TERMS, 28, 15, 10, 6, 3].find((t) => inside >= 2 * t) ?? 1;
+  const fx = wavefrontSampler(
+    fitZernike(exitSamples.map((s, i) => ({ px: s.px, py: s.py, waves: aimSamples[i]!.px })), terms),
+  );
+  const fy = wavefrontSampler(
+    fitZernike(exitSamples.map((s, i) => ({ px: s.px, py: s.py, waves: aimSamples[i]!.py })), terms),
+  );
+  return (px, py) => [fx(px, py), fy(px, py)];
 }
 
 /** Trace, fit, transform — the whole pipeline for one field and wavelength. */
@@ -885,30 +1160,16 @@ export function systemPupil(
     pupilGrid(options.traceSamples ?? 21),
     options.aim ?? {},
   );
-  const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
-  // Only build the mask when the trace already shows loss: an unvignetted
-  // system never pays for the per-point re-trace (§ 2f).
-  const vignette =
-    map.lost > 0
-      ? vignetteMask(system, map.pupil, fieldValue, wavelengthNm, options.aim ?? {})
-      : undefined;
-  const pupil = pupilFunctionFromOpd(map, fit, {
-    ...(options.obstruction === undefined ? {} : { obstruction: options.obstruction }),
-    ...(options.spider === undefined ? {} : { spider: options.spider }),
-    ...(vignette === undefined ? {} : { vignette }),
-  });
+  const laid = laidPupil(system, map, options);
   return {
-    pupil,
-    scale: {
-      referenceRadius: map.referenceRadius,
-      exitRadius: map.pupil.exit.radius,
-      wavelengthNm,
-      nImage: map.pupil.exit.n,
-      slopeRadius: map.pupil.exit.slopeRadius,
-    },
+    pupil: laid.pupil,
+    scale: laid.scale,
     // Measured on the RAW traced samples, which is the only place the criterion
-    // means anything — see wave/fidelity.
-    sampling: opdSampling(map, fit),
+    // means anything — see wave/fidelity — at the coordinate the layout put them
+    // at, so a gradient is per unit of the pupil the transform actually grids.
+    sampling: laid.sampling,
+    // In the AIM's coordinate: the optimiser keys survivors on where a ray was
+    // asked to go, which is the set's identity and not its layout.
     samples: map.samples,
   };
 }

@@ -480,7 +480,7 @@ describe("§ 6aj.6 — the nine readers, measured", () => {
     // whose silent answer this whole thread is about. The R = 1 vs R = 1e6 pair
     // is kept because it still carries the finding — the refusal does not read
     // R either, which is the same statement that the sphere was never the cause.
-    const base = { wavelengthNm: LINE_D, nImage: 1, slopeRadius: undefined };
+    const base = { wavelengthNm: LINE_D, nImage: 1, slopeRadius: undefined, apertureSine: undefined };
     const noSlope = /no slope aperture/;
     expect(() => imagePixelScaleMm({ ...base, referenceRadius: 1, exitRadius: Infinity }, 64, 16)).toThrow(noSlope);
     expect(() => imagePixelScaleMm({ ...base, referenceRadius: 1e6, exitRadius: Infinity }, 64, 16)).toThrow(noSlope);
@@ -620,7 +620,7 @@ describe("§ 6ak.1 — the pixel scale reads the slope, and it is the closed for
     const noSlope = /no slope aperture/;
     expect(() =>
       imagePixelScaleMm(
-        { referenceRadius: 1, exitRadius: Infinity, wavelengthNm: LINE_D, nImage: 1, slopeRadius: undefined },
+        { referenceRadius: 1, exitRadius: Infinity, wavelengthNm: LINE_D, nImage: 1, slopeRadius: undefined, apertureSine: undefined },
         64,
         16,
       ),
@@ -629,7 +629,7 @@ describe("§ 6ak.1 — the pixel scale reads the slope, and it is the closed for
     // missing quantity and not about the infinity.
     expect(
       imagePixelScaleMm(
-        { referenceRadius: 1, exitRadius: Infinity, wavelengthNm: LINE_D, nImage: 1, slopeRadius: TEL_SLOPE },
+        { referenceRadius: 1, exitRadius: Infinity, wavelengthNm: LINE_D, nImage: 1, slopeRadius: TEL_SLOPE, apertureSine: undefined },
         64,
         16,
       ),
@@ -836,7 +836,7 @@ describe("§ 6ak.4 — the refusal that had nothing to redirect to now has the s
     expect(() =>
       psfFromPupilFunction(
         flat,
-        { referenceRadius: Infinity, exitRadius: 5, wavelengthNm: LINE_D, nImage: 1, slopeRadius: undefined },
+        { referenceRadius: Infinity, exitRadius: 5, wavelengthNm: LINE_D, nImage: 1, slopeRadius: undefined, apertureSine: undefined },
         0,
         { pupilSamples: 16 },
       ),
