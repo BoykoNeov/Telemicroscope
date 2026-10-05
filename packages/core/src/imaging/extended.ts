@@ -48,7 +48,10 @@ import { imagePointOf, type ImagePlaneScene } from "./scene";
  * transmitted pupil energy every branch normalizes to — is flat in field to
  * 8e-7 at 2° on the hero achromat, where cos θ would be 6.1e-4, and the small
  * residual that is there does not even have a cosine's shape (linear in θ on
- * the paraboloid, quadratic on the doublet: the pupil lattice, not obliquity).
+ * the paraboloid, quadratic on the doublet: not obliquity). This said the
+ * residual was the pupil lattice; on the doublet § 2l measured it the same on
+ * every grid and with none, so it is not, and what it is has not been traced.
+ * The paraboloid's was not re-measured.
  * The engine's pupil is a *normalized* grid, so its area is field-independent
  * by construction.
  *

@@ -592,7 +592,11 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     where the vesica converges to 8.5e-6; `extended`'s pupil energy stops being flat in field
     (~~2.1e-3 — the off-axis rim's foreshortening, which is physics until shown
     otherwise and changes brightness across a frame~~ 2.4e-4 since § 2j, whose units
-    are the aim layout's; the aim layout reads 7.7e-7 and the rest is untraced); § 1.8.14's contrast merit
+    are the aim layout's; the aim layout reads 7.7e-7 ~~and the rest is untraced~~ — **traced at
+[§ 2l](VALIDATION.md#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light)**:
+with no grid the light is as flat as the aim layout's, and the 2.4e-4 is the grid's
+edge cells counting an outline that changes shape with field; § 5v.1 now reads it
+grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's contrast merit
     moves up to 7× and the optimiser lands elsewhere; brightfield and tile
     readings move 5–13% (`illumination`, `object-field`, `condenser-source`);
     ~~and the exit layout costs 35% more traces (`mtf-share`: 272 against 202),
@@ -607,6 +611,22 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     not 1/cos θ. *Route:* one numbered step
     per chain, each flipping its own callers to `"exit"` and restating what moved,
     ~~the vignetted edge and~~ ~~the cost~~ (both closed) first, the seam chain last.
+25. **The pupil grid counts an aperture's outline, and on the exit layout the count
+    moves with field.** Found at [§ 2l](VALIDATION.md#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light).
+    `pupilSampling` refines each edge cell on a sub-sample lattice, so
+    `psf().energy` is the outline's lattice count — off by ~1e-4 at 64 samples on
+    either layout. The aim layout draws one circle at every field and repeats the
+    error; the exit layout's outline changes shape with field, so its error does
+    not repeat: a few 1e-4 across 2° at 64 samples, a few 1e-5 at 256, of either
+    sign. The light itself is flat to 1e-7 (§ 2l.1). **What reads it across
+    fields:** `reflector`'s vignetting sweep (bounded at 2%, so not today) and any
+    frame normalized per field; the camera's throughput (`plane.energy` over
+    `clearApertureEnergy`) is absolute, and off axis on the exit layout its
+    denominator is no longer the same region. *Candidate:* each edge cell's
+    covered area computed from the outline itself rather than counted, which
+    needs the support to expose its curve, not only an inside test — an engine
+    change with its own rung set. No reading needs it yet. Not measured on a
+    vignetted pupil, whose mask is a second outline.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1077,5 +1097,8 @@ radial-map nodes · § 6ba differential bleaching.
 20. **Part A's item 24** — flip the default layout, one chain at a time. The
     counts are in the entry; the seam chain's field-scan term goes last, because
     it vanishes rather than moves. ~~The vignetted edge~~ went at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced)
-    and was not an edge; ~~the cost~~ went at [§ 2k](VALIDATION.md#step-2k--the-exit-layouts-cost-one-basis-per-point) and was not traces. The
-    first chain to flip is next.
+    and was not an edge; ~~the cost~~ went at [§ 2k](VALIDATION.md#step-2k--the-exit-layouts-cost-one-basis-per-point) and was not traces;
+    ~~`extended`'s energy drift~~ went at [§ 2l](VALIDATION.md#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light)
+    and was not the light (item 25 is the grid's). The first chain to flip is the
+    telescope's, and its other moved readings — the golden stars, seeing, the
+    sky, the photon zero point, the reflector and visual panels — are unread.

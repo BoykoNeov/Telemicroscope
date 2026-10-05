@@ -33,6 +33,7 @@ whole ladder.
 | [2i](#step-2i--the-pupil-laid-out-where-its-rays-went) | A traced sample sits where its ray crossed the reference sphere, not where it was aimed: oil 100× ring 0.57 → Airy, Hamilton's defocus to 0.5% (aimed: 27%); opt-in | `exit-coordinate` |
 | [2j](#step-2j--the-exit-pupils-irradiance-traced) | The exit layout's amplitude is the ray tubes' irradiance, source power over exit area: Richards–Wolf on a paraboloid, an ellipsoid's foci, emitter vs field (1/cos θ, cos θ); § 2f's vesica converges | `exit-density` |
 | [2k](#step-2k--the-exit-layouts-cost-one-basis-per-point) | The exit layout's cost was the Zernike basis recomputed per term, not traces: hoisted and shared per point, to the bit; a 10× tile 10.7 s → 1.8 s, 1.14× the aim layout's | `exit-cost` |
+| [2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light) | The exit layout's 2.4e-4 energy drift in field is the grid counting an outline that changes shape; grid-free it is the aim layout's 7.6e-7 | `exit-field-energy` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4112,7 +4113,8 @@ nothing else, so Σ|P|² is ∫S/S₀ dA_aim — π for a plane wave, the energy
 layout has always reported. Normalizing |P|² to 1 at the chief ray instead would
 carry the chief's local magnification into every energy. On the hero achromat
 the energy's drift from 0° to 2° on the exit layout falls from § 2i's 2.1e-3 to
-2.4e-4; the aim layout reads 7.7e-7, and what is left is not yet traced.
+2.4e-4; the aim layout reads 7.7e-7, and ~~what is left is not yet traced~~ what is
+left is the grid's edge count, traced at [§ 2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light).
 
 **Real aiming reads S off the solved targets.** Under `rayAiming: "real"` a pupil
 coordinate is a point on the STOP, and the entrance-pupil target it solved to is
@@ -4128,10 +4130,13 @@ and must not move when the aim is parametrized differently.
   intensity near focus low by √cos θ′ off axis in the pupil. Every microscope in
   the ladder images at NA′ ≤ 0.02, where that is 1e-4; § 2g's ellipsoid in glass and
   the fast mirrors are where it would show.
-- **The energy is not yet flat in field.** For a plane wave it should be the
+- ~~**The energy is not yet flat in field.** For a plane wave it should be the
   aim disc's π at every field; on the hero achromat it drifts 2.4e-4 from 0° to
   2°, where the aim layout reads 7.7e-7 and § 5v.1 asserts below 1e-6 — measured,
-  not traced, and item 24's to close before `extended` flips. An off-axis
+  not traced, and item 24's to close before `extended` flips.~~ Traced at
+  [§ 2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light):
+  the light is flat, and the drift is the grid's edge count of an outline that
+  changes with field. The grid's number still carries it (register item 25). An off-axis
   emitter's energy is ∫S/S₀ over its own aim disc and is not field-flat even in
   principle. Relative illumination, the cos⁴-type falloff, stays `extended`'s
   Jacobian (§ 5v).
@@ -4222,6 +4227,71 @@ and it ran before § 2j's irradiance existed.
   each it would not be, and it is not yet broken down by stage.
 - **The flip itself** — register item 24, chain by chain, with the cost no
   longer a reason to wait.
+
+## Step 2l — the exit layout's energy across the field: the edge's count, not the light
+
+Source: measurement only — no engine change
+· Tests: `packages/core/test/exit-field-energy.test.ts`, `extended.test.ts` (§ 5v.1 on the exit layout), `test/support/exitEnergy.ts`
+
+§ 2j left one thing standing between `extended` and the exit layout: on its hero
+achromat the transmitted energy `psf().energy` drifts 2.4e-4 from 0° to 2°, where
+the aim layout reads 7.7e-7 and § 5v.1 asserts below 1e-6. Measured, not traced.
+In the units § 2j chose the plane wave's energy is ∫S/S₀·dA_aim over a disc
+that is the same at every field, so a drift is either a wrong irradiance, a wrong
+outline, or the grid.
+
+**Hypothesis.** It is the grid: the pupil grid's edge cells count an outline that
+changes shape with field (the exit support is 2.4e-3 smaller at 2°), and the aim
+layout draws the same unit circle at every field, so its count error repeats and
+cancels. **Refuted by** the drift not shrinking as the grid refines, or a grid-free
+total at 2° missing the aim layout's by more than 1e-5.
+
+The first refutation half did not come out clean. At the default edge refinement
+the drift reads **2.45e-4, 1.26e-5, −4.81e-5** at 64, 128 and 256 pupil samples —
+it grew on the last step. A lattice count's error does that; it is why the
+criterion was the wrong one, and the rungs below settle it instead: two with no
+grid in them, and one showing the grid's number belongs to the edge's sub-sample
+lattice alone. The band RMS over 44 grids from 48 to 400 samples falls 3.1e-4 →
+6.2e-5 → 4.5e-5 → 2.2e-5, but that statistic was chosen after the data and is
+recorded, not asserted.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2l.1 — the brightness map is the light** | carried back onto the aim disc, ∫\|P(e(a))\|²·\|∂e/∂a\| dA_aim is the aim layout's ∫\|P\|² to 1.8e-8 (0°) and 2.8e-8 (2°); the rule converged, 24×128 against 48×256 nodes 3.8e-14 apart | ✅ |
+| **§ 2l.2 — the outline is the aim circle's image** | the 32-ray rim, joined linearly in angle, against 720 rays the same way: 3e-15, 1.9e-10, 1.1e-8 at 0°, 1°, 2°; the area is π on the axis and 0.99762·π at 2° | ✅ |
+| **§ 2l.3 — the grid's drift is the edge lattice's** | 64 samples × 4 edge sub-samples and 128 × 2 (and × 8 / × 4, × 16 / × 8) read one drift to ≤ 3.5e-10, while three lattices at 64 read 2.45e-4, 1.26e-5, −4.81e-5 | ✅ |
+| **§ 2l.4 — the aim layout's 7.7e-7 is not the lattice** | −7.7231e-7 to −7.7053e-7 on 64/128/256 samples at 1, 4 and 16 edge sub-samples, −7.7228e-7 with no grid | ✅ |
+| **§ 5v.1, on the exit layout** | with no grid, −7.62e-7 against the aim layout's −7.72e-7: under the same 1e-6, 800× under the cosine | ✅ |
+| ...NEGATIVE CONTROL: the grid's number | `psf().energy` on the exit layout at § 5v.1's grid: 2.45e-4, past 1e-6 | ✅ |
+
+### How it is read
+
+`exactPupilEnergy` integrates a laid pupil's |P|² with no FFT grid by changing
+variables onto the aim disc: each node of a Gauss–Legendre rule in the radius,
+uniform in angle and strictly inside the rim, is traced to its exit coordinate,
+and |∂e/∂a| is centrally differenced at 1e-4. On the aim layout e is the
+identity. The nodes stay off the rim on purpose: the first lattice version had
+Pythagorean points exactly at ρ = 1, where the support's ≤ is decided by
+rounding, and read −3.2e-4 for that alone.
+
+Two layouts agreeing grid-free leaves one gap: the grid sums inside the 32-ray
+support, and § 2l.1 integrates over the traced image of the aim circle. § 2l.2
+closes it by building both outlines the same way, so a polygon's own bias (1.27e-5
+for a 720-gon by shoelace, at every field including the axis) appears on neither.
+
+### What it leaves
+
+- **The grid's number still wobbles.** `psf().energy` on the exit layout carries
+  edge-count noise of a few 1e-4 across the field at 64 samples and a few 1e-5 at
+  256, of either sign. What reads it across fields today tolerates far more
+  (`reflector`'s vignetting sweep, 2%), and the camera's throughput is absolute —
+  register item 25.
+- **The vignetted path is not measured.** The achromat loses no ray at 2°, so
+  neither the vignette mask nor the inverse map ran.
+- **The aim layout's 7.7e-7 is a real field dependence** whose cause is not traced;
+  § 5v.1 and `imaging/extended` called it the lattice and now say otherwise. The
+  paraboloid's residual was not re-measured.
+- **The flip** — register item 24. This step flips no caller.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -7538,8 +7608,11 @@ So it was measured. `psf().energy` — the transmitted pupil energy that § 2b, 
 and § 2f all normalize to — is **flat in field to 8e-7 at 2°** on the hero
 achromat, where cos θ would be 6.1e-4. Three orders apart, and the residual that
 is there is not even a cosine's shape: **linear in θ** on the paraboloid
-(2.33 / 3.50 / 4.66 e-4 at 0.5 / 1 / 2°), quadratic on the doublet. That is the
-pupil lattice's own quantization. The engine's pupil is a *normalized* grid, so
+(2.33 / 3.50 / 4.66 e-4 at 0.5 / 1 / 2°), quadratic on the doublet. ~~That is the
+pupil lattice's own quantization.~~ On the doublet it is not
+([§ 2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light)):
+it reads the same on every grid and with none, and what it is has not been
+traced; the paraboloid's was not re-measured. The engine's pupil is a *normalized* grid, so
 its area is field-independent by construction and the obliquity cosine is
 **definitively absent**.
 

@@ -14,6 +14,7 @@ import {
   uniformDisc,
 } from "../src/imaging/extended";
 import { heroPair, heroSystem, PSF_OPTIONS } from "./support/heroScene";
+import { exactPupilEnergy } from "./support/exitEnergy";
 import { bestFocus, withFocus } from "../src/analysis/focus";
 
 /**
@@ -88,8 +89,9 @@ describe("5v.1 — the fourth cosine is not in the engine, so it is not applied 
     //
     // It does not: the engine's pupil is a NORMALIZED grid, so its area is
     // field-independent by construction. What little field dependence the
-    // energy has is the pupil lattice's own quantization, and it is three
-    // orders under the cosine and not even the same shape.
+    // energy has is three orders under the cosine — and on this doublet it is
+    // NOT the pupil lattice's quantization, as this said until § 2l: it reads
+    // the same on every grid and with none. What it is has not been traced.
     const p0 = psf(achromat, 0, 550, PSF_OPTIONS);
     const p2 = psf(achromat, 2, 550, PSF_OPTIONS);
     const measured = Math.abs(p2.energy / p0.energy - 1);
@@ -99,6 +101,26 @@ describe("5v.1 — the fourth cosine is not in the engine, so it is not applied 
     expect(cosine).toBeGreaterThan(6e-4);
     // Three orders apart. The obliquity is absent, not merely small.
     expect(cosine / measured).toBeGreaterThan(500);
+  });
+
+  it("§ 2l: on the exit layout the light is as flat — read with no grid, because the grid's number is not", () => {
+    // The exit layout's outline changes shape with field (2.4e-3 smaller at
+    // 2°), so `psf().energy`'s edge cells count a different region at each field
+    // and their count error no longer repeats; the aim layout's does, and
+    // cancels. Integrated with no grid the exit pupil is as flat as the aim
+    // pupil: −7.62e-7 against −7.72e-7, the same bound, the same cosine margin.
+    const exact = exactPupilEnergy(achromat, 2, 550, "exit") / exactPupilEnergy(achromat, 0, 550, "exit") - 1;
+    const aim = exactPupilEnergy(achromat, 2, 550, "aim") / exactPupilEnergy(achromat, 0, 550, "aim") - 1;
+    const cosine = 1 - Math.cos((2 * Math.PI) / 180);
+    expect(Math.abs(exact)).toBeLessThan(1e-6);
+    expect(Math.abs(exact - aim)).toBeLessThan(5e-8);
+    expect(cosine / Math.abs(exact)).toBeGreaterThan(500);
+
+    // NEGATIVE CONTROL: the grid's own number on the exit layout, at this file's
+    // grid, cannot pin it — it is the edge lattice's counting noise (§ 2l.3).
+    const exit = { ...PSF_OPTIONS, layout: "exit" } as const;
+    const grid = psf(achromat, 2, 550, exit).energy / psf(achromat, 0, 550, exit).energy - 1;
+    expect(Math.abs(grid)).toBeGreaterThan(1e-6);
   });
 
   it("and it is absent from the point-source rasterizer identically, so it cancels", () => {
