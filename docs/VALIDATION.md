@@ -29,6 +29,7 @@ whole ladder.
 | [2e](#step-2e--polychromatic-stacking) | Stacking on a common *physical* grid, not bin-for-bin | `polychromatic` |
 | [2f](#step-2f--trace-level-partial-vignetting) | Partial vignetting from the trace, on-axis pinnable geometry | `vignetting` |
 | [2g](#step-2g--the-image-formed-in-a-medium-the-cartesian-ellipsoid) | The image-space index, exercised: a k = −1/n² surface is stigmatic to 1e-11 waves at NA 0.45, and its Airy ring in glass is 1/n the air formula's | `immersed-image` |
+| [2h](#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once) | Both indices away from 1: Δz′/Δz = (n′/n)·m₁m₂ to 1e-9, M blind to the back's glass; `systemProperties.efl` was n′/Φ, now 1/Φ | `immersed-behind-objective` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -3813,10 +3814,78 @@ rather than a weakness: the pupil is a disc in both, so the transform is the
 same array, and the whole content of this step is the **scale** it is drawn at.
 Dispersion is not in it — the ellipse is stigmatic at the wavelength its
 eccentricity was cut for and merely a conic at any other — so the step is
-monochromatic at the d line by construction, not by choice. What it does not
+monochromatic at the d line by construction, not by choice. ~~What it does not
 reach is an immersed image plane *behind an objective*, where the index would
 enter twice (§ 6e's front, and a back the ladder still has no design for); that
-is a design, and it is listed in `docs/OPEN-PROBLEMS.md`.
+is a design, and it is listed in `docs/OPEN-PROBLEMS.md`.~~ **Closed at
+[§ 2h](#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once)**:
+this surface, cut as a tube lens, behind § 6e's objective.
+
+## Step 2h — the image in glass behind an objective: both indices at once
+
+Source: engine change — `systemProperties.efl` is 1/Φ, and `cartesianTubeLens`
+· Tests: `packages/core/test/immersed-behind-objective.test.ts`
+
+§ 2g formed an image inside glass from an object in air, and § 6e put the
+specimen in a medium in front of a tube lens that images in air. Each had one
+index away from 1, so no law with **n′/n** in it had ever been asked of the
+engine. This step composes them: § 6e's oil 100×/1.25 (specimen in the D 263
+slip, n = 1.5233) and § 6a's dry 4×/0.10 as the n = 1 column, each in front of
+§ 2g's k = −1/n′² surface cut as a 200 mm tube lens into N-BK7 (1.5168) or F2
+(1.6200). F2 is there because oil, slip and N-BK7 are all "1.515 glass": n′/n
+behind the oil objective in N-BK7 is 0.996, too close to 1 to tell a law from its
+index-free form.
+
+**Hypothesis.** Object-space readings take the object medium's index and
+image-space readings the exit medium's, independently, so every two-index law
+holds without anyone having written it. **Refuted by** any of: a longitudinal
+magnification of M² or (n/n′)·M² instead of (n′/n)·M² (6.3% and 13% apart on the
+oil/F2 cell); a magnification that moves with the back's glass; a sine residual
+near n′ − 1 (62%) instead of the objective's own 0.9%; a ring that moves with n′
+at a fixed NA′.
+
+The laws are derived in the test header rather than cited: the EFL from
+n′·u′ = −y·Φ; M = −F_tube/F_obj from Lagrange with both indices cancelling;
+Δz′/Δz = (n′/n)·m₁·m₂ from Newton with f = n·F and f′ = n′·F, exact for a
+finite step; DOF′/DOF = (n′/n)·M² from DOF = n·λ/NA² on each side.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2h.1 — the back's EFL is 1/Φ = 200 mm, its focus n′·200 behind it** | to 1e-12 in both glasses; behind both objectives the composed image lands at n′·F and `pupils().exit.n` is n′ | ✅ |
+| ...NEGATIVE CONTROL: −y/u′, the old `efl`, is the focal distance — 303.36 and 324.01 | n′ times the EFL | ✅ |
+| **§ 2h.2 — M = −F_tube/F_obj, blind to the back's glass** | paraxial, to 1e-12 on both objectives; the real chief ray reads −99.999991 in N-BK7 and F2, 6e-10 apart | ✅ |
+| **§ 2h.3 — Δz′/Δz = (n′/n)·m₁·m₂** | all four cells to 1e-9 (3e-13 measured); the dry column is n′·M² | ✅ |
+| ...NEGATIVE CONTROLS on oil/F2: M² is 6.3% off, (n/n′)·M² 13% | the index-free form, and the form `emitter-volume.ts` once wrote | ✅ |
+| **§ 2h.4 — the sine condition with an index at each end** | residual 0.9165% through air, 0.9173% N-BK7, 0.9192% F2 — the rear group's, as § 6e.4 | ✅ |
+| ...NEGATIVE CONTROL: n′ left out, the residual is 63.5% | n′·(1 + 0.0092) − 1 | ✅ |
+| **§ 2h.5 — one ruler in either glass** | behind the oil 100×, `pixelScaleMm` equal to 1e-15 and the ring to 9.5e-8, while sin u′ differs by 0.936 | ✅ |
+| ...and the ring IS 0.61·λ/NA′ behind the dry 4× | 0.988 in both glasses; the air formula is n′ too large, to 1.5% | ✅ |
+| **§ 2h.6 — a defocus in depths of focus is one number on both sides** | to 1e-6, the sine residual and m₁m₂/M² carried; the image side at the default n = 1 is off by n′ = 1.620 | ✅ |
+
+### What the hypothesis found: the EFL was the focal distance
+
+`systemProperties` returned −y/u′ as the EFL, the image-side focal **distance**
+n′/Φ. In air the two are one number and every system it had been asked about
+images in air, so no rung could see it. Behind the Cartesian back f_tube/f_obj
+would have claimed a 152× and a 162× for an objective the trace measures at 100.
+The fix reads the reduced slope, −y/(|n′|·u′); |n′| keeps the mirror sign
+convention, and in air the product is u′ to the bit, so no reading moves. The two
+callers that turn the EFL into something else — an f-number aperture in
+`resolveStopRadius` and `plateScale`'s pitch/EFL — wanted 1/Φ all along.
+
+### What it did not find, and where that went
+
+§ 2h.5 was written first as an **absolute** ring on the oil column, and it read
+0.566 of 0.61·λ/NA′ — through the doublet tube lens in air as much as through
+either glass. So it is not this step's: the pixel scale's NA′ is the paraxial
+pupil's, and on this objective that is the paraxial object NA over |M|, n·tan θ
+where the slip carries n·sin θ: 0.02188 against the traced 0.01239, **1.766×**.
+The dry 4× is 1.1% off the same way, which is § 2b's "paraxial identification"
+at the aperture it was made for. The ring's absolute rung therefore stands on the
+dry column, as § 2b and § 2g stand theirs at NA 0.1, and the oil objective's ruler
+is a register item rather than a tolerance. So is image irradiance:
+`extendedSourceIlluminance` returns π·sin²u′, and an image in glass carries
+(n′/n)² on top — its docstring already says "in air", so it is not wrong today.
 
 ## Step 3a — the standard observer and thermal sources
 

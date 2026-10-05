@@ -181,8 +181,11 @@ quadrature of the stack's constant term — built once at the focus depth, so th
 stack keeps its flux and its linearity — takes most of it out; the picture uses
 it. **§ 6j.6 closed Part A's item 12**: read without resampling, an
 aberration-free band raises the centre for any band, and the energy inside a
-radius changes sign at v* = 2.1659. What is left in the register is Part A's
-item 11.
+radius changes sign at v* = 2.1659. ~~What is left in the register is Part A's
+item 11.~~ **§ 2h closed item 11**: behind an objective, with an index at both
+ends, the two-index laws hold and the EFL did not — `systemProperties` returned
+the focal distance n′/Φ. It opened items 21 and 22; 21, the oil objective's PSF
+ruler (1.766× on its aperture), is the next one with a pin named.
 
 ## Build order
 
@@ -724,7 +727,8 @@ item 11.
    stays unpinned only because no system in the ladder has one.~~ **It has one
    now — § 2g**, the Cartesian ellipsoid, a single k = −1/n² surface whose image
    sits in glass by construction; the wiring is pinned to the Airy ring in the
-   medium, 1/n the size the air formula gives.
+   medium, 1/n the size the air formula gives. **§ 2h puts it behind an
+   objective**, so the index enters at both ends.
    *Prerequisite:* **module composition** ✅ — landed as § 5l with the eyepiece
    library; this step consumes it unchanged. Design in ARCHITECTURE § Data model.
    *Architecture + the first objective:* ✅ `designs/microscope` (§ 6a). The chain

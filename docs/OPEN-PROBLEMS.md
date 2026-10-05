@@ -249,9 +249,19 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     defocus half only — the paraboloid default's profile turns over inside the rim,
     so its maximiser is interior and `mountConeEdge` refuses it rather than
     approximating. The app half is **item 19**.
-11. **An immersed image plane behind an objective.** Opened by § 2g, which
+11. ~~**An immersed image plane behind an objective.** Opened by § 2g, which
     pinned the index on a single surface; a design where it enters twice
-    (§ 6e's front and a back) does not exist on the ladder.
+    (§ 6e's front and a back) does not exist on the ladder.~~
+
+    ✅ **CLOSED at [§ 2h](VALIDATION.md#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once)**,
+    with § 2g's ellipsoid cut as a tube lens behind § 6e's oil objective and
+    § 6a's dry one, in N-BK7 and in F2. The external numbers were the two-index
+    laws themselves, derived in the test: the longitudinal magnification
+    (n′/n)·m₁·m₂, holding to 3e-13 where M² and (n/n′)·M² are 6.3% and 13% off; a
+    magnification blind to the back's glass; the sine condition with an index at
+    each end; one ruler in either glass. What it found was an engine defect —
+    `systemProperties.efl` was the focal distance n′/Φ, not 1/Φ, invisible while
+    every image was in air. What it opened is **items 21 and 22**.
 12. ~~**Which way an aberration-free band moves the Airy core.** § 6j names
     "an analytic band-integrated Airy" as the resampler-free check.~~
 
@@ -503,6 +513,27 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     half-wave guard still cannot see a cusp between the last lattice point and
     the wall — the panel reports the corrected cells rather than changing what
     the guard means. Neither has a reading that needs more yet.
+
+21. **The PSF's ruler on a high-NA objective is the paraxial pupil's.** Found at
+    § 2h. `imagePixelScaleMm` takes the aperture as the paraxial exit pupil's
+    r/R, and on § 6e's oil 100×/1.25 that is the paraxial object NA over |M| —
+    n·tan θ where the slip carries n·sin θ — so the scale's NA′ is 0.02188 against
+    the traced 0.01239, **1.766×**, and the first dark ring reads 0.566 of
+    0.61·λ/NA′ through any tube lens, air included. The dry 4×/0.10 is 1.1% off
+    the same way, which is § 2b's "paraxial identification" at the aperture it
+    was made for. **Pin:** the Airy ring, 0.61·λ/NA′ with NA′ the traced cone (§ 2b's
+    closed form, the external number), on the oil objective. **What a fix moves:**
+    every PSF drawn through `map.pupil.exit` on an oil objective — three core test
+    files draw them (`emission`, `volume`, `brightfield-spectrum`), and the app's
+    builder can hand one to any image panel. Close to E's "the aim is paraxial"
+    (§ 6u, § 6ak, § 6ay) but not the same: that is where a ray lands in the pupil,
+    and this is what one pupil unit is worth in the image.
+22. **Image irradiance in a medium.** Found at § 2h. `extendedSourceIlluminance`
+    returns π·sin²u′; with the source in index n and the image in n′ the radiance
+    that is conserved is L/n², so E′ carries (n′/n)² on top. Its docstring says
+    "in air" and every caller is a telescope, so nothing is wrong today. *Candidate
+    pin:* the flux through the § 2h fixture, πL·sin²u·dA in the object against
+    E′·dA′ in the glass.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -959,5 +990,11 @@ radial-map nodes · § 6ba differential bleaching.
     — landed at [§ 6j.6](VALIDATION.md#6j6--which-way-an-aberration-free-band-moves-the-core)
     with an engine readout (`kernelDiscEnergy`, `bandCore`) pinned to Rayleigh's
     encircled energy. The centre rises for any band; the energy inside a radius
-    changes sign at v* = 2.1659. What is left in Part A is **item 11**, which still
-    has no external number named.
+    changes sign at v* = 2.1659. ~~What is left in Part A is **item 11**, which still
+    has no external number named.~~
+
+19. ~~**Part A's item 11** — an immersed image plane behind an objective.~~ ✅ —
+    landed at [§ 2h](VALIDATION.md#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once):
+    the two-index laws hold, and the EFL did not — it was the focal distance. Then
+    **item 21**, the oil objective's PSF ruler, which has its pin named and moves
+    every oil PSF the ladder draws; item 22 waits for a caller.

@@ -3,6 +3,7 @@ import { paraxialTrace, systemProperties } from "../trace/paraxial";
 import { collimatingObjectDistance, spliceModules } from "../trace/compose";
 import { OpticalSystem } from "../trace/system";
 import { LINE_D } from "../materials/dispersion";
+import { getMedium } from "../materials/catalog";
 import { seidelSums } from "../analysis/seidel";
 import { AchromaticObjective, DoubletApertureRefusal, achromaticObjective } from "./achromat";
 import {
@@ -850,11 +851,27 @@ export interface TubeLensSpec {
   readonly designWavelengthNm?: number;
 }
 
-export interface TubeLens {
-  /** Authored infinity-space first — collimated in, focus out: crown first. */
+/**
+ * What `infinityCorrectedMicroscope` needs of the part behind the infinity space,
+ * and nothing more — `InfinityCorrectedObjective`'s counterpart on the image
+ * side. Written down when the second member arrived (§ 2h): the doublet below
+ * forms its image in air, `cartesianTubeLens` forms it inside glass, and the
+ * composition reads neither one's construction.
+ */
+export interface ImageFormingTube {
+  /** Authored infinity-space first — collimated in, focus out. */
   readonly prescription: Prescription;
+  /**
+   * The focal length the nominal magnification is quoted against (mm) — the
+   * EFFECTIVE focal length 1/Φ, which is not the image-side focal distance once
+   * the image is in a medium: that one is n′ times longer (§ 2h).
+   */
   readonly focalLengthMm: number;
+  /** Traced paraxial EFL at the design wavelength (mm). */
   readonly paraxialFocalLengthMm: number;
+}
+
+export interface TubeLens extends ImageFormingTube {
   readonly doublet: AchromaticObjective;
 }
 
@@ -885,9 +902,77 @@ export function tubeLens(spec: TubeLensSpec = {}): TubeLens {
   };
 }
 
+export interface CartesianTubeLensSpec {
+  /** Effective focal length 1/Φ (mm). Default 200 — see `TUBE_FOCAL_LENGTH_MM`. */
+  readonly focalLengthMm?: number;
+  /** The glass the image forms inside. Default N-BK7. */
+  readonly medium?: string;
+  /** Clear aperture (mm). Default 25, as `tubeLens`. */
+  readonly apertureMm?: number;
+  /** The wavelength the eccentricity is cut for. Default the d line. */
+  readonly designWavelengthNm?: number;
+}
+
+export interface CartesianTubeLens extends ImageFormingTube {
+  /** The image-space medium, by catalogue name. */
+  readonly medium: string;
+  /** Its index at the design wavelength. */
+  readonly index: number;
+  /** Vertex → far focus inside the glass, n′·f (mm): Descartes' focus. */
+  readonly imageDistanceMm: number;
+}
+
+/**
+ * A tube lens that forms its image INSIDE glass: § 2g's Cartesian ellipsoid,
+ * one k = −1/n′² surface from air into the medium.
+ *
+ * Not a lens anyone builds — a sensor is not cast into a glass block — and that
+ * is not what it is for. It is the image-side half of a system where the index
+ * enters at BOTH ends: the objective's immersion in object space, this glass in
+ * image space. Stigmatic on axis to all orders at the wavelength it is cut for
+ * (§ 2g.2), so whatever aberration the composed chain carries is the
+ * objective's, and every two-index law is read against an objective the ladder
+ * already measured.
+ *
+ * Sized by its EFFECTIVE focal length F = 1/Φ, which is what the magnification
+ * f_tube/f_obj is a ratio of: Φ = (n′ − 1)/R gives R = F·(n′ − 1), and the far
+ * focus sits at n′·R/(n′ − 1) = n′·F behind the vertex.
+ */
+export function cartesianTubeLens(spec: CartesianTubeLensSpec = {}): CartesianTubeLens {
+  const f = spec.focalLengthMm ?? DEFAULT_TUBE_FOCAL_LENGTH_MM;
+  const medium = spec.medium ?? "N-BK7";
+  const designWavelengthNm = spec.designWavelengthNm ?? LINE_D;
+  const semiAperture = (spec.apertureMm ?? 25) / 2;
+  if (!(f > 0)) throw new Error("cartesianTubeLens: focal length must be positive");
+  const n = getMedium(medium).n(designWavelengthNm);
+  if (!(n > 1)) throw new Error(`cartesianTubeLens: ${medium} is not denser than air`);
+  const radius = f * (n - 1);
+  const imageDistanceMm = n * f;
+  const prescription: Prescription = {
+    surfaces: [
+      {
+        kind: "refract",
+        curvature: 1 / radius,
+        conic: -1 / (n * n),
+        semiAperture,
+        thickness: imageDistanceMm,
+        medium,
+      },
+    ],
+  };
+  return {
+    prescription,
+    focalLengthMm: f,
+    paraxialFocalLengthMm: systemProperties(prescription, designWavelengthNm).efl,
+    medium,
+    index: n,
+    imageDistanceMm,
+  };
+}
+
 export interface InfinityCorrectedSpec {
   readonly objective: InfinityCorrectedObjective;
-  readonly tubeLens: TubeLens;
+  readonly tubeLens: ImageFormingTube;
   /**
    * Objective rear vertex → tube lens front vertex (mm). Default 100. The beam
    * between them is collimated, so this changes no first-order property — the

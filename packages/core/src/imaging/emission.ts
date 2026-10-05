@@ -454,9 +454,10 @@ export function tracedEmissionPupils(
  * holds the formula to the tracer instead of to a textbook.
  *
  * `refractiveIndex` is the medium the cone is IN — the immersion fluid on the
- * object side, air on the image side of every system in the ladder. Getting it
- * wrong is a factor of 1.515 at NA 1.40, which is exactly the size of thing that
- * reads as a finding.
+ * object side, and on the image side air for every system in the ladder except
+ * § 2g's and § 2h's, which form their image inside glass. Getting it wrong is a
+ * factor of 1.515 at NA 1.40, which is exactly the size of thing that reads as a
+ * finding; § 2h.6 measures the image side's version, n′ = 1.62 behind an F2 back.
  *
  * **"The rim" here is the NOMINAL rim ρ = 1, and a truncating mount has no light
  * there** — worth knowing at this function rather than only in the register.

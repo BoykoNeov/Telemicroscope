@@ -283,7 +283,12 @@ describe("§ 6aj.4 — imageNA is the spelling that survives, and it carries the
     const wetGroup = systemProperties(group("WATER"), LINE_D);
     const nWater = getMedium("WATER").n(LINE_D);
 
-    expect(pupils(at(wetFfd, stopR(STOP_R), "WATER"), LINE_D).exit.slopeRadius).toBe(STOP_R / wetGroup.efl);
+    // The slope is stopRadius over the image-side focal DISTANCE n′/Φ, which is
+    // n′ times the EFL. This read `toBe(STOP_R / efl)` while `efl` was that
+    // distance under the EFL's name; § 2h made it 1/Φ, so the distance is now a
+    // product and the identity holds to rounding rather than to the bit.
+    const slope = pupils(at(wetFfd, stopR(STOP_R), "WATER"), LINE_D).exit.slopeRadius!;
+    expect(Math.abs(slope / (STOP_R / (nWater * wetGroup.efl)) - 1)).toBeLessThan(4 * Number.EPSILON);
 
     for (const na of [0.02, 0.05, 0.1]) {
       const r = resolveStopRadius(at(wetFfd, imageNA(na), "WATER"), LINE_D);

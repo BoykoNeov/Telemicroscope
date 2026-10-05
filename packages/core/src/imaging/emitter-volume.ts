@@ -112,7 +112,8 @@ import type { EmitterSlice, EmitterVolume } from "./volume";
  * weight. § 6az.8 measures it rather than arguing it — a uniform slab's flux
  * against `ρ·π·R²·T` in closed form.
  *
- * § 6j's longitudinal magnification `m²·n/n′` would be the third factor if a
+ * § 6j's longitudinal magnification `m²·n′/n` (§ 2h pins it, with both indices
+ * away from 1 and from each other) would be the third factor if a
  * caller wanted **image**-space voxels, which is what a deconvolved volume is.
  * Nothing here does, and the 3×3 determinant is deliberately not built.
  *
