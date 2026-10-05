@@ -3166,6 +3166,12 @@ the lookup depends on the design, the field, the wavelength and the sampling,
 and on nothing else. A second frequency at the same four is free to five
 decimal places.
 
+> **2026-10-05, since [§ 2k](#step-2k--the-exit-layouts-cost-one-basis-per-point):** the Zernike fit inside the trace got
+> faster than the transform's phase lookups did, and the trace's share fell from
+> 0.28–0.33 to 0.17–0.27 over three quiet runs of this rung each. The rung's floor
+> is 0.15, so it now sits close to it; the bounds are unchanged, and a failure
+> there under load is this, not a regression.
+
 #### The count, which is the claim
 
 Traced stages per evaluation, counted by wrapping `systemPupil` and
@@ -4201,10 +4207,11 @@ the bit, so whichever series asks first, every reader sees `zernike`'s values.
 
 With the exit layout switched on as the default (a measurement, not committed),
 the 13 mosaic, seam and stage files ran 245 s of test time before and 169 s after,
-failing the same 86 readings — item 24's moves, not this step's; the app's stage
+failing the same 86 tests by name — item 24's moves, not this step's; the app's stage
 and golden files went from 29–30 s to 7–8 s, `mosaic` from 79 s to 59 s. Neither
-run came near 180 s on a quiet machine, so § 2i's timeout was this cost under a
-full suite's load; the file that hit it is not recorded.
+run came near 180 s on a quiet machine. § 2i's timeout was most likely this cost
+under a full suite's load — an inference: the file that hit it is not recorded,
+and it ran before § 2j's irradiance existed.
 
 ### What it leaves
 
