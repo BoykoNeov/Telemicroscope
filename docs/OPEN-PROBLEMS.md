@@ -540,7 +540,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     construction and left every defocused oil PSF bent. The `"exit"` layout places
     each sample at its reference-sphere crossing over the traced rim's, takes the
     edge from the traced rim and weights the ray branch to match; the ring reads
-    1.006 of Airy at pad 32 (0.57 before), and a defocus lands on Hamilton's
+    1.002 of Airy at pad 32 against the independently traced NA′ (0.57 before), and a defocus lands on Hamilton's
     n·δ·(1 − cos θ) to 0.5% where the aim layout missed by 27%. The pin held, and
     was not enough by itself, which is why § 2i.3 exists. **What it leaves:** the
     default (item 24), apodization (item 23), and the seeing screen and the
@@ -570,8 +570,18 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     shift was the per-tile ruler's drift and is exactly 0 on an axial ruler; the
     other 68 are in the same chain and untraced. So flipping the default is not a
     restatement: the seam chain's field-scan term has to be re-derived from the
-    pupil's traced shape first. *Route:* one numbered step per chain, each flipping
-    its own callers to `"exit"` and restating what moved, the seam chain last.
+    pupil's traced shape first. **The other 50 move only with the layout**, and
+    they are not all its distortion: § 2f's vesica-area pin degrades from inside
+    2e-4 to 5.4e-4 (the fitted inverse at a vignetted edge — trace the vignette
+    boundary instead); `extended`'s pupil energy stops being flat in field
+    (2.1e-3 — the off-axis rim's foreshortening, which is physics until shown
+    otherwise and changes brightness across a frame); § 1.8.14's contrast merit
+    moves up to 7× and the optimiser lands elsewhere; brightfield and tile
+    readings move 5–13% (`illumination`, `object-field`, `condenser-source`);
+    and the exit layout costs 35% more traces (`mtf-share`: 272 against 202),
+    enough to time out one 10× mosaic render at 180 s. *Route:* one numbered step
+    per chain, each flipping its own callers to `"exit"` and restating what moved,
+    the vignetted edge and the cost first, the seam chain last.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

@@ -3859,8 +3859,8 @@ finite step; DOF′/DOF = (n′/n)·M² from DOF = n·λ/NA² on each side.
 | ...NEGATIVE CONTROLS on oil/F2: M² is 6.3% off, (n/n′)·M² 13% | the index-free form, and the form `emitter-volume.ts` once wrote | ✅ |
 | **§ 2h.4 — the sine condition with an index at each end** | residual 0.9165% through air, 0.9173% N-BK7, 0.9192% F2 — the rear group's, as § 6e.4 | ✅ |
 | ...NEGATIVE CONTROL: n′ left out, the residual is 63.5% | n′·(1 + 0.0092) − 1 | ✅ |
-| **§ 2h.5 — one ruler in either glass** | behind the oil 100×, `pixelScaleMm` equal to 1e-15 and the ring to 9.5e-8, while sin u′ differs by 0.936 | ✅ |
-| ...and the ring IS 0.61·λ/NA′ behind the dry 4× | 0.988 in both glasses; the air formula is n′ too large, to 1.5% | ✅ |
+| **§ 2h.5 — one ruler in either glass** | behind the oil 100×, ~~`pixelScaleMm` equal to 1e-15 and the ring to 9.5e-8~~ on the exit layout since [§ 2i](#step-2i--the-pupil-laid-out-where-its-rays-went), each back's traced rim: ruler and ring to 1.9e-5 (§ 2h.4's 2e-5), while sin u′ differs by 0.936 | ✅ |
+| ...and the ring IS 0.61·λ/NA′ behind the dry 4× | ~~0.988 in both glasses~~ two errors cancelling; aberration-free on the exit layout, 1.0062, to 1% ([§ 2i](#step-2i--the-pupil-laid-out-where-its-rays-went)); the air formula is n′ too large, to 1.5% | ✅ |
 | **§ 2h.6 — a defocus in depths of focus is one number on both sides** | to 1e-6, the sine residual and m₁m₂/M² carried; the image side at the default n = 1 is off by n′ = 1.620 | ✅ |
 
 ### What the hypothesis found: the EFL was the focal distance
@@ -3885,9 +3885,11 @@ either glass. So it is not this step's: the pixel scale's NA′ is the paraxial
 pupil's, and on this objective that is the paraxial object NA over |M|, n·tan θ
 where the slip carries n·sin θ: 0.02188 against the traced 0.01239, **1.766×**.
 The dry 4× is 1.1% off the same way, which is § 2b's "paraxial identification"
-at the aperture it was made for. The ring's absolute rung therefore stands on the
+at the aperture it was made for. ~~The ring's absolute rung therefore stands on the
 dry column, as § 2b and § 2g stand theirs at NA 0.1, and the oil objective's ruler
-is a register item rather than a tolerance. So is image irradiance:
+is a register item rather than a tolerance.~~ **Closed at [§ 2i](#step-2i--the-pupil-laid-out-where-its-rays-went)**, as
+the opt-in exit layout — the ruler was the visible half of a layout error — and
+§ 2h.5 now stands on it, the oil's absolute ring at § 2i.2. So is image irradiance:
 `extendedSourceIlluminance` returns π·sin²u′, and an image in glass carries
 (n′/n)² on top — its docstring already says "in air", so it is not wrong today.
 
@@ -3921,8 +3923,8 @@ radius, not 25%).
 | Rung | What it pins | |
 |---|---|---|
 | **§ 2i.1 — the ruler is the traced cone** | the scale's sine IS the rim's sphere crossing; r/R over it is 1.759 on the oil (1.766 on the direction), 1.0079 on the dry 4× | ✅ |
-| **§ 2i.2 — the oil ring, absolute** | aberration-free, 1.0122 then 1.0058 of 1.2197·λ/(2·NA′) at pad 16 and 32 — the finder's bias, halving with the pixel | ✅ |
-| ...NEGATIVE CONTROL: the paraxial ruler | 0.572 of it | ✅ |
+| **§ 2i.2 — the oil ring, absolute** | aberration-free, 1.0084 then 1.0020 of 1.2197·λ/(2·NA′) at pad 16 and 32 — the finder's bias, halving with the pixel. NA′ is the independently traced rim DIRECTION: the scale's own sine would cancel against the ruler, and the two differ by 0.38% here | ✅ |
+| ...NEGATIVE CONTROL: the paraxial ruler | 0.570 of it | ✅ |
 | ...the traced rim on the axis | a circle to 1e-12, whatever the mapping | ✅ |
 | **§ 2i.3 — Hamilton's defocus inside the pupil** | δ = 0.2 µm: worst miss 4.6e-3 of a 0.212-wave peak at six exit radii to 0.95 | ✅ |
 | ...NEGATIVE CONTROL: the same traces laid where they were aimed | 0.268 of the peak | ✅ |
@@ -3993,7 +3995,11 @@ field's own reference radius, and the traced ruler is read once on the axis —
 correctly, since the image-plane scale per unit of exit direction does not
 depend on the field; the field's effect is in the pupil's traced shape, which a
 geometry-only seam reading does not see. The other 68 sit in the same seam and
-mosaic chain and are not yet each traced.
+mosaic chain and are not yet each traced. The 50 that move only with the layout
+are not all the pupil's distortion — a vignetted closed form degrades 2.7×
+through the fitted inverse, an off-axis pupil's energy stops being flat in
+field, the contrast merit's optimum moves, and the layout costs 35% more traces
+— and register item 24 lists them.
 
 So `PupilLayout` defaults to `"aim"`, which is known to be wrong off the
 paraxial regime, and register item 24 carries the flip chain by chain. The

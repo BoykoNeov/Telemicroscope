@@ -986,8 +986,10 @@ export function laidPupil(
  * over the radius (the direction sine for a perfect wavefront, and the one of
  * the two that does not fold with the aberration), relative to the chief ray,
  * over the traced rim's (`exitCoordinate`). Wherever the aim maps linearly onto
- * the exit cone that is the aim's own coordinate to the pupil's distortion, and
- * nothing a telescope shows moves by more than that. On § 6e's oil objective the
+ * the exit cone that is the aim's own coordinate to the pupil's distortion — the
+ * dry 4×'s Strehl moves 3.8e-4 (§ 2i.5) — but that is one fixture, and the 50
+ * readings register item 24 lists as moving with this layout and not with its
+ * ruler include some well past it. On § 6e's oil objective the
  * aim is uniform in tan θ and the cone in sin θ: a ray aimed half-way out leaves
  * 72% of the way out, and placing it at 50% bends every wavefront the transform
  * sees while the ruler, read off the paraxial pupil, is 1.766× wrong.
@@ -1002,8 +1004,9 @@ export function laidPupil(
  * a symmetric system a circle to rounding, whatever the mapping. The masks that
  * belong to the entrance pupil — obstruction, vanes, vignetting — are tested
  * where a fitted inverse sends the point back to the aim; that fit is only
- * built when one of them is present, and on the telescopes that carry them the
- * map is the identity to its distortion.
+ * built when one of them is present. It is not exact at the edge: § 2f's
+ * vesica-area pin reads 5.4e-4 through it against 2e-4 on the aim layout, which
+ * is register item 24's to repair before a vignetted chain flips.
  */
 export function exitCoordinatePupil(
   system: OpticalSystem,

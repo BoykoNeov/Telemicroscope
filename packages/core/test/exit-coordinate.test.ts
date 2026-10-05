@@ -44,8 +44,8 @@ import { geometricPsf } from "../src/wave/geometric";
  * Debye integral asks for. Refuted by any one of:
  *
  *  - the aberration-free ring on the oil objective away from Airy's
- *    1.2197·λ/(2·NA′) by more than the ring finder's own bias at that grid — the
- *    old ruler is 43% short;
+ *    1.2197·λ/(2·NA′), NA′ the independently traced cone, by more than the ring
+ *    finder's own bias at that grid — the old ruler is 43% short;
  *  - a defocus read in the laid-out pupil away from Hamilton's first-order
  *    n·δ·(1 − cos θ) at each ray's own exit coordinate by more than the two fits'
  *    residuals — the aim-placed pupil misses by 27% of the peak;
@@ -159,20 +159,22 @@ describe("§ 2i.1 — the ruler is the traced cone", () => {
 describe("§ 2i.2 — the Airy ring on the oil objective, absolute", () => {
   it("the aberration-free ring is 1.2197·λ/(2·NA′) to the finder's own bias, which falls with the grid", () => {
     const s = oil().system;
-    // NA′ as the exit pupil's own aperture, n′ times its sphere crossing over R:
-    // the aperture an aberration-free wavefront of THIS pupil diffracts through.
+    // NA′ from an INDEPENDENT trace — the rim ray's direction, `imageNumericalAperture`
+    // — and not from the scale's own sine, which would cancel against the ruler
+    // and leave the finder measuring itself. The two NA′ differ by this
+    // objective's own 0.38% (§ 2i.1), which is inside what this rung resolves.
     const sp0 = systemPupil(s, 0, L, EXIT);
-    const expected = (AIRY_FIRST_ZERO * L * 1e-6) / (2 * Math.abs(sp0.scale.nImage) * sp0.scale.apertureSine!);
+    const expected = (AIRY_FIRST_ZERO * L * 1e-6) / (2 * imageNumericalAperture(s, L));
     const ratios = [16, 32].map((pad) => {
       const p = psf(s, 0, L, { ...EXIT, pupilSamples: 64, padFactor: pad, keepDiffractionLimited: true });
       return (firstMinimumPixels(p, p.diffractionLimitedIntensity!) * p.pixelScaleMm) / expected;
     });
-    // 1.0122 and 1.0058 measured: the parabolic sub-pixel finder's bias, halving
+    // 1.0084 and 1.0020 measured: the parabolic sub-pixel finder's bias, halving
     // with the pixel as it does on § 2b's pure Airy, plus this objective's own
-    // Fresnel apodization (+0.2% at pad 16 against the dry 4×'s).
+    // Fresnel apodization and the 0.38% between the two NA′.
     expect(Math.abs(ratios[1]! - 1)).toBeLessThan(0.008);
     expect(Math.abs(ratios[1]! - 1)).toBeLessThan(Math.abs(ratios[0]! - 1));
-    // NEGATIVE CONTROL: the same ring on the paraxial ruler reads 0.566 of it.
+    // NEGATIVE CONTROL: the same ring on the paraxial ruler reads 0.570 of it.
     const sp = sp0;
     const p = psfFromPupilFunction(sp.pupil, { ...sp.scale, apertureSine: undefined }, 0, {
       pupilSamples: 64,
