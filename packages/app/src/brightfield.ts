@@ -399,7 +399,7 @@ export function renderBrightfieldScene(request: BrightfieldRequest): Brightfield
     // patch a `patches` = 1 render used.
     const pupil: PupilFunction =
       request.pupil === "traced"
-        ? fieldPupilAt(system, frame, 0.5, 0.5).pupil
+        ? fieldPupilAt(system, frame, 0.5, 0.5, { source: "field" }).pupil
         : idealPupil();
     const weakTransfer = weakObjectTransfer(pupil, source, nu);
 
@@ -500,7 +500,7 @@ export function cutoffSweep(
               pupilSamples: request.pupilSamples,
               size: request.size,
             });
-            return fieldPupilAt(system, frame, 0.5, 0.5).pupil;
+            return fieldPupilAt(system, frame, 0.5, 0.5, { source: "field" }).pupil;
           })()
         : idealPupil();
 

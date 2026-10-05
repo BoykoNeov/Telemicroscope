@@ -295,7 +295,8 @@ describe("§ 2h.5 — the Airy ring in the glass is 0.61·λ/NA′, whatever the
     expect(f2!.sinU / bk7!.sinU).toBeLessThan(0.94);
     // The RULER is each back's traced rim (§ 2i), and the two ellipsoids are
     // stigmatic for a plane wave the objective does not quite hand them — their
-    // traced sines differ by § 2h.4's 2e-5. So the rulers agree to that, where
+    // traced sines differ by § 2h.4's 2e-5. So the rulers agree to that (1.9e-5,
+    // and the rings 1.3e-5 on § 2j's emitter irradiance), where
     // the paraxial one agreed to the bit; against the 6.8% a scale without n′
     // would move, either is one ruler.
     expect(Math.abs(f2!.pixelScaleMm / bk7!.pixelScaleMm - 1)).toBeLessThan(5e-5);
@@ -311,10 +312,11 @@ describe("§ 2h.5 — the Airy ring in the glass is 0.61·λ/NA′, whatever the
     // objective's own 0.04 waves and the finder's bias, which the paraxial ruler's
     // −1.1% used to half cancel into a reading of 0.988 (§ 2i).
     const rings = ringsBehind(dry());
-    // 1.0062 in both: the finder's bias at pad 16, inside the 1.5% this rung
-    // used to need.
+    // 1.0053 in both on § 2j's emitter irradiance (1.0062 on § 2i's uniform
+    // one): the finder's bias at pad 16, inside the 1.5% this rung used to need.
     for (const r of rings) expect(Math.abs(r.flatMm / r.expectedMm - 1)).toBeLessThan(0.01);
-    // 7.1e-5 apart, for the reason the oil column gives: each back's own traced rim.
+    // 5.4e-5 apart (7.1e-5 before § 2j), for the reason the oil column gives:
+    // each back's own traced rim.
     expect(Math.abs(rings[1]!.measuredMm / rings[0]!.measuredMm - 1)).toBeLessThan(2e-4);
     GLASSES.forEach((g, i) => {
       // NEGATIVE CONTROL: 0.61·λ/sin u′, the index left out.

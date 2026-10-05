@@ -3861,8 +3861,8 @@ finite step; DOF′/DOF = (n′/n)·M² from DOF = n·λ/NA² on each side.
 | ...NEGATIVE CONTROLS on oil/F2: M² is 6.3% off, (n/n′)·M² 13% | the index-free form, and the form `emitter-volume.ts` once wrote | ✅ |
 | **§ 2h.4 — the sine condition with an index at each end** | residual 0.9165% through air, 0.9173% N-BK7, 0.9192% F2 — the rear group's, as § 6e.4 | ✅ |
 | ...NEGATIVE CONTROL: n′ left out, the residual is 63.5% | n′·(1 + 0.0092) − 1 | ✅ |
-| **§ 2h.5 — one ruler in either glass** | behind the oil 100×, ~~`pixelScaleMm` equal to 1e-15 and the ring to 9.5e-8~~ on the exit layout since [§ 2i](#step-2i--the-pupil-laid-out-where-its-rays-went), each back's traced rim: ruler and ring to 1.9e-5 (§ 2h.4's 2e-5), while sin u′ differs by 0.936 | ✅ |
-| ...and the ring IS 0.61·λ/NA′ behind the dry 4× | ~~0.988 in both glasses~~ two errors cancelling; aberration-free on the exit layout, 1.0062, to 1% ([§ 2i](#step-2i--the-pupil-laid-out-where-its-rays-went)); the air formula is n′ too large, to 1.5% | ✅ |
+| **§ 2h.5 — one ruler in either glass** | behind the oil 100×, ~~`pixelScaleMm` equal to 1e-15 and the ring to 9.5e-8~~ on the exit layout since [§ 2i](#step-2i--the-pupil-laid-out-where-its-rays-went), each back's traced rim: ruler and ring to 1.9e-5 (§ 2h.4's 2e-5; the ring 1.3e-5 since [§ 2j](#step-2j--the-exit-pupils-irradiance-traced)), while sin u′ differs by 0.936 | ✅ |
+| ...and the ring IS 0.61·λ/NA′ behind the dry 4× | ~~0.988 in both glasses~~ two errors cancelling; aberration-free on the exit layout, ~~1.0062~~ 1.0053 since [§ 2j](#step-2j--the-exit-pupils-irradiance-traced), to 1% ([§ 2i](#step-2i--the-pupil-laid-out-where-its-rays-went)); the air formula is n′ too large, to 1.5% | ✅ |
 | **§ 2h.6 — a defocus in depths of focus is one number on both sides** | to 1e-6, the sine residual and m₁m₂/M² carried; the image side at the default n = 1 is off by n′ = 1.620 | ✅ |
 
 ### What the hypothesis found: the EFL was the focal distance
@@ -3931,8 +3931,8 @@ radius, not 25%).
 | **§ 2i.3 — Hamilton's defocus inside the pupil** | δ = 0.2 µm: worst miss 4.6e-3 of a 0.212-wave peak at six exit radii to 0.95 | ✅ |
 | ...NEGATIVE CONTROL: the same traces laid where they were aimed | 0.268 of the peak | ✅ |
 | **§ 2i.4 — the ray histogram shares the layout** | 20 mm behind focus, ~~0.2531 of the energy inside half the disc's radius, against r² = 0.25~~ restated at [§ 2j](#step-2j--the-exit-pupils-irradiance-traced): 0.2063 against an emitter's 0.2055, 0.2974 against a field's 0.2970; the count alone, 0.098 | ✅ |
-| **§ 2i.5 — where the map is linear, nothing moves but its distortion** | dry 4× Strehl 0.92907 → 0.92945; the oil's 0.9087 → 0.9299 | ✅ |
-| **§ 2h.5, restated on this layout** | the two backs' rulers agree to 1.9e-5 (oil) and 7.1e-5 (dry), each its own traced rim — § 2h.4's 2e-5; the dry ring, aberration-free, 1.0062, bound tightened 1.5% → 1% | ✅ |
+| **§ 2i.5 — where the map is linear, nothing moves but its distortion** | dry 4× Strehl 0.92907 → ~~0.92945~~ 0.92936; the oil's 0.9087 → ~~0.9299~~ 0.9250, restated at [§ 2j](#step-2j--the-exit-pupils-irradiance-traced) on the emitter's irradiance | ✅ |
+| **§ 2h.5, restated on this layout** | the two backs' rulers agree to 1.9e-5 (oil) and ~~7.1e-5~~ 5.4e-5 (dry, since [§ 2j](#step-2j--the-exit-pupils-irradiance-traced)), each its own traced rim — § 2h.4's 2e-5; the dry ring, aberration-free, ~~1.0062~~ 1.0053, bound tightened 1.5% → 1% | ✅ |
 
 ### How it is built
 
@@ -4092,9 +4092,12 @@ Three choices had a plausible wrong answer.
 **The source is the caller's to name.** A finite conjugate's pupil depends on the
 object. An emitter brightens the oil's rim 1.75× and a field darkens it to 0.57×,
 a factor of three apart in |P|². `PupilSource` defaults to `"emitter"`, which is
-what a PSF is; the three brightfield call sites (`brightfield-spectrum`,
-`mosaic`, the app's brightfield panel) ask for `"field"`. `tracedFieldPupils`
-itself does not default either way, because the fluorescence renders call it too.
+what a PSF is. Every caller was classified: the five brightfield ones ask for
+`"field"` — `brightfield-spectrum`, `mosaic`, and the app's brightfield panel
+in its render, its weak-object readout and its cutoff sweep; the fluorescence
+and volume ones keep the emitter; the app's microscope readout reads only loss
+and RMS, which no source moves. `tracedFieldPupils` itself does not default
+either way, because the fluorescence renders call it too.
 
 **The units are the aim layout's.** S is divided by the chief ray's S, and
 nothing else, so Σ|P|² is ∫S/S₀ dA_aim — π for a plane wave, the energy the aim
@@ -4117,9 +4120,13 @@ and must not move when the aim is parametrized differently.
   intensity near focus low by √cos θ′ off axis in the pupil. Every microscope in
   the ladder images at NA′ ≤ 0.02, where that is 1e-4; § 2g's ellipsoid in glass and
   the fast mirrors are where it would show.
-- **Relative illumination is not taken.** Each field is normalized at its own
-  chief ray, so the energy stays flat in field by convention, as on the aim
-  layout; the cos⁴-type falloff belongs to `extended`'s Jacobian (§ 5v).
+- **The energy is not yet flat in field.** For a plane wave it should be the
+  aim disc's π at every field; on the hero achromat it drifts 2.4e-4 from 0° to
+  2°, where the aim layout reads 7.7e-7 and § 5v.1 asserts below 1e-6 — measured,
+  not traced, and item 24's to close before `extended` flips. An off-axis
+  emitter's energy is ∫S/S₀ over its own aim disc and is not field-flat even in
+  principle. Relative illumination, the cos⁴-type falloff, stays `extended`'s
+  Jacobian (§ 5v).
 - **A Lambertian source**, cos θ per solid angle, is a third `PupilSource` the
   engine does not offer.
 - **The default** — register item 24, which this step moves: the vignetted edge

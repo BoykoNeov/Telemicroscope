@@ -335,7 +335,9 @@ describe("§ 2i.4 — the ray histogram shares the layout", () => {
 });
 
 describe("§ 2i.5 — where the map is linear, nothing moves but the pupil's distortion", () => {
-  it("the dry 4×'s Strehl in the exit layout is the aim layout's to 1e-3; the oil's moves 0.909 → 0.930", () => {
+  // Restated at § 2j, on the emitter's traced irradiance: dry 0.92907 → 0.92936,
+  // oil 0.90868 → 0.92504 (§ 2i's uniform pupil read 0.92945 and 0.9299).
+  it("the dry 4×'s Strehl in the exit layout is the aim layout's to 1e-3; the oil's moves 0.909 → 0.925", () => {
     const strehls = [dry(), oil()].map(({ system: s }) => {
       const map = opdMap(s, 0, L, pupilGrid(21));
       const sp = systemPupil(s, 0, L, EXIT);

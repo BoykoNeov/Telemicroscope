@@ -570,8 +570,9 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     oil objective is aplanatic only to 0.54% in its sine, which moves its
     irradiance 2.9%; the closed forms are pinned on a paraboloid (Richards and Wolf)
     and a focus-to-focus ellipsoid instead. **What it leaves:** intensity at a high
-    image-side NA (a/cos θ′, not this layout's power per exit area), relative
-    illumination (flat in field by convention), and a Lambertian source.
+    image-side NA (a/cos θ′, not this layout's power per exit area), a plane
+    wave's energy drifting 2.4e-4 across 2° of field where the aim layout reads
+    7.7e-7 (item 24's), and a Lambertian source.
 24. **The default pupil layout is known to be wrong off the paraxial regime.** Found
     at § 2i. `PupilLayout` defaults to `"aim"`, whose ruler is the paraxial exit
     pupil's: 1.759× off on the oil 100×, and 0.2–1.2% off on the DIN dry
@@ -597,8 +598,9 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     and the exit layout costs 35% more traces (`mtf-share`: 272 against 202),
     enough to time out one 10× mosaic render at 180 s — and § 2j adds 124 traces
     per pupil to the map's 317 (441 where it vignettes), not yet measured against
-    that render. The brightfield chain's three callers already name a transmitted
-    field (§ 2j), so a brightfield flip moves its rim by cos θ, not 1/cos θ. *Route:* one numbered step
+    that render. Every pupil caller is classified (§ 2j): the five brightfield
+    ones name a transmitted field, so a brightfield flip moves its rim by cos θ,
+    not 1/cos θ. *Route:* one numbered step
     per chain, each flipping its own callers to `"exit"` and restating what moved,
     ~~the vignetted edge and~~ the cost first, the seam chain last.
 
