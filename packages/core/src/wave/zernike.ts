@@ -174,18 +174,20 @@ export function fitZernike(samples: readonly WavefrontSample[], terms: number): 
   for (let i = 0; i < rows; i++) {
     const s = inside[i]!;
     b[i] = s.waves;
-    for (let j = 1; j <= terms; j++) a[i * terms + (j - 1)] = zernike(j, s.px, s.py);
+    zernikeBasis(terms, s.px, s.py, a.subarray(i * terms, (i + 1) * terms));
   }
 
+  // The solve destroys its matrix; the residual below re-reads the basis.
+  const basis = a.slice();
   const coefficients = householderLeastSquares(a, rows, terms, b);
 
   // Residual measured by re-evaluating the fit, not read off the QR: it checks
   // the evaluator and the solver against each other rather than trusting one.
   let acc = 0;
-  for (const s of inside) {
+  for (let i = 0; i < rows; i++) {
     let model = 0;
-    for (let j = 1; j <= terms; j++) model += coefficients[j - 1]! * zernike(j, s.px, s.py);
-    acc += (s.waves - model) ** 2;
+    for (let j = 1; j <= terms; j++) model += coefficients[j - 1]! * basis[i * terms + (j - 1)]!;
+    acc += (inside[i]!.waves - model) ** 2;
   }
 
   return {
@@ -199,7 +201,8 @@ export function fitZernike(samples: readonly WavefrontSample[], terms: number): 
 /** Evaluate a fit at a normalized pupil point (waves). */
 export function evaluateFit(fit: ZernikeFit, px: number, py: number): number {
   let sum = 0;
-  for (let j = 1; j <= fit.terms; j++) sum += fit.coefficients[j - 1]! * zernike(j, px, py);
+  const z = zernikeBasis(fit.terms, px, py, new Float64Array(fit.terms));
+  for (let j = 1; j <= fit.terms; j++) sum += fit.coefficients[j - 1]! * z[j - 1]!;
   return sum;
 }
 
@@ -213,10 +216,106 @@ export function wavefrontSampler(fit: ZernikeFit): (px: number, py: number) => n
   const c = fit.coefficients;
   const terms = fit.terms;
   return (px, py) => {
+    const z = basisAt(terms, px, py);
     let sum = 0;
-    for (let j = 1; j <= terms; j++) sum += c[j - 1]! * zernike(j, px, py);
+    for (let j = 1; j <= terms; j++) sum += c[j - 1]! * z[j - 1]!;
     return sum;
   };
+}
+
+/**
+ * The basis at the last point any sampler asked about, kept for the next.
+ *
+ * One pupil lookup asks several series at ONE point — on the exit layout the
+ * irradiance and the inverse map's two halves inside `amplitude`, then the
+ * phase in `phaseWaves` — and the basis depends on the point and nothing else.
+ * Keyed with `Object.is`, so −0 and 0 (whose θ differ by π, and whose odd
+ * terms differ in the sign of a zero) are two points; a request for more terms
+ * than are held recomputes. A shorter basis is the longer one's prefix to the
+ * bit, so whichever series came first, every reader sees `zernike`'s values.
+ * Read it before the next call: the array is reused.
+ */
+const SHARED = new Float64Array(MAX_ZERNIKE_TERMS);
+let sharedX = NaN;
+let sharedY = NaN;
+let sharedTerms = 0;
+
+function basisAt(terms: number, px: number, py: number): Float64Array {
+  if (terms <= sharedTerms && Object.is(px, sharedX) && Object.is(py, sharedY)) return SHARED;
+  zernikeBasis(terms, px, py, SHARED);
+  sharedX = px;
+  sharedY = py;
+  sharedTerms = terms;
+  return SHARED;
+}
+
+/** One Noll term, as `zernike` evaluates it, with everything that is not the point hoisted. */
+interface TermPlan {
+  readonly m: number;
+  readonly norm: number;
+  /** (−1)^s · (n − s)! / (s!·((n+|m|)/2 − s)!·((n−|m|)/2 − s)!), in s order. */
+  readonly coefficients: readonly number[];
+  /** n − 2s, in the same order. */
+  readonly exponents: readonly number[];
+}
+
+const PLANS: readonly TermPlan[] = Array.from({ length: MAX_ZERNIKE_TERMS }, (_, k) => {
+  const { n, m } = nollIndex(k + 1);
+  const a = Math.abs(m);
+  const half = (n - a) / 2;
+  const coefficients: number[] = [];
+  const exponents: number[] = [];
+  for (let s = 0; s <= half; s++) {
+    const num = FACTORIAL[n - s]!;
+    const den = FACTORIAL[s]! * FACTORIAL[(n + a) / 2 - s]! * FACTORIAL[half - s]!;
+    coefficients.push((s % 2 === 0 ? 1 : -1) * (num / den));
+    exponents.push(n - 2 * s);
+  }
+  return { m, norm: nollNorm(n, m), coefficients, exponents };
+});
+
+/** Radial order of term k + 1 — the highest power of ρ, and the highest m, the first k + 1 terms need. */
+const ORDER_THROUGH = PLANS.map((_, k) => nollIndex(k + 1).n);
+
+const POW = new Float64Array(ORDER_THROUGH[MAX_ZERNIKE_TERMS - 1]! + 1);
+const COS = new Float64Array(POW.length);
+const SIN = new Float64Array(POW.length);
+
+/**
+ * Z_1 … Z_terms at one point, into `out` — **bitwise** what `zernike(j, px, py)`
+ * returns for each j (pinned by `Object.is` in `zernike.test.ts`).
+ *
+ * The cost of every pupil lookup is here: an exit-layout pupil asks for three or
+ * four fitted series at each grid point, and `zernike` recomputed ρ, θ, every
+ * power of ρ and every cos(mθ) once per TERM. They depend on the point alone, so
+ * they are read once per point; the arithmetic that consumes them is
+ * `radialPolynomial`'s and `zernike`'s own, operation for operation — the same
+ * `Math.pow`, the same (sign · quotient) · power, the same sum order, the same
+ * `m·θ` — which is what makes the identity exact rather than close.
+ */
+export function zernikeBasis(terms: number, px: number, py: number, out: Float64Array): Float64Array {
+  if (terms > MAX_ZERNIKE_TERMS) {
+    throw new Error(`term count ${terms} exceeds MAX_ZERNIKE_TERMS (${MAX_ZERNIKE_TERMS})`);
+  }
+  if (terms < 1) return out;
+  const top = ORDER_THROUGH[terms - 1]!;
+  const rho = Math.hypot(px, py);
+  for (let k = 0; k <= top; k++) POW[k] = Math.pow(rho, k);
+  if (terms > 1) {
+    const theta = Math.atan2(py, px);
+    for (let k = 1; k <= top; k++) {
+      COS[k] = Math.cos(k * theta);
+      SIN[k] = Math.sin(k * theta);
+    }
+  }
+  for (let j = 0; j < terms; j++) {
+    const p = PLANS[j]!;
+    let sum = 0;
+    for (let s = 0; s < p.coefficients.length; s++) sum += p.coefficients[s]! * POW[p.exponents[s]!]!;
+    const radial = p.norm * sum;
+    out[j] = p.m === 0 ? radial : p.m > 0 ? radial * COS[p.m]! : radial * SIN[-p.m]!;
+  }
+  return out;
 }
 
 /**

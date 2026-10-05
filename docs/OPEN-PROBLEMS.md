@@ -595,14 +595,18 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     are the aim layout's; the aim layout reads 7.7e-7 and the rest is untraced); § 1.8.14's contrast merit
     moves up to 7× and the optimiser lands elsewhere; brightfield and tile
     readings move 5–13% (`illumination`, `object-field`, `condenser-source`);
-    and the exit layout costs 35% more traces (`mtf-share`: 272 against 202),
+    ~~and the exit layout costs 35% more traces (`mtf-share`: 272 against 202),
     enough to time out one 10× mosaic render at 180 s — and § 2j adds 124 traces
     per pupil to the map's 317 (441 where it vignettes), not yet measured against
-    that render. Every pupil caller is classified (§ 2j): the five brightfield
+    that render~~ — **the cost closed at [§ 2k](VALIDATION.md#step-2k--the-exit-layouts-cost-one-basis-per-point)**: it was never traces (a map's 317
+    cost 0.3–1.8 ms), and 202 → 292 is the optimiser taking 145 evaluations
+    instead of 100 on the moved merit. It was the Zernike basis, recomputed per
+    term on every pupil lookup; hoisted and shared per point, bit for bit, a 10×
+    tile on the exit layout went 10.7 s → 1.8 s, 1.14× the aim layout's. Every pupil caller is classified (§ 2j): the five brightfield
     ones name a transmitted field, so a brightfield flip moves its rim by cos θ,
     not 1/cos θ. *Route:* one numbered step
     per chain, each flipping its own callers to `"exit"` and restating what moved,
-    ~~the vignetted edge and~~ the cost first, the seam chain last.
+    ~~the vignetted edge and~~ ~~the cost~~ (both closed) first, the seam chain last.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1073,4 +1077,5 @@ radial-map nodes · § 6ba differential bleaching.
 20. **Part A's item 24** — flip the default layout, one chain at a time. The
     counts are in the entry; the seam chain's field-scan term goes last, because
     it vanishes rather than moves. ~~The vignetted edge~~ went at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced)
-    and was not an edge: the cost is first now.
+    and was not an edge; ~~the cost~~ went at [§ 2k](VALIDATION.md#step-2k--the-exit-layouts-cost-one-basis-per-point) and was not traces. The
+    first chain to flip is next.

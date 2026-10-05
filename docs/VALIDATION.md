@@ -32,6 +32,7 @@ whole ladder.
 | [2h](#step-2h--the-image-in-glass-behind-an-objective-both-indices-at-once) | Both indices away from 1: Δz′/Δz = (n′/n)·m₁m₂ to 1e-9, M blind to the back's glass; `systemProperties.efl` was n′/Φ, now 1/Φ | `immersed-behind-objective` |
 | [2i](#step-2i--the-pupil-laid-out-where-its-rays-went) | A traced sample sits where its ray crossed the reference sphere, not where it was aimed: oil 100× ring 0.57 → Airy, Hamilton's defocus to 0.5% (aimed: 27%); opt-in | `exit-coordinate` |
 | [2j](#step-2j--the-exit-pupils-irradiance-traced) | The exit layout's amplitude is the ray tubes' irradiance, source power over exit area: Richards–Wolf on a paraboloid, an ellipsoid's foci, emitter vs field (1/cos θ, cos θ); § 2f's vesica converges | `exit-density` |
+| [2k](#step-2k--the-exit-layouts-cost-one-basis-per-point) | The exit layout's cost was the Zernike basis recomputed per term, not traces: hoisted and shared per point, to the bit; a 10× tile 10.7 s → 1.8 s, 1.14× the aim layout's | `exit-cost` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4005,7 +4006,8 @@ mosaic chain and are not yet each traced. The 50 that move only with the layout
 are not all the pupil's distortion — a vignetted closed form degrades 2.7×
 ~~through the fitted inverse~~ (the inverse is exact there to 1e-15: it was the
 uniform irradiance, [§ 2j](#step-2j--the-exit-pupils-irradiance-traced)), an off-axis pupil's energy stops being flat in
-field, the contrast merit's optimum moves, and the layout costs 35% more traces
+field, the contrast merit's optimum moves, and ~~the layout costs 35% more traces~~
+(the optimiser takes more steps; the cost was the basis per lookup, [§ 2k](#step-2k--the-exit-layouts-cost-one-basis-per-point))
 — and register item 24 lists them.
 
 So `PupilLayout` defaults to `"aim"`, which is known to be wrong off the
@@ -4132,6 +4134,87 @@ and must not move when the aim is parametrized differently.
 - **The default** — register item 24, which this step moves: the vignetted edge
   is not a fitted-inverse problem, and the brightfield chain already names its
   source.
+
+## Step 2k — the exit layout's cost: one basis per point
+
+Source: engine change — `zernikeBasis`, and every fit and sampler reading it, bitwise unchanged
+· Tests: `packages/core/test/exit-cost.test.ts`
+
+Register item 24 put the trace cost first: § 2i recorded the exit layout costing
+35% more traces and one 10× mosaic render timing out at 180 s, and § 2j added 124
+traces per pupil. Measured, traces are not where the time goes. A map's 317
+traces cost 0.3–1.8 ms; the exit layout's pupil took 5.5–12 ms to build against
+the aim layout's 2; and on a brightfield tile, which builds four to nine pupils
+and asks them 86 000 to 780 000 lookups, about 95% of the wall time was
+`PupilFunction.amplitude`. Each exit-layout lookup evaluates three fitted
+Zernike series — the irradiance (§ 2j) and, where a mask is present, the inverse
+map's two halves (§ 2i) — besides the phase both layouts share, and
+`zernike(j, …)` recomputed ρ, θ, every power of ρ and every cos(mθ) once per TERM.
+
+The 35% was never a per-pupil count either. `mtf-share`'s 202 is 2·(evaluations
++ 1), the counterfactual of § 1.8.15; with the exit layout as the default the
+two-frequency optimisation takes 145 evaluations instead of 100 (292 today, 272
+before § 2j) and the one-frequency one 115 instead of 135. The merit moved —
+item 24 already lists that — and every evaluation still costs one traced pupil:
+§ 1.8.15's own identity held under the flip.
+
+**Hypothesis.** The cost is that per-term recomputation: hoisting what depends
+on the point alone closes the gap between the layouts without moving a number.
+**Refuted by** any bit of a basis value, fit, sampler or laid pupil moving — the
+identity is exact by construction, so it is asserted with `Object.is`; or the
+exit layout's tile still costing 2× the aim layout's or more.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2k.1 — the basis, hoisted, is the basis to the bit** | all 45 Noll terms at 1 686 points, inside, on and past the rim, ±0 included, `Object.is` against `zernike` — and through it Noll's closed forms, which `zernike.test.ts` pins; a shorter basis is the longer one's prefix | ✅ |
+| ...samplers sharing the last point's basis | five series of 1 to 45 terms, interleaved in any order, each its own longhand to the bit; 0 and −0 are two points | ✅ |
+| **§ 2k.2 — every fit built on it** | the vignetted DIN 10×/0.2 and the oil 100×: coefficients at 6, 28 and 45 terms and their samplers, `Object.is` against the pre-§ 2k longhand | ✅ |
+| ...the laid exit pupil itself | amplitude and phase summed over a 32² lattice on the 10×, equal to the bit to the values recorded at 7a8b0bf | ✅ |
+| **§ 2k.3 — the cost, measured** (wall-clock, recorded here and not asserted) | a DIN 10×/0.2 brightfield tile, 128² at 64 pupil samples: exit layout 10.7 s → 1.77 s, aim layout 2.71 s → 1.55 s; exit over aim 3.9× → 1.14× | ✅ |
+
+### How it is built
+
+`zernikeBasis(terms, px, py, out)` fills Z₁ … Z_terms at one point. Each term's
+radial coefficients, (−1)^s·(n − s)!/(s!·((n+|m|)/2 − s)!·((n−|m|)/2 − s)!), are
+computed once at load, by the same divisions `radialPolynomial` makes; at a point,
+ρ and θ are read once, `Math.pow(ρ, k)` once per power, cos kθ and sin kθ once per
+order. What consumes them is `radialPolynomial`'s and `zernike`'s arithmetic
+operation for operation — the same (sign · quotient) · power, the same sum order,
+norm · radial, then the angle, with m·θ the same double whichever sign m had —
+which is why the identity is exact rather than close. `fitZernike` fills its
+design matrix from it and re-reads a copy for the residual (the QR destroys its
+input), `evaluateFit` and `wavefrontSampler` sum against it.
+
+Hoisting alone was not enough: the tiles went to 1.7–2.1× the aim layout's, at
+the refutation line, because one exit lookup still asks for the basis three or
+four times at the same point. So the samplers read it through a one-entry memo
+keyed on the last point with `Object.is` — at (0, 0) and (−0, 0) θ differs by π and
+an odd term by the sign of a zero, so the two are not one key — recomputing when
+more terms are asked than are held. A shorter basis is the longer one's prefix to
+the bit, so whichever series asks first, every reader sees `zernike`'s values.
+
+| Brightfield tile (wall ms) | aim, before | aim, after | exit, before | exit, after | exit/aim after |
+|---|---|---|---|---|---|
+| DIN 4×/0.1 rim stop, 64² / 32, 2 patches | 178 | 69 | 427 | 83 | 1.20 |
+| DIN 10×/0.2, 64² / 32, 2 patches | 217 | 128 | 1 155 | 151 | 1.18 |
+| DIN 10×/0.2, 128² / 64, 3 patches | 2 711 | 1 551 | 10 708 | 1 773 | 1.14 |
+
+With the exit layout switched on as the default (a measurement, not committed),
+the 13 mosaic, seam and stage files ran 245 s of test time before and 169 s after,
+failing the same 86 readings — item 24's moves, not this step's; the app's stage
+and golden files went from 29–30 s to 7–8 s, `mosaic` from 79 s to 59 s. Neither
+run came near 180 s on a quiet machine, so § 2i's timeout was this cost under a
+full suite's load; the file that hit it is not recorded.
+
+### What it leaves
+
+- **Building an exit pupil still costs up to 5× the aim layout's** — 4–8 ms
+  against 1.5–3.5 on these tiles, the most on the vignetted 10×, where the
+  inverse map adds two fits to the irradiance's lattice and fit (§ 2j). Per tile
+  that is a few percent of the render; on a stack of many pupils with few lookups
+  each it would not be, and it is not yet broken down by stage.
+- **The flip itself** — register item 24, chain by chain, with the cost no
+  longer a reason to wait.
 
 ## Step 3a — the standard observer and thermal sources
 
