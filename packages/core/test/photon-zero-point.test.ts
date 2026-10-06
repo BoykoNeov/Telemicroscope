@@ -19,6 +19,7 @@ import {
 } from "../src/imaging/noise";
 import { colorImageFromStack, integratedXyz } from "../src/imaging/image";
 import { clearApertureEnergy, psf } from "../src/wave/psf";
+import { exactPupilEnergy } from "./support/exitEnergy";
 import { SpectralStack, spectralStack } from "../src/wave/polychromatic";
 import { VISIBLE_MAX_NM, VISIBLE_MIN_NM, spectralSamples } from "../src/photometry/spectrum";
 import { bestFocus, withFocus } from "../src/analysis/focus";
@@ -336,8 +337,8 @@ const NEWTONIAN_APERTURE_MM = 200;
 const NEWTONIAN_FOCAL_RATIO = 5;
 const RENDER_BAND: PassBand = { fromNm: VISIBLE_MIN_NM, toNm: VISIBLE_MAX_NM };
 
-/** The app's own Newtonian preset, rendered with and without its secondary. */
-function newtonianStack(withObstruction: boolean): SpectralStack {
+/** The app's own Newtonian preset, focused. */
+function newtonianSystem(): OpticalSystem {
   const scope = newtonian({
     apertureMm: NEWTONIAN_APERTURE_MM,
     focalRatio: NEWTONIAN_FOCAL_RATIO,
@@ -350,7 +351,16 @@ function newtonianStack(withObstruction: boolean): SpectralStack {
     conjugate: { kind: "infinite" },
   };
   const focus = bestFocus(base, "minRmsWavefront", { wavelengthNm: FOCUS_NM });
-  return spectralStack(withFocus(base, focus.offsetFromLastVertex), 0, {
+  return withFocus(base, focus.offsetFromLastVertex);
+}
+
+/** The app's own Newtonian preset, rendered with and without its secondary. */
+function newtonianStack(withObstruction: boolean): SpectralStack {
+  const scope = newtonian({
+    apertureMm: NEWTONIAN_APERTURE_MM,
+    focalRatio: NEWTONIAN_FOCAL_RATIO,
+  });
+  return spectralStack(newtonianSystem(), 0, {
     pupilSamples: 64,
     padFactor: 4,
     ...(withObstruction ? { obstruction: scope.obstruction } : {}),
@@ -411,8 +421,26 @@ describe("§ 8a.7 — the photon denominator is the CLEAR aperture, so an obstru
       s.planes.reduce((acc, p) => acc + sumOf(p.intensity) / p.energy, 0) / s.planes.length;
     expect(Math.abs(ownShare(obstructed) / ownShare(clear) - 1)).toBeLessThan(1e-3);
 
-    // And the throughput the clear denominator recovers is the closed form.
-    const throughput = obstructed.planes[0]!.energy / clearApertureEnergy(64, 256);
+    // And the throughput the clear denominator recovers is the closed form —
+    // read with no grid, because the grid's own number is an edge lattice's.
+    // On the exit layout (§ 2m: this system's default) the pupil is |P|² =
+    // S/|∂e/∂a| over the traced cone and the secondary is masked where its rays
+    // were AIMED, so the light through is ∫S over the aim annulus: 1 − ε² of the
+    // disc, to 1.4e-12 integrated.
+    const system = newtonianSystem();
+    const exactClear = exactPupilEnergy(system, 0, FOCUS_NM, "exit");
+    const exactObstructed = exactPupilEnergy(system, 0, FOCUS_NM, "exit", undefined, epsilon);
+    expect(Math.abs(exactObstructed / exactClear / (1 - epsilon * epsilon) - 1)).toBeLessThan(1e-9);
+
+    // The grid reads it to the lattice that counts the two outlines: 1.87e-4 at
+    // the default 4 sub-samples per edge cell (64 × 4 — and 128 × 2 reads the
+    // same, so it is the lattice's product and not the pupil's resolution),
+    // 7.4e-6 at 16 (register item 25). The aim layout's 7.6e-5 here was the same
+    // lattice's luck; this asserts the 1e-4 it was held to at a lattice that
+    // earns it on either layout.
+    const fine = { pupilSamples: 64, padFactor: 4, edgeSamples: 16 } as const;
+    const throughput =
+      psf(system, 0, FOCUS_NM, { ...fine, obstruction: epsilon }).energy / clearApertureEnergy(64, 256, 16);
     expect(Math.abs(throughput / (1 - epsilon * epsilon) - 1)).toBeLessThan(1e-4);
   });
 

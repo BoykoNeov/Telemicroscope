@@ -914,15 +914,27 @@ export interface SystemPsfOptions extends PsfOptions {
  * and reads the ruler off the paraxial exit pupil, which is the same thing only
  * where the aim maps linearly onto the exit cone.
  *
- * **The default is `"aim"`, and it is known to be wrong off that regime** —
- * 1.759× in the ruler on § 6e's oil 100×/1.25, and 0.2–1.2% on the DIN dry
- * objectives the mosaic chain is built on (register item 24). It stays the
- * default for one reason: every reading pinned on a traced microscope pupil
- * moves with it, and the chains are flipped one numbered step at a time rather
- * than restated in one commit. A caller that needs a high-NA pupil right asks
- * for `"exit"`.
+ * **The default follows the conjugate** (`defaultPupilLayout`). At an infinite
+ * object it is `"exit"` since § 2m, which flipped every chain imaging from
+ * infinity — telescopes, the optimiser's MTF, the telecentric tail — and pinned
+ * the ruler there to closed forms (a paraboloid's cos²(u′/2), a classical
+ * Cassegrain's the same at its system focal ratio). At a finite object it is
+ * still `"aim"`, which is known to be wrong off the paraxial regime — 1.759× in
+ * the ruler on § 6e's oil 100×/1.25, and 0.2–1.2% on the DIN dry objectives the
+ * mosaic chain is built on — for one reason: every reading pinned on a traced
+ * microscope pupil moves with it, and those chains flip one numbered step at a
+ * time (register item 24). A caller that needs a high-NA pupil right asks for
+ * `"exit"`.
  */
 export type PupilLayout = "aim" | "exit";
+
+/**
+ * The layout a caller gets unasked: `"exit"` at an infinite conjugate (§ 2m),
+ * `"aim"` at a finite one until the microscope chains flip (register item 24).
+ */
+export function defaultPupilLayout(system: OpticalSystem): PupilLayout {
+  return system.conjugate.kind === "infinite" ? "exit" : "aim";
+}
 
 /**
  * A traced pupil laid out for the transform — the one definition `systemPupil`,
@@ -959,14 +971,16 @@ export interface LaidPupilOptions {
 
 /**
  * Lay a traced map out for the transform, in the layout asked for (default
- * `"aim"` — see `PupilLayout` for why, and what it costs).
+ * by the conjugate, `defaultPupilLayout` — see `PupilLayout` for why).
  */
 export function laidPupil(
   system: OpticalSystem,
   map: OpdMap,
   options: LaidPupilOptions & { readonly layout?: PupilLayout } = {},
 ): LaidPupil {
-  if (options.layout === "exit") return exitCoordinatePupil(system, map, options);
+  if ((options.layout ?? defaultPupilLayout(system)) === "exit") {
+    return exitCoordinatePupil(system, map, options);
+  }
   const fit = fitZernike(map.samples, options.zernikeTerms ?? 28);
   // Only build the mask when the trace already shows loss: an unvignetted
   // system never pays for the per-point re-trace (§ 2f).

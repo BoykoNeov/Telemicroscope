@@ -374,19 +374,26 @@ describe("§ 8c.6 — the stack the finding was made on", () => {
     // to hide the excess is inert, which is the check that it is inert.
     expect(hero.stack.truncatedFraction).toBeGreaterThan(0);
     expect(Math.abs(hero.stack.truncatedFraction - (1 - placed / energy))).toBeLessThan(1e-15);
-    expect(hero.stack.truncatedFraction).toBeCloseTo(2.25098e-4, 8);
+    // 2.25098e-4 on the aim layout; the exit layout (§ 2m: this telescope's
+    // default) reads the transform's ruler off the traced cone, 1.3e-3 finer,
+    // so a little less of each plane's rings falls past the common grid.
+    expect(hero.stack.truncatedFraction).toBeCloseTo(2.24832e-4, 8);
   });
 
-  it("and § 8a.7's obstruction reading tightens toward the pupil grid's own", () => {
-    // The prediction this change had to meet, and could have failed. § 8a.7
-    // pinned the Newtonian's secondary at 1 − ε² on the RESAMPLED light to 1e-3
-    // and on the pupil grid to 7.6e-5, and named the gap as § 8a.11's excess —
-    // which is not common-mode between two frames whose PSFs differ. If the
-    // excess were not the cause, removing it would leave the gap where it was.
-    // It goes to 1.2e-5, past the pupil grid's own reading, because what is left
-    // is a truncation the two frames share.
+  it("and § 8a.7's obstruction reading is the pupil grid's, times a truncation the two frames do NOT share", () => {
+    // § 8a.7 pinned the Newtonian's secondary at 1 − ε² on the RESAMPLED light
+    // to 1e-3 and on the pupil grid to 7.6e-5, and named the gap as § 8a.11's
+    // excess. Removing the excess took the resampled reading to 1.2e-5, and this
+    // rung said that was "a truncation the two frames share". § 2m measured that
+    // it is not: since § 8c, Σ placed = Σ energy·(1 − truncatedFraction) per
+    // stack exactly, so the resampled ratio IS the pupil grid's times
+    // (1 − t_obstructed)/(1 − t_clear) — and the obstructed frame, whose rings
+    // carry more of its light outward, loses 2.9e-4 to the crop where the clear
+    // one loses 2.3e-4. The 1.2e-5 was the grid's +7.6e-5 lattice count (register
+    // item 25) meeting that −6.0e-5; on the exit layout (§ 2m: this mirror's
+    // default) the same count reads +1.89e-4 and the resampled light 1.25e-4.
     const epsilon = newtonian({ apertureMm: 200, focalRatio: 5 }).obstruction!;
-    const light = (withObstruction: boolean): number => {
+    const stackOf = (withObstruction: boolean) => {
       const scope = newtonian({ apertureMm: 200, focalRatio: 5 });
       const base: OpticalSystem = {
         prescription: scope.prescription,
@@ -396,15 +403,25 @@ describe("§ 8c.6 — the stack the finding was made on", () => {
         conjugate: { kind: "infinite" },
       };
       const focus = bestFocus(base, "minRmsWavefront", { wavelengthNm: FOCUS_NM });
-      const stack = spectralStack(withFocus(base, focus.offsetFromLastVertex), 0, {
+      return spectralStack(withFocus(base, focus.offsetFromLastVertex), 0, {
         pupilSamples: 64,
         padFactor: 4,
         ...(withObstruction ? { obstruction: scope.obstruction } : {}),
       });
-      return stack.planes.reduce((acc, p) => acc + sumOf(p.intensity), 0);
     };
-    const ratio = light(true) / light(false);
-    expect(Math.abs(ratio / (1 - epsilon * epsilon) - 1)).toBeLessThan(5e-5);
+    const weighted = (s: ReturnType<typeof stackOf>, of: (p: (typeof s.planes)[number]) => number): number =>
+      s.planes.reduce((acc, p) => acc + p.weight * of(p), 0);
+    const obstructed = stackOf(true);
+    const clear = stackOf(false);
+    const resampled =
+      weighted(obstructed, (p) => sumOf(p.intensity)) / weighted(clear, (p) => sumOf(p.intensity));
+    const grid = weighted(obstructed, (p) => p.energy) / weighted(clear, (p) => p.energy);
+    const crop = (1 - obstructed.truncatedFraction) / (1 - clear.truncatedFraction);
+    // The identity, to rounding.
+    expect(Math.abs(resampled / (grid * crop) - 1)).toBeLessThan(1e-12);
+    // The crop is not common-mode: −6.0e-5 between the two frames.
+    expect(crop - 1).toBeLessThan(-4e-5);
+    expect(crop - 1).toBeGreaterThan(-8e-5);
   }, 120000);
 });
 

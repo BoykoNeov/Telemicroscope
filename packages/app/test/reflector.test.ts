@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { spectralStack } from "@telemicroscope/core/wave";
 import {
   DISPERSION_FLOOR_AIRY_RADII,
   NEWTONIAN_FOCUS_OFFSET_FRACTION,
@@ -7,6 +8,7 @@ import {
   describeReflector,
   describeReflectors,
   newtonianObstruction,
+  reflectorSystem,
   renderReflector,
   vignetteSweep,
   type ReflectorKind,
@@ -204,31 +206,69 @@ describe("the fringe measure is diffraction, not dispersion", () => {
     expect(newt.dispersionAiryRadii).toBeLessThan(DISPERSION_FLOOR_AIRY_RADII);
   });
 
-  it("a conic has no refractive index: Cassegrain and RC agree to 1.3e-5 of each other", () => {
-    // The free control, and the one that shows the residue is the ruler rather
-    // than the design. The two differ ONLY in their conic constants (§ 5f is
+  it("a conic has no refractive index: the Cassegrain/RC gap is the Cassegrain's pupil, not a wavelength", () => {
+    // The free control. The two differ ONLY in their conic constants (§ 5f is
     // pinned against § 5e on identical geometry for exactly this reason), and a
-    // conic constant carries no wavelength — so a dispersion measure must return
-    // essentially the same number for both.
+    // conic constant carries no wavelength — so whatever separates their
+    // dispersion floors is not dispersion.
     //
-    // It is NOT exact, and the size of the miss is the interesting part. The
-    // conics change the wavefront, so the two PSFs are slightly different
-    // *shapes*, and the common-grid crop this floor consists of therefore bites
-    // slightly differently on each. So what survives is the ruler responding to
-    // a different picture — still not dispersion, since neither system has an
-    // index anywhere in it. Asserted as a relative agreement, which can fail in
-    // both directions; "identical" was the first draft and was simply wrong.
+    // On the aim layout they agreed to 1.3e-5, because that layout laid both
+    // pupils out the same uniform disc. On the exit layout (§ 2m: every
+    // telescope's default) the conics are visible in the pupil's MAPPING: the
+    // classical Cassegrain lays its rays out as a paraboloid of the system's
+    // focal length does, h = 2f·tan(u′/2), and the RC — aplanatic — as f·sin u′.
+    // So the gap is now the Cassegrain's pupil, measured below on both layouts:
+    // the RC's floor does not move between them and the Cassegrain's does, by
+    // the gap. The ruler part of that mapping (cos²(u′/2), 6.2e-4) no longer
+    // reaches this number at all, because the panel's Airy radius is read off
+    // the same cone (§ 2m); what remains is the Cassegrain's irradiance, which
+    // its mapping makes non-uniform.
+    const floorPx = (kind: ReflectorKind, pupilSamples: number, layout: "aim" | "exit"): number => {
+      const row = describeReflector(kind, SPEC);
+      const stack = spectralStack(reflectorSystem(row, SPEC, 5800, 5), 0, {
+        pupilSamples,
+        padFactor: 4,
+        traceSamples: 21,
+        obstruction: row.obstruction!,
+        layout,
+      });
+      const c = stack.size / 2;
+      const scaled = stack.planes.map((plane) => {
+        let acc = 0;
+        let total = 0;
+        for (let y = 0; y < stack.size; y++) {
+          for (let x = 0; x < stack.size; x++) {
+            const v = plane.intensity[y * stack.size + x]!;
+            acc += v * Math.hypot(x - c, y - c);
+            total += v;
+          }
+        }
+        return acc / total / plane.nm;
+      });
+      return Math.max(...scaled) - Math.min(...scaled);
+    };
     for (const pupilSamples of [32, 64]) {
       const cass = render("cassegrain", SPEC, pupilSamples);
       const rc = render("ritchey", SPEC, pupilSamples);
       const relative =
         Math.abs(rc.dispersionAiryRadii - cass.dispersionAiryRadii) / cass.dispersionAiryRadii;
-      expect(relative).toBeLessThan(1e-4);
-      // ...and it is four orders under the corrector's own excess on the same
-      // layout, which is what makes the tie evidence rather than a coincidence
-      // of two small numbers.
+      // 5.4e-4 and 3.1e-4: the Cassegrain's apodization, wandering with the grid
+      // as the crop it is read through does.
+      expect(relative).toBeLessThan(1e-3);
+      const rcShift = Math.abs(floorPx("ritchey", pupilSamples, "exit") / floorPx("ritchey", pupilSamples, "aim") - 1);
+      const cassShift = Math.abs(
+        floorPx("cassegrain", pupilSamples, "exit") / floorPx("cassegrain", pupilSamples, "aim") - 1,
+      );
+      // The aplanat's floor is the layout's to 5e-6; the Cassegrain's moves by
+      // the whole gap, to the aim layout's own 2.8e-5 tie.
+      expect(rcShift).toBeLessThan(2e-5);
+      expect(Math.abs(cassShift - relative)).toBeLessThan(5e-5);
+      // ...and the corrector's own excess stays three orders and more above the
+      // gap — 2.9e3 and 4.9e3 here, where the aim layout's uniform pupils made it
+      // over 1e4 — which is what makes the tie evidence rather than a
+      // coincidence of two small numbers.
       const excess = render("sct", SPEC, pupilSamples).dispersionAiryRadii - cass.dispersionAiryRadii;
-      expect(excess / (relative * cass.dispersionAiryRadii)).toBeGreaterThan(1e4);
+      expect(excess / (relative * cass.dispersionAiryRadii)).toBeGreaterThan(2e3);
     }
     // ...and they are genuinely different designs, or the tie above is empty.
     const rows = describeReflectors(SPEC);

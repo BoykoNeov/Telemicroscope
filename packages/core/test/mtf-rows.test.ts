@@ -200,7 +200,7 @@ describe("§ 1.8.14 — the rows exist, and they are not the merit", () => {
       return blended / mtfAt(m, nu, OPTS.pupilSamples) - 1;
     };
     expect(gap(0.15)).toBeCloseTo(-0.796, 3);
-    expect(gap(0.35)).toBeCloseTo(-0.368, 3);
+    expect(gap(0.35)).toBeCloseTo(-0.367, 3); // −0.368 on the aim layout, before § 2m
   });
 
   it("the other candidate — one row per pupil overlap — measures nothing at all", () => {
@@ -211,7 +211,7 @@ describe("§ 1.8.14 — the rows exist, and they are not the merit", () => {
     // where |Σ row| — the reading — is not. Rows whose squares cannot see the
     // design are a merit that measures nothing, which is the same defect the
     // term-count floor of § 1.8.7 refuses in the wavefront's currency.
-    const rowSums = (x: readonly number[], shiftBins: number) => {
+    const rowSums = (x: readonly number[], shiftBins: number, phase = true) => {
       const { pupil } = systemPupil(at(x), 0, LINE_D, OPTS);
       const n = OPTS.pupilSamples;
       const step = 2 / n;
@@ -226,8 +226,8 @@ describe("§ 1.8.14 — the rows exist, and they are not the merit", () => {
           const aA = pupil.amplitude(px, py);
           const bA = pupil.amplitude(qx, py);
           if (aA === 0 || bA === 0) continue;
-          const aP = 2 * Math.PI * pupil.phaseWaves(px, py);
-          const bP = 2 * Math.PI * pupil.phaseWaves(qx, py);
+          const aP = phase ? 2 * Math.PI * pupil.phaseWaves(px, py) : 0;
+          const bP = phase ? 2 * Math.PI * pupil.phaseWaves(qx, py) : 0;
           const [ar, ai] = [aA * Math.cos(aP), aA * Math.sin(aP)];
           const [br, bi] = [bA * Math.cos(bP), bA * Math.sin(bP)];
           const rowRe = ar * br + ai * bi;
@@ -246,10 +246,17 @@ describe("§ 1.8.14 — the rows exist, and they are not the merit", () => {
     // moves 9.0×…
     expect(contrastAt(WAVEFRONT.x, 0.5) / contrastAt(SEED, 0.5)).toBeGreaterThan(10);
     expect(answer.modulus / seed.modulus).toBeGreaterThan(8);
-    // …while Σ|row|² moves by 8.6·10⁻⁷. What is left of even that is the traced
-    // pupil's own amplitude at the rim, not the phase: the phase cannot enter a
-    // sum of squared moduli at all.
-    expect(Math.abs(answer.sumSq / seed.sumSq - 1)).toBeLessThan(1e-5);
+    // …while Σ|row|² moves by 2.1·10⁻⁴ (8.6·10⁻⁷ on the aim layout). What moves
+    // it is the pupil's AMPLITUDE: on the exit layout — this lens's default since
+    // § 2m — that is the traced irradiance, and bending the lens moves where its
+    // rays leave. The phase, which is everything the design is asked to fix,
+    // cannot enter a sum of squared moduli at all, and that is asserted rather
+    // than said: the same sum with the phase thrown away is the same number.
+    expect(Math.abs(answer.sumSq / seed.sumSq - 1)).toBeLessThan(1e-3);
+    for (const x of [SEED, WAVEFRONT.x]) {
+      const blind = rowSums(x, OPTS.pupilSamples / 2, false).sumSq;
+      expect(Math.abs(blind / rowSums(x, OPTS.pupilSamples / 2).sumSq - 1)).toBeLessThan(1e-12);
+    }
   });
 
   it("a `form` on a contrast operand is refused BY NAME rather than ignored", () => {
@@ -336,7 +343,9 @@ describe("§ 1.8.14 — what a contrast merit spends its freedom on", () => {
       expect(Math.abs(coefficient(fitAt(r.x), 4))).toBeGreaterThan(0.4);
     }
     expect(coefficient(fitAt(alone15.x), 4)).toBeCloseTo(-0.4295, 3);
-    expect(fitRms(fitAt(alone50.x))).toBeCloseTo(2.051, 2);
+    // 2.051 on the aim layout; on the exit layout (§ 2m) the ν = 0.5 run walks
+    // to a neighbouring point of the same side lobe.
+    expect(fitRms(fitAt(alone50.x))).toBeCloseTo(2.078, 2);
   });
 
   it("…and it has CONVERGED: restarted there it does not move, on a merit that is a fixed point", () => {
@@ -355,12 +364,22 @@ describe("§ 1.8.14 — what a contrast merit spends its freedom on", () => {
     expect(
       Math.hypot(again15.x[0]! - alone15.x[0]!, again15.x[1]! - alone15.x[1]!),
     ).toBeLessThan(1e-9);
-    // …and the ν = 0.5 answer is the stronger version of the same statement:
-    // the restart accepts NO step at all, so it does not move by a bit.
+    // …and the ν = 0.5 answer is where § 2m found the merit's other face. On the
+    // aim layout the restart accepted no step at all. On the exit layout it
+    // does not stay: its opening trial is long enough to cross to a lobe twelve
+    // waves of defocus further out — 14.2 waves in all, reading 0.117 against
+    // the 0.081 it left. Contrast against defocus has lobes all the way out, and
+    // "converged" is a statement about the lobe a run is on, not the merit.
     const again50 = optimizeSystem(at(alone50.x), VARS, [mtfOp(0.5)], { maxIterations: 200 });
-    expect(again50.accepted).toBe(0);
-    expect(again50.x[0]).toBe(alone50.x[0]);
-    expect(again50.x[1]).toBe(alone50.x[1]);
+    expect(again50.accepted).toBeGreaterThan(0);
+    expect(Math.abs(coefficient(fitAt(again50.x), 4))).toBeGreaterThan(10);
+    expect(contrastAt(again50.x, 0.5)).toBeGreaterThan(1.4 * contrastAt(alone50.x, 0.5));
+    // …where it IS a fixed point, in the strong sense: restarted again it
+    // accepts no step and does not move by a bit.
+    const twice50 = optimizeSystem(at(again50.x), VARS, [mtfOp(0.5)], { maxIterations: 200 });
+    expect(twice50.accepted).toBe(0);
+    expect(twice50.x[0]).toBe(again50.x[0]);
+    expect(twice50.x[1]).toBe(again50.x[1]);
 
     // …while a wavefront merit started at that same point walks to the same q*
     // it reached from the seed, and drops the error by 58%.
@@ -371,12 +390,14 @@ describe("§ 1.8.14 — what a contrast merit spends its freedom on", () => {
 
   it("the price, in contrast's own currency", () => {
     // The same operand, the same frequency, the same variables — asked after a
-    // wavefront merit has placed the shape instead of instead of it. 21.0% more
-    // contrast at ν = 0.15 and 9.2% at ν = 0.5, and the ν = 0.5 pair is the
-    // narrower gap only because the run that skipped the shape landed on a
-    // side lobe that reads well.
+    // wavefront merit has placed the shape instead of instead of it. 21.1% more
+    // contrast at ν = 0.15 and 67.6% at ν = 0.5. On the aim layout the ν = 0.5
+    // gap was 9.2%, because the run that skipped the shape landed on a side
+    // lobe that read well; on the exit layout (§ 2m) the same run stops on a
+    // lower point of its lobe, and which lobe a contrast merit ends on is the
+    // run's history — the rung above restarts it onto a better one.
     expect(contrastAt(after15.x, 0.15) / contrastAt(alone15.x, 0.15) - 1).toBeCloseTo(0.21, 2);
-    expect(contrastAt(after50.x, 0.5) / contrastAt(alone50.x, 0.5) - 1).toBeCloseTo(0.092, 2);
+    expect(contrastAt(after50.x, 0.5) / contrastAt(alone50.x, 0.5) - 1).toBeCloseTo(0.676, 2);
     // …and the shape survives being asked for contrast: given q*, both runs
     // keep it to 4·10⁻⁴, so the two merits agree about the GLASS.
     for (const r of [after15, after50]) {

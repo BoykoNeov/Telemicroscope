@@ -5,6 +5,7 @@ import {
   imagePixelScaleMm,
   laidPupil,
   type PupilFunction,
+  defaultPupilLayout,
   type PupilLayout,
   type PupilScale,
   type SpiderSpec,
@@ -283,7 +284,7 @@ export interface FieldPupilOptions {
   readonly obstruction?: number;
   /** Spider vanes, passed through to the pupil. */
   readonly spider?: SpiderSpec;
-  /** `psf()`'s `PupilLayout`; the frame's ruler follows it. Default `"aim"`. */
+  /** `psf()`'s `PupilLayout`; the frame's ruler follows it. Default by the conjugate (`defaultPupilLayout`). */
   readonly layout?: PupilLayout;
   /**
    * What fills the pupil on the exit layout — `PupilSource` (§ 2j). Default
@@ -500,7 +501,7 @@ function buildFrame(
     // On the exit layout, read on the axis whatever the centre, as every traced
     // pupil's is (§ 2i): the frame and the tiles laid on it share one ruler.
     apertureSine:
-      options.layout === "exit" ? Math.abs(exitApertureSine(system, wavelengthNm, aim)) : undefined,
+      (options.layout ?? defaultPupilLayout(system)) === "exit" ? Math.abs(exitApertureSine(system, wavelengthNm, aim)) : undefined,
   };
   const pixelScaleMm = imagePixelScaleMm(scale, size, pupilSamples);
   const halfExtentMm = (size / 2) * pixelScaleMm;

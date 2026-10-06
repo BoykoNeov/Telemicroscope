@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { plosslEyepiece, reducedEye } from "@telemicroscope/core/designs";
 import { afocalTelescope } from "@telemicroscope/core/trace";
+import { exitApertureSine, visualSystem } from "@telemicroscope/core/pupil";
+import { psf } from "@telemicroscope/core/wave";
+import { buildEyepiece } from "../src/eyepiece";
 import {
+  LAMBDA_NM,
   NOTICEABLE_DIOPTERS,
   buildObjective,
   describeVisual,
@@ -123,7 +127,7 @@ describe("C5.2 — the two-stop collapse, off the trace and not off a minimum", 
     expect(sawFree).toBe(true);
   });
 
-  it("the collapse is visible in the retinal image, at exactly D/(d_eye·|M|)", () => {
+  it("the collapse is visible in the retinal image, at D/(d_eye·|M|) to the cone's sine condition", () => {
     // § 5q pins the retinal Airy disc growing by the aperture ratio. Here it is
     // measured on the app's own frames: same optics, two irises.
     const wide = retinaOf({ eyepieceFocalLengthMm: 20, eyePupilMm: 3 });
@@ -131,10 +135,39 @@ describe("C5.2 — the two-stop collapse, off the trace and not off a minimum", 
     expect(wide.irisLimited).toBe(false);
     expect(narrow.irisLimited).toBe(true);
     const apertureRatio = wide.effectiveApertureMm / narrow.effectiveApertureMm;
-    expect(narrow.airyRadiusMm / wide.airyRadiusMm).toBeCloseTo(apertureRatio, 6);
+
+    // The disc is the cone the light actually converges in (§ 2m: the exit
+    // layout, this telescope's default), not the paraxial one — and the two
+    // differ by the instrument's offence against the sine condition, which a
+    // paraxial ratio cannot see. Until § 2m this held to 1e-6 because the
+    // retinal ruler was paraxial too.
+    const cone = (eyePupilMm: number) => {
+      const { system } = visualSystem({
+        objective: buildObjective("achromat", BASE.apertureMm, BASE.focalRatio).prescription,
+        eyepiece: buildEyepiece("plossl", 20, 0.86 * 20),
+        apertureRadiusMm: BASE.apertureMm / 2,
+        eye: { pupilDiameterMm: eyePupilMm },
+        wavelengthNm: LAMBDA_NM,
+      });
+      const ruler = (layout: "aim" | "exit") =>
+        psf(system, 0, LAMBDA_NM, { pupilSamples: 32, padFactor: 4, layout }).pixelScaleMm;
+      // traced sin u′ over the paraxial one, read off the two layouts' rulers
+      return { sine: Math.abs(exitApertureSine(system, LAMBDA_NM)), offence: ruler("aim") / ruler("exit") - 1 };
+    };
+    const w = cone(3);
+    const n = cone(1);
+    // Exactly the real cones' ratio...
+    expect(narrow.airyRadiusMm / wide.airyRadiusMm / (w.sine / n.sine) - 1).toBeCloseTo(0, 12);
+    // ...which is the paraxial collapse times the two cones' offences: 2.86e-3
+    // at the wide one and 7.0e-4 at the narrow, 0.22% between them.
+    expect(narrow.airyRadiusMm / wide.airyRadiusMm / apertureRatio - 1).toBeCloseTo(w.offence - n.offence, 5);
+    expect(w.offence - n.offence).toBeGreaterThan(1e-3);
+    // The offence is the third-order one: quadratic in the aperture, ×4.08 for
+    // an aperture ×2.0005 whose square is 4.002 — the 1.9% is fifth order.
+    expect(Math.abs(w.offence / n.offence / apertureRatio ** 2 - 1)).toBeLessThan(0.05);
     // And what it costs on the sky is the same ratio: the telescope has stopped
     // resolving what its aperture could.
-    expect(narrow.airyArcsec / wide.airyArcsec).toBeCloseTo(apertureRatio, 4);
+    expect(narrow.airyArcsec / wide.airyArcsec).toBeCloseTo(narrow.airyRadiusMm / wide.airyRadiusMm, 6);
   });
 
   it("above the knee the picture stops changing — magnification buys nothing", () => {

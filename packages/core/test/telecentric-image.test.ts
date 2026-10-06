@@ -6,7 +6,8 @@ import { systemProperties, paraxialTrace } from "../src/trace/paraxial";
 import { afocalTelescope } from "../src/trace/compose";
 import { pupils, resolveStopRadius, imagePlaneZ } from "../src/pupil/pupils";
 import { asCompiled } from "../src/trace/compile";
-import { chiefRay, pupilGrid } from "../src/pupil/aiming";
+import { aimRay, chiefRay, pupilGrid } from "../src/pupil/aiming";
+import { toImageSpace } from "../src/trace/axis";
 import { afocalProperties } from "../src/pupil/afocal";
 import { opdMap } from "../src/pupil/opd";
 import { bestFocus, paraxialImageOffset } from "../src/analysis/focus";
@@ -422,7 +423,7 @@ describe("§ 6aj.6 — the nine readers, measured", () => {
     // control: the same two on the same fixture one gap away were ordinary,
     // which is what made the refusals about the pupil and not about the system.
     expect(bestFocus(ORDINARY, "minRmsWavefront").offsetFromLastVertex).toBeCloseTo(48.852204447214056, 6);
-    expect(psf(ORDINARY, 0, LINE_D, { pupilSamples: 16 }).pixelScaleMm).toBeCloseTo(0.001944562477428594, 12);
+    expect(psf(ORDINARY, 0, LINE_D, { pupilSamples: 16, layout: "aim" }).pixelScaleMm).toBeCloseTo(0.001944562477428594, 12);
   });
 
   it("the four core readers that do not refuse saw an exit pupil at infinity", () => {
@@ -588,7 +589,7 @@ const SCALE_64_16 = 0.001944562477428594;
 
 describe("§ 6ak.1 — the pixel scale reads the slope, and it is the closed form", () => {
   it("is λ·N/(2·n′·size·tan u′), computed by hand — bitwise", () => {
-    const sp = systemPupil(TELECENTRIC, 0, LINE_D, { pupilSamples: 16 });
+    const sp = systemPupil(TELECENTRIC, 0, LINE_D, { pupilSamples: 16, layout: "aim" });
     expect(sp.scale.exitRadius).toBe(Infinity);
     expect(sp.scale.slopeRadius).toBe(TEL_SLOPE);
 
@@ -606,11 +607,11 @@ describe("§ 6ak.1 — the pixel scale reads the slope, and it is the closed for
     // § 6aj.6 had to name `geometric.ts` as a SECOND repair site because it
     // carried its own copy of the formula. It now calls the shared reader, so
     // there is no second place for a telecentric branch to be missing from.
-    expect(geometricPsf(TELECENTRIC, 0, LINE_D, { pupilSamples: 16 }).pixelScaleMm).toBe(SCALE_64_16);
+    expect(geometricPsf(TELECENTRIC, 0, LINE_D, { pupilSamples: 16, layout: "aim" }).pixelScaleMm).toBe(SCALE_64_16);
     // Bitwise unmoved on a finite pupil, which is what makes replacing the copy
     // a deduplication rather than a change.
-    expect(geometricPsf(ORDINARY, 0, LINE_D, { pupilSamples: 16 }).pixelScaleMm).toBe(
-      imagePixelScaleMm(systemPupil(ORDINARY, 0, LINE_D, { pupilSamples: 16 }).scale, 64, 16),
+    expect(geometricPsf(ORDINARY, 0, LINE_D, { pupilSamples: 16, layout: "aim" }).pixelScaleMm).toBe(
+      imagePixelScaleMm(systemPupil(ORDINARY, 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale, 64, 16),
     );
   });
 
@@ -644,7 +645,7 @@ describe("§ 6ak.1 — the pixel scale reads the slope, and it is the closed for
     const ex = pupils(oil, LINE_D).exit;
     expect(ex.radius).toBe(Infinity);
     expect(Math.abs(ex.n)).toBeGreaterThan(1.5);
-    const sc = systemPupil(oil, 0, LINE_D, { pupilSamples: 16 }).scale;
+    const sc = systemPupil(oil, 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale;
     expect(imagePixelScaleMm(sc, 64, 16)).toBe(
       (LINE_D * 1e-6 * 16) / (2 * Math.abs(ex.n) * 64 * ex.slopeRadius!),
     );
@@ -662,13 +663,13 @@ describe("§ 6ak.2 — the answer does not depend on the gap, and the marginal r
     // repaired branch lands on the number the finite branch was already giving.
     const gaps = [1, 5, 12, 20, FFD, 60];
     for (const g of gaps) {
-      const s = imagePixelScaleMm(systemPupil(at(g), 0, LINE_D, { pupilSamples: 16 }).scale, 64, 16);
+      const s = imagePixelScaleMm(systemPupil(at(g), 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale, 64, 16);
       expect(Math.abs(ulps(s, SCALE_64_16))).toBeLessThanOrEqual(1);
     }
     // And not vacuously: the family is not bitwise constant, so "within one
     // bit" is a measurement of the trace's noise and not of nothing happening.
     const distinct = new Set(
-      gaps.map((g) => imagePixelScaleMm(systemPupil(at(g), 0, LINE_D, { pupilSamples: 16 }).scale, 64, 16)),
+      gaps.map((g) => imagePixelScaleMm(systemPupil(at(g), 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale, 64, 16)),
     );
     expect(distinct.size).toBeGreaterThan(1);
   });
@@ -689,7 +690,7 @@ describe("§ 6ak.2 — the answer does not depend on the gap, and the marginal r
     // merely the one that avoids an infinity — on this family it is the
     // numerically clean route, and the finite spelling is the lossy one.
     const drift = [140, 400, 1000].map((g) =>
-      Math.abs(ulps(imagePixelScaleMm(systemPupil(at(g), 0, LINE_D, { pupilSamples: 16 }).scale, 64, 16), SCALE_64_16)),
+      Math.abs(ulps(imagePixelScaleMm(systemPupil(at(g), 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale, 64, 16), SCALE_64_16)),
     );
     expect(drift[0]).toBe(4);
     expect(drift[1]).toBe(38);
@@ -701,7 +702,7 @@ describe("§ 6ak.2 — the answer does not depend on the gap, and the marginal r
     // Relative to the value itself this is still 1e-13, so nothing downstream
     // is wrong — it is recorded as the reason the two spellings are kept apart,
     // not as an error budget anything spends.
-    const far = imagePixelScaleMm(systemPupil(at(1000), 0, LINE_D, { pupilSamples: 16 }).scale, 64, 16);
+    const far = imagePixelScaleMm(systemPupil(at(1000), 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale, 64, 16);
     expect(Math.abs(far / SCALE_64_16 - 1)).toBeLessThan(1e-12);
   });
 
@@ -716,7 +717,7 @@ describe("§ 6ak.2 — the answer does not depend on the gap, and the marginal r
     // unified expression would have spent those pins on.
     for (const eps of [1e-1, 1e-2, 1e-3, 1e-4, 1e-5, 1e-6]) {
       const near = imagePixelScaleMm(
-        systemPupil(at(FFD * (1 - eps)), 0, LINE_D, { pupilSamples: 16 }).scale,
+        systemPupil(at(FFD * (1 - eps)), 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale,
         64,
         16,
       );
@@ -727,9 +728,59 @@ describe("§ 6ak.2 — the answer does not depend on the gap, and the marginal r
   it("is linear in the stop radius, as a scale built on an aperture must be", () => {
     // Halving the stop halves the slope and doubles the pixel — the sanity the
     // gap sweep above cannot give, since it holds the aperture fixed.
-    const half = systemPupil(at(FFD, stopR(STOP_R / 2)), 0, LINE_D, { pupilSamples: 16 }).scale;
+    const half = systemPupil(at(FFD, stopR(STOP_R / 2)), 0, LINE_D, { pupilSamples: 16, layout: "aim" }).scale;
     expect(half.slopeRadius! / TEL_SLOPE).toBeCloseTo(0.5, 12);
     expect(imagePixelScaleMm(half, 64, 16) / SCALE_64_16).toBeCloseTo(2, 12);
+  });
+});
+
+/**
+ * § 2m — the same family on the exit layout, which every infinite-conjugate
+ * system gets unasked since § 2m. § 6ak.1–§ 6ak.2 above name the aim layout:
+ * they pin ITS ruler, the paraxial slope, which the finite chains still use.
+ */
+describe("§ 2m — on the exit layout the ruler is the traced rim, and the IMAGE is what keeps the gap out", () => {
+  it("telecentric: the ruler is the rim ray's own direction sine, computed by hand — bitwise", () => {
+    // With the exit pupil at infinity there is no sphere to cross, and a
+    // sample's coordinate is its direction against the chief ray's. Traced
+    // here from the rim aim with nothing of `exitApertureSine` in it.
+    const c = asCompiled(TELECENTRIC.prescription);
+    const map = opdMap(TELECENTRIC, 0, LINE_D, pupilGrid(5));
+    const rim = traceRay(c, aimRay(TELECENTRIC, map.pupil, 0, { px: 0, py: 1 }, LINE_D, {}));
+    const d = toImageSpace(c, rim.ray!).dir;
+    const sine = Math.hypot(d.x, d.y) / Math.hypot(d.x, d.y, d.z);
+    const exit = psf(TELECENTRIC, 0, LINE_D, { pupilSamples: 16, layout: "exit" }).pixelScaleMm;
+    expect(Math.abs(exit / ((LINE_D * 1e-6 * 16) / (2 * 1 * 64 * sine)) - 1)).toBeLessThan(1e-15);
+    // The traced sine is 1.13e-3 past the paraxial slope — the singlet's
+    // spherical aberration steepens its rim ray — and both rulers say so.
+    expect(SCALE_64_16 / exit - 1).toBeCloseTo(1.1342e-3, 6);
+  });
+
+  it("the ruler moves with the gap where the image does not", () => {
+    // The on-axis bundle is the same rays at every gap — the stop sits in
+    // collimated light — so the image must not move with it. On the exit
+    // layout the RULER does, 4.5e-4 between gaps 5 and 20: the reference sphere
+    // moves with the exit pupil, and the rim ray's crossing of it reads its
+    // transverse aberration over the sphere's radius. The wavefront measured on
+    // that sphere carries the same difference back, so the light inside a
+    // fixed radius in millimetres agrees to 2e-5, where the aim layout's agrees
+    // to 1.4e-5. (The telecentric gap reads a PLANE reference on both layouts
+    // and is not in this family: § 6ak.4.)
+    const opts = { pupilSamples: 64, padFactor: 8, layout: "exit" } as const;
+    const near = psf(at(5), 0, LINE_D, opts);
+    const far = psf(at(20), 0, LINE_D, opts);
+    expect(Math.abs(near.pixelScaleMm / far.pixelScaleMm - 1)).toBeGreaterThan(3e-4);
+    const inside = (p: typeof near, radiusMm: number): number => {
+      const half = p.size / 2;
+      let e = 0;
+      for (let y = 0; y < p.size; y++) {
+        for (let x = 0; x < p.size; x++) {
+          if (Math.hypot(x - half, y - half) * p.pixelScaleMm <= radiusMm) e += p.intensity[y * p.size + x]!;
+        }
+      }
+      return e / p.energy;
+    };
+    expect(Math.abs(inside(near, 0.004) / inside(far, 0.004) - 1)).toBeLessThan(1e-4);
   });
 });
 
@@ -773,13 +824,13 @@ describe("§ 6ak.4 — the refusal that had nothing to redirect to now has the s
     // diffraction-limited check, run for the first time on this arrangement.
     const rms = opdMap(TELECENTRIC, 0, LINE_D, pupilGrid(21), {}).rmsWaves;
     expect(rms).toBeCloseTo(0.012800257481117096, 9);
-    const p = psf(TELECENTRIC, 0, LINE_D, { pupilSamples: 32, padFactor: 4 });
+    const p = psf(TELECENTRIC, 0, LINE_D, { pupilSamples: 32, padFactor: 4, layout: "aim" });
     expect(p.strehl).toBeCloseTo(Math.exp(-Math.pow(2 * Math.PI * rms, 2)), 3);
     expect(p.strehl).toBeCloseTo(0.9934178741915238, 9);
     // Transmitted energy BITWISE equal to the ordinary fixture's: the aperture
     // is the same stop through the same tail, so a ruler repair had better not
     // have changed how much light there is.
-    expect(p.energy).toBe(psf(ORDINARY, 0, LINE_D, { pupilSamples: 32, padFactor: 4 }).energy);
+    expect(p.energy).toBe(psf(ORDINARY, 0, LINE_D, { pupilSamples: 32, padFactor: 4, layout: "aim" }).energy);
     expect(p.pixelScaleMm).toBe(SCALE_64_16);
   });
 
@@ -790,7 +841,7 @@ describe("§ 6ak.4 — the refusal that had nothing to redirect to now has the s
     // without ever calling the geometric one: that case exercises nothing about
     // two branches agreeing, and pinning it alone would have been a rung that
     // passes without touching what it claims.
-    const clean = adaptivePsf(TELECENTRIC, 0, LINE_D, { pupilSamples: 32, padFactor: 4 });
+    const clean = adaptivePsf(TELECENTRIC, 0, LINE_D, { pupilSamples: 32, padFactor: 4, layout: "aim" });
     expect(clean.geometricWeight).toBe(0);
     expect(clean.pixelScaleMm).toBe(SCALE_64_16);
 
@@ -799,7 +850,7 @@ describe("§ 6ak.4 — the refusal that had nothing to redirect to now has the s
     // one system and their two images are cross-faded — which before § 6ak meant
     // `geometricPsf` returning a pixel scale of 0 while `psfFromPupilFunction`
     // threw, on the same call, decided by an aberration threshold.
-    const blended = adaptivePsf(at(FFD, stopR(5)), 0, LINE_D, { pupilSamples: 16, padFactor: 4 });
+    const blended = adaptivePsf(at(FFD, stopR(5)), 0, LINE_D, { pupilSamples: 16, padFactor: 4, layout: "aim" });
     expect(blended.geometricWeight).toBeGreaterThan(0);
     expect(blended.geometricWeight).toBeLessThan(1);
     expect(blended.geometricWeight).toBeCloseTo(0.01890609123900193, 9);

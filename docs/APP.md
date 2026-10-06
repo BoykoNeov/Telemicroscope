@@ -2306,8 +2306,12 @@ energy-weighted mean radius picks up a λ-dependent bias. It is therefore
 undefined readouts applied to a floor. The control costs nothing and is exact in
 its logic: a Cassegrain and a Ritchey-Chrétien differ *only* in two conic
 constants, and a conic carries no refractive index, so a dispersion measure must
-return one number for both. They agree to **1.3e-5** of each other — four orders
-under the corrector's own excess on the same layout — and *not* exactly, which is
+return one number for both. They agree to ~~**1.3e-5** of each other — four orders
+under the corrector's own excess~~ **5.4e-4 and 3.1e-4** at 32 and 64 pupil
+samples since [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout), the corrector's excess 2.9e3–4.9e3× that: on the
+exit layout the conics show in the pupil's mapping, the RC's floor does not
+move and the Cassegrain's moves by the gap, and the panel's Airy radius is read
+off the same traced cone so the ruler part (6.2e-4) cancels — and *not* exactly, which is
 the informative part: different conics make different wavefronts, so the two PSFs
 are different shapes and the common-grid crop bites slightly differently on each.
 What survives the control is the ruler reacting to a different picture, still not
@@ -2883,7 +2887,9 @@ statement about observing.** § 5q pins the closed form; what a panel adds is th
 the drawn number comes off the entrance pupil under `limiting` selection and
 never off a `Math.min` — `irisLimited` is *which surface won*, and it agrees with
 the side of the knee at all 41 points. In the image the retinal Airy disc grows
-by exactly D/(d_eye·|M|) — 3.20× at an eye pupil of 1 mm against 3.5 on the
+by ~~exactly~~ D/(d_eye·|M|) to the instrument's sine-condition offence —
+0.22% between the two cones since [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout), where the disc is read off the
+traced cone; quadratic in the aperture — 3.20× at an eye pupil of 1 mm against 3.5 on the
 default instrument — and the same ratio carries to the sky: **1.384″ becomes
 2.769″**. Above the knee the frame stops changing to twelve digits at 3, 5 and
 7 mm of iris, which is empty magnification's positive form: past the crossover

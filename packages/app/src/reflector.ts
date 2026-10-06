@@ -432,6 +432,12 @@ export interface ReflectorResult {
   readonly elapsedMs: number;
   readonly fNumber: number;
   readonly focalLengthMm: number;
+  /**
+   * 1.22·λ/(2·sin u′) at the focus wavelength, on the cone the light actually
+   * leaves in — the transform's own ruler, as `visual.ts` reads it — and not
+   * on the paraxial D/2f: § 2m measured the paraxial one moving the dispersion
+   * floor by the mirrors' pupil mapping (6.2e-4 at f/10, cos²(u′/2)).
+   */
   readonly airyRadiusMm: number;
   /** The ε that was applied — 0 when the control is on, or for the Schmidt. */
   readonly obstruction: number;
@@ -624,8 +630,9 @@ export function renderReflector(request: ReflectorRequest): ReflectorResult {
   const rays = exitBundle(system, request.fieldDeg, FOCUS_NM, pupilGrid(RAY_GRID));
 
   const f = row.focalLengthMm ?? request.spec.apertureMm * request.spec.focalRatio;
-  const naImage = request.spec.apertureMm / (2 * f);
-  const airyRadiusMm = (1.22 * FOCUS_NM * 1e-6) / (2 * naImage);
+  // The transform's ruler, read off the cone the light leaves in: a classical
+  // Cassegrain's is cos²(u′/2) under D/2f, an RC's is D/2f (§ 2m).
+  const airyRadiusMm = 1.22 * (obstructed.size / obstructed.pupilSamples) * obstructed.pixelScaleMm;
 
   // Energy-weighted mean radius per wavelength; its spread across the spectrum
   // is the fringing. Same measure the refractor panel and § 3b's rungs use.

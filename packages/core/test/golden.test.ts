@@ -17,6 +17,7 @@ import { quadratureSamples } from "../src/photometry/spectrum";
 import { PointSource, rasterizePointSources } from "../src/imaging/scene";
 import { renderField } from "../src/imaging/render";
 import { spectralStack } from "../src/wave/polychromatic";
+import { psf } from "../src/wave/psf";
 import { bestFocus, withFocus } from "../src/analysis/focus";
 
 /**
@@ -239,17 +240,30 @@ describe("the gate detects the defects the goldens exist for", () => {
     // measurement: it is not a third pretty picture, it covers a defect class
     // the other two structurally cannot.
     //
-    // The 1 rather than 0 is § 8c's, and is worth stating rather than rounding
-    // away. The conservative resampler runs one axis and then the other, and its
-    // slope limiter is taken on the already-resampled intermediate, so the
-    // operator is not bit-symmetric under a transpose the way the single fused
-    // bilinear expression it replaced happened to be. It is a last-bit
-    // asymmetry that reaches one level of an 8-bit render, and the claim this
-    // rung actually makes — that the gate does NOT reject a transposed hero — is
-    // asserted directly below rather than through a proxy for it.
+    // The levels rather than 0 are § 8c's, and are worth stating rather than
+    // rounding away. The conservative resampler runs one axis and then the
+    // other, and its slope limiter is taken on the already-resampled
+    // intermediate, so the operator is not symmetric under a transpose the way
+    // the single fused bilinear expression it replaced happened to be. § 2m
+    // measured how far: NOT a last bit, as this said — the hero's resampled
+    // planes are 6e-6 to 3.3e-3 of their peak away from their own transposes,
+    // on either pupil layout, while the transform underneath is symmetric to
+    // 3e-16. In 8 bits that is one level on the aim layout's render and two on
+    // the exit layout's, which the hero has used since § 2m; the claim this
+    // rung actually makes — that the gate does NOT reject a transposed hero —
+    // is asserted directly below rather than through that proxy, and the
+    // symmetry itself is asserted where it holds, before the resampler.
+    const raw = psf(renderHero(heroPair().singlet).system, 0, 550, PSF_OPTIONS);
+    let rawSwap = 0;
+    for (let y = 0; y < raw.size; y++) {
+      for (let x = 0; x < raw.size; x++) {
+        rawSwap = Math.max(rawSwap, Math.abs(raw.intensity[y * raw.size + x]! - raw.intensity[x * raw.size + y]!));
+      }
+    }
+    expect(rawSwap / raw.peak).toBeLessThan(1e-14);
     const hero = committed("star-singlet");
     const heroSwap = diffRgba(hero.rgba, transposeRgba(hero.rgba, hero.width));
-    expect(heroSwap.maxChannelDelta).toBeLessThanOrEqual(1);
+    expect(heroSwap.maxChannelDelta).toBeLessThanOrEqual(2);
     expect(gateRejects(hero.rgba, transposeRgba(hero.rgba, hero.width))).toBe(false);
 
     const field = committed("star-field");

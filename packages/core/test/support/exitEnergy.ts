@@ -23,6 +23,11 @@ import { laidPupil, type PupilLayout } from "../../src/wave/psf";
  *
  * Unvignetted systems only: it launches every node and does not ask the
  * vignette mask, which § 2l did not measure.
+ *
+ * `obstruction` (§ 2m) is the caller's ε, applied through the engine's own
+ * pupil — so what is integrated is the mask `exitCoordinatePupil` builds, not
+ * one written here. The rule is then split at ρ_aim = ε, the obstruction's
+ * edge in the coordinate it is defined in, so no node sits on it either.
  */
 export function exactPupilEnergy(
   system: OpticalSystem,
@@ -30,11 +35,12 @@ export function exactPupilEnergy(
   wavelengthNm: number,
   layout: PupilLayout,
   rule: { readonly radial: number; readonly angular: number } = { radial: 24, angular: 128 },
+  obstruction = 0,
 ): number {
   const c = asCompiled(system.prescription);
   const map = opdMap(system, fieldValue, wavelengthNm, pupilGrid(21));
   if (map.lost > 0) throw new Error("exactPupilEnergy: the map vignettes — not measured at § 2l");
-  const pupil = laidPupil(system, map, { layout }).pupil;
+  const pupil = laidPupil(system, map, { layout, ...(obstruction > 0 ? { obstruction } : {}) }).pupil;
   const sigma = layout === "exit" ? exitApertureSine(system, wavelengthNm) : 1;
   const at = (px: number, py: number): readonly [number, number] => {
     if (layout === "aim") return [px, py];
@@ -47,19 +53,21 @@ export function exactPupilEnergy(
   const { x, w } = gaussLegendreUnit(rule.radial);
   const d = 1e-4;
   let sum = 0;
-  for (let i = 0; i < rule.radial; i++) {
-    for (let k = 0; k < rule.angular; k++) {
-      const r = x[i]!;
-      const phi = (2 * Math.PI * (k + 0.5)) / rule.angular;
-      const px = r * Math.cos(phi);
-      const py = r * Math.sin(phi);
-      const xp = at(px + d, py);
-      const xm = at(px - d, py);
-      const yp = at(px, py + d);
-      const ym = at(px, py - d);
-      const jac = Math.abs(((xp[0] - xm[0]) * (yp[1] - ym[1]) - (xp[1] - xm[1]) * (yp[0] - ym[0])) / (4 * d * d));
-      const e = at(px, py);
-      sum += pupil.amplitude(e[0], e[1]) ** 2 * jac * w[i]! * r * ((2 * Math.PI) / rule.angular);
+  for (const [r0, r1] of obstruction > 0 ? [[0, obstruction], [obstruction, 1]] : [[0, 1]]) {
+    for (let i = 0; i < rule.radial; i++) {
+      for (let k = 0; k < rule.angular; k++) {
+        const r = r0! + (r1! - r0!) * x[i]!;
+        const phi = (2 * Math.PI * (k + 0.5)) / rule.angular;
+        const px = r * Math.cos(phi);
+        const py = r * Math.sin(phi);
+        const xp = at(px + d, py);
+        const xm = at(px - d, py);
+        const yp = at(px, py + d);
+        const ym = at(px, py - d);
+        const jac = Math.abs(((xp[0] - xm[0]) * (yp[1] - ym[1]) - (xp[1] - xm[1]) * (yp[0] - ym[0])) / (4 * d * d));
+        const e = at(px, py);
+        sum += pupil.amplitude(e[0], e[1]) ** 2 * jac * w[i]! * (r1! - r0!) * r * ((2 * Math.PI) / rule.angular);
+      }
     }
   }
   return sum;

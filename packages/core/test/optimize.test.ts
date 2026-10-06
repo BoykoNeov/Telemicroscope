@@ -29,6 +29,7 @@ import { psf } from "../src/wave/psf";
 import { mtf, mtfAt, mtfSections, diffractionLimitedMtf } from "../src/wave/mtf";
 import { pupils, imagePlaneZ } from "../src/pupil/pupils";
 import type { SolveVariable } from "../src/analysis/solve";
+import { apodizedMtf, paraboloidExitAmplitude } from "./support/apodizedMtf";
 
 /**
  * Step 1.8 — damped least squares, design mode's second half.
@@ -2698,24 +2699,42 @@ describe("DLS § 1.8.8 — the MTF reads above the closed form, and the grid say
    * after next reaches exactly.
    */
   it("a Strehl-1 paraboloid reads 0.66/pupilSamples ABOVE the closed form", () => {
+    // The closed form is the UNIFORM disc's, and on the exit layout — every
+    // infinite-conjugate system's default since § 2m — this f/2.5 paraboloid's
+    // pupil is not uniform: its own mapping, h = 2f·tan(u′/2), makes the exit
+    // irradiance 1/|∂e/∂a|, ±2% and brightest at the rim. That pupil's ceiling
+    // is its own autocorrelation, integrated here with no grid
+    // (`apodizedMtf`, which returns the uniform closed form to 1e-15): 3.4e-3
+    // under the uniform one at ν = 0.25 and 1.2e-3 at ν = 0.5.
+    const ceiling = (nu: number) => apodizedMtf(paraboloidExitAmplitude(2.5), nu);
+    for (const nu of [0.25, 0.5]) {
+      expect(Math.abs(apodizedMtf(() => 1, nu) / diffractionLimitedMtf(nu) - 1)).toBeLessThan(1e-13);
+      expect(ceiling(nu)).toBeLessThan(diffractionLimitedMtf(nu));
+    }
+    // The over-count is the EDGE cells', so it scales with the irradiance the
+    // edge carries: (1 + q)/(1 − q), q = 1/16F², over a mean of exactly 1.
+    const q = 1 / (16 * 2.5 * 2.5);
+    const rim = (1 + q) / (1 - q);
     for (const pupilSamples of [16, 32, 64, 128]) {
       const image = psf(mtfParabola(-1), 0, LINE_D, { pupilSamples, padFactor: 4 });
       expect(image.strehl).toBeCloseTo(1, 9);
       for (const nu of [0.25, 0.5]) {
-        const bias = mtfAt(mtf(image), nu, image.pupilSamples) / diffractionLimitedMtf(nu) - 1;
+        const bias = mtfAt(mtf(image), nu, image.pupilSamples) / ceiling(nu) - 1;
         // Positive at every sampling: it is over-counting, not aberration.
         expect(bias).toBeGreaterThan(0);
-        // …and bias·N is one number, 0.65…0.76, falling toward ~0.65 as the
-        // grid refines. Halving the sampling doubles the error.
-        expect(bias * pupilSamples).toBeGreaterThan(0.64);
-        expect(bias * pupilSamples).toBeLessThan(0.76);
+        // …and bias·N per unit of rim irradiance is one number, 0.65…0.76 —
+        // the aim layout's law, whose uniform rim is 1 — falling toward ~0.65
+        // as the grid refines. Halving the sampling doubles the error.
+        expect((bias * pupilSamples) / rim).toBeGreaterThan(0.64);
+        expect((bias * pupilSamples) / rim).toBeLessThan(0.76);
       }
     }
-    // The numbers themselves, so a change in the transform has to edit them.
+    // The numbers themselves, so a change in the transform has to edit them
+    // (2.1797e-2 and 1.0580e-2 against the uniform disc on the aim layout).
     const at = (n: number) =>
       mtfAt(mtf(psf(mtfParabola(-1), 0, LINE_D, { pupilSamples: n, padFactor: 4 })), 0.5, n);
-    expect(at(32) / diffractionLimitedMtf(0.5) - 1).toBeCloseTo(2.1797e-2, 6);
-    expect(at(64) / diffractionLimitedMtf(0.5) - 1).toBeCloseTo(1.0580e-2, 6);
+    expect(at(32) / ceiling(0.5) - 1).toBeCloseTo(2.2188e-2, 6);
+    expect(at(64) / ceiling(0.5) - 1).toBeCloseTo(1.0791e-2, 6);
   });
 
   /**
@@ -2764,10 +2783,13 @@ describe("DLS § 1.8.8 — the MTF reads above the closed form, and the grid say
       expect(below / above).toBeCloseTo(1, 3);
       curvature.push(below / dk ** 2);
     }
-    // Approached from below as ΔK shrinks — 486.4 at 3e-3, then 488.3, 488.5,
-    // 488.5 — the quartic term retiring and leaving one constant.
-    expect(curvature[0]!).toBeCloseTo(486.4, 0);
-    for (const c of curvature.slice(1)) expect(c).toBeCloseTo(488.4, 0);
+    // Approached from below as ΔK shrinks — 482.8 at 3e-3, then 484.6, 484.8,
+    // 484.9 — the quartic term retiring and leaving one constant. (486.4 and
+    // 488.5 on the aim layout: on the exit layout, this telescope's default
+    // since § 2m, the pupil is the paraboloid's apodized one, and the bowl is
+    // 0.74% shallower everywhere along it.)
+    expect(curvature[0]!).toBeCloseTo(482.8, 0);
+    for (const c of curvature.slice(1)) expect(c).toBeCloseTo(484.8, 0);
     // And the discriminator, stated as the thing a corner cannot do: deficit/ΔK
     // is NOT constant — it falls by the same factor ΔK does.
     const linear = [3e-3, 1e-4].map((dk) => (ceiling - mtfRead(mtfParabola(-1 - dk), 0.5, 64)) / dk);
@@ -2782,7 +2804,8 @@ describe("DLS § 1.8.8 — the MTF reads above the closed form, and the grid say
     const v = [-4, -5, -6, -7].map((e) => d(10 ** e));
     const spread = (Math.max(...v) - Math.min(...v)) / Math.abs(v[0]!);
     expect(spread).toBeLessThan(1e-4);
-    expect(d(1e-5)).toBeCloseTo(-4.77089865, 5);
+    // −4.77089865 on the aim layout; the exit layout's apodized pupil, § 2m.
+    expect(d(1e-5)).toBeCloseTo(-4.73566711, 5);
   });
 });
 
@@ -2927,14 +2950,15 @@ describe("DLS § 1.8.8 — off axis, where the operand's direction becomes a cla
       }
     }
     // And they split, in the direction an off-axis mirror's coma and
-    // astigmatism put the blur: 0.2% at 1° and 27% at 2°.
+    // astigmatism put the blur: 0.17% at 1° and 27% at 2° (0.23% and 26.9% on
+    // the aim layout, before § 2m laid the off-axis pupil where its rays went).
     const at = (field: number) => {
       const image = psf(wfMirror(10), field, LINE_D, { pupilSamples: 32, padFactor: 4 });
       const s = mtfSections(mtf(image), 33, image.pupilSamples);
       return s.tangential[8]! / s.sagittal[8]!;
     };
-    expect(at(1)).toBeCloseTo(0.99770, 4);
-    expect(at(2)).toBeCloseTo(0.73149, 4);
+    expect(at(1)).toBeCloseTo(0.99831, 4);
+    expect(at(2)).toBeCloseTo(0.73015, 4);
   });
 
   it("off axis the masked pupil branch runs, and the cost figure survives it", () => {
@@ -2979,7 +3003,7 @@ describe("DLS § 1.8.8 — off axis, where the operand's direction becomes a cla
     );
     // Asked for a contrast no system can reach, so this is a refocus rather
     // than a solve: it moves the plane and stops with its residual reported.
-    expect(mtfAt(mtf(image), 0.25, image.pupilSamples)).toBeCloseTo(0.33421, 4);
+    expect(mtfAt(mtf(image), 0.25, image.pupilSamples)).toBeCloseTo(0.33452, 4); // 0.33421 on the aim layout
     expect(r.x[0]! - MIRROR_R / 2).toBeGreaterThan(0);
     expect(r.merit).toBeGreaterThan(0.1);
   });
@@ -2990,13 +3014,14 @@ describe("DLS § 1.8.8 — off axis, where the operand's direction becomes a cla
    * ν was chosen over cycles/mm because in ν the sample position is the
    * caller's own arithmetic and cannot drift. That is only worth saying if the
    * alternative really would drift, so: `pixelScaleMm` moves with the image
-   * distance — and, on this fixture, is bit-identical across a 30% change of
-   * curvature, because the stop is the mirror and the exit pupil does not move
-   * with its power. Both halves matter. A frequency in cycles/mm would ride the
-   * first and not the second, which is a merit whose ruler depends on WHICH
-   * variable an optimiser happens to be moving.
+   * distance — and on the aim layout was bit-identical across a 30% change of
+   * curvature, because the stop is the mirror and the paraxial exit pupil does
+   * not move with its power. On the exit layout (§ 2m) the traced rim moves with
+   * the power too, by 1.3e-4. Either way a frequency in cycles/mm would be a
+   * merit whose ruler depends on WHICH variable an optimiser happens to be
+   * moving.
    */
-  it("pixelScaleMm moves with the image distance and not with the curvature", () => {
+  it("pixelScaleMm moves with the image distance, and on the exit layout with the curvature too", () => {
     const scaleOf = (thickness: number, curvature: number): number =>
       psf(
         { ...wfMirror(10), prescription: { surfaces: [{ ...wfMirror(10).prescription.surfaces[0]!, thickness, curvature }] } },
@@ -3005,20 +3030,28 @@ describe("DLS § 1.8.8 — off axis, where the operand's direction becomes a cla
         { pupilSamples: 32, padFactor: 4 },
       ).pixelScaleMm;
 
+    // On the exit layout — every infinite-conjugate system's default since
+    // § 2m — the ruler is the traced cone's, not the paraxial pupil's: this
+    // f/5 sphere reads 7.3628953e-4 where the aim layout read 7.3445225e-4,
+    // the cone's sine 0.25% past D/2f.
     const base = scaleOf(MIRROR_R / 2, 1 / MIRROR_R);
-    expect(base).toBeCloseTo(7.3445225e-4, 11);
-    // It rides the reference distance exactly — `imagePixelScaleMm` is linear
-    // in it — so half a millimetre of focus is 0.5% of the ruler and five
-    // millimetres is 5%. That is the drift a frequency in cycles/mm would sit on.
+    expect(base).toBeCloseTo(7.3628953e-4, 11);
+    // It rides the reference distance — half a millimetre of focus is 0.5% of
+    // the ruler and five millimetres is 5% — to the traced rim's crossing of a
+    // moved sphere, 2.4e-4 at the larger step. The aim layout rode it exactly.
+    // That is the drift a frequency in cycles/mm would sit on.
     for (const dz of [-0.5, -5]) {
       const moved = scaleOf(MIRROR_R / 2 + dz, 1 / MIRROR_R);
-      expect(moved / base).toBeCloseTo((MIRROR_R / 2 + dz) / (MIRROR_R / 2), 12);
+      expect(Math.abs(moved / base / ((MIRROR_R / 2 + dz) / (MIRROR_R / 2)) - 1)).toBeLessThan(3e-4);
     }
-    expect(scaleOf(MIRROR_R / 2 - 5, 1 / MIRROR_R) / base - 1).toBeCloseTo(5.0e-2, 6);
-    // …and a 30% change of curvature moves it not at all, to the bit.
-    for (const curvature of [1 / -210, 1 / -260]) {
-      expect(scaleOf(MIRROR_R / 2, curvature)).toBe(base);
-    }
+    expect(scaleOf(MIRROR_R / 2 - 5, 1 / MIRROR_R) / base - 1).toBeCloseTo(4.975e-2, 6);
+    // …and a 30% change of curvature moves it too, by 1.3e-4: the rim ray a
+    // different sphere sends through the same stop crosses the reference sphere
+    // elsewhere. On the aim layout this was not at all, to the bit, and the
+    // case for ν was half as strong; now cycles/mm would ride BOTH variables.
+    const curved = [1 / -210, 1 / -260].map((curvature) => scaleOf(MIRROR_R / 2, curvature) / base - 1);
+    expect(Math.abs(curved[1]!)).toBeGreaterThan(1e-5);
+    for (const c of curved) expect(Math.abs(c)).toBeLessThan(2e-4);
   });
 });
 

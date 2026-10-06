@@ -8,9 +8,9 @@ import {
   SeeingSpec,
 } from "../src/wave/seeing";
 import {
+  laidPupil,
   psf,
   psfFromPupilFunction,
-  pupilFunctionFromOpd,
   systemPupil,
   PupilFunction,
   PupilScale,
@@ -21,7 +21,6 @@ import { friedAtmosphericMtf, longExposurePsf } from "../src/wave/long-exposure"
 import { spectralStack } from "../src/wave/polychromatic";
 import { opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
-import { fitZernike } from "../src/wave/zernike";
 import { OpticalSystem } from "../src/trace/system";
 import { Prescription } from "../src/trace/prescription";
 import { LINE_D } from "../src/materials/dispersion";
@@ -222,17 +221,11 @@ describe("psf() composes the seeing screen, in the FFT branch, colour-honestly",
     // Reproduce psf()'s own pipeline and wrap the pupil by hand: the wiring must
     // add nothing the composition would not, so the two intensity arrays match
     // exactly, not merely closely.
+    // Laid out by the one definition `psf()` uses — the exit layout on this
+    // telescope since § 2m; until then this built the aim layout's pupil by
+    // hand, and the flip moved the two apart in the twelfth digit.
     const map = opdMap(sys, 0, LINE_D, pupilGrid(21), {});
-    const fit = fitZernike(map.samples, 28);
-    const pupil = pupilFunctionFromOpd(map, fit);
-    const scale: PupilScale = {
-      referenceRadius: map.referenceRadius,
-      exitRadius: map.pupil.exit.radius,
-      wavelengthNm: LINE_D,
-      nImage: map.pupil.exit.n,
-      slopeRadius: map.pupil.exit.slopeRadius,
-      apertureSine: undefined,
-    };
+    const { pupil, scale } = laidPupil(sys, map);
     const manual = psfFromPupilFunction(withPhaseScreen(pupil, screen, LINE_D), scale, 0, WIRE_GRID);
 
     expect(wired.intensity).toEqual(manual.intensity);

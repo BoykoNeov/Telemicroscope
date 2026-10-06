@@ -727,18 +727,22 @@ describe("the traced wish, and the rule that says which readings are offered", (
       expect(r.merit).toBeLessThan(1e-20);
     }
 
-    // Just outside: 0.308 waves. It walks three millimetres away, lands at 1.8
-    // waves, and stops with a merit of 2·10⁻² — the § 1.8 shape, on this panel's
-    // own lens. And a SECOND frequency, which is what rescued § 1.8.8's 0.1 mm
-    // start, does not rescue this one.
+    // Just outside: 0.308 waves, and it does not come back. On the exit layout
+    // — this lens's default since § 2m — the single frequency stops 0.47 mm out
+    // with a merit of 0.36, stalled on the shoulder outside the central lobe;
+    // on the aim layout it walked three millimetres the other way to 1.8 waves
+    // and a merit of 2·10⁻². Two different failures of one rule, which is why
+    // the rule is about the quarter wave and not about either landing. And a
+    // SECOND frequency, which is what rescued § 1.8.8's 0.1 mm start, does not
+    // rescue this one.
     const outside = focus + 0.5;
     expect(wavesAt(outside)).toBeGreaterThan(0.3);
     const one = optimizeSystem(systemOf(at(outside), 0), FOCUS, [wish(0.3, ceiling)], {
       maxIterations: 60,
     });
-    expect(one.x[0]! - focus).toBeLessThan(-2.9);
-    expect(wavesAt(one.x[0]!)).toBeGreaterThan(1.8);
-    expect(one.merit).toBeLessThan(5e-2);
+    expect(Math.abs(one.x[0]! - focus)).toBeGreaterThan(0.4);
+    expect(wavesAt(one.x[0]!)).toBeGreaterThan(0.25);
+    expect(one.merit).toBeGreaterThan(0.1);
 
     const pair = optimizeSystem(
       systemOf(at(outside), 0),

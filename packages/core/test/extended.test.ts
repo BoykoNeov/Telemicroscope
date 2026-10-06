@@ -92,8 +92,13 @@ describe("5v.1 — the fourth cosine is not in the engine, so it is not applied 
     // energy has is three orders under the cosine — and on this doublet it is
     // NOT the pupil lattice's quantization, as this said until § 2l: it reads
     // the same on every grid and with none. What it is has not been traced.
-    const p0 = psf(achromat, 0, 550, PSF_OPTIONS);
-    const p2 = psf(achromat, 2, 550, PSF_OPTIONS);
+    //
+    // On the AIM layout, named since § 2m made the exit layout this system's
+    // default: the grid's number is only a reading of the light where the
+    // outline repeats across fields, and the next rung reads the exit layout's.
+    const aim = { ...PSF_OPTIONS, layout: "aim" } as const;
+    const p0 = psf(achromat, 0, 550, aim);
+    const p2 = psf(achromat, 2, 550, aim);
     const measured = Math.abs(p2.energy / p0.energy - 1);
     const cosine = 1 - Math.cos((2 * Math.PI) / 180);
 
@@ -260,8 +265,22 @@ describe("5v.5 — the inversion is Newton on the interpolant, and round-trips t
   });
 });
 
+/**
+ * The pixel 5v.6's and 5v.7's bounds were measured on — the achromat's 550 nm
+ * PSF pixel on the aim layout, stated rather than read off the PSF.
+ *
+ * Neither rasterizer has a pupil in it: a disc or a star is point-sampled onto
+ * pixel centres, and the residuals below are a lattice's count of a circle at
+ * THIS pixel (the Gauss circle problem, whose error oscillates). When the
+ * telescope chain's default flipped to the exit layout (§ 2m) the PSF's ruler
+ * moved 1.3e-3 and the same discs read 4.9e-3 and 4.2e-3 where these bounds sit
+ * at 2.4e-3 and 3e-3: a different lattice's luck, not a different flux. The
+ * pixel is a grid choice here, so it is pinned and the bounds keep their grid.
+ */
+const RASTER_PIXEL_MM = 0.0013705746289417206;
+
 describe("5v.6 — a density's flux converges rather than conserving", () => {
-  const PIXEL = psf(achromat, 0, 550, PSF_OPTIONS).pixelScaleMm;
+  const PIXEL = RASTER_PIXEL_MM;
 
   const discFlux = (diameterDeg: number, size: number): number =>
     total(
@@ -334,7 +353,7 @@ describe("5v.6 — a density's flux converges rather than conserving", () => {
 });
 
 describe("5v.7 — the point-source limit, and the control with no Jacobian in it", () => {
-  const PIXEL = psf(achromat, 0, 550, PSF_OPTIONS).pixelScaleMm;
+  const PIXEL = RASTER_PIXEL_MM;
 
   it("a shrinking disc of fixed flux approaches the star it is becoming", () => {
     // NOT bitwise, and § 6n.2's emitter pin is why the difference is worth

@@ -543,9 +543,12 @@ describe("the deflection reaches the image plane at the right scale", () => {
 
   it("a pure tilt lands both branches on 2·padFactor·a pixels", () => {
     const sys = mirror();
+    // The FFT branch's readings are its own, recorded: on the exit layout this
+    // mirror has had since § 2m (7.957599 and 19.871237 on the aim layout — the
+    // pupil's apodization and outline moved them 2.7e-5 and 3.3e-5).
     for (const [a, fft] of [
-      [1, 7.957599],
-      [2.5, 19.871237],
+      [1, 7.957384],
+      [2.5, 19.870582],
     ] as const) {
       const screen = rampScreen(a, LINE_D);
       const wave = psf(sys, 0, LINE_D, { ...PSF_OPTS, seeing: screen });

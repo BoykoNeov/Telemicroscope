@@ -688,21 +688,27 @@ describe("the geometric branch has no coherence, so brightfield rules instead of
       expect(verdict.geometricShare).toBe(adaptive.geometricWeight);
     }
     // 10 mm of semi-aperture is 0.057 waves per sample and images; 20 mm is
-    // 0.908, which is past the far edge of the blend band, so the PSF is a pure
+    // 0.924, which is past the far edge of the blend band, so the PSF is a pure
     // ray histogram and brightfield has nothing at all to say.
+    //
+    // Read where the samples sit, which on the exit layout — this mirror's
+    // default since § 2m — is the cone the light leaves in: the mirror's own
+    // pupil mapping compresses the rim, so the same sphere's step per sample
+    // reads 1.0043× the aim layout's at f/5 (0.0570608) and 1.0173× at f/2.5.
     const easy = brightfieldFidelity(psf(sphericalMirror(10), 0, LINE_D, { pupilSamples: 64 }).sampling, 64);
     const hard = brightfieldFidelity(psf(sphericalMirror(20), 0, LINE_D, { pupilSamples: 64 }).sampling, 64);
     expect(easy.verdict).toBe("valid");
-    expect(easy.phaseStepWaves!).toBeCloseTo(0.0570608, 6);
+    expect(easy.phaseStepWaves!).toBeCloseTo(0.0573055, 6);
     expect(hard.verdict).toBe("no-honest-image");
     expect(hard.geometricShare).toBe(1);
   });
 
   it("inside the blend band the PSF degrades and brightfield falls off a cliff", () => {
-    // The band is the whole point of the asymmetry. At 0.454 waves per sample
-    // `adaptivePsf` mixes 27.8% ray histogram into a still-mostly-diffraction
+    // The band is the whole point of the asymmetry. At 0.462 waves per sample
+    // `adaptivePsf` mixes 31.4% ray histogram into a still-mostly-diffraction
     // image and stays honest, because both its branches compute the same
-    // intensity. There is no 27.8%-coherent sum to mix, so ANY share above zero
+    // intensity (on the aim layout, before § 2m: 0.454 and 27.8%). There is no
+    // 31.4%-coherent sum to mix, so ANY share above zero
     // is a refusal here — the verdict is a cliff exactly where the PSF's is a
     // ramp, and that difference IS the missing capability, made visible.
     const sampling = psf(sphericalMirror(20), 0, LINE_D, { pupilSamples: 128 }).sampling;
@@ -710,7 +716,7 @@ describe("the geometric branch has no coherence, so brightfield rules instead of
     expect(banded.phaseStepWaves!).toBeGreaterThan(PHASE_STEP_LIMIT - 0.15);
     expect(banded.phaseStepWaves!).toBeLessThan(PHASE_STEP_LIMIT + 0.15);
     expect(banded.geometricShare).toBe(geometricWeight(banded.phaseStepWaves!));
-    expect(banded.geometricShare!).toBeCloseTo(0.2778, 4);
+    expect(banded.geometricShare!).toBeCloseTo(0.3141, 4);
     expect(banded.geometricShare!).toBeGreaterThan(0);
     expect(banded.verdict).toBe("no-honest-image");
   });

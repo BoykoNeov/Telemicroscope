@@ -192,11 +192,21 @@ const NEWTONIAN_MM = 200;
 const NEWTONIAN_F = 5;
 const NEWTONIAN_PUPIL_SAMPLES = 64;
 
+/**
+ * Sub-samples per edge cell for the throughput below. The grid's energy counts
+ * the aperture's two outlines on this lattice, and at the default 4 the exit
+ * layout (§ 2m: this mirror's default) reads the secondary's cost 1.89e-4 off
+ * 1 − ε² — the lattice, as § 8a.7 measures it, not the light (1.4e-12 with no
+ * grid). At 16 the same count reads 8.6e-6, under the 1e-4 this rung holds.
+ */
+const NEWTONIAN_EDGE_SAMPLES = 16;
+
 function newtonianStack(withObstruction: boolean): SpectralStack {
   const scope = newtonian({ apertureMm: NEWTONIAN_MM, focalRatio: NEWTONIAN_F });
   return spectralStack(mirror(NEWTONIAN_MM, NEWTONIAN_F), 0, {
     pupilSamples: NEWTONIAN_PUPIL_SAMPLES,
     padFactor: 4,
+    edgeSamples: NEWTONIAN_EDGE_SAMPLES,
     ...(withObstruction ? { obstruction: scope.obstruction } : {}),
   });
 }
@@ -293,7 +303,7 @@ describe("§ 8b.2 — the sky on a pixel is an étendue times a throughput: B·�
     const epsilon = scope.obstruction;
     const obstructed = newtonianStack(true);
     const clear = newtonianStack(false);
-    const clearEnergy = clearApertureEnergy(NEWTONIAN_PUPIL_SAMPLES, clear.size);
+    const clearEnergy = clearApertureEnergy(NEWTONIAN_PUPIL_SAMPLES, clear.size, NEWTONIAN_EDGE_SAMPLES);
     const throughputOf = (stack: SpectralStack) => stack.planes.map((p) => p.energy / clearEnergy);
 
     const system = mirror(NEWTONIAN_MM, NEWTONIAN_F);

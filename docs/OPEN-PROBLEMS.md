@@ -573,7 +573,12 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     image-side NA (a/cos θ′, not this layout's power per exit area), a plane
     wave's energy drifting 2.4e-4 across 2° of field where the aim layout reads
     7.7e-7 (item 24's), and a Lambertian source.
-24. **The default pupil layout is known to be wrong off the paraxial regime.** Found
+24. **The default pupil layout is known to be wrong off the paraxial regime.**
+    **Every chain imaging from infinity flipped at [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)**: the
+    default now follows the conjugate, and the telescopes, the optimiser's MTF
+    operand, the telecentric tail and one brightfield fixture are on the exit
+    layout — 41 readings in 15 files restated, the mirrors' rulers pinned to
+    cos²(u′/2). What is left is every FINITE chain, the seam chain last. Found
     at § 2i. `PupilLayout` defaults to `"aim"`, whose ruler is the paraxial exit
     pupil's: 1.759× off on the oil 100×, and 0.2–1.2% off on the DIN dry
     objectives (4×/0.10 1.0075, 10×/0.2 0.9882, 20×/0.18 1.0074). Switched on as
@@ -626,7 +631,9 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     covered area computed from the outline itself rather than counted, which
     needs the support to expose its curve, not only an inside test — an engine
     change with its own rung set. No reading needs it yet. Not measured on a
-    vignetted pupil, whose mask is a second outline.
+    vignetted pupil, whose mask is a second outline. Three readings met it at
+    [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) — § 8a.7's and § 8b.2's secondary, § 8c.6's resampled
+    ratio — and are read grid-free or at 16 sub-samples per edge cell instead.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1099,7 +1106,8 @@ radial-map nodes · § 6ba differential bleaching.
     it vanishes rather than moves. ~~The vignetted edge~~ went at [§ 2j](VALIDATION.md#step-2j--the-exit-pupils-irradiance-traced)
     and was not an edge; ~~the cost~~ went at [§ 2k](VALIDATION.md#step-2k--the-exit-layouts-cost-one-basis-per-point) and was not traces;
     ~~`extended`'s energy drift~~ went at [§ 2l](VALIDATION.md#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light)
-    and was not the light (item 25 is the grid's). The first chain to flip is the
-    telescope's, and its other moved readings — `extended`'s § 5v.6 and § 5v.7,
-    the golden stars, seeing, the sky, the photon zero point, the reflector and
-    visual panels — are unread.
+    and was not the light (item 25 is the grid's). ~~The first chain to flip is the
+    telescope's~~ — flipped at [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) with every other chain that
+    images from infinity, by making the default follow the conjugate. Next: a
+    finite chain; the brightfield and object-field tiles were measured moving
+    5–13% under the trial flip.

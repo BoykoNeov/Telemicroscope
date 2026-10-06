@@ -34,6 +34,7 @@ whole ladder.
 | [2j](#step-2j--the-exit-pupils-irradiance-traced) | The exit layout's amplitude is the ray tubes' irradiance, source power over exit area: Richards–Wolf on a paraboloid, an ellipsoid's foci, emitter vs field (1/cos θ, cos θ); § 2f's vesica converges | `exit-density` |
 | [2k](#step-2k--the-exit-layouts-cost-one-basis-per-point) | The exit layout's cost was the Zernike basis recomputed per term, not traces: hoisted and shared per point, to the bit; a 10× tile 10.7 s → 1.8 s, 1.14× the aim layout's | `exit-cost` |
 | [2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light) | The exit layout's 2.4e-4 energy drift in field is the grid counting an outline that changes shape; grid-free it is the aim layout's 7.7e-7 | `exit-field-energy` |
+| [2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) | The default layout follows the conjugate, exit at infinity: a paraboloid's ruler is cos²(u′/2), a classical Cassegrain's too, to 1e-14; 41 readings moved | `telescope-exit-layout` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -2192,7 +2193,7 @@ Seidel sum.
 
 | Rung | Pinned to | Status |
 |---|---|---|
-| **A Strehl-1 paraboloid reads 0.66/pupilSamples ABOVE the closed form**, positive at four samplings and three frequencies | Goodman's closed form, and a discretization law identified by its order | ✅ |
+| **A Strehl-1 paraboloid reads 0.66/pupilSamples ABOVE the closed form**, positive at four samplings and three frequencies | Goodman's closed form, and a discretization law identified by its order; on the exit layout since [§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout), the paraboloid's apodized ceiling integrated with no grid, the law times the rim's irradiance | ✅ |
 | `padFactor` 2/4/8 agree to the last bit; `pupilSamples` does not | which knob is the merit's definition and which is a default | ✅ |
 | **At a perfect design the merit is a BOWL**: 488.5·ΔK², symmetric to 5e-5, and deficit/ΔK is not constant | the contrast between this and § 1.8.5's corner — and § 1.8.2's law applying again | ✅ |
 | Differences over four decades of step, off the optimum | the window | ✅ |
@@ -3097,14 +3098,14 @@ is that on this fixture it is the merit's entire output.
 |---|---|---|
 | **At a bin the reading IS two signed rows**, bitwise at ν = 0.25 and 0.5 | that the decomposition exists — the objection is not that it does not | ✅ |
 | …and OFF a bin it does not exist at all: a blend of two moduli, 79.6% from the blended pair's | `mtfAt`'s linear interpolation, and a comment that said bilinear | ✅ |
-| **A per-overlap row set moves 8.6·10⁻⁷ where the reading moves 14.8×** | a merit that measures nothing, in this operand's currency | ✅ |
+| **A per-overlap row set moves ~~8.6·10⁻⁷~~ 2.1·10⁻⁴ ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout): the exit layout's amplitude is the design's irradiance) where the reading moves 14.8×**, phase-blind to 1e-12 | a merit that measures nothing, in this operand's currency | ✅ |
 | Refusal: a `form` on an `mtf` operand, by name | Σ rows² is the reading SQUARED, and only target 0 makes that the merit | ✅ |
 | **One row is singular at 9.1·10⁻¹⁷ — and not exactly 0, as § 1.8.13's was** | an outer product's determinant in f64; the digit is the fixture's | ✅ |
-| …**and the run converges anyway**, `step` in 135 evaluations with the KKT test at 1 | § 1.8.13's mechanism, refuted as a transfer | ✅ |
+| …**and the run converges anyway**, `step` in ~~135~~ 115 evaluations ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)) with the KKT test at 1 | § 1.8.13's mechanism, refuted as a transfer | ✅ |
 | Two frequencies are rank two (1.5·10⁸) and land 1.5·10⁻⁴ away in shape, for two traces — one since § 1.8.15 | that more rows buy the readout, not the answer | ✅ |
 | **THE rung: contrast leaves half a shape factor of error untouched** and buys 0.43 waves of defocus, where § 1.8.13's operand recovers q\* to 1.1·10⁻³ | q\* = 2(n²−1)/(n+2) (Jenkins & White; Hecht § 6.3) | ✅ |
 | …and it is a FIXED POINT: restarted, the ν = 0.15 run moves 3·10⁻¹⁰ and the ν = 0.5 run accepts NO step and stays bitwise put | § 1.8.12's proof shape, on an answer that is not the optimum of anything else | ✅ |
-| **The price, in contrast's own currency: 21.0% at ν = 0.15 and 9.2% at ν = 0.5** | the same operand asked after a wavefront merit rather than instead of one | ✅ |
+| **The price, in contrast's own currency: 21.0% at ν = 0.15 and ~~9.2%~~ 67.6% at ν = 0.5** — which lobe the ν = 0.5 run ends on, and on the exit layout a restart leaves it for one 14 waves out ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)) | the same operand asked after a wavefront merit rather than instead of one | ✅ |
 | …and a wavefront merit from the contrast answer reaches the same q\*, dropping the error 57.9% | that the freedom was there and was spent on the plane | ✅ |
 | **Given the shape, contrast keeps it to 4·10⁻⁴ and asks for two different PLANES** — 0.32 waves at ν = 0.15 against 0.22 at ν = 0.5 | best focus is frequency-dependent; here it is the whole output | ✅ |
 
@@ -3251,8 +3252,8 @@ so they are two traces and the rung asserts that they stay two.
 | Rung | Pinned to | Status |
 |---|---|---|
 | **N frequencies cost `evaluations + 1` traced stages, for N = 1, 2 and 4** | a counted wrapper on `systemPupil`, calling through | ✅ |
-| …against the 202 and 2 664 the same runs cost before — 2.020 and 4.006 per evaluation | § 1.8.14's cost, as the counterfactual the rung fails against | ✅ |
-| **One frequency is unchanged: 136 stages, 135 evaluations, KKT exactly 1** | that nothing was bought from the single-operand case | ✅ |
+| …against the ~~202 and 2 664~~ 292 and 1 004 ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)) the same runs cost before — 2.014 and 4.016 per evaluation | § 1.8.14's cost, as the counterfactual the rung fails against | ✅ |
+| **One frequency is unchanged: ~~136 stages, 135 evaluations~~ 116 stages, 115 evaluations ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)), KKT exactly 1** | that nothing was bought from the single-operand case | ✅ |
 | **A shared residual IS the longhand reading, `toBe`** — at the seed and at the answer | the four calls `mtfRead` shares, respelled outside it | ✅ |
 | …and the run reproduces § 1.8.14's bookkeeping exactly: 100 evaluations, 6 accepted, KKT 1.535·10⁻³ | the engine's own output before the sharing existed | ✅ |
 | **The same sampling spelled two ways shares** — an omitted `padFactor` against a stated 4 | that the key is the resolved options and not the operand's fields | ✅ |
@@ -4295,6 +4296,82 @@ for a 720-gon by shoelace, at every field including the axis) appears on neither
   cleared by it: § 5v.6 (a density's flux converges) and § 5v.7 (the point-source
   limit) also move under the exit layout and are unread — the edge count may be
   theirs too, which is not measured.
+
+## Step 2m — every chain imaging from infinity, on the exit layout
+
+Source: engine change — `defaultPupilLayout`: the layout a caller gets unasked follows the conjugate, `"exit"` at an infinite object; the reflector panel's Airy radius read off the same cone
+· Tests: `packages/core/test/telescope-exit-layout.test.ts`, `test/support/apodizedMtf.ts`, and 41 readings restated in 15 files (below)
+
+Register item 24 flips the default layout one chain at a time, the telescope's
+first. A chain turned out to be a conjugate: everything that images from infinity
+— the telescopes, the optimiser's MTF operand and the lenses it is pinned on, the
+telecentric tail of § 6aj, one brightfield fixture — reaches the pupil through
+the same calls, and nothing finite does. So the default is chosen by the object:
+`"exit"` at infinity, `"aim"` at a finite distance until the microscope chains
+flip. Switched on that way the suite moves 41 readings in 15 files and no
+finite-conjugate one (the 16 files a loaded run timed out pass quietly, 336 of
+336).
+
+**Hypothesis.** Every one of the 41 moves for one of four reasons: the ruler (the
+transform's scale read off the traced cone, not the paraxial pupil), the pupil's
+irradiance (the same mapping makes it non-uniform), the pupil grid's edge count
+(register item 25), or a merit whose landscape moved under an optimiser. **Refuted
+by** a moved reading none of the four accounts for to its own tolerance, or the
+mirrors' rulers missing their closed forms by more than 1e-12.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2m.0 — the default follows the conjugate** | `psf()` unasked is `layout: "exit"` at infinity and `"aim"` at a finite object, bitwise | ✅ |
+| **§ 2m.1 — a paraboloid's ruler is cos²(u′/2) of its rim** | h = 2f·tan(u′/2) makes f·sin u′/h = 1/(1 + 1/16F²): to 1e-14 at f/3, f/5, f/10 | ✅ |
+| ...a classical Cassegrain's is the paraboloid's of the SYSTEM's focal ratio | f/10 from an f/4 primary, to 3e-14 — exact conic geometry (tan(u′/2) = tan(u/2)/m focus to focus), the reason it has a paraboloid's coma | ✅ |
+| ...and a Ritchey–Chrétien's is D/2f to fifth order | 2.3e-6, against the Cassegrain's 6.2e-4 | ✅ |
+| **§ 2m.2 — a tilted wavefront is a field angle** | a ramp of a waves over the entrance radius is a star Δθ = aλ/R off axis: at f/3 the screened star misses that star's image by 1.4e-3, 9.1e-4, 4.5e-4 at 64/128/256 samples on the exit layout; the aim layout stalls 7.3e-3 short, past the paraxial ruler's 6.9e-3 | ✅ |
+| **§ 2m.3 — the secondary costs 1 − ε², with no grid** | the Newtonian's obstructed over clear light, integrated on the aim annulus through the engine's own mask: 1.4e-12 (§ 8a.7) | ✅ |
+| **§ 2m.4 — an apodized pupil's MTF ceiling** | the f/2.5 paraboloid's exit pupil, 1/\|∂e/∂a\| brightest at the rim, autocorrelated with no grid (a uniform disc returns the closed form to 1e-15): 3.4e-3 and 1.2e-3 under the uniform ceiling at ν = 0.25, 0.5; the engine reads above it by § 1.8.8's 0.66/N law times the rim's irradiance (1 + q)/(1 − q) | ✅ |
+| **§ 2m.5 — telecentric: the ruler is the rim ray's direction sine** | traced by hand, to 1e-15; 1.13e-3 past the paraxial slope | ✅ |
+| ...and the image keeps the gap out where the ruler does not | gaps 5 and 20: rulers 4.5e-4 apart, light inside 4 µm equal to 2e-5 (aim layout 1.4e-5) | ✅ |
+
+### What moved, and why
+
+| Chain | Reading | Cause | Restated as |
+|---|---|---|---|
+| telescope | § 5v.1 the aim layout's 7.7e-7 | default changed | named `layout: "aim"`; the exit layout's is § 2l's grid-free rung |
+| | § 5v.6, § 5v.7 disc flux 4.9e-3, 4.2e-3 | the PSF pixel the discs were rasterized on moved 1.3e-3 | the rasterizers have no pupil: the pixel the bounds were measured on, named |
+| | three star goldens; the star field's stars 0.134% further out | the pixel, 1.00137 | re-baked; the transposed-hero proxy 1 → 2 levels, the resampler's (below) |
+| | § 5d wiring, bit-identity | the hand-built pupil was the aim layout's | built through `laidPupil` |
+| | § 5d.2 FFT tilt 7.957599 → 7.957384 | apodization and outline | recorded value |
+| | § 8a.7, § 8b.2 secondary 1.87e-4 off 1 − ε² | edge count, 64 × 4 ≡ 128 × 2 (item 25) | grid-free 1.4e-12 (§ 2m.3); the grid at 16 sub-samples, 7.4e-6 and 8.6e-6 under the same 1e-4 |
+| | § 8c.6 truncation 2.25098e-4 → 2.24832e-4 | the pixel | recorded value |
+| | § 8c.6 resampled secondary 1.2e-5 → 1.25e-4 | edge count, and a crop the frames do NOT share (−6.0e-5) | the identity resampled = grid × (1 − t₁)/(1 − t₂), to 1e-12 |
+| | C5.2 retinal Airy ratio 2.0005 → 2.0048 | the ruler: the cones' sine-condition offence, 2.86e-3 and 7.0e-4 | the traced cones' ratio, and the offence quadratic in aperture (×4.08 for ×4.00) |
+| | reflector Cassegrain/RC tie 1.3e-5 → 1.16e-3 | ruler 6.2e-4 (§ 2m.1) and the Cassegrain's apodization | the panel's Airy radius read off the cone; the RC's floor layout-free to 5e-6, the gap the Cassegrain's; the corrector's excess 2.9e3–4.9e3× the gap, not 1e4 |
+| telecentric | § 6aj.6, § 6ak.1, § 6ak.2, § 6ak.4 (10) | they pin the AIM layout's slope ruler | named `layout: "aim"`; § 2m.5 for the exit layout |
+| brightfield | § 6f.12 step 0.0570608 → 0.0573055, share 27.8% → 31.4% | the fidelity signal is read where the samples sit | recorded values |
+| optimiser | § 1.8.8 ceiling bias 0.59/N | the paraboloid's apodized pupil | § 2m.4 |
+| | § 1.8.8 bowl 486.4 → 482.8; slope −4.7709 → −4.7357; off axis 0.99770 → 0.99831, 0.73149 → 0.73015, 0.33421 → 0.33452 | apodization; off-axis layout | recorded values |
+| | § 1.8.8 the ruler's drift with image distance and curvature | the traced rim crosses a moved sphere: 2.4e-4, and 1.3e-4 for 30% of curvature (exactly 0 on the aim layout) | bounds; the case for ν grows |
+| | § 1.8.14 the ν = 0.5 run 2.051 → 2.078 waves; restart accepts 9 steps | the merit, smooth (swept 1e-10 to 1e-3, noise 1e-11 on both layouts) and lobed: the restart's first trial crosses to a lobe at 14.2 waves reading 0.117 against 0.081 | "converged" restated per lobe: the new landing is a fixed point to the bit |
+| | § 1.8.14 price at ν = 0.5, 9.2% → 67.6%; Σ\|row\|² 8.6e-7 → 2.1e-4 | which lobe the run ends on; the amplitude is the design's irradiance | recorded; Σ\|row\|² phase-blind to 1e-12 |
+| | § 1.8.15 evaluations 100/135/665 → 145/115/250 | the merit | recorded (§ 2k measured the 145 and 115) |
+| | the app's quarter-wave rule, outside | the single frequency stalls 0.47 mm out (merit 0.36) instead of walking 3 mm | not exact either way |
+
+### What it leaves
+
+- **The seeing screen is composed at the transform's coordinate**, which on the
+  exit layout is the exit cone and not the entrance pupil the atmosphere sits
+  in. Measured for a pure tilt only: at f/3 composing at the aim coordinate
+  instead moves the screened star by under 5e-6 of its shift, under the grid's
+  own 4.5e-4. A Kolmogorov screen's structure is displaced by up to 1 − cos²(u′/2)
+  of the radius at the rim; not measured.
+- **A contrast merit's "converged" is per lobe.** On the exit layout a restart's
+  opening step crossed twelve waves of defocus; nothing bounds that step against
+  the lobe spacing.
+- **The 8-bit transpose proxy is the resampler's.** § 8c's conservative resampler
+  is 6e-6 to 3.3e-3 of a plane's peak away from its own transpose — not a last
+  bit — on either layout; the hero's raw PSF is symmetric to 3e-16.
+- **The finite chains are still on the aim layout** — the mosaic, seam and stage
+  chains, the telecentric scene, `aperture-and-field`: register item 24, the seam
+  chain last.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -9403,7 +9480,7 @@ mix toward. Any geometric share above zero is a refusal.
 | Absent sampling is `unknown`, never `valid` — and that is the *default* case, since `psfFromPupilFunction` (the shape `abbeImage` is called in) carries no `sampling` | the trap `adaptivePsf`'s `: 0` default would spring here | ✅ |
 | The 4×/0.10 of § 6f.7 is `valid` at 0.015 waves per sample — thirty times inside the criterion | every traced § 6f number is on the FFT branch by a wide margin | ✅ |
 | It is `adaptivePsf`'s own switch read twice, not a second switch: step and share `toBe` equal, exactly | one criterion, two callers | ✅ |
-| Inside the blend band the PSF mixes 27.8% ray histogram and stays honest; brightfield refuses at any share > 0 | `geometricWeight`, and the missing capability made visible | ✅ |
+| Inside the blend band the PSF mixes ~~27.8%~~ 31.4% ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)) ray histogram and stays honest; brightfield refuses at any share > 0 | `geometricWeight`, and the missing capability made visible | ✅ |
 | A denser pupil grid genuinely rescues the same wavefront: `no-honest-image` at 64 and 128, `valid` at 256, with the step falling exactly as 1/pupilSamples | phase per *sample*, not total waves | ✅ |
 
 **Did this grid carry the pupil it was handed?** `AbbeImage.maxGridPhaseStepWaves`
@@ -29344,7 +29421,7 @@ is the √N signal-to-noise: four times the light is twice the SNR, to 1%.
 | **§ 8a.4 — Poisson: mean = μ and variance = μ at μ = 0.5, 7, 29.9, 30.1, 250, 5000; P(0) = e^(−μ)** | Poisson's law, five standard errors of 10⁵ draws | ✅ |
 | **§ 8a.5 — shot noise on a flat field: SNR = √N, four times the light is twice the SNR to 1%** | Poisson statistics | ✅ |
 | § 8a.6 — m_AB = 0 through the hero refractor's 10 mm pupil is 7.847·10⁵ photons/s over 500–600 nm | *bookkeeping*: π·r² on a front stop, as § 5s.3 | ✅ |
-| **§ 8a.7 — the photon denominator is the CLEAR aperture: the Newtonian's secondary costs 1 − ε² on it and NOTHING on the plane's own energy** | 1 − ε² = 0.977387, measured 0.977462 | ✅ |
+| **§ 8a.7 — the photon denominator is the CLEAR aperture: the Newtonian's secondary costs 1 − ε² on it and NOTHING on the plane's own energy** | 1 − ε² = 0.977387, ~~measured 0.977462~~ the aim layout's grid 0.977462, its edge count; since [§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) 1 − ε² to 1.4e-12 with no grid | ✅ |
 | **§ 8a.8 — an absolute frame: m = 10 admits 240.8519 photons/s through the hero pupil over 400–700 nm** | § 8a.6 × ln(700/400)/ln(600/500) = 3.069389 | ✅ |
 | § 8a.9 — the draw restores the render exactly when divided back, in intensity and in colour, and counts to √N | same-process identity; Poisson | ✅ |
 | § 8a.10 — a magnitude quoted over a different band from the render's refuses, as does a pupil that is not an area | § 5s.5, propagated | ✅ |
@@ -29745,8 +29822,8 @@ once the scratch was reused.
 | **§ 8c.3 — HEADLINE: an Airy pattern's total does not move** | 2πσ² for a Gaussian to 1e-13 across the sweep; on rings the new total is ≤ 0 and under 2e-3 where bilinear's best ratio is above 2e-2 | ✅ |
 | **§ 8c.4 — the limiter is a non-negativity guarantee** | zero negative cells at every ratio on a ringed spot, where the unlimited centred slope gives twenty | ✅ |
 | **§ 8c.5 — HEADLINE: accuracy, not only conservation** | rms against a closed-form tone beats bilinear at 32, 8 and 4 px per period and both ratios; minmod's known first-order cost at a smooth extremum is stated | ✅ |
-| **§ 8c.6 — HEADLINE: no plane gains light, and the clamp is inert** | every hero plane's Σ/energy ≤ 1 and within 1e-3; `truncatedFraction` is 2.25098e-4 and equals the weighted deficit to 1e-15 | ✅ |
-| ...and § 8a.7's obstruction reading tightens from −4.3e-4 to 1.2e-5 | the prediction the change had to meet | ✅ |
+| **§ 8c.6 — HEADLINE: no plane gains light, and the clamp is inert** | every hero plane's Σ/energy ≤ 1 and within 1e-3; `truncatedFraction` is ~~2.25098e-4~~ 2.24832e-4 ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout): the pixel) and equals the weighted deficit to 1e-15 | ✅ |
+| ...and § 8a.7's obstruction reading tightens from −4.3e-4 to ~~1.2e-5~~ the pupil grid's times the two frames' crop, which they do NOT share (−6.0e-5), to 1e-12 ([§ 2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)) | the prediction the change had to meet | ✅ |
 
 ### Not yet pinned
 
