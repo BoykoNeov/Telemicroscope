@@ -216,6 +216,13 @@ export interface ObjectFieldFrame {
   /** The scale `renderBrightfield` must be handed, read on the frame's centre. */
   readonly scale: PupilScale;
   /**
+   * The `PupilLayout` the ruler was read in, and so the one every pupil laid on
+   * this frame is traced in: `fieldPupilAt` takes it from here, and refuses an
+   * option that names the other, because a frame on one ruler with tiles on the
+   * other is a picture with no symptom but its scale (register item 24).
+   */
+  readonly layout: PupilLayout;
+  /**
    * Image-plane centre (mm) the normalized grid is laid about. `{0, 0}` for
    * `objectFieldFrame`; a tile's own field position for `objectFieldTile`.
    */
@@ -492,6 +499,7 @@ function buildFrame(
     pupilGrid(options.traceSamples ?? 21),
     aim,
   );
+  const layout = options.layout ?? defaultPupilLayout(system);
   const scale: PupilScale = {
     referenceRadius: map.referenceRadius,
     exitRadius: map.pupil.exit.radius,
@@ -500,8 +508,7 @@ function buildFrame(
     slopeRadius: map.pupil.exit.slopeRadius,
     // On the exit layout, read on the axis whatever the centre, as every traced
     // pupil's is (§ 2i): the frame and the tiles laid on it share one ruler.
-    apertureSine:
-      (options.layout ?? defaultPupilLayout(system)) === "exit" ? Math.abs(exitApertureSine(system, wavelengthNm, aim)) : undefined,
+    apertureSine: layout === "exit" ? Math.abs(exitApertureSine(system, wavelengthNm, aim)) : undefined,
   };
   const pixelScaleMm = imagePixelScaleMm(scale, size, pupilSamples);
   const halfExtentMm = (size / 2) * pixelScaleMm;
@@ -511,6 +518,7 @@ function buildFrame(
     pupilSamples,
     wavelengthNm,
     scale,
+    layout,
     centreMm: { x: centreMm.x, y: centreMm.y },
     centreObjectMm: {
       x: centreHeightMm * Math.cos(centreAzimuthRad),
@@ -819,6 +827,12 @@ export function fieldPupilAt(
   options: FieldPupilOptions = {},
 ): FieldPupil {
   requireFinite(system, "fieldPupilAt");
+  if (options.layout !== undefined && options.layout !== frame.layout) {
+    throw new Error(
+      `fieldPupilAt: the frame's ruler was read on the "${frame.layout}" layout and this pupil asks for ` +
+        `"${options.layout}" — build the frame with the layout its pupils are traced in`,
+    );
+  }
   const aim = options.aim ?? {};
   const { x, y } = imagePointAt(frame, u, v);
   const imageRadiusMm = Math.hypot(x, y);
@@ -828,7 +842,7 @@ export function fieldPupilAt(
     aim,
   });
 
-  const traced = tracedPupil(system, objectHeightMm, frame.wavelengthNm, options);
+  const traced = tracedPupil(system, objectHeightMm, frame.wavelengthNm, { ...options, layout: frame.layout });
 
   // Radial in the meridional plane the trace was run in, then turned to this
   // position's own azimuth — the same rotation `rotatePupil` applies to the

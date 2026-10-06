@@ -492,6 +492,30 @@ describe("§ 6h.4 — the traced pupil across the field", () => {
       }),
     ).not.toThrow();
   });
+
+  it("is traced in the frame's own layout, and refuses the other one", () => {
+    // Register item 24 flips the finite chains one at a time, so a frame and the
+    // pupils laid on it can be asked for in different layouts — a ruler from one
+    // and tiles from the other, which no energy check sees. The frame carries the
+    // layout its ruler was read in; a pupil follows it unasked and refuses a
+    // contrary option rather than silently honouring either.
+    const system = din4x();
+    const aimFrame = frameOf(system);
+    const exitFrame = objectFieldFrame(system, { size: SIZE, pupilSamples: PUPIL_SAMPLES, wavelengthNm: LAMBDA, layout: "exit" });
+    expect(aimFrame.layout).toBe("aim");
+    expect(exitFrame.layout).toBe("exit");
+    expect(exitFrame.scale.apertureSine).toBeGreaterThan(0);
+    expect(() => fieldPupilAt(system, aimFrame, 1, 1, { layout: "exit" })).toThrow(/frame's ruler/);
+    expect(() => fieldPupilAt(system, exitFrame, 1, 1, { layout: "aim" })).toThrow(/frame's ruler/);
+    // Unasked, the pupil is the exit layout's: its phase is the explicitly asked one's, bit for bit.
+    const unasked = fieldPupilAt(system, exitFrame, 1, 1);
+    const asked = fieldPupilAt(system, exitFrame, 1, 1, { layout: "exit" });
+    for (const [px, py] of [[0.3, -0.2], [0, 0.7]] as const) {
+      expect(unasked.pupil.phaseWaves(px, py)).toBe(asked.pupil.phaseWaves(px, py));
+      expect(unasked.pupil.amplitude(px, py)).toBe(asked.pupil.amplitude(px, py));
+    }
+    expect(unasked.pupil.amplitude(0.3, -0.2)).not.toBe(fieldPupilAt(system, aimFrame, 1, 1).pupil.amplitude(0.3, -0.2));
+  });
 });
 
 describe("§ 6h.5 — the bridge, composed on a traced objective", () => {
