@@ -10,7 +10,7 @@ import {
   type PupilScale,
   type SpiderSpec,
 } from "../wave/psf";
-import { exitApertureSine, opdMap } from "../pupil/opd";
+import { canonicalApertureSine, exitApertureSine, opdMap } from "../pupil/opd";
 import { aimRay, pupilGrid, type AimOptions } from "../pupil/aiming";
 import { pupils } from "../pupil/pupils";
 import { isPowerOfTwo } from "../math/fft";
@@ -720,22 +720,109 @@ export function tracedPupil(
  * and the chief ray leaves parallel to the axis (§ 6v.4). `u(0)` is then `0` in
  * f64 and the quotient is a bitwise zero — which is what lets `translateSource`
  * return its input object and every telecentric render stay byte-identical.
+ *
+ * ## On the exit layout it is an optical direction sine (§ 2n)
+ *
+ * The aim coordinate above is the pupil's on the aim layout only. On the exit
+ * layout `abbeImage`'s frequency lattice is linear in the object's optical
+ * direction sine — the frame's ruler puts a period p at (λ/p)/ν with ν = |M|·n′·σ
+ * — so a direction has to sit on that same linear map or the zero order and the
+ * diffracted ones are summed on two rulers. `pupilDirectionMap` is that map, and
+ * this is its axial direction: −n·L_c/ν, L_c the chief ray's direction cosine.
+ * Read through the aim's tangent instead it would sit 1/cos u − 1 off, 77% on
+ * § 6e's oil 100×.
  */
 export function illuminationOffset(
   system: OpticalSystem,
   objectHeightMm: number,
   wavelengthNm: number,
-  options: { readonly aim?: AimOptions } = {},
+  options: { readonly aim?: AimOptions; readonly layout?: PupilLayout; readonly probeHeightMm?: number } = {},
 ): number {
-  const frame = pupilSlopeFrame(system, objectHeightMm, wavelengthNm, options, "illuminationOffset");
-  // On axis both slopes are the aperture's own, and the offset is zero for the
-  // same reason it is zero under telecentricity — but reached without dividing.
-  // Checked BEFORE `pupilOf`, which is where the degenerate-span refusal lives:
-  // that is the order this function had before § 6ag factored the frame out of
-  // it, and a chain that spans no angle at all is not a case whose answer should
-  // change because a helper was extracted.
-  if (frame.chief === 0) return 0;
-  return frame.pupilOf(0);
+  return pupilDirectionMap(system, objectHeightMm, wavelengthNm, options, "illuminationOffset").axial;
+}
+
+/**
+ * Object-space illumination directions against a pupil coordinate, at one field
+ * point, in the layout the pupil is laid out in — what `illuminationOffset` and
+ * `imaging/condenser-field` place a direction through, so the two cannot differ.
+ *
+ * **Aim layout:** `pupilSlopeFrame`'s affine map, unchanged — a pupil coordinate
+ * is the aimer's, linear in the slope.
+ *
+ * **Exit layout (§ 2n):** the canonical coordinate, linear in the optical
+ * direction sine n·L of the object-space ray, measured from the chief ray's and
+ * scaled by the frame's own ruler ν = |M|·n′·σ (σ the traced image-space aperture
+ * sine, |M| the axial probe's magnification). That is the currency the frame's
+ * frequency lattice is in: a period p diffracts by n·ΔL = λ/p, and the ruler
+ * puts that at (λ/p)/ν. It is the traced exit coordinate wherever the objective
+ * obeys the sine condition, and it is defined past the rim, where no ray through
+ * the objective exists but a condenser can still send light (S > 1, darkfield).
+ * Signed by the aim rim ray, so (1, 0) reads +1 as it does on the aim layout.
+ * The optical sine and not the bare one, because n·L is what a flat cover slip or
+ * an immersion film leaves unchanged and what the grating equation is written in.
+ */
+export interface PupilDirectionMap {
+  readonly layout: PupilLayout;
+  /**
+   * Object-space slopes (dx/dz, dy/dz) of the direction at meridional pupil
+   * coordinate (px, py) — `null` on the exit layout where n·L names no
+   * direction, past grazing.
+   */
+  readonly slopesOf: (px: number, py: number) => readonly [number, number] | null;
+  /** Meridional pupil coordinate of the direction parallel to the axis — § 6x's offset. */
+  readonly axial: number;
+  /** One pupil radius: a slope on the aim layout (`span`), an optical sine on the exit one (ν). */
+  readonly unit: number;
+}
+
+export function pupilDirectionMap(
+  system: OpticalSystem,
+  objectHeightMm: number,
+  wavelengthNm: number,
+  options: { readonly aim?: AimOptions; readonly layout?: PupilLayout; readonly probeHeightMm?: number } = {},
+  who = "pupilDirectionMap",
+): PupilDirectionMap {
+  const frame = pupilSlopeFrame(system, objectHeightMm, wavelengthNm, options, who);
+  const { chief, span } = frame;
+  if ((options.layout ?? defaultPupilLayout(system)) !== "exit") {
+    return {
+      layout: "aim",
+      slopesOf: (px, py) => [frame.slopeOf(px), py * span],
+      // On axis both slopes are the aperture's own, and the offset is zero for
+      // the same reason it is zero under telecentricity — but reached without
+      // dividing. Checked BEFORE `pupilOf`, which is where the degenerate-span
+      // refusal lives: that is the order this function had before § 6ag factored
+      // the frame out of it, and a chain that spans no angle at all is not a case
+      // whose answer should change because a helper was extracted.
+      axial: chief === 0 ? 0 : frame.pupilOf(0),
+      unit: span,
+    };
+  }
+  if (span === 0) {
+    throw new Error(
+      `${who}: the aimed pupil spans no object-space angle, so no illumination direction can be placed in it`,
+    );
+  }
+  requireFinite(system, who);
+  const n = Math.abs(pupils(system, wavelengthNm).entrance.n);
+  const nu = canonicalApertureSine(system, wavelengthNm, options.aim ?? {}, options.probeHeightMm);
+  // The aim rim ray's slope has `span`'s sign; e = sign·n·(L − L_c)/ν makes it +1.
+  const sign = Math.sign(span);
+  const chiefSine = chief / Math.hypot(1, chief);
+  return {
+    layout: "exit",
+    slopesOf: (px, py) => {
+      const l = chiefSine + (sign * nu * px) / n;
+      const m = (sign * nu * py) / n;
+      const c2 = 1 - l * l - m * m;
+      if (!(c2 > 0)) return null;
+      const c = Math.sqrt(c2);
+      return [l / c, m / c];
+    },
+    // Telecentric: exactly zero, as on the aim layout, with nothing divided.
+    axial: chief === 0 ? 0 : (-sign * n * chiefSine) / nu,
+    unit: nu,
+  };
 }
 
 /**
@@ -847,7 +934,11 @@ export function fieldPupilAt(
   // Radial in the meridional plane the trace was run in, then turned to this
   // position's own azimuth — the same rotation `rotatePupil` applies to the
   // pupil, so the cone and the aperture stay in one frame.
-  const radialOffset = illuminationOffset(system, objectHeightMm, frame.wavelengthNm, { aim });
+  const radialOffset = illuminationOffset(system, objectHeightMm, frame.wavelengthNm, {
+    aim,
+    layout: frame.layout,
+    probeHeightMm: frame.probeHeightMm,
+  });
 
   return {
     pupil: rotatePupil(traced.pupil, azimuthRad),

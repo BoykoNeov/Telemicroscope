@@ -155,7 +155,10 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
 
   it("the laid exit pupil itself — amplitude and phase on a transform's lattice — is unmoved", () => {
     // Recorded on the commit before § 2k (7a8b0bf) and asserted bitwise: the
-    // whole lookup, irradiance and traced rim and inverse map included.
+    // whole lookup, irradiance and traced rim and inverse map included. The
+    // amplitude sum re-recorded at § 2n (728.2925078450103 before): a transmitted
+    // field's |P|² became each component's own cos θ, with no Jacobian. The phase
+    // did not move.
     const map = maps[0][1];
     const p = laidPupil(dry10(), map, { layout: "exit", source: "field" }).pupil;
     let a = 0;
@@ -174,5 +177,5 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
   });
 });
 
-const EXIT_AMPLITUDE_SUM = 728.2925078450103;
+const EXIT_AMPLITUDE_SUM = 744.5714016274019;
 const EXIT_PHASE_SUM = 1588.677585164183;

@@ -5,7 +5,7 @@ import { CompiledSystem, asCompiled, compile } from "../trace/compile";
 import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { AimOptions, aimRay, pupilGrid } from "../pupil/aiming";
-import { OpdMap, exitCoordinate } from "../pupil/opd";
+import { OpdMap, canonicalApertureSine, exitCoordinate } from "../pupil/opd";
 import { fitZernike, wavefrontSampler, MAX_ZERNIKE_TERMS } from "./zernike";
 
 /**
@@ -96,14 +96,42 @@ const RINGS = 2;
  * the exit support's area — the off-axis foreshortening register item 24
  * measured as 2.1e-3 on `extended`'s achromat from 0° to 2°, 2.4e-4 in these
  * units, where the aim layout reads 7.7e-7.
+ *
+ * **At a finite conjugate the units are absolute (§ 2n).** There the chief-ray
+ * normalization made |P(0)|² = 1/|∂e/∂a|(0), a choice of the aim's scale: 0.985
+ * on the DIN 4×, 0.32 on the oil 100×, and a brightfield's clear field rendered
+ * that much dark. So the density is source power per CANONICAL area,
+ *
+ *     |P(e)|² = p(θ)·|∂c/∂e|,   c = n·(L, M)/ν   (`canonicalApertureSine`)
+ *
+ * with p the source's per-direction-cosine power (1/cos θ, cos θ) — the
+ * coordinate the frame's frequency lattice and the condenser's directions are
+ * in. Paraxially c and e agree (n·u = M·n′·u′), so |P(0)|² = p(0) = 1 on every
+ * lens and a normal-incidence clear field renders at its transmission. It is
+ * the chief-normalized density times one constant, p(θ_c)·|∂c/∂a| at the chief
+ * ray, read off the launch directions; the shapes above are unchanged.
+ *
+ * **Except a transmitted field's, which has no change of variables at all.** In
+ * `abbeImage` a lattice cell is one plane-wave component on both sides of the
+ * lens — the object spectrum's cell and the transform's are the same cell — so
+ * the pupil there is that component's power: |P(e)|² = cos θ at the launch
+ * direction of the node that lands at e, times throughput, and |P(0)|² = 1 by
+ * construction. The Jacobian is how a CONTINUOUS spectrum is laid onto the exit
+ * lattice, which a point's Debye sum needs and an identified lattice does not; on
+ * a lens off the sine condition the two differ by the offence, and the clear
+ * field read through the Jacobian lost 9.2e-4 of its light on § 6al's singlet.
+ * The ray branch keeps the emitter's construction: brightfield never blends with
+ * it (§ 6f.12).
  */
 export interface ExitDensity {
   /** √(|P|²) at a normalized exit coordinate — the transform's amplitude factor. */
   readonly amplitude: (ex: number, ey: number) => number;
   /**
    * Source power per unit aim area for a ray aimed at (px, py) and launched along
-   * `dir`, normalized at the chief ray — what a ray histogram weights each ray by,
-   * because the exit cell it lands in is where it lands and needs no Jacobian.
+   * `dir`, normalized at the chief ray — and, at a finite conjugate, times the same
+   * constant the amplitude carries (§ 2n), so the two branches report one energy.
+   * What a ray histogram weights each ray by, because the exit cell it lands in is
+   * where it lands and needs no Jacobian.
    */
   readonly sourceWeight: (px: number, py: number, dir: Vec3) => number;
   /** The in-disc lattice nodes, for the rungs: aim, normalized exit coordinate, |P|². */
@@ -206,6 +234,8 @@ export function exitDensity(
   }
 
   const exitAt: (readonly [number, number] | null)[] = new Array(side * side).fill(null);
+  /** The launch's unit transverse direction (L, M) — the canonical coordinate before n/ν. */
+  const cosinesAt: (readonly [number, number] | null)[] = new Array(side * side).fill(null);
   const targetAt: (readonly [number, number] | null)[] = new Array(side * side).fill(null);
   const dirZ = new Float64Array(side * side).fill(NaN);
   for (let i = -span; i <= span; i++) {
@@ -220,7 +250,9 @@ export function exitDensity(
       } catch {
         continue;
       }
-      dirZ[k] = Math.abs(ray.dir.z) / length(ray.dir);
+      const len = length(ray.dir);
+      dirZ[k] = Math.abs(ray.dir.z) / len;
+      cosinesAt[k] = [ray.dir.x / len, ray.dir.y / len];
       if (real) {
         const t = (epZ - ray.origin.z) / ray.dir.z;
         targetAt[k] = [ray.origin.x + ray.dir.x * t, ray.origin.y + ray.dir.y * t];
@@ -269,6 +301,20 @@ export function exitDensity(
   if (chief === null || !(chief > 0)) {
     throw new Error(`exit density: the chief ray at field ${map.fieldValue} could not be launched`);
   }
+  // Absolute at a finite conjugate (§ 2n): the chief-normalized density times
+  // p(θ_c)·|∂c/∂a| at the chief ray. At infinity it stays the aim's units.
+  let absolute = 1;
+  const transmitted = finite && source === "field";
+  if (finite) {
+    const jc = area(cosinesAt, 0, 0);
+    if (jc === null || !(jc > 0)) {
+      throw new Error(`exit density: the chief ray's neighbours at field ${map.fieldValue} could not be launched`);
+    }
+    const n0 = Math.abs(pupil.entrance.n);
+    const nu = canonicalApertureSine(system, map.wavelengthNm, aim);
+    const dz0 = dirZ[idx(0, 0)]!;
+    absolute = (source === "emitter" ? 1 / dz0 : dz0) * (n0 / nu) ** 2 * jc;
+  }
   const nodes: { px: number; py: number; ex: number; ey: number; density: number }[] = [];
   for (let i = -half; i <= half; i++) {
     for (let j = -half; j <= half; j++) {
@@ -279,7 +325,11 @@ export function exitDensity(
       const je = area(exitAt, i, j);
       const s = sourceAt(i, j);
       if (!e || je === null || s === null || !(je > 0)) continue;
-      nodes.push({ px, py, ex: e[0], ey: e[1], density: s / chief / je });
+      // A transmitted field at a finite conjugate is one plane wave per lattice
+      // cell on both sides of the lens (§ 2n): its |P|² is that component's own
+      // power, the source term at its launch direction, with no change of variables.
+      const density = transmitted ? dirZ[idx(i, j)]! : ((s / chief) * absolute) / je;
+      nodes.push({ px, py, ex: e[0], ey: e[1], density });
     }
   }
 
@@ -316,7 +366,7 @@ export function exitDensity(
     sourceWeight: (px, py, dir) => {
       const dz = Math.abs(dir.z) / length(dir);
       const s = (dz / chiefDz) ** cosPower;
-      return targetJacobian === null ? s : (s * targetJacobian(px, py)) / chiefJq;
+      return (targetJacobian === null ? s : (s * targetJacobian(px, py)) / chiefJq) * absolute;
     },
     nodes,
   };

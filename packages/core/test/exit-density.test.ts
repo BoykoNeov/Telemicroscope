@@ -39,6 +39,15 @@ import type { PupilSource } from "../src/wave/exit-density";
  *    the exit radius: the transform's pupil reads it through the Jacobian, the
  *    ray histogram through S alone, and they share nothing but the trace;
  *  - the irradiance moving when the same light is aimed differently.
+ *
+ * **Restated at § 2n for a transmitted field.** A field's |P|² is now each plane-
+ * wave component's own power, cos α at its launch direction, with no Jacobian: in
+ * `abbeImage` one lattice cell is one component on both sides of the lens, and the
+ * Jacobian is how a CONTINUOUS spectrum is laid onto the exit lattice — a point's
+ * question. On an aplanat the two agree; the focus-to-focus ellipsoid is stigmatic
+ * but far off the sine condition, so § 2j.2's field closed form is now cos α, and
+ * the ray branch (still the point's construction — brightfield never blends with
+ * it, § 6f.12) sits apart from the wave branch on the oil by the size of its offence.
  */
 
 const L = LINE_D;
@@ -123,7 +132,7 @@ describe("§ 2j.2 — an emitter and a field through an ellipsoid, focus to focu
     return source === "emitter" ? emitter : emitter * cosAlpha * cosAlpha;
   }
 
-  it.each(["emitter", "field"] as const)("%s: the traced irradiance is the ellipse's own", (source) => {
+  it.each(["emitter"] as const)("%s: the traced irradiance is the ellipse's own", (source) => {
     const laid = laidPupil(mirror, opdMap(mirror, 0, L, pupilGrid(21)), { ...EXIT, source });
     const density = laid.density!;
     const pg = pupils(mirror, L);
@@ -139,11 +148,32 @@ describe("§ 2j.2 — an emitter and a field through an ellipsoid, focus to focu
       node = Math.max(node, Math.abs(q.density / c0 / closed - 1));
       fitted = Math.max(fitted, Math.abs(density.amplitude(q.ex, q.ey) ** 2 / a0 / closed - 1));
     }
-    // The rim is 0.837 of the centre for the emitter and 0.511 for the field:
-    // two answers, each measured, 6.1e-5 from its closed form.
-    expect(rim).toBeLessThan(source === "emitter" ? 0.85 : 0.52);
+    // The rim is 0.837 of the centre, measured 6.1e-5 from its closed form. Until
+    // § 2n the field read this times cos²α, 0.511 at the rim.
+    expect(rim).toBeLessThan(0.85);
     expect(node).toBeLessThan(2e-4);
     expect(fitted).toBeLessThan(2e-4);
+  });
+
+  it("field: each component's own power, cos α, where the ellipse's Jacobian no longer enters (§ 2n)", () => {
+    const laid = laidPupil(mirror, opdMap(mirror, 0, L, pupilGrid(21)), { ...EXIT, source: "field" });
+    const density = laid.density!;
+    const pg = pupils(mirror, L);
+    let node = 0;
+    let fitted = 0;
+    let rim = Infinity;
+    for (const q of density.nodes) {
+      const d = aimRay(mirror, pg, 0, { px: q.px, py: q.py }, L).dir;
+      const cosAlpha = Math.abs(d.z) / Math.hypot(d.x, d.y, d.z);
+      rim = Math.min(rim, cosAlpha);
+      node = Math.max(node, Math.abs(q.density / cosAlpha - 1));
+      fitted = Math.max(fitted, Math.abs(density.amplitude(q.ex, q.ey) ** 2 / cosAlpha - 1));
+    }
+    // 0.781 at the rim, where the Jacobian reading was 0.511; 2.2e-16 at the
+    // nodes, 4.2e-8 through the fit the transform reads.
+    expect(rim).toBeLessThan(0.79);
+    expect(node).toBeLessThan(4 * Number.EPSILON);
+    expect(fitted).toBeLessThan(1e-7);
   });
 });
 
@@ -197,9 +227,14 @@ describe("§ 2j.3 — the two branches agree, and share nothing but the trace", 
           if (Math.hypot(x - c, y - c) * g.pixelScaleMm <= halfBlurMm) hin += v;
         }
       }
-      // 0.20665 against 0.20625 (emitter), 0.29809 against 0.29741 (field): the
-      // histogram's pixel edge on a 41-pixel radius, as § 2i.4 measured it.
-      expect(Math.abs(inside / total - hin / htot)).toBeLessThan(1.5e-3);
+      // 0.20665 against 0.20625 (emitter): the histogram's pixel edge on a 41-pixel
+      // radius, as § 2i.4 measured it. A transmitted field's wave branch has carried
+      // each component's own power since § 2n, and its ray branch still the point's
+      // irradiance: 0.30053 against 0.29741, 3.1e-3 apart — the oil's own
+      // sine-condition offence (9.2e-3 at its rim), which the two now read
+      // differently. Recorded rather than bounded away; brightfield never blends.
+      if (source === "emitter") expect(Math.abs(inside / total - hin / htot)).toBeLessThan(1.5e-3);
+      else expect(inside / total - hin / htot).toBeCloseTo(3.12e-3, 4);
     },
     180_000,
   );

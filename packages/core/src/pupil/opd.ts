@@ -6,6 +6,7 @@ import { toImageSpace } from "../trace/axis";
 import { OpticalSystem } from "../trace/system";
 import { PupilGeometry, pupils, imagePlaneZ } from "./pupils";
 import { PupilPoint, AimOptions, aimRay, chiefRay } from "./aiming";
+import { lateralMagnification } from "./microscope";
 
 /**
  * OPD — optical path difference at the exit pupil. This is the wave layer's
@@ -448,6 +449,35 @@ function readApertureSine(system: OpticalSystem, wavelengthNm: number, options: 
     throw new Error("exit coordinate: the axial rim ray leaves parallel to the chief ray — no aperture");
   }
   return s;
+}
+
+/**
+ * One unit of the canonical pupil coordinate at a finite conjugate, as an
+ * object-space OPTICAL direction sine: ν = |M|·n′·|σ| (§ 2n).
+ *
+ * The frame's ruler puts a specimen period p at pupil coordinate (λ/p)/ν — the
+ * pixel `imagePixelScaleMm` reads off σ, referred to the specimen through the
+ * axial probe's |M| — and a period p diffracts by n·ΔL = λ/p. So ν is what turns
+ * an object-space direction into the coordinate the frequency lattice is in, and
+ * the one number the condenser's directions (`pupilDirectionMap`) and the exit
+ * pupil's irradiance (`exitDensity`) are both measured against. Paraxially it is
+ * n·u, the Lagrange invariant's own statement, so the canonical coordinate and the
+ * traced exit coordinate agree to first order at the chief ray.
+ *
+ * `probeHeightMm` is the frame's (default 1e-4 of the conjugate distance, the
+ * frame's own default); the magnification moves with it only by distortion.
+ */
+export function canonicalApertureSine(
+  system: OpticalSystem,
+  wavelengthNm: number,
+  options: AimOptions = {},
+  probeHeightMm?: number,
+): number {
+  if (system.conjugate.kind !== "finite") {
+    throw new Error("canonicalApertureSine: needs a finite conjugate — at infinity the object has no direction sine");
+  }
+  const m = lateralMagnification(system, probeHeightMm ?? system.conjugate.distance * 1e-4, wavelengthNm);
+  return Math.abs(m) * Math.abs(pupils(system, wavelengthNm).exit.n) * Math.abs(exitApertureSine(system, wavelengthNm, options));
 }
 
 /** Rays around the stop's rim `exitRim` traces. Linear in angle between them. */

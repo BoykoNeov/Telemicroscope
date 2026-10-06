@@ -35,6 +35,7 @@ whole ladder.
 | [2k](#step-2k--the-exit-layouts-cost-one-basis-per-point) | The exit layout's cost was the Zernike basis recomputed per term, not traces: hoisted and shared per point, to the bit; a 10× tile 10.7 s → 1.8 s, 1.14× the aim layout's | `exit-cost` |
 | [2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light) | The exit layout's 2.4e-4 energy drift in field is the grid counting an outline that changes shape; grid-free it is the aim layout's 7.7e-7 | `exit-field-energy` |
 | [2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) | The default layout follows the conjugate, exit at infinity: a paraboloid's ruler is cos²(u′/2), a classical Cassegrain's too, to 1e-14; 41 readings moved | `telescope-exit-layout` |
+| [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4379,6 +4380,89 @@ mirrors' rulers missing their closed forms by more than 1e-12.
 - **The finite chains are still on the aim layout** — the mosaic, seam and stage
   chains, the telecentric scene, `aperture-and-field`: register item 24, the seam
   chain last.
+
+## Step 2n — brightfield on the exit layout: a direction at its optical sine
+
+Source: engine change — `ObjectFieldFrame.layout` (a frame owns its layout; a pupil laid on it follows and refuses the other); `pupilDirectionMap` and `canonicalApertureSine` (a direction placed at n·(L − L_c)/ν, ν = |M|·n′·σ), through which `illuminationOffset` and `tracedCondenserCone` now go; `exitDensity` absolute at a finite conjugate — an emitter's p·|∂c/∂e|, a transmitted field's own cos θ
+· Tests: `packages/core/test/brightfield-exit-layout.test.ts`, the frame's refusal in `object-field.test.ts`, and the readings restated below
+
+Register item 24 flips the default layout one chain at a time, and § 2m flipped
+every one that images from infinity by making the default follow the conjugate.
+No finite chain coincides with a property of the system like that, so the
+brightfield chain is flipped by its **frame**: an `ObjectFieldFrame` records the
+layout its ruler was read in, every pupil laid on it is traced in that layout,
+and a pupil that asks for the other is refused — a ruler from one layout and
+tiles from the other would be a picture with no symptom but its scale. The
+brightfield panel asks for `"exit"`. Fluorescence, the volume panels and the
+mosaic keep the aim layout until their own steps; their frames are the default's.
+
+The exit layout was built for a point's PSF (§ 2i, § 2j). A brightfield image
+asks two things of it a PSF never did, and both were wrong.
+
+**Where a direction sits.** `abbeImage` evaluates P(f + s). The specimen's
+spectrum f is on a lattice the frame's ruler makes linear in the object's
+optical direction sine: a period p diffracts by n·ΔL = λ/p, and the ruler
+(`imagePixelScaleMm`, σ referred to the specimen by the probe's |M|) puts it at
+(λ/p)/ν. The condenser's directions s were the aimer's coordinate, linear in the
+slope — right on the aim layout, whose ruler is a tangent's (§ 6ag.3), and 1.76×
+off on the exit layout at the oil 100×'s first order. So a direction is now placed
+by its optical sine against the chief ray's, over ν — the canonical coordinate,
+defined past the rim where no ray through the objective exists but a condenser
+can still send light (S > 1). The offset and the traced condenser share the one
+map, so § 6ag.3's "the offset is the σ = 0 case of the cone" still holds bitwise.
+
+**How bright a direction is.** The exit density was power per exit area,
+normalized at the chief ray's source term — the aim's units. At a finite
+conjugate that made |P(0)|² = 1/|∂e/∂a|(0): 0.985 on the DIN 4×, 0.32 on the oil
+100×, 1.0036 on § 6al's singlet, whose clear field rendered 0.27% brighter than
+Fresnel allows. Fixed per source. An **emitter**'s density is made absolute,
+p·|∂c/∂e| with c the canonical coordinate: paraxially c and e agree (the Lagrange
+invariant), so |P(0)|² = 1 on every lens. A **transmitted field** has no change
+of variables at all: in `abbeImage` one lattice cell is one plane-wave component
+on both sides of the lens, so its |P|² is that component's own power, cos θ at
+its launch direction. Through the Jacobian instead, § 6al's clear field lost
+9.2e-4 — the singlet's sine-condition offence, read as brightness (on that
+fixture the density is 4·(M(ρ)/M₀ − 1) to 1%). The ray branch keeps the point's
+construction; brightfield never blends with it (§ 6f.12).
+
+**Hypothesis.** A direction at its optical sine over ν, and a field component
+weighted by its own power, keep Abbe's sum on one ruler and conserve light.
+**Refuted by** a normal-incidence clear field off (1 − R)² past the density fit's
+~1e-7, or an S = 0.5 cone's off (1 − R)²·⟨cos θ⟩ (predicted before the run at
+about −1.6e-6, where the Jacobian read −9.18e-4); the canonical offset departing
+from the traced axis-parallel ray at first order in field; the aberration-free
+condenser failing to converge on NA_c/ν as NA³; or an emitter's density off
+p·|∂c/∂e| past the density lattice's differencing.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2n.0 — a frame owns its layout** | a pupil laid on it follows unasked, bit for bit, and one asking for the other layout is refused | ✅ |
+| **§ 2n.1 — a field component's power is its own cos θ** | at every density node, to 4 ulp, on the DIN 4×, the rim DIN, the oil 100× and § 6al's singlet; exactly 1 at the axis | ✅ |
+| ...an emitter's \|P(0)\|² is 1 on every lens | 2.2e-6 (DIN), 3.7e-5 (oil), 4.6e-8 (singlet); 6.6e-8 and 2.7e-6 with the density lattice refined 21 → 41 — the singlet's does not move, a second-order pupil aberration of the chief ray against the paraxial ν | ✅ |
+| ...§ 2j's source term is p·\|∂c/∂a\| | \|∂(L,M)/∂a\|/d_z⁴ one constant to 1e-7, differenced off the launch directions — the dz³/dz⁵ derivation measured rather than trusted | ✅ |
+| ...and the density is p·\|∂c/∂e\| node for node | 1.0e-6 on the rim DIN on and off axis; 1.7e-3 on the oil, the lattice's area reading on its cubic map (§ 2j.1) | ✅ |
+| **§ 2n.2 — the canonical offset is the traced one to second order** | −n·L_c/ν against the axis-parallel ray's exit coordinate: oil 1.7e-7 at 0.1 µm, growing as h² (×16 for ×4); rim DIN 1.2e-7 at 10 µm. 1.759× the aim coordinate at first order. Telecentric: the f64 zero on both layouts | ✅ |
+| **§ 2n.3 — § 6ag.3, inverted** | the aberration-free traced cone converges on the SINE ratio NA_c/ν as NA³ — 5.17e-3, 6.39e-4, 5.10e-6, 5.10e-9 — and the tangent ratio floors at tan u_max/ν − 1 = 1.16e-2 | ✅ |
+| **§ 2n.4 — the clear field is Fresnel's** | lit straight through, (1 − R)² to 1.4e-7; by an S = 0.5 cone, (1 − R)²·⟨cos θ⟩ — measured −1.5435e-6 against the closed form's −1.6e-6, to 3e-7 | ✅ |
+| ...and flat across tiles off object-space telecentricity | the rim DIN's clear field 4.2e-5 apart over 2 mm, where the aim layout — no radiometry at all — reads 3.1e-5: the throughput's own drift | ✅ |
+
+### What moved, and why
+
+| Chain | Reading | Cause | Restated as |
+|---|---|---|---|
+| exit density | § 2j.2 the ellipsoid's field: (r₂/r₁)²/cos β·cos²α, 0.511 at the rim | a field component carries no Jacobian | cos α at every node to 2.2e-16, 4.2e-8 through the fit, 0.781 at the rim; the emitter's closed form unchanged |
+| | § 2j.3 the oil's field, wave branch against ray branch, 0.29809 against 0.29741 | the wave branch is per component, the ray branch still the point's | 0.30053 against 0.29741, 3.12e-3 apart: the oil's offence read two ways, recorded; the emitter still 4e-4 |
+| exit cost | § 2k.2 the laid exit pupil's amplitude sum, 728.2925078450103 | the DIN 10×'s field pupil is now cos θ per component | 744.5714016274019, bitwise; the phase sum did not move |
+
+### What it leaves
+
+- **Off the sine condition, Abbe's sum has two coordinates.** Its input — a
+  direction, a specimen frequency — is canonical; its output, where the pupil's
+  samples sit, is the traced exit coordinate. On an aplanat they are one. Off it,
+  neither the magnitude nor the phase placement can be right at both ends: the
+  canonical offset leaves the traced one by 13% at 0.1 mm on the oil 100×, and a
+  zone's magnification M(ρ) ≠ M₀ has a brightness half (1/M(ρ)²) that an
+  isoplanatic patch cannot carry without its size half — register item 28.
 
 ## Step 3a — the standard observer and thermal sources
 

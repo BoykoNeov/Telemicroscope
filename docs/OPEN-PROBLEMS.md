@@ -661,6 +661,23 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     region exceeds a lobe's width in defocus at the operand's ν — a closed form
     from the defocused MTF — and a rung that a restart stays inside the lobe it
     was given, or a documented statement that "converged" is per lobe.
+28. **Off the sine condition, Abbe's sum has two coordinates.** Found at
+    [§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine). `abbeImage` evaluates P(f + s): its INPUT — a specimen
+    frequency f, a condenser direction s — is the canonical coordinate n·(L − L_c)/ν,
+    and its OUTPUT, where the exit layout lays the traced samples, is the exit
+    coordinate. On an aplanat they are one, and they agree to second order in
+    field on any lens (§ 2n.2). Off it they part: the canonical illumination
+    offset leaves the traced axis-parallel ray by 4.0% at 50 µm and 13% at 0.1 mm
+    on the oil 100×, 1.3% at 3.2 mm on the rim DIN. And a pupil zone imaging at
+    M(ρ) ≠ M₀ has a brightness half, 1/M(ρ)², that an isoplanatic patch cannot
+    carry without its size half — shipping one without the other invents light in
+    the frame, which is why § 2n gives a field component its own power and not
+    that. Measured: the PSF's Jacobian density reads 4·(M(ρ)/M₀ − 1) on § 6al's
+    singlet. No shipped picture reaches it — the brightfield panel renders the
+    axis, and the shipped DIN and infinity presets are object-space telecentric,
+    offset the f64 zero. *What would pin it:* a non-isoplanatic brightfield
+    reference — Hopkins' transfer per field point with the zone's own magnification
+    — on a lens with a known sine-condition offence, against the patch sum.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

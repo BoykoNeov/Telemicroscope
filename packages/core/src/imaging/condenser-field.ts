@@ -4,9 +4,10 @@ import { reversePrescription } from "../trace/prescription";
 import { isPowerOfTwo } from "../math/fft";
 import type { OpticalSystem } from "../trace/system";
 import type { AimOptions } from "../pupil/aiming";
+import type { PupilLayout } from "../wave/psf";
 import type { AbbeCondenser } from "../designs/condenser";
 import type { CondenserSource, SourcePoint } from "../illumination/source";
-import { pupilSlopeFrame } from "./object-field";
+import { pupilDirectionMap } from "./object-field";
 
 /**
  * The condenser's cone, traced — § 6x's last deferral, second half.
@@ -86,6 +87,13 @@ import { pupilSlopeFrame } from "./object-field";
  * what S means for the authored sources — `diskSource` and friends carry no
  * trace and are internally consistent — it states which currency a *traced* cone
  * is in, and § 6ag.3 pins the discrepancy as its own rung.
+ *
+ * **On the exit layout the currency is the sine (§ 2n).** There the frame's
+ * frequency lattice is linear in the object's optical direction sine, so a
+ * lattice point is the canonical coordinate n·(L − L_c)/ν and the conversion goes
+ * through `pupilDirectionMap` instead — the same map the offset is read through,
+ * so the two still cannot differ. § 2n.3 is § 6ag.3 turned over: the sine ratio
+ * converges as NA³ to 5.1e-9 and the tangent floors at tan u_max/ν − 1.
  *
  * ## THE FINDING: the aberration lands in the WEIGHTS
  *
@@ -206,6 +214,15 @@ export interface TracedConeOptions {
    * otherwise be a plausible image rather than an error.
    */
   readonly reach?: number;
+  /**
+   * The layout of the pupil this cone will light — the frame's (§ 2n). Default
+   * by the conjugate, as everywhere. On the exit layout a lattice point is a
+   * canonical coordinate, linear in the optical direction sine (see
+   * `pupilDirectionMap`), and the weights are the diaphragm's area per unit of it.
+   */
+  readonly layout?: PupilLayout;
+  /** The frame's probe height (mm), whose magnification sets the exit layout's ruler. */
+  readonly probeHeightMm?: number;
 }
 
 export interface TracedCone extends CondenserSource {
@@ -328,6 +345,8 @@ export function tracedCondenserCone(
     reach,
     azimuthRad: options.azimuthRad ?? 0,
     ...(options.aim === undefined ? {} : { aim: options.aim }),
+    ...(options.layout === undefined ? {} : { layout: options.layout }),
+    ...(options.probeHeightMm === undefined ? {} : { probeHeightMm: options.probeHeightMm }),
   });
   if (built.touchedEdge) {
     throw new Error(
@@ -361,15 +380,13 @@ export function tracedCondenserCone(
   // circular, and its measured radius differs (1.0052 wide open on the shipped
   // pair, which is the aberration). Read this as the dial and the points as the
   // geometry, exactly as `translateSource` already renegotiated the field once.
+  //
+  // On the exit layout the pupil radius is an optical sine (§ 2n), so the same
+  // dial is a ratio of numerical apertures, with no tangent in it.
   const paraxialS =
-    (apertureFraction * tanOf(rev.numericalAperture)) /
-    pupilSlopeFrame(
-      system,
-      objectHeightMm,
-      rev.wavelengthNm,
-      options.aim === undefined ? {} : { aim: options.aim },
-      "tracedCondenserCone",
-    ).span;
+    built.layout === "exit"
+      ? (apertureFraction * rev.numericalAperture) / built.unit
+      : (apertureFraction * tanOf(rev.numericalAperture)) / built.unit;
   return {
     points: built.points.map((p) => ({ sx: p.sx, sy: p.sy, weight: p.weight / total })),
     coherenceParameter: paraxialS,
@@ -401,6 +418,9 @@ interface BuiltCone {
   readonly jMax: number;
   /** A member sat on the outermost candidate ring: the grid may have cut the cone. */
   readonly touchedEdge: boolean;
+  /** The layout the lattice was read in, and one pupil radius in its currency. */
+  readonly layout: PupilLayout;
+  readonly unit: number;
 }
 
 function buildCone(
@@ -414,21 +434,28 @@ function buildCone(
     reach: number;
     azimuthRad: number;
     aim?: AimOptions;
+    layout?: PupilLayout;
+    probeHeightMm?: number;
   },
 ): BuiltCone {
   const { pupilSamples, stepMultiple, apertureFraction, reach, azimuthRad } = options;
-  const frame = pupilSlopeFrame(
+  const map = pupilDirectionMap(
     system,
     objectHeightMm,
     rev.wavelengthNm,
-    options.aim === undefined ? {} : { aim: options.aim },
+    {
+      ...(options.aim === undefined ? {} : { aim: options.aim }),
+      ...(options.layout === undefined ? {} : { layout: options.layout }),
+      ...(options.probeHeightMm === undefined ? {} : { probeHeightMm: options.probeHeightMm }),
+    },
     "tracedCondenserCone",
   );
   // Where the cone sits, to centre the candidate grid on — the same quantity
-  // `illuminationOffset` reports, reached through the same frame. It is NOT
+  // `illuminationOffset` reports, reached through the same map. It is NOT
   // added to any coordinate: it only decides which lattice indices are worth
   // tracing, which is what keeps every point exactly on the lattice.
-  const centre = frame.chief === 0 ? 0 : frame.pupilOf(0);
+  const centre = map.axial;
+  const exit = map.layout === "exit";
   // In the FRAME the cone sits at that radius on this field point's own azimuth,
   // exactly as `fieldPupilAt` places `illuminationOffset`.
   const cos = Math.cos(azimuthRad);
@@ -464,8 +491,9 @@ function buildCone(
       // point KEEPS, and they are the ones on the lattice.
       const mx = sx * cos + sy * sin;
       const my = -sx * sin + sy * cos;
-      const s0x = frame.slopeOf(mx);
-      const s0y = my * frame.span;
+      const s0 = map.slopesOf(mx, my);
+      if (s0 === null) continue;
+      const [s0x, s0y] = s0;
       const landing = diaphragmLanding(rev, objectHeightMm, s0x, s0y);
       traces++;
       if (landing === null || landing.x * landing.x + landing.y * landing.y > r2) continue;
@@ -473,11 +501,19 @@ function buildCone(
       // what carries the whole of the finding — see the header. Differenced in
       // the meridian too: a determinant is invariant under the rotation, so the
       // area element belongs to the frame coordinate without conversion.
-      const dx = d * frame.span;
-      const xp = diaphragmLanding(rev, objectHeightMm, s0x + dx, s0y);
-      const xm = diaphragmLanding(rev, objectHeightMm, s0x - dx, s0y);
-      const yp = diaphragmLanding(rev, objectHeightMm, s0x, s0y + dx);
-      const ym = diaphragmLanding(rev, objectHeightMm, s0x, s0y - dx);
+      // On the aim layout a pupil step is the slope step d·span, exactly; on the
+      // exit layout the map is not affine in the slope, so the step is taken in
+      // the pupil coordinate and mapped.
+      const dx = d * map.unit;
+      const at = (ddx: number, ddy: number) => {
+        if (!exit) return diaphragmLanding(rev, objectHeightMm, s0x + ddx * dx, s0y + ddy * dx);
+        const s = map.slopesOf(mx + ddx * d, my + ddy * d);
+        return s === null ? null : diaphragmLanding(rev, objectHeightMm, s[0], s[1]);
+      };
+      const xp = at(1, 0);
+      const xm = at(-1, 0);
+      const yp = at(0, 1);
+      const ym = at(0, -1);
       traces += 4;
       // A point whose neighbourhood the glass does not pass is at the edge of
       // what the condenser transmits, and its area element is not measurable
@@ -508,6 +544,8 @@ function buildCone(
     jMin,
     jMax,
     touchedEdge,
+    layout: map.layout,
+    unit: map.unit,
   };
 }
 
@@ -558,6 +596,8 @@ function coneFidelity(
       reach: options.reach ?? 1.35,
       azimuthRad: options.azimuthRad ?? 0,
       ...(options.aim === undefined ? {} : { aim: options.aim }),
+      ...(options.layout === undefined ? {} : { layout: options.layout }),
+      ...(options.probeHeightMm === undefined ? {} : { probeHeightMm: options.probeHeightMm }),
     });
   const lo = build(objectHeightMm - half);
   const hi = build(objectHeightMm + half);
