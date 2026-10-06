@@ -551,11 +551,12 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
     // spherochromatism. On the exit layout, where the wavefront is fitted where
     // its rays went, the same difference is within 1.2% of W = ½·δ·NA²·ρ² at every
     // wavelength on both members, and no longer monotone (0.86%, 0.54%, 0.42%,
-    // −0.10%, 0.66%, 0.93% on the rim DIN). So most of the excess was the aim
-    // coordinate: a pupil laid where it was AIMED carries the objective's pupil
-    // distortion, which turns a pure ρ² in the exit pupil into ρ² + ρ⁴ and leaks
-    // into the fitted defocus. Kept below as the aim layout's control, so the
-    // claim that moved is pinned rather than deleted.
+    // −0.10%, 0.66%, 0.93% on the rim DIN). A property of the wavefront would
+    // read the same in either coordinate, so spherochromatism is refuted; what
+    // made the aim layout's excess is not traced — the aim→exit map's radial
+    // distortion moves only 6% across the band while the excess falls 2.9×. Kept
+    // below as the aim layout's control, so the claim that moved is pinned rather
+    // than deleted.
     for (const system of [DIN_4X, TELECENTRIC_4X]) {
       const base = paraxialImageOffset(system, DESIGN_NM);
       for (const nm of [450, 480, 500, 550, 650, 700]) {
@@ -571,9 +572,9 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
     // The aim layout's reading, as it stood: 6.6% at 450 nm falling
     // monotonically to 2.9% at 700, read then as spherochromatism. A wrong
     // pupil→image scale, NA or pixel size would bias every wavelength the SAME
-    // way, and a residual that shrank with λ was taken to be chromatic — but a
-    // pupil coordinate's distortion is not a scale, and the exit layout's
-    // reading above is a seventh of it.
+    // way, and a residual that shrank with λ was taken to be chromatic — but it
+    // moved with the pupil coordinate, and the exit layout's reading above is a
+    // seventh of it.
     //
     // Two-sided on purpose. The excess sits above 1 on THIS glass pair at THESE
     // conjugates, and its sign is a property of the residual rather than of the

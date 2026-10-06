@@ -4378,8 +4378,8 @@ mirrors' rulers missing their closed forms by more than 1e-12.
   reads through `laidPupil`. Readings that moved inside their tolerances were
   not audited.
 - **The finite chains are still on the aim layout** — the mosaic, seam and stage
-  chains, the telecentric scene, `aperture-and-field`: register item 24, the seam
-  chain last.
+  chains, ~~the telecentric scene~~ (brightfield, flipped at [§ 2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)),
+  `aperture-and-field`: register item 24, the seam chain last.
 
 ## Step 2n — brightfield on the exit layout: a direction at its optical sine
 
@@ -4466,7 +4466,7 @@ p·|∂c/∂e| past the density lattice's differencing.
 | | § 6al.7 the offset h/STOP_R | a direction at its optical sine | (h/√(h² + 400²))/ν, to 12 digits |
 | | § 6al.4–.8 contrasts (transfer 0.99951 → 0.99951, the 11-cycle 2.590e-3, sharp 1.7269e-2, defocused 1.2189e-2 → 1.2177e-2, one/four patches, the beat ratios) | the pupil laid where its rays went | recorded values; every closed-form agreement (§ 6al.3 to 1e-12, § 6al.8 to 1e-10) unchanged |
 | charts | § 6ao.7 λ/NA 10.7 px; § 6ao.8 ν 0.762, 1.067, 1.778; the Siemens-star golden (0.76% of pixels, at the hub) | the ruler, 1.05% coarser on the DIN 4× | 10.59 px; 0.756, 1.059, 1.765; re-baked, looked at |
-| colour | § 6r.7 the refocus excess 6.6% → 2.9%, monotone, read as spherochromatism | the aim coordinate's pupil distortion leaking into the fitted defocus | under 1.2% at every λ on both members, not monotone; the aim layout's numbers kept as the control |
+| colour | § 6r.7 the refocus excess 6.6% → 2.9%, monotone, read as spherochromatism | layout-dependent, so not the wavefront's; mechanism not traced (the map's radial distortion moves 6% across the band, the excess 2.9×) | under 1.2% at every λ on both members, not monotone; the aim layout's numbers kept as the control |
 | illumination | § 6x.6 the convergence ratios 0.5001/0.5092, first step 0.727 | the layout | 0.4992/0.5086 and 0.725; the gap over the control 9.1e-3 → 9.4e-3 |
 | app | the section panel's resample ratio, λ's exactly | σ is the objective's at each λ: 2.3e-3 across the band | (λ_ruler/λ)·(σ_λ/σ_ruler), still to 4 ulp |
 
@@ -4483,7 +4483,15 @@ p·|∂c/∂e| past the density lattice's differencing.
   and are recorded there; § 2n.5 reads the same cone in sines. Re-deriving its
   contrast effects (+0.069%, −0.661%) on the exit layout is not done.
 - **The remaining finite chains** — fluorescence and the volume panels, the
-  mosaic and seam chains, `aperture-and-field`: register item 24.
+  mosaic and seam chains, `aperture-and-field`: register item 24. Until they
+  flip, one objective's frame span reads ~1% apart between the brightfield and
+  section panels and the bench, builder, fluorescence and volume ones — each
+  panel prints its own frame's, so no page shows both.
+- **An emitter's absolute energy is unpinned across branches.** § 2j.3 compares
+  shares, which cancel § 2n's constant; `psf().energy` against
+  `geometricPsf().energy` on an exit-layout finite emitter is the fluorescence
+  step's first rung, since that chain blends through `adaptivePsf`.
+- **Two inputs a frame does not yet carry** — register item 29.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -13380,10 +13388,13 @@ tolerance — a wrong pupil→image scale, NA or pixel size would bias every
 wavelength the same way, so a residual that shrinks with λ is chromatic, which
 makes it the objective's own spherochromatism.~~ **Refuted at
 [§ 2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine):** on the exit layout the same difference is within 1.2%
-at every wavelength and no longer monotone — the excess was the aim layout's
-pupil coordinate, whose distortion turns a pure ρ² into ρ² + ρ⁴ and leaks into
-the fitted defocus. A distortion is not a scale, which is the hole in the
-argument above. The aim layout's reading is kept as the rung's control.
+at every wavelength and no longer monotone, so the excess depended on the pupil
+coordinate it was fitted in and was not a property of the wavefront.
+Spherochromatism is refuted; the mechanism is not traced. The obvious one — the
+aim→exit map's radial distortion leaking into the fitted defocus — does not
+track it: that term moves 6% across the band (−1.21e-2 to −1.14e-2) while the
+aim-minus-exit excess falls 2.9× (5.8% to 2.0%). The aim layout's reading is
+kept as the rung's control.
 
 The **sign flip is the control**. An achromat's focal-shift curve has two zeros,
 and between them the paraxial focus falls in front of the design plane rather

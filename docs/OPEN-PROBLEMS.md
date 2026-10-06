@@ -591,7 +591,7 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     objectives (4×/0.10 1.0075, 10×/0.2 0.9882, 20×/0.18 1.0074). Switched on as
     the default the exit layout moves **467 readings in 70 files**, and 417 of
     them move with the ruler alone — almost all the § 6bk → § 6cq mosaic and seam
-    chain, the telecentric scene and `aperture-and-field`. **69 of them go to NaN
+    chain, ~~the telecentric scene~~ (flipped with brightfield at [§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)) and `aperture-and-field`. **69 of them go to NaN
     or ∞:** the one traced is § 6bo's registration cost, whose field-scanned seam
     shift was the per-tile ruler's drift and is exactly 0 on an axial ruler; the
     other 68 are in the same chain and untraced. So flipping the default is not a
@@ -682,6 +682,17 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     offset the f64 zero. *What would pin it:* a non-isoplanatic brightfield
     reference — Hopkins' transfer per field point with the zone's own magnification
     — on a lens with a known sine-condition offence, against the patch sum.
+29. **Two brightfield inputs are the caller's to keep consistent, silently.** Found
+    at [§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine). The frame now owns its layout and refuses a pupil asking
+    for the other, but two things it does not carry: `tracedCondenserCone` takes
+    `layout` and `probeHeightMm` as loose options, so an aim-layout cone can light
+    an exit-layout tile — the mixed-currency defect § 2n removed, one call away; and
+    a transmitted field's pupil depends on every brightfield caller passing
+    `source: "field"`, where one that forgets gets an emitter's absolute 1/cos θ
+    density and no error. *What would close it:* a cone that carries its layout so
+    `renderBrightfield` can refuse a mismatch, and a frame (or a brightfield entry
+    point) that fixes the source — an API change with a refusal rung each, and no
+    external number needed.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
