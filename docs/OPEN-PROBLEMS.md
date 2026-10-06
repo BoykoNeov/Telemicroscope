@@ -578,7 +578,10 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     default now follows the conjugate, and the telescopes, the optimiser's MTF
     operand, the telecentric tail and one brightfield fixture are on the exit
     layout — 41 readings in 15 files restated, the mirrors' rulers pinned to
-    cos²(u′/2). What is left is every FINITE chain, the seam chain last. Found
+    cos²(u′/2). What is left is every FINITE chain, the seam chain last.
+    Readings that moved INSIDE their tolerances under § 2m were not audited
+    (§ 2j's follow-up did that for its own flip); one met while editing was the
+    retinal Airy in APP.md, 1.384″ → 1.380″. Found
     at § 2i. `PupilLayout` defaults to `"aim"`, whose ruler is the paraxial exit
     pupil's: 1.759× off on the oil 100×, and 0.2–1.2% off on the DIN dry
     objectives (4×/0.10 1.0075, 10×/0.2 0.9882, 20×/0.18 1.0074). Switched on as
@@ -634,6 +637,30 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     vignetted pupil, whose mask is a second outline. Three readings met it at
     [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) — § 8a.7's and § 8b.2's secondary, § 8c.6's resampled
     ratio — and are read grid-free or at 16 sub-samples per edge cell instead.
+26. **The seeing screen is composed at the exit layout's coordinate, not the
+    entrance pupil's.** Found at [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout). `psfFromSystemPupil` adds the
+    screen where the transform's samples sit, which on the exit layout — every
+    telescope's default — is the exit cone, while the atmosphere is in front of
+    the entrance pupil. For a pure tilt it is immaterial: at f/3, composing at
+    the aim coordinate instead moves the screened star by under 5e-6 of its
+    shift, under the grid's own 4.5e-4. A Kolmogorov screen's structure is
+    displaced by up to 1 − cos²(u′/2) of the radius at the rim, 0.7% at f/3, and
+    that is not measured. *What would pin it:* on a fast mirror, the
+    long-exposure OTF (Fried's exp(−3.44·(ρ/r₀)^5/3), § 5d) with the screen
+    composed through the inverse map at the aim coordinate against at the exit
+    one — agreeing to the ensemble's own noise closes it as immaterial; not
+    agreeing makes the inverse-map composition an engine change with that rung.
+27. **A contrast merit's restart can leave the lobe it converged on.** Found at
+    [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout). On the exit layout § 1.8.14's ν = 0.5 run stops on `step` at
+    0.081 contrast, and restarted it accepts 9 steps whose opening trial crosses
+    twelve waves of defocus to a lobe reading 0.117 — a fixed point there to the
+    bit. On the aim layout the same restart accepted none. The merit is smooth
+    (swept from 1e-10 to 1e-3 of the curvatures, noise 1e-11); contrast against
+    defocus has lobes all the way out, and nothing bounds a fresh run's opening
+    step against their spacing. *What would pin it:* whether the opening trust
+    region exceeds a lobe's width in defocus at the operand's ν — a closed form
+    from the defocused MTF — and a rung that a restart stays inside the lobe it
+    was given, or a documented statement that "converged" is per lobe.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;

@@ -2890,8 +2890,8 @@ the side of the knee at all 41 points. In the image the retinal Airy disc grows
 by ~~exactly~~ D/(d_eye·|M|) to the instrument's sine-condition offence —
 0.22% between the two cones since [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout), where the disc is read off the
 traced cone; quadratic in the aperture — 3.20× at an eye pupil of 1 mm against 3.5 on the
-default instrument — and the same ratio carries to the sky: **1.384″ becomes
-2.769″**. Above the knee the frame stops changing to twelve digits at 3, 5 and
+default instrument — and the same ratio carries to the sky: **~~1.384″ becomes
+2.769″~~ 1.380″ becomes 2.767″** on the traced cone ([§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout)). Above the knee the frame stops changing to twelve digits at 3, 5 and
 7 mm of iris, which is empty magnification's positive form: past the crossover
 the telescope has stopped resolving what its aperture could, and no further
 magnification is involved in either direction.

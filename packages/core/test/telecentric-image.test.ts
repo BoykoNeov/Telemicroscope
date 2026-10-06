@@ -756,6 +756,14 @@ describe("§ 2m — on the exit layout the ruler is the traced rim, and the IMAG
     expect(SCALE_64_16 / exit - 1).toBeCloseTo(1.1342e-3, 6);
   });
 
+  it("and its image keeps § 6ak.4's external pin: Maréchal on the trace's own RMS", () => {
+    // § 6ak.4 names the aim layout; the system's default path is this one, and
+    // it answers to the same exp(−(2πσ)²) — 0.993417 against 0.993552.
+    const rms = opdMap(TELECENTRIC, 0, LINE_D, pupilGrid(21), {}).rmsWaves;
+    const p = psf(TELECENTRIC, 0, LINE_D, { pupilSamples: 32, padFactor: 4, layout: "exit" });
+    expect(p.strehl).toBeCloseTo(Math.exp(-Math.pow(2 * Math.PI * rms, 2)), 3);
+  });
+
   it("the ruler moves with the gap where the image does not", () => {
     // The on-axis bundle is the same rays at every gap — the stop sits in
     // collimated light — so the image must not move with it. On the exit

@@ -1,12 +1,7 @@
 import { bestSpotZ, exitBundle, spotAt, type ExitBundle } from "@telemicroscope/core/analysis";
 import { imagePlaneZ, opdMap, pupilGrid } from "@telemicroscope/core/pupil";
 import { asCompiled } from "@telemicroscope/core/trace";
-import {
-  fitZernike,
-  geometricWeight,
-  opdSampling,
-  phaseStepPerSample,
-} from "@telemicroscope/core/wave";
+import { geometricWeight, laidPupil, phaseStepPerSample } from "@telemicroscope/core/wave";
 import { buildSystem, FOCUS_NM, type LensKind } from "./render";
 
 /**
@@ -246,7 +241,8 @@ function chiefOf(bundle: ExitBundle, z: number): { x: number; y: number } {
  * would be a second opinion on a question the engine has already answered. The
  * `pupilSamples` handed in is the PSF grid the star page renders at, because the
  * criterion is about sampling a phase and that is the grid it would be sampled
- * on.
+ * on. Read through `laidPupil`, so the samples sit where the star page's PSF
+ * puts them — the traced cone since § 2m — and not where this panel would.
  */
 function geometricShareAt(
   system: ReturnType<typeof buildSystem>,
@@ -254,7 +250,7 @@ function geometricShareAt(
   pupilSamples: number,
 ): number {
   const map = opdMap(system, fieldDeg, D_LINE, pupilGrid(21), {});
-  const sampling = opdSampling(map, fitZernike(map.samples, 28));
+  const { sampling } = laidPupil(system, map);
   return geometricWeight(phaseStepPerSample(sampling, pupilSamples));
 }
 

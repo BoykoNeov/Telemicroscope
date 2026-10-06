@@ -4299,7 +4299,7 @@ for a 720-gon by shoelace, at every field including the axis) appears on neither
 
 ## Step 2m — every chain imaging from infinity, on the exit layout
 
-Source: engine change — `defaultPupilLayout`: the layout a caller gets unasked follows the conjugate, `"exit"` at an infinite object; the reflector panel's Airy radius read off the same cone
+Source: engine change — `defaultPupilLayout`: the layout a caller gets unasked follows the conjugate, `"exit"` at an infinite object; the reflector panel's Airy radius read off the same cone, the spot panel's fidelity share through `laidPupil`
 · Tests: `packages/core/test/telescope-exit-layout.test.ts`, `test/support/apodizedMtf.ts`, and 41 readings restated in 15 files (below)
 
 Register item 24 flips the default layout one chain at a time, the telescope's
@@ -4362,13 +4362,20 @@ mirrors' rulers missing their closed forms by more than 1e-12.
   in. Measured for a pure tilt only: at f/3 composing at the aim coordinate
   instead moves the screened star by under 5e-6 of its shift, under the grid's
   own 4.5e-4. A Kolmogorov screen's structure is displaced by up to 1 − cos²(u′/2)
-  of the radius at the rim; not measured.
+  of the radius at the rim; not measured — register item 26.
 - **A contrast merit's "converged" is per lobe.** On the exit layout a restart's
   opening step crossed twelve waves of defocus; nothing bounds that step against
-  the lobe spacing.
+  the lobe spacing — register item 27.
 - **The 8-bit transpose proxy is the resampler's.** § 8c's conservative resampler
   is 6e-6 to 3.3e-3 of a plane's peak away from its own transpose — not a last
   bit — on either layout; the hero's raw PSF is symmetric to 3e-16.
+- **Three readers fit the traced map themselves and report in the aim
+  coordinate**: the optimiser's wavefront operand, the wavefront panel and the
+  collimation panel. They form no image, so nothing they show disagrees with a
+  PSF beside it; their Zernike coefficients are the aim layout's. The fourth
+  such reader, the spot panel's fidelity share, does sit beside a PSF and now
+  reads through `laidPupil`. Readings that moved inside their tolerances were
+  not audited.
 - **The finite chains are still on the aim layout** — the mosaic, seam and stage
   chains, the telecentric scene, `aperture-and-field`: register item 24, the seam
   chain last.
