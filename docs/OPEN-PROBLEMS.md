@@ -578,7 +578,11 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     default now follows the conjugate, and the telescopes, the optimiser's MTF
     operand, the telecentric tail and one brightfield fixture are on the exit
     layout — 41 readings in 15 files restated, the mirrors' rulers pinned to
-    cos²(u′/2). What is left is every FINITE chain, the seam chain last.
+    cos²(u′/2). **The brightfield chain flipped at [§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)**, by its
+    frame — a frame owns its layout, the brightfield and section panels ask for
+    `"exit"` — and it needed two engine changes a PSF never did: a direction placed
+    at its optical sine, and a field component carrying its own power. What is
+    left is fluorescence and the volume panels, then the mosaic, the seam chain last.
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
     retinal Airy in APP.md, 1.384″ → 1.380″. Found
@@ -1153,5 +1157,8 @@ radial-map nodes · § 6ba differential bleaching.
     and was not the light (item 25 is the grid's). ~~The first chain to flip is the
     telescope's~~ — flipped at [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) with every other chain that
     images from infinity, by making the default follow the conjugate. Next: a
-    finite chain; the brightfield and object-field tiles were measured moving
-    5–13% under the trial flip.
+    finite chain; ~~the brightfield and object-field tiles were measured moving
+    5–13% under the trial flip~~ — brightfield flipped at [§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine), and the trial's
+    numbers were stale: half of § 6al's movement was the exit density's aim-layout
+    units, fixed there. Next: fluorescence (an emitter, whose absolute units § 2n
+    already set), then the mosaic and seam chains.

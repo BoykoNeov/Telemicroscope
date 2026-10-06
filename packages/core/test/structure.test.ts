@@ -81,7 +81,8 @@ const FRAMES = new Map<number, ObjectFieldFrame>();
 const frameAt = (pupilSamples = PUPIL_SAMPLES): ObjectFieldFrame => {
   let frame = FRAMES.get(pupilSamples);
   if (frame === undefined) {
-    frame = objectFieldFrame(SYSTEM, { size: SIZE, pupilSamples, wavelengthNm: LAMBDA });
+    // Brightfield is on the exit layout since § 2n: the frame's ruler is the traced cone's.
+    frame = objectFieldFrame(SYSTEM, { size: SIZE, pupilSamples, wavelengthNm: LAMBDA, layout: "exit" });
     FRAMES.set(pupilSamples, frame);
   }
   return frame;
@@ -376,6 +377,7 @@ const pictureFrame = (): ObjectFieldFrame =>
     size: SIZE_PICTURE,
     pupilSamples: PUPIL_PICTURE,
     wavelengthNm: LAMBDA,
+    layout: "exit",
   }));
 
 /** Object-space NA of the shipped DIN 4×, and the lengths it sets. */
@@ -574,10 +576,12 @@ describe("§ 6ao.7 — the ends of a bar are where a chart stops being a ruling"
     // to nothing else.
     //
     // The scale of it is the instrument's, not the specimen's: λ/NA, the
-    // coherent resolution, 10.7 object pixels against a bar 17.5 long.
+    // coherent resolution, 10.6 object pixels against a bar 17.5 long — 10.7 on
+    // the aim layout, whose pixel was the paraxial tangent's; since § 2n it is the
+    // traced cone's sine, 1.05% coarser on this objective.
     const frame = pictureFrame();
     const lambdaOverNaPx = LAMBDA_OVER_NA_MM / frame.objectPixelScaleMm;
-    expect(lambdaOverNaPx).toBeCloseTo(10.7, 1);
+    expect(lambdaOverNaPx).toBeCloseTo(10.59, 1);
 
     const centre = SIZE_PICTURE / 2;
     /** Five bar widths of seven pixels, halved — a half-integer, which is the
@@ -670,11 +674,13 @@ describe("§ 6ao.8 — three elements of a chart, and the one that lies", () => 
     );
     const image = imagePicture(block, diskSource(0.5, 15));
 
-    expect(nuOf(7)).toBeCloseTo(0.762, 2);
-    expect(nuOf(5)).toBeCloseTo(1.067, 2);
+    // 0.762, 1.067 and 1.778 on the aim layout's ruler; the same bars on the
+    // traced cone's pixel (§ 2n) sit 0.75% lower in ν.
+    expect(nuOf(7)).toBeCloseTo(0.756, 2);
+    expect(nuOf(5)).toBeCloseTo(1.059, 2);
     // The last one is past 1 + S, where a ruling of that period transmits
     // nothing at all.
-    expect(nuOf(3)).toBeCloseTo(1.778, 2);
+    expect(nuOf(3)).toBeCloseTo(1.765, 2);
     expect(nuOf(3)).toBeGreaterThan(1.5);
 
     const contrasts = LADDER.map((barWidthPx, index) =>

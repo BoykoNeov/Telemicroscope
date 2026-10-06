@@ -923,8 +923,9 @@ export interface SystemPsfOptions extends PsfOptions {
  * the ruler on § 6e's oil 100×/1.25, and 0.2–1.2% on the DIN dry objectives the
  * mosaic chain is built on — for one reason: every reading pinned on a traced
  * microscope pupil moves with it, and those chains flip one numbered step at a
- * time (register item 24). A caller that needs a high-NA pupil right asks for
- * `"exit"`.
+ * time (register item 24). No finite chain coincides with a property of the
+ * system, so they flip by their FRAME (`ObjectFieldFrame.layout`): brightfield
+ * did at § 2n. A caller that needs a high-NA pupil right asks for `"exit"`.
  */
 export type PupilLayout = "aim" | "exit";
 

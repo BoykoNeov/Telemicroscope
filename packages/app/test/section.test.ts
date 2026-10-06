@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { brightfieldSpectralStack } from "@telemicroscope/core/imaging";
+import { exitApertureSine } from "@telemicroscope/core/pupil";
 import { entryOf } from "../src/microscope";
 import { buildMicroscope } from "../src/builder";
 import {
@@ -244,9 +245,15 @@ describe("A9.3 — the guard names the plane that refused", () => {
     const readout = ok({ ...BASE, wavelengths: 3 });
     const bluest = Math.min(...readout.planes.map((p) => p.nm));
     expect(readout.rulerWavelengthNm).toBeCloseTo(bluest, 9);
+    // On the exit layout since § 2n, a plane's pixel is λ/(2n′σ_λ), and the traced
+    // cone's sine σ is the objective's at THAT wavelength — so the ratio is λ's
+    // times σ's, (λ_ruler/λ)·(σ_λ/σ_ruler). σ moves 2.3e−3 across this band; the
+    // aim layout's paraxial pupil did not move with λ, and the ratio was λ's alone.
+    const system = buildMicroscope(BASE.spec).system;
+    const sigma = (nm: number) => Math.abs(exitApertureSine(system, nm));
     let worst = 0;
     for (const plane of readout.planes) {
-      const ideal = readout.rulerWavelengthNm / plane.nm;
+      const ideal = (readout.rulerWavelengthNm / plane.nm) * (sigma(plane.nm) / sigma(readout.rulerWavelengthNm));
       expect(plane.resampleRatio).toBeCloseTo(ideal, 3);
       worst = Math.max(worst, Math.abs(plane.resampleRatio - ideal));
     }

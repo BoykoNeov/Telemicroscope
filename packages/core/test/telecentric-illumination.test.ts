@@ -103,14 +103,18 @@ const infinity = (stopPlacement: StopPlacement): OpticalSystem =>
     tubeLens: tubeLens(),
   }).system;
 
+/** Brightfield frames are on the exit layout since § 2n; § 6x.1's closed form stays the aim coordinate's. */
 const frameOf = (system: OpticalSystem, pupilSamples = PS, size = SIZE) =>
-  objectFieldFrame(system, { size, pupilSamples, wavelengthNm: L });
+  objectFieldFrame(system, { size, pupilSamples, wavelengthNm: L, layout: "exit" });
+/** A transmitted field, not an emitter (§ 2j). */
+const FIELD = { source: "field" } as const;
 
 const tileAtHeight = (system: OpticalSystem, hMm: number, pupilSamples = PS, size = SIZE) =>
   objectFieldTile(system, {
     size,
     pupilSamples,
     wavelengthNm: L,
+    layout: "exit",
     centreMm: { x: hMm === 0 ? 0 : imageRadiusForObjectHeight(system, hMm, L), y: 0 },
   });
 
@@ -190,7 +194,7 @@ describe("§ 6x.1 — the illumination offset IS h/R_ep, and telecentricity kill
     // offset is turned by the same rotation as the pupil.
     const system = din();
     const frame = frameOf(system);
-    const at = (u: number, v: number) => fieldPupilAt(system, frame, u, v);
+    const at = (u: number, v: number) => fieldPupilAt(system, frame, u, v, FIELD);
 
     const px = at(1, 0.5);
     expect(px.illuminationOffset.sx).toBeGreaterThan(0);
@@ -236,7 +240,7 @@ describe("§ 6x.2 — the aperture stops admitting the whole cone, and that is c
 
     const at = (hMm: number): CondenserSource => {
       const tile = tileAtHeight(system, hMm, PS, 128);
-      const p = fieldPupilAt(system, tile, 0.5, 0.5);
+      const p = fieldPupilAt(system, tile, 0.5, 0.5, FIELD);
       return translateSource(source, p.illuminationOffset.sx, p.illuminationOffset.sy);
     };
 
@@ -267,7 +271,7 @@ describe("§ 6x.2 — the aperture stops admitting the whole cone, and that is c
     const source = diskSource(0.9, 11);
     for (const h of [0, 0.5, 1]) {
       const tile = tileAtHeight(tele, h, PS, 128);
-      const p = fieldPupilAt(tele, tile, 0.5, 0.5);
+      const p = fieldPupilAt(tele, tile, 0.5, 0.5, FIELD);
       const lit = translateSource(source, p.illuminationOffset.sx, p.illuminationOffset.sy);
       expect(lit).toBe(source);
       expect(lit.points.filter((q) => Math.hypot(q.sx, q.sy) <= 1)).toHaveLength(97);
@@ -285,7 +289,7 @@ describe("§ 6x.2 — the aperture stops admitting the whole cone, and that is c
     const means: number[] = [];
     for (const h of [0, 0.1, 0.2, 0.4]) {
       const tile = tileAtHeight(system, h);
-      const p = fieldPupilAt(system, tile, 0.5, 0.5);
+      const p = fieldPupilAt(system, tile, 0.5, 0.5, FIELD);
       const lit = translateSource(source, p.illuminationOffset.sx, p.illuminationOffset.sy);
       expect(0.6 + p.radialIlluminationOffset).toBeLessThan(1);
       means.push(meanOf(abbeImage(uniformObject(SIZE), p.pupil, lit, { pupilSamples: PS }).intensity));
@@ -316,7 +320,7 @@ describe("§ 6x.3 — a self-luminous specimen does not move, bit for bit", () =
       ],
       {},
     );
-    const traced = tracedFieldPupils(system, frame);
+    const traced = tracedFieldPupils(system, frame, FIELD);
     const stripped = (u: number, v: number): PatchPupil => {
       const p = traced(u, v);
       return { pupil: p.pupil, ...(p.sampling === undefined ? {} : { sampling: p.sampling }) };
@@ -352,7 +356,7 @@ describe("§ 6x.4 — the offset reaches the image, and the axis is untouched", 
     const source = diskSource(0.6, 5);
     const grating = cosineGratingObject({ size: SIZE, cycles: 8, modulation: 0.6 });
     const render = (tile: ReturnType<typeof tileAtHeight>, strip: boolean) => {
-      const traced = tracedFieldPupils(system, tile);
+      const traced = tracedFieldPupils(system, tile, FIELD);
       const at = strip
         ? (u: number, v: number): PatchPupil => {
             const p = traced(u, v);
@@ -476,7 +480,7 @@ describe("§ 6x.6 — a moved cone is decided by the PUPIL sampling", () => {
     const source = diskSource(0.6, 5);
     const frame = frameOf(system, pupilSamples, size);
     const grating = cosineGratingObject({ size, cycles: 8, modulation: 0.6 });
-    const traced = tracedFieldPupils(system, frame);
+    const traced = tracedFieldPupils(system, frame, FIELD);
     const stripped = (u: number, v: number): PatchPupil => {
       const p = traced(u, v);
       return { pupil: p.pupil, ...(p.sampling === undefined ? {} : { sampling: p.sampling }) };
@@ -495,10 +499,15 @@ describe("§ 6x.6 — a moved cone is decided by the PUPIL sampling", () => {
 
     const control = sequence(stripped);
     const moved = sequence(traced);
-    expect(control[1]! / control[0]!).toBeCloseTo(0.5, 3);
-    expect(moved[1]! / moved[0]!).toBeCloseTo(0.509, 3);
+    // On the exit layout since § 2n — the cone placed by its optical sine, the
+    // pupil where its rays went: 0.4992/0.5086 and 0.725, against the aim
+    // layout's 0.5001/0.5092 and 0.727. The finding is the gap and its sign, and
+    // both held: 9.4e−3 above the control here, 9.1e−3 there.
+    expect(control[1]! / control[0]!).toBeCloseTo(0.4992, 3);
+    expect(moved[1]! / moved[0]!).toBeCloseTo(0.5086, 3);
+    expect(moved[1]! / moved[0]! - control[1]! / control[0]!).toBeCloseTo(9.4e-3, 3);
     // The first step SHRINKS when the cone is put where it belongs.
     expect(moved[0]!).toBeLessThan(control[0]!);
-    expect(moved[0]! / control[0]!).toBeCloseTo(0.727, 2);
+    expect(moved[0]! / control[0]!).toBeCloseTo(0.725, 2);
   });
 });

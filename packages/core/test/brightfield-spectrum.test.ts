@@ -478,6 +478,7 @@ describe("§ 6r.6 — the traced path, and what concentric frames carry for free
   it("each wavelength's frame is its own size, and the extents go as λ", () => {
     const tiles = THREE.map((s) =>
       objectFieldTile(DIN_4X, {
+        layout: "exit",
         size: TRACED_SIZE,
         pupilSamples: TRACED_PUPIL_SAMPLES,
         wavelengthNm: s.nm,
@@ -496,6 +497,7 @@ describe("§ 6r.6 — the traced path, and what concentric frames carry for free
   it("a neutral specimen stays neutral through the whole traced path", () => {
     const clear = neutralSpecimen(() => ({ re: 1, im: 0 }));
     const stack = brightfieldSpectralStack(DIN_4X, clear, coherentSource(), {
+      layout: "exit",
       size: TRACED_SIZE,
       pupilSamples: TRACED_PUPIL_SAMPLES,
       samples: THREE,
@@ -531,23 +533,47 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
    * to each wavelength's own paraxial focus removes exactly the chromatic part
    * and leaves the residual alone.
    */
-  const w20At = (system: OpticalSystem, nm: number): number => {
-    const frame = objectFieldFrame(system, { size: 128, pupilSamples: 64, wavelengthNm: nm });
+  const w20At = (system: OpticalSystem, nm: number, layout: "aim" | "exit" = "exit"): number => {
+    const frame = objectFieldFrame(system, { size: 128, pupilSamples: 64, wavelengthNm: nm, layout });
     // Noll j = 4 is defocus, orthonormal, so Z₄ = √3(2ρ²−1) and the rim value of
     // w₂₀·ρ² is 2√3 times the coefficient.
-    return 2 * Math.sqrt(3) * fieldPupilAt(system, frame, 0.5, 0.5).fit.coefficients[3]!;
+    return 2 * Math.sqrt(3) * fieldPupilAt(system, frame, 0.5, 0.5, { source: "field" }).fit.coefficients[3]!;
   };
   const DESIGN_NM = LINE_D;
   const basePlane = paraxialImageOffset(DIN_4X, DESIGN_NM);
 
   it("refocusing to a wavelength's own paraxial plane removes exactly its chromatic defocus", () => {
     // Six wavelengths across the band, including the achromat's own crossing.
-    // The tolerance is 8% either way, and the measured excess is systematic:
-    // 6.6% at 450 nm falling monotonically to 2.9% at 700 nm. A wrong pupil→image
-    // scale, NA or pixel size would bias every wavelength the SAME way; a
-    // residual that shrinks with λ is chromatic, which is the objective's own
-    // spherochromatism and not a calibration error. § 3b makes the identical
-    // argument about its 30%.
+    //
+    // **Restated at § 2n, and the explanation below it was wrong.** On the aim
+    // layout the measured excess was systematic — 6.6% at 450 nm falling
+    // monotonically to 2.9% at 700 — and was read as the objective's
+    // spherochromatism. On the exit layout, where the wavefront is fitted where
+    // its rays went, the same difference is within 1.2% of W = ½·δ·NA²·ρ² at every
+    // wavelength on both members, and no longer monotone (0.86%, 0.54%, 0.42%,
+    // −0.10%, 0.66%, 0.93% on the rim DIN). So most of the excess was the aim
+    // coordinate: a pupil laid where it was AIMED carries the objective's pupil
+    // distortion, which turns a pure ρ² in the exit pupil into ρ² + ρ⁴ and leaks
+    // into the fitted defocus. Kept below as the aim layout's control, so the
+    // claim that moved is pinned rather than deleted.
+    for (const system of [DIN_4X, TELECENTRIC_4X]) {
+      const base = paraxialImageOffset(system, DESIGN_NM);
+      for (const nm of [450, 480, 500, 550, 650, 700]) {
+        const shiftMm = paraxialImageOffset(system, nm) - base;
+        const predicted = defocusWaves(shiftMm, imageNumericalAperture(system, nm), nm, 1);
+        const measured = w20At(system, nm) - w20At(withFocus(system, base + shiftMm), nm);
+        expect(Math.abs(measured / predicted - 1)).toBeLessThan(0.012);
+      }
+    }
+  });
+
+  it("…and the aim layout's 3–8% excess was its coordinate, not the glass", () => {
+    // The aim layout's reading, as it stood: 6.6% at 450 nm falling
+    // monotonically to 2.9% at 700, read then as spherochromatism. A wrong
+    // pupil→image scale, NA or pixel size would bias every wavelength the SAME
+    // way, and a residual that shrank with λ was taken to be chromatic — but a
+    // pupil coordinate's distortion is not a scale, and the exit layout's
+    // reading above is a seventh of it.
     //
     // Two-sided on purpose. The excess sits above 1 on THIS glass pair at THESE
     // conjugates, and its sign is a property of the residual rather than of the
@@ -566,7 +592,7 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
       return [450, 480, 500, 550, 650, 700].map((nm) => {
         const shiftMm = paraxialImageOffset(system, nm) - base;
         const predicted = defocusWaves(shiftMm, imageNumericalAperture(system, nm), nm, 1);
-        const measured = w20At(system, nm) - w20At(withFocus(system, base + shiftMm), nm);
+        const measured = w20At(system, nm, "aim") - w20At(withFocus(system, base + shiftMm), nm, "aim");
         return measured / predicted - 1;
       });
     };
@@ -582,6 +608,14 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
     const ratios = telecentric.map((e, i) => e / rim[i]!);
     expect(Math.min(...ratios)).toBeGreaterThan(1.21);
     expect(Math.max(...ratios)).toBeLessThan(1.25);
+    // And the exit layout's, at the blue end where the aim layout's was largest:
+    // 0.86% against 6.6%.
+    const shift450 = paraxialImageOffset(DIN_4X, 450) - basePlane;
+    const exitExcess =
+      (w20At(DIN_4X, 450) - w20At(withFocus(DIN_4X, basePlane + shift450), 450)) /
+        defocusWaves(shift450, imageNumericalAperture(DIN_4X, 450), 450, 1) -
+      1;
+    expect(Math.abs(exitExcess)).toBeLessThan(rim[0]! / 7);
   });
 
   it("the achromat's own crossing and its sign flip both survive the trace", () => {
@@ -625,8 +659,8 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
      * do, and at 64 all three are valid.
      */
     const stepAt = (nm: number, pupilSamples: number): number => {
-      const frame = objectFieldFrame(DIN_4X, { size: 128, pupilSamples, wavelengthNm: nm });
-      return brightfieldFidelity(fieldPupilAt(DIN_4X, frame, 0.5, 0.5).sampling, pupilSamples)
+      const frame = objectFieldFrame(DIN_4X, { size: 128, pupilSamples, wavelengthNm: nm, layout: "exit" });
+      return brightfieldFidelity(fieldPupilAt(DIN_4X, frame, 0.5, 0.5, { source: "field" }).sampling, pupilSamples)
         .phaseStepWaves!;
     };
     const excess = stepAt(450, 32) / stepAt(550, 32) / (550 / 450);
@@ -634,8 +668,8 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
     expect(excess).toBeGreaterThan(2);
 
     const verdictAt = (nm: number, pupilSamples: number) => {
-      const frame = objectFieldFrame(DIN_4X, { size: 128, pupilSamples, wavelengthNm: nm });
-      return brightfieldFidelity(fieldPupilAt(DIN_4X, frame, 0.5, 0.5).sampling, pupilSamples)
+      const frame = objectFieldFrame(DIN_4X, { size: 128, pupilSamples, wavelengthNm: nm, layout: "exit" });
+      return brightfieldFidelity(fieldPupilAt(DIN_4X, frame, 0.5, 0.5, { source: "field" }).sampling, pupilSamples)
         .verdict;
     };
     expect(verdictAt(450, 32)).toBe("no-honest-image");
@@ -664,6 +698,7 @@ describe("§ 6r.8 — lateral colour, which nothing here coded for", () => {
 
   const objectPointOf = (system: OpticalSystem, nm: number, fieldMm: number): number => {
     const tile = objectFieldTile(system, {
+      layout: "exit",
       size: TRACED_SIZE,
       pupilSamples: TRACED_PUPIL_SAMPLES,
       wavelengthNm: nm,

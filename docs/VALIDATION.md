@@ -4393,8 +4393,13 @@ brightfield chain is flipped by its **frame**: an `ObjectFieldFrame` records the
 layout its ruler was read in, every pupil laid on it is traced in that layout,
 and a pupil that asks for the other is refused — a ruler from one layout and
 tiles from the other would be a picture with no symptom but its scale. The
-brightfield panel asks for `"exit"`. Fluorescence, the volume panels and the
-mosaic keep the aim layout until their own steps; their frames are the default's.
+brightfield panel and the stained-section panel ask for `"exit"`, and so do the
+brightfield rungs (§ 6al, § 6ao, § 6r, § 6x's renders). Fluorescence, the volume
+panels and the mosaic keep the aim layout until their own steps; their frames are
+the default's. So do the rungs whose subject IS the aim coordinate — § 6x.1's
+h/r_ep, § 6r.9's stop geometry — and § 6ag, whose cones, currency and weights are
+all the aim layout's: switching its tiles alone would mix the two, which is the
+defect this step removes; § 2n.5 is its exit-layout reading.
 
 The exit layout was built for a point's PSF (§ 2i, § 2j). A brightfield image
 asks two things of it a PSF never did, and both were wrong.
@@ -4445,6 +4450,7 @@ p·|∂c/∂e| past the density lattice's differencing.
 | **§ 2n.3 — § 6ag.3, inverted** | the aberration-free traced cone converges on the SINE ratio NA_c/ν as NA³ — 5.17e-3, 6.39e-4, 5.10e-6, 5.10e-9 — and the tangent ratio floors at tan u_max/ν − 1 = 1.16e-2 | ✅ |
 | **§ 2n.4 — the clear field is Fresnel's** | lit straight through, (1 − R)² to 1.4e-7; by an S = 0.5 cone, (1 − R)²·⟨cos θ⟩ — measured −1.5435e-6 against the closed form's −1.6e-6, to 3e-7 | ✅ |
 | ...and flat across tiles off object-space telecentricity | the rim DIN's clear field 4.2e-5 apart over 2 mm, where the aim layout — no radiometry at all — reads 3.1e-5: the throughput's own drift | ✅ |
+| **§ 2n.5 — the traced condenser, read in sines** | its dial is apertureFraction·NA_c/ν exactly; on axis its weights are flat to 2.4e-4 where the tangent reading spread them 1.32% (§ 6ag.4's on-axis finding was the currency); off axis 4.82% and 10.6% against 4.95% and 11.3% — the condenser's own; centred on `illuminationOffset` through the same map | ✅ |
 
 ### What moved, and why
 
@@ -4453,6 +4459,16 @@ p·|∂c/∂e| past the density lattice's differencing.
 | exit density | § 2j.2 the ellipsoid's field: (r₂/r₁)²/cos β·cos²α, 0.511 at the rim | a field component carries no Jacobian | cos α at every node to 2.2e-16, 4.2e-8 through the fit, 0.781 at the rim; the emitter's closed form unchanged |
 | | § 2j.3 the oil's field, wave branch against ray branch, 0.29809 against 0.29741 | the wave branch is per component, the ray branch still the point's | 0.30053 against 0.29741, 3.12e-3 apart: the oil's offence read two ways, recorded; the emitter still 4e-4 |
 | exit cost | § 2k.2 the laid exit pupil's amplitude sum, 728.2925078450103 | the DIN 10×'s field pupil is now cos θ per component | 744.5714016274019, bitwise; the phase sum did not move |
+| telecentric scene | § 6al.1 pixel 0.0038891 → 0.0038821; § 6al.2 warp 3.833e-6 → 3.812e-6 mm, 1.305e-4 → 1.300e-4 px; § 6al.7 h 0.23502 → 0.23460 | the ruler: the traced cone's sine, 1.82e-3 finer than the paraxial slope | recorded values |
+| | § 6al.1 clear field (1 − R)² to 2.7e-8 | a field component's own cos θ | (1 − R)²·⟨cos θ⟩, −1.5435e-6, to 3e-7 |
+| | § 6al.5 Abbe period: the tangent reading's, 2.1e-8 | the frame's NA is ν, the image side's sine referred back | λ/(ν(1 + S)) to 1e-12, and ν/NA_ep − 1 = the singlet's sine-condition residual, −1.83e-3, to 1e-7; the last-bin margin 1.5e-4 → 0.022 of a cycle |
+| | § 6al.6 the ordinary pixel follows 1 + δ/R to 1e-10 | the traced rim on a sphere that moved with the sensor (§ 2m) | linear in δ: −6.16e-6 per mm, to 1% |
+| | § 6al.7 the offset h/STOP_R | a direction at its optical sine | (h/√(h² + 400²))/ν, to 12 digits |
+| | § 6al.4–.8 contrasts (transfer 0.99951 → 0.99951, the 11-cycle 2.590e-3, sharp 1.7269e-2, defocused 1.2189e-2 → 1.2177e-2, one/four patches, the beat ratios) | the pupil laid where its rays went | recorded values; every closed-form agreement (§ 6al.3 to 1e-12, § 6al.8 to 1e-10) unchanged |
+| charts | § 6ao.7 λ/NA 10.7 px; § 6ao.8 ν 0.762, 1.067, 1.778; the Siemens-star golden (0.76% of pixels, at the hub) | the ruler, 1.05% coarser on the DIN 4× | 10.59 px; 0.756, 1.059, 1.765; re-baked, looked at |
+| colour | § 6r.7 the refocus excess 6.6% → 2.9%, monotone, read as spherochromatism | the aim coordinate's pupil distortion leaking into the fitted defocus | under 1.2% at every λ on both members, not monotone; the aim layout's numbers kept as the control |
+| illumination | § 6x.6 the convergence ratios 0.5001/0.5092, first step 0.727 | the layout | 0.4992/0.5086 and 0.725; the gap over the control 9.1e-3 → 9.4e-3 |
+| app | the section panel's resample ratio, λ's exactly | σ is the objective's at each λ: 2.3e-3 across the band | (λ_ruler/λ)·(σ_λ/σ_ruler), still to 4 ulp |
 
 ### What it leaves
 
@@ -4463,6 +4479,11 @@ p·|∂c/∂e| past the density lattice's differencing.
   canonical offset leaves the traced one by 13% at 0.1 mm on the oil 100×, and a
   zone's magnification M(ρ) ≠ M₀ has a brightness half (1/M(ρ)²) that an
   isoplanatic patch cannot carry without its size half — register item 28.
+- **§ 6ag stays on the aim layout.** Its findings are about the tangent currency
+  and are recorded there; § 2n.5 reads the same cone in sines. Re-deriving its
+  contrast effects (+0.069%, −0.661%) on the exit layout is not done.
+- **The remaining finite chains** — fluorescence and the volume panels, the
+  mosaic and seam chains, `aperture-and-field`: register item 24.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -13354,10 +13375,15 @@ coefficient is not the chromatic shift and never was; moving the image plane to
 each wavelength's own paraxial focus removes the chromatic part and leaves the
 residual where it is. Across 450–700 nm the measured removal matches the
 predicted defocus to within 8%, and the excess is **systematic and monotone**:
-6.6% at 450 nm falling to 2.9% at 700 nm. That is the diagnosis as well as the
+6.6% at 450 nm falling to 2.9% at 700 nm. ~~That is the diagnosis as well as the
 tolerance — a wrong pupil→image scale, NA or pixel size would bias every
 wavelength the same way, so a residual that shrinks with λ is chromatic, which
-makes it the objective's own spherochromatism.
+makes it the objective's own spherochromatism.~~ **Refuted at
+[§ 2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine):** on the exit layout the same difference is within 1.2%
+at every wavelength and no longer monotone — the excess was the aim layout's
+pupil coordinate, whose distortion turns a pure ρ² into ρ² + ρ⁴ and leaks into
+the fitted defocus. A distortion is not a scale, which is the hole in the
+argument above. The aim layout's reading is kept as the rung's control.
 
 The **sign flip is the control**. An achromat's focal-shift curve has two zeros,
 and between them the paraxial focus falls in front of the design plane rather
@@ -17253,7 +17279,7 @@ same for all of them.
 
 | field height | Jacobian spread across the cone | contrast, against uniform weights |
 |---|---|---|
-| 0 | 1.32% | **+0.069%** |
+| 0 | 1.32% (~~the condenser's~~ the tangent currency's: 2.4e-4 read in sines, [§ 2n.5](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)) | **+0.069%** |
 | 1 mm | 4.95% | −0.160% |
 | 2.25 mm | 11.3% | **−0.661%** |
 
@@ -17399,7 +17425,7 @@ coma.
 | `pupilSlopeFrame`'s span is `tan u_max` **bitwise** at three field heights | the aimer's own parametrization | ✅ |
 | `illuminationOffset` is that frame's σ = 0 case, bitwise, and its on-axis zero stays bitwise | § 6x.1 unmoved by the refactor | ✅ |
 | EXTERNAL-shaped CONTROL: the aberration-free limit reaches the **tangent** ratio as NA³ → 5.039e-9, and the **sine** ratio never (floors at 5.0e-3) | the currency, discriminated over four apertures | ✅ |
-| **THE FINDING: the Jacobian spread runs 1.32% → 11.3% across the field** | the weights every prior source assumed uniform | ✅ |
+| **THE FINDING: the Jacobian spread runs 1.32% → 11.3% across the field** — on axis the tangent's, flat to 2.4e-4 in sines ([§ 2n.5](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)); off axis the condenser's own | the weights every prior source assumed uniform | ✅ |
 | **…and on an IDENTICAL point set that is +0.069% of contrast on axis and −0.661% at 2.25 mm**, converged over 2.1× of point count | the weights alone, quadrature cancelled | ✅ |
 | …and the objective's own aberration **amplifies it 2.9×** | the two are not independent contributions | ✅ |
 | CONTROL: closing the condenser's aperture flattens the spread 20× over 4× of NA | § 6ae.5's shape, one lens | ✅ |

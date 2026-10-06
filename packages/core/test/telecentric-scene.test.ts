@@ -4,6 +4,8 @@ import { Prescription } from "../src/trace/prescription";
 import { paraxialTrace } from "../src/trace/paraxial";
 import { paraxialImageOffset } from "../src/analysis/focus";
 import { pupils } from "../src/pupil/pupils";
+import { canonicalApertureSine } from "../src/pupil/opd";
+import { sineConditionResidual } from "../src/pupil/microscope";
 import { objectFieldFrame, fieldPupilAt, tracedFieldPupils } from "../src/imaging/object-field";
 import { rasterizeSpecimen, specimenPointAt } from "../src/imaging/specimen";
 import { renderBrightfield } from "../src/imaging/brightfield";
@@ -73,6 +75,14 @@ import { LINE_D } from "../src/materials/dispersion";
  * § 6x displacement `renderBrightfield` translates the source by, alive on a
  * fixture whose *other* end is telecentric. The two are independent properties
  * of the two ends of the same system.
+ *
+ * **On the exit layout since § 2n**, with brightfield. The ruler is read off the
+ * traced cone (σ) rather than the paraxial slope, a direction sits at its optical
+ * sine over ν = |M|·n′·σ, and a field component carries its own cos θ. Every
+ * reading below that moved is restated where it is asserted, with its cause; the
+ * two external numbers became sharper rather than looser — Fresnel's level times
+ * the cone's ⟨cos θ⟩, and Abbe's period off ν, which leaves the entrance pupil's
+ * sine by exactly this singlet's sine-condition offence.
  */
 
 const STOP_R = 2;
@@ -140,7 +150,10 @@ const ORDINARY = finiteAt(20);
 
 const SIZE = 32;
 const PUPIL_SAMPLES = 16;
-const FRAME_OPTIONS = { size: SIZE, pupilSamples: PUPIL_SAMPLES } as const;
+/** Brightfield is on the exit layout since § 2n: the frame owns it, and every pupil follows. */
+const FRAME_OPTIONS = { size: SIZE, pupilSamples: PUPIL_SAMPLES, layout: "exit" } as const;
+/** A transmitted field, not an emitter (§ 2j): its exit-pupil rim carries cos θ. */
+const FIELD = { source: "field" } as const;
 
 /** Coherence parameter of the condenser every render below is lit by. */
 const S = 0.5;
@@ -172,7 +185,7 @@ function renderGrating(
 ) {
   const specimen = cosineSpecimen(objectExtentOf(frame) / cycles, options.modulation ?? MOD);
   const object = rasterizeSpecimen(system, frame, specimen, { map: options.map ?? "uniform" });
-  const rendered = renderBrightfield(object, tracedFieldPupils(system, frame), SOURCE, {
+  const rendered = renderBrightfield(object, tracedFieldPupils(system, frame, FIELD), SOURCE, {
     pupilSamples: PUPIL_SAMPLES,
     scale: frame.scale,
     patches: options.patches ?? 1,
@@ -195,7 +208,7 @@ describe("§ 6al.1 — the clear field renders, and its brightness is Fresnel's"
     const object = rasterizeSpecimen(TELECENTRIC, frame, () => ({ re: 1, im: 0 }), {
       map: "uniform",
     });
-    const rendered = renderBrightfield(object, tracedFieldPupils(TELECENTRIC, frame), SOURCE, {
+    const rendered = renderBrightfield(object, tracedFieldPupils(TELECENTRIC, frame, FIELD), SOURCE, {
       pupilSamples: PUPIL_SAMPLES,
       scale: frame.scale,
       patches: 1,
@@ -209,7 +222,9 @@ describe("§ 6al.1 — the clear field renders, and its brightness is Fresnel's"
     expect(rendered.contributingPoints).toBe(SOURCE.points.length);
     // The frame's own ruler survives the render, in millimetres.
     expect(rendered.pixelScaleMm).toBe(frame.pixelScaleMm);
-    expect(rendered.pixelScaleMm).toBeCloseTo(0.003889124954857188, 15);
+    // 0.003889124954857188 on the aim layout's slope ruler; the traced cone's
+    // sine reads 1.82e-3 finer (§ 2n).
+    expect(rendered.pixelScaleMm).toBeCloseTo(0.003882052161818777, 15);
   });
 
   it("and the level is (1 − R)² for two uncoated N-BK7 surfaces", () => {
@@ -228,7 +243,7 @@ describe("§ 6al.1 — the clear field renders, and its brightness is Fresnel's"
     });
     const { intensity } = renderBrightfield(
       object,
-      tracedFieldPupils(TELECENTRIC, frame),
+      tracedFieldPupils(TELECENTRIC, frame, FIELD),
       SOURCE,
       { pupilSamples: PUPIL_SAMPLES, scale: frame.scale, patches: 1 },
     );
@@ -242,12 +257,18 @@ describe("§ 6al.1 — the clear field renders, and its brightness is Fresnel's"
     // A clear field is FLAT to the last bit — one patch, one pupil, one constant
     // object, so any structure at all would be the transform's own.
     expect(max).toBe(min);
-    expect(min).toBeCloseTo(0.9174487379809863, 15);
-    // 2.7e−8 from the closed form: the traced amplitude is Fresnel evaluated at
-    // each ray's real incidence, which on this f/100 axial cone is normal to
-    // within that. Not a tolerance chosen to fit — the gap closes as the cone.
-    expect(Math.abs(min / transmitted - 1)).toBeLessThan(1e-7);
-    expect(min).toBeCloseTo(transmitted, 7);
+    expect(min).toBeCloseTo(0.9174473004700044, 15);
+    // Since § 2n a field component carries its own power, cos θ, so a cone is
+    // darker than normal incidence by its own obliquity: (1 − R)²·⟨cos θ⟩ over the
+    // source, θ off its optical sine ρ·ν. −1.5435e−6 here, predicted before the
+    // run; the aim layout read 2.7e−8 from (1 − R)² because it carried no
+    // radiometry at all.
+    const nu = canonicalApertureSine(TELECENTRIC, LINE_D);
+    let obliquity = 0;
+    for (const p of SOURCE.points) obliquity += p.weight * Math.sqrt(1 - (Math.hypot(p.sx, p.sy) * nu) ** 2);
+    expect(obliquity - 1).toBeCloseTo(-1.6e-6, 7);
+    expect(Math.abs(min / (transmitted * obliquity) - 1)).toBeLessThan(3e-7);
+    expect(min).toBeCloseTo(transmitted, 5);
   });
 });
 
@@ -313,8 +334,11 @@ describe("§ 6al.2 — a specimen authored in millimetres lands where the ruler 
       const traced = specimenPointAt(TELECENTRIC, frame, ix, iy, { map: "traced" });
       worstMm = Math.max(worstMm, Math.hypot(uniform.x - traced.x, uniform.y - traced.y));
     }
-    expect(worstMm).toBeCloseTo(3.833067166115257e-6, 12);
-    expect(worstMm / frame.objectPixelScaleMm).toBeCloseTo(1.3047366543567158e-4, 10);
+    // 3.833067166115257e−6 on the aim layout's ruler: the frame is 1.82e−3
+    // narrower on the traced cone's (§ 2n), and its corners sit that much closer in.
+    expect(worstMm).toBeCloseTo(3.8121418144926743e-6, 12);
+    // 1.3047366543567158e−4 of a pixel on the aim layout's ruler (§ 2n).
+    expect(worstMm / frame.objectPixelScaleMm).toBeCloseTo(1.29997803000999e-4, 10);
   });
 });
 
@@ -332,7 +356,7 @@ describe("§ 6al.3 — the rendered image IS the three-order sum, on a telecentr
     // `slopeRadius` — the substitution § 6ak made — so a wrong ruler would put
     // the object's three lines on the wrong lattice bins and the two would part.
     const frame = frameOf(TELECENTRIC);
-    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5, FIELD);
     expect(centre.exitRadius).toBe(Infinity);
     expect(centre.slopeRadius).toBe(frame.scale.slopeRadius);
 
@@ -350,7 +374,7 @@ describe("§ 6al.4 — and the three-order sum is Hopkins' closed form, to the a
     // other. `weakObjectTransferDisk` is the closed form for a UNIFORM disc and a
     // PERFECT pupil; the sampled disc and the traced pupil each depart from it.
     const frame = frameOf(TELECENTRIC);
-    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5, FIELD);
 
     for (const cycles of [1, 2, 3, 4]) {
       const nu = nuOf(cycles);
@@ -367,7 +391,9 @@ describe("§ 6al.4 — and the three-order sum is Hopkins' closed form, to the a
     const nu = nuOf(2);
     const aberrated = weakObjectTransfer(centre.pupil, SOURCE, nu);
     expect(centre.rmsWaves).toBeCloseTo(0.017869938342837545, 12);
-    expect(aberrated / weakObjectTransferDisk(S, nu)).toBeCloseTo(0.9995117746725329, 12);
+    // 0.9995117746725329 on the aim layout: the same wavefront laid where its
+    // rays went (§ 2n), and each component carrying its own cos θ.
+    expect(aberrated / weakObjectTransferDisk(S, nu)).toBeCloseTo(0.9995080403867337, 12);
 
     // And the rendered picture is that, times the finite-modulation correction
     // the weak-object limit drops: `gratingImage`'s dc carries m²/2 of sideband
@@ -408,7 +434,8 @@ describe("§ 6al.5 — the cutoff lands on Abbe's period, in millimetres on the 
     const below = renderGrating(TELECENTRIC, frame, 11).harmonic;
     const atCutoff = renderGrating(TELECENTRIC, frame, 12).harmonic;
     const above = renderGrating(TELECENTRIC, frame, 13).harmonic;
-    expect(below.contrast).toBeCloseTo(0.002590429654361757, 12);
+    // 0.002590429654361757 on the aim layout (§ 2n: the pupil laid where its rays went).
+    expect(below.contrast).toBeCloseTo(0.0025903939746100882, 12);
     expect(atCutoff.contrast).toBeLessThan(1e-14);
     expect(above.contrast).toBeLessThan(1e-14);
     // Not a small number against a threshold: eleven orders below the frequency
@@ -439,10 +466,14 @@ describe("§ 6al.5 — the cutoff lands on Abbe's period, in millimetres on the 
 
     const abbeTangent = brightfieldResolutionMm(LINE_D, tanU, S * tanU);
     expect(abbeTangent).toBeCloseTo(0.07834157333333333, 15);
-    expect(gridPeriodMm).toBeCloseTo(0.07834157497486424, 15);
-    // 2.1e−8 apart, and that residual is the paraxial construction against the
-    // traced one — nothing in the imaging chain sits between them.
-    expect(Math.abs(gridPeriodMm / abbeTangent - 1)).toBeLessThan(3e-8);
+    // On the aim layout the grid's period was the TANGENT reading's, 2.1e−8 off
+    // it (0.07834157497486424). Since § 2n the frame's ruler is the traced cone's
+    // sine, so its NA is ν = |M|·n′·σ — the sine at the IMAGE side, referred to
+    // the specimen by the axial magnification — and the grid's period is
+    // λ/(ν(1 + S)). ν leaves the entrance pupil's own sine by exactly the
+    // singlet's sine-condition offence: n·sin u = |M|·NA′·(1 + residual). So the
+    // two routes now differ by an external number of their own.
+    expect(gridPeriodMm).toBeCloseTo(0.07819910237433535, 15);
 
     // AND THE FORK IS NAMED RATHER THAN AVERAGED OVER. § 6ak.3 recorded that the
     // engine's NA is the TANGENT reading and Abbe's is the SINE, 3.3% apart at
@@ -458,9 +489,15 @@ describe("§ 6al.5 — the cutoff lands on Abbe's period, in millimetres on the 
     expect(abbeSine / abbeTangent).toBeCloseTo(Math.hypot(1, tanU), 15);
     expect(abbeSine / abbeTangent).toBeCloseTo(1 / Math.sqrt(1 - sinU * sinU), 12);
     expect(abbeSine / abbeTangent - 1).toBeCloseTo(1.2499921875e-5, 12);
-    // A cycle count is an integer, and the two readings put the cutoff 1.5e−4 of
-    // one cycle apart — so they cannot disagree about which bin is the last.
-    expect(Math.abs(objectExtentOf(frame) / abbeSine - 12)).toBeLessThan(1e-3);
+    const nu = canonicalApertureSine(TELECENTRIC, LINE_D);
+    expect(Math.abs(gridPeriodMm / brightfieldResolutionMm(LINE_D, nu, S * nu) - 1)).toBeLessThan(1e-12);
+    const residual = sineConditionResidual(TELECENTRIC, 400 * 1e-4, LINE_D);
+    expect(residual).toBeCloseTo(-1.83e-3, 5);
+    expect(Math.abs(gridPeriodMm / abbeSine - (1 + residual))).toBeLessThan(1e-7);
+    // A cycle count is an integer, and the two readings put the cutoff 0.022 of
+    // one cycle apart — 12 times the offence; 1.5e−4 on the aim layout's tangent
+    // ruler — so they still cannot disagree about which bin is the last.
+    expect(Math.abs(objectExtentOf(frame) / abbeSine - 12)).toBeCloseTo(0.022, 3);
   });
 });
 
@@ -494,7 +531,12 @@ describe("§ 6al.6 — the sensor moves and the picture does not rescale", () =>
     for (const defocus of [0.1, 0.25, 0.5, 1]) {
       const moved = frameOf(finiteAt(20, defocus));
       expect(moved.magnification / reference.magnification).toBeCloseTo(1 + defocus / R, 10);
-      expect(moved.pixelScaleMm / reference.pixelScaleMm).toBeCloseTo(1 + defocus / R, 10);
+      // The pixel followed 1 + δ/R to 1e−10 on the aim layout. Since § 2n it is the
+      // traced rim's crossing of a reference sphere that MOVED with the sensor, the
+      // drift § 2m found on the optimiser's ruler — and it is LINEAR in the shift,
+      // −6.2e−6 per millimetre to 1% from 0.1 to 1 mm, not a residue.
+      const drift = moved.pixelScaleMm / reference.pixelScaleMm / (1 + defocus / R) - 1;
+      expect(drift / defocus).toBeCloseTo(-6.16e-6, 7);
     }
   });
 
@@ -510,8 +552,11 @@ describe("§ 6al.6 — the sensor moves and the picture does not rescale", () =>
     const blurredImage = renderGrating(defocused, blurred, 8);
 
     expect(sharpImage.rendered.pixelScaleMm).toBe(blurredImage.rendered.pixelScaleMm);
-    expect(sharpImage.harmonic.contrast).toBeCloseTo(0.01726909396386918, 12);
-    expect(blurredImage.harmonic.contrast).toBeCloseTo(0.012188958439591573, 12);
+    // 0.01726909396386918 on the aim layout (§ 2n).
+    expect(sharpImage.harmonic.contrast).toBeCloseTo(0.017268336368453586, 12);
+    // 0.012188958439591573 on the aim layout: a millimetre of defocus is the
+    // wavefront § 2n lays where its rays went, 9.6e−4 lower.
+    expect(blurredImage.harmonic.contrast).toBeCloseTo(0.012177301191336263, 12);
     expect(blurredImage.harmonic.contrast).toBeLessThan(sharpImage.harmonic.contrast);
     // Still an image the engine will certify: 0.076 waves RMS is inside the
     // regime the coherent sum describes, so this is a defocused picture and not
@@ -528,13 +573,18 @@ describe("§ 6al.7 — image-space telecentric is not object-space telecentric",
     // condenser by it at every field point off the axis. Exactly h/r_ep, which is
     // the closed form § 6x derives, on a fixture built to be telecentric.
     const frame = frameOf(TELECENTRIC);
-    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5, FIELD);
     expect(centre.radialIlluminationOffset).toBe(0);
 
-    const off = fieldPupilAt(TELECENTRIC, frame, 0.75, 0.5);
-    expect(off.objectHeightMm).toBeCloseTo(0.23502489001161359, 12);
-    expect(off.radialIlluminationOffset).toBeCloseTo(off.objectHeightMm / STOP_R, 12);
-    expect(off.radialIlluminationOffset).toBeCloseTo(0.11751244500580679, 12);
+    const off = fieldPupilAt(TELECENTRIC, frame, 0.75, 0.5, FIELD);
+    // 0.23502489001161359 on the aim layout, whose frame was 1.82e−3 wider.
+    expect(off.objectHeightMm).toBeCloseTo(0.23459747129311365, 12);
+    // On the aim layout the offset was the tangent ratio h/r_ep over tan u_max =
+    // h/STOP_R exactly. Since § 2n it is the chief ray's optical sine over ν: the
+    // same closed form, read in sines, from the same stop 400 mm out.
+    const nu = canonicalApertureSine(TELECENTRIC, LINE_D);
+    const h = off.objectHeightMm;
+    expect(off.radialIlluminationOffset).toBeCloseTo(h / Math.hypot(h, 400) / nu, 12);
   });
 
   it("so the frame is not isoplanatic, and the patch decomposition earns its keep", () => {
@@ -546,8 +596,10 @@ describe("§ 6al.7 — image-space telecentric is not object-space telecentric",
     const frame = frameOf(TELECENTRIC);
     const one = renderGrating(TELECENTRIC, frame, 4, { map: "traced", patches: 1 });
     const four = renderGrating(TELECENTRIC, frame, 4, { map: "traced", patches: 2 });
-    expect(one.harmonic.contrast).toBeCloseTo(0.03972344923993551, 12);
-    expect(four.harmonic.contrast).toBeCloseTo(0.03771756163402071, 12);
+    // 0.03972344923993551 on the aim layout (§ 2n).
+    expect(one.harmonic.contrast).toBeCloseTo(0.039722671976837265, 12);
+    // 0.03771756163402071 on the aim layout (§ 2n).
+    expect(four.harmonic.contrast).toBeCloseTo(0.037717283519146674, 12);
     expect(one.harmonic.contrast / four.harmonic.contrast - 1).toBeCloseTo(0.0531, 3);
     expect(four.rendered.fidelity.verdict).toBe("valid");
   });
@@ -566,14 +618,15 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     // differently and § 6al.3 dodged that by comparing contrast. Here the second
     // harmonic is read against the fundamental of the same picture.
     const frame = frameOf(TELECENTRIC);
-    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5, FIELD);
     // Eight cycles is here because of § 6am and was not before: its 2ν lands on
     // bin 16, which on a 32 grid is Nyquist and its own conjugate, and the
     // readout used to double it. It is now the sweep's TOP for a reason that is
     // the grid's rather than the readout's — ten cycles would put 2ν on bin 20,
     // which folds back onto bin 12 and would be an alias reported as a beat.
     const expected = [
-      0.004995809761011927, 0.004965595376895924, 0.003440521300677634, 6.542574753689873e-5,
+      // On the exit layout since § 2n; 0.004995809761011927 first on the aim layout.
+      0.0049957745846202625, 0.004965496695273605, 0.0034406562833538697, 6.542790257432463e-5,
     ];
     [2, 4, 6, 8].forEach((cycles, i) => {
       const { rendered, harmonic } = renderGrating(TELECENTRIC, frame, cycles);
@@ -606,11 +659,13 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     const six = renderGrating(TELECENTRIC, frame, 6);
     const seven = renderGrating(TELECENTRIC, frame, 7);
     expect(imageHarmonic(six.rendered.intensity, frame.size, 12, 0).contrast).toBeCloseTo(
-      1.0350664975467584e-4,
+      // 1.0350664975467584e−4 on the aim layout (§ 2n).
+      1.0350729625348828e-4,
       12,
     );
     expect(imageHarmonic(seven.rendered.intensity, frame.size, 14, 0).contrast).toBeCloseTo(
-      4.159726761923105e-5,
+      // 4.159726761923105e−5 on the aim layout (§ 2n).
+      4.1597711356948256e-5,
       12,
     );
     // Eleven orders above the same bin's reading when the OBJECT is what puts a
@@ -626,7 +681,7 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     // the bin is 3e−16, and the closed form is exactly 0.
     const frame = frameOf(TELECENTRIC);
     const nine = renderGrating(TELECENTRIC, frame, 9);
-    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5, FIELD);
     expect(gratingImage(centre.pupil, SOURCE, nuOf(9), MOD).secondHarmonic).toBe(0);
     expect(imageHarmonic(nine.rendered.intensity, frame.size, 18, 0).amplitude).toBeLessThan(1e-15);
   });
@@ -647,7 +702,7 @@ describe("§ 6al.8 — the picture carries a frequency a linear imager could not
     // about which callers could reach the bin — h·cycles is guarded everywhere,
     // and this test was the one reader that actually got there.
     const frame = frameOf(TELECENTRIC);
-    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5);
+    const centre = fieldPupilAt(TELECENTRIC, frame, 0.5, 0.5, FIELD);
     const { rendered, harmonic } = renderGrating(TELECENTRIC, frame, 8);
     const nyquist = imageHarmonic(rendered.intensity, frame.size, 16, 0);
     const closed = gratingImage(centre.pupil, SOURCE, nuOf(8), MOD);

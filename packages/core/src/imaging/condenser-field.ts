@@ -105,7 +105,8 @@ import { pupilDirectionMap } from "./object-field";
  * the same for all of them.
  *
  * On the shipped DIN 4×/0.10 with a matched Abbe condenser, § 6ag.4 measures the
- * Jacobian spread across the cone at **1.32% on axis** and **11.3% at 2.25 mm of
+ * Jacobian spread across the cone at **1.32% on axis** (the tangent currency's —
+ * read in sines on the exit layout it is 2.4e-4, § 2n.5) and **11.3% at 2.25 mm of
  * field**, and what that does to a grating's contrast — against the *identical*
  * point set, so the quadrature cancels exactly and only the weights differ — is
  * **+0.069% on axis and −0.661% at the field edge**, converged over two grids

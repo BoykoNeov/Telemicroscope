@@ -363,10 +363,13 @@ const idealPatch = (): PatchPupil => ({ pupil: idealPupil() });
 export function renderBrightfieldScene(request: BrightfieldRequest): BrightfieldResult {
   const started = performance.now();
   try {
+    // On the exit layout since § 2n: the ruler off the traced cone, the pupil
+    // where its rays went, and the cone placed by the optical direction sine.
     const { system, frame } = buildFrame({
       spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
+      layout: "exit",
     });
     const object = cosineGratingObject({
       size: request.size,
@@ -375,7 +378,7 @@ export function renderBrightfieldScene(request: BrightfieldRequest): Brightfield
     });
     const source = sourceFor(request.condenser, request.coherenceParameter, request.pupilSamples);
     const pupils =
-      // A transmitted field, not an emitter (§ 2j) — on the aim layout the two are one.
+      // A transmitted field, not an emitter (§ 2j): its rim carries cos θ, not 1/cos θ.
       request.pupil === "traced" ? tracedFieldPupils(system, frame, { source: "field" }) : idealPatch;
 
     const out = renderBrightfield(object, pupils, source, {
@@ -499,6 +502,7 @@ export function cutoffSweep(
               spec: request.spec,
               pupilSamples: request.pupilSamples,
               size: request.size,
+              layout: "exit",
             });
             return fieldPupilAt(system, frame, 0.5, 0.5, { source: "field" }).pupil;
           })()

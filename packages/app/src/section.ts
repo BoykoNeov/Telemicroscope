@@ -433,6 +433,8 @@ export function renderSection(request: SectionRequest): SectionResult {
       samples,
       patches: 1,
       radialMapNodes: RADIAL_MAP_NODES,
+      // Brightfield is on the exit layout since § 2n.
+      layout: "exit",
     });
 
     const spectral = colorImageFromStack(stack);

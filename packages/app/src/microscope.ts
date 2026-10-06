@@ -1,4 +1,5 @@
 import type { OpticalSystem } from "@telemicroscope/core/trace";
+import type { PupilLayout } from "@telemicroscope/core/wave";
 import {
   fieldPupilAt,
   objectFieldFrame,
@@ -239,6 +240,12 @@ export interface FrameRequest {
   readonly pupilSamples: number;
   /** Grid size, a power of two. Buys sampling, NOT field. */
   readonly size: number;
+  /**
+   * The pupil layout the frame's ruler and every pupil laid on it are traced in.
+   * Default by the conjugate — still the aim layout at a finite object, until
+   * each chain flips (register item 24); brightfield asks for `"exit"` (§ 2n).
+   */
+  readonly layout?: PupilLayout;
 }
 
 /**
@@ -531,6 +538,7 @@ export function buildFrame(request: FrameRequest): {
       size: request.size,
       pupilSamples: request.pupilSamples,
       wavelengthNm: LAMBDA_NM,
+      ...(request.layout === undefined ? {} : { layout: request.layout }),
     }),
   };
 }

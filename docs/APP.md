@@ -438,7 +438,7 @@ plot carries a vertical rule at the slider's S and a horizontal one at the
 object's own ν; where they cross the curve is where the grating appears in the
 picture beside it. Measured on the traced DIN 4×/0.10 at ν = 1.3125 with an
 11-point condenser: contrast reads **identically 0.00000** at S = 0.30 and
-**0.02446** at S = 0.35 — and the weak-object prediction 2mT is 0.02452, so the
+**0.02446** at S = 0.35 (on the aim layout; the panel renders on the exit one since § 2n, not re-measured) — and the weak-object prediction 2mT is 0.02452, so the
 lift-off is where the transfer says and the magnitude is what the closed form
 says.
 
@@ -1851,6 +1851,14 @@ beside a measurement, and the panel says which is which.
   the frame's **mean chromaticity**, which the section moves **0.0234** off the
   lamp's white and the grid moves **0.0010**. A fleck would move the spread and
   not the mean.
+- **Restated on the exit layout ([§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine)), where the panel now renders.**
+  Measured at the panel's own request (ps 32, three wavelengths): the grid's worst
+  pixel **0.1782** against the section's **0.1680**, and off the lamp's white
+  **0.0023** against **0.0234**. Both findings hold — the grid still wins the
+  worst pixel and the stain still wins the frame — but the grid's lead fell from
+  31% to 6%. Consistent with § 6r.7's restatement, where the same layout change
+  took most of the aim layout's excess axial colour away; not separately traced
+  here. The ps 64 reading (0.2254) was not re-measured.
 - **§ 6r.7 reproduces exactly, and it is the panel's guard.** At ps 32 on the DIN
   4× the 450 nm plane rules `no-honest-image` while 550 and 650 rule `valid`;
   doubling the lattice clears it and costs **17×** (208 → 812 directions). The

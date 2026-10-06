@@ -26,7 +26,7 @@ import {
   pupilSlopeFrame,
   tracedFieldPupils,
 } from "../src/imaging/object-field";
-import { diaphragmLanding, reverseCondenser } from "../src/imaging/condenser-field";
+import { diaphragmLanding, reverseCondenser, tracedCondenserCone } from "../src/imaging/condenser-field";
 import { rasterizeSpecimen } from "../src/imaging/specimen";
 import { renderBrightfield } from "../src/imaging/brightfield";
 import { diskSource } from "../src/illumination/source";
@@ -333,6 +333,56 @@ describe("§ 2n.3 — the traced condenser's currency, inverted", () => {
     // frame's sine one — 1.16e-2, tan u_max/ν − 1, and no lens improves it.
     expect(relTan[3]!).toBeCloseTo(span / nu - 1, 5);
     expect(relTan[3]!).toBeGreaterThan(1e-2);
+  });
+});
+
+describe("§ 2n.5 — the traced condenser, on the exit layout", () => {
+  // § 6ag's cone built through the canonical map: the same construction, read in
+  // sines. Its dial becomes a ratio of numerical apertures, and the finding § 6ag.4
+  // led with — the condenser's aberration lands in the WEIGHTS, 1.32% across the
+  // cone on axis — turns out to be half currency: an Abbe condenser maps its
+  // diaphragm nearly uniformly onto direction SINES, so read in sines the axial
+  // cone is flat to 2.4e-4. Off axis the spread is the condenser's own field
+  // aberration and survives the change of units almost whole.
+  const s = rimDin();
+  const rev = reverseCondenser(abbeCondenser({ numericalAperture: 0.1 }), L);
+  const coneAt = (h: number, layout: "aim" | "exit") =>
+    tracedCondenserCone(s, rev, h, { pupilSamples: 16, apertureFraction: 0.8, layout });
+
+  it("its dial is apertureFraction·NA_c/ν, a ratio of sines, exactly", () => {
+    const nu = canonicalApertureSine(s, L);
+    expect(coneAt(0, "exit").coherenceParameter).toBe((0.8 * 0.1) / nu);
+    // The aim layout's is the tangent ratio, 0.8 exactly on this matched pair.
+    expect(coneAt(0, "aim").coherenceParameter).toBeCloseTo(0.8, 12);
+  });
+
+  it("on axis its weights are flat in sines, where the tangent reading spread them 1.32%", () => {
+    expect(coneAt(0, "aim").weightSpread).toBeCloseTo(1.323e-2, 4);
+    expect(coneAt(0, "exit").weightSpread).toBeLessThan(3e-4);
+  });
+
+  it("off axis the spread is the condenser's own, in either currency", () => {
+    // 4.95% and 11.3% read through the tangent, 4.82% and 10.6% through the sine.
+    for (const [h, aim, exit] of [
+      [1, 4.954e-2, 4.822e-2],
+      [2.25, 1.13e-1, 1.057e-1],
+    ] as const) {
+      expect(coneAt(h, "aim").weightSpread).toBeCloseTo(aim, 3);
+      expect(coneAt(h, "exit").weightSpread).toBeCloseTo(exit, 3);
+    }
+  });
+
+  it("…and it is centred where `illuminationOffset` says, through the same map", () => {
+    // The weighted centroid against the axial direction's own coordinate: equal on
+    // axis, and off it apart by the cone's coma (§ 6ag.8) in either currency —
+    // 0.2157 against 0.2198 at 1 mm on the exit layout, 0.1989 against 0.2174 on
+    // the aim one.
+    for (const layout of ["aim", "exit"] as const) {
+      const centroid = (h: number) => coneAt(h, layout).points.reduce((t, p) => t + p.weight * p.sx, 0);
+      expect(Math.abs(centroid(0))).toBeLessThan(1e-15);
+      const off = illuminationOffset(s, 1, L, { layout });
+      expect(Math.abs(centroid(1) / off - 1)).toBeLessThan(0.1);
+    }
   });
 });
 
