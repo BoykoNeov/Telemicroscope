@@ -158,7 +158,11 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
     // whole lookup, irradiance and traced rim and inverse map included. The
     // amplitude sum re-recorded at § 2n (728.2925078450103 before): a transmitted
     // field's |P|² became each component's own cos θ, with no Jacobian. The phase
-    // did not move.
+    // did not move. Re-recorded at § 2o (744.5714016274019 before): 550 nm is in
+    // the band where the DIN 10×'s aim is mirrored, so the exit layout now lays
+    // the pupil the other way round — and this lattice is symmetric in x, so both
+    // sums are the same numbers added in another order, and each moved in its
+    // last bit (the phase 1588.677585164183 before).
     const map = maps[0][1];
     const p = laidPupil(dry10(), map, { layout: "exit", source: "field" }).pupil;
     let a = 0;
@@ -177,5 +181,5 @@ describe("§ 2k.2 — and every fit and sampler built on it, on traced pupils", 
   });
 });
 
-const EXIT_AMPLITUDE_SUM = 744.5714016274019;
-const EXIT_PHASE_SUM = 1588.677585164183;
+const EXIT_AMPLITUDE_SUM = 744.571401627401;
+const EXIT_PHASE_SUM = 1588.6775851641826;

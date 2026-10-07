@@ -693,6 +693,21 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     `renderBrightfield` can refuse a mismatch, and a frame (or a brightfield entry
     point) that fixes the source — an API change with a refusal rung each, and no
     external number needed.
+30. **The aim layout mirrors a telecentric objective's pupil where its entrance pupil
+    is past infinity.** Found at [§ 2o](VALIDATION.md#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims).
+    Chromatically the entrance pupil of an object-space telecentric objective
+    crosses infinity (twice on the DIN 4×, § 6az), and between the crossings the
+    paraxial aim labels every ray on the side opposite the one it leaves —
+    531–587 nm on the DIN 4×, 528–587 nm on the 10×, 550 nm included. The aim
+    layout lays a sample where it was aimed, so its pupil there is the true one
+    reflected and every odd aberration is reversed: at 0.2 mm on the DIN 4× its PSF
+    centroid reads +1.67 µm where the rays read −1.64. The exit layout was fixed at
+    § 2o; the aim layout was left by the user's choice, because every chain is
+    leaving it (item 24). **What it reaches:** every fluorescence, volume and mosaic
+    reading taken off axis inside the band on a telecentric preset, until its chain
+    flips — none has been audited. *What would close it:* the chain flips, or the
+    aim layout's samples placed at `aimOrientation`·(px, py); `aimOrientation` is
+    already the predicate, pinned against the paraxial pupil at § 2o.1.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1172,4 +1187,7 @@ radial-map nodes · § 6ba differential bleaching.
     5–13% under the trial flip~~ — brightfield flipped at [§ 2n](VALIDATION.md#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine), and the trial's
     numbers were stale: half of § 6al's movement was the exit density's aim-layout
     units, fixed there. Next: fluorescence (an emitter, whose absolute units § 2n
-    already set), then the mosaic and seam chains.
+    already set), then the mosaic and seam chains. Flipping it found that the
+    aim labels a telecentric objective's pupil mirrored where the entrance pupil
+    is past infinity (531–587 nm on the DIN 4×) and the exit layout copied it —
+    fixed at [§ 2o](VALIDATION.md#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims); the aim layout's half is item 30.

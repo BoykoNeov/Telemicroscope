@@ -36,6 +36,7 @@ whole ladder.
 | [2l](#step-2l--the-exit-layouts-energy-across-the-field-the-edges-count-not-the-light) | The exit layout's 2.4e-4 energy drift in field is the grid counting an outline that changes shape; grid-free it is the aim layout's 7.7e-7 | `exit-field-energy` |
 | [2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) | The default layout follows the conjugate, exit at infinity: a paraboloid's ruler is cos²(u′/2), a classical Cassegrain's too, to 1e-14; 41 readings moved | `telescope-exit-layout` |
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
+| [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4492,6 +4493,71 @@ p·|∂c/∂e| past the density lattice's differencing.
   `geometricPsf().energy` on an exit-layout finite emitter is the fluorescence
   step's first rung, since that chain blends through `adaptivePsf`.
 - **Two inputs a frame does not yet carry** — register item 29.
+
+## Step 2o — the exit layout's orientation: the geometry's, not the aim's
+
+Source: engine change — `exitApertureSine` signed by the beam's convergence, not by the aim rim ray; `aimOrientation`; `pupilDirectionMap` multiplies by it
+· Tests: `packages/core/test/exit-orientation.test.ts`, § 2k.2's amplitude sum restated
+
+Found while flipping fluorescence (register item 24). On the DIN presets the
+transform's PSF centroid at 0.2 mm of object height sat on the wrong side of the
+rays' at 550 and 583 nm — +1.67 µm against −1.60 — on both layouts, at pupil
+samples 32 to 128 and inside a fixed 40 µm window, so not the estimator; at 467
+and 633 nm the two agreed. The traced map itself had its tilt and coma reversed in
+that band and nowhere else: px = +0.8 left through the exit coordinate −0.020 at
+550 nm and +0.020 at 530.
+
+The cause is the aim. The presets are telecentric in object space, and
+chromatically the entrance pupil passes through infinity — twice on the DIN 4×,
+which § 6az already found. Between the crossings it lies beyond infinity, and a
+paraxial aim at a point on a pupil there sends px = +1 out the other side: the
+rays are the same rays, labelled mirrored. On the DIN 4× that is every wavelength
+from 531 nm to just short of 587.5618 nm, where the pupil is at infinity and the
+aim is by slope; on the 10× from 528 nm. 550 nm, where most of the ladder's
+microscope rungs and panels are read, is inside it.
+
+The aim layout lays a sample where it was aimed, so there its pupil is the true
+one reflected — register item 30, left open by the user's choice, since every
+chain is leaving that layout. The exit layout lays a sample where it went, which
+is right; but it divided by the aim rim ray's SIGNED sine, chosen so that ray
+read +1, and that copied the mirror back in. The sine is now the rim's magnitude
+signed by the beam: +1 where it converges on the image point, −1 where it
+diverges from it — the sign of the reference sphere's radius, which is what the
+Debye integral's orientation turns on. Wherever the aim labels a ray on the side
+it leaves, that is the old sign bit for bit. `pupilDirectionMap`, which places a
+condenser direction through the aim's slope, multiplies by `aimOrientation` so
+the direction and the ray that leaves along it land on one side.
+
+**Hypothesis.** Signed by convergence, the exit layout's PSF centroid is the
+irradiance-weighted mean ray intercept in the mirrored band and out of it, and is
+continuous across the crossings. **Refuted by** a centroid on the far side of the
+rays' anywhere in 530–633 nm, a gap past the full grid's own first-moment offset
+(0.014–0.034 µm at pupil samples 64), or a jump at 587.5618 nm.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2o.1 — the aim mirrors exactly where the entrance pupil is past infinity** | `aimOrientation` is −1 at every swept λ whose paraxial entrance pupil z is finite and negative and +1 elsewhere, at the design λ included, on the DIN 4× and 10×; +1 everywhere on the rim stop | ✅ |
+| **§ 2o.2 — the centroid theorem** — the first moment of |FT P|² is the |P|²-weighted mean wavefront slope (Mahajan, *Optical Imaging and Aberrations* I) | at 530, 550, 583, 600 and 633 nm the transform's centroid is the weighted ray mean (−1.38 to −2.42 µm) to 0.035 µm; the aim layout reads +1.67 and +2.03 at 550 and 583 | ✅ |
+| **§ 2o.3 — nothing jumps at the crossing** | 586.5, 587.5618 and 588.5 nm on a line to 9.5e-4 µm, the lateral colour's bend; on the aim layout 1.94 µm off, a 4.1 µm jump between 1 nm neighbours | ✅ |
+| **§ 2o.4 — a condenser direction lands on its ray's side** | the direction placed at a rim ray's exit coordinate is that ray's own, to the sine-condition residual (−2.0e-3 at 550, −3.1e-3 at 650), and has its sign | ✅ |
+
+### What moved, and why
+
+One reading in the suite of 4016: § 2k.2's laid exit pupil, the DIN 10×/0.2 at
+550 nm on a lattice symmetric in x. Mirrored, both its sums are the same
+numbers added in another order, and each moved in its last bit (amplitude
+744.5714016274019 → 744.571401627401, phase 1588.677585164183 → 1588.6775851641826). Nothing else read an odd term off a telecentric preset on
+the exit layout inside the band: every chain that does is still on the aim layout.
+
+### What it leaves
+
+- **The aim layout is still mirrored in the band** — register item 30. Every
+  fluorescence, volume and mosaic reading off axis at 531–587 nm on a telecentric
+  preset carries it until its chain flips; the coma at 4× is small enough that no
+  picture showed it.
+- **The full grid's centroid sits 0.014–0.034 µm past the rays'** at pupil
+  samples 64, falling with the grid (0.037 µm at 467 nm and 128). Not traced; it
+  is the same on both sides of the crossing.
 
 ## Step 3a — the standard observer and thermal sources
 

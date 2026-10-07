@@ -10,7 +10,7 @@ import {
   type PupilScale,
   type SpiderSpec,
 } from "../wave/psf";
-import { canonicalApertureSine, exitApertureSine, opdMap } from "../pupil/opd";
+import { aimOrientation, canonicalApertureSine, exitApertureSine, opdMap } from "../pupil/opd";
 import { aimRay, pupilGrid, type AimOptions } from "../pupil/aiming";
 import { pupils } from "../pupil/pupils";
 import { isPowerOfTwo } from "../math/fft";
@@ -757,7 +757,10 @@ export function illuminationOffset(
  * puts that at (λ/p)/ν. It is the traced exit coordinate wherever the objective
  * obeys the sine condition, and it is defined past the rim, where no ray through
  * the objective exists but a condenser can still send light (S > 1, darkfield).
- * Signed by the aim rim ray, so (1, 0) reads +1 as it does on the aim layout.
+ * Signed as the exit coordinate is (§ 2o): the aim rim ray's direction reads +1
+ * wherever the aim labels it on the side it leaves, and −1 where the aim mirrors
+ * it (`aimOrientation`), so a direction and the ray that leaves along it land on
+ * one side of the pupil.
  * The optical sine and not the bare one, because n·L is what a flat cover slip or
  * an immersion film leaves unchanged and what the grating equation is written in.
  */
@@ -806,8 +809,9 @@ export function pupilDirectionMap(
   requireFinite(system, who);
   const n = Math.abs(pupils(system, wavelengthNm).entrance.n);
   const nu = canonicalApertureSine(system, wavelengthNm, options.aim ?? {}, options.probeHeightMm);
-  // The aim rim ray's slope has `span`'s sign; e = sign·n·(L − L_c)/ν makes it +1.
-  const sign = Math.sign(span);
+  // The aim rim ray's slope has `span`'s sign; e = sign·n·(L − L_c)/ν puts it on
+  // the side of the exit coordinate its ray reaches — +1 unless the aim mirrors.
+  const sign = Math.sign(span) * aimOrientation(system, wavelengthNm, options.aim ?? {});
   const chiefSine = chief / Math.hypot(1, chief);
   return {
     layout: "exit",

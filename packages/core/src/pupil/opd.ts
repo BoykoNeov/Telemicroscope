@@ -401,12 +401,24 @@ function reachableExit(
  * `exitX/exitY` into the transform's pupil coordinate (§ 2i).
  *
  * Read on the axis (field 0), on the rim ray aimed at (1, 0), as its
- * `exitCoordinate` on the axial map's sphere, and signed so that ray reads +1. On the axis because the
+ * `exitCoordinate` on the axial map's sphere. On the axis because the
  * transform's ruler must be one number for every field a frame stacks (a ruler
  * per field would put each patch on its own grid); on the rim because that is
- * where the aperture is; signed because a beam that diverges out of the last
- * surface would otherwise mirror the pupil, and the transform's orientation
- * has always been the aim's.
+ * where the aperture is.
+ *
+ * **Signed by the geometry, not by the aim (§ 2o).** Its magnitude is the rim's;
+ * its sign is +1 where the beam converges on the image point and −1 where it
+ * diverges from it, because that — the sign of the reference sphere's radius —
+ * is what the Debye integral's orientation turns on: a diverging beam would
+ * otherwise mirror the pupil. It was the aim rim ray's own sign until § 2o, and
+ * the two agree wherever the aim labels a ray on the side it physically leaves.
+ * They do not on an objective telecentric in object space: chromatically its
+ * entrance pupil passes through infinity, the paraxial aim at a point on a pupil
+ * beyond infinity sends px = +1 the other way, and on the DIN presets every
+ * wavelength from ~531 nm to just short of 587.5618 nm is labelled mirrored
+ * (`aimOrientation` reads −1 there). Signed by the aim, the exit layout copied
+ * the mirror and every odd aberration in that band came out reversed — the
+ * transform's centroid on the wrong side of the rays'.
  *
  * It is the paraxial exit pupil's r/R wherever the pupil maps linearly onto the
  * exit cone, and it is NOT that number on an aperture where it does not: on
@@ -417,13 +429,42 @@ function reachableExit(
  * farthest one that does, e(ρ*)/ρ*: the edge of the light then lands at ρ* in
  * the transform, where the aim layout put it.
  */
-const APERTURE_SINE = new WeakMap<CompiledSystem, Map<string, number>>();
+const APERTURE_SINE = new WeakMap<CompiledSystem, Map<string, ApertureSine>>();
+
+interface ApertureSine {
+  /** |rim| signed by the beam's convergence. */
+  readonly sine: number;
+  /** +1 where the aim labels a ray on the side it leaves, −1 where it mirrors it. */
+  readonly aimOrientation: 1 | -1;
+}
 
 export function exitApertureSine(
   system: OpticalSystem,
   wavelengthNm: number,
   options: AimOptions = {},
 ): number {
+  return apertureSineOf(system, wavelengthNm, options).sine;
+}
+
+/**
+ * Whether the aim labels a pupil point on the side its ray physically leaves
+ * (+1) or mirrors it (−1), at this wavelength — § 2o.
+ *
+ * The aim layout lays a sample where it was aimed, so where this is −1 its
+ * pupil is the true one reflected (register item 30); the exit layout lays it
+ * where it went and is right either way. A map from an object-space direction
+ * to the exit layout's coordinate that goes through the aim (`pupilDirectionMap`)
+ * multiplies by this to land on the physical side.
+ */
+export function aimOrientation(
+  system: OpticalSystem,
+  wavelengthNm: number,
+  options: AimOptions = {},
+): 1 | -1 {
+  return apertureSineOf(system, wavelengthNm, options).aimOrientation;
+}
+
+function apertureSineOf(system: OpticalSystem, wavelengthNm: number, options: AimOptions): ApertureSine {
   // A property of the system, the wavelength and the aim — not of the field —
   // and every pupil of a frame asks for it, so it is read once per key.
   const c = asCompiled(system.prescription);
@@ -438,7 +479,7 @@ export function exitApertureSine(
   return s;
 }
 
-function readApertureSine(system: OpticalSystem, wavelengthNm: number, options: AimOptions): number {
+function readApertureSine(system: OpticalSystem, wavelengthNm: number, options: AimOptions): ApertureSine {
   // The axial map's own sphere: the chief ray and nothing else.
   const axial = opdMap(system, 0, wavelengthNm, [], options);
   // Where the rim is not a ray, the farthest one that is, read as a secant:
@@ -448,7 +489,16 @@ function readApertureSine(system: OpticalSystem, wavelengthNm: number, options: 
   if (!(Math.abs(s) > 0)) {
     throw new Error("exit coordinate: the axial rim ray leaves parallel to the chief ray — no aperture");
   }
-  return s;
+  // At infinity `exitCoordinate` is already a direction difference, which
+  // carries the sphere's sign itself; on a finite sphere it is a crossing over
+  // |R|, and the beam converges where the image point lies ahead of the chief
+  // ray's crossing.
+  const converging = axial.exitAtInfinity || dot(sub(axial.imagePoint, axial.chiefSpherePoint), axial.chiefDirection) > 0;
+  const geometric = converging ? 1 : -1;
+  return {
+    sine: geometric * Math.abs(s),
+    aimOrientation: Math.sign(s) === geometric ? 1 : -1,
+  };
 }
 
 /**
