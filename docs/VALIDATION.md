@@ -4581,7 +4581,7 @@ reach a picture is each patch's `formedSum`, which weights the patches of a fram
 and the planes of a stack. So the rung is that number against an external one.
 
 **Hypothesis.** On the exit layout an emitter pupil's light is the power an
-isotropic point source sends into the cone the objective accepts — (1 − cos u)/2
+isotropic point source sends into the cone the aim's rim spans — (1 − cos u)/2
 of it, where the aim layout's disc counts the paraxial sin²u/4 — so a plane's
 light over the aim layout's is c_rim²·2/(1 + cos u), c_rim the traced rim in the
 canonical coordinate. **Refuted by** any wavelength off that by more than the
@@ -4589,7 +4589,7 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 
 | Rung | What it pins | |
 |---|---|---|
-| **§ 2p.1 — an emitter's light is its collected cone** | exit over aim = c_rim²·2/(1 + cos u) at all nine wavelengths on the DIN 4×/0.10, to 2.6e-4 at the blue end and −4.4e-5 at the red, read off the rim ray's own launch; so § 6bc.3's transmission tilt is 1.0174, the glass's 1.0074 times the cone's | ✅ |
+| **§ 2p.1 — an emitter's light is its collected cone** | the cone the paraxial aim's rim spans, 1.1% inside the stop's own (register item 31): exit over aim = c_rim²·2/(1 + cos u) at all nine wavelengths on the DIN 4×/0.10, to 2.6e-4 at the blue end and −4.4e-5 at the red, read off the rim ray's own launch; so § 6bc.3's transmission tilt is 1.0174, the glass's 1.0074 times the cone's | ✅ |
 
 ### What moved, and why
 
@@ -4598,8 +4598,8 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 | ruler | § 6j.5 scale 600/500 = 1.2 (aim, exact); § 6ba.3 k = 25/41 | the traced cone's sine at each λ: σ(500)/σ(600) = 1.0016 | (λ ratio)·σ(λ₂)/σ(λ₁) to 1e-12; 1/k² for the irradiance resampler |
 | | emitter panel: frame half 93.539 → 94.123 µm on the DIN 4×/0.10, 46.06 → 43.58 on the 4×/0.20; object pixels 32.02 → 31.82; the infinity 20× misses by 2.2%, not 1%; six of nine run at pupil samples 16, not seven (the Lister 40×/0.20 at 0.896) | the ruler: σ traced against the paraxial r/R, −0.62% to +5.4% across the rows | recorded values |
 | collected cone | § 6bc.3 tilt 1.0074 → 1.0174, chromaticity (0.33384, 0.33446) → (0.334347, 0.334973); § 6ba.3's and § 6ba.5's whites +5.3e-4 | § 2p.1 | recorded values |
-| | § 6bc.4 2.25 / 4.5 / 6 mm 0.997728 / 0.941036 / 0.893415 → 0.999550 / 0.942734 / 0.889845, 394 → 388 samples; the field-sized lens's "flat to 3.3e-5" → 0.994776 / 0.999379 / 1.004048 on 438 samples | the aim layout's share of its own disc was flat by construction; the exit layout's is the collected power — 0.2–0.8% short of a brute-force count, register item 31 | recorded values, the brute force in the comment |
-| the pupil laid where its rays went | § 6i.5 the rim DIN's corner kernel 0.66% BELOW the axis, asserted as a direction | the aim coordinate's distortion bending a wavefront with ~0.13 waves rms of defocus in it; on exit the corner's support is 0.25% smaller and its wavefront better (less defocus at the corner, not traced to the whole 1.3% on the telecentric member) | +0.033% (rim), +1.04% (telecentric) — one kernel to ~1%, recorded with the split |
+| | § 6bc.4 2.25 / 4.5 / 6 mm 0.997728 / 0.941036 / 0.893415 → 0.999550 / 0.942734 / 0.889845, 394 → 388 samples; the field-sized lens's "flat to 3.3e-5" → 0.994776 / 0.999379 / 1.004048 on 438 samples | the aim layout's share of its own disc was flat by construction; the exit layout's is the collected power of the cone the paraxial aim launches, 1.1% inside the stop's on axis and more off it — real aiming meets a brute-force count, register item 31 | recorded values, the brute force in the comment |
+| the pupil laid where its rays went | § 6i.5 the rim DIN's corner kernel 0.66% BELOW the axis, asserted as a direction | layout-dependent, mechanism not traced: on exit the corner's support is 0.25% smaller and its wavefront better (less defocus at the corner, not the whole 1.3% on the telecentric member); on the Lister the aim layout, not the exit one, matches the traced rms | +0.033% (rim), +1.04% (telecentric) — one kernel to ~1%, recorded with the split |
 | | the fluorescence panel's corner/axis peaks at pupil samples 32 (DIN 4×/0.10 −0.659%, 20× −0.997%, Lister +0.188%, oil +0.184%; −0.659 → −2.38 → −9.33% over the crop) | the same three parts; the oil's is not its wavefront (rms equal to 2e-5), not traced | +1.11%, −0.555%, −0.044%, +6.2%; +1.11 → +0.68 → +4.58%, the traced rms 0.1374 → 0.1341 waves at the 128 corner |
 | | the emitter panel's grid guard: worst 0.272, 0.84–2.86, 6.58–21.8 | the pupil laid where its rays went | 0.273, 0.83–2.85, 5.95–21.4 |
 | | § 6i.5's bracket lo ≤ held/emitted ≤ hi | the four patch centres are at one radius: one share, equal to the last bits | an equality to 1e-14 |
@@ -4616,7 +4616,8 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
   the render's bias and are restated with that chain. Until it flips, the frame
   span reads ~1% apart between the brightfield, section, fluorescence and emitter
   panels and the bench, builder and volume ones.
-- **An emitter's collected power is 0.2–0.8% short off axis** — register item 31.
+- **Under the paraxial aim an emitter's collected power is short** — 1.1% on the
+  axis, more off it; real aiming closes it — register item 31.
 - **§ 6i.5's corner wavefront** is better than the axis's on the exit layout by
   more than the corner's smaller defocus accounts for; not traced.
 
@@ -10669,10 +10670,11 @@ same objective the corner's traced pupil gives a ~~lower-peaked kernel than the
 axis's (the kernel has unit sum, so its peak is a Strehl-like readout), which is
 § 6h.5's 8.8e-3 waves of corner coma showing up in an image — and the drop is
 under 1%, as it must be at 47 µm of specimen~~ different kernel from the axis's,
-by under ~1% at 47 µm of specimen. **Restated at [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone):** the 0.66% drop was the
-aim coordinate's distortion bending a wavefront with ~0.13 waves rms of defocus
-in it; on the exit layout the corner is 0.033% *above* the axis, its support
-0.25% smaller and its wavefront better.
+by under ~1% at 47 µm of specimen. **Restated at [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone):** the 0.66% drop is
+layout-dependent — on the exit layout the corner is 0.033% *above* the axis, its
+support 0.25% smaller and its wavefront better, at an image plane where every
+kernel carries ~0.13 waves rms of defocus. The split is measured; the mechanism
+is not traced.
 
 ### 6i.6 — the object brightfield structurally cannot see
 

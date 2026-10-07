@@ -1019,8 +1019,8 @@ the Lister 40×/0.20 **gains 0.188%** and the 100×/1.40 oil **gains 0.184%**.
 **On the exit layout ([§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)) every one of those moved:** the DIN 4×/0.10
 gains **1.11%**, the oil **6.2%**, the 20× drops **0.555%** and the Lister
 **0.044%** — the corner's number moves with its cone's size (0.25% smaller off
-axis) and irradiance as well as its wavefront, and the 0.659% was partly the aim
-coordinate's distortion; on the DIN 4× the crop sweep reads +1.11% → +0.68% →
+axis) and irradiance as well as its wavefront, and the 0.659% is layout-dependent
+with its mechanism not traced; on the DIN 4× the crop sweep reads +1.11% → +0.68% →
 +4.58%, the traced rms falling 0.1374 → 0.1341 waves at the 128 corner. The oil's
 6.2% is not its wavefront (rms equal to 2e-5) and is not traced. The aim-layout
 reading follows:

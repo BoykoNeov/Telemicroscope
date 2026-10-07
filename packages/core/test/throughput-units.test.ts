@@ -364,6 +364,8 @@ describe("§ 2p.1 — an emitter's light is its collected cone, (1 − cos u)/2 
     // share over the paraxial one is 2/(1 + cos u) — times c_rim², the traced rim
     // in the canonical coordinate n·L/ν, which is 1 on an aplanat. Read per
     // wavelength off the rim ray's own launch, nothing the exit layout computes.
+    // The cone is the one the paraxial aim's rim spans, 1.1% inside the stop's
+    // own on this objective (register item 31).
     for (const s of SAMPLES) {
       const sum = (layout: "aim" | "exit") => {
         const frame = objectFieldTile(SYSTEM, {
@@ -413,9 +415,10 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
     // aim disc, flat by construction). The exit layout's sum is the emitter's
     // collected power, and against a brute-force count — a direction-cosine
     // lattice launched from the object point, traced, Σ throughput/cos θ — it
-    // misses by up to 1%: about 1.1% of the light that gets through lies outside
-    // the paraxial aim disc no pupil is laid from (1.8% at 6 mm), and at pupil
-    // samples 24 the outline's own count is off by up to 0.5%. Register item 31;
+    // misses by up to 1%: the paraxial aim's rim sits inside the stop's real edge
+    // (1.00546 of it on the axis, 1.1% of the light; up to 1.0204 at 6 mm, 1.8%),
+    // and at pupil samples 24 the outline's own count is off by up to 0.5%. Real
+    // aiming at pupil samples 128 meets the count. Register item 31;
     // the count reads 0.995237, 0.930842, 0.882580 here and 1.001672, 1.004445,
     // 1.007761 on the field-sized lens.
     const axis = read(SYSTEM, 0);

@@ -705,31 +705,32 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     reflected and every odd aberration is reversed: at 0.2 mm on the DIN 4× its PSF
     centroid reads +1.67 µm where the rays read −1.64. The exit layout was fixed at
     § 2o; the aim layout was left by the user's choice, because every chain is
-    leaving it (item 24). **What it reaches:** every fluorescence, volume and mosaic
-    reading taken off axis inside the band on a telecentric preset, until its chain
-    flips — none has been audited. *What would close it:* the chain flips, or the
+    leaving it (item 24). **What it reaches:** every volume and mosaic reading taken
+    off axis inside the band on a telecentric preset, until its chain flips — none
+    has been audited (single-plane fluorescence left the aim layout at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)). *What would close it:* the chain flips, or the
     aim layout's samples placed at `aimOrientation`·(px, py); `aimOrientation` is
     already the predicate, pinned against the paraxial pupil at § 2o.1.
-31. **An off-axis emitter's collected power is short on the exit layout.** Found at
-    [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone). Since § 2n an emitter pupil's `formedSum` is absolute — the power
-    an isotropic point sends into the accepted cone, pinned on the axis to
-    2/(1 + cos u) of the paraxial share (§ 2p.1) — and fluorescence weights its
-    patches and planes by it. Off axis it misses a brute-force count (a
-    direction-cosine lattice launched from the object point, every ray traced,
-    Σ throughput/cos θ; stable to 5e-4 between 401² and 801²) by up to 1%: on the
-    DIN 4×/0.10 at 2.25 / 4.5 / 6 mm of image the count reads 0.9952 / 0.9308 /
-    0.8826 of the axis and the exit layout 0.9996 / 0.9427 / 0.8898; on the
-    field-sized lens, which clips nothing, 1.0017 / 1.0044 / 1.0078 against
-    0.9948 / 0.9994 / 1.0040. Two causes measured. **The aim disc is not the
-    cone:** 1.1% of the light that gets through lies outside the paraxial aim's
-    unit disc on the axis and 1.8% at 6 mm, and no pupil is laid from it; real
-    aiming does not close it (0.9948 / 0.9971 / 1.0018). **The outline's count at
-    pupil samples 24** moves the reading by up to 0.5% (item 25's, larger than the
-    1e-4 it records at 64); at 128 the field-sized lens reads 1.0008 / 1.0009 /
-    1.0007, still flat where the count rises. The aim layout is short too, but it
-    never claimed to be a power. *What would close it:* the pupil laid from the
-    stop's real rim rather than the paraxial disc — an engine change whose rung is
-    this brute-force count to its own lattice error, on and off axis.
+31. **Under the paraxial aim, an emitter's collected power is short — on axis and
+    more off it.** Found at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone). Since § 2n an emitter pupil's `formedSum` is
+    absolute, and fluorescence weights its patches and planes by it. Against a
+    brute-force count (a direction-cosine lattice launched from the object point,
+    every ray traced — the stop does clip, at its surface — Σ throughput/cos θ;
+    stable to 5e-4 between 401² and 801²) it is short: the DIN presets' rays are
+    aimed at the PARAXIAL entrance pupil, whose rim sits inside the stop's real
+    edge — at 1.00546 of the aim radius on the axis, so 1.1% of the light that gets
+    through is never launched, and at 1.0012–1.0204 round the 6 mm tile, 1.8%.
+    Tile-over-axis ratios cancel the axial part and keep the difference: on the
+    field-sized DIN 4×/0.10, which clips nothing, the count reads 1.0017 / 1.0044 /
+    1.0078 at 2.25 / 4.5 / 6 mm and the exit layout 1.0008 / 1.0009 / 1.0007 at
+    pupil samples 128. **Real aiming closes it**: 1.0010 / 1.0045 / 1.0076 at 128,
+    the count to its own lattice error. At pupil samples 24 the outline's count
+    adds up to 0.5% either way (item 25's, larger than the 1e-4 it records at 64),
+    and that is what made real aiming look ineffective at first. § 2p.1's pin is
+    of the cone the paraxial aim's rim spans, which is this item's on-axis 1.1%
+    short of the stop's. *What would close it:* real aiming for every finite
+    preset, or a paraxial aim scaled to the stop's traced edge — either moves every
+    reading that integrates a microscope pupil, so it is a flip of its own with the
+    brute-force count as its rung, on and off axis.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
