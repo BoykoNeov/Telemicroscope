@@ -185,11 +185,13 @@ export interface FluorescenceReadout {
   /**
    * Peak of the unit-sum incoherent PSF on axis and at the frame corner.
    *
-   * The kernel has unit sum, so its peak is a Strehl-like readout, and § 6i.5's
-   * finding is that the corner's traced pupil gives a **lower-peaked** kernel
-   * than the axis's — § 6h.5's corner coma showing up in an image. The drop is
-   * small (it is a fraction of a percent over a frame this narrow), so it is
-   * printed with enough digits to be read rather than rounded into nothing.
+   * The kernel has unit sum, so its peak is a Strehl-like readout. § 6i.5 once
+   * read the corner's as **lower** and called it corner coma; on the exit layout
+   * (§ 2p) the corner moves with its wavefront, the size of its cone and the
+   * cone's irradiance, and comes out above the axis on several rows. The
+   * difference is small (a fraction of a percent to a few percent over a frame
+   * this narrow), so it is printed with enough digits to be read rather than
+   * rounded into nothing.
    */
   readonly axisKernelPeak: number;
   readonly cornerKernelPeak: number;
@@ -291,6 +293,7 @@ export function renderFluorescenceScene(
       spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
+      layout: "exit",
     });
     const emitters = beadField(frame.objectHalfExtentMm, request.beadCount, request.seed);
     const object = rasterizeEmitters(system, frame, emitters);
@@ -469,6 +472,7 @@ export function transferSweep(request: TransferRequest): TransferResult {
       spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
+      layout: "exit",
     });
     const pupil = fieldPupilAt(system, frame, 0.5, 0.5).pupil;
     const kernel = incoherentPsf(pupil, {

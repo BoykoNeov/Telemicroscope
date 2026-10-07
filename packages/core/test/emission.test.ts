@@ -22,7 +22,7 @@ import {
 import { oilImmersionObjective } from "../src/designs/immersion";
 import { imageNumericalAperture, objectNumericalAperture } from "../src/pupil/microscope";
 import { bestFocus, withFocus } from "../src/analysis/focus";
-import { opdMap } from "../src/pupil/opd";
+import { exitApertureSine, opdMap } from "../src/pupil/opd";
 import { pupilGrid } from "../src/pupil/aiming";
 import { spectralSamples } from "../src/photometry/spectrum";
 import type { PupilScale } from "../src/wave/psf";
@@ -380,7 +380,7 @@ describe("§ 6j.5 — a traced objective through a real band", () => {
     // sides and cancels. Comparing against an unresampled single line would have
     // measured that smoothing and called it secondary spectrum.
     const system = din4x();
-    const pupils = tracedEmissionPupils(system, 0);
+    const pupils = tracedEmissionPupils(system, 0, { layout: "exit" });
     const kernelFor = (width: number) =>
       emissionKernel(
         pupils,
@@ -409,18 +409,21 @@ describe("§ 6j.5 — a traced objective through a real band", () => {
     // not a measurement here, it is the shape of the API. What IS measurable is
     // that the kernel's scale follows the emission band alone.
     const system = din4x();
-    const pupils = tracedEmissionPupils(system, 0);
+    const pupils = tracedEmissionPupils(system, 0, { layout: "exit" });
     const at = (centre: number) =>
       emissionKernel(pupils, [{ nm: centre, weight: 1 }], {
         size: SIZE,
         pupilSamples: PUPIL_SAMPLES,
       }).pixelScaleMm!;
-    // 1.2001 rather than 1.2000, and the 1.4e-4 is physics: `pixelScaleMm` is
-    // λ·R/(n′·size·Δpupil), and R and the exit-pupil radius come from a trace
-    // that is itself chromatic. So the scale follows the emission wavelength to
-    // within the exit pupil's own dispersion, which is the honest statement.
-    expect(at(600) / at(500)).toBeCloseTo(600 / 500, 3);
-    expect(Math.abs(at(600) / at(500) / 1.2 - 1)).toBeLessThan(2e-4);
+    // On the exit layout since § 2p, `pixelScaleMm` is λ·pupilSamples/(2n′·size·σ)
+    // with σ the traced image-side aperture sine at each λ, and the cone is itself
+    // chromatic: σ(500)/σ(600) = 1.0016. So the scale follows the emission
+    // wavelength times the cone's own dispersion, as an identity — where the aim
+    // layout's paraxial ruler read 1.2 exactly on this telecentric objective.
+    const sigma = (nm: number) => Math.abs(exitApertureSine(system, nm));
+    expect(at(600) / at(500)).toBeCloseTo(600 / 500, 2);
+    expect(at(600) / at(500) / ((1.2 * sigma(500)) / sigma(600)) - 1).toBeCloseTo(0, 12);
+    expect(at(600) / at(500) / 1.2 - 1).toBeCloseTo(1.5955e-3, 6);
   });
 });
 

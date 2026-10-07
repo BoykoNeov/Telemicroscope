@@ -37,6 +37,7 @@ whole ladder.
 | [2m](#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) | The default layout follows the conjugate, exit at infinity: a paraboloid's ruler is cos²(u′/2), a classical Cassegrain's too, to 1e-14; 41 readings moved | `telescope-exit-layout` |
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
+| [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4488,10 +4489,12 @@ p·|∂c/∂e| past the density lattice's differencing.
   flip, one objective's frame span reads ~1% apart between the brightfield and
   section panels and the bench, builder, fluorescence and volume ones — each
   panel prints its own frame's, so no page shows both.
-- **An emitter's absolute energy is unpinned across branches.** § 2j.3 compares
+- ~~**An emitter's absolute energy is unpinned across branches.** § 2j.3 compares
   shares, which cancel § 2n's constant; `psf().energy` against
   `geometricPsf().energy` on an exit-layout finite emitter is the fluorescence
-  step's first rung, since that chain blends through `adaptivePsf`.
+  step's first rung, since that chain blends through `adaptivePsf`.~~ That pair is
+  one number read twice, and the fluorescence chain does not blend; the absolute
+  units are pinned against the collected cone at [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone).
 - **Two inputs a frame does not yet carry** — register item 29.
 
 ## Step 2o — the exit layout's orientation: the geometry's, not the aim's
@@ -4558,6 +4561,64 @@ the exit layout inside the band: every chain that does is still on the aim layou
 - **The full grid's centroid sits 0.014–0.034 µm past the rays'** at pupil
   samples 64, falling with the grid (0.037 µm at 467 nm and 128). Not traced; it
   is the same on both sides of the crossing.
+
+## Step 2p — fluorescence on the exit layout: an emitter's light is its collected cone
+
+Source: app and test change — the fluorescence and emitter panels' frames ask for `"exit"`, and so do the single-plane fluorescence rungs (§ 6i.5, § 6j.5, § 6as, § 6ba, § 6bc); `jacobianAxisOffset` on the emitter readout
+· Tests: § 2p.1 in `packages/core/test/throughput-units.test.ts`, the readings restated below
+
+Register item 24's second finite chain, and the first half of it by the user's
+split: the single-plane fluorescence pictures here, the volume and focus-surface
+chain (§ 6k, § 6l's panels, § 6az, § 6bb, § 6bd–§ 6bg) next. Like brightfield it
+flips by its frame. Flipping it found § 2o first.
+
+What § 2n left as this step's first rung — `psf().energy` against
+`geometricPsf().energy` on an exit-layout emitter — compares a number with itself:
+both read one `transmittedEnergy` of one laid pupil, and the ray histogram is
+rescaled to it. And the fluorescence chain does not blend through `adaptivePsf` at
+all: its kernels are unit-sum, and the only place § 2n's absolute emitter units
+reach a picture is each patch's `formedSum`, which weights the patches of a frame
+and the planes of a stack. So the rung is that number against an external one.
+
+**Hypothesis.** On the exit layout an emitter pupil's light is the power an
+isotropic point source sends into the cone the objective accepts — (1 − cos u)/2
+of it, where the aim layout's disc counts the paraxial sin²u/4 — so a plane's
+light over the aim layout's is c_rim²·2/(1 + cos u), c_rim the traced rim in the
+canonical coordinate. **Refuted by** any wavelength off that by more than the
+objective's sine-condition residual (~3e-4 on the DIN 4×).
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2p.1 — an emitter's light is its collected cone** | exit over aim = c_rim²·2/(1 + cos u) at all nine wavelengths on the DIN 4×/0.10, to 2.6e-4 at the blue end and −4.4e-5 at the red, read off the rim ray's own launch; so § 6bc.3's transmission tilt is 1.0174, the glass's 1.0074 times the cone's | ✅ |
+
+### What moved, and why
+
+| Chain | Reading | Cause | Restated as |
+|---|---|---|---|
+| ruler | § 6j.5 scale 600/500 = 1.2 (aim, exact); § 6ba.3 k = 25/41 | the traced cone's sine at each λ: σ(500)/σ(600) = 1.0016 | (λ ratio)·σ(λ₂)/σ(λ₁) to 1e-12; 1/k² for the irradiance resampler |
+| | emitter panel: frame half 93.539 → 94.123 µm on the DIN 4×/0.10, 46.06 → 43.58 on the 4×/0.20; object pixels 32.02 → 31.82; the infinity 20× misses by 2.2%, not 1%; six of nine run at pupil samples 16, not seven (the Lister 40×/0.20 at 0.896) | the ruler: σ traced against the paraxial r/R, −0.62% to +5.4% across the rows | recorded values |
+| collected cone | § 6bc.3 tilt 1.0074 → 1.0174, chromaticity (0.33384, 0.33446) → (0.334347, 0.334973); § 6ba.3's and § 6ba.5's whites +5.3e-4 | § 2p.1 | recorded values |
+| | § 6bc.4 2.25 / 4.5 / 6 mm 0.997728 / 0.941036 / 0.893415 → 0.999550 / 0.942734 / 0.889845, 394 → 388 samples; the field-sized lens's "flat to 3.3e-5" → 0.994776 / 0.999379 / 1.004048 on 438 samples | the aim layout's share of its own disc was flat by construction; the exit layout's is the collected power — 0.2–0.8% short of a brute-force count, register item 31 | recorded values, the brute force in the comment |
+| the pupil laid where its rays went | § 6i.5 the rim DIN's corner kernel 0.66% BELOW the axis, asserted as a direction | the aim coordinate's distortion bending a wavefront with ~0.13 waves rms of defocus in it; on exit the corner's support is 0.25% smaller and its wavefront better (less defocus at the corner, not traced to the whole 1.3% on the telecentric member) | +0.033% (rim), +1.04% (telecentric) — one kernel to ~1%, recorded with the split |
+| | the fluorescence panel's corner/axis peaks at pupil samples 32 (DIN 4×/0.10 −0.659%, 20× −0.997%, Lister +0.188%, oil +0.184%; −0.659 → −2.38 → −9.33% over the crop) | the same three parts; the oil's is not its wavefront (rms equal to 2e-5), not traced | +1.11%, −0.555%, −0.044%, +6.2%; +1.11 → +0.68 → +4.58%, the traced rms 0.1374 → 0.1341 waves at the 128 corner |
+| | the emitter panel's grid guard: worst 0.272, 0.84–2.86, 6.58–21.8 | the pupil laid where its rays went | 0.273, 0.83–2.85, 5.95–21.4 |
+| | § 6i.5's bracket lo ≤ held/emitted ≤ hi | the four patch centres are at one radius: one share, equal to the last bits | an equality to 1e-14 |
+| | § 6ba.4 residuals, § 6ba.5's ideal white (8e-6), § 6ba.6 0.4533 → 0.4525 | the frames' pixels (the lattice count) and the kernels laid on the exit layout | recorded values |
+| claims that fell on BOTH layouts | § 6ba.9 "0.180% of magnification, linear, a magnification difference" | the render at pupil samples 24 wraps the blue kernel (×2 and ×4 the span read 0.240% and 0.253%, still climbing); chief rays alone are 0.025% | a ray referee (§ 2o.2's centroid theorem per λ, weighted as the channel basis weighs): 0.2618 / 0.2624 / 0.2630% at 0.2 / 0.4 / 0.8 mm — linear, and nine parts in ten the blur's colour; the render recorded at 72% of it |
+| | the emitter panel's Jacobian worth "spreads 179×", off-axis factors "35× to 380×, each lens's" | the worth is the frame's axial offset (`jacobianAxisOffset`, −3.4e−8 to −6.5e−8, layout-blind) plus the distortion, near-cancelling; the 4×/0.20's went negative | the distortion part: 18× across the rows, and ×33.34 off axis on every row — ⟨r²⟩'s 1 + 2(d/R)² = 33, the 1% over it the disc's lattice |
+
+### What it leaves
+
+- **The volume and focus-surface chain** — step 2 of the user's split (§ 6k, § 6l's
+  app panels, § 6az, § 6bb, § 6bd–§ 6bg). The trial flip there moved ~40 readings;
+  § 6az.5 goes NaN and § 6bf's best-focus sweep refuses a plateau, both untraced.
+  § 6bb.10's and § 6bg's comparisons against § 6ba.9's "static 0.180%" are against
+  the render's bias and are restated with that chain. Until it flips, the frame
+  span reads ~1% apart between the brightfield, section, fluorescence and emitter
+  panels and the bench, builder and volume ones.
+- **An emitter's collected power is 0.2–0.8% short off axis** — register item 31.
+- **§ 6i.5's corner wavefront** is better than the axis's on the exit layout by
+  more than the corner's smaller defocus accounts for; not traced.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -10480,7 +10541,7 @@ partial-coherence machinery* rather than asserted, and that the proof is exact.
 | Light is conserved: the image holds exactly the emitted power | Σh = 1, 1e-12 | ✅ |
 | With a varying pupil, refining the patches converges | convergence | ✅ |
 | A bead is placed by its own traced chief ray, splat weights to f64 | § 6h's forward map | ✅ |
-| The corner's traced pupil gives a lower-peaked kernel than the axis's | § 6h.5's corner coma | ✅ |
+| The corner's traced pupil gives a ~~lower-peaked~~ different kernel than the axis's — one kernel to ~1%, the sign set by defocus, not coma ([§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)) | § 6h.5's corner coma | ✅ |
 | Brightfield's phase contrast is **second order** in φ — 1.9994, and 2.000 without the top point | § 6f.5's null, as an order | ✅ |
 | The same structure labelled images at the full incoherent transfer | closed form, 1e4× separation | ✅ |
 
@@ -10604,10 +10665,14 @@ point emitter is placed individually through its own traced chief ray, so the
 objective's distortion is carried in the placement — and § 6h's unbuilt
 distortion-carrying rasterizer, the one a stained-tissue field would need, is not
 required. The splat weights are pinned to f64 against the traced position. On the
-same objective the corner's traced pupil gives a lower-peaked kernel than the
+same objective the corner's traced pupil gives a ~~lower-peaked kernel than the
 axis's (the kernel has unit sum, so its peak is a Strehl-like readout), which is
 § 6h.5's 8.8e-3 waves of corner coma showing up in an image — and the drop is
-under 1%, as it must be at 47 µm of specimen.
+under 1%, as it must be at 47 µm of specimen~~ different kernel from the axis's,
+by under ~1% at 47 µm of specimen. **Restated at [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone):** the 0.66% drop was the
+aim coordinate's distortion bending a wavefront with ~0.13 waves rms of defocus
+in it; on the exit layout the corner is 0.033% *above* the axis, its support
+0.25% smaller and its wavefront better.
 
 ### 6i.6 — the object brightfield structurally cannot see
 
@@ -21477,7 +21542,8 @@ the two resamplers share one implementation and differ by the gain alone, so
 using the wrong one inflates a plane by exactly `1/k²`. On the reddest plane
 against the bluest ruler that is **(41/25)² = 2.6896×**, and `k` is not merely
 close to the wavelength ratio — `imagePixelScaleMm` is ∝ λ, so k **is** 25/41 to
-the last bit.
+the last bit (on the aim layout; on the exit layout it is ∝ λ/σ(λ) and k is 25/41
+times the traced cone's own dispersion, 0.51% — [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)).
 
 **Energy is not the witness on this branch either.** Nothing is lost by choosing
 wrong; each plane is merely rescaled. § 6r's error tilts the spectrum as 1/λ² and
@@ -21558,8 +21624,13 @@ misaligned before anything is measured off it.
 | 0.8 | 0.46229 | 1.797e−3 |
 
 The last column is what makes this a finding rather than a number: constant to
-0.5% over a ×4 of field, so the misregistration is a **magnification difference
-of 0.180% between the channels** and not a higher-order distortion. The axial
+0.5% over a ×4 of field, so the misregistration is ~~a **magnification difference
+of 0.180% between the channels**~~ linear in field and not a higher-order
+distortion. **Both halves of the bold claim fell at [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)**, on both layouts:
+the render at pupil samples 24 wraps the blue kernel (×2 and ×4 the span read
+0.240% and 0.253%), and a ray referee — the centroid theorem per wavelength —
+reads 0.2618 / 0.2624 / 0.2630% at 0.2 / 0.4 / 0.8 mm, of which the chief rays,
+the magnification difference proper, are 0.025%. It is the blur's colour. The axial
 zero is load-bearing — it is what says the estimator is reading lateral colour
 and not the window it was taken over, and reaching it required a centroid window
 symmetric about the grid centre. A window one pixel wider on one side reported
@@ -21867,8 +21938,8 @@ contribution.
 | **§ 6bc.2 — the conservation § 6i measured was arithmetic** | with an aperture that varies across the field, held/emitted is bracketed by the patch weights and below 0.13, never the 1 § 6i.4 read; held equals the flux the weights allow to 1e−12 | ✅ |
 | | the bracket's width is the square of the radius ratio, within 3% at pupilSamples 24 and 0.3% at 96 — the residue is § 6as.4's lattice count of a disc | ✅ |
 | | and the axis it does NOT move on: 0.25 → 4 waves of defocus leave `formedSum` identical to 1e−14, which is § 6k.1 and the reason this survived from § 6i to § 6bb | ✅ |
-| **§ 6bc.3 — the objective's transmission spectrum reaches the COLOUR** | 1.00740 red end over blue end and monotone in λ across nine samples; an equal-energy emitter images at x 0.33384, y 0.33446 — 3.832e−4 and 3.659e−4 off where the same stack lands with the weight divided away | ✅ |
-| **§ 6bc.4 — the un-field-sized objective clips its own aperture, and it is a HARD clip** | 0.997728 / 0.941036 / 0.893415 of the axial weight at 2.25 / 4.5 / 6 mm, the transmitting count falling 441 → 394; the field-sized design holds the same sweep to 3.3e−5 with the count unchanged | ✅ |
+| **§ 6bc.3 — the objective's transmission spectrum reaches the COLOUR** | (aim layout; 1.0174 on the exit layout, the collected cone's tilt on top — [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)) 1.00740 red end over blue end and monotone in λ across nine samples; an equal-energy emitter images at x 0.33384, y 0.33446 — 3.832e−4 and 3.659e−4 off where the same stack lands with the weight divided away | ✅ |
+| **§ 6bc.4 — the un-field-sized objective clips its own aperture, and it is a HARD clip** | 0.997728 / 0.941036 / 0.893415 of the axial weight at 2.25 / 4.5 / 6 mm, the transmitting count falling 441 → 394; the field-sized design holds the same sweep to 3.3e−5 with the count unchanged — on the aim layout, whose share of its own disc is flat by construction; the collected power is not ([§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone), register item 31) | ✅ |
 | | and the negative control: two tiles each quoted against their own pupil come back equal to 1e−12, so a 10.7% loss renders as a flat field | ✅ |
 
 ### What shipped, and the trap it was designed against
@@ -21906,7 +21977,8 @@ this branch actually renders, the ordering is the other way round:
   loss but a hard aperture clip: the transmitting sample count itself falls,
   441 → 394. It belongs to the glass sized for the axial beam alone, which
   `microscope.ts` already names as § 6w's negative control — give the design a
-  field number and the same sweep holds to 3.3e−5.
+  field number and the same sweep holds to 3.3e−5 (on the aim layout; on the exit
+  layout 0.045% and 11.0%, and the field-sized lens reads its collected cone — [§ 2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)).
 - **Depth — exactly zero**, § 6k.1, for as long as the pupils differ only by
   defocus.
 

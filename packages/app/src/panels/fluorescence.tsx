@@ -64,8 +64,8 @@ const GRID_STEP_LIMIT = 0.5;
  * | 4.02 (grid 128, ps 32) | 5.7% |
  * | 8.04 (grid 256, ps 32) | 1.5% |
  *
- * That matters because the corner-vs-axis kernel drop this panel reports is
- * 0.2–9.3% depending on the objective and the crop. At two pixels per cell the
+ * That matters because the corner-vs-axis kernel difference this panel reports
+ * is 0.04–6.2% depending on the objective and the crop (§ 2p). At two pixels per cell the
  * splat jitter is *larger than the optics*, so a reader comparing two blobs by
  * eye would be reading the sub-pixel placement. The kernel peaks below are
  * computed from the pupils directly and are unaffected; the warning is about the
@@ -492,27 +492,25 @@ export function FluorescencePanel() {
       <p style={{ marginTop: 24, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The kernel peak is a Strehl-like readout</strong>, because the kernel is normalized
         to unit sum: light the aberration moves out of the core has to go somewhere, so a lower peak
-        at the same total is a worse image. § 6i.5 measured the corner&rsquo;s traced pupil giving a
-        <em> lower</em>-peaked kernel than the axis&rsquo;s — corner coma showing up in an image —
-        and it holds here, but <strong>the sign is not universal and that is a correction worth
-        stating</strong>. <em>Measured on the bench&rsquo;s ten rows, at pupil samples 32</em>: the
-        DIN 4×/0.10 drops 0.659% and the infinity 20×/0.10 drops 0.997%, while the{" "}
-        <em>Lister 40×/0.20 and the 100×/1.40 oil both gain ~0.18%</em> — their corner wavefront is
-        genuinely better than their axial one at the system&rsquo;s own image plane, with no
-        best-focus solve. So &ldquo;the corner is worse&rdquo; is a statement about a particular
-        design, not about field position. Those four numbers are about those four lenses;{" "}
+        at the same total is a worse image. But <strong>the corner&rsquo;s number is not corner coma,
+        and its sign is not universal</strong>. It moves with three things at once — the corner&rsquo;s
+        own wavefront at the system&rsquo;s image plane, with no best-focus solve; the size of the
+        light&rsquo;s cone there; and how bright that cone is across itself — and only the first is
+        the coma story. <em>Measured on the bench&rsquo;s ten rows, at pupil samples 32</em>: the
+        infinity 20×/0.10 drops 0.555% and the Lister 40×/0.20 0.044%, while the{" "}
+        <em>DIN 4×/0.10 gains 1.11% and the 100×/1.40 oil 6.2%</em>. So &ldquo;the corner is
+        worse&rdquo; is a statement about a particular design, not about field position. Those four numbers are about those four lenses;{" "}
         <strong>the one that is about whatever is selected is printed above the picture</strong>,
         re-traced on every change, which is why this panel prints the number rather than the moral —
         and why an objective you built gets an answer here rather than a shrug.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The crop moves the corner, too.</strong> Raising pupil samples widens the frame —{" "}
-        <em>on the DIN 4×</em>, 93.5 µm at 32, 187.1 at 64, 374.2 at 128 — so the
-        &ldquo;corner&rdquo; walks further off axis and the drop grows with it: 0.659% → 2.38% →
-        9.33% <em>on that row</em>. Move the sampling control with any objective selected and the
-        two live numbers above follow the same way. The
-        picture at 128 shows it directly, with the outer beads visibly fatter than the central ones.
-        That is the same § 6h constraint the brightfield panel is built around, arriving as a visible
+        <em>on the DIN 4×</em>, 94.1 µm at 32, 188.2 at 64, 376.5 at 128 — so the
+        &ldquo;corner&rdquo; walks further off axis and the number moves with it: +1.11% → +0.68% →
+        +4.58% <em>on that row</em>, where the traced wavefront itself is smaller at the corner (rms
+        0.1374 waves on the axis, 0.1341 at the 128 corner). Move the sampling control with any
+        objective selected and the two live numbers above follow. That is the same § 6h constraint the brightfield panel is built around, arriving as a visible
         aberration rather than as a number: the frame spans <code>pupilSamples</code> resolution
         cells and there is no resampling trick to widen it.
       </p>

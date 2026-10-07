@@ -19,6 +19,9 @@ import { fft2d } from "../src/math/fft";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { PatchPupil } from "../src/imaging/brightfield";
 import type { OpticalSystem, WavelengthSample } from "../src/trace/system";
+import { canonicalApertureSine } from "../src/pupil/opd";
+import { aimRay } from "../src/pupil/aiming";
+import { pupils } from "../src/pupil/pupils";
 
 /**
  * § 6bc — what a formed image is quoted in, and the difference it hides.
@@ -55,11 +58,13 @@ import type { OpticalSystem, WavelengthSample } from "../src/trace/system";
  *   own Fresnel transmission — § 6bb.2 pinned that against the on-axis amplitude
  *   squared. It reaches the picture: `colorImageFromStack` renormalizes nothing,
  *   so an equal-energy emitter images 3.8e-4 off white in x (§ 6bc.3).
- * - **Field, 0.227% inside the catalogued field and 10.7% outside it.** A hard
- *   aperture clip rather than a Fresnel loss — the transmitting sample count
- *   itself falls, 441 → 394 — and it is the un-field-sized glass § 6v.5 named as
- *   its own negative control. Give the objective a field number and the same
- *   sweep holds to 3.3e-5 (§ 6bc.4).
+ * - **Field, 0.045% inside the catalogued field and 11.0% outside it** (0.227% and
+ *   10.7% on the aim layout, before § 2p). A hard aperture clip rather than a
+ *   Fresnel loss — the transmitting sample count itself falls, 441 → 388 — and it
+ *   is the un-field-sized glass § 6v.5 named as its own negative control. Give the
+ *   objective a field number and nothing is clipped; the sweep then reads the
+ *   emitter's collected cone, which a brute-force count puts 0.2–0.8% brighter off
+ *   axis than the exit layout does (register item 31, § 6bc.4).
  * - **Depth, exactly zero**, § 6k.1, for as long as the pupils differ only by
  *   defocus.
  *
@@ -116,6 +121,7 @@ const tileAt = (nm: number, xMm: number, system: OpticalSystem = SYSTEM) =>
     pupilSamples: PS,
     wavelengthNm: nm,
     centreMm: { x: xMm, y: 0 },
+    layout: "exit",
   });
 
 /** The pre-§ 6bc expression, kept here so § 6bc.1 can compare against it. */
@@ -314,7 +320,10 @@ describe("§ 6bc.3 — the objective's transmission spectrum reaches the colour"
     // The transmission tilt across the sampled band: red end over blue end.
     const sums = carried.planes.map((p) => p.ownSum);
     const tilt = sums[sums.length - 1]! / sums[0]!;
-    expect(tilt).toBeCloseTo(1.0074, 4);
+    // 1.0074 on the aim layout, the glass's Fresnel alone. On the exit layout
+    // (§ 2p) a plane's light is the emitter's own collected cone, and the cone
+    // the objective accepts is 0.5% wider in sine at the red end — the next rung.
+    expect(tilt).toBeCloseTo(1.0174, 4);
     // Monotone in wavelength, which is what says it is the glass and not the
     // lattice: a Gauss-circle miscount would not order itself by colour.
     for (let p = 1; p < sums.length; p++) expect(sums[p]!).toBeGreaterThan(sums[p - 1]!);
@@ -324,10 +333,12 @@ describe("§ 6bc.3 — the objective's transmission spectrum reaches the colour"
     // `colorImageFromStack` renormalizes nothing.
     const carriedC = chromaticity(integratedXyz(carried.image));
     const perPlaneC = chromaticity(integratedXyz(perPlane.image));
-    expect(carriedC.x).toBeCloseTo(0.33384, 5);
-    expect(carriedC.y).toBeCloseTo(0.33446, 5);
-    expect(carriedC.x - perPlaneC.x).toBeCloseTo(3.832e-4, 6);
-    expect(carriedC.y - perPlaneC.y).toBeCloseTo(3.659e-4, 6);
+    // § 2p: (0.33384, 0.33446) and a 3.83e-4 / 3.66e-4 shift before — the
+    // collected cone's tilt added to the glass's.
+    expect(carriedC.x).toBeCloseTo(0.334347, 5);
+    expect(carriedC.y).toBeCloseTo(0.334973, 5);
+    expect(carriedC.x - perPlaneC.x).toBeCloseTo(8.905e-4, 6);
+    expect(carriedC.y - perPlaneC.y).toBeCloseTo(8.747e-4, 6);
     // Toward the red, as a transmission rising with wavelength must be.
     expect(carriedC.x).toBeGreaterThan(perPlaneC.x);
 
@@ -342,6 +353,41 @@ describe("§ 6bc.3 — the objective's transmission spectrum reaches the colour"
       }
     }
     expect(tilt).toBeGreaterThan(1);
+  });
+});
+
+describe("§ 2p.1 — an emitter's light is its collected cone, (1 − cos u)/2 of it", () => {
+  it("the exit layout's plane over the aim layout's is c_rim²·2/(1 + cos u) at every wavelength", () => {
+    // The external number § 2n's absolute emitter units answer to. An isotropic
+    // point source sends (1 − cos u)/2 of its power into a cone of half-angle u;
+    // the aim layout's disc counts the paraxial π·sin²u/4π of it, so the exact
+    // share over the paraxial one is 2/(1 + cos u) — times c_rim², the traced rim
+    // in the canonical coordinate n·L/ν, which is 1 on an aplanat. Read per
+    // wavelength off the rim ray's own launch, nothing the exit layout computes.
+    for (const s of SAMPLES) {
+      const sum = (layout: "aim" | "exit") => {
+        const frame = objectFieldTile(SYSTEM, {
+          size: SIZE,
+          pupilSamples: PS,
+          wavelengthNm: s.nm,
+          centreMm: { x: 0, y: 0 },
+          layout,
+        });
+        return pupilThroughput(tracedFieldPupils(SYSTEM, frame, {})(0.5, 0.5).pupil, {
+          pupilSamples: PS,
+          size: SIZE,
+        });
+      };
+      const p = pupils(SYSTEM, s.nm);
+      const d = aimRay(SYSTEM, p, 0, { px: 1, py: 0 }, s.nm, {}).dir;
+      const sinU = Math.hypot(d.x, d.y) / Math.hypot(d.x, d.y, d.z);
+      const cosU = Math.sqrt(1 - sinU * sinU);
+      const cRim = (Math.abs(p.entrance.n) * sinU) / canonicalApertureSine(SYSTEM, s.nm, {});
+      const predicted = (cRim * cRim * 2) / (1 + cosU);
+      // Measured 2.6e-4 at the blue end falling to −4.4e-5 at the red: the DIN
+      // 4×'s own departure from the sine condition across the rim.
+      expect(Math.abs(sum("exit") / sum("aim") / predicted - 1), `${s.nm} nm`).toBeLessThan(3e-4);
+    }
   });
 });
 
@@ -361,26 +407,42 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
     // semi-field is 2.25 mm and the loss is 0.227% — and outside it the aperture
     // goes, samples and all. Give the same design a field number (§ 6w) and the
     // whole sweep holds to 3.3e-5.
+    //
+    // § 2p restated these on the exit layout (0.997728, 0.941036, 0.893415 and
+    // 394 samples before, and the field-sized lens flat to 3.3e-5 — a share of the
+    // aim disc, flat by construction). The exit layout's sum is the emitter's
+    // collected power, and against a brute-force count — a direction-cosine
+    // lattice launched from the object point, traced, Σ throughput/cos θ — it
+    // misses by up to 1%: about 1.1% of the light that gets through lies outside
+    // the paraxial aim disc no pupil is laid from (1.8% at 6 mm), and at pupil
+    // samples 24 the outline's own count is off by up to 0.5%. Register item 31;
+    // the count reads 0.995237, 0.930842, 0.882580 here and 1.001672, 1.004445,
+    // 1.007761 on the field-sized lens.
     const axis = read(SYSTEM, 0);
     expect(axis.samples).toBe(441);
-    expect(read(SYSTEM, 2.25).sum / axis.sum).toBeCloseTo(0.997728, 6);
-    expect(read(SYSTEM, 4.5).sum / axis.sum).toBeCloseTo(0.941036, 6);
+    expect(read(SYSTEM, 2.25).sum / axis.sum).toBeCloseTo(0.999550, 6);
+    expect(read(SYSTEM, 4.5).sum / axis.sum).toBeCloseTo(0.942734, 6);
     const far = read(SYSTEM, 6);
-    expect(far.sum / axis.sum).toBeCloseTo(0.893415, 6);
+    expect(far.sum / axis.sum).toBeCloseTo(0.889845, 6);
     // A hard clip and not a Fresnel loss: the transmitting count itself falls.
-    expect(far.samples).toBe(394);
+    expect(far.samples).toBe(388);
 
+    // The field-sized lens clips nothing: every off-axis tile counts the same
+    // lattice, three points short of the axis's — the exit cone seen off axis,
+    // laid on the axial ruler, and not a vignette.
     const fieldedAxis = read(FIELDED, 0);
-    for (const xMm of [2.25, 4.5, 6]) {
-      const off = read(FIELDED, xMm);
-      expect(off.samples).toBe(fieldedAxis.samples);
-      expect(Math.abs(off.sum / fieldedAxis.sum - 1)).toBeLessThan(3.3e-5);
-    }
+    expect(fieldedAxis.samples).toBe(441);
+    const fielded = [2.25, 4.5, 6].map((xMm) => read(FIELDED, xMm));
+    for (const off of fielded) expect(off.samples).toBe(438);
+    const ratios = fielded.map((off) => off.sum / fieldedAxis.sum);
+    expect(ratios[0]!).toBeCloseTo(0.994776, 6);
+    expect(ratios[1]!).toBeCloseTo(0.999379, 6);
+    expect(ratios[2]!).toBeCloseTo(1.004048, 6);
   });
 
   it("quoting each tile in its own units renders the clip away exactly", () => {
     // What a mosaic would show. Two tiles, one on axis and one at 6 mm, imaging
-    // the same object: carried, the far tile is 10.7% darker; each quoted
+    // the same object: carried, the far tile is 11.0% darker; each quoted
     // against its own pupil, they are the same picture to f64 — an 11% loss
     // rendered as a flat field, which is the § 6bb.2 defect in the one place a
     // user would have called it a picture rather than a number.
@@ -396,7 +458,7 @@ describe("§ 6bc.4 — a mosaic tile off-axis is dimmer, and only if the weight 
           .intensity,
       ),
     );
-    expect(carried[1]! / carried[0]!).toBeCloseTo(0.893415, 6);
+    expect(carried[1]! / carried[0]!).toBeCloseTo(0.889845, 6);
 
     const perTile = [axisPupil, farPupil].map((pupil) =>
       incoherentImage(object, pupil, {

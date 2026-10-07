@@ -458,7 +458,7 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
       objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
     }).system;
   const frameOf = (system: ReturnType<typeof din4x>) =>
-    objectFieldFrame(system, { size: SIZE, pupilSamples: PUPIL_SAMPLES, wavelengthNm: LAMBDA });
+    objectFieldFrame(system, { size: SIZE, pupilSamples: PUPIL_SAMPLES, wavelengthNm: LAMBDA, layout: "exit" });
 
   it("a bead is placed by its own traced chief ray, so distortion is carried", () => {
     // § 6h left the GRID unwarped — a specimen authored by uniform scaling is
@@ -484,50 +484,53 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     expect(field.values[row * SIZE + x0 + 1]! / held).toBeCloseTo(px - x0, 12);
   });
 
-  it("the corner's traced pupil forms a lower-peaked kernel than the axis's", () => {
+  it("the corner's traced pupil forms a different kernel than the axis's, and the exit layout says why", () => {
     // § 6h.5 measured 8.8e-3 waves of corner coma on this objective against the
     // axis's 7.5e-6 fit noise. The kernel is normalized to unit sum, so its peak
-    // IS a Strehl-like readout and the field aberration has to show there.
+    // IS a Strehl-like readout and the field has to show there.
     const system = din4x();
     const frame = frameOf(system);
-    const peakAt = (u: number, v: number): number => {
-      const patch = fieldPupilAt(system, frame, u, v);
-      const kernel = incoherentPsf(patch.pupil, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
+    const peakOf = (pupil: PupilFunction): number => {
+      const kernel = incoherentPsf(pupil, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
       let peak = 0;
       for (let i = 0; i < kernel.values.length; i++) peak = Math.max(peak, kernel.values[i]!);
       return peak;
     };
     //
-    // § 6ai is where this rung found its own limit. On the shipped telecentric
-    // objective the corner peak comes back 0.2% ABOVE the axis rather than 0.7%
-    // below it, and the honest reading is not that the corner got better — it is
-    // that over 47 µm the two are the same kernel and the sign of a 0.2%
-    // difference is not something this frame can order. What survives the flip,
-    // and is the sentence the rung exists for, is the SIZE: under 1% either way
-    // on both members, and three times closer to equality on the lens whose
-    // off-axis wavefront § 6ag.4 measures as the better one.
-    //
-    // So the direction is asserted where there is enough coma to have one, and
-    // the bound is asserted on both.
-    const axis = peakAt(0.5, 0.5);
-    expect(peakAt(1, 1)).toBeLessThan(axis);
-    // Small, and it must be: this frame spans 47 µm of specimen, well inside a
-    // corrected 4×'s isoplanatic patch (§ 6h.5).
-    expect(peakAt(1, 1) / axis).toBeGreaterThan(0.99);
-    expect(Math.abs(frame.objectHalfExtentMm * 1000 - 46.77)).toBeLessThan(0.01);
+    // **Restated at § 2p.** On the aim layout this rung read the corner 0.66%
+    // BELOW the axis on the rim stop and asserted that direction. On the exit
+    // layout, where the same traced samples sit where their rays went, the corner
+    // is 0.033% ABOVE it — and the 0.66% was the aim coordinate's own distortion
+    // bending a wavefront that is not flat: at this frame's image plane every
+    // kernel here carries ~0.13 waves rms of defocus and 0.056 of spherical (the
+    // peak is half the aberration-free one). Split, on the exit layout:
+    //  - the SUPPORT — the corner's exit cone laid on the axial ruler — is 0.25%
+    //    smaller and lowers the corner by that, on both members alike;
+    //  - the WAVEFRONT raises it, 0.28% here and 1.29% on the telecentric member,
+    //    with less defocus at the corner (Z4 0.12767 → 0.12692 on the telecentric)
+    //    among the cause, not traced to the whole of it.
+    // So over 47 µm the axis and the corner are one kernel to about 1%, and which
+    // way the difference points is set by defocus, not by the corner's coma.
+    const split = (u: number, v: number) => {
+      const pupil = fieldPupilAt(system, frame, u, v).pupil;
+      const support = (px: number, py: number) => (pupil.amplitude(px, py) > 0 ? 1 : 0);
+      return {
+        full: peakOf(pupil),
+        supportOnly: peakOf({ amplitude: support, phaseWaves: () => 0 }),
+      };
+    };
+    const axis = split(0.5, 0.5);
+    const corner = split(1, 1);
+    expect(corner.full / axis.full - 1).toBeCloseTo(3.2787e-4, 7);
+    expect(corner.supportOnly / axis.supportOnly - 1).toBeCloseTo(-2.5094e-3, 7);
+    expect(Math.abs(frame.objectHalfExtentMm * 1000 - 47.3121)).toBeLessThan(0.01);
 
     const telecentric = telecentricDin4x();
     const telecentricFrame = frameOf(telecentric);
-    const telecentricPeakAt = (u: number, v: number): number => {
-      const patch = fieldPupilAt(telecentric, telecentricFrame, u, v);
-      const kernel = incoherentPsf(patch.pupil, { size: SIZE, pupilSamples: PUPIL_SAMPLES });
-      let peak = 0;
-      for (let i = 0; i < kernel.values.length; i++) peak = Math.max(peak, kernel.values[i]!);
-      return peak;
-    };
+    const telecentricPeakAt = (u: number, v: number): number =>
+      peakOf(fieldPupilAt(telecentric, telecentricFrame, u, v).pupil);
     const telecentricRatio = telecentricPeakAt(1, 1) / telecentricPeakAt(0.5, 0.5);
-    expect(Math.abs(telecentricRatio - 1)).toBeLessThan(0.01);
-    expect(Math.abs(telecentricRatio - 1)).toBeLessThan(Math.abs(peakAt(1, 1) / axis - 1));
+    expect(telecentricRatio - 1).toBeCloseTo(1.0375e-2, 6);
   });
 
   it("a bead field renders through the traced pupils, and holds the light they passed", () => {
@@ -554,11 +557,16 @@ describe("§ 6i.5 — a traced objective, and why beads are the first specimen",
     // the emitted light times what the pupils transmitted, so it is bracketed by
     // the patches' own weights and nowhere near 1.
     const held = formed.intensity.reduce((a, b) => a + b, 0);
-    const lo = Math.min(...formed.patchThroughput);
-    const hi = Math.max(...formed.patchThroughput);
-    expect(hi).toBeGreaterThan(lo);
-    expect(held / emitted).toBeGreaterThanOrEqual(lo);
-    expect(held / emitted).toBeLessThanOrEqual(hi);
+    // Two patches a side put all four centres on the frame's diagonals, at one
+    // radius, so the patches transmit ONE share — equal to the last bits — and
+    // the image holds exactly that share of the light. On the aim layout this was
+    // a bracket, lo ≤ held/emitted ≤ hi, and at § 2p it collapsed: the share fell
+    // 1.9e-16 below the smallest patch's, by rounding. Stated as what it is.
+    const share = formed.patchThroughput[0]!;
+    for (const p of formed.patchThroughput) expect(Math.abs(p / share - 1)).toBeLessThan(1e-15);
+    expect(Math.abs(held / emitted / share - 1)).toBeLessThan(1e-14);
+    // And it is a share of the light, nowhere near 1 (§ 6bc).
+    expect(share).toBeLessThan(0.2);
     // The conservation that survives: the render invents and loses nothing
     // against the flux those weights allow, which is § 6i's claim about the
     // partition of unity with the units it was hiding put back.

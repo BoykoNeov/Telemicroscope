@@ -65,8 +65,13 @@ import { AppRefusal, refused, type Refused } from "./refusal";
  *    `jacobianWorth` below is § 6as.5's negative control run live: the same
  *    sampling with the area element replaced by the frame's uniform object cell.
  *    On a smooth emitter it is **flat to nine significant figures over ×4 of
- *    grid**, and it spreads **179×** across the same five objectives at the same
- *    configuration (4.35e−9 on the DIN 4×/0.20 to 7.80e−7 on the infinity 10×).
+ *    grid**. It is two things (§ 2p): the frame's axial offset
+ *    (`jacobianAxisOffset`, −3.4e−8 to −6.5e−8) and the distortion over the
+ *    emitter, which spreads **18×** across the same five objectives at the same
+ *    configuration (4.56e−8 on the DIN 4×/0.20 to 8.27e−7 on the infinity 10×) and
+ *    grows 33.34× from a centred disc to one at 0.4 of the half frame on EVERY row
+ *    — ⟨r²⟩'s 1 + 2(d/R)² = 33, third-order distortion's own law. The 179× and
+ *    the per-lens factors once printed here were the two parts nearly cancelling.
  *
  * That orthogonality is the panel's argument for why the module had to exist,
  * and it is the reader's own control rather than a claim: one number that every
@@ -188,10 +193,21 @@ export interface EmitterReadout {
    * the two totals differ by the Jacobian and by nothing else at all. A second
    * raster would also differ by whatever the second density evaluation did.
    *
-   * **This is the number that does not converge.** It is the distortion, not a
-   * discretization, and it is flat over ×4 of grid.
+   * **This is the number that does not converge.** It is not a discretization,
+   * and it is flat over ×4 of grid. It is NOT the distortion alone (§ 2p): the
+   * uniform cell is the frame's, read off the magnification at its probe height,
+   * so on the axis it already differs from the map's own element by
+   * `jacobianAxisOffset`, −3.4e−8 to −6.5e−8 on the rows that run — as large as
+   * the distortion a centred emitter a tenth of the frame across sees.
    */
   readonly jacobianWorth: number;
+  /**
+   * `1/(M²·detJ(0)) − 1`: the part of `jacobianWorth` a centred point would read,
+   * the frame's magnification against the map's axial area element. What is left,
+   * `jacobianWorth − jacobianAxisOffset`, is the distortion over the emitter, and
+   * it follows ⟨r²⟩ — 1 + 2(d/R)² from a centred disc to one offset by d (§ 2p).
+   */
+  readonly jacobianAxisOffset: number;
 
   /** `objectAreaPerImageArea` on the axis, and how far it sits from 1/M². */
   readonly detJAxis: number;
@@ -388,6 +404,7 @@ export function renderEmitterScene(request: EmitterRequest): EmitterResult {
       spec: request.spec,
       pupilSamples: request.pupilSamples,
       size: request.size,
+      layout: "exit",
     });
     frame = built.frame;
     system = built.system;
@@ -466,6 +483,7 @@ export function renderEmitterScene(request: EmitterRequest): EmitterResult {
         fluxResidual: (fluxRasterized - closedFlux) / closedFlux,
         jacobianWorth:
           fluxRasterized > 0 ? naiveTotal(frame, map, object.values) / fluxRasterized - 1 : 0,
+        jacobianAxisOffset: 1 / (detJAxis * m2) - 1,
         detJAxis,
         detJAxisAgainstM2: Math.abs(detJAxis * m2 - 1),
         detJCornerDeparture: detJCorner / detJAxis - 1,

@@ -1013,9 +1013,17 @@ it buys PSF sampling, and that is what the splat error is a function of.
 
 **§ 6i.5's corner drop has no universal sign.** That rung measured the corner's
 traced pupil giving a lower-peaked kernel than the axis's on one objective, and
-it holds here — but across the catalogue at pupil samples 32 the sign flips: the
+~~it holds here — but~~ across the catalogue at pupil samples 32 the sign flips: the
 DIN 4×/0.10 drops **0.659%** and the infinity 20×/0.10 drops **0.997%**, while
 the Lister 40×/0.20 **gains 0.188%** and the 100×/1.40 oil **gains 0.184%**.
+**On the exit layout ([§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)) every one of those moved:** the DIN 4×/0.10
+gains **1.11%**, the oil **6.2%**, the 20× drops **0.555%** and the Lister
+**0.044%** — the corner's number moves with its cone's size (0.25% smaller off
+axis) and irradiance as well as its wavefront, and the 0.659% was partly the aim
+coordinate's distortion; on the DIN 4× the crop sweep reads +1.11% → +0.68% →
++4.58%, the traced rms falling 0.1374 → 0.1341 waves at the 128 corner. The oil's
+6.2% is not its wavefront (rms equal to 2e-5) and is not traced. The aim-layout
+reading follows:
 Their corner wavefront is genuinely better than their axial one at the system's
 own image plane with no best-focus solve (Lister: 0.01242 waves at the corner
 against 0.01419 on axis). "The corner is worse" is a statement about a
@@ -1023,8 +1031,9 @@ particular design, not about field position. The drop also scales with the crop
 rather than being a property of the objective alone — on the DIN 4× it runs
 **0.659% → 2.38% → 9.33%** at pupil samples 32 → 64 → 128, because raising
 pupil samples widens the frame (93.5 → 187.1 → 374.2 µm) and walks the "corner"
-further off axis. At 128 it is visible in the picture: the outer beads are
-plainly fatter than the central ones.
+further off axis. ~~At 128 it is visible in the picture: the outer beads are
+plainly fatter than the central ones.~~ (Aim layout; on the exit layout the corner
+kernel peaks higher.)
 
 **The transfer sweep needed its own worker, where A2's and A3's run on the main
 thread.** Theirs are pupil-evaluation sums at 190 ms and 20 ms, which a
@@ -4777,7 +4786,8 @@ recommendation attached; this one decides whether the feature is worth building.
 
 The panels' prose names objectives, and with a custom build selected those
 sentences misdescribe what is on screen. `fluorescence.tsx:485` prints "the DIN
-4×/0.10 drops 0.659% and the infinity 20×/0.10 drops 0.997%"; `volume.tsx:866`
+4×/0.10 drops 0.659% and the infinity 20×/0.10 drops 0.997%" (since § 2p, "the
+infinity 20×/0.10 drops 0.555%" and the DIN 4× gains — the same hazard); `volume.tsx:866`
 attributes 90/92/100% focus shares to three named rows. A4's own rule is the
 standard: *a stale reading may be shown greyed only if nothing on screen
 misdescribes it* — and A4 **withdrew** a plot rather than dim it, for exactly this
@@ -6736,9 +6746,16 @@ samples 64 and grid 256, over the five bench rows this surface reaches:*
   open exponent — and it is not optics at all.
 - **The Jacobian's worth is the lens's, and no grid moves it.** On a smooth
   emitter it is flat to **nine significant figures** over ×4 of grid
-  (9.135252899e−6 to 9.135252905e−6 on the DIN 4×/0.10), and it spreads **179×**
+  (9.135252899e−6 to 9.135252905e−6 on the DIN 4×/0.10), and it ~~spreads **179×**
   across the same five objectives at the same configuration — 4.35e−9 on the DIN
-  4×/0.20 to 7.80e−7 on the infinity 10×/0.10.
+  4×/0.20 to 7.80e−7 on the infinity 10×/0.10~~ is two parts ([§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)): the
+  frame's axial offset (`jacobianAxisOffset`, −3.4e−8 to −6.5e−8 — its uniform
+  cell is the probe's magnification, not the map's axial element) and the
+  distortion over the emitter, which spreads **18×** across the same five
+  objectives (4.56e−8 on the DIN 4×/0.20 to 8.27e−7 on the infinity 10×/0.10) and
+  grows **33.34×** off axis on every one of them — ⟨r²⟩'s 1 + 2(d/R)² = 33. The
+  179× and the "35× to 380×, each lens's" factors were the two parts nearly
+  cancelling; on the exit layout the 4×/0.20's worth went negative.
 
 So the same picture carries an arithmetic error that every lens shares and an
 optical error that no grid can see, and the reader separates them with two
@@ -6788,8 +6805,9 @@ the check turned up is the thing worth recording.
 
 `abbeImage`’s criterion is half a wave between adjacent transmitting samples.
 *Over every crop this panel offers:* the DIN 4×/0.10, the infinity 4×/0.10 and the
-infinity 10×/0.10 stay under it everywhere — worst 0.272 — while the **DIN 4×/0.15
-runs 0.84 to 2.86 and the DIN 4×/0.20 runs 6.58 to 21.8**. Over the line at *every*
+infinity 10×/0.10 stay under it everywhere — worst 0.273 — while the **DIN 4×/0.15
+runs 0.83 to 2.85 and the DIN 4×/0.20 runs 5.95 to 21.4** (0.272, 0.84–2.86 and
+6.58–21.8 on the aim layout, before [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone)). Over the line at *every*
 setting, not at the extreme of one: those two carry enough residual wavefront that
 the lattice cannot represent their pupil at any sampling this surface reaches.
 
@@ -6841,9 +6859,11 @@ while the field a high-power design reaches shrinks.
 
 The ratio is therefore the whole story, and it is exactly inverse in the crop —
 halving pupil samples doubles it, on every row. *At the default crop five of the
-bench's ten rows fit; at pupil samples 16, seven of the nine that build.* The
-infinity 20×/0.10 is the one worth looking at: it fails at pupil samples 32 with
-a headroom of **0.99**, missing by one percent, and one halving of the crop is
+bench's ten rows fit; at pupil samples 16, ~~seven~~ six of the nine that build* —
+since [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) the panel's frame is the traced cone's, and the Lister 40×/0.20's
+corner reaches 0.896 of its field at 16. The infinity 20×/0.10 is the one worth
+looking at: it fails at pupil samples 32 with a headroom of ~~**0.99**, missing by
+one percent~~ **0.978**, missing by two percent, and one halving of the crop is
 all it needs. Two rows — the Lister 40×/0.20 and the 100×/1.25 oil — never reach
 1 at any crop this panel offers, and the 40×/0.40 Lister does not build at all,
 for a reason about its own form that predates this part.

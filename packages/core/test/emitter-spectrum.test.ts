@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { objectFieldTile, tracedFieldPupils, tracedPupil } from "../src/imaging/object-field";
+import { fieldPupilAt, objectFieldTile, tracedFieldPupils, tracedPupil } from "../src/imaging/object-field";
 import { radialMapCovering } from "../src/imaging/radial-map";
 import {
   discEmitter,
@@ -33,6 +33,13 @@ import { resampleEnergyGrid, resampleIrradianceGrid } from "../src/wave/polychro
 import { fft2d } from "../src/math/fft";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { OpticalSystem, WavelengthSample } from "../src/trace/system";
+import { exitApertureSine, opdMap } from "../src/pupil/opd";
+import { pupilGrid } from "../src/pupil/aiming";
+import { imagePlaneZ } from "../src/pupil/pupils";
+import { exitBundle } from "../src/analysis/spot";
+import { asCompiled } from "../src/trace/compile";
+import { laidPupil } from "../src/wave/psf";
+import { yBar } from "../src/photometry/cmf";
 
 /**
  * § 6ba — the spectral emitter density, and § 6as's last deferral.
@@ -61,9 +68,10 @@ import type { OpticalSystem, WavelengthSample } from "../src/trace/system";
  * The external anchors are `∫B·T/∫B` for the crosstalk (§ 6ba.8, exact under
  * midpoint quadrature whenever the edges are bin boundaries — a theorem, since
  * the integrand is then piecewise constant), `πR²` for a disc's flux (§ 6ba.4),
- * `1/k²` for the wrong resampler (§ 6ba.3), and a **linear** law for lateral
- * colour, which is what makes § 6ba.9's channel misregistration a magnification
- * difference rather than a distortion.
+ * `1/k²` for the wrong resampler (§ 6ba.3), and for § 6ba.9's channel
+ * misregistration the centroid theorem per wavelength (§ 2o.2) — a referee with
+ * no grid in it, which found the law linear and the cause the blur's colour
+ * rather than the magnification's (§ 2p).
  *
  * **No optics are added.** Every ray was traced by § 6s and every kernel built by
  * § 6i; what is new is that the density reads a wavelength.
@@ -85,6 +93,7 @@ const BASE = {
   pupilSamples: PS,
   samples: SAMPLES,
   radialMapNodes: NODES,
+  layout: "exit",
 } satisfies FluorescenceSpectrumOptions;
 
 const total = (v: Float64Array): number => {
@@ -143,7 +152,7 @@ const centroid = (
 };
 
 const frameAt = (nm: number, centreMm = { x: 0, y: 0 }) =>
-  objectFieldTile(SYSTEM, { size: SIZE, pupilSamples: PS, wavelengthNm: nm, centreMm });
+  objectFieldTile(SYSTEM, { size: SIZE, pupilSamples: PS, wavelengthNm: nm, centreMm, layout: "exit" });
 
 /** Circular convolution in DC-at-0 layout — `incoherentImage`'s own. */
 function convolve(object: Float64Array, kernel: Float64Array, n: number): Float64Array {
@@ -265,16 +274,20 @@ describe("§ 6ba — the spectral emitter density", () => {
       // by the gain alone, so this is an identity to f64 and is pinned as one.
       expect(irradiance / energy).toBeCloseTo(1 / (k * k), 12);
     }
-    // The ratio is not merely close to the wavelength ratio — `imagePixelScaleMm`
-    // is ∝ λ, so k IS λ_blue/λ_red, and on this quadrature that is 25/41 exactly.
+    // The ratio is not merely close to the wavelength ratio — on the exit layout
+    // (§ 2p) `imagePixelScaleMm` is ∝ λ/σ(λ), σ the traced image-side aperture
+    // sine, so k IS (λ_blue/λ_red)·σ_red/σ_blue: 25/41 times the cone's own
+    // dispersion across the band, 0.51% (the aim layout's paraxial ruler made it
+    // 25/41 exactly on this objective).
     const reddest = input[input.length - 1]!;
     const k = target / reddest.pixelScaleMm;
-    expect(k).toBeCloseTo(SAMPLES[0]!.nm / SAMPLES[8]!.nm, 15);
-    expect(k).toBeCloseTo(25 / 41, 15);
+    const sigma = (nm: number) => Math.abs(exitApertureSine(SYSTEM, nm));
+    expect(k).toBeCloseTo(((25 / 41) * sigma(SAMPLES[8]!.nm)) / sigma(SAMPLES[0]!.nm), 15);
+    expect(k / (25 / 41) - 1).toBeCloseTo(-5.0985e-3, 6);
     expect(
       total(resampleIrradianceGrid(reddest.intensity, SIZE, reddest.pixelScaleMm, target, n)) /
         total(resampleEnergyGrid(reddest.intensity, SIZE, reddest.pixelScaleMm, target, n)),
-    ).toBeCloseTo((41 / 25) ** 2, 10);
+    ).toBeCloseTo(1 / (k * k), 10);
 
     // And the colour: the same planes stacked both ways. The right one is white
     // for an equal-energy emitter; the wrong one is pulled red, and by enough
@@ -302,9 +315,12 @@ describe("§ 6ba — the spectral emitter density", () => {
     // carries the objective's own transmission spectrum, which rises with
     // wavelength, so this integrates 3.80e-4 redder in x and 3.71e-4 in y than
     // the same render with the weight divided away. Still white to three
-    // decimals, which is all this rung ever claimed of it.
-    expect(right.x).toBeCloseTo(0.335951, 5);
-    expect(right.y).toBeCloseTo(0.338178, 5);
+    // decimals, which is all this rung ever claimed of it. Moved again at § 2p
+    // (0.335951, 0.338178 before), +5.3e-4 in both: on the exit layout a plane's
+    // light is the emitter's collected cone, whose share rises 1% across the band
+    // (§ 6bc.3), so the stack is redder by that.
+    expect(right.x).toBeCloseTo(0.336477, 5);
+    expect(right.y).toBeCloseTo(0.338713, 5);
     expect(wrong.x).toBeGreaterThan(right.x + 0.02);
     expect(wrong.y).toBeGreaterThan(right.y);
   });
@@ -319,7 +335,8 @@ describe("§ 6ba — the spectral emitter density", () => {
    * point-samples the disc on its own lattice, so each miscounts differently, and
    * the residual stops being a flux error and becomes a chromatic one.
    *
-   * It is small — the three wavelengths below span 0.67% — and it is a reason to
+   * It is small — the three wavelengths below span 1.34% (0.87% on the aim
+   * layout's pixels, before § 2p) — and it is a reason to
    * hold every chromaticity rung here on a SMOOTH density. That is why § 6ba.5
    * and § 6ba.9 use a Gaussian and this rung uses the disc: the disc is the
    * control that says what the edge costs, not the instrument the colour is
@@ -348,13 +365,16 @@ describe("§ 6ba — the spectral emitter density", () => {
       expect(passed).toBeLessThan(0.2);
       return total(object.values) / closed - 1;
     });
-    expect(residuals[0]!).toBeCloseTo(-7.821e-4, 6);
-    expect(residuals[1]!).toBeCloseTo(5.903e-3, 6);
-    expect(residuals[2]!).toBeCloseTo(-2.798e-3, 6);
+    // Restated at § 2p (−7.821e-4, 5.903e-3, −2.798e-3 before): the exit layout's
+    // ruler moved every frame's pixel, so each wavelength counts a different
+    // lattice — the residual is the raster's alone, as above, read again.
+    expect(residuals[0]!).toBeCloseTo(2.7067e-3, 6);
+    expect(residuals[1]!).toBeCloseTo(6.4191e-3, 6);
+    expect(residuals[2]!).toBeCloseTo(-7.0163e-3, 6);
     // Each is a fraction of a percent, and they do not share a sign — which is
     // what says this is the lattice count and not a systematic of the raster.
     for (const r of residuals) expect(Math.abs(r)).toBeLessThan(1e-2);
-    expect(Math.max(...residuals) - Math.min(...residuals)).toBeCloseTo(8.701e-3, 5);
+    expect(Math.max(...residuals) - Math.min(...residuals)).toBeCloseTo(1.3435e-2, 5);
   });
 
   /**
@@ -427,27 +447,31 @@ describe("§ 6ba — the spectral emitter density", () => {
       expect(w.x).toBeCloseTo(0.3335, 2);
       expect(w.y).toBeCloseTo(0.3341, 2);
     }
-    expect(idealWhite.x).toBeCloseTo(0.332394, 5);
-    expect(idealWhite.y).toBeCloseTo(0.333152, 5);
-    expect(tracedWhite.x).toBeCloseTo(0.3359510, 5);
-    expect(tracedWhite.y).toBeCloseTo(0.338178, 5);
+    // § 2p: the ideal white moved 8e-6 (0.332394, 0.333152 before) because each
+    // plane's frame now reads the traced cone's sine at its own λ, so the stack's
+    // common crop takes a slightly different share of each; the traced white is
+    // § 6ba.3's, redder by the collected cone.
+    expect(idealWhite.x).toBeCloseTo(0.332386, 5);
+    expect(idealWhite.y).toBeCloseTo(0.333144, 5);
+    expect(tracedWhite.x).toBeCloseTo(0.336477, 5);
+    expect(tracedWhite.y).toBeCloseTo(0.338713, 5);
     expect(tracedWhite.x - idealWhite.x).toBeGreaterThan(3.5e-3);
 
     const tracedCore = pixelChromaticity(traced, c, c);
     const tracedSkirt = pixelChromaticity(traced, c + 24, c);
     // The traced pair moved with the white point above, and by the same 2.6e-4
     // — § 6bc's tilt is a property of the stack and not of where in it you look.
-    expect(tracedCore.x).toBeCloseTo(0.410663, 5);
-    expect(tracedCore.y).toBeCloseTo(0.442636, 5);
-    expect(tracedSkirt.x).toBeCloseTo(0.228726, 5);
-    expect(tracedSkirt.y).toBeCloseTo(0.182834, 5);
+    expect(tracedCore.x).toBeCloseTo(0.410640, 5);
+    expect(tracedCore.y).toBeCloseTo(0.442601, 5);
+    expect(tracedSkirt.x).toBeCloseTo(0.229725, 5);
+    expect(tracedSkirt.y).toBeCloseTo(0.184453, 5);
 
     const idealCore = pixelChromaticity(ideal, c, c);
     const idealSkirt = pixelChromaticity(ideal, c + 24, c);
-    expect(idealCore.x).toBeCloseTo(0.3208, 3);
-    expect(idealCore.y).toBeCloseTo(0.3243, 3);
-    expect(idealSkirt.x).toBeCloseTo(0.3490, 3);
-    expect(idealSkirt.y).toBeCloseTo(0.3587, 3);
+    expect(idealCore.x).toBeCloseTo(0.3205, 3);
+    expect(idealCore.y).toBeCloseTo(0.3241, 3);
+    expect(idealSkirt.x).toBeCloseTo(0.3485, 3);
+    expect(idealSkirt.y).toBeCloseTo(0.3591, 3);
 
     // The swing is an order of magnitude smaller with an ideal pupil…
     const swing = (a: { x: number; y: number }, b: { x: number; y: number }) =>
@@ -484,7 +508,7 @@ describe("§ 6ba — the spectral emitter density", () => {
     const map = radialMapCovering(SYSTEM, [frame], { nodes: NODES });
     const kernels = SAMPLES.map(
       (s) =>
-        incoherentPsf(tracedPupil(SYSTEM, 0, s.nm, {}).pupil, { pupilSamples: PS, size: SIZE })
+        incoherentPsf(tracedPupil(SYSTEM, 0, s.nm, { layout: "exit" }).pupil, { pupilSamples: PS, size: SIZE })
           .values,
     );
     const raster = (d: EmitterDensity) =>
@@ -536,9 +560,11 @@ describe("§ 6ba — the spectral emitter density", () => {
     expect(departure(15)).toBeLessThan(1e-14);
     expect(departure(30)).toBeLessThan(1e-14);
     // Resolved separations: the collapse is simply a different image.
-    expect(departure(60)).toBeCloseTo(0.1452, 3);
-    expect(departure(120)).toBeCloseTo(0.3003, 3);
-    expect(departure(200)).toBeCloseTo(0.4533, 3);
+    // § 2p (0.1452, 0.3003, 0.4533 before): the kernels are the exit layout's,
+    // laid where their rays went and scaled by each λ's own traced cone.
+    expect(departure(60)).toBeCloseTo(0.1449, 3);
+    expect(departure(120)).toBeCloseTo(0.2998, 3);
+    expect(departure(200)).toBeCloseTo(0.4525, 3);
     // Monotone in separation, which is what says it is the bands and not noise —
     // but only NON-strictly, and for § 6ba.8's reason: the departure moves when a
     // sample crosses a band edge and holds flat in between, so 60 and 90 nm are
@@ -680,8 +706,8 @@ describe("§ 6ba — the spectral emitter density", () => {
   });
 
   /**
-   * § 6ba.9 — two channels are not registered, and the misregistration is a
-   * MAGNIFICATION difference.
+   * § 6ba.9 — two channels are not registered, and the misregistration grows
+   * linearly with field.
    *
    * § 6r.6's lateral colour, arriving on the fluorescence branch as the thing a
    * microscopist actually meets: the same physical structure lands at different
@@ -693,16 +719,85 @@ describe("§ 6ba — the spectral emitter density", () => {
    * looks at is wavelength-dependent, and a filter selecting different
    * wavelengths therefore selects a different map.
    *
-   * The **linear** law is what makes this a magnification difference rather than
-   * a distortion: displacement over field height is constant to 0.5% over a ×4 of
-   * field, at 0.180%. On the axis it is 1.7e−4 px, which is zero — and that zero
-   * is load-bearing, because it is what says the number below is lateral colour
-   * and not an artifact of the window the centroid was taken over.
+   * **Restated at § 2p, against a referee with no grid in it.** This rung read the
+   * misregistration off the rendered stack — a Y-weighted centroid over the whole
+   * periodic frame — and called the 0.180% it found "a magnification difference".
+   * Both halves fell. A frame's physical span is set by `pupilSamples` alone, and
+   * at 24 the blue channel's defocused kernel wraps: widening the span ×2 and ×4
+   * moved the render to 0.240% and 0.253% on the aim layout, the exit layout
+   * alike, still climbing. And the chief rays alone, which ARE the magnification
+   * difference, account for a tenth of it. The referee is § 2o's centroid theorem
+   * per wavelength — the traced chief ray plus the irradiance-weighted mean ray
+   * intercept — weighted by ∫ȳ over each sample's bin, the band and the pupil's
+   * own formed light, as the channel basis weighs them: 0.261% of field, linear
+   * to 0.7% over ×4 of field. It is the CENTROID of each colour's blur moving
+   * with field (coma's colour), nine parts in ten, that misregisters the overlay.
    */
-  it("6ba.9 — channel registration is linear in field: 0.180% of magnification", () => {
+  it("6ba.9 — channel registration is linear in field, and it is the blur's colour, not the magnification's", () => {
     const blue = boxcarBand(466.6666666666667, 66.66666666666667);
     const red = boxcarBand(633.3333333333334, 66.66666666666667);
+    // ∫ȳ over each quadrature bin — the luminance channel the centroid reads.
+    const edges = [400, ...SAMPLES.slice(1).map((s, i) => (s.nm + SAMPLES[i]!.nm) / 2), 700];
+    const yBin = SAMPLES.map((_, i) => {
+      const lo = edges[i]!;
+      const hi = edges[i + 1]!;
+      let a = 0;
+      for (let k = 0; k < 400; k++) a += yBar(lo + ((k + 0.5) * (hi - lo)) / 400);
+      return (a * (hi - lo)) / 400;
+    });
+    const planeZ = imagePlaneZ(asCompiled(SYSTEM.prescription), SYSTEM);
 
+    /** One channel's Y-weighted image position (µm, unfolded image x) from rays alone. */
+    const channelUm = (fieldMm: number, objectX: number, band: (nm: number) => number) => {
+      let sx = 0;
+      let sxChief = 0;
+      let sw = 0;
+      SAMPLES.forEach((s, i) => {
+        const b = band(s.nm);
+        if (b === 0) return;
+        const tile = frameAt(s.nm, { x: fieldMm, y: 0 });
+        const light = incoherentPsf(fieldPupilAt(SYSTEM, tile, 0.5, 0.5).pupil, {
+          pupilSamples: PS,
+          size: SIZE,
+        }).formedSum;
+        const map = opdMap(SYSTEM, objectX, s.nm, pupilGrid(21));
+        const density = laidPupil(SYSTEM, map, { layout: "exit" }).density!;
+        let rx = 0;
+        let rw = 0;
+        for (const r of exitBundle(SYSTEM, objectX, s.nm, pupilGrid(201)).rays) {
+          const t = (planeZ - r.ray.origin.z) / r.ray.dir.z;
+          const w = r.throughput * density.sourceWeight(r.px, r.py, r.launchDir);
+          rx += w * (r.ray.origin.x + r.ray.dir.x * t);
+          rw += w;
+        }
+        const weight = yBin[i]! * b * light;
+        sx += weight * (rx / rw) * 1e3;
+        sxChief += weight * map.imagePoint.x * 1e3;
+        sw += weight;
+      });
+      return { centroid: sx / sw, chief: sxChief / sw };
+    };
+
+    const fields = [0.2, 0.4, 0.8];
+    const referee = fields.map((fieldMm) => {
+      const at = frameAt(550, { x: fieldMm, y: 0 }).centreObjectMm;
+      const b = channelUm(fieldMm, at.x, blue);
+      const r = channelUm(fieldMm, at.x, red);
+      return { um: Math.abs(r.centroid - b.centroid), chiefUm: Math.abs(r.chief - b.chief) };
+    });
+    // Displacement over field height. Constant is the claim, and it holds.
+    const fractional = referee.map((m, i) => m.um / 1e3 / fields[i]!);
+    // At 201 rays across; 301 moves them by under 3e-3 of themselves, the 0.2 mm
+    // point most, and reads 0.2624–0.2631%.
+    fractional.forEach((f, i) => expect(f, `${fields[i]} mm`).toBeCloseTo(REFEREE_FRACTION[i]!, 8));
+    expect(Math.max(...fractional) / Math.min(...fractional) - 1).toBeLessThan(1e-2);
+    // The magnification difference proper — the chief rays — is a tenth of it.
+    for (let i = 0; i < fields.length; i++) {
+      expect(referee[i]!.chiefUm / referee[i]!.um).toBeLessThan(0.11);
+    }
+
+    // The render, recorded as what it reads and not as the law: at pupil samples
+    // 24 its frame is too narrow for the blue kernel and it falls short.
     const displacement = (fieldMm: number): { px: number; mm: number } => {
       const centreMm = { x: fieldMm, y: 0 };
       const at = frameAt(550, centreMm).centreObjectMm;
@@ -717,22 +812,11 @@ describe("§ 6ba — the spectral emitter density", () => {
       const px = Math.hypot(r.x - b.x, r.y - b.y);
       return { px, mm: px * stack.pixelScaleMm };
     };
-
     // On the axis there is no lateral colour, and the estimator says so.
     expect(displacement(0).px).toBeLessThan(1e-3);
-
-    const fields = [0.2, 0.4, 0.8];
-    const measured = fields.map(displacement);
-    expect(measured[0]!.px).toBeCloseTo(0.11499, 4);
-    expect(measured[1]!.px).toBeCloseTo(0.23016, 4);
-    expect(measured[2]!.px).toBeCloseTo(0.46254, 4);
-
-    // Displacement over field height — the fractional magnification difference
-    // between the two channels. Constant is the whole claim.
-    const fractional = measured.map((m, i) => m.mm / fields[i]!);
-    for (const f of fractional) expect(f).toBeCloseTo(1.79e-3, 4);
-    expect(Math.max(...fractional) / Math.min(...fractional) - 1).toBeLessThan(6e-3);
-    expect(measured[2]!.mm * 1000).toBeCloseTo(1.4382, 3);
+    const rendered = displacement(0.8);
+    expect(rendered.mm * 1000).toBeCloseTo(1.51246, 4);
+    expect(rendered.mm * 1000 / referee[2]!.um).toBeLessThan(0.75);
   });
 
   /**
@@ -827,3 +911,6 @@ describe("§ 6ba — the spectral emitter density", () => {
     expect(filtered.planes.reduce((a, p) => a + p.weight, 0)).toBeCloseTo(1, 14);
   });
 });
+
+/** § 6ba.9's referee: the channels' misregistration over field height (§ 2p). */
+const REFEREE_FRACTION = [2.6184867e-3, 2.6243163e-3, 2.6300161e-3];

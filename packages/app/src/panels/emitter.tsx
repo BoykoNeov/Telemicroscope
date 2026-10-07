@@ -32,7 +32,8 @@ import { createEmitterWorker } from "../workers";
  *    objective* (five figures);
  *  - the **Jacobian's worth** — the same grid with the area element replaced by
  *    the frame's uniform object cell — which is the lens's, flat to nine figures
- *    over ×4 of grid and spread 179× across the five objectives that run.
+ *    over ×4 of grid; less the frame's own axial offset, the distortion part
+ *    spreads 18× across the five objectives that run (§ 2p).
  *
  * The second is § 6as.5's negative control, and it is the reason the module
  * exists. It is also small — a few parts in 10⁵ at worst — which is § 6as.5's
@@ -214,7 +215,7 @@ export function EmitterPanel() {
         moves when you change the grid, and it is the <strong>same number on every objective
         here</strong>. Beside it sits the same grid with the area element thrown away, which is what
         a rasterizer written without thinking produces. That one belongs to the <em>lens</em>: no
-        grid moves it at all, and it differs by 179× between the objectives in the list. Drive the
+        grid moves it at all, and its distortion part differs by 18× between the objectives in the list. Drive the
         grid control and then the objective control — each number ignores one of them.
       </p>
 
@@ -430,10 +431,12 @@ export function EmitterPanel() {
         optics at all; it is the count of lattice points inside a circle, the Gauss circle problem,
         whose exponent is still open. Which is why it does not fall tidily either:{" "}
         <strong>+2.490e−3, −1.1110e−2, +1.032e−3</strong> across grids 128, 256 and 512, sign
-        included. The Jacobian&rsquo;s worth, on the same pictures, spreads{" "}
-        <strong>179×</strong> — 4.35e−9 on the DIN 4×/0.20 to 7.80e−7 on the infinity 10×/0.10 — and
-        a Gaussian holds it flat to <strong>nine significant figures</strong> over that same ×4 of
-        grid.
+        included. The Jacobian&rsquo;s worth, on the same pictures, is two parts. One is the
+        frame&rsquo;s own: its uniform cell is read off the magnification at a probe height, so even on
+        the axis it misses the map&rsquo;s area element by <strong>−3.4e−8 to −6.5e−8</strong>. The
+        rest is the distortion over the emitter, and it spreads <strong>18×</strong> — 4.56e−8 on the
+        DIN 4×/0.20 to 8.27e−7 on the infinity 10×/0.10 — and a Gaussian holds the worth flat to{" "}
+        <strong>nine significant figures</strong> over that same ×4 of grid.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>
@@ -444,8 +447,8 @@ export function EmitterPanel() {
         element — which involves no DFT lattice and no pupil at all. The <em>imaged</em> canvas
         beside it does, and <code>abbeImage</code>&rsquo;s criterion is half a wave between adjacent
         transmitting samples. <em>Measured over every crop this panel offers</em>: the DIN 4×/0.10,
-        the infinity 4×/0.10 and the infinity 10×/0.10 stay under it everywhere (worst 0.272), while
-        the <strong>DIN 4×/0.15 runs 0.84 to 2.86 and the DIN 4×/0.20 runs 6.58 to 21.8</strong> —
+        the infinity 4×/0.10 and the infinity 10×/0.10 stay under it everywhere (worst 0.273), while
+        the <strong>DIN 4×/0.15 runs 0.83 to 2.85 and the DIN 4×/0.20 runs 5.95 to 21.4</strong> —
         over the line at <em>every</em> setting, not at the extremes of one. Those two designs carry
         enough residual wavefront that the lattice cannot represent their pupil at any sampling this
         surface reaches. <strong>So the rasterizer reaches five objectives and the picture reaches
@@ -454,15 +457,16 @@ export function EmitterPanel() {
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>The negative control is small, and that is the finding rather than a let-off.</strong>{" "}
-        Across those five rows, throwing the area element away costs between{" "}
-        <strong>4.4e−9</strong> and <strong>2.7e−5</strong> of the flux, and{" "}
+        Across those five rows, the distortion the area element carries is between{" "}
+        <strong>4.6e−8</strong> and <strong>2.8e−5</strong> of the flux, and{" "}
         <em>nothing on either canvas would look different</em>. That is exactly the shape of the
         defect § 6as.5 was written to catch: a rasterizer that treats the object grid as uniform is
         nearly right on the axis and wrong off it by precisely the distortion, and the only witness
         is a conservation number nobody would have printed. Pushing the emitter to 0.4 of the half
-        frame multiplies it by <strong>35× to 380×</strong> depending on the objective —{" "}
-        <em>the ordering holds on all five and the factor belongs to each design</em>, which is the
-        same caution the tolerance sheet ends on: what travels is the direction, not the number.
+        frame multiplies that distortion by <strong>33.3×</strong> on <em>every</em> objective — the
+        mean of r² over the disc, 1 + 2(d/R)² = 33 for an offset four radii out, which is what an area
+        element growing as r² must do whatever lens it belongs to. The design sets the size; the
+        geometry sets how it grows.
       </p>
       <p style={{ marginTop: 8, fontSize: 13, color: "var(--ink-3)", maxWidth: 660 }}>
         <strong>Whether this surface runs at all is a ratio, not a magnification.</strong> The
@@ -472,9 +476,9 @@ export function EmitterPanel() {
         ways — the crop is fixed in <em>object</em> millimetres, so the image-side corner grows as
         |M| while the field a high-power design reaches shrinks. <em>At the default crop, five of
         the bench&rsquo;s ten rows fit</em>; drop the sampling control to 16 and{" "}
-        <em>seven of the nine that build</em> do, because headroom is exactly inverse in the crop.
+        <em>six of the nine that build</em> do, because headroom is exactly inverse in the crop.
         The infinity 20×/0.10 is the one to look at: it fails at pupil samples 32 with a headroom of{" "}
-        <strong>0.99</strong>, missing by one percent. Two rows — the Lister 40×/0.20 and the 100×
+        <strong>0.98</strong>, missing by two percent. Two rows — the Lister 40×/0.20 and the 100×
         oil at NA 1.25 — never reach 1 at any crop offered here, and the 40×/0.40 Lister does not
         build at all, for a reason that is about its own form and predates this panel.
       </p>

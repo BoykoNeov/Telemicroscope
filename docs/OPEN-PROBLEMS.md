@@ -582,7 +582,9 @@ Ranked by what each unblocks. The first two are closed and kept as the format.
     frame — a frame owns its layout, the brightfield and section panels ask for
     `"exit"` — and it needed two engine changes a PSF never did: a direction placed
     at its optical sine, and a field component carrying its own power. What is
-    left is fluorescence and the volume panels, then the mosaic, the seam chain last.
+    left is ~~fluorescence and~~ the volume panels — single-plane fluorescence
+    flipped at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone), its absolute emitter units pinned to the collected cone
+    — then the mosaic, the seam chain last.
     Readings that moved INSIDE their tolerances under § 2m were not audited
     (§ 2j's follow-up did that for its own flip); one met while editing was the
     retinal Airy in APP.md, 1.384″ → 1.380″. Found
@@ -708,6 +710,26 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     flips — none has been audited. *What would close it:* the chain flips, or the
     aim layout's samples placed at `aimOrientation`·(px, py); `aimOrientation` is
     already the predicate, pinned against the paraxial pupil at § 2o.1.
+31. **An off-axis emitter's collected power is short on the exit layout.** Found at
+    [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone). Since § 2n an emitter pupil's `formedSum` is absolute — the power
+    an isotropic point sends into the accepted cone, pinned on the axis to
+    2/(1 + cos u) of the paraxial share (§ 2p.1) — and fluorescence weights its
+    patches and planes by it. Off axis it misses a brute-force count (a
+    direction-cosine lattice launched from the object point, every ray traced,
+    Σ throughput/cos θ; stable to 5e-4 between 401² and 801²) by up to 1%: on the
+    DIN 4×/0.10 at 2.25 / 4.5 / 6 mm of image the count reads 0.9952 / 0.9308 /
+    0.8826 of the axis and the exit layout 0.9996 / 0.9427 / 0.8898; on the
+    field-sized lens, which clips nothing, 1.0017 / 1.0044 / 1.0078 against
+    0.9948 / 0.9994 / 1.0040. Two causes measured. **The aim disc is not the
+    cone:** 1.1% of the light that gets through lies outside the paraxial aim's
+    unit disc on the axis and 1.8% at 6 mm, and no pupil is laid from it; real
+    aiming does not close it (0.9948 / 0.9971 / 1.0018). **The outline's count at
+    pupil samples 24** moves the reading by up to 0.5% (item 25's, larger than the
+    1e-4 it records at 64); at 128 the field-sized lens reads 1.0008 / 1.0009 /
+    1.0007, still flat where the count rises. The aim layout is short too, but it
+    never claimed to be a power. *What would close it:* the pupil laid from the
+    stop's real rim rather than the paraxial disc — an engine change whose rung is
+    this brute-force count to its own lattice error, on and off axis.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1191,3 +1213,5 @@ radial-map nodes · § 6ba differential bleaching.
     aim labels a telecentric objective's pupil mirrored where the entrance pupil
     is past infinity (531–587 nm on the DIN 4×) and the exit layout copied it —
     fixed at [§ 2o](VALIDATION.md#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims); the aim layout's half is item 30.
+    Single-plane fluorescence flipped at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) (item 31 opened); next the
+    volume and focus-surface chain, where § 6az.5 goes NaN and § 6bf refuses.

@@ -84,7 +84,7 @@ const NAMEPLATE = 4;
 const NODES = 128;
 
 const tileAt = (x: number, y: number, size = 128): ObjectFieldFrame =>
-  objectFieldTile(SYSTEM, { size, pupilSamples: 32, wavelengthNm: LAMBDA, centreMm: { x, y } });
+  objectFieldTile(SYSTEM, { size, pupilSamples: 32, wavelengthNm: LAMBDA, centreMm: { x, y }, layout: "exit" });
 
 const total = (values: Float64Array): number => {
   let s = 0;

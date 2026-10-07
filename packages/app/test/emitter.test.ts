@@ -105,10 +105,12 @@ describe("Part Q — the closed forms the optics cannot touch", () => {
     // the deficit tracking `1 − erf(√2·a/w)²` from 1.27e−4 down to 5.29e−11.
     // Those are VALIDATION.md's own published numbers; reproducing them from the
     // app's adapter is the check that this surface is driving § 6as and not a
-    // near neighbour of it. The frame half-width is 93.539 µm at pupil samples
-    // 64, so the waist fractions below are the rung's 0.5, 0.35 and 0.3.
+    // near neighbour of it. The frame half-width is 94.123 µm at pupil samples
+    // 64 — 93.539 on the aim layout's paraxial ruler, 0.62% narrower than the
+    // traced cone's (§ 2p) — so the waist fractions below are the rung's 0.5,
+    // 0.35 and 0.3, and the deficits are erf's of those and do not move.
     const aUm = readoutOf(req("din-4x-010")).frameHalfUm;
-    expect(aUm).toBeCloseTo(93.5386, 3);
+    expect(aUm).toBeCloseTo(94.1231, 3);
     const deficitAt = (fraction: number): number =>
       -readoutOf(req("din-4x-010", { shape: "gaussian", scaleUm: aUm * fraction })).fluxResidual;
     // Published: 1.27e−4 at a/w = 2, and 5.29e−11 at a/w = 10/3.
@@ -204,55 +206,71 @@ describe("Part Q — the two errors, and each is deaf to the other's control", (
     }
   });
 
-  it("...and it spreads 179× across the objectives the grid could not tell apart", () => {
+  it("...and its distortion part spreads 18× across the objectives the grid could not tell apart", () => {
     // The comparison the panel is built on: same emitter geometry, same grid,
     // same crop — the sampling residual agrees to five figures and this one does
     // not agree at all, because it is the distortion of five different designs.
+    //
+    // **Restated at § 2p.** The worth is two parts. The uniform cell is the
+    // frame's, read off its magnification at the probe height, so on the axis it
+    // already misses the map's own element by `jacobianAxisOffset` — −3.4e−8 to
+    // −6.5e−8 here — which is as large as the distortion a centred disc a tenth
+    // of the frame across sees. The "179×" this rung once pinned (4.35e−9 to
+    // 7.80e−7) was the two nearly cancelling; on the exit layout's ruler the DIN
+    // 4×/0.20's frame is 5.4% narrower, its disc with it, and its worth went
+    // NEGATIVE (−9.85e−10). The distortion part alone is what spreads.
     const centred = REACHED.map((kind) =>
-      readoutOf(req(kind, { scaleUm: 0.1 * halfOf(kind) })).jacobianWorth,
+      readoutOf(req(kind, { scaleUm: 0.1 * halfOf(kind) })),
     );
-    const spread = Math.max(...centred) / Math.min(...centred);
-    expect(spread).toBeGreaterThan(150);
-    expect(spread).toBeLessThan(210);
-    // The two ends the panel names by lens, so a reworded page is caught here.
-    expect(readoutOf(req("din-4x-020", { scaleUm: 0.1 * halfOf("din-4x-020") })).jacobianWorth)
-      .toBeCloseTo(4.35e-9, 10);
-    expect(readoutOf(req("inf-10x-010", { scaleUm: 0.1 * halfOf("inf-10x-010") })).jacobianWorth)
-      .toBeCloseTo(7.80e-7, 8);
+    for (const d of centred) {
+      expect(d.jacobianAxisOffset).toBeLessThan(-3e-8);
+      expect(d.jacobianAxisOffset).toBeGreaterThan(-7e-8);
+    }
+    const distortion = centred.map((d) => d.jacobianWorth - d.jacobianAxisOffset);
+    const spread = Math.max(...distortion) / Math.min(...distortion);
+    expect(spread).toBeGreaterThan(17);
+    expect(spread).toBeLessThan(19);
+    // The two ends, by lens, so a reworded page is caught here.
+    expect(distortion[REACHED.indexOf("din-4x-020")]!).toBeCloseTo(4.5626e-8, 11);
+    expect(distortion[REACHED.indexOf("inf-10x-010")]!).toBeCloseTo(8.2675e-7, 10);
   });
 
-  it("throwing the area element away costs more off axis, on every row, by a factor that is each lens's", () => {
-    // The ORDERING is the claim; the factor is recorded and explicitly not
-    // offered as a law, which is § 6au's caution and Part P's correction applied
-    // one part later. 35× to 380× is a spread of eleven, on five lenses, at one
-    // configuration — nothing about it generalizes and the panel says so.
+  it("off axis the distortion part grows by ⟨r²⟩ — 1 + 2(d/R)² — on every row alike", () => {
+    // This rung once read the off-axis/centred factor of the whole worth, found
+    // 35× to 380×, and called the factor each lens's own. It was the axis offset
+    // in the denominator. Taken off, the distortion part of a disc of radius R
+    // moved out by d grows as ⟨r²⟩ over the disc, d² + R²/2 against R²/2 — the
+    // area element's third-order term, the same for any lens: 33 at d = 4R. The
+    // 1% over it is the disc's own lattice (§ 6as.4), identical on every row.
     const factors: number[] = [];
     for (const kind of REACHED) {
       const a = halfOf(kind);
-      const centred = readoutOf(req(kind, { scaleUm: 0.1 * a })).jacobianWorth;
-      const offAxis = readoutOf(req(kind, { scaleUm: 0.1 * a, offsetUm: 0.4 * a })).jacobianWorth;
+      const part = (offsetUm: number) => {
+        const d = readoutOf(req(kind, { scaleUm: 0.1 * a, offsetUm }));
+        return d.jacobianWorth - d.jacobianAxisOffset;
+      };
+      const centred = part(0);
       expect(centred, kind).toBeGreaterThan(0);
-      expect(offAxis, kind).toBeGreaterThan(centred);
-      factors.push(offAxis / centred);
+      factors.push(part(0.4 * a) / centred);
     }
-    expect(factors.length).toBe(5);
-    expect(Math.min(...factors)).toBeGreaterThan(30);
-    expect(Math.max(...factors)).toBeLessThan(400);
-    // Recorded so the "it does not generalize" sentence has a number behind it.
-    expect(Math.max(...factors) / Math.min(...factors)).toBeGreaterThan(5);
+    for (const f of factors) expect(Math.abs(f / 33 - 1)).toBeLessThan(1.1e-2);
+    expect(Math.max(...factors) / Math.min(...factors) - 1).toBeLessThan(1e-4);
   });
 
   it("the whole negative control stays inside the range the panel quotes", () => {
-    // 4.4e−9 to 2.7e−5 over the five rows and both offsets. Both ends are named
-    // in the prose, so both ends are pinned.
+    // Since § 2p the panel quotes the distortion part: 4.6e−8 to 2.8e−5 over the
+    // five rows and both offsets. The worth itself reaches −9.9e−10 on the DIN
+    // 4×/0.20, which is why it is not the number quoted.
     const all: number[] = [];
     for (const kind of REACHED) {
       const a = halfOf(kind);
-      all.push(readoutOf(req(kind, { scaleUm: 0.1 * a })).jacobianWorth);
-      all.push(readoutOf(req(kind, { scaleUm: 0.1 * a, offsetUm: 0.4 * a })).jacobianWorth);
+      for (const offsetUm of [0, 0.4 * a]) {
+        const d = readoutOf(req(kind, { scaleUm: 0.1 * a, offsetUm }));
+        all.push(d.jacobianWorth - d.jacobianAxisOffset);
+      }
     }
-    expect(Math.min(...all)).toBeGreaterThan(4e-9);
-    expect(Math.max(...all)).toBeLessThan(3e-5);
+    expect(Math.min(...all)).toBeGreaterThan(4.5e-8);
+    expect(Math.max(...all)).toBeLessThan(2.8e-5);
   });
 
   it("the light the chain forms is the light the emitter emitted, to f64", () => {
@@ -302,8 +320,10 @@ describe("Part Q — the frame's corner is what decides, and the panel says so e
       }
       return { ok, noFrame };
     };
+    // Six at 16 since § 2p (seven before): the Lister 40×/0.20's frame is wider on
+    // the traced cone's ruler, and its corner reaches 0.896 of the field it passes.
     expect(runs(64)).toEqual({ ok: 5, noFrame: 1 });
-    expect(runs(16)).toEqual({ ok: 7, noFrame: 1 });
+    expect(runs(16)).toEqual({ ok: 6, noFrame: 1 });
   });
 
   it("the infinity 20× misses by one percent, which is why it is the row to look at", () => {
@@ -311,8 +331,10 @@ describe("Part Q — the frame's corner is what decides, and the panel says so e
     expect(r.ok).toBe(false);
     if (r.ok) return;
     expect(r.headroom).not.toBeNull();
-    expect(r.headroom!.fieldHeadroom).toBeGreaterThan(0.98);
-    expect(r.headroom!.fieldHeadroom).toBeLessThan(1);
+    // 0.978 since § 2p (just over 0.98 before): the frame is 0.74% wider on the
+    // traced cone's ruler, so it misses by 2.2% now.
+    expect(r.headroom!.fieldHeadroom).toBeGreaterThan(0.975);
+    expect(r.headroom!.fieldHeadroom).toBeLessThan(0.98);
     // One halving of the crop is all it needs, and the panel says so.
     const half = renderEmitterScene(req("inf-20x-010", { pupilSamples: 16, scaleUm: 1 }));
     expect(half.ok).toBe(true);
@@ -379,8 +401,10 @@ describe("Part Q — the guard that stops a truncation being read as a sampling 
     // The RATIOS are the claim; the absolute value is 32.02 rather than 32
     // because 23.4 µm is a round number in microns and not in object pixels, and
     // pinning it to 32 would be pinning the rounding of the slider's default.
+    // 31.82 since § 2p (32.02 before): the object pixel follows the frame's
+    // ruler, 0.62% coarser on the traced cone.
     const base = readoutOf(req("din-4x-010", { scaleUm: 23.4 })).emitterPixels;
-    expect(base).toBeCloseTo(32.02, 2);
+    expect(base).toBeCloseTo(31.82, 2);
     const finerGrid = readoutOf(
       req("din-4x-010", { scaleUm: 23.4, size: 512 }),
     ).emitterPixels;
