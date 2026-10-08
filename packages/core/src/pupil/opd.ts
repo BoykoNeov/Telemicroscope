@@ -466,10 +466,22 @@ export function aimOrientation(
 
 function apertureSineOf(system: OpticalSystem, wavelengthNm: number, options: AimOptions): ApertureSine {
   // A property of the system, the wavelength and the aim — not of the field —
-  // and every pupil of a frame asks for it, so it is read once per key.
+  // and every pupil of a frame asks for it, so it is read once per key. The cache
+  // hangs off the PRESCRIPTION, which two systems can share while differing in
+  // what the rim is — the stop's choice, the aperture's size, the image sphere —
+  // so every field of the system the reading depends on is in the key (§ 2q).
   const c = asCompiled(system.prescription);
   const conj = system.conjugate;
-  const key = `${wavelengthNm}|${conj.kind}|${conj.kind === "finite" ? conj.distance : ""}|${system.rayAiming ?? ""}|${options.launchZ ?? ""}`;
+  const key = [
+    wavelengthNm,
+    conj.kind,
+    conj.kind === "finite" ? conj.distance : "",
+    system.rayAiming ?? "",
+    options.launchZ ?? "",
+    JSON.stringify(system.aperture),
+    JSON.stringify(system.apertureStop ?? null),
+    JSON.stringify(system.imageSurface ?? null),
+  ].join("|");
   let perSystem = APERTURE_SINE.get(c);
   if (!perSystem) APERTURE_SINE.set(c, (perSystem = new Map()));
   const known = perSystem.get(key);

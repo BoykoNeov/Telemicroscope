@@ -542,81 +542,80 @@ describe("§ 6r.7 — axial colour, in the wavefront the Abbe sum actually uses"
   const DESIGN_NM = LINE_D;
   const basePlane = paraxialImageOffset(DIN_4X, DESIGN_NM);
 
-  it("refocusing to a wavelength's own paraxial plane removes exactly its chromatic defocus", () => {
-    // Six wavelengths across the band, including the achromat's own crossing.
-    //
-    // **Restated at § 2n, and the explanation below it was wrong.** On the aim
-    // layout the measured excess was systematic — 6.6% at 450 nm falling
-    // monotonically to 2.9% at 700 — and was read as the objective's
-    // spherochromatism. On the exit layout, where the wavefront is fitted where
-    // its rays went, the same difference is within 1.2% of W = ½·δ·NA²·ρ² at every
-    // wavelength on both members, and no longer monotone (0.86%, 0.54%, 0.42%,
-    // −0.10%, 0.66%, 0.93% on the rim DIN). A property of the wavefront would
-    // read the same in either coordinate, so spherochromatism is refuted; what
-    // made the aim layout's excess is not traced — the aim→exit map's radial
-    // distortion moves only 6% across the band while the excess falls 2.9×. Kept
-    // below as the aim layout's control, so the claim that moved is pinned rather
-    // than deleted.
-    for (const system of [DIN_4X, TELECENTRIC_4X]) {
-      const base = paraxialImageOffset(system, DESIGN_NM);
-      for (const nm of [450, 480, 500, 550, 650, 700]) {
-        const shiftMm = paraxialImageOffset(system, nm) - base;
-        const predicted = defocusWaves(shiftMm, imageNumericalAperture(system, nm), nm, 1);
-        const measured = w20At(system, nm) - w20At(withFocus(system, base + shiftMm), nm);
-        expect(Math.abs(measured / predicted - 1)).toBeLessThan(0.012);
-      }
-    }
-  });
+  /** Refocused minus as-built, over the predicted defocus, minus one — per λ. */
+  const excessOf = (system: OpticalSystem, layout: "aim" | "exit"): number[] => {
+    const base = paraxialImageOffset(system, DESIGN_NM);
+    return [450, 480, 500, 550, 650, 700].map((nm) => {
+      const shiftMm = paraxialImageOffset(system, nm) - base;
+      const predicted = defocusWaves(shiftMm, imageNumericalAperture(system, nm), nm, 1);
+      const measured = w20At(system, nm, layout) - w20At(withFocus(system, base + shiftMm), nm, layout);
+      return measured / predicted - 1;
+    });
+  };
 
-  it("…and the aim layout's 3–8% excess was its coordinate, not the glass", () => {
-    // The aim layout's reading, as it stood: 6.6% at 450 nm falling
-    // monotonically to 2.9% at 700, read then as spherochromatism. A wrong
-    // pupil→image scale, NA or pixel size would bias every wavelength the SAME
-    // way, and a residual that shrank with λ was taken to be chromatic — but it
-    // moved with the pupil coordinate, and the exit layout's reading above is a
-    // seventh of it.
+  it("refocusing to a wavelength's own paraxial plane removes its chromatic defocus, to 8.3%", () => {
+    // Six wavelengths across the band, including the achromat's own crossing.
+    // The measured removal matches W = ½·δ·NA²·ρ² to within 6.6% on the rim DIN
+    // and 8.3% on the shipped telecentric lens, and the excess is systematic:
+    // 6.61% at 450 nm falling monotonically to 2.92% at 700 on the rim member.
+    // A wrong pupil→image scale, NA or pixel size would bias every wavelength the
+    // SAME way, so a residual that shrinks with λ is chromatic — the objective's
+    // own spherochromatism.
+    //
+    // **§ 2n read this as refuted, and § 2q took the refutation back.** On the
+    // exit layout § 2n measured under 1.2% at every wavelength and concluded the
+    // excess was the aim coordinate's. It was a stale cache: `withFocus` shares
+    // the prescription, the traced aperture sine was cached on the prescription,
+    // and the refocused pupil was laid on the as-built one's rim, 0.50% wider
+    // (§ 2q.1). Each read on its own rim, the two layouts agree (below).
     //
     // Two-sided on purpose. The excess sits above 1 on THIS glass pair at THESE
     // conjugates, and its sign is a property of the residual rather than of the
     // measurement — a one-sided bound would fail a different objective for a
     // reason that is not a regression.
-    //
-    // § 6ai read on both members, because "the residual shrinks with λ" is the
-    // claim and a single bound is not it. The excess is 8.2% → 3.6% on the
-    // shipped telecentric lens against 6.6% → 2.9% here — the SAME monotone
-    // fall, scaled by one factor of 1.22 to 1.24 across the whole band. So the
-    // stop moved how much spherochromatism there is and not what it does with
-    // wavelength, which is what a stop is allowed to do: it cannot touch the
-    // dispersion, only the height at which the marginal ray meets it.
-    const excessOf = (system: OpticalSystem): number[] => {
-      const base = paraxialImageOffset(system, DESIGN_NM);
-      return [450, 480, 500, 550, 650, 700].map((nm) => {
-        const shiftMm = paraxialImageOffset(system, nm) - base;
-        const predicted = defocusWaves(shiftMm, imageNumericalAperture(system, nm), nm, 1);
-        const measured = w20At(system, nm, "aim") - w20At(withFocus(system, base + shiftMm), nm, "aim");
-        return measured / predicted - 1;
-      });
-    };
-    const rim = excessOf(DIN_4X);
-    const telecentric = excessOf(TELECENTRIC_4X);
-    for (const e of rim) expect(Math.abs(e)).toBeLessThan(0.08);
-    for (const e of telecentric) expect(Math.abs(e)).toBeLessThan(0.09);
+    const rim = excessOf(DIN_4X, "exit");
+    const telecentric = excessOf(TELECENTRIC_4X, "exit");
+    expect(rim[0]).toBeCloseTo(0.06607, 4);
+    expect(telecentric[0]).toBeCloseTo(0.08303, 4);
+    for (const e of rim) expect(Math.abs(e)).toBeLessThan(0.07);
+    for (const e of telecentric) expect(Math.abs(e)).toBeLessThan(0.085);
     // Monotone in λ on both, which is the sentence above stated as a test.
     for (const set of [rim, telecentric]) {
       for (let i = 1; i < set.length - 1; i++) expect(set[i]!).toBeLessThan(set[i - 1]!);
     }
-    // …and ONE factor, flat to 2% over 250 nm. A re-shaping would not be.
+    // § 6ai read on both members, because "the residual shrinks with λ" is the
+    // claim and a single bound is not it: the SAME monotone fall, scaled by one
+    // factor of 1.252 to 1.262 across 250 nm. So the stop moved how much
+    // spherochromatism there is and not what it does with wavelength, which is
+    // what a stop is allowed to do: it cannot touch the dispersion, only the
+    // height at which the marginal ray meets it.
     const ratios = telecentric.map((e, i) => e / rim[i]!);
+    expect(Math.min(...ratios)).toBeGreaterThan(1.25);
+    expect(Math.max(...ratios)).toBeLessThan(1.265);
+  });
+
+  it("…and the excess is the wavefront's: both layouts read it, to 1e-3", () => {
+    // A property of the wavefront reads the same in either pupil coordinate. The
+    // aim layout's excess is the exit layout's to 1.3e-4 on the rim DIN, evenly
+    // across the band, and to 1.0e-3 on the telecentric member — whose aim is
+    // the one that passes through infinity in the band (§ 2o). Its own factor
+    // between the members, 1.22 to 1.24, is the aim layout's record.
+    const pairs: readonly (readonly [OpticalSystem, number])[] = [
+      [DIN_4X, 1.3e-4],
+      [TELECENTRIC_4X, 1.01e-3],
+    ];
+    const aim: number[][] = [];
+    for (const [system, bound] of pairs) {
+      const a = excessOf(system, "aim");
+      const e = excessOf(system, "exit");
+      for (let i = 0; i < a.length; i++) expect(Math.abs(e[i]! - a[i]!)).toBeLessThan(bound);
+      for (let i = 1; i < a.length - 1; i++) expect(a[i]!).toBeLessThan(a[i - 1]!);
+      aim.push(a);
+    }
+    expect(aim[0]![0]).toBeCloseTo(0.0662, 4);
+    const ratios = aim[1]!.map((e, i) => e / aim[0]![i]!);
     expect(Math.min(...ratios)).toBeGreaterThan(1.21);
     expect(Math.max(...ratios)).toBeLessThan(1.25);
-    // And the exit layout's, at the blue end where the aim layout's was largest:
-    // 0.86% against 6.6%.
-    const shift450 = paraxialImageOffset(DIN_4X, 450) - basePlane;
-    const exitExcess =
-      (w20At(DIN_4X, 450) - w20At(withFocus(DIN_4X, basePlane + shift450), 450)) /
-        defocusWaves(shift450, imageNumericalAperture(DIN_4X, 450), 450, 1) -
-      1;
-    expect(Math.abs(exitExcess)).toBeLessThan(rim[0]! / 7);
   });
 
   it("the achromat's own crossing and its sign flip both survive the trace", () => {

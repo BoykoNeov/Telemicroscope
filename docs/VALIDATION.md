@@ -38,6 +38,7 @@ whole ladder.
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
+| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | The aperture sine was cached per prescription: a refocused or re-stopped system read its sibling's rim. Keyed per system, § 6r.7 is spherochromatic again | `aperture-sine-key` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4468,7 +4469,7 @@ p·|∂c/∂e| past the density lattice's differencing.
 | | § 6al.7 the offset h/STOP_R | a direction at its optical sine | (h/√(h² + 400²))/ν, to 12 digits |
 | | § 6al.4–.8 contrasts (transfer 0.99951 → 0.99951, the 11-cycle 2.590e-3, sharp 1.7269e-2, defocused 1.2189e-2 → 1.2177e-2, one/four patches, the beat ratios) | the pupil laid where its rays went | recorded values; every closed-form agreement (§ 6al.3 to 1e-12, § 6al.8 to 1e-10) unchanged |
 | charts | § 6ao.7 λ/NA 10.7 px; § 6ao.8 ν 0.762, 1.067, 1.778; the Siemens-star golden (0.76% of pixels, at the hub) | the ruler, 1.05% coarser on the DIN 4× | 10.59 px; 0.756, 1.059, 1.765; re-baked, looked at |
-| colour | § 6r.7 the refocus excess 6.6% → 2.9%, monotone, read as spherochromatism | layout-dependent, so not the wavefront's; mechanism not traced (the map's radial distortion moves 6% across the band, the excess 2.9×) | under 1.2% at every λ on both members, not monotone; the aim layout's numbers kept as the control |
+| colour | § 6r.7 the refocus excess 6.6% → 2.9%, monotone, read as spherochromatism | ~~layout-dependent, so not the wavefront's~~ — a stale cache, withdrawn at [§ 2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | ~~under 1.2% at every λ on both members, not monotone~~ 6.61% → 2.92% on exit, the aim layout's to 1.3e-4 (§ 2q) |
 | illumination | § 6x.6 the convergence ratios 0.5001/0.5092, first step 0.727 | the layout | 0.4992/0.5086 and 0.725; the gap over the control 9.1e-3 → 9.4e-3 |
 | app | the section panel's resample ratio, λ's exactly | σ is the objective's at each λ: 2.3e-3 across the band | (λ_ruler/λ)·(σ_λ/σ_ruler), still to 4 ulp |
 
@@ -4620,6 +4621,57 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
   axis, more off it; real aiming closes it — register item 31.
 - **§ 6i.5's corner wavefront** is better than the axis's on the exit layout by
   more than the corner's smaller defocus accounts for; not traced.
+
+## Step 2q — the volume and focus-surface chain on the exit layout
+
+Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+
+Register item 24's last fluorescence chain, step 2 of the user's split: the
+volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
+§ 6bd–§ 6bg). Its trial flip turned § 6az.5's ratio into a NaN — but only when
+the file ran whole. A rung that passes alone and fails after its neighbours is
+reading a cache, and this one was: the flip is held until the cache is right.
+
+**Hypothesis.** `exitApertureSine` — the exit layout's ruler, and through
+`aimOrientation` its orientation (§ 2o) — is cached on the compiled
+PRESCRIPTION and keyed by the wavelength, the conjugate and the aim alone. A
+system spread from another (`withFocus`, a stop moved, an aperture stopped
+down) shares the prescription and reads its sibling's rim, whichever was read
+first. **Refuted by** a variant read after its base equalling the same variant
+on a cloned prescription, which no earlier read can have touched.
+
+| Rung | What it pins | |
+|---|---|---|
+| **§ 2q.1 — the traced aperture sine is the system's, not the prescription's** | refocused, re-stopped and stopped-down variants of the rim DIN 4× read after the base equal themselves on a fresh prescription, bitwise, sine and orientation; each differs from the base (the refocus by 0.50% at 450 nm), and both checks fail on the old key | ✅ |
+
+§ 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
+reading the default objective's rim after § 6az.2 had read it, so its two
+departures came out the same number twice. It met the stale rim only under the
+trial flip, where the frame reads the sine; with the key it reads 4.0 there,
+inside the 2.5–6 the rung asks for.
+
+### What moved, and why
+
+| Chain | Reading | Cause | Restated as |
+|---|---|---|---|
+| colour | § 2n's restatement of § 6r.7: "under 1.2% on exit at every λ, not monotone, so not the wavefront's" | `withFocus` shares the prescription: the refocused pupil was laid on the as-built rim, 0.50% wider | withdrawn — on exit 6.61% → 2.92% (rim) and 8.30% → 3.66% (telecentric), monotone, the aim layout's to 1.3e-4 and 1.0e-3: spherochromatism, as § 6r.5 first read it; the members' factor 1.252–1.262 on exit, 1.22–1.24 on aim |
+
+Nothing else in the suite moved. Each test file runs in its own process, so only
+a file that reads a base and a variant of one prescription could meet the stale
+rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
+
+### What it leaves
+
+- **The volume and focus-surface flip itself** — the rest of this step.
+- **The browser shares one cache.** Every panel since the exit layout went live
+  (§ 2m at infinity, § 2n's brightfield, § 2p's fluorescence) that varies focus,
+  stop or aperture on one prescription in one session could have drawn a sibling's
+  ruler; the app's own tests pass, but each runs in a fresh process.
+- **The aiming Jacobian has the same shape of key** (`pupil/aiming.ts`, cached
+  on the compiled prescription without the conjugate distance), and it is not a
+  wrong answer: a stale one only seeds the chord iteration, which falls back to
+  Newton and checks its own miss — iterations and last bits, never the ray.
 
 ## Step 3a — the standard observer and thermal sources
 
@@ -13516,18 +13568,18 @@ coefficient is not the chromatic shift and never was; moving the image plane to
 each wavelength's own paraxial focus removes the chromatic part and leaves the
 residual where it is. Across 450–700 nm the measured removal matches the
 predicted defocus to within 8%, and the excess is **systematic and monotone**:
-6.6% at 450 nm falling to 2.9% at 700 nm. ~~That is the diagnosis as well as the
+6.6% at 450 nm falling to 2.9% at 700 nm. That is the diagnosis as well as the
 tolerance — a wrong pupil→image scale, NA or pixel size would bias every
 wavelength the same way, so a residual that shrinks with λ is chromatic, which
-makes it the objective's own spherochromatism.~~ **Refuted at
+makes it the objective's own spherochromatism. ~~**Refuted at
 [§ 2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine):** on the exit layout the same difference is within 1.2%
 at every wavelength and no longer monotone, so the excess depended on the pupil
-coordinate it was fitted in and was not a property of the wavefront.
-Spherochromatism is refuted; the mechanism is not traced. The obvious one — the
-aim→exit map's radial distortion leaking into the fitted defocus — does not
-track it: that term moves 6% across the band (−1.21e-2 to −1.14e-2) while the
-aim-minus-exit excess falls 2.9× (5.8% to 2.0%). The aim layout's reading is
-kept as the rung's control.
+coordinate it was fitted in and was not a property of the wavefront.~~ **The
+refutation was a stale cache, and is withdrawn at [§ 2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout):** the
+refocused system shares the prescription the traced aperture sine was cached on,
+so its pupil was laid on the as-built rim, 0.50% wider. Each read on its own
+rim, the exit layout gives 6.61% → 2.92%, monotone, the aim layout's to 1.3e-4 —
+a property of the wavefront, as first read.
 
 The **sign flip is the control**. An achromat's focal-shift curve has two zeros,
 and between them the paraxial focus falls in front of the design plane rather

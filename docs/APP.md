@@ -1865,9 +1865,10 @@ beside a measurement, and the panel says which is which.
   pixel **0.1782** against the section's **0.1680**, and off the lamp's white
   **0.0023** against **0.0234**. Both findings hold — the grid still wins the
   worst pixel and the stain still wins the frame — but the grid's lead fell from
-  31% to 6%. Consistent with § 6r.7's restatement, where the same layout change
-  took most of the aim layout's excess axial colour away; not separately traced
-  here. The ps 64 reading (0.2254) was not re-measured.
+  31% to 6%. ~~Consistent with § 6r.7's restatement, where the same layout change
+  took most of the aim layout's excess axial colour away~~ — that restatement was
+  a stale cache and is withdrawn ([§ 2q](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)): the excess is the same on
+  both layouts. The fall is not traced here. The ps 64 reading (0.2254) was not re-measured.
 - **§ 6r.7 reproduces exactly, and it is the panel's guard.** At ps 32 on the DIN
   4× the 450 nm plane rules `no-honest-image` while 550 and 650 rule `valid`;
   doubling the lattice clears it and costs **17×** (208 → 812 directions). The

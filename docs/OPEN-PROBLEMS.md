@@ -1215,4 +1215,5 @@ radial-map nodes · § 6ba differential bleaching.
     is past infinity (531–587 nm on the DIN 4×) and the exit layout copied it —
     fixed at [§ 2o](VALIDATION.md#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims); the aim layout's half is item 30.
     Single-plane fluorescence flipped at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) (item 31 opened); next the
-    volume and focus-surface chain, where § 6az.5 goes NaN and § 6bf refuses.
+    volume and focus-surface chain, where ~~§ 6az.5 goes NaN~~ (a stale aperture-sine
+    cache, fixed at [§ 2q](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout), which also withdrew § 2n's § 6r.7 restatement) and § 6bf refuses.
