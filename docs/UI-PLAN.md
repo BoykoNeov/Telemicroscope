@@ -1035,9 +1035,11 @@ taken at a wall-clock offset differs run to run with no code change at all.
 The third row is the assumption being cashed in: `putImageData` reads the buffer
 and does not consume it, so a tile painted once, panned away from and panned
 back to is bit for bit the tile it was. Harness at
-`W:/temp/claude/telemicroscope-step9/` — `preview.mjs` serves a named `dist`
-on the guarded port, `drive.mjs <tag>` does the run. It imports `vite` by
-absolute file URL: a script outside the repo cannot resolve a bare specifier.
+`scripts/canvas-harness/` (moved out of the temp folder 2026-10-08) — `preview.mjs`
+serves a named `dist` on the guarded port, `drive.mjs <tag>` does the run; builds,
+profiles and reports go to `CANVAS_HARNESS_DIR` (default
+`W:/temp/claude/telemicroscope-canvas`), and `CANVAS_PORT` names the port
+`preview.mjs` printed.
 
 ### 9b–9n — the panels after the stage
 
