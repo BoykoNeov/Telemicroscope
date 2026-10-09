@@ -38,7 +38,7 @@ whole ladder.
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
-| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | The aperture sine was cached per prescription: a refocused or re-stopped system read its sibling's rim. Keyed per system, § 6r.7 is spherochromatic again | `aperture-sine-key` |
+| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | A refocused system read a sibling's cached rim; a sweep read the corner where its brightest pixel changed. Keyed; peak interpolated | `aperture-sine-key`, `band-limited-peak` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4624,8 +4624,8 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
-Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -4644,12 +4644,57 @@ on a cloned prescription, which no earlier read can have touched.
 | Rung | What it pins | |
 |---|---|---|
 | **§ 2q.1 — the traced aperture sine is the system's, not the prescription's** | refocused, re-stopped and stopped-down variants of the rim DIN 4× read after the base equal themselves on a fresh prescription, bitwise, sine and orientation; each differs from the base (the refocus by 0.50% at 450 nm), and both checks fail on the old key | ✅ |
+| **§ 2q.2 — a swept peak is read off the image, not off its brightest pixel** | a rotated elliptical Gaussian between pixels: amplitude 1 to 1e-14 and its centre to 1e-12 on 64 and 128 grids, where the brightest pixel reads under 0.993; a ring is refused | ✅ |
+| | the rendered plane is band-limited on its grid: Nyquist and past-±pupilSamples energy under 1e-28 of the non-DC on both layouts at 128/48, and NOT at size = 2·pupilSamples on axis on exit (rim nodes lit), which the sweep refuses | ✅ |
+| | the 4× at 430 nm, 0.825 mm, exit — the sample the trial flip refused at 1.22 — reads 0.7323 depths, within 0.2% over a 4× range of step; the brightest pixel reads 1.1869 on the same sweep | ✅ |
+| | § 6bf.5's ragged exception (23.47% on the pixel) is regular read off the image, under 0.4%; and the 2× at 430 nm is still refused on both layouts | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
 departures came out the same number twice. It met the stale rim only under the
 trial flip, where the frame reads the sine; with the key it reads 4.0 there,
 inside the 2.5–6 the rung asks for.
+
+### § 2q.2 — the brightest pixel
+
+With the cache keyed, the trial flip's other casualty stood: `focus-surface.test.ts`
+died at module level, the 4× at 430 nm and 0.825 mm read as a plateau 1.22
+depths of focus wide against a threshold of 1. **First hypothesis:**
+the exit layout's lattice changes across the focus sweep, rim nodes toggling.
+**Refuted** — one frame scale and 1 751 lit nodes at every one of 49 stage
+positions. What moved was the brightest PIXEL: the image of an off-axis point
+slides sideways with defocus, and the peak handed over from pixel (65,64) to
+(64,64) at 0.1700 mm, which is the vertex. A maximum over a grid is a maximum of
+several smooth curves and has a corner wherever the winner changes; the three
+points the parabola is read from straddled it, and a corner reads as a flat top.
+On aim the hand-over fell at 0.1790 mm, outside those three points — luck, not
+conditioning — and at the field edge on aim it falls at 0.1341 mm, beside a vertex
+at 0.1313, which is § 6bf.5's pinned "ragged" exception. The plateau figure
+across grids said the same: on 47, 48, 49 and 64 samples the 430 nm samples
+jumped between heights on BOTH layouts, and at 64 the two agreed to 1e-3.
+
+The readout is now the maximum of the image's trigonometric interpolant. That is
+the image and not a model of it when the render has nothing at the Nyquist row or
+column, and it is measured rather than assumed: 1e-33 of the non-DC energy at
+128/48 on both layouts. The lattice spans `pupilSamples + 1` nodes rim to rim and
+the exit layout lights the rim nodes on axis, so at size = 2·pupilSamples the
+image does reach Nyquist (8e-19 at 32/16) and the sweep requires size >
+2·pupilSamples. The search is Newton on the interpolant from the brightest pixel;
+far from focus an image is a ring with no peak to read, which it refuses, so only
+the fine sweep reads it and the coarse pass, which only opens the bracket, keeps
+the pixel.
+
+| Sample | brightest pixel, three steps | interpolant, three steps |
+|---|---|---|
+| 4×, 430 nm, 0.825 mm, exit | 0.71 / 1.19 / 0.90 | 0.7321 / 0.7323 / 0.7329 |
+| 4×, 430 nm, 1.1 mm, aim (§ 6bf.5's exception) | 23.47% spread | 0.6563 / 0.6567 / 0.6582 |
+| 2×, 430 nm, 0.7 mm — the genuine plateau | 1.016 (aim), 1.081 (exit) | 1.037 (aim), 1.097 (exit) |
+
+The margin between the genuine plateau and the worst real sample was 1.6% on
+aim (1.016 against 0.90 at 49 samples); read off the image it is 19% on aim and
+25% on exit. **Opt-in**: `peak` defaults to `"pixel"`, bitwise the old path, so
+the mosaic chain's sweeps do not move in this commit; the volume chain's flip
+asks for `"band-limited"` beside `layout: "exit"`.
 
 ### What moved, and why
 
@@ -4663,7 +4708,11 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
 
 ### What it leaves
 
-- **The volume and focus-surface flip itself** — the rest of this step.
+- **The volume and focus-surface flip itself** — the rest of this step, on the
+  band-limited readout.
+- **The pixel readout is still the default.** Every sweep outside the volume
+  chain — the mosaic's, § 6bh onward — reads the brightest pixel and can meet
+  the same corner; each moves to the interpolant when its chain is flipped.
 - **The browser shares one cache.** Every panel since the exit layout went live
   (§ 2m at infinity, § 2n's brightfield, § 2p's fluorescence) that varies focus,
   stop or aperture on one prescription in one session could have drawn a sibling's
@@ -22481,7 +22530,7 @@ stronger way than it knew.
 | **§ 6bf.5 — a plateau is REFUSED, not reported** | the 2×/0.10 at 430 nm and object height 0.7 mm: the parabola fits, and the readout throws | ✅ |
 | | and the same objective at the same height at its design wavelength reads a real vertex, under one depth of focus — so the refusal is about the configuration and not about the objective | ✅ |
 | | and the conditioning is the OPTICS' and not the grid's: over a 4× range of sweep step it moves 0.08% on the plateau itself and 0.34% on a sharp sample, so the refusal fires at every step alike | ✅ |
-| | the exception, pinned rather than left to be discovered: a sample whose local shape is not parabolic moves 23.47% over the same three steps — seventy times the sharp one, and still under the threshold | ✅ |
+| | the exception, pinned rather than left to be discovered: a sample ~~whose local shape is not parabolic~~ read off a pixel that hands over beside its vertex ([§ 2q.2](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)) moves 23.47% over the same three steps — seventy times the sharp one, and still under the threshold | ✅ |
 | **§ 6bf.6 — a 10× renders only with a seeded bracket** | unseeded, the inverse chief-ray map refuses at object height 0.55 mm; seeded with the frame's own magnification the same sweep runs | ✅ |
 | | and the seed is opt-in because it is not free: where both paths work the table moves 3.9e-16 and a rendered pixel 1.6e-12, and § 6bb.1 compares bitwise | ✅ |
 | **§ 6bf.7 — the readout reports its own separability** | the interaction over the 4×'s grid is 2.152515e-3 mm, 4.980007e-2 of a depth of focus | ✅ |
@@ -22598,7 +22647,9 @@ as step²; the square root turns that into 1/step; the multiply removes it. The
 rung measures the cancellation rather than asserting it, over a fourfold range of
 step — 0.08% on the plateau it exists to catch, which is the case that had to
 hold, and 0.34% on a sharp sample. The exception is pinned beside them: where the
-local shape is not parabolic the cancellation is not exact, and the 4× at 430 nm
+~~local shape is not parabolic~~ brightest pixel hands over to its neighbour beside
+the vertex — the corner a maximum over a grid has, [§ 2q.2](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout), regular to
+0.3% read off the image — the cancellation is not exact, and the 4× at 430 nm
 at the field edge moves 23.47%, seventy times the sharp sample. So the figure is
 a threshold to compare against and not a quantity to do arithmetic on, and it is
 documented as one.

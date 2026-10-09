@@ -1,4 +1,6 @@
 import type { OpticalSystem } from "../trace/system";
+import type { PupilLayout } from "../wave/psf";
+import { bandLimitedPeak } from "../math/band-limited-peak";
 import { objectNumericalAperture } from "../pupil/microscope";
 import type { EmitterSlabs, VolumeEmitterDensity } from "./emitter-volume";
 import { imageRadiusForObjectHeight, objectFieldTile } from "./object-field";
@@ -100,6 +102,23 @@ export interface FocusSweepOptions {
   /** Default `"none"` — bitwise the pre-§ 6bf path. */
   readonly radialMapSeed?: RadialMapSeed;
   readonly radialMapNodes?: number;
+  /**
+   * The layout every swept frame is traced in — `ObjectFieldFrame.layout`.
+   * Default by the conjugate (`defaultPupilLayout`); the volume chain asks for
+   * `"exit"` (§ 2q).
+   */
+  readonly layout?: PupilLayout;
+  /**
+   * How a swept image's peak is read. `"pixel"` (default, bitwise the pre-§ 2q
+   * path) is the brightest sample; `"band-limited"` is the maximum of the image's
+   * trigonometric interpolant (`math/band-limited-peak`), which has no corner
+   * where the brightest pixel hands over to its neighbour — the corner § 2q
+   * found at the vertex of an off-axis sweep, read by the parabola as a plateau.
+   * It needs `size > 2·pupilSamples`, the condition under which the interpolant
+   * IS the rendered image, and refuses otherwise. Only the fine sweep reads it;
+   * the coarse pass, which only opens the bracket, keeps the brightest pixel.
+   */
+  readonly peak?: "pixel" | "band-limited";
 }
 
 export interface FocusSweepPoint {
@@ -186,6 +205,13 @@ export function renderedBestFocus(
         `interior, got half ${options.halfMm} against step ${options.stepMm}`,
     );
   }
+  if (options.peak === "band-limited" && !(options.size > 2 * options.pupilSamples)) {
+    throw new Error(
+      `renderedBestFocus: a band-limited peak needs size > 2·pupilSamples, got ${options.size} ` +
+        `against ${options.pupilSamples} — below it the rendered image has content the ` +
+        `interpolant folds back, and the maximum read off it is not the image's`,
+    );
+  }
   if (!(options.maxPlateauDepths > 0)) {
     throw new Error(
       `renderedBestFocus: maxPlateauDepths must be positive, got ${options.maxPlateauDepths}`,
@@ -195,7 +221,7 @@ export function renderedBestFocus(
   const numericalAperture = objectNumericalAperture(system, wavelengthNm);
   const depthOfFocusMm = (wavelengthNm * 1e-6) / (numericalAperture * numericalAperture);
 
-  const peakAt = (focusMm: number): number => {
+  const peakAt = (focusMm: number, bandLimited: boolean): number => {
     const frame = objectFieldTile(system, {
       size: options.size,
       pupilSamples: options.pupilSamples,
@@ -204,6 +230,7 @@ export function renderedBestFocus(
         x: imageRadiusForObjectHeight(system, objectHeightMm, wavelengthNm),
         y: 0,
       },
+      ...(options.layout === undefined ? {} : { layout: options.layout }),
     });
     const density = options.probe({
       x: frame.centreObjectMm.x,
@@ -229,11 +256,13 @@ export function renderedBestFocus(
         ...(options.radialMapNodes === undefined
           ? {}
           : { radialMapNodes: options.radialMapNodes }),
+        ...(options.layout === undefined ? {} : { layout: options.layout }),
       },
       { nm: wavelengthNm, weight: 1 },
       frame.centreMm,
       seeded,
     ).image.intensity;
+    if (bandLimited) return bandLimitedPeak(image, options.size).value;
     let peak = 0;
     for (const v of image) if (v > peak) peak = v;
     return peak;
@@ -241,13 +270,13 @@ export function renderedBestFocus(
 
   // The parabola through the sampled maximum and its two neighbours. Returned
   // whole, because `curvature` is what says whether the vertex means anything.
-  const vertex = (about: number, step: number, half: number) => {
+  const vertex = (about: number, step: number, half: number, bandLimited = false) => {
     const xs: number[] = [];
     const ys: number[] = [];
     const n = Math.round(half / step);
     for (let i = -n; i <= n; i++) {
       xs.push(about + i * step);
-      ys.push(peakAt(about + i * step));
+      ys.push(peakAt(about + i * step, bandLimited));
     }
     let best = 1;
     for (let i = 1; i < ys.length - 1; i++) if (ys[i]! > ys[best]!) best = i;
@@ -293,7 +322,10 @@ export function renderedBestFocus(
     about = found.mm;
   }
 
-  const fine = vertex(about, options.stepMm, options.halfMm);
+  // The coarse pass reads the brightest pixel whatever `peak` says: it opens the
+  // bracket and does not choose the answer, and far from focus its images are
+  // rings, which the band-limited readout refuses rather than reads.
+  const fine = vertex(about, options.stepMm, options.halfMm, options.peak === "band-limited");
   if (!(fine.curvature < 0)) {
     throw new Error(
       `renderedBestFocus: the sweep at ${wavelengthNm} nm, object height ${objectHeightMm} mm ` +

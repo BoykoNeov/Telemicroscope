@@ -5,3 +5,4 @@ export * from "./bessel";
 export * from "./quadrature";
 export * from "./random";
 export * from "./lsq";
+export * from "./band-limited-peak";
