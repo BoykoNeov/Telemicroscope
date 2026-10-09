@@ -4688,11 +4688,13 @@ the pixel.
 |---|---|---|
 | 4×, 430 nm, 0.825 mm, exit | 0.71 / 1.19 / 0.90 | 0.7321 / 0.7323 / 0.7329 |
 | 4×, 430 nm, 1.1 mm, aim (§ 6bf.5's exception) | 23.47% spread | 0.6563 / 0.6567 / 0.6582 |
-| 2×, 430 nm, 0.7 mm — the genuine plateau | 1.016 (aim), 1.081 (exit) | 1.037 (aim), 1.097 (exit) |
+| 2×, 430 nm, 0.7 mm — the genuine plateau | 1.0163 (aim), 1.0796 (exit) | 1.0370 (aim), 1.0974 (exit) |
 
-The margin between the genuine plateau and the worst real sample was 1.6% on
-aim (1.016 against 0.90 at 49 samples); read off the image it is 19% on aim and
-25% on exit. **Opt-in**: `peak` defaults to `"pixel"`, bitwise the old path, so
+The margin between the genuine plateau and the worst real sample, both at 48
+samples and step 0.005 mm, was 13.5% on aim (1.0163 against 0.8955) and NEGATIVE
+on exit — the real sample read 1.2223, above the plateau's 1.0796. Read off the
+image it is 19.2% on aim (1.0370 against 0.8696) and 25.4% on exit (1.0974
+against 0.8750). **Opt-in**: `peak` defaults to `"pixel"`, bitwise the old path, so
 the mosaic chain's sweeps do not move in this commit; the volume chain's flip
 asks for `"band-limited"` beside `layout: "exit"`.
 
