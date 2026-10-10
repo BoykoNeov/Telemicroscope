@@ -168,16 +168,19 @@ export interface IncoherentPsfOptions {
    * 0.20902, 0.20900 mm at 160, 192, 224 and 255 samples, with 8 sub-samples;
    * 16 move it at most 1.6e-4 mm anywhere over 32–127.
    *
-   * `energy` and `formedSum` stay each other's Parseval image, as with
-   * `cellQuadrature`: a cut cell adds |⟨P⟩|², which is less than the light the
-   * cell passes, ⟨A²⟩. The difference is what a hard edge diffracts past the
-   * frame. Point sampling folds it back in, as a periodic copy of the PSF's tail.
-   * Resolved, it is left out, which is the frame an isolated object is imaged
-   * in. Scaling the kernel back up to ⟨A²⟩, as `wave/psf` does, would spread
-   * that light across the frame, and a focus sweep would read each slice
-   * brighter the further it is defocused: on the 4×/0.10 at 430 nm, with 4
-   * sub-samples over 40–127 samples, the best focus then spreads 2.6e-3 mm,
-   * against 9.5e-4 mm with this accounting.
+   * A cut cell's mean field carries |⟨P⟩|², less than the light the cell passes,
+   * ⟨A²⟩: the difference is what a hard edge diffracts past the frame, and it
+   * grows with defocus. Point sampling folds it back as a periodic copy of the
+   * PSF's tail. Resolved, it comes back as a UNIFORM floor (`edgeFloor`), the
+   * same tail wrapped in from every neighbour, so `energy` is the ⟨A²⟩ the pupil
+   * passed, `formedSum` its Parseval image, and a depth stack's flux is the
+   * emitters' again (§ 6bb.12 to 1e-14). Left out, the end slices of the
+   * 4×/0.10's ±0.06 mm stack carried +0.9% and −1.35% of the light its in-focus
+   * slice did, and the stack's total moved 7e-5 with its slice count. Scaled back into
+   * the kernel's shape instead, as `wave/psf` normalizes, every slice reads
+   * brighter the further it is defocused, and the 430 nm best focus spread
+   * 2.6e-3 mm over 40–127 samples against 9.5e-4 (4 sub-samples both); the floor
+   * moves it under 4e-5 mm from the frame's own image from 40 samples up.
    */
   readonly edgeSamples?: number;
 }
@@ -227,6 +230,12 @@ export interface IncoherentPsf {
    * recorded reading of them meant.
    */
   readonly edgeCells?: number;
+  /**
+   * The uniform floor folded into `values` (§ 2q.3), in its normalized units —
+   * the light the resolved edge threw past the frame. Present only when
+   * `edgeSamples` > 1; subtract it to read the frame's own formed image.
+   */
+  readonly edgeFloor?: number;
   readonly pixelScaleMm?: number;
 }
 
@@ -347,8 +356,8 @@ function edgeCellMask(
 }
 
 /**
- * The pupil's mean complex field over one lattice cell, on an `m`×`m` sub-grid —
- * `[re, im]` into `out`. The phase is asked for only
+ * The pupil's mean complex field and mean power over one lattice cell, on an
+ * `m`×`m` sub-grid — `[re, im, power]` into `out`. The phase is asked for only
  * where the amplitude transmits, `PupilFunction.phaseWaves`'s own contract.
  */
 function cellMean(
@@ -361,6 +370,7 @@ function cellMean(
 ): void {
   let re = 0;
   let im = 0;
+  let power = 0;
   for (let sy = 0; sy < m; sy++) {
     const qy = py + ((sy + 0.5) / m - 0.5) * step;
     for (let sx = 0; sx < m; sx++) {
@@ -370,11 +380,13 @@ function cellMean(
       const ang = 2 * Math.PI * pupil.phaseWaves(qx, qy);
       re += a * Math.cos(ang);
       im += a * Math.sin(ang);
+      power += a * a;
     }
   }
   const cells = m * m;
   out[0] = re / cells;
   out[1] = im / cells;
+  out[2] = power / cells;
 }
 
 /**
@@ -433,17 +445,23 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   }
   const edge = edgeSamples > 1 ? edgeCellMask(pupil, n, step, lo, hi) : undefined;
   let edgeCells = 0;
+  // What the cut cells pass, ⟨A²⟩, beyond what their mean field carries, |⟨P⟩|²:
+  // the light the edge throws past the frame, folded back below as a floor.
+  let edgeDeficit = 0;
 
-  const mean = new Float64Array(2);
-  // A cut cell: its mean field goes into the transform and |mean field|² into
-  // `energy`, as a quadrature cell's does. Returns whether it passed any.
+  const mean = new Float64Array(3);
+  // A cut cell: its mean field goes into the transform, |mean field|² into
+  // `energy` and the rest of its power into `edgeDeficit`. Returns whether it
+  // passed any.
   const resolveEdgeCell = (ix: number, iy: number, px: number, py: number): boolean => {
     cellMean(pupil, px, py, step, edgeSamples, mean);
     edgeCells++;
-    if (mean[0] === 0 && mean[1] === 0) return false;
+    if (mean[2] === 0) return false;
     re[iy * n + ix] = mean[0]!;
     im[iy * n + ix] = mean[1]!;
-    energy += mean[0]! * mean[0]! + mean[1]! * mean[1]!;
+    const field = mean[0]! * mean[0]! + mean[1]! * mean[1]!;
+    energy += field;
+    edgeDeficit += mean[2]! - field;
     return true;
   };
 
@@ -534,6 +552,19 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   // kernel carries no brightness of its own. The energy it was built from is
   // reported separately rather than folded in — a caller comparing two
   // apertures needs it, and a caller convolving does not.
+  // Resolved, the light the edge threw past the frame comes back as a uniform
+  // floor — the periodic frame's own reading of a tail that wraps in from every
+  // neighbour — so `energy` is the ⟨A²⟩ the pupil passed and `formedSum` stays
+  // its Parseval image (`edgeSamples`).
+  let edgeFloor = 0;
+  if (edge !== undefined && edgeDeficit > 0) {
+    const extra = sum * (edgeDeficit / energy);
+    const floor = extra / (n * n);
+    for (let i = 0; i < n * n; i++) values[i] = values[i]! + floor;
+    sum += extra;
+    energy += edgeDeficit;
+    edgeFloor = floor / sum;
+  }
   for (let i = 0; i < n * n; i++) values[i] = values[i]! / sum;
 
   return {
@@ -545,7 +576,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
     formedSum: sum,
     maxGridPhaseStepWaves,
     ...(options.cellQuadrature === true ? { quadratureCells } : {}),
-    ...(edge !== undefined ? { edgeCells } : {}),
+    ...(edge !== undefined ? { edgeCells, edgeFloor } : {}),
     ...(options.scale === undefined
       ? {}
       : { pixelScaleMm: imagePixelScaleMm(options.scale, n, pupilSamples) }),

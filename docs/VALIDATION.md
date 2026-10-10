@@ -4650,6 +4650,7 @@ on a cloned prescription, which no earlier read can have touched.
 | | § 6bf.5's ragged exception (23.47% on the pixel) is regular read off the image, under 0.4%; and the 2× at 430 nm is still refused on both layouts | ✅ |
 | **§ 2q.3 — the rim is resolved, not point-sampled** | off, the kernel is bitwise the point-sampled one; on, the point count is unchanged and the cut cells are reported beside it | ✅ |
 | | a disc's area read off the kernel's centre is π to 4e-4 on ten lattices 32–127, where the staircase misses by −9.15e-3 at 48 and +3.49e-3 at 47 | ✅ |
+| | § 6bb.12's haze stack, resolved: its flux equal at 3, 6, 12 and 24 slices and slice by slice to 1e-13 — the edge's lost light returned as a floor | ✅ |
 | | a disc with w40 = 0.5 wave focuses at w20 = −w40 exactly (t → 1 − t): resolved, within 4.5e-4 wave and falling steadily from 48 to 127; point-sampled 4.58e-3 at 48 and −1.60e-3 at 47 | ✅ |
 | | the 4× on axis at the design wavelength, swept at 47, 48 and 64 samples: 1.2e-3 mm apart point-sampled, 2.7e-5 resolved | ✅ |
 
@@ -4726,19 +4727,26 @@ that does not settle. It settles:
 | Samples | 47 | 48 | 64 | 127 | 160 | 192 | 224 | 255 |
 |---|---|---|---|---|---|---|---|---|
 | point-sampled, 430 nm (mm) | 0.2070 | 0.2140 | 0.2103 | 0.2099 | 0.2098 | 0.2096 | 0.2093 | 0.2086 |
-| resolved, 430 nm (mm) | 0.20951 | 0.20979 | 0.21007 | 0.20925 | 0.20914 | 0.20906 | 0.20902 | 0.20900 |
+| resolved, 430 nm (mm) | 0.20949 | 0.20977 | 0.21006 | 0.20925 | 0.20914 | 0.20906 | 0.20902 | 0.20900 |
 | point-sampled, 587.6 nm (mm) | 0.04832 | 0.04710 | 0.04775 | 0.04781 | 0.04783 | 0.04787 | 0.04792 | 0.04805 |
 | resolved, 587.6 nm (mm) | 0.04790 | 0.04788 | 0.04791 | 0.04797 | 0.04797 | 0.04798 | 0.04798 | 0.04798 |
 
 A cut cell carries the mean of the pupil's complex field over its area, on an
-8×8 sub-grid (16 moves no focus more than 1.6e-4 mm over 32–127). It adds
-|⟨P⟩|² to `energy`, the field's own Parseval share, as § 6l.14's quadrature cell
-does — not the ⟨A²⟩ the cell passes, which `wave/psf` normalizes to. The
-difference is what a hard edge diffracts past the frame; point sampling folds
-it back in as a periodic copy of the tail, and scaling the resolved kernel up
-to ⟨A²⟩ would spread it across the frame instead. A focus sweep then reads each
-slice brighter the further it is defocused: with that scaling the 430 nm focus
-spread 2.6e-3 mm over 40–127 samples, against 9.5e-4 mm (4 sub-samples both).
+8×8 sub-grid (16 moves no focus more than 1.6e-4 mm over 32–127). Its mean
+field carries |⟨P⟩|², less than the ⟨A²⟩ the cell passes; the difference is
+what a hard edge diffracts past the frame, and it grows with defocus. Three
+readings of it were measured. **Left out**, the focus converges as tabled, but
+§ 6bb.12's stack lost its flux identity: its total moved 7.1e-5 between 3 and
+24 slices, and the end slices of ±0.06 mm carried +0.9% and −1.35% of the
+in-focus slice's light. **Scaled into the kernel**, as `wave/psf` normalizes to
+⟨A²⟩, each slice reads brighter the further it is defocused, and the 430 nm
+focus spread 2.6e-3 mm over 40–127 samples against 9.5e-4 left out (4
+sub-samples both). **Returned as a uniform floor** (`edgeFloor`) — the tail
+wrapped in from every neighbour, which is what the periodic frame already
+means and what point sampling's aliasing approximates — the flux is the
+emitters' to 1e-14 and every focus above is unmoved to 4e-5 mm from 40 samples
+up. The user chose the floor; `energy` is then the ⟨A²⟩ passed and `formedSum`
+its Parseval image.
 
 The external pins are a disc's area and the best focus of a disc with spherical
 aberration, which is −w40 exactly: its on-axis intensity is symmetric about it
@@ -4764,7 +4772,7 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
   § 6be and § 6bf moves with it: the 4×'s 430 nm figure, 0.2140 mm at 48
   samples, is 5e-3 mm from where the resolved rim settles.
 - **A smooth hump remains at 430 nm.** Resolved, the axial focus rises from
-  0.2081 mm at 32 samples to 0.2101 at 56–64 and comes back to 0.2090 at 255.
+  0.2080 mm at 32 samples to 0.2101 at 56–64 and comes back to 0.2090 at 255.
   It is not the sub-sampling (8 against 16) and not the image grid; the frame,
   which grows with the lattice, is the untested lever.
 - **§ 6bd–§ 6be's 24-sample rim ties** (§ 6bd.4's 441 against 439 nodes,

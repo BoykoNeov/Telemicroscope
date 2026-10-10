@@ -1,7 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { incoherentPsf } from "../src/imaging/fluorescence";
 import { renderedBestFocus, type FocusSweepOptions } from "../src/imaging/focus-surface";
-import { gaussianBallEmitter, uniformSlabs } from "../src/imaging/emitter-volume";
+import { gaussianBallEmitter, slabEmitter, uniformSlabs } from "../src/imaging/emitter-volume";
+import { gaussianEmitter } from "../src/imaging/emitter-density";
+import { formVolumePlane, neutralVolumeEmitterDensity } from "../src/imaging/spectral-volume";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { PupilFunction } from "../src/wave/psf";
 
@@ -28,6 +30,11 @@ import type { PupilFunction } from "../src/wave/psf";
  * **Refuted by** an axial focus that still spreads more than 3e-4 mm over
  * 40–127 samples, or does not settle as the lattice grows.
  *
+ * What a cut cell's mean field does not carry — the light a hard edge throws
+ * past the frame, more of it the further a slice is defocused — comes back as a
+ * uniform floor, so a depth stack's flux stays the emitters'. That is a rung
+ * here because the first accounting left it out and § 6bb.12 caught it.
+ *
  * External numbers: a disc's area, π; and the on-axis intensity of a disc with
  * spherical aberration, I(w20) = |∫₀¹ exp(2πi(w20·t + w40·t²)) dt|², which the
  * substitution t → 1 − t shows is symmetric about w20 = −w40 — so its best
@@ -47,9 +54,8 @@ const EDGE = 8;
 const GRIDS = [32, 40, 47, 48, 49, 56, 64, 80, 96, 127];
 
 /**
- * |∫P dA| in pupil units, read off the kernel's centre. `values[0]` is
- * |Σ field|² / (n²·Σ|field|²) and `energy` is Σ|field|², so this needs no FFT
- * convention.
+ * |∫P dA| in pupil units, read off the kernel's centre. Less the floor,
+ * `values[0]` is |Σ field|² / (n²·energy), so this needs no FFT convention.
  */
 function integral(pupil: PupilFunction, ps: number, size: number, edgeSamples?: number): number {
   const k = incoherentPsf(pupil, {
@@ -58,7 +64,7 @@ function integral(pupil: PupilFunction, ps: number, size: number, edgeSamples?: 
     ...(edgeSamples === undefined ? {} : { edgeSamples }),
   });
   const step = 2 / ps;
-  return Math.sqrt(k.values[0]! * size * size * k.energy) * step * step;
+  return Math.sqrt((k.values[0]! - (k.edgeFloor ?? 0)) * size * size * k.energy) * step * step;
 }
 
 /** The w20 maximizing the kernel's centre, by golden section to 1e-9 waves. */
@@ -70,7 +76,7 @@ function bestFocusWaves(w40: number, ps: number, edgeSamples?: number): number {
       size,
       ...(edgeSamples === undefined ? {} : { edgeSamples }),
     });
-    return k.values[0]! * k.energy;
+    return (k.values[0]! - (k.edgeFloor ?? 0)) * k.energy;
   };
   const g = (Math.sqrt(5) - 1) / 2;
   let a = -w40 - 0.4;
@@ -108,12 +114,14 @@ describe("§ 2q.3 — the rim is resolved, not point-sampled", () => {
     expect(Object.is(one.energy, plain.energy)).toBe(true);
     expect(Object.is(one.formedSum, plain.formedSum)).toBe(true);
     expect(one.edgeCells).toBeUndefined();
+    expect(one.edgeFloor).toBeUndefined();
 
     // On, the point bookkeeping keeps its meaning: the lattice points inside the
     // rim are counted as before, and the cut cells are reported beside them.
     const on = incoherentPsf(pupil, { pupilSamples: 48, size: 128, edgeSamples: EDGE });
     expect(on.transmittingSamples).toBe(plain.transmittingSamples);
     expect(on.edgeCells).toBeGreaterThan(0);
+    expect(on.edgeFloor).toBeGreaterThan(0);
     expect(() => incoherentPsf(pupil, { pupilSamples: 48, size: 128, edgeSamples: 0 })).toThrow(
       /positive integer/,
     );
@@ -134,6 +142,40 @@ describe("§ 2q.3 — the rim is resolved, not point-sampled", () => {
     for (const e of edge) expect(Math.abs(e)).toBeLessThan(4e-4);
     expect(point[GRIDS.indexOf(48)]!).toBeLessThan(-9e-3);
     expect(point[GRIDS.indexOf(47)]!).toBeGreaterThan(3e-3);
+  });
+
+  it("a depth stack's flux is the emitters' at any slice count, slice by slice", () => {
+    // § 6bb.12's haze on the 4×/0.10. Without the floor the stack's total moved
+    // 7.1e-5 between 3 and 24 slices and its end slices carried +0.9% and −1.35%
+    // of the in-focus slice's light; with it, both are f64 noise.
+    const system = finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    }).system;
+    const haze = slabEmitter({ lateral: gaussianEmitter({ waistMm: 0.012, peak: 1 }), fromMm: -1, toMm: 1 });
+    const imaged: number[] = [];
+    let ends: readonly number[] = [];
+    for (const count of [3, 6, 12, 24]) {
+      const plane = formVolumePlane(
+        system,
+        neutralVolumeEmitterDensity(haze),
+        {
+          size: 64,
+          pupilSamples: 32,
+          samples: [],
+          slabs: uniformSlabs(-0.06, 0.06, count),
+          edgeSamples: EDGE,
+        },
+        { nm: 546.074, weight: 1 },
+        { x: 0, y: 0 },
+      );
+      let total = 0;
+      for (const v of plane.image.intensity) total += v;
+      imaged.push(total);
+      if (count === 24) ends = plane.image.sliceFlux;
+    }
+    for (const t of imaged) expect(Math.abs(t / imaged[0]! - 1)).toBeLessThan(1e-13);
+    expect(Math.abs(ends[0]! / ends[11]! - 1)).toBeLessThan(1e-13);
+    expect(Math.abs(ends[23]! / ends[11]! - 1)).toBeLessThan(1e-13);
   });
 
   it("a disc with spherical aberration focuses at −w40: resolved it converges, point-sampled it scatters", () => {
@@ -157,7 +199,7 @@ describe("§ 2q.3 — the rim is resolved, not point-sampled", () => {
     // § 2q's own reading: the 4×/0.10 on axis at the design wavelength, swept
     // with § 2q.2's readout on the aim layout, at three lattices one of which
     // has rim nodes (48). Point-sampled 0.048320, 0.047095, 0.047753 mm at 47,
-    // 48, 64 — 1.2e-3 apart; resolved 0.047896, 0.047879, 0.047906 — 2.7e-5.
+    // 48, 64 — 1.2e-3 apart; resolved 0.047896, 0.047878, 0.047905 — 2.7e-5.
     const system = finiteConjugateMicroscope({
       objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
     }).system;

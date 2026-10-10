@@ -734,7 +734,7 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
 32. **A resolved rim's focus still moves with the lattice, smoothly.** Found at
     [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout). With `edgeSamples` the 4×/0.10's
     rendered axial focus at 430 nm no longer scatters with `pupilSamples`, but it
-    is not flat either: 0.2081 mm at 32 samples, 0.2101 at 56–64, 0.20900 at 255,
+    is not flat either: 0.2080 mm at 32 samples, 0.2101 at 56–64, 0.20900 at 255,
     settling there by 2e-5 per step. Not the sub-sampling (16 against 8 moves it at
     most 1.6e-4) and not the image grid. The frame is PS·λ/(2·NA) wide, so it
     grows with the lattice, and the light a hard edge diffracts past it is left
