@@ -233,6 +233,8 @@ export interface FieldVolumeOptions {
   readonly pupilTruncatedAtMount?: boolean;
   /** Supply to get a physical `pixelScaleMm` back; omit for grid units. */
   readonly scale?: PupilScale;
+  /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
+  readonly edgeSamples?: number;
   /** Called once per patch finished, for progress and cost accounting. */
   readonly onPatch?: (done: number, total: number) => void;
   /**
@@ -432,6 +434,7 @@ export function renderFieldVolume(
           pupilSamples: options.pupilSamples,
           throughput: { kind: "transmitted" },
           ...(options.scale === undefined ? {} : { scale: options.scale }),
+          ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
         });
         maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, formed.maxGridPhaseStepWaves);
         if (s === reference) referenceSum = formed.formedSum;

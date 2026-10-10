@@ -481,6 +481,8 @@ export interface DepthKernelOptions {
   readonly scale?: PupilScale;
   /** Passed to every slice's `incoherentPsf` — § 6l.14, off by default. */
   readonly cellQuadrature?: boolean;
+  /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
+  readonly edgeSamples?: number;
 }
 
 /**
@@ -504,6 +506,7 @@ export function depthKernels(
       size: options.size,
       ...(options.scale === undefined ? {} : { scale: options.scale }),
       ...(options.cellQuadrature === undefined ? {} : { cellQuadrature: options.cellQuadrature }),
+      ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
     }),
   }));
   // The reference is the least-defocused member rather than index 0, so a stack
@@ -617,6 +620,8 @@ export interface VolumeImageOptions {
   readonly scale?: PupilScale;
   /** Passed to every slice's `incoherentPsf` — § 6l.14, off by default. */
   readonly cellQuadrature?: boolean;
+  /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
+  readonly edgeSamples?: number;
   /** Called once per slice imaged, for progress and cost accounting. */
   readonly onSlice?: (done: number, total: number) => void;
 }
@@ -737,6 +742,7 @@ export function renderVolume(
       size: n,
       ...(options.scale === undefined ? {} : { scale: options.scale }),
       ...(options.cellQuadrature === undefined ? {} : { cellQuadrature: options.cellQuadrature }),
+      ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
     });
     maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, kernel.maxGridPhaseStepWaves);
 

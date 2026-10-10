@@ -38,7 +38,7 @@ whole ladder.
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
-| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | A refocused system read a sibling's cached rim; a sweep read the corner where its brightest pixel changed. Keyed; peak interpolated | `aperture-sine-key`, `band-limited-peak` |
+| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Cached sibling rim; pixel hand-over at the vertex; staircase rim. Keyed; peak interpolated; rim resolved | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4624,8 +4624,8 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
-Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume and `FocusSweepOptions`
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -4648,6 +4648,10 @@ on a cloned prescription, which no earlier read can have touched.
 | | the rendered plane is band-limited on its grid: Nyquist and past-±pupilSamples energy under 1e-28 of the non-DC on both layouts at 128/48, and NOT at size = 2·pupilSamples on axis on exit (rim nodes lit), which the sweep refuses | ✅ |
 | | the 4× at 430 nm, 0.825 mm, exit — the sample the trial flip refused at 1.22 — reads 0.7323 depths, within 0.2% over a 4× range of step; the brightest pixel reads 1.1869 on the same sweep | ✅ |
 | | § 6bf.5's ragged exception (23.47% on the pixel) is regular read off the image, under 0.4%; and the 2× at 430 nm is still refused on both layouts | ✅ |
+| **§ 2q.3 — the rim is resolved, not point-sampled** | off, the kernel is bitwise the point-sampled one; on, the point count is unchanged and the cut cells are reported beside it | ✅ |
+| | a disc's area read off the kernel's centre is π to 4e-4 on ten lattices 32–127, where the staircase misses by −9.15e-3 at 48 and +3.49e-3 at 47 | ✅ |
+| | a disc with w40 = 0.5 wave focuses at w20 = −w40 exactly (t → 1 − t): resolved, within 4.5e-4 wave and falling steadily from 48 to 127; point-sampled 4.58e-3 at 48 and −1.60e-3 at 47 | ✅ |
+| | the 4× on axis at the design wavelength, swept at 47, 48 and 64 samples: 1.2e-3 mm apart point-sampled, 2.7e-5 resolved | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
@@ -4698,6 +4702,51 @@ against 0.8750). **Opt-in**: `peak` defaults to `"pixel"`, bitwise the old path,
 the mosaic chain's sweeps do not move in this commit; the volume chain's flip
 asks for `"band-limited"` beside `layout: "exit"`.
 
+### § 2q.3 — the staircase rim
+
+The flip's restatement was to be checked at a second grid first, and on the
+axis — where neither the layout nor the readout can move anything — the 4×'s
+best focus at 430 nm read 0.2140 mm at 48 pupil samples, 0.2070 at 47 and 0.2111
+at 56: a third of a depth of focus, against the 1e-3 mm differences § 6be and
+§ 6bf pin. **First hypothesis:** the three-point parabola, on a lopsided axial
+response. **Refuted** — a stage step ten times finer reads the same foci to 3e-5
+mm. The image grid was not it either: 128 and 256 pixels agree bitwise. The
+rendered image itself moves with the pupil lattice, and it did not settle with
+more of it: 0.2086 to 0.2098 over 128–255 samples.
+
+`incoherentPsf` point-samples the pupil, so that § 6i.1 can compare it with
+`abbeImage` to 1e-12. The lattice points inside a disc are a staircase whose
+area departs from π by up to 0.9%, not monotonely, and that departure explains
+78% of the focus scatter over 23 lattices; the lattices with nodes exactly ON
+the rim (48, 50, 60) are most of the rest, since a node on the rim is in or out
+by the last bit. **Second hypothesis:** resolve the cut cells and the scatter
+becomes a convergence. **Refuted by** a spread over 3e-4 mm at 40–127 samples
+that does not settle. It settles:
+
+| Samples | 47 | 48 | 64 | 127 | 160 | 192 | 224 | 255 |
+|---|---|---|---|---|---|---|---|---|
+| point-sampled, 430 nm (mm) | 0.2070 | 0.2140 | 0.2103 | 0.2099 | 0.2098 | 0.2096 | 0.2093 | 0.2086 |
+| resolved, 430 nm (mm) | 0.20951 | 0.20979 | 0.21007 | 0.20925 | 0.20914 | 0.20906 | 0.20902 | 0.20900 |
+| point-sampled, 587.6 nm (mm) | 0.04832 | 0.04710 | 0.04775 | 0.04781 | 0.04783 | 0.04787 | 0.04792 | 0.04805 |
+| resolved, 587.6 nm (mm) | 0.04790 | 0.04788 | 0.04791 | 0.04797 | 0.04797 | 0.04798 | 0.04798 | 0.04798 |
+
+A cut cell carries the mean of the pupil's complex field over its area, on an
+8×8 sub-grid (16 moves no focus more than 1.6e-4 mm over 32–127). It adds
+|⟨P⟩|² to `energy`, the field's own Parseval share, as § 6l.14's quadrature cell
+does — not the ⟨A²⟩ the cell passes, which `wave/psf` normalizes to. The
+difference is what a hard edge diffracts past the frame; point sampling folds
+it back in as a periodic copy of the tail, and scaling the resolved kernel up
+to ⟨A²⟩ would spread it across the frame instead. A focus sweep then reads each
+slice brighter the further it is defocused: with that scaling the 430 nm focus
+spread 2.6e-3 mm over 40–127 samples, against 9.5e-4 mm (4 sub-samples both).
+
+The external pins are a disc's area and the best focus of a disc with spherical
+aberration, which is −w40 exactly: its on-axis intensity is symmetric about it
+under t → 1 − t. The resolved rim misses that by 3.9e-4 wave at 48 and falls
+steadily; the staircase misses by 4.6e-3, and changes sign between 47 and 48.
+**Opt-in**: `edgeSamples` defaults to point sampling, bitwise; nothing in the
+suite moves in this commit.
+
 ### What moved, and why
 
 | Chain | Reading | Cause | Restated as |
@@ -4711,7 +4760,16 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
 ### What it leaves
 
 - **The volume and focus-surface flip itself** — the rest of this step, on the
-  band-limited readout.
+  band-limited readout and the resolved rim. Every pinned focus in § 6bb.6,
+  § 6be and § 6bf moves with it: the 4×'s 430 nm figure, 0.2140 mm at 48
+  samples, is 5e-3 mm from where the resolved rim settles.
+- **A smooth hump remains at 430 nm.** Resolved, the axial focus rises from
+  0.2081 mm at 32 samples to 0.2101 at 56–64 and comes back to 0.2090 at 255.
+  It is not the sub-sampling (8 against 16) and not the image grid; the frame,
+  which grows with the lattice, is the untested lever.
+- **§ 6bd–§ 6be's 24-sample rim ties** (§ 6bd.4's 441 against 439 nodes,
+  § 6be.6's shading) are the same staircase at its coarsest, and should be
+  re-read on the resolved rim before any of them is restated.
 - **The pixel readout is still the default.** Every sweep outside the volume
   chain — the mosaic's, § 6bh onward — reads the brightest pixel and can meet
   the same corner; each moves to the interpolant when its chain is flipped.

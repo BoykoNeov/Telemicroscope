@@ -731,6 +731,17 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     preset, or a paraxial aim scaled to the stop's traced edge — either moves every
     reading that integrates a microscope pupil, so it is a flip of its own with the
     brute-force count as its rung, on and off axis.
+32. **A resolved rim's focus still moves with the lattice, smoothly.** Found at
+    [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout). With `edgeSamples` the 4×/0.10's
+    rendered axial focus at 430 nm no longer scatters with `pupilSamples`, but it
+    is not flat either: 0.2081 mm at 32 samples, 0.2101 at 56–64, 0.20900 at 255,
+    settling there by 2e-5 per step. Not the sub-sampling (16 against 8 moves it at
+    most 1.6e-4) and not the image grid. The frame is PS·λ/(2·NA) wide, so it
+    grows with the lattice, and the light a hard edge diffracts past it is left
+    out — the untested lever, which this ruler cannot vary alone. At the ladder's
+    48 samples it costs 8e-4 mm, 0.02 of a depth of focus. *What would pin it:* a
+    grid-free referee for the on-axis peak — the traced axial pupil's PSF by a
+    one-dimensional Hankel transform, imaged against the same probe.
 
 13. ~~**The spectral stack's resampling moves energy, and nothing reports it.**
     Found at § 8a.11 while walking A4's route. A raw PSF conserves to the bit;
@@ -1216,4 +1227,8 @@ radial-map nodes · § 6ba differential bleaching.
     fixed at [§ 2o](VALIDATION.md#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims); the aim layout's half is item 30.
     Single-plane fluorescence flipped at [§ 2p](VALIDATION.md#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) (item 31 opened); next the
     volume and focus-surface chain, where ~~§ 6az.5 goes NaN~~ (a stale aperture-sine
-    cache, fixed at [§ 2q](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout), which also withdrew § 2n's § 6r.7 restatement) and § 6bf refuses.
+    cache, fixed at [§ 2q](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout), which also withdrew § 2n's § 6r.7 restatement) and ~~§ 6bf refuses~~ (the brightest
+    pixel's hand-over at the vertex — read off the image at [§ 2q.2](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)).
+    Checked at a second lattice, every rendered focus there scattered with the
+    point-sampled rim, by up to 7e-3 mm on the axis; resolved at [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout),
+    opt-in, and the flip takes it with the interpolated peak (item 32 opened).

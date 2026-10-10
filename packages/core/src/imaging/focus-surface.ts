@@ -119,6 +119,13 @@ export interface FocusSweepOptions {
    * the coarse pass, which only opens the bracket, keeps the brightest pixel.
    */
   readonly peak?: "pixel" | "band-limited";
+  /**
+   * Passed to every swept frame's `incoherentPsf` (§ 2q.3). Off by default, bitwise
+   * the pre-§ 2q.3 path. Point-sampled, the rim's staircase moves the best focus
+   * with `pupilSamples` — a 0.007 mm scatter at 430 nm on the 4×/0.10 — which the
+   * resolved rim turns into a steady convergence.
+   */
+  readonly edgeSamples?: number;
 }
 
 export interface FocusSweepPoint {
@@ -257,6 +264,7 @@ export function renderedBestFocus(
           ? {}
           : { radialMapNodes: options.radialMapNodes }),
         ...(options.layout === undefined ? {} : { layout: options.layout }),
+        ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
       },
       { nm: wavelengthNm, weight: 1 },
       frame.centreMm,

@@ -332,6 +332,8 @@ export interface FluorescenceVolumeOptions extends FieldPupilOptions {
   readonly size: number;
   /** Frequency bins across the pupil diameter, as in `abbeImage`. */
   readonly pupilSamples: number;
+  /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
+  readonly edgeSamples?: number;
   /**
    * The wavelengths, sampled. `weight` is **pure quadrature** — Δλ and nothing
    * else, so `quadratureSamples`. Every label's band lives in the density and
@@ -585,6 +587,7 @@ export function formVolumePlane(
       wavelengthNm: sample.nm,
       refractiveIndex,
       scale: frame.scale,
+      ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
       ...(options.onSlice === undefined
         ? {}
         : { onSlice: (done: number, total: number) => options.onSlice!(done, total, sample.nm) }),

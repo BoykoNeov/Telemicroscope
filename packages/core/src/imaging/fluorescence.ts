@@ -152,6 +152,34 @@ export interface IncoherentPsfOptions {
    * could get wrong.
    */
   readonly cellQuadrature?: boolean;
+  /**
+   * Sub-samples per axis in the lattice cells an aperture edge cuts (§ 2q.3).
+   * Omitted or 1, every lattice point is point-sampled and the kernel is bitwise
+   * what it always was — the sampling `abbeImage` shares, which § 6i.1's identity
+   * needs.
+   *
+   * Point-sampled, the rim is a staircase that changes with `pupilSamples`: the
+   * count of lattice points inside a disc departs from its area by up to 0.9%,
+   * not monotonely, and a rendered best focus follows it — 0.2070 to 0.2142 mm
+   * over 32–127 samples for the 4×/0.10 at 430 nm, and still 0.2086 to 0.2098
+   * over 128–255. Resolved, a cut cell carries the MEAN of the pupil's complex
+   * field over the cell, sampled on an `edgeSamples`² sub-grid — the rim's own
+   * shape, phase included — and the same focus converges: 0.20914, 0.20906,
+   * 0.20902, 0.20900 mm at 160, 192, 224 and 255 samples, with 8 sub-samples;
+   * 16 move it at most 1.6e-4 mm anywhere over 32–127.
+   *
+   * `energy` and `formedSum` stay each other's Parseval image, as with
+   * `cellQuadrature`: a cut cell adds |⟨P⟩|², which is less than the light the
+   * cell passes, ⟨A²⟩. The difference is what a hard edge diffracts past the
+   * frame. Point sampling folds it back in, as a periodic copy of the PSF's tail.
+   * Resolved, it is left out, which is the frame an isolated object is imaged
+   * in. Scaling the kernel back up to ⟨A²⟩, as `wave/psf` does, would spread
+   * that light across the frame, and a focus sweep would read each slice
+   * brighter the further it is defocused: on the 4×/0.10 at 430 nm, with 4
+   * sub-samples over 40–127 samples, the best focus then spreads 2.6e-3 mm,
+   * against 9.5e-4 mm with this accounting.
+   */
+  readonly edgeSamples?: number;
 }
 
 export interface IncoherentPsf {
@@ -192,6 +220,13 @@ export interface IncoherentPsf {
    * phase, so it keeps meaning what every recorded reading of it meant.
    */
   readonly quadratureCells?: number;
+  /**
+   * Lattice cells resolved as edge cells (§ 2q.3). Present only when
+   * `edgeSamples` > 1. `transmittingSamples` still counts the POINT samples, and
+   * `maxGridPhaseStepWaves` still reads them, so both keep meaning what every
+   * recorded reading of them meant.
+   */
+  readonly edgeCells?: number;
   readonly pixelScaleMm?: number;
 }
 
@@ -263,12 +298,93 @@ export function pupilThroughput(pupil: PupilFunction, options: IncoherentPsfOpti
 }
 
 /**
+ * Which lattice cells inside the pupil's box an aperture edge cuts — `wave/psf`'s
+ * `pupilSampling` test, on this lattice: a cell whose four corners disagree
+ * about transmitting straddles an edge, and the mask is dilated by one because
+ * an edge can clip a cell without crossing a corner.
+ */
+function edgeCellMask(
+  pupil: PupilFunction,
+  n: number,
+  step: number,
+  lo: number,
+  hi: number,
+): Uint8Array {
+  const half = n / 2;
+  const span = hi - lo + 2;
+  const inside = new Uint8Array(span * span);
+  for (let j = 0; j < span; j++) {
+    const py = (lo + j - half - 0.5) * step;
+    for (let i = 0; i < span; i++) {
+      inside[j * span + i] = pupil.amplitude((lo + i - half - 0.5) * step, py) > 0 ? 1 : 0;
+    }
+  }
+  const straddles = new Uint8Array(n * n);
+  for (let iy = lo; iy <= hi; iy++) {
+    const j = iy - lo;
+    for (let ix = lo; ix <= hi; ix++) {
+      const i = ix - lo;
+      const c = inside[j * span + i]!;
+      if (
+        c !== inside[j * span + i + 1]! ||
+        c !== inside[(j + 1) * span + i]! ||
+        c !== inside[(j + 1) * span + i + 1]!
+      ) {
+        straddles[iy * n + ix] = 1;
+      }
+    }
+  }
+  const mask = new Uint8Array(n * n);
+  for (let iy = lo; iy <= hi; iy++) {
+    for (let ix = lo; ix <= hi; ix++) {
+      if (straddles[iy * n + ix] === 0) continue;
+      for (let y = Math.max(lo, iy - 1); y <= Math.min(hi, iy + 1); y++) {
+        for (let x = Math.max(lo, ix - 1); x <= Math.min(hi, ix + 1); x++) mask[y * n + x] = 1;
+      }
+    }
+  }
+  return mask;
+}
+
+/**
+ * The pupil's mean complex field over one lattice cell, on an `m`×`m` sub-grid —
+ * `[re, im]` into `out`. The phase is asked for only
+ * where the amplitude transmits, `PupilFunction.phaseWaves`'s own contract.
+ */
+function cellMean(
+  pupil: PupilFunction,
+  px: number,
+  py: number,
+  step: number,
+  m: number,
+  out: Float64Array,
+): void {
+  let re = 0;
+  let im = 0;
+  for (let sy = 0; sy < m; sy++) {
+    const qy = py + ((sy + 0.5) / m - 0.5) * step;
+    for (let sx = 0; sx < m; sx++) {
+      const qx = px + ((sx + 0.5) / m - 0.5) * step;
+      const a = pupil.amplitude(qx, qy);
+      if (!(a > 0)) continue;
+      const ang = 2 * Math.PI * pupil.phaseWaves(qx, qy);
+      re += a * Math.cos(ang);
+      im += a * Math.sin(ang);
+    }
+  }
+  const cells = m * m;
+  out[0] = re / cells;
+  out[1] = im / cells;
+}
+
+/**
  * The incoherent PSF of a pupil, on `abbeImage`'s lattice.
  *
  * h = |F⁻¹{P}|², with P point-sampled at the same frequency bins the Abbe sum
  * multiplies its object spectrum by. See the header for why it may not be
  * `wave/psf`'s kernel: that one area-averages the rim, and the rim is exactly
- * where a comparison between the two modules would land.
+ * where a comparison between the two modules would land. `edgeSamples` (§ 2q.3)
+ * opts out of that for a caller with no Abbe sum to agree with.
  */
 export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOptions): IncoherentPsf {
   const n = options.size;
@@ -311,6 +427,25 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
       ? pupil.cellQuadrature(step)
       : undefined;
   let quadratureCells = 0;
+  const edgeSamples = options.edgeSamples ?? 1;
+  if (!(Number.isInteger(edgeSamples) && edgeSamples >= 1)) {
+    throw new Error(`incoherentPsf: edgeSamples must be a positive integer, got ${edgeSamples}`);
+  }
+  const edge = edgeSamples > 1 ? edgeCellMask(pupil, n, step, lo, hi) : undefined;
+  let edgeCells = 0;
+
+  const mean = new Float64Array(2);
+  // A cut cell: its mean field goes into the transform and |mean field|² into
+  // `energy`, as a quadrature cell's does. Returns whether it passed any.
+  const resolveEdgeCell = (ix: number, iy: number, px: number, py: number): boolean => {
+    cellMean(pupil, px, py, step, edgeSamples, mean);
+    edgeCells++;
+    if (mean[0] === 0 && mean[1] === 0) return false;
+    re[iy * n + ix] = mean[0]!;
+    im[iy * n + ix] = mean[1]!;
+    energy += mean[0]! * mean[0]! + mean[1]! * mean[1]!;
+    return true;
+  };
 
   for (let iy = lo; iy <= hi; iy++) {
     const py = (iy - half) * step;
@@ -318,6 +453,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
     let prevPhase = 0;
     for (let ix = lo; ix <= hi; ix++) {
       const px = (ix - half) * step;
+      const isEdge = edge !== undefined && edge[iy * n + ix] === 1;
       const a = pupil.amplitude(px, py);
       if (a <= 0) {
         // A blocked sample breaks the neighbour chain in both directions: a step
@@ -325,6 +461,11 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
         // make an obstruction look like an unresolved wavefront.
         prevIn = false;
         rowIn[ix] = 0;
+        // A cut cell whose centre the edge excludes can still pass light.
+        if (isEdge && resolveEdgeCell(ix, iy, px, py)) {
+          if (firstRow < 0) firstRow = iy;
+          lastRow = iy;
+        }
         continue;
       }
       const w = pupil.phaseWaves(px, py);
@@ -340,6 +481,13 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
       prevPhase = w;
       rowIn[ix] = 1;
       rowPhase[ix] = w;
+      if (isEdge) {
+        resolveEdgeCell(ix, iy, px, py);
+        if (firstRow < 0) firstRow = iy;
+        lastRow = iy;
+        transmittingSamples++;
+        continue;
+      }
       const ang = 2 * Math.PI * w;
       const f = cell?.(px, py);
       if (f === undefined) {
@@ -397,6 +545,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
     formedSum: sum,
     maxGridPhaseStepWaves,
     ...(options.cellQuadrature === true ? { quadratureCells } : {}),
+    ...(edge !== undefined ? { edgeCells } : {}),
     ...(options.scale === undefined
       ? {}
       : { pixelScaleMm: imagePixelScaleMm(options.scale, n, pupilSamples) }),
@@ -431,6 +580,8 @@ export interface IncoherentImageOptions {
    * third answer. See `ThroughputUnits`.
    */
   readonly throughput: ThroughputUnits;
+  /** Passed to `incoherentPsf` — § 2q.3, off by default. */
+  readonly edgeSamples?: number;
 }
 
 /**
@@ -454,6 +605,7 @@ export function incoherentImage(
     pupilSamples: options.pupilSamples,
     size: n,
     ...(options.scale === undefined ? {} : { scale: options.scale }),
+    ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
   });
   const intensity = convolveCircular(object.values, kernel.values, n);
   const weight = throughputWeight(options.throughput, kernel.formedSum);
