@@ -1231,4 +1231,5 @@ radial-map nodes · § 6ba differential bleaching.
     pixel's hand-over at the vertex — read off the image at [§ 2q.2](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)).
     Checked at a second lattice, every rendered focus there scattered with the
     point-sampled rim, by up to 7e-3 mm on the axis; resolved at [§ 2q.3](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout),
-    opt-in, and the flip takes it with the interpolated peak (item 32 opened).
+    opt-in, and the flip takes it with the interpolated peak (item 32 opened); the
+    single plane takes it too, so § 6bb.2's seam can be read on one rim.

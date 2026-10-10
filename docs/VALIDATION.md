@@ -4624,7 +4624,7 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
-Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume and `FocusSweepOptions`
+Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`
 · Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
@@ -4653,6 +4653,7 @@ on a cloned prescription, which no earlier read can have touched.
 | | § 6bb.12's haze stack, resolved: its flux equal at 3, 6, 12 and 24 slices and slice by slice to 1e-13 — the edge's lost light returned as a floor | ✅ |
 | | a disc with w40 = 0.5 wave focuses at w20 = −w40 exactly (t → 1 − t): resolved, within 4.5e-4 wave and falling steadily from 48 to 127; point-sampled 4.58e-3 at 48 and −1.60e-3 at 47 | ✅ |
 | | the 4× on axis at the design wavelength, swept at 47, 48 and 64 samples: 1.2e-3 mm apart point-sampled, 2.7e-5 resolved | ✅ |
+| | the single plane takes it too: off, bitwise; on, § 6bb.2's slab seam closes to 1e-14 at 430, 546 and 680 nm, and a 4-patch plane's flux to 1e-13 | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
@@ -4768,7 +4769,16 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
 ### What it leaves
 
 - **The volume and focus-surface flip itself** — the rest of this step, on the
-  band-limited readout and the resolved rim. Every pinned focus in § 6bb.6,
+  band-limited readout and the resolved rim. Turned on across the chain first,
+  on the aim layout, the two move 143 readings: 76 with the rim alone, 61 with
+  either, 4 with the readout alone. Among them, on 47, 48 and 56 samples alike:
+  § 6be.6's achromatic field profile was the staircase (a second aperture's clip
+  moves 3e-3 in pupil radius across the band from 3 mm out, between lattice
+  points; resolved, 0.16–0.22%), § 6bd.4's sign is one sign, § 6bd.3's ratio
+  is 1.4–1.9 against > 3, and § 6be's colour × field interaction is 5e-3 mm
+  against < 1.3e-3. The 2×'s plateau refusal and the in-frame tilt do not
+  settle across those lattices. Restated group by group — the patched field,
+  the spectral volume, then the focus chain and the app. Every pinned focus in § 6bb.6,
   § 6be and § 6bf moves with it: the 4×'s 430 nm figure, 0.2140 mm at 48
   samples, is 5e-3 mm from where the resolved rim settles.
 - **A smooth hump remains at 430 nm.** Resolved, the axial focus rises from

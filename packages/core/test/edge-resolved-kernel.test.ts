@@ -4,6 +4,11 @@ import { renderedBestFocus, type FocusSweepOptions } from "../src/imaging/focus-
 import { gaussianBallEmitter, slabEmitter, uniformSlabs } from "../src/imaging/emitter-volume";
 import { gaussianEmitter } from "../src/imaging/emitter-density";
 import { formVolumePlane, neutralVolumeEmitterDensity } from "../src/imaging/spectral-volume";
+import { formEmitterPlane, neutralEmitterDensity } from "../src/imaging/emitter-spectrum";
+import { renderFluorescence } from "../src/imaging/fluorescence";
+import { objectFieldTile, tracedFieldPupils } from "../src/imaging/object-field";
+import { radialMapCovering } from "../src/imaging/radial-map";
+import { rasterizeEmitterDensity } from "../src/imaging/emitter-density";
 import { finiteConjugateMicroscope, finiteConjugateObjective } from "../src/designs/microscope";
 import type { PupilFunction } from "../src/wave/psf";
 
@@ -176,6 +181,73 @@ describe("§ 2q.3 — the rim is resolved, not point-sampled", () => {
     for (const t of imaged) expect(Math.abs(t / imaged[0]! - 1)).toBeLessThan(1e-13);
     expect(Math.abs(ends[0]! / ends[11]! - 1)).toBeLessThan(1e-13);
     expect(Math.abs(ends[23]! / ends[11]! - 1)).toBeLessThan(1e-13);
+  });
+
+  it("the single plane resolves its rim the same way, so the slab seam still closes", () => {
+    // § 6bb.2's seam: a thin slab at focus is the plane times its thickness. The
+    // volume side has carried `edgeSamples` since the rung above; the plane side
+    // takes it now, and the seam must close on the resolved rim as it did on the
+    // staircase — both sides on one rim, or the ratio measures the mismatch.
+    const system = finiteConjugateMicroscope({
+      objective: finiteConjugateObjective({ magnification: 4, numericalAperture: 0.1 }),
+    }).system;
+    const lateral = gaussianEmitter({ waistMm: 0.012, peak: 1 });
+    const haze = slabEmitter({ lateral, fromMm: -1, toMm: 1 });
+    const thickness = 0.004;
+    const total = (v: Float64Array) => v.reduce((a, x) => a + x, 0);
+    for (const nm of [430, 546.074, 680]) {
+      const plane = (edgeSamples?: number) =>
+        formEmitterPlane(
+          system,
+          neutralEmitterDensity(lateral),
+          { size: 64, pupilSamples: 32, samples: [], ...(edgeSamples === undefined ? {} : { edgeSamples }) },
+          { nm, weight: 1 },
+          { x: 0, y: 0 },
+        ).input.intensity;
+      // Off is the point-sampled plane, bitwise.
+      const plain = plane();
+      const one = plane(1);
+      for (let i = 0; i < plain.length; i++) expect(Object.is(one[i], plain[i])).toBe(true);
+
+      const flat = plane(EDGE);
+      const slab = formVolumePlane(
+        system,
+        neutralVolumeEmitterDensity(haze),
+        {
+          size: 64,
+          pupilSamples: 32,
+          samples: [],
+          slabs: { depthsMm: [0], thicknessMm: [thickness] },
+          edgeSamples: EDGE,
+        },
+        { nm, weight: 1 },
+        { x: 0, y: 0 },
+      );
+      expect(Math.abs(total(slab.image.intensity) / (total(flat) * thickness) - 1)).toBeLessThan(1e-14);
+      // Not vacuous: the resolved rim passes the cut cells' light, 0.90% more at
+      // 430 nm on this lattice than the staircase counted.
+      expect(total(flat) / total(plain) - 1).toBeGreaterThan(5e-3);
+    }
+
+    // And a patched plane keeps its flux books on the resolved rim: what it
+    // formed is what each patch's window carried times that patch's weight.
+    const frame = objectFieldTile(system, {
+      size: 64,
+      pupilSamples: 32,
+      wavelengthNm: 546.074,
+      centreMm: { x: 4.5, y: 0 },
+    });
+    // Uniform, so every patch's window carries light.
+    const object = rasterizeEmitterDensity(frame, () => 1, {
+      radialMap: radialMapCovering(system, [frame], { nodes: 128 }),
+    });
+    const formed = renderFluorescence(object, tracedFieldPupils(system, frame), {
+      patches: 4,
+      pupilSamples: 32,
+      throughput: { kind: "transmitted" },
+      edgeSamples: EDGE,
+    });
+    expect(Math.abs(total(formed.intensity) / formed.weightedEmittedFlux - 1)).toBeLessThan(1e-13);
   });
 
   it("a disc with spherical aberration focuses at −w40: resolved it converges, point-sampled it scatters", () => {

@@ -700,6 +700,8 @@ export interface FluorescenceFieldOptions {
    * fall off however hard the objective vignettes (§ 6bc.4).
    */
   readonly throughput: ThroughputUnits;
+  /** Passed to every patch's `incoherentPsf` — § 2q.3, off by default. */
+  readonly edgeSamples?: number;
 }
 
 export interface FluorescenceFieldResult {
@@ -785,6 +787,7 @@ export function renderFluorescence(
         pupilSamples: options.pupilSamples,
         throughput: options.throughput,
         ...(options.scale === undefined ? {} : { scale: options.scale }),
+        ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
       });
       maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, formed.maxGridPhaseStepWaves);
       patchThroughput.push(formed.formedSum);

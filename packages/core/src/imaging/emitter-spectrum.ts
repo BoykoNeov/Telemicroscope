@@ -318,6 +318,8 @@ export interface FluorescenceSpectrumOptions extends FieldPupilOptions {
   readonly size: number;
   /** Frequency bins across the pupil diameter, as in `abbeImage`. */
   readonly pupilSamples: number;
+  /** Passed to every plane's `incoherentPsf` — § 2q.3, off by default. */
+  readonly edgeSamples?: number;
   /**
    * The wavelengths, sampled. `weight` is **pure quadrature** — Δλ and nothing
    * else, so `quadratureSamples`. Every label's band lives in the density and
@@ -406,6 +408,7 @@ export function formEmitterPlane(
     scale: frame.scale,
     throughput: { kind: "transmitted" },
     ...(options.patches === undefined ? {} : { patches: options.patches }),
+    ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
   });
   return {
     frame,
