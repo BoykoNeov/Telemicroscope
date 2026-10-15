@@ -84,6 +84,9 @@ export const createVisualCeilingWorker = () =>
 export const createSectionWorker = () =>
   new Worker(new URL("./section.worker.ts", import.meta.url), { type: "module" });
 
+export const createScopeWorker = () =>
+  new Worker(new URL("./scope.worker.ts", import.meta.url), { type: "module" });
+
 export const createToleranceWorker = () =>
   new Worker(new URL("./tolerance.worker.ts", import.meta.url), { type: "module" });
 

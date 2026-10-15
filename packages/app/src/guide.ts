@@ -125,8 +125,8 @@ export const TOURS: readonly Tour[] = [
     id: "microscope",
     group: "microscope",
     title: "How a microscope makes a picture",
-    why: "Each way of lighting the slide in turn, and what each one can and cannot show you.",
-    steps: ["brightfield", "phase", "fluorescence", "volume", "section"],
+    why: "Start with the whole instrument, then each way of lighting the slide and what it can and cannot show you.",
+    steps: ["scope", "brightfield", "phase", "fluorescence", "volume", "section"],
   },
   {
     id: "telescope",

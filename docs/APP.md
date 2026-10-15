@@ -84,6 +84,7 @@ sufficient alone.
 | Part P | `#/budget` | the tolerance sheet, and the second lens whose rows reinforce |
 | Part Q | `#/emitter` | a source with a size, and the error no grid refines away |
 | Part R | `#/home` | the start page: menus by topic, three guided paths, a plain line per page |
+| Part S | `#/scope` | the whole microscope, lamp to detector, every part changing the picture |
 | ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
 
 ## The baseline: what the app draws today, and its house style
@@ -6961,6 +6962,75 @@ section signs, no `APP.md`, no `Part X`. That last check is the user's own rule,
 **What it does not do.** The panels' own prose is untouched: a page still opens
 in the voice it was written in, and rewriting thirty-one panels' text for a
 first-time reader is a different and much larger job than giving them a map.
+
+## Part S — the whole microscope, every part live — *app wiring, plus one engine step it forced (§ 6ct)* — ✅ **landed** — **a diagram and a picture**
+
+Every microscope surface here takes the instrument apart and asks one question
+of one piece. Nothing put it back together: no page showed lamp → condenser →
+slide → objective → tube → detector as one instrument, and none let a reader
+change a part and see what the picture does. `#/scope` is that page — a
+schematic of the light path whose parts are buttons, a card of controls for the
+selected part, and the picture the instrument forms, re-traced on every change,
+with the previous recording kept beside it and captioned by the change that
+replaced it.
+
+**Every part changes the INSTRUMENT, never the picture.** `packages/app/src/scope.ts`
+turns each control into a change the trace or the sampler then has to answer to,
+and the picture is the colour section's own path (§ 6r's polychromatic Abbe sum):
+
+| Part | What the control changes | What pins it |
+| --- | --- | --- |
+| lamp | the source spectrum (A9's two) | nominal = `renderSection`, byte for byte |
+| condenser | S, in eighths (S·N must be whole for the commensurate source); capped at NA 0.95 dry / 1.4 oiled | `condenserCap` |
+| stage | x/y moves the specimen under the axis; focus moves the OBJECTIVE — the air gap, or the oil film | contrast falls three depths of focus out |
+| cover slip | the specimen's depth in glass; on a bare design a plate is inserted where the specimen sat | refocus = t(1 − 1/n), and Δt·n_oil/n_slip on oil, to 1e-7 mm |
+| objective | a `BuildSpec`: preset, magnification, NA — refusals are the builder's | — |
+| tube lens | infinity: a tube lens of another focal length behind the same objective; DIN: a longer tube, i.e. the sensor moved | M ∝ f_tube to 1e-3; DIN refocused M = x′/f to 1% |
+| detector | `resampleToSensor` at a pitch in the IMAGE plane: a camera's pixel, or an eyepiece's focal length × one cone's angle | matched pitch records the optical image exactly |
+
+Two of those deserve their reasons. **Focus moves the objective, not the image
+plane**, because `coverslip.ts` measures that image-side refocus is a different
+instrument and wrong by an order of magnitude for immersion. **The detector
+pitch is image-plane**, because that is the space `ColorImage.pixelScaleMm` is
+in — so magnification enters through the trace and is never multiplied in by
+hand; the matched-pitch test is what would catch a pitch read in object space.
+
+**The eye** is a perfect lens sampled by foveal cones at the mean peak density
+of Curcio, Sloan, Kalina & Hendrickson, *J. Comp. Neurol.* 292:497–523 (1990),
+199 000 cones/mm² — 2.41 µm on a triangular lattice, 0.497′ through the reduced
+eye's 16.7 mm nodal distance, so two cones are the 1′ 20/20 line to 0.6%. Its own
+aberrations are left out and the card says so; at the exit pupils a microscope
+delivers the instrument's aperture, not the eye's, is the diffraction limit.
+
+**What driving it found, before a line of panel code.** The colour path refused
+every objective above 10× — § 6bk's unseeded bracket, on a caller § 6bk had not
+reached. § 6ct is the fix, and it is why this part names an engine step.
+Three more things measured on the way:
+
+- **High power opened on empty glass.** A 100× frame is ≈5 µm across and the
+  diatoms sit 150 µm apart, so the slide's origin showed nothing. Each slide now
+  starts at `STAGE_HOME`: the point within ±150 µm whose 5 µm and 60 µm windows
+  both carry structure — the slide moved, no specimen changed.
+- **A slip 30 µm too thick cannot be focused on the oil objective at all**: its
+  film is 20 µm, and refocusing would need a negative one. The panel reports
+  "no reachable position is sharp" rather than refusing the render — the same
+  thick-end wall A6 measures.
+- **At NA 0.10 a cover slip costs nothing but focus**: added to the bare 10×
+  and refocused, contrast returns to 0.2430 against 0.2423 without it. The card
+  says the error grows steeply with aperture, and the catalogue's dry rows stop
+  at 0.20, so the expensive case is on `#/coverslip`, not here.
+
+**Cost.** ~130–200 ms a render at the quick sampling (32 pupil samples, grid
+64), 2–7 s at the fine one (64/128). The oil rows' blue plane refuses at quick
+and the guard says so in words, with "try fine quality".
+
+**What it does not do.** The picture is the CENTRE of the field (≈70 µm at 4×,
+≈5 µm at 100×), not the eyepiece's whole field of view — a field-wide picture
+is the stage's mosaic, and the readout says the real field is wider. There is no
+light budget: the lamp is a spectrum, not a brightness, as on every colour
+surface here. And `#/section` and `#/stage` still build unseeded, so their high
+rows still refuse; turning § 6ct's seed on there moves their pinned numbers by
+the mantissa and is their decision, not this part's.
 
 ## What the app itself needs to hold this
 

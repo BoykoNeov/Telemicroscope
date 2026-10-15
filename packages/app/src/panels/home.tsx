@@ -64,6 +64,23 @@ export function HomePanel() {
         instead of drawing something plausible.
       </p>
 
+      <a
+        className="home-hero"
+        href="#/scope"
+        onMouseEnter={() => {
+          const scope = byId("scope");
+          if (scope) warm(scope);
+        }}
+      >
+        <span className="home-hero-kicker">start here</span>
+        <span className="home-hero-title">The whole microscope →</span>
+        <span className="home-hero-text">
+          A drawing of a microscope from lamp to camera. Click any part — the condenser, the slide, the
+          cover slip, the objective, the tube lens, the camera or your eye — change it, and see what
+          happens to the picture, side by side with how it looked before.
+        </span>
+      </a>
+
       <h2 className="home-section">Guided paths</h2>
       <p className="home-section-hint">
         Not sure where to begin? Each path visits a handful of pages in order; every page on a path

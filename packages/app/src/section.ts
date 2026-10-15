@@ -392,7 +392,7 @@ const WHITE_OVER_MEAN = 2;
  * the spectral image is the observer's integral. Sharing an exposure would put a
  * brightness difference on screen and let a reader read it as a colour one.
  */
-function expose(image: ColorImage, pixels: number): Uint8ClampedArray<ArrayBuffer> {
+export function expose(image: ColorImage, pixels: number): Uint8ClampedArray<ArrayBuffer> {
   const meanY = integratedXyz(image).y / pixels;
   return toSrgbBytes(image, { exposure: meanY > 0 ? 1 / (WHITE_OVER_MEAN * meanY) : 1 });
 }

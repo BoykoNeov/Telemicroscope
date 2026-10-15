@@ -196,6 +196,17 @@ export function liveFields(spec: BuildSpec): {
   };
 }
 
+/** What a build may change about the instrument without changing the objective. */
+export interface BuildOptions {
+  /**
+   * Infinity architectures only: the focal length (mm) of the tube lens the
+   * objective is actually used behind. Omitted, it is `spec.tubeLengthMm` —
+   * the tube the objective was designed for, which is every build before the
+   * diagram existed. The DIN architecture has no tube lens and ignores it.
+   */
+  readonly tubeFocalLengthMm?: number;
+}
+
 /** The composed instrument, plus the objective's own solved numbers. */
 export interface BuiltMicroscope {
   readonly system: OpticalSystem;
@@ -305,7 +316,7 @@ const listerNumbers = (lens: {
  * saying the combination has no engine call; anything else is the engine's own
  * exception, propagated untouched so its measured numbers reach the screen.
  */
-export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
+export function buildMicroscope(spec: BuildSpec, options: BuildOptions = {}): BuiltMicroscope {
   const glass = { crownMedium: spec.crownMedium, flintMedium: spec.flintMedium };
 
   if (spec.architecture === "din") {
@@ -358,8 +369,13 @@ export function buildMicroscope(spec: BuildSpec): BuiltMicroscope {
 
   // Every infinity form shares one tube lens, and its focal length IS the one the
   // objective's magnification is quoted against. Two controls would let a reader
-  // build a 4× that forms 3.6×, which is a mislabelled lens rather than a design.
-  const tube = tubeLens({ focalLengthMm: spec.tubeLengthMm, ...glass });
+  // build a 4× that forms 3.6×, which is a mislabelled lens rather than a design —
+  // so the FORM has one. `options.tubeFocalLengthMm` is the other thing: the
+  // labelled objective put behind a tube lens it was not quoted against, which
+  // is a real instrument (a 200 mm objective on a 180 mm stand) and is what the
+  // microscope diagram's tube-lens control means. The objective is still solved
+  // for `spec.tubeLengthMm`; only the lens behind it changes.
+  const tube = tubeLens({ focalLengthMm: options.tubeFocalLengthMm ?? spec.tubeLengthMm, ...glass });
   const compose = (
     objective: Parameters<typeof infinityCorrectedMicroscope>[0]["objective"],
   ) =>

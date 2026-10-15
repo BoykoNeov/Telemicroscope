@@ -164,6 +164,15 @@ export const PANELS: readonly Panel[] = [
     ...lazyPanel(() => import("./home").then((m) => ({ default: m.HomePanel }))),
   },
   {
+    id: "scope",
+    label: "the whole microscope",
+    blurb: "APP.md Part S — every part from lamp to detector, each one live, through § 6r's colour path seeded by § 6ct",
+    group: "microscope",
+    topic: "scope-look",
+    summary: "A whole microscope, drawn: change the lamp, condenser, slide, cover slip, objective, tube lens or camera and watch the picture change.",
+    ...lazyPanel(() => import("./scope").then((m) => ({ default: m.ScopePanel }))),
+  },
+  {
     id: "telescope",
     label: "star & field",
     blurb: "roadmap step 4 — chromatic fringing, and a field-varying PSF across 25 stars",
