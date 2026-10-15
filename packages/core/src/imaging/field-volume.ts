@@ -1,5 +1,5 @@
 import { imagePixelScaleMm, type PupilScale } from "../wave/psf";
-import { incoherentImage, type EmitterField } from "./fluorescence";
+import { incoherentImage, type EdgeRule, type EmitterField } from "./fluorescence";
 import type { PatchPupil } from "./brightfield";
 import { patchWeight } from "./render";
 import {
@@ -236,6 +236,8 @@ export interface FieldVolumeOptions {
   readonly scale?: PupilScale;
   /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
   /** Called once per patch finished, for progress and cost accounting. */
   readonly onPatch?: (done: number, total: number) => void;
   /**
@@ -436,6 +438,7 @@ export function renderFieldVolume(
           throughput: { kind: "transmitted" },
           ...(options.scale === undefined ? {} : { scale: options.scale }),
           ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+          ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
         });
         maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, formed.maxGridPhaseStepWaves);
         if (s === reference) referenceSum = formed.formedSum;

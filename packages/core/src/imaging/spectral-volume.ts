@@ -3,6 +3,7 @@ import { objectNumericalAperture } from "../pupil/microscope";
 import { paraxialTrace } from "../trace/paraxial";
 import type { OpticalSystem, WavelengthSample } from "../trace/system";
 import type { EmissionSpectrum } from "./emission";
+import type { EdgeRule } from "./fluorescence";
 import {
   depthRescale,
   rasterizeEmitterVolume,
@@ -340,6 +341,8 @@ export interface FluorescenceVolumeOptions extends FieldPupilOptions {
   readonly pupilSamples: number;
   /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
   /**
    * The wavelengths, sampled. `weight` is **pure quadrature** — Δλ and nothing
    * else, so `quadratureSamples`. Every label's band lives in the density and
@@ -596,6 +599,7 @@ export function formVolumePlane(
       refractiveIndex,
       scale: frame.scale,
       ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+      ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
       ...(options.onSlice === undefined
         ? {}
         : { onSlice: (done: number, total: number) => options.onSlice!(done, total, sample.nm) }),

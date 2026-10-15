@@ -38,7 +38,7 @@ whole ladder.
 | [2n](#step-2n--brightfield-on-the-exit-layout-a-direction-at-its-optical-sine) | Brightfield flips by its frame: a direction at its optical sine, a field component at its own cos θ; a clear field is Fresnel's to 1e-7 | `brightfield-exit-layout` |
 | [2o](#step-2o--the-exit-layouts-orientation-the-geometrys-not-the-aims) | Past infinity the aim mirrors a telecentric pupil (531–587 nm, DIN 4×) and the exit layout copied it; signed by convergence, its centroid is the rays' | `exit-orientation` |
 | [2p](#step-2p--fluorescence-on-the-exit-layout-an-emitters-light-is-its-collected-cone) | Single-plane fluorescence flips by its frame: a plane's light is the emitter's collected cone, 2/(1 + cos u) of the paraxial share, to 3e-4 | `throughput-units` |
-| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Cached sibling rim; pixel hand-over at the vertex; staircase rim. Keyed; peak interpolated; rim resolved | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel` |
+| [2q](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout) | Cached sibling rim; pixel hand-over; staircase rim; counted edge. Keyed; peak interpolated; rim resolved; edge located | `aperture-sine-key`, `band-limited-peak`, `edge-resolved-kernel`, `edge-crossing` |
 | [3a](#step-3a--the-standard-observer-and-thermal-sources) | CIE 1931 observer, Planck sources, sRGB | `photometry` |
 | [3b](#step-3b--the-hero-image-colour-out-of-chromatic-aberration) | The milestone: a singlet fringes, an achromat does not | `hero` |
 | [3c](#step-3c--the-spatially-variant-full-field-render) | Patch decomposition conserves light; field mapping from the chief ray; the cost model corrected — far fewer field RADII than patches, cached ≡ uncached bit for bit; the refinement ladder's middle levels dropped; the fidelity criterion read off the trace | `render` `golden` `geometric` |
@@ -4625,8 +4625,8 @@ objective's sine-condition residual (~3e-4 on the DIN 4×).
 
 ## Step 2q — the volume and focus-surface chain on the exit layout
 
-Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`
-· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
+Source: engine fix — `exitApertureSine`'s cache key (`pupil/opd.ts`) names every field of the system the reading depends on; engine change — `bandLimitedPeak` (`math/band-limited-peak.ts`), opt-in to a focus sweep as `FocusSweepOptions.peak`; engine change — `incoherentPsf`'s `edgeSamples` (`imaging/fluorescence.ts`), opt-in, carried by `renderVolume`, `renderFieldVolume`, the spectral volume, `FocusSweepOptions`, `renderFluorescence` and `formEmitterPlane`; engine change — `EdgeRule` `"crossing"` (`imaging/fluorescence.ts`), opt-in beside `edgeSamples` and carried with it
+· Tests: § 2q.1 in `packages/core/test/aperture-sine-key.test.ts`; § 2q.2 in `band-limited-peak.test.ts`; § 2q.3 in `edge-resolved-kernel.test.ts`; § 2q.4 in `edge-crossing.test.ts`; § 6r.7 restated in `brightfield-spectrum.test.ts`
 
 Register item 24's last fluorescence chain, step 2 of the user's split: the
 volume and focus-surface pictures (§ 6k, § 6l's app panels, § 6az, § 6bb,
@@ -4655,6 +4655,9 @@ on a cloned prescription, which no earlier read can have touched.
 | | a disc with w40 = 0.5 wave focuses at w20 = −w40 exactly (t → 1 − t): resolved, within 4.5e-4 wave and falling steadily from 48 to 127; point-sampled 4.58e-3 at 48 and −1.60e-3 at 47 | ✅ |
 | | the 4× on axis at the design wavelength, swept at 47, 48 and 64 samples: 1.2e-3 mm apart point-sampled, 2.7e-5 resolved | ✅ |
 | | the single plane takes it too: off, bitwise; on, § 6bb.2's slab seam closes to 1e-14 at 430, 546 and 680 nm, and a 4-patch plane's flux to 1e-13 | ✅ |
+| **§ 2q.4 — the edge is located, not counted** | default bitwise § 2q.3; an ellipse 1.003:1, moved and turned, keeps πab to 5e-8 on 24–64 samples where the count misses by 1.9–5.0e-4 | ✅ |
+| | a disc cut by a chord keeps the segment's closed form to 5e-6 (count: over 1e-3); π to 1e-8 on § 2q.3's ten lattices; −w40 converging; § 6bb.12's flux to 1e-13 on both layouts | ✅ |
+| | the 4×'s on-axis frame on exit: span 2.478e-6 at 8 sub-samples, 2.481e-6 at 32, grid-free 2.428e-6; counted 1.29e-4 | ✅ |
 
 § 6az.5's NaN was the lever — the DIN 4× with its stop on the front surface —
 reading the default objective's rim after § 6az.2 had read it, so its two
@@ -4815,6 +4818,66 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
   on the compiled prescription without the conjugate distance), and it is not a
   wrong answer: a stale one only seeds the chord iteration, which falls back to
   Newton and checks its own miss — iterations and last bits, never the ray.
+
+### § 2q.4 — the counted edge
+
+The flip was trialled on § 2q.3's resolved rim and moved 191 readings, and
+re-run with 32 sub-samples instead of 8 a group of them moved again: every
+reading that compares the light of two pupils — one field point against
+another, one wavelength against another. On the exit layout the 4×/0.10's
+on-axis frame, sixteen patch pupils, spanned 1.29e-4 in the light it passed.
+**First hypothesis:** the count — the sub-grid asks the pupil inside or out, and
+on the exit layout the outline changes shape with field, so the count's error
+no longer repeats (register item 25's mechanism, on this kernel). **Refuted
+by** a span that stays put with more sub-samples. It does not:
+
+| Sub-samples | 8 | 16 | 32 | 64 | grid-free |
+|---|---|---|---|---|---|
+| counted, exit (span) | 1.29e-4 | 9.47e-5 | 3.53e-5 | 9.00e-6 | 2.43e-6 |
+| located, exit | 2.478e-6 | 2.483e-6 | 2.481e-6 | 2.481e-6 | |
+| either, aim | 1.97e-8 | 1.97e-8 | 1.97e-8 | 1.97e-8 | 1.98e-8 |
+
+The grid-free number is § 2l's change of variables onto the aim disc, which
+reads an unvignetted pupil only; most of what the flip moves lies past the clip,
+so it could not stand in for the kernel there. `EdgeRule` `"crossing"` locates
+the outline instead. A cut cell is cut into strips **across** the outline — a
+strip along an edge is wholly in or out and counts again, so each cell takes
+whichever family of lines crosses its outline more — and on each line every
+crossing between two nodes is bisected, so its open run is exact; the field
+is integrated over the run. Across the strips the open length is smooth except
+where the outline leaves the cell through a side the lines end on, so those
+exits are located too and each piece between them integrated on its own; a
+rule across that assumed it smooth erred by 1e-6 of a disc's area in an amount
+that moved with where the outline met the side. And a cell whose four sides all
+agree is wholly in or out — two-thirds of the mask is its one-cell dilation —
+so the sides are asked first, corners included: a first version that probed
+only inside lines missed eight corner nips of an r = 0.9 disc at 24 samples,
+9.3e-5 of a cell each, 2.0e-6 of the area.
+
+The external pins are areas: an ellipse of 1.003:1, the near-circle a traced
+rim is, moved by sub-cell offsets and turned, keeps πab to 1.8e-8 at 24 samples
+and under 2.5e-9 from 47 up, where the count misses by 1.9e-4 to 5.0e-4; a disc
+cut by a chord keeps πr² less the circular segment to 3e-7–2.1e-6, the clip's
+corner, against 1.9e-3 to 4.9e-3 counted; π to 3.7e-9 on § 2q.3's ten lattices.
+−w40 still converges, and its residual, 4.2e-4 to 1.2e-4 over 48–127 samples,
+is the count's size: the interior lattice's sampling of the phase, not the edge.
+**Opt-in**: `edgeRule` defaults to `"count"`, bitwise; nothing in the suite
+moves in this commit. It costs 2.3–2.5× the count's pupil evaluations.
+
+### What it leaves
+
+- **The volume and focus-surface flip itself**, now on the located edge. Of
+  the 191 trial movers, the ones that compare pupils are the count's; the focus
+  positions, frame extents and the clip's onset are the layout's.
+- **The exit layout's light is not concave in field before the clip.** Its
+  second differences over 1.0–1.75 mm of image radius are +1.14e-5, −9.7e-6 and
+  +5.3e-6 of the axial light grid-free, and +1.2e-5, −9.8e-6 and +5.5e-6 located —
+  the same profile, so § 6bd.4's concavity is the pupil model's to answer, not
+  the grid's; whether it is the light or the traced irradiance fit is untested.
+- **A clip's corner** — two outlines meeting inside a cell — kinks a strip's
+  open length where no side does, and leaves up to 2.1e-6 of the area.
+- **`wave/psf`'s `pupilSampling` still counts** — register item 25's own site,
+  read by § 5v.1, § 8a.7, § 8b.2 and § 8c.6 grid-free or at 16 sub-samples.
 
 ## Step 3a — the standard observer and thermal sources
 

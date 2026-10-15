@@ -183,7 +183,35 @@ export interface IncoherentPsfOptions {
    * moves it under 4e-5 mm from the frame's own image from 40 samples up.
    */
   readonly edgeSamples?: number;
+  /**
+   * How a cut cell's sub-grid reads the outline (§ 2q.4) — `EdgeRule`. Default
+   * `"count"`, § 2q.3's, bitwise. Needs `edgeSamples` > 1.
+   */
+  readonly edgeRule?: EdgeRule;
 }
+
+/**
+ * How a cut cell finds its share of the aperture (§ 2q.4).
+ *
+ * `"count"` — § 2q.3: the pupil asked at an `edgeSamples`² sub-grid, inside or
+ * out. The count of an outline on a lattice is off by up to a few 1e-4 of the
+ * light, and it does not average away: on the aim layout the outline is one
+ * circle at every field point and wavelength, so the error is the same in every
+ * frame and cancels in their ratios. On the exit layout the outline is the traced
+ * rim, which changes shape with both, and the error moves with it — 1.3e-4 across
+ * the 4×/0.10's on-axis frame at 8 sub-samples, where the light itself (grid-free)
+ * varies by 2.4e-6, and still 9e-6 at 64.
+ *
+ * `"crossing"` — the outline is located, not counted: lines are laid ACROSS it
+ * and every place it crosses one is found by bisection, so each line's open run
+ * is exact and the field is integrated over it. Across, because a line running
+ * along an edge is wholly in or wholly out and counts again: the direction is
+ * per cell, whichever family of lines crosses the outline more. `edgeSamples` is
+ * then the node spacing that finds the outline, not a quadrature. The same 4×
+ * frame reads 2.48e-6 at 8 and at 32; an ellipse moved and turned keeps πab to
+ * 5e-8 where the count misses by up to 5e-4. 2.3–2.5× the count's pupil reads.
+ */
+export type EdgeRule = "count" | "crossing";
 
 export interface IncoherentPsf {
   readonly size: number;
@@ -389,6 +417,184 @@ function cellMean(
   out[2] = power / cells;
 }
 
+/** Two-point Gauss–Legendre nodes on [0, 1]; both weights are ½. */
+const GL2_LO = 0.5 - 0.5 / Math.sqrt(3);
+const GL2_HI = 0.5 + 0.5 / Math.sqrt(3);
+/** Three-point Gauss–Legendre on [0, 1]: nodes, then weights 5/18, 8/18, 5/18. */
+const GL3_X = [0.5 - 0.5 * Math.sqrt(3 / 5), 0.5, 0.5 + 0.5 * Math.sqrt(3 / 5)] as const;
+const GL3_W = [5 / 18, 8 / 18, 5 / 18] as const;
+/**
+ * Bisection halvings per crossing: 2⁻¹⁶ of a sub-interval. Each located end is
+ * off by under 2e-6 of a cell side, of either sign from line to line — near
+ * 1e-8 of a pupil's light in all, two orders below what the rule is read at.
+ */
+const CROSSING_HALVINGS = 16;
+
+/**
+ * `cellMean` under `EdgeRule` `"crossing"` (§ 2q.4): `[re, im, power]` into
+ * `out`, the cell's means, from lines across the outline whose open runs are
+ * located rather than counted.
+ *
+ * Every line is asked at `m + 1` nodes, `step/m` apart with the cell's own
+ * sides included; between two nodes that disagree the crossing is bisected. Two
+ * crossings inside one gap — an outline grazing a line between two nodes — are
+ * missed, a sliver of order (step/m)³ of curvature. The sides are asked first
+ * and the corners with them: an earlier draft that asked only inner lines missed
+ * eight corner nips of an r = 0.9 disc at 24 samples, 9.3e-5 of a cell each.
+ */
+function cellMeanCrossing(
+  pupil: PupilFunction,
+  px: number,
+  py: number,
+  step: number,
+  m: number,
+  out: Float64Array,
+): void {
+  const x0 = px - 0.5 * step;
+  const y0 = py - 0.5 * step;
+  const h = step / m;
+  // An outline that enters the cell crosses one of its sides, so the sides are
+  // asked first. Two-thirds of the mask is its one-cell dilation, and a cell whose
+  // sides all agree is wholly in or out: in, its smooth field is a 3×3
+  // Gauss–Legendre; out, nothing. An excursion narrower than a node gap slips
+  // between the nodes, the sliver every line already accepts.
+  const inside = (x: number, y: number): number => (pupil.amplitude(x, y) > 0 ? 1 : 0);
+  const first = inside(x0, y0);
+  let uniform = true;
+  for (let k = 1; k <= m && uniform; k++) {
+    const t = k * h;
+    uniform =
+      inside(x0 + t, y0) === first &&
+      inside(x0 + step, y0 + t) === first &&
+      inside(x0 + step - t, y0 + step) === first &&
+      inside(x0, y0 + step - t) === first;
+  }
+  if (uniform) {
+    let re = 0;
+    let im = 0;
+    let power = 0;
+    for (let gy = 0; gy < 3 && first === 1; gy++) {
+      for (let gx = 0; gx < 3; gx++) {
+        const qx = x0 + GL3_X[gx]! * step;
+        const qy = y0 + GL3_X[gy]! * step;
+        const a = pupil.amplitude(qx, qy);
+        if (!(a > 0)) continue;
+        const w = GL3_W[gx]! * GL3_W[gy]!;
+        const ang = 2 * Math.PI * pupil.phaseWaves(qx, qy);
+        re += w * a * Math.cos(ang);
+        im += w * a * Math.sin(ang);
+        power += w * a * a;
+      }
+    }
+    out[0] = re;
+    out[1] = im;
+    out[2] = power;
+    return;
+  }
+  const rows = new Uint8Array(m * (m + 1));
+  const cols = new Uint8Array(m * (m + 1));
+  let rowCrossings = 0;
+  let colCrossings = 0;
+  for (let j = 0; j < m; j++) {
+    const across = (j + 0.5) * h;
+    for (let k = 0; k <= m; k++) {
+      const r = inside(x0 + k * h, y0 + across);
+      const c = inside(x0 + across, y0 + k * h);
+      rows[j * (m + 1) + k] = r;
+      cols[j * (m + 1) + k] = c;
+      if (k > 0 && r !== rows[j * (m + 1) + k - 1]) rowCrossings++;
+      if (k > 0 && c !== cols[j * (m + 1) + k - 1]) colCrossings++;
+    }
+  }
+  // Both zero only when the outline grazes a side between the inner lines' ends;
+  // either family then reads it.
+  const alongX = rowCrossings >= colCrossings;
+  // A point at `t` along a line `s` across, in the strips' direction.
+  const at = (t: number, s: number): number => inside(alongX ? x0 + t : x0 + s, alongX ? y0 + s : y0 + t);
+  // Bisect between two disagreeing points of a segment, `inside(lo)` = `a`.
+  const crossing = (lo: number, hi: number, a: number, test: (u: number) => number): number => {
+    for (let i = 0; i < CROSSING_HALVINGS; i++) {
+      const mid = 0.5 * (lo + hi);
+      if (test(mid) === a) lo = mid;
+      else hi = mid;
+    }
+    return 0.5 * (lo + hi);
+  };
+
+  let re = 0;
+  let im = 0;
+  let power = 0;
+  const flags = new Uint8Array(m + 1);
+  // One line `across` the strips, its open length located and its field
+  // integrated, weighted by `weight` (an area per unit length). The nodes only
+  // find the outline; the field is smooth on each open run, which is one
+  // three-point Gauss–Legendre between its located ends.
+  const line = (across: number, weight: number) => {
+    const x = (t: number) => (alongX ? x0 + t : x0 + across);
+    const y = (t: number) => (alongX ? y0 + across : y0 + t);
+    for (let k = 0; k <= m; k++) flags[k] = at(k * h, across);
+    const integrate = (t0: number, t1: number) => {
+      const len = t1 - t0;
+      for (let g = 0; g < 3; g++) {
+        const t = t0 + GL3_X[g]! * len;
+        const a = pupil.amplitude(x(t), y(t));
+        if (!(a > 0)) continue;
+        const w = GL3_W[g]! * len * weight;
+        const ang = 2 * Math.PI * pupil.phaseWaves(x(t), y(t));
+        re += w * a * Math.cos(ang);
+        im += w * a * Math.sin(ang);
+        power += w * a * a;
+      }
+    };
+    let start = flags[0] === 1 ? 0 : -1;
+    for (let k = 0; k < m; k++) {
+      const a = flags[k]!;
+      if (a === flags[k + 1]) continue;
+      const t = crossing(k * h, (k + 1) * h, a, (u) => at(u, across));
+      if (a === 1) {
+        integrate(start, t);
+        start = -1;
+      } else {
+        start = t;
+      }
+    }
+    if (start >= 0) integrate(start, step);
+  };
+  // Across the strips the open length is smooth except where the outline leaves
+  // the cell through one of the two sides the lines end on: there it kinks, and a
+  // rule across that assumes it smooth errs by the kink's h², in an amount that
+  // moves with where the outline meets the side — 1e-6 of a disc's area at 8
+  // strips, and not falling with more. So those exits are located on both end
+  // sides, the same way, and each piece between them is integrated on its own:
+  // two-point Gauss–Legendre on every sub-piece no wider than a strip.
+  const breaks = [0, step];
+  for (const t of [0, step]) {
+    let a = at(t, 0);
+    for (let k = 0; k < m; k++) {
+      const b = at(t, (k + 1) * h);
+      if (a !== b) breaks.push(crossing(k * h, (k + 1) * h, a, (u) => at(t, u)));
+      a = b;
+    }
+  }
+  breaks.sort((p, q) => p - q);
+  for (let i = 0; i + 1 < breaks.length; i++) {
+    const sa = breaks[i]!;
+    const sb = breaks[i + 1]!;
+    if (!(sb > sa)) continue;
+    const pieces = Math.max(1, Math.ceil((sb - sa) / h - 1e-9));
+    const len = (sb - sa) / pieces;
+    for (let p = 0; p < pieces; p++) {
+      line(sa + (p + GL2_LO) * len, 0.5 * len);
+      line(sa + (p + GL2_HI) * len, 0.5 * len);
+    }
+  }
+  // ∫ over the cell, over its area step².
+  const scale = 1 / (step * step);
+  out[0] = re * scale;
+  out[1] = im * scale;
+  out[2] = power * scale;
+}
+
 /**
  * The incoherent PSF of a pupil, on `abbeImage`'s lattice.
  *
@@ -443,6 +649,16 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   if (!(Number.isInteger(edgeSamples) && edgeSamples >= 1)) {
     throw new Error(`incoherentPsf: edgeSamples must be a positive integer, got ${edgeSamples}`);
   }
+  const edgeRule = options.edgeRule ?? "count";
+  if (edgeRule !== "count" && edgeRule !== "crossing") {
+    throw new Error(`incoherentPsf: edgeRule must be "count" or "crossing", got ${String(edgeRule)}`);
+  }
+  if (options.edgeRule !== undefined && edgeSamples === 1) {
+    throw new Error(
+      `incoherentPsf: edgeRule "${edgeRule}" reads a cut cell's sub-grid — pass edgeSamples > 1 with it`,
+    );
+  }
+  const resolveCell = edgeRule === "crossing" ? cellMeanCrossing : cellMean;
   const edge = edgeSamples > 1 ? edgeCellMask(pupil, n, step, lo, hi) : undefined;
   let edgeCells = 0;
   // What the cut cells pass, ⟨A²⟩, beyond what their mean field carries, |⟨P⟩|²:
@@ -454,7 +670,7 @@ export function incoherentPsf(pupil: PupilFunction, options: IncoherentPsfOption
   // `energy` and the rest of its power into `edgeDeficit`. Returns whether it
   // passed any.
   const resolveEdgeCell = (ix: number, iy: number, px: number, py: number): boolean => {
-    cellMean(pupil, px, py, step, edgeSamples, mean);
+    resolveCell(pupil, px, py, step, edgeSamples, mean);
     edgeCells++;
     if (mean[2] === 0) return false;
     re[iy * n + ix] = mean[0]!;
@@ -613,6 +829,8 @@ export interface IncoherentImageOptions {
   readonly throughput: ThroughputUnits;
   /** Passed to `incoherentPsf` — § 2q.3, off by default. */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
 }
 
 /**
@@ -637,6 +855,7 @@ export function incoherentImage(
     size: n,
     ...(options.scale === undefined ? {} : { scale: options.scale }),
     ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+    ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
   });
   const intensity = convolveCircular(object.values, kernel.values, n);
   const weight = throughputWeight(options.throughput, kernel.formedSum);
@@ -702,6 +921,8 @@ export interface FluorescenceFieldOptions {
   readonly throughput: ThroughputUnits;
   /** Passed to every patch's `incoherentPsf` — § 2q.3, off by default. */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
 }
 
 export interface FluorescenceFieldResult {
@@ -788,6 +1009,7 @@ export function renderFluorescence(
         throughput: options.throughput,
         ...(options.scale === undefined ? {} : { scale: options.scale }),
         ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+        ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
       });
       maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, formed.maxGridPhaseStepWaves);
       patchThroughput.push(formed.formedSum);

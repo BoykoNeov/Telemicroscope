@@ -8,7 +8,7 @@ import {
 } from "./object-field";
 import { radialMapCovering, type RadialMap } from "./radial-map";
 import { rasterizeEmitterDensity, type EmitterDensity } from "./emitter-density";
-import { renderFluorescence } from "./fluorescence";
+import { renderFluorescence, type EdgeRule } from "./fluorescence";
 import type { EmissionSpectrum } from "./emission";
 import {
   stackSpectralPlanes,
@@ -320,6 +320,8 @@ export interface FluorescenceSpectrumOptions extends FieldPupilOptions {
   readonly pupilSamples: number;
   /** Passed to every plane's `incoherentPsf` — § 2q.3, off by default. */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
   /**
    * The wavelengths, sampled. `weight` is **pure quadrature** — Δλ and nothing
    * else, so `quadratureSamples`. Every label's band lives in the density and
@@ -409,6 +411,7 @@ export function formEmitterPlane(
     throughput: { kind: "transmitted" },
     ...(options.patches === undefined ? {} : { patches: options.patches }),
     ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+    ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
   });
   return {
     frame,

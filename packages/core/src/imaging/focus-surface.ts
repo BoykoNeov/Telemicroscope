@@ -3,6 +3,7 @@ import type { PupilLayout } from "../wave/psf";
 import { bandLimitedPeak } from "../math/band-limited-peak";
 import { objectNumericalAperture } from "../pupil/microscope";
 import type { EmitterSlabs, VolumeEmitterDensity } from "./emitter-volume";
+import type { EdgeRule } from "./fluorescence";
 import { imageRadiusForObjectHeight, objectFieldTile } from "./object-field";
 import { radialMapCovering, type RadialMapSeed } from "./radial-map";
 import { focusDepthMm, formVolumePlane, neutralVolumeEmitterDensity } from "./spectral-volume";
@@ -128,6 +129,8 @@ export interface FocusSweepOptions {
    * resolved rim turns into a steady convergence.
    */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
 }
 
 export interface FocusSweepPoint {
@@ -269,6 +272,7 @@ export function renderedBestFocus(
           : { radialMapNodes: options.radialMapNodes }),
         ...(options.layout === undefined ? {} : { layout: options.layout }),
         ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+        ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
       },
       { nm: wavelengthNm, weight: 1 },
       frame.centreMm,

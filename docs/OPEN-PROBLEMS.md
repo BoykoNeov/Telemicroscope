@@ -637,9 +637,15 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
     frame normalized per field; the camera's throughput (`plane.energy` over
     `clearApertureEnergy`) is absolute, and off axis on the exit layout its
     denominator is no longer the same region. *Candidate:* each edge cell's
-    covered area computed from the outline itself rather than counted, which
-    needs the support to expose its curve, not only an inside test — an engine
-    change with its own rung set. No reading needs it yet. Not measured on a
+    covered area computed from the outline itself rather than counted~~, which
+    needs the support to expose its curve, not only an inside test~~ — an engine
+    change with its own rung set. ~~No reading needs it yet.~~ **Half closed at
+    [§ 2q.4](VALIDATION.md#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)** for `incoherentPsf`'s cut cells: the volume flip was the
+    reading — the 4×'s on-axis frame on exit spanned 1.29e-4 counted against
+    2.43e-6 grid-free — and `EdgeRule` `"crossing"` bisects the outline on strips
+    across it, needing only the inside test: 2.478e-6, an ellipse moved and turned
+    keeps πab to 5e-8. `wave/psf`'s `pupilSampling` still counts; the same rule
+    would carry over to it. Not measured on a
     vignetted pupil, whose mask is a second outline. Three readings met it at
     [§ 2m](VALIDATION.md#step-2m--every-chain-imaging-from-infinity-on-the-exit-layout) — § 8a.7's and § 8b.2's secondary, § 8c.6's resampled
     ratio — and are read grid-free or at 16 sub-samples per edge cell instead.

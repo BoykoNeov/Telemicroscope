@@ -1,6 +1,6 @@
 import { fft2d, isPowerOfTwo } from "../math/fft";
 import { carryCellQuadrature, imagePixelScaleMm, type PupilFunction, type PupilScale } from "../wave/psf";
-import { incoherentPsf, type EmitterField, type IncoherentPsf } from "./fluorescence";
+import { incoherentPsf, type EdgeRule, type EmitterField, type IncoherentPsf } from "./fluorescence";
 
 /**
  * Out-of-focus haze — the 3-D specimen, and why widefield cannot escape it.
@@ -483,6 +483,8 @@ export interface DepthKernelOptions {
   readonly cellQuadrature?: boolean;
   /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
 }
 
 /**
@@ -507,6 +509,7 @@ export function depthKernels(
       ...(options.scale === undefined ? {} : { scale: options.scale }),
       ...(options.cellQuadrature === undefined ? {} : { cellQuadrature: options.cellQuadrature }),
       ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+      ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
     }),
   }));
   // The reference is the least-defocused member rather than index 0, so a stack
@@ -622,6 +625,8 @@ export interface VolumeImageOptions {
   readonly cellQuadrature?: boolean;
   /** Passed to every slice's `incoherentPsf` — § 2q.3, off by default. */
   readonly edgeSamples?: number;
+  /** `IncoherentPsfOptions.edgeRule` (§ 2q.4), carried with `edgeSamples`. */
+  readonly edgeRule?: EdgeRule;
   /** Called once per slice imaged, for progress and cost accounting. */
   readonly onSlice?: (done: number, total: number) => void;
 }
@@ -743,6 +748,7 @@ export function renderVolume(
       ...(options.scale === undefined ? {} : { scale: options.scale }),
       ...(options.cellQuadrature === undefined ? {} : { cellQuadrature: options.cellQuadrature }),
       ...(options.edgeSamples === undefined ? {} : { edgeSamples: options.edgeSamples }),
+      ...(options.edgeRule === undefined ? {} : { edgeRule: options.edgeRule }),
     });
     maxGridPhaseStepWaves = Math.max(maxGridPhaseStepWaves, kernel.maxGridPhaseStepWaves);
 
