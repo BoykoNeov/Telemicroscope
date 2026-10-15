@@ -121,7 +121,7 @@ whole ladder.
 | [6ay](#step-6ay--four-united-colours-one-telecentric-one) | The stop reads f·D and four united colours constrain only f: EFL(λ) turns three times, FFD(λ) never, and the quadruplet is telecentric ONCE, the doublet twice | `telecentric-quadruplet` |
 | [6az](#step-6az--the-volumetric-emitter-density) | The third Jacobian dimension IS a scalar: depth rescales the map by 1 + z/P, isotropically, so ONE table serves a volume — and the DIN objective is object-space telecentric TWICE | `emitter-volume` |
 | [6ba](#step-6ba--the-spectral-emitter-density) | ONE band collapses to ONE kernel and TWO need TWO — a MONOCHROME failure, not colour's; colour needs the planes apart even for one label, and that halo is AXIAL COLOUR, not diffraction | `emitter-spectrum` |
-| [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.88 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
+| [6bb](#step-6bb--the-spectral-volume) | Depth times colour: the perspective is NOT ordered by wavelength — the GREEN channel is telecentric where the blue and red are not — and the channels focus 3.77 depths of focus apart, which is not the paraxial shift | `spectral-volume` |
 | [6bc](#step-6bc--the-units-a-formed-image-is-quoted-in) | Two renderers disagreed about brightness: normalizing a kernel is a choice of UNITS, exact while ONE pupil forms the frame and a measurement error the moment several do — colour 0.740%, field 10.7%, depth exactly 0 | `throughput-units` |
 | [6bd](#step-6bd--the-field-and-the-depth-on-one-callback) | The field and the depth on one callback, § 6bc having settled the units — and § 6bc read the field profile where it is FLAT: an on-axis frame varies 1.9e-8 across itself, one at 4.5 mm 6.73e-3, and the one-pupil error has ONE sign (§ 2q.3) | `field-volume` |
 | [6be](#step-6be--the-third-axis) | The third axis — best focus SEPARATES into a colour curve plus a field curve (interaction 0.03 of a depth of focus), and the field term is EVEN, so § 6bb.6's on-axis 3.88 depths of focus is 5.79 over the square | `spectral-field-volume` |
@@ -4780,7 +4780,7 @@ rim — § 6r.7 today, § 6az.5 once its frames are on the exit layout.
   is 1.4–1.9 against > 3, and § 6be's colour × field interaction is 5e-3 mm
   against < 1.3e-3. The 2×'s plateau refusal and the in-frame tilt do not
   settle across those lattices. Restated group by group — the patched field,
-  the spectral volume, then the focus chain and the app. Every pinned focus in § 6bb.6,
+  the spectral volume, then the focus chain and the app. Every pinned focus in ~~§ 6bb.6~~ (restated, 3.77 depths of focus),
   § 6be and § 6bf moves with it: the 4×'s 430 nm figure, 0.2140 mm at 48
   samples, is 5e-3 mm from where the resolved rim settles.
 - **A smooth hump remains at 430 nm.** Resolved, the axial focus rises from
@@ -21602,7 +21602,7 @@ refused rather than documented.
   [§ 6ba](#step-6ba--the-spectral-emitter-density)**, and ~~the spectral *volume*
   the two of them leave between them~~ **at
   [§ 6bb](#step-6bb--the-spectral-volume)**, which finds the product is not the
-  larger half of what depth and colour do together: the channels focus 3.88
+  larger half of what depth and colour do together: the channels focus 3.77
   depths of focus apart and the perspective is 0.06% of the static
   misregistration at 50 µm.
 - **A photometric zero point**, still § 3a's. Every number here is a ratio.
@@ -21877,7 +21877,8 @@ selects on.
   channel — and because a channel is a *band* averaged across § 6az.4's sign
   reversal, it is not ordered by colour at all: the green channel is telecentric
   where the blue and the red are not. What dominates instead is that the channels
-  **focus** at stage positions 3.88 depths of focus apart.
+  **focus** at stage positions 3.77 depths of focus apart (3.88 on the
+  point-sampled rim, [§ 2q.3](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)).
 - **A spectral MOSAIC**, § 6r's own deferral inherited unchanged: `halfExtentMm`
   is ∝ λ, so a mosaic's pitch and guard band would have to be fixed by one
   reference λ with every other λ cropped to it.
@@ -21912,20 +21913,30 @@ New: `imaging/spectral-volume` (`SpectralVolumeEmitterDensity`,
 rate, one raster and one `renderVolume` per wavelength, stacked by § 6ba's own
 `stackEmitterPlanes` as **energy**.
 
+**Restated at [§ 2q.3](#step-2q--the-volume-and-focus-surface-chain-on-the-exit-layout)** on the resolved rim, which every render here now
+uses. Seventeen readings moved and no finding turned over. The focus rows are
+the ones that matter: point-sampled, the blue channel's best focus sat 2.5e-3 mm
+apart between 48 and 56 samples, and resolved it holds to 2.8e-4, so 3.88 depths
+of focus is 3.77. The perspective rows read a frame that is `pupilSamples` wide,
+so they are restated at this lattice and not checked at another; the ideal
+pupil's blue figure moved 15% here and 1% at 47 samples, which says the
+32-sample staircase was poor there in particular. The superseded figures are
+kept in the rows below, struck.
+
 | Rung | Pinned to | Status |
 |---|---|---|
 | **§ 6bb.1 — one wavelength of the driver IS the § 6az render** | bitwise, the largest pixel difference exactly 0, against the frame, table, rate, raster and render written out | ✅ |
 | ...and the NA it converts depth to waves with is TRACED per wavelength | 0.10001613548968476 at 546.074 nm, not the 0.1 the objective is named for | ✅ |
-| **§ 6bb.2 — a slab at focus is § 6ba's plane, times the thickness and the throughput** | ratio equals `formedSum` to 1e−14; 0.17484107 at 430 nm against 0.17599094 at 680 | ✅ |
+| **§ 6bb.2 — a slab at focus is § 6ba's plane, times the thickness and the throughput** | ratio equals `formedSum` to 1e−14; 0.17641773 at 430 nm against 0.17757799 at 680 (~~0.17484107, 0.17599094~~) | ✅ |
 | ...and that factor is a COLOUR the plane path normalizes away | 0.658% across the band, which the on-axis amplitude squared reproduces to 4.4e−6 — the residue is the pupil profile's own λ-dependence, second order in a ratio | ✅ |
 | **§ 6bb.3 — one volume, one rate per channel** | 6.77853e−5 /mm at 430 nm to a finite −0 at 587.5618; `maxStretchDeparture` 2.25951e−5 → exactly 0, 47.10× between the extremes | ✅ |
 | ...and another wavelength's rate is refused rather than zooming the stack backwards | § 6az's identity, reached through this driver | ✅ |
-| **§ 6bb.4 — the zoom reverses IN THE PICTURE**, which is § 6az's own deferral | −2.163917e−6 at 430 nm, **+7.891797e−8** at 546, −7.578683e−7 at 656; −2.9e−16 at BOTH crossings; the raster within 0.198% of −2·z·k, worst at 680 nm | ✅ |
-| **§ 6bb.5 — the picture reads the perspective DILUTED, and chromatically** | 4.5582e−2 at 430 nm rising monotonically to 8.3631e−2 at 680 | ✅ |
-| ...and through the TRACED pupil the same measurement is 3.9e5× the perspective | 0.8483541 at 430 nm — axial colour, not geometry, which is why the crossing rung needs the ideal-pupil control | ✅ |
-| **§ 6bb.6 — the channels focus at different STAGE POSITIONS** | 0.213627 / 0.051049 / 0.046893 / 0.067222 mm at 430 / 546.074 / 587.5618 / 656.2725; 3.8775 depths of focus from the blue channel to the design wavelength | ✅ |
-| ...and the estimator has its own zero: an ABERRATION-FREE pupil focuses at 0 | 2.8e−7 mm at 430 nm and 3.5e−17 at the design λ, against the 0.0469 mm the traced pupil puts there — so no part of the row above is the sweep grid, the parabola or the slice count | ✅ |
-| **§ 6bb.7 — and it is NOT the paraxial chromatic focal shift** | `focusDepthMm` 0.110213 mm at 430 and 0 at the design λ; the picture is 1.5129× that, because the ρ⁴ term of the traced wavefront falls 4.5960× across the band | ✅ |
+| **§ 6bb.4 — the zoom reverses IN THE PICTURE**, which is § 6az's own deferral | −2.489404e−6 at 430 nm, **+7.869282e−8** at 546, −7.384180e−7 at 656 (~~−2.163917e−6, +7.891797e−8, −7.578683e−7~~); −2.9e−16 at BOTH crossings; the raster within 0.198% of −2·z·k, worst at 680 nm | ✅ |
+| **§ 6bb.5 — the picture reads the perspective DILUTED, and chromatically** | 5.2438e−2 at 430 nm rising monotonically to 8.1315e−2 at 680 (~~4.5582e−2, 8.3631e−2~~) | ✅ |
+| ...and through the TRACED pupil the same measurement is 3.4e5× (~~3.9e5×~~) the perspective | 0.8547819 (~~0.8483541~~) at 430 nm — axial colour, not geometry, which is why the crossing rung needs the ideal-pupil control | ✅ |
+| **§ 6bb.6 — the channels focus at different STAGE POSITIONS** | 0.209851 / 0.051906 / 0.047701 / 0.067900 mm at 430 / 546.074 / 587.5618 / 656.2725; 3.7709 depths of focus from the blue channel to the design wavelength, 3.7770 at 56 samples (~~0.213627 / 0.051049 / 0.046893 / 0.067222; 3.8775~~) | ✅ |
+| ...and the estimator has its own zero: an ABERRATION-FREE pupil focuses at 0 | 2.8e−7 mm at 430 nm and 3.5e−17 at the design λ, against the 0.0477 mm the traced pupil puts there — so no part of the row above is the sweep grid, the parabola or the slice count | ✅ |
+| **§ 6bb.7 — and it is NOT the paraxial chromatic focal shift** | `focusDepthMm` 0.110213 mm at 430 and 0 at the design λ; the picture is 1.4712× (~~1.5129×~~) that, because the ρ⁴ term of the traced wavefront falls 4.5960× across the band | ✅ |
 | **§ 6bb.8 — in focus at TWO wavelengths, telecentric at TWO, and one is shared** | 500.514925275 and 587.5618 against 530.567099263 and 587.5618; the two free roots 30.052174 nm apart | ✅ |
 | **§ 6bb.9 — the perspective is NOT ordered by colour: GREEN is the extreme** | at 61, 121, 241 and 481 samples alike: blue 2.9e−5, red 8.0e−6, green below 1.3e−7 and above 5e−8, so the two channels furthest apart in colour are the two closest in perspective | ✅ |
 | ...and the green figure is a CANCELLATION, so its digits belong to the quadrature | it falls monotonically by 2.1× over 61 → 481 samples while blue moves under 4% — § 6ba.8's staircase, pinned rather than walked into | ✅ |
@@ -21981,8 +21992,8 @@ objective's own axial colour decides which depth each channel is sharp at. That
 was already in the traced pupil, and § 6ba.5 named it as the cause of the
 blue-violet halo; what a *volume* adds is that it turns the wavefront into a
 **depth**. § 6bb.6 sweeps the stage and finds each channel's peak in a different
-place: 0.2136 mm at 430 nm against 0.0469 at the design wavelength, which is
-**3.88 depths of focus** apart. Beside that the perspective term is nothing, and
+place: 0.2099 mm at 430 nm against 0.0477 at the design wavelength, which is
+**3.77 depths of focus** apart (3.88 on the point-sampled rim). Beside that the perspective term is nothing, and
 § 6bb.10 says so with a number rather than an adjective: the depth-dependent part
 of the two channels' misregistration reaches § 6ba.9's *static* 0.180% only at
 83–86 mm of specimen depth, and at a thick preparation's 50 µm it is 0.06% of
@@ -21992,8 +22003,8 @@ One affine registration per channel is right for any specimen there is.
 **And the focus separation is not the paraxial chromatic focal shift.**
 `focusDepthMm` solves the conjugate in closed form — a paraxial trace is linear
 in its input state, so the object distance whose image lands on the plane is one
-division and not a bisection — and it puts 430 nm at 0.110213 mm, **51% short**
-of what the picture shows. The cause is measured rather than asserted: the ρ⁴
+division and not a bisection — and it puts 430 nm at 0.110213 mm, **32% short**
+of what the picture shows (~~51%~~, which was the picture's excess over it, 1.51×; resolved, 1.47×). The cause is measured rather than asserted: the ρ⁴
 term of the traced on-axis wavefront falls 4.60× across the band (1.9284 waves at
 430 nm to 0.4196 at 656), so each channel's best focus is balanced against its
 own spherical aberration and no single conjugate shift describes them all. A
@@ -22003,7 +22014,7 @@ channel focuses.
 **The focus readout has its own zero, and it was checked before any of this was
 attributed to the objective.** Run the same sweep with `idealPupil` — no axial
 colour, no spherical aberration — and best focus comes back at 2.8e−7 mm at
-430 nm and 3.5e−17 at the design wavelength, against the 0.0469 mm the traced
+430 nm and 3.5e−17 at the design wavelength, against the 0.0477 mm the traced
 pupil puts there. So none of § 6bb.6's numbers belong to the 0.02 mm sweep grid,
 the three-point parabola or the three-slice axial discretization. It is the same
 discipline § 6bb.4 needs for a different estimator, and § 6ba's own lesson that

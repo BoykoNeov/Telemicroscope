@@ -54,9 +54,10 @@ import type { OpticalSystem } from "../src/trace/system";
  *
  * The **large** one is the focus. A stack is rendered at one stage position, so
  * the objective's own axial colour decides which depth each channel is sharp at,
- * and § 6bb.6 reads 0.167 mm between the blue channel and the design wavelength
- * — 3.88 depths of focus. § 6bb.7 then pins that this is *not* the paraxial
- * chromatic focal shift, which is 51% smaller, because each channel's best focus
+ * and § 6bb.6 reads 0.162 mm between the blue channel and the design wavelength
+ * — 3.77 depths of focus on the rim § 2q.3 resolved (the point-sampled rim read
+ * 0.167 and 3.88). § 6bb.7 then pins that this is *not* the paraxial chromatic
+ * focal shift, which the picture exceeds by 47%, because each channel's best focus
  * is balanced against its own spherical aberration and the ρ⁴ term of the traced
  * wavefront falls 4.60× across the band.
  *
@@ -91,6 +92,8 @@ const TELECENTRIC = 530.567099263;
 
 const SIZE = 64;
 const PS = 32;
+/** § 2q.3's resolved rim, on every render here. */
+const EDGE = 8;
 
 /** A z-uniform lateral Gaussian — the haze, and smooth in every direction. */
 const LATERAL = gaussianEmitter({ waistMm: 0.012, peak: 1 });
@@ -142,6 +145,7 @@ function radiiAt(nm: number, zMm: number): {
       frame,
       renderVolume(vol, defocusing(pupil), {
         pupilSamples: PS,
+        edgeSamples: EDGE,
         numericalAperture: 0.1,
         wavelengthNm: nm,
         scale: frame.scale,
@@ -169,6 +173,7 @@ function pictureFocusMm(nm: number): number {
       {
         size: 128,
         pupilSamples: 48,
+        edgeSamples: EDGE,
         samples: [],
         slabs: uniformSlabs(-0.008, 0.008, 3),
         focusMm,
@@ -219,6 +224,7 @@ function idealFocusMm(nm: number): number {
     );
     const image = renderVolume(volume, defocusing(idealPupil()), {
       pupilSamples: 48,
+      edgeSamples: EDGE,
       numericalAperture: objectNumericalAperture(SYSTEM, nm),
       wavelengthNm: nm,
       refractiveIndex: 1,
@@ -288,7 +294,7 @@ describe("§ 6bb — the spectral volume", () => {
       const plane = formVolumePlane(
         SYSTEM,
         neutralVolumeEmitterDensity(HAZE),
-        { size: SIZE, pupilSamples: PS, samples: [], slabs },
+        { size: SIZE, pupilSamples: PS, edgeSamples: EDGE, samples: [], slabs },
         { nm, weight: 1 },
         { x: 0, y: 0 },
       );
@@ -301,6 +307,7 @@ describe("§ 6bb — the spectral volume", () => {
       });
       const image = renderVolume(vol, defocusing(fieldPupilAt(SYSTEM, frame, 0.5, 0.5, {}).pupil), {
         pupilSamples: PS,
+        edgeSamples: EDGE,
         // The driver traces the object-side NA at each wavelength rather than
         // taking one number, which is a third way depth is chromatic.
         numericalAperture: objectNumericalAperture(SYSTEM, nm),
@@ -331,6 +338,7 @@ describe("§ 6bb — the spectral volume", () => {
           {
             size: SIZE,
             pupilSamples: PS,
+            edgeSamples: EDGE,
             samples: [],
             slabs: { depthsMm: [0], thicknessMm: [thickness] },
           },
@@ -340,13 +348,14 @@ describe("§ 6bb — the spectral volume", () => {
         const flat = formEmitterPlane(
           SYSTEM,
           neutralEmitterDensity(LATERAL),
-          { size: SIZE, pupilSamples: PS, samples: [] },
+          { size: SIZE, pupilSamples: PS, edgeSamples: EDGE, samples: [] },
           { nm, weight: 1 },
           { x: 0, y: 0 },
         );
         const frame = plane.frame;
         const formedSum = incoherentPsf(fieldPupilAt(SYSTEM, frame, 0.5, 0.5, {}).pupil, {
           pupilSamples: PS,
+          edgeSamples: EDGE,
           size: SIZE,
           scale: frame.scale,
         }).formedSum;
@@ -362,8 +371,9 @@ describe("§ 6bb — the spectral volume", () => {
         sums.set(nm, formedSum);
       }
 
-      expect(sums.get(430)!).toBeCloseTo(0.17484106620284498, 15);
-      expect(sums.get(680)!).toBeCloseTo(0.1759909445448711, 15);
+      // Resolved (§ 2q.3); point-sampled, 0.17484106620284498 and 0.1759909445448711.
+      expect(sums.get(430)!).toBeCloseTo(0.17641773149460835, 15);
+      expect(sums.get(680)!).toBeCloseTo(0.17757798551517912, 15);
 
       // The factor's own spectrum: 0.658% across the band, and it is the
       // objective's transmission rather than the pupil grid's quantization —
@@ -384,6 +394,7 @@ describe("§ 6bb — the spectral volume", () => {
       const stack = fluorescenceSpectralVolume(SYSTEM, neutralVolumeEmitterDensity(HAZE), {
         size: SIZE,
         pupilSamples: PS,
+        edgeSamples: EDGE,
         samples: [430, 486.1327, 546.074, DESIGN, 656.2725].map((nm) => ({ nm, weight: 1 })),
         slabs: uniformSlabs(-0.5, 0.5, 3),
       });
@@ -446,15 +457,17 @@ describe("§ 6bb — the spectral volume", () => {
       const blue = read(430);
       const green = read(546.074);
       const red = read(656.2725);
-      expect(blue.ideal).toBeCloseTo(-2.163917e-6, 11);
-      expect(green.ideal).toBeCloseTo(7.891797e-8, 13);
-      expect(red.ideal).toBeCloseTo(-7.578683e-7, 12);
+      // Resolved (§ 2q.3). The point-sampled rim read −2.163917e-6, 7.891797e-8
+      // and −7.578683e-7: 15% low in the blue at this lattice, and 1% at 47.
+      expect(blue.ideal).toBeCloseTo(-2.489404e-6, 11);
+      expect(green.ideal).toBeCloseTo(7.869282e-8, 13);
+      expect(red.ideal).toBeCloseTo(-7.384180e-7, 12);
       expect(Math.sign(blue.ideal)).toBe(-1);
       expect(Math.sign(green.ideal)).toBe(+1);
       expect(Math.sign(red.ideal)).toBe(-1);
 
       // And exactly nothing at either telecentric wavelength — f64 noise on a
-      // quantity that is 2.2e-6 one crossing away.
+      // quantity that is 2.5e-6 one crossing away.
       for (const nm of [TELECENTRIC, DESIGN]) {
         expect(Math.abs(read(nm).ideal)).toBeLessThan(1e-15);
       }
@@ -475,23 +488,26 @@ describe("§ 6bb — the spectral volume", () => {
       const blue = dilution(430);
       const green = dilution(546.074);
       const red = dilution(680);
-      expect(blue).toBeCloseTo(4.5582e-2, 5);
-      expect(green).toBeCloseTo(7.8263e-2, 5);
-      expect(red).toBeCloseTo(8.3631e-2, 5);
+      // Resolved (§ 2q.3); point-sampled, 4.5582e-2, 7.8263e-2 and 8.3631e-2.
+      expect(blue).toBeCloseTo(5.2438e-2, 5);
+      expect(green).toBeCloseTo(7.8040e-2, 5);
+      expect(red).toBeCloseTo(8.1315e-2, 5);
       // Monotone with wavelength: the same depth is fewer waves of defocus in
       // the red, so less of the geometry is smeared away.
       expect(blue).toBeLessThan(green);
       expect(green).toBeLessThan(red);
     });
 
-    it("through the TRACED pupil the same measurement is 400 000× the perspective", () => {
+    it("through the TRACED pupil the same measurement is 340 000× the perspective", () => {
       const z = 0.35;
       const plus = radiiAt(430, +z);
       const minus = radiiAt(430, -z);
       const traced = asymmetry(plus.traced, minus.traced);
       const ideal = asymmetry(plus.ideal, minus.ideal);
-      expect(traced).toBeCloseTo(0.8483541, 6);
-      expect(Math.abs(traced / ideal)).toBeGreaterThan(3.9e5);
+      // Resolved (§ 2q.3); point-sampled, 0.8483541 and above 3.9e5 — the
+      // ratio fell because the ideal-pupil denominator rose 15%.
+      expect(traced).toBeCloseTo(0.8547819, 6);
+      expect(Math.abs(traced / ideal)).toBeGreaterThan(3.4e5);
       // Not a perspective at all: the objective's focus is not where the stage
       // is, so ±z are not equally blurred. That is § 6bb.6's subject, and it is
       // why the crossing rung above needs the ideal-pupil control.
@@ -499,22 +515,26 @@ describe("§ 6bb — the spectral volume", () => {
   });
 
   describe("§ 6bb.6 — the channels focus at different stage positions", () => {
-    it("0.167 mm from the blue channel to the design wavelength — 3.88 depths of focus", () => {
+    it("0.162 mm from the blue channel to the design wavelength — 3.77 depths of focus", () => {
       const blue = pictureFocusMm(430);
       const green = pictureFocusMm(546.074);
       const design = pictureFocusMm(DESIGN);
       const red = pictureFocusMm(656.2725);
 
-      expect(blue).toBeCloseTo(0.213627, 5);
-      expect(green).toBeCloseTo(0.051049, 5);
-      expect(design).toBeCloseTo(0.046893, 5);
-      expect(red).toBeCloseTo(0.067222, 5);
+      // Resolved (§ 2q.3). Point-sampled these read 0.213627, 0.051049,
+      // 0.046893 and 0.067222 here, and the blue 0.211107 at 56 samples, 2.5e-3
+      // away; resolved, 56 samples reads 0.210131, 2.8e-4 away.
+      expect(blue).toBeCloseTo(0.209851, 5);
+      expect(green).toBeCloseTo(0.051906, 5);
+      expect(design).toBeCloseTo(0.047701, 5);
+      expect(red).toBeCloseTo(0.067900, 5);
 
       const halfDepth430 = (430 * 1e-6) / (2 * 0.1 * 0.1);
       expect(halfDepth430).toBeCloseTo(0.0215, 12);
       // § 6k's depth of focus is half a wave across the full range, so it is
-      // twice this half-depth: the two channels are 3.88 of them apart.
-      expect((blue - design) / (2 * halfDepth430)).toBeCloseTo(3.8775, 3);
+      // twice this half-depth: the two channels are 3.77 of them apart (3.8775
+      // point-sampled; 3.7770 resolved at 56 samples).
+      expect((blue - design) / (2 * halfDepth430)).toBeCloseTo(3.7709, 3);
 
       // Non-monotone in colour, and the minimum is not at either end: the
       // best-focus curve turns around inside the band exactly as the rate does.
@@ -524,7 +544,7 @@ describe("§ 6bb — the spectral volume", () => {
 
     it("and the estimator's own zero: an aberration-free pupil focuses at 0", () => {
       // 2.8e-7 mm at 430 nm and 3.5e-17 at the design wavelength, against the
-      // 0.0469 mm the traced pupil puts there — so none of § 6bb.6's numbers
+      // 0.0477 mm the traced pupil puts there — so none of § 6bb.6's numbers
       // belong to the sweep grid, the parabola or the axial discretization.
       expect(Math.abs(idealFocusMm(430))).toBeLessThan(1e-6);
       expect(Math.abs(idealFocusMm(DESIGN))).toBeLessThan(1e-6);
@@ -533,7 +553,7 @@ describe("§ 6bb — the spectral volume", () => {
   });
 
   describe("§ 6bb.7 — and it is NOT the paraxial chromatic focal shift", () => {
-    it("`focusDepthMm` is 51% short, because each channel balances its own spherical", () => {
+    it("`focusDepthMm` is 32% short, because each channel balances its own spherical", () => {
       expect(focusDepthMm(SYSTEM, 430)).toBeCloseTo(0.110213, 6);
       expect(focusDepthMm(SYSTEM, 486.1327)).toBeCloseTo(0.010050, 6);
       expect(focusDepthMm(SYSTEM, 546.074)).toBeCloseTo(-0.009622, 6);
@@ -544,8 +564,9 @@ describe("§ 6bb — the spectral volume", () => {
       const paraxial = focusDepthMm(SYSTEM, 430) - focusDepthMm(SYSTEM, DESIGN);
       const picture = pictureFocusMm(430) - pictureFocusMm(DESIGN);
       expect(paraxial).toBeCloseTo(0.110213, 6);
-      expect(picture).toBeCloseTo(0.166734, 5);
-      expect(picture / paraxial).toBeCloseTo(1.5129, 3);
+      // Resolved (§ 2q.3); point-sampled, 0.166734 and 1.5129.
+      expect(picture).toBeCloseTo(0.162150, 5);
+      expect(picture / paraxial).toBeCloseTo(1.4712, 3);
 
       // The cause, measured rather than asserted: the ρ⁴ term of the traced
       // wavefront falls 4.60× across the band, so the defocus each channel is
@@ -669,6 +690,7 @@ describe("§ 6bb — the spectral volume", () => {
       const stack = fluorescenceSpectralVolume(SYSTEM, density, {
         size: SIZE,
         pupilSamples: PS,
+        edgeSamples: EDGE,
         samples: quadratureSamples({ fromNm: 420, toNm: 680, count: 9 }),
         slabs: uniformSlabs(-0.05, 0.05, 5),
       });
@@ -694,6 +716,7 @@ describe("§ 6bb — the spectral volume", () => {
       const stack = fluorescenceSpectralVolume(SYSTEM, neutralVolumeEmitterDensity(HAZE), {
         size: SIZE,
         pupilSamples: PS,
+        edgeSamples: EDGE,
         samples,
         slabs: uniformSlabs(-spanMm / 2, spanMm / 2, slices),
       });
@@ -733,6 +756,7 @@ describe("§ 6bb — the spectral volume", () => {
           {
             size: SIZE,
             pupilSamples: PS,
+            edgeSamples: EDGE,
             samples: [],
             slabs: uniformSlabs(-0.06, 0.06, count),
           },
@@ -756,6 +780,7 @@ describe("§ 6bb — the spectral volume", () => {
         fluorescenceSpectralVolume(SYSTEM, neutralVolumeEmitterDensity(HAZE), {
           size: SIZE,
           pupilSamples: PS,
+          edgeSamples: EDGE,
           samples: [],
           slabs: uniformSlabs(-0.01, 0.01, 2),
         }),
@@ -771,6 +796,7 @@ describe("§ 6bb — the spectral volume", () => {
         fluorescenceSpectralVolume(SYSTEM, neutralVolumeEmitterDensity(HAZE), {
           size: SIZE,
           pupilSamples: PS,
+          edgeSamples: EDGE,
           samples: [{ nm: DESIGN, weight: 1 }],
           slabs: { depthsMm: [0, 0.01], thicknessMm: [0.01] },
         }),

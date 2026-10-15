@@ -76,16 +76,18 @@ import { fieldDefocusing, renderFieldVolume, type FieldVolumeImage } from "./fie
  * traced pupil — § 6ba.5 named it as the cause of the blue-violet halo — and a
  * volume is what turns it into a *depth*: sweep the stage, find each channel's
  * peak, and they peak in different places. On the default objective the picture
- * puts best focus at
+ * puts best focus at (on the rim § 2q.3 resolved; pass `edgeSamples`)
  *
- *     430 nm      0.2136 mm
- *     486.1327    0.0977
- *     546.074     0.0510
- *     587.5618    0.0469
- *     656.2725    0.0672
+ *     430 nm      0.2099 mm
+ *     486.1327    0.0984
+ *     546.074     0.0519
+ *     587.5618    0.0477
+ *     656.2725    0.0679
  *
- * — 0.167 mm from the blue channel to the design wavelength, which is **3.88
- * depths of focus** at 430 nm (§ 6bb.6). Beside that, the perspective term is
+ * — 0.162 mm from the blue channel to the design wavelength, which is **3.77
+ * depths of focus** at 430 nm (§ 6bb.6). A point-sampled rim reads 0.167 mm and
+ * 3.88, and scatters by 2.5e-3 mm between lattices where the resolved rim holds
+ * to 3e-4. Beside that, the perspective term is
  * nothing: § 6bb.10 pins the depth-dependent part of the two channels'
  * misregistration against § 6ba.9's static 0.180% and finds it reaches parity
  * only at **83–86 mm** of specimen depth, which is to say never. That bound is
@@ -95,7 +97,7 @@ import { fieldDefocusing, renderFieldVolume, type FieldVolumeImage } from "./fie
  *
  * **And the focus separation is not the catalogue number.** `focusDepthMm` is
  * the paraxial object-side chromatic focal shift, and it puts 430 nm at
- * 0.1102 mm — 51% short of the 0.1667 mm the picture actually shows, because the
+ * 0.1102 mm — 32% short of the 0.1622 mm the picture actually shows, because the
  * ρ⁴ term of the traced wavefront falls 4.60× across the band (1.9284 waves at
  * 430 nm to 0.4196 at 656) and each channel's best focus is balanced against its
  * own spherical aberration. A chromatic-focal-shift figure does not say where a
