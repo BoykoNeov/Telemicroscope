@@ -62,8 +62,9 @@ import { bandLimitedPeak } from "../src/math/band-limited-peak";
  * holds it against. § 6bf.5's negative control was the 2× at 430 nm, refused as
  * a plateau. On the resolved rim at 48 pupil samples it reads under the
  * threshold at every height, its vertex moves with the field and holds to 2e-4 mm
- * over a 4× range of step — but at 47 samples it is refused and at 56 it reads
- * 0.96–0.98, so it sits on the threshold and the lattice decides the side
+ * over a 4× range of step — but at 47 samples it is refused, and at 56 it
+ * passes on its own bracket yet reads over 1 at one sweep step of three off its
+ * vertex, so it sits on the threshold and the lattice decides the side
  * (register item 34). The refusal is now tested as a threshold, below the
  * reading, rather than as a fact about that objective.
  *
@@ -448,9 +449,11 @@ describe("§ 6bf — the focus surface, offered", () => {
       // with the field — 1.03e-2 mm from the axis to 0.35, 9.4e-3 more to 0.7 —
       // and it is still the worse-conditioned half, 1.48× the design wavelength.
       // It is not a plateau as a fact about the optics, and not a measurement as
-      // one either: the same sample reads 0.96–0.98 at 56 pupil samples and is
-      // refused, over 1, at 47 — the threshold falls inside the lattice's own
-      // spread (register item 34), so the figure pinned here is 48's.
+      // one either: at 56 pupil samples the same sample passes on its own
+      // bracket but, bracketed off its vertex, reads 0.96–0.98 at two sweep steps
+      // and over 1 at the third; at 47 it is refused — the threshold falls inside
+      // the lattice's own spread (register item 34), so the figure pinned here is
+      // 48's.
       const blue = [0, 0.35, 0.7].map((h) =>
         renderedBestFocus(two, 430, h, { ...SWEEP, maxPlateauDepths: 1 }),
       );

@@ -45,8 +45,9 @@ import { focusDepthMm, formVolumePlane, neutralVolumeEmitterDensity } from "./sp
  * rule, that this engine refuses an undefined readout instead of returning one.
  * § 6bf.5 found it on a 2×/0.10 at 430 nm, point-sampled; on the resolved rim
  * that configuration reads 0.86–0.99 against a threshold of 1 at 48 pupil
- * samples, 0.96–0.98 at 56, and over 1 at 47 — it sits ON the threshold, and the
- * lattice decides the side (register item 34). So the refusal is pinned as a
+ * samples and passes at 56, but bracketed off its vertex at 56 it reads 0.96–0.98
+ * at two sweep steps and over 1 at the third, and at 47 it is refused — it sits
+ * ON the threshold, and the lattice decides the side (register item 34). So the refusal is pinned as a
  * threshold, not as a fact about that objective.
  *
  * Units: `focusMm` is a specimen depth in `EmitterSlice.zMm`'s direction —

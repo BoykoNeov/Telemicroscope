@@ -760,7 +760,8 @@ grid-free on the exit layout, and the grid's own number is item 25); § 1.8.14's
 34. **The 2×/0.10's slow samples do not settle across pupil lattices.** Found at
     [§ 6bf](VALIDATION.md#step-6bf--the-focus-surface-offered)'s restatement on § 2q.3's resolved rim. On 47, 48 and 56
     samples the 2× at 430 nm reads over the plateau threshold of 1, then 0.86,
-    then 0.96–0.98 — refused, read, read — and its edge field coefficient at the
+    then passes on its own bracket at 56 while off its vertex it reads 0.96–0.98
+    at two sweep steps and over 1 at the third — and its edge field coefficient at the
     design wavelength is 0.04281 / 0.04487 / 0.04742 mm/mm², ±5%, which swings
     § 6bf.4's two focal-length exponents through it over 0.52–0.67 while the
     4×–10× pair holds at 0.588–0.589. Both are the 2×'s, the worst-conditioned

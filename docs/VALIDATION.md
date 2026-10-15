@@ -22716,7 +22716,7 @@ readings that depend on the 2×'s coefficient do not settle across lattices
 | | and the shape differs too — the 10× drifts ~~48.70%~~ 48.80% across the same field the 4× is flat to ~~6.75%~~ 3.47% over, monotonely at every height; and the 2×, which wobbled point-sampled (15.41%), drifts too — 34.12%, monotonely | ✅ |
 | | ~~not the estimator giving up: the 10×'s sweeps are conditioned within 2.2% of the 4×'s own, 0.405839 against 0.397282 of a depth of focus~~ **weakened** — resolved the 10×'s worst sample is 0.517029 against the 4×'s 0.420705, 1.23× worse; both near half the refusal threshold, and what answers "the estimator gave up" is now the shape, a monotone 49% at every height | ✅ |
 | | and the shape is the OBJECTIVE's and not the wavelength's: the 10× drifts at 430 nm too, spread ~~40.91%~~ 46.16% against the 4×'s ~~12.54%~~ 12.68% at the same wavelength — both of its rows several times both of the 4×'s | ✅ |
-| **§ 6bf.5 — a plateau is REFUSED, not reported** | ~~the 2×/0.10 at 430 nm and object height 0.7 mm: the parabola fits, and the readout throws~~ **withdrawn as a fact about the optics** — resolved, the same sample reads 0.860568 at 48 pupil samples, 0.96–0.98 at 56, and is refused only at 47: it sits on the threshold and the lattice decides the side (register item 34). At 48 its vertex walks with the field, 0.531770 → 0.521498 → 0.512127 mm at h = 0, 0.35 and 0.7 | ✅ |
+| **§ 6bf.5 — a plateau is REFUSED, not reported** | ~~the 2×/0.10 at 430 nm and object height 0.7 mm: the parabola fits, and the readout throws~~ **withdrawn as a fact about the optics** — resolved, the same sample reads 0.860568 at 48 pupil samples, passes at 56 on its own bracket (off its vertex, 0.96–0.98 at two sweep steps and over 1 at the third), and is refused at 47: it sits on the threshold and the lattice decides the side (register item 34). At 48 its vertex walks with the field, 0.531770 → 0.521498 → 0.512127 mm at h = 0, 0.35 and 0.7 | ✅ |
 | | and the refusal is the THRESHOLD's: set at 0.8, under the reading, the same sample throws — a test of the mechanism and not of the objective | ✅ |
 | | and the same objective at the same height at its design wavelength reads a real vertex, ~~under one depth of focus — so the refusal is about the configuration and not about the objective~~ 0.579822, so 430 nm is still the worse-conditioned half, 1.48× | ✅ |
 | | and the conditioning is the OPTICS' and not the grid's: over a 4× range of sweep step, each bracketed on its own vertex, it moves ~~0.08% on the plateau itself~~ under 0.2% on the flattest sample and 0.34% on a sharp sample ~~, so the refusal fires at every step alike~~; bracketed where the coarse pass opens it, up to 4.5% on the flattest | ✅ |
@@ -22861,7 +22861,9 @@ every height, and the evidence that made it a plateau is gone — its vertex wal
 1.03e-2 mm from the axis to 0.35 mm and 9.4e-3 more to 0.7, where point-sampled
 two heights 0.35 mm apart sat 5e-4 apart, and it holds to 2e-4 mm over a 4×
 range of step. It is not a measurement as a fact about the optics either: the
-same sample reads 0.96–0.98 at 56 samples and is refused, over 1, at 47. It sits
+same sample passes at 56 samples on its own bracket — off its vertex it reads
+0.96–0.98 at two sweep steps and over 1 at the third — and is refused, over 1,
+at 47. It sits
 on the threshold and the lattice decides the side (register item 34). So the
 refusal is now pinned as the mechanism — a threshold set at 0.8, under the
 reading, throws on the same sample — and every other sample § 6bf measures
