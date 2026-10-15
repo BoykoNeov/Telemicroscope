@@ -1,5 +1,6 @@
 import { createElement, lazy, useState, type ComponentType, type ReactElement } from "react";
 import { decodeLink, type TeachingLink } from "../teaching";
+import type { PanelGroup, TopicId } from "../guide";
 
 /**
  * The panels, in reading order, and the routing table is exactly this list.
@@ -65,16 +66,24 @@ import { decodeLink, type TeachingLink } from "../teaching";
  * shell keys the panel on the route, so every visit is a fresh mount and a
  * fresh choice. UI-PLAN step 7's landing note has the three runs.
  */
-export type PanelGroup = "telescope" | "microscope" | "design";
+export type { PanelGroup } from "../guide";
 
 export type Panel = {
   readonly id: string;
-  /** How the nav reads. Short — it sits in a row. */
+  /** How the nav reads. Short — it sits in a menu. */
   readonly label: string;
-  /** One line under the nav, saying what the surface is for. */
+  /**
+   * Where the surface came from, for a maintainer: the doc section that scoped
+   * it and its finding. Shown as the summary's tooltip, not as the first line a
+   * reader meets — see `guide.ts` on why.
+   */
   readonly blurb: string;
-  /** Which row of the nav it sits on: the branch of the engine it draws. */
+  /** Which menu it sits in: the branch of the engine it draws. */
   readonly group: PanelGroup;
+  /** Which column of that menu, and which section of the start page. */
+  readonly topic: TopicId;
+  /** What the surface shows, in one plain sentence — no section numbers. */
+  readonly summary: string;
   /**
    * Fetch the panel's chunk without mounting it. Memoised: every call after the
    * first returns the same promise, and `Component` renders through it, so a
@@ -86,10 +95,17 @@ export type Panel = {
   readonly Component: ComponentType<PanelProps>;
 };
 
-/** The nav's rows, in the order they appear, with the word each row wears. */
+/**
+ * The header's menus, in the order they appear, with the word each wears.
+ *
+ * Microscope first since Part R: the start page's own lead is the microscope,
+ * so the menu a reader opens after it should be that one. `start` is a group
+ * of one — the start page — and the shell draws it as a plain link, not a menu.
+ */
 export const PANEL_GROUPS: readonly { readonly id: PanelGroup; readonly label: string }[] = [
-  { id: "telescope", label: "telescope" },
+  { id: "start", label: "start" },
   { id: "microscope", label: "microscope" },
+  { id: "telescope", label: "telescope" },
   { id: "design", label: "design & tolerance" },
 ];
 
@@ -139,10 +155,21 @@ export function lazyPanel(load: () => Promise<PanelModule>): Pick<Panel, "load" 
 
 export const PANELS: readonly Panel[] = [
   {
+    id: "home",
+    label: "start",
+    blurb: "APP.md Part R — the map of the app, and the three guided paths through it",
+    group: "start",
+    topic: "start",
+    summary: "Where everything is, and where to begin.",
+    ...lazyPanel(() => import("./home").then((m) => ({ default: m.HomePanel }))),
+  },
+  {
     id: "telescope",
     label: "star & field",
     blurb: "roadmap step 4 — chromatic fringing, and a field-varying PSF across 25 stars",
     group: "telescope",
+    topic: "sky-view",
+    summary: "A star through a simple lens: colour fringes, and how a star's image changes across the field.",
     ...lazyPanel(() => import("./telescope").then((m) => ({ default: m.TelescopePanel }))),
   },
   {
@@ -150,6 +177,8 @@ export const PANELS: readonly Panel[] = [
     label: "the ray fan",
     blurb: "APP.md Part H — where each ray in the pupil lands, and the half of the fan coma adds",
     group: "telescope",
+    topic: "sky-flaws",
+    summary: "Where each ray through the lens really lands — the simplest picture of what a lens gets wrong.",
     ...lazyPanel(() => import("./rayfan").then((m) => ({ default: m.RayFanPanel }))),
   },
   {
@@ -157,6 +186,8 @@ export const PANELS: readonly Panel[] = [
     label: "chromatic focus",
     blurb: "APP.md Part H — where each colour focuses, and what it costs at the one plane the image has",
     group: "telescope",
+    topic: "sky-flaws",
+    summary: "Each colour comes to focus at a different distance; see how much that blurs the image.",
     ...lazyPanel(() => import("./chromatic").then((m) => ({ default: m.ChromaticPanel }))),
   },
   {
@@ -164,6 +195,8 @@ export const PANELS: readonly Panel[] = [
     label: "the spot diagram",
     blurb: "ROADMAP v1 — where a pupil-full of rays lands, and the lens a spot diagram lies about",
     group: "telescope",
+    topic: "sky-flaws",
+    summary: "A cloud of traced rays at the image — the classic spot diagram, and a case where it misleads.",
     ...lazyPanel(() => import("./spot").then((m) => ({ default: m.SpotPanel }))),
   },
   {
@@ -171,6 +204,8 @@ export const PANELS: readonly Panel[] = [
     label: "a disc, not a point",
     blurb: "APP.md C7 — a source with an angular size, and the diagonal that decides how much sky fits",
     group: "telescope",
+    topic: "sky-view",
+    summary: "A planet or the Moon instead of a point star, and how much sky fits in the view.",
     ...lazyPanel(() => import("./sky").then((m) => ({ default: m.SkyPanel }))),
   },
   {
@@ -178,6 +213,8 @@ export const PANELS: readonly Panel[] = [
     label: "the wavefront",
     blurb: "ROADMAP v1 — the Zernike terms, and which RMS the Strehl formula actually wants",
     group: "telescope",
+    topic: "sky-flaws",
+    summary: "The lens's error drawn as the shape of the light wave, split into standard terms.",
     ...lazyPanel(() => import("./wavefront").then((m) => ({ default: m.WavefrontPanel }))),
   },
   {
@@ -185,6 +222,8 @@ export const PANELS: readonly Panel[] = [
     label: "the MTF",
     blurb: "ROADMAP v1 — the contrast that survives, and the cutoff of an aperture that did not transmit",
     group: "telescope",
+    topic: "sky-flaws",
+    summary: "How much contrast survives for coarse and for fine detail.",
     ...lazyPanel(() => import("./mtf").then((m) => ({ default: m.MtfPanel }))),
   },
   {
@@ -192,6 +231,8 @@ export const PANELS: readonly Panel[] = [
     label: "the curved field",
     blurb: "ROADMAP v1 — the two surfaces a flat sensor sits between, and the one the achromat did not flatten",
     group: "telescope",
+    topic: "sky-flaws",
+    summary: "Why the sharpest image lies on a curved surface, not on a flat sensor.",
     ...lazyPanel(() => import("./curvature").then((m) => ({ default: m.CurvaturePanel }))),
   },
   {
@@ -199,6 +240,8 @@ export const PANELS: readonly Panel[] = [
     label: "the reflectors",
     blurb: "APP.md Part C — six presets from three numbers, and an obstruction the trace never sees",
     group: "telescope",
+    topic: "sky-hardware",
+    summary: "Six classic mirror telescopes, and the shadow their small second mirror casts.",
     ...lazyPanel(() => import("./reflector").then((m) => ({ default: m.ReflectorPanel }))),
   },
   {
@@ -206,6 +249,8 @@ export const PANELS: readonly Panel[] = [
     label: "the sensor",
     blurb: "APP.md C4 — a pixel that integrates, and a critical pitch that is per wavelength",
     group: "telescope",
+    topic: "sky-view",
+    summary: "A camera sensor: pixel size, photon counts, noise, and the faintest star it can catch.",
     ...lazyPanel(() => import("./camera").then((m) => ({ default: m.CameraPanel }))),
   },
   {
@@ -213,6 +258,8 @@ export const PANELS: readonly Panel[] = [
     label: "visual mode",
     blurb: "APP.md C5 — the eye takes the aperture, and the apparent field belongs to the eyepiece",
     group: "telescope",
+    topic: "sky-view",
+    summary: "Looking through an eyepiece with your own eye: what you see and how wide the view is.",
     ...lazyPanel(() => import("./visual").then((m) => ({ default: m.VisualPanel }))),
   },
   {
@@ -220,6 +267,8 @@ export const PANELS: readonly Panel[] = [
     label: "long exposure",
     blurb: "APP.md C6 — one screen is a speckle pattern, and only the mean is the seeing disc",
     group: "telescope",
+    topic: "sky-view",
+    summary: "Air turbulence: a speckled star in a snapshot, a soft blurred disc over a long exposure.",
     ...lazyPanel(() => import("./seeing").then((m) => ({ default: m.SeeingPanel }))),
   },
   {
@@ -227,6 +276,8 @@ export const PANELS: readonly Panel[] = [
     label: "the mechanical train",
     blurb: "APP.md C3 — a part's length and its optical cost are different numbers",
     group: "telescope",
+    topic: "sky-hardware",
+    summary: "The tubes, focusers and adapters between lens and camera, and what each one costs optically.",
     ...lazyPanel(() => import("./mech").then((m) => ({ default: m.MechPanel }))),
   },
   {
@@ -234,6 +285,8 @@ export const PANELS: readonly Panel[] = [
     label: "microscope bench",
     blurb: "APP.md A1 — every objective traced, and the crop a frame actually covers",
     group: "microscope",
+    topic: "scope-parts",
+    summary: "Ten microscope objectives side by side: how much of the slide each shows, and how sharply.",
     ...lazyPanel(() => import("./bench").then((m) => ({ default: m.BenchPanel }))),
   },
   {
@@ -241,6 +294,8 @@ export const PANELS: readonly Panel[] = [
     label: "the bench editor",
     blurb: "ROADMAP v1 — the surface list itself, and the order the aperture says is really there",
     group: "microscope",
+    topic: "scope-parts",
+    summary: "Edit a lens surface by surface — curvature, glass, spacing — and watch its cross-section.",
     ...lazyPanel(() => import("./editor").then((m) => ({ default: m.EditorPanel }))),
   },
   {
@@ -248,6 +303,8 @@ export const PANELS: readonly Panel[] = [
     label: "the telecentric stop",
     blurb: "VALIDATION § 6ar — the stop is a millimetre, and how many colours one millimetre can serve",
     group: "microscope",
+    topic: "scope-parts",
+    summary: "Where to put the aperture stop so the magnification does not change with focus.",
     ...lazyPanel(() => import("./telecentric").then((m) => ({ default: m.TelecentricPanel }))),
   },
   {
@@ -255,6 +312,8 @@ export const PANELS: readonly Panel[] = [
     label: "the solve",
     blurb: "ROADMAP v2+ — design mode's first half: what a number has to be, and the pole that is not a root",
     group: "design",
+    topic: "design-solve",
+    summary: "Ask for a property — a focal length, no colour error — and solve for the lens shape that gives it.",
     ...lazyPanel(() => import("./design").then((m) => ({ default: m.DesignPanel }))),
   },
   {
@@ -262,6 +321,8 @@ export const PANELS: readonly Panel[] = [
     label: "the compromise",
     blurb: "ROADMAP v2+ — design mode's second half: several wishes at once, and the leftover that is part of the answer",
     group: "design",
+    topic: "design-solve",
+    summary: "Several goals at once: the best compromise a lens can reach, and what is left over.",
     ...lazyPanel(() => import("./optimize").then((m) => ({ default: m.OptimizePanel }))),
   },
   {
@@ -269,6 +330,8 @@ export const PANELS: readonly Panel[] = [
     label: "the builder",
     blurb: "APP.md D8 — the parameters the catalogue defaulted, and a wall measured for what you built",
     group: "microscope",
+    topic: "scope-parts",
+    summary: "Compose your own objective — type, magnification, aperture, glass — and find where designs stop working.",
     ...lazyPanel(() => import("./builder").then((m) => ({ default: m.BuilderPanel }))),
   },
   {
@@ -276,6 +339,8 @@ export const PANELS: readonly Panel[] = [
     label: "brightfield",
     blurb: "APP.md A2 — the condenser, the Abbe sum, and where the cutoff really lands",
     group: "microscope",
+    topic: "scope-light",
+    summary: "Ordinary microscope lighting: how the condenser opening trades contrast for sharpness.",
     ...lazyPanel(() => import("./brightfield").then((m) => ({ default: m.BrightfieldPanel }))),
   },
   {
@@ -283,6 +348,8 @@ export const PANELS: readonly Panel[] = [
     label: "the phase null",
     blurb: "APP.md A3 — a specimen that absorbs nothing, and the term that survives it",
     group: "microscope",
+    topic: "scope-light",
+    summary: "A clear, colourless specimen is invisible in ordinary light — and how phase contrast reveals it.",
     ...lazyPanel(() => import("./phase").then((m) => ({ default: m.PhasePanel }))),
   },
   {
@@ -290,6 +357,8 @@ export const PANELS: readonly Panel[] = [
     label: "fluorescence beads",
     blurb: "APP.md A4 — a specimen that emits, and the cutoff reached with no condenser",
     group: "microscope",
+    topic: "scope-light",
+    summary: "Glowing beads: a specimen that makes its own light and needs no condenser.",
     ...lazyPanel(() => import("./fluorescence").then((m) => ({ default: m.FluorescencePanel }))),
   },
   {
@@ -297,6 +366,8 @@ export const PANELS: readonly Panel[] = [
     label: "a source with a size",
     blurb: "APP.md Part Q — a density, not a point, and the one error the grid cannot refine away",
     group: "microscope",
+    topic: "scope-light",
+    summary: "A glowing object with a real size rather than a point, and the error that size brings.",
     ...lazyPanel(() => import("./emitter").then((m) => ({ default: m.EmitterPanel }))),
   },
   {
@@ -304,6 +375,8 @@ export const PANELS: readonly Panel[] = [
     label: "the stage",
     blurb: "APP.md A7 — a field of view reached by tiling, and a tile that knows its own index",
     group: "microscope",
+    topic: "scope-look",
+    summary: "Pan around a slide, tile by tile, as if moving the microscope stage by hand.",
     ...lazyPanel(() => import("./stage").then((m) => ({ default: m.StagePanel }))),
   },
   {
@@ -311,6 +384,8 @@ export const PANELS: readonly Panel[] = [
     label: "the section, in colour",
     blurb: "APP.md A9 — colour integrated per wavelength, beside the tint that cannot be a stain",
     group: "microscope",
+    topic: "scope-light",
+    summary: "A stained tissue slice in true colour, computed one wavelength at a time.",
     ...lazyPanel(() => import("./section").then((m) => ({ default: m.SectionPanel }))),
   },
   {
@@ -318,6 +393,8 @@ export const PANELS: readonly Panel[] = [
     label: "the cover slip",
     blurb: "APP.md A6 — a plate the objective does not control, and two walls that are not aberration",
     group: "microscope",
+    topic: "scope-parts",
+    summary: "The thin glass over the specimen: what happens when it is not the thickness the lens expects.",
     ...lazyPanel(() => import("./coverslip").then((m) => ({ default: m.CoverslipPanel }))),
   },
   {
@@ -325,6 +402,8 @@ export const PANELS: readonly Panel[] = [
     label: "the eyepiece",
     blurb: "APP.md D6 — the chain ends at an eye, and which NA the exit pupil's law takes",
     group: "microscope",
+    topic: "scope-look",
+    summary: "The eyepiece and your eye at the top of the microscope: what reaches the retina.",
     ...lazyPanel(() => import("./eyepiece").then((m) => ({ default: m.EyepiecePanel }))),
   },
   {
@@ -332,6 +411,8 @@ export const PANELS: readonly Panel[] = [
     label: "collimation",
     blurb: "ROADMAP step 7 — the coma node an element knocked out of line takes with it",
     group: "telescope",
+    topic: "sky-hardware",
+    summary: "Knock one element out of line and see the comet-shaped blur it leaves.",
     ...lazyPanel(() => import("./collimation").then((m) => ({ default: m.CollimationPanel }))),
   },
   {
@@ -339,6 +420,8 @@ export const PANELS: readonly Panel[] = [
     label: "tolerances",
     blurb: "APP.md Part B — a slider per manufacturing error, and the budget that is not a bound",
     group: "design",
+    topic: "design-make",
+    summary: "One slider per manufacturing error, and how each one degrades the image.",
     ...lazyPanel(() => import("./tolerance").then((m) => ({ default: m.TolerancePanel }))),
   },
   {
@@ -346,6 +429,8 @@ export const PANELS: readonly Panel[] = [
     label: "the tolerance sheet",
     blurb: "APP.md Part P — every number a shop holds, in two currencies, and the lens whose rows reinforce",
     group: "design",
+    topic: "design-make",
+    summary: "The full tolerance sheet for a lens, the way an optics shop would read it.",
     ...lazyPanel(() => import("./budget").then((m) => ({ default: m.BudgetPanel }))),
   },
   {
@@ -353,6 +438,8 @@ export const PANELS: readonly Panel[] = [
     label: "haze & the focus stack",
     blurb: "APP.md A5 — every plane delivers its whole flux, and the missing cone that follows",
     group: "microscope",
+    topic: "scope-light",
+    summary: "A thick specimen: haze from the layers out of focus, and focusing up and down through it.",
     ...lazyPanel(() => import("./volume").then((m) => ({ default: m.VolumePanel }))),
   },
 ];

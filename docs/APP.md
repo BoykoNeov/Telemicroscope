@@ -83,6 +83,7 @@ sufficient alone.
 | Part O | `#/telecentric` | the stop that is a millimetre, and how many colours one can serve |
 | Part P | `#/budget` | the tolerance sheet, and the second lens whose rows reinforce |
 | Part Q | `#/emitter` | a source with a size, and the error no grid refines away |
+| Part R | `#/home` | the start page: menus by topic, three guided paths, a plain line per page |
 | ROADMAP step 4 | `#/telescope` | the hero image, scoped before this file existed |
 
 ## The baseline: what the app draws today, and its house style
@@ -6918,6 +6919,48 @@ what the rasterizer does with a density, and its measured effect on the imaged
 peak is 0.44% from 1 to 2 and 0.004% from 2 to 4 — for 2.5× and 8× the cost. It
 is there because an extended source is exactly the object a field-varying pupil
 is for, and the test file records that it was not swept and why.
+
+## Part R — the start page, and what leads where — *app wiring only* — ✅ **landed** — **a map and three paths**
+
+The app opened on the first telescope panel under a header of thirty-one pills
+in three rows, each labelled by its finding and each blurb citing the section
+that scoped it. Every label was accurate, and none of them told a first-time
+reader where to begin or what any page leads to. This part changes no physics
+and no panel; it changes the frame around them.
+
+**What reached a screen.**
+
+- **A start page at `#/home`, and a bare URL lands there.** It leads with three
+  *guided paths* — the microscope's ways of lighting a slide, the telescope's
+  "why a star is not a point", and the design-to-tolerance chain — each an
+  ordered list of five or six pages. Below them, every page, grouped by branch
+  and then by **topic** (look through it / how the image forms / the parts…),
+  each with one plain sentence.
+- **The header is menus.** A link to the start page, then one menu per branch
+  (microscope, telescope, design & tolerance) that opens into topic columns.
+  A menu closes on a route change, on Escape and on a click outside; the header
+  is sticky, so one left open would cover the page it just opened.
+- **Every other page says where it is**: branch › topic, its plain sentence,
+  and — on a page on a guided path — the previous and next stops. The
+  doc-facing blurb each registry entry carried is that sentence's tooltip now:
+  still one hover away for a maintainer, no longer the first line a reader meets.
+
+**Where the words live.** `packages/app/src/guide.ts` holds the topics and the
+paths as plain data with no React and no registry import; each registry entry
+gained a `topic` and a `summary`. The start page and the menus are both built
+from those two lists, so a page added to the registry shows up on both by
+construction.
+
+**What pins it.** `packages/app/test/guide.test.ts`: the bare hash lands on the
+start page, every page has a summary and a topic in its own branch, no topic is
+empty, every path stop is a real route, no route is on two paths (so "next" has
+one meaning), and no summary, hint or path title uses the docs' shorthand — no
+section signs, no `APP.md`, no `Part X`. That last check is the user's own rule,
+*plain words, no in-house jargon*, held where it can be held mechanically.
+
+**What it does not do.** The panels' own prose is untouched: a page still opens
+in the voice it was written in, and rewriting thirty-one panels' text for a
+first-time reader is a different and much larger job than giving them a map.
 
 ## What the app itself needs to hold this
 

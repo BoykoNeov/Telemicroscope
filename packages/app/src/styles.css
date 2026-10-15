@@ -414,36 +414,126 @@ figcaption {
 
 .shell-title-row {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 6px;
+  flex-wrap: wrap;
+  gap: 8px 12px;
 }
 
 .shell-title {
   font-family: var(--mono);
-  font-size: 12px;
-  color: var(--ink-4);
+  font-size: 13px;
+  color: var(--ink);
   letter-spacing: 0.04em;
+  text-decoration: none;
+  margin-right: 10px;
 }
 
 .shell-title strong {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 650;
 }
 
+.shell-title:hover strong {
+  color: var(--accent);
+}
+
+/*
+ * The nav is a start link and one menu per branch (APP.md Part R). The open
+ * menu is positioned against the header — sticky is a positioned box — so it
+ * spans the header's width at any window size and needs no measuring.
+ */
 .shell-nav {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px 18px;
-  align-items: flex-start;
+  gap: 6px;
+  align-items: center;
 }
 
-.nav-group {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
+button.nav-menu-button {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 3px 11px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  color: var(--ink-2);
+  background: transparent;
+}
+
+button.nav-menu-button:hover:not(:disabled) {
+  background: var(--bg-2);
+  border-color: var(--line);
+  color: var(--ink);
+}
+
+/* The branch the current page belongs to: marked, not inverted — inverted means "open". */
+button.nav-menu-button[data-here="true"] {
+  border-color: var(--accent);
+  color: var(--ink);
+}
+
+button.nav-menu-button[aria-expanded="true"],
+button.nav-menu-button[aria-expanded="true"]:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+
+.nav-menu {
+  position: absolute;
+  top: 100%;
+  left: 24px;
+  right: 24px;
+  margin-top: 4px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 6px 18px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  max-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+.nav-menu-topic {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-4);
+  letter-spacing: 0.04em;
+  margin: 0 0 4px 8px;
+}
+
+.nav-menu-link {
+  display: block;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+}
+
+.nav-menu-link:hover {
+  background: var(--bg-2);
+}
+
+.nav-menu-link[aria-current="page"] {
+  background: var(--bg-2);
+  border-left-color: var(--accent);
+}
+
+.nav-menu-label {
+  display: block;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.nav-menu-summary {
+  display: block;
+  color: var(--ink-3);
+  font-size: 12px;
+  line-height: 1.4;
 }
 
 .nav-group-label {
@@ -485,11 +575,153 @@ figcaption {
   color: var(--bg);
 }
 
-.shell-blurb {
+/*
+ * Where the reader is: branch › topic, the page's plain sentence, and the
+ * guided path's previous and next stops. The doc-facing blurb is the
+ * sentence's tooltip, so it is one hover away for a maintainer.
+ */
+.where {
+  margin: 0 0 8px;
+}
+
+.where-trail {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-4);
+}
+
+.where-trail a {
+  color: var(--ink-4);
+}
+
+.where-summary {
+  font-size: 15px;
+  color: var(--ink-2);
+  margin: 2px 0 6px;
+  max-width: 760px;
+}
+
+.where-tour {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
   font-family: var(--mono);
   font-size: 12px;
-  color: var(--ink-4);
+  color: var(--ink-3);
+  background: var(--bg-2);
+  border-radius: 6px;
+  padding: 6px 10px;
+  max-width: 980px;
+}
+
+.where-tour-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+/* ------------------------------------------------------------- start page */
+
+.home-title {
+  font-size: 24px;
+  margin: 20px 0 8px;
+  max-width: 760px;
+}
+
+.home-lead {
+  font-size: 15px;
+  color: var(--ink-2);
+  max-width: 700px;
+}
+
+h2.home-section {
+  font-size: 18px;
+  margin: 32px 0 4px;
+}
+
+.home-section-hint,
+.home-topic-hint {
+  color: var(--ink-3);
+  margin: 0 0 10px;
+  max-width: 700px;
+}
+
+.home-tours {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+
+.home-tour {
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--bg-2);
+  padding: 12px 16px;
+}
+
+.home-tour h3 {
   margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.home-tour-steps {
+  margin: 0 0 10px;
+  padding-left: 22px;
+  font-family: var(--mono);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.home-tour-start {
+  font-weight: 600;
+}
+
+h2.home-group-title {
+  font-size: 17px;
+  margin: 28px 0 0;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line-2);
+}
+
+.home-topic h3 {
+  font-size: 14px;
+  margin: 16px 0 2px;
+}
+
+.home-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 8px;
+}
+
+.home-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 12px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  text-decoration: none;
+  transition:
+    background-color 90ms ease-out,
+    border-color 90ms ease-out;
+}
+
+.home-card:hover {
+  background: var(--bg-2);
+  border-color: var(--accent);
+}
+
+.home-card-title {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.home-card-summary {
+  color: var(--ink-3);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 /*
@@ -586,5 +818,9 @@ button.nav-link[aria-pressed="true"]:hover {
   .shell-header {
     margin: 0 -14px 12px;
     padding: 8px 14px 6px;
+  }
+  .nav-menu {
+    left: 8px;
+    right: 8px;
   }
 }
